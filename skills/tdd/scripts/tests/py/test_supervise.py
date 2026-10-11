@@ -3157,3 +3157,30 @@ def test_cli_launches_when_the_recorded_leaf_is_gone_or_finished_under_the_same_
         "first\nsecond\nthird\n",
         ((0, []), "0", "inner\n", False),
     )
+
+
+def test_cli_refuses_a_launch_while_a_recorded_leaf_is_alive_writing_2_for_another_name_and_none_for_the_same_one_running_nothing_leaving_leaf_owner_and_wait_leaf_answering_2_618(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import signal
+    wait_leaf = importlib.import_module("veri.wait_leaf")
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    monkeypatch.setattr(wait_leaf, "clock", lambda: 1000)
+    clean_env(monkeypatch)
+    live = f"{os.getpid()} develop-green\n"
+    refusal = f"supervise: refusing to launch {{}}: leaf develop-green (pid {os.getpid()}) is still alive in this worktree"
+
+    def refused(name):
+        work = tmp_path / name
+        (work / ".tdd").mkdir(parents=True)
+        (work / ".tdd" / "leaf.owner").write_text(live)
+        fake_git_only(monkeypatch, work)
+        code, out, err = run_cli(supervise, [name, "sh", "-c", "echo ran > ran"], cwd=work)
+        exit_file = work / ".tdd" / f"{name}.exit"
+        return (code, out, err.splitlines()[-1:], exit_file.read_text() if exit_file.exists() else None,
+                (work / ".tdd" / "leaf.owner").read_text(), (work / "ran").exists(),
+                run_cli(wait_leaf, [name, "0"], cwd=work)[0])
+
+    assert [refused("verdict-green"), refused("develop-green")] == [
+        (2, "", [refusal.format("verdict-green")], "2\n", live, False, 2),
+        (2, "", [refusal.format("develop-green")], None, live, False, 3),
+    ]
