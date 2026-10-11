@@ -105,3 +105,23 @@ def test_every_case_starts_with_no_veri_claude_gh_or_git_variable_set_but_veri_v
 
     assert ran.returncode == 0, ran.stdout + ran.stderr
     assert json.loads(seen.read_text()) == ["VERI_VENV"]
+
+
+@pytest.mark.process("a child pytest session started with an ambient locale")
+def test_every_case_starts_under_lc_all_c_with_every_other_lc_variable_and_lang_unset_whatever_the_shell_had(tmp_path):
+    probe = tmp_path / "test_probe.py"
+    seen = tmp_path / "seen.json"
+    probe.write_text(
+        "import json, os\n"
+        "def test_probe():\n"
+        "    locale = {n: v for n, v in os.environ.items() if n == 'LANG' or n.startswith('LC_')}\n"
+        "    open(%r, 'w').write(json.dumps(locale))\n" % str(seen))
+    ambient = {"LC_ALL": "en_US.UTF-8", "LANG": "en_US.UTF-8", "LC_TIME": "de_DE.UTF-8"}
+    env = {**os.environ, **ambient, "PYTHONPATH": str(pathlib.Path(__file__).resolve().parent)}
+
+    ran = subprocess.run([sys.executable, "-m", "pytest", "-p", "conftest", "-p", "no:cacheprovider", "-q",
+                          "--rootdir", str(tmp_path), str(probe)],
+                         env=env, cwd=tmp_path, capture_output=True, text=True)
+
+    assert ran.returncode == 0, ran.stdout + ran.stderr
+    assert json.loads(seen.read_text()) == {"LC_ALL": "C"}
