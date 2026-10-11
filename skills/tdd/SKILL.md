@@ -651,12 +651,12 @@ unauthenticated baseline never gets a cycle.
    ever read for a developer name, `VERI_MODEL_REVISE` only for a revise one and
    `VERI_MODEL_VERIFIER` only for a verifier one, so a preflight that skipped a name would
    let that name's bad value through and kill every leaf it governs at launch.
-   **Exit 2** means the value cannot be a model name — whitespace in it, so `sonnet 5` is two
-   words where the CLI takes one — and is a preflight-class stop like step 5: report its
-   stderr diagnostic verbatim and do not start. The resolver is otherwise first called at
-   launch, by which time the branch, the worktree and the plan already exist and a typo costs
-   a bail to undo. An empty print is the normal answer for a run that chose no model, so exit
-   0 with nothing on stdout means continue.
+   A variable that is empty or whitespace-only is treated as unset, so it never stops the run.
+   Only a value with internal whitespace stops it: **exit 2** means the value cannot be a
+   model name — `sonnet 5` is two words where the CLI takes one — and is a preflight-class
+   stop like step 5: report its stderr diagnostic verbatim and do not start. The resolver is
+   otherwise first called at launch, by which time the branch, the worktree and the plan
+   already exist and a typo costs a bail to undo. Exit 0 means continue.
 7. **Size the run's hard timeout from the full-tier measurement.** Hand step 3's `baseline`
    and its `full` measurement to `$S/leaf-timeout.sh`, so every leaf of the run is launched
    under the result rather than under the supervisor's fixed 900 s default:

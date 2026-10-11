@@ -487,4 +487,22 @@ fi
 
 report "$name"
 
+name="#1485 $skill_md's preflight step 6 reads an empty or whitespace-only model variable as unset and stops only on a value with internal whitespace"
+problems=()
+
+if preflight_or_problem "the leaf-model item"; then
+  at="$(call_at '$S/leaf-model.sh develop-red')"
+  if [[ -z "$at" ]]; then
+    problems+=("$skill_md's '$preflight' section never calls leaf-model.sh develop-red, so the item on leaf models could not be read")
+  else
+    model_item="$(item_around "$at" | sentences)"
+    grep -iE 'empty' <<< "$model_item" | grep -iF 'whitespace-only' | grep -iE 'unset' > /dev/null ||
+      problems+=("$skill_md:$at: no sentence of the leaf-model item says an empty or whitespace-only variable is treated as unset")
+    grep -iF 'internal whitespace' <<< "$model_item" | grep -iE 'exit 2|stops?' > /dev/null ||
+      problems+=("$skill_md:$at: no sentence of the leaf-model item says a value with internal whitespace is what stops the run")
+  fi
+fi
+
+report "$name"
+
 finish
