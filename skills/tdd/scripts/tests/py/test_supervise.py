@@ -2718,7 +2718,7 @@ def test_cli_launches_a_supervised_run_leaf_with_model_in_claudes_argv_only_when
     ]
 
 
-@pytest.mark.process("event.sh and git run for real: a launch event's skill_commit is the skill clone's own HEAD, or unknown outside a clone")
+@pytest.mark.process("git runs for real, and the launch event is appended in-process: a launch event's skill_commit is the skill clone's own HEAD, or unknown outside a clone")
 def test_cli_records_the_skill_clones_own_head_in_a_launch_events_skill_commit_and_the_literal_unknown_for_a_skill_outside_a_git_clone(
         monkeypatch, tmp_path, supervise, run_cli):
     import json
@@ -3002,7 +3002,7 @@ def test_cli_on_term_int_or_hup_writes_2_exits_2_and_leaves_no_leaf_while_an_ign
     assert answers == [(2, "2\n", False), (2, "2\n", False), (2, "2\n", False), (0, "0\n", True), (3, "")]
 
 
-@pytest.mark.process("supervise.sh run for real through a symlink to the skill directory from another cwd, with real event.sh, harvest-usage.sh, preserve-attempt.sh and git")
+@pytest.mark.process("supervise.sh run for real through a symlink to the skill directory from another cwd, with real harvest-usage.sh, preserve-attempt.sh and git; every event is appended in-process")
 def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_cwd_answers_as_in_place_with_events_usage_and_the_preserved_attempt_in_the_callers_tdd_the_skill_clones_head_and_no_tdd_beside_the_skill(
         monkeypatch, tmp_path):
     import json

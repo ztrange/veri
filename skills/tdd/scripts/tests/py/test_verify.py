@@ -1792,7 +1792,7 @@ BLOCKER = "refs/veri/attempts/625/6"
 
 
 @pytest.mark.process("a real git scratch repository whose rejected attempts land under refs/veri/attempts/,"
-                     " behind the real supervise.sh and event.sh")
+                     " behind the real supervise.sh, every event appended in-process")
 @pytest.mark.parametrize("phase, leaf, text, env, expected", [
     pytest.param("green", "answers", "VERDICT: REJECT\nREASON: the helper it asserts on is still private.",
                  {"VERI_ISSUE": "409", "VERI_STEP": "4"},

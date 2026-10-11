@@ -20,7 +20,7 @@ def closing_result(path):
 
 
 def usage_pairs(record):
-    """The eight numbers in one closing result record, as event.sh key=value arguments."""
+    """The eight numbers in one closing result record, as key=value event fields."""
     usage = record["usage"]
     pairs = []
     for key in ("duration_ms", "duration_api_ms", "num_turns", "total_cost_usd"):

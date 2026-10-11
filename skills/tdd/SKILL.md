@@ -361,8 +361,9 @@ nothing set in preflight survives to a launch three steps later.
 
 It carries `VERI_ISSUE` and `VERI_STEP` for the same reason, and they are the same two
 values your own marks below spell: the supervisor's `launch` and `exit` events and the
-verifier's `verdict` event are written by `event.sh`, which reads the run context out of
-the environment it is called in. Nothing downstream can supply it — `leaf-role.sh` derives
+verifier's `verdict` event are written by `event.sh`'s module, `veri/event.py`, called
+in-process by the supervisor and the verifier, which reads the run context out of their
+environment. Nothing downstream can supply it — `leaf-role.sh` derives
 the actor, the phase and the attempt from the leaf's **name**, and no name says which issue
 is being solved or which step of its plan the leaf is on — so a launch that omits them
 leaves every one of that leaf's events with an empty `issue` and an empty `step`, and a
