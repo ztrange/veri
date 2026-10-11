@@ -22,7 +22,6 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPT="$HERE/../workqueue.sh"
 SKILL_DIR="$HERE/../.."
-source "$HERE/../lib/background.sh"
 source "$HERE/lib/harness.sh"
 work="$(scratch_dir)"
 
@@ -53,35 +52,6 @@ expect_show() {
     no "$what"
     echo "    exit: $code (want 0), stderr: $(cat "$work/$name.err")"
     diff <(printf '%s\n' "$want") <(printf '%s\n' "$out") | sed 's/^/    /'
-  fi
-}
-
-expect_queue() {
-  local name="$1" want what="$3" out code got
-  want="$(printf "$2")"
-  shift 3
-  out="$(cd "$work/$name" && "$SCRIPT" "$@" 2>&1)" && code=0 || code=$?
-  got="$(cat "$work/$name/.tdd/workqueue" 2>/dev/null || printf '<no .tdd/workqueue>')"
-  if [[ "$code" -eq 0 && "$got" == "$want" ]]; then
-    ok
-  else
-    no "$what"
-    echo "    exit: $code (want 0), output: $out"
-    diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
-  fi
-}
-
-expect_unchanged() {
-  local name="$1" want_code="$2" what="$3" out code
-  shift 3
-  cp "$work/$name/.tdd/workqueue" "$work/$name.before"
-  out="$(cd "$work/$name" && "$SCRIPT" "$@" 2>&1)" && code=0 || code=$?
-  if [[ "$code" -eq "$want_code" ]] && cmp -s "$work/$name.before" "$work/$name/.tdd/workqueue"; then
-    ok
-  else
-    no "$what"
-    echo "    exit: $code (want $want_code), output: $out"
-    diff "$work/$name.before" "$work/$name/.tdd/workqueue" 2>&1 | sed 's/^/    /'
   fi
 }
 
@@ -161,138 +131,6 @@ else
   echo "    working gh: exit $working_code (want 0), stdout: '$working' (want '22')"
   echo "    GraphQL refused: exit $code (want $working_code), stdout: '$out' (want '$working')"
   echo "    GraphQL refused stderr: '$refused_err' (want '$working_err')"
-fi
-
-repo="$work/start-queued"
-make_repo "$repo"
-seed_queue "$repo" 'alpha\t12\tparked\tsecond bail\nbeta\t4\tqueued\t\nalpha\t12\tqueued\t\nalpha\t7\tqueued\t\n'
-expect_queue start-queued \
-  'alpha\t12\tparked\tsecond bail\nbeta\t4\tqueued\t\nalpha\t12\trunning\t\nalpha\t7\tqueued\t' \
-  "start moves that worker's queued item to running" start alpha 12
-
-repo="$work/done-running"
-make_repo "$repo"
-seed_queue "$repo" 'beta\t4\trunning\t\nalpha\t12\trunning\t\nalpha\t7\tqueued\t\n'
-expect_queue done-running \
-  'beta\t4\trunning\t\nalpha\t12\tmerged\tabc1234\nalpha\t7\tqueued\t' \
-  "done moves that worker's running item to merged, recording the sha" done alpha 12 abc1234
-
-repo="$work/park-running"
-make_repo "$repo"
-seed_queue "$repo" 'beta\t4\trunning\t\nalpha\t12\trunning\t\nalpha\t7\tqueued\t\n'
-expect_queue park-running \
-  'beta\t4\trunning\t\nalpha\t12\tparked\tsecond bail\nalpha\t7\tqueued\t' \
-  "park moves that worker's running item to parked, recording the reason" \
-  park alpha 12 "second bail"
-
-repo="$work/foreign-item"
-make_repo "$repo"
-seed_queue "$repo" 'alpha\t12\tqueued\t\nalpha\t13\trunning\t\n'
-expect_unchanged foreign-item 1 \
-  "start naming another worker's queued item exits 1 and leaves the file byte-identical" \
-  start beta 12
-expect_unchanged foreign-item 1 \
-  "done naming another worker's running item exits 1 and leaves the file byte-identical" \
-  done beta 13 abc1234
-expect_unchanged foreign-item 1 \
-  "park naming another worker's running item exits 1 and leaves the file byte-identical" \
-  park beta 13 "second bail"
-
-repo="$work/wrong-state"
-make_repo "$repo"
-seed_queue "$repo" 'alpha\t12\tqueued\t\nalpha\t13\trunning\t\n'
-expect_unchanged wrong-state 1 \
-  "start on an item not queued exits 1 and leaves the file byte-identical" \
-  start alpha 13
-expect_unchanged wrong-state 1 \
-  "done on an item not running exits 1 and leaves the file byte-identical" \
-  done alpha 12 abc1234
-expect_unchanged wrong-state 1 \
-  "park on an item not running exits 1 and leaves the file byte-identical" \
-  park alpha 12 "second bail"
-
-repo="$work/never-removed"
-make_repo "$repo"
-for call in "assign alpha 12 7" "assign beta 30" "assign beta 12" "start alpha 12" \
-  "start beta 7" "done alpha 12 abc1234" "start alpha 7" "done alpha 7" "park alpha 7 why" \
-  "park alpha 30 why" "start beta 30" "frobnicate beta 30"; do
-  (cd "$repo" && "$SCRIPT" $call >/dev/null 2>&1) || true
-done
-held="$(cut -f2 "$repo/.tdd/workqueue" 2>/dev/null | tr '\n' ' ')"
-missing=""
-for issue in 12 7 30; do
-  [[ " $held" == *" $issue "* ]] || missing="$missing $issue"
-done
-if [[ -z "$missing" ]]; then
-  ok
-else
-  no "after assign, start, done, park and refused calls, every issue ever assigned is still a line"
-  echo "    missing:$missing (want none), queue issues: $held"
-fi
-
-repo="$work/parallel-writes"
-make_repo "$repo"
-seed=""
-for i in $(seq 1 20); do
-  seed="${seed}alpha\t$((100 + i))\tqueued\t\n"
-done
-seed_queue "$repo" "$seed"
-pids=()
-for i in $(seq 1 20); do
-  (cd "$repo" && "$SCRIPT" assign "w$i" "$i" >/dev/null 2>&1) &
-  pids+=("$!")
-  (cd "$repo" && "$SCRIPT" start alpha "$((100 + i))" >/dev/null 2>&1) &
-  pids+=("$!")
-done
-for pid in "${pids[@]}"; do
-  wait "$pid" || true
-done
-torn="" missing=""
-while IFS= read -r line; do
-  [[ "$line" =~ ^[^$'\t']+$'\t'[0-9]+$'\t'(queued|running|merged|parked|skipped)$'\t'[^$'\t']*$ ]] \
-    || torn="$torn [$line]"
-done < "$repo/.tdd/workqueue"
-lines=$'\n'"$(cat "$repo/.tdd/workqueue")"$'\n'
-for i in $(seq 1 20); do
-  [[ "$lines" == *$'\n'"w$i"$'\t'"$i"$'\t'queued$'\t'$'\n'* ]] || missing="$missing w$i/$i:queued"
-  [[ "$lines" == *$'\n'alpha$'\t'"$((100 + i))"$'\t'running$'\t'$'\n'* ]] \
-    || missing="$missing alpha/$((100 + i)):running"
-done
-if [[ -z "$torn" && -z "$missing" ]]; then
-  ok
-else
-  no "N assign and start calls run in parallel leave a well-formed file containing every write"
-  echo "    torn lines:${torn:- none} (want none)"
-  echo "    writes missing:${missing:- none} (want none)"
-fi
-
-repo="$work/lock-held"
-make_repo "$repo"
-seed_queue "$repo" 'alpha\t12\tqueued\t\n'
-before="$(cat "$repo/.tdd/workqueue")"
-mkdir "$repo/.tdd/workqueue.lock"
-record="$work/lock-held.bg"
-bg_start "$record" env VERI_WORKQUEUE_LOCK_WAIT=0 sh -c 'cd "$1" && exec "$2" assign beta 7' \
-  _ "$repo" "$SCRIPT" 2>"$work/lock-held.err"
-writer="$(tail -n 1 "$record" | cut -d' ' -f1)"
-for _ in $(seq 1 60); do
-  kill -0 "$writer" 2>/dev/null || break
-  sleep 0.05
-done
-if kill -0 "$writer" 2>/dev/null; then
-  bg_kill "$record"
-  wait "$writer" 2>/dev/null
-  code="still waiting"
-else
-  wait "$writer" && code=0 || code=$?
-fi
-after="$(cat "$repo/.tdd/workqueue")"
-if [[ "$code" == 2 && "$after" == "$before" ]]; then
-  ok
-else
-  no "a write that cannot take the lock exits 2 without touching the file"
-  echo "    exit: $code (want 2), stderr: $(cat "$work/lock-held.err")"
-  diff <(printf '%s\n' "$before") <(printf '%s\n' "$after") | sed 's/^/    /'
 fi
 
 make_repo "$work/show-grouped"
@@ -396,38 +234,6 @@ else
   echo "    terms not defined:$terms_missing (want none)"
 fi
 
-park_outcome() {
-  local name="$1" reason="$2" queue="$work/$1/.tdd/workqueue" code lines
-  make_repo "$work/$name"
-  seed_queue "$work/$name" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\n'
-  cp "$queue" "$work/$name.before"
-  (cd "$work/$name" && "$SCRIPT" park alpha 12 "$reason" >/dev/null 2>&1) && code=0 || code=$?
-  if [[ "$code" -ne 0 ]]; then
-    if cmp -s "$work/$name.before" "$queue"; then
-      echo refused
-    else
-      echo "corrupt (exit $code, file changed)"
-    fi
-    return
-  fi
-  lines="$(wc -l < "$queue" | tr -d ' ')"
-  if [[ "$lines" == 2 ]] && awk -F '\t' 'NF != 4 { bad = 1 } END { exit bad }' "$queue"; then
-    echo well-formed
-  else
-    echo "corrupt (exit 0, $lines lines, fields per line: $(awk -F '\t' '{ printf "%s ", NF }' "$queue"))"
-  fi
-}
-tab_outcome="$(park_outcome park-reason-tab "$(printf 'first\tsecond')")"
-newline_outcome="$(park_outcome park-reason-newline "$(printf 'first\nsecond')")"
-if [[ "$tab_outcome" == "$newline_outcome" &&
-  ( "$tab_outcome" == refused || "$tab_outcome" == well-formed ) ]]; then
-  ok
-else
-  no "park given a reason holding a tab or a newline treats both the same way, leaving the queue well-formed or refusing with the file untouched"
-  echo "    tab: $tab_outcome"
-  echo "    newline: $newline_outcome"
-fi
-
 make_repo "$work/show-no-items"
 seed_queue "$work/show-no-items" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\nalpha\t7\tqueued\t\n'
 (cd "$work/show-no-items" && "$SCRIPT" show beta > "$work/show-no-items.beta" \
@@ -442,21 +248,6 @@ else
   echo "    show beta: exit $beta_code (want 0), stdout: '$(cat "$work/show-no-items.beta")'"
   echo "    show gamma: exit $gamma_code (want 0), stdout bytes: $(wc -c < "$work/show-no-items.gamma" | tr -d ' ') (want 0)"
   echo "    stderr: $(cat "$work/show-no-items.err")"
-fi
-
-repo="$work/trap-lifetime"
-make_repo "$repo"
-seed_queue "$repo" 'alpha\t12\tqueued\t\n'
-mkdir -p "$work/trap-lifetime.bin"
-printf '#!/bin/sh\nexit 5\n' > "$work/trap-lifetime.bin/mv"
-chmod +x "$work/trap-lifetime.bin/mv"
-(cd "$repo" && PATH="$work/trap-lifetime.bin:$PATH" "$SCRIPT" start alpha 12 \
-  2>"$work/trap-lifetime.err") && code=0 || code=$?
-if [[ "$code" -eq 2 ]]; then
-  ok
-else
-  no "workqueue.sh, failing after take_lock has armed its EXIT trap, ends with exit 2"
-  echo "    exit: $code (want 2), stderr: $(cat "$work/trap-lifetime.err")"
 fi
 
 finish

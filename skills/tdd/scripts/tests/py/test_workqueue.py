@@ -2,6 +2,7 @@
 import importlib
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -841,3 +842,106 @@ def test_next_through_the_cli_reads_an_issues_document_over_256_kib_as_it_reads_
     large = run_cli(workqueue, ["next", "alpha"], env={"VERI_GH_JSON": str(long)})
     assert small == (0, "3\n", "")
     assert large == small
+
+
+def queue_tree(tmp_path, fake_processes, mv_status=0):
+    queue = tmp_path / ".tdd" / "workqueue"
+    queue.parent.mkdir()
+
+    def answer(line, **kwargs):
+        if line.startswith("git worktree list"):
+            return 0, "worktree %s\n" % tmp_path, ""
+        if line.startswith("mv "):
+            _, source, target = line.split(" ")
+            if mv_status == 0:
+                os.replace(source, target)
+            return mv_status, "", ""
+        raise AssertionError("unexpected command: %s" % line)
+
+    fake_processes(answer)
+    return queue
+
+
+def test_start_done_and_park_through_the_cli_rewrite_only_that_workers_line_moving_it_to_running_merged_or_parked(tmp_path, fake_processes, run_cli, workqueue):
+    queue = queue_tree(tmp_path, fake_processes)
+    queue.write_bytes(b"alpha\t12\tparked\tsecond bail\nbeta\t4\tqueued\t\nbeta\t12\tqueued\t\nalpha\t12\tqueued\t\nalpha\t7\tqueued\t\n")
+    assert run_cli(workqueue, ["start", "alpha", "12"]) == (0, "", "")
+    assert queue.read_bytes() == b"alpha\t12\tparked\tsecond bail\nbeta\t4\tqueued\t\nbeta\t12\tqueued\t\nalpha\t12\trunning\t\nalpha\t7\tqueued\t\n"
+
+    queue.write_bytes(b"beta\t4\trunning\t\nbeta\t12\trunning\t\nalpha\t12\trunning\t\nalpha\t7\tqueued\t\n")
+    assert run_cli(workqueue, ["done", "alpha", "12", "abc1234"]) == (0, "", "")
+    assert queue.read_bytes() == b"beta\t4\trunning\t\nbeta\t12\trunning\t\nalpha\t12\tmerged\tabc1234\nalpha\t7\tqueued\t\n"
+
+    queue.write_bytes(b"beta\t4\trunning\t\nbeta\t12\trunning\t\nalpha\t12\trunning\t\nalpha\t7\tqueued\t\n")
+    assert run_cli(workqueue, ["park", "alpha", "12", "second bail"]) == (0, "", "")
+    assert queue.read_bytes() == b"beta\t4\trunning\t\nbeta\t12\trunning\t\nalpha\t12\tparked\tsecond bail\nalpha\t7\tqueued\t\n"
+
+
+@pytest.mark.parametrize("argv, stderr", [
+    (["start", "beta", "12"], "workqueue.sh: beta holds no queued item for issue 12\n"),
+    (["done", "beta", "13", "abc1234"], "workqueue.sh: beta holds no running item for issue 13\n"),
+    (["park", "beta", "13", "second bail"], "workqueue.sh: beta holds no running item for issue 13\n"),
+    (["start", "alpha", "13"], "workqueue.sh: alpha holds no queued item for issue 13\n"),
+    (["done", "alpha", "12", "abc1234"], "workqueue.sh: alpha holds no running item for issue 12\n"),
+    (["park", "alpha", "12", "second bail"], "workqueue.sh: alpha holds no running item for issue 12\n"),
+])
+def test_start_done_and_park_through_the_cli_naming_another_workers_item_or_an_item_in_the_wrong_state_exit_1_and_leave_the_queue_byte_identical(argv, stderr, tmp_path, fake_processes, run_cli, workqueue):
+    queue = queue_tree(tmp_path, fake_processes)
+    before = b"alpha\t12\tqueued\t\nalpha\t13\trunning\t\n"
+    queue.write_bytes(before)
+    assert run_cli(workqueue, argv) == (1, "", stderr)
+    assert queue.read_bytes() == before
+    assert sorted(path.name for path in queue.parent.iterdir()) == ["workqueue"]
+
+
+def test_after_assign_start_done_park_and_refused_calls_through_the_cli_every_issue_ever_assigned_is_still_a_line(tmp_path, fake_processes, run_cli, workqueue):
+    queue = queue_tree(tmp_path, fake_processes)
+    for call in ("assign alpha 12 7", "assign beta 30", "assign beta 12", "start alpha 12",
+                 "start beta 7", "done alpha 12 abc1234", "start alpha 7", "done alpha 7",
+                 "park alpha 7 why", "park alpha 30 why", "start beta 30", "frobnicate beta 30"):
+        run_cli(workqueue, call.split(" "))
+    held = {line.split("\t")[1] for line in queue.read_text().splitlines()}
+    assert {"12", "7", "30"} <= held
+
+
+def test_a_write_through_the_cli_that_cannot_take_the_lock_exits_2_without_touching_the_queue(tmp_path, fake_processes, run_cli, workqueue):
+    queue = queue_tree(tmp_path, fake_processes)
+    lock = tmp_path / ".tdd" / "workqueue.lock"
+    before = b"alpha\t12\tqueued\t\n"
+    queue.write_bytes(before)
+    lock.mkdir()
+    assert run_cli(workqueue, ["assign", "beta", "7"], env={"VERI_WORKQUEUE_LOCK_WAIT": "0"}) == (
+        2, "", "workqueue.sh: could not take the lock %s\n" % lock)
+    assert queue.read_bytes() == before
+    assert lock.is_dir()
+
+
+def test_a_failure_through_the_cli_after_the_lock_is_taken_exits_2_and_releases_the_lock(tmp_path, fake_processes, run_cli, workqueue):
+    queue = queue_tree(tmp_path, fake_processes, mv_status=5)
+    before = b"alpha\t12\tqueued\t\n"
+    queue.write_bytes(before)
+    assert run_cli(workqueue, ["start", "alpha", "12"])[0] == 2
+    assert queue.read_bytes() == before
+    assert not (tmp_path / ".tdd" / "workqueue.lock").exists()
+
+
+@pytest.mark.process("parallel workqueue.sh processes writing one queue under a real git repository")
+def test_assign_and_start_run_as_parallel_processes_leave_a_well_formed_queue_holding_every_write(tmp_path):
+    script = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "workqueue.sh")
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    queue = tmp_path / ".tdd" / "workqueue"
+    queue.parent.mkdir()
+    queue.write_text("".join("alpha\t%d\tqueued\t\n" % (100 + i) for i in range(1, 21)))
+    writers = []
+    for i in range(1, 21):
+        for argv in (["assign", "w%d" % i, str(i)], ["start", "alpha", str(100 + i)]):
+            writers.append(subprocess.Popen([script] + argv, cwd=tmp_path, stdin=subprocess.DEVNULL,
+                                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
+    for writer in writers:
+        writer.wait(timeout=25)
+    lines = queue.read_text().split("\n")
+    assert lines.pop() == ""
+    torn = [line for line in lines if not re.fullmatch(r"[^\t]+\t[0-9]+\t(queued|running|merged|parked|skipped)\t[^\t]*", line)]
+    assert torn == []
+    want = {"w%d\t%d\tqueued\t" % (i, i) for i in range(1, 21)} | {"alpha\t%d\trunning\t" % (100 + i) for i in range(1, 21)}
+    assert want - set(lines) == set()
