@@ -6,6 +6,6 @@
 #        VERI_MODEL_DEVELOPER=<x> leaf-model.sh <leaf-name> develop-* and revise-*, beating VERI_MODEL
 #        VERI_MODEL_REVISE=<x> leaf-model.sh <leaf-name>    revise-* and develop-exhausted, beating VERI_MODEL_DEVELOPER
 #        VERI_MODEL_VERIFIER=<x> leaf-model.sh <leaf-name>  verify-*, beating VERI_MODEL
-# Exit:  0 the model on stdout, or nothing when none is set; 2 no leaf name, a name leaf-role.sh
+# Exit:  0 the model on stdout (sonnet, or opus for revise-* and develop-exhausted, when none is set); 2 no leaf name, a name leaf-role.sh
 #        refuses, or a model value containing whitespace
 exec python3 "$(dirname "$0")/veri/leaf_model.py" "$@"
