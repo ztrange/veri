@@ -861,10 +861,10 @@ if step_or_problem '### 4. Draft PR' "what the metrics: push's command block doe
   if [[ -z "$metrics_at" ]]; then
     problems+=("$skill_md's Draft PR step makes no metrics: commit, so what its push's command block does on a red CI could not be checked")
   else
-    after_wait="$(awk -v from="$metrics_at" -v wait_re="^$wait_ci_run" '
+    after_wait="$(WAIT_RE="^$wait_ci_run" awk -v from="$metrics_at" '
         NR <= from { next }
         /^```/ { if (waited) exit; next }
-        $0 ~ wait_re { waited = 1; next }
+        $0 ~ ENVIRON["WAIT_RE"] { waited = 1; next }
         waited' <<< "$commands")"
     guard_at="$(awk '/[$]s\/event[.]sh bail cause=ci-red/ && /! grep -f .⟦ci-repair⟧. [^|]*[|][|] [^|]*[$]s\/event[.]sh bail cause=ci-red/ { print NR; exit }' <<< "$after_wait")"
     if [[ -z "$guard_at" ]]; then
