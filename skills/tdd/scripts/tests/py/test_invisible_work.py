@@ -1,5 +1,6 @@
 """In-process cases for veri/invisible_work.py, the module invisible-work.sh is a shim over."""
 import importlib
+import json
 import os
 import subprocess
 import sys
@@ -386,3 +387,83 @@ def test_main_exits_2_with_empty_stdout_when_the_veri_gh_json_issues_json_is_not
     code, out, _ = run_cli(invisible_work, [], env={"VERI_GH_JSON": str(tmp_path)})
 
     assert (code, out) == (2, "")
+
+
+def test_main_prints_the_same_report_and_exit_code_over_three_rest_pages_with_repositories_id_refused_as_over_a_single_page_fixture(
+        monkeypatch, tmp_path, run_cli, fake_processes):
+    invisible_work = importlib.import_module("veri.invisible_work")
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    proxy = ("gh: Numeric-ID repository paths (repositories/{id}/...) are not supported through"
+             " this proxy. Use repos/{owner}/{repo}/... endpoints instead. (HTTP 403)")
+    late = "tdd/75-an-issue-on-the-last-page"
+    opened = "chore/a-pr-on-the-last-page"
+    closed = "chore/closed-on-page-two"
+
+    def issue(number, state):
+        return {"number": number, "title": "t", "labels": [], "body": "", "state": state}
+
+    def pull(number, state, ref):
+        return {"number": number, "state": state, "merged_at": None, "body": "", "head": {"ref": ref}}
+
+    issue_pages = [[issue(70, "closed"), issue(71, "open")], [issue(72, "closed"), issue(73, "open")],
+                   [issue(74, "closed"), issue(75, "open")]]
+    pull_pages = [[pull(1, "closed", "chore/one"), pull(2, "open", "chore/two")],
+                  [pull(3, "closed", closed), pull(4, "open", "chore/four")],
+                  [pull(5, "open", opened), pull(6, "closed", "chore/six")]]
+    remote = {"HEAD": "1111", "main": "1111", late: "a75a", opened: "bbbb", closed: "cccc"}
+    ahead = {late: 2, opened: 1, closed: 1}
+    git_answer = origin_answer(remote, ahead, {"main": ("1111", 0)})
+
+    def serve(issues, pulls):
+        def answer(line, **kwargs):
+            words = line.split(" ")
+            if words[0] != "gh":
+                return git_answer(line, **kwargs)
+            path = words[-1]
+            if words[1] != "api" or "repositories/" in path:
+                return 1, "", proxy
+            pages = issues if "/issues?" in path else pulls
+            page = int(path.rsplit("page=", 1)[1])
+            body = json.dumps(pages[page - 1]) if page <= len(pages) else "[]"
+            return 0, body + "\n", ""
+        return answer
+
+    fake_processes(serve(issue_pages, pull_pages))
+    three = run_cli(invisible_work, [])
+    flat = lambda pages: [[item for page in pages for item in page]]
+    fake_processes(serve(flat(issue_pages), flat(pull_pages)))
+    one = run_cli(invisible_work, [])
+
+    want = f"invariant 2 (no PR): {late} tip a75a 2 commits ahead, issue #75 OPEN\n"
+    assert one == (0, want, "")
+    assert three == one
+
+
+def test_main_prints_the_same_report_and_exit_code_for_issue_and_pr_documents_over_256_kib_as_for_small_ones(
+        monkeypatch, tmp_path, run_cli, fake_processes):
+    invisible_work = importlib.import_module("veri.invisible_work")
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+
+    def write(directory, pad):
+        directory.mkdir()
+        (directory / "issues.json").write_text(json.dumps(
+            [{"number": n, "title": f"issue {n}", "labels": [], "state": "OPEN", "body": pad}
+             for n in range(40, 80)]))
+        (directory / "prs.json").write_text(json.dumps(
+            [{"headRefName": f"tdd/{n}-other", "state": "MERGED", "body": pad}
+             for n in range(100, 140)]))
+        return directory
+
+    short = write(tmp_path / "short", "short")
+    long = write(tmp_path / "long", "x" * 8192)
+    fake_processes(origin_answer(
+        {"HEAD": "1111", "main": "1111", "tdd/71-version-the-commentary": "a71a"},
+        {"tdd/71-version-the-commentary": 2}, {"main": ("1111", 0)}))
+
+    small = run_cli(invisible_work, [], env={"VERI_GH_JSON": str(short)})
+    large = run_cli(invisible_work, [], env={"VERI_GH_JSON": str(long)})
+
+    assert [(long / doc).stat().st_size > 262144 for doc in ("issues.json", "prs.json")] == [True, True]
+    assert small == (
+        0, "invariant 2 (no PR): tdd/71-version-the-commentary tip a71a 2 commits ahead, issue #71 OPEN\n", "")
+    assert large == small
