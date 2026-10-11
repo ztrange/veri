@@ -2,13 +2,12 @@
 import json
 import os
 import re
-import subprocess
 import sys
 import traceback
 
+import event
 from leaf_log import result_records
 
-SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WANT = "develop-*|revise-*|verify-*|conductor-*"
 ACTORS = {"develop": "developer", "revise": "developer", "verify": "verifier", "conductor": "conductor"}
 
@@ -75,8 +74,7 @@ def main(argv):
     role = leaf_role(name)
     if role is None:
         return 2
-    done = subprocess.run([os.path.join(SCRIPTS, "event.sh"), "usage"] + pairs, env=dict(os.environ, **role))
-    return to_contract(done.returncode)
+    return to_contract(event.mark("", event.context(dict(os.environ, **role)), "usage", pairs))
 
 
 if __name__ == "__main__":
