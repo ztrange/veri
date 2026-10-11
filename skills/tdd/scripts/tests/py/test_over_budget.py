@@ -167,3 +167,35 @@ def test_main_with_stdout_closed_returns_2_with_one_line_on_stderr_when_over_and
     code = over_budget.main(["unit", "4", "100"])
     err = capsys.readouterr().err
     assert (code, err) == (1, "")
+
+
+def test_main_answers_in_full_under_the_tunables_when_any_start_of_time_budget_sh_is_refused(capsys, monkeypatch, over_budget):
+    import os
+    import subprocess
+
+    def refuse(*args, **kwargs):
+        raise OSError("refused: a process start at the boundary")
+
+    monkeypatch.setattr(subprocess, "Popen", refuse)
+    monkeypatch.setattr(os, "system", refuse)
+    monkeypatch.setattr(os, "posix_spawn", refuse)
+    monkeypatch.setattr(os, "fork", refuse)
+
+    _tunables(monkeypatch, "10", "1.5")
+    code = over_budget.main(["unit", "12", "100"])
+    out, err = capsys.readouterr()
+    assert (code, out, err) == (0, "⏱ unit tier took 12 s (usual 100 s, ratio 1.5, unit budget 10 s)\n", "")
+
+    code = over_budget.main(["unit", "4", "100"])
+    out, err = capsys.readouterr()
+    assert (code, out, err) == (1, "", "")
+
+    _tunables(monkeypatch, "ten", "1.5")
+    code = over_budget.main(["unit", "12", "100"])
+    out, err = capsys.readouterr()
+    assert (code, out, err) == (2, "", "time-budget: VERI_UNIT_BUDGET must be a number of seconds: ten\n")
+
+    _tunables(monkeypatch, "10", "x")
+    code = over_budget.main(["unit", "12", "100"])
+    out, err = capsys.readouterr()
+    assert (code, out, err) == (2, "", "time-budget: VERI_TIME_WARN_RATIO must be a number: x\n")
