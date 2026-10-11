@@ -2343,11 +2343,11 @@ def test_main_hands_the_leaf_its_dispositions_through_a_preexec_survives_a_close
 
 
 def fake_clocked_leaf(monkeypatch, work, name, silent, ends_at, launches=None, lag=0):
-    import time
-    clock = {"wall": 1000}
+    clock = {"wall": 1000, "awake": 5000}
 
     def sleep(_):
         clock["wall"] += 1
+        clock["awake"] += 1
         if clock["wall"] > 5000:
             raise AssertionError("never ended")
         if clock["wall"] >= ends_at:
@@ -2387,15 +2387,7 @@ def fake_clocked_leaf(monkeypatch, work, name, silent, ends_at, launches=None, l
             launches.append(name)
         return leaf
 
-    monkeypatch.setattr(time, "sleep", sleep)
-    monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
-    monkeypatch.setattr(os, "killpg", stop)
-    monkeypatch.setattr(os, "kill", stop)
-    monkeypatch.setattr(subprocess, "run", lambda args, *_, **k: subprocess.CompletedProcess(
-        args, 0, as_asked(answer(args), k), as_asked("", k)))
-    monkeypatch.setattr(subprocess, "check_output", lambda args, *_, **k: as_asked(answer(args), k))
-    monkeypatch.setattr(subprocess, "call", lambda *a, **k: 0)
-    monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: 0)
+    install_awake_fakes(monkeypatch, clock, leaf, sleep, stop, answer)
     monkeypatch.setattr(subprocess, "Popen", popen)
 
 
