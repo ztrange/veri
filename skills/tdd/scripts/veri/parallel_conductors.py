@@ -15,10 +15,12 @@ try:
     from context_budget import START, watch
     from github import NoAnswer, gh_json
     from json_documents import items
+    from solvable_issues import priority_label, scope_label, solvable as solvable_set
 except ImportError:
     from .context_budget import START, watch
     from .github import NoAnswer, gh_json
     from .json_documents import items
+    from .solvable_issues import priority_label, scope_label, solvable as solvable_set
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PASSED_THROUGH = ("VERI_HEARTBEAT", "VERI_TIMEOUT", "VERI_STUCK_RETRIES", "VERI_POLL")
@@ -187,6 +189,14 @@ def main(argv):
     return code
 
 
+def _solvable():
+    label = scope_label()
+    priority = label and priority_label()
+    if label is None or priority is None:
+        return 2, []
+    return solvable_set(label, priority)
+
+
 def _run(continue_on_bail, parallel, max_issues):
     try:
         max_issues = _bash_arithmetic(max_issues)
@@ -199,13 +209,13 @@ def _run(continue_on_bail, parallel, max_issues):
             if max_issues < 0 or max_issues and len(launched) >= max_issues:
                 why = "VERI_MAX_ISSUES reached"
                 break
-            solvable = subprocess.run([os.path.join(SCRIPTS, "solvable-issues.sh")], stdout=subprocess.PIPE, text=True)
+            code, numbers = _solvable()
             why = "nothing solvable"
-            if solvable.returncode == 2:
+            if code == 2:
                 plumbing, why = True, "solvable-issues.sh could not answer"
-            if solvable.returncode:
+            if code:
                 break
-            n = next((c for c in solvable.stdout.split() if c not in launched), None)
+            n = next((c for c in "".join("%s\n" % n for n in numbers).split() if c not in launched), None)
             if n is None:
                 break
             launched.append(n)

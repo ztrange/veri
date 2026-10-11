@@ -115,7 +115,7 @@ def selection_asked(args):
     """Whether the gh command <args> is the solvable selection's own listing, which the shim on PATH answers."""
     fields = args[args.index("--json") + 1] if "--json" in args else ""
     return fields in ("number,title,labels,body,state", "body,state") or (
-        args[1:2] == ["api"] and "page=" not in args[2])
+        args[1:2] == ["api"] and "&page=" not in args[2])
 
 
 def _gh_and_work(tmp_path):
@@ -821,6 +821,63 @@ def test_the_cli_reports_a_ready_pr_done_a_draft_ending_in_a_bail_bailed_a_draft
         "stopped: nothing solvable",
     ]
     assert code == 1
+
+
+@pytest.mark.process("a faked supervise.sh over a VERI_GH_JSON listing, with the start of solvable-issues.sh refused")
+def test_the_full_answer_is_the_same_when_starting_solvable_issues_sh_as_a_process_is_refused(
+        monkeypatch, tmp_path, parallel_conductors, run_cli):
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text(json.dumps([
+        {"body": "Closes #7", "isDraft": False, "url": "https://example.test/pull/7"}]))
+    work = tmp_path / "repo"
+    (work / ".tdd").mkdir(parents=True)
+
+    _boundaries(monkeypatch, tmp_path, lambda sup: sup.exit(0), lambda supervisors: None, solvable=(0, "7\n"))
+    answered = subprocess.run
+
+    def refusing(args, *rest, **kwargs):
+        if pathlib.Path(args[0]).name == "solvable-issues.sh":
+            raise PermissionError("starting %s is refused" % args[0])
+        return answered(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", refusing)
+
+    code, out, err = run_cli(parallel_conductors, [], cwd=work, env={"VERI_RUN_TIMEOUT": "60", "VERI_GH_JSON": str(gh)})
+
+    assert (code, out.splitlines(), err) == (
+        0, ["#7 — done https://example.test/pull/7", "stopped: nothing solvable"], "")
+
+
+@pytest.mark.parametrize("name", ["VERI_LABEL", "VERI_PRIORITY_LABEL"])
+@pytest.mark.process("a faked supervise.sh over a VERI_GH_JSON listing, with the start of solvable-issues.sh refused")
+def test_an_empty_label_is_a_selection_that_could_not_answer_when_starting_solvable_issues_sh_as_a_process_is_refused(
+        name, monkeypatch, tmp_path, parallel_conductors, run_cli):
+    for tunable in TUNABLES:
+        monkeypatch.delenv(tunable, raising=False)
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    work = tmp_path / "repo"
+    (work / ".tdd").mkdir(parents=True)
+
+    _boundaries(monkeypatch, tmp_path, lambda sup: sup.exit(0), lambda supervisors: None, solvable=(0, "7\n"))
+    answered = subprocess.run
+
+    def refusing(args, *rest, **kwargs):
+        if pathlib.Path(args[0]).name == "solvable-issues.sh":
+            raise PermissionError("starting %s is refused" % args[0])
+        return answered(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", refusing)
+
+    code, out, err = run_cli(parallel_conductors, [], cwd=work, env={"VERI_GH_JSON": str(gh), name: ""})
+
+    assert (code, out.splitlines(), err, (work / ".tdd" / "parallel.exit").read_text()) == (
+        2, ["stopped: solvable-issues.sh could not answer"],
+        "solvable-issues: %s is set but empty: name a label or leave it unset\n" % name, "2\n")
 
 
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
