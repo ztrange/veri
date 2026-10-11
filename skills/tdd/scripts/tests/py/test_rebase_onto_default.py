@@ -554,3 +554,44 @@ def test_main_leaves_head_the_tree_and_the_rebase_state_untouched_when_up_to_dat
         git(seed, "push", "-q", str(origin), "main")
         pre = git(clone, "rev-parse", "HEAD")
         untouched(clone, pre, *run_cli(rebase_onto_default, [], cwd=clone), 1, ["file.txt", "work.txt"])
+
+
+@pytest.mark.process("rebase-onto-default.sh run through a symlink to the skill directory, from the caller's clone")
+def test_main_run_through_a_symlink_from_another_directory_rebases_the_callers_clone_and_never_the_skills_repository(
+        monkeypatch, tmp_path):
+    for who in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
+        monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
+    skill = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+    def git(repo, *args):
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
+
+    def commit(repo, name, body, message):
+        (repo / name).write_text(body)
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "-m", message)
+
+    origin, seed, clone = tmp_path / "origin.git", tmp_path / "seed", tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    subprocess.run(["git", "init", "-q", "-b", "main", str(seed)], check=True)
+    commit(seed, "file.txt", "base\n", "initial")
+    git(seed, "push", "-q", str(origin), "main")
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], check=True, stderr=subprocess.DEVNULL)
+    git(clone, "checkout", "-q", "-b", "tdd/1-a-run")
+    commit(clone, "work.txt", "the run's work\n", "feat: a step's green commit (#1)")
+    commit(seed, "other.txt", "another run's work\n", "feat: another run merged (#2)")
+    git(seed, "push", "-q", str(origin), "main")
+    git(clone, "fetch", "-q", "origin")
+    pre = git(clone, "rev-parse", "HEAD")
+    onto = git(clone, "rev-parse", "origin/main")
+    skill_head = git(skill, "rev-parse", "HEAD")
+    (tmp_path / "linked-skill").symlink_to(skill, target_is_directory=True)
+
+    done = subprocess.run([str(tmp_path / "linked-skill" / "scripts" / "rebase-onto-default.sh")],
+                          cwd=clone, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    assert (done.returncode, done.stdout, done.stderr) == (0, f"{pre}\n{onto}\n", "")
+    assert git(clone, "rev-parse", "HEAD~1") == onto
+    assert git(skill, "rev-parse", "HEAD") == skill_head
