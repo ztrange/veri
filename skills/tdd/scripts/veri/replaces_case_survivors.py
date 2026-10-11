@@ -12,12 +12,12 @@ def main(argv):
     if len(argv) != 1:
         print(USAGE, file=sys.stderr)
         return 2
-    step = STEP.search(argv[0])
-    with open(step.group(2), encoding="utf-8") as f:
+    names, path = STEP.search(argv[0]).groups()
+    with open(path, encoding="utf-8") as f:
         suite = f.read()
-    survivors = [n for n in NAME.findall(step.group(1)) if f'"{n}"' in suite or f"'{n}'" in suite]
+    survivors = [n for n in NAME.findall(names) if f'"{n}"' in suite or f"'{n}'" in suite]
     for name in survivors:
-        print(f"still present in {step.group(2)}: {name}")
+        print(f"still present in {path}: {name}")
     return 1 if survivors else 0
 
 
