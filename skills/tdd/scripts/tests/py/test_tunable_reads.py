@@ -5,8 +5,8 @@ import pathlib
 VERI = pathlib.Path(__file__).resolve().parents[2] / "veri"
 
 READS_DIRECTLY = frozenset((
-    "event", "github", "launch_floor", "parallel_conductors", "profile", "run_conductor", "run_leaf", "run_suite",
-    "run_verdict", "skill_drift", "solvable_issues", "status", "stop_run", "workqueue",
+    "event", "github", "launch_floor", "run_leaf", "run_suite", "run_verdict", "skill_drift", "solvable_issues",
+    "stop_run",
 ))
 
 
