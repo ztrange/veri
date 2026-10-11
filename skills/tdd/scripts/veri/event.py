@@ -79,8 +79,8 @@ def run_clock(clock):
         return None
 
 
-def line(args, ts, awake):
-    fields = [(key, os.environb.get(name, b"") if name else args[0]) for key, name in CONTEXT]
+def line(args, context, ts, awake):
+    fields = [(key, context.get(key, b"") if name else args[0]) for key, name in CONTEXT]
     fields += [arg.partition(b"=")[::2] for arg in args[1:]]
     text = b'{"ts": %d, "awake": ' % ts + awake
     for key, value in fields:
@@ -88,9 +88,10 @@ def line(args, ts, awake):
     return text + b"}\n"
 
 
-def main(argv):
-    args = [os.fsencode(arg) for arg in argv]
-    if not args or not args[0]:
+def append(directory, context, event, fields=()):
+    args = [os.fsencode(event)] + [os.fsencode(field) for field in fields]
+    context = {os.fsencode(key): os.fsencode(value) for key, value in context.items()}
+    if not args[0]:
         sys.stderr.buffer.write(USAGE)
         return 2
     if args[0] == b"structural-pass":
@@ -98,7 +99,8 @@ def main(argv):
         if refusal:
             sys.stderr.buffer.write(refusal + b"\n")
             return 2
-    os.makedirs(".tdd", exist_ok=True)
+    tdd = os.path.join(os.fspath(directory), ".tdd")
+    os.makedirs(tdd, exist_ok=True)
     ts = int(time.time())
     clock = os.environb.get(b"VERI_AWAKE_CLOCK", b"")
     if clock:
@@ -110,12 +112,20 @@ def main(argv):
         awake = result.stdout.rstrip(b"\n")
     else:
         awake = b"%d" % time.clock_gettime(getattr(time, "CLOCK_UPTIME_RAW", time.CLOCK_MONOTONIC))
-    fd = os.open(".tdd/events.jsonl", os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o666)
+    fd = os.open(tdd + "/events.jsonl", os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o666)
     try:
-        os.write(fd, line(args, ts, awake))
+        os.write(fd, line(args, context, ts, awake))
     finally:
         os.close(fd)
     return 0
+
+
+def main(argv):
+    if not argv:
+        sys.stderr.buffer.write(USAGE)
+        return 2
+    context = {key: os.environb.get(name, b"") for key, name in CONTEXT if name}
+    return append("", context, argv[0], argv[1:])
 
 
 if __name__ == "__main__":
