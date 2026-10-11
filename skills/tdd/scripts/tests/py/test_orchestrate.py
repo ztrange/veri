@@ -420,6 +420,18 @@ def test_1250_an_unset_or_empty_stop_timeout_bounds_the_drain_at_10_seconds_and_
     assert run("0.5") == [(signal.ITIMER_REAL, 0.5), (signal.ITIMER_REAL, 0)]
 
 
+def test_1313_a_stop_timeout_too_great_for_setitimer_refuses_with_exit_2_one_line_naming_it_and_its_value_before_any_ask(
+        capsys, monkeypatch, tmp_path, orchestrate):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
+    monkeypatch.setenv("VERI_CONDUCTOR_STOP_TIMEOUT", "1e12")
+    asks, launches = _boundaries(monkeypatch, (3, ""))
+    code = orchestrate.main([])
+    out, err = capsys.readouterr()
+    assert (code, out, len(err.splitlines()), "VERI_CONDUCTOR_STOP_TIMEOUT" in err, "1e12" in err,
+            "Traceback" in err, asks, launches) == (2, "", 1, True, True, False, [], [])
+
+
 def test_a_leading_zero_budget_reads_as_decimal_so_0100000_stops_a_conductor_over_100000_not_over_32768_1127(
         capsys, monkeypatch, tmp_path, orchestrate):
     monkeypatch.chdir(tmp_path)
