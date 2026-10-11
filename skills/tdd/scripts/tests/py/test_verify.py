@@ -12,10 +12,6 @@ import sys
 import pytest
 
 
-def preserve_in_process(args, words):
-    code = importlib.import_module("veri.preserve_attempt").main(words[1:])
-    return subprocess.CompletedProcess(args, code, None, None)
-
 from conftest import SCRIPTS
 
 USAGE = (b"usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file>"
@@ -1405,7 +1401,7 @@ def test_main_preserves_a_reject_malformed_or_no_verdict_attempt_under_its_attem
         if name == "supervise.sh":
             return subprocess.CompletedProcess(args, 0, leaf_out, None)
         if name == "preserve-attempt.sh":
-            return preserve_in_process(args, words)
+            raise AssertionError(f"preserve-attempt.sh started as a process: {words}")
         if name == "git" and "--show-toplevel" in words:
             return subprocess.CompletedProcess(args, 0, os.getcwd() + "\n", "")
         if name == "git" and "commit-tree" in words:

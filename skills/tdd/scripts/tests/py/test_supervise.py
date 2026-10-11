@@ -8,10 +8,6 @@ import sys
 import pytest
 
 
-def preserve_in_process(args, words):
-    code = importlib.import_module("veri.preserve_attempt").main(words[1:])
-    return subprocess.CompletedProcess(args, code, None, None)
-
 SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 USAGE = b"usage: supervise.sh <name> <cmd> [args...]\n"
 
@@ -1660,7 +1656,7 @@ def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_a
             elif words[:1] == ["stat"]:
                 out = "1000\n"
             elif words and words[0] == preserver:
-                return preserve_in_process(args, words)
+                raise AssertionError(f"preserve-attempt.sh started as a process: {words}")
             out = as_asked(out, kwargs) if kwargs.get("stdout") == subprocess.PIPE else None
             return subprocess.CompletedProcess(args, code, out, None)
 
