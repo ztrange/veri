@@ -12,6 +12,7 @@ import entry
 import event
 import harvest_usage
 import preserve_attempt
+import tunables
 from extract_result import extract
 from leaf_log import result_records
 from leaf_model import leaf_model
@@ -307,9 +308,10 @@ def main(argv):
                 return refuse(f"supervise: {settled} must hold a whole number of seconds >= 1: '{timeout}'")
     timeout = timeout or "900"
     kill_poll = os.environ.get("VERI_KILL_POLL") or "0.1"
-    if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", kill_poll):
+    try:
+        kill_poll = tunables.kill_poll(kill_poll)
+    except ValueError:
         return refuse(f"supervise: VERI_KILL_POLL must be a non-negative number: {kill_poll}")
-    kill_poll = float(kill_poll)
     heartbeat, refused = numeric_env("VERI_HEARTBEAT", "180")
     if refused:
         return refused
