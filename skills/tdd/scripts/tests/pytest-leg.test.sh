@@ -1174,7 +1174,7 @@ for sig in INT TERM KILL; do
   kill -"$sig" -- "-$leg" 2> /dev/null || :
   wait "$leg" 2> /dev/null || :
   left="$(comm -13 <(printf '%s\n' "$before") <(killed_pycs) | sed '/^$/d')"
-  [[ -z "$left" ]] || problems+=("SIG$sig: want no .pyc the killed run did not find in the worktree, got $(printf '%s\n' "$left" | wc -l | tr -d ' ') including $(printf '%s\n' "$left" | head -n 1)")
+  [[ -z "$left" ]] || problems+=("SIG$sig: want no .pyc the killed run did not find in the worktree, got $(printf '%s\n' "$left" | wc -l | tr -d ' ') including ${left%%$'\n'*}")
   printf 'BUDGET = "130000"\n' > "$killed_probe"
   touch -r "$work/killed.mtime" "$killed_probe"
   read_back="$(cd "$killed/skills/tdd/scripts" && env -u PYTHONPYCACHEPREFIX PYTHONDONTWRITEBYTECODE=1 \
