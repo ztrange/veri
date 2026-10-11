@@ -28,8 +28,6 @@ def main(argv):
         print("preserve-attempt.sh: type this from the run's worktree,"
               " not from the skill's own scripts directory", file=sys.stderr)
         return 2
-    issue, step, phase, attempt = argv[:4]
-    coords = f"issue {issue} step {step} {phase} attempt {attempt}"
     top = run_git("rev-parse", "--show-toplevel", quiet=True)
     if top.returncode != 0:
         print("preserve-attempt.sh: not in a git work tree", file=sys.stderr)
@@ -39,46 +37,52 @@ def main(argv):
     except OSError:
         print("preserve-attempt.sh: cannot enter the repository's top level", file=sys.stderr)
         return 2
+    return preserve(".", *argv[:4], argv[4] if len(argv) > 4 else "")
+
+
+def preserve(repo, issue, step, phase, attempt, mark="", env=None):
+    env = dict(os.environ if env is None else env)
+    coords = f"issue {issue} step {step} {phase} attempt {attempt}"
     scratch = tempfile.mkdtemp()
     try:
-        index = {**os.environ, "GIT_INDEX_FILE": os.path.join(scratch, "index")}
-        result = run_git("read-tree", "HEAD", env=index, capture=False)
+        index = {**env, "GIT_INDEX_FILE": os.path.join(scratch, "index")}
+        result = run_git("read-tree", "HEAD", env=index, capture=False, cwd=repo)
         if result.returncode == 0:
-            result = run_git("add", "-A", env=index, capture=False)
+            result = run_git("add", "-A", env=index, capture=False, cwd=repo)
         if result.returncode == 0:
-            result = run_git("write-tree", env=index)
+            result = run_git("write-tree", env=index, cwd=repo)
         if result.returncode == 0:
-            result = run_git("commit-tree", result.stdout.strip(), "-p", "HEAD", "-m", f"attempt: {coords}", env=IDENTITY | os.environ)
+            result = run_git("commit-tree", result.stdout.strip(), "-p", "HEAD", "-m", f"attempt: {coords}",
+                             env=IDENTITY | env, cwd=repo)
         if result.returncode != 0:
             return mapped(result.returncode)
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
-    step_ref = sanitised(ledger_step_index(issue, os.fsencode(step).decode("utf-8", "surrogateescape")))
+    step_ref = sanitised(ledger_step_index(repo, issue, os.fsencode(step).decode("utf-8", "surrogateescape")))
     ref = f"refs/veri/attempts/{issue}/{step_ref}/{phase}-{attempt}"
-    if run_git("update-ref", ref, result.stdout.strip(), capture=False).returncode != 0:
+    if run_git("update-ref", ref, result.stdout.strip(), env=env, capture=False, cwd=repo).returncode != 0:
         print(f"preserve-attempt.sh: could not preserve {coords} to {ref}", file=sys.stderr)
         return 1
-    mark = argv[4] if len(argv) > 4 else ""
     if mark:
         try:
-            copy_leaf_files(step_ref, phase, attempt, mark)
+            copy_leaf_files(repo, step_ref, phase, attempt, mark)
         except OSError as error:
             print(f"preserve-attempt.sh: {error}", file=sys.stderr)
             return 1
     return 0
 
 
-def copy_leaf_files(step_ref, phase, attempt, mark):
-    attempts = os.path.join(".tdd", "attempts")
+def copy_leaf_files(repo, step_ref, phase, attempt, mark):
+    attempts = os.path.join(repo, ".tdd", "attempts")
     os.makedirs(attempts, exist_ok=True)
     for ext in ("log", "out"):
-        source = os.path.join(".tdd", f"{phase}.{ext}")
+        source = os.path.join(repo, ".tdd", f"{phase}.{ext}")
         if os.path.isfile(source):
             shutil.copy(source, os.path.join(attempts, f"{step_ref}-{phase}-{attempt}-{mark}.{ext}"))
 
 
-def ledger_step_index(issue, step):
-    ledger = os.path.join(".tdd", f"issue-{issue}.md")
+def ledger_step_index(repo, issue, step):
+    ledger = os.path.normpath(os.path.join(repo, ".tdd", f"issue-{issue}.md"))
     if not os.path.isfile(ledger):
         return step
     try:
@@ -101,8 +105,8 @@ def sanitised(step_ref):
     return re.sub(r"[^0-9A-Za-z-]", "-", step_ref)
 
 
-def run_git(*args, env=None, capture=True, quiet=False):
-    return git(*args, env=env, text=True,
+def run_git(*args, env=None, capture=True, quiet=False, cwd=None):
+    return git(*args, env=env, cwd=cwd, text=True,
                stdout=subprocess.PIPE if capture else None,
                stderr=subprocess.DEVNULL if quiet else None)
 
