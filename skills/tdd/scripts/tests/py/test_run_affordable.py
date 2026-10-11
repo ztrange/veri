@@ -9,7 +9,7 @@ import sys
 
 import pytest
 
-pytestmark = pytest.mark.process("run-affordable's own step-budget.sh and step-cost.sh starts")
+pytestmark = pytest.mark.process("run-affordable's own step-cost.sh start")
 
 
 @pytest.fixture
@@ -80,6 +80,25 @@ def test_main_passes_the_exit_statuses_of_the_budget_and_the_log_through(capsys,
     code = run_affordable.main(["4"])
     out, _ = capsys.readouterr()
     assert (code, out) == (2, "")
+
+
+def test_main_answers_in_full_when_starting_step_budget_sh_as_a_process_is_refused(capsys, monkeypatch, scratch, run_affordable):
+    import subprocess
+    real_run = subprocess.run
+
+    def refuse_step_budget(argv, *args, **kwargs):
+        if os.path.basename(argv[0]) == "step-budget.sh":
+            raise OSError("start refused: " + argv[0])
+        return real_run(argv, *args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", refuse_step_budget)
+    steps = "5.25 6\n7.50 6\n9.75 6\n"
+    assert _answer(run_affordable, capsys, scratch, monkeypatch, "4", "50", steps) == (
+        1, "spent 22.50, steps remaining 4, median 7.50, projection 52.50\n", "")
+    assert _answer(run_affordable, capsys, scratch, monkeypatch, "4", "60", steps) == (0, "", "")
+    assert _answer(run_affordable, capsys, scratch, monkeypatch, "4", "50", "100.00 2\n") == (3, "", "")
+    monkeypatch.setenv("VERI_STEP_BUDGET", "many")
+    assert _answer(run_affordable, capsys, scratch, monkeypatch, "4", "50", steps)[:2] == (2, "")
 
 
 def test_main_reads_steps_remaining_first_refusing_all_but_whole_numbers_and_echoing_them_byte_for_byte(monkeypatch, scratch, run_affordable):
