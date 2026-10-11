@@ -4,6 +4,7 @@ import json
 import os
 import pathlib
 import re
+import shlex
 import subprocess
 import sys
 
@@ -193,43 +194,87 @@ def events(monkeypatch):
     return Events(monkeypatch)
 
 
-def serve_listing(directory, monkeypatch=None, mirror=None):
-    """serve(answer): the open-issue and PR listings the real solvable-issues.sh selects from, written to
-    <directory>. <answer> is the numbers of the open ready-for-agent issues (a list, each a number or a
-    string), [] for no labelled open issue, or None for a listing the selection cannot read; <priority>
-    names those carrying the priority label. With <monkeypatch>, VERI_GH_JSON names <directory> in the test
-    process too; <mirror> is a directory that also receives issues.json when it exists, and whose prs.json the
-    child is served when it is JSON."""
+def issues_listing(numbers, label="ready-for-agent", priority=()):
+    """The open-issue listing text selecting <numbers> (None: a listing the selection cannot read)."""
+    if numbers is None:
+        return "not json"
+    return json.dumps([{"number": number, "title": "an issue", "state": "OPEN", "body": "",
+                        "labels": [{"name": label}] + ([{"name": "priority"}] if number in priority else [])}
+                       for number in numbers])
+
+
+def serve_listing(directory, monkeypatch):
+    """serve(answer): the open-issue and PR listings the selection reads through VERI_GH_JSON, written to
+    <directory>, which VERI_GH_JSON names. <answer> is the numbers of the open <label> issues (a list, each
+    a number or a string), [] for no labelled open issue, or None for a listing the selection cannot read."""
     directory.mkdir(exist_ok=True)
+    monkeypatch.setenv("VERI_GH_JSON", str(directory))
+    for name in ("VERI_GH_DRIVER", "VERI_PRIORITY_LABEL"):
+        monkeypatch.delenv(name, raising=False)
 
-    def serve(answer, priority=(), label="ready-for-agent"):
-        if monkeypatch is not None:
-            monkeypatch.setenv("VERI_GH_JSON", str(directory))
-        prs = "[]"
-        if mirror is not None and (pathlib.Path(mirror) / "prs.json").exists():
-            try:
-                json.loads((pathlib.Path(mirror) / "prs.json").read_text())
-                prs = (pathlib.Path(mirror) / "prs.json").read_text()
-            except ValueError:
-                pass
-        (directory / "prs.json").write_text(prs)
-        if answer is None:
-            text = "not json"
-        else:
-            text = json.dumps([{"number": n, "title": "an issue", "state": "OPEN", "body": "",
-                                "labels": [{"name": label}] + ([{"name": "priority"}] if n in priority else [])}
-                               for n in answer])
-        (directory / "issues.json").write_text(text)
-        if mirror is not None and os.path.isdir(mirror):
-            (pathlib.Path(mirror) / "issues.json").write_text(text)
+    def serve(answer, label="ready-for-agent", priority=()):
+        (directory / "prs.json").write_text("[]")
+        (directory / "issues.json").write_text(issues_listing(answer, label, priority))
 
-    serve.directory = directory
+    return serve
+
+
+GH_SERVING = """#!/bin/sh
+d=%(directory)s
+issues() {
+  n=$(cat "$d/count" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > "$d/count"
+  [ -f "$d/touch-$n" ] && while read -r path; do touch "$path"; done < "$d/touch-$n"
+  [ "$n" -gt "$(cat "$d/answers")" ] && n=$(cat "$d/answers")
+  cat "$d/issues-$n.json"
+}
+prs() { cat "$(cat "$d/prs")" 2>/dev/null || echo '[]'; }
+case "$1 $2" in
+  "issue list") issues ;;
+  "pr list") prs ;;
+  "api "*)
+    case "$2" in
+      */issues\\?*) issues ;;
+      */pulls\\?*page=[2-9]*) echo '[]' ;;
+      */pulls\\?*) prs ;;
+      *) exit 1 ;;
+    esac ;;
+  *) exit 1 ;;
+esac
+"""
+
+
+def serve_through_gh(directory, monkeypatch, prs=None):
+    """serve(answers): a gh on PATH that answers the open-issue listing with the next of <answers> at each
+    request, the last repeating, and the PR listing from the file <prs> (none: no open PR). Each answer is
+    (code, stdout[, priority numbers]), as listed() takes it. <touch> maps the request number to paths gh
+    touches as it answers that request. VERI_GH_JSON is unset, so the selection asks gh, over whichever route
+    VERI_GH_DRIVER names."""
+    directory.mkdir(exist_ok=True)
+    bin_dir = directory / "bin"
+    bin_dir.mkdir(exist_ok=True)
+    (bin_dir / "gh").write_text(GH_SERVING % {"directory": shlex.quote(str(directory))})
+    (bin_dir / "gh").chmod(0o755)
+    (directory / "prs").write_text(str(prs) if prs is not None else "")
+    monkeypatch.setenv("PATH", str(bin_dir) + os.pathsep + os.environ.get("PATH", ""))
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+
+    def serve(answers, label="ready-for-agent", touch=None):
+        for path in directory.glob("touch-*"):
+            path.unlink()
+        for n, paths in (touch or {}).items():
+            (directory / ("touch-%d" % n)).write_text("".join("%s\n" % path for path in paths))
+        (directory / "count").write_text("0")
+        (directory / "answers").write_text(str(len(answers)))
+        for n, answer in enumerate(answers, 1):
+            numbers, priority = listed(*answer[:2]), (answer[2:] or ((),))[0]
+            (directory / ("issues-%d.json" % n)).write_text(issues_listing(numbers, label, priority))
+
     return serve
 
 
 @pytest.fixture
 def listing(tmp_path, monkeypatch):
-    return serve_listing(tmp_path / "solvable-listing", monkeypatch)
+    return serve_through_gh(tmp_path / "solvable-listing", monkeypatch)
 
 
 def listed(code, stdout):
@@ -244,29 +289,17 @@ def listed(code, stdout):
     return [int(line) for line in lines] if all(line.isdigit() for line in lines) else lines
 
 
-def run_over_listing(listing, args, *rest, **kwargs):
-    """subprocess.run started as a real process over <listing> alone, although subprocess.Popen is faked."""
-    env = dict(kwargs.pop("env", None) or os.environ, VERI_GH_JSON=str(listing.directory))
-    for name in ("VERI_GH_DRIVER", "VERI_PRIORITY_LABEL"):
-        env.pop(name, None)
+def started_for_real(args, *rest, **kwargs):
+    """subprocess.run started as a real process, although subprocess.Popen is faked."""
     faked = subprocess.Popen
     subprocess.Popen = REAL_POPEN
     try:
-        return REAL_RUN(args, *rest, env=env, **kwargs)
+        return REAL_RUN(args, *rest, **kwargs)
     finally:
         subprocess.Popen = faked
 
 
-def listed_in_turn(listing, answers):
-    """A subprocess.run that serves the next of <answers>, each (code, stdout[, priority numbers]), to
-    listing, then starts the process over it; a git command is answered by git itself and takes no answer."""
-    pending = [(listed(*answer[:2]), answer[2:]) for answer in answers]
-
-    def run(args, *rest, **kwargs):
-        if os.path.basename(str(args[0])) == "git":
-            return REAL_RUN(args, *rest, **kwargs)
-        answer, priority = pending.pop(0) if len(pending) > 1 else pending[0]
-        listing(answer, *priority)
-        return run_over_listing(listing, args, *rest, **kwargs)
-
-    return run
+def listed_in_turn(listing, answers, **kwargs):
+    """Serve <answers> to <listing> now, and answer with subprocess.run starting every process for real."""
+    listing(answers, **kwargs)
+    return started_for_real

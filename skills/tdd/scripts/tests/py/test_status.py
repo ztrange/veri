@@ -9,7 +9,7 @@ import time
 
 import pytest
 
-from conftest import listed, run_over_listing, serve_listing
+from conftest import listed, serve_listing, started_for_real
 
 
 @pytest.fixture(autouse=True)
@@ -52,7 +52,7 @@ def fake_git(monkeypatch, main_tree, branches=None, solvable=None, linked=None):
         elif "symbolic-ref" in args:
             stdout = branches[str(args[args.index("-C") + 1]).rstrip("/")] + "\n"
         elif solvable is not None:
-            return run_over_listing(listing, args, **kwargs)
+            return started_for_real(args, **kwargs)
         else:
             raise AssertionError("unexpected command: %r" % (args,))
         return subprocess.CompletedProcess(args, code, stdout, "")

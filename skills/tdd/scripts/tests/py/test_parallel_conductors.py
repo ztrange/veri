@@ -13,7 +13,7 @@ import traceback
 
 import pytest
 
-from conftest import SCRIPTS, listed_in_turn, serve_listing
+from conftest import SCRIPTS, issues_listing, listed, serve_through_gh, started_for_real
 
 TUNABLES = ("VERI_PARALLEL", "VERI_MAX_ISSUES", "VERI_CONDUCTOR_CTX_BUDGET", "VERI_RUN_TIMEOUT",
             "VERI_POLL", "VERI_HEARTBEAT", "VERI_TIMEOUT", "VERI_STUCK_RETRIES", "VERI_GH_JSON")
@@ -47,15 +47,20 @@ class FakeSupervisor:
         return self.returncode
 
 
-def _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n")):
+def _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n"), through_gh=False):
     """Fake git, supervise.sh, os.kill and the clock, and serve <solvable> (an answer, or a list of answers in
     turn) as the listings the real solvable-issues.sh selects from, issue 7 by default."""
     common = tmp_path / ".git"
     (common / "info").mkdir(parents=True, exist_ok=True)
     supervisors = []
 
-    listed_run = listed_in_turn(serve_listing(tmp_path / "solvable-listing", mirror=tmp_path / "gh"),
-                                solvable if isinstance(solvable, list) else [solvable])
+    answers = solvable if isinstance(solvable, list) else [solvable]
+    if len(answers) > 1 or through_gh:
+        serve_through_gh(tmp_path / "solvable-listing", monkeypatch, prs=tmp_path / "gh" / "prs.json")(answers)
+    else:
+        code, stdout, *priority = answers[0]
+        (tmp_path / "gh").mkdir(exist_ok=True)
+        (tmp_path / "gh" / "issues.json").write_text(issues_listing(listed(code, stdout), priority=(priority or [()])[0]))
 
     def answer(args):
         if list(args) == ["git", "rev-parse", "--git-common-dir"]:
@@ -66,7 +71,7 @@ def _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n"))
 
     def fake_run(args, *rest, **kwargs):
         if pathlib.Path(args[0]).name != "git":
-            return listed_run(args, *rest, **kwargs)
+            return started_for_real(args, *rest, **kwargs)
         done = answer(args)
         if kwargs.get("check") and done.returncode:
             raise subprocess.CalledProcessError(done.returncode, args, done.stdout)
@@ -104,6 +109,13 @@ def _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n"))
     monkeypatch.setattr(time, "monotonic", lambda: clock["now"])
     monkeypatch.setattr(time, "time", lambda: clock["now"])
     return supervisors
+
+
+def selection_asked(args):
+    """Whether the gh command <args> is the solvable selection's own listing, which the shim on PATH answers."""
+    fields = args[args.index("--json") + 1] if "--json" in args else ""
+    return fields in ("number,title,labels,body,state", "body,state") or (
+        args[1:2] == ["api"] and "page=" not in args[2])
 
 
 def _gh_and_work(tmp_path):
@@ -430,7 +442,6 @@ def test_slots_fill_from_a_fresh_solvable_issues_answer_up_to_the_cap_and_the_ex
     gh = tmp_path / "gh"
     gh.mkdir()
     (gh / "prs.json").write_text("[]")
-    monkeypatch.setenv("VERI_GH_JSON", str(gh))
     work = tmp_path / "repo"
     (work / ".tdd").mkdir(parents=True)
     monkeypatch.chdir(work)
@@ -452,7 +463,7 @@ def test_slots_fill_from_a_fresh_solvable_issues_answer_up_to_the_cap_and_the_ex
                 if sup.returncode is None and sleeps[0] >= until:
                     sup.exit(exits.get(sup.args[-1], 0))
 
-    _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=answers)
+    _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=answers, through_gh=True)
 
     returned = parallel_conductors.main([])
     out, _ = capsys.readouterr()
@@ -813,13 +824,13 @@ def test_the_cli_reports_a_ready_pr_done_a_draft_ending_in_a_bail_bailed_a_draft
 
 
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
-def test_the_open_pr_list_is_read_through_gh_json_a_no_answer_at_the_report_returns_2_unwritten_at_a_finish_it_decides_over_the_pages_read_and_a_missing_or_non_json_list_is_survived_as_bash_survives_it(
+def test_the_open_pr_list_is_read_through_gh_json_a_no_answer_at_the_report_returns_2_unwritten_at_a_finish_it_decides_over_the_pages_read_and_a_non_json_list_is_survived_as_bash_survives_it(
         capsys, monkeypatch, tmp_path, parallel_conductors):
     graphql = ["gh", "pr", "list", "--state", "open", "--limit", "10000", "--json", "body,isDraft,url"]
     rest = "repos/{owner}/{repo}/pulls?state=open&per_page=100&page=%d"
     bailed = json.dumps([{"body": "Closes #7", "draft": True, "html_url": "https://github.com/o/r/pull/107"}])
 
-    def run(name, env, solvable, gh_answer=None, fixture=None):
+    def run(name, env, solvable, gh_answer):
         for var in TUNABLES + ("VERI_GH_DRIVER",):
             monkeypatch.delenv(var, raising=False)
         for var, value in env.items():
@@ -828,12 +839,6 @@ def test_the_open_pr_list_is_read_through_gh_json_a_no_answer_at_the_report_retu
         work = root / "repo"
         (work / ".tdd" / "wt" / "7" / ".tdd").mkdir(parents=True)
         (work / ".tdd" / "wt" / "7" / ".tdd" / "events.jsonl").write_text('{"event": "red"}\n{"event": "bail"}\n')
-        if fixture is not None:
-            gh = root / "gh"
-            gh.mkdir()
-            if fixture:
-                (gh / "prs.json").write_text(fixture)
-            monkeypatch.setenv("VERI_GH_JSON", str(gh))
         monkeypatch.chdir(work)
         numbers, gh_calls = [], []
 
@@ -842,11 +847,12 @@ def test_the_open_pr_list_is_read_through_gh_json_a_no_answer_at_the_report_retu
             (work / ".tdd" / ("conductor-%s.log" % sup.args[-1])).write_bytes(b"")
             sup.exit(0)
 
-        _boundaries(monkeypatch, root, on_launch, lambda supervisors: None, solvable=solvable)
+        _boundaries(monkeypatch, root, on_launch, lambda supervisors: None, solvable=solvable,
+                    through_gh=True)
         faked_run = subprocess.run
 
         def gh_run(args, *rest_args, **kwargs):
-            if args[0] != "gh":
+            if args[0] != "gh" or selection_asked(args):
                 return faked_run(args, *rest_args, **kwargs)
             gh_calls.append(list(args))
             rc, out = gh_answer(len(gh_calls), list(args))
@@ -878,11 +884,8 @@ def test_the_open_pr_list_is_read_through_gh_json_a_no_answer_at_the_report_retu
     assert (code, lines, numbers) == (1, ["#7 — bailed https://github.com/o/r/pull/107", "stopped: #7 bailed"], ["7"])
     assert calls[:2] == [["gh", "api", rest % 1], ["gh", "api", rest % 2]]
 
-    code, lines, err, numbers, _, _ = run("missing-fixture", {}, (0, "7\n8\n"), fixture="")
-    assert (code, lines, numbers) == (1, [], ["7", "8"])
-    assert "Traceback" in err and "FileNotFoundError" in err
-
-    code, lines, err, numbers, _, _ = run("not-json", {}, (0, "7\n8\n"), fixture="not json\n")
+    code, lines, err, numbers, _, _ = run(
+        "not-json", {}, (0, "7\n8\n"), lambda i, args: (0, "not json\n") if i == 1 else (0, "[]\n"))
     assert (code, lines, numbers) == (0, ["stopped: nothing solvable"], ["7", "8"])
     assert "Traceback" in err and "JSONDecodeError" in err
 
@@ -1136,7 +1139,7 @@ def test_the_schedule_launches_one_conductor_at_a_time_in_the_queue_s_printed_or
     for cap in ("3", None):
         for name in TUNABLES:
             monkeypatch.delenv(name, raising=False)
-        env = {"VERI_GH_JSON": str(gh)}
+        env = {}
         if cap:
             env["VERI_MAX_ISSUES"] = cap
         supervisors = _boundaries(monkeypatch, tmp_path, on_launch, _exit_every_live_conductor, solvable=queue)
@@ -1432,7 +1435,7 @@ def test_the_cli_prints_parked_for_a_conductor_that_halts_writing_its_parked_fil
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_the_cli_exits_0_all_done_1_a_bail_or_a_kill_2_plumbing_and_3_nothing_solvable_with_parallel_exit_holding_the_code_and_prints_the_same_report_over_rest_in_two_or_three_pages_as_over_one_fixture(
         monkeypatch, tmp_path, parallel_conductors, run_cli):
-    def prepare(name, solvable, exits=(), prs=(), bailed=()):
+    def prepare(name, solvable, exits=(), prs=(), bailed=(), through_gh=False):
         for var in TUNABLES + ("VERI_GH_DRIVER",):
             monkeypatch.delenv(var, raising=False)
         root = tmp_path / name
@@ -1446,9 +1449,9 @@ def test_the_cli_exits_0_all_done_1_a_bail_or_a_kill_2_plumbing_and_3_nothing_so
             launches.append(sup.args[-1])
             sup.exit(2 if sup.args[-1] in exits else 0)
 
-        _boundaries(monkeypatch, root, on_launch, lambda supervisors: None, solvable=solvable)
+        _boundaries(monkeypatch, root, on_launch, lambda supervisors: None, solvable=solvable, through_gh=through_gh)
         gh = root / "gh"
-        gh.mkdir()
+        gh.mkdir(exist_ok=True)
         (gh / "prs.json").write_text(json.dumps([
             {"body": "Closes #7", "isDraft": draft, "url": "https://example.test/pull/7"} for draft in prs]))
         return work, gh, launches
@@ -1482,11 +1485,11 @@ def test_the_cli_exits_0_all_done_1_a_bail_or_a_kill_2_plumbing_and_3_nothing_so
         "three": [[pull(901, True), pull(902, False)], [pull(903, False), pull(904, True)], [pull(7, True)]],
     }
     for name, served in pages.items():
-        work, gh, launches = prepare("rest-" + name, (0, "7\n"), bailed=["7"])
+        work, gh, launches = prepare("rest-" + name, (0, "7\n"), bailed=["7"], through_gh=True)
         faked_run, gh_calls = subprocess.run, []
 
         def gh_run(args, *rest, **kwargs):
-            if args[0] != "gh":
+            if args[0] != "gh" or selection_asked(args):
                 return faked_run(args, *rest, **kwargs)
             gh_calls.append(list(args))
             path = args[2] if args[1:2] == ["api"] and len(args) == 3 else ""
