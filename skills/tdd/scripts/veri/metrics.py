@@ -1,5 +1,4 @@
 """metrics.sh's report, rendered in-process."""
-import os
 import sys
 import tunables
 
