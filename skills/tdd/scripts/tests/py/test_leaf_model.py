@@ -257,21 +257,6 @@ def test_main_with_veri_model_revise_unset_gives_revise_and_develop_leaves_veri_
     ]
 
 
-def test_main_refuses_a_set_but_empty_veri_model_revise_for_revise_and_develop_exhausted_with_2_naming_it_on_stderr(
-        capsys, monkeypatch, leaf_model):
-    monkeypatch.setenv("VERI_MODEL_DEVELOPER", "sonnet")
-    monkeypatch.setenv("VERI_MODEL_REVISE", "")
-    answers = []
-    for name in ("revise-green-2", "develop-exhausted"):
-        code = leaf_model.main([name])
-        captured = capsys.readouterr()
-        answers.append((name, code, captured.out, "VERI_MODEL_REVISE" in captured.err))
-    assert answers == [
-        ("revise-green-2", 2, "", True),
-        ("develop-exhausted", 2, "", True),
-    ]
-
-
 def test_main_refuses_a_veri_model_revise_holding_whitespace_for_revise_and_develop_exhausted_with_2_and_no_stdout(
         capsys, monkeypatch, leaf_model):
     monkeypatch.setenv("VERI_MODEL_DEVELOPER", "sonnet")
@@ -315,3 +300,38 @@ def test_main_with_no_model_variable_set_prints_sonnet_for_first_try_and_verifie
         captured = capsys.readouterr()
         answers.append((name, code, captured.out))
     assert answers == [(name, 0, out) for _, name, out in runs]
+
+
+def test_main_treats_an_empty_or_whitespace_only_model_variable_as_unset_with_0_and_still_refuses_internal_whitespace_with_2(
+        capsys, monkeypatch, leaf_model):
+    defaults = {
+        "develop-red": "sonnet\n",
+        "verify-green": "sonnet\n",
+        "revise-green": "opus\n",
+        "revise-green-2": "opus\n",
+        "develop-exhausted": "opus\n",
+    }
+    answers = []
+    for variable in ("VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE"):
+        for value in ("", " ", " \t "):
+            for name in defaults:
+                for each in MODEL_VARIABLES + ("VERI_MODEL_REVISE",):
+                    monkeypatch.delenv(each, raising=False)
+                monkeypatch.setenv(variable, value)
+                code = leaf_model.main([name])
+                captured = capsys.readouterr()
+                answers.append((variable, value, name, code, captured.out))
+    assert answers == [
+        (variable, value, name, 0, out)
+        for variable in ("VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE")
+        for value in ("", " ", " \t ")
+        for name, out in defaults.items()
+    ]
+    refused = []
+    for name in defaults:
+        for each in MODEL_VARIABLES + ("VERI_MODEL_REVISE",):
+            monkeypatch.delenv(each, raising=False)
+        monkeypatch.setenv("VERI_MODEL", "sonnet 5")
+        code = leaf_model.main([name])
+        refused.append((name, code, capsys.readouterr().out))
+    assert refused == [(name, 2, "") for name in defaults]

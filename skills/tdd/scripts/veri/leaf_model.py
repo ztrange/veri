@@ -20,18 +20,19 @@ def _echo(value):
         _write(sys.stdout, value)
 
 
+def _env(key):
+    value = os.environ.get(key, "")
+    return "" if not value.strip(WHITESPACE) else value
+
+
 def resolve(name):
     role = leaf_role(name)
     if role is None:
         return None
     actor = role["VERI_ACTOR"]
     revise = name.startswith("revise-") or name == "develop-exhausted"
-    revise_model = os.environ.get("VERI_MODEL_REVISE") if revise else None
-    if revise_model == "":
-        _write(sys.stderr, "leaf-model: VERI_MODEL_REVISE is set but empty (unset it, or name a model)")
-        return None
-    model = (revise_model
-             or os.environ.get("VERI_MODEL_" + actor.upper()) or os.environ.get("VERI_MODEL", ""))
+    model = ((_env("VERI_MODEL_REVISE") if revise else "")
+             or _env("VERI_MODEL_" + actor.upper()) or _env("VERI_MODEL"))
     if not model:
         model = "opus" if revise else "sonnet"
     if any(c in WHITESPACE for c in model):
