@@ -1,0 +1,2 @@
+### The develop-red prompt built for a ⟦replaces-case⟧ step asks for one pytest replacement case per named bash case, and one `REPLACES: <case name> => <pytest test id>` report line per named case, in place of "one criterion, one case"; a prompt-builder case goes red when that instruction is reverted to "one criterion, one case" for ⟦replaces-case⟧ steps ⟦criterion 2⟧
+- test-only | `test_build_develop_prompt.py` new case: `marked_result` and `plain_result` repeat the same "which rules are missing" comprehension. A local helper could replace the two copies.
