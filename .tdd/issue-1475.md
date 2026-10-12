@@ -1,4 +1,4 @@
 # Plan for #1475 — no-product-caller.sh gate blocks contract-a for every C5 issue: SKILL.md keeps calling the shim by design
 
 - [x] SKILL.md's phased-step subsection runs no-product-caller.sh on the old interface before contract-b only: the window around no-product-caller.sh names contract-b as the phase it gates, no longer says "Before it launches contract-a or contract-b", and says contract-a starts on the migrate phase's PASS without the scan — pinned by amending the skill-refactor-kind.test.sh case "starts a phased step's contract only once no-product-caller.sh on the old interface exits 0" ⟦criterion 1⟧
-- [ ] The contract-b gate still catches a real caller: the existing no-product-caller.test.sh cases (a SKILL.md `$S/<name>.sh` line and a veri/<other>.py line both reported, exit 0 once removed) pass unmodified ⟦full-suite⟧ ⟦criterion 2⟧
+- [x] The contract-b gate still catches a real caller: the existing no-product-caller.test.sh cases (a SKILL.md `$S/<name>.sh` line and a veri/<other>.py line both reported, exit 0 once removed) pass unmodified ⟦full-suite⟧ ⟦criterion 2⟧
