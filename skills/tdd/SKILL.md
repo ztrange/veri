@@ -1207,6 +1207,8 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    against the latest red report, before the launch below. Exit 1 prints each named case with
    no `REPLACES:` line: **bail with cause=unreplaced-cases**, naming each case it printed, and
    do not launch verify-green — never verify a step whose named cases lack a replacement.
+   Exit 2 — no answer could be obtained (no readable report, bad arguments) — also bails with
+   cause=unreplaced-cases, and verify-green is not launched.
    ```
    rm -f .tdd/verdict-green.exit .tdd/verdict-green.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-green $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" --fast-cmd '<fast-cmd>' green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason 2> .tdd/verify-green.err
@@ -2212,6 +2214,8 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   stuck-retry budget → **system** failure (plumbing broke).
 - `no-verdict` — `verify.sh` exited **2** (unparseable verdict, or the verifier leaf was
   killed) → **system** failure.
+- `unreplaced-cases` — `unreplaced-cases.sh` exited **1** naming `⟦replaces-case⟧` cases with no
+  `REPLACES:` line (or **2**, no answer) before verify-green → **process** failure.
 - `revise-exhausted` — a step spent its `REVISE_BUDGET` and the blind verifier still says
   `REJECT` → **process** failure (methodology spoke).
 - `untestable-criterion` — a Red developer leaf reported `AGAINST_UNMODIFIED: UNTESTABLE`:
