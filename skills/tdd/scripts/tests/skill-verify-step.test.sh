@@ -97,4 +97,13 @@ guard="$(awk '/unreplaced-cases\.sh/ { on = 1 } on && /^ *```/ { exit } on' "$sk
   problems+=("$skill_md's unreplaced-cases.sh guard never says what the conductor does on exit 2")
 report "$name"
 
+name="#1521: $skill_md has the unreplaced-cases.sh guard read the current attempt's Red report, .tdd/revise-red-<k>.out after a red revise"
+problems=()
+guard="$(awk '/unreplaced-cases\.sh/ { on = 1 } on && /^ *```/ { exit } on' "$skill_path" | plain --join)"
+[[ "$guard" == *'.tdd/revise-red-<k>.out'* ]] ||
+  problems+=("$skill_md's unreplaced-cases.sh guard names .tdd/develop-red.out alone, never .tdd/revise-red-<k>.out after a red revise")
+[[ "$guard" == *'.tdd/develop-red.out'* ]] ||
+  problems+=("$skill_md's unreplaced-cases.sh guard never names .tdd/develop-red.out")
+report "$name"
+
 finish
