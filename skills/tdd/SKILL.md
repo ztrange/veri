@@ -1204,7 +1204,8 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    Neither this verifier nor the develop leaf runs the full suite: a break outside the
    affected suites surfaces at the one full-suite run in *4. Draft PR*.
    On a `⟦replaces-case⟧` step, first run `$S/unreplaced-cases.sh "<step line>" .tdd/develop-red.out`
-   against the latest red report, before the launch below. Exit 1 prints each named case with
+   against the current attempt's Red report (`.tdd/revise-red-<k>.out` after a red revise),
+   before the launch below. Exit 1 prints each named case with
    no `REPLACES:` line: **bail with cause=unreplaced-cases**, naming each case it printed, and
    do not launch verify-green — never verify a step whose named cases lack a replacement.
    Exit 2 — no answer could be obtained (no readable report, bad arguments) — also bails with
