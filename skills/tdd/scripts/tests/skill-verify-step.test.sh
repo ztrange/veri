@@ -87,4 +87,14 @@ else
 fi
 report "$name"
 
+name="#1521: $skill_md lists unreplaced-cases among the bail causes and says what exit 2 of unreplaced-cases.sh does"
+problems=()
+text="$(plain --join < "$skill_path")"
+[[ "$text" =~ -\ unreplaced-cases\ — ]] ||
+  problems+=("$skill_md's bail causes never list \`unreplaced-cases\`")
+guard="$(awk '/unreplaced-cases\.sh/ { on = 1 } on && /^ *```/ { exit } on' "$skill_path" | plain --join)"
+[[ "$guard" =~ exits?\ 2[^.]*(bail|stop|retr|launch) ]] ||
+  problems+=("$skill_md's unreplaced-cases.sh guard never says what the conductor does on exit 2")
+report "$name"
+
 finish
