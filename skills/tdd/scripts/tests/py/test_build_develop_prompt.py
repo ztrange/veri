@@ -1385,3 +1385,36 @@ def test_main_renders_a_red_prompt_taking_a_ci_repair_steps_quoted_ci_log_as_its
                                       if re.search(pattern, prompt, re.I) is not None))
 
     assert results == {"marked": (0, sorted(rules)), "plain": (0, [])}
+
+
+def test_main_renders_a_red_prompt_for_a_replaces_case_step_asking_one_pytest_replacement_per_named_case_and_a_replaces_report_line_for_each_not_one_criterion_one_case_1521(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    marked = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob", '
+              '"zorblat refuses an empty nitz" move to tests/py/test_zorblat.py ⟦criterion 1⟧')
+    plain = "zorblat frobs a nitz ⟦criterion 1⟧"
+
+    def rendered(step):
+        code = build_develop_prompt.main(["red", str(spec), step, "make test"])
+        out, _ = capsysbinary.readouterr()
+        return code, re.sub(rb"\s+", b" ", out)
+
+    rules = {
+        "asks one replacement case per named case": (
+            rb"one (pytest )?replacement (test )?case (for|per) (each|every) (bash )?(case )?(it |the step )?named"),
+        "asks a REPLACES report line per named case": (
+            rb"`?REPLACES: <case name> => <pytest test id>`?[^.]{0,80}(each|every|per) (bash )?(case )?(it |the step )?named"),
+    }
+    old = rb"One criterion, one case"
+
+    code, prompt = rendered(marked)
+    marked_result = (code, sorted(rule for rule, pattern in rules.items()
+                                  if re.search(pattern, prompt, re.I) is None),
+                     re.search(old, prompt) is None)
+    code, prompt = rendered(plain)
+    plain_result = (code, sorted(rule for rule, pattern in rules.items()
+                                 if re.search(pattern, prompt, re.I) is None),
+                    re.search(old, prompt) is not None)
+
+    assert (marked_result, plain_result) == ((0, [], True), (0, sorted(rules), True))

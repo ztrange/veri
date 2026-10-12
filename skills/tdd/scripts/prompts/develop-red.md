@@ -9,8 +9,7 @@ Add exactly **ONE** new failing test case, and write **NO** production code.
 {{STEP}}
 
 Pin it as *observable behaviour*: what the code does when it is called, not how it is
-written inside. One criterion, one case — no extra cases, and no generality the step does
-not ask for.{{CI_REPAIR}}
+written inside. {{RED_CASES}}{{CI_REPAIR}}
 
 ### What counts as a valid test
 

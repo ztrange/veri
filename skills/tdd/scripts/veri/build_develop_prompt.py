@@ -98,10 +98,19 @@ def main(argv):
             _write(sys.stderr, f"build-develop-prompt: cannot read '{path}'")
             return 2
     prompts_b = os.fsencode(prompts)
-    values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "REPLACES_CASE", "SUITE_REPAIR", "CI_REPAIR", "STEP",
+    values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "RED_CASES", "REPLACES_CASE", "SUITE_REPAIR", "CI_REPAIR", "STEP",
                             "TEST_CMD", "TEST_PATH", "TARGET_TEST", "FAST_CMD", "TIMED_TEST_RUN", "TOUCHED_FILES",
                             "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "REJECTION_REASON", "BRANCH",
                             "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES"), b"")
+    values["RED_CASES"] = (b"One criterion, one case \xe2\x80\x94 no extra cases, and no generality the step does\n"
+                           b"not ask for.")
+    if phase == "red" and "\u27e6replaces-case\u27e7" in step:
+        values["RED_CASES"] = (
+            b"This step replaces cases, so it is not one criterion, one case: write one pytest replacement\n"
+            b"case for each bash case the step named, each in its own `def test_...`, no extra cases, and no\n"
+            b"generality the step does not ask for. For each of them, report one line\n"
+            b"`REPLACES: <case name> => <pytest test id>` for each case the step named, the case name\n"
+            b"exactly as the step spells it.")
     for name, value in zip(names[3:], args[3:]):
         if name in ARGUMENT_PLACEHOLDERS:
             values[ARGUMENT_PLACEHOLDERS[name]] = os.fsencode(value)
