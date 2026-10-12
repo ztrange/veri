@@ -56,4 +56,15 @@ code=0
 expect_eq "$name" "1:second case" "$code:$(cat "$out")"
 rm -f "$report" "$out"
 
+name="unreplaced-cases.sh given a step naming three cases and a report replacing the second and third exits 1 and prints the first on stdout (#1521)"
+report="$(mktemp)"; out="$(mktemp)"
+printf '%s\n' \
+  "REPLACES: second case => tests/py/test_x.py::test_second" \
+  "REPLACES: third case => tests/py/test_x.py::test_third" > "$report"
+step="- [ ] x: replaces 'first case', 'second case', 'third case' in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧"
+code=0
+"$UNREPLACED" "$step" "$report" > "$out" 2> /dev/null < /dev/null || code=$?
+expect_eq "$name" "1:first case" "$code:$(cat "$out")"
+rm -f "$report" "$out"
+
 finish
