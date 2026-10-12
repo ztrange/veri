@@ -24,6 +24,7 @@ call_re="verify\.sh $flag( --fast-cmd '<fast-cmd>')? (red|green|refactor|pin|<ph
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/plain.sh"
 
 verify_calls() {
   grep -nE 'verify\.sh.*(<spec-file>|\.tdd/issue-<n>-spec\.md)' "$skill_path" |
@@ -64,6 +65,26 @@ if [[ -n "$calls" ]]; then
   done <<< "$calls"
 fi
 
+report "$name"
+
+name="#1521: $skill_md has the conductor run unreplaced-cases.sh before verify-green and bail unreplaced-cases on exit 1"
+problems=()
+text="$(plain --join < "$skill_path")"
+if [[ "$text" != *'unreplaced-cases.sh'* ]]; then
+  problems+=("$skill_md never mentions unreplaced-cases.sh")
+else
+  text="${text#*unreplaced-cases.sh}"
+  text="${text:0:1200}"
+  says() { [[ "$text" =~ $1 ]] || problems+=("$2"); }
+  says 'replaces-case' \
+    "$skill_md's unreplaced-cases.sh guard never says it applies to a ⟦replaces-case⟧ step"
+  says 'exit 1|exits 1|exit \*\*1' \
+    "$skill_md's unreplaced-cases.sh guard never branches on exit 1"
+  says 'cause=unreplaced-cases|cause `unreplaced-cases`' \
+    "$skill_md's unreplaced-cases.sh guard never bails with cause unreplaced-cases"
+  says '(without|never|not|before)[^.]{0,80}verify-green|verify-green[^.]{0,80}(not|never|without)' \
+    "$skill_md's unreplaced-cases.sh guard never keeps verify-green from launching"
+fi
 report "$name"
 
 finish

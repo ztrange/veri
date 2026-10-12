@@ -1203,6 +1203,10 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
 2. **Verify (blind)** — the verifier shape again, and the wait's code is again the verdict.
    Neither this verifier nor the develop leaf runs the full suite: a break outside the
    affected suites surfaces at the one full-suite run in *4. Draft PR*.
+   On a `⟦replaces-case⟧` step, first run `$S/unreplaced-cases.sh "<step line>" .tdd/develop-red.out`
+   against the latest red report, before the launch below. Exit 1 prints each named case with
+   no `REPLACES:` line: **bail with cause=unreplaced-cases**, naming each case it printed, and
+   do not launch verify-green — never verify a step whose named cases lack a replacement.
    ```
    rm -f .tdd/verdict-green.exit .tdd/verdict-green.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-green $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" --fast-cmd '<fast-cmd>' green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason 2> .tdd/verify-green.err
@@ -1960,7 +1964,8 @@ ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
 A `⟦replaces-case⟧` step whose Red reports `AGAINST_UNMODIFIED: PASSES` takes a different
 path after verify-pin, because deleting the named bash cases is still owed: on a verify-pin
 PASS commit nothing yet, and launch a green leaf exactly as *Green* does, whose only change
-is deleting exactly the named cases. Judge it by the replaces-case verify-green, whose PASS
+is deleting exactly the named cases. Run the same `unreplaced-cases.sh` guard from *Green*
+before that verify-green launches, bailing with cause=unreplaced-cases on exit 1. Judge it by the replaces-case verify-green, whose PASS
 is accepted only once `$S/mutation-parity.sh <pairs-table>` on that step's pairs table
 exits **0**, as on *Green*'s verify, then commit the pytest cases, the deletion
 and the ticked ledger in one tick-and-commit, as *Green*'s PASS does.
