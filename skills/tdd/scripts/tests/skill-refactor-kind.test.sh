@@ -319,6 +319,14 @@ else
     problems+=("$skill_md runs no-product-caller.sh in the phased step without saying it is run on the old interface")
   grep -E 'exit(s)? 0' <<<"$near" > /dev/null && grep -E 'only once|until|before' <<<"$near" > /dev/null ||
     problems+=("$skill_md never says the contract starts only once no-product-caller.sh exits 0")
+  flat_text="$(tr '\n' ' ' <<<"$phased_text")"
+  flat_near="$(window "$flat_text" 'no-product-caller\.sh' 600)"
+  grep -F 'contract-b' <<<"$flat_near" > /dev/null ||
+    problems+=("$skill_md does not name contract-b as the phase no-product-caller.sh gates (#1475)")
+  ! grep -F 'before it launches contract-a or contract-b' <<<"$flat_near" > /dev/null ||
+    problems+=("$skill_md still runs no-product-caller.sh before contract-a, which a kept shim can never pass (#1475)")
+  grep -E "contract-a starts on the migrate phase's pass without the scan" <<<"$flat_near" > /dev/null ||
+    problems+=("$skill_md never says contract-a starts on the migrate phase's PASS without the scan (#1475)")
 fi
 report "$name"
 

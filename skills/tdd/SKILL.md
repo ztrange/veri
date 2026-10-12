@@ -1563,11 +1563,13 @@ A contract-a phase's PASS is accepted only once the conductor's own run of
 REJECT, exit 2 a bail. The PR body's pairs table is that run's report, and each row it reports
 owed goes into the PR body under `## Owed by a human`.
 
-A contract phase starts only once `$S/no-product-caller.sh <old-interface>` on the old
-interface exits 0. Before it launches contract-a or contract-b, run it: exit 1 names each
-product file still calling the old interface, so the contract does not start and the step
-**bails** as a process failure, the migrate phase having left a caller behind; exit 2 **bails**
-as a system failure.
+Contract-b starts only once `$S/no-product-caller.sh <old-interface>` on the old
+interface exits 0. Before it launches contract-b, the phase that deletes the interface, run it:
+exit 1 names each product file still calling the old interface, so contract-b does not start and
+the step **bails** as a process failure, the migrate phase having left a caller behind; exit 2
+**bails** as a system failure. Contract-a starts on the migrate phase's PASS without the scan:
+it removes the tests' routing to the old interface, not the interface, and a shim kept on
+purpose is never scanned.
 
 A contract phase that exhausts `REVISE_BUDGET` does not abandon the step: reset the contract
 to its own base sha with `git reset --hard <base-sha>`, so the expand and migrate commits are
