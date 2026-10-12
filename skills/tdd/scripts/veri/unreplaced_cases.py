@@ -2,6 +2,8 @@
 import re
 import sys
 
+import replaces_case
+
 USAGE = "usage: unreplaced-cases.sh"
 
 
@@ -12,7 +14,7 @@ def main(argv):
     step, report = argv
     with open(report, encoding="utf-8") as handle:
         replaced = {m.group(1) for m in re.finditer(r"^REPLACES: (.*?) => ", handle.read(), re.M)}
-    missing = [name for name in re.findall(r"'([^']+)'", step) if name not in replaced]
+    missing = [name for name in replaces_case.parse(step)[0] if name not in replaced]
     for name in missing:
         print(name)
     return 1 if missing else 0
