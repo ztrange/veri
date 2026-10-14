@@ -1480,13 +1480,18 @@ def skill_clone(tmp_path, monkeypatch, module_name, files, directory="skill", co
     return skill, load_run_conductor(module_name, skill)
 
 
+def commit_appended_line(repository, relative, message):
+    """Commit to repository a line appended to relative, saying message."""
+    with open(repository / relative, "a") as appended:
+        appended.write("# " + message + "\n")
+    subprocess.run(git_as_veri(repository) + ["commit", "-q", "-am", message], check=True)
+
+
 def clone_behind_origin(tmp_path, remote, relative):
     """A clone of remote at tmp_path/clone, cut before one more commit, appending a line to relative, lands on remote."""
     clone = tmp_path / "clone"
     subprocess.run(["git", "clone", "-q", str(remote), str(clone)], check=True)
-    with open(remote / relative, "a") as landed:
-        landed.write("# a commit that landed on the remote after the clone was cut\n")
-    subprocess.run(git_as_veri(remote) + ["commit", "-q", "-am", "landed on the remote after the clone was cut"], check=True)
+    commit_appended_line(remote, relative, "a commit that landed on the remote after the clone was cut")
     return clone
 
 
@@ -2035,9 +2040,7 @@ def test_cli_a_resumed_run_keeps_its_recorded_pin_when_origin_default_has_moved_
     seen = claude_records_its_base_trees_and_prompts(monkeypatch)
 
     first_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller)
-    with open(remote / "scripts" / "supervise.sh", "a") as landed:
-        landed.write("# a commit that landed on the remote after the run started\n")
-    subprocess.run(git_as_veri(remote) + ["commit", "-q", "-am", "landed on the remote after the run started"], check=True)
+    commit_appended_line(remote, "scripts/supervise.sh", "a commit that landed on the remote after the run started")
     moved = head_commit(remote)
     resumed_code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
 
@@ -2061,14 +2064,10 @@ def test_cli_a_resume_with_veri_new_skill_1_re_pins_to_origin_default_as_just_fe
     seen = claude_records_its_base_trees_and_prompts(monkeypatch)
 
     first_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller)
-    with open(remote / "scripts" / "supervise.sh", "a") as landed:
-        landed.write("# a commit that landed on the remote after the run started\n")
-    subprocess.run(git_as_veri(remote) + ["commit", "-q", "-am", "landed on the remote after the run started"], check=True)
+    commit_appended_line(remote, "scripts/supervise.sh", "a commit that landed on the remote after the run started")
     tip = head_commit(remote)
     tip_tree = tree_contents(remote)
-    with open(clone / "scripts" / "supervise.sh", "a") as own:
-        own.write("# a commit of the clone's own that origin never saw\n")
-    subprocess.run(git_as_veri(clone) + ["commit", "-q", "-am", "the clone's own commit"], check=True)
+    commit_appended_line(clone, "scripts/supervise.sh", "a commit of the clone's own that origin never saw")
     clone_head = head_commit(clone)
     resumed_code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller, env={"VERI_NEW_SKILL": "1"})
 
