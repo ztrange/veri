@@ -106,11 +106,6 @@ OFFLINE_ENV = PATH="$(GUARD_PATH)$$git_bin:$(OFFLINE_BIN):$$PATH" MAKEFLAGS= OFF
 
 NAME_REACHED = while IFS= read -r reached; do printf '%s: %s\n' "$(1)" "$$reached"; fail=1; done < "$$reach_log"
 
-REFUSE_UNIMPORTABLE = if [ "$${$(1):-$$("$$py_bin" -c 'import $(2)' > /dev/null 2>&1 && echo 1 || echo 0)}" != 1 ]; then \
-	  printf 'veri needs $(3) for the suites under skills/tdd/scripts/tests/py/; %s cannot import $(2). Install it with `make install-dev`.\n' "$$py_bin" >&2; \
-	  exit 2; \
-	fi
-
 VENV_LIB := skills/tdd/scripts/lib/venv-python.sh
 VENV_DIR := $$(bash -c '. $(VENV_LIB) && venv_dir')
 
@@ -136,12 +131,14 @@ test unit:
 	@[ -f "$(COUNT_LINE_GUARD)" ] || { printf 'make: %s is missing, so no suite can be held to its count line\n' "$(COUNT_LINE_GUARD)" >&2; exit 2; }
 	@unset BASH_ENV ENV; fail=0; reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; pycache="$$(mktemp -d)"; \
 	trap 'rm -f "$$reach_log"; rm -rf "$$git_bin" "$$pycache"' EXIT; \
-	if [ -n "$(PY_TESTS)" ]; then \
-	  py_bin="$$(bash -c '. $(VENV_LIB) && py="$$(venv_python)" && venv_version_usable "$$py" "$${VERI_PYTHON_VERSION:-$$("$$py" -c "import platform; print(platform.python_version())" 2>/dev/null)}" && printf "%s\n" "$$py"')" || exit 2; \
-	  $(call REFUSE_UNIMPORTABLE,VERI_PYTEST_IMPORTABLE,pytest,pytest); \
-	  $(call REFUSE_UNIMPORTABLE,VERI_PYTEST_TIMEOUT_IMPORTABLE,pytest_timeout,pytest-timeout); \
-	fi; \
 	$(OFFLINE_GIT); \
+	if [ -n "$(PY_TESTS)" ]; then \
+	  py_bin="$$(bash -c '. $(VENV_LIB) && venv_python')"; \
+	  printf '== pytest\n'; \
+	  : > "$$reach_log"; suite_guard=; \
+	  UNIT_GUARD_LOG="$$reach_log" PYTHONPYCACHEPREFIX="$$pycache" COLUMNS=200 $(OFFLINE_ENV) "$$py_bin" skills/tdd/scripts/veri/pytest_leg.py --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || { leg=$$?; [ $$leg -ne 2 ] || exit 2; fail=1; }; \
+	  $(call NAME_REACHED,pytest: tried to start); \
+	fi; \
 	for t in $(SUITES); do \
 	  suite_name="$$(basename "$$t")"; \
 	  printf '== %s\n' "$$suite_name"; \
@@ -150,12 +147,6 @@ test unit:
 	  $(OFFLINE_ENV) skills/tdd/scripts/run-suite.sh "$$t" < /dev/null || fail=1; \
 	  $(call NAME_REACHED,$$suite_name: tried the network); \
 	done; \
-	if [ -n "$(PY_TESTS)" ]; then \
-	  printf '== pytest\n'; \
-	  : > "$$reach_log"; suite_guard=; \
-	  UNIT_GUARD_LOG="$$reach_log" PYTHONPYCACHEPREFIX="$$pycache" COLUMNS=200 $(OFFLINE_ENV) "$$py_bin" -m pytest --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || fail=1; \
-	  $(call NAME_REACHED,pytest: tried to start); \
-	fi; \
 	echo "----"; \
 	if [ $$fail -eq 0 ]; then echo "all suites green"; else echo "SUITES FAILED"; exit 1; fi
 

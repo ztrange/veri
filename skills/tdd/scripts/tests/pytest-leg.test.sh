@@ -702,8 +702,8 @@ name="a plain make test, with no TESTS on the command line, runs every shell sui
 problems=()
 load_plain test
 heads="$(grep '^== ' <<< "$out" | tr '\n' '/')"
-[[ "$heads" == '== slow.test.sh/== fast.test.sh/== pytest/' ]] ||
-  problems+=("want == slow.test.sh/== fast.test.sh/== pytest/, got: $heads")
+[[ "$heads" == '== pytest/== slow.test.sh/== fast.test.sh/' ]] ||
+  problems+=("want == pytest/== slow.test.sh/== fast.test.sh/, got: $heads")
 [[ "$out" == *'1 failed, 1 passed'* ]] ||
   problems+=("want the pytest leg to report 1 failed, 1 passed, got: $(flat "$out")")
 check_failed "make test" test
