@@ -86,7 +86,14 @@ def unmarked_case_lists_no_repository_directory(request, monkeypatch, tmp_path):
             monkeypatch.setattr(os, name, getattr(getattr(os, name), "real", getattr(os, name)))
         return
     root, scratch = SCRIPTS.parents[2], tmp_path.resolve()
-    real_scandir, real_listdir = os.scandir, os.listdir
+
+    def checked(real):
+        def lister(path="."):
+            check(path)
+            return real(path)
+
+        lister.real = real
+        return lister
 
     def check(path):
         try:
@@ -96,17 +103,8 @@ def unmarked_case_lists_no_repository_directory(request, monkeypatch, tmp_path):
         if (listed == root or root in listed.parents) and scratch != listed and scratch not in listed.parents and listed.is_dir():
             raise AssertionError("%s lists the repository directory %s: mark it tree_audit" % (request.node.nodeid, listed))
 
-    def scandir(path="."):
-        check(path)
-        return real_scandir(path)
-
-    def listdir(path="."):
-        check(path)
-        return real_listdir(path)
-
-    scandir.real, listdir.real = real_scandir, real_listdir
-    monkeypatch.setattr(os, "scandir", scandir)
-    monkeypatch.setattr(os, "listdir", listdir)
+    for name in ("scandir", "listdir"):
+        monkeypatch.setattr(os, name, checked(getattr(os, name)))
 
 
 @pytest.fixture
