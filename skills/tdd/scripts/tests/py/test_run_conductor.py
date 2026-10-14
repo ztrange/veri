@@ -2076,3 +2076,33 @@ def test_cli_a_resume_with_veri_new_skill_1_re_pins_to_origin_default_as_just_fe
     resumed_tree, resumed_prompt = seen[1]
     assert (first_code, resumed_code, resumed_tree == tip_tree, tip in resumed_prompt, clone_head in resumed_prompt,
             (caller / ".tdd" / "issue-4242-skill-commit").read_text()) == (0, 0, True, True, False, tip + "\n"), stderr
+
+
+@pytest.mark.process("real git archive and tar materialising a scratch skill clone's current commit, a recorded commit the clone cannot resolve, and the real event.sh appending the skill-repin event in a real caller repository")
+def test_cli_an_unresolvable_recorded_skill_commit_refuses_with_exit_2_unless_veri_new_skill_1_which_re_pins_and_logs_a_skill_repin_event(
+        tmp_path, monkeypatch, run_cli):
+    skill, run_conductor = skill_clone(
+        tmp_path, monkeypatch, "run_conductor_unresolvable",
+        {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the supervisor\n"})
+    head = head_commit(skill)
+    foreign = tmp_path / "foreign"
+    foreign.mkdir()
+    subprocess.run(["git", "init", "-q", str(foreign)], check=True)
+    subprocess.run(git_as_veri(foreign) + ["commit", "-q", "--allow-empty", "-m", "elsewhere"], check=True)
+    missing = head_commit(foreign)
+    caller = caller_repository(tmp_path)
+    subprocess.run(git_as_veri(caller) + ["branch", "tdd/4242-past-preflight"], check=True)
+    seen = claude_records_its_base_trees(monkeypatch)
+    record = caller / ".tdd" / "issue-4242-skill-commit"
+
+    first_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller)
+    record.write_text(missing + "\n")
+    refused_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller)
+    launched_when_refused = len(seen)
+    record.write_text(missing + "\n")
+    repinned_code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller, env={"VERI_NEW_SKILL": "1"})
+
+    events = (caller / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl").read_text().splitlines()
+    repins = [json.loads(line) for line in events if '"skill-repin"' in line]
+    assert (first_code, refused_code, launched_when_refused, repinned_code, len(seen), record.read_text(),
+            [repin["commit"] for repin in repins]) == (0, 2, 1, 0, 2, head + "\n", [head]), stderr
