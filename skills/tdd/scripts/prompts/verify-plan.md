@@ -76,6 +76,11 @@ for a test case are a `⟦phases: …⟧` step: the case must be its own Red/Gre
 the same `⟦criterion k⟧`, because a case that exists only inside the phased step is never
 checked by a verifier. Your reason names the criterion and the test case it asks for.
 
+REJECT a plan whose step drops a constraint the issue attaches to the cases that step covers:
+the case size it must keep (medium, with a real process), "no production change", or an
+end-to-end path through real processes that must stay covered. Your reason names the step and
+the constraint it leaves out.
+
 {{REFACTOR_PLAN}}
 
 A REJECT must name the criterion it fails on and state the part of it no step covers, in
