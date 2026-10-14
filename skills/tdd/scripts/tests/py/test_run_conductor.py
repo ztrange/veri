@@ -2274,3 +2274,42 @@ def test_cli_a_fetch_of_origin_that_loses_a_ref_lock_held_by_another_process_is_
     assert (code, len(fetches), sleeps, len(launches), "fetch of origin failed" in stderr) == (
         0, 2, [["sleep", "0"]], 1, False), stderr
     assert ["Pinned skill commit (name it in the plan comment): %s" % tip in prompt for prompt in prompts] == [True]
+
+
+def test_cli_a_fetch_of_origin_whose_ref_lock_is_still_held_when_the_second_fetch_runs_keeps_retrying_until_the_lock_is_released_and_the_conductor_starts_886(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.setenv("VERI_FETCH_RETRY_SLEEP", "0")
+    for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT"):
+        monkeypatch.delenv(name, raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_claude_env(monkeypatch, True, True, None)
+    answer, calls = subprocess.run, []
+    lock = "error: cannot lock ref 'refs/remotes/origin/main': is at 1111111 but expected 2222222\n"
+    tip, prompts = "3333333333333333333333333333333333333333", []
+
+    def lock_held_through_the_second_fetch(args, *rest, **kwargs):
+        args = list(args)
+        calls.append(args)
+        if args[3:] == ["fetch", "-q", "origin"] and len([c for c in calls if c[3:4] == ["fetch"]]) <= 2:
+            return subprocess.CompletedProcess(args, 1, "", lock)
+        if args[3:] == ["rev-parse", "refs/remotes/origin/HEAD"]:
+            return subprocess.CompletedProcess(args, 0, tip + "\n", "")
+        if args[:1] == ["sleep"]:
+            return subprocess.CompletedProcess(args, 0)
+        if args[:1] == ["fake-claude"]:
+            prompts.append(kwargs["input"].decode())
+        return answer(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", lock_held_through_the_second_fetch)
+    cwd = tmp_path / "caller"
+    cwd.mkdir()
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    fetches = [call for call in calls if call[3:4] == ["fetch"]]
+    sleeps = [call for call in calls if call[:1] == ["sleep"]]
+    assert (code, len(fetches), sleeps, len(launches), "fetch of origin failed" in stderr) == (
+        0, 3, [["sleep", "0"], ["sleep", "0"]], 1, False), stderr
+    assert ["Pinned skill commit (name it in the plan comment): %s" % tip in prompt for prompt in prompts] == [True]
