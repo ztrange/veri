@@ -1559,7 +1559,7 @@ A supervisor exit 2 on the `develop-diff` leaf is a `killed-stuck` bail, as for 
 leaf. After its wait exits 0 and before the verifier is launched, run `$S/suite-reported.sh develop-diff`:
 exit 2 means the leaf left no `SUITE:` line, so launch no verifier and **bail** as a system
 failure with cause `report-missing`. The `diff` revise leaf asks for the line too, so after its wait
-exits 0 the same check, `$S/suite-reported.sh develop-revise-diff` for the `revise-diff-<k>` leaf, runs
+exits 0 the same check, `$S/suite-reported.sh revise-diff-<k>` for the `revise-diff-<k>` leaf, runs
 before the re-verify with the same exit 2 outcome. The verifier's verdict closes the `⟦diff-checked⟧` step:
 
 - **PASS (exit 0):** tick the `⟦diff-checked⟧` step with `tick-ledger.sh` — without
