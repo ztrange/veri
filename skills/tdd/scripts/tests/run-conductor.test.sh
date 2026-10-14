@@ -226,27 +226,6 @@ repin_in "$caller4/.tdd/wt/$issue/.tdd/events.jsonl" "$current" ||
 
 report "$name"
 
-name="with no resolvable skill commit the run proceeds unpinned and warns on stderr"
-problems=()
-
-loose="$work/loose"
-loose_skill "$loose"
-rm -f "$prompt"
-
-launch_from "$caller" "$loose" GIT_CEILING_DIRECTORIES="$work"
-status=$?
-
-base="$(prompt_base)"
-if [[ "$status" -ne 0 ]]; then
-  problems+=("the unpinned launch exited $status, not 0: $(cat "$launch_err")")
-elif [[ "$(cd "$base" 2>/dev/null && pwd -P)" != "$(cd "$loose/skills/tdd" && pwd -P)" ]]; then
-  problems+=("the unpinned run's base directory is not the skill directory itself: '$base'")
-elif ! grep -qi 'unpinned' "$launch_err"; then
-  problems+=("no warning on stderr that the run is unpinned — stderr was: '$(cat "$launch_err")'")
-fi
-
-report "$name"
-
 name="the snapshot leaves git status --porcelain empty in the caller's checkout and in the skill clone"
 problems=()
 

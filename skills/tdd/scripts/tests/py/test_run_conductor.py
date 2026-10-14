@@ -1566,3 +1566,37 @@ def test_cli_a_resume_of_the_run_is_handed_a_re_materialised_snapshot_of_the_rec
     assert len(seen) == 2
     (first_base, _), (resumed_base, resumed_contents) = seen
     assert (first_code, resumed_code, os.path.exists(first_base), resumed_contents == recorded) == (0, 0, False, True)
+
+
+def test_cli_with_no_resolvable_skill_commit_the_run_proceeds_unpinned_from_the_skill_directory_itself_and_warns_on_stderr(
+        tmp_path, monkeypatch, run_cli):
+    import importlib.util
+    past_the_guards(monkeypatch)
+    for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
+        monkeypatch.delenv(name, raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    skill = tmp_path / "loose"
+    (skill / "scripts" / "veri").mkdir(parents=True)
+    (skill / "scripts" / "veri" / "run_conductor.py").symlink_to(SCRIPTS / "veri" / "run_conductor.py")
+    (skill / "SKILL.md").write_text("# the loose procedure\n")
+    spec = importlib.util.spec_from_file_location(
+        "run_conductor_loose", str(skill / "scripts" / "veri" / "run_conductor.py"))
+    run_conductor = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(run_conductor)
+    fake_unresolvable(monkeypatch)
+    answer, seen = subprocess.run, []
+
+    def claude_reads_its_base(args, *a, **kwargs):
+        if list(args)[:1] == ["fake-claude"]:
+            seen.append(base_directories(kwargs.get("input")))
+        return answer(args, *a, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", claude_reads_its_base)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert len(seen) == 1 and len(seen[0]) == 1
+    assert (code, os.path.realpath(seen[0][0]) == os.path.realpath(skill), "unpinned" in stderr.lower()) == (
+        0, True, True), stderr
