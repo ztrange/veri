@@ -1616,6 +1616,7 @@ def test_a_launch_in_a_real_repository_leaves_its_git_status_empty_keeps_its_exc
 
 
 @pytest.mark.process("parallel-conductors.sh supervising a real conductor, run through a symlink to the skills directory")
+@pytest.mark.tree_audit("every directory under skills/tdd/ but tests/")
 def test_a_launch_run_through_a_symlink_to_the_skills_directory_from_another_cwd_answers_as_it_does_in_place_and_prints_no_leaf_role_refusal(
         tmp_path):
     copy = tmp_path / "copy" / "skills"

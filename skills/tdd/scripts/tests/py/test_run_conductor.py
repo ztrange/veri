@@ -2000,6 +2000,7 @@ def test_cli_a_launch_from_a_clone_behind_origin_default_is_handed_a_snapshot_of
 
 
 @pytest.mark.process("real git clone, fetch and archive of a scratch skill clone whose origin has moved on, and the real event.sh and supervise.sh run from the snapshot in a real caller repository")
+@pytest.mark.tree_audit("every directory under scripts/ but tests/")
 def test_cli_every_event_a_launched_run_writes_carries_origins_tip_as_skill_commit_and_the_prompt_names_it(
         tmp_path, monkeypatch, run_cli):
     remote, _ = skill_clone(tmp_path, monkeypatch, "run_conductor_events_remote", {"SKILL.md": "# the committed procedure\n"},
