@@ -1273,3 +1273,27 @@ def test_main_renders_no_every_case_exists_check_in_the_expand_or_migrate_prompt
                for phase in ("expand", "migrate")}
 
     assert carries == {"expand": (0, False), "migrate": (0, False)}
+
+
+def test_main_renders_a_red_prompt_for_a_replaces_case_step_saying_one_replacement_case_per_named_case_judged_each_and_not_one_new_failing_test_while_one_without_the_mark_still_says_it_1537(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    marked = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob" '
+              'move to tests/py/test_zorblat.py ⟦criterion 1⟧')
+    plain = "zorblat frobs a nitz ⟦criterion 1⟧"
+
+    def rendered(step):
+        code = build_verify_prompt.main(["--step", step, "red", str(spec), "tests/py/test_zorblat.py", "test_zorblat"])
+        out, _ = capsysbinary.readouterr()
+        return code, re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
+
+    one_failing = "**one new failing test**"
+    per_case = r"one replacement (test )?case per named case"
+    code, prompt = rendered(marked)
+    marked_result = (code, one_failing in prompt, re.search(per_case, prompt, re.I) is not None,
+                     re.search(r"judge each", prompt, re.I) is not None)
+    code, prompt = rendered(plain)
+    plain_result = (code, one_failing in prompt, re.search(per_case, prompt, re.I) is not None)
+
+    assert (marked_result, plain_result) == ((0, False, True, True), (0, True, False))

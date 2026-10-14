@@ -2,7 +2,7 @@
 
 ## Phase: verify-red
 
-A developer agent has written **one new failing test** at `{{TEST_PATH}}` (the target
+A developer agent has written {{RED_WRITTEN}} at `{{TEST_PATH}}` (the target
 test is `{{TARGET_TEST}}`). Confirm the Red step is sound.
 
 {{STEP}}### The issue's behavior spec
