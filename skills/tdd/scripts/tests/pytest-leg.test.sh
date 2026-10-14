@@ -54,7 +54,7 @@ check_refused() {
   err="$(cat "$work/err")"
   [[ "$err" =~ \[(Makefile:[0-9]+:\ )?$target\]\ Error\ 2 ]] ||
     problems+=("make $target: want make's [$target] Error 2 on stderr, got: $(flat "$err")")
-  [[ "$out" != *'== '* ]] || problems+=("make $target: a suite ran before the refusal: $(flat "$out")")
+  [[ "${out//'== pytest'/}" != *'== '* ]] || problems+=("make $target: a suite ran before the refusal: $(flat "$out")")
 }
 
 make_tree() {
@@ -80,37 +80,43 @@ work="$(scratch_dir)"
 
 fake_pytest="$work/fake-pytest"
 mkdir -p "$fake_pytest/pytest" "$fake_pytest/pytest_timeout"
-: > "$fake_pytest/pytest/__init__.py"
 : > "$fake_pytest/pytest_timeout/__init__.py"
-cat > "$fake_pytest/pytest/__main__.py" <<'PY'
+cat > "$fake_pytest/pytest/__init__.py" <<'PY'
+import enum
 import importlib.util
 import os
 import sys
 import traceback
 
-paths = [a for a in sys.argv[1:] if not a.startswith("-")] or ["."]
-files = []
-for p in paths:
-    if os.path.isfile(p):
-        files.append(p)
-        continue
-    for d, _, names in os.walk(p):
-        files += [os.path.join(d, n) for n in sorted(names) if n.startswith("test_") and n.endswith(".py")]
-failed = passed = 0
-for f in sorted(files):
-    spec = importlib.util.spec_from_file_location(os.path.basename(f)[:-3], f)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    for name in sorted(n for n in vars(mod) if n.startswith("test_") and callable(getattr(mod, n))):
-        try:
-            getattr(mod, name)()
-            passed += 1
-        except Exception:
-            failed += 1
-            traceback.print_exc(file=sys.stdout)
-            print("FAILED %s::%s" % (f, name))
-print("%d failed, %d passed" % (failed, passed))
-sys.exit(1 if failed else 0)
+
+class ExitCode(enum.IntEnum):
+    OK = 0
+
+
+def main(args):
+    paths = [a for a in args if not a.startswith("-")] or ["."]
+    files = []
+    for p in paths:
+        if os.path.isfile(p):
+            files.append(p)
+            continue
+        for d, _, names in os.walk(p):
+            files += [os.path.join(d, n) for n in sorted(names) if n.startswith("test_") and n.endswith(".py")]
+    failed = passed = 0
+    for f in sorted(files):
+        spec = importlib.util.spec_from_file_location(os.path.basename(f)[:-3], f)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        for name in sorted(n for n in vars(mod) if n.startswith("test_") and callable(getattr(mod, n))):
+            try:
+                getattr(mod, name)()
+                passed += 1
+            except Exception:
+                failed += 1
+                traceback.print_exc(file=sys.stdout)
+                print("FAILED %s::%s" % (f, name))
+    print("%d failed, %d passed" % (failed, passed))
+    return ExitCode.OK if failed == 0 else 1
 PY
 
 tree="$work/tree"
@@ -581,7 +587,7 @@ for target in unit test; do
   err="$(cat "$work/err")"
   [[ "$code" != 0 && "$err" =~ \[(Makefile:[0-9]+:\ )?$target\]\ Error\ 2 ]] ||
     problems+=("floor 3.13, make $target: want make's [$target] Error 2 on stderr, got exit $code: $(flat "$err")")
-  [[ "$out" != *'== '* ]] || problems+=("floor 3.13, make $target: a suite ran before the refusal: $(flat "$out")")
+  [[ "${out//'== pytest'/}" != *'== '* ]] || problems+=("floor 3.13, make $target: a suite ran before the refusal: $(flat "$out")")
   [[ "$err" == *3.13* ]] || problems+=("floor 3.13, make $target: want stderr to name the floor 3.13, got: $(flat "$err")")
 done
 report "$name"
@@ -741,8 +747,8 @@ name="#899: a plain make unit, with no UNIT_TESTS on the command line, runs ever
 problems=()
 load_plain unit
 heads="$(grep '^== ' <<< "$out" | tr '\n' '/')"
-[[ "$heads" == '== fast.test.sh/== pytest/' ]] ||
-  problems+=("want == fast.test.sh/== pytest/, got: $heads")
+[[ "$heads" == '== pytest/== fast.test.sh/' ]] ||
+  problems+=("want == pytest/== fast.test.sh/, got: $heads")
 [[ "$out" == *'1 failed, 1 passed'* ]] ||
   problems+=("want the pytest leg to report 1 failed, 1 passed, got: $(flat "$out")")
 check_failed "make unit" unit
