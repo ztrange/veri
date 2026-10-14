@@ -1,0 +1,2 @@
+### The built verify-plan prompt REJECTs a plan whose only steps for a criterion delivered by an interface change that also asks for a test case are a `⟦phases: …⟧` step, naming the criterion and the case it asks for — pinned by a case in skills/tdd/scripts/tests/py/test_build_verify_prompt.py ⟦criterion 1⟧
+- test-only | the alternation regex `reject_phased_alone` in `test_build_verify_prompt.py` is looser than the rule's wording; tightening it would change only a tests/ file
