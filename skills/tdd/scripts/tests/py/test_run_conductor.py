@@ -1435,6 +1435,11 @@ def tree_contents(root):
     return contents
 
 
+def git_as_veri(repository):
+    """The git argv prefix that runs in repository under a fixed committer identity."""
+    return ["git", "-C", str(repository), "-c", "user.name=veri", "-c", "user.email=veri@example.test"]
+
+
 def committed_skill_clone(tmp_path, monkeypatch, module_name, files):
     """A one-commit skill clone holding files (path: text, .sh files executable), and its run_conductor module loaded from that clone."""
     import importlib.util
@@ -1450,7 +1455,7 @@ def committed_skill_clone(tmp_path, monkeypatch, module_name, files):
         (skill / relative).write_text(text)
         if relative.endswith(".sh"):
             (skill / relative).chmod(0o755)
-    git = ["git", "-C", str(skill), "-c", "user.name=veri", "-c", "user.email=veri@example.test"]
+    git = git_as_veri(skill)
     subprocess.run(["git", "init", "-q", str(skill)], check=True)
     subprocess.run(git + ["add", "-A"], check=True)
     subprocess.run(git + ["commit", "-q", "-m", "the skill commit"], check=True)
@@ -1538,7 +1543,7 @@ def test_cli_a_resume_of_the_run_is_handed_a_re_materialised_snapshot_of_the_rec
     recorded = tree_contents(skill)
     caller = tmp_path / "caller"
     caller.mkdir()
-    caller_git = ["git", "-C", str(caller), "-c", "user.name=veri", "-c", "user.email=veri@example.test"]
+    caller_git = git_as_veri(caller)
     subprocess.run(["git", "init", "-q", str(caller)], check=True)
     subprocess.run(caller_git + ["commit", "-q", "--allow-empty", "-m", "base"], check=True)
     subprocess.run(caller_git + ["branch", "tdd/4242-past-preflight"], check=True)
@@ -1555,8 +1560,7 @@ def test_cli_a_resume_of_the_run_is_handed_a_re_materialised_snapshot_of_the_rec
 
     first_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller)
     (skill / "scripts" / "supervise.sh").write_text("#!/bin/sh\necho the pulled supervisor\n")
-    subprocess.run(["git", "-C", str(skill), "-c", "user.name=veri", "-c", "user.email=veri@example.test",
-                    "commit", "-q", "-am", "pulled after the run started"], check=True)
+    subprocess.run(git_as_veri(skill) + ["commit", "-q", "-am", "pulled after the run started"], check=True)
     resumed_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller)
 
     assert len(seen) == 2
