@@ -9,3 +9,5 @@
 - test-only | `claude_records_its_base_trees` could be built on the new trees-and-prompts helper, but the older cases it serves were not written in this cycle
 ### An unresolvable recorded commit exits 2 unless VERI_NEW_SKILL=1 re-pins and logs skill-repin, pinned through run_cli: replaces 'an unresolvable recorded skill commit refuses with exit 2 unless VERI_NEW_SKILL=1, which re-pins and logs a skill-repin event' in skills/tdd/scripts/tests/run-conductor.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧
 - test-only | the "git clone remote; load_run_conductor; caller_repository; branch tdd/4242-past-preflight" setup repeats across cases 16, 17, 18 and could share a fixture
+### The skill-repin event lands in the run worktree's log, never the caller's, pinned through run_cli: replaces 'the skill-repin event lands in the run worktree's .tdd/wt/<n>/.tdd/events.jsonl, never the caller's .tdd/events.jsonl' in skills/tdd/scripts/tests/run-conductor.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧
+- test-only | the `caller_repository` + `branch tdd/4242-past-preflight` setup is repeated in 6 cases; fold it into one helper (the branch line also appears in cases from earlier cycles)
