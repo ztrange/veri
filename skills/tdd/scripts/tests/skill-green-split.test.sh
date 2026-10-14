@@ -386,4 +386,21 @@ fi
 
 report "$name"
 
+name="#1406 $skill_md documents build-develop-prompt.sh green's 8th argument, the cases still owed for deletion, at the green build command and in the script reference entry"
+problems=()
+
+green_build="$(grep -F 'build-develop-prompt.sh green ' "$skill_path" | head -n 1)"
+reference_green="$(awk 'index($0, "- `$S/build-develop-prompt.sh <red") == 1 { inside = 1; next } inside && /^- `/ { exit } inside' "$skill_path" | plain --join)"
+
+if [[ -z "$green_build" ]]; then
+  problems+=("$skill_md has no 'build-develop-prompt.sh green ' command line to read")
+elif [[ "$green_build" != *owed* ]]; then
+  problems+=("$skill_md's green build command passes no argument for the cases still owed for deletion: $green_build")
+fi
+if [[ "$reference_green" != *"<fast-cmd>"*owed* && "$reference_green" != *"green <spec-file>"*owed*"refactor <spec-file>"* ]]; then
+  problems+=("$skill_md's build-develop-prompt.sh reference entry never lists an owed-cases argument in green's synopsis")
+fi
+
+report "$name"
+
 finish

@@ -119,7 +119,8 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   by `run-leaf.sh`; passes plain text through unchanged).
 - `$S/build-develop-prompt.sh <red|green|refactor|cover|transform|diff|structural|predicate|revise|exhausted|reconcile|over-budget|rebase> …` — assemble a **developer** leaf's prompt from a
   versioned template: `red <spec-file> <step-text> <test-cmd>`, `green <spec-file>
-  <step-text> <test-cmd> <test-path> <target>`, `refactor <spec-file> <step-text>
+  <step-text> <test-cmd> <test-path> <target> <fast-cmd> [<owed-cases>]` (the optional 8th argument
+  is the named cases still owed for deletion), `refactor <spec-file> <step-text>
   <test-cmd> <touched-files>`, `revise <phase> <spec-file> <step-text> <test-cmd>
   <reason-file>`. Prints the prompt on stdout; **exit 2** with a diagnostic and **no
   stdout** on an unknown phase or a missing template, spec or reason file — never a partial
@@ -1164,7 +1165,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    fast command and the affected suites green — and launch **through the supervisor** (exit **2** → **bail**, after the stop
    check in *Launching a leaf*):
    ```
-   $S/build-develop-prompt.sh green .tdd/issue-<n>-spec.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' <test-path> '<target-test-id>' '<fast-cmd>' > .tdd/develop-green.prompt
+   $S/build-develop-prompt.sh green .tdd/issue-<n>-spec.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' <test-path> '<target-test-id>' '<fast-cmd>' '<owed-cases>' > .tdd/develop-green.prompt
    rm -f .tdd/develop-green.exit .tdd/develop-green.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh develop-green $S/run-leaf.sh .tdd/develop-green.prompt --permission-mode bypassPermissions > .tdd/develop-green.out 2> .tdd/develop-green.err
    $S/wait-leaf.sh develop-green    # foreground; on exit 3 call it again
