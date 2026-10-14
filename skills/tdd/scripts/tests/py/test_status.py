@@ -536,6 +536,8 @@ def test_status_shows_a_runs_state_running_done_with_its_pr_url_bailed_with_phas
         write_events(run / ".tdd" / "events.jsonl",
                      [lamp_ev(launches[issue], issue, "launch", name="develop-red")] + endings.get(issue, []))
     (runs["11"] / ".tdd" / "conductor.pid").write_text("%d\n" % os.getpid())
+    # #14 names a pid no process can hold (above every pid_max), so os.kill rejects it, not open.
+    (runs["14"] / ".tdd" / "conductor.pid").write_text("%d\n" % (2 ** 31 - 1))
     fake_processes(git_answering(tmp_path, {str(run): "tdd/%s-lamps" % issue for issue, run in runs.items()}))
     at_ten_thousand(monkeypatch)
 
