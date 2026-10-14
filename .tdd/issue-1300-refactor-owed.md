@@ -1,0 +1,2 @@
+### With the stub `claude`'s final result carrying a `SUITE: GREEN — <summary>` line, `suite-reported.sh <leaf-name>` exits 0 for that leaf, so the check tells a reported leaf from an unreported one ⟦criterion 1⟧
+- test-only | skills/tdd/scripts/tests/suite-reported.test.sh: the two cases repeat the same stub-leaf-run, exit-0 assertion and check block. Extract one helper that takes the leaf name and `FAKE_RESULT`.
