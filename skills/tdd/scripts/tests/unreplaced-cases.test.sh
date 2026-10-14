@@ -18,17 +18,21 @@ expect_eq "$name (stdout empty)" "" "$(cat "$out")"
 rm -f "$out" "$err"
 
 name="unreplaced-cases.sh given a step naming three cases and a report replacing two exits 1 and prints the third on stdout (#1521)"
+tree="$(scratch_dir)"; mkdir -p "$tree/tests/py"
+printf 'def test_first():\n    pass\n\n\ndef test_second():\n    pass\n\n\ndef test_third():\n    pass\n' > "$tree/tests/py/test_x.py"
 report="$(mktemp)"; out="$(mktemp)"
 printf '%s\n' \
   "REPLACES: first case => tests/py/test_x.py::test_first" \
   "REPLACES: second case => tests/py/test_x.py::test_second" > "$report"
 step="- [ ] x: replaces 'first case', 'second case', 'third case' in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧"
 code=0
-"$UNREPLACED" "$step" "$report" > "$out" 2> /dev/null < /dev/null || code=$?
+(cd "$tree" && "$UNREPLACED" "$step" "$report" > "$out" 2> /dev/null < /dev/null) || code=$?
 expect_eq "$name" "1:third case" "$code:$(cat "$out")"
 rm -f "$report" "$out"
 
 name="unreplaced-cases.sh given a step naming three cases and a report replacing all three exits 0 with nothing on stdout (#1521)"
+tree="$(scratch_dir)"; mkdir -p "$tree/tests/py"
+printf 'def test_first():\n    pass\n\n\ndef test_second():\n    pass\n\n\ndef test_third():\n    pass\n' > "$tree/tests/py/test_x.py"
 report="$(mktemp)"; out="$(mktemp)"
 printf '%s\n' \
   "REPLACES: first case => tests/py/test_x.py::test_first" \
@@ -36,7 +40,7 @@ printf '%s\n' \
   "REPLACES: third case => tests/py/test_x.py::test_third" > "$report"
 step="- [ ] x: replaces 'first case', 'second case', 'third case' in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧"
 code=0
-"$UNREPLACED" "$step" "$report" > "$out" 2> /dev/null < /dev/null || code=$?
+(cd "$tree" && "$UNREPLACED" "$step" "$report" > "$out" 2> /dev/null < /dev/null) || code=$?
 expect_eq "$name" "0:" "$code:$(cat "$out")"
 rm -f "$report" "$out"
 
@@ -57,13 +61,15 @@ expect_eq "$name" "1:second case" "$code:$(cat "$out")"
 rm -f "$report" "$out"
 
 name="unreplaced-cases.sh given a step naming three cases and a report replacing the second and third exits 1 and prints the first on stdout (#1521)"
+tree="$(scratch_dir)"; mkdir -p "$tree/tests/py"
+printf 'def test_first():\n    pass\n\n\ndef test_second():\n    pass\n\n\ndef test_third():\n    pass\n' > "$tree/tests/py/test_x.py"
 report="$(mktemp)"; out="$(mktemp)"
 printf '%s\n' \
   "REPLACES: second case => tests/py/test_x.py::test_second" \
   "REPLACES: third case => tests/py/test_x.py::test_third" > "$report"
 step="- [ ] x: replaces 'first case', 'second case', 'third case' in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧"
 code=0
-"$UNREPLACED" "$step" "$report" > "$out" 2> /dev/null < /dev/null || code=$?
+(cd "$tree" && "$UNREPLACED" "$step" "$report" > "$out" 2> /dev/null < /dev/null) || code=$?
 expect_eq "$name" "1:first case" "$code:$(cat "$out")"
 rm -f "$report" "$out"
 
@@ -82,6 +88,16 @@ step="- [ ] x: replaces 'first case', 'second case' in scripts/tests/x.test.sh �
 code=0
 (cd "$repo" && "$UNREPLACED" "$step" "$report" > "$out" 2> /dev/null < /dev/null) || code=$?
 expect_eq "$name" "0:" "$code:$(cat "$out")"
+rm -f "$report" "$out"
+
+name="unreplaced-cases.sh leaves a case printed and exits 1 when its REPLACES claim names a test file that does not exist in the working tree (#1521)"
+repo="$(scratch_dir)"; report="$(mktemp)"; out="$(mktemp)"
+new_repo "$repo"
+printf '%s\n' "REPLACES: first case => tests/py/test_missing.py::test_first" > "$report"
+step="- [ ] x: replaces 'first case' in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧"
+code=0
+(cd "$repo" && "$UNREPLACED" "$step" "$report" > "$out" 2> /dev/null < /dev/null) || code=$?
+expect_eq "$name" "1:first case" "$code:$(cat "$out")"
 rm -f "$report" "$out"
 
 finish
