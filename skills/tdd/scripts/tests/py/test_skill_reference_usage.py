@@ -67,3 +67,18 @@ def test_a_flag_or_verb_of_a_usage_block_missing_from_its_skill_md_entry_is_name
     skill.write_text("- `$S/exp-two-line.sh <n>` — a fixture entry.\n")
     assert problems(scripts, skill) == [
         "exp-two-line.sh: --drop is in its usage line, not in SKILL.md's entry"]
+
+
+def test_a_first_line_flag_and_a_missing_literal_or_alternative_verb_are_each_named_with_their_script(tmp_path):
+    """Subject is source text: planted drift in a scratch SKILL.md and script, never the real ones."""
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    (scripts / "exp-verb.sh").write_text(
+        "#!/bin/sh\n# usage: exp-verb.sh --quick <n>\n#        exp-verb.sh start|stop <n>\n"
+        "#        exp-verb.sh reset\n")
+    skill = tmp_path / "SKILL.md"
+    skill.write_text("- `$S/exp-verb.sh <n> start` — a fixture entry.\n")
+    assert problems(scripts, skill) == [
+        "exp-verb.sh: --quick is in its usage line, not in SKILL.md's entry",
+        "exp-verb.sh: reset is a verb in its usage line, not in SKILL.md's entry",
+        "exp-verb.sh: stop is a verb in its usage line, not in SKILL.md's entry"]
