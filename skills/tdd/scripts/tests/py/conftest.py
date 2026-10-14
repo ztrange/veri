@@ -43,6 +43,7 @@ def shim_problems(scripts, exempt=()):
 def pytest_configure(config):
     config.option.importmode = "append"
     config.addinivalue_line("markers", "process(boundary): a medium case, naming the process boundary it observes")
+    config.addinivalue_line("markers", "tree_audit(sweeps): a case that lists the repository's own directories, run by make test and not make unit")
 
 
 def pytest_collection_modifyitems(config, items):
