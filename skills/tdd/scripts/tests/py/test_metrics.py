@@ -122,6 +122,16 @@ def test_a_non_utf8_byte_in_a_step_line_renders_the_report_with_the_ascii_planne
     assert "Steps done: 1 of 1 planned.\n" in render(metrics, capsys)
 
 
+def test_metrics_sh_over_a_ledger_that_is_not_utf8_exits_0_and_prints_its_report_with_nothing_on_stderr(tmp_path, run_cli, metrics):
+    write_log(tmp_path, ONE_STEP)
+    (tmp_path / ".tdd" / "issue-108.md").write_bytes(b"# Plan \xff\n- [ ] a step \xfe\xff\n")
+
+    code, out, err = run_cli(metrics, ["108"], cwd=tmp_path)
+
+    assert (code, err) == (0, "")
+    assert "Steps done: 1 of 1 planned.\n" in out
+
+
 def test_the_planned_count_counts_every_line_break_splitlines_finds_in_a_step_text(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, ONE_STEP)
     (tmp_path / ".tdd" / "issue-108.md").write_bytes(
