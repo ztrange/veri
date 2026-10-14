@@ -168,6 +168,13 @@ problems=""
 [[ "$flat" == *"end-to-end path through real processes"* ]] || problems="$problems; never names the end-to-end path through real processes as a constraint"
 [[ -z "$problems" ]] && ok || no "$name (${problems#; })"
 
+name="verify-plan tells the verifier to REJECT a plan that plans a test-only change, one satisfiable only by editing a test, as a Red/Green step (#1467)"
+problems=""
+[[ "$flat" == *"REJECT a plan that plans a test-only change"* ]] || problems="$problems; never says to REJECT a plan that plans a test-only change"
+[[ "$flat" == *"only by editing a test"* ]] || problems="$problems; never names a change satisfiable only by editing a test"
+[[ "$flat" == *"as a Red/Green step"* ]] || problems="$problems; never says the rejected shape is a Red/Green step"
+[[ -z "$problems" ]] && ok || no "$name (${problems#; })"
+
 cat > "$work/rationale-ledger.md" <<'LEDGER'
 # Plan for #439
 
