@@ -1524,6 +1524,22 @@ def claude_records_its_base_trees(monkeypatch):
     return seen
 
 
+def claude_records_its_base_trees_and_prompts(monkeypatch):
+    """Fake the launched claude; the returned list gains (base tree, prompt) per launch."""
+    run, seen = subprocess.run, []
+
+    def claude_reads_its_base(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+        stdin = kwargs.get("input")
+        (base,) = base_directories(stdin)
+        seen.append((tree_contents(base), stdin.decode() if isinstance(stdin, bytes) else stdin))
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    monkeypatch.setattr(subprocess, "run", claude_reads_its_base)
+    return seen
+
+
 @pytest.mark.process("real git archive and tar materialising a scratch skill clone's commit into the snapshot")
 def test_cli_the_conductors_base_directory_holds_the_skill_commits_files_not_the_clones_uncommitted_edit_is_not_the_clone_and_is_gone_after_the_launch(
         tmp_path, monkeypatch, run_cli):
@@ -2016,17 +2032,7 @@ def test_cli_a_resumed_run_keeps_its_recorded_pin_when_origin_default_has_moved_
     run_conductor = load_run_conductor("run_conductor_pin_clone", clone)
     caller = caller_repository(tmp_path)
     subprocess.run(git_as_veri(caller) + ["branch", "tdd/4242-past-preflight"], check=True)
-    run, seen = subprocess.run, []
-
-    def claude_reads_its_base(args, *a, **kwargs):
-        if list(args)[:1] != ["fake-claude"]:
-            return run(args, *a, **kwargs)
-        stdin = kwargs.get("input")
-        (base,) = base_directories(stdin)
-        seen.append((tree_contents(base), stdin.decode() if isinstance(stdin, bytes) else stdin))
-        return subprocess.CompletedProcess(args, 0, None, None)
-
-    monkeypatch.setattr(subprocess, "run", claude_reads_its_base)
+    seen = claude_records_its_base_trees_and_prompts(monkeypatch)
 
     first_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller)
     with open(remote / "scripts" / "supervise.sh", "a") as landed:
@@ -2052,17 +2058,7 @@ def test_cli_a_resume_with_veri_new_skill_1_re_pins_to_origin_default_as_just_fe
     run_conductor = load_run_conductor("run_conductor_repin_tip_clone", clone)
     caller = caller_repository(tmp_path)
     subprocess.run(git_as_veri(caller) + ["branch", "tdd/4242-past-preflight"], check=True)
-    run, seen = subprocess.run, []
-
-    def claude_reads_its_base(args, *a, **kwargs):
-        if list(args)[:1] != ["fake-claude"]:
-            return run(args, *a, **kwargs)
-        stdin = kwargs.get("input")
-        (base,) = base_directories(stdin)
-        seen.append((tree_contents(base), stdin.decode() if isinstance(stdin, bytes) else stdin))
-        return subprocess.CompletedProcess(args, 0, None, None)
-
-    monkeypatch.setattr(subprocess, "run", claude_reads_its_base)
+    seen = claude_records_its_base_trees_and_prompts(monkeypatch)
 
     first_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller)
     with open(remote / "scripts" / "supervise.sh", "a") as landed:
