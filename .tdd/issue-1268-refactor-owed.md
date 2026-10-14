@@ -4,3 +4,6 @@
 - test-only | the older cases at `test_run_conductor.py` (around lines 1506, 1568, 1628) repeat the same closure shape, but they record different tuples. Merging them would change code this cycle did not write.
 ### A resume keeps its recorded pin after origin/<default> moved, pinned through run_cli: replaces 'a resumed run keeps its recorded pin when origin/<default> has moved since the first launch' in skills/tdd/scripts/tests/run-conductor.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧
 - test-only | the `git_as_veri(remote) + ["commit", "-q", "-am", …]` after an append to a remote file now appears in `clone_behind_origin` and again inline in the case-16 test, and could share a helper
+### A VERI_NEW_SKILL=1 resume re-pins to origin/<default> as just fetched, not the clone's HEAD, pinned through run_cli: replaces 'a resume with VERI_NEW_SKILL=1 re-pins to origin/<default> as just fetched, not to the clone's HEAD' in skills/tdd/scripts/tests/run-conductor.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧
+- test-only | the "append a line to a file and `git commit -am`" pair is repeated for the remote and the clone in cases 16 and 17; it could become one helper
+- test-only | `claude_records_its_base_trees` could be built on the new trees-and-prompts helper, but the older cases it serves were not written in this cycle
