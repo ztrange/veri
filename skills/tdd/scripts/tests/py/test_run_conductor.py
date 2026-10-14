@@ -138,6 +138,19 @@ def test_main_fetches_origin_once_drops_a_successful_fetchs_stderr_and_refuses_a
         [fetch], [], []))
 
 
+def test_cli_a_failed_fetch_of_origin_exits_2_before_any_conductor_is_launched_and_names_the_fetch_on_stderr(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.setenv("VERI_FETCH_RETRY_SLEEP", "0")
+    run_conductor = importlib.import_module("veri.run_conductor")
+    calls = fake_git(monkeypatch, 128, "fatal: unable to access 'origin': no route\n")
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    launched = [call for call in calls if call[:1] == ["fake-claude"]]
+    assert (code, launched, "fetch of origin failed" in stderr) == (2, [], True), stderr
+
+
 def fake_locked_fetch(monkeypatch, sleep_code,
                       lock="error: cannot lock ref 'refs/remotes/origin/main': is at 1111111 but expected 2222222\n"):
     """git faked as a process whose every fetch fails on a ref lock; sleep a process exiting as given."""

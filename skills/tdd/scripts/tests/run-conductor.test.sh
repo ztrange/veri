@@ -136,32 +136,6 @@ tree_clone() {
 tree_clone "$work/tree"
 CONDUCTOR="$work/tree/skills/tdd/scripts/run-conductor.sh"
 
-name="a failed fetch of origin exits 2 before any conductor is launched and names the fetch on stderr"
-problems=()
-
-remote8="$work/remote8"
-clone8="$work/clone8"
-skill_clone "$clone8"
-new_repo --bare "$remote8"
-git -C "$clone8" remote add origin "$remote8"
-rm -rf "$remote8"
-
-caller8="$work/caller8"
-caller_repo "$caller8"
-
-rm -f "$argv"
-launch_from "$caller8" "$clone8"
-status=$?
-
-[[ "$status" -eq 2 ]] ||
-  problems+=("the launch exited $status, not 2")
-[[ ! -f "$argv" ]] ||
-  problems+=("a conductor was launched although the fetch failed")
-grep -qi 'fetch' "$launch_err" ||
-  problems+=("stderr does not name the fetch — stderr was: '$(cat "$launch_err")'")
-
-report "$name"
-
 name="a fetch of origin that loses a ref lock held by another process is retried once the lock is released, and the conductor starts (#886)"
 problems=()
 
