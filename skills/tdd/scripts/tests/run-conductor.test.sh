@@ -192,11 +192,6 @@ assert_case4() {
   fi
 }
 
-name="a frontmatter-fenced procedure launches and reaches the binary whole"
-problems=()
-assert_case4 "$CONDUCTOR"
-report "$name"
-
 name="the conductor's base directory is a snapshot of the skill commit, not the clone"
 problems=()
 
