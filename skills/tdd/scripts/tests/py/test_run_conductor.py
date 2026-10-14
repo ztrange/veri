@@ -1521,6 +1521,11 @@ def base_directories(stdin):
             if line.startswith("Base directory for this skill: ")]
 
 
+def without_origin_head(clone):
+    subprocess.run(["git", "-C", str(clone), "remote", "set-head", "origin", "-d"], check=True)
+    subprocess.run(["git", "-C", str(clone), "config", "remote.origin.followRemoteHEAD", "never"], check=True)
+
+
 def claude_records_per_launch(monkeypatch, record):
     """Fake the launched claude; the returned list gains record(base directory, its call kwargs) per launch."""
     run, seen = subprocess.run, []
@@ -2143,8 +2148,7 @@ def test_cli_with_no_origin_head_the_launch_pins_to_the_remotes_default_branch_t
                             {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the cut supervisor\n"},
                             directory="remote")
     clone = clone_behind_origin(tmp_path, remote, "scripts/supervise.sh")
-    subprocess.run(["git", "-C", str(clone), "remote", "set-head", "origin", "-d"], check=True)
-    subprocess.run(["git", "-C", str(clone), "config", "remote.origin.followRemoteHEAD", "never"], check=True)
+    without_origin_head(clone)
     tip = head_commit(remote)
     run_conductor = load_run_conductor("run_conductor_no_head_clone", clone)
     caller = caller_repository(tmp_path)
@@ -2166,8 +2170,7 @@ def test_cli_with_no_origin_head_and_no_resolvable_remote_default_branch_the_lau
                             {"SKILL.md": "# the committed procedure\n"}, directory="remote")
     clone = tmp_path / "clone"
     subprocess.run(["git", "clone", "-q", str(remote), str(clone)], check=True)
-    subprocess.run(["git", "-C", str(clone), "remote", "set-head", "origin", "-d"], check=True)
-    subprocess.run(["git", "-C", str(clone), "config", "remote.origin.followRemoteHEAD", "never"], check=True)
+    without_origin_head(clone)
     subprocess.run(["git", "-C", str(remote), "checkout", "-q", "--detach"], check=True)
     subprocess.run(git_as_veri(remote) + ["commit", "-q", "--allow-empty", "-m", "on no branch"], check=True)
     run_conductor = load_run_conductor("run_conductor_no_default_clone", clone)
