@@ -1,6 +1,7 @@
 """The pytest leg's launcher: refuses an interpreter below the Python floor, then runs pytest."""
-# Usage:   pytest_leg.py
-# Exit:    2 the interpreter is below the floor in lib/venv-python.sh, or cannot import pytest or pytest_timeout
+# Usage:   pytest_leg.py [pytest-args...]
+# Exit:    0 pytest passed, 1 any other pytest status
+#          2 the interpreter is below the floor in lib/venv-python.sh, or cannot import pytest or pytest_timeout
 import importlib.util
 import platform
 import re
@@ -25,7 +26,8 @@ def main(argv):
             sys.stderr.write("veri needs %s for the suites under skills/tdd/scripts/tests/py/; %s cannot import %s. "
                              "Install it with `make install-dev`.\n" % (package, sys.executable, module))
             return 2
-    return 0
+    import pytest
+    return 0 if pytest.main(argv) == pytest.ExitCode.OK else 1
 
 
 if __name__ == "__main__":
