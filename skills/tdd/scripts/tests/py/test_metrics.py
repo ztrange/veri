@@ -1125,3 +1125,154 @@ def test_main_renders_a_by_model_table_per_role_and_model_and_states_the_request
     assert "Models requested:" not in unmodeled
     assert {key: row[0] for key, row in by_model(unmodeled).items()} == {
         ("developer", "not recorded"): "1", ("verifier", "not recorded"): "1"}
+
+
+def old_log_events():
+    def usage(api_ms, turns, cost):
+        return {"duration_ms": "0", "duration_api_ms": api_ms, "num_turns": turns, "total_cost_usd": cost,
+                "input_tokens": "100", "output_tokens": "200", "cache_read_input_tokens": "300",
+                "cache_creation_input_tokens": "400"}
+
+    full, pin = "a full step", "a pinned step"
+    rows = [
+        (full, 1000, "conductor", "", "step-start", "", {}),
+        (full, 1010, "developer", "red", "launch", 1, {"name": "develop-red"}),
+        (full, 1100, "developer", "red", "exit", 1, {"status": "0", "secs": "90"}),
+        (full, 1100, "developer", "red", "usage", 1, usage("70000", "5", "0.40")),
+        (full, 1110, "verifier", "red", "launch", 1, {"name": "verify-red"}),
+        (full, 1130, "verifier", "red", "exit", 1, {"status": "0", "secs": "20"}),
+        (full, 1130, "verifier", "red", "usage", 1, usage("15000", "2", "0.10")),
+        (full, 1130, "verifier", "red", "verdict", 1, {"verdict": "REJECT", "reason": "wrong reason"}),
+        (full, 1140, "developer", "red", "launch", 2, {"name": "revise-red"}),
+        (full, 1200, "developer", "red", "exit", 2, {"status": "0", "secs": "60"}),
+        (full, 1200, "developer", "red", "usage", 2, usage("50000", "4", "0.30")),
+        (full, 1210, "verifier", "red", "launch", 2, {"name": "verify-red"}),
+        (full, 1230, "verifier", "red", "exit", 2, {"status": "0", "secs": "20"}),
+        (full, 1230, "verifier", "red", "usage", 2, usage("15000", "2", "0.10")),
+        (full, 1230, "verifier", "red", "verdict", 2, {"verdict": "PASS", "reason": "fails as written"}),
+        (full, 1300, "developer", "green", "launch", 1, {"name": "develop-green"}),
+        (full, 1400, "developer", "green", "exit", 1, {"status": "0", "secs": "100"}),
+        (full, 1400, "developer", "green", "usage", 1, usage("80000", "9", "0.70")),
+        (full, 1410, "verifier", "green", "launch", 1, {"name": "verify-green"}),
+        (full, 1430, "verifier", "green", "exit", 1, {"status": "0", "secs": "20"}),
+        (full, 1430, "verifier", "green", "usage", 1, usage("10000", "3", "0.20")),
+        (full, 1430, "verifier", "green", "verdict", 1, {"verdict": "PASS", "reason": "pinned"}),
+        (full, 1500, "conductor", "", "step-done", "", {}),
+        (pin, 2000, "conductor", "", "step-start", "", {}),
+        (pin, 2010, "developer", "red", "launch", 1, {"name": "develop-red"}),
+        (pin, 2100, "developer", "red", "exit", 1, {"status": "0", "secs": "90"}),
+        (pin, 2100, "developer", "red", "usage", 1, usage("60000", "6", "0.50")),
+        (pin, 2110, "verifier", "pin", "launch", 1, {"name": "verdict-pin"}),
+        (pin, 2130, "verifier", "pin", "exit", 1, {"status": "0", "secs": "20"}),
+        (pin, 2130, "verifier", "pin", "usage", 1, usage("12000", "2", "0.15")),
+        (pin, 2130, "verifier", "pin", "verdict", 1, {"verdict": "PASS", "reason": "already satisfied"}),
+        (pin, 2140, "conductor", "pin", "pin", "", {}),
+    ]
+    return [{"ts": ts, "issue": "108", "actor": actor, "phase": phase, "step": step, "event": event,
+             "attempt": str(attempt), "skill_commit": "c0ffee1", **extra}
+            for step, ts, actor, phase, event, attempt, extra in rows]
+
+
+def test_issue_454_every_by_step_column_that_existed_before_and_every_other_section_reads_the_same_for_an_existing_log(tmp_path, run_cli, metrics):
+    write_log(tmp_path, old_log_events())
+
+    code, out, err = run_cli(metrics, ["108"], cwd=tmp_path)
+
+    assert (code, err) == (0, "")
+    lines = out.split("\n")
+    at = lines.index("#### By step") + 2
+    drop = [cell.strip() for cell in lines[at].strip("|").split("|")].index("kind")
+    end = at
+    while lines[end].startswith("|"):
+        cells = lines[end][1:-1].split("|")
+        lines[end] = "|" + "|".join(cells[:drop] + cells[drop + 1:]) + "|"
+        end += 1
+    if lines[end + 1] and not lines[end + 1].startswith("#"):
+        del lines[end + 1:end + 3]
+    assert "\n".join(lines) == OLD_REPORT + "\n"
+
+
+OLD_REPORT = """### 📊 Metrics — issue 108
+
+Wall time for the issue: unknown s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Every figure in this report is wall-clock: the log carries no awake-clock reading, so time the machine spent asleep is counted in them.
+Steps done: 2 of unknown planned.
+Outcome: unknown — the log carries no mark ending the run.
+Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
+
+#### By phase
+
+| phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| red | 5 | 1 | 1 | 0 | 280 | 210 | 19 | 500 | 1000 | 1500 | 2000 | 1.40 |
+| green | 2 | 1 | 0 | 0 | 120 | 90 | 12 | 200 | 400 | 600 | 800 | 0.90 |
+| pin | 1 | 1 | 0 | 0 | 20 | 12 | 2 | 100 | 200 | 300 | 400 | 0.15 |
+
+#### Rework and waste, by phase
+
+| phase | rework wall s | rework $ | waste wall s | waste $ |
+| --- | ---: | ---: | ---: | ---: |
+| red | 110 | 0.50 | 0 | 0.00 |
+| green | 0 | 0.00 | 0 | 0.00 |
+| pin | 0 | 0.00 | 0 | 0.00 |
+
+#### By step
+
+| step | attempts | PASS | REJECT | kills | retries | no-verdict | API s | turns | input | output | cache read | cache creation | $ | wall s | revise | refactor | stopped | crossed at | split |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- | --- |
+| a full step | 6 | 2 | 1 | 0 | 0 | 0 | 240 | 25 | 600 | 1200 | 1800 | 2400 | 1.80 | 500 | unknown | unknown | unknown |  |  |
+| a pinned step | 2 | 1 | 0 | 0 | 0 | 0 | 72 | 8 | 200 | 400 | 600 | 800 | 0.65 | unknown | unknown | unknown | unknown |  |  |
+
+#### Test-command seconds, by tier
+
+| tier |
+| --- |
+
+#### Total
+
+| run | turns | input | output | cache read | cache creation | $ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| total | 33 | 800 | 1600 | 2400 | 3200 | 2.45 |"""
+
+
+LANDED_EVENTS = [
+    {"ts": 13000, "issue": "108", "actor": "conductor", "phase": "", "step": "opener", "event": "step-start", "attempt": "", "skill_commit": "c0ffee1"},
+    {"ts": 13100, "issue": "108", "actor": "conductor", "phase": "", "step": "opener", "event": "step-done", "attempt": "", "skill_commit": "c0ffee1"},
+    {"ts": 13200, "issue": "108", "actor": "conductor", "phase": "", "step": "closer", "event": "step-start", "attempt": "", "skill_commit": "c0ffee1"},
+    {"ts": 13300, "issue": "108", "actor": "conductor", "phase": "", "step": "closer", "event": "step-done", "attempt": "", "skill_commit": "c0ffee1"},
+    {"ts": 13400, "issue": "108", "actor": "conductor", "phase": "", "step": "closer", "event": "done", "attempt": "", "skill_commit": "c0ffee1",
+     "pr": "https://github.com/ztrange/veri/pull/999"},
+]
+
+
+@pytest.mark.process("metrics.sh's shim run through a symlink to the skill directory from another working directory")
+def test_metrics_sh_run_through_a_symlink_to_the_skill_directory_from_another_working_directory_answers_with_the_same_stdout_and_exit_code_as_run_in_place_reading_that_directorys_tdd_and_never_the_skills(tmp_path):
+    import pathlib
+    import subprocess
+
+    skill = pathlib.Path(__file__).resolve().parents[3]
+    work = tmp_path / "work"
+    work.mkdir()
+    write_log(work, LANDED_EVENTS)
+    (work / ".tdd" / "issue-108.md").write_text("- [x] opener\n- [x] closer\n")
+    (tmp_path / "link").mkdir()
+    (tmp_path / "link" / "skill").symlink_to(skill, target_is_directory=True)
+
+    def answer(script):
+        ran = subprocess.run([str(script), "108"], cwd=work, capture_output=True, text=True)
+        return ran.returncode, ran.stdout
+
+    in_place = answer(skill / "scripts" / "metrics.sh")
+    via_link = answer(tmp_path / "link" / "skill" / "scripts" / "metrics.sh")
+
+    assert via_link == in_place
+    assert via_link[0] == 0
+    assert "Steps done: 2 of 2 planned." in via_link[1]
+
+
+def test_metrics_sh_run_in_a_working_directory_with_no_tdd_events_jsonl_exits_2_and_prints_nothing_on_stdout(tmp_path, run_cli, metrics):
+    (tmp_path / ".tdd").mkdir()
+
+    code, out, err = run_cli(metrics, ["108"], cwd=tmp_path)
+
+    assert (code, out) == (2, "")
