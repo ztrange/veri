@@ -66,3 +66,15 @@ def test_main_exits_0_when_a_deleted_named_case_is_quoted_only_in_a_comment_line
     step = "the replacement takes over: replaces 'stale first', 'stale second' in tests/demo.test.sh ⟦replaces-case⟧ ⟦criterion 4⟧"
 
     assert run_cli(survivors, [step], cwd=tmp_path) == (0, "", "")
+
+
+def test_main_reports_the_last_of_several_named_cases_when_only_it_is_still_present_1406(tmp_path, run_cli, survivors):
+    suite = tmp_path / "tests" / "demo.test.sh"
+    suite.parent.mkdir()
+    suite.write_text('verdict "kept case" 0\nverdict "stale third" 0\n')
+    step = "the replacement takes over: replaces 'stale first', 'stale second', 'stale third' in tests/demo.test.sh ⟦replaces-case⟧ ⟦criterion 3⟧"
+
+    code, out, _ = run_cli(survivors, [step], cwd=tmp_path)
+
+    assert code == 1
+    assert "stale third" in out
