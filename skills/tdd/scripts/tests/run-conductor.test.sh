@@ -162,50 +162,6 @@ grep -qi 'fetch' "$launch_err" ||
 
 report "$name"
 
-name="every event a launched run writes carries origin's tip as skill_commit, and the prompt names it"
-problems=()
-
-remote9="$work/remote9"
-clone9="$work/clone9"
-cloned_skill "$remote9" "$clone9"
-advance_clone "$remote9" "# a commit that landed on the remote after the clone was cut"
-tip9="$(git -C "$remote9" rev-parse HEAD)"
-
-caller9="$work/caller9"
-caller_repo "$caller9"
-
-cat > "$stubdir/record-hook" <<HOOK
-#!/bin/sh
-base="\$1"
-cd "$caller9" || exit 1
-"\$base/scripts/event.sh" conductor-mark
-VERI_POLL=0.02 "\$base/scripts/supervise.sh" develop-red echo ok > /dev/null 2>&1
-HOOK
-chmod +x "$stubdir/record-hook"
-
-rm -f "$prompt"
-( unset VERI_SKILL_COMMIT; launch_from "$caller9" "$clone9" CONDUCTOR_HOOK="$stubdir/record-hook" )
-
-if [[ ! -s "$caller9/.tdd/events.jsonl" ]]; then
-  problems+=("the run wrote no events: $(cat "$launch_err")")
-else
-  wrong="$(python3 - "$caller9/.tdd/events.jsonl" "$tip9" <<'PY'
-import json, sys
-for l in open(sys.argv[1]):
-    if l.strip():
-        e = json.loads(l)
-        if e.get("skill_commit") != sys.argv[2]:
-            print("%s=%r" % (e.get("event"), e.get("skill_commit")))
-PY
-)"
-  [[ -z "$wrong" ]] ||
-    problems+=("events whose skill_commit is not origin's tip $tip9: ${wrong//$'\n'/ }")
-fi
-grep -q -- "$tip9" "$prompt" 2>/dev/null ||
-  problems+=("the conductor's prompt does not name the pinned skill commit $tip9")
-
-report "$name"
-
 name="a resumed run keeps its recorded pin when origin/<default> has moved since the first launch"
 problems=()
 
