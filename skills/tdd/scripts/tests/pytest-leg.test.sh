@@ -120,14 +120,31 @@ def test_veri_probe_fails():
     assert 1 == 2
 PY
 
+scoped="$work/scoped"
+make_tree "$scoped"
+cp "$tree/$PY_DIR/test_leg_probe.py" "$scoped/$PY_DIR/test_leg_probe.py"
+cat > "$scoped/$PY_DIR/test_named_probe.py" <<'PY'
+def test_veri_probe_passes():
+    assert 1 == 1
+PY
+stub_bash_suites "$scoped"
+
+for target in unit test; do
+  env VERI_VENV="$work/no-venv" PYTHONPATH="$fake_pytest" \
+    make --no-print-directory -C "$scoped" "$target" > "$work/plain-$target.out" 2> "$work/plain-$target.err" < /dev/null &&
+    echo 0 > "$work/plain-$target.code" || echo $? > "$work/plain-$target.code"
+done
+
+load_plain() {
+  code="$(cat "$work/plain-$1.code")"
+  out="$(cat "$work/plain-$1.out")"
+  err="$(cat "$work/plain-$1.err")"
+}
+
 name="with a failing test_*.py under $PY_DIR and a python3 that can import pytest, make unit and make test each run it, their recipe exits 1, the output names the failing test and stdout ends SUITES FAILED"
 problems=()
 for target in unit test; do
-  env VERI_VENV="$work/no-venv" PYTHONPATH="$fake_pytest" \
-    make --no-print-directory -C "$tree" "$target" > "$work/out" 2> "$work/err" < /dev/null &&
-    code=0 || code=$?
-  out="$(cat "$work/out")"
-  err="$(cat "$work/err")"
+  load_plain "$target"
   check_failed "make $target" "$target"
   [[ "$out$err" == *test_veri_probe_fails* ]] ||
     problems+=("make $target: want the output to name test_veri_probe_fails: $(flat "$out")")
@@ -598,33 +615,24 @@ cp "$green/$PY_DIR/test_leg_probe.py" "$leak/$PY_DIR/test_leg_probe.py"
 mkdir -p "$leak/skills/tdd/scripts/tests/unit"
 printf '#!/usr/bin/env bash\ncurl --version > /dev/null 2>&1\necho "1 passed, 0 failed"\n' \
   > "$leak/skills/tdd/scripts/tests/unit/reach.test.sh"
-chmod +x "$leak/skills/tdd/scripts/tests/unit/reach.test.sh"
+printf '#!/usr/bin/env bash\necho "python3 is $(command -v python3)"\necho "1 passed, 0 failed"\n' \
+  > "$leak/skills/tdd/scripts/tests/unit/which-python.test.sh"
+chmod +x "$leak/skills/tdd/scripts/tests/unit/reach.test.sh" "$leak/skills/tdd/scripts/tests/unit/which-python.test.sh"
+env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE VERI_VENV="$work/venv" \
+  make --no-print-directory -C "$leak" unit > "$work/leak.out" 2> "$work/leak.err" < /dev/null
 
 name="under make unit, a command a bash suite tried is named against that suite only, never against a pytest leg that started nothing"
 problems=()
-env -u VERI_VENV HOME="$work/home-empty" PYTHONPATH="$fake_pytest" \
-  make --no-print-directory -C "$leak" unit > "$work/out" 2> "$work/err" < /dev/null
-out="$(cat "$work/out")"
+out="$(cat "$work/leak.out")"
 [[ "$out" == *'reach.test.sh: tried the network: curl'* ]] ||
   problems+=("want the bash suite's curl named against reach.test.sh, got: $(flat "$out")")
 [[ "$out" != *'pytest: tried to start'* ]] ||
   problems+=("want no command named against the pytest leg, got: $(flat "$out")")
 report "$name"
 
-shadow="$work/shadow"
-make_tree "$shadow"
-cp "$green/$PY_DIR/test_leg_probe.py" "$shadow/$PY_DIR/test_leg_probe.py"
-mkdir -p "$shadow/skills/tdd/scripts/tests/unit"
-printf '#!/usr/bin/env bash\necho "python3 is $(command -v python3)"\necho "1 passed, 0 failed"\n' \
-  > "$shadow/skills/tdd/scripts/tests/unit/which-python.test.sh"
-chmod +x "$shadow/skills/tdd/scripts/tests/unit/which-python.test.sh"
-
 name="under make unit, with \$VERI_VENV/bin holding a python3, a bash suite under tests/unit/ still finds the refusing unit-guard/python3 shim first, not the environment's interpreter"
 problems=()
-env -u PYTHONPATH VERI_VENV="$work/venv" \
-  make --no-print-directory -C "$shadow" unit > "$work/out" 2> "$work/err" < /dev/null
-out="$(cat "$work/out")"
-found="$(sed -n 's/^python3 is //p' <<< "$out")"
+found="$(sed -n 's/^python3 is //p' "$work/leak.out")"
 [[ "$found" == */skills/tdd/scripts/tests/unit-guard/python3 ]] ||
   problems+=("want the bash suite to find .../unit-guard/python3 first, got: $found ($(flat "$out"))")
 report "$name"
@@ -662,11 +670,6 @@ for target in unit test; do
 done
 report "$name"
 
-scoped="$work/scoped"
-make_tree "$scoped"
-cp "$tree/$PY_DIR/test_leg_probe.py" "$scoped/$PY_DIR/test_leg_probe.py"
-stub_bash_suites "$scoped"
-
 name="make test TESTS=<one shell suite>, with a failing test_*.py under $PY_DIR, runs that suite and no pytest case, exits 0 and ends all suites green"
 problems=()
 env VERI_VENV="$work/no-venv" PYTHONPATH="$fake_pytest" \
@@ -679,8 +682,6 @@ heads="$(grep '^== ' <<< "$out" | tr '\n' '/')"
 [[ "$(tail -n 1 <<< "$out")" == 'all suites green' ]] ||
   problems+=("want stdout's last line all suites green, got: $(tail -n 1 <<< "$out")")
 report "$name"
-
-cp "$green/$PY_DIR/test_leg_probe.py" "$scoped/$PY_DIR/test_named_probe.py"
 
 name="make test TESTS=<one test_*.py under $PY_DIR>, with another failing test_*.py beside it, runs only that file through the pytest leg, exits 0 and ends all suites green"
 problems=()
@@ -699,10 +700,7 @@ report "$name"
 
 name="a plain make test, with no TESTS on the command line, runs every shell suite and the full pytest leg over every test_*.py under $PY_DIR, and with one of them failing its recipe exits 1 and stdout ends SUITES FAILED"
 problems=()
-env VERI_VENV="$work/no-venv" PYTHONPATH="$fake_pytest" \
-  make --no-print-directory -C "$scoped" test > "$work/out" 2> "$work/err" < /dev/null && code=0 || code=$?
-out="$(cat "$work/out")"
-err="$(cat "$work/err")"
+load_plain test
 heads="$(grep '^== ' <<< "$out" | tr '\n' '/')"
 [[ "$heads" == '== slow.test.sh/== fast.test.sh/== pytest/' ]] ||
   problems+=("want == slow.test.sh/== fast.test.sh/== pytest/, got: $heads")
@@ -741,10 +739,7 @@ report "$name"
 
 name="#899: a plain make unit, with no UNIT_TESTS on the command line, runs every suite under tests/unit and the full pytest leg over every test_*.py under $PY_DIR, and with one of them failing its recipe exits 1 and stdout ends SUITES FAILED"
 problems=()
-env VERI_VENV="$work/no-venv" PYTHONPATH="$fake_pytest" \
-  make --no-print-directory -C "$scoped" unit > "$work/out" 2> "$work/err" < /dev/null && code=0 || code=$?
-out="$(cat "$work/out")"
-err="$(cat "$work/err")"
+load_plain unit
 heads="$(grep '^== ' <<< "$out" | tr '\n' '/')"
 [[ "$heads" == '== fast.test.sh/== pytest/' ]] ||
   problems+=("want == fast.test.sh/== pytest/, got: $heads")
