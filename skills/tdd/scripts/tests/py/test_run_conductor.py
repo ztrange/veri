@@ -2130,3 +2130,35 @@ def test_cli_the_skill_repin_event_lands_in_the_run_worktrees_events_jsonl_never
 
     assert (first_code, resumed_code, repin_commits(caller / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl"),
             repin_commits(caller / ".tdd" / "events.jsonl")) == (0, 0, [current], []), stderr
+
+
+@pytest.mark.process("real git clone, fetch and archive of a scratch skill clone with no refs/remotes/origin/HEAD whose origin has moved on, tar materialising origin's tip, and a real caller repository holding the tdd branch that keeps the record")
+def test_cli_with_no_origin_head_the_launch_pins_to_the_remotes_default_branch_tip_records_it_and_runs_pinned(
+        tmp_path, monkeypatch, run_cli):
+    remote, _ = skill_clone(tmp_path, monkeypatch, "run_conductor_no_head_remote",
+                            {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the cut supervisor\n"},
+                            directory="remote")
+    clone = clone_behind_origin(tmp_path, remote, "scripts/supervise.sh")
+    subprocess.run(["git", "-C", str(clone), "remote", "set-head", "origin", "-d"], check=True)
+    subprocess.run(["git", "-C", str(clone), "config", "remote.origin.followRemoteHEAD", "never"], check=True)
+    tip = head_commit(remote)
+    run_conductor = load_run_conductor("run_conductor_no_head_clone", clone)
+    caller = caller_repository(tmp_path)
+    subprocess.run(git_as_veri(caller) + ["branch", "tdd/4242-past-preflight"], check=True)
+    run, seen = subprocess.run, []
+
+    def claude_reads_its_base_and_environment(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+        (base,) = base_directories(kwargs.get("input"))
+        seen.append((tree_contents(base), dict(kwargs.get("env") or os.environ)))
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    monkeypatch.setattr(subprocess, "run", claude_reads_its_base_and_environment)
+    monkeypatch.delenv("VERI_SKILL_UNPINNED", raising=False)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+
+    record = caller / ".tdd" / "issue-4242-skill-commit"
+    assert (code, record.read_text() if record.is_file() else None, [tree for tree, _ in seen],
+            ["VERI_SKILL_UNPINNED" in env for _, env in seen]) == (0, tip + "\n", [tree_contents(remote)], [False]), stderr
