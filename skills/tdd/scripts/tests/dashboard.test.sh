@@ -621,7 +621,7 @@ fi
 
 report "$name"
 
-name="/api/events answers while an /api/runs request is still blocked inside a process status.sh starts"
+name="/api/events answers while an /api/runs request is still blocked inside a process status starts"
 problems=()
 slow_repo="$(repo slowruns)"
 slow_run="$(fabricate_run "$slow_repo" 77 tdd/77-a-kettle-boils)"
@@ -674,14 +674,14 @@ else
     done
 
     if [[ ! -e "$slow_entered" ]]; then
-      problems+=("the /api/runs request never reached a process status.sh starts, so nothing was blocking when /api/events was asked; the server left: $(printf '%q' "$(cat "$slow_log" 2>/dev/null)")")
+      problems+=("the /api/runs request never reached a process status starts, so nothing was blocking when /api/events was asked; the server left: $(printf '%q' "$(cat "$slow_log" 2>/dev/null)")")
     else
       events_url="$slow_base/api/events?issue=77"
       events_answer="$(fetch "$events_url" 2>/dev/null || :)"
       [[ -e "$slow_settled" ]] && slow_runs_settled=1 || slow_runs_settled=""
 
       if [[ -z "$events_answer" ]]; then
-        problems+=("GET $events_url got no answer while an /api/runs request was blocked inside a process status.sh starts, so the slow endpoint starves the cheap one")
+        problems+=("GET $events_url got no answer while an /api/runs request was blocked inside a process status starts, so the slow endpoint starves the cheap one")
       elif [[ "$(http_status "$events_answer")" != 200 ]]; then
         problems+=("GET $events_url answered $(http_status "$events_answer") while /api/runs was blocked, want 200")
       elif [[ "$(http_body "$events_answer")" != *step-start* ]]; then

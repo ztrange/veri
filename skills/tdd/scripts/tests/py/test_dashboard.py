@@ -113,7 +113,7 @@ def status_document(run_cli):
     return out.encode()
 
 
-@pytest.mark.process("status.sh started for real by /api/runs, over a fake git on PATH")
+@pytest.mark.process("the git status starts for /api/runs, a fake one first on PATH")
 def test_main_serves_on_loopback_8765_or_the_first_argument_with_the_files_beside_the_scripts(
         tmp_path, monkeypatch, dashboard, run_cli):
     fabricated_main_tree(tmp_path, monkeypatch)
@@ -135,7 +135,7 @@ def status_code(answer):
     return answer.split(b"\r\n", 1)[0].split()[1]
 
 
-@pytest.mark.process("status.sh started for real by /api/runs, over a fake git on PATH")
+@pytest.mark.process("the git status starts for /api/runs, a fake one first on PATH")
 def test_main_binds_loopback_on_8765_or_the_port_argument_answers_gets_and_returns_0_on_keyboard_interrupt(
         tmp_path, monkeypatch, dashboard, run_cli):
     fabricated_main_tree(tmp_path, monkeypatch)
@@ -164,8 +164,8 @@ def test_importing_the_module_constructs_no_server_and_leaves_the_sigint_handler
     assert signal.getsignal(signal.SIGINT) is sentinel
 
 
-@pytest.mark.process("status.sh started for real by /api/runs, over a fake git on PATH")
-def test_get_api_runs_through_main_answers_exactly_the_stdout_status_sh_json_printed(
+@pytest.mark.process("the git status starts for /api/runs, a fake one first on PATH")
+def test_get_api_runs_through_main_answers_exactly_the_document_status_json_renders(
         tmp_path, monkeypatch, dashboard, run_cli):
     fabricated_main_tree(tmp_path, monkeypatch)
     served = fake_server(monkeypatch, ["/api/runs"])
@@ -175,6 +175,31 @@ def test_get_api_runs_through_main_answers_exactly_the_stdout_status_sh_json_pri
     (runs,) = served[0][1]
     assert status_code(runs) == b"200"
     assert body(runs) == status_document(run_cli)
+
+
+@pytest.mark.process("the git status starts for /api/runs, a fake one first on PATH")
+def test_get_api_runs_gives_its_full_answer_when_starting_status_sh_as_a_process_is_refused(
+        tmp_path, monkeypatch, dashboard, run_cli, capfd):
+    fabricated_main_tree(tmp_path, monkeypatch)
+    want = status_document(run_cli)
+    capfd.readouterr()
+    real_run = subprocess.run
+
+    def refusing_run(argv, *args, **kwargs):
+        if str(argv[0]).endswith("status.sh"):
+            raise AssertionError("started status.sh as a process: %r" % (argv,))
+        return real_run(argv, *args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", refusing_run)
+    served = fake_server(monkeypatch, ["/api/runs"])
+
+    code = dashboard.main([])
+
+    (runs,) = served[0][1]
+    assert code == 0
+    assert status_code(runs) == b"200"
+    assert body(runs) == want
+    assert capfd.readouterr().err == ""
 
 
 def write(path, text):
