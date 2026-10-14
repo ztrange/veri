@@ -697,8 +697,20 @@ def test_get_api_tests_answers_run_57_with_no_test_run_mark_the_empty_list_besid
     assert json.loads(body(tests))["tests"] == []
 
 
-def test_get_api_chatter_hands_the_renderer_run_54s_verify_green_out_the_leaf_its_newest_launch_names(
-        tmp_path, monkeypatch, dashboard):
+def renderer_run(run_cli):
+    """A stand-in for the renderer's process that runs render_leaf_log in-process, so the
+    answer under test is the real rendering of whatever the caller feeds it."""
+    render = importlib.import_module("veri.render_leaf_log")
+
+    def render_run(args, input):
+        code, out, err = run_cli(render, [], stdin=input.decode("utf-8", "replace"))
+        return subprocess.CompletedProcess(args, code, out.encode(), err.encode())
+
+    return render_run
+
+
+def test_get_api_chatter_answers_the_rendering_of_run_54s_verify_green_out_the_leaf_its_newest_launch_names(
+        tmp_path, monkeypatch, dashboard, run_cli):
     run = os.path.join(str(tmp_path), ".tdd", "wt", "54")
     write(os.path.join(run, ".tdd", "issue-54.md"),
           "# Plan for #54 — lamps buzz\n\n- [x] a lamp buzzes\n- [ ] a lamp stops buzzing\n")
@@ -728,16 +740,15 @@ def test_get_api_chatter_hands_the_renderer_run_54s_verify_green_out_the_leaf_it
                "skill_commit": "abc", "name": "verify-green"}]
     write(os.path.join(run, ".tdd", "events.jsonl"),
           "".join(json.dumps(event) + "\n" for event in events))
-    rendered = "[verifier] Reading the diff against the spec.\n[verifier] VERDICT: PASS\n"
-    fed = []
+    rendered = "Reading the diff against the spec.\nVERDICT: PASS\n"
+    render_run = renderer_run(run_cli)
 
     def fake_run(args, cwd=None, input=None, **kwargs):
         if list(args) == ["git", "worktree", "list", "--porcelain"]:
             out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
             return subprocess.CompletedProcess(args, 0, out.encode(), b"")
         if list(args) == [os.path.join(SCRIPTS, "render-leaf-log.sh")]:
-            fed.append(input)
-            return subprocess.CompletedProcess(args, 0, rendered.encode(), b"")
+            return render_run(args, input)
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -747,12 +758,11 @@ def test_get_api_chatter_hands_the_renderer_run_54s_verify_green_out_the_leaf_it
     dashboard.main([])
 
     (chatter,) = served[0][1]
-    assert fed == [green_log.encode()]
     assert json.loads(body(chatter)) == {"chatter": rendered}
 
 
-def test_get_api_chatter_hands_the_renderer_run_59s_verify_red_log_when_no_verify_red_out_exists(
-        tmp_path, monkeypatch, dashboard):
+def test_get_api_chatter_answers_the_rendering_of_run_59s_verify_red_log_when_no_verify_red_out_exists(
+        tmp_path, monkeypatch, dashboard, run_cli):
     run = os.path.join(str(tmp_path), ".tdd", "wt", "59")
     write(os.path.join(run, ".tdd", "issue-59.md"),
           "# Plan for #59 — lamps flare\n\n- [ ] a lamp stops flaring\n")
@@ -772,16 +782,15 @@ def test_get_api_chatter_hands_the_renderer_run_59s_verify_red_log_when_no_verif
                "skill_commit": "abc", "name": "verify-red"}]
     write(os.path.join(run, ".tdd", "events.jsonl"),
           "".join(json.dumps(event) + "\n" for event in events))
-    rendered = "[verifier] Reading the new case against the spec.\n[verifier] VERDICT: PASS\n"
-    fed = []
+    rendered = "Reading the new case against the spec.\nVERDICT: PASS\n"
+    render_run = renderer_run(run_cli)
 
     def fake_run(args, cwd=None, input=None, **kwargs):
         if list(args) == ["git", "worktree", "list", "--porcelain"]:
             out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
             return subprocess.CompletedProcess(args, 0, out.encode(), b"")
         if list(args) == [os.path.join(SCRIPTS, "render-leaf-log.sh")]:
-            fed.append(input)
-            return subprocess.CompletedProcess(args, 0, rendered.encode(), b"")
+            return render_run(args, input)
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -791,12 +800,11 @@ def test_get_api_chatter_hands_the_renderer_run_59s_verify_red_log_when_no_verif
     dashboard.main([])
 
     (chatter,) = served[0][1]
-    assert fed == [verify_log.encode()]
     assert json.loads(body(chatter)) == {"chatter": rendered}
 
 
-def test_get_api_chatter_hands_the_renderer_only_the_four_stream_json_lines_of_run_61s_develop_green_log(
-        tmp_path, monkeypatch, dashboard):
+def test_get_api_chatter_answers_the_rendering_of_the_four_stream_json_lines_of_run_61s_develop_green_log(
+        tmp_path, monkeypatch, dashboard, run_cli):
     run = os.path.join(str(tmp_path), ".tdd", "wt", "61")
     write(os.path.join(run, ".tdd", "issue-61.md"),
           "# Plan for #61 — lamps flicker\n\n- [ ] a lamp stops flickering\n")
@@ -822,16 +830,15 @@ def test_get_api_chatter_hands_the_renderer_only_the_four_stream_json_lines_of_r
                "skill_commit": "abc", "name": "develop-green"}]
     write(os.path.join(run, ".tdd", "events.jsonl"),
           "".join(json.dumps(event) + "\n" for event in events))
-    rendered = "[developer] Making the flicker case pass.\n[developer] $ make test\n"
-    fed = []
+    rendered = "Making the flicker case pass.\n> Bash: make test\n< 10 passed, 0 failed\n"
+    render_run = renderer_run(run_cli)
 
     def fake_run(args, cwd=None, input=None, **kwargs):
         if list(args) == ["git", "worktree", "list", "--porcelain"]:
             out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
             return subprocess.CompletedProcess(args, 0, out.encode(), b"")
         if list(args) == [os.path.join(SCRIPTS, "render-leaf-log.sh")]:
-            fed.append(input)
-            return subprocess.CompletedProcess(args, 0, rendered.encode(), b"")
+            return render_run(args, input)
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -841,7 +848,6 @@ def test_get_api_chatter_hands_the_renderer_only_the_four_stream_json_lines_of_r
     dashboard.main([])
 
     (chatter,) = served[0][1]
-    assert fed == [record_lines.encode()]
     assert json.loads(body(chatter)) == {"chatter": rendered}
 
 
@@ -865,15 +871,11 @@ def test_get_api_chatter_answers_the_empty_rendering_for_run_63_on_no_leaf_and_r
                "skill_commit": "abc", "name": "develop-red"}]
     write(os.path.join(nolog, ".tdd", "events.jsonl"),
           "".join(json.dumps(event) + "\n" for event in events))
-    fed = []
 
     def fake_run(args, cwd=None, input=None, **kwargs):
         if list(args) == ["git", "worktree", "list", "--porcelain"]:
             out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
             return subprocess.CompletedProcess(args, 0, out.encode(), b"")
-        if list(args) == [os.path.join(SCRIPTS, "render-leaf-log.sh")]:
-            fed.append(input)
-            return subprocess.CompletedProcess(args, 0, b"[developer] another leaf's chatter\n", b"")
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -885,11 +887,10 @@ def test_get_api_chatter_answers_the_empty_rendering_for_run_63_on_no_leaf_and_r
     (noleaf_chatter, nolog_chatter) = served[0][1]
     assert json.loads(body(noleaf_chatter)) == {"chatter": ""}
     assert json.loads(body(nolog_chatter)) == {"chatter": ""}
-    assert fed == []
 
 
-def test_get_api_chatter_for_run_55_twice_hands_the_renderer_develop_red_out_then_develop_green_out_after_its_launch(
-        tmp_path, monkeypatch, dashboard):
+def test_get_api_chatter_for_run_55_twice_answers_the_rendering_of_develop_red_out_then_develop_green_out_after_its_launch(
+        tmp_path, monkeypatch, dashboard, run_cli):
     run = os.path.join(str(tmp_path), ".tdd", "wt", "55")
     write(os.path.join(run, ".tdd", "issue-55.md"), "# Plan for #55 — lamps dim\n\n- [ ] a lamp dims\n")
     red = [
@@ -912,15 +913,14 @@ def test_get_api_chatter_for_run_55_twice_hands_the_renderer_develop_red_out_the
               {"ts": 1010, "issue": "55", "actor": "developer", "phase": "red", "step": "a lamp dims",
                "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}]
     write(log, "".join(json.dumps(event) + "\n" for event in events))
-    fed = []
+    render_run = renderer_run(run_cli)
 
     def fake_run(args, cwd=None, input=None, **kwargs):
         if list(args) == ["git", "worktree", "list", "--porcelain"]:
             out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
             return subprocess.CompletedProcess(args, 0, out.encode(), b"")
         if list(args) == [os.path.join(SCRIPTS, "render-leaf-log.sh")]:
-            fed.append(input)
-            return subprocess.CompletedProcess(args, 0, b"rendered %d\n" % len(fed), b"")
+            return render_run(args, input)
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     def requests():
@@ -938,6 +938,5 @@ def test_get_api_chatter_for_run_55_twice_hands_the_renderer_develop_red_out_the
     dashboard.main([])
 
     (first, second) = served[0][1]
-    assert fed == [red_log.encode(), green_log.encode()]
-    assert json.loads(body(first)) == {"chatter": "rendered 1\n"}
-    assert json.loads(body(second)) == {"chatter": "rendered 2\n"}
+    assert json.loads(body(first)) == {"chatter": "Adding the case that pins the dimming.\n"}
+    assert json.loads(body(second)) == {"chatter": "Making the dimming case pass.\n"}
