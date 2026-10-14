@@ -243,8 +243,6 @@ capture-spec:## What to build
 capture-spec:## Acceptance criteria
 dashboard:# Plan for #$2 — $3
 dashboard:## What to build
-dashboard:# Plan for #51 — lamps hum
-dashboard:# Plan for #77 — a kettle boils
 no-awk-v-patterns:#!/usr/bin/env bash
 no-awk-v-patterns:#!/usr/bin/env bash
 no-awk-v-patterns:#!/usr/bin/env bash
