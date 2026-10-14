@@ -202,6 +202,14 @@ def render(as_json, scope):
     return 0
 
 
+def json_document(scope=None):
+    """(exit code, the --json document) as main(["--json"]) would print it, diagnostics dropped."""
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+        code = render(True, tunables.read("VERI_LABEL") if scope is None else scope)
+    return code, out.getvalue()
+
+
 def watch_loop(seconds, as_json, scope):
     while True:
         frame = io.StringIO()
