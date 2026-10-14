@@ -1418,3 +1418,28 @@ def test_main_renders_a_red_prompt_for_a_replaces_case_step_asking_one_pytest_re
                     re.search(old, prompt) is not None)
 
     assert (marked_result, plain_result) == ((0, [], True), (0, sorted(rules), True))
+
+
+def test_main_renders_a_revise_red_prompt_for_a_replaces_case_step_with_the_replaces_report_line_and_one_without_the_mark_unchanged_1521(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"REJECT: the second named case has no replacement.\n")
+    marked = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob" '
+              'move to tests/py/test_zorblat.py ⟦criterion 1⟧')
+    plain = "zorblat frobs a nitz ⟦criterion 1⟧"
+    line = rb"`?REPLACES: <case name> => <pytest test id>`?"
+
+    def rendered(step):
+        code = build_develop_prompt.main(["revise", "red", str(spec), step, "make test", str(reason)])
+        out, _ = capsysbinary.readouterr()
+        return code, re.sub(rb"\s+", b" ", out)
+
+    code, prompt = rendered(marked)
+    marked_result = (code, re.search(line, prompt) is not None,
+                     re.search(rb"one (pytest )?replacement (test )?case (for|per) (each|every)", prompt, re.I) is not None)
+    code, prompt = rendered(plain)
+    plain_result = (code, re.search(line, prompt) is not None)
+
+    assert (marked_result, plain_result) == ((0, True, True), (0, False))

@@ -104,8 +104,10 @@ def main(argv):
                             "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES"), b"")
     values["RED_CASES"] = (b"One criterion, one case \xe2\x80\x94 no extra cases, and no generality the step does\n"
                            b"not ask for.")
-    if phase == "red" and "\u27e6replaces-case\u27e7" in step:
-        values["RED_CASES"] = (
+    if phase == "revise":
+        values["RED_CASES"] = b""
+    if "red" in (phase, revised_phase) and "\u27e6replaces-case\u27e7" in step:
+        values["RED_CASES"] = (b"\n\n" if phase == "revise" else b"") + (
             b"This step replaces cases, so it is not one criterion, one case: write one pytest replacement\n"
             b"case for each bash case the step named, each in its own `def test_...`, no extra cases, and no\n"
             b"generality the step does not ask for. For each of them, report one line\n"

@@ -6,7 +6,7 @@
 
 ### The step (this cycle's criterion)
 
-{{STEP}}{{REPLACES_CASE}}{{SUITE_REPAIR}}{{FREEZE_RULE}}
+{{STEP}}{{RED_CASES}}{{REPLACES_CASE}}{{SUITE_REPAIR}}{{FREEZE_RULE}}
 
 ### The verifier's rejection reason (address exactly this)
 
