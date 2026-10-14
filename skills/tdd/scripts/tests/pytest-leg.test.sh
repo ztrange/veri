@@ -793,10 +793,10 @@ def test_veri_probe_passes():
     assert 1 == 1
 PY
 
-name="with a pytest case under $PY_DIR that sleeps past the leg's per-case timeout (VERI_PYTEST_TIMEOUT=1 standing in for it) beside a passing one, make unit and make test each fail the sleeper named as a timeout, still report the other passed, and stdout ends SUITES FAILED"
+name="with a pytest case under $PY_DIR that sleeps past the leg's per-case timeout (VERI_PYTEST_TIMEOUT=0.2 standing in for it) beside a passing one, make unit and make test each fail the sleeper named as a timeout, still report the other passed, and stdout ends SUITES FAILED"
 problems=()
 for target in unit test; do
-  env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE VERI_PYTEST_TIMEOUT=1 \
+  env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE VERI_PYTEST_TIMEOUT=0.2 \
     make --no-print-directory -C "$hung" "$target" > "$work/out" 2> "$work/err" < /dev/null &&
     code=0 || code=$?
   out="$(cat "$work/out")"
