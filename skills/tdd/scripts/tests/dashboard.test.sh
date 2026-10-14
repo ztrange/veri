@@ -36,36 +36,6 @@ add_problems() {
   done
 }
 
-ask_page() {
-  local program="$1"
-  shift
-  if [[ ! -f "$disk_page" ]]; then
-    problems+=("there is no dashboard.html beside dashboard.sh to read")
-  else
-    add_problems < <(python3 -c "$program" "$disk_page" "$@")
-  fi
-}
-
-fetches_endpoints() {
-  ask_page '
-import re
-import sys
-
-with open(sys.argv[1]) as f:
-    page = f.read()
-
-# One endpoint per pane. The path is asked for inside a fetch of a literal, not anywhere on
-# the page: the endpoint named in a comment, or in the prose of a heading, is not a poll.
-# Matched as a prefix of the literal so that a pane may carry a ?issue= query of its own on
-# the end of its path.
-for arg in sys.argv[2:]:
-    pane, path = arg.split("=", 1)
-    if not re.search(r"fetch\s*\(\s*[\"\x27\x60][^\"\x27\x60]*" + re.escape(path), page):
-        print("the page never fetches %s, so the %s pane has no endpoint of its own to poll"
-              % (path, pane))
-' "$@"
-}
-
 repo() {  # repo <name> -> path
   local dir="$work/$1"
   new_repo -b main "$dir" >/dev/null 2>&1
@@ -329,16 +299,6 @@ fi
 
 report "$name"
 
-name="make test runs this suite"
-problems=()
-root="$(cd "$HERE/../../../.." && pwd)"
-roster="$(make --no-print-directory -n -C "$root" test 2>&1)"
-if ! grep -q 'skills/tdd/scripts/tests/dashboard\.test\.sh' <<< "$roster"; then
-  problems+=("make -n test in $root does not name skills/tdd/scripts/tests/dashboard.test.sh, so make test never runs this suite")
-fi
-
-report "$name"
-
 name="dashboard.sh with a port argument serves the page on that port, binds 127.0.0.1 only, and answers every pane endpoint with JSON"
 problems=()
 arg_repo="$(repo argport)"
@@ -450,160 +410,7 @@ fi
 
 report "$name"
 
-name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoints"
-problems=()
 disk_page="$scripts/dashboard.html"
-
-fetches_endpoints Runs=/api/runs Metrics=/api/metrics Events=/api/events
-
-report "$name"
-
-name="dashboard.html, read off disk, schedules each pane's next request only from the previous one settling"
-problems=()
-
-ask_page '
-import re
-import sys
-
-with open(sys.argv[1]) as f:
-    page = f.read()
-
-# The three quote characters JavaScript has, written as escapes: this program is passed to
-# python inside single quotes, so the apostrophe cannot appear in it literally.
-QUOTED = "\"\x27\x60"
-
-
-# The page with the inside of every string literal and every comment replaced by spaces,
-# every index unchanged. A call is then looked for in code only: a comment naming setInterval
-# is prose, and the "/api/events?issue=" literal is a path, not a call.
-def code_only(src):
-    out = list(src)
-    i, n = 0, len(src)
-    while i < n:
-        c = src[i]
-        pair = src[i:i + 2]
-        if c in QUOTED:
-            i += 1
-            while i < n and src[i] != c:
-                if src[i] == "\\":
-                    out[i] = " "
-                    i += 1
-                if i < n:
-                    out[i] = " "
-                    i += 1
-            i += 1
-        elif pair == "//":
-            while i < n and src[i] != "\n":
-                out[i] = " "
-                i += 1
-        elif pair == "/*":
-            while i < n and src[i:i + 2] != "*/":
-                out[i] = " "
-                i += 1
-            out[i:i + 2] = "  "
-            i += 2
-        else:
-            i += 1
-    return "".join(out)
-
-
-# The index just past the ")" that closes a call whose "(" is at src[i - 1], or -1 when the
-# page has no such ")". A regex cannot be asked where a call ends: a callback passed to
-# setTimeout carries parentheses and commas of its own, and only one at depth 0 counts.
-def balanced(src, i):
-    depth = 1
-    while i < len(src):
-        if src[i] in "([{":
-            depth += 1
-        elif src[i] in ")]}":
-            depth -= 1
-            if depth == 0:
-                return i + 1
-        i += 1
-    return -1
-
-
-# The last top-level argument of an argument list — a setTimeout s delay.
-def last_arg(args):
-    depth, cut = 0, 0
-    for j, c in enumerate(args):
-        if c in "([{":
-            depth += 1
-        elif c in ")]}":
-            depth -= 1
-        elif c == "," and depth == 0:
-            cut = j + 1
-    return args[cut:].strip()
-
-
-code = code_only(page)
-
-
-# Every call in code whose name matches <pattern>, as (match, end) — end being the index just
-# past the ")" that closes it, or -1 when nothing does. The match carries the name that was
-# found, which the settlement handlers below need and the timers do not.
-def calls(pattern):
-    for m in re.finditer(pattern + r"\s*\(", code):
-        yield m, balanced(code, m.end())
-
-
-# The call at <m> as it reads on the page rather than as code_only blanked it, flattened onto
-# one line and cut to what fits a problem line: a message names what is written there, not the
-# spaces this program put in its place.
-def shown(m, end):
-    text = page[m.start():end] if end > 0 else page[m.start():m.end()]
-    return " ".join(text.split())[:120]
-
-
-# No fixed clock anywhere on the page: one setInterval left behind is one pane still queueing
-# requests against an endpoint that has not answered.
-for m, end in calls(r"\bsetInterval"):
-    print("the page calls %s, so a pane fires on a fixed clock rather than on its previous "
-          "request answering" % shown(m, end))
-
-# Where a settlement handler body is: the argument list of .then, .catch or .finally.
-spans = []
-for m, end in calls(r"\.(then|catch|finally)"):
-    if end > 0:
-        spans.append((m.group(1), m.end(), end - 1))
-
-timers = list(calls(r"\bsetTimeout"))
-if not timers:
-    print("the page calls setTimeout nowhere, so no pane schedules its next request from its "
-          "previous one settling")
-else:
-    resolve = reject = False
-    for m, end in timers:
-        kinds = [kind for kind, a, b in spans if a <= m.start() < b]
-        text = shown(m, end)
-        if not kinds:
-            print("the page calls %s outside every .then, .catch and .finally body, so that "
-                  "request is not scheduled by the previous one settling" % text)
-        if [k for k in kinds if k in ("then", "finally")]:
-            resolve = True
-        if [k for k in kinds if k in ("catch", "finally")]:
-            reject = True
-        delay = last_arg(code[m.end():end - 1]) if end > 0 else ""
-        if delay != "2000":
-            print("the page reschedules with %s, %s ms after the previous request settled; "
-                  "want 2000" % (text, delay))
-    if not resolve:
-        print("no setTimeout on the page sits in a .then or .finally body, so a pane whose "
-              "request resolves never asks again")
-    if not reject:
-        print("no setTimeout on the page sits in a .catch or .finally body, so a pane whose "
-              "request rejects never asks again")
-'
-
-report "$name"
-
-name="dashboard.html, read off disk, gives the Tests and Chatter panes an endpoint apiece to poll"
-problems=()
-
-fetches_endpoints Tests=/api/tests Chatter=/api/chatter
-
-report "$name"
-
 name="the page dashboard.sh serves at / is dashboard.html, byte for byte"
 problems=()
 if [[ "$(http_status "${page:-}")" != 200 ]]; then

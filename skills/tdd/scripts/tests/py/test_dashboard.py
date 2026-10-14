@@ -4,6 +4,7 @@ import importlib
 import io
 import json
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -1010,3 +1011,117 @@ def test_get_api_chatter_for_run_55_twice_answers_the_rendering_of_develop_red_o
     (first, second) = served[0][1]
     assert json.loads(body(first)) == {"chatter": "Adding the case that pins the dimming.\n"}
     assert json.loads(body(second)) == {"chatter": "Making the dimming case pass.\n"}
+
+
+ROOT = SCRIPTS.parents[2]
+PAGE = SCRIPTS / "dashboard.html"
+QUOTES = "\"'`"
+
+
+@pytest.mark.process("make -n test starts to print the roster of suites make test runs")
+def test_make_test_names_dashboard_test_sh_in_its_roster():
+    roster = subprocess.run(["make", "--no-print-directory", "-n", "-C", str(ROOT), "test"],
+                            capture_output=True, text=True).stdout
+    assert "skills/tdd/scripts/tests/dashboard.test.sh" in roster
+
+
+def fetched_paths(page):
+    """Every path a fetch of a literal asks for, as the literal's text up to its closing quote."""
+    return re.findall(r"fetch\s*\(\s*[\"'`]([^\"'`]*)", page)
+
+
+def asks_for(page, path):
+    return any(literal.startswith(path) for literal in fetched_paths(page))
+
+
+def test_dashboard_html_fetches_the_runs_metrics_and_events_endpoints():
+    page = PAGE.read_text()
+    for path in ("/api/runs", "/api/metrics", "/api/events"):
+        assert asks_for(page, path), "the page never fetches %s" % path
+
+
+def test_dashboard_html_gives_the_tests_and_chatter_panes_an_endpoint_apiece_to_poll():
+    page = PAGE.read_text()
+    for path in ("/api/tests", "/api/chatter"):
+        assert asks_for(page, path), "the page never fetches %s" % path
+
+
+def code_only(src):
+    """<src> with the inside of every string literal and comment blanked, every index unchanged."""
+    out, i, n = list(src), 0, len(src)
+    while i < n:
+        c = src[i]
+        if c in QUOTES:
+            i += 1
+            while i < n and src[i] != c:
+                if src[i] == "\\":
+                    out[i] = " "
+                    i += 1
+                if i < n:
+                    out[i] = " "
+                    i += 1
+            i += 1
+        elif src[i:i + 2] == "//":
+            while i < n and src[i] != "\n":
+                out[i] = " "
+                i += 1
+        elif src[i:i + 2] == "/*":
+            while i < n and src[i:i + 2] != "*/":
+                out[i] = " "
+                i += 1
+            out[i:i + 2] = "  "
+            i += 2
+        else:
+            i += 1
+    return "".join(out)
+
+
+def call_end(src, i):
+    """The index just past the ")" closing a call whose "(" is at src[i - 1], or -1."""
+    depth = 1
+    while i < len(src):
+        if src[i] in "([{":
+            depth += 1
+        elif src[i] in ")]}":
+            depth -= 1
+            if depth == 0:
+                return i + 1
+        i += 1
+    return -1
+
+
+def calls(code, pattern):
+    for m in re.finditer(pattern + r"\s*\(", code):
+        yield m, call_end(code, m.end())
+
+
+def last_argument(args):
+    depth, cut = 0, 0
+    for j, c in enumerate(args):
+        if c in "([{":
+            depth += 1
+        elif c in ")]}":
+            depth -= 1
+        elif c == "," and depth == 0:
+            cut = j + 1
+    return args[cut:].strip()
+
+
+def test_dashboard_html_schedules_each_panes_next_request_only_from_the_previous_one_settling():
+    code = code_only(PAGE.read_text())
+    assert [m.group(0) for m, _ in calls(code, r"\bsetInterval")] == [], \
+        "a pane fires on a fixed clock rather than on its previous request answering"
+    spans = [(m.group(1), m.end(), end - 1)
+             for m, end in calls(code, r"\.(then|catch|finally)") if end > 0]
+    timers = list(calls(code, r"\bsetTimeout"))
+    assert timers, "no pane schedules its next request from its previous one settling"
+    resolve = reject = False
+    for m, end in timers:
+        kinds = [kind for kind, a, b in spans if a <= m.start() < b]
+        assert kinds, "setTimeout outside every .then, .catch and .finally body"
+        resolve = resolve or bool({"then", "finally"} & set(kinds))
+        reject = reject or bool({"catch", "finally"} & set(kinds))
+        assert end > 0 and last_argument(code[m.end():end - 1]) == "2000", \
+            "a pane reschedules other than 2000 ms after the previous request settled"
+    assert resolve, "no setTimeout sits in a .then or .finally body"
+    assert reject, "no setTimeout sits in a .catch or .finally body"
