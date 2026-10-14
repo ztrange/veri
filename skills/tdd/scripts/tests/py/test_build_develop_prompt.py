@@ -1465,3 +1465,28 @@ def test_main_renders_a_red_prompt_for_a_replaces_case_step_without_the_exactly_
     plain_result = (code, b"Add exactly **ONE** new failing test case, and write **NO** production code." in prompt)
 
     assert (marked_result, plain_result) == ((0, True), (0, True))
+
+
+def test_main_renders_a_revise_red_prompt_for_a_replaces_case_step_without_an_instruction_to_add_a_single_case_and_one_without_the_mark_unchanged_1537(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"REJECT: the second named case has no replacement.\n")
+    marked = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob" '
+              'move to tests/py/test_zorblat.py ⟦criterion 1⟧')
+    plain = "zorblat frobs a nitz ⟦criterion 1⟧"
+    single = rb"(exactly \*\*ONE\*\* new failing test case|add (exactly )?(one|a single) (new )?(failing )?(test )?case)"
+
+    def rendered(step):
+        code = build_develop_prompt.main(["revise", "red", str(spec), step, "make test", str(reason)])
+        out, _ = capsysbinary.readouterr()
+        return code, re.sub(rb"\s+", b" ", out)
+
+    code, prompt = rendered(marked)
+    marked_result = (code, re.search(single, prompt, re.I) is None)
+    code, prompt = rendered(plain)
+    plain_result = (code, re.search(single, prompt, re.I) is None,
+                    re.search(rb"replacement (test )?case", prompt, re.I) is None)
+
+    assert (marked_result, plain_result) == ((0, True), (0, True, True))
