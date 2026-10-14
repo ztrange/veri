@@ -173,4 +173,23 @@ fi
 
 report "$name"
 
+name="SKILL.md's plan section plans an interface change that also asks for a test case as the phased step plus a separate Red/Green step tagged with the same criterion (#1495)"
+problems=()
+
+scope_line="$(line_of "$scope_re")"
+scope_end="$(line_of "$scope_end_re")"
+split_words="interface change|test case|separate|red/green|same"
+sep="', '"
+
+if [[ "$scope_line" -eq 0 || "$scope_end" -eq 0 ]]; then
+  problems+=("$skill_md is missing a landmark of the plan section (/$scope_re/ at line $scope_line, /$scope_end_re/ at line $scope_end)")
+else
+  hit="$(paragraph_with_all "$scope_line" "$scope_end" "$split_words")"
+  if [[ -z "$hit" ]]; then
+    problems+=("no paragraph between $skill_md:$scope_line and :$scope_end names all of '${split_words//|/$sep}', so a criterion asking for a test case may be planned with that case only inside the phased step, where no phase's verifier checks it exists")
+  fi
+fi
+
+report "$name"
+
 finish

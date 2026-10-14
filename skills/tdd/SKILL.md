@@ -823,6 +823,9 @@ three times over branches its ledger pinned on later lines.
    across, the old one removed (ADR 0030) — is planned as one step listing the phases it
    needs, in the order they run: `- [ ] <criterion> ⟦phases: expand, migrate, contract-a,
    contract-b⟧ ⟦criterion k⟧`. A phase with nothing to do is left out of the list.
+   When the criterion also asks for a test case (a case that refuses a sibling script's
+   start at the process boundary, say), plan that case as a separate Red/Green step tagged
+   with the same `⟦criterion k⟧`, so the case never exists only inside the phased step.
 
    A **refactor-kind** run — the spec carries the `## Refactor` section `capture-spec.sh`
    writes for the `refactor` label — changes no behaviour, so it has no failing test to plan
