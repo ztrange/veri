@@ -3,6 +3,7 @@ import importlib
 import io
 import os
 import pathlib
+import pytest
 import select
 import shlex
 import shutil
@@ -570,6 +571,7 @@ sys.exit(veri.run_leaf.main(sys.argv[3:]))
 """
 
 
+@pytest.mark.process("SIGTERM reaching a real process group of a stub claude")
 def test_main_launches_the_leaf_in_its_callers_process_group_with_sigpipe_and_sigxfsz_as_handed_and_on_sigterm_removes_both_temp_files(
         tmp_path, monkeypatch):
     work, tmp = _workspace(tmp_path, monkeypatch)

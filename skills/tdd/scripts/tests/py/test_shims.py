@@ -34,6 +34,7 @@ def test_shim_problems_names_each_script_with_logic_in_it_or_a_missing_module_an
     assert "veri/gone.py" in problems[1] and "does not exist" in problems[1]
 
 
+@pytest.mark.tree_audit("every scripts/*.sh against the shim exemption table")
 def test_the_exemption_table_lists_the_six_non_canonical_shims_with_a_reason_each_and_a_stale_row_fails_naming_the_script(tmp_path):
     assert shim_problems(SCRIPTS, EXEMPT) == []
     assert len(EXEMPT) == 6 and all(reason.strip() for reason in EXEMPT.values())

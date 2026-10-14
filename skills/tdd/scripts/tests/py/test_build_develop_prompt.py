@@ -171,6 +171,7 @@ def test_main_refuses_a_spent_then_a_budget_that_is_not_a_whole_string_non_negat
     assert results == expected
 
 
+@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
 def test_main_refuses_the_first_unreadable_file_in_the_bash_order_with_no_usage_line_and_reads_only_the_files_the_phase_spec_and_step_select(
         tmp_path, capsysbinary):
     templates = ("develop-red.md", "develop-green.md", "develop-revise.md", "develop-revise-diff.md")
@@ -263,6 +264,7 @@ def test_main_refuses_the_first_unreadable_file_in_the_bash_order_with_no_usage_
         module.main(["red", str(tmp_path), "s", "make test"])
 
 
+@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
 def test_main_renders_a_red_prompt_with_each_file_stripped_of_trailing_newlines_the_timed_test_run_path_as_reached_and_non_utf8_bytes_passed_through(
         tmp_path, capsysbinary):
     real = tmp_path / "real" / "scripts"
@@ -292,6 +294,7 @@ def test_main_renders_a_red_prompt_with_each_file_stripped_of_trailing_newlines_
         b"")
 
 
+@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
 def test_main_drops_nul_bytes_from_the_template_the_shared_rules_and_the_spec_it_renders(tmp_path, capsysbinary):
     scripts = tmp_path / "scripts"
     (scripts / "veri").mkdir(parents=True)
@@ -312,6 +315,7 @@ def test_main_drops_nul_bytes_from_the_template_the_shared_rules_and_the_spec_it
     assert (code, *capsysbinary.readouterr()) == (0, b"template\nshared\n[# spec]\n", b"")
 
 
+@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
 def test_main_resolves_includes_in_the_template_the_shared_rules_and_the_green_paragraphs_before_substituting_and_leaves_them_literal_in_the_spec_step_reason_and_bug_paragraph(
         tmp_path, capsysbinary):
     def scripts_with(name, prompts):
@@ -374,6 +378,7 @@ def test_main_resolves_includes_in_the_template_the_shared_rules_and_the_green_p
     assert results == expected
 
 
+@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
 def test_main_substitutes_every_placeholder_sequentially_globally_and_literally_in_the_bash_order_for_every_phase(
         tmp_path, capsysbinary, monkeypatch, build_develop_prompt):
     monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
@@ -449,6 +454,7 @@ def test_main_substitutes_every_placeholder_sequentially_globally_and_literally_
     assert results == expected
 
 
+@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
 def test_main_reads_veri_refactor_budget_for_the_refactor_phase_only_rendering_5_when_unset_or_empty_and_any_other_value_verbatim(
         tmp_path, capsysbinary, monkeypatch):
     scripts = tmp_path / "scripts"
@@ -506,6 +512,7 @@ def test_main_reads_veri_refactor_budget_for_the_refactor_phase_only_rendering_5
     }
 
 
+@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
 def test_main_answers_what_the_bash_contract_cases_before_the_out_of_scope_class_asserted(
         tmp_path, capsysbinary, monkeypatch, build_develop_prompt):
     monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
@@ -637,6 +644,7 @@ def test_main_answers_what_the_bash_contract_cases_before_the_out_of_scope_class
     assert checks == dict.fromkeys(checks, True)
 
 
+@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
 def test_main_answers_what_the_bash_contract_cases_from_the_out_of_scope_class_to_the_over_budget_reason_asserted(
         tmp_path, capsysbinary, monkeypatch, build_develop_prompt):
     monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
@@ -865,6 +873,7 @@ def test_main_answers_what_the_bash_contract_cases_from_the_out_of_scope_class_t
     assert checks == dict.fromkeys(checks, True)
 
 
+@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
 def test_main_answers_what_the_bash_contract_cases_from_the_rebase_prompt_to_the_end_asserted(
         tmp_path, capsysbinary, monkeypatch, build_develop_prompt):
     monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
