@@ -205,4 +205,20 @@ fi
 
 report "$name"
 
+name="SKILL.md's plan section plans a step that can be satisfied only by editing a test as a test-only step, never as Red/Green (#1467)"
+problems=()
+
+test_only_words="only by editing|test-only step|diff-checked|never as red/green"
+
+if [[ "$scope_line" -eq 0 || "$scope_end" -eq 0 ]]; then
+  problems+=("$skill_md is missing a landmark of the plan section (/$scope_re/ at line $scope_line, /$scope_end_re/ at line $scope_end)")
+else
+  hit="$(paragraph_with_all "$scope_line" "$scope_end" "$test_only_words")"
+  if [[ -z "$hit" ]]; then
+    problems+=("no paragraph between $skill_md:$scope_line and :$scope_end names all of '${test_only_words//|/$sep}', so a step only a test edit can satisfy may be planned as Red/Green, where Green may not edit a test and the run bails")
+  fi
+fi
+
+report "$name"
+
 finish
