@@ -1492,6 +1492,21 @@ def base_directories(stdin):
             if line.startswith("Base directory for this skill: ")]
 
 
+def claude_records_its_base_trees(monkeypatch):
+    """Fake the launched claude; the returned list gains the tree under its base directory per launch."""
+    run, seen = subprocess.run, []
+
+    def claude_reads_its_base(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+        (base,) = base_directories(kwargs.get("input"))
+        seen.append(tree_contents(base))
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    monkeypatch.setattr(subprocess, "run", claude_reads_its_base)
+    return seen
+
+
 @pytest.mark.process("real git archive and tar materialising a scratch skill clone's commit into the snapshot")
 def test_cli_the_conductors_base_directory_holds_the_skill_commits_files_not_the_clones_uncommitted_edit_is_not_the_clone_and_is_gone_after_the_launch(
         tmp_path, monkeypatch, run_cli):
@@ -1592,16 +1607,7 @@ def test_cli_a_resume_with_veri_new_skill_1_is_re_pinned_to_the_clones_current_c
         {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the recorded supervisor\n"})
     caller = caller_repository(tmp_path)
     subprocess.run(git_as_veri(caller) + ["branch", "tdd/4242-past-preflight"], check=True)
-    run, seen = subprocess.run, []
-
-    def claude_reads_its_base(args, *a, **kwargs):
-        if list(args)[:1] != ["fake-claude"]:
-            return run(args, *a, **kwargs)
-        (base,) = base_directories(kwargs.get("input"))
-        seen.append(tree_contents(base))
-        return subprocess.CompletedProcess(args, 0, None, None)
-
-    monkeypatch.setattr(subprocess, "run", claude_reads_its_base)
+    seen = claude_records_its_base_trees(monkeypatch)
 
     first_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller)
     (skill / "scripts" / "supervise.sh").write_text("#!/bin/sh\necho the pulled supervisor\n")
@@ -1937,16 +1943,7 @@ def test_cli_a_launch_from_a_clone_behind_origin_default_is_handed_a_snapshot_of
     behind = tree_contents(clone)
     run_conductor = load_run_conductor("run_conductor_tip_clone", clone)
     caller = caller_repository(tmp_path)
-    run, seen = subprocess.run, []
-
-    def claude_reads_its_base(args, *a, **kwargs):
-        if list(args)[:1] != ["fake-claude"]:
-            return run(args, *a, **kwargs)
-        (base,) = base_directories(kwargs.get("input"))
-        seen.append(tree_contents(base))
-        return subprocess.CompletedProcess(args, 0, None, None)
-
-    monkeypatch.setattr(subprocess, "run", claude_reads_its_base)
+    seen = claude_records_its_base_trees(monkeypatch)
 
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
 
