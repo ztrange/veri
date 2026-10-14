@@ -6,6 +6,7 @@ import importlib.util
 import platform
 import re
 import sys
+import tempfile
 
 import launch_floor
 import tunables
@@ -27,7 +28,9 @@ def main(argv):
                              "Install it with `make install-dev`.\n" % (package, sys.executable, module))
             return 2
     import pytest
-    return 0 if pytest.main(argv) == pytest.ExitCode.OK else 1
+    with tempfile.TemporaryDirectory(prefix="veri-pytest-") as base:
+        status = pytest.main(["--basetemp=" + base] + argv)
+    return 0 if status == pytest.ExitCode.OK else 1
 
 
 if __name__ == "__main__":

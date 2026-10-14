@@ -50,4 +50,26 @@ def test_past_its_checks_the_launcher_runs_pytest_on_its_arguments_and_exits_1_f
     monkeypatch.setattr(pytest, "main", spy)
     code, out, err = run_cli(pytest_leg, ["-q", "some/dir"], env={"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1"})
     assert (code, out, err) == (1, "", "")
-    assert calls == [["-q", "some/dir"]]
+    assert [[a for a in args if not a.startswith("--basetemp=")] for args in calls] == [["-q", "some/dir"]]
+
+
+def test_each_run_hands_pytest_a_base_directory_of_its_own_that_exists_during_the_run_and_is_gone_after_whatever_the_status(pytest_leg, run_cli, monkeypatch):
+    import os
+
+    seen = []
+    statuses = iter([pytest.ExitCode.OK, pytest.ExitCode.TESTS_FAILED])
+
+    def spy(args):
+        given = [a.split("=", 1)[1] for a in args if a.startswith("--basetemp=")]
+        seen.append((given[0] if given else None, bool(given) and os.path.isdir(given[0])))
+        return next(statuses)
+
+    monkeypatch.setattr(pytest, "main", spy)
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1"}
+    codes = [run_cli(pytest_leg, ["-q"], env=env)[0] for _ in range(2)]
+    bases = [base for base, _ in seen]
+    assert None not in bases
+    assert [existed for _, existed in seen] == [True, True]
+    assert len(set(bases)) == 2
+    assert [os.path.exists(base) for base in bases] == [False, False]
+    assert codes == [0, 1]
