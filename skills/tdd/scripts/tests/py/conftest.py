@@ -79,6 +79,36 @@ def small_case_guard(request, monkeypatch):
         monkeypatch.setenv("PATH", str(SCRIPTS / "tests" / "unit-guard") + os.pathsep + os.environ.get("PATH", ""))
 
 
+@pytest.fixture(autouse=True)
+def unmarked_case_lists_no_repository_directory(request, monkeypatch, tmp_path):
+    if request.node.get_closest_marker("tree_audit") is not None:
+        for name in ("scandir", "listdir"):
+            monkeypatch.setattr(os, name, getattr(getattr(os, name), "real", getattr(os, name)))
+        return
+    root, scratch = SCRIPTS.parents[2], tmp_path.resolve()
+    real_scandir, real_listdir = os.scandir, os.listdir
+
+    def check(path):
+        try:
+            listed = pathlib.Path(os.fsdecode(os.path.abspath(path))).resolve()
+        except TypeError:
+            return
+        if (listed == root or root in listed.parents) and scratch != listed and scratch not in listed.parents and listed.is_dir():
+            raise AssertionError("%s lists the repository directory %s: mark it tree_audit" % (request.node.nodeid, listed))
+
+    def scandir(path="."):
+        check(path)
+        return real_scandir(path)
+
+    def listdir(path="."):
+        check(path)
+        return real_listdir(path)
+
+    scandir.real, listdir.real = real_scandir, real_listdir
+    monkeypatch.setattr(os, "scandir", scandir)
+    monkeypatch.setattr(os, "listdir", listdir)
+
+
 @pytest.fixture
 def run_cli(monkeypatch, capfd):
     def run(module, argv, stdin="", env=None, cwd=None):

@@ -99,3 +99,34 @@ def test_a_tree_audit_mark_is_registered_and_make_units_selection_deselects_it_b
 
     assert result.ret == pytest.ExitCode.OK, output
     assert result.parseoutcomes() == {"passed": 1, "deselected": 2}, output
+
+
+def test_an_unmarked_case_that_lists_a_repository_directory_fails_naming_the_case_and_the_directory_while_a_marked_one_a_named_file_and_an_import_pass(pytester):
+    root = pathlib.Path(__file__).resolve().parents[5]
+    pytester.makepyfile(test_plant="""
+        import pathlib
+
+        import pytest
+
+        ROOT = pathlib.Path(%r)
+
+        def test_globs_the_scripts_directory():
+            assert list((ROOT / "skills" / "tdd" / "scripts").glob("*.sh"))
+
+        @pytest.mark.tree_audit("every script")
+        def test_marked_globs_the_scripts_directory():
+            assert list((ROOT / "skills" / "tdd" / "scripts").glob("*.sh"))
+
+        def test_reads_one_named_file():
+            assert (ROOT / "CLAUDE.md").read_text()
+
+        def test_imports_a_module():
+            import json
+            assert json.dumps(1) == "1"
+    """ % str(root))
+
+    result = pytester.runpytest_inprocess(plugins=[importlib.import_module("conftest")])
+    output = result.stdout.str() + result.stderr.str()
+
+    assert result.parseoutcomes() == {"passed": 3, "failed": 1}, output
+    assert [name for name in ("test_globs_the_scripts_directory", "skills/tdd/scripts") if name not in output] == [], output
