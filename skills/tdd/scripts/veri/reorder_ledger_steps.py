@@ -28,6 +28,9 @@ def main(argv):
         print(f"cannot move a ticked step: {lines[moved]}", file=sys.stderr)
         return 1
     anchor = _find(lines, argv[3])
+    if anchor is None:
+        print(f"no step matches: {argv[3]}", file=sys.stderr)
+        return 1
     if _frozen(lines[anchor]):
         print(f"cannot move a step relative to a ticked step: {lines[anchor]}", file=sys.stderr)
         return 1
