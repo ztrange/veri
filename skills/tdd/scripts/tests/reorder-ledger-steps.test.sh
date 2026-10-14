@@ -53,4 +53,11 @@ cp "$led" "$work/before"
 { [[ "$code" == 1 ]] && cmp -s "$led" "$work/before" && grep -F "bravo" "$work/err" > /dev/null; } \
   && ok || no "#1550: an unchecked anchor carrying the refactor-pending mark exits 1, leaves the ledger byte-identical and names the anchor on stderr (code=$code err='$(cat "$work/err")')"
 
+led="$work/issue-131.md"
+printf '# Plan for #131\n\n- [ ] alpha step\n- [ ] bravo step\n- [ ] charlie step\n' > "$led"
+cp "$led" "$work/before"
+"$REORDER" "$led" "zulu" after "charlie" > "$work/out" 2> "$work/err"; code=$?
+{ [[ "$code" == 1 ]] && cmp -s "$led" "$work/before" && grep -F "zulu" "$work/err" > /dev/null; } \
+  && ok || no "#1550: a step substring matching no step exits 1, leaves the ledger byte-identical and names the substring on stderr (code=$code err='$(cat "$work/err")')"
+
 finish

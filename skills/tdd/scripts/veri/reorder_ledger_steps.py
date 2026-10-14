@@ -7,7 +7,7 @@ USAGE = "usage: reorder-ledger-steps.sh <ledger-file> <step-substring> before|af
 
 
 def _find(lines, substring):
-    return next(i for i, line in enumerate(lines) if substring in line)
+    return next((i for i, line in enumerate(lines) if substring in line), None)
 
 
 def _frozen(line):
@@ -21,6 +21,9 @@ def main(argv):
     with open(argv[0], newline="") as file:
         lines = file.read().split("\n")
     moved = _find(lines, argv[1])
+    if moved is None:
+        print(f"no step matches: {argv[1]}", file=sys.stderr)
+        return 1
     if _frozen(lines[moved]):
         print(f"cannot move a ticked step: {lines[moved]}", file=sys.stderr)
         return 1
