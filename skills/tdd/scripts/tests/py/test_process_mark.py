@@ -130,3 +130,33 @@ def test_an_unmarked_case_that_lists_a_repository_directory_fails_naming_the_cas
 
     assert result.parseoutcomes() == {"passed": 3, "failed": 1}, output
     assert [name for name in ("test_globs_the_scripts_directory", "skills/tdd/scripts") if name not in output] == [], output
+
+
+def test_an_unmarked_case_that_drives_a_module_which_lists_a_repository_directory_fails_naming_the_case_and_the_directory_while_the_marked_case_passes(pytester):
+    root = pathlib.Path(__file__).resolve().parents[5]
+    pytester.makepyfile(sweeper="""
+        import pathlib
+
+        def count_scripts(root):
+            return len(list((pathlib.Path(root) / "skills" / "tdd" / "scripts").iterdir()))
+    """)
+    pytester.makepyfile(test_plant="""
+        import pytest
+
+        import sweeper
+
+        ROOT = %r
+
+        def test_drives_the_sweeping_module():
+            assert sweeper.count_scripts(ROOT)
+
+        @pytest.mark.tree_audit("every script")
+        def test_marked_drives_the_sweeping_module():
+            assert sweeper.count_scripts(ROOT)
+    """ % str(root))
+
+    result = pytester.runpytest_inprocess(plugins=[importlib.import_module("conftest")])
+    output = result.stdout.str() + result.stderr.str()
+
+    assert result.parseoutcomes() == {"passed": 1, "failed": 1}, output
+    assert [name for name in ("test_drives_the_sweeping_module", "skills/tdd/scripts") if name not in output] == [], output
