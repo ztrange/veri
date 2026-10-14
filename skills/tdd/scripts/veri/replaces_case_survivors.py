@@ -11,8 +11,11 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     names, path = parse(argv[0])
-    with open(path, encoding="utf-8") as f:
-        suite = f.read()
+    try:
+        with open(path, encoding="utf-8") as f:
+            suite = f.read()
+    except FileNotFoundError:
+        return 0
     survivors = [n for n in names if f'"{n}"' in suite or f"'{n}'" in suite]
     for name in survivors:
         print(f"still present in {path}: {name}")

@@ -51,3 +51,9 @@ def test_main_reports_a_still_present_case_whose_name_holds_an_apostrophe_1406(t
 
     assert code == 1
     assert name in out
+
+
+def test_main_exits_0_naming_nothing_when_the_green_deleted_the_whole_suite_file_1406(tmp_path, run_cli, survivors):
+    step = "the replacement takes over: replaces 'stale first', 'stale second' in tests/demo.test.sh ⟦replaces-case⟧ ⟦criterion 3⟧"
+
+    assert run_cli(survivors, [step], cwd=tmp_path) == (0, "", "")
