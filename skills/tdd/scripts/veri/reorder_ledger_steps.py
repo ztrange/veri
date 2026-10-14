@@ -26,7 +26,7 @@ def _frozen(line):
 
 
 def main(argv):
-    if len(argv) != 4:
+    if len(argv) != 4 or argv[2] not in ("before", "after"):
         print(USAGE, file=sys.stderr)
         return 2
     with open(argv[0], newline="") as file:
