@@ -21,7 +21,7 @@ PY_ALL := $(sort $(wildcard skills/tdd/scripts/tests/py/test_*.py))
 py_tests = $(if $(1),$(filter %.py,$(2)),$(PY_ALL))
 unit: PY_TESTS = $(call py_tests,$(UNIT_TESTS_NAMED),$(UNIT_TESTS))
 PY_TESTS := $(call py_tests,$(TESTS_NAMED),$(TESTS))
-unit: PY_SELECT = -m "not process"
+unit: PY_SELECT = -m "not process and not tree_audit"
 
 # The fast tier's admission-bar guard: `unit` puts UNIT_GUARD_BIN first on a suite's PATH,
 # where git and python3 refuse, naming themselves; gh and curl fall through to OFFLINE_BIN's shims,
