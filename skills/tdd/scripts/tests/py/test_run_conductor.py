@@ -1435,9 +1435,8 @@ def tree_contents(root):
     return contents
 
 
-@pytest.mark.process("real git archive and tar materialising a scratch skill clone's commit into the snapshot")
-def test_cli_the_conductors_base_directory_holds_the_skill_commits_files_not_the_clones_uncommitted_edit_is_not_the_clone_and_is_gone_after_the_launch(
-        tmp_path, monkeypatch, run_cli):
+def committed_skill_clone(tmp_path, monkeypatch, module_name, files):
+    """A one-commit skill clone holding files (path: text, .sh files executable), and its run_conductor module loaded from that clone."""
     import importlib.util
     past_the_guards(monkeypatch)
     for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
@@ -1446,27 +1445,43 @@ def test_cli_the_conductors_base_directory_holds_the_skill_commits_files_not_the
     skill = tmp_path / "skill"
     (skill / "scripts" / "veri").mkdir(parents=True)
     (skill / "scripts" / "veri" / "run_conductor.py").symlink_to(SCRIPTS / "veri" / "run_conductor.py")
-    (skill / "SKILL.md").write_text("# the committed procedure\n")
-    (skill / "scripts" / "supervise.sh").write_text("#!/bin/sh\necho the committed supervisor\n")
+    for relative, text in files.items():
+        (skill / relative).parent.mkdir(parents=True, exist_ok=True)
+        (skill / relative).write_text(text)
+        if relative.endswith(".sh"):
+            (skill / relative).chmod(0o755)
     git = ["git", "-C", str(skill), "-c", "user.name=veri", "-c", "user.email=veri@example.test"]
     subprocess.run(["git", "init", "-q", str(skill)], check=True)
     subprocess.run(git + ["add", "-A"], check=True)
     subprocess.run(git + ["commit", "-q", "-m", "the skill commit"], check=True)
+    spec = importlib.util.spec_from_file_location(module_name, str(skill / "scripts" / "veri" / "run_conductor.py"))
+    run_conductor = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(run_conductor)
+    return skill, run_conductor
+
+
+def base_directories(stdin):
+    """The base directories the procedure on a launched claude's stdin names."""
+    stdin = stdin.decode() if isinstance(stdin, bytes) else stdin
+    return [line[len("Base directory for this skill: "):] for line in stdin.splitlines()
+            if line.startswith("Base directory for this skill: ")]
+
+
+@pytest.mark.process("real git archive and tar materialising a scratch skill clone's commit into the snapshot")
+def test_cli_the_conductors_base_directory_holds_the_skill_commits_files_not_the_clones_uncommitted_edit_is_not_the_clone_and_is_gone_after_the_launch(
+        tmp_path, monkeypatch, run_cli):
+    skill, run_conductor = committed_skill_clone(
+        tmp_path, monkeypatch, "run_conductor_snapshot",
+        {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the committed supervisor\n"})
     committed = tree_contents(skill)
     with open(skill / "scripts" / "supervise.sh", "a") as edit:
         edit.write("# uncommitted edit after the skill commit\n")
-    spec = importlib.util.spec_from_file_location("run_conductor_snapshot", str(skill / "scripts" / "veri" / "run_conductor.py"))
-    run_conductor = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(run_conductor)
     run, seen = subprocess.run, []
 
     def claude_reads_its_base(args, *a, **kwargs):
         if list(args)[:1] != ["fake-claude"]:
             return run(args, *a, **kwargs)
-        stdin = kwargs.get("input")
-        stdin = stdin.decode() if isinstance(stdin, bytes) else stdin
-        bases = [line[len("Base directory for this skill: "):] for line in stdin.splitlines()
-                 if line.startswith("Base directory for this skill: ")]
+        bases = base_directories(kwargs.get("input"))
         seen.append((bases, tree_contents(bases[0]) if bases else None))
         return subprocess.CompletedProcess(args, 0, None, None)
 
@@ -1485,40 +1500,21 @@ def test_cli_the_conductors_base_directory_holds_the_skill_commits_files_not_the
 @pytest.mark.process("real git archive and tar materialising a scratch skill clone's commit, and a supervise.sh run from the snapshot")
 def test_cli_a_leaf_launched_mid_run_executes_the_snapshots_supervise_sh_run_leaf_sh_and_template_not_the_clones(
         tmp_path, monkeypatch, run_cli):
-    import importlib.util
-    past_the_guards(monkeypatch)
-    for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
-        monkeypatch.delenv(name, raising=False)
-    scratch_tmpdir(tmp_path, monkeypatch)
-    skill = tmp_path / "skill"
+    skill, run_conductor = committed_skill_clone(
+        tmp_path, monkeypatch, "run_conductor_leaf",
+        {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the committed supervisor\n",
+         "scripts/run-leaf.sh": "#!/bin/sh\necho the committed run-leaf\n",
+         "scripts/prompts/develop-red.md": "the committed develop-red template\n"})
     scripts = skill / "scripts"
-    (scripts / "veri").mkdir(parents=True)
-    (scripts / "prompts").mkdir()
-    (scripts / "veri" / "run_conductor.py").symlink_to(SCRIPTS / "veri" / "run_conductor.py")
-    (skill / "SKILL.md").write_text("# the committed procedure\n")
-    (scripts / "supervise.sh").write_text("#!/bin/sh\necho the committed supervisor\n")
-    (scripts / "supervise.sh").chmod(0o755)
-    (scripts / "run-leaf.sh").write_text("#!/bin/sh\necho the committed run-leaf\n")
-    (scripts / "prompts" / "develop-red.md").write_text("the committed develop-red template\n")
-    git = ["git", "-C", str(skill), "-c", "user.name=veri", "-c", "user.email=veri@example.test"]
-    subprocess.run(["git", "init", "-q", str(skill)], check=True)
-    subprocess.run(git + ["add", "-A"], check=True)
-    subprocess.run(git + ["commit", "-q", "-m", "the skill commit"], check=True)
     (scripts / "supervise.sh").write_text("#!/bin/sh\necho SABOTAGED; exit 42\n")
     (scripts / "run-leaf.sh").unlink()
     (scripts / "prompts" / "develop-red.md").write_text("SABOTAGED-TEMPLATE\n")
-    spec = importlib.util.spec_from_file_location("run_conductor_leaf", str(scripts / "veri" / "run_conductor.py"))
-    run_conductor = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(run_conductor)
     run, seen = subprocess.run, []
 
     def claude_launches_a_leaf_from_its_base(args, *a, **kwargs):
         if list(args)[:1] != ["fake-claude"]:
             return run(args, *a, **kwargs)
-        stdin = kwargs.get("input")
-        stdin = stdin.decode() if isinstance(stdin, bytes) else stdin
-        (base,) = [line[len("Base directory for this skill: "):] for line in stdin.splitlines()
-                   if line.startswith("Base directory for this skill: ")]
+        (base,) = base_directories(kwargs.get("input"))
         supervised = run([base + "/scripts/supervise.sh"], capture_output=True, text=True)
         seen.append((supervised.returncode, supervised.stdout, os.path.exists(base + "/scripts/run-leaf.sh"),
                      pathlib.Path(base, "scripts", "prompts", "develop-red.md").read_text()))
