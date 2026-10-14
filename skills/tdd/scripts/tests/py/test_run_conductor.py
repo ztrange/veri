@@ -1997,3 +1997,41 @@ def test_cli_every_event_a_launched_run_writes_carries_origins_tip_as_skill_comm
     assert len(events) > 1
     assert [(event["event"], event.get("skill_commit")) for event in events if event.get("skill_commit") != tip] == []
     assert len(prompts) == 1 and tip in prompts[0]
+
+
+@pytest.mark.process("real git clone, fetch and archive of a scratch skill clone whose origin moves between two launches, tar materialising the recorded commit, and a real caller repository holding the tdd branch that keeps the record")
+def test_cli_a_resumed_run_keeps_its_recorded_pin_when_origin_default_has_moved_since_the_first_launch(
+        tmp_path, monkeypatch, run_cli):
+    remote, _ = skill_clone(tmp_path, monkeypatch, "run_conductor_pin_remote",
+                            {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the first supervisor\n"},
+                            directory="remote")
+    first = subprocess.run(["git", "-C", str(remote), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+    recorded = tree_contents(remote)
+    clone = tmp_path / "clone"
+    subprocess.run(["git", "clone", "-q", str(remote), str(clone)], check=True)
+    run_conductor = load_run_conductor("run_conductor_pin_clone", clone)
+    caller = caller_repository(tmp_path)
+    subprocess.run(git_as_veri(caller) + ["branch", "tdd/4242-past-preflight"], check=True)
+    run, seen = subprocess.run, []
+
+    def claude_reads_its_base(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+        stdin = kwargs.get("input")
+        (base,) = base_directories(stdin)
+        seen.append((tree_contents(base), stdin.decode() if isinstance(stdin, bytes) else stdin))
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    monkeypatch.setattr(subprocess, "run", claude_reads_its_base)
+
+    first_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller)
+    with open(remote / "scripts" / "supervise.sh", "a") as landed:
+        landed.write("# a commit that landed on the remote after the run started\n")
+    subprocess.run(git_as_veri(remote) + ["commit", "-q", "-am", "landed on the remote after the run started"], check=True)
+    moved = subprocess.run(["git", "-C", str(remote), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+    resumed_code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+
+    assert moved != first and len(seen) == 2
+    resumed_tree, resumed_prompt = seen[1]
+    assert (first_code, resumed_code, resumed_tree == recorded, first in resumed_prompt, moved in resumed_prompt) == (
+        0, 0, True, True, False), stderr

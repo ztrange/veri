@@ -162,42 +162,6 @@ grep -qi 'fetch' "$launch_err" ||
 
 report "$name"
 
-name="a resumed run keeps its recorded pin when origin/<default> has moved since the first launch"
-problems=()
-
-remote10="$work/remote10"
-clone10="$work/clone10"
-cloned_skill "$remote10" "$clone10"
-first10="$(git -C "$remote10" rev-parse HEAD)"
-
-pinned10="$work/pinned10"
-skill_archive "$remote10" "$first10" "$pinned10"
-
-caller10="$work/caller10"
-caller_repo "$caller10"
-git -C "$caller10" commit -q --allow-empty -m base
-git -C "$caller10" branch "tdd/$issue-past-preflight"
-
-launch_from "$caller10" "$clone10"
-
-advance_clone "$remote10" "# a commit that landed on the remote after the run started"
-moved10="$(git -C "$remote10" rev-parse HEAD)"
-
-resumed10="$work/resumed10"
-mkdir -p "$resumed10"
-rm -f "$prompt"
-launch_from "$caller10" "$clone10" BASE_OUT="$resumed10"
-
-if [[ -z "$(prompt_base)" ]]; then
-  problems+=("the resumed launch's prompt names no base directory: $(cat "$launch_err")")
-else
-  holds_skill "$resumed10" "$pinned10/skills/tdd" "resumed launch's" "recorded pin $first10 (origin moved to $moved10)"
-  grep -q -- "$first10" "$prompt" ||
-    problems+=("the resumed launch's prompt does not name the recorded pin $first10")
-fi
-
-report "$name"
-
 name="a resume with VERI_NEW_SKILL=1 re-pins to origin/<default> as just fetched, not to the clone's HEAD"
 problems=()
 
