@@ -1798,3 +1798,38 @@ def test_cli_each_phases_leaf_is_launched_with_its_tier_red_and_refactor_affecte
         "verify-green": "fast+affected", "develop-refactor": "affected", "verify-refactor": "fast+affected",
         "verify-refactor-bare": None}
     assert exits["verify-refactor-bare"] == 2
+
+
+@pytest.mark.process("real git archive and tar materialising a scratch skill clone's commit reached through a symlink, and a real caller repository holding the record")
+def test_cli_a_run_through_a_symlink_to_the_skill_directory_from_another_working_directory_pins_snapshots_and_records_as_run_in_place(
+        tmp_path, monkeypatch, run_cli):
+    skill, _ = skill_clone(
+        tmp_path, monkeypatch, "run_conductor_in_place", {"SKILL.md": "# the committed procedure\n"})
+    tip = subprocess.run(["git", "-C", str(skill), "rev-parse", "HEAD"], capture_output=True, text=True,
+                         check=True).stdout.strip()
+    with open(skill / "SKILL.md", "a") as edit:
+        edit.write("# uncommitted edit to the clone's SKILL.md\n")
+    link = tmp_path / "link"
+    link.symlink_to(skill)
+    run_conductor = load_run_conductor("run_conductor_through_link", link)
+    caller = caller_repository(tmp_path)
+    run, seen = subprocess.run, []
+
+    def claude_reads_its_record_and_base(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+        bases = base_directories(kwargs.get("input"))
+        record = caller / ".tdd" / "issue-4242-skill-commit"
+        seen.append({"record": record.read_text().strip() if record.exists() else None,
+                     "bases": len(bases),
+                     "base_is_clone": bool(bases) and os.path.realpath(bases[0]) == os.path.realpath(skill),
+                     "skill_md": (pathlib.Path(bases[0]) / "SKILL.md").read_bytes() if bases else None,
+                     "names_tip": tip in kwargs.get("input").decode()})
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    monkeypatch.setattr(subprocess, "run", claude_reads_its_record_and_base)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+
+    assert (code, seen) == (0, [{"record": tip, "bases": 1, "base_is_clone": False,
+                                 "skill_md": b"# the committed procedure\n", "names_tip": True}]), stderr
