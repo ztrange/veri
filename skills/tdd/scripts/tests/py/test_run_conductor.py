@@ -1480,3 +1480,54 @@ def test_cli_the_conductors_base_directory_holds_the_skill_commits_files_not_the
     (base,), contents = seen[0]
     assert (code, os.path.realpath(base) == os.path.realpath(skill), contents == committed, os.path.exists(base)) == (
         0, False, True, False)
+
+
+@pytest.mark.process("real git archive and tar materialising a scratch skill clone's commit, and a supervise.sh run from the snapshot")
+def test_cli_a_leaf_launched_mid_run_executes_the_snapshots_supervise_sh_run_leaf_sh_and_template_not_the_clones(
+        tmp_path, monkeypatch, run_cli):
+    import importlib.util
+    past_the_guards(monkeypatch)
+    for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
+        monkeypatch.delenv(name, raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    skill = tmp_path / "skill"
+    scripts = skill / "scripts"
+    (scripts / "veri").mkdir(parents=True)
+    (scripts / "prompts").mkdir()
+    (scripts / "veri" / "run_conductor.py").symlink_to(SCRIPTS / "veri" / "run_conductor.py")
+    (skill / "SKILL.md").write_text("# the committed procedure\n")
+    (scripts / "supervise.sh").write_text("#!/bin/sh\necho the committed supervisor\n")
+    (scripts / "supervise.sh").chmod(0o755)
+    (scripts / "run-leaf.sh").write_text("#!/bin/sh\necho the committed run-leaf\n")
+    (scripts / "prompts" / "develop-red.md").write_text("the committed develop-red template\n")
+    git = ["git", "-C", str(skill), "-c", "user.name=veri", "-c", "user.email=veri@example.test"]
+    subprocess.run(["git", "init", "-q", str(skill)], check=True)
+    subprocess.run(git + ["add", "-A"], check=True)
+    subprocess.run(git + ["commit", "-q", "-m", "the skill commit"], check=True)
+    (scripts / "supervise.sh").write_text("#!/bin/sh\necho SABOTAGED; exit 42\n")
+    (scripts / "run-leaf.sh").unlink()
+    (scripts / "prompts" / "develop-red.md").write_text("SABOTAGED-TEMPLATE\n")
+    spec = importlib.util.spec_from_file_location("run_conductor_leaf", str(scripts / "veri" / "run_conductor.py"))
+    run_conductor = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(run_conductor)
+    run, seen = subprocess.run, []
+
+    def claude_launches_a_leaf_from_its_base(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+        stdin = kwargs.get("input")
+        stdin = stdin.decode() if isinstance(stdin, bytes) else stdin
+        (base,) = [line[len("Base directory for this skill: "):] for line in stdin.splitlines()
+                   if line.startswith("Base directory for this skill: ")]
+        supervised = run([base + "/scripts/supervise.sh"], capture_output=True, text=True)
+        seen.append((supervised.returncode, supervised.stdout, os.path.exists(base + "/scripts/run-leaf.sh"),
+                     pathlib.Path(base, "scripts", "prompts", "develop-red.md").read_text()))
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    monkeypatch.setattr(subprocess, "run", claude_launches_a_leaf_from_its_base)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, seen) == (0, [(0, "the committed supervisor\n", True, "the committed develop-red template\n")])

@@ -195,63 +195,6 @@ assert_case4() {
 caller="$work/caller"
 caller_repo "$caller"
 
-name="a leaf launched mid-run executes the snapshot's supervise.sh, run-leaf.sh and template, not the clone's"
-problems=()
-
-clone2="$work/clone2"
-skill_clone "$clone2"
-
-leafdir="$work/leaf"
-mkdir -p "$leafdir"
-echo "spec" > "$leafdir/spec.md"
-
-cat > "$stubdir/leaf-claude" <<'STUB'
-#!/bin/sh
-while [ "$#" -gt 0 ]; do
-  [ "$1" = "-p" ] && { printf '%s\n' "$2" > "$LEAF_PROMPT_OUT"; shift; }
-  shift
-done
-printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
-STUB
-chmod +x "$stubdir/leaf-claude"
-
-cat > "$stubdir/hook" <<HOOK
-#!/bin/sh
-base="\$1"
-src="$clone2/skills/tdd/scripts"
-printf '#!/usr/bin/env bash\necho SABOTAGED; exit 42\n' > "\$src/supervise.sh"
-rm -f "\$src/run-leaf.sh"
-echo "SABOTAGED-TEMPLATE" > "\$src/prompts/develop-red.md"
-cd "$leafdir" || exit 1
-"\$base/scripts/build-develop-prompt.sh" red spec.md "the step" "make test" > leaf.prompt 2> build.err
-env CLAUDE_BIN="$stubdir/leaf-claude" LEAF_PROMPT_OUT="$leafdir/leaf-received" VERI_POLL=0.02 \
-  "\$base/scripts/supervise.sh" develop-red "\$base/scripts/run-leaf.sh" leaf.prompt > supervise.out 2> supervise.err
-echo \$? > supervise.rc
-HOOK
-chmod +x "$stubdir/hook"
-
-caller2="$work/caller2"
-caller_repo "$caller2"
-launch_from "$caller2" "$clone2" CONDUCTOR_HOOK="$stubdir/hook"
-
-leaf_rc="$(cat "$leafdir/supervise.rc" 2>/dev/null)"
-if [[ -z "$leaf_rc" ]]; then
-  problems+=("the conductor never launched a leaf — no supervise.rc in $leafdir")
-else
-  [[ "$leaf_rc" == 0 ]] ||
-    problems+=("the leaf launch through the base directory's supervise.sh exited $leaf_rc, not 0")
-  if [[ ! -f "$leafdir/leaf-received" ]]; then
-    problems+=("the leaf never received a prompt")
-  else
-    grep -q 'SABOTAGED-TEMPLATE' "$leafdir/leaf-received" &&
-      problems+=("the leaf was handed the clone's rewritten develop-red template")
-    grep -q '## Phase: develop-red' "$leafdir/leaf-received" ||
-      problems+=("the leaf's prompt is not built from the committed develop-red template")
-  fi
-fi
-
-report "$name"
-
 name="a resume of the run is handed a re-materialised snapshot of the recorded commit, not the clone's new HEAD"
 problems=()
 
