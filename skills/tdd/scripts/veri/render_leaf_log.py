@@ -36,7 +36,10 @@ def _render(lines):
 
 
 def render_log(text):
-    code, rendering, _ = _render(io.StringIO(text))
+    try:
+        code, rendering, _ = _render(io.StringIO(text))
+    except Exception:
+        return 2, ""
     return code, rendering
 
 

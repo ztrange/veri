@@ -799,6 +799,47 @@ def test_get_api_chatter_gives_its_full_answer_for_run_66_when_starting_render_l
     assert sorted(os.listdir(os.path.join(run, ".tdd"))) == before
 
 
+def test_get_api_chatter_answers_the_empty_rendering_with_nothing_on_stderr_for_runs_71_72_and_73_whose_leaf_logs_hold_a_json_line_render_leaf_log_cannot_render(
+        tmp_path, monkeypatch, dashboard, capfd):
+    lines = {
+        "71": "42",
+        "72": json.dumps({"message": {"content": "hi"}}),
+        "73": json.dumps({"type": "assistant", "message": {"content": [
+            {"type": "tool_use", "input": {"command": "ls"}}]}}),
+    }
+    for issue, line in lines.items():
+        run = os.path.join(str(tmp_path), ".tdd", "wt", issue)
+        write(os.path.join(run, ".tdd", "issue-%s.md" % issue),
+              "# Plan for #%s — lamps hum\n\n- [ ] a lamp stops humming\n" % issue)
+        write(os.path.join(run, ".tdd", "develop-green.out"), line + "\n")
+        events = [{"ts": 1000, "issue": issue, "actor": "conductor", "phase": "",
+                   "step": "a lamp stops humming", "event": "step-start", "attempt": "",
+                   "skill_commit": "abc"},
+                  {"ts": 1010, "issue": issue, "actor": "developer", "phase": "green",
+                   "step": "a lamp stops humming", "event": "launch", "attempt": "1",
+                   "skill_commit": "abc", "name": "develop-green"}]
+        write(os.path.join(run, ".tdd", "events.jsonl"),
+              "".join(json.dumps(event) + "\n" for event in events))
+
+    def fake_run(args, cwd=None, input=None, **kwargs):
+        if list(args) == ["git", "worktree", "list", "--porcelain"]:
+            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
+            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    served = fake_server(monkeypatch, ["/api/chatter?issue=%s" % issue for issue in lines])
+    capfd.readouterr()
+
+    dashboard.main([])
+
+    answers = served[0][1]
+    assert [status_code(answer) for answer in answers] == [b"200"] * 3
+    assert [json.loads(body(answer)) for answer in answers] == [{"chatter": ""}] * 3
+    assert capfd.readouterr().err == ""
+
+
 def test_get_api_chatter_answers_the_rendering_of_run_59s_verify_red_log_when_no_verify_red_out_exists(
         tmp_path, monkeypatch, dashboard):
     run = os.path.join(str(tmp_path), ".tdd", "wt", "59")
