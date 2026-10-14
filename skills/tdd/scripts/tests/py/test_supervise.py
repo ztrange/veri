@@ -3109,6 +3109,7 @@ def test_cli_launches_a_leaf_whose_own_arguments_carry_model_with_exactly_that_o
 
 
 @pytest.mark.process("git runs for real, and the launch event is appended in-process: a launch event's skill_commit is the skill clone's own HEAD, or unknown outside a clone")
+@pytest.mark.tree_audit("the shell scripts, veri/ and lib/ under scripts/")
 def test_cli_records_the_skill_clones_own_head_in_a_launch_events_skill_commit_and_the_literal_unknown_for_a_skill_outside_a_git_clone(
         monkeypatch, tmp_path, supervise, run_cli):
     import json
