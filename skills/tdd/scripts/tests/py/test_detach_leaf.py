@@ -218,8 +218,10 @@ def test_main_launches_a_child_that_writes_its_completion_file_after_a_term_to_t
         control_alive = len(pids) == 2 and alive(pids[1])
     finally:
         for pid in pids:
-            if alive(pid):
+            try:
                 os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
         try:
             os.killpg(launcher, signal.SIGKILL)
             os.waitpid(launcher, 0)
