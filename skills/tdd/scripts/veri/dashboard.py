@@ -13,17 +13,11 @@ import urllib.parse
 from event_log import read_events
 from run_dir import run_file
 import metrics
+import render_leaf_log
 import status
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 status_sh = os.path.join(SCRIPTS, "status.sh")
-# The renderer the Chatter pane shows a leaf log through — the script beside this one, run
-# rather than re-implemented, the way runs_json runs status.sh: what "rendered" means is
-# render-leaf-log.sh's answer, so the pane cannot drift into a second spelling of it. It
-# reads the log on stdin and writes the rendered lines out; a log it cannot render (exit 2
-# on a line that is not JSON) leaves NOTHING, not what it managed, because it writes its
-# accumulated output only after the loop that exit leaves (render-leaf-log.sh:33-46).
-render_leaf_log_sh = os.path.join(SCRIPTS, "render-leaf-log.sh")
 
 
 # What every reader here does to the script it reads: run it, keep its stdout, and let its
@@ -368,8 +362,7 @@ def record_lines(log):
 def rendered_log(log):
     if not log or not os.path.exists(log):
         return ""
-    return capture([render_leaf_log_sh],
-                   feed=record_lines(log)).decode("utf-8", "replace")
+    return render_leaf_log.render_log(record_lines(log).decode("utf-8", "replace"))[1]
 
 
 # The leaf a run is CURRENTLY on: the name its newest `launch` event carries, which is the
