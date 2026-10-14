@@ -35,6 +35,9 @@ def main(argv):
     if not matched:
         print(f"no step matches: {argv[3]}", file=sys.stderr)
         return 1
+    if len(matched) > 1:
+        print(f"more than one step matches: {argv[3]}", file=sys.stderr)
+        return 1
     anchor = matched[0]
     if _frozen(lines[anchor]):
         print(f"cannot move a step relative to a ticked step: {lines[anchor]}", file=sys.stderr)

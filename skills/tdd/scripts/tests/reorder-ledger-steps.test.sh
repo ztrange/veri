@@ -74,4 +74,11 @@ cp "$led" "$work/before"
 { [[ "$code" == 1 ]] && cmp -s "$led" "$work/before" && grep -F "step" "$work/err" > /dev/null; } \
   && ok || no "#1550: a step substring matching more than one step exits 1, leaves the ledger byte-identical and names the substring on stderr (code=$code err='$(cat "$work/err")')"
 
+led="$work/issue-134.md"
+printf '# Plan for #134\n\n- [ ] alpha step\n- [ ] bravo shared\n- [ ] charlie shared\n' > "$led"
+cp "$led" "$work/before"
+"$REORDER" "$led" "alpha" after "shared" > "$work/out" 2> "$work/err"; code=$?
+{ [[ "$code" == 1 ]] && cmp -s "$led" "$work/before" && grep -F "shared" "$work/err" > /dev/null; } \
+  && ok || no "#1550: an anchor substring matching more than one step exits 1, leaves the ledger byte-identical and names the substring on stderr (code=$code err='$(cat "$work/err")')"
+
 finish
