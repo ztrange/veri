@@ -38,3 +38,16 @@ def test_an_interpreter_that_can_import_pytest_but_not_pytest_timeout_exits_2_na
         "veri needs pytest-timeout for the suites under skills/tdd/scripts/tests/py/; %s cannot import pytest_timeout. "
         "Install it with `make install-dev`.\n" % sys.executable,
     )
+
+
+def test_past_its_checks_the_launcher_runs_pytest_on_its_arguments_and_exits_1_for_a_status_that_is_not_ok(pytest_leg, run_cli, monkeypatch):
+    calls = []
+
+    def spy(args):
+        calls.append(list(args))
+        return pytest.ExitCode.NO_TESTS_COLLECTED
+
+    monkeypatch.setattr(pytest, "main", spy)
+    code, out, err = run_cli(pytest_leg, ["-q", "some/dir"], env={"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1"})
+    assert (code, out, err) == (1, "", "")
+    assert calls == [["-q", "some/dir"]]
