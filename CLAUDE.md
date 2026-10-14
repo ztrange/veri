@@ -2,7 +2,7 @@
 
 A Claude Code skill suite that solves one GitHub issue under strict TDD. The whole
 product is `skills/tdd/`: a procedure in English (`SKILL.md`) that Claude
-follows, plus seventy-six bash scripts it calls — seventy-four, strictly: `invisible-work.sh` and
+follows, plus seventy-seven bash scripts it calls — seventy-five, strictly: `invisible-work.sh` and
 `unreachable.sh` are counted with them but the procedure never calls them; they are maintenance
 utilities a human or a loop runs, the first to report a branch no PR was opened for, or one not
 on `origin` (#197), the second to list the scripts no declared entry point reaches (#498). Read
