@@ -82,6 +82,17 @@ def run_clock(clock):
         return None
 
 
+def toplevel():
+    here = os.getcwd()
+    while True:
+        if os.path.exists(os.path.join(here, ".git")):
+            return here
+        parent = os.path.dirname(here)
+        if parent == here:
+            return ""
+        here = parent
+
+
 def line(args, context, ts, awake):
     fields = [(key, context.get(key, b"") if name else args[0]) for key, name in CONTEXT]
     fields += [arg.partition(b"=")[::2] for arg in args[1:]]
@@ -102,7 +113,7 @@ def append(directory, context, event, fields=(), ts=None):
         if refusal:
             sys.stderr.buffer.write(refusal + b"\n")
             return 2
-    tdd = os.path.join(os.fspath(directory), ".tdd")
+    tdd = os.path.join(os.fspath(directory) or toplevel(), ".tdd")
     os.makedirs(tdd, exist_ok=True)
     ts = int(time.time()) if ts is None else ts
     clock = tunables.read_bytes("VERI_AWAKE_CLOCK")
