@@ -14,6 +14,7 @@ stubdir="$(scratch_dir)"
 work="$(scratch_dir)"
 
 claude_stub "$stubdir" "$(cat <<'STUB'
+
 for arg in "$@"; do
   case "$arg" in
     -p|--verbose|--output-format|--permission-mode|--model) ;;
