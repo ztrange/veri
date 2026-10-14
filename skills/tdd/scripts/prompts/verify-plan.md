@@ -71,6 +71,11 @@ reordered or the branch moved to the step that pins it. A step bringing in code 
 steps that pin its branches is not a REJECT on ordering grounds, and neither is one bringing in
 only the branches its own test requires, the rest arriving with the steps that pin them.
 
+REJECT a plan whose only steps for a criterion delivered by an interface change that also asks
+for a test case are a `⟦phases: …⟧` step: the case must be its own Red/Green step tagged with
+the same `⟦criterion k⟧`, because a case that exists only inside the phased step is never
+checked by a verifier. Your reason names the criterion and the test case it asks for.
+
 {{REFACTOR_PLAN}}
 
 A REJECT must name the criterion it fails on and state the part of it no step covers, in
