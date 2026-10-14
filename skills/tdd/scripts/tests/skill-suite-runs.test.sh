@@ -223,6 +223,28 @@ else
 fi
 report "$name"
 
+name="#1300: $skill_md runs suite-reported.sh before the verifier at every phase that launches a SUITE:-reporting developer leaf, and bails report-missing on its exit 2"
+problems=()
+check_report_section() {
+  local label="$1" section="$2" body first_check first_verifier
+  body="$(doc_text "$skill_path" "$section" "")"
+  [[ "$body" == *'suite-reported.sh'* ]] || { problems+=("$label: never runs suite-reported.sh"); return; }
+  [[ "$body" == *'report-missing'* ]] || problems+=("$label: never names the report-missing bail")
+  first_check="${body%%suite-reported.sh*}"
+  first_verifier="${body%%verify-*}"
+  ((${#first_check} <= ${#first_verifier})) || problems+=("$label: the check comes after the verifier is launched")
+}
+check_report_section "Green" '#### Green'
+check_report_section "Revising on a REJECT" '## Revising on a REJECT'
+check_report_section "diff-checked step" '#### A `⟦diff-checked⟧` step'
+check_report_section "phases step" '#### A `⟦phases: …⟧` step'
+check_report_section "Refactor loop" '#### Refactor loop'
+structural_all="$(plain --join < "$skill_path")"
+structural="${structural_all#*develop-structural}"
+structural="${structural:0:1500}"
+[[ "$structural" == *'suite-reported.sh'* ]] || problems+=("structural pass: never runs suite-reported.sh")
+report "$name"
+
 name="#991: doc_text given the from regex '^5\. ' starts at the line '5. y', not at '5x y'"
 fixture="$(scratch_dir)/doc.md"
 printf '## Section\n5x y\n5. y\n' > "$fixture"
