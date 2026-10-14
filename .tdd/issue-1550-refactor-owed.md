@@ -5,3 +5,4 @@
 - `main` calls `_find(lines, argv[3])` twice (before and after `pop`). The second call could become an index adjustment, but that is a logic change rather than duplication removal.
 ### `reorder-ledger-steps.sh` exits 1, leaving the ledger byte-identical and naming the substring on stderr, when the anchor substring matches no step ⟦added⟧ ⟦criterion 2⟧
 - `reorder_ledger_steps.py` `main` repeats the find, then the "no step matches" print and `return 1`, once for the step and once for the anchor. A shared helper could remove it, but the frozen-check messages differ, so it saves little and I did not apply it.
+applied | 0fc9fe85fa4d592f262437fb722c6faf510a1a74 | the two ticked-step checks (`- [x]` on the moved step, then on the anchor) could share one helper, but the two error messages differ, so it saves little
