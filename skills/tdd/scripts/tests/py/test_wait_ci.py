@@ -1019,3 +1019,22 @@ def test_main_counts_a_failed_read_of_the_checks_as_one_pending_poll_and_reads_a
     code, _, _ = run_cli(wait_ci, [PR, "1800", "1800", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
 
     assert (code, len(status_reads)) == (0, 3)
+
+
+def test_main_exits_2_naming_the_checks_only_after_three_consecutive_failed_reads_issue_1553(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([[check_run("gates", FULL_SHA, "completed", "success")]], [], "success")
+    status_reads = []
+
+    def refused(line):
+        if line == f"{COMMITS}/status":
+            status_reads.append(line)
+            return (1, "", "")
+
+    served(fake_processes, bodies, refused)
+    code, _, err = run_cli(wait_ci, [PR, "1800", "1800", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (code, len(status_reads), err) == (
+        2, 3, f"wait-ci.sh: could not read the checks of {FULL_SHA}\n")
