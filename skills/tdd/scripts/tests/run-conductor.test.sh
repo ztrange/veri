@@ -136,37 +136,6 @@ tree_clone() {
 tree_clone "$work/tree"
 CONDUCTOR="$work/tree/skills/tdd/scripts/run-conductor.sh"
 
-name="a resume with VERI_NEW_SKILL=1 is re-pinned to the clone's current commit and logs a skill-repin event"
-problems=()
-
-clone4="$work/clone4"
-skill_clone "$clone4"
-
-caller4="$work/caller4"
-caller_repo "$caller4"
-git -C "$caller4" commit -q --allow-empty -m base
-git -C "$caller4" branch "tdd/$issue-past-preflight"
-
-launch_from "$caller4" "$clone4"
-
-advance_clone "$clone4" "# a commit the operator asks the run to take"
-current="$(git -C "$clone4" rev-parse HEAD)"
-
-taken="$work/taken"
-skill_archive "$clone4" "$current" "$taken"
-
-repinned_base="$work/repinned-base"
-mkdir -p "$repinned_base"
-rm -f "$prompt"
-launch_from "$caller4" "$clone4" BASE_OUT="$repinned_base" VERI_NEW_SKILL=1
-
-holds_skill "$repinned_base" "$taken/skills/tdd" "re-pinned launch's" "current skill commit $current"
-
-repin_in "$caller4/.tdd/wt/$issue/.tdd/events.jsonl" "$current" ||
-  problems+=("no skill-repin event naming $current in $caller4/.tdd/wt/$issue/.tdd/events.jsonl")
-
-report "$name"
-
 name="a launch from a clone behind origin/<default> is handed a snapshot of origin's tip"
 problems=()
 

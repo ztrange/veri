@@ -1,6 +1,7 @@
 """In-process cases for veri/run_conductor.py, the module run-conductor.sh is a shim over."""
 import importlib
 import io
+import json
 import os
 import pathlib
 import re
@@ -1581,6 +1582,39 @@ def test_cli_a_resume_of_the_run_is_handed_a_re_materialised_snapshot_of_the_rec
     assert len(seen) == 2
     (first_base, _), (resumed_base, resumed_contents) = seen
     assert (first_code, resumed_code, os.path.exists(first_base), resumed_contents == recorded) == (0, 0, False, True)
+
+
+@pytest.mark.process("real git archive and tar materialising a scratch skill clone's current commit, and the real event.sh appending the skill-repin event in a real caller repository")
+def test_cli_a_resume_with_veri_new_skill_1_is_re_pinned_to_the_clones_current_commit_and_logs_a_skill_repin_event(
+        tmp_path, monkeypatch, run_cli):
+    skill, run_conductor = skill_clone(
+        tmp_path, monkeypatch, "run_conductor_repin",
+        {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the recorded supervisor\n"})
+    caller = caller_repository(tmp_path)
+    subprocess.run(git_as_veri(caller) + ["branch", "tdd/4242-past-preflight"], check=True)
+    run, seen = subprocess.run, []
+
+    def claude_reads_its_base(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+        (base,) = base_directories(kwargs.get("input"))
+        seen.append(tree_contents(base))
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    monkeypatch.setattr(subprocess, "run", claude_reads_its_base)
+
+    first_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller)
+    (skill / "scripts" / "supervise.sh").write_text("#!/bin/sh\necho the pulled supervisor\n")
+    subprocess.run(git_as_veri(skill) + ["commit", "-q", "-am", "a commit the operator asks the run to take"], check=True)
+    current = subprocess.run(["git", "-C", str(skill), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+    taken = tree_contents(skill)
+    resumed_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller, env={"VERI_NEW_SKILL": "1"})
+
+    events = (caller / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl").read_text().splitlines()
+    repins = [json.loads(line) for line in events if '"skill-repin"' in line]
+    assert len(seen) == 2
+    assert (first_code, resumed_code, seen[1] == taken, (caller / ".tdd" / "issue-4242-skill-commit").read_text(),
+            [repin["commit"] for repin in repins]) == (0, 0, True, current + "\n", [current])
 
 
 def test_cli_with_no_resolvable_skill_commit_the_run_proceeds_unpinned_from_the_skill_directory_itself_and_warns_on_stderr(
