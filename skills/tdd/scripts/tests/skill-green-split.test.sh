@@ -328,10 +328,14 @@ require() {
   grep -F -- "$1" > /dev/null <<<"$2" || problems+=("$3")
 }
 
+one_line() {
+  tr -d '*`' | tr '\n' ' ' | tr -s ' '
+}
+
 green_paragraph() {
   awk 'index($0, "On a `⟦replaces-case⟧` step, a PASS is accepted") { inside = 1 }
        inside && /^3\. / { exit }
-       inside' "$skill_path" | tr -d '*`' | tr '\n' ' ' | tr -s ' '
+       inside' "$skill_path" | one_line
 }
 section="$(green_paragraph)"
 
@@ -421,7 +425,7 @@ report "$name"
 pin_paragraph() {
   awk 'index($0, "A `⟦replaces-case⟧` step whose Red reports") == 1 { inside = 1 }
        inside && index($0, "Every other step takes the verdict") { exit }
-       inside' "$skill_path" | tr -d '*`' | tr '\n' ' ' | tr -s ' '
+       inside' "$skill_path" | one_line
 }
 section="$(pin_paragraph)"
 
