@@ -37,6 +37,7 @@ PAGE_1 = f"gh api repos/o/r/commits/{SHA}/check-runs?page=1"
 PAGE_2 = f"gh api repos/o/r/commits/{SHA}/check-runs?page=2"
 STATUS = f"gh api repos/o/r/commits/{SHA}/status"
 UNREADABLE = f"wait-ci.sh: could not read the checks of {PR}\n"
+PULL_THRICE = [PULL, "sleep 10", PULL, "sleep 10", PULL]
 
 
 def one_poll(fake_processes, capsys, wait_ci, pull, conclusions, states):
@@ -72,8 +73,8 @@ def test_main_folds_one_poll_of_completed_runs_to_green_red_or_headless(monkeypa
         (head, ["SUCCESS"], [], (1, "", "", read_all)),
         (head, ["success"], ["failure"], (1, "", "", read_all)),
         (head, ["success"], ["success", "error"], (1, "", "", read_all)),
-        ({"mergeable": True, "head": {"sha": None}}, ["success"], [], (2, "", UNREADABLE, [PULL])),
-        ({"mergeable": True, "head": {"sha": ""}}, ["success"], [], (2, "", UNREADABLE, [PULL])),
+        ({"mergeable": True, "head": {"sha": None}}, ["success"], [], (2, "", UNREADABLE, PULL_THRICE)),
+        ({"mergeable": True, "head": {"sha": ""}}, ["success"], [], (2, "", UNREADABLE, PULL_THRICE)),
     ]
 
     observed = [one_poll(fake_processes, capsys, wait_ci, pull, conclusions, states)
@@ -85,7 +86,7 @@ def test_main_folds_one_poll_of_completed_runs_to_green_red_or_headless(monkeypa
 def test_main_ends_its_stderr_with_the_unreadable_line_when_gh_cannot_read_the_pull(monkeypatch, capsys, wait_ci, fake_processes):
     code, out, err, calls = one_poll(fake_processes, capsys, wait_ci, None, ["success"], [])
 
-    assert (code, out, err.endswith(UNREADABLE), calls) == (2, "", True, [PULL])
+    assert (code, out, err.endswith(UNREADABLE), calls) == (2, "", True, PULL_THRICE)
 
 
 def test_main_folds_an_absent_or_null_statuses_or_check_runs_key_as_empty(monkeypatch, capsys, wait_ci, fake_processes):
@@ -164,26 +165,27 @@ def test_main_reads_check_run_pages_to_the_empty_one_and_answers_2_when_gh_or_a_
     failed = (1, "", gh_err)
     by_sha = f"wait-ci.sh: could not read the checks of {SHA}\n"
     traced = "Traceback (most recent call last):\n"
+    thrice = lambda reads: reads + ["sleep 10"] + reads + ["sleep 10"] + reads
     cases = [
         ({PULL: head, PAGE_1: one_run, PAGE_2: '{"x": [1], "check_runs":  [  ], "total_count": 1}',
           page_3: failed, STATUS: green},
          (0, "", "", [PULL, PAGE_1, PAGE_2, STATUS])),
         ({PULL: head, PAGE_1: one_run, PAGE_2: failed, STATUS: green},
-         (2, "", gh_err + by_sha, [PULL, PAGE_1, PAGE_2])),
+         (2, "", gh_err * 3 + by_sha, thrice([PULL, PAGE_1, PAGE_2]))),
         ({PULL: head, PAGE_1: no_runs, STATUS: failed},
-         (2, "", gh_err + by_sha, [PULL, PAGE_1, STATUS])),
+         (2, "", gh_err * 3 + by_sha, thrice([PULL, PAGE_1, STATUS]))),
         ({PULL: failed},
-         (2, "", gh_err + UNREADABLE, [PULL])),
+         (2, "", gh_err * 3 + UNREADABLE, PULL_THRICE)),
         ({PULL: head, PAGE_1: '{"check_runs": [{"status": ', PAGE_2: no_runs, STATUS: green},
-         (2, "", traced + by_sha, [PULL, PAGE_1, PAGE_2, STATUS])),
+         (2, "", traced + by_sha, thrice([PULL, PAGE_1, PAGE_2, STATUS]))),
         ({PULL: head, PAGE_1: one_run, PAGE_2: no_runs, STATUS: '[{"state": "success"}]'},
-         (2, "", traced + by_sha, [PULL, PAGE_1, PAGE_2, STATUS])),
+         (2, "", traced + by_sha, thrice([PULL, PAGE_1, PAGE_2, STATUS]))),
         ({PULL: head, PAGE_1: one_run, PAGE_2: no_runs, STATUS: '{"statuses": [{"context": "ci"}]}'},
-         (2, "", traced + by_sha, [PULL, PAGE_1, PAGE_2, STATUS])),
+         (2, "", traced + by_sha, thrice([PULL, PAGE_1, PAGE_2, STATUS]))),
         ({PULL: '{"mergeable": true, "head": '},
-         (2, "", traced + UNREADABLE, [PULL])),
+         (2, "", traced + UNREADABLE, PULL_THRICE)),
         ({PULL: json.dumps({"mergeable": True, "head": {}})},
-         (2, "", traced + UNREADABLE, [PULL])),
+         (2, "", traced + UNREADABLE, PULL_THRICE)),
     ]
 
     observed = []
@@ -193,7 +195,7 @@ def test_main_reads_check_run_pages_to_the_empty_one_and_answers_2_when_gh_or_a_
         def fake_run(args, bodies=bodies, calls=calls, **kwargs):
             line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
             calls.append(line)
-            answer = bodies.get(line, (1, "", f"unexpected: {line}\n"))
+            answer = "" if line == "sleep 10" else bodies.get(line, (1, "", f"unexpected: {line}\n"))
             code, out, err = (0, answer, "") if isinstance(answer, str) else answer
             if kwargs.get("stderr") is None:
                 sys.stderr.write(err)
@@ -644,7 +646,7 @@ def test_main_reads_the_rollup_and_legacy_status_contexts_to_pending_green_red_o
         "legacy SUCCESS beside a pending run": (3, 2, True),
         "legacy SUCCESS beside a green run": (0, 1, True),
         "all skipped": (3, 2, True),
-        "legacy with no state": (2, 1),
+        "legacy with no state": (2, 3),
     }
 
 
@@ -675,7 +677,7 @@ def test_main_reads_the_given_shas_own_check_runs_to_pending_unreadable_red_gree
 
     assert observed == {
         "in progress": (3, "", ""),
-        "unreadable": (2, "", "gh: Not Found (HTTP 404)\n" + by_sha),
+        "unreadable": (2, "", "gh: Not Found (HTTP 404)\n" * 3 + by_sha),
         "failure": (1, "", ""),
         "neutral and skipped beside in progress": (3, "", ""),
         "failure beyond the first page": (1, "", ""),
@@ -687,7 +689,7 @@ def test_main_reads_the_given_shas_own_check_runs_to_pending_unreadable_red_gree
 def test_main_reads_the_shas_legacy_statuses_and_with_no_head_sha_the_rest_pull_head_whether_graphql_works_or_is_refused(
         tmp_path, wait_ci, fake_processes, run_cli):
     run = lambda status, conclusion=None: check_run("gates", FULL_SHA, status, conclusion)
-    by_sha = "gh: Not Found (HTTP 404)\n" + f"wait-ci.sh: could not read the checks of {FULL_SHA}\n"
+    by_sha = "gh: Not Found (HTTP 404)\n" * 3 + f"wait-ci.sh: could not read the checks of {FULL_SHA}\n"
     refusal = ("HTTP 403: GitHub GraphQL is not available from Claude Code sessions; "
                "use the REST API (gh api repos/{owner}/{repo}/...)\n")
 
@@ -774,7 +776,7 @@ def test_main_reads_the_rest_head_large_documents_and_every_check_run_page_and_n
     paged = [[run("gates-1", "success"), run("gates-2", "neutral")],
              [run("gates-3", "success"), run("gates-4", "skipped")],
              [run("gates-5", "failure")]]
-    by_sha = "HTTP 502: Bad Gateway\n" + f"wait-ci.sh: could not read the checks of {FULL_SHA}\n"
+    by_sha = "HTTP 502: Bad Gateway\n" * 3 + f"wait-ci.sh: could not read the checks of {FULL_SHA}\n"
 
     observed = {
         "REST head while pr view reports another": waited("rest-only", [[run("gates", "success")]],
@@ -998,3 +1000,22 @@ def test_main_records_no_deadline_on_a_draft_pr_and_counts_one_from_its_first_re
         "draft, then ready and green": ([(3, "", ""), (0, "", "")], {mark: "300\n"}),
         "draft, then ready and stalled": ([(3, "", ""), (3, "", ""), (2, "", past)], {mark: "300\n"}),
     }
+
+
+def test_main_counts_a_failed_read_of_the_checks_as_one_pending_poll_and_reads_again_issue_1553(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([[check_run("gates", FULL_SHA, "completed", "success")]], [], "success")
+    status_reads = []
+
+    def refused(line):
+        if line == f"{COMMITS}/status":
+            status_reads.append(line)
+            if len(status_reads) <= 2:
+                return (1, "", "gh: HTTP 500: Internal Server Error\n")
+
+    served(fake_processes, bodies, refused)
+    code, _, _ = run_cli(wait_ci, [PR, "1800", "1800", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (code, len(status_reads)) == (0, 3)
