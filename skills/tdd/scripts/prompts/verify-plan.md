@@ -81,6 +81,10 @@ the case size it must keep (medium, with a real process), "no production change"
 end-to-end path through real processes that must stay covered. Your reason names the step and
 the constraint it leaves out.
 
+REJECT a plan that plans a test-only change, one satisfiable only by editing a test, as a
+Red/Green step: Green may not edit a test, so the run bails on it. Such a change is a
+`⟦diff-checked⟧` or pin step.
+
 {{REFACTOR_PLAN}}
 
 A REJECT must name the criterion it fails on and state the part of it no step covers, in
