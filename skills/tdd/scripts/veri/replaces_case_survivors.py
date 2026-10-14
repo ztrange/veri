@@ -10,6 +10,8 @@ def main(argv):
     if len(argv) != 1:
         print(USAGE, file=sys.stderr)
         return 2
+    if "⟦replaces-case⟧" not in argv[0]:
+        return 3
     names, path = parse(argv[0])
     try:
         with open(path, encoding="utf-8") as f:

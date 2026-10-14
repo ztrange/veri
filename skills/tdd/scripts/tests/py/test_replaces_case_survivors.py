@@ -78,3 +78,12 @@ def test_main_reports_the_last_of_several_named_cases_when_only_it_is_still_pres
 
     assert code == 1
     assert "stale third" in out
+
+
+def test_main_exits_3_with_no_output_and_no_traceback_on_a_step_carrying_no_replaces_case_mark_1558(tmp_path, run_cli, survivors):
+    step = "the launcher prints its usage line when called with no argument ⟦criterion 2⟧"
+
+    code, out, err = run_cli(survivors, [step], cwd=tmp_path)
+
+    assert (code, out) == (3, "")
+    assert "Traceback" not in err and "AttributeError" not in err
