@@ -7,3 +7,5 @@
 ### A VERI_NEW_SKILL=1 resume re-pins to origin/<default> as just fetched, not the clone's HEAD, pinned through run_cli: replaces 'a resume with VERI_NEW_SKILL=1 re-pins to origin/<default> as just fetched, not to the clone's HEAD' in skills/tdd/scripts/tests/run-conductor.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧
 - test-only | the "append a line to a file and `git commit -am`" pair is repeated for the remote and the clone in cases 16 and 17; it could become one helper
 - test-only | `claude_records_its_base_trees` could be built on the new trees-and-prompts helper, but the older cases it serves were not written in this cycle
+### An unresolvable recorded commit exits 2 unless VERI_NEW_SKILL=1 re-pins and logs skill-repin, pinned through run_cli: replaces 'an unresolvable recorded skill commit refuses with exit 2 unless VERI_NEW_SKILL=1, which re-pins and logs a skill-repin event' in skills/tdd/scripts/tests/run-conductor.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧
+- test-only | the "git clone remote; load_run_conductor; caller_repository; branch tdd/4242-past-preflight" setup repeats across cases 16, 17, 18 and could share a fixture
