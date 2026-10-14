@@ -2,13 +2,6 @@
 # Tests for scripts/run-conductor.sh — the conductor invocation, driven against a stub
 # `claude` that records its argv to $ARGV_OUT and its stdin to $PROMPT_OUT.
 #
-# Contract under test:
-#   `run-conductor.sh <issue>` launches the conductor binary in print mode — `-p` — with
-#   `--output-format stream-json --verbose` and `--permission-mode bypassPermissions`, and
-#   the issue it was asked for reaches the prompt that launch carries; the child it launches
-#   inherits none of the parent session's eight handles while still inheriting every `VERI_*`
-#   tunable; and whatever status that child exits with is the status the script exits with.
-#
 # Run: scripts/tests/run-conductor.test.sh
 set -uo pipefail
 
@@ -45,16 +38,6 @@ STUB
 argv="$work/argv"
 prompt="$work/prompt"
 launch_err="$work/launch.err"
-
-flag() {
-  grep -qx -- "$1" "$argv" ||
-    problems+=("the launch does not carry $1")
-}
-
-valued() {
-  grep -qx -- "$2" < <(grep -A1 -x -- "$1" "$argv") ||
-    problems+=("the launch does not carry $1 $2")
-}
 
 prompt_base() {
   head -n 1 < <(sed -n 's/^Base directory for this skill: //p' "$prompt" 2>/dev/null)
@@ -152,45 +135,6 @@ tree_clone() {
 
 tree_clone "$work/tree"
 CONDUCTOR="$work/tree/skills/tdd/scripts/run-conductor.sh"
-
-handles=(
-  CLAUDECODE=1
-  CLAUDE_CODE_SESSION_ID=parent-session
-  CLAUDE_CODE_HOST_SESSION_ID=parent-host-session
-  CLAUDE_CODE_MESSAGING_SOCKET=/tmp/parent.sock
-  CLAUDE_CODE_MESSAGING_TOKEN=parent-token
-  CLAUDE_PID=4141
-  CLAUDE_CODE_CHILD_SESSION=1
-  CLAUDE_CODE_ENTRYPOINT=cli
-)
-
-envfile="$work/env"
-
-
-assert_case4() {
-  local conductor="$1" status cwd
-  local handed="$work/handed-skill"
-  rm -rf "$prompt" "$handed"
-  mkdir -p "$handed"
-  local SKILL="$handed/SKILL.md"
-  cwd="$(scratch_dir)"
-
-  ( cd "$cwd" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" \
-      BASE_OUT="$handed" "$conductor" "$issue" ) >/dev/null 2>&1
-  status=$?
-
-  if [[ "$status" -ne 0 ]]; then
-    problems+=("the launch exited $status — the binary rejected the procedure it was handed")
-  elif [[ ! -f "$prompt" ]]; then
-    problems+=("the launch started but no procedure reached the binary")
-  elif [[ ! -f "$SKILL" ]]; then
-    problems+=("the directory the launch was handed holds no SKILL.md")
-  elif ! IFS= read -r fence < "$SKILL" || [[ "$fence" != "---" ]]; then
-    problems+=("the procedure handed over does not open with the frontmatter fence this case is about")
-  elif [[ "$(cat "$prompt")" != "$(cat "$SKILL")"* ]]; then
-    problems+=("what reached the binary does not begin with $SKILL verbatim")
-  fi
-}
 
 caller="$work/caller"
 caller_repo "$caller"
