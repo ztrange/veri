@@ -2046,3 +2046,35 @@ def test_verify_sh_diff_still_launches_the_leaf_for_a_pytest_case_an_earlier_ste
         cwd=repo)
 
     assert (code, "test_refuses_start" in out, started.exists()) == (0, False, True)
+
+
+@pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
+def test_verify_sh_diff_exits_2_without_launching_the_leaf_when_the_step_base_sha_does_not_resolve_1486(
+        run_cli, tmp_path, monkeypatch):
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
+                 "VERI_NO_VERDICT_RETRIES", "VERI_STUCK_RETRIES", "VERI_TIMEOUT"):
+        monkeypatch.delenv(name, raising=False)
+    repo = tmp_path / "repo"
+    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
+        subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "test_start.py").write_text("def test_keeps():\n    pass\n")
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "branch base"], check=True)
+    branch_base = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True,
+                                 capture_output=True).stdout.decode().strip()
+    started = tmp_path / "started"
+    claude = tmp_path / "claude-record"
+    claude.write_text('#!/bin/sh\necho started >> "%s"\nprintf \'VERDICT: PASS\\nREASON: fine.\'\n' % started)
+    claude.chmod(0o755)
+    (tmp_path / "spec.md").write_text(SPEC)
+    verify = importlib.import_module("veri.verify")
+
+    code, out, _ = run_cli(
+        verify, ["--step", "no test fakes X any longer ⟦diff-checked⟧", "--fast-cmd", "make unit", "diff",
+                 str(tmp_path / "spec.md"), branch_base, "0123456789abcdef0123456789abcdef01234567"],
+        env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
+        cwd=repo)
+
+    assert (code, "VERDICT" in out, started.exists()) == (2, False, False)
