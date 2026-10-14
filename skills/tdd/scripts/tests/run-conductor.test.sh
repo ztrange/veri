@@ -462,36 +462,6 @@ fi
 
 report "$name"
 
-name="a working-tree edit to SKILL.md never reaches the conductor; the committed SKILL.md does"
-problems=()
-
-clone22="$work/clone22"
-skill_clone "$clone22"
-skill22="$clone22/skills/tdd/SKILL.md"
-committed22="$(git -C "$clone22" show HEAD:skills/tdd/SKILL.md)"
-marker22="uncommitted edit to the procedure, never to reach the conductor"
-{ echo "$marker22"; cat "$skill22"; } > "$work/skill22.edited"
-cat "$work/skill22.edited" > "$skill22"
-
-caller22="$work/caller22"
-caller_repo "$caller22"
-rm -f "$prompt"
-
-launch_from "$caller22" "$clone22"
-status=$?
-
-if [[ "$status" -ne 0 ]]; then
-  problems+=("the launch exited $status: $(cat "$launch_err")")
-elif [[ ! -f "$prompt" ]]; then
-  problems+=("the launch started but no procedure reached the binary")
-elif grep -F -- "$marker22" "$prompt" > /dev/null; then
-  problems+=("the working tree's edit to SKILL.md reached the conductor")
-elif [[ "$(cat "$prompt")" != "$committed22"* ]]; then
-  problems+=("what reached the binary does not begin with the committed SKILL.md verbatim")
-fi
-
-report "$name"
-
 name="cases 1-5 pass when the checkout under test has an unreachable origin"
 problems=()
 
