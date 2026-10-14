@@ -17,7 +17,7 @@ def main(argv):
     with open(argv[0], newline="") as file:
         lines = file.read().split("\n")
     moved = _find(lines, argv[1])
-    if lines[moved].startswith("- [x]"):
+    if lines[moved].startswith("- [x]") or ledger.PENDING_MARK in lines[moved]:
         print(f"cannot move a ticked step: {lines[moved]}", file=sys.stderr)
         return 1
     anchor = _find(lines, argv[3])
