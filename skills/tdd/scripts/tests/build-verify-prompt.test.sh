@@ -175,6 +175,15 @@ problems=""
 [[ "$flat" == *"as a Red/Green step"* ]] || problems="$problems; never says the rejected shape is a Red/Green step"
 [[ -z "$problems" ]] && ok || no "$name (${problems#; })"
 
+name="verify-plan tells the verifier to REJECT a plan whose step can only be observed once a later step is built, such as an input-ignored step before the step that reads it, naming both steps (#1550)"
+problems=""
+[[ "$flat" == *"REJECT a plan in which a step's behaviour can only be observed once a later step is built"* ]] || problems="$problems; never says to REJECT a step whose behaviour can only be observed once a later step is built"
+[[ "$flat" == *"ignored, guarded or without effect"* ]] || problems="$problems; never names an input that is ignored, guarded or without effect"
+[[ "$flat" == *"even when X is left in"* ]] || problems="$problems; never quotes the \"even when X is left in\" shape"
+[[ "$flat" == *"before the step that makes the code read that input"* ]] || problems="$problems; never says the step sits before the step that makes the code read the input"
+[[ "$flat" == *"REASON: line names both steps, the early step and the later step it waits on"* ]] || problems="$problems; never says its REASON: line names both steps, the early one and the later one it waits on"
+[[ -z "$problems" ]] && ok || no "$name (${problems#; })"
+
 cat > "$work/rationale-ledger.md" <<'LEDGER'
 # Plan for #439
 
