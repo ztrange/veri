@@ -162,36 +162,6 @@ grep -qi 'fetch' "$launch_err" ||
 
 report "$name"
 
-name="with no refs/remotes/origin/HEAD and the remote's named default branch absent locally the launch exits 2 naming the ref and never runs unpinned (#865)"
-problems=()
-
-remote33="$work/remote33-865"
-clone33="$work/clone33-865"
-cloned_skill "$remote33" "$clone33"
-default33="$(git -C "$remote33" symbolic-ref --short HEAD)"
-git -C "$remote33" branch -q side33
-git -C "$clone33" remote set-head origin -d
-git -C "$clone33" config remote.origin.followRemoteHEAD never
-git -C "$clone33" config remote.origin.fetch '+refs/heads/side33:refs/remotes/origin/side33'
-git -C "$clone33" update-ref -d "refs/remotes/origin/$default33"
-
-caller33="$work/caller33-865"
-caller_repo "$caller33"
-env33="$work/env33-865"
-rm -f "$env33"
-
-( unset VERI_SKILL_UNPINNED; launch_from "$caller33" "$clone33" ENV_OUT="$env33" )
-rc33=$?
-
-[[ "$rc33" == 2 ]] ||
-  problems+=("the launch exited $rc33, not 2: $(cat "$launch_err")")
-grep -F 'refs/remotes/origin/HEAD' "$launch_err" > /dev/null ||
-  problems+=("stderr does not name refs/remotes/origin/HEAD: '$(cat "$launch_err")'")
-[[ ! -f "$env33" ]] ||
-  problems+=("the conductor was launched: $(grep '^VERI_SKILL_UNPINNED=' "$env33" || echo 'pinned')")
-
-report "$name"
-
 name="a VERI_NEW_SKILL=1 re-pin that runs before .tdd/wt/<n> exists writes its skill-repin event to the run worktree's .tdd/events.jsonl and never to the caller's"
 problems=()
 

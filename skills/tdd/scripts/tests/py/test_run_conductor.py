@@ -2181,3 +2181,26 @@ def test_cli_with_no_origin_head_and_no_resolvable_remote_default_branch_the_lau
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
 
     assert (code, "refs/remotes/origin/HEAD" in stderr, seen) == (2, True, []), stderr
+
+
+@pytest.mark.process("real git clone and ls-remote of a scratch skill clone with no refs/remotes/origin/HEAD whose remote names a default branch the clone holds no ref for")
+def test_cli_with_no_origin_head_and_the_remotes_named_default_branch_absent_locally_the_launch_exits_2_naming_the_ref_and_never_runs_unpinned(
+        tmp_path, monkeypatch, run_cli):
+    remote, _ = skill_clone(tmp_path, monkeypatch, "run_conductor_absent_default_remote",
+                            {"SKILL.md": "# the committed procedure\n"}, directory="remote")
+    clone = tmp_path / "clone"
+    subprocess.run(["git", "clone", "-q", str(remote), str(clone)], check=True)
+    default = subprocess.run(["git", "-C", str(remote), "symbolic-ref", "--short", "HEAD"],
+                             check=True, capture_output=True, text=True).stdout.strip()
+    subprocess.run(["git", "-C", str(remote), "branch", "-q", "side"], check=True)
+    without_origin_head(clone)
+    subprocess.run(["git", "-C", str(clone), "config", "remote.origin.fetch", "+refs/heads/side:refs/remotes/origin/side"], check=True)
+    subprocess.run(["git", "-C", str(clone), "update-ref", "-d", "refs/remotes/origin/" + default], check=True)
+    run_conductor = load_run_conductor("run_conductor_absent_default_clone", clone)
+    caller = caller_repository(tmp_path)
+    seen = claude_records_its_base_trees_and_environments(monkeypatch)
+    monkeypatch.delenv("VERI_SKILL_UNPINNED", raising=False)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+
+    assert (code, "refs/remotes/origin/HEAD" in stderr, seen) == (2, True, []), stderr
