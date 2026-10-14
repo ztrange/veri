@@ -1922,6 +1922,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    commit as a failed check above, and returns to step 3, *The cycle loop*, to repair it as a
    red full suite is repaired; it bails with cause `ci-red` only when the ledger already holds
    a `⟦ci-repair⟧` step, and exit 2 bails with cause `ci-timeout`.
+   A `wait-ci.sh` exit 2 after the `metrics:` push whose stderr names a conflict takes the same one-rebase path as a conflict at the first CI wait, and bails with cause `ci-conflict` on a second, so the run never waits into `ci-timeout` on it.
    The `done` mark comes before the render because `metrics.sh` reads it for both the Outcome
    and the issue's wall time: a report rendered before it exists says `unknown` for both. The
    body is rewritten only after the `metrics:` commit is pushed, so it never quotes a file the

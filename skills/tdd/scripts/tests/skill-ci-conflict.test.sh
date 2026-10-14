@@ -72,4 +72,16 @@ else
 fi
 report "$name"
 
+name="#1458 the CI step gives a merge conflict CI reports after the metrics: push the same one-rebase path, bailing ci-conflict on a second, rather than waiting into ci-timeout"
+problems=()
+if [[ -z "$step" ]]; then
+  problems+=("$skill_md has no CI step (2. **Mark the PR ready …) to read — nothing could be checked")
+else
+  late="$(conflict_paragraphs <<<"$step" | awk '{ gsub(/\. /, ".\n"); print }' | grep -F 'metrics:' | grep -i 'conflict' |
+    grep -iE 'rebase' | grep -iE 'same|once' | grep -F 'ci-conflict' | grep -F 'ci-timeout')"
+  [[ -n "$late" ]] ||
+    problems+=("no sentence of the CI step about the metrics: push says a conflict CI reports there takes the same one-rebase path, bails ci-conflict on a second, and is not waited into ci-timeout; read literally, the conductor waits out a finished run and bails ci-timeout")
+fi
+report "$name"
+
 finish
