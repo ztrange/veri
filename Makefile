@@ -63,7 +63,7 @@ COUNT_LINE_GUARD := skills/tdd/scripts/lib/count-line-guard.sh
 # not allowed", on stderr, wherever the suite sends it. count-line-guard.test.sh pins both halves.
 #
 # The proxies point at a port nothing listens on, for anything that gets past the shims; loopback
-# is exempt, because a suite that serves a page on 127.0.0.1 (dashboard.test.sh) asks it there.
+# is exempt, because a suite that serves a page on 127.0.0.1 asks it there.
 #
 # Three more things are fixed for every suite rather than inherited from whoever typed `make test`
 # (make-test-env.test.sh pins all three). Each cost the development Mac time CI never paid:
