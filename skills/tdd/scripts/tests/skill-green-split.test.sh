@@ -418,4 +418,31 @@ fi
 
 report "$name"
 
+pin_paragraph() {
+  awk 'index($0, "A `⟦replaces-case⟧` step whose Red reports") == 1 { inside = 1 }
+       inside && index($0, "Every other step takes the verdict") { exit }
+       inside' "$skill_path" | tr -d '*`' | tr '\n' ' ' | tr -s ' '
+}
+section="$(pin_paragraph)"
+
+name="#1546 $skill_md's replaces-case pin-path paragraph runs replaces-case-survivors.sh after the deletion green and, on survivors, relaunches it bounded by REVISE_BUDGET before verify-green"
+problems=()
+
+if [[ -z "${section// /}" ]]; then
+  problems+=("$skill_md has no replaces-case pin-path paragraph to read — the survivors check could not be established")
+else
+  require 'replaces-case-survivors.sh' "$section" \
+    "$skill_md's replaces-case pin-path paragraph never runs replaces-case-survivors.sh, so a pin-path green that skipped the deletion reaches a verifier"
+  require 'relaunch' "$section" \
+    "$skill_md's replaces-case pin-path paragraph never relaunches the green leaf on survivors"
+  require 'REVISE_BUDGET' "$section" \
+    "$skill_md's replaces-case pin-path paragraph never says a survivors relaunch spends a REVISE_BUDGET attempt"
+  require 'revise-exhausted' "$section" \
+    "$skill_md's replaces-case pin-path paragraph never bails cause=revise-exhausted when the budget is spent"
+  require 'no verifier' "$section" \
+    "$skill_md's replaces-case pin-path paragraph never says no verifier is launched while a named case survives"
+fi
+
+report "$name"
+
 finish
