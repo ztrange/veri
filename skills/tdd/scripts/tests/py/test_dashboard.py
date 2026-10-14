@@ -6,8 +6,12 @@ import json
 import os
 import re
 import signal
+import socket
 import subprocess
 import sys
+import threading
+import time
+import urllib.request
 
 import pytest
 
@@ -1127,3 +1131,183 @@ def test_dashboard_html_schedules_each_panes_next_request_only_from_the_previous
             "a pane reschedules other than 2000 ms after the previous request settled"
     assert resolve, "no setTimeout sits in a .then or .finally body"
     assert reject, "no setTimeout sits in a .catch or .finally body"
+
+
+def header(answer, name):
+    head = answer.partition(b"\r\n\r\n")[0].decode().split("\r\n")[1:]
+    return dict(line.split(": ", 1) for line in head).get(name)
+
+
+def test_dashboard_sh_with_no_argument_serves_the_page_at_slash_on_port_8765_and_exits_0_when_sent_sigint(
+        monkeypatch, dashboard, run_cli):
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    served = fake_server(monkeypatch, ["/"])
+
+    code, out, err = run_cli(dashboard, [])
+
+    assert code == 0
+    assert [address for address, _ in served] == [("127.0.0.1", 8765)]
+    (page,) = served[0][1]
+    assert status_code(page) == b"200"
+    assert header(page, "Content-Type").startswith("text/html")
+    assert b"<html" in body(page) and b"</html>" in body(page)
+    assert signal.getsignal(signal.SIGINT) is signal.default_int_handler
+
+
+def runs_without_elapsed(document):
+    for run in document["runs"]:
+        run.pop("elapsed_seconds", None)
+    return document
+
+
+@pytest.mark.process("the git status starts for /api/runs, a fake one first on PATH")
+def test_dashboard_sh_with_a_port_argument_serves_the_page_on_that_port_binds_127_0_0_1_only_and_answers_every_pane_endpoint_with_json(
+        tmp_path, monkeypatch, dashboard, run_cli):
+    fabricated_main_tree(tmp_path, monkeypatch)
+    run = tmp_path / ".tdd" / "wt" / "51"
+    write(str(run / ".tdd" / "issue-51.md"), "# Plan for #51 \u2014 lamps hum\n\n- [x] a lamp exists\n- [ ] a lamp hums\n")
+    write(str(run / ".tdd" / "events.jsonl"),
+          '{"ts": 1, "issue": "51", "actor": "conductor", "phase": "", "step": "a lamp hums", '
+          '"event": "step-start", "attempt": "", "skill_commit": "abc"}\n'
+          '{"ts": 2, "issue": "51", "actor": "developer", "phase": "red", "step": "a lamp hums", '
+          '"event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}\n')
+    served = fake_server(monkeypatch, ["/", "/api/runs", "/api/metrics", "/api/events?issue=51"])
+
+    code = dashboard.main(["4251"])
+
+    assert code == 0
+    assert [address for address, _ in served] == [("127.0.0.1", 4251)]
+    page, runs, metrics, events = served[0][1]
+    assert [status_code(a) for a in served[0][1]] == [b"200"] * 4
+    assert header(page, "Content-Type").startswith("text/html")
+    for answer in (runs, metrics, events):
+        assert header(answer, "Content-Type").startswith("application/json")
+    code, out, err = run_cli(importlib.import_module("veri.status"), ["--json"])
+    assert code == 0
+    assert runs_without_elapsed(json.loads(body(runs))) == runs_without_elapsed(json.loads(out))
+    assert json.loads(body(runs))["runs"]
+    assert json.loads(body(metrics))["issues"]["51"]
+    assert [e["event"] for e in json.loads(body(events))["events"]] == ["step-start", "launch"]
+
+
+def test_the_page_dashboard_sh_serves_at_slash_is_dashboard_html_byte_for_byte(
+        monkeypatch, dashboard, run_cli):
+    served = fake_server(monkeypatch, ["/"])
+
+    code, out, err = run_cli(dashboard, [])
+
+    assert code == 0
+    (page,) = served[0][1]
+    with open(os.path.join(SCRIPTS, "dashboard.html"), "rb") as f:
+        assert body(page) == f.read()
+
+
+def free_port():
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+def fetch(url, deadline=10):
+    """The body of GET <url>, retried while nothing listens yet."""
+    end = time.time() + deadline
+    while True:
+        try:
+            with urllib.request.urlopen(url, timeout=deadline) as answer:
+                return answer.read()
+        except ConnectionRefusedError:
+            if time.time() > end:
+                raise
+            time.sleep(0.02)
+        except urllib.error.URLError as exc:
+            if not isinstance(exc.reason, ConnectionRefusedError) or time.time() > end:
+                raise
+            time.sleep(0.02)
+
+
+@pytest.mark.process("a real listening server answers /api/events while /api/runs waits on a blocked git status starts")
+def test_api_events_answers_while_an_api_runs_request_is_still_blocked_inside_a_process_status_starts(
+        tmp_path, monkeypatch, dashboard):
+    run = tmp_path / ".tdd" / "wt" / "77"
+    write(str(run / ".tdd" / "issue-77.md"), "# Plan for #77 \u2014 a kettle boils\n\n- [ ] a kettle boils\n")
+    write(str(run / ".tdd" / "events.jsonl"),
+          '{"ts": 1, "issue": "77", "actor": "conductor", "phase": "", "step": "a kettle boils", '
+          '"event": "step-start", "attempt": "", "skill_commit": "abc"}\n')
+    monkeypatch.chdir(tmp_path)
+    entered, release = threading.Event(), threading.Event()
+    real_run = subprocess.run
+
+    def fake_run(args, *rest, **kwargs):
+        args = list(args)
+        if args[:2] == ["git", "worktree"]:
+            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
+            return subprocess.CompletedProcess(args, 0, out if kwargs.get("text") else out.encode(), "" if kwargs.get("text") else b"")
+        if "symbolic-ref" in args:
+            entered.set()
+            release.wait(20)
+            return subprocess.CompletedProcess(args, 0, "tdd/77-a-kettle-boils\n", "")
+        return real_run(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    port = free_port()
+    base = "http://127.0.0.1:%d" % port
+    seen = {}
+
+    def runs_request():
+        try:
+            seen["runs"] = fetch(base + "/api/runs", 30)
+        except Exception as exc:
+            seen["runs_error"] = exc
+
+    def client():
+        try:
+            fetch(base + "/")
+            pending = threading.Thread(target=runs_request)
+            pending.start()
+            seen["entered"] = entered.wait(10)
+            seen["events"] = fetch(base + "/api/events?issue=77", 5)
+            seen["runs_settled"] = "runs" in seen
+            release.set()
+            pending.join(10)
+        except Exception as exc:
+            seen["error"] = exc
+        finally:
+            release.set()
+            os.kill(os.getpid(), signal.SIGINT)
+
+    helper = threading.Thread(target=client)
+    helper.start()
+    code = dashboard.main([str(port)])
+    helper.join(10)
+
+    assert code == 0
+    assert "error" not in seen, seen
+    assert seen["entered"], "the /api/runs request never reached the process status starts"
+    assert seen["runs_settled"] is False
+    assert [e["event"] for e in json.loads(seen["events"])["events"]] == ["step-start"]
+
+
+@pytest.mark.process("a symlinked dashboard.sh run as a child from another working directory")
+def test_dashboard_sh_run_through_a_symlink_to_the_skill_directory_and_from_another_working_directory_serves_dashboard_html_at_slash_and_status_sh_json_stdout_at_api_runs(
+        tmp_path, monkeypatch, run_cli):
+    fabricated_main_tree(tmp_path, monkeypatch)
+    want = status_document(run_cli)
+    link = tmp_path / "skill-link"
+    link.symlink_to(os.path.dirname(SCRIPTS))
+    port = free_port()
+    base = "http://127.0.0.1:%d" % port
+    log = open(tmp_path / "linked.log", "wb")
+    child = subprocess.Popen(["skill-link/scripts/dashboard.sh", str(port)], cwd=tmp_path,
+                             stdin=subprocess.DEVNULL, stdout=log, stderr=log)
+    try:
+        page = fetch(base + "/")
+        runs = fetch(base + "/api/runs")
+    finally:
+        child.send_signal(signal.SIGINT)
+        code = child.wait(10)
+        log.close()
+
+    with open(os.path.join(SCRIPTS, "dashboard.html"), "rb") as f:
+        assert page == f.read()
+    assert runs == want
+    assert code == 0
