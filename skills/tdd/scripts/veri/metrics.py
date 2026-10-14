@@ -1,4 +1,6 @@
 """metrics.sh's report, rendered in-process."""
+import contextlib
+import io
 import sys
 import tunables
 
@@ -425,6 +427,13 @@ def render(issue, path, ledger):
             print("Inconsistent mark: %s" % inconsistent)
     tier_section("#### Test-command seconds, by tier", "tier")
     section("#### Total", "run", COST_COLUMNS, totals)
+
+
+def report(issue, events_path, ledger_path):
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        render(issue, events_path, ledger_path)
+    return out.getvalue()
 
 
 def main(argv):
