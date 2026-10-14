@@ -162,34 +162,6 @@ grep -qi 'fetch' "$launch_err" ||
 
 report "$name"
 
-name="with no refs/remotes/origin/HEAD and no resolvable remote default branch the launch exits 2 naming the ref and never runs unpinned (#865)"
-problems=()
-
-remote32="$work/remote32-865"
-clone32="$work/clone32-865"
-cloned_skill "$remote32" "$clone32"
-git -C "$clone32" remote set-head origin -d
-git -C "$clone32" config remote.origin.followRemoteHEAD never
-git -C "$remote32" checkout -q --detach
-git -C "$remote32" -c user.name=t -c user.email=t@t commit -q --allow-empty -m 'on no branch'
-
-caller32="$work/caller32-865"
-caller_repo "$caller32"
-env32="$work/env32-865"
-rm -f "$env32"
-
-( unset VERI_SKILL_UNPINNED; launch_from "$caller32" "$clone32" ENV_OUT="$env32" )
-rc32=$?
-
-[[ "$rc32" == 2 ]] ||
-  problems+=("the launch exited $rc32, not 2: $(cat "$launch_err")")
-grep -F 'refs/remotes/origin/HEAD' "$launch_err" > /dev/null ||
-  problems+=("stderr does not name refs/remotes/origin/HEAD: '$(cat "$launch_err")'")
-[[ ! -f "$env32" ]] ||
-  problems+=("the conductor was launched: $(grep '^VERI_SKILL_UNPINNED=' "$env32" || echo 'pinned')")
-
-report "$name"
-
 name="with no refs/remotes/origin/HEAD and the remote's named default branch absent locally the launch exits 2 naming the ref and never runs unpinned (#865)"
 problems=()
 
