@@ -367,6 +367,21 @@ fi
 
 report "$name"
 
+name="#1406 $skill_md orders the unreplaced-cases.sh check before the replaces-case-survivors.sh check, and both before the verify-green launch command"
+problems=()
+
+unreplaced_line="$(grep -nF 'unreplaced-cases.sh "' "$skill_path" | head -n 1 | cut -d: -f1)"
+survivors_line="$(grep -nF 'replaces-case-survivors.sh "' "$skill_path" | head -n 1 | cut -d: -f1)"
+launch_line="$(grep -nF 'supervise.sh verdict-green' "$skill_path" | head -n 1 | cut -d: -f1)"
+
+if [[ -z "$unreplaced_line" || -z "$survivors_line" || -z "$launch_line" ]]; then
+  problems+=("$skill_md lacks an unreplaced-cases.sh run, a replaces-case-survivors.sh run or a verdict-green launch line (unreplaced=${unreplaced_line:-none}, survivors=${survivors_line:-none}, launch=${launch_line:-none}) — the gate order could not be established")
+elif [[ "$unreplaced_line" -gt "$survivors_line" || "$survivors_line" -gt "$launch_line" ]]; then
+  problems+=("$skill_md gates are out of order: unreplaced-cases.sh at line $unreplaced_line, replaces-case-survivors.sh at line $survivors_line, verify-green launch at line $launch_line")
+fi
+
+report "$name"
+
 name="#1406 $skill_md's replaces-case green paragraph says each survivors relaunch spends one REVISE_BUDGET attempt and a spent budget bails with a cause classify-bail.sh classifies"
 problems=()
 
