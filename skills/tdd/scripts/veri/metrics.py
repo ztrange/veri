@@ -429,11 +429,11 @@ def render(issue, path, ledger):
     section("#### Total", "run", COST_COLUMNS, totals)
 
 
-def report(issue, events_path, ledger_path):
-    out = io.StringIO()
+def report(issue, events_path, ledger_path, stream=None):
+    out = io.StringIO() if stream is None else stream
     with contextlib.redirect_stdout(out):
         render(issue, events_path, ledger_path)
-    return out.getvalue()
+    return out.getvalue() if stream is None else None
 
 
 def main(argv):
@@ -441,7 +441,7 @@ def main(argv):
         sys.stderr.write(USAGE + "\n")
         return 2
     issue = argv[0]
-    render(issue, ".tdd/events.jsonl", ".tdd/issue-%s.md" % issue)
+    report(issue, ".tdd/events.jsonl", ".tdd/issue-%s.md" % issue, stream=sys.stdout)
     return 0
 
 
