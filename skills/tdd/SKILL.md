@@ -1871,13 +1871,15 @@ step, so both checkpoints apply to the repair step as they do in step 3.
      git commit -m "metrics: what solving #<n> cost (#<n>)"
    fi
    $S/push-branch.sh
-   $S/wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)"; ci=$?    # exit 3 → run this line again, in a new Bash call
+   $S/wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)" 2> .tdd/wait-ci.err; ci=$?    # exit 3 → run this line again, in a new Bash call
    [ "$ci" != 1 ] || ! grep -F '⟦ci-repair⟧' .tdd/issue-<n>.md > /dev/null || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)" failed="$(gh api "repos/{owner}/{repo}/commits/$(git rev-parse HEAD)/check-runs" -q '[.check_runs[] | select(.conclusion != null and (.conclusion | ascii_upcase | IN("SUCCESS", "NEUTRAL", "SKIPPED") | not)) | .name] | join(",")')"
    [ "$ci" = 0 ] || [ "$ci" = 2 ] || grep -F '⟦ci-repair⟧' .tdd/issue-<n>.md > /dev/null; no_repair=$?
    [ "$no_repair" = 0 ] || { step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1; }
    [ "$no_repair" = 0 ] || $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the CI failure: <suite> — <its FAIL - line>> ⟦ci-repair⟧'
    [ "$no_repair" = 0 ] || { git add .tdd/issue-<n>.md && git commit -m "plan: repair the red CI check (#<n>)"; }
-   [ "$ci" != 2 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
+   grep -F 'conflicts with its base branch' .tdd/wait-ci.err > /dev/null; conflict=$?
+   [ "$ci" != 2 ] || [ "$conflict" = 0 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
+   [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
    gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)" -f body="<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human, followed by <overflow-url>, the issue refactor-overflow.sh filed, when the pass filed one>"
    ```
