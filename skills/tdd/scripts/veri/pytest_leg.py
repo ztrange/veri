@@ -3,6 +3,7 @@
 # Exit:    0 pytest passed, 1 any other pytest status
 #          2 the interpreter is below the floor in lib/venv-python.sh, or cannot import pytest or pytest_timeout
 import importlib.util
+import os
 import platform
 import re
 import signal
@@ -41,4 +42,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    sys.path[0] = os.getcwd()
     sys.exit(main(sys.argv[1:]))
