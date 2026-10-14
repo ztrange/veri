@@ -324,3 +324,20 @@ def test_main_checks_structural_pass_only_for_that_event_in_argument_order_compa
         observed.append((argv, (code, capsysbinary.readouterr().err, sorted(os.listdir(work)), len(started))))
 
     assert observed == cases
+
+
+@pytest.mark.process("git rev-parse run by the default directory lookup, answering that tmp_path is no worktree")
+def test_issue_1528_main_outside_any_git_worktree_still_appends_under_dot_tdd_of_the_working_directory(
+        monkeypatch, tmp_path, event):
+    work = tmp_path / "plain"
+    work.mkdir()
+    monkeypatch.chdir(work)
+    monkeypatch.delenv("VERI_AWAKE_CLOCK", raising=False)
+    monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path))
+
+    assert event.main(["x"]) == 0
+
+    assert sorted(os.listdir(tmp_path)) == ["plain"]
+    assert sorted(os.listdir(work)) == [".tdd"]
+    assert sorted(os.listdir(work / ".tdd")) == ["events.jsonl"]
+    assert json.loads((work / ".tdd" / "events.jsonl").read_text())["event"] == "x"
