@@ -20,6 +20,7 @@ USAGE = "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]"
 PASSING = ("success", "neutral", "skipped")
 SLICE_CAP = 540
 CEILING = 600
+UNREAD_LIMIT = 3
 
 
 def warn(message):
@@ -150,6 +151,7 @@ def main(argv):
     want = argv[3] if len(argv) > 3 else ""
     poll = tunables.read("VERI_POLL", unless_empty="10")
     deadline = ""
+    unread = 0
     while True:
         try:
             mergeable, head, draft = pr_head(repo, pr)
@@ -157,7 +159,11 @@ def main(argv):
             traceback.print_exc()
             head = ""
         if not head:
-            return unreadable(pr)
+            unread += 1
+            if unread >= UNREAD_LIMIT:
+                return unreadable(pr)
+            subprocess.run(["sleep", poll])
+            continue
         try:
             state = sha_state(repo, head)
         except NoAnswer:
@@ -166,7 +172,12 @@ def main(argv):
             traceback.print_exc()
             state = None
         if state is None:
-            return unreadable(head)
+            unread += 1
+            if unread >= UNREAD_LIMIT:
+                return unreadable(head)
+            subprocess.run(["sleep", poll])
+            continue
+        unread = 0
         if state == "none" and mergeable is False:
             warn("%s conflicts with its base branch; no workflow will start until it is rebased" % pr)
             return 2
