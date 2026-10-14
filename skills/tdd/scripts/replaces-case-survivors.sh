@@ -3,5 +3,5 @@
 #
 # usage: replaces-case-survivors.sh <step text>
 #
-# Exit: 0 every named case is gone; 1 one or more remain, each printed; 2 bad arguments or an unreadable suite.
+# Exit: 0 every named case is gone; 3 the step carries no ⟦replaces-case⟧ mark; 1 one or more remain, each printed; 2 bad arguments or an unreadable suite.
 exec python3 "$(dirname "$0")/veri/replaces_case_survivors.py" "$@"
