@@ -922,4 +922,46 @@ PY
 done
 report "$name"
 
+status_pytest="$work/status-pytest"
+mkdir -p "$status_pytest/pytest" "$status_pytest/pytest_timeout"
+: > "$status_pytest/pytest_timeout/__init__.py"
+cat > "$status_pytest/pytest/__init__.py" <<'PY'
+import enum
+import os
+
+
+class ExitCode(enum.IntEnum):
+    OK = 0
+
+
+def main(args):
+    return int(os.environ["VERI_FAKE_PYTEST_STATUS"])
+PY
+
+statused="$work/statused"
+make_tree "$statused"
+stub_bash_suites "$statused"
+: > "$statused/$PY_DIR/test_leg_probe.py"
+
+name="when pytest answers 1 (a failing case), 5 (nothing collected) or 4 (a usage error), make unit and make test each still run every bash suite, their recipe exits 1 rather than 2 and stdout ends SUITES FAILED"
+problems=()
+for status in 1 5 4; do
+  for target in unit test; do
+    case "$target" in
+      unit) want_heads='== pytest/== fast.test.sh/' ;;
+      test) want_heads='== pytest/== slow.test.sh/== fast.test.sh/' ;;
+    esac
+    env -u VERI_PYTEST_IMPORTABLE VERI_VENV="$work/no-venv" PYTHONPATH="$status_pytest" VERI_FAKE_PYTEST_STATUS="$status" \
+      make --no-print-directory -C "$statused" "$target" > "$work/out" 2> "$work/err" < /dev/null &&
+      code=0 || code=$?
+    out="$(cat "$work/out")"
+    err="$(cat "$work/err")"
+    check_failed "pytest status $status, make $target" "$target"
+    heads="$(grep '^== ' <<< "$out" | tr '\n' '/')"
+    [[ "$heads" == "$want_heads" ]] ||
+      problems+=("pytest status $status, make $target: want the leg then every bash suite ($want_heads), got: $heads")
+  done
+done
+report "$name"
+
 finish
