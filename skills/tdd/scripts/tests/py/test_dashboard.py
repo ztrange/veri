@@ -218,7 +218,7 @@ def report_of(run_cli, issue, run):
 
 
 def serve_with_real_metrics(monkeypatch, tmp_path):
-    """Fake only `git worktree list`; every other process (metrics.sh) really runs."""
+    """Fake only `git worktree list`; metrics.report really runs."""
     real_run = subprocess.run
 
     def fake_run(args, *rest, **kwargs):
@@ -232,7 +232,6 @@ def serve_with_real_metrics(monkeypatch, tmp_path):
     return fake_server(monkeypatch, ["/api/metrics"])
 
 
-@pytest.mark.process("metrics.sh started in the live run's directory")
 def test_get_api_metrics_recomputes_a_live_run_and_quotes_the_committed_report_of_one_ended_by_done(
         tmp_path, monkeypatch, dashboard, run_cli):
     live = os.path.join(str(tmp_path), ".tdd", "wt", "31")
@@ -277,11 +276,13 @@ def test_get_api_metrics_quotes_the_committed_report_of_run_33_ended_by_bail(
         if list(args) == ["git", "worktree", "list", "--porcelain"]:
             out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
             return subprocess.CompletedProcess(args, 0, out.encode(), b"")
-        if list(args) == [os.path.join(SCRIPTS, "metrics.sh"), "33"]:
-            return subprocess.CompletedProcess(args, 0, b"# metrics.sh 33, recomputed\n", b"")
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
+    def recomputed(issue, events, ledger, stream=None):
+        stream.write("# metrics.report 33, recomputed\n")
+
     monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(dashboard.metrics, "report", recomputed)
     monkeypatch.chdir(tmp_path)
     served = fake_server(monkeypatch, ["/api/metrics"])
 
@@ -320,7 +321,6 @@ def test_get_api_metrics_answers_run_34_ended_by_bail_with_no_committed_report_w
     assert "issue-34-metrics.md" in report
 
 
-@pytest.mark.process("metrics.sh started in the live run's directory")
 def test_get_api_metrics_recomputes_run_35_whose_log_carries_a_stop_mark_and_no_done_or_bail(
         tmp_path, monkeypatch, dashboard, run_cli):
     run = os.path.join(str(tmp_path), ".tdd", "wt", "35")
@@ -339,7 +339,6 @@ def test_get_api_metrics_recomputes_run_35_whose_log_carries_a_stop_mark_and_no_
     assert json.loads(body(metrics))["issues"]["35"] == recomputed
 
 
-@pytest.mark.process("metrics.sh started in the live run's directory")
 def test_get_api_metrics_keys_issues_by_the_run_directory_7_alone_and_answers_the_report_of_its_own_log(
         tmp_path, monkeypatch, dashboard, run_cli):
     run = os.path.join(str(tmp_path), ".tdd", "wt", "7")
