@@ -1487,6 +1487,13 @@ def commit_appended_line(repository, relative, message):
     subprocess.run(git_as_veri(repository) + ["commit", "-q", "-am", message], check=True)
 
 
+def repin_commits(log):
+    """The commit of every skill-repin event in the events log at log, none when the log does not exist."""
+    if not log.is_file():
+        return []
+    return [json.loads(line)["commit"] for line in log.read_text().splitlines() if '"skill-repin"' in line]
+
+
 def clone_behind_origin(tmp_path, remote, relative):
     """A clone of remote at tmp_path/clone, cut before one more commit, appending a line to relative, lands on remote."""
     clone = tmp_path / "clone"
@@ -1654,11 +1661,10 @@ def test_cli_a_resume_with_veri_new_skill_1_is_re_pinned_to_the_clones_current_c
     taken = tree_contents(skill)
     resumed_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller, env={"VERI_NEW_SKILL": "1"})
 
-    events = (caller / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl").read_text().splitlines()
-    repins = [json.loads(line) for line in events if '"skill-repin"' in line]
+    repins = repin_commits(caller / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl")
     assert len(seen) == 2
     assert (first_code, resumed_code, seen[1] == taken, (caller / ".tdd" / "issue-4242-skill-commit").read_text(),
-            [repin["commit"] for repin in repins]) == (0, 0, True, current + "\n", [current])
+            repins) == (0, 0, True, current + "\n", [current])
 
 
 def test_cli_with_no_resolvable_skill_commit_the_run_proceeds_unpinned_from_the_skill_directory_itself_and_warns_on_stderr(
@@ -2101,10 +2107,9 @@ def test_cli_an_unresolvable_recorded_skill_commit_refuses_with_exit_2_unless_ve
     record.write_text(missing + "\n")
     repinned_code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller, env={"VERI_NEW_SKILL": "1"})
 
-    events = (caller / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl").read_text().splitlines()
-    repins = [json.loads(line) for line in events if '"skill-repin"' in line]
+    repins = repin_commits(caller / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl")
     assert (first_code, refused_code, launched_when_refused, repinned_code, len(seen), record.read_text(),
-            [repin["commit"] for repin in repins]) == (0, 2, 1, 0, 2, head + "\n", [head]), stderr
+            repins) == (0, 2, 1, 0, 2, head + "\n", [head]), stderr
 
 
 @pytest.mark.process("real git archive and tar materialising a scratch skill clone's current commit, and the real event.sh appending the skill-repin event in a real caller repository")
@@ -2122,11 +2127,6 @@ def test_cli_the_skill_repin_event_lands_in_the_run_worktrees_events_jsonl_never
     current = head_commit(skill)
     (caller / ".tdd" / "wt" / "4242").mkdir(parents=True)
     resumed_code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller, env={"VERI_NEW_SKILL": "1"})
-
-    def repin_commits(log):
-        if not log.is_file():
-            return []
-        return [json.loads(line)["commit"] for line in log.read_text().splitlines() if '"skill-repin"' in line]
 
     assert (first_code, resumed_code, repin_commits(caller / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl"),
             repin_commits(caller / ".tdd" / "events.jsonl")) == (0, 0, [current], []), stderr
