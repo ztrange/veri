@@ -1,6 +1,6 @@
 # Plan for #1300 — A developer leaf that backgrounds its test command and ends its turn reports nothing, and the conductor reads it as success
 
-- [x] A new conductor check, `suite-reported.sh <leaf-name>`, run from a worktree after a developer leaf launched through `supervise.sh` with a stub `claude` (`CLAUDE_BIN`) whose final result carries no `SUITE:` line has exited 0, exits 2 — never 0 or 1 — reading that leaf's captured `.tdd/<leaf-name>.out` ⟦criterion 1⟧ ⟂ refactor pending
+- [x] A new conductor check, `suite-reported.sh <leaf-name>`, run from a worktree after a developer leaf launched through `supervise.sh` with a stub `claude` (`CLAUDE_BIN`) whose final result carries no `SUITE:` line has exited 0, exits 2 — never 0 or 1 — reading that leaf's captured `.tdd/<leaf-name>.out` ⟦criterion 1⟧
 - [ ] With the stub `claude`'s final result carrying a `SUITE: GREEN — <summary>` line, `suite-reported.sh <leaf-name>` exits 0 for that leaf, so the check tells a reported leaf from an unreported one ⟦criterion 1⟧
 - [ ] When `suite-reported.sh <leaf-name>` exits 2 it appends one event to the worktree's `.tdd/events.jsonl` named `report-missing`, carrying the leaf's name and the missing line (`missing=SUITE`) — an event distinct from `killed-stuck` — and writes none when it exits 0 ⟦criterion 2⟧
 - [ ] `classify-bail.sh report-missing` prints `system`, so a bail on a developer leaf that ended without its `SUITE:` report has a cause token of its own, distinct from `killed-stuck`
