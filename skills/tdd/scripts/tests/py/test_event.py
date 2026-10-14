@@ -341,3 +341,25 @@ def test_issue_1528_main_outside_any_git_worktree_still_appends_under_dot_tdd_of
     assert sorted(os.listdir(work)) == [".tdd"]
     assert sorted(os.listdir(work / ".tdd")) == ["events.jsonl"]
     assert json.loads((work / ".tdd" / "events.jsonl").read_text())["event"] == "x"
+
+
+@pytest.mark.process("git init making tmp_path a worktree whose subdirectory is the working directory")
+def test_issue_1528_append_and_mark_use_an_explicit_directory_as_given_from_a_subdirectory_of_a_worktree(
+        monkeypatch, tmp_path, event):
+    subprocess.run(["git", "init", "-q", str(tmp_path / "repo")], check=True)
+    root = tmp_path / "repo"
+    cwd = root / "sub"
+    given_append = root / "elsewhere" / "a"
+    given_mark = root / "elsewhere" / "m"
+    for directory in (cwd, given_append, given_mark):
+        directory.mkdir(parents=True)
+    monkeypatch.chdir(cwd)
+    monkeypatch.delenv("VERI_AWAKE_CLOCK", raising=False)
+
+    assert event.append(given_append, {}, "x") == 0
+    assert event.mark(given_mark, {}, "y") == 0
+
+    assert sorted(os.listdir(root)) == [".git", "elsewhere", "sub"]
+    assert os.listdir(cwd) == []
+    assert json.loads((given_append / ".tdd" / "events.jsonl").read_text())["event"] == "x"
+    assert json.loads((given_mark / ".tdd" / "events.jsonl").read_text())["event"] == "y"
