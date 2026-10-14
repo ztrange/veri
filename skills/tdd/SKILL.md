@@ -436,6 +436,8 @@ unattended, so it is the only one this procedure uses.
 
 The same holds for the conductor's own long commands: no step backgrounds a command (the baseline or full-suite `make test` included) and ends its turn. They go through `detach-command.sh start`, then `detach-command.sh wait` in the foreground.
 
+The conductor never ends its turn while anything it started is still running: a subagent, a background command or a background task. Ending the turn ends the process and kills it, so it waits for each one inside the turn (`detach-command.sh wait` for a command, the subagent's own result for a subagent). That covers the mutation-parity pairs table, which it builds inline or waits for inside the turn.
+
 ## Launching the conductor
 
 `/tdd <n>` is a skill, so it can be typed inside an interactive Claude Code session. Every
