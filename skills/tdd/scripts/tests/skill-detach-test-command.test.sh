@@ -58,6 +58,24 @@ while IFS= read -r line; do
 done < <(no_background_rule "$md")
 report "$name"
 
+never_ends_turn_with_work_running() {
+  awk '/[Nn]ever end(s)? (its|the) turn/ && /subagent/ && /background (command|task)/ && /pairs table/ { found = 1 }
+       END { if (!found) print "SKILL.md: no line says the conductor never ends its turn while a background command, subagent or background task it started is running, pairs table included" }' "$1"
+}
+
+name="#1443 $skill_md says the conductor never ends its turn while a subagent, background command or background task it started is running"
+problems=()
+
+planted="$(scratch_dir)/SKILL.md"
+printf '%s\n' 'The conductor may end its turn while a subagent, a background command or a background task is running; the pairs table is built inline.' > "$planted"
+expect_eq "$name (scanner flags a negated rule)" \
+  'SKILL.md: no line says the conductor never ends its turn while a background command, subagent or background task it started is running, pairs table included' "$(never_ends_turn_with_work_running "$planted")"
+
+while IFS= read -r line; do
+  problems+=("$line")
+done < <(never_ends_turn_with_work_running "$md")
+report "$name"
+
 wait_reading() {
   awk '/detach-command\.sh wait/ && /pass/ && /red/ && /died/ && /still running/ { found = 1 }
        END { if (!found) print "SKILL.md: no line reads detach-command.sh wait'"'"'s exit codes (0 passed, 1 red, 2 died, 3 still running)" }' "$1"
