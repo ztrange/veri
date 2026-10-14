@@ -73,3 +73,33 @@ def test_each_run_hands_pytest_a_base_directory_of_its_own_that_exists_during_th
     assert len(set(bases)) == 2
     assert [os.path.exists(base) for base in bases] == [False, False]
     assert codes == [0, 1]
+
+
+@pytest.mark.process("a launcher child that receives SIGINT or SIGTERM during its pytest run")
+def test_a_launcher_run_interrupted_by_sigint_or_sigterm_leaves_no_base_directory_behind(tmp_path):
+    import os
+    import signal
+    import subprocess
+
+    scripts = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    child = (
+        "import os, sys\n"
+        "sys.path[:0] = [%r, %r]\n"
+        "import pytest\n"
+        "from veri import pytest_leg\n"
+        "def spy(args):\n"
+        "    base = [a.split('=', 1)[1] for a in args if a.startswith('--basetemp=')][0]\n"
+        "    open(sys.argv[1], 'w').write(base)\n"
+        "    os.kill(os.getpid(), int(sys.argv[2]))\n"
+        "    return pytest.ExitCode.OK\n"
+        "pytest.main = spy\n"
+        "sys.exit(pytest_leg.main([]))\n"
+    ) % (scripts, os.path.join(scripts, "veri"))
+    env = dict(os.environ, VERI_PYTEST_IMPORTABLE="1", VERI_PYTEST_TIMEOUT_IMPORTABLE="1")
+    left = {}
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        record = tmp_path / ("base-%d" % sig)
+        subprocess.run([sys.executable, "-c", child, str(record), str(int(sig))], env=env, capture_output=True, timeout=30)
+        base = record.read_text()
+        left[sig.name] = os.path.exists(base)
+    assert left == {"SIGINT": False, "SIGTERM": False}
