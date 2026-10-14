@@ -221,4 +221,28 @@ fi
 
 report "$name"
 
+name="SKILL.md names reorder-ledger-steps.sh as the one sanctioned reorder of unchecked steps, a plan: commit of its own, an operator's decision, and the hand-edit guardrail points at it beside tick-ledger.sh (#1550)"
+problems=()
+
+script="reorder-ledger-steps.sh"
+text="$(tr '[:upper:]' '[:lower:]' < "$skill_path" | tr '\n' ' ')"
+guard_line="$(grep -F 'Never hand-edit the ledger' "$skill_path" | head -n 1)"
+
+if [[ "$text" != *"$script"* ]]; then
+  problems+=("$skill_md never names $script, so the only fix for a mis-ordered plan is a forbidden hand edit")
+else
+  mention="$(grep -F "$script" "$skill_path" | tr '[:upper:]' '[:lower:]' | tr '\n' ' ')"
+  for word in unchecked "plan:" operator; do
+    if [[ "$mention" != *"$word"* ]]; then
+      problems+=("no line naming $script mentions '$word'")
+    fi
+  done
+fi
+
+if [[ "$guard_line" != *"$script"* || "$guard_line" != *"tick-ledger.sh"* ]]; then
+  problems+=("the 'Never hand-edit the ledger' line does not point at both tick-ledger.sh and $script: '$guard_line'")
+fi
+
+report "$name"
+
 finish
