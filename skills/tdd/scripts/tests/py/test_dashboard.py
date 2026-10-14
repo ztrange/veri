@@ -1023,7 +1023,7 @@ QUOTES = "\"'`"
 
 
 @pytest.mark.process("make -n test starts to print the roster of suites make test runs")
-def test_make_test_names_dashboard_test_sh_in_its_roster():
+def test_make_test_names_test_dashboard_py_in_its_roster():
     roster = subprocess.run(["make", "--no-print-directory", "-n", "-C", str(ROOT), "test"],
                             capture_output=True, text=True).stdout
     assert "skills/tdd/scripts/tests/py/test_dashboard.py" in roster
@@ -1184,6 +1184,9 @@ def test_dashboard_sh_with_a_port_argument_serves_the_page_on_that_port_binds_12
         assert header(answer, "Content-Type").startswith("application/json")
     code, out, err = run_cli(importlib.import_module("veri.status"), ["--json"])
     assert code == 0
+    served_51, = [run for run in json.loads(body(runs))["runs"] if run["issue"] == "51"]
+    status_51, = [run for run in json.loads(out)["runs"] if run["issue"] == "51"]
+    assert abs(served_51["elapsed_seconds"] - status_51["elapsed_seconds"]) <= 10
     assert runs_without_elapsed(json.loads(body(runs))) == runs_without_elapsed(json.loads(out))
     assert json.loads(body(runs))["runs"]
     assert json.loads(body(metrics))["issues"]["51"]
