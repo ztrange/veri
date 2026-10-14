@@ -1034,16 +1034,18 @@ def asks_for(page, path):
     return any(literal.startswith(path) for literal in fetched_paths(page))
 
 
-def test_dashboard_html_fetches_the_runs_metrics_and_events_endpoints():
+def assert_page_fetches(*paths):
     page = PAGE.read_text()
-    for path in ("/api/runs", "/api/metrics", "/api/events"):
+    for path in paths:
         assert asks_for(page, path), "the page never fetches %s" % path
+
+
+def test_dashboard_html_fetches_the_runs_metrics_and_events_endpoints():
+    assert_page_fetches("/api/runs", "/api/metrics", "/api/events")
 
 
 def test_dashboard_html_gives_the_tests_and_chatter_panes_an_endpoint_apiece_to_poll():
-    page = PAGE.read_text()
-    for path in ("/api/tests", "/api/chatter"):
-        assert asks_for(page, path), "the page never fetches %s" % path
+    assert_page_fetches("/api/tests", "/api/chatter")
 
 
 def code_only(src):
