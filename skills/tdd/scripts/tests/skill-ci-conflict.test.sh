@@ -84,4 +84,40 @@ else
 fi
 report "$name"
 
+name="#1458 the block run after the metrics: push bails nothing on a conflict exit 2 the first time and ci-conflict, never ci-timeout, once .tdd/ci-conflict-rebased exists"
+problems=()
+block="$(awk '
+  /^[[:space:]]*\$S\/push-branch\.sh[[:space:]]*$/ { after = 1; next }
+  after && /\$S\/refactor-owed\.sh render/ { exit }
+  after && /\$S\/wait-ci\.sh/ { on = 1 }
+  on' <<<"$step" | sed -e 's/<n>/1458/g' -e 's|<pr-url>|https://example.test/pull/1|g')"
+if [[ -z "$block" ]]; then
+  problems+=("no wait-ci.sh line between \$S/push-branch.sh and \$S/refactor-owed.sh render in the CI step — nothing could be run")
+else
+  bin="$(scratch_dir)"
+  printf '#!/bin/sh\necho "PR conflicts with its base branch" >&2\nexit 2\n' > "$bin/wait-ci.sh"
+  printf '#!/bin/sh\necho "$*" >> events.log\n' > "$bin/event.sh"
+  printf '#!/bin/sh\necho "$1"\n' > "$bin/classify-bail.sh"
+  printf '#!/bin/sh\nexit 0\n' > "$bin/ledger-steps.sh"
+  printf '#!/bin/sh\nexit 0\n' > "$bin/gh"
+  chmod +x "$bin"/*
+  for marked in no yes; do
+    work="$(scratch_dir)"
+    git -C "$work" init -q
+    git -C "$work" -c user.email=t@t -c user.name=t commit -q --allow-empty -m init
+    mkdir "$work/.tdd"
+    [[ "$marked" = yes ]] && : > "$work/.tdd/ci-conflict-rebased"
+    (cd "$work" && S="$bin" PATH="$bin:$PATH" bash -c "$block" > /dev/null 2>&1)
+    got="$(cat "$work/events.log" 2> /dev/null)"
+    if [[ "$marked" = no ]]; then
+      [[ "$got" != *bail* ]] ||
+        problems+=("first conflict exit 2 after the metrics: push recorded a bail: $got")
+    else
+      [[ "$got" == "bail cause=ci-conflict classification=ci-conflict" ]] ||
+        problems+=("second conflict exit 2 after the metrics: push recorded [$got], not bail cause=ci-conflict")
+    fi
+  done
+fi
+report "$name"
+
 finish
