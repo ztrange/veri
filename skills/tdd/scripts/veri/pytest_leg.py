@@ -1,6 +1,7 @@
 """The pytest leg's launcher: refuses an interpreter below the Python floor, then runs pytest."""
 # Usage:   pytest_leg.py
-# Exit:    2 the interpreter is below the floor in lib/venv-python.sh
+# Exit:    2 the interpreter is below the floor in lib/venv-python.sh, or cannot import pytest
+import importlib.util
 import platform
 import re
 import sys
@@ -16,6 +17,11 @@ def main(argv):
     if numbers < [int(part) for part in floor.split(".")[:2]]:
         sys.stderr.write("veri needs Python %s or newer for the suites under skills/tdd/scripts/tests/py/; %s is version %s.\n"
                          % (floor, sys.executable, version))
+        return 2
+    importable = tunables.read("VERI_PYTEST_IMPORTABLE") or ("1" if importlib.util.find_spec("pytest") else "0")
+    if importable != "1":
+        sys.stderr.write("veri needs pytest for the suites under skills/tdd/scripts/tests/py/; %s cannot import pytest. "
+                         "Install it with `make install-dev`.\n" % sys.executable)
         return 2
     return 0
 
