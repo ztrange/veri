@@ -1022,6 +1022,13 @@ PAGE = SCRIPTS / "dashboard.html"
 QUOTES = "\"'`"
 
 
+@pytest.mark.process("make -n test starts to print the roster of suites make test runs")
+def test_make_test_names_dashboard_test_sh_in_its_roster():
+    roster = subprocess.run(["make", "--no-print-directory", "-n", "-C", str(ROOT), "test"],
+                            capture_output=True, text=True).stdout
+    assert "skills/tdd/scripts/tests/py/test_dashboard.py" in roster
+
+
 def fetched_paths(page):
     """Every path a fetch of a literal asks for, as the literal's text up to its closing quote."""
     return re.findall(r"fetch\s*\(\s*[\"'`]([^\"'`]*)", page)
