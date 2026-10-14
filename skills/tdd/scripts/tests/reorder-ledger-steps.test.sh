@@ -25,4 +25,11 @@ want="$(printf '# Plan for #126\n\n- [ ] alpha step\n- [ ] charlie step\n- [ ] b
 { [[ "$code" == 0 ]] && [[ "$(cat "$led")" == "$want" ]]; } \
   && ok || no "#1550: the last step moved 'before' the middle step lands just ahead of it, every other line's order kept (code=$code err='$(cat "$work/err")')"
 
+led="$work/issue-127.md"
+printf '# Plan for #127\n\n- [x] alpha step\n- [ ] bravo step\n- [ ] charlie step\n' > "$led"
+cp "$led" "$work/before"
+"$REORDER" "$led" "alpha" after "charlie" > "$work/out" 2> "$work/err"; code=$?
+{ [[ "$code" == 1 ]] && cmp -s "$led" "$work/before" && grep -F "alpha" "$work/err" > /dev/null; } \
+  && ok || no "#1550: a ticked step to move exits 1, leaves the ledger byte-identical and names the step on stderr (code=$code err='$(cat "$work/err")')"
+
 finish
