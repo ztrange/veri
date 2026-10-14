@@ -14,6 +14,15 @@ GREEN_PARAGRAPHS = {"REPLACES_CASE": "replaces-case", "SUITE_REPAIR": "suite-rep
                     "CI_REPAIR": "ci-repair"}
 
 
+def _last_phase_check(step_arg, phase, number):
+    listed = re.search(r"⟦phases:([^⟧]*)⟧", step_arg)
+    if not listed or listed[1].split(",")[-1].strip() != phase:
+        return b""
+    return (f"\n{number}. **Every case the step asks for exists:** each test case the step's text asks for "
+            "exists at `HEAD` and passes, even when this phase made no commit. REJECT, naming "
+            "the missing case, when one is absent.").encode()
+
+
 def _write(stream, text):
     stream.buffer.write(os.fsencode(text + "\n"))
 
@@ -144,7 +153,9 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id=""):
                       b"Your verdict is about this criterion only: the spec below is the whole issue, and its other\n"
                       b"criteria belong to other steps of the plan.\n\n")
     out = template
-    for placeholder, value in ((b"SHARED", shared), (b"STEP", step_block), (b"ISSUE_SPEC", _read(spec)),
+    number = 5 if phase in ("expand", "migrate") else 4
+    for placeholder, value in ((b"LAST_PHASE_CHECK", _last_phase_check(step_arg, phase, number)),
+                               (b"SHARED", shared), (b"STEP", step_block), (b"ISSUE_SPEC", _read(spec)),
                                *((placeholder.encode(), value) for placeholder, value in values.items()),
                                (b"TEST_PATH", os.fsencode(test_path)),
                                (b"TARGET_TEST", os.fsencode(fourth or "the target test")),

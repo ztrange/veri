@@ -6,7 +6,7 @@ This is **contract-b**: the proxy over the old interface is deleted. Test files 
 frozen.
 {{INCLUDE:_verify-interface-phase-lead.md}}
 2. **The proxy is deleted.** The old interface no longer exists in production.
-3. {{INCLUDE:_verify-tests-frozen.md}}
+3. {{INCLUDE:_verify-tests-frozen.md}}{{LAST_PHASE_CHECK}}
 
 PASS if the suites are green, the proxy is deleted and no test file changed. REJECT, naming
 the specific problem, otherwise.
