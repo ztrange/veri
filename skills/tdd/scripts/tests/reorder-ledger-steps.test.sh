@@ -18,4 +18,11 @@ want="$(printf '# Plan for #125\n\n- [ ] The failure choice is remembered in loc
 { [[ "$code" == 0 ]] && [[ "$(cat "$led")" == "$want" ]]; } \
   && ok || no "#1550: the 'even when … left in localStorage' step placed first ends second after the remembered-choice step, every line's bytes kept (code=$code err='$(cat "$work/err")')"
 
+led="$work/issue-126.md"
+printf '# Plan for #126\n\n- [ ] alpha step\n- [ ] bravo step\n- [ ] charlie step\n' > "$led"
+want="$(printf '# Plan for #126\n\n- [ ] alpha step\n- [ ] charlie step\n- [ ] bravo step\n')"
+"$REORDER" "$led" "charlie" before "bravo" > "$work/out" 2> "$work/err"; code=$?
+{ [[ "$code" == 0 ]] && [[ "$(cat "$led")" == "$want" ]]; } \
+  && ok || no "#1550: the last step moved 'before' the middle step lands just ahead of it, every other line's order kept (code=$code err='$(cat "$work/err")')"
+
 finish

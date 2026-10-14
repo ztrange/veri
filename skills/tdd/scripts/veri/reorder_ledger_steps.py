@@ -3,7 +3,7 @@ import sys
 
 import ledger
 
-USAGE = "usage: reorder-ledger-steps.sh <ledger-file> <step-substring> after <anchor-substring>"
+USAGE = "usage: reorder-ledger-steps.sh <ledger-file> <step-substring> before|after <anchor-substring>"
 
 
 def main(argv):
@@ -15,7 +15,7 @@ def main(argv):
     moved = next(i for i, line in enumerate(lines) if argv[1] in line)
     step = lines.pop(moved)
     anchor = next(i for i, line in enumerate(lines) if argv[3] in line)
-    lines.insert(anchor + 1, step)
+    lines.insert(anchor if argv[2] == "before" else anchor + 1, step)
     ledger.replace_ledger(argv[0], "\n".join(lines))
     return 0
 
