@@ -1441,9 +1441,17 @@ def git_as_veri(repository):
     return ["git", "-C", str(repository), "-c", "user.name=veri", "-c", "user.email=veri@example.test"]
 
 
+def load_run_conductor(module_name, skill):
+    """The run_conductor module loaded from skill's scripts/veri directory under module_name."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(module_name, str(skill / "scripts" / "veri" / "run_conductor.py"))
+    run_conductor = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(run_conductor)
+    return run_conductor
+
+
 def skill_clone(tmp_path, monkeypatch, module_name, files, directory="skill", commit=True):
     """A skill directory holding files (path: text, .sh files executable), committed unless commit is False, and its run_conductor module loaded from that directory."""
-    import importlib.util
     past_the_guards(monkeypatch)
     for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
         monkeypatch.delenv(name, raising=False)
@@ -1461,10 +1469,7 @@ def skill_clone(tmp_path, monkeypatch, module_name, files, directory="skill", co
         subprocess.run(["git", "init", "-q", str(skill)], check=True)
         subprocess.run(git + ["add", "-A"], check=True)
         subprocess.run(git + ["commit", "-q", "-m", "the skill commit"], check=True)
-    spec = importlib.util.spec_from_file_location(module_name, str(skill / "scripts" / "veri" / "run_conductor.py"))
-    run_conductor = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(run_conductor)
-    return skill, run_conductor
+    return skill, load_run_conductor(module_name, skill)
 
 
 def caller_repository(tmp_path, files=None):
@@ -1657,7 +1662,6 @@ def test_cli_a_launch_leaves_git_status_porcelain_empty_in_the_callers_checkout_
 @pytest.mark.process("real git clone, fetch and archive of a scratch skill clone whose origin has moved on, and git reading its HEAD, branch and status")
 def test_cli_a_launch_leaves_the_skill_clones_head_branch_and_working_tree_unchanged_when_origin_has_moved_on_and_the_tree_has_an_uncommitted_edit(
         tmp_path, monkeypatch, run_cli):
-    import importlib.util
     remote, _ = skill_clone(tmp_path, monkeypatch, "run_conductor_remote", {"SKILL.md": "# the committed procedure\n"},
                             directory="remote")
     clone = tmp_path / "clone"
@@ -1667,9 +1671,7 @@ def test_cli_a_launch_leaves_the_skill_clones_head_branch_and_working_tree_uncha
     subprocess.run(git_as_veri(remote) + ["commit", "-q", "-am", "pulled"], check=True)
     with open(clone / "SKILL.md", "a") as edit:
         edit.write("# an uncommitted edit in the clone\n")
-    spec = importlib.util.spec_from_file_location("run_conductor_clone", str(clone / "scripts" / "veri" / "run_conductor.py"))
-    run_conductor = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(run_conductor)
+    run_conductor = load_run_conductor("run_conductor_clone", clone)
     caller = caller_repository(tmp_path, {"README": "target\n"})
     run = subprocess.run
 
