@@ -1616,3 +1616,36 @@ def test_cli_an_unpinned_launch_hands_the_conductor_veri_skill_unpinned_1_and_sk
     assert (code, [launch["VERI_SKILL_UNPINNED"] for launch in launches]) == (0, ["1"]), stderr
     assert plan_step, "SKILL.md has no plan-comment step (**Mirror the plan**) to read"
     assert "VERI_SKILL_UNPINNED" in "\n".join(plan_step)
+
+
+@pytest.mark.process("real git archive and tar materialising a scratch skill clone's commit, and git status read in a real caller repository and the skill clone")
+def test_cli_a_launch_leaves_git_status_porcelain_empty_in_the_callers_checkout_and_in_the_skill_clone_during_and_after_the_run(
+        tmp_path, monkeypatch, run_cli):
+    skill, run_conductor = skill_clone(
+        tmp_path, monkeypatch, "run_conductor_status", {"SKILL.md": "# the committed procedure\n"})
+    caller = tmp_path / "caller"
+    caller.mkdir()
+    (caller / "README").write_text("target\n")
+    subprocess.run(["git", "init", "-q", str(caller)], check=True)
+    subprocess.run(git_as_veri(caller) + ["add", "-A"], check=True)
+    subprocess.run(git_as_veri(caller) + ["commit", "-q", "-m", "target"], check=True)
+    run = subprocess.run
+
+    def status():
+        return {name: run(["git", "-C", str(tree), "status", "--porcelain"], capture_output=True, text=True).stdout
+                for name, tree in (("caller", caller), ("clone", skill))}
+
+    during = []
+
+    def claude_reads_both_statuses(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+        during.append(status())
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    monkeypatch.setattr(subprocess, "run", claude_reads_both_statuses)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+
+    clean = {"caller": "", "clone": ""}
+    assert (code, during, status()) == (0, [clean], clean), stderr
