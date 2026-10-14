@@ -1233,3 +1233,24 @@ def test_main_renders_a_plan_prompt_that_rejects_a_phases_step_alone_for_a_crite
     reject_phased_alone = (r"REJECT[^.]{0,300}(phases|phased)[^.]{0,300}(test case|case)"
                            r"|(phases|phased)[^.]{0,300}(test case|case)[^.]{0,300}REJECT")
     assert (code, re.search(reject_phased_alone, prompt, re.I) is not None) == (0, True)
+
+
+def test_main_renders_a_check_that_every_case_the_step_asks_for_exists_and_passes_only_in_the_last_listed_phase_1495(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"zorblat(nitz) replaces frob(nitz, quux), with a case refusing a sibling start.\n")
+    step = ("Interface change: frob(nitz, quux) becomes zorblat(nitz) "
+            "⟦phases: expand, migrate, contract-a⟧ ⟦criterion 2⟧")
+
+    def rendered(phase):
+        code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit", phase, str(spec),
+                                         "tests/py/test_zorblat.py", "0123abc"])
+        out, _ = capsysbinary.readouterr()
+        return code, re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
+
+    check = (r"(?m)(^|\s)\d+\. [^.]{0,200}(case|test)[^.]{0,200}(exists?|present)[^.]{0,60}HEAD"
+             r"[^.]{0,200}pass[^.]{0,200}\.[^.]{0,200}REJECT[^.]{0,100}(missing|absent)")
+    carries = {phase: (lambda result: (result[0], re.search(check, result[1], re.I) is not None))(rendered(phase))
+               for phase in ("expand", "contract-a")}
+
+    assert carries == {"expand": (0, False), "contract-a": (0, True)}
