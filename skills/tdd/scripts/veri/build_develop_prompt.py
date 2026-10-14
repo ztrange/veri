@@ -98,15 +98,17 @@ def main(argv):
             _write(sys.stderr, f"build-develop-prompt: cannot read '{path}'")
             return 2
     prompts_b = os.fsencode(prompts)
-    values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "RED_CASES", "REPLACES_CASE", "SUITE_REPAIR", "CI_REPAIR", "STEP",
+    values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "RED_CASES", "RED_LEAD", "REPLACES_CASE", "SUITE_REPAIR", "CI_REPAIR", "STEP",
                             "TEST_CMD", "TEST_PATH", "TARGET_TEST", "FAST_CMD", "TIMED_TEST_RUN", "TOUCHED_FILES",
                             "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "REJECTION_REASON", "BRANCH",
                             "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES"), b"")
     values["RED_CASES"] = (b"One criterion, one case \xe2\x80\x94 no extra cases, and no generality the step does\n"
                            b"not ask for.")
+    values["RED_LEAD"] = b"Add exactly **ONE** new failing test case, and write **NO** production code."
     if phase == "revise":
         values["RED_CASES"] = b""
     if "red" in (phase, revised_phase) and "\u27e6replaces-case\u27e7" in step:
+        values["RED_LEAD"] = b"Add the replacement test cases the step names, and write **NO** production code."
         values["RED_CASES"] = (b"\n\n" if phase == "revise" else b"") + (
             b"This step replaces cases, so it is not one criterion, one case: write one pytest replacement\n"
             b"case for each bash case the step named, each in its own `def test_...`, no extra cases, and no\n"
