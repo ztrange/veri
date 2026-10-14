@@ -162,35 +162,6 @@ grep -qi 'fetch' "$launch_err" ||
 
 report "$name"
 
-name="the skill-repin event lands in the run worktree's .tdd/wt/<n>/.tdd/events.jsonl, never the caller's .tdd/events.jsonl"
-problems=()
-
-clone13="$work/clone13"
-skill_clone "$clone13"
-
-caller13="$work/caller13"
-caller_repo "$caller13"
-git -C "$caller13" commit -q --allow-empty -m base
-git -C "$caller13" branch "tdd/$issue-past-preflight"
-launch_from "$caller13" "$clone13"
-
-advance_clone "$clone13" "# a commit the operator asks the run to take"
-head13="$(git -C "$clone13" rev-parse HEAD)"
-
-mkdir -p "$caller13/.tdd/wt/$issue"
-launch_from "$caller13" "$clone13" VERI_NEW_SKILL=1
-
-wt_log13="$caller13/.tdd/wt/$issue/.tdd/events.jsonl"
-caller_log13="$caller13/.tdd/events.jsonl"
-
-repin_in "$wt_log13" "$head13" ||
-  problems+=("no skill-repin event naming $head13 in the run worktree's $wt_log13")
-if repin_in "$caller_log13" "$head13"; then
-  problems+=("the skill-repin event landed in the caller's $caller_log13")
-fi
-
-report "$name"
-
 name="with no refs/remotes/origin/HEAD the launch pins to the remote's default branch tip, records it and runs pinned (#865)"
 problems=()
 

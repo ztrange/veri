@@ -2105,3 +2105,28 @@ def test_cli_an_unresolvable_recorded_skill_commit_refuses_with_exit_2_unless_ve
     repins = [json.loads(line) for line in events if '"skill-repin"' in line]
     assert (first_code, refused_code, launched_when_refused, repinned_code, len(seen), record.read_text(),
             [repin["commit"] for repin in repins]) == (0, 2, 1, 0, 2, head + "\n", [head]), stderr
+
+
+@pytest.mark.process("real git archive and tar materialising a scratch skill clone's current commit, and the real event.sh appending the skill-repin event in a real caller repository")
+def test_cli_the_skill_repin_event_lands_in_the_run_worktrees_events_jsonl_never_the_callers(
+        tmp_path, monkeypatch, run_cli):
+    skill, run_conductor = skill_clone(
+        tmp_path, monkeypatch, "run_conductor_repin_log",
+        {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the recorded supervisor\n"})
+    caller = caller_repository(tmp_path)
+    subprocess.run(git_as_veri(caller) + ["branch", "tdd/4242-past-preflight"], check=True)
+    claude_records_its_base_trees(monkeypatch)
+
+    first_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller)
+    commit_appended_line(skill, "SKILL.md", "a commit the operator asks the run to take")
+    current = head_commit(skill)
+    (caller / ".tdd" / "wt" / "4242").mkdir(parents=True)
+    resumed_code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller, env={"VERI_NEW_SKILL": "1"})
+
+    def repin_commits(log):
+        if not log.is_file():
+            return []
+        return [json.loads(line)["commit"] for line in log.read_text().splitlines() if '"skill-repin"' in line]
+
+    assert (first_code, resumed_code, repin_commits(caller / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl"),
+            repin_commits(caller / ".tdd" / "events.jsonl")) == (0, 0, [current], []), stderr
