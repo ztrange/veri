@@ -5,6 +5,7 @@
 import importlib.util
 import platform
 import re
+import signal
 import sys
 import tempfile
 
@@ -28,8 +29,14 @@ def main(argv):
                              "Install it with `make install-dev`.\n" % (package, sys.executable, module))
             return 2
     import pytest
-    with tempfile.TemporaryDirectory(prefix="veri-pytest-") as base:
-        status = pytest.main(["--basetemp=" + base] + argv)
+    def terminate(signum, frame):
+        sys.exit(128 + signum)
+    previous = signal.signal(signal.SIGTERM, terminate)
+    try:
+        with tempfile.TemporaryDirectory(prefix="veri-pytest-") as base:
+            status = pytest.main(["--basetemp=" + base] + argv)
+    finally:
+        signal.signal(signal.SIGTERM, previous)
     return 0 if status == pytest.ExitCode.OK else 1
 
 
