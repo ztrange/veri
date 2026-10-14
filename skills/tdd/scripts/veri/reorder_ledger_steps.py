@@ -25,23 +25,27 @@ def _frozen(line):
     return line.startswith("- [x]") or ledger.PENDING_MARK in line
 
 
+def _open_match(lines, substring, refusal):
+    index = _only_match(lines, substring)
+    if index is None:
+        return None
+    if _frozen(lines[index]):
+        print(f"{refusal}: {lines[index]}", file=sys.stderr)
+        return None
+    return index
+
+
 def main(argv):
     if len(argv) != 4 or argv[2] not in ("before", "after"):
         print(USAGE, file=sys.stderr)
         return 2
     with open(argv[0], newline="") as file:
         lines = file.read().split("\n")
-    moved = _only_match(lines, argv[1])
+    moved = _open_match(lines, argv[1], "cannot move a ticked step")
     if moved is None:
         return 1
-    if _frozen(lines[moved]):
-        print(f"cannot move a ticked step: {lines[moved]}", file=sys.stderr)
-        return 1
-    anchor = _only_match(lines, argv[3])
+    anchor = _open_match(lines, argv[3], "cannot move a step relative to a ticked step")
     if anchor is None:
-        return 1
-    if _frozen(lines[anchor]):
-        print(f"cannot move a step relative to a ticked step: {lines[anchor]}", file=sys.stderr)
         return 1
     step = lines.pop(moved)
     anchor = _matches(lines, argv[3])[0]
