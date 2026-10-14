@@ -1,0 +1,5 @@
+# Plan for #1537 — develop-red and verify-red prompts still say ONE test on a replaces-case group step
+
+- [ ] A develop-red prompt built by build-develop-prompt.sh for a step carrying the replaces-case mark contains neither "exactly **ONE** new failing test case" nor any other instruction to add a single case, while the develop-red prompt for a step without the mark is byte-identical to before (still says exactly ONE) ⟦criterion 1⟧
+- [ ] A revise-red prompt built by build-develop-prompt.sh revise red for a step carrying the replaces-case mark contains no instruction to add a single case, while the revise-red prompt for a step without the mark is unchanged ⟦criterion 1⟧
+- [ ] A verify-red prompt built by build-verify-prompt.sh red for a step carrying the replaces-case mark says the step adds one replacement case per named case and tells the verifier to judge each of them, instead of "one new failing test", while the verify-red prompt for a step without the mark is unchanged ⟦criterion 2⟧
