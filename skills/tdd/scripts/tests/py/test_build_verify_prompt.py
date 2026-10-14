@@ -1216,3 +1216,20 @@ def test_main_of_both_prompt_builders_refuses_an_unknown_phase_with_exit_2_namin
 
     assert {name: answer(*call) for name, call in builders.items()} == {
         "build-develop-prompt": (2, []), "build-verify-prompt": (2, [])}
+
+
+def test_main_renders_a_plan_prompt_that_rejects_a_phases_step_alone_for_a_criterion_asking_for_a_test_case_1495(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"1. zorblat(nitz) replaces frob(nitz, quux), with a case refusing a sibling start.\n")
+    ledger = tmp_path / "plan.md"
+    ledger.write_text("- [ ] Interface change: frob becomes zorblat "
+                      "⟦phases: expand, migrate, contract-a⟧ ⟦criterion 1⟧\n", encoding="utf-8")
+
+    code = build_verify_prompt.main(["plan", str(spec), str(ledger)])
+    out, _ = capsysbinary.readouterr()
+    prompt = re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
+
+    reject_phased_alone = (r"REJECT[^.]{0,300}(phases|phased)[^.]{0,300}(test case|case)"
+                           r"|(phases|phased)[^.]{0,300}(test case|case)[^.]{0,300}REJECT")
+    assert (code, re.search(reject_phased_alone, prompt, re.I) is not None) == (0, True)
