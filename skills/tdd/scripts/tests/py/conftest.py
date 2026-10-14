@@ -56,6 +56,10 @@ def pytest_collection_modifyitems(config, items):
                if any(not mark.args or not mark.args[0] for mark in item.iter_markers("process"))]
     if unnamed:
         raise pytest.UsageError("process mark without a boundary: %s" % ", ".join(unnamed))
+    unnamed = [item.nodeid for item in items
+               if any(not mark.args or not mark.args[0] for mark in item.iter_markers("tree_audit"))]
+    if unnamed:
+        raise pytest.UsageError("tree_audit mark without a sweep: %s" % ", ".join(unnamed))
 
 
 @pytest.fixture(autouse=True)
