@@ -2039,3 +2039,44 @@ def test_cli_a_resumed_run_keeps_its_recorded_pin_when_origin_default_has_moved_
     resumed_tree, resumed_prompt = seen[1]
     assert (first_code, resumed_code, resumed_tree == recorded, first in resumed_prompt, moved in resumed_prompt) == (
         0, 0, True, True, False), stderr
+
+
+@pytest.mark.process("real git clone, fetch and archive of a scratch skill clone whose origin and own HEAD have both moved on, tar materialising origin's tip, and the real event.sh appending the skill-repin event in a real caller repository")
+def test_cli_a_resume_with_veri_new_skill_1_re_pins_to_origin_default_as_just_fetched_not_to_the_clones_head(
+        tmp_path, monkeypatch, run_cli):
+    remote, _ = skill_clone(tmp_path, monkeypatch, "run_conductor_repin_tip_remote",
+                            {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the cut supervisor\n"},
+                            directory="remote")
+    clone = tmp_path / "clone"
+    subprocess.run(["git", "clone", "-q", str(remote), str(clone)], check=True)
+    run_conductor = load_run_conductor("run_conductor_repin_tip_clone", clone)
+    caller = caller_repository(tmp_path)
+    subprocess.run(git_as_veri(caller) + ["branch", "tdd/4242-past-preflight"], check=True)
+    run, seen = subprocess.run, []
+
+    def claude_reads_its_base(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+        stdin = kwargs.get("input")
+        (base,) = base_directories(stdin)
+        seen.append((tree_contents(base), stdin.decode() if isinstance(stdin, bytes) else stdin))
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    monkeypatch.setattr(subprocess, "run", claude_reads_its_base)
+
+    first_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller)
+    with open(remote / "scripts" / "supervise.sh", "a") as landed:
+        landed.write("# a commit that landed on the remote after the run started\n")
+    subprocess.run(git_as_veri(remote) + ["commit", "-q", "-am", "landed on the remote after the run started"], check=True)
+    tip = head_commit(remote)
+    tip_tree = tree_contents(remote)
+    with open(clone / "scripts" / "supervise.sh", "a") as own:
+        own.write("# a commit of the clone's own that origin never saw\n")
+    subprocess.run(git_as_veri(clone) + ["commit", "-q", "-am", "the clone's own commit"], check=True)
+    clone_head = head_commit(clone)
+    resumed_code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller, env={"VERI_NEW_SKILL": "1"})
+
+    assert tip != clone_head and len(seen) == 2
+    resumed_tree, resumed_prompt = seen[1]
+    assert (first_code, resumed_code, resumed_tree == tip_tree, tip in resumed_prompt, clone_head in resumed_prompt,
+            (caller / ".tdd" / "issue-4242-skill-commit").read_text()) == (0, 0, True, True, False, tip + "\n"), stderr
