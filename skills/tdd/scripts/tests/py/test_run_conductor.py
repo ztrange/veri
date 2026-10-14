@@ -1467,6 +1467,18 @@ def skill_clone(tmp_path, monkeypatch, module_name, files, directory="skill", co
     return skill, run_conductor
 
 
+def caller_repository(tmp_path, files=None):
+    """A committed caller repository at tmp_path/caller holding files (path: text); its commit is empty when there are none."""
+    caller = tmp_path / "caller"
+    caller.mkdir()
+    for relative, text in (files or {}).items():
+        (caller / relative).write_text(text)
+    subprocess.run(["git", "init", "-q", str(caller)], check=True)
+    subprocess.run(git_as_veri(caller) + ["add", "-A"], check=True)
+    subprocess.run(git_as_veri(caller) + ["commit", "-q", "--allow-empty", "-m", "base"], check=True)
+    return caller
+
+
 def base_directories(stdin):
     """The base directories the procedure on a launched claude's stdin names."""
     stdin = stdin.decode() if isinstance(stdin, bytes) else stdin
@@ -1543,12 +1555,8 @@ def test_cli_a_resume_of_the_run_is_handed_a_re_materialised_snapshot_of_the_rec
         tmp_path, monkeypatch, "run_conductor_resume",
         {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the recorded supervisor\n"})
     recorded = tree_contents(skill)
-    caller = tmp_path / "caller"
-    caller.mkdir()
-    caller_git = git_as_veri(caller)
-    subprocess.run(["git", "init", "-q", str(caller)], check=True)
-    subprocess.run(caller_git + ["commit", "-q", "--allow-empty", "-m", "base"], check=True)
-    subprocess.run(caller_git + ["branch", "tdd/4242-past-preflight"], check=True)
+    caller = caller_repository(tmp_path)
+    subprocess.run(git_as_veri(caller) + ["branch", "tdd/4242-past-preflight"], check=True)
     run, seen = subprocess.run, []
 
     def claude_reads_its_base(args, *a, **kwargs):
@@ -1623,12 +1631,7 @@ def test_cli_a_launch_leaves_git_status_porcelain_empty_in_the_callers_checkout_
         tmp_path, monkeypatch, run_cli):
     skill, run_conductor = skill_clone(
         tmp_path, monkeypatch, "run_conductor_status", {"SKILL.md": "# the committed procedure\n"})
-    caller = tmp_path / "caller"
-    caller.mkdir()
-    (caller / "README").write_text("target\n")
-    subprocess.run(["git", "init", "-q", str(caller)], check=True)
-    subprocess.run(git_as_veri(caller) + ["add", "-A"], check=True)
-    subprocess.run(git_as_veri(caller) + ["commit", "-q", "-m", "target"], check=True)
+    caller = caller_repository(tmp_path, {"README": "target\n"})
     run = subprocess.run
 
     def status():
