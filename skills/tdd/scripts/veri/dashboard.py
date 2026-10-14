@@ -11,6 +11,7 @@ import urllib.parse
 
 from event_log import read_events
 from run_dir import run_file
+import status
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 status_sh = os.path.join(SCRIPTS, "status.sh")
@@ -41,7 +42,7 @@ def capture(argv, cwd=None, feed=None):
 # runs the script and hands back its document verbatim, so no field of it is spelled twice
 # and the pane cannot drift as status.sh grows.
 def runs_json(query):
-    return capture([status_sh, "--json"])
+    return status.json_document()[1].encode()
 
 
 # The runs the Metrics pane reports on are the ones status.sh reports on, and they are
