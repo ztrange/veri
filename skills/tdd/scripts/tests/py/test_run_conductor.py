@@ -1527,3 +1527,38 @@ def test_cli_a_leaf_launched_mid_run_executes_the_snapshots_supervise_sh_run_lea
     code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
 
     assert (code, seen) == (0, [(0, "the committed supervisor\n", True, "the committed develop-red template\n")])
+
+
+@pytest.mark.process("real git archive and tar materialising a scratch skill clone's recorded commit twice, and a real caller repository holding the tdd branch that keeps the record")
+def test_cli_a_resume_of_the_run_is_handed_a_re_materialised_snapshot_of_the_recorded_commit_not_the_clones_new_head(
+        tmp_path, monkeypatch, run_cli):
+    skill, run_conductor = committed_skill_clone(
+        tmp_path, monkeypatch, "run_conductor_resume",
+        {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the recorded supervisor\n"})
+    recorded = tree_contents(skill)
+    caller = tmp_path / "caller"
+    caller.mkdir()
+    caller_git = ["git", "-C", str(caller), "-c", "user.name=veri", "-c", "user.email=veri@example.test"]
+    subprocess.run(["git", "init", "-q", str(caller)], check=True)
+    subprocess.run(caller_git + ["commit", "-q", "--allow-empty", "-m", "base"], check=True)
+    subprocess.run(caller_git + ["branch", "tdd/4242-past-preflight"], check=True)
+    run, seen = subprocess.run, []
+
+    def claude_reads_its_base(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+        (base,) = base_directories(kwargs.get("input"))
+        seen.append((base, tree_contents(base)))
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    monkeypatch.setattr(subprocess, "run", claude_reads_its_base)
+
+    first_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller)
+    (skill / "scripts" / "supervise.sh").write_text("#!/bin/sh\necho the pulled supervisor\n")
+    subprocess.run(["git", "-C", str(skill), "-c", "user.name=veri", "-c", "user.email=veri@example.test",
+                    "commit", "-q", "-am", "pulled after the run started"], check=True)
+    resumed_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller)
+
+    assert len(seen) == 2
+    (first_base, _), (resumed_base, resumed_contents) = seen
+    assert (first_code, resumed_code, os.path.exists(first_base), resumed_contents == recorded) == (0, 0, False, True)
