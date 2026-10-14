@@ -13,7 +13,9 @@ def main(argv):
     names, path = parse(argv[0])
     try:
         with open(path, encoding="utf-8") as f:
-            suite = f.read()
+            suite = "".join(
+                line for line in f if not line.lstrip().startswith("#")
+            )
     except FileNotFoundError:
         return 0
     survivors = [n for n in names if f'"{n}"' in suite or f"'{n}'" in suite]

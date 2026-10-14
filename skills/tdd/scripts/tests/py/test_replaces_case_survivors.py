@@ -57,3 +57,12 @@ def test_main_exits_0_naming_nothing_when_the_green_deleted_the_whole_suite_file
     step = "the replacement takes over: replaces 'stale first', 'stale second' in tests/demo.test.sh ⟦replaces-case⟧ ⟦criterion 3⟧"
 
     assert run_cli(survivors, [step], cwd=tmp_path) == (0, "", "")
+
+
+def test_main_exits_0_when_a_deleted_named_case_is_quoted_only_in_a_comment_line_of_the_suite_1406(tmp_path, run_cli, survivors):
+    suite = tmp_path / "tests" / "demo.test.sh"
+    suite.parent.mkdir()
+    suite.write_text('# removed "stale first" and \'stale second\' (see #12)\nverdict "kept case" 0\n')
+    step = "the replacement takes over: replaces 'stale first', 'stale second' in tests/demo.test.sh ⟦replaces-case⟧ ⟦criterion 4⟧"
+
+    assert run_cli(survivors, [step], cwd=tmp_path) == (0, "", "")
