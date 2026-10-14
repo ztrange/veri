@@ -5,6 +5,7 @@ import json
 import os
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
 
@@ -1473,6 +1474,16 @@ def skill_clone(tmp_path, monkeypatch, module_name, files, directory="skill", co
     return skill, load_run_conductor(module_name, skill)
 
 
+def clone_behind_origin(tmp_path, remote, relative):
+    """A clone of remote at tmp_path/clone, cut before one more commit, appending a line to relative, lands on remote."""
+    clone = tmp_path / "clone"
+    subprocess.run(["git", "clone", "-q", str(remote), str(clone)], check=True)
+    with open(remote / relative, "a") as landed:
+        landed.write("# a commit that landed on the remote after the clone was cut\n")
+    subprocess.run(git_as_veri(remote) + ["commit", "-q", "-am", "landed on the remote after the clone was cut"], check=True)
+    return clone
+
+
 def caller_repository(tmp_path, files=None):
     """A committed caller repository at tmp_path/caller holding files (path: text); its commit is empty when there are none."""
     caller = tmp_path / "caller"
@@ -1935,10 +1946,7 @@ def test_cli_a_launch_from_a_clone_behind_origin_default_is_handed_a_snapshot_of
     remote, _ = skill_clone(tmp_path, monkeypatch, "run_conductor_tip_remote",
                             {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the cut supervisor\n"},
                             directory="remote")
-    clone = tmp_path / "clone"
-    subprocess.run(["git", "clone", "-q", str(remote), str(clone)], check=True)
-    (remote / "scripts" / "supervise.sh").write_text("#!/bin/sh\necho the tip supervisor\n")
-    subprocess.run(git_as_veri(remote) + ["commit", "-q", "-am", "landed on the remote after the clone was cut"], check=True)
+    clone = clone_behind_origin(tmp_path, remote, "scripts/supervise.sh")
     tip = tree_contents(remote)
     behind = tree_contents(clone)
     run_conductor = load_run_conductor("run_conductor_tip_clone", clone)
@@ -1954,7 +1962,6 @@ def test_cli_a_launch_from_a_clone_behind_origin_default_is_handed_a_snapshot_of
 @pytest.mark.process("real git clone, fetch and archive of a scratch skill clone whose origin has moved on, and the real event.sh and supervise.sh run from the snapshot in a real caller repository")
 def test_cli_every_event_a_launched_run_writes_carries_origins_tip_as_skill_commit_and_the_prompt_names_it(
         tmp_path, monkeypatch, run_cli):
-    import shutil
     remote, _ = skill_clone(tmp_path, monkeypatch, "run_conductor_events_remote", {"SKILL.md": "# the committed procedure\n"},
                             directory="remote", commit=False)
     shutil.copytree(SCRIPTS, remote / "scripts", symlinks=True, dirs_exist_ok=True,
@@ -1962,11 +1969,7 @@ def test_cli_every_event_a_launched_run_writes_carries_origins_tip_as_skill_comm
     subprocess.run(["git", "init", "-q", str(remote)], check=True)
     subprocess.run(git_as_veri(remote) + ["add", "-A"], check=True)
     subprocess.run(git_as_veri(remote) + ["commit", "-q", "-m", "the skill commit"], check=True)
-    clone = tmp_path / "clone"
-    subprocess.run(["git", "clone", "-q", str(remote), str(clone)], check=True)
-    with open(remote / "scripts" / "supervise.sh", "a") as edit:
-        edit.write("# a commit that landed on the remote after the clone was cut\n")
-    subprocess.run(git_as_veri(remote) + ["commit", "-q", "-am", "landed on the remote after the clone was cut"], check=True)
+    clone = clone_behind_origin(tmp_path, remote, "scripts/supervise.sh")
     tip = subprocess.run(["git", "-C", str(remote), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
     run_conductor = load_run_conductor("run_conductor_events_clone", clone)
     caller = caller_repository(tmp_path)
