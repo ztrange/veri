@@ -1,6 +1,7 @@
 """The one reader of VERI_* tunables: no other module under veri/ reads one from the environment."""
 import ast
 import pathlib
+import pytest
 
 VERI = pathlib.Path(__file__).resolve().parents[2] / "veri"
 
@@ -35,6 +36,7 @@ def direct_reads(path):
             and ("VERI_" in lines[node.lineno - 1] or keyed_by_a_variable(node))]
 
 
+@pytest.mark.tree_audit("every module under veri/")
 def test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment():
     modules = sorted(path for path in VERI.glob("*.py") if path.stem not in ("tunables", *READS_DIRECTLY))
 
@@ -68,6 +70,7 @@ def test_github_solvable_issues_skill_drift_launch_floor_run_suite_and_event_tak
     assert [read for path in modules for read in direct_reads(path)] == []
 
 
+@pytest.mark.tree_audit("every module under veri/")
 def test_run_leaf_run_verdict_and_stop_run_take_their_veri_values_from_the_one_reader_and_no_module_is_exempt():
     modules = sorted(path for path in VERI.glob("*.py") if path.stem != "tunables")
 

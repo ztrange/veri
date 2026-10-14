@@ -113,6 +113,7 @@ def test_run_turns_a_broken_pipe_on_stdout_into_exit_141_with_nothing_on_stdout_
     assert (out, err) == ("", "")
 
 
+@pytest.mark.process("a real pipe whose read end is closed, observed at interpreter shutdown")
 def test_run_leaves_nothing_for_shutdown_to_flush_so_a_real_closed_pipe_still_exits_141_with_an_empty_stderr_1150():
     program = (
         "import sys\n"

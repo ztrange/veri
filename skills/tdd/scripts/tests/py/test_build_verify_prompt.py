@@ -506,6 +506,7 @@ def test_main_renders_red_green_refactor_and_pin_prompts_carrying_the_test_path_
     }
 
 
+@pytest.mark.tree_audit("the templates under prompts/")
 def test_the_blindness_contract_assertion_needs_its_whole_match_on_one_line_of_the_rendered_red_prompt(
         tmp_path, capsysbinary):
     spec = tmp_path / "spec.md"
@@ -528,6 +529,7 @@ def test_the_blindness_contract_assertion_needs_its_whole_match_on_one_line_of_t
 
 
 
+@pytest.mark.tree_audit("the templates under prompts/")
 def test_the_full_suite_assertion_needs_its_whole_match_on_one_line_of_the_rendered_green_prompt(
         tmp_path, capsysbinary):
     spec = tmp_path / "spec.md"
@@ -815,6 +817,7 @@ def test_main_scopes_refactor_to_the_cycles_files_with_flags_lines_checks_plan_r
     }
 
 
+@pytest.mark.tree_audit("the templates under prompts/")
 def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_case_and_suite_repair_paragraphs_for_their_phase_alone_renders_the_comment_rules_byte_identical_unmarked_green_and_resolves_or_refuses_includes(
         tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
@@ -949,6 +952,7 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
     }
 
 
+@pytest.mark.tree_audit("the templates under prompts/")
 def test_main_states_the_signal_only_processes_you_started_rule_in_every_phase_from_one_partial_the_develop_prompts_include_too_1223(
         tmp_path, capsysbinary, monkeypatch, build_verify_prompt):
     monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)

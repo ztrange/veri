@@ -2,6 +2,7 @@
 import importlib
 import io
 import pathlib
+import pytest
 import re
 import sys
 
@@ -265,6 +266,7 @@ unit/emitted-text:# Plan for #1 — fixed
 """
 
 
+@pytest.mark.tree_audit("every bash suite, script and lib under skills/tdd/scripts")
 def test_main_sweeps_the_scripts_lib_and_suites_to_empty_sweepable_reports_no_cited_issue_and_unchanged_class_3_lines(capsys):
     comment_class = importlib.import_module("veri.comment_class")
     tests = SCRIPTS / "tests"
@@ -337,6 +339,7 @@ def test_main_sweeps_the_scripts_lib_and_suites_to_empty_sweepable_reports_no_ci
     }
 
 
+@pytest.mark.tree_audit("every bash suite, script and lib under skills/tdd/scripts")
 def test_main_sweeps_the_top_level_suites_and_the_skill_suites_to_empty_sweepable_reports(capsys):
     comment_class = importlib.import_module("veri.comment_class")
     tests = SCRIPTS / "tests"
@@ -378,6 +381,7 @@ def test_main_sweeps_the_top_level_suites_and_the_skill_suites_to_empty_sweepabl
     }
 
 
+@pytest.mark.tree_audit("every bash suite, script and lib under skills/tdd/scripts")
 def test_main_sweeps_the_unit_fixture_guard_and_offline_suites_to_empty_sweepable_reports(capsys):
     comment_class = importlib.import_module("veri.comment_class")
     tests = SCRIPTS / "tests"

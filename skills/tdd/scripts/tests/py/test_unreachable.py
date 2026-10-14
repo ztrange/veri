@@ -1,6 +1,7 @@
 """In-process cases for veri/unreachable.py, the module unreachable.sh is a shim over."""
 import importlib
 import io
+import pytest
 import sys
 
 from conftest import SCRIPTS
@@ -194,6 +195,7 @@ def test_main_lists_test_only_scripts_and_promised_unread_names_and_reads_no_pro
     ], True)
 
 
+@pytest.mark.tree_audit("every script under skills/tdd/scripts reached from this repository's entry points")
 def test_main_lists_no_unreachable_script_in_this_repository(capsys):
     unreachable = importlib.import_module("veri.unreachable")
 
