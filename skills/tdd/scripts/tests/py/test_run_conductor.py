@@ -1452,6 +1452,12 @@ def load_run_conductor(module_name, skill):
     return run_conductor
 
 
+def head_commit(repository):
+    """The commit repository's HEAD names."""
+    return subprocess.run(["git", "-C", str(repository), "rev-parse", "HEAD"], capture_output=True, text=True,
+                          check=True).stdout.strip()
+
+
 def skill_clone(tmp_path, monkeypatch, module_name, files, directory="skill", commit=True):
     """A skill directory holding files (path: text, .sh files executable), committed unless commit is False, and its run_conductor module loaded from that directory."""
     past_the_guards(monkeypatch)
@@ -1623,7 +1629,7 @@ def test_cli_a_resume_with_veri_new_skill_1_is_re_pinned_to_the_clones_current_c
     first_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller)
     (skill / "scripts" / "supervise.sh").write_text("#!/bin/sh\necho the pulled supervisor\n")
     subprocess.run(git_as_veri(skill) + ["commit", "-q", "-am", "a commit the operator asks the run to take"], check=True)
-    current = subprocess.run(["git", "-C", str(skill), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+    current = head_commit(skill)
     taken = tree_contents(skill)
     resumed_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller, env={"VERI_NEW_SKILL": "1"})
 
@@ -1856,8 +1862,7 @@ def test_cli_a_run_through_a_symlink_to_the_skill_directory_from_another_working
         tmp_path, monkeypatch, run_cli):
     skill, _ = skill_clone(
         tmp_path, monkeypatch, "run_conductor_in_place", {"SKILL.md": "# the committed procedure\n"})
-    tip = subprocess.run(["git", "-C", str(skill), "rev-parse", "HEAD"], capture_output=True, text=True,
-                         check=True).stdout.strip()
+    tip = head_commit(skill)
     with open(skill / "SKILL.md", "a") as edit:
         edit.write("# uncommitted edit to the clone's SKILL.md\n")
     link = tmp_path / "link"
@@ -1920,8 +1925,7 @@ def test_cli_a_launch_from_a_skill_clone_whose_origin_is_a_checkout_under_test_w
         subprocess.run(["git", "clone", "-q", str(checkout), str(skill)], check=True)
         (checkout / "SKILL.md").write_text("---\nname: tdd\n---\n# the procedure, advanced\n")
         subprocess.run(git_as_veri(checkout) + ["commit", "-q", "-am", "the checkout under test advances"], check=True)
-        tip = subprocess.run(["git", "-C", str(checkout), "rev-parse", "HEAD"], check=True, capture_output=True,
-                             text=True).stdout.strip()
+        tip = head_commit(checkout)
         run_conductor = load_run_conductor("run_conductor_checkout_" + name, skill)
         caller = variant / "caller"
         caller.mkdir()
@@ -1970,7 +1974,7 @@ def test_cli_every_event_a_launched_run_writes_carries_origins_tip_as_skill_comm
     subprocess.run(git_as_veri(remote) + ["add", "-A"], check=True)
     subprocess.run(git_as_veri(remote) + ["commit", "-q", "-m", "the skill commit"], check=True)
     clone = clone_behind_origin(tmp_path, remote, "scripts/supervise.sh")
-    tip = subprocess.run(["git", "-C", str(remote), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+    tip = head_commit(remote)
     run_conductor = load_run_conductor("run_conductor_events_clone", clone)
     caller = caller_repository(tmp_path)
     run, prompts = subprocess.run, []
@@ -2005,7 +2009,7 @@ def test_cli_a_resumed_run_keeps_its_recorded_pin_when_origin_default_has_moved_
     remote, _ = skill_clone(tmp_path, monkeypatch, "run_conductor_pin_remote",
                             {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the first supervisor\n"},
                             directory="remote")
-    first = subprocess.run(["git", "-C", str(remote), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+    first = head_commit(remote)
     recorded = tree_contents(remote)
     clone = tmp_path / "clone"
     subprocess.run(["git", "clone", "-q", str(remote), str(clone)], check=True)
@@ -2028,7 +2032,7 @@ def test_cli_a_resumed_run_keeps_its_recorded_pin_when_origin_default_has_moved_
     with open(remote / "scripts" / "supervise.sh", "a") as landed:
         landed.write("# a commit that landed on the remote after the run started\n")
     subprocess.run(git_as_veri(remote) + ["commit", "-q", "-am", "landed on the remote after the run started"], check=True)
-    moved = subprocess.run(["git", "-C", str(remote), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+    moved = head_commit(remote)
     resumed_code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
 
     assert moved != first and len(seen) == 2
