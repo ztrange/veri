@@ -2,6 +2,7 @@
 import glob
 import io
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -126,6 +127,31 @@ def no_verdict_budget(value):
     return int(value)
 
 
+def pytest_cases(sha):
+    listed = git("ls-tree", "-r", "--name-only", sha)
+    if listed.returncode != 0:
+        return None
+    cases = set()
+    for path in listed.stdout.decode().splitlines():
+        name = path.rsplit("/", 1)[-1]
+        if not (name.startswith("test_") and name.endswith(".py")):
+            continue
+        shown = git("show", "%s:%s" % (sha, path))
+        if shown.returncode != 0:
+            return None
+        for case in re.findall(r"^[ \t]*(?:async[ \t]+)?def[ \t]+(test_\w+)", shown.stdout.decode(), re.M):
+            cases.add((path, case))
+    return cases
+
+
+def deleted_cases(branch_base, step_base):
+    before, middle, after = (pytest_cases(sha) for sha in (branch_base, step_base, "HEAD"))
+    if None in (before, middle, after):
+        return None
+    kept = {case for _, case in after}
+    return sorted(case for case in middle - before if case[1] not in kept)
+
+
 def main(argv):
     args = list(argv)
     while args and takes_a_value(args[0]):
@@ -157,6 +183,14 @@ def main(argv):
     code, built = build_verify_prompt.build(options["--step"], options["--fast-cmd"], *words)
     if code:
         return to_contract(code)
+    if words[0] == "diff" and git("rev-parse", "--git-dir").returncode == 0:
+        deleted = deleted_cases(words[2], words[3])
+        if deleted is None:
+            return refuse("verify: cannot read the test files at %s, %s or HEAD" % (words[2], words[3]))
+        if deleted:
+            _write(sys.stdout, "step deleted pytest cases an earlier step added: "
+                   + ", ".join("%s::%s" % case for case in deleted))
+            return 1
     prompt_path = ".tdd/%s.prompt" % leaf
     os.makedirs(".tdd", exist_ok=True)
     with open(prompt_path, "wb") as prompt:
