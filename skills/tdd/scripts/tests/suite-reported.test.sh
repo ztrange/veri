@@ -37,4 +37,17 @@ check_code=$?
   problems+=("suite-reported.sh develop-diff: want exit 2, got $check_code")
 report "$name"
 
+name="a developer leaf that exited 0 with a final result carrying a SUITE: GREEN line makes suite-reported.sh exit 0 (#1300)"
+problems=()
+( cd "$work" && env CLAUDE_BIN="$stubdir/claude" FAKE_RESULT='SUITE: GREEN — 3 suites passed' \
+    VERI_ISSUE=1 "$SUPERVISE" develop-green "$RUN_LEAF" prompt.txt \
+    > .tdd/develop-green.out 2> .tdd/develop-green.err )
+leaf_code=$?
+[[ "$leaf_code" == 0 ]] || problems+=("the stub leaf: want exit 0 from supervise.sh, got $leaf_code")
+( cd "$work" && "$CHECK" develop-green >/dev/null 2>&1 )
+check_code=$?
+[[ "$check_code" == 0 ]] ||
+  problems+=("suite-reported.sh develop-green: want exit 0, got $check_code")
+report "$name"
+
 finish
