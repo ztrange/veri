@@ -2,7 +2,7 @@
 
 ## Phase: develop-red
 
-Add exactly **ONE** new failing test case, and write **NO** production code.
+{{RED_LEAD}}
 
 ### The step to pin (this cycle's criterion — pin ONLY this)
 
