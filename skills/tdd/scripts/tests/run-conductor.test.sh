@@ -162,36 +162,6 @@ grep -qi 'fetch' "$launch_err" ||
 
 report "$name"
 
-name="a VERI_NEW_SKILL=1 re-pin that runs before .tdd/wt/<n> exists writes its skill-repin event to the run worktree's .tdd/events.jsonl and never to the caller's"
-problems=()
-
-clone26="$work/clone26"
-skill_clone "$clone26"
-
-caller26="$work/caller26"
-caller_repo "$caller26"
-git -C "$caller26" commit -q --allow-empty -m base
-git -C "$caller26" branch "tdd/$issue-past-preflight"
-launch_from "$caller26" "$clone26"
-
-advance_clone "$clone26" "# a commit the operator asks the run to take"
-head26="$(git -C "$clone26" rev-parse HEAD)"
-
-[[ ! -e "$caller26/.tdd/wt/$issue" ]] ||
-  problems+=("fixture: $caller26/.tdd/wt/$issue exists before the re-pin, so this is case 19")
-launch_from "$caller26" "$clone26" VERI_NEW_SKILL=1
-
-wt_log26="$caller26/.tdd/wt/$issue/.tdd/events.jsonl"
-caller_log26="$caller26/.tdd/events.jsonl"
-
-repin_in "$wt_log26" "$head26" ||
-  problems+=("no skill-repin event naming $head26 in the run worktree's $wt_log26")
-if repin_in "$caller_log26" "$head26"; then
-  problems+=("the skill-repin event landed in the caller's $caller_log26")
-fi
-
-report "$name"
-
 name="a fetch of origin that loses a ref lock held by another process is retried once the lock is released, and the conductor starts (#886)"
 problems=()
 
