@@ -153,9 +153,12 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id=""):
                       b"Your verdict is about this criterion only: the spec below is the whole issue, and its other\n"
                       b"criteria belong to other steps of the plan.\n\n")
     out = template
+    written = b"**one new failing test**"
+    if phase == "red" and "\u27e6replaces-case\u27e7" in step_arg:
+        written = (b"**one replacement case per named case** (judge each of them, not only the target test)")
     number = 5 if phase in ("expand", "migrate") else 4
     for placeholder, value in ((b"LAST_PHASE_CHECK", _last_phase_check(step_arg, phase, number)),
-                               (b"SHARED", shared), (b"STEP", step_block), (b"ISSUE_SPEC", _read(spec)),
+                               (b"RED_WRITTEN", written), (b"SHARED", shared), (b"STEP", step_block), (b"ISSUE_SPEC", _read(spec)),
                                *((placeholder.encode(), value) for placeholder, value in values.items()),
                                (b"TEST_PATH", os.fsencode(test_path)),
                                (b"TARGET_TEST", os.fsencode(fourth or "the target test")),
