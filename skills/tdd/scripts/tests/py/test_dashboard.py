@@ -746,6 +746,59 @@ def test_get_api_chatter_answers_the_rendering_of_run_54s_verify_green_out_the_l
     assert json.loads(body(chatter)) == {"chatter": rendered}
 
 
+def test_get_api_chatter_gives_its_full_answer_for_run_66_when_starting_render_leaf_log_sh_as_a_process_is_refused(
+        tmp_path, monkeypatch, dashboard, capfd):
+    run = os.path.join(str(tmp_path), ".tdd", "wt", "66")
+    write(os.path.join(run, ".tdd", "issue-66.md"),
+          "# Plan for #66 — lamps hum\n\n- [ ] a lamp stops humming\n")
+    records = [
+        {"type": "system", "subtype": "init", "session_id": "s6", "tools": ["Bash"]},
+        {"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "text", "text": "Making the hum case pass."}]}},
+    ]
+    write(os.path.join(run, ".tdd", "develop-green.out"),
+          "".join(json.dumps(record) + "\n" for record in records))
+    events = [{"ts": 1000, "issue": "66", "actor": "conductor", "phase": "", "step": "a lamp stops humming",
+               "event": "step-start", "attempt": "", "skill_commit": "abc"},
+              {"ts": 1010, "issue": "66", "actor": "developer", "phase": "green",
+               "step": "a lamp stops humming", "event": "launch", "attempt": "1",
+               "skill_commit": "abc", "name": "develop-green"}]
+    write(os.path.join(run, ".tdd", "events.jsonl"),
+          "".join(json.dumps(event) + "\n" for event in events))
+    before = sorted(os.listdir(os.path.join(run, ".tdd")))
+    real_popen = subprocess.Popen
+
+    def refuse(argv):
+        if "render-leaf-log.sh" in str(argv):
+            raise AssertionError("started render-leaf-log.sh as a process: %r" % (argv,))
+
+    def refusing_run(args, cwd=None, input=None, **kwargs):
+        refuse(args)
+        if list(args) == ["git", "worktree", "list", "--porcelain"]:
+            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
+            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    def refusing_popen(argv, *args, **kwargs):
+        refuse(argv)
+        return real_popen(argv, *args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", refusing_run)
+    monkeypatch.setattr(subprocess, "Popen", refusing_popen)
+    monkeypatch.chdir(tmp_path)
+    served = fake_server(monkeypatch, ["/api/chatter?issue=66"])
+    capfd.readouterr()
+
+    code = dashboard.main([])
+
+    (chatter,) = served[0][1]
+    assert code == 0
+    assert status_code(chatter) == b"200"
+    assert json.loads(body(chatter)) == {"chatter": "Making the hum case pass.\n"}
+    assert capfd.readouterr().err == ""
+    assert sorted(os.listdir(os.path.join(run, ".tdd"))) == before
+
+
 def test_get_api_chatter_answers_the_rendering_of_run_59s_verify_red_log_when_no_verify_red_out_exists(
         tmp_path, monkeypatch, dashboard):
     run = os.path.join(str(tmp_path), ".tdd", "wt", "59")
