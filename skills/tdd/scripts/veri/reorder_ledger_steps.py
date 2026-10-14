@@ -10,6 +10,10 @@ def _find(lines, substring):
     return next(i for i, line in enumerate(lines) if substring in line)
 
 
+def _frozen(line):
+    return line.startswith("- [x]") or ledger.PENDING_MARK in line
+
+
 def main(argv):
     if len(argv) != 4:
         print(USAGE, file=sys.stderr)
@@ -17,11 +21,11 @@ def main(argv):
     with open(argv[0], newline="") as file:
         lines = file.read().split("\n")
     moved = _find(lines, argv[1])
-    if lines[moved].startswith("- [x]") or ledger.PENDING_MARK in lines[moved]:
+    if _frozen(lines[moved]):
         print(f"cannot move a ticked step: {lines[moved]}", file=sys.stderr)
         return 1
     anchor = _find(lines, argv[3])
-    if lines[anchor].startswith("- [x]") or ledger.PENDING_MARK in lines[anchor]:
+    if _frozen(lines[anchor]):
         print(f"cannot move a step relative to a ticked step: {lines[anchor]}", file=sys.stderr)
         return 1
     step = lines.pop(moved)
