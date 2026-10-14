@@ -13,7 +13,7 @@ def exists_in_tree(test_id):
         with open(path, encoding="utf-8") as handle:
             source = handle.read()
     except OSError:
-        return True
+        return False
     return re.search(r"^\s*(?:async\s+)?def " + re.escape(name.split("::")[-1]) + r"\b", source, re.M) is not None
 
 
