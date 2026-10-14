@@ -1401,3 +1401,20 @@ def test_cli_hands_claude_an_environment_without_the_session_handles_or_any_valu
         "gh-driver": {"code": 0, "seen": [dict(pinned, VERI_GH_DRIVER="graphql")], "repins": [], "leaf": "graphql\n"},
         "unpinned": {"code": 0, "seen": [{"VERI_SKILL_UNPINNED": "1"}], "repins": [], "leaf": None},
     }
+
+
+def test_cli_a_frontmatter_fenced_procedure_launches_exits_0_and_reaches_the_binary_whole(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_claude_exiting(monkeypatch, 0, 0)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    procedure = (SCRIPTS.parent / "SKILL.md").read_bytes().rstrip(b"\n")
+
+    code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, [(stdin.split(b"\n", 1)[0], stdin.startswith(procedure)) for _, stdin in launches]) == (
+        0, [(b"---", True)])
