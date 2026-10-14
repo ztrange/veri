@@ -356,8 +356,8 @@ report "$name"
 name="#1406 $skill_md runs replaces-case-survivors.sh before the verify-green launch command, not after it"
 problems=()
 
-survivors_line="$(grep -nF 'replaces-case-survivors.sh "' "$skill_path" | head -n 1 | cut -d: -f1)"
-launch_line="$(grep -nF 'supervise.sh verdict-green' "$skill_path" | head -n 1 | cut -d: -f1)"
+survivors_line="$(grep -nF 'replaces-case-survivors.sh "' "$skill_path" | sed -n 1p | cut -d: -f1)"
+launch_line="$(grep -nF 'supervise.sh verdict-green' "$skill_path" | sed -n 1p | cut -d: -f1)"
 
 if [[ -z "$survivors_line" || -z "$launch_line" ]]; then
   problems+=("$skill_md lacks a replaces-case-survivors.sh run or a verdict-green launch line (survivors=${survivors_line:-none}, launch=${launch_line:-none}) — their order could not be established")
@@ -370,9 +370,9 @@ report "$name"
 name="#1406 $skill_md orders the unreplaced-cases.sh check before the replaces-case-survivors.sh check, and both before the verify-green launch command"
 problems=()
 
-unreplaced_line="$(grep -nF 'unreplaced-cases.sh "' "$skill_path" | head -n 1 | cut -d: -f1)"
-survivors_line="$(grep -nF 'replaces-case-survivors.sh "' "$skill_path" | head -n 1 | cut -d: -f1)"
-launch_line="$(grep -nF 'supervise.sh verdict-green' "$skill_path" | head -n 1 | cut -d: -f1)"
+unreplaced_line="$(grep -nF 'unreplaced-cases.sh "' "$skill_path" | sed -n 1p | cut -d: -f1)"
+survivors_line="$(grep -nF 'replaces-case-survivors.sh "' "$skill_path" | sed -n 1p | cut -d: -f1)"
+launch_line="$(grep -nF 'supervise.sh verdict-green' "$skill_path" | sed -n 1p | cut -d: -f1)"
 
 if [[ -z "$unreplaced_line" || -z "$survivors_line" || -z "$launch_line" ]]; then
   problems+=("$skill_md lacks an unreplaced-cases.sh run, a replaces-case-survivors.sh run or a verdict-green launch line (unreplaced=${unreplaced_line:-none}, survivors=${survivors_line:-none}, launch=${launch_line:-none}) — the gate order could not be established")
@@ -390,7 +390,7 @@ if [[ -z "${section// /}" ]]; then
 else
   require 'REVISE_BUDGET' "$section" \
     "$skill_md's replaces-case Green paragraph never says the survivors relaunch spends a REVISE_BUDGET attempt, so the relaunch is unbounded"
-  bail_cause="$(grep -oE 'cause=[a-z-]+' <<<"$section" | head -n 1)"
+  bail_cause="$(grep -oE 'cause=[a-z-]+' <<<"$section" | sed -n 1p)"
   bail_cause="${bail_cause#cause=}"
   if [[ -z "$bail_cause" ]]; then
     problems+=("$skill_md's replaces-case Green paragraph names no cause= to bail with when the REVISE_BUDGET is spent on survivors")
@@ -404,7 +404,7 @@ report "$name"
 name="#1406 $skill_md documents build-develop-prompt.sh green's 8th argument, the cases still owed for deletion, at the green build command and in the script reference entry"
 problems=()
 
-green_build="$(grep -F 'build-develop-prompt.sh green ' "$skill_path" | head -n 1)"
+green_build="$(grep -F 'build-develop-prompt.sh green ' "$skill_path" | sed -n 1p)"
 reference_green="$(awk 'index($0, "- `$S/build-develop-prompt.sh <red") == 1 { inside = 1; next } inside && /^- `/ { exit } inside' "$skill_path" | plain --join)"
 
 if [[ -z "$green_build" ]]; then
