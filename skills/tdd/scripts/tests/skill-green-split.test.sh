@@ -467,4 +467,23 @@ fi
 
 report "$name"
 
+name="#1546 $skill_md never runs replaces-case-survivors.sh, at any place it names it as a run, before the last place it runs unreplaced-cases.sh"
+problems=()
+
+unreplaced_runs="$(grep -nE '\$S/unreplaced-cases\.sh|[Rr]un [^.]*unreplaced-cases\.sh' "$skill_path" | cut -d: -f1)"
+survivors_runs="$(grep -nE '\$S/replaces-case-survivors\.sh|[Rr]uns? [^.]*replaces-case-survivors\.sh' "$skill_path" | cut -d: -f1)"
+
+if [[ -z "$unreplaced_runs" || -z "$survivors_runs" ]]; then
+  problems+=("$skill_md lacks an unreplaced-cases.sh run or a replaces-case-survivors.sh run (unreplaced=${unreplaced_runs:-none}, survivors=${survivors_runs:-none}) — their order could not be established")
+else
+  last_unreplaced="$(sort -n <<< "$unreplaced_runs" | tail -n 1)"
+  while IFS= read -r survivors_line; do
+    if [[ "$survivors_line" -lt "$last_unreplaced" ]]; then
+      problems+=("$skill_md:$survivors_line runs replaces-case-survivors.sh before the unreplaced-cases.sh run at line $last_unreplaced, so the two gates run in the other order")
+    fi
+  done <<< "$survivors_runs"
+fi
+
+report "$name"
+
 finish
