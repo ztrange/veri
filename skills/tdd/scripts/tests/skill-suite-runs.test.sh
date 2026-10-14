@@ -250,7 +250,7 @@ for pair in 'Refactor loop|#### Refactor loop' 'Revising on a REJECT|## Revising
   [[ "$body" != *'suite-reported.sh'* ]] || problems+=("${pair%%|*}: runs suite-reported.sh after a leaf whose prompt asks for no SUITE: line")
 done
 diff_checked="$(doc_text "$skill_path" '#### A `⟦diff-checked⟧` step' "")"
-[[ "$diff_checked" == *'suite-reported.sh develop-revise-diff'* ]] || problems+=("diff-checked step: never runs suite-reported.sh after develop-revise-diff")
+[[ "$diff_checked" == *'suite-reported.sh revise-diff-<k>'* ]] || problems+=("diff-checked step: never runs suite-reported.sh revise-diff-<k>, the leaf the conductor launches")
 report "$name"
 
 name="#991: doc_text given the from regex '^5\. ' starts at the line '5. y', not at '5x y'"
