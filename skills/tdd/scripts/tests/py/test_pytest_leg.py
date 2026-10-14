@@ -28,3 +28,13 @@ def test_an_interpreter_that_cannot_import_pytest_exits_2_naming_pytest_the_inte
         "veri needs pytest for the suites under skills/tdd/scripts/tests/py/; %s cannot import pytest. "
         "Install it with `make install-dev`.\n" % sys.executable,
     )
+
+
+def test_an_interpreter_that_can_import_pytest_but_not_pytest_timeout_exits_2_naming_pytest_timeout_the_interpreter_and_make_install_dev(pytest_leg, run_cli):
+    code, out, err = run_cli(pytest_leg, [], env={"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "0"})
+    assert (code, out, err) == (
+        2,
+        "",
+        "veri needs pytest-timeout for the suites under skills/tdd/scripts/tests/py/; %s cannot import pytest_timeout. "
+        "Install it with `make install-dev`.\n" % sys.executable,
+    )
