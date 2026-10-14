@@ -1,0 +1,2 @@
+### SKILL.md says the conductor never ends its turn while anything it started is still running — a background command, a subagent, or a background task — and says how it waits for one inside the turn, covering the mutation-parity pairs table, which it builds inline or waits for inside the turn; a prose case goes red when that sentence is removed or its "never" is negated ⟦criterion 1⟧
+- test-only | `never_ends_turn_with_work_running` in `skill-detach-test-command.test.sh` follows the file's existing awk-scanner and planted-negation pattern; I found nothing to extract.
