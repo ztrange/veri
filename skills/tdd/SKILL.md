@@ -569,10 +569,8 @@ unauthenticated baseline never gets a cycle.
    ```
    stray="$(git status --porcelain)"
    stray="$(grep -v '^.. \.tdd/' <<< "$stray")"
-   tdd="$(git diff HEAD -- .tdd)"
    git reset --hard HEAD
    git clean -fd -e .tdd
-   [[ -z "$tdd" ]] || git apply <<< "$tdd"
    ```
    Keep this `$stray` for *Resume* sub-step 4 to name. Then the resumed run, its worktree
    clean and its ledger untouched, runs
