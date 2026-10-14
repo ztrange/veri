@@ -5,3 +5,6 @@
 ### Each launcher run hands pytest a tmp_path base directory created for that run alone, so two runs at once never share one, and that directory is gone when the run ends, whether its cases passed or failed ⟦criterion 3⟧
 - test-only | `test_pytest_leg.py:57` has `import os` inside a test body; hoist it to the module imports.
 - test-only | The env dict `{"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1"}` is spelled out in two cases (lines 51 and 68); extract a shared constant.
+### A launcher run interrupted by SIGINT or by SIGTERM still leaves no tmp_path base directory behind ⟦criterion 3⟧
+- test-only | In `test_pytest_leg.py`, the `{"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1"}` env dict is repeated across three new cases; hoist it into one fixture or constant.
+- test-only | In `test_pytest_leg.py`, `import os` is repeated inside two new cases; move it to module level.
