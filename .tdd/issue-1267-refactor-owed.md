@@ -6,3 +6,6 @@
 - test-only | the `claude_reads_its_base` closures in the base-directory and resume cases share the same fake-claude dispatch preamble
 ### An unpinned launch hands over VERI_SKILL_UNPINNED=1, pinned through run_cli: replaces 'an unpinned launch hands the conductor VERI_SKILL_UNPINNED=1, and SKILL.md's plan-comment step names it' in skills/tdd/scripts/tests/run-conductor.test.sh ⟦replaces-case⟧ ⟦added⟧ ⟦criterion 1⟧
 - test-only | none
+### A launch leaves both checkouts' git status empty, pinned through run_cli: replaces 'the snapshot leaves git status --porcelain empty in the caller's checkout and in the skill clone' in skills/tdd/scripts/tests/run-conductor.test.sh ⟦replaces-case⟧ ⟦added⟧ ⟦criterion 1⟧
+- test-only | the `cwd = tmp_path / "cwd"; cwd.mkdir()` pair repeats in five cases in `test_run_conductor.py` and could become a fixture
+- test-only | the `claude_reads_its_base` stub (pass non-`fake-claude` calls to `subprocess.run`, record the base directories) is near-identical across the snapshot cases
