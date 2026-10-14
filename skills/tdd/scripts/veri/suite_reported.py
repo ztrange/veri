@@ -1,5 +1,8 @@
 """suite-reported.sh's computation, run in-process."""
+import os
 import sys
+
+import event
 
 USAGE = "usage: suite-reported.sh <leaf-name>"
 
@@ -14,6 +17,7 @@ def main(argv):
                 return 0
     except OSError:
         pass
+    event.mark("", event.context(os.environ), "report-missing", ["name=" + argv[0], "missing=SUITE"])
     print(f"suite-reported.sh: {argv[0]} left no SUITE: line", file=sys.stderr)
     return 2
 
