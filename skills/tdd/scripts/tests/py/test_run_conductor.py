@@ -1692,3 +1692,29 @@ def test_cli_a_launch_leaves_the_skill_clones_head_branch_and_working_tree_uncha
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
 
     assert (code, state()) == (0, before), stderr
+
+
+@pytest.mark.process("real git archive and tar materialising a scratch skill clone's commit, with an uncommitted edit to its SKILL.md in the tree")
+def test_cli_a_frontmatter_fenced_procedure_launches_exits_0_and_reaches_the_binary_whole_with_an_uncommitted_edit_to_skill_md_in_the_tree(
+        tmp_path, monkeypatch, run_cli):
+    committed = "---\nname: tdd\n---\n# the committed procedure\n"
+    skill, run_conductor = skill_clone(tmp_path, monkeypatch, "run_conductor_edited_procedure", {"SKILL.md": committed})
+    with open(skill / "SKILL.md", "a") as edit:
+        edit.write("uncommitted edit to the procedure\n")
+    run, seen = subprocess.run, []
+
+    def claude_reads_its_procedure(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+        stdin = kwargs.get("input")
+        stdin = stdin.decode() if isinstance(stdin, bytes) else stdin
+        seen.append((stdin.split("\n", 1)[0], stdin.startswith(committed.rstrip("\n"))))
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    monkeypatch.setattr(subprocess, "run", claude_reads_its_procedure)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, seen) == (0, [("---", True)]), stderr

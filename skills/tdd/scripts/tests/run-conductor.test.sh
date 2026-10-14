@@ -462,17 +462,6 @@ fi
 
 report "$name"
 
-name="case 4 passes with an uncommitted edit to SKILL.md in the tree under test"
-problems=()
-
-clone21="$work/clone21"
-skill_clone "$clone21"
-echo "uncommitted edit to the procedure" >> "$clone21/skills/tdd/SKILL.md"
-
-assert_case4 "$clone21/skills/tdd/scripts/run-conductor.sh"
-
-report "$name"
-
 name="a working-tree edit to SKILL.md never reaches the conductor; the committed SKILL.md does"
 problems=()
 
