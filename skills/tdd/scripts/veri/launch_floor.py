@@ -29,10 +29,14 @@ def bash_refusal(prefix):
     return 2
 
 
-def python_refusal(prefix):
+def python_floor():
     lib = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lib", "venv-python.sh")
     with open(lib) as f:
-        floor = re.search("^VENV_FLOOR=(.*)$", f.read(), re.M).group(1)
+        return re.search("^VENV_FLOOR=(.*)$", f.read(), re.M).group(1)
+
+
+def python_refusal(prefix):
+    floor = python_floor()
     version = tunables.read("VERI_PYTHON_VERSION") or platform.python_version()
     major, dot, rest = version.partition(".")
     minor = rest.partition(".")[0] if dot else major
