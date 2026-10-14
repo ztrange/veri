@@ -32,4 +32,11 @@ cp "$led" "$work/before"
 { [[ "$code" == 1 ]] && cmp -s "$led" "$work/before" && grep -F "alpha" "$work/err" > /dev/null; } \
   && ok || no "#1550: a ticked step to move exits 1, leaves the ledger byte-identical and names the step on stderr (code=$code err='$(cat "$work/err")')"
 
+led="$work/issue-128.md"
+printf '# Plan for #128\n\n- [x] alpha step ⟂ refactor pending\n- [ ] bravo step\n- [ ] charlie step\n' > "$led"
+cp "$led" "$work/before"
+"$REORDER" "$led" "charlie" after "alpha" > "$work/out" 2> "$work/err"; code=$?
+{ [[ "$code" == 1 ]] && cmp -s "$led" "$work/before" && grep -F "alpha" "$work/err" > /dev/null; } \
+  && ok || no "#1550: a ticked anchor carrying the refactor-pending mark exits 1, leaves the ledger byte-identical and names the anchor on stderr (code=$code err='$(cat "$work/err")')"
+
 finish

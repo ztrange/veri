@@ -16,6 +16,10 @@ def main(argv):
     if lines[moved].startswith("- [x]"):
         print(f"cannot move a ticked step: {lines[moved]}", file=sys.stderr)
         return 1
+    anchor = next(i for i, line in enumerate(lines) if argv[3] in line)
+    if lines[anchor].startswith("- [x]"):
+        print(f"cannot move a step relative to a ticked step: {lines[anchor]}", file=sys.stderr)
+        return 1
     step = lines.pop(moved)
     anchor = next(i for i, line in enumerate(lines) if argv[3] in line)
     lines.insert(anchor if argv[2] == "before" else anchor + 1, step)
