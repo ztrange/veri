@@ -832,6 +832,13 @@ three times over branches its ledger pinned on later lines.
    start at the process boundary, say), plan that case as a separate Red/Green step tagged
    with the same `⟦criterion k⟧`, so the case never exists only inside the phased step.
 
+   Each step's text carries every constraint the issue attaches to the cases that step covers,
+   because the leaves work from the step text and not from the issue: the case size it must
+   keep (a medium case, with a real process), "no production change", and any end-to-end path
+   through real processes that must stay covered. A step that can be satisfied only by editing
+   a test is planned as a test-only step (`⟦diff-checked⟧` or the pin), never as Red/Green,
+   since Green may not edit a test.
+
    A **refactor-kind** run — the spec carries the `## Refactor` section `capture-spec.sh`
    writes for the `refactor` label — changes no behaviour, so it has no failing test to plan
    around. Plan each step as one named refactoring whose criterion is a shell predicate,

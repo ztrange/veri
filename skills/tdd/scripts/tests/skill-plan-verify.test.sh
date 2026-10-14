@@ -189,4 +189,20 @@ fi
 
 report "$name"
 
+name="SKILL.md's plan section requires each step's text to carry every constraint the issue attaches to its cases: the case size, no production change, and the end-to-end path through real processes (#1467)"
+problems=()
+
+constraint_words="constraint|medium|no production change|end-to-end"
+
+if [[ "$scope_line" -eq 0 || "$scope_end" -eq 0 ]]; then
+  problems+=("$skill_md is missing a landmark of the plan section (/$scope_re/ at line $scope_line, /$scope_end_re/ at line $scope_end)")
+else
+  hit="$(paragraph_with_all "$scope_line" "$scope_end" "$constraint_words")"
+  if [[ -z "$hit" ]]; then
+    problems+=("no paragraph between $skill_md:$scope_line and :$scope_end names all of '${constraint_words//|/$sep}', so a step's text may drop a constraint the issue attached to its cases and the leaf works from a step that no longer says it")
+  fi
+fi
+
+report "$name"
+
 finish
