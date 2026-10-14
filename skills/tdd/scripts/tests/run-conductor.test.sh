@@ -136,9 +136,6 @@ tree_clone() {
 tree_clone "$work/tree"
 CONDUCTOR="$work/tree/skills/tdd/scripts/run-conductor.sh"
 
-caller="$work/caller"
-caller_repo "$caller"
-
 name="a resume with VERI_NEW_SKILL=1 is re-pinned to the clone's current commit and logs a skill-repin event"
 problems=()
 
