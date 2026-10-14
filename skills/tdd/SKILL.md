@@ -1314,7 +1314,6 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    rm -f .tdd/develop-refactor.exit .tdd/develop-refactor.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh)" $S/detach-leaf.sh $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions > .tdd/develop-refactor.out 2> .tdd/develop-refactor.err
    $S/wait-leaf.sh develop-refactor   # foreground; on exit 3 call it again
-   $S/suite-reported.sh develop-refactor   # exit 2 ⇒ launch no verifier, bail `report-missing`
    ```
    **One leaf for the whole step**, not one per transform: the cold `claude -p` start and
    the re-read of the spec and of the touched files are paid once for the step instead of
@@ -1559,7 +1558,9 @@ origin/<default>`, and its own diff from the step base sha. Both are launched th
 A supervisor exit 2 on the `develop-diff` leaf is a `killed-stuck` bail, as for any developer
 leaf. After its wait exits 0 and before the verifier is launched, run `$S/suite-reported.sh develop-diff`:
 exit 2 means the leaf left no `SUITE:` line, so launch no verifier and **bail** as a system
-failure with cause `report-missing`. The verifier's verdict closes the `⟦diff-checked⟧` step:
+failure with cause `report-missing`. The `diff` revise leaf asks for the line too, so after its wait
+exits 0 the same check, `$S/suite-reported.sh develop-revise-diff` for the `revise-diff-<k>` leaf, runs
+before the re-verify with the same exit 2 outcome. The verifier's verdict closes the `⟦diff-checked⟧` step:
 
 - **PASS (exit 0):** tick the `⟦diff-checked⟧` step with `tick-ledger.sh` — without
   `--refactor-pending`, since no refactor loop follows — commit the ledger and push it as
@@ -2067,8 +2068,9 @@ A `REJECT` (verify.sh exit **1**) does **not** stop the run. The conductor gets 
 verifier before bailing the step. The rejection **reason is the carry-forward signal**:
 leaves never share context, so each revise leaf is told explicitly what to fix.
 
-Every revise leaf is checked with `suite-reported.sh` once its wait exits 0, before its verifier is
-launched; exit 2 launches no verifier and bails with cause `report-missing`.
+A revise of red, green or refactor is built from a prompt that asks for no `SUITE:` line, so its wait
+exits 0 straight into its verifier and nothing checks for the line. The `diff` revise does ask for one:
+its check is stated under *A `⟦diff-checked⟧` step*.
 
 For attempt `k = 1 … REVISE_BUDGET`:
 
@@ -2086,7 +2088,6 @@ For attempt `k = 1 … REVISE_BUDGET`:
    rm -f .tdd/revise-<phase>-<k>.exit .tdd/revise-<phase>-<k>.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/detach-leaf.sh $S/supervise.sh revise-<phase>-<k> $S/run-leaf.sh .tdd/revise-<phase>-<k>.prompt --permission-mode bypassPermissions > .tdd/revise-<phase>-<k>.out 2> .tdd/revise-<phase>-<k>.err
    $S/wait-leaf.sh revise-<phase>-<k>   # foreground; on exit 3 call it again
-   $S/suite-reported.sh revise-<phase>-<k>   # exit 2 ⇒ launch no verifier, bail `report-missing`
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — red or green only — see *The step's cost check*
    ```
    The `step-cost.sh` line runs only when `<phase>` is red or green: a refactor-phase revise

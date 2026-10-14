@@ -235,14 +235,22 @@ check_report_section() {
   ((${#first_check} <= ${#first_verifier})) || problems+=("$label: the check comes after the verifier is launched")
 }
 check_report_section "Green" '#### Green'
-check_report_section "Revising on a REJECT" '## Revising on a REJECT'
 check_report_section "diff-checked step" '#### A `⟦diff-checked⟧` step'
 check_report_section "phases step" '#### A `⟦phases: …⟧` step'
-check_report_section "Refactor loop" '#### Refactor loop'
 structural_all="$(plain --join < "$skill_path")"
 structural="${structural_all#*develop-structural}"
 structural="${structural:0:1500}"
 [[ "$structural" == *'suite-reported.sh'* ]] || problems+=("structural pass: never runs suite-reported.sh")
+report "$name"
+
+name="#1300: $skill_md runs suite-reported.sh only after a leaf whose prompt asks for a SUITE: line, never after the refactor leaf or a revise of red, green or refactor"
+problems=()
+for pair in 'Refactor loop|#### Refactor loop' 'Revising on a REJECT|## Revising on a REJECT'; do
+  body="$(doc_text "$skill_path" "${pair#*|}" "")"
+  [[ "$body" != *'suite-reported.sh'* ]] || problems+=("${pair%%|*}: runs suite-reported.sh after a leaf whose prompt asks for no SUITE: line")
+done
+diff_checked="$(doc_text "$skill_path" '#### A `⟦diff-checked⟧` step' "")"
+[[ "$diff_checked" == *'suite-reported.sh develop-revise-diff'* ]] || problems+=("diff-checked step: never runs suite-reported.sh after develop-revise-diff")
 report "$name"
 
 name="#991: doc_text given the from regex '^5\. ' starts at the line '5. y', not at '5x y'"
