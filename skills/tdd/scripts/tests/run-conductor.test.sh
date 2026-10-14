@@ -250,40 +250,6 @@ holds_skill "$tip_base" "$tipdir/skills/tdd" "launch's" "origin's tip $tip: $(ca
 
 report "$name"
 
-name="a launch leaves the skill clone's HEAD, branch and working tree unchanged"
-problems=()
-
-remote7="$work/remote7"
-clone7="$work/clone7"
-cloned_skill "$remote7" "$clone7"
-advance_clone "$remote7" "# a commit that landed on the remote after the clone was cut"
-echo "# an uncommitted edit in the clone" >> "$clone7/skills/tdd/SKILL.md"
-
-clone_state() {
-  git -C "$1" rev-parse HEAD
-  git -C "$1" symbolic-ref -q HEAD || echo "detached"
-  git -C "$1" status --porcelain
-  git -C "$1" ls-files -z | (cd "$1" && xargs -0 cksum)
-}
-
-before7="$(clone_state "$clone7")"
-
-caller7="$work/caller7"
-caller_repo "$caller7"
-
-rm -f "$argv"
-launch_from "$caller7" "$clone7"
-
-if [[ ! -f "$argv" ]]; then
-  problems+=("the conductor was never launched: $(cat "$launch_err")")
-else
-  after7="$(clone_state "$clone7")"
-  [[ "$after7" == "$before7" ]] ||
-    problems+=("the clone changed across the launch: $(diff <(echo "$before7") <(echo "$after7") | grep '^[<>]' | tr '\n' ' ')")
-fi
-
-report "$name"
-
 name="a failed fetch of origin exits 2 before any conductor is launched and names the fetch on stderr"
 problems=()
 

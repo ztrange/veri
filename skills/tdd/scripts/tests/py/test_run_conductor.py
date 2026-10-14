@@ -1652,3 +1652,41 @@ def test_cli_a_launch_leaves_git_status_porcelain_empty_in_the_callers_checkout_
 
     clean = {"caller": "", "clone": ""}
     assert (code, during, status()) == (0, [clean], clean), stderr
+
+
+@pytest.mark.process("real git clone, fetch and archive of a scratch skill clone whose origin has moved on, and git reading its HEAD, branch and status")
+def test_cli_a_launch_leaves_the_skill_clones_head_branch_and_working_tree_unchanged_when_origin_has_moved_on_and_the_tree_has_an_uncommitted_edit(
+        tmp_path, monkeypatch, run_cli):
+    import importlib.util
+    remote, _ = skill_clone(tmp_path, monkeypatch, "run_conductor_remote", {"SKILL.md": "# the committed procedure\n"},
+                            directory="remote")
+    clone = tmp_path / "clone"
+    subprocess.run(["git", "clone", "-q", str(remote), str(clone)], check=True)
+    with open(remote / "SKILL.md", "a") as landed:
+        landed.write("# a commit that landed on the remote after the clone was cut\n")
+    subprocess.run(git_as_veri(remote) + ["commit", "-q", "-am", "pulled"], check=True)
+    with open(clone / "SKILL.md", "a") as edit:
+        edit.write("# an uncommitted edit in the clone\n")
+    spec = importlib.util.spec_from_file_location("run_conductor_clone", str(clone / "scripts" / "veri" / "run_conductor.py"))
+    run_conductor = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(run_conductor)
+    caller = caller_repository(tmp_path, {"README": "target\n"})
+    run = subprocess.run
+
+    def state():
+        git = ["git", "-C", str(clone)]
+        read = lambda *args: run(git + list(args), capture_output=True, text=True).stdout
+        return (read("rev-parse", "HEAD"), read("symbolic-ref", "-q", "HEAD"), read("status", "--porcelain"),
+                tree_contents(clone))
+
+    def claude_returns(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    monkeypatch.setattr(subprocess, "run", claude_returns)
+    before = state()
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+
+    assert (code, state()) == (0, before), stderr
