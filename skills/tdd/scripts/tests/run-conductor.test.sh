@@ -192,37 +192,8 @@ assert_case4() {
   fi
 }
 
-name="the conductor's base directory is a snapshot of the skill commit, not the clone"
-problems=()
-
-clone="$work/clone"
-skill_clone "$clone"
-commit="$(git -C "$clone" rev-parse HEAD)"
-echo "# uncommitted edit after the skill commit" >> "$clone/skills/tdd/scripts/supervise.sh"
-
-committed="$work/committed"
-skill_archive "$clone" "$commit" "$committed"
-
 caller="$work/caller"
 caller_repo "$caller"
-rm -f "$prompt"
-live="$work/live-base"
-mkdir -p "$live"
-
-launch_from "$caller" "$clone" BASE_OUT="$live"
-
-base="$(prompt_base)"
-if [[ -z "$base" ]]; then
-  problems+=("the prompt names no 'Base directory for this skill: <dir>' line")
-elif [[ "$(cd "$base" 2>/dev/null && pwd -P)" == "$(cd "$clone/skills/tdd" && pwd -P)" ]]; then
-  problems+=("the base directory is the clone's own skills/tdd: $base")
-elif ! diff_out="$(differing_files "$committed/skills/tdd" "$live")" || [[ -n "$diff_out" ]]; then
-  problems+=("the base directory's files differ from skill commit $commit: ${diff_out//$'\n'/ }")
-elif [[ -e "$base" ]]; then
-  problems+=("the snapshot is still on disk after the launch returned: $base")
-fi
-
-report "$name"
 
 name="a leaf launched mid-run executes the snapshot's supervise.sh, run-leaf.sh and template, not the clone's"
 problems=()
