@@ -159,6 +159,15 @@ plan="$("$BUILD" plan "$work/spec.md" "$work/ledger.md")"; code=$?
   && [[ "$plan" == *'A verdict launcher script runs verify.sh with the step title as an argument ⟦criterion 1⟧'* ]] \
   && ok || no "verify-plan carries the issue spec and the ledger named as its third argument (exit $code)"
 
+name="verify-plan tells the verifier to REJECT a plan whose step drops a constraint the issue attaches to the cases it covers: case size, no production change, an end-to-end path through real processes (#1467)"
+flat="$(printf '%s' "$plan" | tr -s '[:space:]' ' ')"
+problems=""
+[[ "$flat" == *"REJECT a plan whose step drops a constraint the issue attaches to"* ]] || problems="$problems; never says to REJECT a step that drops a constraint the issue attaches to its cases"
+[[ "$flat" == *"case size"* ]] || problems="$problems; never names the case size as a constraint"
+[[ "$flat" == *"no production change"* ]] || problems="$problems; never names \"no production change\" as a constraint"
+[[ "$flat" == *"end-to-end path through real processes"* ]] || problems="$problems; never names the end-to-end path through real processes as a constraint"
+[[ -z "$problems" ]] && ok || no "$name (${problems#; })"
+
 cat > "$work/rationale-ledger.md" <<'LEDGER'
 # Plan for #439
 
