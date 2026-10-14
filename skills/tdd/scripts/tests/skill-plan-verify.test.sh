@@ -176,10 +176,7 @@ report "$name"
 name="SKILL.md's plan section plans an interface change that also asks for a test case as the phased step plus a separate Red/Green step tagged with the same criterion (#1495)"
 problems=()
 
-scope_line="$(line_of "$scope_re")"
-scope_end="$(line_of "$scope_end_re")"
 split_words="interface change|test case|separate|red/green|same"
-sep="', '"
 
 if [[ "$scope_line" -eq 0 || "$scope_end" -eq 0 ]]; then
   problems+=("$skill_md is missing a landmark of the plan section (/$scope_re/ at line $scope_line, /$scope_end_re/ at line $scope_end)")
