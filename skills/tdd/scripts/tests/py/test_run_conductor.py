@@ -1833,3 +1833,57 @@ def test_cli_a_run_through_a_symlink_to_the_skill_directory_from_another_working
 
     assert (code, seen) == (0, [{"record": tip, "bases": 1, "base_is_clone": False,
                                  "skill_md": b"# the committed procedure\n", "names_tip": True}]), stderr
+
+
+@pytest.mark.process("real git init, commit and clone of a checkout under test whose origin is a local bare repository or an https address nothing listens on, the skill clone's real git fetch of that checkout, and git archive and tar materialising the fetched commit")
+def test_cli_a_launch_from_a_skill_clone_whose_origin_is_a_checkout_under_test_with_an_unreachable_origin_exits_and_hands_claude_its_environment_as_with_a_reachable_origin(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
+        monkeypatch.delenv(name, raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    monkeypatch.setenv("GIT_TERMINAL_PROMPT", "0")
+    run, seen = subprocess.run, []
+
+    def claude_reads_its_environment(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+        seen.append({name: value for name, value in kwargs["env"].items() if name.startswith("VERI_SKILL_")})
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    answers = {}
+    for name in ("reachable", "unreachable"):
+        variant = tmp_path / name
+        checkout = variant / "checkout"
+        (checkout / "scripts" / "veri").mkdir(parents=True)
+        (checkout / "SKILL.md").write_text("---\nname: tdd\n---\n# the procedure\n")
+        (checkout / "scripts" / "veri" / "run_conductor.py").symlink_to(SCRIPTS / "veri" / "run_conductor.py")
+        subprocess.run(["git", "init", "-q", str(checkout)], check=True)
+        subprocess.run(git_as_veri(checkout) + ["add", "-A"], check=True)
+        subprocess.run(git_as_veri(checkout) + ["commit", "-q", "-m", "the checkout under test"], check=True)
+        remote = variant / "remote.git"
+        subprocess.run(["git", "clone", "-q", "--bare", str(checkout), str(remote)], check=True)
+        origin = str(remote) if name == "reachable" else "https://127.0.0.1:1/veri.git"
+        subprocess.run(git_as_veri(checkout) + ["remote", "add", "origin", origin], check=True)
+        skill = variant / "skill"
+        subprocess.run(["git", "clone", "-q", str(checkout), str(skill)], check=True)
+        (checkout / "SKILL.md").write_text("---\nname: tdd\n---\n# the procedure, advanced\n")
+        subprocess.run(git_as_veri(checkout) + ["commit", "-q", "-am", "the checkout under test advances"], check=True)
+        tip = subprocess.run(["git", "-C", str(checkout), "rev-parse", "HEAD"], check=True, capture_output=True,
+                             text=True).stdout.strip()
+        run_conductor = load_run_conductor("run_conductor_checkout_" + name, skill)
+        caller = variant / "caller"
+        caller.mkdir()
+        monkeypatch.setattr(subprocess, "run", claude_reads_its_environment)
+        seen.clear()
+        code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+        monkeypatch.setattr(subprocess, "run", run)
+        answers[name] = (code, [{"VERI_SKILL_CLONE": env.get("VERI_SKILL_CLONE") == str(skill),
+                                 "VERI_SKILL_COMMIT": env.get("VERI_SKILL_COMMIT") == tip,
+                                 "VERI_SKILL_REF": env.get("VERI_SKILL_REF"),
+                                 "VERI_SKILL_UNPINNED": env.get("VERI_SKILL_UNPINNED")} for env in seen], stderr)
+
+    assert answers["unreachable"][:2] == answers["reachable"][:2], answers["unreachable"][2]
+    assert answers["reachable"][:2] == (0, [{"VERI_SKILL_CLONE": True, "VERI_SKILL_COMMIT": True,
+                                             "VERI_SKILL_REF": "refs/remotes/origin/HEAD",
+                                             "VERI_SKILL_UNPINNED": None}]), answers["reachable"][2]
