@@ -1213,6 +1213,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    do not launch verify-green — never verify a step whose named cases lack a replacement.
    Exit 2 — no answer could be obtained (no readable report, bad arguments) — also bails with
    cause=unreplaced-cases, and verify-green is not launched.
+   Run `$S/replaces-case-survivors.sh "<step text>"` before the launch below; its exit 1 means survivors (see the paragraph after the block).
    ```
    rm -f .tdd/verdict-green.exit .tdd/verdict-green.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-green $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" --fast-cmd '<fast-cmd>' green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason 2> .tdd/verify-green.err

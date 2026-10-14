@@ -353,4 +353,18 @@ fi
 
 report "$name"
 
+name="#1406 $skill_md runs replaces-case-survivors.sh before the verify-green launch command, not after it"
+problems=()
+
+survivors_line="$(grep -nF 'replaces-case-survivors.sh "' "$skill_path" | head -n 1 | cut -d: -f1)"
+launch_line="$(grep -nF 'supervise.sh verdict-green' "$skill_path" | head -n 1 | cut -d: -f1)"
+
+if [[ -z "$survivors_line" || -z "$launch_line" ]]; then
+  problems+=("$skill_md lacks a replaces-case-survivors.sh run or a verdict-green launch line (survivors=${survivors_line:-none}, launch=${launch_line:-none}) — their order could not be established")
+elif [[ "$survivors_line" -gt "$launch_line" ]]; then
+  problems+=("$skill_md:$survivors_line runs replaces-case-survivors.sh after the verify-green launch at line $launch_line, so a conductor following the page in order launches the verifier before it checks for survivors")
+fi
+
+report "$name"
+
 finish
