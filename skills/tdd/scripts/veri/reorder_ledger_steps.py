@@ -21,7 +21,7 @@ def main(argv):
         print(f"cannot move a ticked step: {lines[moved]}", file=sys.stderr)
         return 1
     anchor = _find(lines, argv[3])
-    if lines[anchor].startswith("- [x]"):
+    if lines[anchor].startswith("- [x]") or ledger.PENDING_MARK in lines[anchor]:
         print(f"cannot move a step relative to a ticked step: {lines[anchor]}", file=sys.stderr)
         return 1
     step = lines.pop(moved)
