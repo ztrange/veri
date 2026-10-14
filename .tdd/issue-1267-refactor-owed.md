@@ -9,3 +9,6 @@
 ### A launch leaves both checkouts' git status empty, pinned through run_cli: replaces 'the snapshot leaves git status --porcelain empty in the caller's checkout and in the skill clone' in skills/tdd/scripts/tests/run-conductor.test.sh ⟦replaces-case⟧ ⟦added⟧ ⟦criterion 1⟧
 - test-only | the `cwd = tmp_path / "cwd"; cwd.mkdir()` pair repeats in five cases in `test_run_conductor.py` and could become a fixture
 - test-only | the `claude_reads_its_base` stub (pass non-`fake-claude` calls to `subprocess.run`, record the base directories) is near-identical across the snapshot cases
+### A launch leaves the skill clone's HEAD, branch and tree as they were, pinned through run_cli: replaces 'a launch leaves the skill clone's HEAD, branch and working tree unchanged' in skills/tdd/scripts/tests/run-conductor.test.sh ⟦replaces-case⟧ ⟦added⟧ ⟦criterion 1⟧
+- test-only | the `cwd = tmp_path / "cwd"; cwd.mkdir()` pair is repeated in five cases and could become a helper
+- test-only | the `claude_returns` and `claude_reads_*` subprocess.run wrappers repeat the fake-claude dispatch (`list(args)[:1] != ["fake-claude"]` falling through to the real `run`) and could share one factory
