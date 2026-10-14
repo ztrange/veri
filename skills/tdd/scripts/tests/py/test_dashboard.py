@@ -259,6 +259,45 @@ def test_get_api_metrics_recomputes_a_live_run_and_quotes_the_committed_report_o
     assert issues["32"] == committed
 
 
+def test_get_api_metrics_gives_its_full_answer_for_a_live_run_when_starting_metrics_sh_as_a_process_is_refused(
+        tmp_path, monkeypatch, dashboard, run_cli, capfd):
+    run = os.path.join(str(tmp_path), ".tdd", "wt", "36")
+    write(os.path.join(run, ".tdd", "issue-36.md"), "# Plan for #36\n\n- [ ] a lamp glows\n")
+    write(os.path.join(run, ".tdd", "events.jsonl"),
+          '{"ts": 1, "issue": "36", "event": "step-start"}\n'
+          '{"ts": 2, "issue": "36", "event": "launch", "name": "develop-red"}\n')
+    want = report_of(run_cli, "36", run)
+    served = serve_with_real_metrics(monkeypatch, tmp_path)
+    capfd.readouterr()
+    git_aware_run = subprocess.run
+    real_popen = subprocess.Popen
+
+    def refuse(argv):
+        if "metrics.sh" in str(argv):
+            raise AssertionError("started metrics.sh as a process: %r" % (argv,))
+
+    def refusing_run(argv, *args, **kwargs):
+        refuse(argv)
+        return git_aware_run(argv, *args, **kwargs)
+
+    def refusing_popen(argv, *args, **kwargs):
+        refuse(argv)
+        return real_popen(argv, *args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", refusing_run)
+    monkeypatch.setattr(subprocess, "Popen", refusing_popen)
+
+    code = dashboard.main([])
+
+    (metrics,) = served[0][1]
+    assert code == 0
+    assert status_code(metrics) == b"200"
+    assert json.loads(body(metrics))["issues"]["36"] == want
+    assert os.getcwd() == str(tmp_path)
+    assert capfd.readouterr().err == ""
+    assert not os.path.exists(os.path.join(run, ".tdd", "issue-36-metrics.md"))
+
+
 def test_get_api_metrics_quotes_the_committed_report_of_run_33_ended_by_bail(
         tmp_path, monkeypatch, dashboard):
     run = os.path.join(str(tmp_path), ".tdd", "wt", "33")
