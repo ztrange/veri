@@ -50,4 +50,24 @@ check_code=$?
   problems+=("suite-reported.sh develop-green: want exit 0, got $check_code")
 report "$name"
 
+name="suite-reported.sh appends a report-missing event naming the leaf and SUITE on exit 2, distinct from killed-stuck, and none on exit 0 (#1300)"
+problems=()
+ev_work="$(scratch_dir)"
+mkdir -p "$ev_work/.tdd"
+printf 'Waiting on the make test run to exit.\n' > "$ev_work/.tdd/develop-diff.out"
+printf 'SUITE: GREEN - 3 suites passed\n' > "$ev_work/.tdd/develop-green.out"
+( cd "$ev_work" && VERI_ISSUE=1 "$CHECK" develop-green >/dev/null 2>&1 )
+if [[ -s "$ev_work/.tdd/events.jsonl" ]]; then
+  problems+=("exit 0 (SUITE: present) wrote events: $(cat "$ev_work/.tdd/events.jsonl")")
+fi
+( cd "$ev_work" && VERI_ISSUE=1 "$CHECK" develop-diff >/dev/null 2>&1 )
+events="$(cat "$ev_work/.tdd/events.jsonl" 2>/dev/null)"
+[[ "$events" == *'"event": "report-missing"'* ]] ||
+  problems+=("exit 2: want a report-missing event, got: ${events:-<no events>}")
+[[ "$events" == *'"name": "develop-diff"'* && "$events" == *'"missing": "SUITE"'* ]] ||
+  problems+=("exit 2: want the event to carry name=develop-diff and missing=SUITE, got: ${events:-<no events>}")
+[[ "$events" != *killed-stuck* ]] ||
+  problems+=("exit 2: the event must not be killed-stuck, got: $events")
+report "$name"
+
 finish
