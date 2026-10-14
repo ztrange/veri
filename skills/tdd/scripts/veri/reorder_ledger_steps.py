@@ -24,6 +24,9 @@ def main(argv):
     if moved is None:
         print(f"no step matches: {argv[1]}", file=sys.stderr)
         return 1
+    if sum(argv[1] in line for line in lines) > 1:
+        print(f"more than one step matches: {argv[1]}", file=sys.stderr)
+        return 1
     if _frozen(lines[moved]):
         print(f"cannot move a ticked step: {lines[moved]}", file=sys.stderr)
         return 1
