@@ -2121,11 +2121,9 @@ def test_cli_an_unresolvable_recorded_skill_commit_refuses_with_exit_2_unless_ve
             repins) == (0, 2, 1, 0, 2, head + "\n", [head]), stderr
 
 
-@pytest.mark.process("real git archive and tar materialising a scratch skill clone's current commit, and the real event.sh appending the skill-repin event in a real caller repository")
-def test_cli_the_skill_repin_event_lands_in_the_run_worktrees_events_jsonl_never_the_callers(
-        tmp_path, monkeypatch, run_cli):
+def launched_once_then_moved_on(tmp_path, monkeypatch, run_cli, module_name):
     skill, run_conductor = skill_clone(
-        tmp_path, monkeypatch, "run_conductor_repin_log",
+        tmp_path, monkeypatch, module_name,
         {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the recorded supervisor\n"})
     caller = caller_repository(tmp_path)
     subprocess.run(git_as_veri(caller) + ["branch", "tdd/4242-past-preflight"], check=True)
@@ -2134,6 +2132,13 @@ def test_cli_the_skill_repin_event_lands_in_the_run_worktrees_events_jsonl_never
     first_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller)
     commit_appended_line(skill, "SKILL.md", "a commit the operator asks the run to take")
     current = head_commit(skill)
+    return run_conductor, caller, first_code, current
+
+
+@pytest.mark.process("real git archive and tar materialising a scratch skill clone's current commit, and the real event.sh appending the skill-repin event in a real caller repository")
+def test_cli_the_skill_repin_event_lands_in_the_run_worktrees_events_jsonl_never_the_callers(
+        tmp_path, monkeypatch, run_cli):
+    run_conductor, caller, first_code, current = launched_once_then_moved_on(tmp_path, monkeypatch, run_cli, "run_conductor_repin_log")
     (caller / ".tdd" / "wt" / "4242").mkdir(parents=True)
     resumed_code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller, env={"VERI_NEW_SKILL": "1"})
 
@@ -2144,16 +2149,7 @@ def test_cli_the_skill_repin_event_lands_in_the_run_worktrees_events_jsonl_never
 @pytest.mark.process("real git archive and tar materialising a scratch skill clone's current commit, and the real event.sh appending the skill-repin event in a real caller repository")
 def test_cli_a_veri_new_skill_1_re_pin_that_runs_before_the_run_worktree_exists_writes_its_skill_repin_event_to_the_run_worktrees_events_jsonl_and_never_to_the_callers(
         tmp_path, monkeypatch, run_cli):
-    skill, run_conductor = skill_clone(
-        tmp_path, monkeypatch, "run_conductor_repin_before_worktree",
-        {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the recorded supervisor\n"})
-    caller = caller_repository(tmp_path)
-    subprocess.run(git_as_veri(caller) + ["branch", "tdd/4242-past-preflight"], check=True)
-    claude_records_its_base_trees(monkeypatch)
-
-    first_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller)
-    commit_appended_line(skill, "SKILL.md", "a commit the operator asks the run to take")
-    current = head_commit(skill)
+    run_conductor, caller, first_code, current = launched_once_then_moved_on(tmp_path, monkeypatch, run_cli, "run_conductor_repin_before_worktree")
     worktree_existed = (caller / ".tdd" / "wt" / "4242").exists()
     resumed_code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller, env={"VERI_NEW_SKILL": "1"})
 
