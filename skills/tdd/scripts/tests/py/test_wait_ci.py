@@ -1038,3 +1038,25 @@ def test_main_exits_2_naming_the_checks_only_after_three_consecutive_failed_read
 
     assert (code, len(status_reads), err) == (
         2, 3, f"wait-ci.sh: could not read the checks of {FULL_SHA}\n")
+
+
+def test_main_resets_the_failed_read_count_on_a_successful_poll_so_alternating_failures_never_end_the_wait_issue_1553(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    pending = sha_bodies([[check_run("gates", FULL_SHA, "in_progress")]], [], "pending")
+    green = sha_bodies([[check_run("gates", FULL_SHA, "completed", "success")]], [], "success")
+    polls = []
+
+    def alternating(line):
+        if line == f"{COMMITS}/check-runs?page=1":
+            polls.append(line)
+        body = (green if len(polls) >= 7 else pending).get(line)
+        if line == f"{COMMITS}/status" and len(polls) in (1, 3, 5):
+            return (1, "", "gh: HTTP 500: Internal Server Error\n")
+        return body
+
+    served(fake_processes, {}, alternating)
+    code, _, _ = run_cli(wait_ci, [PR, "1800", "1800", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (code, len(polls)) == (0, 7)
