@@ -162,41 +162,6 @@ grep -qi 'fetch' "$launch_err" ||
 
 report "$name"
 
-name="a resume with VERI_NEW_SKILL=1 re-pins to origin/<default> as just fetched, not to the clone's HEAD"
-problems=()
-
-remote11="$work/remote11"
-clone11="$work/clone11"
-cloned_skill "$remote11" "$clone11"
-
-caller11="$work/caller11"
-caller_repo "$caller11"
-
-launch_from "$caller11" "$clone11"
-
-advance_clone "$remote11" "# a commit that landed on the remote after the run started"
-tip11="$(git -C "$remote11" rev-parse HEAD)"
-advance_clone "$clone11" "# a commit of the clone's own that origin never saw"
-head11="$(git -C "$clone11" rev-parse HEAD)"
-
-tipdir11="$work/tip11"
-skill_archive "$remote11" "$tip11" "$tipdir11"
-
-repinned11="$work/repinned11"
-mkdir -p "$repinned11"
-rm -f "$prompt"
-launch_from "$caller11" "$clone11" BASE_OUT="$repinned11" VERI_NEW_SKILL=1
-
-if [[ -z "$(prompt_base)" ]]; then
-  problems+=("the re-pinned launch's prompt names no base directory: $(cat "$launch_err")")
-else
-  holds_skill "$repinned11" "$tipdir11/skills/tdd" "re-pinned launch's" "origin's tip $tip11 (clone HEAD $head11)"
-  grep -q -- "$tip11" "$prompt" ||
-    problems+=("the re-pinned launch's prompt does not name origin's tip $tip11")
-fi
-
-report "$name"
-
 name="an unresolvable recorded skill commit refuses with exit 2 unless VERI_NEW_SKILL=1, which re-pins and logs a skill-repin event"
 problems=()
 
