@@ -445,4 +445,22 @@ fi
 
 report "$name"
 
+name="#1546 $skill_md runs unreplaced-cases.sh, at every place it names it as a run, before the verify-red launch command"
+problems=()
+
+red_launch_line="$(grep -nF 'supervise.sh verdict-red' "$skill_path" | sed -n 1p | cut -d: -f1)"
+run_lines="$(grep -nE '\$S/unreplaced-cases\.sh|[Rr]un [^.]*unreplaced-cases\.sh' "$skill_path" | cut -d: -f1)"
+
+if [[ -z "$red_launch_line" || -z "$run_lines" ]]; then
+  problems+=("$skill_md lacks an unreplaced-cases.sh run or a verdict-red launch line (runs=${run_lines:-none}, launch=${red_launch_line:-none}) — their order could not be established")
+else
+  while IFS= read -r run_line; do
+    if [[ "$run_line" -gt "$red_launch_line" ]]; then
+      problems+=("$skill_md:$run_line runs unreplaced-cases.sh after the verify-red launch at line $red_launch_line, so a conductor following the page in order launches the red verifier before it checks for unreplaced cases")
+    fi
+  done <<< "$run_lines"
+fi
+
+report "$name"
+
 finish
