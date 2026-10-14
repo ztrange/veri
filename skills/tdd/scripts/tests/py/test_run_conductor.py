@@ -1921,3 +1921,34 @@ def test_cli_a_launch_from_a_skill_clone_whose_origin_is_a_checkout_under_test_w
     assert answers["reachable"][:2] == (0, [{"VERI_SKILL_CLONE": True, "VERI_SKILL_COMMIT": True,
                                              "VERI_SKILL_REF": "refs/remotes/origin/HEAD",
                                              "VERI_SKILL_UNPINNED": None}]), answers["reachable"][2]
+
+
+@pytest.mark.process("real git clone, fetch and archive of a scratch skill clone whose origin has moved on, and tar materialising origin's tip")
+def test_cli_a_launch_from_a_clone_behind_origin_default_is_handed_a_snapshot_of_origins_tip(
+        tmp_path, monkeypatch, run_cli):
+    remote, _ = skill_clone(tmp_path, monkeypatch, "run_conductor_tip_remote",
+                            {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the cut supervisor\n"},
+                            directory="remote")
+    clone = tmp_path / "clone"
+    subprocess.run(["git", "clone", "-q", str(remote), str(clone)], check=True)
+    (remote / "scripts" / "supervise.sh").write_text("#!/bin/sh\necho the tip supervisor\n")
+    subprocess.run(git_as_veri(remote) + ["commit", "-q", "-am", "landed on the remote after the clone was cut"], check=True)
+    tip = tree_contents(remote)
+    behind = tree_contents(clone)
+    run_conductor = load_run_conductor("run_conductor_tip_clone", clone)
+    caller = caller_repository(tmp_path)
+    run, seen = subprocess.run, []
+
+    def claude_reads_its_base(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+        (base,) = base_directories(kwargs.get("input"))
+        seen.append(tree_contents(base))
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    monkeypatch.setattr(subprocess, "run", claude_reads_its_base)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+
+    assert tip != behind
+    assert (code, seen == [tip]) == (0, True), stderr

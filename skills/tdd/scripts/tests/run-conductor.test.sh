@@ -136,30 +136,6 @@ tree_clone() {
 tree_clone "$work/tree"
 CONDUCTOR="$work/tree/skills/tdd/scripts/run-conductor.sh"
 
-name="a launch from a clone behind origin/<default> is handed a snapshot of origin's tip"
-problems=()
-
-remote6="$work/remote6"
-clone6="$work/clone6"
-cloned_skill "$remote6" "$clone6"
-advance_clone "$remote6" "# a commit that landed on the remote after the clone was cut"
-tip="$(git -C "$remote6" rev-parse HEAD)"
-
-tipdir="$work/tip6"
-skill_archive "$remote6" "$tip" "$tipdir"
-
-caller6="$work/caller6"
-caller_repo "$caller6"
-
-tip_base="$work/tip-base"
-mkdir -p "$tip_base"
-rm -f "$prompt"
-launch_from "$caller6" "$clone6" BASE_OUT="$tip_base"
-
-holds_skill "$tip_base" "$tipdir/skills/tdd" "launch's" "origin's tip $tip: $(cat "$launch_err")"
-
-report "$name"
-
 name="a failed fetch of origin exits 2 before any conductor is launched and names the fetch on stderr"
 problems=()
 
