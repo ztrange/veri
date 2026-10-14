@@ -1227,7 +1227,9 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    launches, the conductor runs `$S/replaces-case-survivors.sh "<step text>"`; exit 1 prints
    the named cases the suite still holds, and the conductor then relaunches the green leaf
    naming those survivors, records the relaunch as an event (`$S/event.sh`), and launches no
-   verifier on that green.
+   verifier on that green. Each such relaunch spends one `REVISE_BUDGET` attempt, the verdict
+   axis, since a surviving named case is a mechanical rejection of the green; when the budget
+   is spent the run bails with `cause=revise-exhausted`.
 3. **Narrate + branch.** Post `### 🟢 Green` (implementation + green suite output) and
    `### 🔎 verify-green — PASS|REJECT` (the reason).
    - **PASS — check off the ledger step and commit atomically.** Tick STEP in the ledger,

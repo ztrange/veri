@@ -367,4 +367,23 @@ fi
 
 report "$name"
 
+name="#1406 $skill_md's replaces-case green paragraph says each survivors relaunch spends one REVISE_BUDGET attempt and a spent budget bails with a cause classify-bail.sh classifies"
+problems=()
+
+if [[ -z "${section// /}" ]]; then
+  problems+=("$skill_md has no replaces-case paragraph in the Green step's Verify (blind) to read — the relaunch bound could not be established")
+else
+  require 'REVISE_BUDGET' "$section" \
+    "$skill_md's replaces-case Green paragraph never says the survivors relaunch spends a REVISE_BUDGET attempt, so the relaunch is unbounded"
+  bail_cause="$(grep -oE 'cause=[a-z-]+' <<<"$section" | head -n 1)"
+  bail_cause="${bail_cause#cause=}"
+  if [[ -z "$bail_cause" ]]; then
+    problems+=("$skill_md's replaces-case Green paragraph names no cause= to bail with when the REVISE_BUDGET is spent on survivors")
+  elif ! "$ROOT/skills/tdd/scripts/classify-bail.sh" "$bail_cause" > /dev/null 2>&1; then
+    problems+=("$skill_md's replaces-case Green paragraph bails with cause=$bail_cause, which classify-bail.sh does not classify")
+  fi
+fi
+
+report "$name"
+
 finish
