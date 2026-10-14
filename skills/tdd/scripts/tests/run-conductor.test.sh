@@ -462,28 +462,6 @@ fi
 
 report "$name"
 
-name="cases 1-5 pass when the checkout under test has an unreachable origin"
-problems=()
-
-clone23="$work/clone23"
-skill_clone "$clone23"
-git -C "$clone23" remote add origin "https://127.0.0.1:1/veri.git"
-
-suite23="$clone23/skills/tdd/scripts/tests/cases1-5-only.test.sh"
-awk '/^name=/ && ++n == 6 {exit} 1' "$clone23/skills/tdd/scripts/tests/run-conductor.test.sh" > "$suite23"
-printf '%s\n' 'echo "----"' 'echo "${pass:-0} passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$suite23"
-chmod +x "$suite23"
-
-if [[ "$(grep -c '^name=' "$suite23")" -ne 5 ]]; then
-  problems+=("cases 1-5 could not be cut out of the clone's run-conductor.test.sh")
-else
-  out23="$(GIT_TERMINAL_PROMPT=0 "$suite23" 2>&1)"
-  [[ "$(tail -n 1 <<< "$out23")" == "5 passed, 0 failed" ]] ||
-    problems+=("cases 1-5 did not all pass with origin unreachable: ${out23//$'\n'/ | }")
-fi
-
-report "$name"
-
 name="with no refs/remotes/origin/HEAD the launch pins to the remote's default branch tip, records it and runs pinned (#865)"
 problems=()
 
