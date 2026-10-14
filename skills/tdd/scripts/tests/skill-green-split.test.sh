@@ -371,6 +371,31 @@ fi
 
 report "$name"
 
+name="#1558 $skill_md runs every replaces-case-survivors.sh occurrence before the verify-green launch it gates, on the Green path and the pin path alike"
+problems=()
+
+green_launch="$(grep -nF 'supervise.sh verdict-green' "$skill_path" | sed -n 1p | cut -d: -f1)"
+pin_start="$(grep -nF 'A `⟦replaces-case⟧` step whose Red reports' "$skill_path" | sed -n 1p | cut -d: -f1)"
+pin_launch="$(grep -nF 'Judge it by the replaces-case verify-green' "$skill_path" | sed -n 1p | cut -d: -f1)"
+occurrences="$(grep -nF 'replaces-case-survivors.sh "' "$skill_path" | cut -d: -f1)"
+
+if [[ -z "$green_launch" || -z "$pin_start" || -z "$pin_launch" || -z "$occurrences" ]]; then
+  problems+=("$skill_md lacks a survivors run or a launch marker (green launch=${green_launch:-none}, pin path=${pin_start:-none}, pin launch=${pin_launch:-none}) — their order could not be established")
+else
+  while IFS= read -r at; do
+    if [[ "$at" -lt "$pin_start" ]]; then
+      context="$(sed -n "$((at - 1)),${at}p" "$skill_path" | one_line)"
+      if [[ "$at" -gt "$green_launch" && "$context" != *"Before that verify-green"* ]]; then
+        problems+=("$skill_md:$at runs replaces-case-survivors.sh after the Green verify-green launch at line $green_launch")
+      fi
+    elif [[ "$at" -gt "$pin_launch" ]]; then
+      problems+=("$skill_md:$at runs replaces-case-survivors.sh after the pin-path verify-green launch at line $pin_launch")
+    fi
+  done <<<"$occurrences"
+fi
+
+report "$name"
+
 name="#1406 $skill_md orders the unreplaced-cases.sh check before the replaces-case-survivors.sh check, and both before the verify-green launch command"
 problems=()
 
