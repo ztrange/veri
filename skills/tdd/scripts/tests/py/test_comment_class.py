@@ -241,8 +241,6 @@ capture-spec:## Environment
 capture-spec:## Acceptance criteria
 capture-spec:## What to build
 capture-spec:## Acceptance criteria
-dashboard:# Plan for #$2 — $3
-dashboard:## What to build
 no-awk-v-patterns:#!/usr/bin/env bash
 no-awk-v-patterns:#!/usr/bin/env bash
 no-awk-v-patterns:#!/usr/bin/env bash
