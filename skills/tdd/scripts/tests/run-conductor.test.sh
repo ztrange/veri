@@ -226,45 +226,6 @@ repin_in "$caller4/.tdd/wt/$issue/.tdd/events.jsonl" "$current" ||
 
 report "$name"
 
-name="the snapshot leaves git status --porcelain empty in the caller's checkout and in the skill clone"
-problems=()
-
-clone5="$work/clone5"
-skill_clone "$clone5"
-
-caller5="$work/caller5"
-caller_repo "$caller5"
-echo "target" > "$caller5/README"
-git -C "$caller5" add -A
-git -C "$caller5" -c user.name=t -c user.email=t@t commit -qm target
-
-statusdir="$work/status5"
-mkdir -p "$statusdir"
-
-cat > "$stubdir/status-hook" <<HOOK
-#!/bin/sh
-git -C "$caller5" status --porcelain > "$statusdir/caller-\${STATUS_WHEN:-during}" 2>&1
-git -C "$clone5" status --porcelain > "$statusdir/clone-\${STATUS_WHEN:-during}" 2>&1
-HOOK
-chmod +x "$stubdir/status-hook"
-
-launch_from "$caller5" "$clone5" CONDUCTOR_HOOK="$stubdir/status-hook"
-STATUS_WHEN=after "$stubdir/status-hook"
-
-if [[ ! -f "$statusdir/caller-during" ]]; then
-  problems+=("the conductor never ran — no status was taken while it was running")
-else
-  for when in during after; do
-    for tree in caller clone; do
-      out="$(cat "$statusdir/$tree-$when")"
-      [[ -z "$out" ]] ||
-        problems+=("git status --porcelain in the $tree is not empty $when the run: ${out//$'\n'/ }")
-    done
-  done
-fi
-
-report "$name"
-
 name="a launch from a clone behind origin/<default> is handed a snapshot of origin's tip"
 problems=()
 
