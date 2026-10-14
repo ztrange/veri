@@ -1440,14 +1440,14 @@ def git_as_veri(repository):
     return ["git", "-C", str(repository), "-c", "user.name=veri", "-c", "user.email=veri@example.test"]
 
 
-def committed_skill_clone(tmp_path, monkeypatch, module_name, files):
-    """A one-commit skill clone holding files (path: text, .sh files executable), and its run_conductor module loaded from that clone."""
+def skill_clone(tmp_path, monkeypatch, module_name, files, directory="skill", commit=True):
+    """A skill directory holding files (path: text, .sh files executable), committed unless commit is False, and its run_conductor module loaded from that directory."""
     import importlib.util
     past_the_guards(monkeypatch)
     for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
         monkeypatch.delenv(name, raising=False)
     scratch_tmpdir(tmp_path, monkeypatch)
-    skill = tmp_path / "skill"
+    skill = tmp_path / directory
     (skill / "scripts" / "veri").mkdir(parents=True)
     (skill / "scripts" / "veri" / "run_conductor.py").symlink_to(SCRIPTS / "veri" / "run_conductor.py")
     for relative, text in files.items():
@@ -1455,10 +1455,11 @@ def committed_skill_clone(tmp_path, monkeypatch, module_name, files):
         (skill / relative).write_text(text)
         if relative.endswith(".sh"):
             (skill / relative).chmod(0o755)
-    git = git_as_veri(skill)
-    subprocess.run(["git", "init", "-q", str(skill)], check=True)
-    subprocess.run(git + ["add", "-A"], check=True)
-    subprocess.run(git + ["commit", "-q", "-m", "the skill commit"], check=True)
+    if commit:
+        git = git_as_veri(skill)
+        subprocess.run(["git", "init", "-q", str(skill)], check=True)
+        subprocess.run(git + ["add", "-A"], check=True)
+        subprocess.run(git + ["commit", "-q", "-m", "the skill commit"], check=True)
     spec = importlib.util.spec_from_file_location(module_name, str(skill / "scripts" / "veri" / "run_conductor.py"))
     run_conductor = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(run_conductor)
@@ -1475,7 +1476,7 @@ def base_directories(stdin):
 @pytest.mark.process("real git archive and tar materialising a scratch skill clone's commit into the snapshot")
 def test_cli_the_conductors_base_directory_holds_the_skill_commits_files_not_the_clones_uncommitted_edit_is_not_the_clone_and_is_gone_after_the_launch(
         tmp_path, monkeypatch, run_cli):
-    skill, run_conductor = committed_skill_clone(
+    skill, run_conductor = skill_clone(
         tmp_path, monkeypatch, "run_conductor_snapshot",
         {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the committed supervisor\n"})
     committed = tree_contents(skill)
@@ -1505,7 +1506,7 @@ def test_cli_the_conductors_base_directory_holds_the_skill_commits_files_not_the
 @pytest.mark.process("real git archive and tar materialising a scratch skill clone's commit, and a supervise.sh run from the snapshot")
 def test_cli_a_leaf_launched_mid_run_executes_the_snapshots_supervise_sh_run_leaf_sh_and_template_not_the_clones(
         tmp_path, monkeypatch, run_cli):
-    skill, run_conductor = committed_skill_clone(
+    skill, run_conductor = skill_clone(
         tmp_path, monkeypatch, "run_conductor_leaf",
         {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the committed supervisor\n",
          "scripts/run-leaf.sh": "#!/bin/sh\necho the committed run-leaf\n",
@@ -1537,7 +1538,7 @@ def test_cli_a_leaf_launched_mid_run_executes_the_snapshots_supervise_sh_run_lea
 @pytest.mark.process("real git archive and tar materialising a scratch skill clone's recorded commit twice, and a real caller repository holding the tdd branch that keeps the record")
 def test_cli_a_resume_of_the_run_is_handed_a_re_materialised_snapshot_of_the_recorded_commit_not_the_clones_new_head(
         tmp_path, monkeypatch, run_cli):
-    skill, run_conductor = committed_skill_clone(
+    skill, run_conductor = skill_clone(
         tmp_path, monkeypatch, "run_conductor_resume",
         {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the recorded supervisor\n"})
     recorded = tree_contents(skill)
@@ -1570,19 +1571,9 @@ def test_cli_a_resume_of_the_run_is_handed_a_re_materialised_snapshot_of_the_rec
 
 def test_cli_with_no_resolvable_skill_commit_the_run_proceeds_unpinned_from_the_skill_directory_itself_and_warns_on_stderr(
         tmp_path, monkeypatch, run_cli):
-    import importlib.util
-    past_the_guards(monkeypatch)
-    for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
-        monkeypatch.delenv(name, raising=False)
-    scratch_tmpdir(tmp_path, monkeypatch)
-    skill = tmp_path / "loose"
-    (skill / "scripts" / "veri").mkdir(parents=True)
-    (skill / "scripts" / "veri" / "run_conductor.py").symlink_to(SCRIPTS / "veri" / "run_conductor.py")
-    (skill / "SKILL.md").write_text("# the loose procedure\n")
-    spec = importlib.util.spec_from_file_location(
-        "run_conductor_loose", str(skill / "scripts" / "veri" / "run_conductor.py"))
-    run_conductor = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(run_conductor)
+    skill, run_conductor = skill_clone(
+        tmp_path, monkeypatch, "run_conductor_loose", {"SKILL.md": "# the loose procedure\n"},
+        directory="loose", commit=False)
     fake_unresolvable(monkeypatch)
     answer, seen = subprocess.run, []
 
