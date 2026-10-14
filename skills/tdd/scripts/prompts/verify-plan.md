@@ -85,6 +85,14 @@ REJECT a plan that plans a test-only change, one satisfiable only by editing a t
 Red/Green step: Green may not edit a test, so the run bails on it. Such a change is a
 `⟦diff-checked⟧` or pin step.
 
+REJECT a plan in which a step's behaviour can only be observed once a later step is built: a
+step asserting that an input is ignored, guarded or without effect ("even when X is left in
+storage", "without dev tools") passes against unmodified code until a later step makes the code
+read that input, so a test for it cannot fail first. Such a step belongs after the step that
+makes the code read that input, and a plan placing it before the step that makes the code read
+that input is the REJECT. Your REASON: line names both steps, the early step and the later step
+it waits on.
+
 {{REFACTOR_PLAN}}
 
 A REJECT must name the criterion it fails on and state the part of it no step covers, in
