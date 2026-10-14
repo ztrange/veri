@@ -1,6 +1,7 @@
 """dashboard.sh's server and its endpoint functions, run in-process."""
 import glob
 import http.server
+import io
 import json
 import os
 import re
@@ -11,11 +12,11 @@ import urllib.parse
 
 from event_log import read_events
 from run_dir import run_file
+import metrics
 import status
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 status_sh = os.path.join(SCRIPTS, "status.sh")
-metrics_sh = os.path.join(SCRIPTS, "metrics.sh")
 # The renderer the Chatter pane shows a leaf log through — the script beside this one, run
 # rather than re-implemented, the way runs_json runs status.sh: what "rendered" means is
 # render-leaf-log.sh's answer, so the pane cannot drift into a second spelling of it. It
@@ -93,9 +94,9 @@ def run_ended(run):
 
 
 # One issue's report, which is the whole of the split the criterion names. For a run still
-# going it is RECOMPUTED by running metrics.sh in that run's worktree, the way the conductor
-# calls it, because a run that is still spending has a committed report that stopped being
-# true when the step after it started. For a run that ended it is
+# going it is RECOMPUTED by metrics.report over that run's own log and ledger, because a
+# run that is still spending has a committed report that stopped being true when the step
+# after it started. For a run that ended it is
 # `.tdd/issue-<n>-metrics.md` verbatim — the account of the run as it was written, which
 # outlives a log that may since have been pruned.
 #
@@ -114,7 +115,13 @@ def issue_report(run, issue):
         if os.path.exists(committed):
             return open(committed).read()
         return "(no report: this run ended without committing %s)" % report
-    return capture([metrics_sh, issue], cwd=run).decode("utf-8", "replace")
+    out = io.StringIO()
+    try:
+        metrics.report(issue, run_file(run, "events.jsonl"),
+                       run_file(run, "issue-%s.md" % issue), stream=out)
+    except Exception:
+        pass
+    return out.getvalue()
 
 
 # Every run of this repository, in a stable order: `.tdd/wt/*` under the main working tree,
