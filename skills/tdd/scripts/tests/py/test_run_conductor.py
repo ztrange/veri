@@ -1949,3 +1949,48 @@ def test_cli_a_launch_from_a_clone_behind_origin_default_is_handed_a_snapshot_of
 
     assert tip != behind
     assert (code, seen == [tip]) == (0, True), stderr
+
+
+@pytest.mark.process("real git clone, fetch and archive of a scratch skill clone whose origin has moved on, and the real event.sh and supervise.sh run from the snapshot in a real caller repository")
+def test_cli_every_event_a_launched_run_writes_carries_origins_tip_as_skill_commit_and_the_prompt_names_it(
+        tmp_path, monkeypatch, run_cli):
+    import shutil
+    remote, _ = skill_clone(tmp_path, monkeypatch, "run_conductor_events_remote", {"SKILL.md": "# the committed procedure\n"},
+                            directory="remote", commit=False)
+    shutil.copytree(SCRIPTS, remote / "scripts", symlinks=True, dirs_exist_ok=True,
+                    ignore=shutil.ignore_patterns("tests", "__pycache__", "run_conductor.py"))
+    subprocess.run(["git", "init", "-q", str(remote)], check=True)
+    subprocess.run(git_as_veri(remote) + ["add", "-A"], check=True)
+    subprocess.run(git_as_veri(remote) + ["commit", "-q", "-m", "the skill commit"], check=True)
+    clone = tmp_path / "clone"
+    subprocess.run(["git", "clone", "-q", str(remote), str(clone)], check=True)
+    with open(remote / "scripts" / "supervise.sh", "a") as edit:
+        edit.write("# a commit that landed on the remote after the clone was cut\n")
+    subprocess.run(git_as_veri(remote) + ["commit", "-q", "-am", "landed on the remote after the clone was cut"], check=True)
+    tip = subprocess.run(["git", "-C", str(remote), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+    run_conductor = load_run_conductor("run_conductor_events_clone", clone)
+    caller = caller_repository(tmp_path)
+    run, prompts = subprocess.run, []
+
+    def claude_writes_events_from_its_base(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+        stdin = kwargs.get("input")
+        prompts.append(stdin.decode() if isinstance(stdin, bytes) else stdin)
+        (base,) = base_directories(stdin)
+        env = dict(kwargs.get("env") or os.environ, VERI_POLL="0.02")
+        run([base + "/scripts/event.sh", "conductor-mark"], cwd=caller, env=env, capture_output=True)
+        run([base + "/scripts/supervise.sh", "develop-red", "echo", "ok"], cwd=caller, env=env, capture_output=True)
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    monkeypatch.setattr(subprocess, "run", claude_writes_events_from_its_base)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+
+    log = caller / ".tdd" / "events.jsonl"
+    events = [json.loads(line) for line in log.read_text().splitlines() if line.strip()] if log.exists() else []
+    assert code == 0, stderr
+    assert [event["event"] for event in events][:1] == ["conductor-mark"]
+    assert len(events) > 1
+    assert [(event["event"], event.get("skill_commit")) for event in events if event.get("skill_commit") != tip] == []
+    assert len(prompts) == 1 and tip in prompts[0]
