@@ -208,8 +208,33 @@ def write(path, text):
         f.write(text)
 
 
+def report_of(run_cli, issue, run):
+    """The report metrics renders from <run>'s own events log and ledger."""
+    import metrics
+    code, out, _ = run_cli(metrics, [issue], cwd=run)
+    assert code == 0
+    assert out.strip()
+    return out
+
+
+def serve_with_real_metrics(monkeypatch, tmp_path):
+    """Fake only `git worktree list`; every other process (metrics.sh) really runs."""
+    real_run = subprocess.run
+
+    def fake_run(args, *rest, **kwargs):
+        if list(args) == ["git", "worktree", "list", "--porcelain"]:
+            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
+            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
+        return real_run(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    return fake_server(monkeypatch, ["/api/metrics"])
+
+
+@pytest.mark.process("metrics.sh started in the live run's directory")
 def test_get_api_metrics_recomputes_a_live_run_and_quotes_the_committed_report_of_one_ended_by_done(
-        tmp_path, monkeypatch, dashboard):
+        tmp_path, monkeypatch, dashboard, run_cli):
     live = os.path.join(str(tmp_path), ".tdd", "wt", "31")
     ended = os.path.join(str(tmp_path), ".tdd", "wt", "32")
     write(os.path.join(live, ".tdd", "issue-31.md"), "# Plan for #31\n\n- [ ] a lamp glows\n")
@@ -223,21 +248,11 @@ def test_get_api_metrics_recomputes_a_live_run_and_quotes_the_committed_report_o
           '{"ts": 1, "issue": "32", "event": "step-done"}\n'
           '{"ts": 2, "issue": "32", "event": "done"}\n')
     write(os.path.join(ended, ".tdd", "issue-32-metrics.md"), committed)
-    recomputed = "# metrics.sh 31, recomputed in its run\n"
-
-    def fake_run(args, cwd=None, **kwargs):
-        if list(args) == ["git", "worktree", "list", "--porcelain"]:
-            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
-            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
-        if list(args) == [os.path.join(SCRIPTS, "metrics.sh"), "31"] and cwd == live:
-            return subprocess.CompletedProcess(args, 0, recomputed.encode(), b"")
-        return subprocess.CompletedProcess(args, 0, b"", b"")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.chdir(tmp_path)
-    served = fake_server(monkeypatch, ["/api/metrics"])
+    recomputed = report_of(run_cli, "31", live)
+    served = serve_with_real_metrics(monkeypatch, tmp_path)
 
     dashboard.main([])
+    assert os.getcwd() == str(tmp_path)
 
     (metrics,) = served[0][1]
     issues = json.loads(body(metrics))["issues"]
@@ -305,36 +320,28 @@ def test_get_api_metrics_answers_run_34_ended_by_bail_with_no_committed_report_w
     assert "issue-34-metrics.md" in report
 
 
+@pytest.mark.process("metrics.sh started in the live run's directory")
 def test_get_api_metrics_recomputes_run_35_whose_log_carries_a_stop_mark_and_no_done_or_bail(
-        tmp_path, monkeypatch, dashboard):
+        tmp_path, monkeypatch, dashboard, run_cli):
     run = os.path.join(str(tmp_path), ".tdd", "wt", "35")
     write(os.path.join(run, ".tdd", "issue-35.md"), "# Plan for #35\n\n- [ ] a lamp glows\n")
     write(os.path.join(run, ".tdd", "events.jsonl"),
           '{"ts": 1, "issue": "35", "event": "step-start"}\n'
           '{"ts": 2, "issue": "35", "event": "launch", "name": "develop-red"}\n'
           '{"ts": 3, "issue": "35", "event": "stop", "mode": "at-leaf", "at": "planned"}\n')
-    recomputed = "# metrics.sh 35, recomputed in its run\n"
-
-    def fake_run(args, cwd=None, **kwargs):
-        if list(args) == ["git", "worktree", "list", "--porcelain"]:
-            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
-            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
-        if list(args) == [os.path.join(SCRIPTS, "metrics.sh"), "35"] and cwd == run:
-            return subprocess.CompletedProcess(args, 0, recomputed.encode(), b"")
-        return subprocess.CompletedProcess(args, 0, b"", b"")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.chdir(tmp_path)
-    served = fake_server(monkeypatch, ["/api/metrics"])
+    recomputed = report_of(run_cli, "35", run)
+    served = serve_with_real_metrics(monkeypatch, tmp_path)
 
     dashboard.main([])
+    assert os.getcwd() == str(tmp_path)
 
     (metrics,) = served[0][1]
     assert json.loads(body(metrics))["issues"]["35"] == recomputed
 
 
-def test_get_api_metrics_keys_issues_by_the_run_directory_7_alone_and_runs_metrics_sh_once_in_it(
-        tmp_path, monkeypatch, dashboard):
+@pytest.mark.process("metrics.sh started in the live run's directory")
+def test_get_api_metrics_keys_issues_by_the_run_directory_7_alone_and_answers_the_report_of_its_own_log(
+        tmp_path, monkeypatch, dashboard, run_cli):
     run = os.path.join(str(tmp_path), ".tdd", "wt", "7")
     write(os.path.join(run, ".tdd", "issue-7.md"),
           "# Plan for #7 — lamps glow\n\n- [x] a lamp exists\n- [ ] a lamp glows\n")
@@ -344,26 +351,16 @@ def test_get_api_metrics_keys_issues_by_the_run_directory_7_alone_and_runs_metri
     write(os.path.join(run, ".tdd", "events.jsonl"),
           '{"ts": 1, "issue": "7", "event": "step-start"}\n'
           '{"ts": 2, "issue": "7", "event": "launch", "name": "develop-red"}\n')
-    metrics_calls = []
-
-    def fake_run(args, cwd=None, **kwargs):
-        if list(args) == ["git", "worktree", "list", "--porcelain"]:
-            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
-            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
-        if list(args)[:1] == [os.path.join(SCRIPTS, "metrics.sh")]:
-            metrics_calls.append((list(args), cwd))
-            return subprocess.CompletedProcess(args, 0, b"a stub report\n", b"")
-        return subprocess.CompletedProcess(args, 0, b"", b"")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.chdir(tmp_path)
-    served = fake_server(monkeypatch, ["/api/metrics"])
+    want = report_of(run_cli, "7", run)
+    served = serve_with_real_metrics(monkeypatch, tmp_path)
 
     dashboard.main([])
+    assert os.getcwd() == str(tmp_path)
 
     (metrics,) = served[0][1]
-    assert sorted(json.loads(body(metrics))["issues"]) == ["7"]
-    assert metrics_calls == [([os.path.join(SCRIPTS, "metrics.sh"), "7"], run)]
+    issues = json.loads(body(metrics))["issues"]
+    assert sorted(issues) == ["7"]
+    assert issues["7"] == want
 
 
 def test_get_api_events_answers_run_51s_logged_events_in_file_order_and_none_for_issue_99(
