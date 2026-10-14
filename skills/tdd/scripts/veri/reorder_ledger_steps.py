@@ -48,7 +48,8 @@ def main(argv):
     if anchor is None:
         return 1
     step = lines.pop(moved)
-    anchor = _matches(lines, argv[3])[0]
+    if anchor > moved:
+        anchor -= 1
     lines.insert(anchor if argv[2] == "before" else anchor + 1, step)
     ledger.replace_ledger(argv[0], "\n".join(lines))
     return 0
