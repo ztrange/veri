@@ -80,16 +80,43 @@ def body(answer):
     return answer.partition(b"\r\n\r\n")[2]
 
 
-def test_main_serves_on_loopback_8765_or_the_first_argument_with_the_files_beside_the_scripts(
-        tmp_path, monkeypatch, dashboard):
-    calls = []
+FAKE_GIT = """#!/bin/sh
+if [ "$1" = worktree ]; then
+  printf 'worktree %s\\nHEAD abc\\nbranch refs/heads/main\\n\\n' "$MAIN_TREE"
+elif [ "$3" = symbolic-ref ]; then
+  printf 'tdd/%s-lamps\\n' "$(basename "$2")"
+fi
+"""
 
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
-        return subprocess.CompletedProcess(args, 0, b'{"runs": ["from status.sh"]}', b"")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+def fabricated_main_tree(tmp_path, monkeypatch):
+    """A main tree holding run 31, with a git on PATH answering worktree list and symbolic-ref."""
+    run = tmp_path / ".tdd" / "wt" / "31"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "issue-31.md").write_text("# Plan for #31 \u2014 lamps glow\n\n- [ ] a lamp glows\n")
+    bin_dir = tmp_path / "fake-bin"
+    bin_dir.mkdir()
+    (bin_dir / "git").write_text(FAKE_GIT)
+    (bin_dir / "git").chmod(0o755)
+    monkeypatch.setenv("PATH", str(bin_dir) + os.pathsep + os.environ.get("PATH", ""))
+    monkeypatch.setenv("MAIN_TREE", str(tmp_path))
+    monkeypatch.delenv("VERI_LABEL", raising=False)
     monkeypatch.chdir(tmp_path)
+
+
+def status_document(run_cli):
+    import importlib
+    code, out, err = run_cli(importlib.import_module("veri.status"), ["--json"])
+    assert code == 0
+    document = json.loads(out)
+    assert document["runs"][0]["issue"] == "31"
+    return out.encode()
+
+
+@pytest.mark.process("status.sh started for real by /api/runs, over a fake git on PATH")
+def test_main_serves_on_loopback_8765_or_the_first_argument_with_the_files_beside_the_scripts(
+        tmp_path, monkeypatch, dashboard, run_cli):
+    fabricated_main_tree(tmp_path, monkeypatch)
     served = fake_server(monkeypatch, ["/", "/api/runs"])
 
     dashboard.main([])
@@ -101,25 +128,24 @@ def test_main_serves_on_loopback_8765_or_the_first_argument_with_the_files_besid
     page, runs = served[0][1]
     with open(os.path.join(SCRIPTS, "dashboard.html"), "rb") as f:
         assert body(page) == f.read()
-    assert body(runs) == b'{"runs": ["from status.sh"]}'
-    assert [os.path.join(SCRIPTS, "status.sh"), "--json"] in calls
+    assert body(runs) == status_document(run_cli)
 
 
 def status_code(answer):
     return answer.split(b"\r\n", 1)[0].split()[1]
 
 
+@pytest.mark.process("status.sh started for real by /api/runs, over a fake git on PATH")
 def test_main_binds_loopback_on_8765_or_the_port_argument_answers_gets_and_returns_0_on_keyboard_interrupt(
-        tmp_path, monkeypatch, dashboard):
-    monkeypatch.setattr(subprocess, "run", lambda args, **kwargs: subprocess.CompletedProcess(
-        args, 0, b'{"runs": []}', b""))
-    monkeypatch.chdir(tmp_path)
+        tmp_path, monkeypatch, dashboard, run_cli):
+    fabricated_main_tree(tmp_path, monkeypatch)
     served = fake_server(monkeypatch, ["/", "/api/runs"])
 
     codes = [dashboard.main([]), dashboard.main(["4243"])]
 
     assert [address for address, _ in served] == [("127.0.0.1", 8765), ("127.0.0.1", 4243)]
     assert [status_code(answer) for answer in served[0][1]] == [b"200", b"200"]
+    assert body(served[0][1][1]) == status_document(run_cli)
     assert codes == [0, 0]
 
 
@@ -138,24 +164,17 @@ def test_importing_the_module_constructs_no_server_and_leaves_the_sigint_handler
     assert signal.getsignal(signal.SIGINT) is sentinel
 
 
+@pytest.mark.process("status.sh started for real by /api/runs, over a fake git on PATH")
 def test_get_api_runs_through_main_answers_exactly_the_stdout_status_sh_json_printed(
-        tmp_path, monkeypatch, dashboard):
-    printed = b'{"runs": [{"issue": 7, "state": "running"}]}\n\xe2\x9f\x82 \t trailing  \n'
-
-    def fake_run(args, **kwargs):
-        if list(args) == [os.path.join(SCRIPTS, "status.sh"), "--json"]:
-            return subprocess.CompletedProcess(args, 3, printed, b"status.sh: diagnostic\n")
-        return subprocess.CompletedProcess(args, 0, b"", b"")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.chdir(tmp_path)
+        tmp_path, monkeypatch, dashboard, run_cli):
+    fabricated_main_tree(tmp_path, monkeypatch)
     served = fake_server(monkeypatch, ["/api/runs"])
 
     dashboard.main([])
 
     (runs,) = served[0][1]
     assert status_code(runs) == b"200"
-    assert body(runs) == printed
+    assert body(runs) == status_document(run_cli)
 
 
 def write(path, text):
