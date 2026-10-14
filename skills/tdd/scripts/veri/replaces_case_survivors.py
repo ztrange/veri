@@ -1,21 +1,19 @@
 """replaces-case-survivors.sh's check, run in-process."""
-import re
 import sys
 
-USAGE = "usage: replaces-case-survivors.sh <step text>"
+from replaces_case import parse
 
-STEP = re.compile(r"replaces\s+(.+?)\s+in\s+(\S+)")
-NAME = re.compile(r"'([^']*)'")
+USAGE = "usage: replaces-case-survivors.sh <step text>"
 
 
 def main(argv):
     if len(argv) != 1:
         print(USAGE, file=sys.stderr)
         return 2
-    names, path = STEP.search(argv[0]).groups()
+    names, path = parse(argv[0])
     with open(path, encoding="utf-8") as f:
         suite = f.read()
-    survivors = [n for n in NAME.findall(names) if f'"{n}"' in suite or f"'{n}'" in suite]
+    survivors = [n for n in names if f'"{n}"' in suite or f"'{n}'" in suite]
     for name in survivors:
         print(f"still present in {path}: {name}")
     return 1 if survivors else 0

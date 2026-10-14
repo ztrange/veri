@@ -34,3 +34,20 @@ def test_main_exits_0_when_a_named_case_appears_only_inside_a_longer_case_name_o
     step = "the replacement takes over: replaces 'stale first' in tests/demo.test.sh ⟦replaces-case⟧ ⟦criterion 3⟧"
 
     assert run_cli(survivors, [step], cwd=tmp_path) == (0, "", "")
+
+
+def test_main_reports_a_still_present_case_whose_name_holds_an_apostrophe_1406(tmp_path, run_cli, survivors):
+    name = "a variable added to the shared session list reaches neither the leaf's nor the conductor's claude (#621)"
+    suite = tmp_path / "tests" / "run-leaf.test.sh"
+    suite.parent.mkdir()
+    suite.write_text(f'verdict "kept case" 0\nverdict "{name}" 0\n')
+    step = (
+        "veri.run_leaf.main strips the launched environment only through veri.session_env, so a name added "
+        f"to veri.session_env.SESSION_VARS is absent from the faked launch's environment: replaces '{name}' "
+        "in tests/run-leaf.test.sh ⟦replaces-case⟧ ⟦criterion 4⟧"
+    )
+
+    code, out, _ = run_cli(survivors, [step], cwd=tmp_path)
+
+    assert code == 1
+    assert name in out
