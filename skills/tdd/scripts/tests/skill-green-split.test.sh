@@ -486,4 +486,17 @@ fi
 
 report "$name"
 
+name="#1558 $skill_md's Green Verify line that runs replaces-case-survivors.sh before the launch carries a ⟦replaces-case⟧ qualifier, so an ordinary step runs nothing"
+problems=()
+
+run_line="$(grep -nF 'Run `$S/replaces-case-survivors.sh "<step text>"` before the launch below' "$skill_path" | sed -n 1p)"
+
+if [[ -z "$run_line" ]]; then
+  problems+=("$skill_md has no Green Verify line running replaces-case-survivors.sh before the launch below — the qualifier could not be established")
+elif [[ "$run_line" != *'⟦replaces-case⟧'* ]]; then
+  problems+=("$skill_md:${run_line%%:*} runs replaces-case-survivors.sh with no ⟦replaces-case⟧ qualifier, so a conductor reading it on an ordinary step runs the script and it exits 2")
+fi
+
+report "$name"
+
 finish

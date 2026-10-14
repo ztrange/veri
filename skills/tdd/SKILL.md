@@ -1227,7 +1227,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    Neither this verifier nor the develop leaf runs the full suite: a break outside the
    affected suites surfaces at the one full-suite run in *4. Draft PR*.
    The `⟦replaces-case⟧` unreplaced-cases check already ran in *Red*, before verify-red; it is not run again here.
-   Run `$S/replaces-case-survivors.sh "<step text>"` before the launch below; its exit 1 means survivors (see the paragraph after the block).
+   Run `$S/replaces-case-survivors.sh "<step text>"` before the launch below, on a ⟦replaces-case⟧ step only; its exit 1 means survivors (see the paragraph after the block).
    ```
    rm -f .tdd/verdict-green.exit .tdd/verdict-green.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-green $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" --fast-cmd '<fast-cmd>' green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason 2> .tdd/verify-green.err
