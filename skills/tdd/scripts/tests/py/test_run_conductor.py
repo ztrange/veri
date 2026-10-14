@@ -1418,3 +1418,65 @@ def test_cli_a_frontmatter_fenced_procedure_launches_exits_0_and_reaches_the_bin
 
     assert (code, [(stdin.split(b"\n", 1)[0], stdin.startswith(procedure)) for _, stdin in launches]) == (
         0, [(b"---", True)])
+
+
+
+def tree_contents(root):
+    """Every file and symlink under root but .git, by relative path: its bytes, or the target it links to."""
+    contents = {}
+    for path in sorted(pathlib.Path(root).rglob("*")):
+        relative = path.relative_to(root)
+        if relative.parts[0] == ".git":
+            continue
+        if path.is_symlink():
+            contents[str(relative)] = ("->", os.readlink(path))
+        elif path.is_file():
+            contents[str(relative)] = path.read_bytes()
+    return contents
+
+
+@pytest.mark.process("real git archive and tar materialising a scratch skill clone's commit into the snapshot")
+def test_cli_the_conductors_base_directory_holds_the_skill_commits_files_not_the_clones_uncommitted_edit_is_not_the_clone_and_is_gone_after_the_launch(
+        tmp_path, monkeypatch, run_cli):
+    import importlib.util
+    past_the_guards(monkeypatch)
+    for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
+        monkeypatch.delenv(name, raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    skill = tmp_path / "skill"
+    (skill / "scripts" / "veri").mkdir(parents=True)
+    (skill / "scripts" / "veri" / "run_conductor.py").symlink_to(SCRIPTS / "veri" / "run_conductor.py")
+    (skill / "SKILL.md").write_text("# the committed procedure\n")
+    (skill / "scripts" / "supervise.sh").write_text("#!/bin/sh\necho the committed supervisor\n")
+    git = ["git", "-C", str(skill), "-c", "user.name=veri", "-c", "user.email=veri@example.test"]
+    subprocess.run(["git", "init", "-q", str(skill)], check=True)
+    subprocess.run(git + ["add", "-A"], check=True)
+    subprocess.run(git + ["commit", "-q", "-m", "the skill commit"], check=True)
+    committed = tree_contents(skill)
+    with open(skill / "scripts" / "supervise.sh", "a") as edit:
+        edit.write("# uncommitted edit after the skill commit\n")
+    spec = importlib.util.spec_from_file_location("run_conductor_snapshot", str(skill / "scripts" / "veri" / "run_conductor.py"))
+    run_conductor = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(run_conductor)
+    run, seen = subprocess.run, []
+
+    def claude_reads_its_base(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+        stdin = kwargs.get("input")
+        stdin = stdin.decode() if isinstance(stdin, bytes) else stdin
+        bases = [line[len("Base directory for this skill: "):] for line in stdin.splitlines()
+                 if line.startswith("Base directory for this skill: ")]
+        seen.append((bases, tree_contents(bases[0]) if bases else None))
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    monkeypatch.setattr(subprocess, "run", claude_reads_its_base)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert len(seen) == 1 and len(seen[0][0]) == 1
+    (base,), contents = seen[0]
+    assert (code, os.path.realpath(base) == os.path.realpath(skill), contents == committed, os.path.exists(base)) == (
+        0, False, True, False)
