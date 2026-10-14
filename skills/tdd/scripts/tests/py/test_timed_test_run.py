@@ -1,5 +1,7 @@
 """In-process cases for veri/timed_test_run.py, the module timed-test-run.sh is a shim over."""
 import importlib
+import json
+import os
 import re
 import subprocess
 
@@ -237,3 +239,20 @@ def test_main_returns_the_command_status_when_the_event_cannot_be_appended(tmp_p
         code = f"raised {type(raised).__name__}"
     capfd.readouterr()
     assert (code, events.records()) == (3, [])
+
+
+@pytest.mark.process("git init making tmp_path a worktree whose subdirectory is the working directory, and a real true run")
+def test_issue_1528_main_from_a_subdirectory_of_a_worktree_records_its_test_run_under_dot_tdd_of_the_toplevel(
+        tmp_path, monkeypatch, timed_test_run):
+    root = tmp_path / "repo"
+    cwd = root / "sub"
+    subprocess.run(["git", "init", "-q", str(root)], check=True)
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    monkeypatch.delenv("VERI_AWAKE_CLOCK", raising=False)
+
+    assert timed_test_run.main(["fast", "", "true"]) == 0
+
+    assert os.listdir(cwd) == []
+    lines = (root / ".tdd" / "events.jsonl").read_text().splitlines()
+    assert [json.loads(text)["event"] for text in lines] == ["test-run"]
