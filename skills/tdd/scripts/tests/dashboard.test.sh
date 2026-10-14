@@ -621,7 +621,7 @@ fi
 
 report "$name"
 
-name="/api/events answers while an /api/runs request is still blocked inside status.sh"
+name="/api/events answers while an /api/runs request is still blocked inside a process status.sh starts"
 problems=()
 slow_repo="$(repo slowruns)"
 slow_run="$(fabricate_run "$slow_repo" 77 tdd/77-a-kettle-boils)"
@@ -637,29 +637,25 @@ slow_log="$work/slowruns.log"
 slow_entered="$work/slow-status-entered"
 slow_release="$work/slow-status-release"
 slow_settled="$work/slow-runs-settled"
-slow_dir="$work/slow-scripts"
+slow_dir="$work/slow-bin"
 mkdir -p "$slow_dir"
-cat > "$slow_dir/status.sh" <<EOF
+real_git="$(command -v git)"
+cat > "$slow_dir/git" <<EOF
 #!/bin/sh
-: > '$slow_entered'
-while [ ! -e '$slow_release' ]; do sleep 0.05; done
-printf '{"runs": []}\n'
+if [ "\$1" = -C ] && [ "\$3" = symbolic-ref ]; then
+  : > '$slow_entered'
+  while [ ! -e '$slow_release' ]; do sleep 0.05; done
+fi
+exec '$real_git' "\$@"
 EOF
-chmod +x "$slow_dir/status.sh"
+chmod +x "$slow_dir/git"
 slow_port="$(free_port)"
 
 problem="$(port_problem "$slow_port")"
 if [[ -n "$problem" ]]; then
   problems+=("$problem")
 else
-  ln -s "$scripts/dashboard.sh" "$slow_dir/dashboard.sh"
-  ln -s "$scripts/veri" "$slow_dir/veri"
-  ln -s "$scripts/dashboard.html" "$slow_dir/dashboard.html"
-  ln -s "$METRICS" "$slow_dir/metrics.sh"
-  mkdir "$slow_dir/lib"
-  ln -s "$scripts"/lib/*.sh "$slow_dir/lib/"
-
-  launch "$slow_dir/dashboard.sh" "$slow_repo" "$slow_log" "$slow_port"
+  PATH="$slow_dir:$PATH" launch "$scripts/dashboard.sh" "$slow_repo" "$slow_log" "$slow_port"
   slow_pid=$!
 
   slow_base="http://127.0.0.1:$slow_port"
@@ -678,14 +674,14 @@ else
     done
 
     if [[ ! -e "$slow_entered" ]]; then
-      problems+=("the /api/runs request never reached status.sh, so nothing was blocking when /api/events was asked; the server left: $(printf '%q' "$(cat "$slow_log" 2>/dev/null)")")
+      problems+=("the /api/runs request never reached a process status.sh starts, so nothing was blocking when /api/events was asked; the server left: $(printf '%q' "$(cat "$slow_log" 2>/dev/null)")")
     else
       events_url="$slow_base/api/events?issue=77"
       events_answer="$(fetch "$events_url" 2>/dev/null || :)"
       [[ -e "$slow_settled" ]] && slow_runs_settled=1 || slow_runs_settled=""
 
       if [[ -z "$events_answer" ]]; then
-        problems+=("GET $events_url got no answer while an /api/runs request was blocked inside status.sh, so the slow endpoint starves the cheap one")
+        problems+=("GET $events_url got no answer while an /api/runs request was blocked inside a process status.sh starts, so the slow endpoint starves the cheap one")
       elif [[ "$(http_status "$events_answer")" != 200 ]]; then
         problems+=("GET $events_url answered $(http_status "$events_answer") while /api/runs was blocked, want 200")
       elif [[ "$(http_body "$events_answer")" != *step-start* ]]; then
