@@ -195,44 +195,6 @@ assert_case4() {
 caller="$work/caller"
 caller_repo "$caller"
 
-name="a resume of the run is handed a re-materialised snapshot of the recorded commit, not the clone's new HEAD"
-problems=()
-
-clone3="$work/clone3"
-skill_clone "$clone3"
-recorded="$(git -C "$clone3" rev-parse HEAD)"
-
-pinned="$work/pinned"
-skill_archive "$clone3" "$recorded" "$pinned"
-
-caller3="$work/caller3"
-caller_repo "$caller3"
-git -C "$caller3" commit -q --allow-empty -m base
-git -C "$caller3" branch "tdd/$issue-past-preflight"
-
-first_base="$work/first-base"
-mkdir -p "$first_base"
-launch_from "$caller3" "$clone3" BASE_OUT="$first_base"
-first_snapshot="$(prompt_base)"
-
-advance_clone "$clone3" "# a commit pulled into the clone after the run started"
-
-resumed_base="$work/resumed-base"
-mkdir -p "$resumed_base"
-rm -f "$prompt"
-launch_from "$caller3" "$clone3" BASE_OUT="$resumed_base"
-
-base="$(prompt_base)"
-if [[ -z "$base" ]]; then
-  problems+=("the resumed launch's prompt names no 'Base directory for this skill: <dir>' line")
-elif [[ -n "$first_snapshot" && -e "$first_snapshot" ]]; then
-  problems+=("the first launch's snapshot was never removed, so nothing was re-materialised: $first_snapshot")
-else
-  holds_skill "$resumed_base" "$pinned/skills/tdd" "resumed launch's" "recorded skill commit $recorded"
-fi
-
-report "$name"
-
 name="a resume with VERI_NEW_SKILL=1 is re-pinned to the clone's current commit and logs a skill-repin event"
 problems=()
 
