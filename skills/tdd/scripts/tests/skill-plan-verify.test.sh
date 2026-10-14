@@ -226,7 +226,8 @@ problems=()
 
 script="reorder-ledger-steps.sh"
 text="$(tr '[:upper:]' '[:lower:]' < "$skill_path" | tr '\n' ' ')"
-guard_line="$(grep -F 'Never hand-edit the ledger' "$skill_path" | head -n 1)"
+guard_lines="$(grep -F 'Never hand-edit the ledger' "$skill_path")"
+guard_line="${guard_lines%%$'\n'*}"
 
 if [[ "$text" != *"$script"* ]]; then
   problems+=("$skill_md never names $script, so the only fix for a mis-ordered plan is a forbidden hand edit")
