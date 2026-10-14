@@ -171,6 +171,7 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   again (see the exhausted-contract paragraph under *A `⟦phases: …⟧` step*). `$S/ledger-steps.sh next-phase < .tdd/issue-<n>.md` prints the first phased step's next
   unmarked phase, **exit 3** when none is left. The cycle loop runs a phased step through
   both — see *A `⟦phases: …⟧` step* under *3. The cycle loop*.
+- `$S/reorder-ledger-steps.sh .tdd/issue-<n>.md "<step>" before|after "<anchor>"` — the one sanctioned way to change the order of **unchecked** steps, committed on its own as a `plan:` commit; running it is an operator's decision, never the conductor's own.
 - `$S/next-pending-refactor.sh < .tdd/issue-<n>.md` — print the **first ticked step whose
   refactor is unverified**: the description of the first `- [x]` step carrying the
   ` ⟂ refactor pending` mark, with the mark stripped, so what comes back is the same text
@@ -2535,7 +2536,7 @@ hatch.
   pin is followed by the green that deletes exactly the named cases.
 - **The committed ledger is the source of truth.** Loop the cycle over its steps until none
   remain; check each step off **atomically with its green commit**; the issue thread only
-  **mirrors** the ledger. Never hand-edit the ledger — use `tick-ledger.sh`.
+  **mirrors** the ledger. Never hand-edit the ledger — use `tick-ledger.sh`, or `reorder-ledger-steps.sh` to reorder unchecked steps.
 - **Generality comes only from triangulation.** Overfit code is flagged for a triangulating
   test, never hand-generalized in a refactor.
 - Every phase is **blind-verified** before you proceed, and **every verdict is mirrored**
