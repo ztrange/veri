@@ -1189,8 +1189,12 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    rm -f .tdd/develop-green.exit .tdd/develop-green.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh develop-green $S/run-leaf.sh .tdd/develop-green.prompt --permission-mode bypassPermissions > .tdd/develop-green.out 2> .tdd/develop-green.err
    $S/wait-leaf.sh develop-green    # foreground; on exit 3 call it again
+   $S/suite-reported.sh develop-green   # exit 0 a `SUITE:` line; exit 2 ⇒ launch no verifier, bail `report-missing`
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — see *The step's cost check*
    ```
+   `suite-reported.sh` runs after the wait exits 0 and before verify-green is launched: its exit 2
+   means the leaf left no `SUITE:` line, so launch no verifier and **bail** as a system failure
+   with cause `report-missing`. A leaf that reported `SPLIT:` lines is handled below instead.
    The test path and target test id are the ones Red's report gave you. The leaf's report is
    in `.tdd/develop-green.out`, and ends with `IMPL_PATH:` (the production files it created
    or changed) and `SUITE: GREEN | RED` plus the suite's final summary line; both go into the
@@ -1310,6 +1314,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    rm -f .tdd/develop-refactor.exit .tdd/develop-refactor.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh)" $S/detach-leaf.sh $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions > .tdd/develop-refactor.out 2> .tdd/develop-refactor.err
    $S/wait-leaf.sh develop-refactor   # foreground; on exit 3 call it again
+   $S/suite-reported.sh develop-refactor   # exit 2 ⇒ launch no verifier, bail `report-missing`
    ```
    **One leaf for the whole step**, not one per transform: the cold `claude -p` start and
    the re-read of the spec and of the touched files are paid once for the step instead of
@@ -1552,7 +1557,9 @@ origin/<default>`, and its own diff from the step base sha. Both are launched th
 *Launching a leaf* sets out, the leaf as `develop-diff` and the verifier as `verdict-diff`.
 
 A supervisor exit 2 on the `develop-diff` leaf is a `killed-stuck` bail, as for any developer
-leaf. The verifier's verdict closes the `⟦diff-checked⟧` step:
+leaf. After its wait exits 0 and before the verifier is launched, run `$S/suite-reported.sh develop-diff`:
+exit 2 means the leaf left no `SUITE:` line, so launch no verifier and **bail** as a system
+failure with cause `report-missing`. The verifier's verdict closes the `⟦diff-checked⟧` step:
 
 - **PASS (exit 0):** tick the `⟦diff-checked⟧` step with `tick-ledger.sh` — without
   `--refactor-pending`, since no refactor loop follows — commit the ledger and push it as
@@ -1580,6 +1587,10 @@ ledger with that phase's commit, then push, and go back to `next-phase` for the 
 phase. On REJECT, revise under `REVISE_BUDGET` as *Revising on a REJECT* sets out; on exit 2,
 **bail** as a system failure (`no-verdict`). Once `next-phase` exits 3 every listed phase is
 marked, the step reads as done, and the loop goes back to `next-unchecked.sh`.
+
+After a phase leaf's wait exits 0, `$S/suite-reported.sh develop-<phase>` runs before its verifier is
+launched: exit 2 means no `SUITE:` line, so launch no verifier and **bail** as a system failure
+with cause `report-missing`.
 
 The whole step spends one refactor of the budget, not one per phase: wherever
 `refactor-budget.sh <count>` counts the transforms already landed, a phased step adds one to
@@ -1784,7 +1795,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    Each transform leaf's prompt is `build-develop-prompt.sh structural`'s, handed the spec, the candidate as
    `list` printed it, the test command and `<issue-touched-files>`, written to
    `.tdd/develop-structural.prompt`; the leaf is launched through the supervisor as
-   `develop-structural`. Its commits are checked with
+   `develop-structural`. After its wait exits 0 and before the verifier, `$S/suite-reported.sh develop-structural`
+   runs: exit 2 launches no verifier and bails with cause `report-missing`. Its commits are checked with
    `$S/transform-touches-tests.sh <base-sha>` — exit 1 rejects the transform, exit 2 is no
    answer — then judged by the long
    refactor's blind `transform` verifier against `<base-sha>`, one commit per transform —
@@ -2055,6 +2067,9 @@ A `REJECT` (verify.sh exit **1**) does **not** stop the run. The conductor gets 
 verifier before bailing the step. The rejection **reason is the carry-forward signal**:
 leaves never share context, so each revise leaf is told explicitly what to fix.
 
+Every revise leaf is checked with `suite-reported.sh` once its wait exits 0, before its verifier is
+launched; exit 2 launches no verifier and bails with cause `report-missing`.
+
 For attempt `k = 1 … REVISE_BUDGET`:
 
 1. **Mirror.** Post a `### ♻️ Revise <phase> — attempt <k>/<REVISE_BUDGET>` comment carrying
@@ -2071,6 +2086,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    rm -f .tdd/revise-<phase>-<k>.exit .tdd/revise-<phase>-<k>.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/detach-leaf.sh $S/supervise.sh revise-<phase>-<k> $S/run-leaf.sh .tdd/revise-<phase>-<k>.prompt --permission-mode bypassPermissions > .tdd/revise-<phase>-<k>.out 2> .tdd/revise-<phase>-<k>.err
    $S/wait-leaf.sh revise-<phase>-<k>   # foreground; on exit 3 call it again
+   $S/suite-reported.sh revise-<phase>-<k>   # exit 2 ⇒ launch no verifier, bail `report-missing`
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — red or green only — see *The step's cost check*
    ```
    The `step-cost.sh` line runs only when `<phase>` is red or green: a refactor-phase revise
