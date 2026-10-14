@@ -18,16 +18,13 @@ def main(argv):
         sys.stderr.write("veri needs Python %s or newer for the suites under skills/tdd/scripts/tests/py/; %s is version %s.\n"
                          % (floor, sys.executable, version))
         return 2
-    importable = tunables.read("VERI_PYTEST_IMPORTABLE") or ("1" if importlib.util.find_spec("pytest") else "0")
-    if importable != "1":
-        sys.stderr.write("veri needs pytest for the suites under skills/tdd/scripts/tests/py/; %s cannot import pytest. "
-                         "Install it with `make install-dev`.\n" % sys.executable)
-        return 2
-    timeout_importable = tunables.read("VERI_PYTEST_TIMEOUT_IMPORTABLE") or ("1" if importlib.util.find_spec("pytest_timeout") else "0")
-    if timeout_importable != "1":
-        sys.stderr.write("veri needs pytest-timeout for the suites under skills/tdd/scripts/tests/py/; %s cannot import pytest_timeout. "
-                         "Install it with `make install-dev`.\n" % sys.executable)
-        return 2
+    for package, module, tunable in (("pytest", "pytest", "VERI_PYTEST_IMPORTABLE"),
+                                     ("pytest-timeout", "pytest_timeout", "VERI_PYTEST_TIMEOUT_IMPORTABLE")):
+        importable = tunables.read(tunable) or ("1" if importlib.util.find_spec(module) else "0")
+        if importable != "1":
+            sys.stderr.write("veri needs %s for the suites under skills/tdd/scripts/tests/py/; %s cannot import %s. "
+                             "Install it with `make install-dev`.\n" % (package, sys.executable, module))
+            return 2
     return 0
 
 
