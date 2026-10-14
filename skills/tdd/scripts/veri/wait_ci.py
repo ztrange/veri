@@ -158,23 +158,18 @@ def main(argv):
         except Exception:
             traceback.print_exc()
             head = ""
-        if not head:
-            unread += 1
-            if unread >= UNREAD_LIMIT:
-                return unreadable(pr)
-            subprocess.run(["sleep", poll])
-            continue
-        try:
-            state = sha_state(repo, head)
-        except NoAnswer:
-            state = None
-        except Exception:
-            traceback.print_exc()
-            state = None
+        state = None
+        if head:
+            try:
+                state = sha_state(repo, head)
+            except NoAnswer:
+                pass
+            except Exception:
+                traceback.print_exc()
         if state is None:
             unread += 1
             if unread >= UNREAD_LIMIT:
-                return unreadable(head)
+                return unreadable(head or pr)
             subprocess.run(["sleep", poll])
             continue
         unread = 0
