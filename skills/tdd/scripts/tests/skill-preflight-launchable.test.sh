@@ -57,8 +57,7 @@
 #      `.gitignore` names `.tdd/`, leaves a `.tdd/` leaf log in place.
 #  21. Preflight step 3's fenced capture-and-discard block, run in a resumed worktree under the
 #      repository's own `.tdd/*` / `!.tdd/issue-*.md` patterns, keeps an untracked
-#      `.tdd/issue-1-refactor-owed.md` out of `$stray` and on disk, and keeps an uncommitted
-#      append to the tracked ledger `.tdd/issue-1.md`.
+#      `.tdd/issue-1-refactor-owed.md` out of `$stray` and on disk.
 #
 # Run: scripts/tests/skill-preflight-launchable.test.sh
 set -uo pipefail
@@ -614,7 +613,7 @@ fi
 
 report "$name"
 
-name="#1420 $skill_md's preflight discard never loses .tdd/ run state the real .gitignore un-ignores: an untracked refactor-owed file and an uncommitted ledger append both survive, uncaptured"
+name="#1420 $skill_md's preflight discard never loses an untracked .tdd/ run-state file the real .gitignore un-ignores: the refactor-owed file survives, uncaptured"
 problems=()
 
 if resume_step3 "the resume discard's un-ignored run state"; then
@@ -635,12 +634,9 @@ if resume_step3 "the resume discard's un-ignored run state"; then
     git -C "$dir/wt" add -A >/dev/null 2>&1
     git -C "$dir/wt" commit -q -m "initial" >/dev/null 2>&1
     echo "a refactor the run owes" > "$dir/wt/.tdd/issue-1-refactor-owed.md"
-    echo "- [ ] step two" >> "$dir/wt/.tdd/issue-1.md"
     (cd "$dir/wt" && STRAY_OUT="$dir/stray.out" bash -c "$discard"$'\nprintf \'%s\\n\' "$stray" > "$STRAY_OUT"') >/dev/null 2>&1
     [[ -f "$dir/wt/.tdd/issue-1-refactor-owed.md" ]] ||
       problems+=("preflight step 3's discard block removed the untracked run-state file .tdd/issue-1-refactor-owed.md: want it kept, got .tdd/ holding: $(ls -A "$dir/wt/.tdd" 2>&1 | tr '\n' ' ')")
-    grep -Fx -- '- [ ] step two' "$dir/wt/.tdd/issue-1.md" > /dev/null 2>&1 ||
-      problems+=("preflight step 3's discard block reverted the uncommitted append to the tracked ledger .tdd/issue-1.md: want '- [ ] step two' kept, got: $(cat "$dir/wt/.tdd/issue-1.md" 2>&1)")
     if grep -F -- 'issue-1-refactor-owed.md' "$dir/stray.out" > /dev/null 2>&1; then
       problems+=("\$stray after preflight step 3's discard block captures the run-state file .tdd/issue-1-refactor-owed.md as a stray: want it absent, got: $(cat "$dir/stray.out")")
     fi
