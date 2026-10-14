@@ -1521,35 +1521,39 @@ def base_directories(stdin):
             if line.startswith("Base directory for this skill: ")]
 
 
-def claude_records_its_base_trees(monkeypatch):
-    """Fake the launched claude; the returned list gains the tree under its base directory per launch."""
+def claude_records_per_launch(monkeypatch, record):
+    """Fake the launched claude; the returned list gains record(base directory, its call kwargs) per launch."""
     run, seen = subprocess.run, []
 
     def claude_reads_its_base(args, *a, **kwargs):
         if list(args)[:1] != ["fake-claude"]:
             return run(args, *a, **kwargs)
         (base,) = base_directories(kwargs.get("input"))
-        seen.append(tree_contents(base))
+        seen.append(record(base, kwargs))
         return subprocess.CompletedProcess(args, 0, None, None)
 
     monkeypatch.setattr(subprocess, "run", claude_reads_its_base)
     return seen
+
+
+def claude_records_its_base_trees(monkeypatch):
+    """Fake the launched claude; the returned list gains the tree under its base directory per launch."""
+    return claude_records_per_launch(monkeypatch, lambda base, kwargs: tree_contents(base))
 
 
 def claude_records_its_base_trees_and_prompts(monkeypatch):
     """Fake the launched claude; the returned list gains (base tree, prompt) per launch."""
-    run, seen = subprocess.run, []
-
-    def claude_reads_its_base(args, *a, **kwargs):
-        if list(args)[:1] != ["fake-claude"]:
-            return run(args, *a, **kwargs)
+    def tree_and_prompt(base, kwargs):
         stdin = kwargs.get("input")
-        (base,) = base_directories(stdin)
-        seen.append((tree_contents(base), stdin.decode() if isinstance(stdin, bytes) else stdin))
-        return subprocess.CompletedProcess(args, 0, None, None)
+        return tree_contents(base), stdin.decode() if isinstance(stdin, bytes) else stdin
 
-    monkeypatch.setattr(subprocess, "run", claude_reads_its_base)
-    return seen
+    return claude_records_per_launch(monkeypatch, tree_and_prompt)
+
+
+def claude_records_its_base_trees_and_environments(monkeypatch):
+    """Fake the launched claude; the returned list gains (base tree, environment) per launch."""
+    return claude_records_per_launch(
+        monkeypatch, lambda base, kwargs: (tree_contents(base), dict(kwargs.get("env") or os.environ)))
 
 
 @pytest.mark.process("real git archive and tar materialising a scratch skill clone's commit into the snapshot")
@@ -2145,16 +2149,7 @@ def test_cli_with_no_origin_head_the_launch_pins_to_the_remotes_default_branch_t
     run_conductor = load_run_conductor("run_conductor_no_head_clone", clone)
     caller = caller_repository(tmp_path)
     subprocess.run(git_as_veri(caller) + ["branch", "tdd/4242-past-preflight"], check=True)
-    run, seen = subprocess.run, []
-
-    def claude_reads_its_base_and_environment(args, *a, **kwargs):
-        if list(args)[:1] != ["fake-claude"]:
-            return run(args, *a, **kwargs)
-        (base,) = base_directories(kwargs.get("input"))
-        seen.append((tree_contents(base), dict(kwargs.get("env") or os.environ)))
-        return subprocess.CompletedProcess(args, 0, None, None)
-
-    monkeypatch.setattr(subprocess, "run", claude_reads_its_base_and_environment)
+    seen = claude_records_its_base_trees_and_environments(monkeypatch)
     monkeypatch.delenv("VERI_SKILL_UNPINNED", raising=False)
 
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
