@@ -1254,3 +1254,22 @@ def test_main_renders_a_check_that_every_case_the_step_asks_for_exists_and_passe
                for phase in ("expand", "contract-a")}
 
     assert carries == {"expand": (0, False), "contract-a": (0, True)}
+
+
+def test_main_renders_no_every_case_exists_check_in_the_expand_or_migrate_prompt_of_a_step_listing_expand_migrate_contract_a_1495(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"zorblat(nitz) replaces frob(nitz, quux), with a case refusing a sibling start.\n")
+    step = ("Interface change: frob(nitz, quux) becomes zorblat(nitz) "
+            "⟦phases: expand, migrate, contract-a⟧ ⟦criterion 2⟧")
+
+    def rendered(phase):
+        code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit", phase, str(spec),
+                                         "tests/py/test_zorblat.py", "0123abc"])
+        out, _ = capsysbinary.readouterr()
+        return code, re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
+
+    carries = {phase: (lambda result: (result[0], "Every case the step asks for exists" in result[1]))(rendered(phase))
+               for phase in ("expand", "migrate")}
+
+    assert carries == {"expand": (0, False), "migrate": (0, False)}
