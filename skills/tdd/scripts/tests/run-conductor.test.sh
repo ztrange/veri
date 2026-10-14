@@ -22,7 +22,6 @@ for arg in "$@"; do
 done
 printf '%s\n' "$@" > "$ARGV_OUT"
 cat > "${PROMPT_OUT:-/dev/null}"
-[ -n "${ENV_OUT:-}" ] && env > "$ENV_OUT"
 if [ -n "${BASE_OUT:-}" ] || [ -n "${CONDUCTOR_HOOK:-}" ]; then
   base="$(sed -n 's/^Base directory for this skill: //p' "${PROMPT_OUT:-/dev/null}" 2>/dev/null | head -n 1)"
   [ -n "$base" ] && [ -d "$base" ] || { echo "stub: the prompt names no base directory" >&2; exit 2; }
