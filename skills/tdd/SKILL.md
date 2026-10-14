@@ -119,7 +119,8 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   by `run-leaf.sh`; passes plain text through unchanged).
 - `$S/build-develop-prompt.sh <red|green|refactor|cover|transform|diff|structural|predicate|revise|exhausted|reconcile|over-budget|rebase> …` — assemble a **developer** leaf's prompt from a
   versioned template: `red <spec-file> <step-text> <test-cmd>`, `green <spec-file>
-  <step-text> <test-cmd> <test-path> <target>`, `refactor <spec-file> <step-text>
+  <step-text> <test-cmd> <test-path> <target> <fast-cmd> [<owed-cases>]` (the optional 8th argument
+  is the named cases still owed for deletion), `refactor <spec-file> <step-text>
   <test-cmd> <touched-files>`, `revise <phase> <spec-file> <step-text> <test-cmd>
   <reason-file>`. Prints the prompt on stdout; **exit 2** with a diagnostic and **no
   stdout** on an unknown phase or a missing template, spec or reason file — never a partial
@@ -1164,7 +1165,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    fast command and the affected suites green — and launch **through the supervisor** (exit **2** → **bail**, after the stop
    check in *Launching a leaf*):
    ```
-   $S/build-develop-prompt.sh green .tdd/issue-<n>-spec.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' <test-path> '<target-test-id>' '<fast-cmd>' > .tdd/develop-green.prompt
+   $S/build-develop-prompt.sh green .tdd/issue-<n>-spec.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' <test-path> '<target-test-id>' '<fast-cmd>' '<owed-cases>' > .tdd/develop-green.prompt
    rm -f .tdd/develop-green.exit .tdd/develop-green.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh develop-green $S/run-leaf.sh .tdd/develop-green.prompt --permission-mode bypassPermissions > .tdd/develop-green.out 2> .tdd/develop-green.err
    $S/wait-leaf.sh develop-green    # foreground; on exit 3 call it again
@@ -1213,6 +1214,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    do not launch verify-green — never verify a step whose named cases lack a replacement.
    Exit 2 — no answer could be obtained (no readable report, bad arguments) — also bails with
    cause=unreplaced-cases, and verify-green is not launched.
+   Run `$S/replaces-case-survivors.sh "<step text>"` before the launch below; its exit 1 means survivors (see the paragraph after the block).
    ```
    rm -f .tdd/verdict-green.exit .tdd/verdict-green.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-green $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" --fast-cmd '<fast-cmd>' green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason 2> .tdd/verify-green.err
@@ -1222,7 +1224,13 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    On a `⟦replaces-case⟧` step, a PASS is accepted only once the conductor's own run of
    `$S/mutation-parity.sh <pairs-table>` on that step's pairs table exits 0; exit 1 is a
    REJECT, exit 2 a bail. The PR body's pairs table is that run's report, and each row it
-   reports owed goes into the PR body under `## Owed by a human`.
+   reports owed goes into the PR body under `## Owed by a human`. Before that verify-green
+   launches, the conductor runs `$S/replaces-case-survivors.sh "<step text>"`; exit 1 prints
+   the named cases the suite still holds, and the conductor then relaunches the green leaf
+   naming those survivors, records the relaunch as an event (`$S/event.sh`), and launches no
+   verifier on that green. Each such relaunch spends one `REVISE_BUDGET` attempt, the verdict
+   axis, since a surviving named case is a mechanical rejection of the green; when the budget
+   is spent the run bails with `cause=revise-exhausted`.
 3. **Narrate + branch.** Post `### 🟢 Green` (implementation + green suite output) and
    `### 🔎 verify-green — PASS|REJECT` (the reason).
    - **PASS — check off the ledger step and commit atomically.** Tick STEP in the ledger,

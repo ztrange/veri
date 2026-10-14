@@ -324,4 +324,98 @@ fi
 
 report "$name"
 
+require() {
+  grep -F -- "$1" > /dev/null <<<"$2" || problems+=("$3")
+}
+
+green_paragraph() {
+  awk 'index($0, "On a `⟦replaces-case⟧` step, a PASS is accepted") { inside = 1 }
+       inside && /^3\. / { exit }
+       inside' "$skill_path" | tr -d '*`' | tr '\n' ' ' | tr -s ' '
+}
+section="$(green_paragraph)"
+
+name="$skill_md's replaces-case green paragraph runs replaces-case-survivors.sh before verify-green and, on survivors, relaunches the green leaf naming them, records an event and launches no verifier"
+problems=()
+
+if [[ -z "${section// /}" ]]; then
+  problems+=("$skill_md has no replaces-case paragraph in the Green step's Verify (blind) to read — the survivors check could not be established")
+else
+  require 'replaces-case-survivors.sh' "$section" \
+    "$skill_md's replaces-case Green paragraph never runs replaces-case-survivors.sh, so a green that kept a named case reaches a verifier"
+  require 'relaunch' "$section" \
+    "$skill_md's replaces-case Green paragraph never relaunches the green leaf on survivors"
+  require 'event' "$section" \
+    "$skill_md's replaces-case Green paragraph never records the relaunch as an event"
+  require 'no verifier' "$section" \
+    "$skill_md's replaces-case Green paragraph never says no verifier is launched while a named case survives"
+fi
+
+report "$name"
+
+name="#1406 $skill_md runs replaces-case-survivors.sh before the verify-green launch command, not after it"
+problems=()
+
+survivors_line="$(grep -nF 'replaces-case-survivors.sh "' "$skill_path" | sed -n 1p | cut -d: -f1)"
+launch_line="$(grep -nF 'supervise.sh verdict-green' "$skill_path" | sed -n 1p | cut -d: -f1)"
+
+if [[ -z "$survivors_line" || -z "$launch_line" ]]; then
+  problems+=("$skill_md lacks a replaces-case-survivors.sh run or a verdict-green launch line (survivors=${survivors_line:-none}, launch=${launch_line:-none}) — their order could not be established")
+elif [[ "$survivors_line" -gt "$launch_line" ]]; then
+  problems+=("$skill_md:$survivors_line runs replaces-case-survivors.sh after the verify-green launch at line $launch_line, so a conductor following the page in order launches the verifier before it checks for survivors")
+fi
+
+report "$name"
+
+name="#1406 $skill_md orders the unreplaced-cases.sh check before the replaces-case-survivors.sh check, and both before the verify-green launch command"
+problems=()
+
+unreplaced_line="$(grep -nF 'unreplaced-cases.sh "' "$skill_path" | sed -n 1p | cut -d: -f1)"
+survivors_line="$(grep -nF 'replaces-case-survivors.sh "' "$skill_path" | sed -n 1p | cut -d: -f1)"
+launch_line="$(grep -nF 'supervise.sh verdict-green' "$skill_path" | sed -n 1p | cut -d: -f1)"
+
+if [[ -z "$unreplaced_line" || -z "$survivors_line" || -z "$launch_line" ]]; then
+  problems+=("$skill_md lacks an unreplaced-cases.sh run, a replaces-case-survivors.sh run or a verdict-green launch line (unreplaced=${unreplaced_line:-none}, survivors=${survivors_line:-none}, launch=${launch_line:-none}) — the gate order could not be established")
+elif [[ "$unreplaced_line" -gt "$survivors_line" || "$survivors_line" -gt "$launch_line" ]]; then
+  problems+=("$skill_md gates are out of order: unreplaced-cases.sh at line $unreplaced_line, replaces-case-survivors.sh at line $survivors_line, verify-green launch at line $launch_line")
+fi
+
+report "$name"
+
+name="#1406 $skill_md's replaces-case green paragraph says each survivors relaunch spends one REVISE_BUDGET attempt and a spent budget bails with a cause classify-bail.sh classifies"
+problems=()
+
+if [[ -z "${section// /}" ]]; then
+  problems+=("$skill_md has no replaces-case paragraph in the Green step's Verify (blind) to read — the relaunch bound could not be established")
+else
+  require 'REVISE_BUDGET' "$section" \
+    "$skill_md's replaces-case Green paragraph never says the survivors relaunch spends a REVISE_BUDGET attempt, so the relaunch is unbounded"
+  bail_cause="$(grep -oE 'cause=[a-z-]+' <<<"$section" | sed -n 1p)"
+  bail_cause="${bail_cause#cause=}"
+  if [[ -z "$bail_cause" ]]; then
+    problems+=("$skill_md's replaces-case Green paragraph names no cause= to bail with when the REVISE_BUDGET is spent on survivors")
+  elif ! "$ROOT/skills/tdd/scripts/classify-bail.sh" "$bail_cause" > /dev/null 2>&1; then
+    problems+=("$skill_md's replaces-case Green paragraph bails with cause=$bail_cause, which classify-bail.sh does not classify")
+  fi
+fi
+
+report "$name"
+
+name="#1406 $skill_md documents build-develop-prompt.sh green's 8th argument, the cases still owed for deletion, at the green build command and in the script reference entry"
+problems=()
+
+green_build="$(grep -F 'build-develop-prompt.sh green ' "$skill_path" | sed -n 1p)"
+reference_green="$(awk 'index($0, "- `$S/build-develop-prompt.sh <red") == 1 { inside = 1; next } inside && /^- `/ { exit } inside' "$skill_path" | plain --join)"
+
+if [[ -z "$green_build" ]]; then
+  problems+=("$skill_md has no 'build-develop-prompt.sh green ' command line to read")
+elif [[ "$green_build" != *owed* ]]; then
+  problems+=("$skill_md's green build command passes no argument for the cases still owed for deletion: $green_build")
+fi
+if [[ "$reference_green" != *"<fast-cmd>"*owed* && "$reference_green" != *"green <spec-file>"*owed*"refactor <spec-file>"* ]]; then
+  problems+=("$skill_md's build-develop-prompt.sh reference entry never lists an owed-cases argument in green's synopsis")
+fi
+
+report "$name"
+
 finish
