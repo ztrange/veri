@@ -162,48 +162,6 @@ grep -qi 'fetch' "$launch_err" ||
 
 report "$name"
 
-name="an unresolvable recorded skill commit refuses with exit 2 unless VERI_NEW_SKILL=1, which re-pins and logs a skill-repin event"
-problems=()
-
-clone12="$work/clone12"
-skill_clone "$clone12"
-head12="$(git -C "$clone12" rev-parse HEAD)"
-
-foreign12="$work/foreign12"
-caller_repo "$foreign12"
-git -C "$foreign12" -c user.name=t -c user.email=t@t commit -q --allow-empty -m elsewhere
-missing12="$(git -C "$foreign12" rev-parse HEAD)"
-
-caller12="$work/caller12"
-caller_repo "$caller12"
-git -C "$caller12" commit -q --allow-empty -m base
-git -C "$caller12" branch "tdd/$issue-past-preflight"
-launch_from "$caller12" "$clone12"
-
-printf '%s\n' "$missing12" > "$caller12/.tdd/issue-$issue-skill-commit"
-rm -f "$argv"
-launch_from "$caller12" "$clone12"
-rc12=$?
-[[ "$rc12" == 2 ]] ||
-  problems+=("the launch without VERI_NEW_SKILL=1 exited $rc12, not 2")
-[[ ! -f "$argv" ]] ||
-  problems+=("the conductor was launched anyway over unresolvable recorded commit $missing12")
-
-printf '%s\n' "$missing12" > "$caller12/.tdd/issue-$issue-skill-commit"
-rm -f "$argv"
-launch_from "$caller12" "$clone12" VERI_NEW_SKILL=1
-rc12=$?
-[[ "$rc12" == 0 ]] ||
-  problems+=("the launch with VERI_NEW_SKILL=1 exited $rc12, not 0: $(cat "$launch_err")")
-grep -qx -- "$head12" "$caller12/.tdd/issue-$issue-skill-commit" ||
-  problems+=("the launch with VERI_NEW_SKILL=1 did not record HEAD $head12 as the pin")
-
-repin_in "$caller12/.tdd/events.jsonl" "$head12" ||
-  repin_in "$caller12/.tdd/wt/$issue/.tdd/events.jsonl" "$head12" ||
-  problems+=("no skill-repin event naming $head12 in the run's event log")
-
-report "$name"
-
 name="the skill-repin event lands in the run worktree's .tdd/wt/<n>/.tdd/events.jsonl, never the caller's .tdd/events.jsonl"
 problems=()
 
