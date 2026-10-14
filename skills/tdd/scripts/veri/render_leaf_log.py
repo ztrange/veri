@@ -1,4 +1,5 @@
 """render-leaf-log.sh's rendering of a leaf's stream-json log, run in-process."""
+import io
 import json
 import sys
 
@@ -13,14 +14,13 @@ def truncated(text, limit):
     return head[:limit] + ("…" if cut else "")
 
 
-def main(argv):
+def _render(lines):
     out = []
-    for line in sys.stdin:
+    for line in lines:
         try:
             obj = json.loads(line)
         except ValueError:
-            sys.stderr.write("render-leaf-log.sh: not JSON: %s" % line)
-            return 2
+            return 2, "", "render-leaf-log.sh: not JSON: %s" % line
         content = (obj.get("message") or {}).get("content") or []
         for block in content:
             kind = block.get("type")
@@ -32,8 +32,19 @@ def main(argv):
                 out.append("> %s: %s" % (block["name"], arg))
             elif kind == "tool_result":
                 out.append("< " + truncated(str(block.get("content", "")), 80))
-    sys.stdout.write("".join(l + "\n" for l in out))
-    return 0
+    return 0, "".join(l + "\n" for l in out), ""
+
+
+def render_log(text):
+    code, rendering, _ = _render(io.StringIO(text))
+    return code, rendering
+
+
+def main(argv):
+    code, rendering, err = _render(sys.stdin)
+    sys.stderr.write(err)
+    sys.stdout.write(rendering)
+    return code
 
 
 if __name__ == "__main__":
