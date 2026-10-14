@@ -1740,3 +1740,61 @@ def test_cli_a_working_tree_edit_to_skill_md_never_reaches_the_conductor_the_com
         lambda stdin: (marker in stdin, stdin.startswith(committed.rstrip("\n"))))
 
     assert (code, seen) == (0, [(False, True)]), stderr
+
+
+@pytest.mark.process("real develop-prompt builders, supervise.sh, run-leaf.sh and verify.sh run from a launched claude, each leaf's prompt read off a stub claude")
+def test_cli_each_phases_leaf_is_launched_with_its_tier_red_and_refactor_affected_green_verify_green_and_verify_refactor_fast_and_affected(
+        tmp_path, monkeypatch, run_cli):
+    skill, run_conductor = skill_clone(tmp_path, monkeypatch, "run_conductor_tiers", {"SKILL.md": "# the procedure\n"})
+    fast, every = "make FAST-TIER-7781", "make ALL-TIER-7781"
+    tiers = tmp_path / "tiers"
+    tiers.mkdir()
+    (tiers / "spec.md").write_text("spec\n")
+    stub = tmp_path / "tier-claude"
+    stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { printf \'%s\\n\' "$2" > "$LEAF_PROMPT_OUT"; shift; }\n'
+                    '  shift\ndone\nprintf \'%s\\n\' \'{"type":"result","subtype":"success","is_error":false,"result":"VERDICT: PASS\\nREASON: ok"}\'\n')
+    stub.chmod(0o755)
+    run, exits = subprocess.run, {}
+
+    def claude_launches_every_leaf(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+
+        def leaf(name, *command):
+            env = dict(os.environ, CLAUDE_BIN=str(stub), LEAF_PROMPT_OUT=str(tiers / (name + ".received")), VERI_POLL="0.02")
+            exits[name] = run([str(c) for c in command], cwd=tiers, env=env, capture_output=True).returncode
+
+        def prompt(name, *builder):
+            run([str(SCRIPTS / builder[0])] + list(builder[1:]), cwd=tiers, check=True,
+                stdout=open(tiers / (name + ".prompt"), "w"))
+            leaf(name, SCRIPTS / "supervise.sh", name, SCRIPTS / "run-leaf.sh", name + ".prompt")
+
+        prompt("develop-red", "build-develop-prompt.sh", "red", "spec.md", "the step", every)
+        prompt("develop-green", "build-develop-prompt.sh", "green", "spec.md", "the step", every, "t.test.sh", "the case", fast)
+        prompt("develop-refactor", "build-develop-prompt.sh", "refactor", "spec.md", "the step", every, "src/a.sh")
+        for phase, last in (("red", "the case"), ("green", "the case"), ("refactor", "abc1234")):
+            leaf("verify-" + phase, SCRIPTS / "verify.sh", "--step", "the step", "--fast-cmd", fast, phase, "spec.md", "t.test.sh", last)
+        leaf("verify-refactor-bare", SCRIPTS / "verify.sh", "--step", "the step", "refactor", "spec.md", "t.test.sh", "abc1234")
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    monkeypatch.setattr(subprocess, "run", claude_launches_every_leaf)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    def tier_of(name):
+        received = tiers / (name + ".received")
+        if not received.exists():
+            return None
+        text = received.read_text()
+        got = [label for label, needle in (("fast", fast), ("affected", "affected-suites.sh")) if needle in text]
+        return "+".join(got) or ("all" if every in text else "none")
+
+    assert code == 0, stderr
+    assert {name: tier_of(name) for name in ("develop-red", "verify-red", "develop-green", "verify-green",
+                                             "develop-refactor", "verify-refactor", "verify-refactor-bare")} == {
+        "develop-red": "affected", "verify-red": "affected", "develop-green": "fast+affected",
+        "verify-green": "fast+affected", "develop-refactor": "affected", "verify-refactor": "fast+affected",
+        "verify-refactor-bare": None}
+    assert exits["verify-refactor-bare"] == 2
