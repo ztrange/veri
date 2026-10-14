@@ -2157,3 +2157,24 @@ def test_cli_with_no_origin_head_the_launch_pins_to_the_remotes_default_branch_t
     record = caller / ".tdd" / "issue-4242-skill-commit"
     assert (code, record.read_text() if record.is_file() else None, [tree for tree, _ in seen],
             ["VERI_SKILL_UNPINNED" in env for _, env in seen]) == (0, tip + "\n", [tree_contents(remote)], [False]), stderr
+
+
+@pytest.mark.process("real git clone and ls-remote of a scratch skill clone with no refs/remotes/origin/HEAD whose origin is on a detached HEAD, so it names no default branch")
+def test_cli_with_no_origin_head_and_no_resolvable_remote_default_branch_the_launch_exits_2_naming_the_ref_and_never_runs_unpinned(
+        tmp_path, monkeypatch, run_cli):
+    remote, _ = skill_clone(tmp_path, monkeypatch, "run_conductor_no_default_remote",
+                            {"SKILL.md": "# the committed procedure\n"}, directory="remote")
+    clone = tmp_path / "clone"
+    subprocess.run(["git", "clone", "-q", str(remote), str(clone)], check=True)
+    subprocess.run(["git", "-C", str(clone), "remote", "set-head", "origin", "-d"], check=True)
+    subprocess.run(["git", "-C", str(clone), "config", "remote.origin.followRemoteHEAD", "never"], check=True)
+    subprocess.run(["git", "-C", str(remote), "checkout", "-q", "--detach"], check=True)
+    subprocess.run(git_as_veri(remote) + ["commit", "-q", "--allow-empty", "-m", "on no branch"], check=True)
+    run_conductor = load_run_conductor("run_conductor_no_default_clone", clone)
+    caller = caller_repository(tmp_path)
+    seen = claude_records_its_base_trees_and_environments(monkeypatch)
+    monkeypatch.delenv("VERI_SKILL_UNPINNED", raising=False)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+
+    assert (code, "refs/remotes/origin/HEAD" in stderr, seen) == (2, True, []), stderr
