@@ -67,4 +67,21 @@ code=0
 expect_eq "$name" "1:first case" "$code:$(cat "$out")"
 rm -f "$report" "$out"
 
+name="unreplaced-cases.sh counts a REPLACES claim whose test is written in the working tree but not yet committed, in a file that exists at HEAD, so it prints nothing and exits 0 (#1521)"
+repo="$(scratch_dir)"; report="$(mktemp)"; out="$(mktemp)"
+new_repo "$repo"
+mkdir -p "$repo/tests/py"
+printf 'def test_first():\n    pass\n' > "$repo/tests/py/test_x.py"
+git -C "$repo" add tests/py/test_x.py
+git -C "$repo" commit -q -m seed
+printf 'def test_first():\n    pass\n\n\ndef test_second():\n    pass\n' > "$repo/tests/py/test_x.py"
+printf '%s\n' \
+  "REPLACES: first case => tests/py/test_x.py::test_first" \
+  "REPLACES: second case => tests/py/test_x.py::test_second" > "$report"
+step="- [ ] x: replaces 'first case', 'second case' in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧"
+code=0
+(cd "$repo" && "$UNREPLACED" "$step" "$report" > "$out" 2> /dev/null < /dev/null) || code=$?
+expect_eq "$name" "0:" "$code:$(cat "$out")"
+rm -f "$report" "$out"
+
 finish
