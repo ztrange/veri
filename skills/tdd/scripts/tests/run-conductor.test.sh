@@ -535,31 +535,6 @@ fi
 
 report "$name"
 
-name="an unpinned launch hands the conductor VERI_SKILL_UNPINNED=1, and SKILL.md's plan-comment step names it"
-problems=()
-
-loose14="$work/loose14"
-loose_skill "$loose14"
-env14="$work/env14"
-rm -f "$env14"
-
-( unset VERI_SKILL_UNPINNED; launch_from "$caller" "$loose14" GIT_CEILING_DIRECTORIES="$work" ENV_OUT="$env14" )
-
-if [[ ! -f "$env14" ]]; then
-  problems+=("the unpinned launch never reached the conductor: $(cat "$launch_err")")
-elif ! grep -qx 'VERI_SKILL_UNPINNED=1' "$env14"; then
-  problems+=("the unpinned launch handed the conductor no VERI_SKILL_UNPINNED=1 in its environment")
-fi
-
-plan_step14="$(awk '/^[0-9]+\. \*\*Mirror the plan\*\*/ {on=1} on && /^$/ {exit} on' "$HERE/../../SKILL.md")"
-if [[ -z "$plan_step14" ]]; then
-  problems+=("SKILL.md has no plan-comment step (2.4, **Mirror the plan**) to read")
-elif ! grep -q 'VERI_SKILL_UNPINNED' <<< "$plan_step14"; then
-  problems+=("SKILL.md's plan-comment step (2.4) does not name VERI_SKILL_UNPINNED")
-fi
-
-report "$name"
-
 name="case 4 passes with an uncommitted edit to SKILL.md in the tree under test"
 problems=()
 

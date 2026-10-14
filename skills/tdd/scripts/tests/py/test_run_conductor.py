@@ -3,6 +3,7 @@ import importlib
 import io
 import os
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -1591,3 +1592,27 @@ def test_cli_with_no_resolvable_skill_commit_the_run_proceeds_unpinned_from_the_
     assert len(seen) == 1 and len(seen[0]) == 1
     assert (code, os.path.realpath(seen[0][0]) == os.path.realpath(skill), "unpinned" in stderr.lower()) == (
         0, True, True), stderr
+
+
+def test_cli_an_unpinned_launch_hands_the_conductor_veri_skill_unpinned_1_and_skill_mds_plan_comment_step_names_it(
+        tmp_path, monkeypatch, run_cli):
+    _, run_conductor = skill_clone(
+        tmp_path, monkeypatch, "run_conductor_unpinned_env", {"SKILL.md": "# the loose procedure\n"},
+        directory="loose", commit=False)
+    launches = fake_unresolvable(monkeypatch)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    plan_step = []
+    for line in (SCRIPTS.parent / "SKILL.md").read_text().splitlines():
+        if re.match(r"\d+\. \*\*Mirror the plan\*\*", line):
+            plan_step.append(line)
+        elif plan_step and not line:
+            break
+        elif plan_step:
+            plan_step.append(line)
+    assert (code, [launch["VERI_SKILL_UNPINNED"] for launch in launches]) == (0, ["1"]), stderr
+    assert plan_step, "SKILL.md has no plan-comment step (**Mirror the plan**) to read"
+    assert "VERI_SKILL_UNPINNED" in "\n".join(plan_step)
