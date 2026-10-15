@@ -25,11 +25,11 @@ def prediction_unwritten_before_run(argv):
     return len(argv) > 1 and os.path.getmtime(argv[0]) > os.path.getmtime(argv[1])
 
 
-def prediction_file_empty(argv):
+def prediction_file_content(argv):
     if not names_prediction_file(argv):
-        return False
+        return None
     with open(argv[0], "rb") as handle:
-        return not handle.read().strip()
+        return handle.read().decode(errors="surrogateescape").strip()
 
 
 def main(argv):
@@ -41,8 +41,12 @@ def main(argv):
     prediction = fields.get("PREDICTION", "").partition(" ")[0]
     if prediction[-1:] in (",", ";", ":", "."):
         prediction = prediction[:-1]
-    if prediction == "MATCHED" and prediction_file_empty(argv):
-        prediction = "DIVERGED"
+    content = prediction_file_content(argv)
+    if content is not None and prediction == "MATCHED":
+        if not content or content != fields.get("PREDICTED_FAILURE", "").strip():
+            prediction = "DIVERGED"
+    if content is not None:
+        fields["PREDICTED_FAILURE"] = content
     if prediction == "MATCHED":
         return 3
     if prediction != "DIVERGED":
