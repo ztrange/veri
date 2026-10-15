@@ -2459,3 +2459,184 @@ def test_loose_skill_copies_tracked_and_untracked_unignored_files_under_skills_t
     assert (destination / "SKILL.md").read_text() == "skill\n"
     assert (destination / "untracked.txt").read_text() == "stray\n"
     assert not (destination / "scripts" / "veri" / "__pycache__").exists()
+
+
+def claude_that_runs(monkeypatch, hook=lambda: None, code=0):
+    """Fake the launched claude; the first launch runs hook(), every launch exits code, and the returned list gains (base tree, prompt) per launch."""
+    run, seen = subprocess.run, []
+
+    def claude_leaves_its_mark(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+        prompt = kwargs["input"].decode()
+        (base,) = base_directories(prompt)
+        seen.append((tree_contents(base), prompt))
+        if len(seen) == 1:
+            hook()
+        return subprocess.CompletedProcess(args, code, None, None)
+
+    monkeypatch.setattr(subprocess, "run", claude_leaves_its_mark)
+    return seen
+
+
+def skill_and_caller(tmp_path, monkeypatch, module_name):
+    skill, run_conductor = skill_clone(
+        tmp_path, monkeypatch, module_name,
+        {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the first supervisor\n"})
+    return skill, run_conductor, caller_repository(tmp_path)
+
+
+def registered_worktrees(repository):
+    listed = subprocess.run(["git", "-C", str(repository), "worktree", "list", "--porcelain"],
+                            capture_output=True, text=True, check=True).stdout
+    return [line[len("worktree "):] for line in listed.splitlines() if line.startswith("worktree ")]
+
+
+@pytest.mark.process("real git worktree add registering .tdd/wt/<n> in a real caller repository, and git archive and tar materialising the recorded commit")
+def test_cli_a_conductor_that_exits_with_tdd_wt_n_registered_as_a_worktree_keeps_the_skill_record_and_the_next_launch_runs_the_recorded_commit_866(
+        tmp_path, monkeypatch, run_cli):
+    skill, run_conductor, caller = skill_and_caller(tmp_path, monkeypatch, "run_conductor_record_worktree")
+    first = head_commit(skill)
+    recorded = tree_contents(skill)
+    worktree = caller / ".tdd" / "wt" / "4242"
+    seen = claude_that_runs(
+        monkeypatch, lambda: subprocess.run(git_as_veri(caller) + ["worktree", "add", "-q", "--detach", str(worktree)], check=True))
+    record = caller / ".tdd" / "issue-4242-skill-commit"
+
+    first_code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+    kept = record.read_text() if record.is_file() else None
+    registered = os.path.realpath(worktree) in [os.path.realpath(path) for path in registered_worktrees(caller)]
+    commit_appended_line(skill, "scripts/supervise.sh", "a commit that landed after the run got past preflight")
+    moved = head_commit(skill)
+    resumed_code, _, resumed_stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+
+    assert len(seen) == 2
+    assert (first_code, registered, kept, resumed_code, seen[1][0] == recorded, first in seen[1][1],
+            moved in seen[1][1]) == (0, True, first + "\n", 0, True, True, False), stderr + resumed_stderr
+
+
+@pytest.mark.process("a real caller repository holding a local tdd/<n>-* branch and no worktree, and git archive and tar materialising the recorded commit")
+def test_cli_a_conductor_that_exits_with_a_local_tdd_n_branch_and_no_worktree_keeps_the_skill_record_and_the_next_launch_runs_the_recorded_commit_866(
+        tmp_path, monkeypatch, run_cli):
+    skill, run_conductor, caller = skill_and_caller(tmp_path, monkeypatch, "run_conductor_record_branch")
+    first = head_commit(skill)
+    recorded = tree_contents(skill)
+    seen = claude_that_runs(
+        monkeypatch, lambda: subprocess.run(git_as_veri(caller) + ["branch", "tdd/4242-past-preflight"], check=True))
+    record = caller / ".tdd" / "issue-4242-skill-commit"
+
+    first_code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+    kept = record.read_text() if record.is_file() else None
+    branch = subprocess.run(git_as_veri(caller) + ["show-ref", "--verify", "-q", "refs/heads/tdd/4242-past-preflight"]).returncode
+    worktrees = registered_worktrees(caller)
+    commit_appended_line(skill, "scripts/supervise.sh", "a commit that landed after the run got past preflight")
+    moved = head_commit(skill)
+    resumed_code, _, resumed_stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+
+    assert len(seen) == 2
+    assert (first_code, branch, len(worktrees), kept, resumed_code, seen[1][0] == recorded, first in seen[1][1],
+            moved in seen[1][1]) == (0, 0, 1, first + "\n", 0, True, True, False), stderr + resumed_stderr
+
+
+@pytest.mark.process("a real caller repository with no .tdd/wt/<n> worktree and no tdd/<n>-* branch, and git archive and tar materialising the pinned commit")
+def test_cli_a_conductor_that_exits_0_or_non_zero_with_no_registered_tdd_wt_n_worktree_and_no_local_tdd_n_branch_leaves_no_skill_record_866(
+        tmp_path, monkeypatch, run_cli):
+    skill, run_conductor = skill_clone(
+        tmp_path, monkeypatch, "run_conductor_record_removed",
+        {"SKILL.md": "# the committed procedure\n", "scripts/supervise.sh": "#!/bin/sh\necho the supervisor\n"})
+    outcomes = []
+    for code in (0, 1):
+        parent = tmp_path / f"caller-{code}"
+        parent.mkdir()
+        caller = caller_repository(parent)
+        claude_that_runs(monkeypatch, code=code)
+        exited, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+        outcomes.append((exited, (caller / ".tdd" / "issue-4242-skill-commit").exists()))
+
+    assert outcomes == [(0, False), (1, False)]
+
+
+@pytest.mark.process("a real caller repository holding only a local tdd/<n>6-* branch of another issue, and git archive and tar materialising the pinned commit")
+def test_cli_a_local_branch_for_another_issue_whose_number_starts_with_n_tdd_n6_does_not_count_as_a_run_past_preflight_the_skill_record_is_removed_866(
+        tmp_path, monkeypatch, run_cli):
+    _, run_conductor, caller = skill_and_caller(tmp_path, monkeypatch, "run_conductor_record_other_issue")
+    claude_that_runs(
+        monkeypatch, lambda: subprocess.run(git_as_veri(caller) + ["branch", "tdd/42426-other-issue"], check=True))
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+
+    branch = subprocess.run(git_as_veri(caller) + ["show-ref", "--verify", "-q", "refs/heads/tdd/42426-other-issue"]).returncode
+    assert (code, branch, (caller / ".tdd" / "issue-4242-skill-commit").exists()) == (0, 0, False), stderr
+
+
+@pytest.mark.process("a real caller repository left with no worktree and no tdd/<n>-* branch, and git archive and tar materialising the tip at each launch")
+def test_cli_after_a_launch_that_left_no_worktree_and_no_tdd_n_branch_the_next_launch_without_veri_new_skill_pins_the_default_branchs_tip_at_that_moment_not_the_earlier_launchs_commit_866(
+        tmp_path, monkeypatch, run_cli):
+    skill, run_conductor, caller = skill_and_caller(tmp_path, monkeypatch, "run_conductor_record_repinned_by_tip")
+    first = head_commit(skill)
+    seen = claude_that_runs(monkeypatch)
+
+    first_code, _, _ = run_cli(run_conductor, ["4242"], cwd=caller)
+    commit_appended_line(skill, "scripts/supervise.sh", "a commit that landed after the run stopped at preflight")
+    moved = head_commit(skill)
+    tip = tree_contents(skill)
+    second_code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+
+    assert len(seen) == 2
+    assert (first_code, second_code, first in seen[0][1], seen[1][0] == tip, moved in seen[1][1], first in seen[1][1]) == (
+        0, 0, True, True, True, False), stderr
+
+
+@pytest.mark.process("a real caller repository holding an unregistered .tdd/wt/<n> with only .tdd/events.jsonl written by the real event.sh, and git archive and tar materialising the fresh tip")
+def test_cli_an_unregistered_tdd_wt_n_holding_only_tdd_events_jsonl_as_veri_new_skill_1_leaves_it_does_not_count_as_a_run_past_preflight_with_no_worktree_and_no_branch_the_skill_record_is_removed_866(
+        tmp_path, monkeypatch, run_cli):
+    skill, run_conductor, caller = skill_and_caller(tmp_path, monkeypatch, "run_conductor_record_events_only")
+    record = caller / ".tdd" / "issue-4242-skill-commit"
+    record.parent.mkdir()
+    record.write_text(head_commit(skill) + "\n")
+    claude_that_runs(monkeypatch)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller, env={"VERI_NEW_SKILL": "1"})
+
+    worktree = caller / ".tdd" / "wt" / "4242"
+    left = sorted(str(path.relative_to(worktree)) for path in worktree.rglob("*") if path.is_file())
+    registered = os.path.realpath(worktree) in [os.path.realpath(path) for path in registered_worktrees(caller)]
+    assert (code, left, registered, record.exists()) == (0, [".tdd/events.jsonl"], False, False), stderr
+
+
+@pytest.mark.process("a recorded commit the skill clone cannot resolve, with no worktree and no tdd/<n>-* branch in a real caller repository")
+def test_cli_with_no_worktree_and_no_tdd_n_branch_an_unresolvable_recorded_skill_commit_still_exits_2_before_launching_any_conductor_866(
+        tmp_path, monkeypatch, run_cli):
+    _, run_conductor, caller = skill_and_caller(tmp_path, monkeypatch, "run_conductor_record_unresolvable")
+    foreign = tmp_path / "foreign"
+    foreign.mkdir()
+    subprocess.run(["git", "init", "-q", str(foreign)], check=True)
+    subprocess.run(git_as_veri(foreign) + ["commit", "-q", "--allow-empty", "-m", "elsewhere"], check=True)
+    missing = head_commit(foreign)
+    record = caller / ".tdd" / "issue-4242-skill-commit"
+    record.parent.mkdir()
+    record.write_text(missing + "\n")
+    seen = claude_that_runs(monkeypatch)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+
+    assert (code, seen) == (2, []), stderr
+
+
+@pytest.mark.process("a real caller repository with no worktree and no tdd/<n>-* branch, git archive and tar materialising the fresh tip, and the real event.sh appending the skill-repin event")
+def test_cli_with_no_worktree_and_no_tdd_n_branch_veri_new_skill_1_still_re_pins_the_record_to_the_fresh_tip_for_the_conductors_run_and_writes_its_skill_repin_event_866(
+        tmp_path, monkeypatch, run_cli):
+    skill, run_conductor, caller = skill_and_caller(tmp_path, monkeypatch, "run_conductor_record_repin_no_run")
+    record = caller / ".tdd" / "issue-4242-skill-commit"
+    record.parent.mkdir()
+    record.write_text(head_commit(skill) + "\n")
+    commit_appended_line(skill, "scripts/supervise.sh", "a commit the operator asks the run to take")
+    moved = head_commit(skill)
+    during = []
+    seen = claude_that_runs(monkeypatch, lambda: during.append(record.read_text()))
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller, env={"VERI_NEW_SKILL": "1"})
+
+    repins = repin_commits(caller / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl")
+    assert len(seen) == 1
+    assert (code, during, moved in seen[0][1], repins) == (0, [moved + "\n"], True, [moved]), stderr
