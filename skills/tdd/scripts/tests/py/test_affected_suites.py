@@ -333,3 +333,34 @@ def test_main_prints_a_pytest_file_that_passes_the_helper_a_heading_it_never_spe
     (py / "test_literal_beta.py").write_text('section(SKILL, "## Beta")\n')
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
         0, "skills/tdd/scripts/tests/py/test_computed.py\n", "")
+
+
+@pytest.mark.parametrize("direct_read", [
+    'open("skills/tdd/SKILL.md").read()',
+    'Path("skills/tdd/SKILL.md").read_text()',
+])
+def test_main_prints_a_pytest_file_that_reads_skill_md_directly_and_also_calls_the_helper_on_a_section_it_does_not_name(
+        tmp_path, monkeypatch, capsys, affected, direct_read):
+    skill = "skills/tdd/SKILL.md"
+
+    def fake_run(args, **kwargs):
+        if list(args[:2]) == ["git", "rev-parse"]:
+            stdout = "abc\n"
+        elif list(args[:3]) == ["git", "diff", "--name-only"]:
+            stdout = "" if "--diff-filter=AD" in args else skill + "\n"
+        elif list(args[:3]) == ["git", "diff", "-U0"]:
+            stdout = "@@ -2 +2 @@\n-old body\n+alpha body\n"
+        else:
+            raise AssertionError("unexpected command: %r" % (args,))
+        return subprocess.CompletedProcess(args, 0, stdout, "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    py = tmp_path / "skills/tdd/scripts/tests/py"
+    py.mkdir(parents=True)
+    (tmp_path / skill).write_text("## Alpha\nalpha body\n## Beta\nbeta body\n")
+    (py / "test_alpha.py").write_text('section(SKILL, "## Alpha")\n')
+    (py / "test_both.py").write_text("text = " + direct_read + '\nsection(SKILL, "## Beta")\n')
+    (py / "test_beta.py").write_text('section(SKILL, "## Beta")\n')
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0, "skills/tdd/scripts/tests/py/test_alpha.py\nskills/tdd/scripts/tests/py/test_both.py\n", "")
