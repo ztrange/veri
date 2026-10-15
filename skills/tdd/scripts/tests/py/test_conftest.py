@@ -230,3 +230,20 @@ def test_a_case_that_starts_pytest_as_a_process_fails_naming_the_case_and_the_co
     assert "test_probe.py::test_probe" in output, output
     assert "-m pytest %s" % inner in output, output
     assert not ran_marker.exists()
+
+
+@pytest.mark.process("a child pytest session whose case hands echo a suite path, a pytest node id and a launcher name as arguments")
+def test_a_case_that_only_carries_a_suite_path_or_a_pytest_node_id_as_an_argument_to_a_process_that_is_not_a_test_runner_passes_the_guard(tmp_path):
+    suite = tmp_path / "tests" / "nested.test.sh"
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import subprocess\n"
+        "import pytest\n"
+        "@pytest.mark.process('echo with test-runner names as data')\n"
+        "def test_probe():\n"
+        "    ran = subprocess.run(['echo', %r, 'tests/py/test_x.py::test_y', 'pytest_leg.py'], capture_output=True, text=True)\n"
+        "    assert ran.returncode == 0\n" % str(suite))
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    assert ran.returncode == 0, ran.stdout + ran.stderr
