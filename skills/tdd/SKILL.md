@@ -576,11 +576,19 @@ unauthenticated baseline never gets a cycle.
    ```
    stray="$(git status --porcelain)"
    stray="$(grep -v '^.. \.tdd/' <<< "$stray")"
-   appends="$(git diff HEAD -- .tdd)"
+   appends="$(git diff HEAD -U0 -- .tdd | awk '
+     function emit() { if (hunk != "" && !del) { if (!shown) { printf "%s", hdr; shown = 1 } printf "%s", hunk } hunk = ""; del = 0 }
+     /^diff --git/ { emit(); hdr = $0 "\n"; shown = 0; head = 1; next }
+     head && !/^@@/ { hdr = hdr $0 "\n"; next }
+     /^@@/ { emit(); head = 0; hunk = $0 "\n"; next }
+     { hunk = hunk $0 "\n"; if (/^-/) del = 1 }
+     END { emit() }')"
    git reset --hard HEAD
    git clean -fd -e .tdd
-   [[ -z "$appends" ]] || git apply <<< "$appends"
+   [[ -z "$appends" ]] || git apply --unidiff-zero <<< "$appends"
    ```
+   The `awk` keeps only the hunks that add lines and removes none: a ledger tick rewrites a line, so a
+   tick whose green commit the kill prevented is dropped with the code it ticks.
    Keep this `$stray` for *Resume* sub-step 4 to name. Then the resumed run, its worktree
    clean and its ledger untouched, runs
    `$S/rebase-onto-default.sh` before its baseline, so the baseline runs on the rebased tip.
