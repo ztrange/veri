@@ -246,24 +246,19 @@ def case_starts_no_test_runner(request, monkeypatch):
 
     setattr_ = monkeypatch.setattr
 
+    def refusing_git_in_repository(replacement):
+        def run(args, *a, **kw):
+            refuse_git_in_repository(args, kw)
+            return replacement(args, *a, **kw)
+
+        return run
+
     def guarded_setattr(target, name, *rest, **kwargs):
         if target == "subprocess.run" and callable(name):
-            replacement = name
-
-            def run(args, *a, **kw):
-                refuse_git_in_repository(args, kw)
-                return replacement(args, *a, **kw)
-
-            return setattr_(target, run, *rest, **kwargs)
+            return setattr_(target, refusing_git_in_repository(name), *rest, **kwargs)
         value = rest[0] if rest else kwargs.get("value")
         if target is subprocess and name == "run" and callable(value):
-            replacement = value
-
-            def run(args, *a, **kw):
-                refuse_git_in_repository(args, kw)
-                return replacement(args, *a, **kw)
-
-            return setattr_(target, name, run, *rest[1:], **{k: v for k, v in kwargs.items() if k != "value"})
+            return setattr_(target, name, refusing_git_in_repository(value), *rest[1:], **{k: v for k, v in kwargs.items() if k != "value"})
         return setattr_(target, name, *rest, **kwargs)
 
     monkeypatch.setattr = guarded_setattr
