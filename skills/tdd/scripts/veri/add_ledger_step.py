@@ -39,6 +39,17 @@ def added_step(text, k, planned=False):
     return step if k else step.removesuffix(f" {CRITERION_TAG}⟧")
 
 
+def spec_criteria(path):
+    spec = re.sub(r"\.md$", "", path) + "-spec.md"
+    try:
+        with open(spec, "rb") as f:
+            text = f.read().decode(errors=BYTES)
+    except OSError:
+        return None
+    section = re.search(r"^## Acceptance criteria\n(.*?)(?=^## |\Z)", text, re.M | re.S)
+    return len(ledger_steps(section.group(1) if section else ""))
+
+
 def bash_integer(value):
     try:
         n = int(value, 8 if value.startswith("0") else 10)
@@ -86,6 +97,9 @@ def main(argv):
     refusal = multi_tag_refusal(records)
     if refusal:
         return refuse("add-ledger-step.sh: " + refusal)
+    known = spec_criteria(path) if planned else None
+    if known is not None and int(criterion) > known:
+        return refuse(f"add-ledger-step.sh: --planned: criterion {criterion} is not in the issue body ({known} criteria)")
     if planned and any(criterion_of(line) == criterion for line in lines if ledger_steps(line)):
         return refuse("add-ledger-step.sh: --planned: a step already serves criterion " + criterion)
     if sum(1 for line in lines if is_anchor_step(line, anchor)) != 1:

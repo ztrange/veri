@@ -672,3 +672,13 @@ def test_main_a_later_criterion_k_add_after_a_planned_one_is_marked_added_and_re
     assert (planned, code, capsys.readouterr().err, ledger.read_bytes()) == (
         0, 1, "", after_planned + "\n## Owed steps\n\n- u\n".encode()
     )
+
+
+def test_main_planned_criterion_k_beyond_the_spec_files_checkboxes_refuses_with_2_naming_k_writing_nothing_and_filing_no_owed_step_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    (tmp_path / "issue-42-spec.md").write_text("## Acceptance criteria\n\n- [x] one\n- [ ] two\n- [ ] three\n\n## Blocked by\n")
+    code = add_ledger_step.main(["--planned", "--criterion", "5", str(ledger), "after", "b two", "t"])
+    out, err = capsys.readouterr()
+    assert (code, out, err.count("\n"), "5" in err, ledger.read_bytes() == LEDGER) == (2, "", 1, True, True)
