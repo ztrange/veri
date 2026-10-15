@@ -190,14 +190,17 @@ def reads_only_through_slicers(suite, f):
                if reading.search(line) and not assignment.match(line))
 
 
+def pytest_texts():
+    return [(p, read(p) or b"") for p in suites(SCRIPTS + "/tests/py/test_*.py")]
+
+
 def pytest_readers(*needles):
     pattern = b"section\\((?:[^()]|\\([^()]*\\))*?(?:" + b"|".join(re.escape(n.encode()) for n in needles) + b")"
-    return [p for p in suites(SCRIPTS + "/tests/py/test_*.py") if re.search(pattern, read(p) or b"")]
+    return [p for p, text in pytest_texts() if re.search(pattern, text)]
 
 
 def pytest_whole_readers():
-    return [p for p in suites(SCRIPTS + "/tests/py/test_*.py")
-            if b"SKILL.md" in (read(p) or b"") and not re.search(rb"section\(", read(p))]
+    return [p for p, text in pytest_texts() if b"SKILL.md" in text and not re.search(rb"section\(", text)]
 
 
 def suite_of(f, revisions=None):
