@@ -111,9 +111,35 @@ def unmarked_case_lists_no_repository_directory(request, monkeypatch, tmp_path):
         monkeypatch.setattr(os, name, checked(getattr(os, name)))
 
 
+STARTS_PYTEST_EXEMPT = {
+    "test_run_suite.py::test_main_runs_a_pytest_suite_under_the_venv_python_and_maps_its_exit_code_without_a_count_line_check":
+        "run_suite.run_pytest is the subject; the interpreter it starts is a stub in the case's scratch venv",
+    "test_run_suite.py::test_main_hands_a_pytest_suite_no_ambient_veri_or_claude_variable_but_veri_venv_and_still_finds_the_caller_venv_1258":
+        "run_suite.run_pytest is the subject; the interpreter it starts is a stub in the case's scratch venv",
+    "test_conftest.py::test_a_case_reading_a_cwd_relative_path_gives_the_same_outcome_started_from_the_repository_root_as_from_skills_tdd_scripts":
+        "the pytest session started from two directories is the subject",
+    "test_conftest.py::test_the_path_setup_case_gives_the_same_outcome_started_from_skills_tdd_scripts_with_a_relative_path_as_from_the_repository_root":
+        "the pytest session started from two directories is the subject",
+}
+
+
 @pytest.fixture(autouse=True)
 def case_starts_no_bash_suite_under_tests(request, monkeypatch):
     real = subprocess.Popen.__init__
+
+    def is_pytest(words):
+        names = [os.path.basename(os.fsdecode(w)) for w in words]
+        if names[0] in ("pytest", "py.test") or "pytest_leg.py" in names:
+            return True
+        return names[0].startswith("python") and any(a == "-m" and b == "pytest" for a, b in zip(names, names[1:]))
+
+    def from_exempt_helper():
+        frame = sys._getframe()
+        while frame is not None:
+            if frame.f_code.co_name == "child_pytest" and os.path.basename(frame.f_code.co_filename) == "test_conftest.py":
+                return True
+            frame = frame.f_back
+        return False
 
     def is_suite(arg):
         parts = pathlib.PurePath(os.fsdecode(arg)).parts
@@ -125,6 +151,8 @@ def case_starts_no_bash_suite_under_tests(request, monkeypatch):
             words = shlex.split(args)
         if words and (is_suite(words[0]) or (os.path.basename(os.fsdecode(words[0])) in ("bash", "sh") and any(is_suite(w) for w in words[1:]))):
             raise AssertionError("%s starts a bash suite: %s" % (request.node.nodeid, " ".join(os.fsdecode(w) for w in words)))
+        if words and is_pytest(words) and not from_exempt_helper() and request.node.nodeid.split('/')[-1] not in STARTS_PYTEST_EXEMPT:
+            raise AssertionError("%s starts pytest: %s" % (request.node.nodeid, " ".join(os.fsdecode(w) for w in words)))
         return real(self, args, *rest, **kwargs)
 
     monkeypatch.setattr(subprocess.Popen, "__init__", checked)
