@@ -413,6 +413,22 @@ def test_a_case_that_creates_a_directory_at_a_system_location_with_os_mkdir_fail
     assert "test_probe.py:3" in output, output
 
 
+@pytest.mark.process("a child pytest session whose case creates a directory at a system location through pathlib")
+def test_a_case_that_creates_a_directory_at_a_system_location_with_path_mkdir_parents_fails_naming_the_file_and_line_of_the_call(tmp_path):
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import pathlib\n"
+        "def test_probe():\n"
+        "    pathlib.Path('/.tdd/x').mkdir(parents=True)\n")
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode != 0, output
+    assert "creates the system location /.tdd at " in output, output
+    assert "test_probe.py:3" in output, output
+
+
 @pytest.mark.process("a child pytest session whose case creates a file at a system location")
 def test_a_case_that_creates_a_file_at_a_system_location_with_os_open_o_creat_fails_naming_the_file_and_line_of_the_call(tmp_path):
     probe = tmp_path / "test_probe.py"
