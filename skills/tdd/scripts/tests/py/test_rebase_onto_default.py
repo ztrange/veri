@@ -3,6 +3,7 @@ import importlib
 import os
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
 import textwrap
@@ -850,3 +851,41 @@ def test_main_after_the_resume_discard_keeps_the_line_an_instead_of_replacement_
     assert run_cli(rebase_onto_default, [], cwd=clone)[0] == 0
 
     assert ledger.read_text() == "- [ ] step one\n- [ ] step replaced ⟦added⟧\n"
+
+
+@pytest.mark.process("git: a real resumed worktree whose uncommitted ledger append the resume's discard cannot re-apply because git apply fails, run through the discard as SKILL.md writes it")
+def test_main_stops_the_resume_discard_with_exit_2_naming_the_file_and_the_kept_appends_when_its_git_apply_fails_1547(
+        monkeypatch, tmp_path):
+    for who in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
+        monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
+    scripts = pathlib.Path(__file__).resolve().parents[2]
+    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
+                        (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
+    real_git = shutil.which("git")
+
+    def git(repo, *args):
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
+
+    clone = tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "-b", "tdd/1-a-run", str(clone)], check=True)
+    (clone / ".tdd").mkdir()
+    ledger = clone / ".tdd" / "issue-1.md"
+    ledger.write_text("- [ ] step one\n")
+    git(clone, "add", "-A")
+    git(clone, "commit", "-q", "-m", "plan: scope #1 (#1)")
+    ledger.write_text(ledger.read_text() + "- [ ] step added ⟦added⟧\n")
+
+    shim = tmp_path / "bin"
+    shim.mkdir()
+    (shim / "git").write_text(f'#!/bin/sh\n[ "$1" = apply ] && exit 1\nexec {real_git} "$@"\n')
+    (shim / "git").chmod(0o755)
+    env = {**os.environ, "PATH": f"{shim}:{os.environ['PATH']}"}
+
+    done = subprocess.run(["bash", "-c", textwrap.dedent(discard) + "\nexit $?"], cwd=clone, env=env, text=True,
+                          stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+
+    kept = [pathlib.Path(token) if os.path.isabs(token) else clone / token for token in done.stderr.split()]
+    kept = [path for path in kept if path.is_file() and path != ledger and "+- [ ] step added ⟦added⟧\n" in path.read_text()]
+    assert (done.returncode, ".tdd/issue-1.md" in done.stderr, len(kept)) == (2, True, 1)
