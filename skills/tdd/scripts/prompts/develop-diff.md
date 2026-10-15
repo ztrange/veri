@@ -24,3 +24,5 @@ so no test is this step's deliverable.
 
 DIFF: <the change committed, in one line, or NONE when the criterion is that something stays unchanged>
 SUITE: GREEN | RED — <the final summary line of that run>
+
+REPORT-FORMAT diff | keys DIFF: SUITE: | suite required

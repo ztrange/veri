@@ -27,3 +27,5 @@ as you found it and say so in your report.
    Never modify a test file: a transform commit that touches one is rejected.
 
 {{INCLUDE:_develop-transform-suite-report.md}}
+
+REPORT-FORMAT skipped | keys SKIPPED: | suite exempt: the candidate needs a file outside the list, so nothing ran

@@ -100,3 +100,5 @@ your words rather than its own judgement:
 RESULT: <"applied <the transform>, suites green" — one line per transform you applied, each on its own RESULT: line, in the order you applied them — or "nothing left to tidy" if you applied none>
 CANDIDATES: <"structural | <transform>", "cosmetic | <transform>", "test-only | <transform>" or "out-of-scope | <transform>" — a transform you still see left in those files, carrying the class it falls into — one per line, each on its own CANDIDATES: line — or "none">
 FLAGS: <"overfit | <the {{INCLUDE:_flag-overfit.md}}", "{{INCLUDE:_flag-uncovered-spec.md}}" or "{{INCLUDE:_flag-beyond-spec.md}}" — one finding per line, each on its own FLAGS: line, carrying the class it falls into — or "none">
+
+REPORT-FORMAT refactor | keys RESULT: CANDIDATES: FLAGS: | suite exempt: each transform is verified by its own step

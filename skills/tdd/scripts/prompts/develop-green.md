@@ -67,3 +67,7 @@ SUITE: GREEN | RED — <the final summary line of that run>
 or, when the step is too big for one green, those two lines replaced by one to three of:
 
 SPLIT: <a behaviour-level criterion, one per line, in the order they must be built>
+
+REPORT-FORMAT green | keys IMPL_PATH: SUITE: | suite required
+
+REPORT-FORMAT green-split | keys SPLIT: | suite exempt: a too-big step changes no code and runs no suite

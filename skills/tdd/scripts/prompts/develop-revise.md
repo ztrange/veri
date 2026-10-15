@@ -71,3 +71,7 @@ or, when the green you are redoing is a step too big for one, those lines replac
 to three of:
 
 SPLIT: <a behaviour-level criterion, one per line, in the order they must be built>
+
+REPORT-FORMAT revise | keys OUTCOME: AGAINST_UNMODIFIED: PREDICTED_FAILURE: PREDICTION: | suite exempt: the redone phase may be red, where the suite is meant to fail
+
+REPORT-FORMAT revise-split | keys SPLIT: | suite exempt: a too-big step changes no code and runs no suite

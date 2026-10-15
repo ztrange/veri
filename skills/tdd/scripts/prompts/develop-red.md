@@ -108,3 +108,5 @@ FAIL_OUTPUT: <the failure line — from the unmodified code if it fails there, o
 PREDICTED_FAILURE: <the missing name, when the predicted failure is an error on the name the step introduces rather than an assertion; otherwise the assertion, the values and the message shape — as predicted before running>
 PREDICTION: MATCHED | DIVERGED
 PREDICTION_NOTE: <on DIVERGED, what actually happened and why it could not be reconciled>
+
+REPORT-FORMAT red | keys TEST_PATH: TARGET_TEST: AGAINST_UNMODIFIED: WHY: FAIL_OUTPUT: PREDICTED_FAILURE: PREDICTION: PREDICTION_NOTE: | suite exempt: a red step's test is meant to fail
