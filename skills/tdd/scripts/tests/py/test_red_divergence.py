@@ -187,3 +187,11 @@ def test_main_returns_2_for_a_prediction_line_whose_first_word_is_not_a_verdict_
     }
 
     assert codes == {",": 2, ";": 2, ":": 2, ".": 2}
+
+
+def test_main_1468_reports_a_prediction_file_that_does_not_exist_as_exit_1_naming_that_the_prediction_was_not_written_before_the_run(monkeypatch, capsys, red_divergence, tmp_path):
+    matched = "FAIL_OUTPUT: f\nPREDICTION: MATCHED"
+    code, out, err = run(monkeypatch, capsys, red_divergence, matched, [str(tmp_path / "red-prediction.md")])
+
+    assert code == 1
+    assert "prediction not written before the run" in out + err
