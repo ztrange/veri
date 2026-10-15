@@ -71,7 +71,7 @@ COUNT_LINE_GUARD := skills/tdd/scripts/lib/count-line-guard.sh
 #     and the terminal a conductor runs in sets one: 121 s of a 440 s run, measured 2026-09-18.
 #     Python still reads UTF-8 under it (PEP 538 coerces the C locale).
 #   - stdin is /dev/null. A suite inherited make's, and under a leaf's backgrounded `make test`
-#     that is a socket that never closes: the stub claude's `cat` in run-conductor.test.sh
+#     that is a socket that never closes: a stub claude's `cat`
 #     waited on it for 28 minutes.
 #   - The real git. /usr/bin/git on macOS is xcrun's shim, ~21 ms a call on top of git's own,
 #     over ~1,900 calls a run. `xcrun -f git` names the binary it forwards to; where there is

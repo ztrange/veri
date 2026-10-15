@@ -28,7 +28,6 @@ WRAPPING_PIPE='(^|[^|])\|[[:space:]]*$'
 READER_OPENS="^[[:space:]]*$READER"
 
 declare -A EXEMPT=(
-  [run-conductor.test.sh:27]="a line of the POSIX-sh stub \`claude\` the suite writes in a heredoc, not of the suite: that shell sets no pipefail, so the sed's SIGPIPE is never a status anything reads, and bash's process substitution is not available there to repair it with"
 )
 
 

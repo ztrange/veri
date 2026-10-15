@@ -178,7 +178,6 @@ problems=()
 
 conductor_script="skills/tdd/scripts/run-conductor.sh"
 conductor_suites=(
-  "skills/tdd/scripts/tests/run-conductor.test.sh"
   "skills/tdd/scripts/tests/skill-conductor-launch.test.sh"
 )
 
