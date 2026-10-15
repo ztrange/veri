@@ -162,7 +162,6 @@ STARTS_GIT_IN_REPOSITORY_EXEMPT = {
     "test_affected_suites.py": RUNS_GIT_WITH_NO_CWD,
     "test_event.py": RUNS_GIT_WITH_NO_CWD,
     "test_invisible_work.py": RUNS_GIT_WITH_NO_CWD,
-    "test_issue_worktree.py": RUNS_GIT_WITH_NO_CWD,
     "test_parallel_conductors.py": RUNS_GIT_WITH_NO_CWD,
     "test_push_branch.py": RUNS_GIT_WITH_NO_CWD,
     "test_rebase_onto_default.py": RUNS_GIT_WITH_NO_CWD,

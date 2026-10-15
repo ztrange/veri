@@ -11,6 +11,12 @@ import pytest
 USAGE = "usage: issue-worktree.sh <n> <slug> | --remove <n>\n"
 
 
+@pytest.fixture(autouse=True)
+def case_works_in_its_scratch_tree(tmp_path, monkeypatch):
+    """issue_worktree.py runs git with no cwd; from the case's own tmp_path the git guard sees every call."""
+    monkeypatch.chdir(tmp_path)
+
+
 @pytest.fixture
 def issue_worktree():
     return importlib.import_module("veri.issue_worktree")
