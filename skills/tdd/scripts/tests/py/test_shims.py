@@ -92,3 +92,17 @@ def test_entry_bypass_problems_names_the_module_whose_single_quoted_main_test_bl
     problems = entry_bypass_problems(tmp_path)
 
     assert [line.split(" ")[0] for line in problems] == ["quoted.py:8"]
+
+
+def test_entry_bypass_problems_names_the_module_whose_only_entry_run_in_its_main_block_is_a_comment_as_module_and_line(tmp_path):
+    """Its subject is source text: planted shims and module files, read as text and never run."""
+    from conftest import entry_bypass_problems
+
+    (tmp_path / "veri").mkdir()
+    shim(tmp_path / "commented.sh", 'exec python3 "$(dirname "$0")/veri/commented.py" "$@"')
+    (tmp_path / "veri" / "commented.py").write_text(
+        "import sys\n\n\ndef main(argv):\n    return 0\n\n\nif __name__ == \"__main__\":\n    # entry.run(main)\n    sys.exit(main(sys.argv[1:]))\n")
+
+    problems = entry_bypass_problems(tmp_path)
+
+    assert [line.split(" ")[0] for line in problems] == ["commented.py:8"]
