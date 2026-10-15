@@ -59,8 +59,8 @@ implementation-pinning test anyway to force a pass.
    leaving its other cases untouched and green. If no suite fits, create one that matches
    the repository's testing idiom.
 2. **Predict the failure before you run anything.** Read the case you just wrote against
-   the production code it will run against, and state — in your output, before you issue any
-   command — which assertion fires first, the observed-versus-expected values it fires on,
+   the production code it will run against, and write — to `.tdd/red-prediction.md`, before
+   you run any suite — which assertion fires first, the observed-versus-expected values it fires on,
    and the shape of the message the suite will print. It is formed from the test and the code,
    never from the output: a prediction written after the run is a transcription of it, and
    answers nothing.
