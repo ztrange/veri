@@ -1104,8 +1104,9 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    On **`FAILS`**, check the prediction before any verifier: run `red-divergence.sh` on the
    leaf's report and branch on **its** exit code:
    ```
-   $S/red-divergence.sh < .tdd/develop-red.out > .tdd/verify-red.reason; echo $?
+   $S/red-divergence.sh .tdd/red-prediction.md .tdd/red-run-output.txt < .tdd/develop-red.out > .tdd/verify-red.reason; echo $?
    ```
+   - **Exit 1 — prediction not written before the run:** the prediction file is missing or newer than the run's output. Narrate "prediction not written before the run" in the `### 🔴 Red` comment, not a divergence, and write that line to `.tdd/verify-red.reason`. It still spends the attempt like a `REJECT`: skip verify-red and verify-pin and enter the revise loop for red.
    - **Exit 3 — `PREDICTION: MATCHED`:** nothing was surprising. The script printed
      nothing; carry on with the verifier below.
    - **Exit 0 or 2 — diverged, or a prediction nobody can read:** the test failed for a
@@ -2100,8 +2101,9 @@ For attempt `k = 1 … REVISE_BUDGET`:
    the failing test and reported its own `PREDICTED_FAILURE:` and `PREDICTION:` lines, so run
    the same gate the Red section runs before anything reaches a verifier:
    ```
-   $S/red-divergence.sh < .tdd/revise-red-<k>.out > .tdd/verify-red.reason; echo $?
+   $S/red-divergence.sh .tdd/red-prediction.md .tdd/red-run-output.txt < .tdd/revise-red-<k>.out > .tdd/verify-red.reason; echo $?
    ```
+   - **Exit 1 — prediction not written before the run:** the prediction file is missing or newer than the run's output. Narrate "prediction not written before the run", not a divergence, write that line to `.tdd/verify-red.reason`, and spend attempt `k` without re-verifying, exactly as a `REJECT` does.
    - **Exit 3 — matched:** nothing was surprising; carry on to the re-verify below.
    - **Exit 0 or 2 — diverged, or a prediction nobody can read:** the rewritten test failed
      for a reason other than the one it was written to catch (exit 0), or its report carries
