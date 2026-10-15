@@ -509,3 +509,20 @@ def test_main_does_not_report_a_nested_unit_guard_refusal_a_flat_suite_provokes_
     code = run_suite.main([suite])
     out, err = capfd.readouterr()
     assert (code, "tried the network" in out) == (0, False)
+
+
+def test_main_fails_a_pytest_suite_whose_unmarked_case_starts_git_and_tolerates_its_refusal_naming_the_start_1468(tmp_path, capfd, monkeypatch, run_suite):
+    suite = tmp_path / "tests" / "py" / "test_starts_git.py"
+    suite.parent.mkdir(parents=True)
+    suite.write_text("def test_nothing():\n    pass\n")
+    venv_py = tmp_path / "venv" / "bin" / "python3"
+    venv_py.parent.mkdir(parents=True)
+    venv_py.write_text("#!/bin/sh\n[ \"$3\" = --version ] && exit 0\nPATH=\"%s:$PATH\" git fetch origin || true\nexit 0\n"
+                       % (SCRIPTS / "tests" / "unit-guard"))
+    venv_py.chmod(0o755)
+    monkeypatch.delenv("OFFLINE_REACH_LOG", raising=False)
+    monkeypatch.delenv("UNIT_GUARD_LOG", raising=False)
+    monkeypatch.setenv("VERI_VENV", str(tmp_path / "venv"))
+    code = run_suite.main([str(suite)])
+    out, err = capfd.readouterr()
+    assert (code, "test_starts_git.py: tried the network: git fetch origin" in out) == (1, True)
