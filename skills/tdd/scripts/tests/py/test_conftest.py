@@ -266,3 +266,24 @@ def test_a_case_that_starts_git_against_the_repository_the_tests_live_in_fails_n
     assert ran.returncode != 0, output
     assert "test_probe.py::test_probe" in output, output
     assert str(repository / "skills") in output, output
+
+
+@pytest.mark.process("a child pytest session whose case starts git with no -C from the directory of the module under test")
+def test_a_case_that_starts_git_from_the_directory_of_the_module_under_test_fails_naming_the_case_and_the_path(tmp_path):
+    module_directory = pathlib.Path(__file__).resolve().parents[2] / "veri"
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import os\n"
+        "import subprocess\n"
+        "import pytest\n"
+        "@pytest.mark.process('git with no -C after a chdir to the module directory')\n"
+        "def test_probe():\n"
+        "    os.chdir(%r)\n"
+        "    subprocess.run(['git', 'rev-parse', 'HEAD'], capture_output=True)\n" % str(module_directory))
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode != 0, output
+    assert "test_probe.py::test_probe" in output, output
+    assert str(module_directory) in output, output
