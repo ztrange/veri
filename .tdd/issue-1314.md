@@ -9,5 +9,5 @@
 - [x] A case in test_issue_worktree.py or test_preserve_attempt.py whose subject resolves its main tree from the module's own directory, rather than from the case's scratch repository, fails naming the case and the path; every case in those two files runs under that guard with no exemption and passes ⟦criterion 2⟧
 - [x] A pytest case that forces a failure through permission bits (os.chmod or Path.chmod taking away read, write or execute bits) fails the run naming the file:line of the call ⟦criterion 3⟧
 - [x] A pytest case that expects a system location outside its tmp_path (the filesystem root, /root, /proc, /etc and the like) to be unreadable or unwritable — it creates, opens or reads there — fails the run naming the file:line of the call ⟦criterion 3⟧
-- [ ] A case listed in the permission-bits guard's exemption table, whose entry carries a reason, passes; an entry with no reason, or one naming no existing case, fails the run naming the entry ⟦criterion 3⟧
+- [x] A case listed in the permission-bits guard's exemption table, whose entry carries a reason, passes; an entry with no reason, or one naming no existing case, fails the run naming the entry ⟦criterion 3⟧ ⟂ refactor pending
 - [ ] The pytest leg passes as a whole ⟦full-suite⟧ ⟦criterion 4⟧
