@@ -8,3 +8,6 @@
 - out-of-scope | the `make test` recipe in the Makefile and `run_suite.py` both spell out the offline settings (`http.proxy`, `protocol.allow`, the dead-proxy variables), so one definition could serve both. That code is not this cycle's.
 ### The develop-red prompt and the develop-revise prompt for a redone red name a prediction file and tell the leaf to write its prediction there before it runs any suite ⟦criterion 2⟧
 - out-of-scope | `prompt-test-tiers.test.sh` and `build-develop-prompt.test.sh` repeat each prompt's checksum pins; a shared include for the prediction sentence would also have to re-pin them
+### red-divergence.sh reports the same "prediction not written before the run" outcome when the prediction file is newer than the run's output ⟦criterion 2⟧
+- extract the prediction-file check at red_divergence.py:17-20 into a named helper (no duplication removed, so not applied here)
+- test-only | not checked: test_red_divergence.py was not read, so any tidy-up there is unassessed
