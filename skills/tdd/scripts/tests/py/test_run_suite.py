@@ -484,3 +484,18 @@ def test_main_hands_a_fixture_suite_make_tests_environment_from_a_scrubbed_calle
             bool(env.get("OFFLINE_REACH_LOG")), env["PATH"].split(os.pathsep)[0]) == (
         0, dict(OFFLINE_GIT), "http://127.0.0.1:1", "http://127.0.0.1:1", "C", True,
         str(SCRIPTS / "tests" / "offline"))
+
+
+def test_main_fails_a_pytest_suite_that_calls_gh_naming_the_reach_through_the_offline_shims_1468(tmp_path, capfd, monkeypatch, run_suite):
+    suite = tmp_path / "tests" / "py" / "test_reaches.py"
+    suite.parent.mkdir(parents=True)
+    suite.write_text("def test_nothing():\n    pass\n")
+    venv_py = tmp_path / "venv" / "bin" / "python3"
+    venv_py.parent.mkdir(parents=True)
+    venv_py.write_text("#!/bin/sh\n[ \"$3\" = --version ] && exit 0\ngh pr list\nexit 0\n")
+    venv_py.chmod(0o755)
+    monkeypatch.delenv("OFFLINE_REACH_LOG", raising=False)
+    monkeypatch.setenv("VERI_VENV", str(tmp_path / "venv"))
+    code = run_suite.main([str(suite)])
+    out, err = capfd.readouterr()
+    assert (code, "test_reaches.py: tried the network: gh pr list" in out) == (1, True)

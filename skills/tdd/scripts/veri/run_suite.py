@@ -103,23 +103,28 @@ def main(argv):
     env["LC_ALL"] = "C"
     env["HTTP_PROXY"] = env["HTTPS_PROXY"] = OFFLINE_PROXY
     env["NO_PROXY"] = "127.0.0.1,localhost"
-    if fnmatch.fnmatchcase("/" + suite,"*/tests/py/test_*.py"):
-        return run_pytest(suite, env)
-    guard_path = os.path.join(SCRIPTS, "lib", "count-line-guard.sh")
-    guard = read_guard(guard_path)
-    if not guard.get("COUNT_LINE") or not guard.get("COUNTLESS"):
-        sys.stderr.write("run-suite.sh: could not read the count-line guard from %s\n" % guard_path)
-        return 2
+    pytest_suite = fnmatch.fnmatchcase("/" + suite, "*/tests/py/test_*.py")
+    guard = {}
+    if not pytest_suite:
+        guard_path = os.path.join(SCRIPTS, "lib", "count-line-guard.sh")
+        guard = read_guard(guard_path)
+        if not guard.get("COUNT_LINE") or not guard.get("COUNTLESS"):
+            sys.stderr.write("run-suite.sh: could not read the count-line guard from %s\n" % guard_path)
+            return 2
     name = os.path.basename(suite)
+
+    def run(env):
+        return run_pytest(suite, env) if pytest_suite else run_counted(suite, name, guard, env)
+
     if "OFFLINE_REACH_LOG" in env:
-        return run_counted(suite, name, guard, env)
+        return run(env)
     guards = [os.path.join(SCRIPTS, "tests", "offline")]
     if os.path.dirname(os.path.abspath(suite)) == os.path.join(SCRIPTS, "tests", "unit"):
         guards.insert(0, os.path.join(SCRIPTS, "tests", "unit-guard"))
     with tempfile.NamedTemporaryFile("r", prefix="veri-reach-") as reach_log:
         env["OFFLINE_REACH_LOG"] = env["UNIT_GUARD_LOG"] = reach_log.name
         env["PATH"] = os.pathsep.join(guards + [env.get("PATH", "")])
-        code = run_counted(suite, name, guard, env)
+        code = run(env)
         reached = reach_log.read().splitlines()
     for line in reached:
         sys.stdout.write("%s: tried the network: %s\n" % (name, line))
