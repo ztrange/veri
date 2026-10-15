@@ -150,22 +150,24 @@ def exempt_from(tail, table):
     return tail in table or tail.split("::")[0] in table
 
 
+RUNS_GIT_WITH_NO_CWD = "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call"
+
 STARTS_GIT_IN_REPOSITORY_EXEMPT = {
-    "test_affected_suites.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
-    "test_event.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
-    "test_invisible_work.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
-    "test_issue_worktree.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
-    "test_parallel_conductors.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
-    "test_push_branch.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
-    "test_rebase_onto_default.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
-    "test_refactor_touched.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
-    "test_session_cost.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
-    "test_solvable_issues.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
-    "test_status.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
-    "test_timed_test_run.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
-    "test_transform_touches_tests.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
-    "test_verify.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
-    "test_workqueue.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
+    "test_affected_suites.py": RUNS_GIT_WITH_NO_CWD,
+    "test_event.py": RUNS_GIT_WITH_NO_CWD,
+    "test_invisible_work.py": RUNS_GIT_WITH_NO_CWD,
+    "test_issue_worktree.py": RUNS_GIT_WITH_NO_CWD,
+    "test_parallel_conductors.py": RUNS_GIT_WITH_NO_CWD,
+    "test_push_branch.py": RUNS_GIT_WITH_NO_CWD,
+    "test_rebase_onto_default.py": RUNS_GIT_WITH_NO_CWD,
+    "test_refactor_touched.py": RUNS_GIT_WITH_NO_CWD,
+    "test_session_cost.py": RUNS_GIT_WITH_NO_CWD,
+    "test_solvable_issues.py": RUNS_GIT_WITH_NO_CWD,
+    "test_status.py": RUNS_GIT_WITH_NO_CWD,
+    "test_timed_test_run.py": RUNS_GIT_WITH_NO_CWD,
+    "test_transform_touches_tests.py": RUNS_GIT_WITH_NO_CWD,
+    "test_verify.py": RUNS_GIT_WITH_NO_CWD,
+    "test_workqueue.py": RUNS_GIT_WITH_NO_CWD,
     "test_supervise.py": "supervise.py records the skill clone's own HEAD; the case only lets it run rev-parse HEAD there",
     "test_run_conductor.py": "run_conductor.py runs git -C <skill clone> and the cases fake every process, so the path only reaches the recorded call",
     "test_rebase_onto_default.py::test_main_run_through_a_symlink_from_another_directory_rebases_the_callers_clone_and_never_the_skills_repository":
