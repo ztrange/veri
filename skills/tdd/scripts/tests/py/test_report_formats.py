@@ -110,3 +110,29 @@ def test_1568_suite_reported_passes_a_report_made_of_the_keys_of_each_exempt_for
 
     assert prompts
     assert not refused, "\n".join(refused)
+
+
+@pytest.mark.tree_audit("every skills/tdd/scripts/prompts/develop-*.md prompt, includes expanded")
+def test_1568_suite_reported_refuses_a_report_of_each_suite_required_format_a_real_prompt_declares_when_it_has_no_suite_line(report_formats, run_cli, tmp_path):
+    suite_reported = importlib.import_module("veri.suite_reported")
+    prompts = expanded_develop_prompts()
+    passed = []
+    cases = 0
+    for path, text in prompts:
+        leaf = path.stem
+        for declared in report_formats.parse(text):
+            if declared["suite"] != "required":
+                continue
+            cases += 1
+            work = tmp_path / f"{leaf}-{declared['name']}"
+            (work / ".tdd").mkdir(parents=True)
+            (work / ".tdd" / f"{leaf}.out").write_text(
+                "".join(f"{key} reported\n" for key in declared["keys"] if key != "SUITE:"))
+            code, _, _ = run_cli(suite_reported, [leaf], env={"VERI_ISSUE": "1"}, cwd=work)
+            events = work / ".tdd" / "events.jsonl"
+            recorded = events.exists() and '"event": "report-missing"' in events.read_text()
+            if code != 2 or not recorded:
+                passed.append(f"{leaf} / {declared['name']}: exit {code}, report-missing recorded: {recorded}")
+
+    assert cases
+    assert not passed, "\n".join(passed)
