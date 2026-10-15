@@ -288,6 +288,24 @@ else
 fi
 report "$name"
 
+name="#1568: $skill_md runs suite-reported.sh develop-transform after the refactor-kind transform leaf and before its blind transform verifier"
+problems=()
+whole="$(plain --join < "$skill_path")"
+cover_transform="${whole#*'refactor-kind step therefore runs'}"
+if [[ "$cover_transform" == "$whole" ]]; then
+  problems+=("Cover → Transform → Verify: the refactor-kind step's passage is missing")
+else
+  cover_transform="${cover_transform:0:2500}"
+  if [[ "$cover_transform" != *'suite-reported.sh develop-transform'* ]]; then
+    problems+=("Cover → Transform → Verify: never runs suite-reported.sh develop-transform")
+  else
+    before_check="${cover_transform%%suite-reported.sh develop-transform*}"
+    [[ "$before_check" =~ transform\ +leaf\ +applies ]] || problems+=("Cover → Transform → Verify: the check does not come after the transform leaf")
+    [[ ! "$before_check" =~ blind\ +transform\ +verifier ]] || problems+=("Cover → Transform → Verify: the check comes after the transform verifier")
+  fi
+fi
+report "$name"
+
 name="#991: doc_text given the from regex '^5\. ' starts at the line '5. y', not at '5x y'"
 fixture="$(scratch_dir)/doc.md"
 printf '## Section\n5x y\n5. y\n' > "$fixture"

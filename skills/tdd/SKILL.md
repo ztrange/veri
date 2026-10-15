@@ -863,7 +863,10 @@ three times over branches its ledger pinned on later lines.
    so the queue cannot retake it only to refuse again.
    A refactor-kind step therefore runs **Cover → Transform → Verify**, not Red → Green →
    Refactor. After Cover, a transform leaf applies the step's one named refactoring and
-   commits it; then `$S/transform-touches-tests.sh <base-sha>` reads every commit since the
+   commits it; after its wait exits 0 and before the transform verifier is launched, run
+   `$S/suite-reported.sh develop-transform`: exit 2 means the report carries no `SUITE:` line,
+   so launch no verifier and **bail** as a system failure with cause `report-missing`. Then
+   `$S/transform-touches-tests.sh <base-sha>` reads every commit since the
    step's base sha, and exit 1 rejects the transform — a refactoring that edits a test file
    has moved the goalposts — while exit 2 is no answer. After the transform commits, the
    conductor itself — not a leaf — reruns a `type-only` step's saved proof command in
