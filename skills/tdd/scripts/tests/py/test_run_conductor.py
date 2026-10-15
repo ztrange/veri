@@ -2641,3 +2641,49 @@ def test_cli_with_no_worktree_and_no_tdd_n_branch_veri_new_skill_1_still_re_pins
     repins = repin_commits(caller / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl")
     assert len(seen) == 1
     assert (code, during, moved in seen[0][1], repins) == (0, [moved + "\n"], True, [moved]), stderr
+
+
+def run_signalled_while_claude_runs(signum, claude_code, tmp_path, monkeypatch, run_cli, module_name):
+    """Launch with a claude that is sent signum while it runs; answers (exit code, stderr, snapshot while claude still ran, snapshot after the exit)."""
+    skill, run_conductor, caller = skill_and_caller(tmp_path, monkeypatch, module_name)
+    during = []
+
+    def signalled():
+        os.kill(os.getpid(), signum)
+        (snapshot,) = base_directories(seen[0][1])
+        during.append(os.path.isdir(snapshot))
+
+    seen = claude_that_runs(monkeypatch, signalled, code=claude_code)
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+    (snapshot,) = base_directories(seen[0][1])
+    return code, stderr, during, os.path.exists(snapshot)
+
+
+@pytest.mark.process("a real SIGTERM sent to the conductor's own process while its claude runs, and git archive and tar materialising the snapshot")
+def test_cli_sent_sigterm_while_its_claude_runs_keeps_the_snapshot_until_claude_exits_then_removes_it_and_exits_143(
+        tmp_path, monkeypatch, run_cli):
+    import signal
+    code, stderr, during, left = run_signalled_while_claude_runs(
+        signal.SIGTERM, 0, tmp_path, monkeypatch, run_cli, "run_conductor_sigterm")
+
+    assert (code, during, left) == (143, [True], False), stderr
+
+
+@pytest.mark.process("a real SIGINT alone sent to the conductor's own process while its claude runs, and git archive and tar materialising the snapshot")
+def test_cli_sent_sigint_alone_while_its_claude_runs_waits_for_claude_removes_the_snapshot_prints_no_traceback_and_exits_with_claudes_status_1219(
+        tmp_path, monkeypatch, run_cli):
+    import signal
+    code, stderr, during, left = run_signalled_while_claude_runs(
+        signal.SIGINT, 5, tmp_path, monkeypatch, run_cli, "run_conductor_sigint")
+
+    assert (code, during, left, "Traceback" in stderr) == (5, [True], False, False), stderr
+
+
+@pytest.mark.process("a real SIGHUP alone sent to the conductor's own process while its claude runs, and git archive and tar materialising the snapshot")
+def test_cli_sent_sighup_alone_while_its_claude_runs_waits_for_claude_removes_the_snapshot_prints_no_traceback_and_exits_with_claudes_status_1219(
+        tmp_path, monkeypatch, run_cli):
+    import signal
+    code, stderr, during, left = run_signalled_while_claude_runs(
+        signal.SIGHUP, 5, tmp_path, monkeypatch, run_cli, "run_conductor_sighup")
+
+    assert (code, during, left, "Traceback" in stderr) == (5, [True], False, False), stderr
