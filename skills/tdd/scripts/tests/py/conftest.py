@@ -124,7 +124,7 @@ STARTS_PYTEST_EXEMPT = {
 
 
 @pytest.fixture(autouse=True)
-def case_starts_no_bash_suite_under_tests(request, monkeypatch):
+def case_starts_no_test_runner(request, monkeypatch):
     real = subprocess.Popen.__init__
 
     def is_pytest(words):
