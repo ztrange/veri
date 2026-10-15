@@ -578,6 +578,20 @@ problems=()
   problems+=("Resume never says every other insertion omits --planned and stays ⟦added⟧ growth")
 report "$name"
 
+name="#1579: $skill_md's Resume sub-step 1 says the ledger is not re-planned except that the amended criteria are planned with --planned in sub-step 3, not an unqualified Do not re-plan"
+problems=()
+sub1="${resume_text#*' 1. '}"
+sub1="${sub1%%' 2. '*}"
+[[ "$sub1" == *'re-plan'* ]] ||
+  problems+=("could not find Resume sub-step 1's re-plan sentence")
+[[ "$sub1" == *'--planned'* ]] ||
+  problems+=("Resume sub-step 1 never names --planned, so it says Do not re-plan with no exception for the amended criteria")
+[[ "$sub1" == *'sub-step 3'* ]] ||
+  problems+=("Resume sub-step 1 never points at sub-step 3, where the amended criteria are planned")
+[[ "$sub1" =~ except ]] ||
+  problems+=("Resume sub-step 1 never states the exception to not re-planning")
+report "$name"
+
 name="#1579: $skill_md states that a conductor never sets or raises VERI_STEP_GROWTH, REVISE_BUDGET, VERI_REFACTOR_BUDGET, VERI_STUCK_RETRIES or VERI_NO_VERDICT_RETRIES mid-run, and that a budget it cannot fit inside is a bail"
 problems=()
 skill_sentences="$(plain --join < "$skill_path" | tr -s ' ' | sed 's/\. /.\n/g')"
