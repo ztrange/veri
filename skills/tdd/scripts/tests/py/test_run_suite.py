@@ -440,3 +440,21 @@ def test_no_pipefail_suite_pipes_the_offline_proxy_probe_into_a_reader_that_leav
                      if re.search(r"(^|[^|])\|\s*head(\s|$)", line)]
 
     assert early_readers == []
+
+
+def test_main_runs_a_pytest_suite_named_by_a_path_relative_to_the_caller_as_a_pytest_suite_1468(tmp_path, capfd, monkeypatch, run_suite):
+    suite = tmp_path / "tests" / "py" / "test_fake.py"
+    suite.parent.mkdir(parents=True)
+    suite.write_text("def test_nothing():\n    pass\n")
+    venv_py = stub_python(tmp_path / "venv" / "bin" / "python3")
+    log = tmp_path / "stub.log"
+    monkeypatch.setenv("STUB_LOG", str(log))
+    monkeypatch.setenv("STUB_VERSION_CODE", "0")
+    monkeypatch.setenv("STUB_RUN_CODE", "0")
+    monkeypatch.setenv("VERI_VENV", str(tmp_path / "venv"))
+    monkeypatch.chdir(tmp_path)
+    log.write_text("")
+    code = run_suite.main(["tests/py/test_fake.py"])
+    out, err = capfd.readouterr()
+    assert (code, log.read_text().splitlines(), "never reached its count line" in out + err) == (
+        0, ["%s -m pytest --version" % venv_py, "%s -m pytest tests/py/test_fake.py" % venv_py], False)
