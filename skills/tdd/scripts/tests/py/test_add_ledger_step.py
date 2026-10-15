@@ -693,3 +693,18 @@ def test_main_planned_criterion_k_ticked_in_the_spec_file_refuses_with_2_naming_
     code = add_ledger_step.main(["--planned", "--criterion", "7", str(ledger), "after", "b two", "t"])
     out, err = capsys.readouterr()
     assert (code, out, err.count("\n"), "7" in err, ledger.read_bytes() == LEDGER) == (2, "", 1, True, True)
+
+
+def test_main_planned_criterion_k_unticked_in_the_spec_file_and_served_by_no_step_still_inserts_unmarked_steps_and_returns_0_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    boxes = "".join(f"- [x] c{n}\n" for n in range(1, 7)) + "- [ ] c7\n"
+    (tmp_path / "issue-42-spec.md").write_text("## Acceptance criteria\n\n" + boxes + "\n## Blocked by\n")
+    code = add_ledger_step.main(["--planned", "--criterion", "7", str(ledger), "after", "b two", "t", "u"])
+    assert (code, capsys.readouterr().err, ledger.read_bytes().decode()) == (
+        0,
+        "",
+        "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+        "- [ ] t ⟦criterion 7⟧\n- [ ] u ⟦criterion 7⟧\n- [ ] c three ⟦criterion 3⟧\n",
+    )
