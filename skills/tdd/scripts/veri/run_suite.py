@@ -100,6 +100,8 @@ def main(argv):
         env["GIT_CONFIG_VALUE_%d" % (n + i)] = value
     env["GIT_CONFIG_COUNT"] = str(n + len(offline))
     env["LC_ALL"] = "C"
+    env["HTTP_PROXY"] = env["HTTPS_PROXY"] = OFFLINE_PROXY
+    env["NO_PROXY"] = "127.0.0.1,localhost"
     if fnmatch.fnmatchcase(suite, "*/tests/py/test_*.py"):
         return run_pytest(suite, env)
     guard_path = os.path.join(SCRIPTS, "lib", "count-line-guard.sh")

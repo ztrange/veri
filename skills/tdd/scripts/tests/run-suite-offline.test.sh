@@ -51,4 +51,31 @@ probe_runner_applies_offline_git
 
 report "$name"
 
+name="run-suite.sh gives a suite make test's dead HTTP and HTTPS proxy with NO_PROXY=127.0.0.1,localhost (#1468)"
+problems=()
+
+probe_runner_applies_dead_proxy() {
+  local tree out code
+  tree="$(scratch_dir)" || {
+    problems+=("could not make a scratch directory, so the question went unasked")
+    return 1
+  }
+  cat > "$tree/proxies.test.sh" <<'SUITE'
+#!/usr/bin/env bash
+set -uo pipefail
+echo "HTTP_PROXY=${HTTP_PROXY-unset} HTTPS_PROXY=${HTTPS_PROXY-unset} NO_PROXY=${NO_PROXY-unset}"
+echo "1 passed, 0 failed"
+SUITE
+  chmod +x "$tree/proxies.test.sh"
+  out="$(env -u HTTP_PROXY -u HTTPS_PROXY -u NO_PROXY -u http_proxy -u https_proxy -u no_proxy \
+    "$RUNNER" "$tree/proxies.test.sh" 2>&1 < /dev/null)" && code=0 || code=$?
+  expect_eq "the suite's proxy environment under the runner" \
+    "HTTP_PROXY=http://127.0.0.1:1 HTTPS_PROXY=http://127.0.0.1:1 NO_PROXY=127.0.0.1,localhost" \
+    "$(printf '%s\n' "$out" | head -n 1)"
+}
+
+probe_runner_applies_dead_proxy
+
+report "$name"
+
 finish
