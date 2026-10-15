@@ -58,6 +58,7 @@ dirty_tree='git status --porcelain'
 
 source "$HERE/lib/harness.sh"
 source "$HERE/lib/first-record.sh"
+source "$HERE/lib/plain.sh"
 
 records_of() {
   awk '
@@ -575,6 +576,19 @@ problems=()
   problems+=("Resume never says the planned steps are committed as a plan: commit")
 [[ "$resume_text" == *'⟦added⟧'* && "$resume_text" =~ omits?\ --planned ]] ||
   problems+=("Resume never says every other insertion omits --planned and stays ⟦added⟧ growth")
+report "$name"
+
+name="#1579: $skill_md states that a conductor never sets or raises VERI_STEP_GROWTH, REVISE_BUDGET, VERI_REFACTOR_BUDGET, VERI_STUCK_RETRIES or VERI_NO_VERDICT_RETRIES mid-run, and that a budget it cannot fit inside is a bail"
+problems=()
+skill_sentences="$(plain --join < "$skill_path" | tr -s ' ' | sed 's/\. /.\n/g')"
+never_sentence="$(grep -i 'never' <<<"$skill_sentences" | grep -i 'mid-run' | grep -i 'raise' || true)"
+for var in VERI_STEP_GROWTH REVISE_BUDGET VERI_REFACTOR_BUDGET VERI_STUCK_RETRIES VERI_NO_VERDICT_RETRIES; do
+  low="$(tr '[:upper:]' '[:lower:]' <<<"$var")"
+  [[ "$never_sentence" == *"$low"* ]] ||
+    problems+=("no sentence says a conductor never sets or raises $var mid-run")
+done
+grep -i 'budget' <<<"$skill_sentences" | grep -i 'cannot fit' | grep -i 'bail' > /dev/null ||
+  problems+=("no sentence says a budget the conductor cannot fit inside is a bail")
 report "$name"
 
 finish
