@@ -123,6 +123,13 @@ STARTS_PYTEST_EXEMPT = {
 }
 
 
+STARTS_GIT_IN_REPOSITORY_EXEMPT = {
+    "test_supervise.py": "supervise.py records the skill clone's own HEAD; the case only lets it run rev-parse HEAD there",
+    "test_rebase_onto_default.py::test_main_run_through_a_symlink_from_another_directory_rebases_the_callers_clone_and_never_the_skills_repository":
+        "the skills repository's own HEAD is read to prove it was never rebased",
+}
+
+
 @pytest.fixture(autouse=True)
 def case_starts_no_test_runner(request, monkeypatch):
     real = subprocess.Popen.__init__
@@ -147,11 +154,31 @@ def case_starts_no_test_runner(request, monkeypatch):
         parts = pathlib.PurePath(os.fsdecode(arg)).parts
         return bool(parts) and parts[-1].endswith(".test.sh") and "tests" in parts[:-1]
 
+    def git_directory(words, cwd):
+        if os.path.basename(os.fsdecode(words[0])) != "git":
+            return None
+        directory = os.fsdecode(cwd) if cwd is not None else None
+        rest = [os.fsdecode(w) for w in words[1:]]
+        for flag, value in zip(rest, rest[1:]):
+            if flag == "-C":
+                directory = os.path.join(directory, value) if directory else value
+        return directory
+
+    def in_repository(directory):
+        scratch = request.getfixturevalue("tmp_path").resolve()
+        resolved = pathlib.Path(os.path.abspath(directory)).resolve()
+        return (resolved == ROOT or ROOT in resolved.parents) and scratch != resolved and scratch not in resolved.parents
+
     def checked(self, args, *rest, **kwargs):
         words = [args] if isinstance(args, (str, bytes, os.PathLike)) else list(args)
         if isinstance(args, str) and kwargs.get("shell"):
             words = shlex.split(args)
         command = " ".join(os.fsdecode(w) for w in words)
+        directory = git_directory(words, kwargs.get("cwd")) if words else None
+        tail = request.node.nodeid.split("/")[-1]
+        exempt = tail in STARTS_GIT_IN_REPOSITORY_EXEMPT or tail.split("::")[0] in STARTS_GIT_IN_REPOSITORY_EXEMPT
+        if directory is not None and not exempt and in_repository(directory):
+            raise AssertionError("%s starts git against the repository the tests live in: %s (%s)" % (request.node.nodeid, directory, command))
         if words and (is_suite(words[0]) or (os.path.basename(os.fsdecode(words[0])) in ("bash", "sh") and any(is_suite(w) for w in words[1:]))):
             raise AssertionError("%s starts a bash suite: %s" % (request.node.nodeid, command))
         if words and is_pytest(words) and not from_exempt_helper() and request.node.nodeid.split('/')[-1] not in STARTS_PYTEST_EXEMPT:
