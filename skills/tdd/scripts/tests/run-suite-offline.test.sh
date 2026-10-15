@@ -78,4 +78,67 @@ probe_runner_applies_dead_proxy
 
 report "$name"
 
+name="run-suite.sh fails a suite that calls gh, naming the reach as make test does (#1468)"
+problems=()
+
+probe_runner_names_gh_reach() {
+  local tree out code
+  tree="$(scratch_dir)" || {
+    problems+=("could not make a scratch directory, so the question went unasked")
+    return 1
+  }
+  cat > "$tree/reaches.test.sh" <<'SUITE'
+#!/usr/bin/env bash
+set -uo pipefail
+gh pr list > /dev/null 2>&1
+echo "1 passed, 0 failed"
+SUITE
+  chmod +x "$tree/reaches.test.sh"
+  out="$(env -u OFFLINE_REACH_LOG "$RUNNER" "$tree/reaches.test.sh" 2>&1 < /dev/null)" && code=0 || code=$?
+  [[ "$code" == 1 ]] ||
+    problems+=("want exit 1, the gh reach failing the suite; it exited $code and said: $(printf '%s' "$out" | tr '\n' '/')")
+  [[ "$out" == *"reaches.test.sh: tried the network: gh pr list"* ]] ||
+    problems+=("want a line naming 'reaches.test.sh: tried the network: gh pr list'; it said: $(printf '%s' "$out" | tr '\n' '/')")
+}
+
+probe_runner_names_gh_reach
+
+report "$name"
+
+name="run-suite.sh refuses a real git start in a suite under tests/unit/, naming it as make test does (#1468)"
+problems=()
+
+probe_runner_guards_unit_git() {
+  local tree scripts out code
+  tree="$(scratch_dir)" || {
+    problems+=("could not make a scratch directory, so the question went unasked")
+    return 1
+  }
+  scripts="$tree/skills/tdd/scripts"
+  mkdir -p "$scripts/lib" "$scripts/tests/unit" &&
+    cp "$ROOT/skills/tdd/scripts/run-suite.sh" "$scripts/" &&
+    cp -R "$ROOT/skills/tdd/scripts/veri" "$scripts/" &&
+    cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$scripts/lib/" &&
+    cp -R "$ROOT/skills/tdd/scripts/tests/offline" "$ROOT/skills/tdd/scripts/tests/unit-guard" "$scripts/tests/" || {
+    problems+=("could not copy the runner into the scratch tree, so the question went unasked")
+    return 1
+  }
+  cat > "$scripts/tests/unit/starts-git.test.sh" <<'SUITE'
+#!/usr/bin/env bash
+set -uo pipefail
+git --version > /dev/null 2>&1
+echo "1 passed, 0 failed"
+SUITE
+  chmod +x "$scripts/tests/unit/starts-git.test.sh"
+  out="$(env -u OFFLINE_REACH_LOG -u UNIT_GUARD_LOG "$scripts/run-suite.sh" "$scripts/tests/unit/starts-git.test.sh" 2>&1 < /dev/null)" && code=0 || code=$?
+  [[ "$code" == 1 ]] ||
+    problems+=("want exit 1, the unit guard refusing the git start; it exited $code and said: $(printf '%s' "$out" | tr '\n' '/')")
+  [[ "$out" == *"starts-git.test.sh: tried the network: git --version"* ]] ||
+    problems+=("want a line naming 'starts-git.test.sh: tried the network: git --version'; it said: $(printf '%s' "$out" | tr '\n' '/')")
+}
+
+probe_runner_guards_unit_git
+
+report "$name"
+
 finish
