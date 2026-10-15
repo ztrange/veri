@@ -9,9 +9,11 @@
 # plain bullet under `## Owed steps`. A <text> carrying ⟦ci-repair⟧ or ⟦suite-repair⟧ is inserted
 # without ⟦added⟧ and never counts against the cap. The added step inherits the anchor's criterion,
 # unless a leading --criterion <k> overrides it with criterion k.
+# --planned inserts the steps without ⟦added⟧, so --planned steps never count toward VERI_STEP_GROWTH.
 #
-# usage: add-ledger-step.sh [--criterion <k>] <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]
+# usage: add-ledger-step.sh [--planned] [--criterion <k>] <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]
 # Exit:    0 inserted; 1 the batch would exceed VERI_STEP_GROWTH, owed instead;
 #          2 a missing argument, an unknown position, an anchor matching no single step, a --criterion no ledger step carries,
-#            or a bad VERI_STEP_GROWTH
+#            --planned without --criterion, --planned for a criterion a ledger step already serves,
+#            --planned for a k not unticked in the issue body the run read, or a bad VERI_STEP_GROWTH
 exec python3 "$(dirname "$0")/veri/add_ledger_step.py" "$@"

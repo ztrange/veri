@@ -184,7 +184,7 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   Nothing on stdout. **Exit 0** when it cleared the mark; **exit 3** when no ticked step both
   matched and carried it — the file is left byte-identical, because nothing is written unless
   the transform found its line.
-- `$S/add-ledger-step.sh [--criterion <k>] <ledger> after|before|instead-of "<anchor substring>" '<text>' […]` — **grow
+- `$S/add-ledger-step.sh [--planned] [--criterion <k>] <ledger> after|before|instead-of "<anchor substring>" '<text>' […]` — **grow
   the plan mid-run**: insert each text as `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` directly after
   the anchor step, directly before it, or in its place, inheriting the anchor's criterion
   unless `--criterion <k>` names the criterion the added steps serve — any whole number k ≥ 1,

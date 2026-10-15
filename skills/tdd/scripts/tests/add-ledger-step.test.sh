@@ -91,4 +91,19 @@ else
   diff "$work/in-place.none.err" "$work/linked.none.err" | sed 's/^/    stderr: /'
 fi
 
+name="#1579: the shim header describes --planned (no ⟦added⟧, not counted toward VERI_STEP_GROWTH) and its exit-2 list names --planned without --criterion, a criterion a ledger step already serves, and a k not unticked in the issue body"
+hdr="$(sed -n '/^#/p' "$ADD")"
+exit2="$(printf '%s\n' "$hdr" | sed -n '/^# Exit:/,$p')"
+missing=""
+printf '%s\n' "$hdr" | grep -F -- '--planned' | grep -F 'VERI_STEP_GROWTH' > /dev/null || missing="$missing [header: --planned not counted toward VERI_STEP_GROWTH]"
+printf '%s\n' "$hdr" | grep -F -- '--planned' | grep -F '⟦added⟧' > /dev/null || missing="$missing [header: --planned without ⟦added⟧]"
+printf '%s\n' "$exit2" | grep -F -- '--planned without --criterion' > /dev/null || missing="$missing [exit 2: --planned without --criterion]"
+printf '%s\n' "$exit2" | grep -F 'already serves' > /dev/null || missing="$missing [exit 2: a criterion a ledger step already serves]"
+printf '%s\n' "$exit2" | grep -F 'unticked in the issue body' > /dev/null || missing="$missing [exit 2: k not unticked in the issue body]"
+if [[ -z "$missing" ]]; then
+  ok
+else
+  no "$name (missing:$missing)"
+fi
+
 finish
