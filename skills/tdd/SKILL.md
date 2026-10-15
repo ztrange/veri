@@ -1034,7 +1034,8 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   Then loop back to `next-unchecked.sh`, which now hands over the first of them.
   **`add-ledger-step.sh` exit 1 → bail with cause `step-too-big`**, as it already is on the
   other two paths that grow a plan — see *Bailing*. The split shares `VERI_STEP_GROWTH` with
-  them, because all three are plan growth.
+  them, because all three are plan growth. **`add-ledger-step.sh` exit 2 → bail with cause
+  `step-add-refused`** — see *Bailing*.
 - **exit 1 — a decision for the user.** `.tdd/over-budget-answer.txt` holds the leaf's answer.
   **Park the step** — the same park the revise-exhausted path takes (see *Revise*): stop the
   run there, carrying that answer and the two figures, what the step has spent and the
@@ -1223,6 +1224,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    insertion would take the ledger past `VERI_STEP_GROWTH`, so the script has already filed
    the criteria under `## Owed steps`: the step's own red is discarded and the smaller steps
    it needs are not in the plan, so there is nothing for the run to go on with.
+   **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see *Bailing*.
 2. **Verify (blind)** — the verifier shape again, and the wait's code is again the verdict.
    Neither this verifier nor the develop leaf runs the full suite: a break outside the
    affected suites surfaces at the one full-suite run in *4. Draft PR*.
@@ -1471,7 +1473,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      serve different ones — anchored `after "<STEP>"` so the triangulating step lands next to
      the code it triangulates. Each per-criterion call emits its own step-added event, the
      line above run once per call, anchored on the step and carrying `added=<that call's count>`. **`add-ledger-step.sh` exit 2** here means the call itself was
-     malformed — a `<k>` that is not a whole number ≥ 1 — and is a **bail**. A criterion no
+     malformed — a `<k>` that is not a whole number ≥ 1 — and bails with cause `step-add-refused`. A criterion no
      ledger step serves yet is no obstacle: the script tags the new step `⟦criterion k⟧` all
      the same. Neither reporting one — no `uncovered-spec` flag
      from the leaf and none in the verdict — is no call and no mark at all.
@@ -1635,6 +1637,7 @@ git add .tdd/issue-<n>.md
 git commit -m "plan: repair the red full suite (#<n>)"
 ```
 That call passes no `--criterion` on purpose: the repair step serves its anchor's criterion.
+**`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see *Bailing*.
 
 A second red result on the full run after a repair step does **bail** — the repair step is
 one more cycle, not a loop — and the bail names every suite still red, not only the first.
@@ -1870,6 +1873,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    git commit -m "plan: repair the red CI check (#<n>)"
    ```
    That call passes no `--criterion` on purpose: the repair step serves its anchor's criterion.
+   **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see *Bailing*.
    A `ci-timeout` or `ci-red` bail ends the step there and goes to *Bailing*: neither the
    `done` mark nor the `metrics:` commit below follows it. Otherwise:
    ```
@@ -1892,6 +1896,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
    gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)" -f body="<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human, followed by <overflow-url>, the issue refactor-overflow.sh filed, when the pass filed one>"
    ```
+   **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see *Bailing*.
    The readied PR's CI is read fail-closed, the way the `merge` skill reads it: an empty
    rollup is never a pass, and a completed check whose conclusion is anything other than
    `SUCCESS`, `NEUTRAL` or `SKIPPED` counts as failed. A pending check never counts as
@@ -2180,6 +2185,7 @@ answer. Each is a branch of its own:
   handed out again. **`add-ledger-step.sh` exit 1 → bail with cause `step-too-big`** — see
   *Bailing* — exactly as a Green leaf's volunteered split does when it meets
   `VERI_STEP_GROWTH`: the criteria are filed under `## Owed steps` and the plan is unchanged.
+  **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see *Bailing*.
 - **exit 1 — the step needs the user.** `.tdd/exhausted-answer.txt` holds the leaf's answer:
   the criterion is wrong, contradicts another, or needs a decision this run has no authority
   to make. **Park the step** — stop the run there, carrying that answer and the verifier's
@@ -2260,6 +2266,10 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   splits lead here, because all three grow the plan and share that one budget: a Green
   developer leaf's `SPLIT:`, the split the revise-exhausted leaf answers, and the split the
   over-budget leaf answers.
+- `step-add-refused` → **system** failure: `add-ledger-step.sh` exited 2 at any of its call
+  sites because the anchor matched no step or several, `VERI_STEP_GROWTH` was unreadable, or
+  `--criterion` was malformed (the conductor passed a call the script refused, not a
+  methodology answer).
 - `ci-timeout` — a readied PR's check was still pending when the Draft PR step's bounded CI
   wait ran out → **system** failure (CI never answered, not the methodology).
 - `ci-conflict` — a readied PR still conflicted with its base branch after the CI step's one
