@@ -153,3 +153,14 @@ def test_1568_stop_prose_guard_names_prompt_and_line_of_a_planted_stop_that_name
     assert report_formats.stop_prose_offenders(
         "develop-planted.md", planted, exempt={"develop-planted.md:4": "a skip with nothing to report"}
     ) == ["develop-planted.md:2"]
+
+
+@pytest.mark.tree_audit("every skills/tdd/scripts/prompts/develop-*.md prompt, includes expanded")
+def test_1568_every_stop_skip_give_up_or_say_so_line_in_the_real_develop_prompts_names_a_declared_format_or_is_exempt(report_formats):
+    prompts = expanded_develop_prompts()
+    offenders = []
+    for path, text in prompts:
+        offenders += report_formats.stop_prose_offenders(path.name, text)
+
+    assert prompts
+    assert not offenders, "\n".join(offenders)

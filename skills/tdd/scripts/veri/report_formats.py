@@ -26,9 +26,20 @@ def parse(text):
 _STOP_WORDS = re.compile(r"\b(stop|skip|skipped|give up|say so)\b", re.IGNORECASE)
 
 
-def stop_prose_offenders(prompt, text, exempt=None):
+EXEMPT = {
+    "develop-green.md:20": "the declared format continues on the next line of the sentence",
+    "develop-green.md:41": "the SPLIT: format is named in the paragraph that follows",
+    "develop-green.md:55": "the fallback to the test command is reported inside SUITE:",
+    "develop-reconcile.md:43": "a remote that moved again is reported through the declared keys",
+    "develop-red.md:79": "the fallback to the test command is reported inside SUITE:",
+    "develop-refactor.md:77": "the fallback to the test command is reported inside SUITE:",
+    "develop-refactor.md:88": "a skipped transform is listed in the declared report",
+    "develop-revise.md:73": "the fallback to the test command is reported inside SUITE:",
+}
+
+
+def stop_prose_offenders(prompt, text, exempt=EXEMPT):
     """`<prompt>:<line>` for each line that tells the leaf to stop, skip, give up or say so without naming a declared format."""
-    exempt = exempt or {}
     names = [name for fmt in parse(text) for name in [fmt["name"], *fmt["keys"]]]
     offenders = []
     for number, line in enumerate(text.splitlines(), 1):
