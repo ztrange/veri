@@ -5,6 +5,7 @@
 #        tests-frozen.sh check <record-file>
 #
 # Exit: 0 recorded, or every recorded file is byte-identical (nothing on stdout),
+#       1 with one path per line on stdout for each recorded file edited or deleted,
 #       2 bad arguments or an unreadable record/file.
 set -uo pipefail
 
@@ -26,7 +27,13 @@ case "$mode" in
     shasum -a 256 -- "$@" > "$rec" || exit 2
     ;;
   check)
-    shasum -a 256 -c "$rec" > /dev/null 2>&1 || exit 1
+    report="$(shasum -a 256 -c "$rec" 2> /dev/null)"; sum_code=$?
+    changed="$(printf '%s\n' "$report" | sed -n 's/: FAILED.*$//p')"
+    if [[ -n "$changed" ]]; then
+      echo "$changed"
+      exit 1
+    fi
+    [[ "$sum_code" -eq 0 ]] || exit 2
     ;;
   *)
     echo "$usage" >&2
