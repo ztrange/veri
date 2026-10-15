@@ -90,4 +90,21 @@ if revise_section 'red-divergence' \
 fi
 report "$name"
 
+name="$skill_md's red-divergence.sh calls hand it the prediction file and the run's output, and exit 1 narrates a prediction not written before the run (#1468)"
+problems=()
+for sect in red revise; do
+  if "${sect}_section" 'red-divergence' \
+    "$skill_md's $sect section never runs \`red-divergence.sh\`, so the prediction file is never handed to it"; then
+    says 'red-divergence\.sh[^`]*\.tdd/red-prediction\.md[^`]*\.tdd/red-run-output\.txt' \
+      "$skill_md's $sect section runs \`red-divergence.sh\` without \`.tdd/red-prediction.md\` and \`.tdd/red-run-output.txt\`, so a prediction written after the run cannot be told from one written before"
+    says 'exit 1[^.]*(missing|newer|not written)|(missing|newer|not written)[^.]*exit 1' \
+      "$skill_md's $sect section does not branch on \`red-divergence.sh\` exit 1, so a missing or late prediction file is read as a matched one"
+    says 'prediction not written before the run' \
+      "$skill_md's $sect section never narrates \"prediction not written before the run\", so a late prediction is reported as a divergence"
+    says 'spends? (the |that )?(next )?attempt|spends? .*REVISE_BUDGET|counts? against|against .*REVISE_BUDGET' \
+      "$skill_md's $sect section does not say a prediction not written before the run still spends the attempt like a REJECT"
+  fi
+done
+report "$name"
+
 finish
