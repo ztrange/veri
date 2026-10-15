@@ -1,0 +1,9 @@
+# Plan for #1468 — Affected-suite runs skip make test's environment, and nothing proves the red prediction preceded the run
+
+- [ ] run-suite.sh runs a suite under make test's offline git and locale: a suite case that starts `git fetch` against an unreachable https origin is refused by git's transport allowlist under run-suite.sh exactly as under `make test` (protocol.allow=never, protocol.file.allow=always, the dead http.proxy, LC_ALL=C), where today it reaches past that refusal ⟦criterion 1⟧
+- [ ] run-suite.sh puts make test's PATH guards in front of a suite: a suite that calls `gh` or `curl` under run-suite.sh fails naming the reach as under `make test`, and a suite under tests/unit/ that starts a real `git` or `python3` process is refused by the unit guard as under `make test` ⟦criterion 1⟧
+- [ ] Every verifier prompt (verify-red, verify-green, verify-refactor, verify-diff, verify-transform) and the develop-revise prompt tell the leaf to run each affected suite through run-suite.sh, so the red, green, revise and verifier leaves' affected-suite runs all apply make test's environment ⟦criterion 1⟧
+- [ ] The develop-red prompt and the develop-revise prompt for a redone red name a prediction file and tell the leaf to write its prediction there before it runs any suite ⟦criterion 2⟧
+- [ ] red-divergence.sh reads the prediction from that file, and when the file is missing it reports "prediction not written before the run" as its own outcome with its own exit code, distinct from a divergence and from an unreadable report ⟦criterion 2⟧
+- [ ] red-divergence.sh reports the same "prediction not written before the run" outcome when the prediction file is newer than the run's output ⟦criterion 2⟧
+- [ ] SKILL.md's Red and revise prediction checks hand red-divergence.sh the leaf's prediction file and branch on its new outcome, narrating "prediction not written before the run" rather than a divergence while still spending the attempt as a REJECT does
