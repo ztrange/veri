@@ -283,7 +283,7 @@ else
     after_check="${after_check:0:1200}"
     [[ "$after_check" == *'report-missing'* ]] || problems+=("structural pass: never names the report-missing bail for a missing SUITE: line")
     [[ "$after_check" =~ out-of-bounds|leave\ the\ tree ]] || problems+=("structural pass: never says an out-of-bounds skip is exempt")
-    [[ "$after_check" == *reject* ]] || problems+=("structural pass: never says that skip keeps its REJECT outcome")
+    [[ "$after_check" == *'transform reject and the next candidate'* ]] || problems+=("structural pass: never says that skip keeps its transform REJECT outcome")
   fi
 fi
 report "$name"
