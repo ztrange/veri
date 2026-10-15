@@ -4,4 +4,4 @@
 - [x] Given a range whose only change is one `skills/tdd/scripts/prompts/verify-*.md` template, `affected-suites.sh` prints the same four renderer suites, in addition to what it prints today (pytest case, small) ⟦criterion 1⟧
 - [x] Given a range whose only change is one `skills/tdd/scripts/prompts/_*.md` partial, `affected-suites.sh` prints the same four renderer suites, in addition to what it prints today (pytest case, small) ⟦criterion 1⟧
 - [x] When one of the four renderer suites does not exist in the tree, a prompt-template change prints the ones that exist and never the missing one (pytest case, small) ⟦criterion 1⟧
-- [ ] Given a range that touches no file under `skills/tdd/scripts/prompts/`, `affected-suites.sh` prints none of the four renderer suites on that account (pytest case, small) ⟦criterion 2⟧
+- [x] Given a range that touches no file under `skills/tdd/scripts/prompts/`, `affected-suites.sh` prints none of the four renderer suites on that account (pytest case, small) ⟦criterion 2⟧
