@@ -14,7 +14,10 @@ REASON_KEYS = ("PREDICTED_FAILURE", "FAIL_OUTPUT", "PREDICTION_NOTE")
 
 
 def main(argv):
-    if argv and not argv[0].startswith("-") and not os.path.exists(argv[0]):
+    if argv and not argv[0].startswith("-") and (
+        not os.path.exists(argv[0])
+        or (len(argv) > 1 and os.path.getmtime(argv[0]) > os.path.getmtime(argv[1]))
+    ):
         sys.stderr.write("prediction not written before the run\n")
         return 1
     report = sys.stdin.buffer.read().decode(errors="surrogateescape")
