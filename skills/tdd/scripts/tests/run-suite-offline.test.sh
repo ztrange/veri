@@ -193,4 +193,28 @@ probe_runner_overrides_callers_git_protocols
 
 report "$name"
 
+name="run-suite.sh runs a suite under LC_ALL=C whatever the caller exported (#1468)"
+problems=()
+
+probe_runner_overrides_callers_locale() {
+  local tree out code
+  tree="$(scratch_dir)" || {
+    problems+=("could not make a scratch directory, so the question went unasked")
+    return 1
+  }
+  cat > "$tree/locale.test.sh" <<'SUITE'
+#!/usr/bin/env bash
+set -uo pipefail
+echo "LC_ALL=${LC_ALL-unset}"
+echo "1 passed, 0 failed"
+SUITE
+  chmod +x "$tree/locale.test.sh"
+  out="$(LC_ALL=en_US.UTF-8 "$RUNNER" "$tree/locale.test.sh" 2>&1 < /dev/null)" && code=0 || code=$?
+  expect_eq "the suite's LC_ALL under the runner" "LC_ALL=C" "${out%%$'\n'*}"
+}
+
+probe_runner_overrides_callers_locale
+
+report "$name"
+
 finish
