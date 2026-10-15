@@ -1,0 +1,3 @@
+# Plan for #1483 — lib/leaf-model.sh and lib/leaf-role.sh are dead bash copies of rules veri/ now owns
+
+- [ ] Delete skills/tdd/scripts/lib/leaf-model.sh and skills/tdd/scripts/lib/leaf-role.sh so no file under skills/tdd/scripts/lib/ defines leaf_model or leaf_role, with no production change elsewhere: the leaf-model.sh and leaf-role.sh entry points (the /bin/sh shims over veri/leaf_model.py and veri/leaf_role.py) and their suites are left unmodified and still pass, so both give the same stdout, stderr and exit code for every leaf name as before; docs/walkthrough.html is not touched ⟦diff-checked⟧ ⟦criterion 1⟧
