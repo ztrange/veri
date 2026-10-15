@@ -15,3 +15,4 @@
 - test-only | `names_prediction_file` and `names_run_output_file` in `skills/tdd/scripts/tests/prompt-test-tiers.test.sh` differ only in the grep pattern and the problem message, so they could share one helper.
 ### SKILL.md has the conductor remove a previous leaf's prediction file and run-output file before it launches a develop-red or revise-red leaf, so a stale prediction from an earlier leaf can never pass red-divergence.sh's missing-file check ⟦added⟧
 - test-only | `skill-red-prediction.test.sh` has two `for sect in red revise` loops (the red-divergence-args case and the rm-before-launch case). They share the `"${sect}_section"` dispatch, but each loop takes a different section pattern and checks different things, so merging them would save little.
+applied | 0bf5a4ba145997c978ad9aa81ae999e272204885 | extract the prediction-file check at red_divergence.py:17-20 into a named helper (no duplication removed, so not applied here)
