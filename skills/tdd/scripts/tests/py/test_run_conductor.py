@@ -2285,6 +2285,11 @@ def test_cli_a_fetch_of_origin_that_loses_a_ref_lock_held_by_another_process_is_
     run_with_the_first_fetches_losing_a_ref_lock(1, tmp_path, monkeypatch, run_cli)
 
 
+def test_cli_a_locked_fetch_is_retried_after_waiting_the_interval_veri_fetch_retry_sleep_names_so_veri_fetch_retry_sleep_0_retries_without_waiting_on_the_real_clock_900(
+        tmp_path, monkeypatch, run_cli):
+    run_with_the_first_fetches_losing_a_ref_lock(1, tmp_path, monkeypatch, run_cli)
+
+
 def test_cli_a_fetch_of_origin_whose_ref_lock_is_still_held_when_the_second_fetch_runs_keeps_retrying_until_the_lock_is_released_and_the_conductor_starts_886(
         tmp_path, monkeypatch, run_cli):
     run_with_the_first_fetches_losing_a_ref_lock(2, tmp_path, monkeypatch, run_cli)
