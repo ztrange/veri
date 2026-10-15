@@ -73,8 +73,19 @@ def pytest_collection_modifyitems(config, items):
             raise pytest.UsageError("%s exemption table: %s" % (label, "; ".join(problems)))
 
 
+CWD_OUTSIDE_REPOSITORY = {
+    "test_affected_suites.py",
+    "test_event.py",
+    "test_invisible_work.py",
+    "test_parallel_conductors.py",
+    "test_push_branch.py",
+    "test_rebase_onto_default.py",
+    "test_refactor_touched.py",
+}
+
+
 @pytest.fixture(autouse=True)
-def hermetic_environment(monkeypatch):
+def hermetic_environment(request, monkeypatch, tmp_path):
     offline = {name: value for name, value in os.environ.items()
                if name == "GIT_CONFIG_COUNT" or name.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))}
     for name in list(os.environ):
@@ -82,7 +93,9 @@ def hermetic_environment(monkeypatch):
             monkeypatch.delenv(name)
         elif name == "LANG" or name.startswith("LC_"):
             monkeypatch.delenv(name)
-    if ROOT in pathlib.Path.cwd().resolve().parents or pathlib.Path.cwd().resolve() == ROOT:
+    if request.node.path.name in CWD_OUTSIDE_REPOSITORY:
+        monkeypatch.chdir(tmp_path)
+    elif ROOT in pathlib.Path.cwd().resolve().parents or pathlib.Path.cwd().resolve() == ROOT:
         monkeypatch.chdir(ROOT)
     monkeypatch.setenv("LC_ALL", "C")
     for name, value in offline.items():
@@ -159,13 +172,6 @@ def exempt_from(tail, table):
 RUNS_GIT_WITH_NO_CWD = "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call"
 
 STARTS_GIT_IN_REPOSITORY_EXEMPT = {
-    "test_affected_suites.py": RUNS_GIT_WITH_NO_CWD,
-    "test_event.py": RUNS_GIT_WITH_NO_CWD,
-    "test_invisible_work.py": RUNS_GIT_WITH_NO_CWD,
-    "test_parallel_conductors.py": RUNS_GIT_WITH_NO_CWD,
-    "test_push_branch.py": RUNS_GIT_WITH_NO_CWD,
-    "test_rebase_onto_default.py": RUNS_GIT_WITH_NO_CWD,
-    "test_refactor_touched.py": RUNS_GIT_WITH_NO_CWD,
     "test_session_cost.py": RUNS_GIT_WITH_NO_CWD,
     "test_solvable_issues.py": RUNS_GIT_WITH_NO_CWD,
     "test_status.py": RUNS_GIT_WITH_NO_CWD,
