@@ -194,14 +194,20 @@ def pytest_texts():
     return [(p, read(p) or b"") for p in suites(SCRIPTS + "/tests/py/test_*.py")]
 
 
+SECTION_CALL = rb"section\("
+LITERAL_SECTION_CALL = rb"section\(\s*\w+,\s*(['\"])[^'\"]*\1\s*,?\s*\)"
+
+
 def pytest_readers(needles):
     def names(text, forms_):
         return any(n.encode() in text for n in forms_)
 
+    def all_literal(text):
+        return len(re.findall(SECTION_CALL, text)) == len(re.findall(LITERAL_SECTION_CALL, text))
+
     return [p for p, text in pytest_texts()
-            if re.search(rb"section\(", text)
-            and (names(text, needles)
-                 or len(re.findall(rb"section\(", text)) != len(re.findall(rb"section\(\s*\w+,\s*(['\"])[^'\"]*\1\s*,?\s*\)", text)))]
+            if re.search(SECTION_CALL, text)
+            and (names(text, needles) or not all_literal(text))]
 
 
 def pytest_whole_readers():
