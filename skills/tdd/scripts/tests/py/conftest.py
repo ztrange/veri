@@ -44,6 +44,19 @@ def shim_problems(scripts, exempt=()):
     return problems
 
 
+def entry_bypass_problems(scripts):
+    problems = []
+    for script in sorted(pathlib.Path(scripts).glob("*.sh")):
+        match = CANONICAL_SHIM.search(script.read_text())
+        module = pathlib.Path(scripts) / match.group(1)
+        lines = module.read_text().splitlines()
+        for number, line in enumerate(lines, 1):
+            if line.startswith("if __name__ == "):
+                if not any("entry.run(" in l for l in lines[number:]):
+                    problems.append("%s:%d __main__ block does not go through entry.run" % (module.name, number))
+    return problems
+
+
 def pytest_configure(config):
     config.option.importmode = "append"
     config.addinivalue_line("markers", "process(boundary): a medium case, naming the process boundary it observes")
