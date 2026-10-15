@@ -122,7 +122,9 @@ def main(argv):
     if os.path.dirname(os.path.abspath(suite)) == os.path.join(SCRIPTS, "tests", "unit"):
         guards.insert(0, os.path.join(SCRIPTS, "tests", "unit-guard"))
     with tempfile.NamedTemporaryFile("r", prefix="veri-reach-") as reach_log:
-        env["OFFLINE_REACH_LOG"] = env["UNIT_GUARD_LOG"] = reach_log.name
+        env["OFFLINE_REACH_LOG"] = reach_log.name
+        if len(guards) > 1:
+            env["UNIT_GUARD_LOG"] = reach_log.name
         env["PATH"] = os.pathsep.join(guards + [env.get("PATH", "")])
         code = run(env)
         reached = reach_log.read().splitlines()

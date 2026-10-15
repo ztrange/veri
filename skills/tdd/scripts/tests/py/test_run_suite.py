@@ -499,3 +499,13 @@ def test_main_fails_a_pytest_suite_that_calls_gh_naming_the_reach_through_the_of
     code = run_suite.main([str(suite)])
     out, err = capfd.readouterr()
     assert (code, "test_reaches.py: tried the network: gh pr list" in out) == (1, True)
+
+
+def test_main_does_not_report_a_nested_unit_guard_refusal_a_flat_suite_provokes_as_a_network_reach_1468(tmp_path, capfd, monkeypatch, run_suite):
+    monkeypatch.delenv("OFFLINE_REACH_LOG", raising=False)
+    monkeypatch.delenv("UNIT_GUARD_LOG", raising=False)
+    suite = fake_suite(tmp_path, "provokes.test.sh",
+                       'PATH="%s:$PATH" git status > /dev/null 2>&1\necho "1 passed, 0 failed"\n' % (SCRIPTS / "tests" / "unit-guard"))
+    code = run_suite.main([suite])
+    out, err = capfd.readouterr()
+    assert (code, "tried the network" in out) == (0, False)
