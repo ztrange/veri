@@ -278,3 +278,58 @@ def test_main_prints_every_pytest_file_reading_skill_md_when_the_edit_spans_more
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
         0, "skills/tdd/scripts/tests/py/test_alpha.py\nskills/tdd/scripts/tests/py/test_beta.py\n"
         "skills/tdd/scripts/tests/py/test_gamma.py\nskills/tdd/scripts/tests/py/test_whole.py\n", "")
+
+
+def test_main_prints_a_pytest_file_that_names_the_edited_heading_outside_the_helper_call(
+        tmp_path, monkeypatch, capsys, affected):
+    skill = "skills/tdd/SKILL.md"
+
+    def fake_run(args, **kwargs):
+        if list(args[:2]) == ["git", "rev-parse"]:
+            stdout = "abc\n"
+        elif list(args[:3]) == ["git", "diff", "--name-only"]:
+            stdout = "" if "--diff-filter=AD" in args else skill + "\n"
+        elif list(args[:3]) == ["git", "diff", "-U0"]:
+            stdout = "@@ -2 +2 @@\n-old body\n+alpha body\n"
+        else:
+            raise AssertionError("unexpected command: %r" % (args,))
+        return subprocess.CompletedProcess(args, 0, stdout, "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    py = tmp_path / "skills/tdd/scripts/tests/py"
+    py.mkdir(parents=True)
+    (tmp_path / skill).write_text("## Alpha\nalpha body\n## Beta\nbeta body\n")
+    (py / "test_a_param.py").write_text(
+        '@pytest.mark.parametrize("heading", ["## Alpha", "## Gamma"])\n'
+        "def test_x(heading):\n    section(SKILL, heading)\n")
+    (py / "test_b_bound.py").write_text('heading = "## Alpha"\nsection(SKILL, heading)\n')
+    (py / "test_c_beta.py").write_text('heading = "## Beta"\nsection(SKILL, heading)\n')
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0, "skills/tdd/scripts/tests/py/test_a_param.py\nskills/tdd/scripts/tests/py/test_b_bound.py\n", "")
+
+
+def test_main_prints_a_pytest_file_that_passes_the_helper_a_heading_it_never_spells(
+        tmp_path, monkeypatch, capsys, affected):
+    skill = "skills/tdd/SKILL.md"
+
+    def fake_run(args, **kwargs):
+        if list(args[:2]) == ["git", "rev-parse"]:
+            stdout = "abc\n"
+        elif list(args[:3]) == ["git", "diff", "--name-only"]:
+            stdout = "" if "--diff-filter=AD" in args else skill + "\n"
+        elif list(args[:3]) == ["git", "diff", "-U0"]:
+            stdout = "@@ -2 +2 @@\n-old body\n+alpha body\n"
+        else:
+            raise AssertionError("unexpected command: %r" % (args,))
+        return subprocess.CompletedProcess(args, 0, stdout, "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    py = tmp_path / "skills/tdd/scripts/tests/py"
+    py.mkdir(parents=True)
+    (tmp_path / skill).write_text("## Alpha\nalpha body\n## Beta\nbeta body\n")
+    (py / "test_computed.py").write_text('heading = "#" * 2 + " Al" + "pha"\nsection(SKILL, heading)\n')
+    (py / "test_literal_beta.py").write_text('section(SKILL, "## Beta")\n')
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0, "skills/tdd/scripts/tests/py/test_computed.py\n", "")
