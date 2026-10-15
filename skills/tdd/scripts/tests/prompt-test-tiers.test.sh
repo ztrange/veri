@@ -273,6 +273,21 @@ revise_prompts=(
 probe_prompts names_suite_runner revise_prompts
 report "$name"
 
+name="#1468: the develop-red and develop-revise red prompts name a prediction file to write before the run"
+problems=()
+names_prediction_file() {
+  local label="$1" prompt="$2"
+  if ! plain <<< "$prompt" | grep -E '\.tdd/[A-Za-z0-9_<>.{}-]*prediction' > /dev/null; then
+    problems+=("$label's prompt names no prediction file under .tdd/, so nothing records when the prediction was written")
+  fi
+}
+prediction_prompts=(
+  "develop-red" "$red"
+  "develop-revise red" "$revise"
+)
+probe_prompts names_prediction_file prediction_prompts
+report "$name"
+
 verifier_prompts=(
   verify-red "$verify_red"
   verify-green "$verify_green"
