@@ -21,6 +21,13 @@ def prediction_unwritten_before_run(argv):
     return len(argv) > 1 and os.path.getmtime(argv[0]) > os.path.getmtime(argv[1])
 
 
+def prediction_file_empty(argv):
+    if not argv or argv[0].startswith("-"):
+        return False
+    with open(argv[0], "rb") as handle:
+        return not handle.read().strip()
+
+
 def main(argv):
     if prediction_unwritten_before_run(argv):
         sys.stderr.write("prediction not written before the run\n")
@@ -30,6 +37,8 @@ def main(argv):
     prediction = fields.get("PREDICTION", "").partition(" ")[0]
     if prediction[-1:] in (",", ";", ":", "."):
         prediction = prediction[:-1]
+    if prediction == "MATCHED" and prediction_file_empty(argv):
+        prediction = "DIVERGED"
     if prediction == "MATCHED":
         return 3
     if prediction != "DIVERGED":

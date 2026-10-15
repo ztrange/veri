@@ -211,3 +211,17 @@ def test_main_1468_reports_a_prediction_file_newer_than_the_run_output_as_the_sa
 
     assert code == 1
     assert "prediction not written before the run" in out + err
+
+
+def test_main_1468_never_answers_matched_for_an_empty_prediction_file_written_before_the_run_whatever_the_report_predicted_failure_says(monkeypatch, capsys, red_divergence, tmp_path):
+    output = tmp_path / "develop-red.out"
+    prediction = tmp_path / "red-prediction.md"
+    output.write_text("FAIL_OUTPUT: boom\nPREDICTION: MATCHED")
+    prediction.write_text("")
+    os.utime(prediction, (1000, 1000))
+    os.utime(output, (2000, 2000))
+
+    matched = "PREDICTED_FAILURE: boom\nFAIL_OUTPUT: boom\nPREDICTION: MATCHED"
+    code, out, err = run(monkeypatch, capsys, red_divergence, matched, [str(prediction), str(output)])
+
+    assert code != 3
