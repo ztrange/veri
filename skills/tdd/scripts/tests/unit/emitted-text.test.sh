@@ -66,7 +66,7 @@ echo "the test pins nothing" > "$work/reason.md"
 
 name="usage output on a missing argument and prompt output for fixed inputs are unchanged"
 problems=""
-pin '3367236714 128' usage add-ledger-step.sh
+pin '3345015868 167' usage add-ledger-step.sh
 pin '3115481657 48' usage affected-suites.sh
 pin '2927995988 228' usage build-develop-prompt.sh
 pin '217537457 94' usage build-verify-prompt.sh
@@ -93,7 +93,7 @@ pin '1826447128 65' usage timed-test-run.sh
 pin '2203537502 52' usage transform-touches-tests.sh
 pin '3019634167 120' usage verify.sh
 pin '3132011146 48' usage wait-leaf.sh
-pin '3367236714 128' usage add-ledger-step.sh .tdd/issue-1.md after anchor
+pin '3345015868 167' usage add-ledger-step.sh .tdd/issue-1.md after anchor
 pin '1563850127 281' usage build-develop-prompt.sh green spec step
 pin '217537457 94' usage build-verify-prompt.sh green
 pin '217537457 94' usage build-verify-prompt.sh green spec

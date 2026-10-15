@@ -4,7 +4,7 @@ import importlib
 import pytest
 
 USAGE = (
-    "usage: add-ledger-step.sh [--criterion <k>] <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]\n"
+    "usage: add-ledger-step.sh [--criterion <k>] <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]  (--planned goes with --criterion <k>)\n"
 )
 
 LEDGER = (
@@ -635,6 +635,12 @@ def test_main_refusing_too_few_arguments_prints_a_usage_line_naming_the_optional
         code = add_ledger_step.main(argv)
         out, err = capsys.readouterr()
         assert (argv, code, out, err.count("\n"), err.startswith("usage: add-ledger-step.sh [--criterion <k>] <ledger-file> ")) == (argv, 2, "", 1, True)
+
+
+def test_main_refusing_too_few_arguments_prints_a_usage_line_naming_planned_alongside_criterion_1579(capsys, add_ledger_step):
+    code = add_ledger_step.main([])
+    out, err = capsys.readouterr()
+    assert (code, out, err.count("\n"), "--planned" in err, "--criterion" in err) == (2, "", 1, True, True)
 
 
 def test_main_planned_criterion_k_inserts_unmarked_steps_that_do_not_count_toward_a_zero_step_growth_and_files_nothing_owed_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
