@@ -81,6 +81,13 @@ CWD_OUTSIDE_REPOSITORY = {
     "test_push_branch.py",
     "test_rebase_onto_default.py",
     "test_refactor_touched.py",
+    "test_session_cost.py",
+    "test_solvable_issues.py",
+    "test_status.py",
+    "test_timed_test_run.py",
+    "test_transform_touches_tests.py",
+    "test_verify.py",
+    "test_workqueue.py",
 }
 
 
@@ -172,13 +179,6 @@ def exempt_from(tail, table):
 RUNS_GIT_WITH_NO_CWD = "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call"
 
 STARTS_GIT_IN_REPOSITORY_EXEMPT = {
-    "test_session_cost.py": RUNS_GIT_WITH_NO_CWD,
-    "test_solvable_issues.py": RUNS_GIT_WITH_NO_CWD,
-    "test_status.py": RUNS_GIT_WITH_NO_CWD,
-    "test_timed_test_run.py": RUNS_GIT_WITH_NO_CWD,
-    "test_transform_touches_tests.py": RUNS_GIT_WITH_NO_CWD,
-    "test_verify.py": RUNS_GIT_WITH_NO_CWD,
-    "test_workqueue.py": RUNS_GIT_WITH_NO_CWD,
     "test_supervise.py": "supervise.py records the skill clone's own HEAD; the case only lets it run rev-parse HEAD there",
     "test_run_conductor.py": "run_conductor.py runs git -C <skill clone> and the cases fake every process, so the path only reaches the recorded call",
     "test_rebase_onto_default.py::test_main_run_through_a_symlink_from_another_directory_rebases_the_callers_clone_and_never_the_skills_repository":
