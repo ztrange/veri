@@ -1,0 +1,7 @@
+# Plan for #1581 — PRD 009 C6-0b: section selection fails safe — a pytest file the rule cannot fully read is selected on every SKILL.md edit
+
+- [ ] A pytest file under tests/py/ whose every section-helper call passes a string-literal heading, with no other file read (open(, read_text(, read_bytes() and no import of the helper under another name, is printed for a SKILL.md edit inside a section it names and not for an edit in a section it does not name ⟦criterion 1⟧
+- [ ] A pytest file that calls the section helper once with a literal heading and once with a heading built in code (section(SKILL, "## " + "Be" + "ta")) is printed for a SKILL.md edit in a section neither call names literally ⟦criterion 2⟧
+- [ ] A pytest file whose section-helper call passes an expression argument (section(SKILL, h.strip())) beside a literal-heading call is printed for a SKILL.md edit in a section no literal call names ⟦criterion 2⟧
+- [ ] A pytest file that imports the section helper under another name (from … import section as sec) and calls it with a literal heading is printed for a SKILL.md edit in a section that heading does not name ⟦criterion 2⟧
+- [ ] A pytest file that calls the section helper with a literal heading and also opens an unrelated file (open("fixture.json")) is printed for a SKILL.md edit in a section the helper call does not name ⟦criterion 2⟧
