@@ -1798,7 +1798,12 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    Each transform leaf's prompt is `build-develop-prompt.sh structural`'s, handed the spec, the candidate as
    `list` printed it, the test command and `<issue-touched-files>`, written to
    `.tdd/develop-structural.prompt`; the leaf is launched through the supervisor as
-   `develop-structural`. Its commits are checked with
+   `develop-structural`. After its wait exits 0 and before its commits are checked, run
+   `$S/suite-reported.sh develop-structural`: exit 2 means the report carries no `SUITE:` line,
+   so launch no transform verifier and **bail** as a system failure with cause `report-missing`.
+   An out-of-bounds skip — the leaf left the tree as it found it and said so — is exempt: it
+   keeps its main outcome, a transform `REJECT` and the next candidate (a process outcome),
+   never a `report-missing` bail. Its commits are checked with
    `$S/transform-touches-tests.sh <base-sha>` — exit 1 rejects the transform, exit 2 is no
    answer — then judged by the long
    refactor's blind `transform` verifier against `<base-sha>`, one commit per transform —
