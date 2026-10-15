@@ -34,6 +34,26 @@ def scratch_tmpdir(tmp_path, monkeypatch):
     return scratch
 
 
+def loose_skill(source, destination):
+    """Copy the files under a skills/tdd directory that git tracks or would track, as the work tree has them."""
+    source, destination = pathlib.Path(source), pathlib.Path(destination)
+    listed = subprocess.run(
+        ["git", "-C", str(source), "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+        capture_output=True)
+    if listed.returncode != 0:
+        raise RuntimeError(f"skill copy: git ls-files failed in {source}: {listed.stderr.decode(errors='replace')}")
+    for name in sorted(set(listed.stdout.decode().split("\0")) - {""}):
+        origin = source / name
+        if not os.path.lexists(origin):
+            continue
+        target = destination / name
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(origin, target, follow_symlinks=False)
+        except OSError as error:
+            raise RuntimeError(f"skill copy: could not copy {origin} to {target}: {error}") from error
+
+
 @pytest.mark.parametrize("argv", [[], [""]])
 def test_main_with_no_or_an_empty_issue_returns_2_with_the_usage_line_alone_and_starts_no_process(
         argv, tmp_path, monkeypatch, capfdbinary, fake_processes):
