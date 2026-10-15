@@ -215,11 +215,11 @@ def pytest_readers(needles):
 def pytest_whole_readers():
     return [p for p, text in pytest_texts()
             if b"SKILL.md" in text
-            and (not re.search(rb"section\(", text) or re.search(rb"open\(|read_text\(", text))]
+            and (not re.search(SECTION_CALL, text) or re.search(rb"open\(|read_text\(", text))]
 
 
 def pytest_skill_readers():
-    return [p for p, text in pytest_texts() if b"SKILL.md" in text or re.search(rb"section\(", text)]
+    return [p for p, text in pytest_texts() if b"SKILL.md" in text or re.search(SECTION_CALL, text)]
 
 
 def suite_of(f, revisions=None):
