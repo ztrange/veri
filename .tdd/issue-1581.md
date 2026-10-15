@@ -5,4 +5,4 @@
 - [x] A pytest file that calls the section helper once with a literal heading and once with a heading built in code (section(SKILL, "## " + "Be" + "ta")) is printed for a SKILL.md edit in a section neither call names literally ⟦criterion 2⟧
 - [x] A pytest file whose section-helper call passes an expression argument (section(SKILL, h.strip())) beside a literal-heading call is printed for a SKILL.md edit in a section no literal call names ⟦criterion 2⟧
 - [x] A pytest file that imports the section helper under another name (from … import section as sec) and calls it with a literal heading is printed for a SKILL.md edit in a section that heading does not name ⟦criterion 2⟧
-- [ ] A pytest file that calls the section helper with a literal heading and also opens an unrelated file (open("fixture.json")) is printed for a SKILL.md edit in a section the helper call does not name ⟦criterion 2⟧
+- [x] A pytest file that calls the section helper with a literal heading and also opens an unrelated file (open("fixture.json")) is printed for a SKILL.md edit in a section the helper call does not name ⟦criterion 2⟧ ⟂ refactor pending

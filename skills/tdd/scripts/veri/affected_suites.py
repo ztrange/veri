@@ -196,6 +196,7 @@ def pytest_texts():
 
 SECTION_CALL = rb"section\("
 ALIASED_SECTION_IMPORT = rb"\bsection\s+as\s+\w+"
+OTHER_READ = rb"open\(|read_text\(|read_bytes\("
 LITERAL_SECTION_CALL = rb"section\(\s*\w+,\s*(['\"])[^'\"]*\1\s*,?\s*\)"
 
 
@@ -205,7 +206,8 @@ def pytest_readers(needles):
 
     def all_literal(text):
         return (len(re.findall(SECTION_CALL, text)) == len(re.findall(LITERAL_SECTION_CALL, text))
-                and not re.search(ALIASED_SECTION_IMPORT, text))
+                and not re.search(ALIASED_SECTION_IMPORT, text)
+                and not re.search(OTHER_READ, text))
 
     return [p for p, text in pytest_texts()
             if (re.search(SECTION_CALL, text) or re.search(ALIASED_SECTION_IMPORT, text))
