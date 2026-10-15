@@ -17,7 +17,7 @@ Change only the files this issue touched:
 {{TOUCHED_FILES}}
 
 A transform that needs a file outside that list is not this pass's to apply: leave the tree
-as you found it and say so in your report.
+as you found it and say so in your report as one `SKIPPED: <why>` line.
 
 {{INCLUDE:_develop-spec-context-only.md}}
 

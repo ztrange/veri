@@ -220,7 +220,7 @@ renders_as() {  # <label> <want-cksum> <args...> — records a prompt whose sum 
 
 problems=""
 unmarked_step='tests/zorblat.test.sh: "zorblat frobs a nitz" replaces-case moves to tests/py ⟦added⟧ ⟦criterion 2⟧'
-renders_as 'green, unmarked step' '3743087976 7859' green "$work/spec.md" "$unmarked_step" "$test_cmd" "$test_path" "$target" "make unit"
+renders_as 'green, unmarked step' '2784004442 8129' green "$work/spec.md" "$unmarked_step" "$test_cmd" "$test_path" "$target" "make unit"
 [[ -z "$problems" ]] \
   && ok || no "develop-green for a step not carrying ⟦replaces-case⟧ renders byte-identically to before #671 (${problems#; })"
 

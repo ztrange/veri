@@ -67,3 +67,24 @@ def test_1568_every_key_a_real_develop_prompt_declares_appears_in_its_report_tex
 
     assert prompts
     assert not missing, "\n".join(missing)
+
+
+@pytest.mark.tree_audit("develop-green.md and develop-structural.md, includes expanded")
+def test_1568_green_wrong_test_and_structural_skip_and_green_split_each_report_through_a_declared_exempt_key(report_formats):
+    outcomes = [
+        ("develop-green.md", "looks wrong"),
+        ("develop-green.md", "A step that needs more than one new behaviour"),
+        ("develop-structural.md", "as you found it and say so"),
+    ]
+    prompts = {path.name: text for path, text in expanded_develop_prompts()}
+    free_text = []
+    for name, phrase in outcomes:
+        text = prompts[name]
+        exempt_keys = {k for f in report_formats.parse(text) if f["suite"] == "exempt" for k in f["keys"]}
+        paragraphs = [" ".join(p.split()) for p in text.split("\n\n")]
+        owning = [p for p in paragraphs if phrase in p]
+        assert owning, f"{name}: no paragraph says {phrase!r}"
+        if not any(key in p for p in owning for key in exempt_keys):
+            free_text.append(f"{name}: {phrase!r} names no declared SUITE-exempt key")
+
+    assert not free_text, "\n".join(free_text)
