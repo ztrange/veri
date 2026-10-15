@@ -191,7 +191,7 @@ def reads_only_through_slicers(suite, f):
 
 
 def pytest_readers(*needles):
-    pattern = b"section\\(.*(?:" + b"|".join(re.escape(n.encode()) for n in needles) + b")"
+    pattern = b"section\\((?:[^()]|\\([^()]*\\))*?(?:" + b"|".join(re.escape(n.encode()) for n in needles) + b")"
     return [p for p in suites(SCRIPTS + "/tests/py/test_*.py") if re.search(pattern, read(p) or b"")]
 
 
