@@ -2456,7 +2456,8 @@ re-created or switched, and a resumed run's baseline runs on the branch head the
 any cycle of the resumed run starts. The **resume check** then finds an existing
 `.tdd/issue-<n>.md`. When it does:
 
-1. Do **not** re-plan — the ledger is the source of truth. Re-write only the blind spec
+1. Do **not** re-plan — the ledger is the source of truth — except that the amended
+   criteria are planned with `--planned` in sub-step 3. Re-write only the blind spec
    file (`.tdd/issue-<n>-spec.md`) since it is run scratch, not committed.
 2. **Use the reset preflight already made, then ask for a pending refactor.** Whatever killed
    the previous run killed its leaf too, at whatever point the run had reached — a usage
