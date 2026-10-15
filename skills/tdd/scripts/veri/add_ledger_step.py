@@ -45,9 +45,11 @@ def spec_criteria(path):
         with open(spec, "rb") as f:
             text = f.read().decode(errors=BYTES)
     except OSError:
-        return None
+        return None, set()
     section = re.search(r"^## Acceptance criteria\n(.*?)(?=^## |\Z)", text, re.M | re.S)
-    return len(ledger_steps(section.group(1) if section else ""))
+    body = section.group(1) if section else ""
+    boxes = [line for line in body.split("\n") if ledger_steps(line)]
+    return len(boxes), {str(n) for n, line in enumerate(boxes, 1) if line.startswith("- [x]")}
 
 
 def bash_integer(value):
@@ -97,7 +99,9 @@ def main(argv):
     refusal = multi_tag_refusal(records)
     if refusal:
         return refuse("add-ledger-step.sh: " + refusal)
-    known = spec_criteria(path) if planned else None
+    known, ticked = spec_criteria(path) if planned else (None, set())
+    if criterion in ticked:
+        return refuse(f"add-ledger-step.sh: --planned: criterion {criterion} is already ticked in the issue body")
     if known is not None and int(criterion) > known:
         return refuse(f"add-ledger-step.sh: --planned: criterion {criterion} is not in the issue body ({known} criteria)")
     if planned and any(criterion_of(line) == criterion for line in lines if ledger_steps(line)):
