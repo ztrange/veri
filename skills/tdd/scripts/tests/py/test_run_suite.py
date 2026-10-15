@@ -201,7 +201,7 @@ def test_main_starts_the_suite_alone_on_dev_null_with_maintenance_auto_off_and_s
             monkeypatch.setenv("GIT_CONFIG_KEY_1", "http.proxy")
             monkeypatch.setenv("GIT_CONFIG_VALUE_1", "")
         monkeypatch.setenv("LC_ALL", "en_US.UTF-8")
-        monkeypatch.setenv("OFFLINE_REACH_LOG", str(tmp_path / "reach.log"))
+        monkeypatch.delenv("OFFLINE_REACH_LOG", raising=False)
         monkeypatch.setenv("HTTP_PROXY", "http://caller.invalid:1")
         monkeypatch.setenv("HTTPS_PROXY", "http://caller.invalid:1")
         monkeypatch.setenv("NO_PROXY", "caller.invalid")
@@ -213,11 +213,14 @@ def test_main_starts_the_suite_alone_on_dev_null_with_maintenance_auto_off_and_s
         def popen(args, **kwargs):
             env = dict(kwargs["env"]) if kwargs.get("env") is not None else dict(os.environ)
             stdin = kwargs.get("stdin")
+            changed = {k: v for k, v in env.items() if caller.get(k) != v}
+            changed["OFFLINE_REACH_LOG"] = os.path.basename(changed.get("OFFLINE_REACH_LOG", "")).startswith("veri-reach-")
+            changed["PATH"] = changed.get("PATH", "").split(os.pathsep)[0].endswith(os.path.join("tests", "offline"))
             started.append((
                 list(args) if not isinstance(args, str) else args,
                 kwargs.get("shell", False),
                 stdin is subprocess.DEVNULL or getattr(stdin, "name", None) == os.devnull,
-                {k: v for k, v in env.items() if caller.get(k) != v},
+                changed,
                 sorted(set(caller) - set(env)),
             ))
             return FakeSuite(lines, capfd, seen)
@@ -236,6 +239,8 @@ def test_main_starts_the_suite_alone_on_dev_null_with_maintenance_auto_off_and_s
             "HTTP_PROXY": "http://127.0.0.1:1",
             "HTTPS_PROXY": "http://127.0.0.1:1",
             "NO_PROXY": "127.0.0.1,localhost",
+            "OFFLINE_REACH_LOG": True,
+            "PATH": True,
         }, [])], True)
         for count in ("2", None)
     ]
@@ -383,7 +388,7 @@ def test_main_hands_a_bash_suite_no_ambient_veri_or_claude_variable_but_veri_ven
     monkeypatch.setenv("CLAUDE_BIN", "/ambient/claude")
     monkeypatch.setenv("VERI_VENV", "/caller/venv")
     monkeypatch.setenv("PATH", "/caller/bin:" + os.environ["PATH"])
-    monkeypatch.setenv("OFFLINE_REACH_LOG", "/caller/reach.log")
+    monkeypatch.delenv("OFFLINE_REACH_LOG", raising=False)
     monkeypatch.setenv("HTTPS_PROXY", "http://127.0.0.1:1")
     seen_env = tmp_path / "suite.env"
     seen_child = tmp_path / "child.out"
@@ -395,12 +400,14 @@ def test_main_hands_a_bash_suite_no_ambient_veri_or_claude_variable_but_veri_ven
     capfd.readouterr()
     env = dict(line.split("=", 1) for line in seen_env.read_text().splitlines() if "=" in line)
     leaked = sorted(k for k in env if k.startswith(("VERI_", "CLAUDE_")) and k != "VERI_VENV")
-    kept = {k: env.get(k) for k in ("VERI_VENV", "PATH", "OFFLINE_REACH_LOG", "HTTPS_PROXY",
+    kept = {k: env.get(k) for k in ("VERI_VENV", "HTTPS_PROXY",
                                     "GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0")}
+    kept["PATH"] = env["PATH"].endswith(os.pathsep + os.environ["PATH"]) and env["PATH"].split(os.pathsep)[0].endswith(os.path.join("tests", "offline"))
+    kept["OFFLINE_REACH_LOG"] = os.path.basename(env.get("OFFLINE_REACH_LOG", "")).startswith("veri-reach-")
     assert (code, leaked, kept, seen_child.read_text()) == (0, [], {
         "VERI_VENV": "/caller/venv",
-        "PATH": os.environ["PATH"],
-        "OFFLINE_REACH_LOG": "/caller/reach.log",
+        "PATH": True,
+        "OFFLINE_REACH_LOG": True,
         "HTTPS_PROXY": "http://127.0.0.1:1",
         "GIT_CONFIG_COUNT": str(len(OFFLINE_GIT)),
         "GIT_CONFIG_KEY_0": "maintenance.auto",
