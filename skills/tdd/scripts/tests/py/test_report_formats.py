@@ -48,3 +48,24 @@ def test_1568_every_real_develop_prompt_declares_report_formats_the_parser_accep
 
     assert paths
     assert not refused, "\n".join(refused)
+
+
+@pytest.mark.tree_audit("every skills/tdd/scripts/prompts/develop-*.md prompt, includes expanded")
+def test_1568_every_key_a_real_develop_prompt_declares_appears_in_its_report_text(report_formats):
+    prompts = SCRIPTS / "prompts"
+
+    def expand(text):
+        return re.sub(r"\{\{INCLUDE:([^}]*)\}\}", lambda m: expand((prompts / m[1]).read_text()), text)
+
+    paths = sorted(prompts.glob("develop-*.md"))
+    missing = []
+    for path in paths:
+        text = expand(path.read_text())
+        heading = re.search(r"^#+ Report.*$", text, re.M)
+        section = text[heading.start():] if heading else text
+        report = "\n".join(l for l in section.splitlines() if not l.startswith("REPORT-FORMAT "))
+        for declared in report_formats.parse(text):
+            missing += [f"{path.name}: {key}" for key in declared["keys"] if key not in report]
+
+    assert paths
+    assert not missing, "\n".join(missing)

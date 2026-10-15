@@ -28,4 +28,6 @@ as you found it and say so in your report.
 
 {{INCLUDE:_develop-transform-suite-report.md}}
 
+If you skipped the candidate for the bound above, report that instead, as one `SKIPPED: <why>` line.
+
 REPORT-FORMAT skipped | keys SKIPPED: | suite exempt: the candidate needs a file outside the list, so nothing ran
