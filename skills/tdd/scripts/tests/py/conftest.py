@@ -151,6 +151,7 @@ def exempt_from(tail, table):
 
 STARTS_GIT_IN_REPOSITORY_EXEMPT = {
     "test_supervise.py": "supervise.py records the skill clone's own HEAD; the case only lets it run rev-parse HEAD there",
+    "test_run_conductor.py": "run_conductor.py runs git -C <skill clone> and the cases fake every process, so the path only reaches the recorded call",
     "test_rebase_onto_default.py::test_main_run_through_a_symlink_from_another_directory_rebases_the_callers_clone_and_never_the_skills_repository":
         "the skills repository's own HEAD is read to prove it was never rebased",
 }
@@ -198,7 +199,7 @@ def case_starts_no_test_runner(request, monkeypatch):
         resolved = pathlib.Path(os.path.abspath(directory)).resolve()
         return in_repository_outside(resolved, scratch)
 
-    def checked(self, args, *rest, **kwargs):
+    def refuse_git_in_repository(args, kwargs):
         words = [args] if isinstance(args, (str, bytes, os.PathLike)) else list(args)
         if isinstance(args, str) and kwargs.get("shell"):
             words = shlex.split(args)
@@ -207,6 +208,10 @@ def case_starts_no_test_runner(request, monkeypatch):
         tail = case_tail(request)
         if directory is not None and not exempt_from(tail, STARTS_GIT_IN_REPOSITORY_EXEMPT) and in_repository(directory):
             raise AssertionError("%s starts git against the repository the tests live in: %s (%s)" % (request.node.nodeid, directory, command))
+        return words, command, tail
+
+    def checked(self, args, *rest, **kwargs):
+        words, command, tail = refuse_git_in_repository(args, kwargs)
         if words and (is_suite(words[0]) or (os.path.basename(os.fsdecode(words[0])) in ("bash", "sh") and any(is_suite(w) for w in words[1:]))):
             raise AssertionError("%s starts a bash suite: %s" % (request.node.nodeid, command))
         if words and is_pytest(words) and not from_exempt_helper() and tail not in STARTS_PYTEST_EXEMPT:
@@ -214,6 +219,22 @@ def case_starts_no_test_runner(request, monkeypatch):
         return real(self, args, *rest, **kwargs)
 
     monkeypatch.setattr(subprocess.Popen, "__init__", checked)
+
+    setattr_ = monkeypatch.setattr
+
+    def guarded_setattr(target, name, *rest, **kwargs):
+        value = rest[0] if rest else kwargs.get("value")
+        if target is subprocess and name == "run" and callable(value):
+            replacement = value
+
+            def run(args, *a, **kw):
+                refuse_git_in_repository(args, kw)
+                return replacement(args, *a, **kw)
+
+            return setattr_(target, name, run, *rest[1:], **{k: v for k, v in kwargs.items() if k != "value"})
+        return setattr_(target, name, *rest, **kwargs)
+
+    monkeypatch.setattr = guarded_setattr
 
 
 PATHLIB_SOURCE = os.path.splitext(pathlib.__file__)[0].removesuffix("__init__")
