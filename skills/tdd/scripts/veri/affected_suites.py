@@ -190,6 +190,11 @@ def reads_only_through_slicers(suite, f):
                if reading.search(line) and not assignment.match(line))
 
 
+def pytest_readers(*needles):
+    pattern = b"section\\(.*(?:" + b"|".join(re.escape(n.encode()) for n in needles) + b")"
+    return [p for p in suites(SCRIPTS + "/tests/py/test_*.py") if re.search(pattern, read(p) or b"")]
+
+
 def suite_of(f, revisions=None):
     def match(*patterns):
         return any(fnmatch.fnmatchcase(f, p) for p in patterns)
@@ -200,7 +205,8 @@ def suite_of(f, revisions=None):
         if section:
             readers = suites_naming(*forms(*section))
             slicers = [s for s in suites_naming(*forms(*headings(f))) if reads_only_through_slicers(s, f)]
-            return [s for s in naming if s in readers or s not in slicers]
+            return ([s for s in naming if s in readers or s not in slicers]
+                    + pytest_readers(*forms(*section)))
         return naming
     if match(SCRIPTS + "/tests/*.test.sh", SCRIPTS + "/tests/py/test_*.py"):
         return existing(f)
