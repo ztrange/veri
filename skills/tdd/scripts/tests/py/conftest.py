@@ -306,24 +306,21 @@ def case_expects_no_system_location_unreadable_or_unwritable(request, monkeypatc
         resolved = pathlib.Path(os.path.abspath(path))
         return len(resolved.parts) == 2 or resolved.parts[1:2] in (("etc",), ("root",), ("proc",))
 
-    def checked(file, *rest, **kwargs):
-        frame = caller_outside_pathlib()
+    def refuse_system_location(verb, path, frame):
         name = os.path.basename(frame.f_code.co_filename)
-        if (isinstance(file, (str, bytes, os.PathLike)) and name.startswith(("test_", "conftest"))
-                and system_location(os.fsdecode(file)) and not exempt_from(tail, SYSTEM_LOCATION_EXEMPT)):
-            raise AssertionError("%s opens the system location %s at %s:%d: uid 0 ignores what makes it fail"
-                                 % (request.node.nodeid, os.fsdecode(file), frame.f_code.co_filename, frame.f_lineno))
+        if (isinstance(path, (str, bytes, os.PathLike)) and name.startswith(("test_", "conftest"))
+                and system_location(os.fsdecode(path)) and not exempt_from(tail, SYSTEM_LOCATION_EXEMPT)):
+            raise AssertionError("%s %s the system location %s at %s:%d: uid 0 ignores what makes it fail"
+                                 % (request.node.nodeid, verb, os.fsdecode(path), frame.f_code.co_filename, frame.f_lineno))
+
+    def checked(file, *rest, **kwargs):
+        refuse_system_location("opens", file, caller_outside_pathlib())
         return real(file, *rest, **kwargs)
 
     real_mkdir = os.mkdir
 
     def checked_mkdir(path, *rest, **kwargs):
-        frame = caller_outside_pathlib()
-        name = os.path.basename(frame.f_code.co_filename)
-        if (isinstance(path, (str, bytes, os.PathLike)) and name.startswith(("test_", "conftest"))
-                and system_location(os.fsdecode(path)) and not exempt_from(tail, SYSTEM_LOCATION_EXEMPT)):
-            raise AssertionError("%s creates the system location %s at %s:%d: uid 0 ignores what makes it fail"
-                                 % (request.node.nodeid, os.fsdecode(path), frame.f_code.co_filename, frame.f_lineno))
+        refuse_system_location("creates", path, caller_outside_pathlib())
         return real_mkdir(path, *rest, **kwargs)
 
     monkeypatch.setattr(io, "open", checked)
