@@ -103,7 +103,7 @@ def main(argv):
     env["LC_ALL"] = "C"
     env["HTTP_PROXY"] = env["HTTPS_PROXY"] = OFFLINE_PROXY
     env["NO_PROXY"] = "127.0.0.1,localhost"
-    if fnmatch.fnmatchcase(suite, "*/tests/py/test_*.py"):
+    if fnmatch.fnmatchcase("/" + suite,"*/tests/py/test_*.py"):
         return run_pytest(suite, env)
     guard_path = os.path.join(SCRIPTS, "lib", "count-line-guard.sh")
     guard = read_guard(guard_path)
