@@ -266,6 +266,28 @@ else
 fi
 report "$name"
 
+name="#1568: $skill_md runs suite-reported.sh develop-structural between the transform leaf's wait and its transform verifier, and keeps an out-of-bounds skip's REJECT rather than a report-missing bail"
+problems=()
+whole="$(plain --join < "$skill_path")"
+structural="${whole#*'build-develop-prompt.sh structural'}"
+if [[ "$structural" == "$whole" ]]; then
+  problems+=("structural pass: never launches develop-structural")
+else
+  structural="${structural:0:6000}"
+  if [[ "$structural" != *'suite-reported.sh develop-structural'* ]]; then
+    problems+=("structural pass: never runs suite-reported.sh develop-structural")
+  else
+    before_check="${structural%%suite-reported.sh develop-structural*}"
+    [[ "$before_check" != *'supervise.sh verdict-transform'* ]] || problems+=("structural pass: the check comes after the transform verifier is launched")
+    after_check="${structural#*suite-reported.sh develop-structural}"
+    after_check="${after_check:0:1200}"
+    [[ "$after_check" == *'report-missing'* ]] || problems+=("structural pass: never names the report-missing bail for a missing SUITE: line")
+    [[ "$after_check" =~ out-of-bounds|leave\ the\ tree ]] || problems+=("structural pass: never says an out-of-bounds skip is exempt")
+    [[ "$after_check" == *reject* ]] || problems+=("structural pass: never says that skip keeps its REJECT outcome")
+  fi
+fi
+report "$name"
+
 name="#991: doc_text given the from regex '^5\. ' starts at the line '5. y', not at '5x y'"
 fixture="$(scratch_dir)/doc.md"
 printf '## Section\n5x y\n5. y\n' > "$fixture"
