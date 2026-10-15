@@ -13,8 +13,7 @@ def main(argv):
         return 2
     try:
         with open(f".tdd/{argv[0]}.out", encoding="utf-8", errors="replace") as out:
-            accepted = ("SUITE:", "SPLIT:") if argv[0] == "develop-green" else ("SUITE:",)
-            if any(line.startswith(accepted) for line in out):
+            if any(line.startswith("SUITE:") for line in out):
                 return 0
     except OSError:
         pass

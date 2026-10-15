@@ -223,7 +223,7 @@ else
 fi
 report "$name"
 
-name="#1300: $skill_md runs suite-reported.sh before the verifier at every phase that launches a SUITE:-reporting developer leaf, and bails report-missing on its exit 2"
+name="#1300: $skill_md runs suite-reported.sh before the verifier after develop-diff, revise-diff-<k> and each phase leaf, and bails report-missing on its exit 2"
 problems=()
 check_report_section() {
   local label="$1" section="$2" body first_check first_verifier
@@ -234,13 +234,8 @@ check_report_section() {
   first_verifier="${body%%verify-*}"
   ((${#first_check} <= ${#first_verifier})) || problems+=("$label: the check comes after the verifier is launched")
 }
-check_report_section "Green" '#### Green'
 check_report_section "diff-checked step" '#### A `⟦diff-checked⟧` step'
 check_report_section "phases step" '#### A `⟦phases: …⟧` step'
-structural_all="$(plain --join < "$skill_path")"
-structural="${structural_all#*develop-structural}"
-structural="${structural:0:1500}"
-[[ "$structural" == *'suite-reported.sh'* ]] || problems+=("structural pass: never runs suite-reported.sh")
 report "$name"
 
 name="#1300: $skill_md runs suite-reported.sh only after a leaf whose prompt asks for a SUITE: line, never after the refactor leaf or a revise of red, green or refactor"
@@ -251,15 +246,6 @@ for pair in 'Refactor loop|#### Refactor loop' 'Revising on a REJECT|## Revising
 done
 diff_checked="$(doc_text "$skill_path" '#### A `⟦diff-checked⟧` step' "")"
 [[ "$diff_checked" == *'suite-reported.sh revise-diff-<k>'* ]] || problems+=("diff-checked step: never runs suite-reported.sh revise-diff-<k>, the leaf the conductor launches")
-report "$name"
-
-name="#1300: $skill_md Green says suite-reported.sh develop-green exits 0 on a SPLIT: report and exits 2 only when the report carries neither SUITE: nor SPLIT:"
-problems=()
-green="$(doc_text "$skill_path" '#### Green' "")"
-zero_on_split='exits 0[^.]*split:'
-two_on_neither='neither[^.]*suite:[^.]*nor[^.]*split:'
-[[ "$green" =~ $zero_on_split ]] || problems+=("Green: never says suite-reported.sh exits 0 on a SPLIT: report")
-[[ "$green" =~ $two_on_neither ]] || problems+=("Green: never says its exit 2 means neither a SUITE: nor a SPLIT: line")
 report "$name"
 
 name="#991: doc_text given the from regex '^5\. ' starts at the line '5. y', not at '5x y'"

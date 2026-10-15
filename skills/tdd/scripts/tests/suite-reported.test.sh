@@ -70,48 +70,4 @@ events="$(cat "$ev_work/.tdd/events.jsonl" 2>/dev/null)"
   problems+=("exit 2: the event must not be killed-stuck, got: $events")
 report "$name"
 
-name="a develop-green report carrying SPLIT: lines and no IMPL_PATH: or SUITE: line makes suite-reported.sh exit 0 and append no report-missing event (#1300)"
-problems=()
-split_work="$(scratch_dir)"
-mkdir -p "$split_work/.tdd"
-printf 'SPLIT: add the parser\nSPLIT: wire the parser into the CLI\n' > "$split_work/.tdd/develop-green.out"
-( cd "$split_work" && VERI_ISSUE=1 "$CHECK" develop-green >/dev/null 2>&1 )
-check_code=$?
-[[ "$check_code" == 0 ]] ||
-  problems+=("suite-reported.sh develop-green on a SPLIT: report: want exit 0, got $check_code")
-if [[ -s "$split_work/.tdd/events.jsonl" ]]; then
-  problems+=("a SPLIT: report wrote events: $(cat "$split_work/.tdd/events.jsonl")")
-fi
-report "$name"
-
-name="a develop-diff report carrying SPLIT: lines and no SUITE: line still makes suite-reported.sh exit 2 and append a report-missing event (#1300)"
-problems=()
-diff_split_work="$(scratch_dir)"
-mkdir -p "$diff_split_work/.tdd"
-printf 'SPLIT: add the parser\n' > "$diff_split_work/.tdd/develop-diff.out"
-( cd "$diff_split_work" && VERI_ISSUE=1 "$CHECK" develop-diff >/dev/null 2>&1 )
-check_code=$?
-[[ "$check_code" == 2 ]] ||
-  problems+=("suite-reported.sh develop-diff on a SPLIT: report: want exit 2, got $check_code")
-events="$(cat "$diff_split_work/.tdd/events.jsonl" 2>/dev/null)"
-[[ "$events" == *'"event": "report-missing"'* ]] ||
-  problems+=("a develop-diff SPLIT: report: want a report-missing event, got: ${events:-<no events>}")
-report "$name"
-
-name="a develop-green report carrying neither a SUITE: nor a SPLIT: line still makes suite-reported.sh exit 2 and append one report-missing event naming develop-green with missing=SUITE (#1300)"
-problems=()
-neither_work="$(scratch_dir)"
-mkdir -p "$neither_work/.tdd"
-printf 'IMPL_PATH: src/parser.py\nWaiting on the make test run to exit.\n' > "$neither_work/.tdd/develop-green.out"
-( cd "$neither_work" && VERI_ISSUE=1 "$CHECK" develop-green >/dev/null 2>&1 )
-check_code=$?
-[[ "$check_code" == 2 ]] ||
-  problems+=("suite-reported.sh develop-green with neither SUITE: nor SPLIT:: want exit 2, got $check_code")
-events="$(cat "$neither_work/.tdd/events.jsonl" 2>/dev/null)"
-[[ "$(grep -c '"event": "report-missing"' <<< "$events")" == 1 ]] ||
-  problems+=("develop-green with neither line: want one report-missing event, got: ${events:-<no events>}")
-[[ "$events" == *'"name": "develop-green"'* && "$events" == *'"missing": "SUITE"'* ]] ||
-  problems+=("develop-green with neither line: want name=develop-green and missing=SUITE, got: ${events:-<no events>}")
-report "$name"
-
 finish
