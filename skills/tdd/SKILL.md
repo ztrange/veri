@@ -1066,7 +1066,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    that one case fails — and launch the leaf **through the supervisor**:
    ```
    $S/build-develop-prompt.sh red .tdd/issue-<n>-spec.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' > .tdd/develop-red.prompt
-   rm -f .tdd/develop-red.exit .tdd/develop-red.pid
+   rm -f .tdd/develop-red.exit .tdd/develop-red.pid .tdd/red-prediction.md .tdd/red-run-output.txt
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh develop-red $S/run-leaf.sh .tdd/develop-red.prompt --permission-mode bypassPermissions > .tdd/develop-red.out 2> .tdd/develop-red.err
    $S/wait-leaf.sh develop-red     # foreground; on exit 3 call it again
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — see *The step's cost check*
@@ -2081,7 +2081,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    *Launching a leaf*):
    ```
    $S/build-develop-prompt.sh revise <phase> .tdd/issue-<n>-spec.md "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" '<test-cmd>' .tdd/verify-<phase>.reason '<fast-cmd>' > .tdd/revise-<phase>-<k>.prompt
-   rm -f .tdd/revise-<phase>-<k>.exit .tdd/revise-<phase>-<k>.pid
+   rm -f .tdd/revise-<phase>-<k>.exit .tdd/revise-<phase>-<k>.pid .tdd/red-prediction.md .tdd/red-run-output.txt
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/detach-leaf.sh $S/supervise.sh revise-<phase>-<k> $S/run-leaf.sh .tdd/revise-<phase>-<k>.prompt --permission-mode bypassPermissions > .tdd/revise-<phase>-<k>.out 2> .tdd/revise-<phase>-<k>.err
    $S/wait-leaf.sh revise-<phase>-<k>   # foreground; on exit 3 call it again
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — red or green only — see *The step's cost check*

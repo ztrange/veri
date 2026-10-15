@@ -107,4 +107,18 @@ for sect in red revise; do
 done
 report "$name"
 
+name="$skill_md's red and revise launches remove the previous leaf's prediction file and run-output file before the leaf starts (#1468)"
+problems=()
+for sect in red revise; do
+  if [[ $sect == red ]]; then from='Develop\.'; else from='Fresh developer leaf'; fi
+  if "${sect}_section" "$from" \
+    "$skill_md's $sect section has no launch step, so what it removes before the leaf starts could not be read"; then
+    before_launch="${text%%detach-leaf.sh*}"
+    for f in red-prediction.md red-run-output.txt; do
+      [[ "$before_launch" =~ rm\ -f[^\`\;\|]*\.tdd/${f//./\.} ]] || problems+=("$skill_md's $sect section launches the leaf without first running \`rm -f\` on \`.tdd/$f\`, so a stale file from an earlier leaf can pass red-divergence.sh's missing-file check")
+    done
+  fi
+done
+report "$name"
+
 finish
