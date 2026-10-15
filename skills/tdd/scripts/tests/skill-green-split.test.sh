@@ -524,4 +524,24 @@ fi
 
 report "$name"
 
+name="#1379 $skill_md's every add-ledger-step.sh call site says its exit 2 bails with cause step-add-refused, and Bailing lists that cause as a system failure"
+problems=()
+
+call_lines="$(grep -nE '\$S/add-ledger-step\.sh [^ ]*\.tdd/issue-<n>\.md|\$S/add-ledger-step\.sh --criterion <k> \.tdd/issue-<n>\.md' "$skill_path" | cut -d: -f1)"
+if [[ -z "$call_lines" ]]; then
+  problems+=("$skill_md has no add-ledger-step.sh call site — where its exit 2 is handled could not be established")
+else
+  while IFS= read -r call_line; do
+    near="$(sed -n "${call_line},$((call_line + 30))p" "$skill_path" | plain --join)"
+    grep -qE 'exits? 2[^.]{0,120}step-add-refused|step-add-refused[^.]{0,120}exits? 2' <<<"$near" ||
+      problems+=("$skill_md:$call_line calls add-ledger-step.sh and never says its exit 2 bails with cause step-add-refused, so a refused call leaves the conductor to invent a cause classify-bail.sh cannot classify")
+  done <<<"$call_lines"
+fi
+
+causes="$(bailing_causes)"
+grep -qE 'step-add-refused[^.]{0,220}system' <<<"$causes" ||
+  problems+=("$skill_md's Bailing causes list never classifies step-add-refused as a system failure, so a refused add-ledger-step.sh call has no cause a human can read")
+
+report "$name"
+
 finish
