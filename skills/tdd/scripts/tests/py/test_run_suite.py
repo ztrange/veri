@@ -3,6 +3,7 @@ import errno
 import importlib
 import importlib.util
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -428,3 +429,14 @@ def test_main_hands_a_pytest_suite_no_ambient_veri_or_claude_variable_but_veri_v
     env = dict(line.split("=", 1) for line in lines if "=" in line)
     leaked = sorted(k for k in env if k.startswith(("VERI_", "CLAUDE_")) and k != "VERI_VENV")
     assert (code, ran_by, leaked, env.get("VERI_VENV")) == (0, str(venv_py), [], str(venv))
+
+
+def test_no_pipefail_suite_pipes_the_offline_proxy_probe_into_a_reader_that_leaves_before_eof_1468():
+    suite = SCRIPTS / "tests" / "run-suite-offline.test.sh"
+    lines = suite.read_text().splitlines()
+    assert any("pipefail" in line for line in lines)
+
+    early_readers = [f"{suite.name}:{n}" for n, line in enumerate(lines, 1)
+                     if re.search(r"(^|[^|])\|\s*head(\s|$)", line)]
+
+    assert early_readers == []

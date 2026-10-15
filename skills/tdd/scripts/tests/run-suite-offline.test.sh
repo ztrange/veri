@@ -71,7 +71,7 @@ SUITE
     "$RUNNER" "$tree/proxies.test.sh" 2>&1 < /dev/null)" && code=0 || code=$?
   expect_eq "the suite's proxy environment under the runner" \
     "HTTP_PROXY=http://127.0.0.1:1 HTTPS_PROXY=http://127.0.0.1:1 NO_PROXY=127.0.0.1,localhost" \
-    "$(printf '%s\n' "$out" | head -n 1)"
+    "${out%%$'\n'*}"
 }
 
 probe_runner_applies_dead_proxy

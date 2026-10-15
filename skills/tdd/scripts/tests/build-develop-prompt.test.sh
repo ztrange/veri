@@ -217,32 +217,12 @@ renders_as() {  # <label> <want-cksum> <args...> — records a prompt whose sum 
   got="$(printf '%s\n' "${out//"$scripts_dir"/@SCRIPTS@}" | cksum)"
   [[ "$got" == "$want" ]] || problems="$problems; $label renders as '$got', want '$want'"
 }
-renders_as red            '2310108306 10753'       red "$work/spec.md" "$step_text" "$test_cmd"
-renders_as green          '1347840297 7652'     green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "make unit"
-renders_as refactor       '318574677 10119'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
-renders_as 'revise red'   '1440654101 8508'    revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
-renders_as 'revise green' '2825054516 8510'  revise green "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
-renders_as 'revise refactor' '3117858257 8513' revise refactor "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
-renders_as exhausted      '521391996 4594'       exhausted "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
-renders_as reconcile      '1325593251 5950'       reconcile "$work/spec.md" "$step_text" "$test_cmd" "$rc_branch" "$rc_sha"
-[[ -z "$problems" ]] \
-  && ok || no "every phase other than over-budget renders byte-identically to before #450 (${problems#; })"
 
 problems=""
 unmarked_step='tests/zorblat.test.sh: "zorblat frobs a nitz" replaces-case moves to tests/py ⟦added⟧ ⟦criterion 2⟧'
 renders_as 'green, unmarked step' '439091105 7690' green "$work/spec.md" "$unmarked_step" "$test_cmd" "$test_path" "$target" "make unit"
 [[ -z "$problems" ]] \
   && ok || no "develop-green for a step not carrying ⟦replaces-case⟧ renders byte-identically to before #671 (${problems#; })"
-
-problems=""
-replaces_revise="$("$BUILD" revise green "$work/spec.md" "$replaces_step" "$test_cmd" "$work/reason.md" 2>/dev/null)"; code=$?
-[[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
-prompt_says "$replaces_revise" "never permits deleting the case the step names" -iE -e "$licence"
-says_both_ways "$replaces_revise" "no longer forbids modifying or deleting any other case" \
-  60 '(never|not|forbid|forbidden|must not|rejected)' '(any|every) other (bash )?case'
-renders_as 'revise green, unmarked step' '1089990884 8548' revise green "$work/spec.md" "$unmarked_step" "$test_cmd" "$work/reason.md"
-[[ -z "$problems" ]] \
-  && ok || no "develop-revise redoing green for a ⟦replaces-case⟧ step permits deleting the one bash case the step names and still forbids modifying or deleting any other case, and for an unmarked step renders byte-identically to before #671 (${problems#; })"
 
 problems=""
 probe_order develop-cover "$(cat "$HERE/../prompts/develop-cover.md")" 'break its behaviour' 'run the suites'

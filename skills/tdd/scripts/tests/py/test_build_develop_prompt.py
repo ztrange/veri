@@ -1531,3 +1531,76 @@ def test_main_renders_a_revise_red_prompt_for_a_replaces_case_step_without_an_in
                     re.search(rb"replacement (test )?case", prompt, re.I) is None)
 
     assert (marked_result, plain_result) == ((0, True), (0, True, True))
+
+
+def _staged_builder(root, drop, strip=()):
+    (root / "veri").mkdir(parents=True)
+    for source in (SCRIPTS / "veri").glob("*.py"):
+        (root / "veri" / source.name).write_bytes(source.read_bytes())
+    (root / "prompts").mkdir()
+    for tpl in (SCRIPTS / "prompts").glob("*.md"):
+        if tpl.name not in drop:
+            body = tpl.read_bytes()
+            for placeholder in strip:
+                body = body.replace(placeholder, b"")
+            (root / "prompts" / tpl.name).write_bytes(body)
+    loader = importlib.util.spec_from_file_location(f"staged_{root.name}", root / "veri" / "build_develop_prompt.py")
+    module = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(module)
+    return module
+
+
+def _render_both(build_develop_prompt, staged, root, capsysbinary, argv):
+    here = (build_develop_prompt.main(argv), *capsysbinary.readouterr())
+    code, out, err = (staged.main(argv), *capsysbinary.readouterr())
+    scripts_dir = os.fsencode(os.path.dirname(os.path.dirname(os.path.abspath(build_develop_prompt.__file__))))
+    return here, (code, out.replace(os.fsencode(str(root)), scripts_dir), err.replace(os.fsencode(str(root)), scripts_dir))
+
+
+@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
+def test_main_renders_every_phase_other_than_over_budget_without_reading_the_over_budget_template_1468(
+        tmp_path, capsysbinary, monkeypatch, build_develop_prompt):
+    monkeypatch.setenv("VERI_REFACTOR_BUDGET", "5")
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+    rc_sha = "3f9a1c0b7e2d4a6f8c1b3e5d7f9a0c2e4b6d8f01"
+    staged = _staged_builder(tmp_path / "no-over-budget", drop=("develop-over-budget.md",))
+    s, r, step = str(spec), str(reason), "frob a nitz"
+    argvs = {
+        "red": ["red", s, step, "make test"],
+        "green": ["green", s, step, "make test", "tests/t.py", "test_a", "make unit"],
+        "refactor": ["refactor", s, step, "make test", "a.py"],
+        "revise red": ["revise", "red", s, step, "make test", r],
+        "revise green": ["revise", "green", s, step, "make test", r],
+        "revise refactor": ["revise", "refactor", s, step, "make test", r],
+        "exhausted": ["exhausted", s, step, "make test", r],
+        "reconcile": ["reconcile", s, step, "make test", "tdd/1-x", rc_sha],
+    }
+
+    differing = {}
+    for label, argv in argvs.items():
+        here, without = _render_both(build_develop_prompt, staged, tmp_path / "no-over-budget", capsysbinary, argv)
+        if here[0] != 0 or here != without:
+            differing[label] = (here[0], without[0])
+
+    assert differing == {}
+
+
+@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
+def test_main_renders_revise_green_for_an_unmarked_step_as_the_builder_without_the_replaces_case_paragraph_does_1468(
+        tmp_path, capsysbinary, monkeypatch, build_develop_prompt):
+    monkeypatch.setenv("VERI_REFACTOR_BUDGET", "5")
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+    staged = _staged_builder(tmp_path / "no-replaces", drop=("_develop-green-replaces-case.md",),
+                             strip=(b"{{REPLACES_CASE}}",))
+    step = 'tests/zorblat.test.sh: "zorblat frobs a nitz" replaces-case moves to tests/py ⟦added⟧ ⟦criterion 2⟧'
+
+    here, without = _render_both(build_develop_prompt, staged, tmp_path / "no-replaces", capsysbinary,
+                                 ["revise", "green", str(spec), step, "make test", str(reason)])
+
+    assert here[0] == 0 and here == without
