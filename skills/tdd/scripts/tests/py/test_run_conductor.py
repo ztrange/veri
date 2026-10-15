@@ -6,6 +6,7 @@ import os
 import pathlib
 import re
 import shutil
+import signal
 import subprocess
 import sys
 
@@ -2662,7 +2663,6 @@ def run_signalled_while_claude_runs(signum, claude_code, tmp_path, monkeypatch, 
 @pytest.mark.process("a real SIGTERM sent to the conductor's own process while its claude runs, and git archive and tar materialising the snapshot")
 def test_cli_sent_sigterm_while_its_claude_runs_keeps_the_snapshot_until_claude_exits_then_removes_it_and_exits_143(
         tmp_path, monkeypatch, run_cli):
-    import signal
     code, stderr, during, left = run_signalled_while_claude_runs(
         signal.SIGTERM, 0, tmp_path, monkeypatch, run_cli, "run_conductor_sigterm")
 
@@ -2672,7 +2672,6 @@ def test_cli_sent_sigterm_while_its_claude_runs_keeps_the_snapshot_until_claude_
 @pytest.mark.process("a real SIGINT alone sent to the conductor's own process while its claude runs, and git archive and tar materialising the snapshot")
 def test_cli_sent_sigint_alone_while_its_claude_runs_waits_for_claude_removes_the_snapshot_prints_no_traceback_and_exits_with_claudes_status_1219(
         tmp_path, monkeypatch, run_cli):
-    import signal
     code, stderr, during, left = run_signalled_while_claude_runs(
         signal.SIGINT, 5, tmp_path, monkeypatch, run_cli, "run_conductor_sigint")
 
@@ -2682,7 +2681,6 @@ def test_cli_sent_sigint_alone_while_its_claude_runs_waits_for_claude_removes_th
 @pytest.mark.process("a real SIGHUP alone sent to the conductor's own process while its claude runs, and git archive and tar materialising the snapshot")
 def test_cli_sent_sighup_alone_while_its_claude_runs_waits_for_claude_removes_the_snapshot_prints_no_traceback_and_exits_with_claudes_status_1219(
         tmp_path, monkeypatch, run_cli):
-    import signal
     code, stderr, during, left = run_signalled_while_claude_runs(
         signal.SIGHUP, 5, tmp_path, monkeypatch, run_cli, "run_conductor_sighup")
 
