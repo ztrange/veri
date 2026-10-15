@@ -199,6 +199,16 @@ def case_starts_no_test_runner(request, monkeypatch):
     monkeypatch.setattr(subprocess.Popen, "__init__", checked)
 
 
+PATHLIB_SOURCE = os.path.splitext(pathlib.__file__)[0].removesuffix("__init__")
+
+
+def caller_outside_pathlib():
+    frame = sys._getframe(2)
+    while frame.f_code.co_filename.startswith(PATHLIB_SOURCE):
+        frame = frame.f_back
+    return frame
+
+
 PERMISSION_BITS_EXEMPT = {}
 
 
@@ -208,9 +218,7 @@ def case_forces_no_failure_through_permission_bits(request, monkeypatch):
     tail = request.node.nodeid.split("/")[-1]
 
     def checked(path, mode, *rest, **kwargs):
-        frame = sys._getframe(1)
-        while os.path.basename(frame.f_code.co_filename) in ("pathlib.py", "pathlib"):
-            frame = frame.f_back
+        frame = caller_outside_pathlib()
         if mode & 0o600 != 0o600 and not exempt_from(tail, PERMISSION_BITS_EXEMPT):
             raise AssertionError("%s takes permission bits off %s with chmod at %s:%d: uid 0 ignores them"
                                  % (request.node.nodeid, path, frame.f_code.co_filename, frame.f_lineno))
@@ -220,7 +228,6 @@ def case_forces_no_failure_through_permission_bits(request, monkeypatch):
 
 
 SYSTEM_LOCATION_EXEMPT = {}
-PATHLIB_SOURCE = os.path.splitext(pathlib.__file__)[0].removesuffix("__init__")
 
 
 @pytest.fixture(autouse=True)
@@ -233,9 +240,7 @@ def case_expects_no_system_location_unreadable_or_unwritable(request, monkeypatc
         return len(resolved.parts) == 2 or resolved.parts[1:2] in (("etc",), ("root",), ("proc",))
 
     def checked(file, *rest, **kwargs):
-        frame = sys._getframe(1)
-        while frame.f_code.co_filename.startswith(PATHLIB_SOURCE):
-            frame = frame.f_back
+        frame = caller_outside_pathlib()
         name = os.path.basename(frame.f_code.co_filename)
         if (isinstance(file, (str, bytes, os.PathLike)) and name.startswith(("test_", "conftest"))
                 and system_location(os.fsdecode(file)) and not exempt_from(tail, SYSTEM_LOCATION_EXEMPT)):
