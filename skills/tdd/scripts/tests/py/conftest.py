@@ -66,6 +66,9 @@ def pytest_collection_modifyitems(config, items):
     problems = exemption_problems(PERMISSION_BITS_EXEMPT, cases)
     if problems:
         raise pytest.UsageError("permission-bits exemption table: %s" % "; ".join(problems))
+    problems = exemption_problems(SYSTEM_LOCATION_EXEMPT, cases)
+    if problems:
+        raise pytest.UsageError("system-location exemption table: %s" % "; ".join(problems))
 
 
 @pytest.fixture(autouse=True)

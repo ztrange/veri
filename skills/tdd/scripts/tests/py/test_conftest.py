@@ -494,3 +494,19 @@ def test_a_case_that_opens_a_tempfile_temporaryfile_passes_the_system_location_g
     output = ran.stdout + ran.stderr
     assert ran.returncode == 0, output
     assert "1 passed" in output, output
+
+
+@pytest.mark.process("a child pytest session whose system-location exemption table carries a reasonless entry")
+def test_a_system_location_exemption_with_no_reason_fails_the_run_naming_the_entry(tmp_path):
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import conftest\n"
+        "conftest.SYSTEM_LOCATION_EXEMPT['test_probe.py::test_probe'] = ''\n"
+        "def test_probe():\n"
+        "    pass\n")
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode != 0, output
+    assert "exemption" in output and "test_probe.py::test_probe" in output, output
