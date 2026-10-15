@@ -141,4 +141,29 @@ probe_runner_guards_unit_git
 
 report "$name"
 
+name="run-suite.sh sets git's http.proxy to the dead proxy whatever the caller exported (#1468)"
+problems=()
+
+probe_runner_overrides_callers_git_proxy() {
+  local tree out code
+  tree="$(scratch_dir)" || {
+    problems+=("could not make a scratch directory, so the question went unasked")
+    return 1
+  }
+  cat > "$tree/gitproxy.test.sh" <<'SUITE'
+#!/usr/bin/env bash
+set -uo pipefail
+echo "http.proxy=$(git config --get http.proxy)"
+echo "1 passed, 0 failed"
+SUITE
+  chmod +x "$tree/gitproxy.test.sh"
+  out="$(GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.proxy GIT_CONFIG_VALUE_0=http://caller.example:3128 \
+    "$RUNNER" "$tree/gitproxy.test.sh" 2>&1 < /dev/null)" && code=0 || code=$?
+  expect_eq "the suite's git http.proxy under the runner" "http.proxy=http://127.0.0.1:1" "${out%%$'\n'*}"
+}
+
+probe_runner_overrides_callers_git_proxy
+
+report "$name"
+
 finish
