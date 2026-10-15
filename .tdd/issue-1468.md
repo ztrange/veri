@@ -26,7 +26,3 @@
 - [ ] a suite run through run-suite.sh by a caller that already exported OFFLINE_REACH_LOG, with no guards on its PATH, still gets the tests/offline guards first on its PATH and a gh or curl call named as a reach: run-suite.sh never takes the caller's OFFLINE_REACH_LOG as proof the guards are already in place ⟦added⟧ ⟦criterion 3⟧
 - [ ] red-divergence.sh judges an empty prediction file written before the run by its empty content: it never answers matched (exit 3) for it, whatever the report's PREDICTION: and PREDICTED_FAILURE: lines say ⟦added⟧ ⟦criterion 6⟧
 - [ ] red-divergence.sh, handed a prediction file whose content differs from the report's PREDICTED_FAILURE: line, judges by the file's content: it never answers matched (exit 3) on the report's say-so, and the reason it prints quotes the file's content as PREDICTED_FAILURE ⟦added⟧ ⟦criterion 6⟧
-
-## Owed steps
-
-- test_run_suite.py's test_main_starts_the_suite_alone_on_dev_null_with_maintenance_auto_off_and_streams_its_lines and test_main_hands_a_bash_suite_no_ambient_veri_or_claude_variable_but_veri_venv_and_lets_the_suite_set_one_on_a_command_1258 no longer depend on run-suite.sh passing a caller-exported OFFLINE_REACH_LOG through untouched: each leaves OFFLINE_REACH_LOG unset in the caller and expects what run-suite.sh applies itself, so both pass before and after run-suite.sh stops trusting an exported OFFLINE_REACH_LOG (test-only: no production change) ⟦diff-checked⟧
