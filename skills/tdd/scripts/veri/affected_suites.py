@@ -201,7 +201,7 @@ def pytest_readers(needles):
     return [p for p, text in pytest_texts()
             if re.search(rb"section\(", text)
             and (names(text, needles)
-                 or re.search(rb"section\([^()'\"]*\)", text))]
+                 or len(re.findall(rb"section\(", text)) != len(re.findall(rb"section\(\s*\w+,\s*(['\"])[^'\"]*\1\s*,?\s*\)", text)))]
 
 
 def pytest_whole_readers():
