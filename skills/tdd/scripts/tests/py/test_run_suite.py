@@ -177,6 +177,10 @@ class FakeSuite:
         self.wait()
 
 
+OFFLINE_GIT = (("maintenance.auto", "false"), ("http.proxy", "http://127.0.0.1:1"),
+               ("protocol.allow", "never"), ("protocol.file.allow", "always"))
+
+
 def test_main_starts_the_suite_alone_on_dev_null_with_maintenance_auto_off_and_streams_its_lines(tmp_path, capfd, monkeypatch, run_suite):
     lines = [b"one\n", b"two\n", b"3 passed, 0 failed\n"]
     answers = []
@@ -195,6 +199,7 @@ def test_main_starts_the_suite_alone_on_dev_null_with_maintenance_auto_off_and_s
             monkeypatch.setenv("GIT_CONFIG_VALUE_0", "caller")
             monkeypatch.setenv("GIT_CONFIG_KEY_1", "http.proxy")
             monkeypatch.setenv("GIT_CONFIG_VALUE_1", "")
+        monkeypatch.setenv("LC_ALL", "en_US.UTF-8")
         caller = dict(os.environ)
         suite = fake_suite(tmp_path, "streamed.test.sh", "exit 0\n")
         started = []
@@ -219,9 +224,10 @@ def test_main_starts_the_suite_alone_on_dev_null_with_maintenance_auto_off_and_s
     n_of = {"2": 2, None: 0}
     assert answers == [
         (0, [([suite], False, True, {
-            "GIT_CONFIG_KEY_%d" % n_of[count]: "maintenance.auto",
-            "GIT_CONFIG_VALUE_%d" % n_of[count]: "false",
-            "GIT_CONFIG_COUNT": str(n_of[count] + 1),
+            **{"GIT_CONFIG_KEY_%d" % (n_of[count] + i): key for i, (key, _) in enumerate(OFFLINE_GIT)},
+            **{"GIT_CONFIG_VALUE_%d" % (n_of[count] + i): value for i, (_, value) in enumerate(OFFLINE_GIT)},
+            "GIT_CONFIG_COUNT": str(n_of[count] + len(OFFLINE_GIT)),
+            "LC_ALL": "C",
         }, [])], True)
         for count in ("2", None)
     ]
@@ -388,7 +394,7 @@ def test_main_hands_a_bash_suite_no_ambient_veri_or_claude_variable_but_veri_ven
         "PATH": os.environ["PATH"],
         "OFFLINE_REACH_LOG": "/caller/reach.log",
         "HTTPS_PROXY": "http://127.0.0.1:1",
-        "GIT_CONFIG_COUNT": "1",
+        "GIT_CONFIG_COUNT": str(len(OFFLINE_GIT)),
         "GIT_CONFIG_KEY_0": "maintenance.auto",
         "GIT_CONFIG_VALUE_0": "false",
     }, "set-by-suite")
