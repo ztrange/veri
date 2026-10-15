@@ -162,7 +162,8 @@ def case_starts_no_test_runner(request, monkeypatch):
         if os.path.basename(os.fsdecode(words[0])) != "git":
             return None
         directory = os.fsdecode(cwd) if cwd is not None else None
-        if directory is None and (SCRIPTS / "veri") in [pathlib.Path(os.getcwd()).resolve(), *pathlib.Path(os.getcwd()).resolve().parents]:
+        here = pathlib.Path(os.getcwd()).resolve()
+        if directory is None and (SCRIPTS / "veri") in [here, *here.parents]:
             directory = os.getcwd()
         rest = [os.fsdecode(w) for w in words[1:]]
         for flag, value in zip(rest, rest[1:]):
