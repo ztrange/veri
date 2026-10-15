@@ -31,41 +31,39 @@ def test_parse_reads_each_declared_format_refuses_none_and_a_required_format_wit
             report_formats.parse(text)
 
 
-@pytest.mark.tree_audit("every skills/tdd/scripts/prompts/develop-*.md prompt, includes expanded")
-def test_1568_every_real_develop_prompt_declares_report_formats_the_parser_accepts(report_formats):
+def expanded_develop_prompts():
     prompts = SCRIPTS / "prompts"
 
     def expand(text):
         return re.sub(r"\{\{INCLUDE:([^}]*)\}\}", lambda m: expand((prompts / m[1]).read_text()), text)
 
-    paths = sorted(prompts.glob("develop-*.md"))
+    return [(path, expand(path.read_text())) for path in sorted(prompts.glob("develop-*.md"))]
+
+
+@pytest.mark.tree_audit("every skills/tdd/scripts/prompts/develop-*.md prompt, includes expanded")
+def test_1568_every_real_develop_prompt_declares_report_formats_the_parser_accepts(report_formats):
+    prompts = expanded_develop_prompts()
     refused = []
-    for path in paths:
+    for path, text in prompts:
         try:
-            report_formats.parse(expand(path.read_text()))
+            report_formats.parse(text)
         except ValueError as error:
             refused.append(f"{path.name}: {error}")
 
-    assert paths
+    assert prompts
     assert not refused, "\n".join(refused)
 
 
 @pytest.mark.tree_audit("every skills/tdd/scripts/prompts/develop-*.md prompt, includes expanded")
 def test_1568_every_key_a_real_develop_prompt_declares_appears_in_its_report_text(report_formats):
-    prompts = SCRIPTS / "prompts"
-
-    def expand(text):
-        return re.sub(r"\{\{INCLUDE:([^}]*)\}\}", lambda m: expand((prompts / m[1]).read_text()), text)
-
-    paths = sorted(prompts.glob("develop-*.md"))
+    prompts = expanded_develop_prompts()
     missing = []
-    for path in paths:
-        text = expand(path.read_text())
+    for path, text in prompts:
         heading = re.search(r"^#+ Report.*$", text, re.M)
         section = text[heading.start():] if heading else text
         report = "\n".join(l for l in section.splitlines() if not l.startswith("REPORT-FORMAT "))
         for declared in report_formats.parse(text):
             missing += [f"{path.name}: {key}" for key in declared["keys"] if key not in report]
 
-    assert paths
+    assert prompts
     assert not missing, "\n".join(missing)
