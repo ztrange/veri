@@ -185,3 +185,26 @@ def test_the_path_setup_case_gives_the_same_outcome_started_from_skills_tdd_scri
                 "skills/tdd/scripts": started_from(scripts, "tests/py")}
 
     assert outcomes["skills/tdd/scripts"] == outcomes["repository root"], outcomes
+
+
+@pytest.mark.process("a child pytest session whose case starts bash on a *.test.sh under a tests/ directory")
+def test_a_case_that_starts_a_bash_suite_under_tests_fails_naming_the_case_and_the_command_without_the_suite_running(tmp_path):
+    suite = tmp_path / "tests" / "nested.test.sh"
+    suite.parent.mkdir()
+    ran_marker = tmp_path / "suite-ran"
+    suite.write_text("touch %s\n" % ran_marker)
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import subprocess\n"
+        "import pytest\n"
+        "@pytest.mark.process('bash on a suite under tests/')\n"
+        "def test_probe():\n"
+        "    subprocess.run(['bash', %r])\n" % str(suite))
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode != 0, output
+    assert "test_probe.py::test_probe" in output, output
+    assert "bash %s" % suite in output, output
+    assert not ran_marker.exists()

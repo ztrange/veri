@@ -111,6 +111,25 @@ def unmarked_case_lists_no_repository_directory(request, monkeypatch, tmp_path):
         monkeypatch.setattr(os, name, checked(getattr(os, name)))
 
 
+@pytest.fixture(autouse=True)
+def case_starts_no_bash_suite_under_tests(request, monkeypatch):
+    real = subprocess.Popen.__init__
+
+    def is_suite(arg):
+        parts = pathlib.PurePath(os.fsdecode(arg)).parts
+        return bool(parts) and parts[-1].endswith(".test.sh") and "tests" in parts[:-1]
+
+    def checked(self, args, *rest, **kwargs):
+        words = [args] if isinstance(args, (str, bytes, os.PathLike)) else list(args)
+        if isinstance(args, str) and kwargs.get("shell"):
+            words = shlex.split(args)
+        if words and (is_suite(words[0]) or (os.path.basename(os.fsdecode(words[0])) in ("bash", "sh") and any(is_suite(w) for w in words[1:]))):
+            raise AssertionError("%s starts a bash suite: %s" % (request.node.nodeid, " ".join(os.fsdecode(w) for w in words)))
+        return real(self, args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess.Popen, "__init__", checked)
+
+
 @pytest.fixture
 def run_cli(monkeypatch, capfd):
     def run(module, argv, stdin="", env=None, cwd=None):
