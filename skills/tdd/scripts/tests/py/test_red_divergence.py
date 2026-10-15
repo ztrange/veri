@@ -1,6 +1,7 @@
 """In-process cases for veri/red_divergence.py, the module red-divergence.sh is a shim over."""
 import importlib
 import io
+import os
 import sys
 
 import pytest
@@ -192,6 +193,21 @@ def test_main_returns_2_for_a_prediction_line_whose_first_word_is_not_a_verdict_
 def test_main_1468_reports_a_prediction_file_that_does_not_exist_as_exit_1_naming_that_the_prediction_was_not_written_before_the_run(monkeypatch, capsys, red_divergence, tmp_path):
     matched = "FAIL_OUTPUT: f\nPREDICTION: MATCHED"
     code, out, err = run(monkeypatch, capsys, red_divergence, matched, [str(tmp_path / "red-prediction.md")])
+
+    assert code == 1
+    assert "prediction not written before the run" in out + err
+
+
+def test_main_1468_reports_a_prediction_file_newer_than_the_run_output_as_the_same_exit_1_naming_that_the_prediction_was_not_written_before_the_run(monkeypatch, capsys, red_divergence, tmp_path):
+    output = tmp_path / "develop-red.out"
+    prediction = tmp_path / "red-prediction.md"
+    output.write_text("FAIL_OUTPUT: f\nPREDICTION: MATCHED")
+    prediction.write_text("expected failure")
+    os.utime(output, (1000, 1000))
+    os.utime(prediction, (2000, 2000))
+
+    matched = "FAIL_OUTPUT: f\nPREDICTION: MATCHED"
+    code, out, err = run(monkeypatch, capsys, red_divergence, matched, [str(prediction), str(output)])
 
     assert code == 1
     assert "prediction not written before the run" in out + err
