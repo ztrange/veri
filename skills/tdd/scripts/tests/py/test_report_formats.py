@@ -88,3 +88,25 @@ def test_1568_green_wrong_test_and_structural_skip_and_green_split_each_report_t
             free_text.append(f"{name}: {phrase!r} names no declared SUITE-exempt key")
 
     assert not free_text, "\n".join(free_text)
+
+
+@pytest.mark.tree_audit("every skills/tdd/scripts/prompts/develop-*.md prompt, includes expanded")
+def test_1568_suite_reported_passes_a_report_made_of_the_keys_of_each_exempt_format_a_real_prompt_declares(report_formats, run_cli, tmp_path):
+    suite_reported = importlib.import_module("veri.suite_reported")
+    prompts = expanded_develop_prompts()
+    refused = []
+    for path, text in prompts:
+        leaf = path.stem
+        for declared in report_formats.parse(text):
+            if declared["suite"] != "exempt":
+                continue
+            work = tmp_path / f"{leaf}-{declared['name']}"
+            (work / ".tdd").mkdir(parents=True)
+            (work / ".tdd" / f"{leaf}.out").write_text("".join(f"{key} reported\n" for key in declared["keys"]))
+            code, _, _ = run_cli(suite_reported, [leaf], env={"VERI_ISSUE": "1"}, cwd=work)
+            events = work / ".tdd" / "events.jsonl"
+            if code != 0 or events.exists():
+                refused.append(f"{leaf} / {declared['name']}: exit {code}, report-missing recorded: {events.exists()}")
+
+    assert prompts
+    assert not refused, "\n".join(refused)
