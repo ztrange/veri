@@ -397,6 +397,21 @@ def test_a_case_that_reads_a_system_location_through_pathlib_fails_naming_its_ow
     assert "test_probe.py:3" in output, output
 
 
+@pytest.mark.process("a child pytest session whose case creates a directory at a system location")
+def test_a_case_that_creates_a_directory_at_a_system_location_with_os_mkdir_fails_naming_the_file_and_line_of_the_call(tmp_path):
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import os\n"
+        "def test_probe():\n"
+        "    os.mkdir('/.tdd')\n")
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode != 0, output
+    assert "creates the system location /.tdd at " in output, output
+    assert "test_probe.py:3" in output, output
+
 
 @pytest.mark.process("child pytest sessions whose permission-bits exemption table carries a good, a reasonless and a stale entry")
 @pytest.mark.parametrize("entry, reason, mode, named", [

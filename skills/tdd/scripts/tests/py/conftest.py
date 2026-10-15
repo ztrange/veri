@@ -315,8 +315,20 @@ def case_expects_no_system_location_unreadable_or_unwritable(request, monkeypatc
                                  % (request.node.nodeid, os.fsdecode(file), frame.f_code.co_filename, frame.f_lineno))
         return real(file, *rest, **kwargs)
 
+    real_mkdir = os.mkdir
+
+    def checked_mkdir(path, *rest, **kwargs):
+        frame = caller_outside_pathlib()
+        name = os.path.basename(frame.f_code.co_filename)
+        if (isinstance(path, (str, bytes, os.PathLike)) and name.startswith(("test_", "conftest"))
+                and system_location(os.fsdecode(path)) and not exempt_from(tail, SYSTEM_LOCATION_EXEMPT)):
+            raise AssertionError("%s creates the system location %s at %s:%d: uid 0 ignores what makes it fail"
+                                 % (request.node.nodeid, os.fsdecode(path), frame.f_code.co_filename, frame.f_lineno))
+        return real_mkdir(path, *rest, **kwargs)
+
     monkeypatch.setattr(io, "open", checked)
     monkeypatch.setattr(builtins, "open", checked)
+    monkeypatch.setattr(os, "mkdir", checked_mkdir)
 
 
 @pytest.fixture
