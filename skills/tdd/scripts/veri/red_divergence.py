@@ -13,8 +13,12 @@ PREDICTION_NOTE: %s
 REASON_KEYS = ("PREDICTED_FAILURE", "FAIL_OUTPUT", "PREDICTION_NOTE")
 
 
+def names_prediction_file(argv):
+    return bool(argv) and not argv[0].startswith("-")
+
+
 def prediction_unwritten_before_run(argv):
-    if not argv or argv[0].startswith("-"):
+    if not names_prediction_file(argv):
         return False
     if not os.path.exists(argv[0]):
         return True
@@ -22,7 +26,7 @@ def prediction_unwritten_before_run(argv):
 
 
 def prediction_file_empty(argv):
-    if not argv or argv[0].startswith("-"):
+    if not names_prediction_file(argv):
         return False
     with open(argv[0], "rb") as handle:
         return not handle.read().strip()
