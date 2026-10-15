@@ -413,6 +413,22 @@ def test_a_case_that_creates_a_directory_at_a_system_location_with_os_mkdir_fail
     assert "test_probe.py:3" in output, output
 
 
+@pytest.mark.process("a child pytest session whose case creates a file at a system location")
+def test_a_case_that_creates_a_file_at_a_system_location_with_os_open_o_creat_fails_naming_the_file_and_line_of_the_call(tmp_path):
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import os\n"
+        "def test_probe():\n"
+        "    os.open('/.veri-probe-absent', os.O_CREAT | os.O_WRONLY)\n")
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode != 0, output
+    assert "creates the system location /.veri-probe-absent at " in output, output
+    assert "test_probe.py:3" in output, output
+
+
 @pytest.mark.process("child pytest sessions whose permission-bits exemption table carries a good, a reasonless and a stale entry")
 @pytest.mark.parametrize("entry, reason, mode, named", [
     ("test_probe.py::test_probe", "the chmod is the subject, run on a scratch file", 0o000, None),

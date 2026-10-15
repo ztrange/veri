@@ -323,8 +323,16 @@ def case_expects_no_system_location_unreadable_or_unwritable(request, monkeypatc
         refuse_system_location("creates", path, caller_outside_pathlib())
         return real_mkdir(path, *rest, **kwargs)
 
+    real_os_open = os.open
+
+    def checked_os_open(path, flags, *rest, **kwargs):
+        if flags & os.O_CREAT:
+            refuse_system_location("creates", path, caller_outside_pathlib())
+        return real_os_open(path, flags, *rest, **kwargs)
+
     monkeypatch.setattr(io, "open", checked)
     monkeypatch.setattr(builtins, "open", checked)
+    monkeypatch.setattr(os, "open", checked_os_open)
     monkeypatch.setattr(os, "mkdir", checked_mkdir)
 
 
