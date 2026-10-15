@@ -203,6 +203,10 @@ def pytest_whole_readers():
     return [p for p, text in pytest_texts() if b"SKILL.md" in text and not re.search(rb"section\(", text)]
 
 
+def pytest_skill_readers():
+    return [p for p, text in pytest_texts() if b"SKILL.md" in text or re.search(rb"section\(", text)]
+
+
 def suite_of(f, revisions=None):
     def match(*patterns):
         return any(fnmatch.fnmatchcase(f, p) for p in patterns)
@@ -215,7 +219,7 @@ def suite_of(f, revisions=None):
             slicers = [s for s in suites_naming(*forms(*headings(f))) if reads_only_through_slicers(s, f)]
             return ([s for s in naming if s in readers or s not in slicers]
                     + pytest_readers(*forms(*section)) + pytest_whole_readers())
-        return naming
+        return naming + pytest_skill_readers() if f == "skills/tdd/SKILL.md" and revisions else naming
     if match(SCRIPTS + "/tests/*.test.sh", SCRIPTS + "/tests/py/test_*.py"):
         return existing(f)
     if f == SCRIPTS + "/tests/lib/harness.sh":
