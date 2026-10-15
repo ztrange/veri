@@ -133,6 +133,10 @@ STARTS_PYTEST_EXEMPT = {
 }
 
 
+def case_tail(request):
+    return request.node.nodeid.split("/")[-1]
+
+
 def exempt_from(tail, table):
     return tail in table or tail.split("::")[0] in table
 
@@ -192,7 +196,7 @@ def case_starts_no_test_runner(request, monkeypatch):
             words = shlex.split(args)
         command = " ".join(os.fsdecode(w) for w in words)
         directory = git_directory(words, kwargs.get("cwd")) if words else None
-        tail = request.node.nodeid.split("/")[-1]
+        tail = case_tail(request)
         if directory is not None and not exempt_from(tail, STARTS_GIT_IN_REPOSITORY_EXEMPT) and in_repository(directory):
             raise AssertionError("%s starts git against the repository the tests live in: %s (%s)" % (request.node.nodeid, directory, command))
         if words and (is_suite(words[0]) or (os.path.basename(os.fsdecode(words[0])) in ("bash", "sh") and any(is_suite(w) for w in words[1:]))):
@@ -230,7 +234,7 @@ def exemption_problems(table, cases):
 @pytest.fixture(autouse=True)
 def case_forces_no_failure_through_permission_bits(request, monkeypatch):
     real = os.chmod
-    tail = request.node.nodeid.split("/")[-1]
+    tail = case_tail(request)
 
     def checked(path, mode, *rest, **kwargs):
         frame = caller_outside_pathlib()
@@ -248,7 +252,7 @@ SYSTEM_LOCATION_EXEMPT = {}
 @pytest.fixture(autouse=True)
 def case_expects_no_system_location_unreadable_or_unwritable(request, monkeypatch):
     real = io.open
-    tail = request.node.nodeid.split("/")[-1]
+    tail = case_tail(request)
 
     def system_location(path):
         resolved = pathlib.Path(os.path.abspath(path))
