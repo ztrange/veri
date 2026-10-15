@@ -90,6 +90,16 @@ def test_1568_green_wrong_test_and_structural_skip_and_green_split_each_report_t
     assert not free_text, "\n".join(free_text)
 
 
+def declared_formats(report_formats, suite):
+    """(leaf, declared format) for each format of the given SUITE kind that a real develop prompt declares."""
+    return [
+        (path.stem, declared)
+        for path, text in expanded_develop_prompts()
+        for declared in report_formats.parse(text)
+        if declared["suite"] == suite
+    ]
+
+
 def run_suite_reported(run_cli, work, leaf, keys):
     """(exit code, events text or None) of suite-reported.sh over a report made of `keys`."""
     (work / ".tdd").mkdir(parents=True)
@@ -101,37 +111,27 @@ def run_suite_reported(run_cli, work, leaf, keys):
 
 @pytest.mark.tree_audit("every skills/tdd/scripts/prompts/develop-*.md prompt, includes expanded")
 def test_1568_suite_reported_passes_a_report_made_of_the_keys_of_each_exempt_format_a_real_prompt_declares(report_formats, run_cli, tmp_path):
-    prompts = expanded_develop_prompts()
+    cases = declared_formats(report_formats, "exempt")
     refused = []
-    for path, text in prompts:
-        leaf = path.stem
-        for declared in report_formats.parse(text):
-            if declared["suite"] != "exempt":
-                continue
-            code, events = run_suite_reported(run_cli, tmp_path / f"{leaf}-{declared['name']}", leaf, declared["keys"])
-            if code != 0 or events is not None:
-                refused.append(f"{leaf} / {declared['name']}: exit {code}, report-missing recorded: {events is not None}")
+    for leaf, declared in cases:
+        code, events = run_suite_reported(run_cli, tmp_path / f"{leaf}-{declared['name']}", leaf, declared["keys"])
+        if code != 0 or events is not None:
+            refused.append(f"{leaf} / {declared['name']}: exit {code}, report-missing recorded: {events is not None}")
 
-    assert prompts
+    assert cases
     assert not refused, "\n".join(refused)
 
 
 @pytest.mark.tree_audit("every skills/tdd/scripts/prompts/develop-*.md prompt, includes expanded")
 def test_1568_suite_reported_refuses_a_report_of_each_suite_required_format_a_real_prompt_declares_when_it_has_no_suite_line(report_formats, run_cli, tmp_path):
-    prompts = expanded_develop_prompts()
+    cases = declared_formats(report_formats, "required")
     passed = []
-    cases = 0
-    for path, text in prompts:
-        leaf = path.stem
-        for declared in report_formats.parse(text):
-            if declared["suite"] != "required":
-                continue
-            cases += 1
-            keys = [key for key in declared["keys"] if key != "SUITE:"]
-            code, events = run_suite_reported(run_cli, tmp_path / f"{leaf}-{declared['name']}", leaf, keys)
-            recorded = events is not None and '"event": "report-missing"' in events
-            if code != 2 or not recorded:
-                passed.append(f"{leaf} / {declared['name']}: exit {code}, report-missing recorded: {recorded}")
+    for leaf, declared in cases:
+        keys = [key for key in declared["keys"] if key != "SUITE:"]
+        code, events = run_suite_reported(run_cli, tmp_path / f"{leaf}-{declared['name']}", leaf, keys)
+        recorded = events is not None and '"event": "report-missing"' in events
+        if code != 2 or not recorded:
+            passed.append(f"{leaf} / {declared['name']}: exit {code}, report-missing recorded: {recorded}")
 
     assert cases
     assert not passed, "\n".join(passed)
