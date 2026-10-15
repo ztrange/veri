@@ -11,3 +11,5 @@
 ### red-divergence.sh reports the same "prediction not written before the run" outcome when the prediction file is newer than the run's output ⟦criterion 2⟧
 - extract the prediction-file check at red_divergence.py:17-20 into a named helper (no duplication removed, so not applied here)
 - test-only | not checked: test_red_divergence.py was not read, so any tidy-up there is unassessed
+### The develop-red prompt and the develop-revise prompt for a redone red tell the leaf to save the affected-suite run's output to a named run-output file under .tdd/, the file red-divergence.sh compares the prediction file against ⟦added⟧
+- test-only | `names_prediction_file` and `names_run_output_file` in `skills/tdd/scripts/tests/prompt-test-tiers.test.sh` differ only in the grep pattern and the problem message, so they could share one helper.
