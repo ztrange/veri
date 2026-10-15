@@ -129,9 +129,11 @@ def case_starts_no_test_runner(request, monkeypatch):
 
     def is_pytest(words):
         names = [os.path.basename(os.fsdecode(w)) for w in words]
-        if names[0] in ("pytest", "py.test") or "pytest_leg.py" in names:
+        if names[0] in ("pytest", "py.test", "pytest_leg.py"):
             return True
-        return names[0].startswith("python") and any(a == "-m" and b == "pytest" for a, b in zip(names, names[1:]))
+        if not names[0].startswith("python"):
+            return False
+        return names[1:2] == ["pytest_leg.py"] or any(a == "-m" and b == "pytest" for a, b in zip(names, names[1:]))
 
     def from_exempt_helper():
         frame = sys._getframe()
