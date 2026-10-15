@@ -33,9 +33,9 @@ def is_repair(text):
     return any(mark in text for mark in REPAIR_MARKS)
 
 
-def added_step(text, k):
+def added_step(text, k, planned=False):
     head, tail = new_step(text, k).rsplit(f" {ADDED_MARK}", 1)
-    step = head + ("" if is_repair(text) else f" {ADDED_MARK}") + tail
+    step = head + ("" if is_repair(text) or planned else f" {ADDED_MARK}") + tail
     return step if k else step.removesuffix(f" {CRITERION_TAG}⟧")
 
 
@@ -59,6 +59,9 @@ def write_ledger(path, mode, text):
 
 def main(argv):
     criterion = None
+    planned = argv[:1] == ["--planned"]
+    if planned:
+        argv = argv[1:]
     if argv[:1] == ["--criterion"]:
         criterion, argv = "".join(argv[1:2]), argv[2:]
     if len(argv) < 4 or "" in argv[:3]:
@@ -90,7 +93,7 @@ def main(argv):
     cap = bash_integer(budget)
     if cap is None:
         warn(f'add-ledger-step.sh: {budget}: value too great for base (error token is "{budget}")')
-    elif added + sum(not is_repair(text) for text in texts) > cap:
+    elif not planned and added + sum(not is_repair(text) for text in texts) > cap:
         headings = [line for line in lines if line.startswith("## ")]
         owed = "" if headings[-1:] == ["## Owed steps"] else "\n## Owed steps\n\n"
         if not owed and lines is not terminated:
@@ -103,7 +106,7 @@ def main(argv):
         if not is_anchor_step(line, anchor):
             out.append(line)
             continue
-        steps = [added_step(text, criterion or criterion_of(line)) for text in texts]
+        steps = [added_step(text, criterion or criterion_of(line), planned) for text in texts]
         if where == "after":
             out.append(line)
         out.extend(steps)

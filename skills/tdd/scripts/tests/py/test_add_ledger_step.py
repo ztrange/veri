@@ -635,3 +635,16 @@ def test_main_refusing_too_few_arguments_prints_a_usage_line_naming_the_optional
         code = add_ledger_step.main(argv)
         out, err = capsys.readouterr()
         assert (argv, code, out, err.count("\n"), err.startswith("usage: add-ledger-step.sh [--criterion <k>] <ledger-file> ")) == (argv, 2, "", 1, True)
+
+
+def test_main_planned_criterion_k_inserts_unmarked_steps_that_do_not_count_toward_a_zero_step_growth_and_files_nothing_owed_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    code = add_ledger_step.main(["--planned", "--criterion", "7", str(ledger), "after", "b two", "t", "u"])
+    assert (code, capsys.readouterr().err, ledger.read_bytes().decode()) == (
+        0,
+        "",
+        "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+        "- [ ] t ⟦criterion 7⟧\n- [ ] u ⟦criterion 7⟧\n- [ ] c three ⟦criterion 3⟧\n",
+    )
