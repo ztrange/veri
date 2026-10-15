@@ -2437,3 +2437,25 @@ def test_cli_a_ref_lock_that_is_never_released_makes_the_launch_refuse_with_exit
 
     assert (code, prompts, len(fetches) > 5, "run-conductor: another process holds the ref lock" in stderr) == (
         2, [], True, True), stderr
+
+
+@pytest.mark.process("a real git work tree whose ls-files the skill copy reads")
+def test_loose_skill_copies_tracked_and_untracked_unignored_files_under_skills_tdd_and_never_an_ignored_cache(tmp_path):
+    repo = tmp_path / "src"
+    skill = repo / "skills" / "tdd"
+    (skill / "scripts" / "veri" / "__pycache__").mkdir(parents=True)
+    (skill / "SKILL.md").write_text("skill\n")
+    (repo / ".gitignore").write_text("__pycache__/\n")
+    git = ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@t"]
+    subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
+    subprocess.run([*git, "add", "-A"], check=True)
+    subprocess.run([*git, "commit", "-qm", "skill"], check=True)
+    (skill / "untracked.txt").write_text("stray\n")
+    (skill / "scripts" / "veri" / "__pycache__" / "mod.pyc").write_text("cache\n")
+
+    destination = tmp_path / "dest"
+    loose_skill(skill, destination)
+
+    assert (destination / "SKILL.md").read_text() == "skill\n"
+    assert (destination / "untracked.txt").read_text() == "stray\n"
+    assert not (destination / "scripts" / "veri" / "__pycache__").exists()
