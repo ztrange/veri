@@ -690,3 +690,40 @@ def test_main_after_the_resume_discard_leaves_a_tick_whose_green_commit_never_la
 
     assert (clone / "work.txt").read_text() == "before the green\n"
     assert ledger.read_text() == "- [ ] step one\n- [ ] step two\n- [ ] step three ⟦added⟧\n"
+
+
+@pytest.mark.process("git: a real resumed worktree whose uncommitted .tdd/ append no longer applies once the rebase moved the lines around it")
+def test_main_stops_with_exit_2_naming_the_file_and_the_kept_appends_when_they_cannot_be_reapplied_after_the_rebase_1547(
+        monkeypatch, tmp_path, rebase_onto_default, run_cli):
+    for who in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
+        monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
+
+    def git(repo, *args):
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
+
+    def commit(repo, name, body, message):
+        (repo / name).parent.mkdir(exist_ok=True)
+        (repo / name).write_text(body)
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "-m", message)
+
+    origin, seed, clone = tmp_path / "origin.git", tmp_path / "seed", tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    subprocess.run(["git", "init", "-q", "-b", "main", str(seed)], check=True)
+    commit(seed, ".tdd/notes.md", "a\nb\nc\n", "initial")
+    git(seed, "push", "-q", str(origin), "main")
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], check=True, stderr=subprocess.DEVNULL)
+    git(clone, "checkout", "-q", "-b", "tdd/1-a-run")
+    commit(clone, "work.txt", "the run's work\n", "feat: a step's green commit (#1)")
+    notes = clone / ".tdd" / "notes.md"
+    notes.write_text("a\nb\nc\nd\n")
+    commit(seed, ".tdd/notes.md", "a\nb\nchanged\n", "feat: another run merged (#2)")
+    git(seed, "push", "-q", str(origin), "main")
+
+    code, _, err = run_cli(rebase_onto_default, [], cwd=clone)
+
+    kept = [pathlib.Path(token) if os.path.isabs(token) else clone / token for token in err.split()]
+    kept = [path for path in kept if path.is_file() and path != notes and "+d\n" in path.read_text()]
+    assert (code, ".tdd/notes.md" in err, len(kept)) == (2, True, 1)

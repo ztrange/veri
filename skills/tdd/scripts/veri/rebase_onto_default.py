@@ -68,7 +68,15 @@ def main(argv):
             return 1
     finally:
         if appends:
-            git("apply", text=True, input=appends + "\n")
+            reapplied = git("apply", text=True, input=appends + "\n",
+                            stderr=subprocess.DEVNULL).returncode == 0
+    if appends and not reapplied:
+        kept = pathlib.Path(output("rev-parse", "--git-path", "kept-tdd-appends.diff")).resolve()
+        kept.write_text(appends + "\n")
+        files = re.findall(r"^\+\+\+ b/(.+)$", appends, re.M)
+        sys.stderr.write(f"rebase-onto-default: could not re-apply the uncommitted appends to"
+                         f" {' '.join(files)}; kept at {kept}\n")
+        return 2
     sys.stdout.write(f"{pre}\n{onto}\n")
     return 0
 
