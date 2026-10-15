@@ -170,3 +170,18 @@ def test_a_case_reading_a_cwd_relative_path_gives_the_same_outcome_started_from_
     outcomes = {"repository root": started_from(scripts.parents[2]), "skills/tdd/scripts": started_from(scripts)}
 
     assert outcomes["skills/tdd/scripts"] == outcomes["repository root"], outcomes
+
+
+@pytest.mark.process("a child pytest session started from the repository root and again from skills/tdd/scripts with a relative test path")
+def test_the_path_setup_case_gives_the_same_outcome_started_from_skills_tdd_scripts_with_a_relative_path_as_from_the_repository_root():
+    scripts = pathlib.Path(__file__).resolve().parents[2]
+    case = "test_conftest.py::test_a_suite_with_no_path_setup_reads_scripts_from_conftest_and_imports_veri_and_script_modules"
+
+    def started_from(cwd, path):
+        return subprocess.run([sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-q", "%s/%s" % (path, case)],
+                              cwd=cwd, capture_output=True, text=True).returncode
+
+    outcomes = {"repository root": started_from(scripts.parents[2], "skills/tdd/scripts/tests/py"),
+                "skills/tdd/scripts": started_from(scripts, "tests/py")}
+
+    assert outcomes["skills/tdd/scripts"] == outcomes["repository root"], outcomes

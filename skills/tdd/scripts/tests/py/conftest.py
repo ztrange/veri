@@ -12,9 +12,10 @@ import pytest
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 ROOT = SCRIPTS.parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
+for path in (SCRIPTS / "veri", SCRIPTS):
+    while str(path) in sys.path:
+        sys.path.remove(str(path))
+    sys.path.insert(0, str(path))
 
 from veri import entry
 
