@@ -444,3 +444,29 @@ def test_main_prints_a_pytest_file_that_reads_skill_md_directly_and_also_calls_t
     (py / "test_beta.py").write_text('section(SKILL, "## Beta")\n')
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
         0, "skills/tdd/scripts/tests/py/test_alpha.py\nskills/tdd/scripts/tests/py/test_both.py\n", "")
+
+
+def test_main_narrows_a_pytest_file_with_only_literal_heading_calls_to_the_sections_it_names_1581(
+        tmp_path, monkeypatch, capsys, affected):
+    skill = "skills/tdd/SKILL.md"
+
+    def fake_run(args, **kwargs):
+        if list(args[:2]) == ["git", "rev-parse"]:
+            stdout = "abc\n"
+        elif list(args[:3]) == ["git", "diff", "--name-only"]:
+            stdout = "" if "--diff-filter=AD" in args else skill + "\n"
+        elif list(args[:3]) == ["git", "diff", "-U0"]:
+            stdout = "@@ -6 +6 @@\n-old body\n+gamma body\n"
+        else:
+            raise AssertionError("unexpected command: %r" % (args,))
+        return subprocess.CompletedProcess(args, 0, stdout, "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    py = tmp_path / "skills/tdd/scripts/tests/py"
+    py.mkdir(parents=True)
+    (tmp_path / skill).write_text("## Alpha\nalpha body\n## Beta\nbeta body\n## Gamma\ngamma body\n")
+    (py / "test_alpha_gamma.py").write_text('section(SKILL, "## Alpha")\nsection(SKILL, "## Gamma")\n')
+    (py / "test_beta.py").write_text('section(SKILL, "## Beta")\n')
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0, "skills/tdd/scripts/tests/py/test_alpha_gamma.py\n", "")
