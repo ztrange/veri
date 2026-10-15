@@ -1193,8 +1193,9 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — see *The step's cost check*
    ```
    `suite-reported.sh` runs after the wait exits 0 and before verify-green is launched: its exit 2
-   means the leaf left no `SUITE:` line, so launch no verifier and **bail** as a system failure
-   with cause `report-missing`. A leaf that reported `SPLIT:` lines is handled below instead.
+   means the report carried neither a `SUITE:` nor a `SPLIT:` line, so launch no verifier and
+   **bail** as a system failure with cause `report-missing`. It exits 0 on a report carrying
+   `SPLIT:` lines, and that leaf is handled below instead.
    The test path and target test id are the ones Red's report gave you. The leaf's report is
    in `.tdd/develop-green.out`, and ends with `IMPL_PATH:` (the production files it created
    or changed) and `SUITE: GREEN | RED` plus the suite's final summary line; both go into the

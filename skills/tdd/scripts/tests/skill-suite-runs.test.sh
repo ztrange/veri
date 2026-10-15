@@ -253,6 +253,15 @@ diff_checked="$(doc_text "$skill_path" '#### A `⟦diff-checked⟧` step' "")"
 [[ "$diff_checked" == *'suite-reported.sh revise-diff-<k>'* ]] || problems+=("diff-checked step: never runs suite-reported.sh revise-diff-<k>, the leaf the conductor launches")
 report "$name"
 
+name="#1300: $skill_md Green says suite-reported.sh develop-green exits 0 on a SPLIT: report and exits 2 only when the report carries neither SUITE: nor SPLIT:"
+problems=()
+green="$(doc_text "$skill_path" '#### Green' "")"
+zero_on_split='exits 0[^.]*split:'
+two_on_neither='neither[^.]*suite:[^.]*nor[^.]*split:'
+[[ "$green" =~ $zero_on_split ]] || problems+=("Green: never says suite-reported.sh exits 0 on a SPLIT: report")
+[[ "$green" =~ $two_on_neither ]] || problems+=("Green: never says its exit 2 means neither a SUITE: nor a SPLIT: line")
+report "$name"
+
 name="#991: doc_text given the from regex '^5\. ' starts at the line '5. y', not at '5x y'"
 fixture="$(scratch_dir)/doc.md"
 printf '## Section\n5x y\n5. y\n' > "$fixture"
