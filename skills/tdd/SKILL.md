@@ -1189,13 +1189,8 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    rm -f .tdd/develop-green.exit .tdd/develop-green.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh develop-green $S/run-leaf.sh .tdd/develop-green.prompt --permission-mode bypassPermissions > .tdd/develop-green.out 2> .tdd/develop-green.err
    $S/wait-leaf.sh develop-green    # foreground; on exit 3 call it again
-   $S/suite-reported.sh develop-green   # exit 0 a `SUITE:` line; exit 2 ⇒ launch no verifier, bail `report-missing`
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — see *The step's cost check*
    ```
-   `suite-reported.sh` runs after the wait exits 0 and before verify-green is launched: its exit 2
-   means the report carried neither a `SUITE:` nor a `SPLIT:` line, so launch no verifier and
-   **bail** as a system failure with cause `report-missing`. It exits 0 on a report carrying
-   `SPLIT:` lines, and that leaf is handled below instead.
    The test path and target test id are the ones Red's report gave you. The leaf's report is
    in `.tdd/develop-green.out`, and ends with `IMPL_PATH:` (the production files it created
    or changed) and `SUITE: GREEN | RED` plus the suite's final summary line; both go into the
@@ -1797,8 +1792,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    Each transform leaf's prompt is `build-develop-prompt.sh structural`'s, handed the spec, the candidate as
    `list` printed it, the test command and `<issue-touched-files>`, written to
    `.tdd/develop-structural.prompt`; the leaf is launched through the supervisor as
-   `develop-structural`. After its wait exits 0 and before the verifier, `$S/suite-reported.sh develop-structural`
-   runs: exit 2 launches no verifier and bails with cause `report-missing`. Its commits are checked with
+   `develop-structural`. Its commits are checked with
    `$S/transform-touches-tests.sh <base-sha>` — exit 1 rejects the transform, exit 2 is no
    answer — then judged by the long
    refactor's blind `transform` verifier against `<base-sha>`, one commit per transform —
