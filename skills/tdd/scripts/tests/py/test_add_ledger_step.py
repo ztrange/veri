@@ -660,3 +660,15 @@ def test_main_planned_without_criterion_or_with_a_criterion_a_step_already_serve
         out, err = capsys.readouterr()
         got[name] = (code, out, err.count("\n"), ledger.read_bytes() == LEDGER)
     assert got == {name: (2, "", 1, True) for name in ("none", "served")}
+
+
+def test_main_a_later_criterion_k_add_after_a_planned_one_is_marked_added_and_refused_into_owed_steps_at_a_spent_budget_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    planned = add_ledger_step.main(["--planned", "--criterion", "7", str(ledger), "after", "b two", "t"])
+    after_planned = ledger.read_bytes()
+    code = add_ledger_step.main(["--criterion", "7", str(ledger), "after", "b two", "u"])
+    assert (planned, code, capsys.readouterr().err, ledger.read_bytes()) == (
+        0, 1, "", after_planned + "\n## Owed steps\n\n- u\n".encode()
+    )
