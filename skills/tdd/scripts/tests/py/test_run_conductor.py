@@ -2325,6 +2325,30 @@ def test_cli_a_fetch_of_origin_whose_url_is_no_remote_is_refused_with_exit_2_and
     assert (code, len(fetches), launches, "fetch of origin failed" in stderr) == (2, 1, [], True), stderr
 
 
+def test_cli_a_fetch_of_origin_that_fails_for_a_reason_other_than_a_ref_lock_is_refused_with_exit_2_after_one_fetch_without_waiting_for_any_retry_1012(
+        tmp_path, monkeypatch, run_cli):
+    run_conductor, launches, answer, calls, cwd = fetch_faked_run(tmp_path, monkeypatch)
+
+    def host_does_not_resolve(args, *rest, **kwargs):
+        args = list(args)
+        calls.append(args)
+        if args[3:] == ["fetch", "-q", "origin"]:
+            return subprocess.CompletedProcess(
+                args, 128, "", "fatal: unable to access 'x': Could not resolve host: origin.invalid\n")
+        if args[:1] == ["sleep"]:
+            return subprocess.CompletedProcess(args, 0)
+        return answer(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", host_does_not_resolve)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    fetches = [call for call in calls if call[3:4] == ["fetch"]]
+    sleeps = [call for call in calls if call[:1] == ["sleep"]]
+    assert (code, len(fetches), sleeps, launches, "fetch of origin failed" in stderr) == (
+        2, 1, [], [], True), stderr
+
+
 def clone_behind_origin_holding_a_ref_lock(tmp_path, monkeypatch, name):
     remote, _ = skill_clone(tmp_path, monkeypatch, name + "_remote", {"SKILL.md": "# the committed procedure\n"},
                             directory="remote")
