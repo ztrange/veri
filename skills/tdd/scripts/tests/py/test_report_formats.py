@@ -1,7 +1,10 @@
 """In-process cases for veri/report_formats.py, the parser of a develop prompt's declared report formats."""
 import importlib
+import re
 
 import pytest
+
+from conftest import SCRIPTS
 
 
 @pytest.fixture
@@ -26,3 +29,22 @@ def test_parse_reads_each_declared_format_refuses_none_and_a_required_format_wit
                  "REPORT-FORMAT green | keys IMPL_PATH: | suite required\n"):
         with pytest.raises(ValueError):
             report_formats.parse(text)
+
+
+@pytest.mark.tree_audit("every skills/tdd/scripts/prompts/develop-*.md prompt, includes expanded")
+def test_1568_every_real_develop_prompt_declares_report_formats_the_parser_accepts(report_formats):
+    prompts = SCRIPTS / "prompts"
+
+    def expand(text):
+        return re.sub(r"\{\{INCLUDE:([^}]*)\}\}", lambda m: expand((prompts / m[1]).read_text()), text)
+
+    paths = sorted(prompts.glob("develop-*.md"))
+    refused = []
+    for path in paths:
+        try:
+            report_formats.parse(expand(path.read_text()))
+        except ValueError as error:
+            refused.append(f"{path.name}: {error}")
+
+    assert paths
+    assert not refused, "\n".join(refused)

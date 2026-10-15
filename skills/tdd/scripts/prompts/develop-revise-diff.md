@@ -38,3 +38,5 @@ alone, so no test is this step's deliverable.
 OUTCOME: REWRITTEN | IMPOSSIBLE — <what you changed, or why the step cannot be met as stated>
 DIFF: <the change committed, in one line, or NONE>
 SUITE: GREEN | RED — <the final summary line of that run>
+
+REPORT-FORMAT revise-diff | keys OUTCOME: DIFF: SUITE: | suite required

@@ -36,6 +36,8 @@ some existing test goes red when that behaviour breaks. Write **NO** production 
 8. A step that moves or reshapes runtime code is never `unreachable` or `type-only`;
    reachable code no test watches is `COVERED: no`.
 
+REPORT-FORMAT cover | keys MUTATION: COVERED: CAUGHT_BY: PROOF: | suite exempt: the leaf mutates and reverts, it runs no suite to report
+
 ### Report (last lines of your output)
 
 MUTATION: <the edit you made, in one line>

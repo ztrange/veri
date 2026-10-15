@@ -34,3 +34,5 @@ NEEDS_USER: <the decision, stated so the user can answer it>
 
 If it is neither — this step is one behaviour that is simply expensive — print no SPLIT: line
 and no NEEDS_USER: line.
+
+REPORT-FORMAT over-budget | keys SPLIT: NEEDS_USER: | suite exempt: the leaf changes no code and runs no suite

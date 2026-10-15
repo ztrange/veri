@@ -42,6 +42,8 @@ both sides' intent survives.
 5. Do not edit the ledger `.tdd/issue-<n>.md` beyond what the rebase itself carries: every
    {{INCLUDE:_develop-ledger-tick.md}} {{INCLUDE:_develop-ledger-mark.md}}
 
+REPORT-FORMAT rebase | keys REBASE: | suite exempt: the conductor re-verifies the resolution
+
 ### Report (last lines of your output)
 
 REBASE: RESOLVED | FAILED — <one line: which files conflicted and how you resolved them>

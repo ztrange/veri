@@ -24,3 +24,5 @@ after. It is the step's red; your transform is what makes it true.
 {{INCLUDE:_develop-transform-report.md}}
 PREDICATE: HOLDS | FAILS
 SUITE: GREEN | RED — <the final summary line of that run>
+
+REPORT-FORMAT transform | keys TRANSFORM: PREDICATE: SUITE: | suite required

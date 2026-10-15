@@ -46,3 +46,5 @@ not contain. Your job is to make the push land without losing anyone's commits.
 ### Report (last lines of your output)
 
 RECONCILE: REBASED | FORCED | FAILED — <one line: what the remote held and what you did>
+
+REPORT-FORMAT reconcile | keys RECONCILE: | suite exempt: the conductor re-verifies the resolution

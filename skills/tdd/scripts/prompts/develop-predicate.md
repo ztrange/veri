@@ -35,3 +35,5 @@ PREDICATE: <command>
 or
 
 PREDICATE: NONE — <why>
+
+REPORT-FORMAT predicate | keys PREDICATE: | suite exempt: the leaf writes a command and changes no code
