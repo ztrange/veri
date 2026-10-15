@@ -558,4 +558,23 @@ for want in \
 done
 report "$name"
 
+resume_text="$(awk '
+  $0 == "## Resume" { inside = 1; next }
+  inside && /^## / { exit }
+  inside' "$skill_path" | tr '\n' ' ' | tr -s ' ')"
+
+name="#1579: $skill_md's Resume plans each unticked criterion no ledger step serves with add-ledger-step.sh --planned --criterion k, one call per criterion, as a plan: commit before the cycle loop, and leaves every other insertion counting"
+problems=()
+[[ "$resume_text" == *'add-ledger-step.sh --planned --criterion'* ]] ||
+  problems+=("Resume never names add-ledger-step.sh --planned --criterion k")
+[[ "$resume_text" == *unticked* && "$resume_text" == *'⟦criterion k⟧'* ]] ||
+  problems+=("Resume never limits --planned to an unticked criterion no ⟦criterion k⟧ step serves")
+[[ "$resume_text" =~ one\ call\ per\ criterion ]] ||
+  problems+=("Resume never says one call per criterion")
+[[ "$resume_text" == *'`plan:` commit'* ]] ||
+  problems+=("Resume never says the planned steps are committed as a plan: commit")
+[[ "$resume_text" == *'⟦added⟧'* && "$resume_text" =~ omits?\ --planned ]] ||
+  problems+=("Resume never says every other insertion omits --planned and stays ⟦added⟧ growth")
+report "$name"
+
 finish
