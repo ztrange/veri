@@ -1,6 +1,6 @@
 # Plan for #1314 — PRD 009 C7-1: pytest refuses the test hazards that outlive the bash suites: nested runs, escapes from the scratch repo, permission bits, the cwd
 
-- [ ] A planted pytest case whose outcome depends on the working directory pytest was started from (it reads a cwd-relative path) gives the same outcome when the run is started from the repository root and when it is started from skills/tdd/scripts/, through conftest.py, natively and with no copy of a bash guard's text scanning ⟦criterion 4⟧
+- [x] A planted pytest case whose outcome depends on the working directory pytest was started from (it reads a cwd-relative path) gives the same outcome when the run is started from the repository root and when it is started from skills/tdd/scripts/, through conftest.py, natively and with no copy of a bash guard's text scanning ⟦criterion 4⟧ ⟂ refactor pending
 - [ ] A pytest case that starts a process running a bash suite under tests/ (a `*.test.sh` file there as the script bash or sh runs, or as the executable itself) fails, naming the case and the command, through conftest.py natively ⟦criterion 1⟧
 - [ ] A pytest case that starts pytest as a process (the pytest executable, `python3 -m pytest`, or veri/pytest_leg.py) fails, naming the case and the command ⟦criterion 1⟧
 - [ ] A pytest case that only carries a tests/ suite path or a pytest node id as data — an argument value to a process that is not a test runner, a fixture's text, an expected output — passes the nested-run guard ⟦criterion 1⟧
