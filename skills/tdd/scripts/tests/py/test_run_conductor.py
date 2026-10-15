@@ -2311,3 +2311,37 @@ def test_cli_a_fetch_of_origin_whose_url_is_no_remote_is_refused_with_exit_2_and
 
     fetches = [call for call in calls if call[3:4] == ["fetch"]]
     assert (code, len(fetches), launches, "fetch of origin failed" in stderr) == (2, 1, [], True), stderr
+
+
+@pytest.mark.process("a real ref lock file held against the skill clone's real git fetch of a real origin, released by the sleep between retries, and git archive and tar materialising origin's tip")
+def test_cli_a_ref_lock_that_outlives_five_back_to_back_fetches_and_is_released_only_while_the_run_waits_between_retries_still_lets_the_conductor_start_pinned_to_origins_tip_886(
+        tmp_path, monkeypatch, run_cli):
+    remote, _ = skill_clone(tmp_path, monkeypatch, "run_conductor_lock_remote", {"SKILL.md": "# the committed procedure\n"},
+                            directory="remote")
+    clone = clone_behind_origin(tmp_path, remote, "SKILL.md")
+    tip = head_commit(remote)
+    branch = subprocess.run(["git", "-C", str(remote), "symbolic-ref", "--short", "HEAD"], capture_output=True,
+                            text=True, check=True).stdout.strip()
+    lock = clone / ".git" / "refs" / "remotes" / "origin" / (branch + ".lock")
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.touch()
+    run_conductor = load_run_conductor("run_conductor_lock_clone", clone)
+    caller = caller_repository(tmp_path)
+    monkeypatch.setenv("VERI_FETCH_RETRY_SLEEP", "0")
+    run, prompts = subprocess.run, []
+
+    def sleep_releases_the_lock(args, *a, **kwargs):
+        args = list(args)
+        if args[:1] == ["sleep"]:
+            lock.unlink()
+            return subprocess.CompletedProcess(args, 0)
+        if args[:1] == ["fake-claude"]:
+            prompts.append(kwargs["input"].decode())
+            return subprocess.CompletedProcess(args, 0, None, None)
+        return run(args, *a, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", sleep_releases_the_lock)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+
+    assert (code, len(prompts), bool(prompts) and tip in prompts[0]) == (0, 1, True), stderr
