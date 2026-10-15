@@ -9,6 +9,7 @@ import sys
 
 import tunables
 
+OFFLINE_PROXY = "http://127.0.0.1:1"
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -92,9 +93,13 @@ def main(argv):
     suite = argv[0]
     env = {k: v for k, v in tunables.environment().items() if k == "VERI_VENV" or not k.startswith(("VERI_", "CLAUDE_"))}
     n = int(env.get("GIT_CONFIG_COUNT") or 0)
-    env["GIT_CONFIG_KEY_%d" % n] = "maintenance.auto"
-    env["GIT_CONFIG_VALUE_%d" % n] = "false"
-    env["GIT_CONFIG_COUNT"] = str(n + 1)
+    offline = (("maintenance.auto", "false"), ("http.proxy", OFFLINE_PROXY),
+               ("protocol.allow", "never"), ("protocol.file.allow", "always"))
+    for i, (key, value) in enumerate(offline):
+        env["GIT_CONFIG_KEY_%d" % (n + i)] = key
+        env["GIT_CONFIG_VALUE_%d" % (n + i)] = value
+    env["GIT_CONFIG_COUNT"] = str(n + len(offline))
+    env["LC_ALL"] = "C"
     if fnmatch.fnmatchcase(suite, "*/tests/py/test_*.py"):
         return run_pytest(suite, env)
     guard_path = os.path.join(SCRIPTS, "lib", "count-line-guard.sh")
