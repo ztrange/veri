@@ -2302,44 +2302,19 @@ def test_cli_a_fetch_of_origin_whose_ref_lock_is_still_held_when_the_second_fetc
     run_with_the_first_fetches_losing_a_ref_lock(2, tmp_path, monkeypatch, run_cli)
 
 
-def test_cli_a_fetch_of_origin_whose_url_is_no_remote_is_refused_with_exit_2_and_the_fetch_failed_message_after_one_fetch_not_after_the_lock_retries_886(
-        tmp_path, monkeypatch, run_cli):
+def run_with_the_one_fetch_failing(fetch_stderr, tmp_path, monkeypatch, run_cli):
     run_conductor, launches, answer, calls, cwd = fetch_faked_run(tmp_path, monkeypatch)
-    url = str(tmp_path / "no-remote")
 
-    def origin_is_no_remote(args, *rest, **kwargs):
+    def fetch_fails_with_no_lock(args, *rest, **kwargs):
         args = list(args)
         calls.append(args)
         if args[3:] == ["fetch", "-q", "origin"]:
-            return subprocess.CompletedProcess(
-                args, 128, "", "fatal: '%s' does not appear to be a git repository\n" % url)
+            return subprocess.CompletedProcess(args, 128, "", fetch_stderr)
         if args[:1] == ["sleep"]:
             return subprocess.CompletedProcess(args, 0)
         return answer(args, *rest, **kwargs)
 
-    monkeypatch.setattr(subprocess, "run", origin_is_no_remote)
-
-    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=cwd)
-
-    fetches = [call for call in calls if call[3:4] == ["fetch"]]
-    assert (code, len(fetches), launches, "fetch of origin failed" in stderr) == (2, 1, [], True), stderr
-
-
-def test_cli_a_fetch_of_origin_that_fails_for_a_reason_other_than_a_ref_lock_is_refused_with_exit_2_after_one_fetch_without_waiting_for_any_retry_1012(
-        tmp_path, monkeypatch, run_cli):
-    run_conductor, launches, answer, calls, cwd = fetch_faked_run(tmp_path, monkeypatch)
-
-    def host_does_not_resolve(args, *rest, **kwargs):
-        args = list(args)
-        calls.append(args)
-        if args[3:] == ["fetch", "-q", "origin"]:
-            return subprocess.CompletedProcess(
-                args, 128, "", "fatal: unable to access 'x': Could not resolve host: origin.invalid\n")
-        if args[:1] == ["sleep"]:
-            return subprocess.CompletedProcess(args, 0)
-        return answer(args, *rest, **kwargs)
-
-    monkeypatch.setattr(subprocess, "run", host_does_not_resolve)
+    monkeypatch.setattr(subprocess, "run", fetch_fails_with_no_lock)
 
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=cwd)
 
@@ -2347,6 +2322,19 @@ def test_cli_a_fetch_of_origin_that_fails_for_a_reason_other_than_a_ref_lock_is_
     sleeps = [call for call in calls if call[:1] == ["sleep"]]
     assert (code, len(fetches), sleeps, launches, "fetch of origin failed" in stderr) == (
         2, 1, [], [], True), stderr
+
+
+def test_cli_a_fetch_of_origin_whose_url_is_no_remote_is_refused_with_exit_2_and_the_fetch_failed_message_after_one_fetch_not_after_the_lock_retries_886(
+        tmp_path, monkeypatch, run_cli):
+    url = str(tmp_path / "no-remote")
+    run_with_the_one_fetch_failing(
+        "fatal: '%s' does not appear to be a git repository\n" % url, tmp_path, monkeypatch, run_cli)
+
+
+def test_cli_a_fetch_of_origin_that_fails_for_a_reason_other_than_a_ref_lock_is_refused_with_exit_2_after_one_fetch_without_waiting_for_any_retry_1012(
+        tmp_path, monkeypatch, run_cli):
+    run_with_the_one_fetch_failing(
+        "fatal: unable to access 'x': Could not resolve host: origin.invalid\n", tmp_path, monkeypatch, run_cli)
 
 
 def clone_behind_origin_holding_a_ref_lock(tmp_path, monkeypatch, name):
