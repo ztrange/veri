@@ -1,3 +1,4 @@
+import builtins
 import errno
 import io
 import json
@@ -216,6 +217,34 @@ def case_forces_no_failure_through_permission_bits(request, monkeypatch):
         return real(path, mode, *rest, **kwargs)
 
     monkeypatch.setattr(os, "chmod", checked)
+
+
+SYSTEM_LOCATION_EXEMPT = {}
+PATHLIB_SOURCE = os.path.splitext(pathlib.__file__)[0].removesuffix("__init__")
+
+
+@pytest.fixture(autouse=True)
+def case_expects_no_system_location_unreadable_or_unwritable(request, monkeypatch):
+    real = io.open
+    tail = request.node.nodeid.split("/")[-1]
+
+    def system_location(path):
+        resolved = pathlib.Path(os.path.abspath(path))
+        return len(resolved.parts) == 2 or resolved.parts[1:2] in (("etc",), ("root",), ("proc",))
+
+    def checked(file, *rest, **kwargs):
+        frame = sys._getframe(1)
+        while frame.f_code.co_filename.startswith(PATHLIB_SOURCE):
+            frame = frame.f_back
+        name = os.path.basename(frame.f_code.co_filename)
+        if (isinstance(file, (str, bytes, os.PathLike)) and name.startswith(("test_", "conftest"))
+                and system_location(os.fsdecode(file)) and not exempt_from(tail, SYSTEM_LOCATION_EXEMPT)):
+            raise AssertionError("%s opens the system location %s at %s:%d: uid 0 ignores what makes it fail"
+                                 % (request.node.nodeid, os.fsdecode(file), frame.f_code.co_filename, frame.f_lineno))
+        return real(file, *rest, **kwargs)
+
+    monkeypatch.setattr(io, "open", checked)
+    monkeypatch.setattr(builtins, "open", checked)
 
 
 @pytest.fixture

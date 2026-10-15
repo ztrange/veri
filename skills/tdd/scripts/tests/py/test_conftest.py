@@ -305,3 +305,51 @@ def test_a_case_that_forces_a_failure_through_permission_bits_fails_naming_the_f
     assert ran.returncode != 0, output
     assert "test_probe.py:5" in output, output
     assert "chmod" in output, output
+
+
+@pytest.mark.process("a child pytest session whose case reads a system location outside its tmp_path")
+def test_a_case_that_reads_a_system_location_outside_its_tmp_path_fails_naming_the_file_and_line_of_the_call(tmp_path):
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "def test_probe():\n"
+        "    open('/etc/hosts').read()\n")
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode != 0, output
+    assert "test_probe.py:2" in output, output
+    assert "/etc/hosts" in output, output
+
+
+@pytest.mark.process("a child pytest session whose case reads a system location outside its tmp_path")
+@pytest.mark.parametrize("location", ["/.veri-probe-absent", "/root/.profile", "/proc/self/status"])
+def test_a_case_that_reads_the_filesystem_root_root_or_proc_fails_naming_the_location_and_the_line(tmp_path, location):
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "def test_probe():\n"
+        "    open(%r).read()\n" % location)
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode != 0, output
+    assert "opens the system location %s at " % location in output, output
+    assert "test_probe.py:2" in output, output
+
+
+@pytest.mark.process("a child pytest session whose case reads a system location through pathlib")
+@pytest.mark.parametrize("read", ["read_text()", "open().read()"])
+def test_a_case_that_reads_a_system_location_through_pathlib_fails_naming_its_own_line_not_pathlibs(tmp_path, read):
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import pathlib\n"
+        "def test_probe():\n"
+        "    pathlib.Path('/etc/hosts').%s\n" % read)
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode != 0, output
+    assert "opens the system location /etc/hosts at " in output, output
+    assert "test_probe.py:3" in output, output
