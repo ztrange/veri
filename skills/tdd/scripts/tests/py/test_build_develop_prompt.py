@@ -1645,3 +1645,19 @@ def test_main_renders_a_revise_of_green_with_develop_greens_do_not_modify_the_te
         answers[revised] = (code, rule in out, wrong in out)
 
     assert answers == {"green": (0, True, True), "red": (0, False, False)}
+
+
+def test_main_renders_a_revise_of_green_declaring_a_suite_exempt_wrong_test_report_and_skill_md_routes_it_to_verify_green_1586(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+
+    code = build_develop_prompt.main(["revise", "green", str(spec), "s", "make test", str(reason)])
+    out = capsysbinary.readouterr().out.decode()
+    skill = (SCRIPTS.parent / "SKILL.md").read_text()
+    revising = skill.split("## Revising on a REJECT", 1)[1].split("\n## ", 1)[0]
+
+    declared = [l for l in out.splitlines() if l.startswith("REPORT-FORMAT ") and "keys WRONG_TEST:" in l]
+    assert (code, len(declared), "suite exempt" in " ".join(declared), "WRONG_TEST" in revising) == (0, 1, True, True)

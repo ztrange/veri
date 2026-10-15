@@ -2111,6 +2111,9 @@ A revise of red, green or refactor is built from a prompt that asks for no `SUIT
 exits 0 straight into its verifier and nothing checks for the line. The `diff` revise does ask for one:
 its check is stated under *A `⟦diff-checked⟧` step*.
 
+A revise of green whose leaf reports `WRONG_TEST: <why>` is exempt from the `SUITE:` line and reaches the same
+outcome a develop-green `WRONG_TEST:` stop does: the step goes on to verify-green, never a `report-missing` bail.
+
 For attempt `k = 1 … REVISE_BUDGET`:
 
 1. **Mirror.** Post a `### ♻️ Revise <phase> — attempt <k>/<REVISE_BUDGET>` comment carrying
