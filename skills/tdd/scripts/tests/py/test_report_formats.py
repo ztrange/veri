@@ -90,9 +90,17 @@ def test_1568_green_wrong_test_and_structural_skip_and_green_split_each_report_t
     assert not free_text, "\n".join(free_text)
 
 
+def run_suite_reported(run_cli, work, leaf, keys):
+    """(exit code, events text or None) of suite-reported.sh over a report made of `keys`."""
+    (work / ".tdd").mkdir(parents=True)
+    (work / ".tdd" / f"{leaf}.out").write_text("".join(f"{key} reported\n" for key in keys))
+    code, _, _ = run_cli(importlib.import_module("veri.suite_reported"), [leaf], env={"VERI_ISSUE": "1"}, cwd=work)
+    events = work / ".tdd" / "events.jsonl"
+    return code, events.read_text() if events.exists() else None
+
+
 @pytest.mark.tree_audit("every skills/tdd/scripts/prompts/develop-*.md prompt, includes expanded")
 def test_1568_suite_reported_passes_a_report_made_of_the_keys_of_each_exempt_format_a_real_prompt_declares(report_formats, run_cli, tmp_path):
-    suite_reported = importlib.import_module("veri.suite_reported")
     prompts = expanded_develop_prompts()
     refused = []
     for path, text in prompts:
@@ -100,13 +108,9 @@ def test_1568_suite_reported_passes_a_report_made_of_the_keys_of_each_exempt_for
         for declared in report_formats.parse(text):
             if declared["suite"] != "exempt":
                 continue
-            work = tmp_path / f"{leaf}-{declared['name']}"
-            (work / ".tdd").mkdir(parents=True)
-            (work / ".tdd" / f"{leaf}.out").write_text("".join(f"{key} reported\n" for key in declared["keys"]))
-            code, _, _ = run_cli(suite_reported, [leaf], env={"VERI_ISSUE": "1"}, cwd=work)
-            events = work / ".tdd" / "events.jsonl"
-            if code != 0 or events.exists():
-                refused.append(f"{leaf} / {declared['name']}: exit {code}, report-missing recorded: {events.exists()}")
+            code, events = run_suite_reported(run_cli, tmp_path / f"{leaf}-{declared['name']}", leaf, declared["keys"])
+            if code != 0 or events is not None:
+                refused.append(f"{leaf} / {declared['name']}: exit {code}, report-missing recorded: {events is not None}")
 
     assert prompts
     assert not refused, "\n".join(refused)
@@ -114,7 +118,6 @@ def test_1568_suite_reported_passes_a_report_made_of_the_keys_of_each_exempt_for
 
 @pytest.mark.tree_audit("every skills/tdd/scripts/prompts/develop-*.md prompt, includes expanded")
 def test_1568_suite_reported_refuses_a_report_of_each_suite_required_format_a_real_prompt_declares_when_it_has_no_suite_line(report_formats, run_cli, tmp_path):
-    suite_reported = importlib.import_module("veri.suite_reported")
     prompts = expanded_develop_prompts()
     passed = []
     cases = 0
@@ -124,13 +127,9 @@ def test_1568_suite_reported_refuses_a_report_of_each_suite_required_format_a_re
             if declared["suite"] != "required":
                 continue
             cases += 1
-            work = tmp_path / f"{leaf}-{declared['name']}"
-            (work / ".tdd").mkdir(parents=True)
-            (work / ".tdd" / f"{leaf}.out").write_text(
-                "".join(f"{key} reported\n" for key in declared["keys"] if key != "SUITE:"))
-            code, _, _ = run_cli(suite_reported, [leaf], env={"VERI_ISSUE": "1"}, cwd=work)
-            events = work / ".tdd" / "events.jsonl"
-            recorded = events.exists() and '"event": "report-missing"' in events.read_text()
+            keys = [key for key in declared["keys"] if key != "SUITE:"]
+            code, events = run_suite_reported(run_cli, tmp_path / f"{leaf}-{declared['name']}", leaf, keys)
+            recorded = events is not None and '"event": "report-missing"' in events
             if code != 2 or not recorded:
                 passed.append(f"{leaf} / {declared['name']}: exit {code}, report-missing recorded: {recorded}")
 
