@@ -42,3 +42,14 @@ def test_section_fails_the_calling_test_naming_the_heading_when_it_is_absent_and
         skill_sections.section(skill, "## Missing heading")
 
     assert "## Missing heading" in str(failure.value)
+
+
+def test_section_fails_the_calling_test_naming_the_heading_when_it_matches_only_a_non_heading_line(tmp_path):
+    skill_sections = importlib.import_module("skill_sections")
+    skill = tmp_path / "SKILL.md"
+    skill.write_text(SKILL)
+
+    with pytest.raises(pytest.fail.Exception) as failure:
+        skill_sections.section(skill, "intro")
+
+    assert "intro" in str(failure.value)
