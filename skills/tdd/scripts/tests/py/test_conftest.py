@@ -455,3 +455,23 @@ def test_a_permission_bits_exemption_with_a_reason_naming_an_existing_case_passe
     else:
         assert ran.returncode != 0, output
         assert "exemption" in output and named in output, output
+
+
+@pytest.mark.process("a child pytest session whose case touches the platform temp directory when it is /tmp")
+def test_a_case_that_creates_at_the_platform_temp_directory_when_it_is_tmp_passes(tmp_path):
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import os, tempfile\n"
+        "import pytest\n"
+        "def test_probe(monkeypatch):\n"
+        "    monkeypatch.setattr(tempfile, 'tempdir', '/tmp')\n"
+        "    with pytest.raises(FileExistsError):\n"
+        "        os.mkdir(tempfile.gettempdir())\n"
+        "    with pytest.raises(FileExistsError):\n"
+        "        os.mkdir('/tmp')\n")
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode == 0, output
+    assert "1 passed" in output, output
