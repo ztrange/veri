@@ -1,8 +1,11 @@
 """In-process cases for veri/rebase_onto_default.py, the module rebase-onto-default.sh is a shim over."""
 import importlib
 import os
+import pathlib
+import re
 import subprocess
 import sys
+import textwrap
 
 import pytest
 
@@ -595,3 +598,51 @@ def test_main_run_through_a_symlink_from_another_directory_rebases_the_callers_c
     assert (done.returncode, done.stdout, done.stderr) == (0, f"{pre}\n{onto}\n", "")
     assert git(clone, "rev-parse", "HEAD~1") == onto
     assert git(skill, "rev-parse", "HEAD") == skill_head
+
+
+@pytest.mark.process("git: a real resumed worktree whose tracked ledger carries an uncommitted append, discarded by the resume's own commands, then rebased onto a default branch that moved twice")
+def test_main_after_the_resume_discard_rebases_a_ledger_with_an_uncommitted_append_and_keeps_the_append_across_two_resumes_1547(
+        monkeypatch, tmp_path, rebase_onto_default, run_cli):
+    for who in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
+        monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
+    skill_md = pathlib.Path(__file__).resolve().parents[3] / "SKILL.md"
+    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
+                        skill_md.read_text(), re.S).group(1)
+
+    def git(repo, *args):
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
+
+    def commit(repo, name, body, message):
+        (repo / name).parent.mkdir(exist_ok=True)
+        (repo / name).write_text(body)
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "-m", message)
+
+    def resume(clone):
+        subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return run_cli(rebase_onto_default, [], cwd=clone)[0]
+
+    origin, seed, clone = tmp_path / "origin.git", tmp_path / "seed", tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    subprocess.run(["git", "init", "-q", "-b", "main", str(seed)], check=True)
+    commit(seed, "file.txt", "base\n", "initial")
+    git(seed, "push", "-q", str(origin), "main")
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], check=True, stderr=subprocess.DEVNULL)
+    git(clone, "checkout", "-q", "-b", "tdd/1-a-run")
+    commit(clone, ".tdd/issue-1.md", "- [x] step one\n", "plan: scope #1 (#1)")
+    commit(clone, "work.txt", "the run's work\n", "feat: a step's green commit (#1)")
+    ledger = clone / ".tdd" / "issue-1.md"
+    ledger.write_text(ledger.read_text() + "- [ ] step two ⟦added⟧\n")
+
+    commit(seed, "other.txt", "another run's work\n", "feat: another run merged (#2)")
+    git(seed, "push", "-q", str(origin), "main")
+    assert resume(clone) == 0
+    assert "- [ ] step two ⟦added⟧\n" in ledger.read_text()
+
+    commit(seed, "third.txt", "a third run's work\n", "feat: a third run merged (#3)")
+    git(seed, "push", "-q", str(origin), "main")
+    assert resume(clone) == 0
+    assert "- [ ] step two ⟦added⟧\n" in ledger.read_text()

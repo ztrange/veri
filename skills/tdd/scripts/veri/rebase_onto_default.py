@@ -53,13 +53,22 @@ def main(argv):
     pre = output("rev-parse", "HEAD")
     callers = any(pathlib.Path(path).is_dir() for path in output(
         "rev-parse", "--git-path", "rebase-merge", "--git-path", "rebase-apply").splitlines())
-    if git("rebase", "-q", onto, text=True, stdout=subprocess.DEVNULL).returncode != 0:
-        if callers or not rebase_in_progress():
-            return 2
-        conflicts = output("diff", "--name-only", "--diff-filter=U")
-        git("rebase", "--abort", text=True)
-        sys.stdout.write(f"{conflicts}\n")
-        return 1
+    dirty = output("status", "--porcelain", "--untracked-files=no", "--", ".tdd")
+    appends = output("diff", "HEAD", "--", ".tdd") if dirty else ""
+    if appends:
+        git("checkout", "HEAD", "--", ".tdd", text=True)
+    try:
+        rebased = git("rebase", "-q", onto, text=True, stdout=subprocess.DEVNULL).returncode == 0
+        if not rebased:
+            if callers or not rebase_in_progress():
+                return 2
+            conflicts = output("diff", "--name-only", "--diff-filter=U")
+            git("rebase", "--abort", text=True)
+            sys.stdout.write(f"{conflicts}\n")
+            return 1
+    finally:
+        if appends:
+            git("apply", text=True, input=appends + "\n")
     sys.stdout.write(f"{pre}\n{onto}\n")
     return 0
 
