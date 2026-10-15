@@ -11,6 +11,7 @@ import sys
 import pytest
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
+ROOT = SCRIPTS.parents[2]
 for path in (SCRIPTS, SCRIPTS / "veri"):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
@@ -68,9 +69,8 @@ def hermetic_environment(monkeypatch):
             monkeypatch.delenv(name)
         elif name == "LANG" or name.startswith("LC_"):
             monkeypatch.delenv(name)
-    root = SCRIPTS.parents[2]
-    if root in pathlib.Path.cwd().resolve().parents or pathlib.Path.cwd().resolve() == root:
-        monkeypatch.chdir(root)
+    if ROOT in pathlib.Path.cwd().resolve().parents or pathlib.Path.cwd().resolve() == ROOT:
+        monkeypatch.chdir(ROOT)
     monkeypatch.setenv("LC_ALL", "C")
     for name, value in offline.items():
         monkeypatch.setenv(name, value)
@@ -88,7 +88,7 @@ def unmarked_case_lists_no_repository_directory(request, monkeypatch, tmp_path):
         for name in ("scandir", "listdir"):
             monkeypatch.setattr(os, name, getattr(getattr(os, name), "real", getattr(os, name)))
         return
-    root, scratch = SCRIPTS.parents[2], tmp_path.resolve()
+    scratch = tmp_path.resolve()
 
     def checked(real):
         def lister(path="."):
@@ -103,7 +103,7 @@ def unmarked_case_lists_no_repository_directory(request, monkeypatch, tmp_path):
             listed = pathlib.Path(os.fsdecode(os.path.abspath(path))).resolve()
         except TypeError:
             return
-        if (listed == root or root in listed.parents) and scratch != listed and scratch not in listed.parents and listed.is_dir():
+        if (listed == ROOT or ROOT in listed.parents) and scratch != listed and scratch not in listed.parents and listed.is_dir():
             raise AssertionError("%s lists the repository directory %s: mark it tree_audit" % (request.node.nodeid, listed))
 
     for name in ("scandir", "listdir"):
