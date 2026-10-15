@@ -475,3 +475,22 @@ def test_a_case_that_creates_at_the_platform_temp_directory_when_it_is_tmp_passe
     output = ran.stdout + ran.stderr
     assert ran.returncode == 0, output
     assert "1 passed" in output, output
+
+
+@pytest.mark.process("a child pytest session whose case opens a tempfile.TemporaryFile under /tmp, its open of /tmp attributed to the case")
+def test_a_case_that_opens_a_tempfile_temporaryfile_passes_the_system_location_guard(tmp_path):
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import inspect, tempfile, textwrap\n"
+        "def test_probe(monkeypatch):\n"
+        "    monkeypatch.setattr(tempfile, 'tempdir', '/tmp')\n"
+        "    scope = dict(vars(tempfile))\n"
+        "    exec(compile(textwrap.dedent(inspect.getsource(tempfile.TemporaryFile)), __file__, 'exec'), scope)\n"
+        "    with scope['TemporaryFile']() as handle:\n"
+        "        handle.write(b'x')\n")
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode == 0, output
+    assert "1 passed" in output, output
