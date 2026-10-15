@@ -249,6 +249,23 @@ diff_checked="$(doc_text "$skill_path" '#### A `⟦diff-checked⟧` step' "")"
 [[ "$diff_checked" == *'suite-reported.sh revise-diff-<k>'* ]] || problems+=("diff-checked step: never runs suite-reported.sh revise-diff-<k>, the leaf the conductor launches")
 report "$name"
 
+name="#1568: $skill_md runs suite-reported.sh develop-green between the leaf's wait and verify-green's launch, and keeps a looks-wrong green's REJECT rather than a report-missing bail"
+problems=()
+green="$(doc_text "$skill_path" '#### Green' "")"
+if [[ "$green" != *'suite-reported.sh develop-green'* ]]; then
+  problems+=("Green section: never runs suite-reported.sh develop-green")
+else
+  before_check="${green%%suite-reported.sh develop-green*}"
+  [[ "$before_check" == *'wait-leaf.sh develop-green'* ]] || problems+=("Green section: the check does not come after develop-green's wait")
+  [[ "$before_check" != *'supervise.sh verdict-green'* ]] || problems+=("Green section: the check comes after verify-green is launched")
+  after_check="${green#*suite-reported.sh develop-green}"
+  after_check="${after_check:0:1200}"
+  [[ "$after_check" == *'report-missing'* ]] || problems+=("Green section: never names the report-missing bail for a missing SUITE: line")
+  [[ "$after_check" =~ looks\ wrong ]] || problems+=("Green section: never says a green that stops because the test looks wrong is exempt")
+  [[ "$after_check" == *reject* ]] || problems+=("Green section: never says that green keeps its verify-green REJECT outcome")
+fi
+report "$name"
+
 name="#991: doc_text given the from regex '^5\. ' starts at the line '5. y', not at '5x y'"
 fixture="$(scratch_dir)/doc.md"
 printf '## Section\n5x y\n5. y\n' > "$fixture"
