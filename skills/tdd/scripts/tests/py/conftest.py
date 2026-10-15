@@ -127,6 +127,10 @@ STARTS_PYTEST_EXEMPT = {
 }
 
 
+def exempt_from(tail, table):
+    return tail in table or tail.split("::")[0] in table
+
+
 STARTS_GIT_IN_REPOSITORY_EXEMPT = {
     "test_supervise.py": "supervise.py records the skill clone's own HEAD; the case only lets it run rev-parse HEAD there",
     "test_rebase_onto_default.py::test_main_run_through_a_symlink_from_another_directory_rebases_the_callers_clone_and_never_the_skills_repository":
@@ -183,8 +187,7 @@ def case_starts_no_test_runner(request, monkeypatch):
         command = " ".join(os.fsdecode(w) for w in words)
         directory = git_directory(words, kwargs.get("cwd")) if words else None
         tail = request.node.nodeid.split("/")[-1]
-        exempt = tail in STARTS_GIT_IN_REPOSITORY_EXEMPT or tail.split("::")[0] in STARTS_GIT_IN_REPOSITORY_EXEMPT
-        if directory is not None and not exempt and in_repository(directory):
+        if directory is not None and not exempt_from(tail, STARTS_GIT_IN_REPOSITORY_EXEMPT) and in_repository(directory):
             raise AssertionError("%s starts git against the repository the tests live in: %s (%s)" % (request.node.nodeid, directory, command))
         if words and (is_suite(words[0]) or (os.path.basename(os.fsdecode(words[0])) in ("bash", "sh") and any(is_suite(w) for w in words[1:]))):
             raise AssertionError("%s starts a bash suite: %s" % (request.node.nodeid, command))
@@ -207,7 +210,7 @@ def case_forces_no_failure_through_permission_bits(request, monkeypatch):
         frame = sys._getframe(1)
         while os.path.basename(frame.f_code.co_filename) in ("pathlib.py", "pathlib"):
             frame = frame.f_back
-        if mode & 0o600 != 0o600 and tail not in PERMISSION_BITS_EXEMPT and tail.split("::")[0] not in PERMISSION_BITS_EXEMPT:
+        if mode & 0o600 != 0o600 and not exempt_from(tail, PERMISSION_BITS_EXEMPT):
             raise AssertionError("%s takes permission bits off %s with chmod at %s:%d: uid 0 ignores them"
                                  % (request.node.nodeid, path, frame.f_code.co_filename, frame.f_lineno))
         return real(path, mode, *rest, **kwargs)
