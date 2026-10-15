@@ -151,10 +151,11 @@ def case_starts_no_test_runner(request, monkeypatch):
         words = [args] if isinstance(args, (str, bytes, os.PathLike)) else list(args)
         if isinstance(args, str) and kwargs.get("shell"):
             words = shlex.split(args)
+        command = " ".join(os.fsdecode(w) for w in words)
         if words and (is_suite(words[0]) or (os.path.basename(os.fsdecode(words[0])) in ("bash", "sh") and any(is_suite(w) for w in words[1:]))):
-            raise AssertionError("%s starts a bash suite: %s" % (request.node.nodeid, " ".join(os.fsdecode(w) for w in words)))
+            raise AssertionError("%s starts a bash suite: %s" % (request.node.nodeid, command))
         if words and is_pytest(words) and not from_exempt_helper() and request.node.nodeid.split('/')[-1] not in STARTS_PYTEST_EXEMPT:
-            raise AssertionError("%s starts pytest: %s" % (request.node.nodeid, " ".join(os.fsdecode(w) for w in words)))
+            raise AssertionError("%s starts pytest: %s" % (request.node.nodeid, command))
         return real(self, args, *rest, **kwargs)
 
     monkeypatch.setattr(subprocess.Popen, "__init__", checked)
