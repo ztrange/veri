@@ -68,6 +68,8 @@ def main(argv):
         return refuse(USAGE)
     if criterion is not None and not re.fullmatch("[1-9][0-9]*", criterion):
         return refuse("add-ledger-step.sh: --criterion must be a whole number >= 1: " + criterion)
+    if planned and not criterion:
+        return refuse("add-ledger-step.sh: --planned requires --criterion")
     path, where, anchor, *texts = argv
     if where not in ("after", "before", "instead-of"):
         return refuse("add-ledger-step.sh: position must be after, before or instead-of: " + where)
@@ -84,6 +86,8 @@ def main(argv):
     refusal = multi_tag_refusal(records)
     if refusal:
         return refuse("add-ledger-step.sh: " + refusal)
+    if planned and any(criterion_of(line) == criterion for line in lines if ledger_steps(line)):
+        return refuse("add-ledger-step.sh: --planned: a step already serves criterion " + criterion)
     if sum(1 for line in lines if is_anchor_step(line, anchor)) != 1:
         return refuse("add-ledger-step.sh: anchor matches no single step: " + anchor)
     budget = tunables.read("VERI_STEP_GROWTH", "5")

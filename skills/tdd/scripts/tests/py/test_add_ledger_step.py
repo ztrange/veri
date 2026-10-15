@@ -648,3 +648,15 @@ def test_main_planned_criterion_k_inserts_unmarked_steps_that_do_not_count_towar
         "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
         "- [ ] t ⟦criterion 7⟧\n- [ ] u ⟦criterion 7⟧\n- [ ] c three ⟦criterion 3⟧\n",
     )
+
+
+def test_main_planned_without_criterion_or_with_a_criterion_a_step_already_serves_refuses_with_2_and_one_stderr_line_writing_nothing_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
+    ledger = tmp_path / "issue-42.md"
+    got = {}
+    for name, flags in (("none", []), ("served", ["--criterion", "2"])):
+        ledger.write_bytes(LEDGER)
+        code = add_ledger_step.main(["--planned", *flags, str(ledger), "after", "b two", "t"])
+        out, err = capsys.readouterr()
+        got[name] = (code, out, err.count("\n"), ledger.read_bytes() == LEDGER)
+    assert got == {name: (2, "", 1, True) for name in ("none", "served")}
