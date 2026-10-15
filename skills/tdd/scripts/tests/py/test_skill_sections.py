@@ -1,6 +1,8 @@
 """Cases for the shared helper that returns one section of a SKILL.md by its heading."""
 import importlib
 
+import pytest
+
 SKILL = (
     "# Title\n"
     "intro\n"
@@ -29,3 +31,14 @@ def test_section_returns_only_the_named_section_up_to_the_next_heading_of_the_sa
     assert "alpha body" not in sub and "two body" not in sub and "beta body" not in sub
     assert "alpha body" in top and "one body" in top and "two body" in top
     assert "beta body" not in top and "intro" not in top
+
+
+def test_section_fails_the_calling_test_naming_the_heading_when_it_is_absent_and_never_returns_the_whole_file(tmp_path):
+    skill_sections = importlib.import_module("skill_sections")
+    skill = tmp_path / "SKILL.md"
+    skill.write_text(SKILL)
+
+    with pytest.raises(pytest.fail.Exception) as failure:
+        skill_sections.section(skill, "## Missing heading")
+
+    assert "## Missing heading" in str(failure.value)
