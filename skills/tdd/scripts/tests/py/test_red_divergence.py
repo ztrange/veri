@@ -196,6 +196,7 @@ def test_main_1468_reports_a_prediction_file_that_does_not_exist_as_exit_1_namin
 
     assert code == 1
     assert "prediction not written before the run" in out + err
+    assert "does not exist" in err
 
 
 def test_main_1468_reports_a_prediction_file_newer_than_the_run_output_as_the_same_exit_1_naming_that_the_prediction_was_not_written_before_the_run(monkeypatch, capsys, red_divergence, tmp_path):
@@ -211,6 +212,7 @@ def test_main_1468_reports_a_prediction_file_newer_than_the_run_output_as_the_sa
 
     assert code == 1
     assert "prediction not written before the run" in out + err
+    assert "newer than the run output" in err
 
 
 @pytest.mark.parametrize("predicted", ["PREDICTED_FAILURE: boom\n", ""], ids=["predicts-boom", "predicts-nothing"])
@@ -228,16 +230,48 @@ def test_main_1468_never_answers_matched_for_an_empty_prediction_file_written_be
     assert code != 3
 
 
-def test_main_1468_judges_a_prediction_file_whose_content_differs_from_the_report_predicted_failure_by_the_file_and_quotes_its_content_as_predicted_failure(monkeypatch, capsys, red_divergence, tmp_path):
+def test_main_1468_names_an_empty_prediction_file_as_the_reason_a_matched_report_is_not_matched(monkeypatch, capsys, red_divergence, tmp_path):
     output = tmp_path / "develop-red.out"
     prediction = tmp_path / "red-prediction.md"
     output.write_text("FAIL_OUTPUT: boom\nPREDICTION: MATCHED")
-    prediction.write_text("slugify: command not found")
+    prediction.write_text("\n")
     os.utime(prediction, (1000, 1000))
     os.utime(output, (2000, 2000))
 
     matched = "PREDICTED_FAILURE: boom\nFAIL_OUTPUT: boom\nPREDICTION: MATCHED"
     code, out, err = run(monkeypatch, capsys, red_divergence, matched, [str(prediction), str(output)])
+
+    assert code == 0
+    assert f"the prediction file {prediction} is empty" in out
+
+
+# v0.481 also ruled DIVERGED when the file's content differed from the report's PREDICTED_FAILURE:
+# line. That rule is withdrawn: develop-red.md and develop-revise.md ask for a multi-line file
+# (assertion, values, message shape) and a one-line report field, so the two never match byte for
+# byte and every correct prediction was ruled diverged (#1568's bail). The leaf's own verdict stands.
+def test_main_1468_answers_matched_for_a_multi_line_prediction_file_that_differs_from_the_report_predicted_failure_line(monkeypatch, capsys, red_divergence, tmp_path):
+    output = tmp_path / "develop-red.out"
+    prediction = tmp_path / "red-prediction.md"
+    output.write_text("FAIL_OUTPUT: boom\nPREDICTION: MATCHED")
+    prediction.write_text("Assertion fires on `assert slug == 'a-b'`.\n\nObserved 'A B' vs expected 'a-b'.\n")
+    os.utime(prediction, (1000, 1000))
+    os.utime(output, (2000, 2000))
+
+    matched = "PREDICTED_FAILURE: assert slug == 'a-b' fires, 'A B' vs 'a-b'\nFAIL_OUTPUT: boom\nPREDICTION: MATCHED"
+
+    assert run(monkeypatch, capsys, red_divergence, matched, [str(prediction), str(output)]) == (3, "", "")
+
+
+def test_main_1468_quotes_the_prediction_file_as_predicted_failure_when_the_leaf_reports_diverged(monkeypatch, capsys, red_divergence, tmp_path):
+    output = tmp_path / "develop-red.out"
+    prediction = tmp_path / "red-prediction.md"
+    output.write_text("FAIL_OUTPUT: boom\nPREDICTION: DIVERGED")
+    prediction.write_text("slugify: command not found")
+    os.utime(prediction, (1000, 1000))
+    os.utime(output, (2000, 2000))
+
+    diverged = "PREDICTED_FAILURE: boom\nFAIL_OUTPUT: boom\nPREDICTION: DIVERGED"
+    code, out, err = run(monkeypatch, capsys, red_divergence, diverged, [str(prediction), str(output)])
 
     assert code == 0
     assert "PREDICTED_FAILURE: slugify: command not found\n" in out

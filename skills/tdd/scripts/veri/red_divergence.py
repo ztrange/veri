@@ -19,10 +19,12 @@ def names_prediction_file(argv):
 
 def prediction_unwritten_before_run(argv):
     if not names_prediction_file(argv):
-        return False
+        return None
     if not os.path.exists(argv[0]):
-        return True
-    return len(argv) > 1 and os.path.getmtime(argv[0]) > os.path.getmtime(argv[1])
+        return f"{argv[0]} does not exist"
+    if len(argv) > 1 and os.path.getmtime(argv[0]) > os.path.getmtime(argv[1]):
+        return f"{argv[0]} is newer than the run output {argv[1]}"
+    return None
 
 
 def prediction_file_content(argv):
@@ -33,8 +35,9 @@ def prediction_file_content(argv):
 
 
 def main(argv):
-    if prediction_unwritten_before_run(argv):
-        sys.stderr.write("prediction not written before the run\n")
+    unwritten = prediction_unwritten_before_run(argv)
+    if unwritten:
+        sys.stderr.write(f"prediction not written before the run: {unwritten}\n")
         return 1
     report = sys.stdin.buffer.read().decode(errors="surrogateescape")
     fields = report_read(report, ("PREDICTION", *REASON_KEYS))
@@ -43,9 +46,9 @@ def main(argv):
         prediction = prediction[:-1]
     content = prediction_file_content(argv)
     if content is not None:
-        reported = fields.get("PREDICTED_FAILURE", "").strip()
-        if prediction == "MATCHED" and (not content or content != reported):
+        if prediction == "MATCHED" and not content:
             prediction = "DIVERGED"
+            fields["PREDICTION_NOTE"] = f"the prediction file {argv[0]} is empty"
         fields["PREDICTED_FAILURE"] = content
     if prediction == "MATCHED":
         return 3
