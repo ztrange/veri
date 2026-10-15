@@ -106,4 +106,18 @@ else
   no "$name (missing:$missing)"
 fi
 
+name="#1579: SKILL.md's add-ledger-step.sh entry documents --planned (no ⟦added⟧, not counted toward VERI_STEP_GROWTH) and its exit-2 refusals: no --criterion, an already-served criterion, a k not unticked in the issue body"
+entry="$(sed -n '/^- `\$S\/add-ledger-step\.sh /,/^- `\$S\/classify-bail\.sh/p' "$HERE/../../SKILL.md")"
+missing=""
+printf '%s\n' "$entry" | grep -F -- '--planned' | grep -F 'VERI_STEP_GROWTH' > /dev/null || missing="$missing [--planned not counted toward VERI_STEP_GROWTH]"
+printf '%s\n' "$entry" | grep -F -- '--planned' | grep -F '⟦added⟧' > /dev/null || missing="$missing [--planned without ⟦added⟧]"
+printf '%s\n' "$entry" | grep -F -- '--planned without --criterion' > /dev/null || missing="$missing [exit 2: --planned without --criterion]"
+printf '%s\n' "$entry" | grep -F 'already serves' > /dev/null || missing="$missing [exit 2: a criterion a ledger step already serves]"
+printf '%s\n' "$entry" | grep -F 'unticked in the issue body' > /dev/null || missing="$missing [exit 2: k not unticked in the issue body]"
+if [[ -z "$missing" ]]; then
+  ok
+else
+  no "$name (missing:$missing)"
+fi
+
 finish
