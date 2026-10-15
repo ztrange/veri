@@ -217,4 +217,28 @@ probe_runner_overrides_callers_locale
 
 report "$name"
 
+name="run-suite.sh starts a suite with stdin from /dev/null whatever the caller's stdin is (#1468)"
+problems=()
+
+probe_runner_closes_suite_stdin() {
+  local tree out code
+  tree="$(scratch_dir)" || {
+    problems+=("could not make a scratch directory, so the question went unasked")
+    return 1
+  }
+  cat > "$tree/stdin.test.sh" <<'SUITE'
+#!/usr/bin/env bash
+set -uo pipefail
+echo "stdin=[$(cat)]"
+echo "1 passed, 0 failed"
+SUITE
+  chmod +x "$tree/stdin.test.sh"
+  out="$(printf 'from the caller' | "$RUNNER" "$tree/stdin.test.sh" 2>&1)" && code=0 || code=$?
+  expect_eq "what the suite read from its stdin under the runner" "stdin=[]" "${out%%$'\n'*}"
+}
+
+probe_runner_closes_suite_stdin
+
+report "$name"
+
 finish
