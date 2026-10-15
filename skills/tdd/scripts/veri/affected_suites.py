@@ -195,6 +195,11 @@ def pytest_readers(*needles):
     return [p for p in suites(SCRIPTS + "/tests/py/test_*.py") if re.search(pattern, read(p) or b"")]
 
 
+def pytest_whole_readers():
+    return [p for p in suites(SCRIPTS + "/tests/py/test_*.py")
+            if b"SKILL.md" in (read(p) or b"") and not re.search(rb"section\(", read(p))]
+
+
 def suite_of(f, revisions=None):
     def match(*patterns):
         return any(fnmatch.fnmatchcase(f, p) for p in patterns)
@@ -206,7 +211,7 @@ def suite_of(f, revisions=None):
             readers = suites_naming(*forms(*section))
             slicers = [s for s in suites_naming(*forms(*headings(f))) if reads_only_through_slicers(s, f)]
             return ([s for s in naming if s in readers or s not in slicers]
-                    + pytest_readers(*forms(*section)))
+                    + pytest_readers(*forms(*section)) + pytest_whole_readers())
         return naming
     if match(SCRIPTS + "/tests/*.test.sh", SCRIPTS + "/tests/py/test_*.py"):
         return existing(f)
