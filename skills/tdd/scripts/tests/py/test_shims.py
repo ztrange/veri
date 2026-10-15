@@ -78,3 +78,17 @@ def test_entry_bypass_problems_names_the_module_whose_main_block_exits_bare_as_m
     problems = entry_bypass_problems(tmp_path)
 
     assert [line.split(" ")[0] for line in problems] == ["bare.py:8"]
+
+
+def test_entry_bypass_problems_names_the_module_whose_single_quoted_main_test_block_exits_bare_as_module_and_line(tmp_path):
+    """Its subject is source text: planted shims and module files, read as text and never run."""
+    from conftest import entry_bypass_problems
+
+    (tmp_path / "veri").mkdir()
+    shim(tmp_path / "quoted.sh", 'exec python3 "$(dirname "$0")/veri/quoted.py" "$@"')
+    (tmp_path / "veri" / "quoted.py").write_text(
+        "import sys\n\n\ndef main(argv):\n    return 0\n\n\nif __name__ == '__main__':\n    sys.exit(main(sys.argv[1:]))\n")
+
+    problems = entry_bypass_problems(tmp_path)
+
+    assert [line.split(" ")[0] for line in problems] == ["quoted.py:8"]
