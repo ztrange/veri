@@ -287,3 +287,21 @@ def test_a_case_that_starts_git_from_the_directory_of_the_module_under_test_fail
     assert ran.returncode != 0, output
     assert "test_probe.py::test_probe" in output, output
     assert str(module_directory) in output, output
+
+
+@pytest.mark.process("a child pytest session whose case takes the permission bits off a file with os.chmod")
+def test_a_case_that_forces_a_failure_through_permission_bits_fails_naming_the_file_and_line_of_the_chmod_call(tmp_path):
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import os\n"
+        "def test_probe(tmp_path):\n"
+        "    target = tmp_path / 'unreadable'\n"
+        "    target.write_text('x')\n"
+        "    os.chmod(target, 0o000)\n")
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode != 0, output
+    assert "test_probe.py:5" in output, output
+    assert "chmod" in output, output
