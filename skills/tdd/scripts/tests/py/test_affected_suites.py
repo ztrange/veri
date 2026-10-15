@@ -549,8 +549,13 @@ def test_main_prints_a_pytest_file_importing_the_section_helper_under_another_na
         0, "skills/tdd/scripts/tests/py/test_alias.py\n", "")
 
 
-def test_main_prints_a_pytest_file_with_a_literal_heading_and_an_unrelated_open_for_an_edit_in_a_section_the_call_does_not_name_1581(
-        tmp_path, monkeypatch, capsys, affected):
+@pytest.mark.parametrize("read", [
+    'open("fixture.json").read()',
+    'pathlib.Path("fixture.json").read_text()',
+    'pathlib.Path("fixture.json").read_bytes()',
+])
+def test_main_prints_a_pytest_file_with_a_literal_heading_and_an_unrelated_file_read_for_an_edit_in_a_section_the_call_does_not_name_1581(
+        tmp_path, monkeypatch, capsys, affected, read):
     skill = "skills/tdd/SKILL.md"
 
     def fake_run(args, **kwargs):
@@ -569,6 +574,6 @@ def test_main_prints_a_pytest_file_with_a_literal_heading_and_an_unrelated_open_
     py = tmp_path / "skills/tdd/scripts/tests/py"
     py.mkdir(parents=True)
     (tmp_path / skill).write_text("## Alpha\nalpha body\n## Beta\nbeta body\n")
-    (py / "test_open.py").write_text('section(SKILL, "## Alpha")\ndata = open("fixture.json").read()\n')
+    (py / "test_open.py").write_text('section(SKILL, "## Alpha")\ndata = %s\n' % read)
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
         0, "skills/tdd/scripts/tests/py/test_open.py\n", "")
