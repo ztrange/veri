@@ -241,4 +241,40 @@ probe_runner_closes_suite_stdin
 
 report "$name"
 
+name="run-suite.sh puts tests/unit-guard then tests/offline first on a tests/unit/ suite's PATH whatever the caller exported (#1468)"
+problems=()
+
+probe_runner_puts_guards_first_on_path() {
+  local tree scripts out code
+  tree="$(scratch_dir)" || {
+    problems+=("could not make a scratch directory, so the question went unasked")
+    return 1
+  }
+  scripts="$tree/skills/tdd/scripts"
+  mkdir -p "$scripts/lib" "$scripts/tests/unit" &&
+    cp "$ROOT/skills/tdd/scripts/run-suite.sh" "$scripts/" &&
+    cp -R "$ROOT/skills/tdd/scripts/veri" "$scripts/" &&
+    cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$scripts/lib/" &&
+    cp -R "$ROOT/skills/tdd/scripts/tests/offline" "$ROOT/skills/tdd/scripts/tests/unit-guard" "$scripts/tests/" || {
+    problems+=("could not copy the runner into the scratch tree, so the question went unasked")
+    return 1
+  }
+  cat > "$scripts/tests/unit/path.test.sh" <<'SUITE'
+#!/usr/bin/env bash
+set -uo pipefail
+IFS=: read -r first second _ <<< "$PATH"
+echo "first=$first second=$second"
+echo "1 passed, 0 failed"
+SUITE
+  chmod +x "$scripts/tests/unit/path.test.sh"
+  out="$(env -u OFFLINE_REACH_LOG -u UNIT_GUARD_LOG PATH="/caller/bin:$PATH" \
+    "$scripts/run-suite.sh" "$scripts/tests/unit/path.test.sh" 2>&1 < /dev/null)" && code=0 || code=$?
+  expect_eq "the first two PATH entries of a tests/unit/ suite under the runner" \
+    "first=$scripts/tests/unit-guard second=$scripts/tests/offline" "${out%%$'\n'*}"
+}
+
+probe_runner_puts_guards_first_on_path
+
+report "$name"
+
 finish
