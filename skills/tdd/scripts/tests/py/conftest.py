@@ -83,6 +83,10 @@ def small_case_guard(request, monkeypatch):
         monkeypatch.setenv("PATH", str(SCRIPTS / "tests" / "unit-guard") + os.pathsep + os.environ.get("PATH", ""))
 
 
+def in_repository_outside(resolved, scratch):
+    return (resolved == ROOT or ROOT in resolved.parents) and scratch != resolved and scratch not in resolved.parents
+
+
 @pytest.fixture(autouse=True)
 def unmarked_case_lists_no_repository_directory(request, monkeypatch, tmp_path):
     if request.node.get_closest_marker("tree_audit") is not None:
@@ -104,7 +108,7 @@ def unmarked_case_lists_no_repository_directory(request, monkeypatch, tmp_path):
             listed = pathlib.Path(os.fsdecode(os.path.abspath(path))).resolve()
         except TypeError:
             return
-        if (listed == ROOT or ROOT in listed.parents) and scratch != listed and scratch not in listed.parents and listed.is_dir():
+        if in_repository_outside(listed, scratch) and listed.is_dir():
             raise AssertionError("%s lists the repository directory %s: mark it tree_audit" % (request.node.nodeid, listed))
 
     for name in ("scandir", "listdir"):
@@ -167,7 +171,7 @@ def case_starts_no_test_runner(request, monkeypatch):
     def in_repository(directory):
         scratch = request.getfixturevalue("tmp_path").resolve()
         resolved = pathlib.Path(os.path.abspath(directory)).resolve()
-        return (resolved == ROOT or ROOT in resolved.parents) and scratch != resolved and scratch not in resolved.parents
+        return in_repository_outside(resolved, scratch)
 
     def checked(self, args, *rest, **kwargs):
         words = [args] if isinstance(args, (str, bytes, os.PathLike)) else list(args)
