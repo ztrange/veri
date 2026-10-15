@@ -16,6 +16,6 @@
 - [x] A pytest case that creates a file at a system location outside its tmp_path through os.open with O_CREAT (e.g. /.tdd) fails the run naming the file:line of the call ⟦added⟧ ⟦criterion 6⟧
 - [x] The system-location guard never treats the platform temp directory (/tmp, tempfile.gettempdir()) as a system location: a case that opens a tempfile.TemporaryFile, or creates under /tmp, passes, so the pytest leg passes on Linux CI where tempfile opens under /tmp ⟦added⟧ ⟦criterion 6⟧
 - [x] A pytest case that opens a tempfile.TemporaryFile passes the system-location guard ⟦added⟧ ⟦criterion 6⟧
-- [x] A SYSTEM_LOCATION_EXEMPT entry with no reason fails the run naming the entry, pinned by a planted entry ⟦added⟧ ⟦criterion 7⟧ ⟂ refactor pending
+- [x] A SYSTEM_LOCATION_EXEMPT entry with no reason fails the run naming the entry, pinned by a planted entry ⟦added⟧ ⟦criterion 7⟧
 - [ ] An entry with no reason in any other exemption table the guards read (STARTS_PYTEST_EXEMPT, STARTS_GIT_IN_REPOSITORY_EXEMPT) fails the run naming the entry, pinned by a planted entry per table ⟦added⟧ ⟦criterion 7⟧
 - [ ] The pytest leg passes as a whole ⟦full-suite⟧ ⟦criterion 4⟧
