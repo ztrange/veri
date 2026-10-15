@@ -247,3 +247,22 @@ def test_a_case_that_only_carries_a_suite_path_or_a_pytest_node_id_as_an_argumen
     ran = child_pytest(tmp_path, probe, os.environ)
 
     assert ran.returncode == 0, ran.stdout + ran.stderr
+
+
+@pytest.mark.process("a child pytest session whose case starts git with -C on the repository the tests live in")
+def test_a_case_that_starts_git_against_the_repository_the_tests_live_in_fails_naming_the_case_and_the_path(tmp_path):
+    repository = pathlib.Path(__file__).resolve().parents[4]
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import subprocess\n"
+        "import pytest\n"
+        "@pytest.mark.process('git -C on the repository root')\n"
+        "def test_probe():\n"
+        "    subprocess.run(['git', '-C', %r, 'rev-parse', 'HEAD'], capture_output=True)\n" % str(repository / "skills"))
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode != 0, output
+    assert "test_probe.py::test_probe" in output, output
+    assert str(repository / "skills") in output, output
