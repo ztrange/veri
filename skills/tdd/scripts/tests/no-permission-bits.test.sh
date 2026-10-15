@@ -29,6 +29,8 @@ declare -A EXEMPT=(
   ["skills/tdd/scripts/tests/no-permission-bits.test.sh:PLANT_SYSTEM_PATH='    assert (code, out, err.startswith(\"mkdir: /"".tdd: \")) == (1, \"\", True)'"]="the system-path plant this guard is proven against, text written into a scratch fixture, never run"
   ['skills/tdd/scripts/tests/no-permission-bits.test.sh:name="a planted pytest line relying on /'.tdd' being unwritable to force a mkdir failure turns the guard red, naming <suite>:<line> (#860)"']="a case name quoting the path it plants, never a path the suite touches"
   ['skills/tdd/scripts/tests/py/test_conftest.py:        "    os.chm'"od"'(target, 0o000)\n")']="probe text written into a scratch fixture for a child pytest session that the conftest guard must turn red, never run in this suite"
+  ['skills/tdd/scripts/tests/py/test_conftest.py:        "    os.mkdir('"'"'/'".tdd"''"'"')\n")']="probe text written into a scratch fixture for a child pytest session that the conftest guard must turn red, never run in this suite"
+  ['skills/tdd/scripts/tests/py/test_conftest.py:    assert "creates the system location /'".tdd"' at " in output, output']="the output the child pytest session's guard must name, never opened in this suite"
   ['skills/tdd/scripts/tests/py/test_conftest.py:@pytest.mark.parametrize("location", ["/.veri-probe-absent", "/'"root/.profile"'", "/'"proc/self/status"'"])']="probe paths written into a scratch fixture for a child pytest session that the conftest guard must turn red, never opened in this suite"
 )
 
