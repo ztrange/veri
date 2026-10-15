@@ -6,3 +6,5 @@
 ### run-suite.sh puts make test's PATH guards in front of a suite: a suite that calls `gh` or `curl` under run-suite.sh fails naming the reach as under `make test`, and a suite under tests/unit/ that starts a real `git` or `python3` process is refused by the unit guard as under `make test` ⟦criterion 1⟧
 - test-only | `run-suite-offline.test.sh` repeats the same "scratch_dir or push a problem and return" preamble and the `chmod +x` stub writing in all four probes, so a shared helper could replace them
 - out-of-scope | the `make test` recipe in the Makefile and `run_suite.py` both spell out the offline settings (`http.proxy`, `protocol.allow`, the dead-proxy variables), so one definition could serve both. That code is not this cycle's.
+### The develop-red prompt and the develop-revise prompt for a redone red name a prediction file and tell the leaf to write its prediction there before it runs any suite ⟦criterion 2⟧
+- out-of-scope | `prompt-test-tiers.test.sh` and `build-develop-prompt.test.sh` repeat each prompt's checksum pins; a shared include for the prediction sentence would also have to re-pin them
