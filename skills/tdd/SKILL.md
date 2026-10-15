@@ -577,18 +577,28 @@ unauthenticated baseline never gets a cycle.
    stray="$(git status --porcelain)"
    stray="$(grep -v '^.. \.tdd/' <<< "$stray")"
    appends="$(git diff HEAD -U0 -- .tdd | awk '
-     function emit() { if (hunk != "" && !del) { if (!shown) { printf "%s", hdr; shown = 1 } printf "%s", hunk } hunk = ""; del = 0 }
+     function num(f) { sub(/^[-+]/, "", f); split(f, p, ","); return p[1] + 0 }
+     function emit(   o, n, c) {
+       if (hunk != "") {
+         if (!nm) out = hunk
+         else if (na > nm) { o = num(hf[2]) + nm - 1; n = num(hf[3]) + nm; out = "@@ -" o ",0 +" n "," na - nm " @@\n" adds }
+         else out = ""
+         if (out != "") { if (!shown) { printf "%s", hdr; shown = 1 } printf "%s", out }
+       }
+       hunk = ""; adds = ""; nm = 0; na = 0
+     }
      /^diff --git/ { emit(); hdr = $0 "\n"; shown = 0; head = 1; next }
      head && !/^@@/ { hdr = hdr $0 "\n"; next }
-     /^@@/ { emit(); head = 0; hunk = $0 "\n"; next }
-     { hunk = hunk $0 "\n"; if (/^-/) del = 1 }
+     /^@@/ { emit(); head = 0; hunk = $0 "\n"; split($0, hf, " "); next }
+     { hunk = hunk $0 "\n"; if (/^-/) nm++; else if (/^\+/) { na++; if (na > nm) adds = adds $0 "\n" } }
      END { emit() }')"
    git reset --hard HEAD
    git clean -fd -e .tdd
    [[ -z "$appends" ]] || git apply --unidiff-zero <<< "$appends"
    ```
-   The `awk` keeps only the hunks that add lines and removes none: a ledger tick rewrites a line, so a
-   tick whose green commit the kill prevented is dropped with the code it ticks.
+   The `awk` judges per changed line: a ledger tick rewrites a line, so the lines a hunk removes and the
+   lines that replace them are dropped — a tick whose green commit the kill prevented goes with the code it
+   ticks — and any further line the hunk adds is kept.
    Keep this `$stray` for *Resume* sub-step 4 to name. Then the resumed run, its worktree
    clean and its ledger untouched, runs
    `$S/rebase-onto-default.sh` before its baseline, so the baseline runs on the rebased tip.
