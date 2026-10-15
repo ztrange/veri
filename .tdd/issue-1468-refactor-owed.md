@@ -1,0 +1,2 @@
+### run-suite.sh runs a suite under make test's offline git and locale: a suite case that starts `git fetch` against an unreachable https origin is refused by git's transport allowlist under run-suite.sh exactly as under `make test` (protocol.allow=never, protocol.file.allow=always, the dead http.proxy, LC_ALL=C), where today it reaches past that refusal ⟦criterion 1⟧
+- test-only | none worth a transform; `OFFLINE_GIT` in `tests/py/test_run_suite.py` deliberately restates the production values so the test pins them independently
