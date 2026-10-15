@@ -2504,7 +2504,9 @@ any cycle of the resumed run starts. The **resume check** then finds an existing
    with `add-ledger-step.sh --planned --criterion k`, one call per criterion, committed as a
    `plan:` commit before the cycle loop. Those steps are planned steps, not `⟦added⟧` growth,
    and do not count against `VERI_STEP_GROWTH`. Every other insertion during the resume omits
-   --planned, stays `⟦added⟧` and counts.
+   --planned, stays `⟦added⟧` and counts. A conductor never sets or raises `VERI_STEP_GROWTH`,
+   `REVISE_BUDGET`, `VERI_REFACTOR_BUDGET`, `VERI_STUCK_RETRIES` or `VERI_NO_VERDICT_RETRIES`
+   mid-run, in its environment or in a scratch helper, and a budget it cannot fit inside is a bail.
 4. Post a `### ▶️ Resuming` comment naming that step and, when `$stray` is non-empty, the
    paths it lists, said as what they are: the stray work sub-step 2's reset discarded, seen
    by no verifier and now gone. Mark the pick-up in the log —
