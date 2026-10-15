@@ -77,6 +77,8 @@ implementation-pinning test anyway to force a pass.
 
    {{INCLUDE:_exit-status-back.md}} so a red run stays red —
    and red is the answer this phase is after.
+   Save that run's output to `.tdd/red-run-output.txt`, the file `red-divergence.sh` dates your
+   prediction file against.
 4. **Compare what it printed against what you predicted**, and report which it was.
    *Matched* — carry on. *Diverged* — the test is the suspect, not the prediction: the case
    failed for a reason you did not write it to catch, which is how a typo'd fixture path, a

@@ -288,6 +288,17 @@ prediction_prompts=(
 probe_prompts names_prediction_file prediction_prompts
 report "$name"
 
+name="#1468: the develop-red and develop-revise red prompts name a run-output file to save the affected-suite run to"
+problems=()
+names_run_output_file() {
+  local label="$1" prompt="$2"
+  if ! plain <<< "$prompt" | grep -E '\.tdd/[A-Za-z0-9_<>.{}-]*(output|run)' > /dev/null; then
+    problems+=("$label's prompt names no run-output file under .tdd/, so red-divergence.sh has no run to date the prediction file against")
+  fi
+}
+probe_prompts names_run_output_file prediction_prompts
+report "$name"
+
 verifier_prompts=(
   verify-red "$verify_red"
   verify-green "$verify_green"
