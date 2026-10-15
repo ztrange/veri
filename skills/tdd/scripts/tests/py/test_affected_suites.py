@@ -360,7 +360,7 @@ def test_main_prints_every_pytest_file_reading_skill_md_when_the_edit_spans_more
         "skills/tdd/scripts/tests/py/test_gamma.py\nskills/tdd/scripts/tests/py/test_whole.py\n", "")
 
 
-def test_main_prints_a_pytest_file_that_names_the_edited_heading_outside_the_helper_call(
+def test_main_prints_a_pytest_file_that_names_the_edited_heading_outside_the_helper_call_1581(
         tmp_path, monkeypatch, capsys, affected):
     skill = "skills/tdd/SKILL.md"
 
@@ -386,7 +386,8 @@ def test_main_prints_a_pytest_file_that_names_the_edited_heading_outside_the_hel
     (py / "test_b_bound.py").write_text('heading = "## Alpha"\nsection(SKILL, heading)\n')
     (py / "test_c_beta.py").write_text('heading = "## Beta"\nsection(SKILL, heading)\n')
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
-        0, "skills/tdd/scripts/tests/py/test_a_param.py\nskills/tdd/scripts/tests/py/test_b_bound.py\n", "")
+        0, "skills/tdd/scripts/tests/py/test_a_param.py\nskills/tdd/scripts/tests/py/test_b_bound.py\n"
+        "skills/tdd/scripts/tests/py/test_c_beta.py\n", "")
 
 
 def test_main_prints_a_pytest_file_that_passes_the_helper_a_heading_it_never_spells(

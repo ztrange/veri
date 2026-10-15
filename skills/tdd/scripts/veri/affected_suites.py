@@ -194,14 +194,14 @@ def pytest_texts():
     return [(p, read(p) or b"") for p in suites(SCRIPTS + "/tests/py/test_*.py")]
 
 
-def pytest_readers(needles, others):
+def pytest_readers(needles):
     def names(text, forms_):
         return any(n.encode() in text for n in forms_)
 
     return [p for p, text in pytest_texts()
             if re.search(rb"section\(", text)
             and (names(text, needles)
-                 or (not names(text, others) and re.search(rb"section\([^()'\"]*\)", text)))]
+                 or re.search(rb"section\([^()'\"]*\)", text))]
 
 
 def pytest_whole_readers():
@@ -225,7 +225,7 @@ def suite_of(f, revisions=None):
             readers = suites_naming(*forms(*section))
             slicers = [s for s in suites_naming(*forms(*headings(f))) if reads_only_through_slicers(s, f)]
             return ([s for s in naming if s in readers or s not in slicers]
-                    + pytest_readers(forms(*section), forms(*headings(f))) + pytest_whole_readers())
+                    + pytest_readers(forms(*section)) + pytest_whole_readers())
         return naming + pytest_skill_readers() if f == "skills/tdd/SKILL.md" and revisions else naming
     if match(SCRIPTS + "/tests/*.test.sh", SCRIPTS + "/tests/py/test_*.py"):
         return existing(f)
