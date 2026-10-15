@@ -465,3 +465,22 @@ def test_main_runs_a_pytest_suite_named_by_a_path_relative_to_the_caller_as_a_py
     out, err = capfd.readouterr()
     assert (code, log.read_text().splitlines(), "never reached its count line" in out + err) == (
         0, ["%s -m pytest --version" % venv_py, "%s -m pytest tests/py/test_fake.py" % venv_py], False)
+
+
+def test_main_hands_a_fixture_suite_make_tests_environment_from_a_scrubbed_caller_1468(tmp_path, capfd, monkeypatch, run_suite):
+    for name in [k for k in os.environ if k.startswith(("VERI_", "CLAUDE_", "GIT_CONFIG_"))]:
+        if name != "VERI_VENV":
+            monkeypatch.delenv(name)
+    for name in ("OFFLINE_REACH_LOG", "UNIT_GUARD_LOG", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "LC_ALL"):
+        monkeypatch.delenv(name, raising=False)
+    seen_env = tmp_path / "suite.env"
+    suite = fake_suite(tmp_path, "scrubbed.test.sh", 'env > "%s"\necho "1 passed, 0 failed"\n' % seen_env)
+    code = run_suite.main([suite])
+    capfd.readouterr()
+    env = dict(line.split("=", 1) for line in seen_env.read_text().splitlines() if "=" in line)
+    git = {env.get("GIT_CONFIG_KEY_%d" % i): env.get("GIT_CONFIG_VALUE_%d" % i)
+           for i in range(int(env.get("GIT_CONFIG_COUNT", "0")))}
+    assert (code, git, env.get("HTTP_PROXY"), env.get("HTTPS_PROXY"), env.get("LC_ALL"),
+            bool(env.get("OFFLINE_REACH_LOG")), env["PATH"].split(os.pathsep)[0]) == (
+        0, dict(OFFLINE_GIT), "http://127.0.0.1:1", "http://127.0.0.1:1", "C", True,
+        str(SCRIPTS / "tests" / "offline"))
