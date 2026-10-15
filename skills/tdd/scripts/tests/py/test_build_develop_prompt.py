@@ -1627,3 +1627,21 @@ def test_main_renders_revise_green_for_an_unmarked_step_as_the_builder_without_t
                                  ["revise", "green", str(spec), step, "make test", str(reason)])
 
     assert here[0] == 0 and here == without
+
+
+def test_main_renders_a_revise_of_green_with_develop_greens_do_not_modify_the_test_and_wrong_test_rule_and_a_revise_of_red_without_it_1586(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+    rule = b"**Do not modify the test.**"
+    wrong = b"`WRONG_TEST: <why>` line and stop"
+
+    answers = {}
+    for revised in ("green", "red"):
+        code = build_develop_prompt.main(["revise", revised, str(spec), "s", "make test", str(reason)])
+        out, err = capsysbinary.readouterr()
+        answers[revised] = (code, rule in out, wrong in out)
+
+    assert answers == {"green": (0, True, True), "red": (0, False, False)}

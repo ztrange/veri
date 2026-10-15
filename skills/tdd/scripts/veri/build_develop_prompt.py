@@ -14,6 +14,11 @@ WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "transform": 4, "diff":
         **dict.fromkeys(INTERFACE_PHASES, 4)}
 WANT_PHASES = "|".join(PHASES)
 REVISABLE_PHASES = REVISE_PHASES + INTERFACE_PHASES
+GREEN_FREEZE_RULE = (
+    "\n\n**Do not modify the test.** Not its assertions, not its inputs, not its name. Making the\n"
+    "bar easier to clear is not clearing it: a pass bought by weakening, skipping or deleting\n"
+    "the case is a rejected step. If the test itself looks wrong, say so in your report as one\n"
+    "`WRONG_TEST: <why>` line and stop \u2014 do not edit it.").encode()
 WANT_REVISE_PHASES = "|".join(REVISABLE_PHASES)
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ARGUMENT_PLACEHOLDERS = {"<test-path>": "TEST_PATH", "<target-test>": "TARGET_TEST", "<fast-cmd>": "FAST_CMD",
@@ -121,6 +126,8 @@ def main(argv):
     if phase == "refactor":
         values["REFACTOR_BUDGET"] = os.fsencode(tunables.read("VERI_REFACTOR_BUDGET") or "5")
     values["REVISE_PHASE"] = os.fsencode(revised_phase)
+    if revised_phase == "green":
+        values["FREEZE_RULE"] = GREEN_FREEZE_RULE
     try:
         text = _expand(_read(paths[0]), prompts_b)
         values["SHARED"] = _expand(_read(paths[1]), prompts_b)
