@@ -5,3 +5,5 @@
 - out-of-scope | factor the "path is ROOT or under it" test, repeated in hermetic_environment and unmarked_case_lists_no_repository_directory, into one helper (both lines predate this cycle)
 ### A pytest case that starts pytest as a process (the pytest executable, `python3 -m pytest`, or veri/pytest_leg.py) fails, naming the case and the command ⟦criterion 1⟧
 - test-only | the `started_from` helpers in the two cwd cases in `test_conftest.py` repeat the subprocess call
+### A case listed in the permission-bits guard's exemption table, whose entry carries a reason, passes; an entry with no reason, or one naming no existing case, fails the run naming the entry ⟦criterion 3⟧
+- test-only | exemption_problems validation covers only PERMISSION_BITS_EXEMPT; applying it to STARTS_PYTEST_EXEMPT, STARTS_GIT_IN_REPOSITORY_EXEMPT and SYSTEM_LOCATION_EXEMPT is behaviour change, not a tidy-up
