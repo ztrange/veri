@@ -225,3 +225,18 @@ def test_main_1468_never_answers_matched_for_an_empty_prediction_file_written_be
     code, out, err = run(monkeypatch, capsys, red_divergence, matched, [str(prediction), str(output)])
 
     assert code != 3
+
+
+def test_main_1468_judges_a_prediction_file_whose_content_differs_from_the_report_predicted_failure_by_the_file_and_quotes_its_content_as_predicted_failure(monkeypatch, capsys, red_divergence, tmp_path):
+    output = tmp_path / "develop-red.out"
+    prediction = tmp_path / "red-prediction.md"
+    output.write_text("FAIL_OUTPUT: boom\nPREDICTION: MATCHED")
+    prediction.write_text("slugify: command not found")
+    os.utime(prediction, (1000, 1000))
+    os.utime(output, (2000, 2000))
+
+    matched = "PREDICTED_FAILURE: boom\nFAIL_OUTPUT: boom\nPREDICTION: MATCHED"
+    code, out, err = run(monkeypatch, capsys, red_divergence, matched, [str(prediction), str(output)])
+
+    assert code == 0
+    assert "PREDICTED_FAILURE: slugify: command not found\n" in out
