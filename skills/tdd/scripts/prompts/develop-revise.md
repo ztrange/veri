@@ -52,6 +52,9 @@ instead of an {{INCLUDE:_develop-split.md}} leave the working tree exactly as yo
        {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>
 
    {{INCLUDE:_exit-status-back.md}} so a red run stays red.
+
+   Run one suite through {{INCLUDE:_run-suite-lead.md}} suite,
+   {{INCLUDE:_run-suite-same-way.md}} the test command above and say so in your report.
 4. If the objection **cannot** be met — the criterion is already satisfied by existing
    code, or the reason asks for something the step cannot deliver — report `IMPOSSIBLE`
    and say why. That is a legitimate outcome and the pipeline acts on it. Do not fake a

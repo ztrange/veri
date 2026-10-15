@@ -263,6 +263,16 @@ problems=()
 probe_prompts names_runner_fallback suite_running_prompts
 report "$name"
 
+name="#1468: every develop-revise prompt names run-suite.sh, so a redo's affected-suite runs apply make test's environment"
+problems=()
+revise_prompts=(
+  "develop-revise red" "$revise"
+  "develop-revise green" "$revise_green"
+  "develop-revise refactor" "$revise_refactor"
+)
+probe_prompts names_suite_runner revise_prompts
+report "$name"
+
 verifier_prompts=(
   verify-red "$verify_red"
   verify-green "$verify_green"
