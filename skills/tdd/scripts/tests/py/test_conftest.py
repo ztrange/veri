@@ -208,3 +208,25 @@ def test_a_case_that_starts_a_bash_suite_under_tests_fails_naming_the_case_and_t
     assert "test_probe.py::test_probe" in output, output
     assert "bash %s" % suite in output, output
     assert not ran_marker.exists()
+
+
+@pytest.mark.process("a child pytest session whose case starts python3 -m pytest")
+def test_a_case_that_starts_pytest_as_a_process_fails_naming_the_case_and_the_command_without_the_inner_session_running(tmp_path):
+    inner = tmp_path / "test_inner.py"
+    ran_marker = tmp_path / "inner-ran"
+    inner.write_text("def test_inner():\n    open(%r, 'w').close()\n" % str(ran_marker))
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import subprocess, sys\n"
+        "import pytest\n"
+        "@pytest.mark.process('python3 -m pytest')\n"
+        "def test_probe():\n"
+        "    subprocess.run([sys.executable, '-m', 'pytest', %r])\n" % str(inner))
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode != 0, output
+    assert "test_probe.py::test_probe" in output, output
+    assert "-m pytest %s" % inner in output, output
+    assert not ran_marker.exists()
