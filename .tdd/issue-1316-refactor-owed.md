@@ -1,0 +1,2 @@
+### The shared section helper fails the calling test, with a message naming the heading, when the given SKILL.md has no such heading, and never returns the whole file in its place ⟦criterion 1⟧
+- test-only | `test_skill_sections.py`: the two cases repeat the `importlib.import_module` and the `SKILL.md` write into `tmp_path`, which a fixture could hold. Only one case reads the file back, so I'm not extracting it.
