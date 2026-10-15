@@ -166,4 +166,31 @@ probe_runner_overrides_callers_git_proxy
 
 report "$name"
 
+name="run-suite.sh sets git's protocol.allow=never with protocol.file.allow=always whatever the caller exported (#1468)"
+problems=()
+
+probe_runner_overrides_callers_git_protocols() {
+  local tree out code
+  tree="$(scratch_dir)" || {
+    problems+=("could not make a scratch directory, so the question went unasked")
+    return 1
+  }
+  cat > "$tree/gitprotocol.test.sh" <<'SUITE'
+#!/usr/bin/env bash
+set -uo pipefail
+echo "protocol.allow=$(git config --get protocol.allow) protocol.file.allow=$(git config --get protocol.file.allow)"
+echo "1 passed, 0 failed"
+SUITE
+  chmod +x "$tree/gitprotocol.test.sh"
+  out="$(GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=protocol.allow GIT_CONFIG_VALUE_0=always \
+    GIT_CONFIG_KEY_1=protocol.file.allow GIT_CONFIG_VALUE_1=never \
+    "$RUNNER" "$tree/gitprotocol.test.sh" 2>&1 < /dev/null)" && code=0 || code=$?
+  expect_eq "the suite's git protocol settings under the runner" \
+    "protocol.allow=never protocol.file.allow=always" "${out%%$'\n'*}"
+}
+
+probe_runner_overrides_callers_git_protocols
+
+report "$name"
+
 finish
