@@ -1,2 +1,4 @@
 ### The shared section helper fails the calling test, with a message naming the heading, when the given SKILL.md has no such heading, and never returns the whole file in its place ⟦criterion 1⟧
 - test-only | `test_skill_sections.py`: the two cases repeat the `importlib.import_module` and the `SKILL.md` write into `tmp_path`, which a fixture could hold. Only one case reads the file back, so I'm not extracting it.
+### Given a git range whose only change is inside one `##` section of skills/tdd/SKILL.md, affected-suites.sh prints the pytest files under tests/py/ that read that section through the shared helper, and does not print those that read only other sections through it ⟦criterion 2⟧
+- test-only | the two `test_main_prints_*pytest*` cases in test_affected_suites.py repeat the same `fake_run` stub and fixture setup; extract a shared helper or fixture
