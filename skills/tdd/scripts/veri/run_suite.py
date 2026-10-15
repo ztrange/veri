@@ -116,15 +116,13 @@ def main(argv):
     def run(env):
         return run_pytest(suite, env) if pytest_suite else run_counted(suite, name, guard, env)
 
-    if "OFFLINE_REACH_LOG" in env:
-        return run(env)
     guards = [os.path.join(SCRIPTS, "tests", "offline")]
     if os.path.dirname(os.path.abspath(suite)) == os.path.join(SCRIPTS, "tests", "unit"):
         guards.insert(0, os.path.join(SCRIPTS, "tests", "unit-guard"))
     with tempfile.NamedTemporaryFile("r", prefix="veri-reach-") as reach_log:
         env["OFFLINE_REACH_LOG"] = reach_log.name
         if len(guards) > 1 or pytest_suite:
-            env["UNIT_GUARD_LOG"] = reach_log.name
+            env.setdefault("UNIT_GUARD_LOG", reach_log.name)
         env["PATH"] = os.pathsep.join(guards + [env.get("PATH", "")])
         code = run(env)
         reached = reach_log.read().splitlines()

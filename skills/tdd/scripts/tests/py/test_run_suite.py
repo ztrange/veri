@@ -533,3 +533,35 @@ def test_main_fails_a_pytest_suite_whose_unmarked_case_starts_git_and_tolerates_
     code = run_suite.main([str(suite)])
     out, err = capfd.readouterr()
     assert (code, "test_starts_git.py: tried the network: git fetch origin" in out) == (1, True)
+
+
+def test_main_puts_the_offline_guards_first_and_names_a_gh_reach_for_a_caller_that_already_exported_offline_reach_log_1468(tmp_path, capfd, monkeypatch, run_suite):
+    stub = tmp_path / "stubbin"
+    stub.mkdir()
+    (stub / "gh").write_text("#!/bin/sh\nexit 0\n")
+    (stub / "gh").chmod(0o755)
+    monkeypatch.setenv("OFFLINE_REACH_LOG", str(tmp_path / "caller-reach.log"))
+    monkeypatch.setenv("PATH", "%s%s%s" % (stub, os.pathsep, os.environ["PATH"]))
+    suite = fake_suite(tmp_path, "reaches.test.sh", 'gh pr list\necho "1 passed, 0 failed"\n')
+    code = run_suite.main([suite])
+    out, err = capfd.readouterr()
+    assert (code, "reaches.test.sh: tried the network: gh pr list" in out) == (1, True)
+
+
+def test_main_leaves_a_unit_guard_refusal_in_the_caller_exported_unit_guard_log_rather_than_naming_it_a_reach_1468(tmp_path, capfd, monkeypatch, run_suite):
+    suite = tmp_path / "tests" / "py" / "test_starts_git.py"
+    suite.parent.mkdir(parents=True)
+    suite.write_text("def test_nothing():\n    pass\n")
+    venv_py = tmp_path / "venv" / "bin" / "python3"
+    venv_py.parent.mkdir(parents=True)
+    venv_py.write_text("#!/bin/sh\n[ \"$3\" = --version ] && exit 0\nPATH=\"%s:$PATH\" git fetch origin || true\nexit 0\n"
+                       % (SCRIPTS / "tests" / "unit-guard"))
+    venv_py.chmod(0o755)
+    caller_log = tmp_path / "caller-unit-guard.log"
+    caller_log.write_text("")
+    monkeypatch.delenv("OFFLINE_REACH_LOG", raising=False)
+    monkeypatch.setenv("UNIT_GUARD_LOG", str(caller_log))
+    monkeypatch.setenv("VERI_VENV", str(tmp_path / "venv"))
+    code = run_suite.main([str(suite)])
+    out, err = capfd.readouterr()
+    assert (code, "tried the network" in out, caller_log.read_text().startswith("git fetch origin")) == (0, False, True)
