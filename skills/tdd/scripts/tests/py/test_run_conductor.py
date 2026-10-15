@@ -2387,3 +2387,29 @@ def test_cli_a_ref_lock_still_held_when_the_fifth_fetch_runs_and_released_only_a
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
 
     assert (code, len(prompts), bool(prompts) and tip in prompts[0]) == (0, 1, True), stderr
+
+
+@pytest.mark.process("a real ref lock file held and never released against the skill clone's real git fetch of a real origin, whichever wording the installed git gives it")
+def test_cli_a_ref_lock_that_is_never_released_makes_the_launch_refuse_with_exit_2_once_the_retry_bound_past_five_fetches_is_reached_launching_no_conductor_and_naming_the_ref_lock_whichever_wording_git_used_1012_1306(
+        tmp_path, monkeypatch, run_cli):
+    _, _, run_conductor, caller = clone_behind_origin_holding_a_ref_lock(tmp_path, monkeypatch, "run_conductor_never_released")
+    monkeypatch.setenv("VERI_FETCH_RETRY_SLEEP", "0")
+    run, prompts, fetches = subprocess.run, [], []
+
+    def lock_never_released(args, *a, **kwargs):
+        args = list(args)
+        if args[:1] == ["sleep"]:
+            return subprocess.CompletedProcess(args, 0)
+        if args[:1] == ["fake-claude"]:
+            prompts.append(kwargs["input"].decode())
+            return subprocess.CompletedProcess(args, 0, None, None)
+        if args[3:4] == ["fetch"]:
+            fetches.append(args)
+        return run(args, *a, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", lock_never_released)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+
+    assert (code, prompts, len(fetches) > 5, "run-conductor: another process holds the ref lock" in stderr) == (
+        2, [], True, True), stderr
