@@ -63,12 +63,10 @@ def pytest_collection_modifyitems(config, items):
             raise pytest.UsageError("%s mark without %s: %s" % (name, missing, ", ".join(unnamed)))
     modules = {item.nodeid.split("/")[-1].split("::")[0]: item.module for item in items if isinstance(item, pytest.Function)}
     cases = set(modules) | {"%s::%s" % (name, attr) for name, module in modules.items() for attr in dir(module)}
-    problems = exemption_problems(PERMISSION_BITS_EXEMPT, cases)
-    if problems:
-        raise pytest.UsageError("permission-bits exemption table: %s" % "; ".join(problems))
-    problems = exemption_problems(SYSTEM_LOCATION_EXEMPT, cases)
-    if problems:
-        raise pytest.UsageError("system-location exemption table: %s" % "; ".join(problems))
+    for label, table in (("permission-bits", PERMISSION_BITS_EXEMPT), ("system-location", SYSTEM_LOCATION_EXEMPT)):
+        problems = exemption_problems(table, cases)
+        if problems:
+            raise pytest.UsageError("%s exemption table: %s" % (label, "; ".join(problems)))
 
 
 @pytest.fixture(autouse=True)
