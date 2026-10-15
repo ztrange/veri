@@ -353,3 +353,32 @@ def test_a_case_that_reads_a_system_location_through_pathlib_fails_naming_its_ow
     assert ran.returncode != 0, output
     assert "opens the system location /etc/hosts at " in output, output
     assert "test_probe.py:3" in output, output
+
+
+
+@pytest.mark.process("child pytest sessions whose permission-bits exemption table carries a good, a reasonless and a stale entry")
+@pytest.mark.parametrize("entry, reason, mode, named", [
+    ("test_probe.py::test_probe", "the chmod is the subject, run on a scratch file", 0o000, None),
+    ("test_probe.py::test_probe", "", 0o000, "test_probe.py::test_probe"),
+    ("test_probe.py::test_gone", "a reason for a case renamed away", 0o644, "test_probe.py::test_gone"),
+])
+def test_a_permission_bits_exemption_with_a_reason_naming_an_existing_case_passes_and_one_with_no_reason_or_no_such_case_fails_the_run_naming_it(
+        tmp_path, entry, reason, mode, named):
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import os\n"
+        "import conftest\n"
+        "conftest.PERMISSION_BITS_EXEMPT[%r] = %r\n"
+        "def test_probe(tmp_path):\n"
+        "    target = tmp_path / 'unreadable'\n"
+        "    target.write_text('x')\n"
+        "    os.chmod(target, 0o%o)\n" % (entry, reason, mode))
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    if named is None:
+        assert ran.returncode == 0, output
+    else:
+        assert ran.returncode != 0, output
+        assert "exemption" in output and named in output, output

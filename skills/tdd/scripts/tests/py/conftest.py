@@ -60,6 +60,11 @@ def pytest_collection_modifyitems(config, items):
                    if any(not mark.args or not mark.args[0] for mark in item.iter_markers(name))]
         if unnamed:
             raise pytest.UsageError("%s mark without %s: %s" % (name, missing, ", ".join(unnamed)))
+    modules = {item.nodeid.split("/")[-1].split("::")[0]: item.module for item in items if isinstance(item, pytest.Function)}
+    cases = set(modules) | {"%s::%s" % (name, attr) for name, module in modules.items() for attr in dir(module)}
+    problems = exemption_problems(PERMISSION_BITS_EXEMPT, cases)
+    if problems:
+        raise pytest.UsageError("permission-bits exemption table: %s" % "; ".join(problems))
 
 
 @pytest.fixture(autouse=True)
@@ -210,6 +215,16 @@ def caller_outside_pathlib():
 
 
 PERMISSION_BITS_EXEMPT = {}
+
+
+def exemption_problems(table, cases):
+    problems = []
+    for entry, reason in table.items():
+        if not reason:
+            problems.append("%s: exemption carries no reason" % entry)
+        if entry not in cases:
+            problems.append("%s: exemption names no existing case" % entry)
+    return problems
 
 
 @pytest.fixture(autouse=True)
