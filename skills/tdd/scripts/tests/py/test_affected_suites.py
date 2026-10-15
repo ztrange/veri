@@ -206,6 +206,21 @@ def test_main_prints_the_four_prompt_renderer_suites_for_a_partial_no_suite_name
         0, sorted("skills/tdd/scripts/tests/" + n for n in renderers + ["unit/emitted-text.test.sh"]))
 
 
+def test_main_prints_only_the_prompt_renderer_suites_that_exist_for_a_template_change_1572(
+        tmp_path, monkeypatch, capsys, affected):
+    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/prompts/develop-red.md"]))
+    monkeypatch.chdir(tmp_path)
+    tests = tmp_path / "skills/tdd/scripts/tests"
+    (tests / "unit").mkdir(parents=True)
+    (tests / "py").mkdir()
+    present = ["build-develop-prompt.test.sh", "py/test_build_develop_prompt.py"]
+    for name in present + ["other.test.sh"]:
+        (tests / name).write_text("")
+    (tests / "unit/emitted-text.test.sh").write_text('cksum < "$out"\n')
+    assert (affected.main(["base..head"]),) + (sorted(capsys.readouterr().out.splitlines()),) == (
+        0, sorted("skills/tdd/scripts/tests/" + n for n in present + ["unit/emitted-text.test.sh"]))
+
+
 def test_main_skips_a_suite_that_names_only_the_lib_of_the_same_name_for_a_script_with_no_suite_1024(
         tmp_path, monkeypatch, capsys, affected):
     monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/orphan.sh"]))
