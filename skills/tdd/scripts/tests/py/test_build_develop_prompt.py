@@ -1550,6 +1550,15 @@ def _staged_builder(root, drop, strip=()):
     return module
 
 
+def _spec_and_reason(tmp_path, monkeypatch):
+    monkeypatch.setenv("VERI_REFACTOR_BUDGET", "5")
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+    return spec, reason
+
+
 def _render_both(build_develop_prompt, staged, root, capsysbinary, argv):
     here = (build_develop_prompt.main(argv), *capsysbinary.readouterr())
     code, out, err = (staged.main(argv), *capsysbinary.readouterr())
@@ -1560,11 +1569,7 @@ def _render_both(build_develop_prompt, staged, root, capsysbinary, argv):
 @pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
 def test_main_renders_every_phase_other_than_over_budget_without_reading_the_over_budget_template_1468(
         tmp_path, capsysbinary, monkeypatch, build_develop_prompt):
-    monkeypatch.setenv("VERI_REFACTOR_BUDGET", "5")
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"# spec\n")
-    reason = tmp_path / "reason.md"
-    reason.write_bytes(b"rejected\n")
+    spec, reason = _spec_and_reason(tmp_path, monkeypatch)
     rc_sha = "3f9a1c0b7e2d4a6f8c1b3e5d7f9a0c2e4b6d8f01"
     staged = _staged_builder(tmp_path / "no-over-budget", drop=("develop-over-budget.md",))
     s, r, step = str(spec), str(reason), "frob a nitz"
@@ -1591,11 +1596,7 @@ def test_main_renders_every_phase_other_than_over_budget_without_reading_the_ove
 @pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
 def test_main_renders_revise_green_for_an_unmarked_step_as_the_builder_without_the_replaces_case_paragraph_does_1468(
         tmp_path, capsysbinary, monkeypatch, build_develop_prompt):
-    monkeypatch.setenv("VERI_REFACTOR_BUDGET", "5")
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"# spec\n")
-    reason = tmp_path / "reason.md"
-    reason.write_bytes(b"rejected\n")
+    spec, reason = _spec_and_reason(tmp_path, monkeypatch)
     staged = _staged_builder(tmp_path / "no-replaces", drop=("_develop-green-replaces-case.md",),
                              strip=(b"{{REPLACES_CASE}}",))
     step = 'tests/zorblat.test.sh: "zorblat frobs a nitz" replaces-case moves to tests/py ⟦added⟧ ⟦criterion 2⟧'
