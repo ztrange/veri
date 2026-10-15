@@ -8,10 +8,11 @@
 #       2 bad arguments or an unreadable record/file.
 set -uo pipefail
 
+usage="usage: tests-frozen.sh record <record-file> <test-file>... | check <record-file>"
 mode="${1:-}"
 rec="${2:-}"
 if [[ -z "$rec" ]]; then
-  echo "usage: tests-frozen.sh record <record-file> <test-file>... | check <record-file>" >&2
+  echo "$usage" >&2
   exit 2
 fi
 
@@ -28,7 +29,7 @@ case "$mode" in
     shasum -a 256 -c "$rec" > /dev/null 2>&1 || exit 1
     ;;
   *)
-    echo "usage: tests-frozen.sh record <record-file> <test-file>... | check <record-file>" >&2
+    echo "$usage" >&2
     exit 2
     ;;
 esac
