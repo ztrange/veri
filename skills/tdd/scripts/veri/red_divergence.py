@@ -13,11 +13,16 @@ PREDICTION_NOTE: %s
 REASON_KEYS = ("PREDICTED_FAILURE", "FAIL_OUTPUT", "PREDICTION_NOTE")
 
 
+def prediction_unwritten_before_run(argv):
+    if not argv or argv[0].startswith("-"):
+        return False
+    if not os.path.exists(argv[0]):
+        return True
+    return len(argv) > 1 and os.path.getmtime(argv[0]) > os.path.getmtime(argv[1])
+
+
 def main(argv):
-    if argv and not argv[0].startswith("-") and (
-        not os.path.exists(argv[0])
-        or (len(argv) > 1 and os.path.getmtime(argv[0]) > os.path.getmtime(argv[1]))
-    ):
+    if prediction_unwritten_before_run(argv):
         sys.stderr.write("prediction not written before the run\n")
         return 1
     report = sys.stdin.buffer.read().decode(errors="surrogateescape")
