@@ -1,0 +1,2 @@
+### A pytest file that calls the section helper with a literal heading and also opens an unrelated file (open("fixture.json")) is printed for a SKILL.md edit in a section the helper call does not name ⟦criterion 2⟧
+- `pytest_whole_readers` (`affected_suites.py:220`) inlines `rb"open\(|read_text\("` where `OTHER_READ` also covers `read_bytes(`. Reusing the constant would change behaviour, so it is not a pure refactor.
