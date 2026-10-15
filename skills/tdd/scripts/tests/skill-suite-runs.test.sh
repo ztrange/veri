@@ -226,16 +226,17 @@ report "$name"
 name="#1300: $skill_md runs suite-reported.sh before the verifier after develop-diff, revise-diff-<k> and each phase leaf, and bails report-missing on its exit 2"
 problems=()
 check_report_section() {
-  local label="$1" section="$2" body first_check first_verifier
+  local label="$1" section="$2" call="$3" body first_check first_verifier
   body="$(doc_text "$skill_path" "$section" "")"
   [[ "$body" == *'suite-reported.sh'* ]] || { problems+=("$label: never runs suite-reported.sh"); return; }
+  [[ "$body" == *"$call"* ]] || problems+=("$label: never runs $call")
   [[ "$body" == *'report-missing'* ]] || problems+=("$label: never names the report-missing bail")
   first_check="${body%%suite-reported.sh*}"
   first_verifier="${body%%verify-*}"
   ((${#first_check} <= ${#first_verifier})) || problems+=("$label: the check comes after the verifier is launched")
 }
-check_report_section "diff-checked step" '#### A `⟦diff-checked⟧` step'
-check_report_section "phases step" '#### A `⟦phases: …⟧` step'
+check_report_section "diff-checked step" '#### A `⟦diff-checked⟧` step' 'suite-reported.sh develop-diff'
+check_report_section "phases step" '#### A `⟦phases: …⟧` step' 'suite-reported.sh develop-<phase>'
 report "$name"
 
 name="#1300: $skill_md runs suite-reported.sh only after a leaf whose prompt asks for a SUITE: line, never after the refactor leaf or a revise of red, green or refactor"
