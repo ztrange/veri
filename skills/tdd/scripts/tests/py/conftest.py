@@ -68,10 +68,9 @@ def pytest_collection_modifyitems(config, items):
         if problems:
             raise pytest.UsageError("%s exemption table: %s" % (label, "; ".join(problems)))
     for label, table in (("starts-pytest", STARTS_PYTEST_EXEMPT), ("starts-git", STARTS_GIT_IN_REPOSITORY_EXEMPT)):
-        reasonless = [entry for entry, reason in table.items() if not reason]
-        if reasonless:
-            raise pytest.UsageError("%s exemption table: %s" % (
-                label, "; ".join("%s: exemption carries no reason" % entry for entry in reasonless)))
+        problems = reasonless_problems(table)
+        if problems:
+            raise pytest.UsageError("%s exemption table: %s" % (label, "; ".join(problems)))
 
 
 @pytest.fixture(autouse=True)
@@ -276,11 +275,13 @@ def caller_outside_pathlib():
 PERMISSION_BITS_EXEMPT = {}
 
 
+def reasonless_problems(table):
+    return ["%s: exemption carries no reason" % entry for entry, reason in table.items() if not reason]
+
+
 def exemption_problems(table, cases):
-    problems = []
-    for entry, reason in table.items():
-        if not reason:
-            problems.append("%s: exemption carries no reason" % entry)
+    problems = reasonless_problems(table)
+    for entry in table:
         if entry not in cases:
             problems.append("%s: exemption names no existing case" % entry)
     return problems
