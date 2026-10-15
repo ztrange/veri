@@ -67,6 +67,11 @@ def pytest_collection_modifyitems(config, items):
         problems = exemption_problems(table, cases)
         if problems:
             raise pytest.UsageError("%s exemption table: %s" % (label, "; ".join(problems)))
+    for label, table in (("starts-pytest", STARTS_PYTEST_EXEMPT), ("starts-git", STARTS_GIT_IN_REPOSITORY_EXEMPT)):
+        reasonless = [entry for entry, reason in table.items() if not reason]
+        if reasonless:
+            raise pytest.UsageError("%s exemption table: %s" % (
+                label, "; ".join("%s: exemption carries no reason" % entry for entry in reasonless)))
 
 
 @pytest.fixture(autouse=True)
