@@ -2208,3 +2208,32 @@ def test_verify_sh_green_returns_the_leafs_pass_with_exit_0_on_a_replaces_case_s
         cwd=tmp_path)
 
     assert (code, out) == (0, "the named cases are gone.\n")
+
+
+@pytest.mark.process("a real supervise.sh and run-leaf.sh around a stub claude that answers VERDICT: REJECT")
+@pytest.mark.parametrize("suite, check", [
+    ('verdict "kept case" 0\n', None),
+    ('verdict "stale first" 0\n', None),
+    ('verdict "kept case" 0\n', 2),
+], ids=["every-named-case-gone", "a-named-case-survives", "the-check-cannot-answer"])
+def test_verify_sh_green_returns_the_leafs_reject_with_exit_1_and_its_own_reason_on_a_replaces_case_step_whatever_the_named_cases_check_would_say_1507(
+        suite, check, run_cli, tmp_path, monkeypatch):
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
+                 "VERI_NO_VERDICT_RETRIES", "VERI_STUCK_RETRIES", "VERI_TIMEOUT"):
+        monkeypatch.delenv(name, raising=False)
+    write_inputs(tmp_path)
+    (tmp_path / "tests" / "demo.test.sh").write_text(suite)
+    claude = tmp_path / "claude-reject"
+    claude.write_text("#!/bin/sh\nprintf 'VERDICT: REJECT\\nREASON: the replacement asserts nothing.'\n")
+    claude.chmod(0o755)
+    verify = importlib.import_module("veri.verify")
+    if check is not None:
+        monkeypatch.setattr(verify.replaces_case_survivors, "main", lambda argv: check)
+
+    code, out, _ = run_cli(
+        verify, ["--step", "the replacement takes over: replaces 'stale first' in tests/demo.test.sh"
+                 " ⟦replaces-case⟧ ⟦criterion 1⟧", "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"],
+        env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
+        cwd=tmp_path)
+
+    assert (code, out) == (1, "the replacement asserts nothing.\n")
