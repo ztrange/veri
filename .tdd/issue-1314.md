@@ -1,0 +1,12 @@
+# Plan for #1314 — PRD 009 C7-1: pytest refuses the test hazards that outlive the bash suites: nested runs, escapes from the scratch repo, permission bits, the cwd
+
+- [ ] A planted pytest case whose outcome depends on the working directory pytest was started from (it reads a cwd-relative path) gives the same outcome when the run is started from the repository root and when it is started from skills/tdd/scripts/, through conftest.py, natively and with no copy of a bash guard's text scanning ⟦criterion 4⟧
+- [ ] A pytest case that starts a process running a bash suite under tests/ (a `*.test.sh` file there as the script bash or sh runs, or as the executable itself) fails, naming the case and the command, through conftest.py natively ⟦criterion 1⟧
+- [ ] A pytest case that starts pytest as a process (the pytest executable, `python3 -m pytest`, or veri/pytest_leg.py) fails, naming the case and the command ⟦criterion 1⟧
+- [ ] A pytest case that only carries a tests/ suite path or a pytest node id as data — an argument value to a process that is not a test runner, a fixture's text, an expected output — passes the nested-run guard ⟦criterion 1⟧
+- [ ] A pytest case whose subject starts git against the repository the tests live in — git's working directory or its `-C` path inside the repository root and outside the case's own tmp_path — fails, naming the case and the path ⟦criterion 2⟧
+- [ ] A case in test_issue_worktree.py or test_preserve_attempt.py whose subject resolves its main tree from the module's own directory, rather than from the case's scratch repository, fails naming the case and the path; every case in those two files runs under that guard with no exemption and passes ⟦criterion 2⟧
+- [ ] A pytest case that forces a failure through permission bits (os.chmod or Path.chmod taking away read, write or execute bits) fails the run naming the file:line of the call ⟦criterion 3⟧
+- [ ] A pytest case that expects a system location outside its tmp_path (the filesystem root, /root, /proc, /etc and the like) to be unreadable or unwritable — it creates, opens or reads there — fails the run naming the file:line of the call ⟦criterion 3⟧
+- [ ] A case listed in the permission-bits guard's exemption table, whose entry carries a reason, passes; an entry with no reason, or one naming no existing case, fails the run naming the entry ⟦criterion 3⟧
+- [ ] The pytest leg passes as a whole ⟦full-suite⟧ ⟦criterion 4⟧
