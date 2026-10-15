@@ -510,3 +510,20 @@ def test_a_system_location_exemption_with_no_reason_fails_the_run_naming_the_ent
     output = ran.stdout + ran.stderr
     assert ran.returncode != 0, output
     assert "exemption" in output and "test_probe.py::test_probe" in output, output
+
+
+@pytest.mark.process("child pytest sessions whose starts-pytest or starts-git exemption table carries a reasonless entry")
+@pytest.mark.parametrize("table", ["STARTS_PYTEST_EXEMPT", "STARTS_GIT_IN_REPOSITORY_EXEMPT"])
+def test_a_starts_pytest_or_starts_git_exemption_with_no_reason_fails_the_run_naming_the_entry(tmp_path, table):
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import conftest\n"
+        "conftest.%s['test_probe.py::test_probe'] = ''\n"
+        "def test_probe():\n"
+        "    pass\n" % table)
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode != 0, output
+    assert "exemption" in output and "test_probe.py::test_probe" in output, output
