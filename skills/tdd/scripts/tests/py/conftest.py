@@ -195,6 +195,26 @@ def case_starts_no_test_runner(request, monkeypatch):
     monkeypatch.setattr(subprocess.Popen, "__init__", checked)
 
 
+PERMISSION_BITS_EXEMPT = {}
+
+
+@pytest.fixture(autouse=True)
+def case_forces_no_failure_through_permission_bits(request, monkeypatch):
+    real = os.chmod
+    tail = request.node.nodeid.split("/")[-1]
+
+    def checked(path, mode, *rest, **kwargs):
+        frame = sys._getframe(1)
+        while os.path.basename(frame.f_code.co_filename) in ("pathlib.py", "pathlib"):
+            frame = frame.f_back
+        if mode & 0o600 != 0o600 and tail not in PERMISSION_BITS_EXEMPT and tail.split("::")[0] not in PERMISSION_BITS_EXEMPT:
+            raise AssertionError("%s takes permission bits off %s with chmod at %s:%d: uid 0 ignores them"
+                                 % (request.node.nodeid, path, frame.f_code.co_filename, frame.f_lineno))
+        return real(path, mode, *rest, **kwargs)
+
+    monkeypatch.setattr(os, "chmod", checked)
+
+
 @pytest.fixture
 def run_cli(monkeypatch, capfd):
     def run(module, argv, stdin="", env=None, cwd=None):
