@@ -29,7 +29,7 @@ numbered_section() {
 }
 
 lines_matching() {
-  numbered_section "$1" | awk -F '\t' -v p="$2" '$2 ~ p { print $1 }'
+  numbered_section "$1" | P="$2" awk -F '\t' '$2 ~ ENVIRON["P"] { print $1 }'
 }
 
 any_between() {
@@ -62,10 +62,9 @@ check_handling() {
     problems+=("$where: no sentence naming tests-frozen says check exit 0 launches the verifier as before")
 }
 
-# --- Red: record after verify-red's verdict --------------------------------------------------
 name="#1586: $skill_md's Red section runs tests-frozen.sh record after verify-red's verdict"
 problems=()
-red_wait="$(lines_matching '#### Red' 'wait-leaf\.sh verdict-red' | head -1)"
+red_wait="$(lines_matching '#### Red' 'wait-leaf\.sh verdict-red' | sed -n 1p)"
 red_record="$(lines_matching '#### Red' 'tests-frozen\.sh record')"
 if [[ -z "$red_record" ]]; then
   problems+=("$skill_md's Red section never runs tests-frozen.sh record, so nothing holds the red test as it stood when verify-red passed")
@@ -74,11 +73,10 @@ elif ! any_between "$red_record" "${red_wait:-0}" 999999; then
 fi
 report "$name"
 
-# --- Green: check between the develop-green wait and the verify-green launch -----------------
 name="#1586: $skill_md's Green section runs tests-frozen.sh check after develop-green and before verify-green, rejecting on exit 1 with the file named, spending REVISE_BUDGET and launching no verifier"
 problems=()
-green_wait="$(lines_matching '#### Green' 'wait-leaf\.sh develop-green' | head -1)"
-green_verify="$(lines_matching '#### Green' 'supervise\.sh verdict-green' | head -1)"
+green_wait="$(lines_matching '#### Green' 'wait-leaf\.sh develop-green' | sed -n 1p)"
+green_verify="$(lines_matching '#### Green' 'supervise\.sh verdict-green' | sed -n 1p)"
 green_check="$(lines_matching '#### Green' 'tests-frozen\.sh check')"
 if [[ -z "$green_check" ]]; then
   problems+=("$skill_md's Green section never runs tests-frozen.sh check, so a green that edits the frozen test reaches verify-green unchallenged")
@@ -88,12 +86,11 @@ fi
 check_handling "$skill_md's Green section" "$(frozen_sentences '#### Green')"
 report "$name"
 
-# --- Revise: check between the revise-green wait and its re-verify ---------------------------
 name="#1586: $skill_md's Revising on a REJECT runs tests-frozen.sh check after a revise-green and before its re-verify, rejecting on exit 1 with the file named, spending REVISE_BUDGET and launching no verifier"
 problems=()
 revise_heading='## Revising on a REJECT'
-revise_wait="$(lines_matching "$revise_heading" 'wait-leaf\.sh revise-<phase>-<k>' | head -1)"
-revise_verify="$(lines_matching "$revise_heading" 'supervise\.sh verdict-<phase>' | head -1)"
+revise_wait="$(lines_matching "$revise_heading" 'wait-leaf\.sh revise-<phase>-<k>' | sed -n 1p)"
+revise_verify="$(lines_matching "$revise_heading" 'supervise\.sh verdict-<phase>' | sed -n 1p)"
 revise_check="$(lines_matching "$revise_heading" 'tests-frozen\.sh check')"
 revise_sentences="$(frozen_sentences "$revise_heading")"
 if [[ -z "$revise_check" ]]; then
