@@ -889,3 +889,48 @@ def test_main_stops_the_resume_discard_with_exit_2_naming_the_file_and_the_kept_
     kept = [pathlib.Path(token) if os.path.isabs(token) else clone / token for token in done.stderr.split()]
     kept = [path for path in kept if path.is_file() and path != ledger and "+- [ ] step added ⟦added⟧\n" in path.read_text()]
     assert (done.returncode, ".tdd/issue-1.md" in done.stderr, len(kept)) == (2, True, 1)
+
+
+@pytest.mark.process("git: a real resumed worktree whose rebase conflicts and is aborted, with an uncommitted ledger append that git apply then fails to restore")
+def test_main_exits_2_naming_the_file_and_the_kept_appends_when_they_cannot_be_reapplied_after_a_conflict_abort_1547(
+        monkeypatch, tmp_path, rebase_onto_default, run_cli):
+    for who in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
+        monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
+    real_git = shutil.which("git")
+
+    def git(repo, *args):
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
+
+    def commit(repo, files, message):
+        for name, body in files.items():
+            (repo / name).parent.mkdir(exist_ok=True)
+            (repo / name).write_text(body)
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "-m", message)
+
+    origin, seed, clone = tmp_path / "origin.git", tmp_path / "seed", tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    subprocess.run(["git", "init", "-q", "-b", "main", str(seed)], check=True)
+    commit(seed, {"file.txt": "base\n", ".tdd/issue-1.md": "- [ ] step one\n"}, "initial")
+    git(seed, "push", "-q", str(origin), "main")
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], check=True, stderr=subprocess.DEVNULL)
+    git(clone, "checkout", "-q", "-b", "tdd/1-a-run")
+    commit(clone, {"file.txt": "the run's edit\n"}, "feat: a step's green commit (#1)")
+    ledger = clone / ".tdd" / "issue-1.md"
+    ledger.write_text(ledger.read_text() + "- [ ] step added ⟦added⟧\n")
+    commit(seed, {"file.txt": "another run's edit\n"}, "feat: another run merged (#2)")
+    git(seed, "push", "-q", str(origin), "main")
+
+    shim = tmp_path / "bin"
+    shim.mkdir()
+    (shim / "git").write_text(f'#!/bin/sh\n[ "$1" = apply ] && exit 1\nexec {real_git} "$@"\n')
+    (shim / "git").chmod(0o755)
+    monkeypatch.setenv("PATH", f"{shim}:{os.environ['PATH']}")
+
+    code, _, err = run_cli(rebase_onto_default, [], cwd=clone)
+
+    kept = [pathlib.Path(token) if os.path.isabs(token) else clone / token for token in err.split()]
+    kept = [path for path in kept if path.is_file() and path != ledger and "+- [ ] step added ⟦added⟧\n" in path.read_text()]
+    assert (code, ".tdd/issue-1.md" in err, len(kept)) == (2, True, 1)

@@ -57,15 +57,17 @@ def main(argv):
     appends = output("diff", "HEAD", "--", ".tdd") if dirty else ""
     if appends:
         git("checkout", "HEAD", "--", ".tdd", text=True)
+    outcome = 0
     try:
         rebased = git("rebase", "-q", onto, text=True, stdout=subprocess.DEVNULL).returncode == 0
         if not rebased:
             if callers or not rebase_in_progress():
-                return 2
-            conflicts = output("diff", "--name-only", "--diff-filter=U")
-            git("rebase", "--abort", text=True)
-            sys.stdout.write(f"{conflicts}\n")
-            return 1
+                outcome = 2
+            else:
+                conflicts = output("diff", "--name-only", "--diff-filter=U")
+                git("rebase", "--abort", text=True)
+                sys.stdout.write(f"{conflicts}\n")
+                outcome = 1
     finally:
         if appends:
             reapplied = git("apply", text=True, input=appends + "\n",
@@ -77,6 +79,8 @@ def main(argv):
         sys.stderr.write(f"rebase-onto-default: could not re-apply the uncommitted appends to"
                          f" {' '.join(files)}; kept at {kept}\n")
         return 2
+    if outcome:
+        return outcome
     sys.stdout.write(f"{pre}\n{onto}\n")
     return 0
 
