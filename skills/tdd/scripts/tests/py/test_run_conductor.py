@@ -2237,7 +2237,7 @@ def test_cli_with_no_origin_head_and_the_remotes_named_default_branch_absent_loc
     assert (code, "refs/remotes/origin/HEAD" in stderr, seen) == (2, True, []), stderr
 
 
-def run_with_the_first_fetches_losing_a_ref_lock(locked_fetches, tmp_path, monkeypatch, run_cli):
+def fetch_faked_run(tmp_path, monkeypatch):
     past_the_guards(monkeypatch)
     monkeypatch.setenv("VERI_FETCH_RETRY_SLEEP", "0")
     for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT"):
@@ -2246,6 +2246,13 @@ def run_with_the_first_fetches_losing_a_ref_lock(locked_fetches, tmp_path, monke
     run_conductor = importlib.import_module("veri.run_conductor")
     launches = fake_claude_env(monkeypatch, True, True, None)
     answer, calls = subprocess.run, []
+    cwd = tmp_path / "caller"
+    cwd.mkdir()
+    return run_conductor, launches, answer, calls, cwd
+
+
+def run_with_the_first_fetches_losing_a_ref_lock(locked_fetches, tmp_path, monkeypatch, run_cli):
+    run_conductor, launches, answer, calls, cwd = fetch_faked_run(tmp_path, monkeypatch)
     lock = "error: cannot lock ref 'refs/remotes/origin/main': is at 1111111 but expected 2222222\n"
     tip, prompts = "3333333333333333333333333333333333333333", []
 
@@ -2263,8 +2270,6 @@ def run_with_the_first_fetches_losing_a_ref_lock(locked_fetches, tmp_path, monke
         return answer(args, *rest, **kwargs)
 
     monkeypatch.setattr(subprocess, "run", lock_held_for_the_first_fetches)
-    cwd = tmp_path / "caller"
-    cwd.mkdir()
 
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=cwd)
 
@@ -2287,14 +2292,7 @@ def test_cli_a_fetch_of_origin_whose_ref_lock_is_still_held_when_the_second_fetc
 
 def test_cli_a_fetch_of_origin_whose_url_is_no_remote_is_refused_with_exit_2_and_the_fetch_failed_message_after_one_fetch_not_after_the_lock_retries_886(
         tmp_path, monkeypatch, run_cli):
-    past_the_guards(monkeypatch)
-    monkeypatch.setenv("VERI_FETCH_RETRY_SLEEP", "0")
-    for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT"):
-        monkeypatch.delenv(name, raising=False)
-    scratch_tmpdir(tmp_path, monkeypatch)
-    run_conductor = importlib.import_module("veri.run_conductor")
-    launches = fake_claude_env(monkeypatch, True, True, None)
-    answer, calls = subprocess.run, []
+    run_conductor, launches, answer, calls, cwd = fetch_faked_run(tmp_path, monkeypatch)
     url = str(tmp_path / "no-remote")
 
     def origin_is_no_remote(args, *rest, **kwargs):
@@ -2308,8 +2306,6 @@ def test_cli_a_fetch_of_origin_whose_url_is_no_remote_is_refused_with_exit_2_and
         return answer(args, *rest, **kwargs)
 
     monkeypatch.setattr(subprocess, "run", origin_is_no_remote)
-    cwd = tmp_path / "caller"
-    cwd.mkdir()
 
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=cwd)
 
