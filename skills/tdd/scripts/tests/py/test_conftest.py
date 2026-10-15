@@ -150,3 +150,23 @@ def test_a_medium_cases_git_still_refuses_a_remote_url_after_the_fixture_clears_
 
     assert ran.returncode == 0, ran.stdout + ran.stderr
     assert "not allowed" in json.loads(seen.read_text())
+
+
+@pytest.mark.process("a child pytest session started from the repository root and again from skills/tdd/scripts")
+def test_a_case_reading_a_cwd_relative_path_gives_the_same_outcome_started_from_the_repository_root_as_from_skills_tdd_scripts(tmp_path):
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import pathlib\n"
+        "def test_probe():\n"
+        "    assert pathlib.Path('Makefile').is_file()\n")
+    scripts = pathlib.Path(__file__).resolve().parents[2]
+    env = {**os.environ, "PYTHONPATH": str(pathlib.Path(__file__).resolve().parent)}
+
+    def started_from(cwd):
+        return subprocess.run([sys.executable, "-m", "pytest", "-p", "conftest", "-p", "no:cacheprovider", "-q",
+                               "--rootdir", str(tmp_path), str(probe)],
+                              env=env, cwd=cwd, capture_output=True, text=True).returncode
+
+    outcomes = {"repository root": started_from(scripts.parents[2]), "skills/tdd/scripts": started_from(scripts)}
+
+    assert outcomes["skills/tdd/scripts"] == outcomes["repository root"], outcomes

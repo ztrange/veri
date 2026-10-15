@@ -68,6 +68,9 @@ def hermetic_environment(monkeypatch):
             monkeypatch.delenv(name)
         elif name == "LANG" or name.startswith("LC_"):
             monkeypatch.delenv(name)
+    root = SCRIPTS.parents[2]
+    if root in pathlib.Path.cwd().resolve().parents or pathlib.Path.cwd().resolve() == root:
+        monkeypatch.chdir(root)
     monkeypatch.setenv("LC_ALL", "C")
     for name, value in offline.items():
         monkeypatch.setenv(name, value)
