@@ -1511,6 +1511,9 @@ def skill_clone(tmp_path, monkeypatch, module_name, files, directory="skill", co
         subprocess.run(["git", "init", "-q", str(skill)], check=True)
         subprocess.run(git + ["add", "-A"], check=True)
         subprocess.run(git + ["commit", "-q", "-m", "the skill commit"], check=True)
+    # Loading compiles the module before its own dont_write_bytecode line runs; a __pycache__ written
+    # into the skill here is in tree_contents but never in the snapshot, whichever case loads first.
+    monkeypatch.setattr(sys, "dont_write_bytecode", True)
     return skill, load_run_conductor(module_name, skill)
 
 
