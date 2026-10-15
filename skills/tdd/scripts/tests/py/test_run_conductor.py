@@ -2486,6 +2486,13 @@ def skill_and_caller(tmp_path, monkeypatch, module_name):
     return skill, run_conductor, caller_repository(tmp_path)
 
 
+def seeded_record(caller, commit):
+    record = caller / ".tdd" / "issue-4242-skill-commit"
+    record.parent.mkdir()
+    record.write_text(commit + "\n")
+    return record
+
+
 def registered_worktrees(repository):
     listed = subprocess.run(["git", "-C", str(repository), "worktree", "list", "--porcelain"],
                             capture_output=True, text=True, check=True).stdout
@@ -2591,9 +2598,7 @@ def test_cli_after_a_launch_that_left_no_worktree_and_no_tdd_n_branch_the_next_l
 def test_cli_an_unregistered_tdd_wt_n_holding_only_tdd_events_jsonl_as_veri_new_skill_1_leaves_it_does_not_count_as_a_run_past_preflight_with_no_worktree_and_no_branch_the_skill_record_is_removed_866(
         tmp_path, monkeypatch, run_cli):
     skill, run_conductor, caller = skill_and_caller(tmp_path, monkeypatch, "run_conductor_record_events_only")
-    record = caller / ".tdd" / "issue-4242-skill-commit"
-    record.parent.mkdir()
-    record.write_text(head_commit(skill) + "\n")
+    record = seeded_record(caller, head_commit(skill))
     claude_that_runs(monkeypatch)
 
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller, env={"VERI_NEW_SKILL": "1"})
@@ -2613,9 +2618,7 @@ def test_cli_with_no_worktree_and_no_tdd_n_branch_an_unresolvable_recorded_skill
     subprocess.run(["git", "init", "-q", str(foreign)], check=True)
     subprocess.run(git_as_veri(foreign) + ["commit", "-q", "--allow-empty", "-m", "elsewhere"], check=True)
     missing = head_commit(foreign)
-    record = caller / ".tdd" / "issue-4242-skill-commit"
-    record.parent.mkdir()
-    record.write_text(missing + "\n")
+    seeded_record(caller, missing)
     seen = claude_that_runs(monkeypatch)
 
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
@@ -2627,9 +2630,7 @@ def test_cli_with_no_worktree_and_no_tdd_n_branch_an_unresolvable_recorded_skill
 def test_cli_with_no_worktree_and_no_tdd_n_branch_veri_new_skill_1_still_re_pins_the_record_to_the_fresh_tip_for_the_conductors_run_and_writes_its_skill_repin_event_866(
         tmp_path, monkeypatch, run_cli):
     skill, run_conductor, caller = skill_and_caller(tmp_path, monkeypatch, "run_conductor_record_repin_no_run")
-    record = caller / ".tdd" / "issue-4242-skill-commit"
-    record.parent.mkdir()
-    record.write_text(head_commit(skill) + "\n")
+    record = seeded_record(caller, head_commit(skill))
     commit_appended_line(skill, "scripts/supervise.sh", "a commit the operator asks the run to take")
     moved = head_commit(skill)
     during = []
