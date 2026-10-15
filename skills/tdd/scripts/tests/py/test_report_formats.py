@@ -136,3 +136,21 @@ def test_1568_suite_reported_refuses_a_report_of_each_suite_required_format_a_re
 
     assert cases
     assert not passed, "\n".join(passed)
+
+
+def test_1568_stop_prose_guard_names_prompt_and_line_of_a_planted_stop_that_names_no_declared_format_and_passes_one_that_does_or_is_exempt(report_formats):
+    planted = (
+        "Do the step.\n"
+        "If the fixture is missing, give up and say so in your report.\n"
+        "If the test looks wrong, stop and report one `WRONG_TEST: <why>` line.\n"
+        "Skip the candidate when it is out of bounds.\n"
+        "REPORT-FORMAT green-wrong-test | keys WRONG_TEST: | suite exempt: nothing ran\n"
+    )
+
+    assert report_formats.stop_prose_offenders("develop-planted.md", planted) == [
+        "develop-planted.md:2",
+        "develop-planted.md:4",
+    ]
+    assert report_formats.stop_prose_offenders(
+        "develop-planted.md", planted, exempt={"develop-planted.md:4": "a skip with nothing to report"}
+    ) == ["develop-planted.md:2"]

@@ -21,3 +21,20 @@ def parse(text):
     if not formats:
         raise ValueError("no REPORT-FORMAT declaration")
     return formats
+
+
+_STOP_WORDS = re.compile(r"\b(stop|skip|skipped|give up|say so)\b", re.IGNORECASE)
+
+
+def stop_prose_offenders(prompt, text, exempt=None):
+    """`<prompt>:<line>` for each line that tells the leaf to stop, skip, give up or say so without naming a declared format."""
+    exempt = exempt or {}
+    names = [name for fmt in parse(text) for name in [fmt["name"], *fmt["keys"]]]
+    offenders = []
+    for number, line in enumerate(text.splitlines(), 1):
+        where = f"{prompt}:{number}"
+        if line.startswith("REPORT-FORMAT ") or where in exempt:
+            continue
+        if _STOP_WORDS.search(line) and not any(name in line for name in names):
+            offenders.append(where)
+    return offenders
