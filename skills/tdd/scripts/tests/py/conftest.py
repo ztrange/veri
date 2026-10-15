@@ -284,7 +284,9 @@ PERMISSION_BITS_EXEMPT = {}
 
 
 def reasonless_problems(table):
-    return ["%s: exemption carries no reason" % entry for entry, reason in table.items() if not reason]
+    return ["%s: exemption carries no reason" % entry for entry, reason in table.items() if not reason] + [
+        "%s: whole-file exemption with the runs-git-with-no-cwd reason" % entry
+        for entry, reason in table.items() if "::" not in entry and reason == RUNS_GIT_WITH_NO_CWD]
 
 
 def exemption_problems(table, cases):

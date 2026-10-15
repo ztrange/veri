@@ -565,3 +565,19 @@ def test_a_starts_pytest_or_starts_git_exemption_with_no_reason_fails_the_run_na
     output = ran.stdout + ran.stderr
     assert ran.returncode != 0, output
     assert "exemption" in output and "test_probe.py::test_probe" in output, output
+
+
+@pytest.mark.process("a child pytest session whose starts-git exemption table carries a whole-file entry with the RUNS_GIT_WITH_NO_CWD reason")
+def test_a_starts_git_whole_file_exemption_with_the_runs_git_with_no_cwd_reason_fails_the_run_naming_the_entry(tmp_path):
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import conftest\n"
+        "conftest.STARTS_GIT_IN_REPOSITORY_EXEMPT['test_probe.py'] = conftest.RUNS_GIT_WITH_NO_CWD\n"
+        "def test_probe():\n"
+        "    pass\n")
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode != 0, output
+    assert "exemption" in output and "test_probe.py" in output, output
