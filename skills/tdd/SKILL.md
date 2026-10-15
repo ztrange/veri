@@ -1197,6 +1197,11 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    or changed) and `SUITE: GREEN | RED` plus the suite's final summary line; both go into the
    narration below.
 
+   After the wait exits 0 and before verify-green is launched, run `$S/suite-reported.sh develop-green`:
+   exit 2 means the report carries no `SUITE:` line, so launch no verifier and **bail** as a system
+   failure with cause `report-missing`. A green that stops because the test looks wrong is exempt: it
+   keeps its main outcome, a verify-green REJECT (a process outcome), never a `report-missing` bail.
+
    **`SPLIT:` lines in place of those two** — the step needed more than one new behaviour at
    once, so the leaf implemented nothing and named one to three smaller criteria instead.
    There is no implementation for verify-green to judge, so do not launch it. Restore the
