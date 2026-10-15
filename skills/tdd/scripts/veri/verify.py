@@ -12,6 +12,7 @@ import build_verify_prompt
 import event
 import parse_verdict
 import preserve_attempt
+import replaces_case_survivors
 import tunables
 
 from leaf_model import _env, resolve
@@ -244,6 +245,10 @@ def main(argv):
         marked = mark(role, "relaunch", "cause=no-verdict")
         if marked:
             return marked
+    if code == 0 and words[0] == "green" and options["--step"]:
+        surviving = survivors(options["--step"])
+        if surviving[0]:
+            code, reason = surviving
     word = {0: "PASS", 1: "REJECT"}.get(code, "malformed")
     cause = ["cause=no-verdict"] if no_verdict else []
     marked = mark(role, "verdict", "verdict=" + word, "reason=" + reason.split("\n", 1)[0], *cause)
@@ -255,6 +260,17 @@ def main(argv):
                  "no-verdict" if no_verdict else word.lower())
     _write(sys.stdout, reason)
     return to_contract(code)
+
+
+def survivors(step):
+    stdout = sys.stdout
+    sys.stdout = io.StringIO()
+    try:
+        code = replaces_case_survivors.main([step])
+        printed = sys.stdout.getvalue().rstrip("\n")
+    finally:
+        sys.stdout = stdout
+    return (code, printed) if code in (1, 2) else (0, "")
 
 
 def parse(out):
