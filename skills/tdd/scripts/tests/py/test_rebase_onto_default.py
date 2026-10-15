@@ -646,3 +646,47 @@ def test_main_after_the_resume_discard_rebases_a_ledger_with_an_uncommitted_appe
     git(seed, "push", "-q", str(origin), "main")
     assert resume(clone) == 0
     assert "- [ ] step two ⟦added⟧\n" in ledger.read_text()
+
+
+@pytest.mark.process("git and tick-ledger.sh: a real resumed worktree whose ledger tick was written before a green commit that the kill prevented, discarded by the resume's own commands, then rebased")
+def test_main_after_the_resume_discard_leaves_a_tick_whose_green_commit_never_landed_unticked_and_keeps_other_appends_1547(
+        monkeypatch, tmp_path, rebase_onto_default, run_cli):
+    for who in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
+        monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
+    scripts = pathlib.Path(__file__).resolve().parents[2]
+    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
+                        (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
+
+    def git(repo, *args):
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
+
+    def commit(repo, name, body, message):
+        (repo / name).parent.mkdir(exist_ok=True)
+        (repo / name).write_text(body)
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "-m", message)
+
+    origin, seed, clone = tmp_path / "origin.git", tmp_path / "seed", tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    subprocess.run(["git", "init", "-q", "-b", "main", str(seed)], check=True)
+    commit(seed, "file.txt", "base\n", "initial")
+    git(seed, "push", "-q", str(origin), "main")
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], check=True, stderr=subprocess.DEVNULL)
+    git(clone, "checkout", "-q", "-b", "tdd/1-a-run")
+    commit(clone, ".tdd/issue-1.md", "- [ ] step one\n- [ ] step two\n", "plan: scope #1 (#1)")
+    commit(clone, "work.txt", "before the green\n", "test: a red (#1)")
+    ledger = clone / ".tdd" / "issue-1.md"
+    subprocess.run([str(scripts / "tick-ledger.sh"), "--refactor-pending", str(ledger), "step one"], check=True)
+    ledger.write_text(ledger.read_text() + "- [ ] step three ⟦added⟧\n")
+    (clone / "work.txt").write_text("the green code, killed before its commit\n")
+
+    commit(seed, "other.txt", "another run's work\n", "feat: another run merged (#2)")
+    git(seed, "push", "-q", str(origin), "main")
+    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    assert run_cli(rebase_onto_default, [], cwd=clone)[0] == 0
+
+    assert (clone / "work.txt").read_text() == "before the green\n"
+    assert ledger.read_text() == "- [ ] step one\n- [ ] step two\n- [ ] step three ⟦added⟧\n"
