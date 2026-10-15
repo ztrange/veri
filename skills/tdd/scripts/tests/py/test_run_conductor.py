@@ -2283,3 +2283,35 @@ def test_cli_a_fetch_of_origin_that_loses_a_ref_lock_held_by_another_process_is_
 def test_cli_a_fetch_of_origin_whose_ref_lock_is_still_held_when_the_second_fetch_runs_keeps_retrying_until_the_lock_is_released_and_the_conductor_starts_886(
         tmp_path, monkeypatch, run_cli):
     run_with_the_first_fetches_losing_a_ref_lock(2, tmp_path, monkeypatch, run_cli)
+
+
+def test_cli_a_fetch_of_origin_whose_url_is_no_remote_is_refused_with_exit_2_and_the_fetch_failed_message_after_one_fetch_not_after_the_lock_retries_886(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.setenv("VERI_FETCH_RETRY_SLEEP", "0")
+    for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT"):
+        monkeypatch.delenv(name, raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_claude_env(monkeypatch, True, True, None)
+    answer, calls = subprocess.run, []
+    url = str(tmp_path / "no-remote")
+
+    def origin_is_no_remote(args, *rest, **kwargs):
+        args = list(args)
+        calls.append(args)
+        if args[3:] == ["fetch", "-q", "origin"]:
+            return subprocess.CompletedProcess(
+                args, 128, "", "fatal: '%s' does not appear to be a git repository\n" % url)
+        if args[:1] == ["sleep"]:
+            return subprocess.CompletedProcess(args, 0)
+        return answer(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", origin_is_no_remote)
+    cwd = tmp_path / "caller"
+    cwd.mkdir()
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    fetches = [call for call in calls if call[3:4] == ["fetch"]]
+    assert (code, len(fetches), launches, "fetch of origin failed" in stderr) == (2, 1, [], True), stderr
