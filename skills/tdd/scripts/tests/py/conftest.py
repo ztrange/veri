@@ -142,7 +142,8 @@ STARTS_PYTEST_EXEMPT = {
 
 
 def case_tail(request):
-    return request.node.nodeid.split("/")[-1]
+    path, _, case = request.node.nodeid.partition("::")
+    return path.split("/")[-1] + "::" + case
 
 
 def exempt_from(tail, table):
@@ -150,6 +151,21 @@ def exempt_from(tail, table):
 
 
 STARTS_GIT_IN_REPOSITORY_EXEMPT = {
+    "test_affected_suites.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
+    "test_event.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
+    "test_invisible_work.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
+    "test_issue_worktree.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
+    "test_parallel_conductors.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
+    "test_push_branch.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
+    "test_rebase_onto_default.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
+    "test_refactor_touched.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
+    "test_session_cost.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
+    "test_solvable_issues.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
+    "test_status.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
+    "test_timed_test_run.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
+    "test_transform_touches_tests.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
+    "test_verify.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
+    "test_workqueue.py": "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call",
     "test_supervise.py": "supervise.py records the skill clone's own HEAD; the case only lets it run rev-parse HEAD there",
     "test_run_conductor.py": "run_conductor.py runs git -C <skill clone> and the cases fake every process, so the path only reaches the recorded call",
     "test_rebase_onto_default.py::test_main_run_through_a_symlink_from_another_directory_rebases_the_callers_clone_and_never_the_skills_repository":
@@ -185,10 +201,11 @@ def case_starts_no_test_runner(request, monkeypatch):
         if os.path.basename(os.fsdecode(words[0])) != "git":
             return None
         directory = os.fsdecode(cwd) if cwd is not None else None
-        here = pathlib.Path(os.getcwd()).resolve()
-        if directory is None and (SCRIPTS / "veri") in [here, *here.parents]:
-            directory = os.getcwd()
         rest = [os.fsdecode(w) for w in words[1:]]
+        if rest == ["--version"]:
+            return None
+        if directory is None:
+            directory = os.getcwd()
         for flag, value in zip(rest, rest[1:]):
             if flag == "-C":
                 directory = os.path.join(directory, value) if directory else value

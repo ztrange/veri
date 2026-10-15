@@ -309,6 +309,28 @@ def test_a_case_that_fakes_subprocess_run_still_fails_naming_the_case_and_the_pa
     assert str(module_directory) in output, output
 
 
+@pytest.mark.process("a child pytest session whose case fakes subprocess.run and runs git with no cwd from the repository root")
+def test_a_case_that_fakes_subprocess_run_still_fails_naming_the_case_and_the_path_when_its_subject_runs_git_with_no_cwd_inside_the_repository(tmp_path):
+    repository = pathlib.Path(__file__).resolve().parents[4]
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import os\n"
+        "import subprocess\n"
+        "import pytest\n"
+        "@pytest.mark.process('subprocess.run faked, git run with no cwd after a chdir to the repository root')\n"
+        "def test_probe(monkeypatch):\n"
+        "    monkeypatch.setattr(subprocess, 'run', lambda args, **kwargs: subprocess.CompletedProcess(args, 0, '', ''))\n"
+        "    os.chdir(%r)\n"
+        "    subprocess.run(['git', 'rev-parse', '--show-toplevel'])\n" % str(repository))
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode != 0, output
+    assert "test_probe.py::test_probe" in output, output
+    assert str(repository) in output, output
+
+
 @pytest.mark.process("a child pytest session whose case takes the permission bits off a file with os.chmod")
 def test_a_case_that_forces_a_failure_through_permission_bits_fails_naming_the_file_and_line_of_the_chmod_call(tmp_path):
     probe = tmp_path / "test_probe.py"
