@@ -3,3 +3,6 @@
 ### The entry-point guard names, as `<module>:<line>`, a shimmed module whose only `entry.run(` inside its `__main__` block is in a `#` comment, in a small planted-tree pytest case whose docstring says its subject is source text ⟦criterion 1⟧
 - test-only | extract the planted-module setup (`veri` dir, `shim(...)`, `write_text`) that the three `test_entry_bypass_problems_*` cases in `test_shims.py` repeat into one helper
 - test-only | in `entry_bypass_problems` in `conftest.py`, name the "`entry.run(` on a non-comment line" check, which the inline `any(...)` generator currently buries
+### The entry-point guard reports a problem — it does not pass — when the scripts tree it is handed holds no shim at all, in a small planted-tree pytest case whose docstring says its subject is source text ⟦criterion 1⟧
+- test-only | hoist the four function-local `from conftest import entry_bypass_problems` lines in `skills/tdd/scripts/tests/py/test_shims.py` into the top-level `from conftest import SCRIPTS, shim_problems`
+- test-only | fold the repeated planted-module setup in the four `entry_bypass_problems` cases (`mkdir veri`, `shim(...)`, `write_text`) into one helper in `test_shims.py`
