@@ -1,0 +1,2 @@
+### add-ledger-step.sh --planned --criterion k refuses with exit 2 and one stderr line naming k when criterion k is ticked (- [x]) in the issue body the run read (the spec file beside the ledger), with the ledger byte-identical and nothing filed under ## Owed steps ⟦added⟧ ⟦criterion 3⟧
+- test-only | the two `*_1579` cases in `skills/tdd/scripts/tests/py/test_add_ledger_step.py` repeat the monkeypatch/ledger/spec-file setup and the final `assert` tuple; a shared helper would cover both
