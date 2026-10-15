@@ -42,10 +42,10 @@ def main(argv):
     if prediction[-1:] in (",", ";", ":", "."):
         prediction = prediction[:-1]
     content = prediction_file_content(argv)
-    if content is not None and prediction == "MATCHED":
-        if not content or content != fields.get("PREDICTED_FAILURE", "").strip():
-            prediction = "DIVERGED"
     if content is not None:
+        reported = fields.get("PREDICTED_FAILURE", "").strip()
+        if prediction == "MATCHED" and (not content or content != reported):
+            prediction = "DIVERGED"
         fields["PREDICTED_FAILURE"] = content
     if prediction == "MATCHED":
         return 3
