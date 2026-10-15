@@ -8,6 +8,7 @@ import re
 import shlex
 import subprocess
 import sys
+import tempfile
 
 import pytest
 
@@ -304,6 +305,8 @@ def case_expects_no_system_location_unreadable_or_unwritable(request, monkeypatc
 
     def system_location(path):
         resolved = pathlib.Path(os.path.abspath(path))
+        if any(resolved.is_relative_to(temp) for temp in (pathlib.Path("/tmp"), pathlib.Path(tempfile.gettempdir()))):
+            return False
         return len(resolved.parts) == 2 or resolved.parts[1:2] in (("etc",), ("root",), ("proc",))
 
     def refuse_system_location(verb, path, frame):
