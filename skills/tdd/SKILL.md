@@ -583,16 +583,17 @@ unauthenticated baseline never gets a cycle.
          if (!nm) out = hunk
          else if (na > nm && nonl) { k = rem; gsub(/\n-/, "\n+", k); sub(/^-/, "+", k); out = "@@ -" num(hf[2]) "," nm " +" num(hf[3]) "," na " @@\n" rem "\\ No newline at end of file\n" k adds }
          else if (na > nm) { o = num(hf[2]) + nm - 1; n = num(hf[3]) + nm; out = "@@ -" o ",0 +" n "," na - nm " @@\n" adds }
+         else if (fresh) out = hunk
          else out = ""
          if (out != "") { if (!shown) { printf "%s", hdr; shown = 1 } printf "%s", out }
        }
-       hunk = ""; adds = ""; rem = ""; nonl = 0; last = ""; nm = 0; na = 0
+       hunk = ""; adds = ""; rem = ""; nonl = 0; last = ""; nm = 0; na = 0; fresh = 0
      }
      /^diff --git/ { emit(); hdr = $0 "\n"; shown = 0; head = 1; next }
      head && !/^@@/ { hdr = hdr $0 "\n"; next }
      /^@@/ { emit(); head = 0; hunk = $0 "\n"; split($0, hf, " "); next }
      /^\\/ { hunk = hunk $0 "\n"; if (last == "-") nonl = 1; next }
-     { hunk = hunk $0 "\n"; last = substr($0, 1, 1); if (/^-/) { nm++; rem = rem $0 "\n" } else if (/^\+/) { na++; if (na > nm) adds = adds $0 "\n" } }
+     { hunk = hunk $0 "\n"; last = substr($0, 1, 1); if (/^-/) { nm++; tail[nm] = substr($0, 8); rem = rem $0 "\n" } else if (/^\+/) { na++; if (index(substr($0, 8), tail[na]) != 1) fresh = 1; if (na > nm) adds = adds $0 "\n" } }
      END { emit() }')"
    git reset --hard HEAD
    git clean -fd -e .tdd
