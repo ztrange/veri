@@ -770,3 +770,43 @@ def test_main_after_the_resume_discard_keeps_an_append_right_after_a_tick_whose_
     assert run_cli(rebase_onto_default, [], cwd=clone)[0] == 0
 
     assert ledger.read_text() == "- [ ] step one\n- [ ] step added ⟦added⟧\n- [ ] step two\n"
+
+
+@pytest.mark.process("git: a real resumed worktree whose ledger's last committed line has no trailing newline and carries an uncommitted append, discarded by the resume's own commands, then rebased")
+def test_main_after_the_resume_discard_keeps_an_append_to_a_ledger_whose_last_committed_line_had_no_trailing_newline_1547(
+        monkeypatch, tmp_path, rebase_onto_default, run_cli):
+    for who in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
+        monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
+    scripts = pathlib.Path(__file__).resolve().parents[2]
+    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
+                        (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
+
+    def git(repo, *args):
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
+
+    def commit(repo, name, body, message):
+        (repo / name).parent.mkdir(exist_ok=True)
+        (repo / name).write_text(body)
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "-m", message)
+
+    origin, seed, clone = tmp_path / "origin.git", tmp_path / "seed", tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    subprocess.run(["git", "init", "-q", "-b", "main", str(seed)], check=True)
+    commit(seed, "file.txt", "base\n", "initial")
+    git(seed, "push", "-q", str(origin), "main")
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], check=True, stderr=subprocess.DEVNULL)
+    git(clone, "checkout", "-q", "-b", "tdd/1-a-run")
+    commit(clone, ".tdd/issue-1.md", "- [ ] step one", "plan: scope #1 (#1)")
+    ledger = clone / ".tdd" / "issue-1.md"
+    ledger.write_text(ledger.read_text() + "\n- [ ] step added ⟦added⟧\n")
+
+    commit(seed, "other.txt", "another run's work\n", "feat: another run merged (#2)")
+    git(seed, "push", "-q", str(origin), "main")
+    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    assert run_cli(rebase_onto_default, [], cwd=clone)[0] == 0
+
+    assert ledger.read_text() == "- [ ] step one\n- [ ] step added ⟦added⟧\n"
