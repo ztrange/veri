@@ -2499,7 +2499,12 @@ any cycle of the resumed run starts. The **resume check** then finds an existing
 3. `next-unchecked.sh < .tdd/issue-<n>.md` gives the **first unchecked step** — the cycle
    loop continues from exactly there, so **STEP** is that step's description, bound here
    instead of at the top of the cycle loop. Already-checked steps (and their commits) are
-   kept.
+   kept. Before that pick, plan each criterion that is unticked in the issue body when the
+   resume starts and that no ledger step's `⟦criterion k⟧` serves — scope a human amended in —
+   with `add-ledger-step.sh --planned --criterion k`, one call per criterion, committed as a
+   `plan:` commit before the cycle loop. Those steps are planned steps, not `⟦added⟧` growth,
+   and do not count against `VERI_STEP_GROWTH`. Every other insertion during the resume omits
+   --planned, stays `⟦added⟧` and counts.
 4. Post a `### ▶️ Resuming` comment naming that step and, when `$stray` is non-empty, the
    paths it lists, said as what they are: the stray work sub-step 2's reset discarded, seen
    by no verifier and now gone. Mark the pick-up in the log —
