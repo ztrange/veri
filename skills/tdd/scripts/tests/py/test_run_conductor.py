@@ -2290,6 +2290,30 @@ def test_cli_a_locked_fetch_is_retried_after_waiting_the_interval_veri_fetch_ret
     run_with_the_first_fetches_losing_a_ref_lock(1, tmp_path, monkeypatch, run_cli)
 
 
+def test_cli_with_veri_fetch_retry_sleep_unset_a_locked_fetch_is_retried_after_waiting_1_s_the_default_interval_900(
+        tmp_path, monkeypatch, run_cli):
+    run_conductor, launches, answer, calls, cwd = fetch_faked_run(tmp_path, monkeypatch)
+    monkeypatch.delenv("VERI_FETCH_RETRY_SLEEP", raising=False)
+    lock = "error: cannot lock ref 'refs/remotes/origin/main': is at 1111111 but expected 2222222\n"
+
+    def first_fetch_loses_a_ref_lock(args, *rest, **kwargs):
+        args = list(args)
+        calls.append(args)
+        if args[3:] == ["fetch", "-q", "origin"] and len([c for c in calls if c[3:4] == ["fetch"]]) == 1:
+            return subprocess.CompletedProcess(args, 1, "", lock)
+        if args[:1] == ["sleep"]:
+            return subprocess.CompletedProcess(args, 0)
+        return answer(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", first_fetch_loses_a_ref_lock)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    fetches = [call for call in calls if call[3:4] == ["fetch"]]
+    sleeps = [call for call in calls if call[:1] == ["sleep"]]
+    assert (code, len(fetches), sleeps, len(launches)) == (0, 2, [["sleep", "1"]], 1), stderr
+
+
 def test_cli_a_fetch_of_origin_whose_ref_lock_is_still_held_when_the_second_fetch_runs_keeps_retrying_until_the_lock_is_released_and_the_conductor_starts_886(
         tmp_path, monkeypatch, run_cli):
     run_with_the_first_fetches_losing_a_ref_lock(2, tmp_path, monkeypatch, run_cli)
