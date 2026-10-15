@@ -11,6 +11,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 AFFECTED="$HERE/../affected-suites.sh"
 source "$HERE/lib/harness.sh"
+source "$HERE/../lib/missing-argument-exit.sh"
 
 work="$(scratch_dir)"
 
@@ -856,6 +857,14 @@ out="$(run_affected no-such-revision 2>"$work/unresolvable.err")"; code=$?
 err="$(cat "$work/unresolvable.err")"
 if [[ "$code" == 2 && -z "$out" && "$err" == *no-such-revision* ]]; then ok; else
   no "affected-suites.sh <base> with an unresolvable <base> exits 2 with a diagnostic on stderr and nothing on stdout (code=$code, stdout=${out:-<empty>}, stderr=${err:-<empty>})"
+fi
+
+make_repo no-range
+foo_tree
+commit_base
+offender="$(cd "$repo" && named_usage_offender "$HERE/.." affected-suites.sh no-range)"; code=$?
+if [[ "$code" == 0 ]]; then ok; else
+  no "affected-suites.sh with an argument that is not a <base>..<head> range exits 2 with its own usage text on stderr ($offender)"
 fi
 
 finish
