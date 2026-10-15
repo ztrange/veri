@@ -201,6 +201,10 @@ def test_main_starts_the_suite_alone_on_dev_null_with_maintenance_auto_off_and_s
             monkeypatch.setenv("GIT_CONFIG_KEY_1", "http.proxy")
             monkeypatch.setenv("GIT_CONFIG_VALUE_1", "")
         monkeypatch.setenv("LC_ALL", "en_US.UTF-8")
+        monkeypatch.setenv("OFFLINE_REACH_LOG", str(tmp_path / "reach.log"))
+        monkeypatch.setenv("HTTP_PROXY", "http://caller.invalid:1")
+        monkeypatch.setenv("HTTPS_PROXY", "http://caller.invalid:1")
+        monkeypatch.setenv("NO_PROXY", "caller.invalid")
         caller = dict(os.environ)
         suite = fake_suite(tmp_path, "streamed.test.sh", "exit 0\n")
         started = []
@@ -229,6 +233,9 @@ def test_main_starts_the_suite_alone_on_dev_null_with_maintenance_auto_off_and_s
             **{"GIT_CONFIG_VALUE_%d" % (n_of[count] + i): value for i, (_, value) in enumerate(OFFLINE_GIT)},
             "GIT_CONFIG_COUNT": str(n_of[count] + len(OFFLINE_GIT)),
             "LC_ALL": "C",
+            "HTTP_PROXY": "http://127.0.0.1:1",
+            "HTTPS_PROXY": "http://127.0.0.1:1",
+            "NO_PROXY": "127.0.0.1,localhost",
         }, [])], True)
         for count in ("2", None)
     ]
