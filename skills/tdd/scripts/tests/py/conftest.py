@@ -46,7 +46,10 @@ def shim_problems(scripts, exempt=()):
 
 def entry_bypass_problems(scripts):
     problems = []
-    for script in sorted(pathlib.Path(scripts).glob("*.sh")):
+    shims = sorted(pathlib.Path(scripts).glob("*.sh"))
+    if not shims:
+        problems.append("no shim found under %s" % scripts)
+    for script in shims:
         match = CANONICAL_SHIM.search(script.read_text())
         module = pathlib.Path(scripts) / match.group(1)
         lines = module.read_text().splitlines()

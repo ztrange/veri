@@ -106,3 +106,15 @@ def test_entry_bypass_problems_names_the_module_whose_only_entry_run_in_its_main
     problems = entry_bypass_problems(tmp_path)
 
     assert [line.split(" ")[0] for line in problems] == ["commented.py:8"]
+
+
+def test_entry_bypass_problems_reports_a_problem_for_a_scripts_tree_holding_no_shim(tmp_path):
+    """Its subject is source text: a planted scripts tree with no shim in it, read as text and never run."""
+    from conftest import entry_bypass_problems
+
+    (tmp_path / "veri").mkdir()
+    (tmp_path / "plain.txt").write_text("not a shim\n")
+
+    problems = entry_bypass_problems(tmp_path)
+
+    assert problems
