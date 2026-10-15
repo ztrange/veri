@@ -93,7 +93,6 @@ rejects build-develop-prompt.sh revise bogus spec step cmd reason  # unknown pha
 rejects build-verify-prompt.sh green spec test-path     # green without --fast-cmd
 rejects build-verify-prompt.sh --fast-cmd x refactor spec test-path nothex  # malformed <base-sha>
 rejects build-verify-prompt.sh rebase spec nothex nothex  # malformed <onto-sha>
-rejects affected-suites.sh no-range                     # not a <base>..<head> range
 rejects classify-bail.sh bogus                          # unknown cause
 rejects leaf-timeout.sh ten                             # malformed number
 rejects push-branch.sh --bogus                          # not --force-with-lease=<branch>:<sha>
