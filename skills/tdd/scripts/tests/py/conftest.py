@@ -188,7 +188,7 @@ def case_starts_no_test_runner(request, monkeypatch):
             raise AssertionError("%s starts git against the repository the tests live in: %s (%s)" % (request.node.nodeid, directory, command))
         if words and (is_suite(words[0]) or (os.path.basename(os.fsdecode(words[0])) in ("bash", "sh") and any(is_suite(w) for w in words[1:]))):
             raise AssertionError("%s starts a bash suite: %s" % (request.node.nodeid, command))
-        if words and is_pytest(words) and not from_exempt_helper() and request.node.nodeid.split('/')[-1] not in STARTS_PYTEST_EXEMPT:
+        if words and is_pytest(words) and not from_exempt_helper() and tail not in STARTS_PYTEST_EXEMPT:
             raise AssertionError("%s starts pytest: %s" % (request.node.nodeid, command))
         return real(self, args, *rest, **kwargs)
 
