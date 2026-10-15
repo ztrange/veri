@@ -597,7 +597,12 @@ unauthenticated baseline never gets a cycle.
      END { emit() }')"
    git reset --hard HEAD
    git clean -fd -e .tdd
-   [[ -z "$appends" ]] || git apply --unidiff-zero <<< "$appends"
+   if [[ -n "$appends" ]] && ! git apply --unidiff-zero <<< "$appends"; then
+     kept="$(git rev-parse --git-path kept-tdd-appends.diff)"
+     printf '%s\n' "$appends" > "$kept"
+     echo "could not re-apply the uncommitted appends to $(grep -o '^+++ b/.*' <<< "$appends" | cut -c7- | tr '\n' ' ')kept at $kept" >&2
+     exit 2
+   fi
    ```
    The `awk` judges per changed line: a ledger tick rewrites a line, so the lines a hunk removes and the
    lines that replace them are dropped — a tick whose green commit the kill prevented goes with the code it
