@@ -17,8 +17,8 @@ fast command and the affected suites green.
 
 **Do not modify the test.** Not its assertions, not its inputs, not its name. Making the
 bar easier to clear is not clearing it: a pass bought by weakening, skipping or deleting
-the case is a rejected step. If the test itself looks wrong, say so in your report and
-stop — do not edit it.{{REPLACES_CASE}}{{SUITE_REPAIR}}
+the case is a rejected step. If the test itself looks wrong, say so in your report as one
+`WRONG_TEST: <why>` line and stop — do not edit it.{{REPLACES_CASE}}{{SUITE_REPAIR}}
 
 ### When the step is too big for one green
 
@@ -68,6 +68,12 @@ or, when the step is too big for one green, those two lines replaced by one to t
 
 SPLIT: <a behaviour-level criterion, one per line, in the order they must be built>
 
+or, when the test itself looks wrong, those two lines replaced by one:
+
+WRONG_TEST: <why the test looks wrong>
+
 REPORT-FORMAT green | keys IMPL_PATH: SUITE: | suite required
 
 REPORT-FORMAT green-split | keys SPLIT: | suite exempt: a too-big step changes no code and runs no suite
+
+REPORT-FORMAT green-wrong-test | keys WRONG_TEST: | suite exempt: the test is wrong, so nothing was changed and no suite ran
