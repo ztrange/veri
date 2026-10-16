@@ -219,4 +219,18 @@ code=0
 expect_eq "$name" '1:\`### 🔴 Red\`' "$code:$(cat "$out")"
 rm -f "$report" "$out"
 
+name="unreplaced-cases.sh counts each of the escapes \\\" and \\\$ and \\\\ on its own, so a step naming one case per escape and a report spelling each with the escape removed exits 0 and prints nothing (#1617)"
+tree="$(scratch_dir)"; mkdir -p "$tree/tests/py"
+printf 'def test_a():\n    pass\n' > "$tree/tests/py/test_x.py"
+report="$(mktemp)"; out="$(mktemp)"
+printf '%s\n' \
+  'REPLACES: say "hi" => tests/py/test_x.py::test_a' \
+  'REPLACES: cost $5 => tests/py/test_x.py::test_a' \
+  'REPLACES: path a\b => tests/py/test_x.py::test_a' > "$report"
+step='- [ ] x: replaces '"'"'say \"hi\"'"'"', '"'"'cost \$5'"'"', '"'"'path a\\b'"'"' in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 5⟧'
+code=0
+(cd "$tree" && "$UNREPLACED" "$step" "$report" > "$out" 2> /dev/null < /dev/null) || code=$?
+expect_eq "$name" "0:" "$code:$(cat "$out")"
+rm -f "$report" "$out"
+
 finish
