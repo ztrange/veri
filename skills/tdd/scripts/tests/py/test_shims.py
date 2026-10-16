@@ -138,3 +138,11 @@ def test_entry_bypass_problems_names_the_planted_bare_module_as_module_and_line_
     removed = entry_bypass_problems(tmp_path)
 
     assert ([line.split(" ")[0] for line in planted], removed) == (["probe_bare.py:8"], [])
+
+
+@pytest.mark.tree_audit("every scripts/*.sh and the module each execs, read as text")
+def test_every_module_a_shim_execs_goes_through_the_shared_entry_point():
+    """Its subject is source text: the real scripts tree, read as text and never run."""
+    from conftest import entry_bypass_problems
+
+    assert entry_bypass_problems(SCRIPTS) == []
