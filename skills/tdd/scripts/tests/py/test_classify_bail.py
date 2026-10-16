@@ -123,3 +123,9 @@ def test_main_classifies_report_missing_as_a_system_failure_with_0_1300(capsys, 
     code = classify_bail.main(["report-missing"])
 
     assert (code, *capsys.readouterr()) == (0, "system\n", "")
+
+
+def test_main_classifies_replaces_report_failed_as_a_system_failure_with_0_1625(capsys, classify_bail):
+    code = classify_bail.main(["replaces-report-failed"])
+
+    assert (code, *capsys.readouterr()) == (0, "system\n", "")

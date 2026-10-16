@@ -7,7 +7,7 @@ USAGE = "usage: classify-bail.sh <cause>"
 CATEGORIES = {
     **dict.fromkeys(
         ("killed-stuck", "report-missing", "no-verdict", "reconcile-failed", "ci-timeout",
-         "ci-conflict", "step-add-refused"), "system"),
+         "ci-conflict", "step-add-refused", "replaces-report-failed"), "system"),
     **dict.fromkeys(
         ("revise-exhausted", "untestable-criterion", "step-too-big", "rebase-unresolved",
          "uncovered", "ci-red", "suite-red", "rebased-tip-red", "unreplaced-cases"), "process"),
