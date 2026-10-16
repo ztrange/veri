@@ -4,5 +4,5 @@
 - [x] unreplaced-cases.sh still counts a REPLACES: line whose name keeps the step's backslash escapes exactly as a replacement, exiting 0 ⟦criterion 2⟧
 - [x] unreplaced-cases.sh still prints a step's case and exits 1 when the only REPLACES: line's name, with backslash escapes removed, differs from the step's name with backslash escapes removed ⟦criterion 3⟧
 - [x] replaces-case-survivors.sh still prints a step case named with backslash escapes when its suite's source still holds that case spelled with those same escapes ⟦criterion 4⟧
-- [ ] unreplaced-cases.sh counts each backslash escape on its own: a step name containing `\"`, one containing `\$` and one containing `\\` each count as replaced, exiting 0, when the REPLACES: name spells that escape removed (`"`, `$`, `\`) ⟦criterion 5⟧
+- [x] unreplaced-cases.sh counts each backslash escape on its own: a step name containing `\"`, one containing `\$` and one containing `\\` each count as replaced, exiting 0, when the REPLACES: name spells that escape removed (`"`, `$`, `\`) ⟦criterion 5⟧
 - [ ] unreplaced-cases.sh unescapes only the step's name, never the REPLACES: name: for step name `a\\$b` the REPLACES: name `a\$b` counts as replaced, exiting 0, while a REPLACES: name keeping the step's escapes exactly still counts ⟦criterion 6⟧
