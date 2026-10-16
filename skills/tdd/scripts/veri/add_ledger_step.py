@@ -1,12 +1,15 @@
 """add-ledger-step.sh's computations, run in-process."""
+import os
 import re
 import sys
 
 import tunables
 
 try:
+    from .event_log import read_events
     from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, ledger_steps, multi_tag_refusal, new_step
 except ImportError:
+    from event_log import read_events
     from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, ledger_steps, multi_tag_refusal, new_step
 
 SUITE_REPAIR = "⟦suite-repair⟧"
@@ -38,6 +41,18 @@ def added_step(text, k, planned=False):
     head, tail = new_step(text, k).rsplit(f" {ADDED_MARK}", 1)
     step = head + ("" if is_repair(text) or planned else f" {ADDED_MARK}") + tail
     return step if k else step.removesuffix(f" {CRITERION_TAG}⟧")
+
+
+def added_since_last_resume(path):
+    log = os.path.join(os.path.dirname(path), "events.jsonl")
+    try:
+        events = read_events(log)
+    except (OSError, ValueError):
+        return True
+    names = [event.get("event") for event in events]
+    if "resume" not in names:
+        return True
+    return "step-added" in names[len(names) - names[::-1].index("resume"):]
 
 
 def spec_path(path):
@@ -118,7 +133,7 @@ def main(argv):
     if sum(1 for line in lines if is_anchor_step(line, anchor)) != 1:
         return refuse("add-ledger-step.sh: anchor matches no single step: " + anchor)
     earlier = [line for line in lines if ledger_steps(line) and SUITE_REPAIR in line]
-    if earlier and any(SUITE_REPAIR in text for text in texts):
+    if earlier and added_since_last_resume(path) and any(SUITE_REPAIR in text for text in texts):
         warn("add-ledger-step.sh: this run already inserted a suite-repair step: " + earlier[0])
         return 1
     budget = tunables.read("VERI_STEP_GROWTH", "5")

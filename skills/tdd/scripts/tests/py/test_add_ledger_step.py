@@ -1,5 +1,6 @@
 """In-process cases for veri/add_ledger_step.py, the module add-ledger-step.sh is a shim over."""
 import importlib
+import json
 
 import pytest
 
@@ -793,3 +794,28 @@ def test_main_refuses_a_second_suite_repair_in_the_same_run_naming_the_first_and
 
     assert (code, out, ledger.read_bytes()) == (1, "", before)
     assert "fix the full-suite failure: first.test.sh" in err
+
+
+def test_main_inserts_a_suite_repair_after_the_last_resume_when_the_ledger_holds_one_from_before_it_1607(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_bytes((
+        "# Plan for #42\n"
+        "\n"
+        "- [x] a one ⟦criterion 1⟧\n"
+        "- [x] fix the full-suite failure: first.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧\n"
+        "- [ ] b two ⟦criterion 2⟧\n"
+    ).encode())
+    events = [
+        {"ts": 1, "issue": "42", "event": "step-added", "anchor": "a one", "added": "1"},
+        {"ts": 2, "issue": "42", "event": "resume"},
+    ]
+    (ledger.parent / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+
+    code, out, err = run_cli(
+        add_ledger_step,
+        [str(ledger), "after", "b two", "fix the full-suite failure: second.test.sh ⟦suite-repair⟧"],
+    )
+
+    assert code == 0, err
+    assert "second.test.sh ⟦suite-repair⟧" in ledger.read_text()
