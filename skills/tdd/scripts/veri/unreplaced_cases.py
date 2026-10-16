@@ -24,7 +24,7 @@ def main(argv):
     step, report = argv
     with open(report, encoding="utf-8") as handle:
         replaced = {
-            m.group(1)
+            re.sub(r"^`(.*)`$", r"\1", m.group(1))
             for m in re.finditer(r"^REPLACES: (.*?) => (.*)$", handle.read(), re.M)
             if exists_in_tree(m.group(2))
         }
