@@ -342,10 +342,10 @@ table="$work/single-red.tsv"
 printf 'tests/single-red.test.sh\tadds two numbers\treplaced\t%s\t%s\n' "$node" "$work/add-subtracts.patch" > "$table"
 out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/single-red.err")" && code=0 || code=$?
 row="$(grep -F 'adds two numbers' <<<"$out" | grep -wF unproven || true)"
-if [[ "$code" == 1 && -n "$row" ]]; then
+if [[ "$code" == 1 && -n "$row" ]] && grep -F 'old case adds two numbers' "$work/single-red.err" > /dev/null; then
   ok
 else
-  no "#1596: a row whose old suite holds exactly one case reads unproven when that case already fails with the mutation not applied, though the replacement is caught (exit=$code want 1)
+  no "#1596: a row whose old suite holds exactly one case reads unproven and names the old case when that case already fails with the mutation not applied, though the replacement is caught (exit=$code want 1)
     stdout: $out
     stderr: $(cat "$work/single-red.err")"
 fi
@@ -363,6 +363,48 @@ else
   no "#1596: a row whose old suite holds several cases reads unproven and names the old case when that case already fails with the mutation not applied (exit=$code want 1)
     stdout: $out
     stderr: $(cat "$work/multi-red.err")"
+fi
+
+cat > "$repo/tests/test_calc_red.py" <<'PYTEST'
+import os
+import subprocess
+
+CALC = os.path.join(os.path.dirname(__file__), "..", "calc.sh")
+
+
+def test_adds_a_negative():
+    run = subprocess.run(["sh", "-c", '. "$0"; add 2 -3', CALC], capture_output=True, text=True)
+    assert run.stdout.strip() == "-2"
+PYTEST
+git -C "$repo" add -A && git -C "$repo" commit -qm 'pytest replacement already red'
+red_node="tests/test_calc_red.py::test_adds_a_negative"
+table="$work/replaced-red.tsv"
+printf 'tests/calc.test.sh\tadds two numbers\treplaced\t%s\t%s\n' "$red_node" "$work/add-subtracts.patch" > "$table"
+out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/replaced-red.err")" && code=0 || code=$?
+row="$(grep -F "$red_node" <<<"$out" | grep -wF unproven || true)"
+if [[ "$code" == 1 && -n "$row" ]] && grep -F "replacement $red_node" "$work/replaced-red.err" > /dev/null &&
+   ! grep -F 'old case' "$work/replaced-red.err" > /dev/null; then
+  ok
+else
+  no "#1596: a row whose pytest replacement already fails with the mutation not applied reads unproven and names the replacement, not the old case (exit=$code want 1)
+    stdout: $out
+    stderr: $(cat "$work/replaced-red.err")"
+fi
+
+sed 's/-1 "\$(add 2 -3)"/-2 "$(add 2 -3)"/' "$repo/tests/calc.test.sh" > "$repo/tests/calc-neg-red.test.sh"
+chmod +x "$repo/tests/calc-neg-red.test.sh"
+git -C "$repo" add -A && git -C "$repo" commit -qm 'multi-case suite whose kept case already red'
+table="$work/redundant-red.tsv"
+printf 'tests/calc-neg-red.test.sh\tadds two numbers\tredundant\tadds a negative\t%s\n' "$work/add-subtracts.patch" > "$table"
+out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/redundant-red.err")" && code=0 || code=$?
+row="$(grep -F 'adds two numbers' <<<"$out" | grep -wF unproven || true)"
+if [[ "$code" == 1 && -n "$row" ]] && grep -F 'replacement adds a negative' "$work/redundant-red.err" > /dev/null &&
+   ! grep -F 'old case' "$work/redundant-red.err" > /dev/null; then
+  ok
+else
+  no "#1596: a row whose kept bash case already fails with the mutation not applied reads unproven and names the replacement, not the old case (exit=$code want 1)
+    stdout: $out
+    stderr: $(cat "$work/redundant-red.err")"
 fi
 
 table="$work/multi-dies.tsv"
