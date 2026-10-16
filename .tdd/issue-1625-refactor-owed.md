@@ -1,2 +1,4 @@
 ### SKILL.md's ⟦replaces-case⟧ guard: when `unreplaced-cases.sh` still exits 1 on the corrected report, the run bails with cause=unreplaced-cases naming each case it printed, launches no second correction leaf and no verifier ⟦criterion 2⟧
 - test-only | skills/tdd/scripts/tests/py/test_skill_green_split.py: the `assert section.strip(), "...no unreplaced-cases.sh paragraph..."` check repeats in both new 1625 tests. It could move into `unreplaced_paragraph()`.
+### SKILL.md's ⟦replaces-case⟧ guard: `unreplaced-cases.sh` exit 2 bails with cause=unreplaced-cases at once, launching no correction leaf and no verifier ⟦criterion 3⟧
+- test-only | `test_skill_verify_step.py`'s new exit-2 test and the one in `test_skill_green_split.py` run the same sentence-regex pattern table; a shared helper would remove that. It sits mostly outside the file list, and no third test demands it yet.
