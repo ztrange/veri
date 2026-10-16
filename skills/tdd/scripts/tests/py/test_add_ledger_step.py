@@ -746,3 +746,29 @@ def test_main_planned_criterion_k_ticked_with_a_capital_x_in_the_spec_file_refus
     code = add_ledger_step.main(["--planned", "--criterion", "7", str(ledger), "after", "b two", "t"])
     out, err = capsys.readouterr()
     assert (code, out, err.count("\n"), "criterion 7" in err, ledger.read_bytes() == LEDGER) == (2, "", 1, True, True)
+
+
+def test_main_planned_criterion_k_ticked_in_an_indented_box_in_the_spec_file_refuses_with_2_naming_k_writing_nothing_and_filing_no_owed_step_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
+    """A box ledger.STEP_RE counts as criterion k is ticked by the same pattern, indented or not."""
+    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    boxes = "".join(f"- [ ] c{n}\n" for n in range(1, 7)) + "  - [x] c7\n"
+    (tmp_path / "issue-42-spec.md").write_text("## Acceptance criteria\n\n" + boxes + "\n## Blocked by\n")
+    code = add_ledger_step.main(["--planned", "--criterion", "7", str(ledger), "after", "b two", "t"])
+    out, err = capsys.readouterr()
+    assert (code, out, err.count("\n"), "criterion 7 is already ticked" in err, ledger.read_bytes() == LEDGER) == (2, "", 1, True, True)
+
+
+def test_main_accepts_criterion_k_before_planned_the_same_as_planned_before_criterion_k_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    got = {}
+    for name, flags in (("planned first", ["--planned", "--criterion", "7"]), ("criterion first", ["--criterion", "7", "--planned"])):
+        ledger = tmp_path / name / "issue-42.md"
+        ledger.parent.mkdir()
+        ledger.write_bytes(LEDGER)
+        (ledger.parent / "issue-42-spec.md").write_text("## Acceptance criteria\n\n" + "".join(f"- [x] c{n}\n" for n in range(1, 7)) + "- [ ] c7\n\n## Blocked by\n")
+        code = add_ledger_step.main([*flags, str(ledger), "after", "b two", "t"])
+        got[name] = (code, capsys.readouterr().err, ledger.read_bytes())
+    assert got["criterion first"] == got["planned first"] and got["planned first"][:2] == (0, "")
+

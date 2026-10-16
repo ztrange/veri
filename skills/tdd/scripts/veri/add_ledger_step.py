@@ -5,9 +5,9 @@ import sys
 import tunables
 
 try:
-    from .ledger import ADDED_MARK, CRITERION_TAG, ledger_steps, multi_tag_refusal, new_step
+    from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, ledger_steps, multi_tag_refusal, new_step
 except ImportError:
-    from ledger import ADDED_MARK, CRITERION_TAG, ledger_steps, multi_tag_refusal, new_step
+    from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, ledger_steps, multi_tag_refusal, new_step
 
 REPAIR_MARKS = ("⟦ci-repair⟧", "⟦suite-repair⟧")
 BYTES = "surrogateescape"
@@ -53,7 +53,7 @@ def spec_criteria(path):
     section = re.search(r"^## Acceptance criteria\n(.*?)(?=^## |\Z)", text, re.M | re.S)
     body = section.group(1) if section else ""
     boxes = [line for line in body.split("\n") if ledger_steps(line)]
-    return len(boxes), {str(n) for n, line in enumerate(boxes, 1) if line.startswith(("- [x]", "- [X]"))}
+    return len(boxes), {str(n) for n, line in enumerate(boxes, 1) if STEP_RE.fullmatch(line).group(2) in "xX"}
 
 
 def bash_integer(value):
@@ -81,6 +81,8 @@ def main(argv):
         argv = argv[1:]
     if argv[:1] == ["--criterion"]:
         criterion, argv = "".join(argv[1:2]), argv[2:]
+    if not planned and criterion is not None and argv[:1] == ["--planned"]:
+        planned, argv = True, argv[1:]
     if len(argv) < 4 or "" in argv[:3]:
         return refuse(USAGE)
     if criterion is not None and not re.fullmatch("[1-9][0-9]*", criterion):
