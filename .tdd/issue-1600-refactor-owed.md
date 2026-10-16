@@ -1,0 +1,2 @@
+### the Red prompt build-develop-prompt.sh builds for a ⟦replaces-case⟧ step asks for each case name in REPLACES: lines without the quote characters the step wraps it in ⟦criterion 4⟧
+- test-only | the nested `rendered(step)` helper in the new #1600 test repeats the render-and-normalise-whitespace helper in neighbouring tests (e.g. the #1521 test); a shared fixture would remove it but would edit tests this cycle did not write
