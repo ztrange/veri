@@ -1,0 +1,2 @@
+### With no `resume` event in the run's event log, `add-ledger-step.sh` inserting a `⟦suite-repair⟧` step into a ledger whose current run already inserted one exits 1, leaves the ledger byte-identical (no `## Owed steps` heading, nothing filed as owed), and its stderr names the earlier repair step's text (a small pytest case in tests/py/test_add_ledger_step.py, driven in-process through `run_cli`) ⟦criterion 1⟧
+- test-only | the new `_1607` case in test_add_ledger_step.py ends with a stray extra blank line before it, so it has three blank lines above where two are expected
