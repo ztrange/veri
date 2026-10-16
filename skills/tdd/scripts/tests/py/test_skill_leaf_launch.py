@@ -229,3 +229,18 @@ def test_skill_md_s_revise_launch_hands_build_develop_prompt_sh_revise_the_run_s
     problems = [f"{n}: builds the revise prompt without the run's fast command '<fast-cmd>': {t}"
                 for n, t in revise_builds if "'<fast-cmd>'" not in t]
     assert problems == []
+
+
+VERIFIER = "verify.sh"
+
+
+def verifier_launches_without_supervisor(text):
+    launch = r"supervise\.sh|verify\.sh|run-verdict\.sh"
+    verifier = r"verify\.sh|run-verdict\.sh"
+    launches = [(n, t) for n, t in fenced_in(text, launch) if re.search(verifier, t)]
+    assert launches, f"no launch line naming {VERIFIER} or {VERDICT_LAUNCHER} inside a fenced block"
+    return [f"{n}: reaches {VERIFIER} without {LAUNCHER}: {t}" for n, t in launches if LAUNCHER not in t]
+
+
+def test_skill_md_launches_every_verifier_through_supervise_sh_the_way_it_launches_a_developer_leaf():
+    assert verifier_launches_without_supervisor(SKILL.read_text()) == []
