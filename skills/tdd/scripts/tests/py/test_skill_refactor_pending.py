@@ -35,10 +35,12 @@ def file_records(path):
     return records_of(pathlib.Path(path).read_bytes())
 
 
+def body_of(text):
+    return text.split("\n", 1)[1] if "\n" in text else ""
+
+
 def section_records(heading):
-    text = importlib.import_module("skill_sections").section(SKILL, heading)
-    body = text.split("\n", 1)[1] if "\n" in text else ""
-    return records_of(body.encode())
+    return records_of(body_of(importlib.import_module("skill_sections").section(SKILL, heading)).encode())
 
 
 def resume():
@@ -189,8 +191,7 @@ def scripts_records():
 
 
 def planted_records(text):
-    body = importlib.import_module("skill_sections").section_of(text, SCRIPTS_HEADING).split("\n", 1)[1]
-    records = records_of(body.encode())
+    records = records_of(body_of(importlib.import_module("skill_sections").section_of(text, SCRIPTS_HEADING)).encode())
     assert records, "the planted ## The scripts section could not be read"
     return records
 
@@ -255,8 +256,7 @@ def reference_list_probes(records):
 
 
 def resume_text():
-    text = importlib.import_module("skill_sections").section(SKILL, "## Resume")
-    body = text.split("\n", 1)[1] if "\n" in text else ""
+    body = body_of(importlib.import_module("skill_sections").section(SKILL, "## Resume"))
     assert body.strip(), "SKILL.md has no ## Resume section to read"
     return re.sub(" +", " ", body.replace("\n", " "))
 
