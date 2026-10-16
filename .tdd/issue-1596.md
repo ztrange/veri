@@ -1,5 +1,5 @@
 # Plan for #1596 — mutation-parity.sh reads proven without checking that the old case and its replacement pass unmutated
 
-- [x] For a single-case suite, a row whose named old case or replacement already fails with the mutation not applied reads `unproven`, and the output names which of the two failed unmutated ⟦criterion 1⟧ ⟂ refactor pending
+- [x] For a single-case suite, a row whose named old case or replacement already fails with the mutation not applied reads `unproven`, and the output names which of the two failed unmutated ⟦criterion 1⟧
 - [ ] For a multi-case suite, a row whose named old case or replacement already fails with the mutation not applied reads `unproven`, and the output names which of the two failed unmutated (expected already satisfied by step 1's change, so a regression pin through verify-pin, not a Red/Green cycle) ⟦criterion 1⟧
 - [ ] Regression pin, test only, no production change (today's code already re-raises, so this is already satisfied and goes through verify-pin, not Red/Green): a suite with more than one case that dies before its count line under the mutation makes mutation-parity.sh end in an error, not print `owed` for that row, and the pinning case goes red when the multi-case re-raise in veri/mutation_parity.py is replaced by returning `owed` ⟦criterion 2⟧
