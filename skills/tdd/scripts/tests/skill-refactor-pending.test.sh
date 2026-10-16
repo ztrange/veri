@@ -615,4 +615,20 @@ rebase_sentence="$(grep -i 'rebase-onto-default.sh' <<<"$(sed 's/\. /.\n/g' <<<"
   problems+=("no sentence before rebase-onto-default.sh says uncommitted .tdd/ appends are kept and ledger ticks reconciled")
 report "$name"
 
+name="#1611: $skill_md's Resume preflight paragraph under the discard block keeps a working-copy tick only when the committed ledger holds a tick of the same step text without its trailing markers, counted, and no longer mentions line position"
+problems=()
+tick_para="${skill_flat#*'the ledger is judged'}"
+[[ "$tick_para" != "$skill_flat" ]] ||
+  problems+=("could not find the Resume paragraph that judges the ledger against the committed one")
+tick_para="${tick_para%%'keep this'*}"
+[[ "$tick_para" == *'committed ledger'* && "$tick_para" == *'same'* && "$tick_para" =~ step\ text ]] ||
+  problems+=("the paragraph never says a tick is kept only when the committed ledger holds a tick of the same step text")
+[[ "$tick_para" =~ trailing\ marker ]] ||
+  problems+=("the paragraph never says the step text is taken without its trailing markers")
+[[ "$tick_para" =~ counted ]] ||
+  problems+=("the paragraph never says the committed ticks are counted")
+[[ "$tick_para" =~ line\ position ]] &&
+  problems+=("the paragraph still mentions line position")
+report "$name"
+
 finish
