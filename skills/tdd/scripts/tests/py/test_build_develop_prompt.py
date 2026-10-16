@@ -1672,12 +1672,32 @@ def test_main_grants_a_test_rewrite_in_a_revise_prompt_only_when_the_revised_pha
     grant = b"A rewritten test is a new test, and owes a new prediction"
 
     granted = {}
-    for revised in ("red", "green", "refactor"):
-        code = build_develop_prompt.main(["revise", revised, str(spec), "s", "make test", str(reason)])
+    for revised in build_develop_prompt.REVISABLE_PHASES:
+        fast = ["make unit"] if revised == "diff" else []
+        code = build_develop_prompt.main(["revise", revised, str(spec), "s", "make test", str(reason)] + fast)
         out, _ = capsysbinary.readouterr()
         granted[revised] = (code, grant in out)
 
-    assert granted == {"red": (0, True), "green": (0, False), "refactor": (0, False)}
+    assert granted == {revised: (0, revised == "red") for revised in build_develop_prompt.REVISABLE_PHASES}
+
+
+def test_main_tells_a_revise_of_contract_a_to_move_the_old_interfaces_tests_without_a_new_prediction_1586(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+    move = (b"**Move the tests off the old interface, as contract-a does**: rewrite or delete only the tests the\n"
+            b"   rejection names that still exercise it. No new failing test is written, so no prediction is owed.")
+
+    told = {}
+    for revised in build_develop_prompt.REVISABLE_PHASES:
+        fast = ["make unit"] if revised == "diff" else []
+        code = build_develop_prompt.main(["revise", revised, str(spec), "s", "make test", str(reason)] + fast)
+        out, _ = capsysbinary.readouterr()
+        told[revised] = (code, move in out)
+
+    assert told == {revised: (0, revised == "contract-a") for revised in build_develop_prompt.REVISABLE_PHASES}
 
 
 def test_main_declares_a_wrong_test_report_format_in_a_revise_prompt_only_for_green_1586(
