@@ -1,0 +1,2 @@
+### SKILL.md's ⟦replaces-case⟧ guard: when `unreplaced-cases.sh` still exits 1 on the corrected report, the run bails with cause=unreplaced-cases naming each case it printed, launches no second correction leaf and no verifier ⟦criterion 2⟧
+- test-only | skills/tdd/scripts/tests/py/test_skill_green_split.py: the `assert section.strip(), "...no unreplaced-cases.sh paragraph..."` check repeats in both new 1625 tests. It could move into `unreplaced_paragraph()`.
