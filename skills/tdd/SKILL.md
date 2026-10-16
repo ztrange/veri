@@ -1171,7 +1171,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — see *The step's cost check*
    ```
    Once verify-red PASSes, record the step's test files as they stand with
-   `$S/tests-frozen.sh record .tdd/tests-frozen.record <test-path>`; tests-frozen exit 2 is a bail.
+   `$S/tests-frozen.sh record .tdd/tests-frozen-<step>.record <test-path>`; tests-frozen exit 2 is a bail.
    That is the verifier shape from *Launching a leaf*: the wait returns the **verdict** —
    0 PASS, 1 REJECT, 2 malformed or killed-stuck — not the supervisor's status.
    On **`PASSES`** the criterion is **already satisfied** — never send that test to
@@ -1230,7 +1230,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    failure with cause `report-missing`. A green that stops because the test looks wrong is exempt: it
    keeps its main outcome, a verify-green REJECT (a process outcome), never a `report-missing` bail.
 
-   After that and before verify-green is launched, run `$S/tests-frozen.sh check .tdd/tests-frozen.record`.
+   After that and before verify-green is launched, run `$S/tests-frozen.sh check .tdd/tests-frozen-<step>.record`.
    On tests-frozen exit 1 a test file changed since verify-red, so write a reason naming the changed file to
    `.tdd/verify-green.reason`, treat the attempt as a verify-green REJECT that spends REVISE_BUDGET, and launch
    no verifier for that attempt. On tests-frozen exit 0 the verifier is launched as before.
@@ -2165,7 +2165,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    Every other phase's revise template writes no `PREDICTION:` line, so this sub-step is the
    red phase's alone.
 
-   When `<phase>` is green, run `$S/tests-frozen.sh check .tdd/tests-frozen.record` here, before the re-verify.
+   When `<phase>` is green, run `$S/tests-frozen.sh check .tdd/tests-frozen-<step>.record` here, before the re-verify.
    On tests-frozen exit 1 write a reason naming the changed file to `.tdd/verify-green.reason`, spend attempt `k`
    as a REJECT that spends REVISE_BUDGET, and launch no verifier for that attempt. On tests-frozen exit 0 the verifier is launched as before.
 
