@@ -65,4 +65,28 @@ fi
 
 report "$name"
 
+problems=()
+name="no-unit-subprocess.test.sh lets a planted subprocess-running suite through only when its exemption entry carries a reason, and names the entry when the reason is empty"
+
+plant_exemption() {
+  local reason="$1" out="$tree/$TESTS_DIR/exempt-$2.test.sh"
+  awk -v entry="  [$OFFENDER]=\"$reason\"" '{ print } /^declare -A EXEMPT=\(/ { print entry }' "$guard_copy" > "$out"
+  chmod 755 "$out"
+  cp "$HERE/lib/"*.sh "$tree/$TESTS_DIR/lib/"
+  guard_out="$("$out" 2>&1)" && guard_code=0 || guard_code=$?
+}
+
+if [[ -f "$GUARD_PATH" ]]; then
+  plant_exemption 'a reason the entry carries' reasoned
+  [[ "$guard_code" == 0 ]] ||
+    problems+=("want the guard to pass over a subprocess-running suite whose exemption entry carries a reason; it exited $guard_code and said: $(flat "$guard_out")")
+  plant_exemption '' blank
+  [[ "$guard_code" != 0 ]] ||
+    problems+=("want the guard to fail over an exemption entry with an empty reason; it exited 0 and said: $(flat "$guard_out")")
+  grep -qF -- "[$OFFENDER]" <<< "$guard_out" ||
+    problems+=("no line of the guard's output names the entry [$OFFENDER] whose reason is empty; it said: $(flat "$guard_out")")
+fi
+
+report "$name"
+
 finish

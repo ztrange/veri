@@ -34,11 +34,15 @@ declare -A EXEMPT=(
   [stop-requested.test.sh]="$PENDING"
 )
 
+problems=()
+for key in "${!EXEMPT[@]}"; do
+  [[ -n "${EXEMPT[$key]}" ]] || problems+=("exemption entry [$key] carries no reason")
+done
+
 names=()
 for f in "$scripts_dir"/*.sh; do [[ -f "$f" ]] && names+=("${f##*/}"); done
 script_list="$(IFS='|'; echo "${names[*]}")"
 
-problems=()
 shopt -s nullglob
 for f in "$HERE"/unit/*.test.sh; do
   suite="${f##*/}"
