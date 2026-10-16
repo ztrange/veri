@@ -3,7 +3,7 @@ import hashlib
 import os
 import sys
 
-USAGE = "usage: tests-frozen.sh record <record-file> <test-file>... | check <record-file>"
+USAGE = "usage: tests-frozen.sh record <record-file> <test-file>... | check <record-file> | path <step-text>"
 
 
 def _write(stream, line):
@@ -23,6 +23,9 @@ def main(argv):
     if not record:
         _write(sys.stderr, USAGE)
         return 2
+    if mode == "path":
+        _write(sys.stdout, ".tdd/tests-frozen-%s.record" % hashlib.sha256(os.fsencode(record)).hexdigest()[:16])
+        return 0
     if mode == "record":
         files = argv[2:]
         if not files:
