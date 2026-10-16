@@ -69,36 +69,31 @@ def uncovered_spec_calls():
     return numbered(r'\$S/add-ledger-step\.sh (--criterion [^ ]+ )?\.tdd/.*after "\$\(\$S/next-pending-refactor\.sh')
 
 
-def add_ledger_step_entry():
+def _bullet(lines, prefix):
     out, inside = [], False
-    for line in skill_lines():
+    for line in lines:
         if inside and (line.startswith("- ") or line == ""):
             break
-        if line.startswith("- `$S/add-ledger-step.sh"):
+        if line.startswith(prefix):
             inside = True
         if inside:
             out.append(line)
     return plain(out)
+
+
+def add_ledger_step_entry():
+    return _bullet(skill_lines(), "- `$S/add-ledger-step.sh")
 
 
 def repair_call_neighbourhood(tag):
     at = max((n for n, line in enumerate(skill_lines(), 1) if "$S/add-ledger-step.sh" in line and tag in line), default=0)
     if not at:
         return ""
-    return plain(line for n, line in enumerate(skill_lines(), 1) if at - 20 <= n <= at + 20)
+    return neighbourhood(at)
 
 
 def step_too_big_cause():
-    lines = _lines(BAILING)
-    out, inside = [], False
-    for line in lines:
-        if inside and (line.startswith("- ") or line == ""):
-            break
-        if line.startswith("- `step-too-big`"):
-            inside = True
-        if inside:
-            out.append(line)
-    return plain(out)
+    return _bullet(_lines(BAILING), "- `step-too-big`")
 
 
 def one_line(lines):
