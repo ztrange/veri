@@ -70,7 +70,7 @@ def shim_source_problems(scripts):
     rules = (
         (re.compile(r"\bpython3?\b[^#]*<<"), "feeds python3 a heredoc"),
         (re.compile(r"\bpython3?\s+-c\b"), "feeds python3 a -c string"),
-        (re.compile(r"\bgh\s+(issue|pr|repo|api)\b"), "calls gh"),
+        (re.compile(r"\bgh\s+(issue|pr|repo|api|auth\s+status)\b"), "calls gh"),
     )
     problems = []
     for script in sorted(pathlib.Path(scripts).glob("*.sh")):
