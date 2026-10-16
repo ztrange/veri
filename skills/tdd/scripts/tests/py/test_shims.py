@@ -246,3 +246,12 @@ def test_shim_source_problems_names_stop_run_and_line_of_the_python3_call_handed
 
     assert unplanted == []
     assert [line.split(" ")[0] for line in problems] == ["stop-run.sh:%d" % (original.count("\n") + 2)]
+
+
+@pytest.mark.tree_audit("every scripts/*.sh, the six exempt shims included, read as text")
+def test_the_every_shim_guard_finds_no_offender_among_the_real_scripts_including_the_exempt_ones():
+    """Its subject is source text: the real scripts tree, read as text and never run."""
+    from conftest import shim_source_problems
+
+    assert (SCRIPTS / "stop-run.sh").is_file()
+    assert shim_source_problems(SCRIPTS) == []
