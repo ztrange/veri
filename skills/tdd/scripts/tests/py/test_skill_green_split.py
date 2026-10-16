@@ -374,6 +374,20 @@ def test_1625_skill_md_s_unreplaced_cases_exit_1_on_the_corrected_report_bails_w
     assert re.search(r"(no|not|never)[^.]{0,30}verifier", again), f"SKILL.md's second unreplaced-cases.sh exit 1 never says no verifier launches: {again}"
 
 
+def test_1625_skill_md_s_develop_replaces_report_wait_leaf_exit_1_or_2_bails_with_cause_replaces_report_failed_launching_no_verifier_runs_step_cost_after_the_wait_and_the_bail_table_lists_the_cause_as_a_system_failure():
+    section = unreplaced_paragraph()
+    assert section.strip(), "SKILL.md has no unreplaced-cases.sh paragraph in the Red step to read"
+    wait = section.index("wait-leaf.sh develop-replaces-report")
+    after_wait = section[wait:]
+    assert re.search(r"exit(s)? 1 or 2|exit 2 or 1|exits? [12][^.]{0,40}(or|and) [12]", after_wait), \
+        f"SKILL.md never says what wait-leaf.sh develop-replaces-report exit 1 or 2 does: {after_wait}"
+    assert "bail with cause=replaces-report-failed" in section, f"SKILL.md never bails with cause=replaces-report-failed: {section}"
+    assert "step-cost.sh" in after_wait, f"SKILL.md never runs step-cost.sh after the develop-replaces-report wait: {after_wait}"
+    row = next((line for line in skill_lines() if line.startswith("- `replaces-report-failed`")), "")
+    assert row, "SKILL.md's bail-cause table has no replaces-report-failed entry"
+    assert "system" in row.lower(), f"SKILL.md's bail-cause table never lists replaces-report-failed as a system failure: {row}"
+
+
 def test_1546_skill_md_never_runs_replaces_case_survivors_sh_at_any_place_it_names_it_as_a_run_before_the_last_place_it_runs_unreplaced_cases_sh():
     unreplaced = run_lines(UNREPLACED_RUN)
     survivors = run_lines(r"\$S/replaces-case-survivors\.sh|[Rr]uns? [^.]*replaces-case-survivors\.sh")
