@@ -34,8 +34,7 @@ def main(argv):
             if exists_in_tree(m.group(2)):
                 replaced.add(m.group(1))
                 replaced.add(re.sub("^(" + re.escape(quote) + ")(.*)\\1$", r"\2", m.group(1)))
-    replaced = {unescape(name) for name in replaced}
-    missing = [name for name in (parsed[0] if parsed else []) if unescape(name) not in replaced]
+    missing = [name for name in (parsed[0] if parsed else []) if name not in replaced and unescape(name) not in replaced]
     for name in missing:
         print(name)
     return 1 if missing else 0
