@@ -114,4 +114,20 @@ for call in "${frozen_calls[@]}"; do
 done
 report "$name"
 
+name="#1586: $skill_md's Revising on a REJECT runs tests-frozen.sh record to the step's own record once a revised red's re-verify PASSes"
+problems=()
+reverify_wait="$(lines_matching "$revise_heading" 'wait-leaf\.sh verdict-<phase>' | sed -n 1p)"
+revise_record="$(lines_matching "$revise_heading" 'tests-frozen\.sh record')"
+if [[ -z "$revise_record" ]]; then
+  problems+=("$skill_md's Revising on a REJECT never runs tests-frozen.sh record, so a red that passes only after a revise leaves its step with no record to check green against")
+else
+  any_between "$revise_record" "${reverify_wait:-0}" 999999 ||
+    problems+=("$skill_md's Revising on a REJECT runs tests-frozen.sh record, but not after the re-verify's wait (line ${reverify_wait:-?}), so it does not follow a PASS")
+  grep -qE 'tests-frozen\.sh record [^ ]*<step' <<<"$(numbered_section "$revise_heading" | cut -f 2-)" ||
+    problems+=("$skill_md's Revising on a REJECT: tests-frozen.sh record does not name the step's own record path")
+  grep -qiE 'red' <<<"$(frozen_sentences "$revise_heading" | grep -F record)" ||
+    problems+=("$skill_md's Revising on a REJECT: no sentence naming tests-frozen record scopes it to a revise of red")
+fi
+report "$name"
+
 finish
