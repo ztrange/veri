@@ -41,8 +41,10 @@ def main(argv):
             with open(record) as handle:
                 entries = [line.rstrip("\n").split("  ", 1) for line in handle if line.strip()]
         except OSError:
+            _write(sys.stderr, "tests-frozen.sh: record %s is missing" % record)
             return 2
         if not entries or any(len(entry) != 2 for entry in entries):
+            _write(sys.stderr, "tests-frozen.sh: record %s is malformed" % record)
             return 2
         changed = []
         for expected, name in entries:
