@@ -1278,3 +1278,20 @@ def test_main_after_the_resume_discard_judges_each_tick_of_two_steps_with_identi
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     assert ledger.read_text() == "- [ ] same step\n- [x] same step\n"
+
+
+@pytest.mark.process("git and tick-ledger.sh: a real resumed worktree whose ledger carries an uncommitted line inserted above a step ticked by a green commit on the branch, discarded by the resume's own commands")
+def test_main_after_the_resume_discard_keeps_the_tick_of_a_committed_step_when_a_line_is_inserted_above_it_1611(
+        monkeypatch, tmp_path):
+    scripts, clone, ledger, git, discard = _resumed_clone_1611(
+        monkeypatch, tmp_path, "- [ ] step one\n- [ ] step two\n", "plan: scope #1 (#1)")
+    subprocess.run([str(scripts / "tick-ledger.sh"), str(ledger), "step two"], check=True)
+    git(clone, "add", "-A")
+    git(clone, "commit", "-q", "-m", "fix: step two (#1)")
+    ticked = ledger.read_text()
+    ledger.write_text("- [ ] inserted step ⟦added⟧\n" + ticked)
+
+    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    assert ledger.read_text() == "- [ ] inserted step ⟦added⟧\n" + ticked
