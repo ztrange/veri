@@ -1,8 +1,8 @@
 ### 📊 Metrics — issue 1367
 
-Wall time for the issue: 589 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1242 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 1 of 15 planned.
+Steps done: 4 of 18 planned.
 Outcome: the run bailed — revise-exhausted, a process failure.
 Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
@@ -12,30 +12,30 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 20 | 17 | 3 | 6 | 1941 | 123207 | 50061 | 0.23 |
-| red | 3 | 0 | 0 | 0 | 616 | 179 | 37 | 70 | 26715 | 2066420 | 175869 | 1.18 |
-| pin | 2 | 2 | 0 | 0 | 50 | 41 | 13 | 26 | 4896 | 572539 | 81269 | 0.43 |
-| green | 8 | 1 | 3 | 0 | 418 | 196 | 47 | 94 | 18708 | 2206020 | 270439 | 1.90 |
-| refactor | 2 | 1 | 0 | 0 | 401 | 24 | 10 | 16 | 2342 | 323291 | 79836 | 0.38 |
-| exhausted | 1 | 0 | 0 | 0 | 29 | 22 | 6 | 12 | 1900 | 253547 | 40026 | 0.41 |
+| red | 8 | 1 | 0 | 0 | 830 | 367 | 82 | 158 | 51133 | 4421206 | 420737 | 2.64 |
+| pin | 5 | 5 | 0 | 0 | 117 | 95 | 29 | 58 | 10792 | 1254562 | 202006 | 1.04 |
+| green | 15 | 3 | 3 | 0 | 807 | 396 | 97 | 192 | 37833 | 4563212 | 585545 | 4.03 |
+| refactor | 6 | 3 | 0 | 0 | 536 | 72 | 28 | 52 | 7166 | 1072178 | 234646 | 1.12 |
+| exhausted | 2 | 0 | 0 | 0 | 48 | 38 | 9 | 18 | 3257 | 361534 | 78190 | 0.76 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 8 | 5 | 3 | 0 | 690 | 151 | 44 | 86 | 17013 | 1964125 | 269882 | 1.45 |
-| developer | claude-sonnet-5-5 | 5 | 0 | 0 | 0 | 682 | 207 | 48 | 90 | 29494 | 2506998 | 258327 | 1.58 |
-| developer | claude-opus-5-5 | 4 | 0 | 0 | 0 | 162 | 121 | 24 | 48 | 9995 | 1073901 | 169291 | 1.50 |
+| verifier | claude-sonnet-5-5 | 16 | 13 | 3 | 0 | 1027 | 301 | 88 | 174 | 32041 | 3882150 | 594614 | 3.09 |
+| developer | claude-sonnet-5-5 | 13 | 0 | 0 | 0 | 1026 | 460 | 114 | 218 | 61143 | 5826674 | 637172 | 3.74 |
+| developer | claude-opus-5-5 | 8 | 0 | 0 | 0 | 305 | 224 | 46 | 92 | 18938 | 2087075 | 339399 | 2.99 |
 
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 450 | 0.85 |
+| red | 0 | 0.00 | 491 | 1.28 |
 | pin | 0 | 0.00 | 31 | 0.23 |
-| green | 0 | 0.00 | 307 | 1.47 |
+| green | 0 | 0.00 | 431 | 2.60 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
-| exhausted | 0 | 0.00 | 29 | 0.41 |
+| exhausted | 0 | 0.00 | 48 | 0.76 |
 | develop-red | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
@@ -44,6 +44,10 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |
 | the conductor-launch prose cases hold as pytest cases — each as a small pytest case (no process) in skills/tdd/scripts/tests/py/test_skill_conductor_launch.py, reading SKILL.md (or CLAUDE.md, where the bash case reads that) through tests/py/skill_sections.py's section helper wherever the bash case reads one section, asserting the same pattern over the same section and window as the bash case; no production change: SKILL.md, CLAUDE.md and every script stay unchanged: replaces `$skill_md says how to launch the conductor when the operator is already inside a Claude Code session, and that veri never unsets CLAUDECODE itself`, `$skill_md says which launch modes exist and that a print-mode conductor cannot be asked a question mid-run`, `$skill_md no longer says pulling the primary clone changes the scripts under a live run`, `$skill_md presents interactive and print mode as a trade picked per run: steerable at ~25,000 tokens a request more, or that much cheaper with every question a bail`, `$skill_md no longer says an interactive session is not where a run belongs`, `$skill_md gives the ~25,000-token per-request cost as the reason for print mode, never the CLAUDECODE nested-session refusal`, `$skill_md still says, if a nested-launch guard fires, to run the conductor from a plain shell outside the session with claude -p \"/tdd <n>\"` in skills/tdd/scripts/tests/skill-conductor-launch.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 115 | 39 | 72 | 14047 | 1661094 | 258514 | 1.34 | 884 | unknown | 0/5 | nothing-left |  |  | already-satisfied |
 | the leaf-launch prose cases on detaching, waiting and blind verifier launches hold as pytest cases — each as a small pytest case (no process) in skills/tdd/scripts/tests/py/test_skill_leaf_launch.py, reading SKILL.md (or CLAUDE.md, where the bash case reads that) through tests/py/skill_sections.py's section helper wherever the bash case reads one section, asserting the same pattern over the same section and window as the bash case; no production change: SKILL.md, CLAUDE.md and every script stay unchanged: replaces `$skill_md launches every developer and verifier leaf through $detacher, and no launch line uses nohup`, `$skill_md's *$section* says why nohup alone is not enough`, `$skill_md clears .tdd/<name>.pid together with .tdd/<name>.exit on every launch`, `$skill_md's $waiter entry says a 2 also means the supervisor died without recording a status, and takes the killed-stuck branch`, `$skill_md launches every verifier through $launcher, the way it launches a developer leaf`, `$skill_md passes $verifier only the blind parameters on every supervised verifier launch` in skills/tdd/scripts/tests/skill-leaf-launch.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧ | 10 | 1 | 3 | 0 | 0 | 0 | 347 | 74 | 146 | 40514 | 3760723 | 388925 | 2.95 | unknown | 2/2 | unknown | unknown |  |  | already-satisfied |
+| the leaf-launch prose cases on detaching, waiting and blind verifier launches hold as pytest cases — each as a small pytest case (no process) in skills/tdd/scripts/tests/py/test_skill_leaf_launch.py, reading SKILL.md (or CLAUDE.md, where the bash case reads that) through tests/py/skill_sections.py's section helper wherever the bash case reads one section, asserting the same pattern over the same section and window as the bash case; no production change: SKILL.md, CLAUDE.md and every script stay unchanged: replaces `$skill_md launches every developer and verifier leaf through $detacher, and no launch line uses nohup`, `$skill_md's *$section* says why nohup alone is not enough`, `$skill_md clears .tdd/<name>.pid together with .tdd/<name>.exit on every launch`, `$skill_md's $waiter entry says a 2 also means the supervisor died without recording a status, and takes the killed-stuck branch`, `$skill_md passes $verifier only the blind parameters on every supervised verifier launch` in skills/tdd/scripts/tests/skill-leaf-launch.test.sh ⟦replaces-case⟧ ⟦added⟧ ⟦criterion 1⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 154 | 41 | 80 | 17377 | 1955875 | 265462 | 1.43 | 451 | unknown | 0/5 | nothing-left |  |  | already-satisfied |
+| the leaf-launch prose cases on the verdict launcher, the step-title rule and the revise launch's fast command hold as pytest cases — each as a small pytest case (no process) in skills/tdd/scripts/tests/py/test_skill_leaf_launch.py, reading SKILL.md (or CLAUDE.md, where the bash case reads that) through tests/py/skill_sections.py's section helper wherever the bash case reads one section, asserting the same pattern over the same section and window as the bash case; no production change: SKILL.md, CLAUDE.md and every script stay unchanged, and the suite's EXEMPT table stays until the verifier-launch guard is ported: replaces `$skill_md invokes $verdict_launcher on every verifier launch, with no inlined bash -c command string`, `$skill_md double-quotes every documented command line that passes a fragment of the step's title`, `$skill_md's step-title rule says the title reaches a command line as data, not hand-typed in double quotes, and names what the launch lines read it through (#437)`, `the #431 guard still refuses a single-quoted step title and its exemption table still holds over the rewritten $skill_md (#437)`, `$skill_md's revise launch hands build-develop-prompt.sh revise the run's fast command '<fast-cmd>' (#636)` in skills/tdd/scripts/tests/skill-leaf-launch.test.sh ⟦replaces-case⟧ ⟦added⟧ ⟦criterion 1⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 174 | 45 | 90 | 20611 | 2250865 | 267603 | 1.50 | 427 | unknown | 1/5 | nothing-structural |  |  | already-satisfied |
+| the behaviours of skill-leaf-launch's cases `$skill_md launches every verifier through $launcher, the way it launches a developer leaf` and `$skill_md states the step-title rule in one place, and every fenced command carrying the title follows it` hold as pytest cases — each as a small pytest case (no process) in skills/tdd/scripts/tests/py/test_skill_leaf_launch.py, reading SKILL.md (or CLAUDE.md, where the bash case reads that) through tests/py/skill_sections.py's section helper wherever the bash case reads one section, asserting the same pattern over the same section and window as the bash case; each asserts through a function that takes the SKILL.md text as its argument, so a planted copy of that text can be passed to it; both bash cases stay in skills/tdd/scripts/tests/skill-leaf-launch.test.sh; no production change: SKILL.md, CLAUDE.md and every script stay unchanged ⟦added⟧ ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 44 | 12 | 24 | 5024 | 538109 | 84668 | 0.44 | unknown | unknown | unknown | unknown |  |  | pin |
+| the behaviour of skill-leaf-launch's case `$skill_md states the step-title rule in one place, and every fenced command carrying the title follows it` holds as a pytest case — a small pytest case (no process) in skills/tdd/scripts/tests/py/test_skill_leaf_launch.py, asserting the same pattern over the same section and window as the bash case, through a function that takes the SKILL.md text as its argument, so a planted copy of that text can be passed to it; the bash case stays in skills/tdd/scripts/tests/skill-leaf-launch.test.sh; no production change: SKILL.md, CLAUDE.md and every script stay unchanged ⟦added⟧ ⟦criterion 1⟧ | 6 | 1 | 0 | 0 | 0 | 0 | 134 | 34 | 66 | 12608 | 1506026 | 255952 | 1.92 | unknown | 2/2 | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -52,17 +56,19 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | step | pass | refactor | stopped | verdict | revise | wall s | $ |
 | --- | ---: | ---: | --- | --- | ---: | ---: | ---: |
 | the conductor-launch prose cases hold as pytest cases — each as a small pytest case (no process) in skills/tdd/scripts/tests/py/test_skill_conductor_launch.py, reading SKILL.md (or CLAUDE.md, where the bash case reads that) through tests/py/skill_sections.py's section helper wherever the bash case reads one section, asserting the same pattern over the same section and window as the bash case; no production change: SKILL.md, CLAUDE.md and every script stay unchanged: replaces `$skill_md says how to launch the conductor when the operator is already inside a Claude Code session, and that veri never unsets CLAUDECODE itself`, `$skill_md says which launch modes exist and that a print-mode conductor cannot be asked a question mid-run`, `$skill_md no longer says pulling the primary clone changes the scripts under a live run`, `$skill_md presents interactive and print mode as a trade picked per run: steerable at ~25,000 tokens a request more, or that much cheaper with every question a bail`, `$skill_md no longer says an interactive session is not where a run belongs`, `$skill_md gives the ~25,000-token per-request cost as the reason for print mode, never the CLAUDECODE nested-session refusal`, `$skill_md still says, if a nested-launch guard fires, to run the conductor from a plain shell outside the session with claude -p \"/tdd <n>\"` in skills/tdd/scripts/tests/skill-conductor-launch.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 401 | 0.38 |
+| the leaf-launch prose cases on detaching, waiting and blind verifier launches hold as pytest cases — each as a small pytest case (no process) in skills/tdd/scripts/tests/py/test_skill_leaf_launch.py, reading SKILL.md (or CLAUDE.md, where the bash case reads that) through tests/py/skill_sections.py's section helper wherever the bash case reads one section, asserting the same pattern over the same section and window as the bash case; no production change: SKILL.md, CLAUDE.md and every script stay unchanged: replaces `$skill_md launches every developer and verifier leaf through $detacher, and no launch line uses nohup`, `$skill_md's *$section* says why nohup alone is not enough`, `$skill_md clears .tdd/<name>.pid together with .tdd/<name>.exit on every launch`, `$skill_md's $waiter entry says a 2 also means the supervisor died without recording a status, and takes the killed-stuck branch`, `$skill_md passes $verifier only the blind parameters on every supervised verifier launch` in skills/tdd/scripts/tests/skill-leaf-launch.test.sh ⟦replaces-case⟧ ⟦added⟧ ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 75 | 0.35 |
+| the leaf-launch prose cases on the verdict launcher, the step-title rule and the revise launch's fast command hold as pytest cases — each as a small pytest case (no process) in skills/tdd/scripts/tests/py/test_skill_leaf_launch.py, reading SKILL.md (or CLAUDE.md, where the bash case reads that) through tests/py/skill_sections.py's section helper wherever the bash case reads one section, asserting the same pattern over the same section and window as the bash case; no production change: SKILL.md, CLAUDE.md and every script stay unchanged, and the suite's EXEMPT table stays until the verifier-launch guard is ported: replaces `$skill_md invokes $verdict_launcher on every verifier launch, with no inlined bash -c command string`, `$skill_md double-quotes every documented command line that passes a fragment of the step's title`, `$skill_md's step-title rule says the title reaches a command line as data, not hand-typed in double quotes, and names what the launch lines read it through (#437)`, `the #431 guard still refuses a single-quoted step title and its exemption table still holds over the rewritten $skill_md (#437)`, `$skill_md's revise launch hands build-develop-prompt.sh revise the run's fast command '<fast-cmd>' (#636)` in skills/tdd/scripts/tests/skill-leaf-launch.test.sh ⟦replaces-case⟧ ⟦added⟧ ⟦criterion 1⟧ | 1 | 1/5 | nothing-structural | PASS | 0 | 60 | 0.39 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 1 | 1 | 0 | 0 | 1 | 0 | 2 | 2 | 4 |  |  |  |  |  |  |  |  |
-| target | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 26 | 0 | 1 | 0 | 0 |
-| fast | 31 | 39 | 39 | 25 | 25 | 40 |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 1 | 1 | 0 | 0 | 1 | 0 | 2 | 2 | 4 | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 |  |  |  |  |  |  |  |  |
+| target | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 26 | 0 | 1 | 0 | 0 | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| fast | 31 | 39 | 39 | 25 | 25 | 40 | 30 | 36 | 46 | 26 | 32 | 24 | 26 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 116 | 224 | 56502 | 5545024 | 697500 | 4.53 |
+| total | 248 | 484 | 112122 | 11795899 | 1571185 | 9.82 |
