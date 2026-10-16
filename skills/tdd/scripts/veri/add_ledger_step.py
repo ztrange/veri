@@ -9,7 +9,8 @@ try:
 except ImportError:
     from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, ledger_steps, multi_tag_refusal, new_step
 
-REPAIR_MARKS = ("⟦ci-repair⟧", "⟦suite-repair⟧")
+SUITE_REPAIR = "⟦suite-repair⟧"
+REPAIR_MARKS = ("⟦ci-repair⟧", SUITE_REPAIR)
 BYTES = "surrogateescape"
 USAGE = "usage: add-ledger-step.sh [--criterion <k>] <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]  (--planned goes with --criterion <k>)"
 
@@ -116,8 +117,8 @@ def main(argv):
         return refuse("add-ledger-step.sh: --planned: a step already serves criterion " + criterion)
     if sum(1 for line in lines if is_anchor_step(line, anchor)) != 1:
         return refuse("add-ledger-step.sh: anchor matches no single step: " + anchor)
-    earlier = [line for line in lines if ledger_steps(line) and "⟦suite-repair⟧" in line]
-    if earlier and any("⟦suite-repair⟧" in text for text in texts):
+    earlier = [line for line in lines if ledger_steps(line) and SUITE_REPAIR in line]
+    if earlier and any(SUITE_REPAIR in text for text in texts):
         warn("add-ledger-step.sh: this run already inserted a suite-repair step: " + earlier[0])
         return 1
     budget = tunables.read("VERI_STEP_GROWTH", "5")
