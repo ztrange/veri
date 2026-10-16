@@ -48,6 +48,12 @@ def main(argv):
     onto = output("rev-parse", f"origin/{default}")
     if onto != re.match(r"\S*", remote.stdout).group():
         return 2
+    saved = pathlib.Path(output("rev-parse", "--git-path", "set-aside-tdd-appends.diff")).resolve()
+    if saved.is_file():
+        if git("apply", text=True, input=saved.read_text(), stderr=subprocess.DEVNULL).returncode != 0:
+            sys.stderr.write(f"rebase-onto-default: could not re-apply the set-aside appends; kept at {saved}\n")
+            return 2
+        saved.unlink()
     if git("merge-base", "--is-ancestor", onto, "HEAD", text=True).returncode == 0:
         return 3
     pre = output("rev-parse", "HEAD")
@@ -56,6 +62,7 @@ def main(argv):
     dirty = output("status", "--porcelain", "--untracked-files=no", "--", ".tdd")
     appends = output("diff", "HEAD", "--", ".tdd") if dirty else ""
     if appends:
+        saved.write_text(appends + "\n")
         git("checkout", "HEAD", "--", ".tdd", text=True)
     outcome = 0
     try:
@@ -72,6 +79,8 @@ def main(argv):
         if appends:
             reapplied = git("apply", text=True, input=appends + "\n",
                             stderr=subprocess.DEVNULL).returncode == 0
+    if appends and reapplied:
+        saved.unlink()
     if appends and not reapplied:
         kept = pathlib.Path(output("rev-parse", "--git-path", "kept-tdd-appends.diff")).resolve()
         kept.write_text(appends + "\n")
