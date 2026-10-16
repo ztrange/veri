@@ -45,11 +45,7 @@ def windows(text, pattern, radius=250):
 
 
 def window(text, pattern, radius=250):
-    for line in text.split(b"\n"):
-        match = re.search(pattern.encode(), line)
-        if match:
-            return line[max(match.start() - radius, 0):match.end() + radius]
-    return b""
+    return next(iter(windows(text, pattern, radius)), b"")
 
 
 def test_skill_md_tells_a_refactor_kind_run_to_plan_each_step_as_one_named_refactoring_whose_criterion_is_a_shell_predicate_false_before_the_step_and_true_after_it():
