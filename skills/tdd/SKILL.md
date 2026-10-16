@@ -580,10 +580,11 @@ unauthenticated baseline never gets a cycle.
    git reset --hard HEAD
    git clean -fd -e .tdd
    if [[ -n "$appends" ]] && ! git apply --unidiff-zero <<< "$appends"; then
-     kept="$(git rev-parse --git-path kept-tdd-appends.diff)"
+     base="$(git rev-parse --git-path kept-tdd-appends.diff)"
+     kept="$base"
      [[ ! -e $kept ]] || kept="$kept.$(date +%s).$$"
      printf '%s\n' "$appends" > "$kept"
-     echo "could not re-apply the uncommitted appends to $(grep -o '^+++ b/.*' <<< "$appends" | cut -c7- | tr '\n' ' ')kept at $kept" >&2
+     echo "could not re-apply the uncommitted appends to $(grep -o '^+++ b/.*' <<< "$appends" | cut -c7- | tr '\n' ' ')kept at $(ls -d "$base"* | tr '\n' ' ')" >&2
      exit 2
    fi
    for f in .tdd/issue-*.md; do
