@@ -1,0 +1,171 @@
+"""Cases for the shape of the refactor phase skills/tdd/SKILL.md prescribes, read as text."""
+import importlib
+import pathlib
+import re
+
+SKILL = pathlib.Path(__file__).resolve().parents[3] / "SKILL.md"
+ROOT = pathlib.Path(__file__).resolve().parents[5]
+CONTEXT = ROOT / "CONTEXT.md"
+CLAUDE = ROOT / "CLAUDE.md"
+
+REFACTOR = "#### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)"
+
+ONE_LEAF = r"(one|a single) (refactor |developer |transform )?leaf"
+REFUSAL = r"refus|do(es)? not (go on|continue|proceed)|don.t (go on|continue)|not continue|bail"
+ADD_LEDGER_STEP = r"\$s/add-ledger-step\.sh"
+DENIAL_WORD = "no|never|neither|without|not"
+DENIAL = f"({DENIAL_WORD})[^.]{{0,80}}"
+AMENDMENT = r"amend|ledger (step|line)|add-ledger-step|grow"
+
+
+def plain(raw):
+    return raw.translate(None, b"*`").lower()
+
+
+def section():
+    text = importlib.import_module("skill_sections").section(SKILL, REFACTOR)
+    body = text.split("\n", 1)[1] if "\n" in text else ""
+    return plain(body.encode()).replace(b"\n", b" ")
+
+
+def has(text, pattern):
+    return any(re.search(pattern.encode(), line) for line in text.split(b"\n"))
+
+
+def windows(text, pattern, radius=250):
+    found = []
+    for line in text.split(b"\n"):
+        for match in re.finditer(pattern.encode(), line):
+            found.append(line[max(match.start() - radius, 0):match.end() + radius])
+    return found
+
+
+def window(text, pattern, radius=250):
+    return next(iter(windows(text, pattern, radius)), b"")
+
+
+def wins(text, pattern):
+    return b" ".join(windows(text, pattern))
+
+
+def either_order(first, second, between):
+    return f"(({first}){between}({second})|({second}){between}({first}))"
+
+
+def records_of(path):
+    records = []
+    rec = None
+
+    def flush():
+        if rec:
+            records.append(plain(re.sub(rb"\s+", b" ", rec)))
+
+    for line in pathlib.Path(path).read_bytes().split(b"\n"):
+        if re.match(rb"[0-9]+\. ", line) or re.match(rb"\s*- ", line):
+            flush()
+            rec = line
+        elif not line.strip():
+            flush()
+            rec = None
+        elif not rec:
+            rec = line
+        else:
+            rec += b" " + line
+    flush()
+    return records
+
+
+def record(path, *patterns):
+    return next((r for r in records_of(path) if all(re.search(p.encode(), r) for p in patterns)), b"")
+
+
+def adr_pointer(text):
+    return any(int(re.search(rb"[0-9]+$", ref).group()) != 10 for ref in re.findall(rb"adr[- ]?[0-9]+", text))
+
+
+def test_skill_md_s_refactor_section_launches_one_leaf_per_step_and_refuses_verify_refactor_over_a_dirty_tree_or_a_non_refactor_commit_since_the_green_commit_narrating_the_count_against_the_budget():
+    text = section()
+    assert text.strip(), "SKILL.md has no Refactor section to read"
+    assert has(text, ONE_LEAF), "never says one leaf applies the step's transforms"
+    relaunch = re.search(rb"repeatedly|(each|every|the next) iteration", text)
+    assert relaunch is None, f"still launches a leaf per transform: {relaunch and relaunch.group()!r}"
+
+    dirty = window(text, r"git status --porcelain")
+    assert dirty, "never asks git status --porcelain"
+    assert has(dirty, REFUSAL), "asks git status --porcelain without saying a non-empty answer stops it"
+
+    subjects = window(text, r"(--(format|pretty)=%s|subject)")
+    assert subjects, "never reads the subjects of the commits since the green commit"
+    assert has(subjects, r"refactor:"), "reads commit subjects without saying they must be refactor:"
+    assert has(subjects, REFUSAL), "never says a non-refactor: commit since the green commit stops it"
+
+    counted = window(text, r"rev-list --count")
+    assert counted, "never counts the refactor: commits with git rev-list --count"
+    assert has(counted, r"budget|refactor [0-9k]+/"), "counts the refactor: commits without narrating them against the budget"
+
+    assert has(text, r"overrun|over the budget|above the budget|exceed"), "never says a count above the budget is narrated as an overrun"
+
+
+def test_context_md_s_cycle_entry_and_claude_md_s_budget_invariant_describe_one_refactor_leaf_per_step_and_point_at_the_adr_that_records_it():
+    cycle = record(CONTEXT, r"^cycle:")
+    invariant = record(CLAUDE, r"veri_stuck_retries", r"revise_budget", r"veri_refactor_budget")
+
+    assert cycle, "CONTEXT.md has no Cycle glossary entry to read"
+    assert has(cycle, ONE_LEAF), "the Cycle entry never says the refactor step is one leaf"
+    stale_cycle = re.search(rb"per leaf|until none remain|per leaf invocation", cycle)
+    assert stale_cycle is None, f"the Cycle entry still says {stale_cycle and stale_cycle.group()!r}"
+
+    assert invariant, "CLAUDE.md has no invariant naming all three budgets to read"
+    assert has(invariant, ONE_LEAF), "the budget invariant never says one leaf spends the step's refactor budget"
+    stale_invariant = re.search(rb"asked for one always finds one|one transform per leaf|a transform per leaf", invariant)
+    assert stale_invariant is None, f"the budget invariant still explains the budget by {stale_invariant and stale_invariant.group()!r}"
+
+    assert adr_pointer(cycle + b" " + invariant), "neither entry names an ADR other than the superseded 0010"
+
+
+def test_skill_md_s_refactor_section_passes_the_flags_behaviours_to_one_add_ledger_step_sh_call_after_the_step_and_commits_the_grown_ledger_with_the_refactor_pending_clear():
+    text = section()
+    assert text.strip(), "SKILL.md has no Refactor section to read"
+    calls = len(re.findall(ADD_LEDGER_STEP.encode(), text))
+    assert calls != 0, "never runs add-ledger-step.sh"
+    assert calls == 1, f"runs add-ledger-step.sh {calls} times"
+    added = window(text, ADD_LEDGER_STEP)
+    assert has(added, r"'<[^>]*behaviou?r>'"), "runs add-ledger-step.sh without saying the texts are the flags' behaviours"
+    assert has(added, r"after ['\"]?(<step>|\$\(\$s/next-pending-refactor\.sh)"), "runs add-ledger-step.sh without anchoring the insertion after the step"
+
+    cleared = window(text, r"clear-refactor-pending\.sh")
+    assert cleared, "never clears the refactor-pending mark"
+    assert has(cleared, r"add-ledger-step"), "commits the cleared ledger without the steps add-ledger-step.sh inserted into it"
+
+
+def test_skill_md_s_refactor_section_narrates_add_ledger_step_sh_exit_1_as_owed_steps_and_does_not_bail_on_it():
+    text = section()
+    assert text.strip(), "SKILL.md has no Refactor section to read"
+    owed_claim = either_order("exit 1", "owed", ".{0,120}")
+    assert has(text, owed_claim), "never says what add-ledger-step.sh exit 1 means"
+    clause = window(text, owed_claim, 150)
+    bailed = re.search(rb"bail|abort", clause)
+    assert bailed is None, f"says {bailed and bailed.group()!r} where it narrates add-ledger-step.sh exit 1"
+
+
+def test_skill_md_s_refactor_section_passes_the_passing_verify_refactor_verdict_s_uncovered_spec_flags_to_the_same_add_ledger_step_sh_call_as_the_leaf_s():
+    text = section()
+    assert text.strip(), "SKILL.md has no Refactor section to read"
+    added = window(text, ADD_LEDGER_STEP)
+    assert added, "never runs add-ledger-step.sh"
+    assert has(added, r"verif|verdict"), "runs add-ledger-step.sh over the leaf's values alone"
+
+
+def test_skill_md_s_refactor_section_answers_an_overfit_flag_with_one_triangulating_red_green_pair_inside_the_step_adding_no_ledger_step_and_no_second_step_done_and_resumes_that_step_s_refactor_loop_with_the_budget_it_had_left():
+    text = section()
+    assert text.strip(), "SKILL.md has no Refactor section to read"
+    flagged = wins(text, r"overfit")
+    assert flagged, "never names the overfit class"
+    assert has(flagged, either_order(r"triangulat[a-z]*", r"verify-(red|green)", r"[^.]{0,200}")), (
+        "never says an overfit flag is answered by a triangulating red and green pair"
+    )
+    assert has(flagged, f"{DENIAL}({AMENDMENT})"), "answers an overfit flag without saying the plan does not grow for it"
+    assert has(flagged, f"{DENIAL}(second )?step.done"), "answers an overfit flag without saying the step is not mirrored done a second time"
+    assert has(flagged, either_order(r"(resum|return|back)", r"budget", r"[^.]{0,160}")), (
+        "never says the step resumes its own refactor loop with the budget it had left"
+    )
