@@ -1186,6 +1186,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    here, so on `AGAINST_UNMODIFIED: PASSES` it goes on to Green with the failing CI job's log
    (test id and assertion diff) as its red evidence, never to verify-pin and never to the
    `test: pin` tick-and-commit.
+   Because that step skips verify-red, run `$S/tests-frozen.sh record .tdd/tests-frozen-<step>.record <test-path>` for the ⟦ci-repair⟧ step before its green, to the step's own record; tests-frozen exit 2 is a bail.
    Either way, note the **wait's exit code** — the verdict — and read the reason back out of
    `.tdd/verify-<phase>.reason` to narrate it. The file is named for the **verifier** that
    wrote it (`red`, `pin`, `green`, `refactor`), and each verification of that phase
