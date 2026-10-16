@@ -3,7 +3,7 @@ import ast
 import pathlib
 import pytest
 
-VERI = pathlib.Path(__file__).resolve().parents[2] / "veri"
+VERI = pathlib.Path(__file__).resolve().parents[3] / "veri"
 
 READS_DIRECTLY = frozenset((
     "event", "github", "launch_floor", "run_leaf", "run_suite", "run_verdict", "skill_drift", "solvable_issues",

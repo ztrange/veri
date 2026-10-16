@@ -3,7 +3,7 @@ import importlib
 import pathlib
 import re
 
-SKILL = pathlib.Path(__file__).resolve().parents[3] / "SKILL.md"
+SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 LOOP = "### 3. The cycle loop"
 SCOPE = "### 2. Scope & plan → the ledger"
@@ -252,7 +252,7 @@ def test_1397_replaces_case_planning_paragraph_names_the_step_whose_red_reports_
     assert not problems, "\n".join(problems)
 
 
-CONTEXT = pathlib.Path(__file__).resolve().parents[5] / "CONTEXT.md"
+CONTEXT = pathlib.Path(__file__).resolve().parents[6] / "CONTEXT.md"
 
 
 def pin_replaces_case_rec():

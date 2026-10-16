@@ -197,3 +197,19 @@ def test_a_root_that_does_not_exist_is_refused_with_exit_2_and_a_stderr_line_nam
     code, stdout, stderr = run_cli(guard, [str(missing)])
 
     assert (code, stdout, str(missing) in stderr) == (2, "", True)
+
+
+@pytest.mark.tree_audit("every test_*.py under tests/py and tests/py/unit")
+def test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it():
+    guard = importlib.import_module("veri.fast_tier_guard")
+    tier = SCRIPTS / "tests" / "py"
+    named = {line.split(":")[0] for line in guard.offences(tier, guard.EXEMPTIONS)}
+    files = sorted(tier.glob("test_*.py")) + sorted((tier / "unit").glob("test_*.py"))
+
+    misplaced = [
+        f"{path.relative_to(tier)}: {'named by the guard, inside the tier' if str(path) in named else 'guard-clean, outside the tier'}"
+        for path in files
+        if (str(path) in named) == (path.parent.name == "unit")
+    ]
+
+    assert misplaced == []

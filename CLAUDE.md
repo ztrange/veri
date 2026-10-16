@@ -185,7 +185,7 @@ Two traps, both already cost something once:
 
 Plain-shell asserts, zero dependencies, under
 `skills/tdd/scripts/tests/` — 130 files for eighty scripts, plus thirteen suites under `unit/` (`ledger.test.sh`, `github.test.sh`, `exit-contract.test.sh`, `candidate-line.test.sh`, `window.test.sh`, `section-end.test.sh`, `frontmatter-name.test.sh`, `fenced-lines.test.sh`, `gh-fixture.test.sh`, written with the script or helper they test; `missing-argument-guard.test.sh`, which plants an offender so that the audit, `tests/missing-argument-exit.test.sh`, which runs every script as a subprocess and so stays out of the fast tier, is known to go red; `harness.test.sh`, written with the sourced test harness; `no-report-copies.test.sh`, written to pin that no suite carries its own `report`; and `guard-plant.test.sh`, written with the sourced guard-plant library), all run by `make test`.
-The pending-mark literal, commit-suffix and emitted-text checks are pytest cases now, in `tests/py/test_pending_mark_literal.py`, `test_commit_suffix.py` and `test_emitted_text.py`.
+The pending-mark literal, commit-suffix and emitted-text checks are pytest cases now, in `tests/py/unit/test_pending_mark_literal.py`, `test_commit_suffix.py` and `test_emitted_text.py`.
 One suite belongs to no single
 script: `workflow-timeouts.test.sh` is the first to assert on
 something outside `skills/` at all — it reads `.github/workflows/ci.yml` as text, the way
@@ -282,7 +282,7 @@ convention `status.sh` is the worked example of (#720). What still follows it is
 (#634). Its logic moves into a module of the `skills/tdd/scripts/veri/` package, and its
 `.sh` entry point stays, as a `/bin/sh` shim that `exec`s `python3` on that module once per
 invocation, so its Bash holds no Python source — no heredoc fed to `python3`, no
-`python3 -c` string. A ported script's tests live in `tests/py/test_<module>.py`, which
+`python3 -c` string. A ported script's tests live in `tests/py/unit/test_<module>.py` (`tests/py/test_<module>.py` when the guard names it), which
 imports the module and fakes only process boundaries; its bash suite under `tests/` keeps
 the contract cases that run it through its entry point.
 

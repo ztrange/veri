@@ -77,7 +77,7 @@ def test_an_unregistered_mark_fails_collection_naming_the_test_and_the_mark_whil
 
 
 def test_a_tree_audit_mark_is_registered_and_make_units_selection_deselects_it_beside_process_cases(pytester):
-    makefile = (pathlib.Path(__file__).resolve().parents[5] / "Makefile").read_text()
+    makefile = (pathlib.Path(__file__).resolve().parents[6] / "Makefile").read_text()
     selection = re.search(r'^unit: PY_SELECT = -m "([^"]*)"$', makefile, re.M).group(1)
     pytester.makepyfile(test_plant="""
         import pytest
@@ -102,7 +102,7 @@ def test_a_tree_audit_mark_is_registered_and_make_units_selection_deselects_it_b
 
 
 def test_an_unmarked_case_that_lists_a_repository_directory_fails_naming_the_case_and_the_directory_while_a_marked_one_a_named_file_and_an_import_pass(pytester):
-    root = pathlib.Path(__file__).resolve().parents[5]
+    root = pathlib.Path(__file__).resolve().parents[6]
     pytester.makepyfile(test_plant="""
         import pathlib
 
@@ -133,7 +133,7 @@ def test_an_unmarked_case_that_lists_a_repository_directory_fails_naming_the_cas
 
 
 def test_an_unmarked_case_that_drives_a_module_which_lists_a_repository_directory_fails_naming_the_case_and_the_directory_while_the_marked_case_passes(pytester):
-    root = pathlib.Path(__file__).resolve().parents[5]
+    root = pathlib.Path(__file__).resolve().parents[6]
     pytester.makepyfile(sweeper="""
         import pathlib
 
