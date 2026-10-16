@@ -147,6 +147,20 @@ def test_entry_bypass_problems_names_the_module_whose_only_entry_run_is_in_a_fun
     assert [line.split(" ")[0] for line in problems] == ["late.py:8"]
 
 
+def test_entry_bypass_problems_names_the_module_whose_only_entry_run_is_a_trailing_comment_on_its_bare_exit_as_module_and_line(tmp_path):
+    """Its subject is source text: planted shims and module files, read as text and never run."""
+    from conftest import entry_bypass_problems
+
+    (tmp_path / "veri").mkdir()
+    shim(tmp_path / "trailing.sh", 'exec python3 "$(dirname "$0")/veri/trailing.py" "$@"')
+    (tmp_path / "veri" / "trailing.py").write_text(
+        "import sys\n\n\ndef main(argv):\n    return 0\n\n\nif __name__ == \"__main__\":\n    sys.exit(main(sys.argv[1:]))  # entry.run(main, sys.argv[1:])\n")
+
+    problems = entry_bypass_problems(tmp_path)
+
+    assert [line.split(" ")[0] for line in problems] == ["trailing.py:8"]
+
+
 def test_entry_bypass_problems_reports_a_problem_for_a_scripts_tree_holding_no_shim(tmp_path):
     """Its subject is source text: a planted scripts tree with no shim in it, read as text and never run."""
     from conftest import entry_bypass_problems
