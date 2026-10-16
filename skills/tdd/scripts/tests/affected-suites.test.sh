@@ -410,19 +410,19 @@ cat "$repo/skills/tdd/SKILL.md" > "$work/SKILL.md.orig"
 sed '/^- `\$S\/stop-requested\.sh/s/stop-requested\.sh/stop-asked.sh/' "$work/SKILL.md.orig" > "$repo/skills/tdd/SKILL.md"
 real_edit "stop-requested.sh renamed in ## The scripts" "skill-stopping affected-suites" ""
 edit_below '### 2c. Verify the plan (blind)'
-real_edit "### 2c. Verify the plan (blind)" skill-plan-verify ""
+real_edit "### 2c. Verify the plan (blind)" "" ""
 edit_below '### 3. The cycle loop'
-real_edit "### 3. The cycle loop" "skill-draft-pr skill-leaf-launch skill-revise-exhausted" ""
+real_edit "### 3. The cycle loop" "skill-draft-pr skill-leaf-launch" ""
 edit_below '## Revising on a REJECT'
-real_edit "## Revising on a REJECT" skill-criterion-finished ""
+real_edit "## Revising on a REJECT" "" ""
 edit_below '## Stopping'
 real_edit "## Stopping" skill-stopping skill-test-command
 edit_below '## Bailing'
 real_edit "## Bailing" skill-metrics skill-test-command
 edit_below '## Resume'
-real_edit "## Resume" skill-criterion-finished skill-test-command
+real_edit "## Resume" "" skill-test-command
 edit_below '### 4. Draft PR'
-real_edit "### 4. Draft PR" "skill-criterion-finished skill-metrics" skill-test-command
+real_edit "### 4. Draft PR" skill-metrics skill-test-command
 if [[ -z "$real_wrong" ]]; then ok; else
   no "on the real SKILL.md and suites, a one-section edit selects the suites reading that section through a slicing helper and every suite reading SKILL.md any other way, and not a suite slicing only other sections:$real_wrong"
 fi
