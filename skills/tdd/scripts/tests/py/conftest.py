@@ -94,7 +94,8 @@ CWD_OUTSIDE_REPOSITORY = {
 @pytest.fixture(autouse=True)
 def hermetic_environment(request, monkeypatch, tmp_path):
     offline = {name: value for name, value in os.environ.items()
-               if name == "GIT_CONFIG_COUNT" or name.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))}
+               if name in ("GIT_CONFIG_COUNT", "GIT_TEMPLATE_DIR", "GIT_EXEC_PATH")
+               or name.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))}
     for name in list(os.environ):
         if name.startswith(("VERI_", "CLAUDE_", "GH_", "GIT_")) and name != "VERI_VENV":
             monkeypatch.delenv(name)
