@@ -1,6 +1,10 @@
 """In-process cases for veri/fast_tier_guard.py, the fast tier's admission-bar guard."""
 import importlib
 
+import pytest
+
+from conftest import SCRIPTS
+
 
 def test_a_planted_test_file_starting_a_process_through_subprocess_is_named_by_file_and_line_and_a_clean_one_is_not(tmp_path):
     guard = importlib.import_module("veri.fast_tier_guard")
@@ -167,3 +171,20 @@ def test_an_offence_whose_file_and_line_the_exemption_table_lists_with_a_reason_
     assert [line.split(": ")[0] for line in found] == [f"{other}:4"]
     with pytest.raises(ValueError, match=f"{exempt}:4"):
         guard.offences(tmp_path, {f"{exempt}:4": ""})
+
+
+@pytest.mark.tree_audit("every test_*.py under skills/tdd/scripts/tests/py/unit")
+def test_the_guard_with_the_real_exemption_table_finds_no_offence_in_the_fast_tier_as_committed_and_names_a_planted_one_by_file_and_line(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    offender = tmp_path / "test_offender.py"
+    offender.write_text(
+        "import time\n"
+        "\n"
+        "def test_waits():\n"
+        "    time.sleep(1)\n"
+    )
+
+    planted = guard.offences(tmp_path, guard.EXEMPTIONS)
+    committed = guard.offences(SCRIPTS / "tests" / "py" / "unit", guard.EXEMPTIONS)
+
+    assert ([line.split(": ")[0] for line in planted], committed) == ([f"{offender}:4"], [])
