@@ -964,6 +964,16 @@ if step_or_problem '### 4. Draft PR' "how the step recognises a second red full 
 fi
 report "$name"
 
+name="#1607 $skill_md's Draft PR step bails suite-red, naming every suite still red, when add-ledger-step.sh exits 1 on the ⟦suite-repair⟧ insertion"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "what the step does when add-ledger-step.sh refuses the repair step"; then
+  refusal="$(first_record "$(tr -d '*`' <<< "$records")" -F 'add-ledger-step.sh' -E 'exit(s|ing)? 1' -F 'suite-red' -E 'every (suite still red|red suite|failing suite|still-red suite)')"
+  [[ -n "$refusal" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step says that add-ledger-step.sh exiting 1 on the ⟦suite-repair⟧ insertion bails with cause suite-red, naming every suite still red")
+fi
+report "$name"
+
 name="$skill_md's Draft PR step keys its ci-red bail on ⟦ci-repair⟧ only, and states a ⟦suite-repair⟧ step leaves the run its one CI repair attempt (#590)"
 problems=()
 
