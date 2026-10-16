@@ -2076,8 +2076,8 @@ A `⟦replaces-case⟧` step skips verify-red, so on that verify-pin PASS first 
 `$S/tests-frozen.sh record --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" <test-path>` to record its replacement
 cases before the deletion green checks them; tests-frozen exit 2 is a bail. Then commit nothing yet,
 and launch a green leaf exactly as *Green* does, whose only change
-is deleting exactly the named cases. The unreplaced-cases check from *Red* has
-already bailed with cause=unreplaced-cases on exit 1. After the
+is deleting exactly the named cases. By now the unreplaced-cases check from *Red* has
+bailed with cause=unreplaced-cases only on a second exit 1 after its one correction leaf, or on exit 2. After the
 deletion green, run `$S/replaces-case-survivors.sh "<step text>"` before that verify-green launches;
 on exit 1 relaunch the green leaf naming the survivors, as *Green* does, record the relaunch as an
 event (`$S/event.sh`), and launch no verifier on that green. Each relaunch spends one `REVISE_BUDGET`
