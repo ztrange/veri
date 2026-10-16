@@ -88,4 +88,17 @@ fi
 
 report "$name"
 
+problems=()
+name="no-unit-subprocess.test.sh passes over the real unit/ tier, naming no offender"
+
+if [[ -f "$GUARD_PATH" ]]; then
+  guard_out="$("$GUARD_PATH" 2>&1)" && guard_code=0 || guard_code=$?
+  [[ "$guard_code" == 0 ]] ||
+    problems+=("want the guard to pass over the real unit/ tier; it exited $guard_code and said: $(flat "$guard_out")")
+  ! grep -qE -- '[A-Za-z0-9_.-]+\.test\.sh:[0-9]+' <<< "$guard_out" ||
+    problems+=("want no <suite>:<line> offender named over the real unit/ tier; it said: $(flat "$guard_out")")
+fi
+
+report "$name"
+
 finish
