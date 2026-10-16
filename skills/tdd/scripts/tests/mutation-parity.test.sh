@@ -514,9 +514,9 @@ fi
 diff -u --label a/tests/test_calc.py --label b/tests/test_calc.py "$repo/tests/test_calc.py" "$work/breaks-collection.mutated" > "$work/breaks-collection.patch" || true
 table="$work/raises-mutated.tsv"
 printf 'tests/calc.test.sh\tadds two numbers\treplaced\t%s\t%s\n' "$node" "$work/breaks-collection.patch" > "$table"
-before="$(snapshot | grep -v pytest_cache)"
+before="$(snapshot)"
 out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/raises-mutated.err")" && code=0 || code=$?
-after="$(snapshot | grep -v pytest_cache)"
+after="$(snapshot)"
 if [[ "$code" == 2 && "$before" == "$after" ]]; then
   ok
 else
