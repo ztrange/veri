@@ -35,3 +35,10 @@ def test_parse_1603_returns_none_for_a_step_naming_the_mark_without_a_replaces_c
     step = "- [x] the Red prompt for replaces-case steps names the mark ⟦replaces-case⟧ ⟦criterion 5⟧"
 
     assert replaces_case.parse(step) is None
+
+
+def test_parse_1603_does_not_raise_for_a_quoted_replaces_clause_with_no_suite_after_it():
+    replaces_case = importlib.import_module("veri.replaces_case")
+    step = "- [x] the old guard replaces 'a case that is gone' ⟦replaces-case⟧ ⟦criterion 6⟧"
+
+    replaces_case.parse(step)
