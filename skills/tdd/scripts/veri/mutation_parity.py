@@ -10,6 +10,10 @@ USAGE = "usage: mutation-parity.sh <pairs-table>"
 COUNT_LINE = re.compile(r"^(\d+) passed, (\d+) failed$")
 
 
+class SuiteDied(RuntimeError):
+    pass
+
+
 def failed_cases(suite):
     run = subprocess.run([os.path.join(".", suite)], capture_output=True, text=True,
                          stdin=subprocess.DEVNULL)
@@ -17,7 +21,7 @@ def failed_cases(suite):
     failed = {line[len("FAIL - "):] for line in lines if line.startswith("FAIL - ")}
     count = COUNT_LINE.match(lines[-1]) if lines else None
     if not count:
-        raise RuntimeError(f"{suite} never reached its count line")
+        raise SuiteDied(f"{suite} never reached its count line")
     return failed, int(count.group(1)), int(count.group(1)) + int(count.group(2))
 
 
@@ -48,10 +52,19 @@ def check(row):
     suite, old, fate, kept, patch = row
     subprocess.run(["git", "apply", patch], check=True)
     try:
-        failed, passed, total = failed_nodes(suite) if "::" in old else failed_cases(suite)
-        caught = node_fails(kept) if fate == "replaced" else named(kept, failed)
+        died = None
+        try:
+            failed, passed, total = failed_nodes(suite) if "::" in old else failed_cases(suite)
+        except SuiteDied as error:
+            died = error
+        else:
+            caught = node_fails(kept) if fate == "replaced" else named(kept, failed)
     finally:
         subprocess.run(["git", "apply", "-R", patch], check=True)
+    if died:
+        if failed_cases(suite)[2] != 1:
+            raise died
+        return "owed"
     if named(old, failed) and (passed > 0 or total == 1):
         return "proven" if caught else "unproven"
     return "owed"
