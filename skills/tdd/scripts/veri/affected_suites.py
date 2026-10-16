@@ -191,7 +191,8 @@ def reads_only_through_slicers(suite, f):
 
 
 def pytest_texts():
-    return [(p, read(p) or b"") for p in suites(SCRIPTS + "/tests/py/test_*.py")]
+    return [(p, read(p) or b"")
+            for p in suites(SCRIPTS + "/tests/py/test_*.py") + suites(SCRIPTS + "/tests/py/unit/test_*.py")]
 
 
 SECTION_CALL = rb"section\("
@@ -245,10 +246,11 @@ def suite_of(f, revisions=None):
     if match(SCRIPTS + "/tests/fixtures/*"):
         return suites_naming(f[len(SCRIPTS + "/tests/"):])
     if match(SCRIPTS + "/prompts/*.md"):
-        renderers = [existing(SCRIPTS + "/tests/" + n) for n in (
-            "build-develop-prompt.test.sh", "build-verify-prompt.test.sh",
-            "py/test_build_develop_prompt.py", "py/test_build_verify_prompt.py",
-            "py/test_emitted_text.py")]
+        names = ("build-develop-prompt.test.sh", "build-verify-prompt.test.sh",
+                 "py/test_build_develop_prompt.py", "py/test_build_verify_prompt.py",
+                 "py/test_emitted_text.py")
+        renderers = [existing(SCRIPTS + "/tests/" + n) for n in names]
+        renderers += [existing(SCRIPTS + "/tests/py/unit/" + basename(n)) for n in names if n.startswith("py/")]
         return (suites_naming(f[len(SCRIPTS + "/"):])
                 + [s for found in renderers for s in found])
     if match(SCRIPTS + "/lib/*.sh"):
