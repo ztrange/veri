@@ -100,4 +100,13 @@ code=0
 expect_eq "$name" "1:first case" "$code:$(cat "$out")"
 rm -f "$report" "$out"
 
+name="unreplaced-cases.sh given a step that names the replaces-case mark but carries no replaces clause exits 0 and prints no case name (#1603)"
+report="$(mktemp)"; out="$(mktemp)"; err="$(mktemp)"
+: > "$report"
+step="- [ ] x: the Red prompt for replaces-case steps ⟦replaces-case⟧ ⟦criterion 1⟧"
+code=0
+"$UNREPLACED" "$step" "$report" > "$out" 2> "$err" < /dev/null || code=$?
+expect_eq "$name" "0::" "$code:$(cat "$out"):$(cat "$err")"
+rm -f "$report" "$out" "$err"
+
 finish

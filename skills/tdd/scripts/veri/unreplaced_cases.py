@@ -28,7 +28,8 @@ def main(argv):
             for m in re.finditer(r"^REPLACES: (.*?) => (.*)$", handle.read(), re.M)
             if exists_in_tree(m.group(2))
         }
-    missing = [name for name in replaces_case.parse(step)[0] if name not in replaced]
+    parsed = replaces_case.parse(step)
+    missing = [name for name in (parsed[0] if parsed else []) if name not in replaced]
     for name in missing:
         print(name)
     return 1 if missing else 0
