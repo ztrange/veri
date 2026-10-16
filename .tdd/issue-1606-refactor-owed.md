@@ -1,0 +1,2 @@
+### No test is lost: every `test_*.py` on disk anywhere under `skills/tdd/scripts/tests/py/` appears in `make test`'s pytest roster read off `make -n test`, pinned by a case that lists the files on disk and compares them with that roster ⟦criterion 2⟧
+- test-only | `skills/tdd/scripts/tests/pytest-leg.test.sh` repeats the same `make -n … > out; out="$(cat out)"` read in three new roster cases. A small helper could replace it.
