@@ -2210,6 +2210,27 @@ def test_verify_sh_green_returns_the_leafs_pass_with_exit_0_on_a_replaces_case_s
     assert (code, out) == (0, "the named cases are gone.\n")
 
 
+@pytest.mark.process("a real supervise.sh and run-leaf.sh around a stub claude that answers VERDICT: PASS")
+def test_verify_sh_green_returns_the_leafs_pass_with_exit_0_on_a_step_naming_the_replaces_case_mark_without_a_replaces_clause_1603(
+        run_cli, tmp_path, monkeypatch):
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
+                 "VERI_NO_VERDICT_RETRIES", "VERI_STUCK_RETRIES", "VERI_TIMEOUT"):
+        monkeypatch.delenv(name, raising=False)
+    write_inputs(tmp_path)
+    claude = tmp_path / "claude-pass"
+    claude.write_text("#!/bin/sh\nprintf 'VERDICT: PASS\\nREASON: fine.'\n")
+    claude.chmod(0o755)
+    verify = importlib.import_module("veri.verify")
+
+    code, out, _ = run_cli(
+        verify, ["--step", "the Red prompt describes the \u27e6replaces-case\u27e7 mark \u27e6criterion 1\u27e7",
+                 "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"],
+        env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
+        cwd=tmp_path)
+
+    assert (code, out) == (0, "fine.\n")
+
+
 @pytest.mark.process("a real supervise.sh and run-leaf.sh around a stub claude that answers VERDICT: REJECT")
 @pytest.mark.parametrize("suite, check", [
     ('verdict "kept case" 0\n', None),

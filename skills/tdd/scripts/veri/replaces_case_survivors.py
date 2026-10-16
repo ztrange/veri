@@ -12,7 +12,10 @@ def main(argv):
         return 2
     if "⟦replaces-case⟧" not in argv[0]:
         return 3
-    names, path = parse(argv[0])
+    parsed = parse(argv[0])
+    if parsed is None:
+        return 3
+    names, path = parsed
     try:
         with open(path, encoding="utf-8") as f:
             suite = "".join(
