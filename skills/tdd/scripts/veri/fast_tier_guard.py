@@ -16,6 +16,18 @@ def _subprocess_names(tree):
     return modules, functions
 
 
+def _aliases(tree):
+    modules, names = {}, {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                modules[alias.asname or alias.name] = alias.name
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            for alias in node.names:
+                names[alias.asname or alias.name] = (node.module, alias.name)
+    return modules, names
+
+
 def _receiver_and_attr(func):
     if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
         return func.value.id, func.attr
@@ -35,14 +47,16 @@ def offences(root):
         tree = ast.parse(path.read_text())
         modules, functions = _subprocess_names(tree)
         modules.add("subprocess")
+        module_aliases, name_imports = _aliases(tree)
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call):
                 continue
             func = node.func
             receiver, attr = _receiver_and_attr(func)
-            if (receiver, attr) == ("time", "sleep"):
+            imported = name_imports.get(func.id) if isinstance(func, ast.Name) else None
+            if (module_aliases.get(receiver, receiver), attr) == ("time", "sleep") or imported == ("time", "sleep"):
                 found.append(f"{path}:{node.lineno}: sleeps through time.sleep")
-            elif receiver == "socket":
+            elif module_aliases.get(receiver, receiver) == "socket" or imported == ("socket", "socket"):
                 found.append(f"{path}:{node.lineno}: opens a socket through socket")
             elif (
                 receiver in modules
