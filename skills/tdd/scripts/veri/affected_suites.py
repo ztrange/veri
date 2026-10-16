@@ -246,7 +246,8 @@ def suite_of(f, revisions=None):
     if match(SCRIPTS + "/prompts/*.md"):
         renderers = [existing(SCRIPTS + "/tests/" + n) for n in (
             "build-develop-prompt.test.sh", "build-verify-prompt.test.sh",
-            "py/test_build_develop_prompt.py", "py/test_build_verify_prompt.py")]
+            "py/test_build_develop_prompt.py", "py/test_build_verify_prompt.py",
+            "py/test_emitted_text.py")]
         return (suites_naming(f[len(SCRIPTS + "/"):])
                 + [s for found in renderers for s in found])
     if match(SCRIPTS + "/lib/*.sh"):
