@@ -237,3 +237,12 @@ def test_shim_source_problems_names_stop_run_and_line_for_each_graphql_gh_call_p
 
     assert unplanted == []
     assert [line.split(" ")[0] for line in problems] == ["stop-run.sh:%d" % (original.count("\n") + 1)]
+
+
+def test_shim_source_problems_names_stop_run_and_line_of_the_python3_call_handed_a_gh_json_document_planted_into_a_copy_and_passes_the_unplanted_copy(tmp_path):
+    """Its subject is source text: a copy of the real stop-run.sh with a gh JSON document handed to python3 as an argument, read as text and never run."""
+    planted = 'issue_json="$(gh_json issue_view 7)"\npython3 "$(dirname "$0")/veri/stop_run.py" "$issue_json"'
+    unplanted, problems, original = plant_into_stop_run_copy(tmp_path, planted)
+
+    assert unplanted == []
+    assert [line.split(" ")[0] for line in problems] == ["stop-run.sh:%d" % (original.count("\n") + 2)]

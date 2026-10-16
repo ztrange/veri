@@ -72,12 +72,19 @@ def shim_source_problems(scripts):
         (re.compile(r"\bpython3?\s+-c\b"), "feeds python3 a -c string"),
         (re.compile(r"\bgh\s+(issue|pr|repo|api|auth\s+status)\b"), "calls gh"),
     )
+    gh_assign = re.compile(r'^(?:local\s+)?(\w+)="?\$\((?:gh|gh_list|gh_json|\w*_json)[\s)]')
     problems = []
     for script in sorted(pathlib.Path(scripts).glob("*.sh")):
+        gh_names = set()
         for number, line in enumerate(script.read_text().splitlines(), 1):
             code = line.lstrip()
             if code.startswith("#"):
                 continue
+            assigned = gh_assign.match(code)
+            if assigned:
+                gh_names.add(assigned.group(1))
+            if re.search(r"\bpython3?\b", code) and any(re.search(r"\$\{?%s\b" % name, code) for name in gh_names):
+                problems.append("%s:%d hands python3 a gh JSON document" % (script.name, number))
             for pattern, what in rules:
                 if pattern.search(code):
                     problems.append("%s:%d %s" % (script.name, number, what))
