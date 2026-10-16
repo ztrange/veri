@@ -1163,7 +1163,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    revise), before verify-red launches. Exit 1 prints each named case with no `REPLACES:` line:
    give the Red one chance to correct its report. Launch one `develop-replaces-report` leaf, spending no `REVISE_BUDGET`
    attempt and writing no `revise` mark, then run `$S/unreplaced-cases.sh` again on the corrected report, before verify-red launches.
-   Exit 1 again: **bail with cause=unreplaced-cases**, naming each case it printed, and launch no verifier — verify-green
+   Exit 1 again: **bail with cause=unreplaced-cases**, naming each case it printed, and launch no second correction leaf and no verifier — verify-green
    never runs on a step whose named cases lack a replacement. Exit 2 — no answer could be obtained (no
    readable report, bad arguments) — also bails with cause=unreplaced-cases.
    The correction leaf: save the printed cases to `.tdd/replaces-missing.txt` (and read `.tdd/revise-red-<k>.out` in place of `.tdd/develop-red.out` after a red revise), then
