@@ -39,3 +39,27 @@ def test_a_planted_test_file_starting_a_process_through_an_imported_name_or_an_a
     found = guard.offences(tmp_path)
 
     assert sorted(line.split(": ")[0] for line in found) == [f"{aliased}:4", f"{imported}:4"]
+
+
+def test_a_planted_test_file_starting_a_process_through_os_system_os_exec_os_spawn_or_pty_is_named_by_file_and_line(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    forms = {
+        "test_os_system.py": ("os", "os.system('true')"),
+        "test_os_exec.py": ("os", "os.execv('/bin/true', ['true'])"),
+        "test_os_spawn.py": ("os", "os.spawnl(os.P_WAIT, '/bin/true', 'true')"),
+        "test_pty.py": ("pty", "pty.spawn(['true'])"),
+    }
+    planted = []
+    for name, (module, call) in forms.items():
+        path = tmp_path / name
+        path.write_text(
+            f"import {module}\n"
+            "\n"
+            "def test_runs_a_process():\n"
+            f"    {call}\n"
+        )
+        planted.append(f"{path}:4")
+
+    found = guard.offences(tmp_path)
+
+    assert sorted(line.split(": ")[0] for line in found) == sorted(planted)
