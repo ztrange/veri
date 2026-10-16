@@ -175,4 +175,15 @@ code=0
 expect_eq "$name" "1:a" "$code:$(cat "$out")"
 rm -f "$report" "$out"
 
+name="unreplaced-cases.sh counts a REPLACES line whose case name is wrapped in one pair of single quotes, the step's delimiter, so it exits 0 and prints nothing (#1600)"
+tree="$(scratch_dir)"; mkdir -p "$tree/tests/py"
+printf 'def test_a():\n    pass\n' > "$tree/tests/py/test_x.py"
+report="$(mktemp)"; out="$(mktemp)"
+printf '%s\n' "REPLACES: 'a' => tests/py/test_x.py::test_a" > "$report"
+step="- [ ] x: replaces 'a' in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 7⟧"
+code=0
+(cd "$tree" && "$UNREPLACED" "$step" "$report" > "$out" 2> /dev/null < /dev/null) || code=$?
+expect_eq "$name" "0:" "$code:$(cat "$out")"
+rm -f "$report" "$out"
+
 finish
