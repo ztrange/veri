@@ -510,6 +510,22 @@ else
     stderr: $(cat "$work/unmutated-dies.err")"
 fi
 
+{ cat "$repo/tests/test_calc.py"; echo 'def (:'; } > "$work/breaks-collection.mutated"
+diff -u --label a/tests/test_calc.py --label b/tests/test_calc.py "$repo/tests/test_calc.py" "$work/breaks-collection.mutated" > "$work/breaks-collection.patch" || true
+table="$work/raises-mutated.tsv"
+printf 'tests/calc.test.sh\tadds two numbers\treplaced\t%s\t%s\n' "$node" "$work/breaks-collection.patch" > "$table"
+before="$(snapshot | grep -v pytest_cache)"
+out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/raises-mutated.err")" && code=0 || code=$?
+after="$(snapshot | grep -v pytest_cache)"
+if [[ "$code" == 2 && "$before" == "$after" ]]; then
+  ok
+else
+  no "#1612: an exception raised while a row's mutation is applied — a pytest replacement the mutation stops collecting — is raised after the mutation is reverted, so the tree is byte-identical to before the row (exit=$code want 2)
+$(diff <(printf '%s\n' "$before") <(printf '%s\n' "$after"))
+    stdout: $out
+    stderr: $(cat "$work/raises-mutated.err")"
+fi
+
 exit_two_out=""
 exit_two_codes=""
 for scenario in does-not-apply:does-not-apply dies:dirty-dies uncollected:dirty; do
