@@ -1437,3 +1437,52 @@ def test_main_exits_2_naming_the_set_aside_file_and_keeps_it_when_its_reapply_fa
     code, _, err = run_cli(rebase_onto_default, [], cwd=clone)
 
     assert (code, str(saved) in err, saved.is_file() and saved.read_text() == before) == (2, True, True)
+
+
+@pytest.mark.process("git: a real resumed worktree whose committed ledger ticks a step that still carries ⟂ refactor pending while the uncommitted copy has the mark taken off, discarded by the resume's own commands")
+def test_main_after_the_resume_discard_keeps_a_tick_whose_committed_step_carries_refactor_pending_and_whose_working_copy_does_not_1611(
+        monkeypatch, tmp_path):
+    scripts, clone, ledger, git, discard = _resumed_clone_1611(
+        monkeypatch, tmp_path, "- [x] step one ⟂ refactor pending\n- [ ] step two\n", "fix: step one (#1)")
+    ledger.write_text("- [x] step one\n- [ ] step two\n")
+
+    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    assert ledger.read_text() == "- [x] step one\n- [ ] step two\n"
+
+
+@pytest.mark.process("git: a real clone already holding origin/main, with a set-aside-tdd-appends.diff left by a killed rebase, run through rebase-onto-default twice")
+def test_main_removes_the_set_aside_appends_once_it_reapplies_them_so_the_next_resume_exits_3_again_1611(
+        monkeypatch, tmp_path, rebase_onto_default, run_cli):
+    for who in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
+        monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
+
+    def git(repo, *args):
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
+
+    origin, clone = tmp_path / "origin.git", tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], check=True, stderr=subprocess.DEVNULL)
+    git(clone, "checkout", "-q", "-b", "main")
+    ledger = clone / ".tdd" / "issue-1.md"
+    ledger.parent.mkdir()
+    ledger.write_text("- [x] step one\n")
+    git(clone, "add", "-A")
+    git(clone, "commit", "-q", "-m", "plan: scope #1 (#1)")
+    git(clone, "push", "-q", "origin", "main")
+    git(clone, "checkout", "-q", "-b", "tdd/1-a-run")
+    append = "- [ ] step two ⟦added⟧\n"
+    ledger.write_text(ledger.read_text() + append)
+    saved = pathlib.Path(git(clone, "rev-parse", "--git-path", "set-aside-tdd-appends.diff"))
+    saved = saved if saved.is_absolute() else clone / saved
+    saved.write_text(git(clone, "diff") + "\n")
+    git(clone, "checkout", "--", ".tdd/issue-1.md")
+
+    first = run_cli(rebase_onto_default, [], cwd=clone)[0]
+    left = saved.is_file()
+    second = run_cli(rebase_onto_default, [], cwd=clone)[0]
+
+    assert (first, left, second, ledger.read_text()) == (3, False, 3, "- [x] step one\n" + append)
