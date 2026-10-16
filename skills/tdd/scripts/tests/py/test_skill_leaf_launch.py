@@ -29,13 +29,7 @@ BLIND_RE = (
 
 
 def fenced_lines(pattern):
-    out, fence = [], False
-    for number, line in enumerate(SKILL.read_text().splitlines(), 1):
-        if re.match(r"\s*```", line):
-            fence = not fence
-        elif fence and re.search(pattern, line):
-            out.append((number, line))
-    return out
+    return fenced_in(SKILL.read_text(), pattern)
 
 
 def launch_lines():
