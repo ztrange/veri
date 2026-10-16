@@ -43,8 +43,8 @@ def added_step(text, k, planned=False):
     return step if k else step.removesuffix(f" {CRITERION_TAG}⟧")
 
 
-def repair_follows(steps, anchor):
-    return any(anchor in line and SUITE_REPAIR in following for line, following in zip(steps, steps[1:]))
+def repair_following(steps, anchor):
+    return next((following for line, following in zip(steps, steps[1:]) if anchor in line and SUITE_REPAIR in following), None)
 
 
 def added_since_last_resume(path, steps):
@@ -57,10 +57,12 @@ def added_since_last_resume(path, steps):
     if "resume" not in names:
         return True
     after = events[len(names) - names[::-1].index("resume"):]
-    return any(
-        event.get("event") == "step-added" and repair_follows(steps, str(event.get("anchor") or "\n"))
+    found = (
+        repair_following(steps, str(event.get("anchor") or "\n"))
         for event in after
+        if event.get("event") == "step-added"
     )
+    return next((line for line in found if line), False)
 
 
 def spec_path(path):
@@ -142,8 +144,9 @@ def main(argv):
         return refuse("add-ledger-step.sh: anchor matches no single step: " + anchor)
     steps = [line for line in lines if ledger_steps(line)]
     earlier = [line for line in steps if SUITE_REPAIR in line]
-    if earlier and added_since_last_resume(path, steps) and any(SUITE_REPAIR in text for text in texts):
-        warn("add-ledger-step.sh: this run already inserted a suite-repair step: " + earlier[0])
+    this_run = added_since_last_resume(path, steps) if earlier else False
+    if this_run and any(SUITE_REPAIR in text for text in texts):
+        warn("add-ledger-step.sh: this run already inserted a suite-repair step: " + (earlier[0] if this_run is True else this_run))
         return 1
     budget = tunables.read("VERI_STEP_GROWTH", "5")
     if not re.fullmatch("[0-9]+", budget):
