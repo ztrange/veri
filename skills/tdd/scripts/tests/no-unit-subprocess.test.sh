@@ -18,7 +18,8 @@ source "$HERE/lib/harness.sh"
 
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
-declare -A EXEMPT=()
+declare -A EXEMPT=(
+)
 
 problems=()
 for key in "${!EXEMPT[@]}"; do
