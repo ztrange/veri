@@ -1,0 +1,2 @@
+### verify.sh green, run with --step text that names the replaces-case mark but carries no replaces clause with a quoted case ... in a suite path, returns the verifier's verdict: exit 0 and the verifier's reason on a PASS, not exit 2 ⟦criterion 1⟧
+- test-only | the env-scrubbing loop and stub-claude setup in `test_verify.py`'s new case (`...without_a_replaces_clause_1603`) repeat the neighbouring replaces-case green test's setup; extract a shared helper
