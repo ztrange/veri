@@ -26,6 +26,12 @@ TEST_REWRITE_GRANT = (
     "   message the suite will print \u2014 then run, saving the run's output to `.tdd/red-run-output.txt`, and compare what it printed against that\n"
     "   prediction; never adjust the prediction to fit what you saw. The leaf whose attempt was\n"
     "   rejected predicted a different test, so there is nothing here for you to inherit.").encode()
+WRONG_TEST_REPORT = (
+    "\n\nor, when the green you are redoing has a test that looks wrong, those lines replaced by one:\n\n"
+    "WRONG_TEST: <why the test looks wrong>").encode()
+WRONG_TEST_FORMAT = (
+    "\n\nREPORT-FORMAT revise-wrong-test | keys WRONG_TEST: | suite exempt: the test is wrong, "
+    "so nothing was changed and no suite ran").encode()
 TEST_REWRITE_NONE = b"**Leave the test files as they are**: this phase has no test of its own to redo."
 WANT_REVISE_PHASES = "|".join(REVISABLE_PHASES)
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -113,7 +119,7 @@ def main(argv):
     prompts_b = os.fsencode(prompts)
     values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "RED_CASES", "RED_LEAD", "REPLACES_CASE", "SUITE_REPAIR", "CI_REPAIR", "STEP",
                             "TEST_CMD", "TEST_PATH", "TARGET_TEST", "FAST_CMD", "TIMED_TEST_RUN", "TOUCHED_FILES",
-                            "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "TEST_REWRITE", "REJECTION_REASON", "BRANCH",
+                            "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "WRONG_TEST_REPORT", "WRONG_TEST_FORMAT", "TEST_REWRITE", "REJECTION_REASON", "BRANCH",
                             "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES"), b"")
     values["RED_CASES"] = (b"One criterion, one case \xe2\x80\x94 no extra cases, and no generality the step does\n"
                            b"not ask for.")
@@ -137,6 +143,8 @@ def main(argv):
     values["TEST_REWRITE"] = TEST_REWRITE_NONE if revised_phase in ("green", "refactor") else TEST_REWRITE_GRANT
     if revised_phase == "green":
         values["FREEZE_RULE"] = GREEN_FREEZE_RULE
+        values["WRONG_TEST_REPORT"] = WRONG_TEST_REPORT
+        values["WRONG_TEST_FORMAT"] = WRONG_TEST_FORMAT
     try:
         text = _expand(_read(paths[0]), prompts_b)
         values["SHARED"] = _expand(_read(paths[1]), prompts_b)

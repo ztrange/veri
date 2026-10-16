@@ -65,14 +65,8 @@ PREDICTION: MATCHED | DIVERGED — <whether the run printed what you predicted; 
 or, when the green you are redoing is a step too big for one, those lines replaced by one
 to three of:
 
-SPLIT: <a behaviour-level criterion, one per line, in the order they must be built>
-
-or, when the green you are redoing has a test that looks wrong, those lines replaced by one:
-
-WRONG_TEST: <why the test looks wrong>
+SPLIT: <a behaviour-level criterion, one per line, in the order they must be built>{{WRONG_TEST_REPORT}}
 
 REPORT-FORMAT revise | keys OUTCOME: AGAINST_UNMODIFIED: PREDICTED_FAILURE: PREDICTION: | suite exempt: the redone phase may be red, where the suite is meant to fail
 
-REPORT-FORMAT revise-split | keys SPLIT: | suite exempt: a too-big step changes no code and runs no suite
-
-REPORT-FORMAT revise-wrong-test | keys WRONG_TEST: | suite exempt: the test is wrong, so nothing was changed and no suite ran
+REPORT-FORMAT revise-split | keys SPLIT: | suite exempt: a too-big step changes no code and runs no suite{{WRONG_TEST_FORMAT}}
