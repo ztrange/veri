@@ -1,8 +1,10 @@
 """rebase-onto-default.sh's logic, run in-process."""
+import os
 import pathlib
 import re
 import subprocess
 import sys
+import time
 
 try:
     from git import git, symref_default
@@ -87,10 +89,14 @@ def main(argv):
         saved.unlink()
     if appends and not reapplied:
         kept = git_file("kept-tdd-appends.diff")
+        earlier = sorted(kept.parent.glob(kept.name + "*"))
+        if kept.exists():
+            kept = kept.with_name(f"{kept.name}.{int(time.time())}.{os.getpid()}")
         kept.write_text(appends + "\n")
         files = re.findall(r"^\+\+\+ b/(.+)$", appends, re.M)
         sys.stderr.write(f"rebase-onto-default: could not re-apply the uncommitted appends to"
-                         f" {' '.join(files)}; kept at {kept}\n")
+                         f" {' '.join(files)}; kept at"
+                         f" {' '.join(str(p) for p in [*earlier, kept])}\n")
         return 2
     if outcome:
         return outcome
