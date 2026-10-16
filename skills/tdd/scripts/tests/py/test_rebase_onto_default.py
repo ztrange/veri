@@ -1100,3 +1100,45 @@ def test_main_after_the_resume_discard_keeps_an_instead_of_replacement_whose_new
     assert run_cli(rebase_onto_default, [], cwd=clone)[0] == 0
 
     assert ledger.read_text() == "- [ ] step one\n- [ ] step two extended ⟦added⟧\n"
+
+
+@pytest.mark.process("git: a real resumed worktree whose tracked metrics file carries an uncommitted rewritten row, discarded by the resume's own commands, then rebased")
+def test_main_after_the_resume_discard_keeps_a_rewritten_row_of_a_tracked_metrics_file_unchanged_1547(
+        monkeypatch, tmp_path, rebase_onto_default, run_cli):
+    for who in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
+        monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
+    scripts = pathlib.Path(__file__).resolve().parents[2]
+    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
+                        (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
+
+    def git(repo, *args):
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
+
+    def commit(repo, name, body, message):
+        (repo / name).parent.mkdir(exist_ok=True)
+        (repo / name).write_text(body)
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "-m", message)
+
+    origin, seed, clone = tmp_path / "origin.git", tmp_path / "seed", tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    subprocess.run(["git", "init", "-q", "-b", "main", str(seed)], check=True)
+    commit(seed, "file.txt", "base\n", "initial")
+    git(seed, "push", "-q", str(origin), "main")
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], check=True, stderr=subprocess.DEVNULL)
+    git(clone, "checkout", "-q", "-b", "tdd/1-a-run")
+    commit(clone, ".tdd/issue-1.md", "- [ ] step one\n", "plan: scope #1 (#1)")
+    commit(clone, ".tdd/issue-1-metrics.md", "| step | cost |\n| one | 0.10 |\n| two | 0.20 |\n", "metrics (#1)")
+    metrics = clone / ".tdd" / "issue-1-metrics.md"
+    rewritten = "| step | cost |\n| one | 0.10 |\n| two | 0.35 |\n"
+    metrics.write_text(rewritten)
+
+    commit(seed, "other.txt", "another run's work\n", "feat: another run merged (#2)")
+    git(seed, "push", "-q", str(origin), "main")
+    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    assert run_cli(rebase_onto_default, [], cwd=clone)[0] == 0
+
+    assert metrics.read_text() == rewritten
