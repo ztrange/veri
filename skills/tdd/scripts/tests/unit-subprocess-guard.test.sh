@@ -171,4 +171,39 @@ fi
 
 report "$name"
 
+problems=()
+name="no-unit-subprocess.test.sh names a unit-tier suite that runs a script variable behind a NAME=value prefix, NAME=value \"\$VAR\" ..., as <suite>:<line>"
+
+PFX_OFFENDER='runs-a-prefixed-variable.test.sh'
+pfx_tree="$(scratch_dir)"
+mkdir -p "$pfx_tree/$TESTS_DIR/unit" "$pfx_tree/$SCRIPTS_DIR" "$pfx_tree/$TESTS_DIR/lib"
+pfx_offender_path="$pfx_tree/$TESTS_DIR/unit/$PFX_OFFENDER"
+{
+  echo '#!/usr/bin/env bash'
+  echo '# Unit tests for a script — the line below runs it instead of sourcing it.'
+  echo 'set -uo pipefail'
+  echo 'HERE="$(cd "$(dirname "$0")" && pwd)"'
+  echo 'RUN_AFFORDABLE="$HERE/../run-affordable.sh"'
+  echo 'run_affordable() {'
+  echo '  VERI_BUDGET=3 "$RUN_AFFORDABLE" "$@" > "$HERE/stdout" 2>&1  # '"$MARK"
+  echo '}'
+  echo 'echo "${pass:-0} passed, ${fail:-0} failed"'
+} > "$pfx_offender_path"
+chmod 755 "$pfx_offender_path"
+printf '#!/bin/sh\nexit 0\n' > "$pfx_tree/$SCRIPTS_DIR/run-affordable.sh"
+chmod 755 "$pfx_tree/$SCRIPTS_DIR/run-affordable.sh"
+pfx_offender_line="$(grep -n "$MARK" "$pfx_offender_path" | cut -d: -f1)"
+
+if [[ -f "$GUARD_PATH" ]]; then
+  cp "$GUARD_PATH" "$pfx_tree/$TESTS_DIR/$GUARD_NAME"
+  cp "$HERE/lib/"*.sh "$pfx_tree/$TESTS_DIR/lib/"
+  guard_out="$("$pfx_tree/$TESTS_DIR/$GUARD_NAME" 2>&1)" && guard_code=0 || guard_code=$?
+  [[ "$guard_code" != 0 ]] ||
+    problems+=("want the guard to fail over a unit suite that runs \"\$RUN_AFFORDABLE\" behind a NAME=value prefix at line $pfx_offender_line; it exited 0 and said: $(flat "$guard_out")")
+  grep -qF -- "$PFX_OFFENDER:$pfx_offender_line" <<< "$guard_out" ||
+    problems+=("no line of the guard's output names $PFX_OFFENDER:$pfx_offender_line; it said: $(flat "$guard_out")")
+fi
+
+report "$name"
+
 finish
