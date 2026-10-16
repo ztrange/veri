@@ -31,7 +31,11 @@ def _starts_process(func):
     return receiver == "os" and attr.startswith(("system", "exec", "spawn"))
 
 
-def offences(root):
+def offences(root, exemptions=None):
+    exemptions = exemptions or {}
+    for entry, reason in exemptions.items():
+        if not reason:
+            raise ValueError(f"exemption {entry} has no reason")
     found = []
     for path in sorted(Path(root).rglob("test_*.py")):
         tree = ast.parse(path.read_text())
@@ -61,4 +65,4 @@ def offences(root):
                 for arg in node.args
             ):
                 found.append(f"{path}:{node.lineno}: runs a nested suite")
-    return found
+    return [line for line in found if line.split(": ")[0] not in exemptions]
