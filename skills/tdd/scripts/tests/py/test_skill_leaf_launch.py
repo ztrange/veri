@@ -285,6 +285,12 @@ def carrier_of(text, fragment):
     return carriers[0]
 
 
+def step_line_planted_single_quoted():
+    text = SKILL.read_text()
+    step_line = carrier_of(text, STEP_ANCHOR)
+    return step_line, plant_in_line(text, step_line, DOUBLE_QUOTED_STEP, SINGLE_QUOTED_STEP)
+
+
 def test_skill_leaf_launch_sh_fails_over_a_skill_md_whose_verifier_launch_has_lost_supervise_sh_naming_that_line_and_nothing_else_and_passes_over_the_document_as_committed():
     text = SKILL.read_text()
     assert verifier_launches_without_supervisor(text) == []
@@ -296,17 +302,13 @@ def test_skill_leaf_launch_sh_fails_over_a_skill_md_whose_verifier_launch_has_lo
 
 
 def test_skill_leaf_launch_sh_fails_over_a_skill_md_whose_launch_line_carries_single_quoted_step_unless_its_exemption_table_names_it_with_a_reason():
-    text = SKILL.read_text()
-    step_line = carrier_of(text, STEP_ANCHOR)
-    planted = plant_in_line(text, step_line, DOUBLE_QUOTED_STEP, SINGLE_QUOTED_STEP)
+    step_line, planted = step_line_planted_single_quoted()
     refused = title_guard(planted)
     assert len(refused) == 1 and refused[0].startswith(f"{step_line}: single-quotes the step title"), refused
     assert title_guard(planted, exempt={step_line}) == []
 
 
 def test_skill_leaf_launch_sh_s_431_guard_pin_still_answers_over_a_skill_md_whose_one_double_quoted_step_line_is_planted_single_quoted_and_exempted_with_a_reason():
-    text = SKILL.read_text()
-    step_line = carrier_of(text, STEP_ANCHOR)
-    planted = plant_in_line(text, step_line, DOUBLE_QUOTED_STEP, SINGLE_QUOTED_STEP)
+    step_line, planted = step_line_planted_single_quoted()
     assert any(p.startswith(f"{step_line}: single-quotes the step title") for p in title_guard(planted))
     assert not any(p.startswith(f"{step_line}:") for p in title_guard(planted, exempt={step_line}))
