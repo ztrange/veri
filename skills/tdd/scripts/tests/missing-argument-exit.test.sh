@@ -12,14 +12,14 @@
 #   every script in the third roster, given a bad argument value  → exit 2, its own usage on stderr
 #   no script's source guards a positional with `${N:?…}`, which exits 1
 #
-# Run: scripts/tests/unit/missing-argument-exit.test.sh
+# Run: scripts/tests/missing-argument-exit.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-SCRIPTS="$HERE/../.."
-source "$HERE/../../lib/missing-argument-exit.sh"
-source "$HERE/../lib/harness.sh"
-source "$HERE/../lib/verdict.sh"
+SCRIPTS="$HERE/.."
+source "$HERE/../lib/missing-argument-exit.sh"
+source "$HERE/lib/harness.sh"
+source "$HERE/lib/verdict.sh"
 offenders=()
 
 refuses() {
