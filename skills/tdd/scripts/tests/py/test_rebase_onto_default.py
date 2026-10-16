@@ -1407,3 +1407,33 @@ def test_main_stops_the_second_failing_resume_discard_naming_the_earlier_saved_f
 
     named = "".join(p.read_text() for p in saved(two.stderr))
     assert (two.returncode, f"+{first}" in named, f"+{second}" in named) == (2, True, True)
+
+
+@pytest.mark.process("git: a real clone holding a set-aside-tdd-appends.diff left by a killed run whose re-apply git apply fails")
+def test_main_exits_2_naming_the_set_aside_file_and_keeps_it_when_its_reapply_fails_1611(
+        monkeypatch, tmp_path, rebase_onto_default, run_cli):
+    for who in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
+        monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
+
+    def git(repo, *args):
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
+
+    origin, seed, clone = tmp_path / "origin.git", tmp_path / "seed", tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    subprocess.run(["git", "init", "-q", "-b", "main", str(seed)], check=True)
+    (seed / ".tdd").mkdir()
+    (seed / ".tdd" / "issue-1.md").write_text("- [ ] step one\n")
+    git(seed, "add", "-A")
+    git(seed, "commit", "-q", "-m", "initial")
+    git(seed, "push", "-q", str(origin), "main")
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], check=True, stderr=subprocess.DEVNULL)
+    saved = pathlib.Path(git(clone, "rev-parse", "--absolute-git-dir")) / "set-aside-tdd-appends.diff"
+    saved.write_text("--- a/.tdd/issue-1.md\n+++ b/.tdd/issue-1.md\n@@ -1 +1,2 @@\n - [ ] step one\n+- [ ] step two\n")
+    before = saved.read_text()
+    monkeypatch.setenv("PATH", _failing_apply_env_1611(tmp_path)["PATH"])
+
+    code, _, err = run_cli(rebase_onto_default, [], cwd=clone)
+
+    assert (code, str(saved) in err, saved.is_file() and saved.read_text() == before) == (2, True, True)
