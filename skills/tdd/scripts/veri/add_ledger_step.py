@@ -7,10 +7,10 @@ import tunables
 
 try:
     from .event_log import read_events
-    from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, ledger_steps, multi_tag_refusal, new_step
+    from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, ledger_steps, multi_tag_refusal, new_step, trailing_markers
 except ImportError:
     from event_log import read_events
-    from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, ledger_steps, multi_tag_refusal, new_step
+    from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, ledger_steps, multi_tag_refusal, new_step, trailing_markers
 
 SUITE_REPAIR = "⟦suite-repair⟧"
 REPAIR_MARKS = ("⟦ci-repair⟧", SUITE_REPAIR)
@@ -34,7 +34,8 @@ def criterion_of(line):
 
 
 def is_repair(text):
-    return any(mark in text for mark in REPAIR_MARKS)
+    markers = trailing_markers(text)
+    return any(mark in markers for mark in REPAIR_MARKS)
 
 
 def added_step(text, k, planned=False):
