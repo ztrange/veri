@@ -7,3 +7,4 @@
 - test-only | the planted-offender setup repeated across the cases in test_fast_tier_guard.py (write a file, call `offences`, split on ": ") could move to a helper
 ### `make test` runs the fast-tier guard over every `test_*.py` under `skills/tdd/scripts/tests/py/unit/` with the real exemption table, and a run with an offending file there fails, naming `<file>:<line>`; the sweeping case carries `@pytest.mark.tree_audit(...)` and passes over the tree as committed ⟦criterion 1⟧
 - test-only | skills/tdd/scripts/tests/py/test_fast_tier_guard.py: extract a helper for the planted-file write and the `[line.split(": ")[0] for line in found]` location extraction repeated across the cases
+applied | 7bf53d1cbac5989768dbaa24b998b921aaf2c229 | the exemption-reason check at the top of `offences` could move into its own function (code this cycle wrote, but only a small gain)
