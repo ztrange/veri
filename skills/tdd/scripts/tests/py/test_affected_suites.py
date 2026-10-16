@@ -161,6 +161,19 @@ def test_main_prints_the_emitted_text_check_for_a_template_a_suite_names_1622(
         0, ["skills/tdd/scripts/tests/py/test_emitted_text.py", "skills/tdd/scripts/tests/unit/names.test.sh"])
 
 
+def test_main_prints_the_emitted_text_check_for_a_partial_no_suite_names_1622(
+        tmp_path, monkeypatch, capsys, affected):
+    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/prompts/_shared.md"]))
+    monkeypatch.chdir(tmp_path)
+    tests = tmp_path / "skills/tdd/scripts/tests"
+    (tests / "unit").mkdir(parents=True)
+    (tests / "py").mkdir()
+    (tests / "py/test_emitted_text.py").write_text("")
+    (tests / "other.test.sh").write_text("")
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0, "skills/tdd/scripts/tests/py/test_emitted_text.py\n", "")
+
+
 def test_main_prints_no_suite_for_a_prompt_no_suite_names_1024(
         tmp_path, monkeypatch, capsys, affected):
     monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/prompts/unnamed.md"]))
