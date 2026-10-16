@@ -208,4 +208,15 @@ code=0
 expect_eq "$name" "0:" "$code:$(cat "$out")"
 rm -f "$report" "$out"
 
+name="unreplaced-cases.sh still prints a step's case and exits 1 when the only REPLACES line's name, with backslash escapes removed, differs from the step's name with its escapes removed (#1617)"
+tree="$(scratch_dir)"; mkdir -p "$tree/tests/py"
+printf 'def test_a():\n    pass\n' > "$tree/tests/py/test_x.py"
+report="$(mktemp)"; out="$(mktemp)"
+printf '%s\n' 'REPLACES: `### 🔴 Green` => tests/py/test_x.py::test_a' > "$report"
+step='- [ ] x: replaces '"'"'\`### 🔴 Red\`'"'"' in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 3⟧'
+code=0
+(cd "$tree" && "$UNREPLACED" "$step" "$report" > "$out" 2> /dev/null < /dev/null) || code=$?
+expect_eq "$name" '1:\`### 🔴 Red\`' "$code:$(cat "$out")"
+rm -f "$report" "$out"
+
 finish
