@@ -426,3 +426,17 @@ def test_1625_skill_md_s_second_unreplaced_cases_sh_check_reads_both_the_red_rep
         f"SKILL.md's second unreplaced-cases.sh run never names .tdd/develop-replaces-report.out as a report it reads: {command}"
     assert re.search(r"\.tdd/(develop-red|revise-red-<k>)\.out", command), \
         f"SKILL.md's second unreplaced-cases.sh run never also names the Red report it read first: {command}"
+
+
+def test_1625_skill_md_allows_one_red_report_at_most_one_develop_replaces_report_leaf_launching_it_once_and_granting_no_second_or_third_correction_before_the_bail():
+    text = "\n".join(skill_lines())
+    launches = re.findall(r"detach-leaf\.sh \$S/supervise\.sh develop-replaces-report\b", text)
+    assert len(launches) == 1, f"SKILL.md launches a develop-replaces-report leaf {len(launches)} times, not once"
+    section = unreplaced_paragraph()
+    assert section.strip(), "SKILL.md has no unreplaced-cases.sh paragraph in the Red step to read"
+    for grant in re.finditer(r"(second|third|another|further|additional|two|three|up to \d+)[^.\n]{0,40}(correction|develop-replaces-report)", section, re.I):
+        before = section[max(0, grant.start() - 40):grant.start()]
+        assert re.search(r"\b(no|not|never|without)\b[^.]{0,30}$", before, re.I), \
+            f"SKILL.md's unreplaced-cases.sh paragraph allows more than one correction: {section[max(0, grant.start() - 80):grant.end() + 80]}"
+    assert re.search(r"(at most one|one chance|exactly one|only one|one correction)", section, re.I), \
+        f"SKILL.md's unreplaced-cases.sh paragraph never limits the Red to one correction: {section}"
