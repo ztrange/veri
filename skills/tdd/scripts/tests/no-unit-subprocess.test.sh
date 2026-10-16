@@ -41,7 +41,20 @@ for f in "$HERE"/unit/*.test.sh; do
     BEGIN { n = split(scripts, arr, "|"); for (i = 1; i <= n; i++) is_script[arr[i]] = 1 }
     /^[ \t]*#/ { next }
     /^[ \t]*(source|\.)[ \t]/ { next }
-    /^[ \t]*[A-Za-z_][A-Za-z0-9_]*=/ && $0 !~ /\$\(|`/ { next }
+    /^[ \t]*[A-Za-z_][A-Za-z0-9_]*=/ && $0 !~ /\$\(|`/ {
+      v = $0; sub(/^[ \t]*/, "", v); sub(/=.*/, "", v)
+      rest = $0
+      while (match(rest, /\/[a-z0-9-]+\.sh/)) {
+        tok = substr(rest, RSTART + 1, RLENGTH - 1)
+        rest = substr(rest, RSTART + RLENGTH)
+        if (tok in is_script) { held[v] = 1; break }
+      }
+      next
+    }
+    {
+      for (v in held)
+        if ($0 ~ ("(^|\\$\\(|[;&|(])[ \t]*(([A-Za-z_][A-Za-z0-9_]*=[^ \t]* +)*)\"?\\$\\{?" v "([^A-Za-z0-9_]|$)")) { print FNR "\t" $0; next }
+    }
     {
       rest = $0
       while (match(rest, /\/[a-z0-9-]+\.sh/)) {

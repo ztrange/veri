@@ -101,4 +101,38 @@ fi
 
 report "$name"
 
+problems=()
+name="no-unit-subprocess.test.sh names a unit-tier suite that assigns a variable a path to a script under skills/tdd/scripts/ and later runs \"\$VAR\" as <suite>:<line>"
+
+VAR_OFFENDER='runs-a-variable.test.sh'
+var_tree="$(scratch_dir)"
+mkdir -p "$var_tree/$TESTS_DIR/unit" "$var_tree/$SCRIPTS_DIR" "$var_tree/$TESTS_DIR/lib"
+var_offender_path="$var_tree/$TESTS_DIR/unit/$VAR_OFFENDER"
+{
+  echo '#!/usr/bin/env bash'
+  echo '# Unit tests for a script — the line below runs it instead of sourcing it.'
+  echo 'set -uo pipefail'
+  echo 'HERE="$(cd "$(dirname "$0")" && pwd)"'
+  echo 'STATUS="$HERE/../../status.sh"'
+  echo 'pass=0 fail=0'
+  echo 'out="$("$STATUS" 2>&1)"  # '"$MARK"
+  echo 'echo "${pass:-0} passed, $fail failed"'
+} > "$var_offender_path"
+chmod 755 "$var_offender_path"
+printf '#!/bin/sh\nexit 0\n' > "$var_tree/$SCRIPTS_DIR/status.sh"
+chmod 755 "$var_tree/$SCRIPTS_DIR/status.sh"
+var_offender_line="$(grep -n "$MARK" "$var_offender_path" | cut -d: -f1)"
+
+if [[ -f "$GUARD_PATH" ]]; then
+  cp "$GUARD_PATH" "$var_tree/$TESTS_DIR/$GUARD_NAME"
+  cp "$HERE/lib/"*.sh "$var_tree/$TESTS_DIR/lib/"
+  guard_out="$("$var_tree/$TESTS_DIR/$GUARD_NAME" 2>&1)" && guard_code=0 || guard_code=$?
+  [[ "$guard_code" != 0 ]] ||
+    problems+=("want the guard to fail over a unit suite that runs \"\$STATUS\" at line $var_offender_line; it exited 0 and said: $(flat "$guard_out")")
+  grep -qF -- "$VAR_OFFENDER:$var_offender_line" <<< "$guard_out" ||
+    problems+=("no line of the guard's output names $VAR_OFFENDER:$var_offender_line; it said: $(flat "$guard_out")")
+fi
+
+report "$name"
+
 finish
