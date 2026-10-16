@@ -30,7 +30,7 @@ flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
 problems=()
 tree="$(scratch_dir)"
-mkdir -p "$tree/$TESTS_DIR/unit/lib" "$tree/$SCRIPTS_DIR"
+mkdir -p "$tree/$TESTS_DIR/unit" "$tree/$SCRIPTS_DIR"
 offender_path="$tree/$TESTS_DIR/unit/$OFFENDER"
 guard_copy="$tree/$TESTS_DIR/$GUARD_NAME"
 
@@ -55,7 +55,6 @@ if [[ ! -f "$GUARD_PATH" ]]; then
   problems+=("there is no guard suite at $GUARD, so nothing checks that a suite under $TESTS_DIR/unit/ sources its script instead of running it")
 else
   cp "$GUARD_PATH" "$guard_copy"
-  cp "$HERE/lib/"*.sh "$tree/$TESTS_DIR/unit/lib/" 2>/dev/null
   mkdir -p "$tree/$TESTS_DIR/lib" && cp "$HERE/lib/"*.sh "$tree/$TESTS_DIR/lib/"
   guard_out="$("$guard_copy" 2>&1)" && guard_code=0 || guard_code=$?
   [[ "$guard_code" != 0 ]] ||
