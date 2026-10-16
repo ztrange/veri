@@ -1171,10 +1171,10 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — see *The step's cost check*
    ```
    Once verify-red PASSes, record the step's test files as they stand with
-   `$S/tests-frozen.sh record "$($S/tests-frozen.sh path "$($S/next-unchecked.sh < .tdd/issue-<n>.md)")" <test-path>`; tests-frozen exit 2 is a bail.
-   The record file is the one `$S/tests-frozen.sh path "<step text>"` prints, `.tdd/tests-frozen-<k>.record`
-   with `<k>` the first 16 hex digits of the step text's SHA-256: a step text is often longer than a filename
-   may be and may hold a `/`, so the text itself is never the filename.
+   `$S/tests-frozen.sh record --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" <test-path>`; tests-frozen exit 2 is a bail.
+   With `--step "<step text>"` in place of a record file, the record file is the one `$S/tests-frozen.sh path "<step text>"`
+   prints, `.tdd/tests-frozen-<k>.record` with `<k>` the first 16 hex digits of the step text's SHA-256: a step text is
+   often longer than a filename may be and may hold a `/`, so the text itself is never the filename.
    That is the verifier shape from *Launching a leaf*: the wait returns the **verdict** —
    0 PASS, 1 REJECT, 2 malformed or killed-stuck — not the supervisor's status.
    On **`PASSES`** the criterion is **already satisfied** — never send that test to
@@ -1189,7 +1189,9 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    here, so on `AGAINST_UNMODIFIED: PASSES` it goes on to Green with the failing CI job's log
    (test id and assertion diff) as its red evidence, never to verify-pin and never to the
    `test: pin` tick-and-commit.
-   Because that step skips verify-red, run `$S/tests-frozen.sh record "$($S/tests-frozen.sh path "$($S/next-unchecked.sh < .tdd/issue-<n>.md)")" <test-path>` for the ⟦ci-repair⟧ step before its green, to the step's own record; tests-frozen exit 2 is a bail.
+   A step marked `⟦suite-repair⟧` or `⟦ci-repair⟧` is never frozen: for it `record --step` writes nothing and
+   `check --step` exits 0, because its fix is often an edit to the very test file the full run or CI left red.
+   A `⟦ci-repair⟧` step therefore records nothing before its green, and its green may edit the test the CI job failed.
    Either way, note the **wait's exit code** — the verdict — and read the reason back out of
    `.tdd/verify-<phase>.reason` to narrate it. The file is named for the **verifier** that
    wrote it (`red`, `pin`, `green`, `refactor`), and each verification of that phase
@@ -1234,7 +1236,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    failure with cause `report-missing`. A green that stops because the test looks wrong is exempt: it
    keeps its main outcome, a verify-green REJECT (a process outcome), never a `report-missing` bail.
 
-   After that and before verify-green is launched, run `$S/tests-frozen.sh check "$($S/tests-frozen.sh path "$($S/next-unchecked.sh < .tdd/issue-<n>.md)")"`.
+   After that and before verify-green is launched, run `$S/tests-frozen.sh check --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"`.
    On tests-frozen exit 1 a test file changed since verify-red, so write a reason naming the changed file to
    `.tdd/verify-green.reason`, treat the attempt as a verify-green REJECT that spends REVISE_BUDGET, and launch
    no verifier for that attempt. On tests-frozen exit 0 the verifier is launched as before.
@@ -2056,7 +2058,7 @@ ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
 A `⟦replaces-case⟧` step whose Red reports `AGAINST_UNMODIFIED: PASSES` takes a different
 path after verify-pin, because deleting the named bash cases is still owed.
 A `⟦replaces-case⟧` step skips verify-red, so on that verify-pin PASS first run
-`$S/tests-frozen.sh record "$($S/tests-frozen.sh path "$($S/next-unchecked.sh < .tdd/issue-<n>.md)")" <test-path>` to record its replacement
+`$S/tests-frozen.sh record --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" <test-path>` to record its replacement
 cases before the deletion green checks them; tests-frozen exit 2 is a bail. Then commit nothing yet,
 and launch a green leaf exactly as *Green* does, whose only change
 is deleting exactly the named cases. The unreplaced-cases check from *Red* has
@@ -2173,7 +2175,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    Every other phase's revise template writes no `PREDICTION:` line, so this sub-step is the
    red phase's alone.
 
-   When `<phase>` is green, run `$S/tests-frozen.sh check "$($S/tests-frozen.sh path "$($S/next-unchecked.sh < .tdd/issue-<n>.md)")"` here, before the re-verify.
+   When `<phase>` is green, run `$S/tests-frozen.sh check --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"` here, before the re-verify.
    On tests-frozen exit 1 write a reason naming the changed file to `.tdd/verify-green.reason`, spend attempt `k`
    as a REJECT that spends REVISE_BUDGET, and launch no verifier for that attempt. On tests-frozen exit 0 the verifier is launched as before.
    On tests-frozen exit 2 the check could not answer, so **bail** as a system failure, never a REJECT, and launch no verifier.
@@ -2191,7 +2193,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    attempt's completion files would otherwise be read as this one's answer.
    - **PASS (exit 0):** the step is recovered. Post `### 🔎 verify-<phase> (revised) — PASS`
      with the reason, and resume the cycle from where that phase's PASS would continue.
-     When `<phase>` is red, first run `$S/tests-frozen.sh record "$($S/tests-frozen.sh path "$($S/next-unchecked.sh < .tdd/issue-<n>.md)")" <test-path>` — a revised red's PASS records the step's test files to the step's own record, as the Red section's does; tests-frozen exit 2 is a bail.
+     When `<phase>` is red, first run `$S/tests-frozen.sh record --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" <test-path>` — a revised red's PASS records the step's test files to the step's own record, as the Red section's does; tests-frozen exit 2 is a bail.
    - **REJECT (exit 1):** if attempts remain, loop; otherwise fall through to the bail below.
    - **Malformed / killed-stuck (exit 2):** **bail** (system failure).
 

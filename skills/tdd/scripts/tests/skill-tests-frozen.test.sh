@@ -9,7 +9,8 @@
 #   .tdd/verify-green.reason, treats the attempt as a REJECT that spends REVISE_BUDGET and
 #   launches no verifier; on exit 0 the verifier is launched as before; on exit 2 it bails. Every
 #   record and check names the step's record by `tests-frozen.sh path` over the step text, and a
-#   ⟦replaces-case⟧ step records at its verify-pin PASS. Only sentences naming tests-frozen count,
+#   ⟦replaces-case⟧ step records at its verify-pin PASS, while a ⟦suite-repair⟧ or ⟦ci-repair⟧ step
+#   is never frozen. Only sentences naming tests-frozen count,
 #   so text the sections already held cannot satisfy a case; the outcome sentences are pinned
 #   verbatim, because a keyword check stays green over a sentence that says the opposite.
 #
@@ -25,8 +26,10 @@ skill_path="$ROOT/$skill_md"
 source "$HERE/lib/harness.sh"
 source "$HERE/lib/plain.sh"
 
-record_arg='"$($S/tests-frozen.sh path "$($S/next-unchecked.sh < .tdd/issue-<n>.md)")"'
-key_sentence='The record file is the one `$S/tests-frozen.sh path "<step text>"` prints, `.tdd/tests-frozen-<k>.record` with `<k>` the first 16 hex digits of the step text'"'"'s SHA-256: a step text is often longer than a filename may be and may hold a `/`, so the text itself is never the filename.'
+record_arg='--step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"'
+key_sentence='With `--step "<step text>"` in place of a record file, the record file is the one `$S/tests-frozen.sh path "<step text>"` prints, `.tdd/tests-frozen-<k>.record` with `<k>` the first 16 hex digits of the step text'"'"'s SHA-256: a step text is often longer than a filename may be and may hold a `/`, so the text itself is never the filename.'
+repair_sentence='A step marked `⟦suite-repair⟧` or `⟦ci-repair⟧` is never frozen: for it `record --step` writes nothing and `check --step` exits 0, because its fix is often an edit to the very test file the full run or CI left red.'
+ci_sentence='A `⟦ci-repair⟧` step therefore records nothing before its green, and its green may edit the test the CI job failed.'
 exit2_sentence='On tests-frozen exit 2 the check could not answer, so **bail** as a system failure, never a REJECT, and launch no verifier.'
 wrong_test_sentence='A revise of green whose leaf reports `WRONG_TEST: <why>` is exempt from the `SUITE:` line and reaches the same outcome a develop-green `WRONG_TEST:` stop does: it keeps its main outcome, a verify-green REJECT, never a `report-missing` bail.'
 pin_record_sentence='A `⟦replaces-case⟧` step skips verify-red, so on that verify-pin PASS first run `$S/tests-frozen.sh record '"$record_arg"' <test-path>` to record its replacement cases before the deletion green checks them; tests-frozen exit 2 is a bail.'
@@ -147,17 +150,15 @@ else
 fi
 report "$name"
 
-name="#1586: $skill_md's Red section has a ⟦ci-repair⟧ step whose Red reports PASSES, and so skips verify-red, run tests-frozen.sh record to the step's own record before its green"
+name="#1586: $skill_md's Red section says a ⟦suite-repair⟧ or ⟦ci-repair⟧ step is never frozen, and a ⟦ci-repair⟧ step records nothing before its green, verbatim"
 problems=()
-ci_sentences="$(frozen_sentences '#### Red' | grep -F 'ci-repair' || true)"
-if [[ -z "$ci_sentences" ]]; then
-  problems+=("$skill_md's Red section: no sentence naming tests-frozen and ⟦ci-repair⟧, so a ci-repair step that skips verify-red reaches green with no record to check")
-else
-  grep -qF 'tests-frozen.sh record' <<<"$ci_sentences" ||
-    problems+=("$skill_md's Red section: the ⟦ci-repair⟧ sentence naming tests-frozen does not run record to the step's own record path")
-  grep -qiE 'before (its |the )?green' <<<"$ci_sentences" ||
-    problems+=("$skill_md's Red section: the ⟦ci-repair⟧ sentence naming tests-frozen does not say the record is made before green")
-fi
+red_text="$(joined_section '#### Red')"
+[[ "$red_text" == *"$repair_sentence"* ]] ||
+  problems+=("$skill_md's Red section does not say repair-marked steps are never frozen verbatim: $repair_sentence")
+[[ "$red_text" == *"$ci_sentence"* ]] ||
+  problems+=("$skill_md's Red section does not say a ⟦ci-repair⟧ step records nothing before its green verbatim: $ci_sentence")
+grep -F 'ci-repair' <<<"$(frozen_sentences '#### Red')" | grep -F 'tests-frozen.sh record' > /dev/null &&
+  problems+=("$skill_md's Red section still runs tests-frozen.sh record for a ⟦ci-repair⟧ step")
 report "$name"
 
 name="#1586: $skill_md's Green section and Revising on a REJECT handle tests-frozen.sh check exit 2 as a system-failure bail, never a REJECT, launching no verifier, in one verbatim sentence each"
