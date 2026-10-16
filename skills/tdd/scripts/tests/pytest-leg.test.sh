@@ -964,4 +964,19 @@ for status in 1 5 4; do
 done
 report "$name"
 
+roster="$work/roster"
+make_tree "$roster"
+mkdir -p "$roster/$PY_DIR/unit"
+: > "$roster/$PY_DIR/test_top_probe.py"
+: > "$roster/$PY_DIR/unit/test_deep_probe.py"
+
+name="make test's pytest roster, read off make -n, holds every test_*.py under tests/py/ including those in a subdirectory"
+problems=()
+make --no-print-directory -n -C "$roster" test > "$work/out" 2> "$work/err" < /dev/null || true
+out="$(cat "$work/out")"
+for want in "$PY_DIR/test_top_probe.py" "$PY_DIR/unit/test_deep_probe.py"; do
+  [[ "$out" == *"$want"* ]] || problems+=("make -n test: want $want in the pytest roster, got: $(flat "$(grep -F "$PY_DIR/test_" <<< "$out" | cut -c1-300)")")
+done
+report "$name"
+
 finish
