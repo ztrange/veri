@@ -398,3 +398,17 @@ def test_1379_skill_md_s_every_add_ledger_step_sh_call_site_says_its_exit_2_bail
         says(near, r"exits? 2[^.]{0,120}step-add-refused|step-add-refused[^.]{0,120}exits? 2",
              f"SKILL.md:{call} calls add-ledger-step.sh and never says its exit 2 bails with cause step-add-refused")
     says(bailing_causes(), r"step-add-refused[^.]{0,220}system", "SKILL.md's Bailing causes list never classifies step-add-refused as a system failure")
+
+
+def test_1625_skill_md_s_second_unreplaced_cases_sh_check_reads_both_the_red_report_and_the_correction_leaf_s_develop_replaces_report_out_so_a_case_the_first_report_replaced_still_counts():
+    section = unreplaced_paragraph()
+    assert section.strip(), "SKILL.md has no unreplaced-cases.sh paragraph in the Red step to read"
+    exit_1 = section[section.index("Exit 1"):]
+    rerun = exit_1[:exit_1.index("Exit 1 again")] if "Exit 1 again" in exit_1 else exit_1
+    spots = [m.start() for m in re.finditer(r"unreplaced-cases\.sh", rerun)]
+    assert spots, f"SKILL.md's unreplaced-cases.sh exit 1 never runs unreplaced-cases.sh again: {rerun}"
+    command = rerun[spots[-1]:]
+    assert ".tdd/develop-replaces-report.out" in command, \
+        f"SKILL.md's second unreplaced-cases.sh run never names .tdd/develop-replaces-report.out as a report it reads: {command}"
+    assert re.search(r"\.tdd/(develop-red|revise-red-<k>)\.out", command), \
+        f"SKILL.md's second unreplaced-cases.sh run never also names the Red report it read first: {command}"
