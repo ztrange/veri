@@ -135,4 +135,40 @@ fi
 
 report "$name"
 
+problems=()
+name="no-unit-subprocess.test.sh names a unit-tier suite that runs a script variable inside a command substitution, out=\"\$(\"\$VAR\" ...)\", as <suite>:<line>"
+
+CS_OFFENDER='runs-a-substitution.test.sh'
+cs_tree="$(scratch_dir)"
+mkdir -p "$cs_tree/$TESTS_DIR/unit" "$cs_tree/$SCRIPTS_DIR" "$cs_tree/$TESTS_DIR/lib"
+cs_offender_path="$cs_tree/$TESTS_DIR/unit/$CS_OFFENDER"
+{
+  echo '#!/usr/bin/env bash'
+  echo '# Unit tests for a script — the line below runs it instead of sourcing it.'
+  echo 'set -uo pipefail'
+  echo 'HERE="$(cd "$(dirname "$0")" && pwd)"'
+  echo 'RUN_AFFORDABLE="$HERE/../run-affordable.sh"'
+  echo 'run_affordable() {'
+  echo '  local out code'
+  echo '  out="$("$RUN_AFFORDABLE" "$@" 2>"$HERE/stderr")" && code=0 || code=$?  # '"$MARK"
+  echo '}'
+  echo 'echo "${pass:-0} passed, ${fail:-0} failed"'
+} > "$cs_offender_path"
+chmod 755 "$cs_offender_path"
+printf '#!/bin/sh\nexit 0\n' > "$cs_tree/$SCRIPTS_DIR/run-affordable.sh"
+chmod 755 "$cs_tree/$SCRIPTS_DIR/run-affordable.sh"
+cs_offender_line="$(grep -n "$MARK" "$cs_offender_path" | cut -d: -f1)"
+
+if [[ -f "$GUARD_PATH" ]]; then
+  cp "$GUARD_PATH" "$cs_tree/$TESTS_DIR/$GUARD_NAME"
+  cp "$HERE/lib/"*.sh "$cs_tree/$TESTS_DIR/lib/"
+  guard_out="$("$cs_tree/$TESTS_DIR/$GUARD_NAME" 2>&1)" && guard_code=0 || guard_code=$?
+  [[ "$guard_code" != 0 ]] ||
+    problems+=("want the guard to fail over a unit suite that runs \"\$RUN_AFFORDABLE\" in a command substitution at line $cs_offender_line; it exited 0 and said: $(flat "$guard_out")")
+  grep -qF -- "$CS_OFFENDER:$cs_offender_line" <<< "$guard_out" ||
+    problems+=("no line of the guard's output names $CS_OFFENDER:$cs_offender_line; it said: $(flat "$guard_out")")
+fi
+
+report "$name"
+
 finish
