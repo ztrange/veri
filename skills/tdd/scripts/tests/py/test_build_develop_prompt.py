@@ -1659,8 +1659,13 @@ def test_main_renders_a_revise_of_green_declaring_a_suite_exempt_wrong_test_repo
     skill = (SCRIPTS.parent / "SKILL.md").read_text()
     revising = skill.split("## Revising on a REJECT", 1)[1].split("\n## ", 1)[0]
 
+    outcome = ("A revise of green whose leaf reports `WRONG_TEST: <why>` is exempt from the `SUITE:` line and reaches"
+               " the same outcome a develop-green `WRONG_TEST:` stop does: it keeps its main outcome, a verify-green"
+               " REJECT, never a `report-missing` bail.")
+
     declared = [l for l in out.splitlines() if l.startswith("REPORT-FORMAT ") and "keys WRONG_TEST:" in l]
-    assert (code, len(declared), "suite exempt" in " ".join(declared), "WRONG_TEST" in revising) == (0, 1, True, True)
+    assert (code, len(declared), "suite exempt" in " ".join(declared), outcome in " ".join(revising.split())) == (
+        0, 1, True, True)
 
 
 def test_main_grants_a_test_rewrite_in_a_revise_prompt_only_when_the_revised_phase_is_red_1586(

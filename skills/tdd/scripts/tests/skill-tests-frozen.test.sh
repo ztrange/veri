@@ -7,8 +7,11 @@
 #   and the verify-green launch, and in *Revising on a REJECT* between the revise-green wait and
 #   its re-verify; on check exit 1 it writes a reason naming the file to
 #   .tdd/verify-green.reason, treats the attempt as a REJECT that spends REVISE_BUDGET and
-#   launches no verifier; on exit 0 the verifier is launched as before. Only sentences naming
-#   tests-frozen count, so text the sections already held cannot satisfy a case.
+#   launches no verifier; on exit 0 the verifier is launched as before; on exit 2 it bails. Every
+#   record and check names the step's record by `tests-frozen.sh path` over the step text, and a
+#   ⟦replaces-case⟧ step records at its verify-pin PASS. Only sentences naming tests-frozen count,
+#   so text the sections already held cannot satisfy a case; the outcome sentences are pinned
+#   verbatim, because a keyword check stays green over a sentence that says the opposite.
 #
 # Run: scripts/tests/skill-tests-frozen.test.sh
 set -uo pipefail
@@ -22,10 +25,20 @@ skill_path="$ROOT/$skill_md"
 source "$HERE/lib/harness.sh"
 source "$HERE/lib/plain.sh"
 
+record_arg='"$($S/tests-frozen.sh path "$($S/next-unchecked.sh < .tdd/issue-<n>.md)")"'
+key_sentence='The record file is the one `$S/tests-frozen.sh path "<step text>"` prints, `.tdd/tests-frozen-<k>.record` with `<k>` the first 16 hex digits of the step text'"'"'s SHA-256: a step text is often longer than a filename may be and may hold a `/`, so the text itself is never the filename.'
+exit2_sentence='On tests-frozen exit 2 the check could not answer, so **bail** as a system failure, never a REJECT, and launch no verifier.'
+wrong_test_sentence='A revise of green whose leaf reports `WRONG_TEST: <why>` is exempt from the `SUITE:` line and reaches the same outcome a develop-green `WRONG_TEST:` stop does: it keeps its main outcome, a verify-green REJECT, never a `report-missing` bail.'
+pin_record_sentence='A `⟦replaces-case⟧` step skips verify-red, so on that verify-pin PASS first run `$S/tests-frozen.sh record '"$record_arg"' <test-path>` to record its replacement cases before the deletion green checks them; tests-frozen exit 2 is a bail.'
+
 numbered_section() {
   awk -v h="$1" \
     'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside { printf "%d\t%s\n", NR, $0 }' \
     "$skill_path"
+}
+
+joined_section() {
+  numbered_section "$1" | cut -f 2- | sed 's/^[[:space:]]*//' | tr '\n' ' '
 }
 
 lines_matching() {
@@ -103,15 +116,19 @@ grep -qF 'green' <<<"$revise_sentences" ||
 check_handling "$skill_md's Revising on a REJECT" "$revise_sentences"
 report "$name"
 
-name="#1586: $skill_md's every tests-frozen.sh record and check names a record file that carries the step, so one step's check never reads another step's record"
+name="#1586: $skill_md's every tests-frozen.sh record and check names the step's record by tests-frozen.sh path over the step text, and the Red section defines that key verbatim"
 problems=()
-mapfile -t frozen_calls < <(grep -oE 'tests-frozen\.sh (record|check) [^ ]+' "$skill_path")
-((${#frozen_calls[@]} > 0)) ||
+mapfile -t frozen_lines < <(grep -nE 'tests-frozen\.sh (record|check)' "$skill_path")
+((${#frozen_lines[@]} > 0)) ||
   problems+=("$skill_md has no tests-frozen.sh record or check command to read")
-for call in "${frozen_calls[@]}"; do
-  [[ "${call##* }" == *'<step'* ]] ||
-    problems+=("$skill_md runs '$call', a record path shared by every step, so a later step's check compares against the record an earlier step made")
+for line in "${frozen_lines[@]}"; do
+  [[ "$line" == *"tests-frozen.sh record $record_arg"* || "$line" == *"tests-frozen.sh check $record_arg"* ]] ||
+    problems+=("$skill_md:${line%%:*} runs tests-frozen.sh record or check without $record_arg as its record file")
 done
+grep -nF 'tests-frozen-<step>' "$skill_path" > /dev/null &&
+  problems+=("$skill_md still names .tdd/tests-frozen-<step>.record, a filename built from the step text itself")
+[[ "$(joined_section '#### Red')" == *"$key_sentence"* ]] ||
+  problems+=("$skill_md's Red section does not define the record key verbatim: $key_sentence")
 report "$name"
 
 name="#1586: $skill_md's Revising on a REJECT runs tests-frozen.sh record to the step's own record once a revised red's re-verify PASSes"
@@ -123,7 +140,7 @@ if [[ -z "$revise_record" ]]; then
 else
   any_between "$revise_record" "${reverify_wait:-0}" 999999 ||
     problems+=("$skill_md's Revising on a REJECT runs tests-frozen.sh record, but not after the re-verify's wait (line ${reverify_wait:-?}), so it does not follow a PASS")
-  grep -qE 'tests-frozen\.sh record [^ ]*<step' <<<"$(numbered_section "$revise_heading" | cut -f 2-)" ||
+  grep -qF "tests-frozen.sh record $record_arg" <<<"$(numbered_section "$revise_heading" | cut -f 2-)" ||
     problems+=("$skill_md's Revising on a REJECT: tests-frozen.sh record does not name the step's own record path")
   grep -qiE 'red' <<<"$(frozen_sentences "$revise_heading" | grep -F record)" ||
     problems+=("$skill_md's Revising on a REJECT: no sentence naming tests-frozen record scopes it to a revise of red")
@@ -136,43 +153,40 @@ ci_sentences="$(frozen_sentences '#### Red' | grep -F 'ci-repair' || true)"
 if [[ -z "$ci_sentences" ]]; then
   problems+=("$skill_md's Red section: no sentence naming tests-frozen and ⟦ci-repair⟧, so a ci-repair step that skips verify-red reaches green with no record to check")
 else
-  grep -qE 'tests-frozen\.sh record [^ ]*<step' <<<"$ci_sentences" ||
+  grep -qF 'tests-frozen.sh record' <<<"$ci_sentences" ||
     problems+=("$skill_md's Red section: the ⟦ci-repair⟧ sentence naming tests-frozen does not run record to the step's own record path")
   grep -qiE 'before (its |the )?green' <<<"$ci_sentences" ||
     problems+=("$skill_md's Red section: the ⟦ci-repair⟧ sentence naming tests-frozen does not say the record is made before green")
 fi
 report "$name"
 
-name="#1586: $skill_md's Green section and Revising on a REJECT handle tests-frozen.sh check exit 2 as a system-failure bail, never a REJECT, launching no verifier"
+name="#1586: $skill_md's Green section and Revising on a REJECT handle tests-frozen.sh check exit 2 as a system-failure bail, never a REJECT, launching no verifier, in one verbatim sentence each"
 problems=()
 for where in '#### Green' "$revise_heading"; do
-  exit2="$(frozen_sentences "$where" | grep -E 'exit 2|exits 2' | grep -vF 'record' || true)"
-  if [[ -z "$exit2" ]]; then
-    problems+=("$skill_md's $where: no sentence naming tests-frozen handles check exit 2, so a check that cannot answer is read as a pass or a REJECT")
-    continue
-  fi
-  grep -qi 'bail' <<<"$exit2" ||
-    problems+=("$skill_md's $where: the tests-frozen check exit 2 sentence does not bail")
-  grep -qiE 'system.failure' <<<"$exit2" ||
-    problems+=("$skill_md's $where: the tests-frozen check exit 2 sentence does not call the bail a system failure")
-  grep -qE 'no verifier|not launch|without launching' <<<"$exit2" ||
-    problems+=("$skill_md's $where: the tests-frozen check exit 2 sentence does not say no verifier is launched")
+  [[ "$(joined_section "$where")" == *"$exit2_sentence"* ]] ||
+    problems+=("$skill_md's $where does not carry the check exit 2 handling verbatim: $exit2_sentence")
 done
 report "$name"
 
-name="#1586: $skill_md's Revising on a REJECT gives a revise-green WRONG_TEST: report the outcome Green gives a develop-green WRONG_TEST: stop, a verify-green REJECT and never a report-missing bail"
+name="#1586: $skill_md's Revising on a REJECT gives a revise-green WRONG_TEST: report the outcome Green gives a develop-green WRONG_TEST: stop, a verify-green REJECT and never a report-missing bail, verbatim"
 problems=()
 green_outcome="$(numbered_section '#### Green' | cut -f 2- | plain --join | sed 's/\. /.\n/g' | grep -F 'looks wrong' || true)"
-revise_wt="$(numbered_section "$revise_heading" | cut -f 2- | awk '/^[[:space:]]*```/ { fence = !fence; next } !fence' | plain --join | sed 's/\. /.\n/g' | grep -F 'wrong_test' || true)"
 grep -qF 'verify-green reject' <<<"$green_outcome" ||
   problems+=("$skill_md's Green section: no sentence about a green that stops because the test looks wrong names a verify-green REJECT, so there is no outcome to match")
-if [[ -z "$revise_wt" ]]; then
-  problems+=("$skill_md's Revising on a REJECT: no sentence names a revise-green WRONG_TEST: report")
+[[ "$(joined_section "$revise_heading")" == *"$wrong_test_sentence"* ]] ||
+  problems+=("$skill_md's Revising on a REJECT does not give a revise-green WRONG_TEST: report its outcome verbatim: $wrong_test_sentence")
+report "$name"
+
+name="#1586: $skill_md's Already satisfied — the pin records a ⟦replaces-case⟧ step's tests at its verify-pin PASS, before the deletion green is launched"
+problems=()
+pin_heading='## Already satisfied — the pin'
+pin_text="$(joined_section "$pin_heading")"
+if [[ "$pin_text" != *"$pin_record_sentence"* ]]; then
+  problems+=("$skill_md's $pin_heading does not record a ⟦replaces-case⟧ step's tests at its verify-pin PASS verbatim: $pin_record_sentence")
 else
-  grep -qF 'verify-green reject' <<<"$revise_wt" ||
-    problems+=("$skill_md's Revising on a REJECT: the WRONG_TEST: sentence does not give the outcome Green gives a develop-green stop, a verify-green REJECT")
-  grep -qF 'report-missing' <<<"$revise_wt" ||
-    problems+=("$skill_md's Revising on a REJECT: the WRONG_TEST: sentence does not rule out a report-missing bail")
+  before_green="${pin_text%%launch a green leaf exactly as*}"
+  [[ "$before_green" == *"$pin_record_sentence"* ]] ||
+    problems+=("$skill_md's $pin_heading records the ⟦replaces-case⟧ step's tests only after it launches the deletion green")
 fi
 report "$name"
 
