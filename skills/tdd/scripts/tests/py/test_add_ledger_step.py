@@ -280,7 +280,7 @@ def test_main_counts_only_steps_ending_in_added_and_inserts_repair_texts_unmarke
          ["one more edge case", "fix the CI failure: z.test.sh ⟦ci-repair⟧"]),
         ("a pending added step spends the budget", counted, "1", ["one more edge case"]),
         ("repair texts at a budget of 0", unadded, "0",
-         ["fix the CI failure: x.test.sh ⟦ci-repair⟧", "⟦suite-repair⟧ mid-text: y.test.sh"]),
+         ["fix the CI failure: x.test.sh ⟦ci-repair⟧", "mid-text: y.test.sh ⟦suite-repair⟧"]),
     ):
         ledger.write_bytes(seed.encode())
         monkeypatch.setenv("VERI_STEP_GROWTH", budget)
@@ -290,7 +290,7 @@ def test_main_counts_only_steps_ending_in_added_and_inserts_repair_texts_unmarke
     anchor = "- [ ] collapse to single hyphen ⟦criterion 2⟧\n"
     repairs = (
         "- [ ] fix the CI failure: x.test.sh ⟦ci-repair⟧ ⟦criterion 2⟧\n"
-        "- [ ] ⟦suite-repair⟧ mid-text: y.test.sh ⟦criterion 2⟧\n"
+        "- [ ] mid-text: y.test.sh ⟦suite-repair⟧ ⟦criterion 2⟧\n"
     )
     assert got == {
         "uncounted lines, one added text": (0, "", "", uncounted.replace(
@@ -305,7 +305,7 @@ def test_main_counts_only_steps_ending_in_added_and_inserts_repair_texts_unmarke
     records = importlib.import_module("veri.ledger").ledger_steps(ledger.read_bytes().decode())[-2:]
     assert [(state, kind, text) for _, state, kind, _, _, _, text in records] == [
         ("open", "step", "fix the CI failure: x.test.sh ⟦ci-repair⟧ ⟦criterion 2⟧"),
-        ("open", "step", "⟦suite-repair⟧ mid-text: y.test.sh ⟦criterion 2⟧"),
+        ("open", "step", "mid-text: y.test.sh ⟦suite-repair⟧ ⟦criterion 2⟧"),
     ]
 
 
