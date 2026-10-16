@@ -175,6 +175,15 @@ def test_skill_md_s_refactor_section_answers_an_overfit_flag_with_one_triangulat
     )
 
 
+def assert_fails_naming(case, planted, cls, planted_description):
+    try:
+        case(planted)
+    except AssertionError as failure:
+        assert cls in str(failure), f"failed without naming the {cls} class: {failure}"
+    else:
+        raise AssertionError(f"the case passed over {planted_description}")
+
+
 CLASS = "beyond-spec"
 DENIAL_CLAUSE = "is not planned and not built in this run"
 GRANT_CLAUSE = "is planned and built in this run"
@@ -211,12 +220,7 @@ def test_beyond_spec_narration_guard_fails_naming_the_class_over_a_skill_md_that
 
     planted = committed.replace(DENIAL_CLAUSE, GRANT_CLAUSE)
     assert planted != committed
-    try:
-        beyond_spec_narration(planted)
-    except AssertionError as failure:
-        assert CLASS in str(failure), f"failed without naming the {CLASS} class: {failure}"
-    else:
-        raise AssertionError(f"the case passed over a SKILL.md whose Refactor section says a {CLASS} flag {GRANT_CLAUSE}")
+    assert_fails_naming(beyond_spec_narration, planted, CLASS, f"a SKILL.md whose Refactor section says a {CLASS} flag {GRANT_CLAUSE}")
 
 
 UNCOVERED = "uncovered-spec"
@@ -283,12 +287,7 @@ def planted_with_other_class():
 
 def test_flag_class_amendment_guard_fails_naming_the_class_over_a_skill_md_whose_refactor_section_amends_the_plan_from_another_class_and_passes_as_committed():
     uncovered_spec_amendment(SKILL.read_text())
-    try:
-        uncovered_spec_amendment(planted_with_other_class())
-    except AssertionError as failure:
-        assert UNCOVERED in str(failure), f"failed without naming the {UNCOVERED} class: {failure}"
-    else:
-        raise AssertionError(f"the case passed over a SKILL.md whose plan-growing flag class is {OTHER_CLASS}")
+    assert_fails_naming(uncovered_spec_amendment, planted_with_other_class(), UNCOVERED, f"a SKILL.md whose plan-growing flag class is {OTHER_CLASS}")
 
 
 def test_one_call_per_criterion_case_passes_over_a_skill_md_whose_plan_growing_flag_class_is_named_off_spec_since_it_asks_how_many_calls_not_which_class():
