@@ -65,7 +65,7 @@ scaffolding_hits() {
 
 HOISTED=(win window windows plain section_end frontmatter_name first_record record_number fenced_lines need_claude_md_records probe_every_exemption_carries_a_reason verdict)
 GUARD_ONLY=verdict
-GUARD_SUITES=" count-line-guard$sfx prompt-test-tiers$sfx unit/missing-argument-exit$sfx unit/emitted-text$sfx unit/pending-mark-literal$sfx "
+GUARD_SUITES=" count-line-guard$sfx prompt-test-tiers$sfx unit/missing-argument-exit$sfx unit/emitted-text$sfx "
 GUARD_COPY_RE='^[[:space:]]*cp[[:space:]]+"\$ROOT/skills/tdd/scripts/lib/count-line-guard\.sh"[[:space:]]+"[^"]*"[[:space:]]*$'
 
 hoisted_copy_hits() {
