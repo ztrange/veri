@@ -21,7 +21,7 @@ WORK="$(scratch_dir)"
 TUNABLE='VERI_REFACTOR_BUDGET'
 SCRIPT='skills/tdd/scripts/refactor-budget.sh'
 MODULE='skills/tdd/scripts/veri/refactor_budget.py'
-SUITE='skills/tdd/scripts/tests/py/test_refactor_budget.py'
+SUITE='skills/tdd/scripts/tests/py/unit/test_refactor_budget.py'
 SUITE_NAME='pytest'
 
 SKILL_MARKER='SKILL.md'

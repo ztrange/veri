@@ -3,8 +3,8 @@ import importlib
 import pathlib
 import re
 
-SKILL = pathlib.Path(__file__).resolve().parents[3] / "SKILL.md"
-CLAUDE = pathlib.Path(__file__).resolve().parents[5] / "CLAUDE.md"
+SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
+CLAUDE = pathlib.Path(__file__).resolve().parents[6] / "CLAUDE.md"
 
 PLAN = "### 2. Scope & plan → the ledger"
 SCRIPTS = "## The scripts (this skill's `scripts/` directory)"

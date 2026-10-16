@@ -1,7 +1,7 @@
 import pathlib
 import re
 
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
+SCRIPTS = pathlib.Path(__file__).resolve().parents[3]
 SKILL = SCRIPTS.parent / "SKILL.md"
 
 

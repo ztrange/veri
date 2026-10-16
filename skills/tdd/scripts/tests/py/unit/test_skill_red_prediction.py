@@ -3,7 +3,7 @@ import importlib
 import pathlib
 import re
 
-SKILL = pathlib.Path(__file__).resolve().parents[3] / "SKILL.md"
+SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 RED = "#### Red — one failing test (developer leaf), then verify-red (blind)"
 REVISE = "## Revising on a REJECT"

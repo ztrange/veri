@@ -172,11 +172,11 @@ def test_main_prints_the_emitted_text_check_for_a_template_a_suite_names_1622(
     monkeypatch.chdir(tmp_path)
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
-    (tests / "py").mkdir()
-    (tests / "py/test_emitted_text.py").write_text("")
+    (tests / "py/unit").mkdir(parents=True)
+    (tests / "py/unit/test_emitted_text.py").write_text("")
     (tests / "unit/names.test.sh").write_text('cat "$scripts/prompts/develop-red.md"\n')
     assert (affected.main(["base..head"]),) + (sorted(capsys.readouterr().out.splitlines()),) == (
-        0, ["skills/tdd/scripts/tests/py/test_emitted_text.py", "skills/tdd/scripts/tests/unit/names.test.sh"])
+        0, ["skills/tdd/scripts/tests/py/unit/test_emitted_text.py", "skills/tdd/scripts/tests/unit/names.test.sh"])
 
 
 def test_main_prints_the_emitted_text_check_for_a_partial_no_suite_names_1622(
@@ -185,11 +185,11 @@ def test_main_prints_the_emitted_text_check_for_a_partial_no_suite_names_1622(
     monkeypatch.chdir(tmp_path)
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
-    (tests / "py").mkdir()
-    (tests / "py/test_emitted_text.py").write_text("")
+    (tests / "py/unit").mkdir(parents=True)
+    (tests / "py/unit/test_emitted_text.py").write_text("")
     (tests / "other.test.sh").write_text("")
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
-        0, "skills/tdd/scripts/tests/py/test_emitted_text.py\n", "")
+        0, "skills/tdd/scripts/tests/py/unit/test_emitted_text.py\n", "")
 
 
 def test_main_prints_the_emitted_text_check_for_a_prompt_no_suite_names_1024(
@@ -198,11 +198,11 @@ def test_main_prints_the_emitted_text_check_for_a_prompt_no_suite_names_1024(
     monkeypatch.chdir(tmp_path)
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
-    (tests / "py").mkdir()
-    (tests / "py/test_emitted_text.py").write_text("")
+    (tests / "py/unit").mkdir(parents=True)
+    (tests / "py/unit/test_emitted_text.py").write_text("")
     (tests / "other.test.sh").write_text("")
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
-        0, "skills/tdd/scripts/tests/py/test_emitted_text.py\n", "")
+        0, "skills/tdd/scripts/tests/py/unit/test_emitted_text.py\n", "")
 
 
 def test_main_prints_the_four_prompt_renderer_suites_for_a_develop_template_no_suite_names_1572(
@@ -211,9 +211,9 @@ def test_main_prints_the_four_prompt_renderer_suites_for_a_develop_template_no_s
     monkeypatch.chdir(tmp_path)
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
-    (tests / "py").mkdir()
+    (tests / "py/unit").mkdir(parents=True)
     renderers = ["build-develop-prompt.test.sh", "build-verify-prompt.test.sh",
-                 "py/test_build_develop_prompt.py", "py/test_build_verify_prompt.py"]
+                 "py/unit/test_build_develop_prompt.py", "py/unit/test_build_verify_prompt.py"]
     for name in renderers + ["other.test.sh"]:
         (tests / name).write_text("")
     assert (affected.main(["base..head"]),) + (sorted(capsys.readouterr().out.splitlines()),) == (
@@ -226,9 +226,9 @@ def test_main_prints_the_four_prompt_renderer_suites_for_a_verify_template_no_su
     monkeypatch.chdir(tmp_path)
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
-    (tests / "py").mkdir()
+    (tests / "py/unit").mkdir(parents=True)
     renderers = ["build-develop-prompt.test.sh", "build-verify-prompt.test.sh",
-                 "py/test_build_develop_prompt.py", "py/test_build_verify_prompt.py"]
+                 "py/unit/test_build_develop_prompt.py", "py/unit/test_build_verify_prompt.py"]
     for name in renderers + ["other.test.sh"]:
         (tests / name).write_text("")
     assert (affected.main(["base..head"]),) + (sorted(capsys.readouterr().out.splitlines()),) == (
@@ -241,9 +241,9 @@ def test_main_prints_the_four_prompt_renderer_suites_for_a_partial_no_suite_name
     monkeypatch.chdir(tmp_path)
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
-    (tests / "py").mkdir()
+    (tests / "py/unit").mkdir(parents=True)
     renderers = ["build-develop-prompt.test.sh", "build-verify-prompt.test.sh",
-                 "py/test_build_develop_prompt.py", "py/test_build_verify_prompt.py"]
+                 "py/unit/test_build_develop_prompt.py", "py/unit/test_build_verify_prompt.py"]
     for name in renderers + ["other.test.sh"]:
         (tests / name).write_text("")
     assert (affected.main(["base..head"]),) + (sorted(capsys.readouterr().out.splitlines()),) == (
@@ -256,8 +256,8 @@ def test_main_prints_only_the_prompt_renderer_suites_that_exist_for_a_template_c
     monkeypatch.chdir(tmp_path)
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
-    (tests / "py").mkdir()
-    present = ["build-develop-prompt.test.sh", "py/test_build_develop_prompt.py"]
+    (tests / "py/unit").mkdir(parents=True)
+    present = ["build-develop-prompt.test.sh", "py/unit/test_build_develop_prompt.py"]
     for name in present + ["other.test.sh"]:
         (tests / name).write_text("")
     assert (affected.main(["base..head"]),) + (sorted(capsys.readouterr().out.splitlines()),) == (
@@ -270,9 +270,9 @@ def test_main_prints_none_of_the_prompt_renderer_suites_for_a_change_outside_the
     monkeypatch.chdir(tmp_path)
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
-    (tests / "py").mkdir()
+    (tests / "py/unit").mkdir(parents=True)
     renderers = ["build-develop-prompt.test.sh", "build-verify-prompt.test.sh",
-                 "py/test_build_develop_prompt.py", "py/test_build_verify_prompt.py"]
+                 "py/unit/test_build_develop_prompt.py", "py/unit/test_build_verify_prompt.py"]
     for name in renderers + ["foo.test.sh"]:
         (tests / name).write_text("")
     (tmp_path / "skills/tdd/scripts/foo.sh").write_text("#!/usr/bin/env bash\n")
@@ -658,7 +658,7 @@ def test_main_prints_a_pytest_file_with_a_literal_heading_and_an_unrelated_file_
 
 def spelled_suites_missing(source, tests):
     import re
-    spelled = sorted(set(re.findall(r'["/]((?:unit/|py/)?[\w-]+\.test\.sh|(?:py/)?test_\w+\.py)"', source)))
+    spelled = sorted(set(re.findall(r'["/]((?:unit/|py/)?[\w-]+\.test\.sh|(?:py/(?:unit/)?)?test_\w+\.py)"', source)))
     return spelled, [p for p in spelled if not (tests / p).is_file()]
 
 
@@ -669,7 +669,7 @@ def test_every_suite_path_affected_suites_names_exists():
 
 
 @pytest.mark.parametrize("rename", [
-    ('"py/test_build_develop_prompt.py"', '"py/test_build_gone_prompt.py"'),
+    ('"py/unit/test_build_develop_prompt.py"', '"py/unit/test_build_gone_prompt.py"'),
     ('"build-verify-prompt.test.sh"', '"build-gone-prompt.test.sh"'),
     ('/tests/claude-md-counts.test.sh"', '/tests/claude-md-gone.test.sh"'),
 ])

@@ -458,7 +458,7 @@ def test_1313_a_stop_timeout_above_the_macos_setitimer_ceiling_of_100000000_refu
     out, err = capsys.readouterr()
     assert (code, out, err, timers[0]) == (0, "", "", (signal.ITIMER_REAL, 100000000.0))
 
-    header = "\n".join((pathlib.Path(__file__).resolve().parents[2] / "orchestrate.sh").read_text().splitlines()[:20])
+    header = "\n".join((pathlib.Path(__file__).resolve().parents[3] / "orchestrate.sh").read_text().splitlines()[:20])
     assert "100000000" in header
 
 
