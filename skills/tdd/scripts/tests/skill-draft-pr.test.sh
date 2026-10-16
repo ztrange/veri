@@ -754,8 +754,8 @@ if step_or_problem '### 4. Draft PR' "how the step marks and recognises a CI rep
   if [[ -z "$red" ]]; then
     problems+=("no command line of $skill_md's Draft PR step bails with cause ci-red, so how it recognises a second red could not be checked")
   else
-    grep -F "$ci_repair_mark" > /dev/null <<< "$red" ||
-      problems+=("$skill_md's Draft PR step recognises a second red CI result without the $ci_repair_mark mark: $(printf '%.160s' "$red")")
+    grep -F -e "$ci_repair_mark" -e 'ledger-steps.sh has-mark ci-repair' > /dev/null <<< "$red" ||
+      problems+=("$skill_md's Draft PR step recognises a second red CI result without the $ci_repair_mark mark or ledger-steps.sh has-mark ci-repair: $(printf '%.160s' "$red")")
     grep -F 'fix the ci failure' > /dev/null <<< "$red" &&
       problems+=("$skill_md's Draft PR step recognises a second red CI result by the repair step's prose: $(printf '%.160s' "$red")")
   fi
@@ -866,9 +866,9 @@ if step_or_problem '### 4. Draft PR' "what the metrics: push's command block doe
         /^```/ { if (waited) exit; next }
         $0 ~ ENVIRON["WAIT_RE"] { waited = 1; next }
         waited' <<< "$commands")"
-    guard_at="$(awk '/[$]s\/event[.]sh bail cause=ci-red/ && /! grep -f .⟦ci-repair⟧. [^|]*[|][|] [^|]*[$]s\/event[.]sh bail cause=ci-red/ { print NR; exit }' <<< "$after_wait")"
+    guard_at="$(awk '/[$]s\/event[.]sh bail cause=ci-red/ && /! (grep -f .⟦ci-repair⟧.|[$]s\/ledger-steps[.]sh has-mark ci-repair) [^|]*[|][|] [^|]*[$]s\/event[.]sh bail cause=ci-red/ { print NR; exit }' <<< "$after_wait")"
     if [[ -z "$guard_at" ]]; then
-      problems+=("no command line after the metrics: push's wait-ci.sh bails ci-red behind a ! grep -F '⟦ci-repair⟧' guard, so a red CI there either bails on its first red with no repair step or appends a second ⟦ci-repair⟧ step instead of bailing: $(printf '%.200s' "$(grep -F 'cause=ci-red' <<< "$after_wait")")")
+      problems+=("no command line after the metrics: push's wait-ci.sh bails ci-red behind a ! grep -F '⟦ci-repair⟧' or ! \$S/ledger-steps.sh has-mark ci-repair guard, so a red CI there either bails on its first red with no repair step or appends a second ⟦ci-repair⟧ step instead of bailing: $(printf '%.200s' "$(grep -F 'cause=ci-red' <<< "$after_wait")")")
     else
       added="$(awk -v from="$guard_at" 'NR > from && /[$]s\/event[.]sh step-added/' <<< "$after_wait")"
       [[ -n "$added" ]] ||
@@ -998,9 +998,9 @@ if step_or_problem '### 4. Draft PR' "what the ci-red bail is keyed on"; then
   if [[ -z "$keyed" ]]; then
     problems+=("no command line of $skill_md's Draft PR step bails with cause ci-red keyed on .tdd/issue-<n>.md")
   else
-    grep -F "$ci_repair_mark" > /dev/null <<< "$keyed" ||
-      problems+=("$skill_md's Draft PR step keys its ci-red bail without the $ci_repair_mark mark: $(printf '%.160s' "$keyed")")
-    grep -F "$suite_repair_mark" > /dev/null <<< "$keyed" &&
+    grep -F -e "$ci_repair_mark" -e 'ledger-steps.sh has-mark ci-repair' > /dev/null <<< "$keyed" ||
+      problems+=("$skill_md's Draft PR step keys its ci-red bail without the $ci_repair_mark mark or ledger-steps.sh has-mark ci-repair: $(printf '%.160s' "$keyed")")
+    grep -F -e "$suite_repair_mark" -e 'has-mark suite-repair' > /dev/null <<< "$keyed" &&
       problems+=("$skill_md's Draft PR step keys its ci-red bail on $suite_repair_mark too, so a local full-suite repair spends the run's one CI repair attempt: $(printf '%.160s' "$keyed")")
   fi
   stated="$(first_record "$records" -F "$suite_repair_mark" -F "$ci_repair_mark" -E 'one ci repair attempt')"
