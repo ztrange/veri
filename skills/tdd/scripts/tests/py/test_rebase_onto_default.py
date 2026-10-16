@@ -1252,7 +1252,7 @@ def test_main_keeps_both_sets_of_appends_recoverable_and_named_when_two_resume_d
 
 
 @pytest.mark.process("git and tick-ledger.sh: a real resumed worktree whose ledger carries a step ticked by a green commit on the branch and then reworded in the uncommitted copy, discarded by the resume's own commands")
-def test_main_after_the_resume_discard_keeps_the_tick_of_a_reworded_step_whose_green_commit_is_on_the_branch_1611(
+def test_main_after_the_resume_discard_unticks_a_reworded_step_even_though_its_green_commit_is_on_the_branch_1611(
         monkeypatch, tmp_path):
     scripts, clone, ledger, git, discard = _resumed_clone_1611(
         monkeypatch, tmp_path, "- [ ] step one\n- [ ] step two\n", "plan: scope #1 (#1)")
@@ -1264,7 +1264,7 @@ def test_main_after_the_resume_discard_keeps_the_tick_of_a_reworded_step_whose_g
     subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    assert ledger.read_text() == "- [x] step one reworded\n- [ ] step two\n"
+    assert ledger.read_text() == "- [ ] step one reworded\n- [ ] step two\n"
 
 
 @pytest.mark.process("git: a real resumed worktree whose ledger carries two steps of identical text, one ticked by a green commit on the branch and one ticked only in the uncommitted copy, discarded by the resume's own commands")
