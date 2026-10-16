@@ -902,3 +902,54 @@ def test_main_refuses_a_third_suite_repair_naming_the_one_this_run_inserted_afte
 
     assert (code, out, ledger.read_bytes()) == (1, "", before)
     assert "second.test.sh" in err and "first.test.sh" not in err
+
+
+def test_main_inserts_a_suite_repair_when_the_one_in_the_ledger_was_added_before_the_second_of_two_resumes_1607(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_bytes((
+        "# Plan for #42\n"
+        "\n"
+        "- [x] a one ⟦criterion 1⟧\n"
+        "- [x] fix the full-suite failure: first.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧\n"
+        "- [ ] b two ⟦criterion 2⟧\n"
+    ).encode())
+    events = [
+        {"ts": 1, "issue": "42", "event": "resume"},
+        {"ts": 2, "issue": "42", "event": "step-added", "anchor": "a one", "added": "1"},
+        {"ts": 3, "issue": "42", "event": "resume"},
+    ]
+    (ledger.parent / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+
+    code, out, err = run_cli(
+        add_ledger_step,
+        [str(ledger), "after", "b two", "fix the full-suite failure: second.test.sh ⟦suite-repair⟧"],
+    )
+
+    assert code == 0, err
+    assert "second.test.sh ⟦suite-repair⟧" in ledger.read_text()
+
+
+def test_main_refuses_a_second_suite_repair_in_a_first_run_whose_events_hold_step_added_and_no_resume_1607(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    before = (
+        "# Plan for #42\n"
+        "\n"
+        "- [x] a one ⟦criterion 1⟧\n"
+        "- [x] fix the full-suite failure: first.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧\n"
+        "- [ ] b two ⟦criterion 2⟧\n"
+    ).encode()
+    ledger.write_bytes(before)
+    events = [
+        {"ts": 1, "issue": "42", "event": "step-added", "anchor": "a one", "added": "1"},
+    ]
+    (ledger.parent / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+
+    code, out, err = run_cli(
+        add_ledger_step,
+        [str(ledger), "after", "b two", "fix the full-suite failure: second.test.sh ⟦suite-repair⟧"],
+    )
+
+    assert (code, out, ledger.read_bytes()) == (1, "", before)
+    assert "fix the full-suite failure: first.test.sh" in err
