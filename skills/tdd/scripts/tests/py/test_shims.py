@@ -199,3 +199,24 @@ def test_every_module_a_shim_execs_goes_through_the_shared_entry_point():
     from conftest import entry_bypass_problems
 
     assert entry_bypass_problems(SCRIPTS) == []
+
+
+@pytest.mark.parametrize("planted", [
+    "python3 - <<'PY'\nprint('hi')\nPY",
+    "python3 -c 'print(1)'",
+    "gh issue view 7 --json body",
+    'issue_json="$(gh api repos/o/r/issues/7)"\npython3 "$(dirname "$0")/veri/stop_run.py" "$issue_json"',
+])
+def test_shim_source_problems_names_stop_run_and_line_for_each_violation_planted_into_a_copy_and_passes_the_unplanted_copy(tmp_path, planted):
+    """Its subject is source text: a copy of the real stop-run.sh with a violation planted in it, read as text and never run."""
+    from conftest import shim_source_problems
+
+    original = (SCRIPTS / "stop-run.sh").read_text()
+    (tmp_path / "stop-run.sh").write_text(original)
+    unplanted = shim_source_problems(tmp_path)
+    (tmp_path / "stop-run.sh").write_text(original + planted + "\n")
+
+    problems = shim_source_problems(tmp_path)
+
+    assert unplanted == []
+    assert [line.split(" ")[0] for line in problems][:1] == ["stop-run.sh:%d" % (original.count("\n") + 1)]

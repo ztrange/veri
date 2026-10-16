@@ -66,6 +66,24 @@ def entry_bypass_problems(scripts):
     return problems
 
 
+def shim_source_problems(scripts):
+    rules = (
+        (re.compile(r"\bpython3?\b[^#]*<<"), "feeds python3 a heredoc"),
+        (re.compile(r"\bpython3?\s+-c\b"), "feeds python3 a -c string"),
+        (re.compile(r"\bgh\s+(issue|pr|repo|api)\b"), "calls gh"),
+    )
+    problems = []
+    for script in sorted(pathlib.Path(scripts).glob("*.sh")):
+        for number, line in enumerate(script.read_text().splitlines(), 1):
+            code = line.lstrip()
+            if code.startswith("#"):
+                continue
+            for pattern, what in rules:
+                if pattern.search(code):
+                    problems.append("%s:%d %s" % (script.name, number, what))
+    return problems
+
+
 def pytest_configure(config):
     config.option.importmode = "append"
     config.addinivalue_line("markers", "process(boundary): a medium case, naming the process boundary it observes")
