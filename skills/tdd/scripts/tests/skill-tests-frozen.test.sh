@@ -130,4 +130,17 @@ else
 fi
 report "$name"
 
+name="#1586: $skill_md's Red section has a ⟦ci-repair⟧ step whose Red reports PASSES, and so skips verify-red, run tests-frozen.sh record to the step's own record before its green"
+problems=()
+ci_sentences="$(frozen_sentences '#### Red' | grep -F 'ci-repair' || true)"
+if [[ -z "$ci_sentences" ]]; then
+  problems+=("$skill_md's Red section: no sentence naming tests-frozen and ⟦ci-repair⟧, so a ci-repair step that skips verify-red reaches green with no record to check")
+else
+  grep -qE 'tests-frozen\.sh record [^ ]*<step' <<<"$ci_sentences" ||
+    problems+=("$skill_md's Red section: the ⟦ci-repair⟧ sentence naming tests-frozen does not run record to the step's own record path")
+  grep -qiE 'before (its |the )?green' <<<"$ci_sentences" ||
+    problems+=("$skill_md's Red section: the ⟦ci-repair⟧ sentence naming tests-frozen does not say the record is made before green")
+fi
+report "$name"
+
 finish
