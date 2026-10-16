@@ -72,7 +72,6 @@ plant_exemption() {
   local reason="$1" out="$tree/$TESTS_DIR/exempt-$2.test.sh"
   awk -v entry="  [$OFFENDER]=\"$reason\"" '{ print } /^declare -A EXEMPT=\(/ { print entry }' "$guard_copy" > "$out"
   chmod 755 "$out"
-  cp "$HERE/lib/"*.sh "$tree/$TESTS_DIR/lib/"
   guard_out="$("$out" 2>&1)" && guard_code=0 || guard_code=$?
 }
 
