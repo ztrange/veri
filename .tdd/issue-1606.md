@@ -1,0 +1,14 @@
+# Plan for #1606 — PRD 009: the fast tier is instant by construction — make unit runs only in-process tests, judged from source
+
+- [ ] `make -n unit`'s pytest roster names only the `test_*.py` files under `skills/tdd/scripts/tests/py/unit/` and none from elsewhere under `tests/py/`, pinned by a case that reads the roster off `make -n unit` ⟦criterion 1⟧
+- [ ] `make -n test`'s pytest roster names every `test_*.py` under `skills/tdd/scripts/tests/py/`, the ones under `tests/py/unit/` included, pinned by a case that reads the roster off `make -n test` ⟦criterion 1⟧
+- [ ] A fast-tier pytest file (under `tests/py/unit/`) whose own source starts a process — `subprocess`, `os.system`, `os.exec*`, `os.spawn*` or `pty` — fails the fast-tier source guard, which names `file:line`; pinned by one planted offender per form turning the guard red ⟦criterion 2⟧
+- [ ] A fast-tier pytest file whose own source sleeps (`time.sleep`, `asyncio.sleep`) fails the fast-tier source guard, naming `file:line`; pinned by a planted offender ⟦criterion 2⟧
+- [ ] A fast-tier pytest file whose own source opens a socket fails the fast-tier source guard, naming `file:line`; pinned by a planted offender ⟦criterion 2⟧
+- [ ] A fast-tier pytest file whose own source runs another suite (a `*.test.sh` suite or another pytest file or `pytest.main`) fails the fast-tier source guard, naming `file:line`; pinned by a planted offender ⟦criterion 2⟧
+- [ ] The fast-tier source guard reads an exemption table: an entry naming `file:line` with a reason exempts that line, and an entry with no reason fails the guard ⟦criterion 2⟧
+- [ ] The fast-tier source guard runs in the run — `make unit` and `make test` both fail, naming `file:line`, when a fast-tier pytest file offends, and pass over the real `tests/py/unit/` tree ⟦criterion 2⟧
+- [ ] A bash suite under `skills/tdd/scripts/tests/unit/` that runs a script under `skills/tdd/scripts/` as a subprocess, rather than sourcing it, fails the unit-tier admission guard, naming `<suite>:<line>`; a suite that only sources the script and mocks what it shells out to passes; pinned by a planted offender ⟦criterion 3⟧
+- [ ] The unit-tier subprocess guard reads an exemption table with a reason per entry: an entry with a reason exempts `<suite>:<line>`, an entry with no reason fails the guard ⟦criterion 3⟧
+- [ ] The unit-tier subprocess guard passes over the real `tests/unit/` tree: every suite it names either sources the script it tests or is moved to `skills/tdd/scripts/tests/`, where `make test` still runs it ⟦criterion 3⟧
+- [ ] No test is lost: a case lists every `test_*.py` anywhere under `tests/py/` (subdirectories included) and every `*.test.sh` under `tests/` and `tests/unit/` on disk, and fails naming each one missing from the roster read off `make -n test` ⟦criterion 4⟧
