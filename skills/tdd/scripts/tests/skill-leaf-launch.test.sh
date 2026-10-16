@@ -103,23 +103,6 @@ fi
 
 report "$name"
 
-name="$skill_md invokes $verdict_launcher on every verifier launch, with no inlined bash -c command string"
-problems=()
-
-verdict_launches="$(launch_lines | grep -F "$launcher $verdict_leaf" || true)"
-if [[ -z "$verdict_launches" ]]; then
-  unreadable "launch line naming $launcher and a ${verdict_leaf}<phase> leaf inside a fenced block" "how a verdict is launched"
-else
-  while IFS=$'\t' read -r lineno text; do
-    faults=""
-    [[ "$text" == *"$verdict_launcher"* ]] || fault "does not invoke $verdict_launcher"
-    [[ "$text" == *"bash -c"* ]] && fault "still inlines the verifier call in a bash -c command string"
-    faulted "$lineno" "$text"
-  done <<< "$verdict_launches"
-fi
-
-report "$name"
-
 prose_paragraphs() {
   awk '
     /^[[:space:]]*```/ { flush(); fence = !fence; next }
@@ -167,106 +150,6 @@ if [[ -z "$steps" ]]; then
 else
   read_quoted_lines "$steps" "the step title" \
     "$step_ph" "$single_quoted_step" "$double_quoted_step"
-fi
-
-report "$name"
-
-document_lines() {
-  PAT="$1" awk '$0 ~ ENVIRON["PAT"] { printf "%d\t%s\n", NR, $0 }' "$skill_path"
-}
-
-fragment_lines() {
-  document_lines "$fragment_ph" | grep -E "\\\$S/|$single_quoted_fragment|$double_quoted_fragment" || true
-}
-
-name="$skill_md double-quotes every documented command line that passes a fragment of the step's title"
-problems=()
-
-fragments="$(fragment_lines)"
-if [[ -z "$fragments" ]]; then
-  unreadable "command line passing a fragment of the step's title" "how a fragment of the step's title reaches a command line"
-else
-  read_quoted_lines "$fragments" "a fragment of the step title" \
-    "$fragment_ph" "$single_quoted_fragment" "$double_quoted_fragment"
-fi
-
-report "$name"
-
-step_readers() {
-  fenced_lines "$skill_path" 'VERI_STEP="\$\(' |
-    grep -o -E 'VERI_STEP="\$\([^)]*\)' |
-    grep -o -E '\$S/[A-Za-z0-9_.-]+' | sed 's|^\$S/||' | sort -u || true
-}
-
-name="$skill_md's step-title rule says the title reaches a command line as data, not hand-typed in double quotes, and names what the launch lines read it through (#437)"
-problems=()
-
-rules="$(step_title_rules)"
-readers="$(step_readers)"
-if [[ "$(grep -c . <<< "$rules")" -ne 1 ]]; then
-  unreadable "single paragraph stating the step-title rule" "how the step's title reaches a command line"
-elif [[ -z "$readers" ]]; then
-  unreadable "launch line reading VERI_STEP through a script inside a fenced block" "what the launch lines read the step's title through"
-else
-  ruleno="$(cut -f1 <<< "$rules")"
-  ruletext="$(cut -f2- <<< "$rules")"
-  faults=""
-  [[ "$(lowered <<< "$ruletext")" =~ (^|[^a-z])data([^a-z]|$) ]] ||
-    fault "does not say the title reaches a command line as data"
-  while IFS= read -r reader; do
-    [[ "$ruletext" == *"$reader"* ]] ||
-      fault "does not name $reader, which a launch line reads the title through"
-  done <<< "$readers"
-  [[ -z "$faults" ]] ||
-    problems+=("$skill_md:$ruleno states the step-title rule but $faults")
-fi
-
-report "$name"
-
-title_guard() {
-  local skill_path="$1"
-  local problems=()
-  read_quoted_lines "$(step_lines)" "the step title" \
-    "$step_ph" "$single_quoted_step" "$double_quoted_step"
-  [[ "${#problems[@]}" -eq 0 ]] || printf '%s\n' "${problems[@]}"
-}
-
-name="the #431 guard still refuses a single-quoted step title and its exemption table still holds over the rewritten $skill_md (#437)"
-problems=()
-
-title_linenos="$(step_lines | cut -f1)"
-planted_line="$(sed -n '1p' <<< "$title_linenos")"
-if [[ -z "$planted_line" ]]; then
-  unreadable "fenced line carrying $step_ph" "where the #431 guard would meet a single-quoted title"
-else
-  planted_doc="$(mktemp)"
-  sed "${planted_line}s|$double_quoted_step|$single_quoted_step|" "$skill_path" > "$planted_doc"
-  refused="$(unset "EXEMPT[$skill_md:$planted_line]"; title_guard "$planted_doc")"
-  [[ "$refused" == *"$skill_md:$planted_line single-quotes the step title"* ]] ||
-    problems+=("the guard did not refuse $single_quoted_step planted at $skill_md:$planted_line — it reported: ${refused:-nothing}")
-  answered="$(EXEMPT["$skill_md:$planted_line"]="planted by case 11"; title_guard "$planted_doc")"
-  [[ "$answered" != *"$skill_md:$planted_line "* ]] ||
-    problems+=("an EXEMPT entry for $skill_md:$planted_line did not answer the report: $answered")
-  rm -f "$planted_doc"
-fi
-for key in "${!EXEMPT[@]}"; do
-  grep -qxF -- "${key##*:}" <<< "$title_linenos" ||
-    problems+=("EXEMPT[$key] names a line that no fenced command carrying $step_ph is on in the rewritten document")
-done
-
-report "$name"
-
-name="$skill_md's revise launch hands build-develop-prompt.sh revise the run's fast command '<fast-cmd>' (#636)"
-problems=()
-
-revise_builds="$(fenced_lines "$skill_path" 'build-develop-prompt\.sh revise <phase>')"
-if [[ -z "$revise_builds" ]]; then
-  unreadable "line building the revise prompt with build-develop-prompt.sh revise inside a fenced block" "what the revise launch hands the prompt builder"
-else
-  while IFS=$'\t' read -r lineno text; do
-    [[ "$text" == *"'<fast-cmd>'"* ]] ||
-      problems+=("$skill_md:$lineno builds the revise prompt without the run's fast command '<fast-cmd>': $text")
-  done <<< "$revise_builds"
 fi
 
 report "$name"

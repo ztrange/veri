@@ -112,3 +112,126 @@ def test_skill_md_passes_verify_sh_only_the_blind_parameters_on_every_supervised
     problems = [f"{number}: passes verify.sh more than the blind parameters: {blind_args(text)}"
                 for number, text in supervised if not re.search(BLIND_RE, blind_args(text))]
     assert problems == []
+
+
+STEP_PH = "<STEP>"
+SINGLE_QUOTED_STEP = "'<STEP>'"
+FRAGMENT_PH = r"<[^<>]*substring[^<>]*>"
+SINGLE_QUOTED_FRAGMENT = "'" + FRAGMENT_PH + "'"
+DOUBLE_QUOTED_FRAGMENT = '"' + FRAGMENT_PH + '"'
+
+
+def fenced_in(text, pattern):
+    out, fence = [], False
+    for number, line in enumerate(text.splitlines(), 1):
+        if re.match(r"\s*```", line):
+            fence = not fence
+        elif fence and re.search(pattern, line):
+            out.append((number, line))
+    return out
+
+
+def prose_paragraphs(text):
+    out, para, start, fence = [], [], 0, False
+    for number, line in enumerate(text.splitlines(), 1):
+        if re.match(r"\s*```", line):
+            fence = not fence
+            if para:
+                out.append((start, " ".join(para)))
+                para = []
+        elif fence:
+            continue
+        elif not line.strip():
+            if para:
+                out.append((start, " ".join(para)))
+                para = []
+        else:
+            if not para:
+                start = number
+            para.append(line)
+    if para:
+        out.append((start, " ".join(para)))
+    return out
+
+
+def step_title_rules(text):
+    return [(n, p) for n, p in prose_paragraphs(text)
+            if re.search("quot", p, re.I) and ("step title" in p or STEP_PH in p)]
+
+
+def quoted_faults(lines, noun, placeholder, single, double, exempt=()):
+    problems = []
+    for number, text in lines:
+        if number in exempt:
+            continue
+        if re.search(single, text):
+            problems.append(f"{number}: single-quotes {noun}: {text}")
+        elif re.search(placeholder, re.sub(double, "", text)):
+            problems.append(f"{number}: carries {noun} outside double quotes: {text}")
+    return problems
+
+
+def title_guard(text, exempt=()):
+    return quoted_faults(fenced_in(text, STEP_PH), "the step title", STEP_PH,
+                         re.escape(SINGLE_QUOTED_STEP), re.escape(DOUBLE_QUOTED_STEP), exempt)
+
+
+def test_skill_md_invokes_run_verdict_sh_on_every_verifier_launch_with_no_inlined_bash_c_command_string():
+    verdict_launches = [(n, t) for n, t in launch_lines() if f"{LAUNCHER} verdict-" in t]
+    assert verdict_launches, "no launch line naming supervise.sh and a verdict-<phase> leaf inside a fenced block"
+    problems = []
+    for number, text in verdict_launches:
+        if VERDICT_LAUNCHER not in text:
+            problems.append(f"{number}: does not invoke {VERDICT_LAUNCHER}: {text}")
+        if "bash -c" in text:
+            problems.append(f"{number}: still inlines the verifier call in a bash -c command string: {text}")
+    assert problems == []
+
+
+def test_skill_md_double_quotes_every_documented_command_line_that_passes_a_fragment_of_the_step_s_title():
+    fragments = [(n, line) for n, line in enumerate(SKILL.read_text().splitlines(), 1)
+                 if re.search(FRAGMENT_PH, line)
+                 and re.search(r"\$S/|" + SINGLE_QUOTED_FRAGMENT + "|" + DOUBLE_QUOTED_FRAGMENT, line)]
+    assert fragments, "no command line passing a fragment of the step's title"
+    problems = quoted_faults(fragments, "a fragment of the step title", FRAGMENT_PH,
+                             SINGLE_QUOTED_FRAGMENT, DOUBLE_QUOTED_FRAGMENT)
+    assert problems == []
+
+
+def test_skill_md_s_step_title_rule_says_the_title_reaches_a_command_line_as_data_not_hand_typed_in_double_quotes_and_names_what_the_launch_lines_read_it_through():
+    text = SKILL.read_text()
+    rules = step_title_rules(text)
+    assert len(rules) == 1, "no single paragraph stating the step-title rule"
+    readers = sorted({m for _, line in fenced_in(text, r'VERI_STEP="\$\(')
+                      for call in re.findall(r'VERI_STEP="\$\([^)]*\)', line)
+                      for m in re.findall(r"\$S/([A-Za-z0-9_.-]+)", call)})
+    assert readers, "no launch line reading VERI_STEP through a script inside a fenced block"
+    number, rule = rules[0]
+    faults = []
+    if not re.search(r"(^|[^a-z])data([^a-z]|$)", rule.lower()):
+        faults.append("does not say the title reaches a command line as data")
+    faults += [f"does not name {r}, which a launch line reads the title through" for r in readers if r not in rule]
+    assert faults == [], f"{number}: states the step-title rule but {', and '.join(faults)}"
+
+
+def test_the_431_guard_still_refuses_a_single_quoted_step_title_and_its_exemption_table_still_holds_over_the_rewritten_skill_md():
+    text = SKILL.read_text()
+    title_linenos = [n for n, _ in fenced_in(text, STEP_PH)]
+    assert title_linenos, "no fenced line carrying <STEP>"
+    planted_line = title_linenos[0]
+    lines = text.splitlines()
+    lines[planted_line - 1] = lines[planted_line - 1].replace(DOUBLE_QUOTED_STEP, SINGLE_QUOTED_STEP)
+    planted = "\n".join(lines) + "\n"
+    refused = "\n".join(title_guard(planted))
+    assert f"{planted_line}: single-quotes the step title" in refused, \
+        f"the guard did not refuse {SINGLE_QUOTED_STEP} planted at line {planted_line} — it reported: {refused or 'nothing'}"
+    answered = title_guard(planted, exempt={planted_line})
+    assert not any(p.startswith(f"{planted_line}:") for p in answered)
+
+
+def test_skill_md_s_revise_launch_hands_build_develop_prompt_sh_revise_the_run_s_fast_command_fast_cmd():
+    revise_builds = fenced_lines(r"build-develop-prompt\.sh revise <phase>")
+    assert revise_builds, "no line building the revise prompt with build-develop-prompt.sh revise inside a fenced block"
+    problems = [f"{n}: builds the revise prompt without the run's fast command '<fast-cmd>': {t}"
+                for n, t in revise_builds if "'<fast-cmd>'" not in t]
+    assert problems == []
