@@ -1383,3 +1383,34 @@ def test_main_keeps_the_appends_an_earlier_failed_reapply_saved_when_a_later_rea
     named = "".join(p.read_text() for p in saved(rebased.stderr))
     assert (one.returncode, two.returncode, rebased.returncode) == (2, 0, 2)
     assert (f"+{first}" in on_disk, f"+{first}" in named, f"+{second}" in named) == (True, True, True)
+
+
+@pytest.mark.process("git: a real resumed worktree whose resume discard fails to re-apply the uncommitted ledger appends while a file saved by an earlier failure is on disk, run through the discard as SKILL.md writes it")
+def test_main_stops_the_second_failing_resume_discard_naming_the_earlier_saved_file_and_its_own_1611(
+        monkeypatch, tmp_path):
+    scripts, clone, ledger, git, discard = _resumed_clone_1611(
+        monkeypatch, tmp_path, "- [ ] step one\n", "plan: scope #1 (#1)")
+    real_git = shutil.which("git")
+    first, second = "- [ ] first failure's step ⟦added⟧\n", "- [ ] second failure's step ⟦added⟧\n"
+
+    shim = tmp_path / "bin"
+    shim.mkdir()
+    (shim / "git").write_text(f'#!/bin/sh\n[ "$1" = apply ] && exit 1\nexec {real_git} "$@"\n')
+    (shim / "git").chmod(0o755)
+    env = {**os.environ, "PATH": f"{shim}:{os.environ['PATH']}"}
+
+    def resume_discard():
+        return subprocess.run(["bash", "-c", textwrap.dedent(discard) + "\nexit $?"], cwd=clone, env=env, text=True,
+                              stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+
+    def saved(stderr):
+        tokens = [pathlib.Path(t) if os.path.isabs(t) else clone / t for t in stderr.split()]
+        return [p for p in dict.fromkeys(tokens) if p.is_file() and p != ledger and "+++ b/.tdd/issue-1.md" in p.read_text()]
+
+    ledger.write_text(ledger.read_text() + first)
+    resume_discard()
+    ledger.write_text(ledger.read_text() + second)
+    two = resume_discard()
+
+    named = "".join(p.read_text() for p in saved(two.stderr))
+    assert (two.returncode, f"+{first}" in named, f"+{second}" in named) == (2, True, True)
