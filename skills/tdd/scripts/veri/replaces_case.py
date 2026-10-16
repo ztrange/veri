@@ -10,6 +10,8 @@ def parse(step):
     if start is None:
         return None
     suite = _SUITE.search(step, start.end())
+    if suite is None:
+        return None
     quote = step[start.end()]
     region = step[start.end() + 1:suite.start()]
     assert region.endswith(quote)
