@@ -1,6 +1,9 @@
 """Fast-tier admission guard: names the lines of test files that start a process."""
 import ast
+import re
 from pathlib import Path
+
+_SUITE_PATH = re.compile(r"(^|/)test_[^/]*\.py$|\.test\.sh$")
 
 
 def _aliases(tree):
@@ -52,4 +55,9 @@ def offences(root):
                 or _starts_process(func)
             ):
                 found.append(f"{path}:{node.lineno}: starts a process through subprocess")
+            elif (module_aliases.get(receiver, receiver), attr) == ("pytest", "main") or any(
+                isinstance(arg, ast.Constant) and isinstance(arg.value, str) and _SUITE_PATH.search(arg.value)
+                for arg in node.args
+            ):
+                found.append(f"{path}:{node.lineno}: runs a nested suite")
     return found
