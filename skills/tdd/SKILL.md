@@ -598,8 +598,8 @@ unauthenticated baseline never gets a cycle.
    The ledger is judged by step identity, not by a diff of it: every `- [x]` step whose step is not ticked
    in the committed ledger — its green commit is not on the branch — is unticked and loses its
    `⟂ refactor pending` mark, and every other working-copy line is kept as written.
-   Keep this `$stray` for *Resume* sub-step 4 to name. Then the resumed run, its worktree
-   clean and its ledger untouched, runs
+   Keep this `$stray` for *Resume* sub-step 4 to name. Then the resumed run, its uncommitted `.tdd/` appends kept
+   and its ledger ticks reconciled, runs
    `$S/rebase-onto-default.sh` before its baseline, so the baseline runs on the rebased tip.
    On an exit 0 the first stdout line of `rebase-onto-default.sh` is `<pre-rebase-sha>`, the HEAD
    the branch held before the rebase. An exit 3 — the branch already contains `origin/<default>` — goes on unchanged. An exit 1 —

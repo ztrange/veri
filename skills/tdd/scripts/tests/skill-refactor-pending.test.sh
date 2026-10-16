@@ -605,4 +605,14 @@ grep -i 'budget' <<<"$skill_sentences" | grep -i 'cannot fit' | grep -i 'bail' >
   problems+=("no sentence says a budget the conductor cannot fit inside is a bail")
 report "$name"
 
+name="#1611: $skill_md's Resume preflight describes the tree before rebase-onto-default.sh as keeping uncommitted .tdd/ appends with ledger ticks reconciled, and no longer says its worktree clean and its ledger untouched"
+problems=()
+skill_flat="$(plain --join < "$skill_path" | tr -s ' ')"
+grep -F 'clean and its ledger untouched' <<<"$skill_flat" > /dev/null &&
+  problems+=("$skill_md still says the resumed run has its worktree clean and its ledger untouched")
+rebase_sentence="$(grep -i 'rebase-onto-default.sh' <<<"$(sed 's/\. /.\n/g' <<<"$skill_flat")" | grep -i 'uncommitted' | grep -i 'append' | grep -i 'reconcil' || true)"
+[[ -n "$rebase_sentence" ]] ||
+  problems+=("no sentence before rebase-onto-default.sh says uncommitted .tdd/ appends are kept and ledger ticks reconciled")
+report "$name"
+
 finish
