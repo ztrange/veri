@@ -39,8 +39,12 @@ def added_step(text, k, planned=False):
     return step if k else step.removesuffix(f" {CRITERION_TAG}⟧")
 
 
+def spec_path(path):
+    return re.sub(r"\.md$", "", path) + "-spec.md"
+
+
 def spec_criteria(path):
-    spec = re.sub(r"\.md$", "", path) + "-spec.md"
+    spec = spec_path(path)
     try:
         with open(spec, "rb") as f:
             text = f.read().decode(errors=BYTES)
@@ -101,7 +105,7 @@ def main(argv):
         return refuse("add-ledger-step.sh: " + refusal)
     known, ticked = spec_criteria(path) if planned else (None, set())
     if planned and known is None:
-        return refuse("add-ledger-step.sh: --planned: cannot read the spec file " + re.sub(r"\.md$", "", path) + "-spec.md")
+        return refuse("add-ledger-step.sh: --planned: cannot read the spec file " + spec_path(path))
     if criterion in ticked:
         return refuse(f"add-ledger-step.sh: --planned: criterion {criterion} is already ticked in the issue body")
     if known is not None and int(criterion) > known:
