@@ -235,3 +235,161 @@ def test_the_cost_heading_builds_the_over_budget_prompt_launches_its_leaf_throug
     if not any_sentence(cost_sentences(), "by eye", r"(^|[^a-z])(never|not)([^a-z]|$)"):
         problems.append("no sentence says the over-budget leaf's answer is read with the script, never by eye")
     assert not problems, "\n".join(problems)
+
+
+def first_line(lines, needle):
+    return next((i + 1 for i, line in enumerate(lines) if needle in line), None)
+
+
+def over_budget_exit(code):
+    out, inside = [], False
+    for line in cost_lines():
+        if re.match(rf"- \*\*exit {code}", line):
+            inside = True
+            out.append(line)
+            continue
+        if inside and not line.startswith("  "):
+            break
+        if inside:
+            out.append(line)
+    return plain(out)
+
+
+def supervisor_exit_2():
+    paragraphs = re.split(r"\n\n+", "\n".join(cost_lines()).strip("\n"))
+    return " ".join(
+        plain(p.split("\n")) for p in paragraphs if "supervisor exit 2" in p.replace("*", "").replace("`", "").lower()
+    )
+
+
+def revise_prose_sentences():
+    prose, fenced = [], False
+    for line in _lines(REVISE):
+        if re.match(r"\s*```", line):
+            fenced = not fenced
+            continue
+        if not fenced:
+            prose.append(line)
+    return sentences(plain(prose))
+
+
+def test_the_cost_heading_on_the_over_budget_split_restores_the_tree_git_reset_hard_head_git_clean_f_test_path_then_grows_the_plan_in_one_add_ledger_step_sh_instead_of_call_then_commits_it_before_the_run_goes_on():
+    lines = cost_lines()
+    problems = []
+    reset_at = first_line(lines, "git reset --hard HEAD")
+    clean_at = first_line(lines, "git clean -f -- <test-path>")
+    grow_lines = [i + 1 for i, line in enumerate(lines) if "$S/add-ledger-step.sh" in line and "instead-of" in line]
+    grow_at = grow_lines[0] if grow_lines else None
+    commit_at = first_line(lines, "git commit")
+    if reset_at is None:
+        problems.append("the cost check never runs git reset --hard HEAD, so the over-budget split grows the plan on top of the step's uncommitted work")
+    if clean_at is None:
+        problems.append("the cost check never runs git clean -f -- <test-path>, so the untracked test file Red created survives the over-budget split")
+    if len(grow_lines) != 1:
+        problems.append(f"the cost check runs add-ledger-step.sh instead-of {len(grow_lines)} times, not once, so the over-budget split does not replace the step in one call")
+    else:
+        if not (reset_at and clean_at and reset_at < grow_at and clean_at < grow_at):
+            problems.append(f"the cost check grows the plan before restoring the tree (reset at line {reset_at}, clean at {clean_at}, add-ledger-step.sh at {grow_at})")
+        if not (commit_at and commit_at > grow_at):
+            problems.append(f"the cost check never commits the plan after add-ledger-step.sh instead-of (commit at line {commit_at}, add-ledger-step.sh at {grow_at})")
+    assert not problems, "\n".join(problems)
+
+
+def test_the_cost_heading_says_that_add_ledger_step_sh_exit_1_on_the_over_budget_split_is_a_bail_with_cause_step_too_big():
+    assert any_sentence(
+        cost_sentences(),
+        re.escape("add-ledger-step.sh exit 1"),
+        re.escape("step-too-big"),
+        r"(^|[^a-z])bail",
+    ), "no sentence of the cost check names add-ledger-step.sh exit 1 and a step-too-big bail together"
+
+
+def test_the_cost_heading_parks_the_step_on_the_over_budget_leaf_s_exit_1_carrying_the_leaf_s_answer_and_the_spent_and_budget_figures_and_leaves_the_plan_unchanged():
+    bullet = over_budget_exit(1)
+    assert bullet.strip(), "the cost check has no **exit 1** bullet"
+    problems = []
+    if not re.search(r"(^|[^a-z])park", bullet):
+        problems.append("the exit 1 bullet never parks the step")
+    if not re.search(r"over-budget-answer\.txt|leaf's answer", bullet):
+        problems.append("the exit 1 bullet does not carry the leaf's answer (.tdd/over-budget-answer.txt)")
+    if not re.search(r"(^|[^a-z])spent", bullet):
+        problems.append("the exit 1 bullet does not carry what the step has spent")
+    if not re.search(r"step[- ]budget", bullet):
+        problems.append("the exit 1 bullet does not carry the step budget")
+    if not re.search(r"plan[^.]*(as it is|unchanged)", bullet):
+        problems.append("the exit 1 bullet does not say the plan is left as it is")
+    assert not problems, "\n".join(problems)
+
+
+def test_the_cost_heading_records_the_crossing_and_continues_the_step_on_the_over_budget_leaf_s_exit_3_and_says_it_is_not_a_bail_because_nothing_has_failed():
+    bullet = over_budget_exit(3)
+    assert bullet.strip(), "the cost check has no **exit 3** bullet"
+    problems = []
+    if not re.search(r"record[a-z]* the crossing", bullet):
+        problems.append("the exit 3 bullet does not record the crossing")
+    if not re.search(r"(carr(y|ies) on|continues?|goes on|finish(es)?)[^.]*step|step[^.]*(carr(y|ies) on|continues|goes on|finishes)", bullet):
+        problems.append("the exit 3 bullet does not say the step continues")
+    if not re.search(r"not a bail", bullet):
+        problems.append("the exit 3 bullet does not say in so many words that it is not a bail")
+    if not re.search(r"nothing has failed|not a failure", bullet):
+        problems.append("the exit 3 bullet does not say why it is not a bail: nothing has failed")
+    assert not problems, "\n".join(problems)
+
+
+def test_the_cost_heading_states_once_why_a_crossing_is_not_a_failure_and_that_no_exit_code_changes_meaning():
+    problems = []
+    not_failure = [
+        s for s in cost_sentences()
+        if "crossing" in s and "not a failure" in s and re.search(r"(^|[^a-z])(because|since)([^a-z]|$)", s)
+    ]
+    if not not_failure:
+        problems.append("no sentence of the cost check says a crossing is not a failure and gives the reason")
+    elif len(not_failure) > 1:
+        problems.append(f"the cost check says why a crossing is not a failure in {len(not_failure)} sentences, not once")
+    if not any_sentence(
+        cost_sentences(), "exit code", r"(^|[^a-z])(no|none|nor|never|not)([^a-z]|$)", "mean"
+    ):
+        problems.append("no sentence of the cost check says that no exit code changes meaning")
+    assert not problems, "\n".join(problems)
+
+
+def test_the_cost_heading_says_a_supervisor_exit_2_on_the_over_budget_leaf_is_a_killed_stuck_bail_and_the_step_s_budget_stays_crossed_rather_than_re_arming():
+    paragraph = supervisor_exit_2()
+    assert paragraph.strip(), "the cost check has no paragraph naming a supervisor exit 2"
+    problems = []
+    if "killed-stuck" not in paragraph:
+        problems.append("the supervisor exit 2 paragraph does not name the killed-stuck cause")
+    if not re.search(r"(^|[^a-z])bail", paragraph):
+        problems.append("the supervisor exit 2 paragraph does not say the step is bailed")
+    if not re.search(r"(stays|remains) crossed|(not|never|no|nothing)[^.]*re-arm", paragraph):
+        problems.append("the supervisor exit 2 paragraph does not say the step's budget stays crossed rather than re-arming")
+    assert not problems, "\n".join(problems)
+
+
+def test_880_skill_md_s_revise_heading_covers_the_diff_phase_the_revise_leaf_is_built_with_revise_diff_the_re_verify_is_the_blind_diff_verifier_against_the_same_base_sha_as_the_original_verify_diff_verdict_and_its_pass_is_ticked_as_the_diff_checked_pass_bullet_describes():
+    section = revise_section()
+    assert section.strip(), f"{SKILL} has no '{REVISE}' section to read"
+    problems = []
+    if "$s/build-develop-prompt.sh revise diff" not in section:
+        problems.append("the revise section never builds the revise leaf with build-develop-prompt.sh revise diff")
+    if not re.search(r"run-verdict\.sh [^|]* diff [^|]*<base-sha>", section):
+        problems.append("the revise section never re-verifies a diff revise with run-verdict.sh ... diff ... <base-sha>")
+    sents = revise_prose_sentences()
+    if not any_sentence(sents, r"verify-diff|verdict-diff", "same", "base"):
+        problems.append("no sentence of the revise section says the diff re-verify runs against the same base sha as the original verify-diff verdict")
+    if not any_sentence(sents, "⟦diff-checked⟧", "pass", "tick"):
+        problems.append("no sentence of the revise section says a recovered diff PASS is ticked as the ⟦diff-checked⟧ PASS bullet describes")
+    assert not problems, "\n".join(problems)
+
+
+def test_880_skill_md_s_revise_heading_re_verifies_a_diff_revise_with_both_base_shas_the_original_verify_diff_verdict_ran_against_run_verdict_sh_step_step_diff_spec_file_branch_base_sha_step_base_sha_the_step_base_sha_the_one_recorded_before_the_step_s_develop_diff_leaf():
+    section = revise_section()
+    assert section.strip(), f"{SKILL} has no '{REVISE}' section to read"
+    problems = []
+    if not re.search(
+        r'run-verdict\.sh --step "<step>" (--fast-cmd [^ ]+ )?diff <spec-file> <branch-base-sha> <step-base-sha>', section
+    ):
+        problems.append('the revise section never re-verifies a diff revise with run-verdict.sh --step "<STEP>" diff <spec-file> <branch-base-sha> <step-base-sha>')
+    if not any_sentence(revise_prose_sentences(), "step base sha", "develop-diff", "record|before"):
+        problems.append("no sentence of the revise section says the step base sha is the one recorded before the step's develop-diff leaf")
+    assert not problems, "\n".join(problems)
