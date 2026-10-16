@@ -1165,7 +1165,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    attempt and writing no `revise` mark, then run `$S/unreplaced-cases.sh` again on the corrected report, before verify-red launches.
    Exit 1 again: **bail with cause=unreplaced-cases**, naming each case it printed, and launch no second correction leaf and no verifier — verify-green
    never runs on a step whose named cases lack a replacement. Exit 2 — no answer could be obtained (no
-   readable report, bad arguments) — also bails with cause=unreplaced-cases.
+   readable report, bad arguments) — bails with cause=unreplaced-cases at once, launching no correction leaf and no verifier.
    The correction leaf: save the printed cases to `.tdd/replaces-missing.txt` (and read `.tdd/revise-red-<k>.out` in place of `.tdd/develop-red.out` after a red revise), then
    `$S/build-develop-prompt.sh replaces-report .tdd/issue-<n>-spec.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' .tdd/develop-red.out .tdd/replaces-missing.txt > .tdd/develop-replaces-report.prompt`,
    `rm -f .tdd/develop-replaces-report.exit .tdd/develop-replaces-report.pid`, then
