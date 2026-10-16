@@ -21,18 +21,20 @@ source "$HERE/lib/harness.sh"
 
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
+PENDING="runs its script through its CLI entry point today; it meets the bar or moves to tests/ in the step that makes this guard green over the real unit/"
+
 declare -A EXEMPT=(
-  [classify-bail.test.sh]="runs its script through its CLI entry point today; it meets the bar or moves to tests/ in the step that makes this guard green over the real unit/"
-  [clear-refactor-pending.test.sh]="runs its script through its CLI entry point today; it meets the bar or moves to tests/ in the step that makes this guard green over the real unit/"
-  [comment-class.test.sh]="runs its script through its CLI entry point today; it meets the bar or moves to tests/ in the step that makes this guard green over the real unit/"
-  [cover-outcome.test.sh]="runs its script through its CLI entry point today; it meets the bar or moves to tests/ in the step that makes this guard green over the real unit/"
-  [criterion-finished.test.sh]="runs its script through its CLI entry point today; it meets the bar or moves to tests/ in the step that makes this guard green over the real unit/"
-  [next-pending-refactor.test.sh]="runs its script through its CLI entry point today; it meets the bar or moves to tests/ in the step that makes this guard green over the real unit/"
-  [next-unchecked.test.sh]="runs its script through its CLI entry point today; it meets the bar or moves to tests/ in the step that makes this guard green over the real unit/"
-  [red-divergence.test.sh]="runs its script through its CLI entry point today; it meets the bar or moves to tests/ in the step that makes this guard green over the real unit/"
-  [step-budget.test.sh]="runs its script through its CLI entry point today; it meets the bar or moves to tests/ in the step that makes this guard green over the real unit/"
-  [step-cost.test.sh]="runs its script through its CLI entry point today; it meets the bar or moves to tests/ in the step that makes this guard green over the real unit/"
-  [stop-requested.test.sh]="runs its script through its CLI entry point today; it meets the bar or moves to tests/ in the step that makes this guard green over the real unit/"
+  [classify-bail.test.sh]="$PENDING"
+  [clear-refactor-pending.test.sh]="$PENDING"
+  [comment-class.test.sh]="$PENDING"
+  [cover-outcome.test.sh]="$PENDING"
+  [criterion-finished.test.sh]="$PENDING"
+  [next-pending-refactor.test.sh]="$PENDING"
+  [next-unchecked.test.sh]="$PENDING"
+  [red-divergence.test.sh]="$PENDING"
+  [step-budget.test.sh]="$PENDING"
+  [step-cost.test.sh]="$PENDING"
+  [stop-requested.test.sh]="$PENDING"
 )
 
 names=()
