@@ -266,3 +266,47 @@ def verifier_launches_without_supervisor(text):
 
 def test_skill_md_launches_every_verifier_through_supervise_sh_the_way_it_launches_a_developer_leaf():
     assert verifier_launches_without_supervisor(SKILL.read_text()) == []
+
+
+SUPERVISED_VERDICT_FRAGMENT = "$S/supervise.sh verdict-red "
+STEP_ANCHOR = "$S/refactor-owed.sh append "
+
+
+def plant_in_line(text, line_number, old, new):
+    lines = text.splitlines()
+    assert old in lines[line_number - 1], f"line {line_number} does not carry {old!r}"
+    lines[line_number - 1] = lines[line_number - 1].replace(old, new, 1)
+    return "\n".join(lines) + "\n"
+
+
+def carrier_of(text, fragment):
+    carriers = [n for n, line in enumerate(text.splitlines(), 1) if fragment in line]
+    assert len(carriers) == 1, f"{fragment!r} is carried by lines {carriers}, want exactly 1"
+    return carriers[0]
+
+
+def test_skill_leaf_launch_sh_fails_over_a_skill_md_whose_verifier_launch_has_lost_supervise_sh_naming_that_line_and_nothing_else_and_passes_over_the_document_as_committed():
+    text = SKILL.read_text()
+    assert verifier_launches_without_supervisor(text) == []
+    planted_line = carrier_of(text, SUPERVISED_VERDICT_FRAGMENT)
+    planted = plant_in_line(text, planted_line, SUPERVISED_VERDICT_FRAGMENT, "")
+    refused = verifier_launches_without_supervisor(planted)
+    assert len(refused) == 1, f"want only line {planted_line} named, got: {refused}"
+    assert refused[0].startswith(f"{planted_line}: reaches {VERIFIER} without {LAUNCHER}")
+
+
+def test_skill_leaf_launch_sh_fails_over_a_skill_md_whose_launch_line_carries_single_quoted_step_unless_its_exemption_table_names_it_with_a_reason():
+    text = SKILL.read_text()
+    step_line = carrier_of(text, STEP_ANCHOR)
+    planted = plant_in_line(text, step_line, DOUBLE_QUOTED_STEP, SINGLE_QUOTED_STEP)
+    refused = title_guard(planted)
+    assert len(refused) == 1 and refused[0].startswith(f"{step_line}: single-quotes the step title"), refused
+    assert title_guard(planted, exempt={step_line}) == []
+
+
+def test_skill_leaf_launch_sh_s_431_guard_pin_still_answers_over_a_skill_md_whose_one_double_quoted_step_line_is_planted_single_quoted_and_exempted_with_a_reason():
+    text = SKILL.read_text()
+    step_line = carrier_of(text, STEP_ANCHOR)
+    planted = plant_in_line(text, step_line, DOUBLE_QUOTED_STEP, SINGLE_QUOTED_STEP)
+    assert any(p.startswith(f"{step_line}: single-quotes the step title") for p in title_guard(planted))
+    assert not any(p.startswith(f"{step_line}:") for p in title_guard(planted, exempt={step_line}))

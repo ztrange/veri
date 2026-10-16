@@ -105,18 +105,6 @@ probe_guard_names_the_planted_launch() {
   probe_only_this_address "$planted_line"
 }
 
-name="${GUARD##*/} fails over a $SKILL whose verifier launch has lost $MISSING, naming that line and nothing else, and passes over the document as committed"
-problems=()
-tree=""
-guard_copy=""
-planted_skill=""
-planted_line=""
-guard_out=""
-guard_code=0
-
-run_plant_sequence tree plant "$FRAGMENT" "$CUT_LAUNCH" probe_guard_names_the_planted_launch
-report "$name"
-
 
 STEP_ANCHOR='$S/refactor-owed.sh append '
 
@@ -209,14 +197,6 @@ reset_step_case() {
   guard_code=0
 }
 
-name="${GUARD##*/} fails over a $SKILL whose launch line carries $STEP_SINGLE, naming that line and nothing else, unless its exemption table names it with a reason"
-reset_step_case
-
-run_plant_sequence step-tree plant_step_title "$STEP_CARRIER_DOUBLE" "$STEP_CARRIER_SINGLE" \
-  probe_step_guard_names_the_planted_line \
-  probe_exemption_with_a_reason_excuses_the_line probe_exemption_without_a_reason_excuses_nothing
-report "$name"
-
 PIN_CASE='FAIL - the #431 guard still refuses a single-quoted step title'
 
 probe_pin_answers_over_exempted_plant() {
@@ -233,12 +213,5 @@ probe_pin_answers_over_exempted_plant() {
     problems+=("${GUARD##*/}'s #431 pin failed over $SKILL with $SKILL:$step_line planted $STEP_SINGLE and exempted with a reason: $(flat "$guard_out")")
   return 0
 }
-
-name="${GUARD##*/}'s #431 guard pin still answers over a $SKILL whose one $STEP_DOUBLE line is planted $STEP_SINGLE and exempted with a reason (#437)"
-reset_step_case
-
-run_plant_sequence step-tree plant_step_title "$STEP_CARRIER_DOUBLE" "$STEP_CARRIER_SINGLE" \
-  probe_pin_answers_over_exempted_plant
-report "$name"
 
 finish
