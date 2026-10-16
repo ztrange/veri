@@ -1142,3 +1142,59 @@ def test_main_after_the_resume_discard_keeps_a_rewritten_row_of_a_tracked_metric
     assert run_cli(rebase_onto_default, [], cwd=clone)[0] == 0
 
     assert metrics.read_text() == rewritten
+
+
+@pytest.mark.process("git: a real resumed worktree whose rebase-onto-default.sh is killed by SIGKILL inside git rebase, after it set the uncommitted ledger append aside, then resumed through the discard as SKILL.md writes it")
+def test_main_after_a_kill_mid_rebase_the_next_resume_reapplies_the_set_aside_appends_or_exits_2_naming_where_they_are_1611(
+        monkeypatch, tmp_path, rebase_onto_default, run_cli):
+    for who in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
+        monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
+    scripts = pathlib.Path(__file__).resolve().parents[2]
+    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
+                        (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
+    real_git = shutil.which("git")
+    append = "- [ ] step two ⟦added⟧\n"
+
+    def git(repo, *args):
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
+
+    def commit(repo, name, body, message):
+        (repo / name).parent.mkdir(exist_ok=True)
+        (repo / name).write_text(body)
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "-m", message)
+
+    origin, seed, clone = tmp_path / "origin.git", tmp_path / "seed", tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    subprocess.run(["git", "init", "-q", "-b", "main", str(seed)], check=True)
+    commit(seed, "file.txt", "base\n", "initial")
+    git(seed, "push", "-q", str(origin), "main")
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], check=True, stderr=subprocess.DEVNULL)
+    git(clone, "checkout", "-q", "-b", "tdd/1-a-run")
+    commit(clone, ".tdd/issue-1.md", "- [x] step one\n", "plan: scope #1 (#1)")
+    commit(clone, "work.txt", "the run's work\n", "feat: a step's green commit (#1)")
+    ledger = clone / ".tdd" / "issue-1.md"
+    ledger.write_text(ledger.read_text() + append)
+    commit(seed, "other.txt", "another run's work\n", "feat: another run merged (#2)")
+    git(seed, "push", "-q", str(origin), "main")
+
+    shim = tmp_path / "bin"
+    shim.mkdir()
+    (shim / "git").write_text(
+        f'#!/bin/sh\n[ "$1" = rebase ] && {{ kill -KILL $PPID; sleep 5; exit 1; }}\nexec {real_git} "$@"\n')
+    (shim / "git").chmod(0o755)
+    killed = subprocess.run([str(scripts / "rebase-onto-default.sh")], cwd=clone, stdin=subprocess.DEVNULL,
+                            env={**os.environ, "PATH": f"{shim}:{os.environ['PATH']}"},
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    assert killed.returncode < 0
+    assert append not in ledger.read_text()
+
+    subprocess.run(["bash", "-c", textwrap.dedent(discard) + "\nexit 0"], cwd=clone, check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    code, _, err = run_cli(rebase_onto_default, [], cwd=clone)
+
+    named = [pathlib.Path(token) if os.path.isabs(token) else clone / token for token in err.split()]
+    named = [path for path in named if path.is_file() and path != ledger and append in path.read_text()]
+    assert (code, append in ledger.read_text() or len(named) == 1) == (code, True) and code in (0, 2)
