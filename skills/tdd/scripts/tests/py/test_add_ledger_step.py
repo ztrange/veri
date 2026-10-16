@@ -972,3 +972,24 @@ def test_main_marks_a_text_that_only_quotes_a_repair_mark_in_its_prose_added_and
 
     assert (code, out) == (1, "")
     assert ledger.read_bytes() == before + b"\n## Owed steps\n\n- explain why \xe2\x9f\xa6ci-repair\xe2\x9f\xa7 and \xe2\x9f\xa6suite-repair\xe2\x9f\xa7 end a repair step\n"
+
+
+def test_main_inserts_a_suite_repair_when_the_only_earlier_step_this_run_merely_quotes_the_mark_in_its_prose_1613(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(
+        (
+            "# Plan for #42\n"
+            "\n"
+            "- [x] a one ⟦criterion 1⟧\n"
+            "- [x] explain why ⟦suite-repair⟧ ends a repair step ⟦added⟧ ⟦criterion 1⟧\n"
+            "- [ ] b two ⟦criterion 2⟧\n"
+        ).encode()
+    )
+
+    code, out, err = run_cli(
+        add_ledger_step,
+        [str(ledger), "after", "b two", "fix the full-suite failure: real.test.sh ⟦suite-repair⟧"],
+    )
+
+    assert (code, out, err) == (0, "", "")
+    assert b"fix the full-suite failure: real.test.sh" in ledger.read_bytes()
