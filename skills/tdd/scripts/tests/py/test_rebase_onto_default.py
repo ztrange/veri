@@ -1243,3 +1243,35 @@ def test_main_keeps_both_sets_of_appends_recoverable_and_named_when_two_resume_d
              for token in (one.stderr + two.stderr).split()]
     kept = "".join(path.read_text() for path in dict.fromkeys(named) if path.is_file() and path != ledger)
     assert (one.returncode, two.returncode, f"+{first}" in kept, f"+{second}" in kept) == (2, 2, True, True)
+
+
+@pytest.mark.process("git and tick-ledger.sh: a real resumed worktree whose ledger carries a step ticked by a green commit on the branch and then reworded in the uncommitted copy, discarded by the resume's own commands")
+def test_main_after_the_resume_discard_keeps_the_tick_of_a_reworded_step_whose_green_commit_is_on_the_branch_1611(
+        monkeypatch, tmp_path):
+    for who in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
+        monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
+    scripts = pathlib.Path(__file__).resolve().parents[2]
+    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
+                        (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
+
+    def git(repo, *args):
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
+
+    clone = tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "-b", "tdd/1-a-run", str(clone)], check=True)
+    (clone / ".tdd").mkdir()
+    ledger = clone / ".tdd" / "issue-1.md"
+    ledger.write_text("- [ ] step one\n- [ ] step two\n")
+    git(clone, "add", "-A")
+    git(clone, "commit", "-q", "-m", "plan: scope #1 (#1)")
+    subprocess.run([str(scripts / "tick-ledger.sh"), str(ledger), "step one"], check=True)
+    git(clone, "add", "-A")
+    git(clone, "commit", "-q", "-m", "fix: step one (#1)")
+    ledger.write_text(ledger.read_text().replace("step one", "step one reworded"))
+
+    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    assert ledger.read_text() == "- [x] step one reworded\n- [ ] step two\n"

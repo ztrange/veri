@@ -590,14 +590,14 @@ unauthenticated baseline never gets a cycle.
      [[ $f =~ ^\.tdd/issue-[0-9]+\.md$ ]] || continue
      awk -v M=' ⟂ refactor pending' '
        function id(l) { sub(/^- [[]x[]] /, "", l); sub(M "$", "", l); return l }
-       FILENAME == ARGV[1] { if (/^- [[]x[]] /) done[id($0)] = 1; next }
-       /^- [[]x[]] / && !(id($0) in done) { $0 = "- [" " ] " id($0) }
+       FILENAME == ARGV[1] { if (/^- [[]x[]] /) { done[FNR] = 1; done[id($0)] = 1 } next }
+       /^- [[]x[]] / && !(FNR in done) && !(id($0) in done) { $0 = "- [" " ] " id($0) }
        { print }' <(git show "HEAD:$f" 2>/dev/null) "$f" > "$f.new"
      if cmp -s "$f" "$f.new"; then rm -f "$f.new"; else mv "$f.new" "$f"; fi
    done
    ```
-   The ledger is judged by step identity, not by a diff of it: every `- [x]` step whose step is not ticked
-   in the committed ledger — its green commit is not on the branch — is unticked and loses its
+   The ledger is judged against the committed ledger by line position or by step text: every `- [x]` line not ticked
+   at the same line or with the same text in the committed ledger — its green commit is not on the branch — is unticked and loses its
    `⟂ refactor pending` mark, and every other working-copy line is kept as written.
    Keep this `$stray` for *Resume* sub-step 4 to name. Then the resumed run, its uncommitted `.tdd/` appends kept
    and its ledger ticks reconciled, runs
