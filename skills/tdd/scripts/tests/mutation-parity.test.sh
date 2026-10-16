@@ -335,6 +335,21 @@ else
     stderr: $(cat "$work/single-kept-green.err")"
 fi
 
+sed 's/5 "\$(add 2 3)"/6 "$(add 2 3)"/' "$repo/tests/single.test.sh" > "$repo/tests/single-red.test.sh"
+chmod +x "$repo/tests/single-red.test.sh"
+git -C "$repo" add -A && git -C "$repo" commit -qm 'single-case suite already red'
+table="$work/single-red.tsv"
+printf 'tests/single-red.test.sh\tadds two numbers\treplaced\t%s\t%s\n' "$node" "$work/add-subtracts.patch" > "$table"
+out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/single-red.err")" && code=0 || code=$?
+row="$(grep -F 'adds two numbers' <<<"$out" | grep -wF unproven || true)"
+if [[ "$code" == 1 && -n "$row" ]]; then
+  ok
+else
+  no "#1596: a row whose old suite holds exactly one case reads unproven when that case already fails with the mutation not applied, though the replacement is caught (exit=$code want 1)
+    stdout: $out
+    stderr: $(cat "$work/single-red.err")"
+fi
+
 table="$work/multi-all-fail.tsv"
 printf 'tests/calc.test.sh\tadds two numbers\treplaced\t%s\t%s\n' "$node" "$work/none-stays-green.patch" > "$table"
 out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/multi-all-fail.err")" && code=0 || code=$?
