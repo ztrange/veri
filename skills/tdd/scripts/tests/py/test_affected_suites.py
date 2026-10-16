@@ -575,10 +575,26 @@ def test_main_prints_a_pytest_file_with_a_literal_heading_and_an_unrelated_file_
         0, "skills/tdd/scripts/tests/py/test_open.py\n", "")
 
 
+def spelled_suites_missing(source, tests):
+    import re
+    spelled = sorted(set(re.findall(r'["/]((?:unit/|py/)?[\w-]+\.test\.sh|(?:py/)?test_\w+\.py)"', source)))
+    return spelled, [p for p in spelled if not (tests / p).is_file()]
+
+
 def test_every_suite_path_affected_suites_names_exists():
     """Its subject is source text: the suite paths veri/affected_suites.py spells."""
-    import re
-    source = (SCRIPTS / "veri" / "affected_suites.py").read_text(encoding="utf-8")
-    spelled = sorted(set(re.findall(r"tests/(?:[\w./-]+\.test\.sh|py/test_\w+\.py)", source)))
-    missing = [p for p in spelled if not (SCRIPTS / p).is_file()]
+    spelled, missing = spelled_suites_missing((SCRIPTS / "veri" / "affected_suites.py").read_text(encoding="utf-8"), SCRIPTS / "tests")
     assert spelled and missing == [], "affected_suites.py names suites that are not files: %s" % ", ".join(missing)
+
+
+@pytest.mark.parametrize("rename", [
+    ('"py/test_build_develop_prompt.py"', '"py/test_build_gone_prompt.py"'),
+    ('"build-verify-prompt.test.sh"', '"build-gone-prompt.test.sh"'),
+    ('/tests/claude-md-counts.test.sh"', '/tests/claude-md-gone.test.sh"'),
+])
+def test_the_suite_path_check_names_a_renderer_or_tests_path_planted_into_a_copy_of_affected_suites_that_is_not_a_file(rename):
+    """Its subject is source text: a copy of veri/affected_suites.py's source with one suite path renamed to a file that does not exist."""
+    source = (SCRIPTS / "veri" / "affected_suites.py").read_text(encoding="utf-8")
+    assert source.count(rename[0]) == 1
+    _, missing = spelled_suites_missing(source.replace(rename[0], rename[1]), SCRIPTS / "tests")
+    assert missing == [rename[1].strip('"/').removeprefix("tests/")]
