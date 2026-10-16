@@ -974,6 +974,18 @@ if step_or_problem '### 4. Draft PR' "what the step does when add-ledger-step.sh
 fi
 report "$name"
 
+name="#1607 $skill_md's Draft PR step states the cap is one ⟦suite-repair⟧ step per run, that add-ledger-step.sh and not the conductor's judgement decides it, and no longer greps the whole ledger for the mark"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "what decides the suite-repair cap"; then
+  rule="$(first_record "$(tr -d '*`' <<< "$records")" -F 'add-ledger-step.sh' -E 'one [^.]*suite-repair[^.]* per run|per run[^.]*suite-repair' -F 'resume' -E 'not the conductor|conductor.s judgement')"
+  [[ -n "$rule" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step says the cap is one ⟦suite-repair⟧ step per run, a resume starting a new run, and that add-ledger-step.sh rather than the conductor's judgement decides it")
+  grep -E '^[^#]*grep .*suite-repair.*[.]tdd/issue-<n>[.]md' > /dev/null <<< "$(section_commands)" &&
+    problems+=("$skill_md's Draft PR step still greps .tdd/issue-<n>.md for ⟦suite-repair⟧, counting repair steps across the whole ledger")
+fi
+report "$name"
+
 name="$skill_md's Draft PR step keys its ci-red bail on ⟦ci-repair⟧ only, and states a ⟦suite-repair⟧ step leaves the run its one CI repair attempt (#590)"
 problems=()
 

@@ -1696,9 +1696,11 @@ That call passes no `--criterion` on purpose: the repair step serves its anchor'
 
 A second red result on the full run after a repair step does **bail** — the repair step is
 one more cycle, not a loop — and the bail names every suite still red, not only the first.
-A `⟦suite-repair⟧` line already in the ledger is what says the red run is the second:
+The cap is one `⟦suite-repair⟧` step per run (a resume starts a new run), and `add-ledger-step.sh`,
+not the conductor's judgement, decides it: its exit 1 on the insertion above is the whole answer,
+and the conductor does not count repair steps in the ledger itself.
 ```
-grep -F '⟦suite-repair⟧' .tdd/issue-<n>.md > /dev/null && VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=suite-red classification="$($S/classify-bail.sh suite-red)" suites='<every suite still red>'
+VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=suite-red classification="$($S/classify-bail.sh suite-red)" suites='<every suite still red>' refused='add-ledger-step.sh: ⟦suite-repair⟧ already inserted this run, see .tdd/issue-<n>.md'
 ```
 
 The branch's own full run comes first, and it, with any `⟦suite-repair⟧` step it adds, has to
