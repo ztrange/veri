@@ -18,9 +18,10 @@ UNIT_TESTS_NAMED := $(filter command line,$(origin UNIT_TESTS))
 test profile: SUITES = $(filter-out %.py,$(TESTS)) $(if $(TESTS_NAMED),,$(UNIT_TESTS))
 unit: SUITES = $(filter-out %.py,$(UNIT_TESTS))
 PY_ALL := $(sort $(wildcard skills/tdd/scripts/tests/py/test_*.py skills/tdd/scripts/tests/py/*/test_*.py))
-py_tests = $(if $(1),$(filter %.py,$(2)),$(PY_ALL))
-unit: PY_TESTS = $(call py_tests,$(UNIT_TESTS_NAMED),$(UNIT_TESTS))
-PY_TESTS := $(call py_tests,$(TESTS_NAMED),$(TESTS))
+PY_UNIT := $(sort $(wildcard skills/tdd/scripts/tests/py/unit/test_*.py))
+py_tests = $(if $(1),$(filter %.py,$(2)),$(3))
+unit: PY_TESTS = $(call py_tests,$(UNIT_TESTS_NAMED),$(UNIT_TESTS),$(PY_UNIT))
+PY_TESTS := $(call py_tests,$(TESTS_NAMED),$(TESTS),$(PY_ALL))
 unit: PY_SELECT = -m "not process and not tree_audit"
 
 # The fast tier's admission-bar guard: `unit` puts UNIT_GUARD_BIN first on a suite's PATH,

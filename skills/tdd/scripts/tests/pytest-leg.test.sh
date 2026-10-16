@@ -21,6 +21,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 PY_DIR='skills/tdd/scripts/tests/py'
+UNIT_PY="$PY_DIR/unit"
 
 
 source "$HERE/lib/harness.sh"
@@ -58,7 +59,7 @@ check_refused() {
 }
 
 make_tree() {
-  mkdir -p "$1/$PY_DIR" "$1/skills/tdd/scripts/lib"
+  mkdir -p "$1/$PY_DIR" "$1/$UNIT_PY" "$1/skills/tdd/scripts/lib"
   cp "$ROOT/Makefile" "$1/Makefile"
   cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$1/skills/tdd/scripts/lib/"
   cp "$ROOT/skills/tdd/scripts/run-suite.sh" "$1/skills/tdd/scripts/"
@@ -121,15 +122,15 @@ PY
 
 tree="$work/tree"
 make_tree "$tree"
-cat > "$tree/$PY_DIR/test_leg_probe.py" <<'PY'
+cat > "$tree/$UNIT_PY/test_leg_probe.py" <<'PY'
 def test_veri_probe_fails():
     assert 1 == 2
 PY
 
 scoped="$work/scoped"
 make_tree "$scoped"
-cp "$tree/$PY_DIR/test_leg_probe.py" "$scoped/$PY_DIR/test_leg_probe.py"
-cat > "$scoped/$PY_DIR/test_named_probe.py" <<'PY'
+cp "$tree/$UNIT_PY/test_leg_probe.py" "$scoped/$UNIT_PY/test_leg_probe.py"
+cat > "$scoped/$UNIT_PY/test_named_probe.py" <<'PY'
 def test_veri_probe_passes():
     assert 1 == 1
 PY
@@ -159,7 +160,7 @@ report "$name"
 
 green="$work/green"
 make_tree "$green"
-cat > "$green/$PY_DIR/test_leg_probe.py" <<'PY'
+cat > "$green/$UNIT_PY/test_leg_probe.py" <<'PY'
 def test_veri_probe_passes():
     assert 1 == 1
 PY
@@ -231,7 +232,7 @@ report "$name"
 
 refuse="$work/refuse"
 make_tree "$refuse"
-cp "$green/$PY_DIR/test_leg_probe.py" "$refuse/$PY_DIR/test_leg_probe.py"
+cp "$green/$UNIT_PY/test_leg_probe.py" "$refuse/$UNIT_PY/test_leg_probe.py"
 stub_bash_suites "$refuse"
 
 name="when neither the environment's python3 nor the PATH one can import pytest (VERI_PYTEST_IMPORTABLE=0 standing in for the import), make unit and make test exit 2 before any suite runs, stderr naming pytest and make install-dev"
@@ -569,7 +570,7 @@ report "$name"
 
 leg_raised="$work/leg-raised"
 make_tree "$leg_raised"
-cp "$green/$PY_DIR/test_leg_probe.py" "$leg_raised/$PY_DIR/test_leg_probe.py"
+cp "$green/$UNIT_PY/test_leg_probe.py" "$leg_raised/$UNIT_PY/test_leg_probe.py"
 leg_lib="$leg_raised/skills/tdd/scripts/lib/venv-python.sh"
 
 name="#863: with lib/venv-python.sh's one floor definition, VENV_FLOOR=3.12, raised to 3.13 and nothing else edited, the pytest leg of make unit and make test refuses the 3.12.4 interpreter it accepted at 3.12: exit 2 before any suite runs, stderr naming the floor 3.13"
@@ -598,7 +599,7 @@ make_tree "$reach"
 name="under make unit, a pytest case that starts git, gh or curl fails: the recipe exits 1, stdout ends SUITES FAILED and the output names the command it tried"
 problems=()
 for cmd in git gh curl; do
-  cat > "$reach/$PY_DIR/test_leg_probe.py" <<PY
+  cat > "$reach/$UNIT_PY/test_leg_probe.py" <<PY
 import subprocess
 
 def test_veri_probe_reaches():
@@ -617,7 +618,7 @@ report "$name"
 
 leak="$work/leak"
 make_tree "$leak"
-cp "$green/$PY_DIR/test_leg_probe.py" "$leak/$PY_DIR/test_leg_probe.py"
+cp "$green/$UNIT_PY/test_leg_probe.py" "$leak/$UNIT_PY/test_leg_probe.py"
 mkdir -p "$leak/skills/tdd/scripts/tests/unit"
 printf '#!/usr/bin/env bash\ncurl --version > /dev/null 2>&1\necho "1 passed, 0 failed"\n' \
   > "$leak/skills/tdd/scripts/tests/unit/reach.test.sh"
@@ -646,7 +647,7 @@ report "$name"
 
 seen="$work/seen"
 make_tree "$seen"
-cat > "$seen/$PY_DIR/test_leg_probe.py" <<PY
+cat > "$seen/$UNIT_PY/test_leg_probe.py" <<PY
 import os
 
 def test_veri_probe_sees():
@@ -692,7 +693,7 @@ report "$name"
 name="make test TESTS=<one test_*.py under $PY_DIR>, with another failing test_*.py beside it, runs only that file through the pytest leg, exits 0 and ends all suites green"
 problems=()
 env VERI_VENV="$work/no-venv" PYTHONPATH="$fake_pytest" \
-  make --no-print-directory -C "$scoped" test TESTS="$PY_DIR/test_named_probe.py" UNIT_TESTS= \
+  make --no-print-directory -C "$scoped" test TESTS="$UNIT_PY/test_named_probe.py" UNIT_TESTS= \
   > "$work/out" 2> "$work/err" < /dev/null && code=0 || code=$?
 out="$(cat "$work/out")"
 [[ "$code" == 0 ]] || problems+=("want exit 0, got $code: $(flat "$out") $(flat "$(cat "$work/err")")")
@@ -731,7 +732,7 @@ report "$name"
 name="#899: make unit UNIT_TESTS=<one test_*.py under $PY_DIR>, with another failing test_*.py beside it, runs only that file through the pytest leg, exits 0 and ends all suites green"
 problems=()
 env VERI_VENV="$work/no-venv" PYTHONPATH="$fake_pytest" \
-  make --no-print-directory -C "$scoped" unit UNIT_TESTS="$PY_DIR/test_named_probe.py" \
+  make --no-print-directory -C "$scoped" unit UNIT_TESTS="$UNIT_PY/test_named_probe.py" \
   > "$work/out" 2> "$work/err" < /dev/null && code=0 || code=$?
 out="$(cat "$work/out")"
 [[ "$code" == 0 ]] || problems+=("want exit 0, got $code: $(flat "$out") $(flat "$(cat "$work/err")")")
@@ -782,7 +783,7 @@ report "$name"
 
 hung="$work/hung"
 make_tree "$hung"
-cat > "$hung/$PY_DIR/test_leg_probe.py" <<'PY'
+cat > "$hung/$UNIT_PY/test_leg_probe.py" <<'PY'
 import time
 
 
@@ -812,7 +813,7 @@ report "$name"
 
 default="$work/default-timeout"
 make_tree "$default"
-cat > "$default/$PY_DIR/test_leg_probe.py" <<'PY'
+cat > "$default/$UNIT_PY/test_leg_probe.py" <<'PY'
 def test_veri_probe_passes():
     assert 1 == 1
 PY
@@ -832,7 +833,7 @@ report "$name"
 sized="$work/sized"
 make_tree "$sized"
 cp "$HERE/py/conftest.py" "$sized/$PY_DIR/conftest.py"
-cat > "$sized/$PY_DIR/test_leg_probe.py" <<'PY'
+cat > "$sized/$UNIT_PY/test_leg_probe.py" <<'PY'
 import pytest
 
 
@@ -860,7 +861,7 @@ medium="$work/medium"
 make_tree "$medium"
 stub_bash_suites "$medium"
 cp "$HERE/py/conftest.py" "$medium/$PY_DIR/conftest.py"
-cat > "$medium/$PY_DIR/test_leg_probe.py" <<'PY'
+cat > "$medium/$UNIT_PY/test_leg_probe.py" <<'PY'
 import signal
 import subprocess
 
@@ -902,7 +903,7 @@ cp "$HERE/py/conftest.py" "$unmarked/$PY_DIR/conftest.py"
 name="under both make unit and make test, after a bash suite under tests/unit/, an unmarked pytest case that starts git, gh or curl fails: the recipe exits 1, stdout ends SUITES FAILED and the output names the command it tried"
 problems=()
 for cmd in git gh curl; do
-  cat > "$unmarked/$PY_DIR/test_leg_probe.py" <<PY
+  cat > "$unmarked/$UNIT_PY/test_leg_probe.py" <<PY
 import subprocess
 
 
@@ -941,7 +942,7 @@ PY
 statused="$work/statused"
 make_tree "$statused"
 stub_bash_suites "$statused"
-: > "$statused/$PY_DIR/test_leg_probe.py"
+: > "$statused/$UNIT_PY/test_leg_probe.py"
 
 name="when pytest answers 1 (a failing case), 5 (nothing collected) or 4 (a usage error), make unit and make test each still run every bash suite, their recipe exits 1 rather than 2 and stdout ends SUITES FAILED"
 problems=()
@@ -977,6 +978,16 @@ out="$(cat "$work/out")"
 for want in "$PY_DIR/test_top_probe.py" "$PY_DIR/unit/test_deep_probe.py"; do
   [[ "$out" == *"$want"* ]] || problems+=("make -n test: want $want in the pytest roster, got: $(flat "$(grep -F "$PY_DIR/test_" <<< "$out" | cut -c1-300)")")
 done
+report "$name"
+
+name="make unit's pytest roster, read off make -n, holds the test_*.py under tests/py/unit/ and none directly under tests/py/"
+problems=()
+make --no-print-directory -n -C "$roster" unit > "$work/out" 2> "$work/err" < /dev/null || true
+out="$(cat "$work/out")"
+[[ "$out" == *"$PY_DIR/unit/test_deep_probe.py"* ]] ||
+  problems+=("make -n unit: want $PY_DIR/unit/test_deep_probe.py in the pytest roster, got: $(flat "$(grep -F "$PY_DIR/" <<< "$out" | cut -c1-300)")")
+[[ "$out" != *"$PY_DIR/test_top_probe.py"* ]] ||
+  problems+=("make -n unit: want $PY_DIR/test_top_probe.py out of the pytest roster, got: $(flat "$(grep -F "$PY_DIR/test_" <<< "$out" | cut -c1-300)")")
 report "$name"
 
 finish
