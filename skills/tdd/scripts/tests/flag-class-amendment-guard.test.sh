@@ -72,29 +72,4 @@ probe_guard_names_the_routing_case() {
   fi
 }
 
-name="${GUARD##*/} fails over a $SKILL whose Refactor section amends the plan from a flag class other than $CLASS, naming that case and no other, and passes over the document as committed"
-problems=()
-tree=""
-guard_copy=""
-planted_skill=""
-guard_out=""
-guard_code=0
-planted_out=""
-
-run_plant_sequence tree plant "$CLASS" "$OTHER_CLASS" probe_skill_does_not_already_name_other_class probe_guard_names_the_routing_case
-report "$name"
-
-name="${GUARD##*/}'s one-call-per-criterion case passes over a $SKILL whose plan-growing flag class is named $OTHER_CLASS rather than $CLASS, since that case asks how many add-ledger-step.sh calls sub-step 4 makes, not which class grows the plan (#1292)"
-problems=()
-
-if [[ -z "$planted_out" ]]; then
-  problems+=("${GUARD##*/} was never run over the planted $SKILL, so whether its one-call-per-criterion case depends on the class name went unasked")
-else
-  per_criterion_failed="$(grep '^FAIL - .*one call per criterion' <<< "$planted_out")"
-  [[ -z "$per_criterion_failed" ]] ||
-    problems+=("${GUARD##*/} failed its one-call-per-criterion case over a $SKILL that only renamed $CLASS to $OTHER_CLASS, so that case reads the class name rather than the per-criterion calls: $(flat "$per_criterion_failed")")
-fi
-
-report "$name"
-
 finish

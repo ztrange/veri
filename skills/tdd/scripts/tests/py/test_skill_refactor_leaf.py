@@ -217,3 +217,79 @@ def test_beyond_spec_narration_guard_fails_naming_the_class_over_a_skill_md_that
         assert CLASS in str(failure), f"failed without naming the {CLASS} class: {failure}"
     else:
         raise AssertionError(f"the case passed over a SKILL.md whose Refactor section says a {CLASS} flag {GRANT_CLAUSE}")
+
+
+UNCOVERED = "uncovered-spec"
+OTHER_CLASS = "off-spec"
+SUBSTEP_OPENING = b"flag is the one class that grows the plan"
+SUBSTEP_CLOSING = b"a beyond-spec flag is narrated"
+
+
+def uncovered_spec_amendment(document):
+    text = section(document)
+    problems = []
+    if not text.strip():
+        problems.append("SKILL.md has no Refactor section to read — which flag class grows the plan could not be established")
+    else:
+        uncovered = wins(text, UNCOVERED)
+        if not uncovered:
+            problems.append(f"the Refactor section never names the {UNCOVERED} class the leaf's FLAGS: line carries, so no flag is routed to a plan amendment by its class")
+        else:
+            if not has(uncovered, AMENDMENT):
+                problems.append(f"the Refactor section names the {UNCOVERED} class without saying it is what amends the plan")
+            if not has(uncovered, r"(only|alone|no other|the one (flag|class))"):
+                problems.append(f"the Refactor section amends the plan from an {UNCOVERED} flag without saying that no other flag class does")
+        grown = window(text, ADD_LEDGER_STEP)
+        if grown and UNCOVERED.encode() not in grown:
+            problems.append(f"the Refactor section runs add-ledger-step.sh without saying its texts are the {UNCOVERED} flags' behaviours")
+    assert not problems, "; ".join(problems)
+
+
+def one_call_per_criterion(document):
+    text = section(document)
+    problems = []
+    if not text.strip():
+        problems.append("SKILL.md has no Refactor section to read — which add-ledger-step.sh call an uncovered-spec flag's behaviour goes into could not be established")
+    else:
+        substep = b""
+        if SUBSTEP_OPENING in text:
+            substep = SUBSTEP_OPENING + text.split(SUBSTEP_OPENING, 1)[1]
+            substep = substep.split(SUBSTEP_CLOSING, 1)[0]
+        if not substep:
+            problems.append("the Refactor section has no sub-step 4 opening '<class> flag is the one class that grows the plan'")
+        else:
+            shared = re.search(rb"the same[^.]{0,80}add-ledger-step\.sh[^.]{0,80}call", substep)
+            if shared:
+                problems.append(f"sub-step 4 still sends every uncovered-spec behaviour into one shared call — it says {shared.group()!r}")
+            if not has(substep, r"one call per criterion|call for the criterion (it|the behaviour) serves"):
+                problems.append("sub-step 4 never says a behaviour goes into the add-ledger-step.sh call for the criterion it serves, one call per criterion")
+    assert not problems, "; ".join(problems)
+
+
+def test_skill_md_s_refactor_section_amends_the_plan_from_an_uncovered_spec_flag_and_from_no_other_flag_class():
+    uncovered_spec_amendment(SKILL.read_text())
+
+
+def test_skill_md_s_refactor_sub_step_4_sends_each_uncovered_spec_behaviour_into_the_add_ledger_step_sh_call_for_the_criterion_it_serves_one_call_per_criterion_not_into_one_shared_call():
+    one_call_per_criterion(SKILL.read_text())
+
+
+def planted_with_other_class():
+    committed = SKILL.read_text()
+    assert OTHER_CLASS not in committed, f"SKILL.md already names {OTHER_CLASS}, so the rename leaves the two classes indistinguishable"
+    assert UNCOVERED in committed
+    return committed.replace(UNCOVERED, OTHER_CLASS)
+
+
+def test_flag_class_amendment_guard_fails_naming_the_class_over_a_skill_md_whose_refactor_section_amends_the_plan_from_another_class_and_passes_as_committed():
+    uncovered_spec_amendment(SKILL.read_text())
+    try:
+        uncovered_spec_amendment(planted_with_other_class())
+    except AssertionError as failure:
+        assert UNCOVERED in str(failure), f"failed without naming the {UNCOVERED} class: {failure}"
+    else:
+        raise AssertionError(f"the case passed over a SKILL.md whose plan-growing flag class is {OTHER_CLASS}")
+
+
+def test_one_call_per_criterion_case_passes_over_a_skill_md_whose_plan_growing_flag_class_is_named_off_spec_since_it_asks_how_many_calls_not_which_class():
+    one_call_per_criterion(planted_with_other_class())
