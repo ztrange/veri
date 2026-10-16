@@ -102,3 +102,18 @@ def test_1625_skill_md_has_unreplaced_cases_sh_exit_2_bail_at_once_launching_no_
         (r"(launch|launching|launches)[^.]{0,60}no[^.]{0,40}verifier|no verifier", "never says exit 2 launches no verifier"),
     ]:
         assert re.search(pattern, sentence), f"skills/tdd/SKILL.md's unreplaced-cases.sh exit 2 sentence {message}: {sentence!r}"
+
+
+def test_1625_skill_md_pin_path_says_the_unreplaced_cases_check_bails_only_on_a_second_exit_1_after_the_correction_leaf_or_on_exit_2():
+    text = plain_join(section("## Already satisfied — the pin"))
+    sentence = re.search(r"the unreplaced-cases check[^.]*\.", text)
+    assert sentence, "skills/tdd/SKILL.md's pin path never says what the unreplaced-cases check did in Red"
+    sentence = sentence.group(0)
+    assert not re.search(r"already bailed with cause=unreplaced-cases on exit 1\b(?! again)", sentence) or re.search(r"second|again|correction", sentence), (
+        f"skills/tdd/SKILL.md's pin path still says the unreplaced-cases check bailed on exit 1 alone: {sentence!r}")
+    for pattern, message in [
+        (r"second exit 1|exit 1 again|again exit(s)? 1|exits? 1 a second time", "never says a second exit 1 is what bails"),
+        (r"correction", "never names the one correction leaf"),
+        (r"exit 2", "never says exit 2 bails"),
+    ]:
+        assert re.search(pattern, sentence), f"skills/tdd/SKILL.md's pin-path unreplaced-cases sentence {message}: {sentence!r}"
