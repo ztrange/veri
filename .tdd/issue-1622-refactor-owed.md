@@ -1,0 +1,2 @@
+### A change to a named prompt template under skills/tdd/scripts/prompts/ (one a suite names, e.g. develop-red.md) makes affected-suites.sh print skills/tdd/scripts/tests/py/test_emitted_text.py, pinned by a small in-process case in tests/py/test_affected_suites.py ⟦criterion 1⟧
+- test-only | the new `test_main_prints_the_emitted_text_check_for_a_template_a_suite_names_1622` repeats the tmp_path tree setup of its neighbouring prompt cases. I did not read the neighbouring cases, so I can't say how much setup they share.
