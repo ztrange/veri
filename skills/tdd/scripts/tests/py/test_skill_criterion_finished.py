@@ -73,7 +73,8 @@ def off_cycle_line(plan_recs, marker, phrase1, phrase2, what, problems):
 
 
 def diff_checked_loop_rec():
-    return " ".join(r for r in section_records(LOOP) if "⟦diff-checked⟧" in r) + " "
+    joined = " ".join(r for r in section_records(LOOP) if "⟦diff-checked⟧" in r)
+    return joined + " " if joined else ""
 
 
 def test_step_done_and_pin_paths_tick_an_issue_criterion_only_on_criterion_finished_exit_0_ticking_nothing_on_exit_3():
@@ -146,8 +147,7 @@ def test_727_step_2_writes_a_criterion_that_is_a_property_of_the_branchs_own_dif
 
 def test_727_cycle_loop_runs_a_diff_checked_step_with_no_red_leaf_a_develop_diff_leaf_then_the_blind_diff_verifier_ticking_on_pass():
     problems = []
-    dc_rec = diff_checked_loop_rec().strip()
-    dc_rec = dc_rec + " " if dc_rec else ""
+    dc_rec = diff_checked_loop_rec()
     if not dc_rec:
         problems.append("cycle loop: no instruction under '### 3. The cycle loop' names a ⟦diff-checked⟧ step — the rule could not be checked")
     else:
@@ -170,8 +170,7 @@ def test_727_cycle_loop_runs_a_diff_checked_step_with_no_red_leaf_a_develop_diff
 
 def test_875_diff_checked_step_records_its_step_base_sha_with_git_rev_parse_head_before_the_develop_diff_leaf_and_passes_it_to_the_verifier():
     problems = []
-    dc_rec = diff_checked_loop_rec().strip()
-    dc_rec = dc_rec + " " if dc_rec else ""
+    dc_rec = diff_checked_loop_rec()
     if not dc_rec:
         problems.append("cycle loop: no instruction under '### 3. The cycle loop' names a ⟦diff-checked⟧ step — the rule could not be checked")
     else:
