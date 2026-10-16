@@ -229,3 +229,127 @@ def test_skill_md_s_replaces_case_green_paragraph_runs_replaces_case_survivors_b
     assert "relaunch" in section, "SKILL.md's replaces-case Green paragraph never relaunches the green leaf on survivors"
     assert "event" in section, "SKILL.md's replaces-case Green paragraph never records the relaunch as an event"
     assert "no verifier" in section, "SKILL.md's replaces-case Green paragraph never says no verifier is launched"
+
+
+def first_line(needle):
+    return next((n for n, line in enumerate(skill_lines(), 1) if needle in line), None)
+
+
+def run_lines(pattern):
+    return [n for n, _ in numbered(pattern)]
+
+
+UNREPLACED_RUN = r"\$S/unreplaced-cases\.sh|[Rr]un [^.]*unreplaced-cases\.sh"
+
+
+def test_1406_skill_md_runs_replaces_case_survivors_sh_before_the_verify_green_launch_command_not_after_it():
+    survivors = first_line('replaces-case-survivors.sh "')
+    launch = first_line("supervise.sh verdict-green")
+    assert survivors and launch, f"SKILL.md lacks a replaces-case-survivors.sh run or a verdict-green launch line (survivors={survivors}, launch={launch})"
+    assert survivors <= launch, f"SKILL.md:{survivors} runs replaces-case-survivors.sh after the verify-green launch at line {launch}"
+
+
+def test_1558_skill_md_runs_every_replaces_case_survivors_sh_occurrence_before_the_verify_green_launch_it_gates_on_the_green_path_and_the_pin_path_alike():
+    green_launch = first_line("supervise.sh verdict-green")
+    pin_start = first_line("A `⟦replaces-case⟧` step whose Red reports")
+    pin_launch = first_line("Judge it by the replaces-case verify-green")
+    occurrences = [n for n, line in enumerate(skill_lines(), 1) if 'replaces-case-survivors.sh "' in line]
+    assert green_launch and pin_start and pin_launch and occurrences, \
+        f"SKILL.md lacks a survivors run or a launch marker (green launch={green_launch}, pin path={pin_start}, pin launch={pin_launch})"
+    lines = skill_lines()
+    for at in occurrences:
+        if at < pin_start:
+            context = one_line(lines[max(at - 2, 0):at])
+            assert not (at > green_launch and "Before that verify-green" not in context), \
+                f"SKILL.md:{at} runs replaces-case-survivors.sh after the Green verify-green launch at line {green_launch}"
+        else:
+            assert at <= pin_launch, f"SKILL.md:{at} runs replaces-case-survivors.sh after the pin-path verify-green launch at line {pin_launch}"
+
+
+def test_1406_skill_md_orders_the_unreplaced_cases_sh_check_before_the_replaces_case_survivors_sh_check_and_both_before_the_verify_green_launch_command():
+    unreplaced = first_line('unreplaced-cases.sh "')
+    survivors = first_line('replaces-case-survivors.sh "')
+    launch = first_line("supervise.sh verdict-green")
+    assert unreplaced and survivors and launch, \
+        f"SKILL.md lacks an unreplaced-cases.sh run, a replaces-case-survivors.sh run or a verdict-green launch line (unreplaced={unreplaced}, survivors={survivors}, launch={launch})"
+    assert unreplaced <= survivors <= launch, \
+        f"SKILL.md gates are out of order: unreplaced-cases.sh at line {unreplaced}, replaces-case-survivors.sh at line {survivors}, verify-green launch at line {launch}"
+
+
+def test_1406_skill_md_s_replaces_case_green_paragraph_says_each_survivors_relaunch_spends_one_revise_budget_attempt_and_a_spent_budget_bails_with_a_cause_classify_bail_sh_classifies(capsys):
+    section = green_paragraph()
+    assert section.strip(), "SKILL.md has no replaces-case paragraph in the Green step's Verify (blind) to read"
+    assert "REVISE_BUDGET" in section, "SKILL.md's replaces-case Green paragraph never says the survivors relaunch spends a REVISE_BUDGET attempt"
+    found = re.search(r"cause=([a-z-]+)", section)
+    assert found, "SKILL.md's replaces-case Green paragraph names no cause= to bail with when the REVISE_BUDGET is spent on survivors"
+    code = importlib.import_module("veri.classify_bail").main([found.group(1)])
+    capsys.readouterr()
+    assert code == 0, f"SKILL.md's replaces-case Green paragraph bails with cause={found.group(1)}, which classify-bail.sh does not classify"
+
+
+def test_1406_skill_md_documents_build_develop_prompt_sh_green_s_8th_argument_the_cases_still_owed_for_deletion_at_the_green_build_command_and_in_the_script_reference_entry():
+    green_build = next((line for line in skill_lines() if "build-develop-prompt.sh green " in line), None)
+    assert green_build, "SKILL.md has no 'build-develop-prompt.sh green ' command line to read"
+    assert "owed" in green_build, f"SKILL.md's green build command passes no argument for the cases still owed for deletion: {green_build}"
+    reference = _bullet(skill_lines(), "- `$S/build-develop-prompt.sh <red")
+    assert re.search(r"<fast-cmd>.*owed", reference) or re.search(r"green <spec-file>.*owed.*refactor <spec-file>", reference), \
+        "SKILL.md's build-develop-prompt.sh reference entry never lists an owed-cases argument in green's synopsis"
+
+
+def pin_paragraph():
+    out, inside = [], False
+    for line in skill_lines():
+        if line.startswith("A `⟦replaces-case⟧` step whose Red reports"):
+            inside = True
+        if inside and "Every other step takes the verdict" in line:
+            break
+        if inside:
+            out.append(line)
+    return one_line(out)
+
+
+def test_1546_skill_md_s_replaces_case_pin_path_paragraph_runs_replaces_case_survivors_sh_after_the_deletion_green_and_on_survivors_relaunches_it_bounded_by_revise_budget_before_verify_green():
+    section = pin_paragraph()
+    assert section.strip(), "SKILL.md has no replaces-case pin-path paragraph to read"
+    for needle, message in (
+        ("replaces-case-survivors.sh", "never runs replaces-case-survivors.sh"),
+        ("relaunch", "never relaunches the green leaf on survivors"),
+        ("REVISE_BUDGET", "never says a survivors relaunch spends a REVISE_BUDGET attempt"),
+        ("revise-exhausted", "never bails cause=revise-exhausted when the budget is spent"),
+        ("no verifier", "never says no verifier is launched while a named case survives"),
+    ):
+        assert needle in section, f"SKILL.md's replaces-case pin-path paragraph {message}"
+
+
+def test_1546_skill_md_runs_unreplaced_cases_sh_at_every_place_it_names_it_as_a_run_before_the_verify_red_launch_command():
+    red_launch = first_line("supervise.sh verdict-red")
+    runs = run_lines(UNREPLACED_RUN)
+    assert red_launch and runs, f"SKILL.md lacks an unreplaced-cases.sh run or a verdict-red launch line (runs={runs}, launch={red_launch})"
+    for run in runs:
+        assert run <= red_launch, f"SKILL.md:{run} runs unreplaced-cases.sh after the verify-red launch at line {red_launch}"
+
+
+def test_1546_skill_md_never_runs_replaces_case_survivors_sh_at_any_place_it_names_it_as_a_run_before_the_last_place_it_runs_unreplaced_cases_sh():
+    unreplaced = run_lines(UNREPLACED_RUN)
+    survivors = run_lines(r"\$S/replaces-case-survivors\.sh|[Rr]uns? [^.]*replaces-case-survivors\.sh")
+    assert unreplaced and survivors, f"SKILL.md lacks an unreplaced-cases.sh run or a replaces-case-survivors.sh run (unreplaced={unreplaced}, survivors={survivors})"
+    for run in survivors:
+        assert run >= max(unreplaced), f"SKILL.md:{run} runs replaces-case-survivors.sh before the unreplaced-cases.sh run at line {max(unreplaced)}"
+
+
+def test_1558_skill_md_s_green_verify_line_that_runs_replaces_case_survivors_sh_before_the_launch_carries_a_replaces_case_qualifier_so_an_ordinary_step_runs_nothing():
+    run = next((line for line in skill_lines()
+                if 'Run `$S/replaces-case-survivors.sh "<step text>"` before the launch below' in line), None)
+    assert run, "SKILL.md has no Green Verify line running replaces-case-survivors.sh before the launch below"
+    assert "⟦replaces-case⟧" in run, "SKILL.md runs replaces-case-survivors.sh with no ⟦replaces-case⟧ qualifier"
+
+
+def test_1379_skill_md_s_every_add_ledger_step_sh_call_site_says_its_exit_2_bails_with_cause_step_add_refused_and_bailing_lists_that_cause_as_a_system_failure():
+    calls = run_lines(r"\$S/add-ledger-step\.sh [^ ]*\.tdd/issue-<n>\.md|\$S/add-ledger-step\.sh --criterion <k> \.tdd/issue-<n>\.md")
+    assert calls, "SKILL.md has no add-ledger-step.sh call site"
+    lines = skill_lines()
+    for call in calls:
+        near = plain(lines[call - 1:call + 31])
+        says(near, r"exits? 2[^.]{0,120}step-add-refused|step-add-refused[^.]{0,120}exits? 2",
+             f"SKILL.md:{call} calls add-ledger-step.sh and never says its exit 2 bails with cause step-add-refused")
+    says(bailing_causes(), r"step-add-refused[^.]{0,220}system", "SKILL.md's Bailing causes list never classifies step-add-refused as a system failure")
