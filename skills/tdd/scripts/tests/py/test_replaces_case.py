@@ -28,3 +28,10 @@ def test_parse_1521_yields_exactly_the_names_and_suite_each_replaces_case_step_c
     parsed = [replaces_case.parse(step) for step, _, _ in fixtures]
 
     assert parsed == [(names, expected_suite) for _, names, expected_suite in fixtures]
+
+
+def test_parse_1603_returns_none_for_a_step_naming_the_mark_without_a_replaces_clause():
+    replaces_case = importlib.import_module("veri.replaces_case")
+    step = "- [x] the Red prompt for replaces-case steps names the mark ⟦replaces-case⟧ ⟦criterion 5⟧"
+
+    assert replaces_case.parse(step) is None

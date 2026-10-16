@@ -7,6 +7,8 @@ _SUITE = re.compile(r" in ([\w./-]+\.test\.sh)")
 
 def parse(step):
     start = _START.search(step)
+    if start is None:
+        return None
     suite = _SUITE.search(step, start.end())
     quote = step[start.end()]
     region = step[start.end() + 1:suite.start()]
