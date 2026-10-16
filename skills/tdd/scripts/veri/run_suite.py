@@ -103,7 +103,8 @@ def main(argv):
     env["LC_ALL"] = "C"
     env["HTTP_PROXY"] = env["HTTPS_PROXY"] = OFFLINE_PROXY
     env["NO_PROXY"] = "127.0.0.1,localhost"
-    pytest_suite = fnmatch.fnmatchcase("/" + suite, "*/tests/py/test_*.py")
+    pytest_suite = any(fnmatch.fnmatchcase("/" + suite, pattern)
+                       for pattern in ("*/tests/py/test_*.py", "*/tests/py/unit/test_*.py"))
     guard = {}
     if not pytest_suite:
         guard_path = os.path.join(SCRIPTS, "lib", "count-line-guard.sh")

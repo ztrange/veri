@@ -200,6 +200,8 @@ def unmarked_case_lists_no_repository_directory(request, monkeypatch, tmp_path):
 
 
 STARTS_PYTEST_EXEMPT = {
+    "test_run_suite.py::test_main_runs_a_pytest_suite_in_tests_py_unit_as_a_pytest_suite_without_a_count_line_check":
+        "run_suite probes the venv with `pytest --version` before the suite; the interpreter is a stub in the case's scratch venv",
     "test_run_suite.py::test_main_runs_a_pytest_suite_under_the_venv_python_and_maps_its_exit_code_without_a_count_line_check":
         "run_suite.run_pytest is the subject; the interpreter it starts is a stub in the case's scratch venv",
     "test_run_suite.py::test_main_hands_a_pytest_suite_no_ambient_veri_or_claude_variable_but_veri_venv_and_still_finds_the_caller_venv_1258":
