@@ -16,6 +16,14 @@ def _subprocess_names(tree):
     return modules, functions
 
 
+def _starts_process(func):
+    if not (isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name)):
+        return False
+    if func.value.id == "pty":
+        return True
+    return func.value.id == "os" and func.attr.startswith(("system", "exec", "spawn"))
+
+
 def offences(root):
     found = []
     for path in sorted(Path(root).rglob("test_*.py")):
@@ -30,6 +38,6 @@ def offences(root):
                 isinstance(func, ast.Attribute)
                 and isinstance(func.value, ast.Name)
                 and func.value.id in modules
-            ) or (isinstance(func, ast.Name) and func.id in functions):
+            ) or (isinstance(func, ast.Name) and func.id in functions) or _starts_process(func):
                 found.append(f"{path}:{node.lineno}: starts a process through subprocess")
     return found
