@@ -1235,6 +1235,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    On tests-frozen exit 1 a test file changed since verify-red, so write a reason naming the changed file to
    `.tdd/verify-green.reason`, treat the attempt as a verify-green REJECT that spends REVISE_BUDGET, and launch
    no verifier for that attempt. On tests-frozen exit 0 the verifier is launched as before.
+   On tests-frozen exit 2 the check could not answer, so **bail** as a system failure, never a REJECT, and launch no verifier.
 
    **`SPLIT:` lines in place of those two** — the step needed more than one new behaviour at
    once, so the leaf implemented nothing and named one to three smaller criteria instead.
@@ -2169,6 +2170,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    When `<phase>` is green, run `$S/tests-frozen.sh check .tdd/tests-frozen-<step>.record` here, before the re-verify.
    On tests-frozen exit 1 write a reason naming the changed file to `.tdd/verify-green.reason`, spend attempt `k`
    as a REJECT that spends REVISE_BUDGET, and launch no verifier for that attempt. On tests-frozen exit 0 the verifier is launched as before.
+   On tests-frozen exit 2 the check could not answer, so **bail** as a system failure, never a REJECT, and launch no verifier.
 
 4. **Re-verify (blind, same phase).**
    ```

@@ -143,4 +143,21 @@ else
 fi
 report "$name"
 
+name="#1586: $skill_md's Green section and Revising on a REJECT handle tests-frozen.sh check exit 2 as a system-failure bail, never a REJECT, launching no verifier"
+problems=()
+for where in '#### Green' "$revise_heading"; do
+  exit2="$(frozen_sentences "$where" | grep -E 'exit 2|exits 2' | grep -vF 'record' || true)"
+  if [[ -z "$exit2" ]]; then
+    problems+=("$skill_md's $where: no sentence naming tests-frozen handles check exit 2, so a check that cannot answer is read as a pass or a REJECT")
+    continue
+  fi
+  grep -qi 'bail' <<<"$exit2" ||
+    problems+=("$skill_md's $where: the tests-frozen check exit 2 sentence does not bail")
+  grep -qiE 'system.failure' <<<"$exit2" ||
+    problems+=("$skill_md's $where: the tests-frozen check exit 2 sentence does not call the bail a system failure")
+  grep -qE 'no verifier|not launch|without launching' <<<"$exit2" ||
+    problems+=("$skill_md's $where: the tests-frozen check exit 2 sentence does not say no verifier is launched")
+done
+report "$name"
+
 finish
