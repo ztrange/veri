@@ -576,25 +576,7 @@ unauthenticated baseline never gets a cycle.
    ```
    stray="$(git status --porcelain)"
    stray="$(grep -v '^.. \.tdd/' <<< "$stray")"
-   appends="$(git diff HEAD -U0 -- .tdd | awk '
-     function num(f) { sub(/^[-+]/, "", f); split(f, p, ","); return p[1] + 0 }
-     function emit(   o, n, c, k) {
-       if (hunk != "") {
-         if (!nm) out = hunk
-         else if (na > nm && nonl) { k = rem; gsub(/\n-/, "\n+", k); sub(/^-/, "+", k); out = "@@ -" num(hf[2]) "," nm " +" num(hf[3]) "," na " @@\n" rem "\\ No newline at end of file\n" k adds }
-         else if (na > nm) { o = num(hf[2]) + nm - 1; n = num(hf[3]) + nm; out = "@@ -" o ",0 +" n "," na - nm " @@\n" adds }
-         else if (fresh) out = hunk
-         else out = ""
-         if (out != "") { if (!shown) { printf "%s", hdr; shown = 1 } printf "%s", out }
-       }
-       hunk = ""; adds = ""; rem = ""; nonl = 0; last = ""; nm = 0; na = 0; fresh = 0
-     }
-     /^diff --git/ { emit(); hdr = $0 "\n"; shown = 0; head = 1; next }
-     head && !/^@@/ { hdr = hdr $0 "\n"; next }
-     /^@@/ { emit(); head = 0; hunk = $0 "\n"; split($0, hf, " "); next }
-     /^\\/ { hunk = hunk $0 "\n"; if (last == "-") nonl = 1; next }
-     { hunk = hunk $0 "\n"; last = substr($0, 1, 1); if (/^-/) { nm++; tail[nm] = substr($0, 8); rem = rem $0 "\n" } else if (/^\+/) { na++; if (index(substr($0, 8), tail[na]) != 1) fresh = 1; if (na > nm) adds = adds $0 "\n" } }
-     END { emit() }')"
+   appends="$(git diff HEAD -U0 -- .tdd)"
    git reset --hard HEAD
    git clean -fd -e .tdd
    if [[ -n "$appends" ]] && ! git apply --unidiff-zero <<< "$appends"; then
@@ -603,10 +585,19 @@ unauthenticated baseline never gets a cycle.
      echo "could not re-apply the uncommitted appends to $(grep -o '^+++ b/.*' <<< "$appends" | cut -c7- | tr '\n' ' ')kept at $kept" >&2
      exit 2
    fi
+   for f in .tdd/issue-*.md; do
+     [[ $f =~ ^\.tdd/issue-[0-9]+\.md$ ]] || continue
+     awk -v M=' ⟂ refactor pending' '
+       function id(l) { sub(/^- [[]x[]] /, "", l); sub(M "$", "", l); return l }
+       FILENAME == ARGV[1] { if (/^- [[]x[]] /) done[id($0)] = 1; next }
+       /^- [[]x[]] / && !(id($0) in done) { $0 = "- [" " ] " id($0) }
+       { print }' <(git show "HEAD:$f" 2>/dev/null) "$f" > "$f.new"
+     if cmp -s "$f" "$f.new"; then rm -f "$f.new"; else mv "$f.new" "$f"; fi
+   done
    ```
-   The `awk` judges per changed line: a ledger tick rewrites a line, so the lines a hunk removes and the
-   lines that replace them are dropped — a tick whose green commit the kill prevented goes with the code it
-   ticks — and any further line the hunk adds is kept.
+   The ledger is judged by step identity, not by a diff of it: every `- [x]` step whose step is not ticked
+   in the committed ledger — its green commit is not on the branch — is unticked and loses its
+   `⟂ refactor pending` mark, and every other working-copy line is kept as written.
    Keep this `$stray` for *Resume* sub-step 4 to name. Then the resumed run, its worktree
    clean and its ledger untouched, runs
    `$S/rebase-onto-default.sh` before its baseline, so the baseline runs on the rebased tip.
