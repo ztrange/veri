@@ -14,6 +14,10 @@ def output(*args, **kwargs):
     return git(*args, text=True, stdout=subprocess.PIPE, **kwargs).stdout.rstrip("\n")
 
 
+def git_file(name):
+    return pathlib.Path(output("rev-parse", "--git-path", name)).resolve()
+
+
 def default_branch():
     local = git("rev-parse", "-q", "--verify", "--abbrev-ref", "refs/remotes/origin/HEAD",
                 text=True, stdout=subprocess.PIPE)
@@ -48,7 +52,7 @@ def main(argv):
     onto = output("rev-parse", f"origin/{default}")
     if onto != re.match(r"\S*", remote.stdout).group():
         return 2
-    saved = pathlib.Path(output("rev-parse", "--git-path", "set-aside-tdd-appends.diff")).resolve()
+    saved = git_file("set-aside-tdd-appends.diff")
     if saved.is_file():
         if git("apply", text=True, input=saved.read_text(), stderr=subprocess.DEVNULL).returncode != 0:
             sys.stderr.write(f"rebase-onto-default: could not re-apply the set-aside appends; kept at {saved}\n")
@@ -82,7 +86,7 @@ def main(argv):
     if appends and reapplied:
         saved.unlink()
     if appends and not reapplied:
-        kept = pathlib.Path(output("rev-parse", "--git-path", "kept-tdd-appends.diff")).resolve()
+        kept = git_file("kept-tdd-appends.diff")
         kept.write_text(appends + "\n")
         files = re.findall(r"^\+\+\+ b/(.+)$", appends, re.M)
         sys.stderr.write(f"rebase-onto-default: could not re-apply the uncommitted appends to"
