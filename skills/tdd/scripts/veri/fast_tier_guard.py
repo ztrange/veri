@@ -81,8 +81,10 @@ def offences(root, exemptions=None):
 
 
 def main(argv):
-    offences(argv[0])
-    return 0
+    found = offences(argv[0])
+    for line in found:
+        print(line)
+    return 1 if found else 0
 
 
 if __name__ == "__main__":

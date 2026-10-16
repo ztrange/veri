@@ -216,6 +216,22 @@ def test_the_guards_command_line_on_a_missing_root_exits_2_with_the_refusal_line
     assert (code, stdout, stderr) == (2, "", f"fast-tier-guard.sh: NotADirectoryError: {missing}: no such directory\n")
 
 
+def test_the_guards_command_line_prints_a_planted_offence_by_file_and_line_and_exits_1_and_exits_0_only_on_a_readable_root_with_none(tmp_path, run_cli):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    dirty = tmp_path / "dirty"
+    dirty.mkdir()
+    offender = dirty / "test_offender.py"
+    offender.write_text("import time\n\ndef test_waits():\n    time.sleep(1)\n")
+    clean = tmp_path / "clean"
+    clean.mkdir()
+    (clean / "test_clean.py").write_text("def test_adds():\n    assert 1 + 1 == 2\n")
+
+    dirty_code, dirty_out, _ = run_cli(guard, [str(dirty)])
+    clean_code, clean_out, _ = run_cli(guard, [str(clean)])
+
+    assert (dirty_code, dirty_out.startswith(f"{offender}:4: "), clean_code, clean_out) == (1, True, 0, "")
+
+
 @pytest.mark.tree_audit("every test_*.py under tests/py and tests/py/unit")
 def test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it():
     guard = importlib.import_module("veri.fast_tier_guard")
