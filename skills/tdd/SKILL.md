@@ -1161,9 +1161,16 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    Run `$S/unreplaced-cases.sh "<step line>" .tdd/develop-red.out` on a `⟦replaces-case⟧` step once the
    Red report is written, against the current attempt's report (`.tdd/revise-red-<k>.out` after a red
    revise), before verify-red launches. Exit 1 prints each named case with no `REPLACES:` line:
-   **bail with cause=unreplaced-cases**, naming each case it printed, and launch no verifier — verify-green
+   give the Red one chance to correct its report. Launch one `develop-replaces-report` leaf, spending no `REVISE_BUDGET`
+   attempt and writing no `revise` mark, then run `$S/unreplaced-cases.sh` again on the corrected report, before verify-red launches.
+   Exit 1 again: **bail with cause=unreplaced-cases**, naming each case it printed, and launch no verifier — verify-green
    never runs on a step whose named cases lack a replacement. Exit 2 — no answer could be obtained (no
    readable report, bad arguments) — also bails with cause=unreplaced-cases.
+   The correction leaf: save the printed cases to `.tdd/replaces-missing.txt` (and read `.tdd/revise-red-<k>.out` in place of `.tdd/develop-red.out` after a red revise), then
+   `$S/build-develop-prompt.sh replaces-report .tdd/issue-<n>-spec.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' .tdd/develop-red.out .tdd/replaces-missing.txt > .tdd/develop-replaces-report.prompt`,
+   `rm -f .tdd/develop-replaces-report.exit .tdd/develop-replaces-report.pid`, then
+   `VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh develop-replaces-report $S/run-leaf.sh .tdd/develop-replaces-report.prompt --permission-mode bypassPermissions > .tdd/develop-replaces-report.out 2> .tdd/develop-replaces-report.err`
+   and `$S/wait-leaf.sh develop-replaces-report` in the foreground (on exit 3 call it again).
 
    On a matched prediction, run
    the red verifier against the on-disk test and spec, **redirecting its stdout (the
