@@ -27,7 +27,8 @@ def failed_cases(suite):
 
 def pytest(*args):
     run = subprocess.run([venv_python(), "-m", "pytest", "-q", *args], capture_output=True,
-                         text=True, stdin=subprocess.DEVNULL)
+                         text=True, stdin=subprocess.DEVNULL,
+                         env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
     if run.returncode not in (0, 1):
         raise RuntimeError(f"pytest could not run {' '.join(args)}: exit {run.returncode}")
     return run
