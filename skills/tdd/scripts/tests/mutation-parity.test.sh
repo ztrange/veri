@@ -459,16 +459,13 @@ unrunnable_out=""
 unrunnable missing-suite \
   "tests/absent.test.sh"$'\t'"adds two numbers"$'\t'"redundant"$'\t'"adds a negative"$'\t'"$work/add-subtracts.patch"
 missing_code="$code"
-unrunnable no-count \
-  "tests/no-count.test.sh"$'\t'"adds two numbers"$'\t'"redundant"$'\t'"adds a negative"$'\t'"$work/add-subtracts.patch"
-no_count_code="$code"
 unrunnable uncollected \
   "tests/calc.test.sh"$'\t'"adds two numbers"$'\t'"replaced"$'\t'"tests/test_calc.py::test_not_there"$'\t'"$work/add-subtracts.patch"
 uncollected_code="$code"
-if [[ "$missing_code" == 2 && "$no_count_code" == 2 && "$uncollected_code" == 2 ]]; then
+if [[ "$missing_code" == 2 && "$uncollected_code" == 2 ]]; then
   ok
 else
-  no "a row whose case cannot be run — a suite path that does not exist, a bash suite that never reaches its count line, a pytest node id that is not collected — exits 2 (missing suite exit=$missing_code, no count line exit=$no_count_code, uncollected node exit=$uncollected_code, want 2 each)$unrunnable_out"
+  no "a row whose case cannot be run — a suite path that does not exist, a pytest node id that is not collected — exits 2 (missing suite exit=$missing_code, uncollected node exit=$uncollected_code, want 2 each)$unrunnable_out"
 fi
 
 snapshot() {
@@ -483,6 +480,8 @@ printf 'sub() { echo $(( $1 - $2 )); }\n' >> "$repo/calc.sh"
 printf 'untracked\n' > "$repo/untracked.txt"
 sed 's/\$1 + \$2/$1 - $2/' "$repo/calc.sh" > "$work/dirty.mutated"
 diff -u --label a/calc.sh --label b/calc.sh "$repo/calc.sh" "$work/dirty.mutated" > "$work/dirty.patch"
+{ cat "$repo/calc.sh"; echo 'exit 9'; } > "$work/dirty-dies.mutated"
+diff -u --label a/calc.sh --label b/calc.sh "$repo/calc.sh" "$work/dirty-dies.mutated" > "$work/dirty-dies.patch" || true
 table="$work/dirty.tsv"
 printf 'tests/calc.test.sh\tadds two numbers\tredundant\tadds a negative\t%s\n' "$work/dirty.patch" > "$table"
 before="$(snapshot)"
@@ -498,13 +497,26 @@ $(diff <(printf '%s\n' "$before") <(printf '%s\n' "$after"))
 fi
 
 
+table="$work/unmutated-dies.tsv"
+printf 'tests/no-count.test.sh\tadds two numbers\tredundant\tadds a negative\t%s\n' "$work/add-subtracts.patch" > "$table"
+out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/unmutated-dies.err")" && code=0 || code=$?
+row="$(grep -F 'adds two numbers' <<<"$out" | grep -wF unproven || true)"
+if [[ "$code" == 1 && -n "$row" ]] \
+  && grep -F 'tests/no-count.test.sh' "$work/unmutated-dies.err" | grep -F 'did not run to completion' > /dev/null; then
+  ok
+else
+  no "#1612: a row whose old suite dies before its count line run unmutated reads unproven and exits 1, with stderr naming the suite and saying it did not run to completion (exit=$code want 1)
+    stdout: $out
+    stderr: $(cat "$work/unmutated-dies.err")"
+fi
+
 exit_two_out=""
 exit_two_codes=""
-for scenario in does-not-apply:does-not-apply no-count:dirty uncollected:dirty; do
+for scenario in does-not-apply:does-not-apply dies:dirty-dies uncollected:dirty; do
   name="${scenario%%:*}" patch="$work/${scenario#*:}.patch"
   case "$name" in
     does-not-apply) row="tests/calc.test.sh"$'\t'"adds two numbers"$'\t'"redundant"$'\t'"adds a negative" ;;
-    no-count) row="tests/no-count.test.sh"$'\t'"adds two numbers"$'\t'"redundant"$'\t'"adds a negative" ;;
+    dies) row="tests/calc.test.sh"$'\t'"adds two numbers"$'\t'"redundant"$'\t'"adds a negative" ;;
     uncollected) row="tests/calc.test.sh"$'\t'"adds two numbers"$'\t'"replaced"$'\t'"tests/test_calc.py::test_not_there" ;;
   esac
   table="$work/exit-two-$name.tsv"
@@ -524,7 +536,7 @@ done
 if [[ -z "$exit_two_out" ]]; then
   ok
 else
-  no "after the pairs check exits 2 — a mutation that does not apply, a bash suite that never reaches its count line or a pytest node id that is not collected while the mutation is in place — the working tree and the index are byte-identical to before it, a staged change, an unstaged change and an untracked file included (exits:$exit_two_codes)$exit_two_out"
+  no "after the pairs check exits 2 — a mutation that does not apply, a bash suite that never reaches its count line under the mutation or a pytest node id that is not collected while the mutation is in place — the working tree and the index are byte-identical to before it, a staged change, an unstaged change and an untracked file included (exits:$exit_two_codes)$exit_two_out"
 fi
 
 finish
