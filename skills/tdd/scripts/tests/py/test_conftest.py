@@ -104,12 +104,32 @@ def test_every_case_starts_with_no_veri_claude_gh_or_git_variable_set_but_veri_v
         "    names = [n for n in os.environ if n.startswith(('VERI_', 'CLAUDE_', 'GH_', 'GIT_'))]\n"
         "    open(%r, 'w').write(json.dumps(sorted(names)))\n" % str(seen))
     ambient = {name: "1" for name in ("VERI_ISSUE", "VERI_VENV", "CLAUDE_X", "GH_TOKEN", "GIT_DIR")}
-    env = {**{k: v for k, v in os.environ.items() if not k.startswith("GIT_CONFIG_")}, **ambient}
+    env = {**{k: v for k, v in os.environ.items()
+              if not k.startswith("GIT_CONFIG_") and k not in ("GIT_TEMPLATE_DIR", "GIT_EXEC_PATH")}, **ambient}
 
     ran = child_pytest(tmp_path, probe, env)
 
     assert ran.returncode == 0, ran.stdout + ran.stderr
     assert json.loads(seen.read_text()) == ["VERI_VENV"]
+
+
+@pytest.mark.process("a child pytest session started with GIT_TEMPLATE_DIR and GIT_EXEC_PATH set beside other GIT_ variables")
+@pytest.mark.parametrize("kept", ["GIT_TEMPLATE_DIR", "GIT_EXEC_PATH"])
+def test_a_case_still_sees_the_git_variable_make_test_sets_for_apple_git_at_the_same_value_while_other_git_variables_are_cleared(tmp_path, kept):
+    probe = tmp_path / "test_probe.py"
+    seen = tmp_path / "seen.json"
+    probe.write_text(
+        "import json, os\n"
+        "def test_probe():\n"
+        "    git = {n: v for n, v in os.environ.items() if n.startswith('GIT_') and not n.startswith('GIT_CONFIG_')}\n"
+        "    open(%r, 'w').write(json.dumps(git))\n" % str(seen))
+    ambient = {kept: str(tmp_path / "share" / "git-core"), "GIT_DIR": "1", "GIT_WORK_TREE": "1"}
+    env = {**{k: v for k, v in os.environ.items() if not k.startswith("GIT_")}, **ambient}
+
+    ran = child_pytest(tmp_path, probe, env)
+
+    assert ran.returncode == 0, ran.stdout + ran.stderr
+    assert json.loads(seen.read_text()) == {kept: str(tmp_path / "share" / "git-core")}
 
 
 @pytest.mark.process("a child pytest session started with an ambient locale")
