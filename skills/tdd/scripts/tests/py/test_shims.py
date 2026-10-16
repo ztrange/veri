@@ -118,3 +118,23 @@ def test_entry_bypass_problems_reports_a_problem_for_a_scripts_tree_holding_no_s
     problems = entry_bypass_problems(tmp_path)
 
     assert problems
+
+
+def test_entry_bypass_problems_names_the_planted_bare_module_as_module_and_line_leaves_the_entry_run_one_alone_and_passes_once_the_offender_is_removed(tmp_path):
+    """Its subject is source text: planted shims and module files, read as text and never run."""
+    from conftest import entry_bypass_problems
+
+    (tmp_path / "veri").mkdir()
+    shim(tmp_path / "probe-bare.sh", 'exec python3 "$(dirname "$0")/veri/probe_bare.py" "$@"')
+    shim(tmp_path / "probe-entry.sh", 'exec python3 "$(dirname "$0")/veri/probe_entry.py" "$@"')
+    (tmp_path / "veri" / "probe_bare.py").write_text(
+        "import sys\n\n\ndef main(argv):\n    return 0\n\n\nif __name__ == \"__main__\":\n    sys.exit(main(sys.argv[1:]))\n")
+    (tmp_path / "veri" / "probe_entry.py").write_text(
+        "import sys\n\n\ndef main(argv):\n    return 0\n\n\nif __name__ == \"__main__\":\n    import entry\n    entry.run(main, sys.argv[1:])\n")
+
+    planted = entry_bypass_problems(tmp_path)
+    (tmp_path / "probe-bare.sh").unlink()
+    (tmp_path / "veri" / "probe_bare.py").unlink()
+    removed = entry_bypass_problems(tmp_path)
+
+    assert ([line.split(" ")[0] for line in planted], removed) == (["probe_bare.py:8"], [])
