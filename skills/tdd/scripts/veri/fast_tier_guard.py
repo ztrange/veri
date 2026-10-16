@@ -51,18 +51,21 @@ def offences(root, exemptions=None):
             imported = name_imports.get(func.id) if isinstance(func, ast.Name) else None
             module = module_aliases.get(receiver, receiver)
             if (module, attr) == ("time", "sleep") or imported == ("time", "sleep"):
-                found.append(f"{path}:{node.lineno}: sleeps through time.sleep")
+                message = "sleeps through time.sleep"
             elif module == "socket" or imported == ("socket", "socket"):
-                found.append(f"{path}:{node.lineno}: opens a socket through socket")
+                message = "opens a socket through socket"
             elif (
                 receiver in modules
                 or (isinstance(func, ast.Name) and func.id in functions)
                 or _starts_process(func)
             ):
-                found.append(f"{path}:{node.lineno}: starts a process through subprocess")
+                message = "starts a process through subprocess"
             elif (module, attr) == ("pytest", "main") or any(
                 isinstance(arg, ast.Constant) and isinstance(arg.value, str) and _SUITE_PATH.search(arg.value)
                 for arg in node.args
             ):
-                found.append(f"{path}:{node.lineno}: runs a nested suite")
+                message = "runs a nested suite"
+            else:
+                continue
+            found.append(f"{path}:{node.lineno}: {message}")
     return [line for line in found if line.split(": ")[0] not in exemptions]
