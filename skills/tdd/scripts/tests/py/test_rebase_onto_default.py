@@ -1200,6 +1200,14 @@ def test_main_after_a_kill_mid_rebase_the_next_resume_reapplies_the_set_aside_ap
     assert (code, append in ledger.read_text() or len(named) == 1) == (code, True) and code in (0, 2)
 
 
+def _failing_apply_env_1611(tmp_path):
+    shim = tmp_path / "bin"
+    shim.mkdir()
+    (shim / "git").write_text(f'#!/bin/sh\n[ "$1" = apply ] && exit 1\nexec {shutil.which("git")} "$@"\n')
+    (shim / "git").chmod(0o755)
+    return {**os.environ, "PATH": f"{shim}:{os.environ['PATH']}"}
+
+
 def _resumed_clone_1611(monkeypatch, tmp_path, ledger_text, message):
     for who in ("AUTHOR", "COMMITTER"):
         monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
@@ -1227,14 +1235,9 @@ def test_main_keeps_both_sets_of_appends_recoverable_and_named_when_two_resume_d
         monkeypatch, tmp_path):
     scripts, clone, ledger, git, discard = _resumed_clone_1611(
         monkeypatch, tmp_path, "- [ ] step one\n", "plan: scope #1 (#1)")
-    real_git = shutil.which("git")
     first, second = "- [ ] first failure's step ⟦added⟧\n", "- [ ] second failure's step ⟦added⟧\n"
 
-    shim = tmp_path / "bin"
-    shim.mkdir()
-    (shim / "git").write_text(f'#!/bin/sh\n[ "$1" = apply ] && exit 1\nexec {real_git} "$@"\n')
-    (shim / "git").chmod(0o755)
-    env = {**os.environ, "PATH": f"{shim}:{os.environ['PATH']}"}
+    env = _failing_apply_env_1611(tmp_path)
 
     def resume_discard():
         return subprocess.run(["bash", "-c", textwrap.dedent(discard) + "\nexit $?"], cwd=clone, env=env, text=True,
@@ -1333,7 +1336,6 @@ def test_main_keeps_the_appends_an_earlier_failed_reapply_saved_when_a_later_rea
     scripts = pathlib.Path(__file__).resolve().parents[2]
     discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
                         (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
-    real_git = shutil.which("git")
     first, second = "- [ ] first failure's step ⟦added⟧\n", "- [ ] second failure's step ⟦added⟧\n"
 
     def git(repo, *args):
@@ -1358,11 +1360,7 @@ def test_main_keeps_the_appends_an_earlier_failed_reapply_saved_when_a_later_rea
     git(seed, "push", "-q", str(origin), "main")
     ledger = clone / ".tdd" / "issue-1.md"
 
-    shim = tmp_path / "bin"
-    shim.mkdir()
-    (shim / "git").write_text(f'#!/bin/sh\n[ "$1" = apply ] && exit 1\nexec {real_git} "$@"\n')
-    (shim / "git").chmod(0o755)
-    failing = {**os.environ, "PATH": f"{shim}:{os.environ['PATH']}"}
+    failing = _failing_apply_env_1611(tmp_path)
 
     def resume_discard(env):
         return subprocess.run(["bash", "-c", textwrap.dedent(discard) + "\nexit $?"], cwd=clone, env=env, text=True,
@@ -1390,14 +1388,9 @@ def test_main_stops_the_second_failing_resume_discard_naming_the_earlier_saved_f
         monkeypatch, tmp_path):
     scripts, clone, ledger, git, discard = _resumed_clone_1611(
         monkeypatch, tmp_path, "- [ ] step one\n", "plan: scope #1 (#1)")
-    real_git = shutil.which("git")
     first, second = "- [ ] first failure's step ⟦added⟧\n", "- [ ] second failure's step ⟦added⟧\n"
 
-    shim = tmp_path / "bin"
-    shim.mkdir()
-    (shim / "git").write_text(f'#!/bin/sh\n[ "$1" = apply ] && exit 1\nexec {real_git} "$@"\n')
-    (shim / "git").chmod(0o755)
-    env = {**os.environ, "PATH": f"{shim}:{os.environ['PATH']}"}
+    env = _failing_apply_env_1611(tmp_path)
 
     def resume_discard():
         return subprocess.run(["bash", "-c", textwrap.dedent(discard) + "\nexit $?"], cwd=clone, env=env, text=True,
