@@ -204,6 +204,7 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   `added=0`, since a step the budget refused is still a decision the run made.
   `--planned --criterion <k>` inserts steps for a criterion no step serves yet, without `⟦added⟧`, so they do not count toward `VERI_STEP_GROWTH` — the resume's own scoping, not discovered growth. The refusals are all **exit 2**, with nothing inserted and nothing filed as owed:
   `--planned without --criterion`, a criterion a ledger step already serves (the script says "already serves"),
+  no readable spec file beside the ledger (the script says "cannot read the spec file", naming it),
   and a k that is not unticked in the issue body the run read (an unknown number or a ticked criterion).
 - `$S/classify-bail.sh <cause>` — deterministically classify a bail cause
   (`killed-stuck`/`no-verdict` → `system`, `revise-exhausted` → `process`; unknown → exit
