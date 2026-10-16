@@ -660,13 +660,14 @@ def test_main_planned_criterion_k_inserts_unmarked_steps_that_do_not_count_towar
 def test_main_planned_without_criterion_or_with_a_criterion_a_step_already_serves_refuses_with_2_and_one_stderr_line_writing_nothing_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
     monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
     ledger = tmp_path / "issue-42.md"
+    (tmp_path / "issue-42-spec.md").write_text("## Acceptance criteria\n\n- [x] c1\n- [ ] c2\n- [ ] c3\n\n## Blocked by\n")
     got = {}
     for name, flags in (("none", []), ("served", ["--criterion", "2"])):
         ledger.write_bytes(LEDGER)
         code = add_ledger_step.main(["--planned", *flags, str(ledger), "after", "b two", "t"])
         out, err = capsys.readouterr()
-        got[name] = (code, out, err.count("\n"), ledger.read_bytes() == LEDGER)
-    assert got == {name: (2, "", 1, True) for name in ("none", "served")}
+        got[name] = (code, out, err.count("\n"), ledger.read_bytes() == LEDGER, "already serves" in err or name == "none")
+    assert got == {name: (2, "", 1, True, True) for name in ("none", "served")}
 
 
 def test_main_a_later_criterion_k_add_after_a_planned_one_is_marked_added_and_refused_into_owed_steps_at_a_spent_budget_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
