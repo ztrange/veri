@@ -63,6 +63,18 @@ def test_shim_problems_names_the_shim_that_feeds_python3_a_heredoc_or_a_dash_c_s
     assert all("not the canonical shim" in line for line in problems)
 
 
+def test_shim_problems_names_the_shim_that_hands_python3_a_gh_json_document_as_an_argument_and_passes_the_canonical_one(tmp_path):
+    (tmp_path / "veri").mkdir()
+    (tmp_path / "veri" / "kept.py").write_text("")
+    shim(tmp_path / "canonical.sh", 'exec python3 "$(dirname "$0")/veri/kept.py" "$@"')
+    shim(tmp_path / "argv.sh", 'issue_json="$(gh issue view 7 --json body)"', 'python3 "$(dirname "$0")/veri/kept.py" "$issue_json"')
+
+    problems = shim_problems(tmp_path)
+
+    assert [line.split(":")[0] for line in problems] == ["argv.sh"]
+    assert "not the canonical shim" in problems[0]
+
+
 @pytest.mark.process("leaf-role.sh run through a symlink to the skills directory")
 def test_a_shim_run_through_a_symlink_to_the_skills_directory_from_another_cwd_gives_its_modules_exit_code_and_stdout(
         run_cli, tmp_path):
