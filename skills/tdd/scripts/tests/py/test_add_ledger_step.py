@@ -725,3 +725,13 @@ def test_main_planned_criterion_k_with_no_spec_file_beside_the_ledger_refuses_wi
     code = add_ledger_step.main(["--planned", "--criterion", "7", str(ledger), "after", "b two", "t"])
     out, err = capsys.readouterr()
     assert (code, out, err.count("\n"), str(tmp_path / "issue-42-spec.md") in err, ledger.read_bytes() == LEDGER) == (2, "", 1, True, True)
+
+
+def test_main_planned_criterion_k_with_a_directory_in_place_of_the_spec_file_refuses_with_2_naming_that_path_writing_nothing_and_filing_no_owed_step_1579(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    (tmp_path / "issue-42-spec.md").mkdir()
+    code = add_ledger_step.main(["--planned", "--criterion", "7", str(ledger), "after", "b two", "t"])
+    out, err = capsys.readouterr()
+    assert (code, out, err.count("\n"), str(tmp_path / "issue-42-spec.md") in err, ledger.read_bytes() == LEDGER) == (2, "", 1, True, True)
