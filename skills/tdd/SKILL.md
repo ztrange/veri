@@ -590,15 +590,15 @@ unauthenticated baseline never gets a cycle.
      [[ $f =~ ^\.tdd/issue-[0-9]+\.md$ ]] || continue
      awk -v M=' ⟂ refactor pending' '
        function id(l) { sub(/^- [[]x[]] /, "", l); sub(M "$", "", l); return l }
-       P == 1 { if (/^- [[]x[]] /) { done[FNR] = 1; left[id($0)]++ } next }
-       P == 2 { if (/^- [[]x[]] / && (FNR in done) && left[id($0)] > 0) left[id($0)]--; next }
-       /^- [[]x[]] / && !(FNR in done) { if (left[id($0)] > 0) left[id($0)]--; else $0 = "- [" " ] " id($0) }
+       P == 1 { if (/^- [[]x[]] /) left[id($0)]++; next }
+       P == 2 { if (/^- [[]x[]] /) have[id($0)]++; next }
+       /^- [[]x[]] / && have[id($0)] > left[id($0)] { have[id($0)]--; $0 = "- [" " ] " id($0) }
        { print }' P=1 <(git show "HEAD:$f" 2>/dev/null) P=2 "$f" P=3 "$f" > "$f.new"
      if cmp -s "$f" "$f.new"; then rm -f "$f.new"; else mv "$f.new" "$f"; fi
    done
    ```
-   The ledger is judged against the committed ledger by line position or by step text: every `- [x]` line not ticked
-   at the same line or with the same text in the committed ledger — its green commit is not on the branch — is unticked and loses its
+   The ledger is judged against the committed ledger by step text, counted: every `- [x]` line beyond the number of
+   ticked steps of that text in the committed ledger — its green commit is not on the branch — is unticked and loses its
    `⟂ refactor pending` mark, and every other working-copy line is kept as written.
    Keep this `$stray` for *Resume* sub-step 4 to name. Then the resumed run, its uncommitted `.tdd/` appends kept
    and its ledger ticks reconciled, runs
