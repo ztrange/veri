@@ -16,12 +16,17 @@ def _subprocess_names(tree):
     return modules, functions
 
 
+def _receiver_and_attr(func):
+    if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
+        return func.value.id, func.attr
+    return None, None
+
+
 def _starts_process(func):
-    if not (isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name)):
-        return False
-    if func.value.id == "pty":
+    receiver, attr = _receiver_and_attr(func)
+    if receiver == "pty":
         return True
-    return func.value.id == "os" and func.attr.startswith(("system", "exec", "spawn"))
+    return receiver == "os" and attr.startswith(("system", "exec", "spawn"))
 
 
 def offences(root):
@@ -35,9 +40,9 @@ def offences(root):
                 continue
             func = node.func
             if (
-                isinstance(func, ast.Attribute)
-                and isinstance(func.value, ast.Name)
-                and func.value.id in modules
-            ) or (isinstance(func, ast.Name) and func.id in functions) or _starts_process(func):
+                _receiver_and_attr(func)[0] in modules
+                or (isinstance(func, ast.Name) and func.id in functions)
+                or _starts_process(func)
+            ):
                 found.append(f"{path}:{node.lineno}: starts a process through subprocess")
     return found
