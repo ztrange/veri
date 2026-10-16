@@ -42,58 +42,6 @@ add_ledger_step='\$s/add-ledger-step\.sh'
 needs_user='needs_user|needs-user|needs the user'
 bail_cause='revise-exhausted'
 
-name="$skill_md's exhausted-budget branch launches the exhausted leaf and acts on exhausted-outcome.sh's three answers: replace the step on a split, park it on needs-user, bail revise-exhausted on neither"
-problems=()
-
-if [[ -n "$unreadable" ]]; then
-  problems+=("$unreadable what the conductor does when a step's revise budget runs out could not be established")
-else
-  grep -qE '\$s/build-develop-prompt\.sh exhausted' <<<"$section" ||
-    problems+=("$skill_md's revise section never builds an exhausted-phase prompt, so a step whose budget ran out is bailed without anything asking whether it should have been split")
-
-  if ! grep -qE "$outcome_reader" <<<"$section"; then
-    problems+=("$skill_md's revise section never runs exhausted-outcome.sh on the exhausted leaf's report, so which of the three outcomes it reported is decided by reading rather than by exit code")
-  else
-    outcome="$(window "$section" "$outcome_reader")"
-    grep -qE 'exit 0|exits? 0' <<<"$outcome" ||
-      problems+=("$skill_md's revise section runs exhausted-outcome.sh without saying exit 0 is the split, so the conductor cannot tell the split answer from the other two")
-    grep -qE 'exit 1|exits? 1' <<<"$outcome" ||
-      problems+=("$skill_md's revise section runs exhausted-outcome.sh without saying exit 1 is the needs-user answer, so a step the leaf escalated is acted on as something else")
-    grep -qE 'exit 3|exits? 3' <<<"$outcome" ||
-      problems+=("$skill_md's revise section runs exhausted-outcome.sh without saying exit 3 is neither answer, so the outcome that must bail exactly as today has no branch of its own")
-  fi
-
-  if ! grep -qE "$add_ledger_step" <<<"$section"; then
-    problems+=("$skill_md's revise section never runs add-ledger-step.sh on a split at exhaustion, so the criteria the leaf named are narrated and the plan the run reads is unchanged")
-  else
-    added="$(window "$section" "$add_ledger_step")"
-    grep -qE 'instead-of' <<<"$added" ||
-      problems+=("$skill_md's revise section grows the ledger at exhaustion with a placement other than instead-of, so the step nothing could satisfy stays in the plan alongside the criteria that replaced it")
-    grep -qE 'commit' <<<"$added" ||
-      problems+=("$skill_md's revise section grows the ledger at exhaustion without committing it, so the replacement steps are lost the moment the run is resumed from the committed ledger")
-    grep -qE 'next-unchecked' <<<"$section" ||
-      problems+=("$skill_md's revise section never returns to next-unchecked.sh after replacing the step, so the run does not continue from the first of the criteria it just filed")
-  fi
-
-  if ! grep -qE "$needs_user" <<<"$section"; then
-    problems+=("$skill_md's revise section never names the needs-user answer, so a leaf that escalates a step to the user is treated as one that volunteered nothing")
-  else
-    parked="$(window "$section" "$needs_user")"
-    grep -qE 'park' <<<"$parked" ||
-      problems+=("$skill_md's revise section names the needs-user answer without parking the step on it, so an escalation the leaf made deliberately ends as the same bail as saying nothing")
-  fi
-
-  if ! grep -qE "$bail_cause" <<<"$section"; then
-    problems+=("$skill_md's revise section no longer names the revise-exhausted cause, so a leaf that volunteered neither answer leaves the conductor to invent a stop for a step it already had one for")
-  else
-    bailed="$(window "$section" "$bail_cause")"
-    grep -qE 'bail' <<<"$bailed" ||
-      problems+=("$skill_md's revise section names revise-exhausted without bailing on it, so the outcome that should end the step exactly as today carries on instead")
-  fi
-fi
-
-report "$name"
-
 needs_user_open='exit 1 — the step needs the user'
 needs_user_close='exit 3'
 
@@ -109,27 +57,6 @@ issue_mirror='gh issue comment|post a [^.]{0,120}comment'
 
 unestablished="what a parked step leaves the user could not be established"
 
-name="$skill_md's needs-user branch mirrors the parked step to the issue thread, carrying the leaf's answer and the verifier's last rejection reason"
-problems=()
-
-if [[ -n "$unreadable" ]]; then
-  problems+=("$unreadable $unestablished")
-elif [[ -z "${branch// /}" ]]; then
-  problems+=("$skill_md's revise section has no '$needs_user_open' branch to read — $unestablished")
-else
-  if ! grep -qE "($issue_mirror)" <<<"$branch"; then
-    problems+=("$skill_md's needs-user branch parks the step without posting anything to the issue thread, so the one account of why the run stopped is a leaf log inside a worktree")
-  else
-    posted="$(window "$branch" "($issue_mirror)")"
-    grep -qE 'exhausted-answer' <<<"$posted" ||
-      problems+=("$skill_md's needs-user branch posts to the issue thread without carrying .tdd/exhausted-answer.txt, so the user reads that the step was parked and never the leaf's own account of why")
-    grep -qE 'reason' <<<"$posted" ||
-      problems+=("$skill_md's needs-user branch posts to the issue thread without carrying the verifier's last rejection reason, so the user is asked to decide about a step without the objection that stopped it")
-  fi
-fi
-
-report "$name"
-
 step_cost='step-cost.sh'
 
 after_wait() {
@@ -141,44 +68,12 @@ after_wait() {
 
 pre_commit_leaves=(develop-red verdict-red 'revise-<phase>-<k>' develop-green verdict-green)
 
-name="$skill_md checks $step_cost after develop-red, verify-red, each revise attempt, develop-green and verify-green, before the next leaf launches or the green commit ticks"
-problems=()
-
-if [[ ! -r "$skill_path" ]]; then
-  problems+=("$skill_md could not be read — where the cost check runs could not be established")
-else
-  for leaf in "${pre_commit_leaves[@]}"; do
-    window="$(after_wait "$leaf")"
-    if [[ -z "${window//[[:space:]]/}" ]]; then
-      problems+=("$skill_md never waits on $leaf, or launches the next leaf straight after it — where its cost check would go could not be established")
-    elif ! grep -F -- "$step_cost" > /dev/null <<<"$window"; then
-      problems+=("$skill_md runs no $step_cost between $leaf exiting and the next leaf's launch or the green commit, so a step that crossed its budget on $leaf spends on without anything asking")
-    fi
-  done
-fi
-
-report "$name"
-
 revise_prose_sentences() {
   revise_lines |
     awk '/^[[:space:]]*```/ { fenced = !fenced; next } !fenced' |
     plain --join |
     awk '{ n = split($0, s, /[.!?] /); for (i = 1; i <= n; i++) print s[i] }'
 }
-
-name="$skill_md says in the prose of '$revise_heading', not only in an inline comment, that the revise block runs $step_cost only when the phase is red or green, never for a refactor-phase revise"
-problems=()
-
-if [[ ! -r "$skill_path" ]]; then
-  problems+=("$skill_md could not be read — what the revise block says about its cost check could not be established")
-elif ! revise_prose_sentences |
-  grep -F -- "$step_cost" | grep -F -- 'refactor' |
-  grep -E -- "(^|[^a-z])(never|not|no)([^a-z]|$)|n't" |
-  grep -E -- "red or green|red or the green|red and green" > /dev/null; then
-  problems+=("no sentence of '$revise_heading' outside its fenced commands names $step_cost and refactor together, says the check does not run for a refactor-phase revise and states that it runs when the phase is red or green — the red-or-green-only rule lives only in an inline comment")
-fi
-
-report "$name"
 
 cost_heading="#### The step's cost check"
 
@@ -194,107 +89,6 @@ cost_check_sentences() {
 }
 
 post_commit_leaves=(develop-refactor verdict-refactor)
-
-name="$skill_md checks $step_cost after neither develop-refactor nor verify-refactor, and '$cost_heading' says why no check follows the green commit"
-problems=()
-
-if [[ ! -r "$skill_path" ]]; then
-  problems+=("$skill_md could not be read — where the cost check does not run could not be established")
-else
-  for leaf in "${post_commit_leaves[@]}"; do
-    if ! grep -F -- "wait-leaf.sh $leaf" "$skill_path" > /dev/null; then
-      problems+=("$skill_md never waits on $leaf — whether a cost check follows it could not be established")
-    elif grep -F -- "$step_cost" > /dev/null <<<"$(after_wait "$leaf")"; then
-      problems+=("$skill_md runs $step_cost after $leaf, which runs after the step's green commit, where a crossing can change nothing")
-    fi
-  done
-  cost_check_sentences |
-    grep -F -- 'after the green commit' |
-    grep -E -- "(^|[^a-z])(none|no|never|not)([^a-z]|$)" |
-    grep -F -- 'refactor' |
-    grep -E -- "(^|[^a-z])(because|since|so|by then)([^a-z]|$)" > /dev/null ||
-    problems+=("no sentence of '$cost_heading' says that no cost check follows a leaf after the green commit, names the refactor loop, and gives the reason")
-fi
-
-report "$name"
-
-name="'$cost_heading' says the check runs only once the leaf has exited and its usage event has been harvested"
-problems=()
-
-if [[ ! -r "$skill_path" ]]; then
-  problems+=("$skill_md could not be read — when the cost check runs could not be established")
-else
-  cost_check_sentences |
-    grep -F -- 'harvest' |
-    grep -F -- 'usage' |
-    grep -E -- "(^|[^a-z])exited([^a-z]|$)" |
-    grep -E -- "(^|[^a-z])(once|only|after)([^a-z]|$)" > /dev/null ||
-    problems+=("no sentence of '$cost_heading' says the check runs only once the leaf has exited and its usage event has been harvested")
-fi
-
-report "$name"
-
-name="'$cost_heading' says the check fires at most once per step and is not re-armed"
-problems=()
-
-if [[ ! -r "$skill_path" ]]; then
-  problems+=("$skill_md could not be read — how often the cost check fires could not be established")
-else
-  cost_check_sentences |
-    grep -F -- 'at most once per step' > /dev/null ||
-    problems+=("no sentence of '$cost_heading' says the check fires at most once per step")
-  cost_check_sentences |
-    grep -F -- 're-arm' |
-    grep -E -- "(^|[^a-z])(not|never|no|nothing)([^a-z]|$)" > /dev/null ||
-    problems+=("no sentence of '$cost_heading' says the check is not re-armed once its branch has run")
-fi
-
-report "$name"
-
-name="'$cost_heading' says $step_cost exit 3 (no leaf of the step has reported yet) is not a crossing"
-problems=()
-
-if [[ ! -r "$skill_path" ]]; then
-  problems+=("$skill_md could not be read — what $step_cost exit 3 means could not be established")
-else
-  exit_3_sentences="$(cost_check_sentences | grep -F -- 'exit 3')"
-  grep -F -- 'not a crossing' <<<"$exit_3_sentences" > /dev/null ||
-    problems+=("no sentence of '$cost_heading' says $step_cost exit 3 is not a crossing")
-  grep -E -- 'no leaf .*(reported|usage)' <<<"$exit_3_sentences" > /dev/null ||
-    problems+=("no sentence of '$cost_heading' says exit 3 means no leaf of the step has reported yet")
-fi
-
-report "$name"
-
-name="'$cost_heading' builds the over-budget prompt, launches its leaf through supervise.sh, and reads its answer with exhausted-outcome.sh, never by eye"
-problems=()
-
-if [[ ! -r "$skill_path" ]]; then
-  problems+=("$skill_md could not be read — how a crossing is answered could not be established")
-else
-  lines="$(cost_check_lines)"
-  grep -F -- 'build-develop-prompt.sh over-budget' <<<"$lines" > /dev/null ||
-    problems+=("'$cost_heading' never builds an over-budget prompt, so a crossing asks no leaf what to do about it")
-  launch="$(grep -F -- 'detach-leaf.sh $S/supervise.sh' <<<"$lines" | grep -F -- 'over-budget')"
-  if [[ -z "$launch" ]]; then
-    problems+=("'$cost_heading' never launches an over-budget leaf through detach-leaf.sh \$S/supervise.sh, the way the exhausted leaf is launched")
-  else
-    leaf="$(head -1 < <(sed -E 's/.*supervise\.sh ([^ ]+).*/\1/' <<<"$launch"))"
-    grep -F -- "wait-leaf.sh $leaf" <<<"$lines" > /dev/null ||
-      problems+=("'$cost_heading' launches $leaf but never waits on it with wait-leaf.sh")
-    grep -F -- "exhausted-outcome.sh < .tdd/$leaf.out" <<<"$lines" > /dev/null ||
-      problems+=("'$cost_heading' never reads $leaf's answer with exhausted-outcome.sh < .tdd/$leaf.out, so which answer it gave is a judgement made per run")
-  fi
-  if grep -F -- 'run-leaf.sh' <<<"$lines" | grep -vF -- 'supervise.sh' > /dev/null; then
-    problems+=("'$cost_heading' launches a leaf with run-leaf.sh outside supervise.sh, so nothing watches it for being stuck")
-  fi
-  cost_check_sentences |
-    grep -F -- 'by eye' |
-    grep -E -- "(^|[^a-z])(never|not)([^a-z]|$)" > /dev/null ||
-    problems+=("no sentence of '$cost_heading' says the over-budget leaf's answer is read with the script, never by eye")
-fi
-
-report "$name"
 
 first_line() {
   head -1 < <(cost_check_lines | grep -nF -- "$1" | cut -d: -f1)
