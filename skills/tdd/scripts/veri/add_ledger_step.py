@@ -168,10 +168,10 @@ def main(argv):
         if not is_anchor_step(line, anchor):
             out.append(line)
             continue
-        steps = [added_step(text, criterion or criterion_of(line), planned) for text in texts]
+        inserted = [added_step(text, criterion or criterion_of(line), planned) for text in texts]
         if where == "after":
             out.append(line)
-        out.extend(steps)
+        out.extend(inserted)
         if where == "before":
             out.append(line)
     write_ledger(path, "wb", "".join(line + "\n" for line in out))
