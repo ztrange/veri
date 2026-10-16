@@ -3,15 +3,33 @@ import ast
 from pathlib import Path
 
 
+def _subprocess_names(tree):
+    modules, functions = set(), set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == "subprocess":
+                    modules.add(alias.asname or "subprocess")
+        elif isinstance(node, ast.ImportFrom) and node.module == "subprocess":
+            for alias in node.names:
+                functions.add(alias.asname or alias.name)
+    return modules, functions
+
+
 def offences(root):
     found = []
     for path in sorted(Path(root).rglob("test_*.py")):
-        for node in ast.walk(ast.parse(path.read_text())):
+        tree = ast.parse(path.read_text())
+        modules, functions = _subprocess_names(tree)
+        modules.add("subprocess")
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
             if (
-                isinstance(node, ast.Call)
-                and isinstance(node.func, ast.Attribute)
-                and isinstance(node.func.value, ast.Name)
-                and node.func.value.id == "subprocess"
-            ):
+                isinstance(func, ast.Attribute)
+                and isinstance(func.value, ast.Name)
+                and func.value.id in modules
+            ) or (isinstance(func, ast.Name) and func.id in functions):
                 found.append(f"{path}:{node.lineno}: starts a process through subprocess")
     return found
