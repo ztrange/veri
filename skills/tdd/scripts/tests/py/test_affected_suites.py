@@ -4,6 +4,8 @@ import subprocess
 
 import pytest
 
+from conftest import SCRIPTS
+
 USAGE = "usage: affected-suites.sh <base>..<head>\n"
 
 
@@ -146,16 +148,15 @@ def test_main_prints_a_unit_suite_that_alone_names_a_script_with_no_suite_of_its
         0, "skills/tdd/scripts/tests/unit/names.test.sh\n", "")
 
 
-def test_main_prints_the_emitted_text_suite_for_a_prompt_no_suite_names_1024(
+def test_main_prints_no_suite_for_a_prompt_no_suite_names_1024(
         tmp_path, monkeypatch, capsys, affected):
     monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/prompts/unnamed.md"]))
     monkeypatch.chdir(tmp_path)
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
     (tests / "other.test.sh").write_text("")
-    (tests / "unit/emitted-text.test.sh").write_text('cksum < "$out"\n')
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
-        0, "skills/tdd/scripts/tests/unit/emitted-text.test.sh\n", "")
+        3, "", "")
 
 
 def test_main_prints_the_four_prompt_renderer_suites_for_a_develop_template_no_suite_names_1572(
@@ -169,9 +170,8 @@ def test_main_prints_the_four_prompt_renderer_suites_for_a_develop_template_no_s
                  "py/test_build_develop_prompt.py", "py/test_build_verify_prompt.py"]
     for name in renderers + ["other.test.sh"]:
         (tests / name).write_text("")
-    (tests / "unit/emitted-text.test.sh").write_text('cksum < "$out"\n')
     assert (affected.main(["base..head"]),) + (sorted(capsys.readouterr().out.splitlines()),) == (
-        0, sorted("skills/tdd/scripts/tests/" + n for n in renderers + ["unit/emitted-text.test.sh"]))
+        0, sorted("skills/tdd/scripts/tests/" + n for n in renderers))
 
 
 def test_main_prints_the_four_prompt_renderer_suites_for_a_verify_template_no_suite_names_1572(
@@ -185,9 +185,8 @@ def test_main_prints_the_four_prompt_renderer_suites_for_a_verify_template_no_su
                  "py/test_build_develop_prompt.py", "py/test_build_verify_prompt.py"]
     for name in renderers + ["other.test.sh"]:
         (tests / name).write_text("")
-    (tests / "unit/emitted-text.test.sh").write_text('cksum < "$out"\n')
     assert (affected.main(["base..head"]),) + (sorted(capsys.readouterr().out.splitlines()),) == (
-        0, sorted("skills/tdd/scripts/tests/" + n for n in renderers + ["unit/emitted-text.test.sh"]))
+        0, sorted("skills/tdd/scripts/tests/" + n for n in renderers))
 
 
 def test_main_prints_the_four_prompt_renderer_suites_for_a_partial_no_suite_names_1572(
@@ -201,9 +200,8 @@ def test_main_prints_the_four_prompt_renderer_suites_for_a_partial_no_suite_name
                  "py/test_build_develop_prompt.py", "py/test_build_verify_prompt.py"]
     for name in renderers + ["other.test.sh"]:
         (tests / name).write_text("")
-    (tests / "unit/emitted-text.test.sh").write_text('cksum < "$out"\n')
     assert (affected.main(["base..head"]),) + (sorted(capsys.readouterr().out.splitlines()),) == (
-        0, sorted("skills/tdd/scripts/tests/" + n for n in renderers + ["unit/emitted-text.test.sh"]))
+        0, sorted("skills/tdd/scripts/tests/" + n for n in renderers))
 
 
 def test_main_prints_only_the_prompt_renderer_suites_that_exist_for_a_template_change_1572(
@@ -216,9 +214,8 @@ def test_main_prints_only_the_prompt_renderer_suites_that_exist_for_a_template_c
     present = ["build-develop-prompt.test.sh", "py/test_build_develop_prompt.py"]
     for name in present + ["other.test.sh"]:
         (tests / name).write_text("")
-    (tests / "unit/emitted-text.test.sh").write_text('cksum < "$out"\n')
     assert (affected.main(["base..head"]),) + (sorted(capsys.readouterr().out.splitlines()),) == (
-        0, sorted("skills/tdd/scripts/tests/" + n for n in present + ["unit/emitted-text.test.sh"]))
+        0, sorted("skills/tdd/scripts/tests/" + n for n in present))
 
 
 def test_main_prints_none_of_the_prompt_renderer_suites_for_a_change_outside_the_prompts_directory_1572(
@@ -232,7 +229,6 @@ def test_main_prints_none_of_the_prompt_renderer_suites_for_a_change_outside_the
                  "py/test_build_develop_prompt.py", "py/test_build_verify_prompt.py"]
     for name in renderers + ["foo.test.sh"]:
         (tests / name).write_text("")
-    (tests / "unit/emitted-text.test.sh").write_text('cksum < "$out"\n')
     (tmp_path / "skills/tdd/scripts/foo.sh").write_text("#!/usr/bin/env bash\n")
     assert (affected.main(["base..head"]),) + (sorted(capsys.readouterr().out.splitlines()),) == (
         0, ["skills/tdd/scripts/tests/foo.test.sh"])
@@ -577,3 +573,12 @@ def test_main_prints_a_pytest_file_with_a_literal_heading_and_an_unrelated_file_
     (py / "test_open.py").write_text('section(SKILL, "## Alpha")\ndata = %s\n' % read)
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
         0, "skills/tdd/scripts/tests/py/test_open.py\n", "")
+
+
+def test_every_suite_path_affected_suites_names_exists():
+    """Its subject is source text: the suite paths veri/affected_suites.py spells."""
+    import re
+    source = (SCRIPTS / "veri" / "affected_suites.py").read_text(encoding="utf-8")
+    spelled = sorted(set(re.findall(r"tests/(?:[\w./-]+\.test\.sh|py/test_\w+\.py)", source)))
+    missing = [p for p in spelled if not (SCRIPTS / p).is_file()]
+    assert spelled and missing == [], "affected_suites.py names suites that are not files: %s" % ", ".join(missing)

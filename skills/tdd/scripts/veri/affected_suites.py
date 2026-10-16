@@ -247,7 +247,7 @@ def suite_of(f, revisions=None):
         renderers = [existing(SCRIPTS + "/tests/" + n) for n in (
             "build-develop-prompt.test.sh", "build-verify-prompt.test.sh",
             "py/test_build_develop_prompt.py", "py/test_build_verify_prompt.py")]
-        return (suites_naming(f[len(SCRIPTS + "/"):]) + existing(SCRIPTS + "/tests/unit/emitted-text.test.sh")
+        return (suites_naming(f[len(SCRIPTS + "/"):])
                 + [s for found in renderers for s in found])
     if match(SCRIPTS + "/lib/*.sh"):
         line = sourcing(basename(f).encode(), rb"(\\)?")
