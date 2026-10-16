@@ -13,6 +13,7 @@ except ImportError:
 
 USAGE = "usage: affected-suites.sh <base>..<head>"
 SCRIPTS = "skills/tdd/scripts"
+PYTEST_DIRS = (SCRIPTS + "/tests/py", SCRIPTS + "/tests/py/unit")
 SPACE = rb"[ \t\n\v\f\r]"
 
 
@@ -191,8 +192,7 @@ def reads_only_through_slicers(suite, f):
 
 
 def pytest_texts():
-    return [(p, read(p) or b"")
-            for p in suites(SCRIPTS + "/tests/py/test_*.py") + suites(SCRIPTS + "/tests/py/unit/test_*.py")]
+    return [(p, read(p) or b"") for d in PYTEST_DIRS for p in suites(d + "/test_*.py")]
 
 
 SECTION_CALL = rb"section\("
@@ -238,8 +238,7 @@ def suite_of(f, revisions=None):
             return ([s for s in naming if s in readers or s not in slicers]
                     + pytest_readers(forms(*section)) + pytest_whole_readers())
         return naming + pytest_skill_readers() if f == "skills/tdd/SKILL.md" and revisions else naming
-    if match(SCRIPTS + "/tests/*.test.sh", SCRIPTS + "/tests/py/test_*.py",
-             SCRIPTS + "/tests/py/unit/test_*.py"):
+    if match(SCRIPTS + "/tests/*.test.sh", *[d + "/test_*.py" for d in PYTEST_DIRS]):
         return existing(f)
     if f == SCRIPTS + "/tests/lib/harness.sh":
         return [s for s in every_suite() if has_line(s, sourcing(rb"harness\.sh"))]
@@ -262,8 +261,7 @@ def suite_of(f, revisions=None):
         return found
     if match(SCRIPTS + "/veri/*.py"):
         name = basename(f, ".py")
-        return (existing("%s/tests/py/test_%s.py" % (SCRIPTS, name))
-                + existing("%s/tests/py/unit/test_%s.py" % (SCRIPTS, name))
+        return ([s for d in PYTEST_DIRS for s in existing("%s/test_%s.py" % (d, name))]
                 + suite_of("%s/%s.sh" % (SCRIPTS, name.replace("_", "-"))))
     if match(SCRIPTS + "/*.sh"):
         name = basename(f, ".sh")
