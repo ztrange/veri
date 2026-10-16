@@ -280,4 +280,19 @@ problems=""
 [[ "$sub_step_1" == *'`CANDIDATES: out-of-scope`'* ]] || problems="$problems; sub-step 1 names no CANDIDATES: out-of-scope line"
 [[ -z "$problems" ]] && ok || no "$name (${problems#; })"
 
+name="develop-replaces (#1625) names every case in the missing-cases file, points at the report file and asks for a REPLACES: line each, and a missing report or cases file exits 2 with no stdout"
+printf '%s\n' 'wrote the replacements' > "$work/red-report.txt"
+printf '%s\n' 'zibble case alpha' 'zibble case beta' > "$work/missing-cases.txt"
+rep_out="$("$BUILD" replaces-report "$work/spec.md" "$step_text" "$test_cmd" "$work/red-report.txt" "$work/missing-cases.txt" 2>/dev/null)"; rep_code=$?
+nr_out="$("$BUILD" replaces-report "$work/spec.md" "$step_text" "$test_cmd" "$work/no-such-report.txt" "$work/missing-cases.txt" 2>/dev/null)"; nr_code=$?
+nm_out="$("$BUILD" replaces-report "$work/spec.md" "$step_text" "$test_cmd" "$work/red-report.txt" "$work/no-such-cases.txt" 2>/dev/null)"; nm_code=$?
+problems=""
+[[ "$rep_code" -eq 0 ]] || problems="$problems; exit $rep_code, not 0"
+[[ "$rep_out" == *'zibble case alpha'* && "$rep_out" == *'zibble case beta'* ]] || problems="$problems; a missing case is not named"
+[[ "$rep_out" == *"$work/red-report.txt"* ]] || problems="$problems; the report file is not named"
+[[ "$rep_out" == *'REPLACES: <case> => <test id>'* ]] || problems="$problems; no REPLACES: line format asked for"
+[[ "$nr_code" -eq 2 && -z "$nr_out" ]] || problems="$problems; missing report: exit $nr_code, stdout '${nr_out:+prompt}'"
+[[ "$nm_code" -eq 2 && -z "$nm_out" ]] || problems="$problems; missing cases file: exit $nm_code, stdout '${nm_out:+prompt}'"
+[[ -z "$problems" ]] && ok || no "$name (${problems#; })"
+
 finish
