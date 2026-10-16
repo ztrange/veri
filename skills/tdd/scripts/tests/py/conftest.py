@@ -25,6 +25,7 @@ REAL_RUN, REAL_POPEN = subprocess.run, subprocess.Popen
 
 
 CANONICAL_SHIM = re.compile(r'exec python3 "\$\(dirname "\$0"\)/(veri/[\w-]+\.py)" "\$@"')
+SHIM_EXEC = re.compile(r'^exec python3 .*/(veri/[\w-]+\.py)"', re.MULTILINE)
 
 
 def shim_problems(scripts, exempt=()):
@@ -46,11 +47,11 @@ def shim_problems(scripts, exempt=()):
 
 def entry_bypass_problems(scripts):
     problems = []
-    shims = sorted(pathlib.Path(scripts).glob("*.sh"))
+    shims = [(script, SHIM_EXEC.search(script.read_text())) for script in sorted(pathlib.Path(scripts).glob("*.sh"))]
+    shims = [(script, match) for script, match in shims if match]
     if not shims:
         problems.append("no shim found under %s" % scripts)
-    for script in shims:
-        match = CANONICAL_SHIM.search(script.read_text())
+    for script, match in shims:
         module = pathlib.Path(scripts) / match.group(1)
         lines = module.read_text().splitlines()
         for number, line in enumerate(lines, 1):
