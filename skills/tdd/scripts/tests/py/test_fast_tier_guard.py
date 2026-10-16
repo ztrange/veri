@@ -146,3 +146,24 @@ def test_a_planted_test_file_running_another_suite_through_pytest_main_or_a_name
     assert sorted(line.split(": ")[0] for line in found) == sorted(planted)
     for line in found:
         assert "nested" in line.split(": ", 1)[1]
+
+
+def test_an_offence_whose_file_and_line_the_exemption_table_lists_with_a_reason_is_not_reported_and_an_entry_with_an_empty_reason_is_refused_by_name(tmp_path):
+    import pytest
+
+    guard = importlib.import_module("veri.fast_tier_guard")
+    exempt = tmp_path / "test_exempt.py"
+    other = tmp_path / "test_other.py"
+    for path in (exempt, other):
+        path.write_text(
+            "import time\n"
+            "\n"
+            "def test_waits():\n"
+            "    time.sleep(1)\n"
+        )
+
+    found = guard.offences(tmp_path, {f"{exempt}:4": "waits on a fake clock"})
+
+    assert [line.split(": ")[0] for line in found] == [f"{other}:4"]
+    with pytest.raises(ValueError, match=f"{exempt}:4"):
+        guard.offences(tmp_path, {f"{exempt}:4": ""})
