@@ -993,3 +993,50 @@ def test_main_inserts_a_suite_repair_when_the_only_earlier_step_this_run_merely_
 
     assert (code, out, err) == (0, "", "")
     assert b"fix the full-suite failure: real.test.sh" in ledger.read_bytes()
+
+
+def test_main_inserts_a_text_that_only_quotes_the_suite_repair_mark_when_this_run_already_inserted_a_suite_repair_1613(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes((
+        "# Plan for #42\n"
+        "\n"
+        "- [x] a one ⟦criterion 1⟧\n"
+        "- [x] fix the full-suite failure: first.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧\n"
+        "- [ ] b two ⟦criterion 2⟧\n"
+    ).encode())
+
+    code, out, err = run_cli(
+        add_ledger_step,
+        [str(ledger), "after", "b two", "explain why ⟦suite-repair⟧ steps are capped per run"],
+    )
+
+    assert (code, err) == (0, "")
+    assert "- [ ] explain why ⟦suite-repair⟧ steps are capped per run ⟦added⟧ ⟦criterion 2⟧\n" in ledger.read_text()
+
+
+def test_main_inserts_a_suite_repair_after_the_last_resume_when_the_step_after_this_runs_anchor_only_quotes_the_mark_1613(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_bytes((
+        "# Plan for #42\n"
+        "\n"
+        "- [x] a one ⟦criterion 1⟧\n"
+        "- [x] fix the full-suite failure: first.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧\n"
+        "- [x] b two ⟦criterion 2⟧\n"
+        "- [x] explain why ⟦suite-repair⟧ steps are capped per run ⟦added⟧ ⟦criterion 2⟧\n"
+        "- [ ] c three ⟦criterion 3⟧\n"
+    ).encode())
+    events = [
+        {"ts": 1, "issue": "42", "event": "step-added", "anchor": "a one", "added": "1"},
+        {"ts": 2, "issue": "42", "event": "resume"},
+        {"ts": 3, "issue": "42", "event": "step-added", "anchor": "b two", "added": "1"},
+    ]
+    (ledger.parent / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+
+    code, out, err = run_cli(
+        add_ledger_step,
+        [str(ledger), "after", "c three", "fix the full-suite failure: second.test.sh ⟦suite-repair⟧"],
+    )
+
+    assert code == 0, err
+    assert "second.test.sh ⟦suite-repair⟧" in ledger.read_text()
