@@ -52,6 +52,10 @@ def suite_results(suite, old):
     return failed_nodes(suite) if "::" in old else failed_cases(suite)
 
 
+def replacement_fails(fate, kept, failed):
+    return node_fails(kept) if fate == "replaced" else named(kept, failed)
+
+
 def unmutated_failures(suite, old, fate, kept):
     try:
         failed = suite_results(suite, old)[0]
@@ -60,7 +64,7 @@ def unmutated_failures(suite, old, fate, kept):
     bad = []
     if named(old, failed):
         bad.append(f"old case {old}")
-    if (node_fails(kept) if fate == "replaced" else named(kept, failed)):
+    if replacement_fails(fate, kept, failed):
         bad.append(f"replacement {kept}")
     return bad
 
@@ -79,7 +83,7 @@ def check(row):
         except SuiteDied as error:
             died = error
         else:
-            caught = node_fails(kept) if fate == "replaced" else named(kept, failed)
+            caught = replacement_fails(fate, kept, failed)
     finally:
         subprocess.run(["git", "apply", "-R", patch], check=True)
     if died:
