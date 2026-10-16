@@ -12,10 +12,7 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-ROOT="$(cd "$HERE/../../../.." && pwd)"
-tests_dir="$HERE"
 scripts_dir="$HERE/.."
-[[ -d "$HERE/unit" ]] || tests_dir="$HERE"
 
 source "$HERE/lib/harness.sh"
 
@@ -43,7 +40,7 @@ script_list="$(IFS='|'; echo "${names[*]}")"
 
 problems=()
 shopt -s nullglob
-for f in "$tests_dir"/unit/*.test.sh; do
+for f in "$HERE"/unit/*.test.sh; do
   suite="${f##*/}"
   [[ -n "${EXEMPT[$suite]+x}" ]] && continue
   while IFS=$'\t' read -r lineno text; do
