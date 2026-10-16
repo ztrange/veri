@@ -4,3 +4,5 @@
 - test-only | extract the repeated `out=$(…) && code=0 || code=$?` guard-run capture in `unit-subprocess-guard.test.sh` into one `run_guard` helper
 ### The unit-tier admission guard fails when a planted suite under tests/unit/ assigns a variable a path to a script under skills/tdd/scripts/ and later runs it as a command, `"$VAR" …`, naming that suite as `<suite>:<line>` at the line that runs it ⟦criterion 3⟧
 - test-only | unit-subprocess-guard.test.sh repeats the scratch-tree and offender setup of its earlier planted case in the new `"$VAR"` case; a shared helper would remove it
+### The unit-tier admission guard fails when a planted suite under tests/unit/ runs such a script variable behind a `NAME=value` prefix, `NAME=value "$VAR" …`, naming that suite as `<suite>:<line>` ⟦criterion 3⟧
+- test-only | `unit-subprocess-guard.test.sh`: the three planted-offender blocks (variable, command substitution, `NAME=value` prefix) repeat the same scratch-tree build, guard copy, run and two-assertion skeleton. A helper taking the offender name and body would remove the duplication.
