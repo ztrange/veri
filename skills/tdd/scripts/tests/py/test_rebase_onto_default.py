@@ -1275,3 +1275,32 @@ def test_main_after_the_resume_discard_keeps_the_tick_of_a_reworded_step_whose_g
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     assert ledger.read_text() == "- [x] step one reworded\n- [ ] step two\n"
+
+
+@pytest.mark.process("git: a real resumed worktree whose ledger carries two steps of identical text, one ticked by a green commit on the branch and one ticked only in the uncommitted copy, discarded by the resume's own commands")
+def test_main_after_the_resume_discard_judges_each_tick_of_two_steps_with_identical_text_on_its_own_1611(
+        monkeypatch, tmp_path):
+    for who in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
+        monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
+    scripts = pathlib.Path(__file__).resolve().parents[2]
+    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
+                        (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
+
+    def git(repo, *args):
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
+
+    clone = tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "-b", "tdd/1-a-run", str(clone)], check=True)
+    (clone / ".tdd").mkdir()
+    ledger = clone / ".tdd" / "issue-1.md"
+    ledger.write_text("- [ ] same step\n- [x] same step\n")
+    git(clone, "add", "-A")
+    git(clone, "commit", "-q", "-m", "fix: the second same step (#1)")
+    ledger.write_text("- [x] same step\n- [x] same step\n")
+
+    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    assert ledger.read_text() == "- [ ] same step\n- [x] same step\n"
