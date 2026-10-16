@@ -188,3 +188,12 @@ def test_the_guard_with_the_real_exemption_table_finds_no_offence_in_the_fast_ti
     committed = guard.offences(SCRIPTS / "tests" / "py" / "unit", guard.EXEMPTIONS)
 
     assert ([line.split(": ")[0] for line in planted], committed) == ([f"{offender}:4"], [])
+
+
+def test_a_root_that_does_not_exist_is_refused_with_exit_2_and_a_stderr_line_naming_the_path_instead_of_reporting_no_offences(tmp_path, run_cli):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    missing = tmp_path / "no-such-tier"
+
+    code, stdout, stderr = run_cli(guard, [str(missing)])
+
+    assert (code, stdout, str(missing) in stderr) == (2, "", True)
