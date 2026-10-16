@@ -160,4 +160,20 @@ for where in '#### Green' "$revise_heading"; do
 done
 report "$name"
 
+name="#1586: $skill_md's Revising on a REJECT gives a revise-green WRONG_TEST: report the outcome Green gives a develop-green WRONG_TEST: stop, a verify-green REJECT and never a report-missing bail"
+problems=()
+green_outcome="$(numbered_section '#### Green' | cut -f 2- | plain --join | sed 's/\. /.\n/g' | grep -F 'looks wrong' || true)"
+revise_wt="$(numbered_section "$revise_heading" | cut -f 2- | awk '/^[[:space:]]*```/ { fence = !fence; next } !fence' | plain --join | sed 's/\. /.\n/g' | grep -F 'wrong_test' || true)"
+grep -qF 'verify-green reject' <<<"$green_outcome" ||
+  problems+=("$skill_md's Green section: no sentence about a green that stops because the test looks wrong names a verify-green REJECT, so there is no outcome to match")
+if [[ -z "$revise_wt" ]]; then
+  problems+=("$skill_md's Revising on a REJECT: no sentence names a revise-green WRONG_TEST: report")
+else
+  grep -qF 'verify-green reject' <<<"$revise_wt" ||
+    problems+=("$skill_md's Revising on a REJECT: the WRONG_TEST: sentence does not give the outcome Green gives a develop-green stop, a verify-green REJECT")
+  grep -qF 'report-missing' <<<"$revise_wt" ||
+    problems+=("$skill_md's Revising on a REJECT: the WRONG_TEST: sentence does not rule out a report-missing bail")
+fi
+report "$name"
+
 finish
