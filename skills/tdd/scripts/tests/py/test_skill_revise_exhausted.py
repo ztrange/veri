@@ -150,15 +150,8 @@ def test_skill_md_checks_step_cost_sh_after_develop_red_verify_red_each_revise_a
 
 
 def test_skill_md_says_in_the_prose_of_the_revise_heading_not_only_in_an_inline_comment_that_the_revise_block_runs_step_cost_sh_only_when_the_phase_is_red_or_green_never_for_a_refactor_phase_revise():
-    prose, fenced = [], False
-    for line in _lines(REVISE):
-        if re.match(r"\s*```", line):
-            fenced = not fenced
-            continue
-        if not fenced:
-            prose.append(line)
     assert any_sentence(
-        sentences(plain(prose)),
+        revise_prose_sentences(),
         re.escape(STEP_COST),
         "refactor",
         r"(^|[^a-z])(never|not|no)([^a-z]|$)|n't",
