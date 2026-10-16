@@ -23,11 +23,11 @@ def main(argv):
         return 2
     step, report = argv
     with open(report, encoding="utf-8") as handle:
-        replaced = {
-            re.sub(r"^`(.*)`$", r"\1", m.group(1))
-            for m in re.finditer(r"^REPLACES: (.*?) => (.*)$", handle.read(), re.M)
-            if exists_in_tree(m.group(2))
-        }
+        replaced = set()
+        for m in re.finditer(r"^REPLACES: (.*?) => (.*)$", handle.read(), re.M):
+            if exists_in_tree(m.group(2)):
+                replaced.add(m.group(1))
+                replaced.add(re.sub(r"^([`'\"])(.*)\1$", r"\2", m.group(1)))
     parsed = replaces_case.parse(step)
     missing = [name for name in (parsed[0] if parsed else []) if name not in replaced]
     for name in missing:
