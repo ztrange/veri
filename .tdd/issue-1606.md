@@ -1,5 +1,7 @@
 # Plan for #1606 — PRD 009: the fast tier is instant by construction — make unit runs only in-process tests, judged from source
 
+- [ ] `pytest-leg.test.sh`'s `make unit` cases plant their probe `test_*.py` under `tests/py/unit/`, while its `make test` cases keep planting under `tests/py/` and its scratch-tree copy of the Makefile mirrors the new one, so the suite stays green once `make unit` runs only the files under `tests/py/unit/` ⟦added⟧ ⟦criterion 1⟧
+- [ ] `make -n unit`'s pytest roster names only the `test_*.py` files under `skills/tdd/scripts/tests/py/unit/` and none from elsewhere under `tests/py/`, with at least one pytest file moved there and `make test`'s roster still naming every `test_*.py` under `tests/py/`, subdirectories included ⟦added⟧ ⟦criterion 1⟧
 - [ ] `make -n unit`'s pytest roster names only the `test_*.py` files under `skills/tdd/scripts/tests/py/unit/` and none from elsewhere under `tests/py/`, pinned by a case that reads the roster off `make -n unit` ⟦criterion 1⟧
 - [ ] `make -n test`'s pytest roster names every `test_*.py` under `skills/tdd/scripts/tests/py/`, the ones under `tests/py/unit/` included, pinned by a case that reads the roster off `make -n test` ⟦criterion 1⟧
 - [ ] A fast-tier pytest file (under `tests/py/unit/`) whose own source starts a process — `subprocess`, `os.system`, `os.exec*`, `os.spawn*` or `pty` — fails the fast-tier source guard, which names `file:line`; pinned by one planted offender per form turning the guard red ⟦criterion 2⟧
