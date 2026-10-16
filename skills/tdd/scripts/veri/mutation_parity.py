@@ -18,7 +18,7 @@ def failed_cases(suite):
     count = COUNT_LINE.match(lines[-1]) if lines else None
     if not count:
         raise RuntimeError(f"{suite} never reached its count line")
-    return failed, int(count.group(1))
+    return failed, int(count.group(1)), int(count.group(1)) + int(count.group(2))
 
 
 def pytest(*args):
@@ -33,7 +33,7 @@ def failed_nodes(suite):
     lines = pytest("-rA", suite).stdout.splitlines()
     failed = {line.split()[1] for line in lines if line.startswith(("FAILED ", "ERROR "))}
     passed = sum(1 for line in lines if line.startswith("PASSED "))
-    return failed, passed
+    return failed, passed, passed + len(failed)
 
 
 def node_fails(node):
@@ -48,11 +48,11 @@ def check(row):
     suite, old, fate, kept, patch = row
     subprocess.run(["git", "apply", patch], check=True)
     try:
-        failed, passed = failed_nodes(suite) if "::" in old else failed_cases(suite)
+        failed, passed, total = failed_nodes(suite) if "::" in old else failed_cases(suite)
         caught = node_fails(kept) if fate == "replaced" else named(kept, failed)
     finally:
         subprocess.run(["git", "apply", "-R", patch], check=True)
-    if named(old, failed) and passed > 0:
+    if named(old, failed) and (passed > 0 or total == 1):
         return "proven" if caught else "unproven"
     return "owed"
 

@@ -282,6 +282,30 @@ else
     mixed stdout: $out"
 fi
 
+cat > "$repo/tests/single.test.sh" <<'SUITE'
+#!/bin/sh
+. "$(dirname "$0")/../calc.sh"
+pass=0; fail=0
+check() { if [ "$2" = "$3" ]; then pass=$((pass + 1)); else fail=$((fail + 1)); echo "FAIL - $1"; fi; }
+check "adds two numbers" 5 "$(add 2 3)"
+echo "----"
+echo "$pass passed, $fail failed"
+[ "$fail" -eq 0 ]
+SUITE
+chmod +x "$repo/tests/single.test.sh"
+git -C "$repo" add -A && git -C "$repo" commit -qm 'single-case suite'
+table="$work/single.tsv"
+printf 'tests/single.test.sh\tadds two numbers\treplaced\t%s\t%s\n' "$node" "$work/add-subtracts.patch" > "$table"
+out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/single.err")" && code=0 || code=$?
+row="$(grep -F 'adds two numbers' <<<"$out" | grep -wF proven || true)"
+if [[ "$code" == 0 && -n "$row" ]]; then
+  ok
+else
+  no "#1594: a row whose old suite holds exactly one case reads proven when that suite runs to its count line with the named case failed and the replacement is caught (exit=$code want 0)
+    stdout: $out
+    stderr: $(cat "$work/single.err")"
+fi
+
 printf 'mul() { echo $(( $1 * $2 )); }\n' > "$work/mul.sh"
 sed 's/\*/\//' "$work/mul.sh" > "$work/mul.mutated"
 diff -u --label a/calc.sh --label b/calc.sh "$work/mul.sh" "$work/mul.mutated" > "$work/does-not-apply.patch"
