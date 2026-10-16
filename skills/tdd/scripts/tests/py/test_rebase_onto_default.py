@@ -1308,3 +1308,17 @@ def test_main_after_the_resume_discard_unticks_a_stale_tick_at_the_line_position
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     assert ledger.read_text() == "- [ ] step one\n- [ ] step three\n"
+
+
+@pytest.mark.process("git: a real resumed worktree whose ledger carries two ticked steps of identical text in the uncommitted copy and one committed tick of that text, discarded by the resume's own commands")
+def test_main_after_the_resume_discard_keeps_exactly_one_tick_of_two_working_ticks_with_one_committed_tick_of_that_text_1611(
+        monkeypatch, tmp_path):
+    scripts, clone, ledger, git, discard = _resumed_clone_1611(
+        monkeypatch, tmp_path, "- [x] twin step\n- [ ] other step\n- [ ] twin step\n", "fix: a twin step (#1)")
+    ledger.write_text("- [x] twin step\n- [ ] other step\n- [x] twin step\n")
+
+    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    lines = ledger.read_text().splitlines()
+    assert (len(lines), lines.count("- [x] twin step"), lines.count("- [ ] twin step"), "- [ ] other step" in lines) == (3, 1, 1, True)
