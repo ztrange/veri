@@ -3,19 +3,6 @@ import ast
 from pathlib import Path
 
 
-def _subprocess_names(tree):
-    modules, functions = set(), set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            for alias in node.names:
-                if alias.name == "subprocess":
-                    modules.add(alias.asname or "subprocess")
-        elif isinstance(node, ast.ImportFrom) and node.module == "subprocess":
-            for alias in node.names:
-                functions.add(alias.asname or alias.name)
-    return modules, functions
-
-
 def _aliases(tree):
     modules, names = {}, {}
     for node in ast.walk(tree):
@@ -45,9 +32,10 @@ def offences(root):
     found = []
     for path in sorted(Path(root).rglob("test_*.py")):
         tree = ast.parse(path.read_text())
-        modules, functions = _subprocess_names(tree)
-        modules.add("subprocess")
         module_aliases, name_imports = _aliases(tree)
+        modules = {alias for alias, name in module_aliases.items() if name == "subprocess"}
+        modules.add("subprocess")
+        functions = {alias for alias, (module, _) in name_imports.items() if module == "subprocess"}
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call):
                 continue
