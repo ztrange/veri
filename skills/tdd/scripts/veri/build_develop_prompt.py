@@ -19,6 +19,14 @@ GREEN_FREEZE_RULE = (
     "bar easier to clear is not clearing it: a pass bought by weakening, skipping or deleting\n"
     "the case is a rejected step. If the test itself looks wrong, say so in your report as one\n"
     "`WRONG_TEST: <why>` line and stop \u2014 do not edit it.").encode()
+TEST_REWRITE_GRANT = (
+    "**A rewritten test is a new test, and owes a new prediction**: predict its failure\n"
+    "   before you run any suite, in `.tdd/red-prediction.md` \u2014 which assertion fires first against the unmodified\n"
+    "   production code, the observed-versus-expected values it fires on, and the shape of the\n"
+    "   message the suite will print \u2014 then run, saving the run's output to `.tdd/red-run-output.txt`, and compare what it printed against that\n"
+    "   prediction; never adjust the prediction to fit what you saw. The leaf whose attempt was\n"
+    "   rejected predicted a different test, so there is nothing here for you to inherit.").encode()
+TEST_REWRITE_NONE = b"**Leave the test files as they are**: this phase has no test of its own to redo."
 WANT_REVISE_PHASES = "|".join(REVISABLE_PHASES)
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ARGUMENT_PLACEHOLDERS = {"<test-path>": "TEST_PATH", "<target-test>": "TARGET_TEST", "<fast-cmd>": "FAST_CMD",
@@ -105,7 +113,7 @@ def main(argv):
     prompts_b = os.fsencode(prompts)
     values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "RED_CASES", "RED_LEAD", "REPLACES_CASE", "SUITE_REPAIR", "CI_REPAIR", "STEP",
                             "TEST_CMD", "TEST_PATH", "TARGET_TEST", "FAST_CMD", "TIMED_TEST_RUN", "TOUCHED_FILES",
-                            "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "REJECTION_REASON", "BRANCH",
+                            "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "TEST_REWRITE", "REJECTION_REASON", "BRANCH",
                             "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES"), b"")
     values["RED_CASES"] = (b"One criterion, one case \xe2\x80\x94 no extra cases, and no generality the step does\n"
                            b"not ask for.")
@@ -126,6 +134,7 @@ def main(argv):
     if phase == "refactor":
         values["REFACTOR_BUDGET"] = os.fsencode(tunables.read("VERI_REFACTOR_BUDGET") or "5")
     values["REVISE_PHASE"] = os.fsencode(revised_phase)
+    values["TEST_REWRITE"] = TEST_REWRITE_NONE if revised_phase in ("green", "refactor") else TEST_REWRITE_GRANT
     if revised_phase == "green":
         values["FREEZE_RULE"] = GREEN_FREEZE_RULE
     try:
