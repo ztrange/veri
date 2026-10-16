@@ -81,10 +81,7 @@ def offences(root, exemptions=None):
 
 
 def main(argv):
-    root = Path(argv[0])
-    if not root.is_dir():
-        sys.stderr.write(f"fast_tier_guard: {root}: no such directory\n")
-        return 2
+    offences(argv[0])
     return 0
 
 

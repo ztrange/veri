@@ -207,6 +207,15 @@ def test_offences_raises_instead_of_returning_an_empty_list_when_its_root_does_n
         guard.offences(missing)
 
 
+def test_the_guards_command_line_on_a_missing_root_exits_2_with_the_refusal_line_offences_raising_produces_and_nothing_on_stdout(tmp_path, run_cli):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    missing = tmp_path / "no-such-tier"
+
+    code, stdout, stderr = run_cli(guard, [str(missing)])
+
+    assert (code, stdout, stderr) == (2, "", f"fast-tier-guard.sh: NotADirectoryError: {missing}: no such directory\n")
+
+
 @pytest.mark.tree_audit("every test_*.py under tests/py and tests/py/unit")
 def test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it():
     guard = importlib.import_module("veri.fast_tier_guard")
