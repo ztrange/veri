@@ -232,17 +232,29 @@ def test_the_guards_command_line_prints_a_planted_offence_by_file_and_line_and_e
     assert (dirty_code, dirty_out.startswith(f"{offender}:4: "), clean_code, clean_out) == (1, True, 0, "")
 
 
-@pytest.mark.tree_audit("every test_*.py under tests/py and tests/py/unit")
-def test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it():
+def _misplaced(tier):
+    """Criterion 1's placement rule over `tier` and its `unit/`, judged against no exemption table."""
     guard = importlib.import_module("veri.fast_tier_guard")
-    tier = SCRIPTS / "tests" / "py"
-    named = {line.split(":")[0] for line in guard.offences(tier, guard.EXEMPTIONS)}
+    named = {line.split(":")[0] for line in guard.offences(tier, {})}
     files = sorted(tier.glob("test_*.py")) + sorted((tier / "unit").glob("test_*.py"))
-
-    misplaced = [
+    return [
         f"{path.relative_to(tier)}: {'named by the guard, inside the tier' if str(path) in named else 'guard-clean, outside the tier'}"
         for path in files
         if (str(path) in named) == (path.parent.name == "unit")
     ]
 
-    assert misplaced == []
+
+@pytest.mark.tree_audit("every test_*.py under tests/py and tests/py/unit")
+def test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it():
+    assert _misplaced(SCRIPTS / "tests" / "py") == []
+
+
+def test_the_placement_audit_still_names_an_offending_file_inside_the_tier_that_the_exemption_table_lists(tmp_path, monkeypatch):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    (tmp_path / "unit").mkdir()
+    offender = tmp_path / "unit" / "test_waits.py"
+    offender.write_text("import time\n\ndef test_waits():\n    time.sleep(1)\n")
+    monkeypatch.setattr(guard, "EXEMPTIONS", {f"{offender}:4": "planted: the audit must ignore this"})
+
+    assert guard.offences(tmp_path, guard.EXEMPTIONS) == []
+    assert _misplaced(tmp_path) == ["unit/test_waits.py: named by the guard, inside the tier"]
