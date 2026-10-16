@@ -1295,3 +1295,16 @@ def test_main_after_the_resume_discard_keeps_the_tick_of_a_committed_step_when_a
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     assert ledger.read_text() == "- [ ] inserted step ⟦added⟧\n" + ticked
+
+
+@pytest.mark.process("git: a real resumed worktree whose ledger carries a stale tick on a step whose text matches no committed tick, at the line position of a committed tick, discarded by the resume's own commands")
+def test_main_after_the_resume_discard_unticks_a_stale_tick_at_the_line_position_of_a_committed_tick_1611(
+        monkeypatch, tmp_path):
+    scripts, clone, ledger, git, discard = _resumed_clone_1611(
+        monkeypatch, tmp_path, "- [ ] step one\n- [x] step two\n", "fix: step two (#1)")
+    ledger.write_text("- [ ] step one\n- [x] step three\n")
+
+    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    assert ledger.read_text() == "- [ ] step one\n- [ ] step three\n"
