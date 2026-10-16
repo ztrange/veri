@@ -42,6 +42,8 @@ def offences(root):
             receiver, attr = _receiver_and_attr(func)
             if (receiver, attr) == ("time", "sleep"):
                 found.append(f"{path}:{node.lineno}: sleeps through time.sleep")
+            elif receiver == "socket":
+                found.append(f"{path}:{node.lineno}: opens a socket through socket")
             elif (
                 receiver in modules
                 or (isinstance(func, ast.Name) and func.id in functions)

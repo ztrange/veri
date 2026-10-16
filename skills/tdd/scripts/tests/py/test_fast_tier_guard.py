@@ -79,3 +79,19 @@ def test_a_planted_test_file_calling_time_sleep_is_reported_as_a_sleep_offence_b
 
     assert [line.split(": ")[0] for line in found] == [f"{offender}:4"]
     assert "sleep" in found[0].split(": ", 1)[1]
+
+
+def test_a_planted_test_file_opening_a_socket_is_reported_as_a_socket_offence_by_file_and_line(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    offender = tmp_path / "test_networker.py"
+    offender.write_text(
+        "import socket\n"
+        "\n"
+        "def test_connects():\n"
+        "    socket.create_connection(('localhost', 1))\n"
+    )
+
+    found = guard.offences(tmp_path)
+
+    assert [line.split(": ")[0] for line in found] == [f"{offender}:4"]
+    assert "socket" in found[0].split(": ", 1)[1]
