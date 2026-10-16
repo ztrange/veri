@@ -26,7 +26,7 @@ def failed_cases(suite):
 
 
 def pytest(*args):
-    run = subprocess.run([venv_python(), "-m", "pytest", "-q", *args], capture_output=True,
+    run = subprocess.run([venv_python(), "-m", "pytest", "-q", "-p", "no:cacheprovider", *args], capture_output=True,
                          text=True, stdin=subprocess.DEVNULL,
                          env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
     if run.returncode not in (0, 1):
