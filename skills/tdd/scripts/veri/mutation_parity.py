@@ -48,8 +48,25 @@ def named(name, failed):
     return any(line == name or line.startswith(name + " (") for line in failed)
 
 
+def unmutated_failures(suite, old, fate, kept):
+    try:
+        failed = (failed_nodes(suite) if "::" in old else failed_cases(suite))[0]
+    except SuiteDied:
+        return []
+    bad = []
+    if named(old, failed):
+        bad.append(f"old case {old}")
+    if (node_fails(kept) if fate == "replaced" else named(kept, failed)):
+        bad.append(f"replacement {kept}")
+    return bad
+
+
 def check(row):
     suite, old, fate, kept, patch = row
+    bad = unmutated_failures(suite, old, fate, kept)
+    if bad:
+        print(f"already failing unmutated: {', '.join(bad)}", file=sys.stderr)
+        return "unproven"
     subprocess.run(["git", "apply", patch], check=True)
     try:
         died = None
