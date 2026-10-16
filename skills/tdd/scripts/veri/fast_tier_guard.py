@@ -5,6 +5,8 @@ from pathlib import Path
 
 _SUITE_PATH = re.compile(r"(^|/)test_[^/]*\.py$|\.test\.sh$")
 
+EXEMPTIONS = {}
+
 
 def _aliases(tree):
     modules, names = {}, {}
