@@ -42,11 +42,15 @@ def section_records(heading):
 
 
 def resume():
-    return section_records("## Resume")
+    records = section_records("## Resume")
+    assert records, "SKILL.md has no ## Resume section to read"
+    return records
 
 
 def draft_pr():
-    return section_records("### 4. Draft PR")
+    records = section_records("### 4. Draft PR")
+    assert records, "SKILL.md has no ### 4. Draft PR section to read"
+    return records
 
 
 def first(records, *patterns):
@@ -79,7 +83,6 @@ def test_skill_md_ticks_green_with_refactor_pending_pins_without_it_and_clears_t
 
 def test_skill_md_s_resume_asks_next_pending_refactor_sh_before_next_unchecked_sh_re_enters_the_pending_step_s_refactor_loop_and_reaches_the_draft_pr_only_when_both_exit_3():
     records = resume()
-    assert records, "SKILL.md has no ## Resume section to read"
     pending = next((i for i, r in enumerate(records, 1) if re.search(rb"next-pending-refactor\.sh", r)), 0)
     unchecked = next((i for i, r in enumerate(records, 1) if re.search(rb"next-unchecked\.sh", r)), 0)
     assert pending, "Resume never asks next-pending-refactor.sh"
@@ -100,7 +103,6 @@ def test_skill_md_s_resume_asks_next_pending_refactor_sh_before_next_unchecked_s
 
 def test_skill_md_s_draft_pr_step_refuses_to_open_the_pr_while_git_status_porcelain_is_non_empty_or_next_pending_refactor_sh_finds_a_pending_step():
     records = draft_pr()
-    assert records, "SKILL.md has no ### 4. Draft PR section to read"
     status = next((i for i, r in enumerate(records, 1) if re.search(DIRTY_TREE.encode(), r)), 0)
     opens = next((i for i, r in enumerate(records, 1) if re.search(rb"pr-creating `gh api`", r)), 0)
     assert status, "Draft PR step never checks git status --porcelain"
@@ -126,7 +128,6 @@ def test_claude_md_s_ledger_invariant_and_context_md_s_ledger_entry_say_a_ticked
 
 def test_skill_md_s_resume_resets_the_uncommitted_work_and_relaunches_the_refactor_leaf_with_veri_refactor_budget_reduced_by_the_step_s_existing_refactor_commits():
     records = resume()
-    assert records, "SKILL.md has no ## Resume section to read"
     ask = read(records, "runs next-pending-refactor.sh on a resume", r"next-pending-refactor\.sh")
     says(ask, RESET, "Resume relaunches the refactor leaf without first resetting the worktree")
     says(ask, "veri_refactor_budget", "Resume never names VERI_REFACTOR_BUDGET on the pending branch")
@@ -139,14 +140,12 @@ def test_skill_md_passes_the_step_s_green_commit_sha_to_verify_sh_refactor_in_th
     loop = read(records, "runs verify.sh refactor in the cycle loop", VERIFY_REFACTOR)
     says(loop, VERIFY_REFACTOR + " [^ ]+ [^ ]+ <green-sha>", "the cycle loop runs verify.sh refactor without <green-sha>")
     records = resume()
-    assert records, "SKILL.md has no ## Resume section to read"
     ask = read(records, "runs next-pending-refactor.sh on a resume", r"next-pending-refactor\.sh")
     says(ask, VERIFY_REFACTOR + r' [^ ]+ [^ ]+ "?\$green', "Resume never runs verify.sh refactor with $green")
 
 
 def test_skill_md_s_resume_resets_the_worktree_before_it_asks_next_pending_refactor_sh_so_a_resume_with_no_step_carrying_the_mark_still_discards_the_stray_work():
     records = resume()
-    assert records, "SKILL.md has no ## Resume section to read"
     text = b" ".join(records)
     assert b"next-pending-refactor.sh" in text, "Resume never asks next-pending-refactor.sh"
     before_ask = text.split(b"next-pending-refactor.sh", 1)[0]
@@ -155,7 +154,6 @@ def test_skill_md_s_resume_resets_the_worktree_before_it_asks_next_pending_refac
 
 def test_skill_md_s_resume_captures_the_dirty_paths_before_it_resets_and_names_them_in_the_resuming_comment():
     records = resume()
-    assert records, "SKILL.md has no ## Resume section to read"
     text = b" ".join(records)
     assert DIRTY_TREE.encode() in text, "Resume never captures git status --porcelain"
     assert re.search((DIRTY_TREE + ".*" + RESET).encode(), text), "Resume captures git status --porcelain only after the reset"
@@ -165,7 +163,6 @@ def test_skill_md_s_resume_captures_the_dirty_paths_before_it_resets_and_names_t
 
 def test_skill_md_s_draft_pr_step_names_a_remedy_for_a_dirty_tree_with_no_step_pending_and_none_unchecked_and_reaches_the_pr_after_it():
     records = draft_pr()
-    assert records, "SKILL.md has no ### 4. Draft PR section to read"
     gate = read(records, "asks git status --porcelain before the PR is opened", DIRTY_TREE)
     says(gate, r"(no |nothing |none |without a )[^.]{0,40}pending", "refusal names a remedy only for a step that is pending")
     says(gate, "unchecked", "refusal never says what happens when no step is unchecked either")
@@ -174,7 +171,6 @@ def test_skill_md_s_draft_pr_step_names_a_remedy_for_a_dirty_tree_with_no_step_p
 
 def test_skill_md_s_resume_says_a_leaf_killed_in_red_or_green_leaves_the_same_stray_work_a_killed_refactor_leaf_does():
     records = resume()
-    assert records, "SKILL.md has no ## Resume section to read"
     killed = read(records, "says what a killed leaf leaves in a resumed worktree", "killed", "(uncommitted|stray)")
     both = r"[^a-z](red|green)[^.]{0,30}[^a-z](or|and)[^a-z][^.]{0,30}(green|red)[^a-z]"
     says(killed, both, "Resume never names Red and Green together as phases a kill leaves stray work from")
