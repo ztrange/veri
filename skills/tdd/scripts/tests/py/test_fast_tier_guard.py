@@ -95,3 +95,29 @@ def test_a_planted_test_file_opening_a_socket_is_reported_as_a_socket_offence_by
 
     assert [line.split(": ")[0] for line in found] == [f"{offender}:4"]
     assert "socket" in found[0].split(": ", 1)[1]
+
+
+def test_a_planted_test_file_opening_a_socket_or_sleeping_through_an_imported_name_or_an_aliased_module_is_reported_by_file_and_line(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    forms = {
+        "test_socket_imported.py": ("from socket import socket", "socket(), 'socket'"),
+        "test_socket_aliased.py": ("import socket as s", "s.socket(), 'socket'"),
+        "test_sleep_imported.py": ("from time import sleep", "sleep(1), 'sleep'"),
+    }
+    planted = {}
+    for name, (import_line, call) in forms.items():
+        path = tmp_path / name
+        path.write_text(
+            f"{import_line}\n"
+            "\n"
+            "def test_it():\n"
+            f"    {call.split(', ')[0]}\n"
+        )
+        planted[f"{path}:4"] = call.split(", ")[1].strip("'")
+
+    found = guard.offences(tmp_path)
+
+    assert sorted(line.split(": ")[0] for line in found) == sorted(planted)
+    for line in found:
+        location, message = line.split(": ", 1)
+        assert planted[location] in message
