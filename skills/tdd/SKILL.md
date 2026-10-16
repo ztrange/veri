@@ -2182,6 +2182,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    attempt's completion files would otherwise be read as this one's answer.
    - **PASS (exit 0):** the step is recovered. Post `### 🔎 verify-<phase> (revised) — PASS`
      with the reason, and resume the cycle from where that phase's PASS would continue.
+     When `<phase>` is red, first run `$S/tests-frozen.sh record .tdd/tests-frozen-<step>.record <test-path>` — a revised red's PASS records the step's test files to the step's own record, as the Red section's does; tests-frozen exit 2 is a bail.
    - **REJECT (exit 1):** if attempts remain, loop; otherwise fall through to the bail below.
    - **Malformed / killed-stuck (exit 2):** **bail** (system failure).
 
