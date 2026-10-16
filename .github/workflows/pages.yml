@@ -4,8 +4,9 @@ name: Pages
 # https://ztrange.github.io/veri/ so it can be read without a clone. The page is
 # self-contained (its only external references are Google Fonts), so the artifact
 # is a single index.html; nothing is built here, because `make docs` already ran
-# in the PR that changed the page. The repo is private; the Pages site is public by
-# choice (the source it quotes is the point of the page), decided once, deliberately.
+# in the PR that changed the page. The Pages site was made public by choice while the
+# repo was still private (the source it quotes is the point of the page); the repo has
+# been public too since 2026-10-16.
 #
 # MANUAL ONLY, and the trigger below is what makes it so. It used to deploy on every
 # push to main that touched the page, which with a page that every docs PR regenerates
