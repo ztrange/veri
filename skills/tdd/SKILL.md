@@ -2344,8 +2344,9 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   stuck-retry budget → **system** failure (plumbing broke).
 - `no-verdict` — `verify.sh` exited **2** (unparseable verdict, or the verifier leaf was
   killed) → **system** failure.
-- `unreplaced-cases` — `unreplaced-cases.sh` exited **1** naming `⟦replaces-case⟧` cases with no
-  `REPLACES:` line (or **2**, no answer) before verify-green → **process** failure.
+- `unreplaced-cases` — `unreplaced-cases.sh` exited **1** a second time, after the one correction
+  leaf, naming `⟦replaces-case⟧` cases with no `REPLACES:` line (or exited **2**, no answer, which
+  bails at once with no correction) before verify-green → **process** failure.
 - `replaces-report-failed` → **system** failure: `wait-leaf.sh develop-replaces-report` exited 1 or 2
   (the correction leaf did not finish cleanly, a killed-stuck one included) before verify-red.
 - `revise-exhausted` — a step spent its `REVISE_BUDGET` and the blind verifier still says
