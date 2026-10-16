@@ -1678,3 +1678,20 @@ def test_main_grants_a_test_rewrite_in_a_revise_prompt_only_when_the_revised_pha
         granted[revised] = (code, grant in out)
 
     assert granted == {"red": (0, True), "green": (0, False), "refactor": (0, False)}
+
+
+def test_main_declares_a_wrong_test_report_format_in_a_revise_prompt_only_for_green_1586(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+
+    seen = {}
+    for revised in ("red", "green", "refactor"):
+        code = build_develop_prompt.main(["revise", revised, str(spec), "s", "make test", str(reason)])
+        out = capsysbinary.readouterr().out
+        formats = [l for l in out.splitlines() if l.startswith(b"REPORT-FORMAT ") and b"keys WRONG_TEST:" in l]
+        seen[revised] = (code, len(formats), b"WRONG_TEST" in out)
+
+    assert seen == {"red": (0, 0, False), "green": (0, 1, True), "refactor": (0, 0, False)}
