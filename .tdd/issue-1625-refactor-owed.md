@@ -2,3 +2,5 @@
 - test-only | skills/tdd/scripts/tests/py/test_skill_green_split.py: the `assert section.strip(), "...no unreplaced-cases.sh paragraph..."` check repeats in both new 1625 tests. It could move into `unreplaced_paragraph()`.
 ### SKILL.md's ⟦replaces-case⟧ guard: `unreplaced-cases.sh` exit 2 bails with cause=unreplaced-cases at once, launching no correction leaf and no verifier ⟦criterion 3⟧
 - test-only | `test_skill_verify_step.py`'s new exit-2 test and the one in `test_skill_green_split.py` run the same sentence-regex pattern table; a shared helper would remove that. It sits mostly outside the file list, and no third test demands it yet.
+### SKILL.md's ⟦replaces-case⟧ pin path (*Already satisfied — the pin*) no longer says the Red's unreplaced-cases check bailed on exit 1; it says that check bails only once a second exit 1 follows the one correction leaf, or on exit 2 ⟦added⟧ ⟦criterion 1⟧
+- test-only | the two test_1625_* cases in skills/tdd/scripts/tests/py/test_skill_verify_step.py repeat the same (pattern, message) loop. A shared helper could replace them, but that touches only a tests/ file.
