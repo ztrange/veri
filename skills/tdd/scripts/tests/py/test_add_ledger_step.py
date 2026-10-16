@@ -819,3 +819,57 @@ def test_main_inserts_a_suite_repair_after_the_last_resume_when_the_ledger_holds
 
     assert code == 0, err
     assert "second.test.sh ⟦suite-repair⟧" in ledger.read_text()
+
+
+def test_main_inserts_a_suite_repair_when_the_only_step_added_after_the_last_resume_is_for_a_non_repair_step_or_this_repair_itself_1607(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_bytes((
+        "# Plan for #42\n"
+        "\n"
+        "- [x] a one ⟦criterion 1⟧\n"
+        "- [x] fix the full-suite failure: first.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧\n"
+        "- [x] b two ⟦criterion 2⟧\n"
+        "- [x] c three ⟦added⟧ ⟦criterion 2⟧\n"
+    ).encode())
+    events = [
+        {"ts": 1, "issue": "42", "event": "resume"},
+        {"ts": 2, "issue": "42", "event": "step-added", "step": "b two", "anchor": "b two", "added": "1"},
+        {"ts": 3, "issue": "42", "event": "step-added", "step": "c three", "anchor": "c three", "added": "1"},
+    ]
+    (ledger.parent / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+
+    code, out, err = run_cli(
+        add_ledger_step,
+        [str(ledger), "after", "c three", "fix the full-suite failure: second.test.sh ⟦suite-repair⟧"],
+    )
+
+    assert code == 0, err
+    assert "second.test.sh ⟦suite-repair⟧" in ledger.read_text()
+
+
+def test_main_refuses_a_second_suite_repair_inserted_after_the_last_resume_whose_step_added_event_names_only_its_anchor_1607(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    before = (
+        "# Plan for #42\n"
+        "\n"
+        "- [x] a one ⟦criterion 1⟧\n"
+        "- [x] b two ⟦criterion 2⟧\n"
+        "- [x] fix the full-suite failure: first.test.sh ⟦suite-repair⟧ ⟦criterion 2⟧\n"
+    ).encode()
+    ledger.write_bytes(before)
+    events = [
+        {"ts": 1, "issue": "42", "event": "resume"},
+        {"ts": 2, "issue": "42", "event": "step-added", "step": "b two", "anchor": "b two", "added": "1"},
+        {"ts": 3, "issue": "42", "event": "step-added", "step": "first.test.sh", "anchor": "first.test.sh", "added": "1"},
+    ]
+    (ledger.parent / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+
+    code, out, err = run_cli(
+        add_ledger_step,
+        [str(ledger), "after", "first.test.sh", "fix the full-suite failure: second.test.sh ⟦suite-repair⟧"],
+    )
+
+    assert (code, out, ledger.read_bytes()) == (1, "", before)
+    assert "fix the full-suite failure: first.test.sh" in err
