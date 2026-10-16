@@ -345,6 +345,41 @@ def test_main_prints_a_pytest_file_whose_helper_call_spans_lines_with_the_headin
         0, "skills/tdd/scripts/tests/py/test_alpha.py\n", "")
 
 
+def test_main_prints_a_fast_tier_pytest_file_that_reads_the_edited_skill_section_or_renders_an_edited_prompt_1633(
+        tmp_path, monkeypatch, capsys, affected):
+    skill = "skills/tdd/SKILL.md"
+    touched = {"files": [skill]}
+
+    def fake_run(args, **kwargs):
+        if list(args[:2]) == ["git", "rev-parse"]:
+            stdout = "abc\n"
+        elif list(args[:3]) == ["git", "diff", "--name-only"]:
+            stdout = "" if "--diff-filter=AD" in args else "".join(f + "\n" for f in touched["files"])
+        elif list(args[:3]) == ["git", "diff", "-U0"]:
+            stdout = "@@ -2 +2 @@\n-old body\n+alpha body\n"
+        else:
+            raise AssertionError("unexpected command: %r" % (args,))
+        return subprocess.CompletedProcess(args, 0, stdout, "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    unit = tmp_path / "skills/tdd/scripts/tests/py/unit"
+    unit.mkdir(parents=True)
+    (tmp_path / skill).write_text("## Alpha\nalpha body\n## Beta\nbeta body\n")
+    (unit / "test_alpha.py").write_text('section(SKILL, "## Alpha")\n')
+    (unit / "test_beta.py").write_text('section(SKILL, "## Beta")\n')
+    (unit / "test_whole.py").write_text('text = open("skills/tdd/SKILL.md").read()\n')
+    (unit / "test_build_develop_prompt.py").write_text("")
+    skill_edit = (affected.main(["base..head"]),) + (sorted(capsys.readouterr().out.splitlines()),)
+    touched["files"] = ["skills/tdd/scripts/prompts/develop-red.md"]
+    prompt_edit = (affected.main(["base..head"]),) + (sorted(capsys.readouterr().out.splitlines()),)
+    prefix = "skills/tdd/scripts/tests/py/unit/"
+    assert (skill_edit, prompt_edit) == (
+        (0, [prefix + "test_alpha.py", prefix + "test_whole.py"]),
+        (0, [prefix + "test_build_develop_prompt.py"]),
+    )
+
+
 def test_main_prints_a_pytest_file_that_reads_skill_md_without_the_helper_on_any_skill_edit(
         tmp_path, monkeypatch, capsys, affected):
     skill = "skills/tdd/SKILL.md"
