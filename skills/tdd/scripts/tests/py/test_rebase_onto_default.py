@@ -1060,3 +1060,43 @@ def test_main_after_the_resume_discard_keeps_a_line_inserted_right_before_a_tick
     assert run_cli(rebase_onto_default, [], cwd=clone)[0] == 0
 
     assert ledger.read_text() == "- [ ] step inserted ⟦added⟧\n- [x] step one\n- [ ] step two\n"
+
+
+@pytest.mark.process("git and add-ledger-step.sh: a real resumed worktree whose ledger carries an uncommitted instead-of replacement whose new text starts with the replaced step's text, discarded by the resume's own commands, then rebased")
+def test_main_after_the_resume_discard_keeps_an_instead_of_replacement_whose_new_text_starts_with_the_old_text_1547(
+        monkeypatch, tmp_path, rebase_onto_default, run_cli):
+    for who in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
+        monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
+    scripts = pathlib.Path(__file__).resolve().parents[2]
+    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
+                        (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
+
+    def git(repo, *args):
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
+
+    def commit(repo, name, body, message):
+        (repo / name).parent.mkdir(exist_ok=True)
+        (repo / name).write_text(body)
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "-m", message)
+
+    origin, seed, clone = tmp_path / "origin.git", tmp_path / "seed", tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    subprocess.run(["git", "init", "-q", "-b", "main", str(seed)], check=True)
+    commit(seed, "file.txt", "base\n", "initial")
+    git(seed, "push", "-q", str(origin), "main")
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], check=True, stderr=subprocess.DEVNULL)
+    git(clone, "checkout", "-q", "-b", "tdd/1-a-run")
+    commit(clone, ".tdd/issue-1.md", "- [ ] step one\n- [ ] step two\n", "plan: scope #1 (#1)")
+    ledger = clone / ".tdd" / "issue-1.md"
+    subprocess.run([str(scripts / "add-ledger-step.sh"), str(ledger), "instead-of", "step two", "step two extended"], check=True)
+
+    commit(seed, "other.txt", "another run's work\n", "feat: another run merged (#2)")
+    git(seed, "push", "-q", str(origin), "main")
+    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    assert run_cli(rebase_onto_default, [], cwd=clone)[0] == 0
+
+    assert ledger.read_text() == "- [ ] step one\n- [ ] step two extended ⟦added⟧\n"
