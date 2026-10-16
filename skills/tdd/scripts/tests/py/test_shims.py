@@ -50,6 +50,19 @@ def test_the_exemption_table_lists_the_six_non_canonical_shims_with_a_reason_eac
     assert all("stale exemption" in line for line in problems)
 
 
+def test_shim_problems_names_the_shim_that_feeds_python3_a_heredoc_or_a_dash_c_string_and_passes_the_canonical_one(tmp_path):
+    (tmp_path / "veri").mkdir()
+    (tmp_path / "veri" / "kept.py").write_text("")
+    shim(tmp_path / "canonical.sh", 'exec python3 "$(dirname "$0")/veri/kept.py" "$@"')
+    shim(tmp_path / "heredoc.sh", "python3 - <<'PY'", "print('hi')", "PY")
+    shim(tmp_path / "dashc.sh", "python3 -c 'print(1)'")
+
+    problems = shim_problems(tmp_path)
+
+    assert [line.split(":")[0] for line in problems] == ["dashc.sh", "heredoc.sh"]
+    assert all("not the canonical shim" in line for line in problems)
+
+
 @pytest.mark.process("leaf-role.sh run through a symlink to the skills directory")
 def test_a_shim_run_through_a_symlink_to_the_skills_directory_from_another_cwd_gives_its_modules_exit_code_and_stdout(
         run_cli, tmp_path):
