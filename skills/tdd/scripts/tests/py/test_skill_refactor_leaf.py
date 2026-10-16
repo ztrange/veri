@@ -22,8 +22,12 @@ def plain(raw):
     return raw.translate(None, b"*`").lower()
 
 
-def section():
-    text = importlib.import_module("skill_sections").section(SKILL, REFACTOR)
+def section(document=None):
+    sections = importlib.import_module("skill_sections")
+    if document is None:
+        text = sections.section(SKILL, REFACTOR)
+    else:
+        text = sections.section_of(document, REFACTOR)
     body = text.split("\n", 1)[1] if "\n" in text else ""
     return plain(body.encode()).replace(b"\n", b" ")
 
@@ -169,3 +173,47 @@ def test_skill_md_s_refactor_section_answers_an_overfit_flag_with_one_triangulat
     assert has(flagged, either_order(r"(resum|return|back)", r"budget", r"[^.]{0,160}")), (
         "never says the step resumes its own refactor loop with the budget it had left"
     )
+
+
+CLASS = "beyond-spec"
+DENIAL_CLAUSE = "is not planned and not built in this run"
+GRANT_CLAUSE = "is planned and built in this run"
+
+
+def beyond_spec_narration(document):
+    text = section(document)
+    problems = []
+    if not text.strip():
+        problems.append(f"SKILL.md has no Refactor section to read — where a {CLASS} flag goes could not be established")
+    else:
+        beyond = wins(text, CLASS)
+        if not beyond:
+            problems.append(f"the Refactor section never names the {CLASS} class")
+        else:
+            if not has(beyond, either_order(r"follow.?up", r"(🛠️ )?refactor comment|narrat|post", "[^.]{0,200}")):
+                problems.append(f"never says a {CLASS} flag is narrated as a follow-up in the Refactor comment")
+            if not has(beyond, r"pr body|body of the (draft )?pr|pull request body"):
+                problems.append(f"never carries a {CLASS} flag into the PR body")
+            if not has(beyond, f"({DENIAL_WORD}) (planned|plan|built|build)"):
+                problems.append(f"narrates a {CLASS} flag without saying it is neither planned nor built in this run")
+    assert not problems, "; ".join(problems)
+
+
+def test_skill_md_s_refactor_section_narrates_a_beyond_spec_flag_as_a_follow_up_in_the_refactor_comment_and_in_the_pr_body_planning_and_building_neither():
+    beyond_spec_narration(SKILL.read_text())
+
+
+def test_beyond_spec_narration_guard_fails_naming_the_class_over_a_skill_md_that_plans_and_builds_a_beyond_spec_flag_and_passes_as_committed():
+    committed = SKILL.read_text()
+    assert GRANT_CLAUSE not in committed, "SKILL.md already grants the clause the plant is about"
+    assert DENIAL_CLAUSE in committed, "SKILL.md no longer carries the clause the plant replaces"
+    beyond_spec_narration(committed)
+
+    planted = committed.replace(DENIAL_CLAUSE, GRANT_CLAUSE)
+    assert planted != committed
+    try:
+        beyond_spec_narration(planted)
+    except AssertionError as failure:
+        assert CLASS in str(failure), f"failed without naming the {CLASS} class: {failure}"
+    else:
+        raise AssertionError(f"the case passed over a SKILL.md whose Refactor section says a {CLASS} flag {GRANT_CLAUSE}")

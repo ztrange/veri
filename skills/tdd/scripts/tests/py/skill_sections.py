@@ -9,7 +9,11 @@ def _level(line):
 
 
 def section(skill, heading):
-    lines = pathlib.Path(skill).read_text().splitlines(keepends=True)
+    return section_of(pathlib.Path(skill).read_text(), heading, skill)
+
+
+def section_of(text, heading, skill="the document"):
+    lines = text.splitlines(keepends=True)
     level = _level(heading)
     start = next((i for i, line in enumerate(lines) if line.rstrip("\n") == heading), None)
     if not level or start is None:
