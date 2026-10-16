@@ -1461,6 +1461,28 @@ def test_main_renders_a_red_prompt_for_a_replaces_case_step_asking_one_pytest_re
     assert (marked_result, plain_result) == ((0, [], True), (0, sorted(rules), True))
 
 
+def test_main_renders_a_red_prompt_for_a_replaces_case_step_asking_each_case_name_without_the_quote_characters_the_step_wraps_it_in_and_one_without_the_mark_unchanged_1600(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    marked = ("⟦replaces-case⟧ replaces 'zorblat frobs a nitz', 'zorblat quuxes a frob' in tests/zorblat.test.sh "
+              "⟦criterion 1⟧")
+    plain = "zorblat frobs a nitz ⟦criterion 1⟧"
+    unquoted = rb"without (the |its |any )?(surrounding |wrapping )?quot"
+
+    def rendered(step):
+        code = build_develop_prompt.main(["red", str(spec), step, "make test"])
+        out, _ = capsysbinary.readouterr()
+        return code, re.sub(rb"\s+", b" ", out)
+
+    code, prompt = rendered(marked)
+    marked_result = (code, re.search(unquoted, prompt, re.I) is not None)
+    code, prompt = rendered(plain)
+    plain_result = (code, re.search(unquoted, prompt, re.I) is not None)
+
+    assert (marked_result, plain_result) == ((0, True), (0, False))
+
+
 def test_main_renders_a_revise_red_prompt_for_a_replaces_case_step_with_the_replaces_report_line_and_one_without_the_mark_unchanged_1521(
         tmp_path, capsysbinary, build_develop_prompt):
     spec = tmp_path / "spec.md"
