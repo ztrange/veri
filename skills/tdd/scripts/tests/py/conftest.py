@@ -61,7 +61,7 @@ def entry_bypass_problems(scripts):
                     if l.strip() and not l[0].isspace():
                         break
                     block.append(l)
-                if not any("entry.run(" in l and not l.lstrip().startswith("#") for l in block):
+                if not any("entry.run(" in l.split("#")[0] for l in block):
                     problems.append("%s:%d __main__ block does not go through entry.run" % (module.name, number))
     return problems
 
