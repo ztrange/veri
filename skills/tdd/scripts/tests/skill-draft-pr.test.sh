@@ -950,14 +950,17 @@ if step_or_problem '### 4. Draft PR' "how the step appends a full-suite repair s
 fi
 report "$name"
 
-name="$skill_md's Draft PR step bails on a second red full run keyed on a ⟦suite-repair⟧ line already in the ledger, naming every suite still red (#590)"
+name="$skill_md's Draft PR step bails on a second red full run of this run with a suite-red command line that reads nothing from the ledger, naming every suite still red (#590, #1607)"
 problems=()
 
 if step_or_problem '### 4. Draft PR' "how the step recognises a second red full run"; then
   commands="$(section_commands)"
-  keyed="$(awk -v mark="$suite_repair_mark" '/^[^#]*[$]s\/event[.]sh bail / && index($0, mark) && index($0, ".tdd/issue-<n>.md") { print; exit }' <<< "$commands")"
-  [[ -n "$keyed" ]] ||
-    problems+=("no command line of $skill_md's Draft PR step bails on a $suite_repair_mark line already in .tdd/issue-<n>.md, so a second red full run is recognised only in prose")
+  keyed="$(awk '/^[^#]*[$]s\/event[.]sh bail / && index($0, "cause=suite-red") && index($0, "suites=") { print; exit }' <<< "$commands")"
+  if [[ -z "$keyed" ]]; then
+    problems+=("no command line of $skill_md's Draft PR step bails with cause=suite-red and the suites still red, so a second red full run is recognised only in prose")
+  elif grep -F '.tdd/issue-<n>.md' > /dev/null <<< "$keyed"; then
+    problems+=("$skill_md's Draft PR step's suite-red bail still names .tdd/issue-<n>.md, though add-ledger-step.sh's per-run refusal, not the ledger, says the red run is the second: $(printf '%.160s' "$keyed")")
+  fi
   second="$(first_record "$records" -wF 'bail' -E 'second red|red again' -F 'repair step')"
   grep -E 'every (suite still red|red suite|failing suite|still-red suite)' > /dev/null <<< "$second" ||
     problems+=("$skill_md's Draft PR step's second-red bail no longer names every suite still red: $(printf '%.120s' "$second")")

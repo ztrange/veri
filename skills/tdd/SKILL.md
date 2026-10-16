@@ -1700,7 +1700,7 @@ The cap is one `⟦suite-repair⟧` step per run (a resume starts a new run), an
 not the conductor's judgement, decides it: its exit 1 on the insertion above is the whole answer,
 and the conductor does not count repair steps in the ledger itself.
 ```
-VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=suite-red classification="$($S/classify-bail.sh suite-red)" suites='<every suite still red>' refused='add-ledger-step.sh: ⟦suite-repair⟧ already inserted this run, see .tdd/issue-<n>.md'
+VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=suite-red classification="$($S/classify-bail.sh suite-red)" suites='<every suite still red>'
 ```
 
 The branch's own full run comes first, and it, with any `⟦suite-repair⟧` step it adds, has to
