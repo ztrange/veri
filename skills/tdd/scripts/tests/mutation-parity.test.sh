@@ -323,6 +323,18 @@ else
     stderr: $(cat "$work/single-dies.err")"
 fi
 
+table="$work/single-kept-green.tsv"
+printf 'tests/single.test.sh\tadds two numbers\treplaced\t%s\t%s\n' "$node" "$work/kept-stays-green.patch" > "$table"
+out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/single-kept-green.err")" && code=0 || code=$?
+row="$(grep -F 'adds two numbers' <<<"$out" | grep -wF unproven || true)"
+if [[ "$code" == 1 && -n "$row" ]]; then
+  ok
+else
+  no "#1594: a row whose old suite holds exactly one case reads unproven when that suite runs to its count line with the named case failed but the replacement is not caught (exit=$code want 1)
+    stdout: $out
+    stderr: $(cat "$work/single-kept-green.err")"
+fi
+
 printf 'mul() { echo $(( $1 * $2 )); }\n' > "$work/mul.sh"
 sed 's/\*/\//' "$work/mul.sh" > "$work/mul.mutated"
 diff -u --label a/calc.sh --label b/calc.sh "$work/mul.sh" "$work/mul.mutated" > "$work/does-not-apply.patch"
