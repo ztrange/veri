@@ -164,3 +164,10 @@ def test_1568_every_stop_skip_give_up_or_say_so_line_in_the_real_develop_prompts
 
     assert prompts
     assert not offenders, "\n".join(offenders)
+
+
+@pytest.mark.tree_audit("skills/tdd/scripts/prompts/develop-revise.md, includes expanded")
+def test_1586_the_revise_prompts_suite_fallback_line_is_exempt_wherever_the_wrong_test_placeholders_leave_it(report_formats):
+    texts = {path.name: text for path, text in expanded_develop_prompts()}
+
+    assert report_formats.stop_prose_offenders("develop-revise.md", texts["develop-revise.md"]) == []
