@@ -65,7 +65,7 @@ scaffolding_hits() {
 
 HOISTED=(win window windows plain section_end frontmatter_name first_record record_number fenced_lines need_claude_md_records probe_every_exemption_carries_a_reason verdict)
 GUARD_ONLY=verdict
-GUARD_SUITES=" count-line-guard$sfx prompt-test-tiers$sfx unit/missing-argument-exit$sfx "
+GUARD_SUITES=" count-line-guard$sfx prompt-test-tiers$sfx missing-argument-exit$sfx "
 GUARD_COPY_RE='^[[:space:]]*cp[[:space:]]+"\$ROOT/skills/tdd/scripts/lib/count-line-guard\.sh"[[:space:]]+"[^"]*"[[:space:]]*$'
 
 hoisted_copy_hits() {
@@ -289,13 +289,13 @@ name="#704: a guard suite that defines verdict is named by <suite>:<line>"
 plant="$(scratch_dir)"
 mkdir -p "$plant/unit" "$plant/lib"
 printf '%s\n' '#!/usr/bin/env bash' 'verdict() {' '  ok' '}' > "$plant/count-line-guard.test.sh"
-printf '%s\n' '#!/usr/bin/env bash' 'x=1' '  function verdict() { :; }' > "$plant/unit/missing-argument-exit.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'x=1' '  function verdict() { :; }' > "$plant/missing-argument-exit.test.sh"
 printf '%s\n' '#!/usr/bin/env bash' 'verdict "$name"' > "$plant/prompt-test-tiers.test.sh"
 printf '%s\n' 'verdict() { :; }' > "$plant/lib/verdict.sh"
 got="$(hoisted_copy_hits "$plant" 2>&1)"
 expect_eq "$name" \
   "$(printf '    %s\n' 'count-line-guard.test.sh:2 defines verdict()' \
-    'unit/missing-argument-exit.test.sh:3 defines verdict()')" \
+    'missing-argument-exit.test.sh:3 defines verdict()')" \
   "$got"
 
 name="#704: a suite that copies lib/count-line-guard.sh into a planted tree itself is named by <suite>:<line>"
