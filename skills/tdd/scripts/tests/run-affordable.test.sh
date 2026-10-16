@@ -3,15 +3,13 @@
 # run's worktree with the number of steps still to go, it projects the run's spend so far
 # plus that many steps at the median completed full step's cost against VERI_RUN_BUDGET.
 # Every fixture here is a hand-written .tdd/events.jsonl, the log step-cost.sh reads.
-# Fast tier: no git, no network, no servers, no real sleep, no nested suites —
-# by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
-# Run: scripts/tests/unit/run-affordable.test.sh
+# Run: scripts/tests/run-affordable.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-RUN_AFFORDABLE="$HERE/../../run-affordable.sh"
-source "$HERE/../lib/harness.sh"
+RUN_AFFORDABLE="$HERE/../run-affordable.sh"
+source "$HERE/lib/harness.sh"
 problems=""
 
 work="$(scratch_dir)"
@@ -117,7 +115,7 @@ run_affordable VERI_RUN_BUDGET=50 -- 4
 in_place="$code $out"
 in_place_work="$work"
 links="$(scratch_dir)"
-ln -s "$(cd "$HERE/../../.." && pwd)" "$links/skill"
+ln -s "$(cd "$HERE/../.." && pwd)" "$links/skill"
 work="$(scratch_dir)"
 mkdir -p "$work/.tdd"
 cp "$in_place_work/.tdd/events.jsonl" "$work/.tdd/events.jsonl"
