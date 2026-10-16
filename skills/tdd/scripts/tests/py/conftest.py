@@ -201,6 +201,10 @@ STARTS_GIT_IN_REPOSITORY_EXEMPT = {
     "test_run_conductor.py": "run_conductor.py runs git -C <skill clone> and the cases fake every process, so the path only reaches the recorded call",
     "test_rebase_onto_default.py::test_main_run_through_a_symlink_from_another_directory_rebases_the_callers_clone_and_never_the_skills_repository":
         "the skills repository's own HEAD is read to prove it was never rebased",
+    "test_no_tracked_artifacts.py::test_no_file_under_a_nested_tdd_directory_is_tracked_598":
+        "the repository's own tracked files are the subject",
+    "test_no_tracked_artifacts.py::test_git_ignores_the_event_log_a_suite_run_writes_under_a_nested_tdd_directory_598":
+        "the repository's own ignore rules are the subject",
 }
 
 
