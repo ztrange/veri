@@ -87,3 +87,18 @@ def test_main_exits_3_with_no_output_and_no_traceback_on_a_step_carrying_no_repl
 
     assert (code, out) == (3, "")
     assert "Traceback" not in err and "AttributeError" not in err
+
+
+def test_main_reports_a_still_present_case_named_with_backslash_escapes_spelled_the_same_in_the_suite_1617(tmp_path, run_cli, survivors):
+    suite = tmp_path / "tests" / "demo.test.sh"
+    suite.parent.mkdir()
+    suite.write_text('verdict "kept case" 0\nverdict "\\`### 🔴 Red\\` heading and \\"<STEP>\\" and \\$S" 0\n')
+    step = (
+        "the replacement takes over: replaces '\\`### 🔴 Red\\` heading and \\\"<STEP>\\\" and \\$S' "
+        "in tests/demo.test.sh ⟦replaces-case⟧ ⟦criterion 4⟧"
+    )
+
+    code, out, _ = run_cli(survivors, [step], cwd=tmp_path)
+
+    assert code == 1
+    assert "\\`### 🔴 Red\\` heading and \\\"<STEP>\\\" and \\$S" in out
