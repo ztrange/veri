@@ -43,7 +43,11 @@ def added_step(text, k, planned=False):
     return step if k else step.removesuffix(f" {CRITERION_TAG}⟧")
 
 
-def added_since_last_resume(path):
+def repair_follows(steps, anchor):
+    return any(anchor in line and SUITE_REPAIR in following for line, following in zip(steps, steps[1:]))
+
+
+def added_since_last_resume(path, lines):
     log = os.path.join(os.path.dirname(path), "events.jsonl")
     try:
         events = read_events(log)
@@ -52,7 +56,12 @@ def added_since_last_resume(path):
     names = [event.get("event") for event in events]
     if "resume" not in names:
         return True
-    return "step-added" in names[len(names) - names[::-1].index("resume"):]
+    steps = [line for line in lines if ledger_steps(line)]
+    after = events[len(names) - names[::-1].index("resume"):]
+    return any(
+        event.get("event") == "step-added" and repair_follows(steps, str(event.get("anchor") or "\n"))
+        for event in after
+    )
 
 
 def spec_path(path):
@@ -133,7 +142,7 @@ def main(argv):
     if sum(1 for line in lines if is_anchor_step(line, anchor)) != 1:
         return refuse("add-ledger-step.sh: anchor matches no single step: " + anchor)
     earlier = [line for line in lines if ledger_steps(line) and SUITE_REPAIR in line]
-    if earlier and added_since_last_resume(path) and any(SUITE_REPAIR in text for text in texts):
+    if earlier and added_since_last_resume(path, lines) and any(SUITE_REPAIR in text for text in texts):
         warn("add-ledger-step.sh: this run already inserted a suite-repair step: " + earlier[0])
         return 1
     budget = tunables.read("VERI_STEP_GROWTH", "5")
