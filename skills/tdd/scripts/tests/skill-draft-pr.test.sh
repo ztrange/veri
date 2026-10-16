@@ -1222,7 +1222,7 @@ name="#1613 $skill_md's Draft PR step decides whether the ledger already holds a
 problems=()
 
 if step_or_problem '### 4. Draft PR' "how the ci-red bail lines find an existing CI repair step"; then
-  bails="$(section_commands | grep -F 'cause=ci-red' || true)"
+  bails="$(section_commands | grep -F -e 'cause=ci-red' -e 'no_repair=$?' || true)"
   if [[ -z "$bails" ]]; then
     problems+=("$skill_md's Draft PR step has no command line bailing with cause ci-red, so how it finds an existing CI repair step could not be checked")
   else
@@ -1234,6 +1234,11 @@ if step_or_problem '### 4. Draft PR' "how the ci-red bail lines find an existing
       fi
     done <<< "$bails"
   fi
+  prose="$(tr -d '*`' <<< "$records")"
+  grep -iF 'greps for ⟦ci-repair⟧' > /dev/null <<< "$prose" &&
+    problems+=("$skill_md's Draft PR step still says the ci-red bail greps for ⟦ci-repair⟧, though it asks ledger-steps.sh has-mark ci-repair")
+  grep -iF 'keys on ⟦ci-repair⟧ only' > /dev/null <<< "$prose" ||
+    problems+=("$skill_md's Draft PR step no longer says the ci-red bail keys on ⟦ci-repair⟧ only")
 fi
 report "$name"
 

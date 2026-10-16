@@ -1981,7 +1981,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    check: a red check is answered only by the repair step or the `ci-red` bail above, since
    a re-run can turn a real failure into one that reads as a flake. Re-running a known flake
    is the operator's decision, made outside a run.
-   That bail greps for `⟦ci-repair⟧` only: a ledger holding a `⟦suite-repair⟧` step and no
+   That bail keys on `⟦ci-repair⟧` only: a ledger holding a `⟦suite-repair⟧` step and no
    `⟦ci-repair⟧` step still gets its one CI repair attempt.
    A `wait-ci.sh` exit 2 whose stderr names a conflict — the PR conflicts with its base
    branch, so no workflow will start on it — is not a timeout. Rebase onto
