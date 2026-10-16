@@ -100,6 +100,8 @@ def main(argv):
     if refusal:
         return refuse("add-ledger-step.sh: " + refusal)
     known, ticked = spec_criteria(path) if planned else (None, set())
+    if planned and known is None:
+        return refuse("add-ledger-step.sh: --planned: cannot read the spec file " + re.sub(r"\.md$", "", path) + "-spec.md")
     if criterion in ticked:
         return refuse(f"add-ledger-step.sh: --planned: criterion {criterion} is already ticked in the issue body")
     if known is not None and int(criterion) > known:
