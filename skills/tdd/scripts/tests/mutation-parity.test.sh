@@ -335,6 +335,18 @@ else
     stderr: $(cat "$work/single-kept-green.err")"
 fi
 
+table="$work/multi-all-fail.tsv"
+printf 'tests/calc.test.sh\tadds two numbers\treplaced\t%s\t%s\n' "$node" "$work/none-stays-green.patch" > "$table"
+out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/multi-all-fail.err")" && code=0 || code=$?
+row="$(grep -F 'adds two numbers' <<<"$out" | grep -wF owed || true)"
+if [[ "$code" == 1 && -n "$row" ]]; then
+  ok
+else
+  no "#1594: a row whose old suite holds more than one case reads owed when the mutation fails every case of that suite, though the replacement is caught (exit=$code want 1)
+    stdout: $out
+    stderr: $(cat "$work/multi-all-fail.err")"
+fi
+
 printf 'mul() { echo $(( $1 * $2 )); }\n' > "$work/mul.sh"
 sed 's/\*/\//' "$work/mul.sh" > "$work/mul.mutated"
 diff -u --label a/calc.sh --label b/calc.sh "$work/mul.sh" "$work/mul.mutated" > "$work/does-not-apply.patch"
