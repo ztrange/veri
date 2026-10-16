@@ -33,11 +33,15 @@ def _starts_process(func):
     return receiver == "os" and attr.startswith(("system", "exec", "spawn"))
 
 
-def offences(root, exemptions=None):
-    exemptions = exemptions or {}
+def _require_reasons(exemptions):
     for entry, reason in exemptions.items():
         if not reason:
             raise ValueError(f"exemption {entry} has no reason")
+
+
+def offences(root, exemptions=None):
+    exemptions = exemptions or {}
+    _require_reasons(exemptions)
     found = []
     for path in sorted(Path(root).rglob("test_*.py")):
         tree = ast.parse(path.read_text())
