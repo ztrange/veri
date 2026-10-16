@@ -1171,6 +1171,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    `rm -f .tdd/develop-replaces-report.exit .tdd/develop-replaces-report.pid`, then
    `VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh develop-replaces-report $S/run-leaf.sh .tdd/develop-replaces-report.prompt --permission-mode bypassPermissions > .tdd/develop-replaces-report.out 2> .tdd/develop-replaces-report.err`
    and `$S/wait-leaf.sh develop-replaces-report` in the foreground (on exit 3 call it again).
+   Then run `$S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"` like after every other leaf. If that wait exits 1 or 2 (a killed-stuck correction leaf included), **bail with cause=replaces-report-failed** and launch no verify-red.
 
    On a matched prediction, run
    the red verifier against the on-disk test and spec, **redirecting its stdout (the
@@ -2345,6 +2346,8 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   killed) → **system** failure.
 - `unreplaced-cases` — `unreplaced-cases.sh` exited **1** naming `⟦replaces-case⟧` cases with no
   `REPLACES:` line (or **2**, no answer) before verify-green → **process** failure.
+- `replaces-report-failed` → **system** failure: `wait-leaf.sh develop-replaces-report` exited 1 or 2
+  (the correction leaf did not finish cleanly, a killed-stuck one included) before verify-red.
 - `revise-exhausted` — a step spent its `REVISE_BUDGET` and the blind verifier still says
   `REJECT` → **process** failure (methodology spoke).
 - `untestable-criterion` — a Red developer leaf reported `AGAINST_UNMODIFIED: UNTESTABLE`:
