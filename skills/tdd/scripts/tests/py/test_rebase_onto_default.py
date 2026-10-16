@@ -1322,3 +1322,64 @@ def test_main_after_the_resume_discard_keeps_exactly_one_tick_of_two_working_tic
 
     lines = ledger.read_text().splitlines()
     assert (len(lines), lines.count("- [x] twin step"), lines.count("- [ ] twin step"), "- [ ] other step" in lines) == (3, 1, 1, True)
+
+
+@pytest.mark.process("git: a real resumed worktree whose resume discard fails to re-apply appends A, then re-applies appends B, then whose rebase-onto-default.sh fails to re-apply B, run through the discard as SKILL.md writes it")
+def test_main_keeps_the_appends_an_earlier_failed_reapply_saved_when_a_later_reapply_fails_after_the_rebase_and_names_every_saved_file_1611(
+        monkeypatch, tmp_path, rebase_onto_default, run_cli):
+    for who in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
+        monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
+    scripts = pathlib.Path(__file__).resolve().parents[2]
+    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
+                        (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
+    real_git = shutil.which("git")
+    first, second = "- [ ] first failure's step ⟦added⟧\n", "- [ ] second failure's step ⟦added⟧\n"
+
+    def git(repo, *args):
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
+
+    def commit(repo, name, body, message):
+        (repo / name).parent.mkdir(exist_ok=True)
+        (repo / name).write_text(body)
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "-m", message)
+
+    origin, seed, clone = tmp_path / "origin.git", tmp_path / "seed", tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    subprocess.run(["git", "init", "-q", "-b", "main", str(seed)], check=True)
+    commit(seed, ".tdd/issue-1.md", "- [ ] step one\n", "initial")
+    git(seed, "push", "-q", str(origin), "main")
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], check=True, stderr=subprocess.DEVNULL)
+    git(clone, "checkout", "-q", "-b", "tdd/1-a-run")
+    commit(clone, "work.txt", "the run's work\n", "feat: a step's green commit (#1)")
+    commit(seed, "other.txt", "another run's work\n", "feat: another run merged (#2)")
+    git(seed, "push", "-q", str(origin), "main")
+    ledger = clone / ".tdd" / "issue-1.md"
+
+    shim = tmp_path / "bin"
+    shim.mkdir()
+    (shim / "git").write_text(f'#!/bin/sh\n[ "$1" = apply ] && exit 1\nexec {real_git} "$@"\n')
+    (shim / "git").chmod(0o755)
+    failing = {**os.environ, "PATH": f"{shim}:{os.environ['PATH']}"}
+
+    def resume_discard(env):
+        return subprocess.run(["bash", "-c", textwrap.dedent(discard) + "\nexit $?"], cwd=clone, env=env, text=True,
+                              stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+
+    ledger.write_text(ledger.read_text() + first)
+    one = resume_discard(failing)
+    ledger.write_text(ledger.read_text() + second)
+    two = resume_discard(os.environ)
+    rebased = subprocess.run([str(scripts / "rebase-onto-default.sh")], cwd=clone, env=failing, text=True,
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+
+    def saved(stderr):
+        tokens = [pathlib.Path(t) if os.path.isabs(t) else clone / t for t in stderr.split()]
+        return [p for p in dict.fromkeys(tokens) if p.is_file() and p != ledger and "+++ b/.tdd/issue-1.md" in p.read_text()]
+
+    on_disk = "".join(p.read_text() for p in saved(one.stderr))
+    named = "".join(p.read_text() for p in saved(rebased.stderr))
+    assert (one.returncode, two.returncode, rebased.returncode) == (2, 0, 2)
+    assert (f"+{first}" in on_disk, f"+{first}" in named, f"+{second}" in named) == (True, True, True)
