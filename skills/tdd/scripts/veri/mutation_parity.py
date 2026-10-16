@@ -60,7 +60,7 @@ def unmutated_failures(suite, old, fate, kept):
     try:
         failed = suite_results(suite, old)[0]
     except SuiteDied:
-        return []
+        return [f"suite {suite} did not run to completion"]
     bad = []
     if named(old, failed):
         bad.append(f"old case {old}")
