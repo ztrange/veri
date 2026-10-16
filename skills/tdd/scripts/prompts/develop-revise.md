@@ -36,12 +36,7 @@ instead of an {{INCLUDE:_develop-split.md}} leave the working tree exactly as yo
    that objection. Do not drift beyond what the criterion and the reason require: a fix
    that also changes something the verifier did not object to gives it new grounds to
    reject.
-2. **A rewritten test is a new test, and owes a new prediction**: predict its failure
-   before you run any suite, in `.tdd/red-prediction.md` — which assertion fires first against the unmodified
-   production code, the observed-versus-expected values it fires on, and the shape of the
-   message the suite will print — then run, saving the run's output to `.tdd/red-run-output.txt`, and compare what it printed against that
-   prediction; never adjust the prediction to fit what you saw. The leaf whose attempt was
-   rejected predicted a different test, so there is nothing here for you to inherit.
+2. {{TEST_REWRITE}}
 3. Redoing green only: first run the fast command, the one `detect-test-command.sh --tier
    fast` prints, and confirm it is green. Then, whichever phase you are redoing, run the
    suites {{INCLUDE:_affected-suites-working-tree.md}} — and confirm the result the phase you

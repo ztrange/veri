@@ -1661,3 +1661,20 @@ def test_main_renders_a_revise_of_green_declaring_a_suite_exempt_wrong_test_repo
 
     declared = [l for l in out.splitlines() if l.startswith("REPORT-FORMAT ") and "keys WRONG_TEST:" in l]
     assert (code, len(declared), "suite exempt" in " ".join(declared), "WRONG_TEST" in revising) == (0, 1, True, True)
+
+
+def test_main_grants_a_test_rewrite_in_a_revise_prompt_only_when_the_revised_phase_is_red_1586(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+    grant = b"A rewritten test is a new test, and owes a new prediction"
+
+    granted = {}
+    for revised in ("red", "green", "refactor"):
+        code = build_develop_prompt.main(["revise", revised, str(spec), "s", "make test", str(reason)])
+        out, _ = capsysbinary.readouterr()
+        granted[revised] = (code, grant in out)
+
+    assert granted == {"red": (0, True), "green": (0, False), "refactor": (0, False)}
