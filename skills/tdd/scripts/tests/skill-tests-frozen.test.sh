@@ -103,4 +103,15 @@ grep -qF 'green' <<<"$revise_sentences" ||
 check_handling "$skill_md's Revising on a REJECT" "$revise_sentences"
 report "$name"
 
+name="#1586: $skill_md's every tests-frozen.sh record and check names a record file that carries the step, so one step's check never reads another step's record"
+problems=()
+mapfile -t frozen_calls < <(grep -oE 'tests-frozen\.sh (record|check) [^ ]+' "$skill_path")
+((${#frozen_calls[@]} > 0)) ||
+  problems+=("$skill_md has no tests-frozen.sh record or check command to read")
+for call in "${frozen_calls[@]}"; do
+  [[ "${call##* }" == *'<step'* ]] ||
+    problems+=("$skill_md runs '$call', a record path shared by every step, so a later step's check compares against the record an earlier step made")
+done
+report "$name"
+
 finish
