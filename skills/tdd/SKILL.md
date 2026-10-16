@@ -590,9 +590,10 @@ unauthenticated baseline never gets a cycle.
      [[ $f =~ ^\.tdd/issue-[0-9]+\.md$ ]] || continue
      awk -v M=' ⟂ refactor pending' '
        function id(l) { sub(/^- [[]x[]] /, "", l); sub(M "$", "", l); return l }
-       FILENAME == ARGV[1] { if (/^- [[]x[]] /) { done[FNR] = 1; done[id($0)] = 1 } next }
-       /^- [[]x[]] / && !(FNR in done) && !(id($0) in done) { $0 = "- [" " ] " id($0) }
-       { print }' <(git show "HEAD:$f" 2>/dev/null) "$f" > "$f.new"
+       P == 1 { if (/^- [[]x[]] /) { done[FNR] = 1; left[id($0)]++ } next }
+       P == 2 { if (/^- [[]x[]] / && (FNR in done) && left[id($0)] > 0) left[id($0)]--; next }
+       /^- [[]x[]] / && !(FNR in done) { if (left[id($0)] > 0) left[id($0)]--; else $0 = "- [" " ] " id($0) }
+       { print }' P=1 <(git show "HEAD:$f" 2>/dev/null) P=2 "$f" P=3 "$f" > "$f.new"
      if cmp -s "$f" "$f.new"; then rm -f "$f.new"; else mv "$f.new" "$f"; fi
    done
    ```
