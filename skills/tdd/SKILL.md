@@ -597,10 +597,12 @@ unauthenticated baseline never gets a cycle.
      if cmp -s "$f" "$f.new"; then rm -f "$f.new"; else mv "$f.new" "$f"; fi
    done
    ```
-   The ledger is judged against the committed ledger by step text, counted: every `- [x]` line beyond the number of
-   ticked steps of that text in the committed ledger — its green commit is not on the branch — is unticked and loses its
-   `⟂ refactor pending` mark, and every other working-copy line is kept as written.
-   Keep this `$stray` for *Resume* sub-step 4 to name. Then the resumed run, its uncommitted `.tdd/` appends kept
+   A tick is committed with its step's green commit, so the committed ledger's ticks record which greens exist: the ledger is judged
+   against the committed ledger by step text, counted. A working-copy `- [x]` line is kept ticked only when the committed
+   ledger holds a tick of the same step text (the text without its trailing markers), so n committed ticks of a text keep at
+   most n working ticks of it; every other `- [x]` line — its green commit is not on the branch — is unticked and loses its
+   `⟂ refactor pending` mark, and every other working-copy line is kept as written; keep this `$stray` for *Resume* sub-step 4 to name.
+   Then the resumed run, its uncommitted `.tdd/` appends kept
    and its ledger ticks reconciled, runs
    `$S/rebase-onto-default.sh` before its baseline, so the baseline runs on the rebased tip.
    On an exit 0 the first stdout line of `rebase-onto-default.sh` is `<pre-rebase-sha>`, the HEAD
