@@ -526,6 +526,19 @@ $(diff <(printf '%s\n' "$before") <(printf '%s\n' "$after"))
     stderr: $(cat "$work/raises-mutated.err")"
 fi
 
+rm -rf "$repo/.pytest_cache"
+before="$(snapshot)"
+out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/raises-mutated.err")" && code=0 || code=$?
+after="$(snapshot)"
+if [[ "$code" == 2 && "$before" == "$after" ]]; then
+  ok
+else
+  no "#1612: a row that raises with its mutation applied leaves every file of the tree byte-identical to before it, .pytest_cache included (exit=$code want 2)
+$(diff <(printf '%s\n' "$before") <(printf '%s\n' "$after"))
+    stdout: $out
+    stderr: $(cat "$work/raises-mutated.err")"
+fi
+
 exit_two_out=""
 exit_two_codes=""
 for scenario in does-not-apply:does-not-apply dies:dirty-dies uncollected:dirty; do
