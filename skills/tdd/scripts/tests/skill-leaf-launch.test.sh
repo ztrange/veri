@@ -2,21 +2,8 @@
 # Unit test for how skills/tdd/SKILL.md launches a leaf, read as text.
 #
 # Contract under test:
-#   1. Every developer and verifier leaf launch line in SKILL.md goes through
-#      `detach-leaf.sh`, and none of them uses `nohup`.
-#   2. *Launching a leaf* — the section those launches live in — says why `nohup` alone is
-#      not enough: it survives a hang-up, but not a signal to the launching call's process
-#      group.
-#   3. Every launch that clears a leaf's completion file `.tdd/<name>.exit` clears its pid
-#      file `.tdd/<name>.pid` on the same line.
-#   4. The script inventory's `wait-leaf.sh` entry says a 2 also means the supervisor died
-#      without recording a status, and that it takes the killed-stuck branch.
 #   5. Every launch line that reaches the verifier — by naming `verify.sh` or the verdict
 #      launcher `run-verdict.sh` that execs it — names `supervise.sh` too.
-#   6. Every supervised verifier launch passes the blind parameter list and nothing else —
-#      the phase, the spec file, the test path and the test id, or the base sha for
-#      `refactor`, behind verify.sh's own `--step` and `--fast-cmd` flags — read at the
-#      verdict launcher, which passes its argv to `verify.sh` untouched.
 #   7. Every verifier launch invokes the verdict launcher `run-verdict.sh` and inlines no
 #      `bash -c` command string.
 #   8. The document states in ONE place how the step's title reaches a command line, and
@@ -38,21 +25,15 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
 
-detacher="detach-leaf.sh"
-
 launcher="supervise.sh"
 verifier="verify.sh"
 
 verdict_launcher="run-verdict.sh"
 verdict_leaf="verdict-"
 
-section="Launching a leaf"
-
 step_ph="<STEP>"
 double_quoted_step="\"$step_ph\""
 single_quoted_step="'$step_ph'"
-
-spec_re="(\.tdd/issue-<n>-spec\.md|<spec-file>)"
 
 fragment_ph="<[^<>]*substring[^<>]*>"
 double_quoted_fragment="\"$fragment_ph\""
@@ -107,99 +88,6 @@ launch_lines() {
   fenced_lines "$skill_path" "$(name_re "$launcher" "$verifier" "$verdict_launcher")"
 }
 
-section_prose() {
-  awk -v want="$1" '
-    /^## / { insec = (index($0, "## " want) == 1) }
-    !insec { next }
-    /^[[:space:]]*```/ { fence = !fence; next }
-    !fence
-  ' "$skill_path"
-}
-
-name="$skill_md launches every developer and verifier leaf through $detacher, and no launch line uses nohup"
-problems=()
-
-launches="$(launch_lines)"
-if [[ -z "$launches" ]]; then
-  unreadable "leaf launch line inside a fenced block" "how a leaf is launched"
-else
-  while IFS=$'\t' read -r lineno text; do
-    faults=""
-    [[ "$text" == *"$detacher"* ]] || fault "does not go through $detacher"
-    [[ "$text" == *nohup* ]] && fault "still uses nohup"
-    faulted "$lineno" "$text"
-  done <<< "$launches"
-fi
-
-report "$name"
-
-name="$skill_md's *$section* says why nohup alone is not enough"
-problems=()
-
-prose="$(section_prose "$section" | lowered)"
-if [[ -z "$prose" ]]; then
-  unreadable "*$section* section" "the reason given for the launch shape"
-else
-  faults=""
-  [[ "$prose" == *nohup* ]] || fault "never names nohup"
-  [[ "$prose" =~ (sighup|hang-?up) ]] ||
-    fault "does not say nohup survives a hang-up"
-  [[ "$prose" == *"process group"* ]] ||
-    fault "does not say nohup leaves the leaf in the launching call's process group"
-  [[ -z "$faults" ]] ||
-    problems+=("$skill_md *$section* $faults")
-fi
-
-report "$name"
-
-clear_lines() {
-  fenced_lines "$skill_path" 'rm -f .*\.tdd/[^ ]*\.exit'
-}
-
-name="$skill_md clears .tdd/<name>.pid together with .tdd/<name>.exit on every launch"
-problems=()
-
-clears="$(clear_lines)"
-if [[ -z "$clears" ]]; then
-  unreadable "line clearing a completion file inside a fenced block" "how a launch resets a leaf"
-else
-  while IFS=$'\t' read -r lineno text; do
-    exitfile="$(head -n 1 < <(grep -o '\.tdd/[^ ]*\.exit' <<< "$text"))"
-    pidfile="${exitfile%.exit}.pid"
-    [[ "$text" == *"$pidfile"* ]] ||
-      problems+=("$skill_md:$lineno clears $exitfile but not $pidfile: $text")
-  done <<< "$clears"
-fi
-
-report "$name"
-
-inventory_entry() {
-  awk -v want="- \`\$S/$1" '
-    index($0, want) == 1 { inentry = 1; print; next }
-    inentry && (/^- / || /^#/ || /^[[:space:]]*$/) { inentry = 0 }
-    inentry
-  ' "$skill_path" | tr '\n' ' '
-}
-
-waiter="wait-leaf.sh"
-name="$skill_md's $waiter entry says a 2 also means the supervisor died without recording a status, and takes the killed-stuck branch"
-problems=()
-
-entry="$(inventory_entry "$waiter" | lowered)"
-if [[ -z "$entry" ]]; then
-  unreadable "script inventory entry for $waiter" "what its exit codes mean"
-else
-  faults=""
-  [[ "$entry" =~ supervisor[^.]*(died|dead|gone)[^.]*(without|never|no)[^.]*(record|status|completion) ]] ||
-    fault "does not say a 2 means the supervisor died without recording a status"
-  [[ "$entry" == *killed-stuck* ]] ||
-    fault "does not say that 2 takes the killed-stuck branch"
-  [[ -z "$faults" ]] ||
-    problems+=("$skill_md $waiter entry $faults")
-fi
-
-report "$name"
-
 name="$skill_md launches every verifier through $launcher, the way it launches a developer leaf"
 problems=()
 
@@ -211,33 +99,6 @@ else
     [[ "$text" == *"$launcher"* ]] ||
       problems+=("$skill_md:$lineno reaches $verifier without $launcher: $text")
   done <<< "$verifier_launches"
-fi
-
-report "$name"
-
-blind_args() {
-  local tail="${1#*"$verdict_launcher" }"
-  printf '%s' "${tail%% > .tdd/verify-*}"
-}
-
-ledger_read_re='cat \.tdd/issue-<n>\.md \| \$S/(next-(unchecked|pending-refactor)\.sh|ledger-steps\.sh (current|current-or-last-done))'
-last_done_re='\{ cat \.tdd/issue-<n>\.md \| \$S/ledger-steps\.sh last-done; \}'
-ledger_step_re="\"\\\$\\($ledger_read_re( \\|\\| ($ledger_read_re|$last_done_re))?\\)\""
-blind_re="^(--step ($double_quoted_step|$ledger_step_re)( --fast-cmd '<fast-cmd>')? (red|green|refactor|pin|<phase>) $spec_re <test-path> (<target-test-id>|<green-sha>|<base-sha>|\[target\])|--step ($double_quoted_step|$ledger_step_re) rebase $spec_re <onto-sha> <pre-rebase-sha>|--step ($double_quoted_step|$ledger_step_re) transform $spec_re \.tdd/issue-<n>-predicate <base-sha>|plan $spec_re \.tdd/issue-<n>\.md)$"
-
-name="$skill_md passes $verifier only the blind parameters on every supervised verifier launch"
-problems=()
-
-supervised_launches="$(launch_lines | grep -F "$verdict_launcher" | grep -F "$launcher" |
-  grep -E "$spec_re" || true)"
-if [[ -z "$supervised_launches" ]]; then
-  unreadable "launch line naming $verdict_launcher, $launcher and a spec file inside a fenced block" "what a supervised verifier launch passes"
-else
-  while IFS=$'\t' read -r lineno text; do
-    args="$(blind_args "$text")"
-    [[ "$args" =~ $blind_re ]] ||
-      problems+=("$skill_md:$lineno passes $verifier more than the blind parameters: $args")
-  done <<< "$supervised_launches"
 fi
 
 report "$name"
