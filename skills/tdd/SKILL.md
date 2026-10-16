@@ -581,6 +581,7 @@ unauthenticated baseline never gets a cycle.
    git clean -fd -e .tdd
    if [[ -n "$appends" ]] && ! git apply --unidiff-zero <<< "$appends"; then
      kept="$(git rev-parse --git-path kept-tdd-appends.diff)"
+     [[ ! -e $kept ]] || kept="$kept.$(date +%s).$$"
      printf '%s\n' "$appends" > "$kept"
      echo "could not re-apply the uncommitted appends to $(grep -o '^+++ b/.*' <<< "$appends" | cut -c7- | tr '\n' ' ')kept at $kept" >&2
      exit 2
