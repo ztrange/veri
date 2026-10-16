@@ -990,4 +990,15 @@ out="$(cat "$work/out")"
   problems+=("make -n unit: want $PY_DIR/test_top_probe.py out of the pytest roster, got: $(flat "$(grep -F "$PY_DIR/test_" <<< "$out" | cut -c1-300)")")
 report "$name"
 
+name="make test's pytest roster, read off make -n, names every test_*.py found on disk anywhere under tests/py/"
+problems=()
+mkdir -p "$roster/$PY_DIR/unit/sub/deeper"
+: > "$roster/$PY_DIR/unit/sub/deeper/test_nested_probe.py"
+make --no-print-directory -n -C "$roster" test > "$work/out" 2> "$work/err" < /dev/null || true
+out="$(cat "$work/out")"
+while IFS= read -r on_disk; do
+  [[ "$out" == *"$on_disk"* ]] || problems+=("make -n test: want $on_disk, found on disk, in the pytest roster, got: $(flat "$(grep -F "$PY_DIR/" <<< "$out" | cut -c1-300)")")
+done < <(cd "$roster" && find "$PY_DIR" -name 'test_*.py' | sort)
+report "$name"
+
 finish
