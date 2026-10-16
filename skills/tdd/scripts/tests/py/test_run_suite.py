@@ -474,6 +474,23 @@ def test_main_runs_a_pytest_suite_named_by_a_path_relative_to_the_caller_as_a_py
         0, ["%s -m pytest --version" % venv_py, "%s -m pytest tests/py/test_fake.py" % venv_py], False)
 
 
+def test_main_runs_a_pytest_suite_in_tests_py_unit_as_a_pytest_suite_without_a_count_line_check(tmp_path, capfd, monkeypatch, run_suite):
+    suite = tmp_path / "tests" / "py" / "unit" / "test_fake.py"
+    suite.parent.mkdir(parents=True)
+    suite.write_text("def test_nothing():\n    pass\n")
+    venv_py = stub_python(tmp_path / "venv" / "bin" / "python3")
+    log = tmp_path / "stub.log"
+    monkeypatch.setenv("STUB_LOG", str(log))
+    monkeypatch.setenv("STUB_VERSION_CODE", "0")
+    monkeypatch.setenv("STUB_RUN_CODE", "0")
+    monkeypatch.setenv("VERI_VENV", str(tmp_path / "venv"))
+    log.write_text("")
+    code = run_suite.main([str(suite)])
+    out, err = capfd.readouterr()
+    assert (code, log.read_text().splitlines(), "never reached its count line" in out + err) == (
+        0, ["%s -m pytest --version" % venv_py, "%s -m pytest %s" % (venv_py, suite)], False)
+
+
 def test_main_hands_a_fixture_suite_make_tests_environment_from_a_scrubbed_caller_1468(tmp_path, capfd, monkeypatch, run_suite):
     for name in [k for k in os.environ if k.startswith(("VERI_", "CLAUDE_", "GIT_CONFIG_"))]:
         if name != "VERI_VENV":
