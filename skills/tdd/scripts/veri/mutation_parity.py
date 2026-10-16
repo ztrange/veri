@@ -48,9 +48,13 @@ def named(name, failed):
     return any(line == name or line.startswith(name + " (") for line in failed)
 
 
+def suite_results(suite, old):
+    return failed_nodes(suite) if "::" in old else failed_cases(suite)
+
+
 def unmutated_failures(suite, old, fate, kept):
     try:
-        failed = (failed_nodes(suite) if "::" in old else failed_cases(suite))[0]
+        failed = suite_results(suite, old)[0]
     except SuiteDied:
         return []
     bad = []
@@ -71,7 +75,7 @@ def check(row):
     try:
         died = None
         try:
-            failed, passed, total = failed_nodes(suite) if "::" in old else failed_cases(suite)
+            failed, passed, total = suite_results(suite, old)
         except SuiteDied as error:
             died = error
         else:
