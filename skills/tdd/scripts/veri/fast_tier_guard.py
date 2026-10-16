@@ -39,10 +39,11 @@ def offences(root):
             if not isinstance(node, ast.Call):
                 continue
             func = node.func
-            if _receiver_and_attr(func) == ("time", "sleep"):
+            receiver, attr = _receiver_and_attr(func)
+            if (receiver, attr) == ("time", "sleep"):
                 found.append(f"{path}:{node.lineno}: sleeps through time.sleep")
             elif (
-                _receiver_and_attr(func)[0] in modules
+                receiver in modules
                 or (isinstance(func, ast.Name) and func.id in functions)
                 or _starts_process(func)
             ):
