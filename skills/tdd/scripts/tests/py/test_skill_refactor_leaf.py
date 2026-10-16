@@ -292,3 +292,48 @@ def test_flag_class_amendment_guard_fails_naming_the_class_over_a_skill_md_whose
 
 def test_one_call_per_criterion_case_passes_over_a_skill_md_whose_plan_growing_flag_class_is_named_off_spec_since_it_asks_how_many_calls_not_which_class():
     one_call_per_criterion(planted_with_other_class())
+
+
+def whole_document():
+    return plain(SKILL.read_bytes()).replace(b"\n", b" ")
+
+
+def test_skill_md_s_refactor_section_runs_a_step_s_triangulation_at_most_once_narrating_a_flag_raised_inside_that_triangulation_s_own_refactor_loop_about_the_same_code_rather_than_triangulating_it_again():
+    text = section()
+    assert text.strip(), "SKILL.md has no Refactor section to read — whether a step's triangulation runs more than once could not be established"
+    triangulation = wins(text, "triangulat")
+    assert triangulation, "the Refactor section never mentions triangulation at all, so there is no ceiling on it to read"
+    ceiling = rf"at most once|only once|once (per|a) step|({DENIAL_WORD}) ((a )?(second|further|another) (triangulat[a-z]*|time)|triangulat[a-z]* (it |them )?(again|a second time))"
+    assert has(triangulation, ceiling), "the Refactor section puts no ceiling on a step's triangulation"
+    narrated = either_order("narrat", "(again|a second (time|triangulation)|same code)", "[^.]{0,200}")
+    assert has(triangulation, narrated), "never says a flag raised inside a triangulation's own refactor loop about the same code is narrated"
+
+
+def test_skill_md_grows_the_plan_from_the_refactor_leaf_s_flags_classes_alone_reading_no_new_step_or_candidates_line_of_the_leaf_s_into_it():
+    text = section()
+    whole = whole_document()
+    assert text.strip(), "SKILL.md has no Refactor section to read — what the plan is grown from could not be established"
+    grown = window(text, ADD_LEDGER_STEP)
+    assert grown, "the Refactor section never runs add-ledger-step.sh, so no flag is ever planned"
+    assert has(grown, r"'<[^>]*leaf[^>]* [a-z]+-[a-z]+ behaviou?r>'"), "runs add-ledger-step.sh without saying its texts come from the leaf's FLAGS: lines"
+    leaf_new_step = re.search(either_order("leaf's", "new_step", "[^.]{0,30}").encode(), whole)
+    assert leaf_new_step is None, f"still reads a NEW_STEP: line from the refactor leaf: {leaf_new_step and leaf_new_step.group()!r}"
+    candidate_growth = re.search(either_order("candidates:", f"({AMENDMENT})", "[^.]{0,80}").encode(), whole)
+    assert candidate_growth is None, f"grows the plan from the leaf's CANDIDATES: lines: {candidate_growth and candidate_growth.group()!r}"
+
+
+def test_skill_md_s_refactor_section_does_not_bail_when_no_ledger_step_carries_criterion_k_yet_since_add_ledger_step_sh_criterion_accepts_it_1292():
+    text = section()
+    assert text.strip(), "SKILL.md has no Refactor section to read — what the conductor does with a criterion no ledger step carries could not be established"
+    uncarried_bail = re.search(either_order("bail", "carr[a-z]* criterion", "[^.]{0,200}").encode(), text)
+    assert uncarried_bail is None, f"still bails on a criterion no ledger step carries: {uncarried_bail and uncarried_bail.group()!r}"
+
+
+def test_skill_md_s_refactor_section_says_each_per_criterion_add_ledger_step_sh_call_emits_its_own_step_added_event_anchored_on_the_step_and_carrying_added_that_call_s_count_1292():
+    text = section()
+    assert text.strip(), "SKILL.md has no Refactor section to read — which step-added event each per-criterion add-ledger-step.sh call emits could not be established"
+    per_call = r"(each|every)( per-criterion)? (add-ledger-step\.sh )?call[^.]{0,120}(its own|a|one) step-added|one step-added[^.]{0,80}(per|for each|for every) (add-ledger-step\.sh )?(call|criterion)"
+    assert re.search(per_call.encode(), text), "never says each per-criterion add-ledger-step.sh call emits its own step-added event"
+    emitted = window(text, per_call)
+    assert has(emitted, r"anchor(ed)?( on|=)[^.]{0,40}step"), f"emits its own step-added event without saying it is anchored on the step: {emitted!r}"
+    assert has(emitted, r"added=<[^>]*call[^>]*>"), f"emits its own step-added event without saying it carries added=<that call's count>: {emitted!r}"
