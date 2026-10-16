@@ -53,7 +53,7 @@ def spec_criteria(path):
     section = re.search(r"^## Acceptance criteria\n(.*?)(?=^## |\Z)", text, re.M | re.S)
     body = section.group(1) if section else ""
     boxes = [line for line in body.split("\n") if ledger_steps(line)]
-    return len(boxes), {str(n) for n, line in enumerate(boxes, 1) if line.startswith("- [x]")}
+    return len(boxes), {str(n) for n, line in enumerate(boxes, 1) if line.startswith(("- [x]", "- [X]"))}
 
 
 def bash_integer(value):
