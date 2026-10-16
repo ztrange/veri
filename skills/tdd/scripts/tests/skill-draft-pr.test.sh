@@ -1218,4 +1218,23 @@ if step_or_problem '### 4. Draft PR' "whether sub-step 1's rebase exit code gate
 fi
 report "$name"
 
+name="#1613 $skill_md's Draft PR step decides whether the ledger already holds a CI repair step with ledger-steps.sh has-mark ci-repair, never a whole-ledger grep -F of the ⟦ci-repair⟧ mark"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "how the ci-red bail lines find an existing CI repair step"; then
+  bails="$(section_commands | grep -F 'cause=ci-red' || true)"
+  if [[ -z "$bails" ]]; then
+    problems+=("$skill_md's Draft PR step has no command line bailing with cause ci-red, so how it finds an existing CI repair step could not be checked")
+  else
+    while IFS= read -r line; do
+      grep -F 'ledger-steps.sh has-mark ci-repair' > /dev/null <<< "$line" ||
+        problems+=("a ci-red bail line of $skill_md's Draft PR step never asks ledger-steps.sh has-mark ci-repair, so a step that only quotes ⟦ci-repair⟧ in its prose counts as a CI repair: $(printf '%.160s' "$line")")
+      if grep -iF "grep -F '⟦ci-repair⟧'" > /dev/null <<< "$line"; then
+        problems+=("a ci-red bail line of $skill_md's Draft PR step still greps the whole ledger for ⟦ci-repair⟧: $(printf '%.160s' "$line")")
+      fi
+    done <<< "$bails"
+  fi
+fi
+report "$name"
+
 finish
