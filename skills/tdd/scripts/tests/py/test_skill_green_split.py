@@ -440,3 +440,13 @@ def test_1625_skill_md_allows_one_red_report_at_most_one_develop_replaces_report
             f"SKILL.md's unreplaced-cases.sh paragraph allows more than one correction: {section[max(0, grant.start() - 80):grant.end() + 80]}"
     assert re.search(r"(at most one|one chance|exactly one|only one|one correction)", section, re.I), \
         f"SKILL.md's unreplaced-cases.sh paragraph never limits the Red to one correction: {section}"
+
+
+def test_1625_skill_md_s_bail_cause_table_describes_unreplaced_cases_as_a_second_exit_1_after_the_one_correction_or_an_exit_2_at_once_not_as_any_exit_1():
+    entry = re.search(r"- `unreplaced-cases`.*?(?=\n- `)", "\n".join(_lines(BAILING)), re.S)
+    assert entry, "SKILL.md's Bailing causes list has no unreplaced-cases entry"
+    text = plain(entry.group(0).splitlines())
+    assert re.search(r"(second|again|after the one correction)", text), \
+        f"SKILL.md's unreplaced-cases bail cause never says exit 1 is the second one, after the one correction: {text}"
+    assert re.search(r"exit(s|ed)? \**2\**[^.]{0,80}(at once|immediately|no correction)|(at once|immediately)[^.]{0,80}exit(s|ed)? \**2", text), \
+        f"SKILL.md's unreplaced-cases bail cause never says an exit 2 bails at once: {text}"
