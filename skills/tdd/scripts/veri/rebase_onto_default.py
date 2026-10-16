@@ -31,8 +31,7 @@ def default_branch():
 
 
 def rebase_in_progress():
-    return any(pathlib.Path(output("rev-parse", "--git-path", name)).is_dir()
-               for name in ("rebase-merge", "rebase-apply"))
+    return any(git_file(name).is_dir() for name in ("rebase-merge", "rebase-apply"))
 
 
 def main(argv):
