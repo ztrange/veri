@@ -5,13 +5,13 @@
 # assignments — is named, unless the suite also puts lib/exit-contract.sh in the tree: by
 # naming it, by copying a directory whole with `cp -R`, or by copying `lib/*.sh`.
 # A suite that plants another suite (its GUARD=) copies every tests/lib file that suite sources.
-# Admitted to the fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
+# Not in the fast tier: it reads every suite under tests/ and tests/unit/ on each run.
 #
-# Run: scripts/tests/unit/scratch-copy-libs.test.sh
+# Run: scripts/tests/scratch-copy-libs.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-TESTS="$(cd "$HERE/.." && pwd)"
+TESTS="$HERE"
 SCRIPTS="$(cd "$TESTS/.." && pwd)"
 export LC_ALL=C
 source "$TESTS/lib/harness.sh"
