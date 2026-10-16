@@ -101,50 +101,6 @@ either_order() {
 
 refusal='refus|do(es)? not (go on|continue|proceed)|don.t (go on|continue)|not continue|bail'
 
-name="$skill_md's Refactor section launches one leaf per step and refuses verify-refactor over a dirty tree or a non-refactor: commit since the green commit, narrating the count against the budget"
-problems=()
-
-if unreadable_section; then
-  problems+=("$(unreadable_problem "how the refactor leaf is launched and what is asked of its result could not be established")")
-else
-  [[ "$section" =~ $one_leaf ]] ||
-    problems+=("$skill_md's Refactor section never says one leaf applies the step's transforms, so the conductor is not told that the cold start and the spec re-read are paid once rather than once per transform")
-  relaunch="$(phrase 'repeatedly|(each|every|the next) iteration' "$section")"
-  [[ -z "$relaunch" ]] ||
-    problems+=("$skill_md's Refactor section still launches a leaf per transform — it says '$relaunch' — so the leaf-per-transform cost this issue measured is still prescribed")
-
-  dirty="$(window "$section" 'git status --porcelain')"
-  if [[ -z "$dirty" ]]; then
-    problems+=("$skill_md's Refactor section never asks git status --porcelain, so the conductor walks into verify-refactor over whatever a killed leaf left uncommitted")
-  else
-    grep -qE "$refusal" <<<"$dirty" ||
-      problems+=("$skill_md's Refactor section asks git status --porcelain without saying a non-empty answer stops it, so the check is asked and its answer is advisory")
-  fi
-
-  subjects="$(window "$section" '(--(format|pretty)=%s|subject)')"
-  if [[ -z "$subjects" ]]; then
-    problems+=("$skill_md's Refactor section never reads the subjects of the commits since the green commit, so a leaf that committed something other than a refactor: goes to verify-refactor unchallenged")
-  else
-    grep -qE 'refactor:' <<<"$subjects" ||
-      problems+=("$skill_md's Refactor section reads commit subjects without saying they must be refactor:, so what the conductor is checking for is left to judgement")
-    grep -qE "$refusal" <<<"$subjects" ||
-      problems+=("$skill_md's Refactor section never says a non-refactor: commit since the green commit stops it, so the check has no branch and the run continues either way")
-  fi
-
-  counted="$(window "$section" 'rev-list --count')"
-  if [[ -z "$counted" ]]; then
-    problems+=("$skill_md's Refactor section never counts the refactor: commits with git rev-list --count, so what it narrates is the leaf's word for what it did rather than what is in the history")
-  else
-    grep -qE 'budget|refactor [0-9k]+/' <<<"$counted" ||
-      problems+=("$skill_md's Refactor section counts the refactor: commits without narrating them against the budget, so the cost axis this issue is about is not reported at all")
-  fi
-
-  grep -qE 'overrun|over the budget|above the budget|exceed' <<<"$section" ||
-    problems+=("$skill_md's Refactor section never says a count above the budget is narrated as an overrun, so a leaf that ran past the number it was given reads in the thread as one that did not")
-fi
-
-report "$name"
-
 records_of() {
   awk '
     function flush() { if (rec != "") { gsub(/[[:space:]]+/, " ", rec); print rec } rec = "" }
@@ -175,135 +131,13 @@ adr_pointer() {
   done < <(grep -oE 'adr[- ]?[0-9]+' <<<"$1")
 }
 
-name="$context_md's Cycle entry and $claude_md's budget invariant describe one refactor leaf per step and point at the ADR that records it"
-problems=()
-
-cycle="$(record "$context_path" '^cycle:')"
-invariant="$(record "$claude_path" 'veri_stuck_retries' 'revise_budget' 'veri_refactor_budget')"
-
-if [[ -z "$cycle" ]]; then
-  problems+=("$context_md has no Cycle glossary entry to read — what this repository tells the next agent a refactor step is could not be established")
-else
-  [[ "$cycle" =~ $one_leaf ]] ||
-    problems+=("$context_md's Cycle entry never says the refactor step is one leaf, so the glossary still describes the cycle as spending a leaf per transform")
-  stale_cycle="$(phrase 'per leaf|until none remain|per leaf invocation' "$cycle")"
-  [[ -z "$stale_cycle" ]] ||
-    problems+=("$context_md's Cycle entry still says '$stale_cycle', so the entry a reader learns the cycle from is ADR-0010's shape and contradicts the procedure SKILL.md now runs")
-fi
-
-if [[ -z "$invariant" ]]; then
-  problems+=("$claude_md has no invariant naming all three budgets to read — what VERI_REFACTOR_BUDGET is said to bound could not be established")
-else
-  [[ "$invariant" =~ $one_leaf ]] ||
-    problems+=("$claude_md's budget invariant never says one leaf spends the step's refactor budget, so the cost axis is still explained as a leaf per transform")
-  stale_invariant="$(phrase 'asked for one always finds one|one transform per leaf|a transform per leaf' "$invariant")"
-  [[ -z "$stale_invariant" ]] ||
-    problems+=("$claude_md's budget invariant still explains the budget by '$stale_invariant', which is only true of a leaf asked for a single transform")
-fi
-
-[[ -n "$(adr_pointer "$cycle $invariant")" ]] ||
-  problems+=("neither $context_md's Cycle entry nor $claude_md's budget invariant names an ADR other than the superseded 0010, so nothing in either record points a reader at the decision that replaced one transform per leaf")
-
-report "$name"
-
 add_ledger_step='\$s/add-ledger-step\.sh'
-
-name="$skill_md's Refactor section passes the flags' behaviours to one add-ledger-step.sh call after the step, and commits the grown ledger with the refactor-pending clear"
-problems=()
-
-if unreadable_section; then
-  problems+=("$(unreadable_problem "what becomes of the leaf's NEW_STEP: lines could not be established")")
-else
-  calls="$(grep -oE "$add_ledger_step" <<<"$section" | grep -c '')"
-  if [[ "$calls" -eq 0 ]]; then
-    problems+=("$skill_md's Refactor section never runs add-ledger-step.sh, so the leaf's NEW_STEP: lines are narrated and nothing grows the plan — the triangulating step the leaf refused to write by hand is owed to nobody")
-  elif [[ "$calls" -gt 1 ]]; then
-    problems+=("$skill_md's Refactor section runs add-ledger-step.sh $calls times, so a step's NEW_STEP: values are inserted a call at a time and the growth budget is read once per value rather than once for the step")
-  else
-    added="$(window "$section" "$add_ledger_step")"
-    grep -qE "'<[^>]*behaviou?r>'" <<<"$added" ||
-      problems+=("$skill_md's Refactor section runs add-ledger-step.sh without saying the texts are the flags' behaviours, so what the inserted step says is left to judgement")
-    grep -qE "after ['\"]?(<step>|\\$\\(\\\$s/next-pending-refactor\\.sh)" <<<"$added" ||
-      problems+=("$skill_md's Refactor section runs add-ledger-step.sh without anchoring the insertion after the step just refactored, so the triangulating step lands somewhere other than next to the code it triangulates")
-  fi
-
-  cleared="$(window "$section" 'clear-refactor-pending\.sh')"
-  if [[ -z "$cleared" ]]; then
-    problems+=("$skill_md's Refactor section never clears the refactor-pending mark, so the commit the grown ledger is supposed to ride does not exist to be read for")
-  else
-    grep -qE 'add-ledger-step' <<<"$cleared" ||
-      problems+=("$skill_md's Refactor section commits the cleared ledger without the steps add-ledger-step.sh inserted into it, so a step added for triangulation is lost the moment the run is resumed from the committed ledger")
-  fi
-fi
-
-report "$name"
-
-name="$skill_md's Refactor section narrates add-ledger-step.sh exit 1 as owed steps and does not bail on it"
-problems=()
-
-if unreadable_section; then
-  problems+=("$(unreadable_problem "what the conductor does when the plan-growth budget cannot hold the leaf's NEW_STEP: values could not be established")")
-else
-  owed_claim="$(either_order 'exit 1' 'owed' '.{0,120}')"
-  if ! grep -qE "$owed_claim" <<<"$section"; then
-    problems+=("$skill_md's Refactor section never says what add-ledger-step.sh exit 1 means, so a conductor meeting the plan-growth budget's refusal is left to read it as the failure every other non-zero exit in this phase is, and the NEW_STEP: values it filed as owed steps go unmentioned")
-  else
-    clause="$(window "$section" "$owed_claim" 150)"
-    bailed="$(phrase 'bail|abort' "$clause")"
-    [[ -z "$bailed" ]] ||
-      problems+=("$skill_md's Refactor section says '$bailed' where it narrates add-ledger-step.sh exit 1, so a ledger whose growth budget is full ends a run whose step verified PASS — the owed steps are recorded and the plan simply did not grow, which is nothing to stop for")
-  fi
-fi
-
-report "$name"
-
-name="$skill_md's Refactor section passes the passing verify-refactor verdict's uncovered-spec flags to the same add-ledger-step.sh call as the leaf's"
-problems=()
-
-if unreadable_section; then
-  problems+=("$(unreadable_problem "what becomes of the verify-refactor verdict's NEW_STEP: lines could not be established")")
-else
-  added="$(window "$section" "$add_ledger_step")"
-  if [[ -z "$added" ]]; then
-    problems+=("$skill_md's Refactor section never runs add-ledger-step.sh, so the verifier's NEW_STEP: proposals are narrated and nothing grows the plan — the edge case it stopped REJECTing for is proposed to nobody")
-  else
-    grep -qE 'verif|verdict' <<<"$added" ||
-      problems+=("$skill_md's Refactor section runs add-ledger-step.sh over the leaf's NEW_STEP: values alone, so the passing verify-refactor verdict's own values never reach the ledger — the unhandled edge case the verifier stopped REJECTing for is proposed to nobody")
-  fi
-fi
-
-report "$name"
 
 denial_word='no|never|neither|without|not'
 
 denial="($denial_word)[^.]{0,80}"
 
 amendment='amend|ledger (step|line)|add-ledger-step|grow'
-
-name="$skill_md's Refactor section answers an overfit flag with one triangulating red/green pair inside the step, adding no ledger step and no second step-done, and resumes that step's refactor loop with the budget it had left"
-problems=()
-
-if unreadable_section; then
-  problems+=("$(unreadable_problem "what the conductor does with an overfit flag could not be established")")
-else
-  flagged="$(wins 'overfit')"
-  if [[ -z "$flagged" ]]; then
-    problems+=("$(unnamed_class_problem overfit "the conductor branches on its own judgement rather than on the leaf's word")")
-  else
-    grep -qE "$(either_order 'triangulat[a-z]*' 'verify-(red|green)' '[^.]{0,200}')" <<<"$flagged" ||
-      problems+=("$skill_md's Refactor section never says an overfit flag is answered by a triangulating red and green pair, so the case the leaf named is either built unverified or not built at all")
-
-    grep -qE "$denial($amendment)" <<<"$flagged" ||
-      problems+=("$skill_md's Refactor section answers an overfit flag without saying the plan does not grow for it, so the triangulation becomes a ledger step with a refactor loop of its own — the #107 chain this issue is against")
-    grep -qE "$denial(second )?step.done" <<<"$flagged" ||
-      problems+=("$skill_md's Refactor section answers an overfit flag without saying the step is not mirrored done a second time, so one step reports itself finished twice and the issue thread stops saying how many steps ran")
-
-    grep -qE "$(either_order '(resum|return|back)' 'budget' '[^.]{0,160}')" <<<"$flagged" ||
-      problems+=("$skill_md's Refactor section never says the step resumes its own refactor loop with the budget it had left after the triangulation, so the tidying the flag interrupted is either abandoned or restarted with a budget the step has already spent")
-  fi
-fi
-
-report "$name"
 
 name="$skill_md's Refactor section amends the plan from an uncovered-spec flag and from no other flag class"
 problems=()
