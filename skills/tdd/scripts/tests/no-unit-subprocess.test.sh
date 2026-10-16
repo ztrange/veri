@@ -39,30 +39,26 @@ for f in "$HERE"/unit/*.test.sh; do
     problems+=("$suite:$lineno runs a script under skills/tdd/scripts/ as a subprocess, with no exemption recorded: $(flat "$text")")
   done < <(awk -v scripts="$script_list" '
     BEGIN { n = split(scripts, arr, "|"); for (i = 1; i <= n; i++) is_script[arr[i]] = 1 }
+    function names_script(s,   tok) {
+      while (match(s, /\/[a-z0-9-]+\.sh/)) {
+        tok = substr(s, RSTART + 1, RLENGTH - 1)
+        s = substr(s, RSTART + RLENGTH)
+        if (tok in is_script) return 1
+      }
+      return 0
+    }
     /^[ \t]*#/ { next }
     /^[ \t]*(source|\.)[ \t]/ { next }
     /^[ \t]*[A-Za-z_][A-Za-z0-9_]*=/ && $0 !~ /\$\(|`/ {
       v = $0; sub(/^[ \t]*/, "", v); sub(/=.*/, "", v)
-      rest = $0
-      while (match(rest, /\/[a-z0-9-]+\.sh/)) {
-        tok = substr(rest, RSTART + 1, RLENGTH - 1)
-        rest = substr(rest, RSTART + RLENGTH)
-        if (tok in is_script) { held[v] = 1; break }
-      }
+      if (names_script($0)) held[v] = 1
       next
     }
     {
       for (v in held)
         if ($0 ~ ("(^|\\$\\(|[;&|(])[ \t]*(([A-Za-z_][A-Za-z0-9_]*=[^ \t]* +)*)\"?\\$\\{?" v "([^A-Za-z0-9_]|$)")) { print FNR "\t" $0; next }
     }
-    {
-      rest = $0
-      while (match(rest, /\/[a-z0-9-]+\.sh/)) {
-        tok = substr(rest, RSTART + 1, RLENGTH - 1)
-        rest = substr(rest, RSTART + RLENGTH)
-        if (tok in is_script) { print FNR "\t" $0; break }
-      }
-    }
+    names_script($0) { print FNR "\t" $0 }
   ' "$f")
 done
 
