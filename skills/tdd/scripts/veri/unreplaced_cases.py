@@ -22,18 +22,19 @@ def unescape(name):
 
 
 def main(argv):
-    if len(argv) != 2:
+    if len(argv) < 2:
         sys.stderr.write(USAGE + "\n")
         return 2
-    step, report = argv
+    step, *reports = argv
     parsed = replaces_case.parse(step)
     quote = step[re.search(r"\breplaces (?=['\"`])", step).end()] if parsed else ""
-    with open(report, encoding="utf-8") as handle:
-        replaced = set()
-        for m in re.finditer(r"^REPLACES: (.*?) => (.*)$", handle.read(), re.M):
-            if exists_in_tree(m.group(2)):
-                replaced.add(m.group(1))
-                replaced.add(re.sub("^(" + re.escape(quote) + ")(.*)\\1$", r"\2", m.group(1)))
+    replaced = set()
+    for report in reports:
+        with open(report, encoding="utf-8") as handle:
+            for m in re.finditer(r"^REPLACES: (.*?) => (.*)$", handle.read(), re.M):
+                if exists_in_tree(m.group(2)):
+                    replaced.add(m.group(1))
+                    replaced.add(re.sub("^(" + re.escape(quote) + ")(.*)\\1$", r"\2", m.group(1)))
     missing = [name for name in (parsed[0] if parsed else []) if name not in replaced and unescape(name) not in replaced]
     for name in missing:
         print(name)
