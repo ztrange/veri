@@ -873,3 +873,32 @@ def test_main_refuses_a_second_suite_repair_inserted_after_the_last_resume_whose
 
     assert (code, out, ledger.read_bytes()) == (1, "", before)
     assert "fix the full-suite failure: first.test.sh" in err
+
+
+def test_main_refuses_a_third_suite_repair_naming_the_one_this_run_inserted_after_the_last_resume_not_an_earlier_runs_1607(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    before = (
+        "# Plan for #42\n"
+        "\n"
+        "- [x] a one ⟦criterion 1⟧\n"
+        "- [x] fix the full-suite failure: first.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧\n"
+        "- [x] b two ⟦criterion 2⟧\n"
+        "- [x] fix the full-suite failure: second.test.sh ⟦suite-repair⟧ ⟦criterion 2⟧\n"
+        "- [ ] c three ⟦criterion 3⟧\n"
+    ).encode()
+    ledger.write_bytes(before)
+    events = [
+        {"ts": 1, "issue": "42", "event": "step-added", "anchor": "a one", "added": "1"},
+        {"ts": 2, "issue": "42", "event": "resume"},
+        {"ts": 3, "issue": "42", "event": "step-added", "anchor": "b two", "added": "1"},
+    ]
+    (ledger.parent / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+
+    code, out, err = run_cli(
+        add_ledger_step,
+        [str(ledger), "after", "c three", "fix the full-suite failure: third.test.sh ⟦suite-repair⟧"],
+    )
+
+    assert (code, out, ledger.read_bytes()) == (1, "", before)
+    assert "second.test.sh" in err and "first.test.sh" not in err
