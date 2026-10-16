@@ -260,6 +260,7 @@ def suite_of(f, revisions=None):
     if match(SCRIPTS + "/veri/*.py"):
         name = basename(f, ".py")
         return (existing("%s/tests/py/test_%s.py" % (SCRIPTS, name))
+                + existing("%s/tests/py/unit/test_%s.py" % (SCRIPTS, name))
                 + suite_of("%s/%s.sh" % (SCRIPTS, name.replace("_", "-"))))
     if match(SCRIPTS + "/*.sh"):
         name = basename(f, ".sh")
