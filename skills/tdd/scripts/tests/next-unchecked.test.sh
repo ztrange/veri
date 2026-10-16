@@ -3,14 +3,13 @@
 # (checkbox markdown) on stdin, print the description of the FIRST unchecked `- [ ]` step
 # and exit 0; exit 3 when every step is checked (or there are none) — the signal that the
 # cycle loop is complete. Mirrors the checkbox grammar of tick-criterion.sh.
-# Fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
-# Run: scripts/tests/unit/next-unchecked.test.sh
+# Run: scripts/tests/next-unchecked.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-NEXT="$HERE/../../next-unchecked.sh"
-source "$HERE/../lib/harness.sh"
+NEXT="$HERE/../next-unchecked.sh"
+source "$HERE/lib/harness.sh"
 check() {  # check <name> <expected-exit> <input> <expected-stdout>
   local name="$1" exp_code="$2" input="$3" exp="$4" out code
   out="$(printf '%s' "$input" | "$NEXT")" && code=0 || code=$?
@@ -33,7 +32,7 @@ done_ledger='- [x] one
 check "all checked exits 3" 3 "$done_ledger" ""
 
 linked="$(scratch_dir)"
-ln -s "$(cd "$HERE/../../.." && pwd)" "$linked/skill"
+ln -s "$(cd "$HERE/../.." && pwd)" "$linked/skill"
 mkdir "$linked/elsewhere"
 name="run through a symlink to the skill directory from another directory, answers as in place"
 want="collapse non-alphanumerics to a single hyphen"

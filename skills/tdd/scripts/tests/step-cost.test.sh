@@ -2,15 +2,13 @@
 # Tests for scripts/step-cost.sh — the reader over the run's `usage` events: what one
 # step, or the whole run, has spent on leaves so far. Run from the run's worktree, it reads
 # .tdd/events.jsonl relative to it. Every fixture here is a hand-written events.jsonl.
-# Fast tier: no git, no network, no servers, no real sleep, no nested suites —
-# by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
-# Run: scripts/tests/unit/step-cost.test.sh
+# Run: scripts/tests/step-cost.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-STEP_COST="$HERE/../../step-cost.sh"
-source "$HERE/../lib/harness.sh"
+STEP_COST="$HERE/../step-cost.sh"
+source "$HERE/lib/harness.sh"
 problems=""
 
 work="$(scratch_dir)"
@@ -77,7 +75,7 @@ verdict "no argument, an unknown option, --run or --steps with a step text, and 
 cat > "$work/.tdd/events.jsonl" <<'EOF'
 {"ts": 1, "issue": "721", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30"}
 EOF
-ln -s "$(cd "$HERE/../../.." && pwd)" "$work/linked-skill"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
 mkdir -p "$work/elsewhere/.tdd"
 cp "$work/.tdd/events.jsonl" "$work/elsewhere/.tdd/events.jsonl"
 run_cost "step one"

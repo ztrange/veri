@@ -2,19 +2,18 @@
 # Unit tests for scripts/cover-outcome.sh — the pure transform that reads a cover leaf's
 # report on stdin and says whether the code a refactor step will move is covered, so the
 # conductor can go on to Transform or refuse the step.
-# Fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Contract under test:
 #   stdin  = the cover leaf's report (the COVERED:/CAUGHT_BY:/MUTATION: lines at its end)
 #   stdout = on COVERED: yes, the test the report's CAUGHT_BY: line names
 #   exit   = 0 COVERED: yes · 1 COVERED: no · 2 no readable COVERED: line
 #
-# Run: scripts/tests/unit/cover-outcome.test.sh
+# Run: scripts/tests/cover-outcome.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-COVER_OUTCOME="$HERE/../../cover-outcome.sh"
-source "$HERE/../lib/harness.sh"
+COVER_OUTCOME="$HERE/../cover-outcome.sh"
+source "$HERE/lib/harness.sh"
 
 run_on() {
   out="$(printf '%s' "$1" | "$COVER_OUTCOME" 2>/dev/null)" && code=0 || code=$?
@@ -84,7 +83,7 @@ verdict "$name"
 name="run through a symlink to the skill directory and from another working directory, it answers as in place"
 problems=()
 scratch="$(scratch_dir)"
-ln -s "$(cd "$HERE/../../.." && pwd)" "$scratch/skill"
+ln -s "$(cd "$HERE/../.." && pwd)" "$scratch/skill"
 mkdir "$scratch/elsewhere"
 answer() {
   local report="$1" bin="$2" dir="$3" o c

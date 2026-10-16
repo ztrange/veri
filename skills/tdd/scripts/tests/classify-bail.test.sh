@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/classify-bail.sh — classifies a bail's <cause> into a category.
 # Given a cause as $1, print the category on the first stdout line and exit 0.
-# Fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Contract under test:
 #   classify-bail.sh killed-stuck         → first stdout line `system`,  exit 0
 #   classify-bail.sh <unrecognised>       → error on stderr, exit non-zero
 #
-# Run: scripts/tests/unit/classify-bail.test.sh
+# Run: scripts/tests/classify-bail.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-CLASSIFY="$HERE/../../classify-bail.sh"
-source "$HERE/../lib/harness.sh"
+CLASSIFY="$HERE/../classify-bail.sh"
+source "$HERE/lib/harness.sh"
 
 check() {
   local name="$1" cause="$2" exp_code="$3" exp_out="$4" out code first
@@ -57,7 +56,7 @@ fi
 linked_name="classify-bail.sh run through a symlink to the skill directory and from another working directory answers killed-stuck and an unknown cause as it does in place"
 linked_bad=""
 linked_work="$(scratch_dir)"
-ln -s "$(cd "$HERE/../../.." && pwd)" "$linked_work/linked-skill"
+ln -s "$(cd "$HERE/../.." && pwd)" "$linked_work/linked-skill"
 mkdir -p "$linked_work/elsewhere"
 for cause in killed-stuck bogus; do
   in_place_out="$("$CLASSIFY" "$cause" 2>"$linked_work/in-place.err")" && in_place_code=0 || in_place_code=$?

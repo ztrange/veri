@@ -184,7 +184,7 @@ Two traps, both already cost something once:
 ## Testing idiom
 
 Plain-shell asserts, zero dependencies, under
-`skills/tdd/scripts/tests/` — 118 files for eighty scripts, plus twenty-five suites under `unit/` (five moved there, two written for them, twelve written with the script or helper they test — `step-cost.test.sh`, `step-budget.test.sh`, `run-affordable.test.sh`, `cover-outcome.test.sh`, `comment-class.test.sh`, `ledger.test.sh`, `github.test.sh`, `exit-contract.test.sh`, `candidate-line.test.sh`, `window.test.sh`, `section-end.test.sh`, `frontmatter-name.test.sh`, `fenced-lines.test.sh` — and one written for the argument contract they all share — `missing-argument-guard.test.sh`, which plants an offender so that the audit, `tests/missing-argument-exit.test.sh`, which runs every script as a subprocess and so stays out of the fast tier, is known to go red — one written with the sourced test harness, `harness.test.sh`, one written to pin that no suite carries its own `report`, `no-report-copies.test.sh`, and one written with the sourced guard-plant library, `guard-plant.test.sh`), all run by `make test`.
+`skills/tdd/scripts/tests/` — 129 files for eighty scripts, plus fourteen suites under `unit/` (`run-affordable.test.sh`, `ledger.test.sh`, `github.test.sh`, `exit-contract.test.sh`, `candidate-line.test.sh`, `window.test.sh`, `section-end.test.sh`, `frontmatter-name.test.sh`, `fenced-lines.test.sh`, `gh-fixture.test.sh`, written with the script or helper they test; `missing-argument-guard.test.sh`, which plants an offender so that the audit, `tests/missing-argument-exit.test.sh`, which runs every script as a subprocess and so stays out of the fast tier, is known to go red; `harness.test.sh`, written with the sourced test harness; `no-report-copies.test.sh`, written to pin that no suite carries its own `report`; and `guard-plant.test.sh`, written with the sourced guard-plant library), all run by `make test`.
 The pending-mark literal, commit-suffix and emitted-text checks are pytest cases now, in `tests/py/test_pending_mark_literal.py`, `test_commit_suffix.py` and `test_emitted_text.py`.
 One suite belongs to no single
 script: `workflow-timeouts.test.sh` is the first to assert on
@@ -252,7 +252,7 @@ system path alike, against an exemption table carrying a reason per entry.
 
 **`skills/tdd/scripts/tests/unit/` is the fast tier**, run alone by `make unit` and also by
 `make test`. A suite belongs there only if it clears the admission bar: about 100 ms per
-case, and no git, network, servers, real waits (`sleep`) or nested suites — judged by
+case, and no git, network, servers, real waits (`sleep`) or nested suites, and no script run as a subprocess — it sources the script and mocks what it shells out to, and `tests/no-unit-subprocess.test.sh` fails naming `<suite>:<line>` otherwise — judged by
 grepping the suite's own source, not by timing it, and stated in its header. `make unit`
 shims `git`, `gh`, `curl` and `python3` so a suite that calls one for real fails, named, and
 `make test` applies the same shims to the suites under `tests/unit/` only, never to another

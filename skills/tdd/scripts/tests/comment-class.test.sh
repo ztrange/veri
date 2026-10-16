@@ -2,15 +2,14 @@
 # Tests for scripts/comment-class.sh — prints every `#` line of the shell files it is given
 # as `<file>:<line>:<class>`, class 1 a comment in code, 2 a `#` line in a heredoc written
 # to a file, 3 one in any other heredoc.
-# Fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
-# Run: scripts/tests/unit/comment-class.test.sh
+# Run: scripts/tests/comment-class.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-SCRIPTS="$HERE/../.."
+SCRIPTS="$HERE/.."
 CLASSIFY="$SCRIPTS/comment-class.sh"
-source "$HERE/../lib/harness.sh"
+source "$HERE/lib/harness.sh"
 
 work="$(scratch_dir)"
 
