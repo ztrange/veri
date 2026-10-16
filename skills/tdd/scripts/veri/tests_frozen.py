@@ -3,7 +3,9 @@ import hashlib
 import os
 import sys
 
-USAGE = "usage: tests-frozen.sh record <record-file> <test-file>... | check <record-file> | path <step-text>"
+USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> <test-file>... | "
+         "check <record-file>|--step <step-text> | path <step-text>")
+REPAIR_MARKS = ("\u27e6suite-repair\u27e7", "\u27e6ci-repair\u27e7")
 
 
 def _write(stream, line):
@@ -17,6 +19,10 @@ def _digest(path):
         return hashlib.sha256(handle.read()).hexdigest()
 
 
+def _record_path(step):
+    return ".tdd/tests-frozen-%s.record" % hashlib.sha256(os.fsencode(step)).hexdigest()[:16]
+
+
 def main(argv):
     mode = argv[0] if argv else ""
     record = argv[1] if len(argv) > 1 else ""
@@ -24,8 +30,17 @@ def main(argv):
         _write(sys.stderr, USAGE)
         return 2
     if mode == "path":
-        _write(sys.stdout, ".tdd/tests-frozen-%s.record" % hashlib.sha256(os.fsencode(record)).hexdigest()[:16])
+        _write(sys.stdout, _record_path(record))
         return 0
+    if record == "--step":
+        step = argv[2] if len(argv) > 2 else ""
+        if not step:
+            _write(sys.stderr, USAGE)
+            return 2
+        if any(mark in step for mark in REPAIR_MARKS):
+            return 0
+        argv = [mode, _record_path(step)] + argv[3:]
+        record = argv[1]
     if mode == "record":
         files = argv[2:]
         if not files:
