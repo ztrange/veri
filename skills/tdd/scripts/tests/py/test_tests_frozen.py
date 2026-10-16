@@ -31,3 +31,20 @@ def test_path_without_a_step_text_or_with_an_empty_one_is_exit_2_naming_the_usag
     answers = [run_cli(tests_frozen, argv, cwd=tmp_path) for argv in (["path"], ["path", ""])]
 
     assert [(code, out, "path <step-text>" in err) for code, out, err in answers] == [(2, "", True), (2, "", True)]
+
+
+def test_two_consecutive_steps_on_one_suite_file_each_check_against_their_own_record_and_a_step_with_none_is_exit_2_1586(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "a.test.sh"
+    suite.write_text("case one\n")
+    first, second, third = "step one adds case one", "step two adds case two", "step three never recorded"
+    paths = {step: run_cli(tests_frozen, ["path", step], cwd=tmp_path)[1].rstrip("\n") for step in (first, second, third)}
+
+    recorded_first = run_cli(tests_frozen, ["record", paths[first], "a.test.sh"], cwd=tmp_path)[0]
+    suite.write_text("case one\ncase two\n")
+    recorded_second = run_cli(tests_frozen, ["record", paths[second], "a.test.sh"], cwd=tmp_path)[0]
+    checks = {step: run_cli(tests_frozen, ["check", paths[step]], cwd=tmp_path)[:2] for step in (first, second, third)}
+
+    assert (recorded_first, recorded_second, checks) == (
+        0, 0, {first: (1, "a.test.sh\n"), second: (0, ""), third: (2, "")})
