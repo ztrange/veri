@@ -50,9 +50,13 @@ for f in "$HERE"/unit/*.test.sh; do
     /^[ \t]*#/ { next }
     /^[ \t]*(source|\.)[ \t]/ { next }
     /^[ \t]*[A-Za-z_][A-Za-z0-9_]*=/ && $0 !~ /\$\(|`/ {
-      v = $0; sub(/^[ \t]*/, "", v); sub(/=.*/, "", v)
-      if (names_script($0)) held[v] = 1
-      next
+      rest = $0
+      sub(/^[ \t]*[A-Za-z_][A-Za-z0-9_]*=("[^"]*"|\047[^\047]*\047|[^ \t]*)/, "", rest)
+      if (rest !~ /^[ \t]*[^ \t#]/) {
+        v = $0; sub(/^[ \t]*/, "", v); sub(/=.*/, "", v)
+        if (names_script($0)) held[v] = 1
+        next
+      }
     }
     {
       for (v in held)
