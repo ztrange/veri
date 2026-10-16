@@ -1692,6 +1692,7 @@ git commit -m "plan: repair the red full suite (#<n>)"
 ```
 That call passes no `--criterion` on purpose: the repair step serves its anchor's criterion.
 **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see *Bailing*.
+**`add-ledger-step.sh` exit 1 on the `⟦suite-repair⟧` insertion → bail with cause `suite-red`, naming every suite still red**, exactly as the second-red-run bail below does.
 
 A second red result on the full run after a repair step does **bail** — the repair step is
 one more cycle, not a loop — and the bail names every suite still red, not only the first.
