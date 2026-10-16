@@ -220,3 +220,24 @@ def test_shim_source_problems_names_stop_run_and_line_for_each_violation_planted
 
     assert unplanted == []
     assert [line.split(" ")[0] for line in problems][:1] == ["stop-run.sh:%d" % (original.count("\n") + 1)]
+
+
+@pytest.mark.parametrize("planted", [
+    "gh issue view 7",
+    "gh pr list",
+    "gh repo view",
+    "gh auth status",
+])
+def test_shim_source_problems_names_stop_run_and_line_for_each_graphql_gh_call_planted_into_a_copy_and_passes_the_unplanted_copy(tmp_path, planted):
+    """Its subject is source text: a copy of the real stop-run.sh with a gh call planted in it, read as text and never run."""
+    from conftest import shim_source_problems
+
+    original = (SCRIPTS / "stop-run.sh").read_text()
+    (tmp_path / "stop-run.sh").write_text(original)
+    unplanted = shim_source_problems(tmp_path)
+    (tmp_path / "stop-run.sh").write_text(original + planted + "\n")
+
+    problems = shim_source_problems(tmp_path)
+
+    assert unplanted == []
+    assert [line.split(" ")[0] for line in problems] == ["stop-run.sh:%d" % (original.count("\n") + 1)]
