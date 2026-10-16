@@ -2114,7 +2114,7 @@ exits 0 straight into its verifier and nothing checks for the line. The `diff` r
 its check is stated under *A `⟦diff-checked⟧` step*.
 
 A revise of green whose leaf reports `WRONG_TEST: <why>` is exempt from the `SUITE:` line and reaches the same
-outcome a develop-green `WRONG_TEST:` stop does: the step goes on to verify-green, never a `report-missing` bail.
+outcome a develop-green `WRONG_TEST:` stop does: it keeps its main outcome, a verify-green REJECT, never a `report-missing` bail.
 
 For attempt `k = 1 … REVISE_BUDGET`:
 
