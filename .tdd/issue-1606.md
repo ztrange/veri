@@ -2,4 +2,4 @@
 
 - [x] `make test`'s pytest roster, read off `make -n test`, holds every `test_*.py` under `skills/tdd/scripts/tests/py/`, files in subdirectories (e.g. `tests/py/unit/`) included; `tests/py/conftest.py` stays where it is ⟦criterion 1⟧
 - [x] `make unit`'s pytest roster, read off `make -n unit`, holds only the `test_*.py` files under `skills/tdd/scripts/tests/py/unit/` and none directly under `tests/py/`; the red moves `pytest-leg.test.sh`'s probe files that expect `make unit` to run them into `tests/py/unit/` in the same red (the `make test` probes stay put), and CLAUDE.md's pytest-leg paragraph says which files each target runs ⟦criterion 1⟧
-- [x] No test is lost: every `test_*.py` on disk anywhere under `skills/tdd/scripts/tests/py/` appears in `make test`'s pytest roster read off `make -n test`, pinned by a case that lists the files on disk and compares them with that roster ⟦criterion 2⟧ ⟂ refactor pending
+- [x] No test is lost: every `test_*.py` on disk anywhere under `skills/tdd/scripts/tests/py/` appears in `make test`'s pytest roster read off `make -n test`, pinned by a case that lists the files on disk and compares them with that roster ⟦criterion 2⟧
