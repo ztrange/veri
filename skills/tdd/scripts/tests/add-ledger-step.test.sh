@@ -91,7 +91,7 @@ else
   diff "$work/in-place.none.err" "$work/linked.none.err" | sed 's/^/    stderr: /'
 fi
 
-name="#1579: the shim header describes --planned (no ⟦added⟧, not counted toward VERI_STEP_GROWTH) and its exit-2 list names --planned without --criterion, a criterion a ledger step already serves, and a k not unticked in the issue body"
+name="#1579: the shim header describes --planned (no ⟦added⟧, not counted toward VERI_STEP_GROWTH) and its exit-2 list names --planned without --criterion, a criterion a ledger step already serves, no readable spec file, and a k not unticked in the issue body, and no longer lists a --criterion no ledger step carries"
 hdr="$(sed -n '/^#/p' "$ADD")"
 exit2="$(printf '%s\n' "$hdr" | sed -n '/^# Exit:/,$p')"
 missing=""
@@ -100,13 +100,15 @@ printf '%s\n' "$hdr" | grep -F -- '--planned' | grep -F '⟦added⟧' > /dev/nul
 printf '%s\n' "$exit2" | grep -F -- '--planned without --criterion' > /dev/null || missing="$missing [exit 2: --planned without --criterion]"
 printf '%s\n' "$exit2" | grep -F 'already serves' > /dev/null || missing="$missing [exit 2: a criterion a ledger step already serves]"
 printf '%s\n' "$exit2" | grep -F 'unticked in the issue body' > /dev/null || missing="$missing [exit 2: k not unticked in the issue body]"
+printf '%s\n' "$exit2" | grep -F 'readable spec file' > /dev/null || missing="$missing [exit 2: --planned with no readable spec file]"
+printf '%s\n' "$exit2" | grep -F 'no ledger step carries' > /dev/null && missing="$missing [exit 2 still lists a --criterion no ledger step carries, which exits 0 since #1292]"
 if [[ -z "$missing" ]]; then
   ok
 else
   no "$name (missing:$missing)"
 fi
 
-name="#1579: SKILL.md's add-ledger-step.sh entry documents --planned (no ⟦added⟧, not counted toward VERI_STEP_GROWTH) and its exit-2 refusals: no --criterion, an already-served criterion, a k not unticked in the issue body"
+name="#1579: SKILL.md's add-ledger-step.sh entry documents --planned (no ⟦added⟧, not counted toward VERI_STEP_GROWTH) and its exit-2 refusals: no --criterion, an already-served criterion, no readable spec file, a k not unticked in the issue body"
 entry="$(sed -n '/^- `\$S\/add-ledger-step\.sh /,/^- `\$S\/classify-bail\.sh/p' "$HERE/../../SKILL.md")"
 missing=""
 printf '%s\n' "$entry" | grep -F -- '--planned' | grep -F 'VERI_STEP_GROWTH' > /dev/null || missing="$missing [--planned not counted toward VERI_STEP_GROWTH]"
@@ -114,6 +116,7 @@ printf '%s\n' "$entry" | grep -F -- '--planned' | grep -F '⟦added⟧' > /dev/n
 printf '%s\n' "$entry" | grep -F -- '--planned without --criterion' > /dev/null || missing="$missing [exit 2: --planned without --criterion]"
 printf '%s\n' "$entry" | grep -F 'already serves' > /dev/null || missing="$missing [exit 2: a criterion a ledger step already serves]"
 printf '%s\n' "$entry" | grep -F 'unticked in the issue body' > /dev/null || missing="$missing [exit 2: k not unticked in the issue body]"
+printf '%s\n' "$entry" | grep -F 'cannot read the spec file' > /dev/null || missing="$missing [exit 2: no readable spec file]"
 if [[ -z "$missing" ]]; then
   ok
 else
