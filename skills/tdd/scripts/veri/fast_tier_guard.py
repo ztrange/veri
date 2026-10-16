@@ -45,9 +45,10 @@ def offences(root):
             func = node.func
             receiver, attr = _receiver_and_attr(func)
             imported = name_imports.get(func.id) if isinstance(func, ast.Name) else None
-            if (module_aliases.get(receiver, receiver), attr) == ("time", "sleep") or imported == ("time", "sleep"):
+            module = module_aliases.get(receiver, receiver)
+            if (module, attr) == ("time", "sleep") or imported == ("time", "sleep"):
                 found.append(f"{path}:{node.lineno}: sleeps through time.sleep")
-            elif module_aliases.get(receiver, receiver) == "socket" or imported == ("socket", "socket"):
+            elif module == "socket" or imported == ("socket", "socket"):
                 found.append(f"{path}:{node.lineno}: opens a socket through socket")
             elif (
                 receiver in modules
@@ -55,7 +56,7 @@ def offences(root):
                 or _starts_process(func)
             ):
                 found.append(f"{path}:{node.lineno}: starts a process through subprocess")
-            elif (module_aliases.get(receiver, receiver), attr) == ("pytest", "main") or any(
+            elif (module, attr) == ("pytest", "main") or any(
                 isinstance(arg, ast.Constant) and isinstance(arg.value, str) and _SUITE_PATH.search(arg.value)
                 for arg in node.args
             ):
