@@ -1,6 +1,7 @@
 """Fast-tier admission guard: names the lines of test files that start a process."""
 import ast
 import re
+import sys
 from pathlib import Path
 
 _SUITE_PATH = re.compile(r"(^|/)test_[^/]*\.py$|\.test\.sh$")
@@ -75,3 +76,16 @@ def offences(root, exemptions=None):
                 continue
             found.append(f"{path}:{node.lineno}: {message}")
     return [line for line in found if line.split(": ")[0] not in exemptions]
+
+
+def main(argv):
+    root = Path(argv[0])
+    if not root.is_dir():
+        sys.stderr.write(f"fast_tier_guard: {root}: no such directory\n")
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    import entry
+    entry.run(main, sys.argv[1:])
