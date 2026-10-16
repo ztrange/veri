@@ -252,6 +252,7 @@ def test_shim_source_problems_names_stop_run_and_line_of_the_python3_call_handed
 @pytest.mark.parametrize("assigned", [
     'issue_json="$(cat "$VERI_GH_JSON/issue.json")"',
     'if ! issue_json="$(gh_json issue_view 7)"; then exit 2; fi',
+    '! issue_json="$(gh_json issue_view 7)" || exit 2',
 ])
 def test_shim_source_problems_names_the_python3_call_handed_a_fixture_sourced_or_if_bang_assigned_gh_json_document_planted_into_a_copy(tmp_path, assigned):
     """Its subject is source text: a copy of the real stop-run.sh with a gh JSON document handed to python3 as an argument, read as text and never run."""
