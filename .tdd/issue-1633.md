@@ -1,7 +1,7 @@
 # Plan for #1633 — PRD 009: every guard-clean pytest file moves into the fast tier
 
 - [x] affected-suites.sh maps a changed `veri/<module>.py` to `tests/py/unit/test_<module>.py` when the module's pytest file lives in the fast tier, exactly as it maps it to `tests/py/test_<module>.py` today; pinned by a case with a file in `tests/py/unit/`, no production change beyond `veri/affected_suites.py` ⟦criterion 2⟧
-- [ ] affected-suites.sh selects a changed `tests/py/unit/test_*.py` file as itself, exactly as it selects a changed `tests/py/test_*.py` file today; pinned by a case with a file in `tests/py/unit/` ⟦criterion 2⟧
+- [x] affected-suites.sh selects a changed `tests/py/unit/test_*.py` file as itself, exactly as it selects a changed `tests/py/test_*.py` file today; pinned by a case with a file in `tests/py/unit/` ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] affected-suites.sh's SKILL.md readers (the pytest files that read SKILL.md or call `section(`) and the prompt renderers selected for a `prompts/*.md` change include a pytest file under `tests/py/unit/`, by the same rules it applies to one under `tests/py/` today; pinned by a case with a file in `tests/py/unit/` ⟦criterion 2⟧
 - [ ] run-suite.sh runs a `tests/py/unit/test_*.py` file as a pytest file, exactly as it runs a `tests/py/test_*.py` file today (no count-line guard read for it); pinned by a case with a file in `tests/py/unit/` ⟦criterion 2⟧
 - [ ] The fast-tier guard (`veri/fast_tier_guard.py`) refuses a root that does not exist with exit 2 and a stderr line naming the path, instead of reporting no offences; pinned by a case ⟦criterion 3⟧

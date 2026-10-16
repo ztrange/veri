@@ -88,6 +88,15 @@ def test_main_maps_a_touched_module_to_its_pytest_file_in_the_fast_tier(tmp_path
         0, "skills/tdd/scripts/tests/py/unit/test_foo.py\n", "")
 
 
+def test_main_selects_a_changed_pytest_file_in_the_fast_tier_as_itself(tmp_path, monkeypatch, capsys, affected):
+    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/tests/py/unit/test_bar.py"]))
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "skills/tdd/scripts/tests/py/unit").mkdir(parents=True)
+    (tmp_path / "skills/tdd/scripts/tests/py/unit/test_bar.py").write_text("")
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0, "skills/tdd/scripts/tests/py/unit/test_bar.py\n", "")
+
+
 def test_main_skips_a_directory_named_like_a_suite_when_reading_suites(tmp_path, monkeypatch, capsys, affected):
     monkeypatch.setattr(subprocess, "run", fake_git(["CLAUDE.md"]))
     monkeypatch.chdir(tmp_path)
