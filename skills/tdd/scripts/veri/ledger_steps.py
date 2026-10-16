@@ -2,7 +2,7 @@
 import re
 import sys
 
-from ledger import handed_out, ledger_steps, next_phase, read_ledger_stdin
+from ledger import handed_out, ledger_steps, next_phase, read_ledger_stdin, trailing_markers
 
 USAGE = "usage: ledger-steps.sh [current|last-done|current-or-last-done|next-phase|criterion <k>]"
 
@@ -48,6 +48,11 @@ def phase_next(records):
     return say(next((phase for phase in phases if phase), None))
 
 
+def has_mark(records, name):
+    mark = f"⟦{name}⟧"
+    return 0 if any(mark in trailing_markers(r[6]) for r in records) else 3
+
+
 def criterion(text, k):
     kept, in_section = [], False
     for line in text.split("\n"):
@@ -61,7 +66,7 @@ def criterion(text, k):
 
 def main(argv):
     verb = argv[0] if argv else ""
-    if verb not in ("", "current", "last-done", "current-or-last-done", "next-phase", "criterion"):
+    if verb not in ("", "current", "last-done", "current-or-last-done", "next-phase", "criterion", "has-mark"):
         return refuse()
     if verb == "criterion" and not re.fullmatch("[0-9]+", argv[1] if len(argv) > 1 else ""):
         return refuse()
@@ -69,6 +74,8 @@ def main(argv):
     if verb == "criterion":
         return criterion(text, int(argv[1]) % 2**64)
     records = ledger_steps(text)
+    if verb == "has-mark":
+        return has_mark(records, argv[1])
     if verb == "current":
         return current(records)
     if verb == "last-done":
