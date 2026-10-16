@@ -33,6 +33,9 @@ WRONG_TEST_FORMAT = (
     "\n\nREPORT-FORMAT revise-wrong-test | keys WRONG_TEST: | suite exempt: the test is wrong, "
     "so nothing was changed and no suite ran").encode()
 TEST_REWRITE_NONE = b"**Leave the test files as they are**: this phase has no test of its own to redo."
+TEST_MOVE_CONTRACT_A = (
+    "**Move the tests off the old interface, as contract-a does**: rewrite or delete only the tests the\n"
+    "   rejection names that still exercise it. No new failing test is written, so no prediction is owed.").encode()
 WANT_REVISE_PHASES = "|".join(REVISABLE_PHASES)
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ARGUMENT_PLACEHOLDERS = {"<test-path>": "TEST_PATH", "<target-test>": "TARGET_TEST", "<fast-cmd>": "FAST_CMD",
@@ -140,7 +143,7 @@ def main(argv):
     if phase == "refactor":
         values["REFACTOR_BUDGET"] = os.fsencode(tunables.read("VERI_REFACTOR_BUDGET") or "5")
     values["REVISE_PHASE"] = os.fsencode(revised_phase)
-    values["TEST_REWRITE"] = TEST_REWRITE_NONE if revised_phase in ("green", "refactor") else TEST_REWRITE_GRANT
+    values["TEST_REWRITE"] = {"red": TEST_REWRITE_GRANT, "contract-a": TEST_MOVE_CONTRACT_A}.get(revised_phase, TEST_REWRITE_NONE)
     if revised_phase == "green":
         values["FREEZE_RULE"] = GREEN_FREEZE_RULE
         values["WRONG_TEST_REPORT"] = WRONG_TEST_REPORT
