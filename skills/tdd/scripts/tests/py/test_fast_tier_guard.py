@@ -63,3 +63,19 @@ def test_a_planted_test_file_starting_a_process_through_os_system_os_exec_os_spa
     found = guard.offences(tmp_path)
 
     assert sorted(line.split(": ")[0] for line in found) == sorted(planted)
+
+
+def test_a_planted_test_file_calling_time_sleep_is_reported_as_a_sleep_offence_by_file_and_line(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    offender = tmp_path / "test_sleeper.py"
+    offender.write_text(
+        "import time\n"
+        "\n"
+        "def test_waits():\n"
+        "    time.sleep(1)\n"
+    )
+
+    found = guard.offences(tmp_path)
+
+    assert [line.split(": ")[0] for line in found] == [f"{offender}:4"]
+    assert "sleep" in found[0].split(": ", 1)[1]
