@@ -2,7 +2,6 @@
 # Unit tests for scripts/red-divergence.sh — the pure transform that reads a develop-red
 # or revise-red leaf's report on stdin and says whether its prediction diverged, so the
 # conductor can stop on the surprise instead of sending the step to a blind verify-red.
-# Fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Contract under test:
 #   stdin  = the leaf's report (the PREDICTED_FAILURE:/PREDICTION:/… lines at its end)
@@ -11,12 +10,12 @@
 #            .tdd/verify-red.reason for the revise leaf to read
 #   exit   = 0 DIVERGED · 3 MATCHED (nothing to do) · 2 no readable PREDICTION:
 #
-# Run: scripts/tests/unit/red-divergence.test.sh
+# Run: scripts/tests/red-divergence.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-DIVERGENCE="$HERE/../../red-divergence.sh"
-source "$HERE/../lib/harness.sh"
+DIVERGENCE="$HERE/../red-divergence.sh"
+source "$HERE/lib/harness.sh"
 
 run_on() {
   out="$(printf '%s' "$1" | "$DIVERGENCE" 2>&1)" && code=0 || code=$?
@@ -111,7 +110,7 @@ prompt_verdicts() {
 
 name="every verdict the leaf prompts offer on their PREDICTION: line is one the parser reads"
 problems=()
-prompts_dir="$HERE/../../prompts"
+prompts_dir="$HERE/../prompts"
 offered=0
 for prompt in "$prompts_dir"/*.md; do
   while IFS= read -r offered_verdict; do
@@ -135,7 +134,7 @@ verdict "$name"
 name="run through a symlink to the skill directory and from another working directory, it answers as in place"
 problems=()
 scratch="$(scratch_dir)"
-ln -s "$(cd "$HERE/../../.." && pwd)" "$scratch/skill"
+ln -s "$(cd "$HERE/../.." && pwd)" "$scratch/skill"
 mkdir "$scratch/elsewhere"
 answer() {
   local report="$1" bin="$2" dir="$3" o c

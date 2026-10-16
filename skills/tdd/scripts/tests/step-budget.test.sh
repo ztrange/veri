@@ -2,15 +2,13 @@
 # Tests for scripts/step-budget.sh — the resolver for the two money budgets:
 # VERI_STEP_BUDGET, what one step may spend, and VERI_RUN_BUDGET, what the whole run may.
 # Called with no arguments it prints the step budget then the run budget, one per line.
-# Fast tier: no git, no network, no servers, no real sleep, no nested suites —
-# by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
-# Run: scripts/tests/unit/step-budget.test.sh
+# Run: scripts/tests/step-budget.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-STEP_BUDGET="$HERE/../../step-budget.sh"
-source "$HERE/../lib/harness.sh"
+STEP_BUDGET="$HERE/../step-budget.sh"
+source "$HERE/lib/harness.sh"
 problems=""
 
 work="$(scratch_dir)"
@@ -56,7 +54,7 @@ if [[ "$err" != 'usage: step-budget.sh (takes no arguments)' ]]; then
 fi
 verdict "an argument exits 2 with nothing on stdout and the usage line alone on stderr"
 
-ln -s "$(cd "$HERE/../../.." && pwd)" "$work/linked-skill"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
 mkdir -p "$work/elsewhere"
 linked_matches() {
   local in_out="$out" in_code="$code" linked linked_code
@@ -78,13 +76,9 @@ expect 2 ''
 linked_matches
 verdict "step-budget.sh run through a symlink to the skill directory and from another working directory answers no argument, VERI_STEP_BUDGET=twelve and the argument 0 as it does in place"
 
-BAR='no git, no network, no servers, no real sleep, no nested suites'
 self="$HERE/$(basename "$0")"
-[[ "$self" == */skills/tdd/scripts/tests/unit/step-budget.test.sh ]] ||
-  problems+="    want the suite under skills/tdd/scripts/tests/unit/, got '$self'"$'\n'
-header="$(sed -n '2,$p' "$self" | sed '/^#/!q' | grep '^#')"
-[[ "$header" == *"$BAR"* ]] ||
-  problems+="    want the header to state '$BAR', got '$header'"$'\n'
-verdict "the suite lives in tests/unit/ and its header states the fast-tier bar it clears"
+[[ "$self" == */skills/tdd/scripts/tests/step-budget.test.sh ]] ||
+  problems+="    want the suite under skills/tdd/scripts/tests/, got '$self'"$'\n'
+verdict "the suite lives in tests/, with the suites that run their script through its entry point"
 
 finish

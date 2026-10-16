@@ -4,14 +4,13 @@
 # Given a ledger file and a matcher, strip the mark from the FIRST checked step that both
 # contains the matcher and carries the mark, in place, and exit 0; exit 3 with the file
 # byte-identical when no such step matched. Operates on a real temp file.
-# Fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
-# Run: scripts/tests/unit/clear-refactor-pending.test.sh
+# Run: scripts/tests/clear-refactor-pending.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-CLEAR="$HERE/../../clear-refactor-pending.sh"
-source "$HERE/../lib/harness.sh"
+CLEAR="$HERE/../clear-refactor-pending.sh"
+source "$HERE/lib/harness.sh"
 
 work="$(scratch_dir)"
 led="$work/issue-42.md"
@@ -87,7 +86,7 @@ else
   printf '    stdout: %s\n    stderr: %s\n' "$(cat "$work/out")" "$notdir_err"
 fi
 
-ln -s "$(cd "$HERE/../../.." && pwd)" "$work/skill-link"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/skill-link"
 mkdir -p "$work/caller" "$work/inplace"
 printf '%s\n' "$ledger" > "$work/caller/issue-42.md"
 printf '%s\n' "$ledger" > "$work/inplace/issue-42.md"

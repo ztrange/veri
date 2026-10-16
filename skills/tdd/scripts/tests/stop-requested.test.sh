@@ -2,15 +2,13 @@
 # Tests for scripts/stop-requested.sh — the read half of the stop mechanism: an operator
 # writes a mode into .tdd/stop and a running conductor asks this script, at its checkpoints,
 # whether one is waiting. Run from the run's worktree, it reads .tdd/stop relative to it.
-# Fast tier: no git, no network, no servers, no real sleep, no nested suites —
-# by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
-# Run: scripts/tests/unit/stop-requested.test.sh
+# Run: scripts/tests/stop-requested.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-STOP="$HERE/../../stop-requested.sh"
-source "$HERE/../lib/harness.sh"
+STOP="$HERE/../stop-requested.sh"
+source "$HERE/lib/harness.sh"
 
 work="$(scratch_dir)"
 mkdir -p "$work/.tdd"
@@ -83,7 +81,7 @@ verdict "a malformed stop request is refused on stderr with today's message, nam
 problems=""
 home="$work/home"; run="$work/run"
 mkdir -p "$home/.tdd" "$run/.tdd"
-ln -s "$(cd "$HERE/../.." && pwd)" "$home/scripts"
+ln -s "$(cd "$HERE/.." && pwd)" "$home/scripts"
 printf '%s\n' "at-leaf" > "$home/.tdd/stop"
 printf '%s\n' "now" > "$run/.tdd/stop"
 out="$(cd "$run" && "$home/scripts/stop-requested.sh" 2>"$work/stderr")" && code=0 || code=$?
@@ -102,17 +100,11 @@ fi
 verdict "run through a symlink to the scripts directory, stop-requested.sh reads and clears the working directory's .tdd/stop, never one beside the skill"
 
 problems=""
-tier_dir="skills/tdd/scripts/tests/unit"
-self="$HERE/$(basename "$0")"
+tests_dir="skills/tdd/scripts/tests"
 case "$HERE" in
-  */"$tier_dir") ;;
-  *) problems+="    want this suite under $tier_dir/, found it in $HERE"$'\n' ;;
+  */"$tests_dir") ;;
+  *) problems+="    want this suite under $tests_dir/, found it in $HERE"$'\n' ;;
 esac
-header="$(sed -n '2,$p' "$self" | sed '/^#/!q' | grep '^#')"
-for phrase in "fast tier" "no git" "no network" "no server" "no real sleep" "no nested suite"; do
-  grep -qi -- "$phrase" <<< "$header" ||
-    problems+="    this suite's header does not say '$phrase', so it does not state the bar it clears"$'\n'
-done
-verdict "this suite lives in the fast tier's directory and its header states the bar it clears"
+verdict "this suite lives in tests/, with the suites that run their script through its entry point"
 
 finish

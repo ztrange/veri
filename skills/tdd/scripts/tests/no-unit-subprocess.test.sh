@@ -18,21 +18,7 @@ source "$HERE/lib/harness.sh"
 
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
-PENDING="runs its script through its CLI entry point today; it meets the bar or moves to tests/ in the step that makes this guard green over the real unit/"
-
-declare -A EXEMPT=(
-  [classify-bail.test.sh]="$PENDING"
-  [clear-refactor-pending.test.sh]="$PENDING"
-  [comment-class.test.sh]="$PENDING"
-  [cover-outcome.test.sh]="$PENDING"
-  [criterion-finished.test.sh]="$PENDING"
-  [next-pending-refactor.test.sh]="$PENDING"
-  [next-unchecked.test.sh]="$PENDING"
-  [red-divergence.test.sh]="$PENDING"
-  [step-budget.test.sh]="$PENDING"
-  [step-cost.test.sh]="$PENDING"
-  [stop-requested.test.sh]="$PENDING"
-)
+declare -A EXEMPT=()
 
 problems=()
 for key in "${!EXEMPT[@]}"; do

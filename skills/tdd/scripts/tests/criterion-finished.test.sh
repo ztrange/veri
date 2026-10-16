@@ -3,14 +3,13 @@
 # Given a ledger (checkbox markdown) on stdin and a criterion number k, exit 0 when every
 # step ending in ` ⟦criterion k⟧` is ticked with no ` ⟂ refactor pending` mark, and exit 3
 # when some step serving k is still open or pending.
-# Fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
-# Run: scripts/tests/unit/criterion-finished.test.sh
+# Run: scripts/tests/criterion-finished.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-FINISHED="$HERE/../../criterion-finished.sh"
-source "$HERE/../lib/harness.sh"
+FINISHED="$HERE/../criterion-finished.sh"
+source "$HERE/lib/harness.sh"
 code_for() {  # code_for <criterion> <ledger> — print the script's exit code
   local code
   printf '%s' "$2" | "$FINISHED" "$1" >/dev/null && code=0 || code=$?
@@ -70,7 +69,7 @@ fi
 
 name="run through a symlink to the skill directory and from another working directory, it answers as it does in place: exit 0, 3 and 2 with the same stdout and stderr"
 work="$(scratch_dir)"
-ln -s "$(cd "$HERE/../../.." && pwd)" "$work/linked-skill"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
 mkdir "$work/elsewhere"
 printf -- '- [x] a ⟦criterion 1⟧\n' > "$work/finished"
 printf -- '- [ ] a ⟦criterion 1⟧\n' > "$work/unfinished"
