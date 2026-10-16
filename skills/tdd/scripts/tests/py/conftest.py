@@ -69,12 +69,14 @@ def entry_bypass_problems(scripts):
 def shim_source_problems(scripts):
     rules = (
         (re.compile(r"\bpython3?\b[^#]*<<"), "feeds python3 a heredoc"),
-        (re.compile(r"\bpython3?\s+-c\b"), "feeds python3 a -c string"),
+        (re.compile(r"\bpython3?\b[^#]*\s-c(?:\s|$)"), "feeds python3 a -c string"),
         (re.compile(r"\bgh\s+(issue|pr|repo|api|auth\s+status)\b"), "calls gh"),
     )
-    gh_assign = re.compile(r'^(?:local\s+)?(\w+)="?\$\((?:gh|gh_list|gh_json|\w*_json)[\s)]')
+    gh_assign = re.compile(r'^(?:if\s+!?\s*|!\s*|local\s+)?(\w+)="?\$\((?:(?:gh|gh_list|gh_json|\w*_json)[\s)]|cat\s+"?\$\{?VERI_GH_JSON)')
     problems = []
-    for script in sorted(pathlib.Path(scripts).glob("*.sh")):
+    for script in sorted(pathlib.Path(scripts).glob("*.sh")) + sorted(pathlib.Path(scripts).glob("lib/*.sh")):
+        library = script.parent.name == "lib"
+        name = str(script.relative_to(scripts))
         gh_names = set()
         for number, line in enumerate(script.read_text().splitlines(), 1):
             code = line.lstrip()
@@ -84,10 +86,12 @@ def shim_source_problems(scripts):
             if assigned:
                 gh_names.add(assigned.group(1))
             if re.search(r"\bpython3?\b", code) and any(re.search(r"\$\{?%s\b" % name, code) for name in gh_names):
-                problems.append("%s:%d hands python3 a gh JSON document" % (script.name, number))
+                problems.append("%s:%d hands python3 a gh JSON document" % (name, number))
+            if library:
+                continue
             for pattern, what in rules:
                 if pattern.search(code):
-                    problems.append("%s:%d %s" % (script.name, number, what))
+                    problems.append("%s:%d %s" % (name, number, what))
     return problems
 
 

@@ -214,6 +214,7 @@ def plant_into_stop_run_copy(tmp_path, planted):
 @pytest.mark.parametrize("planted", [
     "python3 - <<'PY'\nprint('hi')\nPY",
     "python3 -c 'print(1)'",
+    "python3 -I -c 'print(1)'",
     "gh issue view 7 --json body",
     'issue_json="$(gh api repos/o/r/issues/7)"\npython3 "$(dirname "$0")/veri/stop_run.py" "$issue_json"',
 ])
@@ -246,6 +247,34 @@ def test_shim_source_problems_names_stop_run_and_line_of_the_python3_call_handed
 
     assert unplanted == []
     assert [line.split(" ")[0] for line in problems] == ["stop-run.sh:%d" % (original.count("\n") + 2)]
+
+
+@pytest.mark.parametrize("assigned", [
+    'issue_json="$(cat "$VERI_GH_JSON/issue.json")"',
+    'if ! issue_json="$(gh_json issue_view 7)"; then exit 2; fi',
+])
+def test_shim_source_problems_names_the_python3_call_handed_a_fixture_sourced_or_if_bang_assigned_gh_json_document_planted_into_a_copy(tmp_path, assigned):
+    """Its subject is source text: a copy of the real stop-run.sh with a gh JSON document handed to python3 as an argument, read as text and never run."""
+    planted = assigned + '\npython3 "$(dirname "$0")/veri/stop_run.py" "$issue_json"'
+    unplanted, problems, original = plant_into_stop_run_copy(tmp_path, planted)
+
+    assert unplanted == []
+    assert [line.split(" ")[0] for line in problems] == ["stop-run.sh:%d" % (original.count("\n") + 2)]
+
+
+def test_shim_source_problems_names_a_lib_script_handing_python3_a_gh_json_document_planted_into_a_copy(tmp_path):
+    """Its subject is source text: a copy of the real lib/github.sh with a gh JSON document handed to python3 as an argument, read as text and never run."""
+    from conftest import shim_source_problems
+
+    original = (SCRIPTS / "lib" / "github.sh").read_text()
+    (tmp_path / "lib").mkdir()
+    (tmp_path / "lib" / "github.sh").write_text(original)
+    unplanted = shim_source_problems(tmp_path)
+    (tmp_path / "lib" / "github.sh").write_text(
+        original + 'issue_json="$(gh api repos/o/r/issues/7)"\npython3 "$VERI_SCRIPTS/veri/stop_run.py" "$issue_json"\n')
+
+    assert unplanted == []
+    assert [line.split(" ")[0] for line in shim_source_problems(tmp_path)] == ["lib/github.sh:%d" % (original.count("\n") + 2)]
 
 
 @pytest.mark.tree_audit("every scripts/*.sh, the six exempt shims included, read as text")
