@@ -440,3 +440,16 @@ def test_main_reports_a_kind_only_from_a_steps_trailing_marker_run_not_from_a_ki
         f"1\topen\tstep\t0\t0\t1\t{quoted}\n"
         f"2\topen\tdiff-checked\t0\t0\t3\t{trailing}\n"
     ).encode(), b"")
+
+
+def test_has_mark_answers_0_only_for_a_step_whose_trailing_markers_carry_the_mark_not_one_that_quotes_it_1613(
+        monkeypatch, capsysbinary, ledger_steps):
+    quoting = "- [ ] a step that quotes ⟦ci-repair⟧ in its prose ⟦criterion 1⟧\n"
+    repair = "- [ ] fix the red job ⟦ci-repair⟧ ⟦criterion 1⟧\n"
+    results = {}
+    for name, steps in {"quoting": quoting, "repair": quoting + repair}.items():
+        fake_stdin(monkeypatch, f"# Plan for #42\n\n{steps}".encode())
+        code = ledger_steps.main(["has-mark", "ci-repair"])
+        results[name] = (code, *capsysbinary.readouterr())
+
+    assert results == {"quoting": (3, b"", b""), "repair": (0, b"", b"")}
