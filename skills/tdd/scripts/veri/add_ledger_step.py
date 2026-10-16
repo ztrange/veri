@@ -116,6 +116,10 @@ def main(argv):
         return refuse("add-ledger-step.sh: --planned: a step already serves criterion " + criterion)
     if sum(1 for line in lines if is_anchor_step(line, anchor)) != 1:
         return refuse("add-ledger-step.sh: anchor matches no single step: " + anchor)
+    earlier = [line for line in lines if ledger_steps(line) and "⟦suite-repair⟧" in line]
+    if earlier and any("⟦suite-repair⟧" in text for text in texts):
+        warn("add-ledger-step.sh: this run already inserted a suite-repair step: " + earlier[0])
+        return 1
     budget = tunables.read("VERI_STEP_GROWTH", "5")
     if not re.fullmatch("[0-9]+", budget):
         return refuse("add-ledger-step.sh: VERI_STEP_GROWTH must be a whole number >= 0: " + budget)
