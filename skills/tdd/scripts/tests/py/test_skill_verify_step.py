@@ -88,3 +88,17 @@ def test_1521_skill_md_has_the_unreplaced_cases_sh_guard_read_the_current_attemp
     assert ".tdd/revise-red-<k>.out" in text, (
         "skills/tdd/SKILL.md's unreplaced-cases.sh guard names .tdd/develop-red.out alone, never .tdd/revise-red-<k>.out after a red revise")
     assert ".tdd/develop-red.out" in text, "skills/tdd/SKILL.md's unreplaced-cases.sh guard never names .tdd/develop-red.out"
+
+
+def test_1625_skill_md_has_unreplaced_cases_sh_exit_2_bail_at_once_launching_no_correction_leaf_and_no_verifier():
+    text = guard(section(RED))
+    sentence = re.search(r"exits? 2[^.]*\.", text.split("exit 1 again", 1)[1])
+    assert sentence, "skills/tdd/SKILL.md's unreplaced-cases.sh guard never says what the conductor does on exit 2 after the correction paragraph"
+    sentence = sentence.group(0)
+    for pattern, message in [
+        (r"cause=unreplaced-cases", "never bails with cause=unreplaced-cases on exit 2"),
+        (r"at once|immediately", "never says exit 2 bails at once"),
+        (r"(launch|launching|launches)[^.]{0,40}no (correction )?leaf|no (correction )?leaf", "never says exit 2 launches no correction leaf"),
+        (r"(launch|launching|launches)[^.]{0,60}no[^.]{0,40}verifier|no verifier", "never says exit 2 launches no verifier"),
+    ]:
+        assert re.search(pattern, sentence), f"skills/tdd/SKILL.md's unreplaced-cases.sh exit 2 sentence {message}: {sentence!r}"
