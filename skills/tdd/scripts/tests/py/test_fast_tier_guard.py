@@ -199,6 +199,14 @@ def test_a_root_that_does_not_exist_is_refused_with_exit_2_and_a_stderr_line_nam
     assert (code, stdout, str(missing) in stderr) == (2, "", True)
 
 
+def test_offences_raises_instead_of_returning_an_empty_list_when_its_root_does_not_exist(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    missing = tmp_path / "no-such-tier"
+
+    with pytest.raises(Exception):
+        guard.offences(missing)
+
+
 @pytest.mark.tree_audit("every test_*.py under tests/py and tests/py/unit")
 def test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it():
     guard = importlib.import_module("veri.fast_tier_guard")

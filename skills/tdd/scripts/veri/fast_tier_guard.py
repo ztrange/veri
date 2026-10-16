@@ -43,6 +43,8 @@ def _require_reasons(exemptions):
 def offences(root, exemptions=None):
     exemptions = exemptions or {}
     _require_reasons(exemptions)
+    if not Path(root).is_dir():
+        raise NotADirectoryError(f"{root}: no such directory")
     found = []
     for path in sorted(Path(root).rglob("test_*.py")):
         tree = ast.parse(path.read_text())
