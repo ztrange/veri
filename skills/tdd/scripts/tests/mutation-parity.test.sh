@@ -306,6 +306,23 @@ else
     stderr: $(cat "$work/single.err")"
 fi
 
+sed 's/single.test.sh/x/' "$repo/tests/single.test.sh" > "$repo/tests/single-dies.test.sh"
+chmod +x "$repo/tests/single-dies.test.sh"
+git -C "$repo" add -A && git -C "$repo" commit -qm 'second single-case suite'
+{ cat "$repo/calc.sh"; echo 'exit 9'; } > "$work/dies.mutated"
+diff -u --label a/calc.sh --label b/calc.sh "$repo/calc.sh" "$work/dies.mutated" > "$work/dies.patch" || true
+table="$work/single-dies.tsv"
+printf 'tests/single-dies.test.sh\tadds two numbers\treplaced\t%s\t%s\n' "$node" "$work/dies.patch" > "$table"
+out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/single-dies.err")" && code=0 || code=$?
+row="$(grep -F 'adds two numbers' <<<"$out" | grep -wF owed || true)"
+if [[ "$code" == 1 && -n "$row" ]]; then
+  ok
+else
+  no "#1594: a row whose old suite holds exactly one case reads owed when, under the mutation, that suite dies before its count line (exit=$code want 1)
+    stdout: $out
+    stderr: $(cat "$work/single-dies.err")"
+fi
+
 printf 'mul() { echo $(( $1 * $2 )); }\n' > "$work/mul.sh"
 sed 's/\*/\//' "$work/mul.sh" > "$work/mul.mutated"
 diff -u --label a/calc.sh --label b/calc.sh "$work/mul.sh" "$work/mul.mutated" > "$work/does-not-apply.patch"
