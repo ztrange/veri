@@ -121,3 +121,28 @@ def test_a_planted_test_file_opening_a_socket_or_sleeping_through_an_imported_na
     for line in found:
         location, message = line.split(": ", 1)
         assert planted[location] in message
+
+
+def test_a_planted_test_file_running_another_suite_through_pytest_main_or_a_named_suite_path_is_reported_as_a_nested_suite_by_file_and_line(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    forms = {
+        "test_pytest_main.py": ("import pytest", "pytest.main(['other'])"),
+        "test_named_py_suite.py": ("", "run_it('tests/py/test_other.py')"),
+        "test_named_sh_suite.py": ("", "run_it('tests/other.test.sh')"),
+    }
+    planted = []
+    for name, (import_line, call) in forms.items():
+        path = tmp_path / name
+        path.write_text(
+            f"{import_line}\n"
+            "\n"
+            "def test_it():\n"
+            f"    {call}\n"
+        )
+        planted.append(f"{path}:4")
+
+    found = guard.offences(tmp_path)
+
+    assert sorted(line.split(": ")[0] for line in found) == sorted(planted)
+    for line in found:
+        assert "nested" in line.split(": ", 1)[1]
