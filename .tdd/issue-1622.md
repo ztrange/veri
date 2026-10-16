@@ -1,5 +1,5 @@
 # Plan for #1622 — A prompt edit no longer selects the emitted-text check after #1315 (point it at test_emitted_text.py)
 
-- [x] A change to a named prompt template under skills/tdd/scripts/prompts/ (one a suite names, e.g. develop-red.md) makes affected-suites.sh print skills/tdd/scripts/tests/py/test_emitted_text.py, pinned by a small in-process case in tests/py/test_affected_suites.py ⟦criterion 1⟧ ⟂ refactor pending
+- [x] A change to a named prompt template under skills/tdd/scripts/prompts/ (one a suite names, e.g. develop-red.md) makes affected-suites.sh print skills/tdd/scripts/tests/py/test_emitted_text.py, pinned by a small in-process case in tests/py/test_affected_suites.py ⟦criterion 1⟧
 - [ ] A change to a prompt partial (a prompts/_*.md file such as _shared.md) makes affected-suites.sh print skills/tdd/scripts/tests/py/test_emitted_text.py, pinned by a small in-process case in tests/py/test_affected_suites.py ⟦criterion 1⟧
 - [ ] A change to a prompt no suite names makes affected-suites.sh print skills/tdd/scripts/tests/py/test_emitted_text.py: the #1024 case for a prompt no suite names (test_main_prints_no_suite_for_a_prompt_no_suite_names_1024 in tests/py/test_affected_suites.py) is rewritten to expect that file instead of no suite, staying a small in-process case ⟦criterion 1⟧
