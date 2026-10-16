@@ -361,6 +361,19 @@ def test_1625_skill_md_s_unreplaced_cases_exit_1_launches_one_develop_replaces_r
         f"SKILL.md's unreplaced-cases.sh exit 1 never runs unreplaced-cases.sh again on the corrected report: {exit_1}"
 
 
+def test_1625_skill_md_s_unreplaced_cases_exit_1_on_the_corrected_report_bails_with_cause_unreplaced_cases_naming_each_printed_case_and_launches_no_second_correction_leaf_and_no_verifier():
+    section = unreplaced_paragraph()
+    assert section.strip(), "SKILL.md has no unreplaced-cases.sh paragraph in the Red step to read"
+    assert "Exit 1 again" in section, f"SKILL.md's unreplaced-cases.sh paragraph never says what exit 1 on the corrected report does: {section}"
+    again = section[section.index("Exit 1 again"):]
+    again = again[:again.index("Exit 2")] if "Exit 2" in again else again
+    assert "bail with cause=unreplaced-cases" in again, f"SKILL.md's second unreplaced-cases.sh exit 1 never bails with cause=unreplaced-cases: {again}"
+    assert re.search(r"naming each case", again), f"SKILL.md's second unreplaced-cases.sh exit 1 never names each printed case: {again}"
+    assert re.search(r"(no|not|never)[^.]{0,60}(second|another|further|more)[^.]{0,60}(correction|replaces-report)", again), \
+        f"SKILL.md's second unreplaced-cases.sh exit 1 never says no second correction leaf launches: {again}"
+    assert re.search(r"(no|not|never)[^.]{0,30}verifier", again), f"SKILL.md's second unreplaced-cases.sh exit 1 never says no verifier launches: {again}"
+
+
 def test_1546_skill_md_never_runs_replaces_case_survivors_sh_at_any_place_it_names_it_as_a_run_before_the_last_place_it_runs_unreplaced_cases_sh():
     unreplaced = run_lines(UNREPLACED_RUN)
     survivors = run_lines(r"\$S/replaces-case-survivors\.sh|[Rr]uns? [^.]*replaces-case-survivors\.sh")
