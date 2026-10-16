@@ -2,3 +2,5 @@
 - test-only | the `flat()` helper is defined identically in both guard suites; it could move to `lib/harness.sh`
 ### The unit-tier admission guard lets a planted subprocess-running `<suite>:<line>` through only when its exemption-table entry carries a reason, and fails naming the entry when the reason is empty ⟦criterion 1⟧
 - test-only | extract the repeated `out=$(…) && code=0 || code=$?` guard-run capture in `unit-subprocess-guard.test.sh` into one `run_guard` helper
+### The unit-tier admission guard fails when a planted suite under tests/unit/ assigns a variable a path to a script under skills/tdd/scripts/ and later runs it as a command, `"$VAR" …`, naming that suite as `<suite>:<line>` at the line that runs it ⟦criterion 3⟧
+- test-only | unit-subprocess-guard.test.sh repeats the scratch-tree and offender setup of its earlier planted case in the new `"$VAR"` case; a shared helper would remove it
