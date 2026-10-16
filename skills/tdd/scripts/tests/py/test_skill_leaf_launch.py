@@ -208,6 +208,28 @@ def test_skill_md_s_step_title_rule_says_the_title_reaches_a_command_line_as_dat
     assert faults == [], f"{number}: states the step-title rule but {', and '.join(faults)}"
 
 
+def step_title_rule_problems(text):
+    rules = step_title_rules(text)
+    if not rules:
+        return ["states no rule for how a step title reaches a command line"]
+    if len(rules) > 1:
+        return [f"states the step-title rule in {len(rules)} places, at lines {','.join(str(n) for n, _ in rules)}"]
+    number, rule = rules[0]
+    faults = []
+    if DOUBLE_QUOTED_STEP not in rule and "double quote" not in rule.lower():
+        faults.append("does not say the title is carried in double quotes")
+    if "apostrophe" not in rule.lower():
+        faults.append("does not say why: a title carrying an apostrophe closes a single-quoted one early")
+    problems = [f"{number}: states the step-title rule but {', and '.join(faults)}"] if faults else []
+    if not fenced_in(text, STEP_PH):
+        problems.append("no line carrying <STEP> inside a fenced block")
+    return problems + title_guard(text)
+
+
+def test_skill_md_states_the_step_title_rule_in_one_place_and_every_fenced_command_carrying_the_title_follows_it():
+    assert step_title_rule_problems(SKILL.read_text()) == []
+
+
 def test_the_431_guard_still_refuses_a_single_quoted_step_title_and_its_exemption_table_still_holds_over_the_rewritten_skill_md():
     text = SKILL.read_text()
     title_linenos = [n for n, _ in fenced_in(text, STEP_PH)]
