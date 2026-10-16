@@ -81,6 +81,18 @@ def _bullet(lines, prefix):
     return plain(out)
 
 
+def _bullet_body(lines, prefix):
+    out, inside = [], False
+    for line in lines:
+        if inside and line.startswith("- `"):
+            break
+        if inside:
+            out.append(line)
+        if line.startswith(prefix):
+            inside = True
+    return plain(out)
+
+
 def add_ledger_step_entry():
     return _bullet(skill_lines(), "- `$S/add-ledger-step.sh")
 
@@ -296,7 +308,7 @@ def test_1406_skill_md_documents_build_develop_prompt_sh_green_s_8th_argument_th
     green_build = next((line for line in skill_lines() if "build-develop-prompt.sh green " in line), None)
     assert green_build, "SKILL.md has no 'build-develop-prompt.sh green ' command line to read"
     assert "owed" in green_build, f"SKILL.md's green build command passes no argument for the cases still owed for deletion: {green_build}"
-    reference = _bullet(skill_lines(), "- `$S/build-develop-prompt.sh <red")
+    reference = _bullet_body(skill_lines(), "- `$S/build-develop-prompt.sh <red")
     assert re.search(r"<fast-cmd>.*owed", reference) or re.search(r"green <spec-file>.*owed.*refactor <spec-file>", reference), \
         "SKILL.md's build-develop-prompt.sh reference entry never lists an owed-cases argument in green's synopsis"
 
@@ -347,7 +359,7 @@ def test_1379_skill_md_s_every_add_ledger_step_sh_call_site_says_its_exit_2_bail
     assert calls, "SKILL.md has no add-ledger-step.sh call site"
     lines = skill_lines()
     for call in calls:
-        near = plain(lines[call - 1:call + 31])
+        near = plain(lines[call - 1:call + 30])
         says(near, r"exits? 2[^.]{0,120}step-add-refused|step-add-refused[^.]{0,120}exits? 2",
              f"SKILL.md:{call} calls add-ledger-step.sh and never says its exit 2 bails with cause step-add-refused")
     says(bailing_causes(), r"step-add-refused[^.]{0,220}system", "SKILL.md's Bailing causes list never classifies step-add-refused as a system failure")
