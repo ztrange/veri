@@ -276,7 +276,7 @@ def test_main_counts_only_steps_ending_in_added_and_inserts_repair_texts_unmarke
     got = {}
     for name, seed, budget, texts in (
         ("uncounted lines, one added text", uncounted, "1",
-         ["one more edge case", "fix the full-suite failure: z.test.sh ⟦suite-repair⟧"]),
+         ["one more edge case", "fix the CI failure: z.test.sh ⟦ci-repair⟧"]),
         ("a pending added step spends the budget", counted, "1", ["one more edge case"]),
         ("repair texts at a budget of 0", unadded, "0",
          ["fix the CI failure: x.test.sh ⟦ci-repair⟧", "⟦suite-repair⟧ mid-text: y.test.sh"]),
@@ -296,7 +296,7 @@ def test_main_counts_only_steps_ending_in_added_and_inserts_repair_texts_unmarke
             anchor,
             anchor
             + "- [ ] one more edge case ⟦added⟧ ⟦criterion 2⟧\n"
-            + "- [ ] fix the full-suite failure: z.test.sh ⟦suite-repair⟧ ⟦criterion 2⟧\n",
+            + "- [ ] fix the CI failure: z.test.sh ⟦ci-repair⟧ ⟦criterion 2⟧\n",
         )),
         "a pending added step spends the budget": (1, "", "", counted + "\n## Owed steps\n\n- one more edge case\n"),
         "repair texts at a budget of 0": (0, "", "", unadded + repairs),
@@ -773,3 +773,23 @@ def test_main_accepts_criterion_k_before_planned_the_same_as_planned_before_crit
         got[name] = (code, capsys.readouterr().err, ledger.read_bytes())
     assert got["criterion first"] == got["planned first"] and got["planned first"][:2] == (0, "")
 
+
+
+def test_main_refuses_a_second_suite_repair_in_the_same_run_naming_the_first_and_files_nothing_1607(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    before = (
+        "# Plan for #42\n"
+        "\n"
+        "- [x] a one ⟦criterion 1⟧\n"
+        "- [x] fix the full-suite failure: first.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧\n"
+        "- [ ] b two ⟦criterion 2⟧\n"
+    ).encode()
+    ledger.write_bytes(before)
+
+    code, out, err = run_cli(
+        add_ledger_step,
+        [str(ledger), "after", "b two", "fix the full-suite failure: second.test.sh ⟦suite-repair⟧"],
+    )
+
+    assert (code, out, ledger.read_bytes()) == (1, "", before)
+    assert "fix the full-suite failure: first.test.sh" in err
