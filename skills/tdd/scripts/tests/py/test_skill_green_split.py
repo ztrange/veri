@@ -339,6 +339,28 @@ def test_1546_skill_md_runs_unreplaced_cases_sh_at_every_place_it_names_it_as_a_
         assert run <= red_launch, f"SKILL.md:{run} runs unreplaced-cases.sh after the verify-red launch at line {red_launch}"
 
 
+def unreplaced_paragraph():
+    return _paragraph(lambda line: 'Run `$S/unreplaced-cases.sh "<step line>"' in line, lambda line: not line.strip())
+
+
+def test_1625_skill_md_s_unreplaced_cases_exit_1_launches_one_develop_replaces_report_leaf_through_the_supervisor_spending_no_revise_budget_and_reruns_unreplaced_cases_sh_before_verify_red():
+    section = unreplaced_paragraph()
+    assert section.strip(), "SKILL.md has no unreplaced-cases.sh paragraph in the Red step to read"
+    exit_1 = section[section.index("Exit 1"):]
+    for needle, message in (
+        ("build-develop-prompt.sh replaces-report", "never builds the correction prompt with build-develop-prompt.sh replaces-report"),
+        ("develop-replaces-report", "never launches a develop-replaces-report leaf"),
+        ("supervise.sh", "never launches that leaf through supervise.sh"),
+    ):
+        assert needle in exit_1, f"SKILL.md's unreplaced-cases.sh exit 1 {message}: {exit_1}"
+    assert re.search(r"(no|not|never)[^.]{0,80}REVISE_BUDGET|REVISE_BUDGET[^.]{0,80}(no|not|never)", exit_1), \
+        f"SKILL.md's unreplaced-cases.sh exit 1 never says the correction leaf spends no REVISE_BUDGET attempt: {exit_1}"
+    assert re.search(r"(no|not|never)[^.]{0,60}revise[^.]{0,20}mark", exit_1), \
+        f"SKILL.md's unreplaced-cases.sh exit 1 never says the correction leaf writes no revise mark: {exit_1}"
+    assert re.search(r"(again|re-?run)[^.]{0,120}unreplaced-cases\.sh|unreplaced-cases\.sh[^.]{0,120}(again|re-?run)", exit_1), \
+        f"SKILL.md's unreplaced-cases.sh exit 1 never runs unreplaced-cases.sh again on the corrected report: {exit_1}"
+
+
 def test_1546_skill_md_never_runs_replaces_case_survivors_sh_at_any_place_it_names_it_as_a_run_before_the_last_place_it_runs_unreplaced_cases_sh():
     unreplaced = run_lines(UNREPLACED_RUN)
     survivors = run_lines(r"\$S/replaces-case-survivors\.sh|[Rr]uns? [^.]*replaces-case-survivors\.sh")
