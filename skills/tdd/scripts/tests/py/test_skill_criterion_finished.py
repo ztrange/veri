@@ -250,3 +250,186 @@ def test_1397_replaces_case_planning_paragraph_names_the_step_whose_red_reports_
         if not re.search(r"pin[^.]*delet", rc_rec):
             problems.append("plan guidance: the ⟦replaces-case⟧ instruction never says the pin path still deletes the named cases")
     assert not problems, "\n".join(problems)
+
+
+CONTEXT = pathlib.Path(__file__).resolve().parents[5] / "CONTEXT.md"
+
+
+def pin_replaces_case_rec():
+    return first_record(section_records(PIN), ("F", "⟦replaces-case⟧"))
+
+
+def guardrails_rec():
+    return first_record(section_records("## Guardrails"), ("F", "passes against unmodified code"))
+
+
+def test_1397_pin_section_sends_a_replaces_case_step_whose_red_reports_passes_through_verify_pin_then_a_green_leaf_deleting_exactly_the_named_cases_accepted_once_mutation_parity_exits_0_then_one_tick():
+    problems = []
+    rec = pin_replaces_case_rec()
+    if not rec:
+        problems.append("pin path: no instruction under '## Already satisfied — the pin' states the path for a ⟦replaces-case⟧ step whose Red reports PASSES — the path could not be checked")
+    else:
+        if "passes" not in rec:
+            problems.append("pin path: the ⟦replaces-case⟧ instruction never names a Red that reports PASSES")
+        if not re.search(r"verify-pin|verify\.sh pin", rec):
+            problems.append("pin path: the ⟦replaces-case⟧ instruction never runs verify-pin first")
+        if not (re.search(r"green leaf", rec) and re.search(r"delet", rec) and "exactly the named" in rec):
+            problems.append("pin path: the ⟦replaces-case⟧ instruction never launches a green leaf that deletes exactly the named cases")
+        if "verify-green" not in rec:
+            problems.append("pin path: the ⟦replaces-case⟧ instruction never judges the deletion by the replaces-case verify-green")
+        if not ("mutation-parity.sh" in rec and re.search(r"exits? \*{0,2}0", rec)):
+            problems.append("pin path: the ⟦replaces-case⟧ instruction never accepts the deletion only once mutation-parity.sh exits 0")
+        if not re.search(r"one tick|tick[^.]*once|single tick", rec):
+            problems.append("pin path: the ⟦replaces-case⟧ instruction never ends the step in one tick")
+    assert not problems, "\n".join(problems)
+
+
+def test_1397_pin_pass_bullet_names_the_replaces_case_exception_before_its_tick_and_commit_and_the_pin_path_and_step_2_say_whether_refactor_and_refactor_pending_follow_the_deletion_green():
+    problems = []
+    pin_recs = section_records(PIN)
+    pass_rec = first_record(pin_recs, ("F", "pass (exit 0)"))
+    if not pass_rec:
+        problems.append("pin PASS: no PASS (exit 0) bullet under '## Already satisfied — the pin' — the exception could not be checked")
+    elif "⟦replaces-case⟧" not in pass_rec.split("tick-ledger.sh")[0]:
+        problems.append("pin PASS: the bullet never names the ⟦replaces-case⟧ exception before its tick-ledger.sh commit")
+    refactor_rec = first_record(pin_recs, ("F", "⟦replaces-case⟧"), ("F", "refactor pending"))
+    if not (refactor_rec and re.search(r"delet", refactor_rec) and re.search(r"refactor[^ ]* (phase|leaf|follows|runs|does|is)", refactor_rec)):
+        problems.append("pin path: no ⟦replaces-case⟧ instruction says whether Refactor and ⟂ refactor pending follow the deletion green")
+    if not re.search(r"refactor", replaces_case_rec()):
+        problems.append("plan guidance: the ⟦replaces-case⟧ step-kind paragraph never says whether Refactor follows the deletion green")
+    assert not problems, "\n".join(problems)
+
+
+def test_1397_guardrails_line_on_a_test_that_passes_against_unmodified_code_carves_out_the_replaces_case_deletion_green():
+    problems = []
+    rec = guardrails_rec()
+    if not rec:
+        problems.append("guardrails: no line under '## Guardrails' names a test that passes against unmodified code — the carve-out could not be checked")
+    else:
+        if "⟦replaces-case⟧" not in rec:
+            problems.append("guardrails: the line never carves out a ⟦replaces-case⟧ step")
+        if not (re.search(r"green", rec) and re.search(r"delet", rec)):
+            problems.append("guardrails: the line never names the green that deletes the named cases")
+    assert not problems, "\n".join(problems)
+
+
+def test_1397_replaces_case_pin_then_delete_path_keeps_its_meaning_exception_not_negated_nothing_committed_or_ticked_before_the_deletion_green_accepted_only_once_mutation_parity_exits_0():
+    problems = []
+    guard_rec = guardrails_rec()
+    guard_after = guard_rec.split("⟦replaces-case⟧", 1)[1] if "⟦replaces-case⟧" in guard_rec else ""
+    if not re.search(r"(save|except|unless|but) (on )?(a )?`?⟦replaces-case⟧", guard_rec):
+        problems.append("guardrails: the ⟦replaces-case⟧ clause is not introduced as an exception (save/except/unless/but)")
+    if re.search(r"(^|[^a-z])(never|not|no)([^a-z]|$)", guard_after):
+        problems.append(f"guardrails: the ⟦replaces-case⟧ clause negates the deletion green: {guard_after}")
+    pin_rc_rec = pin_replaces_case_rec()
+    pin_before_green = pin_rc_rec.split("green leaf")[0].replace("commit nothing", "")
+    if not ("green leaf" in pin_rc_rec and not re.search(r"commit|tick", pin_before_green)):
+        problems.append(f"pin path: a commit or tick comes before the deletion green: {pin_before_green}")
+    if not ("accepted only once" in pin_rc_rec and not re.search(r"whether or not|regardless|even if", pin_rc_rec)):
+        problems.append("pin path: the deletion is not accepted only once mutation-parity.sh exits 0")
+    assert not problems, "\n".join(problems)
+
+
+def test_671_context_md_defines_contract_case_implementation_case_and_the_replaces_case_mark():
+    problems = []
+    entries, rec = [], ""
+    for line in CONTEXT.read_text().splitlines():
+        if re.match(r"\*\*[^*]+\*\*:", line):
+            if rec:
+                entries.append(rec)
+            rec = line
+        elif line.startswith("#") or not line.strip():
+            if rec:
+                entries.append(rec)
+            rec = ""
+        elif rec:
+            rec += " " + line
+    if rec:
+        entries.append(rec)
+    for term in ("Contract case", "Implementation case"):
+        if not any(f"**{term}**:" in e for e in entries):
+            problems.append(f"CONTEXT.md: no **{term}**: entry")
+    if not any("⟦replaces-case⟧" in e for e in entries):
+        problems.append("CONTEXT.md: no glossary entry defines the ⟦replaces-case⟧ mark")
+    assert not problems, "\n".join(problems)
+
+
+def test_481_draft_pr_step_lists_every_human_owed_ledger_line_in_the_pr_body_under_owed_by_a_human_each_naming_its_criterion_number_and_adds_no_such_section_when_the_ledger_holds_none():
+    problems = []
+    rec = first_record(section_records(DRAFT_PR), ("F", "⟦human-owed⟧"), ("F", "## owed by a human"))
+    if not rec:
+        problems.append("draft PR: no instruction in step 4 lists ⟦human-owed⟧ ledger lines under '## Owed by a human' — the rule could not be checked")
+    else:
+        if "pr body" not in rec:
+            problems.append("draft PR: the ⟦human-owed⟧ instruction never says the lines go into the PR body")
+        if not re.search(r"criterion (number|k)", rec):
+            problems.append("draft PR: the ⟦human-owed⟧ instruction never says each listed line names its criterion number")
+        if not re.search(r"(no|none|omit|without) [^.]*(section|heading)", rec):
+            problems.append("draft PR: the ⟦human-owed⟧ instruction never says no such section is added when the ledger holds none")
+    assert not problems, "\n".join(problems)
+
+
+def does_not_hold(label, rec, problems):
+    if not rec:
+        problems.append(f"{label}: the condition could not be found — the rule could not be checked")
+        return
+    for marker in ("⟦full-suite⟧", "⟦human-owed⟧"):
+        if marker not in rec:
+            problems.append(f"{label}: the condition never names {marker} lines")
+    if not re.search(r"unchecked[^.]*(not|never) hold[^.]*back", rec):
+        problems.append(f"{label}: the condition never says an unchecked off-cycle line does not hold the run back")
+
+
+def test_481_draft_pr_entry_condition_and_resumes_go_to_draft_pr_condition_say_unchecked_full_suite_and_human_owed_lines_do_not_hold_a_run_back():
+    problems = []
+    does_not_hold("draft PR entry", first_record(section_records(DRAFT_PR), ("F", "reached when")), problems)
+    does_not_hold("resume", first_record(section_records("## Resume"), ("E", r"go to the \*?\*?draft pr")), problems)
+    assert not problems, "\n".join(problems)
+
+
+def reads_ledger_steps(anchor, box, lines, problems):
+    if not lines:
+        problems.append(f"no instruction of skills/tdd/SKILL.md runs '{anchor}' — the rule could not be checked")
+        return
+    for line in lines:
+        if "ledger-steps.sh" not in line:
+            problems.append(f"'{anchor}' reads without ledger-steps.sh: {line}")
+        if box in line:
+            problems.append(f"'{anchor}' still spells its own checkbox pattern: {line}")
+
+
+def skill_lines():
+    return SKILL.read_text().splitlines()
+
+
+def test_495_every_instruction_that_ticks_criterion_k_in_the_issue_body_reads_its_text_from_ledger_steps_records_spelling_no_checkbox_pattern():
+    problems = []
+    anchor = 'tick-issue-criterion.sh <n> "$('
+    reads_ledger_steps(anchor, r"\[[ x]\]", [r for r in records_of(SKILL.read_text()) if anchor in r], problems)
+    assert not problems, "\n".join(problems)
+
+
+def test_495_every_instruction_that_names_the_last_ticked_step_reads_it_from_ledger_steps_records_spelling_no_checkbox_pattern():
+    problems = []
+    for anchor in ("event.sh step-done", "event.sh pin", 'event.sh step-added anchor="$(', 'add-ledger-step.sh .tdd/issue-<n>.md after "$('):
+        lines = [l for l in skill_lines() if anchor in l and "next-unchecked.sh" not in l and "next-pending-refactor.sh" not in l]
+        reads_ledger_steps(anchor, r"\[x\]", lines, problems)
+    assert not problems, "\n".join(problems)
+
+
+def test_495_every_instruction_that_counts_the_steps_left_for_run_affordable_reads_them_from_ledger_steps_records_spelling_no_checkbox_pattern():
+    problems = []
+    anchor = 'run-affordable.sh "$('
+    reads_ledger_steps(anchor, r"\[ \]", [l for l in skill_lines() if anchor in l], problems)
+    assert not problems, "\n".join(problems)
+
+
+def test_495_reconcile_check_compares_ledger_steps_state_and_pending_fields_grepping_the_markdown_for_neither_a_tick_nor_the_pending_mark():
+    problems = []
+    anchor = "diff <("
+    lines = [l for l in skill_lines() if anchor in l and ".tdd/reconcile-ledger.before" in l]
+    reads_ledger_steps(anchor, "[x]", lines, problems)
+    for line in lines:
+        if "⟂ refactor pending" in line:
+            problems.append(f"'{anchor}' still greps for the pending mark itself: {line}")
+    assert not problems, "\n".join(problems)
