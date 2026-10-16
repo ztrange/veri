@@ -201,6 +201,16 @@ def test_every_module_a_shim_execs_goes_through_the_shared_entry_point():
     assert entry_bypass_problems(SCRIPTS) == []
 
 
+def plant_into_stop_run_copy(tmp_path, planted):
+    from conftest import shim_source_problems
+
+    original = (SCRIPTS / "stop-run.sh").read_text()
+    (tmp_path / "stop-run.sh").write_text(original)
+    unplanted = shim_source_problems(tmp_path)
+    (tmp_path / "stop-run.sh").write_text(original + planted + "\n")
+    return unplanted, shim_source_problems(tmp_path), original
+
+
 @pytest.mark.parametrize("planted", [
     "python3 - <<'PY'\nprint('hi')\nPY",
     "python3 -c 'print(1)'",
@@ -209,14 +219,7 @@ def test_every_module_a_shim_execs_goes_through_the_shared_entry_point():
 ])
 def test_shim_source_problems_names_stop_run_and_line_for_each_violation_planted_into_a_copy_and_passes_the_unplanted_copy(tmp_path, planted):
     """Its subject is source text: a copy of the real stop-run.sh with a violation planted in it, read as text and never run."""
-    from conftest import shim_source_problems
-
-    original = (SCRIPTS / "stop-run.sh").read_text()
-    (tmp_path / "stop-run.sh").write_text(original)
-    unplanted = shim_source_problems(tmp_path)
-    (tmp_path / "stop-run.sh").write_text(original + planted + "\n")
-
-    problems = shim_source_problems(tmp_path)
+    unplanted, problems, original = plant_into_stop_run_copy(tmp_path, planted)
 
     assert unplanted == []
     assert [line.split(" ")[0] for line in problems][:1] == ["stop-run.sh:%d" % (original.count("\n") + 1)]
@@ -230,14 +233,7 @@ def test_shim_source_problems_names_stop_run_and_line_for_each_violation_planted
 ])
 def test_shim_source_problems_names_stop_run_and_line_for_each_graphql_gh_call_planted_into_a_copy_and_passes_the_unplanted_copy(tmp_path, planted):
     """Its subject is source text: a copy of the real stop-run.sh with a gh call planted in it, read as text and never run."""
-    from conftest import shim_source_problems
-
-    original = (SCRIPTS / "stop-run.sh").read_text()
-    (tmp_path / "stop-run.sh").write_text(original)
-    unplanted = shim_source_problems(tmp_path)
-    (tmp_path / "stop-run.sh").write_text(original + planted + "\n")
-
-    problems = shim_source_problems(tmp_path)
+    unplanted, problems, original = plant_into_stop_run_copy(tmp_path, planted)
 
     assert unplanted == []
     assert [line.split(" ")[0] for line in problems] == ["stop-run.sh:%d" % (original.count("\n") + 1)]
