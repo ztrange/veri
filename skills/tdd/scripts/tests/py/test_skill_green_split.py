@@ -100,16 +100,21 @@ def one_line(lines):
     return re.sub(r" +", " ", " ".join(line.replace("*", "").replace("`", "") for line in lines) + " ")
 
 
-def green_paragraph():
+def _paragraph(starts, stops):
     out, inside = [], False
     for line in skill_lines():
-        if "On a `⟦replaces-case⟧` step, a PASS is accepted" in line:
+        if starts(line):
             inside = True
-        if inside and re.match(r"3\. ", line):
+        if inside and stops(line):
             break
         if inside:
             out.append(line)
     return one_line(out)
+
+
+def green_paragraph():
+    return _paragraph(lambda line: "On a `⟦replaces-case⟧` step, a PASS is accepted" in line,
+                      lambda line: re.match(r"3\. ", line))
 
 
 def test_skill_md_s_green_section_on_split_restores_the_tree_to_head_adds_the_split_steps_before_step_in_one_add_ledger_step_call_commits_the_ledger_emits_step_split_and_returns_to_next_unchecked():
@@ -297,15 +302,8 @@ def test_1406_skill_md_documents_build_develop_prompt_sh_green_s_8th_argument_th
 
 
 def pin_paragraph():
-    out, inside = [], False
-    for line in skill_lines():
-        if line.startswith("A `⟦replaces-case⟧` step whose Red reports"):
-            inside = True
-        if inside and "Every other step takes the verdict" in line:
-            break
-        if inside:
-            out.append(line)
-    return one_line(out)
+    return _paragraph(lambda line: line.startswith("A `⟦replaces-case⟧` step whose Red reports"),
+                      lambda line: "Every other step takes the verdict" in line)
 
 
 def test_1546_skill_md_s_replaces_case_pin_path_paragraph_runs_replaces_case_survivors_sh_after_the_deletion_green_and_on_survivors_relaunches_it_bounded_by_revise_budget_before_verify_green():
