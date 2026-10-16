@@ -419,9 +419,11 @@ def test_1625_skill_md_s_second_unreplaced_cases_sh_check_reads_both_the_red_rep
     assert section.strip(), "SKILL.md has no unreplaced-cases.sh paragraph in the Red step to read"
     exit_1 = section[section.index("Exit 1"):]
     rerun = exit_1[:exit_1.index("Exit 1 again")] if "Exit 1 again" in exit_1 else exit_1
-    spots = [m.start() for m in re.finditer(r"unreplaced-cases\.sh", rerun)]
-    assert spots, f"SKILL.md's unreplaced-cases.sh exit 1 never runs unreplaced-cases.sh again: {rerun}"
-    command = rerun[spots[-1]:]
+    # The command itself, not the prose after it: a parenthetical naming the Red report must not
+    # satisfy a command that reads only the correction output.
+    commands = re.findall(r"unreplaced-cases\.sh \"<step line>\"((?:\s+\.tdd/[^\s()]+\.out)+)", rerun)
+    assert commands, f"SKILL.md's unreplaced-cases.sh exit 1 never runs unreplaced-cases.sh again on a report: {rerun}"
+    command = commands[-1]
     assert ".tdd/develop-replaces-report.out" in command, \
         f"SKILL.md's second unreplaced-cases.sh run never names .tdd/develop-replaces-report.out as a report it reads: {command}"
     assert re.search(r"\.tdd/(develop-red|revise-red-<k>)\.out", command), \
