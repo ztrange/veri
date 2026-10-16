@@ -365,6 +365,17 @@ else
     stderr: $(cat "$work/multi-red.err")"
 fi
 
+table="$work/multi-dies.tsv"
+printf 'tests/calc.test.sh\tadds two numbers\tredundant\tadds a negative\t%s\n' "$work/dies.patch" > "$table"
+out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/multi-dies.err")" && code=0 || code=$?
+if [[ "$code" == 2 ]] && ! grep -w owed <<<"$out" > /dev/null; then
+  ok
+else
+  no "#1596: a row whose old suite holds several cases ends in an error, not owed, when under the mutation that suite dies before its count line (exit=$code want 2)
+    stdout: $out
+    stderr: $(cat "$work/multi-dies.err")"
+fi
+
 table="$work/multi-all-fail.tsv"
 printf 'tests/calc.test.sh\tadds two numbers\treplaced\t%s\t%s\n' "$node" "$work/none-stays-green.patch" > "$table"
 out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/multi-all-fail.err")" && code=0 || code=$?
