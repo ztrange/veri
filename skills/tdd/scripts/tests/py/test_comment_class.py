@@ -252,12 +252,6 @@ no-awk-v-patterns:# an unrelated line inserted above the exempt site
 no-awk-v-patterns:# and another
 skill-refactor-pending:## The scripts (this skill's `scripts/` directory)
 skill-refactor-pending:## The scripts (this skill's `scripts/` directory)
-unit/emitted-text:## What to build
-unit/emitted-text:## Acceptance criteria
-unit/emitted-text:## Bug
-unit/emitted-text:## Acceptance criteria
-unit/emitted-text:## Refactor
-unit/emitted-text:# Plan for #1 — fixed
 """
 
 
