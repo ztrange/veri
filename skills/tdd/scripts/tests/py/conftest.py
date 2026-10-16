@@ -56,7 +56,12 @@ def entry_bypass_problems(scripts):
         lines = module.read_text().splitlines()
         for number, line in enumerate(lines, 1):
             if line.startswith("if __name__ == "):
-                if not any("entry.run(" in l and not l.lstrip().startswith("#") for l in lines[number:]):
+                block = []
+                for l in lines[number:]:
+                    if l.strip() and not l[0].isspace():
+                        break
+                    block.append(l)
+                if not any("entry.run(" in l and not l.lstrip().startswith("#") for l in block):
                     problems.append("%s:%d __main__ block does not go through entry.run" % (module.name, number))
     return problems
 
