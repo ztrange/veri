@@ -346,19 +346,45 @@ def test_this_file_runs_no_clock_and_profiles_only_fixtures_under_tmp_path_and_m
     clocks = [node.lineno for node in ast.walk(ast.parse(source))
               if isinstance(node, ast.Attribute) and node.attr in (nap, "time", "monotonic", "perf_counter")
               or isinstance(node, ast.Name) and node.id == nap]
+    def under_tmp_path(node):
+        while isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+            node = node.left
+        return isinstance(node, ast.Name) and node.id == "tmp_path"
+
     unfixtured = []
     calls = 0
     for fn in ast.parse(source).body:
         if not isinstance(fn, ast.FunctionDef):
             continue
+        fixtures = {target.id for node in ast.walk(fn) if isinstance(node, ast.Assign) and under_tmp_path(node.value)
+                    for target in node.targets if isinstance(target, ast.Name)}
+        in_tmp_path = any(isinstance(node, ast.Call) and ast.unparse(node.func) == "monkeypatch.chdir"
+                          and node.args and under_tmp_path(node.args[0]) for node in ast.walk(fn))
+
+        def fixture(arg, cwd_tmp):
+            if isinstance(arg, ast.Call) and ast.unparse(arg.func) == "str" and len(arg.args) == 1:
+                inner = arg.args[0]
+                return isinstance(inner, ast.Name) and inner.id in fixtures or under_tmp_path(inner)
+            return isinstance(arg, ast.Constant) and isinstance(arg.value, str) and cwd_tmp \
+                and not os.path.isabs(arg.value) and ".." not in arg.value.split("/")
+
         for node in ast.walk(fn):
-            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "main" \
-                    and isinstance(node.func.value, ast.Name) and node.func.value.id == "profile" \
-                    or isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "run_cli" \
-                    and node.args and isinstance(node.args[0], ast.Name) and node.args[0].id == "profile":
-                calls += 1
-                if "tmp_path" not in [a.arg for a in fn.args.args]:
-                    unfixtured.append(node.lineno)
+            if not isinstance(node, ast.Call):
+                continue
+            func = ast.unparse(node.func)
+            if func == "profile.main" and node.args:
+                argv = node.args[0]
+            elif func == "run_cli" and len(node.args) > 1 and ast.unparse(node.args[0]) == "profile":
+                argv = node.args[1]
+            elif func == "subprocess.run" and node.args and isinstance(node.args[0], ast.List) \
+                    and node.args[0].elts and "profile.sh" in ast.unparse(node.args[0].elts[0]):
+                argv = ast.List(elts=node.args[0].elts[1:])
+            else:
+                continue
+            calls += 1
+            cwd_tmp = in_tmp_path or any(k.arg == "cwd" and under_tmp_path(k.value) for k in node.keywords)
+            if not isinstance(argv, ast.List) or not all(fixture(arg, cwd_tmp) for arg in argv.elts):
+                unfixtured.append(node.lineno)
     code, test_recipe = make_n("test")
 
     assert (clocks, unfixtured) == ([], [])
