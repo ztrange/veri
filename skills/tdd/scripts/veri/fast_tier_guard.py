@@ -45,6 +45,13 @@ def _names(path, root):
     return str(path), str(path.relative_to(root))
 
 
+def _require_matches(exemptions, files, root):
+    present = {name for path in files for name in _names(path, root)}
+    for entry in exemptions:
+        if entry.rpartition(":")[0] not in present:
+            raise ValueError(f"exemption {entry} matches no file under {root}")
+
+
 def offences(root, exemptions=None):
     exemptions = exemptions or {}
     _require_reasons(exemptions)
@@ -52,10 +59,7 @@ def offences(root, exemptions=None):
     if not root.is_dir():
         raise NotADirectoryError(f"{root}: no such directory")
     files = sorted(root.rglob("test_*.py"))
-    present = {name for path in files for name in _names(path, root)}
-    for entry in exemptions:
-        if entry.rpartition(":")[0] not in present:
-            raise ValueError(f"exemption {entry} matches no file under {root}")
+    _require_matches(exemptions, files, root)
     found = []
     for path in files:
         tree = ast.parse(path.read_text())
