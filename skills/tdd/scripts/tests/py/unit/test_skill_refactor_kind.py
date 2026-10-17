@@ -5,7 +5,7 @@ import re
 
 import pytest
 
-SKILL = pathlib.Path(__file__).resolve().parents[3] / "SKILL.md"
+SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 PLAN = "### 2. Scope & plan → the ledger"
 DRAFT_PR = "### 4. Draft PR"

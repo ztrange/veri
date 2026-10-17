@@ -3,8 +3,8 @@ import importlib
 import pathlib
 import re
 
-SKILL = pathlib.Path(__file__).resolve().parents[3] / "SKILL.md"
-ROOT = pathlib.Path(__file__).resolve().parents[5]
+SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
+ROOT = pathlib.Path(__file__).resolve().parents[6]
 CONTEXT = ROOT / "CONTEXT.md"
 CLAUDE = ROOT / "CLAUDE.md"
 
