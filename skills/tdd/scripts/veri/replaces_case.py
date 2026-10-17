@@ -15,5 +15,5 @@ def parse(step):
     quote = step[start.end()]
     region = step[start.end() + 1:suite.start()]
     assert region.endswith(quote)
-    names = region[:-1].split(quote + ", " + quote)
+    names = re.split(re.escape(quote) + "(?:, | and )" + re.escape(quote), region[:-1])
     return names, suite.group(1)
