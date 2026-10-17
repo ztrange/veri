@@ -267,3 +267,16 @@ def test_issue_1702_main_refuses_an_affected_tier_bare_make_test_with_exit_2_nam
 
     err = capfd.readouterr().err
     assert (code, "make test" in err, calls, events.records()) == (2, True, [], [])
+
+
+@pytest.mark.parametrize("tier", ["fast", "full", "all"])
+def test_issue_1702_main_runs_and_records_a_bare_make_test_on_the_fast_full_and_all_tiers_without_refusal(
+        tier, tmp_path, monkeypatch, capfd, calls, events, timed_test_run):
+    monkeypatch.chdir(tmp_path)
+    events.refuse_event_sh()
+
+    code = timed_test_run.main([tier, "", "make", "test"])
+
+    err = capfd.readouterr().err
+    assert (code, err, calls, [(r["tier"], r["status"]) for r in events.records()]) == (
+        7, "", [["make", "test"]], [(tier, "7")])
