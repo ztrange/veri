@@ -794,3 +794,18 @@ def test_exits_exactly_1_with_the_could_not_preserve_line_last_on_stderr_when_an
     code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, repo, "409", "3", "develop-green", "1")
     expected = f"preserve-attempt.sh: could not preserve issue 409 step 3 develop-green attempt 1 to {REF}"
     assert (code, err.splitlines()[-1:]) == (1, [expected])
+
+
+def test_refuses_from_the_skills_own_scripts_directory_with_exit_2_one_stderr_line_and_no_ref_or_attempts_entry(
+        monkeypatch, run_cli, preserve_attempt):
+    scripts = os.path.dirname(os.path.dirname(os.path.realpath(preserve_attempt.__file__)))
+    attempts_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(scripts))), ".tdd", "attempts")
+    listing = lambda: sorted(os.listdir(attempts_dir)) if os.path.isdir(attempts_dir) else []
+    listing_before = listing()
+    expected = ("preserve-attempt.sh: type this from the run's worktree,"
+                " not from the skill's own scripts directory\n")
+    for where in (scripts, os.path.join(scripts, "tests")):
+        code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, where,
+                                     "409", "3", "develop-green", "1")
+        assert (code, out, err) == (2, "", expected)
+    assert listing() == listing_before
