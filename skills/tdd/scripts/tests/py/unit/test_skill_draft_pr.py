@@ -1075,3 +1075,28 @@ def test_1613_draft_prs_step_decides_whether_the_ledger_already_holds_a_ci_repai
     if "keys on \u27e6ci-repair\u27e7 only" not in prose:
         problems.append("Draft PR step no longer says the ci-red bail keys on \u27e6ci-repair\u27e7 only")
     assert not problems, problems
+
+
+def _first_record(records, *needles):
+    return next((r for r in records if all(n in r for n in needles)), "")
+
+
+def test_1656_skill_mds_steps_0_and_1_run_unlabel_issue_sh_on_a_fresh_run_once_preflight_passes_and_before_step_2s_planning():
+    text = SKILL.read_text().splitlines()
+    start = next(i for i, line in enumerate(text) if line.startswith("### 0. Preflight"))
+    end = next(i for i, line in enumerate(text) if line.startswith("### 2. Scope"))
+    records = [r.replace("*", "").replace("`", "") for r in _records(text[start:end])]
+    assert records, "SKILL.md has no steps 0 and 1 before '### 2. Scope' to read"
+    assert _first_record(records, "unlabel-issue.sh", "fresh"), "no instruction of SKILL.md's steps 0 and 1 runs unlabel-issue.sh on a fresh run, so the issue stays listed by solvable-issues.sh until the draft PR step 2.3 opens"
+
+
+def test_1656_skill_md_names_the_label_removal_as_the_runs_first_claim_the_draft_pr_as_its_durable_claim_and_a_bailed_or_parked_issue_as_staying_unlabelled_until_a_human_relabels_it():
+    records = [r.replace("*", "").replace("`", "") for r in _records(SKILL.read_text().splitlines())]
+    problems = []
+    if not _first_record(records, "first claim", "unlabel-issue.sh"):
+        problems.append("no instruction of SKILL.md calls the label removal by unlabel-issue.sh the run's first claim")
+    if not _first_record(records, "durable claim", "draft pr"):
+        problems.append("no instruction of SKILL.md calls the draft PR the run's durable claim")
+    if not _first_record(records, "unlabelled", "relabel", "bail"):
+        problems.append("no instruction of SKILL.md says a bailed or parked issue stays unlabelled until a human relabels it")
+    assert not problems, problems
