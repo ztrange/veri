@@ -44,6 +44,8 @@ def block(body, new):
         lines.append(line)
     if last is not None:
         lines.insert(last + 1, blocker)
+    if not any(line.startswith("## Blocked by") for line in lines):
+        lines = ["## Blocked by", "", blocker] if not body else lines + ["", "## Blocked by", "", blocker]
     return "\n".join(lines)
 
 
