@@ -1120,3 +1120,26 @@ def test_main_exits_2_naming_the_log_and_the_unreadable_line_when_a_suite_repair
 
     assert (code, out, ledger.read_bytes()) == (2, "", before)
     assert str(log) in err and "{not json" in err
+
+
+def test_main_exits_2_naming_the_log_and_the_unreadable_line_when_a_suite_repair_would_follow_an_events_line_that_is_not_utf_8_leaving_the_ledger_1619(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    before = (
+        "# Plan for #42\n"
+        "\n"
+        "- [x] a one ⟦criterion 1⟧\n"
+        "- [x] fix the full-suite failure: first.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧\n"
+        "- [ ] b two ⟦criterion 2⟧\n"
+    ).encode()
+    ledger.write_bytes(before)
+    log = ledger.parent / "events.jsonl"
+    log.write_bytes(json.dumps({"ts": 1, "issue": "42", "event": "resume"}).encode() + b"\n\xff\xfe broken\n")
+
+    code, out, err = run_cli(
+        add_ledger_step,
+        [str(ledger), "after", "b two", "fix the full-suite failure: second.test.sh ⟦suite-repair⟧"],
+    )
+
+    assert (code, out, ledger.read_bytes()) == (2, "", before)
+    assert str(log) in err and "broken" in err

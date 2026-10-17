@@ -64,7 +64,7 @@ class UnreadableLog(Exception):
 
 def parses(raw):
     try:
-        json.loads(raw)
+        json.loads(raw.decode())
     except ValueError:
         return False
     return True
@@ -77,8 +77,9 @@ def added_since_last_resume(path, steps):
     except OSError:
         return True
     except ValueError:
-        with open(log) as f:
-            bad = next(raw.rstrip("\n") for raw in f if raw.strip() and not parses(raw))
+        with open(log, "rb") as f:
+            bad = next(raw.rstrip(b"\n") for raw in f if raw.strip() and not parses(raw))
+        bad = bad.decode(errors="replace")
         raise UnreadableLog(f"add-ledger-step.sh: cannot read {log}, line: {bad}")
     names = [event.get("event") for event in events]
     if "resume" not in names:
