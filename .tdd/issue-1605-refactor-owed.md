@@ -1,3 +1,5 @@
 ### When `git ls-remote origin refs/heads/<default>` fails after a successful fetch, `rebase-onto-default.sh` exits 2 and prints exactly one line on stderr naming the failed ls-remote of the default branch, a line distinct from every other exit-2 refusal's stderr line (a small in-process case with git faked) ⟦criterion 1⟧
 - the unlabelled `return 2` on the stale-ref path (`onto` ≠ ls-remote sha) is left for its own plan step, then it should use `refuse()`
 - test-only | the two new #1605 cases repeat the single-line and distinct-line assertions; a shared assert helper could take them
+### When `origin/<default>` after the fetch is not the sha `ls-remote` reports, `rebase-onto-default.sh` exits 2 and prints exactly one line on stderr naming the stale remote-tracking ref, a line distinct from every other exit-2 refusal's stderr line (a small in-process case with git faked) ⟦criterion 1⟧
+- test-only | the three new `*_1605` cases in `skills/tdd/scripts/tests/py/test_rebase_onto_default.py` repeat the "exit 2, exactly one stderr line" assertions; a shared helper could fold them
