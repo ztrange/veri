@@ -77,8 +77,13 @@ def is_lookup(line):
     return line.startswith("gh api repos/{owner}/{repo}/issues") and "title=" not in line and "state=open" in line
 
 
+def is_comments_read(line):
+    """The existing issue's comments read: a GET of its comments route, as opposed to the comment post."""
+    return "/comments" in line and "body=" not in line and "title=" not in line
+
+
 def filed(calls):
-    return [c for c in calls if not is_lookup(c)]
+    return [c for c in calls if not is_lookup(c) and not is_comments_read(c)]
 
 
 def fake_gh(monkeypatch, code=0, out="https://github.com/o/r/issues/9\n", err=None):
@@ -497,13 +502,15 @@ def test_cli_comments_the_unlisted_candidates_on_the_open_refactor_owed_issue_an
     def gh(line, **kwargs):
         if is_lookup(line):
             return 0, open_issues, ""
+        if is_comments_read(line):
+            return 0, "[]", ""
         return 0, "https://github.com/o/r/issues/43\n", ""
 
     calls = fake_processes(gh)
 
     result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
 
-    commented = [c for c in calls if "issues/42/comments" in c]
+    commented = [c for c in calls if "issues/42/comments" in c and "body=" in c]
     assert result == (0, existing + "\n", "")
     assert [c for c in calls if "title=" in c] == []
     assert len(commented) == 1 and SPLIT in commented[0] and FOLD not in commented[0]
@@ -520,6 +527,8 @@ def test_cli_files_no_issue_and_posts_no_comment_when_the_open_refactor_owed_iss
     def gh(line, **kwargs):
         if is_lookup(line):
             return 0, open_issues, ""
+        if is_comments_read(line):
+            return 0, "[]", ""
         return 0, "https://github.com/o/r/issues/43\n", ""
 
     calls = fake_processes(gh)
@@ -544,6 +553,8 @@ def test_cli_finds_the_open_refactor_owed_issue_beyond_the_first_page_of_open_is
             page = re.search(r"[?&]page=(\d+)", line)
             pages = {None: first_page, "1": first_page, "2": second_page}
             return 0, json.dumps(pages.get(page and page.group(1), [])), ""
+        if is_comments_read(line):
+            return 0, "[]", ""
         return 0, "https://github.com/o/r/issues/143\n", ""
 
     calls = fake_processes(gh)
@@ -606,12 +617,41 @@ def test_cli_exits_2_with_one_stderr_line_naming_the_comment_and_prints_no_url_w
     def gh(line, **kwargs):
         if is_lookup(line):
             return 0, open_issues, ""
+        if is_comments_read(line):
+            return 0, "[]", ""
         return gh_code, "", ""
 
     calls = fake_processes(gh)
 
     code, out, err = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
 
-    assert [c for c in calls if "issues/42/comments" in c] != []
+    assert [c for c in calls if "issues/42/comments" in c and "body=" in c] != []
     assert (code, out) == (2, "")
     assert err.startswith("refactor-overflow: ") and "comment" in err and err.count("\n") == 1 and err.endswith("\n")
+
+
+def test_cli_files_no_issue_and_posts_no_comment_when_a_comment_on_the_open_refactor_owed_issue_already_lists_the_candidates_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = owed_504(tmp_path)
+    existing = "https://github.com/o/r/issues/42"
+    open_issues = json.dumps([
+        {"number": 42, "title": "Refactor owed by #504", "html_url": existing,
+         "body": f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}"}])
+    comments = json.dumps([
+        {"body": "unrelated remark"},
+        {"body": f"Structural candidates #504's closing pass could not reach:\n\n- {SPLIT}"}])
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            return 0, open_issues, ""
+        if is_comments_read(line):
+            return 0, comments, ""
+        return 0, "https://github.com/o/r/issues/43\n", ""
+
+    calls = fake_processes(gh)
+
+    result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    assert result == (0, existing + "\n", "")
+    assert [c for c in calls if "title=" in c] == []
+    assert [c for c in calls if "issues/42/comments" in c and "body=" in c] == []
