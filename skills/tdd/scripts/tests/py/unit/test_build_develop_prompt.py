@@ -2062,3 +2062,20 @@ def test_main_builds_the_ordinary_red_and_green_prompts_for_a_step_that_only_men
 
     assert results == {"prose": (True, False, False), "backticks": (True, False, False),
                        "marked": (False, True, True)}
+
+
+def test_main_builds_the_replaces_case_red_and_green_prompts_for_a_step_whose_text_begins_with_the_mark_1538(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    step = "⟦replaces-case⟧ replaces 'zorblat frobs a nitz' in tests/zorblat.test.sh ⟦criterion 2⟧"
+
+    build_develop_prompt.main(["red", str(spec), step, "make test"])
+    red = re.sub(rb"\s+", b" ", capsysbinary.readouterr().out)
+    build_develop_prompt.main(["green", str(spec), step, "make test", "tests/py/test_zorblat.py",
+                               "test_zorblat_frobs_a_nitz", "make unit"])
+    green = re.sub(rb"\s+", b" ", capsysbinary.readouterr().out)
+
+    assert ([b"Add the replacement test cases the step names" in red,
+             b"permitted, and it is required for the step to pass, to delete exactly the cases it names" in green]
+            == [True, True])
