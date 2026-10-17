@@ -1,7 +1,9 @@
 """In-process cases for veri/refactor_overflow.py, the module refactor-overflow.sh is a shim over."""
 import importlib
+import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -67,6 +69,23 @@ def write_owed(tmp_path, candidates):
     return str(owed)
 
 
+NO_OPEN_ISSUES = "[]"
+
+
+def is_lookup(line):
+    """The open-issue lookup: a REST read of the issues route, as opposed to the filing's title= write."""
+    return line.startswith("gh api repos/{owner}/{repo}/issues") and "title=" not in line and "state=open" in line
+
+
+def is_comments_read(line):
+    """The existing issue's comments read: a GET of its comments route, as opposed to the comment post."""
+    return "/comments" in line and "body=" not in line and "title=" not in line
+
+
+def filed(calls):
+    return [c for c in calls if not is_lookup(c) and not is_comments_read(c)]
+
+
 def fake_gh(monkeypatch, code=0, out="https://github.com/o/r/issues/9\n", err=None):
     """Only gh is faked, and any other process is refused. Returns gh's argv lists, in order."""
     calls = []
@@ -75,6 +94,8 @@ def fake_gh(monkeypatch, code=0, out="https://github.com/o/r/issues/9\n", err=No
         args = [str(a) for a in args]
         if args[0] != "gh":
             raise AssertionError(f"started a process: {args}")
+        if is_lookup(" ".join(args)):
+            return subprocess.CompletedProcess(args, 0, NO_OPEN_ISSUES, "")
         calls.append(args[1:])
         if err is not None and not (kwargs.get("capture_output") or kwargs.get("stderr") is not None):
             sys.stderr.write(err)
@@ -220,11 +241,11 @@ def test_cli_files_nothing_and_exits_3_when_every_unreached_candidate_in_the_owe
     owed.write_text("### first step\n"
                     "- test-only | fold the suite's two fixture writers into one helper\n"
                     "- test-only | hoist the stub directory into the harness\n")
-    calls = fake_processes(lambda line, **kwargs: (0, "https://github.com/o/r/issues/9\n", ""))
+    calls = fake_processes(gh_files)
 
     result = run_cli(refactor_overflow, ["663", str(owed), "0"])
 
-    assert (result, calls) == ((3, "", ""), [])
+    assert (result, filed(calls)) == ((3, "", ""), [])
 
 
 URL = "https://github.com/o/r/issues/9\n"
@@ -244,6 +265,8 @@ def filing(n, body):
 
 
 def gh_files(line, **kwargs):
+    if is_lookup(line):
+        return 0, NO_OPEN_ISSUES, ""
     return 0, URL, ""
 
 
@@ -255,7 +278,7 @@ def test_cli_files_one_issue_naming_the_parent_listing_every_candidate_after_the
     result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
 
     assert result == (0, URL, "")
-    assert calls == filing(504, f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}\n- {SPLIT}")
+    assert filed(calls) == filing(504, f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}\n- {SPLIT}")
 
 
 @pytest.mark.parametrize("argv, expected", [
@@ -278,7 +301,7 @@ def test_cli_files_nothing_exiting_3_with_no_candidate_unreached_and_2_with_its_
 
     result = run_cli(refactor_overflow, argv(tmp_path, owed), cwd=tmp_path)
 
-    assert (result, calls) == (expected(tmp_path) if callable(expected) else expected, [])
+    assert (result, filed(calls)) == (expected(tmp_path) if callable(expected) else expected, [])
 
 
 @pytest.mark.parametrize("reached", ["1.5", "-1", "abc", "", " 7", "7x", "0x10"])
@@ -289,7 +312,7 @@ def test_cli_refuses_a_reached_that_is_not_a_non_negative_whole_number_with_exit
 
     code, out, err = run_cli(refactor_overflow, ["504", str(owed), reached], cwd=tmp_path)
 
-    assert (code, out, calls) == (2, "", [])
+    assert (code, out, filed(calls)) == (2, "", [])
     assert "<reached>" in err
 
 
@@ -302,7 +325,7 @@ def test_cli_files_a_two_class_owed_file_s_one_unreached_structural_candidate_as
     result = run_cli(refactor_overflow, ["505", str(owed), "1"], cwd=tmp_path)
 
     assert result == (0, URL, "")
-    assert calls == filing(505, f"Structural candidates #505's closing pass could not reach:\n\n- {FOLD}")
+    assert filed(calls) == filing(505, f"Structural candidates #505's closing pass could not reach:\n\n- {FOLD}")
 
 
 def test_cli_sends_no_label_makes_no_call_on_the_parent_and_writes_no_file_into_the_repository(
@@ -320,7 +343,7 @@ def test_cli_sends_no_label_makes_no_call_on_the_parent_and_writes_no_file_into_
     result = run_cli(refactor_overflow, ["504", ".tdd/issue-504-refactor-owed.md", "1"], cwd=repo)
 
     assert result == (0, URL, "")
-    assert calls == filing(504, f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}\n- {SPLIT}")
+    assert filed(calls) == filing(504, f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}\n- {SPLIT}")
     assert snapshot() == before
 
 
@@ -335,7 +358,7 @@ def test_cli_files_the_skipped_file_s_candidates_beside_the_unreached_and_even_w
     result = run_cli(refactor_overflow, ["504", str(owed), reached, str(skipped)], cwd=tmp_path)
 
     assert result == (0, URL, "")
-    assert calls == filing(504, f"Structural candidates #504's closing pass could not reach:\n\n{listed}")
+    assert filed(calls) == filing(504, f"Structural candidates #504's closing pass could not reach:\n\n{listed}")
 
 
 MKTEMP = "extract the five copies of the mktemp dance across the skill"
@@ -349,6 +372,8 @@ def test_cli_exits_2_with_nothing_on_stdout_and_lets_gh_s_stderr_through_when_gh
     owed = owed_504(tmp_path)
 
     def gh_fails(line, **kwargs):
+        if is_lookup(line):
+            return 0, NO_OPEN_ISSUES, ""
         os.write(2, HTTP_422.encode())
         return gh_code, "", None
 
@@ -357,7 +382,7 @@ def test_cli_exits_2_with_nothing_on_stdout_and_lets_gh_s_stderr_through_when_gh
     result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
 
     assert result == (2, "", HTTP_422)
-    assert calls == filing(504, f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}\n- {SPLIT}")
+    assert filed(calls) == filing(504, f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}\n- {SPLIT}")
 
 
 def test_cli_run_from_another_working_directory_runs_gh_in_the_caller_s_working_directory(
@@ -376,8 +401,8 @@ def test_cli_run_from_another_working_directory_runs_gh_in_the_caller_s_working_
     result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=elsewhere)
 
     assert result == (0, URL, "")
-    assert calls == filing(504, f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}\n- {SPLIT}")
-    assert cwds == [str(elsewhere)]
+    assert filed(calls) == filing(504, f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}\n- {SPLIT}")
+    assert cwds == [str(elsewhere)] * 2
 
 
 @pytest.mark.process("refactor-overflow.sh run through a symlink to the skill directory")
@@ -390,7 +415,7 @@ def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_working_d
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     gh = bin_dir / "gh"
-    gh.write_text('#!/bin/sh\npwd -P > "$EXP_GH_PWD"\nprintf \'%s\\n\' "$@" > "$EXP_GH_ARGS"\n'
+    gh.write_text('#!/bin/sh\ncase "$*" in *state=open*) echo "[]"; exit 0;; esac\npwd -P > "$EXP_GH_PWD"\nprintf \'%s\\n\' "$@" > "$EXP_GH_ARGS"\n'
                   f'echo "{URL.rstrip()}"\n')
     gh.chmod(0o755)
     env = dict(os.environ, PATH=f"{bin_dir}:{os.environ['PATH']}",
@@ -414,7 +439,7 @@ def test_cli_files_one_refactor_owed_issue_whose_body_lists_the_transform_over_a
     result = run_cli(refactor_overflow, ["992", str(owed), "0"], cwd=tmp_path)
 
     assert result == (0, URL, "")
-    assert calls == filing(992, f"Out-of-scope transforms #992's closing pass did not attempt:\n\n- {MKTEMP}")
+    assert filed(calls) == filing(992, f"Out-of-scope transforms #992's closing pass did not attempt:\n\n- {MKTEMP}")
 
 
 def test_cli_files_a_body_carrying_only_the_out_of_scope_heading_when_only_out_of_scope_transforms_are_owed_issue_1035(
@@ -426,7 +451,7 @@ def test_cli_files_a_body_carrying_only_the_out_of_scope_heading_when_only_out_o
     result = run_cli(refactor_overflow, ["1035", str(owed), "0"], cwd=tmp_path)
 
     assert result == (0, URL, "")
-    assert calls == filing(1035, f"Out-of-scope transforms #1035's closing pass did not attempt:\n\n- {MKTEMP}")
+    assert filed(calls) == filing(1035, f"Out-of-scope transforms #1035's closing pass did not attempt:\n\n- {MKTEMP}")
 
 
 def test_cli_files_no_out_of_scope_candidate_the_owed_file_records_as_applied_and_still_files_an_unapplied_one_issue_1058(
@@ -435,7 +460,7 @@ def test_cli_files_no_out_of_scope_candidate_the_owed_file_records_as_applied_an
     owed.write_text(f"### fourth step\n- out-of-scope | {REMOVE}\napplied | 1b4ed26 | out-of-scope | {REMOVE}\n")
     calls = fake_processes(gh_files)
 
-    assert (run_cli(refactor_overflow, ["1058", str(owed), "0"], cwd=tmp_path), calls) == ((3, "", ""), [])
+    assert (run_cli(refactor_overflow, ["1058", str(owed), "0"], cwd=tmp_path), filed(calls)) == ((3, "", ""), [])
 
     with owed.open("a") as f:
         f.write(f"### fifth step\n- out-of-scope | {MKTEMP}\n")
@@ -443,7 +468,7 @@ def test_cli_files_no_out_of_scope_candidate_the_owed_file_records_as_applied_an
     result = run_cli(refactor_overflow, ["1058", str(owed), "0"], cwd=tmp_path)
 
     assert result == (0, URL, "")
-    assert calls == filing(1058, f"Out-of-scope transforms #1058's closing pass did not attempt:\n\n- {MKTEMP}")
+    assert filed(calls) == filing(1058, f"Out-of-scope transforms #1058's closing pass did not attempt:\n\n- {MKTEMP}")
 
 
 @pytest.mark.parametrize("owed_text, reached, body", [
@@ -462,4 +487,315 @@ def test_cli_files_a_headed_list_per_kind_owed_under_the_unchanged_title_issue_1
     result = run_cli(refactor_overflow, ["1035", str(owed), reached], cwd=tmp_path)
 
     assert result == (0, URL, "")
-    assert calls == filing(1035, body)
+    assert filed(calls) == filing(1035, body)
+
+
+def test_cli_comments_the_unlisted_candidates_on_the_open_refactor_owed_issue_and_files_none_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = owed_504(tmp_path)
+    existing = "https://github.com/o/r/issues/42"
+    open_issues = json.dumps([
+        {"number": 7, "title": "Refactor owed by #50", "html_url": "https://github.com/o/r/issues/7", "body": ""},
+        {"number": 42, "title": "Refactor owed by #504", "html_url": existing,
+         "body": f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}"}])
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            return 0, open_issues, ""
+        if is_comments_read(line):
+            return 0, "[]", ""
+        return 0, "https://github.com/o/r/issues/43\n", ""
+
+    calls = fake_processes(gh)
+
+    result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    commented = [c for c in calls if "issues/42/comments" in c and "body=" in c]
+    assert result == (0, existing + "\n", "")
+    assert [c for c in calls if "title=" in c] == []
+    assert len(commented) == 1 and SPLIT in commented[0] and FOLD not in commented[0]
+
+
+def test_cli_files_no_issue_and_posts_no_comment_when_the_open_refactor_owed_issue_already_lists_every_candidate_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = owed_504(tmp_path)
+    existing = "https://github.com/o/r/issues/42"
+    open_issues = json.dumps([
+        {"number": 42, "title": "Refactor owed by #504", "html_url": existing,
+         "body": f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}\n- {SPLIT}"}])
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            return 0, open_issues, ""
+        if is_comments_read(line):
+            return 0, "[]", ""
+        return 0, "https://github.com/o/r/issues/43\n", ""
+
+    calls = fake_processes(gh)
+
+    result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    assert result == (0, existing + "\n", "")
+    assert filed(calls) == []
+
+
+def test_cli_finds_the_open_refactor_owed_issue_beyond_the_first_page_of_open_issues_and_files_none_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = owed_504(tmp_path)
+    existing = "https://github.com/o/r/issues/142"
+    first_page = [{"number": i, "title": f"Unrelated #{i}", "html_url": f"https://github.com/o/r/issues/{i}", "body": ""}
+                  for i in range(1, 101)]
+    second_page = [{"number": 142, "title": "Refactor owed by #504", "html_url": existing,
+                    "body": f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}\n- {SPLIT}"}]
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            page = re.search(r"[?&]page=(\d+)", line)
+            pages = {None: first_page, "1": first_page, "2": second_page}
+            return 0, json.dumps(pages.get(page and page.group(1), [])), ""
+        if is_comments_read(line):
+            return 0, "[]", ""
+        return 0, "https://github.com/o/r/issues/143\n", ""
+
+    calls = fake_processes(gh)
+
+    result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    assert result == (0, existing + "\n", "")
+    assert [c for c in calls if "title=" in c] == []
+
+
+def test_cli_files_one_issue_and_prints_its_url_when_no_open_issue_is_titled_refactor_owed_by_the_parent_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = owed_504(tmp_path)
+    open_issues = json.dumps([
+        {"number": 7, "title": "Refactor owed by #50", "html_url": "https://github.com/o/r/issues/7", "body": ""},
+        {"number": 8, "title": "Refactor owed by #5040", "html_url": "https://github.com/o/r/issues/8", "body": ""},
+        {"number": 9, "title": "Unrelated", "html_url": "https://github.com/o/r/issues/9", "body": ""}])
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            return 0, open_issues, ""
+        return 0, URL, ""
+
+    calls = fake_processes(gh)
+
+    result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    assert result == (0, URL, "")
+    assert filed(calls) == filing(504, f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}\n- {SPLIT}")
+    assert [c for c in calls if "/comments" in c] == []
+
+
+@pytest.mark.parametrize("gh_code", [1, 22])
+def test_cli_files_no_issue_and_exits_2_with_one_stderr_line_naming_the_lookup_when_the_open_issue_lookup_fails_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes, gh_code):
+    owed = owed_504(tmp_path)
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            return gh_code, "", ""
+        return 0, URL, ""
+
+    calls = fake_processes(gh)
+
+    code, out, err = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    assert filed(calls) == []
+    assert (code, out) == (2, "")
+    assert err.startswith("refactor-overflow: ") and "lookup" in err and err.count("\n") == 1 and err.endswith("\n")
+
+
+@pytest.mark.parametrize("gh_code", [1, 22])
+def test_cli_exits_2_with_one_stderr_line_naming_the_comment_and_prints_no_url_when_posting_the_comment_fails_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes, gh_code):
+    owed = owed_504(tmp_path)
+    open_issues = json.dumps([
+        {"number": 42, "title": "Refactor owed by #504", "html_url": "https://github.com/o/r/issues/42",
+         "body": f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}"}])
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            return 0, open_issues, ""
+        if is_comments_read(line):
+            return 0, "[]", ""
+        return gh_code, "", ""
+
+    calls = fake_processes(gh)
+
+    code, out, err = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    assert [c for c in calls if "issues/42/comments" in c and "body=" in c] != []
+    assert (code, out) == (2, "")
+    assert err.startswith("refactor-overflow: ") and "comment" in err and err.count("\n") == 1 and err.endswith("\n")
+
+
+def test_cli_files_no_issue_and_posts_no_comment_when_a_comment_on_the_open_refactor_owed_issue_already_lists_the_candidates_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = owed_504(tmp_path)
+    existing = "https://github.com/o/r/issues/42"
+    open_issues = json.dumps([
+        {"number": 42, "title": "Refactor owed by #504", "html_url": existing,
+         "body": f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}"}])
+    comments = json.dumps([
+        {"body": "unrelated remark"},
+        {"body": f"Structural candidates #504's closing pass could not reach:\n\n- {SPLIT}"}])
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            return 0, open_issues, ""
+        if is_comments_read(line):
+            return 0, comments, ""
+        return 0, "https://github.com/o/r/issues/43\n", ""
+
+    calls = fake_processes(gh)
+
+    result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    assert result == (0, existing + "\n", "")
+    assert [c for c in calls if "title=" in c] == []
+    assert [c for c in calls if "issues/42/comments" in c and "body=" in c] == []
+
+
+def test_cli_exits_2_with_one_stderr_line_naming_the_comments_read_and_posts_nothing_when_the_comments_read_is_not_json_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = owed_504(tmp_path)
+    open_issues = json.dumps([
+        {"number": 42, "title": "Refactor owed by #504", "html_url": "https://github.com/o/r/issues/42",
+         "body": f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}"}])
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            return 0, open_issues, ""
+        if is_comments_read(line):
+            return 0, "<html>502 Bad Gateway</html>", ""
+        return 0, URL, ""
+
+    calls = fake_processes(gh)
+
+    code, out, err = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    assert [c for c in calls if "body=" in c or "title=" in c] == []
+    assert (code, out) == (2, "")
+    assert err.startswith("refactor-overflow: ") and "comments" in err and err.count("\n") == 1 and err.endswith("\n")
+
+
+def test_cli_exits_2_with_one_stderr_line_naming_the_lookup_and_files_nothing_when_the_open_issue_lookup_is_not_json_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = owed_504(tmp_path)
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            return 0, "<html>502 Bad Gateway</html>", ""
+        return 0, URL, ""
+
+    calls = fake_processes(gh)
+
+    code, out, err = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    assert [c for c in calls if "body=" in c or "title=" in c] == []
+    assert (code, out) == (2, "")
+    assert err.startswith("refactor-overflow: ") and "lookup" in err and err.count("\n") == 1 and err.endswith("\n")
+
+
+def test_cli_files_no_issue_and_posts_no_comment_when_the_candidate_is_listed_only_in_a_comment_on_the_second_page_of_comments_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = owed_504(tmp_path)
+    existing = "https://github.com/o/r/issues/42"
+    open_issues = json.dumps([
+        {"number": 42, "title": "Refactor owed by #504", "html_url": existing,
+         "body": f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}"}])
+    first_page = [{"body": f"unrelated remark {i}"} for i in range(100)]
+    second_page = [{"body": f"Structural candidates #504's closing pass could not reach:\n\n- {SPLIT}"}]
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            return 0, open_issues, ""
+        if is_comments_read(line):
+            page = re.search(r"[?&]page=(\d+)", line)
+            pages = {None: first_page, "1": first_page, "2": second_page}
+            per_page = re.search(r"[?&]per_page=(\d+)", line)
+            if page is None and per_page is None:
+                return 0, json.dumps(first_page), ""
+            return 0, json.dumps(pages.get(page and page.group(1), [])), ""
+        return 0, "https://github.com/o/r/issues/43\n", ""
+
+    calls = fake_processes(gh)
+
+    result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    assert result == (0, existing + "\n", "")
+    assert [c for c in calls if "issues/42/comments" in c and "body=" in c] == []
+
+
+def test_cli_comments_only_the_candidate_no_comment_lists_when_a_comment_on_the_open_refactor_owed_issue_lists_the_other_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = owed_504(tmp_path)
+    existing = "https://github.com/o/r/issues/42"
+    open_issues = json.dumps([
+        {"number": 42, "title": "Refactor owed by #504", "html_url": existing, "body": ""}])
+    comments = json.dumps([
+        {"body": f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}"}])
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            return 0, open_issues, ""
+        if is_comments_read(line):
+            return 0, comments, ""
+        return 0, "https://github.com/o/r/issues/43\n", ""
+
+    calls = fake_processes(gh)
+
+    result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    commented = [c for c in calls if "issues/42/comments" in c and "body=" in c]
+    assert result == (0, existing + "\n", "")
+    assert [c for c in calls if "title=" in c] == []
+    assert len(commented) == 1 and SPLIT in commented[0] and FOLD not in commented[0]
+
+
+def test_cli_comments_the_unlisted_candidates_and_prints_the_url_when_the_open_refactor_owed_issue_has_a_null_body_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = owed_504(tmp_path)
+    existing = "https://github.com/o/r/issues/42"
+    open_issues = json.dumps([
+        {"number": 42, "title": "Refactor owed by #504", "html_url": existing, "body": None}])
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            return 0, open_issues, ""
+        if is_comments_read(line):
+            return 0, "[]", ""
+        return 0, "https://github.com/o/r/issues/43\n", ""
+
+    calls = fake_processes(gh)
+
+    result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    commented = [c for c in calls if "issues/42/comments" in c and "body=" in c]
+    assert result == (0, existing + "\n", "")
+    assert [c for c in calls if "title=" in c] == []
+    assert len(commented) == 1 and SPLIT in commented[0]
+
+
+def test_cli_asks_for_100_open_issues_per_page_on_every_lookup_call_and_reads_pages_until_one_returns_fewer_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = owed_504(tmp_path)
+    full_page = [{"number": i, "title": f"Unrelated #{i}", "html_url": f"https://github.com/o/r/issues/{i}", "body": ""}
+                 for i in range(1, 101)]
+    short_page = [{"number": 101, "title": "Unrelated #101", "html_url": "https://github.com/o/r/issues/101", "body": ""}]
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            page = re.search(r"[?&]page=(\d+)", line)
+            return 0, json.dumps(full_page if page and page.group(1) == "1" else short_page), ""
+        return 0, URL, ""
+
+    calls = fake_processes(gh)
+
+    result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    lookups = [c for c in calls if is_lookup(c)]
+    assert result == (0, URL, "")
+    assert [bool(re.search(r"[?&]per_page=100(&|$)", c)) for c in lookups] == [True, True]
+    assert [re.search(r"[?&]page=(\d+)", c).group(1) for c in lookups] == ["1", "2"]
