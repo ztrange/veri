@@ -630,6 +630,24 @@ def listed(code, stdout):
     return [int(line) for line in lines] if all(line.isdigit() for line in lines) else lines
 
 
+def script(path, body):
+    path.write_text("#!/usr/bin/env bash\n%s\n" % body)
+    path.chmod(0o755)
+
+
+def fixture_root(root):
+    """<root> holding a Makefile, one git hook, a SKILL.md naming entry.sh, and entry.sh calling helper.sh."""
+    scripts = root / "skills" / "tdd" / "scripts"
+    hooks = root / "docs" / "hooks"
+    scripts.mkdir(parents=True)
+    hooks.mkdir(parents=True)
+    (root / "Makefile").write_text("test:\n\t@echo ok\n")
+    (hooks / "reference-transaction").write_text("#!/bin/sh\nexit 0\n")
+    (root / "skills" / "tdd" / "SKILL.md").write_text("# skill\n\nRun `$S/entry.sh <n>` to start.\n")
+    script(scripts / "entry.sh", '"$(dirname "$0")/helper.sh" "$@"')
+    return scripts
+
+
 def started_for_real(args, *rest, **kwargs):
     """subprocess.run started as a real process, although subprocess.Popen is faked."""
     faked = subprocess.Popen
