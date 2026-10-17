@@ -1,6 +1,6 @@
 ### 📊 Metrics — issue 1621
 
-Wall time for the issue: 2052 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 396 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 7 of 10 planned.
 Outcome: the run bailed — revise-exhausted, a process failure.
@@ -12,9 +12,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 12 | 9 | 1 | 2 | 1131 | 12193 | 28882 | 0.13 |
-| red | 17 | 7 | 0 | 0 | 468 | 360 | 112 | 220 | 42147 | 4874589 | 685912 | 3.65 |
-| green | 24 | 4 | 7 | 0 | 4872 | 571 | 161 | 316 | 55855 | 6995983 | 836119 | 6.12 |
-| exhausted | 2 | 0 | 0 | 0 | 90 | 40 | 7 | 14 | 3365 | 251214 | 69986 | 0.68 |
+| red | 19 | 8 | 0 | 0 | 536 | 408 | 125 | 246 | 47918 | 5459326 | 769627 | 4.10 |
+| green | 28 | 4 | 8 | 0 | 5059 | 650 | 184 | 362 | 62768 | 8010705 | 992427 | 7.25 |
+| exhausted | 3 | 0 | 0 | 0 | 115 | 57 | 9 | 18 | 4525 | 308084 | 103563 | 0.98 |
 | refactor | 8 | 4 | 0 | 0 | 2144 | 164 | 59 | 116 | 18042 | 3022103 | 322097 | 1.77 |
 | pin | 3 | 3 | 0 | 0 | 57 | 38 | 12 | 24 | 4221 | 445672 | 106098 | 0.51 |
 | predicate | 1 | 0 | 0 | 0 | 14 | 10 | 3 | 6 | 993 | 101990 | 32791 | 0.15 |
@@ -23,18 +23,18 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 26 | 19 | 7 | 0 | 3195 | 451 | 149 | 288 | 49753 | 6001575 | 895102 | 4.68 |
-| developer | claude-sonnet-5-5 | 18 | 0 | 0 | 0 | 2175 | 438 | 141 | 280 | 52530 | 6905222 | 759627 | 4.25 |
-| developer | claude-opus-5-5 | 12 | 0 | 0 | 0 | 2287 | 303 | 65 | 130 | 23471 | 2796947 | 427156 | 4.08 |
+| verifier | claude-sonnet-5-5 | 28 | 20 | 8 | 0 | 3288 | 489 | 159 | 308 | 53792 | 6405870 | 970273 | 5.06 |
+| developer | claude-sonnet-5-5 | 19 | 0 | 0 | 0 | 2210 | 463 | 148 | 294 | 55754 | 7238160 | 804444 | 4.50 |
+| developer | claude-opus-5-5 | 16 | 0 | 0 | 0 | 2439 | 384 | 86 | 172 | 30052 | 3716043 | 580768 | 5.34 |
 
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 143 | 1.22 |
-| green | 249 | 1.25 | 3581 | 3.49 |
-| exhausted | 0 | 0.00 | 90 | 0.68 |
+| red | 0 | 0.00 | 211 | 1.67 |
+| green | 249 | 1.25 | 3768 | 4.62 |
+| exhausted | 0 | 0.00 | 115 | 0.98 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | pin | 0 | 0.00 | 0 | 0.00 |
 | predicate | 0 | 0.00 | 0 | 0.00 |
@@ -53,6 +53,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | `wrong-test-route.sh` finds the case a `WRONG_TEST:` line names wherever this repo's tests live, not only under `./tests`: run from the repository root, a `WRONG_TEST:` naming a real existing pytest function (a `def test_…(` under `skills/tdd/scripts/tests/py/`) prints `red <case>` and exits 0, and one naming a real bash suite's named case (the quoted name a `*.test.sh` suite passes to `ok`/`no`/`expect_eq`, given in backticks on the line) prints `red <case>` and exits 0. Pinned by in-process cases run from the real repository root that name real cases in this repo's own tree, never a synthetic `./tests` the case builds itself; a case that sweeps a repo directory outside its tmp_path carries `@pytest.mark.tree_audit("<what it sweeps>")`. In a `tests/py/unit/` file no string argument may end in `test_<x>.py` or `.test.sh` (#1668 guard); if an existing test pins behaviour this changes, Red moves that test's expectation. ⟦criterion 2⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 116 | 42 | 82 | 13743 | 1792787 | 233005 | 1.25 | 332 | unknown | 0/5 | nothing-left |  |  | full |
 | Every refusal path of `wrong-test-route.sh` has its own in-process case, each one failing when exactly its own check in `veri/wrong_test_route.py` is removed: a `WRONG_TEST:` line naming no case, one naming only the step's own red test id (an id that really exists in this repo's tree, so removing the own-id check would route it to red), and one naming a case that exists nowhere in the tree each print `revise` and exit 3; the wrong argument count and an empty argument each exit 2 with `usage: wrong-test-route.sh <green-report> <red-test-id>` on stderr and nothing on stdout. In a `tests/py/unit/` file no string argument may end in `test_<x>.py` or `.test.sh` (#1668 guard); if an existing test pins behaviour this changes, Red moves that test's expectation. ⟦criterion 3⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 38 | 10 | 20 | 4356 | 412790 | 76640 | 0.39 | unknown | unknown | unknown | unknown |  |  | pin |
 | The develop-green and revise-green prompts, as rendered by `build-develop-prompt.sh green …` and `build-develop-prompt.sh revise green …`, ask a `WRONG_TEST:` report to name the existing test case the step's criterion contradicts (the case `wrong-test-route.sh` then routes to a red). Pinned by an in-process case on both rendered prompts. In a `tests/py/unit/` file no string argument may end in `test_<x>.py` or `.test.sh` (#1668 guard); if an existing test pins behaviour this changes, Red moves that test's expectation. ⟦criterion 5⟧ | 8 | 1 | 2 | 0 | 0 | 0 | 175 | 31 | 64 | 12199 | 1274683 | 247042 | 2.14 | unknown | 2/2 | unknown | unknown |  |  | full |
+| The develop-green and revise-green prompts, as rendered by `build-develop-prompt.sh green …` and `build-develop-prompt.sh revise green …`, ask a `WRONG_TEST:` report to name the existing test case the step's criterion contradicts (the case `wrong-test-route.sh` then routes to a red). Pinned by an in-process case on both rendered prompts. In a `tests/py/unit/` file no string argument may end in `test_<x>.py` or `.test.sh` (#1668 guard); if an existing test pins behaviour this changes, Red moves that test's expectation. This step's red also moves the byte pins the added sentence necessarily changes, recomputing each value by running the case against the changed prompt (never copying a value a leaf reported): the checksum at `skills/tdd/scripts/tests/py/unit/test_build_develop_prompt.py:1946` and the `build-develop-prompt.sh green` and `revise green` entries at `skills/tdd/scripts/tests/py/unit/test_emitted_text.py:78` and `:84` (green may not edit tests; ledger re-cut by coordinator ruling, #1621 shape). ⟦criterion 5⟧ | 7 | 1 | 1 | 0 | 0 | 0 | 144 | 38 | 76 | 13844 | 1656329 | 273600 | 1.88 | unknown | 2/2 | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -71,14 +72,14 @@ Stopped: nothing-structural
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 1 | 1 | 600 | 1 | 1 | 0 | 1 | 2 | 1 | 1 | 601 | 1 | 0 | 1 | 1 | 6 | 1 | 1 | 4 | 1 | 0 | 6 | 1 | 1 | 3 | 2 | 1 | 1 | 1 | 5 | 612 | 606 | 605 | 1 | 0 | 0 | 276 | 0 | 0 | 1 | 1 | 1 | 0 | 2 | 1 | 4 | 1 | 620 | 616 |
-| fast | 1 | 16 | 16 | 16 | 16 | 16 | 16 | 15 | 16 | 16 | 16 | 16 | 16 | 16 | 16 | 17 | 15 | 16 | 16 | 19 | 17 | 17 | 18 | 17 | 18 | 16 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 1 | 16 | 0 | 0 | 0 | 16 | 0 | 1 | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 0 | 1 | 0 | 0 | 1 | 0 | 0 | 16 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 1 | 1 | 600 | 1 | 1 | 0 | 1 | 2 | 1 | 1 | 601 | 1 | 0 | 1 | 1 | 6 | 1 | 1 | 4 | 1 | 0 | 6 | 1 | 1 | 3 | 2 | 1 | 1 | 1 | 5 | 612 | 606 | 605 | 1 | 0 | 0 | 276 | 0 | 0 | 1 | 1 | 1 | 0 | 2 | 1 | 4 | 1 | 620 | 616 | 4 | 5 |
+| fast | 1 | 16 | 16 | 16 | 16 | 16 | 16 | 15 | 16 | 16 | 16 | 16 | 16 | 16 | 16 | 17 | 15 | 16 | 16 | 19 | 17 | 17 | 18 | 17 | 18 | 16 | 20 | 19 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 1 | 16 | 0 | 0 | 0 | 16 | 0 | 1 | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 0 | 1 | 0 | 0 | 1 | 0 | 0 | 16 | 1 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 355 | 698 | 125754 | 15703744 | 2081885 | 13.02 |
+| total | 393 | 774 | 139598 | 17360073 | 2355485 | 14.90 |
