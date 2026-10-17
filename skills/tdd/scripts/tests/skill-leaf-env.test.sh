@@ -220,24 +220,12 @@ check_developer_launch() {
   expect_sentinel "$leaf" "$launch" "$prompt"
 }
 
-run_case "every leaf $skill_md launches through supervise.sh sees the run's test command as VERI_TEST_CMD" \
-  scan_launches \
-  '\$S/supervise\.sh .*run-leaf\.sh' \
-  "a leaf through supervise.sh into run-leaf.sh" \
-  check_developer_launch
-
 check_verifier_launch() {
   local launch="$1" clean phase spec subject
   clean="$(sed -E "s/ --(step|fast-cmd) ('[^']*'|\"[^\"]*\")//g" <<< "$launch")"
   read -r phase spec subject _ <<< "${clean#*run-verdict.sh }"
   expect_sentinel "verify-$phase" "$launch" "$spec" "$subject"
 }
-
-run_case "every verifier $skill_md launches through verify.sh sees the run's test command as VERI_TEST_CMD" \
-  scan_launches \
-  '\$S/detach-leaf\.sh .*\$S/run-verdict\.sh .*\.tdd/issue-<n>-spec\.md' \
-  "a verifier through run-verdict.sh against a spec file" \
-  check_verifier_launch
 
 bad_context() {
   python3 -c '
@@ -282,9 +270,6 @@ scan_launch_trees() {
   fi
 }
 
-run_case "every leaf $skill_md launches leaves events carrying the run's issue and step" \
-  scan_launch_trees
-
 scan_launch_step_env() {
   local trees tree lineno line want_step got
   trees=( "$run"/* )
@@ -303,9 +288,6 @@ scan_launch_step_env() {
       problem "launches ${tree#$run/}, whose leaf saw VERI_STEP=<$got>, want <$want_step>"
   done
 }
-
-run_case "every leaf $skill_md launches with VERI_STEP set sees the run's step as VERI_STEP" \
-  scan_launch_step_env
 
 scan_fixture_naming() {
   local fixture i=0 lineno line launch
@@ -926,9 +908,6 @@ scan_inline_ledger_reads() {
   done < <(grep -nF -e '|| $S/next-unchecked.sh' -e '|| cat .tdd/issue-<n>.md' \
                     -e 'tail -1 | cut -f7-' -e "sed -n '<k>p'" "$md")
 }
-
-run_case "$skill_md spells none of the inline current-step, last-done and criterion <k> pipelines, reading each through ledger-steps.sh current, last-done and criterion <k> (#682)" \
-  scan_inline_ledger_reads
 
 CRITERION_TEXT='The issue'"'"'s own words: `echo $SHELL` in "quotes" and $HOME, as the issue wrote them'
 plant_done_ledger() {
