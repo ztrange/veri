@@ -22,8 +22,6 @@ JOB_SPEC='%[0-9]'
 JOB_SPEC_KILL="$KILL_WORD$JOB_ARGS$JOB_SPEC"
 
 declare -A EXEMPT=(
-  [$'skills/tdd/scripts/tests/skill-leaf-env.test.sh:LITERAL_STEP=\'A title naming `kill \x251`, the "blind" verifier, $HOME and the shell s own job spec\'']="a step title's text, single-quoted, that every launch line's leaf must receive as VERI_STEP byte for byte (#608): the job spec is the character under test, and no case runs it; a launch line that ran it would do so in a bash -c with no job table, where it reaches no process at all"
-  [$'skills/tdd/scripts/tests/skill-leaf-env.test.sh:EXPANDING_STEP=\'A title naming `kill \x251`, the "blind" verifier and $HOME reaches the leaf as written\'']="a step title's text, single-quoted, that the case hands a launch line as data (#437): the backticks around it are the character under test, and a fixed launch never runs it; an unfixed one runs it in a bash -c with no job table, where it reaches no process at all"
 )
 
 
