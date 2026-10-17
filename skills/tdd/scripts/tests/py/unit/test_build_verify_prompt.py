@@ -1065,6 +1065,27 @@ def test_main_renders_a_ci_repair_green_prompt_judged_by_ci_evidence_and_not_by_
             [rule for rule, pattern in rules.items() if says(unmarked, pattern)]) == ([], list(rules)[:0])
 
 
+def test_main_gives_a_green_prompt_the_replaces_case_paragraph_only_to_a_step_whose_trailing_marks_include_the_mark_not_one_that_mentions_it_in_prose_or_backticks_1538(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+
+    def rendered(step):
+        code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit", "green", str(spec),
+                                         "tests/py/test_zorblat.py", "test_zorblat_frobs_a_nitz"])
+        out, _ = capsysbinary.readouterr()
+        assert code == 0
+        return re.sub(rb"\s+", b" ", out)
+
+    paragraph = (rb"REJECT[^.]{0,200}(delet|modif)[^.]{0,80}(any|a) case (it|the step|its text) does not name")
+    mention = "zorblat reads the ⟦replaces-case⟧ mark, quoted as `⟦replaces-case⟧` in prose"
+    marked = rendered(f"{mention} ⟦replaces-case⟧ ⟦criterion 1⟧")
+    mentioned = rendered(f"{mention} ⟦criterion 1⟧")
+
+    assert ([re.search(paragraph, marked, re.I) is not None, re.search(paragraph, mentioned, re.I) is not None]
+            == [True, False])
+
+
 def test_main_renders_a_ci_repair_green_prompt_that_passes_on_evidence_from_before_the_push_and_leaves_the_verdict_on_the_pushed_fix_to_wait_ci_1473(
         tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
