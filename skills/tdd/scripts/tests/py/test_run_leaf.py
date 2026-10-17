@@ -924,3 +924,90 @@ def test_cli_a_python_process_under_a_leaf_writes_no_pyc_into_the_tree_it_import
                          env={"CLAUDE_BIN": str(stub), "MOD_DIR": str(tree)})
 
     assert (code, (tmp_path / "answer").read_text().strip(), sorted(tree.rglob("*.pyc"))) == (0, "3", [])
+
+
+_OK_RESULT_LINE = "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"ok\"}'\n"
+_RULE_PHRASES = ("signal only processes you started", "by the pid you recorded")
+
+
+def _leaf_stub(tmp_path, body):
+    stub = tmp_path / "claude"
+    stub.write_text("#!/bin/sh\n" + body + _OK_RESULT_LINE)
+    stub.chmod(0o755)
+    return stub
+
+
+@pytest.mark.process("a real stub claude running pkill and killall through the leaf-guard scripts on its PATH")
+def test_cli_refuses_a_leafs_pkill_and_killall_before_they_signal_anything_naming_the_rule(
+        tmp_path, monkeypatch, run_cli):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("do the step\n")
+    tools = tmp_path / "tools"
+    tools.mkdir()
+    for tool in ("pkill", "killall"):
+        (tools / tool).write_text(f'#!/bin/sh\nprintf "%s\\n" "$*" > "{tmp_path}/{tool}-ran"\n')
+        (tools / tool).chmod(0o755)
+    stub = _leaf_stub(tmp_path,
+                      "pkill -n -f 'exp-sleep 60' > \"$SIG_DIR/pkill-out\" 2>&1\n"
+                      "killall exp-sleep > \"$SIG_DIR/killall-out\" 2>&1\n")
+    monkeypatch.setenv("PATH", f"{tools}{os.pathsep}{os.environ['PATH']}")
+
+    code, _, _ = run_cli(run_leaf, ["prompt.txt"],
+                         env={"CLAUDE_BIN": str(stub), "SIG_DIR": str(tmp_path)})
+
+    problems = []
+    for tool in ("pkill", "killall"):
+        if (tmp_path / f"{tool}-ran").exists():
+            problems.append(f"{tool} reached the signalling tool")
+        said = (tmp_path / f"{tool}-out").read_text().lower()
+        problems += [f"{tool} printed no {phrase!r}: {said!r}"
+                     for phrase in _RULE_PHRASES if phrase not in said]
+    assert (code, problems) == (0, [])
+
+
+@pytest.mark.process("a real stub claude running kill $(pgrep ...) and a script running pgrep -g through the leaf-guard scripts")
+def test_cli_refuses_a_leafs_kill_of_a_pgrep_substitution_naming_the_rule_while_a_script_the_leaf_runs_still_reaches_pgrep_g(
+        tmp_path, monkeypatch, run_cli):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("do the step\n")
+    tools = tmp_path / "tools"
+    tools.mkdir()
+    (tools / "pgrep").write_text(f'#!/bin/sh\nprintf "%s\\n" "$*" >> "{tmp_path}/pgrep-ran"\n')
+    (tools / "pgrep").chmod(0o755)
+    suite = tmp_path / "suite.sh"
+    suite.write_text(f'#!/bin/sh\npgrep -g 0\nprintf "%s\\n" "$?" > "{tmp_path}/suite-exit"\n')
+    suite.chmod(0o755)
+    stub = _leaf_stub(tmp_path,
+                      "{ kill $(pgrep -f 'exp-sleep 60'); } > \"$PG_DIR/kill-out\" 2>&1\n"
+                      "\"$PG_DIR/suite.sh\"\n")
+    monkeypatch.setenv("PATH", f"{tools}{os.pathsep}{os.environ['PATH']}")
+
+    code, _, _ = run_cli(run_leaf, ["prompt.txt"],
+                         env={"CLAUDE_BIN": str(stub), "PG_DIR": str(tmp_path)})
+
+    ran = (tmp_path / "pgrep-ran").read_text().splitlines() if (tmp_path / "pgrep-ran").exists() else []
+    said = (tmp_path / "kill-out").read_text().lower()
+    assert (code, [line for line in ran if "-f exp-sleep 60" in line],
+            [phrase for phrase in _RULE_PHRASES if phrase not in said],
+            "-g 0" in ran, (tmp_path / "suite-exit").read_text().strip()) == (0, [], [], True, "0")
+
+
+@pytest.mark.process("a real stub claude killing a real sleep it started and recorded the pid of")
+def test_cli_a_leaf_can_still_kill_a_pid_it_started_and_recorded(tmp_path, monkeypatch, run_cli):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("do the step\n")
+    stub = _leaf_stub(tmp_path,
+                      "bash -c 'sleep 30 & pid=$!\n"
+                      "env kill \"$pid\" 2> \"$OWN_DIR/kill-err\"; status=$?\n"
+                      "printf \"%s\\n\" \"$status\" > \"$OWN_DIR/kill-exit\"\n"
+                      "[ \"$status\" = 0 ] || /bin/kill \"$pid\"\n"
+                      "wait \"$pid\"; printf \"%s\\n\" \"$?\" > \"$OWN_DIR/wait-exit\"'\n")
+
+    code, _, _ = run_cli(run_leaf, ["prompt.txt"],
+                         env={"CLAUDE_BIN": str(stub), "OWN_DIR": str(tmp_path)})
+
+    assert (code, [(tmp_path / name).read_text().strip() for name in ("kill-exit", "wait-exit")]) == (
+        0, ["0", "143"])
