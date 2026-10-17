@@ -38,7 +38,10 @@ for f in "$HERE"/unit/*.test.sh; do
     [[ -n "$lineno" ]] || continue
     problems+=("$suite:$lineno runs a script under skills/tdd/scripts/ as a subprocess, with no exemption recorded: $(flat "$text")")
   done < <(awk -v scripts="$script_list" '
-    BEGIN { n = split(scripts, arr, "|"); for (i = 1; i <= n; i++) is_script[arr[i]] = 1 }
+    BEGIN {
+      n = split(scripts, arr, "|"); for (i = 1; i <= n; i++) is_script[arr[i]] = 1
+      lead = "(^|\\$\\(|[;&|({])[ \t]*((if|then|elif|else|while|until|do|!)[ \t]+)*((bash|sh|env)[ \t]+)?(([A-Za-z_][A-Za-z0-9_]*=[^ \t]* +)*)"
+    }
     function names_script(s,   tok) {
       while (match(s, /\/[a-z0-9-]+\.sh/)) {
         tok = substr(s, RSTART + 1, RLENGTH - 1)
@@ -60,9 +63,9 @@ for f in "$HERE"/unit/*.test.sh; do
     }
     {
       for (v in held)
-        if ($0 ~ ("(^|\\$\\(|[;&|({])[ \t]*((if|then|elif|else|while|until|do|!)[ \t]+)*((bash|sh|env)[ \t]+)?(([A-Za-z_][A-Za-z0-9_]*=[^ \t]* +)*)\"?\\$\\{?" v "([^A-Za-z0-9_]|$)")) { print FNR "\t" $0; next }
+        if ($0 ~ (lead "\"?\\$\\{?" v "([^A-Za-z0-9_]|$)")) { print FNR "\t" $0; next }
     }
-    $0 ~ /(^|\$\(|[;&|({])[ \t]*((if|then|elif|else|while|until|do|!)[ \t]+)*((bash|sh|env)[ \t]+)?(([A-Za-z_][A-Za-z0-9_]*=[^ \t]* +)*)"?[^ \t"]*\$[^ \t"]*\.sh"?([ \t;&|)}]|$)/ { print FNR "\t" $0; next }
+    $0 ~ (lead "\"?[^ \t\"]*\\$[^ \t\"]*\\.sh\"?([ \t;&|)}]|$)") { print FNR "\t" $0; next }
     names_script($0) { print FNR "\t" $0 }
   ' "$f")
 done
