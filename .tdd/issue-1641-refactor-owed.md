@@ -1,3 +1,6 @@
 ### The guard's exemption table is keyed by a `file:line` whose file is a path relative to `tests/py/` (the root the guard is given), so an entry suppresses the offence it names whatever absolute directory the tree lives in; pinned by one case ⟦criterion 2⟧
 - the `exempt` closure still accepts an absolute `file:line` key as well as the relative one. The older exemption test at `test_fast_tier_guard.py:183` relies on absolute keys, so removing the fallback means rewriting that test; I left it alone.
 - test-only | drop the redundant function-local `import pytest` at `test_fast_tier_guard.py:184`; the module already imports it at the top
+### An exemption-table entry whose reason is empty or only whitespace is refused, naming the entry; pinned by one case ⟦criterion 2⟧
+- the `exempt` closure in `offences` still accepts an absolute `file:line` key beside the relative one. Removing the fallback means rewriting the older exemption test at `test_fast_tier_guard.py:183`, which uses absolute keys. That is outside this step's scope, because no duplication in this cycle's code is involved.
+- test-only | drop the redundant function-local `import pytest` at `skills/tdd/scripts/tests/py/test_fast_tier_guard.py:184`; the module already imports it at the top
