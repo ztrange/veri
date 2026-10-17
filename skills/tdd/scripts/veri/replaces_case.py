@@ -4,7 +4,11 @@ import re
 from ledger import trailing_markers
 
 REPLACES_MARK = "⟦replaces-case⟧"
-_START = re.compile(r"\breplaces (?=['\"`])")
+_REPLACES = r"\breplaces "
+_QUOTE = r"['\"`]"
+_START = re.compile(_REPLACES + "(?=" + _QUOTE + ")")
+_UNQUOTED = re.compile(_REPLACES + "(?!" + _QUOTE + r")\S")
+_OTHER_SUITE = re.compile(_REPLACES + "(?=" + _QUOTE + r").*? in ([\w./-]+)")
 _SUITE = re.compile(r" in ([\w./-]+\.test\.sh)")
 
 
@@ -34,3 +38,16 @@ def unreadable(step):
 
 def unreadable_message(step):
     return "cannot read the case names of step: " + step.replace("\n", " ")
+
+
+def unquoted_clause(step):
+    return _UNQUOTED.search(step) is not None
+
+
+def other_suite(step):
+    found = _OTHER_SUITE.search(step)
+    return found.group(1) if found else None
+
+
+def quote_of(step):
+    return step[_START.search(step).end()]
