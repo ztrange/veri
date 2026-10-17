@@ -1932,3 +1932,116 @@ def test_cli_green_for_a_step_not_carrying_replaces_case_renders_byte_identicall
 
     rendered = out.rstrip("\n").replace(str(SCRIPTS), "@SCRIPTS@") + "\n"
     assert (code, err, _cksum(rendered.encode())) == (0, "", "2784004442 8129")
+
+
+@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
+def test_cli_develop_cover_restores_a_probe_with_cp_orig_before_the_mutation_and_mv_orig_after_the_run_under_mutation(
+        tmp_path, run_cli, build_develop_prompt):
+    code, out, err = run_cli(build_develop_prompt, ["cover", _spec(tmp_path), "QWIXTLE: cover the frob", "make test"])
+    line = out[out.index("## Phase: develop-cover"):].replace("\n", " ")
+
+    def at(pattern):
+        found = re.search(pattern, line, re.I)
+        return None if found is None else found.start()
+
+    cp_at, mutate_at = at(r"cp <file> <file>\.orig"), at("break its behaviour")
+    run_at, mv_at = at("run the suites"), at(r"mv <file>\.orig <file>")
+
+    assert (code, err) == (0, "")
+    assert None not in (cp_at, mutate_at, run_at, mv_at)
+    assert (cp_at <= mutate_at, mv_at >= run_at) == (True, True)
+
+
+def test_cli_develop_diff_given_every_argument_but_an_empty_test_cmd_exits_2_with_no_prompt_and_missing_test_cmd_on_stderr(
+        tmp_path, run_cli, build_develop_prompt):
+    step = "the dead counted line in the status suite is gone ⟦diff-checked⟧ ⟦criterion 5⟧"
+
+    code, out, err = run_cli(build_develop_prompt, ["diff", _spec(tmp_path), step, "", "make unit"])
+
+    assert (code, out, err.splitlines()[0]) == (2, "", "build-develop-prompt: missing <test-cmd>")
+
+
+@pytest.mark.process("build-develop-prompt.sh run through a symlink to the scripts directory from another working directory")
+def test_cli_run_through_a_symlink_to_the_scripts_directory_answers_red_green_and_diff_as_in_place_but_names_the_symlink_in_the_timed_test_run_path(
+        tmp_path):
+    import subprocess
+
+    spec = _spec(tmp_path)
+    step = "QWIXTLE: a seed ending in a newline gains the block and reports added"
+    diff_step = "the dead counted line in the status suite is gone ⟦diff-checked⟧ ⟦criterion 5⟧"
+    test_cmd = 'make test ZORBLAT=1 -- --only "frob & nitz/quux"'
+    linked = tmp_path / "linked"
+    linked.mkdir()
+    (linked / "veri-scripts").symlink_to(SCRIPTS)
+    calls = {
+        "red": ["red", spec, step, test_cmd],
+        "green": ["green", spec, step, test_cmd, "tests/zorblat/test_frob & nitz.sh",
+                  "qwixtle seeds a newline-terminated block", "make unit"],
+        "diff": ["diff", spec, diff_step, test_cmd, 'make unit ZORBLAT=fast -- --only "frob & nitz/quux"'],
+    }
+    problems = []
+    for label, argv in calls.items():
+        want = subprocess.run([str(SCRIPTS / "build-develop-prompt.sh"), *argv], capture_output=True, text=True,
+                              cwd=str(tmp_path))
+        got = subprocess.run(["./veri-scripts/build-develop-prompt.sh", *argv], capture_output=True, text=True,
+                             cwd=str(linked))
+        in_place = f"{SCRIPTS}/timed-test-run.sh"
+        if in_place not in want.stdout:
+            problems.append(f"{label} in place names no {in_place}")
+        expected = want.stdout.replace(in_place, f"{linked}/veri-scripts/timed-test-run.sh")
+        if (got.returncode, got.stdout, got.stderr) != (want.returncode, expected, want.stderr):
+            problems.append(f"{label} differs through the link")
+
+    assert problems == []
+
+
+def test_cli_red_given_a_directory_as_the_issue_spec_file_exits_2_with_nothing_on_stdout_and_a_non_empty_stderr(
+        tmp_path, run_cli, build_develop_prompt):
+    spec_dir = tmp_path / "spec-dir"
+    spec_dir.mkdir()
+
+    code, out, err = run_cli(build_develop_prompt, ["red", str(spec_dir), "QWIXTLE: a seed gains the block", "make test"])
+
+    assert (code, out, err != "") == (2, "", True)
+
+
+@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
+def test_cli_develop_refactor_sub_step_1_tells_the_leaf_to_report_a_structural_transform_it_does_not_apply_and_one_outside_the_issues_bounds(
+        tmp_path, run_cli, build_develop_prompt):
+    code, out, err = run_cli(
+        build_develop_prompt,
+        ["refactor", _spec(tmp_path), "QWIXTLE: a seed ending in a newline gains the block", "make test",
+         "scripts/zorblat.sh, tests/zorblat/test_frob & nitz.sh"],
+        env={"VERI_REFACTOR_BUDGET": "5"})
+    inside, kept = False, []
+    for text in out.splitlines():
+        inside = inside or text.startswith("1. Triage")
+        if inside and text.startswith("2. "):
+            break
+        if inside:
+            kept.append(text)
+    sub_step_1 = " ".join(kept)
+
+    assert (code, err) == (0, "")
+    assert (bool(sub_step_1), "`CANDIDATES: structural`" in sub_step_1, "`CANDIDATES: out-of-scope`" in sub_step_1) == (
+        True, True, True)
+
+
+@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
+def test_cli_develop_replaces_report_names_every_case_in_the_missing_cases_file_points_at_the_report_file_and_asks_for_a_replaces_line_each_and_a_missing_report_or_cases_file_exits_2_with_no_stdout(
+        tmp_path, run_cli, build_develop_prompt):
+    spec, step, test_cmd = _spec(tmp_path), "QWIXTLE: a seed ending in a newline gains the block", "make test"
+    report, cases = tmp_path / "red-report.txt", tmp_path / "missing-cases.txt"
+    report.write_text("wrote the replacements\n")
+    cases.write_text("zibble case alpha\nzibble case beta\n")
+
+    ok = run_cli(build_develop_prompt, ["replaces-report", spec, step, test_cmd, str(report), str(cases)])
+    no_report = run_cli(build_develop_prompt,
+                        ["replaces-report", spec, step, test_cmd, str(tmp_path / "no-such-report.txt"), str(cases)])
+    no_cases = run_cli(build_develop_prompt,
+                       ["replaces-report", spec, step, test_cmd, str(report), str(tmp_path / "no-such-cases.txt")])
+
+    assert ok[0] == 0
+    assert [needle in ok[1] for needle in ("zibble case alpha", "zibble case beta", str(report),
+                                           "REPLACES: <case> => <test id>")] == [True] * 4
+    assert (no_report[0], no_report[1], no_cases[0], no_cases[1]) == (2, "", 2, "")
