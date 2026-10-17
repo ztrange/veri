@@ -363,8 +363,9 @@ def test_main_prints_the_pytest_files_that_read_the_edited_skill_section_through
         0, "skills/tdd/scripts/tests/py/test_alpha.py\n", "")
 
 
+@pytest.mark.parametrize("fence", ["```", "~~~"])
 def test_main_attributes_an_edit_below_a_fenced_heading_shaped_line_to_the_real_enclosing_section_1569(
-        tmp_path, monkeypatch, capsys, affected):
+        fence, tmp_path, monkeypatch, capsys, affected):
     skill = "skills/tdd/SKILL.md"
 
     def fake_run(args, **kwargs):
@@ -382,7 +383,7 @@ def test_main_attributes_an_edit_below_a_fenced_heading_shaped_line_to_the_real_
     monkeypatch.chdir(tmp_path)
     py = tmp_path / "skills/tdd/scripts/tests/py"
     py.mkdir(parents=True)
-    (tmp_path / skill).write_text("## Alpha\n```\n## x\nalpha body\n```\n## Beta\nbeta body\n")
+    (tmp_path / skill).write_text("## Alpha\n%s\n## x\nalpha body\n%s\n## Beta\nbeta body\n" % (fence, fence))
     (py / "test_alpha.py").write_text('section(SKILL, "## Alpha")\n')
     (py / "test_beta.py").write_text('section(SKILL, "## Beta")\n')
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
