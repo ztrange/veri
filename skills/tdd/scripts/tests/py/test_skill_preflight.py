@@ -37,6 +37,12 @@ def first_all(lines, *wants, start=0):
     return next((i for i in range(start, len(lines)) if all(w in lines[i] for w in wants)), None)
 
 
+def worktree_entry(lines):
+    at = first_all(lines, WORKTREE_CALL, ENTER_CALL)
+    assert at is not None, "no line runs issue-worktree.sh and then cd \"$wt\""
+    return at
+
+
 def item_around(lines, at):
     begin = max((i for i in range(at + 1) if re.match(ITEM_RE, lines[i])), default=0)
     end = next((i for i in range(at + 1, len(lines)) if re.match(ITEM_RE, lines[i])), len(lines))
@@ -92,9 +98,8 @@ def test_skill_md_s_preflight_checks_GitHub_with_gh_api_user_and_stops_the_run_o
 
 def test_skill_md_runs_the_fast_tier_baseline_inside_the_issue_s_worktree_after_issue_worktree_sh_cut_the_branch():
     lines = all_lines()
-    enter_at = first_all(lines, WORKTREE_CALL, ENTER_CALL)
+    enter_at = worktree_entry(lines)
     fast_at = first(lines, FAST_CALL)
-    assert enter_at is not None, "no line runs issue-worktree.sh and then cd \"$wt\""
     assert fast_at is not None, "SKILL.md never names the fast-tier baseline"
     assert fast_at >= enter_at, "the baseline runs before the worktree is entered"
 
@@ -133,9 +138,8 @@ def test_skill_md_says_a_resumed_run_s_baseline_runs_on_the_branch_head_in_its_e
 
 def test_skill_md_takes_the_worktree_s_dot_tdd_conductor_pid_lock_in_preflight_step_3_after_cd_wt_and_before_the_fast_tier_baseline():
     lines = all_lines()
-    enter_at = first_all(lines, WORKTREE_CALL, ENTER_CALL)
+    enter_at = worktree_entry(lines)
     pid_at = first_all(lines, PID_WRITE, PID_VALUE)
-    assert enter_at is not None, "no line runs issue-worktree.sh and then cd \"$wt\""
     assert pid_at is not None, "no line writes \"$PPID\" to .tdd/conductor.pid"
     base_at = next((i for i in range(enter_at + 1, len(lines))
                     if FAST_CALL in lines[i] or DETACH_START in lines[i]), None)
