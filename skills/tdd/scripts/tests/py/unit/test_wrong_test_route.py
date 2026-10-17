@@ -72,3 +72,26 @@ def test_main_1621_finds_a_real_pytest_function_and_a_real_bash_suite_case_from_
         results.append((code, stdout))
 
     assert results == [(0, "red %s\n" % pytest_case), (0, "red %s\n" % bash_case)]
+
+
+@pytest.mark.tree_audit("the repository's own tests directories, searched for the case a WRONG_TEST names")
+def test_main_1621_refuses_a_wrong_test_naming_no_case_only_its_own_red_or_a_missing_case_and_a_bad_argument_list(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    monkeypatch.chdir(ROOT)
+    own_id = "test_a_planted_develop_prompt_that_makes_no_commit_and_the_real_prompts_directory_are_clean"
+    usage = "usage: wrong-test-route.sh <green-report> <red-test-id>\n"
+    lines = ("WRONG_TEST: the criterion contradicts nothing I can name",
+             "WRONG_TEST: %s asserts the opposite of the criterion" % own_id,
+             "WRONG_TEST: test_1621_no_such_case_exists_anywhere_in_the_tree asserts the opposite")
+    results = []
+    for number, line in enumerate(lines):
+        report = tmp_path / ("report-%d.txt" % number)
+        report.write_text("SUITE: make test\n" + line + "\n")
+        code, stdout, stderr = run_cli(wrong_test_route, [str(report), own_id], cwd=ROOT)
+        results.append((code, stdout))
+    for argv in ([], [str(report)], [str(report), own_id, "extra"], ["", own_id], [str(report), ""]):
+        code, stdout, stderr = run_cli(wrong_test_route, argv, cwd=ROOT)
+        results.append((code, stdout, stderr))
+
+    assert results == [(3, "revise\n")] * 3 + [(2, "", usage)] * 5
