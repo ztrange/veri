@@ -280,3 +280,20 @@ def test_issue_1702_main_runs_and_records_a_bare_make_test_on_the_fast_full_and_
     err = capfd.readouterr().err
     assert (code, err, calls, [(r["tier"], r["status"]) for r in events.records()]) == (
         7, "", [["make", "test"]], [(tier, "7")])
+
+
+@pytest.mark.parametrize("command", [
+    ["make", "test", "TESTS=a b"],
+    ["make", "TESTS=a", "test"],
+    ["bash", "t.test.sh"],
+])
+def test_issue_1702_main_runs_and_records_an_affected_tier_command_that_names_its_suites_or_is_not_make_test(
+        command, tmp_path, monkeypatch, capfd, calls, events, timed_test_run):
+    monkeypatch.chdir(tmp_path)
+    events.refuse_event_sh()
+
+    code = timed_test_run.main(["affected", "a b", *command])
+
+    err = capfd.readouterr().err
+    assert (code, err, calls, [(r["tier"], r["status"]) for r in events.records()]) == (
+        7, "", [command], [("affected", "7")])
