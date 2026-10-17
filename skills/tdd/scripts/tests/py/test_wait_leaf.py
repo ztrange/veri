@@ -404,7 +404,10 @@ def test_skill_md_warns_that_a_background_call_awaiting_a_notification_never_com
 
 
 def test_skill_md_reports_a_verifier_whose_supervisor_died_the_way_it_reports_a_killed_developer_leaf():
-    assert [p for p in skill_paragraphs()
+    text = (SCRIPTS.parent / "SKILL.md").read_text()
+    section = re.search(r"^## Launching a leaf — detach, then wait in the foreground\n(.*?)(?=^## )",
+                        text, re.S | re.M).group(1)
+    assert [p for p in re.split(r"\n[ \t]*\n", section)
             if "verdict-<phase>" in p and "killed-stuck" in p.lower() and "bail" in p.lower()
             and ("without recording a status" in p.lower()
                  or re.search(r"supervisor[^.]*(died|dies|exited|is gone)", p.lower()))]
