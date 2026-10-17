@@ -352,6 +352,26 @@ def test_every_blind_verifier_prompt_that_names_run_suite_tells_its_leaf_what_to
     assert problems == []
 
 
+@pytest.mark.process(BOUNDARY)
+def test_1702_every_affected_tier_prompt_gives_make_test_with_tests_naming_the_suites_not_a_placeholder_for_the_command(spec):
+    problems = []
+    step = "the zorblat is frobbed ⟦diff-checked⟧ ⟦criterion 1⟧"
+    roster = [
+        ("develop-green", build(problems, DEVELOP, "green", spec, "QWIXTLE step", "make test", "tests/zorblat.test.sh", "zorblat case", "make unit")),
+        ("develop-diff", build(problems, DEVELOP, "diff", spec, step, "make test", "make unit")),
+        ("verify-green", build(problems, VERIFY, "--fast-cmd", "make unit", "green", spec, "tests/zorblat.test.sh", "zorblat case")),
+        ("verify-refactor", build(problems, VERIFY, "--fast-cmd", "make unit", "refactor", spec, "tests/zorblat.test.sh", "abc1234")),
+        ("verify-diff", build(problems, VERIFY, "--step", step, "--fast-cmd", "make unit", "diff", spec, "0123abc", "4567def")),
+    ]
+    for label, prompt in roster:
+        folded = plain(prompt)
+        if "<the command that runs them>" in folded:
+            problems.append("%s's prompt still leaves the affected run's command as a placeholder" % label)
+        if not has_line(r"timed-test-run\.sh affected .*make test tests=\"", folded):
+            problems.append("%s's prompt never gives make test TESTS=\"<the suites>\" as the affected run's command" % label)
+    assert problems == []
+
+
 def test_the_prompt_probes_accept_a_matching_prompt_and_object_to_a_non_matching_one(tmp_path):
     runner = tmp_path / "timed-test-run.sh"
     runner.write_text("#!/bin/sh\n")

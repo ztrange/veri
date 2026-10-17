@@ -449,7 +449,7 @@ def test_main_substitutes_every_placeholder_sequentially_globally_and_literally_
         results[key] = (code, lines[at:at + 2], err)
         expected[key] = (0, [b"       " + here + b"/timed-test-run.sh fast '' " + fast.encode(),
                              b"       " + here + b"/timed-test-run.sh affected '<the suites affected-suites.sh "
-                             b"printed>' <the command that runs them>"], b"")
+                             b"printed>' make test TESTS=\"<those paths>\""], b"")
 
     assert results == expected
 
@@ -1929,7 +1929,7 @@ def test_cli_green_for_a_step_not_carrying_replaces_case_renders_byte_identicall
         env={"VERI_REFACTOR_BUDGET": "5"})
 
     rendered = out.rstrip("\n").replace(str(SCRIPTS), "@SCRIPTS@") + "\n"
-    assert (code, err, _cksum(rendered.encode())) == (0, "", "2784004442 8129")
+    assert (code, err, _cksum(rendered.encode())) == (0, "", "1104959690 8132")
 
 
 def test_cli_develop_cover_restores_a_probe_with_cp_orig_before_the_mutation_and_mv_orig_after_the_run_under_mutation(
