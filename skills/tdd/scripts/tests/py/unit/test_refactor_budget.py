@@ -259,14 +259,9 @@ def test_main_answers_each_contract_case_the_bash_suite_ran_through_the_entry_po
     assert problems == []
 
 
-def clear_budgets(monkeypatch):
-    monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
-    monkeypatch.delenv("VERI_ISSUE_REFACTOR_BUDGET", raising=False)
-
-
 def test_run_cli_a_bad_count_exits_2_with_nothing_on_stdout_and_stderr_naming_the_count_then_the_usage_line(
         monkeypatch, run_cli, refactor_budget):
-    clear_budgets(monkeypatch)
+    budgets(monkeypatch, {})
     code, out, err = run_cli(refactor_budget, ["ten"])
     assert (code, out, err) == (
         2, "",
@@ -282,7 +277,7 @@ def test_run_cli_a_budget_variable_or_count_that_is_not_a_non_negative_whole_num
             ("VERI_REFACTOR_BUDGET", "1.5"), ("VERI_REFACTOR_BUDGET", "-1"),
             ("VERI_ISSUE_REFACTOR_BUDGET", "1.5"), ("VERI_ISSUE_REFACTOR_BUDGET", "-1"),
             ("<count>", "1.5"), ("<count>", "-1")):
-        clear_budgets(monkeypatch)
+        budgets(monkeypatch, {})
         env, argv = {}, ["1"]
         want_err = f"refactor-budget: {var} must be a whole number >= 0: {value}\n"
         if var == "VERI_REFACTOR_BUDGET":
@@ -306,7 +301,7 @@ def test_run_cli_valid_counts_0_4_and_5_keep_their_answers_exit_0_0_3_one_line_o
         monkeypatch, run_cli, refactor_budget):
     problems = []
     for count, want in (("0", 0), ("4", 0), ("5", 3)):
-        clear_budgets(monkeypatch)
+        budgets(monkeypatch, {})
         code, out, err = run_cli(refactor_budget, [count])
         if code != want:
             problems.append(f"count {count}: want exit {want}, got {code}")
