@@ -118,6 +118,11 @@ def draft_pr_read():
     return records
 
 
+def draft_pr_commands():
+    draft_pr_read()
+    return commands_of(DRAFT_PR)
+
+
 def test_draft_prs_step_readies_the_pr_against_the_already_pushed_branch_with_no_push_of_its_own():
     pushes = first_record(draft_pr(), re.escape("git push"))
     assert not pushes, f"Draft PR step still pushes the branch itself: {pushes[:120]}"
@@ -567,8 +572,7 @@ def test_draft_prs_step_stops_at_a_ci_timeout_or_ci_red_bail_with_no_done_mark_a
 
 
 def test_draft_prs_step_appends_its_ci_repair_step_with_a_ci_repair_text_and_recognises_a_second_red_by_that_mark_not_by_the_repair_steps_prose():
-    draft_pr_read()
-    commands = commands_of(DRAFT_PR)
+    commands = draft_pr_commands()
     problems = []
     appended = first_record(commands, r"^[^#]*[$]s/add-ledger-step[.]sh ", re.escape("ci failure"))
     if not appended:
@@ -587,8 +591,7 @@ def test_draft_prs_step_appends_its_ci_repair_step_with_a_ci_repair_text_and_rec
 
 
 def test_draft_prs_step_leaves_no_ci_run_on_the_readied_pr_that_nothing_reads_every_push_after_the_ci_read_is_followed_by_a_wait_ci_sh_call():
-    draft_pr_read()
-    commands = commands_of(DRAFT_PR)
+    commands = draft_pr_commands()
     read_at = line_of(commands, WAIT_CI_RUN)
     problems = []
     if read_at is None:
@@ -607,8 +610,7 @@ def test_draft_prs_step_leaves_no_ci_run_on_the_readied_pr_that_nothing_reads_ev
 
 
 def test_draft_prs_step_passes_every_wait_ci_sh_call_the_sha_it_just_pushed_from_git_rev_parse_head_as_the_head_it_waits_for():
-    draft_pr_read()
-    commands = commands_of(DRAFT_PR)
+    commands = draft_pr_commands()
     head = r'"?[$][(]git rev-parse head[)]"?'
     sha, unpinned = set(), []
     for c in commands:
@@ -634,8 +636,7 @@ def test_draft_prs_step_passes_every_wait_ci_sh_call_the_sha_it_just_pushed_from
 
 
 def test_draft_prs_step_bails_on_the_metrics_pushs_ci_wait_with_a_command_in_its_block_ci_timeout_on_exit_2():
-    draft_pr_read()
-    commands = commands_of(DRAFT_PR)
+    commands = draft_pr_commands()
     metrics_at = line_of(commands, METRICS_COMMIT)
     problems = []
     if metrics_at is None:
