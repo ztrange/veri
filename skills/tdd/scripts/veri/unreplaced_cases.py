@@ -74,7 +74,9 @@ def main(argv):
             note = " (no test of that name was found)"
         elif name in ambiguous or unescape(name) in ambiguous:
             note = " (the test name is ambiguous: several tests of that name exist)"
-        print(name + note)
+        print(name)
+        if note:
+            sys.stderr.write(name + note + "\n")
     return 1 if missing else 0
 
 
