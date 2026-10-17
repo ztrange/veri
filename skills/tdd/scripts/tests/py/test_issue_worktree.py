@@ -1,5 +1,6 @@
 """In-process cases for veri/issue_worktree.py, the module issue-worktree.sh is a shim over."""
 import importlib
+import json
 import os
 import pathlib
 import subprocess
@@ -609,3 +610,17 @@ def test_main_answers_each_ls_remote_shape_with_its_stdout_stderr_and_exit_code_
     assert symref == (0, path + "\n", "")
     assert no_symref == (2, "", refusal)
     assert unreachable == (2, "", refusal)
+
+
+def test_claiming_pr_1656_asks_github_for_a_github_com_origin_and_names_the_open_pr_that_closes_the_issue(issue_worktree, monkeypatch):
+    asked = []
+
+    def fake_gh_json(*args):
+        asked.append(args[0])
+        return json.dumps([{"state": "OPEN", "body": "Fixes it.\n\nCloses #62", "url": "https://github.com/o/r/pull/9"},
+                           {"state": "OPEN", "body": "Closes #63", "url": "https://github.com/o/r/pull/10"}])
+
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    monkeypatch.setattr(issue_worktree, "gh_json", fake_gh_json)
+
+    assert (issue_worktree.claiming_pr("62", "https://github.com/o/r.git"), asked) == ("https://github.com/o/r/pull/9", ["prs.json"])
