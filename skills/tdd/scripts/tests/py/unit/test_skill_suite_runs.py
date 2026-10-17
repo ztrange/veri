@@ -4,8 +4,8 @@ import re
 
 import skill_sections
 
-SKILL = pathlib.Path(__file__).resolve().parents[2].parent / "SKILL.md"
-CLAUDE = pathlib.Path(__file__).resolve().parents[5] / "CLAUDE.md"
+SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
+CLAUDE = pathlib.Path(__file__).resolve().parents[6] / "CLAUDE.md"
 
 RED = "#### Red — one failing test (developer leaf), then verify-red (blind)"
 GREEN = "#### Green — minimum implementation (developer leaf), then verify-green (blind)"

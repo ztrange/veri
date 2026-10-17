@@ -2,7 +2,7 @@
 import pathlib
 import re
 
-SKILL = pathlib.Path(__file__).resolve().parents[3] / "SKILL.md"
+SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 
 def lines_of(text):
