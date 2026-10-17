@@ -145,3 +145,32 @@ def test_main_strips_reason_labels_inline_separators_and_one_closing_fence_with_
         "file separator not trimmed": (0, "\x1ckept\x1c\n", ""),
         "long s not upper-cased": (2, "", "parse-verdict: unrecognised verdict word 'PAſS'\n"),
     }
+
+
+def test_a_pass_verdict_after_free_form_reasoning_exits_0_printing_its_reason_line(run_cli, parse_verdict):
+    text = ("I ran the test and it failed as expected.\n"
+            "VERDICT: PASS\n"
+            "REASON: The test fails because slugify is undefined, which is the missing behavior.")
+
+    assert run_cli(parse_verdict, [], stdin=text) == (
+        0, "The test fails because slugify is undefined, which is the missing behavior.\n", "")
+
+
+def test_a_reject_verdict_exits_1_printing_its_reason_line(run_cli, parse_verdict):
+    text = ("VERDICT: REJECT\n"
+            "REASON: The test asserts on an internal helper, not observable behavior.")
+
+    assert run_cli(parse_verdict, [], stdin=text) == (
+        1, "The test asserts on an internal helper, not observable behavior.\n", "")
+
+
+def test_output_with_no_verdict_line_exits_2_with_nothing_on_stdout(run_cli, parse_verdict):
+    code, out, _ = run_cli(parse_verdict, [], stdin="I could not make up my mind about this test.")
+
+    assert (code, out) == (2, "")
+
+
+def test_output_with_no_verdict_line_names_the_missing_line_on_stderr(run_cli, parse_verdict):
+    result = run_cli(parse_verdict, [], stdin="I could not make up my mind about this test.")
+
+    assert result == (2, "", "parse-verdict: no VERDICT: line found\n")
