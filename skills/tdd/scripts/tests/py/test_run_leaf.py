@@ -677,3 +677,116 @@ def test_main_does_not_own_a_tdd_log(tmp_path, monkeypatch, capfdbinary):
     code, _ = _run_over(run_leaf, monkeypatch, capfdbinary)
 
     assert (code, (work / ".tdd").exists()) == (0, False)
+
+
+_SESSION_VARS_621 = ("CLAUDECODE", "CLAUDE_CODE_SESSION_ID", "CLAUDE_CODE_HOST_SESSION_ID",
+                     "CLAUDE_CODE_MESSAGING_SOCKET", "CLAUDE_CODE_MESSAGING_TOKEN", "CLAUDE_PID",
+                     "CLAUDE_CODE_CHILD_SESSION", "CLAUDE_CODE_ENTRYPOINT")
+
+
+def _cli_launch(run_cli, monkeypatch, tmp_path, env=None, unset=(), returncode=0,
+                stream=_RESULT_STREAM):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, tmp = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("do the step\n")
+    monkeypatch.delenv("GIT_CONFIG_GLOBAL", raising=False)
+    for name in (*_SESSION_VARS_621, "CLAUDE_AUTO_BACKGROUND_TASKS",
+                 "CLAUDE_CODE_REMOTE_SESSION_ID"):
+        monkeypatch.delenv(name, raising=False)
+    for name in unset:
+        monkeypatch.delenv(name, raising=False)
+    seen = []
+
+    def launch(argv, *args, **kwargs):
+        seen.append(dict(kwargs.get("env") or os.environ))
+        leaf = _FakeLeaf([], argv, stream=stream, **kwargs)
+        leaf.returncode = returncode
+        return leaf
+
+    monkeypatch.setattr(subprocess, "Popen", launch)
+    code, out, err = run_cli(run_leaf, ["prompt.txt"], env=env, cwd=work)
+    return code, out, err, seen
+
+
+def test_cli_starts_claude_without_the_conductor_sessions_variables(
+        tmp_path, monkeypatch, run_cli):
+    env = {name: "from-the-conductor" for name in _SESSION_VARS_621}
+
+    code, _, _, seen = _cli_launch(run_cli, monkeypatch, tmp_path, env=env)
+
+    assert (code, len(seen), [n for n in _SESSION_VARS_621 if n in seen[0]]) == (0, 1, [])
+
+
+def test_cli_starts_claude_without_claude_auto_background_tasks(tmp_path, monkeypatch, run_cli):
+    code, _, _, seen = _cli_launch(run_cli, monkeypatch, tmp_path,
+                                   env={"CLAUDE_AUTO_BACKGROUND_TASKS": "true"})
+
+    assert (code, len(seen), "CLAUDE_AUTO_BACKGROUND_TASKS" in seen[0]) == (0, 1, False)
+
+
+def test_cli_still_passes_veri_test_cmd_and_git_config_global_through_to_claude(
+        tmp_path, monkeypatch, run_cli):
+    code, _, _, seen = _cli_launch(run_cli, monkeypatch, tmp_path,
+                                   env={"VERI_TEST_CMD": "make unit"})
+
+    assert (code, len(seen), seen[0].get("VERI_TEST_CMD"),
+            bool(seen[0].get("GIT_CONFIG_GLOBAL"))) == (0, 1, "make unit", True)
+
+
+def test_cli_with_no_session_variable_set_exits_with_the_stubs_code_and_prints_the_same_stdout(
+        tmp_path, monkeypatch, run_cli):
+    want_out = _RESULT_STREAM.decode() + "\nVERDICT: PASS\n"
+    answers = []
+    for returncode in (0, 1, 2, 3, 7):
+        scratch = tmp_path / f"c{returncode}"
+        scratch.mkdir()
+        code, out, err, _ = _cli_launch(run_cli, monkeypatch, scratch, returncode=returncode)
+        answers.append((code, out == want_out, err))
+
+    assert answers == [(0, True, ""), (1, True, ""), (2, True, ""), (3, True, ""), (2, True, "")]
+
+
+def test_cli_with_the_session_id_unset_or_empty_strips_nothing_beyond_session_vars(
+        tmp_path, monkeypatch, run_cli):
+    kept = []
+    for how in ("unset", "empty"):
+        scratch = tmp_path / how
+        scratch.mkdir()
+        env = {"VERI_TEST_CMD": "make unit", "VERI_FAKE_CARRIER": "x-unrelated-y"}
+        if how == "empty":
+            env["CLAUDE_CODE_SESSION_ID"] = ""
+        _, _, _, seen = _cli_launch(run_cli, monkeypatch, scratch, env=env)
+        kept.append((seen[0].get("VERI_TEST_CMD"), seen[0].get("VERI_FAKE_CARRIER")))
+
+    assert kept == [("make unit", "x-unrelated-y")] * 2
+
+
+def test_cli_with_the_session_id_set_still_passes_veri_test_cmd_and_run_leafs_git_config_global_through(
+        tmp_path, monkeypatch, run_cli):
+    code, _, _, seen = _cli_launch(
+        run_cli, monkeypatch, tmp_path,
+        env={"CLAUDE_CODE_SESSION_ID": "sess-933-fake", "VERI_TEST_CMD": "make unit",
+             "GIT_CONFIG_GLOBAL": "/from/the/caller"})
+    config = seen[0].get("GIT_CONFIG_GLOBAL")
+
+    assert (code, seen[0].get("VERI_TEST_CMD"), bool(config), config != "/from/the/caller") == (
+        0, "make unit", True, True)
+
+
+def test_cli_strips_a_variable_whose_value_contains_the_session_id_and_the_id_itself(
+        tmp_path, monkeypatch, run_cli):
+    code, _, _, seen = _cli_launch(
+        run_cli, monkeypatch, tmp_path,
+        env={"CLAUDE_CODE_SESSION_ID": "sess-933-fake", "FAKE_CARRIER": "x-sess-933-fake-y"})
+
+    assert (code, [n for n in ("CLAUDE_CODE_SESSION_ID", "FAKE_CARRIER") if n in seen[0]]) == (0, [])
+
+
+def test_cli_starts_claude_without_claude_code_remote_session_id_whose_value_need_not_contain_the_session_id(
+        tmp_path, monkeypatch, run_cli):
+    code, _, _, seen = _cli_launch(
+        run_cli, monkeypatch, tmp_path,
+        env={"CLAUDE_CODE_SESSION_ID": "sess-966-fake",
+             "CLAUDE_CODE_REMOTE_SESSION_ID": "remote-unrelated-value"})
+
+    assert (code, "CLAUDE_CODE_REMOTE_SESSION_ID" in seen[0]) == (0, False)
