@@ -193,16 +193,17 @@ def cases_failing_over(document, tmp_path, monkeypatch):
     planted = tmp_path / "SKILL.md"
     planted.write_text(document)
     module = sys.modules[__name__]
-    monkeypatch.setattr(module, "SKILL", planted)
     failing = []
-    for name, case in sorted(vars(module).items()):
-        if not name.startswith("test_") or name.startswith(GUARD_CASES):
-            continue
-        try:
-            case()
-        except (AssertionError, pytest.fail.Exception):
-            failing.append(name)
-    monkeypatch.undo()
+    # A context, not monkeypatch.undo(): undo() would also revert the conftest autouse guards.
+    with monkeypatch.context() as patch:
+        patch.setattr(module, "SKILL", planted)
+        for name, case in sorted(vars(module).items()):
+            if not name.startswith("test_") or name.startswith(GUARD_CASES):
+                continue
+            try:
+                case()
+            except (AssertionError, pytest.fail.Exception):
+                failing.append(name)
     return failing
 
 
