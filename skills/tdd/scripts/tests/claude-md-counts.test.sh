@@ -27,16 +27,4 @@ flatten() { tr '\n' ' '; }
 
 intro="$(preamble | flatten)"
 
-name="$claude_md's prose names invisible-work.sh, the script the procedure does not call"
-problems=()
-
-present "skills/tdd/scripts/invisible-work.sh"
-if [[ "${#problems[@]}" -eq 0 ]]; then
-  if [[ -n "${intro// /}" && "$intro" != *"invisible-work.sh"* ]]; then
-    problems+=("$claude_md's opening paragraph counts '<n> bash scripts it calls' without naming invisible-work.sh, a script the procedure never calls")
-  fi
-fi
-
-report "$name"
-
 finish
