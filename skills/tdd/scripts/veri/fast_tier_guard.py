@@ -80,7 +80,14 @@ def offences(root, exemptions=None):
             else:
                 continue
             found.append(f"{path}:{node.lineno}: {message}")
-    return [line for line in found if line.split(": ")[0] not in exemptions]
+    root = Path(root)
+
+    def exempt(line):
+        key = line.split(": ")[0]
+        file, _, number = key.rpartition(":")
+        return key in exemptions or f"{Path(file).relative_to(root)}:{number}" in exemptions
+
+    return [line for line in found if not exempt(line)]
 
 
 def main(argv):

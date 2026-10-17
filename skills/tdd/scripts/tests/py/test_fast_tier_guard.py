@@ -201,6 +201,18 @@ def test_an_offence_whose_file_and_line_the_exemption_table_lists_with_a_reason_
         guard.offences(tmp_path, {f"{exempt}:4": ""})
 
 
+def test_1641_an_exemption_keyed_by_a_path_relative_to_the_root_suppresses_its_offence_in_whatever_directory_the_tree_lives(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    roots = [tmp_path / "mac" / "py", tmp_path / "ci" / "elsewhere" / "py"]
+    for root in roots:
+        (root / "unit").mkdir(parents=True)
+        (root / "unit" / "test_waits.py").write_text("import time\n\ndef test_waits():\n    time.sleep(1)\n")
+
+    found = [guard.offences(root, {"unit/test_waits.py:4": "waits on a fake clock"}) for root in roots]
+
+    assert found == [[], []]
+
+
 @pytest.mark.tree_audit("every test_*.py under skills/tdd/scripts/tests/py/unit")
 def test_the_guard_with_the_real_exemption_table_finds_no_offence_in_the_fast_tier_as_committed_and_names_a_planted_one_by_file_and_line(tmp_path):
     guard = importlib.import_module("veri.fast_tier_guard")
