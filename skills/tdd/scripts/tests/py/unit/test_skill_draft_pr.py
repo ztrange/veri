@@ -682,3 +682,233 @@ def test_1431_draft_prs_step_says_a_red_ci_on_the_metrics_cost_report_push_appen
         if reversed_:
             problems.append(f"still says the metrics: push's red is not a repair step: {reversed_[:160]}")
     assert not problems, problems
+
+
+SUITE_REPAIR_MARK = "⟦suite-repair⟧"
+EVERY_RED = r"every (suite still red|red suite|failing suite|still-red suite)"
+
+
+def test_1431_draft_prs_step_metrics_push_block_bails_ci_red_on_a_red_ci_only_when_the_ledger_already_holds_a_ci_repair_step_then_itself_appends_the_ci_repair_step_and_records_its_step_added_event():
+    commands = draft_pr_commands()
+    metrics_at = line_of(commands, METRICS_COMMIT)
+    problems = []
+    if metrics_at is None:
+        problems.append("Draft PR step makes no metrics: commit, so what its push's command block does on a red CI could not be checked")
+    else:
+        after_wait, waited = [], False
+        for c in commands[metrics_at:]:
+            if c.startswith("```"):
+                if waited:
+                    break
+                continue
+            if waited:
+                after_wait.append(c)
+            elif re.match(WAIT_CI_RUN, c):
+                waited = True
+        guard_at = next(
+            (
+                n for n, c in enumerate(after_wait, 1)
+                if re.search(r"[$]s/event[.]sh bail cause=ci-red", c)
+                and re.search(r"! (grep -f .⟦ci-repair⟧.|[$]s/ledger-steps[.]sh has-mark ci-repair) [^|]*[|][|] [^|]*[$]s/event[.]sh bail cause=ci-red", c)
+            ),
+            None,
+        )
+        if guard_at is None:
+            problems.append("no command line after the metrics: push's wait-ci.sh bails ci-red behind a ! grep -F '⟦ci-repair⟧' or ! $S/ledger-steps.sh has-mark ci-repair guard")
+        else:
+            later = after_wait[guard_at:]
+            if not any(re.search(r"[$]s/event[.]sh step-added", c) for c in later):
+                problems.append("no command line after the metrics: push's ci-red guard records a step-added event")
+            if not any(re.search(r"[$]s/add-ledger-step[.]sh", c) and CI_REPAIR_MARK in c for c in later):
+                problems.append("no command line after the metrics: push's ci-red guard runs add-ledger-step.sh with a ⟦ci-repair⟧ step")
+            added, committed = False, False
+            for c in later:
+                if re.search(r"[$]s/add-ledger-step[.]sh", c) and CI_REPAIR_MARK in c:
+                    added = True
+                    continue
+                if added and re.search(r"git add [.]tdd/issue-<n>[.]md", c) and re.search("git commit ", c):
+                    committed = True
+                    break
+            if not committed:
+                problems.append("no command line after the metrics: push's add-ledger-step.sh commits .tdd/issue-<n>.md")
+    assert not problems, problems
+
+
+def test_green_pass_branch_counts_the_pr_bodys_done_of_total_from_ledger_steps_shs_records():
+    record = first_record(_records(_lines(GREEN, True)), r"^ *- \*\*pass")
+    problems = []
+    if not record:
+        problems.append(f"no PASS branch under {GREEN!r} to read")
+    else:
+        if "ledger-steps.sh" not in record:
+            problems.append(f"Green PASS branch never runs ledger-steps.sh: {record[:120]}")
+        if "grep -c '^- \\[" in record:
+            problems.append("Green PASS branch still counts steps with its own box pattern")
+    assert not problems, problems
+
+
+def test_skill_md_reaches_the_default_branch_the_issue_and_the_pr_through_the_helper_or_gh_api_never_gh_repo_issue_pr():
+    text = SKILL.read_text()
+    problems = []
+    for n, line in enumerate(text.splitlines(), 1):
+        if re.search(r"\bgh (repo view|issue (view|comment)|pr (create|view|edit|ready|comment))\b", line):
+            problems.append(f"SKILL.md:{n}:{line}")
+    for route in ("gh_pr_ready", "lib/github.sh", "gh api ", "default_branch"):
+        if route not in text:
+            problems.append(f"SKILL.md never names {route}")
+    assert not problems, problems
+
+
+def test_draft_prs_step_calls_wait_ci_sh_with_no_fixed_total_and_states_the_bounds_rule_twice_the_mean_of_the_last_5_ci_runs_capped_at_10_minutes_540_s_fallback():
+    commands = draft_pr_commands()
+    records = draft_pr_read()
+    problems = []
+    if line_of(commands, WAIT_CI_RUN) is None:
+        problems.append("Draft PR step runs no $S/wait-ci.sh, so how its CI wait is bounded could not be checked")
+    for c in commands:
+        if re.match(WAIT_CI_RUN, c):
+            call = re.sub(r"#.*", "", c, count=1)
+            call = re.sub(r";.*", "", call, count=1)
+            words = call.split()
+            if len(words) >= 4 and re.fullmatch(r"[0-9]+", words[3]):
+                problems.append(f"calls wait-ci.sh with a fixed total-seconds: {c[:120]}")
+    rule = first_record(
+        unmarked(records),
+        re.escape("wait-ci.sh"),
+        r"(twice|2 ?[x×]) the mean",
+        r"(last|most recent) (5|five)",
+        r"(10 minutes|600 s)",
+        re.escape("540"),
+    )
+    if not rule:
+        problems.append("no instruction states wait-ci.sh's bound as twice the mean of the last 5 completed CI runs, capped at 10 minutes, falling back to 540 s")
+    assert not problems, problems
+
+
+def test_draft_prs_step_appends_a_suite_repair_repair_step_naming_the_failing_suite_and_its_fail_line_on_a_red_full_run_and_commits_the_ledger():
+    commands = draft_pr_commands()
+    appended_at = next(
+        (
+            n for n, c in enumerate(commands, 1)
+            if re.match(r"[^#]*[$]s/add-ledger-step[.]sh [.]tdd/issue-<n>[.]md ", c) and SUITE_REPAIR_MARK in c
+        ),
+        None,
+    )
+    problems = []
+    if appended_at is None:
+        problems.append(f"no command line appends a full-suite repair step carrying {SUITE_REPAIR_MARK} through add-ledger-step.sh")
+    else:
+        appended = commands[appended_at - 1]
+        if "<suite>" not in appended or "fail -" not in appended:
+            problems.append(f"appends its {SUITE_REPAIR_MARK} step without naming the failing suite and its FAIL - line: {appended[:160]}")
+        added, found = False, False
+        for c in commands[appended_at:]:
+            if re.match(r"git add [.]tdd/issue-<n>[.]md", c):
+                added = True
+            if re.match("git commit ", c):
+                found = added
+                break
+        if not found:
+            problems.append(f"no command line adds and commits the ledger after appending the {SUITE_REPAIR_MARK} step")
+    assert not problems, problems
+
+
+def test_draft_prs_step_bails_on_a_second_red_full_run_of_this_run_with_a_suite_red_command_line_that_reads_nothing_from_the_ledger_naming_every_suite_still_red():
+    commands = draft_pr_commands()
+    records = draft_pr_read()
+    keyed = next(
+        (c for c in commands if re.match(r"[^#]*[$]s/event[.]sh bail ", c) and "cause=suite-red" in c and "suites=" in c),
+        "",
+    )
+    problems = []
+    if not keyed:
+        problems.append("no command line bails with cause=suite-red and the suites still red")
+    elif ".tdd/issue-<n>.md" in keyed:
+        problems.append(f"suite-red bail still names .tdd/issue-<n>.md: {keyed[:160]}")
+    second = first_record(records, _word("bail"), r"second red|red again", re.escape("repair step"))
+    if not re.search(EVERY_RED, second):
+        problems.append(f"second-red bail no longer names every suite still red: {second[:120]}")
+    assert not problems, problems
+
+
+def test_1607_draft_prs_step_bails_suite_red_naming_every_suite_still_red_when_add_ledger_step_sh_exits_1_on_the_suite_repair_insertion():
+    refusal = first_record(
+        unmarked(draft_pr_read()),
+        re.escape("add-ledger-step.sh"),
+        r"exit(s|ing)? 1",
+        re.escape("suite-red"),
+        EVERY_RED,
+    )
+    assert refusal, "no instruction says that add-ledger-step.sh exiting 1 on the ⟦suite-repair⟧ insertion bails with cause suite-red, naming every suite still red"
+
+
+def test_1607_draft_prs_step_states_the_cap_is_one_suite_repair_step_per_run_that_add_ledger_step_sh_and_not_the_conductors_judgement_decides_it_and_no_longer_greps_the_whole_ledger_for_the_mark():
+    plain = unmarked(draft_pr_read())
+    problems = []
+    rule = first_record(
+        plain,
+        re.escape("add-ledger-step.sh"),
+        r"one [^.]*suite-repair[^.]* per run|per run[^.]*suite-repair",
+        re.escape("resume"),
+        r"not the conductor|conductor.s judgement",
+    )
+    if not rule:
+        problems.append("no instruction says the cap is one ⟦suite-repair⟧ step per run, a resume starting a new run, and that add-ledger-step.sh rather than the conductor's judgement decides it")
+    if any(re.search(r"^[^#]*grep .*suite-repair.*[.]tdd/issue-<n>[.]md", c) for c in draft_pr_commands()):
+        problems.append("Draft PR step still greps .tdd/issue-<n>.md for ⟦suite-repair⟧")
+    assert not problems, problems
+
+
+def test_draft_prs_step_keys_its_ci_red_bail_on_ci_repair_only_and_states_a_suite_repair_step_leaves_the_run_its_one_ci_repair_attempt():
+    commands = draft_pr_commands()
+    records = draft_pr_read()
+    keyed = first_record(commands, r"^[^#]*[$]s/event[.]sh bail cause=ci-red", re.escape(".tdd/issue-<n>.md"))
+    problems = []
+    if not keyed:
+        problems.append("no command line bails with cause ci-red keyed on .tdd/issue-<n>.md")
+    else:
+        if CI_REPAIR_MARK not in keyed and "ledger-steps.sh has-mark ci-repair" not in keyed:
+            problems.append(f"keys its ci-red bail without the {CI_REPAIR_MARK} mark or ledger-steps.sh has-mark ci-repair: {keyed[:160]}")
+        if SUITE_REPAIR_MARK in keyed or "has-mark suite-repair" in keyed:
+            problems.append(f"keys its ci-red bail on {SUITE_REPAIR_MARK} too: {keyed[:160]}")
+    stated = first_record(records, re.escape(SUITE_REPAIR_MARK), re.escape(CI_REPAIR_MARK), r"one ci repair attempt")
+    if not stated:
+        problems.append("no instruction states that a ledger holding a ⟦suite-repair⟧ step and no ⟦ci-repair⟧ step still gets its one CI repair attempt")
+    assert not problems, problems
+
+
+def test_full_run_paragraph_says_the_repair_steps_text_lists_every_red_suite_with_its_first_fail_line_the_prompts_take_it_through_their_templates_and_the_conductor_never_edits_a_built_prompt():
+    paragraph = first_record(draft_pr_read(), re.escape("repair step"), _word("red"), re.escape("ledger"))
+    problems = []
+    if not paragraph:
+        problems.append("Draft PR step has no full-run paragraph adding a repair step to read")
+    else:
+        if not re.search(r"every suite[^.]*red[^.]*first .?fail -", paragraph):
+            problems.append(f"never says the repair step's text lists every suite the full run left red, each with its first FAIL - line: {paragraph[:160]}")
+        if not re.search(r"prompts[^.]*step.s text[^.]*templates?", paragraph):
+            problems.append("never says the prompts take that list from the step text through their templates")
+        if "never edits a built prompt" not in paragraph:
+            problems.append("never says the conductor never edits a built prompt")
+    assert not problems, problems
+
+
+def test_draft_prs_step_readies_the_pr_with_gh_pr_ready_pr_number_git_rev_parse_head_so_the_ready_for_review_ci_run_starts_on_the_head_just_pushed():
+    readies = [c for c in draft_pr_commands() if re.search(r"(^|&& |; )gh_pr_ready( |$)", c)]
+    problems = []
+    if not readies:
+        problems.append("Draft PR step never runs gh_pr_ready, so which head it readies the PR on could not be checked")
+    for line in readies:
+        if not re.search(r'gh_pr_ready <pr-number> "?[$][(]git rev-parse head[)]"?', line):
+            problems.append(f"readies the PR without the head sha it just pushed: {line[:120]}")
+    assert not problems, problems
+
+
+def test_draft_prs_step_says_the_branchs_own_full_run_and_any_suite_repair_step_it_adds_finishes_green_before_rebase_onto_default_sh_runs():
+    order = first_record(
+        unmarked(draft_pr_read()),
+        r"own full(-suite)? run",
+        re.escape(SUITE_REPAIR_MARK),
+        _word("green"),
+        r"before[^.]*rebase-onto-default[.]sh",
+    )
+    assert order, "no instruction says the branch's own full run, and any ⟦suite-repair⟧ step it adds, finishes green before rebase-onto-default.sh runs"
