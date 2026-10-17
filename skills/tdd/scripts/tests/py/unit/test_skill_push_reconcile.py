@@ -1,0 +1,77 @@
+"""Cases for how skills/tdd/SKILL.md answers a rejected push, read as text.
+
+Contract under test:
+  At both `push-branch.sh` call sites — Green's tick commit and verify-refactor's clear
+  commit — exit 1 sends the run to the reconcile leaf and exit 2 bails; the reconcile
+  instructions launch `develop-reconcile` through `supervise.sh`, re-run `push-branch.sh`,
+  check the ledger's ticks and `⟂ refactor pending` marks, and bail with `reconcile-failed`
+  otherwise; "exits 0 either way" is gone.
+"""
+import pathlib
+import re
+
+SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
+
+_UPPER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
+
+
+def _plain(text):
+    return text.replace("*", "").replace("`", "").translate(_UPPER)
+
+
+def _records(lines):
+    out, rec = [], ""
+    for line in lines:
+        if re.match(r"[0-9]+\. ", line) or re.match(r"[ \t]*- ", line):
+            if rec:
+                out.append(rec)
+            rec = line
+        elif not line.strip():
+            if rec:
+                out.append(rec)
+            rec = ""
+        elif not rec:
+            rec = line
+        else:
+            rec = rec + " " + line
+    if rec:
+        out.append(rec)
+    return [_plain(re.sub(r"\s+", " ", r)) for r in out]
+
+
+def _reconcile_section(lines):
+    inside, kept = False, []
+    for line in lines:
+        if line.startswith("#"):
+            inside = "reconcil" in _plain(line)
+        elif inside:
+            kept.append(line)
+    return re.sub(r"\s+", " ", _plain("\n".join(kept)))
+
+
+def test_both_push_branch_call_sites_branch_exit_1_to_a_supervised_develop_reconcile_leaf_and_exit_2_to_a_bail_the_reconcile_re_pushes_and_checks_the_ledger_or_bails_reconcile_failed_and_exits_0_either_way_is_gone():
+    lines = SKILL.read_text().splitlines()
+    records = _records(lines)
+    assert records, "SKILL.md has no instructions to read — nothing could be checked"
+    problems = []
+    for site in (r"tick-ledger\.sh --refactor-pending", r"clear-refactor-pending\.sh"):
+        rec = next((r for r in records if re.search(r"push-branch\.sh", r) and re.search(site, r)), None)
+        if rec is None:
+            problems.append(f"no instruction runs push-branch.sh beside {site} — the call site could not be read")
+            continue
+        if not (re.search("exit 1", rec) and re.search("reconcile", rec)):
+            problems.append(f"the push-branch.sh call beside {site} does not send exit 1 to the reconcile leaf: {rec}")
+        if not (re.search("exit 2", rec) and re.search("bail", rec)):
+            problems.append(f"the push-branch.sh call beside {site} does not bail on exit 2: {rec}")
+
+    if not any(re.search(r"supervise\.sh develop-reconcile", r) for r in records):
+        problems.append("no instruction launches develop-reconcile through supervise.sh")
+
+    reconcile = " ".join(r for r in records if "reconcil" in r) + " " + _reconcile_section(lines)
+    for want in (r"push-branch\.sh", "ledger", "⟂ refactor pending", "reconcile-failed", "bail"):
+        if not re.search(want, reconcile):
+            problems.append(f"the reconcile instructions never mention {want}")
+
+    if any("exits 0 either way" in r for r in records):
+        problems.append("SKILL.md still says push-branch.sh exits 0 either way")
+    assert not problems, "\n".join(problems)
