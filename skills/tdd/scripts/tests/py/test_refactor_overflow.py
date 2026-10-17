@@ -726,3 +726,29 @@ def test_cli_files_no_issue_and_posts_no_comment_when_the_candidate_is_listed_on
 
     assert result == (0, existing + "\n", "")
     assert [c for c in calls if "issues/42/comments" in c and "body=" in c] == []
+
+
+def test_cli_comments_only_the_candidate_no_comment_lists_when_a_comment_on_the_open_refactor_owed_issue_lists_the_other_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = owed_504(tmp_path)
+    existing = "https://github.com/o/r/issues/42"
+    open_issues = json.dumps([
+        {"number": 42, "title": "Refactor owed by #504", "html_url": existing, "body": ""}])
+    comments = json.dumps([
+        {"body": f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}"}])
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            return 0, open_issues, ""
+        if is_comments_read(line):
+            return 0, comments, ""
+        return 0, "https://github.com/o/r/issues/43\n", ""
+
+    calls = fake_processes(gh)
+
+    result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    commented = [c for c in calls if "issues/42/comments" in c and "body=" in c]
+    assert result == (0, existing + "\n", "")
+    assert [c for c in calls if "title=" in c] == []
+    assert len(commented) == 1 and SPLIT in commented[0] and FOLD not in commented[0]
