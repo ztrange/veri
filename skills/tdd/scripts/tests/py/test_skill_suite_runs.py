@@ -12,6 +12,7 @@ GREEN = "#### Green — minimum implementation (developer leaf), then verify-gre
 REFACTOR_LOOP = "#### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)"
 DIFF_CHECKED = "#### A `⟦diff-checked⟧` step — develop-diff, then verify-diff (blind)"
 REVISING = "## Revising on a REJECT"
+PHASES = "#### A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier"
 
 
 def plain(text):
@@ -176,3 +177,117 @@ def test_claude_md_s_testing_idiom_paragraph_states_what_runs_per_step_and_per_p
     if "three leaves per step" in text:
         problems.append("the Testing idiom paragraph still says three leaves per step run the full suite")
     assert not problems, "\n".join(problems)
+
+
+def test_claude_md_s_testing_idiom_paragraph_says_a_revise_leaf_runs_the_tiers_of_the_phase_it_redoes():
+    text = idiom()
+    assert text is not None, "CLAUDE.md has no paragraph opening 'a suite whose subject is the docs pipeline' to read"
+    problems = []
+    if not re.search(r"revise[- ](leaf|leaves)|revise-(red|green|refactor)", text):
+        problems.append("CLAUDE.md's Testing idiom paragraph never names the revise leaves")
+    if not re.search(r"(tier|suites)[^.]*phase (it|they|the leaf) (redoes|redo|is redoing|are redoing)", text):
+        problems.append("CLAUDE.md's Testing idiom paragraph never says a revise leaf runs the tiers of the phase it redoes")
+    assert not problems, "\n".join(problems)
+
+
+def test_skill_md_names_no_full_suite_run_inside_a_step_s_cycle():
+    lines = SKILL.read_text().splitlines(keepends=True)
+    start = next((i for i, line in enumerate(lines) if line.startswith("#### Red")), None)
+    end = next((i for i, line in enumerate(lines) if line.startswith("### 4. Draft PR")), len(lines))
+    assert start is not None, "SKILL.md has no text from '#### Red' to '### 4. Draft PR' to read"
+    text = re.sub(r"[\n ]+", " ", plain("".join(lines[start:end])))
+    for pattern in (r"(^| )(not|neither|nor|never|no)( [a-z-]+){0,5} full suite", r"full[- ]suite run (in|at) (4\. )?draft pr"):
+        while (m := re.search(pattern, text)):
+            text = text.replace(m.group(0), "", 1)
+    m = re.search(r"[^.]{0,60}(full suite|full-suite run)[^.]{0,40}", text)
+    assert not m, f"SKILL.md names a full-suite run inside a step's cycle: {m.group(0) if m else ''}"
+
+
+def test_1300_skill_md_runs_suite_reported_sh_before_the_verifier_after_develop_diff_revise_diff_k_and_each_phase_leaf_and_bails_report_missing_on_its_exit_2():
+    problems = []
+    for label, heading, call in (
+        ("diff-checked step", DIFF_CHECKED, "suite-reported.sh develop-diff"),
+        ("phases step", PHASES, "suite-reported.sh develop-<phase>"),
+    ):
+        body = doc_text(SKILL, heading)
+        if "suite-reported.sh" not in body:
+            problems.append(f"{label}: never runs suite-reported.sh")
+            continue
+        if call not in body:
+            problems.append(f"{label}: never runs {call}")
+        if "report-missing" not in body:
+            problems.append(f"{label}: never names the report-missing bail")
+        if len(before(body, "suite-reported.sh")) > len(before(body, "verify-")):
+            problems.append(f"{label}: the check comes after the verifier is launched")
+    assert not problems, "\n".join(problems)
+
+
+def test_1300_skill_md_runs_suite_reported_sh_only_after_a_leaf_whose_prompt_asks_for_a_suite_line_never_after_the_refactor_leaf_or_a_revise_of_red_green_or_refactor():
+    problems = []
+    for label, heading in (("Refactor loop", REFACTOR_LOOP), ("Revising on a REJECT", REVISING)):
+        if "suite-reported.sh" in doc_text(SKILL, heading):
+            problems.append(f"{label}: runs suite-reported.sh after a leaf whose prompt asks for no SUITE: line")
+    if "suite-reported.sh revise-diff-<k>" not in doc_text(SKILL, DIFF_CHECKED):
+        problems.append("diff-checked step: never runs suite-reported.sh revise-diff-<k>, the leaf the conductor launches")
+    assert not problems, "\n".join(problems)
+
+
+def test_1568_skill_md_runs_suite_reported_sh_develop_green_between_the_leaf_s_wait_and_verify_green_s_launch_and_keeps_a_looks_wrong_green_s_reject_rather_than_a_report_missing_bail():
+    green = doc_text(SKILL, GREEN)
+    assert "suite-reported.sh develop-green" in green, "Green section: never runs suite-reported.sh develop-green"
+    problems = []
+    ahead = before(green, "suite-reported.sh develop-green")
+    if "wait-leaf.sh develop-green" not in ahead:
+        problems.append("Green section: the check does not come after develop-green's wait")
+    if "supervise.sh verdict-green" in ahead:
+        problems.append("Green section: the check comes after verify-green is launched")
+    behind = after(green, "suite-reported.sh develop-green")[:1200]
+    if "report-missing" not in behind:
+        problems.append("Green section: never names the report-missing bail for a missing SUITE: line")
+    if not re.search(r"looks +wrong", behind):
+        problems.append("Green section: never says a green that stops because the test looks wrong is exempt")
+    if "reject" not in behind:
+        problems.append("Green section: never says that green keeps its verify-green REJECT outcome")
+    assert not problems, "\n".join(problems)
+
+
+def whole_skill():
+    return plain(SKILL.read_text()).replace("\n", " ")
+
+
+def test_1568_skill_md_runs_suite_reported_sh_develop_structural_between_the_transform_leaf_s_wait_and_its_transform_verifier_and_keeps_an_out_of_bounds_skip_s_reject_rather_than_a_report_missing_bail():
+    whole = whole_skill()
+    assert "build-develop-prompt.sh structural" in whole, "structural pass: never launches develop-structural"
+    structural = after(whole, "build-develop-prompt.sh structural")[:6000]
+    assert "suite-reported.sh develop-structural" in structural, "structural pass: never runs suite-reported.sh develop-structural"
+    problems = []
+    if "supervise.sh verdict-transform" in before(structural, "suite-reported.sh develop-structural"):
+        problems.append("structural pass: the check comes after the transform verifier is launched")
+    behind = after(structural, "suite-reported.sh develop-structural")[:1200]
+    if "report-missing" not in behind:
+        problems.append("structural pass: never names the report-missing bail for a missing SUITE: line")
+    if not re.search(r"out-of-bounds|leave the tree", behind):
+        problems.append("structural pass: never says an out-of-bounds skip is exempt")
+    if "transform reject and the next candidate" not in behind:
+        problems.append("structural pass: never says that skip keeps its transform REJECT outcome")
+    assert not problems, "\n".join(problems)
+
+
+def test_1568_skill_md_runs_suite_reported_sh_develop_transform_after_the_refactor_kind_transform_leaf_and_before_its_blind_transform_verifier():
+    whole = whole_skill()
+    assert "refactor-kind step therefore runs" in whole, "Cover → Transform → Verify: the refactor-kind step's passage is missing"
+    passage = after(whole, "refactor-kind step therefore runs")[:2500]
+    assert "suite-reported.sh develop-transform" in passage, "Cover → Transform → Verify: never runs suite-reported.sh develop-transform"
+    ahead = before(passage, "suite-reported.sh develop-transform")
+    problems = []
+    if not re.search(r"transform +leaf +applies", ahead):
+        problems.append("Cover → Transform → Verify: the check does not come after the transform leaf")
+    if re.search(r"blind +transform +verifier", ahead):
+        problems.append("Cover → Transform → Verify: the check comes after the transform verifier")
+    assert not problems, "\n".join(problems)
+
+
+def test_991_doc_text_given_the_from_regex_5_starts_at_the_line_5_y_not_at_5x_y(tmp_path):
+    fixture = tmp_path / "doc.md"
+    fixture.write_text("## Section\n5x y\n5. y\n")
+    assert doc_text(fixture, "## Section", r"^5\. ") == "5. y "
