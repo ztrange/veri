@@ -1792,3 +1792,143 @@ def test_main_declares_a_wrong_test_report_format_in_a_revise_prompt_only_for_gr
         seen[revised] = (code, len(formats), b"WRONG_TEST" in out)
 
     assert seen == {"red": (0, 0, False), "green": (0, 1, True), "refactor": (0, 0, False)}
+
+
+def _spec(tmp_path, extra=""):
+    spec = tmp_path / "spec.md"
+    spec.write_text('zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux" — see {ref}\\n done.\n' + extra)
+    return str(spec)
+
+
+def _cksum(data):
+    table = []
+    for byte in range(256):
+        crc = byte << 24
+        for _ in range(8):
+            crc = ((crc << 1) ^ 0x04C11DB7 if crc & 0x80000000 else crc << 1) & 0xFFFFFFFF
+        table.append(crc)
+    crc = 0
+    for byte in data + len(data).to_bytes((len(data).bit_length() + 7) // 8, "little"):
+        crc = ((crc << 8) & 0xFFFFFFFF) ^ table[(crc >> 24) ^ byte]
+    return "%d %d" % (~crc & 0xFFFFFFFF, len(data))
+
+
+def _refactor_loop():
+    lines, inside, kept = (SCRIPTS.parent / "SKILL.md").read_text().splitlines(), False, []
+    for line in lines:
+        if line.startswith("#### Refactor loop"):
+            inside = True
+            continue
+        if inside and re.match(r"#{1,6} ", line):
+            break
+        if inside:
+            kept.append(line)
+    return kept
+
+
+@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
+def test_cli_red_carries_spec_step_and_test_command_verbatim_and_the_against_unmodified_report_line(
+        tmp_path, run_cli, build_develop_prompt):
+    step = "QWIXTLE: a seed ending in a newline gains the block and reports added"
+    test_cmd = 'make test ZORBLAT=1 -- --only "frob & nitz/quux"'
+
+    code, out, err = run_cli(build_develop_prompt, ["red", _spec(tmp_path), step, test_cmd])
+
+    assert (code, err) == (0, "")
+    assert [needle in out for needle in ('zorblat("Frob & Nitz/Quux")', step, test_cmd, "AGAINST_UNMODIFIED")] == [True] * 4
+
+
+def test_cli_unknown_phase_with_no_further_arguments_exits_2_names_the_phase_on_stderr_and_prints_no_prompt(
+        run_cli, build_develop_prompt):
+    code, out, err = run_cli(build_develop_prompt, ["bogus"])
+
+    assert (code, out, err) == (
+        2, "", "build-develop-prompt.sh: unknown phase 'bogus' (want " + PHASES.decode() + ")\n" + USAGE.decode())
+
+
+def test_cli_skill_md_refactor_narration_tells_nothing_left_to_tidy_from_stopped_by_budget_and_lists_the_candidates(
+        ):
+    narration = " ".join(_refactor_loop())
+    wanted = {
+        "the nothing-left-to-tidy stop": r"nothing left to tidy",
+        "the budget stop": r"budget",
+        "the leaf's CANDIDATES: line": r"CANDIDATES:",
+        "the comment lists those candidates": r"(list|lists|listing|enumerate)[^.]{0,80}candidate|candidate[^.]{0,80}(list|lists|listing|enumerate)",
+        "how many candidates the budget left": r"(how many|number of|count of|(^|[^a-z0-9])n)\s+(candidates?|left)",
+    }
+
+    assert [name for name, pattern in wanted.items()
+            if not re.search(pattern, narration, re.I if name != "the leaf's CANDIDATES: line" else 0)] == []
+
+
+def test_cli_skill_md_refactor_narration_bullet_names_the_leafs_candidates_line_itself():
+    bullet, narrating = [], False
+    for line in _refactor_loop():
+        narrating = narrating or line.startswith("3. ")
+        if narrating:
+            bullet.append(line)
+
+    assert (bool(bullet), "CANDIDATES:" in " ".join(bullet)) == (True, True)
+
+
+@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
+def test_cli_red_tells_a_bugs_leaf_to_write_from_expected_drive_with_steps_and_fail_as_what_happened_describes_and_a_leaf_with_no_bug_section_none_of_it(
+        tmp_path, run_cli, build_develop_prompt):
+    bug = ('\n## Bug\n\n### What happened\n\nzorblat returned "FROB_NITZ" on the quuxed seed.\n\n### Expected\n\n'
+           'zorblat returns "frob-nitz-quux".\n\n### Steps to reproduce\n\nRun zorblat --seed "Frob & Nitz/Quux".\n\n'
+           '### Environment\n\nveri on bash 5.2, macOS 15.\n')
+    rules = {
+        "expected": r"(write|derive|encode)[^.]{0,40}expected|expected[^.]{0,40}(write|derive|encode)",
+        "steps": r"(drive|driven)[^.]{0,40}steps|steps[^.]{0,40}(drive|driven)",
+        "what happened": r"(fail|fails|failure)[^.]{0,60}what happened|what happened[^.]{0,60}(fail|fails|failure)",
+    }
+    step, test_cmd = "QWIXTLE: a seed ending in a newline gains the block", "make test"
+
+    def told(extra):
+        code, out, err = run_cli(build_develop_prompt, ["red", _spec(tmp_path, extra), step, test_cmd])
+        flat = out.replace("\n", " ")
+        return code, err, out, {name: re.search(pattern, flat, re.I) is not None for name, pattern in rules.items()}
+
+    bug_code, bug_err, bug_out, bug_told = told(bug)
+    plain_code, plain_err, _, plain_told = told("")
+
+    assert (bug_code, plain_code, bug_err, plain_err) == (0, 0, "", "")
+    assert 'zorblat returned "FROB_NITZ" on the quuxed seed.' in bug_out
+    assert (bug_told, plain_told) == ({name: True for name in rules}, {name: False for name in rules})
+
+
+def test_cli_over_budget_refuses_a_spent_or_budget_that_is_not_a_non_negative_decimal_number_with_exit_2_a_diagnostic_and_no_prompt_before_any_template_is_read(
+        tmp_path, run_cli, build_develop_prompt):
+    module = tmp_path / "scripts" / "veri" / "build_develop_prompt.py"
+    module.parent.mkdir(parents=True)
+    module.write_bytes((SCRIPTS / "veri" / "build_develop_prompt.py").read_bytes())
+    loader = importlib.util.spec_from_file_location("build_develop_prompt_cli_without_prompts", module)
+    no_prompts = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(no_prompts)
+    spec = _spec(tmp_path)
+    step, test_cmd = "QWIXTLE: a seed ending in a newline gains the block", "make test"
+    results = {}
+    for bad in ("-1", "3,", "qwixnum", "1e3", ".5", "3.47 because"):
+        for module_, label, argv in (
+                (build_develop_prompt, "spent", ["over-budget", spec, step, test_cmd, bad, "2.50"]),
+                (build_develop_prompt, "budget", ["over-budget", spec, step, test_cmd, "3.47", bad]),
+                (no_prompts, "spent without a template", ["over-budget", spec, step, test_cmd, bad, "2.50"])):
+            code, out, err = run_cli(module_, argv)
+            results[(bad, label)] = (code, out, bad in err and "cannot read" not in err)
+
+    assert results == {key: (2, "", True) for key in results} and len(results) == 18
+
+
+@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
+def test_cli_green_for_a_step_not_carrying_replaces_case_renders_byte_identically_to_before_671(
+        tmp_path, run_cli, build_develop_prompt):
+    step = 'tests/zorblat.test.sh: "zorblat frobs a nitz" replaces-case moves to tests/py ⟦added⟧ ⟦criterion 2⟧'
+
+    code, out, err = run_cli(
+        build_develop_prompt,
+        ["green", _spec(tmp_path), step, 'make test ZORBLAT=1 -- --only "frob & nitz/quux"',
+         "tests/zorblat/test_frob & nitz.sh", "qwixtle seeds a newline-terminated block", "make unit"],
+        env={"VERI_REFACTOR_BUDGET": "5"})
+
+    rendered = out.rstrip("\n").replace(str(SCRIPTS), "@SCRIPTS@") + "\n"
+    assert (code, err, _cksum(rendered.encode())) == (0, "", "2784004442 8129")
