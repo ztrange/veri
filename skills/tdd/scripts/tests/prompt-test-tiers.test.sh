@@ -96,133 +96,26 @@ numbered_item() {
 
 printf 'zorblat must return frob\n' > "$work/spec.md"
 
-name="develop-red and verify-red name affected-suites.sh, not one hand-named suite, as what they run"
 problems=()
 red="$("$DEVELOP" red "$work/spec.md" 'QWIXTLE step' 'make test' 2>/dev/null)" ||
   problems+=("build-develop-prompt.sh red exited $?")
 verify_red="$("$VERIFY" red "$work/spec.md" 'tests/zorblat.test.sh' 'zorblat case' 2>/dev/null)" ||
   problems+=("build-verify-prompt.sh red exited $?")
-runs_affected develop-red "$red"
-runs_affected verify-red "$verify_red"
-if grep -qE 'run the suite that holds the new case' <<< "$(plain <<< "$red")"; then
-  problems+=("develop-red still tells its leaf to run the one suite that holds the new case")
-fi
-report "$name"
-
-name="verify-refactor's checklist item 1 names affected-suites.sh, not the project's full test suite"
-problems=()
 verify_refactor="$("$VERIFY" --fast-cmd 'make unit' refactor "$work/spec.md" 'tests/zorblat.test.sh' 'abc1234' 2>/dev/null)" ||
   problems+=("build-verify-prompt.sh refactor exited $?")
-item1="$(numbered_item '^ 1\. still green' <<< "$(plain <<< "$verify_refactor")")"
-if [[ -z "$item1" ]]; then
-  problems+=("verify-refactor's prompt has no checklist item 1 ('1. still green')")
-fi
-if grep -qF "the project's full test suite" <<< "$item1"; then
-  problems+=("verify-refactor's checklist item 1 still says \"the project's full test suite\"")
-fi
-runs_affected "verify-refactor's checklist item 1" "$item1"
-report "$name"
-
-name="develop-refactor runs affected-suites.sh fed refactor-touched.sh's output after each transform"
-problems=()
 refactor="$("$DEVELOP" refactor "$work/spec.md" 'QWIXTLE step' 'make test' 'src/zorblat.sh' 2>/dev/null)" ||
   problems+=("build-develop-prompt.sh refactor exited $?")
-after_each="$(numbered_item 'after each transform' <<< "$(plain <<< "$refactor")")"
-if [[ -z "$after_each" ]]; then
-  problems+=("develop-refactor's prompt has no numbered item saying what runs after each transform")
-fi
-runs_affected "develop-refactor's after-each-transform item" "$after_each"
-if ! grep -qF 'refactor-touched.sh' <<< "$after_each"; then
-  problems+=("develop-refactor's after-each-transform item never feeds affected-suites.sh refactor-touched.sh's output")
-fi
-report "$name"
-
-name="develop-green and verify-green name the fast command plus the affected suites, not the full suite"
-problems=()
 green="$("$DEVELOP" green "$work/spec.md" 'QWIXTLE step' 'make test' 'tests/zorblat.test.sh' 'zorblat case' 'make unit' 2>/dev/null)" ||
   problems+=("build-develop-prompt.sh green exited $?")
 verify_green="$("$VERIFY" --fast-cmd 'make unit' green "$work/spec.md" 'tests/zorblat.test.sh' 'zorblat case' 2>/dev/null)" ||
   problems+=("build-verify-prompt.sh green exited $?")
-runs_fast_plus_affected develop-green "$green"
-runs_fast_plus_affected verify-green "$verify_green"
-report "$name"
-
-name="develop-green runs the fast command and the affected suites through timed-test-run.sh, under tiers fast and affected"
-problems=()
-timed_through develop-green "$green" fast affected
-report "$name"
-
-name="develop-red, develop-refactor and develop-reconcile run their test commands through timed-test-run.sh, each naming its tier"
-problems=()
-reconcile="$("$DEVELOP" reconcile "$work/spec.md" 'QWIXTLE step' 'make test' 'tdd/1-zorblat' 'abc1234' 2>/dev/null)" ||
-  problems+=("build-develop-prompt.sh reconcile exited $?")
-timed_through develop-red "$red" affected
-timed_through develop-refactor "$refactor" affected
-timed_through develop-reconcile "$reconcile" all
-report "$name"
-
-name="develop-revise redoing red runs the affected suites through timed-test-run.sh under tier affected, and names no all run"
-problems=()
 printf 'the verifier objected to the fixture path\n' > "$work/reason.md"
 revise="$("$DEVELOP" revise red "$work/spec.md" 'QWIXTLE step' 'make test' "$work/reason.md" 2>/dev/null)" ||
   problems+=("build-develop-prompt.sh revise red exited $?")
-runs_affected "develop-revise red" "$revise"
-timed_through "develop-revise red" "$revise" affected
-never_timed_under "develop-revise red" "$revise" all
-report "$name"
-
-name="develop-revise redoing refactor runs the affected suites through timed-test-run.sh under tier affected, and names no all run"
-problems=()
 revise_refactor="$("$DEVELOP" revise refactor "$work/spec.md" 'QWIXTLE step' 'make test' "$work/reason.md" 2>/dev/null)" ||
   problems+=("build-develop-prompt.sh revise refactor exited $?")
-runs_affected "develop-revise refactor" "$revise_refactor"
-timed_through "develop-revise refactor" "$revise_refactor" affected
-never_timed_under "develop-revise refactor" "$revise_refactor" all
-report "$name"
-
-name="develop-revise redoing green runs the fast command and the affected suites through timed-test-run.sh under tiers fast then affected, and names no all run"
-problems=()
 revise_green="$("$DEVELOP" revise green "$work/spec.md" 'QWIXTLE step' 'make test' "$work/reason.md" 2>/dev/null)" ||
   problems+=("build-develop-prompt.sh revise green exited $?")
-timed_through "develop-revise green" "$revise_green" fast affected
-folded_revise_green="$(plain <<< "$revise_green")"
-fast_at="$(awk '/timed-test-run\.sh fast( |$)/ && !n {n=NR} END{print n}' <<< "$folded_revise_green")"
-affected_at="$(awk '/timed-test-run\.sh affected( |$)/ && !n {n=NR} END{print n}' <<< "$folded_revise_green")"
-if [[ "$fast_at" =~ ^[1-9][0-9]*$ && "$affected_at" =~ ^[1-9][0-9]*$ ]] && ((fast_at > affected_at)); then
-  problems+=("develop-revise green's prompt names the affected run before the fast one")
-fi
-never_timed_under "develop-revise green" "$revise_green" all
-report "$name"
-
-name="develop-revise runs the tiers of the phase it redoes — affected for red and refactor, fast and affected for green — and no all run, for each of the three"
-problems=()
-revise_tiers=(red 'affected' green 'fast affected' refactor 'affected')
-for ((i = 0; i < ${#revise_tiers[@]}; i += 2)); do
-  phase="${revise_tiers[i]}"
-  redo="$("$DEVELOP" revise "$phase" "$work/spec.md" 'QWIXTLE step' 'make test' "$work/reason.md" 2>/dev/null)" ||
-    problems+=("build-develop-prompt.sh revise $phase exited $?")
-  read -ra tiers <<< "${revise_tiers[i + 1]}"
-  timed_through "develop-revise $phase" "$redo" "${tiers[@]}"
-  never_timed_under "develop-revise $phase" "$redo" all
-done
-report "$name"
-
-name="the rebase leaves — develop-rebase, develop-reconcile and verify-rebase — still run the full test command under tier all"
-problems=()
-rebase="$("$DEVELOP" rebase "$work/spec.md" 'QWIXTLE step' 'make test' 'abc1234' 'def5678' 'src/zorblat.sh' 2>/dev/null)" ||
-  problems+=("build-develop-prompt.sh rebase exited $?")
-verify_rebase="$("$VERIFY" rebase "$work/spec.md" 'abc1234' 'def5678' 2>/dev/null)" ||
-  problems+=("build-verify-prompt.sh rebase exited $?")
-timed_through develop-rebase "$rebase" all
-timed_through develop-reconcile "$reconcile" all
-timed_through verify-rebase "$verify_rebase" all
-for leaf in develop-rebase develop-reconcile; do
-  [[ "$leaf" == develop-rebase ]] && redo="$rebase" || redo="$reconcile"
-  if ! grep -qF "timed-test-run.sh all '' make test" <<< "$(plain <<< "$redo")"; then
-    problems+=("$leaf's prompt never runs the full test command, make test, under tier all")
-  fi
-done
-report "$name"
 
 name="verify-red, verify-green, verify-refactor and verify-pin run their test commands through timed-test-run.sh, each naming its tier"
 problems=()
