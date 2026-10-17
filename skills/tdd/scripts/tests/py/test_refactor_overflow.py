@@ -552,3 +552,25 @@ def test_cli_finds_the_open_refactor_owed_issue_beyond_the_first_page_of_open_is
 
     assert result == (0, existing + "\n", "")
     assert [c for c in calls if "title=" in c] == []
+
+
+def test_cli_files_one_issue_and_prints_its_url_when_no_open_issue_is_titled_refactor_owed_by_the_parent_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = owed_504(tmp_path)
+    open_issues = json.dumps([
+        {"number": 7, "title": "Refactor owed by #50", "html_url": "https://github.com/o/r/issues/7", "body": ""},
+        {"number": 8, "title": "Refactor owed by #5040", "html_url": "https://github.com/o/r/issues/8", "body": ""},
+        {"number": 9, "title": "Unrelated", "html_url": "https://github.com/o/r/issues/9", "body": ""}])
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            return 0, open_issues, ""
+        return 0, URL, ""
+
+    calls = fake_processes(gh)
+
+    result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    assert result == (0, URL, "")
+    assert filed(calls) == filing(504, f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}\n- {SPLIT}")
+    assert [c for c in calls if "/comments" in c] == []
