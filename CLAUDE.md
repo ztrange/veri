@@ -184,12 +184,9 @@ Two traps, both already cost something once:
 ## Testing idiom
 
 Plain-shell asserts, zero dependencies, under
-`skills/tdd/scripts/tests/` — 121 files for eighty scripts, plus thirteen suites under `unit/` (`ledger.test.sh`, `github.test.sh`, `exit-contract.test.sh`, `candidate-line.test.sh`, `window.test.sh`, `section-end.test.sh`, `frontmatter-name.test.sh`, `fenced-lines.test.sh`, `gh-fixture.test.sh`, written with the script or helper they test; `missing-argument-guard.test.sh`, which plants an offender so that the audit, `tests/missing-argument-exit.test.sh`, which runs every script as a subprocess and so stays out of the fast tier, is known to go red; `harness.test.sh`, written with the sourced test harness; `no-report-copies.test.sh`, written to pin that no suite carries its own `report`; and `guard-plant.test.sh`, written with the sourced guard-plant library), all run by `make test`.
+`skills/tdd/scripts/tests/` — 116 files for eighty scripts, plus thirteen suites under `unit/` (`ledger.test.sh`, `github.test.sh`, `exit-contract.test.sh`, `candidate-line.test.sh`, `window.test.sh`, `section-end.test.sh`, `frontmatter-name.test.sh`, `fenced-lines.test.sh`, `gh-fixture.test.sh`, written with the script or helper they test; `missing-argument-guard.test.sh`, which plants an offender so that the audit, `tests/missing-argument-exit.test.sh`, which runs every script as a subprocess and so stays out of the fast tier, is known to go red; `harness.test.sh`, written with the sourced test harness; `no-report-copies.test.sh`, written to pin that no suite carries its own `report`; and `guard-plant.test.sh`, written with the sourced guard-plant library), all run by `make test`.
 The pending-mark literal, commit-suffix and emitted-text checks are pytest cases now, in `tests/py/unit/test_pending_mark_literal.py`, `test_commit_suffix.py` and `test_emitted_text.py`.
-One suite belongs to no single
-script: `workflow-timeouts.test.sh` is the first to assert on
-something outside `skills/` at all — it reads `.github/workflows/ci.yml` as text, the way
-GitHub Actions does, and pins what the `gates` job declares and why (issue #99). The bash suites' independence from
+The bash suites' independence from
 ambient `VERI_*` tunables is `run-suite.sh`'s strip; the pytest leg's holds by construction, through
 the autouse `hermetic_environment` fixture in `tests/py/conftest.py` and the one reader of `VERI_*`
 tunables. All keep `pass`/`fail` counters, print `FAIL - <name>` with a diff, and end with a count.
