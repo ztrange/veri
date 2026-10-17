@@ -256,3 +256,14 @@ def test_issue_1528_main_from_a_subdirectory_of_a_worktree_records_its_test_run_
     assert os.listdir(cwd) == []
     lines = (root / ".tdd" / "events.jsonl").read_text().splitlines()
     assert [json.loads(text)["event"] for text in lines] == ["test-run"]
+
+
+def test_issue_1702_main_refuses_an_affected_tier_bare_make_test_with_exit_2_naming_it_running_nothing_and_recording_no_event(
+        tmp_path, monkeypatch, capfd, calls, events, timed_test_run):
+    monkeypatch.chdir(tmp_path)
+    events.refuse_event_sh()
+
+    code = timed_test_run.main(["affected", "ledger-steps", "make", "test"])
+
+    err = capfd.readouterr().err
+    assert (code, "make test" in err, calls, events.records()) == (2, True, [], [])
