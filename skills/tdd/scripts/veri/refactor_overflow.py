@@ -66,7 +66,10 @@ def main(argv):
         (f"Structural candidates #{n}'s closing pass could not reach", structural),
         (f"Out-of-scope transforms #{n}'s closing pass did not attempt", out_of_scope)]
     if existing:
+        comments = json.loads(gh_api(f"{ISSUES}/{existing['number']}/comments").stdout)
         listed = existing["body"].split("\n")
+        for comment in comments:
+            listed += comment["body"].split("\n")
         sections = [(h, [l for l in lines if f"- {l}" not in listed]) for h, lines in sections]
     body = "\n\n".join(
         f"{heading}:\n\n" + "\n".join(f"- {line}" for line in lines)
