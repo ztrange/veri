@@ -107,13 +107,15 @@ def main(argv):
         optional["REJECTION_REASON"] = args[3]
     if _has_heading(_spec_text(spec), b"Bug"):
         optional["BUG_REPRODUCTION"] = f"{prompts}/_develop-red-bug.md"
+    replaces_case = "⟦replaces-case⟧" in trailing_markers(step)
     marked = {}
     if phase == "red" and "⟦ci-repair⟧" in step:
         marked["CI_REPAIR"] = f"{prompts}/_develop-red-ci-repair.md"
     if "green" in (phase, revised_phase):
-        for placeholder, mark in (("REPLACES_CASE", "replaces-case"), ("SUITE_REPAIR", "suite-repair")):
-            if f"⟦{mark}⟧" in (trailing_markers(step) if mark == "replaces-case" else step):
-                marked[placeholder] = f"{prompts}/_develop-green-{mark}.md"
+        if replaces_case:
+            marked["REPLACES_CASE"] = f"{prompts}/_develop-green-replaces-case.md"
+        if "⟦suite-repair⟧" in step:
+            marked["SUITE_REPAIR"] = f"{prompts}/_develop-green-suite-repair.md"
     if revised_phase in INTERFACE_PHASES:
         frozen = "production" if revised_phase == "contract-a" else "test"
         marked["FREEZE_RULE"] = f"{prompts}/_develop-revise-freeze-{frozen}.md"
@@ -137,7 +139,7 @@ def main(argv):
     values["RED_LEAD"] = b"Add exactly **ONE** new failing test case, and write **NO** production code."
     if phase == "revise":
         values["RED_CASES"] = b""
-    if "red" in (phase, revised_phase) and "\u27e6replaces-case\u27e7" in trailing_markers(step):
+    if "red" in (phase, revised_phase) and replaces_case:
         values["RED_LEAD"] = b"Add the replacement test cases the step names, and write **NO** production code."
         values["RED_CASES"] = (b"\n\n" if phase == "revise" else b"") + (
             b"This step replaces cases, so it is not one criterion, one case: write one pytest replacement\n"
