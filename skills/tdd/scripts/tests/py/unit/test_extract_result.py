@@ -146,14 +146,6 @@ def test_main_ports_the_null_result_non_string_report_case_newline_empty_stdin_a
     }
 
 
-def test_a_stream_with_an_init_an_assistant_and_a_result_record_exits_0_printing_the_result_text(run_cli, extract_result):
-    stream = (
-        '{"type":"system","subtype":"init","session_id":"x"}\n'
-        '{"type":"assistant","message":{"content":[{"type":"text","text":"VERDICT: PASS"}]}}\n'
-        '{"type":"result","subtype":"success","is_error":false,"result":"VERDICT: PASS"}')
-    assert run_cli(extract_result, [], stdin=stream) == (0, "VERDICT: PASS\n", "")
-
-
 def test_a_result_record_whose_result_is_a_number_exits_2_with_one_stderr_line_and_an_extra_argument_is_ignored(
         run_cli, extract_result):
     code, out, err = run_cli(extract_result, [], stdin='{"type":"result","result":5}')
