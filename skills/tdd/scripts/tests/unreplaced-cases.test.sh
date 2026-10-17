@@ -337,4 +337,15 @@ grep -F 'no test of that name was found' "$err" > /dev/null && said=yes
 expect_eq "$name" "1:case a:yes" "$code:$(cat "$out"):$said"
 rm -f "$report" "$out" "$err"
 
+name="unreplaced-cases.sh counts a bare-name REPLACES line as unreplaced when the only function of that name under skills/tdd/scripts/tests/py/ is a helper rather than a def test_ function, so it exits 1 and prints the case (#1660)"
+tree="$(scratch_dir)"; mkdir -p "$tree/skills/tdd/scripts/tests/py/unit"
+printf 'def make_a():\n    pass\n' > "$tree/skills/tdd/scripts/tests/py/unit/test_x.py"
+report="$(mktemp)"; out="$(mktemp)"
+printf '%s\n' "REPLACES: case a => make_a" > "$report"
+step="- [ ] x: replaces 'case a' in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 6⟧"
+code=0
+(cd "$tree" && "$UNREPLACED" "$step" "$report" > "$out" 2> /dev/null < /dev/null) || code=$?
+expect_eq "$name" "1:case a" "$code:$(cat "$out")"
+rm -f "$report" "$out"
+
 finish
