@@ -222,11 +222,6 @@ def test_main_classes_md_variable_heredocs_as_3_drops_a_dash_heredoc_hashbang_an
 
 
 CLASS_3_LINES = """\
-build-develop-prompt:## Bug
-build-develop-prompt:### What happened
-build-develop-prompt:### Expected
-build-develop-prompt:### Steps to reproduce
-build-develop-prompt:### Environment
 build-verify-prompt:# Plan for #426
 build-verify-prompt:# Plan for #439
 build-verify-prompt:## Bug
@@ -234,13 +229,6 @@ build-verify-prompt:### What happened
 build-verify-prompt:### Expected
 build-verify-prompt:### Steps to reproduce
 build-verify-prompt:### Environment
-capture-spec:## What happened
-capture-spec:## Expected
-capture-spec:## Steps to reproduce
-capture-spec:## Environment
-capture-spec:## Acceptance criteria
-capture-spec:## What to build
-capture-spec:## Acceptance criteria
 no-awk-v-patterns:#!/usr/bin/env bash
 no-awk-v-patterns:#!/usr/bin/env bash
 no-awk-v-patterns:#!/usr/bin/env bash

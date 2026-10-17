@@ -212,7 +212,7 @@ def test_main_prints_the_four_prompt_renderer_suites_for_a_develop_template_no_s
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
     (tests / "py/unit").mkdir(parents=True)
-    renderers = ["build-develop-prompt.test.sh", "build-verify-prompt.test.sh",
+    renderers = ["build-verify-prompt.test.sh",
                  "py/unit/test_build_develop_prompt.py", "py/unit/test_build_verify_prompt.py"]
     for name in renderers + ["other.test.sh"]:
         (tests / name).write_text("")
@@ -227,7 +227,7 @@ def test_main_prints_the_four_prompt_renderer_suites_for_a_verify_template_no_su
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
     (tests / "py/unit").mkdir(parents=True)
-    renderers = ["build-develop-prompt.test.sh", "build-verify-prompt.test.sh",
+    renderers = ["build-verify-prompt.test.sh",
                  "py/unit/test_build_develop_prompt.py", "py/unit/test_build_verify_prompt.py"]
     for name in renderers + ["other.test.sh"]:
         (tests / name).write_text("")
@@ -242,7 +242,7 @@ def test_main_prints_the_four_prompt_renderer_suites_for_a_partial_no_suite_name
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
     (tests / "py/unit").mkdir(parents=True)
-    renderers = ["build-develop-prompt.test.sh", "build-verify-prompt.test.sh",
+    renderers = ["build-verify-prompt.test.sh",
                  "py/unit/test_build_develop_prompt.py", "py/unit/test_build_verify_prompt.py"]
     for name in renderers + ["other.test.sh"]:
         (tests / name).write_text("")
@@ -257,7 +257,7 @@ def test_main_prints_only_the_prompt_renderer_suites_that_exist_for_a_template_c
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
     (tests / "py/unit").mkdir(parents=True)
-    present = ["build-develop-prompt.test.sh", "py/unit/test_build_develop_prompt.py"]
+    present = ["py/unit/test_build_develop_prompt.py"]
     for name in present + ["other.test.sh"]:
         (tests / name).write_text("")
     assert (affected.main(["base..head"]),) + (sorted(capsys.readouterr().out.splitlines()),) == (
@@ -271,7 +271,7 @@ def test_main_prints_none_of_the_prompt_renderer_suites_for_a_change_outside_the
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
     (tests / "py/unit").mkdir(parents=True)
-    renderers = ["build-develop-prompt.test.sh", "build-verify-prompt.test.sh",
+    renderers = ["build-verify-prompt.test.sh",
                  "py/unit/test_build_develop_prompt.py", "py/unit/test_build_verify_prompt.py"]
     for name in renderers + ["foo.test.sh"]:
         (tests / name).write_text("")
