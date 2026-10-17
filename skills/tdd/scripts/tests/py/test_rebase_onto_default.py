@@ -1506,3 +1506,14 @@ def test_main_exits_2_with_one_stderr_line_naming_the_failed_ls_remote_of_the_de
     assert len(err.splitlines()) == 1, err
     assert "ls-remote" in err and "main" in err, err
     assert "fetch" not in err and "refs/remotes/origin/HEAD" not in err and "re-apply" not in err, err
+
+
+def test_main_exits_2_with_one_stderr_line_naming_the_stale_remote_tracking_ref_1605(
+        monkeypatch, capsys, rebase_onto_default):
+    fake_git(monkeypatch, **{"git rev-parse origin/main": (0, f"{PRE}\n")})
+    assert rebase_onto_default.main([]) == 2
+    err = capsys.readouterr().err
+    assert len(err.splitlines()) == 1, err
+    assert "origin/main" in err, err
+    assert "fetch" not in err and "refs/heads/main" not in err, err
+    assert "refs/remotes/origin/HEAD" not in err and "re-apply" not in err, err
