@@ -12,7 +12,7 @@ CRITERION_TAG = "⟦criterion "
 SPACE = r"[ \t\n\v\f\r]"
 STEP_RE = re.compile(rf"({SPACE}*-{SPACE})\[([ xX])\]( (.*))?")
 CRITERION_RE = CRITERION_TAG + "([0-9]+)⟧"
-KIND_RE = re.compile(r"⟦(full-suite|human-owed|diff-checked)⟧ " + CRITERION_RE)
+KIND_RE = re.compile(r"⟦(full-suite|human-owed|diff-checked)⟧ (?:" + ADDED_MARK + " )?" + CRITERION_RE)
 PHASES_RE = re.compile(r"⟦phases: ([^⟧]*)⟧")
 TRAILING_RUN_RE = re.compile(r"((?:(?:^| )⟦[^⟦⟧]*⟧)+)(?: ⟂ [^⟦⟧⟂]*)*$")
 
