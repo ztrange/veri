@@ -1499,15 +1499,20 @@ def folded_bytes(text):
     return text.replace("\n", " ").encode("utf-8", "surrogateescape")
 
 
+@pytest.fixture
+def spec(tmp_path):
+    path = tmp_path / "spec.md"
+    path.write_bytes(SPEC_TEXT.encode())
+    return str(path)
+
+
 def test_verify_plan_carries_the_issue_spec_and_the_ledger_named_as_its_third_argument(
-        tmp_path, run_cli, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(SPEC_TEXT.encode())
+        tmp_path, spec, run_cli, build_verify_prompt):
     ledger = tmp_path / "ledger.md"
     ledger.write_text("# Plan for #426\n\n- [ ] A verdict launcher script runs verify.sh with the step title as an "
                       "argument ⟦criterion 1⟧\n")
 
-    code, out, _ = run_cli(build_verify_prompt, ["plan", str(spec), str(ledger)])
+    code, out, _ = run_cli(build_verify_prompt, ["plan", spec, str(ledger)])
 
     assert code == 0
     assert 'slugify("Hello & World/Foo")' in out
@@ -1515,12 +1520,10 @@ def test_verify_plan_carries_the_issue_spec_and_the_ledger_named_as_its_third_ar
 
 
 @pytest.fixture
-def plan_flat(tmp_path, run_cli, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(SPEC_TEXT.encode())
+def plan_flat(tmp_path, spec, run_cli, build_verify_prompt):
     ledger = tmp_path / "ledger.md"
     ledger.write_text("# Plan for #426\n\n- [ ] A step ⟦criterion 1⟧\n")
-    return squeezed(run_cli(build_verify_prompt, ["plan", str(spec), str(ledger)])[1])
+    return squeezed(run_cli(build_verify_prompt, ["plan", spec, str(ledger)])[1])
 
 
 def test_verify_plan_rejects_a_step_that_drops_a_constraint_the_issue_attaches_to_its_cases(plan_flat):
@@ -1566,16 +1569,14 @@ def test_verify_plan_rejects_a_step_observable_only_once_a_later_step_is_built_n
 
 
 def test_verify_plan_carries_only_the_issue_spec_and_the_ledger_and_no_cycle_phase_prompt_carries_a_ledger(
-        tmp_path, run_cli, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(SPEC_TEXT.encode())
+        tmp_path, spec, run_cli, build_verify_prompt):
     ledger = tmp_path / "rationale-ledger.md"
     ledger.write_text("# Plan for #439\n\n- [ ] LEDGER-BODY-MARKER a plan step no cycle verifier may be shown "
                       "⟦criterion 1⟧\n")
     leak_step = "RATIONALE-LEAK the developer chose a launcher script because bash -c broke the quoting"
     problems = []
 
-    code, plan_only, _ = run_cli(build_verify_prompt, ["--step", leak_step, "plan", str(spec), str(ledger),
+    code, plan_only, _ = run_cli(build_verify_prompt, ["--step", leak_step, "plan", spec, str(ledger),
                                                         "test_rationale_leak"])
     if code != 0:
         problems.append(f"the plan call exited {code}")
@@ -1590,7 +1591,7 @@ def test_verify_plan_carries_only_the_issue_spec_and_the_ledger_and_no_cycle_pha
     for phase in ("red", "green", "refactor", "pin"):
         fast = ["--fast-cmd", "make unit"] if phase in ("green", "refactor") else []
         slot = "0123abc" if phase == "refactor" else "test_slugify_lowercases"
-        _, cycle, _ = run_cli(build_verify_prompt, [*fast, phase, str(spec), str(ledger), slot])
+        _, cycle, _ = run_cli(build_verify_prompt, [*fast, phase, spec, str(ledger), slot])
         if str(ledger) not in cycle:
             problems.append(f"verify-{phase} drops the path it was given")
         if "LEDGER-BODY-MARKER" in cycle:
@@ -1600,9 +1601,7 @@ def test_verify_plan_carries_only_the_issue_spec_and_the_ledger_and_no_cycle_pha
 
 
 def test_verify_red_requires_a_bugs_observed_failure_to_match_what_happened_and_nothing_of_the_kind_without_a_bug_section(
-        tmp_path, run_cli, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(SPEC_TEXT.encode())
+        tmp_path, spec, run_cli, build_verify_prompt):
     bug_spec = tmp_path / "bug-spec.md"
     bug_spec.write_bytes(SPEC_TEXT.encode() + (
         '\n## Bug\n\n### What happened\n\nslugify returned "HELLO_WORLD" on the ampersanded seed.\n\n'
@@ -1613,7 +1612,7 @@ def test_verify_red_requires_a_bugs_observed_failure_to_match_what_happened_and_
     problems = []
 
     code, bug_red, _ = run_cli(build_verify_prompt, ["red", str(bug_spec), TESTPATH, "test_slugify_lowercases"])
-    _, red, _ = run_cli(build_verify_prompt, ["red", str(spec), TESTPATH, "test_slugify_lowercases"])
+    _, red, _ = run_cli(build_verify_prompt, ["red", spec, TESTPATH, "test_slugify_lowercases"])
     if code != 0:
         problems.append(f"with a bug spec and red's own four positionals exited {code}, want 0")
     if 'slugify returned "HELLO_WORLD" on the ampersanded seed.' not in bug_red:
@@ -1649,9 +1648,7 @@ def diff_refusal_problems(run_cli, module, label, want, argv):
 
 
 def test_995_diff_with_fast_cmd_refuses_a_non_hex_base_a_missing_step_and_a_bad_step_base_each_with_exit_2_and_its_own_message(
-        tmp_path, run_cli, build_verify_prompt):
-    spec = str(tmp_path / "spec.md")
-    (tmp_path / "spec.md").write_bytes(SPEC_TEXT.encode())
+        tmp_path, spec, run_cli, build_verify_prompt):
     fc = ["--fast-cmd", "make unit"]
     step = ["--step", DIFF_STEP]
     problems = []
@@ -1674,9 +1671,7 @@ def test_995_diff_with_fast_cmd_refuses_a_non_hex_base_a_missing_step_and_a_bad_
 
 
 def test_1041_diff_with_fast_cmd_refuses_an_extra_positional_argument_with_exit_2_and_the_extra_argument_message(
-        tmp_path, run_cli, build_verify_prompt):
-    spec = str(tmp_path / "spec.md")
-    (tmp_path / "spec.md").write_bytes(SPEC_TEXT.encode())
+        tmp_path, spec, run_cli, build_verify_prompt):
 
     problems = diff_refusal_problems(
         run_cli, build_verify_prompt, "diff with an extra positional", "build-verify-prompt: too many arguments",
@@ -1686,9 +1681,7 @@ def test_1041_diff_with_fast_cmd_refuses_an_extra_positional_argument_with_exit_
 
 
 def test_a_diff_prompt_tells_the_verifier_the_wrapper_hands_the_test_commands_exit_status_straight_back(
-        tmp_path, run_cli, build_verify_prompt):
-    spec = str(tmp_path / "spec.md")
-    (tmp_path / "spec.md").write_bytes(SPEC_TEXT.encode())
+        tmp_path, spec, run_cli, build_verify_prompt):
     problems = []
 
     code, prompt, _ = run_cli(build_verify_prompt, ["--step", DIFF_STEP, "--fast-cmd", "make unit", "diff", spec,
