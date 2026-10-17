@@ -1013,10 +1013,15 @@ def test_cli_a_leaf_can_still_kill_a_pid_it_started_and_recorded(tmp_path, monke
         0, ["0", "143"])
 
 
-def _cli_argv(run_cli, monkeypatch, tmp_path, prompt_arg, extra=(), stdin=""):
-    run_leaf = importlib.import_module("veri.run_leaf")
+def _prompt_workspace(tmp_path, monkeypatch):
     work, _ = _workspace(tmp_path, monkeypatch)
     (work / "prompt.txt").write_text("Verify the test for issue 3.")
+    return work
+
+
+def _cli_argv(run_cli, monkeypatch, tmp_path, prompt_arg, extra=(), stdin=""):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work = _prompt_workspace(tmp_path, monkeypatch)
     launches = []
 
     def launch(argv, *args, **kwargs):
@@ -1044,8 +1049,7 @@ def test_cli_passes_the_prompt_to_claude_via_dash_p_in_stream_json(tmp_path, mon
 
 @pytest.mark.process("the run-leaf.sh entry point handing its arguments to a real stub claude")
 def test_cli_passes_extra_arguments_through_to_claude(tmp_path, monkeypatch, run_cli):
-    work, _ = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("Verify the test for issue 3.")
+    work = _prompt_workspace(tmp_path, monkeypatch)
     stub = _leaf_stub(tmp_path, 'printf "%s\\n" "$@" > "$ARGV_OUT"\n')
 
     class _EntryPoint:
