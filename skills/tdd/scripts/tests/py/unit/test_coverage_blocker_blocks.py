@@ -108,3 +108,39 @@ def test_main_1262_writes_nothing_exits_2_and_names_the_issue_on_stderr_when_the
     code = coverage_blocker.main(["60"])
 
     assert (code, edits, "60" in capsys.readouterr().err) == (2, [], True)
+
+
+def test_main_1262_writes_nothing_and_exits_2_when_the_new_issue_is_numbered_but_the_body_it_would_write_still_reads_as_unblocked(
+        monkeypatch, capsys, coverage_blocker):
+    edits = []
+
+    monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_create",
+                        lambda title, text: "https://github.com/owner/name/issues/77\n")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_view",
+                        lambda n, field: "## Blocked by\n\nfoo\n\n## Blocked by\n\n- #5")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_edit", lambda n, path: edits.append(n))
+
+    code = coverage_blocker.main(["60"])
+
+    assert (code, edits, "60" in capsys.readouterr().err) == (2, [], True)
+
+
+def test_main_1262_writes_the_blocker_directly_under_a_heading_followed_by_prose_and_keeps_every_byte_of_the_prose(
+        monkeypatch, coverage_blocker):
+    written = {}
+
+    def fake_edit(n, path):
+        written[n] = pathlib.Path(path).read_text()
+
+    monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_create",
+                        lambda title, text: "https://github.com/owner/name/issues/77\n")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_view",
+                        lambda n, field: "## Problem\n\nx\n\n## Blocked by\nWaiting on design.\n\n## Notes\n\ny")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_edit", fake_edit)
+
+    code = coverage_blocker.main(["60"])
+
+    assert (code, written.get("60")) == (
+        0, "## Problem\n\nx\n\n## Blocked by\n- #77\nWaiting on design.\n\n## Notes\n\ny\n")
