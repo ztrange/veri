@@ -20,3 +20,19 @@ def test_main_1621_routes_a_green_whose_wrong_test_names_a_contradicted_case_to_
         wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % contradicted)
+
+
+def test_main_1621_prints_revise_and_exits_3_when_the_green_report_has_no_wrong_test_line(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    (suite / ("test_" + "ledger" + ".py")).write_text(
+        "def test_main_returns_zero():\n    pass\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nVERDICT: REJECT\n")
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
