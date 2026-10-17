@@ -145,13 +145,14 @@ _VERIFIER = {"issue": "", "actor": "verifier", "phase": "green", "step": "", "ev
      "harvest-usage.sh: no closing result record in .tdd/bogus-green.log — no usage event appended for bogus-green\n",
      []),
     ("bogus-green", None, 1, None, []),
-    ("verify-green", json.dumps({k: v for k, v in _RECORD.items() if k != "usage"}) + "\n", 1, None, []),
+    ("verify-green", json.dumps({k: v for k, v in _RECORD.items() if k != "usage"}) + "\n", 2,
+     "harvest-usage.sh: the closing result record in .tdd/verify-green.log carries no usage — no usage event appended for verify-green\n", []),
     ("verify-green", json.dumps({k: v for k, v in _RECORD.items() if k != "num_turns"}) + "\n", 1, None, []),
     ("verify-green", json.dumps(dict(_RECORD, usage={k: v for k, v in _RECORD["usage"].items()
                                                      if k != "output_tokens"})) + "\n", 1, None, []),
     ("verify-green", json.dumps(dict(_RECORD, num_turns=99)) + "\n" + json.dumps(_RECORD) + "\n"
      + "harvest: the leaf exited 0\n", 0, "", [dict(_VERIFIER, **_NUMBERS)]),
-], ids=["unknown-name-no-record-3", "unknown-name-no-log-1", "no-usage-1", "no-num-turns-1",
+], ids=["unknown-name-no-record-3", "unknown-name-no-log-1", "no-usage-2", "no-num-turns-1",
         "no-output-tokens-1", "last-result-record-before-a-trailing-line-0"])
 def test_main_ports_harvest_usage_sh_quirks_exit_codes_closing_record_number_text_and_no_record_diagnostic(
         tmp_path, monkeypatch, capsys, harvest_usage, events, name, log, expected_code, expected_err, expected_records):
@@ -167,3 +168,20 @@ def test_main_ports_harvest_usage_sh_quirks_exit_codes_closing_record_number_tex
     assert (code, events.records(), captured.out) == (expected_code, expected_records, "")
     if expected_err is not None:
         assert captured.err == expected_err
+
+
+def test_main_on_a_closing_result_record_with_no_usage_key_exits_2_with_one_line_and_no_traceback_1497(
+        tmp_path, monkeypatch, capsys, harvest_usage, events):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "verify-green.log").write_text(
+        json.dumps({k: v for k, v in _RECORD.items() if k != "usage"}) + "\n")
+    monkeypatch.chdir(tmp_path)
+
+    events.refuse_event_sh()
+    code = harvest_usage.main(["verify-green"])
+
+    captured = capsys.readouterr()
+    assert (code, events.records(), captured.out) == (2, [], "")
+    assert "Traceback" not in captured.err
+    [line] = captured.err.splitlines()
+    assert "harvest-usage.sh" in line and ".tdd/verify-green.log" in line and "carries no usage" in line
