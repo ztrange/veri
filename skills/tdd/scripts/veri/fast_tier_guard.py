@@ -44,10 +44,11 @@ def _require_reasons(exemptions):
 def offences(root, exemptions=None):
     exemptions = exemptions or {}
     _require_reasons(exemptions)
-    if not Path(root).is_dir():
+    root = Path(root)
+    if not root.is_dir():
         raise NotADirectoryError(f"{root}: no such directory")
     found = []
-    for path in sorted(Path(root).rglob("test_*.py")):
+    for path in sorted(root.rglob("test_*.py")):
         tree = ast.parse(path.read_text())
         module_aliases, name_imports = _aliases(tree)
         modules = {alias for alias, name in module_aliases.items() if name == "subprocess"}
@@ -80,7 +81,6 @@ def offences(root, exemptions=None):
             else:
                 continue
             found.append(f"{path}:{node.lineno}: {message}")
-    root = Path(root)
 
     def exempt(line):
         key = line.split(": ")[0]
