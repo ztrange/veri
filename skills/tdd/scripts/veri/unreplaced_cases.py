@@ -9,8 +9,6 @@ USAGE = "usage: unreplaced-cases.sh"
 
 
 PY_TESTS = "skills/tdd/scripts/tests/py"
-REPLACES = r"\breplaces "
-QUOTE = r"['\"`]"
 
 
 def def_pattern(name):
@@ -61,14 +59,14 @@ def main(argv):
     if not replaces_case.is_replaces_case_step(step):
         return 0
     parsed = replaces_case.parse(step)
-    if replaces_case.unreadable(step) or parsed is None and re.search(REPLACES + "(?!" + QUOTE + r")\S", step):
+    if replaces_case.unreadable(step) or parsed is None and replaces_case.unquoted_clause(step):
         sys.stderr.write(replaces_case.unreadable_message(step) + "\n")
         return 2
-    other = re.search(REPLACES + "(?=" + QUOTE + r").*? in ([\w./-]+)", step)
+    other = replaces_case.other_suite(step)
     if parsed is None and other:
-        sys.stderr.write("suite " + other.group(1) + " is not a .test.sh file in step: " + step.replace("\n", " ") + "\n")
+        sys.stderr.write("suite " + other + " is not a .test.sh file in step: " + step.replace("\n", " ") + "\n")
         return 2
-    quote = step[re.search(REPLACES + "(?=" + QUOTE + ")", step).end()] if parsed else ""
+    quote = replaces_case.quote_of(step) if parsed else ""
     replaced = set()
     not_found = set()
     ambiguous = set()
