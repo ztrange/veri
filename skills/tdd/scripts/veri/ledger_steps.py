@@ -71,7 +71,7 @@ def main(argv):
         return refuse()
     if verb == "criterion" and not re.fullmatch("[0-9]+", argv[1] if len(argv) > 1 else ""):
         return refuse()
-    if verb == "has-mark" and len(argv) < 2:
+    if verb == "has-mark" and (len(argv) < 2 or not argv[1]):
         return refuse(HAS_MARK_USAGE)
     text = read_ledger_stdin()
     if verb == "criterion":
