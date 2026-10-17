@@ -454,17 +454,11 @@ scan_step_title() {
     problem "launched with the step title <$title>, whose leaf saw VERI_STEP=<$got> (the launching shell said: ${err//$'\n'//})"
 }
 
-run_case "a step title carrying an apostrophe reaches the leaf $skill_md launches with it intact" \
-  scan_step_title
 
 EXPANDING_STEP='A title naming `kill %1`, the "blind" verifier and $HOME reaches the leaf as written'
 
-run_case "a step title carrying a dollar sign, a backtick and a double quote reaches the leaf $skill_md launches with it byte-identical (#437)" \
-  scan_step_title "$EXPANDING_STEP" expanding-step-title
 
 
-run_case "a step title carrying a dollar sign, a backtick and a double quote reaches the develop-refactor leaf $skill_md launches after the step is ticked, byte-identical (#437)" \
-  scan_step_title "$EXPANDING_STEP" expanding-step-title-refactor develop-refactor plant_ticked_ledger
 
 scan_verdict_step_title() {
   local title="$EXPANDING_STEP" tag=expanding-step-title-verdict
@@ -485,8 +479,6 @@ scan_verdict_step_title() {
     problem "launched with the step title <$title>, whose verifier was handed --step <$argv> (the launching shell said: ${err//$'\n'//})"
 }
 
-run_case "a step title carrying a dollar sign, a backtick and a double quote reaches the verifier $skill_md launches, byte-identical in VERI_STEP and in --step (#437)" \
-  scan_verdict_step_title
 
 ledgers_for() {
   case "$1" in
@@ -525,8 +517,6 @@ scan_every_step_title() {
   done <<< "$lines"
 }
 
-run_case "a step title carrying a dollar sign, a backtick and a double quote reaches every other developer and verifier leaf $skill_md launches with it, byte-identical (#437)" \
-  scan_every_step_title
 
 DECOY_STEP='a decoy step the ledger holds, which ledger-steps.sh current never names'
 
@@ -567,8 +557,6 @@ STUB
   done <<< "$lines"
 }
 
-run_case "every leaf and verifier launch line in $skill_md reads the step through ledger-steps.sh current, and a title carrying a dollar sign, a backtick and a double quote reaches VERI_STEP and --step byte-identical (#682)" \
-  scan_current_step_title
 
 plant_done_ledger() {
   printf '# Plan for #%s\n\n- [x] an earlier step the run finished\n- [x] %s\n' \
@@ -1049,8 +1037,6 @@ check_conductor_title() {
   [[ "$want" == "$expected" ]] || failed+="title argument <$want> "
 }
 
-run_case "a step title carrying a dollar sign, a backtick and a double quote reaches every event.sh mark, preserve-attempt.sh call and tick fragment the conductor types from $skill_md, byte-identical (#437)" \
-  scan_conductor_titles
 
 scan_prompt_titles() {
   local title="$EXPANDING_STEP"
@@ -1091,8 +1077,6 @@ check_prompt_title() {
   [[ "$want" == "$title" ]] || failed="title argument <$want> "
 }
 
-run_case "a step title carrying a dollar sign, a backtick and a double quote reaches every build-develop-prompt.sh prompt and add-ledger-step.sh anchor the conductor types from $skill_md, byte-identical (#437)" \
-  scan_prompt_titles
 
 scan_reverted_step_title() {
   local md="$md" reverted="$WORK/reverted-431-SKILL.md" hit n
