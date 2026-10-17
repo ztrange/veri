@@ -245,6 +245,15 @@ def test_1641_an_exemption_entry_whose_reason_is_only_whitespace_is_refused_by_n
         guard.offences(tmp_path, {"test_waits.py:4": " \t\n"})
 
 
+@pytest.mark.parametrize("reason", [None, 7, "", "  \t\n"], ids=["none", "number", "empty", "whitespace"])
+def test_1641_an_exemption_entry_whose_reason_is_not_a_non_empty_string_is_refused_by_name(tmp_path, reason):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    (tmp_path / "test_waits.py").write_text("import time\n\ndef test_waits():\n    time.sleep(1)\n")
+
+    with pytest.raises(ValueError, match="test_waits.py:4"):
+        guard.offences(tmp_path, {"test_waits.py:4": reason})
+
+
 def test_1641_an_exemption_entry_that_matches_no_file_under_the_root_makes_the_guard_fail_naming_that_entry(tmp_path):
     guard = importlib.import_module("veri.fast_tier_guard")
     (tmp_path / "test_clean.py").write_text("def test_clean():\n    assert True\n")
