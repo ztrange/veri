@@ -5,9 +5,11 @@ import sys
 import tempfile
 
 try:
+    from blocked_by import blockers
     from github import NoAnswer, gh_issue_create, gh_issue_edit, gh_issue_view, gh_rest_list
     from json_documents import documents
 except ImportError:
+    from .blocked_by import blockers
     from .github import NoAnswer, gh_issue_create, gh_issue_edit, gh_issue_view, gh_rest_list
     from .json_documents import documents
 
@@ -74,10 +76,15 @@ def main(argv):
         body = gh_issue_view(n, "body")
     except NoAnswer:
         return 2
+    new = url.rsplit("/", 1)[-1]
+    blocked = block(body.rstrip("\n"), new)
+    if not new.isdigit() or int(new) not in blockers(blocked, ""):
+        print("coverage-blocker.sh: could not block issue %s on the new coverage issue" % n, file=sys.stderr)
+        return 2
     fd, tmp = tempfile.mkstemp()
     try:
         with os.fdopen(fd, "w") as f:
-            f.write(block(body.rstrip("\n"), url.rsplit("/", 1)[-1]) + "\n")
+            f.write(blocked + "\n")
         gh_issue_edit(n, tmp)
     except NoAnswer:
         return 2

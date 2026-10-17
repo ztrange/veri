@@ -291,10 +291,10 @@ def test_main_blocks_on_whatever_the_create_answers_ignores_extra_arguments_and_
         return code, captured.out, captured.err, seen.get("body"), calls
 
     code, out, err, body, _ = run(["60"], "")
-    assert (code, out, err, body) == (0, "\n", "", "## Blocked by\n\n- #\n")
+    assert (code, out, "60" in err, body) == (2, "", True, None)
 
     code, out, err, body, _ = run(["60"], "no-slash-here\n")
-    assert (code, out, err, body) == (0, "no-slash-here\n", "", "## Blocked by\n\n- #no-slash-here\n")
+    assert (code, out, "60" in err, body) == (2, "", True, None)
 
     code, out, err, body, calls = run(["abc", "extra"], "https://github.com/owner/name/issues/77\n")
     assert (code, out, err, body) == (0, "https://github.com/owner/name/issues/77\n", "", "## Blocked by\n\n- #77\n")

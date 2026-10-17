@@ -94,3 +94,17 @@ def test_main_1262_exits_0_with_the_new_issue_a_blocker_when_the_heading_carries
         seen.append((code, sorted(blockers(body, "")), all(line in body.split("\n") for line in kept), expected))
 
     assert [(c, b, k) for c, b, k, _ in seen] == [(0, e, True) for *_, e in seen]
+
+
+def test_main_1262_writes_nothing_exits_2_and_names_the_issue_on_stderr_when_the_create_answers_no_issue_number(
+        monkeypatch, capsys, coverage_blocker):
+    edits = []
+
+    monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_create", lambda title, text: "")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_view", lambda n, field: "## Problem\n\nx")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_edit", lambda n, path: edits.append(n))
+
+    code = coverage_blocker.main(["60"])
+
+    assert (code, edits, "60" in capsys.readouterr().err) == (2, [], True)
