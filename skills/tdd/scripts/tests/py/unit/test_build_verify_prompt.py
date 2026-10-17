@@ -1794,3 +1794,24 @@ def test_main_tells_the_refactor_plan_verifier_to_reject_a_phases_step_1527(tmp_
     refactor, plain = render(spec), render(plain_spec)
 
     assert (refactor[0], re.search(phases, refactor[1]) is not None, re.search(phases, plain[1]) is not None) == (0, True, False)
+
+
+@pytest.mark.tree_audit("the templates under prompts/")
+def test_main_tells_the_refactor_plan_verifier_to_reject_a_step_that_only_edits_tests_1527(tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n\n## Refactor\n\nRun kind: refactor.\n")
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes("# Plan for #1527\n\n- [ ] Extract Function ⟦criterion 1⟧\n".encode())
+
+    plain_spec = tmp_path / "plain-spec.md"
+    plain_spec.write_bytes(b"# spec\n\nbehaviour\n")
+
+    def render(spec_path):
+        code = build_verify_prompt.main(["plan", str(spec_path), str(ledger)])
+        return code, capsysbinary.readouterr()[0].replace(b"\n", b" ")
+
+    test_only = (r"REJECT[^.]{0,200}refactor[^.]{0,200}(only edits|edits only|only changes|changes only)[^.]{0,40}tests?"
+                 r"|refactor-kind plan[^.]{0,200}(only edits|edits only|only changes|changes only)[^.]{0,40}tests?[^.]{0,200}REJECT").encode()
+    refactor, plain = render(spec), render(plain_spec)
+
+    assert (refactor[0], re.search(test_only, refactor[1]) is not None, re.search(test_only, plain[1]) is not None) == (0, True, False)
