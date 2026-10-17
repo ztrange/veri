@@ -220,6 +220,20 @@ def test_main_prints_the_four_prompt_renderer_suites_for_a_develop_template_no_s
         0, sorted("skills/tdd/scripts/tests/" + n for n in renderers))
 
 
+def test_main_prints_the_develop_prompt_process_suite_for_a_develop_template_no_suite_names_1338(
+        tmp_path, monkeypatch, capsys, affected):
+    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/prompts/develop-red.md"]))
+    monkeypatch.chdir(tmp_path)
+    tests = tmp_path / "skills/tdd/scripts/tests"
+    (tests / "unit").mkdir(parents=True)
+    (tests / "py/unit").mkdir(parents=True)
+    present = ["py/test_build_develop_prompt_process.py"]
+    for name in present + ["other.test.sh"]:
+        (tests / name).write_text("")
+    assert (affected.main(["base..head"]),) + (sorted(capsys.readouterr().out.splitlines()),) == (
+        0, sorted("skills/tdd/scripts/tests/" + n for n in present))
+
+
 def test_main_prints_the_four_prompt_renderer_suites_for_a_verify_template_no_suite_names_1572(
         tmp_path, monkeypatch, capsys, affected):
     monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/prompts/verify-green.md"]))

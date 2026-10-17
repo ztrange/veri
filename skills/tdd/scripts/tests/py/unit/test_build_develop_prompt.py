@@ -1826,7 +1826,6 @@ def _refactor_loop():
     return kept
 
 
-@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
 def test_cli_red_carries_spec_step_and_test_command_verbatim_and_the_against_unmodified_report_line(
         tmp_path, run_cli, build_develop_prompt):
     step = "QWIXTLE: a seed ending in a newline gains the block and reports added"
@@ -1871,7 +1870,6 @@ def test_cli_skill_md_refactor_narration_bullet_names_the_leafs_candidates_line_
     assert (bool(bullet), "CANDIDATES:" in " ".join(bullet)) == (True, True)
 
 
-@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
 def test_cli_red_tells_a_bugs_leaf_to_write_from_expected_drive_with_steps_and_fail_as_what_happened_describes_and_a_leaf_with_no_bug_section_none_of_it(
         tmp_path, run_cli, build_develop_prompt):
     bug = ('\n## Bug\n\n### What happened\n\nzorblat returned "FROB_NITZ" on the quuxed seed.\n\n### Expected\n\n'
@@ -1882,7 +1880,8 @@ def test_cli_red_tells_a_bugs_leaf_to_write_from_expected_drive_with_steps_and_f
         "steps": r"(drive|driven)[^.]{0,40}steps|steps[^.]{0,40}(drive|driven)",
         "what happened": r"(fail|fails|failure)[^.]{0,60}what happened|what happened[^.]{0,60}(fail|fails|failure)",
     }
-    step, test_cmd = "QWIXTLE: a seed ending in a newline gains the block", "make test"
+    step = "QWIXTLE: a seed ending in a newline gains the block and reports added"
+    test_cmd = 'make test ZORBLAT=1 -- --only "frob & nitz/quux"'
 
     def told(extra):
         code, out, err = run_cli(build_develop_prompt, ["red", _spec(tmp_path, extra), step, test_cmd])
@@ -1919,7 +1918,6 @@ def test_cli_over_budget_refuses_a_spent_or_budget_that_is_not_a_non_negative_de
     assert results == {key: (2, "", True) for key in results} and len(results) == 18
 
 
-@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
 def test_cli_green_for_a_step_not_carrying_replaces_case_renders_byte_identically_to_before_671(
         tmp_path, run_cli, build_develop_prompt):
     step = 'tests/zorblat.test.sh: "zorblat frobs a nitz" replaces-case moves to tests/py ⟦added⟧ ⟦criterion 2⟧'
@@ -1934,22 +1932,28 @@ def test_cli_green_for_a_step_not_carrying_replaces_case_renders_byte_identicall
     assert (code, err, _cksum(rendered.encode())) == (0, "", "2784004442 8129")
 
 
-@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
 def test_cli_develop_cover_restores_a_probe_with_cp_orig_before_the_mutation_and_mv_orig_after_the_run_under_mutation(
         tmp_path, run_cli, build_develop_prompt):
     code, out, err = run_cli(build_develop_prompt, ["cover", _spec(tmp_path), "QWIXTLE: cover the frob", "make test"])
-    line = out[out.index("## Phase: develop-cover"):].replace("\n", " ")
 
-    def at(pattern):
-        found = re.search(pattern, line, re.I)
-        return None if found is None else found.start()
+    def order(text):
+        line = text.replace("\n", " ")
 
-    cp_at, mutate_at = at(r"cp <file> <file>\.orig"), at("break its behaviour")
-    run_at, mv_at = at("run the suites"), at(r"mv <file>\.orig <file>")
+        def at(pattern):
+            found = re.search(pattern, line, re.I)
+            return None if found is None else found.start()
+
+        cp_at, mutate_at = at(r"cp <file> <file>\.orig"), at("break its behaviour")
+        run_at, mv_at = at("run the suites"), at(r"mv <file>\.orig <file>")
+        if None in (cp_at, mutate_at, run_at, mv_at):
+            return (cp_at, mutate_at, run_at, mv_at)
+        return (cp_at <= mutate_at, mv_at >= run_at)
+
+    template = (SCRIPTS / "prompts" / "develop-cover.md").read_text()
+    rendered = out[out.index("## Phase: develop-cover"):]
 
     assert (code, err) == (0, "")
-    assert None not in (cp_at, mutate_at, run_at, mv_at)
-    assert (cp_at <= mutate_at, mv_at >= run_at) == (True, True)
+    assert (order(template), order(rendered)) == ((True, True), (True, True))
 
 
 def test_cli_develop_diff_given_every_argument_but_an_empty_test_cmd_exits_2_with_no_prompt_and_missing_test_cmd_on_stderr(
@@ -1971,7 +1975,6 @@ def test_cli_red_given_a_directory_as_the_issue_spec_file_exits_2_with_nothing_o
     assert (code, out, err != "") == (2, "", True)
 
 
-@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
 def test_cli_develop_refactor_sub_step_1_tells_the_leaf_to_report_a_structural_transform_it_does_not_apply_and_one_outside_the_issues_bounds(
         tmp_path, run_cli, build_develop_prompt):
     code, out, err = run_cli(
@@ -1993,7 +1996,6 @@ def test_cli_develop_refactor_sub_step_1_tells_the_leaf_to_report_a_structural_t
         True, True, True)
 
 
-@pytest.mark.tree_audit("the modules under veri/ and the templates under prompts/")
 def test_cli_develop_replaces_report_names_every_case_in_the_missing_cases_file_points_at_the_report_file_and_asks_for_a_replaces_line_each_and_a_missing_report_or_cases_file_exits_2_with_no_stdout(
         tmp_path, run_cli, build_develop_prompt):
     spec, step, test_cmd = _spec(tmp_path), "QWIXTLE: a seed ending in a newline gains the block", "make test"
