@@ -1,6 +1,9 @@
 """How skills/tdd/SKILL.md's preflight checks launchability, budgets, GitHub, the worktree baseline and the conductor.pid lock, read as text."""
 import pathlib
 import re
+import subprocess
+
+import pytest
 
 import skill_sections
 
@@ -268,3 +271,127 @@ def test_1297_skill_md_captures_and_resets_a_dirty_resume_worktree_before_the_re
     first_use = next((s for s in sentences(whole[enter_at:end]) if PRE_SHA in s), "")
     assert REBASE_CALL in first_use and re.search(r"first (stdout )?line", first_use, re.I), \
         f"step 3 first uses <pre-rebase-sha> without saying it is the rebase's first stdout line: {first_use}"
+
+
+BARE_FORCE_GOVERNED = r"(^|[^A-Za-z])(not|never|no)(\s+[A-Za-z]+){0,3}\s+bare force"
+LEAF_MODEL_CALL = "$S/leaf-model.sh develop-red"
+STATUS_CAPTURE = re.compile(r'="\$\(git status --porcelain\)"')
+FENCE = re.compile(r"^\s*```")
+SCRIPTS = SKILL.parent / "scripts"
+
+
+def test_1297_skill_md_s_preflight_step_3_says_never_a_bare_force_with_the_negation_on_the_bare_force_itself_not_on_another_word_of_the_sentence():
+    whole, enter_at, base_at, begin, end = resume_step3()
+    step3 = sentences(whole[begin:end])
+    assert [s for s in step3 if re.search(BARE_FORCE_GOVERNED, s, re.I)], \
+        "no sentence of preflight step 3 has a not, never or no governing 'bare force'"
+
+
+def test_1485_skill_md_s_preflight_step_6_reads_an_empty_or_whitespace_only_model_variable_as_unset_and_stops_only_on_a_value_with_internal_whitespace():
+    lines = lines_of(PREFLIGHT)
+    at = first(lines, LEAF_MODEL_CALL)
+    assert at is not None, "preflight never calls leaf-model.sh develop-red"
+    item = sentences(item_around(lines, at))
+    assert [s for s in item if re.search("empty", s, re.I) and re.search("whitespace-only", s, re.I)
+            and re.search("unset", s, re.I)], "no sentence of the leaf-model item says an empty or whitespace-only variable is treated as unset"
+    assert [s for s in item if re.search("internal whitespace", s, re.I) and re.search(r"exit 2|stops?", s, re.I)], \
+        "no sentence of the leaf-model item says a value with internal whitespace is what stops the run"
+
+
+def discard_block():
+    whole, enter_at, base_at, begin, end = resume_step3()
+    capture_at = next((i for i in range(enter_at, end) if STATUS_CAPTURE.search(whole[i])), None)
+    assert capture_at is not None, "preflight step 3 has no line capturing git status --porcelain"
+    body = []
+    for line in whole[:capture_at]:
+        body = [] if FENCE.match(line) else body + [line]
+    for line in whole[capture_at:]:
+        if FENCE.match(line):
+            break
+        body.append(line)
+    return "\n".join(body) + "\n"
+
+
+def git(cwd, *args):
+    subprocess.run(["git", "-C", str(cwd), *args], check=True, capture_output=True)
+
+
+def new_repo(path, *args):
+    subprocess.run(["git", "init", "-q", "-b", "main", *args, str(path)], cwd=path.parent, check=True, capture_output=True)
+    if "--bare" not in args:
+        git(path, "config", "user.name", "Test")
+        git(path, "config", "user.email", "test@example.com")
+
+
+def commit_all(path, message):
+    git(path, "add", "-A")
+    git(path, "commit", "-q", "-m", message)
+
+
+def run_discard(wt, tail=""):
+    return subprocess.run(["bash", "-c", discard_block() + tail], cwd=wt, capture_output=True, text=True)
+
+
+@pytest.mark.process("git: a bash-run discard block in a clone, then rebase-onto-default.sh over the default branch's new file")
+def test_1420_skill_md_s_preflight_discard_removes_a_killed_leaf_s_untracked_file_at_a_path_the_default_branch_has_since_added_so_the_resume_rebase_onto_default_sh_exits_0_not_2(tmp_path):
+    origin, seed, wt = tmp_path / "origin.git", tmp_path / "seed", tmp_path / "wt"
+    new_repo(origin, "--bare")
+    new_repo(seed)
+    (seed / "file.txt").write_text("base\n")
+    commit_all(seed, "initial")
+    git(seed, "push", "-q", str(origin), "main")
+    subprocess.run(["git", "clone", "-q", str(origin), str(wt)], cwd=tmp_path, check=True, capture_output=True)
+    git(wt, "config", "user.name", "veri")
+    git(wt, "config", "user.email", "veri@example.test")
+    git(wt, "checkout", "-q", "-b", "tdd/1-a-run")
+    (wt / "work.txt").write_text("the run's work\n")
+    commit_all(wt, "feat: a step's green commit (#1)")
+    (seed / "other.txt").write_text("another run's work\n")
+    commit_all(seed, "feat: another run merged (#2)")
+    git(seed, "push", "-q", str(origin), "main")
+    git(wt, "fetch", "-q", "origin")
+    (wt / "other.txt").write_text("a killed leaf's half-written file\n")
+    run_discard(wt)
+    rebase = subprocess.run(["bash", str(SCRIPTS / REBASE_CALL)], cwd=wt, capture_output=True, text=True)
+    assert rebase.returncode == 0, f"{REBASE_CALL} after the discard block, exit: want 0, got {rebase.returncode} - stderr: {rebase.stderr}"
+
+
+@pytest.mark.process("git: a bash-run discard block in a repository holding an untracked file")
+def test_1420_skill_md_s_preflight_discard_captures_a_killed_leaf_s_untracked_file_in_stray_before_removing_it_so_the_resuming_comment_names_it(tmp_path):
+    wt = tmp_path / "wt"
+    new_repo(wt)
+    (wt / "file.txt").write_text("base\n")
+    commit_all(wt, "initial")
+    (wt / "other.txt").write_text("a killed leaf's half-written file\n")
+    stray_out = tmp_path / "stray.out"
+    run_discard(wt, f'printf \'%s\\n\' "$stray" > "{stray_out}"\n')
+    got = stray_out.read_text() if stray_out.exists() else ""
+    assert "?? other.txt" in got.splitlines(), f"$stray does not list the untracked file: want a line '?? other.txt', got: {got}"
+
+
+@pytest.mark.process("git: a bash-run discard block in a repository whose .gitignore names .tdd/")
+def test_1420_skill_md_s_preflight_discard_never_removes_a_file_gitignore_ignores_so_a_tdd_leaf_log_survives_it(tmp_path):
+    wt = tmp_path / "wt"
+    new_repo(wt)
+    (wt / ".gitignore").write_text(".tdd/\n")
+    commit_all(wt, "initial")
+    (wt / ".tdd").mkdir()
+    (wt / ".tdd" / "issue-1-leaf.log").write_text("a leaf's log\n")
+    run_discard(wt)
+    assert (wt / ".tdd" / "issue-1-leaf.log").is_file(), "the discard block removed the ignored run-state file .tdd/issue-1-leaf.log"
+
+
+@pytest.mark.process("git: a bash-run discard block under the repository's own .tdd ignore patterns")
+def test_1420_skill_md_s_preflight_discard_never_loses_an_untracked_tdd_run_state_file_the_real_gitignore_un_ignores_the_refactor_owed_file_survives_uncaptured(tmp_path):
+    wt = tmp_path / "wt"
+    new_repo(wt)
+    (wt / ".gitignore").write_text(".tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-spec.md\n")
+    (wt / ".tdd").mkdir()
+    (wt / ".tdd" / "issue-1.md").write_text("- [x] step one\n")
+    commit_all(wt, "initial")
+    (wt / ".tdd" / "issue-1-refactor-owed.md").write_text("a refactor the run owes\n")
+    stray_out = tmp_path / "stray.out"
+    run_discard(wt, f'printf \'%s\\n\' "$stray" > "{stray_out}"\n')
+    assert (wt / ".tdd" / "issue-1-refactor-owed.md").is_file(), "the discard block removed the untracked run-state file .tdd/issue-1-refactor-owed.md"
+    got = stray_out.read_text() if stray_out.exists() else ""
+    assert "issue-1-refactor-owed.md" not in got, f"$stray captures the run-state file as a stray: {got}"
