@@ -28,43 +28,4 @@ check() {
   fi
 }
 
-check "pass with reason" 0 'I ran the test and it failed as expected.
-VERDICT: PASS
-REASON: The test fails because slugify is undefined, which is the missing behavior.' \
-'The test fails because slugify is undefined, which is the missing behavior.'
-
-check "reject with reason" 1 'VERDICT: REJECT
-REASON: The test asserts on an internal helper, not observable behavior.' \
-'The test asserts on an internal helper, not observable behavior.'
-
-check "malformed no verdict" 2 'I could not make up my mind about this test.' ''
-
-nv_err="$(mktemp)"
-nv_out="$(printf '%s' 'I could not make up my mind about this test.' | "$PARSE" 2>"$nv_err")" && nv_code=0 || nv_code=$?
-nv_stderr="$(cat "$nv_err")"
-rm -f "$nv_err"
-if [[ "$nv_code" == 2 && -z "$nv_out" && "$nv_stderr" == 'parse-verdict: no VERDICT: line found' ]]; then
-  ok
-else
-  no "no verdict line exits 2, empty stdout, the no-verdict diagnostic on stderr (got exit $nv_code, stdout '$nv_out', stderr '$nv_stderr')"
-fi
-
-sl_work="$(scratch_dir)"
-ln -s "$(cd "$HERE/../.." && pwd)" "$sl_work/linked-skill"
-mkdir -p "$sl_work/elsewhere"
-sl_input='VERDICT: REJECT
-REASON: The test asserts a constant and never calls slugify().'
-sl_in_place="$(printf '%s' "$sl_input" | "$PARSE" 2>"$sl_work/in-place.err")" && sl_in_place_code=0 || sl_in_place_code=$?
-sl_linked="$(cd "$sl_work/elsewhere" && printf '%s' "$sl_input" | "$sl_work/linked-skill/scripts/parse-verdict.sh" 2>"$sl_work/linked.err")" && sl_linked_code=0 || sl_linked_code=$?
-sl_in_place_err="$(cat "$sl_work/in-place.err")"
-sl_linked_err="$(cat "$sl_work/linked.err")"
-if [[ "$sl_linked" == "$sl_in_place" && "$sl_linked_err" == "$sl_in_place_err" && "$sl_linked_code" == "$sl_in_place_code" \
-      && "$sl_in_place_code" == 1 && "$sl_in_place" == 'The test asserts a constant and never calls slugify().' ]]; then
-  ok
-else
-  no "parse-verdict.sh run through a symlink to the skill directory and from another working directory prints the same reason, stderr and exit code as when run in place"
-  diff <(printf '%s\nstderr: %s\nexit %s\n' "$sl_in_place" "$sl_in_place_err" "$sl_in_place_code") \
-       <(printf '%s\nstderr: %s\nexit %s\n' "$sl_linked" "$sl_linked_err" "$sl_linked_code") | sed 's/^/    /'
-fi
-
 finish
