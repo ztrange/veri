@@ -21,20 +21,25 @@ def gh_api(*args):
     return subprocess.run(["gh", "api", *args], stdout=subprocess.PIPE, text=True)
 
 
-def find_open_issue(title):
+def read_pages(url, what, check_exit):
     page = 1
     while True:
-        found = gh_api(f"{ISSUES}?state=open&per_page=100&page={page}")
-        if found.returncode:
-            raise LookupError("open-issue lookup failed")
+        found = gh_api(f"{url}per_page=100&page={page}")
+        if check_exit and found.returncode:
+            raise LookupError(f"{what} failed")
         try:
-            issues = json.loads(found.stdout)
+            items = json.loads(found.stdout)
         except ValueError:
-            raise LookupError("open-issue lookup did not return JSON")
-        match = next((i for i in issues if i["title"] == title), None)
-        if match or len(issues) < 100:
-            return match
+            raise LookupError(f"{what} did not return JSON")
+        yield from items
+        if len(items) < 100:
+            return
         page += 1
+
+
+def find_open_issue(title):
+    issues = read_pages(f"{ISSUES}?state=open&", "open-issue lookup", True)
+    return next((i for i in issues if i["title"] == title), None)
 
 
 def main(argv):
@@ -67,17 +72,10 @@ def main(argv):
         (f"Out-of-scope transforms #{n}'s closing pass did not attempt", out_of_scope)]
     if existing:
         comments_url = f"{ISSUES}/{existing['number']}/comments"
-        comments = []
-        page = 1
-        while True:
-            try:
-                batch = json.loads(gh_api(f"{comments_url}?per_page=100&page={page}").stdout)
-            except ValueError:
-                return fail("the comments read did not return JSON", 2)
-            comments += batch
-            if len(batch) < 100:
-                break
-            page += 1
+        try:
+            comments = list(read_pages(f"{comments_url}?", "the comments read", False))
+        except LookupError as e:
+            return fail(str(e), 2)
         listed = (existing["body"] or "").split("\n")
         for comment in comments:
             listed += comment["body"].split("\n")
