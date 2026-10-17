@@ -1,4 +1,4 @@
 # Plan for #1614 — add-ledger-step.sh's added mark hides a full-suite, human-owed or diff-checked step's kind from ledger-steps.sh
 
-- [x] A step inserted or replaced through add-ledger-step.sh whose text carries ⟦full-suite⟧, ⟦human-owed⟧ or ⟦diff-checked⟧ is read by ledger-steps.sh with that kind (full-suite, human-owed, diff-checked), not as an ordinary step; pinned in-process (small pytest case, no process) for each of the three kinds ⟦criterion 1⟧ ⟂ refactor pending
+- [x] A step inserted or replaced through add-ledger-step.sh whose text carries ⟦full-suite⟧, ⟦human-owed⟧ or ⟦diff-checked⟧ is read by ledger-steps.sh with that kind (full-suite, human-owed, diff-checked), not as an ordinary step; pinned in-process (small pytest case, no process) for each of the three kinds ⟦criterion 1⟧
 - [ ] A step inserted through add-ledger-step.sh whose text carries ⟦full-suite⟧, ⟦human-owed⟧ or ⟦diff-checked⟧ is still read as added: it counts against VERI_STEP_GROWTH exactly as an added step without a kind mark does, so a ledger whose budget is already full of such steps refuses the next insertion (exit 1, filed under ## Owed steps); pinned by a case ⟦criterion 2⟧
