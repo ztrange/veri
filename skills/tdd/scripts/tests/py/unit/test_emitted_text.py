@@ -73,8 +73,8 @@ USAGE = [
 
 # Arguments name a fixture file as {spec}, {bug}, {refactor}, {ledger} or {reason}; {step} and {cmd} are fixed text.
 PROMPTS = [
-    ("1506248839 11014", "build-develop-prompt.sh", ["red", "{spec}", "{step}", "{cmd}"]),
-    ("2640818360 11989", "build-develop-prompt.sh", ["red", "{bug}", "{step}", "{cmd}"]),
+    ("4041389776 11408", "build-develop-prompt.sh", ["red", "{spec}", "{step}", "{cmd}"]),
+    ("1562503940 12383", "build-develop-prompt.sh", ["red", "{bug}", "{step}", "{cmd}"]),
     ("2782414230 7987", "build-develop-prompt.sh", ["green", "{spec}", "{step}", "{cmd}", "t/x.test.sh", "case one", "make unit"]),
     ("1375366543 10142", "build-develop-prompt.sh", ["refactor", "{spec}", "{step}", "{cmd}", "a.sh b.sh"]),
     ("1262112169 6104", "build-develop-prompt.sh", ["cover", "{spec}", "{step}", "{cmd}"]),
