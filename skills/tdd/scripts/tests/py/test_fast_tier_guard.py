@@ -232,6 +232,30 @@ def test_the_guards_command_line_prints_a_planted_offence_by_file_and_line_and_e
     assert (dirty_code, dirty_out.startswith(f"{offender}:4: "), clean_code, clean_out) == (1, True, 0, "")
 
 
+
+def test_a_root_that_is_a_regular_file_is_refused_by_offences_and_by_the_command_line_with_exit_2_naming_the_path(tmp_path, run_cli):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    root = tmp_path / "tier"
+    root.write_text("not a directory\n")
+
+    with pytest.raises(NotADirectoryError):
+        guard.offences(root)
+    code, stdout, stderr = run_cli(guard, [str(root)])
+
+    assert (code, stdout, str(root) in stderr) == (2, "", True)
+
+
+def test_the_guards_command_line_prints_every_offence_by_file_and_line_and_exits_1(tmp_path, run_cli):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    first = tmp_path / "test_a.py"
+    first.write_text("import time\n\ndef test_waits():\n    time.sleep(1)\n")
+    second = tmp_path / "test_b.py"
+    second.write_text("import time\n\n\ndef test_waits():\n    time.sleep(1)\n")
+
+    code, stdout, _ = run_cli(guard, [str(tmp_path)])
+
+    assert (code, [line.split(": ")[0] for line in stdout.splitlines()]) == (1, [f"{first}:4", f"{second}:5"])
+
 def _misplaced(tier):
     """Criterion 1's placement rule over `tier` and its `unit/`, judged against no exemption table."""
     guard = importlib.import_module("veri.fast_tier_guard")
