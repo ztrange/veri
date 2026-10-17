@@ -43,6 +43,13 @@ def worktree_entry(lines):
     return at
 
 
+def baseline_start(lines, enter_at):
+    at = next((i for i in range(enter_at + 1, len(lines))
+               if FAST_CALL in lines[i] or DETACH_START in lines[i]), None)
+    assert at is not None, "no baseline start after the worktree is entered"
+    return at
+
+
 def item_around(lines, at):
     begin = max((i for i in range(at + 1) if re.match(ITEM_RE, lines[i])), default=0)
     end = next((i for i in range(at + 1, len(lines)) if re.match(ITEM_RE, lines[i])), len(lines))
@@ -141,9 +148,7 @@ def test_skill_md_takes_the_worktree_s_dot_tdd_conductor_pid_lock_in_preflight_s
     enter_at = worktree_entry(lines)
     pid_at = first_all(lines, PID_WRITE, PID_VALUE)
     assert pid_at is not None, "no line writes \"$PPID\" to .tdd/conductor.pid"
-    base_at = next((i for i in range(enter_at + 1, len(lines))
-                    if FAST_CALL in lines[i] or DETACH_START in lines[i]), None)
-    assert base_at is not None, "no baseline start after the worktree is entered"
+    base_at = baseline_start(lines, enter_at)
     assert pid_at >= enter_at, "the lock is written before the worktree is entered"
     assert pid_at <= base_at, "the lock is written after the baseline starts"
 
@@ -178,18 +183,14 @@ NEGATION = r"(^|[^A-Za-z])(not|never|no)([^A-Za-z]|$)"
 def rebase_span():
     lines = all_lines()
     enter_at = worktree_entry(lines)
-    base_at = next((i for i in range(enter_at + 1, len(lines))
-                    if FAST_CALL in lines[i] or DETACH_START in lines[i]), None)
-    assert base_at is not None, "no baseline start after the worktree is entered"
+    base_at = baseline_start(lines, enter_at)
     return sentences(lines[enter_at:base_at + 1])
 
 
 def resume_step3():
     whole = all_lines()
     enter_at = worktree_entry(whole)
-    base_at = next((i for i in range(enter_at + 1, len(whole))
-                    if FAST_CALL in whole[i] or DETACH_START in whole[i]), None)
-    assert base_at is not None, "no baseline start after the worktree is entered"
+    base_at = baseline_start(whole, enter_at)
     pre = lines_of(PREFLIGHT)
     offset = whole.index(PREFLIGHT)
     at = enter_at - offset
