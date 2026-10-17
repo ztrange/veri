@@ -3,6 +3,7 @@ import importlib
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -527,3 +528,27 @@ def test_cli_files_no_issue_and_posts_no_comment_when_the_open_refactor_owed_iss
 
     assert result == (0, existing + "\n", "")
     assert filed(calls) == []
+
+
+def test_cli_finds_the_open_refactor_owed_issue_beyond_the_first_page_of_open_issues_and_files_none_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = owed_504(tmp_path)
+    existing = "https://github.com/o/r/issues/142"
+    first_page = [{"number": i, "title": f"Unrelated #{i}", "html_url": f"https://github.com/o/r/issues/{i}", "body": ""}
+                  for i in range(1, 101)]
+    second_page = [{"number": 142, "title": "Refactor owed by #504", "html_url": existing,
+                    "body": f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}\n- {SPLIT}"}]
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            page = re.search(r"[?&]page=(\d+)", line)
+            pages = {None: first_page, "1": first_page, "2": second_page}
+            return 0, json.dumps(pages.get(page and page.group(1), [])), ""
+        return 0, "https://github.com/o/r/issues/143\n", ""
+
+    calls = fake_processes(gh)
+
+    result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    assert result == (0, existing + "\n", "")
+    assert [c for c in calls if "title=" in c] == []
