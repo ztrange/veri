@@ -930,11 +930,14 @@ _OK_RESULT_LINE = "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",
 _RULE_PHRASES = ("signal only processes you started", "by the pid you recorded")
 
 
+def _executable(path, text):
+    path.write_text(text)
+    path.chmod(0o755)
+    return path
+
+
 def _leaf_stub(tmp_path, body):
-    stub = tmp_path / "claude"
-    stub.write_text("#!/bin/sh\n" + body + _OK_RESULT_LINE)
-    stub.chmod(0o755)
-    return stub
+    return _executable(tmp_path / "claude", "#!/bin/sh\n" + body + _OK_RESULT_LINE)
 
 
 @pytest.mark.process("a real stub claude running pkill and killall through the leaf-guard scripts on its PATH")
@@ -946,8 +949,7 @@ def test_cli_refuses_a_leafs_pkill_and_killall_before_they_signal_anything_namin
     tools = tmp_path / "tools"
     tools.mkdir()
     for tool in ("pkill", "killall"):
-        (tools / tool).write_text(f'#!/bin/sh\nprintf "%s\\n" "$*" > "{tmp_path}/{tool}-ran"\n')
-        (tools / tool).chmod(0o755)
+        _executable(tools / tool, f'#!/bin/sh\nprintf "%s\\n" "$*" > "{tmp_path}/{tool}-ran"\n')
     stub = _leaf_stub(tmp_path,
                       "pkill -n -f 'exp-sleep 60' > \"$SIG_DIR/pkill-out\" 2>&1\n"
                       "killall exp-sleep > \"$SIG_DIR/killall-out\" 2>&1\n")
@@ -974,11 +976,9 @@ def test_cli_refuses_a_leafs_kill_of_a_pgrep_substitution_naming_the_rule_while_
     (work / "prompt.txt").write_text("do the step\n")
     tools = tmp_path / "tools"
     tools.mkdir()
-    (tools / "pgrep").write_text(f'#!/bin/sh\nprintf "%s\\n" "$*" >> "{tmp_path}/pgrep-ran"\n')
-    (tools / "pgrep").chmod(0o755)
-    suite = tmp_path / "suite.sh"
-    suite.write_text(f'#!/bin/sh\npgrep -g 0\nprintf "%s\\n" "$?" > "{tmp_path}/suite-exit"\n')
-    suite.chmod(0o755)
+    _executable(tools / "pgrep", f'#!/bin/sh\nprintf "%s\\n" "$*" >> "{tmp_path}/pgrep-ran"\n')
+    _executable(tmp_path / "suite.sh",
+                f'#!/bin/sh\npgrep -g 0\nprintf "%s\\n" "$?" > "{tmp_path}/suite-exit"\n')
     stub = _leaf_stub(tmp_path,
                       "{ kill $(pgrep -f 'exp-sleep 60'); } > \"$PG_DIR/kill-out\" 2>&1\n"
                       "\"$PG_DIR/suite.sh\"\n")
