@@ -207,7 +207,7 @@ fi
 report "$name"
 
 problems=()
-name="no-unit-subprocess.test.sh names a unit-tier suite that runs a script variable right after a shell keyword, if \"\$S\", then \"\$S\" or ! \"\$S\", or through a launcher word, bash \"\$S\" or env A=1 \"\$S\", or a path built from variables, \"\$dir/\$name.sh\", or a glob loop over scripts, for s in \"\$dir\"/*.sh; do \"\$s\"; done, as <suite>:<line> (#1646)"
+name="no-unit-subprocess.test.sh names a unit-tier suite that runs a script variable right after a shell keyword, if \"\$S\", then \"\$S\" or ! \"\$S\", or through a launcher word, bash \"\$S\" or env A=1 \"\$S\", or a path built from variables, \"\$dir/\$name.sh\", or a glob loop over scripts, for s in \"\$dir\"/*.sh; do \"\$s\"; done, or a script copied and then run, cp \"\$S\" \"\$tmp/x.sh\" then \"\$tmp/x.sh\", as <suite>:<line> (#1646)"
 
 FORMS=(
   'if "$STATUS" > /dev/null; then :; fi'
@@ -218,6 +218,7 @@ FORMS=(
   'env A=1 "$STATUS" > /dev/null'
   'dir="$HERE/../.."; name=status; "$dir/$name.sh" > /dev/null'
   'for s in "$HERE/../.."/*.sh; do "$s" > /dev/null; done'
+  'tmp="$HERE"; cp "$STATUS" "$tmp/x.sh"; "$tmp/x.sh" > /dev/null'
 )
 
 if [[ -f "$GUARD_PATH" ]]; then
