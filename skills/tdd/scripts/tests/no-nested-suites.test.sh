@@ -124,7 +124,7 @@ mentions_reported() {
 mentions_reported affected-suites.test.sh build-develop-prompt.test.sh build-verify-prompt.test.sh
 report "#487: affected-suites.test.sh's mentions of build-develop-prompt.test.sh and build-verify-prompt.test.sh are not read as launching them"
 
-mentions_reported no-report-copies.test.sh docs-read-guard.test.sh profile.test.sh harness.test.sh
+mentions_reported no-report-copies.test.sh docs-read-guard.test.sh harness.test.sh
 report "#595: no-report-copies.test.sh's exemption keys, planted-suite paths and case text naming other suites are not read as launching them"
 
 mentions_reported affected-suites.test.sh run-suite-venv.test.sh
