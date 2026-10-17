@@ -1,0 +1,2 @@
+### unreplaced-cases.sh given a step carrying the ⟦replaces-case⟧ mark whose case names replaces_case.parse cannot read (fixture: the .tdd/issue-814.md line-10 step text, whose names are unquoted) exits 2 with exactly one stderr line naming the step and no Python traceback ⟦criterion 1⟧
+- `unreplaced_cases.py:60` and `:63` each spell out the `replaces ` + quote-class regex. Line 63 predates this cycle, so folding the two together is not duplication removal against code this cycle wrote.
