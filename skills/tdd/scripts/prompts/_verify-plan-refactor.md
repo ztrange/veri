@@ -1,5 +1,5 @@
 This issue is a refactor: its spec carries a `## Refactor` section, so each step is one
-Cover → Transform → Verify cycle rather than a Red → Green → Refactor one. Four more checks
+Cover → Transform → Verify cycle rather than a Red → Green → Refactor one. Five more checks
 apply to every step tagged with a criterion:
 
 - REJECT a step that does not name one refactoring — the single transformation, by name, that
@@ -12,3 +12,5 @@ apply to every step tagged with a criterion:
   belongs in the step that makes the code dead.
 - REJECT a refactor-kind plan that holds a ⟦phases: …⟧ step — a rename that tests call is an
   interface change, filed without the `refactor` label.
+- REJECT a refactor-kind plan that holds a step that only edits tests — an issue whose work
+  changes only tests is not refactor-kind; it is planned as ⟦diff-checked⟧ steps.
