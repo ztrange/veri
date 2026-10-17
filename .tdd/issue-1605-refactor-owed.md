@@ -8,3 +8,4 @@
 ### When `git rebase -q <onto>` fails without leaving a rebase in progress, `rebase-onto-default.sh` exits 2 and prints exactly one line on stderr naming the rebase refused without a conflict, a line distinct from every other exit-2 refusal's stderr line (a small in-process case with git faked) ⟦criterion 1⟧
 - test-only | the in-progress and refused-without-conflict cases in test_rebase_onto_default.py repeat the same four-line `fake_git` setup; a shared helper would remove it
 - out-of-scope | the pre-rebase `callers` computation (rebase_onto_default.py:67) duplicates `rebase_in_progress()`, but that code predates this cycle, and the existing tests pin its two-path `rev-parse` fake key
+applied | 19240d075f48a8153bd11c20e3e00f849eac09ad | the unlabelled `return 2` on the stale-ref path (`onto` ≠ ls-remote sha) is left for its own plan step, then it should use `refuse()`
