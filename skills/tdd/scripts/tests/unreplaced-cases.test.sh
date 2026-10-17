@@ -256,4 +256,17 @@ code=0
 expect_eq "$name" "0:" "$code:$(cat "$out")"
 rm -f "$report1" "$report2" "$out"
 
+name="unreplaced-cases.sh counts a REPLACES line with a markdown bullet in front like the same line without it, so a step naming two cases prints nothing and exits 0 (#1660)"
+tree="$(scratch_dir)"; mkdir -p "$tree/tests/py"
+printf 'def test_a():\n    pass\n\n\ndef test_b():\n    pass\n' > "$tree/tests/py/test_x.py"
+report="$(mktemp)"; out="$(mktemp)"
+printf '%s\n' \
+  "- REPLACES: case a => tests/py/test_x.py::test_a" \
+  "* REPLACES: case b => tests/py/test_x.py::test_b" > "$report"
+step="- [ ] x: replaces 'case a', 'case b' in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 2⟧"
+code=0
+(cd "$tree" && "$UNREPLACED" "$step" "$report" > "$out" 2> /dev/null < /dev/null) || code=$?
+expect_eq "$name" "0:" "$code:$(cat "$out")"
+rm -f "$report" "$out"
+
 finish
