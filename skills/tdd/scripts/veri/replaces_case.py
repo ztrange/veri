@@ -9,7 +9,7 @@ _SUITE = re.compile(r" in ([\w./-]+\.test\.sh)")
 
 
 def is_replaces_case_step(step):
-    return REPLACES_MARK in trailing_markers(step)
+    return step.startswith(REPLACES_MARK) or REPLACES_MARK in trailing_markers(step)
 
 
 def parse(step):
