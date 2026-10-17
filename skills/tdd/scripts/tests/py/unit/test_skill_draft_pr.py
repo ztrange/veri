@@ -8,6 +8,7 @@ SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 DRAFT_PR = "### 4. Draft PR"
 RESUME = "## Resume"
 BAILING = "## Bailing"
+GUARDRAILS = "## Guardrails"
 ISSUE = "### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)"
 PLAN = "### 2. Scope & plan → the ledger"
 GREEN = "#### Green — minimum implementation (developer leaf), then verify-green (blind)"
@@ -912,3 +913,164 @@ def test_draft_prs_step_says_the_branchs_own_full_run_and_any_suite_repair_step_
         r"before[^.]*rebase-onto-default[.]sh",
     )
     assert order, "no instruction says the branch's own full run, and any ⟦suite-repair⟧ step it adds, finishes green before rebase-onto-default.sh runs"
+
+
+def test_draft_prs_step_no_longer_calls_the_branchs_own_full_run_the_only_full_suite_run_and_names_the_rebased_tips_run_as_the_extra_run_a_rebase_owes():
+    plain = unmarked(draft_pr_read())
+    problems = []
+    only = first_record(plain, r"only full(-suite)? (gate|run)")
+    if only:
+        problems.append(f"Draft PR step still calls the branch's own full run the only full-suite run: {only[:160]}")
+    extra = first_record(plain, r"rebased tip.s run", re.escape("extra run a rebase owes"), re.escape("replacement"))
+    if not extra:
+        problems.append("no instruction names the rebased tip's run as the extra run a rebase owes, not a replacement for the branch's own")
+    assert not problems, problems
+
+
+def test_draft_prs_step_bails_on_a_red_rebased_tip_with_cause_rebased_tip_red_not_suite_red_after_a_clean_rebase_and_after_a_verified_conflict_resolution_alike():
+    plain = unmarked(draft_pr_read())
+    paths = {
+        "clean": first_record(plain, re.escape("an exit 0"), re.escape("rebased tip"), _word("bail")),
+        "resolved": first_record(plain, re.escape("verify-rebase pass"), re.escape("rebased tip"), _word("bail")),
+    }
+    problems = []
+    for path, record in paths.items():
+        if not record:
+            problems.append(f"no instruction bails on a red rebased tip after a {path} rebase")
+            continue
+        if "rebased-tip-red" not in record:
+            problems.append(f"bails on a red rebased tip after a {path} rebase without naming cause rebased-tip-red: {record[:160]}")
+        if "suite-red" in record:
+            problems.append(f"bails on a red rebased tip after a {path} rebase with cause suite-red: {record[:160]}")
+    assert not problems, problems
+
+
+def test_bail_on_a_red_rebased_tip_runs_git_reset_hard_pre_rebase_sha_before_bailings_push():
+    reset = first_record(
+        unmarked(draft_pr_read()),
+        re.escape("rebased-tip-red"),
+        re.escape("git reset --hard <pre-rebase-sha>"),
+        r"bailing[^.]*push",
+    )
+    assert reset, "no instruction that bails with rebased-tip-red runs git reset --hard <pre-rebase-sha> before Bailing's push"
+
+
+def test_bail_on_a_red_rebased_tip_after_a_verify_rebase_pass_also_runs_git_reset_hard_pre_rebase_sha_before_bailings_push():
+    record = first_record(unmarked(draft_pr_read()), re.escape("only on a verify-rebase pass"), re.escape("rebased-tip-red"))
+    found = re.search(r"only on a verify-rebase pass.*", record)
+    resolved = found.group(0) if found else ""
+    assert "rebased-tip-red" in resolved, "no instruction bails with rebased-tip-red after a verify-rebase PASS"
+    reset = first_record([resolved], re.escape("git reset --hard <pre-rebase-sha>"), r"bailing[^.]*push")
+    assert reset, f"bail on a red rebased tip after a verify-rebase PASS does not run git reset --hard <pre-rebase-sha> before Bailing's push: {resolved[:160]}"
+
+
+def test_bailing_cause_token_list_names_rebased_tip_red_and_classifies_it_as_a_process_failure():
+    token = first_record(_records(_lines(BAILING)), r"^ *- `rebased-tip-red`")
+    assert token, "Bailing cause-token list has no rebased-tip-red entry"
+    assert "**process** failure" in token, f"names rebased-tip-red without classifying it as a **process** failure: {token[:160]}"
+
+
+def test_guardrails_invariant_about_opening_the_pr_says_neither_exactly_once_nor_the_only_full_suite_gate():
+    invariant = first_record(_records(_lines(GUARDRAILS)), re.escape("before you open the pr"))
+    assert invariant, "Guardrails has no invariant about opening the PR to read"
+    problems = [
+        f'Guardrails invariant still says "{phrase}": {invariant[:160]}'
+        for phrase in ("exactly once", "the only full-suite gate")
+        if phrase in invariant
+    ]
+    assert not problems, problems
+
+
+def test_guardrails_invariant_about_opening_the_pr_names_the_branchs_own_full_run_again_after_each_suite_repair_step_and_the_extra_run_on_the_rebased_tip_when_sub_step_1_rebased_the_branch():
+    invariant = first_record(_records(_lines(GUARDRAILS)), re.escape("before you open the pr"))
+    assert invariant, "Guardrails has no invariant about opening the PR to read"
+    problems = []
+    if not first_record([invariant], r"own full(-suite)? (run|gate)"):
+        problems.append(f"invariant never names the branch's own full run: {invariant[:160]}")
+    if not first_record([invariant], re.escape(SUITE_REPAIR_MARK)):
+        problems.append(f"invariant never says the branch's own full run runs again after each {SUITE_REPAIR_MARK} step: {invariant[:160]}")
+    if not first_record([invariant], re.escape("rebased tip"), _word("rebased the branch")):
+        problems.append(f"invariant never names the extra run on the rebased tip when sub-step 1 rebased the branch: {invariant[:160]}")
+    assert not problems, problems
+
+
+def test_draft_prs_step_says_a_conductor_never_re_runs_a_failed_ci_job_a_red_check_goes_to_the_repair_step_or_the_ci_red_bail_and_re_running_a_flake_is_the_operators_decision():
+    rule = first_record(draft_pr_read(), re.escape("gh run rerun"), r"never re-?runs?")
+    assert rule, "Draft PR step never says a conductor does not re-run a failed CI job with gh run rerun"
+    problems = []
+    if not (first_record([rule], re.escape("repair step")) and first_record([rule], re.escape("ci-red"))):
+        problems.append(f"rule does not name the repair step and the ci-red bail as the only answer to a red check: {rule[:160]}")
+    if not first_record([rule], re.escape("operator")):
+        problems.append(f"rule does not leave re-running a known flake to the operator: {rule[:160]}")
+    assert not problems, problems
+
+
+def test_ci_red_bail_names_each_failed_ci_check_every_ci_red_bail_mark_in_the_draft_pr_step_carries_the_failed_checks_names_read_from_the_heads_check_runs_and_bailings_bailed_comment_names_them():
+    draft_pr_read()
+    bails = [line for line in _lines(DRAFT_PR) if "cause=ci-red" in line]
+    problems = []
+    if not bails:
+        problems.append("Draft PR step runs no ci-red bail at all")
+    for bail in bails:
+        fields = [f for f in re.findall(r" [a-z_]+=", bail) if f not in (" cause=", " classification=")]
+        if not (fields and "check-runs" in bail):
+            problems.append(f"ci-red bail mark carries no field naming the failed checks read from the head's check runs: {bail[:200]}")
+    comment = first_record(_records(_lines(BAILING)), re.escape("### ⛔ bailed"), re.escape("ci-red"))
+    if not (comment and first_record([comment], re.escape("check"))):
+        problems.append("### ⛔ Bailed comment never says that a ci-red bail names each CI check that failed")
+    assert not problems, problems
+
+
+def test_draft_prs_step_says_rebase_onto_default_shs_exit_code_decides_the_next_action_so_nothing_after_it_the_rebased_tips_full_run_included_starts_until_it_has_returned_and_never_in_the_same_message():
+    gate = first_record(
+        unmarked(draft_pr_read()),
+        re.escape("rebase-onto-default.sh"),
+        re.escape("exit code"),
+        r"decides?[^.]*next action",
+        re.escape("full"),
+        r"until[^.]*returned",
+        re.escape("same message"),
+    )
+    assert gate, "no instruction says rebase-onto-default.sh's exit code decides the next action, so nothing after it is started until it has returned, and never in the same message as the rebase"
+
+
+def test_1287_draft_prs_sub_step_1_the_one_that_asks_the_two_questions_says_on_its_own_that_rebase_onto_default_shs_exit_code_decides_the_next_action_so_nothing_after_it_the_rebased_tips_full_run_included_starts_until_it_has_returned_and_never_in_the_same_message():
+    draft_pr_read()
+    inside, kept = False, []
+    for line in _lines(DRAFT_PR):
+        if re.match(r" *1\. \*\*", line):
+            inside = True
+        if re.match(r" *2\. \*\*", line):
+            inside = False
+        if inside:
+            kept.append(line)
+    sub_step_1 = unmarked(_records(kept))
+    assert sub_step_1, "Draft PR step has no sub-step 1 (1. **Ask the two questions ...) to read"
+    gate = first_record(
+        sub_step_1,
+        re.escape("rebase-onto-default.sh"),
+        re.escape("exit code"),
+        r"decides?[^.]*next action",
+        re.escape("full"),
+        r"until[^.]*returned",
+        re.escape("same message"),
+    )
+    assert gate, "no instruction of Draft PR sub-step 1 says rebase-onto-default.sh's exit code decides the next action; the CI conflict-rebase copy later in the step does not stand in for it"
+
+
+def test_1613_draft_prs_step_decides_whether_the_ledger_already_holds_a_ci_repair_step_with_ledger_steps_sh_has_mark_ci_repair_never_a_whole_ledger_grep_f_of_the_ci_repair_mark():
+    bails = [c for c in draft_pr_commands() if "cause=ci-red" in c or "no_repair=$?" in c]
+    problems = []
+    if not bails:
+        problems.append("Draft PR step has no command line bailing with cause ci-red")
+    for line in bails:
+        if "ledger-steps.sh has-mark ci-repair" not in line:
+            problems.append(f"a ci-red bail line never asks ledger-steps.sh has-mark ci-repair: {line[:160]}")
+        if "grep -f '\u27e6ci-repair\u27e7'" in line:
+            problems.append(f"a ci-red bail line still greps the whole ledger for {CI_REPAIR_MARK}: {line[:160]}")
+    prose = "\n".join(unmarked(draft_pr()))
+    if "greps for \u27e6ci-repair\u27e7" in prose:
+        problems.append("Draft PR step still says the ci-red bail greps for \u27e6ci-repair\u27e7")
+    if "keys on \u27e6ci-repair\u27e7 only" not in prose:
+        problems.append("Draft PR step no longer says the ci-red bail keys on \u27e6ci-repair\u27e7 only")
+    assert not problems, problems
