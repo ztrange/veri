@@ -53,3 +53,14 @@ def test_section_fails_the_calling_test_naming_the_heading_when_it_matches_only_
         skill_sections.section(skill, "intro")
 
     assert "intro" in str(failure.value)
+
+
+def test_section_of_returns_a_section_whole_when_a_backtick_or_tilde_fence_holds_a_heading_shaped_line_1569():
+    skill_sections = importlib.import_module("skill_sections")
+
+    for fence in ("```", "~~~"):
+        text = f"## Beta\nbefore\n{fence}\n## x\nin fence\n{fence}\nafter\n## Gamma\ngamma body\n"
+
+        beta = skill_sections.section_of(text, "## Beta")
+
+        assert beta == f"## Beta\nbefore\n{fence}\n## x\nin fence\n{fence}\nafter\n", fence

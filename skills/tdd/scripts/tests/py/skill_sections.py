@@ -18,5 +18,16 @@ def section_of(text, heading, skill="the document"):
     start = next((i for i, line in enumerate(lines) if line.rstrip("\n") == heading), None)
     if not level or start is None:
         pytest.fail(f"no section headed {heading!r} in {skill}")
-    end = next((i for i in range(start + 1, len(lines)) if min(2, level) <= _level(lines[i]) <= level), len(lines))
+    fence = None
+    end = len(lines)
+    for i in range(start + 1, len(lines)):
+        stripped = lines[i].lstrip()
+        if fence is None and stripped.startswith(("```", "~~~")):
+            fence = stripped[:3]
+        elif fence is not None:
+            if stripped.startswith(fence):
+                fence = None
+        elif min(2, level) <= _level(lines[i]) <= level:
+            end = i
+            break
     return "".join(lines[start:end])
