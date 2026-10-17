@@ -416,8 +416,12 @@ def test_1702_no_prompt_asking_for_an_affected_run_leaves_the_command_a_placehol
             problems.append("%s's prompt still leaves the affected run's command as a placeholder" % label)
         if not has_line(r"timed-test-run\.sh affected .*make test tests=\"", folded):
             problems.append("%s's prompt never gives make test TESTS=\"<the suites>\" as the affected run's command" % label)
-    for named in ("develop-red", "verify-red", "develop-revise red", "develop-refactor", "develop-cover", "verify-transform",
-                  "develop-expand", "develop-migrate", "develop-contract-a", "develop-contract-b", "develop-transform", "develop-structural"):
+    for named in ("develop-red", "develop-green", "develop-refactor", "develop-cover", "develop-diff", "develop-transform",
+                  "develop-structural", "develop-expand", "develop-migrate", "develop-contract-a", "develop-contract-b",
+                  "develop-revise red", "develop-revise green", "develop-revise refactor", "develop-revise diff",
+                  "develop-revise expand", "develop-revise migrate", "develop-revise contract-a", "develop-revise contract-b",
+                  "verify-red", "verify-green", "verify-refactor", "verify-transform", "verify-diff",
+                  "verify-expand", "verify-migrate", "verify-contract-a", "verify-contract-b"):
         if named not in asking:
             problems.append("%s's prompt renders no affected run, so the roster covers nothing there" % named)
     assert problems == []
