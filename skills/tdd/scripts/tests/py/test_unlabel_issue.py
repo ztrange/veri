@@ -29,3 +29,37 @@ def test_main_1656_removes_the_opt_in_label_so_the_issue_is_unlisted_and_a_label
     bare = unlabel_issue.main(["8"])
 
     assert (carrying, carrying_left, bare, labels["8"], capsys.readouterr().err) == (0, {"bug"}, 0, {"bug"}, "")
+
+
+def _deleting(monkeypatch, answer):
+    """Fake gh: records each DELETE's path and answers it with `answer` (returncode, stderr)."""
+    deleted = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:4] != ["gh", "api", "-X", "DELETE"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        deleted.append(args[4])
+        return subprocess.CompletedProcess(args, answer[0], "", answer[1])
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    return deleted
+
+
+def test_main_1656_removes_the_label_veri_label_names_not_the_default_one(monkeypatch, capsys):
+    unlabel_issue = importlib.import_module("veri.unlabel_issue")
+    monkeypatch.setenv("VERI_LABEL", "veri ok")
+    deleted = _deleting(monkeypatch, (0, ""))
+
+    code = unlabel_issue.main(["7"])
+
+    assert (code, deleted, capsys.readouterr().err) == (0, ["repos/{owner}/{repo}/issues/7/labels/veri%20ok"], "")
+
+
+def test_main_1656_exits_2_and_echoes_gh_when_the_removal_fails_with_anything_but_a_404(monkeypatch, capsys):
+    unlabel_issue = importlib.import_module("veri.unlabel_issue")
+    _deleting(monkeypatch, (1, "gh: Server Error (HTTP 502)\n"))
+
+    code = unlabel_issue.main(["7"])
+
+    assert (code, capsys.readouterr().err) == (2, "gh: Server Error (HTTP 502)\n")
