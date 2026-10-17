@@ -332,6 +332,12 @@ def run_discard(wt, tail=""):
     return subprocess.run(["bash", "-c", discard_block() + tail], cwd=wt, capture_output=True, text=True)
 
 
+def discard_stray(wt, tmp_path):
+    stray_out = tmp_path / "stray.out"
+    run_discard(wt, f'printf \'%s\\n\' "$stray" > "{stray_out}"\n')
+    return stray_out.read_text() if stray_out.exists() else ""
+
+
 @pytest.mark.process("git: a bash-run discard block in a clone, then rebase-onto-default.sh over the default branch's new file")
 def test_1420_skill_md_s_preflight_discard_removes_a_killed_leaf_s_untracked_file_at_a_path_the_default_branch_has_since_added_so_the_resume_rebase_onto_default_sh_exits_0_not_2(tmp_path):
     origin, seed, wt = tmp_path / "origin.git", tmp_path / "seed", tmp_path / "wt"
@@ -363,9 +369,7 @@ def test_1420_skill_md_s_preflight_discard_captures_a_killed_leaf_s_untracked_fi
     (wt / "file.txt").write_text("base\n")
     commit_all(wt, "initial")
     (wt / "other.txt").write_text("a killed leaf's half-written file\n")
-    stray_out = tmp_path / "stray.out"
-    run_discard(wt, f'printf \'%s\\n\' "$stray" > "{stray_out}"\n')
-    got = stray_out.read_text() if stray_out.exists() else ""
+    got = discard_stray(wt, tmp_path)
     assert "?? other.txt" in got.splitlines(), f"$stray does not list the untracked file: want a line '?? other.txt', got: {got}"
 
 
@@ -390,8 +394,6 @@ def test_1420_skill_md_s_preflight_discard_never_loses_an_untracked_tdd_run_stat
     (wt / ".tdd" / "issue-1.md").write_text("- [x] step one\n")
     commit_all(wt, "initial")
     (wt / ".tdd" / "issue-1-refactor-owed.md").write_text("a refactor the run owes\n")
-    stray_out = tmp_path / "stray.out"
-    run_discard(wt, f'printf \'%s\\n\' "$stray" > "{stray_out}"\n')
+    got = discard_stray(wt, tmp_path)
     assert (wt / ".tdd" / "issue-1-refactor-owed.md").is_file(), "the discard block removed the untracked run-state file .tdd/issue-1-refactor-owed.md"
-    got = stray_out.read_text() if stray_out.exists() else ""
     assert "issue-1-refactor-owed.md" not in got, f"$stray captures the run-state file as a stray: {got}"
