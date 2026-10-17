@@ -40,7 +40,9 @@ def claude_paragraphs(text):
 
 
 def idiom():
-    return next((p for p in claude_paragraphs(CLAUDE.read_text()) if p.startswith("a suite whose subject is the docs pipeline")), None)
+    text = next((p for p in claude_paragraphs(CLAUDE.read_text()) if p.startswith("a suite whose subject is the docs pipeline")), None)
+    assert text is not None, "CLAUDE.md has no paragraph opening 'a suite whose subject is the docs pipeline' to read"
+    return text
 
 
 def fast_plus_affected(text, who, why):
@@ -165,7 +167,6 @@ def test_974_skill_md_s_revise_diff_command_line_passes_the_fast_command_and_its
 
 def test_claude_md_s_testing_idiom_paragraph_states_what_runs_per_step_and_per_pr():
     text = idiom()
-    assert text is not None, "CLAUDE.md has no paragraph opening 'a suite whose subject is the docs pipeline' to read"
     problems = fast_plus_affected(text, "CLAUDE.md's Testing idiom paragraph", "develop-green, verify-green and verify-refactor run per step")
     for leaf in ("develop-green", "verify-green", "verify-refactor"):
         if leaf not in text:
@@ -181,7 +182,6 @@ def test_claude_md_s_testing_idiom_paragraph_states_what_runs_per_step_and_per_p
 
 def test_claude_md_s_testing_idiom_paragraph_says_a_revise_leaf_runs_the_tiers_of_the_phase_it_redoes():
     text = idiom()
-    assert text is not None, "CLAUDE.md has no paragraph opening 'a suite whose subject is the docs pipeline' to read"
     problems = []
     if not re.search(r"revise[- ](leaf|leaves)|revise-(red|green|refactor)", text):
         problems.append("CLAUDE.md's Testing idiom paragraph never names the revise leaves")
