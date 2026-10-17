@@ -67,10 +67,17 @@ def main(argv):
         (f"Out-of-scope transforms #{n}'s closing pass did not attempt", out_of_scope)]
     if existing:
         comments_url = f"{ISSUES}/{existing['number']}/comments"
-        try:
-            comments = json.loads(gh_api(comments_url).stdout)
-        except ValueError:
-            return fail("the comments read did not return JSON", 2)
+        comments = []
+        page = 1
+        while True:
+            try:
+                batch = json.loads(gh_api(f"{comments_url}?per_page=100&page={page}").stdout)
+            except ValueError:
+                return fail("the comments read did not return JSON", 2)
+            comments += batch
+            if len(batch) < 100:
+                break
+            page += 1
         listed = existing["body"].split("\n")
         for comment in comments:
             listed += comment["body"].split("\n")
