@@ -464,9 +464,10 @@ def test_skill_md_preflight_runs_leaf_model_for_a_developer_name_and_a_verifier_
         problems.append("no numbered '### … Preflight' section in SKILL.md")
     roles = []
     for line in preflight:
-        for match in re.finditer(r"leaf-model\.sh[ \t\n\r\f\v]+([^ \t\n\r\f\v]*)", line):
+        for match in re.finditer(r"leaf-model\.sh[ \t\n\r\f\v]([^ \t\n\r\f\v]*)", line):
             leaf = re.sub(r"[),;:.]*$", "", match.group(1).replace("`", "").replace('"', "").replace("'", ""))
             if not leaf:
+                problems.append(f"a leaf-model.sh call in the Preflight section names no leaf right after one space: {line.strip()}")
                 continue
             code, out, _ = run_cli(leaf_role, [leaf])
             if code != 0:
