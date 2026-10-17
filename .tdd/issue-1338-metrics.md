@@ -1,0 +1,55 @@
+### 📊 Metrics — issue 1338
+
+Wall time for the issue: 196 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 1 s, excluded from it.
+Steps done: unknown of 4 planned.
+Outcome: the run bailed — unreplaced-cases, a process failure.
+Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
+Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-sonnet-5-5.
+
+#### By phase
+
+| phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| plan | 1 | 1 | 0 | 0 | 21 | 19 | 5 | 10 | 1762 | 223639 | 44822 | 0.22 |
+| red | 1 | 0 | 0 | 0 | 66 | 60 | 10 | 20 | 9191 | 589742 | 62299 | 0.40 |
+| pin | 1 | 1 | 0 | 0 | 21 | 19 | 7 | 12 | 1774 | 274072 | 42190 | 0.21 |
+| replaces-report | 1 | 0 | 0 | 0 | 10 | 7 | 3 | 6 | 1075 | 110905 | 40198 | 0.18 |
+
+#### By model
+
+| role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| verifier | claude-sonnet-5-5 | 2 | 2 | 0 | 0 | 42 | 38 | 12 | 22 | 3536 | 497711 | 87012 | 0.43 |
+| developer | claude-sonnet-5-5 | 2 | 0 | 0 | 0 | 76 | 67 | 13 | 26 | 10266 | 700647 | 102497 | 0.58 |
+
+#### Rework and waste, by phase
+
+| phase | rework wall s | rework $ | waste wall s | waste $ |
+| --- | ---: | ---: | ---: | ---: |
+| plan | 0 | 0.00 | 0 | 0.00 |
+| red | 0 | 0.00 | 66 | 0.40 |
+| pin | 0 | 0.00 | 21 | 0.21 |
+| replaces-report | 0 | 0.00 | 10 | 0.18 |
+| develop-replaces-report | 0 | 0.00 | 0 | 0.00 |
+
+#### By step
+
+| step | attempts | PASS | REJECT | kills | retries | no-verdict | API s | turns | input | output | cache read | cache creation | $ | wall s | revise | refactor | stopped | crossed at | split | kind |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |
+| build-develop-prompt.sh's red, bug-red, unknown-phase, over-budget-refusal and unmarked-green renderings and SKILL.md's Refactor narration are pinned by pytest cases asserting the same exit code, stdout, stderr and files, each driving build-develop-prompt.sh's command-line interface through the run_cli fixture in tests/py/unit/test_build_develop_prompt.py (a SKILL.md case reads that one named file), faking only process boundaries, a case whose assertion depends on real git, a signal, a real child process run through the .sh shim (a symlink run included) or a detach is marked @pytest.mark.process("<boundary>") and every other case is small; no production change, so Red is expected to report the cases already passing, with the pytest cases and every helper they call defined in the test file; a case an existing pytest case already pins is not duplicated, the pairs table naming that case; each REPLACES: line names the bash case exactly as its report line spells it in the suite source, without the parenthesised diagnostic its no call appends: replaces "develop-red carries spec + step + test command verbatim and the AGAINST_UNMODIFIED report line", "an unknown phase with no further arguments exits 2, names the phase on stderr and prints no prompt", "SKILL.md's Refactor narration tells nothing-left-to-tidy from stopped-by-budget and lists the N candidates from the leaf's CANDIDATES: lines", "SKILL.md's Refactor narration bullet names the leaf's CANDIDATES: line itself, not merely somewhere in the section", "develop-red tells a bug's leaf to write the test from Expected, drive it with Steps to reproduce and fail as What happened describes, and tells a leaf with no Bug section none of it", "develop-over-budget refuses a <spent> or <budget> that is not a non-negative decimal number with exit 2, a diagnostic and no prompt, before any template is read", "develop-green for a step not carrying ⟦replaces-case⟧ renders byte-identically to before #671" in skills/tdd/scripts/tests/build-develop-prompt.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧ | 3 | 1 | 0 | 0 | 0 | 0 | 86 | 20 | 38 | 12040 | 974719 | 144687 | 0.80 | unknown | unknown | unknown | unknown |  |  | already-satisfied |
+
+The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
+
+#### Test-command seconds, by tier
+
+| tier | run 1 s | run 2 s |
+| --- | ---: | ---: |
+| affected | 2 |  |
+| target | 0 | 1 |
+
+#### Total
+
+| run | turns | input | output | cache read | cache creation | $ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| total | 25 | 48 | 13802 | 1198358 | 189509 | 1.02 |
