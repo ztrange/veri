@@ -415,7 +415,7 @@ def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_working_d
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     gh = bin_dir / "gh"
-    gh.write_text('#!/bin/sh\npwd -P > "$EXP_GH_PWD"\nprintf \'%s\\n\' "$@" > "$EXP_GH_ARGS"\n'
+    gh.write_text('#!/bin/sh\ncase "$*" in *state=open*) echo "[]"; exit 0;; esac\npwd -P > "$EXP_GH_PWD"\nprintf \'%s\\n\' "$@" > "$EXP_GH_ARGS"\n'
                   f'echo "{URL.rstrip()}"\n')
     gh.chmod(0o755)
     env = dict(os.environ, PATH=f"{bin_dir}:{os.environ['PATH']}",
@@ -678,3 +678,21 @@ def test_cli_exits_2_with_one_stderr_line_naming_the_comments_read_and_posts_not
     assert [c for c in calls if "body=" in c or "title=" in c] == []
     assert (code, out) == (2, "")
     assert err.startswith("refactor-overflow: ") and "comments" in err and err.count("\n") == 1 and err.endswith("\n")
+
+
+def test_cli_exits_2_with_one_stderr_line_naming_the_lookup_and_files_nothing_when_the_open_issue_lookup_is_not_json_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = owed_504(tmp_path)
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            return 0, "<html>502 Bad Gateway</html>", ""
+        return 0, URL, ""
+
+    calls = fake_processes(gh)
+
+    code, out, err = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    assert [c for c in calls if "body=" in c or "title=" in c] == []
+    assert (code, out) == (2, "")
+    assert err.startswith("refactor-overflow: ") and "lookup" in err and err.count("\n") == 1 and err.endswith("\n")
