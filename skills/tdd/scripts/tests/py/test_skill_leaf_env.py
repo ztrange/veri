@@ -1,4 +1,6 @@
 """Cases that run the launch lines skills/tdd/SKILL.md prescribes against a stub `claude`, asking the leaf at the far end what it saw."""
+import collections
+import hashlib
 import json
 import os
 import pathlib
@@ -45,6 +47,7 @@ class Probe:
         (self.stub / "claude").write_text(STUB)
         (self.stub / "claude").chmod(0o755)
         self.problems = []
+        self.launches = []
 
     def problem(self, lineno, line, text):
         self.problems.append(f"{SKILL_MD}:{lineno} {text}:{line}")
@@ -79,7 +82,23 @@ def completion_landed(directory):
     return any((directory / ".tdd").glob("*.exit"))
 
 
-def launched_test_cmd(probe, lineno, line, leaf, launch, *files):
+def note_launch(probe, lineno, line, tree):
+    if "detach-leaf.sh" not in line:
+        return
+    try:
+        ledger = (tree / ".tdd" / f"issue-{SENTINEL_ISSUE}.md").read_text()
+    except OSError:
+        ledger = ""
+    shape = "ticked" if "refactor pending" in ledger else "done" if "[x]" in ledger else "plain"
+    probe.launches.append((lineno, shape, line))
+
+
+def launched_beside(probe, lineno, planter, line):
+    shape = "ticked" if planter is plant_ticked_ledger else "plain"
+    return (lineno, shape, line) in probe.launches
+
+
+def launched_test_cmd(probe, lineno, line, leaf, launch, *files, scripts=SCRIPTS, clock=time.monotonic, sleep=time.sleep):
     directory = probe.run / f"{lineno}-{leaf}"
     (directory / ".tdd").mkdir(parents=True, exist_ok=True)
     (directory / "origin").write_text(f"{lineno}\t{line}\n")
@@ -88,22 +107,23 @@ def launched_test_cmd(probe, lineno, line, leaf, launch, *files):
         ledger.write_text(f"# Plan for #{SENTINEL_ISSUE}\n\n- [x] {SENTINEL_STEP} ⟂ refactor pending\n- [ ] a later step the run has not reached\n")
     else:
         ledger.write_text(f"# Plan for #{SENTINEL_ISSUE}\n\n- [ ] {SENTINEL_STEP}\n")
+    note_launch(probe, lineno, line, directory)
     for name in files:
         if name:
             (directory / name).write_text(f"the {name} this launch names, which the stub never reads\n")
     env = {name: value for name, value in os.environ.items() if name not in ("VERI_TEST_CMD", "VERI_ISSUE", "VERI_STEP")}
-    env.update(S=str(SCRIPTS), CLAUDE_BIN=str(probe.stub / "claude"), SEEN=str(directory / "seen"),
+    env.update(S=str(scripts), CLAUDE_BIN=str(probe.stub / "claude"), SEEN=str(directory / "seen"),
                VERI_STUCK_RETRIES="0", VERI_NO_VERDICT_RETRIES="0", VERI_HEARTBEAT="30", VERI_TIMEOUT="60", VERI_POLL="0.2")
     subprocess.run(["bash", "-c", launch], cwd=directory, env=env, stdin=subprocess.DEVNULL,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     exitfile = directory / ".tdd" / f"{leaf}.exit"
-    deadline = time.monotonic() + 60
+    deadline = clock() + 60
     while not exitfile.exists():
         if launch_over(directory) and completion_landed(directory):
             break
-        if time.monotonic() >= deadline:
+        if clock() >= deadline:
             break
-        time.sleep(0.2)
+        sleep(0.2)
     try:
         answer = (directory / "seen").read_text()
     except OSError:
@@ -126,8 +146,8 @@ def scan_launches(probe, pattern, shape, check):
         check(probe, lineno, line, launch)
 
 
-def expect_sentinel(probe, lineno, line, leaf, launch, *files):
-    got = launched_test_cmd(probe, lineno, line, leaf, launch, *files).rstrip("\n")
+def expect_sentinel(probe, lineno, line, leaf, launch, *files, **kwargs):
+    got = launched_test_cmd(probe, lineno, line, leaf, launch, *files, **kwargs).rstrip("\n")
     if got != SENTINEL:
         probe.problem(lineno, line, f"launches {leaf}, whose leaf saw VERI_TEST_CMD={got}, want {SENTINEL}")
 
@@ -315,17 +335,18 @@ def flat(err):
     return err.replace("\n", "")
 
 
-def numbered_lines(pattern):
-    return [(n, line) for n, line in enumerate(SKILL.read_text().split("\n"), 1) if re.search(pattern, line)]
+def numbered_lines(pattern, text=None):
+    text = SKILL.read_text() if text is None else text
+    return [(n, line) for n, line in enumerate(text.split("\n"), 1) if re.search(pattern, line)]
 
 
 def supervise_arg(text):
     return re.sub(r".*supervise\.sh +([^ ]+).*", r"\1", text)
 
 
-def scan_step_title(probe, title=APOSTROPHE_STEP, tag="step-title", leaf="develop-red", planter=plant_ledger):
+def scan_step_title(probe, title=APOSTROPHE_STEP, tag="step-title", leaf="develop-red", planter=plant_ledger, text=None):
     pattern = r"\$S/detach-leaf\.sh .*\$S/supervise\.sh " + leaf + r" \$S/run-leaf\.sh"
-    hits = numbered_lines(pattern)[:1]
+    hits = numbered_lines(pattern, text)[:1]
     if not hits:
         probe.problems.append(f"{SKILL_MD} has no line launching {leaf} through supervise.sh into run-leaf.sh — the launch this case is about could not be found")
         return
@@ -334,9 +355,12 @@ def scan_step_title(probe, title=APOSTROPHE_STEP, tag="step-title", leaf="develo
     if launch is None:
         probe.problem(lineno, line, "names a placeholder this probe cannot supply, so its launch could not be run")
         return
+    if launched_beside(probe, lineno, planter, line):
+        return
     stage, seen, tree = stage_recorder(probe, tag)
     (tree / ".tdd" / f"{leaf}.prompt").write_text("the prompt this launch names, which the recorder never reads\n")
     planter(tree, title)
+    note_launch(probe, lineno, line, tree)
     err, got, _ = run_staged(stage, seen, tree, launch, "<no leaf was launched>")
     if got != title:
         probe.problem(lineno, line, f"launched with the step title <{title}>, whose leaf saw VERI_STEP=<{got}> (the launching shell said: {flat(err)})")
@@ -1086,3 +1110,225 @@ def test_753_the_general_verifier_launch_shape_and_the_revise_loops_re_verify_li
     scan_phase_verifiers_last_done(probe)
 
     assert probe.problems == []
+
+
+ANSWER_CEILING = 15
+
+LATE_COMPLETION_DETACH = """#!/bin/sh
+printf '%s\\n' "${VERI_TEST_CMD-<unset>}" > "$SEEN"
+printf '%s\\n' "$$" > ".tdd/$2.pid"
+( sleep 1; printf '0\\n' > ".tdd/$2.exit" ) </dev/null >/dev/null 2>&1 &
+"""
+
+NAMING_FIXTURE = (
+    "VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh fixture-good-1 $S/run-leaf.sh .tdd/fixture-good-1.prompt",
+    "VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh fixture-bad $S/run-leaf.sh .tdd/fixture-bad.prompt",
+    "VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh fixture-good-2 $S/run-leaf.sh .tdd/fixture-good-2.prompt",
+)
+
+
+def only_complaint_about(probe, needle, asked):
+    got = list(probe.problems)
+    probe.problems.clear()
+    if len(got) != 1 or needle not in got[0]:
+        probe.problems.append(f"{asked} reported: {' '.join(got) or '<nothing>'}")
+
+
+def developer_launch_fixture(probe, tag):
+    lineno = f"{tag}-1"
+    leaf = f"fixture-{tag}"
+    prompt = f".tdd/{leaf}.prompt"
+    line = f"VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh {leaf} $S/run-leaf.sh {prompt}"
+    launch = runnable(line)
+    assert launch is not None, f"the {tag} fixture names a placeholder this probe cannot supply"
+    return lineno, line, launch, leaf, prompt
+
+
+def late_stage(probe, tag, script):
+    stage = probe.root / f"{tag}-scripts"
+    stage.mkdir()
+    write_executable(stage / "detach-leaf.sh", script)
+    return stage
+
+
+def scripts_fingerprint():
+    found = {}
+    paths = list(SCRIPTS.glob("*.sh")) + [p for sub in ("lib", "prompts") for p in (SCRIPTS / sub).rglob("*")]
+    for path in sorted(paths):
+        if path.is_file() and not path.is_symlink():
+            found[str(path.relative_to(SCRIPTS))] = hashlib.sha256(path.read_bytes()).hexdigest()
+    return found
+
+
+def scan_reverted_step_title(probe):
+    scan_step_title(probe, EXPANDING_STEP, "reverted-431-as-is")
+    if probe.problems:
+        probe.problems[:] = ["the document's own develop-red line already fails the probe, so its #431 revert shows nothing: " + " ".join(probe.problems)]
+        return
+    lines = SKILL.read_text().split("\n")
+    n = numbered_lines(r"\$S/supervise\.sh develop-red \$S/run-leaf\.sh")[0][0]
+    lines[n - 1] = re.sub(r"VERI_STEP=.* \$S/detach-leaf\.sh", lambda _: 'VERI_STEP="<STEP>" $S/detach-leaf.sh', lines[n - 1], count=1)
+    scan_step_title(probe, EXPANDING_STEP, "reverted-431", text="\n".join(lines))
+    only_complaint_about(probe, "whose leaf saw VERI_STEP=", "the develop-red line put back to #431's hand-typed VERI_STEP=\"<STEP>\"")
+
+
+@pytest.mark.process("SKILL.md launch line through supervise.sh")
+@pytest.mark.timeout(120)
+def test_a_single_broken_launch_line_is_reported_by_name_alone_while_unrelated_lines_report_nothing(probe):
+    for i, line in enumerate(NAMING_FIXTURE, 1):
+        launch = runnable(line)
+        assert launch is not None
+        check_developer_launch(probe, f"fixture-naming-{i}", line, launch)
+    only_complaint_about(probe, "fixture-bad", "the fixture's three launches (only the middle one broken)")
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("the problem line a probe reports a launch line's failure by")
+def test_report_s_fail_line_its_indented_problem_line_and_the_count_line_keep_their_shape(probe):
+    probe.problem("999", "sample line text", "sample problem")
+
+    assert probe.problems == ["skills/tdd/SKILL.md:999 sample problem:sample line text"]
+
+
+@pytest.mark.process("SKILL.md launch line through supervise.sh")
+@pytest.mark.timeout(120)
+def test_a_launch_writing_no_completion_file_under_the_derived_leaf_name_is_reported_naming_that_line(probe):
+    lineno, line, launch, leaf, prompt = developer_launch_fixture(probe, "wrong-leaf-name")
+    expect_sentinel(probe, lineno, line, f"{leaf}-no-such-leaf", launch, prompt)
+    only_complaint_about(probe, line, "a launch whose leaf name no completion file is written under")
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md launch line through supervise.sh")
+@pytest.mark.timeout(120)
+def test_a_derived_leaf_name_no_launch_writes_is_answered_once_its_supervisor_is_gone_not_at_the_end_of_the_wait_budget(probe):
+    lineno, line, launch, leaf, prompt = developer_launch_fixture(probe, "answer-latency")
+    started = time.monotonic()
+    launched_test_cmd(probe, lineno, line, f"{leaf}-no-such-leaf", launch, prompt)
+    elapsed = time.monotonic() - started
+    if elapsed >= ANSWER_CEILING:
+        probe.problems.append(f"a launch whose derived leaf name no completion file is written under was answered after {int(elapsed)}s, want under {ANSWER_CEILING}s: the wait ran on past the supervisor that had already exited")
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("the stage of linked scripts SKILL.md launch lines run against")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+def test_a_stage_reaches_every_script_it_does_not_replace_by_a_link_to_the_script_under_test_never_a_copy(probe):
+    stage, _, _ = stage_recorder(probe, "stage-links")
+    for script in sorted(SCRIPTS.glob("*.sh")) + sorted((SCRIPTS / "lib").glob("*")):
+        name = str(script.relative_to(SCRIPTS))
+        if name == "detach-leaf.sh":
+            continue
+        if not ((stage / name).exists() and os.path.samefile(stage / name, script)):
+            probe.problems.append(f"the stage reaches {name} by a copy, want a link to {script}")
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("the stage of linked scripts SKILL.md launch lines run against")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+def test_each_distinct_recorder_is_written_once_per_suite_run_and_every_stage_reaches_it_by_a_link_its_per_stage_difference_only_seen(probe):
+    titled = ("event", "build-develop-prompt")
+    first = None
+    for tag in ("a", "b"):
+        stage, _, tree = stage_recorder(probe, f"shared-recorders-{tag}")
+        stage_title_recorders(probe, stage, *titled)
+        first = first or stage
+    for name in ("detach-leaf", *titled):
+        if not ((first / f"{name}.sh").is_symlink() and (stage / f"{name}.sh").is_symlink()):
+            probe.problems.append(f"{name}.sh: a stage holds its own recorder, want a link to the one written once per suite run")
+        if not os.path.samefile(first / f"{name}.sh", stage / f"{name}.sh"):
+            probe.problems.append(f"{name}.sh: two stages reach different recorders, want both linked to one")
+        if os.path.samefile(stage / f"{name}.sh", SCRIPTS / f"{name}.sh"):
+            probe.problems.append(f"{name}.sh: the stage reaches the script under test, want the recorder")
+        text = (stage / f"{name}.sh").read_text()
+        if "$SEEN" not in text or str(first) in text or str(stage) in text:
+            probe.problems.append(f"{name}.sh: the recorder differs per stage by more than $SEEN")
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md launch line through detach-leaf.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(120)
+def test_the_step_title_probe_with_one_title_carrying_a_dollar_sign_a_backtick_and_a_double_quote_goes_red_on_a_launch_line_put_back_to_431_s_hand_typed_double_quotes_437(probe):
+    scan_reverted_step_title(probe)
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md launch line through supervise.sh")
+@pytest.mark.timeout(120)
+def test_a_launch_whose_completion_file_lands_after_its_last_recorded_pid_has_exited_is_reported_by_what_its_leaf_saw_457(probe):
+    lineno, line, launch, leaf, prompt = developer_launch_fixture(probe, "late-completion")
+    stage = late_stage(probe, "late-completion", LATE_COMPLETION_DETACH)
+    expect_sentinel(probe, lineno, line, leaf, launch, prompt, scripts=stage)
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md launch line through supervise.sh")
+@pytest.mark.timeout(120)
+def test_a_launch_whose_leaf_name_no_completion_file_is_written_under_is_still_reported_as_a_naming_fault_well_inside_the_wait_budget_when_its_own_file_lands_late_457(probe):
+    lineno, line, launch, leaf, prompt = developer_launch_fixture(probe, "late-wrong-leaf-name")
+    stage = late_stage(probe, "late-wrong-leaf-name", LATE_COMPLETION_DETACH)
+    want = f"<no completion file under leaf {leaf}-no-such-leaf>"
+    started = time.monotonic()
+    got = launched_test_cmd(probe, lineno, line, f"{leaf}-no-such-leaf", launch, prompt, scripts=stage)
+    elapsed = time.monotonic() - started
+    if got != want or elapsed >= ANSWER_CEILING:
+        probe.problem(lineno, line, f"launches under a leaf name no completion file is written under, reported as <{got}> after {int(elapsed)}s, want <{want}> under {ANSWER_CEILING}s")
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md launch line through a detach-leaf.sh that reaches no supervisor")
+@pytest.mark.timeout(120)
+def test_a_launch_line_that_reaches_no_supervisor_at_all_is_reported_as_no_leaf_ran_457(probe):
+    lineno, line, launch, leaf, prompt = developer_launch_fixture(probe, "no-leaf-ran")
+    stage = late_stage(probe, "no-leaf-ran", "#!/bin/sh\nexit 0\n")
+    now = [0.0]
+
+    def jump(_seconds):
+        now[0] += 3600
+
+    got = launched_test_cmd(probe, lineno, line, leaf, launch, prompt, scripts=stage, clock=lambda: now[0], sleep=jump)
+    if got != "<no leaf ran>":
+        probe.problem(lineno, line, f"launches nothing, reported as <{got}>, want <no leaf ran>")
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md launch lines through supervise.sh and detach-leaf.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(600)
+def test_no_launch_line_in_skill_md_is_launched_more_than_once_per_ledger_shape_the_suite_plants(probe):
+    run_developer_launches(probe)
+    scan_step_title(probe, EXPANDING_STEP, "record-develop-red")
+    scan_step_title(probe, EXPANDING_STEP, "record-develop-refactor", leaf="develop-refactor", planter=plant_ticked_ledger)
+    probe.problems.clear()
+    if not probe.launches:
+        probe.problems.append("no launch was recorded")
+    for (lineno, shape, line), count in collections.Counter(probe.launches).items():
+        if count > 1:
+            probe.problem(lineno, line, f"launched {count} times beside a ledger of shape {shape}, want at most once")
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md launch line through detach-leaf.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(120)
+def test_a_recorder_replaces_a_stage_s_link_rather_than_writing_through_it_so_the_suite_leaves_every_script_under_skills_tdd_scripts_byte_identical(probe):
+    before = scripts_fingerprint()
+    stage, _, _ = stage_recorder(probe, "untouched")
+    stage_title_recorders(probe, stage, "event", "build-develop-prompt")
+    scan_step_title(probe, EXPANDING_STEP, "untouched-run")
+    after = scripts_fingerprint()
+    for name in sorted(name for name in before.keys() | after.keys() if before.get(name) != after.get(name)):
+        probe.problems.append(f"{name} changed while the suite ran, want every script under test byte-identical")
+
+    assert before and probe.problems == []
