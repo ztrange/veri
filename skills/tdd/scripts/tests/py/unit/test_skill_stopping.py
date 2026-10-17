@@ -192,11 +192,12 @@ def test_stopping_section_ends_the_run_with_stop_requested_clear_opening_no_pr_r
 
 def test_script_reference_list_has_an_entry_for_stop_requested_saying_what_it_prints_and_which_exit_codes_it_answers_with():
     entry, in_entry, problems = [], False, []
-    for line in _section(SCRIPTS):
-        if line.startswith("- $s/"):
-            in_entry = line.startswith("- $s/stop-requested.sh")
+    raw = importlib.import_module("skill_sections").section(SKILL, SCRIPTS).split("\n")[1:]
+    for line in raw:
+        if line.startswith("- `$S/"):
+            in_entry = line.startswith("- `$S/stop-requested.sh")
         if in_entry:
-            entry.append(line)
+            entry.append(_plain(line))
     if not "".join(entry).strip():
         problems.append("the script reference list has no $S/stop-requested.sh entry")
     else:

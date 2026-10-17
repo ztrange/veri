@@ -8,6 +8,7 @@ Contract under test:
   final `✅ Done` comment; SKILL.md's `## Bailing` section commits the same file on the
   pushed branch and puts the block on the `⛔ Bailed` comment.
 """
+import ast
 import importlib
 import pathlib
 import re
@@ -284,13 +285,44 @@ def test_skill_metrics_pytest_file_header_comment_states_the_draft_pr_order_pull
     assert not problems, "\n".join(problems)
 
 
+_COMMIT_NEEDLES = ("metrics:", "METRICS_COMMIT", "git commit")
+_PR_NEEDLES = ("gh pr create", "PR_READ", "pulls?head=")
+
+
+def _record_needles(call):
+    if not (isinstance(call, ast.Call) and isinstance(call.func, ast.Name) and call.func.id == "_first_record"):
+        return None
+    return [a.value if isinstance(a, ast.Constant) else ast.unparse(a) for a in call.args[1:]]
+
+
+def _record_level_commit_before_pr_compares(src):
+    found = []
+    for fn in ast.walk(ast.parse(src)):
+        if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        needles = {}
+        for node in ast.walk(fn):
+            if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                got = _record_needles(node.value)
+                if got is not None:
+                    needles[node.targets[0].id] = " ".join(str(n) for n in got)
+        for node in ast.walk(fn):
+            if not isinstance(node, ast.Compare) or not any(isinstance(op, (ast.Gt, ast.GtE, ast.Lt, ast.LtE)) for op in node.ops):
+                continue
+            sides = [needles.get(o.id) if isinstance(o, ast.Name) else (" ".join(str(n) for n in _record_needles(o) or []) or None)
+                     for o in [node.left, *node.comparators]]
+            sides = [t for t in sides if t]
+            if any(c in t for t in sides for c in _COMMIT_NEEDLES) and any(r in t for t in sides for r in _PR_NEEDLES):
+                found.append(node.lineno)
+    return found
+
+
 def test_skill_metrics_pytest_file_carries_no_record_level_commit_before_pr_comparison_which_records_folding_makes_dead():
     problems = []
     src = pathlib.Path(__file__).read_text()
-    dead_compare = "".join(['commit_line" ', "-gt", ' "$pr_line'])
     dead_comment = "".join(["lands ", "BEFORE", " the PR is opened"])
-    if dead_compare in src:
-        problems.append("test_skill_metrics.py compares the metrics commit's record number against gh pr create's with a greater-than, but the records fold both into the same record, so the check cannot fail")
+    for lineno in _record_level_commit_before_pr_compares(src):
+        problems.append(f"test_skill_metrics.py:{lineno} compares the metrics commit's record number against the PR's with an ordering operator, but the records fold both into the same record, so the check cannot fail")
     if dead_comment in src:
         problems.append("test_skill_metrics.py still carries the comment claiming a record-level probe catches a metrics commit made after the PR is opened")
     assert not problems, "\n".join(problems)

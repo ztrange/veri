@@ -18,5 +18,5 @@ def section_of(text, heading, skill="the document"):
     start = next((i for i, line in enumerate(lines) if line.rstrip("\n") == heading), None)
     if not level or start is None:
         pytest.fail(f"no section headed {heading!r} in {skill}")
-    end = next((i for i in range(start + 1, len(lines)) if 0 < _level(lines[i]) <= level), len(lines))
+    end = next((i for i in range(start + 1, len(lines)) if min(2, level) <= _level(lines[i]) <= level), len(lines))
     return "".join(lines[start:end])

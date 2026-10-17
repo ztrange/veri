@@ -125,7 +125,7 @@ def draft_pr_commands():
 
 
 def test_draft_prs_step_readies_the_pr_against_the_already_pushed_branch_with_no_push_of_its_own():
-    pushes = first_record(draft_pr(), re.escape("git push"))
+    pushes = first_record(draft_pr_read(), re.escape("git push"))
     assert not pushes, f"Draft PR step still pushes the branch itself: {pushes[:120]}"
 
 
@@ -702,10 +702,11 @@ def test_1431_draft_prs_step_metrics_push_block_bails_ci_red_on_a_red_ci_only_wh
                 if waited:
                     break
                 continue
+            if re.match(WAIT_CI_RUN, c):
+                waited = True
+                continue
             if waited:
                 after_wait.append(c)
-            elif re.match(WAIT_CI_RUN, c):
-                waited = True
         guard_at = next(
             (
                 n for n, c in enumerate(after_wait, 1)

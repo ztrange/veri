@@ -10,6 +10,7 @@ import importlib
 import pathlib
 import re
 import subprocess
+import sys
 
 import pytest
 
@@ -334,14 +335,25 @@ def test_skill_md_over_budget_exit_3_branch_writes_no_event_mark_beyond_the_cros
     assert not problems, "\n".join(problems)
 
 
-def test_the_exit_3_case_still_names_a_mark_planted_in_the_exit_3_branch_by_its_line():
+def test_the_exit_3_case_still_names_a_mark_planted_in_the_exit_3_branch_by_its_line(tmp_path, monkeypatch):
     start, lines = _cost_check()
     carry_at = _exit_bullet_after(start, lines, start, 3)
     assert carry_at, "SKILL.md's cost check has no `- **exit 3` branch — where to plant a mark could not be read"
     planted_at = carry_at + 1
     planted = "  run `$S/event.sh step-not-split` before carrying on."
-    planted_lines = lines[:carry_at - start + 1] + [planted] + lines[carry_at - start + 1:]
-    named = "\n".join(_exit_3_problems(start, planted_lines))
+    file_lines = SKILL.read_text().split("\n")
+    fixture = tmp_path / "SKILL.md"
+    fixture.write_text("\n".join(file_lines[:carry_at] + [planted] + file_lines[carry_at:]))
+    assert fixture.read_text().split("\n")[planted_at - 1] == planted, (
+        f"the fixture does not carry the planted mark at line {planted_at}, so what the exit 3 case names could not be asked")
+    with monkeypatch.context() as m:
+        m.setattr(sys.modules[__name__], "SKILL", fixture)
+        try:
+            test_skill_md_over_budget_exit_3_branch_writes_no_event_mark_beyond_the_crossings_step_over_budget()
+        except AssertionError as failed:
+            named = str(failed)
+        else:
+            named = ""
     assert f"SKILL.md:{planted_at}" in named, (
         f"the exit 3 case did not name a mark planted in the exit 3 branch at SKILL.md:{planted_at}; it filed: {named or 'nothing'}")
 

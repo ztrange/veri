@@ -384,18 +384,23 @@ cat "$HERE/../../SKILL.md" > "$repo/skills/tdd/SKILL.md"
 while IFS= read -r suite; do
   cat "$suite" > "$repo/${suite#"$HERE/../../../../"}"
 done < <(grep -lE '"skills/tdd/SKILL\.md"|/skills/tdd/SKILL\.md"' "$HERE/../../../../skills/tdd/scripts/tests/"*.test.sh "$HERE/../../../../skills/tdd/scripts/tests/unit/"*.test.sh)
+mkdir -p "$s/tests/py/unit"
+while IFS= read -r suite; do
+  cat "$suite" > "$repo/${suite#"$HERE/../../../../"}"
+done < <(grep -lF 'SKILL.md' "$HERE/../../../../skills/tdd/scripts/tests/py/"test_*.py "$HERE/../../../../skills/tdd/scripts/tests/py/unit/"test_*.py)
 commit_base
 real_wrong=""
+suite_path() { if [[ "$1" == *.py ]]; then printf '%s' "$1"; else printf '%s.test.sh' "$1"; fi; }
 real_edit() {
   local label="$1" want="$2" unwanted="$3" out code suite
   commit_head
   out="$(run_affected 2>/dev/null)"; code=$?
   [[ "$code" == 0 ]] || real_wrong+=" $label(code=$code)"
   for suite in $want; do
-    grep -qxF "skills/tdd/scripts/tests/$suite.test.sh" <<< "$out" || real_wrong+=" $label: $suite not selected;"
+    grep -qxF "skills/tdd/scripts/tests/$(suite_path "$suite")" <<< "$out" || real_wrong+=" $label: $suite not selected;"
   done
   for suite in $unwanted; do
-    grep -qxF "skills/tdd/scripts/tests/$suite.test.sh" <<< "$out" && real_wrong+=" $label: $suite selected;"
+    grep -qxF "skills/tdd/scripts/tests/$(suite_path "$suite")" <<< "$out" && real_wrong+=" $label: $suite selected;"
   done
   mv "$work/SKILL.md.orig" "$repo/skills/tdd/SKILL.md"
   commit_base
@@ -408,21 +413,21 @@ edit_below() {
 }
 cat "$repo/skills/tdd/SKILL.md" > "$work/SKILL.md.orig"
 sed '/^- `\$S\/stop-requested\.sh/s/stop-requested\.sh/stop-asked.sh/' "$work/SKILL.md.orig" > "$repo/skills/tdd/SKILL.md"
-real_edit "stop-requested.sh renamed in ## The scripts" "affected-suites" ""
+real_edit "stop-requested.sh renamed in ## The scripts" "py/unit/test_skill_stopping.py affected-suites" ""
 edit_below '### 2c. Verify the plan (blind)'
 real_edit "### 2c. Verify the plan (blind)" "" ""
 edit_below '### 3. The cycle loop'
-real_edit "### 3. The cycle loop" "" ""
+real_edit "### 3. The cycle loop" "py/unit/test_skill_draft_pr.py" ""
 edit_below '## Revising on a REJECT'
 real_edit "## Revising on a REJECT" "" ""
 edit_below '## Stopping'
-real_edit "## Stopping" "" ""
+real_edit "## Stopping" py/unit/test_skill_stopping.py ""
 edit_below '## Bailing'
-real_edit "## Bailing" "" ""
+real_edit "## Bailing" py/unit/test_skill_metrics.py ""
 edit_below '## Resume'
 real_edit "## Resume" "" ""
 edit_below '### 4. Draft PR'
-real_edit "### 4. Draft PR" "" ""
+real_edit "### 4. Draft PR" py/unit/test_skill_metrics.py ""
 if [[ -z "$real_wrong" ]]; then ok; else
   no "on the real SKILL.md and suites, a one-section edit selects the suites reading that section through a slicing helper and every suite reading SKILL.md any other way, and not a suite slicing only other sections:$real_wrong"
 fi
