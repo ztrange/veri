@@ -551,6 +551,301 @@ def scan_prompt_titles(probe):
             probe.problem(lineno, cmd, f"passes {script}.sh <{title}>, which arrived as {first} beside every ledger state")
 
 
+def plant_every_step_ticked_ledger(tree, title):
+    write_ledger(tree, f"- [x] an earlier step the run finished\n- [x] {title}\n")
+
+
+def first_line(pattern):
+    hits = numbered_lines(pattern)[:1]
+    return hits[0] if hits else (None, None)
+
+
+def no_launch(probe, shape):
+    probe.problems.append(f"{SKILL_MD} has no line launching {shape} — the launch this case is about could not be found")
+
+
+def take_line(probe, lineno, line, title):
+    launch = runnable(line, title)
+    if launch is None:
+        probe.problem(lineno, line, "names a placeholder this probe cannot supply, so its launch could not be run")
+    return launch
+
+
+def clear_seen(seen):
+    seen.unlink(missing_ok=True)
+    for path in seen.parent.glob(seen.name + ".*"):
+        path.unlink()
+
+
+def prompt_step_arg(seen):
+    rec = recorded_arguments(seen, "build-develop-prompt") or []
+    for k in range(1, len(rec) - 1):
+        if rec[k].endswith("-spec.md"):
+            return rec[k + 1]
+    return "<no step argument>"
+
+
+def mark_step(seen):
+    try:
+        return pathlib.Path(f"{seen}.event").read_text().split("\n")[0]
+    except OSError:
+        return "<no mark was made>"
+
+
+def scan_rebase_verifier_last_done(probe, tag, by_env):
+    title = EXPANDING_STEP
+    lineno, line = first_line(r"\$S/detach-leaf\.sh .*\$S/supervise\.sh verdict-rebase \$S/run-verdict\.sh")
+    if lineno is None:
+        no_launch(probe, "verdict-rebase through supervise.sh into run-verdict.sh")
+        return
+    launch = take_line(probe, lineno, line, title)
+    if launch is None:
+        return
+    stage, seen, tree = stage_recorder(probe, tag)
+    plant_every_step_ticked_ledger(tree, title)
+    err, got, argv = run_staged(stage, seen, tree, launch, "<no verifier was launched>")
+    if by_env and got != title:
+        probe.problem(lineno, line, f"launched verdict-rebase beside a ledger with every step ticked, whose verifier saw VERI_STEP=<{got}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
+    if not by_env and argv != title:
+        probe.problem(lineno, line, f"launched verdict-rebase beside a ledger with every step ticked, whose verifier was handed --step <{argv}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
+
+
+def scan_develop_last_done(probe, phase):
+    title = EXPANDING_STEP
+    stage, seen, tree = stage_recorder(probe, f"develop-{phase}-last-done")
+    stage_title_recorders(probe, stage, "build-develop-prompt")
+    plant_every_step_ticked_ledger(tree, title)
+    lineno, line = first_line(rf"\$S/build-develop-prompt\.sh {phase} .*> \.tdd/develop-{phase}\.prompt")
+    if lineno is None:
+        no_launch(probe, f"build-develop-prompt.sh {phase} into .tdd/develop-{phase}.prompt")
+    else:
+        line = line.replace("<branch>", "tdd/probe-branch").replace("<remote-sha>", "0123abc")
+        launch = take_line(probe, lineno, line, title)
+        if launch is not None:
+            err, _, _ = run_staged(stage, seen, tree, launch, "<no prompt was built>")
+            want = prompt_step_arg(seen)
+            if want != title:
+                probe.problem(lineno, line, f"built the develop-{phase} prompt beside a ledger with every step ticked, passing build-develop-prompt.sh the step <{want}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
+    lineno, line = first_line(rf"\$S/detach-leaf\.sh .*\$S/supervise\.sh develop-{phase} \$S/run-leaf\.sh")
+    if lineno is None:
+        no_launch(probe, f"develop-{phase} through supervise.sh into run-leaf.sh")
+        return
+    launch = take_line(probe, lineno, line, title)
+    if launch is None:
+        return
+    err, got, _ = run_staged(stage, seen, tree, launch, "<no leaf was launched>")
+    if got != title:
+        probe.problem(lineno, line, f"launched develop-{phase} beside a ledger with every step ticked, whose leaf saw VERI_STEP=<{got}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
+
+
+def scan_revise_last_done(probe):
+    title = EXPANDING_STEP
+    stage, seen, tree = stage_recorder(probe, "revise-last-done")
+    stage_title_recorders(probe, stage, "build-develop-prompt", "event")
+    plant_every_step_ticked_ledger(tree, title)
+    patterns = {
+        "mark": r"\$S/event\.sh revise budget=",
+        "prompt": r"\$S/build-develop-prompt\.sh revise <phase> .*> \.tdd/revise-<phase>-<k>\.prompt",
+        "leaf": r"\$S/detach-leaf\.sh .*\$S/supervise\.sh revise-<phase>-<k> \$S/run-leaf\.sh",
+        "re-verify": r"\$S/detach-leaf\.sh .*\$S/supervise\.sh verdict-<phase> \$S/run-verdict\.sh --step .* --fast-cmd ",
+    }
+    for which, pattern in patterns.items():
+        lineno, line = first_line(pattern)
+        if lineno is None:
+            no_launch(probe, f"the revise loop's {which} line")
+            continue
+        line = line.replace("<REVISE_BUDGET>", "3")
+        launch = take_line(probe, lineno, line, title)
+        if launch is None:
+            continue
+        clear_seen(seen)
+        err, got, _ = run_staged(stage, seen, tree, launch, "<no leaf was launched>")
+        if which == "mark":
+            got = mark_step(seen)
+            if got != title:
+                probe.problem(lineno, line, f"marked the revise event beside a ledger with every step ticked with VERI_STEP=<{got}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
+        elif which == "prompt":
+            want = prompt_step_arg(seen)
+            if want != title:
+                probe.problem(lineno, line, f"built the revise prompt beside a ledger with every step ticked, passing build-develop-prompt.sh the step <{want}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
+        elif got != title:
+            probe.problem(lineno, line, f"launched the revise loop's {which} line beside a ledger with every step ticked, whose leaf saw VERI_STEP=<{got}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
+
+
+def scan_revise_diff_last_done(probe):
+    title = EXPANDING_STEP
+    lineno, line = first_line(r"\$S/build-develop-prompt\.sh revise diff .*> \.tdd/revise-diff-<k>\.prompt")
+    if lineno is None:
+        no_launch(probe, "build-develop-prompt.sh revise diff into .tdd/revise-diff-<k>.prompt")
+        return
+    launch = take_line(probe, lineno, line, title)
+    if launch is None:
+        return
+    stage, seen, tree = stage_recorder(probe, "revise-diff-last-done")
+    stage_title_recorders(probe, stage, "build-develop-prompt")
+    plant_every_step_ticked_ledger(tree, title)
+    err, _, _ = run_staged(stage, seen, tree, launch, "<no prompt was built>")
+    want = prompt_step_arg(seen)
+    if want != title:
+        probe.problem(lineno, line, f"built the revise diff prompt beside a ledger with every step ticked, passing build-develop-prompt.sh the step <{want}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
+
+
+def scan_exhausted_last_done(probe):
+    title = EXPANDING_STEP
+    stage, seen, tree = stage_recorder(probe, "exhausted-last-done")
+    stage_title_recorders(probe, stage, "build-develop-prompt", "event")
+    plant_every_step_ticked_ledger(tree, title)
+    patterns = {
+        "prompt": r"\$S/build-develop-prompt\.sh exhausted .*> \.tdd/develop-exhausted\.prompt",
+        "leaf": r"\$S/detach-leaf\.sh .*\$S/supervise\.sh develop-exhausted \$S/run-leaf\.sh",
+        "mark": r"\$S/event\.sh step-escalated anchor=",
+    }
+    for which, pattern in patterns.items():
+        lineno, line = first_line(pattern)
+        if lineno is None:
+            no_launch(probe, f"the revise-exhausted path's {which} line")
+            continue
+        launch = take_line(probe, lineno, line, title)
+        if launch is None:
+            continue
+        clear_seen(seen)
+        err, got, _ = run_staged(stage, seen, tree, launch, "<no leaf was launched>")
+        if which == "prompt":
+            want = prompt_step_arg(seen)
+            if want != title:
+                probe.problem(lineno, line, f"built the exhausted prompt beside a ledger with every step ticked, passing build-develop-prompt.sh the step <{want}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
+        elif which == "leaf":
+            if got != title:
+                probe.problem(lineno, line, f"launched develop-exhausted beside a ledger with every step ticked, whose leaf saw VERI_STEP=<{got}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
+        else:
+            got = mark_step(seen)
+            if got != title:
+                probe.problem(lineno, line, f"marked step-escalated beside a ledger with every step ticked with VERI_STEP=<{got}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
+
+
+def scan_bail_last_done(probe):
+    title = EXPANDING_STEP
+    stage, seen, tree = stage_recorder(probe, "bail-last-done")
+    stage_title_recorders(probe, stage, "preserve-attempt", "event")
+    plant_every_step_ticked_ledger(tree, title)
+    patterns = {
+        "preserve": r"\$S/preserve-attempt\.sh <n> .* <phase> <attempt> bail$",
+        "mark": r"\$S/event\.sh bail cause=<cause>",
+    }
+    for which, pattern in patterns.items():
+        lineno, line = first_line(pattern)
+        if lineno is None:
+            no_launch(probe, f"Bailing's {which} line")
+            continue
+        line = line.replace("<attempt>", "1").replace("<cause>", "suite-red")
+        launch = take_line(probe, lineno, line, title)
+        if launch is None:
+            continue
+        clear_seen(seen)
+        err, _, _ = run_staged(stage, seen, tree, launch, "<not run>")
+        if which == "preserve":
+            rec = recorded_arguments(seen, "preserve-attempt") or []
+            got = rec[2] if len(rec) > 2 else "<no step argument>"
+            if got != title:
+                probe.problem(lineno, line, f"preserved a bailed attempt beside a ledger with every step ticked, passing preserve-attempt.sh the step <{got}>, want the last done step <{title}> (the typing shell said: {flat(err)})")
+        else:
+            got = mark_step(seen)
+            if got != title:
+                probe.problem(lineno, line, f"marked bail beside a ledger with every step ticked with VERI_STEP=<{got}>, want the last done step <{title}> (the typing shell said: {flat(err)})")
+
+
+def scan_event_mark_last_done(probe, tag, pattern, shape, mark, fills=()):
+    title = EXPANDING_STEP
+    stage, seen, tree = stage_recorder(probe, tag)
+    stage_title_recorders(probe, stage, "event")
+    plant_every_step_ticked_ledger(tree, title)
+    lineno, line = first_line(pattern)
+    if lineno is None:
+        no_launch(probe, shape)
+        return
+    for placeholder, value in fills:
+        line = line.replace(placeholder, value)
+    launch = take_line(probe, lineno, line, title)
+    if launch is None:
+        return
+    clear_seen(seen)
+    err, _, _ = run_staged(stage, seen, tree, launch, "<not run>")
+    got = mark_step(seen)
+    if got != title:
+        probe.problem(lineno, line, f"marked {mark} beside a ledger with every step ticked with VERI_STEP=<{got}>, want the last done step <{title}> (the typing shell said: {flat(err)})")
+
+
+def scan_resume_last_done(probe):
+    title = EXPANDING_STEP
+    stage, seen, tree = stage_recorder(probe, "resume-last-done")
+    stage_title_recorders(probe, stage, "event")
+    plant_every_step_ticked_ledger(tree, title)
+    lineno = line = None
+    for n, text in enumerate(SKILL.read_text().split("\n"), 1):
+        found = re.search(r"`VERI_ISSUE=[^`]*\$S/event\.sh resume`", text)
+        if found:
+            lineno, line = n, found.group(0).replace("`", "")
+            break
+    if lineno is None:
+        no_launch(probe, "Resume's resume mark")
+        return
+    launch = take_line(probe, lineno, line, title)
+    if launch is None:
+        return
+    clear_seen(seen)
+    err, _, _ = run_staged(stage, seen, tree, launch, "<not run>")
+    got = mark_step(seen)
+    if got != title:
+        probe.problem(lineno, line, f"marked resume beside a ledger with every step ticked with VERI_STEP=<{got}>, want the last done step <{title}> (the typing shell said: {flat(err)})")
+
+
+def scan_transform_verifier_last_done(probe):
+    title = EXPANDING_STEP
+    lineno = line = None
+    inside = False
+    for n, text in enumerate(SKILL.read_text().split("\n"), 1):
+        if "one structural pass" in text:
+            inside = True
+        if re.search(r"^2\. \*\*Mark the PR ready", text):
+            inside = False
+        if inside and re.search(r"\$S/detach-leaf\.sh .*\$S/supervise\.sh verdict-transform \$S/run-verdict\.sh", text):
+            lineno, line = n, text
+            break
+    if lineno is None:
+        no_launch(probe, "verdict-transform through supervise.sh into run-verdict.sh in the structural pass")
+        return
+    line = line.replace("<base-sha>", "89abcde")
+    launch = take_line(probe, lineno, line, title)
+    if launch is None:
+        return
+    stage, seen, tree = stage_recorder(probe, "transform-verifier-last-done")
+    plant_every_step_ticked_ledger(tree, title)
+    err, _, argv = run_staged(stage, seen, tree, launch, "<no verifier was launched>")
+    if argv != title:
+        probe.problem(lineno, line, f"launched verdict-transform beside a ledger with every step ticked, whose verifier was handed --step <{argv}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
+
+
+def scan_phase_verifiers_last_done(probe):
+    title = EXPANDING_STEP
+    patterns = {
+        "general": r"\$S/supervise\.sh verdict-<phase> \$S/run-verdict\.sh --step .* <phase> … >",
+        "revise": r"\$S/supervise\.sh verdict-<phase> \$S/run-verdict\.sh --step .* --fast-cmd .<fast-cmd>. <phase> ",
+    }
+    for which, pattern in patterns.items():
+        lineno, line = first_line(r"\$S/detach-leaf\.sh .*" + pattern)
+        if lineno is None:
+            no_launch(probe, f"the {which} verdict-<phase> shape through supervise.sh into run-verdict.sh")
+            continue
+        launch = take_line(probe, lineno, line, title)
+        if launch is None:
+            continue
+        stage, seen, tree = stage_recorder(probe, f"phase-verifier-last-done-{which}")
+        plant_every_step_ticked_ledger(tree, title)
+        err, _, argv = run_staged(stage, seen, tree, launch, "<no verifier was launched>")
+        if argv != title:
+            probe.problem(lineno, line, f"launched the {which} verdict-<phase> line beside a ledger with every step ticked, whose verifier was handed --step <{argv}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
+
+
 @pytest.fixture
 def probe(tmp_path):
     return Probe(tmp_path)
@@ -686,5 +981,114 @@ def test_a_step_title_carrying_a_dollar_sign_a_backtick_and_a_double_quote_reach
 @pytest.mark.timeout(300)
 def test_a_step_title_carrying_a_dollar_sign_a_backtick_and_a_double_quote_reaches_every_build_develop_prompt_sh_prompt_and_add_ledger_step_sh_anchor_the_conductor_types_from_skill_md_byte_identical_437(probe):
     scan_prompt_titles(probe)
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md launch line through detach-leaf.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(300)
+def test_753_the_verify_rebase_launch_line_in_skill_md_run_with_every_ledger_step_ticked_hands_its_verifier_the_last_done_steps_text_as_step_byte_identical(probe):
+    scan_rebase_verifier_last_done(probe, "rebase-verifier-last-done", False)
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md launch line through detach-leaf.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(300)
+def test_907_the_draft_pr_steps_verdict_rebase_launch_line_in_skill_md_run_with_every_ledger_step_ticked_gives_its_verifier_the_last_done_steps_text_as_veri_step_byte_identical(probe):
+    scan_rebase_verifier_last_done(probe, "rebase-verifier-env-last-done", True)
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md launch line through build-develop-prompt.sh and detach-leaf.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(300)
+def test_892_the_draft_pr_steps_develop_rebase_block_in_skill_md_run_with_every_ledger_step_ticked_passes_build_develop_prompt_sh_rebase_and_the_leafs_veri_step_the_last_done_steps_text_byte_identical(probe):
+    scan_develop_last_done(probe, "rebase")
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md launch line through build-develop-prompt.sh and detach-leaf.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(300)
+def test_892_the_develop_reconcile_block_of_reconciling_a_rejected_push_in_skill_md_run_with_every_ledger_step_ticked_passes_build_develop_prompt_sh_reconcile_and_the_leafs_veri_step_the_last_done_steps_text_byte_identical(probe):
+    scan_develop_last_done(probe, "reconcile")
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md revise loop through event.sh, build-develop-prompt.sh and detach-leaf.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(300)
+def test_892_the_revise_loop_of_revising_on_a_reject_in_skill_md_run_with_every_ledger_step_ticked_passes_the_revise_marks_veri_step_the_revise_prompt_the_revise_leafs_veri_step_and_the_re_verify_launchs_veri_step_the_last_done_steps_text_byte_identical(probe):
+    scan_revise_last_done(probe)
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md conductor line through build-develop-prompt.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(300)
+def test_907_the_revise_diff_prompt_line_of_revising_on_a_reject_in_skill_md_run_with_every_ledger_step_ticked_passes_build_develop_prompt_sh_revise_diff_the_last_done_steps_text_byte_identical(probe):
+    scan_revise_diff_last_done(probe)
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md revise-exhausted path through event.sh, build-develop-prompt.sh and detach-leaf.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(300)
+def test_907_the_revise_exhausted_path_of_revising_on_a_reject_in_skill_md_run_with_every_ledger_step_ticked_passes_build_develop_prompt_sh_exhausted_the_develop_exhausted_leafs_veri_step_and_the_step_escalated_marks_veri_step_the_last_done_steps_text_byte_identical(probe):
+    scan_exhausted_last_done(probe)
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md conductor line through event.sh and preserve-attempt.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(300)
+def test_907_bailing_in_skill_md_run_with_every_ledger_step_ticked_passes_preserve_attempt_sh_and_the_bail_marks_veri_step_the_last_done_steps_text_byte_identical(probe):
+    scan_bail_last_done(probe)
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md conductor line through event.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(300)
+def test_907_stopping_in_skill_md_run_with_every_ledger_step_ticked_gives_the_stop_marks_veri_step_the_last_done_steps_text_byte_identical(probe):
+    scan_event_mark_last_done(probe, "stop-last-done", r"\$S/event\.sh stop mode=<mode> at=<at>",
+                              "Stopping's stop mark", "stop", (("<mode>", "at-ledger"), ("<at>", "step-done")))
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md conductor line through event.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(300)
+def test_907_resume_in_skill_md_run_with_every_ledger_step_ticked_gives_the_resume_marks_veri_step_the_last_done_steps_text_byte_identical(probe):
+    scan_resume_last_done(probe)
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md launch line through detach-leaf.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(300)
+def test_753_the_structural_pass_in_skill_md_spells_the_transform_verifiers_launch_line_and_run_with_every_ledger_step_ticked_it_hands_its_verifier_the_last_done_steps_text_as_step_byte_identical(probe):
+    scan_transform_verifier_last_done(probe)
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md launch line through detach-leaf.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(300)
+def test_753_the_general_verifier_launch_shape_and_the_revise_loops_re_verify_line_in_skill_md_run_with_every_ledger_step_ticked_hand_their_verifier_the_last_done_steps_text_as_step_byte_identical(probe):
+    scan_phase_verifiers_last_done(probe)
 
     assert probe.problems == []
