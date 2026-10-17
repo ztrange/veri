@@ -4,7 +4,7 @@ import re
 
 import skill_sections
 
-SKILL = pathlib.Path(__file__).resolve().parents[2].parent / "SKILL.md"
+SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 PREFLIGHT = "### 0. Preflight — baseline checks (bail before any cycle)"
 PLAN = "### 2. Scope & plan → the ledger"

@@ -4,7 +4,7 @@ import re
 
 import skill_sections
 
-SKILL = pathlib.Path(__file__).resolve().parents[2].parent / "SKILL.md"
+SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 CYCLE_LOOP = "### 3. The cycle loop"
 
