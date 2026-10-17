@@ -1566,7 +1566,7 @@ def test_main_reports_a_killed_leaf_whose_log_ends_in_a_result_record_with_the_l
 
     def recovered(outcome):
         return (f"supervise[develop-red]: killed after the leaf had already written its result ({cause})"
-                f" — reporting the leaf's own {outcome}\nharvest: KeyError: 'usage'\nsupervise[develop-red]: {outcome}\n")
+                f" — reporting the leaf's own {outcome}\nharvest-usage.sh: the closing result record in .tdd/develop-red.log carries no usage — no usage event appended for develop-red\nsupervise[develop-red]: {outcome}\n")
 
     stuck = ("harvest-usage.sh: no closing result record in .tdd/develop-red.log \u2014 no usage event appended"
              f" for develop-red\nsupervise[develop-red]: killed-stuck \u2014 {cause}\n")

@@ -64,6 +64,10 @@ def harvest(name, env):
             print("harvest-usage.sh: no closing result record in %s — no usage event appended for %s" % (log, name),
                   file=sys.stderr)
             return 3
+        if "usage" not in record:
+            print("harvest-usage.sh: the closing result record in %s carries no usage — no usage event appended for %s"
+                  % (log, name), file=sys.stderr)
+            return 2
         pairs = usage_pairs(record)
     except Exception:
         traceback.print_exc()
