@@ -16,7 +16,8 @@ class SuiteDied(RuntimeError):
 
 def failed_cases(suite):
     run = subprocess.run([os.path.join(".", suite)], capture_output=True, text=True,
-                         stdin=subprocess.DEVNULL)
+                         stdin=subprocess.DEVNULL,
+                         env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
     lines = run.stdout.splitlines()
     failed = {line[len("FAIL - "):] for line in lines if line.startswith("FAIL - ")}
     count = COUNT_LINE.match(lines[-1]) if lines else None

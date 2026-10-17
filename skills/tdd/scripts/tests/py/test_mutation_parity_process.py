@@ -1,0 +1,56 @@
+"""Medium cases for veri/mutation_parity.py: the bash suites and python3 it starts for real."""
+import difflib
+import importlib
+import os
+import subprocess
+import time
+
+import pytest
+
+MODULE = "skills/tdd/scripts/veri/gate.py"
+SUITE = """#!/bin/sh
+cd "$(dirname "$0")/../skills/tdd/scripts/veri" || exit 2
+pass=0; fail=0
+if python3 -c 'import sys; sys.path.insert(0, "."); import gate; sys.exit(gate.code() != 2)'; then
+  pass=2
+else
+  fail=2
+  echo "FAIL - old case"
+  echo "FAIL - kept case"
+fi
+pass=$((pass + 1))
+echo "----"
+echo "$pass passed, $fail failed"
+[ "$fail" -eq 0 ]
+"""
+
+
+@pytest.mark.process("a bash suite and python3 started by failed_cases(), importing a veri module under a same-size mutation reverted within the second")
+def test_1501_same_size_mutation_reverted_within_a_second_leaves_no_mutated_bytecode(tmp_path, monkeypatch, run_cli):
+    for name in ("PYTHONDONTWRITEBYTECODE", "PYTHONPYCACHEPREFIX"):
+        monkeypatch.delenv(name, raising=False)
+    source = tmp_path / MODULE
+    source.parent.mkdir(parents=True)
+    source.write_text("def code():\n    return 2\n")
+    aged = time.time() - 30
+    os.utime(source, (aged, aged))
+    suite = tmp_path / "checks" / "gate.sh"
+    suite.parent.mkdir()
+    suite.write_text(SUITE)
+    suite.chmod(0o755)
+    mutated = source.read_text().replace("return 2", "return 1")
+    patch = tmp_path / "gate.patch"
+    patch.write_text("".join(difflib.unified_diff(
+        source.read_text().splitlines(True), mutated.splitlines(True), "a/" + MODULE, "b/" + MODULE)))
+    table = tmp_path / "pairs.tsv"
+    table.write_text("\t".join(["checks/gate.sh", "old case", "redundant", "kept case", str(patch)]) + "\n")
+    importlib.invalidate_caches()
+    mutation_parity = importlib.import_module("veri.mutation_parity")
+
+    code, out, err = run_cli(mutation_parity, [str(table)], cwd=tmp_path)
+
+    after = subprocess.run(["python3", "-c", "import sys; sys.path.insert(0, 'skills/tdd/scripts/veri'); import gate; print(gate.code())"],
+                           cwd=tmp_path, capture_output=True, text=True, stdin=subprocess.DEVNULL)
+    assert (code, out.strip().endswith("proven"), after.stdout.strip()) == (0, True, "2"), (
+        "exit=%s stdout=%r stderr=%r; module imported after the tool exits answers %r, want '2'"
+        % (code, out, err, after.stdout.strip()))
