@@ -245,6 +245,8 @@ STARTS_GIT_IN_REPOSITORY_EXEMPT = {
         "the repository's own tracked files are the subject",
     "test_skill_identity.py::test_no_tracked_file_outside_the_two_stubs_names_either_old_command":
         "the repository's own tracked files are the subject",
+    "test_refactor_budget_process.py::test_no_tracked_file_outside_the_docs_and_tdd_trees_states_10_as_the_veri_issue_refactor_budget_default":
+        "the repository's own tracked files are the subject",
 }
 
 
