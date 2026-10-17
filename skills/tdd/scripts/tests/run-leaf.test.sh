@@ -34,14 +34,4 @@ run() {  # run <prompt-file> <fake-result> <fake-code> [extra args...]
 
 printf 'Verify the test for issue 3.' > "$work/prompt.txt"
 
-out="$(run "$work/prompt.txt" 'VERDICT: PASS' 0)"
-grep -q -- '-p' "$work/argv" && grep -q 'Verify the test for issue 3.' "$work/argv" \
-  && grep -q -- 'stream-json' "$work/argv" && ok || no "passes prompt via -p in stream-json"
-
-run "$work/prompt.txt" ok 0 --allowed-tools 'Read,Bash' >/dev/null
-grep -q -- '--allowed-tools' "$work/argv" && grep -q 'Read,Bash' "$work/argv" \
-  && ok || no "passes extra args through"
-
-out="$(printf 'piped prompt body' | run - 'VERDICT: PASS' 0)"
-grep -q 'piped prompt body' "$work/argv" && ok || no "reads prompt from stdin on -"
 finish

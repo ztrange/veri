@@ -1011,3 +1011,56 @@ def test_cli_a_leaf_can_still_kill_a_pid_it_started_and_recorded(tmp_path, monke
 
     assert (code, [(tmp_path / name).read_text().strip() for name in ("kill-exit", "wait-exit")]) == (
         0, ["0", "143"])
+
+
+def _cli_argv(run_cli, monkeypatch, tmp_path, prompt_arg, extra=(), stdin=""):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("Verify the test for issue 3.")
+    launches = []
+
+    def launch(argv, *args, **kwargs):
+        return _FakeLeaf(launches, argv, stream=_RESULT_STREAM, **kwargs)
+
+    monkeypatch.setattr(subprocess, "Popen", launch)
+
+    class _BytesStdin:
+        @staticmethod
+        def main(argv):
+            sys.stdin = io.TextIOWrapper(io.BytesIO(stdin.encode()))
+            return run_leaf.main(argv)
+
+    code, out, _ = run_cli(_BytesStdin, [prompt_arg, *extra], cwd=work)
+    return code, out, launches
+
+
+def test_cli_passes_the_prompt_to_claude_via_dash_p_in_stream_json(tmp_path, monkeypatch, run_cli):
+    code, out, launches = _cli_argv(run_cli, monkeypatch, tmp_path, "prompt.txt")
+
+    assert (code, out.endswith("\nVERDICT: PASS\n"), launches) == (
+        0, True, [["claude", "-p", "Verify the test for issue 3.",
+                   "--output-format", "stream-json", "--verbose"]])
+
+
+@pytest.mark.process("the run-leaf.sh entry point handing its arguments to a real stub claude")
+def test_cli_passes_extra_arguments_through_to_claude(tmp_path, monkeypatch, run_cli):
+    work, _ = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("Verify the test for issue 3.")
+    stub = _leaf_stub(tmp_path, 'printf "%s\\n" "$@" > "$ARGV_OUT"\n')
+
+    class _EntryPoint:
+        @staticmethod
+        def main(argv):
+            return subprocess.run([str(SCRIPTS / "run-leaf.sh"), *argv], stdin=subprocess.DEVNULL).returncode
+
+    code, _, _ = run_cli(_EntryPoint, ["prompt.txt", "--allowed-tools", "Read,Bash"], cwd=work,
+                         env={"CLAUDE_BIN": str(stub), "ARGV_OUT": str(tmp_path / "argv")})
+
+    assert (code, (tmp_path / "argv").read_text().splitlines()[-2:]) == (
+        0, ["--allowed-tools", "Read,Bash"])
+
+
+def test_cli_reads_the_prompt_from_stdin_on_dash(tmp_path, monkeypatch, run_cli):
+    code, _, launches = _cli_argv(run_cli, monkeypatch, tmp_path, "-", stdin="piped prompt body")
+
+    assert (code, [argv[2] for argv in launches]) == (0, ["piped prompt body"])
