@@ -2,6 +2,9 @@
 import importlib
 import pathlib
 import re
+import sys
+
+import pytest
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 ROOT = pathlib.Path(__file__).resolve().parents[6]
@@ -28,8 +31,12 @@ def section(document=None):
         text = sections.section(SKILL, REFACTOR)
     else:
         text = sections.section_of(document, REFACTOR)
-    body = text.split("\n", 1)[1] if "\n" in text else ""
-    return plain(body.encode()).replace(b"\n", b" ")
+    lines = []
+    for line in text.split("\n")[1:]:
+        if line.startswith("#"):
+            break
+        lines.append(line)
+    return plain("\n".join(lines).encode()).replace(b"\n", b" ")
 
 
 def has(text, pattern):
@@ -175,6 +182,38 @@ def test_skill_md_s_refactor_section_answers_an_overfit_flag_with_one_triangulat
     )
 
 
+GUARD_CASES = (
+    "test_beyond_spec_narration_guard_",
+    "test_flag_class_amendment_guard_",
+    "test_one_call_per_criterion_case_passes_over_",
+)
+
+
+def cases_failing_over(document, tmp_path, monkeypatch):
+    planted = tmp_path / "SKILL.md"
+    planted.write_text(document)
+    module = sys.modules[__name__]
+    monkeypatch.setattr(module, "SKILL", planted)
+    failing = []
+    for name, case in sorted(vars(module).items()):
+        if not name.startswith("test_") or name.startswith(GUARD_CASES):
+            continue
+        try:
+            case()
+        except (AssertionError, pytest.fail.Exception):
+            failing.append(name)
+    monkeypatch.undo()
+    return failing
+
+
+def assert_one_case_fails_naming(document, planted, cls, tmp_path, monkeypatch):
+    unplanted_failing = cases_failing_over(document, tmp_path, monkeypatch)
+    assert unplanted_failing == [], f"the suite is not green over the document as committed: {unplanted_failing}"
+    failing = cases_failing_over(planted, tmp_path, monkeypatch)
+    assert len(failing) == 1, f"want exactly 1 case to fail over the planted document, the others untouched by the plant; {len(failing)} failed: {failing}"
+    assert cls.replace("-", "_") in failing[0], f"the one case that failed does not name the {cls} class: {failing[0]}"
+
+
 def assert_fails_naming(case, planted, cls, planted_description):
     try:
         case(planted)
@@ -212,7 +251,7 @@ def test_skill_md_s_refactor_section_narrates_a_beyond_spec_flag_as_a_follow_up_
     beyond_spec_narration(SKILL.read_text())
 
 
-def test_beyond_spec_narration_guard_fails_naming_the_class_over_a_skill_md_that_plans_and_builds_a_beyond_spec_flag_and_passes_as_committed():
+def test_beyond_spec_narration_guard_fails_naming_the_class_over_a_skill_md_that_plans_and_builds_a_beyond_spec_flag_and_passes_as_committed(tmp_path, monkeypatch):
     committed = SKILL.read_text()
     assert GRANT_CLAUSE not in committed, "SKILL.md already grants the clause the plant is about"
     assert DENIAL_CLAUSE in committed, "SKILL.md no longer carries the clause the plant replaces"
@@ -221,6 +260,7 @@ def test_beyond_spec_narration_guard_fails_naming_the_class_over_a_skill_md_that
     planted = committed.replace(DENIAL_CLAUSE, GRANT_CLAUSE)
     assert planted != committed
     assert_fails_naming(beyond_spec_narration, planted, CLASS, f"a SKILL.md whose Refactor section says a {CLASS} flag {GRANT_CLAUSE}")
+    assert_one_case_fails_naming(committed, planted, CLASS, tmp_path, monkeypatch)
 
 
 UNCOVERED = "uncovered-spec"
@@ -285,9 +325,10 @@ def planted_with_other_class():
     return committed.replace(UNCOVERED, OTHER_CLASS)
 
 
-def test_flag_class_amendment_guard_fails_naming_the_class_over_a_skill_md_whose_refactor_section_amends_the_plan_from_another_class_and_passes_as_committed():
+def test_flag_class_amendment_guard_fails_naming_the_class_over_a_skill_md_whose_refactor_section_amends_the_plan_from_another_class_and_passes_as_committed(tmp_path, monkeypatch):
     uncovered_spec_amendment(SKILL.read_text())
     assert_fails_naming(uncovered_spec_amendment, planted_with_other_class(), UNCOVERED, f"a SKILL.md whose plan-growing flag class is {OTHER_CLASS}")
+    assert_one_case_fails_naming(SKILL.read_text(), planted_with_other_class(), UNCOVERED, tmp_path, monkeypatch)
 
 
 def test_one_call_per_criterion_case_passes_over_a_skill_md_whose_plan_growing_flag_class_is_named_off_spec_since_it_asks_how_many_calls_not_which_class():
