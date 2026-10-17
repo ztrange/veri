@@ -873,6 +873,10 @@ three times over branches its ledger pinned on later lines.
    a test is planned as a test-only step (`⟦diff-checked⟧` or the pin), never as Red/Green,
    since Green may not edit a test.
 
+   An issue whose work changes only tests (extracting a repeated helper, sharing a fixture,
+   production untouched) is not refactor-kind, whatever its label: it is planned as
+   `⟦diff-checked⟧` steps.
+
    A **refactor-kind** run — the spec carries the `## Refactor` section `capture-spec.sh`
    writes for the `refactor` label — changes no behaviour, so it has no failing test to plan
    around. Plan each step as one named refactoring whose criterion is a shell predicate,
