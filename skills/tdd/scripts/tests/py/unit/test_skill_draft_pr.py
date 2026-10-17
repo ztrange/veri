@@ -109,6 +109,12 @@ def draft_pr():
     return _records(_lines(DRAFT_PR))
 
 
+def draft_pr_read():
+    records = draft_pr()
+    assert records, "SKILL.md has no ### 4. Draft PR section to read"
+    return records
+
+
 def test_draft_prs_step_readies_the_pr_against_the_already_pushed_branch_with_no_push_of_its_own():
     pushes = first_record(draft_pr(), re.escape("git push"))
     assert not pushes, f"Draft PR step still pushes the branch itself: {pushes[:120]}"
@@ -270,8 +276,7 @@ def test_worktree_step_no_longer_says_the_draft_pr_is_opened_once_every_step_is_
 
 
 def test_draft_prs_step_runs_rebase_onto_default_after_its_dirty_tree_check_and_before_the_done_mark_metrics_commit_and_gh_pr_ready():
-    records = draft_pr()
-    assert records, "SKILL.md has no ### 4. Draft PR section to read"
+    records = draft_pr_read()
     commands = commands_of(DRAFT_PR)
     rebase = line_of(commands, r"[$]s/rebase-onto-default[.]sh")
     assert rebase, "Draft PR step runs no $S/rebase-onto-default.sh"
@@ -298,8 +303,7 @@ def test_draft_prs_step_runs_rebase_onto_default_after_its_dirty_tree_check_and_
 
 
 def test_draft_prs_step_runs_the_full_test_command_once_on_a_rebased_tip_bails_on_red_and_pushes_with_a_pinned_lease_never_a_bare_force():
-    records = draft_pr()
-    assert records, "SKILL.md has no ### 4. Draft PR section to read"
+    records = draft_pr_read()
     commands = commands_of(DRAFT_PR)
     rebase = line_of(commands, r"[$]s/rebase-onto-default[.]sh")
     leased = line_of(commands, r"[$]s/push-branch[.]sh --force-with-lease=[^ :]+:[^ ]*pre-rebase")
@@ -320,8 +324,7 @@ def test_draft_prs_step_runs_the_full_test_command_once_on_a_rebased_tip_bails_o
 
 
 def test_draft_prs_step_on_rebase_exit_1_launches_develop_rebase_then_a_blind_verify_rebase_revises_on_reject_and_readies_only_after_a_pass():
-    records = draft_pr()
-    assert records, "SKILL.md has no ### 4. Draft PR section to read"
+    records = draft_pr_read()
     commands = commands_of(DRAFT_PR)
     rebase = line_of(commands, r"[$]s/rebase-onto-default[.]sh")
     develop = line_of(commands, r".*[$]s/supervise[.]sh develop-rebase ")
@@ -345,8 +348,7 @@ def test_draft_prs_step_on_rebase_exit_1_launches_develop_rebase_then_a_blind_ve
 
 
 def test_draft_prs_step_on_a_rebase_not_resolved_within_budget_resets_to_the_pre_rebase_sha_leaves_the_pr_a_draft_and_bails_naming_every_conflicting_file():
-    records = draft_pr()
-    assert records, "SKILL.md has no ### 4. Draft PR section to read"
+    records = draft_pr_read()
     plain = unmarked(records)
     problems = []
     if not first_record(plain, re.escape("rebase: failed"), re.escape("revise_budget"), _word_re("killed|kill")):
@@ -359,8 +361,7 @@ def test_draft_prs_step_on_a_rebase_not_resolved_within_budget_resets_to_the_pre
 
 
 def test_draft_prs_step_after_gh_pr_ready_waits_on_wait_ci_and_reads_the_rollup_fail_closed():
-    records = draft_pr()
-    assert records, "SKILL.md has no ### 4. Draft PR section to read"
+    records = draft_pr_read()
     commands = commands_of(DRAFT_PR)
     ready = line_of(commands, READY_RUN)
     watch = line_of(commands, WAIT_CI_RUN)
@@ -379,8 +380,7 @@ def test_draft_prs_step_after_gh_pr_ready_waits_on_wait_ci_and_reads_the_rollup_
 
 
 def test_draft_prs_step_never_counts_a_pending_check_as_green_and_bails_on_one_still_pending_with_a_cause_classify_bail_classifies(capsys):
-    records = draft_pr()
-    assert records, "SKILL.md has no ### 4. Draft PR section to read"
+    records = draft_pr_read()
     classify_bail = importlib.import_module("veri.classify_bail")
     pending = r"pending check|check[a-z ]* pending"
     problems = []
@@ -401,7 +401,7 @@ def test_draft_prs_step_never_counts_a_pending_check_as_green_and_bails_on_one_s
 
 
 def test_draft_prs_step_bounds_the_command_that_waits_on_the_readied_prs_checks_itself_and_runs_no_gh_pr_checks_after_gh_pr_ready():
-    assert draft_pr(), "SKILL.md has no ### 4. Draft PR section to read"
+    draft_pr_read()
     commands = commands_of(DRAFT_PR)
     ready = line_of(commands, READY_RUN)
     waits = line_of(commands, WAIT_CI_RUN)
@@ -421,7 +421,7 @@ def test_draft_prs_step_bounds_the_command_that_waits_on_the_readied_prs_checks_
 
 
 def test_draft_prs_step_waits_on_the_readied_prs_checks_and_reads_their_rollup_before_the_done_mark_and_the_metrics_commit():
-    assert draft_pr(), "SKILL.md has no ### 4. Draft PR section to read"
+    draft_pr_read()
     commands = commands_of(DRAFT_PR)
     problems = []
     for ci in (WAIT_CI_RUN, ROLLUP_READ):
