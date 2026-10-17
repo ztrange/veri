@@ -14,10 +14,14 @@ class SuiteDied(RuntimeError):
     pass
 
 
+def no_bytecode_env():
+    return {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+
+
 def failed_cases(suite):
     run = subprocess.run([os.path.join(".", suite)], capture_output=True, text=True,
                          stdin=subprocess.DEVNULL,
-                         env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
+                         env=no_bytecode_env())
     lines = run.stdout.splitlines()
     failed = {line[len("FAIL - "):] for line in lines if line.startswith("FAIL - ")}
     count = COUNT_LINE.match(lines[-1]) if lines else None
@@ -29,7 +33,7 @@ def failed_cases(suite):
 def pytest(*args):
     run = subprocess.run([venv_python(), "-m", "pytest", "-q", "-p", "no:cacheprovider", *args], capture_output=True,
                          text=True, stdin=subprocess.DEVNULL,
-                         env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
+                         env=no_bytecode_env())
     if run.returncode not in (0, 1):
         raise RuntimeError(f"pytest could not run {' '.join(args)}: exit {run.returncode}")
     return run
