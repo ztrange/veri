@@ -40,6 +40,12 @@ that test.** Skip straight to the report below with `AGAINST_UNMODIFIED: UNTESTA
 criterion into something else it does not say, and do not write the costly or
 implementation-pinning test anyway to force a pass.
 
+A helper the test needs, which only the test uses, is defined in Red, inside the test file:
+Green cannot write it there, because the test file is frozen once Red is verified. A failure
+caused only by an undefined name in the test file (a NameError, or an ImportError of a name
+the test file defines nowhere) is not a red, because the case fails for a missing helper and
+not for the behaviour.
+
 {{BUG_REPRODUCTION}}
 ### The issue's behavior spec (context only — pin only the step above)
 

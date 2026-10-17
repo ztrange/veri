@@ -2013,3 +2013,24 @@ def test_cli_develop_replaces_report_names_every_case_in_the_missing_cases_file_
     assert [needle in ok[1] for needle in ("zibble case alpha", "zibble case beta", str(report),
                                            "REPLACES: <case> => <test id>")] == [True] * 4
     assert (no_report[0], no_report[1], no_cases[0], no_cases[1]) == (2, "", 2, "")
+
+
+def test_main_renders_a_red_prompt_saying_a_test_only_helper_is_defined_in_red_inside_the_test_file_and_a_failure_from_an_undefined_name_alone_is_not_a_red_1615(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+
+    code = build_develop_prompt.main(["red", str(spec), "zorblat frobs a nitz ⟦criterion 1⟧", "make test"])
+    out, _ = capsysbinary.readouterr()
+    prompt = re.sub(rb"\s+", b" ", out)
+
+    rules = {
+        "helper is defined in Red inside the test file": (
+            rb"helper[^.]{0,120}(defined|written)[^.]{0,60}\bin Red\b[^.]{0,60}(inside|in) the test file"
+            rb"|helper[^.]{0,120}(inside|in) the test file[^.]{0,60}(defined|written)[^.]{0,40}\bin Red\b"),
+        "an undefined name alone is not a red": (
+            rb"(NameError|undefined name)[^.]{0,200}(is|are) not a red"),
+    }
+    missing = sorted(rule for rule, pattern in rules.items() if re.search(pattern, prompt, re.I) is None)
+
+    assert (code, missing) == (0, [])
