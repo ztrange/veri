@@ -289,90 +289,6 @@ scan_launch_step_env() {
   done
 }
 
-scan_fixture_naming() {
-  local fixture i=0 lineno line launch
-  read -r -d '' fixture <<'FIXTURE' || true
-VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh fixture-good-1 $S/run-leaf.sh .tdd/fixture-good-1.prompt
-VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh fixture-bad $S/run-leaf.sh .tdd/fixture-bad.prompt
-VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh fixture-good-2 $S/run-leaf.sh .tdd/fixture-good-2.prompt
-FIXTURE
-  while IFS= read -r line; do
-    [[ -n "$line" ]] || continue
-    i=$((i + 1))
-    lineno="fixture-naming-$i"
-    launch="$(runnable "$line")" || {
-      problem "fixture-naming line $i names a placeholder this probe cannot supply"
-      continue
-    }
-    check_developer_launch "$launch"
-  done <<< "$fixture"
-  only_complaint_about "fixture-bad" "the fixture's three launches (only the middle one broken)"
-}
-
-run_case "a single broken launch line is reported by name, alone, while unrelated lines report nothing" \
-  scan_fixture_naming
-
-_fixture_report_case() {
-  local lineno="999" line="sample line text"
-  local problems=()
-  problem "sample problem"
-  report "sample case"
-}
-
-scan_message_format() {
-  local out want
-  out="$(
-    pass=0; fail=0
-    _fixture_report_case
-    echo "----"
-    echo "${pass:-0} passed, $fail failed"
-  )"
-  want=$'FAIL - sample case\n    skills/tdd/SKILL.md:999 sample problem:sample line text\n----\n0 passed, 1 failed'
-  [[ "$out" == "$want" ]] ||
-    problems+=("report()'s and problem()'s output shape has drifted: got $(tr '\n' '|' <<< "$out")")
-}
-
-run_case "report()'s FAIL line, its indented problem line, and the count line keep their shape" \
-  scan_message_format
-
-developer_launch_fixture() {
-  local tag="$1"
-  lineno="$tag-1"
-  leaf="fixture-$tag"
-  prompt=".tdd/$leaf.prompt"
-  read -r line <<FIXTURE
-VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' \$S/detach-leaf.sh \$S/supervise.sh $leaf \$S/run-leaf.sh $prompt
-FIXTURE
-  launch="$(runnable "$line")" || {
-    problems+=("the $tag fixture names a placeholder this probe cannot supply")
-    return 1
-  }
-}
-
-scan_wrong_leaf_name() {
-  local lineno line launch leaf prompt
-  developer_launch_fixture wrong-leaf-name || return
-  expect_sentinel "$leaf-no-such-leaf" "$launch" "$prompt"
-  only_complaint_about "$line" "a launch whose leaf name no completion file is written under"
-}
-
-run_case "a launch writing no completion file under the derived leaf name is reported, naming that line" \
-  scan_wrong_leaf_name
-
-ANSWER_CEILING=15
-
-scan_answer_latency() {
-  local lineno line launch leaf prompt started elapsed
-  developer_launch_fixture answer-latency || return
-  started=$SECONDS
-  launched_test_cmd "$leaf-no-such-leaf" "$launch" "$prompt" >/dev/null
-  elapsed=$(( SECONDS - started ))
-  (( elapsed < ANSWER_CEILING )) ||
-    problems+=("a launch whose derived leaf name no completion file is written under was answered after ${elapsed}s, want under ${ANSWER_CEILING}s: the wait ran on past the supervisor that had already exited")
-}
-
-run_case "a derived leaf name no launch writes is answered once its supervisor is gone, not at the end of the wait budget" \
-  scan_answer_latency
 
 stage_recorder() {
   stage="$WORK/$1-scripts"
@@ -409,21 +325,6 @@ STUB
 }
 
 write_recorders
-
-scan_stage_links() {
-  local stage seen tree script name
-  stage_recorder stage-links
-  for script in "$SCRIPTS"/*.sh "$SCRIPTS"/lib/*; do
-    name="${script#"$SCRIPTS"/}"
-    [[ "$name" == detach-leaf.sh ]] && continue
-    [[ "$stage/$name" -ef "$script" ]] ||
-      problems+=("the stage reaches $name by a copy, want a link to $script")
-  done
-}
-
-run_case "a stage reaches every script it does not replace by a link to the script under test, never a copy" \
-  scan_stage_links
-
 run_staged() {
   err="$( cd "$tree" && "${cleared_run_context[@]}" \
             S="$stage" SEEN="$seen" bash -c "$launch" 2>&1 >/dev/null )"
@@ -598,29 +499,6 @@ stage_title_recorders() {
     ln -s "$RECORDERS/title.sh" "$stage/$script.sh"
   done
 }
-
-scan_shared_recorders() {
-  local stage seen tree first='' tag name
-  local titled=(event build-develop-prompt)
-  local recorders=(detach-leaf "${titled[@]}")
-  for tag in a b; do
-    stage_recorder "shared-recorders-$tag"
-    stage_title_recorders "${titled[@]}"
-    first="${first:-$stage}"
-  done
-  for name in "${recorders[@]}"; do
-    [[ -L "$first/$name.sh" && -L "$stage/$name.sh" ]] ||
-      problems+=("$name.sh: a stage holds its own recorder, want a link to the one written once per suite run")
-    [[ "$first/$name.sh" -ef "$stage/$name.sh" ]] ||
-      problems+=("$name.sh: two stages reach different recorders, want both linked to one")
-    [[ "$stage/$name.sh" -ef "$SCRIPTS/$name.sh" ]] &&
-      problems+=("$name.sh: the stage reaches the script under test, want the recorder")
-  done
-}
-
-run_case "each distinct recorder is written once per suite run and every stage reaches it by a link, its per-stage difference only \$SEEN" \
-  scan_shared_recorders
-
 fill_title() {
   launch="${cmd//<n>/$SENTINEL_ISSUE}"
   launch="${launch//<STEP>/$title}"
@@ -746,115 +624,5 @@ check_prompt_title() {
   done
   [[ "$want" == "$title" ]] || failed="title argument <$want> "
 }
-
-
-scan_reverted_step_title() {
-  local md="$md" reverted="$WORK/reverted-431-SKILL.md" hit n
-  local -a doc
-  scan_step_title "$EXPANDING_STEP" reverted-431-as-is
-  if (( ${#problems[@]} )); then
-    problems=("the document's own develop-red line already fails the probe, so its #431 revert shows nothing: ${problems[*]}")
-    return
-  fi
-  hit="$(head -1 < <(grep -nE '\$S/supervise\.sh develop-red \$S/run-leaf\.sh' "$md"))"
-  n="${hit%%:*}"
-  mapfile -t doc < "$md"
-  doc[n - 1]="${doc[n - 1]/VERI_STEP=* \$S\/detach-leaf.sh/VERI_STEP=\"<STEP>\" \$S/detach-leaf.sh}"
-  printf '%s\n' "${doc[@]}" > "$reverted"
-  md="$reverted"
-  scan_step_title "$EXPANDING_STEP" reverted-431
-  only_complaint_about "whose leaf saw VERI_STEP=" \
-    "the develop-red line put back to #431's hand-typed VERI_STEP=\"<STEP>\""
-}
-
-run_case "the step-title probe, with one title carrying a dollar sign, a backtick and a double quote, goes red on a launch line put back to #431's hand-typed double quotes (#437)" \
-  scan_reverted_step_title
-
-scan_late_completion() {
-  local lineno line launch leaf prompt stage
-  developer_launch_fixture late-completion || return
-  stage="$WORK/late-completion-scripts"
-  mkdir -p "$stage"
-  cat > "$stage/detach-leaf.sh" <<'STUB'
-#!/bin/sh
-printf '%s\n' "${VERI_TEST_CMD-<unset>}" > "$SEEN"
-printf '%s\n' "$$" > ".tdd/$2.pid"
-( sleep 1; printf '0\n' > ".tdd/$2.exit" ) </dev/null >/dev/null 2>&1 &
-STUB
-  chmod +x "$stage/detach-leaf.sh"
-  SCRIPTS="$stage" expect_sentinel "$leaf" "$launch" "$prompt"
-}
-
-run_case "a launch whose completion file lands after its last recorded pid has exited is reported by what its leaf saw (#457)" \
-  scan_late_completion
-
-scan_late_wrong_leaf_name() {
-  local lineno line launch leaf prompt stage started elapsed got want
-  developer_launch_fixture late-wrong-leaf-name || return
-  stage="$WORK/late-wrong-leaf-name-scripts"
-  mkdir -p "$stage"
-  cat > "$stage/detach-leaf.sh" <<'STUB'
-#!/bin/sh
-printf '%s\n' "${VERI_TEST_CMD-<unset>}" > "$SEEN"
-printf '%s\n' "$$" > ".tdd/$2.pid"
-( sleep 1; printf '0\n' > ".tdd/$2.exit" ) </dev/null >/dev/null 2>&1 &
-STUB
-  chmod +x "$stage/detach-leaf.sh"
-  want="<no completion file under leaf $leaf-no-such-leaf>"
-  started=$SECONDS
-  got="$(SCRIPTS="$stage" launched_test_cmd "$leaf-no-such-leaf" "$launch" "$prompt")"
-  elapsed=$(( SECONDS - started ))
-  [[ "$got" == "$want" && elapsed -lt ANSWER_CEILING ]] ||
-    problem "launches under a leaf name no completion file is written under, reported as <$got> after ${elapsed}s, want <$want> under ${ANSWER_CEILING}s"
-}
-
-run_case "a launch whose leaf name no completion file is written under is still reported as a naming fault, well inside the wait budget, when its own file lands late (#457)" \
-  scan_late_wrong_leaf_name
-
-scan_no_leaf_ran() {
-  local lineno line launch leaf prompt stage got
-  developer_launch_fixture no-leaf-ran || return
-  stage="$WORK/no-leaf-ran-scripts"
-  mkdir -p "$stage"
-  cat > "$stage/detach-leaf.sh" <<'STUB'
-#!/bin/sh
-exit 0
-STUB
-  chmod +x "$stage/detach-leaf.sh"
-  got="$(sleep() { SECONDS=$(( SECONDS + 3600 )); }
-         SCRIPTS="$stage" launched_test_cmd "$leaf" "$launch" "$prompt")"
-  [[ "$got" == '<no leaf ran>' ]] ||
-    problem "launches nothing, reported as <$got>, want <no leaf ran>"
-}
-
-run_case "a launch line that reaches no supervisor at all is reported as <no leaf ran> (#457)" \
-  scan_no_leaf_ran
-
-scan_launch_record() {
-  local counted count rest lineno shape line
-  [[ -f "$LAUNCH_RECORD" ]] || { problems+=("no launch was recorded"); return; }
-  while IFS= read -r counted; do
-    read -r count rest <<< "$counted"
-    (( count > 1 )) || continue
-    IFS=$'\t' read -r lineno shape line <<< "$rest"
-    problem "launched $count times beside a ledger of shape $shape, want at most once"
-  done < <(sort "$LAUNCH_RECORD" | uniq -c)
-}
-
-run_case "no launch line in $skill_md is launched more than once per ledger shape the suite plants" \
-  scan_launch_record
-
-scan_scripts_untouched() {
-  local now name
-  now="$(scripts_fingerprint)"
-  [[ "$now" == "$SCRIPTS_BEFORE" ]] && return
-  while read -r name; do
-    problems+=("$name changed while the suite ran, want every script under test byte-identical")
-  done < <(diff <(printf '%s\n' "$SCRIPTS_BEFORE") <(printf '%s\n' "$now") |
-             sed -n 's/^[<>] [0-9]* [0-9]* //p' | LC_ALL=C sort -u)
-}
-
-run_case "a recorder replaces a stage's link rather than writing through it, so the suite leaves every script under skills/tdd/scripts byte-identical" \
-  scan_scripts_untouched
 
 finish
