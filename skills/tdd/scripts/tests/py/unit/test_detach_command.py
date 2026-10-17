@@ -491,6 +491,16 @@ def test_wait_pauses_1_second_for_an_unset_or_empty_veri_poll_and_0_or_0_05_as_g
         assert (poll, code, capsys.readouterr(), sleeps) == (poll, 0, ("", ""), [paused, paused])
 
 
+@pytest.fixture
+def run(tmp_path, run_cli, detach_command):
+    (tmp_path / ".tdd").mkdir()
+
+    def call(*argv):
+        return run_cli(detach_command, list(argv), env={"VERI_POLL": "0.05"}, cwd=tmp_path)
+
+    return call
+
+
 def _fake_popen(monkeypatch):
     class FakePopen:
         pid = 4242
@@ -502,11 +512,9 @@ def _fake_popen(monkeypatch):
 
 
 def test_start_returns_at_once_wait_gives_the_recorded_code_3_while_running_and_2_for_a_death(
-        tmp_path, monkeypatch, run_cli, detach_command):
+        tmp_path, monkeypatch, run):
     tdd = tmp_path / ".tdd"
-    tdd.mkdir()
     _fake_popen(monkeypatch)
-    env = {"VERI_POLL": "0.05"}
     alive = [True]
 
     def kill(pid, signum):
@@ -515,39 +523,36 @@ def test_start_returns_at_once_wait_gives_the_recorded_code_3_while_running_and_
 
     monkeypatch.setattr(os, "kill", kill)
 
-    assert run_cli(detach_command, ["start", "ran", "blocker"], env=env, cwd=tmp_path) == (0, "", "")
-    assert run_cli(detach_command, ["wait", "ran", "0"], env=env, cwd=tmp_path) == (3, "", "")
+    assert run("start", "ran", "blocker") == (0, "", "")
+    assert run("wait", "ran", "0") == (3, "", "")
     (tdd / "ran.exit").write_text("7\n")
-    assert run_cli(detach_command, ["wait", "ran", "30"], env=env, cwd=tmp_path)[0] == 1
+    assert run("wait", "ran", "30")[0] == 1
 
-    assert run_cli(detach_command, ["start", "died", "killer"], env=env, cwd=tmp_path) == (0, "", "")
+    assert run("start", "died", "killer") == (0, "", "")
     alive[0] = False
-    assert run_cli(detach_command, ["wait", "died", "30"], env=env, cwd=tmp_path) == (2, "", "")
+    assert run("wait", "died", "30") == (2, "", "")
 
 
 def test_wait_exits_1_printing_the_recorded_code_for_a_command_that_finished_non_zero(
-        tmp_path, run_cli, detach_command):
-    (tmp_path / ".tdd").mkdir()
+        tmp_path, run):
     (tmp_path / ".tdd" / "red.exit").write_text("2\n")
 
-    assert run_cli(detach_command, ["wait", "red", "30"], env={"VERI_POLL": "0.05"}, cwd=tmp_path) == (1, "2\n", "")
+    assert run("wait", "red", "30") == (1, "2\n", "")
 
 
 def test_wait_refuses_a_max_seconds_that_is_a_word_with_exit_2_and_the_usage_line_while_the_command_runs(
-        tmp_path, monkeypatch, run_cli, detach_command):
-    (tmp_path / ".tdd").mkdir()
+        tmp_path, monkeypatch, run):
     (tmp_path / ".tdd" / "word.pid").write_text("4242\n")
     monkeypatch.setattr(os, "kill", lambda pid, signum: None)
 
-    assert run_cli(detach_command, ["wait", "word", "abc"], env={"VERI_POLL": "0.05"}, cwd=tmp_path) == (2, "", USAGE)
+    assert run("wait", "word", "abc") == (2, "", USAGE)
 
 
 def test_wait_refuses_a_max_seconds_that_is_a_word_with_exit_2_and_the_usage_line_when_the_exit_file_already_holds_0(
-        tmp_path, run_cli, detach_command):
-    (tmp_path / ".tdd").mkdir()
+        tmp_path, run):
     (tmp_path / ".tdd" / "fin.exit").write_text("0\n")
 
-    assert run_cli(detach_command, ["wait", "fin", "abc"], env={"VERI_POLL": "0.05"}, cwd=tmp_path) == (2, "", USAGE)
+    assert run("wait", "fin", "abc") == (2, "", USAGE)
 
 
 def _refused_poll(poll, tmp_path, monkeypatch, run_cli, detach_command):
