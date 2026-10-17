@@ -1262,7 +1262,10 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    failure with cause `report-missing`. A green that stops because the test looks wrong is exempt: it
    keeps its main outcome, a verify-green REJECT (a process outcome), never a `report-missing` bail.
 
-   **A green report carrying `WRONG_TEST:`** gets `$S/wrong-test-route.sh .tdd/develop-green.out '<target-test-id>'` before any revise: exit 0 prints `red <case>`, a case other than the step's own that the criterion contradicts, so route to a red that updates that case and spend no revise attempt; exit 3 (`revise`) takes the verify-green REJECT path; exit 2 is a system failure.
+   **A green report carrying `WRONG_TEST:`** gets `$S/wrong-test-route.sh .tdd/develop-green.out '<target-test-id>'` before any revise:
+   - exit 0 prints `red <case>`, a case other than the step's own that the criterion contradicts. Write no `revise` mark and spend no `REVISE_BUDGET` attempt. Launch the `red-contradicted` red over that case through `supervise.sh` (`build-develop-prompt.sh red-contradicted`), verify it with verify-red like any red, re-record the step's frozen tests with `$S/tests-frozen.sh record --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"` over both test paths, then retry green.
+   - exit 3 (`revise`) runs the existing revise path unchanged: the verify-green REJECT.
+   - exit 2 is a system failure: **bail**.
 
    After that and before verify-green is launched, run `$S/tests-frozen.sh check --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"`.
    On tests-frozen exit 1 a test file changed since verify-red, so write a reason naming the changed file to

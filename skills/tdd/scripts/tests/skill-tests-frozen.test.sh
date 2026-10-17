@@ -191,4 +191,25 @@ else
 fi
 report "$name"
 
+name="#1621: $skill_md's Green section routes a WRONG_TEST: report through wrong-test-route.sh: exit 0 writes no revise mark, spends no REVISE_BUDGET and launches a red-contradicted red through the supervisor, verifies it with verify-red, re-records both test paths with tests-frozen.sh record --step and retries green; exit 3 takes the revise path; exit 2 bails"
+problems=()
+route_text="$(joined_section '#### Green')"
+route_text="${route_text#*'A green report carrying `WRONG_TEST:`'}"
+route_text="${route_text%%'tests-frozen.sh check'*}"
+[[ "$route_text" == *'wrong-test-route.sh'* ]] ||
+  problems+=("$skill_md's Green section does not route a WRONG_TEST: report through wrong-test-route.sh")
+[[ "$route_text" == *'supervise.sh'*'red-contradicted'* || "$route_text" == *'red-contradicted'*'supervise.sh'* ]] ||
+  problems+=("$skill_md's Green WRONG_TEST: routing does not launch the red-contradicted red through supervise.sh")
+[[ "$route_text" == *'verify-red'* ]] ||
+  problems+=("$skill_md's Green WRONG_TEST: routing does not verify the contradicted red with verify-red")
+[[ "$route_text" == *'tests-frozen.sh record --step'* ]] ||
+  problems+=("$skill_md's Green WRONG_TEST: routing does not re-record the step's frozen tests with tests-frozen.sh record --step")
+grep -qiE 'no `?revise`? mark' <<<"$route_text" ||
+  problems+=("$skill_md's Green WRONG_TEST: routing does not say exit 0 writes no revise mark")
+grep -qiE 'no (revise|REVISE_BUDGET)|spends? no' <<<"$route_text" ||
+  problems+=("$skill_md's Green WRONG_TEST: routing does not say exit 0 spends no REVISE_BUDGET attempt")
+grep -qiE 'retr(y|ies) green' <<<"$route_text" ||
+  problems+=("$skill_md's Green WRONG_TEST: routing does not retry green after the red")
+report "$name"
+
 finish
