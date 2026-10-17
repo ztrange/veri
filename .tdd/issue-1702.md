@@ -1,0 +1,4 @@
+# Plan for #1702 — Leaves record a full make test (~10 min) as the affected tier because the prompt never says how to run only the affected suites
+
+- [ ] Every rendered prompt that asks for an affected-tier run (develop-green, verify-green, verify-refactor, verify-diff, the develop-diff leaf and the interface-phase verifiers) gives the exact command that runs only the suites affected-suites.sh printed, `make test TESTS="<those paths>"`, never a placeholder naming no command; pinned by a case on the rendered prompts ⟦criterion 1⟧
+- [ ] timed-test-run.sh's affected tier refuses, with exit 2 and a stderr line naming the problem, a command that would run the whole suite — a bare `make test` naming no suites (no TESTS= argument) — runs nothing and records no test-run event, instead of timing it and recording it as affected ⟦criterion 2⟧
