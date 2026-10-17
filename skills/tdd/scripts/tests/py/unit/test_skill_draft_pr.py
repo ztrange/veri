@@ -87,6 +87,9 @@ ROLLUP_READ = r"gh api [^#]*/check-runs"
 WAIT_CI_RUN = r"[^#]*[$]s/wait-ci[.]sh "
 READY_RUN = r"[^#]*gh_pr_ready"
 BODY_EDIT = r"gh api -x patch .*-f body="
+PUSH_RUN = r"[^#]*([$]s/push-branch[.]sh|git push)"
+LOG_FAILED_READ = r"[^#]*gh run view [^#]*--log-failed"
+CI_REPAIR_MARK = "⟦ci-repair⟧"
 
 
 def _word_re(pattern):
@@ -435,4 +438,246 @@ def test_draft_prs_step_waits_on_the_readied_prs_checks_and_reads_their_rollup_b
                 problems.append(f"runs no {recorded}, so the CI read's order against it could not be checked")
             elif at <= ci_at:
                 problems.append(f"runs {ci} (command line {ci_at}) after {recorded} (command line {at})")
+    assert not problems, problems
+
+
+def test_draft_prs_command_block_bails_with_cause_ci_timeout_on_wait_ci_shs_exit_2_before_the_done_mark():
+    records = draft_pr_read()
+    commands = commands_of(DRAFT_PR)
+    waits = line_of(commands, WAIT_CI_RUN)
+    done_at = line_of(commands, DONE_MARK)
+    timeout = line_of(commands, "[^#]*ci-timeout")
+    problems = []
+    if waits is None or done_at is None:
+        problems.append("runs no $S/wait-ci.sh or no done mark, so where it bails on a pending check could not be checked")
+    elif not (timeout is not None and waits <= timeout < done_at):
+        problems.append("no command line bails with cause ci-timeout between $S/wait-ci.sh and the done mark")
+    if not first_record(unmarked(records), re.escape("wait-ci.sh"), _word("2"), re.escape("ci-timeout")):
+        problems.append("no instruction says wait-ci.sh's exit 2 bails with cause ci-timeout")
+    assert not problems, problems
+
+
+def test_draft_prs_step_answers_a_failed_ci_check_with_a_repair_step_quoting_the_gh_run_view_log_failed_fail_line_committed_resuming_the_cycle_loop():
+    records = draft_pr_read()
+    commands = commands_of(DRAFT_PR)
+    rollup = line_of(commands, ROLLUP_READ)
+    done_at = line_of(commands, DONE_MARK)
+    log = line_of(commands, LOG_FAILED_READ)
+    problems = []
+    if rollup is None or done_at is None:
+        problems.append("reads no statusCheckRollup or runs no done mark, so where it repairs a failed check could not be checked")
+    elif log is None or log <= rollup or log >= done_at:
+        problems.append("no command line runs gh run view --log-failed between the rollup read and the done mark, so a failed check's log is never read")
+    else:
+        added = next(
+            (n for n, c in enumerate(commands, 1) if log < n < done_at and re.match(r"^[$]s/add-ledger-step[.]sh [.]tdd/issue-<n>[.]md ", c)),
+            None,
+        )
+        if added is None:
+            problems.append("no command line appends a repair step with add-ledger-step.sh between the --log-failed read and the done mark")
+        elif not any(added < n < done_at and c.startswith("git commit ") for n, c in enumerate(commands, 1)):
+            problems.append("no command line commits the ledger after appending the repair step and before the done mark")
+        record = first_record(unmarked(records), re.escape("log-failed"), re.escape("repair step"))
+        if not record:
+            problems.append("no record says what the repair step a failed check appends carries from --log-failed")
+        else:
+            if "fail -" not in record:
+                problems.append(f"never says the CI repair step quotes the failing suite's FAIL - line: {record[:120]}")
+            if not re.search("step 3|cycle loop", record):
+                problems.append(f"never says the run returns to the cycle loop after appending the CI repair step: {record[:120]}")
+    assert not problems, problems
+
+
+def test_draft_prs_step_bails_on_a_second_red_ci_result_after_a_ci_repair_step_with_a_cause_classify_bail_maps_to_system_or_process():
+    records = draft_pr_read()
+    classify_bail = importlib.import_module("veri.classify_bail")
+    commands = commands_of(DRAFT_PR)
+    log = line_of(commands, LOG_FAILED_READ)
+    done_at = line_of(commands, DONE_MARK)
+    problems = []
+    if log is None or done_at is None:
+        problems.append("reads no --log-failed or runs no done mark, so where it bails on a second red CI result could not be checked")
+    else:
+        cause = None
+        for n, c in enumerate(commands, 1):
+            matched = re.match(r"^[^#]*[$]s/event[.]sh bail cause=", c)
+            if log < n < done_at and matched:
+                fields = c[matched.end():].split()
+                first = fields[0] if fields else ""
+                if first != "ci-timeout":
+                    cause = first
+                    break
+        if not cause:
+            problems.append("no command line bails (event.sh bail cause=...) between the --log-failed read and the done mark, so a second red CI result stops silently")
+        elif classify_bail.CATEGORIES.get(cause) not in ("system", "process"):
+            problems.append(f"bails on a second red CI result with cause {cause}, which classify-bail.sh maps to no system or process label")
+    record = first_record(unmarked(records), re.escape("second red"), r"red ci|ci (check|result)")
+    if not record:
+        problems.append("no record says what a second red CI result after a repair step does")
+    elif "bail" not in record:
+        problems.append(f"never says a second red CI result bails: {record[:120]}")
+    assert not problems, problems
+
+
+def test_draft_prs_step_waits_on_ci_by_calling_wait_ci_sh_again_on_its_exit_3_with_no_wait_loop_inside_one_bash_call_and_no_pending_test_that_reads_status_alone():
+    records = draft_pr_read()
+    commands = commands_of(DRAFT_PR)
+    ready = line_of(commands, READY_RUN)
+    wait_ci = line_of(commands, WAIT_CI_RUN)
+    done_at = line_of(commands, DONE_MARK)
+    problems = []
+    if not (ready and wait_ci and done_at and ready < wait_ci < done_at):
+        problems.append("no command line runs $S/wait-ci.sh between gh pr ready and the done mark")
+    if not first_record(unmarked(records), re.escape("wait-ci.sh"), _word("3"), "again"):
+        problems.append("no instruction says to call wait-ci.sh again on its exit 3")
+    loop = first_record(commands, r"^(while|until) .*; *do( |$)|^sleep [0-9]|^gh pr checks .*--watch")
+    if loop:
+        problems.append(f"command block waits inside one Bash call: {loop[:120]}")
+    status_only = first_record(commands, r"[.]status *==")
+    if status_only and "__typename" not in status_only:
+        problems.append(f"command block tests a check pending by .status alone, so a legacy StatusContext row is never pending: {status_only[:120]}")
+    assert not problems, problems
+
+
+def test_draft_prs_step_stops_at_a_ci_timeout_or_ci_red_bail_with_no_done_mark_and_no_metrics_commit_after_it_in_its_command_block_and_goes_to_bailing():
+    records = draft_pr_read()
+    commands = commands_of(DRAFT_PR)
+    problems = []
+    followed = []
+    block, fenced, bails = 0, False, {}
+    for c in commands:
+        if c.startswith("```"):
+            block += 1
+            fenced = not fenced
+            continue
+        if not fenced:
+            continue
+        if re.match(r"^[^#]*[$]s/event[.]sh bail cause=ci-(timeout|red)", c):
+            bails[block] = bails.get(block, "") + " " + re.search(r"cause=ci-(timeout|red)", c).group()[6:]
+            continue
+        if bails.get(block) and (re.match(DONE_MARK, c) or re.match(METRICS_COMMIT, c)):
+            followed.append(f"after{bails[block]}: {c}")
+    if not any("event.sh bail cause=ci-" in c for c in commands):
+        problems.append("runs no event.sh bail cause=ci-timeout or cause=ci-red, so whether a CI bail stops the step could not be checked")
+    for line in followed:
+        problems.append(f"command block records the run finished after a CI bail - {line[:160]}")
+    if not first_record(unmarked(records), r"ci-timeout|ci-red", re.escape("bailing")):
+        problems.append("no instruction sends a ci-timeout or ci-red bail to Bailing")
+    assert not problems, problems
+
+
+def test_draft_prs_step_appends_its_ci_repair_step_with_a_ci_repair_text_and_recognises_a_second_red_by_that_mark_not_by_the_repair_steps_prose():
+    draft_pr_read()
+    commands = commands_of(DRAFT_PR)
+    problems = []
+    appended = first_record(commands, r"^[^#]*[$]s/add-ledger-step[.]sh ", re.escape("ci failure"))
+    if not appended:
+        problems.append("no command line appends a CI repair step through add-ledger-step.sh")
+    elif CI_REPAIR_MARK not in appended:
+        problems.append(f"appends its CI repair step without the {CI_REPAIR_MARK} mark: {appended[:160]}")
+    red = first_record(commands, r"^[^#]*[$]s/event[.]sh bail cause=ci-red")
+    if not red:
+        problems.append("no command line bails with cause ci-red, so how it recognises a second red could not be checked")
+    else:
+        if CI_REPAIR_MARK not in red and "ledger-steps.sh has-mark ci-repair" not in red:
+            problems.append(f"recognises a second red CI result without the {CI_REPAIR_MARK} mark or ledger-steps.sh has-mark ci-repair: {red[:160]}")
+        if "fix the ci failure" in red:
+            problems.append(f"recognises a second red CI result by the repair step's prose: {red[:160]}")
+    assert not problems, problems
+
+
+def test_draft_prs_step_leaves_no_ci_run_on_the_readied_pr_that_nothing_reads_every_push_after_the_ci_read_is_followed_by_a_wait_ci_sh_call():
+    draft_pr_read()
+    commands = commands_of(DRAFT_PR)
+    read_at = line_of(commands, WAIT_CI_RUN)
+    problems = []
+    if read_at is None:
+        problems.append("runs no $S/wait-ci.sh, so whether a later push has its CI run read could not be checked")
+    else:
+        pushed = ""
+        for c in commands[read_at:]:
+            if re.match(PUSH_RUN, c):
+                pushed = c
+                continue
+            if pushed and re.match(WAIT_CI_RUN, c):
+                pushed = ""
+        if pushed:
+            problems.append(f"pushes after the CI read with no wait-ci.sh after it, leaving that push's CI run unread: {pushed[:120]}")
+    assert not problems, problems
+
+
+def test_draft_prs_step_passes_every_wait_ci_sh_call_the_sha_it_just_pushed_from_git_rev_parse_head_as_the_head_it_waits_for():
+    draft_pr_read()
+    commands = commands_of(DRAFT_PR)
+    head = r'"?[$][(]git rev-parse head[)]"?'
+    sha, unpinned = set(), []
+    for c in commands:
+        if re.match(PUSH_RUN, c):
+            sha = set()
+        if re.match(rf"^[a-z_][a-z0-9_]*={head}", c):
+            sha.add(c.split("=")[0])
+        if re.match(WAIT_CI_RUN, c):
+            call = re.sub(r"#.*", "", c, count=1)
+            call = re.sub(r";.*", "", call, count=1)
+            call = re.sub(head, "@head@", call)
+            words = call.split()
+            arg = words[4] if len(words) >= 5 else ""
+            var = re.sub(r'["${}]', "", arg)
+            if arg != "@head@" and not (re.match(r'^"?[$]', arg) and var in sha):
+                unpinned.append(c)
+    problems = []
+    if line_of(commands, WAIT_CI_RUN) is None:
+        problems.append("runs no $S/wait-ci.sh, so which head its CI waits are given could not be checked")
+    for line in unpinned:
+        problems.append(f"calls wait-ci.sh with no head sha from git rev-parse HEAD after its last push: {line[:120]}")
+    assert not problems, problems
+
+
+def test_draft_prs_step_bails_on_the_metrics_pushs_ci_wait_with_a_command_in_its_block_ci_timeout_on_exit_2():
+    draft_pr_read()
+    commands = commands_of(DRAFT_PR)
+    metrics_at = line_of(commands, METRICS_COMMIT)
+    problems = []
+    if metrics_at is None:
+        problems.append("makes no metrics: commit, so whether its push's CI wait bails could not be checked")
+    else:
+        bails, waited = [], False
+        for c in commands[metrics_at:]:
+            if c.startswith("```"):
+                if waited:
+                    break
+                continue
+            if re.match(WAIT_CI_RUN, c):
+                waited = True
+                continue
+            matched = re.search(r"[$]s/event[.]sh bail cause=ci-(red|timeout)", c) if waited else None
+            if matched:
+                bails.append(matched.group()[23:] + " " + c[:matched.start()])
+        keyed = [b for b in bails if b.split(" ")[0] == "ci-timeout" and re.search("[^0-9]2[^0-9]", " " + b + " ")]
+        if not keyed:
+            problems.append("no command line bails with cause ci-timeout on the metrics: push's wait-ci.sh exit 2, in the block after that wait")
+    assert not problems, problems
+
+
+def test_1431_draft_prs_step_says_a_red_ci_on_the_metrics_cost_report_push_appends_one_ci_repair_step_with_the_step_added_event_and_returns_to_the_cycle_loop_bailing_ci_red_only_when_the_ledger_already_holds_a_ci_repair_step():
+    records = draft_pr_read()
+    plain = unmarked(records)
+    said = [m.group() for m in (re.search(r"the metrics: push .*", r) for r in plain) if m]
+    problems = []
+    if not said:
+        problems.append("no instruction describes the metrics: push's CI wait, so what its red does could not be checked")
+    else:
+        repairs = first_record(
+            said,
+            r"exit 1|red",
+            re.escape(CI_REPAIR_MARK),
+            re.escape("step-added"),
+            re.escape("cycle loop"),
+            r"bails?[^.]*ci-red[^.]*only[^.]*already[^.]*⟦ci-repair⟧|only[^.]*already[^.]*⟦ci-repair⟧[^.]*bails?[^.]*ci-red",
+        )
+        if not repairs:
+            problems.append(f"does not say a red CI on the metrics: push appends one ⟦ci-repair⟧ step with the step-added event and returns to the cycle loop, bailing ci-red only when the ledger already holds a ⟦ci-repair⟧ step: {said[0][:160]}")
+        reversed_ = first_record(said, re.escape("not a repair step"))
+        if reversed_:
+            problems.append(f"still says the metrics: push's red is not a repair step: {reversed_[:160]}")
     assert not problems, problems
