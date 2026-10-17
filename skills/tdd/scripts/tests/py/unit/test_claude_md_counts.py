@@ -45,3 +45,17 @@ def test_a_digit_count_with_no_word_count_beside_it_fails_naming_its_line_and_pa
 
     flagged = [line.split(":")[1] for line in (out + err).splitlines() if line.startswith(f"{planted}:")]
     assert (code, flagged, removed_code, removed_out + removed_err) == (1, ["3"], 0, "")
+
+
+def test_a_count_of_files_alone_in_words_fails_naming_its_line_and_passes_with_the_line_removed_1508(tmp_path, run_cli):
+    claude_md_counts = importlib.import_module("veri.claude_md_counts")
+    planted = tmp_path / "planted.md"
+    planted.write_text("# notes\n\nTwelve files hold the fixtures.\n")
+    removed = tmp_path / "removed.md"
+    removed.write_text("# notes\n\n")
+
+    code, out, err = run_cli(claude_md_counts, [str(planted)])
+    removed_code, removed_out, removed_err = run_cli(claude_md_counts, [str(removed)])
+
+    flagged = [line.split(":")[1] for line in (out + err).splitlines() if line.startswith(f"{planted}:")]
+    assert (code, flagged, removed_code, removed_out + removed_err) == (1, ["3"], 0, "")
