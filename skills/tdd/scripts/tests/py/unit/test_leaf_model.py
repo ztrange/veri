@@ -1,7 +1,9 @@
 """In-process cases for veri/leaf_model.py, the module leaf-model.sh is a shim over."""
 import importlib
 import os
+import re
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -368,3 +370,115 @@ def test_main_takes_every_model_variable_from_the_one_reader_and_still_applies_t
     assert served_answers == [("verify-green", 0, "haiku\n"), ("revise-green", 0, "fable\n")]
     assert verify._env("VERI_MODEL_VERIFIER") == "haiku"
     assert "from-os-environ" not in capsys.readouterr().out
+
+
+SKILL_MD = Path(__file__).resolve().parents[4] / "SKILL.md"
+LEAF_MODEL_USAGE = "usage: leaf-model.sh <leaf-name>\n"
+
+
+@pytest.fixture
+def model_call(run_cli, monkeypatch, leaf_model):
+    def call(model, developer, verifier, name):
+        for variable, value in zip(MODEL_VARIABLES, (model, developer, verifier)):
+            if value == "unset":
+                monkeypatch.delenv(variable, raising=False)
+            else:
+                monkeypatch.setenv(variable, value)
+        return run_cli(leaf_model, [name])
+
+    return call
+
+
+def test_run_cli_prints_veri_model_for_a_leaf_of_either_role_and_the_default_with_no_model_variable_set(
+        model_call):
+    runs = [
+        ("sonnet", "unset", "unset", "develop-red"),
+        ("sonnet", "unset", "unset", "verify-green"),
+        ("unset", "unset", "unset", "develop-red"),
+        ("unset", "unset", "unset", "verify-green"),
+    ]
+
+    assert [model_call(*run) for run in runs] == [(0, "sonnet\n", "")] * 4
+
+
+def test_run_cli_gives_a_role_variable_priority_over_veri_model_for_that_roles_leaves_only(model_call):
+    runs = [
+        ("sonnet", "unset", "opus", "develop-red"),
+        ("sonnet", "unset", "opus", "revise-green-2"),
+        ("sonnet", "unset", "opus", "verify-green"),
+        ("sonnet", "opus", "unset", "develop-red"),
+        ("sonnet", "opus", "unset", "revise-green-2"),
+        ("sonnet", "opus", "unset", "verify-green"),
+    ]
+
+    assert [model_call(*run) for run in runs] == [
+        (0, "sonnet\n", ""),
+        (0, "sonnet\n", ""),
+        (0, "opus\n", ""),
+        (0, "opus\n", ""),
+        (0, "opus\n", ""),
+        (0, "sonnet\n", ""),
+    ]
+
+
+def test_run_cli_refuses_whitespace_in_a_model_and_a_leaf_name_leaf_role_refuses_with_2_and_accepts_opus_1m(
+        model_call):
+    refused = [
+        model_call("sonnet 5", "unset", "unset", "develop-red"),
+        model_call("unset", "unset", "opus\t1m", "verify-green"),
+        model_call("sonnet", "unset", "unset", "frobnicate-red"),
+        model_call("unset", "unset", "unset", "frobnicate-red"),
+    ]
+    accepted = [
+        model_call("opus[1m]", "unset", "unset", "develop-red"),
+        model_call("unset", "unset", "opus[1m]", "verify-green"),
+    ]
+
+    assert [(code, out, bool(err)) for code, out, err in refused] == [(2, "", True)] * 4
+    assert accepted == [(0, "opus[1m]\n", "")] * 2
+
+
+def test_run_cli_refuses_no_argument_and_one_empty_argument_with_2_nothing_on_stdout_and_exactly_the_usage_line(
+        run_cli, monkeypatch, leaf_model):
+    for variable in MODEL_VARIABLES:
+        monkeypatch.delenv(variable, raising=False)
+
+    answers = [run_cli(leaf_model, argv) for argv in ([], [""])]
+
+    assert answers == [(2, "", LEAF_MODEL_USAGE)] * 2
+
+
+def test_skill_md_preflight_runs_leaf_model_for_a_developer_name_and_a_verifier_name_and_says_its_exit_2_stops_the_run(
+        run_cli):
+    leaf_role = importlib.import_module("veri.leaf_role")
+    preflight, inside = [], False
+    for line in SKILL_MD.read_text().splitlines():
+        if re.match(r"### [0-9]+\..*[Pp]reflight", line):
+            inside = True
+        elif inside and line.startswith("### "):
+            break
+        if inside:
+            preflight.append(line)
+    problems = []
+    if not preflight:
+        problems.append("no numbered '### … Preflight' section in SKILL.md")
+    roles = []
+    for line in preflight:
+        for match in re.finditer(r"leaf-model\.sh[ \t\n\r\f\v]+([^ \t\n\r\f\v]*)", line):
+            leaf = re.sub(r"[),;:.]*$", "", match.group(1).replace("`", "").replace('"', "").replace("'", ""))
+            if not leaf:
+                continue
+            code, out, _ = run_cli(leaf_role, [leaf])
+            if code != 0:
+                problems.append(f"leaf-model.sh is called with '{leaf}', a name leaf-role.sh refuses")
+                continue
+            roles.append(re.sub(r".*VERI_ACTOR=([a-z]*).*", r"\1", out.strip()))
+    for want in ("developer", "verifier"):
+        if want not in roles:
+            problems.append(f"no leaf-model.sh call with a {want} leaf name (names found: {roles})")
+    lowered = "\n".join(preflight).lower()
+    if not ("leaf-model.sh" in lowered and "exit 2" in lowered
+            and ("verbatim" in lowered or "diagnostic" in lowered)):
+        problems.append("preflight does not say leaf-model.sh's exit 2 stops the run, reporting its stderr diagnostic")
+
+    assert problems == []
