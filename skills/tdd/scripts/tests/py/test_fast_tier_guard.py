@@ -69,6 +69,34 @@ def test_a_planted_test_file_starting_a_process_through_os_system_os_exec_os_spa
     assert sorted(line.split(": ")[0] for line in found) == sorted(planted)
 
 
+@pytest.mark.parametrize(
+    "import_line, call, named",
+    [
+        ("from os import system", "system('true')", "os.system"),
+        ("import os as o", "o.system('true')", "os.system"),
+        ("from pty import spawn", "spawn(['true'])", "pty.spawn"),
+        ("import os", "os.popen('true')", "os.popen"),
+        ("import os", "os.posix_spawn('/bin/true', ['true'], {})", "os.posix_spawn"),
+    ],
+)
+def test_1641_a_planted_process_start_form_is_named_by_file_and_line_and_the_message_names_the_actual_call(tmp_path, import_line, call, named):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    offender = tmp_path / "test_offender.py"
+    offender.write_text(
+        f"{import_line}\n"
+        "\n"
+        "def test_runs_a_process():\n"
+        f"    {call}\n"
+    )
+
+    found = guard.offences(tmp_path)
+
+    assert [line.split(": ")[0] for line in found] == [f"{offender}:4"]
+    message = found[0].split(": ", 1)[1]
+    assert named in message
+    assert "through subprocess" not in message
+
+
 def test_a_planted_test_file_calling_time_sleep_is_reported_as_a_sleep_offence_by_file_and_line(tmp_path):
     guard = importlib.import_module("veri.fast_tier_guard")
     offender = tmp_path / "test_sleeper.py"

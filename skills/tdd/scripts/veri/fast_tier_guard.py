@@ -27,11 +27,12 @@ def _receiver_and_attr(func):
     return None, None
 
 
-def _starts_process(func):
-    receiver, attr = _receiver_and_attr(func)
-    if receiver == "pty":
-        return True
-    return receiver == "os" and attr.startswith(("system", "exec", "spawn"))
+def _process_start(module, attr):
+    if module == "pty" and attr:
+        return f"{module}.{attr}"
+    if module == "os" and attr and attr.startswith(("system", "popen", "exec", "spawn", "posix_spawn")):
+        return f"{module}.{attr}"
+    return None
 
 
 def _require_reasons(exemptions):
@@ -59,6 +60,7 @@ def offences(root, exemptions=None):
             receiver, attr = _receiver_and_attr(func)
             imported = name_imports.get(func.id) if isinstance(func, ast.Name) else None
             module = module_aliases.get(receiver, receiver)
+            started = _process_start(module, attr) or (_process_start(*imported) if imported else None)
             if (module, attr) == ("time", "sleep") or imported == ("time", "sleep"):
                 message = "sleeps through time.sleep"
             elif module == "socket" or imported == ("socket", "socket"):
@@ -66,9 +68,10 @@ def offences(root, exemptions=None):
             elif (
                 receiver in modules
                 or (isinstance(func, ast.Name) and func.id in functions)
-                or _starts_process(func)
             ):
                 message = "starts a process through subprocess"
+            elif started:
+                message = f"starts a process through {started}"
             elif (module, attr) == ("pytest", "main") or any(
                 isinstance(arg, ast.Constant) and isinstance(arg.value, str) and _SUITE_PATH.search(arg.value)
                 for arg in node.args
