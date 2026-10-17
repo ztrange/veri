@@ -30,3 +30,7 @@ def parse(step):
 def unreadable(step):
     start = _START.search(step)
     return start is not None and _SUITE.search(step, start.end()) is not None and parse(step) is None
+
+
+def unreadable_message(step):
+    return "cannot read the case names of step: " + step.replace("\n", " ")
