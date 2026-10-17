@@ -105,3 +105,90 @@ def test_skill_md_s_draft_pr_body_still_carries_refactor_owed_sh_render_s_refact
 
 def test_skill_md_s_structural_pass_says_its_overflow_filing_applies_no_label_to_this_issue_and_commits_no_debt_file():
     requires(pass_text(), "applies no label to this issue", "commits no debt file")
+
+
+def squeezed():
+    return re.sub(" +", " ", pass_text())
+
+
+def after(text, marker):
+    assert marker in text, f"SKILL.md's structural pass has no {marker!r} to read from"
+    return text.split(marker, 1)[1]
+
+
+def until(text, marker):
+    return text.split(marker, 1)[0]
+
+
+APPLIED = "refactor-owed.sh applied .tdd/issue-<n>-refactor-owed.md"
+
+
+def test_596_skill_md_s_structural_pass_runs_whenever_refactor_owed_sh_list_prints_a_candidate_never_skips_or_shortens_it_for_cost_spends_less_only_by_a_lower_veri_issue_refactor_budget_set_before_launch_and_files_candidates_past_the_budget_by_refactor_overflow_sh():
+    requires(squeezed(), "whenever refactor-owed.sh list prints a candidate",
+             "never skips or shortens it for cost",
+             "set a lower VERI_ISSUE_REFACTOR_BUDGET before launch",
+             "past the budget are filed by refactor-overflow.sh")
+
+
+def test_596_skill_md_s_structural_pass_says_stopped_takes_only_candidates_done_budget_spent_or_nothing_structural_and_budget_spent_is_marked_only_when_refactor_budget_sh_issue_exited_3_i_e_transforms_equals_the_budget():
+    requires(squeezed(), "stopped= takes only candidates-done, budget-spent or nothing-structural",
+             "budget-spent is marked only when refactor-budget.sh --issue exited 3",
+             "transforms equals the budget")
+
+
+def test_691_skill_md_s_structural_pass_takes_each_candidate_s_predicate_from_a_build_develop_prompt_sh_predicate_leaf_checked_by_structural_predicate_sh_whose_record_is_the_test_path_the_transform_verifier_runs_and_skips_a_candidate_with_no_predicate_for_refactor_overflow_sh_to_file():
+    requires(squeezed(), "build-develop-prompt.sh predicate",
+             "structural-predicate.sh .tdd/issue-<n>-predicate",
+             "the test path the transform verifier runs",
+             "with no predicate is skipped",
+             "refactor-overflow.sh <n> .tdd/issue-<n>-refactor-owed.md <taken> <skipped-file>")
+
+
+def test_726_skill_md_s_structural_pass_says_a_missing_tdd_issue_n_refactor_owed_md_is_the_refactor_owed_sh_list_exit_3_case_marked_stopped_nothing_structural_before_the_pr_is_readied():
+    requires(squeezed(), "a missing .tdd/issue-<n>-refactor-owed.md is the list exit-3 case",
+             "marked stopped=nothing-structural before the PR is readied")
+
+
+def test_952_skill_md_s_structural_pass_runs_refactor_owed_sh_applied_on_the_run_s_owed_file_with_the_candidate_and_the_commit_after_each_transform_verifier_pass_before_the_pr_body_is_rendered():
+    text = pass_text()
+    applied, verifier = text.find(APPLIED), text.find(VERIFIER)
+    assert applied >= 0, f"SKILL.md's structural pass never runs {APPLIED} before gh pr ready"
+    assert verifier < applied, f"SKILL.md's structural pass runs {APPLIED} at {VERIFIER}'s offset {verifier} or before ({applied})"
+    assert "PASS" in text, "SKILL.md's structural pass never ties refactor-owed.sh applied to a transform verifier PASS"
+
+
+def test_980_skill_md_s_structural_pass_stages_and_commits_tdd_issue_n_refactor_owed_md_after_refactor_owed_sh_applied_records_a_transform_before_the_pr_is_readied():
+    text = pass_text()
+    stage = "git add .tdd/issue-<n>-refactor-owed.md"
+    applied, staged = text.find(APPLIED), text.find(stage)
+    assert applied >= 0 and staged >= 0, f"a phrase to order is missing: {APPLIED} at {applied}, {stage} at {staged}"
+    assert staged > applied, f"stages the owed file at {staged}, not after {APPLIED} at {applied}"
+    assert "git commit" in text[staged:], "stages the owed file but never runs git commit after it before gh pr ready"
+
+
+def test_992_skill_md_s_structural_pass_hands_the_owed_file_s_out_of_scope_candidates_to_refactor_overflow_sh_even_when_the_pass_skipped_nothing_or_list_exits_3_so_they_are_still_filed_as_refactor_owed_by_n():
+    text = squeezed()
+    no_candidate = until(after(text, "list exits 3"), "Mark the PR ready for review")
+    requires(no_candidate, "refactor-overflow.sh", "out-of-scope")
+    nothing_skipped = until(after(text, "With nothing skipped"), "No candidate")
+    requires(nothing_skipped, "refactor-overflow.sh", "out-of-scope")
+    requires(text, "Refactor owed by #<n>")
+
+
+def test_1058_skill_md_s_structural_pass_records_a_candidate_whose_predicate_already_holds_structural_predicate_sh_exit_1_as_applied_with_refactor_owed_sh_applied_at_the_current_head_not_in_skipped_file_only_exit_3_appends_to_skipped_file():
+    bound = "Once the pass ends"
+    rest = after(squeezed(), "structural-predicate.sh .tdd/issue-<n>-predicate")
+    assert bound in rest, f"never says {bound!r} after structural-predicate.sh"
+    handling = until(rest, bound)
+    requires(handling, APPLIED, "git rev-parse HEAD", "only exit 3")
+    assert "1 or 3 ⇒ skip" not in handling, "still says structural-predicate.sh exit 1 or 3 ⇒ skip"
+
+
+def test_1058_skill_md_s_draft_pr_step_re_checks_every_refactor_owed_sh_out_of_scope_candidate_against_the_tree_before_refactor_overflow_sh_runs_a_develop_predicate_leaf_per_candidate_and_structural_predicate_sh_exit_1_records_it_applied_as_out_of_scope_candidate():
+    text = squeezed()
+    recheck_cmd = "refactor-owed.sh out-of-scope .tdd/issue-<n>-refactor-owed.md"
+    overflow_cmd = "refactor-overflow.sh <n> .tdd/issue-<n>-refactor-owed.md"
+    recheck, overflow = text.find(recheck_cmd), text.find(overflow_cmd)
+    assert recheck >= 0 and overflow >= 0, f"a command to order is missing: {recheck_cmd} at {recheck}, {overflow_cmd} at {overflow}"
+    assert recheck <= overflow, f"{overflow_cmd} at {overflow} runs before {recheck_cmd} at {recheck}"
+    requires(text[recheck:overflow], "develop-predicate", "structural-predicate.sh", APPLIED, "out-of-scope | <candidate>")
