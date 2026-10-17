@@ -86,8 +86,9 @@ def scope_totals(name, solvable, event_paths, as_json=False):
         attempted += 1
         events = read_events(path)
         dollars += usage_totals(events)[0]
-        done += end_mark(events).get("event") == "done"
-        bailed += sum(1 for line in events if line.get("event") == "bail")
+        end = end_mark(events).get("event")
+        done += end == "done"
+        bailed += end == "bail"
         if events:
             wall += int(events[-1]["ts"]) - int(events[0]["ts"])
     if as_json:
