@@ -235,12 +235,12 @@ def test_main_refuses_the_first_unreadable_file_in_the_bash_order_with_no_usage_
     module, prompts = scripts_with("no-green-partials", (*templates, *partials[:2]))
     for marker, partial in (("⟦replaces-case⟧", "_develop-green-replaces-case.md"),
                             ("⟦suite-repair⟧", "_develop-green-suite-repair.md")):
-        for call in (["green", str(plain), f"x{marker}y", "make test", "t.sh", "case", "make unit"],
-                     ["revise", "green", str(plain), f"x{marker}y", "make test", str(reason)]):
+        for call in (["green", str(plain), f"x {marker}", "make test", "t.sh", "case", "make unit"],
+                     ["revise", "green", str(plain), f"x {marker}", "make test", str(reason)]):
             results[("needs", marker, call[1])] = answer(module, call)
             expected[("needs", marker, call[1])] = cannot_read(prompts / partial)
-        for call in (["red", str(plain), f"x{marker}y", "make test"],
-                     ["revise", "red", str(plain), f"x{marker}y", "make test", str(reason)]):
+        for call in (["red", str(plain), f"x {marker}", "make test"],
+                     ["revise", "red", str(plain), f"x {marker}", "make test", str(reason)]):
             code, out, err = answer(module, call)
             results[("ignores", marker, call[1])] = (code, err)
             expected[("ignores", marker, call[1])] = (0, b"")
@@ -348,7 +348,7 @@ def test_main_resolves_includes_in_the_template_the_shared_rules_and_the_green_p
     spec.write_bytes(b"## Bug\nspec " + literal + b"\n")
     reason = tmp_path / "reason.md"
     reason.write_bytes(b"why " + literal + b"\n")
-    step = "x ⟦replaces-case⟧ ⟦suite-repair⟧ {{INCLUDE:_s.md}}"
+    step = "x {{INCLUDE:_s.md}} ⟦replaces-case⟧ ⟦suite-repair⟧"
     step_b = step.encode()
     results, expected = {}, {}
 
@@ -711,8 +711,8 @@ def test_main_answers_what_the_bash_contract_cases_from_the_out_of_scope_class_t
     fast_green = rendered(["green", s, step, cmd, test_path, target, fast_cmd])
     revise_green = rendered(["revise", "green", s, step, cmd, r])
 
-    replaces_step = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz" moves to '
-                     'tests/py/test_zorblat.py ⟦criterion 1⟧')
+    replaces_step = ('tests/zorblat.test.sh: "zorblat frobs a nitz" moves to '
+                     'tests/py/test_zorblat.py ⟦replaces-case⟧ ⟦criterion 1⟧')
     licence = rb"(may|permitted|allowed|licen[cs]ed?)[^.]{0,60}delet|delet[^.]{0,60}(permitted|allowed|licen[cs]ed)"
     replaces_green = rendered(["green", s, replaces_step, cmd, "tests/py/test_zorblat.py",
                                "test_zorblat_frobs_a_nitz", "make unit"])
@@ -1182,10 +1182,10 @@ def test_main_permits_a_replaces_case_green_to_delete_exactly_the_cases_its_step
     reason = tmp_path / "reason.md"
     reason.write_bytes(b"REJECT: the case asserts on zorblat()'s log line.\n")
     s, r = str(spec), str(reason)
-    several = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob", '
-               '"zorblat refuses an empty nitz" move to tests/py/test_zorblat.py ⟦criterion 1⟧')
-    one = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz" moves to '
-           'tests/py/test_zorblat.py ⟦criterion 1⟧')
+    several = ('tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob", '
+               '"zorblat refuses an empty nitz" move to tests/py/test_zorblat.py ⟦replaces-case⟧ ⟦criterion 1⟧')
+    one = ('tests/zorblat.test.sh: "zorblat frobs a nitz" moves to '
+           'tests/py/test_zorblat.py ⟦replaces-case⟧ ⟦criterion 1⟧')
 
     def rendered(argv):
         code = build_develop_prompt.main(argv)
@@ -1221,8 +1221,8 @@ def test_main_requires_a_replaces_case_green_to_delete_exactly_the_cases_its_ste
         tmp_path, capsysbinary, build_develop_prompt):
     spec = tmp_path / "spec.md"
     spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
-    step = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz" moves to '
-            'tests/py/test_zorblat.py ⟦criterion 1⟧')
+    step = ('tests/zorblat.test.sh: "zorblat frobs a nitz" moves to '
+            'tests/py/test_zorblat.py ⟦replaces-case⟧ ⟦criterion 1⟧')
     build_develop_prompt.main(["green", str(spec), step, "make test", "tests/py/test_zorblat.py",
                                "test_zorblat_frobs_a_nitz", "make unit"])
     out, _ = capsysbinary.readouterr()
@@ -1238,8 +1238,8 @@ def test_main_names_the_surviving_cases_in_a_replaces_case_green_prompt_rebuilt_
         tmp_path, capsysbinary, build_develop_prompt):
     spec = tmp_path / "spec.md"
     spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
-    step = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob" move to '
-            'tests/py/test_zorblat.py ⟦criterion 1⟧')
+    step = ('tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob" move to '
+            'tests/py/test_zorblat.py ⟦replaces-case⟧ ⟦criterion 1⟧')
     survivors = "still present in tests/zorblat.test.sh: zorblat quuxes a frob"
     code = build_develop_prompt.main(["green", str(spec), step, "make test", "tests/py/test_zorblat.py",
                                       "test_zorblat_frobs_a_nitz", "make unit", survivors])
@@ -1432,8 +1432,8 @@ def test_main_renders_a_red_prompt_for_a_replaces_case_step_asking_one_pytest_re
         tmp_path, capsysbinary, build_develop_prompt):
     spec = tmp_path / "spec.md"
     spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
-    marked = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob", '
-              '"zorblat refuses an empty nitz" move to tests/py/test_zorblat.py ⟦criterion 1⟧')
+    marked = ('tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob", '
+              '"zorblat refuses an empty nitz" move to tests/py/test_zorblat.py ⟦replaces-case⟧ ⟦criterion 1⟧')
     plain = "zorblat frobs a nitz ⟦criterion 1⟧"
 
     def rendered(step):
@@ -1465,8 +1465,8 @@ def test_main_renders_a_red_prompt_for_a_replaces_case_step_asking_each_case_nam
         tmp_path, capsysbinary, build_develop_prompt):
     spec = tmp_path / "spec.md"
     spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
-    marked = ("⟦replaces-case⟧ replaces 'zorblat frobs a nitz', 'zorblat quuxes a frob' in tests/zorblat.test.sh "
-              "⟦criterion 1⟧")
+    marked = ("replaces 'zorblat frobs a nitz', 'zorblat quuxes a frob' in tests/zorblat.test.sh "
+              "⟦replaces-case⟧ ⟦criterion 1⟧")
     plain = "zorblat frobs a nitz ⟦criterion 1⟧"
     unquoted = rb"without (the |its |any )?(surrounding |wrapping )?quot"
 
@@ -1487,8 +1487,8 @@ def test_main_renders_a_red_prompt_for_a_replaces_case_step_stating_the_replaces
         tmp_path, capsysbinary, build_develop_prompt):
     spec = tmp_path / "spec.md"
     spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
-    marked = ("⟦replaces-case⟧ replaces 'zorblat frobs a nitz', 'zorblat quuxes a frob' in tests/zorblat.test.sh "
-              "⟦criterion 1⟧")
+    marked = ("replaces 'zorblat frobs a nitz', 'zorblat quuxes a frob' in tests/zorblat.test.sh "
+              "⟦replaces-case⟧ ⟦criterion 1⟧")
     plain = "zorblat frobs a nitz ⟦criterion 1⟧"
     rules = {
         "names the pytest node id form": rb"pytest node id[^.]{0,40}<path from the repository root>::<test name>",
@@ -1561,8 +1561,8 @@ def test_main_renders_a_revise_red_prompt_for_a_replaces_case_step_with_the_repl
     spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
     reason = tmp_path / "reason.md"
     reason.write_bytes(b"REJECT: the second named case has no replacement.\n")
-    marked = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob" '
-              'move to tests/py/test_zorblat.py ⟦criterion 1⟧')
+    marked = ('tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob" '
+              'move to tests/py/test_zorblat.py ⟦replaces-case⟧ ⟦criterion 1⟧')
     plain = "zorblat frobs a nitz ⟦criterion 1⟧"
     line = rb"`?REPLACES: <case name> => <pytest test id>`?"
 
@@ -1584,8 +1584,8 @@ def test_main_renders_a_red_prompt_for_a_replaces_case_step_without_the_exactly_
         tmp_path, capsysbinary, build_develop_prompt):
     spec = tmp_path / "spec.md"
     spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
-    marked = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob" '
-              'move to tests/py/test_zorblat.py ⟦criterion 1⟧')
+    marked = ('tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob" '
+              'move to tests/py/test_zorblat.py ⟦replaces-case⟧ ⟦criterion 1⟧')
     plain = "zorblat frobs a nitz ⟦criterion 1⟧"
     single = rb"(exactly \*\*ONE\*\* new failing test case|add (exactly )?(one|a single) (new )?(failing )?(test )?case)"
 
@@ -1608,8 +1608,8 @@ def test_main_renders_a_revise_red_prompt_for_a_replaces_case_step_without_an_in
     spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
     reason = tmp_path / "reason.md"
     reason.write_bytes(b"REJECT: the second named case has no replacement.\n")
-    marked = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob" '
-              'move to tests/py/test_zorblat.py ⟦criterion 1⟧')
+    marked = ('tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob" '
+              'move to tests/py/test_zorblat.py ⟦replaces-case⟧ ⟦criterion 1⟧')
     plain = "zorblat frobs a nitz ⟦criterion 1⟧"
     single = rb"(exactly \*\*ONE\*\* new failing test case|add (exactly )?(one|a single) (new )?(failing )?(test )?case)"
 
@@ -2034,3 +2034,31 @@ def test_main_renders_a_red_prompt_saying_a_test_only_helper_is_defined_in_red_i
     missing = sorted(rule for rule, pattern in rules.items() if re.search(pattern, prompt, re.I) is None)
 
     assert (code, missing) == (0, [])
+
+
+def test_main_builds_the_ordinary_red_and_green_prompts_for_a_step_that_only_mentions_the_replaces_case_mark_in_its_prose_or_backticks_and_the_replaces_case_ones_for_a_step_whose_trailing_marks_carry_it_1538(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    tail = "in tests/zorblat.test.sh"
+    steps = {
+        "prose": f"a step quoting ⟦replaces-case⟧ in its prose replaces 'zorblat frobs a nitz' {tail} ⟦criterion 2⟧",
+        "backticks": f"a step quoting `⟦replaces-case⟧` replaces 'zorblat frobs a nitz' {tail} ⟦criterion 2⟧",
+        "marked": f"replaces 'zorblat frobs a nitz' {tail} ⟦replaces-case⟧ ⟦criterion 2⟧",
+    }
+    red_ordinary = rb"Add exactly \*\*ONE\*\* new failing test case"
+    red_replaces = rb"Add the replacement test cases the step names"
+    green_replaces = rb"permitted, and it is required for the step to pass, to delete exactly the cases it names"
+
+    results = {}
+    for name, step in steps.items():
+        build_develop_prompt.main(["red", str(spec), step, "make test"])
+        red = re.sub(rb"\s+", b" ", capsysbinary.readouterr().out)
+        build_develop_prompt.main(["green", str(spec), step, "make test", "tests/py/test_zorblat.py",
+                                   "test_zorblat_frobs_a_nitz", "make unit"])
+        green = re.sub(rb"\s+", b" ", capsysbinary.readouterr().out)
+        results[name] = (re.search(red_ordinary, red) is not None, re.search(red_replaces, red) is not None,
+                         re.search(green_replaces, green) is not None)
+
+    assert results == {"prose": (True, False, False), "backticks": (True, False, False),
+                       "marked": (False, True, True)}
