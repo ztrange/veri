@@ -78,7 +78,7 @@ def main(argv):
             if len(batch) < 100:
                 break
             page += 1
-        listed = existing["body"].split("\n")
+        listed = (existing["body"] or "").split("\n")
         for comment in comments:
             listed += comment["body"].split("\n")
         sections = [(h, [l for l in lines if f"- {l}" not in listed]) for h, lines in sections]
