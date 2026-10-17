@@ -970,8 +970,12 @@ def test_bailing_cause_token_list_names_rebased_tip_red_and_classifies_it_as_a_p
     assert "**process** failure" in token, f"names rebased-tip-red without classifying it as a **process** failure: {token[:160]}"
 
 
+def _opening_the_pr_invariant():
+    return first_record(_records(_lines(GUARDRAILS)), re.escape("before you open the pr"))
+
+
 def test_guardrails_invariant_about_opening_the_pr_says_neither_exactly_once_nor_the_only_full_suite_gate():
-    invariant = first_record(_records(_lines(GUARDRAILS)), re.escape("before you open the pr"))
+    invariant = _opening_the_pr_invariant()
     assert invariant, "Guardrails has no invariant about opening the PR to read"
     problems = [
         f'Guardrails invariant still says "{phrase}": {invariant[:160]}'
@@ -982,7 +986,7 @@ def test_guardrails_invariant_about_opening_the_pr_says_neither_exactly_once_nor
 
 
 def test_guardrails_invariant_about_opening_the_pr_names_the_branchs_own_full_run_again_after_each_suite_repair_step_and_the_extra_run_on_the_rebased_tip_when_sub_step_1_rebased_the_branch():
-    invariant = first_record(_records(_lines(GUARDRAILS)), re.escape("before you open the pr"))
+    invariant = _opening_the_pr_invariant()
     assert invariant, "Guardrails has no invariant about opening the PR to read"
     problems = []
     if not first_record([invariant], r"own full(-suite)? (run|gate)"):
@@ -1021,9 +1025,9 @@ def test_ci_red_bail_names_each_failed_ci_check_every_ci_red_bail_mark_in_the_dr
     assert not problems, problems
 
 
-def test_draft_prs_step_says_rebase_onto_default_shs_exit_code_decides_the_next_action_so_nothing_after_it_the_rebased_tips_full_run_included_starts_until_it_has_returned_and_never_in_the_same_message():
-    gate = first_record(
-        unmarked(draft_pr_read()),
+def _rebase_exit_code_gate(records):
+    return first_record(
+        records,
         re.escape("rebase-onto-default.sh"),
         re.escape("exit code"),
         r"decides?[^.]*next action",
@@ -1031,6 +1035,10 @@ def test_draft_prs_step_says_rebase_onto_default_shs_exit_code_decides_the_next_
         r"until[^.]*returned",
         re.escape("same message"),
     )
+
+
+def test_draft_prs_step_says_rebase_onto_default_shs_exit_code_decides_the_next_action_so_nothing_after_it_the_rebased_tips_full_run_included_starts_until_it_has_returned_and_never_in_the_same_message():
+    gate = _rebase_exit_code_gate(unmarked(draft_pr_read()))
     assert gate, "no instruction says rebase-onto-default.sh's exit code decides the next action, so nothing after it is started until it has returned, and never in the same message as the rebase"
 
 
@@ -1046,15 +1054,7 @@ def test_1287_draft_prs_sub_step_1_the_one_that_asks_the_two_questions_says_on_i
             kept.append(line)
     sub_step_1 = unmarked(_records(kept))
     assert sub_step_1, "Draft PR step has no sub-step 1 (1. **Ask the two questions ...) to read"
-    gate = first_record(
-        sub_step_1,
-        re.escape("rebase-onto-default.sh"),
-        re.escape("exit code"),
-        r"decides?[^.]*next action",
-        re.escape("full"),
-        r"until[^.]*returned",
-        re.escape("same message"),
-    )
+    gate = _rebase_exit_code_gate(sub_step_1)
     assert gate, "no instruction of Draft PR sub-step 1 says rebase-onto-default.sh's exit code decides the next action; the CI conflict-rebase copy later in the step does not stand in for it"
 
 
