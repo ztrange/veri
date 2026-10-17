@@ -244,7 +244,7 @@ def test_1568_skill_md_runs_suite_reported_sh_develop_green_between_the_leaf_s_w
     behind = after(green, "suite-reported.sh develop-green")[:1200]
     if "report-missing" not in behind:
         problems.append("Green section: never names the report-missing bail for a missing SUITE: line")
-    if not re.search(r"looks +wrong", behind):
+    if "looks wrong" not in behind:
         problems.append("Green section: never says a green that stops because the test looks wrong is exempt")
     if "reject" not in behind:
         problems.append("Green section: never says that green keeps its verify-green REJECT outcome")
