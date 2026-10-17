@@ -5,10 +5,11 @@ import sys
 from ledger import handed_out, ledger_steps, next_phase, read_ledger_stdin, trailing_markers
 
 USAGE = "usage: ledger-steps.sh [current|last-done|current-or-last-done|next-phase|criterion <k>]"
+HAS_MARK_USAGE = "usage: ledger-steps.sh has-mark <name>"
 
 
-def refuse():
-    sys.stderr.buffer.write((USAGE + "\n").encode())
+def refuse(usage=USAGE):
+    sys.stderr.buffer.write((usage + "\n").encode())
     return 2
 
 
@@ -70,6 +71,8 @@ def main(argv):
         return refuse()
     if verb == "criterion" and not re.fullmatch("[0-9]+", argv[1] if len(argv) > 1 else ""):
         return refuse()
+    if verb == "has-mark" and len(argv) < 2:
+        return refuse(HAS_MARK_USAGE)
     text = read_ledger_stdin()
     if verb == "criterion":
         return criterion(text, int(argv[1]) % 2**64)
