@@ -227,6 +227,16 @@ def test_1641_an_exemption_keyed_by_a_path_relative_to_the_root_suppresses_its_o
     assert found == [[], []]
 
 
+def test_1641_an_exemption_silences_only_the_offence_on_the_line_it_names_in_a_file_with_two(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    waits = tmp_path / "test_waits.py"
+    waits.write_text("import time\n\ndef test_waits():\n    time.sleep(1)\n    time.sleep(2)\n")
+
+    found = guard.offences(tmp_path, {"test_waits.py:4": "waits on a fake clock"})
+
+    assert [line.split(": ")[0] for line in found] == [f"{waits}:5"]
+
+
 def test_1641_an_exemption_entry_whose_reason_is_only_whitespace_is_refused_by_name(tmp_path):
     guard = importlib.import_module("veri.fast_tier_guard")
     (tmp_path / "test_waits.py").write_text("import time\n\ndef test_waits():\n    time.sleep(1)\n")
