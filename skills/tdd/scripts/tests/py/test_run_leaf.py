@@ -849,6 +849,41 @@ def test_cli_hands_claude_sigpipe_and_sigxfsz_as_its_caller_had_them_at_default_
                     "ignored": (0, "trap -- '' SIGPIPE\ntrap -- '' SIGXFSZ\n")}
 
 
+_EXEC_WITH_DISPOSITION = """
+import os, signal, sys
+for name in ("SIGPIPE", "SIGXFSZ"):
+    signal.signal(getattr(signal, name), getattr(signal, sys.argv[1]))
+os.execv(sys.argv[2], sys.argv[2:])
+"""
+
+
+@pytest.mark.process("run-leaf.sh exec'd by a real caller holding SIGPIPE and SIGXFSZ default or ignored, deriving what a real stub claude inherits")
+def test_cli_run_leaf_sh_hands_claude_sigpipe_and_sigxfsz_as_its_caller_had_them_at_default_when_default_ignored_when_ignored(
+        tmp_path, monkeypatch, run_cli):
+    work = _prompt_workspace(tmp_path, monkeypatch)
+    stub = _executable(tmp_path / "claude", "#!/usr/bin/env bash\n"
+                       'trap -p PIPE XFSZ > "$DISP_OUT"\n' + _OK_RESULT_LINE)
+    seen = {}
+    for handed in ("SIG_DFL", "SIG_IGN"):
+        out = tmp_path / f"disp-{handed}"
+
+        class _Caller:
+            @staticmethod
+            def main(argv):
+                return subprocess.run(
+                    [sys.executable, "-c", _EXEC_WITH_DISPOSITION, handed,
+                     str(SCRIPTS / "run-leaf.sh"), *argv],
+                    stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL).returncode
+
+        code, _, _ = run_cli(_Caller, ["prompt.txt"], cwd=work,
+                             env={"CLAUDE_BIN": str(stub), "DISP_OUT": str(out)})
+        seen[handed] = (code, out.read_text() if out.exists() else None)
+
+    assert seen == {"SIG_DFL": (0, ""),
+                    "SIG_IGN": (0, "trap -- '' SIGPIPE\ntrap -- '' SIGXFSZ\n")}
+
+
 @pytest.mark.process("a real python3 started by a stub claude importing a module mutated and reverted in one mtime second")
 def test_cli_under_a_leaf_a_python_module_mutated_and_reverted_at_the_same_whole_second_mtime_and_size_is_re_read_from_source(
         tmp_path, monkeypatch, run_cli):
