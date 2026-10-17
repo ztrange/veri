@@ -348,4 +348,20 @@ code=0
 expect_eq "$name" "1:case a" "$code:$(cat "$out")"
 rm -f "$report" "$out"
 
+name="unreplaced-cases.sh and replaces-case-survivors.sh given a replaces-case step with an unquoted name after a quoted one each exit 2 with one stderr line naming the step and no traceback (#1538)"
+tree="$(scratch_dir)"; report="$(mktemp)"; : > "$report"
+step="- [ ] x: replaces 'a', b in t/x.test.sh ⟦replaces-case⟧ ⟦criterion 5⟧"
+code_u=0; code_s=0
+(cd "$tree" && "$UNREPLACED" "$step" "$report" > /dev/null 2> "$tree/err-u" < /dev/null) || code_u=$?
+(cd "$tree" && "$HERE/../replaces-case-survivors.sh" "$step" > /dev/null 2> "$tree/err-s" < /dev/null) || code_s=$?
+shape=""
+for f in "$tree/err-u" "$tree/err-s"; do
+  lines="$(wc -l < "$f" | tr -d ' ')"
+  names=no; grep -F "replaces 'a', b in t/x.test.sh" "$f" > /dev/null && names=yes
+  trace=no; grep -F 'Traceback' "$f" > /dev/null && trace=yes
+  shape="$shape $lines:$names:$trace"
+done
+expect_eq "$name" "2:2: 1:yes:no 1:yes:no" "$code_u:$code_s:$shape"
+rm -f "$report"
+
 finish

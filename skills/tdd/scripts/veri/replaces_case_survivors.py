@@ -1,7 +1,7 @@
 """replaces-case-survivors.sh's check, run in-process."""
 import sys
 
-from replaces_case import is_replaces_case_step, parse
+from replaces_case import is_replaces_case_step, parse, unreadable
 
 USAGE = "usage: replaces-case-survivors.sh <step text>"
 
@@ -12,6 +12,9 @@ def main(argv):
         return 2
     if not is_replaces_case_step(argv[0]):
         return 3
+    if unreadable(argv[0]):
+        print("cannot read the case names of step: " + argv[0].replace("\n", " "), file=sys.stderr)
+        return 2
     parsed = parse(argv[0])
     if parsed is None:
         return 3
