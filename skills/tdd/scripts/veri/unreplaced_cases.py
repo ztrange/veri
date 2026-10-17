@@ -3,7 +3,6 @@ import os
 import re
 import sys
 
-import ledger
 import replaces_case
 
 USAGE = "usage: unreplaced-cases.sh"
@@ -59,7 +58,7 @@ def main(argv):
         sys.stderr.write(USAGE + "\n")
         return 2
     step, *reports = argv
-    if "⟦replaces-case⟧" not in ledger.trailing_markers(step):
+    if not replaces_case.is_replaces_case_step(step):
         return 0
     parsed = replaces_case.parse(step)
     if parsed is None and re.search(REPLACES + "(?!" + QUOTE + r")\S", step):

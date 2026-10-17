@@ -4,7 +4,7 @@ import re
 import sys
 
 import tunables
-from ledger import trailing_markers
+from replaces_case import is_replaces_case_step
 from build_verify_prompt import INTERFACE_PHASES, _IncludeRefused, _expand, _has_heading, _spec_text, _write
 
 PHASES = ("red", "green", "refactor", "cover", "transform", "diff", "structural", "predicate", "revise",
@@ -107,7 +107,7 @@ def main(argv):
         optional["REJECTION_REASON"] = args[3]
     if _has_heading(_spec_text(spec), b"Bug"):
         optional["BUG_REPRODUCTION"] = f"{prompts}/_develop-red-bug.md"
-    replaces_case = "⟦replaces-case⟧" in trailing_markers(step)
+    replaces_case = is_replaces_case_step(step)
     marked = {}
     if phase == "red" and "⟦ci-repair⟧" in step:
         marked["CI_REPAIR"] = f"{prompts}/_develop-red-ci-repair.md"

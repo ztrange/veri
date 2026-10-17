@@ -1,8 +1,7 @@
 """replaces-case-survivors.sh's check, run in-process."""
 import sys
 
-from ledger import trailing_markers
-from replaces_case import parse
+from replaces_case import is_replaces_case_step, parse
 
 USAGE = "usage: replaces-case-survivors.sh <step text>"
 
@@ -11,7 +10,7 @@ def main(argv):
     if len(argv) != 1:
         print(USAGE, file=sys.stderr)
         return 2
-    if "⟦replaces-case⟧" not in trailing_markers(argv[0]):
+    if not is_replaces_case_step(argv[0]):
         return 3
     parsed = parse(argv[0])
     if parsed is None:

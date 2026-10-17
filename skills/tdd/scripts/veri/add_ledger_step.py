@@ -14,7 +14,6 @@ except ImportError:
     from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, ledger_steps, multi_tag_refusal, new_step, trailing_markers
 
 SUITE_REPAIR = "⟦suite-repair⟧"
-REPLACES_MARK = "⟦replaces-case⟧"
 REPAIR_MARKS = ("⟦ci-repair⟧", SUITE_REPAIR)
 BYTES = "surrogateescape"
 USAGE = "usage: add-ledger-step.sh [--criterion <k>] <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]  (--planned goes with --criterion <k>)"
@@ -154,7 +153,7 @@ def main(argv):
     if sum(1 for line in lines if is_anchor_step(line, anchor)) != 1:
         return refuse("add-ledger-step.sh: anchor matches no single step: " + anchor)
     for text in texts:
-        if has_mark(text, (REPLACES_MARK,)) and replaces_case.parse(text) is None:
+        if has_mark(text, (replaces_case.REPLACES_MARK,)) and replaces_case.parse(text) is None:
             warn("add-ledger-step.sh: cannot read the case names of step: " + text.replace("\n", " "))
             return 1
     steps = [line for line in lines if ledger_steps(line)]
