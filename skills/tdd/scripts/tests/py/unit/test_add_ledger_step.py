@@ -1097,3 +1097,26 @@ def test_main_counts_a_kind_marked_added_step_against_the_budget_and_owes_the_ne
         assert (kind, first[0], second[0]) == (kind, 0, 1)
         assert "- [ ] one more" not in after
         assert after.endswith("## Owed steps\n\n- one more\n")
+
+
+def test_main_exits_2_naming_the_log_and_the_unreadable_line_when_a_suite_repair_would_follow_a_malformed_events_line_leaving_the_ledger_1619(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    before = (
+        "# Plan for #42\n"
+        "\n"
+        "- [x] a one ⟦criterion 1⟧\n"
+        "- [x] fix the full-suite failure: first.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧\n"
+        "- [ ] b two ⟦criterion 2⟧\n"
+    ).encode()
+    ledger.write_bytes(before)
+    log = ledger.parent / "events.jsonl"
+    log.write_text(json.dumps({"ts": 1, "issue": "42", "event": "resume"}) + "\n{not json\n")
+
+    code, out, err = run_cli(
+        add_ledger_step,
+        [str(ledger), "after", "b two", "fix the full-suite failure: second.test.sh ⟦suite-repair⟧"],
+    )
+
+    assert (code, out, ledger.read_bytes()) == (2, "", before)
+    assert str(log) in err and "{not json" in err
