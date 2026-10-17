@@ -1,0 +1,4 @@
+# Plan for #1569 — Section helper and affected-suites.sh read a fenced '## x' line as a heading
+
+- [ ] The section helper (`skills/tdd/scripts/tests/py/skill_sections.py`, `section_of`) returns a section containing a fenced code block whole: a heading-shaped line (`## x`) inside a ``` fence or a ~~~ fence does not end the section, pinned by a case for each fence kind in `tests/py/unit/test_skill_sections.py` ⟦criterion 1⟧
+- [ ] `affected-suites.sh`'s section selection (`skills/tdd/scripts/veri/affected_suites.py`, `heading()`/`enclosing()`/`edited_section()`) does not read a heading-shaped line inside a ``` or ~~~ fenced code block of `SKILL.md` as a heading: an edit inside such a fence, below a fenced `## x` line, selects the pytest files reading the real enclosing section, pinned by a case in `tests/py/test_affected_suites.py` ⟦criterion 1⟧
