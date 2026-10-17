@@ -58,6 +58,7 @@ def main(argv):
     quote = step[re.search(r"\breplaces (?=['\"`])", step).end()] if parsed else ""
     replaced = set()
     not_found = set()
+    ambiguous = set()
     for report in reports:
         with open(report, encoding="utf-8") as handle:
             for m in re.finditer(r"^(?:[-*] )?REPLACES: (.*?) => (.*)$", handle.read(), re.M):
@@ -66,9 +67,16 @@ def main(argv):
                     replaced.add(re.sub("^(" + re.escape(quote) + ")(.*)\\1$", r"\2", m.group(1)))
                 elif is_bare_name(m.group(2)) and bare_name_count(m.group(2).strip()) == 0:
                     not_found.add(m.group(1))
+                elif is_bare_name(m.group(2)) and bare_name_count(m.group(2).strip()) > 1:
+                    ambiguous.add(m.group(1))
     missing = [name for name in (parsed[0] if parsed else []) if name not in replaced and unescape(name) not in replaced]
     for name in missing:
-        print(name + (" (no test of that name was found)" if name in not_found or unescape(name) in not_found else ""))
+        note = ""
+        if name in not_found or unescape(name) in not_found:
+            note = " (no test of that name was found)"
+        elif name in ambiguous or unescape(name) in ambiguous:
+            note = " (the test name is ambiguous: several tests of that name exist)"
+        print(name + note)
     return 1 if missing else 0
 
 
