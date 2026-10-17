@@ -1068,3 +1068,46 @@ def test_cli_reads_the_prompt_from_stdin_on_dash(tmp_path, monkeypatch, run_cli)
     code, _, launches = _cli_argv(run_cli, monkeypatch, tmp_path, "-", stdin="piped prompt body")
 
     assert (code, [argv[2] for argv in launches]) == (0, ["piped prompt body"])
+
+
+@pytest.mark.process("a real git run by a stub claude writing and reading the leaf's private global config")
+def test_cli_a_leafs_git_config_global_write_leaves_the_operators_global_config_byte_identical_and_the_leaf_reads_it_back(
+        tmp_path, monkeypatch, run_cli):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("Write the failing test for issue 276.")
+    home = tmp_path / "home"
+    before = b"[user]\n\tname = Operator\n"
+    (home / ".gitconfig").write_bytes(before)
+    stub = _executable(tmp_path / "claude", "#!/bin/sh\n"
+        "git config --global veri.probe wrote-it 2>/dev/null || true\n"
+        "readback=\"$(git config --global --get veri.probe 2>/dev/null)\" || readback='<unset>'\n"
+        "printf '%s\\n' '{\"type\":\"system\",\"subtype\":\"init\",\"session_id\":\"x\"}'\n"
+        "printf '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"read-back: %s\"}\\n' \"$readback\"\n")
+    monkeypatch.delenv("GIT_CONFIG_GLOBAL", raising=False)
+
+    code, out, _ = run_cli(run_leaf, ["prompt.txt"], cwd=work, env={
+        "CLAUDE_BIN": str(stub), "XDG_CONFIG_HOME": str(home / ".config")})
+
+    assert ((home / ".gitconfig").read_bytes(), code, "read-back: wrote-it" in out) == (before, 0, True)
+
+
+@pytest.mark.process("a real git run by a stub claude reading the leaf's private global config")
+def test_cli_a_leafs_private_global_git_config_starts_as_a_copy_of_the_operators_so_a_key_there_is_visible_to_the_leaf(
+        tmp_path, monkeypatch, run_cli):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("Write the failing test for issue 276.")
+    home = tmp_path / "home"
+    before = b"[user]\n\tname = Operator\n[credential]\n\thelper = veri-test-helper\n"
+    (home / ".gitconfig").write_bytes(before)
+    stub = _executable(tmp_path / "claude-reader", "#!/bin/sh\n"
+        "seen=\"$(git config --global --get credential.helper 2>/dev/null)\" || seen='<unset>'\n"
+        "printf '%s\\n' '{\"type\":\"system\",\"subtype\":\"init\",\"session_id\":\"x\"}'\n"
+        "printf '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"sees: %s\"}\\n' \"$seen\"\n")
+    monkeypatch.delenv("GIT_CONFIG_GLOBAL", raising=False)
+
+    code, out, _ = run_cli(run_leaf, ["prompt.txt"], cwd=work, env={
+        "CLAUDE_BIN": str(stub), "XDG_CONFIG_HOME": str(home / ".config")})
+
+    assert ((home / ".gitconfig").read_bytes(), code, "sees: veri-test-helper" in out) == (before, 0, True)
