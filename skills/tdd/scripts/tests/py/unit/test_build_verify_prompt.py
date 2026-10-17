@@ -1712,3 +1712,22 @@ def test_main_renders_a_red_prompt_telling_the_verifier_to_reject_a_red_whose_on
     missing = sorted(rule for rule, pattern in rules.items() if re.search(pattern, prompt, re.I) is None)
 
     assert (code, missing) == (0, [])
+
+
+def test_main_renders_a_plan_prompt_that_rejects_a_replaces_case_step_not_naming_its_cases_as_replaces_quoted_names_in_a_suite_1538(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"1. zorblat(nitz) replaces frob(nitz, quux), with a case refusing a sibling start.\n")
+    ledger = tmp_path / "plan.md"
+    ledger.write_text("- [ ] replaces the frob half of the nitz case in tests/quux.test.sh "
+                      "⟦replaces-case⟧ ⟦criterion 1⟧\n", encoding="utf-8")
+
+    code = build_verify_prompt.main(["plan", str(spec), str(ledger)])
+    out, _ = capsysbinary.readouterr()
+    prompt = re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
+
+    reject_unreadable = (r"REJECT[^.]{0,400}replaces-case[^.]{0,400}replaces '<case name>'"
+                         r"|replaces-case[^.]{0,400}replaces '<case name>'[^.]{0,400}REJECT"
+                         r"|REJECT[^.]{0,400}replaces '<case name>'[^.]{0,400}replaces-case")
+    assert (code, "replaces '<case name>'" in prompt, "in <suite path>" in prompt,
+            re.search(reject_unreadable, prompt, re.I) is not None) == (0, True, True, True)
