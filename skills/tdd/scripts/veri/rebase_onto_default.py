@@ -34,32 +34,32 @@ def rebase_in_progress():
     return any(git_file(name).is_dir() for name in ("rebase-merge", "rebase-apply"))
 
 
+def refuse(reason):
+    sys.stderr.write(f"rebase-onto-default: {reason}\n")
+    return 2
+
+
 def main(argv):
     try:
         default = default_branch()
     except FileNotFoundError:
         default = ""
     if not default:
-        sys.stderr.write("rebase-onto-default: refs/remotes/origin/HEAD is not set"
-                         " — no default branch to rebase onto\n")
-        return 2
+        return refuse("refs/remotes/origin/HEAD is not set — no default branch to rebase onto")
     if git("fetch", "-q", "origin", text=True,
            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
-        sys.stderr.write("rebase-onto-default: git fetch of origin failed\n")
-        return 2
+        return refuse("git fetch of origin failed")
     remote = git("ls-remote", "origin", f"refs/heads/{default}", text=True,
                  stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     if remote.returncode != 0:
-        sys.stderr.write(f"rebase-onto-default: git ls-remote of refs/heads/{default} on origin failed\n")
-        return 2
+        return refuse(f"git ls-remote of refs/heads/{default} on origin failed")
     onto = output("rev-parse", f"origin/{default}")
     if onto != re.match(r"\S*", remote.stdout).group():
         return 2
     saved = git_file("set-aside-tdd-appends.diff")
     if saved.is_file():
         if git("apply", text=True, input=saved.read_text(), stderr=subprocess.DEVNULL).returncode != 0:
-            sys.stderr.write(f"rebase-onto-default: could not re-apply the set-aside appends; kept at {saved}\n")
-            return 2
+            return refuse(f"could not re-apply the set-aside appends; kept at {saved}")
         saved.unlink()
     if git("merge-base", "--is-ancestor", onto, "HEAD", text=True).returncode == 0:
         return 3
@@ -95,10 +95,9 @@ def main(argv):
             kept = kept.with_name(f"{kept.name}.{int(time.time())}.{os.getpid()}")
         kept.write_text(appends + "\n")
         files = re.findall(r"^\+\+\+ b/(.+)$", appends, re.M)
-        sys.stderr.write(f"rebase-onto-default: could not re-apply the uncommitted appends to"
-                         f" {' '.join(files)}; kept at"
-                         f" {' '.join(str(p) for p in [*earlier, kept])}\n")
-        return 2
+        return refuse(f"could not re-apply the uncommitted appends to"
+                      f" {' '.join(files)}; kept at"
+                      f" {' '.join(str(p) for p in [*earlier, kept])}")
     if outcome:
         return outcome
     sys.stdout.write(f"{pre}\n{onto}\n")
