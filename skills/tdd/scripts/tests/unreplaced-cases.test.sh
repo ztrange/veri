@@ -291,4 +291,17 @@ code=0
 expect_eq "$name" "0:" "$code:$(cat "$out")"
 rm -f "$report" "$out"
 
+name="unreplaced-cases.sh counts a bare-name REPLACES line as unreplaced when no test function of that name exists under skills/tdd/scripts/tests/py/, so it exits 1 and the printed case says no test of that name was found (#1660)"
+tree="$(scratch_dir)"; mkdir -p "$tree/skills/tdd/scripts/tests/py/unit"
+printf 'def test_other():\n    pass\n' > "$tree/skills/tdd/scripts/tests/py/unit/test_x.py"
+report="$(mktemp)"; out="$(mktemp)"
+printf '%s\n' "REPLACES: case a => test_a" > "$report"
+step="- [ ] x: replaces 'case a' in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 3⟧"
+code=0
+(cd "$tree" && "$UNREPLACED" "$step" "$report" > "$out" 2> /dev/null < /dev/null) || code=$?
+said=no
+grep -F 'case a' "$out" | grep -F 'no test of that name was found' > /dev/null && said=yes
+expect_eq "$name" "1:yes" "$code:$said"
+rm -f "$report" "$out"
+
 finish

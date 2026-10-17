@@ -15,7 +15,7 @@ def def_pattern(name):
     return r"^\s*(?:async\s+)?def " + re.escape(name) + r"\b"
 
 
-def bare_name_defined_once(name):
+def bare_name_count(name):
     found = 0
     for root, _, files in os.walk(PY_TESTS):
         for file in files:
@@ -26,13 +26,13 @@ def bare_name_defined_once(name):
                     found += len(re.findall(def_pattern(name), handle.read(), re.M))
             except OSError:
                 continue
-    return found == 1
+    return found
 
 
 def exists_in_tree(test_id):
     path, sep, name = test_id.strip().partition("::")
     if not sep:
-        return re.fullmatch(r"\w+", path) is not None and bare_name_defined_once(path)
+        return re.fullmatch(r"\w+", path) is not None and bare_name_count(path) == 1
     try:
         with open(path, encoding="utf-8") as handle:
             source = handle.read()
@@ -53,15 +53,18 @@ def main(argv):
     parsed = replaces_case.parse(step)
     quote = step[re.search(r"\breplaces (?=['\"`])", step).end()] if parsed else ""
     replaced = set()
+    not_found = set()
     for report in reports:
         with open(report, encoding="utf-8") as handle:
             for m in re.finditer(r"^(?:[-*] )?REPLACES: (.*?) => (.*)$", handle.read(), re.M):
                 if exists_in_tree(m.group(2)):
                     replaced.add(m.group(1))
                     replaced.add(re.sub("^(" + re.escape(quote) + ")(.*)\\1$", r"\2", m.group(1)))
+                elif re.fullmatch(r"\w+", m.group(2).strip()) and bare_name_count(m.group(2).strip()) == 0:
+                    not_found.add(m.group(1))
     missing = [name for name in (parsed[0] if parsed else []) if name not in replaced and unescape(name) not in replaced]
     for name in missing:
-        print(name)
+        print(name + (" (no test of that name was found)" if name in not_found or unescape(name) in not_found else ""))
     return 1 if missing else 0
 
 
