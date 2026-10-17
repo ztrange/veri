@@ -65,8 +65,7 @@ def harvest(name, env):
     try:
         record = closing_result(log)
         if record is None:
-            print("harvest-usage.sh: no closing result record in %s — no usage event appended for %s" % (log, name),
-                  file=sys.stderr)
+            no_usage_event(name, "no closing result record in %s" % log)
             return 3
         if "usage" not in record:
             no_usage_event(name, "the closing result record in %s carries no usage" % log)
