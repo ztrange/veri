@@ -70,3 +70,27 @@ def test_main_1262_exits_0_with_the_new_issue_a_blocker_and_every_line_kept_when
 
     body = written.get("60", "")
     assert (code, blockers(body, ""), all(line in body.split("\n") for line in original.split("\n"))) == (0, [77], True)
+
+
+def test_main_1262_exits_0_with_the_new_issue_a_blocker_when_the_heading_carries_none_replaced_or_list_lines_kept(
+        monkeypatch, coverage_blocker):
+    written = {}
+
+    def fake_edit(n, path):
+        written[n] = pathlib.Path(path).read_text()
+
+    monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_create",
+                        lambda title, text: "https://github.com/owner/name/issues/77\n")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_edit", fake_edit)
+
+    seen = []
+    for original, expected in (("## Problem\n\nx\n\n## Blocked by\n\nNone.\n\nTest command: make test", [77]),
+                               ("## Problem\n\nx\n\n## Blocked by\n\n- #5\n- #6\n\nTest command: make test", [5, 6, 77])):
+        monkeypatch.setattr(coverage_blocker, "gh_issue_view", lambda n, field, body=original: body)
+        code = coverage_blocker.main(["60"])
+        body = written.get("60", "")
+        kept = [line for line in original.split("\n") if line != "None."]
+        seen.append((code, sorted(blockers(body, "")), all(line in body.split("\n") for line in kept), expected))
+
+    assert [(c, b, k) for c, b, k, _ in seen] == [(0, e, True) for *_, e in seen]
