@@ -176,6 +176,12 @@ def bad_context(log, step):
     return "; ".join(bad)
 
 
+def run_all_launches(probe):
+    run_developer_launches(probe)
+    run_verifier_launches(probe)
+    probe.problems.clear()
+
+
 def launched_trees(probe):
     return sorted(probe.run.iterdir())
 
@@ -213,9 +219,7 @@ def test_every_verifier_skill_md_launches_through_verify_sh_sees_the_runs_test_c
 @pytest.mark.process("SKILL.md launch line through supervise.sh")
 @pytest.mark.timeout(600)
 def test_every_leaf_skill_md_launches_leaves_events_carrying_the_runs_issue_and_step(probe):
-    run_developer_launches(probe)
-    run_verifier_launches(probe)
-    probe.problems.clear()
+    run_all_launches(probe)
 
     trees = launched_trees(probe)
     if not trees:
@@ -236,9 +240,7 @@ def test_every_leaf_skill_md_launches_leaves_events_carrying_the_runs_issue_and_
 @pytest.mark.process("SKILL.md launch line through supervise.sh")
 @pytest.mark.timeout(600)
 def test_every_leaf_skill_md_launches_with_veri_step_set_sees_the_runs_step_as_veri_step(probe):
-    run_developer_launches(probe)
-    run_verifier_launches(probe)
-    probe.problems.clear()
+    run_all_launches(probe)
 
     trees = launched_trees(probe)
     if not trees:
