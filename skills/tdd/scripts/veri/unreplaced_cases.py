@@ -64,6 +64,10 @@ def main(argv):
     if replaces_case.unreadable(step) or parsed is None and re.search(REPLACES + "(?!" + QUOTE + r")\S", step):
         sys.stderr.write(replaces_case.unreadable_message(step) + "\n")
         return 2
+    other = re.search(REPLACES + "(?=" + QUOTE + r").*? in ([\w./-]+)", step)
+    if parsed is None and other:
+        sys.stderr.write("suite " + other.group(1) + " is not a .test.sh file in step: " + step.replace("\n", " ") + "\n")
+        return 2
     quote = step[re.search(REPLACES + "(?=" + QUOTE + ")", step).end()] if parsed else ""
     replaced = set()
     not_found = set()
