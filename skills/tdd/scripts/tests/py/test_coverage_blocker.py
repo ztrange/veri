@@ -84,7 +84,7 @@ def test_main_patches_the_body_it_read_after_the_create_with_trailing_newlines_c
     coverage_blocker.main(["60"])
 
     assert calls == ["lookup", "create", "view", "patch"]
-    assert seen["body"] == "## Parent\n\n#1\n"
+    assert seen["body"] == "## Parent\n\n#1\n\n## Blocked by\n\n- #77\n"
 
 
 def test_main_leaves_no_temp_file_when_the_patch_raises(tmpdir_env, monkeypatch, coverage_blocker):
@@ -159,7 +159,7 @@ def test_main_falls_back_to_rest_when_graphql_refuses_the_read_and_patches_a_nul
         return code, seen.get("body"), capsys.readouterr().err
 
     assert run_with_rest_answer('{"body": "## Blocked by\\n\\nNone\\n"}') == (0, "## Blocked by\n\n- #77\n", "")
-    assert run_with_rest_answer('{"body": null}') == (0, "\n", "")
+    assert run_with_rest_answer('{"body": null}') == (0, "## Blocked by\n\n- #77\n", "")
 
 
 def test_main_files_the_issue_blocks_the_refactor_issue_on_it_prints_the_url_and_returns_0(tmpdir_env, monkeypatch, capsys, coverage_blocker):
@@ -227,7 +227,7 @@ def test_main_rewrites_every_blocked_by_section_replacing_none_lines_and_inserti
         "## Blocked by\n\n- #12\nNone yet\nNonetheless\n\n## Blocked byproduct\n\n- #13\n\n\n"
     ) == (0, url, b"## Blocked by\n\n- #12\n- #77\n- #77\n\n## Blocked byproduct\n\n- #13\n- #77\n")
     assert run_with_body("## Blocked by\r\n\r\n- #12\r\n") == (0, url, b"## Blocked by\r\n\r\n- #12\r\n- #77\n")
-    assert run_with_body("## Parent\n\n#1\n\n\n") == (0, url, b"## Parent\n\n#1\n")
+    assert run_with_body("## Parent\n\n#1\n\n\n") == (0, url, b"## Parent\n\n#1\n\n## Blocked by\n\n- #77\n")
 
 
 def test_main_replaces_only_the_none_line_under_blocked_by_leaving_a_none_line_in_another_section_unchanged(tmpdir_env, monkeypatch, run_cli, coverage_blocker):
