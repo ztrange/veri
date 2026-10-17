@@ -19,6 +19,16 @@ def section(heading):
     return plain(body.encode())
 
 
+def refactor_section():
+    text = importlib.import_module("skill_sections").section(SKILL, REFACTOR)
+    lines = []
+    for line in text.split("\n")[1:]:
+        if line.startswith("#"):
+            break
+        lines.append(line)
+    return plain("\n".join(lines).encode())
+
+
 def window(text, pattern, radius=250):
     match = re.search(pattern.encode(), text)
     return text[max(match.start() - radius, 0):match.end() + radius] if match else b""
@@ -40,7 +50,7 @@ def class_clauses(rest, cls, others):
 
 
 def test_skill_md_s_refactor_section_appends_the_step_s_structural_leftovers_to_the_run_s_owed_file_and_commits_that_file_with_the_step_s_refactor_pending_clear():
-    text = section(REFACTOR)
+    text = refactor_section()
     assert text.strip(), "SKILL.md has no Refactor section to read"
     append = window(text, r"refactor-owed\.sh append")
     assert append, "never runs refactor-owed.sh append"
@@ -54,7 +64,7 @@ def test_skill_md_s_refactor_section_appends_the_step_s_structural_leftovers_to_
 
 
 def test_756_skill_md_s_refactor_loop_passes_the_step_s_refactor_bounds_to_refactor_owed_sh_append_and_records_an_all_test_file_step_s_structural_candidate_test_only_which_the_structural_pass_never_lists_and_so_launches_no_predicate_or_transform_leaf_for():
-    text = section(REFACTOR)
+    text = refactor_section()
     append = window(text, r"refactor-owed\.sh append")
     assert append, "never runs refactor-owed.sh append"
     assert re.search(rb'refactor-owed\.sh append .*<step>"? +"?(\$touched|<touched-files>)', append), "append lacks the step's refactor bounds ($touched) after the step"
@@ -69,7 +79,7 @@ def test_756_skill_md_s_refactor_loop_passes_the_step_s_refactor_bounds_to_refac
 
 
 def test_1163_skill_md_s_refactor_step_6_narrate_branch_narration_names_all_four_candidate_classes_structural_cosmetic_test_only_and_out_of_scope():
-    text = section(REFACTOR)
+    text = refactor_section()
     narration, found = narration_of(text)
     assert found, "the Refactor section has no '6. Narrate + branch.' sub-step"
     for cls in (b"structural", b"cosmetic", b"test-only", b"out-of-scope"):
@@ -77,7 +87,7 @@ def test_1163_skill_md_s_refactor_step_6_narrate_branch_narration_names_all_four
 
 
 def test_1163_skill_md_s_refactor_step_6_narration_says_where_each_class_goes_structural_narrated_and_owed_by_a_follow_up_cosmetic_narrated_and_owed_by_nobody_test_only_and_out_of_scope_recorded_through_refactor_owed_sh_and_not_narrated_as_a_backlog():
-    text = section(REFACTOR)
+    text = refactor_section()
     narration, found = narration_of(text)
     assert found, "the Refactor section has no '6. Narrate + branch.' sub-step"
     goes = {
