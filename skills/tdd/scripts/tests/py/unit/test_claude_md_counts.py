@@ -75,3 +75,21 @@ def test_a_count_split_from_its_noun_by_a_backticked_or_path_like_word_fails_nam
         results[name] = (code, [line.split(":")[1] for line in (out + err).splitlines() if line.startswith(f"{planted}:")])
 
     assert results == {"backticked": (1, ["3"]), "path_like": (1, ["3"])}
+
+
+def test_claude_mds_prose_names_invisible_work_sh_the_script_the_procedure_does_not_call():
+    root = Path(__file__).resolve().parents[6]
+    problems = []
+    if not (root / "skills/tdd/scripts/invisible-work.sh").is_file():
+        problems.append("skills/tdd/scripts/invisible-work.sh is not in the tree whose count CLAUDE.md states")
+    if not problems:
+        preamble = []
+        for line in (root / "CLAUDE.md").read_text(encoding="utf-8", errors="surrogateescape").splitlines():
+            if line.startswith("## "):
+                break
+            preamble.append(line)
+        intro = " ".join(preamble) + " "
+        if intro.replace(" ", "") and "invisible-work.sh" not in intro:
+            problems.append("CLAUDE.md's opening paragraph counts '<n> bash scripts it calls' without naming invisible-work.sh, a script the procedure never calls")
+
+    assert problems == []
