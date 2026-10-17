@@ -136,6 +136,15 @@ def test_claude_mds_testing_idiom_section_states_the_pipefail_sigpipe_rule():
     ) == []
 
 
+def test_claude_mds_testing_idiom_section_says_496_retired_225s_rule_that_the_four_recorded_suites_keep_their_own_counters_595():
+    assert idiom_records_carry(
+        "nothing says the -recorded suites' own-counters rule was retired",
+        "CLAUDE.md has no single record in its '## Testing idiom' section stating that the rule the four -recorded suites keep their own counters (#225) was retired by #496, naming lib/harness.sh",
+        "-recorded", "own counters", "#225", "#496", "retire",
+        r"lib/harness\.sh",
+    ) == []
+
+
 def test_claude_md_states_once_that_a_background_process_is_killed_by_its_recorded_pid_never_by_a_job_spec():
     rule = ("job spec", "kill %", "pid", "bg_start|bg_kill|background\\.sh", "no-job-spec-kills", "never|must not|not by")
     found = sum(all(re.search(r, rec) for r in rule) for rec in all_records())
