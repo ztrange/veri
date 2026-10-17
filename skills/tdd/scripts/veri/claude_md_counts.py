@@ -6,7 +6,7 @@ _NUMBER = (
     r"(?:\d+|(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen"
     r"|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred)(?:-\w+)?)"
 )
-_COUNT = re.compile(rf"\b{_NUMBER}\s+(?:[\w-]+\s+){{0,2}}(?:files|suites|scripts)\b", re.IGNORECASE)
+_COUNT = re.compile(rf"\b{_NUMBER}\s+(?:\S+\s+){{0,2}}(?:files|suites|scripts)\b", re.IGNORECASE)
 _DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
 
 
