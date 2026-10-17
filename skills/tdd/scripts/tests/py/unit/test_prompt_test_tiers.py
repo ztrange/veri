@@ -81,6 +81,37 @@ def never_timed_under(problems, label, prompt, tier):
         problems.append("%s's prompt still tells its leaf to run through timed-test-run.sh under tier %s" % (label, tier))
 
 
+def names_suite_runner(problems, label, prompt):
+    if "run-suite.sh" not in plain(prompt):
+        problems.append("%s's prompt never names run-suite.sh, the invocation for running one suite" % label)
+    if "convention like any other" in plain(prompt):
+        problems.append("%s's prompt still leaves how to run one suite for the leaf to establish" % label)
+
+
+def names_runner_fallback(problems, label, prompt):
+    item = numbered_item(r"run-suite\.sh", plain(prompt))
+    if not item:
+        problems.append("%s's prompt has no numbered item naming run-suite.sh" % label)
+        return
+    if not has_line(r"fall back", item):
+        problems.append("%s's prompt never tells its leaf what to run when the repository has no run-suite.sh" % label)
+
+
+def names_prediction_file(problems, label, prompt):
+    if not has_line(r"\.tdd/[A-Za-z0-9_<>.{}-]*prediction", plain(prompt)):
+        problems.append("%s's prompt names no prediction file under .tdd/, so nothing records when the prediction was written" % label)
+
+
+def names_run_output_file(problems, label, prompt):
+    if not has_line(r"\.tdd/[A-Za-z0-9_<>.{}-]*(output|run)", plain(prompt)):
+        problems.append("%s's prompt names no run-output file under .tdd/, so red-divergence.sh has no run to date the prediction file against" % label)
+
+
+def probe_prompts(problems, probe, roster):
+    for label, prompt in roster:
+        probe(problems, label, prompt)
+
+
 @pytest.fixture
 def spec(tmp_path):
     path = tmp_path / "spec.md"
@@ -220,3 +251,123 @@ def test_the_rebase_leaves_still_run_the_full_test_command_under_tier_all(spec):
         if "timed-test-run.sh all '' make test" not in plain(redo):
             problems.append("%s's prompt never runs the full test command, make test, under tier all" % leaf)
     assert problems == []
+
+
+@pytest.mark.process(BOUNDARY)
+def test_verify_red_green_refactor_and_pin_run_their_test_commands_through_timed_test_run_each_naming_its_tier(spec):
+    problems = []
+    verify_red = build(problems, VERIFY, "red", spec, "tests/zorblat.test.sh", "zorblat case")
+    verify_green = build(problems, VERIFY, "--fast-cmd", "make unit", "green", spec, "tests/zorblat.test.sh", "zorblat case")
+    verify_refactor = build(problems, VERIFY, "--fast-cmd", "make unit", "refactor", spec, "tests/zorblat.test.sh", "abc1234")
+    verify_pin = build(problems, VERIFY, "pin", spec, "tests/zorblat.test.sh", "zorblat case")
+    timed_through(problems, "verify-red", verify_red, "affected")
+    timed_through(problems, "verify-green", verify_green, "fast", "affected")
+    timed_through(problems, "verify-refactor", verify_refactor, "fast", "affected")
+    timed_through(problems, "verify-pin", verify_pin, "target")
+    assert problems == []
+
+
+@pytest.mark.process(BOUNDARY)
+def test_verify_green_check_1_runs_the_target_test_through_timed_test_run_under_tier_target(spec):
+    problems = []
+    verify_green = build(problems, VERIFY, "--fast-cmd", "make unit", "green", spec, "tests/zorblat.test.sh", "zorblat case")
+    check1 = numbered_item(r"The target test passes", verify_green)
+    if not check1:
+        problems.append("verify-green's prompt has no numbered item saying the target test passes")
+    timed_through(problems, "verify-green's check 1", check1, "target")
+    assert problems == []
+
+
+@pytest.mark.process(BOUNDARY)
+def test_every_developer_prompt_that_runs_a_suite_names_run_suite_as_the_single_suite_invocation(spec):
+    problems = []
+    red = build(problems, DEVELOP, "red", spec, "QWIXTLE step", "make test")
+    green = build(problems, DEVELOP, "green", spec, "QWIXTLE step", "make test", "tests/zorblat.test.sh", "zorblat case", "make unit")
+    refactor = build(problems, DEVELOP, "refactor", spec, "QWIXTLE step", "make test", "src/zorblat.sh")
+    probe_prompts(problems, names_suite_runner, [("develop-red", red), ("develop-green", green), ("develop-refactor", refactor)])
+    assert problems == []
+
+
+@pytest.mark.process(BOUNDARY)
+def test_every_developer_prompt_that_names_run_suite_tells_its_leaf_what_to_run_when_the_repository_has_none(spec):
+    problems = []
+    red = build(problems, DEVELOP, "red", spec, "QWIXTLE step", "make test")
+    green = build(problems, DEVELOP, "green", spec, "QWIXTLE step", "make test", "tests/zorblat.test.sh", "zorblat case", "make unit")
+    refactor = build(problems, DEVELOP, "refactor", spec, "QWIXTLE step", "make test", "src/zorblat.sh")
+    probe_prompts(problems, names_runner_fallback, [("develop-red", red), ("develop-green", green), ("develop-refactor", refactor)])
+    assert problems == []
+
+
+@pytest.mark.process(BOUNDARY)
+def test_every_develop_revise_prompt_names_run_suite_so_a_redos_affected_suite_runs_apply_make_tests_environment(spec, reason):
+    problems = []
+    roster = [
+        ("develop-revise " + phase, build(problems, DEVELOP, "revise", phase, spec, "QWIXTLE step", "make test", reason))
+        for phase in ("red", "green", "refactor")
+    ]
+    probe_prompts(problems, names_suite_runner, roster)
+    assert problems == []
+
+
+@pytest.mark.process(BOUNDARY)
+def test_the_develop_red_and_develop_revise_red_prompts_name_a_prediction_file_to_write_before_the_run(spec, reason):
+    problems = []
+    red = build(problems, DEVELOP, "red", spec, "QWIXTLE step", "make test")
+    revise = build(problems, DEVELOP, "revise", "red", spec, "QWIXTLE step", "make test", reason)
+    probe_prompts(problems, names_prediction_file, [("develop-red", red), ("develop-revise red", revise)])
+    assert problems == []
+
+
+@pytest.mark.process(BOUNDARY)
+def test_the_develop_red_and_develop_revise_red_prompts_name_a_run_output_file_to_save_the_affected_suite_run_to(spec, reason):
+    problems = []
+    red = build(problems, DEVELOP, "red", spec, "QWIXTLE step", "make test")
+    revise = build(problems, DEVELOP, "revise", "red", spec, "QWIXTLE step", "make test", reason)
+    probe_prompts(problems, names_run_output_file, [("develop-red", red), ("develop-revise red", revise)])
+    assert problems == []
+
+
+def verifier_roster(problems, spec):
+    return [
+        ("verify-red", build(problems, VERIFY, "red", spec, "tests/zorblat.test.sh", "zorblat case")),
+        ("verify-green", build(problems, VERIFY, "--fast-cmd", "make unit", "green", spec, "tests/zorblat.test.sh", "zorblat case")),
+        ("verify-refactor", build(problems, VERIFY, "--fast-cmd", "make unit", "refactor", spec, "tests/zorblat.test.sh", "abc1234")),
+        ("verify-pin", build(problems, VERIFY, "pin", spec, "tests/zorblat.test.sh", "zorblat case")),
+    ]
+
+
+@pytest.mark.process(BOUNDARY)
+def test_every_blind_verifier_prompt_names_run_suite_as_the_single_suite_invocation(spec):
+    problems = []
+    probe_prompts(problems, names_suite_runner, verifier_roster(problems, spec))
+    assert problems == []
+
+
+@pytest.mark.process(BOUNDARY)
+def test_every_blind_verifier_prompt_that_names_run_suite_tells_its_leaf_what_to_run_when_the_repository_has_none(spec):
+    problems = []
+    probe_prompts(problems, names_runner_fallback, verifier_roster(problems, spec))
+    assert problems == []
+
+
+def test_the_prompt_probes_accept_a_matching_prompt_and_object_to_a_non_matching_one(tmp_path):
+    runner = tmp_path / "timed-test-run.sh"
+    runner.write_text("#!/bin/sh\n")
+    runner.chmod(0o755)
+    matching = "\n".join([
+        "Run `%s fast '' make unit` first, with --tier fast." % runner,
+        "Then run `%s affected 'x' sh -c y` over what affected-suites.sh prints." % runner,
+    ])
+
+    def tally(prompt):
+        problems = []
+        runs_fast_plus_affected(problems, "develop-green", prompt)
+        timed_through(problems, "develop-green", prompt, "fast", "affected")
+        return problems
+
+    assert tally(matching) == []
+    assert tally("a prompt that names none of it") != []
+
+
+def test_numbered_item_given_run_suite_dot_literal_selects_the_run_suite_item_not_the_run_suitexsh_one():
+    assert numbered_item(r"run-suite\.sh", "1. run-suiteXsh\n2. run-suite.sh").rstrip("\n") == "2. run-suite.sh"
