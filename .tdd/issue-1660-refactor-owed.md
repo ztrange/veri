@@ -1,0 +1,2 @@
+### The Red prompt built for a `⟦replaces-case⟧` step states that the `REPLACES:` test id is the pytest node id, `<path from the repository root>::<test name>`, and that the line starts at column 0 with no bullet or other prefix ⟦criterion 1⟧
+- test-only | skills/tdd/scripts/tests/py/unit/test_build_develop_prompt.py: the new #1660 case computes the missing-rules list twice, once for the marked step and once for the plain one. It could use a small `missing(step)` helper.
