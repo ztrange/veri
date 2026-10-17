@@ -3,6 +3,7 @@ import os
 import re
 import sys
 
+import ledger
 import replaces_case
 
 USAGE = "usage: unreplaced-cases.sh"
@@ -56,6 +57,8 @@ def main(argv):
         sys.stderr.write(USAGE + "\n")
         return 2
     step, *reports = argv
+    if "⟦replaces-case⟧" not in ledger.trailing_markers(step):
+        return 0
     parsed = replaces_case.parse(step)
     if parsed is None and re.search(r"\breplaces (?!['\"`])\S", step):
         sys.stderr.write("cannot read the case names of step: " + step.replace("\n", " ") + "\n")

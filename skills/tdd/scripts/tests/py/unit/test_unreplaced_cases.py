@@ -26,3 +26,17 @@ def test_main_exits_2_with_one_stderr_line_naming_the_step_when_its_case_names_a
     assert len(err.splitlines()) == 1
     assert "tick-ledger.sh half of the foreign ledger-transform code case" in err
     assert "Traceback" not in err and "AttributeError" not in err
+
+
+def test_main_exits_0_with_nothing_on_stdout_when_the_mark_is_only_in_the_prose_1538(tmp_path, run_cli, unreplaced):
+    step = (
+        "- [ ] a guard that reads ⟦replaces-case⟧ only among a step's trailing marks and "
+        "replaces 'first case', 'second case' in skills/tdd/scripts/tests/some.test.sh ⟦criterion 2⟧"
+    )
+    report = tmp_path / "report.txt"
+    report.write_text("")
+
+    code, out, err = run_cli(unreplaced, [step, str(report)], cwd=tmp_path)
+
+    assert code == 0
+    assert out == ""
