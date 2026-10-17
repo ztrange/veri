@@ -1,5 +1,6 @@
 """skill-drift.sh's block, driven through the CLI of veri/skill_drift.py."""
 import importlib
+import re
 import subprocess
 
 import pytest
@@ -188,5 +189,5 @@ def test_an_unset_or_empty_skill_ref_on_a_pinned_run_with_a_known_clone_answers_
 
     for name, (code, out, err) in got.items():
         assert code == 0, name
-        assert out.startswith("Skill drift: unavailable — ") and out.count("\n") == 1, name
+        assert re.fullmatch(r"Skill drift: unavailable — .+\n", out), name
         assert "Traceback" not in err, name

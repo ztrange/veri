@@ -22,6 +22,7 @@ def test_main_lists_an_orphan_and_returns_0_and_with_no_argument_returns_2_namin
         0, "orphan.sh\n", "", 2, "", "usage: unreachable.sh <repo-root>\n")
 
 
+@pytest.mark.timeout(10)
 def test_main_visits_reached_scripts_that_call_each_other_once_so_the_listing_finishes(tmp_path, capsys):
     unreachable = importlib.import_module("veri.unreachable")
     scripts = fixture_root(tmp_path)
