@@ -1311,7 +1311,7 @@ STASH_RULE = (
     "is then lost. To see the committed version of a file, read it with `git show HEAD:<path>`;\n"
     "to compare a whole tree against it, make a throwaway checkout with\n"
     "`git worktree add --detach <scratch> HEAD` and remove it afterwards.")
-FORBIDDING = r"Never undo a probe with\s`git checkout -- <file>` or `git restore`"
+FORBIDDING = re.compile(r"Never undo a probe with\s`git checkout -- <file>` or `git restore`", re.ASCII)
 
 
 def fold(data):
