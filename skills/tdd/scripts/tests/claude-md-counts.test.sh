@@ -173,16 +173,12 @@ moved_with "skills/tdd/scripts/refactor-triage.sh" "skills/tdd/scripts/tests/ref
 
 report "$name"
 
-name="$claude_md's counts moved with run-conductor.sh and its suites"
+name="$claude_md's script count moved with run-conductor.sh"
 problems=()
 
 conductor_script="skills/tdd/scripts/run-conductor.sh"
-conductor_suites=(
-  "skills/tdd/scripts/tests/skill-conductor-launch.test.sh"
-)
 
 present "$conductor_script"
-for suite in "${conductor_suites[@]}"; do present "$suite"; done
 
 if [[ "${#problems[@]}" -eq 0 ]]; then
   if readable "$intro" "$claude_md has no prose above its first '## ' heading" "the opening paragraph's script count"; then
@@ -190,7 +186,6 @@ if [[ "${#problems[@]}" -eq 0 ]]; then
   fi
 
   if readable "$idiom" "$claude_md has no '## $section_name' section" "the suite and script counts it states"; then
-    moved_by "*$section_name* suite count" "$(claimed "$idiom" "$idiom_claim" 1)" "$n_suites" "${conductor_suites[@]}"
     moved_by "*$section_name* script count" "$(claimed "$idiom" "$idiom_claim" 2)" "$n_scripts" "$conductor_script"
   fi
 fi
@@ -262,21 +257,6 @@ present "$stopping_suite"
 if [[ "${#problems[@]}" -eq 0 ]]; then
   if readable "$idiom" "$claude_md has no '## $section_name' section" "the suite count it states"; then
     moved_by "*$section_name* suite count" "$(claimed "$idiom" "$idiom_claim" 1)" "$n_suites" "$stopping_suite"
-  fi
-fi
-
-report "$name"
-
-name="$claude_md's counts moved with the detach-test-command suite (#601)"
-problems=()
-
-detach_suite="skills/tdd/scripts/tests/skill-detach-test-command.test.sh"
-
-present "$detach_suite"
-
-if [[ "${#problems[@]}" -eq 0 ]]; then
-  if readable "$idiom" "$claude_md has no '## $section_name' section" "the suite count it states"; then
-    moved_by "*$section_name* suite count" "$(claimed "$idiom" "$idiom_claim" 1)" "$n_suites" "$detach_suite"
   fi
 fi
 

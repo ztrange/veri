@@ -412,17 +412,17 @@ real_edit "stop-requested.sh renamed in ## The scripts" "skill-stopping affected
 edit_below '### 2c. Verify the plan (blind)'
 real_edit "### 2c. Verify the plan (blind)" "" ""
 edit_below '### 3. The cycle loop'
-real_edit "### 3. The cycle loop" "skill-draft-pr skill-leaf-launch" ""
+real_edit "### 3. The cycle loop" "skill-draft-pr" ""
 edit_below '## Revising on a REJECT'
 real_edit "## Revising on a REJECT" "" ""
 edit_below '## Stopping'
-real_edit "## Stopping" skill-stopping skill-test-command
+real_edit "## Stopping" skill-stopping ""
 edit_below '## Bailing'
-real_edit "## Bailing" skill-metrics skill-test-command
+real_edit "## Bailing" skill-metrics ""
 edit_below '## Resume'
-real_edit "## Resume" "" skill-test-command
+real_edit "## Resume" "" ""
 edit_below '### 4. Draft PR'
-real_edit "### 4. Draft PR" skill-metrics skill-test-command
+real_edit "### 4. Draft PR" skill-metrics ""
 if [[ -z "$real_wrong" ]]; then ok; else
   no "on the real SKILL.md and suites, a one-section edit selects the suites reading that section through a slicing helper and every suite reading SKILL.md any other way, and not a suite slicing only other sections:$real_wrong"
 fi
