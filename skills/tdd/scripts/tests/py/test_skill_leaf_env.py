@@ -377,8 +377,11 @@ def scan_verdict_step_title(probe):
     if launch is None:
         probe.problem(lineno, line, "names a placeholder this probe cannot supply, so its launch could not be run")
         return
+    if launched_beside(probe, lineno, plant_ledger, line):
+        return
     stage, seen, tree = stage_recorder(probe, "expanding-step-title-verdict")
     plant_ledger(tree, title)
+    note_launch(probe, lineno, line, tree)
     err, got, argv = run_staged(stage, seen, tree, launch, "<no verifier was launched>")
     if got != title:
         probe.problem(lineno, line, f"launched with the step title <{title}>, whose verifier saw VERI_STEP=<{got}> (the launching shell said: {flat(err)})")
@@ -411,8 +414,11 @@ def scan_every_step_title(probe):
             continue
         leaf = supervise_arg(launch)
         for planter in ledgers_for(supervise_arg(original)):
+            if launched_beside(probe, lineno, planter, original):
+                continue
             stage, seen, tree = stage_recorder(probe, f"every-step-title-{lineno}-{planter.__name__}")
             planter(tree, title)
+            note_launch(probe, lineno, original, tree)
             err, got, argv = run_staged(stage, seen, tree, launch, "<no leaf was launched>")
             if got != title:
                 probe.problem(lineno, original, f"launched {leaf} beside a ledger from {planter.__name__} with the step title <{title}>, whose leaf saw VERI_STEP=<{got}> (the launching shell said: {flat(err)})")
@@ -482,7 +488,7 @@ def recorded_arguments(seen, script):
     return text.removesuffix("\n").split("\n") if text else []
 
 
-def beside_every_ledger(probe, counter, tag, stage, script, title, launch, check, path=None):
+def beside_every_ledger(probe, counter, tag, stage, script, title, launch, check, path=None, origin=None):
     first = ""
     failed = ""
     for planter in (plant_ledger, plant_ticked_ledger, plant_done_ledger):
@@ -491,6 +497,8 @@ def beside_every_ledger(probe, counter, tag, stage, script, title, launch, check
         seen = probe.root / f"{tag}-{counter[0]}-seen"
         (tree / ".tdd").mkdir(parents=True)
         planter(tree, title)
+        if origin is not None:
+            note_launch(probe, *origin, tree)
         err, _, _ = run_staged(stage, seen, tree, launch, "<not run>", path)
         rec = recorded_arguments(seen, script)
         failed = f"{script}.sh was never run " if rec is None else check(rec)
@@ -539,7 +547,7 @@ def scan_conductor_titles(probe):
             return failed
 
         failed, first = beside_every_ledger(probe, counter, "conductor-title", stage, script, title, launch, check,
-                                            path=f"{bin_dir}:{os.environ['PATH']}")
+                                            path=f"{bin_dir}:{os.environ['PATH']}", origin=(lineno, cmd))
         if failed:
             probe.problem(lineno, cmd, f"passes {script}.sh <{expected}>, which arrived as {first} beside every ledger state")
 
@@ -570,7 +578,7 @@ def scan_prompt_titles(probe):
                     break
             return "" if want == title else f"title argument <{want}> "
 
-        failed, first = beside_every_ledger(probe, counter, "prompt-title", stage, script, title, launch, check)
+        failed, first = beside_every_ledger(probe, counter, "prompt-title", stage, script, title, launch, check, origin=(lineno, cmd))
         if failed:
             probe.problem(lineno, cmd, f"passes {script}.sh <{title}>, which arrived as {first} beside every ledger state")
 
@@ -864,8 +872,13 @@ def scan_phase_verifiers_last_done(probe):
             probe.problem(lineno, line, f"launched the {which} verdict-<phase> line beside a ledger with every step ticked, whose verifier was handed --step <{argv}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
 
 
+@pytest.fixture(scope="module")
+def scripts_before():
+    return scripts_fingerprint()
+
+
 @pytest.fixture
-def probe(tmp_path):
+def probe(tmp_path, scripts_before):
     return Probe(tmp_path)
 
 
@@ -1184,8 +1197,8 @@ def test_a_single_broken_launch_line_is_reported_by_name_alone_while_unrelated_l
     assert probe.problems == []
 
 
-@pytest.mark.process("the problem line a probe reports a launch line's failure by")
-def test_report_s_fail_line_its_indented_problem_line_and_the_count_line_keep_their_shape(probe):
+def test_report_s_fail_line_its_indented_problem_line_and_the_count_line_keep_their_shape(tmp_path):
+    probe = Probe(tmp_path)
     probe.problem("999", "sample line text", "sample problem")
 
     assert probe.problems == ["skills/tdd/SKILL.md:999 sample problem:sample line text"]
@@ -1307,8 +1320,14 @@ def test_a_launch_line_that_reaches_no_supervisor_at_all_is_reported_as_no_leaf_
 @pytest.mark.timeout(600)
 def test_no_launch_line_in_skill_md_is_launched_more_than_once_per_ledger_shape_the_suite_plants(probe):
     run_developer_launches(probe)
+    run_verifier_launches(probe)
+    scan_step_title(probe)
     scan_step_title(probe, EXPANDING_STEP, "record-develop-red")
     scan_step_title(probe, EXPANDING_STEP, "record-develop-refactor", leaf="develop-refactor", planter=plant_ticked_ledger)
+    scan_verdict_step_title(probe)
+    scan_every_step_title(probe)
+    scan_conductor_titles(probe)
+    scan_prompt_titles(probe)
     probe.problems.clear()
     if not probe.launches:
         probe.problems.append("no launch was recorded")
@@ -1322,8 +1341,8 @@ def test_no_launch_line_in_skill_md_is_launched_more_than_once_per_ledger_shape_
 @pytest.mark.process("SKILL.md launch line through detach-leaf.sh")
 @pytest.mark.tree_audit("the scripts directory the stage links every script of")
 @pytest.mark.timeout(120)
-def test_a_recorder_replaces_a_stage_s_link_rather_than_writing_through_it_so_the_suite_leaves_every_script_under_skills_tdd_scripts_byte_identical(probe):
-    before = scripts_fingerprint()
+def test_a_recorder_replaces_a_stage_s_link_rather_than_writing_through_it_so_the_suite_leaves_every_script_under_skills_tdd_scripts_byte_identical(probe, scripts_before):
+    before = scripts_before
     stage, _, _ = stage_recorder(probe, "untouched")
     stage_title_recorders(probe, stage, "event", "build-develop-prompt")
     scan_step_title(probe, EXPANDING_STEP, "untouched-run")
