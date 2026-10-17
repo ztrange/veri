@@ -1,7 +1,11 @@
 """In-process cases for veri/leaf_timeout.py, the module leaf-timeout.sh is a shim over."""
 import importlib
+import importlib.util
+import shutil
 
 import pytest
+
+from conftest import SCRIPTS
 
 USAGE = "usage: leaf-timeout.sh <baseline-seconds> [refactor | --full <full-seconds>]"
 
@@ -10,6 +14,18 @@ USAGE = "usage: leaf-timeout.sh <baseline-seconds> [refactor | --full <full-seco
 def leaf_timeout(monkeypatch):
     monkeypatch.delenv("VERI_ISSUE", raising=False)
     return importlib.import_module("veri.leaf_timeout")
+
+
+def _load(path, name):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _worktree(root):
+    (root / ".git").mkdir(parents=True)
+    return root
 
 
 def test_main_refuses_a_baseline_of_ten_with_its_diagnostic_and_usage_and_returns_2(monkeypatch, capsys, leaf_timeout):
@@ -185,3 +201,67 @@ def test_main_prints_a_veri_timeout_given_with_leading_zeros_as_its_decimal_valu
     code = leaf_timeout.main(["200"])
     out, err = capsys.readouterr()
     assert (code, out, err) == (0, "10\n", "")
+
+
+def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_working_directory_prints_and_exits_as_in_place_for_a_good_and_a_bad_baseline(
+        tmp_path, monkeypatch, run_cli, leaf_timeout):
+    monkeypatch.delenv("VERI_TIMEOUT", raising=False)
+    (tmp_path / "linked-skill").symlink_to(SCRIPTS.parent)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    inplace = _load(SCRIPTS / "veri" / "leaf_timeout.py", "leaf_timeout_inplace")
+    linked = _load(tmp_path / "linked-skill" / "scripts" / "veri" / "leaf_timeout.py", "leaf_timeout_linked")
+    answers = {baseline: (run_cli(inplace, [baseline], cwd=SCRIPTS), run_cli(linked, [baseline], cwd=elsewhere))
+               for baseline in ("200", "ten")}
+    refusal = "leaf-timeout: <baseline-seconds> must be a whole number >= 0: ten\n" + USAGE + "\n"
+    assert answers == {
+        "200": ((0, "1200\n", ""), (0, "1200\n", "")),
+        "ten": ((2, "", refusal), (2, "", refusal)),
+    }
+
+
+def test_cli_with_veri_issue_954_records_its_settled_1200_in_the_worktrees_tdd_and_a_second_settling_leaves_it_in_place_issue_954(
+        tmp_path, monkeypatch, run_cli, leaf_timeout):
+    monkeypatch.delenv("VERI_TIMEOUT", raising=False)
+    work = _worktree(tmp_path / "work")
+    (work / ".tdd").mkdir()
+    record = work / ".tdd" / "issue-954-timeout"
+    run_cli(leaf_timeout, ["10", "--full", "200"], env={"VERI_ISSUE": "954"}, cwd=work)
+    first = record.read_text() if record.exists() else "<no record>"
+    run_cli(leaf_timeout, ["10", "--full", "300"], env={"VERI_ISSUE": "954"}, cwd=work)
+    second = record.read_text() if record.exists() else "<no record>"
+    assert (first, second) == ("1200\n", "1200\n")
+
+
+def test_cli_with_veri_issue_unset_prints_1200_and_records_no_settled_timeout_under_tdd_issue_954(
+        tmp_path, monkeypatch, run_cli, leaf_timeout):
+    monkeypatch.delenv("VERI_TIMEOUT", raising=False)
+    work = _worktree(tmp_path / "work")
+    _, out, _ = run_cli(leaf_timeout, ["10", "--full", "200"], cwd=work)
+    assert (out, sorted(p.name for p in work.glob(".tdd/issue-*timeout"))) == ("1200\n", [])
+
+
+def test_cli_with_veri_issue_954_run_from_a_subdirectory_records_its_settled_1200_at_the_worktree_roots_tdd_issue_954(
+        tmp_path, monkeypatch, run_cli, leaf_timeout):
+    monkeypatch.delenv("VERI_TIMEOUT", raising=False)
+    work = _worktree(tmp_path / "work")
+    (work / "sub" / "dir").mkdir(parents=True)
+    run_cli(leaf_timeout, ["10", "--full", "200"], env={"VERI_ISSUE": "954"}, cwd=work / "sub" / "dir")
+    record = work / ".tdd" / "issue-954-timeout"
+    assert (record.read_text() if record.exists() else "<no record>") == "1200\n"
+
+
+def test_cli_run_from_the_scripts_directory_of_a_decoy_repository_holding_a_copy_records_no_timeout_outside_the_scratch_repository_issue_1158(
+        tmp_path, monkeypatch, run_cli):
+    monkeypatch.delenv("VERI_TIMEOUT", raising=False)
+    repo = _worktree(tmp_path / "repo")
+    decoy = _worktree(tmp_path / "decoy")
+    mutant = decoy / "skills" / "tdd" / "scripts"
+    (mutant / "veri").mkdir(parents=True)
+    shutil.copy(SCRIPTS / "veri" / "leaf_timeout.py", mutant / "veri" / "leaf_timeout.py")
+    copy = _load(mutant / "veri" / "leaf_timeout.py", "leaf_timeout_decoy")
+    code, _, _ = run_cli(copy, ["10", "--full", "200"], env={"VERI_ISSUE": "954"}, cwd=mutant)
+    outside = sorted(str(p.relative_to(tmp_path)) for root in (decoy, mutant) for p in root.glob(".tdd/issue-*timeout"))
+    pinned = repo / ".tdd" / "issue-954-timeout"
+    settled = pinned.read_text() if pinned.exists() else None
+    assert (outside, settled) == ([], "1200\n" if code == 0 else None)
