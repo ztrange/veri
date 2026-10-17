@@ -61,7 +61,7 @@ def main(argv):
     if not replaces_case.is_replaces_case_step(step):
         return 0
     parsed = replaces_case.parse(step)
-    if parsed is None and re.search(REPLACES + "(?!" + QUOTE + r")\S", step):
+    if replaces_case.unreadable(step) or parsed is None and re.search(REPLACES + "(?!" + QUOTE + r")\S", step):
         sys.stderr.write("cannot read the case names of step: " + step.replace("\n", " ") + "\n")
         return 2
     quote = step[re.search(REPLACES + "(?=" + QUOTE + ")", step).end()] if parsed else ""

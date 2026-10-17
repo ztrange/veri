@@ -21,6 +21,12 @@ def parse(step):
         return None
     quote = step[start.end()]
     region = step[start.end() + 1:suite.start()]
-    assert region.endswith(quote)
+    if not region.endswith(quote):
+        return None
     names = re.split(re.escape(quote) + "(?:, | and )" + re.escape(quote), region[:-1])
     return names, suite.group(1)
+
+
+def unreadable(step):
+    start = _START.search(step)
+    return start is not None and _SUITE.search(step, start.end()) is not None and parse(step) is None
