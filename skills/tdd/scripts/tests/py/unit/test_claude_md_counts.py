@@ -59,3 +59,19 @@ def test_a_count_of_files_alone_in_words_fails_naming_its_line_and_passes_with_t
 
     flagged = [line.split(":")[1] for line in (out + err).splitlines() if line.startswith(f"{planted}:")]
     assert (code, flagged, removed_code, removed_out + removed_err) == (1, ["3"], 0, "")
+
+
+def test_a_count_split_from_its_noun_by_a_backticked_or_path_like_word_fails_naming_its_line_each_planted_alone_1508(tmp_path, run_cli):
+    claude_md_counts = importlib.import_module("veri.claude_md_counts")
+    plants = {
+        "backticked": "The four `-recorded` suites count through the harness.\n",
+        "path_like": "The three tests/unit/ suites are fast.\n",
+    }
+    results = {}
+    for name, text in plants.items():
+        planted = tmp_path / f"{name}.md"
+        planted.write_text("# notes\n\n" + text)
+        code, out, err = run_cli(claude_md_counts, [str(planted)])
+        results[name] = (code, [line.split(":")[1] for line in (out + err).splitlines() if line.startswith(f"{planted}:")])
+
+    assert results == {"backticked": (1, ["3"]), "path_like": (1, ["3"])}

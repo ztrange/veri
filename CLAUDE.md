@@ -192,7 +192,7 @@ the autouse `hermetic_environment` fixture in `tests/py/conftest.py` and the one
 tunables. All keep `pass`/`fail` counters, print `FAIL - <name>` with a diff, and end with a count.
 Match that style rather than introducing a framework.
 
-**The four `-recorded` suites no longer keep their own counters** — the rule that they did
+**The `-recorded` suites no longer keep their own counters** — the rule that they did
 came from #225, whose only reason was no framework and no outside dependency, and #496
 retired it: `lib/harness.sh` is in-repo plain shell, `record-helpers.sh` sources it, and
 those suites count through it like every other.
