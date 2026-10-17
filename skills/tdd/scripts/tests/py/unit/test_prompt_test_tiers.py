@@ -278,23 +278,34 @@ def test_verify_green_check_1_runs_the_target_test_through_timed_test_run_under_
     assert problems == []
 
 
+def developer_roster(problems, spec):
+    return [
+        ("develop-red", build(problems, DEVELOP, "red", spec, "QWIXTLE step", "make test")),
+        ("develop-green", build(problems, DEVELOP, "green", spec, "QWIXTLE step", "make test", "tests/zorblat.test.sh", "zorblat case", "make unit")),
+        ("develop-refactor", build(problems, DEVELOP, "refactor", spec, "QWIXTLE step", "make test", "src/zorblat.sh")),
+    ]
+
+
+def verifier_roster(problems, spec):
+    return [
+        ("verify-red", build(problems, VERIFY, "red", spec, "tests/zorblat.test.sh", "zorblat case")),
+        ("verify-green", build(problems, VERIFY, "--fast-cmd", "make unit", "green", spec, "tests/zorblat.test.sh", "zorblat case")),
+        ("verify-refactor", build(problems, VERIFY, "--fast-cmd", "make unit", "refactor", spec, "tests/zorblat.test.sh", "abc1234")),
+        ("verify-pin", build(problems, VERIFY, "pin", spec, "tests/zorblat.test.sh", "zorblat case")),
+    ]
+
+
 @pytest.mark.process(BOUNDARY)
 def test_every_developer_prompt_that_runs_a_suite_names_run_suite_as_the_single_suite_invocation(spec):
     problems = []
-    red = build(problems, DEVELOP, "red", spec, "QWIXTLE step", "make test")
-    green = build(problems, DEVELOP, "green", spec, "QWIXTLE step", "make test", "tests/zorblat.test.sh", "zorblat case", "make unit")
-    refactor = build(problems, DEVELOP, "refactor", spec, "QWIXTLE step", "make test", "src/zorblat.sh")
-    probe_prompts(problems, names_suite_runner, [("develop-red", red), ("develop-green", green), ("develop-refactor", refactor)])
+    probe_prompts(problems, names_suite_runner, developer_roster(problems, spec))
     assert problems == []
 
 
 @pytest.mark.process(BOUNDARY)
 def test_every_developer_prompt_that_names_run_suite_tells_its_leaf_what_to_run_when_the_repository_has_none(spec):
     problems = []
-    red = build(problems, DEVELOP, "red", spec, "QWIXTLE step", "make test")
-    green = build(problems, DEVELOP, "green", spec, "QWIXTLE step", "make test", "tests/zorblat.test.sh", "zorblat case", "make unit")
-    refactor = build(problems, DEVELOP, "refactor", spec, "QWIXTLE step", "make test", "src/zorblat.sh")
-    probe_prompts(problems, names_runner_fallback, [("develop-red", red), ("develop-green", green), ("develop-refactor", refactor)])
+    probe_prompts(problems, names_runner_fallback, developer_roster(problems, spec))
     assert problems == []
 
 
@@ -325,15 +336,6 @@ def test_the_develop_red_and_develop_revise_red_prompts_name_a_run_output_file_t
     revise = build(problems, DEVELOP, "revise", "red", spec, "QWIXTLE step", "make test", reason)
     probe_prompts(problems, names_run_output_file, [("develop-red", red), ("develop-revise red", revise)])
     assert problems == []
-
-
-def verifier_roster(problems, spec):
-    return [
-        ("verify-red", build(problems, VERIFY, "red", spec, "tests/zorblat.test.sh", "zorblat case")),
-        ("verify-green", build(problems, VERIFY, "--fast-cmd", "make unit", "green", spec, "tests/zorblat.test.sh", "zorblat case")),
-        ("verify-refactor", build(problems, VERIFY, "--fast-cmd", "make unit", "refactor", spec, "tests/zorblat.test.sh", "abc1234")),
-        ("verify-pin", build(problems, VERIFY, "pin", spec, "tests/zorblat.test.sh", "zorblat case")),
-    ]
 
 
 @pytest.mark.process(BOUNDARY)
