@@ -10,6 +10,8 @@ USAGE = "usage: unreplaced-cases.sh"
 
 
 PY_TESTS = "skills/tdd/scripts/tests/py"
+REPLACES = r"\breplaces "
+QUOTE = r"['\"`]"
 
 
 def def_pattern(name):
@@ -60,10 +62,10 @@ def main(argv):
     if "⟦replaces-case⟧" not in ledger.trailing_markers(step):
         return 0
     parsed = replaces_case.parse(step)
-    if parsed is None and re.search(r"\breplaces (?!['\"`])\S", step):
+    if parsed is None and re.search(REPLACES + "(?!" + QUOTE + r")\S", step):
         sys.stderr.write("cannot read the case names of step: " + step.replace("\n", " ") + "\n")
         return 2
-    quote = step[re.search(r"\breplaces (?=['\"`])", step).end()] if parsed else ""
+    quote = step[re.search(REPLACES + "(?=" + QUOTE + ")", step).end()] if parsed else ""
     replaced = set()
     not_found = set()
     ambiguous = set()
