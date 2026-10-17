@@ -1063,3 +1063,22 @@ def test_main_refuses_a_replaces_case_step_with_unreadable_case_names_1538(tmp_p
     assert not any(
         "⟦replaces-case⟧" in line for line in ledger.read_text().split("\n") if line.startswith("- [")
     )
+
+
+def test_main_reads_an_inserted_or_replaced_step_carrying_a_kind_mark_with_that_kind_1614(tmp_path, run_cli, add_ledger_step):
+    from veri.ledger import ledger_steps
+
+    for kind in ("full-suite", "human-owed", "diff-checked"):
+        for where in ("after", "instead-of"):
+            ledger = tmp_path / f"issue-42-{kind}-{where}.md"
+            ledger.write_bytes(LEDGER)
+
+            code, out, err = run_cli(
+                add_ledger_step,
+                [str(ledger), where, "b two", f"check it ⟦{kind}⟧"],
+                env={"VERI_STEP_GROWTH": "5"},
+            )
+
+            kinds = {record[6]: record[2] for record in ledger_steps(ledger.read_text())}
+            added = [kinds[text] for text in kinds if text.startswith("check it")]
+            assert (kind, where, code, added) == (kind, where, 0, [kind])
