@@ -55,8 +55,8 @@ def main(argv):
         return refuse(f"git ls-remote of refs/heads/{default} on origin failed")
     onto = output("rev-parse", f"origin/{default}")
     if onto != re.match(r"\S*", remote.stdout).group():
-        return 2
-    saved = git_file("set-aside-tdd-appends.diff")
+        return refuse(f"origin/{default} is stale — it is not the sha origin reports")
+    saved =git_file("set-aside-tdd-appends.diff")
     if saved.is_file():
         if git("apply", text=True, input=saved.read_text(), stderr=subprocess.DEVNULL).returncode != 0:
             return refuse(f"could not re-apply the set-aside appends; kept at {saved}")
