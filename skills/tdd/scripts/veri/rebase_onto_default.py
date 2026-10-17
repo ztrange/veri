@@ -45,6 +45,7 @@ def main(argv):
         return 2
     if git("fetch", "-q", "origin", text=True,
            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
+        sys.stderr.write("rebase-onto-default: git fetch of origin failed\n")
         return 2
     remote = git("ls-remote", "origin", f"refs/heads/{default}", text=True,
                  stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
