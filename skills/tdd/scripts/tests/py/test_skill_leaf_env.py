@@ -195,6 +195,360 @@ def want_step_for(line):
     return want
 
 
+APOSTROPHE_STEP = "A background process is killed by the pid recorded when it started, never by that shell's own job spec"
+EXPANDING_STEP = 'A title naming `kill ' + chr(37) + '1`, the "blind" verifier and $HOME reaches the leaf as written'
+DECOY_STEP = "a decoy step the ledger holds, which ledger-steps.sh current never names"
+CRITERION_TEXT = "The issue's own words: `echo $SHELL` in \"quotes\" and $HOME, as the issue wrote them"
+
+DETACH_RECORDER = """#!/bin/sh
+printf '%s\\n' "${VERI_STEP-<unset>}" > "$SEEN"
+step='<no --step argument>'
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = --step ]; then step="${2-<--step with no value>}"; break; fi
+  shift
+done
+printf '%s\\n' "$step" > "$SEEN.argv"
+"""
+
+TITLE_RECORDER = """#!/bin/sh
+out="$SEEN.$(basename "$0" .sh)"
+printf '%s\\n' "${VERI_STEP-<unset>}" > "$out"
+for a in "$@"; do printf '%s\\n' "$a" >> "$out"; done
+"""
+
+LEDGER_STEPS_RECORDER = """#!/bin/sh
+case "$1" in current|current-or-last-done) ;; *) exit 2 ;; esac
+cat "$SEEN.current"
+"""
+
+CONDUCTOR_CALLEES = ("event", "preserve-attempt", "tick-ledger", "clear-refactor-pending", "tick-issue-criterion")
+CONDUCTOR_CALLEE = re.compile(r"\$S/(" + "|".join(CONDUCTOR_CALLEES) + r")\.sh")
+PROMPT_CALLEE = re.compile(r"\$S/(build-develop-prompt|add-ledger-step)\.sh")
+
+GH_STUB = """#!/bin/sh
+cat <<'BODY'
+## Problem
+
+- [ ] a checkbox in the prose, not a criterion
+
+## Acceptance criteria
+
+- [ ] the first criterion
+- [ ] %s
+      wrapped onto a second line
+
+Test command: `make test`
+BODY
+"""
+
+
+def write_executable(path, text):
+    path.write_text(text)
+    path.chmod(0o755)
+
+
+def recorder(probe, name, text):
+    directory = probe.root / "recorders"
+    directory.mkdir(exist_ok=True)
+    path = directory / name
+    if not path.exists():
+        write_executable(path, text)
+    return path
+
+
+def plant_ledger(tree, title):
+    (tree / ".tdd" / f"issue-{SENTINEL_ISSUE}.md").write_text(f"# Plan for #{SENTINEL_ISSUE}\n\n- [ ] {title}\n")
+
+
+def plant_ticked_ledger(tree, title):
+    (tree / ".tdd" / f"issue-{SENTINEL_ISSUE}.md").write_text(
+        f"# Plan for #{SENTINEL_ISSUE}\n\n- [x] {title} ⟂ refactor pending\n- [ ] a later step the run has not reached\n")
+
+
+def plant_done_ledger(tree, title):
+    (tree / ".tdd" / f"issue-{SENTINEL_ISSUE}.md").write_text(
+        f"# Plan for #{SENTINEL_ISSUE}\n\n- [x] {title}\n- [ ] a later step the run has not reached\n")
+
+
+def stage_recorder(probe, tag):
+    stage = probe.root / f"{tag}-scripts"
+    seen = probe.root / f"{tag}-seen"
+    tree = probe.root / f"{tag}-tree"
+    stage.mkdir()
+    (tree / ".tdd").mkdir(parents=True)
+    for script in sorted(SCRIPTS.glob("*.sh")) + [SCRIPTS / "lib", SCRIPTS / "prompts", SCRIPTS / "veri"]:
+        if script.name != "detach-leaf.sh":
+            (stage / script.name).symlink_to(script)
+    (stage / "detach-leaf.sh").symlink_to(recorder(probe, "detach-leaf.sh", DETACH_RECORDER))
+    return stage, seen, tree
+
+
+def stage_title_recorders(probe, stage, *scripts):
+    for script in scripts:
+        (stage / f"{script}.sh").unlink(missing_ok=True)
+        (stage / f"{script}.sh").symlink_to(recorder(probe, "title.sh", TITLE_RECORDER))
+
+
+def read_answer(path, default):
+    try:
+        return path.read_text().rstrip("\n")
+    except OSError:
+        return default
+
+
+def run_staged(stage, seen, tree, launch, default, path=None):
+    env = {name: value for name, value in os.environ.items() if name not in ("VERI_TEST_CMD", "VERI_ISSUE", "VERI_STEP")}
+    env.update(S=str(stage), SEEN=str(seen))
+    if path is not None:
+        env["PATH"] = path
+    done = subprocess.run(["bash", "-c", launch], cwd=tree, env=env, stdin=subprocess.DEVNULL,
+                          stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    err = done.stderr.decode(errors="replace")
+    got = read_answer(pathlib.Path(f"{seen}"), default)
+    argv = read_answer(pathlib.Path(f"{seen}.argv"), "<no verifier was launched>")
+    return err, got, argv
+
+
+def flat(err):
+    return err.replace("\n", "")
+
+
+def numbered_lines(pattern):
+    return [(n, line) for n, line in enumerate(SKILL.read_text().split("\n"), 1) if re.search(pattern, line)]
+
+
+def supervise_arg(text):
+    return re.sub(r".*supervise\.sh +([^ ]+).*", r"\1", text)
+
+
+def scan_step_title(probe, title=APOSTROPHE_STEP, tag="step-title", leaf="develop-red", planter=plant_ledger):
+    pattern = r"\$S/detach-leaf\.sh .*\$S/supervise\.sh " + leaf + r" \$S/run-leaf\.sh"
+    hits = numbered_lines(pattern)[:1]
+    if not hits:
+        probe.problems.append(f"{SKILL_MD} has no line launching {leaf} through supervise.sh into run-leaf.sh — the launch this case is about could not be found")
+        return
+    lineno, line = hits[0]
+    launch = runnable(line, title)
+    if launch is None:
+        probe.problem(lineno, line, "names a placeholder this probe cannot supply, so its launch could not be run")
+        return
+    stage, seen, tree = stage_recorder(probe, tag)
+    (tree / ".tdd" / f"{leaf}.prompt").write_text("the prompt this launch names, which the recorder never reads\n")
+    planter(tree, title)
+    err, got, _ = run_staged(stage, seen, tree, launch, "<no leaf was launched>")
+    if got != title:
+        probe.problem(lineno, line, f"launched with the step title <{title}>, whose leaf saw VERI_STEP=<{got}> (the launching shell said: {flat(err)})")
+
+
+def scan_verdict_step_title(probe):
+    title = EXPANDING_STEP
+    hits = numbered_lines(r"\$S/detach-leaf\.sh .*\$S/supervise\.sh verdict-red \$S/run-verdict\.sh")[:1]
+    if not hits:
+        probe.problems.append(f"{SKILL_MD} has no line launching verdict-red through supervise.sh into run-verdict.sh — the launch this case is about could not be found")
+        return
+    lineno, line = hits[0]
+    launch = runnable(line, title)
+    if launch is None:
+        probe.problem(lineno, line, "names a placeholder this probe cannot supply, so its launch could not be run")
+        return
+    stage, seen, tree = stage_recorder(probe, "expanding-step-title-verdict")
+    plant_ledger(tree, title)
+    err, got, argv = run_staged(stage, seen, tree, launch, "<no verifier was launched>")
+    if got != title:
+        probe.problem(lineno, line, f"launched with the step title <{title}>, whose verifier saw VERI_STEP=<{got}> (the launching shell said: {flat(err)})")
+    if argv != title:
+        probe.problem(lineno, line, f"launched with the step title <{title}>, whose verifier was handed --step <{argv}> (the launching shell said: {flat(err)})")
+
+
+def fill_supplied_leaf(numbered_line):
+    return numbered_line.replace("<name>", "probe-leaf").replace("<cmd> [args...]", "$S/run-leaf.sh .tdd/probe-leaf.prompt")
+
+
+def ledgers_for(leaf):
+    if re.search(r"<.*>", leaf) or leaf in ("develop-exhausted", "develop-reconcile"):
+        return [plant_ledger, plant_ticked_ledger]
+    if leaf.endswith("-refactor"):
+        return [plant_ticked_ledger]
+    return [plant_ledger]
+
+
+def scan_every_step_title(probe):
+    title = EXPANDING_STEP
+    hits = [(n, line) for n, line in numbered_lines(r"\$S/detach-leaf\.sh .*\$S/supervise\.sh ") if "VERI_STEP=" in line]
+    if not hits:
+        probe.problems.append(f"{SKILL_MD} has no line launching a leaf with VERI_STEP set through detach-leaf.sh and supervise.sh — the launch this case is about could not be found")
+        return
+    for lineno, original in hits:
+        launch = runnable(fill_supplied_leaf(original), title)
+        if launch is None:
+            probe.problem(lineno, fill_supplied_leaf(original), "names a placeholder this probe cannot supply, so its launch could not be run")
+            continue
+        leaf = supervise_arg(launch)
+        for planter in ledgers_for(supervise_arg(original)):
+            stage, seen, tree = stage_recorder(probe, f"every-step-title-{lineno}-{planter.__name__}")
+            planter(tree, title)
+            err, got, argv = run_staged(stage, seen, tree, launch, "<no leaf was launched>")
+            if got != title:
+                probe.problem(lineno, original, f"launched {leaf} beside a ledger from {planter.__name__} with the step title <{title}>, whose leaf saw VERI_STEP=<{got}> (the launching shell said: {flat(err)})")
+            if "--step" not in original:
+                continue
+            if argv != title:
+                probe.problem(lineno, original, f"launched {leaf} beside a ledger from {planter.__name__} with the step title <{title}>, whose verifier was handed --step <{argv}> (the launching shell said: {flat(err)})")
+
+
+NEXT_STEP_READS = ('VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)"',
+                   'VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh)"')
+
+
+def scan_current_step_title(probe):
+    title = EXPANDING_STEP
+    hits = [(n, line) for n, line in numbered_lines(r"\$S/detach-leaf\.sh .*\$S/supervise\.sh ")
+            if "VERI_STEP=" in line and not any(read in line for read in NEXT_STEP_READS)]
+    if not hits:
+        probe.problems.append(f"{SKILL_MD} has no line launching a leaf whose VERI_STEP reads the current step — the launch this case is about could not be found")
+        return
+    ledger_steps = recorder(probe, "ledger-steps.sh", LEDGER_STEPS_RECORDER)
+    for lineno, original in hits:
+        launch = runnable(fill_supplied_leaf(original), title)
+        if launch is None:
+            probe.problem(lineno, fill_supplied_leaf(original), "names a placeholder this probe cannot supply, so its launch could not be run")
+            continue
+        leaf = supervise_arg(launch)
+        stage, seen, tree = stage_recorder(probe, f"current-step-title-{lineno}")
+        (stage / "ledger-steps.sh").unlink(missing_ok=True)
+        (stage / "ledger-steps.sh").symlink_to(ledger_steps)
+        plant_ledger(tree, DECOY_STEP)
+        pathlib.Path(f"{seen}.current").write_text(title + "\n")
+        err, got, argv = run_staged(stage, seen, tree, launch, "<no leaf was launched>")
+        if got != title:
+            probe.problem(lineno, original, f"launched {leaf} with ledger-steps.sh current answering <{title}>, whose leaf saw VERI_STEP=<{got}> (the launching shell said: {flat(err)})")
+        if "--step" not in original:
+            continue
+        if argv != title:
+            probe.problem(lineno, original, f"launched {leaf} with ledger-steps.sh current answering <{title}>, whose verifier was handed --step <{argv}> (the launching shell said: {flat(err)})")
+
+
+def conductor_command(md_lines, n, script):
+    text = md_lines[n - 1]
+    if "`" not in text:
+        return text.lstrip(" \t\n\v\f\r").split("  # ")[0]
+    before = text[:text.index(f"$S/{script}.sh")]
+    after = text[len(before):]
+    while "`" not in after and n < len(md_lines):
+        after += " " + md_lines[n].lstrip(" \t\n\v\f\r")
+        n += 1
+    return before.rsplit("`", 1)[-1] + after.split("`", 1)[0]
+
+
+def fill_title(cmd, title):
+    launch = cmd.replace("<n>", SENTINEL_ISSUE)
+    for placeholder in ("<STEP>", "<distinctive substring of STEP>", "<substring>", "<anchor>"):
+        launch = launch.replace(placeholder, title)
+    launch = launch.replace("<phase>", "red").replace("<k>", "2")
+    return re.sub(r"<[^<>]*>", "probe", launch)
+
+
+def recorded_arguments(seen, script):
+    try:
+        text = pathlib.Path(f"{seen}.{script}").read_text()
+    except OSError:
+        return None
+    return text.removesuffix("\n").split("\n") if text else []
+
+
+def beside_every_ledger(probe, counter, tag, stage, script, title, launch, check, path=None):
+    first = ""
+    failed = ""
+    for planter in (plant_ledger, plant_ticked_ledger, plant_done_ledger):
+        counter[0] += 1
+        tree = probe.root / f"{tag}-{counter[0]}-tree"
+        seen = probe.root / f"{tag}-{counter[0]}-seen"
+        (tree / ".tdd").mkdir(parents=True)
+        planter(tree, title)
+        err, _, _ = run_staged(stage, seen, tree, launch, "<not run>", path)
+        rec = recorded_arguments(seen, script)
+        failed = f"{script}.sh was never run " if rec is None else check(rec)
+        if not failed:
+            break
+        if not first:
+            first = f"{failed}(the typing shell said: {flat(err)})"
+    return failed, first
+
+
+def scan_conductor_titles(probe):
+    title = EXPANDING_STEP
+    md_lines = SKILL.read_text().split("\n")
+    hits = [(n, line) for n, line in numbered_lines(CONDUCTOR_CALLEE.pattern) if not line.startswith("- `")]
+    if not hits:
+        probe.problems.append(f"{SKILL_MD} has no line launching the conductor's own marks, preserve-attempt.sh or tick calls — the launch this case is about could not be found")
+        return
+    stage, _, _ = stage_recorder(probe, "conductor-title")
+    bin_dir = probe.root / "conductor-title-bin"
+    bin_dir.mkdir()
+    write_executable(bin_dir / "gh", GH_STUB % CRITERION_TEXT)
+    stage_title_recorders(probe, stage, *CONDUCTOR_CALLEES)
+    counter = [0]
+    for lineno, text in hits:
+        script = CONDUCTOR_CALLEE.search(text).group(1)
+        cmd = conductor_command(md_lines, lineno, script)
+        if script == "event" and "VERI_STEP" not in cmd and "anchor=" not in cmd:
+            continue
+        launch = fill_title(cmd, title)
+        expected = CRITERION_TEXT if script == "tick-issue-criterion" else title
+
+        def check(rec, cmd=cmd, script=script, expected=expected):
+            failed = ""
+            if "VERI_STEP" in cmd and rec[0] != title:
+                failed += f"VERI_STEP=<{rec[0]}> "
+            if "anchor=" in cmd and f"anchor={title}" not in rec[1:]:
+                failed += f"no argument anchor=<{title}> "
+            if script in ("preserve-attempt", "tick-issue-criterion"):
+                want = rec[2] if len(rec) > 2 else "<none>"
+            elif script in ("tick-ledger", "clear-refactor-pending"):
+                want = rec[-1] if rec else ""
+            else:
+                want = title
+            if want != expected:
+                failed += f"title argument <{want}> "
+            return failed
+
+        failed, first = beside_every_ledger(probe, counter, "conductor-title", stage, script, title, launch, check,
+                                            path=f"{bin_dir}:{os.environ['PATH']}")
+        if failed:
+            probe.problem(lineno, cmd, f"passes {script}.sh <{expected}>, which arrived as {first} beside every ledger state")
+
+
+def scan_prompt_titles(probe):
+    title = EXPANDING_STEP
+    md_lines = SKILL.read_text().split("\n")
+    hits = [(n, line) for n, line in numbered_lines(PROMPT_CALLEE.pattern) if not line.startswith("- `")]
+    if not hits:
+        probe.problems.append(f"{SKILL_MD} has no line launching build-develop-prompt.sh or add-ledger-step.sh — the launch this case is about could not be found")
+        return
+    stage, _, _ = stage_recorder(probe, "prompt-title")
+    stage_title_recorders(probe, stage, "build-develop-prompt", "add-ledger-step")
+    counter = [0]
+    for lineno, text in hits:
+        script = PROMPT_CALLEE.search(text).group(1)
+        cmd = conductor_command(md_lines, lineno, script)
+        if f"{script}.sh " not in cmd:
+            continue
+        launch = fill_title(cmd, title)
+
+        def check(rec, script=script):
+            want = "<none>"
+            for k in range(1, len(rec) - 1):
+                if (script == "build-develop-prompt" and rec[k].endswith("-spec.md")) or \
+                        (script == "add-ledger-step" and rec[k] in ("after", "before", "instead-of")):
+                    want = rec[k + 1]
+                    break
+            return "" if want == title else f"title argument <{want}> "
+
+        failed, first = beside_every_ledger(probe, counter, "prompt-title", stage, script, title, launch, check)
+        if failed:
+            probe.problem(lineno, cmd, f"passes {script}.sh <{title}>, which arrived as {first} beside every ledger state")
+
+
 @pytest.fixture
 def probe(tmp_path):
     return Probe(tmp_path)
@@ -258,5 +612,77 @@ def test_every_leaf_skill_md_launches_with_veri_step_set_sees_the_runs_step_as_v
             got = "<no leaf ran>"
         if got != want:
             probe.problem(lineno, line, f"launches {tree.name}, whose leaf saw VERI_STEP=<{got}>, want <{want}>")
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md launch line through detach-leaf.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(120)
+def test_a_step_title_carrying_an_apostrophe_reaches_the_leaf_skill_md_launches_with_it_intact(probe):
+    scan_step_title(probe)
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md launch line through detach-leaf.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(120)
+def test_a_step_title_carrying_a_dollar_sign_a_backtick_and_a_double_quote_reaches_the_leaf_skill_md_launches_with_it_byte_identical_437(probe):
+    scan_step_title(probe, EXPANDING_STEP, "expanding-step-title")
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md launch line through detach-leaf.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(120)
+def test_a_step_title_carrying_a_dollar_sign_a_backtick_and_a_double_quote_reaches_the_develop_refactor_leaf_skill_md_launches_after_the_step_is_ticked_byte_identical_437(probe):
+    scan_step_title(probe, EXPANDING_STEP, "expanding-step-title-refactor", "develop-refactor", plant_ticked_ledger)
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md launch line through detach-leaf.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(120)
+def test_a_step_title_carrying_a_dollar_sign_a_backtick_and_a_double_quote_reaches_the_verifier_skill_md_launches_byte_identical_in_veri_step_and_in_step_437(probe):
+    scan_verdict_step_title(probe)
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md launch line through detach-leaf.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(300)
+def test_a_step_title_carrying_a_dollar_sign_a_backtick_and_a_double_quote_reaches_every_other_developer_and_verifier_leaf_skill_md_launches_with_it_byte_identical_437(probe):
+    scan_every_step_title(probe)
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md launch line through detach-leaf.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(300)
+def test_every_leaf_and_verifier_launch_line_in_skill_md_reads_the_step_through_ledger_steps_sh_current_and_a_title_carrying_a_dollar_sign_a_backtick_and_a_double_quote_reaches_veri_step_and_step_byte_identical_682(probe):
+    scan_current_step_title(probe)
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md conductor line through event.sh, preserve-attempt.sh and the tick scripts")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(300)
+def test_a_step_title_carrying_a_dollar_sign_a_backtick_and_a_double_quote_reaches_every_event_sh_mark_preserve_attempt_sh_call_and_tick_fragment_the_conductor_types_from_skill_md_byte_identical_437(probe):
+    scan_conductor_titles(probe)
+
+    assert probe.problems == []
+
+
+@pytest.mark.process("SKILL.md conductor line through build-develop-prompt.sh and add-ledger-step.sh")
+@pytest.mark.tree_audit("the scripts directory the stage links every script of")
+@pytest.mark.timeout(300)
+def test_a_step_title_carrying_a_dollar_sign_a_backtick_and_a_double_quote_reaches_every_build_develop_prompt_sh_prompt_and_add_ledger_step_sh_anchor_the_conductor_types_from_skill_md_byte_identical_437(probe):
+    scan_prompt_titles(probe)
 
     assert probe.problems == []
