@@ -221,6 +221,14 @@ def test_1641_an_exemption_entry_whose_reason_is_only_whitespace_is_refused_by_n
         guard.offences(tmp_path, {"test_waits.py:4": " \t\n"})
 
 
+def test_1641_an_exemption_entry_that_matches_no_file_under_the_root_makes_the_guard_fail_naming_that_entry(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    (tmp_path / "test_clean.py").write_text("def test_clean():\n    assert True\n")
+
+    with pytest.raises(ValueError, match="unit/test_gone.py:4"):
+        guard.offences(tmp_path, {"unit/test_gone.py:4": "waits on a fake clock"})
+
+
 @pytest.mark.tree_audit("every test_*.py under skills/tdd/scripts/tests/py/unit")
 def test_the_guard_with_the_real_exemption_table_finds_no_offence_in_the_fast_tier_as_committed_and_names_a_planted_one_by_file_and_line(tmp_path):
     guard = importlib.import_module("veri.fast_tier_guard")
