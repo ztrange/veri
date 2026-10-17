@@ -324,4 +324,17 @@ grep -F 'case a' "$out" > /dev/null && printed=yes
 expect_eq "$name" "1:yes:yes" "$code:$printed:$said"
 rm -f "$report" "$out" "$err"
 
+name="unreplaced-cases.sh prints an unreplaced bare-name case on stdout exactly as the step spells it and writes the reason, no test of that name was found, to stderr (#1660)"
+tree="$(scratch_dir)"; mkdir -p "$tree/skills/tdd/scripts/tests/py/unit"
+printf 'def test_other():\n    pass\n' > "$tree/skills/tdd/scripts/tests/py/unit/test_x.py"
+report="$(mktemp)"; out="$(mktemp)"; err="$(mktemp)"
+printf '%s\n' "REPLACES: case a => test_a" > "$report"
+step="- [ ] x: replaces 'case a' in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 5⟧"
+code=0
+(cd "$tree" && "$UNREPLACED" "$step" "$report" > "$out" 2> "$err" < /dev/null) || code=$?
+said=no
+grep -F 'no test of that name was found' "$err" > /dev/null && said=yes
+expect_eq "$name" "1:case a:yes" "$code:$(cat "$out"):$said"
+rm -f "$report" "$out" "$err"
+
 finish
