@@ -29,7 +29,7 @@ subjects() {
   names="$(sed -nE "s/$BINDS.*/\2/p" "$1" | sort -u | tr '\n' '|')"
   joined="${names%|}"
   if [[ -n "$joined" ]]; then
-    printf '%s' "$MD_FILES|\\\$\\{?($joined)"
+    printf '%s' "$MD_FILES|\\\$\\{?($joined)([^A-Za-z0-9_]|\$)"
   else
     printf '%s' "$MD_FILES"
   fi
@@ -114,6 +114,18 @@ used="$(du -k "$tmp" | cut -f1)"
   problems+=("want the observed suite green when a suite measures only files other than the two documents, got: $(flat "$out")")
 [[ "$out" != *'sizes-other.test.sh:'* ]] ||
   problems+=("want no problem line naming sizes-other.test.sh, got: $(flat "$out")")
+
+report "$name"
+
+name="#1538: a suite measuring a variable whose name merely starts with the name of one bound to the document is not reported"
+problems=()
+
+observe prefix prefix-name.test.sh \
+  '#!/usr/bin/env bash\nname="x %s.md y"\nshape="$(%s -l < "$names.err")"\n' "$md" wc
+[[ "$out" == *'1 passed, 0 failed'* ]] ||
+  problems+=("want the observed suite green when the measured variable only shares a prefix with a bound one, got: $(flat "$out")")
+[[ "$out" != *'prefix-name.test.sh:'* ]] ||
+  problems+=("want no problem line naming prefix-name.test.sh, got: $(flat "$out")")
 
 report "$name"
 
