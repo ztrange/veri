@@ -60,7 +60,7 @@ for f in "$HERE"/unit/*.test.sh; do
     }
     {
       for (v in held)
-        if ($0 ~ ("(^|\\$\\(|[;&|(])[ \t]*(([A-Za-z_][A-Za-z0-9_]*=[^ \t]* +)*)\"?\\$\\{?" v "([^A-Za-z0-9_]|$)")) { print FNR "\t" $0; next }
+        if ($0 ~ ("(^|\\$\\(|[;&|(])[ \t]*((if|then|elif|else|while|until|do|!)[ \t]+)*(([A-Za-z_][A-Za-z0-9_]*=[^ \t]* +)*)\"?\\$\\{?" v "([^A-Za-z0-9_]|$)")) { print FNR "\t" $0; next }
     }
     names_script($0) { print FNR "\t" $0 }
   ' "$f")

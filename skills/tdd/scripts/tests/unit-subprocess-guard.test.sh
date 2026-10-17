@@ -206,4 +206,46 @@ fi
 
 report "$name"
 
+problems=()
+name="no-unit-subprocess.test.sh names a unit-tier suite that runs a script variable right after a shell keyword, if \"\$S\", then \"\$S\" or ! \"\$S\", as <suite>:<line> (#1646)"
+
+FORMS=(
+  'if "$STATUS" > /dev/null; then :; fi'
+  'if true; then "$STATUS" > /dev/null; fi'
+  '! "$STATUS" > /dev/null'
+)
+
+if [[ -f "$GUARD_PATH" ]]; then
+  form_index=0
+  for form in "${FORMS[@]}"; do
+    form_index=$((form_index + 1))
+    form_offender="runs-form-$form_index.test.sh"
+    form_tree="$(scratch_dir)"
+    mkdir -p "$form_tree/$TESTS_DIR/unit" "$form_tree/$SCRIPTS_DIR" "$form_tree/$TESTS_DIR/lib"
+    {
+      echo '#!/usr/bin/env bash'
+      echo '# Unit tests for a script — the line below runs it instead of sourcing it.'
+      echo 'set -uo pipefail'
+      echo 'HERE="$(cd "$(dirname "$0")" && pwd)"'
+      echo 'STATUS="$HERE/../../status.sh"'
+      echo 'pass=0 fail=0'
+      echo "$form  # $MARK"
+      echo 'echo "${pass:-0} passed, $fail failed"'
+    } > "$form_tree/$TESTS_DIR/unit/$form_offender"
+    chmod 755 "$form_tree/$TESTS_DIR/unit/$form_offender"
+    printf '#!/bin/sh\nexit 0\n' > "$form_tree/$SCRIPTS_DIR/status.sh"
+    chmod 755 "$form_tree/$SCRIPTS_DIR/status.sh"
+    form_line="$(grep -n "$MARK" "$form_tree/$TESTS_DIR/unit/$form_offender" | cut -d: -f1)"
+    cp "$GUARD_PATH" "$form_tree/$TESTS_DIR/$GUARD_NAME"
+    cp "$HERE/lib/"*.sh "$form_tree/$TESTS_DIR/lib/"
+    guard_out="$("$form_tree/$TESTS_DIR/$GUARD_NAME" 2>&1)" && guard_code=0 || guard_code=$?
+    [[ "$guard_code" != 0 ]] ||
+      problems+=("want the guard to fail over a unit suite that runs [$form] at line $form_line; it exited 0 and said: $(flat "$guard_out")")
+    grep -qF -- "$form_offender:$form_line" <<< "$guard_out" ||
+      problems+=("no line of the guard's output names $form_offender:$form_line for [$form]; it said: $(flat "$guard_out")")
+  done
+fi
+
+report "$name"
+
 finish
