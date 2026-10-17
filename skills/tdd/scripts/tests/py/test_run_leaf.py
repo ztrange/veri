@@ -790,3 +790,137 @@ def test_cli_starts_claude_without_claude_code_remote_session_id_whose_value_nee
              "CLAUDE_CODE_REMOTE_SESSION_ID": "remote-unrelated-value"})
 
     assert (code, "CLAUDE_CODE_REMOTE_SESSION_ID" in seen[0]) == (0, False)
+
+
+def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_working_directory_reads_its_relative_prompt_and_prints_and_exits_as_in_place(
+        tmp_path, monkeypatch, run_cli):
+    import importlib.util
+    importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("the prompt in the other working directory")
+    (tmp_path / "skill").symlink_to(SCRIPTS.parent)
+    launches = []
+
+    def launch(argv, *args, **kwargs):
+        leaf = _FakeLeaf(launches, argv, stream=_RESULT_STREAM, **kwargs)
+        leaf.returncode = 3
+        return leaf
+    monkeypatch.setattr(subprocess, "Popen", launch)
+
+    answers = {}
+    for how, path in (("inplace", SCRIPTS / "veri" / "run_leaf.py"),
+                      ("linked", tmp_path / "skill" / "scripts" / "veri" / "run_leaf.py")):
+        spec = importlib.util.spec_from_file_location(f"run_leaf_{how}", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        answers[how] = run_cli(module, ["prompt.txt"], cwd=work)
+
+    assert ([argv[2] for argv in launches], answers["linked"] == answers["inplace"],
+            answers["linked"][0]) == (["the prompt in the other working directory"] * 2, True, 3)
+
+
+@pytest.mark.process("a real stub claude inheriting the signal dispositions its launcher was handed")
+def test_cli_hands_claude_sigpipe_and_sigxfsz_as_its_caller_had_them_at_default_when_default_ignored_when_ignored(
+        tmp_path, monkeypatch, run_cli):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("do the step\n")
+    stub = tmp_path / "claude"
+    stub.write_text("#!/usr/bin/env bash\n"
+                    'trap -p PIPE XFSZ > "$DISP_OUT"\n'
+                    "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"ok\"}'\n")
+    stub.chmod(0o755)
+    monkeypatch.setenv("CLAUDE_BIN", str(stub))
+    saved = {name: signal.getsignal(name) for name in (signal.SIGPIPE, signal.SIGXFSZ)}
+    seen = {}
+    try:
+        for caller, shim in (("default", " PIPE XFSZ"), ("ignored", "")):
+            for name in saved:
+                signal.signal(name, signal.SIG_IGN)
+            out = tmp_path / f"disp-{caller}"
+            code, _, _ = run_cli(run_leaf, ["prompt.txt"], env={
+                "DISP_OUT": str(out), "VERI_SHIM_DEFAULT_SIGNALS": shim})
+            seen[caller] = (code, out.read_text())
+    finally:
+        for name, handler in saved.items():
+            signal.signal(name, handler)
+
+    assert seen == {"default": (0, ""),
+                    "ignored": (0, "trap -- '' SIGPIPE\ntrap -- '' SIGXFSZ\n")}
+
+
+@pytest.mark.process("a real python3 started by a stub claude importing a module mutated and reverted in one mtime second")
+def test_cli_under_a_leaf_a_python_module_mutated_and_reverted_at_the_same_whole_second_mtime_and_size_is_re_read_from_source(
+        tmp_path, monkeypatch, run_cli):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("do the step\n")
+    pyc = tmp_path / "pyc"
+    pyc.mkdir()
+    (pyc / "mod.py").write_text("ANSWER = 1\n")
+    os.utime(pyc / "mod.py", (1672531200, 1672531200))
+    stub = tmp_path / "claude"
+    py = shlex.quote(sys.executable)
+    stub.write_text(
+        "#!/bin/sh\n"
+        'cd "$MOD_DIR" || exit 2\n'
+        "same_second='import os, sys; open(\"mod.py\", \"w\").write(sys.argv[1]); "
+        "os.utime(\"mod.py\", (1700000100, 1700000100))'\n"
+        f"{py} -c 'import mod; print(mod.ANSWER)' > before\n"
+        f"{py} -c \"$same_second\" 'ANSWER = 2\n'\n"
+        f"{py} -c 'import mod; print(mod.ANSWER)' > mutated\n"
+        f"{py} -c \"$same_second\" 'ANSWER = 1\n'\n"
+        f"{py} -c 'import mod; print(mod.ANSWER)' > after\n"
+        "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"ok\"}'\n")
+    stub.chmod(0o755)
+    monkeypatch.delenv("PYTHONDONTWRITEBYTECODE", raising=False)
+    monkeypatch.delenv("PYTHONPYCACHEPREFIX", raising=False)
+
+    code, _, _ = run_cli(run_leaf, ["prompt.txt"],
+                         env={"CLAUDE_BIN": str(stub), "MOD_DIR": str(pyc)})
+
+    assert (code, [(pyc / name).read_text().strip() for name in ("before", "mutated", "after")]) == (
+        0, ["1", "2", "1"])
+
+
+def test_cli_hands_the_leaf_pythondontwritebytecode_1_whether_the_caller_left_it_unset_set_it_to_0_or_set_it_empty(
+        tmp_path, monkeypatch, run_cli):
+    handed = []
+    for caller in ("unset", "0", "empty"):
+        scratch = tmp_path / caller
+        scratch.mkdir()
+        if caller == "unset":
+            _, _, _, seen = _cli_launch(run_cli, monkeypatch, scratch, unset=("PYTHONDONTWRITEBYTECODE",))
+        else:
+            _, _, _, seen = _cli_launch(run_cli, monkeypatch, scratch,
+                                        env={"PYTHONDONTWRITEBYTECODE": "0" if caller == "0" else ""})
+        handed.append(seen[0].get("PYTHONDONTWRITEBYTECODE"))
+
+    assert handed == ["1", "1", "1"]
+
+
+@pytest.mark.process("a real python3 started by a stub claude importing from a tree")
+def test_cli_a_python_process_under_a_leaf_writes_no_pyc_into_the_tree_it_imports_from(
+        tmp_path, monkeypatch, run_cli):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("do the step\n")
+    tree = tmp_path / "tree"
+    (tree / "pkg").mkdir(parents=True)
+    (tree / "mod.py").write_text("ANSWER = 1\n")
+    (tree / "pkg" / "__init__.py").write_text("")
+    (tree / "pkg" / "sub.py").write_text("ANSWER = 2\n")
+    stub = tmp_path / "claude"
+    stub.write_text(
+        "#!/bin/sh\n"
+        'cd "$MOD_DIR" || exit 2\n'
+        f"{shlex.quote(sys.executable)} -c 'import mod, pkg.sub; print(mod.ANSWER + pkg.sub.ANSWER)' > ../answer\n"
+        "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"ok\"}'\n")
+    stub.chmod(0o755)
+    monkeypatch.delenv("PYTHONDONTWRITEBYTECODE", raising=False)
+    monkeypatch.delenv("PYTHONPYCACHEPREFIX", raising=False)
+
+    code, _, _ = run_cli(run_leaf, ["prompt.txt"],
+                         env={"CLAUDE_BIN": str(stub), "MOD_DIR": str(tree)})
+
+    assert (code, (tmp_path / "answer").read_text().strip(), sorted(tree.rglob("*.pyc"))) == (0, "3", [])
