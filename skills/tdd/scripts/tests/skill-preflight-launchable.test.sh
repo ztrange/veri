@@ -172,37 +172,6 @@ rebase_span() {
   between="$(sed -n "${enter_at},${base_at}p" "$md" | sentences)"
 }
 
-name="#1297 $skill_md has a resumed run, one whose worktree and ledger already exist, run $rebase_call before its preflight baseline, and a new branch's run not rebase there"
-problems=()
-
-if rebase_span; then
-  resumed="$(grep -F -- "$rebase_call" <<< "$between" | grep -iF 'resum' | grep -iF 'ledger')"
-  [[ -n "$resumed" ]] ||
-    problems+=("$skill_md between line $enter_at ($enter_call) and line $base_at (the fast-tier baseline) has no sentence saying a resumed run, whose worktree and ledger already exist, runs $rebase_call, so a resumed run's baseline runs on its old base")
-  fresh="$(grep -iF 'new branch' <<< "$between" | grep -iF 'rebase' | negated)"
-  [[ -n "$fresh" ]] ||
-    problems+=("$skill_md between line $enter_at ($enter_call) and line $base_at (the fast-tier baseline) has no sentence saying a new branch's run does not rebase there")
-fi
-
-report "$name"
-
-name="#1297 $skill_md says the resume $rebase_call's exit 3 goes on unchanged, its exit 1 goes on from the old base and leaves the conflict to the Draft PR step, and its exit 2 bails no-verdict"
-problems=()
-
-if rebase_span; then
-  nothing="$(grep -iE 'exits? 3' <<< "$between" | grep -iF 'unchanged')"
-  [[ -n "$nothing" ]] ||
-    problems+=("$skill_md between line $enter_at ($enter_call) and line $base_at (the fast-tier baseline) has no sentence saying the resume rebase's exit 3 goes on unchanged")
-  conflict="$(grep -iE 'exits? 1' <<< "$between" | grep -iF 'old base' | grep -iF 'Draft PR')"
-  [[ -n "$conflict" ]] ||
-    problems+=("$skill_md between line $enter_at ($enter_call) and line $base_at (the fast-tier baseline) has no sentence saying the resume rebase's exit 1 goes on from the old base and leaves the conflict to the Draft PR step")
-  noanswer="$(grep -iE 'exits? 2' <<< "$between" | grep -iF 'bail' | grep -F 'no-verdict')"
-  [[ -n "$noanswer" ]] ||
-    problems+=("$skill_md between line $enter_at ($enter_call) and line $base_at (the fast-tier baseline) has no sentence saying the resume rebase's exit 2 bails no-verdict")
-fi
-
-report "$name"
-
 resume_step3() {
   rebase_span && preflight_or_problem "$1" || return 1
   step3="$(item_around "$enter_at")"
@@ -212,80 +181,6 @@ resume_step3() {
 step3_line_of() {
   awk -v s="$enter_at" -v e="$item_end" -v n="$1" 'NR >= s && NR <= e && index($0, n) { print NR; exit }' "$md"
 }
-
-name="#1297 $skill_md publishes a resume rebase that moved the branch, once the baseline is green, with $lease_push, never a bare force"
-problems=()
-
-if resume_step3 "the resume rebase's push"; then
-  push_at="$(step3_line_of "$lease_push")"
-  if [[ -z "$push_at" ]]; then
-    problems+=("$skill_md's preflight step 3 (lines $enter_at-$item_end) never names $lease_push, so a resume rebase that moved the branch is left unpublished or pushed without a pinned lease")
-  else
-    [[ "$push_at" -gt "$base_at" ]] ||
-      problems+=("$skill_md:$push_at names $lease_push before line $base_at starts the fast-tier baseline, so the rebased tip is published before any suite proved it green")
-    green="$(sentences <<< "$step3" | grep -F -- "$lease_push" | grep -iF 'green')"
-    [[ -n "$green" ]] ||
-      problems+=("$skill_md:$push_at's sentence naming $lease_push does not say it runs once the baseline is green")
-  fi
-  bare="$(sentences <<< "$step3" | grep -iF 'bare force' | negated)"
-  [[ -n "$bare" ]] ||
-    problems+=("$skill_md's preflight step 3 (lines $enter_at-$item_end) has no sentence saying the resume rebase is never published with a bare force")
-fi
-
-report "$name"
-
-name="#1297 $skill_md resets a red baseline on the resume-rebased tip to <pre-rebase-sha> before the run bails"
-problems=()
-
-if resume_step3 "the resume rebase's reset"; then
-  reset="$(sentences <<< "$step3" | grep -iwF 'red' | grep -iF 'reset' | grep -F '<pre-rebase-sha>' | grep -iF 'bail')"
-  [[ -n "$reset" ]] ||
-    problems+=("$skill_md's preflight step 3 (lines $enter_at-$item_end) has no sentence saying a red baseline on the rebased tip resets to <pre-rebase-sha> before the run bails, so a bailed resume leaves the branch on a rebased tip no suite proved green")
-fi
-
-report "$name"
-
-name="#1297 $skill_md marks a resume rebase that moved the branch in the run log as its own event, carrying the pre-rebase and rebased shas, named apart from the Draft PR step's rebase"
-problems=()
-
-if resume_step3 "the resume rebase's event"; then
-  rebase_at="$(step3_line_of "$rebase_call")"
-  mark="$(sed -n "${rebase_at:-$enter_at},${item_end}p" "$md" | grep -oE 'event\.sh [a-z][a-z-]*( [^`]*)?' | grep -F '<pre-rebase-sha>' | sed -n 1p)"
-  event_name="$(awk '{ print $2 }' <<< "$mark")"
-  if [[ -z "$event_name" ]]; then
-    problems+=("$skill_md's preflight step 3 (lines $enter_at-$item_end) has no event.sh mark after $rebase_call whose arguments carry <pre-rebase-sha>, so a resume rebase that moved the branch leaves nothing in the run log")
-  else
-    grep -E 'rebased|rev-parse HEAD' <<< "${mark#event.sh "$event_name"}" > /dev/null ||
-      problems+=("$skill_md's event.sh $event_name mark carries <pre-rebase-sha> but not the rebased sha: $mark")
-    if section "$draft_heading"; then
-      sed -n "${sec_start},${sec_end}p" "$md" | grep -E "event\.sh $event_name( |\$|\`)" > /dev/null &&
-        problems+=("$skill_md's $draft_heading section also writes event.sh $event_name, so a metrics reading cannot tell the resume rebase from the Draft PR step's")
-    else
-      problems+=("$skill_md has no '$draft_heading' section, so whether its rebase records the same event could not be read")
-    fi
-  fi
-fi
-
-report "$name"
-
-name="#1297 $skill_md captures and resets a dirty resume worktree before the resume $rebase_call, and says <pre-rebase-sha> is its first stdout line before first using it"
-problems=()
-
-if resume_step3 "the resume rebase's capture-and-reset"; then
-  rebase_at="$(step3_line_of "$rebase_call")"
-  capture_at="$(awk -v s="$enter_at" -v e="$item_end" 'NR >= s && NR <= e && /="\$\(git status --porcelain\)"/ { print NR; exit }' "$md")"
-  reset_at="$(step3_line_of "$reset_head")"
-  if [[ -z "$capture_at" || -z "$reset_at" ]]; then
-    problems+=("$skill_md's preflight step 3 (lines $enter_at-$item_end) does not capture git status --porcelain into a variable and then run $reset_head, so a killed leaf's stray edit meets the resume rebase on a dirty tree")
-  elif [[ -n "$rebase_at" ]] && ! [[ "$capture_at" -lt "$reset_at" && "$reset_at" -lt "$rebase_at" ]]; then
-    problems+=("$skill_md's preflight step 3 has the capture at line $capture_at, $reset_head at line $reset_at and $rebase_call at line $rebase_at: the rebase must come after the capture-and-reset")
-  fi
-  first_use="$(sed -n "${enter_at},${item_end}p" "$md" | sentences | grep -F '<pre-rebase-sha>' | sed -n 1p)"
-  grep -F -- "$rebase_call" <<< "$first_use" | grep -iE 'first (stdout )?line' > /dev/null ||
-    problems+=("$skill_md's preflight step 3 first uses <pre-rebase-sha> without saying it is $rebase_call's first stdout line: $first_use")
-fi
-
-report "$name"
 
 name="#1297 $skill_md's preflight step 3 says never a bare force with the negation on the bare force itself, not on another word of the sentence"
 problems=()

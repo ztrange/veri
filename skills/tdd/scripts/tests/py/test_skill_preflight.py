@@ -165,3 +165,105 @@ def test_skill_md_s_worktree_guard_prose_says_the_lock_is_taken_in_preflight_ste
     elsewhere = [s for s in sentences(lines)
                  if re.search(r"step 1\.2 (takes|writes|locks)|(taken|written|took|wrote) in step 1\.2", s, re.I)]
     assert elsewhere == []
+
+
+DRAFT = "### 4. Draft PR"
+REBASE_CALL = "rebase-onto-default.sh"
+LEASE_PUSH = "push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>"
+RESET_HEAD = "git reset --hard HEAD"
+PRE_SHA = "<pre-rebase-sha>"
+NEGATION = r"(^|[^A-Za-z])(not|never|no)([^A-Za-z]|$)"
+
+
+def rebase_span():
+    lines = all_lines()
+    enter_at = worktree_entry(lines)
+    base_at = next((i for i in range(enter_at + 1, len(lines))
+                    if FAST_CALL in lines[i] or DETACH_START in lines[i]), None)
+    assert base_at is not None, "no baseline start after the worktree is entered"
+    return sentences(lines[enter_at:base_at + 1])
+
+
+def resume_step3():
+    whole = all_lines()
+    enter_at = worktree_entry(whole)
+    base_at = next((i for i in range(enter_at + 1, len(whole))
+                    if FAST_CALL in whole[i] or DETACH_START in whole[i]), None)
+    assert base_at is not None, "no baseline start after the worktree is entered"
+    pre = lines_of(PREFLIGHT)
+    offset = whole.index(PREFLIGHT)
+    at = enter_at - offset
+    assert 0 <= at < len(pre), "the worktree is entered outside preflight"
+    begin = max((i for i in range(at + 1) if re.match(ITEM_RE, pre[i])), default=0)
+    end = next((i for i in range(at + 1, len(pre)) if re.match(ITEM_RE, pre[i])), len(pre))
+    return whole, enter_at, base_at, offset + begin, offset + end
+
+
+def line_of(lines, want, start, end):
+    return next((i for i in range(start, end) if want in lines[i]), None)
+
+
+def test_1297_skill_md_has_a_resumed_run_one_whose_worktree_and_ledger_already_exist_run_rebase_onto_default_sh_before_its_preflight_baseline_and_a_new_branch_s_run_not_rebase_there():
+    between = rebase_span()
+    assert [s for s in between if REBASE_CALL in s and "resum" in s.lower() and "ledger" in s.lower()], \
+        "no sentence says a resumed run, whose worktree and ledger already exist, runs rebase-onto-default.sh"
+    assert [s for s in between if "new branch" in s.lower() and "rebase" in s.lower()
+            and re.search(NEGATION, s, re.I)], "no sentence says a new branch's run does not rebase there"
+
+
+def test_1297_skill_md_says_the_resume_rebase_onto_default_sh_s_exit_3_goes_on_unchanged_its_exit_1_goes_on_from_the_old_base_and_leaves_the_conflict_to_the_draft_pr_step_and_its_exit_2_bails_no_verdict():
+    between = rebase_span()
+    assert [s for s in between if re.search(r"exits? 3", s, re.I) and "unchanged" in s.lower()], \
+        "no sentence says the resume rebase's exit 3 goes on unchanged"
+    assert [s for s in between if re.search(r"exits? 1", s, re.I) and "old base" in s.lower()
+            and "draft pr" in s.lower()], "no sentence says exit 1 goes on from the old base and leaves the conflict to the Draft PR step"
+    assert [s for s in between if re.search(r"exits? 2", s, re.I) and "bail" in s.lower()
+            and "no-verdict" in s], "no sentence says exit 2 bails no-verdict"
+
+
+def test_1297_skill_md_publishes_a_resume_rebase_that_moved_the_branch_once_the_baseline_is_green_with_the_lease_push_never_a_bare_force():
+    whole, enter_at, base_at, begin, end = resume_step3()
+    push_at = line_of(whole, LEASE_PUSH, enter_at, end)
+    assert push_at is not None, "preflight step 3 never names the lease push"
+    assert push_at > base_at, "the rebased tip is published before the fast-tier baseline starts"
+    step3 = sentences(whole[begin:end])
+    assert [s for s in step3 if LEASE_PUSH in s and "green" in s.lower()], "the lease push sentence does not say green"
+    assert [s for s in step3 if "bare force" in s.lower() and re.search(NEGATION, s, re.I)], \
+        "no sentence says the resume rebase is never published with a bare force"
+
+
+def test_1297_skill_md_resets_a_red_baseline_on_the_resume_rebased_tip_to_pre_rebase_sha_before_the_run_bails():
+    whole, enter_at, base_at, begin, end = resume_step3()
+    assert [s for s in sentences(whole[begin:end]) if re.search(r"\bred\b", s, re.I) and "reset" in s.lower()
+            and PRE_SHA in s and "bail" in s.lower()], \
+        "no sentence says a red baseline on the rebased tip resets to <pre-rebase-sha> before the run bails"
+
+
+def test_1297_skill_md_marks_a_resume_rebase_that_moved_the_branch_in_the_run_log_as_its_own_event_carrying_the_pre_rebase_and_rebased_shas_named_apart_from_the_draft_pr_step_s_rebase():
+    whole, enter_at, base_at, begin, end = resume_step3()
+    rebase_at = line_of(whole, REBASE_CALL, enter_at, end)
+    marks = [m.group(0) for line in whole[rebase_at if rebase_at is not None else enter_at:end]
+             for m in re.finditer(r"event\.sh [a-z][a-z-]*( [^`]*)?", line)]
+    mark = next((m for m in marks if PRE_SHA in m), None)
+    assert mark is not None, "no event.sh mark after the rebase call carries <pre-rebase-sha>"
+    name = mark.split()[1]
+    assert re.search(r"rebased|rev-parse HEAD", mark[len(f"event.sh {name}"):]), \
+        f"the event.sh {name} mark does not carry the rebased sha: {mark}"
+    draft = lines_of(DRAFT)
+    assert not [line for line in draft if re.search(rf"event\.sh {name}( |$|`)", line)], \
+        f"the Draft PR section also writes event.sh {name}"
+
+
+def test_1297_skill_md_captures_and_resets_a_dirty_resume_worktree_before_the_resume_rebase_onto_default_sh_and_says_pre_rebase_sha_is_its_first_stdout_line_before_first_using_it():
+    whole, enter_at, base_at, begin, end = resume_step3()
+    rebase_at = line_of(whole, REBASE_CALL, enter_at, end)
+    capture_at = next((i for i in range(enter_at, end)
+                       if re.search(r'="\$\(git status --porcelain\)"', whole[i])), None)
+    reset_at = line_of(whole, RESET_HEAD, enter_at, end)
+    assert capture_at is not None and reset_at is not None, \
+        "preflight step 3 does not capture git status --porcelain into a variable and then run git reset --hard HEAD"
+    if rebase_at is not None:
+        assert capture_at < reset_at < rebase_at, (capture_at, reset_at, rebase_at)
+    first_use = next((s for s in sentences(whole[enter_at:end]) if PRE_SHA in s), "")
+    assert REBASE_CALL in first_use and re.search(r"first (stdout )?line", first_use, re.I), \
+        f"step 3 first uses <pre-rebase-sha> without saying it is the rebase's first stdout line: {first_use}"
