@@ -1489,3 +1489,214 @@ def test_619_verify_green_check_4_and_verify_pin_check_2_restore_before_reportin
             problems += says(text, f"{label} item {n} never requires the restore before reporting",
                              rb"before you report")
     assert problems == []
+
+
+def squeezed(text):
+    return re.sub(r"[ \t\n\v\f\r]+", " ", text)
+
+
+def folded_bytes(text):
+    return text.replace("\n", " ").encode("utf-8", "surrogateescape")
+
+
+def test_verify_plan_carries_the_issue_spec_and_the_ledger_named_as_its_third_argument(
+        tmp_path, run_cli, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(SPEC_TEXT.encode())
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("# Plan for #426\n\n- [ ] A verdict launcher script runs verify.sh with the step title as an "
+                      "argument ⟦criterion 1⟧\n")
+
+    code, out, _ = run_cli(build_verify_prompt, ["plan", str(spec), str(ledger)])
+
+    assert code == 0
+    assert 'slugify("Hello & World/Foo")' in out
+    assert "A verdict launcher script runs verify.sh with the step title as an argument ⟦criterion 1⟧" in out
+
+
+@pytest.fixture
+def plan_flat(tmp_path, run_cli, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(SPEC_TEXT.encode())
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("# Plan for #426\n\n- [ ] A step ⟦criterion 1⟧\n")
+    return squeezed(run_cli(build_verify_prompt, ["plan", str(spec), str(ledger)])[1])
+
+
+def test_verify_plan_rejects_a_step_that_drops_a_constraint_the_issue_attaches_to_its_cases(plan_flat):
+    problems = []
+    if "REJECT a plan whose step drops a constraint the issue attaches to" not in plan_flat:
+        problems.append("never says to REJECT a step that drops a constraint the issue attaches to its cases")
+    if "case size" not in plan_flat:
+        problems.append("never names the case size as a constraint")
+    if "no production change" not in plan_flat:
+        problems.append('never names "no production change" as a constraint')
+    if "end-to-end path through real processes" not in plan_flat:
+        problems.append("never names the end-to-end path through real processes as a constraint")
+
+    assert problems == []
+
+
+def test_verify_plan_rejects_a_test_only_change_planned_as_a_red_green_step(plan_flat):
+    problems = []
+    if "REJECT a plan that plans a test-only change" not in plan_flat:
+        problems.append("never says to REJECT a plan that plans a test-only change")
+    if "only by editing a test" not in plan_flat:
+        problems.append("never names a change satisfiable only by editing a test")
+    if "as a Red/Green step" not in plan_flat:
+        problems.append("never says the rejected shape is a Red/Green step")
+
+    assert problems == []
+
+
+def test_verify_plan_rejects_a_step_observable_only_once_a_later_step_is_built_naming_both_steps(plan_flat):
+    problems = []
+    if "REJECT a plan in which a step's behaviour can only be observed once a later step is built" not in plan_flat:
+        problems.append("never says to REJECT a step whose behaviour can only be observed once a later step is built")
+    if "ignored, guarded or without effect" not in plan_flat:
+        problems.append("never names an input that is ignored, guarded or without effect")
+    if "even when X is left in" not in plan_flat:
+        problems.append('never quotes the "even when X is left in" shape')
+    if "before the step that makes the code read that input" not in plan_flat:
+        problems.append("never says the step sits before the step that makes the code read the input")
+    if "REASON: line names both steps, the early step and the later step it waits on" not in plan_flat:
+        problems.append("never says its REASON: line names both steps, the early one and the later one it waits on")
+
+    assert problems == []
+
+
+def test_verify_plan_carries_only_the_issue_spec_and_the_ledger_and_no_cycle_phase_prompt_carries_a_ledger(
+        tmp_path, run_cli, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(SPEC_TEXT.encode())
+    ledger = tmp_path / "rationale-ledger.md"
+    ledger.write_text("# Plan for #439\n\n- [ ] LEDGER-BODY-MARKER a plan step no cycle verifier may be shown "
+                      "⟦criterion 1⟧\n")
+    leak_step = "RATIONALE-LEAK the developer chose a launcher script because bash -c broke the quoting"
+    problems = []
+
+    code, plan_only, _ = run_cli(build_verify_prompt, ["--step", leak_step, "plan", str(spec), str(ledger),
+                                                        "test_rationale_leak"])
+    if code != 0:
+        problems.append(f"the plan call exited {code}")
+    if 'slugify("Hello & World/Foo")' not in plan_only:
+        problems.append("the plan prompt drops the issue spec")
+    if "LEDGER-BODY-MARKER" not in plan_only:
+        problems.append("the plan prompt drops the ledger")
+    if "RATIONALE-LEAK" in plan_only:
+        problems.append("the plan prompt carries the --step text")
+    if "test_rationale_leak" in plan_only:
+        problems.append("the plan prompt carries the fourth positional")
+    for phase in ("red", "green", "refactor", "pin"):
+        fast = ["--fast-cmd", "make unit"] if phase in ("green", "refactor") else []
+        slot = "0123abc" if phase == "refactor" else "test_slugify_lowercases"
+        _, cycle, _ = run_cli(build_verify_prompt, [*fast, phase, str(spec), str(ledger), slot])
+        if str(ledger) not in cycle:
+            problems.append(f"verify-{phase} drops the path it was given")
+        if "LEDGER-BODY-MARKER" in cycle:
+            problems.append(f"verify-{phase} carries the ledger's text")
+
+    assert problems == []
+
+
+def test_verify_red_requires_a_bugs_observed_failure_to_match_what_happened_and_nothing_of_the_kind_without_a_bug_section(
+        tmp_path, run_cli, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(SPEC_TEXT.encode())
+    bug_spec = tmp_path / "bug-spec.md"
+    bug_spec.write_bytes(SPEC_TEXT.encode() + (
+        '\n## Bug\n\n### What happened\n\nslugify returned "HELLO_WORLD" on the ampersanded seed.\n\n'
+        '### Expected\n\nslugify returns "hello-world-foo".\n\n### Steps to reproduce\n\n'
+        'Call slugify("Hello & World/Foo").\n\n### Environment\n\nveri on bash 5.2, macOS 15.\n').encode())
+    observed_matches_reported = (rb"(match|matches|matching|same as)[^.]{0,80}what happened"
+                                 rb"|what happened[^.]{0,80}(match|matches|matching|same as)")
+    problems = []
+
+    code, bug_red, _ = run_cli(build_verify_prompt, ["red", str(bug_spec), TESTPATH, "test_slugify_lowercases"])
+    _, red, _ = run_cli(build_verify_prompt, ["red", str(spec), TESTPATH, "test_slugify_lowercases"])
+    if code != 0:
+        problems.append(f"with a bug spec and red's own four positionals exited {code}, want 0")
+    if 'slugify returned "HELLO_WORLD" on the ampersanded seed.' not in bug_red:
+        problems.append("does not carry the bug report from the spec")
+    if not re.search(observed_matches_reported, folded_bytes(bug_red), re.I):
+        problems.append("never requires the failure it observes to match What happened")
+    if re.search(observed_matches_reported, folded_bytes(red), re.I):
+        problems.append("a spec with no Bug section still requires the failure to match What happened")
+
+    assert problems == []
+
+
+DIFF_STEP = "the dead counted line in the status suite is gone ⟦diff-checked⟧ ⟦criterion 5⟧"
+DIFF_BASE = "0123abcdef"
+STEP_BASE = "4567abcdef"
+
+
+def hex_message(label, value):
+    return f"build-verify-prompt: diff needs {label} as 7-40 lowercase hex characters, got '{value}'"
+
+
+def diff_refusal_problems(run_cli, module, label, want, argv):
+    code, out, err = run_cli(module, argv)
+    first = err.split("\n")[0]
+    problems = []
+    if code != 2:
+        problems.append(f"{label} exited {code}, want 2")
+    if out != "":
+        problems.append(f"{label} printed {len(out.encode('utf-8', 'surrogateescape'))} bytes, want none")
+    if first != want:
+        problems.append(f"{label}'s first stderr line is '{first}', want '{want}'")
+    return problems
+
+
+def test_995_diff_with_fast_cmd_refuses_a_non_hex_base_a_missing_step_and_a_bad_step_base_each_with_exit_2_and_its_own_message(
+        tmp_path, run_cli, build_verify_prompt):
+    spec = str(tmp_path / "spec.md")
+    (tmp_path / "spec.md").write_bytes(SPEC_TEXT.encode())
+    fc = ["--fast-cmd", "make unit"]
+    step = ["--step", DIFF_STEP]
+    problems = []
+    for label, want, argv in (
+            ("diff with a non-hex base", hex_message("<base-sha>", "tidied the helper"),
+             [*step, *fc, "diff", spec, "tidied the helper", DIFF_BASE]),
+            ("diff with no --step", "build-verify-prompt: diff needs --step '<STEP>'",
+             [*fc, "diff", spec, DIFF_BASE, DIFF_BASE]),
+            ("diff with no step base", hex_message("<step-base-sha>", ""),
+             [*step, *fc, "diff", spec, DIFF_BASE]),
+            ("diff with a non-hex step base", hex_message("<step-base-sha>", "tidied the helper"),
+             [*step, *fc, "diff", spec, DIFF_BASE, "tidied the helper"]),
+            ("diff with an uppercase step base", hex_message("<step-base-sha>", "4567ABCDEF"),
+             [*step, *fc, "diff", spec, DIFF_BASE, "4567ABCDEF"]),
+            ("diff with a 6-character step base", hex_message("<step-base-sha>", "4567ab"),
+             [*step, *fc, "diff", spec, DIFF_BASE, "4567ab"])):
+        problems += diff_refusal_problems(run_cli, build_verify_prompt, label, want, argv)
+
+    assert problems == []
+
+
+def test_1041_diff_with_fast_cmd_refuses_an_extra_positional_argument_with_exit_2_and_the_extra_argument_message(
+        tmp_path, run_cli, build_verify_prompt):
+    spec = str(tmp_path / "spec.md")
+    (tmp_path / "spec.md").write_bytes(SPEC_TEXT.encode())
+
+    problems = diff_refusal_problems(
+        run_cli, build_verify_prompt, "diff with an extra positional", "build-verify-prompt: too many arguments",
+        ["--step", DIFF_STEP, "--fast-cmd", "make unit", "diff", spec, DIFF_BASE, DIFF_BASE, "extra"])
+
+    assert problems == []
+
+
+def test_a_diff_prompt_tells_the_verifier_the_wrapper_hands_the_test_commands_exit_status_straight_back(
+        tmp_path, run_cli, build_verify_prompt):
+    spec = str(tmp_path / "spec.md")
+    (tmp_path / "spec.md").write_bytes(SPEC_TEXT.encode())
+    problems = []
+
+    code, prompt, _ = run_cli(build_verify_prompt, ["--step", DIFF_STEP, "--fast-cmd", "make unit", "diff", spec,
+                                                    DIFF_BASE, STEP_BASE])
+    if code != 0:
+        problems.append(f"exited {code}, want 0")
+    if ("The wrapper hands the command's own exit status straight back, so a red run stays red."
+            not in prompt.replace("\n", " ")):
+        problems.append("never says the wrapper hands the exit status straight back")
+
+    assert problems == []
