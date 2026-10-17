@@ -263,3 +263,12 @@ def test_skill_md_marks_an_exhausted_contract_phase_owed_with_tick_ledger_sh_pha
     assert b"tick-ledger.sh --phase-owed <phase>" in near, "never marks the contract phase owed with tick-ledger.sh --phase-owed <phase>"
     before_commit, sep, _ = near.partition(b"commit the ledger")
     assert sep and b"tick-ledger.sh --phase-owed" in before_commit, "marks the phase owed only after committing the ledger"
+
+
+def test_issue_1527_skill_md_says_an_issue_whose_work_changes_only_tests_is_not_refactor_kind_and_is_planned_as_diff_checked_steps():
+    text = section(PLAN)
+    assert text.strip(), "SKILL.md has no Scope & plan section to read"
+    assert has(text, r"changes only tests"), "never names an issue whose work changes only tests"
+    near = window(text, r"changes only tests")
+    assert has(near, r"not refactor-kind"), "never says a tests-only issue is not refactor-kind"
+    assert has(near, r"⟦diff-checked⟧ steps"), "never says a tests-only issue is planned as ⟦diff-checked⟧ steps"
