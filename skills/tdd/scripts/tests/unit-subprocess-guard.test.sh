@@ -207,7 +207,7 @@ fi
 report "$name"
 
 problems=()
-name="no-unit-subprocess.test.sh names a unit-tier suite that runs a script variable right after a shell keyword, if \"\$S\", then \"\$S\" or ! \"\$S\", or through a launcher word, bash \"\$S\" or env A=1 \"\$S\", as <suite>:<line> (#1646)"
+name="no-unit-subprocess.test.sh names a unit-tier suite that runs a script variable right after a shell keyword, if \"\$S\", then \"\$S\" or ! \"\$S\", or through a launcher word, bash \"\$S\" or env A=1 \"\$S\", or a path built from variables, \"\$dir/\$name.sh\", as <suite>:<line> (#1646)"
 
 FORMS=(
   'if "$STATUS" > /dev/null; then :; fi'
@@ -216,6 +216,7 @@ FORMS=(
   'run() { "$STATUS"; }'
   'bash "$STATUS" > /dev/null'
   'env A=1 "$STATUS" > /dev/null'
+  'dir="$HERE/../.."; name=status; "$dir/$name.sh" > /dev/null'
 )
 
 if [[ -f "$GUARD_PATH" ]]; then
