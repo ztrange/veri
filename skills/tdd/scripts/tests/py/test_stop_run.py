@@ -555,14 +555,12 @@ def planted_run(path, started, supervisor):
     return run, live_supervisor(run, "develop-red", started, supervisor)
 
 
-@pytest.mark.process("the shim, with a cd to its own directory planted before the exec, run for real in another repository")
-def test_1158_a_stop_run_sh_that_resolves_its_main_tree_from_its_own_directory_not_the_suite_s_scratch_repository_writes_no_stop_file_and_signals_no_supervisor_outside_that_repository(
-        tmp_path, started):
+def assert_planted_cd_contained(tmp_path, started, decoy_name, before):
     scratch = new_repo(tmp_path.resolve() / "repo")
-    decoy = new_repo(tmp_path.resolve() / "decoy")
+    decoy = new_repo(tmp_path.resolve() / decoy_name)
     supervisor = stub(tmp_path / "stubbin" / "supervise.sh")
     decoy_run, decoy_sup = planted_run(decoy, started, supervisor)
-    mutant = mutant_of(SCRIPTS, "exec python3", 'cd "$(dirname "$0")"', decoy / "skills" / "tdd" / "scripts")
+    mutant = mutant_of(SCRIPTS, before, 'cd "$(dirname "$0")"', decoy / "skills" / "tdd" / "scripts")
 
     code, out, err = run_script(mutant, scratch, "--mode", "now", "--all")
 
@@ -571,20 +569,16 @@ def test_1158_a_stop_run_sh_that_resolves_its_main_tree_from_its_own_directory_n
     assert code != 0 or str(decoy) not in out
 
 
+@pytest.mark.process("the shim, with a cd to its own directory planted before the exec, run for real in another repository")
+def test_1158_a_stop_run_sh_that_resolves_its_main_tree_from_its_own_directory_not_the_suite_s_scratch_repository_writes_no_stop_file_and_signals_no_supervisor_outside_that_repository(
+        tmp_path, started):
+    assert_planted_cd_contained(tmp_path, started, "decoy", "exec python3")
+
+
 @pytest.mark.process("the shim, with a cd to its own directory planted before it records its caller, run for real in another repository")
 def test_1158_a_stop_run_sh_that_moves_to_its_own_directory_before_it_records_where_it_was_called_from_writes_no_stop_file_and_signals_no_supervisor_outside_the_suite_s_scratch_repository(
         tmp_path, started):
-    scratch = new_repo(tmp_path.resolve() / "repo")
-    early = new_repo(tmp_path.resolve() / "early-decoy")
-    supervisor = stub(tmp_path / "stubbin" / "supervise.sh")
-    early_run, early_sup = planted_run(early, started, supervisor)
-    mutant = mutant_of(SCRIPTS, "export VERI_CALLER_DIR", 'cd "$(dirname "$0")"', early / "skills" / "tdd" / "scripts")
-
-    code, out, err = run_script(mutant, scratch, "--mode", "now", "--all")
-
-    assert stop_text(early_run) is None
-    assert early_sup.poll() is None
-    assert code != 0 or str(early) not in out
+    assert_planted_cd_contained(tmp_path, started, "early-decoy", "export VERI_CALLER_DIR")
 
 
 @pytest.mark.process("the shim copied under the scratch directory, with a cd two levels up planted before it records its caller, run for real")
