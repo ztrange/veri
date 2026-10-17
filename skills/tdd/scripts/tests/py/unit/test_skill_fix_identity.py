@@ -86,6 +86,13 @@ def has_skill_md(problems):
     return False
 
 
+def quoted_template(problems):
+    template = issue_body_template(SKILL_MD)
+    if not template:
+        problems.append(f"{SKILL_MD} quotes no issue body: no fenced block in it holds a '## What happened' line")
+    return template
+
+
 def says(problems, text, pattern, message):
     if not re.search(pattern, text):
         problems.append(message)
@@ -117,10 +124,8 @@ def test_skill_md_quotes_an_issue_body_carrying_exactly_the_six_headings_the_con
     want_headings = ["## What happened", "## Expected", "## Steps to reproduce", "## Environment",
                      "## Acceptance criteria", "## Blocked by"]
     if has_skill_md(problems):
-        template = issue_body_template(SKILL_MD)
-        if not template:
-            problems.append(f"{SKILL_MD} quotes no issue body: no fenced block in it holds a '## What happened' line")
-        else:
+        template = quoted_template(problems)
+        if template:
             got = [line for line in template.splitlines() if re.match(r"^##[^#]", line)]
             if got != want_headings:
                 problems.append(f"{SKILL_MD}'s issue body has the wrong headings: want {want_headings}, got {got}")
@@ -139,10 +144,8 @@ def test_skill_md_quotes_an_issue_body_carrying_exactly_the_six_headings_the_con
 def test_skill_md_issue_body_writes_one_acceptance_criterion_per_manifestation_each_failing_now_and_passing_after_the_fix():
     problems = []
     if has_skill_md(problems):
-        template = issue_body_template(SKILL_MD)
-        if not template:
-            problems.append(f"{SKILL_MD} quotes no issue body: no fenced block in it holds a '## What happened' line")
-        else:
+        template = quoted_template(problems)
+        if template:
             text = criteria_block(template)
             if not text.replace(" ", ""):
                 problems.append(f"{SKILL_MD}'s issue body has nothing under '## Acceptance criteria'")
