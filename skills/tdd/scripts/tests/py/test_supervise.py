@@ -3744,3 +3744,60 @@ def test_main_still_kills_a_4s_quiet_leaf_by_a_1s_hard_timeout_and_by_a_1s_heart
 
     assert (timeout[0], "hard timeout" in "".join(timeout[1]),
             heartbeat[0], "no heartbeat" in "".join(heartbeat[1])) == (2, True, 2, True), (timeout, heartbeat)
+
+
+def test_main_launches_a_leaf_that_never_answers_the_same_number_of_times_with_veri_no_verdict_retries_above_veri_stuck_retries_as_without_it_1440(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import signal
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+
+    def launches_of_a_silent_leaf(label, **env):
+        work = tmp_path / label
+        (work / ".tdd").mkdir(parents=True)
+        clean_env(monkeypatch, VERI_STUCK_RETRIES="1", VERI_HEARTBEAT="3", VERI_TIMEOUT="5000", **env)
+        clock = {"wall": 1000, "awake": 5000}
+        launched = []
+
+        class Leaf:
+            pid = 4242
+            returncode = None
+            args = []
+
+            def poll(self):
+                return self.returncode
+
+            def wait(self, timeout=None):
+                return self.returncode
+
+        def sleep(_):
+            clock["wall"] += 1
+            clock["awake"] += 1
+            if clock["wall"] > 5000:
+                raise AssertionError("never ended")
+
+        def stop(_pid, sig):
+            if sig:
+                launched[-1].returncode = -sig
+
+        def answer(args):
+            args = [str(a) for a in args]
+            if args[:1] == ["git"]:
+                return "0123456789abcdef0123456789abcdef01234567\n"
+            if args[:1] == ["date"]:
+                return f"{clock['wall']}\n"
+            if args[:1] == ["stat"]:
+                return "1000\n"
+            return ""
+
+        install_awake_fakes(monkeypatch, clock, Leaf(), sleep, stop, answer)
+
+        def popen(args, *_, **k):
+            launched.append(Leaf())
+            return launched[-1]
+
+        monkeypatch.setattr(subprocess, "Popen", popen)
+        code, _, _ = run_cli(supervise, ["hang", "leaf"], cwd=work)
+        return code, len(launched)
+
+    assert launches_of_a_silent_leaf("alone") == (2, 2)
+    assert launches_of_a_silent_leaf("with-no-verdict", VERI_NO_VERDICT_RETRIES="5") == (2, 2)
