@@ -185,3 +185,19 @@ def test_main_on_a_closing_result_record_with_no_usage_key_exits_2_with_one_line
     assert "Traceback" not in captured.err
     [line] = captured.err.splitlines()
     assert "harvest-usage.sh" in line and ".tdd/verify-green.log" in line and "carries no usage" in line
+
+
+def test_main_on_a_log_that_is_not_valid_utf8_exits_2_with_one_line_and_no_traceback_1497(
+        tmp_path, monkeypatch, capsys, harvest_usage, events):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "verify-green.log").write_bytes(b'\xff\xfe\n' + json.dumps(_RECORD).encode() + b"\n")
+    monkeypatch.chdir(tmp_path)
+
+    events.refuse_event_sh()
+    code = harvest_usage.main(["verify-green"])
+
+    captured = capsys.readouterr()
+    assert (code, events.records(), captured.out) == (2, [], "")
+    assert "Traceback" not in captured.err
+    [line] = captured.err.splitlines()
+    assert "harvest-usage.sh" in line and ".tdd/verify-green.log" in line and "not valid UTF-8" in line
