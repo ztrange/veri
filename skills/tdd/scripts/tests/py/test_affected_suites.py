@@ -232,8 +232,7 @@ def test_main_prints_the_four_prompt_renderer_suites_for_a_develop_template_no_s
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
     (tests / "py/unit").mkdir(parents=True)
-    renderers = ["build-verify-prompt.test.sh",
-                 "py/unit/test_build_develop_prompt.py", "py/unit/test_build_verify_prompt.py"]
+    renderers = ["py/unit/test_build_develop_prompt.py", "py/unit/test_build_verify_prompt.py"]
     for name in renderers + ["other.test.sh"]:
         (tests / name).write_text("")
     assert (affected.main(["base..head"]),) + (sorted(capsys.readouterr().out.splitlines()),) == (
@@ -261,8 +260,7 @@ def test_main_prints_the_four_prompt_renderer_suites_for_a_verify_template_no_su
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
     (tests / "py/unit").mkdir(parents=True)
-    renderers = ["build-verify-prompt.test.sh",
-                 "py/unit/test_build_develop_prompt.py", "py/unit/test_build_verify_prompt.py"]
+    renderers = ["py/unit/test_build_develop_prompt.py", "py/unit/test_build_verify_prompt.py"]
     for name in renderers + ["other.test.sh"]:
         (tests / name).write_text("")
     assert (affected.main(["base..head"]),) + (sorted(capsys.readouterr().out.splitlines()),) == (
@@ -276,8 +274,7 @@ def test_main_prints_the_four_prompt_renderer_suites_for_a_partial_no_suite_name
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
     (tests / "py/unit").mkdir(parents=True)
-    renderers = ["build-verify-prompt.test.sh",
-                 "py/unit/test_build_develop_prompt.py", "py/unit/test_build_verify_prompt.py"]
+    renderers = ["py/unit/test_build_develop_prompt.py", "py/unit/test_build_verify_prompt.py"]
     for name in renderers + ["other.test.sh"]:
         (tests / name).write_text("")
     assert (affected.main(["base..head"]),) + (sorted(capsys.readouterr().out.splitlines()),) == (
@@ -305,8 +302,7 @@ def test_main_prints_none_of_the_prompt_renderer_suites_for_a_change_outside_the
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
     (tests / "py/unit").mkdir(parents=True)
-    renderers = ["build-verify-prompt.test.sh",
-                 "py/unit/test_build_develop_prompt.py", "py/unit/test_build_verify_prompt.py"]
+    renderers = ["py/unit/test_build_develop_prompt.py", "py/unit/test_build_verify_prompt.py"]
     for name in renderers + ["foo.test.sh"]:
         (tests / name).write_text("")
     (tmp_path / "skills/tdd/scripts/foo.sh").write_text("#!/usr/bin/env bash\n")
@@ -704,7 +700,6 @@ def test_every_suite_path_affected_suites_names_exists():
 
 @pytest.mark.parametrize("rename", [
     ('"py/unit/test_build_develop_prompt.py"', '"py/unit/test_build_gone_prompt.py"'),
-    ('"build-verify-prompt.test.sh"', '"build-gone-prompt.test.sh"'),
     ('/tests/py/unit/test_claude_md_counts.py"', '/tests/py/unit/test_claude_md_gone.py"'),
 ])
 def test_the_suite_path_check_names_a_renderer_or_tests_path_planted_into_a_copy_of_affected_suites_that_is_not_a_file(rename):
