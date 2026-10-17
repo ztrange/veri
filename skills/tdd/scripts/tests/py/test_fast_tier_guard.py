@@ -227,6 +227,17 @@ def test_1641_an_exemption_keyed_by_a_path_relative_to_the_root_suppresses_its_o
     assert found == [[], []]
 
 
+def test_1641_an_exemption_keyed_relative_to_tests_py_silences_its_offence_and_is_not_stale_over_the_tree_and_over_its_unit_subdirectory(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    (tmp_path / "unit").mkdir()
+    (tmp_path / "unit" / "test_waits.py").write_text("import time\n\ndef test_waits():\n    time.sleep(1)\n")
+    exemptions = {"unit/test_waits.py:4": "waits on a fake clock"}
+
+    found = [guard.offences(root, exemptions) for root in (tmp_path, tmp_path / "unit")]
+
+    assert found == [[], []]
+
+
 def test_1641_an_exemption_silences_only_the_offence_on_the_line_it_names_in_a_file_with_two(tmp_path):
     guard = importlib.import_module("veri.fast_tier_guard")
     waits = tmp_path / "test_waits.py"
