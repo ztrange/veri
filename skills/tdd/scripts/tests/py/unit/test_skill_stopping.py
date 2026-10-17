@@ -283,6 +283,10 @@ def _phase_exit2(heading, anchor):
     return None if out is None else re.sub(" +", " ", out)
 
 
+def _draft_pr_step():
+    return _branch(_section(PROCEDURE), r"^### 4\. draft pr", r"^### 5\.")
+
+
 def _stopped_issue_bullets():
     inside, kept = False, []
     for line in _section(LOOP_4, SCOPE_LOOP):
@@ -339,7 +343,7 @@ def test_bailing_keeps_a_bail_reached_first_revise_budget_exhausted_or_killed_st
 
 def test_the_draft_pr_step_runs_to_completion_with_a_stop_request_pending_clears_it_with_stop_requested_clear_and_its_final_done_comment_says_a_stop_arrived_after_the_last_step():
     problems = []
-    draft_pr = _branch(_section(PROCEDURE), r"^### 4\. draft pr", r"^### 5\.")
+    draft_pr = _draft_pr_step()
     joined, stop = [_joined(draft_pr)], _word("stop")
     _require(problems, r"stop-requested\.sh --clear", joined,
              "the Draft PR step never runs stop-requested.sh --clear — a stop arriving after the last step would outlive the run and pause the next one")
@@ -361,7 +365,7 @@ def test_the_draft_pr_step_runs_to_completion_with_a_stop_request_pending_clears
 
 
 def test_the_draft_pr_step_says_both_checkpoints_apply_to_the_repair_step_a_red_full_run_appends_like_any_other_step():
-    lines, problems = [_joined(_branch(_section(PROCEDURE), r"^### 4\. draft pr", r"^### 5\."))], []
+    lines, problems = [_joined(_draft_pr_step())], []
     _require(problems, _either_order("repair step", "(both|the two) checkpoints"), lines,
              "the Draft PR step never says both checkpoints apply to the repair step a red full run appends — a stop requested during a repair would run on to its end")
     assert not problems, problems
