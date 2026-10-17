@@ -3,7 +3,7 @@ import importlib
 import pathlib
 import re
 
-SKILL = pathlib.Path(__file__).resolve().parents[3] / "SKILL.md"
+SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 DRAFT_PR = "### 4. Draft PR"
 PASS = "one structural pass"
 TOUCHES = "transform-touches-tests.sh <base-sha>"

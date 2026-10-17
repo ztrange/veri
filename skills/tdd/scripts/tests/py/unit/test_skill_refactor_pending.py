@@ -3,7 +3,7 @@ import importlib
 import pathlib
 import re
 
-ROOT = pathlib.Path(__file__).resolve().parents[5]
+ROOT = pathlib.Path(__file__).resolve().parents[6]
 SKILL = ROOT / "skills" / "tdd" / "SKILL.md"
 CLAUDE = ROOT / "CLAUDE.md"
 CONTEXT = ROOT / "CONTEXT.md"
