@@ -256,18 +256,20 @@ def recorder(probe, name, text):
     return path
 
 
+def write_ledger(tree, steps):
+    (tree / ".tdd" / f"issue-{SENTINEL_ISSUE}.md").write_text(f"# Plan for #{SENTINEL_ISSUE}\n\n{steps}")
+
+
 def plant_ledger(tree, title):
-    (tree / ".tdd" / f"issue-{SENTINEL_ISSUE}.md").write_text(f"# Plan for #{SENTINEL_ISSUE}\n\n- [ ] {title}\n")
+    write_ledger(tree, f"- [ ] {title}\n")
 
 
 def plant_ticked_ledger(tree, title):
-    (tree / ".tdd" / f"issue-{SENTINEL_ISSUE}.md").write_text(
-        f"# Plan for #{SENTINEL_ISSUE}\n\n- [x] {title} ⟂ refactor pending\n- [ ] a later step the run has not reached\n")
+    write_ledger(tree, f"- [x] {title} ⟂ refactor pending\n- [ ] a later step the run has not reached\n")
 
 
 def plant_done_ledger(tree, title):
-    (tree / ".tdd" / f"issue-{SENTINEL_ISSUE}.md").write_text(
-        f"# Plan for #{SENTINEL_ISSUE}\n\n- [x] {title}\n- [ ] a later step the run has not reached\n")
+    write_ledger(tree, f"- [x] {title}\n- [ ] a later step the run has not reached\n")
 
 
 def stage_recorder(probe, tag):
