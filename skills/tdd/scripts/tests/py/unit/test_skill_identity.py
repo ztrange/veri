@@ -84,9 +84,12 @@ def fold_bullets(text):
     return [ascii_lower(record) for record in records]
 
 
+def inputs_section():
+    return importlib.import_module("skill_sections").section(ROOT / SKILL_MD, "## Inputs")
+
+
 def inputs_text():
-    section = importlib.import_module("skill_sections").section
-    return "".join(section(ROOT / SKILL_MD, "## Inputs").splitlines(keepends=True)[1:])
+    return "".join(inputs_section().splitlines(keepends=True)[1:])
 
 
 def claim(bullets, bullets_from, what, *patterns):
@@ -200,7 +203,7 @@ def test_only_the_scope_branch_is_sent_to_the_loop_file_skill_md_keeps_procedure
     else:
         loop_base = pathlib.PurePosixPath(loop_md).name
         start = skill_lines.index("## Inputs")
-        inside = start + len(importlib.import_module("skill_sections").section(ROOT / SKILL_MD, "## Inputs").splitlines())
+        inside = start + len(inputs_section().splitlines())
         for number, line in enumerate(skill_lines, 1):
             if not start <= number - 1 < inside and loop_base in line:
                 problems.append(f"{SKILL_MD} names {loop_base} outside '## Inputs' — {number}: {line[:90]}")
