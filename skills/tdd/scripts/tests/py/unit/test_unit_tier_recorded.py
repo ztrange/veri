@@ -115,8 +115,8 @@ def test_claude_md_testing_idiom_section_records_the_shim_convention_for_a_porte
              "the shim convention — a ported script's .sh entry point is a /bin/sh shim over its veri/ module, its Bash holding no Python source",
              r"port", r"\.sh", r"/bin/sh", r"shim", r"veri/", r"module",
              r"no python source|never (contains|holds) python source|holds no python")
-        says(problems, IDIOM, records, "that a ported script's tests live in tests/py/test_<module>.py",
-             r"port", r"tests/py/test_<module>\.py")
+        says(problems, IDIOM, records, "that a ported script's tests live in tests/py/test_<module>.py, one file per module",
+             r"port", r"tests/py/test_<module>\.py\b")
     assert problems == []
 
 
