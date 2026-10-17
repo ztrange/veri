@@ -593,3 +593,25 @@ def test_cli_files_no_issue_and_exits_2_with_one_stderr_line_naming_the_lookup_w
     assert filed(calls) == []
     assert (code, out) == (2, "")
     assert err.startswith("refactor-overflow: ") and "lookup" in err and err.count("\n") == 1 and err.endswith("\n")
+
+
+@pytest.mark.parametrize("gh_code", [1, 22])
+def test_cli_exits_2_with_one_stderr_line_naming_the_comment_and_prints_no_url_when_posting_the_comment_fails_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes, gh_code):
+    owed = owed_504(tmp_path)
+    open_issues = json.dumps([
+        {"number": 42, "title": "Refactor owed by #504", "html_url": "https://github.com/o/r/issues/42",
+         "body": f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}"}])
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            return 0, open_issues, ""
+        return gh_code, "", ""
+
+    calls = fake_processes(gh)
+
+    code, out, err = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    assert [c for c in calls if "issues/42/comments" in c] != []
+    assert (code, out) == (2, "")
+    assert err.startswith("refactor-overflow: ") and "comment" in err and err.count("\n") == 1 and err.endswith("\n")
