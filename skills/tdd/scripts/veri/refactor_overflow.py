@@ -73,7 +73,9 @@ def main(argv):
         for heading, lines in sections if lines)
     if existing:
         if body:
-            gh_api(f"{ISSUES}/{existing['number']}/comments", "-f", f"body={body}")
+            posted = gh_api(f"{ISSUES}/{existing['number']}/comments", "-f", f"body={body}")
+            if posted.returncode:
+                return fail("posting the comment to the existing issue failed", 2)
         print(existing["html_url"])
         return 0
     filed = gh_api(ISSUES, "-f", f"title={title}", "-f", f"body={body}",
