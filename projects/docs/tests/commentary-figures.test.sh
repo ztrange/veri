@@ -10,7 +10,7 @@
 # sits beside — editing `heartbeat="${VERI_HEARTBEAT:-180}"` alone leaves the commentary
 # confidently stating the old figure, and no build guard notices, because the commentary is
 # an input to the build and not something it derives. Both figures were guarded from the
-# development lane instead (supervise.test.sh case 10, refactor-budget.test.sh case 8),
+# development lane instead (supervise.test.sh case 10 and the refactor budget's own case),
 # which put a docs fact inside `make test` — the command every veri leaf runs and the
 # conductor reads its baseline off, so docs prose could stop a TDD cycle on a red the code
 # did not cause (ADR 0016). A docs fact belongs in the docs lane, and `make docs-test`
