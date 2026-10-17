@@ -93,6 +93,8 @@ makes the code read that input, and a plan placing it before the step that makes
 that input is the REJECT. Your REASON: line names both steps, the early step and the later step
 it waits on.
 
+REJECT a plan holding a step that carries the `⟦replaces-case⟧` mark but does not name its cases in the form `replaces '<case name>', '<case name>' in <suite path>`, quoting each case name: the guard that reads the names cannot read any other form, and your reason names the step.
+
 {{REFACTOR_PLAN}}
 
 A REJECT must name the criterion it fails on and state the part of it no step covers, in
