@@ -4,3 +4,5 @@
 ### An exemption-table entry whose reason is empty or only whitespace is refused, naming the entry; pinned by one case ⟦criterion 2⟧
 - the `exempt` closure in `offences` still accepts an absolute `file:line` key beside the relative one. Removing the fallback means rewriting the older exemption test at `test_fast_tier_guard.py:183`, which uses absolute keys. That is outside this step's scope, because no duplication in this cycle's code is involved.
 - test-only | drop the redundant function-local `import pytest` at `skills/tdd/scripts/tests/py/test_fast_tier_guard.py:184`; the module already imports it at the top
+### An exemption-table entry that matches no file under the guard's root makes the guard fail naming that entry; pinned by one case ⟦criterion 2⟧
+- extract the "entry matches no file" loop in `offences` (`fast_tier_guard.py:51-54`) into a `_require_matches(exemptions, files, root)` helper beside `_require_reasons`. It is a move, not duplication removal, so not applied.
