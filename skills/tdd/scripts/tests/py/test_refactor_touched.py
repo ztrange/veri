@@ -2,10 +2,36 @@
 import importlib
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
 USAGE = "usage: refactor-touched.sh <commit> | --issue <base>\n"
+SKILL_DIR = Path(__file__).resolve().parents[3]
+MISSING = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+
+
+def git(repo, *args):
+    done = subprocess.run(["git", "-C", str(repo), "-c", "user.name=veri", "-c", "user.email=veri@example.test",
+                           *args], capture_output=True, text=True)
+    assert done.returncode == 0, done.stderr
+    return done.stdout.strip()
+
+
+def new_repo(path):
+    path.mkdir()
+    git(path, "init", "-q", "-b", "main")
+    return path
+
+
+def commit_all(repo, message, **files):
+    for name, text in files.items():
+        target = repo / name.replace("__", "/")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", message)
+    return git(repo, "rev-parse", "HEAD")
 
 
 @pytest.fixture
@@ -200,3 +226,75 @@ def test_main_runs_git_in_the_callers_directory_letting_its_stderr_through_on_a_
 
     assert all(args[0] == "git" and "-C" not in args and "cwd" not in kwargs
                for args, kwargs in calls)
+
+
+@pytest.mark.process("git over a scratch repository holding a green commit with a ledger and two source files")
+def test_green_commit_with_ledger_and_two_source_files_prints_only_the_two_in_diff_order(
+        tmp_path, refactor_touched, run_cli):
+    repo = new_repo(tmp_path / "green")
+    commit_all(repo, "plan: scope #7", **{".tdd__issue-7.md": "- [ ] a step\n"})
+    green = commit_all(repo, "feat: a step (#7)", **{
+        "src__zeta.sh": "zeta\n", "lib__alpha.test.sh": "alpha\n",
+        ".tdd__issue-7.md": "- [x] a step \u27c2 refactor pending\n"})
+    assert run_cli(refactor_touched, [green], cwd=repo) == (0, "lib/alpha.test.sh,src/zeta.sh\n", "")
+
+
+@pytest.mark.process("git rev-parse over a scratch repository that lacks the commit")
+def test_unresolvable_commit_returns_2_with_a_stderr_diagnostic_naming_it(tmp_path, refactor_touched, run_cli):
+    repo = new_repo(tmp_path / "unresolvable")
+    commit_all(repo, "feat: alpha", **{"alpha.sh": "alpha\n"})
+    code, out, err = run_cli(refactor_touched, [MISSING], cwd=repo)
+    assert (code, out) == (2, "")
+    assert f"refactor-touched: cannot resolve commit '{MISSING}'" in err
+
+
+@pytest.mark.process("git diff over a scratch repository whose commit touched only .tdd/")
+def test_commit_touching_only_tdd_returns_3_and_prints_nothing(tmp_path, refactor_touched, run_cli):
+    repo = new_repo(tmp_path / "ledger-only")
+    commit_all(repo, "feat: alpha", **{"alpha.sh": "alpha\n"})
+    ledger_only = commit_all(repo, "chore: tick the ledger (#9)",
+                             **{".tdd__issue-9.md": "- [x] a step \u27c2 refactor pending\n"})
+    assert run_cli(refactor_touched, [ledger_only], cwd=repo)[:2] == (3, "")
+
+
+@pytest.mark.process("git diff base..HEAD over a scratch repository with three commits past the base")
+def test_issue_base_prints_base_to_head_files_outside_tdd_comma_joined_3_when_none_2_when_unresolvable(
+        tmp_path, refactor_touched, run_cli):
+    repo = new_repo(tmp_path / "issue-range")
+    base = commit_all(repo, "plan: scope #11", **{".tdd__issue-11.md": "- [ ] a step\n"})
+    commit_all(repo, "feat: a step (#11)", **{"src__zeta.sh": "zeta\n", ".tdd__issue-11.md": "- [x] a step\n"})
+    last_code = commit_all(repo, "refactor: alpha (#11)", **{"lib__alpha.test.sh": "alpha\n"})
+    commit_all(repo, "chore: tick the ledger (#11)", **{".tdd__issue-11.md": "- [x] a step \u27c2 done\n"})
+    assert run_cli(refactor_touched, ["--issue", base], cwd=repo) == (0, "lib/alpha.test.sh,src/zeta.sh\n", "")
+    assert run_cli(refactor_touched, ["--issue", last_code], cwd=repo)[:2] == (3, "")
+    code, out, err = run_cli(refactor_touched, ["--issue", MISSING], cwd=repo)
+    assert (code, out) == (2, "")
+    assert f"refactor-touched: cannot resolve commit '{MISSING}'" in err
+
+
+@pytest.mark.process("the usage refusal run inside a scratch repository")
+def test_issue_with_no_base_returns_2_with_the_usage_and_nothing_on_stdout(tmp_path, refactor_touched, run_cli):
+    repo = new_repo(tmp_path / "issue-range")
+    commit_all(repo, "plan: scope #11", **{".tdd__issue-11.md": "- [ ] a step\n"})
+    code, out, err = run_cli(refactor_touched, ["--issue"], cwd=repo)
+    assert (code, out) == (2, "")
+    assert "usage: refactor-touched.sh" in err
+
+
+@pytest.mark.process("refactor-touched.sh run through a symlink to the skill directory from another working directory")
+def test_a_shim_run_through_a_symlink_and_from_another_cwd_answers_as_in_place(tmp_path):
+    repo = new_repo(tmp_path / "linked")
+    commit_all(repo, "plan: scope #13", **{".tdd__issue-13.md": "- [ ] a step\n", "elsewhere__keep": "here\n"})
+    code_commit = commit_all(repo, "feat: a step (#13)", **{"src__zeta.sh": "zeta\n", "lib__alpha.test.sh": "alpha\n"})
+    ledger_only = commit_all(repo, "chore: tick the ledger (#13)", **{".tdd__issue-13.md": "- [x] a step\n"})
+    (tmp_path / "linked-skill").symlink_to(SKILL_DIR, target_is_directory=True)
+    in_place = SKILL_DIR / "scripts" / "refactor-touched.sh"
+    linked = tmp_path / "linked-skill" / "scripts" / "refactor-touched.sh"
+
+    def run(script, commit, cwd):
+        done = subprocess.run([str(script), commit], cwd=cwd, capture_output=True, text=True)
+        return done.returncode, done.stdout
+
+    assert run(in_place, code_commit, repo) == (0, "lib/alpha.test.sh,src/zeta.sh\n")
+    assert run(linked, code_commit, repo / "elsewhere") == (0, "lib/alpha.test.sh,src/zeta.sh\n")
+    assert run(linked, ledger_only, repo / "elsewhere") == (3, "")
