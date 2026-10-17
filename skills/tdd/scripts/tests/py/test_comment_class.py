@@ -250,8 +250,6 @@ no-awk-v-patterns:#!/usr/bin/env bash
 no-awk-v-patterns:#!/usr/bin/env bash
 no-awk-v-patterns:# an unrelated line inserted above the exempt site
 no-awk-v-patterns:# and another
-skill-refactor-pending:## The scripts (this skill's `scripts/` directory)
-skill-refactor-pending:## The scripts (this skill's `scripts/` directory)
 """
 
 
