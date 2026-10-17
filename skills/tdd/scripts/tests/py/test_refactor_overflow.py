@@ -696,3 +696,33 @@ def test_cli_exits_2_with_one_stderr_line_naming_the_lookup_and_files_nothing_wh
     assert [c for c in calls if "body=" in c or "title=" in c] == []
     assert (code, out) == (2, "")
     assert err.startswith("refactor-overflow: ") and "lookup" in err and err.count("\n") == 1 and err.endswith("\n")
+
+
+def test_cli_files_no_issue_and_posts_no_comment_when_the_candidate_is_listed_only_in_a_comment_on_the_second_page_of_comments_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = owed_504(tmp_path)
+    existing = "https://github.com/o/r/issues/42"
+    open_issues = json.dumps([
+        {"number": 42, "title": "Refactor owed by #504", "html_url": existing,
+         "body": f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}"}])
+    first_page = [{"body": f"unrelated remark {i}"} for i in range(100)]
+    second_page = [{"body": f"Structural candidates #504's closing pass could not reach:\n\n- {SPLIT}"}]
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            return 0, open_issues, ""
+        if is_comments_read(line):
+            page = re.search(r"[?&]page=(\d+)", line)
+            pages = {None: first_page, "1": first_page, "2": second_page}
+            per_page = re.search(r"[?&]per_page=(\d+)", line)
+            if page is None and per_page is None:
+                return 0, json.dumps(first_page), ""
+            return 0, json.dumps(pages.get(page and page.group(1), [])), ""
+        return 0, "https://github.com/o/r/issues/43\n", ""
+
+    calls = fake_processes(gh)
+
+    result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    assert result == (0, existing + "\n", "")
+    assert [c for c in calls if "issues/42/comments" in c and "body=" in c] == []
