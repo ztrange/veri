@@ -4,25 +4,7 @@ import io
 import pytest
 import sys
 
-from conftest import SCRIPTS
-
-
-def script(path, body):
-    path.write_text("#!/usr/bin/env bash\n%s\n" % body)
-    path.chmod(0o755)
-
-
-def fixture_root(root):
-    """<root> holding a Makefile, one git hook, a SKILL.md naming entry.sh, and entry.sh calling helper.sh."""
-    scripts = root / "skills" / "tdd" / "scripts"
-    hooks = root / "docs" / "hooks"
-    scripts.mkdir(parents=True)
-    hooks.mkdir(parents=True)
-    (root / "Makefile").write_text("test:\n\t@echo ok\n")
-    (hooks / "reference-transaction").write_text("#!/bin/sh\nexit 0\n")
-    (root / "skills" / "tdd" / "SKILL.md").write_text("# skill\n\nRun `$S/entry.sh <n>` to start.\n")
-    script(scripts / "entry.sh", '"$(dirname "$0")/helper.sh" "$@"')
-    return scripts
+from conftest import SCRIPTS, fixture_root, script
 
 
 def test_main_lists_an_orphan_and_returns_0_and_with_no_argument_returns_2_naming_its_usage(tmp_path, capsys):

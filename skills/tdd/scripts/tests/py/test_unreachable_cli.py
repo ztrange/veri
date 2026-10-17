@@ -5,24 +5,7 @@ import subprocess
 
 import pytest
 
-from conftest import ROOT, SCRIPTS
-
-
-def script(path, body):
-    path.write_text("#!/usr/bin/env bash\n%s\n" % body)
-    path.chmod(0o755)
-
-
-def fixture_root(root):
-    scripts = root / "skills" / "tdd" / "scripts"
-    hooks = root / "docs" / "hooks"
-    scripts.mkdir(parents=True)
-    hooks.mkdir(parents=True)
-    (root / "Makefile").write_text("test:\n\t@echo ok\n")
-    (hooks / "reference-transaction").write_text("#!/bin/sh\nexit 0\n")
-    (root / "skills" / "tdd" / "SKILL.md").write_text("# skill\n\nRun `$S/entry.sh <n>` to start.\n")
-    script(scripts / "entry.sh", '"$(dirname "$0")/helper.sh" "$@"')
-    return scripts
+from conftest import ROOT, SCRIPTS, fixture_root, script
 
 
 @pytest.mark.process("make running the unreachable recipe over the repository it is run in")
