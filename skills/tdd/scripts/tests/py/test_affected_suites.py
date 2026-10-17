@@ -50,6 +50,26 @@ def test_main_prints_the_suite_of_a_touched_script_and_returns_0(tmp_path, monke
         0, "skills/tdd/scripts/tests/foo.test.sh\n", "")
 
 
+def test_main_places_the_ported_counts_check_for_an_added_suite_and_no_longer_the_bash_one(tmp_path, monkeypatch, capsys, affected):
+    def fake_run(args, **kwargs):
+        if list(args[:2]) == ["git", "rev-parse"]:
+            stdout = "abc\n"
+        elif list(args[:3]) == ["git", "diff", "--name-only"] and "--diff-filter=AD" in args:
+            stdout = "skills/tdd/scripts/tests/newbie.test.sh\n"
+        elif list(args[:3]) == ["git", "diff", "--name-only"]:
+            stdout = "skills/tdd/scripts/tests/newbie.test.sh\n"
+        else:
+            raise AssertionError("unexpected command: %r" % (args,))
+        return subprocess.CompletedProcess(args, 0, stdout, "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "skills/tdd/scripts/tests").mkdir(parents=True)
+    (tmp_path / "skills/tdd/scripts/tests/newbie.test.sh").write_text("")
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0, "skills/tdd/scripts/tests/newbie.test.sh\nskills/tdd/scripts/tests/py/unit/test_claude_md_counts.py\n", "")
+
+
 def fake_git(touched, diff_code=0):
     def run(args, **kwargs):
         if list(args[:2]) == ["git", "rev-parse"]:
@@ -685,7 +705,7 @@ def test_every_suite_path_affected_suites_names_exists():
 @pytest.mark.parametrize("rename", [
     ('"py/unit/test_build_develop_prompt.py"', '"py/unit/test_build_gone_prompt.py"'),
     ('"build-verify-prompt.test.sh"', '"build-gone-prompt.test.sh"'),
-    ('/tests/claude-md-counts.test.sh"', '/tests/claude-md-gone.test.sh"'),
+    ('/tests/py/unit/test_claude_md_counts.py"', '/tests/py/unit/test_claude_md_gone.py"'),
 ])
 def test_the_suite_path_check_names_a_renderer_or_tests_path_planted_into_a_copy_of_affected_suites_that_is_not_a_file(rename):
     """Its subject is source text: a copy of veri/affected_suites.py's source with one suite path renamed to a file that does not exist."""
