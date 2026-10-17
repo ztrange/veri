@@ -294,6 +294,7 @@ def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_sy
     symref = ("git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
     get_url = ("git", "remote", "get-url", "origin")
     ls_remote = ("git", "ls-remote", "--symref", "origin", "HEAD")
+    claims = ("git", "ls-remote", "--heads", "origin", "refs/heads/tdd/7-*")
     refusal = ("issue-worktree: cannot determine origin's default branch"
                " (no refs/remotes/origin/HEAD, and the remote did not name one)\n")
     sha = "2222222222222222222222222222222222222222"
@@ -305,7 +306,8 @@ def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_sy
         return code, capsys.readouterr()[:], calls
 
     base = {listing: (0, registry, ""), local: (1, "", ""), remote: (1, "", ""),
-            get_url: (0, "https://example.invalid/repo.git\n", "url noise\n")}
+            get_url: (0, "https://example.invalid/repo.git\n", "url noise\n"),
+            claims: (0, "", "")}
     named = (
         ("origin/HEAD", {symref: (0, "origin/trunk\n", "")}, "trunk"),
         ("symref", {symref: (1, "", "symref noise\n"),
@@ -323,7 +325,7 @@ def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_sy
         assert (label, fetch in calls, calls.count(get_url),
                 [c for c in calls if c[-1] in ("refs/heads/main", "refs/heads/master")],
                 "noise" in out + err) == (label, True, 1, [], False)
-        assert (label, sorted(set(before) - {ls_remote})) == (label, sorted({listing, local, remote, symref, get_url}))
+        assert (label, sorted(set(before) - {ls_remote})) == (label, sorted({listing, local, remote, symref, get_url, claims}))
 
     unnamed = (
         ("no ref: line", (0, "%s\tHEAD\n" % sha, "ls noise\n")),
@@ -333,7 +335,7 @@ def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_sy
     for label, answer in unnamed:
         code, captured, calls = run({**base, symref: (1, "", "symref noise\n"), ls_remote: answer})
         assert (label, code, captured, calls[-1], sorted(calls)) == (
-            label, 2, ("", refusal), ls_remote, sorted([listing, local, remote, symref, get_url, ls_remote]))
+            label, 2, ("", refusal), ls_remote, sorted([listing, local, remote, symref, get_url, claims, ls_remote]))
 
 
 def test_main_falls_back_to_a_local_main_then_master_only_without_an_origin_remote_and_refuses_when_neither_exists(
@@ -347,6 +349,7 @@ def test_main_falls_back_to_a_local_main_then_master_only_without_an_origin_remo
     symref = ("git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
     get_url = ("git", "remote", "get-url", "origin")
     ls_remote = ("git", "ls-remote", "--symref", "origin", "HEAD")
+    claims = ("git", "ls-remote", "--heads", "origin", "refs/heads/tdd/7-*")
     main = ("git", "show-ref", "--verify", "--quiet", "refs/heads/main")
     master = ("git", "show-ref", "--verify", "--quiet", "refs/heads/master")
     refusal = "issue-worktree: cannot determine the default branch (no origin/HEAD, no local main or master)\n"
@@ -386,6 +389,7 @@ def test_main_cuts_from_a_fetched_origin_default_with_no_track_and_refuses_to_cu
                " — refusing to cut tdd/7-slug from a stale origin/trunk\n")
     base = {listing: (0, registry, ""), local: (1, "", ""), remote: (1, "", ""),
             symref: (0, "origin/trunk\n", ""), get_url: (0, "https://example.invalid/repo.git\n", ""),
+            ("git", "ls-remote", "--heads", "origin", "refs/heads/tdd/7-*"): (0, "", ""),
             add: (0, "", "")}
 
     recorded = routing_git(monkeypatch, {**base, fetch: (0, "fetched\n", "")})
@@ -525,6 +529,7 @@ def test_main_puts_a_seeded_log_back_when_it_refuses_for_the_origin_default_the_
     ls_remote = ("git", "ls-remote", "--symref", "origin", "HEAD")
     fetch = ("git", "fetch", "-q", "origin", "trunk")
     base = {
+        ("git", "ls-remote", "--heads", "origin", "refs/heads/tdd/63-*"): (0, "", ""),
         ("git", "worktree", "list", "--porcelain"): (0, registry, ""),
         ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/63-own-trap"): (1, "", ""),
         ("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/tdd/63-own-trap"): (1, "", ""),
@@ -582,10 +587,12 @@ def test_main_answers_each_ls_remote_shape_with_its_stdout_stderr_and_exit_code_
         ("git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"): (
             1, "", "fatal: ref refs/remotes/origin/HEAD is not a symbolic ref\n"),
         ("git", "remote", "get-url", "origin"): (0, "https://example.invalid/repo.git\n", ""),
+        ("git", "ls-remote", "--heads", "origin", "refs/heads/tdd/7-*"): (0, "", ""),
         ("git", "fetch", "-q", "origin", "trunk"): (0, "", ""),
         ("git", "worktree", "add", "-q", "--no-track", "-b", "tdd/7-slug", path, "origin/trunk"): (0, "", ""),
     }
     ls_remote = ("git", "ls-remote", "--symref", "origin", "HEAD")
+    claims = ("git", "ls-remote", "--heads", "origin", "refs/heads/tdd/7-*")
 
     def run(answer):
         routing_git(monkeypatch, {**base, ls_remote: answer})

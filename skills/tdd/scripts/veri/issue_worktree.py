@@ -58,6 +58,17 @@ def default_branch_name(origin):
     return "", "cannot determine the default branch (no origin/HEAD, no local main or master)"
 
 
+def remote_issue_branch(own):
+    issue = own.split("-", 1)[0]
+    answer = git("ls-remote", "--heads", "origin", "refs/heads/%s-*" % issue,
+                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    for line in answer.stdout.split("\n"):
+        name = line.partition("\trefs/heads/")[2]
+        if name:
+            return name
+    return ""
+
+
 def worktree_add(*args):
     return subprocess.run(["git", "worktree", "add", "-q", *args], stdout=sys.stderr).returncode
 
@@ -141,6 +152,12 @@ def cut(path, branch):
         code = worktree_add("-b", branch, path, remote_ref)
     else:
         origin = has_origin()
+        if origin:
+            claimed = remote_issue_branch(branch)
+            if claimed:
+                sys.stderr.write("issue-worktree: %s is already on origin"
+                                 " — another run claimed the issue\n" % claimed)
+                return 2
         name, refusal = default_branch_name(origin)
         if not name:
             if refusal:

@@ -776,4 +776,18 @@ fi
 { [[ -z "$problems" ]]; } \
   && ok || no "#1158: the suite runs a scratch copy of issue-worktree.sh, and a cd \"\$(dirname \"\$0\")/../..\" planted into it creates no worktree, branch or .tdd/wt entry outside the scratch repository (${problems#; })"
 
+ahead_pair remote-claimed
+git_q "$upstream" branch -q tdd/61-someone-else main >/dev/null 2>&1
+mine="$(wt_path "$clone" 61)"
+before="$(registry "$clone")"
+heads_before="$(git_q "$clone" rev-list --all 2>/dev/null)"
+
+err="$(cd "$clone" && "$WT" 61 fresh-start 2>&1 >/dev/null)" && code=0 || code=$?
+after="$(registry "$clone")"
+heads_after="$(git_q "$clone" rev-list --all 2>/dev/null)"
+
+{ [[ "$code" == 2 ]] && [[ "$err" == *"tdd/61-someone-else"* ]] && [[ ! -e "$mine" ]] \
+  && [[ "$after" == "$before" ]] && [[ "$heads_after" == "$heads_before" ]]; } \
+  && ok || no "#1656: an issue branch already on the remote: a fresh call exits 2 naming that remote branch and leaves no worktree, branch or commit behind (exit=$code want 2, stderr='$err' want it to name 'tdd/61-someone-else', '$mine' $( [[ -e "$mine" ]] && echo "was created" || echo "absent, good" ), git's worktree+branch registry $( [[ "$after" == "$before" ]] && echo unchanged || echo changed ), commits $( [[ "$heads_after" == "$heads_before" ]] && echo unchanged || echo changed ))"
+
 finish
