@@ -213,6 +213,14 @@ def test_1641_an_exemption_keyed_by_a_path_relative_to_the_root_suppresses_its_o
     assert found == [[], []]
 
 
+def test_1641_an_exemption_entry_whose_reason_is_only_whitespace_is_refused_by_name(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    (tmp_path / "test_waits.py").write_text("import time\n\ndef test_waits():\n    time.sleep(1)\n")
+
+    with pytest.raises(ValueError, match="test_waits.py:4"):
+        guard.offences(tmp_path, {"test_waits.py:4": " \t\n"})
+
+
 @pytest.mark.tree_audit("every test_*.py under skills/tdd/scripts/tests/py/unit")
 def test_the_guard_with_the_real_exemption_table_finds_no_offence_in_the_fast_tier_as_committed_and_names_a_planted_one_by_file_and_line(tmp_path):
     guard = importlib.import_module("veri.fast_tier_guard")

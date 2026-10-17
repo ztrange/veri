@@ -37,7 +37,7 @@ def _process_start(module, attr):
 
 def _require_reasons(exemptions):
     for entry, reason in exemptions.items():
-        if not reason:
+        if not str(reason).strip():
             raise ValueError(f"exemption {entry} has no reason")
 
 
