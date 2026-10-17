@@ -226,7 +226,8 @@ def test_main_rewrites_every_blocked_by_section_replacing_none_lines_and_inserti
     assert run_with_body(
         "## Blocked by\n\n- #12\nNone yet\nNonetheless\n\n## Blocked byproduct\n\n- #13\n\n\n"
     ) == (0, url, b"## Blocked by\n\n- #12\n- #77\n- #77\n\n## Blocked byproduct\n\n- #13\n- #77\n")
-    assert run_with_body("## Blocked by\r\n\r\n- #12\r\n") == (0, url, b"## Blocked by\r\n\r\n- #12\r\n- #77\n")
+    assert run_with_body("## Blocked by\r\n\r\n- #12\r\n") == (
+            0, url, b"## Blocked by\r\n\r\n- #12\r\n- #77\n\n## Blocked by\n\n- #77\n")
     assert run_with_body("## Parent\n\n#1\n\n\n") == (0, url, b"## Parent\n\n#1\n\n## Blocked by\n\n- #77\n")
 
 

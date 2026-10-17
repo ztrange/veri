@@ -50,3 +50,23 @@ def test_main_1262_exits_0_with_the_new_issue_a_blocker_and_every_line_kept_when
 
     body = written.get("60", "")
     assert (code, blockers(body, ""), all(line in body.split("\n") for line in original.split("\n"))) == (0, [77], True)
+
+
+def test_main_1262_exits_0_with_the_new_issue_a_blocker_and_every_line_kept_when_the_only_heading_is_blocked_by_with_a_colon(
+        monkeypatch, coverage_blocker):
+    original = "## Problem\n\nx\n\n## Blocked by:\n\nWaiting on the design.\n\n## Notes\n\ny"
+    written = {}
+
+    def fake_edit(n, path):
+        written[n] = pathlib.Path(path).read_text()
+
+    monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_create",
+                        lambda title, text: "https://github.com/owner/name/issues/77\n")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_view", lambda n, field: original)
+    monkeypatch.setattr(coverage_blocker, "gh_issue_edit", fake_edit)
+
+    code = coverage_blocker.main(["60"])
+
+    body = written.get("60", "")
+    assert (code, blockers(body, ""), all(line in body.split("\n") for line in original.split("\n"))) == (0, [77], True)
