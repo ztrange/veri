@@ -1511,6 +1511,28 @@ def test_main_renders_a_red_prompt_for_a_replaces_case_step_stating_the_replaces
     assert (marked_result, plain_result) == ((0, []), (0, sorted(rules)))
 
 
+def test_main_renders_a_develop_replaces_report_prompt_stating_the_replaces_test_id_is_the_pytest_node_id_and_the_line_starts_at_column_0_with_no_bullet_1660(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    report = tmp_path / "red-report.txt"
+    report.write_bytes(b"- REPLACES: zorblat frobs a nitz => test_zorblat_frobs\n")
+    missing = tmp_path / "missing-cases.txt"
+    missing.write_bytes(b"zorblat frobs a nitz\n")
+    step = "\u27e6replaces-case\u27e7 replaces 'zorblat frobs a nitz' in tests/zorblat.test.sh \u27e6criterion 1\u27e7"
+    rules = {
+        "names the pytest node id form": rb"pytest node id[^.]{0,40}<path from the repository root>::<test name>",
+        "starts the line at column 0": rb"column 0",
+        "forbids a bullet or other prefix": rb"no bullet or other prefix",
+    }
+
+    code = build_develop_prompt.main(["replaces-report", str(spec), step, "make test", str(report), str(missing)])
+    out, _ = capsysbinary.readouterr()
+    prompt = re.sub(rb"\s+", b" ", out)
+
+    assert (code, sorted(rule for rule, pattern in rules.items() if re.search(pattern, prompt, re.I) is None)) == (0, [])
+
+
 def test_main_renders_a_revise_red_prompt_for_a_replaces_case_step_with_the_replaces_report_line_and_one_without_the_mark_unchanged_1521(
         tmp_path, capsysbinary, build_develop_prompt):
     spec = tmp_path / "spec.md"
