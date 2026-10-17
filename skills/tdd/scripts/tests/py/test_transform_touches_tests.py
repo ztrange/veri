@@ -2,10 +2,46 @@
 import importlib
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
 USAGE = "usage: transform-touches-tests.sh <base-sha>\n"
+SKILL_DIR = Path(__file__).resolve().parents[3]
+
+
+def git(repo, *args):
+    done = subprocess.run(["git", "-C", str(repo), "-c", "user.name=veri", "-c", "user.email=veri@example.test",
+                           *args], capture_output=True, text=True)
+    assert done.returncode == 0, done.stderr
+    return done.stdout.strip()
+
+
+def new_repo(path):
+    path.mkdir()
+    git(path, "init", "-q", "-b", "main")
+    return path
+
+
+def commit_all(repo, message, **files):
+    for name, text in files.items():
+        target = repo / name.replace("__", "/")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", message)
+    return git(repo, "rev-parse", "HEAD")
+
+
+def widget_repo(path):
+    repo = new_repo(path)
+    commit_all(repo, "feat: widget", **{"src__widget.sh": "widget() { echo 1; }\n",
+                                        "tests__widget.test.sh": "widget | grep 1\n"})
+    base = git(repo, "rev-parse", "HEAD")
+    commit_all(repo, "refactor: reformat widget", **{"src__widget.sh": "widget() {\n  echo 1\n}\n"})
+    commit_all(repo, "refactor: loosen the widget test", **{"tests__widget.test.sh": "widget | grep -F 1\n"})
+    commit_all(repo, "refactor: printf in widget", **{"src__widget.sh": 'widget() {\n  printf "1\\n"\n}\n'})
+    return repo, base
 
 
 @pytest.fixture
@@ -227,3 +263,85 @@ def test_main_ports_the_failure_paths_as_they_are_swallowed_git_log_closed_stdou
     script["raise"] = RuntimeError("unexpected failure inside main")
     with pytest.raises(RuntimeError, match="unexpected failure inside main"):
         transform_touches_tests.main(["HEAD~1"])
+
+
+@pytest.mark.process("git rev-parse and git log over a scratch repository whose range holds a test file")
+def test_transform_range_production_only_exits_0_and_a_changed_test_file_exits_1_naming_it(
+        tmp_path, transform_touches_tests, run_cli):
+    repo, base = widget_repo(tmp_path / "transform")
+    assert run_cli(transform_touches_tests, [base], cwd=repo) == (
+        1, "transform changed a test file: tests/widget.test.sh\n", "")
+    assert run_cli(transform_touches_tests, [git(repo, "rev-parse", "HEAD~1")], cwd=repo) == (0, "", "")
+
+
+@pytest.mark.process("git rev-parse over a scratch repository that lacks the base commit")
+def test_unresolvable_base_sha_exits_2_with_a_diagnostic_naming_it(tmp_path, transform_touches_tests, run_cli):
+    repo, _ = widget_repo(tmp_path / "transform")
+    bogus = "0123456789abcdef0123456789abcdef01234567"
+    code, out, err = run_cli(transform_touches_tests, [bogus], cwd=repo)
+    assert (code, out) == (2, "")
+    assert bogus in err
+
+
+@pytest.mark.process("git rev-parse over a scratch repository for a name that is no revision")
+def test_base_sha_nosuch_exits_2_with_nothing_on_stdout_and_the_refusal_then_the_usage_on_stderr(
+        tmp_path, transform_touches_tests, run_cli):
+    repo, _ = widget_repo(tmp_path / "transform")
+    assert run_cli(transform_touches_tests, ["nosuch"], cwd=repo) == (
+        2, "", "transform-touches-tests.sh: base-sha does not resolve to a commit: nosuch\n" + USAGE)
+
+
+@pytest.mark.process("transform-touches-tests.sh run through a symlink to the skill directory from another repository")
+def test_a_shim_run_through_a_symlink_and_from_another_repository_answers_as_in_place(tmp_path):
+    repo, base = widget_repo(tmp_path / "transform")
+    (tmp_path / "linked-skill").symlink_to(SKILL_DIR, target_is_directory=True)
+    in_place = SKILL_DIR / "scripts" / "transform-touches-tests.sh"
+    linked = tmp_path / "linked-skill" / "scripts" / "transform-touches-tests.sh"
+
+    def run(script, sha):
+        done = subprocess.run([str(script), sha], cwd=repo, capture_output=True, text=True)
+        return done.returncode, done.stdout, done.stderr
+
+    dirty = run(linked, base)
+    clean = run(linked, git(repo, "rev-parse", "HEAD~1"))
+    assert dirty[0] == 1 and "tests/widget.test.sh" in dirty[1]
+    assert clean == (0, "", "")
+    assert dirty == run(in_place, base)
+    assert clean == run(in_place, git(repo, "rev-parse", "HEAD~1"))
+
+
+@pytest.mark.process("git log over scratch repositories, read against refactor-owed's own test-path rule")
+def test_transform_touches_tests_and_refactor_owed_append_agree_on_what_a_test_file_is(
+        tmp_path, transform_touches_tests, run_cli):
+    owed = importlib.import_module("veri.refactor_owed")
+    repo = new_repo(tmp_path / "agree")
+    commit_all(repo, "chore: seed", README="seed\n")
+    problems = []
+    for path, want in (("pkg/tests/fixture.sh", "test"), ("pkg/contests/entry.sh", "not-test")):
+        base = git(repo, "rev-parse", "HEAD")
+        commit_all(repo, f"refactor: touch {path}", **{path.replace("/", "__"): "x\n"})
+        touches_code = run_cli(transform_touches_tests, [base], cwd=repo)[0]
+        touches_says = "test" if touches_code == 1 else "not-test"
+
+        owed_file = tmp_path / f"owed-{want}.md"
+        run_cli(owed, ["append", str(owed_file), "a step", path],
+                stdin="CANDIDATES: structural | fold the two walks into one\n")
+        list_code = run_cli(owed, ["list", str(owed_file)])[0]
+        owed_says = "test" if list_code == 3 else "not-test"
+        if touches_says != want or owed_says != want:
+            problems.append(f"{path}: want {want} from both; transform-touches-tests.sh says {touches_says}"
+                            f" (exit {touches_code}), refactor-owed.sh append says {owed_says}"
+                            f" (list exit {list_code})")
+    assert problems == []
+
+
+@pytest.mark.process("git log failing on a commit object deleted from a scratch repository")
+def test_base_sha_resolves_but_git_log_fails_on_a_missing_commit_object_exits_2_never_0(
+        tmp_path, transform_touches_tests, run_cli):
+    repo = new_repo(tmp_path / "broken")
+    base = commit_all(repo, "feat: a", src__a_sh="a\n")
+    middle = commit_all(repo, "refactor: b", src__a_sh="b\n")
+    commit_all(repo, "refactor: c", src__a_sh="c\n")
+    (repo / ".git" / "objects" / middle[:2] / middle[2:]).unlink()
+    code, out, _ = run_cli(transform_touches_tests, [base], cwd=repo)
+    assert (code, out) == (2, "")
