@@ -78,7 +78,7 @@ def main(argv):
             if callers:
                 outcome = refuse("a rebase was already in progress; git rebase refused to start")
             elif not rebase_in_progress():
-                outcome = 2
+                outcome = refuse("git rebase was refused without a conflict")
             else:
                 conflicts = output("diff", "--name-only", "--diff-filter=U")
                 git("rebase", "--abort", text=True)
