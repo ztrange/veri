@@ -254,6 +254,33 @@ def test_main_reads_a_run_whose_done_mark_is_followed_by_a_ci_repair_step_added_
                                                   "scope lamps-label  attempted 1  done 0  bailed 0  wall 80s  $0.00  solvable 0\n")
 
 
+def test_main_scope_counts_a_run_bailed_only_when_its_standing_end_is_a_bail_1488(tmp_path, monkeypatch, capsys, status):
+    def bail(ts, issue):
+        return lamp_ev(ts, issue, "bail", actor="conductor", attempt="", cause="stuck", classification="system")
+
+    def resume(ts, issue):
+        return lamp_ev(ts, issue, "resume", actor="conductor", phase="", step="", attempt="")
+
+    runs = {issue: lamp_run(tmp_path, issue) for issue in ("41", "42")}
+    write_events(runs["41"] / ".tdd" / "events.jsonl", [
+        lamp_ev(9000, "41", "launch", name="develop-red"), bail(9100, "41"), resume(9200, "41"), bail(9300, "41")])
+    write_events(runs["42"] / ".tdd" / "events.jsonl", [
+        lamp_ev(9400, "42", "launch", name="develop-red"), bail(9500, "42"), resume(9600, "42"),
+        lamp_ev(9700, "42", "done", actor="conductor", phase="", step="", attempt="",
+                pr="https://github.com/o/r/pull/42")])
+    lamp_git(monkeypatch, tmp_path, runs.values(), (3, ""))
+    at_ten_thousand(monkeypatch)
+
+    code = status.main(["--scope", "lamps-label"])
+    text = last_line(capsys.readouterr().out)
+    json_code = status.main(["--json", "--scope", "lamps-label"])
+    scope = json.loads(capsys.readouterr().out)["scope"]
+
+    assert (code, json_code) == (0, 0)
+    assert text == "scope lamps-label  attempted 2  done 1  bailed 1  wall 600s  $0.00  solvable 0"
+    assert (scope["done"], scope["bailed"]) == (1, 1)
+
+
 def lamps_scope(tmp_path, monkeypatch, solvable):
     """Runs 21 (running), 22 (done) and 23 (bailed): attempted 3, done 1, bailed 1, wall 360s, $2.25."""
     endings = {"21": [],
