@@ -1,4 +1,13 @@
-"""Cases for what skills/tdd/SKILL.md tells the conductor to do with the run's metrics report, read as text."""
+"""Cases for what skills/tdd/SKILL.md tells the conductor to do with the run's metrics report, read as text.
+
+Contract under test:
+  SKILL.md's `### 4. Draft PR` step runs, in this order, `gh api …/pulls?head=` for the URL
+  of the PR the plan commit already opened, `event.sh done pr=<pr-url>`, `metrics.sh`, a
+  `metrics:` commit of `.tdd/issue-<n>-metrics.md`, `push-branch.sh`, and `gh api -X PATCH`,
+  which carries the `### 📊 Metrics` block into the PR body; the same block goes into the
+  final `✅ Done` comment; SKILL.md's `## Bailing` section commits the same file on the
+  pushed branch and puts the block on the `⛔ Bailed` comment.
+"""
 import importlib
 import pathlib
 import re
@@ -234,4 +243,233 @@ def test_626_skill_md_bailing_section_marks_the_bail_with_its_cause_and_classifi
         problems.append('SKILL.md\'s Bailing section never writes event.sh bail carrying cause=<cause> and classification="$classification"')
     if render_line is not None and mark_line is not None and mark_line > render_line:
         problems.append(f"SKILL.md writes event.sh bail with its cause= and classification= only in record {mark_line}, AFTER rendering the committed metrics report in record {render_line}")
+    assert not problems, "\n".join(problems)
+
+
+def _file_line(n):
+    return SKILL.read_text().splitlines()[n - 1]
+
+
+def _clip(text, n):
+    return text.encode()[:n].decode(errors="ignore")
+
+
+def _render_status(line):
+    m = re.search(r"([A-Za-z_][A-Za-z0-9_]*)=\$\?", line)
+    return m.group(1) if m else None
+
+
+def _mentions(status, text, tail=r"[^A-Za-z0-9_]"):
+    return re.search(r"\$\{?" + status + "(" + tail + "|$)", text) is not None
+
+
+def test_skill_metrics_pytest_file_header_comment_states_the_draft_pr_order_pulls_read_done_mark_metrics_sh_metrics_commit_push_and_patch():
+    problems = []
+    lines = (__doc__ or "").splitlines()
+    start = next((i for i, line in enumerate(lines) if line.startswith("Contract under test")), None)
+    if start is None:
+        problems.append("test_skill_metrics.py has no Contract under test paragraph in its header to read")
+    else:
+        end = next((i for i in range(start, len(lines)) if not lines[i].strip()), len(lines))
+        contract = "".join(line.strip() + " " for line in lines[start:end])
+        prev_anchor = prev_at = None
+        for anchor in (PR_READ, "event.sh done", "metrics.sh", "metrics:", "push-branch.sh", PR_EDIT):
+            at = _offset(contract, anchor)
+            if at is None:
+                problems.append(f"test_skill_metrics.py's Contract under test never names {anchor}")
+                continue
+            if prev_at is not None and at <= prev_at:
+                problems.append(f"test_skill_metrics.py's Contract under test names {anchor} at offset {at}, not after {prev_anchor} at offset {prev_at}")
+            prev_anchor, prev_at = anchor, at
+    assert not problems, "\n".join(problems)
+
+
+def test_skill_metrics_pytest_file_carries_no_record_level_commit_before_pr_comparison_which_records_folding_makes_dead():
+    problems = []
+    src = pathlib.Path(__file__).read_text()
+    dead_compare = "".join(['commit_line" ', "-gt", ' "$pr_line'])
+    dead_comment = "".join(["lands ", "BEFORE", " the PR is opened"])
+    if dead_compare in src:
+        problems.append("test_skill_metrics.py compares the metrics commit's record number against gh pr create's with a greater-than, but the records fold both into the same record, so the check cannot fail")
+    if dead_comment in src:
+        problems.append("test_skill_metrics.py still carries the comment claiming a record-level probe catches a metrics commit made after the PR is opened")
+    assert not problems, "\n".join(problems)
+
+
+def test_skill_metrics_pytest_file_carries_no_record_level_gh_pr_create_and_metrics_block_presence_probe_which_records_folding_makes_dead():
+    src = pathlib.Path(__file__).read_text()
+    probe = "".join(["_first_record(pr_records, ", '"gh pr create", ', '"📊 metrics")'])
+    assert probe not in src, (
+        "test_skill_metrics.py still asks whether the record holding gh pr create also holds the 📊 metrics block, "
+        "but the records fold the whole Draft PR sub-step into one record, so the probe cannot fail"
+    )
+
+
+def test_566_skill_md_draft_pr_step_makes_the_metrics_commit_only_on_a_metrics_sh_exit_of_0_and_otherwise_puts_the_failed_render_and_its_exit_code_in_the_pr_body():
+    problems = []
+    status = None
+    render_line = _first_fenced(RENDER)
+    if render_line is None:
+        problems.append("SKILL.md's Draft PR command block never renders metrics.sh <n> > .tdd/issue-<n>-metrics.md")
+    else:
+        render_cmd = _file_line(render_line)
+        status = _render_status(render_cmd)
+        if status is None:
+            problems.append(f"SKILL.md renders metrics.sh at SKILL.md:{render_line} without capturing its exit status, so nothing can keep a failed render out of the metrics: commit: {_clip(render_cmd, 120)}")
+
+    commit_line = _first_fenced(METRICS_COMMIT)
+    if commit_line is None:
+        problems.append('SKILL.md\'s Draft PR command block never runs git commit -m "metrics: …"')
+    elif status is not None:
+        open_if = False
+        for n in range(render_line + 1, commit_line):
+            line = _file_line(n)
+            if re.search(r"^\s*if\s.*\$\{?" + status + r"([^A-Za-z0-9_]|$)", line):
+                open_if = True
+            if re.search(r"^\s*fi(\s|;|$)", line):
+                open_if = False
+        commit_cmd = _file_line(commit_line)
+        if not (_mentions(status, commit_cmd) or open_if):
+            problems.append(f"SKILL.md runs the metrics: commit at SKILL.md:{commit_line} whatever ${status}, metrics.sh's exit status, says, so a failed render's partial report is committed: {_clip(commit_cmd, 120)}")
+
+    edit_line = _first_fenced(PR_EDIT)
+    if edit_line is None:
+        problems.append("SKILL.md's Draft PR command block never runs gh api -X PATCH, so no PR body can name a failed render")
+    else:
+        edit_cmd = _lower(_file_line(edit_line))
+        if not re.search(r"-f body=.*metrics\.sh.*exit", edit_cmd):
+            problems.append(f"SKILL.md's gh api -X PATCH at SKILL.md:{edit_line} puts no line naming a failed metrics.sh render and its exit code in the PR body, so a failed render leaves the body quoting a report that was never committed: {_clip(edit_cmd, 120)}")
+    assert not problems, "\n".join(problems)
+
+
+def test_566_skill_md_draft_pr_step_on_a_non_zero_metrics_sh_exit_puts_the_failed_render_and_its_exit_code_in_the_done_comment_in_place_of_the_metrics_block():
+    problems = []
+    status = None
+    render_line = _first_fenced(RENDER)
+    if render_line is None:
+        problems.append("SKILL.md's Draft PR command block never renders metrics.sh <n> > .tdd/issue-<n>-metrics.md")
+    else:
+        status = _render_status(_file_line(render_line))
+        if status is None:
+            problems.append(f"SKILL.md renders metrics.sh at SKILL.md:{render_line} without capturing its exit status, so no ✅ Done comment can name it")
+        else:
+            status = _lower(status)
+
+    pr_records = _pr_records()
+    done_line = _first_record(pr_records, "✅ done", "📊 metrics")
+    if done_line is None:
+        problems.append("SKILL.md's Draft PR step has no ✅ Done comment carrying the 📊 Metrics block")
+    elif status is not None:
+        done_record = pr_records[done_line - 1]
+        if not ("metrics.sh" in done_record and _mentions(status, done_record, r"[^a-z0-9_]")):
+            problems.append(f"SKILL.md's ✅ Done comment carries no line naming a failed metrics.sh render and its exit code (${status}), so a failed render leaves the comment pasting a report that was never committed: {_clip(done_record, 160)}")
+    assert not problems, "\n".join(problems)
+
+
+def test_566_skill_md_bailing_sub_step_4_makes_the_metrics_commit_only_on_a_metrics_sh_exit_of_0_and_otherwise_the_bailed_comment_carries_the_failed_render_and_its_exit_code():
+    problems = []
+    status = None
+    bail_records = _bail_records()
+    render_line = _first_record(bail_records, RENDER)
+    if render_line is None:
+        problems.append("SKILL.md's Bailing section never renders metrics.sh <n> > .tdd/issue-<n>-metrics.md")
+    else:
+        bail_render = bail_records[render_line - 1]
+        m = re.search(r"([a-z_][a-z0-9_]*)=\$\?", bail_render)
+        if m:
+            status = m.group(1)
+            after_capture = bail_render.split(status + "=$?", 1)[1]
+            before_commit = after_capture.split(METRICS_COMMIT, 1)[0]
+            if not (METRICS_COMMIT in after_capture and re.search(r"\$\{?\"?" + status + r"([^a-z0-9_]|$)", before_commit)):
+                problems.append(f"SKILL.md's Bailing section makes the metrics: commit in record {render_line} whatever ${status}, metrics.sh's exit status, says, so a failed render's partial report is committed: {_clip(bail_render, 160)}")
+        else:
+            problems.append(f"SKILL.md renders metrics.sh in Bailing record {render_line} without capturing its exit status, so nothing can keep a failed render out of the metrics: commit: {_clip(bail_render, 160)}")
+
+    bailed_line = _first_record(bail_records, "⛔ bailed", "📊 metrics")
+    if bailed_line is None:
+        problems.append("SKILL.md's Bailing section has no ⛔ Bailed comment carrying the 📊 Metrics block")
+    elif status is not None:
+        bailed_record = bail_records[bailed_line - 1]
+        if not ("metrics.sh" in bailed_record and _mentions(status, bailed_record, r"[^a-z0-9_]")):
+            problems.append(f"SKILL.md's ⛔ Bailed comment carries no line naming a failed metrics.sh render and its exit code (${status}) in place of the 📊 Metrics block: {_clip(bailed_record, 160)}")
+    assert not problems, "\n".join(problems)
+
+
+def test_566_skill_md_draft_pr_step_on_a_non_zero_metrics_sh_exit_neither_bails_nor_stops_it_goes_on_to_push_branch_sh_and_gh_api_patch():
+    problems = []
+    status = None
+    render_line = _first_fenced(RENDER)
+    if render_line is None:
+        problems.append("SKILL.md's Draft PR command block never renders metrics.sh <n> > .tdd/issue-<n>-metrics.md")
+    else:
+        status = _render_status(_file_line(render_line))
+        if status is None:
+            problems.append(f"SKILL.md renders metrics.sh at SKILL.md:{render_line} without capturing its exit status")
+    push_line = _first_fenced("push-branch.sh")
+    if push_line is None:
+        problems.append("SKILL.md's Draft PR command block never runs push-branch.sh")
+    edit_line = _first_fenced(PR_EDIT)
+    if edit_line is None:
+        problems.append("SKILL.md's Draft PR command block never runs gh api -X PATCH")
+
+    if status is not None and push_line is not None and edit_line is not None:
+        gated_ifs = 0
+        for n, text in _fenced(DRAFT_PR):
+            if not (render_line < n <= edit_line):
+                continue
+            mentions = _mentions(status, text)
+            if re.search(r"^\s*if\s", text):
+                if mentions or gated_ifs > 0:
+                    gated_ifs += 1
+            elif re.search(r"^\s*fi(\s|;|$)", text) and gated_ifs > 0:
+                gated_ifs -= 1
+            if mentions and re.search(r"(event\.sh\s+bail|(^|[^A-Za-z0-9_-])(exit|return)([^A-Za-z0-9_-]|$))", text):
+                problems.append(f"SKILL.md stops or bails on ${status}, metrics.sh's exit status, at SKILL.md:{n}, so a failed render ends the Draft PR step instead of reaching its push and PR body rewrite: {_clip(text, 120)}")
+            if n in (push_line, edit_line):
+                if gated_ifs != 0:
+                    problems.append(f"SKILL.md runs SKILL.md:{n} inside an if on ${status}, so a non-zero metrics.sh exit skips it: {_clip(text, 120)}")
+                if not re.search(r"^\s*(\$S/push-branch\.sh|gh\s+api\s+-X\s+PATCH)", text):
+                    problems.append(f"SKILL.md guards SKILL.md:{n} behind a condition, so a non-zero metrics.sh exit may skip it: {_clip(text, 120)}")
+    assert not problems, "\n".join(problems)
+
+
+def test_566_skill_md_bailing_sub_step_4_on_a_non_zero_metrics_sh_exit_does_not_stop_the_bail_it_goes_on_to_sub_step_5_push_and_sub_step_6_bailed_comment():
+    problems = []
+    status = None
+    bail_records = _bail_records()
+    render_line = _first_record(bail_records, RENDER)
+    if render_line is None:
+        problems.append("SKILL.md's Bailing section never renders metrics.sh <n> > .tdd/issue-<n>-metrics.md")
+    else:
+        render = bail_records[render_line - 1]
+        m = re.search(r"([a-z_][a-z0-9_]*)=\$\?", render)
+        if m:
+            status = m.group(1)
+            if not re.search(r"^4\.", render):
+                problems.append(f"SKILL.md renders metrics.sh in Bailing record {render_line}, which is not sub-step 4: {_clip(render, 120)}")
+            after_capture = render.split(status + "=$?", 1)[1]
+            if re.search(r"(event\.sh\s+bail|(^|[^a-z0-9_-])(exit|return|stop|stops|skip|skips|abort|aborts)([^a-z0-9_-]|$))", after_capture):
+                problems.append(f"SKILL.md's Bailing sub-step 4 stops or skips on ${status}, metrics.sh's exit status, so a failed render ends the bail before its push and comment: {_clip(after_capture, 160)}")
+        else:
+            problems.append(f"SKILL.md renders metrics.sh in Bailing record {render_line} without capturing its exit status")
+
+    if status is not None:
+        push_line = _first_record(bail_records, "git push")
+        if push_line is None:
+            problems.append("SKILL.md's Bailing section never pushes the branch")
+        else:
+            push = bail_records[push_line - 1]
+            if not (re.search(r"^5\.", push) and push_line > render_line):
+                problems.append(f"SKILL.md's Bailing push is not sub-step 5, after the metrics render in record {render_line}: {_clip(push, 120)}")
+            if _mentions(status, push, r"[^a-z0-9_]"):
+                problems.append(f"SKILL.md's Bailing sub-step 5 push is conditioned on ${status}, so a non-zero metrics.sh exit may skip it: {_clip(push, 160)}")
+        bailed_line = _first_record(bail_records, "⛔ bailed", "📊 metrics")
+        if bailed_line is None:
+            problems.append("SKILL.md's Bailing section has no ⛔ Bailed comment carrying the 📊 Metrics block")
+        else:
+            bailed = bail_records[bailed_line - 1]
+            if not (re.search(r"^6\.", bailed) and bailed_line > render_line):
+                problems.append(f"SKILL.md's ⛔ Bailed comment is not sub-step 6, after the metrics render in record {render_line}: {_clip(bailed, 120)}")
+            if re.search(r"(^|[^a-z0-9_-])(stop|stops|skip|skips|omit|abort|aborts)([^a-z0-9_-]|$)", bailed):
+                problems.append(f"SKILL.md's ⛔ Bailed comment in sub-step 6 is skipped or stopped on a failed render: {_clip(bailed, 160)}")
     assert not problems, "\n".join(problems)
