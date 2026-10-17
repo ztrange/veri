@@ -5,9 +5,7 @@
 Your earlier Red report is the file `{{REPORT_FILE}}`. It carries no `REPLACES:` line for
 each of the cases below, so the step cannot be checked. Read the report, and answer with a
 corrected one that carries a `REPLACES: <case> => <test id>` line for every one of them,
-the case name exactly as the step spells it. The test id is the pytest node id,
-<path from the repository root>::<test name>, and each line starts at column 0 with
-no bullet or other prefix. The listed case names are the exact strings to copy into the
+the case name exactly as the step spells it. {{NODE_ID_RULE}} The listed case names are the exact strings to copy into the
 REPLACES: lines, and they take precedence over anything the issue's prose says about how
 to spell a case name.
 

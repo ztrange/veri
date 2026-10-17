@@ -38,6 +38,8 @@ TEST_MOVE_CONTRACT_A = (
     "   rejection names that still exercise it. No new failing test is written, so no prediction is owed.").encode()
 WANT_REVISE_PHASES = "|".join(REVISABLE_PHASES)
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+NODE_ID_RULE = (b"The test id is the pytest node id, `<path from the repository root>::<test name>`, "
+                b"and the line starts at column 0 with no bullet or other prefix.")
 ARGUMENT_PLACEHOLDERS = {"<test-path>": "TEST_PATH", "<target-test>": "TARGET_TEST", "<fast-cmd>": "FAST_CMD",
                          "<touched-files>": "TOUCHED_FILES", "<issue-touched-files>": "TOUCHED_FILES",
                          "<branch>": "BRANCH", "<remote-sha>": "REMOTE_SHA", "<spent>": "SPENT", "<budget>": "BUDGET",
@@ -126,8 +128,9 @@ def main(argv):
     prompts_b = os.fsencode(prompts)
     values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "RED_CASES", "RED_LEAD", "REPLACES_CASE", "SUITE_REPAIR", "CI_REPAIR", "STEP",
                             "TEST_CMD", "TEST_PATH", "TARGET_TEST", "FAST_CMD", "TIMED_TEST_RUN", "TOUCHED_FILES",
-                            "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "WRONG_TEST_REPORT", "WRONG_TEST_FORMAT", "TEST_REWRITE", "REJECTION_REASON", "BRANCH",
+                            "NODE_ID_RULE", "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "WRONG_TEST_REPORT", "WRONG_TEST_FORMAT", "TEST_REWRITE", "REJECTION_REASON", "BRANCH",
                             "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES", "REPORT_FILE", "MISSING_CASES"), b"")
+    values["NODE_ID_RULE"] = NODE_ID_RULE
     values["RED_CASES"] = (b"One criterion, one case \xe2\x80\x94 no extra cases, and no generality the step does\n"
                            b"not ask for.")
     values["RED_LEAD"] = b"Add exactly **ONE** new failing test case, and write **NO** production code."
@@ -140,9 +143,7 @@ def main(argv):
             b"case for each bash case the step named, each in its own `def test_...`, no extra cases, and no\n"
             b"generality the step does not ask for. For each of them, report one line\n"
             b"`REPLACES: <case name> => <pytest test id>` for each case the step named, the case name\n"
-            b"exactly as the step spells it, without the quote characters the step wraps it in. The test id is the\n"
-            b"pytest node id, `<path from the repository root>::<test name>`, and the line starts at column 0\n"
-            b"with no bullet or other prefix.")
+            b"exactly as the step spells it, without the quote characters the step wraps it in. " + NODE_ID_RULE)
     for name, value in zip(names[3:], args[3:]):
         if name in ARGUMENT_PLACEHOLDERS:
             values[ARGUMENT_PLACEHOLDERS[name]] = os.fsencode(value)
