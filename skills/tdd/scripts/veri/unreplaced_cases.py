@@ -11,6 +11,10 @@ USAGE = "usage: unreplaced-cases.sh"
 PY_TESTS = "skills/tdd/scripts/tests/py"
 
 
+def def_pattern(name):
+    return r"^\s*(?:async\s+)?def " + re.escape(name) + r"\b"
+
+
 def bare_name_defined_once(name):
     found = 0
     for root, _, files in os.walk(PY_TESTS):
@@ -19,7 +23,7 @@ def bare_name_defined_once(name):
                 continue
             try:
                 with open(os.path.join(root, file), encoding="utf-8") as handle:
-                    found += len(re.findall(r"^\s*(?:async\s+)?def " + re.escape(name) + r"\b", handle.read(), re.M))
+                    found += len(re.findall(def_pattern(name), handle.read(), re.M))
             except OSError:
                 continue
     return found == 1
@@ -34,7 +38,7 @@ def exists_in_tree(test_id):
             source = handle.read()
     except OSError:
         return False
-    return re.search(r"^\s*(?:async\s+)?def " + re.escape(name.split("::")[-1]) + r"\b", source, re.M) is not None
+    return re.search(def_pattern(name.split("::")[-1]), source, re.M) is not None
 
 
 def unescape(name):
