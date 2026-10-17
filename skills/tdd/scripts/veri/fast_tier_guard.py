@@ -52,55 +52,65 @@ def _require_matches(exemptions, files, root):
             raise ValueError(f"exemption {entry} matches no file under {root}")
 
 
-def offences(root, exemptions=None):
-    exemptions = exemptions or {}
+def _discover(root, exemptions):
     _require_reasons(exemptions)
     root = Path(root)
     if not root.is_dir():
         raise NotADirectoryError(f"{root}: no such directory")
     files = sorted(root.rglob("test_*.py"))
     _require_matches(exemptions, files, root)
+    return root, files
+
+
+def _classify(node, module_aliases, name_imports, modules, functions):
+    func = node.func
+    receiver, attr = _receiver_and_attr(func)
+    imported = name_imports.get(func.id) if isinstance(func, ast.Name) else None
+    module = module_aliases.get(receiver, receiver)
+    started = _process_start(module, attr) or (_process_start(*imported) if imported else None)
+    if (module, attr) == ("time", "sleep") or imported == ("time", "sleep"):
+        return "sleeps through time.sleep"
+    if module == "socket" or imported == ("socket", "socket"):
+        return "opens a socket through socket"
+    if receiver in modules or (isinstance(func, ast.Name) and func.id in functions):
+        return "starts a process through subprocess"
+    if started:
+        return f"starts a process through {started}"
+    if (module, attr) == ("pytest", "main") or any(
+        isinstance(arg, ast.Constant) and isinstance(arg.value, str) and _SUITE_PATH.search(arg.value)
+        for arg in [*node.args, *(kw.value for kw in node.keywords)]
+    ):
+        return "runs a nested suite"
+    return None
+
+
+def _file_offences(path):
+    tree = ast.parse(path.read_text())
+    module_aliases, name_imports = _aliases(tree)
+    modules = {alias for alias, name in module_aliases.items() if name == "subprocess"}
+    modules.add("subprocess")
+    functions = {alias for alias, (module, _) in name_imports.items() if module == "subprocess"}
     found = []
-    for path in files:
-        tree = ast.parse(path.read_text())
-        module_aliases, name_imports = _aliases(tree)
-        modules = {alias for alias, name in module_aliases.items() if name == "subprocess"}
-        modules.add("subprocess")
-        functions = {alias for alias, (module, _) in name_imports.items() if module == "subprocess"}
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.Call):
-                continue
-            func = node.func
-            receiver, attr = _receiver_and_attr(func)
-            imported = name_imports.get(func.id) if isinstance(func, ast.Name) else None
-            module = module_aliases.get(receiver, receiver)
-            started = _process_start(module, attr) or (_process_start(*imported) if imported else None)
-            if (module, attr) == ("time", "sleep") or imported == ("time", "sleep"):
-                message = "sleeps through time.sleep"
-            elif module == "socket" or imported == ("socket", "socket"):
-                message = "opens a socket through socket"
-            elif (
-                receiver in modules
-                or (isinstance(func, ast.Name) and func.id in functions)
-            ):
-                message = "starts a process through subprocess"
-            elif started:
-                message = f"starts a process through {started}"
-            elif (module, attr) == ("pytest", "main") or any(
-                isinstance(arg, ast.Constant) and isinstance(arg.value, str) and _SUITE_PATH.search(arg.value)
-                for arg in [*node.args, *(kw.value for kw in node.keywords)]
-            ):
-                message = "runs a nested suite"
-            else:
-                continue
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        message = _classify(node, module_aliases, name_imports, modules, functions)
+        if message:
             found.append(f"{path}:{node.lineno}: {message}")
+    return found
 
-    def exempt(line):
-        key = line.split(": ")[0]
-        file, _, number = key.rpartition(":")
-        return any(f"{name}:{number}" in exemptions for name in _names(Path(file), root))
 
-    return [line for line in found if not exempt(line)]
+def _exempt(line, root, exemptions):
+    key = line.split(": ")[0]
+    file, _, number = key.rpartition(":")
+    return any(f"{name}:{number}" in exemptions for name in _names(Path(file), root))
+
+
+def offences(root, exemptions=None):
+    exemptions = exemptions or {}
+    root, files = _discover(root, exemptions)
+    found = [line for path in files for line in _file_offences(path)]
+    return [line for line in found if not _exempt(line, root, exemptions)]
 
 
 def main(argv):
