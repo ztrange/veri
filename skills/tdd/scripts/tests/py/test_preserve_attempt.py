@@ -594,3 +594,203 @@ def test_main_writes_nothing_on_stdout_preserved_refused_arguments_update_ref_re
         ("update-ref-refused", 1, ""),
         ("git-failure", 2, ""),
     ]
+
+
+REF = "refs/veri/attempts/409/3/develop-green-1"
+IDENT = {"GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@example.test",
+         "GIT_COMMITTER_NAME": "veri", "GIT_COMMITTER_EMAIL": "veri@example.test"}
+REJECTED = "rejected work"
+
+
+def git_in(repo, *args):
+    return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True,
+                          env={**os.environ, **IDENT})
+
+
+def make_repo(root):
+    root.mkdir(parents=True)
+    git_in(root, "init", "-q", "-b", "main")
+    (root / "stop-run.sh").write_text("committed\n")
+    git_in(root, "add", "stop-run.sh")
+    git_in(root, "commit", "-q", "-m", "initial")
+    return root
+
+
+def dirty_repo(root):
+    make_repo(root)
+    (root / "stop-run.sh").write_text(REJECTED + "\n")
+    return root
+
+
+def write_ledger(repo, *steps):
+    (repo / ".tdd").mkdir(exist_ok=True)
+    lines = ["# Plan for #409", ""]
+    lines += [f"- [{'x' if i == 0 else ' '}] {step}" for i, step in enumerate(steps)]
+    (repo / ".tdd" / "issue-409.md").write_text("\n".join(lines) + "\n")
+    git_in(repo, "add", ".tdd/issue-409.md")
+    git_in(repo, "commit", "-q", "-m", "plan: scope #409")
+
+
+def leaf_output(repo, log_text, out_text=None):
+    (repo / ".tdd").mkdir(exist_ok=True)
+    (repo / ".tdd" / "develop-green.log").write_text(log_text + "\n")
+    if out_text is not None:
+        (repo / ".tdd" / "develop-green.out").write_text(out_text + "\n")
+
+
+def preserve_in(run_cli, preserve_attempt, monkeypatch, repo, *args):
+    for name, value in IDENT.items():
+        monkeypatch.setenv(name, value)
+    return run_cli(preserve_attempt, list(args), cwd=repo)
+
+
+def ref_resolves(repo, ref=REF):
+    return git_in(repo, "rev-parse", "--verify", "--quiet", ref + "^{commit}").returncode == 0
+
+
+def attempts(repo):
+    directory = repo / ".tdd" / "attempts"
+    return sorted(os.listdir(directory)) if directory.exists() else []
+
+
+@pytest.mark.process("real git repository and its side ref")
+def test_commits_the_worktree_to_the_ref_and_git_show_reads_it_back(
+        tmp_path, monkeypatch, run_cli, preserve_attempt):
+    repo = dirty_repo(tmp_path / "repo")
+    code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, repo, "409", "3", "develop-green", "1")
+    shown = git_in(repo, "show", f"{REF}:stop-run.sh").stdout.rstrip("\n")
+    assert (code, out, err, ref_resolves(repo), shown) == (0, "", "", True, REJECTED)
+
+
+@pytest.mark.process("real git repository and its side ref")
+def test_leaves_head_the_index_and_git_log_untouched(tmp_path, monkeypatch, run_cli, preserve_attempt):
+    repo = dirty_repo(tmp_path / "repo")
+    (repo / "staged.txt").write_text("staged\n")
+    git_in(repo, "add", "staged.txt")
+
+    def state():
+        return (git_in(repo, "rev-parse", "HEAD").stdout, git_in(repo, "ls-files", "-s").stdout,
+                git_in(repo, "log", "--oneline").stdout)
+
+    before = state()
+    code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, repo, "409", "3", "develop-green", "1")
+    assert (code, out, err, state()) == (0, "", "", before)
+
+
+@pytest.mark.process("real git repository and the leaf's files")
+def test_copies_the_leafs_log_and_final_output_to_names_carrying_step_phase_attempt_and_mark(
+        tmp_path, monkeypatch, run_cli, preserve_attempt):
+    repo = make_repo(tmp_path / "repo")
+    leaf_output(repo, "streamed progress", "final result text")
+    code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, repo,
+                                 "409", "3", "develop-green", "1", "reject")
+    copies = repo / ".tdd" / "attempts"
+    assert (code, out, err) == (0, "", "")
+    assert (copies / "3-develop-green-1-reject.log").read_text() == "streamed progress\n"
+    assert (copies / "3-develop-green-1-reject.out").read_text() == "final result text\n"
+    assert (repo / ".tdd" / "develop-green.log").is_file()
+    assert (repo / ".tdd" / "develop-green.out").is_file()
+
+
+@pytest.mark.process("real git repository and the leaf's files")
+def test_preserves_the_log_of_a_leaf_that_wrote_no_final_output_with_exit_0(
+        tmp_path, monkeypatch, run_cli, preserve_attempt):
+    repo = make_repo(tmp_path / "repo")
+    leaf_output(repo, "streamed progress")
+    code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, repo,
+                                 "409", "3", "develop-green", "1", "stuck")
+    assert (code, out, err) == (0, "", "")
+    assert (repo / ".tdd" / "attempts" / "3-develop-green-1-stuck.log").read_text() == "streamed progress\n"
+    assert attempts(repo) == ["3-develop-green-1-stuck.log"]
+
+
+@pytest.mark.process("real git repository and its side ref")
+def test_preserves_the_tree_and_exits_0_when_the_leaf_wrote_neither_log_nor_output(
+        tmp_path, monkeypatch, run_cli, preserve_attempt):
+    repo = dirty_repo(tmp_path / "repo")
+    code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, repo,
+                                 "409", "3", "develop-green", "1", "bail")
+    assert (code, out, err, ref_resolves(repo), attempts(repo)) == (0, "", "", True, [])
+
+
+@pytest.mark.process("real git repository and the leaf's files")
+def test_copies_nothing_when_no_mark_is_given_log_present(tmp_path, monkeypatch, run_cli, preserve_attempt):
+    repo = dirty_repo(tmp_path / "repo")
+    leaf_output(repo, "streamed progress", "final result text")
+    code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, repo, "409", "3", "develop-green", "1")
+    assert (code, out, err, ref_resolves(repo)) == (0, "", "", True)
+    assert not (repo / ".tdd" / "attempts").exists()
+    assert attempts(repo) == []
+
+
+@pytest.mark.process("real git repository and ancestry of the side ref")
+def test_leaves_the_preserved_commit_unreachable_from_head_with_a_message_carrying_no_rationale(
+        tmp_path, monkeypatch, run_cli, preserve_attempt):
+    repo = dirty_repo(tmp_path / "repo")
+    rationale = "I used a helper because the verifier rejected the inline version"
+    leaf_output(repo, rationale, rationale)
+    code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, repo,
+                                 "409", "3", "develop-green", "1", "reject")
+    reachable = git_in(repo, "merge-base", "--is-ancestor", REF, "HEAD").returncode == 0
+    message = git_in(repo, "log", "-1", "--format=%B", REF).stdout.strip()
+    assert (code, out, err, reachable, message) == (
+        0, "", "", False, "attempt: issue 409 step 3 develop-green attempt 1")
+
+
+@pytest.mark.process("real git repository and its side ref")
+def test_names_the_ref_by_the_steps_ledger_index_not_its_prose(
+        tmp_path, monkeypatch, run_cli, preserve_attempt):
+    repo = dirty_repo(tmp_path / "repo")
+    prose = "A leaf's output is kept under refs/veri, not the branch"
+    write_ledger(repo, "The first step, already done", prose, "A third step nobody is on")
+    code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, repo, "409", prose, "develop-green", "1")
+    refs = git_in(repo, "for-each-ref", "--format=%(refname)", "refs/veri/attempts").stdout.split()
+    assert (code, out, err, refs) == (0, "", "", ["refs/veri/attempts/409/2/develop-green-1"])
+
+
+@pytest.mark.process("real git repository and git check-ref-format")
+def test_preserves_the_attempt_under_a_ref_git_accepts_when_the_step_title_carries_spaces_an_apostrophe_and_a_slash(
+        tmp_path, monkeypatch, run_cli, preserve_attempt):
+    repo = dirty_repo(tmp_path / "repo")
+    prose = "A leaf's tree is kept under refs/veri, not the branch"
+    code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, repo, "409", prose, "develop-green", "1")
+    found = git_in(repo, "for-each-ref", "--count=1", "--format=%(refname)", "refs/veri/attempts/409").stdout.strip()
+    legal = git_in(repo, "check-ref-format", found).returncode == 0
+    shown = git_in(repo, "show", f"{found}:stop-run.sh").stdout.rstrip("\n")
+    assert (code, out, err, bool(found), legal, shown) == (0, "", "", True, True, REJECTED)
+
+
+@pytest.mark.process("real git repository and the leaf's files")
+def test_names_the_leafs_copies_by_the_steps_ledger_index_so_a_title_carrying_a_slash_writes_no_nested_path(
+        tmp_path, monkeypatch, run_cli, preserve_attempt):
+    repo = make_repo(tmp_path / "repo")
+    prose = "A leaf's output is kept under refs/veri, not the branch"
+    write_ledger(repo, "The first step, already done", prose)
+    leaf_output(repo, "streamed progress", "final result text")
+    code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, repo,
+                                 "409", prose, "develop-green", "1", "reject")
+    copies = repo / ".tdd" / "attempts"
+    assert (code, out, err) == (0, "", "")
+    assert (copies / "2-develop-green-1-reject.log").read_text() == "streamed progress\n"
+    assert (copies / "2-develop-green-1-reject.out").read_text() == "final result text\n"
+    assert attempts(repo) == ["2-develop-green-1-reject.log", "2-develop-green-1-reject.out"]
+
+
+@pytest.mark.process("real git repository whose ref store refuses the write")
+def test_says_on_stderr_that_it_could_not_preserve_the_attempt_when_the_ref_write_fails_for_another_reason(
+        tmp_path, monkeypatch, run_cli, preserve_attempt):
+    repo = dirty_repo(tmp_path / "repo")
+    git_in(repo, "update-ref", "refs/veri/attempts/409/3", "HEAD")
+    code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, repo, "409", "3", "develop-green", "1")
+    assert code != 0
+    assert "preserve-attempt.sh" in err and "409" in err and "develop-green" in err
+
+
+@pytest.mark.process("real git repository whose ref store refuses the write")
+def test_exits_exactly_1_with_the_could_not_preserve_line_last_on_stderr_when_an_existing_ref_refuses_the_ref_write(
+        tmp_path, monkeypatch, run_cli, preserve_attempt):
+    repo = dirty_repo(tmp_path / "repo")
+    git_in(repo, "update-ref", "refs/veri/attempts/409/3", "HEAD")
+    code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, repo, "409", "3", "develop-green", "1")
+    expected = f"preserve-attempt.sh: could not preserve issue 409 step 3 develop-green attempt 1 to {REF}"
+    assert (code, err.splitlines()[-1:]) == (1, [expected])
