@@ -16,6 +16,10 @@ def fail(message, code):
     return code
 
 
+def gh_api(*args):
+    return subprocess.run(["gh", "api", *args], stdout=subprocess.PIPE, text=True)
+
+
 def main(argv):
     n, owed, reached, skipped = (list(argv[:4]) + [""] * 4)[:4]
     if not NUMBER.fullmatch(n) or not owed or not NUMBER.fullmatch(reached):
@@ -37,8 +41,7 @@ def main(argv):
     if not structural and not out_of_scope:
         return 3
     title = f"Refactor owed by #{n}"
-    found = subprocess.run(["gh", "api", "repos/{owner}/{repo}/issues?state=open&per_page=100"],
-                           stdout=subprocess.PIPE, text=True)
+    found = gh_api("repos/{owner}/{repo}/issues?state=open&per_page=100")
     try:
         existing = next((i for i in json.loads(found.stdout) if i["title"] == title), None)
     except ValueError:
@@ -53,13 +56,11 @@ def main(argv):
         f"{heading}:\n\n" + "\n".join(f"- {line}" for line in lines)
         for heading, lines in sections if lines)
     if existing:
-        subprocess.run(["gh", "api", f"repos/{{owner}}/{{repo}}/issues/{existing['number']}/comments",
-                        "-f", f"body={body}"], stdout=subprocess.PIPE, text=True)
+        gh_api(f"repos/{{owner}}/{{repo}}/issues/{existing['number']}/comments", "-f", f"body={body}")
         print(existing["html_url"])
         return 0
-    filed = subprocess.run(["gh", "api", "repos/{owner}/{repo}/issues",
-                            "-f", f"title={title}", "-f", f"body={body}",
-                            "-q", ".html_url"], stdout=subprocess.PIPE, text=True)
+    filed = gh_api("repos/{owner}/{repo}/issues", "-f", f"title={title}", "-f", f"body={body}",
+                   "-q", ".html_url")
     if filed.returncode:
         return 2
     print(filed.stdout.rstrip("\n"))
