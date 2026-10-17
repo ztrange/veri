@@ -1,5 +1,6 @@
 """In-process cases for veri/preserve_attempt.py, the module preserve-attempt.sh is a shim over."""
 import importlib
+import importlib.util
 import os
 import subprocess
 import sys
@@ -453,9 +454,12 @@ def test_main_returns_2_outside_a_work_tree_and_maps_a_failing_add_or_write_tree
         monkeypatch.chdir(repo)
         verbs = []
 
-        def fake_run(args, *_, **__):
+        def fake_run(args, *_, **kwargs):
             verbs.append(str(args[1]))
             if args[1] == failing_verb:
+                if args[1] == "rev-parse" and kwargs.get("stderr") is None:
+                    print("fatal: not a git repository (or any of the parent directories): .git",
+                          file=sys.stderr)
                 return subprocess.CompletedProcess(args, status, "", None)
             if args[1] == "rev-parse":
                 return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
@@ -468,7 +472,7 @@ def test_main_returns_2_outside_a_work_tree_and_maps_a_failing_add_or_write_tree
         monkeypatch.setattr(subprocess, "run", fake_run)
         code = preserve_attempt.main(["409", "3", "develop-green", "1"])
         captured = capsys.readouterr()
-        return (failing_verb, status, code, verbs, captured.out, captured.err.splitlines()[-1:],
+        return (failing_verb, status, code, verbs, captured.out, captured.err.splitlines(),
                 sorted(os.listdir(scratch_parent)))
 
     answers = [
@@ -796,19 +800,29 @@ def test_exits_exactly_1_with_the_could_not_preserve_line_last_on_stderr_when_an
     assert (code, err.splitlines()[-1:]) == (1, [expected])
 
 
+@pytest.mark.process("real git repository carrying a copy of the skill, left without a side ref")
 def test_refuses_from_the_skills_own_scripts_directory_with_exit_2_one_stderr_line_and_no_ref_or_attempts_entry(
-        monkeypatch, run_cli, preserve_attempt):
-    scripts = os.path.dirname(os.path.dirname(os.path.realpath(preserve_attempt.__file__)))
-    attempts_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(scripts))), ".tdd", "attempts")
-    listing = lambda: sorted(os.listdir(attempts_dir)) if os.path.isdir(attempts_dir) else []
-    listing_before = listing()
+        tmp_path, monkeypatch, run_cli, preserve_attempt):
+    decoy = make_repo(tmp_path / "decoy")
+    write_ledger(decoy, "The first step, already done", "A step the decoy is on")
+    leaf_output(decoy, "decoy progress", "decoy result")
+    ledger_before = (decoy / ".tdd" / "issue-409.md").read_text()
+    scripts = decoy / "skills" / "tdd" / "scripts"
+    (scripts / "veri").mkdir(parents=True)
+    (scripts / "tests").mkdir()
+    copy = scripts / "veri" / "preserve_attempt.py"
+    with open(preserve_attempt.__file__) as source:
+        copy.write_text(source.read())
+    spec = importlib.util.spec_from_file_location("preserve_attempt_scratch_copy", copy)
+    subject = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(subject)
     expected = ("preserve-attempt.sh: type this from the run's worktree,"
                 " not from the skill's own scripts directory\n")
-    for where in (scripts, os.path.join(scripts, "tests")):
-        code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, where,
-                                     "409", "3", "develop-green", "1")
-        assert (code, out, err) == (2, "", expected)
-    assert listing() == listing_before
+    answers = [preserve_in(run_cli, subject, monkeypatch, where, "409", "3", "develop-green", "1", "reject")
+               for where in (scripts, scripts / "tests")]
+    refs = git_in(decoy, "for-each-ref", "--format=%(refname)", "refs/veri").stdout
+    assert answers == [(2, "", expected), (2, "", expected)]
+    assert (refs, attempts(decoy), (decoy / ".tdd" / "issue-409.md").read_text()) == ("", [], ledger_before)
 
 
 @pytest.mark.process("real git refusing a directory that is not a work tree")
@@ -825,7 +839,7 @@ def test_outside_a_work_tree_with_a_mark_exits_2_and_writes_no_attempts_entry_co
     before = tree()
     code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, outside,
                                  "409", "3", "develop-green", "1", "reject")
-    assert (code, out, err.splitlines()[-1:]) == (2, "", ["preserve-attempt.sh: not in a git work tree"])
+    assert (code, out, err) == (2, "", "preserve-attempt.sh: not in a git work tree\n")
     assert attempts(outside) == []
     assert tree() == before
     assert not (outside / ".git").exists()
