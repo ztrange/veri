@@ -3,8 +3,7 @@ import os
 import re
 import sys
 
-from ledger import trailing_markers
-from replaces_case import REPLACES_MARK
+from replaces_case import is_replaces_case_step
 
 PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff")
 INTERFACE_PHASES = ("expand", "migrate", "contract-a", "contract-b")
@@ -127,7 +126,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id=""):
     if phase == "plan" and _has_heading(spec_text, b"Refactor"):
         optional["REFACTOR_PLAN"] = f"{prompts}/_verify-plan-refactor.md"
     for placeholder, mark in GREEN_PARAGRAPHS.items():
-        marked = REPLACES_MARK in (step_arg[:15] + trailing_markers(step_arg)) if mark == "replaces-case" else f"⟦{mark}⟧" in step_arg
+        marked = is_replaces_case_step(step_arg) if mark == "replaces-case" else f"⟦{mark}⟧" in step_arg
         if phase == "green" and marked:
             optional[placeholder] = f"{prompts}/_verify-green-{mark}.md"
     paths = [f"{prompts}/verify-{phase}.md", f"{prompts}/_shared.md", spec, *optional.values()]
@@ -158,7 +157,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id=""):
                       b"criteria belong to other steps of the plan.\n\n")
     out = template
     written = b"**one new failing test**"
-    if phase == "red" and "\u27e6replaces-case\u27e7" in (step_arg[:15] + trailing_markers(step_arg)):
+    if phase == "red" and is_replaces_case_step(step_arg):
         written = (b"**one replacement case per named case** (judge each of them, not only the target test)")
     number = 5 if phase in ("expand", "migrate") else 4
     for placeholder, value in ((b"LAST_PHASE_CHECK", _last_phase_check(step_arg, phase, number)),
