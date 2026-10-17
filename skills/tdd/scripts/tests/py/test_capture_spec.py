@@ -1,6 +1,9 @@
 """In-process cases for veri/capture_spec.py, the module capture-spec.sh is a shim over."""
 import importlib
 import json
+import os
+import pathlib
+import re
 import subprocess
 import sys
 
@@ -366,3 +369,99 @@ def test_main_refuses_an_empty_or_unknown_veri_gh_driver_with_exit_2_nothing_on_
         lines = captured.err.splitlines()
         assert (driver, code, captured.out, calls, len(lines)) == (driver, 2, "", [], 1)
         assert "VERI_GH_DRIVER" in lines[0] and "'%s'" % driver in lines[0]
+
+
+def gh_answering(fake_processes, answers):
+    """fake_processes answering each gh command line with answers[line] = (code, stdout); the lines run, in order."""
+    return fake_processes(lambda line, **kwargs: (answers[line][0], answers[line][1], "") if line in answers else (_ for _ in ()).throw(AssertionError("unexpected command: " + line)))
+
+
+def view_lines(issue):
+    return ("gh issue view %s --json labels -q .labels[].name" % issue, "gh issue view %s --json body -q .body" % issue)
+
+
+def test_a_bug_labelled_issue_spec_carries_a_bug_section_with_what_happened_expected_steps_and_environment(fake_processes, run_cli, capture_spec):
+    labels, body = view_lines(112)
+    calls = gh_answering(fake_processes, {labels: (0, "bug\n"), body: (0, BUG_BODY)})
+
+    code, out, err = run_cli(capture_spec, ["112"], env={"VERI_GH_DRIVER": "auto"})
+
+    section = re.search(r"^## Bug\n(.*?)(?=^## |\Z)", out, re.M | re.S)
+    assert (code, err, calls) == (0, "", [labels, body])
+    assert section is not None
+    for want in ("tick-ledger.sh ticked the same step twice.", "tick-ledger.sh ticks a step once.",
+                 "Run tick-ledger.sh twice against the same step text.", "bash 5.2 on macOS 15.6."):
+        assert want in section.group(1)
+
+
+def test_skill_md_writes_the_blind_spec_through_capture_spec_sh_never_a_bare_gh_issue_view():
+    skill = pathlib.Path(__file__).resolve().parents[3] / "SKILL.md"
+    writes = [line for line in skill.read_text().splitlines()
+              if re.search(r"(^|\s)>\s*\.tdd/issue-<n>-spec\.md", line)]
+
+    assert writes
+    assert [line for line in writes if "capture-spec.sh" not in line or "gh issue view" in line] == []
+
+
+def test_with_no_argument_the_cli_exits_2_prints_nothing_on_stdout_and_its_usage_line_on_stderr(fake_processes, run_cli, capture_spec):
+    calls = gh_answering(fake_processes, {})
+
+    assert run_cli(capture_spec, [], env={"VERI_GH_DRIVER": "auto"}) == (2, "", USAGE)
+    assert calls == []
+
+
+def test_against_a_gh_that_fails_both_routes_the_cli_exits_2_with_nothing_on_stdout(fake_processes, run_cli, capture_spec):
+    labels, _ = view_lines(7)
+    api = "gh api repos/{owner}/{repo}/issues/7"
+    calls = gh_answering(fake_processes, {labels: (1, ""), api: (1, "")})
+
+    code, out, _ = run_cli(capture_spec, ["7"], env={"VERI_GH_DRIVER": "auto"})
+
+    assert (code, out, calls) == (2, "", [labels, api])
+
+
+@pytest.mark.process("capture-spec.sh run through a symlink to the skill directory from another working directory, with a stub gh on PATH")
+def test_the_shim_run_through_a_symlink_to_the_skill_directory_from_another_cwd_prints_the_same_spec_and_exit_code_as_when_run_in_place(tmp_path):
+    scripts = pathlib.Path(__file__).resolve().parents[2]
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    (tmp_path / "body.md").write_text(BUG_BODY)
+    gh = bin_dir / "gh"
+    gh.write_text('#!/bin/sh\ncase "$*" in\n  *labels*) echo bug; echo refactor ;;\n  *body*) cat "$FIXTURE" ;;\n  *) exit 1 ;;\nesac\n')
+    gh.chmod(0o755)
+    (tmp_path / "linked-skill").symlink_to(scripts.parent, target_is_directory=True)
+    (tmp_path / "elsewhere").mkdir()
+    env = dict(os.environ, VERI_GH_DRIVER="auto", PATH="%s:%s" % (bin_dir, os.environ["PATH"]), FIXTURE=str(tmp_path / "body.md"))
+
+    def run(script, cwd):
+        ran = subprocess.run([str(script), "112"], cwd=cwd, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+        return ran.returncode, ran.stdout, ran.stderr
+
+    in_place = run(scripts / "capture-spec.sh", scripts)
+    linked = run(tmp_path / "linked-skill" / "scripts" / "capture-spec.sh", tmp_path / "elsewhere")
+
+    assert in_place[0] == 0 and "\n## Bug\n" in in_place[1]
+    assert linked == in_place
+
+
+def test_with_veri_gh_driver_unset_the_cli_reads_the_issue_through_gh_api_only_prints_the_spec_and_runs_no_gh_issue_view(monkeypatch, fake_processes, run_cli, capture_spec):
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    api = "gh api repos/{owner}/{repo}/issues/7"
+    issue = json.dumps({"labels": [], "body": "## What to build\n\ntick-ledger.sh grows a flag.\n"})
+    calls = gh_answering(fake_processes, {api: (0, issue)})
+
+    code, out, err = run_cli(capture_spec, ["7"])
+
+    assert (code, out, err) == (0, "## What to build\n\ntick-ledger.sh grows a flag.\n", "")
+    assert [c for c in calls if c.startswith("gh issue view")] == []
+    assert calls and set(calls) == {api}
+
+
+def test_with_veri_gh_driver_graphql_a_failing_gh_issue_view_makes_the_cli_exit_2_with_nothing_on_stdout_and_no_gh_api_call(fake_processes, run_cli, capture_spec):
+    labels, _ = view_lines(7)
+    calls = gh_answering(fake_processes, {labels: (1, "")})
+
+    code, out, _ = run_cli(capture_spec, ["7"], env={"VERI_GH_DRIVER": "graphql"})
+
+    assert (code, out) == (2, "")
+    assert calls and [c for c in calls if c.startswith("gh api")] == []
