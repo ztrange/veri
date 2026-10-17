@@ -506,3 +506,24 @@ def test_cli_comments_the_unlisted_candidates_on_the_open_refactor_owed_issue_an
     assert result == (0, existing + "\n", "")
     assert [c for c in calls if "title=" in c] == []
     assert len(commented) == 1 and SPLIT in commented[0] and FOLD not in commented[0]
+
+
+def test_cli_files_no_issue_and_posts_no_comment_when_the_open_refactor_owed_issue_already_lists_every_candidate_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = owed_504(tmp_path)
+    existing = "https://github.com/o/r/issues/42"
+    open_issues = json.dumps([
+        {"number": 42, "title": "Refactor owed by #504", "html_url": existing,
+         "body": f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}\n- {SPLIT}"}])
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            return 0, open_issues, ""
+        return 0, "https://github.com/o/r/issues/43\n", ""
+
+    calls = fake_processes(gh)
+
+    result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    assert result == (0, existing + "\n", "")
+    assert filed(calls) == []

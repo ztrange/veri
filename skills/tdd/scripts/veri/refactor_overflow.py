@@ -56,7 +56,8 @@ def main(argv):
         f"{heading}:\n\n" + "\n".join(f"- {line}" for line in lines)
         for heading, lines in sections if lines)
     if existing:
-        gh_api(f"repos/{{owner}}/{{repo}}/issues/{existing['number']}/comments", "-f", f"body={body}")
+        if body:
+            gh_api(f"repos/{{owner}}/{{repo}}/issues/{existing['number']}/comments", "-f", f"body={body}")
         print(existing["html_url"])
         return 0
     filed = gh_api("repos/{owner}/{repo}/issues", "-f", f"title={title}", "-f", f"body={body}",
