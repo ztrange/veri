@@ -535,8 +535,19 @@ def test_stop_run_cli_mode_now_terms_the_pid_in_the_run_s_pid_file_whose_process
 @pytest.mark.process("the shim run through a symlink to the skill's scripts directory from a subdirectory of another repository")
 def test_stop_run_sh_run_through_a_symlink_to_the_skill_s_scripts_directory_from_a_subdirectory_of_another_repository_stops_that_repository_s_run_and_writes_nothing_under_the_skill_s_own(
         tmp_path, started):
+    skill_main = new_repo(tmp_path.resolve() / "skill-main")
+    skill_scripts = skill_main / "skills" / "tdd" / "scripts"
+    skill_scripts.mkdir(parents=True)
+    subprocess.run(["cp", "-R", str(SCRIPTS / "stop-run.sh"), str(SCRIPTS / "veri"), str(skill_scripts)], check=True)
+    git("add", "-A", cwd=skill_main)
+    git("commit", "-q", "-m", "skill", cwd=skill_main)
+    skill_worktree = tmp_path.resolve() / "skill-worktree"
+    git("worktree", "add", "-q", str(skill_worktree), "-b", "linked", cwd=skill_main)
     linked = tmp_path / "linked-scripts"
-    linked.symlink_to(SCRIPTS)
+    linked.symlink_to(skill_worktree / "skills" / "tdd" / "scripts")
+    listed = subprocess.run(["git", "worktree", "list", "--porcelain"], cwd=linked, check=True,
+                            stdout=subprocess.PIPE, text=True).stdout
+    assert listed.split("\n", 1)[0] == "worktree %s" % skill_main
     elsewhere = new_repo(tmp_path.resolve() / "elsewhere")
     far_run = elsewhere / ".tdd" / "wt" / "31337"
     live_conductor(far_run, started)
@@ -546,7 +557,7 @@ def test_stop_run_sh_run_through_a_symlink_to_the_skill_s_scripts_directory_from
 
     assert (code, err, stop_text(far_run)) == (0, "", "at-ledger\n")
     assert "\n" not in out.rstrip("\n") and os.path.samefile(out.rstrip("\n"), far_run)
-    assert not (SCRIPTS.parents[1] / ".tdd" / "wt" / "31337").exists()
+    assert not (skill_main / ".tdd" / "wt" / "31337").exists()
 
 
 def planted_run(path, started, supervisor):
@@ -555,10 +566,12 @@ def planted_run(path, started, supervisor):
     return run, live_supervisor(run, "develop-red", started, supervisor)
 
 
-def assert_planted_cd_contained(tmp_path, started, decoy_name, before):
+def assert_planted_cd_contained(tmp_path, started, decoy_name, before, answers_live_run):
+    """The mutant, typed from a scratch repository with a live run, stops that run alone when <answers_live_run>, else refuses."""
     scratch = new_repo(tmp_path.resolve() / "repo")
     decoy = new_repo(tmp_path.resolve() / decoy_name)
     supervisor = stub(tmp_path / "stubbin" / "supervise.sh")
+    scratch_run, _ = planted_run(scratch, started, supervisor)
     decoy_run, decoy_sup = planted_run(decoy, started, supervisor)
     mutant = mutant_of(SCRIPTS, before, 'cd "$(dirname "$0")"', decoy / "skills" / "tdd" / "scripts")
 
@@ -566,19 +579,19 @@ def assert_planted_cd_contained(tmp_path, started, decoy_name, before):
 
     assert stop_text(decoy_run) is None
     assert decoy_sup.poll() is None
-    assert code != 0 or str(decoy) not in out
+    assert (code, out) == ((0, str(scratch_run) + "\n") if answers_live_run else (2, "")), err
 
 
 @pytest.mark.process("the shim, with a cd to its own directory planted before the exec, run for real in another repository")
 def test_1158_a_stop_run_sh_that_resolves_its_main_tree_from_its_own_directory_not_the_suite_s_scratch_repository_writes_no_stop_file_and_signals_no_supervisor_outside_that_repository(
         tmp_path, started):
-    assert_planted_cd_contained(tmp_path, started, "decoy", "exec python3")
+    assert_planted_cd_contained(tmp_path, started, "decoy", "exec python3", answers_live_run=True)
 
 
 @pytest.mark.process("the shim, with a cd to its own directory planted before it records its caller, run for real in another repository")
 def test_1158_a_stop_run_sh_that_moves_to_its_own_directory_before_it_records_where_it_was_called_from_writes_no_stop_file_and_signals_no_supervisor_outside_the_suite_s_scratch_repository(
         tmp_path, started):
-    assert_planted_cd_contained(tmp_path, started, "early-decoy", "export VERI_CALLER_DIR")
+    assert_planted_cd_contained(tmp_path, started, "early-decoy", "export VERI_CALLER_DIR", answers_live_run=False)
 
 
 @pytest.mark.process("the shim copied under the scratch directory, with a cd two levels up planted before it records its caller, run for real")
