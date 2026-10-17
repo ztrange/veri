@@ -4,7 +4,15 @@ import sys
 
 from ledger import handed_out, ledger_steps, next_phase, read_ledger_stdin, trailing_markers
 
-USAGE = "usage: ledger-steps.sh [current|last-done|current-or-last-done|next-phase|criterion <k>|has-mark <name>]"
+VERBS = {
+    "current": "current",
+    "last-done": "last-done",
+    "current-or-last-done": "current-or-last-done",
+    "next-phase": "next-phase",
+    "criterion": "criterion <k>",
+    "has-mark": "has-mark <name>",
+}
+USAGE = "usage: ledger-steps.sh [" + "|".join(VERBS.values()) + "]"
 
 
 def refuse():
@@ -66,7 +74,7 @@ def criterion(text, k):
 
 def main(argv):
     verb = argv[0] if argv else ""
-    if verb not in ("", "current", "last-done", "current-or-last-done", "next-phase", "criterion", "has-mark"):
+    if verb and verb not in VERBS:
         return refuse()
     if verb == "criterion" and not re.fullmatch("[0-9]+", argv[1] if len(argv) > 1 else ""):
         return refuse()
