@@ -16,7 +16,7 @@ import subprocess
 
 import pytest
 
-SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
+SKILL = pathlib.Path(__file__).resolve().parents[3] / "SKILL.md"
 
 CI_START = re.compile(r"^2\. \*\*Mark the PR ready")
 CI_END = re.compile(r"^([0-9]+\. |#)")
