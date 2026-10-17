@@ -489,3 +489,91 @@ def test_wait_pauses_1_second_for_an_unset_or_empty_veri_poll_and_0_or_0_05_as_g
         kills.clear()
         code = detach_command.main(["wait", "x", "60"])
         assert (poll, code, capsys.readouterr(), sleeps) == (poll, 0, ("", ""), [paused, paused])
+
+
+def _fake_popen(monkeypatch):
+    class FakePopen:
+        pid = 4242
+
+        def __init__(self, args, **kwargs):
+            pass
+
+    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+
+
+def test_start_returns_at_once_wait_gives_the_recorded_code_3_while_running_and_2_for_a_death(
+        tmp_path, monkeypatch, run_cli, detach_command):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    _fake_popen(monkeypatch)
+    env = {"VERI_POLL": "0.05"}
+    alive = [True]
+
+    def kill(pid, signum):
+        if not alive[0]:
+            raise ProcessLookupError
+
+    monkeypatch.setattr(os, "kill", kill)
+
+    assert run_cli(detach_command, ["start", "ran", "blocker"], env=env, cwd=tmp_path) == (0, "", "")
+    assert run_cli(detach_command, ["wait", "ran", "0"], env=env, cwd=tmp_path) == (3, "", "")
+    (tdd / "ran.exit").write_text("7\n")
+    assert run_cli(detach_command, ["wait", "ran", "30"], env=env, cwd=tmp_path)[0] == 1
+
+    assert run_cli(detach_command, ["start", "died", "killer"], env=env, cwd=tmp_path) == (0, "", "")
+    alive[0] = False
+    assert run_cli(detach_command, ["wait", "died", "30"], env=env, cwd=tmp_path) == (2, "", "")
+
+
+def test_wait_exits_1_printing_the_recorded_code_for_a_command_that_finished_non_zero(
+        tmp_path, run_cli, detach_command):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "red.exit").write_text("2\n")
+
+    assert run_cli(detach_command, ["wait", "red", "30"], env={"VERI_POLL": "0.05"}, cwd=tmp_path) == (1, "2\n", "")
+
+
+def test_wait_refuses_a_max_seconds_that_is_a_word_with_exit_2_and_the_usage_line_while_the_command_runs(
+        tmp_path, monkeypatch, run_cli, detach_command):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "word.pid").write_text("4242\n")
+    monkeypatch.setattr(os, "kill", lambda pid, signum: None)
+
+    assert run_cli(detach_command, ["wait", "word", "abc"], env={"VERI_POLL": "0.05"}, cwd=tmp_path) == (2, "", USAGE)
+
+
+def test_wait_refuses_a_max_seconds_that_is_a_word_with_exit_2_and_the_usage_line_when_the_exit_file_already_holds_0(
+        tmp_path, run_cli, detach_command):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "fin.exit").write_text("0\n")
+
+    assert run_cli(detach_command, ["wait", "fin", "abc"], env={"VERI_POLL": "0.05"}, cwd=tmp_path) == (2, "", USAGE)
+
+
+def _refused_poll(poll, tmp_path, monkeypatch, run_cli, detach_command):
+    (tmp_path / ".tdd").mkdir(exist_ok=True)
+    (tmp_path / ".tdd" / "poll.pid").write_text(f"{os.getpid()}\n")
+    (tmp_path / ".tdd" / "poll.exit").unlink(missing_ok=True)
+    sleeps = []
+    monkeypatch.setattr(time, "sleep", lambda seconds: sleeps.append(seconds))
+    code, out, err = run_cli(detach_command, ["wait", "poll", "1"], env={"VERI_POLL": poll}, cwd=tmp_path)
+    return (poll, code, out, err.count("\n"), "VERI_POLL" in err, poll in err, sleeps)
+
+
+def test_wait_refuses_a_veri_poll_of_abc_or_minus_1_with_exit_2_and_one_stderr_line_naming_it_before_any_round(
+        tmp_path, monkeypatch, run_cli, detach_command):
+    for poll in ("abc", "-1"):
+        assert _refused_poll(poll, tmp_path, monkeypatch, run_cli, detach_command) == (poll, 2, "", 1, True, True, [])
+
+
+def test_wait_refuses_a_veri_poll_that_sleep_accepted_1e_1_0_1s_1m_with_exit_2_and_one_stderr_line_naming_it_before_any_round(
+        tmp_path, monkeypatch, run_cli, detach_command):
+    for poll in ("1e-1", "0.1s", "1m"):
+        assert _refused_poll(poll, tmp_path, monkeypatch, run_cli, detach_command) == (poll, 2, "", 1, True, True, [])
+
+
+def test_a_mode_other_than_start_or_wait_exits_2_with_exactly_the_usage_line_on_stderr_and_nothing_on_stdout(
+        tmp_path, run_cli, detach_command):
+    (tmp_path / ".tdd").mkdir()
+
+    assert run_cli(detach_command, ["bogus", "x"], cwd=tmp_path) == (2, "", USAGE)
