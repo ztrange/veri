@@ -112,3 +112,23 @@ def test_main_exits_3_with_no_output_on_a_step_mentioning_the_replaces_case_mark
     ticks = "a step that only quotes `⟦replaces-case⟧`: replaces 'stale first' in tests/demo.test.sh ⟦criterion 2⟧"
 
     assert [run_cli(survivors, [step], cwd=tmp_path) for step in (prose, ticks)] == [(3, "", "")] * 2
+
+
+def test_main_reports_both_cases_of_a_step_joining_two_quoted_names_with_and_1538(tmp_path, run_cli, survivors):
+    first = "a variable added to lib/session-env.sh's session list does not reach the conductor's claude (#621)"
+    second = "a name planted in lib/session-env.sh's SESSION_VARS stays out of run-conductor.sh's claude's environment"
+    suite = tmp_path / "skills" / "tdd" / "scripts" / "tests" / "run-leaf.test.sh"
+    suite.parent.mkdir(parents=True)
+    suite.write_text(f'verdict "kept case" 0\nverdict "{first}" 0\nverdict "{second}" 0\n')
+    step = (
+        "veri.run_conductor.main strips claude's environment only through veri.session_env, so a name added "
+        "to veri.session_env.SESSION_VARS is absent from the faked launch's environment: "
+        f"replaces '{first}' and '{second}' in skills/tdd/scripts/tests/run-leaf.test.sh "
+        "⟦replaces-case⟧ ⟦criterion 1⟧"
+    )
+
+    code, out, _ = run_cli(survivors, [step], cwd=tmp_path)
+
+    assert code == 1
+    assert first in out and second in out
+    assert "kept case" not in out
