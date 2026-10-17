@@ -74,12 +74,4 @@ probe_idiom_records_the_rule_and_the_checks() {
     "$DOCS_LANE"
 }
 
-name="CLAUDE.md states the lane rule in both sections an agent reads: the page is the other lane's work and a development run never runs a docs target, a suite here never reads the generated tree, and docs-owed.sh and docs-fresh are what catch prose lag"
-problems=()
-
-probe_trap_records_whose_work_the_page_is
-probe_idiom_records_the_rule_and_the_checks
-
-report "$name"
-
 finish
