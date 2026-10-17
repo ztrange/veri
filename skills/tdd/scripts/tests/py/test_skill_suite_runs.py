@@ -34,9 +34,12 @@ def after(text, sep):
     return text.split(sep, 1)[1] if sep in text else text
 
 
+def claude_paragraphs(text):
+    return [plain(" ".join(p.split("\n"))) for p in re.split(r"\n{2,}", text.strip("\n"))]
+
+
 def idiom():
-    paragraphs = (plain(" ".join(p.split("\n"))) for p in re.split(r"\n{2,}", CLAUDE.read_text().strip("\n")))
-    return next((p for p in paragraphs if p.startswith("a suite whose subject is the docs pipeline")), None)
+    return next((p for p in claude_paragraphs(CLAUDE.read_text()) if p.startswith("a suite whose subject is the docs pipeline")), None)
 
 
 def fast_plus_affected(text, who, why):
@@ -60,8 +63,7 @@ def full_suite_leaves(skill):
     stale = [line for line in claude.splitlines() if re.search(r"every [a-z]*\s*leaf runs", line)]
     if stale:
         problems.append(f"CLAUDE.md still says every leaf runs the suite after every edit: {stale}")
-    paragraphs = [plain(" ".join(p.split("\n"))) for p in re.split(r"\n{2,}", claude.strip("\n"))]
-    full = [p for p in paragraphs if "full suite" in p]
+    full = [p for p in claude_paragraphs(claude) if "full suite" in p]
     if not full:
         problems.append("CLAUDE.md never names the full suite at all")
     if not any(re.search("develop-green|verify-green|verifier", p) for p in full):
