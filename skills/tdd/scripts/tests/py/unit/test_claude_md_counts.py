@@ -31,3 +31,17 @@ def test_the_committed_claude_md_states_no_count_of_the_tree_1508(run_cli):
     code, out, err = run_cli(claude_md_counts, [str(claude_md)])
 
     assert (code, out + err) == (0, "")
+
+
+def test_a_digit_count_with_no_word_count_beside_it_fails_naming_its_line_and_passes_with_the_line_removed_1508(tmp_path, run_cli):
+    claude_md_counts = importlib.import_module("veri.claude_md_counts")
+    planted = tmp_path / "planted.md"
+    planted.write_text("# notes\n\nThe fixtures are 130 files under tests/.\n")
+    removed = tmp_path / "removed.md"
+    removed.write_text("# notes\n\n")
+
+    code, out, err = run_cli(claude_md_counts, [str(planted)])
+    removed_code, removed_out, removed_err = run_cli(claude_md_counts, [str(removed)])
+
+    flagged = [line.split(":")[1] for line in (out + err).splitlines() if line.startswith(f"{planted}:")]
+    assert (code, flagged, removed_code, removed_out + removed_err) == (1, ["3"], 0, "")
