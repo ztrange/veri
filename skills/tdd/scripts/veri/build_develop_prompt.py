@@ -4,6 +4,7 @@ import re
 import sys
 
 import tunables
+from ledger import trailing_markers
 from build_verify_prompt import INTERFACE_PHASES, _IncludeRefused, _expand, _has_heading, _spec_text, _write
 
 PHASES = ("red", "green", "refactor", "cover", "transform", "diff", "structural", "predicate", "revise",
@@ -111,7 +112,7 @@ def main(argv):
         marked["CI_REPAIR"] = f"{prompts}/_develop-red-ci-repair.md"
     if "green" in (phase, revised_phase):
         for placeholder, mark in (("REPLACES_CASE", "replaces-case"), ("SUITE_REPAIR", "suite-repair")):
-            if f"⟦{mark}⟧" in step:
+            if f"⟦{mark}⟧" in (trailing_markers(step) if mark == "replaces-case" else step):
                 marked[placeholder] = f"{prompts}/_develop-green-{mark}.md"
     if revised_phase in INTERFACE_PHASES:
         frozen = "production" if revised_phase == "contract-a" else "test"
@@ -136,7 +137,7 @@ def main(argv):
     values["RED_LEAD"] = b"Add exactly **ONE** new failing test case, and write **NO** production code."
     if phase == "revise":
         values["RED_CASES"] = b""
-    if "red" in (phase, revised_phase) and "\u27e6replaces-case\u27e7" in step:
+    if "red" in (phase, revised_phase) and "\u27e6replaces-case\u27e7" in trailing_markers(step):
         values["RED_LEAD"] = b"Add the replacement test cases the step names, and write **NO** production code."
         values["RED_CASES"] = (b"\n\n" if phase == "revise" else b"") + (
             b"This step replaces cases, so it is not one criterion, one case: write one pytest replacement\n"
