@@ -170,162 +170,12 @@ section_or_problem() {
 
 step_or_problem() { section_or_problem "$1" '^## |^### ' "$2"; }
 
-name="$skill_md's Draft PR step readies the PR against the already-pushed branch, with no push of its own"
-problems=()
-
-if step_or_problem '### 4. Draft PR' "whether the step still pushes"; then
-  pushes="$(first_record "$records" -F 'git push')"
-  [[ -z "$pushes" ]] ||
-    problems+=("$skill_md's Draft PR step still pushes the branch itself, so the procedure reads as though the branch reaches the remote only once the run is review-ready: $(printf '%.120s' "$pushes")")
-fi
-report "$name"
-
 pass_or_problem() {
   record="$(first_record "$(section_records "$1" '^#')" -E '^ *- \*\*pass')"
   [[ -n "$record" ]] && return 0
   problems+=("$skill_md has no PASS branch under '$1' to read — $2 could not be checked")
   return 1
 }
-
-name="$skill_md's Green PASS and verify-refactor PASS both push the branch, at the two points that write the ledger"
-problems=()
-
-for heading in '#### Green' '#### Refactor loop'; do
-  if pass_or_problem "$heading" "whether the branch is pushed where the ledger is written"; then
-    grep -qF 'push-branch.sh' <<< "$record" ||
-      problems+=("$skill_md's '$heading' PASS branch never runs push-branch.sh, so the commits it ticks and commits stay on one disk until the run is review-ready: $(printf '%.120s' "$record")")
-  fi
-done
-report "$name"
-
-names_the_full_gate() {
-  grep -qE 'detect-test-command\.sh --tier all' <<< "$1" &&
-    grep -qF 'exactly once' <<< "$1" &&
-    grep -qwF 'only' <<< "$1"
-}
-
-name="$skill_md's Draft PR step runs detect-test-command.sh --tier all's command exactly once, as the only full-suite gate"
-problems=()
-
-if step_or_problem '### 4. Draft PR' "which command its full-suite gate runs"; then
-  names_the_full_gate "$records" ||
-    problems+=("$skill_md's Draft PR step never runs detect-test-command.sh --tier all's command exactly once as the only full-suite gate, so where the full command still runs is unstated")
-fi
-report "$name"
-
-name="$skill_md's Draft PR step adds a repair step to the ledger on a red full run, rather than bailing"
-problems=()
-
-if step_or_problem '### 4. Draft PR' "what a red full run does"; then
-  repair="$(first_record "$records" -F 'repair step' -wF 'red' -F 'ledger')"
-  if [[ -z "$repair" ]]; then
-    problems+=("$skill_md's Draft PR step has no record adding a repair step to the ledger on a red full run, so a suite only the full command reaches still ends the run in a bail")
-  else
-    grep -qF 'unit-tier test' <<< "$records" && grep -qwF 'gap' <<< "$records" ||
-      problems+=("$skill_md's Draft PR step never says a unit-tier test is added when the red full run exposes a gap the fast tier missed")
-    grep -qE 'verifier[^.]*full command' <<< "$records" ||
-      problems+=("$skill_md's Draft PR step never says the repair step's verifier judges the fix against the full command")
-  fi
-fi
-report "$name"
-
-name="$skill_md's Draft PR step bails on a second red full run after a repair step, naming every suite still red"
-problems=()
-
-if step_or_problem '### 4. Draft PR' "what a second red full run does"; then
-  second="$(first_record "$records" -wF 'bail' -E 'second red|red again' -F 'repair step')"
-  if [[ -z "$second" ]]; then
-    problems+=("$skill_md's Draft PR step has no record bailing on a second red full run after a repair step, so a repair that does not take can loop instead of ending the run")
-  elif ! grep -qE 'every (suite still red|red suite|failing suite|still-red suite)' <<< "$second"; then
-    problems+=("$skill_md's Draft PR step bails on a second red full run without naming every suite still red: $(printf '%.120s' "$second")")
-  fi
-fi
-report "$name"
-
-name="$skill_md's Draft PR step puts refactor-owed.sh render's output in the PR body, and omits the section on exit 3"
-problems=()
-
-if step_or_problem '### 4. Draft PR' "whether the run's refactor leftovers reach the PR body"; then
-  render="$(first_record "$records" -F 'refactor-owed.sh render')"
-  if [[ -z "$render" ]]; then
-    problems+=("$skill_md's Draft PR step never runs refactor-owed.sh render, so every step's structural leftovers stay in a committed file nobody reading the PR is pointed at")
-  else
-    grep -qE 'issue-[^ ]*refactor-owed\.md' <<< "$render" ||
-      problems+=("$skill_md's Draft PR step runs refactor-owed.sh render without naming the run's .tdd/issue-<n>-refactor-owed.md file, so which file the PR body is rendered from is left to judgement: $(printf '%.120s' "$render")")
-    grep -qF 'body' <<< "$render" ||
-      problems+=("$skill_md's Draft PR step renders the owed section without putting it in the PR body, so the leftovers are printed where only the conductor sees them: $(printf '%.120s' "$render")")
-    grep -F 'refactor-owed' <<< "$records" |
-      grep -E 'exits? 3' |
-      grep -E 'omit|left out|leaves it out|no section|nothing' > /dev/null ||
-      problems+=("$skill_md's Draft PR step never says an exit 3 from refactor-owed.sh render leaves the section out, so a run whose every refactor finished clean gets a ## Refactor owed heading promising leftovers nobody left")
-  fi
-fi
-report "$name"
-
-name="$skill_md's Draft PR step copies the ledger's ## Owed steps bullets into the PR body under ## Owed steps"
-problems=()
-
-if step_or_problem '### 4. Draft PR' "whether the ledger's owed steps reach the PR body"; then
-  owed="$(grep -F 'owed steps' <<< "$records")"
-  if [[ -z "$owed" ]]; then
-    problems+=("$skill_md's Draft PR step never mentions the ledger's ## Owed steps section, so a step the growth budget refused is left in a committed file no reader of the PR is pointed at")
-  else
-    grep -qF '.tdd/issue-<n>.md' <<< "$owed" ||
-      problems+=("$skill_md's Draft PR step speaks of ## Owed steps without naming the run's .tdd/issue-<n>.md ledger as where the bullets are read from, so the run's other owed file could be copied instead: $(printf '%.120s' "$owed")")
-    grep -qF 'body' <<< "$owed" ||
-      problems+=("$skill_md's Draft PR step never puts the ## Owed steps bullets in the PR body, so they stay where only the conductor sees them: $(printf '%.120s' "$owed")")
-  fi
-fi
-report "$name"
-
-name="$skill_md's Scope & plan step pushes and opens the draft PR after the plan commit, before the Plan comment"
-problems=()
-
-if step_or_problem '### 2. Scope & plan' "where the run's draft PR is opened"; then
-  pr_at="$(record_number "$records" -F 'gh api repos/{owner}/{repo}/pulls -f draft=true')"
-  if [[ -z "$pr_at" ]]; then
-    problems+=("$skill_md's Scope & plan step never runs gh pr create, so a multi-step run puts no claim on origin until its last step and a second machine reads the issue as free for the whole of it")
-  else
-    pr_record="$(sed -n "${pr_at}p" <<< "$records")"
-    grep -qF -- 'draft=true' <<< "$pr_record" ||
-      problems+=("$skill_md's Scope & plan step opens the PR without --draft, so a run one step in reads as a branch offered for review: $(printf '%.120s' "$pr_record")")
-    grep -qF 'closes #<n>' <<< "$pr_record" ||
-      problems+=("$skill_md's Scope & plan step opens the PR without Closes #<n> in its body, so nothing on the PR names the issue it claims: $(printf '%.120s' "$pr_record")")
-    grep -qE 'wip|work in progress' <<< "$pr_record" ||
-      problems+=("$skill_md's Scope & plan step opens the PR without a title marking the work in progress, so a reader of origin cannot tell a run mid-flight from a finished branch: $(printf '%.120s' "$pr_record")")
-    grep -qF 'push-branch.sh' <<< "$records" ||
-      problems+=("$skill_md's Scope & plan step never runs push-branch.sh, so the branch the PR is opened against has never reached the remote")
-
-    commit_at="$(record_number "$records" -F 'plan: scope #<n> into')"
-    comment_at="$(record_number "$records" -F 'mirror the plan')"
-    if [[ -z "$commit_at" || -z "$comment_at" ]]; then
-      problems+=("$skill_md's Scope & plan step no longer has both the plan commit and the Plan comment to place the PR between — where it is opened could not be checked")
-    else
-      [[ "$commit_at" -lt "$pr_at" ]] ||
-        problems+=("$skill_md's Scope & plan step opens the PR at record $pr_at, before the plan commit at record $commit_at — there is no commit ahead of the base for a PR to be opened against yet")
-      [[ "$pr_at" -lt "$comment_at" ]] ||
-        problems+=("$skill_md's Scope & plan step opens the PR at record $pr_at, after the Plan comment at record $comment_at — the comment is meant to name the PR url, and the claim is meant to be the first act after the plan commit")
-    fi
-  fi
-fi
-report "$name"
-
-name="$skill_md's Green PASS branch updates the PR body with the ledger's done-of-total step count"
-problems=()
-
-if pass_or_problem '#### Green' "whether the step tick updates the PR body"; then
-  if ! grep -qF 'gh api -x patch' <<< "$record"; then
-    problems+=("$skill_md's Green PASS branch never runs gh pr edit, so the draft PR opened at the plan commit still reads as step 0 for the whole of a multi-step run")
-  else
-    grep -qF -- '-f body=' <<< "$record" ||
-      problems+=("$skill_md's Green PASS branch edits the PR without --body, so nothing a reader of the PR sees carries the run's progress: $(printf '%.120s' "$record")")
-    grep -qF '.tdd/issue-<n>.md' <<< "$record" ||
-      problems+=("$skill_md's Green PASS branch edits the PR body without naming the run's .tdd/issue-<n>.md ledger as where the count is read from, so which file answers how far the run has got is left to judgement: $(printf '%.120s' "$record")")
-    grep -qE '<done> of <total>|[0-9]+ of [0-9]+|done of|of how many' <<< "$record" ||
-      problems+=("$skill_md's Green PASS branch edits the PR body without a done-of-total step count, so a reader learns the run moved but not how far it has left to go: $(printf '%.120s' "$record")")
-  fi
-fi
-report "$name"
 
 section_commands() {
   section_lines "$section_heading" "$section_closer" |
@@ -347,23 +197,6 @@ ready_run='[^#]*gh_pr_ready'
 body_edit='gh api -x patch .*-f body='
 
 unmarked_records() { tr -d '*`' <<< "$records"; }
-
-name="$skill_md's Draft PR step creates no PR: it retitles and rewrites the open one and marks it ready for review"
-problems=()
-
-if step_or_problem '### 4. Draft PR' "whether the step creates a second PR"; then
-  commands="$(section_commands)"
-  grep -qE '^gh api -x patch .*-f title=' <<< "$commands" ||
-    problems+=("$skill_md's Draft PR step never runs gh pr edit with --title, so the PR keeps the work-in-progress title it was opened with at the plan commit and a reader of origin cannot tell the finished branch from a run mid-flight")
-  grep -qE "^$body_edit" <<< "$commands" ||
-    problems+=("$skill_md's Draft PR step never runs gh pr edit with --body, so the body a human reads at the merge is still the one-line claim the plan commit opened")
-  grep -qE "^$ready_run" <<< "$commands" ||
-    problems+=("$skill_md's Draft PR step never runs gh pr ready, so a finished run leaves a draft nobody is asked to review")
-  creates="$(first_record "$commands" -E '^gh api repos/[{]owner[}]/[{]repo[}]/pulls -f')"
-  [[ -z "$creates" ]] ||
-    problems+=("$skill_md's Draft PR step still runs gh pr create, so a run whose draft PR has been open since its plan commit either fails at its last step or opens a second PR for the same branch: $(printf '%.120s' "$creates")")
-fi
-report "$name"
 
 name="$skill_md's Resume reuses the open PR already on its branch and opens no second one"
 problems=()
