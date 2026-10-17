@@ -41,6 +41,10 @@ def _require_reasons(exemptions):
             raise ValueError(f"exemption {entry} has no reason")
 
 
+def _names(path, root):
+    return str(path), str(path.relative_to(root))
+
+
 def offences(root, exemptions=None):
     exemptions = exemptions or {}
     _require_reasons(exemptions)
@@ -48,7 +52,7 @@ def offences(root, exemptions=None):
     if not root.is_dir():
         raise NotADirectoryError(f"{root}: no such directory")
     files = sorted(root.rglob("test_*.py"))
-    present = {str(path) for path in files} | {str(path.relative_to(root)) for path in files}
+    present = {name for path in files for name in _names(path, root)}
     for entry in exemptions:
         if entry.rpartition(":")[0] not in present:
             raise ValueError(f"exemption {entry} matches no file under {root}")
@@ -90,7 +94,7 @@ def offences(root, exemptions=None):
     def exempt(line):
         key = line.split(": ")[0]
         file, _, number = key.rpartition(":")
-        return key in exemptions or f"{Path(file).relative_to(root)}:{number}" in exemptions
+        return any(f"{name}:{number}" in exemptions for name in _names(Path(file), root))
 
     return [line for line in found if not exempt(line)]
 
