@@ -1,7 +1,7 @@
 ### 📊 Metrics — issue 1369
 
-Wall time for the issue: 10691 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 0 s, excluded from it.
+Wall time for the issue: 1224 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 1 s, excluded from it.
 Steps done: 18 of 18 planned.
 Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/1629.
 Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
@@ -17,15 +17,15 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | green | 32 | 15 | 1 | 0 | 6890 | 878 | 253 | 498 | 83396 | 12227014 | 1440366 | 8.03 |
 | refactor | 30 | 15 | 0 | 0 | 1224 | 454 | 144 | 278 | 42081 | 5901409 | 1219031 | 5.89 |
 | diff | 4 | 2 | 0 | 0 | 365 | 92 | 30 | 60 | 10360 | 1344488 | 161648 | 0.88 |
-| rebase | 2 | 1 | 0 | 0 | 1071 | 106 | 35 | 70 | 12265 | 1938312 | 99939 | 0.72 |
-| predicate | 2 | 0 | 0 | 0 | 24 | 17 | 6 | 12 | 1811 | 220668 | 72627 | 0.33 |
+| rebase | 4 | 2 | 0 | 0 | 1728 | 166 | 54 | 106 | 18072 | 2796160 | 183968 | 1.20 |
+| predicate | 4 | 0 | 0 | 0 | 51 | 37 | 13 | 26 | 4169 | 488855 | 148413 | 0.68 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 50 | 49 | 1 | 0 | 4003 | 1119 | 313 | 608 | 109916 | 13998029 | 2158647 | 11.13 |
-| developer | claude-sonnet-5-5 | 51 | 0 | 0 | 0 | 6900 | 1645 | 372 | 742 | 193377 | 18687315 | 2382249 | 13.33 |
+| verifier | claude-sonnet-5-5 | 51 | 50 | 1 | 0 | 4320 | 1135 | 318 | 616 | 111819 | 14152935 | 2197964 | 11.33 |
+| developer | claude-sonnet-5-5 | 54 | 0 | 0 | 0 | 7267 | 1709 | 393 | 784 | 199639 | 19658444 | 2502747 | 13.97 |
 | developer | claude-opus-5-5 | 2 | 0 | 0 | 0 | 71 | 34 | 10 | 20 | 3258 | 430099 | 82352 | 0.62 |
 
 #### Rework and waste, by phase
@@ -38,8 +38,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | green | 479 | 0.96 | 0 | 0.00 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | diff | 0 | 0.00 | 0 | 0.00 |
-| rebase | 0 | 0.00 | 0 | 0.00 |
-| predicate | 0 | 0.00 | 0 | 0.00 |
+| rebase | 0 | 0.00 | 657 | 0.48 |
+| predicate | 0 | 0.00 | 27 | 0.35 |
 
 #### By step
 
@@ -62,6 +62,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | fix the full-suite failure: skills/tdd/scripts/tests/py/test_comment_class.py — FAILED skills/tdd/scripts/tests/py/test_comment_class.py::test_main_sweeps_the_scripts_lib_and_suites_to_empty_sweepable_reports_no_cited_issue_and_unchanged_class_3_lines - AssertionError: the class-3 roster CLASS_3_LINES still lists the class 3 comment lines of the suites this branch deleted ⟦suite-repair⟧ ⟦criterion 2⟧ | 10 | 4 | 1 | 0 | 0 | 0 | 220 | 70 | 140 | 23371 | 3387533 | 416062 | 2.45 | 693 | 1/2 | 0/5 | nothing-left |  |  | full |
 | the two #1611 Resume-preflight prose cases main added to skill-refactor-pending.test.sh during this run hold as pytest cases — each as a small pytest case (no process) in skills/tdd/scripts/tests/py/unit/test_skill_refactor_pending.py, reading SKILL.md through tests/py/skill_sections.py's section helper wherever the bash case reads one section, asserting the same pattern over the same section and window as the bash case (the same first and last line and the same stop rule; a length bound counts bytes, as the bash suites did under LC_ALL=C); the pytest case and every helper it calls are defined in that test file or in tests/py/skill_sections.py, never left undefined, and Red is expected to report AGAINST_UNMODIFIED: PASSES; no production change: SKILL.md, CLAUDE.md, CONTEXT.md and every script stay unchanged: replaces `#1611: $skill_md's Resume preflight describes the tree before rebase-onto-default.sh as keeping uncommitted .tdd/ appends with ledger ticks reconciled, and no longer says its worktree clean and its ledger untouched`, `#1611: $skill_md's Resume preflight paragraph under the discard block keeps a working-copy tick only when the committed ledger holds a tick of the same step text without its trailing markers, counted, and no longer mentions line position` in skills/tdd/scripts/tests/skill-refactor-pending.test.sh ⟦replaces-case⟧ ⟦added⟧ ⟦criterion 1⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 137 | 43 | 80 | 15412 | 1835272 | 253239 | 1.35 | 264 | unknown | 0/5 | nothing-left |  |  | already-satisfied |
 | skill-refactor-pending.test.sh, emptied by the #1611 port step, is deleted, and no guard table, exemption table, roster, workflow comment or CLAUDE.md count outside .tdd/ and docs/ names it; CLAUDE.md's suite counts match the tree ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 2⟧ | 4 | 1 | 0 | 0 | 0 | 0 | 57 | 20 | 40 | 6188 | 829679 | 148913 | 0.74 | 166 | unknown | unknown | unknown |  |  | full |
+| make test is green with the nine suites gone and their pytest replacements among its cases ⟦full-suite⟧ ⟦criterion 1⟧ | 4 | 1 | 0 | 0 | 0 | 0 | 80 | 26 | 50 | 8165 | 1126035 | 159815 | 0.83 | unknown | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -96,10 +97,10 @@ Stopped: nothing-structural
 | affected | 0 | 0 | 1 | 306 | 1 | 1 | 1 | 0 | 1 | 0 | 2 | 1 | 3 | 1 | 442 | 485 | 136 | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 31 | 0 | 0 | 0 | 0 | 27 | 0 | 0 | 0 | 322 | 38 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 309 | 0 | 0 | 0 | 99 | 0 | 0 | 1 | 1 | 9 | 1 | 2 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 1 | 36 |
 | target | 0 | 1 | 0 | 1 | 0 | 0 | 1 | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 3 | 0 | 0 | 0 | 0 | 0 | 66 | 1 | 0 | 0 | 1 | 0 | 0 | 0 | 33 | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 33 | 1 | 0 | 0 | 0 | 6 | 1 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | fast | 24 | 36 | 26 | 28 | 39 | 54 | 29 | 182 | 57 | 84 | 43 | 29 | 26 | 28 | 28 | 30 | 30 | 27 | 25 | 25 | 24 | 32 | 27 | 28 | 27 | 27 | 30 | 28 | 26 | 37 | 30 | 34 | 28 | 34 | 28 | 28 | 29 | 29 | 26 | 37 | 28 | 27 | 31 | 30 | 32 | 6 | 6 | 7 | 7 | 7 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| all | 346 | 298 | 309 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 346 | 298 | 309 | 286 | 300 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 695 | 1370 | 306551 | 33115443 | 4623248 | 25.09 |
+| total | 721 | 1420 | 314716 | 34241478 | 4783063 | 25.92 |
