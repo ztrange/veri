@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 
+import tunables
 from git import git, symref_default
 from github import NoAnswer, gh_json
 from json_documents import items
@@ -72,7 +73,7 @@ def remote_issue_branch(issue):
 
 
 def claiming_pr(issue, url):
-    if not os.environ.get("VERI_GH_JSON") and "github.com" not in url:
+    if not tunables.read("VERI_GH_JSON") and "github.com" not in url:
         return ""
     try:
         prs = gh_json("prs.json", "repos/{owner}/{repo}/pulls?state=open&per_page=100",
