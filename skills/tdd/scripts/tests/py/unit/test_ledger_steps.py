@@ -466,3 +466,16 @@ def test_has_mark_with_no_name_exits_2_with_a_usage_line_listing_has_mark_and_no
 
     assert (code, out, err.startswith(b"usage: ledger-steps.sh "), b"has-mark <name>" in err, b"Traceback" in err) == (
         2, b"", True, True, False)
+
+
+def test_has_mark_with_an_empty_name_exits_2_with_a_usage_line_listing_has_mark_and_no_traceback_1624(
+        monkeypatch, capsysbinary, ledger_steps):
+    fake_stdin(monkeypatch, b"# Plan for #42\n\n- [ ] fix the red job \xe2\x9f\xa6ci-repair\xe2\x9f\xa7 \xe2\x9f\xa6criterion 1\xe2\x9f\xa7\n")
+    try:
+        code = ledger_steps.main(["has-mark", ""])
+    except Exception as exc:
+        code = type(exc).__name__
+    out, err = capsysbinary.readouterr()
+
+    assert (code, out, err.startswith(b"usage: ledger-steps.sh "), b"has-mark <name>" in err, b"Traceback" in err) == (
+        2, b"", True, True, False)
