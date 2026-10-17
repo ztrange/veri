@@ -123,4 +123,20 @@ else
   no "$name (missing:$missing)"
 fi
 
+name="#1538: add-ledger-step.sh asked to insert a replaces-case step whose replaces clause has an unquoted name after a quoted one, or a quoted name followed by a trailing parenthetical, exits 1, prints a line naming that step and leaves the ledger byte-identical"
+shape=""
+for text in "x: replaces 'a', b in t/x.test.sh ⟦replaces-case⟧" "x: replaces 'a' (from #12) in t/x.test.sh ⟦replaces-case⟧"; do
+  seed
+  "$ADD" "$led" after 'collapse to single hyphen' "$text" > "$work/unread.out" 2> "$work/unread.err"; code=$?
+  names=no; grep -F "$text" "$work/unread.err" > /dev/null && names=yes
+  trace=no; grep -F 'Traceback' "$work/unread.err" > /dev/null && trace=yes
+  same=no; [[ "$(cat "$led")" == "$seeded" ]] && same=yes
+  shape="$shape $code:$(wc -l < "$work/unread.err" | tr -d ' '):$names:$trace:$same"
+done
+if [[ "$shape" == " 1:1:yes:no:yes 1:1:yes:no:yes" ]]; then
+  ok
+else
+  no "$name (code:lines:names-step:traceback:ledger-unchanged =$shape)"
+fi
+
 finish
