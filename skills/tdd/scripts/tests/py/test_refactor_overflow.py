@@ -574,3 +574,22 @@ def test_cli_files_one_issue_and_prints_its_url_when_no_open_issue_is_titled_ref
     assert result == (0, URL, "")
     assert filed(calls) == filing(504, f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}\n- {SPLIT}")
     assert [c for c in calls if "/comments" in c] == []
+
+
+@pytest.mark.parametrize("gh_code", [1, 22])
+def test_cli_files_no_issue_and_exits_2_with_one_stderr_line_naming_the_lookup_when_the_open_issue_lookup_fails_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes, gh_code):
+    owed = owed_504(tmp_path)
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            return gh_code, "", ""
+        return 0, URL, ""
+
+    calls = fake_processes(gh)
+
+    code, out, err = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    assert filed(calls) == []
+    assert (code, out) == (2, "")
+    assert err.startswith("refactor-overflow: ") and "lookup" in err and err.count("\n") == 1 and err.endswith("\n")
