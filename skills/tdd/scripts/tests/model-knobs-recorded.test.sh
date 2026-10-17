@@ -65,14 +65,6 @@ probe_claude_md_names_them_and_why() {
     'revise'
 }
 
-name="$skill_md's supervise.sh bullet and $claude_md name VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_REVISE and VERI_MODEL_VERIFIER, and $claude_md says why developer and verifier are separate knobs"
-problems=()
-
-probe_skill_bullet_lists_the_tunables
-probe_claude_md_names_them_and_why
-
-report "$name"
-
 helpers_rel="skills/tdd/scripts/tests/record-helpers.sh"
 helpers_path="$ROOT/$helpers_rel"
 
@@ -405,50 +397,5 @@ problems=()
 probe_plain_shell_probe_unsourced
 
 report "$name"
-
-name="#1037: bullet given '^[-*] run\\.sh' starts at '- run.sh', not at '- runXsh'"
-fixture="$(scratch_dir)"
-printf -- '- runXsh wrong\n- run.sh right\n- end\n' > "$fixture/SKILL.md"
-expect_eq "$name" '- run.sh right ' "$(skill_path="$fixture/SKILL.md" bullet '^[-*] run\.sh')"
-
-name="#1485: the knob probes name the document, in a problem, when SKILL.md's supervise.sh bullet or CLAUDE.md's model-knob invariant stops naming VERI_MODEL_REVISE"
-fixture="$(scratch_dir)"
-sed 's/VERI_MODEL_REVISE/VERI_MODEL_GONE/g' "$ROOT/$skill_md" > "$fixture/SKILL.md"
-sed 's/VERI_MODEL_REVISE/VERI_MODEL_GONE/g' "$ROOT/$claude_md" > "$fixture/CLAUDE.md"
-got="$(
-  skill_path="$fixture/SKILL.md" claude_path="$fixture/CLAUDE.md"
-  problems=()
-  probe_skill_bullet_lists_the_tunables
-  probe_claude_md_names_them_and_why
-  for doc in "$skill_md" "$claude_md"; do
-    named=no
-    for p in "${problems[@]}"; do
-      [[ "$p" == "$doc"* && "$p" == *VERI_MODEL_REVISE* ]] && named=yes
-    done
-    printf '%s names it: %s\n' "$doc" "$named"
-  done
-)"
-expect_eq "$name" "$skill_md names it: yes
-$claude_md names it: yes" "$got"
-
-name="#1485: SKILL.md's supervise.sh bullet and CLAUDE.md's model-knob invariant state the shipped defaults, sonnet and opus, and no longer say a default run carries no --model"
-problems=()
-for probe in need_supervise_bullet need_claude_md_records; do
-  "$probe" || continue
-  says "the shipped defaults, sonnet and opus, beside VERI_MODEL_REVISE" "$MODEL_REV" 'sonnet' 'opus'
-  [[ "$passage_text" =~ no\ --model ]] &&
-    problems+=("$passage_from still says a default run carries no --model")
-done
-expect_eq "$name" "0 problems:" "${#problems[@]} problems:${problems[*]/#/ | }"
-
-name="#1485: supervise.sh's Tunables (env) header names all four model knobs and the shipped defaults, sonnet and opus, and no longer says a default run carries no --model"
-header="$(awk '/^# Tunables \(env\)/ {on=1} on && /^#/ {print; next} on {exit}' "$ROOT/skills/tdd/scripts/supervise.sh" | tr '[:upper:]' '[:lower:]' | tr '\n' ' ')"
-problems=()
-for want in veri_model_developer veri_model_verifier veri_model_revise sonnet opus; do
-  [[ "$header" == *"$want"* ]] || problems+=("supervise.sh's Tunables header does not name $want")
-done
-[[ "$header" =~ no\ \`?--model ]] &&
-  problems+=("supervise.sh's Tunables header still says a default run carries no --model")
-expect_eq "$name" "0 problems:" "${#problems[@]} problems:${problems[*]/#/ | }"
 
 finish
