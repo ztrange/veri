@@ -27,7 +27,6 @@ declare -A EXEMPT=(
   [no-nested-suites.test.sh]="its own exemption table and header name every suite below by basename outside a comment; that is the policy this file states, not a launch of any of them"
   [no-docs-reads.test.sh]="its exemption table is keyed by <suite>:<line text>, so its one key names no-product-caller.test.sh, the suite whose scratch-tree hooks path it exempts; a table key, not a launch of that suite"
   [no-awk-v-patterns.test.sh]="its exemption table is keyed by <suite>:<line text>, so each key names the suite whose awk -v line it exempts; a table key, not a launch of that suite"
-  [claude-md-guards-green.test.sh]="its subject is whether the four suites that hold CLAUDE.md to its own rules — claude-md-counts.test.sh, lane-rule-recorded.test.sh, count-line-guard.test.sh, docs-targets-refuse.test.sh — are still green against the document as committed; there is no product script to run in their place"
   [docs-read-guard.test.sh]="copies no-docs-reads.test.sh (the guard #143 added) into a planted tree with a genuine documentation-tree read and asserts the guard still catches it; the guard's whole job is to catch that read, so only running it proves it still can"
   [sigpipe-guard.test.sh]="plants a suite that declares pipefail and ends a pipeline in grep -q, plus the same pipeline without pipefail, into a scratch tree and runs a copy of no-sigpipe-pipelines.test.sh (the guard #422 added) over it; after this issue's other steps the real tree holds no live site, so the guard answers the same way over it whether it still checks anything or not, and only running it over the plant says otherwise"
   [job-spec-guard.test.sh]="plants a script that kills a background process by a job spec, plus the same process killed by the pid it recorded, into a scratch tree and runs a copy of no-job-spec-kills.test.sh (the guard #424 added) over it; after this issue's other steps the real tree holds no live site, so the guard answers the same way over it whether it still checks anything or not, and only running it over the plant says otherwise"
@@ -122,43 +121,28 @@ mentions_reported() {
   done
 }
 
-mentions_reported affected-suites.test.sh claude-md-counts.test.sh
-report "affected-suites.test.sh's fixture and case-name mentions of claude-md-counts.test.sh are not read as launching it"
-
 mentions_reported affected-suites.test.sh build-develop-prompt.test.sh build-verify-prompt.test.sh
 report "#487: affected-suites.test.sh's mentions of build-develop-prompt.test.sh and build-verify-prompt.test.sh are not read as launching them"
 
-mentions_reported claude-md-counts.test.sh "names gh-fixture.test.sh"
-report "#588: claude-md-counts.test.sh's case name mentioning gh-fixture.test.sh is not read as launching it"
-
-mentions_reported next-unchecked.test.sh claude-md-counts.test.sh
-report "#590: next-unchecked.test.sh's ⟦suite-repair⟧ fixture and expected-step mentions of claude-md-counts.test.sh are not read as launching it"
-
-mentions_reported no-report-copies.test.sh docs-read-guard.test.sh profile.test.sh harness.test.sh model-knobs-recorded.test.sh
+mentions_reported no-report-copies.test.sh docs-read-guard.test.sh profile.test.sh harness.test.sh
 report "#595: no-report-copies.test.sh's exemption keys, planted-suite paths and case text naming other suites are not read as launching them"
-
-mentions_reported claude-md-counts.test.sh "names github.test.sh"
-from_counts=("${problems[@]}")
-mentions_reported unit-tier-recorded.test.sh "names github.test.sh"
-problems=("${from_counts[@]}" "${problems[@]}")
-report "#720: claude-md-counts.test.sh's and unit-tier-recorded.test.sh's case-text mentions of github.test.sh are not read as launching it"
 
 mentions_reported affected-suites.test.sh run-suite-venv.test.sh
 report "#1011: affected-suites.test.sh's no-same-named-suite fixture mentions of run-suite-venv.test.sh are not read as launching it"
 
 mentions_reported affected-suites.test.sh "#1138"
-report "#1138: affected-suites.test.sh's #1138 case names mentioning claude-md-counts.test.sh are not read as launching it"
+report "#1138: affected-suites.test.sh's #1138 case names mentioning another suite are not read as launching it"
 
 mentions_reported affected-suites.test.sh .test.sh
 report "#538: affected-suites.test.sh's cp of SKILL.md and of the suites naming it into a scratch repo does not make its fixture mentions of other suites read as launching them"
 
 plant="$(scratch_dir)"
 cat "$ROOT/$suites_dir/affected-suites.test.sh" > "$plant/affected-suites.test.sh"
-printf '%s\n' 'bash "$HERE/claude-md-counts.test.sh"' >> "$plant/affected-suites.test.sh"
+printf '%s\n' 'bash "$HERE/run-suite-venv.test.sh"' >> "$plant/affected-suites.test.sh"
 planted_line="$(wc -l < "$plant/affected-suites.test.sh" | tr -d ' ')"
 problems=()
-scan_launches "$plant/affected-suites.test.sh" | grep -F "$(printf 'affected-suites.test.sh\t%s\tclaude-md-counts.test.sh\t' "$planted_line")" > /dev/null \
-  || problems+=("a planted 'bash \"\$HERE/claude-md-counts.test.sh\"' at affected-suites.test.sh:$planted_line was not reported")
+scan_launches "$plant/affected-suites.test.sh" | grep -F "$(printf 'affected-suites.test.sh\t%s\trun-suite-venv.test.sh\t' "$planted_line")" > /dev/null \
+  || problems+=("a planted 'bash \"\$HERE/run-suite-venv.test.sh\"' at affected-suites.test.sh:$planted_line was not reported")
 report "#538: a real launch of another suite planted in affected-suites.test.sh is still read as launching it"
 
 mentions_reported no-unbacked-pushes.test.sh push-backoff-guard.test.sh

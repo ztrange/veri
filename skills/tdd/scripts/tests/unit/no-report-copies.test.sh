@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Audits that no suite carries its own copy of what lib/harness.sh defines. Every file under
-# tests/ and tests/unit/ that defines a function named `report` — the suites and
-# tests/record-helpers.sh alike — is named, bar lib/harness.sh, the one definition they source;
+# tests/ and tests/unit/ that defines a function named `report` is named, bar lib/harness.sh, the one definition they source;
 # so is every one that defines `ok` or `no`, initialises `pass=0 fail=0` or prints its own
 # count line, bar harness.test.sh, whose subject is the harness itself.
 # Admitted to the fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
@@ -164,13 +163,6 @@ got="$(
 )"
 expect_eq "$name" "    b.test.sh:2 carries its own harness scaffolding" "$got"
 
-name="#595: model-knobs-recorded$sfx carries no counter-initialisation line and no exemption names it"
-got="$(declare -A COUNTER_EXEMPT=(); counter_hits "$TESTS" 2>&1 | grep -F "model-knobs-recorded$sfx:")"
-for key in "${!COUNTER_EXEMPT[@]}"; do
-  [[ "$key" == model-knobs-recorded$sfx:* ]] && got+=$'\n'"    COUNTER_EXEMPT names $key"
-done
-expect_eq "$name" "" "$got"
-
 name="#595: the widened audit flags neither lib/harness.sh nor unit/harness$sfx"
 got="$(
   declare -A COUNTER_EXEMPT=()
@@ -198,18 +190,18 @@ printf '%s\n' '#!/usr/bin/env bash' 'got="$(windows "$text" x)"' > "$plant/a.tes
 got="$(hoisted_copy_hits "$plant" 2>&1)"
 expect_eq "$name" "" "$got"
 
-name="#704: a suite or record-helpers.sh that defines plain is named by <file>:<line>"
+name="#704: a suite or shared-helpers.sh that defines plain is named by <file>:<line>"
 plant="$(scratch_dir)"
 mkdir -p "$plant/unit" "$plant/lib"
 printf '%s\n' '#!/usr/bin/env bash' "plain() { tr -d '*\`' | tr '[:upper:]' '[:lower:]'; }" \
-  > "$plant/record-helpers.sh"
+  > "$plant/shared-helpers.sh"
 printf '%s\n' '#!/usr/bin/env bash' 'x=1' 'plain() {' "  tr -d '*\`' | tr '\n' ' '" '}' \
   > "$plant/unit/a.test.sh"
 printf '%s\n' '#!/usr/bin/env bash' 'got="$(plain < "$f")"' > "$plant/b.test.sh"
 printf '%s\n' 'plain() { :; }' > "$plant/lib/plain.sh"
 got="$(hoisted_copy_hits "$plant" 2>&1)"
 expect_eq "$name" \
-  "$(printf '    %s\n' 'record-helpers.sh:2 defines plain()' 'unit/a.test.sh:3 defines plain()')" \
+  "$(printf '    %s\n' 'shared-helpers.sh:2 defines plain()' 'unit/a.test.sh:3 defines plain()')" \
   "$got"
 
 name="#704: a suite under tests/ or tests/unit/ that defines section_end is named by <suite>:<line>"
@@ -262,7 +254,7 @@ printf '%s\n' '#!/usr/bin/env bash' 'need_claude_md_records() {' '  return 0' '}
 printf '%s\n' '#!/usr/bin/env bash' 'x=1' '  function need_claude_md_records() { :; }' \
   > "$plant/unit/b.test.sh"
 printf '%s\n' '#!/usr/bin/env bash' '  need_claude_md_records || return' > "$plant/c.test.sh"
-printf '%s\n' 'need_claude_md_records() { :; }' > "$plant/lib/claude-md-records.sh"
+printf '%s\n' 'need_claude_md_records() { :; }' > "$plant/lib/records.sh"
 got="$(hoisted_copy_hits "$plant" 2>&1)"
 expect_eq "$name" \
   "$(printf '    %s\n' 'a.test.sh:2 defines need_claude_md_records()' \
