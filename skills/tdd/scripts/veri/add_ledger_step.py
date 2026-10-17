@@ -1,4 +1,5 @@
 """add-ledger-step.sh's computations, run in-process."""
+import json
 import os
 import re
 import sys
@@ -57,12 +58,28 @@ def repair_following(steps, anchor):
     return next((following for line, following in zip(steps, steps[1:]) if anchor in line and is_suite_repair(following)), None)
 
 
+class UnreadableLog(Exception):
+    pass
+
+
+def parses(raw):
+    try:
+        json.loads(raw)
+    except ValueError:
+        return False
+    return True
+
+
 def added_since_last_resume(path, steps):
     log = os.path.join(os.path.dirname(path), "events.jsonl")
     try:
         events = read_events(log)
-    except (OSError, ValueError):
+    except OSError:
         return True
+    except ValueError:
+        with open(log) as f:
+            bad = next(raw.rstrip("\n") for raw in f if raw.strip() and not parses(raw))
+        raise UnreadableLog(f"add-ledger-step.sh: cannot read {log}, line: {bad}")
     names = [event.get("event") for event in events]
     if "resume" not in names:
         return True
@@ -158,7 +175,10 @@ def main(argv):
             return 1
     steps = [line for line in lines if ledger_steps(line)]
     earlier = [line for line in steps if is_suite_repair(line)]
-    this_run = added_since_last_resume(path, steps) if earlier else False
+    try:
+        this_run = added_since_last_resume(path, steps) if earlier else False
+    except UnreadableLog as unreadable:
+        return refuse(str(unreadable))
     if this_run and any(is_suite_repair(text) for text in texts):
         warn("add-ledger-step.sh: this run already inserted a suite-repair step: " + (earlier[0] if this_run is True else this_run))
         return 1
