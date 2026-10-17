@@ -51,7 +51,7 @@ def block(body, new):
         lines.insert(last + 1, blocker)
     elif heading is not None and not placed:
         lines.insert(heading + 1, blocker)
-    if not any(line.startswith("## Blocked by") for line in lines):
+    if not any(line == "## Blocked by" for line in lines):
         lines = ["## Blocked by", "", blocker] if not body else lines + ["", "## Blocked by", "", blocker]
     return "\n".join(lines)
 
