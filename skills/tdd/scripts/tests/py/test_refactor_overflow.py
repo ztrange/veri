@@ -776,3 +776,26 @@ def test_cli_comments_the_unlisted_candidates_and_prints_the_url_when_the_open_r
     assert result == (0, existing + "\n", "")
     assert [c for c in calls if "title=" in c] == []
     assert len(commented) == 1 and SPLIT in commented[0]
+
+
+def test_cli_asks_for_100_open_issues_per_page_on_every_lookup_call_and_reads_pages_until_one_returns_fewer_issue_1609(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = owed_504(tmp_path)
+    full_page = [{"number": i, "title": f"Unrelated #{i}", "html_url": f"https://github.com/o/r/issues/{i}", "body": ""}
+                 for i in range(1, 101)]
+    short_page = [{"number": 101, "title": "Unrelated #101", "html_url": "https://github.com/o/r/issues/101", "body": ""}]
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            page = re.search(r"[?&]page=(\d+)", line)
+            return 0, json.dumps(full_page if page and page.group(1) == "1" else short_page), ""
+        return 0, URL, ""
+
+    calls = fake_processes(gh)
+
+    result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    lookups = [c for c in calls if is_lookup(c)]
+    assert result == (0, URL, "")
+    assert [bool(re.search(r"[?&]per_page=100(&|$)", c)) for c in lookups] == [True, True]
+    assert [re.search(r"[?&]page=(\d+)", c).group(1) for c in lookups] == ["1", "2"]
