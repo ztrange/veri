@@ -180,6 +180,20 @@ def test_a_planted_test_file_running_another_suite_through_pytest_main_or_a_name
         assert "nested" in line.split(": ", 1)[1]
 
 
+def test_1641_a_planted_test_file_passing_a_suite_path_as_a_keyword_argument_is_reported_as_a_nested_suite_by_file_and_line(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    path = tmp_path / "test_keyword_suite.py"
+    path.write_text(
+        "def test_it():\n"
+        "    run_it(path='tests/py/test_other.py')\n"
+    )
+
+    found = guard.offences(tmp_path)
+
+    assert [line.split(": ")[0] for line in found] == [f"{path}:2"]
+    assert "nested" in found[0].split(": ", 1)[1]
+
+
 def test_an_offence_whose_file_and_line_the_exemption_table_lists_with_a_reason_is_not_reported_and_an_entry_with_an_empty_reason_is_refused_by_name(tmp_path):
     import pytest
 

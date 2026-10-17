@@ -80,7 +80,7 @@ def offences(root, exemptions=None):
                 message = f"starts a process through {started}"
             elif (module, attr) == ("pytest", "main") or any(
                 isinstance(arg, ast.Constant) and isinstance(arg.value, str) and _SUITE_PATH.search(arg.value)
-                for arg in node.args
+                for arg in [*node.args, *(kw.value for kw in node.keywords)]
             ):
                 message = "runs a nested suite"
             else:
