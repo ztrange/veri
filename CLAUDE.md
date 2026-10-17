@@ -2,8 +2,8 @@
 
 A Claude Code skill suite that solves one GitHub issue under strict TDD. The whole
 product is `skills/tdd/`: a procedure in English (`SKILL.md`) that Claude
-follows, plus eighty bash scripts it calls — seventy-eight, strictly: `invisible-work.sh` and
-`unreachable.sh` are counted with them but the procedure never calls them; they are maintenance
+follows, plus the bash scripts it calls. Two of them, `invisible-work.sh` and
+`unreachable.sh`, the procedure never calls; they are maintenance
 utilities a human or a loop runs, the first to report a branch no PR was opened for, or one not
 on `origin` (#197), the second to list the scripts no declared entry point reaches (#498). Read
 `CONTEXT.md` for the glossary — the terms there (conductor, leaf, supervisor, verdict, ledger, bail) are used precisely everywhere.
@@ -184,7 +184,7 @@ Two traps, both already cost something once:
 ## Testing idiom
 
 Plain-shell asserts, zero dependencies, under
-`skills/tdd/scripts/tests/` — 107 files for eighty scripts, plus thirteen suites under `unit/` (`ledger.test.sh`, `github.test.sh`, `exit-contract.test.sh`, `candidate-line.test.sh`, `window.test.sh`, `section-end.test.sh`, `frontmatter-name.test.sh`, `fenced-lines.test.sh`, `gh-fixture.test.sh`, written with the script or helper they test; `missing-argument-guard.test.sh`, which plants an offender so that the audit, `tests/missing-argument-exit.test.sh`, which runs every script as a subprocess and so stays out of the fast tier, is known to go red; `harness.test.sh`, written with the sourced test harness; `no-report-copies.test.sh`, written to pin that no suite carries its own `report`; and `guard-plant.test.sh`, written with the sourced guard-plant library), all run by `make test`.
+`skills/tdd/scripts/tests/` — the suites for the scripts, plus those under `unit/` (`ledger.test.sh`, `github.test.sh`, `exit-contract.test.sh`, `candidate-line.test.sh`, `window.test.sh`, `section-end.test.sh`, `frontmatter-name.test.sh`, `fenced-lines.test.sh`, `gh-fixture.test.sh`, written with the script or helper they test; `missing-argument-guard.test.sh`, which plants an offender so that the audit, `tests/missing-argument-exit.test.sh`, which runs every script as a subprocess and so stays out of the fast tier, is known to go red; `harness.test.sh`, written with the sourced test harness; `no-report-copies.test.sh`, written to pin that no suite carries its own `report`; and `guard-plant.test.sh`, written with the sourced guard-plant library), all run by `make test`.
 The pending-mark literal, commit-suffix and emitted-text checks are pytest cases now, in `tests/py/unit/test_pending_mark_literal.py`, `test_commit_suffix.py` and `test_emitted_text.py`.
 The bash suites' independence from
 ambient `VERI_*` tunables is `run-suite.sh`'s strip; the pytest leg's holds by construction, through
