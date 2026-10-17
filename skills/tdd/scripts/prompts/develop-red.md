@@ -79,7 +79,7 @@ not for the behaviour.
    Make that run through the wrapper {{INCLUDE:_timed-test-run.md}}
    and names the tier it belongs to:
 
-       {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>
+       {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' make test TESTS="<those paths>"
 
    {{INCLUDE:_exit-status-back.md}} so a red run stays red —
    and red is the answer this phase is after.

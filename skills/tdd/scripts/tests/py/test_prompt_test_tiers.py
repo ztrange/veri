@@ -372,6 +372,57 @@ def test_1702_every_affected_tier_prompt_gives_make_test_with_tests_naming_the_s
     assert problems == []
 
 
+@pytest.mark.process(BOUNDARY)
+def test_1702_no_prompt_asking_for_an_affected_run_leaves_the_command_a_placeholder_or_drops_tests(spec, reason):
+    problems = []
+    step = "the zorblat is frobbed ⟦diff-checked⟧ ⟦criterion 1⟧"
+    sha = "abc1234"
+    roster = []
+    for phase in ("red", "cover", "transform"):
+        roster.append(("develop-" + phase, build(problems, DEVELOP, phase, spec, step, "make test")))
+    roster += [
+        ("develop-green", build(problems, DEVELOP, "green", spec, step, "make test", "tests/zorblat.test.sh", "zorblat case", "make unit")),
+        ("develop-refactor", build(problems, DEVELOP, "refactor", spec, step, "make test", "src/zorblat.sh")),
+        ("develop-diff", build(problems, DEVELOP, "diff", spec, step, "make test", "make unit")),
+        ("develop-structural", build(problems, DEVELOP, "structural", spec, step, "make test", "src/zorblat.sh")),
+        ("develop-predicate", build(problems, DEVELOP, "predicate", spec, step, "make test", "src/zorblat.sh")),
+        ("develop-exhausted", build(problems, DEVELOP, "exhausted", spec, step, "make test", reason)),
+        ("develop-reconcile", build(problems, DEVELOP, "reconcile", spec, step, "make test", "tdd/x", sha)),
+        ("develop-over-budget", build(problems, DEVELOP, "over-budget", spec, step, "make test", "9", "5")),
+        ("develop-rebase", build(problems, DEVELOP, "rebase", spec, step, "make test", sha, sha, "a.sh")),
+        ("develop-revise diff", build(problems, DEVELOP, "revise", "diff", spec, step, "make test", reason, "make unit")),
+    ]
+    for phase in ("red", "green", "refactor", "expand", "migrate", "contract-a", "contract-b"):
+        roster.append(("develop-revise " + phase, build(problems, DEVELOP, "revise", phase, spec, step, "make test", reason)))
+    for phase in ("expand", "migrate", "contract-a", "contract-b"):
+        roster.append(("develop-" + phase, build(problems, DEVELOP, phase, spec, step, "make test")))
+    roster += [
+        ("verify-red", build(problems, VERIFY, "red", spec, "tests/zorblat.test.sh", "zorblat case")),
+        ("verify-green", build(problems, VERIFY, "--fast-cmd", "make unit", "green", spec, "tests/zorblat.test.sh", "zorblat case")),
+        ("verify-refactor", build(problems, VERIFY, "--fast-cmd", "make unit", "refactor", spec, "tests/zorblat.test.sh", sha)),
+        ("verify-pin", build(problems, VERIFY, "pin", spec, "tests/zorblat.test.sh", "zorblat case")),
+        ("verify-transform", build(problems, VERIFY, "transform", spec, "tests/zorblat.test.sh", sha)),
+        ("verify-diff", build(problems, VERIFY, "--step", step, "--fast-cmd", "make unit", "diff", spec, sha, "4567def")),
+    ]
+    for phase in ("expand", "migrate", "contract-a", "contract-b"):
+        roster.append(("verify-" + phase, build(problems, VERIFY, "--fast-cmd", "make unit", phase, spec, "tests/zorblat.test.sh", sha)))
+    asking = []
+    for label, prompt in roster:
+        folded = plain(prompt)
+        if not has_line(r"timed-test-run\.sh affected", folded):
+            continue
+        asking.append(label)
+        if "<the command that runs them>" in folded:
+            problems.append("%s's prompt still leaves the affected run's command as a placeholder" % label)
+        if not has_line(r"timed-test-run\.sh affected .*make test tests=\"", folded):
+            problems.append("%s's prompt never gives make test TESTS=\"<the suites>\" as the affected run's command" % label)
+    for named in ("develop-red", "verify-red", "develop-revise red", "develop-refactor", "develop-cover", "verify-transform",
+                  "develop-expand", "develop-migrate", "develop-contract-a", "develop-contract-b", "develop-transform", "develop-structural"):
+        if named not in asking:
+            problems.append("%s's prompt renders no affected run, so the roster covers nothing there" % named)
+    assert problems == []
+
+
 def test_the_prompt_probes_accept_a_matching_prompt_and_object_to_a_non_matching_one(tmp_path):
     runner = tmp_path / "timed-test-run.sh"
     runner.write_text("#!/bin/sh\n")
