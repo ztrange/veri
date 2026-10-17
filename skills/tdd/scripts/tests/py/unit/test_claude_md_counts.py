@@ -1,5 +1,6 @@
 """In-process cases for veri/claude_md_counts.py, the check that CLAUDE.md states no count of its tree."""
 import importlib
+from pathlib import Path
 
 
 def test_a_stated_count_of_the_trees_files_fails_naming_its_line_and_a_dated_measurement_passes_1508(tmp_path, run_cli):
@@ -21,3 +22,12 @@ def test_a_stated_count_of_the_trees_files_fails_naming_its_line_and_a_dated_mea
 
     flagged = sorted({line for line in (out + err).splitlines() if line.startswith(f"{planted}:")})
     assert (code, [line.split(":")[1] for line in flagged], clean_code, clean_out + clean_err) == (1, ["3", "5", "6"], 0, "")
+
+
+def test_the_committed_claude_md_states_no_count_of_the_tree_1508(run_cli):
+    claude_md_counts = importlib.import_module("veri.claude_md_counts")
+    claude_md = Path(__file__).resolve().parents[6] / "CLAUDE.md"
+
+    code, out, err = run_cli(claude_md_counts, [str(claude_md)])
+
+    assert (code, out + err) == (0, "")
