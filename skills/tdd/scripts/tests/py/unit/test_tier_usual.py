@@ -122,3 +122,49 @@ def test_main_with_a_test_run_event_whose_seconds_is_not_a_number_raises_and_pri
         tier_usual.main(["fast"])
     out, _ = capsys.readouterr()
     assert out == ""
+
+
+def _write_log(directory, events):
+    (directory / ".tdd").mkdir()
+    (directory / ".tdd" / "events.jsonl").write_text("".join(_event(*e) + "\n" for e in events))
+
+
+def test_run_cli_prints_the_median_of_the_last_10_test_run_events_of_the_tier_and_exits_0(
+        run_cli, tmp_path, tier_usual):
+    _write_log(tmp_path, [
+        ("test-run", "fast", "100"),
+        ("test-run", "fast", "200"),
+        ("test-run", "fast", "7"),
+        ("test-run", "fast", "3"),
+        ("test-run", "all", "900"),
+        ("test-run", "fast", "10"),
+        ("test-run", "fast", "1"),
+        ("leaf-exit", "fast", "900"),
+        ("test-run", "fast", "9"),
+        ("test-run", "fast", "5"),
+        ("test-run", "fast", "2"),
+        ("test-run", "fast", "8"),
+        ("test-run", "fast", "4"),
+        ("test-run", "fast", "6"),
+    ])
+
+    code, out, _ = run_cli(tier_usual, ["fast"], cwd=tmp_path)
+
+    assert (code, out) == (0, "5.5\n")
+
+
+def test_run_cli_with_no_argument_exits_2_with_nothing_on_stdout_and_the_one_usage_line_on_stderr(
+        run_cli, tmp_path, tier_usual):
+    assert run_cli(tier_usual, [], cwd=tmp_path) == (2, "", "usage: tier-usual.sh <tier>\n")
+
+
+def test_run_cli_with_no_test_run_event_for_the_tier_exits_2_with_nothing_on_stdout(
+        run_cli, tmp_path, tier_usual):
+    _write_log(tmp_path, [
+        ("test-run", "all", "900"),
+        ("leaf-exit", "fast", "900"),
+    ])
+
+    code, out, _ = run_cli(tier_usual, ["fast"], cwd=tmp_path)
+
+    assert (code, out) == (2, "")
