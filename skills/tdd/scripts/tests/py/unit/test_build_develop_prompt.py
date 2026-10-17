@@ -1837,6 +1837,20 @@ def test_cli_red_carries_spec_step_and_test_command_verbatim_and_the_against_unm
     assert [needle in out for needle in ('zorblat("Frob & Nitz/Quux")', step, test_cmd, "AGAINST_UNMODIFIED")] == [True] * 4
 
 
+def test_cli_red_contradicted_builds_a_prompt_naming_the_case_to_update_and_the_red_footer_and_refuses_an_empty_case_or_missing_spec_1621(
+        tmp_path, run_cli, build_develop_prompt):
+    step = "QWIXTLE: a seed ending in a newline gains the block and reports added"
+    case = "zorblat frobs a nitz"
+
+    code, out, err = run_cli(build_develop_prompt, ["red-contradicted", _spec(tmp_path), step, "make test", case])
+    empty = run_cli(build_develop_prompt, ["red-contradicted", _spec(tmp_path), step, "make test", ""])
+    missing = run_cli(build_develop_prompt, ["red-contradicted", str(tmp_path / "absent.md"), step, "make test", case])
+
+    footer = ("TEST_PATH:", "TARGET_TEST:", "AGAINST_UNMODIFIED:", "WHY:", "FAIL_OUTPUT:", "PREDICTED_FAILURE:", "PREDICTION:")
+    assert (code, [needle in out for needle in (step, case, *footer)], empty[0], empty[1], missing[0], missing[1]) == (
+        0, [True] * (2 + len(footer)), 2, "", 2, "")
+
+
 def test_cli_unknown_phase_with_no_further_arguments_exits_2_names_the_phase_on_stderr_and_prints_no_prompt(
         run_cli, build_develop_prompt):
     code, out, err = run_cli(build_develop_prompt, ["bogus"])
