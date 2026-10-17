@@ -3746,7 +3746,7 @@ def test_main_still_kills_a_4s_quiet_leaf_by_a_1s_hard_timeout_and_by_a_1s_heart
             heartbeat[0], "no heartbeat" in "".join(heartbeat[1])) == (2, True, 2, True), (timeout, heartbeat)
 
 
-def test_main_launches_a_leaf_that_never_answers_the_same_number_of_times_with_veri_no_verdict_retries_above_veri_stuck_retries_as_without_it_1440(
+def test_main_launches_a_leaf_that_never_answers_the_same_number_of_times_with_veri_no_verdict_retries_above_or_below_veri_stuck_retries_as_without_it_1440(
         monkeypatch, tmp_path, supervise, run_cli):
     import signal
     monkeypatch.setattr(signal, "signal", lambda *_: None)
@@ -3801,3 +3801,4 @@ def test_main_launches_a_leaf_that_never_answers_the_same_number_of_times_with_v
 
     assert launches_of_a_silent_leaf("alone") == (2, 2)
     assert launches_of_a_silent_leaf("with-no-verdict", VERI_NO_VERDICT_RETRIES="5") == (2, 2)
+    assert launches_of_a_silent_leaf("with-no-verdict-below", VERI_NO_VERDICT_RETRIES="0") == (2, 2)
