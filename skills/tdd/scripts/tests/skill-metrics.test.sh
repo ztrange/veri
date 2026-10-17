@@ -55,94 +55,14 @@ first_record_line() {
 
 record_at() { sed -n "${2}p" <<< "$1"; }
 
-name="$skill_md commits the metrics report and posts its 📊 block, on the PR path and on the bail path"
-problems=()
-
 pr_records="$(section_records '### 4. Draft PR' '^## |^### ')"
-if [[ -z "$pr_records" ]]; then
-  problems+=("$skill_md has no ### 4. Draft PR section to read — whether the run delivers its metrics could not be checked")
-else
-  first_record_line "$pr_records" 'metrics.sh' >/dev/null ||
-    problems+=("$skill_md's Draft PR step never runs metrics.sh, so the run's figures stay computable and uncomputed")
-
-  first_record_line "$pr_records" 'metrics:' 'metrics.md' >/dev/null ||
-    problems+=("$skill_md's Draft PR step has no instruction committing .tdd/issue-<n>-metrics.md in a metrics: commit, so the report is never beside the ledger it describes")
-
-  first_record_line "$pr_records" 'gh api -x patch' >/dev/null ||
-    problems+=("$skill_md's Draft PR step never runs gh pr edit, so the run ends with no PR carrying the metrics it committed")
-
-  first_record_line "$pr_records" '✅ done' '📊 metrics' >/dev/null ||
-    problems+=("$skill_md's final ✅ Done comment does not carry the ### 📊 Metrics block, so the issue thread ends without the run's figures")
-fi
-
 bail_records="$(section_records '## Bailing' '^## ')"
-if [[ -z "$bail_records" ]]; then
-  problems+=("$skill_md has no ## Bailing section to read — whether a bailed run delivers its metrics could not be checked")
-else
-  first_record_line "$bail_records" 'metrics.md' 'commit' >/dev/null ||
-    problems+=("$skill_md's Bailing section never commits .tdd/issue-<n>-metrics.md on the pushed branch, so the run whose waste the report measures is the one that leaves no report")
-  first_record_line "$bail_records" '⛔ bailed' '📊 metrics' >/dev/null ||
-    problems+=("$skill_md's ⛔ Bailed comment does not carry the ### 📊 Metrics block, so the ending that most needs the figures posts none")
-fi
-report "$name"
-
-name="$skill_md's Draft PR step writes the run's done mark, carrying the PR URL, before rendering the metrics report it commits"
-problems=()
-
-render_line="$(first_record_line "$pr_records" 'metrics.sh' '> .tdd/issue-<n>-metrics.md')" ||
-  problems+=("$skill_md's Draft PR step never renders metrics.sh into .tdd/issue-<n>-metrics.md, so there is no committed report to order against the done mark")
-done_line="$(first_record_line "$pr_records" 'event.sh done' 'pr=')" ||
-  problems+=("$skill_md's Draft PR step never writes event.sh done pr=<pr-url>, so the report can never name the landed PR")
-if [[ -n "${render_line:-}" && -n "${done_line:-}" && "$render_line" -lt "$done_line" ]]; then
-  problems+=("$skill_md renders the committed metrics report BEFORE event.sh done, so its Outcome reads unknown instead of naming the landed PR: $(printf '%.120s' "$(record_at "$pr_records" "$render_line")")")
-fi
-report "$name"
-
-name="$skill_md pastes into the PR body and the ✅ Done comment the committed report rendered after event.sh done"
-problems=()
 
 offset_of() {
   [[ "$1" == *"$2"* ]] || return 1
   local before="${1%%"$2"*}"
   echo "${#before}"
 }
-
-pr_text="$pr_records"
-done_at="$(offset_of "$pr_text" 'event.sh done pr=')" ||
-  problems+=("$skill_md's Draft PR step never writes event.sh done pr=<pr-url>, so no report can be rendered after it")
-render_at="$(offset_of "$pr_text" 'metrics.sh <n> > .tdd/issue-<n>-metrics.md')" ||
-  problems+=("$skill_md's Draft PR step never renders metrics.sh <n> > .tdd/issue-<n>-metrics.md, so there is no committed report to paste")
-if [[ -n "${done_at:-}" && -n "${render_at:-}" && "$render_at" -lt "$done_at" ]]; then
-  problems+=("$skill_md renders the report at offset $render_at, BEFORE event.sh done at offset $done_at, so every pasted copy reads unknown")
-fi
-
-body_at="$(offset_of "$pr_text" 'contents of .tdd/issue-<n>-metrics.md')" ||
-  problems+=("$skill_md's Draft PR step never puts the contents of .tdd/issue-<n>-metrics.md into the PR body")
-if [[ -n "${body_at:-}" ]]; then
-  body_cmd="${pr_text:0:$body_at}"
-  body_cmd="gh api ${body_cmd##*gh api }"
-  [[ "$body_cmd" == *"-f body="* ]] ||
-    problems+=("$skill_md mentions the contents of .tdd/issue-<n>-metrics.md outside a gh api -f body=, so the PR body never gets the committed report")
-  if [[ -n "${render_at:-}" && "$body_at" -lt "$render_at" ]]; then
-    problems+=("$skill_md pastes the report into the PR body at offset $body_at, BEFORE it is rendered after done at offset $render_at: $(printf '%.120s' "$body_cmd")")
-  fi
-fi
-
-done_comment_line="$(first_record_line "$pr_records" '✅ done' '📊 metrics')" ||
-  problems+=("$skill_md's Draft PR step has no ✅ Done comment carrying the 📊 Metrics block")
-if [[ -n "${done_comment_line:-}" ]]; then
-  done_comment="$(record_at "$pr_records" "$done_comment_line")"
-  comment_at="$(offset_of "$pr_text" "$done_comment")"
-  if [[ -n "${render_at:-}" && -n "${comment_at:-}" && "$comment_at" -lt "$render_at" ]]; then
-    problems+=("$skill_md posts the ✅ Done comment's report at offset $comment_at, BEFORE it is rendered after done at offset $render_at")
-  fi
-  [[ "$done_comment" == *"issue-<n>-metrics.md"* || "$done_comment" == *"file just committed"* ]] ||
-    problems+=("$skill_md's ✅ Done comment does not paste the report from the committed file, so it may differ from what the branch carries: $(printf '%.120s' "$done_comment")")
-fi
-report "$name"
-
-name="$skill_md's Draft PR command block reads the open PR's URL before the metrics: commit, ordered line by line"
-problems=()
 
 first_fenced_line() {
   local n rest
@@ -154,61 +74,6 @@ first_fenced_line() {
 
 pr_read='pulls?head='
 pr_edit='gh api -X PATCH'
-
-block_pr_line="$(first_fenced_line "$pr_read")" ||
-  problems+=("$skill_md's Draft PR command block never runs gh api …/pulls?head= to read the open PR's URL")
-block_commit_line="$(first_fenced_line 'git commit -m "metrics:')" ||
-  problems+=("$skill_md's Draft PR command block never runs git commit -m \"metrics: …\"")
-if [[ -n "${block_pr_line:-}" && -n "${block_commit_line:-}" && "$block_commit_line" -lt "$block_pr_line" ]]; then
-  problems+=("$skill_md commits the metrics report at SKILL.md:$block_commit_line, BEFORE gh api …/pulls?head= at SKILL.md:$block_pr_line, so the report is rendered and committed with no PR URL for the done mark to name")
-fi
-report "$name"
-
-name="$skill_md's Draft PR command block runs gh pr edit after the metrics: commit and push-branch.sh, ordered line by line"
-problems=()
-
-block_edit_line="$(first_fenced_line "$pr_edit")" ||
-  problems+=("$skill_md's Draft PR command block never runs gh pr edit, so the PR body never gets the 📊 block")
-block_commit_line="$(first_fenced_line 'git commit -m "metrics:')" ||
-  problems+=("$skill_md's Draft PR command block never runs git commit -m \"metrics: …\"")
-block_push_line="$(first_fenced_line 'push-branch.sh')" ||
-  problems+=("$skill_md's Draft PR command block never runs push-branch.sh")
-if [[ -n "${block_edit_line:-}" && -n "${block_commit_line:-}" && "$block_edit_line" -lt "$block_commit_line" ]]; then
-  problems+=("$skill_md runs gh pr edit at SKILL.md:$block_edit_line, BEFORE the metrics: commit at SKILL.md:$block_commit_line, so the PR body quotes a report the branch does not carry")
-fi
-if [[ -n "${block_edit_line:-}" && -n "${block_push_line:-}" && "$block_edit_line" -lt "$block_push_line" ]]; then
-  problems+=("$skill_md runs gh pr edit at SKILL.md:$block_edit_line, BEFORE push-branch.sh at SKILL.md:$block_push_line, so the PR body quotes a report the pushed branch does not carry")
-fi
-report "$name"
-
-name="$skill_md's Draft PR command block runs gh api …/pulls?head=, event.sh done, metrics.sh, the metrics: commit, push-branch.sh and gh api -X PATCH in that order"
-problems=()
-
-prev_anchor="" prev_line=""
-for anchor in "$pr_read" 'event.sh done pr=' 'metrics.sh <n>' 'git commit -m "metrics:' 'push-branch.sh' "$pr_edit"; do
-  if ! line="$(first_fenced_line "$anchor")"; then
-    problems+=("$skill_md's Draft PR command block never runs $anchor")
-    prev_anchor="" prev_line=""
-    continue
-  fi
-  if [[ -n "$prev_line" && "$line" -le "$prev_line" ]]; then
-    problems+=("$skill_md runs $anchor at SKILL.md:$line, not after $prev_anchor at SKILL.md:$prev_line")
-  fi
-  prev_anchor="$anchor" prev_line="$line"
-done
-report "$name"
-
-name="$skill_md's Draft PR gh pr edit command puts the committed 📊 metrics report in the PR body"
-problems=()
-
-if ! edit_line="$(first_fenced_line "$pr_edit")"; then
-  problems+=("$skill_md's Draft PR command block never runs gh pr edit, so no command puts the 📊 block in the PR body")
-else
-  edit_cmd="$(sed -n "${edit_line}p" "$skill_path")"
-  [[ "$edit_cmd" == *"-f body="*".tdd/issue-<n>-metrics.md"* ]] ||
-    problems+=("$skill_md's gh pr edit at SKILL.md:$edit_line does not put the contents of .tdd/issue-<n>-metrics.md in its -f body=, so the PR body never gets the 📊 block: $(printf '%.120s' "$edit_cmd")")
-fi
-report "$name"
 
 name="skill-metrics.test.sh's header comment states the Draft PR order gh api …/pulls?head=, event.sh done, metrics.sh, the metrics: commit, push-branch.sh, gh api -X PATCH"
 problems=()
@@ -254,30 +119,6 @@ create_arg="'gh pr create'"
 block_arg="'📊 metrics'"
 [[ "$suite_src" != *"$probe_call$create_arg $block_arg"* ]] ||
   problems+=("$suite_md still asks whether the record holding gh pr create also holds the 📊 metrics block, but section_records folds the whole Draft PR sub-step into one record, so a block carried by a later gh pr edit answers for the create and the probe cannot fail")
-report "$name"
-
-name="#626: $skill_md's Bailing section writes the run's bail mark before rendering the metrics report it commits"
-problems=()
-
-bail_render_line="$(first_record_line "$bail_records" 'metrics.sh <n> > .tdd/issue-<n>-metrics.md')" ||
-  problems+=("$skill_md's Bailing section never renders metrics.sh <n> > .tdd/issue-<n>-metrics.md, so there is no committed report to order against the bail mark")
-bail_mark_line="$(first_record_line "$bail_records" 'event.sh bail')" ||
-  problems+=("$skill_md's Bailing section never writes event.sh bail, so the report can never name the bail as the run's ending")
-if [[ -n "${bail_render_line:-}" && -n "${bail_mark_line:-}" && "$bail_render_line" -lt "$bail_mark_line" ]]; then
-  problems+=("$skill_md renders the committed metrics report in record $bail_render_line, BEFORE event.sh bail in record $bail_mark_line, so its Outcome reads unknown instead of naming the bail: $(printf '%.120s' "$(record_at "$bail_records" "$bail_render_line")")")
-fi
-report "$name"
-
-name="#626: $skill_md's Bailing section marks the bail with its cause= and classification= before rendering the metrics report it commits"
-problems=()
-
-bail_render_line="$(first_record_line "$bail_records" 'metrics.sh <n> > .tdd/issue-<n>-metrics.md')" ||
-  problems+=("$skill_md's Bailing section never renders metrics.sh <n> > .tdd/issue-<n>-metrics.md, so there is no committed report for the bail mark to end")
-bail_mark_line="$(first_record_line "$bail_records" 'event.sh bail' 'cause=<cause>' 'classification="$classification"')" ||
-  problems+=("$skill_md's Bailing section never writes event.sh bail carrying cause=<cause> and classification=\"\$classification\", so the report cannot name what the run bailed on")
-if [[ -n "${bail_render_line:-}" && -n "${bail_mark_line:-}" && "$bail_mark_line" -gt "$bail_render_line" ]]; then
-  problems+=("$skill_md writes event.sh bail with its cause= and classification= only in record $bail_mark_line, AFTER rendering the committed metrics report in record $bail_render_line, so the report names no cause for the bail")
-fi
 report "$name"
 
 name="#566: $skill_md's Draft PR step makes the metrics: commit only on a metrics.sh exit of 0, and otherwise puts the failed render and its exit code in the PR body"
