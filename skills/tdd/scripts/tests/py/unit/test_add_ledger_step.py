@@ -1040,3 +1040,26 @@ def test_main_inserts_a_suite_repair_after_the_last_resume_when_the_step_after_t
 
     assert code == 0, err
     assert "second.test.sh ⟦suite-repair⟧" in ledger.read_text()
+
+
+UNQUOTED_REPLACES_STEP = (
+    "tests/py/test_tick_ledger.py calls veri.tick_ledger.main(argv) for a ticked step, an unmatched matcher and `[]` "
+    "and asserts return codes 0, 3 and 2 — every exit inside 0–3: replaces the tick-ledger.sh half of the foreign "
+    "ledger-transform code case in skills/tdd/scripts/tests/tick-ledger.test.sh, the clear-refactor-pending.sh case "
+    "staying with its assertion unmodified ⟦replaces-case⟧ ⟦criterion 3⟧"
+)
+
+
+def test_main_refuses_a_replaces_case_step_with_unreadable_case_names_1538(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+
+    code = add_ledger_step.main([str(ledger), "after", "b two", UNQUOTED_REPLACES_STEP])
+    captured = capsys.readouterr()
+
+    assert code == 1
+    assert "tick-ledger.sh half of the foreign ledger-transform code case" in captured.out + captured.err
+    assert not any(
+        "⟦replaces-case⟧" in line for line in ledger.read_text().split("\n") if line.startswith("- [")
+    )
