@@ -9,6 +9,7 @@ from refactor_owed import out_of_scope_transforms, structural_lines
 
 USAGE = "usage: refactor-overflow.sh <n> <owed-file> <reached>"
 NUMBER = re.compile(r"[0-9]+")
+ISSUES = "repos/{owner}/{repo}/issues"
 
 
 def fail(message, code):
@@ -23,7 +24,7 @@ def gh_api(*args):
 def find_open_issue(title):
     page = 1
     while True:
-        found = gh_api(f"repos/{{owner}}/{{repo}}/issues?state=open&per_page=100&page={page}")
+        found = gh_api(f"{ISSUES}?state=open&per_page=100&page={page}")
         if found.returncode:
             raise LookupError("open-issue lookup failed")
         try:
@@ -72,10 +73,10 @@ def main(argv):
         for heading, lines in sections if lines)
     if existing:
         if body:
-            gh_api(f"repos/{{owner}}/{{repo}}/issues/{existing['number']}/comments", "-f", f"body={body}")
+            gh_api(f"{ISSUES}/{existing['number']}/comments", "-f", f"body={body}")
         print(existing["html_url"])
         return 0
-    filed = gh_api("repos/{owner}/{repo}/issues", "-f", f"title={title}", "-f", f"body={body}",
+    filed = gh_api(ISSUES, "-f", f"title={title}", "-f", f"body={body}",
                    "-q", ".html_url")
     if filed.returncode:
         return 2
