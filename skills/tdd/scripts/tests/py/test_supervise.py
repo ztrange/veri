@@ -1671,7 +1671,7 @@ def test_main_keeps_a_killed_leaf_whose_log_cannot_be_opened_killed_stuck_writin
     assert (code, exitfile.read_bytes() if exitfile.exists() else None, err) == (
         2, b"2\n",
         "supervise[develop-red]: [Errno 21] Is a directory: '.tdd/develop-red.log'\n"
-        "harvest: IsADirectoryError: [Errno 21] Is a directory: '.tdd/develop-red.log'\n"
+        "harvest-usage.sh: .tdd/develop-red.log is a directory \u2014 no usage event appended for develop-red\n"
         "supervise[develop-red]: killed-stuck \u2014 no heartbeat for 4s (window 3s)\n"
         "supervise[develop-red]: [Errno 21] Is a directory: '.tdd/develop-red.log'\n")
 

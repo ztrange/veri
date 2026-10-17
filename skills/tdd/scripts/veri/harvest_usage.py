@@ -75,6 +75,9 @@ def harvest(name, env):
     except UnicodeDecodeError:
         no_usage_event(name, "%s is not valid UTF-8" % log)
         return 2
+    except IsADirectoryError:
+        no_usage_event(name, "%s is a directory" % log)
+        return 2
     except Exception:
         traceback.print_exc()
         return 1
