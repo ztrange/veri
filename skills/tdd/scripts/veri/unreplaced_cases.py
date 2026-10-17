@@ -65,10 +65,8 @@ def main(argv):
                 if exists_in_tree(m.group(2)):
                     replaced.add(m.group(1))
                     replaced.add(re.sub("^(" + re.escape(quote) + ")(.*)\\1$", r"\2", m.group(1)))
-                elif is_bare_name(m.group(2)) and bare_name_count(m.group(2).strip()) == 0:
-                    not_found.add(m.group(1))
-                elif is_bare_name(m.group(2)) and bare_name_count(m.group(2).strip()) > 1:
-                    ambiguous.add(m.group(1))
+                elif is_bare_name(m.group(2)):
+                    (not_found if bare_name_count(m.group(2).strip()) == 0 else ambiguous).add(m.group(1))
     missing = [name for name in (parsed[0] if parsed else []) if name not in replaced and unescape(name) not in replaced]
     for name in missing:
         note = ""
