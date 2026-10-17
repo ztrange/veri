@@ -20,6 +20,20 @@ def gh_api(*args):
     return subprocess.run(["gh", "api", *args], stdout=subprocess.PIPE, text=True)
 
 
+def find_open_issue(title):
+    page = 1
+    while True:
+        found = gh_api(f"repos/{{owner}}/{{repo}}/issues?state=open&per_page=100&page={page}")
+        try:
+            issues = json.loads(found.stdout)
+        except ValueError:
+            return None
+        match = next((i for i in issues if i["title"] == title), None)
+        if match or len(issues) < 100:
+            return match
+        page += 1
+
+
 def main(argv):
     n, owed, reached, skipped = (list(argv[:4]) + [""] * 4)[:4]
     if not NUMBER.fullmatch(n) or not owed or not NUMBER.fullmatch(reached):
@@ -41,11 +55,7 @@ def main(argv):
     if not structural and not out_of_scope:
         return 3
     title = f"Refactor owed by #{n}"
-    found = gh_api("repos/{owner}/{repo}/issues?state=open&per_page=100")
-    try:
-        existing = next((i for i in json.loads(found.stdout) if i["title"] == title), None)
-    except ValueError:
-        existing = None
+    existing = find_open_issue(title)
     sections = [
         (f"Structural candidates #{n}'s closing pass could not reach", structural),
         (f"Out-of-scope transforms #{n}'s closing pass did not attempt", out_of_scope)]
