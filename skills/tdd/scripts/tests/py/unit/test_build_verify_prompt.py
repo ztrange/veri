@@ -1693,3 +1693,22 @@ def test_a_diff_prompt_tells_the_verifier_the_wrapper_hands_the_test_commands_ex
         problems.append("never says the wrapper hands the exit status straight back")
 
     assert problems == []
+
+
+def test_main_renders_a_red_prompt_telling_the_verifier_to_reject_a_red_whose_only_failure_is_a_name_error_on_a_name_the_test_file_references_and_never_defines_or_imports_1615(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+
+    code = build_verify_prompt.main(["red", str(spec), "tests/a.py", "zorblat frobs a nitz"])
+    out, _ = capsysbinary.readouterr()
+    prompt = re.sub(rb"\s+", b" ", out)
+
+    rules = {
+        "an undefined name in the test file alone is a REJECT": (
+            rb"(NameError|undefined name)[^.]{0,250}(never defines|defines? nowhere|not defined)[^.]{0,200}REJECT"
+            rb"|REJECT[^.]{0,250}(NameError|undefined name)[^.]{0,250}(never defines|defines? nowhere|not defined)"),
+    }
+    missing = sorted(rule for rule, pattern in rules.items() if re.search(pattern, prompt, re.I) is None)
+
+    assert (code, missing) == (0, [])
