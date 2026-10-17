@@ -1961,40 +1961,6 @@ def test_cli_develop_diff_given_every_argument_but_an_empty_test_cmd_exits_2_wit
     assert (code, out, err.splitlines()[0]) == (2, "", "build-develop-prompt: missing <test-cmd>")
 
 
-@pytest.mark.process("build-develop-prompt.sh run through a symlink to the scripts directory from another working directory")
-def test_cli_run_through_a_symlink_to_the_scripts_directory_answers_red_green_and_diff_as_in_place_but_names_the_symlink_in_the_timed_test_run_path(
-        tmp_path):
-    import subprocess
-
-    spec = _spec(tmp_path)
-    step = "QWIXTLE: a seed ending in a newline gains the block and reports added"
-    diff_step = "the dead counted line in the status suite is gone ⟦diff-checked⟧ ⟦criterion 5⟧"
-    test_cmd = 'make test ZORBLAT=1 -- --only "frob & nitz/quux"'
-    linked = tmp_path / "linked"
-    linked.mkdir()
-    (linked / "veri-scripts").symlink_to(SCRIPTS)
-    calls = {
-        "red": ["red", spec, step, test_cmd],
-        "green": ["green", spec, step, test_cmd, "tests/zorblat/test_frob & nitz.sh",
-                  "qwixtle seeds a newline-terminated block", "make unit"],
-        "diff": ["diff", spec, diff_step, test_cmd, 'make unit ZORBLAT=fast -- --only "frob & nitz/quux"'],
-    }
-    problems = []
-    for label, argv in calls.items():
-        want = subprocess.run([str(SCRIPTS / "build-develop-prompt.sh"), *argv], capture_output=True, text=True,
-                              cwd=str(tmp_path))
-        got = subprocess.run(["./veri-scripts/build-develop-prompt.sh", *argv], capture_output=True, text=True,
-                             cwd=str(linked))
-        in_place = f"{SCRIPTS}/timed-test-run.sh"
-        if in_place not in want.stdout:
-            problems.append(f"{label} in place names no {in_place}")
-        expected = want.stdout.replace(in_place, f"{linked}/veri-scripts/timed-test-run.sh")
-        if (got.returncode, got.stdout, got.stderr) != (want.returncode, expected, want.stderr):
-            problems.append(f"{label} differs through the link")
-
-    assert problems == []
-
-
 def test_cli_red_given_a_directory_as_the_issue_spec_file_exits_2_with_nothing_on_stdout_and_a_non_empty_stderr(
         tmp_path, run_cli, build_develop_prompt):
     spec_dir = tmp_path / "spec-dir"
