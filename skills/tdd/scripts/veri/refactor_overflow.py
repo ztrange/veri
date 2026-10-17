@@ -1,4 +1,5 @@
 """refactor-overflow.sh's logic, run in-process."""
+import json
 import os
 import re
 import subprocess
@@ -35,14 +36,29 @@ def main(argv):
     out_of_scope = out_of_scope_transforms(owed)
     if not structural and not out_of_scope:
         return 3
+    title = f"Refactor owed by #{n}"
+    found = subprocess.run(["gh", "api", "repos/{owner}/{repo}/issues?state=open&per_page=100"],
+                           stdout=subprocess.PIPE, text=True)
+    try:
+        existing = next((i for i in json.loads(found.stdout) if i["title"] == title), None)
+    except ValueError:
+        existing = None
+    sections = [
+        (f"Structural candidates #{n}'s closing pass could not reach", structural),
+        (f"Out-of-scope transforms #{n}'s closing pass did not attempt", out_of_scope)]
+    if existing:
+        listed = existing["body"].split("\n")
+        sections = [(h, [l for l in lines if f"- {l}" not in listed]) for h, lines in sections]
     body = "\n\n".join(
         f"{heading}:\n\n" + "\n".join(f"- {line}" for line in lines)
-        for heading, lines in [
-            (f"Structural candidates #{n}'s closing pass could not reach", structural),
-            (f"Out-of-scope transforms #{n}'s closing pass did not attempt", out_of_scope)]
-        if lines)
+        for heading, lines in sections if lines)
+    if existing:
+        subprocess.run(["gh", "api", f"repos/{{owner}}/{{repo}}/issues/{existing['number']}/comments",
+                        "-f", f"body={body}"], stdout=subprocess.PIPE, text=True)
+        print(existing["html_url"])
+        return 0
     filed = subprocess.run(["gh", "api", "repos/{owner}/{repo}/issues",
-                            "-f", f"title=Refactor owed by #{n}", "-f", f"body={body}",
+                            "-f", f"title={title}", "-f", f"body={body}",
                             "-q", ".html_url"], stdout=subprocess.PIPE, text=True)
     if filed.returncode:
         return 2
