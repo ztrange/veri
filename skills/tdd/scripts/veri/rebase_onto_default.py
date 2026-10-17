@@ -50,6 +50,7 @@ def main(argv):
     remote = git("ls-remote", "origin", f"refs/heads/{default}", text=True,
                  stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     if remote.returncode != 0:
+        sys.stderr.write(f"rebase-onto-default: git ls-remote of refs/heads/{default} on origin failed\n")
         return 2
     onto = output("rev-parse", f"origin/{default}")
     if onto != re.match(r"\S*", remote.stdout).group():
