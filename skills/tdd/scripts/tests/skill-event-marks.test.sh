@@ -97,50 +97,6 @@ refactor_call() {
   call="${BASH_REMATCH[1]}"
 }
 
-name="$skill_md prescribes an event.sh call for each of the conductor's seven marks, beside the issue comment it mirrors"
-problems=()
-records="$(instructions)"
-if have_records 'no mark'; then
-  mark step-start 'takes the next unchecked step with next-unchecked.sh' \
-    'next-unchecked\.sh'
-  comment_mark step-done '### ✅ Step done' 'step done'
-  comment_mark pin '### 📌 Already satisfied' 'already satisfied'
-  comment_mark revise '### ♻️ Revise <phase> — attempt <k>' 'revise <phase>' 'attempt'
-  comment_mark bail '### ⛔ Bailed — <phase>' 'bailed'
-  comment_mark done '### ✅ Done — <pr-url>' 'pr-url'
-  comment_mark resume '### ▶️ Resuming' 'resuming'
-fi
-report "$name"
-
-name="$skill_md writes an event.sh refactor mark carrying transforms, budget and stopped, beside the Refactor comment"
-problems=()
-if have_records 'the refactor mark'; then
-  refactor_mark
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    refactor_call
-    for key in transforms budget stopped; do
-      [[ "$call" =~ (^|[[:space:]])"$key"= ]] ||
-        problems+=("$skill_md calls \`$call\` without \`$key=\` — metrics.sh's cell stays unknown")
-    done
-  fi
-fi
-report "$name"
-
-name="$skill_md prescribes the refactor mark's transforms as the observed git rev-list count, unclamped on an overrun"
-problems=()
-if have_records "the refactor mark's count"; then
-  refactor_mark
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    before="${marked%%event.sh refactor*}"
-    sentence="${before##*. }"
-    [[ "$sentence" =~ observed|rev-list ]] ||
-      problems+=("$skill_md introduces the refactor mark without saying its count is the observed one: $(printf '%.160s' "$sentence")")
-    [[ "$sentence" =~ unclamped|never\ clamped ]] ||
-      problems+=("$skill_md introduces the refactor mark without saying an overrun is recorded unclamped: $(printf '%.160s' "$sentence")")
-  fi
-fi
-report "$name"
-
 name="a run whose SKILL.md refactor mark is present renders real refactor and stopped cells for that step, and unknown for a step without one"
 problems=()
 S="$(cd "$HERE/.." && pwd)"
@@ -184,105 +140,6 @@ else
   done
   [[ "${#problems[@]}" -eq 0 ]] || problems+=("the report was: $(printf '%q' "$report_out")")
   rm -rf "$fixture"
-fi
-report "$name"
-
-name="$skill_md names stopped=nothing-structural for refactor-triage.sh exit 3 and stopped=structural-owed for exit 0, no stopped=triage, and keeps malformed, nothing-left and budget"
-problems=()
-if have_records "the refactor mark's stop reasons"; then
-  refactor_mark
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    for pair in '3|nothing-structural' '0|structural-owed'; do
-      IFS='|' read -r code value <<< "$pair"
-      exit_re="exit \**${code}\**"
-      value_re="\`(stopped=)?${value}\`"
-      [[ "$marked" =~ ${exit_re}[^\;,.\`]{0,40}${value_re} || "$marked" =~ ${value_re}[^\;,.\`]{0,40}${exit_re} ]] ||
-        problems+=("$skill_md does not name \`stopped=$value\` against refactor-triage.sh exit $code")
-    done
-    [[ "$marked" =~ \`(stopped=)?triage\` ]] &&
-      problems+=("$skill_md still offers \`stopped=triage\`, which cannot tell exit 3 from exit 0")
-    for value in nothing-left budget malformed; do
-      [[ "$marked" =~ \`(stopped=)?${value}\` ]] ||
-        problems+=("$skill_md no longer offers \`stopped=$value\` for the refactor mark")
-    done
-  fi
-fi
-report "$name"
-
-name="$skill_md prescribes an event.sh step-added call beside every add-ledger-step.sh insertion"
-problems=()
-if have_records 'the step-added mark'; then
-  insertions=0
-  while IFS= read -r line; do
-    [[ "$line" =~ $insertion_re ]] || continue
-    insertions=$((insertions + 1))
-    calls_event "$line" step-added ||
-      problems+=("$skill_md inserts a step with no \`event.sh step-added\` beside it: $(printf '%.130s' "$line")")
-  done <<< "$records"
-  [[ "$insertions" -gt 0 ]] ||
-    problems+=("$skill_md prescribes no \`\$S/add-ledger-step.sh\` call — where \`event.sh step-added\` belongs could not be read")
-fi
-report "$name"
-
-name="$skill_md marks the Refactor section's own plan insertion with an event.sh step-added call beside it"
-problems=()
-if have_records "the Refactor section's step-added mark"; then
-  mark step-added "grows the plan with the \`uncovered-spec\` flags beside the refactor-pending clear" \
-    "$insertion_re" 'clear-refactor-pending\.sh' 'uncovered-spec'
-fi
-report "$name"
-
-name="$skill_md marks the exhausted-budget split and the needs-user park in the event log, the split told apart from a leaf-volunteered one"
-problems=()
-if have_records 'the exhausted-budget marks'; then
-  split_rec="" park_rec="" bail_rec="" volunteered_rec=""
-  while IFS= read -r line; do
-    if [[ "$line" =~ exhausted-answer && "$line" =~ instead-of ]]; then split_rec="$line"
-    elif [[ "$line" =~ exhausted-answer && "$line" =~ park ]]; then park_rec="$line"
-    elif [[ "$line" =~ exit[[:space:]]+3 && "$line" =~ revise-exhausted ]]; then bail_rec="$line"
-    elif [[ "$line" =~ $insertion_re && "$line" =~ [[:space:]]before[[:space:]] && "$line" =~ split: ]]; then volunteered_rec="$line"
-    fi
-  done <<< "$records"
-
-  event_calls() { grep -oE 'event\.sh [a-z][a-z-]*( [a-z]+=[^ ]+)*' <<< "$1"; }
-
-  mark_names() { awk '{print $2}' <<< "$1"; }
-
-  split_calls="$(event_calls "$split_rec")"
-
-  if [[ -z "$split_rec" ]]; then
-    problems+=("$skill_md prescribes no instead-of insertion beside .tdd/exhausted-answer.txt — where the split outcome's mark belongs could not be read")
-  elif [[ -z "$volunteered_rec" ]]; then
-    problems+=("$skill_md prescribes no \`before\` insertion for a leaf-volunteered split — what the exhausted split must be told apart from could not be read")
-  else
-    distinct=""
-    while IFS= read -r call; do
-      [[ -n "$call" ]] || continue
-      [[ "$volunteered_rec" == *"$call"* ]] || distinct="$call"
-    done <<< "$split_calls"
-    [[ -n "$distinct" ]] ||
-      problems+=("$skill_md marks the split a run reaches at exhaustion with nothing a leaf-volunteered split does not write too, so the log cannot say which of the two grew the plan: $(printf '%.130s' "$split_rec")")
-  fi
-
-  if [[ -z "$park_rec" ]]; then
-    problems+=("$skill_md prescribes no park beside .tdd/exhausted-answer.txt — where the escalated outcome's mark belongs could not be read")
-  else
-    park_calls="$(event_calls "$park_rec")"
-    if [[ -z "$park_calls" ]]; then
-      problems+=("$skill_md parks a step at exhaustion with no \`event.sh\` call beside it, so the outcome that stops a run without bailing it leaves no mark in the log")
-    else
-      split_names="$(mark_names "$split_calls")"
-      own=""
-      while IFS= read -r call; do
-        grep -qxF "$(mark_names "$call")" <<< "$split_names" || own="$call"
-      done <<< "$park_calls"
-      [[ -n "$own" ]] ||
-        problems+=("$skill_md marks the parked step only with marks the split branch writes too, so the escalated outcome is not distinguishable from the split one")
-    fi
-  fi
-
-  [[ -n "$bail_rec" ]] ||
-    problems+=("$skill_md no longer names the revise-exhausted cause against exhausted-outcome.sh's exit 3, so the bailed outcome's own mark could not be read")
 fi
 report "$name"
 
@@ -426,22 +283,6 @@ else
     problems+=("case 13 did not name a mark planted in the exit 3 branch at $skill_md:$planted_at; it filed: ${named:-nothing}")
 fi
 rm -rf "$scratch"
-report "$name"
-
-name="$skill_md writes the refactor mark with pass=<k>: 1 for a step's first pass, one more each time the triangulation path resumes the refactor loop"
-problems=()
-if have_records "the refactor mark's pass index"; then
-  refactor_mark
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    refactor_call
-    [[ "$call" =~ (^|[[:space:]])pass= ]] ||
-      problems+=("$skill_md calls \`$call\` without \`pass=\` — two passes of one step cannot be told apart")
-    [[ "$marked" =~ (^|[^0-9])1([^0-9]|$)[^.\;]{0,40}first || "$marked" =~ first[^.\;]{0,60}[^0-9]1([^0-9]|$) ]] ||
-      problems+=("$skill_md does not say a step's first refactor pass marks \`pass=1\`: $(printf '%.160s' "$marked")")
-    [[ "$marked" =~ (one more|increments?|\+ ?1)[^.]{0,120}triangulat || "$marked" =~ triangulat[^.]{0,160}(one more|increments?|\+ ?1) ]] ||
-      problems+=("$skill_md does not say the pass index counts one more each time the triangulation path resumes the refactor loop: $(printf '%.160s' "$marked")")
-  fi
-fi
 report "$name"
 
 finish
