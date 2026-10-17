@@ -8,6 +8,8 @@ import sys
 import tempfile
 
 from git import git, symref_default
+from github import NoAnswer, gh_json
+from json_documents import items
 from pid_file import live_conductor
 
 USAGE = "usage: issue-worktree.sh <n> <slug> | --remove <n>"
@@ -36,9 +38,10 @@ def ref_exists(ref):
     return subprocess.run(["git", "show-ref", "--verify", "--quiet", ref]).returncode == 0
 
 
-def has_origin():
-    return subprocess.run(["git", "remote", "get-url", "origin"],
-                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+def origin_url():
+    got = subprocess.run(["git", "remote", "get-url", "origin"],
+                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    return got.stdout if got.returncode == 0 else None
 
 
 def default_branch_name(origin):
@@ -66,6 +69,21 @@ def remote_issue_branch(own):
         name = line.partition("\trefs/heads/")[2]
         if name:
             return name
+    return ""
+
+
+def claiming_pr(issue, url):
+    if not os.environ.get("VERI_GH_JSON") and "github.com" not in url:
+        return ""
+    try:
+        prs = gh_json("prs.json", "repos/{owner}/{repo}/pulls?state=open&per_page=100",
+                      "pr", "list", "--state", "open", "--limit", "10000", "--json", "body,state,url")
+    except (NoAnswer, OSError):
+        return ""
+    for pr in items(prs):
+        if str(pr.get("state", "")).upper() == "OPEN" and \
+                issue in re.findall(r"\bCloses #(\d+)", pr.get("body") or ""):
+            return pr.get("url") or "an open PR"
     return ""
 
 
@@ -151,12 +169,18 @@ def cut(path, branch):
     elif ref_exists(remote_ref):
         code = worktree_add("-b", branch, path, remote_ref)
     else:
-        origin = has_origin()
+        url = origin_url()
+        origin = url is not None
         if origin:
             claimed = remote_issue_branch(branch)
             if claimed:
                 sys.stderr.write("issue-worktree: %s is already on origin"
                                  " — another run claimed the issue\n" % claimed)
+                return 2
+            issue = branch.split("-", 1)[0].removeprefix("tdd/")
+            pr = claiming_pr(issue, url)
+            if pr:
+                sys.stderr.write("issue-worktree: %s claims the issue (Closes #%s)\n" % (pr, issue))
                 return 2
         name, refusal = default_branch_name(origin)
         if not name:

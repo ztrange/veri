@@ -790,4 +790,19 @@ heads_after="$(git_q "$clone" rev-list --all 2>/dev/null)"
   && [[ "$after" == "$before" ]] && [[ "$heads_after" == "$heads_before" ]]; } \
   && ok || no "#1656: an issue branch already on the remote: a fresh call exits 2 naming that remote branch and leaves no worktree, branch or commit behind (exit=$code want 2, stderr='$err' want it to name 'tdd/61-someone-else', '$mine' $( [[ -e "$mine" ]] && echo "was created" || echo "absent, good" ), git's worktree+branch registry $( [[ "$after" == "$before" ]] && echo unchanged || echo changed ), commits $( [[ "$heads_after" == "$heads_before" ]] && echo unchanged || echo changed ))"
 
+ahead_pair pr-claimed
+mine="$(wt_path "$clone" 62)"
+mkdir -p "$work/pr-claimed-gh"
+printf '[{"body": "Closes #62", "state": "OPEN", "isDraft": true, "url": "https://example.test/pull/620"}]\n' > "$work/pr-claimed-gh/prs.json"
+before="$(registry "$clone")"
+heads_before="$(git_q "$clone" rev-list --all 2>/dev/null)"
+
+err="$(cd "$clone" && VERI_GH_JSON="$work/pr-claimed-gh" "$WT" 62 fresh-start 2>&1 >/dev/null)" && code=0 || code=$?
+after="$(registry "$clone")"
+heads_after="$(git_q "$clone" rev-list --all 2>/dev/null)"
+
+{ [[ "$code" == 2 ]] && [[ "$err" == *"pull/620"* ]] && [[ ! -e "$mine" ]] \
+  && [[ "$after" == "$before" ]] && [[ "$heads_after" == "$heads_before" ]]; } \
+  && ok || no "#1656: an open PR saying Closes #62: a fresh call exits 2 naming that PR and leaves no worktree, branch or commit behind (exit=$code want 2, stderr='$err' want it to name 'pull/620', '$mine' $( [[ -e "$mine" ]] && echo "was created" || echo "absent, good" ), git's worktree+branch registry $( [[ "$after" == "$before" ]] && echo unchanged || echo changed ), commits $( [[ "$heads_after" == "$heads_before" ]] && echo unchanged || echo changed ))"
+
 finish
