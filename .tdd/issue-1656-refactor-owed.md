@@ -1,0 +1,2 @@
+### A script removes the opt-in label (`VERI_LABEL`, default `ready-for-agent`) from a named issue, so `solvable-issues.sh` no longer lists it; run on an issue that does not carry the label it exits 0 and is not an error ⟦criterion 2⟧
+- test-only | skills/tdd/scripts/tests/py/unit/test_unlabel_issue.py: the fake `run` has a `gh issue edit --remove-label` branch and sets `VERI_GH_DRIVER=auto`, but `unlabel_issue.py` only calls `gh api -X DELETE`. Both could be dropped.
