@@ -1,0 +1,2 @@
+### The red verifier prompt built by build-verify-prompt.sh red tells the verifier to REJECT a red whose only failure is a NameError, or an equivalent undefined-name error, on a name the test file references and never defines or imports ⟦criterion 2⟧
+- test-only | the `zorblat(...)` spec fixture is written inline in 6 cases of `test_build_verify_prompt.py` (lines 961, 1004, 1041, 1071, 1285, 1701); only the one at 1701 is this cycle's, and the case at 1701 could take a shared fixture
