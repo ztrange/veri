@@ -57,6 +57,9 @@ def main(argv):
         return 2
     step, *reports = argv
     parsed = replaces_case.parse(step)
+    if parsed is None and re.search(r"\breplaces (?!['\"`])\S", step):
+        sys.stderr.write("cannot read the case names of step: " + step.replace("\n", " ") + "\n")
+        return 2
     quote = step[re.search(r"\breplaces (?=['\"`])", step).end()] if parsed else ""
     replaced = set()
     not_found = set()
