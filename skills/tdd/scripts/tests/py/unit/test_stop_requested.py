@@ -201,3 +201,43 @@ def test_main_clear_and_a_refused_argument_answer_as_the_bash_cases_did(
         stop.write_bytes(b"at-ledger\n")
         assert stop_requested.main(argv) == 2, argv
         assert stop.read_bytes() == b"at-ledger\n", argv
+
+
+def _write_stop(tmp_path, content):
+    (tmp_path / ".tdd").mkdir(exist_ok=True)
+    (tmp_path / ".tdd" / "stop").write_bytes(content)
+
+
+def test_cli_a_stop_requests_mode_comes_back_on_stdout_with_exit_0(run_cli, tmp_path, stop_requested):
+    for mode in ("at-ledger", "at-leaf", "now"):
+        _write_stop(tmp_path, f"{mode}\n".encode())
+        assert run_cli(stop_requested, [], cwd=tmp_path) == (0, f"{mode}\n", ""), mode
+
+
+def test_cli_no_stop_request_answers_exit_3_with_nothing_on_stdout(run_cli, tmp_path, stop_requested):
+    (tmp_path / ".tdd").mkdir()
+    assert run_cli(stop_requested, [], cwd=tmp_path) == (3, "", "")
+
+
+def test_cli_a_malformed_stop_request_answers_exit_2_with_a_diagnostic_on_stderr_only(
+        run_cli, tmp_path, stop_requested):
+    for content in (b"bogus\n", b"\n", b""):
+        _write_stop(tmp_path, content)
+        code, out, err = run_cli(stop_requested, [], cwd=tmp_path)
+        assert (code, out) == (2, ""), content
+        assert err != "", content
+
+
+def test_cli_bogus_exits_2_with_exactly_the_usage_line_on_stderr_and_nothing_on_stdout(
+        run_cli, tmp_path, stop_requested):
+    (tmp_path / ".tdd").mkdir()
+    assert run_cli(stop_requested, ["--bogus"], cwd=tmp_path) == (
+        2, "", "usage: stop-requested.sh [--clear]\n")
+
+
+def test_cli_a_malformed_stop_request_is_refused_on_stderr_naming_the_modes(
+        run_cli, tmp_path, stop_requested):
+    _write_stop(tmp_path, b"bogus\n")
+    assert run_cli(stop_requested, [], cwd=tmp_path) == (
+        2, "",
+        "stop-requested: .tdd/stop must name a mode — at-ledger, at-leaf or now: 'bogus'\n")
