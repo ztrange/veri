@@ -273,8 +273,12 @@ def test_1641_an_exemption_entry_that_matches_no_file_under_the_root_makes_the_g
         guard.offences(tmp_path, {"unit/test_gone.py:4": "waits on a fake clock"})
 
 
-@pytest.mark.tree_audit("every test_*.py under skills/tdd/scripts/tests/py/unit")
-def test_the_guard_with_the_real_exemption_table_finds_no_offence_in_the_fast_tier_as_committed_and_names_a_planted_one_by_file_and_line(tmp_path):
+def _real_table_audit(tmp_path):
+    """The planted offences under `tmp_path`, by file and line, and the committed fast tier's offences under the real table.
+
+    The scratch tree is judged against no table: the real one is keyed to files under tests/py/, and its stale check
+    would refuse every entry over a tree that holds only the planted offender.
+    """
     guard = importlib.import_module("veri.fast_tier_guard")
     offender = tmp_path / "test_offender.py"
     offender.write_text(
@@ -284,10 +288,24 @@ def test_the_guard_with_the_real_exemption_table_finds_no_offence_in_the_fast_ti
         "    time.sleep(1)\n"
     )
 
-    planted = guard.offences(tmp_path, guard.EXEMPTIONS)
+    planted = guard.offences(tmp_path, {})
     committed = guard.offences(SCRIPTS / "tests" / "py" / "unit", guard.EXEMPTIONS)
 
-    assert ([line.split(": ")[0] for line in planted], committed) == ([f"{offender}:4"], [])
+    return [line.split(": ")[0] for line in planted], committed
+
+
+@pytest.mark.tree_audit("every test_*.py under skills/tdd/scripts/tests/py/unit")
+def test_the_guard_with_the_real_exemption_table_finds_no_offence_in_the_fast_tier_as_committed_and_names_a_planted_one_by_file_and_line(tmp_path):
+    assert _real_table_audit(tmp_path) == ([f"{tmp_path / 'test_offender.py'}:4"], [])
+
+
+@pytest.mark.tree_audit("every test_*.py under tests/py and tests/py/unit")
+def test_1641_a_real_exemption_keyed_relative_to_tests_py_is_not_reported_stale_by_any_case_that_reads_the_real_table(tmp_path, monkeypatch):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    assert (SCRIPTS / "tests" / "py" / "unit" / "test_add_ledger_step.py").is_file()
+    monkeypatch.setattr(guard, "EXEMPTIONS", {"unit/test_add_ledger_step.py:1": "planted: a real-keyed entry no case may report stale"})
+
+    assert (_real_table_audit(tmp_path), _misplaced(SCRIPTS / "tests" / "py")) == (([f"{tmp_path / 'test_offender.py'}:4"], []), [])
 
 
 def test_a_root_that_does_not_exist_is_refused_with_exit_2_and_a_stderr_line_naming_the_path_instead_of_reporting_no_offences(tmp_path, run_cli):
