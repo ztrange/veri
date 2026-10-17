@@ -92,9 +92,22 @@ def heading(line):
     return LEVELS[prefix], title.strip()
 
 
+def unfenced(lines):
+    fence = None
+    for line in lines:
+        stripped = line.lstrip()
+        if fence is None and stripped.startswith(("```", "~~~")):
+            fence = stripped[:3]
+        elif fence is not None:
+            if stripped.startswith(fence):
+                fence = None
+        else:
+            yield line
+
+
 def enclosing(lines):
     names = []
-    for line in reversed(lines):
+    for line in reversed(list(unfenced(lines))):
         parsed = heading(line)
         if parsed is None:
             continue
