@@ -5,6 +5,8 @@ import sys
 
 import pytest
 
+NO_VERDICT_TEXT = "I could not make up my mind about this test."
+
 
 @pytest.fixture
 def parse_verdict():
@@ -165,12 +167,12 @@ def test_a_reject_verdict_exits_1_printing_its_reason_line(run_cli, parse_verdic
 
 
 def test_output_with_no_verdict_line_exits_2_with_nothing_on_stdout(run_cli, parse_verdict):
-    code, out, _ = run_cli(parse_verdict, [], stdin="I could not make up my mind about this test.")
+    code, out, _ = run_cli(parse_verdict, [], stdin=NO_VERDICT_TEXT)
 
     assert (code, out) == (2, "")
 
 
 def test_output_with_no_verdict_line_names_the_missing_line_on_stderr(run_cli, parse_verdict):
-    result = run_cli(parse_verdict, [], stdin="I could not make up my mind about this test.")
+    result = run_cli(parse_verdict, [], stdin=NO_VERDICT_TEXT)
 
     assert result == (2, "", "parse-verdict: no VERDICT: line found\n")
