@@ -42,7 +42,9 @@ def _require_reasons(exemptions):
 
 
 def _names(path, root):
-    return str(path), str(path.relative_to(root))
+    relative = str(path.relative_to(root))
+    names = (str(path), relative)
+    return names + (f"unit/{relative}",) if Path(root).name == "unit" else names
 
 
 def _require_matches(exemptions, files, root):
