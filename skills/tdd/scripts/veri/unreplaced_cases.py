@@ -1,4 +1,5 @@
 """unreplaced-cases.sh's answer: the bash cases a replaces-case step names that have no pytest replacement."""
+import os
 import re
 import sys
 
@@ -7,8 +8,27 @@ import replaces_case
 USAGE = "usage: unreplaced-cases.sh"
 
 
+PY_TESTS = "skills/tdd/scripts/tests/py"
+
+
+def bare_name_defined_once(name):
+    found = 0
+    for root, _, files in os.walk(PY_TESTS):
+        for file in files:
+            if not file.endswith(".py"):
+                continue
+            try:
+                with open(os.path.join(root, file), encoding="utf-8") as handle:
+                    found += len(re.findall(r"^\s*(?:async\s+)?def " + re.escape(name) + r"\b", handle.read(), re.M))
+            except OSError:
+                continue
+    return found == 1
+
+
 def exists_in_tree(test_id):
-    path, _, name = test_id.strip().partition("::")
+    path, sep, name = test_id.strip().partition("::")
+    if not sep:
+        return re.fullmatch(r"\w+", path) is not None and bare_name_defined_once(path)
     try:
         with open(path, encoding="utf-8") as handle:
             source = handle.read()

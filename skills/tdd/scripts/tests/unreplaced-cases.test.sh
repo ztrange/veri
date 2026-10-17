@@ -280,4 +280,15 @@ code=0
 expect_eq "$name" "0:" "$code:$(cat "$out")"
 rm -f "$report" "$out"
 
+name="unreplaced-cases.sh counts a REPLACES line whose test id is a bare test name with no :: as replaced when exactly one test function of that name exists under skills/tdd/scripts/tests/py/, so a step naming the case prints nothing and exits 0 (#1660)"
+tree="$(scratch_dir)"; mkdir -p "$tree/skills/tdd/scripts/tests/py/unit"
+printf 'def test_a():\n    pass\n' > "$tree/skills/tdd/scripts/tests/py/unit/test_x.py"
+report="$(mktemp)"; out="$(mktemp)"
+printf '%s\n' "REPLACES: case a => test_a" > "$report"
+step="- [ ] x: replaces 'case a' in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 3⟧"
+code=0
+(cd "$tree" && "$UNREPLACED" "$step" "$report" > "$out" 2> /dev/null < /dev/null) || code=$?
+expect_eq "$name" "0:" "$code:$(cat "$out")"
+rm -f "$report" "$out"
+
 finish
