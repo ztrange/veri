@@ -86,7 +86,7 @@ foo_bar_tree() {
   printf '# bar suite\n' > "$s/tests/bar.test.sh"
 }
 
-counts_suite() { printf '# counts suite\n' > "$repo/skills/tdd/scripts/tests/claude-md-counts.test.sh"; }
+counts_suite() { mkdir -p "$repo/skills/tdd/scripts/tests/py/unit"; printf '# counts suite\n' > "$repo/skills/tdd/scripts/tests/py/unit/test_claude_md_counts.py"; }
 
 write_ledger() {
   mkdir -p "$repo/.tdd"
@@ -591,9 +591,9 @@ commit_base
 printf '# newbie suite\n' > "$s/tests/newbie.test.sh"
 printf '# rookie unit suite\n' > "$s/tests/unit/rookie.test.sh"
 commit_head
-expect_suites "a range that adds a suite file under tests/ or tests/unit/ pulls in skills/tdd/scripts/tests/claude-md-counts.test.sh" \
-  skills/tdd/scripts/tests/claude-md-counts.test.sh \
+expect_suites "a range that adds a suite file under tests/ or tests/unit/ pulls in skills/tdd/scripts/tests/py/unit/test_claude_md_counts.py" \
   skills/tdd/scripts/tests/newbie.test.sh \
+  skills/tdd/scripts/tests/py/unit/test_claude_md_counts.py \
   skills/tdd/scripts/tests/unit/rookie.test.sh
 
 make_repo suite-edited-counts
@@ -602,7 +602,7 @@ counts_suite
 commit_base
 printf '# foo suite 2\n' > "$s/tests/foo.test.sh"
 commit_head
-expect_suites "editing an existing suite's contents does not pull in skills/tdd/scripts/tests/claude-md-counts.test.sh" \
+expect_suites "editing an existing suite's contents does not pull in skills/tdd/scripts/tests/py/unit/test_claude_md_counts.py" \
   "skills/tdd/scripts/tests/foo.test.sh"
 
 make_repo script-added-counts
@@ -613,10 +613,10 @@ rm "$s/bar.sh"
 printf 'newbie\n' > "$s/newbie.sh"
 printf '# newbie suite\n' > "$s/tests/newbie.test.sh"
 commit_head
-expect_suites "a range that adds or deletes a script under scripts/ pulls in skills/tdd/scripts/tests/claude-md-counts.test.sh" \
+expect_suites "a range that adds or deletes a script under scripts/ pulls in skills/tdd/scripts/tests/py/unit/test_claude_md_counts.py" \
   skills/tdd/scripts/tests/bar.test.sh \
-  skills/tdd/scripts/tests/claude-md-counts.test.sh \
-  skills/tdd/scripts/tests/newbie.test.sh
+  skills/tdd/scripts/tests/newbie.test.sh \
+  skills/tdd/scripts/tests/py/unit/test_claude_md_counts.py
 
 make_repo rule2-continuation
 mkdir -p "$s/tests" "$s/lib"
@@ -768,7 +768,7 @@ rm "$s/tests/bar.test.sh"
 commit_all "$repo" "main adds one suite and deletes another"
 git_q "$repo" checkout -q topic
 base=main head=HEAD
-expect_suites "#1138: a suite the base added or deleted after the branch point does not make affected-suites.sh <base>..HEAD print skills/tdd/scripts/tests/claude-md-counts.test.sh" \
+expect_suites "#1138: a suite the base added or deleted after the branch point does not make affected-suites.sh <base>..HEAD print skills/tdd/scripts/tests/py/unit/test_claude_md_counts.py" \
   skills/tdd/scripts/tests/foo.test.sh
 
 make_repo branch-deletes-suite
@@ -781,8 +781,8 @@ rm "$s/tests/bar.test.sh"
 commit_head
 base=main head=HEAD
 expect_suites "#1138: a suite the branch itself deleted is not printed by affected-suites.sh <base>..HEAD" \
-  skills/tdd/scripts/tests/claude-md-counts.test.sh \
-  skills/tdd/scripts/tests/foo.test.sh
+  skills/tdd/scripts/tests/foo.test.sh \
+  skills/tdd/scripts/tests/py/unit/test_claude_md_counts.py
 
 git_state() { git -C "$repo" stash list; git -C "$repo" worktree list; git -C "$repo" rev-parse HEAD; }
 
@@ -828,9 +828,9 @@ counts_suite
 commit_base
 printf '# baz suite\n' > "$s/tests/baz.test.sh"
 out="$(run_affected "$base" 2>/dev/null)"; code=$?
-expected=$'skills/tdd/scripts/tests/baz.test.sh\nskills/tdd/scripts/tests/claude-md-counts.test.sh'
+expected=$'skills/tdd/scripts/tests/baz.test.sh\nskills/tdd/scripts/tests/py/unit/test_claude_md_counts.py'
 if [[ "$code" == 0 && "$out" == "$expected" ]]; then ok; else
-  no "affected-suites.sh <base> with a new, untracked suite also prints skills/tdd/scripts/tests/claude-md-counts.test.sh (code=$code)"
+  no "affected-suites.sh <base> with a new, untracked suite also prints skills/tdd/scripts/tests/py/unit/test_claude_md_counts.py (code=$code)"
   diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
 fi
 
@@ -841,9 +841,9 @@ commit_base
 printf '# baz suite\n' > "$s/tests/baz.test.sh"
 commit_all "$repo" "add baz"
 out="$(run_affected "$base" 2>/dev/null)"; code=$?
-expected=$'skills/tdd/scripts/tests/baz.test.sh\nskills/tdd/scripts/tests/claude-md-counts.test.sh'
+expected=$'skills/tdd/scripts/tests/baz.test.sh\nskills/tdd/scripts/tests/py/unit/test_claude_md_counts.py'
 if [[ "$code" == 0 && "$out" == "$expected" ]]; then ok; else
-  no "affected-suites.sh <base> with a committed added suite and no untracked file still prints skills/tdd/scripts/tests/claude-md-counts.test.sh (code=$code)"
+  no "affected-suites.sh <base> with a committed added suite and no untracked file still prints skills/tdd/scripts/tests/py/unit/test_claude_md_counts.py (code=$code)"
   diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
 fi
 

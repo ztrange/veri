@@ -317,7 +317,7 @@ def main(argv):
     if working_tree and not counted:
         _, counted = untracked(*counting)
     if counted:
-        placed.append(SCRIPTS + "/tests/claude-md-counts.test.sh")
+        placed.append(SCRIPTS + "/tests/py/unit/test_claude_md_counts.py")
 
     if unplaced:
         print("affected-suites: no rule places %s; widening to every suite" % ",".join(unplaced), file=sys.stderr)
