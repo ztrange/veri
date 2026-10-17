@@ -101,3 +101,27 @@ def test_main_reads_stdin_as_bytes_and_keeps_the_c_locale_behaviour_whatever_the
     }
     doc = exhausted_outcome.__doc__
     assert re.search(r"\bC[- ]locale\b", doc) and "UTF-8" in doc, doc
+
+
+def test_a_split_report_exits_0_with_its_criteria_a_needs_user_report_exits_1_with_its_answer_and_neither_exits_3_with_nothing(run_cli, exhausted_outcome):
+    split_report = ("The step names four behaviours at once, so no one green could carry it.\n"
+                    "SPLIT: detect-test-command.sh exits 2 on an unknown --mode value\n"
+                    "SPLIT: detect-test-command.sh exits 2 when given both an issue and --all")
+    user_report = ("This one is not a split: the criterion contradicts the step before it.\n"
+                   "NEEDS_USER: step 2 says exit 1 and step 4 says exit 2 for the same refusal — which wins is a\n"
+                   "decision this run has no authority to make.")
+    neither_report = "I read the step and the rejection reason and I am not sure what to make of them."
+
+    assert run_cli(exhausted_outcome, [], stdin=split_report) == (
+        0, "detect-test-command.sh exits 2 on an unknown --mode value\n"
+           "detect-test-command.sh exits 2 when given both an issue and --all\n", "")
+    assert run_cli(exhausted_outcome, [], stdin=user_report) == (
+        1, "step 2 says exit 1 and step 4 says exit 2 for the same refusal — which wins is a\n"
+           "decision this run has no authority to make.\n", "")
+    assert run_cli(exhausted_outcome, [], stdin=neither_report) == (3, "", "")
+
+
+def test_extra_arguments_are_ignored_and_nothing_is_ever_written_to_stderr(run_cli, exhausted_outcome):
+    assert run_cli(exhausted_outcome, ["extra", "args"], stdin="SPLIT: a") == (0, "a\n", "")
+    for report in ("SPLIT: a", "NEEDS_USER: q", "neither"):
+        assert run_cli(exhausted_outcome, [], stdin=report)[2] == ""
