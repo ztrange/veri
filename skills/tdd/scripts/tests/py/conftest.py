@@ -241,6 +241,10 @@ STARTS_GIT_IN_REPOSITORY_EXEMPT = {
         "the repository's own tracked files are the subject",
     "test_no_tracked_artifacts.py::test_git_ignores_the_event_log_a_suite_run_writes_under_a_nested_tdd_directory_598":
         "the repository's own ignore rules are the subject",
+    "test_skill_identity.py::test_no_tracked_file_outside_the_two_stubs_still_names_the_old_scripts_dir":
+        "the repository's own tracked files are the subject",
+    "test_skill_identity.py::test_no_tracked_file_outside_the_two_stubs_names_either_old_command":
+        "the repository's own tracked files are the subject",
 }
 
 
