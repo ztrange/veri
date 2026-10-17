@@ -55,6 +55,10 @@ def to_contract(code):
     return code if code in (0, 1, 2, 3) else 2
 
 
+def no_usage_event(name, why):
+    print("harvest-usage.sh: %s — no usage event appended for %s" % (why, name), file=sys.stderr)
+
+
 def harvest(name, env):
     """Append the usage event for leaf name, reading the leaf's environment from env; diagnostics go to stderr."""
     log = ".tdd/%s.log" % name
@@ -65,13 +69,11 @@ def harvest(name, env):
                   file=sys.stderr)
             return 3
         if "usage" not in record:
-            print("harvest-usage.sh: the closing result record in %s carries no usage — no usage event appended for %s"
-                  % (log, name), file=sys.stderr)
+            no_usage_event(name, "the closing result record in %s carries no usage" % log)
             return 2
         pairs = usage_pairs(record)
     except UnicodeDecodeError:
-        print("harvest-usage.sh: %s is not valid UTF-8 — no usage event appended for %s" % (log, name),
-              file=sys.stderr)
+        no_usage_event(name, "%s is not valid UTF-8" % log)
         return 2
     except Exception:
         traceback.print_exc()
