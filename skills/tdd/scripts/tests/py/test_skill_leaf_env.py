@@ -592,6 +592,18 @@ def mark_step(seen):
         return "<no mark was made>"
 
 
+def check_mark_step(probe, lineno, line, seen, title, err, what, shell="launching"):
+    got = mark_step(seen)
+    if got != title:
+        probe.problem(lineno, line, f"marked {what} beside a ledger with every step ticked with VERI_STEP=<{got}>, want the last done step <{title}> (the {shell} shell said: {flat(err)})")
+
+
+def check_prompt_step(probe, lineno, line, seen, title, err, what):
+    want = prompt_step_arg(seen)
+    if want != title:
+        probe.problem(lineno, line, f"built the {what} prompt beside a ledger with every step ticked, passing build-develop-prompt.sh the step <{want}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
+
+
 def scan_rebase_verifier_last_done(probe, tag, by_env):
     title = EXPANDING_STEP
     lineno, line = first_line(r"\$S/detach-leaf\.sh .*\$S/supervise\.sh verdict-rebase \$S/run-verdict\.sh")
@@ -623,9 +635,7 @@ def scan_develop_last_done(probe, phase):
         launch = take_line(probe, lineno, line, title)
         if launch is not None:
             err, _, _ = run_staged(stage, seen, tree, launch, "<no prompt was built>")
-            want = prompt_step_arg(seen)
-            if want != title:
-                probe.problem(lineno, line, f"built the develop-{phase} prompt beside a ledger with every step ticked, passing build-develop-prompt.sh the step <{want}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
+            check_prompt_step(probe, lineno, line, seen, title, err, f"develop-{phase}")
     lineno, line = first_line(rf"\$S/detach-leaf\.sh .*\$S/supervise\.sh develop-{phase} \$S/run-leaf\.sh")
     if lineno is None:
         no_launch(probe, f"develop-{phase} through supervise.sh into run-leaf.sh")
@@ -661,13 +671,9 @@ def scan_revise_last_done(probe):
         clear_seen(seen)
         err, got, _ = run_staged(stage, seen, tree, launch, "<no leaf was launched>")
         if which == "mark":
-            got = mark_step(seen)
-            if got != title:
-                probe.problem(lineno, line, f"marked the revise event beside a ledger with every step ticked with VERI_STEP=<{got}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
+            check_mark_step(probe, lineno, line, seen, title, err, "the revise event")
         elif which == "prompt":
-            want = prompt_step_arg(seen)
-            if want != title:
-                probe.problem(lineno, line, f"built the revise prompt beside a ledger with every step ticked, passing build-develop-prompt.sh the step <{want}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
+            check_prompt_step(probe, lineno, line, seen, title, err, "revise")
         elif got != title:
             probe.problem(lineno, line, f"launched the revise loop's {which} line beside a ledger with every step ticked, whose leaf saw VERI_STEP=<{got}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
 
@@ -685,9 +691,7 @@ def scan_revise_diff_last_done(probe):
     stage_title_recorders(probe, stage, "build-develop-prompt")
     plant_every_step_ticked_ledger(tree, title)
     err, _, _ = run_staged(stage, seen, tree, launch, "<no prompt was built>")
-    want = prompt_step_arg(seen)
-    if want != title:
-        probe.problem(lineno, line, f"built the revise diff prompt beside a ledger with every step ticked, passing build-develop-prompt.sh the step <{want}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
+    check_prompt_step(probe, lineno, line, seen, title, err, "revise diff")
 
 
 def scan_exhausted_last_done(probe):
@@ -711,16 +715,12 @@ def scan_exhausted_last_done(probe):
         clear_seen(seen)
         err, got, _ = run_staged(stage, seen, tree, launch, "<no leaf was launched>")
         if which == "prompt":
-            want = prompt_step_arg(seen)
-            if want != title:
-                probe.problem(lineno, line, f"built the exhausted prompt beside a ledger with every step ticked, passing build-develop-prompt.sh the step <{want}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
+            check_prompt_step(probe, lineno, line, seen, title, err, "exhausted")
         elif which == "leaf":
             if got != title:
                 probe.problem(lineno, line, f"launched develop-exhausted beside a ledger with every step ticked, whose leaf saw VERI_STEP=<{got}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
         else:
-            got = mark_step(seen)
-            if got != title:
-                probe.problem(lineno, line, f"marked step-escalated beside a ledger with every step ticked with VERI_STEP=<{got}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
+            check_mark_step(probe, lineno, line, seen, title, err, "step-escalated")
 
 
 def scan_bail_last_done(probe):
@@ -749,9 +749,7 @@ def scan_bail_last_done(probe):
             if got != title:
                 probe.problem(lineno, line, f"preserved a bailed attempt beside a ledger with every step ticked, passing preserve-attempt.sh the step <{got}>, want the last done step <{title}> (the typing shell said: {flat(err)})")
         else:
-            got = mark_step(seen)
-            if got != title:
-                probe.problem(lineno, line, f"marked bail beside a ledger with every step ticked with VERI_STEP=<{got}>, want the last done step <{title}> (the typing shell said: {flat(err)})")
+            check_mark_step(probe, lineno, line, seen, title, err, "bail", "typing")
 
 
 def scan_event_mark_last_done(probe, tag, pattern, shape, mark, fills=()):
@@ -770,9 +768,7 @@ def scan_event_mark_last_done(probe, tag, pattern, shape, mark, fills=()):
         return
     clear_seen(seen)
     err, _, _ = run_staged(stage, seen, tree, launch, "<not run>")
-    got = mark_step(seen)
-    if got != title:
-        probe.problem(lineno, line, f"marked {mark} beside a ledger with every step ticked with VERI_STEP=<{got}>, want the last done step <{title}> (the typing shell said: {flat(err)})")
+    check_mark_step(probe, lineno, line, seen, title, err, mark, "typing")
 
 
 def scan_resume_last_done(probe):
@@ -794,9 +790,7 @@ def scan_resume_last_done(probe):
         return
     clear_seen(seen)
     err, _, _ = run_staged(stage, seen, tree, launch, "<not run>")
-    got = mark_step(seen)
-    if got != title:
-        probe.problem(lineno, line, f"marked resume beside a ledger with every step ticked with VERI_STEP=<{got}>, want the last done step <{title}> (the typing shell said: {flat(err)})")
+    check_mark_step(probe, lineno, line, seen, title, err, "resume", "typing")
 
 
 def scan_transform_verifier_last_done(probe):
