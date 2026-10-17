@@ -809,3 +809,23 @@ def test_refuses_from_the_skills_own_scripts_directory_with_exit_2_one_stderr_li
                                      "409", "3", "develop-green", "1")
         assert (code, out, err) == (2, "", expected)
     assert listing() == listing_before
+
+
+@pytest.mark.process("real git refusing a directory that is not a work tree")
+def test_outside_a_work_tree_with_a_mark_exits_2_and_writes_no_attempts_entry_copy_or_ref(
+        tmp_path, monkeypatch, run_cli, preserve_attempt):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path))
+    leaf_output(outside, "leaf log", "leaf output")
+
+    def tree():
+        return sorted(str(p.relative_to(outside)) for p in outside.rglob("*"))
+
+    before = tree()
+    code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, outside,
+                                 "409", "3", "develop-green", "1", "reject")
+    assert (code, out, err.splitlines()[-1:]) == (2, "", ["preserve-attempt.sh: not in a git work tree"])
+    assert attempts(outside) == []
+    assert tree() == before
+    assert not (outside / ".git").exists()
