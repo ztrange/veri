@@ -1517,3 +1517,20 @@ def test_main_exits_2_with_one_stderr_line_naming_the_stale_remote_tracking_ref_
     assert "origin/main" in err, err
     assert "fetch" not in err and "refs/heads/main" not in err, err
     assert "refs/remotes/origin/HEAD" not in err and "re-apply" not in err, err
+
+
+def test_main_exits_2_with_one_stderr_line_naming_the_rebase_already_in_progress_1605(
+        monkeypatch, capsys, tmp_path, rebase_onto_default):
+    merge, apply = tmp_path / "rebase-merge", tmp_path / "rebase-apply"
+    merge.mkdir()
+    fake_git(monkeypatch, **{
+        f"git rebase -q {ONTO}": (1, ""),
+        "git rev-parse --git-path rebase-merge --git-path rebase-apply": (0, f"{merge}\n{apply}\n"),
+        "git rev-parse --git-path rebase-merge": (0, f"{merge}\n"),
+        "git rev-parse --git-path rebase-apply": (0, f"{apply}\n")})
+    assert rebase_onto_default.main([]) == 2
+    err = capsys.readouterr().err
+    assert len(err.splitlines()) == 1, err
+    assert "rebase" in err and "in progress" in err, err
+    assert "fetch" not in err and "ls-remote" not in err and "stale" not in err, err
+    assert "refs/remotes/origin/HEAD" not in err and "re-apply" not in err, err

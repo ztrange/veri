@@ -75,7 +75,9 @@ def main(argv):
     try:
         rebased = git("rebase", "-q", onto, text=True, stdout=subprocess.DEVNULL).returncode == 0
         if not rebased:
-            if callers or not rebase_in_progress():
+            if callers:
+                outcome = refuse("a rebase was already in progress; git rebase refused to start")
+            elif not rebase_in_progress():
                 outcome = 2
             else:
                 conflicts = output("diff", "--name-only", "--diff-filter=U")
