@@ -31,7 +31,7 @@ def main(argv):
     replaced = set()
     for report in reports:
         with open(report, encoding="utf-8") as handle:
-            for m in re.finditer(r"^REPLACES: (.*?) => (.*)$", handle.read(), re.M):
+            for m in re.finditer(r"^(?:[-*] )?REPLACES: (.*?) => (.*)$", handle.read(), re.M):
                 if exists_in_tree(m.group(2)):
                     replaced.add(m.group(1))
                     replaced.add(re.sub("^(" + re.escape(quote) + ")(.*)\\1$", r"\2", m.group(1)))
