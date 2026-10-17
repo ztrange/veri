@@ -47,8 +47,13 @@ def offences(root, exemptions=None):
     root = Path(root)
     if not root.is_dir():
         raise NotADirectoryError(f"{root}: no such directory")
+    files = sorted(root.rglob("test_*.py"))
+    present = {str(path) for path in files} | {str(path.relative_to(root)) for path in files}
+    for entry in exemptions:
+        if entry.rpartition(":")[0] not in present:
+            raise ValueError(f"exemption {entry} matches no file under {root}")
     found = []
-    for path in sorted(root.rglob("test_*.py")):
+    for path in files:
         tree = ast.parse(path.read_text())
         module_aliases, name_imports = _aliases(tree)
         modules = {alias for alias, name in module_aliases.items() if name == "subprocess"}
