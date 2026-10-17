@@ -67,12 +67,15 @@ def main(argv):
                     replaced.add(re.sub("^(" + re.escape(quote) + ")(.*)\\1$", r"\2", m.group(1)))
                 elif is_bare_name(m.group(2)):
                     (not_found if bare_name_count(m.group(2).strip()) == 0 else ambiguous).add(m.group(1))
-    missing = [name for name in (parsed[0] if parsed else []) if name not in replaced and unescape(name) not in replaced]
+    def named_in(name, names):
+        return name in names or unescape(name) in names
+
+    missing = [name for name in (parsed[0] if parsed else []) if not named_in(name, replaced)]
     for name in missing:
         note = ""
-        if name in not_found or unescape(name) in not_found:
+        if named_in(name, not_found):
             note = " (no test of that name was found)"
-        elif name in ambiguous or unescape(name) in ambiguous:
+        elif named_in(name, ambiguous):
             note = " (the test name is ambiguous: several tests of that name exist)"
         print(name)
         if note:
