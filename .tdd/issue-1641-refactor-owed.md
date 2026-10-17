@@ -9,3 +9,4 @@
 ### A test file that runs another suite by passing the suite path as a keyword argument (`path="…/test_x.py"`) is reported as a nested suite naming `file:line`; pinned by one case ⟦criterion 3⟧
 - `offences` is a single ~60-line function mixing file discovery, exemption validation and the call classification chain; splitting it into per-concern helpers is a larger restructure than this tidy-up covers
 applied | 3a20830c9040e6d6da2a64179d5c50f07ae1485d | extract the "entry matches no file" loop in `offences` (`fast_tier_guard.py:51-54`) into a `_require_matches(exemptions, files, root)` helper beside `_require_reasons`. It is a move, not duplication removal, so not applied.
+applied | 9aa2d266c733058611440badc6839c4e3580cf93 | `offences` is a single ~60-line function mixing file discovery, exemption validation and the call classification chain; splitting it into per-concern helpers is a larger restructure than this tidy-up covers
