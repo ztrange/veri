@@ -805,4 +805,18 @@ heads_after="$(git_q "$clone" rev-list --all 2>/dev/null)"
   && [[ "$after" == "$before" ]] && [[ "$heads_after" == "$heads_before" ]]; } \
   && ok || no "#1656: an open PR saying Closes #62: a fresh call exits 2 naming that PR and leaves no worktree, branch or commit behind (exit=$code want 2, stderr='$err' want it to name 'pull/620', '$mine' $( [[ -e "$mine" ]] && echo "was created" || echo "absent, good" ), git's worktree+branch registry $( [[ "$after" == "$before" ]] && echo unchanged || echo changed ), commits $( [[ "$heads_after" == "$heads_before" ]] && echo unchanged || echo changed ))"
 
+ahead_pair resume-claimed
+git_q "$upstream" branch -q tdd/63-mine main >/dev/null 2>&1
+mine="$(wt_path "$clone" 63)"
+git_q "$clone" worktree add -q -b tdd/63-mine "$mine" main >/dev/null 2>&1
+mkdir -p "$mine/.tdd"
+printf '%s\n' '- [ ] step' > "$mine/.tdd/issue-63.md"
+mkdir -p "$work/resume-claimed-gh"
+printf '[{"body": "Closes #63", "state": "OPEN", "isDraft": true, "url": "https://example.test/pull/630"}]\n' > "$work/resume-claimed-gh/prs.json"
+
+out="$(cd "$clone" && VERI_GH_JSON="$work/resume-claimed-gh" "$WT" 63 mine 2>/dev/null)" && code=0 || code=$?
+
+{ [[ "$code" == 0 ]] && [[ "$out" == "$mine" ]]; } \
+  && ok || no "#1656: a resume (worktree and ledger exist) still starts though its branch is on the remote and an open PR claims the issue (exit=$code want 0, stdout='$out' want '$mine')"
+
 finish
