@@ -829,3 +829,126 @@ def test_outside_a_work_tree_with_a_mark_exits_2_and_writes_no_attempts_entry_co
     assert attempts(outside) == []
     assert tree() == before
     assert not (outside / ".git").exists()
+
+
+@pytest.mark.process("real git repository with an unborn HEAD")
+def test_exits_2_when_the_repository_has_an_unborn_head(tmp_path, monkeypatch, run_cli, preserve_attempt):
+    repo = tmp_path / "unborn"
+    repo.mkdir()
+    git_in(repo, "init", "-q", "-b", "main")
+    (repo / "stop-run.sh").write_text(REJECTED + "\n")
+    code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, repo, "409", "3", "develop-green", "1")
+    assert code == 2
+
+
+@pytest.mark.process("real symlinked shim run from a subdirectory of another repository")
+def test_preserves_the_same_ref_tree_and_exit_code_through_a_symlink_to_the_skill_from_a_subdirectory(
+        tmp_path, monkeypatch, run_cli, preserve_attempt):
+    skill = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(preserve_attempt.__file__))))
+    link = tmp_path / "skill-link"
+    link.symlink_to(skill)
+    inplace = dirty_repo(tmp_path / "inplace")
+    linked = dirty_repo(tmp_path / "linked")
+    for repo in (inplace, linked):
+        (repo / "sub").mkdir()
+        (repo / "sub" / "nested.txt").write_text("nested\n")
+    code_inplace, _, _ = preserve_in(run_cli, preserve_attempt, monkeypatch, inplace,
+                                     "409", "3", "develop-green", "1")
+    ran = subprocess.run([str(link / "scripts" / "preserve-attempt.sh"), "409", "3", "develop-green", "1"],
+                         cwd=linked / "sub", capture_output=True, text=True, env={**os.environ, **IDENT})
+    tree_inplace = git_in(inplace, "rev-parse", "--verify", "--quiet", REF + "^{tree}").stdout.strip()
+    tree_linked = git_in(linked, "rev-parse", "--verify", "--quiet", REF + "^{tree}").stdout.strip()
+    assert (ran.returncode, code_inplace) == (0, 0)
+    assert tree_inplace and tree_linked == tree_inplace
+
+
+@pytest.mark.process("real git repository and git check-ref-format")
+def test_makes_one_ref_git_accepts_for_a_step_holding_multi_byte_characters_a_slash_an_apostrophe_and_spaces(
+        tmp_path, monkeypatch, run_cli, preserve_attempt):
+    repo = dirty_repo(tmp_path / "repo")
+    code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, repo,
+                                 "409", "a—b ⟦x⟧/c'd e", "develop-green", "1")
+    made = git_in(repo, "for-each-ref", "--format=%(refname)", "refs/veri/attempts/409/").stdout.split("\n")[:-1]
+    legal = [git_in(repo, "check-ref-format", ref).returncode == 0 for ref in made]
+    assert (code, len(made), legal) == (0, 1, [True])
+
+
+def tracked_ignored_repo(root):
+    make_repo(root)
+    (root / "t.txt").write_text("committed\n")
+    (root / "gone.txt").write_text("committed\n")
+    git_in(root, "add", "t.txt", "gone.txt")
+    git_in(root, "commit", "-q", "-m", "track t.txt and gone.txt")
+    return root
+
+
+@pytest.mark.process("real git repository and its side ref")
+def test_keeps_a_file_tracked_in_head_and_matched_by_gitignore_in_the_preserved_tree_with_its_worktree_content(
+        tmp_path, monkeypatch, run_cli, preserve_attempt):
+    repo = tracked_ignored_repo(tmp_path / "repo")
+    (repo / ".gitignore").write_text("t.txt\n")
+    (repo / "t.txt").write_text("edited by the leaf\n")
+    code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, repo, "409", "3", "develop-green", "1")
+    shown = git_in(repo, "show", f"{REF}:t.txt").stdout.rstrip("\n")
+    assert (code, shown) == (0, "edited by the leaf")
+
+
+@pytest.mark.process("real git repository and its side ref")
+def test_beside_a_tracked_ignored_file_leaves_an_untracked_ignored_and_a_deleted_tracked_file_out_and_keeps_an_untracked_one(
+        tmp_path, monkeypatch, run_cli, preserve_attempt):
+    repo = tracked_ignored_repo(tmp_path / "repo")
+    (repo / ".gitignore").write_text("t.txt\nscratch.log\n")
+    (repo / "scratch.log").write_text("ignored\n")
+    (repo / "fresh.txt").write_text("new\n")
+    (repo / "gone.txt").unlink()
+    code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, repo, "409", "3", "develop-green", "1")
+    listed = git_in(repo, "ls-tree", "--name-only", REF).stdout.split()
+    assert (code, listed) == (0, [".gitignore", "fresh.txt", "stop-run.sh", "t.txt"])
+
+
+@pytest.mark.process("real git repository and its index")
+def test_leaves_the_callers_index_head_and_branch_untouched_when_the_worktree_holds_a_tracked_ignored_file(
+        tmp_path, monkeypatch, run_cli, preserve_attempt):
+    repo = tracked_ignored_repo(tmp_path / "repo")
+    (repo / ".gitignore").write_text("t.txt\n")
+    (repo / "t.txt").write_text("edited by the leaf\n")
+    (repo / "staged.txt").write_text("staged\n")
+    git_in(repo, "add", "staged.txt")
+
+    def state():
+        return (git_in(repo, "rev-parse", "HEAD").stdout, git_in(repo, "symbolic-ref", "HEAD").stdout,
+                git_in(repo, "ls-files", "-s").stdout)
+
+    before = state()
+    code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, repo, "409", "3", "develop-green", "1")
+    assert (code, state()) == (0, before)
+
+
+def no_identity(monkeypatch, tmp_path):
+    for name in (*IDENT, "EMAIL"):
+        monkeypatch.delenv(name, raising=False)
+    config = tmp_path / "noidentity.gitconfig"
+    config.write_text("[user]\n\tuseConfigOnly = true\n")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(config))
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+
+
+@pytest.mark.process("real git repository with no identity in any git config")
+def test_writes_the_ref_and_exits_0_with_no_user_name_or_email_in_any_git_config(
+        tmp_path, monkeypatch, run_cli, preserve_attempt):
+    repo = dirty_repo(tmp_path / "repo")
+    no_identity(monkeypatch, tmp_path)
+    code, out, err = run_cli(preserve_attempt, ["409", "3", "develop-green", "1"], cwd=repo)
+    assert (code, ref_resolves(repo)) == (0, True)
+
+
+@pytest.mark.process("real git repository with no identity in any git config")
+def test_copies_the_leafs_log_and_output_for_a_mark_with_no_user_name_or_email_in_any_git_config(
+        tmp_path, monkeypatch, run_cli, preserve_attempt):
+    repo = dirty_repo(tmp_path / "repo")
+    leaf_output(repo, "streamed progress", "final result text")
+    no_identity(monkeypatch, tmp_path)
+    code, out, err = run_cli(preserve_attempt, ["409", "3", "develop-green", "1", "reject"], cwd=repo)
+    copies = repo / ".tdd" / "attempts"
+    assert (copies / "3-develop-green-1-reject.log").read_text() == "streamed progress\n"
+    assert (copies / "3-develop-green-1-reject.out").read_text() == "final result text\n"
