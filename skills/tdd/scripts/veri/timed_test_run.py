@@ -15,6 +15,10 @@ def main(argv):
         sys.stderr.flush()
         return 2
     tier, suites, command = argv[0], argv[1], argv[2:]
+    if tier == "affected" and command[:2] == ["make", "test"] and not any(a.startswith("TESTS=") for a in command[2:]):
+        sys.stderr.write("timed-test-run.sh: affected tier refuses 'make test' naming no TESTS= suites\n")
+        sys.stderr.flush()
+        return 2
     started = int(time.time())
     try:
         code = subprocess.call(command)
