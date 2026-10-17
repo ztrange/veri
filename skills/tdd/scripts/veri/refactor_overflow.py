@@ -24,6 +24,8 @@ def find_open_issue(title):
     page = 1
     while True:
         found = gh_api(f"repos/{{owner}}/{{repo}}/issues?state=open&per_page=100&page={page}")
+        if found.returncode:
+            raise LookupError("open-issue lookup failed")
         try:
             issues = json.loads(found.stdout)
         except ValueError:
@@ -55,7 +57,10 @@ def main(argv):
     if not structural and not out_of_scope:
         return 3
     title = f"Refactor owed by #{n}"
-    existing = find_open_issue(title)
+    try:
+        existing = find_open_issue(title)
+    except LookupError as e:
+        return fail(str(e), 2)
     sections = [
         (f"Structural candidates #{n}'s closing pass could not reach", structural),
         (f"Out-of-scope transforms #{n}'s closing pass did not attempt", out_of_scope)]
