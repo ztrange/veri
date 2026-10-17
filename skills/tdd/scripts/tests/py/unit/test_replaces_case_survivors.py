@@ -102,3 +102,13 @@ def test_main_reports_a_still_present_case_named_with_backslash_escapes_spelled_
 
     assert code == 1
     assert "\\`### 🔴 Red\\` heading and \\\"<STEP>\\\" and \\$S" in out
+
+
+def test_main_exits_3_with_no_output_on_a_step_mentioning_the_replaces_case_mark_only_in_its_prose_or_backticks_1538(tmp_path, run_cli, survivors):
+    suite = tmp_path / "tests" / "demo.test.sh"
+    suite.parent.mkdir()
+    suite.write_text('verdict "stale first" 0\n')
+    prose = "the guard reads the ⟦replaces-case⟧ mark only among trailing marks: replaces 'stale first' in tests/demo.test.sh ⟦criterion 2⟧"
+    ticks = "a step that only quotes `⟦replaces-case⟧`: replaces 'stale first' in tests/demo.test.sh ⟦criterion 2⟧"
+
+    assert [run_cli(survivors, [step], cwd=tmp_path) for step in (prose, ticks)] == [(3, "", "")] * 2

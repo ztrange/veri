@@ -3,6 +3,8 @@ import os
 import re
 import sys
 
+from ledger import trailing_markers
+
 PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff")
 INTERFACE_PHASES = ("expand", "migrate", "contract-a", "contract-b")
 WANT_PHASES = "|".join(PHASES + INTERFACE_PHASES)
@@ -154,7 +156,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id=""):
                       b"criteria belong to other steps of the plan.\n\n")
     out = template
     written = b"**one new failing test**"
-    if phase == "red" and "\u27e6replaces-case\u27e7" in step_arg:
+    if phase == "red" and "\u27e6replaces-case\u27e7" in (step_arg[:15] + trailing_markers(step_arg)):
         written = (b"**one replacement case per named case** (judge each of them, not only the target test)")
     number = 5 if phase in ("expand", "migrate") else 4
     for placeholder, value in ((b"LAST_PHASE_CHECK", _last_phase_check(step_arg, phase, number)),

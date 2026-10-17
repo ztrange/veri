@@ -1731,3 +1731,24 @@ def test_main_renders_a_plan_prompt_that_rejects_a_replaces_case_step_not_naming
                          r"|REJECT[^.]{0,400}replaces '<case name>'[^.]{0,400}replaces-case")
     assert (code, "replaces '<case name>'" in prompt, "in <suite path>" in prompt,
             re.search(reject_unreadable, prompt, re.I) is not None) == (0, True, True, True)
+
+
+def test_main_renders_the_ordinary_red_prompt_for_a_step_mentioning_the_replaces_case_mark_only_in_its_prose_or_backticks_1538(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    prose = "the guard reads ⟦replaces-case⟧ only among trailing marks: replaces 'zorblat frobs a nitz' in tests/zorblat.test.sh ⟦criterion 1⟧"
+    ticks = "a step that only quotes `⟦replaces-case⟧` as text ⟦criterion 1⟧"
+
+    def rendered(step):
+        code = build_verify_prompt.main(["--step", step, "red", str(spec), "tests/py/test_zorblat.py", "test_zorblat"])
+        out, _ = capsysbinary.readouterr()
+        return code, re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
+
+    results = []
+    for step in (prose, ticks):
+        code, prompt = rendered(step)
+        results.append((code, "**one new failing test**" in prompt,
+                        re.search(r"one replacement (test )?case per named case", prompt, re.I) is not None))
+
+    assert results == [(0, True, False)] * 2
