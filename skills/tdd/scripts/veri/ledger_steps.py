@@ -4,7 +4,7 @@ import sys
 
 from ledger import handed_out, ledger_steps, next_phase, read_ledger_stdin, trailing_markers
 
-USAGE = "usage: ledger-steps.sh [current|last-done|current-or-last-done|next-phase|criterion <k>]"
+USAGE = "usage: ledger-steps.sh [current|last-done|current-or-last-done|next-phase|criterion <k>|has-mark <name>]"
 HAS_MARK_USAGE = "usage: ledger-steps.sh has-mark <name>"
 
 

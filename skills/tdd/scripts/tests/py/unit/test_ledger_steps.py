@@ -5,7 +5,7 @@ import sys
 
 import pytest
 
-USAGE = b"usage: ledger-steps.sh [current|last-done|current-or-last-done|next-phase|criterion <k>]\n"
+USAGE = b"usage: ledger-steps.sh [current|last-done|current-or-last-done|next-phase|criterion <k>|has-mark <name>]\n"
 
 
 @pytest.fixture
