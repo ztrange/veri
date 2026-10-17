@@ -1570,8 +1570,8 @@ def test_main_reports_a_killed_leaf_whose_log_ends_in_a_result_record_with_the_l
 
     stuck = ("harvest-usage.sh: no closing result record in .tdd/develop-red.log \u2014 no usage event appended"
              f" for develop-red\nsupervise[develop-red]: killed-stuck \u2014 {cause}\n")
-    undecodable_stuck = ("harvest: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid"
-                         f" start byte\nsupervise[develop-red]: killed-stuck \u2014 {cause}\n")
+    undecodable_stuck = ("harvest-usage.sh: .tdd/develop-red.log is not valid UTF-8 \u2014 no usage event appended"
+                         f" for develop-red\nsupervise[develop-red]: killed-stuck \u2014 {cause}\n")
     may_retry_and_preserve = {"VERI_STUCK_RETRIES": "1", "VERI_ISSUE": "1073", "VERI_STEP": "24"}
     erred = killed("erred", b'chatter\n{"type":"result","is_error":true,"result":"boom"}\n',
                    **may_retry_and_preserve)

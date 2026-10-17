@@ -69,6 +69,10 @@ def harvest(name, env):
                   % (log, name), file=sys.stderr)
             return 2
         pairs = usage_pairs(record)
+    except UnicodeDecodeError:
+        print("harvest-usage.sh: %s is not valid UTF-8 — no usage event appended for %s" % (log, name),
+              file=sys.stderr)
+        return 2
     except Exception:
         traceback.print_exc()
         return 1
