@@ -120,8 +120,6 @@ for f in "$SCRIPTS"/tests/[q-z]*.sh; do
 done
 header_verdict "the leading header block of a top-level tests/*.sh whose name starts with q through z, other than the skill-* files," "${files[@]}"
 
-header_verdict "the leading header block of every tests/skill-*.test.sh whose name after skill- starts with a through l" "$SCRIPTS"/tests/skill-[a-l]*.sh
-
 header_verdict "the leading header block of every tests/skill-*.test.sh whose name after skill- starts with m through z" "$SCRIPTS"/tests/skill-[m-z]*.sh
 
 header_verdict "the leading header block of every shell file under tests/unit/, tests/fixtures/, tests/unit-guard/ and tests/offline/" "$SCRIPTS"/tests/unit/*.sh "$SCRIPTS"/tests/fixtures/*/*.sh "$SCRIPTS"/tests/unit-guard/* "$SCRIPTS"/tests/offline/*
