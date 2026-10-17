@@ -380,4 +380,14 @@ done
 expect_eq "$name" "2:2: 1:yes:no 1:yes:no" "$code_u:$code_s:$shape"
 rm -f "$report"
 
+name="unreplaced-cases.sh given a replaces-case step whose named suite is not a .test.sh file exits 2 with one stderr line naming the step and the suite (#1538)"
+tree="$(scratch_dir)"; report="$(mktemp)"; : > "$report"
+step="- [ ] x: replaces 'a' in t/x.py ⟦replaces-case⟧ ⟦criterion 6⟧"
+code=0
+(cd "$tree" && "$UNREPLACED" "$step" "$report" > /dev/null 2> "$tree/err" < /dev/null) || code=$?
+lines="$(wc -l < "$tree/err" | tr -d ' ')"
+names=no; grep -F "replaces 'a' in t/x.py" "$tree/err" > /dev/null && grep -F 't/x.py' "$tree/err" > /dev/null && names=yes
+expect_eq "$name" "2:1:yes" "$code:$lines:$names"
+rm -f "$report"
+
 finish
