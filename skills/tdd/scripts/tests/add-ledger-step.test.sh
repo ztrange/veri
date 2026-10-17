@@ -139,4 +139,21 @@ else
   no "$name (code:lines:names-step:traceback:ledger-unchanged =$shape)"
 fi
 
+name="#1619: add-ledger-step.sh inserting a second ⟦suite-repair⟧ step while .tdd/events.jsonl holds a line that is not UTF-8 exits 2, prints no traceback, names the log and leaves the ledger byte-identical"
+mkdir -p "$work/nonutf8/.tdd"
+nled="$work/nonutf8/.tdd/issue-42.md"
+nlog="$work/nonutf8/.tdd/events.jsonl"
+printf '%s\n' "$seeded" '- [x] fix the full-suite failure: first.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧' > "$nled"
+nbefore="$(cat "$nled")"
+printf '{"ts":1,"issue":"42","event":"resume"}\n\377\376 broken\n' > "$nlog"
+"$ADD" "$nled" after 'strip edge hyphens' 'fix the full-suite failure: second.test.sh ⟦suite-repair⟧' > "$work/nonutf8.out" 2> "$work/nonutf8.err"; code=$?
+names=no; grep -F "$nlog" "$work/nonutf8.err" > /dev/null && names=yes
+trace=no; grep -F 'Traceback' "$work/nonutf8.err" > /dev/null && trace=yes
+same=no; [[ "$(cat "$nled")" == "$nbefore" ]] && same=yes
+if [[ "$code:$names:$trace:$same" == "2:yes:no:yes" ]]; then
+  ok
+else
+  no "$name (code:names-log:traceback:ledger-unchanged=$code:$names:$trace:$same)"
+fi
+
 finish
