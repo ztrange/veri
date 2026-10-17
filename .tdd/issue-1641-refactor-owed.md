@@ -6,3 +6,5 @@
 - test-only | drop the redundant function-local `import pytest` at `skills/tdd/scripts/tests/py/test_fast_tier_guard.py:184`; the module already imports it at the top
 ### An exemption-table entry that matches no file under the guard's root makes the guard fail naming that entry; pinned by one case ⟦criterion 2⟧
 - extract the "entry matches no file" loop in `offences` (`fast_tier_guard.py:51-54`) into a `_require_matches(exemptions, files, root)` helper beside `_require_reasons`. It is a move, not duplication removal, so not applied.
+### A test file that runs another suite by passing the suite path as a keyword argument (`path="…/test_x.py"`) is reported as a nested suite naming `file:line`; pinned by one case ⟦criterion 3⟧
+- `offences` is a single ~60-line function mixing file discovery, exemption validation and the call classification chain; splitting it into per-concern helpers is a larger restructure than this tidy-up covers
