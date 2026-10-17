@@ -17,6 +17,8 @@ def def_pattern(name):
 
 def bare_name_count(name):
     found = 0
+    if not name.startswith("test_"):
+        return found
     for root, _, files in os.walk(PY_TESTS):
         for file in files:
             if not file.endswith(".py"):
