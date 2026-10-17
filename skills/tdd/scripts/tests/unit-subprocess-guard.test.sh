@@ -213,6 +213,7 @@ FORMS=(
   'if "$STATUS" > /dev/null; then :; fi'
   'if true; then "$STATUS" > /dev/null; fi'
   '! "$STATUS" > /dev/null'
+  'run() { "$STATUS"; }'
 )
 
 if [[ -f "$GUARD_PATH" ]]; then

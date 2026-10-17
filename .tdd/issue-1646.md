@@ -1,7 +1,7 @@
 # Plan for #1646 — The bash unit-tier guard misses a script variable run after a keyword, in a { } body, or through bash/env/built paths
 
 - [x] A script-path variable run right after a shell keyword — `if "$S"`, `then "$S"`, `! "$S"` — planted in a tests/unit/ suite fails no-unit-subprocess.test.sh naming `<suite>:<line>`; pinned by one new parametrized case in unit-subprocess-guard.test.sh that loops over a table of planted forms, one plant per form, starting with these three ⟦criterion 1⟧
-- [ ] A script-path variable run as the first command of a `{ }` body — `run() { "$S"; }` — planted in a tests/unit/ suite fails the guard naming `<suite>:<line>`; added as a row of the same parametrized case's form table, no new case ⟦criterion 1⟧
+- [x] A script-path variable run as the first command of a `{ }` body — `run() { "$S"; }` — planted in a tests/unit/ suite fails the guard naming `<suite>:<line>`; added as a row of the same parametrized case's form table, no new case ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] A script-path variable run through a launcher word — `bash "$S"` and `env A=1 "$S"` — planted in a tests/unit/ suite fails the guard naming `<suite>:<line>`; added as rows of the same parametrized case's form table, no new case ⟦criterion 1⟧
 - [ ] A script path built from variables and run — `"$dir/$name.sh"` — planted in a tests/unit/ suite fails the guard naming `<suite>:<line>`; added as a row of the same parametrized case's form table, no new case ⟦criterion 1⟧
 - [ ] A glob loop over scripts that runs each one — `for s in "$dir"/*.sh; do "$s"; done` — planted in a tests/unit/ suite fails the guard naming `<suite>:<line>`; added as a row of the same parametrized case's form table, no new case ⟦criterion 1⟧
