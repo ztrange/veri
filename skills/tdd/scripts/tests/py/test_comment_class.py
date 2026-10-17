@@ -222,13 +222,6 @@ def test_main_classes_md_variable_heredocs_as_3_drops_a_dash_heredoc_hashbang_an
 
 
 CLASS_3_LINES = """\
-build-verify-prompt:# Plan for #426
-build-verify-prompt:# Plan for #439
-build-verify-prompt:## Bug
-build-verify-prompt:### What happened
-build-verify-prompt:### Expected
-build-verify-prompt:### Steps to reproduce
-build-verify-prompt:### Environment
 no-awk-v-patterns:#!/usr/bin/env bash
 no-awk-v-patterns:#!/usr/bin/env bash
 no-awk-v-patterns:#!/usr/bin/env bash
