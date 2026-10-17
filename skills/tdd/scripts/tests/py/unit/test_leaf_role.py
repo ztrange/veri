@@ -151,3 +151,95 @@ def test_leaf_role_answers_in_process_what_main_prints_or_refuses_and_none_after
     for name in ("-", "---", "0", "123", "develop-a\x00b", "\x00"):
         captured(leaf_role.leaf_role, name)
     assert started == []
+
+
+def _assignments(printed):
+    return dict(word.split("=", 1) for word in printed.split() if "=" in word)
+
+
+def _probe_role(run_cli, leaf_role, leaf, **wanted):
+    code, out, err = run_cli(leaf_role, [leaf])
+    problems = []
+    if code != 0:
+        problems.append("%s: want exit 0, got %s" % (leaf, code))
+    if err:
+        problems.append("%s: want nothing on stderr, got: %r" % (leaf, err))
+    got = _assignments(out)
+    for key, expected in wanted.items():
+        if got.get(key, "<<missing>>") != expected:
+            problems.append("%s: want %s=%r, got %r (printed: %r)" % (leaf, key, expected, got.get(key), out))
+    return problems
+
+
+def _probe_refusal(run_cli, leaf_role, leaf):
+    code, out, err = run_cli(leaf_role, [leaf])
+    problems = []
+    if code != 2:
+        problems.append("%s: want exit 2, got %s" % (leaf, code))
+    if out:
+        problems.append("%s: want nothing on stdout, got: %r" % (leaf, out))
+    if "leaf-role" not in err:
+        problems.append("%s: want the script named on stderr, got: %r" % (leaf, err))
+    if leaf not in err:
+        problems.append("%s: want the name on stderr, got: %r" % (leaf, err))
+    return problems
+
+
+def test_leaf_role_maps_develop_red_revise_green_2_and_verify_refactor_to_their_actor_phase_and_attempt(
+        run_cli, leaf_role):
+    problems = []
+    problems += _probe_role(run_cli, leaf_role, "develop-red",
+                            VERI_ACTOR="developer", VERI_PHASE="red", VERI_ATTEMPT="1")
+    problems += _probe_role(run_cli, leaf_role, "revise-green-2",
+                            VERI_ACTOR="developer", VERI_PHASE="green", VERI_ATTEMPT="2")
+    problems += _probe_role(run_cli, leaf_role, "verify-refactor", VERI_ACTOR="verifier", VERI_PHASE="refactor")
+    assert problems == []
+
+
+def test_leaf_role_fails_closed_on_plan_red_naming_the_script_and_the_name_with_nothing_on_stdout_and_exit_2(
+        run_cli, leaf_role):
+    assert _probe_refusal(run_cli, leaf_role, "plan-red") == []
+
+
+def test_leaf_role_fails_closed_on_develop_and_develop_dash_naming_the_script_and_the_name_with_exit_2(
+        run_cli, leaf_role):
+    problems = _probe_refusal(run_cli, leaf_role, "develop") + _probe_refusal(run_cli, leaf_role, "develop-")
+    assert problems == []
+
+
+def test_leaf_role_refusals_of_plan_red_and_develop_name_all_four_accepted_shapes(run_cli, leaf_role):
+    problems = []
+    for leaf in ("plan-red", "develop"):
+        _, _, err = run_cli(leaf_role, [leaf])
+        for shape in ("develop-*", "revise-*", "verify-*", "conductor-*"):
+            if shape not in err:
+                problems.append("%s: want %s named on stderr, got: %r" % (leaf, shape, err))
+    assert problems == []
+
+
+def test_leaf_role_still_refuses_three_names_and_still_maps_four_including_conductor_506(run_cli, leaf_role):
+    problems = []
+    for leaf in ("plan-red", "develop", "develop-"):
+        problems += _probe_refusal(run_cli, leaf_role, leaf)
+    problems += _probe_role(run_cli, leaf_role, "develop-red",
+                            VERI_ACTOR="developer", VERI_PHASE="red", VERI_ATTEMPT="1")
+    problems += _probe_role(run_cli, leaf_role, "revise-green-2",
+                            VERI_ACTOR="developer", VERI_PHASE="green", VERI_ATTEMPT="2")
+    problems += _probe_role(run_cli, leaf_role, "verify-refactor", VERI_ACTOR="verifier", VERI_PHASE="refactor")
+    problems += _probe_role(run_cli, leaf_role, "conductor-506",
+                            VERI_ACTOR="conductor", VERI_PHASE="506", VERI_ATTEMPT="1")
+    assert problems == []
+
+
+def test_leaf_role_refuses_no_argument_and_one_empty_argument_with_exit_2_and_the_usage_line_alone(
+        run_cli, leaf_role):
+    problems = []
+    for label, argv in (("none", []), ("empty", [""])):
+        code, out, err = run_cli(leaf_role, argv)
+        if code != 2:
+            problems.append("%s: want exit 2, got %s" % (label, code))
+        if out:
+            problems.append("%s: want nothing on stdout, got: %r" % (label, out))
+        if err.rstrip("\n") != "usage: leaf-role.sh <leaf-name>":
+            problems.append("%s: want stderr exactly the usage line, got: %r" % (label, err))
+    assert problems == []
