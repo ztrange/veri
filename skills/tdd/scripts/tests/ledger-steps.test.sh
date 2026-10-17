@@ -50,8 +50,8 @@ either_empty="$("$STEPS" current-or-last-done < "$work/empty.md" 2>> "$work/err"
 
 "$STEPS" bogus < "$work/kinds.md" > "$work/out" 2> "$work/err"; code=$?
 { [[ "$code" == 2 ]] && [[ ! -s "$work/out" ]] \
-  && cmp -s <(printf 'usage: ledger-steps.sh [current|last-done|current-or-last-done|next-phase|criterion <k>]\n') "$work/err"; } \
-  && ok || no "bogus exits 2 with nothing on stdout and stderr exactly the one usage line (code=$code out='$(cat "$work/out")' stderr='$(cat "$work/err")')"
+  && cmp -s <(printf 'usage: ledger-steps.sh [current|last-done|current-or-last-done|next-phase|criterion <k>|has-mark <name>]\n') "$work/err"; } \
+  && ok || no "bogus exits 2 with nothing on stdout and stderr exactly the one usage line, which lists every verb including has-mark <name> (#1624) (code=$code out='$(cat "$work/out")' stderr='$(cat "$work/err")')"
 
 printf '# Plan for #42\n\n- [x] add lowercasing ⟦criterion 1⟧\n- [ ] rename the slug helper ⟦phases: expand, migrate, contract-a, contract-b⟧ ⟦criterion 1⟧ ⟂ expand done ⟂ migrate done ⟂ contract-a owed\n\n## Owed steps\n\n- rename the slug helper: contract-a\n' > "$work/owed.md"
 phase="$("$STEPS" next-phase < "$work/owed.md" 2> "$work/err")"; phase_code=$?
