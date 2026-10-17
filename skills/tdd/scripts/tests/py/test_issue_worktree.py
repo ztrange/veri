@@ -612,15 +612,27 @@ def test_main_answers_each_ls_remote_shape_with_its_stdout_stderr_and_exit_code_
     assert unreachable == (2, "", refusal)
 
 
-def test_claiming_pr_1656_asks_github_for_a_github_com_origin_and_names_the_open_pr_that_closes_the_issue(issue_worktree, monkeypatch):
+def _open_prs(issue_worktree, monkeypatch, prs):
+    """claiming_pr on a github.com origin, with gh_json answering `prs`; returns (its answer, the fixtures asked)."""
     asked = []
 
     def fake_gh_json(*args):
         asked.append(args[0])
-        return json.dumps([{"state": "OPEN", "body": "Fixes it.\n\nCloses #62", "url": "https://github.com/o/r/pull/9"},
-                           {"state": "OPEN", "body": "Closes #63", "url": "https://github.com/o/r/pull/10"}])
+        return json.dumps(prs)
 
     monkeypatch.delenv("VERI_GH_JSON", raising=False)
     monkeypatch.setattr(issue_worktree, "gh_json", fake_gh_json)
+    return issue_worktree.claiming_pr("62", "https://github.com/o/r.git"), asked
 
-    assert (issue_worktree.claiming_pr("62", "https://github.com/o/r.git"), asked) == ("https://github.com/o/r/pull/9", ["prs.json"])
+
+def test_claiming_pr_1656_asks_github_for_a_github_com_origin_and_names_the_open_pr_that_closes_the_issue_not_one_listed_before_it(issue_worktree, monkeypatch):
+    prs = [{"state": "OPEN", "body": "Closes #63", "url": "https://github.com/o/r/pull/10"},
+           {"state": "OPEN", "body": "Fixes it.\n\nCloses #62", "url": "https://github.com/o/r/pull/9"}]
+
+    assert _open_prs(issue_worktree, monkeypatch, prs) == ("https://github.com/o/r/pull/9", ["prs.json"])
+
+
+def test_claiming_pr_1656_names_no_pr_on_a_github_com_origin_when_the_only_open_one_closes_another_issue(issue_worktree, monkeypatch):
+    prs = [{"state": "OPEN", "body": "Closes #63", "url": "https://github.com/o/r/pull/10"}]
+
+    assert _open_prs(issue_worktree, monkeypatch, prs) == ("", ["prs.json"])
