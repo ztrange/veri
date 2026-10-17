@@ -1082,3 +1082,18 @@ def test_main_reads_an_inserted_or_replaced_step_carrying_a_kind_mark_with_that_
             kinds = {record[6]: record[2] for record in ledger_steps(ledger.read_text())}
             added = [kinds[text] for text in kinds if text.startswith("check it")]
             assert (kind, where, code, added) == (kind, where, 0, [kind])
+
+
+def test_main_counts_a_kind_marked_added_step_against_the_budget_and_owes_the_next_insertion_1614(tmp_path, run_cli, add_ledger_step):
+    for kind in ("full-suite", "human-owed", "diff-checked"):
+        ledger = tmp_path / f"issue-42-{kind}.md"
+        ledger.write_bytes(LEDGER)
+        env = {"VERI_STEP_GROWTH": "1"}
+
+        first = run_cli(add_ledger_step, [str(ledger), "after", "b two", f"check it ⟦{kind}⟧"], env=env)
+        second = run_cli(add_ledger_step, [str(ledger), "after", "b two", "one more"], env=env)
+
+        after = ledger.read_text()
+        assert (kind, first[0], second[0]) == (kind, 0, 1)
+        assert "- [ ] one more" not in after
+        assert after.endswith("## Owed steps\n\n- one more\n")
