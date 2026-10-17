@@ -40,6 +40,18 @@ def test_main_lists_an_orphan_and_returns_0_and_with_no_argument_returns_2_namin
         0, "orphan.sh\n", "", 2, "", "usage: unreachable.sh <repo-root>\n")
 
 
+def test_main_visits_reached_scripts_that_call_each_other_once_so_the_listing_finishes(tmp_path, capsys):
+    unreachable = importlib.import_module("veri.unreachable")
+    scripts = fixture_root(tmp_path)
+    script(scripts / "helper.sh", '"$(dirname "$0")/entry.sh" --again')
+    script(scripts / "orphan.sh", "echo alone")
+
+    code = unreachable.main([str(tmp_path)])
+    listing = capsys.readouterr()
+
+    assert (code, listing.out, listing.err) == (0, "orphan.sh\n", "")
+
+
 def test_main_with_an_empty_argument_returns_2_naming_its_usage(capsys):
     unreachable = importlib.import_module("veri.unreachable")
 
