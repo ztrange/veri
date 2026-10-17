@@ -30,7 +30,7 @@ def find_open_issue(title):
         try:
             issues = json.loads(found.stdout)
         except ValueError:
-            return None
+            raise LookupError("open-issue lookup did not return JSON")
         match = next((i for i in issues if i["title"] == title), None)
         if match or len(issues) < 100:
             return match
