@@ -1533,6 +1533,28 @@ def test_main_renders_a_develop_replaces_report_prompt_stating_the_replaces_test
     assert (code, sorted(rule for rule, pattern in rules.items() if re.search(pattern, prompt, re.I) is None)) == (0, [])
 
 
+def test_main_renders_a_develop_replaces_report_prompt_stating_the_listed_case_names_are_the_exact_strings_to_copy_and_win_over_the_issues_prose_1660(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    report = tmp_path / "red-report.txt"
+    report.write_bytes(b"- REPLACES: zorblat frobs a nitz => test_zorblat_frobs\n")
+    missing = tmp_path / "missing-cases.txt"
+    missing.write_bytes(b"zorblat frobs a nitz\n")
+    step = "\u27e6replaces-case\u27e7 replaces 'zorblat frobs a nitz' in tests/zorblat.test.sh \u27e6criterion 1\u27e7"
+    rules = {
+        "names the listed case names as the exact strings": rb"listed case names[^.]{0,60}exact strings",
+        "says to copy them into the REPLACES: lines": rb"copy[^.]{0,60}REPLACES: lines",
+        "gives them precedence over the issue's prose": rb"precedence over[^.]{0,60}issue's prose",
+    }
+
+    code = build_develop_prompt.main(["replaces-report", str(spec), step, "make test", str(report), str(missing)])
+    out, _ = capsysbinary.readouterr()
+    prompt = re.sub(rb"\s+", b" ", out)
+
+    assert (code, sorted(rule for rule, pattern in rules.items() if re.search(pattern, prompt, re.I) is None)) == (0, [])
+
+
 def test_main_renders_a_revise_red_prompt_for_a_replaces_case_step_with_the_replaces_report_line_and_one_without_the_mark_unchanged_1521(
         tmp_path, capsysbinary, build_develop_prompt):
     spec = tmp_path / "spec.md"
