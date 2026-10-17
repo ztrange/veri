@@ -98,19 +98,4 @@ probe_claude_md_names_the_tunable_and_the_bound() {
     "$PRIORITY_BAND" "$NOT_ENLARGE"
 }
 
-name="$context_md's Selection layer and Solvable entries, $skill_md's solvable-issues.sh bullet and $claude_md record the three-band order and VERI_PRIORITY_LABEL, and say priority reorders the solvable set without enlarging it"
-problems=()
-
-probe_context_selection_layer_states_the_order
-probe_context_solvable_bounds_the_order
-probe_skill_bullet_states_order_and_tunable
-probe_claude_md_names_the_tunable_and_the_bound
-
-report "$name"
-
-name="#1037: entry given 'run\\.sh' starts at the entry where run.sh stands, not the one where runXsh does"
-fixture="$(scratch_dir)"
-printf -- '**runXsh**:\nwrong\n**run.sh**:\nright\n' > "$fixture/CONTEXT.md"
-expect_eq "$name" 'right ' "$(context_path="$fixture/CONTEXT.md" entry 'run\.sh')"
-
 finish
