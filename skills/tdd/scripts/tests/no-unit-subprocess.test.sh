@@ -61,6 +61,10 @@ for f in "$HERE"/unit/*.test.sh; do
         next
       }
     }
+    /^[ \t]*for[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]+in[ \t].*\*\.sh/ {
+      v = $0; sub(/^[ \t]*for[ \t]+/, "", v); sub(/[ \t].*/, "", v)
+      held[v] = 1
+    }
     {
       for (v in held)
         if ($0 ~ (lead "\"?\\$\\{?" v "([^A-Za-z0-9_]|$)")) { print FNR "\t" $0; next }
