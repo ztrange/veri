@@ -140,7 +140,9 @@ def main(argv):
             b"case for each bash case the step named, each in its own `def test_...`, no extra cases, and no\n"
             b"generality the step does not ask for. For each of them, report one line\n"
             b"`REPLACES: <case name> => <pytest test id>` for each case the step named, the case name\n"
-            b"exactly as the step spells it, without the quote characters the step wraps it in.")
+            b"exactly as the step spells it, without the quote characters the step wraps it in. The test id is the\n"
+            b"pytest node id, `<path from the repository root>::<test name>`, and the line starts at column 0\n"
+            b"with no bullet or other prefix.")
     for name, value in zip(names[3:], args[3:]):
         if name in ARGUMENT_PLACEHOLDERS:
             values[ARGUMENT_PLACEHOLDERS[name]] = os.fsencode(value)
