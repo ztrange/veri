@@ -171,3 +171,17 @@ def test_1586_the_revise_prompts_suite_fallback_line_is_exempt_wherever_the_wron
     texts = {path.name: text for path, text in expanded_develop_prompts()}
 
     assert report_formats.stop_prose_offenders("develop-revise.md", texts["develop-revise.md"]) == []
+
+
+@pytest.mark.tree_audit("every skills/tdd/scripts/prompts/develop-*.md prompt, includes expanded")
+def test_1615_every_exempt_stop_prose_entry_names_a_line_of_a_real_develop_prompt_that_still_has_a_stop_word(report_formats):
+    lines = {path.name: text.splitlines() for path, text in expanded_develop_prompts()}
+    stale = []
+    for where in report_formats.EXEMPT:
+        prompt, number = where.rsplit(":", 1)
+        text = lines.get(prompt, [])
+        line = text[int(number) - 1] if 0 < int(number) <= len(text) else ""
+        if not report_formats._STOP_WORDS.search(line):
+            stale.append(where)
+
+    assert not stale, "\n".join(stale)

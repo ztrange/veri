@@ -31,7 +31,7 @@ EXEMPT = {
     "develop-green.md:41": "the SPLIT: format is named in the paragraph that follows",
     "develop-green.md:55": "the fallback to the test command is reported inside SUITE:",
     "develop-reconcile.md:43": "a remote that moved again is reported through the declared keys",
-    "develop-red.md:79": "the fallback to the test command is reported inside SUITE:",
+    "develop-red.md:85": "the fallback to the test command is reported inside SUITE:",
     "develop-refactor.md:77": "the fallback to the test command is reported inside SUITE:",
     "develop-refactor.md:88": "a skipped transform is listed in the declared report",
     "develop-revise.md:68": "the fallback to the test command is reported inside SUITE:",
