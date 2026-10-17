@@ -25,12 +25,13 @@ def before_ready():
         if line.startswith("#") or "gh_pr_ready" in line:
             break
         lines.append(line)
-    return plain(lines)
+    section = plain(lines)
+    assert section.strip(), "SKILL.md has no '### 4. Draft PR' section before a gh pr ready to read"
+    return section
 
 
 def pass_text():
     section = before_ready()
-    assert section.strip(), "SKILL.md has no '### 4. Draft PR' section before a gh pr ready to read"
     assert PASS in section, "SKILL.md's Draft PR step has no 'one structural pass' before gh pr ready"
     return section.split(PASS, 1)[1]
 
@@ -57,7 +58,6 @@ def requires(text, *phrases):
 
 def test_skill_md_s_draft_pr_step_runs_one_structural_pass_before_gh_pr_ready_a_structural_leaf_per_refactor_owed_sh_list_candidate_bounded_by_refactor_touched_sh_issue_counted_by_refactor_budget_sh_issue():
     section = before_ready()
-    assert section.strip(), "SKILL.md has no '### 4. Draft PR' section before a gh pr ready to read"
     requires(section, "refactor-owed.sh list", "build-develop-prompt.sh structural",
              "refactor-touched.sh --issue", "refactor-budget.sh --issue")
 
