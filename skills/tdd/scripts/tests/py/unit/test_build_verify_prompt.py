@@ -405,7 +405,7 @@ def test_main_substitutes_sequentially_globally_and_literally_in_order_filling_e
     real_timed = f"{build_verify_prompt.HERE}/timed-test-run.sh".encode()
     assert (code, err, b"git diff 0123abc..HEAD" in out, b"git diff 4567def..HEAD" in out,
             b"       " + real_timed + b" fast '' make unit && a/b\n"
-            b"       " + real_timed + b" affected '<the suites affected-suites.sh printed>' <the command that runs them>\n"
+            b"       " + real_timed + b" affected '<the suites affected-suites.sh printed>' make test TESTS=\"<those paths>\"\n"
             in out) == (0, b"", True, True, True)
 
 
@@ -945,7 +945,7 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
         "suite-repair": (0, True, True, True, False),
         "replaces-case unreadable": (2, b"", True, [0]),
         "suite-repair unreadable": (2, b"", True, [0, 0]),
-        "#671 byte-identity": [(0, "2531591317 7266"), (0, "1151496330 6990")],
+        "#671 byte-identity": [(0, "1242816099 7269"), (0, "1091040136 6993")],
         "#703 include": (0, f"before outer inner judges {testpath} end after\n".encode(), b""),
         "#703 missing partial": (2, b"", True),
         "#703 self-including partial": (2, b"", True),
