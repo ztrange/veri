@@ -23,11 +23,6 @@ fast_for() { fast=(); [[ "$1" == green || "$1" == refactor ]] && fast=( --fast-c
 
 red="$("$BUILD" red "$work/spec.md" "$testpath" test_slugify_lowercases)"
 
-[[ "$red" == *'slugify("Hello & World/Foo")'* ]] && ok || no "carries issue spec verbatim"
-
-"$BUILD" bogus "$work/spec.md" "$testpath" >/dev/null 2>&1; code=$?
-[[ "$code" -ne 0 ]] && ok || no "unknown phase exits non-zero (got $code)"
-
 prompt_has() {  # prompt_has <prompt> <grep argument…> — the match itself, folded to one line
   local prompt="$1"; shift
   grep -q "$@" <<<"$(tr '\n' ' ' <<<"$prompt")"
@@ -45,109 +40,7 @@ prompt_lacks() {  # prompt_lacks <prompt> <complaint> <grep argument…> — pro
   return 0
 }
 
-prompts="$HERE/../prompts"
 problems=""
-probe_order verify-green "$(cat "$prompts/verify-green.md")" 'remove the code yourself' \
-  'remove the code yourself[^.]{0,40}run[^.]{0,40}suites'
-[[ -z "$problems" ]] && ok \
-  || no "#619 verify-green restores a probe with cp <file> <file>.orig before the mutation and mv <file>.orig <file> after the run under mutation (${problems#; })"
-
-problems=""
-probe_order verify-pin "$(cat "$prompts/verify-pin.md")" 'break it yourself' 'run the target test again'
-[[ -z "$problems" ]] && ok \
-  || no "#619 verify-pin restores a probe with cp <file> <file>.orig before the mutation and mv <file>.orig <file> after the run under mutation (${problems#; })"
-
-problems=""
-for label in verify-green verify-pin develop-cover; do
-  prompt="$(cat "$prompts/$label.md")"
-  prompt_says "$prompt" "$label never compares git diff with what it printed before the probe" \
-    -iE -e "git diff[^.]{0,120}(before|earlier)[^.]{0,40}(probe|mutat)|(probe|mutat)[^.]{0,120}git diff[^.]{0,120}(before|earlier)"
-  prompt_lacks "$prompt" "$label still names git checkout --" -F -e 'git checkout --'
-  prompt_lacks "$prompt" "$label still names git diff --exit-code" -E -e 'git diff[[:space:]]+--exit-code'
-done
-[[ -z "$problems" ]] && ok \
-  || no "#619 verify-green, verify-pin and develop-cover confirm the restore by comparing git diff with what it printed before the probe, and name neither git checkout -- nor git diff --exit-code (${problems#; })"
-
-problems=""
-stash_rule='**Never run `git stash`**: the stash stack is one ref, `refs/stash`, in a `.git` shared by
-every worktree of this repository, so what you pop may be another agent'"'"'s work — and theirs
-is then lost. To see the committed version of a file, read it with `git show HEAD:<path>`;
-to compare a whole tree against it, make a throwaway checkout with
-`git worktree add --detach <scratch> HEAD` and remove it afterwards.'
-DEVELOP="$HERE/../build-develop-prompt.sh"
-echo 'a reason' > "$work/reason.md"
-built_prompts() {  # one call per template: <label>|<builder> <args…>, every one of them including _shared.md or _develop-shared.md
-  local v="$BUILD" d="$DEVELOP" s="$work/spec.md" r="$work/reason.md"
-  printf '%s\n' \
-    "verify-red|$v red $s $testpath t" \
-    "verify-green|$v --fast-cmd unit green $s $testpath t" \
-    "verify-refactor|$v --fast-cmd unit refactor $s $testpath 0123abc" \
-    "verify-pin|$v pin $s $testpath t" \
-    "verify-plan|$v plan $s $work/ledger-stash.md" \
-    "verify-rebase|$v rebase $s 0123abc 4567def" \
-    "verify-transform|$v transform $s $testpath 0123abc" \
-    "verify-diff|$v --step s --fast-cmd unit diff $s 0123abc 4567def" \
-    "develop-red|$d red $s step cmd" \
-    "develop-green|$d green $s step cmd $testpath t unit" \
-    "develop-refactor|$d refactor $s step cmd f" \
-    "develop-cover|$d cover $s step cmd" \
-    "develop-transform|$d transform $s step cmd" \
-    "develop-diff|$d diff $s step cmd unit" \
-    "develop-structural|$d structural $s step cmd f" \
-    "develop-predicate|$d predicate $s step cmd f" \
-    "develop-revise|$d revise red $s step cmd $r" \
-    "develop-revise-diff|$d revise diff $s step cmd $r unit" \
-    "develop-reconcile|$d reconcile $s step cmd b 0123abc" \
-    "develop-exhausted|$d exhausted $s step cmd $r" \
-    "develop-over-budget|$d over-budget $s step cmd 1 2" \
-    "develop-rebase|$d rebase $s step cmd 0123abc 4567def f"
-}
-printf '%s\n' '- [ ] a step ⟦criterion 1⟧' > "$work/ledger-stash.md"
-while IFS='|' read -r label call; do
-  read -ra argv <<<"$call"
-  prompt="$("${argv[@]}" 2>&1)"; code=$?
-  [[ "$code" -eq 0 ]] || { problems="$problems; $label did not build (exit $code)"; continue; }
-  [[ "$prompt" == *"$stash_rule"* ]] || problems="$problems; the built $label prompt lacks the git stash rule verbatim"
-done < <(built_prompts)
-[[ -z "$problems" ]] && ok \
-  || no "#1286 every prompt built from a template including _shared.md or _develop-shared.md carries the git stash rule verbatim (${problems#; })"
-
-problems=""
-forbidding='Never undo a probe with[[:space:]]`git checkout -- <file>` or `git restore`'
-while IFS='|' read -r label call; do
-  read -ra argv <<<"$call"
-  prompt="$("${argv[@]}" 2>&1)"; code=$?
-  [[ "$code" -eq 0 ]] || { problems="$problems; $label did not build (exit $code)"; continue; }
-  [[ "$prompt" == *'git stash push'* ]] && problems="$problems; the built $label prompt contains git stash push"
-  [[ "$prompt" == *$forbidding* ]] \
-    || problems="$problems; the built $label prompt lacks the sentence forbidding git checkout -- <file>"
-  prompt="${prompt//$forbidding/}"
-  [[ "$prompt" == *'git checkout --'* ]] \
-    && problems="$problems; the built $label prompt names git checkout -- outside the sentence that forbids it"
-done < <(built_prompts)
-[[ -z "$problems" ]] && ok \
-  || no "#1286 every prompt built from a template including _shared.md or _develop-shared.md carries the sentence forbidding git checkout -- <file>, names git checkout -- nowhere else, and contains no git stash push (${problems#; })"
-
-problems=""
-numbered_item() {  # numbered_item <prompt file> <n> — the text of list item <n>., up to item <n+1>.
-  awk -v n="$2" '$0 ~ "^" n "\\. " { on = 1 } $0 ~ "^" (n + 1) "\\. " { on = 0 } on' "$1"
-}
-for item in verify-green:4 verify-pin:2 develop-cover:4; do
-  label="${item%%:*}" n="${item#*:}"
-  text="$(numbered_item "$prompts/$label.md" "$n")"
-  prompt_says "$text" "$label item $n never restores with mv <file>.orig <file>" -F -e 'mv <file>.orig <file>'
-  case "$label" in
-    develop-cover)
-      prompt_says "$text" "$label item $n never requires the tree exactly as the leaf found it" \
-        -iE -e 'working tree must be exactly as you found it' ;;
-    *)
-      prompt_says "$text" "$label item $n never requires the restore before reporting" \
-        -F -e 'before you report' ;;
-  esac
-done
-[[ -z "$problems" ]] && ok \
-  || no "#619 verify-green check 4 and verify-pin check 2 restore before the verifier reports, and develop-cover step 4 leaves the working tree exactly as the leaf found it (${problems#; })"
-
 cat > "$work/ledger.md" <<'LEDGER'
 # Plan for #426
 

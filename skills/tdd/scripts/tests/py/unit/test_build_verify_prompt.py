@@ -1301,3 +1301,191 @@ def test_main_renders_a_red_prompt_for_a_replaces_case_step_saying_one_replaceme
     plain_result = (code, one_failing in prompt, re.search(per_case, prompt, re.I) is not None)
 
     assert (marked_result, plain_result) == ((0, False, True, True), (0, True, False))
+
+
+SPEC_TEXT = 'slugify("Hello & World/Foo") must return "hello-world-foo" — see {ref}\\n done.\n'
+TESTPATH = "tests/test_slugify.py"
+STASH_RULE = (
+    "**Never run `git stash`**: the stash stack is one ref, `refs/stash`, in a `.git` shared by\n"
+    "every worktree of this repository, so what you pop may be another agent's work — and theirs\n"
+    "is then lost. To see the committed version of a file, read it with `git show HEAD:<path>`;\n"
+    "to compare a whole tree against it, make a throwaway checkout with\n"
+    "`git worktree add --detach <scratch> HEAD` and remove it afterwards.")
+FORBIDDING = r"Never undo a probe with\s`git checkout -- <file>` or `git restore`"
+
+
+def fold(data):
+    return data.replace(b"\n", b" ")
+
+
+def template_bytes(label):
+    return (SCRIPTS / "prompts" / f"{label}.md").read_bytes().rstrip(b"\n")
+
+
+def offset_of(line, pattern):
+    found = re.search(pattern, line, re.I)
+    return None if found is None else found.start()
+
+
+def probe_order_problems(label, prompt, mutation, run_under_mutation):
+    line = fold(prompt)
+    cp_at = offset_of(line, rb"cp <file> <file>\.orig")
+    mutate_at = offset_of(line, mutation)
+    run_at = offset_of(line, run_under_mutation)
+    mv_at = offset_of(line, rb"mv <file>\.orig <file>")
+    problems = []
+    if cp_at is None:
+        problems.append(f"{label} never names cp <file> <file>.orig")
+    if mv_at is None:
+        problems.append(f"{label} never names mv <file>.orig <file>")
+    if mutate_at is None:
+        problems.append(f"{label} no longer gives the mutation instruction")
+    if run_at is None:
+        problems.append(f"{label} no longer gives the run under mutation")
+    if cp_at is not None and mutate_at is not None and cp_at > mutate_at:
+        problems.append("cp <file> <file>.orig comes after the mutation instruction")
+    if mv_at is not None and run_at is not None and mv_at < run_at:
+        problems.append("mv <file>.orig <file> comes before the run under mutation")
+    return problems
+
+
+def says(prompt, complaint, pattern, flags=0):
+    return [] if re.search(pattern, fold(prompt), flags) else [complaint]
+
+
+def lacks(prompt, complaint, pattern, flags=0):
+    return [complaint] if re.search(pattern, fold(prompt), flags) else []
+
+
+def numbered_item(prompt, n):
+    on, kept = False, []
+    for line in prompt.split(b"\n"):
+        if re.match(rb"%d\. " % n, line):
+            on = True
+        if re.match(rb"%d\. " % (n + 1), line):
+            on = False
+        if on:
+            kept.append(line)
+    return b"\n".join(kept)
+
+
+@pytest.fixture
+def stash_calls(tmp_path, run_cli):
+    import veri.build_develop_prompt as develop
+    import veri.build_verify_prompt as verify
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(SPEC_TEXT.encode())
+    (tmp_path / "ledger-stash.md").write_text("- [ ] a step ⟦criterion 1⟧\n")
+    (tmp_path / "reason.md").write_text("a reason\n")
+    s, r, ledger, t = str(spec), str(tmp_path / "reason.md"), str(tmp_path / "ledger-stash.md"), TESTPATH
+    calls = [
+        ("verify-red", verify, ["red", s, t, "t"]),
+        ("verify-green", verify, ["--fast-cmd", "unit", "green", s, t, "t"]),
+        ("verify-refactor", verify, ["--fast-cmd", "unit", "refactor", s, t, "0123abc"]),
+        ("verify-pin", verify, ["pin", s, t, "t"]),
+        ("verify-plan", verify, ["plan", s, ledger]),
+        ("verify-rebase", verify, ["rebase", s, "0123abc", "4567def"]),
+        ("verify-transform", verify, ["transform", s, t, "0123abc"]),
+        ("verify-diff", verify, ["--step", "s", "--fast-cmd", "unit", "diff", s, "0123abc", "4567def"]),
+        ("develop-red", develop, ["red", s, "step", "cmd"]),
+        ("develop-green", develop, ["green", s, "step", "cmd", t, "t", "unit"]),
+        ("develop-refactor", develop, ["refactor", s, "step", "cmd", "f"]),
+        ("develop-cover", develop, ["cover", s, "step", "cmd"]),
+        ("develop-transform", develop, ["transform", s, "step", "cmd"]),
+        ("develop-diff", develop, ["diff", s, "step", "cmd", "unit"]),
+        ("develop-structural", develop, ["structural", s, "step", "cmd", "f"]),
+        ("develop-predicate", develop, ["predicate", s, "step", "cmd", "f"]),
+        ("develop-revise", develop, ["revise", "red", s, "step", "cmd", r]),
+        ("develop-revise-diff", develop, ["revise", "diff", s, "step", "cmd", r, "unit"]),
+        ("develop-reconcile", develop, ["reconcile", s, "step", "cmd", "b", "0123abc"]),
+        ("develop-exhausted", develop, ["exhausted", s, "step", "cmd", r]),
+        ("develop-over-budget", develop, ["over-budget", s, "step", "cmd", "1", "2"]),
+        ("develop-rebase", develop, ["rebase", s, "step", "cmd", "0123abc", "4567def", "f"]),
+    ]
+
+    def built():
+        for label, module, argv in calls:
+            code, out, err = run_cli(module, argv)
+            yield label, code, out + err
+    return built
+
+
+def test_carries_issue_spec_verbatim(tmp_path, run_cli, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(SPEC_TEXT.encode())
+
+    code, out, _ = run_cli(build_verify_prompt, ["red", str(spec), TESTPATH, "test_slugify_lowercases"])
+
+    assert (code, 'slugify("Hello & World/Foo")' in out) == (0, True)
+
+
+def test_unknown_phase_exits_non_zero(tmp_path, run_cli, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(SPEC_TEXT.encode())
+
+    code, out, _ = run_cli(build_verify_prompt, ["bogus", str(spec), TESTPATH])
+
+    assert (code, out) == (2, "")
+
+
+def test_619_verify_green_restores_a_probe_with_cp_before_the_mutation_and_mv_after_the_run_under_mutation():
+    assert probe_order_problems("verify-green", template_bytes("verify-green"), rb"remove the code yourself",
+                                rb"remove the code yourself[^.]{0,40}run[^.]{0,40}suites") == []
+
+
+def test_619_verify_pin_restores_a_probe_with_cp_before_the_mutation_and_mv_after_the_run_under_mutation():
+    assert probe_order_problems("verify-pin", template_bytes("verify-pin"), rb"break it yourself",
+                                rb"run the target test again") == []
+
+
+def test_619_verify_green_verify_pin_and_develop_cover_confirm_the_restore_by_comparing_git_diff_and_name_neither_checkout_nor_exit_code():
+    problems = []
+    for label in ("verify-green", "verify-pin", "develop-cover"):
+        prompt = template_bytes(label)
+        problems += says(prompt, f"{label} never compares git diff with what it printed before the probe",
+                         rb"git diff[^.]{0,120}(before|earlier)[^.]{0,40}(probe|mutat)"
+                         rb"|(probe|mutat)[^.]{0,120}git diff[^.]{0,120}(before|earlier)", re.I)
+        problems += lacks(prompt, f"{label} still names git checkout --", rb"git checkout --")
+        problems += lacks(prompt, f"{label} still names git diff --exit-code", rb"git diff\s+--exit-code")
+    assert problems == []
+
+
+def test_1286_every_prompt_built_from_a_shared_template_carries_the_git_stash_rule_verbatim(stash_calls):
+    problems = []
+    for label, code, prompt in stash_calls():
+        if code != 0:
+            problems.append(f"{label} did not build (exit {code})")
+        elif STASH_RULE not in prompt:
+            problems.append(f"the built {label} prompt lacks the git stash rule verbatim")
+    assert problems == []
+
+
+def test_1286_every_prompt_built_from_a_shared_template_carries_the_checkout_sentence_names_checkout_nowhere_else_and_has_no_stash_push(
+        stash_calls):
+    problems = []
+    for label, code, prompt in stash_calls():
+        if code != 0:
+            problems.append(f"{label} did not build (exit {code})")
+            continue
+        if "git stash push" in prompt:
+            problems.append(f"the built {label} prompt contains git stash push")
+        if re.search(FORBIDDING, prompt) is None:
+            problems.append(f"the built {label} prompt lacks the sentence forbidding git checkout -- <file>")
+        if "git checkout --" in re.sub(FORBIDDING, "", prompt):
+            problems.append(f"the built {label} prompt names git checkout -- outside the sentence that forbids it")
+    assert problems == []
+
+
+def test_619_verify_green_check_4_and_verify_pin_check_2_restore_before_reporting_and_develop_cover_step_4_leaves_the_tree_as_found():
+    problems = []
+    for label, n in (("verify-green", 4), ("verify-pin", 2), ("develop-cover", 4)):
+        text = numbered_item(template_bytes(label), n)
+        problems += says(text, f"{label} item {n} never restores with mv <file>.orig <file>",
+                         rb"mv <file>\.orig <file>")
+        if label == "develop-cover":
+            problems += says(text, f"{label} item {n} never requires the tree exactly as the leaf found it",
+                             rb"working tree must be exactly as you found it", re.I)
+        else:
+            problems += says(text, f"{label} item {n} never requires the restore before reporting",
+                             rb"before you report")
+    assert problems == []
