@@ -21,7 +21,6 @@ declare -A COUNTER_EXEMPT=(
   ["profile$sfx:pass=0; fail=0"]="a planted suite's own counters, inside a heredoc"
   ["mutation-parity$sfx:pass=0; fail=0"]="a planted suite's own counters, inside a heredoc"
   ["mutation-parity$sfx:echo \"\$pass passed, \$fail failed\""]="a planted suite's own count line, inside a heredoc"
-  ["skill-leaf-env$sfx:    pass=0; fail=0"]="a subshell reset around a probe"
 )
 
 tree_grep() {
