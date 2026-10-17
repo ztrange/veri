@@ -28,6 +28,9 @@ test is `{{TARGET_TEST}}`). Confirm the Red step is sound.
    even reach its assertions for that reason is red, not broken. Any *other* error before
    an assertion is a REJECT: a typo'd name, a wrong path, a missing fixture, a syntax error
    in the test, or an unrelated environment problem.
+   A test whose only failure is a NameError, or an equivalent undefined-name error, on a name
+   the test file references and never defines or imports is a REJECT: a helper the test needs
+   lives in the test file and is written in Red, so production code cannot supply it.
    A test that fails for the wrong reason is a REJECT.
 3. **Quality of the test.** REJECT if the test is:
    - **trivial** — it cannot meaningfully fail once the behavior exists (asserts a
