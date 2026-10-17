@@ -33,17 +33,24 @@ def block(body, new):
     lines = []
     last = None
     in_blocked = False
+    heading = None
+    placed = False
     for line in body.split("\n"):
         if line.startswith("## "):
             in_blocked = line.startswith("## Blocked by")
+            if line == "## Blocked by" and heading is None:
+                heading = len(lines)
         if in_blocked and line.startswith("None"):
             lines.append(blocker)
+            placed = True
             continue
         if in_blocked and line.startswith("- #"):
             last = len(lines)
         lines.append(line)
     if last is not None:
         lines.insert(last + 1, blocker)
+    elif heading is not None and not placed:
+        lines.insert(heading + 1, blocker)
     if not any(line.startswith("## Blocked by") for line in lines):
         lines = ["## Blocked by", "", blocker] if not body else lines + ["", "## Blocked by", "", blocker]
     return "\n".join(lines)
