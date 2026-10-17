@@ -1486,3 +1486,13 @@ def test_main_removes_the_set_aside_appends_once_it_reapplies_them_so_the_next_r
     second = run_cli(rebase_onto_default, [], cwd=clone)[0]
 
     assert (first, left, second, ledger.read_text()) == (3, False, 3, "- [x] step one\n" + append)
+
+
+def test_main_exits_2_with_one_stderr_line_naming_the_failed_fetch_of_origin_1605(
+        monkeypatch, capsys, rebase_onto_default):
+    fake_git(monkeypatch, **{"git fetch -q origin": (1, "")})
+    assert rebase_onto_default.main([]) == 2
+    err = capsys.readouterr().err
+    assert len(err.splitlines()) == 1, err
+    assert "fetch" in err and "origin" in err, err
+    assert "refs/remotes/origin/HEAD" not in err and "re-apply" not in err, err
