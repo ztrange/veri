@@ -787,7 +787,9 @@ unauthenticated baseline never gets a cycle.
    same worktree the first run built, with its committed ledger already on disk.
 6. **Claim the issue on a fresh run.** Preflight has passed; before step 2's planning, run
    `$S/unlabel-issue.sh <n>`, which removes the opt-in label so `solvable-issues.sh` stops
-   listing the issue. A resume skips this: it already ran.
+   listing the issue. This is the run's **first claim**; the draft PR is its **durable claim**. A
+   bailed or parked issue stays unlabelled until a human relabels it, as parking already does.
+   A resume skips this: it already ran.
 
 ### 2. Scope & plan → the ledger
 
