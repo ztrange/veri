@@ -4,11 +4,15 @@ import pathlib
 import re
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
+SCOPE_LOOP = SKILL.with_name("SCOPE-LOOP.md")
 
 STOPPING = "## Stopping"
 LAUNCHING = "## Launching a leaf — detach, then wait in the foreground"
 PROCEDURE = "## Procedure"
 SATISFIED = "## Already satisfied — the pin"
+BAILING = "## Bailing"
+LOOP_4 = "### Loop 4. Stop conditions"
+LOOP_5 = "### Loop 5. Report"
 SCRIPTS = "## The scripts (this skill's `scripts/` directory)"
 
 _UPPER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
@@ -19,8 +23,8 @@ def _plain(text):
     return text.translate(_UNMARK).translate(_UPPER)
 
 
-def _section(heading):
-    section = importlib.import_module("skill_sections").section(SKILL, heading)
+def _section(heading, path=SKILL):
+    section = importlib.import_module("skill_sections").section(path, heading)
     lines = _plain(section).split("\n")[1:]
     assert "".join(lines).strip(), f"SKILL.md has no {heading} section — nothing could be checked"
     return lines
@@ -250,4 +254,212 @@ def test_the_three_ledger_commit_checkpoints_send_stop_requested_exit_2_to_stopp
     _checkpoint_exit2(problems, "the green PASS branch", procedure, *GREEN_CHECKPOINT)
     _checkpoint_exit2(problems, "the refactor-pending clear", procedure, *CLEAR_CHECKPOINT)
     _checkpoint_exit2(problems, "the pin's test: commit", _section(SATISFIED), *PIN_CHECKPOINT)
+    assert not problems, problems
+
+
+def _phase_exit2(heading, anchor):
+    inside, kept = False, []
+    for raw in SKILL.read_text().splitlines():
+        if re.match(r"#{2,4} ", raw):
+            inside = bool(re.search(heading, raw.translate(_UPPER)))
+            continue
+        if inside:
+            kept.append(_plain(raw))
+    out, buf, hit = None, "", False
+    for line in kept:
+        if re.match(r"[ \t]*$", line) or re.match(r"[ \t]*(- |[0-9]+\. )", line):
+            if hit:
+                out = buf
+                break
+            buf = ""
+        if re.match(r"[ \t]*$", line):
+            continue
+        buf += " " + line
+        if re.search(anchor, line):
+            hit = True
+    else:
+        if hit:
+            out = buf
+    return None if out is None else re.sub(" +", " ", out)
+
+
+def _stopped_issue_bullets():
+    inside, kept = False, []
+    for line in _section(LOOP_4, SCOPE_LOOP):
+        if line.startswith("- "):
+            inside = bool(re.match(r"- [^.]*stop", line))
+        if line and line[0] not in "- ":
+            inside = False
+        if inside:
+            kept.append(line)
+    return kept
+
+
+def test_launching_a_leaf_asks_stop_requested_before_reading_a_leafs_wait_leaf_exit_2_as_killed_stuck_and_a_pending_now_goes_to_stopping_instead_of_bailing():
+    lines, problems = [_joined(_section(LAUNCHING))], []
+    _require(problems, _either_order(r"stop-requested\.sh", r"before[^.;]*killed-stuck"), lines,
+             "the Launching a leaf section never asks stop-requested.sh before reading a leaf's exit 2 as killed-stuck")
+    _require(problems, rf"{_word('now')}[^.;]*stopping[^.;]*(instead of|rather than)[^.;]*bailing|{_word('now')}[^.;]*(instead of|rather than)[^.;]*bailing[^.;]*stopping", lines,
+             "the Launching a leaf section never sends a leaf's exit 2 with a pending now to Stopping instead of Bailing")
+    assert not problems, problems
+
+
+def test_each_phases_leaf_exit_2_branch_points_back_to_launching_a_leaf_where_stop_requested_is_asked_before_the_exit_2_is_read_as_killed_stuck():
+    phases = [
+        ("verify-plan", r"^### 2c\. verify the plan", r"killed-stuck \(exit 2\)"),
+        ("develop-red", r"^#### red", r"exits 2 \(killed-stuck\)"),
+        ("green", r"^#### green", r"exit 2 → bail"),
+        ("refactor", r"^#### refactor loop", r"exit 2 → bail"),
+        ("revise", r"^## revising on a reject", r"exit 2 → bail"),
+    ]
+    problems = []
+    for phase, heading, anchor in phases:
+        clause = _phase_exit2(heading, anchor)
+        if not clause:
+            problems.append(f"the {phase} branch has no exit-2 clause to read — nothing could be checked")
+            continue
+        _require(problems, "launching a leaf", [clause],
+                 f"the {phase} branch reads a leaf's exit 2 without pointing back to Launching a leaf — a pending now stop there would bail")
+    assert not problems, problems
+
+
+def test_bailing_keeps_a_bail_reached_first_revise_budget_exhausted_or_killed_stuck_with_no_now_pending_as_a_bail_and_its_comment_says_a_stop_was_pending_when_one_was():
+    lines, problems = [_joined(_section(BAILING))], []
+    pending, stop = _word("pending"), _word("stop")
+    _require(problems, r"stop-requested\.sh", lines,
+             "the Bailing section never asks stop-requested.sh — it cannot say whether a stop was pending")
+    _require(problems, _either_order("revise_budget", f"{stop}[^.;]*{pending}"), lines,
+             "the Bailing section never says a REJECT exhausting REVISE_BUDGET with a stop pending still bails")
+    _require(problems, _either_order("killed-stuck", f"no[^.;]*{_word('now')}[^.;]*{pending}"), lines,
+             "the Bailing section never says a killed-stuck leaf with no now pending still bails")
+    _require(problems, _either_order("comment", f"{stop}[^.;]*{pending}"), lines,
+             "the Bailing section's comment never says a stop was pending when one was")
+    assert not problems, problems
+
+
+def test_the_draft_pr_step_runs_to_completion_with_a_stop_request_pending_clears_it_with_stop_requested_clear_and_its_final_done_comment_says_a_stop_arrived_after_the_last_step():
+    problems = []
+    draft_pr = _branch(_section(PROCEDURE), r"^### 4\. draft pr", r"^### 5\.")
+    joined, stop = [_joined(draft_pr)], _word("stop")
+    _require(problems, r"stop-requested\.sh --clear", joined,
+             "the Draft PR step never runs stop-requested.sh --clear — a stop arriving after the last step would outlive the run and pause the next one")
+    _require(problems, _either_order(f"({stop}[^.;]*pending|pending[^.;]*{stop})", "(runs? to completion|not interrupted|finish(es)?)"), joined,
+             "the Draft PR step never says it runs to completion with a stop request pending")
+    final = []
+    for line in draft_pr:
+        if not final and not re.search(r"^4\. post a final", line):
+            continue
+        if re.match(r"[ \t]*$", line):
+            break
+        final.append(line)
+    final = [_joined(final)]
+    _require(problems, "### ✅ done", final,
+             "the Draft PR step has no sub-step posting the final ### ✅ Done comment to read")
+    _require(problems, f"{stop}[^.;]*arrived[^.;]*after[^.;]*last step", final,
+             "the final ### ✅ Done comment never says a stop arrived after the last step")
+    assert not problems, problems
+
+
+def test_the_draft_pr_step_says_both_checkpoints_apply_to_the_repair_step_a_red_full_run_appends_like_any_other_step():
+    lines, problems = [_joined(_branch(_section(PROCEDURE), r"^### 4\. draft pr", r"^### 5\."))], []
+    _require(problems, _either_order("repair step", "(both|the two) checkpoints"), lines,
+             "the Draft PR step never says both checkpoints apply to the repair step a red full run appends — a stop requested during a repair would run on to its end")
+    assert not problems, problems
+
+
+def test_987_preflight_step_3_runs_stop_requested_clear_beside_the_tdd_conductor_pid_write_so_a_stale_request_from_a_killed_run_cannot_stop_the_run_that_resumes_it():
+    lines, problems = [_joined(_branch(_section(PROCEDURE), r"^3\. suite is green at baseline", r"^4\. "))], []
+    _require(problems, r"\.tdd/conductor\.pid", lines,
+             "preflight step 3 has no .tdd/conductor.pid write to read — nothing could be checked beside it")
+    _require(problems, r"stop-requested\.sh --clear", lines,
+             "preflight step 3 never runs stop-requested.sh --clear — a request a killed run left behind would stop the run that resumes it")
+    _require(problems, _either_order("(stale|killed)", "(request|stop)"), lines,
+             "preflight step 3 never says the clear is for a stale request left by a killed run")
+    assert not problems, problems
+
+
+def test_987_step_1_2_neither_writes_tdd_conductor_pid_nor_runs_stop_requested_clear_preflight_step_3_already_took_the_lock():
+    lines, problems = [_joined(_branch(_section(PROCEDURE), r"^2\. derive the slug", r"^3\. "))], []
+    if not lines[0].strip():
+        problems.append("step 1.2 has no branch to read — nothing could be checked")
+    _refuse(problems, r"> \.tdd/conductor\.pid", lines,
+            "step 1.2 writes .tdd/conductor.pid again — the lock belongs to preflight step 3, and a second write here is the one #987 moved")
+    _refuse(problems, r"stop-requested\.sh --clear", lines,
+            "step 1.2 runs stop-requested.sh --clear again — the stale-request clear belongs beside preflight step 3's lock")
+    assert not problems, problems
+
+
+def test_scope_loop_md_loop_4_stop_conditions_list_an_issue_that_ended_in_a_stop_and_say_the_loop_then_reports_and_stops_without_going_back_to_loop_1_or_selecting_another_issue():
+    bullets, problems = _stopped_issue_bullets(), []
+    assert bullets, "SCOPE-LOOP.md's Loop 4 lists no issue that ended in a stop — a stopped issue leaves the loop carrying on to the next one"
+    lines = [_joined(bullets)]
+    _require(problems, r"(^|[^a-z])reports?[^.;]*stops?", lines,
+             "the stopped-issue condition never says the loop reports and stops")
+    _require(problems, r"(not|never)[^.;]*(go(es)? back|return)[^.;]*loop 1", lines,
+             "the stopped-issue condition never says the loop does not go back to Loop 1")
+    _require(problems, _either_order("(not|never|no)[^.;]*(select|pick|take|start)", "(another|next|other) issue"), lines,
+             "the stopped-issue condition never says the loop does not select another issue")
+    assert not problems, problems
+
+
+def test_scope_loop_md_says_a_stop_unlike_a_bail_has_no_continue_past_option_no_continue_on_bail_equivalent_because_a_stop_is_the_operator_speaking():
+    bullets, problems = _stopped_issue_bullets(), []
+    assert bullets, "SCOPE-LOOP.md's Loop 4 lists no issue that ended in a stop — nothing could be checked"
+    lines = [_joined(bullets)]
+    _require(problems, _either_order("(^|[^a-z])(no|not|never|nothing)[^a-z]", "(--continue-on-bail|continue[- ]past)"), lines,
+             "the stopped-issue condition never says a stop has no --continue-on-bail equivalent")
+    _require(problems, r"(^|[^a-z])operator", lines,
+             "the stopped-issue condition never says a stop is the operator speaking")
+    assert not problems, problems
+
+
+def test_scope_loop_md_loop_5_report_gives_a_stopped_issue_a_stopped_mode_per_issue_line_and_names_the_stop_and_the_stopped_issues_mode_as_what_stopped_the_loop():
+    raw = importlib.import_module("skill_sections").section(SCOPE_LOOP, LOOP_5).split("\n")[1:]
+    problems, fence, first, rest = [], 0, [], []
+    for line in raw:
+        if line.startswith("```"):
+            fence += 1
+            continue
+        if fence == 1:
+            first.append(_plain(line))
+        if fence >= 2:
+            rest.append(_plain(line))
+    assert "".join(raw).strip(), "SCOPE-LOOP.md has no ### Loop 5 section — nothing could be checked"
+    _require(problems, r"stopped: ?<mode>", first,
+             "Loop 5's per-issue line has no stopped: <mode> form beside the PR url, bailed: and skipped:")
+    rest = [_joined(rest)]
+    _require(problems, _either_order("what stopped the loop", _word("stop")), rest,
+             "Loop 5 never names the stop as what stopped the loop")
+    _require(problems, _either_order("what stopped the loop", "(^|[^a-z])mode"), rest,
+             "Loop 5 never names the stopped issue's mode as what stopped the loop")
+    assert not problems, problems
+
+
+def test_scope_loop_md_says_re_invoking_the_same_command_after_a_stop_resumes_the_stopped_issue_from_its_committed_ledger_and_then_carries_on_draining_the_scope():
+    bullets, problems = _stopped_issue_bullets(), []
+    assert bullets, "SCOPE-LOOP.md's Loop 4 lists no issue that ended in a stop — nothing could be checked"
+    lines = [_joined(bullets)]
+    _require(problems, r"re-?invok(e|es|ing)[^.;]*same command", lines,
+             "the stopped-issue condition never says to re-invoke the same command")
+    _require(problems, _either_order("resum", "committed ledger"), lines,
+             "the stopped-issue condition never says the stopped issue resumes from its committed ledger")
+    _require(problems, r"resum[^.;]*(carr(y|ies|ying) on|continu(e|es|ing)|keep(s|ing)? going)[^.;]*(drain|scope)", lines,
+             "the stopped-issue condition never says the resumed run then carries on draining the scope")
+    assert not problems, problems
+
+
+def test_1174_skill_md_tells_the_conductor_it_signals_only_processes_it_started_by_the_pid_it_recorded_when_it_started_them_never_by_name_or_pattern_pkill_killall_kill_pgrep_and_that_experiments_carry_the_exp_prefix_no_live_run_uses():
+    text = re.sub(" +", " ", _plain(SKILL.read_text()).replace("\n", " "))
+    lines, problems = [text], []
+    _require(problems, r"(signal|kill)s? only (the )?processes (it|you) (started|start)", lines,
+             "SKILL.md never says the conductor signals only processes it started")
+    _require(problems, r"pid (it|you) recorded when (it|you) started", lines,
+             "SKILL.md never says it signals by the pid it recorded when it started them")
+    _require(problems, r"never by name or (by )?pattern", lines, "SKILL.md never says it never signals by name or pattern")
+    _require(problems, _word("pkill"), lines, "SKILL.md never names pkill")
+    _require(problems, _word("killall"), lines, "SKILL.md never names killall")
+    _require(problems, r"kill \$\(pgrep", lines, "SKILL.md never names kill $(pgrep …)")
+    _require(problems, _either_order(_word("exp-"), "prefix"), lines,
+             "SKILL.md never says an experiment's processes and leaf names carry the exp- prefix")
+    _require(problems, "no live run uses", lines, "SKILL.md never says no live run uses that prefix")
     assert not problems, problems
