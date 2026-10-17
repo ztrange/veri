@@ -66,8 +66,9 @@ def main(argv):
         (f"Structural candidates #{n}'s closing pass could not reach", structural),
         (f"Out-of-scope transforms #{n}'s closing pass did not attempt", out_of_scope)]
     if existing:
+        comments_url = f"{ISSUES}/{existing['number']}/comments"
         try:
-            comments = json.loads(gh_api(f"{ISSUES}/{existing['number']}/comments").stdout)
+            comments = json.loads(gh_api(comments_url).stdout)
         except ValueError:
             return fail("the comments read did not return JSON", 2)
         listed = existing["body"].split("\n")
@@ -79,7 +80,7 @@ def main(argv):
         for heading, lines in sections if lines)
     if existing:
         if body:
-            posted = gh_api(f"{ISSUES}/{existing['number']}/comments", "-f", f"body={body}")
+            posted = gh_api(comments_url, "-f", f"body={body}")
             if posted.returncode:
                 return fail("posting the comment to the existing issue failed", 2)
         print(existing["html_url"])
