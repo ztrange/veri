@@ -1775,7 +1775,6 @@ def test_main_renders_the_ordinary_red_prompt_for_a_step_mentioning_the_replaces
     assert results == [(0, True, False)] * 2
 
 
-
 def refactor_and_plain_plan_renders(tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
     spec.write_bytes(b"# spec\n\n## Refactor\n\nRun kind: refactor.\n")
