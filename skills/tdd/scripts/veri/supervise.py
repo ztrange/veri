@@ -307,6 +307,8 @@ def ci_repair_step(issue, step):
     try:
         with open(f".tdd/issue-{issue}.md") as f:
             boxes = [t for t in f if re.match(r"\s*- \[.\]", t)]
+        if not step.isdigit():
+            return "⟦ci-repair⟧" in step and any(re.sub(r"\s*- \[.\] ", "", t, count=1).startswith(step) for t in boxes)
         return "⟦ci-repair⟧" in boxes[int(step) - 1]
     except (OSError, ValueError, IndexError):
         return False
