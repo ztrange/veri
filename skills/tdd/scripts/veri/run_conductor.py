@@ -9,6 +9,7 @@ import tempfile
 
 sys.dont_write_bytecode = True
 
+from context_limits import context_limits
 import event
 import launch_floor
 import tunables
@@ -133,8 +134,8 @@ def launch(base, issue, commit, **exports):
         (signal.SIGHUP, lambda *_: None))}
     try:
         code = subprocess.run([binary, "-p", "--output-format", "stream-json",
-                               "--verbose", "--permission-mode", "bypassPermissions",
-                               "--model", "opus"],
+                               "--verbose"] + context_limits() + [
+                               "--permission-mode", "bypassPermissions", "--model", "opus"],
                               input=text, env=env).returncode
     except FileNotFoundError:
         sys.stderr.write("run-conductor: %s: command not found\n" % binary)

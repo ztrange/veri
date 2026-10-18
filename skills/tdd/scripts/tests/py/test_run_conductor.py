@@ -810,10 +810,10 @@ def test_main_launches_exactly_one_claude_with_the_fixed_print_mode_argv_and_no_
 
     capfdbinary.readouterr()
     assert code == 0
-    observed = [dict(launch, stdin=b"# the procedure, read from SKILL.md" in launch.get("stdin", b""))
+    observed = [dict(launch, argv=launch["argv"][:1] + launch["argv"][-4:],
+                     stdin=b"# the procedure, read from SKILL.md" in launch.get("stdin", b""))
                 for launch in launches]
-    assert observed == [{"argv": [program, "-p", "--output-format", "stream-json", "--verbose",
-                                  "--permission-mode", "bypassPermissions", "--model", "opus"],
+    assert observed == [{"argv": [program, "--permission-mode", "bypassPermissions", "--model", "opus"],
                          "stdin": True, "stdout": None, "stderr": None, "capture_output": False,
                          "start_new_session": False, "process_group": None, "preexec_fn": None}]
 
@@ -1305,15 +1305,14 @@ def test_cli_launches_claude_p_for_the_issue_in_stream_json_with_bypass_permissi
         code, out, err = run_cli(run_conductor, argv, cwd=cwd)
         answers[name] = {
             "code": code, "stdout": out, "stderr": err if name == "no-argument" else None,
-            "argvs": [args for args, _ in launches],
+            "argvs": [args[:1] + args[-4:] for args, _ in launches],
             "issue in prompt": [b"Solve issue #4242 by the procedure above." in stdin for _, stdin in launches],
             "orchestrate.sh adds": sorted({added for _, stdin in launches
                                            for added in ("orchestrate.sh", "VERI_CONDUCTOR_CTX_BUDGET", ".tdd/parked/")
                                            if added.encode() in stdin}),
             "parked": (cwd / ".tdd" / "parked").exists(),
         }
-    claude = ["fake-claude", "-p", "--output-format", "stream-json", "--verbose",
-              "--permission-mode", "bypassPermissions", "--model", "opus"]
+    claude = ["fake-claude", "--permission-mode", "bypassPermissions", "--model", "opus"]
     launched = {"stdout": "", "stderr": None, "argvs": [claude], "issue in prompt": [True],
                 "orchestrate.sh adds": [], "parked": False}
     assert answers == {
@@ -1324,6 +1323,32 @@ def test_cli_launches_claude_p_for_the_issue_in_stream_json_with_bypass_permissi
         "no-argument": {"code": 2, "stdout": "", "stderr": "usage: run-conductor.sh <issue>\n", "argvs": [],
                         "issue in prompt": [], "orchestrate.sh adds": [], "parked": False},
     }
+
+
+def test_main_conductor_launch_limits_what_the_harness_loads_beside_its_permission_mode_and_model_1705(
+        tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    for name in ("VERI_NEW_SKILL", "VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    scratch_tmpdir(tmp_path, monkeypatch)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_claude_exiting(monkeypatch, 0, 0)
+
+    code = run_conductor.main(["4242"])
+
+    capfdbinary.readouterr()
+    assert code == 0
+    argv = launches[0][0]
+    value = lambda flag: argv[argv.index(flag) + 1] if flag in argv else "null"
+    assert (argv[-4:], "--disable-slash-commands" in argv, "--strict-mcp-config" in argv,
+            json.loads(value("--mcp-config")), json.loads(value("--settings")), "--bare" in argv) == (
+        ["--permission-mode", "bypassPermissions", "--model", "opus"], True, True, {"mcpServers": {}},
+        {"autoMemoryEnabled": False,
+         "claudeMdExcludes": [os.path.join(os.path.expanduser("~"), ".claude", "CLAUDE.md")]}, False)
 
 
 REAL_RUN, REAL_POPEN = subprocess.run, subprocess.Popen
