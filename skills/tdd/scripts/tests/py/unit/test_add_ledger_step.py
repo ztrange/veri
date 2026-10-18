@@ -4,6 +4,8 @@ import json
 
 import pytest
 
+from conftest import SCRIPTS
+
 USAGE = (
     "usage: add-ledger-step.sh [--criterion <k>] <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]  (--planned goes with --criterion <k>)\n"
 )
@@ -1145,6 +1147,7 @@ def test_main_exits_2_naming_the_log_and_the_unreadable_line_when_a_suite_repair
     assert str(log) in err and "broken" in err
 
 
+<<<<<<< HEAD
 def test_main_replaces_an_added_step_at_the_growth_budget_leaving_the_added_count_unchanged_issue_1631(tmp_path, monkeypatch, capsys, add_ledger_step):
     monkeypatch.setenv("VERI_STEP_GROWTH", "2")
     ledger = tmp_path / "issue-42.md"
@@ -1214,3 +1217,49 @@ def test_main_refuses_an_instead_of_over_an_added_anchor_with_more_texts_than_th
 
     text = ledger.read_bytes().decode()
     assert (code, text.startswith(steps), text[len(steps):]) == (1, True, "\n## Owed steps\n\n- reworded one\n- reworded two\n")
+=======
+def test_shim_header_describes_planned_and_its_exit_2_refusals_and_no_longer_lists_a_criterion_no_step_carries_1579():
+    header = "\n".join(l for l in (SCRIPTS / "add-ledger-step.sh").read_text().split("\n") if l.startswith("#"))
+    exit2 = header[header.index("# Exit:"):]
+    planned = [l for l in header.split("\n") if "--planned" in l]
+
+    assert (
+        any("VERI_STEP_GROWTH" in l for l in planned),
+        any("⟦added⟧" in l for l in planned),
+        "--planned without --criterion" in exit2,
+        "already serves" in exit2,
+        "unticked in the issue body" in exit2,
+        "readable spec file" in exit2,
+        "no ledger step carries" in exit2,
+    ) == (True, True, True, True, True, True, False)
+
+
+def test_scripts_md_entry_documents_planned_and_its_exit_2_refusals_1579():
+    text = (SCRIPTS.parent / "SCRIPTS.md").read_text()
+    start = text.index("- `$S/add-ledger-step.sh ")
+    entry = text[start:text.index("- `$S/classify-bail.sh", start)]
+    planned = [l for l in entry.split("\n") if "--planned" in l]
+
+    assert (
+        any("VERI_STEP_GROWTH" in l for l in planned),
+        any("⟦added⟧" in l for l in planned),
+        "--planned without --criterion" in entry,
+        "already serves" in entry,
+        "unticked in the issue body" in entry,
+        "cannot read the spec file" in entry,
+    ) == (True,) * 6
+
+
+def test_main_refuses_a_replaces_case_step_with_an_unquoted_name_after_a_quoted_one_or_a_trailing_parenthetical_with_one_line_naming_it_1538(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    shapes = []
+    for text in (
+        "x: replaces 'a', b in t/x.test.sh ⟦replaces-case⟧",
+        "x: replaces 'a' (from #12) in t/x.test.sh ⟦replaces-case⟧",
+    ):
+        ledger.write_bytes(LEDGER)
+        code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", text])
+        shapes.append((code, err.count("\n"), text in err, "Traceback" in err, ledger.read_bytes() == LEDGER))
+
+    assert shapes == [(1, 1, True, False, True)] * 2
+>>>>>>> 73b6f6463 (test: port add-ledger-step.test.sh's cases to pytest through run_cli (#1348))
