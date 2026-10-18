@@ -749,3 +749,158 @@ def test_the_suite_path_check_names_a_renderer_or_tests_path_planted_into_a_copy
     assert source.count(rename[0]) == 1
     _, missing = spelled_suites_missing(source.replace(rename[0], rename[1]), SCRIPTS / "tests")
     assert missing == [rename[1].strip('"/').removeprefix("tests/")]
+
+
+SUITES = "skills/tdd/scripts/tests/"
+
+
+def cli_git(touched, unresolvable=None):
+    def run(args, **kwargs):
+        if list(args[:2]) == ["git", "rev-parse"]:
+            bad = unresolvable is not None and unresolvable in args[-1]
+            return subprocess.CompletedProcess(args, 1 if bad else 0, "" if bad else "abc\n", "")
+        if list(args[:3]) == ["git", "diff", "--name-only"] and "--diff-filter=AD" in args:
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if list(args[:3]) == ["git", "diff", "--name-only"]:
+            return subprocess.CompletedProcess(args, 0, "".join(f + "\n" for f in touched), "")
+        if list(args[:3]) == ["git", "diff", "-U0"]:
+            return subprocess.CompletedProcess(args, 1, "", "")
+        raise AssertionError("unexpected command: %r" % (args,))
+    return run
+
+
+def plant(root, files):
+    for name, text in files.items():
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_text(text)
+
+
+def affected_by(monkeypatch, run_cli, affected, tmp_path, touched, files, range_="base..head"):
+    monkeypatch.setattr(subprocess, "run", cli_git(touched))
+    plant(tmp_path, files)
+    return run_cli(affected, [range_], cwd=tmp_path)
+
+
+def test_resolvable_range_prints_one_suite_per_line_sorted_with_no_duplicate(
+        monkeypatch, run_cli, affected, tmp_path):
+    scripts = "skills/tdd/scripts/"
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path,
+        [scripts + "wolf.sh", scripts + "zulu.sh", scripts + "tests/wolf.test.sh"],
+        {scripts + "zulu.sh": "zulu\n", scripts + "wolf.sh": "wolf\n",
+         scripts + "tests/wolf.test.sh": "", scripts + "tests/unit/zulu.test.sh": ""},
+    ) == (0, SUITES + "unit/zulu.test.sh\n" + SUITES + "wolf.test.sh\n", "")
+
+
+def test_malformed_range_exits_2_with_the_usage_line(monkeypatch, run_cli, affected, tmp_path):
+    results = []
+    for range_ in ("abc..no-such-rev", "no-such-rev..abc"):
+        monkeypatch.setattr(subprocess, "run", cli_git([], unresolvable="no-such-rev"))
+        results.append(run_cli(affected, [range_], cwd=tmp_path))
+    refusal = (2, "", "affected-suites: cannot resolve revision 'no-such-rev'\n" + USAGE)
+    assert results == [refusal, refusal]
+
+
+def test_empty_diff_exits_3_and_prints_nothing(monkeypatch, run_cli, affected, tmp_path):
+    assert affected_by(monkeypatch, run_cli, affected, tmp_path, [], {}) == (3, "", "")
+
+
+def test_rule_1_a_script_prints_exactly_its_same_named_suite(monkeypatch, run_cli, affected, tmp_path):
+    scripts = "skills/tdd/scripts/"
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [scripts + "foo.sh"],
+        {scripts + "foo.sh": "foo\n", scripts + "bar.sh": "bar\n",
+         scripts + "tests/foo.test.sh": "", scripts + "tests/bar.test.sh": ""},
+    ) == (0, SUITES + "foo.test.sh\n", "")
+
+
+def test_rule_1_a_script_prints_exactly_its_same_named_suite_under_tests_unit(
+        monkeypatch, run_cli, affected, tmp_path):
+    scripts = "skills/tdd/scripts/"
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [scripts + "foo.sh"],
+        {scripts + "foo.sh": "foo\n", scripts + "bar.sh": "bar\n",
+         scripts + "tests/unit/foo.test.sh": "", scripts + "tests/bar.test.sh": ""},
+    ) == (0, SUITES + "unit/foo.test.sh\n", "")
+
+
+def test_a_script_with_no_same_named_suite_prints_no_path_that_does_not_exist_1011(
+        monkeypatch, run_cli, affected, tmp_path):
+    scripts = "skills/tdd/scripts/"
+    code, out, _ = affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [scripts + "run-suite.sh"],
+        {scripts + "run-suite.sh": "run\n",
+         scripts + "tests/run-suite-venv.test.sh": 'RUN="$HERE/../run-suite.sh"\n'})
+    assert (code in (0, 3), [p for p in out.splitlines() if not (tmp_path / p).exists()]) == (True, [])
+
+
+def test_a_script_with_no_same_named_suite_prints_the_existing_suites_that_name_its_file_1011(
+        monkeypatch, run_cli, affected, tmp_path):
+    scripts = "skills/tdd/scripts/"
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [scripts + "run-suite.sh"],
+        {scripts + "run-suite.sh": "run\n", scripts + "gamma.sh": "gamma\n",
+         scripts + "tests/run-suite-venv.test.sh": 'RUN="$HERE/../run-suite.sh"\n',
+         scripts + "tests/gamma.test.sh": 'GAMMA="$HERE/../gamma.sh"\n'},
+    ) == (0, SUITES + "run-suite-venv.test.sh\n", "")
+
+
+def test_rule_2_a_lib_prints_the_suite_of_every_script_that_sources_it_and_no_others(
+        monkeypatch, run_cli, affected, tmp_path):
+    scripts = "skills/tdd/scripts/"
+    sourcing = '#!/usr/bin/env bash\nsource "$HERE/lib/bar.sh"\n'
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [scripts + "lib/bar.sh"],
+        {scripts + "lib/bar.sh": "bar_fn() { :; }\n",
+         scripts + "alpha.sh": sourcing, scripts + "beta.sh": sourcing,
+         scripts + "gamma.sh": "echo gamma\n", scripts + "bar.sh": "echo bar\n",
+         **{scripts + "tests/%s.test.sh" % n: "" for n in ("alpha", "beta", "gamma", "bar")}},
+    ) == (0, SUITES + "alpha.test.sh\n" + SUITES + "beta.test.sh\n", "")
+
+
+def test_rule_3_a_changed_suite_prints_exactly_itself(monkeypatch, run_cli, affected, tmp_path):
+    scripts = "skills/tdd/scripts/"
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [scripts + "tests/foo.test.sh"],
+        {scripts + "foo.sh": "foo\n", scripts + "bar.sh": "bar\n",
+         scripts + "tests/foo.test.sh": "", scripts + "tests/bar.test.sh": ""},
+    ) == (0, SUITES + "foo.test.sh\n", "")
+
+
+def test_rule_3_a_changed_fixture_prints_every_suite_that_references_it_by_name(
+        monkeypatch, run_cli, affected, tmp_path):
+    scripts = "skills/tdd/scripts/"
+    plan = 'cat "$HERE/fixtures/plan.md"\n'
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [scripts + "tests/fixtures/plan.md"],
+        {scripts + "tests/fixtures/plan.md": "# plan\n", scripts + "tests/fixtures/other.md": "# other\n",
+         scripts + "tests/alpha.test.sh": plan, scripts + "tests/beta.test.sh": plan,
+         scripts + "tests/gamma.test.sh": 'cat "$HERE/fixtures/other.md"\n'},
+    ) == (0, SUITES + "alpha.test.sh\n" + SUITES + "beta.test.sh\n", "")
+
+
+def test_rule_4_skill_md_claude_md_and_makefile_print_their_guard_suites(
+        monkeypatch, run_cli, affected, tmp_path):
+    scripts = "skills/tdd/scripts/"
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, ["CLAUDE.md", "skills/tdd/SKILL.md", "Makefile"],
+        {"CLAUDE.md": "# veri\n", "skills/tdd/SKILL.md": "# tdd\n", "Makefile": "test:\n",
+         scripts + "gamma.sh": "gamma\n",
+         scripts + "tests/claude-md-guard.test.sh": 'claude_md="CLAUDE.md"\n',
+         scripts + "tests/skill-md-guard.test.sh": 'skill_md="skills/tdd/SKILL.md"\n',
+         scripts + "tests/makefile-guard.test.sh": 'MAKEFILE="$ROOT/Makefile"\n',
+         scripts + "tests/gamma.test.sh": "echo gamma\n"},
+    ) == (0, SUITES + "claude-md-guard.test.sh\n" + SUITES + "makefile-guard.test.sh\n"
+          + SUITES + "skill-md-guard.test.sh\n", "")
+
+
+def test_rule_5_a_rule_1_file_plus_a_file_no_rule_matches_prints_every_suite(
+        monkeypatch, run_cli, affected, tmp_path):
+    scripts = "skills/tdd/scripts/"
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [scripts + "foo.sh", "docs/notes.md"],
+        {scripts + "foo.sh": "foo\n", scripts + "bar.sh": "bar\n", scripts + "baz.sh": "baz\n",
+         scripts + "tests/foo.test.sh": "", scripts + "tests/bar.test.sh": "",
+         scripts + "tests/unit/baz.test.sh": "", "docs/notes.md": "# notes\n"},
+    ) == (0, SUITES + "bar.test.sh\n" + SUITES + "foo.test.sh\n" + SUITES + "unit/baz.test.sh\n",
+          "affected-suites: no rule places docs/notes.md; widening to every suite\n")
