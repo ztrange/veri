@@ -17,6 +17,7 @@ units() {
 claims() {
   awk -v unit="$2" -v file="$1" '
     function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
+    function fail(msg) { printf "%s:%d: %s\n", file, NR, msg > "/dev/stderr"; failed = 1; exit 2 }
     /^## / { inunit = (substr($0, 4) == unit); intable = 0; next }
     !inunit { next }
     /^\|[ \t]*ID[ \t]*\|/ { intable = 1; skip = 1; next }
@@ -24,8 +25,8 @@ claims() {
     intable && /^\|/ {
       split($0, c, "|")
       id = trim(c[2])
-      if (trim(c[3]) == "") { printf "%s:%d: empty Requirement for %s\n", file, NR, id > "/dev/stderr"; failed = 1; exit 2 }
-      if (id in seen) { printf "%s:%d: duplicate ID %s\n", file, NR, id > "/dev/stderr"; failed = 1; exit 2 }
+      if (trim(c[3]) == "") fail("empty Requirement for " id)
+      if (id in seen) fail("duplicate ID " id)
       seen[id] = 1
       rows = rows id "\t" trim(c[3]) "\n"
     }
