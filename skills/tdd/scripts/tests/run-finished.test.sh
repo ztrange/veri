@@ -169,4 +169,31 @@ else
   ok
 fi
 
+name="a done run whose PR body cannot be read exits 2 and says on stderr the PR body could not be read"
+repo="$(scratch_dir)"
+bin="$(scratch_dir)"
+new_repo "$repo"
+mkdir -p "$repo/.tdd/wt/4242/.tdd"
+git -C "$repo" commit -q --allow-empty -m init
+new_repo "$repo/.tdd/wt/4242"
+printf '%s\n' \
+  '{"ts":1000,"event":"launch","step":"1","phase":"red","actor":"developer","name":"develop-red"}' \
+  '{"ts":1001,"event":"done","pr":"https://github.com/o/r/pull/7"}' > "$repo/.tdd/wt/4242/.tdd/events.jsonl"
+printf '%s\n' '# Plan for #4242 — a title' '' '- [x] first step ⟦criterion 1⟧' \
+  > "$repo/.tdd/wt/4242/.tdd/issue-4242.md"
+cat > "$bin/gh" <<'STUB'
+#!/bin/sh
+echo "gh: HTTP 502" >&2
+exit 1
+STUB
+chmod +x "$bin/gh"
+err="$(cd "$repo" && PATH="$bin:$PATH" "$FINISHED" 4242 2>&1 >/dev/null)" && code=0 || code=$?
+if [[ "$code" != 2 ]]; then
+  no "$name (want exit 2, got $code: $err)"
+elif [[ "$err" != *"PR body"* ]]; then
+  no "$name (stderr: $err)"
+else
+  ok
+fi
+
 finish
