@@ -396,6 +396,7 @@ fi
 make_repo real_skill_sections
 mkdir -p "$s/tests/unit"
 cat "$HERE/../../SKILL.md" > "$repo/skills/tdd/SKILL.md"
+cat "$HERE/../../SCRIPTS.md" > "$repo/skills/tdd/SCRIPTS.md"
 while IFS= read -r suite; do
   cat "$suite" > "$repo/${suite#"$HERE/../../../../"}"
 done < <(grep -lE '"skills/tdd/SKILL\.md"|/skills/tdd/SKILL\.md"' "$HERE/../../../../skills/tdd/scripts/tests/"*.test.sh "$HERE/../../../../skills/tdd/scripts/tests/unit/"*.test.sh)
@@ -427,8 +428,11 @@ edit_below() {
   awk -v at="$at" '{ print } NR == at + 1 { print "an edited line" }' "$work/SKILL.md.orig" > "$repo/skills/tdd/SKILL.md"
 }
 cat "$repo/skills/tdd/SKILL.md" > "$work/SKILL.md.orig"
-sed '/^- `\$S\/stop-requested\.sh/s/stop-requested\.sh/stop-asked.sh/' "$work/SKILL.md.orig" > "$repo/skills/tdd/SKILL.md"
-real_edit "stop-requested.sh renamed in ## The scripts" "py/unit/test_skill_stopping.py affected-suites" ""
+cat "$repo/skills/tdd/SCRIPTS.md" > "$work/SCRIPTS.md.orig"
+sed '/^- `\$S\/stop-requested\.sh/s/stop-requested\.sh/stop-asked.sh/' "$work/SCRIPTS.md.orig" > "$repo/skills/tdd/SCRIPTS.md"
+real_edit "stop-requested.sh renamed in SCRIPTS.md" "py/unit/test_skill_stopping.py affected-suites" ""
+mv "$work/SCRIPTS.md.orig" "$repo/skills/tdd/SCRIPTS.md"
+commit_base
 edit_below '### 2c. Verify the plan (blind)'
 real_edit "### 2c. Verify the plan (blind)" "" ""
 edit_below '### 3. The cycle loop'

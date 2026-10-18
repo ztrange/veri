@@ -607,7 +607,7 @@ def test_main_with_veri_heartbeat_unset_kills_a_silent_leaf_at_181s_of_silence_n
     clean_env(monkeypatch, VERI_TIMEOUT="5000", VERI_STUCK_RETRIES="0")
     here = pathlib.Path(supervise.__file__).resolve().parents[1]
     header = (here / "supervise.sh").read_text()
-    skill = (here.parents[0] / "SKILL.md").read_text()
+    skill = (here.parents[0] / "SCRIPTS.md").read_text()
     stated = [re.search(r"VERI_HEARTBEAT silence window secs \(default ([0-9]+)", header),
               re.search(r"`VERI_HEARTBEAT` \(silence window s,\s+default ([0-9]+)", skill)]
     stated = [int(m.group(1)) if m else None for m in stated]

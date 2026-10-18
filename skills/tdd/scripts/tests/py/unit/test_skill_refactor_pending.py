@@ -185,8 +185,8 @@ REMOVAL_VERB = r"strip|remove|drop|clear|delete"
 
 
 def scripts_records():
-    records = section_records(SCRIPTS_HEADING)
-    assert records, "SKILL.md has no ## The scripts section to read"
+    records = file_records(SKILL.with_name("SCRIPTS.md"))
+    assert records, "SCRIPTS.md has no entries to read"
     return records
 
 

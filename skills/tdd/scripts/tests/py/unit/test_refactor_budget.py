@@ -38,7 +38,7 @@ def test_main_with_both_budgets_unset_answers_against_the_default_every_prose_st
     in_force = {re.match(r"refactor [0-9]+/([0-9]+) ", out).group(1) for _, out in seen}
     sites = {
         "refactor-budget.sh-header": stated(SCRIPTS / "refactor-budget.sh", r"VERI_REFACTOR_BUDGET \(default [0-9]+"),
-        "SKILL.md-refactor": stated(SCRIPTS.parent / "SKILL.md", r"VERI_REFACTOR_BUDGET.{0,3} \(default [0-9]+"),
+        "SCRIPTS.md-refactor": stated(SCRIPTS.parent / "SCRIPTS.md", r"VERI_REFACTOR_BUDGET.{0,3} \(default [0-9]+"),
     }
     disagreeing = ["%s: states %s, in force %s" % (site, figure, sorted(in_force))
                    for site, figure in sites.items() if {figure} != in_force]

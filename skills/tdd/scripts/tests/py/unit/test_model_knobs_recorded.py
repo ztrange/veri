@@ -3,7 +3,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[6]
-SKILL_MD = "skills/tdd/SKILL.md"
+SKILL_MD = "skills/tdd/SCRIPTS.md"
 CLAUDE_MD = "CLAUDE.md"
 SUPERVISE_SH = "skills/tdd/scripts/supervise.sh"
 LOWER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}

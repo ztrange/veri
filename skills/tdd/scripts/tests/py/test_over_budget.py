@@ -211,7 +211,7 @@ def test_cli_prints_one_clock_line_for_an_over_budget_run_and_nothing_for_one_th
     assert (code, out.count("\n"), "⏱" in out, err) == (0, 1, True, "")
     assert run_cli(over_budget, ["unit", "4", "100"], env=env) == (1, "", "")
 
-    skill = pathlib.Path(__file__).resolve().parents[3] / "SKILL.md"
+    skill = pathlib.Path(__file__).resolve().parents[3] / "SCRIPTS.md"
     blocks, block = [], ""
     for line in skill.read_text(encoding="utf-8").split("\n") + [""]:
         if re.match(r"[-*] ", line) or not line.strip():
