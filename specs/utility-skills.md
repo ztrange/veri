@@ -91,7 +91,7 @@ against is forgetting, not forgery.
 | P1 | A skill re-reads the state it decides on (ledger, `.tdd/`, `solvable-issues.sh`, PR state, processes) at each decision, never from its own memory. | This makes a context reset cheap. Rules were lost across resets at least 4 times. |
 | P2 | A handoff carries state only, and the rules come from the skill on resume. | Same reason as P1. |
 | P3 | Any waiting is done by a script that blocks until an actionable event and returns one line. No agent polls on a timer. | Each "still fine" tick costs tokens and changes nothing. |
-| P4 | The skill writes text only for: a run started (`Started #N — title`), a bail or stall, red CI, a merge landed, a human decision, a cost or plan surprise. | "No need to narrate everything… tokens I'll never read." |
+| P4 | The skill writes text only for: a run started (`Started #N — title`), a bail or stall, red CI, a merge landed, a human decision, a cost or plan surprise. A watch event that is none of these (a re-arm, a conductor start the dev session already announced, a merge already reported, a routine message from the dev session) gets no text at all. Each open human decision is restated in full every time it is mentioned, never as a pointer to an earlier message. | "No need to narrate everything… tokens I'll never read." Mario asked four times for silence on routine watch events. |
 | P5 | A turn never ends while work is takeable. A turn that stops names why: queue empty, or the pending decision. | An ended turn stalled #131 for 36 minutes. |
 | P6 | Raw reads (leaf logs, diffs, issue sweeps) go to a subagent on the cheapest adequate model, which returns ≤10 lines. A leaf `.out` is never printed. | Keeps the session's context O(1). |
 | P7 | A cost is read from a report's `| total |` row, never by summing phase rows. | Summing double-counted and wrongly parked #388 and #409. |
@@ -100,7 +100,7 @@ against is forgetting, not forgery.
 | P10 | An exit with no closing comment is checked for a usage limit or Mac sleep before it is treated as a bail. | A limit and sleep both look like silent exits. |
 | P11 | All writes stay in the project repo. A fix that belongs elsewhere is reported, not made, and every subagent brief says so. | Repo boundary. |
 | P12 | No skill names a fact specific to veri's own repo. Project specifics come from the target repo's CLAUDE.md. | The skills operate veri on any repo. |
-| P13 | A message to another session is self-contained (no option letters, no references only the sender saw) and is sent with `SendMessage`. A fenced block goes to the human only when delivery is held. | "dev thread does not know what a or b means." |
+| P13 | A message to another session (the coordinator, the dev session, or another machine's coordinator) is self-contained (no option letters, no references only the sender saw) and is sent with `SendMessage` by the skill itself. Only when delivery is held does the human get the message, as one fenced code block per recipient, named above it. A comm check ends `Reply "pong"`, and until the pong arrives the check is unconfirmed: a successful send is not a reply. | "dev thread does not know what a or b means." "why didn't you just send it yourself?" A send that reached a held inbox looked delivered. |
 
 ## D: `veri-dev`, run the dev session
 
