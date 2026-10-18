@@ -1826,4 +1826,8 @@ def test_main_renders_a_plan_prompt_that_rejects_a_step_adding_a_script_whose_us
                    r"|REJECT[^.]{0,300}later step[^.]{0,300}adds? a script")
     names_both = re.search(r"adds? a script[^.]{0,600}(naming|names|name) both steps"
                            r"|(naming|names|name) both steps[^.]{0,600}adds? a script", prompt, re.I) is not None
-    assert (code, re.search(reject_late, prompt, re.I) is not None, names_both) == (0, True, True)
+    rule = next((s for s in re.split(r"(?<=\.) ", prompt) if s.startswith("REJECT") and "adds a script" in s), "")
+    owed = rule.split("later step", 1)[0]
+    each_owed = [word for word in ("usage", "exit 2", "caller") if word in owed]
+    assert (code, re.search(reject_late, prompt, re.I) is not None, names_both, each_owed) == (
+        0, True, True, ["usage", "exit 2", "caller"])
