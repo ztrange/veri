@@ -1,11 +1,7 @@
 ---
 name: tdd
 description: >-
-  Drive one GitHub issue end-to-end under TDD: scope it into a committed plan ledger, then
-  loop Red → Green → Refactor cycles — each blind-verified by an independent agent — until
-  every acceptance criterion is covered, narrating each phase to the issue thread and
-  leaving the result on a draft PR. Resumable from the ledger. Invoke as
-  `/tdd <number>`. Use when the user names one GitHub issue to solve under TDD.
+  One GitHub issue under strict TDD: `/tdd <number>`. Normally launched by `/vdev`, not typed.
 ---
 
 # tdd — the veri conductor
