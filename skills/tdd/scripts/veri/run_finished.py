@@ -25,6 +25,9 @@ def main(argv):
     if state != "done":
         print("not-done %s" % state)
         return 1
+    if not run.get("pr", ""):
+        sys.stderr.write("run-finished.sh: no PR is recorded for issue %s\n" % issue)
+        return 2
     with open(os.path.join(run_dir, ".tdd", "issue-%s.md" % issue), encoding="utf-8") as f:
         steps = ledger_steps(f.read())
     unmet = [("unchecked", r[6]) for r in steps if r[1] == "open"]
