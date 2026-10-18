@@ -4,7 +4,7 @@ import os
 import subprocess
 import sys
 
-from ledger import ledger_steps
+from ledger import OPEN_STEP, ledger_steps
 from status import json_document, main_working_tree
 
 USAGE = "usage: run-finished.sh <issue>\n"
@@ -36,8 +36,8 @@ def main(argv):
     except subprocess.CalledProcessError:
         sys.stderr.write("run-finished.sh: the PR body could not be read\n")
         return 2
-    unmet += [("human-owed", ln[6:]) for ln in body.splitlines()
-              if ln.startswith("- [ ] ") and "⟦human-owed⟧" in ln]
+    unmet += [("human-owed", ln[len(OPEN_STEP) + 1:]) for ln in body.splitlines()
+              if ln.startswith(OPEN_STEP + " ") and "⟦human-owed⟧" in ln]
     for name, step in unmet:
         print("%s %s" % (name, step))
     return 1 if unmet else 0
