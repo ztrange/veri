@@ -58,7 +58,7 @@ def claims(path, unit):
             cells = split_cells(line)
             if tabled:
                 fail("second table under unit")
-            if cells[1:4] != COLUMNS:
+            if cells[1:4] != COLUMNS or any(cells[4:]):
                 fail("header lacks a column")
             intable, skip, tabled = True, True, True
         elif intable and not skip and not line.strip():
