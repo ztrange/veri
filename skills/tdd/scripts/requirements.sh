@@ -20,7 +20,11 @@ claims() {
     function fail(msg) { printf "%s:%d: %s\n", file, NR, msg > "/dev/stderr"; failed = 1; exit 2 }
     /^## / { inunit = (substr($0, 4) == unit); intable = 0; next }
     !inunit { next }
-    /^\|[ \t]*ID[ \t]*\|/ { intable = 1; skip = 1; next }
+    /^\|[ \t]*ID[ \t]*\|/ {
+      split($0, h, "|")
+      if (trim(h[3]) != "Requirement" || trim(h[4]) != "Why") fail("header lacks a column")
+      intable = 1; skip = 1; next
+    }
     intable && skip { skip = 0; next }
     intable && /^\|/ {
       split($0, c, "|")
