@@ -1,10 +1,7 @@
 ---
 name: veri-coord
 description: >-
-  Run the veri coordinator: watch the conductors a dev session keeps running, instruct that
-  session by message, own the queue's order, N and budget raises, and file and groom issues —
-  without launching a conductor itself. Invoke as `/veri-coord [--resume <file>]`. Use when
-  the user wants to coordinate, oversee or steer veri runs, or resumes a coordinator handoff.
+  The veri coordinator, reached by name: `/vcoord [--resume <file>]`.
 ---
 
 # veri-coord — the coordinator

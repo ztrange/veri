@@ -1,0 +1,1 @@
+Left unlinked from ~/.claude/skills by decision (2026-10-18): its code is being reworked, and an unlinked skill costs no resident description. /sync-config reads this marker and does not propose a link.

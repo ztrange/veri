@@ -1,10 +1,7 @@
 ---
 name: veri-status
 description: >-
-  Report veri's progress since the last ask: what landed, what each running issue has done and
-  cost, the queue with its drain ETA, and what is waiting on a merge, a slot or a decision.
-  Invoke as `/veri-status`. Use when the user asks "how is it going", "status", "progress",
-  "where are we", or otherwise wants a progress report on veri's runs.
+  veri's progress since the last ask: `/vstatus`. Use when the user asks how veri's runs are going.
 ---
 
 # veri-status — progress since the last ask
