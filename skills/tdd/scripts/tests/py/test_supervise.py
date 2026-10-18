@@ -4067,3 +4067,27 @@ def test_cli_leaves_no_launch_event_and_no_owner_file_when_it_refuses_a_develop_
 
     assert code == 2, err
     assert (events.read_text(), (tmp_path / ".tdd" / "leaf.owner").exists()) == (before, False), err
+
+
+@pytest.mark.process("detach-leaf.sh, supervise.sh and wait-leaf.sh run for real over a refused develop-green launch (#1754)")
+def test_cli_records_exit_2_for_a_refused_develop_green_launched_detached_so_wait_leaf_returns_2_not_3_and_no_leaf_starts_1754(
+        monkeypatch, tmp_path):
+    import json
+    clean_env(monkeypatch)
+    (tmp_path / ".tdd").mkdir()
+    base = {"issue": "1754", "skill_commit": "unknown"}
+    log = [
+        {**base, "ts": 1, "event": "launch", "actor": "developer", "phase": "red", "step": "3", "attempt": "1"},
+    ]
+    (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(line) + "\n" for line in log))
+    stub = tmp_path / "claude"
+    stub.write_text("#!/bin/sh\ntouch ran\n")
+    stub.chmod(0o755)
+    env = {**os.environ, "VERI_ISSUE": "1754", "VERI_STEP": "3", "VERI_POLL": "0.05"}
+
+    detached = subprocess.run([str(SCRIPTS / "detach-leaf.sh"), str(SCRIPTS / "supervise.sh"), "develop-green",
+                               str(stub)], cwd=tmp_path, env=env, capture_output=True, text=True)
+    waited = subprocess.run([str(SCRIPTS / "wait-leaf.sh"), "develop-green", "3"], cwd=tmp_path, env=env,
+                            capture_output=True, text=True)
+
+    assert (detached.returncode, waited.returncode, (tmp_path / "ran").exists()) == (0, 2, False), waited.stderr
