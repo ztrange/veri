@@ -1,6 +1,6 @@
 # Plan for #1721 — PRD 011 helper: run-finished.sh says whether a run is ready to merge, naming each unmet condition
 
-- [ ] `run-finished.sh <issue>` for an issue with no run under `.tdd/wt/` exits 2 and says on stderr that there is no run for that issue; the new script (a `/bin/sh` shim over a `veri/` module, as `status.sh` is) has a no-argument usage line with exit 2 and a declared caller, so the repo-wide audits stay green ⟦criterion 3⟧
+- [x] `run-finished.sh <issue>` for an issue with no run under `.tdd/wt/` exits 2 and says on stderr that there is no run for that issue; the new script (a `/bin/sh` shim over a `veri/` module, as `status.sh` is) has a no-argument usage line with exit 2 and a declared caller, so the repo-wide audits stay green ⟦criterion 3⟧ ⟂ refactor pending
 - [ ] `run-finished.sh <issue>` exits 0 and prints nothing when the run's state is `done` as `status.sh` reports it, the ledger in the run's worktree has no unchecked step and no `⟂ refactor pending` mark, and the run's PR body has no unticked `⟦human-owed⟧` line ⟦criterion 1⟧
 - [ ] When the run's state as `status.sh` reports it is not `done`, `run-finished.sh <issue>` exits 1 and prints the line `not-done <state>` ⟦criterion 2⟧
 - [ ] When the run's ledger has an unchecked step, `run-finished.sh <issue>` exits 1 and prints one `unchecked <step>` line per unchecked step ⟦criterion 2⟧

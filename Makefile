@@ -314,3 +314,8 @@ docs-check: docs-test docs-fresh
 # VERI_GATES=all forces both, VERI_GATES_BASE picks another base.
 merge-gates:
 	@docs/merge-gates.sh
+
+# `make run-finished ISSUE=<n>` says whether run <n> is safe to merge, through run-finished.sh.
+.PHONY: run-finished
+run-finished:
+	@skills/tdd/scripts/run-finished.sh "$(ISSUE)"
