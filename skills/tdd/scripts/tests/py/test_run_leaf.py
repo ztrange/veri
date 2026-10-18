@@ -95,9 +95,37 @@ def test_main_launches_one_leaf_with_the_prompt_the_model_only_when_non_empty_an
                             lambda argv, *args, **kwargs: _FakeLeaf(launches, argv, **kwargs))
         run_leaf.main(["prompt.txt", *extra])
         capfd.readouterr()
-        launched.append((launches, [want]))
+        tail = want[len(head) + 1:]
+        launched.append(([[a[:len(head) + 1], a[len(a) - len(tail):]] for a in launches],
+                         [[want[:len(head) + 1], tail]]))
 
     assert [got for got, _ in launched] == [want for _, want in launched]
+
+
+def test_main_launch_limits_what_the_harness_loads_and_keeps_the_callers_arguments_unchanged_and_in_order_1705(
+        tmp_path, monkeypatch, capfd):
+    import json
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("do the step\n")
+    monkeypatch.setenv("VERI_LEAF_MODEL", "sonnet")
+    launches = []
+    monkeypatch.setattr(subprocess, "Popen",
+                        lambda argv, *args, **kwargs: _FakeLeaf(launches, argv, **kwargs))
+    extra = ["--permission-mode", "bypassPermissions", "--model", "haiku", "--allowed-tools", "Read,Bash"]
+
+    run_leaf.main(["prompt.txt", *extra])
+    capfd.readouterr()
+
+    argv = launches[0]
+    value = lambda flag: argv[argv.index(flag) + 1] if flag in argv else "null"
+    home = os.environ["HOME"]
+    assert (argv[-len(extra):], "--disable-slash-commands" in argv, "--strict-mcp-config" in argv,
+            json.loads(value("--mcp-config")), json.loads(value("--settings")),
+            "--bare" in argv, "--model" in argv[:-len(extra)]) == (
+        extra, True, True, {"mcpServers": {}},
+        {"autoMemoryEnabled": False, "claudeMdExcludes": [os.path.join(home, ".claude", "CLAUDE.md")]},
+        False, False)
 
 
 def test_main_reads_the_prompt_from_a_relative_file_or_stdin_as_bytes_and_refuses_a_missing_file_or_a_directory_with_2(
@@ -1077,9 +1105,9 @@ def _cli_argv(run_cli, monkeypatch, tmp_path, prompt_arg, extra=(), stdin=""):
 def test_cli_passes_the_prompt_to_claude_via_dash_p_in_stream_json(tmp_path, monkeypatch, run_cli):
     code, out, launches = _cli_argv(run_cli, monkeypatch, tmp_path, "prompt.txt")
 
-    assert (code, out.endswith("\nVERDICT: PASS\n"), launches) == (
+    assert (code, out.endswith("\nVERDICT: PASS\n"), [a[:6] for a in launches], len(launches)) == (
         0, True, [["claude", "-p", "Verify the test for issue 3.",
-                   "--output-format", "stream-json", "--verbose"]])
+                   "--output-format", "stream-json", "--verbose"]], 1)
 
 
 @pytest.mark.process("the run-leaf.sh entry point handing its arguments to a real stub claude")
