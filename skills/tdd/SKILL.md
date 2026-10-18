@@ -91,7 +91,9 @@ supervisor long gone, would end it with a 2 before the new supervisor wrote its 
 `detach-leaf.sh`, so the call returns at once and the leaf runs in a **session of its own**.
 Then `wait-leaf.sh` in the **foreground**, which blocks until the leaf finishes and exits
 with its code. On **exit 3** the leaf is still running and you have only spent the wait's
-budget: **call `wait-leaf.sh` again**, as many times as it takes. Only a 0, 1 or 2 is an
+budget: **call `wait-leaf.sh` again**, as many times as it takes. Make every foreground
+`wait-leaf.sh` call with no max-seconds argument and the Bash tool's maximum `timeout` of 600000 ms:
+the 600 s foreground cap is the limit, so a wait costs one call per 590 s and no fewer. Only a 0, 1 or 2 is an
 answer. Read the leaf's report from `.tdd/<name>.out` — the captured stdout — instead of
 from the launcher's stdout, which the detached call no longer hands you.
 
