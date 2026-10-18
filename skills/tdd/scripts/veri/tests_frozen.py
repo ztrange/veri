@@ -27,6 +27,16 @@ def _record_path(step):
     return ".tdd/tests-frozen-%s.record" % hashlib.sha256(os.fsencode(step)).hexdigest()[:16]
 
 
+def _differing_tests():
+    names = []
+    for command in (["git", "diff", "--name-only", "-z", "HEAD"],
+                    ["git", "ls-files", "--others", "--exclude-standard", "-z"]):
+        for raw in subprocess.run(command, stdout=subprocess.PIPE).stdout.split(b"\0"):
+            if raw and TEST_FILE.search(raw):
+                names.append(os.fsdecode(raw))
+    return names
+
+
 def main(argv):
     mode = argv[0] if argv else ""
     record = argv[1] if len(argv) > 1 else ""
@@ -48,6 +58,9 @@ def main(argv):
         record = argv[1]
     if mode == "record":
         files = argv[2:]
+        if by_step and os.path.exists(".git"):
+            files += [name for name in _differing_tests()
+                      if name not in files and os.path.exists(name)]
         if not files:
             _write(sys.stderr, "tests-frozen.sh: record needs at least one test file")
             return 2
@@ -78,12 +91,7 @@ def main(argv):
                 changed.append(name)
         if by_step and os.path.exists(".git"):
             recorded = {name for _, name in entries}
-            for command in (["git", "diff", "--name-only", "-z", "HEAD"],
-                            ["git", "ls-files", "--others", "--exclude-standard", "-z"]):
-                for raw in subprocess.run(command, stdout=subprocess.PIPE).stdout.split(b"\0"):
-                    name = os.fsdecode(raw)
-                    if raw and TEST_FILE.search(raw) and name not in recorded:
-                        changed.append(name)
+            changed += [name for name in _differing_tests() if name not in recorded]
         for name in changed:
             _write(sys.stdout, name)
         return 1 if changed else 0
