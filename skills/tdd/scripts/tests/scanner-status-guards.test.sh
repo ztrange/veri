@@ -21,8 +21,7 @@ source "$HERE/lib/harness.sh"
 
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
-# guard | the scanner's leading grep arguments | token its output must name besides the status
-CASES=(
+CASES=(  # guard | the scanner's leading grep arguments | token its output must name besides the status
   "no-awk-v-patterns.test.sh|-n awk|$SCANNED"
   "no-docs-reads.test.sh|-nE|$SCANNED"
   'no-job-spec-kills.test.sh|-rInE --|skills'
