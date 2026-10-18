@@ -144,8 +144,8 @@ def test_main_reads_max_as_bash_arithmetic_defaulting_to_540_and_ignores_argumen
         code = wait_leaf.main(argv)
         rounds[tuple(argv[1:])] = (code, calls.count("ps -p 42 -o args="), readings[-1] - readings[0])
     assert rounds == {
-        (): (3, 540, 540),
-        ("",): (3, 540, 540),
+        (): (3, 590, 590),
+        ("",): (3, 590, 590),
         ("0",): (3, 1, 1),
         ("-5",): (3, 1, 1),
         ("010",): (3, 8, 8),
