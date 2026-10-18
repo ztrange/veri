@@ -10,7 +10,7 @@ source "$HERE/lib/harness.sh"
 
 name="an issue with no run under .tdd/wt/ exits 2 and says on stderr there is no run for it"
 repo="$(scratch_dir)"
-git -C "$repo" init -q
+new_repo "$repo"
 mkdir -p "$repo/.tdd/wt"
 err="$(cd "$repo" && "$FINISHED" 4242 2>&1 >/dev/null)" && code=0 || code=$?
 if [[ "$code" != 2 ]]; then
