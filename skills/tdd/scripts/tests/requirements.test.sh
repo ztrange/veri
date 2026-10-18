@@ -115,4 +115,10 @@ says=no; [[ "$err" == *missing* && "$err" == *"$work/absent.md"* ]] && says=yes
 expect_eq "claims on a file that does not exist exits 2, prints nothing on stdout and says on stderr the file is missing, naming it" \
   $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$says"
 
+out="$("$REQUIREMENTS" claims "$work/two-rows.md" skills/tdd/NOPE.md 2> "$work/stderr")" && code=0 || code=$?
+err="$(< "$work/stderr")"
+says=no; [[ "$err" == *"not declared"* && "$err" == *skills/tdd/NOPE.md* ]] && says=yes
+expect_eq "claims on a unit the file does not declare exits 2, prints nothing on stdout and says on stderr the unit is not declared, naming it" \
+  $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$says"
+
 finish
