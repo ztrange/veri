@@ -25,7 +25,8 @@ def main(argv):
     if state != "done":
         print("not-done %s" % state)
         return 1
-    if not run.get("pr", ""):
+    pr = run.get("pr", "")
+    if not pr:
         sys.stderr.write("run-finished.sh: no PR is recorded for issue %s\n" % issue)
         return 2
     with open(os.path.join(run_dir, ".tdd", "issue-%s.md" % issue), encoding="utf-8") as f:
@@ -34,7 +35,7 @@ def main(argv):
     unmet += [("refactor-pending", r[6]) for r in steps if r[3] == "1"]
     try:
         body = json.loads(subprocess.run(
-            ["gh", "pr", "view", run.get("pr", ""), "--json", "body"],
+            ["gh", "pr", "view", pr, "--json", "body"],
             capture_output=True, text=True, check=True).stdout)["body"]
     except subprocess.CalledProcessError:
         sys.stderr.write("run-finished.sh: the PR body could not be read\n")
