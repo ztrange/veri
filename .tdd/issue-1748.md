@@ -5,5 +5,5 @@
 - [x] An unticked human-owed checkbox in the PR body written `* [ ] … ⟦human-owed⟧` counts as unmet exactly as `- [ ]` does: exit 1, its `human-owed` line printed (pinned by a case with gh faked) ⟦criterion 2⟧
 - [x] When a done run's ledger `issue-<n>.md` is missing, run-finished.sh exits 2 with one stderr line naming the missing file and no Python traceback (pinned by a case) ⟦criterion 2⟧
 - [x] A run whose state is `stale` is reported not done: exit 1 and the state `stale` named on stdout, exactly as a bailed or stopped run is (pinned by a case, so a check written as `state in ("bailed", "stopped")` goes red) ⟦criterion 3⟧
-- [ ] A run whose state is `running` is reported not done: exit 1 and the state `running` named on stdout, exactly as a bailed or stopped run is (pinned by a case, so a check written as `state in ("bailed", "stopped")` goes red) ⟦criterion 3⟧
+- [x] A run whose state is `running` is reported not done: exit 1 and the state `running` named on stdout, exactly as a bailed or stopped run is (pinned by a case, so a check written as `state in ("bailed", "stopped")` goes red) ⟦criterion 3⟧
 - [ ] run-finished.test.sh's first case builds its scratch repo with the harness's `new_repo` instead of a bare `git init`; no production change and no change to what the case asserts ⟦diff-checked⟧
