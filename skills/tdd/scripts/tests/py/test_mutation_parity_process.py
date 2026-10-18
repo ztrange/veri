@@ -97,15 +97,17 @@ def test_1501_pytest_suite_row_leaves_no_mutated_bytecode_and_unmutated_runs_rea
                                 "checks/test_gate.py::test_kept", str(patch)]) + "\n")
     importlib.invalidate_caches()
     mutation_parity = importlib.import_module("veri.mutation_parity")
+    leg_python = mutation_parity.venv_python()
     interpreter = tmp_path / "interp"
-    interpreter.write_text('#!/bin/sh\nexec "%s" "$@"\n' % mutation_parity.venv_python())
+    interpreter.write_text('#!/bin/sh\nexec "%s" "$@"\n' % leg_python)
     interpreter.chmod(0o755)
     monkeypatch.setattr(mutation_parity, "venv_python", lambda: str(interpreter))
 
     code, out, err = run_cli(mutation_parity, [str(table)], cwd=tmp_path)
 
-    after = subprocess.run(["python3", "-c", "import sys; sys.path.insert(0, 'skills/tdd/scripts/veri'); import gate; print(gate.code())"],
+    leftover = sorted(str(p.relative_to(tmp_path)) for p in tmp_path.rglob("gate.*.pyc"))
+    after = subprocess.run([leg_python, "-c", "import sys; sys.path.insert(0, 'skills/tdd/scripts/veri'); import gate; print(gate.code())"],
                            cwd=tmp_path, capture_output=True, text=True, stdin=subprocess.DEVNULL)
-    assert (code, out.strip().endswith("proven"), after.stdout.strip()) == (0, True, "2"), (
-        "exit=%s stdout=%r stderr=%r; module imported after the tool exits answers %r, want '2'"
-        % (code, out, err, after.stdout.strip()))
+    assert (code, out.strip().endswith("proven"), leftover, after.stdout.strip()) == (0, True, [], "2"), (
+        "exit=%s stdout=%r stderr=%r; bytecode left %r; module imported after the tool exits answers %r, want '2'"
+        % (code, out, err, leftover, after.stdout.strip()))
