@@ -128,6 +128,52 @@ def test_main_launch_limits_what_the_harness_loads_and_keeps_the_callers_argumen
         False, False)
 
 
+def _stream_of_what_the_real_claude_loads(argv, home, repo):
+    """A stream shaped by the 2026-10-18 observation of the real binary under each flag."""
+    import json
+    flag = lambda name: argv[argv.index(name) + 1] if name in argv else None
+    if "--bare" in argv:
+        return [{"type": "result", "subtype": "error", "is_error": True, "result": "Not logged in"}]
+    settings = json.loads(flag("--settings") or "{}")
+    excluded = settings.get("claudeMdExcludes", [])
+    servers = ["claude.ai Gmail", "claude.ai Slack", "claude.ai ClickUp"]
+    if "--strict-mcp-config" in argv:
+        servers = list(json.loads(flag("--mcp-config") or "{}").get("mcpServers", {}))
+    docs = [str(home / ".claude" / "CLAUDE.md"), str(repo / "CLAUDE.md")]
+    if settings.get("autoMemoryEnabled", True):
+        docs.append(str(home / ".claude" / "projects" / "MEMORY.md"))
+    loaded = [path for path in docs if path not in excluded]
+    skills = [] if "--disable-slash-commands" in argv else ["tdd", "merge"]
+    return [{"type": "system", "subtype": "init", "mcp_servers": servers, "skills": skills},
+            *({"type": "attachment", "path": path} for path in loaded),
+            {"type": "result", "subtype": "success", "is_error": False, "result": "ok"}]
+
+
+def test_main_a_leaf_session_loads_no_skills_connectors_memory_or_user_claude_md_but_logs_in_and_reads_the_repos_claude_md_1705(
+        tmp_path, monkeypatch, capfd):
+    import json
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("do the step\n")
+    home = pathlib.Path(os.environ["HOME"])
+    launches = []
+
+    def launch(argv, *args, **kwargs):
+        stream = "".join(json.dumps(r) + "\n" for r in _stream_of_what_the_real_claude_loads(argv, home, work))
+        return _FakeLeaf(launches, argv, stream=stream.encode(), **kwargs)
+
+    monkeypatch.setattr(subprocess, "Popen", launch)
+
+    code = run_leaf.main(["prompt.txt", "--permission-mode", "bypassPermissions"])
+    records = [json.loads(line) for line in capfd.readouterr().out.splitlines() if line.startswith("{")]
+
+    init = next(r for r in records if r.get("subtype") == "init")
+    assert (code, init["skills"], init["mcp_servers"],
+            [r["path"] for r in records if r["type"] == "attachment"],
+            [r["is_error"] for r in records if r["type"] == "result"]) == (
+        0, [], [], [str(work / "CLAUDE.md")], [False])
+
+
 def test_main_reads_the_prompt_from_a_relative_file_or_stdin_as_bytes_and_refuses_a_missing_file_or_a_directory_with_2(
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")
