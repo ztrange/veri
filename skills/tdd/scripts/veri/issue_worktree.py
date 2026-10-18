@@ -164,6 +164,11 @@ def seeded_log_set_aside(path):
             os.remove(seeded_log)
 
 
+def refuse(message):
+    sys.stderr.write("issue-worktree: %s\n" % message)
+    return 2
+
+
 def cut(path, branch):
     remote_ref = "refs/remotes/origin/" + branch
     if ref_exists("refs/heads/" + branch):
@@ -177,21 +182,17 @@ def cut(path, branch):
             issue = branch.split("-", 1)[0].removeprefix("tdd/")
             claimed = remote_issue_branch("tdd/" + issue)
             if claimed is None:
-                sys.stderr.write("issue-worktree: git ls-remote origin got no answer"
-                                 " — cannot tell whether another run claimed the issue\n")
-                return 2
+                return refuse("git ls-remote origin got no answer"
+                              " — cannot tell whether another run claimed the issue")
             if claimed:
-                sys.stderr.write("issue-worktree: %s is already on origin"
-                                 " — another run claimed the issue\n" % claimed)
-                return 2
+                return refuse("%s is already on origin"
+                              " — another run claimed the issue" % claimed)
             pr = claiming_pr(issue, url)
             if pr is None:
-                sys.stderr.write("issue-worktree: the open-PR lookup got no answer"
-                                 " — cannot tell whether another run claimed the issue\n")
-                return 2
+                return refuse("the open-PR lookup got no answer"
+                              " — cannot tell whether another run claimed the issue")
             if pr:
-                sys.stderr.write("issue-worktree: %s claims the issue (Closes #%s)\n" % (pr, issue))
-                return 2
+                return refuse("%s claims the issue (Closes #%s)" % (pr, issue))
         name, refusal = default_branch_name(origin)
         if not name:
             if refusal:
