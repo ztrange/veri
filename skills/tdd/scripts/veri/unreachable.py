@@ -83,7 +83,7 @@ def listing(root):
         else:
             out.append(name)
 
-    promises = [read(d) for d in (root + b"/skills/tdd/SKILL.md", root + b"/CLAUDE.md") if os.path.isfile(d)]
+    promises = [read(d) for d in (root + b"/skills/tdd/SKILL.md", root + b"/skills/tdd/SCRIPTS.md", root + b"/CLAUDE.md") if os.path.isfile(d)]
     readers = [read(scripts + b"/" + n) for n in names + libs]
     for knob in sorted({k for text in promises for k in KNOB.findall(text)}):
         word = re.compile(rb"(?<![A-Za-z0-9_])" + re.escape(knob) + rb"(?![A-Za-z0-9_])")
