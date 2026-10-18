@@ -275,6 +275,20 @@ named=no; [[ "$err" =~ :3: && "$err" != *"no table"* && ! "$err" =~ :1: ]] && na
 expect_eq "claims on a table header of | Why | ID | exits 2, prints nothing on stdout and names the header's line, not the heading's (#1743)" \
   $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
 
+cat > "$work/key-requirement-header.md" <<MD
+$H skills/tdd/SKILL.md
+
+| Key | Requirement |
+|-----|-------------|
+| A1 | Does a thing. |
+MD
+
+out="$("$REQUIREMENTS" claims "$work/key-requirement-header.md" skills/tdd/SKILL.md 2> "$work/stderr")" && code=0 || code=$?
+err="$(< "$work/stderr")"; err="${err//"$work"/}"
+named=no; [[ "$err" =~ :3: && "$err" != *"no table"* && ! "$err" =~ :1: ]] && named=yes
+expect_eq "claims on a table header of | Key | Requirement | exits 2, prints nothing on stdout and names the header's line, not the heading's (#1743)" \
+  $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
+
 cat > "$work/escaped-pipe.md" <<MD
 $H skills/tdd/SKILL.md
 
