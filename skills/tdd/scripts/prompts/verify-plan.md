@@ -63,6 +63,11 @@ REJECT a plan that turns a diff-property criterion into a Red/Green step instead
 or the git history: such a test pins text rather than behaviour, and goes red on the next
 legitimate edit of what it reads.
 
+REJECT a plan that carries a Red/Green step whose criterion changes rendered prompt text, or a
+SKILL.md sentence that a suite pins by checksum or verbatim, instead of a `⟦diff-checked⟧` line:
+a Red leaf cannot compute a checksum of text that does not exist yet, so that text and every pin
+it moves land in one commit, judged blind against the diff.
+
 REJECT a plan with a step that introduces a branch — a fallback an existing suite forces in,
 say — that only a later step's test requires: that step's blind green verifier sees code none
 of its own tests requires, and rejects correct code until the revise budget runs out. Your
