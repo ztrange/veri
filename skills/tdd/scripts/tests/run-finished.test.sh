@@ -145,6 +145,25 @@ else
   ok
 fi
 
+name="a running run exits 1 and prints a not-done line naming the running state (#1748)"
+repo="$(scratch_dir)"
+new_repo "$repo"
+mkdir -p "$repo/.tdd/wt/4242/.tdd"
+git -C "$repo" commit -q --allow-empty -m init
+new_repo "$repo/.tdd/wt/4242"
+printf '{"ts":%s,"event":"launch","step":"1","phase":"red","actor":"developer","name":"develop-red"}\n' \
+  "$(date +%s)" > "$repo/.tdd/wt/4242/.tdd/events.jsonl"
+printf '%s\n' '# Plan for #4242 — a title' '' '- [x] first step ⟦criterion 1⟧' \
+  > "$repo/.tdd/wt/4242/.tdd/issue-4242.md"
+out="$(cd "$repo" && "$FINISHED" 4242 2>/dev/null)" && code=0 || code=$?
+if [[ "$code" != 1 ]]; then
+  no "$name (want exit 1, got $code: $out)"
+elif [[ "$out" != "not-done running"* ]]; then
+  no "$name (stdout: $out)"
+else
+  ok
+fi
+
 name="a done run whose ledger has unchecked steps exits 1 and prints one unchecked line per unchecked step"
 repo="$(scratch_dir)"
 bin="$(scratch_dir)"
