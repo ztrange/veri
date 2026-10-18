@@ -427,6 +427,7 @@ make_repo real_skill_sections
 mkdir -p "$s/tests/unit"
 cat "$HERE/../../SKILL.md" > "$repo/skills/tdd/SKILL.md"
 cat "$HERE/../../SCRIPTS.md" > "$repo/skills/tdd/SCRIPTS.md"
+cat "$HERE/../../STOPPING.md" > "$repo/skills/tdd/STOPPING.md"
 while IFS= read -r suite; do
   cat "$suite" > "$repo/${suite#"$HERE/../../../../"}"
 done < <(grep -lE '"skills/tdd/SKILL\.md"|/skills/tdd/SKILL\.md"' "$HERE/../../../../skills/tdd/scripts/tests/"*.test.sh "$HERE/../../../../skills/tdd/scripts/tests/unit/"*.test.sh)
@@ -469,8 +470,13 @@ edit_below '### 3. The cycle loop'
 real_edit "### 3. The cycle loop" "py/unit/test_skill_draft_pr.py" ""
 edit_below '## Revising on a REJECT'
 real_edit "## Revising on a REJECT" "" ""
-edit_below '## Stopping'
-real_edit "## Stopping" py/unit/test_skill_stopping.py ""
+cat "$repo/skills/tdd/STOPPING.md" > "$work/STOPPING.md.orig"
+printf 'an edited line\n' >> "$repo/skills/tdd/STOPPING.md"
+commit_head
+stopping_out="$(run_affected 2>/dev/null)"
+grep -qxF "skills/tdd/scripts/tests/py/unit/test_skill_stopping.py" <<< "$stopping_out" || real_wrong+=" STOPPING.md: test_skill_stopping.py not selected;"
+mv "$work/STOPPING.md.orig" "$repo/skills/tdd/STOPPING.md"
+commit_base
 edit_below '## Bailing'
 real_edit "## Bailing" py/unit/test_skill_metrics.py ""
 edit_below '## Resume'

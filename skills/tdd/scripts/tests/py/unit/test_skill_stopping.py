@@ -5,6 +5,7 @@ import re
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 SCOPE_LOOP = SKILL.with_name("SCOPE-LOOP.md")
+STOPPING_MD = SKILL.with_name("STOPPING.md")
 
 STOPPING = "## Stopping"
 LAUNCHING = "## Launching a leaf — detach, then wait in the foreground"
@@ -112,7 +113,7 @@ PIN_CHECKPOINT = ('git commit -m "test: pin', "loop back to the top of step 3")
 
 
 def test_stopping_section_waits_with_wait_leaf_on_every_running_supervisor_before_it_touches_the_tree_and_reaches_only_for_git_reset_hard_head_never_git_checkout():
-    lines, problems = _section(STOPPING), []
+    lines, problems = _section(STOPPING, STOPPING_MD), []
     wait_at = _first(r"wait-leaf\.sh", lines)
     if wait_at is None:
         problems.append("the Stopping section never calls wait-leaf.sh")
@@ -128,7 +129,7 @@ def test_stopping_section_waits_with_wait_leaf_on_every_running_supervisor_befor
 
 
 def test_stopping_section_resets_nothing_and_records_at_unsettled_when_rebase_merge_rebase_apply_or_merge_head_is_present():
-    lines, problems = _section(STOPPING), []
+    lines, problems = _section(STOPPING, STOPPING_MD), []
     for state in ("rebase-merge", "rebase-apply", "merge_head"):
         _require(problems, state, lines, f"the Stopping section never names {state}")
     _require(problems, r"at=unsettled", lines, "the Stopping section never records at=unsettled")
@@ -140,7 +141,7 @@ def test_stopping_section_resets_nothing_and_records_at_unsettled_when_rebase_me
 
 
 def test_stopping_section_runs_push_branch_and_records_push_rejected_with_the_sha_its_stderr_names_on_exit_1_launching_no_reconcile_leaf_and_bailing_not_at_all():
-    lines, problems = _section(STOPPING), []
+    lines, problems = _section(STOPPING, STOPPING_MD), []
     _require(problems, r"push-branch\.sh", lines, "the Stopping section never runs push-branch.sh")
     _require(problems, r"exit 1", lines, "the Stopping section says nothing about push-branch.sh exit 1")
     _require(problems, r"push=rejected", lines, "the Stopping section never records push=rejected")
@@ -153,7 +154,7 @@ def test_stopping_section_runs_push_branch_and_records_push_rejected_with_the_sh
 
 
 def test_stopping_section_writes_exactly_one_event_stop_mark_with_at_one_of_unplanned_planned_green_step_done_or_unsettled_and_names_classify_bail_nowhere():
-    lines, problems = _section(STOPPING), []
+    lines, problems = _section(STOPPING, STOPPING_MD), []
     marks = sum(1 for line in lines if re.search(r"event\.sh stop", line))
     if marks == 0:
         problems.append("the Stopping section never writes an event.sh stop mark")
@@ -168,7 +169,7 @@ def test_stopping_section_writes_exactly_one_event_stop_mark_with_at_one_of_unpl
 
 
 def test_stopping_section_renders_metrics_into_a_stopped_mode_comment_and_commits_no_metrics_file():
-    lines, problems = _section(STOPPING), []
+    lines, problems = _section(STOPPING, STOPPING_MD), []
     _require(problems, r"metrics\.sh <n>", lines, "the Stopping section never renders metrics.sh <n>")
     _require(problems, "### ⏹️ stopped — <mode>", lines,
              "the Stopping section never posts a '### ⏹️ Stopped — <mode>' comment")
@@ -177,7 +178,7 @@ def test_stopping_section_renders_metrics_into_a_stopped_mode_comment_and_commit
 
 
 def test_stopping_section_ends_the_run_with_stop_requested_clear_opening_no_pr_removing_no_worktree_and_deleting_no_conductor_pid():
-    lines, problems = _section(STOPPING), []
+    lines, problems = _section(STOPPING, STOPPING_MD), []
     clear_at = _first(r"stop-requested\.sh --clear", lines)
     report_at = _first(r"metrics\.sh <n>", lines)
     if clear_at is None:
