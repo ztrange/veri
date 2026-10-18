@@ -43,13 +43,65 @@ it.
 ## What this did not test
 
 - **Sample size:** 3 units, one model (Sonnet 5.5).
-- **Subtlety of the violations:** the planted ones were clear contradictions. Subtle drift, such
-  as a weakened qualifier or a dropped exception, is untested.
+- **Subtlety of the violations:** covered by pass 4 below.
 - **Bias in the lists:** I wrote them while reading the prose, which biases them towards PASS.
   The violating variants check sensitivity, not completeness.
 - **Ambient context:** whether user-level context reached the grader was not checked.
 
-Slice 2 repeats S1 on its own runner, adding one subtle-drift variant per unit.
+Slice 2 (#1718) repeats the measurement on its own runner, with the fixtures in `specs/grader-poc/`.
+
+## Pass 4: subtle drift, compared with the substring suites
+
+Same pass-3 contract. Each unit got a **subtle** variant with two planted changes: a weakened
+qualifier, a narrowed scope, a reordered step, or an added exception. Each was graded three times.
+The same 9 variants (violating, harmless and subtle for each unit) were then dropped into a
+scratch copy of `origin/main`, and the 39 pytest files that mention any of the three units were
+run against each variant (826 cases, about 4 minutes per variant).
+
+### The grader
+
+| Planted change | What it changes | Graded FAIL |
+|---|---|---|
+| DR5 | "never runs another suite" → "avoids running another suite where it can" | 3/3 |
+| BL3 | only `now` → `now` or `at-leaf` turns exit 2 into a stop | 3/3 |
+| BL7 | metrics committed before the push → after it | 3/3 |
+| VR2 | fast run must be green → "for context, a red there is not a REJECT" | 3/3 (once the variant was made a real violation) |
+| DR8 | the prediction before running → before reading the output | 0/3 — **not a violation**: the prose states the order two other ways, and the grader quoted them |
+| VR7 | cosmetic hunks → a REJECT above three of them | 1/3 — **ambiguous requirement**: "not by itself a REJECT" still holds for one hunk. Rewording it as "never, however many" made the grader reject the *original* prose 3/3, because the original never said that either |
+
+Every real violation was caught in 12 of 12 runs. Each miss I investigated was a variant that was
+not actually a violation, or a requirement that was ambiguous. In every case the grader's quoted
+reason was correct.
+
+### The substring suites on the same variants
+
+Failing cases, out of 826:
+
+| Variant | develop-red.md | verify-refactor.md | SKILL.md *Bailing* |
+|---|---|---|---|
+| violating | 2 | 2 | 1 (caught BL5 incidentally; missed BL10) |
+| **harmless** | **2** | **2** | 0 |
+| subtle | 3 | 1 | **0** (missed BL3 and BL7) |
+
+- **On the prompts, the suites cannot tell harmless from violating.** `test_emitted_text` is a
+  checksum of the rendered prompt and goes red on any edit. The builder and tier cases go red
+  on the harmless rewording just as on the violation. They detect *changed*, not *wrong*.
+- **On SKILL.md, the suites missed 3 of the 4 planted changes** (BL10, BL3, BL7), and went red on
+  one only because the edit happened to touch a pinned sentence. The grader caught all four,
+  every time.
+
+### Verdict
+
+Go. In pass 3 and pass 4, every grading of a real violation, a harmless rewording or unchanged
+prose was right. The two exceptions were not judgement errors: VR7, whose requirement was
+ambiguous, and model self-contradictions, which pass 3's strict parser turns into exit 2. On the same variants, the substring suites either
+cannot discriminate (the prompts) or miss most of the changes (SKILL.md). Pass 4 cost $0.74 (24
+gradings, including the VR7 rewording check); the PoC in total cost $2.31.
+
+## Fixtures
+
+The lists, every variant, the grader prompt, the parser and the script that ran them are in
+`specs/grader-poc/`, so #1718 can repeat this measurement as is.
 
 ## Grader system prompt (pass 3)
 

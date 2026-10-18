@@ -1,0 +1,11 @@
+BL1 | Every bail carries a cause token, and its classification comes from classify-bail.sh, never chosen ad hoc.
+BL2 | killed-stuck and no-verdict classify as system failures; revise-exhausted and untestable-criterion classify as process failures.
+BL3 | A bail reached first stays a bail even when a stop is pending; only a pending `now` stop turns a leaf's exit 2 into a stop.
+BL4 | The attempt's tree is preserved with preserve-attempt.sh before any reset, and a failed snapshot does not prevent the bail.
+BL5 | Only the half-done step is reverted (git reset --hard HEAD); every completed step's commit and checked ledger step is kept.
+BL6 | A bail event carrying the cause and the classification is logged before the bail comment is rendered.
+BL7 | Metrics are rendered and committed before the branch is pushed.
+BL8 | The branch is pushed, best-effort, so completed steps and logs are recoverable.
+BL9 | The issue gets a "### ⛔ Bailed — <phase> (<classification> failure)" comment carrying the metrics block or its fallback line, the last reason, the skill-drift block, and a pointer to the progress log.
+BL10 | The draft PR stays open and stays a draft, and receives the bail comment or a link to it.
+BL11 | The report to the user names the phase, classification, reason, skill-drift block, branch and worktree path, and the worktree is left in place.
