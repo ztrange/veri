@@ -29,9 +29,13 @@ def main(argv):
         steps = ledger_steps(f.read())
     unmet = [("unchecked", r[6]) for r in steps if r[1] == "open"]
     unmet += [("refactor-pending", r[6]) for r in steps if r[3] == "1"]
-    body = json.loads(subprocess.run(
-        ["gh", "pr", "view", run.get("pr", ""), "--json", "body"],
-        capture_output=True, text=True, check=True).stdout)["body"]
+    try:
+        body = json.loads(subprocess.run(
+            ["gh", "pr", "view", run.get("pr", ""), "--json", "body"],
+            capture_output=True, text=True, check=True).stdout)["body"]
+    except subprocess.CalledProcessError:
+        sys.stderr.write("run-finished.sh: the PR body could not be read\n")
+        return 2
     unmet += [("human-owed", ln[6:]) for ln in body.splitlines()
               if ln.startswith("- [ ] ") and "⟦human-owed⟧" in ln]
     for name, step in unmet:
