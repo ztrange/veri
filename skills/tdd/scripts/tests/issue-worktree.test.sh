@@ -862,4 +862,15 @@ out="$(cd "$clone" && VERI_GH_JSON="$work/resume-claimed-gh" "$WT" 63 mine 2>/de
 { [[ "$code" == 0 ]] && [[ "$out" == "$mine" ]]; } \
   && ok || no "#1656: a resume (worktree and ledger exist) still starts though its branch is on the remote and an open PR claims the issue (exit=$code want 0, stdout='$out' want '$mine')"
 
+ahead_pair resume-silent
+mine="$(wt_path "$clone" 65)"
+git_q "$clone" worktree add -q -b tdd/65-mine "$mine" main >/dev/null 2>&1
+mkdir -p "$mine/.tdd" "$work/resume-silent-gh"
+printf '%s\n' '- [ ] step' > "$mine/.tdd/issue-65.md"
+
+out="$(cd "$clone" && PATH="$work/stubbin:$PATH" STUB_LS_FAIL=1 VERI_GH_JSON="$work/resume-silent-gh" "$WT" 65 mine 2>/dev/null)" && code=0 || code=$?
+
+{ [[ "$code" == 0 ]] && [[ "$out" == "$mine" ]]; } \
+  && ok || no "#1672: a resume of the run's own issue branch still hands back its worktree when the ls-remote and open-PR lookups get no answer (exit=$code want 0, stdout='$out' want '$mine')"
+
 finish
