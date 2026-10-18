@@ -31,14 +31,14 @@ CASES=(
 problems=()
 name="no-awk-v-patterns.test.sh, no-docs-reads.test.sh and no-job-spec-kills.test.sh each pass over a clean scratch tree, and fail naming the suite and the scanner's exit status 2 when only the grep they read through done < <(…) over that tree exits 2 (#1648)"
 
-for entry in "${CASES[@]}"; do
-  IFS='|' read -r guard scan_args token <<< "$entry"
+check_guard() {
+  local guard="$1" scan_args="$2" token="$3" tree guard_out guard_code
   tree="$(scratch_dir)"
   mkdir -p "$tree/$TESTS_DIR/lib" "$tree/shim"
   cp "$HERE/lib/"*.sh "$tree/$TESTS_DIR/lib/"
   cp "$HERE/$guard" "$tree/$TESTS_DIR/$guard"
   chmod 755 "$tree/$TESTS_DIR/$guard"
-  printf '%s\n' '#!/usr/bin/env bash' 'echo "0 passed, 0 failed"' > "$tree/$TESTS_DIR/$SCANNED"
+  printf '%s\n' '#!/usr/bin/env bash' 'echo "0 passed, 0 failed"' 'wc -l /dev/null' > "$tree/$TESTS_DIR/$SCANNED"
   printf 'test:\n\t%s\n' "$TESTS_DIR/$SCANNED" > "$tree/Makefile"
   printf '#!/bin/sh\ncase "$PWD/ $*" in "%s/ %s "*|*" %s "*"%s/"*) exit 2 ;; esac\nexec "%s" "$@"\n' \
     "$tree" "$scan_args" "$scan_args" "$tree" "$REAL_GREP" > "$tree/shim/grep"
@@ -55,6 +55,27 @@ for entry in "${CASES[@]}"; do
     problems+=("no line of $guard's output names $token; it said: $(flat "$guard_out")")
   grep -F -- 'exit status 2' <<< "$guard_out" > /dev/null ||
     problems+=("no line of $guard's output names the scanner's exit status 2; it said: $(flat "$guard_out")")
+}
+
+for entry in "${CASES[@]}"; do
+  IFS='|' read -r guard scan_args token <<< "$entry"
+  check_guard "$guard" "$scan_args" "$token"
+done
+
+report "$name"
+
+CASES=(
+  "no-recipe-unit-tier.test.sh|-nE|$SCANNED"
+  "no-sigpipe-pipelines.test.sh|-nE|$SCANNED"
+  "no-size-assertion.test.sh|-nE|$SCANNED"
+)
+
+problems=()
+name="no-recipe-unit-tier.test.sh, no-sigpipe-pipelines.test.sh and no-size-assertion.test.sh each pass over a clean scratch tree, and fail naming the suite and the scanner's exit status 2 when only the grep they read through done < <(…) over that tree exits 2 (#1648)"
+
+for entry in "${CASES[@]}"; do
+  IFS='|' read -r guard scan_args token <<< "$entry"
+  check_guard "$guard" "$scan_args" "$token"
 done
 
 report "$name"
