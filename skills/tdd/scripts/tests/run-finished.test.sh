@@ -135,4 +135,38 @@ else
   ok
 fi
 
+name="a done run whose PR body holds unticked human-owed lines exits 1 and prints one human-owed line per unticked line"
+repo="$(scratch_dir)"
+bin="$(scratch_dir)"
+new_repo "$repo"
+mkdir -p "$repo/.tdd/wt/4242/.tdd"
+git -C "$repo" commit -q --allow-empty -m init
+new_repo "$repo/.tdd/wt/4242"
+printf '%s\n' \
+  '{"ts":1000,"event":"launch","step":"1","phase":"red","actor":"developer","name":"develop-red"}' \
+  '{"ts":1001,"event":"done","pr":"https://github.com/o/r/pull/7"}' > "$repo/.tdd/wt/4242/.tdd/events.jsonl"
+printf '%s\n' '# Plan for #4242 — a title' '' '- [x] first step ⟦criterion 1⟧' \
+  > "$repo/.tdd/wt/4242/.tdd/issue-4242.md"
+cat > "$bin/gh" <<'STUB'
+#!/bin/sh
+body='Closes #4242
+
+- [ ] a reviewer checks the page ⟦human-owed⟧ ⟦criterion 3⟧
+- [x] a reviewer checks the ticked one ⟦human-owed⟧ ⟦criterion 4⟧
+- [ ] a reviewer reads the docs ⟦human-owed⟧ ⟦criterion 5⟧'
+case " $* " in
+  *" --json "*) printf '{"body": "%s"}\n' "$(printf '%s' "$body" | sed 's/$/\\n/' | tr -d '\n')" ;;
+  *) printf '%s\n' "$body" ;;
+esac
+STUB
+chmod +x "$bin/gh"
+out="$(cd "$repo" && PATH="$bin:$PATH" "$FINISHED" 4242 2>/dev/null)" && code=0 || code=$?
+if [[ "$code" != 1 ]]; then
+  no "$name (want exit 1, got $code: $out)"
+elif [[ "$out" != $'human-owed '*"checks the page"*$'\n'"human-owed "*"reads the docs"* || "$out" == *"ticked one"* ]]; then
+  no "$name (stdout: $out)"
+else
+  ok
+fi
+
 finish
