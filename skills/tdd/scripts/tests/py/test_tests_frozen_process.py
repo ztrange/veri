@@ -74,3 +74,26 @@ def test_check_step_exits_1_naming_an_untracked_test_file_red_did_not_record_173
     code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
 
     assert (code, out) == (1, "tests/test_extra.py\n")
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which files differ from HEAD")
+def test_check_step_exits_0_printing_nothing_when_only_non_test_files_changed_1733(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_new.py").write_text("one\n")
+    for name in ("lib.py", "gone.py"):
+        (tmp_path / name).write_text("one\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests", "lib.py", "gone.py")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one adds a case"
+    (tmp_path / "tests/test_new.py").write_text("one\ntwo\n")
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py"], cwd=tmp_path)
+
+    (tmp_path / "lib.py").write_text("one, changed\n")
+    (tmp_path / "gone.py").unlink()
+    (tmp_path / "notes.py").write_text("not a test\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
