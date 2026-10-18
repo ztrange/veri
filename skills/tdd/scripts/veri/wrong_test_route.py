@@ -13,7 +13,7 @@ def _write(stream, line):
     stream.buffer.flush()
 
 
-SKIPPED = (".git", ".tdd")
+SKIPPED = (".git", ".tdd", ".venv")
 
 
 def is_test_file(name):
