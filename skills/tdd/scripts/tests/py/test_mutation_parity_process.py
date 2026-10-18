@@ -3,6 +3,7 @@ import difflib
 import importlib
 import os
 import subprocess
+import sys
 import time
 
 import pytest
@@ -49,11 +50,12 @@ def test_1501_same_size_mutation_reverted_within_a_second_leaves_no_mutated_byte
 
     code, out, err = run_cli(mutation_parity, [str(table)], cwd=tmp_path)
 
-    after = subprocess.run(["python3", "-c", "import sys; sys.path.insert(0, 'skills/tdd/scripts/veri'); import gate; print(gate.code())"],
+    leftover = sorted(str(p.relative_to(tmp_path)) for p in tmp_path.rglob("gate.*.pyc"))
+    after = subprocess.run([sys.executable, "-c", "import sys; sys.path.insert(0, 'skills/tdd/scripts/veri'); import gate; print(gate.code())"],
                            cwd=tmp_path, capture_output=True, text=True, stdin=subprocess.DEVNULL)
-    assert (code, out.strip().endswith("proven"), after.stdout.strip()) == (0, True, "2"), (
-        "exit=%s stdout=%r stderr=%r; module imported after the tool exits answers %r, want '2'"
-        % (code, out, err, after.stdout.strip()))
+    assert (code, out.strip().endswith("proven"), leftover, after.stdout.strip()) == (0, True, [], "2"), (
+        "exit=%s stdout=%r stderr=%r; bytecode left %r; module imported after the tool exits answers %r, want '2'"
+        % (code, out, err, leftover, after.stdout.strip()))
 
 
 PYTEST_SUITE = """import sys
