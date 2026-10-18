@@ -38,18 +38,23 @@ def claims(path, unit):
     rows = []
     seen = set()
     inunit = intable = skip = False
-    for number, line in enumerate(read_lines(path), 1):
+    headed = tabled = 0
+    lines = read_lines(path)
+    for number, line in enumerate(lines + ["## "], 1):
         def fail(msg):
             raise ValueError("%s:%d: %s" % (path, number, msg))
         if line.startswith("## "):
+            if inunit and not tabled:
+                raise ValueError("%s:%d: no table under heading" % (path, headed))
             inunit, intable = line[3:] == unit, False
+            headed, tabled = number, False
         elif not inunit:
             continue
         elif is_header(line):
             cells = split_cells(line)
             if cells[1:4] != COLUMNS:
                 fail("header lacks a column")
-            intable, skip = True, True
+            intable, skip, tabled = True, True, True
         elif intable and skip:
             skip = False
         elif intable and line.startswith("|"):
