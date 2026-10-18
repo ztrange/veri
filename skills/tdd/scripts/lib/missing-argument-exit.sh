@@ -78,16 +78,23 @@ argument_audit() {
 }
 
 bare_expansion_offenders() {
-  local dir="$1" found=0 file lineno text n
+  local dir="$1" found=0 file lineno text n scan rc
   for file in "$dir"/*.sh; do
     [[ -e "$file" ]] || continue
+    rc=0
+    scan="$(grep -nE '\$\{[0-9]+:\?' "$file")" || rc=$?
+    if (( rc > 1 )); then
+      echo "${file##*/}: scanner grep exited with exit status $rc"
+      found=1
+    fi
     while IFS=: read -r lineno text; do
+      [[ -n "$lineno" ]] || continue
       [[ "${text#"${text%%[![:space:]]*}"}" == '#'* ]] && continue
       [[ "$text" =~ \$\{([0-9]+):\? ]] || continue
       n="${BASH_REMATCH[1]}"
       echo "${file##*/}:$lineno: guards \$$n with a bare \${N:?…} expansion, which exits 1, not 2"
       found=1
-    done < <(grep -nE '\$\{[0-9]+:\?' "$file")
+    done <<< "$scan"
   done
   (( found == 0 )) || return 1
 }
