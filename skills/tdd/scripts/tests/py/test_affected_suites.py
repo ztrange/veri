@@ -751,7 +751,8 @@ def test_the_suite_path_check_names_a_renderer_or_tests_path_planted_into_a_copy
     assert missing == [rename[1].strip('"/').removeprefix("tests/")]
 
 
-SUITES = "skills/tdd/scripts/tests/"
+SCRIPTS_REL = "skills/tdd/scripts/"
+SUITES = SCRIPTS_REL + "tests/"
 
 
 def cli_git(touched, unresolvable=None):
@@ -783,12 +784,11 @@ def affected_by(monkeypatch, run_cli, affected, tmp_path, touched, files, range_
 
 def test_resolvable_range_prints_one_suite_per_line_sorted_with_no_duplicate(
         monkeypatch, run_cli, affected, tmp_path):
-    scripts = "skills/tdd/scripts/"
     assert affected_by(
         monkeypatch, run_cli, affected, tmp_path,
-        [scripts + "wolf.sh", scripts + "zulu.sh", scripts + "tests/wolf.test.sh"],
-        {scripts + "zulu.sh": "zulu\n", scripts + "wolf.sh": "wolf\n",
-         scripts + "tests/wolf.test.sh": "", scripts + "tests/unit/zulu.test.sh": ""},
+        [SCRIPTS_REL + "wolf.sh", SCRIPTS_REL + "zulu.sh", SCRIPTS_REL + "tests/wolf.test.sh"],
+        {SCRIPTS_REL + "zulu.sh": "zulu\n", SCRIPTS_REL + "wolf.sh": "wolf\n",
+         SCRIPTS_REL + "tests/wolf.test.sh": "", SCRIPTS_REL + "tests/unit/zulu.test.sh": ""},
     ) == (0, SUITES + "unit/zulu.test.sh\n" + SUITES + "wolf.test.sh\n", "")
 
 
@@ -806,101 +806,92 @@ def test_empty_diff_exits_3_and_prints_nothing(monkeypatch, run_cli, affected, t
 
 
 def test_rule_1_a_script_prints_exactly_its_same_named_suite(monkeypatch, run_cli, affected, tmp_path):
-    scripts = "skills/tdd/scripts/"
     assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [scripts + "foo.sh"],
-        {scripts + "foo.sh": "foo\n", scripts + "bar.sh": "bar\n",
-         scripts + "tests/foo.test.sh": "", scripts + "tests/bar.test.sh": ""},
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "foo.sh"],
+        {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "bar.sh": "bar\n",
+         SCRIPTS_REL + "tests/foo.test.sh": "", SCRIPTS_REL + "tests/bar.test.sh": ""},
     ) == (0, SUITES + "foo.test.sh\n", "")
 
 
 def test_rule_1_a_script_prints_exactly_its_same_named_suite_under_tests_unit(
         monkeypatch, run_cli, affected, tmp_path):
-    scripts = "skills/tdd/scripts/"
     assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [scripts + "foo.sh"],
-        {scripts + "foo.sh": "foo\n", scripts + "bar.sh": "bar\n",
-         scripts + "tests/unit/foo.test.sh": "", scripts + "tests/bar.test.sh": ""},
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "foo.sh"],
+        {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "bar.sh": "bar\n",
+         SCRIPTS_REL + "tests/unit/foo.test.sh": "", SCRIPTS_REL + "tests/bar.test.sh": ""},
     ) == (0, SUITES + "unit/foo.test.sh\n", "")
 
 
 def test_a_script_with_no_same_named_suite_prints_no_path_that_does_not_exist_1011(
         monkeypatch, run_cli, affected, tmp_path):
-    scripts = "skills/tdd/scripts/"
     code, out, _ = affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [scripts + "run-suite.sh"],
-        {scripts + "run-suite.sh": "run\n",
-         scripts + "tests/run-suite-venv.test.sh": 'RUN="$HERE/../run-suite.sh"\n'})
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "run-suite.sh"],
+        {SCRIPTS_REL + "run-suite.sh": "run\n",
+         SCRIPTS_REL + "tests/run-suite-venv.test.sh": 'RUN="$HERE/../run-suite.sh"\n'})
     assert (code in (0, 3), [p for p in out.splitlines() if not (tmp_path / p).exists()]) == (True, [])
 
 
 def test_a_script_with_no_same_named_suite_prints_the_existing_suites_that_name_its_file_1011(
         monkeypatch, run_cli, affected, tmp_path):
-    scripts = "skills/tdd/scripts/"
     assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [scripts + "run-suite.sh"],
-        {scripts + "run-suite.sh": "run\n", scripts + "gamma.sh": "gamma\n",
-         scripts + "tests/run-suite-venv.test.sh": 'RUN="$HERE/../run-suite.sh"\n',
-         scripts + "tests/gamma.test.sh": 'GAMMA="$HERE/../gamma.sh"\n'},
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "run-suite.sh"],
+        {SCRIPTS_REL + "run-suite.sh": "run\n", SCRIPTS_REL + "gamma.sh": "gamma\n",
+         SCRIPTS_REL + "tests/run-suite-venv.test.sh": 'RUN="$HERE/../run-suite.sh"\n',
+         SCRIPTS_REL + "tests/gamma.test.sh": 'GAMMA="$HERE/../gamma.sh"\n'},
     ) == (0, SUITES + "run-suite-venv.test.sh\n", "")
 
 
 def test_rule_2_a_lib_prints_the_suite_of_every_script_that_sources_it_and_no_others(
         monkeypatch, run_cli, affected, tmp_path):
-    scripts = "skills/tdd/scripts/"
     sourcing = '#!/usr/bin/env bash\nsource "$HERE/lib/bar.sh"\n'
     assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [scripts + "lib/bar.sh"],
-        {scripts + "lib/bar.sh": "bar_fn() { :; }\n",
-         scripts + "alpha.sh": sourcing, scripts + "beta.sh": sourcing,
-         scripts + "gamma.sh": "echo gamma\n", scripts + "bar.sh": "echo bar\n",
-         **{scripts + "tests/%s.test.sh" % n: "" for n in ("alpha", "beta", "gamma", "bar")}},
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "lib/bar.sh"],
+        {SCRIPTS_REL + "lib/bar.sh": "bar_fn() { :; }\n",
+         SCRIPTS_REL + "alpha.sh": sourcing, SCRIPTS_REL + "beta.sh": sourcing,
+         SCRIPTS_REL + "gamma.sh": "echo gamma\n", SCRIPTS_REL + "bar.sh": "echo bar\n",
+         **{SCRIPTS_REL + "tests/%s.test.sh" % n: "" for n in ("alpha", "beta", "gamma", "bar")}},
     ) == (0, SUITES + "alpha.test.sh\n" + SUITES + "beta.test.sh\n", "")
 
 
 def test_rule_3_a_changed_suite_prints_exactly_itself(monkeypatch, run_cli, affected, tmp_path):
-    scripts = "skills/tdd/scripts/"
     assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [scripts + "tests/foo.test.sh"],
-        {scripts + "foo.sh": "foo\n", scripts + "bar.sh": "bar\n",
-         scripts + "tests/foo.test.sh": "", scripts + "tests/bar.test.sh": ""},
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "tests/foo.test.sh"],
+        {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "bar.sh": "bar\n",
+         SCRIPTS_REL + "tests/foo.test.sh": "", SCRIPTS_REL + "tests/bar.test.sh": ""},
     ) == (0, SUITES + "foo.test.sh\n", "")
 
 
 def test_rule_3_a_changed_fixture_prints_every_suite_that_references_it_by_name(
         monkeypatch, run_cli, affected, tmp_path):
-    scripts = "skills/tdd/scripts/"
     plan = 'cat "$HERE/fixtures/plan.md"\n'
     assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [scripts + "tests/fixtures/plan.md"],
-        {scripts + "tests/fixtures/plan.md": "# plan\n", scripts + "tests/fixtures/other.md": "# other\n",
-         scripts + "tests/alpha.test.sh": plan, scripts + "tests/beta.test.sh": plan,
-         scripts + "tests/gamma.test.sh": 'cat "$HERE/fixtures/other.md"\n'},
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "tests/fixtures/plan.md"],
+        {SCRIPTS_REL + "tests/fixtures/plan.md": "# plan\n", SCRIPTS_REL + "tests/fixtures/other.md": "# other\n",
+         SCRIPTS_REL + "tests/alpha.test.sh": plan, SCRIPTS_REL + "tests/beta.test.sh": plan,
+         SCRIPTS_REL + "tests/gamma.test.sh": 'cat "$HERE/fixtures/other.md"\n'},
     ) == (0, SUITES + "alpha.test.sh\n" + SUITES + "beta.test.sh\n", "")
 
 
 def test_rule_4_skill_md_claude_md_and_makefile_print_their_guard_suites(
         monkeypatch, run_cli, affected, tmp_path):
-    scripts = "skills/tdd/scripts/"
     assert affected_by(
         monkeypatch, run_cli, affected, tmp_path, ["CLAUDE.md", "skills/tdd/SKILL.md", "Makefile"],
         {"CLAUDE.md": "# veri\n", "skills/tdd/SKILL.md": "# tdd\n", "Makefile": "test:\n",
-         scripts + "gamma.sh": "gamma\n",
-         scripts + "tests/claude-md-guard.test.sh": 'claude_md="CLAUDE.md"\n',
-         scripts + "tests/skill-md-guard.test.sh": 'skill_md="skills/tdd/SKILL.md"\n',
-         scripts + "tests/makefile-guard.test.sh": 'MAKEFILE="$ROOT/Makefile"\n',
-         scripts + "tests/gamma.test.sh": "echo gamma\n"},
+         SCRIPTS_REL + "gamma.sh": "gamma\n",
+         SCRIPTS_REL + "tests/claude-md-guard.test.sh": 'claude_md="CLAUDE.md"\n',
+         SCRIPTS_REL + "tests/skill-md-guard.test.sh": 'skill_md="skills/tdd/SKILL.md"\n',
+         SCRIPTS_REL + "tests/makefile-guard.test.sh": 'MAKEFILE="$ROOT/Makefile"\n',
+         SCRIPTS_REL + "tests/gamma.test.sh": "echo gamma\n"},
     ) == (0, SUITES + "claude-md-guard.test.sh\n" + SUITES + "makefile-guard.test.sh\n"
           + SUITES + "skill-md-guard.test.sh\n", "")
 
 
 def test_rule_5_a_rule_1_file_plus_a_file_no_rule_matches_prints_every_suite(
         monkeypatch, run_cli, affected, tmp_path):
-    scripts = "skills/tdd/scripts/"
     assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [scripts + "foo.sh", "docs/notes.md"],
-        {scripts + "foo.sh": "foo\n", scripts + "bar.sh": "bar\n", scripts + "baz.sh": "baz\n",
-         scripts + "tests/foo.test.sh": "", scripts + "tests/bar.test.sh": "",
-         scripts + "tests/unit/baz.test.sh": "", "docs/notes.md": "# notes\n"},
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "foo.sh", "docs/notes.md"],
+        {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "bar.sh": "bar\n", SCRIPTS_REL + "baz.sh": "baz\n",
+         SCRIPTS_REL + "tests/foo.test.sh": "", SCRIPTS_REL + "tests/bar.test.sh": "",
+         SCRIPTS_REL + "tests/unit/baz.test.sh": "", "docs/notes.md": "# notes\n"},
     ) == (0, SUITES + "bar.test.sh\n" + SUITES + "foo.test.sh\n" + SUITES + "unit/baz.test.sh\n",
           "affected-suites: no rule places docs/notes.md; widening to every suite\n")
