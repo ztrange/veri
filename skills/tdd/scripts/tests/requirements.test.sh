@@ -136,4 +136,24 @@ says=no; [[ "$err" == *"not declared"* && "$err" == *skills/tdd/NOPE.md* ]] && s
 expect_eq "claims on a unit the file does not declare exits 2, prints nothing on stdout and says on stderr the unit is not declared, naming it" \
   $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$says"
 
+cat > "$work/no-requirement-column.md" <<MD
+$H skills/tdd/SKILL.md
+
+| ID | Why |
+|----|-----|
+| A1 | Because. |
+MD
+
+out="$("$REQUIREMENTS" claims "$work/no-requirement-column.md" skills/tdd/SKILL.md 2> "$work/stderr")" && code=0 || code=$?
+err="$(< "$work/stderr")"; err="${err//"$work"/}"
+named=no; [[ "$err" =~ (^|[^0-9])3([^0-9]|$) ]] && named=yes
+expect_eq "claims on a table header lacking the Requirement column exits 2, prints nothing on stdout and names the header's line on stderr" \
+  $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
+
+out="$("$REQUIREMENTS" 2> "$work/stderr")" && code=0 || code=$?
+err="$(< "$work/stderr")"
+usage=no; [[ "$err" == usage:*requirements.sh* ]] && usage=yes
+expect_eq "requirements.sh with no arguments exits 2, prints nothing on stdout and its usage line on stderr" \
+  $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$usage"
+
 finish
