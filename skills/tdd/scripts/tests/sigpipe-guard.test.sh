@@ -102,7 +102,10 @@ install_guard() {
   git -C "$tree" add -A >/dev/null 2>&1
 }
 
+CLEAN_MAKEFILE=$'test:\n\t@true'  # names no suite, ends no pipeline: the guard's Makefile grep exits 2 on a tree without one (#1648)
+
 seal_tree() {
+  [[ -e "$tree/Makefile" ]] || printf '%s\n' "$CLEAN_MAKEFILE" > "$tree/Makefile"
   install_guard
 
   offender_line="$(grep -n "$MARK" "$offender_path" | cut -d: -f1)"
