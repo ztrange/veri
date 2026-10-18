@@ -2,6 +2,7 @@
 import os
 import sys
 
+COLUMNS = ["ID", "Requirement", "Why"]
 USAGE = "usage: requirements.sh units <file> | claims <file> <unit>"
 
 
@@ -26,7 +27,7 @@ def units(path):
     for line in read_lines(path):
         if line.startswith("## "):
             heading = line[3:]
-        elif line.startswith("|") and split_cells(line)[1:4] == ["ID", "Requirement", "Why"]:
+        elif line.startswith("|") and split_cells(line)[1:4] == COLUMNS:
             if heading:
                 found.append(heading)
             heading = ""
@@ -46,7 +47,7 @@ def claims(path, unit):
             continue
         elif is_header(line):
             cells = split_cells(line)
-            if cells[1:4] != ["ID", "Requirement", "Why"]:
+            if cells[1:4] != COLUMNS:
                 fail("header lacks a column")
             intable, skip = True, True
         elif intable and skip:
