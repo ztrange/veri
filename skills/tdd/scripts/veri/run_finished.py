@@ -20,7 +20,12 @@ def main(argv):
         sys.stderr.write("run-finished.sh: no run for issue %s\n" % issue)
         return 2
     runs = json.loads(json_document()[1])["runs"]
-    run = next((r for r in runs if r["issue"] == issue), {})
+    run = next((r for r in runs if r["issue"] == issue), None)
+    ledger = os.path.join(run_dir, ".tdd", "issue-%s.md" % issue)
+    if run is None and not os.path.isfile(ledger):
+        sys.stderr.write("run-finished.sh: cannot read %s\n" % ledger)
+        return 2
+    run = run or {}
     state = run.get("state", "")
     if state != "done":
         print("not-done %s" % state)
@@ -29,7 +34,7 @@ def main(argv):
     if not pr:
         sys.stderr.write("run-finished.sh: no PR is recorded for issue %s\n" % issue)
         return 2
-    with open(os.path.join(run_dir, ".tdd", "issue-%s.md" % issue), encoding="utf-8") as f:
+    with open(ledger, encoding="utf-8") as f:
         steps = ledger_steps(f.read())
     unmet = [("unchecked", r[6]) for r in steps if r[1] == "open"]
     unmet += [("refactor-pending", r[6]) for r in steps if r[3] == "1"]

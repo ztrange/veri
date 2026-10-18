@@ -383,4 +383,29 @@ else
   ok
 fi
 
+name="a done run whose ledger is missing exits 2 with one stderr line naming the file and no traceback (#1748)"
+repo="$(scratch_dir)"
+bin="$(scratch_dir)"
+new_repo "$repo"
+mkdir -p "$repo/.tdd/wt/4242/.tdd"
+git -C "$repo" commit -q --allow-empty -m init
+new_repo "$repo/.tdd/wt/4242"
+printf '%s\n' \
+  '{"ts":1000,"event":"launch","step":"1","phase":"red","actor":"developer","name":"develop-red"}' \
+  '{"ts":1001,"event":"done","pr":"https://github.com/o/r/pull/7"}' > "$repo/.tdd/wt/4242/.tdd/events.jsonl"
+cat > "$bin/gh" <<'STUB'
+#!/bin/sh
+printf '{"body": "Closes #4242"}\n'
+STUB
+chmod +x "$bin/gh"
+out="$(scratch_dir)/out"
+err="$(cd "$repo" && PATH="$bin:$PATH" "$FINISHED" 4242 2>&1 >"$out")" && code=0 || code=$?
+if [[ "$code" != 2 ]]; then
+  no "$name (want exit 2, got $code; stdout: $(cat "$out"); stderr: $err)"
+elif [[ "$err" != *"issue-4242.md"* || "$err" == *$'\n'* || "$err" == *Traceback* ]]; then
+  no "$name (stderr: $err)"
+else
+  ok
+fi
+
 finish
