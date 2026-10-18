@@ -1111,8 +1111,8 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      nothing asks for review before the run is ready. An unreachable remote is **not** a
      bail — `push-branch.sh` retries it, records a `push-failed` event and exits 0, so the
      tick and the commit above stand whatever the network did. On exit **1** (the remote
-     rejected a non-fast-forward) launch the reconcile leaf — see
-     *Reconciling a rejected push*; on exit **2** (its
+     rejected a non-fast-forward) launch the reconcile leaf: `Read` `<base directory>/RECONCILE.md` and run it
+     when that happens; on exit **2** (its
      event could not be written) **bail**.
      **Then run `$S/stop-requested.sh`**, immediately after that push: this ledger commit is
      the boundary `at-ledger` was waiting for, and `at-leaf` and `now` have nothing left to
@@ -1322,7 +1322,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      until that commit exists the step still says pending and the plan is still the one the
      leaf grew from. The push copies the step's
      finished state to the remote on the same terms as Green's above: exit **1** launches
-     the reconcile leaf (*Reconciling a rejected push*), exit **2** is a **bail**.
+     the reconcile leaf (`Read` `<base directory>/RECONCILE.md` and run it when that happens), exit **2** is a **bail**.
      **Then run `$S/stop-requested.sh`**, immediately after that push, as Green does after
      its own: on exit 0 any mode it printed goes to *Stopping* here (`Read` `<base directory>/STOPPING.md` when that happens); on exit 2 go to
      *Stopping* in mode `at-ledger`, narrating that the request was unreadable; on exit 3
@@ -2087,34 +2087,6 @@ finished with a bad verdict, the second a leaf that never produced one, the thir
 transforms one step's tidying is worth. A `REJECT` is veri working as designed — the blind verifier
 refusing to rubber-stamp — so the bounded revise is a *correction*, never an excuse to keep
 hammering past the budget.
-
-## Reconciling a rejected push
-
-`push-branch.sh` exit **1** means the remote holds a branch the run's HEAD does not
-fast-forward — usually the run's own pre-rebase history, after a resume rebased onto
-`origin/main`. Its stderr names the remote's sha. Whether those remote commits are the run's
-own or someone else's is a judgement, so a leaf makes it, launched **through the
-supervisor** like every other:
-
-```
-cp .tdd/issue-<n>.md .tdd/reconcile-ledger.before
-$S/build-develop-prompt.sh reconcile .tdd/issue-<n>-spec.md "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" '<test-cmd>' <branch> <remote-sha> > .tdd/develop-reconcile.prompt
-rm -f .tdd/develop-reconcile.exit .tdd/develop-reconcile.pid
-VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/detach-leaf.sh $S/supervise.sh develop-reconcile $S/run-leaf.sh .tdd/develop-reconcile.prompt --permission-mode bypassPermissions > .tdd/develop-reconcile.out 2> .tdd/develop-reconcile.err
-$S/wait-leaf.sh develop-reconcile   # foreground; on exit 3 call it again
-```
-
-After the leaf exits 0, re-run `$S/push-branch.sh` — it must now exit 0 — and check the
-committed ledger `.tdd/issue-<n>.md` still carries every `[x]` tick and every
-` ⟂ refactor pending` mark `.tdd/reconcile-ledger.before` had:
-
-```
-diff <($S/ledger-steps.sh < .tdd/reconcile-ledger.before | awk -F'\t' '$2 == "done" {print $4 "\t" $7}') <(git show HEAD:.tdd/issue-<n>.md | $S/ledger-steps.sh | awk -F'\t' '$2 == "done" {print $4 "\t" $7}')
-```
-
-Then continue where the push was called. A leaf exit 1 or 2, a second `push-branch.sh` exit
-other than 0, or a ledger whose ticks or marks changed → **bail** with cause
-`reconcile-failed` (a system failure: where the branch lives broke, not the methodology).
 
 ## Bailing
 
