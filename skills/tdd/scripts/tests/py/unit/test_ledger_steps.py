@@ -2,6 +2,7 @@
 import importlib
 import io
 import sys
+import types
 
 import pytest
 
@@ -479,3 +480,100 @@ def test_has_mark_with_an_empty_name_exits_2_with_a_usage_line_listing_has_mark_
 
     assert (code, out, err.startswith(b"usage: ledger-steps.sh "), b"has-mark <name>" in err, b"Traceback" in err) == (
         2, b"", True, True, False)
+
+
+def via_stdin(module, ledger):
+    def main(argv):
+        fake_stdin_text(ledger)
+        return module.main(argv)
+
+    return types.SimpleNamespace(main=main)
+
+
+def fake_stdin_text(ledger):
+    sys.stdin = io.TextIOWrapper(io.BytesIO(ledger.encode()))
+
+
+KINDS = (
+    "# Plan for #42\n\nprose\n\n"
+    "- [x] add lowercasing ⟦criterion 1⟧ ⟂ refactor pending\n"
+    "- [X] trim spaces ⟦added⟧ ⟦criterion 2⟧\n"
+    "- [x] tidy names ⟦added⟧ ⟦criterion 3⟧ ⟂ refactor pending\n"
+    "- [ ] strip edge hyphens ⟦criterion 3⟧\n"
+    "  - [ ] note without a criterion\n"
+    "- [ ] a person reads the page ⟦human-owed⟧ ⟦criterion 4⟧\n"
+    "- [ ] `make test` is green ⟦full-suite⟧ ⟦criterion 5⟧"
+)
+OPEN = (
+    "# Plan for #42\n\n- [x] add lowercasing ⟦criterion 1⟧\n"
+    "- [ ] a person reads the page ⟦human-owed⟧ ⟦criterion 2⟧\n"
+    "- [ ] `make test` is green ⟦full-suite⟧ ⟦criterion 3⟧\n"
+    "- [ ] strip edge hyphens ⟦criterion 4⟧\n"
+)
+NONE = (
+    "# Plan for #42\n\n- [x] add lowercasing ⟦criterion 1⟧\n"
+    "- [ ] a person reads the page ⟦human-owed⟧ ⟦criterion 2⟧\n"
+    "- [ ] `make test` is green ⟦full-suite⟧ ⟦criterion 3⟧\n"
+)
+TICKED = "# Plan for #42\n\n- [x] add lowercasing ⟦criterion 1⟧\n- [x] strip edge hyphens ⟦criterion 2⟧\n"
+
+
+def test_cli_with_no_argument_prints_ledger_steps_records_for_every_step_kind_and_mark(
+        run_cli, ledger_steps):
+    got = run_cli(via_stdin(ledger_steps, KINDS), [])
+
+    assert got == (0, (
+        "1\tdone\tstep\t1\t0\t1\tadd lowercasing ⟦criterion 1⟧\n"
+        "2\tdone\tstep\t0\t1\t2\ttrim spaces ⟦added⟧ ⟦criterion 2⟧\n"
+        "3\tdone\tstep\t1\t1\t3\ttidy names ⟦added⟧ ⟦criterion 3⟧\n"
+        "4\topen\tstep\t0\t0\t3\tstrip edge hyphens ⟦criterion 3⟧\n"
+        "5\topen\tstep\t0\t0\t\tnote without a criterion\n"
+        "6\topen\thuman-owed\t0\t0\t4\ta person reads the page ⟦human-owed⟧ ⟦criterion 4⟧\n"
+        "7\topen\tfull-suite\t0\t0\t5\t`make test` is green ⟦full-suite⟧ ⟦criterion 5⟧\n"
+    ), "")
+
+
+def test_cli_current_prints_the_first_pending_step_else_the_first_open_step_kind_step_else_exits_3_with_no_output(
+        run_cli, ledger_steps):
+    got = [run_cli(via_stdin(ledger_steps, ledger), ["current"]) for ledger in (KINDS, OPEN, NONE)]
+
+    assert got == [
+        (0, "add lowercasing ⟦criterion 1⟧\n", ""),
+        (0, "strip edge hyphens ⟦criterion 4⟧\n", ""),
+        (3, "", ""),
+    ]
+
+
+def test_cli_current_or_last_done_prints_currents_answer_with_a_step_open_last_dones_when_every_step_is_ticked_and_exits_3_for_no_step(
+        run_cli, ledger_steps):
+    got = [run_cli(via_stdin(ledger_steps, ledger), ["current-or-last-done"])
+           for ledger in (OPEN, TICKED, "# Plan for #42\n\nprose\n")]
+    want_open = run_cli(via_stdin(ledger_steps, OPEN), ["current"])
+    want_ticked = run_cli(via_stdin(ledger_steps, TICKED), ["last-done"])
+
+    assert got == [want_open, want_ticked, (3, "", "")]
+    assert got[:2] == [(0, "strip edge hyphens ⟦criterion 4⟧\n", ""), (0, "strip edge hyphens ⟦criterion 2⟧\n", "")]
+
+
+def test_cli_bogus_exits_2_with_nothing_on_stdout_and_exactly_the_one_usage_line_listing_every_verb_including_has_mark_1624(
+        run_cli, ledger_steps):
+    got = run_cli(via_stdin(ledger_steps, KINDS), ["bogus"])
+
+    assert got == (2, "", USAGE.decode())
+    assert "has-mark <name>" in got[2]
+
+
+def test_cli_next_phase_and_next_unchecked_both_exit_3_with_nothing_on_a_phased_step_whose_contract_is_filed_owed_1410(
+        run_cli, ledger_steps):
+    next_unchecked = importlib.import_module("veri.next_unchecked")
+    owed = (
+        "# Plan for #42\n\n- [x] add lowercasing ⟦criterion 1⟧\n"
+        "- [ ] rename the slug helper ⟦phases: expand, migrate, contract-a, contract-b⟧ ⟦criterion 1⟧"
+        " ⟂ expand done ⟂ migrate done ⟂ contract-a owed\n\n"
+        "## Owed steps\n\n- rename the slug helper: contract-a\n"
+    )
+
+    got = [run_cli(via_stdin(ledger_steps, owed), ["next-phase"]),
+           run_cli(via_stdin(next_unchecked, owed), [])]
+
+    assert got == [(3, "", ""), (3, "", "")]
