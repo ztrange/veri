@@ -3930,3 +3930,30 @@ def test_cli_launches_a_develop_green_whose_step_has_a_verify_pin_pass_after_its
                              env={"VERI_ISSUE": "1741", "VERI_STEP": "3"})
 
     assert (code, (tmp_path / "ran").exists(), (tmp_path / ".tdd" / "develop-green.exit").read_text().strip()) == (0, True, "0"), err
+
+
+@pytest.mark.process("a real stub claude that an allowed develop-green launch must start (#1741)")
+def test_cli_launches_a_develop_green_whose_ci_repair_step_has_a_red_launch_and_no_verdict_and_records_the_stub_exit_status_1741(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import json
+    clean_env(monkeypatch)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-1741.md").write_text(
+        "# Plan for #1741\n\n"
+        "- [x] first step\n"
+        "- [x] second step\n"
+        "- [ ] fix the CI failure: suite — FAIL - case ⟦ci-repair⟧\n")
+    base = {"issue": "1741", "skill_commit": "unknown"}
+    log = [
+        {**base, "ts": 1, "event": "launch", "actor": "developer", "phase": "red", "step": "3", "attempt": "1"},
+    ]
+    (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(line) + "\n" for line in log))
+    stub = tmp_path / "claude"
+    stub.write_text("#!/bin/sh\ntouch ran\n")
+    stub.chmod(0o755)
+
+    code, out, err = run_cli(supervise, ["develop-green", str(stub)], cwd=tmp_path,
+                             env={"VERI_ISSUE": "1741", "VERI_STEP": "3"})
+
+    exitfile = tmp_path / ".tdd" / "develop-green.exit"
+    assert (code, (tmp_path / "ran").exists(), exitfile.read_text().strip() if exitfile.exists() else None) == (0, True, "0"), err

@@ -303,6 +303,15 @@ def red_awaits_pass(step):
     return last is False
 
 
+def ci_repair_step(issue, step):
+    try:
+        with open(f".tdd/issue-{issue}.md") as f:
+            boxes = [t for t in f if re.match(r"\s*- \[.\]", t)]
+        return "⟦ci-repair⟧" in boxes[int(step) - 1]
+    except (OSError, ValueError, IndexError):
+        return False
+
+
 def main(argv):
     ignored = {sig for sig in TRAPPED if signal.getsignal(sig) is signal.SIG_IGN}
     if signal.SIGINT not in ignored:
@@ -352,7 +361,7 @@ def main(argv):
     leaf_env = {**os.environ}
     leaf_env.update(VERI_LEAF_MODEL=model, VERI_SKILL_COMMIT=skill_commit)
     step = tunables.read("VERI_STEP")
-    if name.startswith("develop-green") and step and red_awaits_pass(step):
+    if name.startswith("develop-green") and step and red_awaits_pass(step) and not ci_repair_step(issue, step):
         return refuse(f"supervise: refusing to launch {name}: step {step} has no verify-red PASS after its latest red leaf")
     ownerfile = ".tdd/leaf.owner"
     owner = still_alive_owner(ownerfile)
