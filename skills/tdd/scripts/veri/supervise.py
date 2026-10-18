@@ -292,9 +292,9 @@ def red_awaits_pass(step):
                     rec = json.loads(text)
                 except ValueError:
                     continue
-                if not isinstance(rec, dict) or str(rec.get("step")) != step or rec.get("phase") != "red":
+                if not isinstance(rec, dict) or str(rec.get("step")) != step or rec.get("phase") not in ("red", "pin"):
                     continue
-                if rec.get("event") == "launch":
+                if rec.get("event") == "launch" and rec.get("phase") == "red":
                     last = False
                 elif rec.get("event") == "verdict" and last is not None:
                     last = rec.get("verdict") == "PASS"
