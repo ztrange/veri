@@ -1,0 +1,7 @@
+# Plan for #1741 — supervise.sh launches develop-green even when the step's verify-red said REJECT
+
+- [ ] supervise.sh refuses a develop-green launch (exit 2, no leaf launched — a stub claude never runs — and exactly one stderr line naming the step and the missing verify-red PASS) when the run's event log holds, for that step, a red leaf launch followed only by a verify-red REJECT; a verdict recorded for another step does not count ⟦criterion 1⟧
+- [ ] supervise.sh launches develop-green as today (stub claude runs, its exit status recorded) when the run's event log holds a verify-red PASS for that step after the step's latest red leaf launch ⟦criterion 1⟧
+- [ ] supervise.sh launches develop-green as today when the run's event log holds a verify-pin PASS for that step after the step's latest red leaf launch (the pin path) ⟦criterion 1⟧
+- [ ] supervise.sh refuses develop-green (exit 2, no leaf, one stderr line naming the step and the missing verdict) when the step's only verify-red PASS was recorded before a later red leaf launch of that step (a revise-red attempt launched after the PASS) ⟦criterion 1⟧
+- [ ] supervise.sh still launches develop-green as today on a step whose text carries ⟦ci-repair⟧, which SKILL.md sends to Green on AGAINST_UNMODIFIED: PASSES with no verify-red or verify-pin, so the guard never blocks the procedure's own path
