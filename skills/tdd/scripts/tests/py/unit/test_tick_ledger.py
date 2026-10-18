@@ -586,3 +586,92 @@ def test_main_ticks_a_step_whose_prose_quotes_a_phases_marker_with_a_plain_tick_
 
     assert (code, *capsysbinary.readouterr(), ledger.read_bytes()) == (
         0, b"", b"", seed.replace(quoting.encode(), (quoting.replace("[ ]", "[x]") + " ⟂ refactor pending").encode()))
+
+
+STEPS = "# Plan for #42\n\n- [ ] add lowercasing\n- [ ] collapse to single hyphen\n- [ ] strip edge hyphens\n"
+
+
+def test_cli_ticks_the_matching_step_in_place_leaving_the_other_steps_open(tmp_path, run_cli, tick_ledger):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_text(STEPS)
+
+    code, out, err = run_cli(tick_ledger, [str(ledger), "collapse to single hyphen"])
+
+    assert (code, out, err, ledger.read_text()) == (
+        0, "", "", STEPS.replace("- [ ] collapse", "- [x] collapse"))
+
+
+def test_cli_exits_3_on_an_unmatched_step_leaving_the_ledger_unchanged(tmp_path, run_cli, tick_ledger):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_text(STEPS)
+
+    code, out, err = run_cli(tick_ledger, [str(ledger), "nonexistent step"])
+
+    assert (code, out, err, ledger.read_text()) == (3, "", "", STEPS)
+
+
+def test_cli_with_no_argument_exits_2_with_nothing_on_stdout_and_the_usage_line_on_stderr(run_cli, tick_ledger):
+    code, out, err = run_cli(tick_ledger, [])
+
+    assert (code, out, err) == (2, "", USAGE.decode())
+
+
+def test_cli_exits_2_with_one_stderr_line_naming_a_directory_ledger_and_the_reason_without_a_traceback(
+        tmp_path, run_cli, tick_ledger):
+    ledger = tmp_path / "dir-ledger.md"
+    ledger.mkdir()
+
+    code, out, err = run_cli(tick_ledger, [str(ledger), "collapse to single hyphen"])
+
+    assert (code, out, err.count("\n"), str(ledger) in err, "directory" in err.lower(), "Traceback" in err) == (
+        2, "", 1, True, True, False)
+
+
+def test_cli_exits_2_with_one_stderr_line_naming_a_ledger_path_that_does_not_exist_without_a_traceback(
+        tmp_path, run_cli, tick_ledger):
+    ledger = tmp_path / "absent-ledger.md"
+
+    code, out, err = run_cli(tick_ledger, [str(ledger), "collapse to single hyphen"])
+
+    assert (code, out, err.count("\n"), str(ledger) in err, "Traceback" in err) == (2, "", 1, True, False)
+
+
+def test_cli_exits_2_with_one_path_and_reason_stderr_line_for_a_ledger_path_running_through_a_regular_file_writing_nothing(
+        tmp_path, run_cli, tick_ledger):
+    plain = tmp_path / "plain-file"
+    plain.write_text("not a directory\n")
+    ledger = plain / "issue-42.md"
+
+    code, out, err = run_cli(tick_ledger, [str(ledger), "collapse to single hyphen"])
+
+    assert (code, out, err.count("\n"), err.startswith(f"tick-ledger.sh: {ledger}: "),
+            len(err) > len(f"tick-ledger.sh: {ledger}: ") + 1, "Traceback" in err, plain.read_text()) == (
+        2, "", 1, True, True, False, "not a directory\n")
+
+
+def test_cli_exits_2_with_one_path_and_reason_stderr_line_for_a_ledger_that_does_not_decode_leaving_it_byte_identical(
+        tmp_path, run_cli, tick_ledger):
+    seed = b"\377\376- [ ] collapse to single hyphen\n"
+    ledger = tmp_path / "undecodable.md"
+    ledger.write_bytes(seed)
+
+    code, out, err = run_cli(tick_ledger, [str(ledger), "collapse to single hyphen"], env={"LC_ALL": "C.UTF-8"})
+
+    assert (code, out, err.count("\n"), err.startswith(f"tick-ledger.sh: {ledger}: "),
+            len(err) > len(f"tick-ledger.sh: {ledger}: ") + 1, "Traceback" in err, ledger.read_bytes()) == (
+        2, "", 1, True, True, False, seed)
+
+
+def test_cli_of_tick_ledger_and_clear_refactor_pending_exit_3_on_no_match_and_0_on_a_tick_or_clear(
+        tmp_path, run_cli, tick_ledger):
+    clear = importlib.import_module("veri.clear_refactor_pending")
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_text(STEPS)
+
+    tick_miss = run_cli(tick_ledger, [str(ledger), "nonexistent step"])[0]
+    tick_hit = run_cli(tick_ledger, ["--refactor-pending", str(ledger), "collapse to single hyphen"])[0]
+    clear_miss = run_cli(clear, [str(ledger), "nonexistent step"])[0]
+    clear_hit = run_cli(clear, [str(ledger), "collapse to single hyphen"])[0]
+
+    assert (tick_miss, tick_hit, clear_miss, clear_hit) == (3, 0, 3, 0)
+    assert ledger.read_text() == STEPS.replace("- [ ] collapse", "- [x] collapse")
