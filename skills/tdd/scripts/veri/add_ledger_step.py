@@ -187,17 +187,21 @@ def main(argv):
     if not re.fullmatch("[0-9]+", budget):
         return refuse("add-ledger-step.sh: VERI_STEP_GROWTH must be a whole number >= 0: " + budget)
     out = []
+    kept = []
     for line in lines:
         if not is_anchor_step(line, anchor):
             out.append(line)
+            kept.append(line)
             continue
         inserted = [added_step(text, criterion or criterion_of(line), planned) for text in texts]
         if where == "after":
             out.append(line)
+            kept.append(line)
         out.extend(inserted)
         if where == "before":
             out.append(line)
-    added = sum(record[4] == "1" for record in ledger_steps("\n".join(out)))
+            kept.append(line)
+    added = sum(record[4] == "1" for record in ledger_steps("\n".join(kept))) + sum(not is_repair(text) for text in texts)
     cap = bash_integer(budget)
     if cap is None:
         warn(f'add-ledger-step.sh: {budget}: value too great for base (error token is "{budget}")')
