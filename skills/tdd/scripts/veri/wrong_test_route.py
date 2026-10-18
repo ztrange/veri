@@ -39,10 +39,13 @@ def _exists(case):
     return False
 
 
-def route(report, own_id):
+def _wrong_test_lines(report):
     with open(report, encoding="utf-8", errors="replace") as handle:
-        lines = [l for l in handle.read().splitlines() if l.startswith("WRONG_TEST:")]
-    for line in lines:
+        return [l for l in handle.read().splitlines() if l.startswith("WRONG_TEST:")]
+
+
+def route(report, own_id):
+    for line in _wrong_test_lines(report):
         names = re.findall(r"\btest_\w+", line) + re.findall(r"`([^`]+)`", line)
         for case in names:
             if case != own_id.rpartition("::")[2] and _exists(case):
@@ -55,8 +58,7 @@ def _recorded_case(report, step):
     try:
         with open(record, encoding="utf-8", errors="replace") as handle:
             files = [l.split(None, 1)[1].strip() for l in handle.read().splitlines() if len(l.split(None, 1)) == 2]
-        with open(report, encoding="utf-8", errors="replace") as handle:
-            lines = [l for l in handle.read().splitlines() if l.startswith("WRONG_TEST:")]
+        lines = _wrong_test_lines(report)
     except OSError:
         return None
     for name in files:
