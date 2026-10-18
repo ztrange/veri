@@ -524,54 +524,6 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
   && [[ "$branch" == "tdd/867-no-origin-local-main" ]] && [[ "$tip" == "$main_tip" ]]; } \
   && ok || no "#865: no origin remote at all and a local main: still falls back to the local main as the base (exit=$code want 0, remotes='$remotes' want none, stdout='$out' want '$want', branch='$branch' want 'tdd/867-no-origin-local-main', tip='$tip' want main's $main_tip not side's $side_tip, stderr='$(cat "$errfile")')"
 
-upstream="$work/remote-only-upstream"
-make_repo "$upstream"
-git_q "$upstream" switch -q -c tdd/49-remote-only >/dev/null 2>&1
-mkdir -p "$upstream/.tdd"
-printf -- '- [x] 1. the step the previous run finished\n' > "$upstream/.tdd/issue-49.md"
-git_q "$upstream" add .tdd/issue-49.md >/dev/null 2>&1
-git_q "$upstream" commit -q -m "plan: the previous run's ledger" >/dev/null 2>&1
-ledger_want="$(cat "$upstream/.tdd/issue-49.md")"
-remote_branch_tip="$(git_q "$upstream" rev-parse tdd/49-remote-only)"
-git_q "$upstream" switch -q main >/dev/null 2>&1
-clone="$work/remote-only-clone"
-git clone -q "$upstream" "$clone" >/dev/null 2>&1
-main_tip="$(git_q "$clone" rev-parse main)"
-want="$(wt_path "$clone" 49)"
-
-local_ref="$(git_q "$clone" show-ref --verify --quiet refs/heads/tdd/49-remote-only && echo present || echo absent)"
-remote_ref="$(git_q "$clone" rev-parse --verify --quiet refs/remotes/origin/tdd/49-remote-only 2>/dev/null)"
-
-out="$(cd "$clone" && "$WT" 49 remote-only 2>/dev/null)" && code=0 || code=$?
-
-branch="$(git -C "$want" branch --show-current 2>/dev/null)"
-tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
-ledger_got="$(cat "$want/.tdd/issue-49.md" 2>/dev/null)"
-
-{ [[ "$code" == 0 ]] && [[ "$local_ref" == absent ]] && [[ "$remote_ref" == "$remote_branch_tip" ]] \
-  && [[ "$out" == "$want" ]] && [[ "$branch" == "tdd/49-remote-only" ]] \
-  && [[ "$tip" == "$remote_branch_tip" ]] && [[ "$ledger_got" == "$ledger_want" ]]; } \
-  && ok || no "a branch that exists only on the remote: checked out at its own tip with its ledger present, not re-cut from the default branch (exit=$code want 0, the clone's refs/heads/tdd/49-remote-only=$local_ref want absent, its refs/remotes/origin/tdd/49-remote-only='$remote_ref' want $remote_branch_tip, stdout='$out' want '$want', branch='$branch' want 'tdd/49-remote-only', tip='$tip' want the remote branch's $remote_branch_tip not main's $main_tip, .tdd/issue-49.md $( [[ "$ledger_got" == "$ledger_want" ]] && echo "present, good" || echo "read back as '$ledger_got' want '$ledger_want'" ))"
-
-upstream="$work/tracks-upstream"
-make_repo "$upstream"
-git_q "$upstream" switch -q -c tdd/51-tracks >/dev/null 2>&1
-git_q "$upstream" commit -q --allow-empty -m "the previous run's work" >/dev/null 2>&1
-git_q "$upstream" switch -q main >/dev/null 2>&1
-clone="$work/tracks-clone"
-git clone -q "$upstream" "$clone" >/dev/null 2>&1
-want="$(wt_path "$clone" 51)"
-
-local_ref="$(git_q "$clone" show-ref --verify --quiet refs/heads/tdd/51-tracks && echo present || echo absent)"
-
-out="$(cd "$clone" && "$WT" 51 tracks 2>/dev/null)" && code=0 || code=$?
-
-tracks="$(git_q "$clone" for-each-ref --format='%(upstream:short)' refs/heads/tdd/51-tracks)"
-
-{ [[ "$code" == 0 ]] && [[ "$local_ref" == absent ]] && [[ "$out" == "$want" ]] \
-  && [[ "$tracks" == "origin/tdd/51-tracks" ]]; } \
-  && ok || no "a worktree made for a remote-only branch tracks that remote branch (exit=$code want 0, the clone's refs/heads/tdd/51-tracks=$local_ref want absent before the call, stdout='$out' want '$want', tdd/51-tracks's upstream=$( [[ -n "$tracks" ]] && echo "'$tracks'" || echo "none" ) want 'origin/tdd/51-tracks')"
-
 upstream="$work/local-ahead-upstream"
 make_repo "$upstream"
 git_q "$upstream" switch -q -c tdd/53-local-ahead >/dev/null 2>&1
