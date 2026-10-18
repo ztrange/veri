@@ -213,7 +213,11 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   thing on stdout; git's chatter goes to stderr, so the path is safe to capture.
   **Idempotent**: a second call for the same issue prints the same path and creates nothing,
   which is what makes a resume land in the worktree the first run made — an existing issue
-  branch is checked out as it is, with no fetch. **Exit 0** = the path. **Exit 2** = no answer
+  branch is checked out as it is, with no fetch. Only a **local** branch or a **registered
+  worktree** makes a run a resume: a **fresh** run refuses (exit 2) an issue branch origin
+  holds even when this clone has fetched it (a remote-tracking ref is not a resume), creating
+  no branch and no worktree, and names the takeover — `git branch tdd/<n>-<slug>
+  origin/tdd/<n>-<slug>` — after which the next run is a resume. **Exit 0** = the path. **Exit 2** = no answer
   could be obtained — either the branch is **already checked out in another worktree** (it names
   that path and touches nothing: **never steal a checkout**, another conductor owns that run),
   or the default branch cannot be named, or fetching it failed — never a silent fallback to the
