@@ -1,5 +1,5 @@
 # Plan for #1675 — test_comment_class.py's hand-kept class-3 roster goes red whenever a port deletes bash cases
 
 - [x] In test_comment_class.py's tree-audit case, a CLASS_3_LINES roster entry whose file or line text is no longer in the tree is dropped from the comparison, so deleting a bash suite's cases or the whole suite never fails the case; the change is confined to skills/tdd/scripts/tests/py/test_comment_class.py, no production change, and the case keeps its tree_audit mark ⟦diff-checked⟧ ⟦criterion 1⟧
-- [ ] In test_comment_class.py's tree-audit case, a class-3 line whose text changes while it stays in its suite still fails the case, and the failure names that line's file and its line number; test-only, confined to test_comment_class.py ⟦diff-checked⟧ ⟦criterion 2⟧
+- [x] In test_comment_class.py's tree-audit case, a class-3 line whose text changes while it stays in its suite still fails the case, and the failure names that line's file and its line number; test-only, confined to test_comment_class.py ⟦diff-checked⟧ ⟦criterion 2⟧
 - [ ] In test_comment_class.py's tree-audit case, a new class-3 line added to a suite and not in CLASS_3_LINES still fails the case until it is added to the roster, the failure naming its file and its line number; test-only, confined to test_comment_class.py ⟦diff-checked⟧ ⟦criterion 3⟧
