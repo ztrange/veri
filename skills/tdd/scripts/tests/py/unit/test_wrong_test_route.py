@@ -167,3 +167,26 @@ def test_main_1621_routes_a_wrong_test_naming_a_real_case_of_a_docs_tests_suite_
         wrong_test_route, [str(report), "test_main_returns_zero"], cwd=ROOT)
 
     assert (code, stdout) == (0, "red %s\n" % docs_case)
+
+
+def test_main_1621_routes_a_wrong_test_naming_a_case_in_a_repo_whose_tests_live_under_test_or_spec_to_red(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    pytest_case = "test_main_counts_a_repair_text_as_a_repair"
+    bash_case = "a repair text counts as a repair"
+    results = []
+    for directory, filename, body, case in (
+            ("test", "test_" + "ledger" + ".py", "def %s():\n    pass\n" % pytest_case, pytest_case),
+            ("spec", "ledger" + ".test" + ".sh", 'name="%s"\nrun_case\n' % bash_case, bash_case)):
+        repo = tmp_path / directory
+        (repo / directory).mkdir(parents=True)
+        (repo / directory / filename).write_text(body)
+        report = repo / "green-report.txt"
+        report.write_text(
+            "SUITE: make test\n"
+            "WRONG_TEST: the case `%s` asserts the opposite of the criterion\n" % case)
+        code, stdout, stderr = run_cli(
+            wrong_test_route, [str(report), "test_main_returns_zero"], cwd=repo)
+        results.append((code, stdout))
+
+    assert results == [(0, "red %s\n" % pytest_case), (0, "red %s\n" % bash_case)]
