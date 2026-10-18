@@ -298,3 +298,23 @@ def test_main_1736_prints_revise_when_the_named_case_exists_only_in_a_test_file_
         wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
+
+
+def test_main_1736_prints_revise_when_a_real_case_is_named_only_on_lines_other_than_wrong_test(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    case = "test_main_counts_a_repair_text_as_a_repair"
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    (suite / ("test_" + "ledger" + ".py")).write_text("def %s():\n    pass\n" % case)
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "NOTE: %s looks suspicious\n"
+        "VERDICT: REJECT because `%s` fails\n"
+        "WRONG_TEST: none\n" % (case, case))
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
