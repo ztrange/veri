@@ -411,3 +411,10 @@ def test_skill_md_reports_a_verifier_whose_supervisor_died_the_way_it_reports_a_
             if "verdict-<phase>" in p and "killed-stuck" in p.lower() and "bail" in p.lower()
             and ("without recording a status" in p.lower()
                  or re.search(r"supervisor[^.]*(died|dies|exited|is gone)", p.lower()))]
+
+
+def test_skill_md_tells_the_conductor_to_call_wait_leaf_sh_with_the_bash_maximum_timeout_and_names_the_600_s_cap_1708():
+    assert [p for p in skill_paragraphs()
+            if "wait-leaf.sh" in p and "600000" in p and "590" in p
+            and re.search(r"no (max-seconds|second)s? argument|without a max-seconds", p.lower())
+            and re.search(r"600 ?s[^.]*cap|cap[^.]*600 ?s", p.lower())]
