@@ -109,4 +109,10 @@ named=no; [[ "$err" =~ (^|[^0-9])3([^0-9]|$) ]] && named=yes
 expect_eq "claims on a table header lacking a column exits 2, prints nothing on stdout and names the header's line on stderr" \
   $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
 
+out="$("$REQUIREMENTS" claims "$work/absent.md" skills/tdd/SKILL.md 2> "$work/stderr")" && code=0 || code=$?
+err="$(< "$work/stderr")"
+says=no; [[ "$err" == *missing* && "$err" == *"$work/absent.md"* ]] && says=yes
+expect_eq "claims on a file that does not exist exits 2, prints nothing on stdout and says on stderr the file is missing, naming it" \
+  $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$says"
+
 finish
