@@ -65,4 +65,19 @@ named=no; [[ "$err" =~ (^|[^0-9])6([^0-9]|$) ]] && named=yes
 expect_eq "claims on a repeated ID exits 2, prints nothing on stdout and names the duplicate row's line on stderr" \
   $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
 
+cat > "$work/empty-req.md" <<'MD'
+## skills/tdd/SKILL.md
+
+| ID | Requirement | Why |
+|----|-------------|-----|
+| A1 | Says one thing. | Because. |
+| A2 |  | Since. |
+MD
+
+out="$("$REQUIREMENTS" claims "$work/empty-req.md" skills/tdd/SKILL.md 2> "$work/stderr")" && code=0 || code=$?
+err="$(< "$work/stderr")"; err="${err//"$work"/}"
+named=no; [[ "$err" =~ (^|[^0-9])6([^0-9]|$) ]] && named=yes
+expect_eq "claims on a row with an empty Requirement exits 2, prints nothing on stdout and names that row's line on stderr" \
+  $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
+
 finish

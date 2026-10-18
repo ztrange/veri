@@ -24,6 +24,7 @@ claims() {
     intable && /^\|/ {
       split($0, c, "|")
       id = trim(c[2])
+      if (trim(c[3]) == "") { printf "%s:%d: empty Requirement for %s\n", file, NR, id > "/dev/stderr"; failed = 1; exit 2 }
       if (id in seen) { printf "%s:%d: duplicate ID %s\n", file, NR, id > "/dev/stderr"; failed = 1; exit 2 }
       seen[id] = 1
       rows = rows id "\t" trim(c[3]) "\n"
