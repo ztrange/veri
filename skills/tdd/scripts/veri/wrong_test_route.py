@@ -94,11 +94,13 @@ def main(argv):
     if len(argv) != 2 or not argv[0] or not argv[1]:
         _write(sys.stderr, USAGE)
         return 2
-    repaired = _recorded_case(argv[0], tunables.read("VERI_STEP"))
+    step = tunables.read("VERI_STEP")
+    rerouted = _rerouted(step)
+    repaired = None if rerouted else _recorded_case(argv[0], step)
     if repaired is not None:
         _write(sys.stdout, "repair " + repaired)
         return 0
-    case = None if _rerouted(tunables.read("VERI_STEP")) else route(argv[0], argv[1])
+    case = None if rerouted else route(argv[0], argv[1])
     if case is None:
         _write(sys.stdout, "revise")
         return 3

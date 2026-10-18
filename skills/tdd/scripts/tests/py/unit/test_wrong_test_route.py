@@ -371,3 +371,31 @@ def test_main_1765_prints_repair_and_exits_0_when_the_wrong_test_names_a_case_in
         wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s\n" % written)
+
+
+def test_main_1765_prints_revise_and_exits_3_when_the_wrong_test_names_a_case_in_the_red_record_but_the_step_already_rerouted(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    written = "test_main_totals_an_invoice"
+    (suite / ("test_" + "ledger" + ".py")).write_text(
+        "def test_main_returns_zero():\n    pass\n\n"
+        "def %s():\n    pass\n" % written)
+    step = "wrong-test-route.sh routes a case its own red wrote"
+    monkeypatch.setenv("VERI_STEP", step)
+    (tmp_path / ".tdd").mkdir()
+    digest = hashlib.sha256(os.fsencode(step)).hexdigest()[:16]
+    (tmp_path / ".tdd" / ("tests-frozen-%s.record" % digest)).write_text(
+        "0" * 64 + "  tests/py/unit/test_ledger.py\n")
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        '{"event": "reroute", "step": "%s"}\n' % step)
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: %s asserts the opposite of the criterion\n" % written)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
