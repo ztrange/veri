@@ -290,6 +290,14 @@ def test_main_sweeps_the_scripts_lib_and_suites_to_empty_sweepable_reports_no_ci
         return False
 
     expected_3 = "".join(f"{e}\n" for e in CLASS_3_LINES.splitlines() if in_tree(e))
+    unaccounted = collections.Counter(expected_3.splitlines())
+    unlisted = []
+    for p, n in found_3:
+        entry = f"{str(p.relative_to(tests)).removesuffix('.test.sh')}:{text(p, n)}"
+        if unaccounted[entry] > 0:
+            unaccounted[entry] -= 1
+        else:
+            unlisted.append(f"{p.relative_to(tests)}:{n}: {text(p, n)}")
 
     assert {
         "the sweepable report is empty for metrics.sh, event.sh and harvest-usage.sh":
@@ -322,7 +330,7 @@ def test_main_sweeps_the_scripts_lib_and_suites_to_empty_sweepable_reports_no_ci
         "the sweepable report is empty for every shell file under scripts/lib/": (0, ""),
         "no comment line in scripts/*.sh or scripts/lib/*.sh, the contract header included, cites an issue number": (0, ""),
         "the text of every class 3 line in the suites is unchanged, in its file and in its order": (0, expected_3),
-    }
+    }, "class 3 lines not in CLASS_3_LINES:\n" + "\n".join(unlisted)
 
 
 @pytest.mark.tree_audit("every bash suite, script and lib under skills/tdd/scripts")
