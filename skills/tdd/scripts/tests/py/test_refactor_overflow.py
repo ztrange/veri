@@ -594,7 +594,8 @@ def test_cli_files_no_issue_and_exits_2_with_one_stderr_line_naming_the_lookup_w
 
     def gh(line, **kwargs):
         if is_lookup(line):
-            return gh_code, "", ""
+            # gh api on an HTTP error exits non-zero and still prints the JSON error body
+            return gh_code, json.dumps({"message": "Not Found"}), ""
         return 0, URL, ""
 
     calls = fake_processes(gh)
