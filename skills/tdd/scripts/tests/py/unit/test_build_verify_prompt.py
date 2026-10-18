@@ -1807,3 +1807,23 @@ def test_main_tells_the_refactor_plan_verifier_to_reject_a_step_that_only_edits_
     refactor, plain = refactor_and_plain_plan_renders(tmp_path, capsysbinary, build_verify_prompt)
 
     assert (refactor[0], re.search(test_only, refactor[1]) is not None, re.search(test_only, plain[1]) is not None) == (0, True, False)
+
+
+def test_main_renders_a_plan_prompt_that_rejects_a_step_adding_a_script_whose_usage_and_exit_2_or_caller_arrive_in_a_later_step_naming_both_steps_1700(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"1. frob.sh refuses no arguments with a usage line and exit 2.\n")
+    ledger = tmp_path / "plan.md"
+    ledger.write_text("- [ ] adds skills/tdd/scripts/frob.sh ⟦criterion 1⟧\n"
+                      "- [ ] frob.sh prints usage and exits 2 with no arguments ⟦criterion 1⟧\n",
+                      encoding="utf-8")
+
+    code = build_verify_prompt.main(["plan", str(spec), str(ledger)])
+    out, _ = capsysbinary.readouterr()
+    prompt = re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
+
+    reject_late = (r"REJECT[^.]{0,300}adds? a script[^.]{0,300}(usage|exit 2|caller)[^.]{0,300}later step"
+                   r"|REJECT[^.]{0,300}later step[^.]{0,300}adds? a script")
+    names_both = re.search(r"adds? a script[^.]{0,600}(naming|names|name) both steps"
+                           r"|(naming|names|name) both steps[^.]{0,600}adds? a script", prompt, re.I) is not None
+    assert (code, re.search(reject_late, prompt, re.I) is not None, names_both) == (0, True, True)
