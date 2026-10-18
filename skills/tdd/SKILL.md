@@ -1018,7 +1018,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    keeps its main outcome, a verify-green REJECT (a process outcome), never a `report-missing` bail.
 
    **A green report carrying `WRONG_TEST:`** gets `$S/wrong-test-route.sh .tdd/develop-green.out '<target-test-id>'` before any revise:
-   - exit 0 prints `red <case>`, a case other than the step's own that the criterion contradicts. Write no `revise` mark and spend no `REVISE_BUDGET` attempt. Launch the `red-contradicted` red over that case through `supervise.sh` (`build-develop-prompt.sh red-contradicted`), verify it with verify-red like any red, re-record the step's frozen tests with `$S/tests-frozen.sh record --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"` over both test paths, then retry green.
+   - exit 0 prints `red <case>`, a case other than the step's own that the criterion contradicts. Run it with `VERI_STEP` set to the current step, and on exit 0 write a `reroute` event before the launch: `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh reroute case=<case>`. Only a step's first reroute is free: a later `WRONG_TEST:` in the same step answers `revise` (exit 3) and spends one `REVISE_BUDGET` attempt. Write no `revise` mark and spend no `REVISE_BUDGET` attempt for the free one. Launch the `red-contradicted` red over that case through `supervise.sh` (`build-develop-prompt.sh red-contradicted`), verify it with verify-red like any red, re-record the step's frozen tests with `$S/tests-frozen.sh record --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"` over both test paths, then retry green.
    - exit 3 (`revise`) runs the existing revise path unchanged: the verify-green REJECT.
    - exit 2 is a system failure: **bail**.
 
@@ -1918,6 +1918,7 @@ develop-green `WRONG_TEST:` report is: `$S/wrong-test-route.sh .tdd/revise-green
 before the attempt is counted; its exit 0 writes no `revise` mark, spends no `REVISE_BUDGET` attempt and launches
 the `red-contradicted` red, its exit 3 keeps the attempt's main outcome, a verify-green REJECT, and its exit 2 is
 a bail; never a `report-missing` bail.
+The route runs with `VERI_STEP` set to the current step and its exit 0 writes a `reroute` event with `VERI_STEP` before the launch; only the step's first reroute is free, and a later `WRONG_TEST:` in the step, from develop-green or a revise-green, takes the revise path and spends one `REVISE_BUDGET` attempt.
 
 For attempt `k = 1 … REVISE_BUDGET`:
 
