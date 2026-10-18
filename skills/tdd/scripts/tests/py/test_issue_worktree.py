@@ -671,3 +671,169 @@ def test_claiming_pr_1656_names_no_pr_on_a_github_com_origin_when_the_only_open_
     prs = [{"state": "OPEN", "body": "Closes #63", "url": "https://github.com/o/r/pull/10"}]
 
     assert _open_prs(issue_worktree, monkeypatch, prs) == ("", ["prs.json"])
+
+
+def scratch_git(repo, *args):
+    """Real git in <repo> under a fixed identity; its stdout, stripped."""
+    done = subprocess.run(["git", "-C", str(repo), "-c", "user.name=veri", "-c", "user.email=veri@example.test", *args],
+                          capture_output=True, text=True)
+    return done.stdout.strip()
+
+
+def scratch_repo(path):
+    path.mkdir(parents=True)
+    scratch_git(path, "init", "-q", "-b", "main")
+    scratch_git(path, "commit", "-q", "--allow-empty", "-m", "initial")
+    return path.resolve()
+
+
+def scratch_wt_path(repo, n):
+    return "%s/.tdd/wt/%s" % (repo.resolve(), n)
+
+
+def scratch_registry(repo):
+    return (scratch_git(repo, "worktree", "list", "--porcelain"),
+            scratch_git(repo, "for-each-ref", "--format=%(refname) %(objectname)", "refs/heads"))
+
+
+def scratch_linked(repo, name, branch):
+    path = repo.parent.resolve() / name
+    scratch_git(repo, "worktree", "add", "-q", "-b", branch, str(path), "main")
+    return path
+
+
+@pytest.mark.process("git worktree add on a scratch repository, read back with git rev-parse")
+def test_fresh_call_creates_a_worktree_at_dot_tdd_wt_7_on_a_new_branch_off_the_default_branch_and_prints_its_path(
+        tmp_path, issue_worktree, run_cli):
+    repo = scratch_repo(tmp_path / "fresh")
+    main_tip = scratch_git(repo, "rev-parse", "main")
+    scratch_git(repo, "switch", "-q", "-c", "side")
+    scratch_git(repo, "commit", "-q", "--allow-empty", "-m", "work on side")
+    want = scratch_wt_path(repo, 7)
+
+    code, out, _ = run_cli(issue_worktree, ["7", "add-worktree"], cwd=repo)
+
+    assert (code, out.strip(), scratch_git(want, "rev-parse", "--show-toplevel"),
+            scratch_git(want, "branch", "--show-current"), scratch_git(want, "rev-parse", "HEAD")) == (
+        0, want, want, "tdd/7-add-worktree", main_tip)
+
+
+@pytest.mark.process("git worktree add twice on a scratch repository, its registry read back")
+def test_second_call_prints_the_same_path_exits_0_and_creates_nothing_new(tmp_path, issue_worktree, run_cli):
+    repo = scratch_repo(tmp_path / "again")
+    want = scratch_wt_path(repo, 9)
+
+    first = run_cli(issue_worktree, ["9", "resume-me"], cwd=repo)
+    before = scratch_registry(repo)
+    second = run_cli(issue_worktree, ["9", "resume-me"], cwd=repo)
+
+    assert (first[0], second[0], second[1].strip(), first[1], scratch_registry(repo)) == (
+        0, 0, want, second[1], before)
+
+
+@pytest.mark.process("git worktree add on a scratch repository whose branch another worktree holds")
+def test_branch_checked_out_elsewhere_exits_2_naming_that_worktree_and_touches_nothing(
+        tmp_path, issue_worktree, run_cli):
+    repo = scratch_repo(tmp_path / "taken")
+    other = scratch_linked(repo, "taken-elsewhere", "tdd/11-collide")
+    mine = scratch_wt_path(repo, 11)
+    before = scratch_registry(repo)
+
+    code, out, err = run_cli(issue_worktree, ["11", "collide"], cwd=repo)
+
+    assert (code, out, str(other) in err, os.path.exists(mine), scratch_registry(repo)) == (2, "", True, False, before)
+
+
+@pytest.mark.process("git worktree remove on scratch repositories, a clean worktree and one with a staged file")
+def test_remove_removes_a_clean_worktree_and_refuses_one_with_uncommitted_changes_with_exit_2(
+        tmp_path, issue_worktree, run_cli):
+    clean = scratch_repo(tmp_path / "remove-clean")
+    want = scratch_wt_path(clean, 13)
+    run_cli(issue_worktree, ["13", "done-with-this"], cwd=clean)
+
+    clean_code = run_cli(issue_worktree, ["--remove", "13"], cwd=clean)[0]
+
+    assert (clean_code, "worktree %s" % want in scratch_registry(clean)[0], os.path.exists(want)) == (0, False, False)
+
+    dirty = scratch_repo(tmp_path / "remove-dirty")
+    held = scratch_wt_path(dirty, 14)
+    run_cli(issue_worktree, ["14", "still-working"], cwd=dirty)
+    pathlib.Path(held, "notes.txt").write_text("work in progress\n")
+    scratch_git(held, "add", "notes.txt")
+    before = scratch_registry(dirty)
+
+    dirty_code = run_cli(issue_worktree, ["--remove", "14"], cwd=dirty)[0]
+
+    assert (dirty_code, os.path.exists(os.path.join(held, "notes.txt")), scratch_registry(dirty)) == (2, True, before)
+
+
+@pytest.mark.process("git worktree add on a scratch repository holding the branch already")
+def test_existing_branch_no_worktree_checks_the_branch_out_into_dot_tdd_wt_17_instead_of_failing_on_dash_b(
+        tmp_path, issue_worktree, run_cli):
+    repo = scratch_repo(tmp_path / "existing-branch")
+    scratch_git(repo, "switch", "-q", "-c", "tdd/17-resume")
+    scratch_git(repo, "commit", "-q", "--allow-empty", "-m", "work from the previous run")
+    branch_tip = scratch_git(repo, "rev-parse", "tdd/17-resume")
+    scratch_git(repo, "switch", "-q", "main")
+    want = scratch_wt_path(repo, 17)
+
+    code, out, _ = run_cli(issue_worktree, ["17", "resume"], cwd=repo)
+
+    assert (code, out.strip(), scratch_git(want, "branch", "--show-current"), scratch_git(want, "rev-parse", "HEAD")) == (
+        0, want, "tdd/17-resume", branch_tip)
+
+
+@pytest.mark.process("git clone and git worktree add on scratch repositories, origin/HEAD naming trunk")
+def test_origin_head_names_a_default_branch_that_is_neither_main_nor_master_cuts_the_new_worktree_from_it(
+        tmp_path, issue_worktree, run_cli):
+    upstream = scratch_repo(tmp_path / "upstream-trunk")
+    scratch_git(upstream, "branch", "-m", "main", "trunk")
+    clone = tmp_path / "clone-trunk"
+    subprocess.run(["git", "clone", "-q", str(upstream), str(clone)], capture_output=True)
+    scratch_git(clone, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/trunk")
+    trunk_tip = scratch_git(clone, "rev-parse", "refs/remotes/origin/trunk")
+    want = scratch_wt_path(clone, 21)
+
+    code = run_cli(issue_worktree, ["21", "remote-default"], cwd=clone)[0]
+
+    assert (code, scratch_git(want, "rev-parse", "HEAD")) == (0, trunk_tip)
+
+
+@pytest.mark.process("git worktree add on a scratch repository with only a local master")
+def test_no_remote_and_only_a_local_master_cuts_tdd_23_local_master_from_master(tmp_path, issue_worktree, run_cli):
+    repo = scratch_repo(tmp_path / "local-master")
+    scratch_git(repo, "branch", "-m", "main", "master")
+    master_tip = scratch_git(repo, "rev-parse", "master")
+    scratch_git(repo, "switch", "-q", "-c", "side")
+    scratch_git(repo, "commit", "-q", "--allow-empty", "-m", "work on side")
+    want = scratch_wt_path(repo, 23)
+
+    code, out, _ = run_cli(issue_worktree, ["23", "local-master"], cwd=repo)
+
+    assert (code, out.strip(), scratch_git(want, "branch", "--show-current"), scratch_git(want, "rev-parse", "HEAD")) == (
+        0, want, "tdd/23-local-master", master_tip)
+
+
+@pytest.mark.process("git worktree list on a scratch repository with neither main nor master")
+def test_no_remote_and_no_main_or_master_exits_2_with_a_diagnostic_on_stderr_nothing_on_stdout_and_nothing_created(
+        tmp_path, issue_worktree, run_cli):
+    repo = scratch_repo(tmp_path / "no-default")
+    scratch_git(repo, "branch", "-m", "main", "trunk")
+    before = scratch_registry(repo)
+
+    code, out, err = run_cli(issue_worktree, ["25", "no-default"], cwd=repo)
+
+    assert (code, out, "default branch" in err, scratch_registry(repo)) == (2, "", True, before)
+
+
+@pytest.mark.process("git worktree add from a linked worktree of a scratch repository")
+def test_called_from_a_linked_worktree_creates_and_prints_the_main_working_trees_dot_tdd_wt_27_not_one_nested_inside_the_caller(
+        tmp_path, issue_worktree, run_cli):
+    repo = scratch_repo(tmp_path / "from-linked")
+    linked = scratch_linked(repo, "from-linked-session", "session")
+    want = scratch_wt_path(repo, 27)
+
+    code, out, _ = run_cli(issue_worktree, ["27", "from-linked"], cwd=linked)
+
+    assert (code, out.strip(), scratch_git(want, "rev-parse", "--show-toplevel"),
+            os.path.exists(scratch_wt_path(linked, 27))) == (0, want, want, False)
