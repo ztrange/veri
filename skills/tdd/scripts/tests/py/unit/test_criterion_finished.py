@@ -5,6 +5,8 @@ import sys
 
 import pytest
 
+from conftest import ViaStdin
+
 USAGE = "usage: criterion-finished.sh <k> < .tdd/issue-<n>.md\n"
 
 
@@ -265,15 +267,6 @@ def test_main_counts_a_step_whose_prose_quotes_a_criterion_marker_only_toward_it
         fake_stdin(monkeypatch, quoting.encode())
         answers[k] = (criterion_finished.main([k]), *capsys.readouterr())
     assert answers == {"1": (0, "", ""), "2": (3, "", "")}
-
-
-class ViaStdin:
-    def __init__(self, module, ledger):
-        self.module, self.ledger = module, ledger
-
-    def main(self, argv):
-        sys.stdin = io.TextIOWrapper(io.BytesIO(self.ledger.encode()))
-        return self.module.main(argv)
 
 
 def test_cli_two_steps_serving_criterion_1_exit_3_until_both_are_ticked_and_verified_then_0(

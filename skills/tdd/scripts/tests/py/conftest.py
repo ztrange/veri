@@ -537,6 +537,15 @@ def events(monkeypatch):
     return Events(monkeypatch)
 
 
+class ViaStdin:
+    def __init__(self, module, ledger):
+        self.module, self.ledger = module, ledger
+
+    def main(self, argv):
+        sys.stdin = io.TextIOWrapper(io.BytesIO(self.ledger.encode()))
+        return self.module.main(argv)
+
+
 def issues_listing(numbers, label="ready-for-agent", priority=()):
     """The open-issue listing text selecting <numbers> (None: a listing the selection cannot read)."""
     if numbers is None:
