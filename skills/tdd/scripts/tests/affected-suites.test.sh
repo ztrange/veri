@@ -353,6 +353,21 @@ if [[ -z "$unplaced_wrong" ]]; then ok; else
   no "an edit to SKILL.md that cannot be placed in a section (above the first ##, file added or deleted) prints every suite naming SKILL.md:$unplaced_wrong"
 fi
 
+make_repo scripts_catalogue
+mkdir -p "$s/tests/py/unit"
+printf '# catalogue\n\nentry\n' > "$repo/skills/tdd/SCRIPTS.md"
+printf '#!/usr/bin/env bash\ncatalogue="skills/tdd/SCRIPTS.md"\ngrep -F entry "$catalogue"\n' > "$s/tests/catalogue.test.sh"
+printf 'def test_entry():\n    open("skills/tdd/SCRIPTS.md").read()\n' > "$s/tests/py/unit/test_catalogue.py"
+commit_base
+printf '# catalogue\n\nentry 2\n' > "$repo/skills/tdd/SCRIPTS.md"
+commit_head
+catalogue_out="$(run_affected 2>"$work/catalogue.err")"; catalogue_code=$?
+catalogue_want="$(printf '%s\n' skills/tdd/scripts/tests/catalogue.test.sh skills/tdd/scripts/tests/py/unit/test_catalogue.py | sort)"
+if [[ "$catalogue_code" == 0 && "$(sort <<< "$catalogue_out")" == "$catalogue_want" && "$(cat "$work/catalogue.err")" != *widening* ]]; then ok; else
+  no "an edit to skills/tdd/SCRIPTS.md prints the bash suite naming it and the pytest file mentioning it, without widening (code=$catalogue_code, stderr=$(cat "$work/catalogue.err"))"
+  diff <(printf '%s\n' "$catalogue_want") <(sort <<< "$catalogue_out") | sed 's/^/    /'
+fi
+
 make_repo file_wide_paths
 mkdir -p "$s/tests" "$s/prompts" "$repo/skills/merge"
 file_wide_text() { printf '# doc\n\n## Alpha\n\nalpha text%s\n\n## Beta\n\nbeta text\n' "$1"; }

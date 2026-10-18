@@ -251,6 +251,8 @@ def suite_of(f, revisions=None):
             return ([s for s in naming if s in readers or s not in slicers]
                     + pytest_readers(forms(*section)) + pytest_whole_readers())
         return naming + pytest_skill_readers() if f == "skills/tdd/SKILL.md" and revisions else naming
+    if f == "skills/tdd/SCRIPTS.md":
+        return suites_naming("SCRIPTS.md") + [p for p, text in pytest_texts() if b"SCRIPTS.md" in text]
     if match(SCRIPTS + "/tests/*.test.sh", *[d + "/test_*.py" for d in PYTEST_DIRS]):
         return existing(f)
     if f == SCRIPTS + "/tests/lib/harness.sh":
