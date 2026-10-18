@@ -27,7 +27,7 @@ $H skills/tdd/SKILL.md#Phase two
 |----|-------------|-----|
 | B1 | Says another. | Since. |
 
-$H docs/guide.md
+$H guide/unit.md
 
 | ID | Requirement | Why |
 |----|-------------|-----|
@@ -36,7 +36,7 @@ MD
 
 out="$("$REQUIREMENTS" units "$work/REQUIREMENTS.md" 2> "$work/stderr")" && code=0 || code=$?
 expect_eq "units prints each declared prose unit, one per line, in file order" \
-  $'0\nskills/tdd/SKILL.md\nskills/tdd/SKILL.md#Phase two\ndocs/guide.md' "$code"$'\n'"$out"
+  $'0\nskills/tdd/SKILL.md\nskills/tdd/SKILL.md#Phase two\nguide/unit.md' "$code"$'\n'"$out"
 
 cat > "$work/two-rows.md" <<MD
 $H skills/tdd/SKILL.md
