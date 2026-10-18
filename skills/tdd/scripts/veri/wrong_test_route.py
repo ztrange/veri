@@ -26,7 +26,7 @@ def _exists(case):
                     text = handle.read()
                 if name.endswith(".py") and py.search(text):
                     return True
-                if name.endswith(".test.sh") and ('"%s"' % case) in text:
+                if name.endswith(".test.sh") and ('name="%s"' % case) in text:
                     return True
     return False
 
