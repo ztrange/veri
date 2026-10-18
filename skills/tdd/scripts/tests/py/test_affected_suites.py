@@ -898,6 +898,7 @@ def test_rule_5_a_rule_1_file_plus_a_file_no_rule_matches_prints_every_suite(
 
 
 SKILL = "skills/tdd/SKILL.md"
+GIT_DIFF_OF_SKILL = pytest.mark.process("real git: the changed lines of SKILL.md come from git diff -U0 between two commits")
 
 
 def sh_git(repo, *args):
@@ -938,7 +939,7 @@ def suites(*names):
     return "".join(SUITES + n + "\n" for n in names)
 
 
-@pytest.mark.process("real git: the changed lines of SKILL.md come from git diff -U0 between two commits")
+@GIT_DIFF_OF_SKILL
 def test_an_edit_inside_one_section_of_skill_md_prints_the_suites_reading_that_section_not_one_reading_only_another(
         run_cli, affected, tmp_path):
     repo = new_git_repo(tmp_path)
@@ -950,7 +951,7 @@ def test_an_edit_inside_one_section_of_skill_md_prints_the_suites_reading_that_s
                       ) == (0, suites("skill-alpha.test.sh"), "")
 
 
-@pytest.mark.process("real git: the changed lines of SKILL.md come from git diff -U0 between two commits")
+@GIT_DIFF_OF_SKILL
 def test_an_edit_inside_one_section_of_skill_md_still_prints_a_suite_reading_skill_md_unsliced(
         run_cli, affected, tmp_path):
     repo = new_git_repo(tmp_path)
@@ -966,7 +967,7 @@ def test_an_edit_inside_one_section_of_skill_md_still_prints_a_suite_reading_ski
 SUBSECTIONS = "## Alpha\n\nalpha text\n\n### Sub\n\nsub text%s\n\n### Sib\n\nsib text%s\n\n## Beta\n\nbeta text\n"
 
 
-@pytest.mark.process("real git: the changed lines of SKILL.md come from git diff -U0 between two commits")
+@GIT_DIFF_OF_SKILL
 def test_an_edit_inside_one_subsection_of_skill_md_prints_the_suites_reading_it_and_its_enclosing_section_not_one_reading_only_a_sibling(
         run_cli, affected, tmp_path):
     repo = new_git_repo(tmp_path)
@@ -977,7 +978,7 @@ def test_an_edit_inside_one_subsection_of_skill_md_prints_the_suites_reading_it_
                       ) == (0, suites("skill-alpha.test.sh", "skill-sub.test.sh"), "")
 
 
-@pytest.mark.process("real git: the changed lines of SKILL.md come from git diff -U0 between two commits")
+@GIT_DIFF_OF_SKILL
 def test_an_edit_inside_a_subsection_after_a_sibling_prints_the_suites_reading_it_and_its_enclosing_section_not_one_reading_the_earlier_sibling(
         run_cli, affected, tmp_path):
     repo = new_git_repo(tmp_path)
@@ -991,7 +992,7 @@ def test_an_edit_inside_a_subsection_after_a_sibling_prints_the_suites_reading_i
 THREE = "## Alpha\n\nalpha text\n\n## Beta\n\nbeta text\n\n## Gamma\n\ngamma text\n"
 
 
-@pytest.mark.process("real git: the changed lines of SKILL.md come from git diff -U0 between two commits")
+@GIT_DIFF_OF_SKILL
 def test_an_edit_changing_a_heading_line_of_skill_md_prints_every_suite_naming_skill_md(
         run_cli, affected, tmp_path):
     repo = new_git_repo(tmp_path)
@@ -1003,7 +1004,7 @@ def test_an_edit_changing_a_heading_line_of_skill_md_prints_every_suite_naming_s
                       ) == (0, suites("skill-alpha.test.sh", "skill-beta.test.sh"), "")
 
 
-@pytest.mark.process("real git: the changed lines of SKILL.md come from git diff -U0 between two commits")
+@GIT_DIFF_OF_SKILL
 def test_an_edit_only_deleting_a_heading_line_of_skill_md_prints_every_suite_naming_skill_md(
         run_cli, affected, tmp_path):
     repo = new_git_repo(tmp_path)
@@ -1015,7 +1016,7 @@ def test_an_edit_only_deleting_a_heading_line_of_skill_md_prints_every_suite_nam
                       ) == (0, suites("skill-alpha.test.sh", "skill-beta.test.sh", "skill-gamma.test.sh"), "")
 
 
-@pytest.mark.process("real git: the changed lines of SKILL.md come from git diff -U0 between two commits")
+@GIT_DIFF_OF_SKILL
 def test_an_edit_whose_changed_lines_of_skill_md_span_two_sections_prints_every_suite_naming_skill_md(
         run_cli, affected, tmp_path):
     repo = new_git_repo(tmp_path)
@@ -1027,7 +1028,7 @@ def test_an_edit_whose_changed_lines_of_skill_md_span_two_sections_prints_every_
     ) == (0, suites("skill-alpha.test.sh", "skill-beta.test.sh", "skill-gamma.test.sh"), "")
 
 
-@pytest.mark.process("real git: the changed lines of SKILL.md come from git diff -U0 between two commits")
+@GIT_DIFF_OF_SKILL
 def test_an_edit_to_skill_md_that_cannot_be_placed_in_a_section_prints_every_suite_naming_skill_md(
         run_cli, affected, tmp_path):
     repo = new_git_repo(tmp_path)
