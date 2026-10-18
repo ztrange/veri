@@ -45,11 +45,11 @@ exempt() {
 roster() { make -C "$ROOT" -n "$1" 2>&1 | grep -o '[^ ]*\.test\.sh' | sort -u; }
 
 probe_no_suite_reaches_into_the_tree() {
-  local f name hit lineno text scan rc
+  local f name hit lineno text scan
   for f in "$HERE"/*.test.sh; do
     [[ -e "$f" ]] || continue
     name="$(basename "$f")"
-    scan="$(grep -nE "$DOCS_PATH" "$f")" || { rc=$?; (( rc > 1 )) && problems+=("$name: the grep scanner exited with exit status $rc"); }
+    scan="$(grep -nE "$DOCS_PATH" "$f")" || grep_scanner_failed $? "$name"
     while IFS= read -r hit; do
       [[ -n "$hit" ]] || continue
       lineno="${hit%%:*}"
@@ -76,12 +76,12 @@ probe_no_suite_reaches_into_the_tree
 report "$name"
 
 probe_no_suite_the_target_runs_reaches_into_the_tree() {
-  local rel hit lineno text scan rc
+  local rel hit lineno text scan
   local -a listed=()
   while IFS= read -r rel; do
     [[ -n "$rel" ]] || continue
     listed+=("$rel")
-    scan="$(grep -nE "$DOCS_PATH" "$ROOT/$rel")" || { rc=$?; (( rc > 1 )) && problems+=("$rel: the grep scanner exited with exit status $rc"); }
+    scan="$(grep -nE "$DOCS_PATH" "$ROOT/$rel")" || grep_scanner_failed $? "$rel"
     while IFS= read -r hit; do
       [[ -n "$hit" ]] || continue
       lineno="${hit%%:*}"
