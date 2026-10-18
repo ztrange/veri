@@ -2,3 +2,5 @@
 - test-only | rename `test_main_reads_max_as_bash_arithmetic_defaulting_to_540_and_ignores_arguments_past_it` in `test_wait_leaf.py`, since its name still says 540 and the default is now 590
 ### detach-command.sh wait called with no max-seconds argument keeps waiting until 590 s have passed before it exits 3; a small pytest case with a faked clock, no real wait ⟦criterion 3⟧
 - share the 590 s default between wait_leaf.py:64 and detach_command.py:84 via one constant (needs a new shared module, so it is not applied here)
+### SKILL.md's full-suite and baseline waits call detach-command.sh wait with no max-seconds argument and the Bash tool's 600000 ms timeout, never a fixed 500; a small pytest case over SKILL.md's text ⟦criterion 3⟧
+- test-only | hoist the repeated "no max-seconds argument" regex shared by the two new SKILL.md text cases in test_wait_leaf.py into one named constant
