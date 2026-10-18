@@ -4,7 +4,7 @@
 # usage: requirements.sh units <file>    # each prose unit the file declares, one per line, in file order
 #        requirements.sh claims <file> <unit>    # the unit's rows as ID<TAB>Requirement, Why omitted
 # Exit:  0  printed
-#        2  bad arguments
+#        2  bad arguments, or a table that does not parse (stderr names the line)
 set -uo pipefail
 
 units() {
@@ -15,7 +15,7 @@ units() {
 }
 
 claims() {
-  awk -v unit="$2" '
+  awk -v unit="$2" -v file="$1" '
     function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
     /^## / { inunit = (substr($0, 4) == unit); intable = 0; next }
     !inunit { next }
@@ -23,8 +23,12 @@ claims() {
     intable && skip { skip = 0; next }
     intable && /^\|/ {
       split($0, c, "|")
-      print trim(c[2]) "\t" trim(c[3])
+      id = trim(c[2])
+      if (id in seen) { printf "%s:%d: duplicate ID %s\n", file, NR, id > "/dev/stderr"; failed = 1; exit 2 }
+      seen[id] = 1
+      rows = rows id "\t" trim(c[3]) "\n"
     }
+    END { if (!failed) printf "%s", rows }
   ' "$1"
 }
 

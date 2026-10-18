@@ -50,4 +50,19 @@ out="$("$REQUIREMENTS" claims "$work/two-rows.md" skills/tdd/SKILL.md 2> "$work/
 expect_eq "claims prints a unit's rows as ID<TAB>Requirement in table order, with no Why text" \
   $'0\nA1\tSays one thing.\nA2\tSays two things.' "$code"$'\n'"$out"
 
+cat > "$work/dup-id.md" <<'MD'
+## skills/tdd/SKILL.md
+
+| ID | Requirement | Why |
+|----|-------------|-----|
+| A1 | Says one thing. | Because. |
+| A1 | Says it again. | Since. |
+MD
+
+out="$("$REQUIREMENTS" claims "$work/dup-id.md" skills/tdd/SKILL.md 2> "$work/stderr")" && code=0 || code=$?
+err="$(< "$work/stderr")"; err="${err//"$work"/}"
+named=no; [[ "$err" =~ (^|[^0-9])6([^0-9]|$) ]] && named=yes
+expect_eq "claims on a repeated ID exits 2, prints nothing on stdout and names the duplicate row's line on stderr" \
+  $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
+
 finish
