@@ -54,3 +54,23 @@ def test_check_step_exits_1_naming_a_test_file_red_did_not_record_that_was_delet
     code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
 
     assert (code, out) == (1, "tests/test_other.py\n")
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which untracked test files exist")
+def test_check_step_exits_1_naming_an_untracked_test_file_red_did_not_record_1733(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_new.py").write_text("one\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one adds a case"
+    (tmp_path / "tests/test_new.py").write_text("one\ntwo\n")
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py"], cwd=tmp_path)
+
+    (tmp_path / "tests/test_extra.py").write_text("added by green\n")
+    (tmp_path / "notes.py").write_text("not a test\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    assert (code, out) == (1, "tests/test_extra.py\n")
