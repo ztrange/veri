@@ -862,4 +862,25 @@ after="$(registry "$clone")"
   && [[ "$after" == "$before" ]]; } \
   && ok || no "#1734: a fresh call over a fetched remote-tracking ref of a branch origin holds exits 2 naming the branch and the git branch command that takes the run over, creating no worktree or branch (exit=$code want 2, fetched ref='$fetched_ref' want set, stderr='$err', '$mine' $( [[ -e "$mine" ]] && echo "was created" || echo "absent, good" ), git's worktree+branch registry $( [[ "$after" == "$before" ]] && echo unchanged || echo changed ))"
 
+ahead_pair taken-over-resume
+git_q "$upstream" branch -q tdd/65-took-over main >/dev/null 2>&1
+git_q "$clone" fetch -q origin >/dev/null 2>&1
+git_q "$clone" branch -q tdd/65-took-over origin/tdd/65-took-over >/dev/null 2>&1
+git_q "$clone" switch -q -c scratch-65 tdd/65-took-over >/dev/null 2>&1
+git_q "$clone" commit -q --allow-empty -m "local work" >/dev/null 2>&1
+git_q "$clone" branch -q -f tdd/65-took-over scratch-65 >/dev/null 2>&1
+git_q "$clone" switch -q main >/dev/null 2>&1
+git_q "$clone" branch -q -D scratch-65 >/dev/null 2>&1
+local_tip="$(git_q "$clone" rev-parse tdd/65-took-over)"
+remote_tip="$(git_q "$clone" rev-parse refs/remotes/origin/tdd/65-took-over)"
+mine="$(wt_path "$clone" 65)"
+
+out="$(cd "$clone" && "$WT" 65 took-over 2>/dev/null)" && code=0 || code=$?
+branch="$(git -C "$mine" branch --show-current 2>/dev/null)"
+tip="$(git -C "$mine" rev-parse HEAD 2>/dev/null)"
+
+{ [[ "$local_tip" != "$remote_tip" ]] && [[ "$code" == 0 ]] && [[ "$out" == "$mine" ]] \
+  && [[ "$branch" == "tdd/65-took-over" ]] && [[ "$tip" == "$local_tip" ]]; } \
+  && ok || no "#1734: a clone holding the local branch while origin holds it too and the remote-tracking ref is fetched still starts as a resume on the local tip (exit=$code want 0, stdout='$out' want '$mine', branch='$branch' want 'tdd/65-took-over', tip='$tip' want local $local_tip not remote $remote_tip)"
+
 finish
