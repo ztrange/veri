@@ -164,6 +164,20 @@ named=no; [[ "$err" =~ (^|[^0-9])3([^0-9]|$) ]] && named=yes
 expect_eq "claims on a table header of | Requirement | ID | exits 2, prints nothing on stdout and names the header's line on stderr (#1743)" \
   $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
 
+cat > "$work/pipeless.md" <<MD
+$H skills/tdd/SKILL.md
+
+ID | Requirement | Why
+---|-------------|----
+A1 | Do it. | Because.
+MD
+
+out="$("$REQUIREMENTS" claims "$work/pipeless.md" skills/tdd/SKILL.md 2> "$work/stderr")" && code=0 || code=$?
+err="$(< "$work/stderr")"; err="${err//"$work"/}"
+named=no; [[ "$err" =~ (^|[^0-9])3([^0-9]|$) ]] && named=yes
+expect_eq "claims on a table without leading pipes exits 2, prints nothing on stdout and names the header's line on stderr (#1743)" \
+  $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
+
 out="$("$REQUIREMENTS" 2> "$work/stderr")" && code=0 || code=$?
 err="$(< "$work/stderr")"
 usage=no; [[ "$err" == usage:*requirements.sh* ]] && usage=yes
