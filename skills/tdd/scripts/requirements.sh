@@ -25,6 +25,7 @@ claims() {
     intable && /^\|/ {
       split($0, c, "|")
       id = trim(c[2])
+      if (id == "") fail("empty ID")
       if (trim(c[3]) == "") fail("empty Requirement for " id)
       if (id in seen) fail("duplicate ID " id)
       seen[id] = 1
