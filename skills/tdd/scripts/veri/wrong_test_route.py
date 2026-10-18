@@ -1,5 +1,6 @@
 """wrong-test-route.sh's decision, run in-process."""
 import fnmatch
+import hashlib
 import json
 import os
 import re
@@ -49,6 +50,28 @@ def route(report, own_id):
     return None
 
 
+def _recorded_case(report, step):
+    record = ".tdd/tests-frozen-%s.record" % hashlib.sha256(os.fsencode(step)).hexdigest()[:16]
+    try:
+        with open(record, encoding="utf-8", errors="replace") as handle:
+            files = [l.split(None, 1)[1].strip() for l in handle.read().splitlines() if len(l.split(None, 1)) == 2]
+        with open(report, encoding="utf-8", errors="replace") as handle:
+            lines = [l for l in handle.read().splitlines() if l.startswith("WRONG_TEST:")]
+    except OSError:
+        return None
+    for name in files:
+        try:
+            with open(name, encoding="utf-8", errors="replace") as handle:
+                text = handle.read()
+        except OSError:
+            continue
+        for line in lines:
+            for case in re.findall(r"\btest_\w+", line):
+                if re.search(r"def %s\(" % re.escape(case), text):
+                    return case
+    return None
+
+
 def _rerouted(step):
     try:
         with open(".tdd/events.jsonl", encoding="utf-8", errors="replace") as handle:
@@ -69,6 +92,10 @@ def main(argv):
     if len(argv) != 2 or not argv[0] or not argv[1]:
         _write(sys.stderr, USAGE)
         return 2
+    repaired = _recorded_case(argv[0], tunables.read("VERI_STEP"))
+    if repaired is not None:
+        _write(sys.stdout, "repair " + repaired)
+        return 0
     case = None if _rerouted(tunables.read("VERI_STEP")) else route(argv[0], argv[1])
     if case is None:
         _write(sys.stdout, "revise")
