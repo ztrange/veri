@@ -48,12 +48,6 @@ registry() {
   git -C "$1" for-each-ref --format='%(refname) %(objectname)' refs/heads 2>/dev/null
 }
 
-linked_worktree() {
-  local path="$(cd "$work" && pwd -P)/$2"
-  git_q "$1" worktree add -q -b "$3" "$path" main >/dev/null 2>&1
-  printf '%s\n' "$path"
-}
-
 ahead_pair() {
   upstream="$work/$1-upstream"
   clone="$work/$1-clone"
