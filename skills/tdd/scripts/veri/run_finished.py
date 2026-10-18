@@ -36,8 +36,9 @@ def main(argv):
     except subprocess.CalledProcessError:
         sys.stderr.write("run-finished.sh: the PR body could not be read\n")
         return 2
-    unmet += [("human-owed", ln[len(OPEN_STEP) + 1:]) for ln in body.splitlines()
-              if ln.startswith(OPEN_STEP + " ") and "⟦human-owed⟧" in ln]
+    open_line = OPEN_STEP + " "
+    unmet += [("human-owed", ln[len(open_line):]) for ln in body.splitlines()
+              if ln.startswith(open_line) and "⟦human-owed⟧" in ln]
     for name, step in unmet:
         print("%s %s" % (name, step))
     return 1 if unmet else 0
