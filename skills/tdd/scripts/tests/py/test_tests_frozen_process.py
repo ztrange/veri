@@ -137,3 +137,24 @@ def test_check_step_exits_0_on_a_replaces_case_step_when_only_the_suite_it_names
     code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
 
     assert (code, out) == (0, "")
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
+def test_check_step_on_a_replaces_case_step_exits_1_naming_another_unrecorded_test_file_and_not_the_suite_it_names_1733(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    for name in ("tests/test_new.py", "tests/old.test.sh", "tests/test_other.py"):
+        (tmp_path / name).write_text("one\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "⟦replaces-case⟧ replaces 'old case' in tests/old.test.sh"
+    (tmp_path / "tests/test_new.py").write_text("one\ntwo\n")
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py"], cwd=tmp_path)
+
+    (tmp_path / "tests/old.test.sh").write_text("case deleted\n")
+    (tmp_path / "tests/test_other.py").write_text("one, weakened\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    assert (code, out) == (1, "tests/test_other.py\n")
