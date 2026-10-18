@@ -174,6 +174,10 @@ def cut(path, branch):
     if ref_exists("refs/heads/" + branch):
         code = worktree_add(path, branch)
     elif ref_exists(remote_ref):
+        if remote_issue_branch("tdd/" + branch.split("-", 1)[0].removeprefix("tdd/")):
+            sys.stderr.write("issue-worktree: %s is already on origin — another run holds it;"
+                             " to take it over run: git branch %s origin/%s\n" % (branch, branch, branch))
+            return 2
         code = worktree_add("-b", branch, path, remote_ref)
     else:
         url = origin_url()

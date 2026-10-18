@@ -847,4 +847,19 @@ after="$(registry "$clone")"
   && [[ ! -e "$mine" ]] && [[ "$after" == "$before" ]]; } \
   && ok || no "#1672: a fresh cut from a GitHub Enterprise origin (not github.com) runs the open-PR check: an open PR saying Closes #66 exits 2 naming that PR and creates no worktree (exit=$code want 2, stdout='$out' want empty, stderr='$(cat "$errfile")' want it to name 'pull/660', '$mine' $( [[ -e "$mine" ]] && echo "was created" || echo "absent, good" ), registry $( [[ "$after" == "$before" ]] && echo unchanged || echo changed ))"
 
+ahead_pair fetched-claimed
+git_q "$upstream" branch -q tdd/64-taken-over main >/dev/null 2>&1
+git_q "$clone" fetch -q origin >/dev/null 2>&1
+mine="$(wt_path "$clone" 64)"
+fetched_ref="$(git_q "$clone" rev-parse --verify --quiet refs/remotes/origin/tdd/64-taken-over 2>/dev/null)"
+before="$(registry "$clone")"
+
+err="$(cd "$clone" && "$WT" 64 taken-over 2>&1 >/dev/null)" && code=0 || code=$?
+after="$(registry "$clone")"
+
+{ [[ -n "$fetched_ref" ]] && [[ "$code" == 2 ]] && [[ "$err" == *"tdd/64-taken-over"* ]] \
+  && [[ "$err" == *"git branch tdd/64-taken-over origin/tdd/64-taken-over"* ]] && [[ ! -e "$mine" ]] \
+  && [[ "$after" == "$before" ]]; } \
+  && ok || no "#1734: a fresh call over a fetched remote-tracking ref of a branch origin holds exits 2 naming the branch and the git branch command that takes the run over, creating no worktree or branch (exit=$code want 2, fetched ref='$fetched_ref' want set, stderr='$err', '$mine' $( [[ -e "$mine" ]] && echo "was created" || echo "absent, good" ), git's worktree+branch registry $( [[ "$after" == "$before" ]] && echo unchanged || echo changed ))"
+
 finish
