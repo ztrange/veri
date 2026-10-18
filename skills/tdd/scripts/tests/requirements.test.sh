@@ -220,6 +220,12 @@ out="$("$REQUIREMENTS" claims "$work/escaped-pipe.md" skills/tdd/SKILL.md 2> /de
 expect_eq "claims keeps an escaped pipe inside a requirement cell (#1743)" \
   $'0\nA1\tPipes a \\| b.' "$code"$'\n'"$out"
 
+out="$("$REQUIREMENTS" units "$work/absent.md" 2> "$work/stderr")" && code=0 || code=$?
+err="$(< "$work/stderr")"
+shape=bad; [[ "$err" != *$'\n'* && "$err" == *"$work/absent.md"* && "$err" != *Traceback* ]] && shape=ok
+expect_eq "units on a missing file exits 2 with one stderr line naming the file and no traceback (#1743)" \
+  $'2\n\nok' "$code"$'\n'"$out"$'\n'"$shape"
+
 out="$("$REQUIREMENTS" 2> "$work/stderr")" && code=0 || code=$?
 err="$(< "$work/stderr")"
 usage=no; [[ "$err" == usage:*requirements.sh* ]] && usage=yes
