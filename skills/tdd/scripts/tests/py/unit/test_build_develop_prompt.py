@@ -1731,9 +1731,12 @@ def test_main_renders_a_revise_of_green_declaring_a_suite_exempt_wrong_test_repo
     skill = (SCRIPTS.parent / "SKILL.md").read_text()
     revising = skill.split("## Revising on a REJECT", 1)[1].split("\n## ", 1)[0]
 
-    outcome = ("A revise of green whose leaf reports `WRONG_TEST: <why>` is exempt from the `SUITE:` line and reaches"
-               " the same outcome a develop-green `WRONG_TEST:` stop does: it keeps its main outcome, a verify-green"
-               " REJECT, never a `report-missing` bail.")
+    outcome = ("A revise of green whose leaf reports `WRONG_TEST: <why>` is exempt from the `SUITE:` line and is"
+               " routed as a develop-green `WRONG_TEST:` report is: `$S/wrong-test-route.sh"
+               " .tdd/revise-green-<k>.out '<target-test-id>'` runs before the attempt is counted; its exit 0 writes"
+               " no `revise` mark, spends no `REVISE_BUDGET` attempt and launches the `red-contradicted` red, its"
+               " exit 3 keeps the attempt's main outcome, a verify-green REJECT, and its exit 2 is a bail; never a"
+               " `report-missing` bail.")
 
     declared = [l for l in out.splitlines() if l.startswith("REPORT-FORMAT ") and "keys WRONG_TEST:" in l]
     assert (code, len(declared), "suite exempt" in " ".join(declared), outcome in " ".join(revising.split())) == (
