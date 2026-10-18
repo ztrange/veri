@@ -63,3 +63,13 @@ def test_main_1656_exits_2_and_echoes_gh_when_the_removal_fails_with_anything_bu
     code = unlabel_issue.main(["7"])
 
     assert (code, capsys.readouterr().err) == (2, "gh: Server Error (HTTP 502)\n")
+
+
+def test_main_1672_exits_2_naming_a_non_numeric_issue_argument_and_asks_gh_nothing(monkeypatch, capsys):
+    unlabel_issue = importlib.import_module("veri.unlabel_issue")
+    deleted = _deleting(monkeypatch, (1, "gh: Not Found (HTTP 404)\n"))
+
+    code = unlabel_issue.main(["abc"])
+
+    err = capsys.readouterr().err
+    assert (code, deleted, "abc" in err) == (2, [], True)
