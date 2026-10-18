@@ -169,12 +169,16 @@ def refuse(message):
     return 2
 
 
+def issue_of(branch):
+    return branch.split("-", 1)[0].removeprefix("tdd/")
+
+
 def cut(path, branch):
     remote_ref = "refs/remotes/origin/" + branch
     if ref_exists("refs/heads/" + branch):
         code = worktree_add(path, branch)
     elif ref_exists(remote_ref):
-        if remote_issue_branch("tdd/" + branch.split("-", 1)[0].removeprefix("tdd/")):
+        if remote_issue_branch("tdd/" + issue_of(branch)):
             sys.stderr.write("issue-worktree: %s is already on origin — another run holds it;"
                              " to take it over run: git branch %s origin/%s\n" % (branch, branch, branch))
             return 2
@@ -183,7 +187,7 @@ def cut(path, branch):
         url = origin_url()
         origin = url is not None
         if origin:
-            issue = branch.split("-", 1)[0].removeprefix("tdd/")
+            issue = issue_of(branch)
             claimed = remote_issue_branch("tdd/" + issue)
             if claimed is None:
                 return refuse("git ls-remote origin got no answer"
