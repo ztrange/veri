@@ -1740,6 +1740,24 @@ def test_main_renders_a_revise_of_green_declaring_a_suite_exempt_wrong_test_repo
         0, 1, True, True)
 
 
+def test_main_asks_green_and_revise_green_prompts_to_name_the_contradicted_case_in_the_wrong_test_line_1621(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+    ask = b"Name in that line the existing test case the step's criterion contradicts."
+
+    asked = {}
+    for name, argv in (("green", ["green", str(spec), "s", "make test", "t/x.test.sh", "case one", "make unit"]),
+                       ("revise", ["revise", "green", str(spec), "s", "make test", str(reason)])):
+        code = build_develop_prompt.main(argv)
+        out, _ = capsysbinary.readouterr()
+        asked[name] = (code, out.count(ask))
+
+    assert asked == {"green": (0, 1), "revise": (0, 1)}
+
+
 def test_main_grants_a_test_rewrite_in_a_revise_prompt_only_when_the_revised_phase_is_red_1586(
         tmp_path, capsysbinary, build_develop_prompt):
     spec = tmp_path / "spec.md"
@@ -1943,7 +1961,7 @@ def test_cli_green_for_a_step_not_carrying_replaces_case_renders_byte_identicall
         env={"VERI_REFACTOR_BUDGET": "5"})
 
     rendered = out.rstrip("\n").replace(str(SCRIPTS), "@SCRIPTS@") + "\n"
-    assert (code, err, _cksum(rendered.encode())) == (0, "", "1104959690 8132")
+    assert (code, err, _cksum(rendered.encode())) == (0, "", "1837370364 8208")
 
 
 def test_cli_develop_cover_restores_a_probe_with_cp_orig_before_the_mutation_and_mv_orig_after_the_run_under_mutation(
