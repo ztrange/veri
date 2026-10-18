@@ -37,7 +37,7 @@ def route(report, own_id):
     for line in lines:
         names = re.findall(r"\btest_\w+", line) + re.findall(r"`([^`]+)`", line)
         for case in names:
-            if case != own_id and _exists(case):
+            if case != own_id.rpartition("::")[2] and _exists(case):
                 return case
     return None
 

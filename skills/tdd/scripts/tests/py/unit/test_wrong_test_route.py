@@ -116,3 +116,20 @@ def test_main_1621_routes_a_revise_green_report_in_the_revise_template_shape_to_
         wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % contradicted)
+
+
+@pytest.mark.tree_audit("the repository's own tests directories, searched for the case a WRONG_TEST names")
+def test_main_1621_prints_revise_when_a_wrong_test_names_only_the_step_own_red_passed_as_a_pytest_node_id(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    monkeypatch.chdir(ROOT)
+    own_case = "test_a_planted_develop_prompt_that_makes_no_commit_and_the_real_prompts_directory_are_clean"
+    own_id = "skills/tdd/scripts/tests/py/unit/test_commit_suffix" + ".py::" + own_case
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: %s asserts the opposite of the criterion\n" % own_case)
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), own_id], cwd=ROOT)
+
+    assert (code, stdout) == (3, "revise\n")
