@@ -82,7 +82,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   issue body (the human-facing mirror).
 - `$S/next-unchecked.sh < .tdd/issue-<n>.md` — print the **first unchecked ledger step**'s
   description; **exit 3** when none remain (the loop-done / nothing-to-resume signal).
-- `VERI_STEP=<step> $S/wrong-test-route.sh <green-report> <red-test-id>` — routes a green report's `WRONG_TEST:`: **exit 0** prints `red <case>` (an existing case other than the step's own), **exit 3** prints `revise`, **exit 2** bad arguments. Only a step's first reroute is free: once `.tdd/events.jsonl` holds a `reroute` event with `VERI_STEP`, a later `WRONG_TEST:` in that step answers `revise` and spends one `REVISE_BUDGET` attempt.
+- `VERI_STEP=<step> $S/wrong-test-route.sh <green-report> <red-test-id>` — routes a green report's `WRONG_TEST:`: **exit 0** prints `red <case>` (an existing case other than the step's own) or `repair <case>` (a case the step's own Red wrote, in its red record; the conductor launches `red-repair`, verifies red again and re-records the frozen tests before retrying Green), **exit 3** prints `revise`, **exit 2** bad arguments. Only a step's first reroute is free: once `.tdd/events.jsonl` holds a `reroute` event with `VERI_STEP`, a later `WRONG_TEST:` in that step answers `revise` and spends one `REVISE_BUDGET` attempt.
 - `$S/pin-fast-tier.sh '<fast-cmd>'` — run the fast tier over the tree a pin would commit,
   from the worktree. Takes the fast command as its one argument. On failure it writes the
   command's output to `.tdd/verify-pin.reason`. **Exit 0 = the command passed, 1 = it failed
