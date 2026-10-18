@@ -289,4 +289,34 @@ else
   ok
 fi
 
+name="a done run with an empty recorded PR URL exits 2 with one stderr line saying no PR is recorded and never calls gh pr view (#1748)"
+repo="$(scratch_dir)"
+bin="$(scratch_dir)"
+calls="$(scratch_dir)/calls"
+new_repo "$repo"
+mkdir -p "$repo/.tdd/wt/4242/.tdd"
+git -C "$repo" commit -q --allow-empty -m init
+new_repo "$repo/.tdd/wt/4242"
+printf '%s\n' \
+  '{"ts":1000,"event":"launch","step":"1","phase":"red","actor":"developer","name":"develop-red"}' \
+  '{"ts":1001,"event":"done","pr":""}' > "$repo/.tdd/wt/4242/.tdd/events.jsonl"
+printf '%s\n' '# Plan for #4242 — a title' '' '- [x] first step ⟦criterion 1⟧' \
+  > "$repo/.tdd/wt/4242/.tdd/issue-4242.md"
+cat > "$bin/gh" <<STUB
+#!/bin/sh
+echo "\$*" >> "$calls"
+printf '{"body": "Closes #4242"}\n'
+STUB
+chmod +x "$bin/gh"
+err="$(cd "$repo" && PATH="$bin:$PATH" "$FINISHED" 4242 2>&1 >/dev/null)" && code=0 || code=$?
+if [[ "$code" != 2 ]]; then
+  no "$name (want exit 2, got $code: $err)"
+elif [[ "$err" != *"no PR"* || "$err" == *$'\n'* ]]; then
+  no "$name (stderr: $err)"
+elif [[ -s "$calls" ]]; then
+  no "$name (gh was called: $(cat "$calls"))"
+else
+  ok
+fi
+
 finish
