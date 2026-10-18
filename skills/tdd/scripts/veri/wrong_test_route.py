@@ -1,4 +1,5 @@
 """wrong-test-route.sh's decision, run in-process."""
+import fnmatch
 import os
 import re
 import sys
@@ -15,6 +16,10 @@ def _write(stream, line):
 SKIPPED = (".git", ".tdd")
 
 
+def is_test_file(name):
+    return fnmatch.fnmatch(name, "test_*.py") or name.endswith("_test.py")
+
+
 def _exists(case):
     py = re.compile(r"def %s\(" % re.escape(case))
     for root, dirs, files in os.walk("."):
@@ -24,7 +29,7 @@ def _exists(case):
                 continue
             with open(os.path.join(root, name), encoding="utf-8", errors="replace") as handle:
                 text = handle.read()
-            if name.endswith(".py") and case.startswith("test_") and py.search(text):
+            if is_test_file(name) and case.startswith("test_") and py.search(text):
                 return True
             if name.endswith(".test.sh") and ('name="%s"' % case) in text:
                 return True
