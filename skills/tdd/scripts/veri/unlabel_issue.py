@@ -20,6 +20,9 @@ def main(argv):
     if run.returncode != 0 and "404" not in run.stderr:
         sys.stderr.write(run.stderr)
         return 2
+    if run.returncode != 0 and "Label does not exist" not in run.stderr:
+        print("unlabel-issue.sh: issue #%s not found: %s" % (argv[0], run.stderr.strip()), file=sys.stderr)
+        return 2
     return 0
 
 

@@ -73,3 +73,29 @@ def test_main_1672_exits_2_naming_a_non_numeric_issue_argument_and_asks_gh_nothi
 
     err = capsys.readouterr().err
     assert (code, deleted, "abc" in err) == (2, [], True)
+
+
+def test_main_1672_exits_2_naming_a_nonexistent_issue_while_an_existing_issue_without_the_label_exits_0(monkeypatch, capsys):
+    unlabel_issue = importlib.import_module("veri.unlabel_issue")
+    labels = {"8": {"bug"}}
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:2] != ["gh", "api"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        path = args[-1].partition("/issues/")[2]
+        number = path.partition("/")[0]
+        if number not in labels:
+            return subprocess.CompletedProcess(args, 1, "", "gh: Not Found (HTTP 404)\n")
+        if "DELETE" in args:
+            return subprocess.CompletedProcess(args, 1, "", "gh: Label does not exist (HTTP 404)\n")
+        return subprocess.CompletedProcess(args, 0, "{}", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    existing = unlabel_issue.main(["8"])
+    existing_err = capsys.readouterr().err
+    missing = unlabel_issue.main(["999"])
+    missing_err = capsys.readouterr().err
+
+    assert (existing, existing_err, missing, "999" in missing_err) == (0, "", 2, True)
