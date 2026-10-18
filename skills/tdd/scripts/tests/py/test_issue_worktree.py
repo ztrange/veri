@@ -295,6 +295,31 @@ def test_main_refuses_a_fresh_run_whose_fetched_branch_origin_still_holds_and_ad
                 " to take it over run: git branch tdd/7-slug origin/tdd/7-slug\n"), [])
 
 
+def test_main_cuts_a_fresh_branch_from_the_default_when_only_a_stale_remote_tracking_ref_names_the_issue_issue_1734(
+        monkeypatch, capsys, issue_worktree):
+    main_tree = "/srv/repo"
+    path = f"{main_tree}/.tdd/wt/7"
+    registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
+    listing = ("git", "worktree", "list", "--porcelain")
+    local = ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/7-slug")
+    remote = ("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/tdd/7-slug")
+    claims = ("git", "ls-remote", "--heads", "origin", "refs/heads/tdd/7-*")
+    symref = ("git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
+    get_url = ("git", "remote", "get-url", "origin")
+    fetch = ("git", "fetch", "-q", "origin", "trunk")
+    fresh = ("git", "worktree", "add", "-q", "--no-track", "-b", "tdd/7-slug", path, "origin/trunk")
+    stale = ("git", "worktree", "add", "-q", "-b", "tdd/7-slug", path, "refs/remotes/origin/tdd/7-slug")
+
+    calls = routing_git(monkeypatch, {
+        listing: (0, registry, ""), local: (1, "", ""), remote: (0, "", ""), claims: (0, "", ""),
+        symref: (0, "origin/trunk\n", ""), get_url: (0, "https://example.invalid/repo.git\n", ""),
+        fetch: (0, "", ""), fresh: (0, "", ""), stale: (0, "", "")})
+    code = issue_worktree.main(["7", "slug"])
+
+    assert (code, capsys.readouterr()[:], [c for c in calls if c[:3] == ["git", "worktree", "add"]]) == (
+        0, (path + "\n", ""), [list(fresh)])
+
+
 def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_symref_and_refuses_when_neither_names_one(
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/repo"
