@@ -1351,6 +1351,37 @@ def test_main_conductor_launch_limits_what_the_harness_loads_beside_its_permissi
          "claudeMdExcludes": [os.path.join(os.path.expanduser("~"), ".claude", "CLAUDE.md")]}, False)
 
 
+def test_main_a_conductor_launch_does_not_request_the_five_minute_cache_ttl_so_its_writes_stay_one_hour_1707(
+        tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    for name in ("VERI_NEW_SKILL", "FORCE_PROMPT_CACHING_5M"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    scratch_tmpdir(tmp_path, monkeypatch)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    run, writes = subprocess.run, []
+
+    def claude_reports_its_cache_writes(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+        five = (kwargs.get("env") or os.environ).get("FORCE_PROMPT_CACHING_5M") == "1"
+        writes.append("ephemeral_5m_input_tokens" if five else "ephemeral_1h_input_tokens")
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    fake_claude_exiting(monkeypatch, 0, 0)
+    fake = subprocess.run
+    monkeypatch.setattr(subprocess, "run", lambda args, *a, **kw: claude_reports_its_cache_writes(args, *a, **kw)
+                        if list(args)[:1] == ["fake-claude"] else fake(args, *a, **kw))
+
+    code = run_conductor.main(["4242"])
+
+    capfdbinary.readouterr()
+    assert (code, writes) == (0, ["ephemeral_1h_input_tokens"])
+
+
 def stream_of_what_the_real_claude_loads(argv, home, repo):
     """A stream shaped by the 2026-10-18 observation of the real binary under each flag."""
     flag = lambda name: argv[argv.index(name) + 1] if name in argv else None
