@@ -18,7 +18,10 @@ def main(argv):
         ["gh", "api", "-X", "DELETE", "repos/{owner}/{repo}/issues/%s/labels/%s" % (argv[0], label)],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if run.returncode != 0 and "404" not in run.stderr:
-        sys.stderr.write(run.stderr)
+        if "HTTP" in run.stderr:
+            sys.stderr.write(run.stderr)
+        else:
+            print("unlabel-issue.sh: no answer to removing the label from issue #%s: %s" % (argv[0], run.stderr.strip()), file=sys.stderr)
         return 2
     if run.returncode != 0 and "Label does not exist" not in run.stderr:
         print("unlabel-issue.sh: issue #%s not found: %s" % (argv[0], run.stderr.strip()), file=sys.stderr)

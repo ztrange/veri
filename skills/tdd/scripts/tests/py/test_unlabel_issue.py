@@ -99,3 +99,13 @@ def test_main_1672_exits_2_naming_a_nonexistent_issue_while_an_existing_issue_wi
     missing_err = capsys.readouterr().err
 
     assert (existing, existing_err, missing, "999" in missing_err) == (0, "", 2, True)
+
+
+def test_main_1672_exits_2_naming_the_unanswered_removal_request_when_gh_gets_no_answer(monkeypatch, capsys):
+    unlabel_issue = importlib.import_module("veri.unlabel_issue")
+    _deleting(monkeypatch, (1, "error connecting to api.github.com\n"))
+
+    code = unlabel_issue.main(["7"])
+
+    err = capsys.readouterr().err
+    assert (code, "unlabel-issue.sh" in err, "#7" in err) == (2, True, True)
