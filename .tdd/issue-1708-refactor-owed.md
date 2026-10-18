@@ -1,0 +1,2 @@
+### SKILL.md tells the conductor to make every foreground wait-leaf.sh call with no max-seconds argument and the Bash tool's maximum timeout of 600000 ms, naming the 600 s foreground cap as the limit that makes a wait cost one call per 590 s and no fewer; a small pytest case over SKILL.md's text ⟦criterion 1⟧
+- test-only | rename `test_main_reads_max_as_bash_arithmetic_defaulting_to_540_and_ignores_arguments_past_it` in `test_wait_leaf.py`, since its name still says 540 and the default is now 590
