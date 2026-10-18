@@ -364,6 +364,7 @@ def main(argv):
     leaf_env.update(VERI_LEAF_MODEL=model, VERI_SKILL_COMMIT=skill_commit)
     step = tunables.read("VERI_STEP")
     if name.startswith("develop-green") and step and red_awaits_pass(step) and not ci_repair_step(issue, step):
+        write_line(exitfile, 2)
         return refuse(f"supervise: refusing to launch {name}: step {step} has no verify-red PASS after its latest red leaf")
     ownerfile = ".tdd/leaf.owner"
     owner = still_alive_owner(ownerfile)
