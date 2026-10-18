@@ -16,7 +16,8 @@ def split_cells(line):
 
 def is_header(line):
     cells = split_cells(line)
-    return line.startswith("|") and len(cells) > 1 and cells[1] == "ID"
+    return line.startswith("|") and len(cells) > 1 and (
+        cells[1] == "ID" or "Requirement" in cells and "Why" in cells)
 
 
 def units(path):
@@ -45,7 +46,7 @@ def claims(path, unit):
             continue
         elif is_header(line):
             cells = split_cells(line)
-            if cells[2:4] != ["Requirement", "Why"]:
+            if cells[1:4] != ["ID", "Requirement", "Why"]:
                 fail("header lacks a column")
             intable, skip = True, True
         elif intable and skip:
