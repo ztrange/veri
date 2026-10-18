@@ -1,6 +1,7 @@
 """run-finished.sh's checks, run in-process."""
 import json
 import os
+import subprocess
 import sys
 
 from ledger import ledger_steps
@@ -19,7 +20,8 @@ def main(argv):
         sys.stderr.write("run-finished.sh: no run for issue %s\n" % issue)
         return 2
     runs = json.loads(json_document()[1])["runs"]
-    state = next((r.get("state", "") for r in runs if r["issue"] == issue), "")
+    run = next((r for r in runs if r["issue"] == issue), {})
+    state = run.get("state", "")
     if state != "done":
         print("not-done %s" % state)
         return 1
@@ -27,6 +29,11 @@ def main(argv):
         steps = ledger_steps(f.read())
     unmet = [("unchecked", r[6]) for r in steps if r[1] == "open"]
     unmet += [("refactor-pending", r[6]) for r in steps if r[3] == "1"]
+    body = json.loads(subprocess.run(
+        ["gh", "pr", "view", run.get("pr", ""), "--json", "body"],
+        capture_output=True, text=True, check=True).stdout)["body"]
+    unmet += [("human-owed", ln[6:]) for ln in body.splitlines()
+              if ln.startswith("- [ ] ") and "⟦human-owed⟧" in ln]
     for name, step in unmet:
         print("%s %s" % (name, step))
     return 1 if unmet else 0
