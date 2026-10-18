@@ -4,6 +4,7 @@ import json
 import os
 import re
 import sys
+import tunables
 
 USAGE = "usage: wrong-test-route.sh <green-report> <red-test-id>"
 
@@ -68,7 +69,7 @@ def main(argv):
     if len(argv) != 2 or not argv[0] or not argv[1]:
         _write(sys.stderr, USAGE)
         return 2
-    case = None if _rerouted(os.environ.get("VERI_STEP", "")) else route(argv[0], argv[1])
+    case = None if _rerouted(tunables.read("VERI_STEP")) else route(argv[0], argv[1])
     if case is None:
         _write(sys.stdout, "revise")
         return 3
