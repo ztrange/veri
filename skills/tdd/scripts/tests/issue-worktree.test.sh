@@ -883,4 +883,21 @@ tip="$(git -C "$mine" rev-parse HEAD 2>/dev/null)"
   && [[ "$branch" == "tdd/65-took-over" ]] && [[ "$tip" == "$local_tip" ]]; } \
   && ok || no "#1734: a clone holding the local branch while origin holds it too and the remote-tracking ref is fetched still starts as a resume on the local tip (exit=$code want 0, stdout='$out' want '$mine', branch='$branch' want 'tdd/65-took-over', tip='$tip' want local $local_tip not remote $remote_tip)"
 
+ahead_pair registered-resume
+git_q "$upstream" branch -q tdd/66-registered main >/dev/null 2>&1
+git_q "$clone" fetch -q origin >/dev/null 2>&1
+mine="$(wt_path "$clone" 66)"
+git_q "$clone" worktree add -q -b tdd/66-registered "$mine" origin/tdd/66-registered >/dev/null 2>&1
+git_q "$mine" commit -q --allow-empty -m "local work" >/dev/null 2>&1
+local_tip="$(git_q "$mine" rev-parse HEAD)"
+remote_tip="$(git_q "$clone" rev-parse refs/remotes/origin/tdd/66-registered)"
+
+out="$(cd "$clone" && "$WT" 66 registered 2>/dev/null)" && code=0 || code=$?
+branch="$(git -C "$mine" branch --show-current 2>/dev/null)"
+tip="$(git -C "$mine" rev-parse HEAD 2>/dev/null)"
+
+{ [[ "$local_tip" != "$remote_tip" ]] && [[ "$code" == 0 ]] && [[ "$out" == "$mine" ]] \
+  && [[ "$branch" == "tdd/66-registered" ]] && [[ "$tip" == "$local_tip" ]]; } \
+  && ok || no "#1734: a clone with the issue's worktree registered while origin holds the branch and the remote-tracking ref is fetched still starts as a resume on the branch's own tip (exit=$code want 0, stdout='$out' want '$mine', branch='$branch' want 'tdd/66-registered', tip='$tip' want local $local_tip not remote $remote_tip)"
+
 finish
