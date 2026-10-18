@@ -1185,7 +1185,7 @@ def test_main_refuses_a_criterion_tagged_text_at_the_growth_budget_counting_it_a
     ledger = tmp_path / "issue-42.md"
     steps = (
         "# Plan for #42\n\n"
-        "- [ ] alpha ⟦criterion 1⟧\n"
+        "- [ ] alpha\n"
         "- [ ] extra one ⟦added⟧ ⟦criterion 1⟧\n"
         "- [ ] extra two ⟦added⟧ ⟦criterion 1⟧\n"
     )
