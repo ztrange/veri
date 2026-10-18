@@ -79,7 +79,9 @@ def main(argv):
         if by_step and os.path.exists(".git"):
             recorded = {name for _, name in entries}
             diff = subprocess.run(["git", "diff", "--name-only", "-z", "HEAD"], stdout=subprocess.PIPE)
-            for raw in diff.stdout.split(b"\0"):
+            untracked = subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "-z"],
+                                       stdout=subprocess.PIPE)
+            for raw in diff.stdout.split(b"\0") + untracked.stdout.split(b"\0"):
                 name = os.fsdecode(raw)
                 if raw and TEST_FILE.search(raw) and name not in recorded:
                     changed.append(name)
