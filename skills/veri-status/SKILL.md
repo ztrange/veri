@@ -1,0 +1,98 @@
+---
+name: veri-status
+description: >-
+  Report veri's progress since the last ask: what landed, what each running issue has done and
+  cost, the queue with its drain ETA, and what is waiting on a merge, a slot or a decision.
+  Invoke as `/veri-status`. Use when the user asks "how is it going", "status", "progress",
+  "where are we", or otherwise wants a progress report on veri's runs.
+---
+
+# veri-status — progress since the last ask
+
+Alias: `/vstatus`
+
+Obeys `../veri-ops/PRINCIPLES.md`; read it first.
+
+`$S` is `skills/tdd/scripts/`, reached from this skill's base directory as `../tdd/scripts/`.
+Every read runs against the target repository's main working tree; its CLAUDE.md names the
+opt-in label and where PRDs are tracked.
+
+## Since when
+
+Invoked as `/veri-status`. The report covers what changed since the previous ask. Read that
+time from `.tdd/status-last` (one ISO 8601 timestamp). When the file is missing, cover the
+last 24 hours and say so in the report's first line. After the report is written, overwrite
+`.tdd/status-last` with the time the reads were taken.
+
+Every figure that can move carries its delta since that time: steps ticked, cost added, PRs
+landed, issues added to or taken from the queue.
+
+## The reads
+
+The report is built from four sources and nothing else:
+
+- `$S/status.sh --json` — every run: issue, title, step k/n, phase, attempts, elapsed seconds,
+  cost, state, PR; and the scope totals (attempted, done, bailed, wall seconds).
+- `$S/metrics.sh <n>`, run in `.tdd/wt/<n>` for each running issue — PASS and REJECT counts, the
+  `#### By model` table (role, model) and the `#### Total` row. A cost is read from its
+  `| total |` row only, never summed from phase rows (P7).
+- `git tag --sort=-v:refname --format='%(refname:short) %(creatordate:iso-strict) %(contents:subject)'`
+  — the tags cut since the last ask; each tag's message is its capability.
+- `gh` — merged PRs since the last ask (`gh pr list --state merged --search "merged:>=<time>"`),
+  open PRs, the opt-in-labelled open issues with their labels and `## Blocked by` sections, and
+  the open children of each PRD the queue's issues belong to.
+
+Count the reads before making them. **More than three go to one subagent**, on the cheapest
+model that can run them, briefed with this list and returning only the figures — one line per
+landed PR, per run, per label and per waiting item. Never read a leaf log for this report.
+
+## The report
+
+Four sections, always all four and in this order. An empty one keeps its heading and says
+"none".
+
+**Landed** — one line per PR merged since the last ask: PR url, tag, and the capability in the
+tag's message.
+
+**Running** — one block per live run (`.tdd/wt/<n>/.tdd/conductor.pid` answering `kill -0`):
+
+- `#<n> — <title>`;
+- **awake wall time**: elapsed time since launch, less any time the machine slept. No helper
+  computes this yet: until one exists, subtract the sleep intervals `pmset -g log` shows over
+  the run's window on a Mac, and elsewhere report the elapsed time labelled as wall time;
+- **steps** k/n ticked/planned, with the delta since the last ask;
+- **phase** now, and **attempts** in it;
+- **PASS / REJECT** counts so far;
+- **cost**: the `| total |` row, with the delta since the last ask;
+- **model split**: the model each role ran on — developer, revise, verifier, conductor — from
+  the `#### By model` table.
+
+Close the section with the model split per role across all running runs.
+
+**Queue** — counts of open opted-in issues by label; the blockers (each opted-in issue
+`$S/solvable-issues.sh` leaves out, with the open issue that blocks it); the **drain ETA** at
+the current N; and beside it the **PRD ETA** for each PRD the queue serves — its open children
+at the same rate.
+
+**Waiting** — PRs ready to merge (last comment ✅ Done, not merged); empty slots (N minus live
+conductors, N as the dev session last stated it); bails since the last ask, each with its cause;
+and pending human decisions, each restated in full (P4).
+
+## ETAs
+
+Every ETA comes from observed rates and is a range, never a single time. The rate is issues
+landed per hour at the current N, taken from the wall time of the runs that finished (status
+scope totals, tag dates); the range runs from the fastest to the slowest quartile of those
+runs. With fewer than three finished runs to measure, write "no rate yet" instead of an ETA.
+
+## Requirements
+
+| ID | Requirement | Why |
+|---|---|---|
+| A1 | Invoked as `/veri-status`. It reports what changed since the previous ask, whose time is kept in `.tdd/status-last`. | |
+| A2 | Sections, in order: **Landed** (PR, tag, capability) · **Running** (per issue: awake wall time, steps k/n, phase, cost, model split) · **Queue** (counts by label, blockers, drain ETA at the current N) · **Waiting** (ready PRs, empty slots, bails, decisions). | The format Mario specified twice. |
+| A3 | Every ETA comes from observed rates and carries a range. | |
+| A4 | It reads `status.sh --json`, `metrics.sh`, `git tag` and `gh`. More than three reads go to one subagent. | |
+
+This unit is **ungraded**: nothing has signed it yet. #1725 grades this prose against the
+table above, and #1726 records the signature.
