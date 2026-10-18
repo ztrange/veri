@@ -5,6 +5,6 @@
 - [x] `claims` on a unit whose table repeats an ID exits 2, prints nothing on stdout, and names the line number of the duplicate row on stderr ⟦criterion 3⟧
 - [x] `claims` on a unit whose table has a row with an empty `Requirement` cell exits 2, prints nothing on stdout, and names that row's line number on stderr ⟦criterion 3⟧
 - [x] `claims` on a unit whose table has a row with an empty `ID` cell exits 2, prints nothing on stdout, and names that row's line number on stderr ⟦criterion 3⟧
-- [ ] `claims` on a unit whose table header lacks one of the `ID`, `Requirement`, `Why` columns exits 2, prints nothing on stdout, and names the header's line number on stderr ⟦criterion 3⟧
+- [x] `claims` on a unit whose table header lacks one of the `ID`, `Requirement`, `Why` columns exits 2, prints nothing on stdout, and names the header's line number on stderr ⟦criterion 3⟧ ⟂ refactor pending
 - [ ] `claims` given a file that does not exist exits 2 and says on stderr that the file is missing, naming it ⟦criterion 4⟧
 - [ ] `claims` given a unit the file does not declare exits 2 and says on stderr that the unit is not declared, naming it ⟦criterion 4⟧
