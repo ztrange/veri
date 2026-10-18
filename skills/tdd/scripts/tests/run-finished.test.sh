@@ -53,4 +53,24 @@ else
   ok
 fi
 
+name="a run whose state is not done exits 1 and prints a not-done line naming the state"
+repo="$(scratch_dir)"
+new_repo "$repo"
+mkdir -p "$repo/.tdd/wt/4242/.tdd"
+git -C "$repo" commit -q --allow-empty -m init
+new_repo "$repo/.tdd/wt/4242"
+printf '%s\n' \
+  '{"ts":1000,"event":"launch","step":"1","phase":"red","actor":"developer","name":"develop-red"}' \
+  '{"ts":1001,"event":"bail","phase":"red","classification":"process"}' > "$repo/.tdd/wt/4242/.tdd/events.jsonl"
+printf '%s\n' '# Plan for #4242 — a title' '' '- [x] first step ⟦criterion 1⟧' \
+  > "$repo/.tdd/wt/4242/.tdd/issue-4242.md"
+out="$(cd "$repo" && "$FINISHED" 4242 2>/dev/null)" && code=0 || code=$?
+if [[ "$code" != 1 ]]; then
+  no "$name (want exit 1, got $code: $out)"
+elif [[ "$out" != "not-done bailed"* ]]; then
+  no "$name (stdout: $out)"
+else
+  ok
+fi
+
 finish
