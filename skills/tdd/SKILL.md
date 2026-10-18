@@ -62,7 +62,7 @@ Let `S=<base directory>/scripts`, where *base directory* is the path the harness
 when this skill loaded (`Base directory for this skill: …/tdd`). It is the same
 skill whether it lives in the target repo's `.claude/skills/` or is symlinked into
 `~/.claude/skills/` for use from any repo — never assume a repo-relative path. All leaf
-machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
+machinery lives there and is unit-tested (`$S/tests/*.test.sh`).
 
 `$S` is pinned: a run launched through `$S/run-conductor.sh` executes the skill snapshot —
 the commit recorded in `.tdd/issue-<n>-skill-commit` and exported to every leaf as
@@ -517,7 +517,7 @@ unauthenticated baseline never gets a cycle.
    which you are now in:
    `mkdir -p .tdd && $S/capture-spec.sh <n> > .tdd/issue-<n>-spec.md`.
    (The verifier is blind; this on-disk spec — never your narration — is what it sees.)
-   What it writes is enumerated in its entry under *The scripts*, the one place that list
+   What it writes is enumerated in its entry in `SCRIPTS.md`, the one place that list
    lives, so this step cannot fall behind it. The extra `## Bug` section it adds for an issue
    labelled `bug` is there because a bug's Red is a reproduction (ADR-0015), and this file is
    the only channel the developer and the blind verifier have to learn what it must reproduce.
@@ -763,7 +763,7 @@ VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/iss
 The `event.sh` line is this step's **mark** in the run's event log — the step has no issue
 comment of its own, so the moment `next-unchecked.sh` hands one over is where its clock
 starts. Every mark below is spelled the same way, with the run's context riding on the call
-in the environment as *The scripts* sets out above, so one instruction carries the whole
+in the environment as `SCRIPTS.md` sets out, so one instruction carries the whole
 call.
 
 Run the Red, Green, and Refactor phases below **against STEP's criterion** (use STEP's
@@ -1312,7 +1312,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      the same. Neither reporting one — no `uncovered-spec` flag
      from the leaf and none in the verdict — is no call and no mark at all.
      **exit 1** is that one call meeting the plan-growth budget: the values are filed as
-     owed steps rather than planned — the script's own entry above says how — and
+     owed steps rather than planned — the script's own entry in `SCRIPTS.md` says how — and
      `next-unchecked.sh` never finds them there, so the run does not plan what it recorded.
      Narrate it as the owed steps it is and carry on to the clear below — the step verified
      PASS and the values are recorded; the plan simply did not grow, which is nothing to
