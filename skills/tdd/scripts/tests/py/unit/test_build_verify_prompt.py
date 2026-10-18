@@ -817,6 +817,20 @@ def test_main_scopes_refactor_to_the_cycles_files_with_flags_lines_checks_plan_r
     }
 
 
+def test_1713_the_plan_prompt_rejects_a_red_green_step_that_changes_pinned_prompt_or_skill_text_instead_of_a_diff_checked_line(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"spec\n")
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes("# Plan for #1713\n\n- [ ] A step ⟦criterion 1⟧\n".encode())
+    assert build_verify_prompt.main(["plan", str(spec), str(ledger)]) == 0
+    plan = capsysbinary.readouterr()[0].replace(b"\n", b" ")
+    rejects = (rb"REJECT a plan that carries a Red/Green step whose criterion changes rendered prompt text"
+               rb"[^.]{0,200}SKILL\.md sentence that a suite pins by checksum or verbatim"
+               rb"[^.]{0,200}instead of a `\xe2\x9f\xa6diff-checked\xe2\x9f\xa7` line")
+    assert re.search(rejects, plan) is not None
+
+
 @pytest.mark.tree_audit("the templates under prompts/")
 def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_case_and_suite_repair_paragraphs_for_their_phase_alone_renders_the_comment_rules_byte_identical_unmarked_green_and_resolves_or_refuses_includes(
         tmp_path, capsysbinary, build_verify_prompt):
