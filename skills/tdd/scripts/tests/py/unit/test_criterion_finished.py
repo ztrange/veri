@@ -265,3 +265,28 @@ def test_main_counts_a_step_whose_prose_quotes_a_criterion_marker_only_toward_it
         fake_stdin(monkeypatch, quoting.encode())
         answers[k] = (criterion_finished.main([k]), *capsys.readouterr())
     assert answers == {"1": (0, "", ""), "2": (3, "", "")}
+
+
+class ViaStdin:
+    def __init__(self, module, ledger):
+        self.module, self.ledger = module, ledger
+
+    def main(self, argv):
+        sys.stdin = io.TextIOWrapper(io.BytesIO(self.ledger.encode()))
+        return self.module.main(argv)
+
+
+def test_cli_two_steps_serving_criterion_1_exit_3_until_both_are_ticked_and_verified_then_0(
+    run_cli, criterion_finished
+):
+    head = "# Plan for #42\n\n- [x] lowercase the slug ⟦criterion 1⟧\n"
+    second = "collapse non-alphanumerics to a single hyphen ⟦criterion 1⟧"
+    answers = {
+        name: run_cli(ViaStdin(criterion_finished, head + tail), ["1"])
+        for name, tail in {
+            "half": "- [ ] " + second,
+            "pending": "- [x] " + second + " ⟂ refactor pending",
+            "both": "- [x] " + second,
+        }.items()
+    }
+    assert answers == {"half": (3, "", ""), "pending": (3, "", ""), "both": (0, "", "")}
