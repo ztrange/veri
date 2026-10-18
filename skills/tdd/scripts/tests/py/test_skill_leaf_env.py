@@ -14,6 +14,7 @@ from conftest import ROOT, SCRIPTS
 
 SKILL = ROOT / "skills" / "tdd" / "SKILL.md"
 SKILL_MD = "skills/tdd/SKILL.md"
+STOPPING = ROOT / "skills" / "tdd" / "STOPPING.md"
 
 SENTINEL = "make sentinel-test-cmd"
 SENTINEL_ISSUE = "143"
@@ -784,12 +785,13 @@ def scan_bail_last_done(probe):
             check_mark_step(probe, lineno, line, seen, title, err, "bail", "typing")
 
 
-def scan_event_mark_last_done(probe, tag, pattern, shape, mark, fills=()):
+def scan_event_mark_last_done(probe, tag, pattern, shape, mark, fills=(), source=None):
     title = EXPANDING_STEP
     stage, seen, tree = stage_recorder(probe, tag)
     stage_title_recorders(probe, stage, "event")
     plant_every_step_ticked_ledger(tree, title)
-    lineno, line = first_line(pattern)
+    hits = numbered_lines(pattern, None if source is None else source.read_text())[:1]
+    lineno, line = hits[0] if hits else (None, None)
     if lineno is None:
         no_launch(probe, shape)
         return
@@ -1093,7 +1095,7 @@ def test_907_bailing_in_skill_md_run_with_every_ledger_step_ticked_passes_preser
 @pytest.mark.timeout(300)
 def test_907_stopping_in_skill_md_run_with_every_ledger_step_ticked_gives_the_stop_marks_veri_step_the_last_done_steps_text_byte_identical(probe):
     scan_event_mark_last_done(probe, "stop-last-done", r"\$S/event\.sh stop mode=<mode> at=<at>",
-                              "Stopping's stop mark", "stop", (("<mode>", "at-ledger"), ("<at>", "step-done")))
+                              "Stopping's stop mark", "stop", (("<mode>", "at-ledger"), ("<at>", "step-done")), source=STOPPING)
 
     assert probe.problems == []
 
