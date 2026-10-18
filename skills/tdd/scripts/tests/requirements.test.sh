@@ -208,6 +208,18 @@ named=no; [[ "$err" =~ (^|[^0-9])7([^0-9]|$) ]] && named=yes
 expect_eq "claims on a unit with a second table exits 2, prints nothing on stdout and names the second header's line on stderr (#1743)" \
   $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
 
+cat > "$work/escaped-pipe.md" <<MD
+$H skills/tdd/SKILL.md
+
+| ID | Requirement | Why |
+|----|-------------|-----|
+| A1 | Pipes a \| b. | Why. |
+MD
+
+out="$("$REQUIREMENTS" claims "$work/escaped-pipe.md" skills/tdd/SKILL.md 2> /dev/null)" && code=0 || code=$?
+expect_eq "claims keeps an escaped pipe inside a requirement cell (#1743)" \
+  $'0\nA1\tPipes a \\| b.' "$code"$'\n'"$out"
+
 out="$("$REQUIREMENTS" 2> "$work/stderr")" && code=0 || code=$?
 err="$(< "$work/stderr")"
 usage=no; [[ "$err" == usage:*requirements.sh* ]] && usage=yes
