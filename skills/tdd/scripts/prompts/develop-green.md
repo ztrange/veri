@@ -72,6 +72,8 @@ or, when the test itself looks wrong, those two lines replaced by one:
 
 WRONG_TEST: <why the test looks wrong>
 
+Name in that line the existing test case the step's criterion contradicts.
+
 REPORT-FORMAT green | keys IMPL_PATH: SUITE: | suite required
 
 REPORT-FORMAT green-split | keys SPLIT: | suite exempt: a too-big step changes no code and runs no suite

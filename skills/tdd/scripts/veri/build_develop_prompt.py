@@ -29,7 +29,8 @@ TEST_REWRITE_GRANT = (
     "   rejected predicted a different test, so there is nothing here for you to inherit.").encode()
 WRONG_TEST_REPORT = (
     "\n\nor, when the green you are redoing has a test that looks wrong, those lines replaced by one:\n\n"
-    "WRONG_TEST: <why the test looks wrong>").encode()
+    "WRONG_TEST: <why the test looks wrong>\n\n"
+    "Name in that line the existing test case the step's criterion contradicts.").encode()
 WRONG_TEST_FORMAT = (
     "\n\nREPORT-FORMAT revise-wrong-test | keys WRONG_TEST: | suite exempt: the test is wrong, "
     "so nothing was changed and no suite ran").encode()
