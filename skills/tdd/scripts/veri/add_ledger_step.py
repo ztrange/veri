@@ -186,18 +186,6 @@ def main(argv):
     budget = tunables.read("VERI_STEP_GROWTH", "5")
     if not re.fullmatch("[0-9]+", budget):
         return refuse("add-ledger-step.sh: VERI_STEP_GROWTH must be a whole number >= 0: " + budget)
-    added = sum(record[4] == "1" for record in records)
-    cap = bash_integer(budget)
-    if cap is None:
-        warn(f'add-ledger-step.sh: {budget}: value too great for base (error token is "{budget}")')
-    elif not planned and added + sum(not is_repair(text) for text in texts) > cap:
-        headings = [line for line in lines if line.startswith("## ")]
-        owed = "" if headings[-1:] == ["## Owed steps"] else "\n## Owed steps\n\n"
-        if not owed and lines is not terminated:
-            owed = "\n"
-        owed += "".join(f"- {text}\n" for text in texts)
-        write_ledger(path, "ab", owed)
-        return 1
     out = []
     for line in lines:
         if not is_anchor_step(line, anchor):
@@ -209,6 +197,18 @@ def main(argv):
         out.extend(inserted)
         if where == "before":
             out.append(line)
+    added = sum(record[4] == "1" for record in ledger_steps("\n".join(out)))
+    cap = bash_integer(budget)
+    if cap is None:
+        warn(f'add-ledger-step.sh: {budget}: value too great for base (error token is "{budget}")')
+    elif not planned and added > cap:
+        headings = [line for line in lines if line.startswith("## ")]
+        owed = "" if headings[-1:] == ["## Owed steps"] else "\n## Owed steps\n\n"
+        if not owed and lines is not terminated:
+            owed = "\n"
+        owed += "".join(f"- {text}\n" for text in texts)
+        write_ledger(path, "ab", owed)
+        return 1
     write_ledger(path, "wb", "".join(line + "\n" for line in out))
     return 0
 

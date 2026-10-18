@@ -1143,3 +1143,20 @@ def test_main_exits_2_naming_the_log_and_the_unreadable_line_when_a_suite_repair
 
     assert (code, out, ledger.read_bytes()) == (2, "", before)
     assert str(log) in err and "broken" in err
+
+
+def test_main_replaces_an_added_step_at_the_growth_budget_leaving_the_added_count_unchanged_issue_1631(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.setenv("VERI_STEP_GROWTH", "2")
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(
+        "# Plan for #42\n\n"
+        "- [ ] a one ⟦criterion 1⟧\n"
+        "- [ ] extra one ⟦added⟧ ⟦criterion 1⟧\n"
+        "- [ ] extra two ⟦added⟧ ⟦criterion 1⟧\n".encode()
+    )
+
+    code = add_ledger_step.main([str(ledger), "instead-of", "extra two", "reworded"])
+    capsys.readouterr()
+
+    text = ledger.read_bytes().decode()
+    assert (code, text.count("⟦added⟧"), "extra two" in text, "reworded" in text, "## Owed steps" in text) == (0, 2, False, True, False)
