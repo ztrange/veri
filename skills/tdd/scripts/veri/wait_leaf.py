@@ -61,7 +61,7 @@ def main(argv):
         sys.stderr.write(USAGE)
         return 2
     name = argv[0]
-    max_text = argv[1] if len(argv) > 1 and argv[1] else "540"
+    max_text = argv[1] if len(argv) > 1 and argv[1] else "590"
     max_seconds = arithmetic(max_text)
     poll = tunables.read("VERI_POLL", unless_empty="1")
     exit_file = f".tdd/{name}.exit"
