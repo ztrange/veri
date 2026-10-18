@@ -1,2 +1,4 @@
 ### unlabel-issue.sh whose label-removal request gets no answer from gh (a failure that is not a 404) exits 2 with stderr naming the unanswered request ⟦criterion 1⟧
 - `unlabel_issue.py` builds its `unlabel-issue.sh: …` error prefix in three separate messages. This is a small repeat, and extracting it would add an abstraction no test requires.
+### issue-worktree.sh cutting a fresh branch from an origin naming a GitHub host other than github.com (a GitHub Enterprise host) runs the open-PR check, refusing with exit 2 when an open PR says `Closes #<n>`; the Red case's `gh` stub answers the open-PR list with the PR on the first page only (its URL match anchored as `*[?&]page=1`, never `*page=1*`, which also matches `per_page=100&page=2`) and `[]` on every later page, so the REST pager terminates ⟦criterion 3⟧
+- test-only | the Enterprise case's setup in issue-worktree.test.sh repeats the earlier #1672 cases' setup, and a shared helper could take it
