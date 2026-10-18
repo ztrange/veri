@@ -45,6 +45,8 @@ main() {
     claims)
       if [[ $# -eq 3 ]]; then
         [[ -f "$2" ]] || { echo "requirements.sh: file is missing: $2" >&2; return 2; }
+        local text; text=$'\n'"$(< "$2")"$'\n'
+        [[ "$text" == *$'\n## '"$3"$'\n'* ]] || { echo "requirements.sh: unit is not declared: $3" >&2; return 2; }
         claims "$2" "$3"; return
       fi ;;
   esac
