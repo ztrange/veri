@@ -104,4 +104,35 @@ else
   ok
 fi
 
+name="a done run whose ledger has a step still refactor-pending exits 1 and prints one refactor-pending line per such step"
+repo="$(scratch_dir)"
+bin="$(scratch_dir)"
+new_repo "$repo"
+mkdir -p "$repo/.tdd/wt/4242/.tdd"
+git -C "$repo" commit -q --allow-empty -m init
+new_repo "$repo/.tdd/wt/4242"
+printf '%s\n' \
+  '{"ts":1000,"event":"launch","step":"1","phase":"red","actor":"developer","name":"develop-red"}' \
+  '{"ts":1001,"event":"done","pr":"https://github.com/o/r/pull/7"}' > "$repo/.tdd/wt/4242/.tdd/events.jsonl"
+printf '%s\n' '# Plan for #4242 — a title' '' '- [x] first step ⟦criterion 1⟧' \
+  '- [x] second step ⟦criterion 2⟧ ⟂ refactor pending' '- [x] third step ⟦criterion 3⟧ ⟂ refactor pending' \
+  > "$repo/.tdd/wt/4242/.tdd/issue-4242.md"
+cat > "$bin/gh" <<'STUB'
+#!/bin/sh
+body='Closes #4242'
+case " $* " in
+  *" --json "*) printf '{"body": "%s"}\n' "$body" ;;
+  *) printf '%s\n' "$body" ;;
+esac
+STUB
+chmod +x "$bin/gh"
+out="$(cd "$repo" && PATH="$bin:$PATH" "$FINISHED" 4242 2>/dev/null)" && code=0 || code=$?
+if [[ "$code" != 1 ]]; then
+  no "$name (want exit 1, got $code: $out)"
+elif [[ "$out" != $'refactor-pending '*"second step"*$'\n'"refactor-pending "*"third step"* || "$out" == *"first step"* ]]; then
+  no "$name (stdout: $out)"
+else
+  ok
+fi
+
 finish
