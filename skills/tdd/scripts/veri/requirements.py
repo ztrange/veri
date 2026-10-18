@@ -19,7 +19,8 @@ def split_cells(line):
 def is_header(line):
     cells = split_cells(line)
     return len(cells) > 1 and (
-        cells[1] == "ID" or "Requirement" in cells and ("Why" in cells or "ID" in cells))
+        cells[1] == "ID" or "Requirement" in cells and ("Why" in cells or "ID" in cells)
+        or "Why" in cells and "ID" in cells)
 
 
 def units(path):
