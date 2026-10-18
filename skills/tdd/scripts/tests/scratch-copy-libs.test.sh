@@ -193,10 +193,14 @@ plant_line() {
   done
   grep -E '(lib|LIB)"?/\*\.sh' <<< "$copies" > /dev/null && return
   grep -E '(lib|LIB)"?/harness\.sh' <<< "$copies" > /dev/null || return
+  local sourced rc=0
+  sourced="$(sed -nE 's#^(source|\.)[[:space:]]+"\$HERE/lib/([A-Za-z0-9_.-]+\.sh)".*#\2#p' "$TESTS/$planted")" || rc=$?
+  (( rc == 0 )) || problems+="    ${suite#"$TESTS"/}: scanner sed over $planted exited with exit status $rc"$'\n'
   while IFS= read -r lib; do
+    [[ -n "$lib" ]] || continue
     grep -E "(lib|LIB)\"?/$lib" <<< "$copies" > /dev/null \
       || problems+="    ${suite#"$TESTS"/} plants $planted without lib/$lib"$'\n'
-  done < <(sed -nE 's#^(source|\.)[[:space:]]+"\$HERE/lib/([A-Za-z0-9_.-]+\.sh)".*#\2#p' "$TESTS/$planted")
+  done <<< "$sourced"
 }
 
 name="a suite that plants a suite into a scratch tree copies every tests/lib file that suite sources"

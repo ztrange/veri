@@ -79,4 +79,53 @@ done
 
 report "$name"
 
+problems=()
+name="no-unbacked-pushes.test.sh, missing-argument-exit.test.sh and scratch-copy-libs.test.sh each pass over a clean scratch tree, and fail naming the file it scanned and the scanner's exit status 2 when only the scanner they read through done < <(…) exits 2 (#1648)"
+
+check_scanner() {
+  local guard="$1" shim_cmd="$2" shim_case="$3" token="$4" tree guard_out guard_code
+  tree="$(scratch_dir)"
+  mkdir -p "$tree/$TESTS_DIR/lib" "$tree/shim"
+  cp "$HERE/lib/"*.sh "$tree/$TESTS_DIR/lib/"
+  cp "$HERE/$guard" "$tree/$TESTS_DIR/$guard"
+  chmod 755 "$tree/$TESTS_DIR/$guard"
+  case "$guard" in
+    no-unbacked-pushes.test.sh)
+      printf '%s\n' '#!/usr/bin/env bash' 'VERI_PUSH_BACKOFF=0 "$HERE/../push-branch.sh" origin' > "$tree/$TESTS_DIR/pushes.test.sh" ;;
+    scratch-copy-libs.test.sh)
+      printf '%s\n' '#!/usr/bin/env bash' 'source "$HERE/lib/verdict.sh"' > "$tree/$TESTS_DIR/planted.test.sh"
+      printf '%s\n' '#!/usr/bin/env bash' "GUARD='skills/tdd/scripts/tests/planted.test.sh'" \
+        'cp "$HERE/lib/harness.sh" "$tree/lib/"' 'cp "$HERE/lib/verdict.sh" "$tree/lib/"' > "$tree/$TESTS_DIR/plants.test.sh" ;;
+  esac
+  if [[ "$guard" != no-unbacked-pushes.test.sh ]]; then
+    local entry
+    for entry in "$HERE"/../*; do
+      [[ "$entry" == "$HERE" ]] || ln -s "$entry" "$tree/skills/tdd/scripts/${entry##*/}"
+    done
+  fi
+  printf '#!/bin/sh\ncase "$*" in %s) : > "%s"; exit 2 ;; esac\nexec "%s" "$@"\n' \
+    "$shim_case" "$tree/fired" "$(command -v "$shim_cmd")" > "$tree/shim/$shim_cmd"
+  chmod 755 "$tree/shim/$shim_cmd"
+
+  guard_out="$("$tree/$TESTS_DIR/$guard" 2>&1)" && guard_code=0 || guard_code=$?
+  [[ "$guard_code" == 0 ]] ||
+    problems+=("want $guard to pass over the clean scratch tree with its scanner intact; it exited $guard_code and said: $(flat "$guard_out")")
+
+  guard_out="$(PATH="$tree/shim:$PATH" "$tree/$TESTS_DIR/$guard" 2>&1)" && guard_code=0 || guard_code=$?
+  [[ -e "$tree/fired" ]] ||
+    problems+=("want $guard to run its $shim_cmd scanner as $shim_case; the shim never matched it, so this case tested nothing")
+  [[ "$guard_code" != 0 ]] ||
+    problems+=("want $guard to fail when its $shim_cmd scanner exits 2; it exited 0 and said: $(flat "$guard_out")")
+  grep -F -- "$token" <<< "$guard_out" > /dev/null ||
+    problems+=("no line of $guard's output names $token; it said: $(flat "$guard_out")")
+  grep -F -- 'exit status 2' <<< "$guard_out" > /dev/null ||
+    problems+=("no line of $guard's output names the scanner's exit status 2; it said: $(flat "$guard_out")")
+}
+
+check_scanner no-unbacked-pushes.test.sh awk "*'/pushes.test.sh'" pushes.test.sh
+check_scanner missing-argument-exit.test.sh grep "'-nE \\\$\\{[0-9]+:\\? '*'/add-ledger-step.sh'" add-ledger-step.sh
+check_scanner scratch-copy-libs.test.sh sed "'-nE '*'/planted.test.sh'" planted.test.sh
+
+report "$name"
+
 finish

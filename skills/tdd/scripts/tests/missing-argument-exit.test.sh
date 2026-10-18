@@ -111,27 +111,6 @@ rejects refactor-owed.sh list                           # no <file>
 rejects refactor-owed.sh append                         # no <file>
 verdict "$name" "${offenders[@]}"
 
-migrated() {  # migrated <script> … — want each to source lib/exit-contract.sh with no hand-built usage-and-exit
-  local script lineno text
-  for script in "$@"; do
-    grep -E '^[[:space:]]*(source|\.)[[:space:]].*lib/exit-contract\.sh' "$SCRIPTS/$script" > /dev/null \
-      || offenders+=( "$script: does not source lib/exit-contract.sh" )
-    while IFS=: read -r lineno text; do
-      [[ "${text#"${text%%[![:space:]]*}"}" == '#'* ]] && continue
-      offenders+=( "$script:$lineno: hand-built usage-and-exit: ${text#"${text%%[![:space:]]*}"}" )
-    done < <(grep -niE '((usage:|\$\{?usage([^[:alnum:]_]|$)|^[[:space:]]*usage[[:space:]]).*>&2|^[[:space:]]*refuse[[:space:]]*\(\))' "$SCRIPTS/$script")
-  done
-}
-
-migration_slice() {  # migration_slice <n> <script> … — the slice's case, over migrated
-  local n="$1"
-  shift
-  name="migration slice $n sources lib/exit-contract.sh and refuses through it, with no hand-built usage-and-exit idiom left"
-  offenders=()
-  migrated "$@"
-  verdict "$name" "${offenders[@]}"
-}
-
 
 name="no script guards a required positional argument with a bare \${N:?…} expansion"
 mapfile -t offenders < <(bare_expansion_offenders "$SCRIPTS")

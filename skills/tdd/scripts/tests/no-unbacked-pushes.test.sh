@@ -24,12 +24,8 @@ problems=()
 push_invocations=0
 for suite in "$HERE"/*.test.sh; do
   [[ -n "${EXEMPT[$(basename "$suite")]+x}" ]] && continue
-  while IFS= read -r row; do
-    case "$row" in
-      invoked) push_invocations=$((push_invocations + 1)) ;;
-      *) problems+=("$(basename "$suite"):$row invokes push-branch.sh without VERI_PUSH_BACKOFF in its environment, so a push to an unreachable origin waits the default backoff on wall time") ;;
-    esac
-  done < <(awk '
+  rc=0
+  rows="$(awk '
     BEGIN { assigns_script = "^[[:space:]]*(local[[:space:]]+)?[A-Za-z_][A-Za-z0-9_]*=.*/push-branch\\.sh[\"'"'"']?[[:space:]]*$" }
     NR == FNR {
       if ($0 ~ assigns_script) {
@@ -54,7 +50,15 @@ for suite in "$HERE"/*.test.sh; do
       print "invoked"
       if (line !~ /VERI_PUSH_BACKOFF=/) print start
     }
-  ' "$suite" "$suite")
+  ' "$suite" "$suite")" || rc=$?
+  (( rc == 0 )) || problems+=("$(basename "$suite"): scanner awk exited with exit status $rc")
+  while IFS= read -r row; do
+    case "$row" in
+      '') ;;
+      invoked) push_invocations=$((push_invocations + 1)) ;;
+      *) problems+=("$(basename "$suite"):$row invokes push-branch.sh without VERI_PUSH_BACKOFF in its environment, so a push to an unreachable origin waits the default backoff on wall time") ;;
+    esac
+  done <<< "$rows"
 done
 [[ "$push_invocations" -gt 0 ]] ||
   problems+=("no suite here was recognised as invoking push-branch.sh, so nothing was checked")
