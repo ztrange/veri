@@ -835,6 +835,19 @@ heads_after="$(git_q "$clone" rev-list --all 2>/dev/null)"
   && [[ "$after" == "$before" ]] && [[ "$heads_after" == "$heads_before" ]]; } \
   && ok || no "#1656: an open PR saying Closes #62: a fresh call exits 2 naming that PR and leaves no worktree, branch or commit behind (exit=$code want 2, stderr='$err' want it to name 'pull/620', '$mine' $( [[ -e "$mine" ]] && echo "was created" || echo "absent, good" ), git's worktree+branch registry $( [[ "$after" == "$before" ]] && echo unchanged || echo changed ), commits $( [[ "$heads_after" == "$heads_before" ]] && echo unchanged || echo changed ))"
 
+ahead_pair pr-silent
+mine="$(wt_path "$clone" 64)"
+mkdir -p "$work/pr-silent-gh"
+before="$(registry "$clone")"
+
+errfile="$work/pr-silent.err"
+out="$(cd "$clone" && VERI_GH_JSON="$work/pr-silent-gh" "$WT" 64 fresh-start 2>"$errfile")" && code=0 || code=$?
+after="$(registry "$clone")"
+
+{ [[ "$code" == 2 ]] && [[ -z "$out" ]] && grep -Ei 'open[- ]PR' "$errfile" >/dev/null \
+  && [[ ! -e "$mine" ]] && [[ "$after" == "$before" ]]; } \
+  && ok || no "#1672: a fresh cut whose open-PR lookup gets no answer: exits 2 naming the open-PR lookup and creates no worktree (exit=$code want 2, stdout='$out' want empty, stderr='$(cat "$errfile")' want it to name the open-PR lookup, '$mine' $( [[ -e "$mine" ]] && echo "was created" || echo "absent, good" ), registry $( [[ "$after" == "$before" ]] && echo unchanged || echo changed ))"
+
 ahead_pair resume-claimed
 git_q "$upstream" branch -q tdd/63-mine main >/dev/null 2>&1
 mine="$(wt_path "$clone" 63)"

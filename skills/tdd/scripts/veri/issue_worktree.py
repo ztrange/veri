@@ -81,7 +81,7 @@ def claiming_pr(issue, url):
         prs = gh_json("prs.json", "repos/{owner}/{repo}/pulls?state=open&per_page=100",
                       "pr", "list", "--state", "open", "--limit", "10000", "--json", "body,state,url")
     except (NoAnswer, OSError):
-        return ""
+        return None
     for pr in items(prs):
         if str(pr.get("state", "")).upper() == "OPEN" and \
                 issue in re.findall(r"\bCloses #(\d+)", pr.get("body") or ""):
@@ -185,6 +185,10 @@ def cut(path, branch):
                                  " — another run claimed the issue\n" % claimed)
                 return 2
             pr = claiming_pr(issue, url)
+            if pr is None:
+                sys.stderr.write("issue-worktree: the open-PR lookup got no answer"
+                                 " — cannot tell whether another run claimed the issue\n")
+                return 2
             if pr:
                 sys.stderr.write("issue-worktree: %s claims the issue (Closes #%s)\n" % (pr, issue))
                 return 2
