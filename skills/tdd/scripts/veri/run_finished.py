@@ -24,10 +24,12 @@ def main(argv):
         print("not-done %s" % state)
         return 1
     with open(os.path.join(run_dir, ".tdd", "issue-%s.md" % issue), encoding="utf-8") as f:
-        open_steps = [r[6] for r in ledger_steps(f.read()) if r[1] == "open"]
-    for step in open_steps:
-        print("unchecked %s" % step)
-    return 1 if open_steps else 0
+        steps = ledger_steps(f.read())
+    unmet = [("unchecked", r[6]) for r in steps if r[1] == "open"]
+    unmet += [("refactor-pending", r[6]) for r in steps if r[3] == "1"]
+    for name, step in unmet:
+        print("%s %s" % (name, step))
+    return 1 if unmet else 0
 
 
 if __name__ == "__main__":
