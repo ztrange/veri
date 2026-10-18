@@ -3,6 +3,9 @@ import re
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[3]
 SKILL = SCRIPTS.parent / "SCRIPTS.md"
+SKILL_MD = SCRIPTS.parent / "SKILL.md"
+# The catalogue held 29 entries when it moved out of SKILL.md (#1715); fewer means one was lost.
+ENTRIES_AT_MOVE = 29
 
 
 def synopses(skill):
@@ -83,3 +86,12 @@ def test_a_first_line_flag_and_a_missing_literal_or_alternative_verb_are_each_na
         "exp-verb.sh: --quick is in its usage line, not in SKILL.md's entry",
         "exp-verb.sh: reset is a verb in its usage line, not in SKILL.md's entry",
         "exp-verb.sh: stop is a verb in its usage line, not in SKILL.md's entry"]
+
+
+def test_skill_md_points_at_scripts_md_and_carries_no_catalogue_entry_and_scripts_md_keeps_every_moved_entry_1715():
+    """Subject is source text: SKILL.md's pointer to the catalogue and the catalogue's entry count (#1715)."""
+    text = SKILL_MD.read_text()
+
+    assert "The catalogue of every script (arguments, output, exit codes) is `<base directory>/SCRIPTS.md`." in text
+    assert synopses(SKILL_MD) == []
+    assert len(synopses(SKILL)) >= ENTRIES_AT_MOVE
