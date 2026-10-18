@@ -27,7 +27,7 @@ bin="$(scratch_dir)"
 new_repo "$repo"
 mkdir -p "$repo/.tdd/wt/4242/.tdd"
 git -C "$repo" commit -q --allow-empty -m init
-git init -q "$repo/.tdd/wt/4242"
+new_repo "$repo/.tdd/wt/4242"
 printf '%s\n' \
   '{"ts":1000,"event":"launch","step":"1","phase":"red","actor":"developer","name":"develop-red"}' \
   '{"ts":1001,"event":"done","pr":"https://github.com/o/r/pull/7"}' > "$repo/.tdd/wt/4242/.tdd/events.jsonl"
