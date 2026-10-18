@@ -1,5 +1,6 @@
 """wrong-test-route.sh's decision, run in-process."""
 import fnmatch
+import json
 import os
 import re
 import sys
@@ -47,11 +48,27 @@ def route(report, own_id):
     return None
 
 
+def _rerouted(step):
+    try:
+        with open(".tdd/events.jsonl", encoding="utf-8", errors="replace") as handle:
+            lines = handle.read().splitlines()
+    except OSError:
+        return False
+    for line in lines:
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(event, dict) and event.get("event") == "reroute" and event.get("step") == step:
+            return True
+    return False
+
+
 def main(argv):
     if len(argv) != 2 or not argv[0] or not argv[1]:
         _write(sys.stderr, USAGE)
         return 2
-    case = route(argv[0], argv[1])
+    case = None if _rerouted(os.environ.get("VERI_STEP", "")) else route(argv[0], argv[1])
     if case is None:
         _write(sys.stdout, "revise")
         return 3
