@@ -164,6 +164,11 @@ named=no; [[ "$err" =~ (^|[^0-9])3([^0-9]|$) ]] && named=yes
 expect_eq "claims on a table header of | Requirement | ID | exits 2, prints nothing on stdout and names the header's line on stderr (#1743)" \
   $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
 
+uout="$("$REQUIREMENTS" units "$work/swapped-columns.md" 2> /dev/null)" && ucode=0 || ucode=$?
+out="$("$REQUIREMENTS" claims "$work/swapped-columns.md" skills/tdd/SKILL.md 2> /dev/null)" && code=0 || code=$?
+expect_eq "units does not print a heading whose only table is | Requirement | ID | and claims refuses it (#1743)" \
+  $'0\n\n2\n' "$ucode"$'\n'"$uout"$'\n'"$code"$'\n'"$out"
+
 cat > "$work/pipeless.md" <<MD
 $H skills/tdd/SKILL.md
 

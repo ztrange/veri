@@ -6,7 +6,7 @@
 - [x] `claims <file> <unit>` on a unit holding a second `| ID | Requirement | Why |` table after its first exits 2, prints nothing on stdout, and names the second table's header line number on stderr ⟦criterion 2⟧
 - [x] `claims <file> <unit>` keeps an escaped `\|` inside a requirement cell: the row `| A1 | Pipes a \| b. | Why. |` prints `A1<TAB>Pipes a \| b.` (the whole requirement, not cut at the escaped pipe) ⟦criterion 2⟧
 - [x] `units <file>` on a missing file exits 2 with exactly one stderr line naming the file, and no Python traceback ⟦criterion 2⟧
-- [ ] `units <file>` and `claims <file> <unit>` agree on a `## U` heading whose only table header is `| Requirement | ID |`: one case runs both commands on that file, `units` does not print `U`, and `claims` exits 2 with nothing on stdout ⟦criterion 3⟧
+- [x] `units <file>` and `claims <file> <unit>` agree on a `## U` heading whose only table header is `| Requirement | ID |`: one case runs both commands on that file, `units` does not print `U`, and `claims` exits 2 with nothing on stdout ⟦criterion 3⟧
 - [ ] `claims <file> <unit>` on a unit whose valid table rows are followed, later under the same unit, by a `| Key | Requirement |` pipe line exits 2, prints nothing on stdout, and names that later line's number on stderr ⟦criterion 4⟧
 - [ ] `claims <file> <unit>` on a unit whose valid table rows are followed, later under the same unit, by a `| Why | ID |` pipe line exits 2, prints nothing on stdout, and names that later line's number on stderr ⟦criterion 4⟧
 - [ ] `claims <file> <unit>` on a unit whose valid table rows are followed, later under the same unit, by a header without leading pipes, `Key | Value`, exits 2, prints nothing on stdout, and names that later line's number on stderr ⟦criterion 4⟧
