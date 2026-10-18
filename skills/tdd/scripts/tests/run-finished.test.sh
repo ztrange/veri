@@ -85,6 +85,41 @@ else
   ok
 fi
 
+
+name="a done run whose PR body holds a star-bulleted and an indented unticked checkbox that are not human-owed, and an indented ticked human-owed one, exits 0 and prints nothing (#1748)"
+repo="$(scratch_dir)"
+bin="$(scratch_dir)"
+new_repo "$repo"
+mkdir -p "$repo/.tdd/wt/4242/.tdd"
+git -C "$repo" commit -q --allow-empty -m init
+new_repo "$repo/.tdd/wt/4242"
+printf '%s\n' \
+  '{"ts":1000,"event":"launch","step":"1","phase":"red","actor":"developer","name":"develop-red"}' \
+  '{"ts":1001,"event":"done","pr":"https://github.com/o/r/pull/7"}' > "$repo/.tdd/wt/4242/.tdd/events.jsonl"
+printf '%s\n' '# Plan for #4242 — a title' '' '- [x] first step ⟦criterion 1⟧' \
+  > "$repo/.tdd/wt/4242/.tdd/issue-4242.md"
+cat > "$bin/gh" <<'STUB'
+#!/bin/sh
+body='Closes #4242
+
+* [ ] a star-bulleted follow-up someone may file later
+  - [ ] an indented follow-up someone may file later
+  - [x] a reviewer checked the indented page ⟦human-owed⟧ ⟦criterion 3⟧'
+case " $* " in
+  *" --json "*) printf '{"body": "%s"}\n' "$(printf '%s' "$body" | sed 's/$/\\n/' | tr -d '\n')" ;;
+  *) printf '%s\n' "$body" ;;
+esac
+STUB
+chmod +x "$bin/gh"
+out="$(cd "$repo" && PATH="$bin:$PATH" "$FINISHED" 4242 2>&1)" && code=0 || code=$?
+if [[ "$code" != 0 ]]; then
+  no "$name (want exit 0, got $code: $out)"
+elif [[ -n "$out" ]]; then
+  no "$name (want no output, got: $out)"
+else
+  ok
+fi
+
 name="a stopped run with a clean ledger exits 1 and prints a not-done line naming the stopped state"
 repo="$(scratch_dir)"
 new_repo "$repo"
