@@ -81,7 +81,7 @@ def main(argv):
     mode, name, rest = argv[0], argv[1], argv[2:]
     exit_file, pid_file = f".tdd/{name}.exit", f".tdd/{name}.pid"
     if mode == "wait":
-        return _wait(exit_file, pid_file, rest[0] if rest and rest[0] else "60")
+        return _wait(exit_file, pid_file, rest[0] if rest and rest[0] else "590")
     try:
         os.unlink(exit_file)
     except FileNotFoundError:

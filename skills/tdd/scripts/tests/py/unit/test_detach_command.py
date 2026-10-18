@@ -325,7 +325,7 @@ def test_wait_parses_the_pid_file_as_bash_kill_does_blanks_a_plus_and_leading_ze
         assert (pid_text, code, capsys.readouterr(), kills) == (pid_text, 3, ("", ""), [(pid, 0)])
 
 
-def test_wait_takes_an_absent_or_empty_max_as_60_makes_one_round_for_0_and_ignores_arguments_past_max(
+def test_wait_takes_an_absent_or_empty_max_as_590_makes_one_round_for_0_and_ignores_arguments_past_max(
         tmp_path, monkeypatch, capsys, detach_command):
     monkeypatch.chdir(tmp_path)
     tdd = tmp_path / ".tdd"
@@ -343,7 +343,7 @@ def test_wait_takes_an_absent_or_empty_max_as_60_makes_one_round_for_0_and_ignor
     monkeypatch.setattr(time, "sleep", fake_sleep)
     monkeypatch.setattr(os, "kill", lambda pid, signum: kills.append((pid, signum)))
 
-    for label, rest, rounds in (("absent", [], 61), ("empty", [""], 61), ("0", ["0"], 1),
+    for label, rest, rounds in (("absent", [], 591), ("empty", [""], 591), ("0", ["0"], 1),
                                 ("past max", ["2", "junk", "-x"], 3)):
         sleeps.clear()
         kills.clear()

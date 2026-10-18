@@ -5,7 +5,7 @@
 #
 # start  returns 0 at once; the command's output goes to .tdd/<name>.out and its exit code
 #        to .tdd/<name>.exit when it ends.
-# wait   polls every VERI_POLL seconds (default 1) for at most max-seconds (default 60).
+# wait   polls every VERI_POLL seconds (default 1) for at most max-seconds (default 590).
 #
 # Exit codes (wait):
 #   0  the command finished and recorded 0
