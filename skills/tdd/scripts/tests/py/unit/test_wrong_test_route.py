@@ -190,3 +190,19 @@ def test_main_1621_routes_a_wrong_test_naming_a_case_in_a_repo_whose_tests_live_
         results.append((code, stdout))
 
     assert results == [(0, "red %s\n" % pytest_case), (0, "red %s\n" % bash_case)]
+
+
+@pytest.mark.tree_audit("the repository's own Python files, searched for the case a WRONG_TEST names")
+def test_main_1621_prints_revise_when_a_wrong_test_names_a_production_function_that_is_no_pytest_test(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    monkeypatch.chdir(ROOT)
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: the case `main` asserts the opposite of the criterion\n")
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=ROOT)
+
+    assert (code, stdout) == (3, "revise\n")

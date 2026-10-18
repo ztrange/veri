@@ -24,7 +24,7 @@ def _exists(case):
                 continue
             with open(os.path.join(root, name), encoding="utf-8", errors="replace") as handle:
                 text = handle.read()
-            if name.endswith(".py") and py.search(text):
+            if name.endswith(".py") and case.startswith("test_") and py.search(text):
                 return True
             if name.endswith(".test.sh") and ('name="%s"' % case) in text:
                 return True
