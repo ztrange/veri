@@ -37,4 +37,17 @@ out="$("$REQUIREMENTS" units "$work/REQUIREMENTS.md" 2> "$work/stderr")" && code
 expect_eq "units prints each declared prose unit, one per line, in file order" \
   $'0\nskills/tdd/SKILL.md\nskills/tdd/SKILL.md#Phase two\ndocs/guide.md' "$code"$'\n'"$out"
 
+cat > "$work/two-rows.md" <<'MD'
+## skills/tdd/SKILL.md
+
+| ID | Requirement | Why |
+|----|-------------|-----|
+| A1 | Says one thing. | Because secret-one. |
+| A2 | Says two things. | Since secret-two. |
+MD
+
+out="$("$REQUIREMENTS" claims "$work/two-rows.md" skills/tdd/SKILL.md 2> "$work/stderr")" && code=0 || code=$?
+expect_eq "claims prints a unit's rows as ID<TAB>Requirement in table order, with no Why text" \
+  $'0\nA1\tSays one thing.\nA2\tSays two things.' "$code"$'\n'"$out"
+
 finish
