@@ -37,13 +37,13 @@ source "$HERE/lib/harness.sh"
 source "$HERE/lib/exemption-reasons.sh"
 
 probe_no_suite_passes_a_pattern_through_awk_v() {
-  local f name hit lineno text var rest prog quotes i scan rc
+  local f name hit lineno text var rest prog quotes i scan
   local bind_re='-v[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)='
   local -a lines
   for f in "$ROOT"/skills/tdd/scripts/tests/*.sh "$ROOT"/skills/tdd/scripts/tests/lib/*.sh; do [[ -f "$f" ]] || continue
     name="$(basename "$f")"
     mapfile -t lines < "$f"
-    scan="$(grep -n 'awk' "$f")" || { rc=$?; (( rc > 1 )) && problems+=("$name: the grep scanner exited with exit status $rc"); }
+    scan="$(grep -n 'awk' "$f")" || grep_scanner_failed $? "$name"
     while IFS= read -r hit; do
       [[ -n "$hit" ]] || continue
       lineno="${hit%%:*}"

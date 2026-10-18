@@ -89,3 +89,8 @@ exec "$real" "\$@"
 STUB
   chmod +x "$1/python3"
 }
+
+grep_scanner_failed() {
+  (( $1 > 1 )) && problems+=("$2: the grep scanner exited with exit status $1")
+  return 0
+}
