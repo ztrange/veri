@@ -379,7 +379,7 @@ unauthenticated baseline never gets a cycle.
    body="$(mktemp)" && gh api repos/{owner}/{repo}/issues/<n> -q .body > "$body"
    ```
    Then, for `detach-command.sh`, get the fast tier's command from `$S/detect-test-command.sh --tier fast --issue "$body"` (see *Detecting the test command*),
-   and run it through `$S/detach-command.sh start <name> <cmd>`, then `$S/detach-command.sh wait <name> 500` in the foreground, calling `wait` again each time it returns 3 (never background it and end the turn).
+   and run it through `$S/detach-command.sh start <name> <cmd>`, then `$S/detach-command.sh wait <name>` in the foreground with no max-seconds argument and the Bash tool's `timeout` of 600000 ms, calling `wait` again each time it returns 3 (never background it and end the turn).
    `detach-command.sh wait` answers 0 the command passed, 1 it finished red with its code on stdout (a red suite: stop and report), 2 it died recording nothing, 3 still running (call again). If already red, stop and report a preflight
    failure, whatever the caller's checkout holds — a cycle must not start on a red baseline. Reading the body **here**, before the baseline runs, is what
    keeps the baseline and every later leaf on one command: detected after the baseline, the
