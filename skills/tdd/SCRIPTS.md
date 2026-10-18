@@ -212,12 +212,14 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   then it supplies both the name and the **base** itself, as before. Prints the worktree's **absolute path on stdout** — the only
   thing on stdout; git's chatter goes to stderr, so the path is safe to capture.
   **Idempotent**: a second call for the same issue prints the same path and creates nothing,
-  which is what makes a resume land in the worktree the first run made — an existing issue
+  which is what makes a resume land in the worktree the first run made — a **local** issue
   branch is checked out as it is, with no fetch. Only a **local** branch or a **registered
-  worktree** makes a run a resume: a **fresh** run refuses (exit 2) an issue branch origin
-  holds even when this clone has fetched it (a remote-tracking ref is not a resume), creating
-  no branch and no worktree, and names the takeover — `git branch tdd/<n>-<slug>
-  origin/tdd/<n>-<slug>` — after which the next run is a resume. **Exit 0** = the path. **Exit 2** = no answer
+  worktree** makes a run a resume. A branch **only origin** holds is refused (exit 2) unless
+  the run is a resume, even when this clone has fetched it (a remote-tracking ref is not a
+  resume): it creates no branch and no worktree, and names the takeover — `git branch
+  tdd/<n>-<slug> origin/tdd/<n>-<slug>` — after which the next run is a resume. A **stale**
+  remote-tracking ref, whose branch origin no longer holds, is not a claim: the run cuts fresh
+  from `origin/<default>`, as above. **Exit 0** = the path. **Exit 2** = no answer
   could be obtained — either the branch is **already checked out in another worktree** (it names
   that path and touches nothing: **never steal a checkout**, another conductor owns that run),
   or the default branch cannot be named, or fetching it failed — never a silent fallback to the
