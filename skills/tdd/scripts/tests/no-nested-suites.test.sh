@@ -31,8 +31,6 @@ declare -A EXEMPT=(
   [sigpipe-guard.test.sh]="plants a suite that declares pipefail and ends a pipeline in grep -q, plus the same pipeline without pipefail, into a scratch tree and runs a copy of no-sigpipe-pipelines.test.sh (the guard #422 added) over it; after this issue's other steps the real tree holds no live site, so the guard answers the same way over it whether it still checks anything or not, and only running it over the plant says otherwise"
   [job-spec-guard.test.sh]="plants a script that kills a background process by a job spec, plus the same process killed by the pid it recorded, into a scratch tree and runs a copy of no-job-spec-kills.test.sh (the guard #424 added) over it; after this issue's other steps the real tree holds no live site, so the guard answers the same way over it whether it still checks anything or not, and only running it over the plant says otherwise"
   [docs-read-guard-plant.test.sh]="the same plant-the-bug seam verification one level up: runs a scratch copy of docs-read-guard.test.sh against a stubbed no-docs-reads.test.sh to pin that IT still reports the guard's absence correctly"
-  [no-unbacked-pushes.test.sh]="its exemption table is keyed by suite basename, so its one key names push-backoff-guard.test.sh, the suite whose planted push-branch.sh lines it exempts; a table key, not a launch of that suite"
-  [push-backoff-guard.test.sh]="plants a suite that invokes push-branch.sh without VERI_PUSH_BACKOFF, beside one that sets it, into a scratch tree and runs a copy of no-unbacked-pushes.test.sh (the guard the push-backoff check moved into, #1258) over it; every real suite sets VERI_PUSH_BACKOFF today, so the guard answers the same way over this tree whether it still checks anything or not, and only running it over the plant says otherwise"
   [unit-subprocess-guard.test.sh]="plants a unit-tier suite that runs status.sh, and an exemption entry with and without a reason, into a scratch tree and runs a copy of no-unit-subprocess.test.sh (the admission guard #1634 added) over it; the real unit/ holds no offender and no exemption today, so the guard answers the same way over it whether it still checks anything or not, and only running it over the plant says otherwise"
   [scanner-status-guards.test.sh]="copies no-awk-v-patterns.test.sh, no-docs-reads.test.sh and no-job-spec-kills.test.sh into clean scratch trees and runs each with only its grep scanner over that tree forced to exit 2; the real tree's scanners never fail, so each guard answers the same way over it whether it checks its scanner's status or not, and only the forced failure says otherwise"
   [prose-drift-red.test.sh]="its subject is the verdict \`make test\`'s own runner reaches over a tree — \`make -C \$planted test TESTS= UNIT_TESTS= PY_TESTS=test_refactor_budget.py\` — not the product; only the real recipe over the real suite produces that verdict"
@@ -142,12 +140,5 @@ problems=()
 scan_launches "$plant/affected-suites.test.sh" | grep -F "$(printf 'affected-suites.test.sh\t%s\trun-suite-offline.test.sh\t' "$planted_line")" > /dev/null \
   || problems+=("a planted 'bash \"\$HERE/run-suite-offline.test.sh\"' at affected-suites.test.sh:$planted_line was not reported")
 report "#538: a real launch of another suite planted in affected-suites.test.sh is still read as launching it"
-
-mentions_reported no-unbacked-pushes.test.sh push-backoff-guard.test.sh
-from_guard=("${problems[@]}")
-mentions_reported push-backoff-guard.test.sh no-unbacked-pushes.test.sh
-problems=(${from_guard[@]+"${from_guard[@]}"} ${problems[@]+"${problems[@]}"})
-report "#1258: no-unbacked-pushes.test.sh and push-backoff-guard.test.sh, naming each other, are each exempted with a reason or not read as launching the other"
-
 
 finish
