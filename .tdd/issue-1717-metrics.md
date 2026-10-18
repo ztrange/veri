@@ -1,9 +1,9 @@
 ### 📊 Metrics — issue 1717
 
-Wall time for the issue: 3964 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1076 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 9 of 9 planned.
-Outcome: the run bailed — suite-red, a process failure.
+Steps done: 9 of 10 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/1740.
 Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
@@ -12,16 +12,16 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 11 | 8 | 1 | 2 | 954 | 0 | 30455 | 0.09 |
-| red | 21 | 9 | 1 | 0 | 395 | 308 | 94 | 184 | 32465 | 2563411 | 390874 | 1.76 |
-| green | 19 | 9 | 0 | 0 | 1631 | 283 | 103 | 202 | 29804 | 3023470 | 268306 | 1.47 |
-| refactor | 18 | 9 | 0 | 0 | 341 | 131 | 55 | 110 | 10846 | 1415477 | 263196 | 0.91 |
+| red | 23 | 10 | 1 | 0 | 429 | 333 | 104 | 204 | 35671 | 2824990 | 458544 | 1.99 |
+| green | 21 | 10 | 0 | 0 | 1754 | 329 | 121 | 238 | 33748 | 3569381 | 300837 | 1.64 |
+| refactor | 20 | 10 | 0 | 0 | 388 | 153 | 63 | 126 | 12651 | 1636901 | 291375 | 1.02 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 29 | 28 | 1 | 0 | 1300 | 285 | 97 | 192 | 26353 | 2452427 | 408255 | 1.73 |
-| developer | claude-sonnet-5-5 | 27 | 0 | 0 | 0 | 994 | 375 | 141 | 276 | 40902 | 4120334 | 473618 | 2.01 |
+| verifier | claude-sonnet-5-5 | 32 | 31 | 1 | 0 | 1379 | 317 | 109 | 216 | 29214 | 2757089 | 466890 | 1.93 |
+| developer | claude-sonnet-5-5 | 30 | 0 | 0 | 0 | 1119 | 436 | 165 | 324 | 46996 | 4844586 | 543363 | 2.31 |
 | developer | claude-opus-5-5 | 3 | 0 | 0 | 0 | 84 | 70 | 15 | 30 | 6814 | 429597 | 70958 | 0.49 |
 
 #### Rework and waste, by phase
@@ -29,9 +29,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 87 | 0.39 | 0 | 0.00 |
-| green | 0 | 0.00 | 0 | 0.00 |
-| refactor | 0 | 0.00 | 0 | 0.00 |
+| red | 87 | 0.39 | 34 | 0.23 |
+| green | 0 | 0.00 | 123 | 0.18 |
+| refactor | 0 | 0.00 | 47 | 0.11 |
 
 #### By step
 
@@ -45,7 +45,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | `claims` on a unit whose table header lacks one of the `ID`, `Requirement`, `Why` columns exits 2, prints nothing on stdout, and names the header's line number on stderr ⟦criterion 3⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 56 | 23 | 46 | 5818 | 630863 | 85307 | 0.33 | 172 | unknown | 0/5 | nothing-left |  |  | full |
 | `claims` given a file that does not exist exits 2 and says on stderr that the file is missing, naming it ⟦criterion 4⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 55 | 24 | 46 | 5783 | 630477 | 86460 | 0.34 | 170 | unknown | 0/5 | nothing-left |  |  | full |
 | `claims` given a unit the file does not declare exits 2 and says on stderr that the unit is not declared, naming it ⟦criterion 4⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 71 | 26 | 52 | 6885 | 730713 | 88516 | 0.36 | 205 | unknown | 0/5 | nothing-left |  |  | full |
-| fix the full-suite failure: skills/tdd/scripts/tests/py/test_shims.py — FAILED test_the_exemption_table_lists_the_six_non_canonical_shims_with_a_reason_each_and_a_stale_row_fails_naming_the_script: 'requirements.sh: not the canonical shim'; skills/tdd/scripts/tests/py/test_comment_class.py — FAILED test_main_sweeps_the_scripts_lib_and_suites_to_empty_sweepable_reports_no_cited_issue_and_unchanged_class_3_lines: class 3 lines 'requirements:## skills/tdd/SKILL.md' (x3) not in CLASS_3_LINES ⟦suite-repair⟧ ⟦criterion 4⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 129 | 35 | 70 | 12321 | 1087963 | 147533 | 0.80 | 1196 | unknown | 1/5 | nothing-left |  |  | full |
+| fix the full-suite failure: skills/tdd/scripts/tests/py/test_shims.py — FAILED test_the_exemption_table_lists_the_six_non_canonical_shims_with_a_reason_each_and_a_stale_row_fails_naming_the_script: 'requirements.sh: not the canonical shim'; skills/tdd/scripts/tests/py/test_comment_class.py — FAILED test_main_sweeps_the_scripts_lib_and_suites_to_empty_sweepable_reports_no_cited_issue_and_unchanged_class_3_lines: class 3 lines 'requirements:## skills/tdd/SKILL.md' (x3) not in CLASS_3_LINES ⟦suite-repair⟧ ⟦criterion 4⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 129 | 35 | 70 | 12321 | 1087963 | 147533 | 0.80 | 3267 | unknown | 1/5 | nothing-left |  |  | full |
+| `claims` on a unit whose table header has the `Requirement` and `Why` columns but no `ID` column (e.g. `| Key | Requirement | Why |`) exits 2, prints nothing on stdout, and names the header's line number on stderr — today such a header is not recognised as a table at all, so the unit is silently treated as having no table; the case asserts the exit 2 and the line number (coordinator ruling after the suite-red bail: criterion 3 names a table missing one of the three columns) ⟦criterion 3⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 93 | 36 | 72 | 8955 | 1028914 | 128380 | 0.51 | unknown | unknown | 1/5 | nothing-left |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -62,17 +63,22 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `claims` given a file that does not exist exits 2 and says on stderr that the file is missing, naming it ⟦criterion 4⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 34 | 0.09 |
 | `claims` given a unit the file does not declare exits 2 and says on stderr that the unit is not declared, naming it ⟦criterion 4⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 39 | 0.09 |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/test_shims.py — FAILED test_the_exemption_table_lists_the_six_non_canonical_shims_with_a_reason_each_and_a_stale_row_fails_naming_the_script: 'requirements.sh: not the canonical shim'; skills/tdd/scripts/tests/py/test_comment_class.py — FAILED test_main_sweeps_the_scripts_lib_and_suites_to_empty_sweepable_reports_no_cited_issue_and_unchanged_class_3_lines: class 3 lines 'requirements:## skills/tdd/SKILL.md' (x3) not in CLASS_3_LINES ⟦suite-repair⟧ ⟦criterion 4⟧ | 1 | 1/5 | nothing-left | PASS | 0 | 49 | 0.17 |
+| `claims` on a unit whose table header has the `Requirement` and `Why` columns but no `ID` column (e.g. `| Key | Requirement | Why |`) exits 2, prints nothing on stdout, and names the header's line number on stderr — today such a header is not recognised as a table at all, so the unit is silently treated as having no table; the case asserts the exit 2 and the line number (coordinator ruling after the suite-red bail: criterion 3 names a table missing one of the three columns) ⟦criterion 3⟧ | 1 | 1/5 | nothing-left | PASS | 0 | 47 | 0.11 |
+
+#### Structural pass
+
+Stopped: nothing-structural
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 1 | 0 | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 1 | 0 | 1 | 1 | 0 | 2 | 1 | 1 | 3 |
-| fast | 19 | 17 | 18 | 17 | 18 | 17 | 17 | 16 | 17 | 17 | 17 | 16 | 16 | 16 | 16 | 17 | 17 | 16 | 16 | 16 | 16 | 17 | 16 | 16 | 16 | 16 | 19 | 16 | 17 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 1 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 2 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 1 | 0 | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 1 | 0 | 1 | 1 | 0 | 2 | 1 | 1 | 3 | 0 | 0 | 1 | 0 | 1 | 1 | 1 |
+| fast | 19 | 17 | 18 | 17 | 18 | 17 | 17 | 16 | 17 | 17 | 17 | 16 | 16 | 16 | 16 | 17 | 17 | 16 | 16 | 16 | 16 | 17 | 16 | 16 | 16 | 16 | 19 | 16 | 17 | 16 | 16 | 16 | 16 | 16 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 1 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 2 | 0 | 1 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 253 | 498 | 74069 | 7002358 | 952831 | 4.22 |
+| total | 289 | 570 | 83024 | 8031272 | 1081211 | 4.73 |
