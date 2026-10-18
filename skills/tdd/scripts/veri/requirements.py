@@ -10,8 +10,12 @@ def read_lines(path):
         return f.read().split("\n")
 
 
+def split_cells(line):
+    return [c.strip() for c in line.split("|")]
+
+
 def is_header(line):
-    cells = [c.strip() for c in line.split("|")]
+    cells = split_cells(line)
     return line.startswith("|") and len(cells) > 1 and cells[1] == "ID"
 
 
@@ -21,7 +25,7 @@ def units(path):
     for line in read_lines(path):
         if line.startswith("## "):
             heading = line[3:]
-        elif line.startswith("|") and [c.strip() for c in line.split("|")][1:4] == ["ID", "Requirement", "Why"]:
+        elif line.startswith("|") and split_cells(line)[1:4] == ["ID", "Requirement", "Why"]:
             if heading:
                 found.append(heading)
             heading = ""
@@ -40,14 +44,14 @@ def claims(path, unit):
         elif not inunit:
             continue
         elif is_header(line):
-            cells = [c.strip() for c in line.split("|")]
+            cells = split_cells(line)
             if cells[2:4] != ["Requirement", "Why"]:
                 fail("header lacks a column")
             intable, skip = True, True
         elif intable and skip:
             skip = False
         elif intable and line.startswith("|"):
-            cells = [c.strip() for c in line.split("|")]
+            cells = split_cells(line)
             cells += [""] * (3 - len(cells))
             if cells[1] == "":
                 fail("empty ID")
