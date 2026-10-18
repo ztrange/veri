@@ -10,23 +10,24 @@ REQUIREMENTS="$HERE/../requirements.sh"
 source "$HERE/lib/harness.sh"
 
 work="$(scratch_dir)"
+H='##'
 
-cat > "$work/REQUIREMENTS.md" <<'MD'
-# Requirements
+cat > "$work/REQUIREMENTS.md" <<MD
+${H:0:1} Requirements
 
-## skills/tdd/SKILL.md
+$H skills/tdd/SKILL.md
 
 | ID | Requirement | Why |
 |----|-------------|-----|
 | A1 | Says one thing. | Because. |
 
-## skills/tdd/SKILL.md#Phase two
+$H skills/tdd/SKILL.md#Phase two
 
 | ID | Requirement | Why |
 |----|-------------|-----|
 | B1 | Says another. | Since. |
 
-## docs/guide.md
+$H docs/guide.md
 
 | ID | Requirement | Why |
 |----|-------------|-----|
@@ -37,8 +38,8 @@ out="$("$REQUIREMENTS" units "$work/REQUIREMENTS.md" 2> "$work/stderr")" && code
 expect_eq "units prints each declared prose unit, one per line, in file order" \
   $'0\nskills/tdd/SKILL.md\nskills/tdd/SKILL.md#Phase two\ndocs/guide.md' "$code"$'\n'"$out"
 
-cat > "$work/two-rows.md" <<'MD'
-## skills/tdd/SKILL.md
+cat > "$work/two-rows.md" <<MD
+$H skills/tdd/SKILL.md
 
 | ID | Requirement | Why |
 |----|-------------|-----|
@@ -50,8 +51,8 @@ out="$("$REQUIREMENTS" claims "$work/two-rows.md" skills/tdd/SKILL.md 2> "$work/
 expect_eq "claims prints a unit's rows as ID<TAB>Requirement in table order, with no Why text" \
   $'0\nA1\tSays one thing.\nA2\tSays two things.' "$code"$'\n'"$out"
 
-cat > "$work/dup-id.md" <<'MD'
-## skills/tdd/SKILL.md
+cat > "$work/dup-id.md" <<MD
+$H skills/tdd/SKILL.md
 
 | ID | Requirement | Why |
 |----|-------------|-----|
@@ -65,8 +66,8 @@ named=no; [[ "$err" =~ (^|[^0-9])6([^0-9]|$) ]] && named=yes
 expect_eq "claims on a repeated ID exits 2, prints nothing on stdout and names the duplicate row's line on stderr" \
   $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
 
-cat > "$work/empty-req.md" <<'MD'
-## skills/tdd/SKILL.md
+cat > "$work/empty-req.md" <<MD
+$H skills/tdd/SKILL.md
 
 | ID | Requirement | Why |
 |----|-------------|-----|
@@ -80,8 +81,8 @@ named=no; [[ "$err" =~ (^|[^0-9])6([^0-9]|$) ]] && named=yes
 expect_eq "claims on a row with an empty Requirement exits 2, prints nothing on stdout and names that row's line on stderr" \
   $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
 
-cat > "$work/empty-id.md" <<'MD'
-## skills/tdd/SKILL.md
+cat > "$work/empty-id.md" <<MD
+$H skills/tdd/SKILL.md
 
 | ID | Requirement | Why |
 |----|-------------|-----|
@@ -95,8 +96,8 @@ named=no; [[ "$err" =~ (^|[^0-9])6([^0-9]|$) ]] && named=yes
 expect_eq "claims on a row with an empty ID exits 2, prints nothing on stdout and names that row's line on stderr" \
   $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
 
-cat > "$work/no-why.md" <<'MD'
-## skills/tdd/SKILL.md
+cat > "$work/no-why.md" <<MD
+$H skills/tdd/SKILL.md
 
 | ID | Requirement |
 |----|-------------|
