@@ -1749,7 +1749,7 @@ def test_main_asks_green_and_revise_green_prompts_to_name_the_contradicted_case_
     ask = b"Name in that line the existing test case the step's criterion contradicts."
 
     asked = {}
-    for name, argv in (("green", ["green", str(spec), "s", "make test", "t/x.test.sh", "case one", "make unit"]),
+    for name, argv in (("green", ["green", str(spec), "s", "make test", "t/x.sh", "case one", "make unit"]),
                        ("revise", ["revise", "green", str(spec), "s", "make test", str(reason)])):
         code = build_develop_prompt.main(argv)
         out, _ = capsysbinary.readouterr()
