@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 
+import replaces_case
 from ledger import trailing_markers
 from transform_touches_tests import TEST_FILE
 
@@ -91,7 +92,10 @@ def main(argv):
                 changed.append(name)
         if by_step and os.path.exists(".git"):
             recorded = {name for _, name in entries}
-            changed += [name for name in _differing_tests() if name not in recorded]
+            parsed = replaces_case.parse(step) if replaces_case.is_replaces_case_step(step) else None
+            exempt = {parsed[1]} if parsed else set()
+            changed += [name for name in _differing_tests()
+                        if name not in recorded and name not in exempt]
         for name in changed:
             _write(sys.stdout, name)
         return 1 if changed else 0
