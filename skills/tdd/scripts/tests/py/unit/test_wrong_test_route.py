@@ -95,3 +95,24 @@ def test_main_1621_refuses_a_wrong_test_naming_no_case_only_its_own_red_or_a_mis
         results.append((code, stdout, stderr))
 
     assert results == [(3, "revise\n")] * 3 + [(2, "", usage)] * 5
+
+
+def test_main_1621_routes_a_revise_green_report_in_the_revise_template_shape_to_a_red_over_the_contradicted_case(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    contradicted = "test_main_counts_a_repair_text_as_a_repair"
+    (suite / ("test_" + "ledger" + ".py")).write_text(
+        "def test_main_returns_zero():\n    pass\n\n"
+        "def %s():\n    pass\n" % contradicted)
+    report = tmp_path / "revise-green-report.txt"
+    report.write_text(
+        "OUTCOME: the revised green still fails the suite\n"
+        "AGAINST_UNMODIFIED: N/A\n"
+        "WRONG_TEST: %s asserts the opposite of the criterion\n" % contradicted)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red %s\n" % contradicted)
