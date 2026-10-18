@@ -1,2 +1,4 @@
 ### supervise.sh launches develop-green as today when the run's event log holds a verify-pin PASS for that step after the step's latest red leaf launch (the pin path) ⟦criterion 1⟧
 - test-only | the four #1741 cases in test_supervise.py repeat the same setup (the `.tdd` dir, the events.jsonl write, the stub claude). A helper would remove that.
+### supervise.sh launches develop-green as today (stub claude runs, its exit status recorded) on a CI-repair step when VERI_STEP carries that step's full ledger text, mark included, exactly as next-unchecked.sh prints it, after a red leaf launch with no verdict recorded; the case passes the real step text, never a step number ⟦criterion 2⟧
+- test-only | the new full-ledger-text case in test_supervise.py repeats the setup of the preceding ci-repair case (the .tdd dir, ledger, event log and stub claude). A shared helper would remove that.
