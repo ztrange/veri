@@ -68,7 +68,7 @@ for f in "$HERE"/unit/*.test.sh; do
     }
     $0 ~ (lead "\"?[^ \t\"]*\\$[^ \t\"]*\\.sh\"?([ \t;&|)}]|$)") { print FNR "\t" $0; next }
     names_script($0) { print FNR "\t" $0 }
-  ' "$f")" || problems+=("$suite: the awk scanner exited with exit status $?")
+  ' "$f")" || problems+=("${0##*/}: $suite: the awk scanner exited with exit status $?")
   while IFS=$'\t' read -r lineno text; do
     [[ -n "$lineno" ]] || continue
     problems+=("$suite:$lineno runs a script under skills/tdd/scripts/ as a subprocess, with no exemption recorded: $(flat "$text")")
