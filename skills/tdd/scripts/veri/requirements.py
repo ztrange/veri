@@ -58,6 +58,10 @@ def claims(path, unit):
             if cells[1:4] != COLUMNS:
                 fail("header lacks a column")
             intable, skip, tabled = True, True, True
+        elif intable and not skip and not line.strip():
+            intable = False
+        elif tabled and not intable and line.startswith("|"):
+            fail("pipe line after the table")
         elif intable and skip:
             skip = False
         elif intable and line.startswith("|"):

@@ -213,6 +213,22 @@ named=no; [[ "$err" =~ (^|[^0-9])7([^0-9]|$) ]] && named=yes
 expect_eq "claims on a unit with a second table exits 2, prints nothing on stdout and names the second header's line on stderr (#1743)" \
   $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
 
+cat > "$work/later-key-table.md" <<MD
+$H skills/tdd/SKILL.md
+
+| ID | Requirement | Why |
+|----|-------------|-----|
+| A1 | Do it. | Because. |
+
+| Key | Requirement |
+MD
+
+out="$("$REQUIREMENTS" claims "$work/later-key-table.md" skills/tdd/SKILL.md 2> "$work/stderr")" && code=0 || code=$?
+err="$(< "$work/stderr")"; err="${err//"$work"/}"
+named=no; [[ "$err" =~ (^|[^0-9])7([^0-9]|$) ]] && named=yes
+expect_eq "claims on a unit with a later | Key | Requirement | line exits 2, prints nothing on stdout and names that line on stderr (#1743)" \
+  $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
+
 cat > "$work/escaped-pipe.md" <<MD
 $H skills/tdd/SKILL.md
 
