@@ -1,9 +1,11 @@
 """tests-frozen.sh's record and check, run in-process."""
 import hashlib
 import os
+import subprocess
 import sys
 
 from ledger import trailing_markers
+from transform_touches_tests import TEST_FILE
 
 USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> <test-file>... | "
          "check <record-file>|--step <step-text> | path <step-text>")
@@ -34,7 +36,8 @@ def main(argv):
     if mode == "path":
         _write(sys.stdout, _record_path(record))
         return 0
-    if record == "--step":
+    by_step = record == "--step"
+    if by_step:
         step = argv[2] if len(argv) > 2 else ""
         if not step:
             _write(sys.stderr, USAGE)
@@ -73,6 +76,13 @@ def main(argv):
                     changed.append(name)
             except OSError:
                 changed.append(name)
+        if by_step and os.path.exists(".git"):
+            recorded = {name for _, name in entries}
+            diff = subprocess.run(["git", "diff", "--name-only", "-z", "HEAD"], stdout=subprocess.PIPE)
+            for raw in diff.stdout.split(b"\0"):
+                name = os.fsdecode(raw)
+                if raw and TEST_FILE.search(raw) and name not in recorded:
+                    changed.append(name)
         for name in changed:
             _write(sys.stdout, name)
         return 1 if changed else 0
