@@ -93,8 +93,12 @@ def _bullet_body(lines, prefix):
     return plain(out)
 
 
+def catalogue_lines():
+    return SKILL.with_name("SCRIPTS.md").read_text().splitlines()
+
+
 def add_ledger_step_entry():
-    return _bullet(skill_lines(), "- `$S/add-ledger-step.sh")
+    return _bullet(catalogue_lines(), "- `$S/add-ledger-step.sh")
 
 
 def repair_call_neighbourhood(tag):
@@ -308,7 +312,7 @@ def test_1406_skill_md_documents_build_develop_prompt_sh_green_s_8th_argument_th
     green_build = next((line for line in skill_lines() if "build-develop-prompt.sh green " in line), None)
     assert green_build, "SKILL.md has no 'build-develop-prompt.sh green ' command line to read"
     assert "owed" in green_build, f"SKILL.md's green build command passes no argument for the cases still owed for deletion: {green_build}"
-    reference = _bullet_body(skill_lines(), "- `$S/build-develop-prompt.sh <red")
+    reference = _bullet_body(catalogue_lines(), "- `$S/build-develop-prompt.sh <red")
     assert re.search(r"<fast-cmd>.*owed", reference) or re.search(r"green <spec-file>.*owed.*refactor <spec-file>", reference), \
         "SKILL.md's build-develop-prompt.sh reference entry never lists an owed-cases argument in green's synopsis"
 

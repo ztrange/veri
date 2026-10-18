@@ -173,7 +173,7 @@ def clear_problems(path, exempt=None):
 
 
 def wait_leaf_problems(path, exempt=None):
-    entry = inventory_entry(path.read_text(), "wait-leaf.sh")
+    entry = inventory_entry(SKILL.with_name("SCRIPTS.md").read_text(), "wait-leaf.sh")
     if not entry:
         return ["no script inventory entry for wait-leaf.sh"]
     faults = []
@@ -243,7 +243,8 @@ def step_title_problems(path, exempt=None):
 
 
 def fragment_problems(path, exempt=None):
-    fragments = [(n, line) for n, line in enumerate(path.read_text().splitlines(), 1)
+    lines = (path.read_text() + SKILL.with_name("SCRIPTS.md").read_text()).splitlines()
+    fragments = [(n, line) for n, line in enumerate(lines, 1)
                  if re.search(FRAGMENT_PH, line)
                  and re.search(r"\$S/|" + SINGLE_QUOTED_FRAGMENT + "|" + DOUBLE_QUOTED_FRAGMENT, line)]
     if not fragments:

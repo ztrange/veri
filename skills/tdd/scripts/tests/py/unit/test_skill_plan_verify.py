@@ -4,6 +4,7 @@ import pathlib
 import re
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
+SCRIPTS_MD = SKILL.with_name("SCRIPTS.md")
 
 SCOPE = "### 2. Scope & plan → the ledger"
 COMMIT_RE = r'git commit -m "plan: scope'
@@ -91,9 +92,10 @@ def test_skill_md_bails_as_a_system_failure_when_the_plan_verification_rendered_
 def test_skill_md_script_entries_for_the_verifier_scripts_name_the_plan_phase_beside_the_four_cycle_phases():
     for script in ("build-verify-prompt.sh", "verify.sh", "run-verdict.sh"):
         entry_re = r"^- .[$]S/" + script.replace(".", "[.]") + " "
-        entry_line = line_of(entry_re)
+        catalogue = SCRIPTS_MD.read_text().splitlines()
+        entry_line = next((n for n, text in enumerate(catalogue, 1) if re.search(entry_re, text)), 0)
         assert entry_line, f"no script-inventory entry for {script} (/{entry_re}/)"
-        line = skill_lines()[entry_line - 1]
+        line = catalogue[entry_line - 1]
         match = re.search(ALTERNATION_RE, line)
         assert match, f"line {entry_line}, the entry for {script}, spells no phase alternation: {line}"
         alternation = f"|{match.group(1)}|"
@@ -120,7 +122,7 @@ def test_skill_md_plan_section_plans_a_step_that_can_be_satisfied_only_by_editin
 
 def test_skill_md_names_reorder_ledger_steps_sh_as_the_one_sanctioned_reorder_of_unchecked_steps_and_the_hand_edit_guardrail_points_at_it():
     script = "reorder-ledger-steps.sh"
-    lines = skill_lines()
+    lines = skill_lines() + SCRIPTS_MD.read_text().splitlines()
     assert script in "\n".join(lines).lower(), f"never names {script}"
     mention = " ".join(line for line in lines if script in line).lower()
     for word in ("unchecked", "plan:", "operator"):

@@ -2,7 +2,7 @@ import pathlib
 import re
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[3]
-SKILL = SCRIPTS.parent / "SKILL.md"
+SKILL = SCRIPTS.parent / "SCRIPTS.md"
 
 
 def synopses(skill):
@@ -57,6 +57,7 @@ def problems(scripts, skill):
 
 def test_a_flag_or_verb_of_a_usage_block_missing_from_its_skill_md_entry_is_named_with_its_script_and_the_real_tree_has_none(tmp_path):
     """Subject is source text: SKILL.md's script reference read against each script's `# usage:` block."""
+    assert list(synopses(SKILL)) != []
     assert problems(SCRIPTS, SKILL) == []
 
     scripts = tmp_path / "scripts"

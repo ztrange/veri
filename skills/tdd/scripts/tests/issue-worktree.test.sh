@@ -370,7 +370,7 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
   && ok || no "resume onto an existing issue branch with the remote unreachable: checks it out as it is without going to the remote (exit=$code want 0, stdout='$out' want '$want', branch='$branch' want 'tdd/45-resume-no-fetch', tip='$tip' want the existing branch's $branch_tip not main's $main_tip, stderr $( [[ -z "$err" ]] && echo "silent, good" || echo "carried:
 $err" ))"
 
-SKILL="$HERE/../../SKILL.md"
+SKILL="$HERE/../../SCRIPTS.md"
 
 entry="$(awk '
   !in_e && index($0, "- `$S/issue-worktree.sh <n> <slug>") == 1 { in_e = 1; print; next }

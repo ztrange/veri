@@ -4,7 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[6]
 CONTEXT_MD = "CONTEXT.md"
-SKILL_MD = "skills/tdd/SKILL.md"
+SKILL_MD = "skills/tdd/SCRIPTS.md"
 CLAUDE_MD = "CLAUDE.md"
 LOWER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
 
