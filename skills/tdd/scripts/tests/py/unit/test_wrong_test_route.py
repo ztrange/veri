@@ -206,3 +206,23 @@ def test_main_1621_prints_revise_when_a_wrong_test_names_a_production_function_t
         wrong_test_route, [str(report), "test_main_returns_zero"], cwd=ROOT)
 
     assert (code, stdout) == (3, "revise\n")
+
+
+def test_main_1621_counts_a_test_prefixed_python_function_only_when_defined_in_a_test_file(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    case = "test_totals_an_invoice"
+    results = []
+    for directory, filename in (("helpers", "pkg/helpers.py"), ("suffixed", "pkg/billing" + "_test" + ".py")):
+        repo = tmp_path / directory
+        (repo / "pkg").mkdir(parents=True)
+        (repo / filename).write_text("def %s():\n    pass\n" % case)
+        report = repo / "green-report.txt"
+        report.write_text(
+            "SUITE: make test\n"
+            "WRONG_TEST: the case `%s` asserts the opposite of the criterion\n" % case)
+        code, stdout, stderr = run_cli(
+            wrong_test_route, [str(report), "test_main_returns_zero"], cwd=repo)
+        results.append((code, stdout))
+
+    assert results == [(3, "revise\n"), (0, "red %s\n" % case)]
