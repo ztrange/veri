@@ -21,4 +21,36 @@ else
   ok
 fi
 
+name="a done run with every step ticked, none refactor-pending and its PR body's human-owed line ticked exits 0 and prints nothing"
+repo="$(scratch_dir)"
+bin="$(scratch_dir)"
+new_repo "$repo"
+mkdir -p "$repo/.tdd/wt/4242/.tdd"
+git -C "$repo" commit -q --allow-empty -m init
+git init -q "$repo/.tdd/wt/4242"
+printf '%s\n' \
+  '{"ts":1000,"event":"launch","step":"1","phase":"red","actor":"developer","name":"develop-red"}' \
+  '{"ts":1001,"event":"done","pr":"https://github.com/o/r/pull/7"}' > "$repo/.tdd/wt/4242/.tdd/events.jsonl"
+printf '%s\n' '# Plan for #4242 — a title' '' '- [x] first step ⟦criterion 1⟧' '- [x] second step ⟦criterion 2⟧' \
+  > "$repo/.tdd/wt/4242/.tdd/issue-4242.md"
+cat > "$bin/gh" <<'STUB'
+#!/bin/sh
+body='Closes #4242
+
+- [x] a reviewer checks the page ⟦human-owed⟧ ⟦criterion 3⟧'
+case " $* " in
+  *" --json "*) printf '{"body": "%s"}\n' "$(printf '%s' "$body" | sed 's/$/\\n/' | tr -d '\n')" ;;
+  *) printf '%s\n' "$body" ;;
+esac
+STUB
+chmod +x "$bin/gh"
+out="$(cd "$repo" && PATH="$bin:$PATH" "$FINISHED" 4242 2>&1)" && code=0 || code=$?
+if [[ "$code" != 0 ]]; then
+  no "$name (want exit 0, got $code: $out)"
+elif [[ -n "$out" ]]; then
+  no "$name (want no output, got: $out)"
+else
+  ok
+fi
+
 finish
