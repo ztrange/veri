@@ -1178,3 +1178,21 @@ def test_main_refuses_a_newline_text_at_the_growth_budget_counting_it_as_one_add
 
     text = ledger.read_bytes().decode()
     assert (code, text.startswith(steps), text[len(steps):]) == (1, True, "\n## Owed steps\n\n- first line\nsecond line\n")
+
+
+def test_main_refuses_a_criterion_tagged_text_at_the_growth_budget_counting_it_as_one_added_step_and_owes_it_issue_1631(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.setenv("VERI_STEP_GROWTH", "2")
+    ledger = tmp_path / "issue-42.md"
+    steps = (
+        "# Plan for #42\n\n"
+        "- [ ] alpha ⟦criterion 1⟧\n"
+        "- [ ] extra one ⟦added⟧ ⟦criterion 1⟧\n"
+        "- [ ] extra two ⟦added⟧ ⟦criterion 1⟧\n"
+    )
+    ledger.write_bytes(steps.encode())
+
+    code = add_ledger_step.main([str(ledger), "after", "alpha", "tagged step ⟦criterion 2⟧"])
+    capsys.readouterr()
+
+    text = ledger.read_bytes().decode()
+    assert (code, text.startswith(steps), text[len(steps):]) == (1, True, "\n## Owed steps\n\n- tagged step ⟦criterion 2⟧\n")
