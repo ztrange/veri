@@ -21,17 +21,19 @@ source "$HERE/lib/harness.sh"
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
 offenders() {
-  local suite hit line text
+  local suite hit line text scan
   for suite in "$HERE"/*.test.sh; do
     [[ "$(basename "$suite")" == "$SELF" ]] && continue
+    scan="$(grep -nE -- "$RECIPE_CALL" "$suite")" || grep_scanner_failed $? "$(basename "$suite")"
     while IFS= read -r hit; do
+      [[ -n "$hit" ]] || continue
       line="${hit%%:*}"
       text="${hit#*:}"
       [[ "$text" =~ ^[[:space:]]*# ]] && continue
       [[ "$text" =~ ^[[:space:]]*report[[:space:]] ]] && continue
       [[ "$text" =~ $UNIT_EMPTIED ]] && continue
       printf '%s:%s:%s\n' "$(basename "$suite")" "$line" "$text"
-    done < <(grep -nE -- "$RECIPE_CALL" "$suite")
+    done <<< "$scan"
   done
   return 0
 }
@@ -39,10 +41,13 @@ offenders() {
 name="no suite under tests/ calls the test recipe with TESTS= and leaves UNIT_TESTS unemptied"
 problems=()
 
+sites_file="$(scratch_dir)/sites"
+offenders > "$sites_file"
+
 while IFS= read -r site; do
   [[ -n "$site" ]] || continue
   problems+=("${site%%:*}:$(cut -d: -f2 <<< "$site") runs the recipe's whole fast tier beside the suite it names; add UNIT_TESTS= to the call: $(flat "${site#*:*:}")")
-done < <(offenders)
+done < "$sites_file"
 
 report "$name"
 

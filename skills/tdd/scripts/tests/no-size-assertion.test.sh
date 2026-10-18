@@ -36,20 +36,21 @@ subjects() {
 }
 
 probe_no_suite_measures_either_file() {
-  local f name subj hit lineno text
+  local f name subj hit lineno text scan
   local -a suites=("$HERE"/*.test.sh) matched=()
   [[ -e "${suites[0]}" ]] || return 0
   mapfile -t matched < <(grep -lE "$SIZE_VERB" "${suites[@]}")
   for f in "${matched[@]}"; do
     name="$(basename "$f")"
     subj="$(subjects "$f")"
+    scan="$(grep -nE "$SIZE_VERB" "$f")" || grep_scanner_failed $? "$name"
     while IFS= read -r hit; do
       lineno="${hit%%:*}"
       text="${hit#*:}"
       [[ "$text" =~ ^[[:space:]]*# ]] && continue
       [[ "$text" =~ $subj ]] || continue
       problems+=("$name:$lineno measures the size of one of the two files every request is billed for, which is the ceiling #202 refuses — the guard against those documents growing back is that every rule in them is still stated, never how many bytes it took: $(flat "$text")")
-    done < <(grep -nE "$SIZE_VERB" "$f")
+    done <<< "$scan"
   done
   return 0
 }

@@ -39,17 +39,21 @@ flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 declares_pipefail() { grep -Eq "$PIPEFAIL_DECL" "$1"; }
 
 wrapped_sites() {
-  local file="$1" hit lineno
+  local file="$1" hit lineno scan rc=0
   local -A ends_in_pipe=()
+  scan="$(grep -nE "$WRAPPING_PIPE" "$file")" || { (( $? > 1 )) && rc=2; }
   while IFS= read -r hit; do
+    [[ -n "$hit" ]] || continue
     ends_in_pipe["${hit%%:*}"]=1
-  done < <(grep -nE "$WRAPPING_PIPE" "$file")
+  done <<< "$scan"
+  scan="$(grep -nE "$READER_OPENS" "$file")" || { (( $? > 1 )) && rc=2; }
   while IFS= read -r hit; do
+    [[ -n "$hit" ]] || continue
     lineno="${hit%%:*}"
     [[ -n "${ends_in_pipe[$((lineno - 1))]:-}" ]] || continue
     printf '%s\n' "$hit"
-  done < <(grep -nE "$READER_OPENS" "$file")
-  return 0
+  done <<< "$scan"
+  return "$rc"
 }
 
 loop_break_sites() {
@@ -70,11 +74,15 @@ loop_break_sites() {
 }
 
 unexempted_sites() {
-  local file="$1" name hit lineno text
+  local file="$1" name hit lineno text scan rc=0
   local -A seen=()
-  declares_pipefail "$file" || return 0
   name="$(basename "$file")"
+  scan="$(grep -nE "$PIPE_INTO_READER" "$file")" || { (( $? > 1 )) && rc=2; }
+  scan+=$'\n'"$(wrapped_sites "$file")" || rc=2
+  scan+=$'\n'"$(loop_break_sites "$file")"
+  declares_pipefail "$file" || return "$rc"
   while IFS= read -r hit; do
+    [[ -n "$hit" ]] || continue
     lineno="${hit%%:*}"
     text="${hit#*:}"
     [[ "$text" =~ ^[[:space:]]*# ]] && continue
@@ -82,18 +90,20 @@ unexempted_sites() {
     [[ -n "${seen[$lineno]:-}" ]] && continue
     seen["$lineno"]=1
     printf '%s:%s\n' "$lineno" "$text"
-  done < <(grep -nE "$PIPE_INTO_READER" "$file"; wrapped_sites "$file"; loop_break_sites "$file")
-  return 0
+  done <<< "$scan"
+  return "$rc"
 }
 
 probe_no_pipefail_suite_ends_a_pipeline_in_an_early_exiting_reader() {
-  local f name site
+  local f name site sites
   for f in "$HERE"/*.test.sh; do
     [[ -e "$f" ]] || continue
     name="$(basename "$f")"
+    sites="$(unexempted_sites "$f")" || grep_scanner_failed 2 "$name"
     while IFS= read -r site; do
+      [[ -n "$site" ]] || continue
       problems+=("$name:${site%%:*} ends a pipeline in a reader that leaves before EOF, under a suite that declares pipefail, so the status asserted on is the writer's SIGPIPE rather than the reader's answer: $(flat "${site#*:}")")
-    done < <(unexempted_sites "$f")
+    done <<< "$sites"
   done
   return 0
 }
@@ -110,14 +120,16 @@ report "$name"
 roster() { make -C "$ROOT" -n "$1" 2>&1 | grep -o '[^ ]*\.test\.sh' | sort -u; }
 
 probe_no_suite_the_target_runs_ends_a_pipeline_in_an_early_exiting_reader() {
-  local rel site
+  local rel site sites
   local -a listed=()
   while IFS= read -r rel; do
     [[ -n "$rel" ]] || continue
     listed+=("$rel")
+    sites="$(unexempted_sites "$ROOT/$rel")" || grep_scanner_failed 2 "$rel"
     while IFS= read -r site; do
+      [[ -n "$site" ]] || continue
       problems+=("$rel:${site%%:*} ends a pipeline in a reader that leaves before EOF, under a suite that declares pipefail, so \`make test\` — the baseline preflight reads, the Green leaf runs and both blind verifiers run — asserts on the writer's SIGPIPE rather than the reader's answer: $(flat "${site#*:}")")
-    done < <(unexempted_sites "$ROOT/$rel")
+    done <<< "$sites"
   done < <(roster test)
   [[ "${#listed[@]}" -gt 0 ]] ||
     echo "note: \`make -n test\` named no suite at all, so no roster was read: nothing this case could ask about"
@@ -132,11 +144,13 @@ probe_no_suite_the_target_runs_ends_a_pipeline_in_an_early_exiting_reader
 report "$name"
 
 probe_no_recipe_ends_a_pipeline_in_an_early_exiting_reader() {
-  local site
+  local site sites
+  sites="$(grep -nE "$PIPE_INTO_READER" "$ROOT/Makefile")" || grep_scanner_failed $? Makefile
   while IFS= read -r site; do
+    [[ -n "$site" ]] || continue
     [[ -n "${EXEMPT[Makefile:${site%%:*}]:-}" ]] && continue
     problems+=("Makefile:${site%%:*} ends a pipeline in a reader that leaves before EOF, so the writer feeding it can die of SIGPIPE, complain and fail the recipe over an answer the reader already had: $(flat "${site#*:}")")
-  done < <(grep -nE "$PIPE_INTO_READER" "$ROOT/Makefile")
+  done <<< "$sites"
   return 0
 }
 
