@@ -212,4 +212,17 @@ grep -qiE 'retr(y|ies) green' <<<"$route_text" ||
   problems+=("$skill_md's Green WRONG_TEST: routing does not retry green after the red")
 report "$name"
 
+name="#1621: $skill_md's Green WRONG_TEST: routing carries the router's exit 3 line (revise path unchanged: the verify-green REJECT) and its exit 2 line (system failure: bail)"
+problems=()
+exit3_line='exit 3 (`revise`) runs the existing revise path unchanged: the verify-green REJECT.'
+exit2_line='exit 2 is a system failure: **bail**.'
+route_text="$(joined_section '#### Green')"
+route_text="${route_text#*'A green report carrying `WRONG_TEST:`'}"
+route_text="${route_text%%'tests-frozen.sh check'*}"
+[[ "$route_text" == *"$exit3_line"* ]] ||
+  problems+=("$skill_md's Green WRONG_TEST: routing lacks the exit 3 line verbatim: $exit3_line")
+[[ "$route_text" == *"$exit2_line"* ]] ||
+  problems+=("$skill_md's Green WRONG_TEST: routing lacks the exit 2 line verbatim: $exit2_line")
+report "$name"
+
 finish
