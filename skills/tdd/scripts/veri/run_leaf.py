@@ -1,6 +1,5 @@
 """run-leaf.sh's logic, run in-process."""
 import contextlib
-import json
 import os
 import shutil
 import signal
@@ -8,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 
+from context_limits import context_limits
 from extract_result import extract
 from session_env import strip_session_env
 import tunables
@@ -18,12 +18,7 @@ USAGE = "usage: run-leaf.sh <prompt-file|-> [claude args...]"
 
 def leaf_argv(binary, model, prompt, extra):
     argv = [binary or "claude", "-p", prompt,
-            "--output-format", "stream-json", "--verbose",
-            "--disable-slash-commands", "--strict-mcp-config",
-            "--mcp-config", json.dumps({"mcpServers": {}}),
-            "--settings", json.dumps({
-                "autoMemoryEnabled": False,
-                "claudeMdExcludes": [os.path.join(os.path.expanduser("~"), ".claude", "CLAUDE.md")]})]
+            "--output-format", "stream-json", "--verbose"] + context_limits()
     if model and "--model" not in extra:
         argv += ["--model", model]
     return argv + extra
