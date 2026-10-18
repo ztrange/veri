@@ -307,7 +307,7 @@ def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_sy
         return code, capsys.readouterr()[:], calls
 
     base = {listing: (0, registry, ""), local: (1, "", ""), remote: (1, "", ""),
-            get_url: (0, "https://example.invalid/repo.git\n", "url noise\n"),
+            get_url: (0, "/srv/origin.git\n", "url noise\n"),
             claims: (0, "", "")}
     named = (
         ("origin/HEAD", {symref: (0, "origin/trunk\n", "")}, "trunk"),
@@ -389,7 +389,7 @@ def test_main_cuts_from_a_fetched_origin_default_with_no_track_and_refuses_to_cu
     refusal = ("issue-worktree: git fetch origin trunk failed"
                " — refusing to cut tdd/7-slug from a stale origin/trunk\n")
     base = {listing: (0, registry, ""), local: (1, "", ""), remote: (1, "", ""),
-            symref: (0, "origin/trunk\n", ""), get_url: (0, "https://example.invalid/repo.git\n", ""),
+            symref: (0, "origin/trunk\n", ""), get_url: (0, "/srv/origin.git\n", ""),
             ("git", "ls-remote", "--heads", "origin", "refs/heads/tdd/7-*"): (0, "", ""),
             add: (0, "", "")}
 
@@ -537,7 +537,7 @@ def test_main_puts_a_seeded_log_back_when_it_refuses_for_the_origin_default_the_
     }
     refusals = (
         ("origin default", ls_remote,
-         {symref: (1, "", ""), get_url: (0, "https://example.invalid/repo.git\n", ""), ls_remote: (128, "", "")},
+         {symref: (1, "", ""), get_url: (0, "/srv/origin.git\n", ""), ls_remote: (128, "", "")},
          "issue-worktree: cannot determine origin's default branch"
          " (no refs/remotes/origin/HEAD, and the remote did not name one)\n"),
         ("no origin", ("git", "show-ref", "--verify", "--quiet", "refs/heads/master"),
@@ -546,7 +546,7 @@ def test_main_puts_a_seeded_log_back_when_it_refuses_for_the_origin_default_the_
           ("git", "show-ref", "--verify", "--quiet", "refs/heads/master"): (1, "", "")},
          "issue-worktree: cannot determine the default branch (no origin/HEAD, no local main or master)\n"),
         ("fetch", fetch,
-         {symref: (0, "origin/trunk\n", ""), get_url: (0, "https://example.invalid/repo.git\n", ""),
+         {symref: (0, "origin/trunk\n", ""), get_url: (0, "/srv/origin.git\n", ""),
           fetch: (1, "", "fatal: couldn't find remote ref trunk\n")},
          "issue-worktree: git fetch origin trunk failed — refusing to cut tdd/63-own-trap from a stale origin/trunk\n"),
     )
@@ -587,7 +587,7 @@ def test_main_answers_each_ls_remote_shape_with_its_stdout_stderr_and_exit_code_
         ("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/tdd/7-slug"): (1, "", ""),
         ("git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"): (
             1, "", "fatal: ref refs/remotes/origin/HEAD is not a symbolic ref\n"),
-        ("git", "remote", "get-url", "origin"): (0, "https://example.invalid/repo.git\n", ""),
+        ("git", "remote", "get-url", "origin"): (0, "/srv/origin.git\n", ""),
         ("git", "ls-remote", "--heads", "origin", "refs/heads/tdd/7-*"): (0, "", ""),
         ("git", "fetch", "-q", "origin", "trunk"): (0, "", ""),
         ("git", "worktree", "add", "-q", "--no-track", "-b", "tdd/7-slug", path, "origin/trunk"): (0, "", ""),

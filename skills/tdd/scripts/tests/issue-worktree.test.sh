@@ -31,6 +31,7 @@ stub_git() {
   cat > "$dir/git" <<STUB
 #!/bin/sh
 case "\$1" in
+  remote) [ -n "\${STUB_ORIGIN_URL:-}" ] && [ "\$2" = get-url ] && { echo "\$STUB_ORIGIN_URL"; exit 0; } ;;
   ls-remote) [ -n "\${STUB_LS_EMPTY:-}" ] && exit 0; [ -n "\${STUB_LS_FAIL:-}" ] && { echo "fatal: unable to access remote" >&2; exit 128; } ;;
   fetch) [ -n "\${STUB_FETCH_FAIL:-}" ] && { echo "fatal: unable to access remote" >&2; exit 128; } ;;
 esac
@@ -872,5 +873,26 @@ out="$(cd "$clone" && PATH="$work/stubbin:$PATH" STUB_LS_FAIL=1 VERI_GH_JSON="$w
 
 { [[ "$code" == 0 ]] && [[ "$out" == "$mine" ]]; } \
   && ok || no "#1672: a resume of the run's own issue branch still hands back its worktree when the ls-remote and open-PR lookups get no answer (exit=$code want 0, stdout='$out' want '$mine')"
+
+ahead_pair ghe-claimed
+mine="$(wt_path "$clone" 66)"
+mkdir -p "$work/ghe-bin"
+cat > "$work/ghe-bin/gh" <<'STUB'
+#!/bin/sh
+case "$*" in
+  *[?\&]page=1) echo '[{"body": "Closes #66", "state": "OPEN", "url": "https://ghe.example.test/acme/veri/pull/660"}]' ;;
+  *) echo '[]' ;;
+esac
+STUB
+chmod +x "$work/ghe-bin/gh"
+before="$(registry "$clone")"
+
+errfile="$work/ghe-claimed.err"
+out="$(cd "$clone" && PATH="$work/ghe-bin:$work/stubbin:$PATH" STUB_ORIGIN_URL="https://ghe.example.test/acme/veri.git" "$WT" 66 fresh-start 2>"$errfile")" && code=0 || code=$?
+after="$(registry "$clone")"
+
+{ [[ "$code" == 2 ]] && [[ -z "$out" ]] && grep -F 'pull/660' "$errfile" >/dev/null \
+  && [[ ! -e "$mine" ]] && [[ "$after" == "$before" ]]; } \
+  && ok || no "#1672: a fresh cut from a GitHub Enterprise origin (not github.com) runs the open-PR check: an open PR saying Closes #66 exits 2 naming that PR and creates no worktree (exit=$code want 2, stdout='$out' want empty, stderr='$(cat "$errfile")' want it to name 'pull/660', '$mine' $( [[ -e "$mine" ]] && echo "was created" || echo "absent, good" ), registry $( [[ "$after" == "$before" ]] && echo unchanged || echo changed ))"
 
 finish
