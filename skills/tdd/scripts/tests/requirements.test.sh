@@ -150,6 +150,20 @@ named=no; [[ "$err" =~ (^|[^0-9])3([^0-9]|$) ]] && named=yes
 expect_eq "claims on a table header lacking the Requirement column exits 2, prints nothing on stdout and names the header's line on stderr" \
   $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
 
+cat > "$work/swapped-columns.md" <<MD
+$H skills/tdd/SKILL.md
+
+| Requirement | ID |
+|-------------|----|
+| Do it. | A1 |
+MD
+
+out="$("$REQUIREMENTS" claims "$work/swapped-columns.md" skills/tdd/SKILL.md 2> "$work/stderr")" && code=0 || code=$?
+err="$(< "$work/stderr")"; err="${err//"$work"/}"
+named=no; [[ "$err" =~ (^|[^0-9])3([^0-9]|$) ]] && named=yes
+expect_eq "claims on a table header of | Requirement | ID | exits 2, prints nothing on stdout and names the header's line on stderr (#1743)" \
+  $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
+
 out="$("$REQUIREMENTS" 2> "$work/stderr")" && code=0 || code=$?
 err="$(< "$work/stderr")"
 usage=no; [[ "$err" == usage:*requirements.sh* ]] && usage=yes
