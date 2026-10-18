@@ -31,7 +31,7 @@ key_sentence='With `--step "<step text>"` in place of a record file, the record 
 repair_sentence='A step marked `⟦suite-repair⟧` or `⟦ci-repair⟧` is never frozen: for it `record --step` writes nothing and `check --step` exits 0, because its fix is often an edit to the very test file the full run or CI left red.'
 ci_sentence='A `⟦ci-repair⟧` step therefore records nothing before its green, and its green may edit the test the CI job failed.'
 exit2_sentence='On tests-frozen exit 2 the check could not answer, so **bail** as a system failure, never a REJECT, and launch no verifier.'
-wrong_test_sentence='A revise of green whose leaf reports `WRONG_TEST: <why>` is exempt from the `SUITE:` line and reaches the same outcome a develop-green `WRONG_TEST:` stop does: it keeps its main outcome, a verify-green REJECT, never a `report-missing` bail.'
+wrong_test_sentence='A revise of green whose leaf reports `WRONG_TEST: <why>` is exempt from the `SUITE:` line and is routed as a develop-green `WRONG_TEST:` report is: `$S/wrong-test-route.sh .tdd/revise-green-<k>.out '"'"'<target-test-id>'"'"'` runs before the attempt is counted; its exit 0 writes no `revise` mark, spends no `REVISE_BUDGET` attempt and launches the `red-contradicted` red, its exit 3 keeps the attempt'"'"'s main outcome, a verify-green REJECT, and its exit 2 is a bail; never a `report-missing` bail.'
 pin_record_sentence='A `⟦replaces-case⟧` step skips verify-red, so on that verify-pin PASS first run `$S/tests-frozen.sh record '"$record_arg"' <test-path>` to record its replacement cases before the deletion green checks them; tests-frozen exit 2 is a bail.'
 
 numbered_section() {
@@ -169,13 +169,13 @@ for where in '#### Green' "$revise_heading"; do
 done
 report "$name"
 
-name="#1586: $skill_md's Revising on a REJECT gives a revise-green WRONG_TEST: report the outcome Green gives a develop-green WRONG_TEST: stop, a verify-green REJECT and never a report-missing bail, verbatim"
+name="#1586: $skill_md's Revising on a REJECT routes a revise-green WRONG_TEST: report as Green routes a develop-green one through wrong-test-route.sh, exit 3 keeping a verify-green REJECT and never a report-missing bail, verbatim"
 problems=()
 green_outcome="$(numbered_section '#### Green' | cut -f 2- | plain --join | sed 's/\. /.\n/g' | grep -F 'looks wrong' || true)"
 grep -qF 'verify-green reject' <<<"$green_outcome" ||
   problems+=("$skill_md's Green section: no sentence about a green that stops because the test looks wrong names a verify-green REJECT, so there is no outcome to match")
 [[ "$(joined_section "$revise_heading")" == *"$wrong_test_sentence"* ]] ||
-  problems+=("$skill_md's Revising on a REJECT does not give a revise-green WRONG_TEST: report its outcome verbatim: $wrong_test_sentence")
+  problems+=("$skill_md's Revising on a REJECT does not route a revise-green WRONG_TEST: report verbatim: $wrong_test_sentence")
 report "$name"
 
 name="#1586: $skill_md's Already satisfied — the pin records a ⟦replaces-case⟧ step's tests at its verify-pin PASS, before the deletion green is launched"

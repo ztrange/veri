@@ -2155,8 +2155,11 @@ A revise of red, green or refactor is built from a prompt that asks for no `SUIT
 exits 0 straight into its verifier and nothing checks for the line. The `diff` revise does ask for one:
 its check is stated under *A `⟦diff-checked⟧` step*.
 
-A revise of green whose leaf reports `WRONG_TEST: <why>` is exempt from the `SUITE:` line and reaches the same
-outcome a develop-green `WRONG_TEST:` stop does: it keeps its main outcome, a verify-green REJECT, never a `report-missing` bail.
+A revise of green whose leaf reports `WRONG_TEST: <why>` is exempt from the `SUITE:` line and is routed as a
+develop-green `WRONG_TEST:` report is: `$S/wrong-test-route.sh .tdd/revise-green-<k>.out '<target-test-id>'` runs
+before the attempt is counted; its exit 0 writes no `revise` mark, spends no `REVISE_BUDGET` attempt and launches
+the `red-contradicted` red, its exit 3 keeps the attempt's main outcome, a verify-green REJECT, and its exit 2 is
+a bail; never a `report-missing` bail.
 
 For attempt `k = 1 … REVISE_BUDGET`:
 
