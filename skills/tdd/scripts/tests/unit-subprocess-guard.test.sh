@@ -254,4 +254,35 @@ fi
 
 report "$name"
 
+problems=()
+name="no-unit-subprocess.test.sh fails, naming the suite and its awk scanner's non-zero exit status, when the scanner exits non-zero, and passes on a clean tree with the scanner intact (#1648)"
+
+if [[ -f "$GUARD_PATH" ]]; then
+  broken_tree="$(scratch_dir)"
+  mkdir -p "$broken_tree/$TESTS_DIR/unit" "$broken_tree/$SCRIPTS_DIR" "$broken_tree/$TESTS_DIR/lib"
+  cp "$offender_path" "$broken_tree/$TESTS_DIR/unit/$OFFENDER"
+  cp "$tree/$SCRIPTS_DIR/status.sh" "$broken_tree/$SCRIPTS_DIR/status.sh"
+  cp "$HERE/lib/"*.sh "$broken_tree/$TESTS_DIR/lib/"
+  sed 's/^    BEGIN {$/    BEGIN { ) (/' "$GUARD_PATH" > "$broken_tree/$TESTS_DIR/$GUARD_NAME"
+  chmod 755 "$broken_tree/$TESTS_DIR/$GUARD_NAME"
+  guard_out="$("$broken_tree/$TESTS_DIR/$GUARD_NAME" 2>&1)" && guard_code=0 || guard_code=$?
+  [[ "$guard_code" != 0 ]] ||
+    problems+=("want the guard to fail when its awk scanner exits non-zero; it exited 0 and said: $(flat "$guard_out")")
+  grep -qF -- "$OFFENDER" <<< "$guard_out" ||
+    problems+=("no line of the guard's output names the suite $OFFENDER whose scan failed; it said: $(flat "$guard_out")")
+  grep -qE -- 'exit status [1-9]' <<< "$guard_out" ||
+    problems+=("no line of the guard's output names the scanner's non-zero exit status; it said: $(flat "$guard_out")")
+
+  clean_tree="$(scratch_dir)"
+  mkdir -p "$clean_tree/$TESTS_DIR/unit" "$clean_tree/$SCRIPTS_DIR" "$clean_tree/$TESTS_DIR/lib"
+  printf '#!/usr/bin/env bash\necho "0 passed, 0 failed"\n' > "$clean_tree/$TESTS_DIR/unit/clean.test.sh"
+  cp "$GUARD_PATH" "$clean_tree/$TESTS_DIR/$GUARD_NAME"
+  cp "$HERE/lib/"*.sh "$clean_tree/$TESTS_DIR/lib/"
+  guard_out="$("$clean_tree/$TESTS_DIR/$GUARD_NAME" 2>&1)" && guard_code=0 || guard_code=$?
+  [[ "$guard_code" == 0 ]] ||
+    problems+=("want the intact guard to pass over a clean unit/ tier; it exited $guard_code and said: $(flat "$guard_out")")
+fi
+
+report "$name"
+
 finish

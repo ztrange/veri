@@ -34,10 +34,7 @@ shopt -s nullglob
 for f in "$HERE"/unit/*.test.sh; do
   suite="${f##*/}"
   [[ -n "${EXEMPT[$suite]+x}" ]] && continue
-  while IFS=$'\t' read -r lineno text; do
-    [[ -n "$lineno" ]] || continue
-    problems+=("$suite:$lineno runs a script under skills/tdd/scripts/ as a subprocess, with no exemption recorded: $(flat "$text")")
-  done < <(awk -v scripts="$script_list" '
+  scan="$(awk -v scripts="$script_list" '
     BEGIN {
       n = split(scripts, arr, "|"); for (i = 1; i <= n; i++) is_script[arr[i]] = 1
       lead = "(^|\\$\\(|[;&|({])[ \t]*((if|then|elif|else|while|until|do|!)[ \t]+)*((bash|sh|env)[ \t]+)?(([A-Za-z_][A-Za-z0-9_]*=[^ \t]* +)*)"
@@ -71,7 +68,11 @@ for f in "$HERE"/unit/*.test.sh; do
     }
     $0 ~ (lead "\"?[^ \t\"]*\\$[^ \t\"]*\\.sh\"?([ \t;&|)}]|$)") { print FNR "\t" $0; next }
     names_script($0) { print FNR "\t" $0 }
-  ' "$f")
+  ' "$f")" || problems+=("$suite: the awk scanner exited with exit status $?")
+  while IFS=$'\t' read -r lineno text; do
+    [[ -n "$lineno" ]] || continue
+    problems+=("$suite:$lineno runs a script under skills/tdd/scripts/ as a subprocess, with no exemption recorded: $(flat "$text")")
+  done <<< "$scan"
 done
 
 report "no suite under skills/tdd/scripts/tests/unit/ runs a script under skills/tdd/scripts/ as a subprocess outside the exemptions recorded here"
