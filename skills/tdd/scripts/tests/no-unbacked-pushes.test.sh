@@ -51,7 +51,7 @@ for suite in "$HERE"/*.test.sh; do
       if (line !~ /VERI_PUSH_BACKOFF=/) print start
     }
   ' "$suite" "$suite")" || rc=$?
-  (( rc == 0 )) || problems+=("$(basename "$suite"): scanner awk exited with exit status $rc")
+  (( rc == 0 )) || problems+=("${0##*/}: $(basename "$suite"): scanner awk exited with exit status $rc")
   while IFS= read -r row; do
     case "$row" in
       '') ;;

@@ -65,6 +65,7 @@ probe_no_file_kills_by_job_spec() {
   local site
   while IFS= read -r site; do
     split_site "$site"
+    [[ "$site_file" == '!scanner' ]] && { problems+=("${0##*/}: $site_text"); continue; }
     problems+=("$site_file:$site_line ends a background process by a job spec, which names it only in the job table of the shell that started it: once that shell is gone the kill reaches nobody and the process is left running, reparented to PID 1. Kill the pid it recorded instead — see skills/tdd/scripts/lib/background.sh: $(flat "$site_text")")
   done < <(sites)
   return 0

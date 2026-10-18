@@ -6,7 +6,8 @@
 #   no-awk-v-patterns.test.sh, no-docs-reads.test.sh and no-job-spec-kills.test.sh, run as a
 #   scratch copy over a clean scratch tree, pass with their grep scanner intact, and fail,
 #   printing the scanner's exit status 2, when only that scanner's grep over the scratch tree
-#   exits 2 — their planted-fixture cases, scanning elsewhere, keep a working grep.
+#   exits 2 — their planted-fixture cases, scanning elsewhere, keep a working grep. Every guard's
+#   scanner-failure line names that guard by its own file name, `<guard>: …`.
 #
 # Run: skills/tdd/scripts/tests/scanner-status-guards.test.sh
 set -uo pipefail
@@ -21,6 +22,14 @@ source "$HERE/lib/harness.sh"
 
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
+names_itself() {  # <guard> <scanned token> <output>: one line names the guard, then the scanned file and the status
+  local line
+  while IFS= read -r line; do
+    [[ "$line" == *"$1: "*"$2"*'exit status 2'* ]] && return 0
+  done <<< "$3"
+  return 1
+}
+
 CASES=(  # guard | the scanner's leading grep arguments | token its output must name besides the status
   "no-awk-v-patterns.test.sh|-n awk|$SCANNED"
   "no-docs-reads.test.sh|-nE|$SCANNED"
@@ -28,7 +37,7 @@ CASES=(  # guard | the scanner's leading grep arguments | token its output must 
 )
 
 problems=()
-name="no-awk-v-patterns.test.sh, no-docs-reads.test.sh and no-job-spec-kills.test.sh each pass over a clean scratch tree, and fail naming the suite and the scanner's exit status 2 when only the grep they read through done < <(…) over that tree exits 2 (#1648)"
+name="no-awk-v-patterns.test.sh, no-docs-reads.test.sh and no-job-spec-kills.test.sh each pass over a clean scratch tree, and fail naming the suite and the scanner's exit status 2 when only the grep they read through done < <(…) over that tree exits 2, the failure line naming the guard by its own file name (#1648)"
 
 check_guard() {
   local guard="$1" scan_args="$2" token="$3" tree guard_out guard_code
@@ -54,6 +63,8 @@ check_guard() {
     problems+=("no line of $guard's output names $token; it said: $(flat "$guard_out")")
   grep -F -- 'exit status 2' <<< "$guard_out" > /dev/null ||
     problems+=("no line of $guard's output names the scanner's exit status 2; it said: $(flat "$guard_out")")
+  names_itself "$guard" "$token" "$guard_out" ||
+    problems+=("no line of $guard's output names the guard itself, as '$guard: ', beside $token and the scanner's exit status 2; it said: $(flat "$guard_out")")
 }
 
 for entry in "${CASES[@]}"; do
@@ -70,7 +81,7 @@ CASES=(
 )
 
 problems=()
-name="no-recipe-unit-tier.test.sh, no-sigpipe-pipelines.test.sh and no-size-assertion.test.sh each pass over a clean scratch tree, and fail naming the suite and the scanner's exit status 2 when only the grep they read through done < <(…) over that tree exits 2 (#1648)"
+name="no-recipe-unit-tier.test.sh, no-sigpipe-pipelines.test.sh and no-size-assertion.test.sh each pass over a clean scratch tree, and fail naming the suite and the scanner's exit status 2 when only the grep they read through done < <(…) over that tree exits 2, the failure line naming the guard by its own file name (#1648)"
 
 for entry in "${CASES[@]}"; do
   IFS='|' read -r guard scan_args token <<< "$entry"
@@ -80,7 +91,7 @@ done
 report "$name"
 
 problems=()
-name="no-unbacked-pushes.test.sh, missing-argument-exit.test.sh and scratch-copy-libs.test.sh each pass over a clean scratch tree, and fail naming the file it scanned and the scanner's exit status 2 when only the scanner they read through done < <(…) exits 2 (#1648)"
+name="no-unbacked-pushes.test.sh, missing-argument-exit.test.sh and scratch-copy-libs.test.sh each pass over a clean scratch tree, and fail naming the file it scanned and the scanner's exit status 2 when only the scanner they read through done < <(…) exits 2, the failure line naming the guard by its own file name (#1648)"
 
 check_scanner() {
   local guard="$1" shim_cmd="$2" shim_case="$3" token="$4" tree guard_out guard_code
@@ -120,6 +131,8 @@ check_scanner() {
     problems+=("no line of $guard's output names $token; it said: $(flat "$guard_out")")
   grep -F -- 'exit status 2' <<< "$guard_out" > /dev/null ||
     problems+=("no line of $guard's output names the scanner's exit status 2; it said: $(flat "$guard_out")")
+  names_itself "$guard" "$token" "$guard_out" ||
+    problems+=("no line of $guard's output names the guard itself, as '$guard: ', beside $token and the scanner's exit status 2; it said: $(flat "$guard_out")")
 }
 
 check_scanner no-unbacked-pushes.test.sh awk "*'/pushes.test.sh'" pushes.test.sh

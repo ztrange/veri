@@ -84,7 +84,7 @@ bare_expansion_offenders() {
     rc=0
     scan="$(grep -nE '\$\{[0-9]+:\?' "$file")" || rc=$?
     if (( rc > 1 )); then
-      echo "${file##*/}: scanner grep exited with exit status $rc"
+      echo "${0##*/}: ${file##*/}: scanner grep exited with exit status $rc"
       found=1
     fi
     while IFS=: read -r lineno text; do

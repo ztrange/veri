@@ -255,7 +255,7 @@ fi
 report "$name"
 
 problems=()
-name="no-unit-subprocess.test.sh fails, naming the suite and its awk scanner's non-zero exit status, when the scanner exits non-zero, and passes on a clean tree with the scanner intact (#1648)"
+name="no-unit-subprocess.test.sh fails, naming the suite and its awk scanner's non-zero exit status, when the scanner exits non-zero, the failure line naming the guard by its own file name, and passes on a clean tree with the scanner intact (#1648)"
 
 if [[ -f "$GUARD_PATH" ]]; then
   broken_tree="$(scratch_dir)"
@@ -272,6 +272,12 @@ if [[ -f "$GUARD_PATH" ]]; then
     problems+=("no line of the guard's output names the suite $OFFENDER whose scan failed; it said: $(flat "$guard_out")")
   grep -qE -- 'exit status [1-9]' <<< "$guard_out" ||
     problems+=("no line of the guard's output names the scanner's non-zero exit status; it said: $(flat "$guard_out")")
+  guard_named=0
+  while IFS= read -r line; do
+    [[ "$line" == *"$GUARD_NAME: "*'exit status '[1-9]* ]] && guard_named=1
+  done <<< "$guard_out"
+  (( guard_named )) ||
+    problems+=("no line of the guard's output names the guard itself, as '$GUARD_NAME: ', beside the scanner's exit status; it said: $(flat "$guard_out")")
 
   clean_tree="$(scratch_dir)"
   mkdir -p "$clean_tree/$TESTS_DIR/unit" "$clean_tree/$SCRIPTS_DIR" "$clean_tree/$TESTS_DIR/lib"
