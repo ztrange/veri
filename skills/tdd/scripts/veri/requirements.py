@@ -63,7 +63,7 @@ def claims(path, unit):
             intable, skip, tabled = True, True, True
         elif intable and not skip and not line.strip():
             intable = False
-        elif tabled and not intable and line.startswith("|"):
+        elif tabled and not intable and len(split_cells(line)) > 1:
             fail("pipe line after the table")
         elif intable and skip:
             skip = False
