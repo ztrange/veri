@@ -1382,6 +1382,46 @@ def test_main_a_conductor_launch_does_not_request_the_five_minute_cache_ttl_so_i
     assert (code, writes) == (0, ["ephemeral_1h_input_tokens"])
 
 
+def test_main_a_parent_environment_asking_for_the_five_minute_cache_ttl_reaches_the_leaf_but_not_the_conductor_1738(
+        tmp_path, monkeypatch, capfdbinary):
+    from test_run_leaf import _FakeLeaf
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    monkeypatch.setenv("FORCE_PROMPT_CACHING_5M", "1")
+    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    scratch_tmpdir(tmp_path, monkeypatch)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    run_leaf = importlib.import_module("veri.run_leaf")
+    seen = {"conductor": [], "leaf": []}
+    fake_claude_exiting(monkeypatch, 0, 0)
+    answer = subprocess.run
+
+    def conductor_run(args, *a, **kwargs):
+        if list(args)[:1] == ["fake-claude"]:
+            seen["conductor"].append(kwargs["env"].get("FORCE_PROMPT_CACHING_5M"))
+        return answer(args, *a, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", conductor_run)
+
+    conductor_code = run_conductor.main(["4242"])
+    capfdbinary.readouterr()
+
+    (cwd / "prompt.txt").write_text("do the step\n")
+
+    def leaf_popen(argv, *a, **kwargs):
+        seen["leaf"].append(kwargs["env"].get("FORCE_PROMPT_CACHING_5M"))
+        return _FakeLeaf([], argv, **kwargs)
+
+    monkeypatch.setattr(subprocess, "Popen", leaf_popen)
+    leaf_code = run_leaf.main(["prompt.txt"])
+    capfdbinary.readouterr()
+
+    assert (conductor_code, leaf_code, seen) == (0, 0, {"conductor": [None], "leaf": ["1"]})
+
+
 def stream_of_what_the_real_claude_loads(argv, home, repo):
     """A stream shaped by the 2026-10-18 observation of the real binary under each flag."""
     flag = lambda name: argv[argv.index(name) + 1] if name in argv else None
