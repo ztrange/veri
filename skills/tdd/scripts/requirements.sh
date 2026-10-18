@@ -42,7 +42,11 @@ claims() {
 main() {
   case "${1:-}" in
     units) [[ $# -eq 2 ]] && { units "$2"; return; } ;;
-    claims) [[ $# -eq 3 ]] && { claims "$2" "$3"; return; } ;;
+    claims)
+      if [[ $# -eq 3 ]]; then
+        [[ -f "$2" ]] || { echo "requirements.sh: file is missing: $2" >&2; return 2; }
+        claims "$2" "$3"; return
+      fi ;;
   esac
   echo "usage: requirements.sh units <file> | claims <file> <unit>" >&2
   return 2
