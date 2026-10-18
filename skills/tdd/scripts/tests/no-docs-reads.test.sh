@@ -45,16 +45,18 @@ exempt() {
 roster() { make -C "$ROOT" -n "$1" 2>&1 | grep -o '[^ ]*\.test\.sh' | sort -u; }
 
 probe_no_suite_reaches_into_the_tree() {
-  local f name hit lineno text
+  local f name hit lineno text scan rc
   for f in "$HERE"/*.test.sh; do
     [[ -e "$f" ]] || continue
     name="$(basename "$f")"
+    scan="$(grep -nE "$DOCS_PATH" "$f")" || { rc=$?; (( rc > 1 )) && problems+=("$name: the grep scanner exited with exit status $rc"); }
     while IFS= read -r hit; do
+      [[ -n "$hit" ]] || continue
       lineno="${hit%%:*}"
       text="${hit#*:}"
       exempt "$text" "$name" && continue
       problems+=("$name:$lineno names a path in the generated-documentation tree outside a comment and outside fixture text, which puts that tree's prose on every leaf's critical path: $(flat "$text")")
-    done < <(grep -nE "$DOCS_PATH" "$f")
+    done <<< "$scan"
   done
   return 0
 }
@@ -74,17 +76,19 @@ probe_no_suite_reaches_into_the_tree
 report "$name"
 
 probe_no_suite_the_target_runs_reaches_into_the_tree() {
-  local rel hit lineno text
+  local rel hit lineno text scan rc
   local -a listed=()
   while IFS= read -r rel; do
     [[ -n "$rel" ]] || continue
     listed+=("$rel")
+    scan="$(grep -nE "$DOCS_PATH" "$ROOT/$rel")" || { rc=$?; (( rc > 1 )) && problems+=("$rel: the grep scanner exited with exit status $rc"); }
     while IFS= read -r hit; do
+      [[ -n "$hit" ]] || continue
       lineno="${hit%%:*}"
       text="${hit#*:}"
       exempt "$text" "$(basename "$rel")" && continue
       problems+=("$rel:$lineno names a path in the generated-documentation tree outside a comment and outside fixture text, so \`make test\` — the baseline preflight reads, the Green leaf runs and both blind verifiers run — opens that tree: $(flat "$text")")
-    done < <(grep -nE "$DOCS_PATH" "$ROOT/$rel")
+    done <<< "$scan"
   done < <(roster test)
   [[ "${#listed[@]}" -gt 0 ]] ||
     problems+=("\`make -n test\` named no suite at all, so nothing was read: the roster this case asks about could not be obtained")

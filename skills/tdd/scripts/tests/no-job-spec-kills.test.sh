@@ -39,12 +39,15 @@ split_site() {
 }
 
 kill_lines() {
-  local hit
+  local hit rc=0 scan
+  scan="$(cd "$ROOT" && grep -rInE -- "$JOB_SPEC_KILL" "$SUBJECT")" || rc=$?
+  (( rc > 1 )) && printf '%s\n' "!scanner:0:the grep scanner over $SUBJECT exited with exit status $rc"
+  [[ -n "$scan" ]] || return 0
   while IFS= read -r hit; do
     split_site "$hit"
     [[ "$site_text" =~ ^[[:space:]]*# ]] && continue
     printf '%s\n' "$hit"
-  done < <(cd "$ROOT" && grep -rInE -- "$JOB_SPEC_KILL" "$SUBJECT")
+  done <<< "$scan"
   return 0
 }
 
