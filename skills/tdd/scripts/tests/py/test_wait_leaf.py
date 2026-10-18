@@ -385,6 +385,39 @@ def test_cli_exits_2_promptly_naming_a_verifier_leaf_whose_supervisor_died(
     assert readings[-1] - readings[0] <= 10
 
 
+def test_cli_with_its_default_budget_answers_0_1_or_2_as_soon_as_recorded_and_2_once_the_supervisor_dies_never_3_1708(
+        tmp_path, run_cli, wait_leaf, fake_processes):
+    (tmp_path / ".tdd").mkdir()
+    answers = {}
+    for code in ("0", "1", "2"):
+        exit_file = tmp_path / ".tdd" / f"long-{code}.exit"
+        readings = stepping_clock(fake_processes, land=(300, exit_file, f"{code}\n"))
+        answer = run_cli(wait_leaf, [f"long-{code}"], env={"VERI_POLL": "0"}, cwd=tmp_path)
+        answers[code] = (answer, 300 <= readings[-1] - readings[0] <= 310)
+
+    (tmp_path / ".tdd" / "long-dead.pid").write_text("4242\n")
+    readings = []
+
+    def answer(line, **_):
+        if line == "date +%s":
+            if len(readings) > 600:
+                raise RuntimeError("runaway wait: more than 600 clock readings")
+            readings.append(len(readings))
+            return (0, f"{readings[-1]}\n", "")
+        if line.startswith("ps "):
+            if readings[-1] >= 300:
+                return (1, "", "")
+            return (0, "bash supervise.sh long-dead develop-red\n", "")
+        return (0, "", "")
+
+    fake_processes(answer)
+    died = run_cli(wait_leaf, ["long-dead"], env={"VERI_POLL": "0"}, cwd=tmp_path)
+    answers["dead"] = ((died[0], died[1], "'long-dead'" in died[2]), 300 <= readings[-1] - readings[0] <= 310)
+
+    assert answers == {"0": ((0, "", ""), True), "1": ((1, "", ""), True), "2": ((2, "", ""), True),
+                       "dead": ((2, "", True), True)}
+
+
 def skill_paragraphs():
     return re.split(r"\n[ \t]*\n", (SCRIPTS.parent / "SKILL.md").read_text())
 
