@@ -276,6 +276,25 @@ def test_main_checks_out_a_local_branch_and_maps_a_dying_add_to_2(
             add_code, want, (out, "Preparing worktree\n"), [list(listing), list(local), list(checkout)])
 
 
+def test_main_refuses_a_fresh_run_whose_fetched_branch_origin_still_holds_and_adds_no_worktree_issue_1734(
+        monkeypatch, capsys, issue_worktree):
+    main_tree = "/srv/repo"
+    registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
+    listing = ("git", "worktree", "list", "--porcelain")
+    local = ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/7-slug")
+    remote = ("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/tdd/7-slug")
+    claims = ("git", "ls-remote", "--heads", "origin", "refs/heads/tdd/7-*")
+
+    calls = routing_git(monkeypatch, {
+        listing: (0, registry, ""), local: (1, "", ""), remote: (0, "", ""),
+        claims: (0, "1111111111111111111111111111111111111111\trefs/heads/tdd/7-slug\n", "")})
+    code = issue_worktree.main(["7", "slug"])
+
+    assert (code, capsys.readouterr()[:], [c for c in calls if c[:3] == ["git", "worktree", "add"]]) == (
+        2, ("", "issue-worktree: tdd/7-slug is already on origin — another run holds it;"
+                " to take it over run: git branch tdd/7-slug origin/tdd/7-slug\n"), [])
+
+
 def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_symref_and_refuses_when_neither_names_one(
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/repo"
