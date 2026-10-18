@@ -12,22 +12,22 @@ def _write(stream, line):
     stream.buffer.flush()
 
 
-ROOTS = ("tests", "skills/tdd/scripts/tests")
+SKIPPED = (".git", ".tdd")
 
 
 def _exists(case):
     py = re.compile(r"def %s\(" % re.escape(case))
-    for top in ROOTS:
-        for root, _dirs, files in os.walk(top):
-            for name in files:
-                if not name.endswith((".py", ".test.sh")):
-                    continue
-                with open(os.path.join(root, name), encoding="utf-8", errors="replace") as handle:
-                    text = handle.read()
-                if name.endswith(".py") and py.search(text):
-                    return True
-                if name.endswith(".test.sh") and ('name="%s"' % case) in text:
-                    return True
+    for root, dirs, files in os.walk("."):
+        dirs[:] = [d for d in dirs if d not in SKIPPED]
+        for name in files:
+            if not name.endswith((".py", ".test.sh")):
+                continue
+            with open(os.path.join(root, name), encoding="utf-8", errors="replace") as handle:
+                text = handle.read()
+            if name.endswith(".py") and py.search(text):
+                return True
+            if name.endswith(".test.sh") and ('name="%s"' % case) in text:
+                return True
     return False
 
 
