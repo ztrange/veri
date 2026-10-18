@@ -41,8 +41,9 @@ def main(argv):
         sys.stderr.write("run-finished.sh: the PR body could not be read\n")
         return 2
     open_line = OPEN_STEP + " "
+    star_line = "* " + OPEN_STEP[2:] + " "
     unmet += [("human-owed", ln.lstrip()[len(open_line):]) for ln in body.splitlines()
-              if ln.lstrip().startswith(open_line) and "⟦human-owed⟧" in ln]
+              if ln.lstrip().startswith((open_line, star_line)) and "⟦human-owed⟧" in ln]
     for name, step in unmet:
         print("%s %s" % (name, step))
     return 1 if unmet else 0
