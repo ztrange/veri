@@ -24,7 +24,7 @@ MODULE='skills/tdd/scripts/veri/refactor_budget.py'
 SUITE='skills/tdd/scripts/tests/py/unit/test_refactor_budget.py'
 SUITE_NAME='pytest'
 
-SKILL_MARKER='SKILL.md'
+SKILL_MARKER='SCRIPTS.md'
 HEADER_MARKER='header'
 
 FAILED_LINE='SUITES FAILED'
@@ -69,7 +69,7 @@ probe_plant_is_real() {
       problems+=("the case is vacuous: $site in the copy says $(figure "$1/$file" "$regex"), not the $here it said before the plant, so no sentence was left behind")
   done <<SITES
 $SCRIPT-header|$SCRIPT|$HEADER_RE
-SKILL.md-refactor|skills/tdd/SKILL.md|$SKILL_RE
+SCRIPTS.md-refactor|skills/tdd/SCRIPTS.md|$SKILL_RE
 SITES
 }
 

@@ -108,8 +108,8 @@ else
   no "$name (missing:$missing)"
 fi
 
-name="#1579: SKILL.md's add-ledger-step.sh entry documents --planned (no ⟦added⟧, not counted toward VERI_STEP_GROWTH) and its exit-2 refusals: no --criterion, an already-served criterion, no readable spec file, a k not unticked in the issue body"
-entry="$(sed -n '/^- `\$S\/add-ledger-step\.sh /,/^- `\$S\/classify-bail\.sh/p' "$HERE/../../SKILL.md")"
+name="#1579: SCRIPTS.md's add-ledger-step.sh entry documents --planned (no ⟦added⟧, not counted toward VERI_STEP_GROWTH) and its exit-2 refusals: no --criterion, an already-served criterion, no readable spec file, a k not unticked in the issue body"
+entry="$(sed -n '/^- `\$S\/add-ledger-step\.sh /,/^- `\$S\/classify-bail\.sh/p' "$HERE/../../SCRIPTS.md")"
 missing=""
 printf '%s\n' "$entry" | grep -F -- '--planned' | grep -F 'VERI_STEP_GROWTH' > /dev/null || missing="$missing [--planned not counted toward VERI_STEP_GROWTH]"
 printf '%s\n' "$entry" | grep -F -- '--planned' | grep -F '⟦added⟧' > /dev/null || missing="$missing [--planned without ⟦added⟧]"
