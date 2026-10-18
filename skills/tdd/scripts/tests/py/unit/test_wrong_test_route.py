@@ -318,3 +318,28 @@ def test_main_1736_prints_revise_when_a_real_case_is_named_only_on_lines_other_t
         wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
+
+
+def test_main_1735_prints_revise_for_a_second_green_of_a_step_whose_log_already_holds_a_reroute_event(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    first, second = "test_main_counts_a_repair_text_as_a_repair", "test_main_totals_an_invoice"
+    (suite / ("test_" + "ledger" + ".py")).write_text(
+        "def test_main_returns_zero():\n    pass\n\n"
+        "def %s():\n    pass\n\ndef %s():\n    pass\n" % (first, second))
+    (tmp_path / ".tdd").mkdir()
+    step = "wrong-test-route.sh routes a contradicted case"
+    monkeypatch.setenv("VERI_STEP", step)
+    results = []
+    for number, case in enumerate((first, second)):
+        report = tmp_path / ("green-report-%d.txt" % number)
+        report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % case)
+        code, stdout, stderr = run_cli(
+            wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        results.append((code, stdout))
+        (tmp_path / ".tdd" / "events.jsonl").write_text(
+            '{"event": "reroute", "step": "%s"}\n' % step)
+
+    assert results == [(0, "red %s\n" % first), (3, "revise\n")]
