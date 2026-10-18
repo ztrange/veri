@@ -312,7 +312,7 @@ def test_main_cuts_a_fresh_branch_from_the_default_when_only_a_stale_remote_trac
 
     calls = routing_git(monkeypatch, {
         listing: (0, registry, ""), local: (1, "", ""), remote: (0, "", ""), claims: (0, "", ""),
-        symref: (0, "origin/trunk\n", ""), get_url: (0, "https://example.invalid/repo.git\n", ""),
+        symref: (0, "origin/trunk\n", ""), get_url: (0, "/srv/origin.git\n", ""),
         fetch: (0, "", ""), fresh: (0, "", ""), stale: (0, "", "")})
     code = issue_worktree.main(["7", "slug"])
 
