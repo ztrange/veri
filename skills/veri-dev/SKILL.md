@@ -1,11 +1,7 @@
 ---
 name: veri-dev
 description: >-
-  Run the veri dev session: keep N detached conductors running over the solvable issues, one
-  issue each, refill a slot on every exit, and route each exit by fact — merge or report a
-  finished run, triage a bail, check a silent exit. Invoke as
-  `/veri-dev [N] [--afk] [--resume <file>]`. Use when the user wants veri to work through its
-  queue, keep N runs going, or resumes a dev-session handoff.
+  The veri dev session, reached by name: `/vdev [N] [--afk] [--resume <file>]`.
 ---
 
 # veri-dev — the dev session
