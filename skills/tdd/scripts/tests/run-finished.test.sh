@@ -196,4 +196,38 @@ else
   ok
 fi
 
+name="a run of it changes no file in the repository and every gh call it makes is a read"
+repo="$(scratch_dir)"
+bin="$(scratch_dir)"
+calls="$(scratch_dir)/calls"
+new_repo "$repo"
+mkdir -p "$repo/.tdd/wt/4242/.tdd"
+git -C "$repo" commit -q --allow-empty -m init
+new_repo "$repo/.tdd/wt/4242"
+printf '%s\n' \
+  '{"ts":1000,"event":"launch","step":"1","phase":"red","actor":"developer","name":"develop-red"}' \
+  '{"ts":1001,"event":"done","pr":"https://github.com/o/r/pull/7"}' > "$repo/.tdd/wt/4242/.tdd/events.jsonl"
+printf '%s\n' '# Plan for #4242 — a title' '' '- [x] first step ⟦criterion 1⟧' \
+  '- [ ] second step ⟦criterion 2⟧' > "$repo/.tdd/wt/4242/.tdd/issue-4242.md"
+cat > "$bin/gh" <<STUB
+#!/bin/sh
+echo "\$*" >> "$calls"
+printf '{"body": "Closes #4242"}\n'
+STUB
+chmod +x "$bin/gh"
+tree_digest() { (cd "$repo" && find . -path ./.git -prune -o -path ./.tdd/wt/4242/.git -prune -o -type f -exec cksum {} + | sort); }
+before="$(tree_digest)"
+(cd "$repo" && PATH="$bin:$PATH" "$FINISHED" 4242 >/dev/null 2>&1) || true
+after="$(tree_digest)"
+if [[ "$before" != "$after" ]]; then
+  no "$name (files changed: $(diff <(echo "$before") <(echo "$after")))"
+elif [[ ! -s "$calls" ]]; then
+  no "$name (the stub gh was never called)"
+elif grep -E -i -e 'POST|PATCH|PUT|DELETE|-X|--method|--input|-f |-F ' "$calls" > /dev/null \
+  || grep -v -E '^pr view ' "$calls" > /dev/null; then
+  no "$name (gh calls: $(cat "$calls"))"
+else
+  ok
+fi
+
 finish
