@@ -428,6 +428,7 @@ mkdir -p "$s/tests/unit"
 cat "$HERE/../../SKILL.md" > "$repo/skills/tdd/SKILL.md"
 cat "$HERE/../../SCRIPTS.md" > "$repo/skills/tdd/SCRIPTS.md"
 cat "$HERE/../../STOPPING.md" > "$repo/skills/tdd/STOPPING.md"
+cat "$HERE/../../RECONCILE.md" > "$repo/skills/tdd/RECONCILE.md"
 while IFS= read -r suite; do
   cat "$suite" > "$repo/${suite#"$HERE/../../../../"}"
 done < <(grep -lE '"skills/tdd/SKILL\.md"|/skills/tdd/SKILL\.md"' "$HERE/../../../../skills/tdd/scripts/tests/"*.test.sh "$HERE/../../../../skills/tdd/scripts/tests/unit/"*.test.sh)
@@ -476,6 +477,13 @@ commit_head
 stopping_out="$(run_affected 2>/dev/null)"
 grep -qxF "skills/tdd/scripts/tests/py/unit/test_skill_stopping.py" <<< "$stopping_out" || real_wrong+=" STOPPING.md: test_skill_stopping.py not selected;"
 mv "$work/STOPPING.md.orig" "$repo/skills/tdd/STOPPING.md"
+commit_base
+cat "$repo/skills/tdd/RECONCILE.md" > "$work/RECONCILE.md.orig"
+printf 'an edited line\n' >> "$repo/skills/tdd/RECONCILE.md"
+commit_head
+reconcile_out="$(run_affected 2>/dev/null)"
+grep -qxF "skills/tdd/scripts/tests/py/unit/test_skill_push_reconcile.py" <<< "$reconcile_out" || real_wrong+=" RECONCILE.md: test_skill_push_reconcile.py not selected;"
+mv "$work/RECONCILE.md.orig" "$repo/skills/tdd/RECONCILE.md"
 commit_base
 edit_below '## Bailing'
 real_edit "## Bailing" py/unit/test_skill_metrics.py ""
