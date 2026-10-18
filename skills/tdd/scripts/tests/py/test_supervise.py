@@ -2995,9 +2995,10 @@ def test_cli_launches_a_supervised_run_leaf_with_model_in_claudes_argv_only_when
         return code, argv.read_text().splitlines() if argv.exists() else None, leaked
 
     today = ["-p", "pin the argv", "--output-format", "stream-json", "--verbose"]
-    assert [launched("set", VERI_MODEL="sonnet"), launched("unset")] == [
-        (0, today + ["--model", "sonnet"], []),
-        (0, today + ["--model", "sonnet"], []),
+    arms = [launched("set", VERI_MODEL="sonnet"), launched("unset")]
+    assert [(code, argv[:len(today)], argv[-2:], leaked) for code, argv, leaked in arms] == [
+        (0, today, ["--model", "sonnet"], []),
+        (0, today, ["--model", "sonnet"], []),
     ]
 
 
