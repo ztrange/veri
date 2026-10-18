@@ -4017,6 +4017,33 @@ def test_cli_refuses_a_develop_green_launch_whose_step_without_the_ci_repair_mar
 
 
 @pytest.mark.process("a real stub claude that a refused develop-green launch must never start (#1741)")
+def test_cli_refuses_a_develop_green_launch_whose_open_step_lacks_the_ci_repair_mark_though_an_earlier_done_step_carries_it_1741(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import json
+    clean_env(monkeypatch)
+    (tmp_path / ".tdd").mkdir()
+    text = "split off the edge case ⟦added⟧"
+    (tmp_path / ".tdd" / "issue-1741.md").write_text(
+        "# Plan for #1741\n\n"
+        "- [x] first step\n"
+        "- [x] fix the CI failure: suite.test.sh — FAIL - case ⟦ci-repair⟧\n"
+        f"- [ ] {text}\n")
+    base = {"issue": "1741", "skill_commit": "unknown"}
+    log = [
+        {**base, "ts": 1, "event": "launch", "actor": "developer", "phase": "red", "step": text, "attempt": "1"},
+    ]
+    (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(line) + "\n" for line in log))
+    stub = tmp_path / "claude"
+    stub.write_text("#!/bin/sh\ntouch ran\n")
+    stub.chmod(0o755)
+
+    code, out, err = run_cli(supervise, ["develop-green", str(stub)], cwd=tmp_path,
+                             env={"VERI_ISSUE": "1741", "VERI_STEP": text})
+
+    assert (code, out, (tmp_path / "ran").exists()) == (2, "", False), err
+
+
+@pytest.mark.process("a real stub claude that a refused develop-green launch must never start (#1741)")
 def test_cli_leaves_no_launch_event_and_no_owner_file_when_it_refuses_a_develop_green_launch_for_a_missing_verify_red_pass_1741(
         monkeypatch, tmp_path, supervise, run_cli):
     import json
