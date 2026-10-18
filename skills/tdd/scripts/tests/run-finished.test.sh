@@ -53,6 +53,58 @@ else
   ok
 fi
 
+name="a done run whose PR body holds an unticked checkbox that is not human-owed exits 0 and prints nothing"
+repo="$(scratch_dir)"
+bin="$(scratch_dir)"
+new_repo "$repo"
+mkdir -p "$repo/.tdd/wt/4242/.tdd"
+git -C "$repo" commit -q --allow-empty -m init
+new_repo "$repo/.tdd/wt/4242"
+printf '%s\n' \
+  '{"ts":1000,"event":"launch","step":"1","phase":"red","actor":"developer","name":"develop-red"}' \
+  '{"ts":1001,"event":"done","pr":"https://github.com/o/r/pull/7"}' > "$repo/.tdd/wt/4242/.tdd/events.jsonl"
+printf '%s\n' '# Plan for #4242 — a title' '' '- [x] first step ⟦criterion 1⟧' \
+  > "$repo/.tdd/wt/4242/.tdd/issue-4242.md"
+cat > "$bin/gh" <<'STUB'
+#!/bin/sh
+body='Closes #4242
+
+- [ ] a follow-up someone may file later'
+case " $* " in
+  *" --json "*) printf '{"body": "%s"}\n' "$(printf '%s' "$body" | sed 's/$/\\n/' | tr -d '\n')" ;;
+  *) printf '%s\n' "$body" ;;
+esac
+STUB
+chmod +x "$bin/gh"
+out="$(cd "$repo" && PATH="$bin:$PATH" "$FINISHED" 4242 2>&1)" && code=0 || code=$?
+if [[ "$code" != 0 ]]; then
+  no "$name (want exit 0, got $code: $out)"
+elif [[ -n "$out" ]]; then
+  no "$name (want no output, got: $out)"
+else
+  ok
+fi
+
+name="a stopped run with a clean ledger exits 1 and prints a not-done line naming the stopped state"
+repo="$(scratch_dir)"
+new_repo "$repo"
+mkdir -p "$repo/.tdd/wt/4242/.tdd"
+git -C "$repo" commit -q --allow-empty -m init
+new_repo "$repo/.tdd/wt/4242"
+printf '%s\n' \
+  '{"ts":1000,"event":"launch","step":"1","phase":"red","actor":"developer","name":"develop-red"}' \
+  '{"ts":1001,"event":"stop","mode":"graceful"}' > "$repo/.tdd/wt/4242/.tdd/events.jsonl"
+printf '%s\n' '# Plan for #4242 — a title' '' '- [x] first step ⟦criterion 1⟧' \
+  > "$repo/.tdd/wt/4242/.tdd/issue-4242.md"
+out="$(cd "$repo" && "$FINISHED" 4242 2>/dev/null)" && code=0 || code=$?
+if [[ "$code" != 1 ]]; then
+  no "$name (want exit 1, got $code: $out)"
+elif [[ "$out" != "not-done stopped"* ]]; then
+  no "$name (stdout: $out)"
+else
+  ok
+fi
+
 name="a run whose state is not done exits 1 and prints a not-done line naming the state"
 repo="$(scratch_dir)"
 new_repo "$repo"
@@ -215,7 +267,14 @@ echo "\$*" >> "$calls"
 printf '{"body": "Closes #4242"}\n'
 STUB
 chmod +x "$bin/gh"
-tree_digest() { (cd "$repo" && find . -path ./.git -prune -o -path ./.tdd/wt/4242/.git -prune -o -type f -exec cksum {} + | sort); }
+tree_digest() {
+  (cd "$repo" && find . -path ./.git -prune -o -path ./.tdd/wt/4242/.git -prune -o -type f -exec cksum {} + | sort)
+  for g in "$repo" "$repo/.tdd/wt/4242"; do
+    git -C "$g" for-each-ref
+    git -C "$g" config --list --local
+    git -C "$g" status --porcelain
+  done
+}
 before="$(tree_digest)"
 (cd "$repo" && PATH="$bin:$PATH" "$FINISHED" 4242 >/dev/null 2>&1) || true
 after="$(tree_digest)"
