@@ -15,6 +15,7 @@ from conftest import ROOT, SCRIPTS
 SKILL = ROOT / "skills" / "tdd" / "SKILL.md"
 SKILL_MD = "skills/tdd/SKILL.md"
 STOPPING = ROOT / "skills" / "tdd" / "STOPPING.md"
+RECONCILE = ROOT / "skills" / "tdd" / "RECONCILE.md"
 
 SENTINEL = "make sentinel-test-cmd"
 SENTINEL_ISSUE = "143"
@@ -588,8 +589,8 @@ def plant_every_step_ticked_ledger(tree, title):
     write_ledger(tree, f"- [x] an earlier step the run finished\n- [x] {title}\n")
 
 
-def first_line(pattern):
-    hits = numbered_lines(pattern)[:1]
+def first_line(pattern, source=None):
+    hits = numbered_lines(pattern, None if source is None else source.read_text())[:1]
     return hits[0] if hits else (None, None)
 
 
@@ -655,12 +656,12 @@ def scan_rebase_verifier_last_done(probe, tag, by_env):
         probe.problem(lineno, line, f"launched verdict-rebase beside a ledger with every step ticked, whose verifier was handed --step <{argv}>, want the last done step <{title}> (the launching shell said: {flat(err)})")
 
 
-def scan_develop_last_done(probe, phase):
+def scan_develop_last_done(probe, phase, source=None):
     title = EXPANDING_STEP
     stage, seen, tree = stage_recorder(probe, f"develop-{phase}-last-done")
     stage_title_recorders(probe, stage, "build-develop-prompt")
     plant_every_step_ticked_ledger(tree, title)
-    lineno, line = first_line(rf"\$S/build-develop-prompt\.sh {phase} .*> \.tdd/develop-{phase}\.prompt")
+    lineno, line = first_line(rf"\$S/build-develop-prompt\.sh {phase} .*> \.tdd/develop-{phase}\.prompt", source)
     if lineno is None:
         no_launch(probe, f"build-develop-prompt.sh {phase} into .tdd/develop-{phase}.prompt")
     else:
@@ -669,7 +670,7 @@ def scan_develop_last_done(probe, phase):
         if launch is not None:
             err, _, _ = run_staged(stage, seen, tree, launch, "<no prompt was built>")
             check_prompt_step(probe, lineno, line, seen, title, err, f"develop-{phase}")
-    lineno, line = first_line(rf"\$S/detach-leaf\.sh .*\$S/supervise\.sh develop-{phase} \$S/run-leaf\.sh")
+    lineno, line = first_line(rf"\$S/detach-leaf\.sh .*\$S/supervise\.sh develop-{phase} \$S/run-leaf\.sh", source)
     if lineno is None:
         no_launch(probe, f"develop-{phase} through supervise.sh into run-leaf.sh")
         return
@@ -1049,7 +1050,7 @@ def test_892_the_draft_pr_steps_develop_rebase_block_in_skill_md_run_with_every_
 @pytest.mark.tree_audit("the scripts directory the stage links every script of")
 @pytest.mark.timeout(300)
 def test_892_the_develop_reconcile_block_of_reconciling_a_rejected_push_in_skill_md_run_with_every_ledger_step_ticked_passes_build_develop_prompt_sh_reconcile_and_the_leafs_veri_step_the_last_done_steps_text_byte_identical(probe):
-    scan_develop_last_done(probe, "reconcile")
+    scan_develop_last_done(probe, "reconcile", source=RECONCILE)
 
     assert probe.problems == []
 

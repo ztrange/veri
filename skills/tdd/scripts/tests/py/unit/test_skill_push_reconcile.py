@@ -11,6 +11,7 @@ import pathlib
 import re
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
+RECONCILE = SKILL.with_name("RECONCILE.md")
 
 _UPPER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
 
@@ -64,10 +65,11 @@ def test_both_push_branch_call_sites_branch_exit_1_to_a_supervised_develop_recon
         if not (re.search("exit 2", rec) and re.search("bail", rec)):
             problems.append(f"the push-branch.sh call beside {site} does not bail on exit 2: {rec}")
 
-    if not any(re.search(r"supervise\.sh develop-reconcile", r) for r in records):
+    if not any(re.search(r"supervise\.sh develop-reconcile", r) for r in _records(RECONCILE.read_text().splitlines())):
         problems.append("no instruction launches develop-reconcile through supervise.sh")
 
-    reconcile = " ".join(r for r in records if "reconcil" in r) + " " + _reconcile_section(lines)
+    reconcile_lines = RECONCILE.read_text().splitlines()
+    reconcile = " ".join(r for r in records + _records(reconcile_lines) if "reconcil" in r) + " " + _reconcile_section(reconcile_lines)
     for want in (r"push-branch\.sh", "ledger", "⟂ refactor pending", "reconcile-failed", "bail"):
         if not re.search(want, reconcile):
             problems.append(f"the reconcile instructions never mention {want}")

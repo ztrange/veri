@@ -27,7 +27,7 @@ leaves the run resumable. Run this sequence in order.
    holds a branch this HEAD does not fast-forward — is answered here by **recording it, not
    by fixing it**: take the remote's sha from the script's stderr, record
    `push=rejected sha=<remote-sha>` and say so in the comment. A stop launches no leaves, so
-   the reconcile leaf *Reconciling a rejected push* would otherwise launch is not an option;
+   the reconcile leaf `<base directory>/RECONCILE.md` would otherwise launch (read it when that event happens) is not an option;
    and a stop has no cause, so a rejected push is not a bail either — the run stays paused
    and resumable, and the resume reconciles. Exit **2** is recorded the same way.
 4. **Mark the stop**, exactly once, with the boundary the run actually reached. `<at>` is
