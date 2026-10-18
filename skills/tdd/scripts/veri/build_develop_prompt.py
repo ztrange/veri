@@ -11,7 +11,7 @@ PHASES = ("red", "green", "refactor", "cover", "transform", "diff", "structural"
           "reconcile", "exhausted", "over-budget", "rebase") + INTERFACE_PHASES
 REVISE_PHASES = ("red", "green", "refactor", "diff")
 WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "transform": 4, "diff": 5, "structural": 5,
-        "predicate": 5, "revise": 6, "reconcile": 6, "exhausted": 5, "over-budget": 6, "rebase": 7, "replaces-report": 6,
+        "predicate": 5, "revise": 6, "reconcile": 6, "exhausted": 5, "over-budget": 6, "rebase": 7, "replaces-report": 6, "red-contradicted": 5,
         **dict.fromkeys(INTERFACE_PHASES, 4)}
 WANT_PHASES = "|".join(PHASES)
 REVISABLE_PHASES = REVISE_PHASES + INTERFACE_PHASES
@@ -29,7 +29,8 @@ TEST_REWRITE_GRANT = (
     "   rejected predicted a different test, so there is nothing here for you to inherit.").encode()
 WRONG_TEST_REPORT = (
     "\n\nor, when the green you are redoing has a test that looks wrong, those lines replaced by one:\n\n"
-    "WRONG_TEST: <why the test looks wrong>").encode()
+    "WRONG_TEST: <why the test looks wrong>\n\n"
+    "Name in that line the existing test case the step's criterion contradicts.").encode()
 WRONG_TEST_FORMAT = (
     "\n\nREPORT-FORMAT revise-wrong-test | keys WRONG_TEST: | suite exempt: the test is wrong, "
     "so nothing was changed and no suite ran").encode()
@@ -45,7 +46,8 @@ ARGUMENT_PLACEHOLDERS = {"<test-path>": "TEST_PATH", "<target-test>": "TARGET_TE
                          "<touched-files>": "TOUCHED_FILES", "<issue-touched-files>": "TOUCHED_FILES",
                          "<branch>": "BRANCH", "<remote-sha>": "REMOTE_SHA", "<spent>": "SPENT", "<budget>": "BUDGET",
                          "<onto-sha>": "ONTO_SHA", "<pre-rebase-sha>": "PRE_REBASE_SHA",
-                         "<conflicting-files>": "CONFLICTING_FILES", "<report-file>": "REPORT_FILE"}
+                         "<conflicting-files>": "CONFLICTING_FILES", "<report-file>": "REPORT_FILE",
+                         "<case>": "CASE"}
 USAGE = f"build-develop-prompt.sh: usage: {WANT_PHASES} <issue-spec-file> <step-text> <test-cmd> ..."
 
 
@@ -65,7 +67,7 @@ def main(argv):
     if not argv:
         return _refuse()
     phase = argv[0]
-    if phase not in PHASES + ("replaces-report",):
+    if phase not in PHASES + ("replaces-report", "red-contradicted"):
         return _refuse(f"build-develop-prompt.sh: unknown phase '{phase}' (want {WANT_PHASES})")
     if len(argv) < WANT[phase]:
         return _refuse(f"build-develop-prompt: {phase} needs {WANT[phase]} arguments, got {len(argv)}")
@@ -90,6 +92,7 @@ def main(argv):
         "rebase": ["<onto-sha>", "<pre-rebase-sha>", "<conflicting-files>"],
         "over-budget": ["<spent>", "<budget>"],
         "replaces-report": ["<report-file>", "<missing-cases-file>"],
+        "red-contradicted": ["<case>"],
     }.get(phase, [])
     for index, name in enumerate(names):
         if not (args[index] if index < len(args) else ""):
@@ -132,7 +135,7 @@ def main(argv):
     values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "RED_CASES", "RED_LEAD", "REPLACES_CASE", "SUITE_REPAIR", "CI_REPAIR", "STEP",
                             "TEST_CMD", "TEST_PATH", "TARGET_TEST", "FAST_CMD", "TIMED_TEST_RUN", "TOUCHED_FILES",
                             "NODE_ID_RULE", "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "WRONG_TEST_REPORT", "WRONG_TEST_FORMAT", "TEST_REWRITE", "REJECTION_REASON", "BRANCH",
-                            "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES", "REPORT_FILE", "MISSING_CASES"), b"")
+                            "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES", "REPORT_FILE", "MISSING_CASES", "CASE"), b"")
     values["NODE_ID_RULE"] = NODE_ID_RULE
     values["RED_CASES"] = (b"One criterion, one case \xe2\x80\x94 no extra cases, and no generality the step does\n"
                            b"not ask for.")
