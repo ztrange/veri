@@ -124,6 +124,7 @@ def launch(base, issue, commit, **exports):
     env = dict(os.environ, **exports)
     strip_session_env(env)
     env.pop("VERI_NEW_SKILL", None)
+    env.pop("FORCE_PROMPT_CACHING_5M", None)
     binary = os.environ.get("CLAUDE_BIN") or "claude"
     unread = []
     terminated = []
