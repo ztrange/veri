@@ -121,7 +121,7 @@ against is forgetting, not forgery.
 | ID | Requirement | Why |
 |---|---|---|
 | C1 | Invoked as `/veri-coord [--resume <file>]`. | |
-| C2 | It launches no conductor, and merges only a PR the human named. | The roles stay separate. |
+| C2 | It launches no conductor, and merges only what the human authorised: a PR they named, a standing instruction such as `afk`, or a standing permission to merge its own PRs. | The roles stay separate. |
 | C3 | It watches through the P3 script, and re-arms silently. | |
 | C4 | It instructs the dev session through `SendMessage` and tells the human in one line that it did. | "why didn't you just send it yourself?" |
 | C5 | Decisions go to the human. The dev session receives facts and instructions. | |
