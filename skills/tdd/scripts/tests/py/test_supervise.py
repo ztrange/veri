@@ -3803,3 +3803,30 @@ def test_main_launches_a_leaf_that_never_answers_the_same_number_of_times_with_v
     assert launches_of_a_silent_leaf("alone") == (2, 2)
     assert launches_of_a_silent_leaf("with-no-verdict", VERI_NO_VERDICT_RETRIES="5") == (2, 2)
     assert launches_of_a_silent_leaf("with-no-verdict-below", VERI_NO_VERDICT_RETRIES="0") == (2, 2)
+
+
+@pytest.mark.process("a real stub claude that a refused develop-green launch must never start (#1741)")
+def test_cli_refuses_a_develop_green_launch_whose_step_has_a_red_launch_followed_only_by_a_verify_red_reject_starting_no_leaf_and_naming_the_step_and_the_missing_pass_1741(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import json
+    clean_env(monkeypatch)
+    (tmp_path / ".tdd").mkdir()
+    base = {"issue": "1741", "skill_commit": "unknown"}
+    log = [
+        {**base, "ts": 1, "event": "launch", "actor": "developer", "phase": "red", "step": "3", "attempt": "1"},
+        {**base, "ts": 2, "event": "verdict", "actor": "verifier", "phase": "red", "step": "3", "attempt": "1",
+         "verdict": "REJECT"},
+        {**base, "ts": 3, "event": "verdict", "actor": "verifier", "phase": "red", "step": "4", "attempt": "1",
+         "verdict": "PASS"},
+    ]
+    (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(line) + "\n" for line in log))
+    stub = tmp_path / "claude"
+    stub.write_text("#!/bin/sh\ntouch ran\n")
+    stub.chmod(0o755)
+
+    code, out, err = run_cli(supervise, ["develop-green", str(stub)], cwd=tmp_path,
+                             env={"VERI_ISSUE": "1741", "VERI_STEP": "3"})
+
+    assert (code, out, (tmp_path / "ran").exists()) == (2, "", False)
+    lines = err.splitlines()
+    assert len(lines) == 1 and "step 3" in lines[0] and "verify-red" in lines[0] and "PASS" in lines[0], err

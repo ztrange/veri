@@ -1,5 +1,6 @@
 """supervise.sh's watchdog, run in-process."""
 import errno
+import json
 import os
 import re
 import signal
@@ -282,6 +283,26 @@ def trap(started, exitfile, kill_poll, ignored):
             signal.signal(sig, on_signal)
 
 
+def red_awaits_pass(step):
+    last = None
+    try:
+        with open(".tdd/events.jsonl") as f:
+            for text in f:
+                try:
+                    rec = json.loads(text)
+                except ValueError:
+                    continue
+                if not isinstance(rec, dict) or str(rec.get("step")) != step or rec.get("phase") != "red":
+                    continue
+                if rec.get("event") == "launch":
+                    last = False
+                elif rec.get("event") == "verdict" and last is not None:
+                    last = rec.get("verdict") == "PASS"
+    except OSError:
+        return False
+    return last is False
+
+
 def main(argv):
     ignored = {sig for sig in TRAPPED if signal.getsignal(sig) is signal.SIG_IGN}
     if signal.SIGINT not in ignored:
@@ -330,6 +351,9 @@ def main(argv):
     skill_commit = answered("git", "-C", HERE, "rev-parse", "HEAD") or tunables.read("VERI_SKILL_COMMIT") or "unknown"
     leaf_env = {**os.environ}
     leaf_env.update(VERI_LEAF_MODEL=model, VERI_SKILL_COMMIT=skill_commit)
+    step = tunables.read("VERI_STEP")
+    if name.startswith("develop-green") and step and red_awaits_pass(step):
+        return refuse(f"supervise: refusing to launch {name}: step {step} has no verify-red PASS after its latest red leaf")
     ownerfile = ".tdd/leaf.owner"
     owner = still_alive_owner(ownerfile)
     if owner is not None:
