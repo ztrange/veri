@@ -52,6 +52,8 @@ def claims(path, unit):
             continue
         elif is_header(line):
             cells = split_cells(line)
+            if tabled:
+                fail("second table under unit")
             if cells[1:4] != COLUMNS:
                 fail("header lacks a column")
             intable, skip, tabled = True, True, True
