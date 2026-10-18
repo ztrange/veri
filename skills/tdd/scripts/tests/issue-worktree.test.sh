@@ -24,6 +24,22 @@ make_repo() {
   git_q "$1" commit -q --allow-empty -m "initial" >/dev/null 2>&1
 }
 
+stub_git() {
+  local dir="$1" real
+  real="$(command -v git)"
+  mkdir -p "$dir"
+  cat > "$dir/git" <<STUB
+#!/bin/sh
+case "\$1" in
+  ls-remote) [ -n "\${STUB_LS_EMPTY:-}" ] && exit 0; [ -n "\${STUB_LS_FAIL:-}" ] && { echo "fatal: unable to access remote" >&2; exit 128; } ;;
+  fetch) [ -n "\${STUB_FETCH_FAIL:-}" ] && { echo "fatal: unable to access remote" >&2; exit 128; } ;;
+esac
+exec "$real" "\$@"
+STUB
+  chmod +x "$dir/git"
+}
+stub_git "$work/stubbin"
+
 wt_path() { printf '%s\n' "$(cd "$1" && pwd -P)/.tdd/wt/$2"; }
 
 registry() {
@@ -309,12 +325,11 @@ upstream="$work/unreachable-upstream"
 make_repo "$upstream"
 clone="$work/unreachable-clone"
 git clone -q "$upstream" "$clone" >/dev/null 2>&1
-rm -rf "$upstream"
 want="$(wt_path "$clone" 41)"
 before="$(registry "$clone")"
 
 errfile="$work/unreachable.err"
-out="$(cd "$clone" && "$WT" 41 fetch-fails 2>"$errfile")" && code=0 || code=$?
+out="$(cd "$clone" && PATH="$work/stubbin:$PATH" STUB_FETCH_FAIL=1 "$WT" 41 fetch-fails 2>"$errfile")" && code=0 || code=$?
 err="$(cat "$errfile")"
 after="$(registry "$clone")"
 
@@ -325,6 +340,21 @@ after="$(registry "$clone")"
 $before
 --- after
 $after" ))"
+
+upstream="$work/ls-remote-silent-upstream"
+make_repo "$upstream"
+clone="$work/ls-remote-silent-clone"
+git clone -q "$upstream" "$clone" >/dev/null 2>&1
+want="$(wt_path "$clone" 1672)"
+before="$(registry "$clone")"
+
+errfile="$work/ls-remote-silent.err"
+out="$(cd "$clone" && PATH="$work/stubbin:$PATH" STUB_LS_FAIL=1 "$WT" 1672 ls-remote-silent 2>"$errfile")" && code=0 || code=$?
+after="$(registry "$clone")"
+
+{ [[ "$code" == 2 ]] && [[ -z "$out" ]] && grep -F 'ls-remote' "$errfile" >/dev/null \
+  && [[ ! -e "$want" ]] && [[ "$after" == "$before" ]]; } \
+  && ok || no "#1672: a fresh cut whose origin ls-remote gets no answer (the fetch would answer): exits 2 naming the ls-remote lookup and creates no worktree (exit=$code want 2, stdout='$out' want empty, stderr='$(cat "$errfile")' want it to name ls-remote, $want $( [[ -e "$want" ]] && echo "exists" || echo "absent, good" ), registry $( [[ "$after" == "$before" ]] && echo unchanged || echo changed ))"
 
 repo="$work/no-remote"
 make_repo "$repo"
@@ -466,7 +496,7 @@ origin_head="$(git_q "$clone" symbolic-ref --quiet refs/remotes/origin/HEAD 2>/d
 before="$(registry "$clone")"
 
 errfile="$work/unresolvable-default.err"
-out="$(cd "$clone" && "$WT" 866 unresolvable-default 2>"$errfile")" && code=0 || code=$?
+out="$(cd "$clone" && PATH="$work/stubbin:$PATH" STUB_LS_EMPTY=1 STUB_FETCH_FAIL=1 "$WT" 866 unresolvable-default 2>"$errfile")" && code=0 || code=$?
 after="$(registry "$clone")"
 
 { [[ "$code" == 2 ]] && [[ -z "$origin_head" ]] && grep -F 'refs/remotes/origin/HEAD' "$errfile" >/dev/null \

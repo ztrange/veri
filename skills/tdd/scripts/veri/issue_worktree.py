@@ -65,6 +65,8 @@ def default_branch_name(origin):
 def remote_issue_branch(issue):
     answer = git("ls-remote", "--heads", "origin", "refs/heads/%s-*" % issue,
                  stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    if answer.returncode != 0:
+        return None
     for line in answer.stdout.split("\n"):
         name = line.partition("\trefs/heads/")[2]
         if name:
@@ -174,6 +176,10 @@ def cut(path, branch):
         if origin:
             issue = branch.split("-", 1)[0].removeprefix("tdd/")
             claimed = remote_issue_branch("tdd/" + issue)
+            if claimed is None:
+                sys.stderr.write("issue-worktree: git ls-remote origin got no answer"
+                                 " — cannot tell whether another run claimed the issue\n")
+                return 2
             if claimed:
                 sys.stderr.write("issue-worktree: %s is already on origin"
                                  " — another run claimed the issue\n" % claimed)
