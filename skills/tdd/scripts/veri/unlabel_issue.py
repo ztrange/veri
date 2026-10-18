@@ -10,6 +10,9 @@ def main(argv):
     if len(argv) != 1:
         print("usage: unlabel-issue.sh <issue-number>", file=sys.stderr)
         return 2
+    if not argv[0].isdecimal():
+        print("unlabel-issue.sh: issue number must be numeric, got '%s'" % argv[0], file=sys.stderr)
+        return 2
     label = urllib.parse.quote(tunables.read("VERI_LABEL", "ready-for-agent"), safe="")
     run = subprocess.run(
         ["gh", "api", "-X", "DELETE", "repos/{owner}/{repo}/issues/%s/labels/%s" % (argv[0], label)],
