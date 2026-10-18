@@ -68,6 +68,7 @@ def main(argv):
         strip_session_env(env)
         env["GIT_CONFIG_GLOBAL"] = git_path
         env["PYTHONDONTWRITEBYTECODE"] = "1"
+        env["FORCE_PROMPT_CACHING_5M"] = "1"
         env["PATH"] = GUARD + os.pathsep + env.get("PATH", "")
         if env.get("VERI_SHIM_SET_COERCE") == "1":
             del env["VERI_SHIM_SET_COERCE"]
