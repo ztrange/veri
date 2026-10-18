@@ -41,9 +41,12 @@ def claims(path, unit):
     inunit = intable = skip = False
     headed = tabled = 0
     lines = read_lines(path)
+    number = 0
+
+    def fail(msg):
+        raise ValueError("%s:%d: %s" % (path, number, msg))
+
     for number, line in enumerate(lines + ["## "], 1):
-        def fail(msg):
-            raise ValueError("%s:%d: %s" % (path, number, msg))
         if line.startswith("## "):
             if inunit and not tabled:
                 raise ValueError("%s:%d: no table under heading" % (path, headed))
