@@ -93,6 +93,8 @@ makes the code read that input, and a plan placing it before the step that makes
 that input is the REJECT. Your REASON: line names both steps, the early step and the later step
 it waits on.
 
+REJECT a plan in which a step adds a script under `skills/tdd/scripts/` whose no-argument usage line and exit 2, or whose declared caller, arrives only in a later step, since the repo-wide audits go red on the adding step whatever its green does; your reason names both steps, the adding step and the later step that brings the usage or the caller.
+
 REJECT a plan holding a step that carries the `⟦replaces-case⟧` mark but does not name its cases in the form `replaces '<case name>', '<case name>' in <suite path>`, quoting each case name: the guard that reads the names cannot read any other form, and your reason names the step.
 
 {{REFACTOR_PLAN}}
