@@ -1,0 +1,2 @@
+### When the run's state as `status.sh` reports it is not `done`, `run-finished.sh <issue>` exits 1 and prints the line `not-done <state>` Build any scratch git repository in the suite with the harness's `new_repo`, never a bare `git init` (`tests/unit/no-report-copies.test.sh` refuses it). ⟦criterion 2⟧
+- test-only | replace the bare `git -C "$repo" init -q` at run-finished.test.sh:13 with `new_repo "$repo"`
