@@ -368,6 +368,21 @@ if [[ "$catalogue_code" == 0 && "$(sort <<< "$catalogue_out")" == "$catalogue_wa
   diff <(printf '%s\n' "$catalogue_want") <(sort <<< "$catalogue_out") | sed 's/^/    /'
 fi
 
+make_repo stopping_file
+mkdir -p "$s/tests/py/unit"
+printf '# stopping\n\nstep\n' > "$repo/skills/tdd/STOPPING.md"
+printf '#!/usr/bin/env bash\nprocedure="skills/tdd/STOPPING.md"\ngrep -F step "$procedure"\n' > "$s/tests/stopping.test.sh"
+printf 'def test_step():\n    open("skills/tdd/STOPPING.md").read()\n' > "$s/tests/py/unit/test_stopping_file.py"
+commit_base
+printf '# stopping\n\nstep 2\n' > "$repo/skills/tdd/STOPPING.md"
+commit_head
+stopping_out="$(run_affected 2>"$work/stopping.err")"; stopping_code=$?
+stopping_want="$(printf '%s\n' skills/tdd/scripts/tests/stopping.test.sh skills/tdd/scripts/tests/py/unit/test_stopping_file.py | sort)"
+if [[ "$stopping_code" == 0 && "$(sort <<< "$stopping_out")" == "$stopping_want" && "$(cat "$work/stopping.err")" != *widening* ]]; then ok; else
+  no "an edit to skills/tdd/STOPPING.md prints the bash suite naming it and the pytest file mentioning it, without widening (code=$stopping_code, stderr=$(cat "$work/stopping.err"))"
+  diff <(printf '%s\n' "$stopping_want") <(sort <<< "$stopping_out") | sed 's/^/    /'
+fi
+
 make_repo file_wide_paths
 mkdir -p "$s/tests" "$s/prompts" "$repo/skills/merge"
 file_wide_text() { printf '# doc\n\n## Alpha\n\nalpha text%s\n\n## Beta\n\nbeta text\n' "$1"; }
