@@ -60,8 +60,7 @@ def test_main_1621_finds_a_real_pytest_function_and_a_real_bash_suite_case_from_
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     monkeypatch.chdir(ROOT)
     pytest_case = "test_a_planted_develop_prompt_that_makes_no_commit_and_the_real_prompts_directory_are_clean"
-    bash_case = ("through a symlink to the skill directory, from another working directory, "
-                 "answers as in place")
+    bash_case = "run through a symlink to the skill directory from another directory, answers as in place"
     results = []
     for line in ("WRONG_TEST: %s asserts the opposite of the criterion" % pytest_case,
                  "WRONG_TEST: the case `%s` asserts the opposite of the criterion" % bash_case):
@@ -131,5 +130,23 @@ def test_main_1621_prints_revise_when_a_wrong_test_names_only_the_step_own_red_p
         "WRONG_TEST: %s asserts the opposite of the criterion\n" % own_case)
 
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), own_id], cwd=ROOT)
+
+    assert (code, stdout) == (3, "revise\n")
+
+
+@pytest.mark.tree_audit("the repository's own tests directories, searched for the case a WRONG_TEST names")
+def test_main_1621_prints_revise_when_a_wrong_test_quotes_a_string_in_a_real_suite_that_is_no_declared_case_name(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    monkeypatch.chdir(ROOT)
+    not_a_name = ("through a symlink to the skill directory, from another working directory, "
+                  "answers as in place")
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: the case `%s` asserts the opposite of the criterion\n" % not_a_name)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=ROOT)
 
     assert (code, stdout) == (3, "revise\n")
