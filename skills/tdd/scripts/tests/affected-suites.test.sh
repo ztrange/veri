@@ -383,6 +383,21 @@ if [[ "$stopping_code" == 0 && "$(sort <<< "$stopping_out")" == "$stopping_want"
   diff <(printf '%s\n' "$stopping_want") <(sort <<< "$stopping_out") | sed 's/^/    /'
 fi
 
+make_repo reconcile_file
+mkdir -p "$s/tests/py/unit"
+printf '# reconcile\n\nstep\n' > "$repo/skills/tdd/RECONCILE.md"
+printf '#!/usr/bin/env bash\nprocedure="skills/tdd/RECONCILE.md"\ngrep -F step "$procedure"\n' > "$s/tests/reconcile.test.sh"
+printf 'def test_step():\n    open("skills/tdd/RECONCILE.md").read()\n' > "$s/tests/py/unit/test_reconcile_file.py"
+commit_base
+printf '# reconcile\n\nstep 2\n' > "$repo/skills/tdd/RECONCILE.md"
+commit_head
+reconcile_out="$(run_affected 2>"$work/reconcile.err")"; reconcile_code=$?
+reconcile_want="$(printf '%s\n' skills/tdd/scripts/tests/reconcile.test.sh skills/tdd/scripts/tests/py/unit/test_reconcile_file.py | sort)"
+if [[ "$reconcile_code" == 0 && "$(sort <<< "$reconcile_out")" == "$reconcile_want" && "$(cat "$work/reconcile.err")" != *widening* ]]; then ok; else
+  no "an edit to skills/tdd/RECONCILE.md prints the bash suite naming it and the pytest file mentioning it, without widening (code=$reconcile_code, stderr=$(cat "$work/reconcile.err"))"
+  diff <(printf '%s\n' "$reconcile_want") <(sort <<< "$reconcile_out") | sed 's/^/    /'
+fi
+
 make_repo file_wide_paths
 mkdir -p "$s/tests" "$s/prompts" "$repo/skills/merge"
 file_wide_text() { printf '# doc\n\n## Alpha\n\nalpha text%s\n\n## Beta\n\nbeta text\n' "$1"; }

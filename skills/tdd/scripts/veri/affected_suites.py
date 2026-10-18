@@ -251,7 +251,7 @@ def suite_of(f, revisions=None):
             return ([s for s in naming if s in readers or s not in slicers]
                     + pytest_readers(forms(*section)) + pytest_whole_readers())
         return naming + pytest_skill_readers() if f == "skills/tdd/SKILL.md" and revisions else naming
-    if f in ("skills/tdd/SCRIPTS.md", "skills/tdd/STOPPING.md"):
+    if f in ("skills/tdd/SCRIPTS.md", "skills/tdd/STOPPING.md", "skills/tdd/RECONCILE.md"):
         name = basename(f).encode()
         return suites_naming(name.decode()) + [p for p, text in pytest_texts() if name in text]
     if match(SCRIPTS + "/tests/*.test.sh", *[d + "/test_*.py" for d in PYTEST_DIRS]):
