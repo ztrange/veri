@@ -174,6 +174,31 @@ def test_main_a_leaf_session_loads_no_skills_connectors_memory_or_user_claude_md
         0, [], [], [str(work / "CLAUDE.md")], [False])
 
 
+def test_main_a_leaf_asked_for_the_five_minute_cache_ttl_reports_five_minute_writes_and_no_one_hour_writes_1707(
+        tmp_path, monkeypatch, capfd):
+    import json
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch)
+    monkeypatch.delenv("FORCE_PROMPT_CACHING_5M", raising=False)
+    (work / "prompt.txt").write_text("do the step\n")
+    launches = []
+
+    def launch(argv, *args, **kwargs):
+        five = kwargs["env"].get("FORCE_PROMPT_CACHING_5M") == "1"
+        cache = {"ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 0}
+        cache["ephemeral_5m_input_tokens" if five else "ephemeral_1h_input_tokens"] = 1000
+        record = {"type": "assistant", "message": {"usage": {"cache_creation": cache}}}
+        return _FakeLeaf(launches, argv, stream=(json.dumps(record) + "\n").encode(), **kwargs)
+
+    monkeypatch.setattr(subprocess, "Popen", launch)
+
+    code = run_leaf.main(["prompt.txt"])
+    records = [json.loads(line) for line in capfd.readouterr().out.splitlines() if line.startswith("{")]
+
+    cache = records[0]["message"]["usage"]["cache_creation"]
+    assert (code, cache["ephemeral_5m_input_tokens"] > 0, cache["ephemeral_1h_input_tokens"]) == (0, True, 0)
+
+
 def test_main_reads_the_prompt_from_a_relative_file_or_stdin_as_bytes_and_refuses_a_missing_file_or_a_directory_with_2(
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")
