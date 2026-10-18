@@ -3,6 +3,7 @@ import importlib
 import json
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -837,3 +838,145 @@ def test_called_from_a_linked_worktree_creates_and_prints_the_main_working_trees
 
     assert (code, out.strip(), scratch_git(want, "rev-parse", "--show-toplevel"),
             os.path.exists(scratch_wt_path(linked, 27))) == (0, want, want, False)
+
+
+def scratch_clone(tmp_path, name):
+    upstream = scratch_repo(tmp_path / (name + "-upstream"))
+    clone = tmp_path / (name + "-clone")
+    subprocess.run(["git", "clone", "-q", str(upstream), str(clone)], capture_output=True)
+    return upstream, clone
+
+
+@pytest.mark.process("git worktree add from a linked worktree, then again from the main working tree")
+def test_created_from_a_linked_worktree_called_again_from_the_main_working_tree_prints_the_same_path_and_creates_nothing(
+        tmp_path, issue_worktree, run_cli):
+    repo = scratch_repo(tmp_path / "cross-caller")
+    linked = scratch_linked(repo, "cross-caller-session", "cross-session")
+    want = scratch_wt_path(repo, 29)
+
+    first = run_cli(issue_worktree, ["29", "cross-caller"], cwd=linked)
+    before = scratch_registry(repo)
+    second = run_cli(issue_worktree, ["29", "cross-caller"], cwd=repo)
+
+    assert (first[0], second[0], second[1].strip(), second[1], scratch_registry(repo)) == (
+        0, 0, want, first[1], before)
+
+
+@pytest.mark.process("git worktree remove from a linked worktree of a scratch repository")
+def test_remove_from_a_linked_worktree_removes_the_main_working_trees_dot_tdd_wt_31(tmp_path, issue_worktree, run_cli):
+    repo = scratch_repo(tmp_path / "remove-from-linked")
+    want = scratch_wt_path(repo, 31)
+    run_cli(issue_worktree, ["31", "remove-from-linked"], cwd=repo)
+    linked = scratch_linked(repo, "remove-from-linked-session", "remove-session")
+
+    code = run_cli(issue_worktree, ["--remove", "31"], cwd=linked)[0]
+
+    assert (code, "worktree %s" % want in scratch_registry(repo)[0], os.path.exists(want)) == (0, False, False)
+
+
+@pytest.mark.process("git worktree add through a symlinked path to a scratch repository, its registry read back")
+def test_reached_through_a_symlinked_path_prints_the_resolved_path_git_itself_lists_for_the_worktree(
+        tmp_path, issue_worktree, run_cli):
+    repo = scratch_repo(tmp_path / "symlinked")
+    via = tmp_path / "reached-by-symlink"
+    via.symlink_to(repo)
+    want = scratch_wt_path(repo, 33)
+
+    code, out, _ = run_cli(issue_worktree, ["33", "through-symlink"], env={"PWD": str(via)}, cwd=via)
+
+    assert (code, out.strip(), "worktree %s" % out.strip() in scratch_registry(repo)[0].split("\n")) == (0, want, True)
+
+
+@pytest.mark.process("git clone and git worktree add on scratch repositories, origin ahead of the clone")
+def test_origins_default_branch_is_ahead_of_the_local_one_cuts_tdd_35_from_remote_tip_from_origins_tip(
+        tmp_path, issue_worktree, run_cli):
+    upstream, clone = scratch_clone(tmp_path, "ahead")
+    scratch_git(upstream, "commit", "-q", "--allow-empty", "-m", "landed while the clone was busy")
+    remote_tip = scratch_git(upstream, "rev-parse", "main")
+    want = scratch_wt_path(clone, 35)
+
+    code, out, _ = run_cli(issue_worktree, ["35", "from-remote-tip"], cwd=clone)
+
+    assert (code, out.strip(), scratch_git(want, "rev-parse", "HEAD")) == (0, want, remote_tip)
+
+
+@pytest.mark.process("git clone and git worktree add on scratch repositories, the clone's refs and tree read back")
+def test_creating_the_issue_branch_leaves_the_local_default_branch_ref_and_the_callers_working_tree_untouched(
+        tmp_path, issue_worktree, run_cli):
+    upstream, clone = scratch_clone(tmp_path, "untouched")
+    (upstream / "landed.txt").write_text("landed while the clone was busy\n")
+    scratch_git(upstream, "add", "landed.txt")
+    scratch_git(upstream, "commit", "-q", "-m", "landed while the clone was busy")
+    seen = lambda: (scratch_git(clone, "rev-parse", "refs/heads/main"), scratch_git(clone, "rev-parse", "HEAD"),
+                    scratch_git(clone, "branch", "--show-current"),
+                    scratch_git(clone, "status", "--porcelain", "--untracked-files=no"),
+                    (clone / "landed.txt").exists())
+    before = seen()
+
+    code = run_cli(issue_worktree, ["37", "leave-the-clone-alone"], cwd=clone)[0]
+
+    assert (code, seen()) == (0, before)
+
+
+@pytest.mark.process("git clone and git worktree add on scratch repositories, the new branch's upstream read back")
+def test_the_new_issue_branch_has_no_upstream(tmp_path, issue_worktree, run_cli):
+    _, clone = scratch_clone(tmp_path, "no-tracking")
+    want = scratch_wt_path(clone, 39)
+
+    code, out, _ = run_cli(issue_worktree, ["39", "no-upstream"], cwd=clone)
+
+    assert (code, out.strip(), scratch_git(clone, "for-each-ref", "--format=%(upstream:short)",
+                                           "refs/heads/tdd/39-no-upstream")) == (0, want, "")
+
+
+@pytest.mark.process("git worktree list on a scratch clone whose git fetch fails")
+def test_the_fetch_fails_exits_2_with_a_diagnostic_on_stderr_nothing_on_stdout_and_no_worktree_or_branch_created(
+        tmp_path, monkeypatch, issue_worktree, run_cli):
+    _, clone = scratch_clone(tmp_path, "unreachable")
+    want = scratch_wt_path(clone, 41)
+    before = scratch_registry(clone)
+    real_run = subprocess.run
+
+    def run(args, **kwargs):
+        if list(args)[:2] == ["git", "fetch"]:
+            sys.stderr.write("fatal: unable to access remote\n")
+            return subprocess.CompletedProcess(args, 128)
+        return real_run(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", run)
+
+    code, out, err = run_cli(issue_worktree, ["41", "fetch-fails"], cwd=clone)
+
+    assert (code, out, "fetch" in err, os.path.exists(want), scratch_registry(clone)) == (2, "", True, False, before)
+
+
+@pytest.mark.process("git worktree add on a scratch repository with no remote, the new worktree read back")
+def test_no_remote_at_all_cuts_tdd_43_no_remote_from_the_local_main_without_going_to_a_remote(
+        tmp_path, issue_worktree, run_cli):
+    repo = scratch_repo(tmp_path / "no-remote")
+    main_tip = scratch_git(repo, "rev-parse", "main")
+    scratch_git(repo, "switch", "-q", "-c", "side")
+    scratch_git(repo, "commit", "-q", "--allow-empty", "-m", "work on side")
+    want = scratch_wt_path(repo, 43)
+
+    code, out, err = run_cli(issue_worktree, ["43", "no-remote"], cwd=repo)
+
+    assert (code, out.strip(), scratch_git(want, "branch", "--show-current"), scratch_git(want, "rev-parse", "HEAD"),
+            err) == (0, want, "tdd/43-no-remote", main_tip, "")
+
+
+@pytest.mark.process("git worktree add on a scratch clone whose origin is gone, the existing branch checked out")
+def test_resume_onto_an_existing_issue_branch_with_the_remote_unreachable_checks_it_out_as_it_is(
+        tmp_path, issue_worktree, run_cli):
+    upstream, clone = scratch_clone(tmp_path, "resume-no-fetch")
+    scratch_git(clone, "switch", "-q", "-c", "tdd/45-resume-no-fetch")
+    scratch_git(clone, "commit", "-q", "--allow-empty", "-m", "work from the previous run")
+    branch_tip = scratch_git(clone, "rev-parse", "tdd/45-resume-no-fetch")
+    scratch_git(clone, "switch", "-q", "main")
+    shutil.rmtree(upstream)
+    want = scratch_wt_path(clone, 45)
+
+    code, out, err = run_cli(issue_worktree, ["45", "resume-no-fetch"], cwd=clone)
+
+    assert (code, out.strip(), scratch_git(want, "branch", "--show-current"), scratch_git(want, "rev-parse", "HEAD"),
+            err) == (0, want, "tdd/45-resume-no-fetch", branch_tip, "")
