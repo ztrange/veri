@@ -380,3 +380,37 @@ def test_main_returns_2_on_a_directory_as_the_ledger_with_one_stderr_line_naming
     out, err = capsysbinary.readouterr()
     assert (code, out) == (2, b"")
     assert err.decode() == f"clear-refactor-pending.sh: {tmp_path}: Is a directory\n"
+
+
+LEDGER = """# Plan for #42
+
+- [x] add the slugify lowercasing ⟂ refactor pending
+- [x] collapse to single hyphen
+- [x] collapse to single hyphen (again) ⟂ refactor pending
+- [ ] percent-encode the remainder
+"""
+
+
+def test_cli_clears_the_first_matching_step_that_carries_the_mark_skipping_an_unmarked_match(
+        tmp_path, run_cli, clear_refactor_pending):
+    led = tmp_path / "issue-42.md"
+    led.write_text(LEDGER)
+
+    result = run_cli(clear_refactor_pending, [str(led), "collapse to single hyphen"])
+
+    assert result == (0, "", "")
+    assert led.read_text() == LEDGER.replace("(again) ⟂ refactor pending", "(again)")
+
+
+def test_cli_returns_2_with_one_stderr_line_naming_a_ledger_path_that_runs_through_a_regular_file_writing_nothing(
+        tmp_path, run_cli, clear_refactor_pending):
+    plain = tmp_path / "plain-file"
+    plain.write_text("not a directory\n")
+    path = plain / "issue-42.md"
+
+    code, out, err = run_cli(clear_refactor_pending, [str(path), "collapse to single hyphen"])
+
+    assert (code, out) == (2, "")
+    assert err.startswith(f"clear-refactor-pending.sh: {path}: ") and err.count("\n") == 1
+    assert "Traceback" not in err
+    assert plain.read_text() == "not a directory\n"
