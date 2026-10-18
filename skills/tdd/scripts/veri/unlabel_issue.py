@@ -6,13 +6,17 @@ import urllib.parse
 import tunables
 
 
+def _refuse(message):
+    print("unlabel-issue.sh: " + message, file=sys.stderr)
+    return 2
+
+
 def main(argv):
     if len(argv) != 1:
         print("usage: unlabel-issue.sh <issue-number>", file=sys.stderr)
         return 2
     if not argv[0].isdecimal():
-        print("unlabel-issue.sh: issue number must be numeric, got '%s'" % argv[0], file=sys.stderr)
-        return 2
+        return _refuse("issue number must be numeric, got '%s'" % argv[0])
     label = urllib.parse.quote(tunables.read("VERI_LABEL", "ready-for-agent"), safe="")
     run = subprocess.run(
         ["gh", "api", "-X", "DELETE", "repos/{owner}/{repo}/issues/%s/labels/%s" % (argv[0], label)],
@@ -21,11 +25,10 @@ def main(argv):
         if "HTTP" in run.stderr:
             sys.stderr.write(run.stderr)
         else:
-            print("unlabel-issue.sh: no answer to removing the label from issue #%s: %s" % (argv[0], run.stderr.strip()), file=sys.stderr)
+            return _refuse("no answer to removing the label from issue #%s: %s" % (argv[0], run.stderr.strip()))
         return 2
     if run.returncode != 0 and "Label does not exist" not in run.stderr:
-        print("unlabel-issue.sh: issue #%s not found: %s" % (argv[0], run.stderr.strip()), file=sys.stderr)
-        return 2
+        return _refuse("issue #%s not found: %s" % (argv[0], run.stderr.strip()))
     return 0
 
 
