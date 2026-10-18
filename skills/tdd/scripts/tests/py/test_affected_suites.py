@@ -4,7 +4,7 @@ import subprocess
 
 import pytest
 
-from conftest import SCRIPTS
+from conftest import ROOT, SCRIPTS
 
 USAGE = "usage: affected-suites.sh <base>..<head>\n"
 
@@ -895,3 +895,258 @@ def test_rule_5_a_rule_1_file_plus_a_file_no_rule_matches_prints_every_suite(
          SCRIPTS_REL + "tests/unit/baz.test.sh": "", "docs/notes.md": "# notes\n"},
     ) == (0, SUITES + "bar.test.sh\n" + SUITES + "foo.test.sh\n" + SUITES + "unit/baz.test.sh\n",
           "affected-suites: no rule places docs/notes.md; widening to every suite\n")
+
+
+SKILL = "skills/tdd/SKILL.md"
+
+
+def sh_git(repo, *args):
+    done = subprocess.run(
+        ["git", "-C", str(repo), "-c", "user.name=veri", "-c", "user.email=veri@example.test", *args],
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=True)
+    return done.stdout.strip()
+
+
+def new_git_repo(root):
+    subprocess.run(["git", "init", "-q", "-b", "main", str(root)], check=True)
+    return root
+
+
+def commit_all(repo, message):
+    sh_git(repo, "add", "-A")
+    sh_git(repo, "commit", "-q", "--allow-empty", "-m", message)
+    return sh_git(repo, "rev-parse", "HEAD")
+
+
+def section_suite(root, doc, name):
+    plant(root, {SCRIPTS_REL + "tests/skill-%s.test.sh" % name.lower():
+                 '#!/usr/bin/env bash\nskill_md="%s"\nload_section \'%s\'\n' % (doc, name)})
+
+
+def skill_text(*parts):
+    return "# tdd\n\n" + "".join(parts)
+
+
+def edit_range(run_cli, affected, repo, files):
+    base = commit_all(repo, "base")
+    plant(repo, files)
+    head = commit_all(repo, "head")
+    return run_cli(affected, [base + ".." + head], cwd=repo)
+
+
+def suites(*names):
+    return "".join(SUITES + n + "\n" for n in names)
+
+
+@pytest.mark.process("real git: the changed lines of SKILL.md come from git diff -U0 between two commits")
+def test_an_edit_inside_one_section_of_skill_md_prints_the_suites_reading_that_section_not_one_reading_only_another(
+        run_cli, affected, tmp_path):
+    repo = new_git_repo(tmp_path)
+    plant(repo, {SKILL: skill_text("## Alpha\n\nalpha text\n\n## Beta\n\nbeta text\n")})
+    for name in ("Alpha", "Beta"):
+        section_suite(repo, SKILL, name)
+    assert edit_range(run_cli, affected, repo,
+                      {SKILL: skill_text("## Alpha\n\nalpha text 2\n\n## Beta\n\nbeta text\n")}
+                      ) == (0, suites("skill-alpha.test.sh"), "")
+
+
+@pytest.mark.process("real git: the changed lines of SKILL.md come from git diff -U0 between two commits")
+def test_an_edit_inside_one_section_of_skill_md_still_prints_a_suite_reading_skill_md_unsliced(
+        run_cli, affected, tmp_path):
+    repo = new_git_repo(tmp_path)
+    plant(repo, {SKILL: skill_text("## Alpha\n\nalpha text\n\n## Beta\n\nbeta text\n"),
+                 SCRIPTS_REL + "tests/skill-whole.test.sh":
+                 '#!/usr/bin/env bash\nskill_md="skills/tdd/SKILL.md"\ngrep -F text "$skill_md"\n'})
+    section_suite(repo, SKILL, "Beta")
+    assert edit_range(run_cli, affected, repo,
+                      {SKILL: skill_text("## Alpha\n\nalpha text 2\n\n## Beta\n\nbeta text\n")}
+                      ) == (0, suites("skill-whole.test.sh"), "")
+
+
+SUBSECTIONS = "## Alpha\n\nalpha text\n\n### Sub\n\nsub text%s\n\n### Sib\n\nsib text%s\n\n## Beta\n\nbeta text\n"
+
+
+@pytest.mark.process("real git: the changed lines of SKILL.md come from git diff -U0 between two commits")
+def test_an_edit_inside_one_subsection_of_skill_md_prints_the_suites_reading_it_and_its_enclosing_section_not_one_reading_only_a_sibling(
+        run_cli, affected, tmp_path):
+    repo = new_git_repo(tmp_path)
+    plant(repo, {SKILL: skill_text(SUBSECTIONS % ("", ""))})
+    for name in ("Alpha", "Sub", "Sib", "Beta"):
+        section_suite(repo, SKILL, name)
+    assert edit_range(run_cli, affected, repo, {SKILL: skill_text(SUBSECTIONS % (" 2", ""))}
+                      ) == (0, suites("skill-alpha.test.sh", "skill-sub.test.sh"), "")
+
+
+@pytest.mark.process("real git: the changed lines of SKILL.md come from git diff -U0 between two commits")
+def test_an_edit_inside_a_subsection_after_a_sibling_prints_the_suites_reading_it_and_its_enclosing_section_not_one_reading_the_earlier_sibling(
+        run_cli, affected, tmp_path):
+    repo = new_git_repo(tmp_path)
+    plant(repo, {SKILL: skill_text(SUBSECTIONS % (" 2", ""))})
+    for name in ("Alpha", "Sub", "Sib", "Beta"):
+        section_suite(repo, SKILL, name)
+    assert edit_range(run_cli, affected, repo, {SKILL: skill_text(SUBSECTIONS % (" 2", " 2"))}
+                      ) == (0, suites("skill-alpha.test.sh", "skill-sib.test.sh"), "")
+
+
+THREE = "## Alpha\n\nalpha text\n\n## Beta\n\nbeta text\n\n## Gamma\n\ngamma text\n"
+
+
+@pytest.mark.process("real git: the changed lines of SKILL.md come from git diff -U0 between two commits")
+def test_an_edit_changing_a_heading_line_of_skill_md_prints_every_suite_naming_skill_md(
+        run_cli, affected, tmp_path):
+    repo = new_git_repo(tmp_path)
+    plant(repo, {SKILL: skill_text("## Alpha\n\nalpha text\n\n## Beta\n\nbeta text\n")})
+    for name in ("Alpha", "Beta"):
+        section_suite(repo, SKILL, name)
+    assert edit_range(run_cli, affected, repo,
+                      {SKILL: skill_text("## Alpha\n\nalpha text\n\n## Gamma\n\nbeta text\n")}
+                      ) == (0, suites("skill-alpha.test.sh", "skill-beta.test.sh"), "")
+
+
+@pytest.mark.process("real git: the changed lines of SKILL.md come from git diff -U0 between two commits")
+def test_an_edit_only_deleting_a_heading_line_of_skill_md_prints_every_suite_naming_skill_md(
+        run_cli, affected, tmp_path):
+    repo = new_git_repo(tmp_path)
+    plant(repo, {SKILL: skill_text(THREE)})
+    for name in ("Alpha", "Beta", "Gamma"):
+        section_suite(repo, SKILL, name)
+    assert edit_range(run_cli, affected, repo,
+                      {SKILL: skill_text("## Alpha\n\nalpha text\n\n\nbeta text\n\n## Gamma\n\ngamma text\n")}
+                      ) == (0, suites("skill-alpha.test.sh", "skill-beta.test.sh", "skill-gamma.test.sh"), "")
+
+
+@pytest.mark.process("real git: the changed lines of SKILL.md come from git diff -U0 between two commits")
+def test_an_edit_whose_changed_lines_of_skill_md_span_two_sections_prints_every_suite_naming_skill_md(
+        run_cli, affected, tmp_path):
+    repo = new_git_repo(tmp_path)
+    plant(repo, {SKILL: skill_text(THREE)})
+    for name in ("Alpha", "Beta", "Gamma"):
+        section_suite(repo, SKILL, name)
+    assert edit_range(run_cli, affected, repo, {SKILL: skill_text(
+        "## Alpha\n\nalpha text 2\n\n## Beta\n\nbeta text 2\n\n## Gamma\n\ngamma text\n")}
+    ) == (0, suites("skill-alpha.test.sh", "skill-beta.test.sh", "skill-gamma.test.sh"), "")
+
+
+@pytest.mark.process("real git: the changed lines of SKILL.md come from git diff -U0 between two commits")
+def test_an_edit_to_skill_md_that_cannot_be_placed_in_a_section_prints_every_suite_naming_skill_md(
+        run_cli, affected, tmp_path):
+    repo = new_git_repo(tmp_path)
+    for name in ("Alpha", "Beta"):
+        section_suite(repo, SKILL, name)
+    results = {}
+    results["added"] = edit_range(
+        run_cli, affected, repo,
+        {SKILL: skill_text("intro\n\n## Alpha\n\nalpha text\n\n## Beta\n\nbeta text\n")})
+    results["above the first ##"] = edit_range(
+        run_cli, affected, repo,
+        {SKILL: skill_text("intro 2\n\n## Alpha\n\nalpha text\n\n## Beta\n\nbeta text\n")})
+    (repo / SKILL).unlink()
+    base = commit_all(repo, "base")
+    results["deleted"] = run_cli(affected, [base + "~1.." + base], cwd=repo)
+    want = (0, suites("skill-alpha.test.sh", "skill-beta.test.sh"), "")
+    assert results == {"added": want, "above the first ##": want, "deleted": want}
+
+
+def doc_edit_with_suites(monkeypatch, run_cli, affected, tmp_path, doc, bash_suite, pytest_file):
+    return affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [doc],
+        {doc: "# doc\n\nstep 2\n",
+         SCRIPTS_REL + "tests/" + bash_suite: 'procedure="%s"\ngrep -F step "$procedure"\n' % doc,
+         SCRIPTS_REL + "tests/py/unit/" + pytest_file: 'def test_step():\n    open("%s").read()\n' % doc})
+
+
+def test_an_edit_to_scripts_md_prints_the_bash_suite_naming_it_and_the_pytest_file_mentioning_it_without_widening(
+        monkeypatch, run_cli, affected, tmp_path):
+    assert doc_edit_with_suites(monkeypatch, run_cli, affected, tmp_path, "skills/tdd/SCRIPTS.md",
+                                "catalogue.test.sh", "test_catalogue.py") == (
+        0, SUITES + "catalogue.test.sh\n" + SUITES + "py/unit/test_catalogue.py\n", "")
+
+
+def test_an_edit_to_stopping_md_prints_the_bash_suite_naming_it_and_the_pytest_file_mentioning_it_without_widening(
+        monkeypatch, run_cli, affected, tmp_path):
+    assert doc_edit_with_suites(monkeypatch, run_cli, affected, tmp_path, "skills/tdd/STOPPING.md",
+                                "stopping.test.sh", "test_stopping_file.py") == (
+        0, SUITES + "py/unit/test_stopping_file.py\n" + SUITES + "stopping.test.sh\n", "")
+
+
+def test_an_edit_to_reconcile_md_prints_the_bash_suite_naming_it_and_the_pytest_file_mentioning_it_without_widening(
+        monkeypatch, run_cli, affected, tmp_path):
+    assert doc_edit_with_suites(monkeypatch, run_cli, affected, tmp_path, "skills/tdd/RECONCILE.md",
+                                "reconcile.test.sh", "test_reconcile_file.py") == (
+        0, SUITES + "py/unit/test_reconcile_file.py\n" + SUITES + "reconcile.test.sh\n", "")
+
+
+@pytest.mark.process("real git: the changed lines come from git diff -U0 between two commits")
+def test_an_edit_inside_one_section_of_claude_md_makefile_a_skill_md_other_than_tdds_or_a_prompt_prints_every_suite_naming_it_file_wide(
+        run_cli, affected, tmp_path):
+    paths = ["CLAUDE.md", "Makefile", "skills/merge/SKILL.md", "skills/tdd/scripts/prompts/develop.md"]
+    text = "# doc\n\n## Alpha\n\nalpha text%s\n\n## Beta\n\nbeta text\n"
+    repo = new_git_repo(tmp_path)
+    for path in paths:
+        plant(repo, {path: text % ""})
+        for name in ("Alpha", "Beta"):
+            plant(repo, {SCRIPTS_REL + "tests/%s-%s.test.sh" % (path.rsplit("/", 1)[-1].lower().replace(".", "-"), name.lower()):
+                         '#!/usr/bin/env bash\ndoc="%s"\nload_section \'%s\'\n' % (path, name)})
+    results, wanted = {}, {}
+    for path in paths:
+        stem = path.rsplit("/", 1)[-1].lower().replace(".", "-")
+        results[path] = edit_range(run_cli, affected, repo, {path: text % " 2"})
+        wanted[path] = (0, suites(stem + "-alpha.test.sh", stem + "-beta.test.sh"), "")
+    assert results == wanted
+
+
+REAL_EDITS = [
+    ("stop-requested.sh renamed in SCRIPTS.md", "py/unit/test_skill_stopping.py", ""),
+    ("### 2c. Verify the plan (blind)", "", ""),
+    ("### 3. The cycle loop", "py/unit/test_skill_draft_pr.py", ""),
+    ("## Revising on a REJECT", "", ""),
+    ("STOPPING.md", "py/unit/test_skill_stopping.py", ""),
+    ("RECONCILE.md", "py/unit/test_skill_push_reconcile.py", ""),
+    ("## Bailing", "py/unit/test_skill_metrics.py", ""),
+    ("## Resume", "", ""),
+    ("### 4. Draft PR", "py/unit/test_skill_metrics.py", ""),
+]
+
+
+@pytest.mark.process("real git: the changed lines come from git diff -U0 between two commits of a copy of the real files")
+@pytest.mark.tree_audit("every suite under skills/tdd/scripts/tests that names or reads SKILL.md")
+def test_on_the_real_skill_md_and_suites_a_one_section_edit_selects_the_suites_reading_that_section_through_a_slicing_helper_and_every_suite_reading_skill_md_any_other_way_and_not_a_suite_slicing_only_other_sections(
+        run_cli, affected, tmp_path):
+    import re
+    repo = new_git_repo(tmp_path)
+    tdd = ROOT / "skills/tdd"
+    for doc in ("SKILL.md", "SCRIPTS.md", "STOPPING.md", "RECONCILE.md"):
+        plant(repo, {"skills/tdd/" + doc: (tdd / doc).read_text(encoding="utf-8")})
+    tests = SCRIPTS / "tests"
+    for suite in [*tests.glob("*.test.sh"), *tests.glob("unit/*.test.sh")]:
+        if re.search(r'"(?:[^"]*/)?skills/tdd/SKILL\.md"', suite.read_text(encoding="utf-8")):
+            plant(repo, {str(suite.relative_to(ROOT)): suite.read_text(encoding="utf-8")})
+    for suite in [*tests.glob("py/test_*.py"), *tests.glob("py/unit/test_*.py")]:
+        if "SKILL.md" in suite.read_text(encoding="utf-8"):
+            plant(repo, {str(suite.relative_to(ROOT)): suite.read_text(encoding="utf-8")})
+    original = {doc: (repo / "skills/tdd" / doc).read_text(encoding="utf-8")
+                for doc in ("SKILL.md", "SCRIPTS.md", "STOPPING.md", "RECONCILE.md")}
+    wrong = []
+    for label, want, unwanted in REAL_EDITS:
+        base = commit_all(repo, "base")
+        if label.startswith("stop-requested"):
+            doc = "SCRIPTS.md"
+            edited = re.sub(r"^(- `\$S/)stop-requested\.sh", r"\1stop-asked.sh", original[doc], flags=re.M)
+        elif label in ("STOPPING.md", "RECONCILE.md"):
+            doc, edited = label, original[label] + "an edited line\n"
+        else:
+            doc, lines = "SKILL.md", original["SKILL.md"].split("\n")
+            at = lines.index(label)
+            edited = "\n".join(lines[:at + 2] + ["an edited line"] + lines[at + 2:])
+        (repo / "skills/tdd" / doc).write_text(edited, encoding="utf-8")
+        head = commit_all(repo, "head")
+        code, out, _ = run_cli(affected, [base + ".." + head], cwd=repo)
+        printed = out.splitlines()
+        if code != 0:
+            wrong.append("%s(code=%s)" % (label, code))
+        wrong += ["%s: %s not selected" % (label, s) for s in want.split()
+                  if "skills/tdd/scripts/tests/" + s not in printed]
+        wrong += ["%s: %s selected" % (label, s) for s in unwanted.split()
+                  if "skills/tdd/scripts/tests/" + s in printed]
+        (repo / "skills/tdd" / doc).write_text(original[doc], encoding="utf-8")
+    assert wrong == []
