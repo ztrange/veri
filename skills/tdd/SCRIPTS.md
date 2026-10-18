@@ -82,6 +82,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   issue body (the human-facing mirror).
 - `$S/next-unchecked.sh < .tdd/issue-<n>.md` — print the **first unchecked ledger step**'s
   description; **exit 3** when none remain (the loop-done / nothing-to-resume signal).
+- `VERI_STEP=<step> $S/wrong-test-route.sh <green-report> <red-test-id>` — routes a green report's `WRONG_TEST:`: **exit 0** prints `red <case>` (an existing case other than the step's own), **exit 3** prints `revise`, **exit 2** bad arguments. Only a step's first reroute is free: once `.tdd/events.jsonl` holds a `reroute` event with `VERI_STEP`, a later `WRONG_TEST:` in that step answers `revise` and spends one `REVISE_BUDGET` attempt.
 - `$S/tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase>] .tdd/issue-<n>.md "<substring>"` — check a step off
   in the **committed ledger**, in place (staged + committed together with that step's green
   code). **Exit 3** if no unchecked step matched the substring — the file is left untouched,
