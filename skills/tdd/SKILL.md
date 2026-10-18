@@ -1687,6 +1687,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    The filing applies no label to this issue and commits no debt file: the PR body's owed
    list is the record.
+   An open `Refactor owed by #<n>` issue — filed by an earlier pass of a resumed run — is
+   never filed again: `refactor-overflow.sh` comments on it the candidates its body and
+   comments do not yet list, or nothing when they list every one, and prints its URL.
    No candidate — `list` exits 3, and a missing `.tdd/issue-<n>-refactor-owed.md` is the
    `list` exit-3 case — skips the pass with no bail: it is marked `stopped=nothing-structural`
    before the PR is readied:
