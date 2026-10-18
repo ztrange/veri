@@ -246,3 +246,14 @@ def test_main_lists_a_knob_or_script_named_only_in_scripts_md_as_promised_unread
 
     assert (code, listing.out, listing.err) == (
         0, "promised-unread: VERI_CATALOGUE_GHOST\npromised-unread: catalogue-ghost.sh\n", "")
+
+
+@pytest.mark.tree_audit("every script under skills/tdd/scripts reached from this repository's entry points")
+def test_main_over_this_repository_reaches_the_scripts_only_scripts_md_calls_so_none_is_test_only_1715(capsys):
+    unreachable = importlib.import_module("veri.unreachable")
+
+    code = unreachable.main([str(SCRIPTS.parents[2])])
+    lines = capsys.readouterr().out.splitlines()
+
+    assert code == 0
+    assert [line for line in lines if line in ("test-only: over-budget.sh", "test-only: time-budget.sh")] == []
