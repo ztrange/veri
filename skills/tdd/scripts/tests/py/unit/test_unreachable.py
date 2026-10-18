@@ -231,3 +231,18 @@ def test_main_reads_nothing_under_veri_counts_tests_py_and_orders_its_listing_an
         "promised-unread: Z-ghost.sh\npromised-unread: a-ghost.sh\n",
         "",
         0, "", "")
+
+
+def test_main_lists_a_knob_or_script_named_only_in_scripts_md_as_promised_unread(tmp_path, capsys):
+    unreachable = importlib.import_module("veri.unreachable")
+    root = tmp_path / "catalogue"
+    scripts = fixture_root(root)
+    script(scripts / "helper.sh", 'echo "${VERI_CATALOGUE_READ:-1}"')
+    (root / "skills" / "tdd" / "SCRIPTS.md").write_text(
+        "# scripts\n\nSet `VERI_CATALOGUE_READ` or `VERI_CATALOGUE_GHOST`; run `catalogue-ghost.sh`.\n")
+
+    code = unreachable.main([str(root)])
+    listing = capsys.readouterr()
+
+    assert (code, listing.out, listing.err) == (
+        0, "promised-unread: VERI_CATALOGUE_GHOST\npromised-unread: catalogue-ghost.sh\n", "")
