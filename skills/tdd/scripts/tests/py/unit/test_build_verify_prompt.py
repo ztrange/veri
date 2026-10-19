@@ -1878,3 +1878,14 @@ def test_main_renders_a_red_and_a_pin_prompt_that_rejects_a_red_pinning_only_one
     rule = next((s for s in re.split(r"(?<=\.) ", prompt) if "separate case" in s and "REJECT" in s), "")
     states = [step in prompt, "REJECT naming the missing case" in rule, "adds no case for it" in rule]
     assert (code, states) == (0, [True, True, True])
+
+
+def test_main_renders_a_verify_green_probe_whose_orig_copy_sits_beside_its_file_and_never_in_a_shared_directory_such_as_tmp_1846(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    argv = ["--fast-cmd", "make unit", "green", str(spec), "tests/test_slugify.py", "test_slugify_lowercases"]
+    assert build_verify_prompt.main(argv) == 0
+    prompt = " ".join(capsysbinary.readouterr()[0].decode().split())
+    assert re.search(r"cp <file> <file>\.orig`[^.]{0,80}beside the file it copies[^.]{0,40}never in a shared "
+                     r"directory such as `/tmp`", prompt) is not None
