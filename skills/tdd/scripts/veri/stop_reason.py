@@ -34,7 +34,7 @@ def main(argv):
     else:
         reason = _usage_limit(argv[0])
         if reason is None:
-            sys.stderr.write("stop-reason.sh: no result record in %s\n" % os.path.join(".tdd", "conductor-%s.log" % argv[0]))
+            sys.stderr.write("stop-reason.sh: no result record in %s\n" % _conductor_log(argv[0]))
             return 2
         sys.stdout.write(reason)
     for a, b in zip(events, events[1:]):
@@ -57,8 +57,12 @@ def _live(pidfile):
     return True
 
 
+def _conductor_log(issue):
+    return os.path.join(".tdd", "conductor-%s.log" % issue)
+
+
 def _usage_limit(issue):
-    results = [r for r in _records(os.path.join(".tdd", "conductor-%s.log" % issue)) if r.get("type") == "result"]
+    results = [r for r in _records(_conductor_log(issue)) if r.get("type") == "result"]
     if not results:
         return None
     text = results[-1].get("result", "")
