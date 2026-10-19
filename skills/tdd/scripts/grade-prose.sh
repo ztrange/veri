@@ -48,7 +48,11 @@ if [[ "$model" != *[0-9]* ]]; then
   exit 2
 fi
 
-reply="$("$HERE/supervise.sh" grade-prose "${CLAUDE_BIN:-claude}" -p --model "$model" <<< "$prompt")" || exit $?
+reply="$("$HERE/supervise.sh" grade-prose "${CLAUDE_BIN:-claude}" -p --model "$model" <<< "$prompt")" || {
+  code=$?
+  (( code == 2 )) && echo "grade-prose.sh: no verdict was obtained from the grader leaf" >&2
+  exit "$code"
+}
 if ! grep -E '^BEGIN GRADES' <<< "$reply" > /dev/null; then
   echo "grade-prose.sh: reply has no BEGIN GRADES block" >&2
   exit 2

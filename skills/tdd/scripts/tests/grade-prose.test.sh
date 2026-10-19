@@ -168,4 +168,11 @@ named_reject_pass=no; grep -iF 'disagree' "$work/err-reject-pass" > /dev/null &&
 expect_eq "a reply whose VERDICT line disagrees with its grade lines exits 2 and names the disagreement on stderr" \
   "2;2;pass_fail=yes;reject_pass=yes" "$code_pass_fail;$code_reject_pass;pass_fail=$named_pass_fail;reject_pass=$named_reject_pass"
 
+claude_stub "$bin" "exec sleep 30"
+(cd "$work/role" && VERI_HEARTBEAT=1 VERI_TIMEOUT=1 VERI_POLL=0.2 VERI_STUCK_RETRIES=0 CLAUDE_BIN="$bin/claude" "$GRADE" "$work/role/REQUIREMENTS.md" unit.md > /dev/null 2> "$work/err-killed")
+code_killed=$?
+named_killed=no; grep -iF 'no verdict' "$work/err-killed" > /dev/null && named_killed=yes
+expect_eq "a grader leaf the supervisor kills exits 2 and says on stderr that no verdict was obtained" \
+  "2;killed=yes" "$code_killed;killed=$named_killed"
+
 finish
