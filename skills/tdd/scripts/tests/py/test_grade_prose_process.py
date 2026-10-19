@@ -307,3 +307,25 @@ def test_a_reply_with_text_after_end_grades_makes_grade_prose_exit_2_and_name_th
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     assert [done.returncode, "quokka-epilogue" in done.stderr] == [2, True], (done.returncode, done.stdout, done.stderr)
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_a_grades_block_with_a_missing_an_extra_or_a_reordered_requirement_id_makes_grade_prose_exit_2_and_name_the_defect_on_stderr(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    block = "A1: PASS - ok\\nA2: PASS - ok"
+    outcomes = {}
+    for defect, lines, named in (("missing", "A1: PASS - ok", "A2"),
+                                 ("extra", block + "\\nA9: PASS - ok", "A9"),
+                                 ("reordered", "A2: PASS - ok\\nA1: PASS - ok", "A1")):
+        claude = tmp_path / ("claude-" + defect)
+        claude.write_text(STUB.replace(block, lines))
+        claude.chmod(0o755)
+        done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                              capture_output=True, text=True,
+                              env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                                   "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
+        outcomes[defect] = (done.returncode, named in done.stderr)
+
+    assert outcomes == {"missing": (2, True), "extra": (2, True), "reordered": (2, True)}, outcomes

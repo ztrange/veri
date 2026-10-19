@@ -16,7 +16,7 @@
 - [x] a reply with two or more FAIL lines prints every failing ID with its reason ⟦criterion 15⟧
 - [x] a reply with no GRADES block makes grade-prose.sh exit 2 and name the missing block on stderr ⟦criterion 6⟧
 - [x] a reply with text after END GRADES makes grade-prose.sh exit 2 and name the trailing text on stderr ⟦criterion 6⟧
-- [ ] a GRADES block with a missing, an extra or a reordered requirement ID makes grade-prose.sh exit 2 and name the defect on stderr ⟦criterion 6⟧
+- [x] a GRADES block with a missing, an extra or a reordered requirement ID makes grade-prose.sh exit 2 and name the defect on stderr ⟦criterion 6⟧ ⟂ refactor pending
 - [ ] a GRADES block whose VERDICT disagrees with its lines makes grade-prose.sh exit 2 and name the disagreement on stderr ⟦criterion 6⟧
 - [ ] a GRADES block with no VERDICT: line makes grade-prose.sh exit 2 and name the missing verdict on stderr ⟦criterion 10⟧
 - [ ] a GRADES line whose grade word is other than exactly PASS or FAIL (e.g. PASSABLE) makes grade-prose.sh exit 2 and name the defect on stderr ⟦criterion 10⟧

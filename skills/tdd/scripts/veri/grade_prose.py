@@ -66,8 +66,9 @@ def main(argv):
         text = f.read()
     if heading:
         text = section(text, heading)
+    claims = requirements.claims(path, unit)
     with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
-        f.write(prompt(unit, text, requirements.claims(path, unit)))
+        f.write(prompt(unit, text, claims))
     env = {**os.environ, "PATH": modern_python_dir() + os.environ.get("PATH", ""), "VERI_MODEL": model}
     try:
         subprocess.run([os.path.join(SCRIPTS, "supervise.sh"), "grade-prose",
@@ -83,6 +84,13 @@ def main(argv):
     trailing = "\n".join(l for l in after.splitlines() if l.strip() and not l.startswith("VERDICT:"))
     if trailing:
         print("grade-prose.sh: no verdict obtained: text after END GRADES: %s" % trailing, file=sys.stderr)
+        return 2
+    block = reply.rsplit("BEGIN GRADES", 1)[1].split("END GRADES", 1)[0]
+    got = re.findall(r"^(\S+): (?:PASS|FAIL)\b", block, re.M)
+    wanted = [row.split("\t", 1)[0] for row in claims.splitlines()]
+    if got != wanted:
+        print("grade-prose.sh: no verdict obtained: GRADES block IDs %s do not match requirement IDs %s"
+              % (", ".join(got), ", ".join(wanted)), file=sys.stderr)
         return 2
     failed = re.findall(r"^\S+: FAIL\b.*$", reply, re.M)
     print("\n".join(failed))
