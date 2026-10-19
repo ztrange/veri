@@ -1384,6 +1384,22 @@ def test_issue_1815_a_conductor_turn_with_both_one_hour_and_five_minute_cache_wr
     assert "Conductor own spending: $48.75 over 1 turns, in 1 sessions.\n" in out
 
 
+def test_issue_1815_a_conductor_turn_is_priced_from_the_session_cost_price_table(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    for rate, dollars in {"input": 1.0, "output": 2.0, "cache_read": 3.0, "cache_write_5m": 4.0, "cache_write_1h": 5.0}.items():
+        monkeypatch.setitem(metrics.session_cost.PRICES["opus"], rate, dollars)
+    usage = {"input_tokens": 1000000, "output_tokens": 1000000, "cache_read_input_tokens": 1000000,
+             "cache_creation_input_tokens": 2000000,
+             "cache_creation": {"ephemeral_1h_input_tokens": 1000000, "ephemeral_5m_input_tokens": 1000000}}
+    sessions = [{"type": "system", "subtype": "init"}, {"type": "assistant", "message": {"usage": usage}}]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in sessions))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert cells(out, "#### Conductor per turn", ["dollars"]) == {"1": ["$15.00"]}
+
+
 def test_main_says_the_conductor_spend_is_missing_rather_than_zero_when_neither_a_stream_log_nor_a_conductor_usage_event_exists(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, ONE_STEP)
     monkeypatch.chdir(tmp_path)
