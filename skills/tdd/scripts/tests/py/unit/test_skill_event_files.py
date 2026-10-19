@@ -75,3 +75,20 @@ def test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_185
     ]
     assert missing == []
     assert re.search(r"`REVISE_BUDGET`[^.]*?\*\*default (\d+)\*\*", SKILL.read_text()).group(1) == "2"
+
+
+def test_the_revise_section_lives_in_revise_md_not_skill_md_1855():
+    """Subject is source text: the revise heading and its three distinctive lines are in REVISE.md, gone from SKILL.md."""
+    heading = "## Revising on a REJECT"
+    markers = (
+        "$S/event.sh revise budget=",
+        "build-develop-prompt.sh exhausted",
+        "exhausted-outcome.sh < .tdd/develop-exhausted.out",
+    )
+    skill = SKILL.read_text()
+    revise = SKILL.with_name("REVISE.md").read_text()
+
+    assert [line for line in _lines() if line == heading] == []
+    assert [marker for marker in markers if marker in skill] == []
+    assert [line for line in revise.splitlines() if line == heading] == [heading]
+    assert [marker for marker in markers if marker not in revise] == []
