@@ -367,6 +367,10 @@ def main(argv):
         reason = "VERI_STEP is set but empty"
         mark(role or "actor=supervisor", leaf_env, "launch-refused", f"name={name}", f"reason={reason}")
         return refuse(f"supervise: refusing to launch {name}: {reason}")
+    if "--step" in argv and argv[argv.index("--step") + 1:][:1] == [""]:
+        reason = "--step is empty"
+        mark(role or "actor=supervisor", leaf_env, "launch-refused", f"name={name}", f"reason={reason}")
+        return refuse(f"supervise: refusing to launch {name}: {reason}")
     if name.startswith("develop-green") and step and red_awaits_pass(step) and not ci_repair_step(issue, step):
         write_line(exitfile, 2)
         return refuse(f"supervise: refusing to launch {name}: step {step} has no verify-red PASS after its latest red leaf")
