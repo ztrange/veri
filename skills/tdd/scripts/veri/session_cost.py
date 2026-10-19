@@ -9,6 +9,13 @@ from datetime import datetime
 USAGE = "usage: session-cost.sh --since <ISO date> [--json] [<transcript.jsonl> ...]"
 
 PRICES = {
+    "claude-opus-5-5": {
+        "input": 5.00,
+        "cache_read": 0.50,
+        "cache_write_5m": 6.25,
+        "cache_write_1h": 10.00,
+        "output": 25.00,
+    },
     "opus": {
         "input": 15.00,
         "cache_read": 1.50,
