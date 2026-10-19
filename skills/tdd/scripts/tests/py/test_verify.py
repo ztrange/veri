@@ -741,6 +741,41 @@ def test_main_snapshots_the_tree_through_a_temporary_index_and_head_around_the_l
     assert ([r for r in updated if r.startswith("refs/veri/attempts/")], events.records()) == ([], [])
 
 
+@pytest.mark.process("a real git repository whose tracked file a stub verifier leaf rewrites")
+def test_main_refusing_a_verifier_that_changed_a_tracked_files_content_writes_the_byte_exact_git_diff_under_tdd_named_after_the_leaf_and_names_it_1846(
+        tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES"):
+        monkeypatch.delenv(name, raising=False)
+    for key, value in (("NAME", "t"), ("EMAIL", "t@example.com")):
+        monkeypatch.setenv("GIT_AUTHOR_" + key, value)
+        monkeypatch.setenv("GIT_COMMITTER_" + key, value)
+    write_inputs(tmp_path)
+    (tmp_path / ".gitignore").write_text(".tdd/\n")
+    (tmp_path / "f.txt").write_bytes(b"alpha\r\nbeta\n")
+    real_run = subprocess.run
+    for step in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "base"]):
+        real_run(["git", *step], check=True, cwd=tmp_path)
+
+    def fake(args, *_, **kwargs):
+        if os.path.basename(str(args[0])) == "supervise.sh":
+            (tmp_path / "f.txt").write_bytes(b"alpha\r\ngamma\n")
+            return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nREASON: ok\n", None)
+        return real_run(args, *_, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+
+    out = capfdbinary.readouterr().out.decode()
+    diffs = [p for p in (tmp_path / ".tdd").glob("verify-green*") if p.suffix not in (".prompt", ".log")]
+    assert (code, len(diffs)) == (2, 1), out
+    assert (".tdd/" + diffs[0].name in out, b"-beta\n+gamma\n" in diffs[0].read_bytes(),
+            b" alpha\r\n" in diffs[0].read_bytes()) == (True, True, True)
+
+
 @pytest.mark.parametrize("failing", ["add", "git-missing", "write-tree", "diff-tree"])
 def test_main_takes_a_git_call_that_fails_as_no_snapshot_or_no_change_whatever_it_printed_and_returns_the_verdict(
         failing, tmp_path, monkeypatch, capfdbinary):
