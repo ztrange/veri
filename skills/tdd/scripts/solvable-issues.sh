@@ -47,10 +47,12 @@
 # this note and nothing else — so the JSON is read with python3's json module, the same
 # interpreter extract-result.sh and the docs generator already require.
 #
-# Usage:   solvable-issues.sh [--repo owner/name]
+# Usage:   solvable-issues.sh [--repo owner/name] [--not-running]
+#          --not-running omits every issue with a live run-conductor.sh <n> process started
+#          from this clone's skill path (a process from another path, e.g. a temp copy, is ignored)
 #          VERI_GH_JSON=<dir> solvable-issues.sh
 #          VERI_LABEL=<name>  solvable-issues.sh
 # Exit:    0 one or more numbers printed; 2 no answer could be obtained — VERI_LABEL or
 #          VERI_PRIORITY_LABEL is set but empty; 3 nothing to do — no issue is takeable
-# usage: solvable-issues.sh [--repo owner/name]
+# usage: solvable-issues.sh [--repo owner/name] [--not-running]
 exec python3 "$(dirname "$0")/veri/solvable_issues.py" "$@"

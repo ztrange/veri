@@ -240,7 +240,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   wins: the issue body's own `Test command:` line (for `--tier all`, unless it equals the fast
   tier's command — #1225), then the repo's `.veri/test-command`,
   then every inference (see *Detecting the test command*).
-- `$S/solvable-issues.sh [--repo <owner/name>]` — the **selection layer**: prints the
+- `$S/solvable-issues.sh [--repo <owner/name>] [--not-running]` — the **selection layer**: prints the
   numbers of the issues veri may take right now — open, labelled `ready-for-agent`, every
   issue under their `## Blocked by` heading closed, and not already claimed by an open PR
   saying `Closes #<n>` — one per line, in three bands: the issues labelled `priority` first,
@@ -250,6 +250,9 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   first band's label (default `priority`; set-but-empty is **exit 2**, like `VERI_LABEL`),
   and the second band's is GitHub's own `bug`. **Exit 0** when it printed at least one,
   **exit 3** with empty stdout when none is takeable (nothing to do, not an error).
+  `--not-running` additionally omits every issue with a live `run-conductor.sh <n>` process
+  started from this clone's own skill path, whose claim is not yet visible on GitHub; a
+  conductor running from another skill path, such as a temporary copy, omits nothing.
   `VERI_GH_JSON=<dir>` reads `issues.json` / `prs.json` fixtures instead of shelling out to
   `gh`, which is what makes it testable with no network. `VERI_GH_DRIVER` picks the route
   every GitHub read and write takes, through `veri/github.py` and `lib/github.sh` alike:
