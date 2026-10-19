@@ -1,0 +1,2 @@
+### The diff file verify.py saves on a refusal is the same whatever the user's git config says: an external diff driver, color.ui=always and a textconv filter set in the case's global config change nothing in it (a medium case through a real git scratch repository, marked process) ⟦criterion 5⟧
+- test-only | In `test_verify.py`, the three new 1846 `test_main_saves_*` cases repeat the same setup: env cleanup, repo init and commit, the `git` helper, the `stub_start` wrapper, and the `named` regex that finds the saved diff. Extract one shared helper or fixture.
