@@ -25,5 +25,5 @@
 - [x] a grader leaf that fails to launch (supervise.sh exits non-zero, no reply) makes grade-prose.sh exit 2, say no verdict was obtained, and append no grading event; it never exits 1 ⟦criterion 10⟧
 - [x] a usage-limit reply from the grader leaf makes grade-prose.sh exit 2, say no verdict was obtained, and append no grading event; it never exits 1 ⟦criterion 10⟧
 - [x] every grading appends one event to .tdd/events.jsonl carrying the unit, the verdict and the failing IDs ⟦criterion 7⟧
-- [ ] every grading event records that grading's cost in dollars, read from the grader leaf's own result ⟦criterion 17⟧
+- [x] every grading event records that grading's cost in dollars, read from the grader leaf's own result ⟦criterion 17⟧ ⟂ refactor pending
 - [ ] the measurement in specs/grader-poc.md is repeated through grade-prose.sh on the specs/grader-poc/ fixtures (original, harmless, violating and subtle variants, each graded three times), each grading's verdict and cost recorded in that file with a written go/no-go ⟦human-owed⟧ ⟦criterion 8⟧

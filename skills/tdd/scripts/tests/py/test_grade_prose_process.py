@@ -484,3 +484,24 @@ def test_every_grading_appends_one_event_to_events_jsonl_carrying_the_unit_the_v
     lines = events.read_text().splitlines() if events.exists() else []
     graded = [l for l in lines if "guide/unit.md" in l and "REJECT" in l and "A2" in l and "A1" not in l]
     assert len(graded) == 1, lines
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_every_grading_event_records_that_gradings_cost_in_dollars_read_from_the_grader_leafs_own_result(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text(STUB.replace('"is_error":false,', '"is_error":false,"total_cost_usd":0.04271,'))
+    claude.chmod(0o755)
+    record = tmp_path / "record.txt"
+
+    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                   capture_output=True, text=True,
+                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                        "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+
+    events = tmp_path / ".tdd" / "events.jsonl"
+    lines = events.read_text().splitlines() if events.exists() else []
+    graded = [l for l in lines if "guide/unit.md" in l and "0.04271" in l]
+    assert len(graded) == 1, lines

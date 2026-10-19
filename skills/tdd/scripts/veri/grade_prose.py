@@ -8,6 +8,7 @@ import tempfile
 import event
 import requirements
 from extract_result import extract
+from leaf_log import result_records
 from run_verdict import SCRIPTS
 
 USAGE = "usage: grade-prose.sh <requirements-file> <unit>"
@@ -82,7 +83,9 @@ def main(argv):
     finally:
         os.unlink(f.name)
     with open(os.path.join(".tdd", "grade-prose.log"), encoding="utf-8") as log:
-        reply = extract(log.read())
+        raw = log.read()
+    reply = extract(raw)
+    cost = sum(float(r.get("total_cost_usd") or 0) for r in result_records(raw.splitlines()) if "result" in r)
     if "BEGIN GRADES" not in reply:
         return no_verdict("the reply has no BEGIN GRADES block")
     reply = reply[reply.rindex("BEGIN GRADES"):]
@@ -105,7 +108,8 @@ def main(argv):
     if said[-1] != ("REJECT" if failed else "PASS"):
         return no_verdict("VERDICT %s disagrees with the GRADES lines" % said[-1])
     event.append(".", {}, "grading", ["unit=" + unit, "verdict=" + said[-1],
-                                       "failing=" + ",".join(l.split(":")[0] for l in failed)])
+                                       "failing=" + ",".join(l.split(":")[0] for l in failed),
+                                       "cost_usd=%s" % cost])
     print("\n".join(failed))
     return 1 if failed else 0
 
