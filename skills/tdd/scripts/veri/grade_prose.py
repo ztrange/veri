@@ -23,7 +23,7 @@ def section(text, heading):
             if hashes and line[hashes:].strip() == heading:
                 level = hashes
                 out.append(line)
-        elif hashes == level:
+        elif 0 < hashes <= level:
             break
         else:
             out.append(line)
