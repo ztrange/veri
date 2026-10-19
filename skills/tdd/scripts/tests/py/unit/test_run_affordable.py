@@ -213,3 +213,42 @@ def test_main_answers_the_contract_cases_from_step_budget_and_step_cost_as_run_a
         "8 of 9 steps": (0, ""),
         "early in a long plan": (1, "spent 15.00, steps remaining 10, median 7.50, projection 90.00\n"),
     }
+
+
+def _events(scratch, steps):
+    """Write a usage event log of <steps> '<name>|<dollars>...' lines, as bytes so a step name may hold any byte."""
+    out = b""
+    for line in steps:
+        name, *dollars = line.split("|")
+        for d in dollars:
+            out += b'{"ts": 1, "issue": "453", "actor": "developer", "phase": "red", "step": "%s", "event": "usage", "total_cost_usd": "%s"}\n' % (
+                name.encode("latin-1"), d.encode())
+    (scratch / ".tdd" / "events.jsonl").write_bytes(out)
+
+
+THREE_FULL = ["step one|0.25|1.00|1.00|1.00|1.00|1.00", "step two|0.50|1.00|1.50|1.50|1.50|1.50",
+              "step three|0.75|1.50|1.50|2.00|2.00|2.00"]
+
+
+def test_a_log_with_only_pins_or_no_usage_at_all_exits_3_printing_nothing(run_cli, scratch, run_affordable):
+    _events(scratch, ["pin one|0.25|0.25", "pin two|0.25|0.25"])
+    assert run_cli(run_affordable, ["3"], env={"VERI_RUN_BUDGET": "50"}, cwd=scratch) == (3, "", "")
+    (scratch / ".tdd" / "events.jsonl").write_text('{"ts": 1, "issue": "453", "actor": "conductor", "event": "phase-start"}\n')
+    assert run_cli(run_affordable, ["3"], env={"VERI_RUN_BUDGET": "50"}, cwd=scratch) == (3, "", "")
+
+
+def test_run_from_another_working_directory_it_answers_from_that_directorys_event_log(run_cli, scratch, run_affordable):
+    _events(scratch, THREE_FULL)
+    assert run_cli(run_affordable, ["4"], env={"VERI_RUN_BUDGET": "50"}, cwd=scratch) == (
+        1, "spent 22.50, steps remaining 4, median 7.50, projection 52.50\n", "")
+
+    (scratch / ".tdd" / "events.jsonl").unlink()
+    code, out, err = run_cli(run_affordable, ["4"], env={"VERI_RUN_BUDGET": "50"}, cwd=scratch)
+    assert (code, out) == (2, "")
+    assert "cannot read .tdd/events.jsonl in %s " % os.path.realpath(scratch) in err
+
+
+def test_an_event_log_step_cost_cannot_decode_exits_2_printing_nothing(run_cli, scratch, run_affordable):
+    _events(scratch, THREE_FULL + ["step \xff|1.00|1.00|1.00"])
+    code, out, _ = run_cli(run_affordable, ["4"], env={"VERI_RUN_BUDGET": "50"}, cwd=scratch)
+    assert (code, out) == (2, "")
