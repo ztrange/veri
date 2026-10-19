@@ -96,3 +96,34 @@ def test_main_lists_under_parked_each_bailed_stopped_or_stale_run_with_an_open_p
     assert (code, len(section), has(section[0], "51", "bailed", "verify-green", "process-failure"),
             has(section[1], "52", "stopped", "drain"), has(section[2], "53", "stale"),
             "Bailed without pr" in out or "54" in " ".join(section)) == (0, 3, True, True, True, False)
+
+
+def test_main_lists_under_ready_to_merge_each_open_non_draft_pr_that_closes_an_issue_and_no_other(tmp_path, monkeypatch, run_cli, fake_processes):
+    handoff_state = importlib.import_module("veri.handoff_state")
+    status = importlib.import_module("veri.status")
+    monkeypatch.chdir(tmp_path)
+    document = json.dumps({"runs": [], "scope": None})
+    prs = [
+        {"number": 201, "isDraft": False, "body": "Summary\n\nCloses #301", "title": "Ready one"},
+        {"number": 202, "isDraft": True, "body": "Closes #302", "title": "Draft two"},
+        {"number": 203, "isDraft": False, "body": "Refactor only, no issue", "title": "Plain three"},
+    ]
+
+    def answer(line, **kwargs):
+        if line.startswith("git rev-parse"):
+            return 0, SHA + "\n", ""
+        if line.startswith("git tag"):
+            return 0, "v0.9\n", ""
+        if line.startswith("gh"):
+            return 0, json.dumps(prs), ""
+        return 0, "", ""
+
+    fake_processes(answer)
+    monkeypatch.setattr(status, "json_document", lambda scope=None: (0, document))
+    code, out, err = run_cli(handoff_state, [])
+    lines = out.splitlines()
+    section = lines[lines.index("## Ready to merge") + 1:] if "## Ready to merge" in lines else []
+    section = section[:next((i for i, line in enumerate(section) if line.startswith("## ")), len(section))]
+    ready = section[0] if len(section) == 1 else ""
+    assert (code, len(section), "201" in ready and "301" in ready,
+            any(word in out for word in ("202", "302", "203"))) == (0, 1, True, False)
