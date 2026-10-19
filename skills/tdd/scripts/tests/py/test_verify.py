@@ -2446,3 +2446,49 @@ def test_main_saves_a_binary_change_of_a_verifier_in_a_diff_that_applies_with_bi
                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         applied = (repo / "blob.bin").read_bytes()
     assert (code, len(named), applied) == (2, 1, after)
+
+
+@pytest.mark.process("a real git scratch repository and a stub verifier leaf that rewrites a tracked file and leaves a directory at the diff path")
+def test_main_still_refuses_with_2_and_resets_the_tree_saying_the_diff_could_not_be_saved_when_its_path_is_a_directory_1846(
+        tmp_path, monkeypatch, capfd):
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
+                 "VERI_ISSUE", "VERI_STEP"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    (tmp_path / "home").mkdir()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    monkeypatch.chdir(repo)
+    write_inputs(repo)
+    (repo / "tracked.txt").write_text("one\ntwo\nthree\n")
+    (repo / ".gitignore").write_text(".tdd/\n")
+
+    def git(*args):
+        return subprocess.run(
+            ["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
+            cwd=repo, stdout=subprocess.PIPE, check=True).stdout
+
+    git("init", "-q")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    verify = importlib.import_module("veri.verify")
+    real_start = verify.start
+
+    def stub_start(args, **kwargs):
+        if os.path.basename(str(args[0])) != "supervise.sh":
+            return real_start(args, **kwargs)
+        (repo / "tracked.txt").write_text("one\nTWO\nthree\n")
+        (repo / ".tdd" / "verify-green.diff").mkdir()
+        return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nREASON: ok\n")
+
+    monkeypatch.setattr(verify, "start", stub_start)
+
+    try:
+        code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    except OSError as error:
+        code = repr(error)
+
+    out = capfd.readouterr().out
+    assert (code, "verifier leaf modified the repository" in out,
+            bool(re.search(r"diff could not be saved", out)),
+            (repo / "tracked.txt").read_text()) == (2, True, True, "one\ntwo\nthree\n")
