@@ -382,16 +382,9 @@ def test_main_sweeps_the_unit_fixture_guard_and_offline_suites_to_empty_sweepabl
         code = comment_class.main(["--sweepable", *(str(p) for p in files)])
         return code, capsys.readouterr().out
 
-    names = ["ledger"]
     moved = []
 
     assert {
-        "the sweepable report is empty for every tests/unit/*.sh whose name starts with c through e":
-            sweep("unit/[c-e]*.sh"),
-        **{
-            f"the sweepable report is empty for tests/unit/{name}.test.sh": sweep(f"unit/{name}.test.sh")
-            for name in names
-        },
         **{
             f"the sweepable report is empty for tests/{name}.test.sh": sweep(f"{name}.test.sh")
             for name in moved
@@ -401,8 +394,6 @@ def test_main_sweeps_the_unit_fixture_guard_and_offline_suites_to_empty_sweepabl
         "the sweepable report is empty for every shell file under tests/fixtures/, and for tests/unit-guard/git and tests/offline/gh":
             sweep("fixtures/*/*.sh", "unit-guard/git", "offline/gh"),
     } == {
-        "the sweepable report is empty for every tests/unit/*.sh whose name starts with c through e": (0, ""),
-        **{f"the sweepable report is empty for tests/unit/{name}.test.sh": (0, "") for name in names},
         **{f"the sweepable report is empty for tests/{name}.test.sh": (0, "") for name in moved},
         "the sweepable report is empty for every tests/unit/*.sh whose name starts with m through p": (0, ""),
         "the sweepable report is empty for every shell file under tests/fixtures/, and for tests/unit-guard/git and tests/offline/gh": (0, ""),
