@@ -1643,3 +1643,54 @@ def test_main_exits_2_with_one_stderr_line_naming_the_rebase_refused_without_a_c
     assert "rebase" in err and "without a conflict" in err, err
     assert "in progress" not in err and "fetch" not in err and "ls-remote" not in err, err
     assert "stale" not in err and "refs/remotes/origin/HEAD" not in err and "re-apply" not in err, err
+
+
+def _failed_reapply_after_the_rebase_1638(monkeypatch, tmp_path, rebase_onto_default, run_cli, kept_text):
+    for who in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
+        monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
+
+    def git(repo, *args):
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
+
+    origin, seed, clone = tmp_path / "origin.git", tmp_path / "seed", tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    subprocess.run(["git", "init", "-q", "-b", "main", str(seed)], check=True)
+    (seed / ".tdd").mkdir()
+    (seed / ".tdd" / "issue-1.md").write_text("- [ ] step one\n")
+    git(seed, "add", "-A")
+    git(seed, "commit", "-q", "-m", "initial")
+    git(seed, "push", "-q", str(origin), "main")
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], check=True, stderr=subprocess.DEVNULL)
+    (seed / "other.txt").write_text("another run's work\n")
+    git(seed, "add", "-A")
+    git(seed, "commit", "-q", "-m", "feat: another run merged (#2)")
+    git(seed, "push", "-q", str(origin), "main")
+    (clone / ".tdd" / "issue-1.md").write_text("- [ ] step one\n- [ ] step two\n")
+    gitdir = pathlib.Path(git(clone, "rev-parse", "--absolute-git-dir"))
+    (gitdir / "kept-tdd-appends.diff.1").write_text(kept_text)
+    monkeypatch.setenv("PATH", _failing_apply_env_1611(tmp_path)["PATH"])
+
+    code, _, err = run_cli(rebase_onto_default, [], cwd=clone)
+    return code, err, gitdir
+
+
+@pytest.mark.process("git: a real clone behind origin with uncommitted ledger appends, whose re-apply after the rebase git apply fails")
+def test_main_removes_the_set_aside_appends_as_soon_as_their_reapply_after_the_rebase_fails_1638(
+        monkeypatch, tmp_path, rebase_onto_default, run_cli):
+    code, _, gitdir = _failed_reapply_after_the_rebase_1638(
+        monkeypatch, tmp_path, rebase_onto_default, run_cli, "earlier appends\n")
+
+    holders = [p.name for p in gitdir.glob("*-tdd-appends.diff*") if "step two" in p.read_text()]
+    assert (code, (gitdir / "set-aside-tdd-appends.diff").exists(), len(holders)) == (2, False, 1)
+
+
+@pytest.mark.process("git: a real clone behind origin with uncommitted ledger appends and a kept-tdd-appends.diff.1 from an earlier failure, whose re-apply after the rebase git apply fails")
+def test_main_leaves_an_earlier_kept_appends_file_unchanged_when_the_reapply_after_the_rebase_fails_1638(
+        monkeypatch, tmp_path, rebase_onto_default, run_cli):
+    code, err, gitdir = _failed_reapply_after_the_rebase_1638(
+        monkeypatch, tmp_path, rebase_onto_default, run_cli, "earlier appends\n")
+
+    earlier = gitdir / "kept-tdd-appends.diff.1"
+    assert (code, earlier.read_text(), str(earlier) in err) == (2, "earlier appends\n", True)
