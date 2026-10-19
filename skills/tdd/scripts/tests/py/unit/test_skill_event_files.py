@@ -35,3 +35,15 @@ def test_skill_md_no_longer_carries_the_stopping_or_reconciling_sections_1716():
 
     assert [line for line in _lines() if line in ("## Stopping", "## Reconciling a rejected push")] == []
     assert [marker for marker in ("event.sh stop mode=", "reconcile-ledger.before") if marker in text] == []
+
+
+def test_every_line_sending_the_run_into_the_pin_points_at_pin_md_1852():
+    """Subject is source text: each SKILL.md line sending a run into the pin names PIN.md, to Read, on PASSES."""
+    sends = [line for line in _lines() if re.search(r"\bthe pin path\b|\bcontinue at the pin\b", line)]
+
+    assert len(sends) >= 2
+    missing = [
+        line for line in sends
+        if not ("`<base directory>/PIN.md`" in line and "`Read`" in line and "`AGAINST_UNMODIFIED: PASSES`" in line)
+    ]
+    assert missing == []
