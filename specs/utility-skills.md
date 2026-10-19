@@ -48,7 +48,7 @@ IDs are stable: a reworded requirement keeps its ID, and a dropped one leaves a 
 | T9 | `grade-prose.sh --owed` grades exactly the units `prose-owed.sh` lists. | A grader prompt or model change makes every unit owed, by T1, and is paid for deliberately. |
 | T10 | `prose-owed.sh` also fails on an *orphan*: a `GRADED` line whose unit no longer exists, for example after a heading rename. | Nothing is silently left behind. A rename shows up as a new owed unit plus an orphan line. |
 | T11 | When two branches touch one unit, their `GRADED` lines conflict on rebase. The conflict is resolved by regrading on the rebased tip, never by hand. | The combined prose is a new pair that nobody has graded. |
-| T12 | A `/tdd` run never edits a unit that has a requirements list. An issue that needs code and graded prose is split: the code by `/tdd` first, then a skill edit (K). `make unit`'s owed check enforces this, with no conductor change. | Keeps the conductor unchanged, and the prose never describes a script that does not exist yet. |
+| T12 | Graded prose changes only in a ⟦skill-edit⟧ step (K). Red, Green and Refactor leaves never edit a unit that has a requirements list, and `make unit`'s owed check fails a branch whose edits to such a unit were not graded and signed. | The grader, not a substring suite, checks prose; the owed check catches an edit that bypassed the step. |
 
 Considered and set aside: no signature, with `make merge-gates` grading whatever the branch diff
 touches. It needs no new file, but it is enforced only where the gate runs (a merge from the
@@ -65,24 +65,26 @@ against is forgetting, not forgery.
 | R3 | Each removal issue lists, per deleted case, the requirement ID that now carries it, or says why it carries nothing. | A deleted guard must be traceable. |
 | R4 | Helpers, guards and `affected-suites` rules that served only deleted tests are deleted with the last test that used them. | Prevents dead code. |
 | R6 | Removal is cut by unit, so each removal issue covers the suites that read one unit. | Keeps issues small, and aligns with PRD 010's split of SKILL.md into event files. |
-| R7 | A unit's requirements list is added through the skill-edit loop (K) and must grade PASS on the prose as it already is, before any suite that reads the unit is deleted. | The list is the replacement, and it has to hold before the old check goes. |
+| R7 | A unit's requirements list is added in a ⟦skill-edit⟧ step (K) and must grade PASS on the prose as it already is, before any suite that reads the unit is deleted. | The list is the replacement, and it has to hold before the old check goes. |
 
 ---
 
-## K: `veri-skill-edit`, the skill-edit loop (prose; its helpers are G and T)
+## K: the ⟦skill-edit⟧ step (prose; its helpers are G and T)
 
 | ID | Requirement | Why |
 |---|---|---|
-| K1 | Invoked as `/veri-skill-edit <skill> "<change in words>" [--go]`. | |
-| K2 | One step edits one skill. A change spanning several skills runs as one step per skill, in sequence, each with its own K3–K8. | Keeps each grading to one unit's context, with no planning or ordering between skills. |
-| K3 | An author subagent turns the change into a diff of the requirements list (rows added, reworded or dropped; IDs stable). The human approves that diff unless `--go` was given. | The list is the spec, and it is the human's. |
-| K4 | Before editing prose, the loop grades the current prose against the new list. If the changed IDs already PASS, it records that and ends without editing. | This is the Red: it proves the change is a change. |
+| K1 | Graded prose changes in a ⟦skill-edit⟧ step of an ordinary `/tdd` run. The planner emits one for each criterion that changes a unit with a requirements list; the conductor runs it by the procedure in `skills/tdd/SKILL-EDIT.md`, which it reads only when such a step comes up, in place of Red, Green and Refactor. | One issue and one PR per change, code and prose together, with no second loop and no post-merge step. The conductor gains a pointer, not a procedure. |
+| K2 | One step edits one unit. A change spanning several units is planned as one step per unit, each with its own K3–K8. | Keeps each grading to one unit's context. |
+| K3 | The requirements diff (rows added, reworded or dropped; IDs stable) is written in the issue, under `## Requirements`, and is approved when the issue is filed. The step's author applies it as written and adds no rows of its own. A step whose issue states no requirements diff changes only prose, graded against the existing list. | The list is the spec, and it is the human's; approving it at filing keeps an unattended run from waiting on a person. |
+| K4 | Before editing prose, the step grades the current prose against the new list. If the changed IDs already PASS, it records that and the step ends without editing. | This is the Red: it proves the change is a change. |
 | K5 | The author updates the prose, seeing the requirements and the grader's FAIL reasons, never a `Why` cell. | |
-| K6 | The grader judges the new prose against the whole list. On REJECT the author revises, up to a budget (`VERI_SKILL_EDIT_BUDGET`, default 3). When the budget is spent, the loop stops and reports the failing IDs. | |
-| K7 | Before signing, the loop checks that the author's diff does not touch `GRADED`. If it does, the attempt is rejected. | Only the loop's grading step may sign (T4). |
-| K8 | On PASS, the loop writes the signature (T4) and commits the list, the prose and `GRADED` together, then pushes and opens a PR. | |
-| K9 | There is no resume. An interrupted run is restarted from the beginning with its budget reset. | A run takes minutes, and resume machinery costs more than a rerun. |
-| K10 | The loop changes nothing outside the one skill's directory, except its `GRADED` line. | |
+| K6 | The grader judges the new prose against the whole list. On REJECT the author revises, up to a budget (`VERI_SKILL_EDIT_BUDGET`, default 3). When the budget is spent, the run bails as for an exhausted revise, naming the failing IDs. | |
+| K7 | Before signing, the step checks that the author's diff does not touch `GRADED`. If it does, the attempt is rejected. | Only the grading may sign (T4). |
+| K8 | On PASS, the step writes the signature (T4) and commits the list, the prose and `GRADED` together as the step's commit. Before the PR is readied, after the run's last rebase, every unit the run signed is regraded on the rebased tip; a REJECT there is handled as a red full suite. | A later step or the rebase can change a signed unit (T11); the signature has to hold for the tip that merges. |
+| K9 | A resumed run redoes an unfinished ⟦skill-edit⟧ step from its start, with its budget reset. | A step takes minutes, and partial-step resume costs more than a redo. |
+| K10 | The step changes nothing outside the unit's own file and requirements list, except its `GRADED` line. | |
+
+Considered and set aside: a separate `/veri-skill-edit` loop, run outside `/tdd` with the human approving each requirements diff. It kept the conductor unchanged, but split every change that needs code and prose into two issues in sequence, needed its own lane and label, and left the issue open past its code PR. The requirements diff is approved at filing instead (K3), and the procedure lives in a file the conductor reads only when needed.
 
 ## P: principles every operator skill obeys (stated once, in `operator/PRINCIPLES.md`)
 
