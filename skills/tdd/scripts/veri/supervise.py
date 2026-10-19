@@ -194,6 +194,7 @@ def mark(role, env, *fields):
 
 
 def refuse_empty_step(role, env, name, reason):
+    write_line(f".tdd/{name}.exit", 2)
     mark(role or "actor=supervisor", env, "launch-refused", f"name={name}", f"reason={reason}")
     return refuse(f"supervise: refusing to launch {name}: {reason}")
 

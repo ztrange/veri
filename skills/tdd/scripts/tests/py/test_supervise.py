@@ -4136,3 +4136,18 @@ def test_cli_refuses_a_verifier_launch_whose_step_argument_is_empty_exiting_2_na
     records = events.records(tmp_path)
     assert [r["event"] for r in records] == ["launch-refused"], records
     assert (records[0]["name"], bool(records[0]["reason"])) == ("verdict-red", True), records
+
+
+@pytest.mark.process("a real stub claude that a launch refused for an empty VERI_STEP must never start (#1760)")
+def test_cli_records_2_in_the_exit_file_of_a_launch_refused_for_an_empty_veri_step_1760(
+        monkeypatch, tmp_path, supervise, run_cli):
+    clean_env(monkeypatch)
+    stub = tmp_path / "claude"
+    stub.write_text("#!/bin/sh\ntouch ran\n")
+    stub.chmod(0o755)
+
+    code, _, err = run_cli(supervise, ["verify-red", str(stub)], cwd=tmp_path,
+                           env={"VERI_ISSUE": "1760", "VERI_STEP": ""})
+
+    exit_file = tmp_path / ".tdd" / "verify-red.exit"
+    assert (exit_file.read_text().strip() if exit_file.is_file() else None, code) == ("2", 2), err
