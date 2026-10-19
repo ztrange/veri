@@ -76,7 +76,7 @@ if [[ "$want_ids" != "$got_ids" ]]; then
   echo "grade-prose.sh: GRADES block IDs are out of order" >&2
   exit 2
 fi
-fails="$(awk '/^BEGIN GRADES/ { buf = ""; on = 1; next } /^END GRADES/ { on = 0; next } on { buf = buf $0 "\n" } END { printf "%s", buf }' <<< "$reply" | grep -E '^[^:]+: FAIL')"
+fails="$(grep -E '^[^:]+: FAIL' <<< "$block")"
 if [[ -n "$fails" ]]; then
   echo "$fails"
   exit 1
