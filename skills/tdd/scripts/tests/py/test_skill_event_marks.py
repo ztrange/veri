@@ -28,11 +28,8 @@ _SPACE = rb"[ \t\n\r\f\v]"
 
 def _records():
     out, rec = [], b""
-    for line in (SKILL.read_bytes() + b"
-
-" + BAIL.read_bytes() + b"
-" + SKILL.with_name("PIN.md").read_bytes()).split(b"
-"):
+    for line in (SKILL.read_bytes() + b"\n\n" + BAIL.read_bytes() + b"\n"
+                 + SKILL.with_name("PIN.md").read_bytes()).split(b"\n"):
         if re.match(rb"[0-9]+\. ", line) or re.match(_SPACE + rb"*- ", line):
             if rec:
                 out.append(rec)
