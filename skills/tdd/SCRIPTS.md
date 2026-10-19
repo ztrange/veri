@@ -144,7 +144,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
 - `$S/tests-frozen.sh record <record-file>|--step "<step>" <test-file>… | check <record-file>|--step "<step>" | path "<step>"` — **freeze a step's tests between verify-red and verify-green.** `record --step` digests the given test files and also every test file (`transform-touches-tests.sh`'s rule) differing from `HEAD`: modified, deleted or untracked. `check --step` exits 1 naming a recorded file whose digest changed, and also naming a test file outside the record that now differs from `HEAD`; a changed non-test file is never named. Exceptions: a `⟦replaces-case⟧` step may change the suite it names (any other unrecorded test file is still flagged), and a `⟦suite-repair⟧` or `⟦ci-repair⟧` step is never frozen, `record` writing nothing and `check` exiting 0. Exit 2 = no answer (bad arguments, record missing or malformed).
 - `$S/classify-bail.sh <cause>` — deterministically classify a bail cause
   (`killed-stuck`/`no-verdict` → `system`, `revise-exhausted` → `process`; unknown → exit
-  non-zero). Used in the *Bailing* step so the classification is consistent, not ad-hoc.
+  non-zero). Used in the bail step in `<base directory>/BAIL.md` so the classification is consistent, not ad-hoc.
 - `$S/stop-requested.sh [--clear]` — **has an operator asked this run to stop, and how?**
   Run from the worktree, it reads `.tdd/stop`. **Exit 0** = a stop was requested: the mode —
   `at-ledger`, `at-leaf` or `now` — is printed on stdout and nothing else, so capture it and
@@ -178,7 +178,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   retries and budgets spent, per phase and per step. Everything it knows comes from
   `.tdd/events.jsonl` in the worktree you are in, so it is called there and at the end, once
   the marks it reads have all been written. The conductor both commits its output beside the
-  ledger and pastes it into the issue thread (the *Draft PR* step, and *Bailing*): a run that
+  ledger and pastes it into the issue thread (the *Draft PR* step, and `<base directory>/BAIL.md`): a run that
   never calls it leaves the figures computable and uncomputed, which from the issue thread is
   indistinguishable from not having them.
 - `$S/over-budget.sh <tier> <seconds> <usual>` — say whether one recorded test-command run

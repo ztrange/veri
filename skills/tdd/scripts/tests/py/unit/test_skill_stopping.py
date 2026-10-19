@@ -12,6 +12,7 @@ LAUNCHING = "## Launching a leaf — detach, then wait in the foreground"
 PROCEDURE = "## Procedure"
 SATISFIED = "## Already satisfied — the pin"
 BAILING = "## Bailing"
+BAIL = SKILL.with_name("BAIL.md")
 LOOP_4 = "### Loop 4. Stop conditions"
 LOOP_5 = "### Loop 5. Report"
 SCRIPTS = "## The scripts (this skill's `scripts/` directory)"
@@ -25,7 +26,7 @@ def _plain(text):
 
 
 def _section(heading, path=SKILL):
-    section = importlib.import_module("skill_sections").section(path, heading)
+    section = importlib.import_module("skill_sections").section(BAIL if heading == BAILING else path, heading)
     lines = _plain(section).split("\n")[1:]
     assert "".join(lines).strip(), f"SKILL.md has no {heading} section — nothing could be checked"
     return lines

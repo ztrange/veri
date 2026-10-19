@@ -8,6 +8,7 @@ SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 DRAFT_PR = "### 4. Draft PR"
 RESUME = "## Resume"
 BAILING = "## Bailing"
+BAIL = SKILL.with_name("BAIL.md")
 GUARDRAILS = "## Guardrails"
 ISSUE = "### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)"
 PLAN = "### 2. Scope & plan → the ledger"
@@ -22,7 +23,7 @@ def _lower(text):
 
 
 def _lines(heading, stop_at_any_hash=False):
-    section = importlib.import_module("skill_sections").section(SKILL, heading)
+    section = importlib.import_module("skill_sections").section(BAIL if heading == BAILING else SKILL, heading)
     lines = section.splitlines()[1:]
     if stop_at_any_hash:
         for i, line in enumerate(lines):
@@ -567,8 +568,8 @@ def test_draft_prs_step_stops_at_a_ci_timeout_or_ci_red_bail_with_no_done_mark_a
         problems.append("runs no event.sh bail cause=ci-timeout or cause=ci-red, so whether a CI bail stops the step could not be checked")
     for line in followed:
         problems.append(f"command block records the run finished after a CI bail - {line[:160]}")
-    if not first_record(unmarked(records), r"ci-timeout|ci-red", re.escape("bailing")):
-        problems.append("no instruction sends a ci-timeout or ci-red bail to Bailing")
+    if not first_record(unmarked(records), r"ci-timeout|ci-red", re.escape("bail.md")):
+        problems.append("no instruction sends a ci-timeout or ci-red bail to BAIL.md")
     assert not problems, problems
 
 
@@ -951,7 +952,7 @@ def test_bail_on_a_red_rebased_tip_runs_git_reset_hard_pre_rebase_sha_before_bai
         unmarked(draft_pr_read()),
         re.escape("rebased-tip-red"),
         re.escape("git reset --hard <pre-rebase-sha>"),
-        r"bailing[^.]*push",
+        r"bail\.md[^.]*push",
     )
     assert reset, "no instruction that bails with rebased-tip-red runs git reset --hard <pre-rebase-sha> before Bailing's push"
 
@@ -961,7 +962,7 @@ def test_bail_on_a_red_rebased_tip_after_a_verify_rebase_pass_also_runs_git_rese
     found = re.search(r"only on a verify-rebase pass.*", record)
     resolved = found.group(0) if found else ""
     assert "rebased-tip-red" in resolved, "no instruction bails with rebased-tip-red after a verify-rebase PASS"
-    reset = first_record([resolved], re.escape("git reset --hard <pre-rebase-sha>"), r"bailing[^.]*push")
+    reset = first_record([resolved], re.escape("git reset --hard <pre-rebase-sha>"), r"bail\.md[^.]*push")
     assert reset, f"bail on a red rebased tip after a verify-rebase PASS does not run git reset --hard <pre-rebase-sha> before Bailing's push: {resolved[:160]}"
 
 

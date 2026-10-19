@@ -15,6 +15,7 @@ from conftest import ROOT, SCRIPTS
 SKILL = ROOT / "skills" / "tdd" / "SKILL.md"
 SKILL_MD = "skills/tdd/SKILL.md"
 STOPPING = ROOT / "skills" / "tdd" / "STOPPING.md"
+BAIL = ROOT / "skills" / "tdd" / "BAIL.md"
 RECONCILE = ROOT / "skills" / "tdd" / "RECONCILE.md"
 
 SENTINEL = "make sentinel-test-cmd"
@@ -767,7 +768,7 @@ def scan_bail_last_done(probe):
         "mark": r"\$S/event\.sh bail cause=<cause>",
     }
     for which, pattern in patterns.items():
-        lineno, line = first_line(pattern)
+        lineno, line = first_line(pattern, BAIL)
         if lineno is None:
             no_launch(probe, f"Bailing's {which} line")
             continue

@@ -1219,7 +1219,7 @@ REAL_EDITS = [
     ("## Revising on a REJECT", "", ""),
     ("STOPPING.md", "py/unit/test_skill_stopping.py", ""),
     ("RECONCILE.md", "py/unit/test_skill_push_reconcile.py", ""),
-    ("## Bailing", "py/unit/test_skill_metrics.py", ""),
+    ("BAIL.md", "py/unit/test_skill_metrics.py", ""),
     ("## Resume", "", ""),
     ("### 4. Draft PR", "py/unit/test_skill_metrics.py", ""),
 ]
@@ -1232,7 +1232,7 @@ def test_on_the_real_skill_md_and_suites_a_one_section_edit_selects_the_suites_r
     import re
     repo = new_git_repo(tmp_path)
     tdd = ROOT / "skills/tdd"
-    for doc in ("SKILL.md", "SCRIPTS.md", "STOPPING.md", "RECONCILE.md"):
+    for doc in ("SKILL.md", "SCRIPTS.md", "STOPPING.md", "RECONCILE.md", "BAIL.md"):
         plant(repo, {"skills/tdd/" + doc: (tdd / doc).read_text(encoding="utf-8")})
     tests = SCRIPTS / "tests"
     for suite in [*tests.glob("*.test.sh"), *tests.glob("unit/*.test.sh")]:
@@ -1242,14 +1242,14 @@ def test_on_the_real_skill_md_and_suites_a_one_section_edit_selects_the_suites_r
         if "SKILL.md" in suite.read_text(encoding="utf-8"):
             plant(repo, {str(suite.relative_to(ROOT)): suite.read_text(encoding="utf-8")})
     original = {doc: (repo / "skills/tdd" / doc).read_text(encoding="utf-8")
-                for doc in ("SKILL.md", "SCRIPTS.md", "STOPPING.md", "RECONCILE.md")}
+                for doc in ("SKILL.md", "SCRIPTS.md", "STOPPING.md", "RECONCILE.md", "BAIL.md")}
     wrong = []
     for label, want, unwanted in REAL_EDITS:
         base = commit_all(repo, "base")
         if label.startswith("stop-requested"):
             doc = "SCRIPTS.md"
             edited = re.sub(r"^(- `\$S/)stop-requested\.sh", r"\1stop-asked.sh", original[doc], flags=re.M)
-        elif label in ("STOPPING.md", "RECONCILE.md"):
+        elif label in ("STOPPING.md", "RECONCILE.md", "BAIL.md"):
             doc, edited = label, original[label] + "an edited line\n"
         else:
             doc, lines = "SKILL.md", original["SKILL.md"].split("\n")

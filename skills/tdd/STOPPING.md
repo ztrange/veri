@@ -18,7 +18,7 @@ leaves the run resumable. Run this sequence in order.
    step. Dropping that tree would throw away conflict resolutions no commit holds yet, and
    `git reset --hard HEAD` cannot put a half-finished rebase back.
    Otherwise, and only with `git reset --hard HEAD` — a non-empty `git
-   status --porcelain` is the half-done step, dropped exactly as *Bailing* step 1 drops it
+   status --porcelain` is the half-done step, dropped exactly as `<base directory>/BAIL.md` step 1 drops it
    and for the reason given there. That reset is the only reach for the tree this section
    has: restoring a path out of some other tree is not what dropping a half-done step
    means. Say in the narration what was dropped.
@@ -51,7 +51,7 @@ leaves the run resumable. Run this sequence in order.
    path, any `push=rejected sha=<remote-sha>`, and the resume command
    `$S/run-conductor.sh <n>`. The metrics go into the comment and nowhere else: **no
    metrics file is written or committed**. Committing them marks an ending, as *Done* and
-   *Bailing* do, and a stopped run will be resumed.
+   `<base directory>/BAIL.md` do, and a stopped run will be resumed.
 6. **Clear and end.** Run `$S/stop-requested.sh --clear`, so the request does not outlive
    the stop it asked for and pause the resumed run at its first checkpoint, then end the
    run. Open **no** PR and ready none; leave the worktree where it is; leave

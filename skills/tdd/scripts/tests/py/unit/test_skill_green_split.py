@@ -7,11 +7,12 @@ SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 GREEN = "#### Green — minimum implementation (developer leaf), then verify-green (blind)"
 BAILING = "## Bailing"
+BAIL = SKILL.with_name("BAIL.md")
 ADD_LEDGER_STEP = r"\$s/add-ledger-step\.sh"
 
 
 def _lines(heading):
-    section = importlib.import_module("skill_sections").section(SKILL, heading)
+    section = importlib.import_module("skill_sections").section(BAIL if heading == BAILING else SKILL, heading)
     lines = section.splitlines()[1:]
     for i, line in enumerate(lines):
         if line.startswith("#"):
@@ -387,7 +388,7 @@ def test_1625_skill_md_s_develop_replaces_report_wait_leaf_exit_1_or_2_bails_wit
         f"SKILL.md never says what wait-leaf.sh develop-replaces-report exit 1 or 2 does: {after_wait}"
     assert "bail with cause=replaces-report-failed" in section, f"SKILL.md never bails with cause=replaces-report-failed: {section}"
     assert "step-cost.sh" in after_wait, f"SKILL.md never runs step-cost.sh after the develop-replaces-report wait: {after_wait}"
-    row = next((line for line in skill_lines() if line.startswith("- `replaces-report-failed`")), "")
+    row = next((line for line in BAIL.read_text().splitlines() if line.startswith("- `replaces-report-failed`")), "")
     assert row, "SKILL.md's bail-cause table has no replaces-report-failed entry"
     assert "system" in row.lower(), f"SKILL.md's bail-cause table never lists replaces-report-failed as a system failure: {row}"
 
