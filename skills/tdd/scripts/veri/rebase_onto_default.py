@@ -23,6 +23,10 @@ def kept_files():
     return sorted(kept.parent.glob(kept.name + "*"))
 
 
+def saved_files(saved):
+    return " ".join(str(p) for p in [saved, *kept_files()])
+
+
 def default_branch():
     local = git("rev-parse", "-q", "--verify", "--abbrev-ref", "refs/remotes/origin/HEAD",
                 text=True, stdout=subprocess.PIPE)
@@ -63,7 +67,7 @@ def main(argv):
     if saved.is_file():
         if git("apply", text=True, input=saved.read_text(), stderr=subprocess.DEVNULL).returncode != 0:
             return refuse(f"could not re-apply the set-aside appends; kept at"
-                          f" {' '.join(str(p) for p in [saved, *kept_files()])}")
+                          f" {saved_files(saved)}")
         saved.unlink()
     if git("merge-base", "--is-ancestor", onto, "HEAD", text=True).returncode == 0:
         return 3
@@ -98,7 +102,7 @@ def main(argv):
         files = re.findall(r"^\+\+\+ b/(.+)$", appends, re.M)
         return refuse(f"could not re-apply the uncommitted appends to"
                       f" {' '.join(files)}; kept at"
-                      f" {' '.join(str(p) for p in [saved, *kept_files()])}")
+                      f" {saved_files(saved)}")
     if outcome:
         return outcome
     sys.stdout.write(f"{pre}\n{onto}\n")
