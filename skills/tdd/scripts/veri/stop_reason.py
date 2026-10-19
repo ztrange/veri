@@ -20,6 +20,8 @@ def main(argv):
         sys.stdout.write("bailed %s %s\n" % (last.get("phase"), last.get("classification")))
     elif last.get("event") == "stop":
         sys.stdout.write("stopped %s\n" % last.get("mode"))
+    else:
+        sys.stdout.write("running\n")
     return 0
 
 
