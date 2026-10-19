@@ -55,6 +55,10 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     path, unit = argv
+    model = grader_model()
+    if not any(c.isdigit() for c in model):
+        print("grade-prose.sh: grader.conf model %r names no version" % model, file=sys.stderr)
+        return 2
     file, _, heading = unit.partition("#")
     with open(file, encoding="utf-8") as f:
         text = f.read()
@@ -62,7 +66,7 @@ def main(argv):
         text = section(text, heading)
     with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
         f.write(prompt(unit, text, requirements.claims(path, unit)))
-    env = {**os.environ, "PATH": modern_python_dir() + os.environ.get("PATH", ""), "VERI_MODEL": grader_model()}
+    env = {**os.environ, "PATH": modern_python_dir() + os.environ.get("PATH", ""), "VERI_MODEL": model}
     try:
         subprocess.run([os.path.join(SCRIPTS, "supervise.sh"), "grade-prose",
                         os.path.join(SCRIPTS, "run-leaf.sh"), f.name], stdout=subprocess.PIPE, env=env)
