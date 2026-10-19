@@ -225,4 +225,22 @@ route_text="${route_text%%'tests-frozen.sh check'*}"
   problems+=("$skill_md's Green WRONG_TEST: routing lacks the exit 2 line verbatim: $exit2_line")
 report "$name"
 
+name="#1765: $skill_md's Green WRONG_TEST: repair <case> route launches the red-repair red through the supervisor and sends it through verify-red before retrying green, and carries no standing order about pins"
+problems=()
+route_text="$(joined_section '#### Green')"
+route_text="${route_text#*'A green report carrying `WRONG_TEST:`'}"
+route_text="${route_text%%'tests-frozen.sh check'*}"
+repair_text="${route_text#*'`repair <case>`'}"
+repair_text="${repair_text%%'- exit 3'*}"
+[[ "$route_text" == *'`repair <case>`'* ]] ||
+  problems+=("$skill_md's Green WRONG_TEST: routing has no repair <case> route")
+[[ "$repair_text" == *'supervise.sh'*'red-repair'* || "$repair_text" == *'red-repair'*'supervise.sh'* ]] ||
+  problems+=("$skill_md's repair <case> route does not launch the red-repair red through supervise.sh")
+verify_red_head="${repair_text%%'retry green'*}"
+[[ "$verify_red_head" == *'verify-red'* && "$verify_red_head" == *'red-repair'*'verify-red'* ]] ||
+  problems+=("$skill_md's repair <case> route does not verify the repaired red with verify-red before retrying green")
+grep -qiE '\bpins?\b|pinned|verify-pin' <<<"$repair_text" &&
+  problems+=("$skill_md's repair <case> route carries a standing order about pins")
+report "$name"
+
 finish
