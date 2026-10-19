@@ -40,3 +40,17 @@ def test_main_exits_0_with_nothing_on_stdout_when_the_mark_is_only_in_the_prose_
 
     assert code == 0
     assert out == ""
+
+
+def test_main_exits_0_with_nothing_on_stdout_when_the_replacement_is_a_parametrized_case_1826(tmp_path, run_cli, unreplaced):
+    step = (
+        "- [x] a port replaces 'first case' in skills/tdd/scripts/tests/some.test.sh "
+        "⟦replaces-case⟧ ⟦criterion 1⟧"
+    )
+    (tmp_path / "test_x.py").write_text("def test_x(case):\n    assert case\n")
+    report = tmp_path / "report.txt"
+    report.write_text("REPLACES: first case => test_x.py::test_x[a ticked step to move]\n")
+
+    code, out, err = run_cli(unreplaced, [step, str(report)], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
