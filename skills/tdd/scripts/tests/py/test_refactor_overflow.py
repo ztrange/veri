@@ -823,3 +823,44 @@ def test_cli_asks_for_100_open_issues_per_page_on_every_lookup_call_and_reads_pa
     assert result == (0, URL, "")
     assert [bool(re.search(r"[?&]per_page=100(&|$)", c)) for c in lookups] == [True, True]
     assert [re.search(r"[?&]page=(\d+)", c).group(1) for c in lookups] == ["1", "2"]
+
+
+def crlf_listing():
+    return ("Structural candidates #504's closing pass could not reach:\r\n\r\n"
+            + "".join(f"- {line}\r\n" for line in (FOLD, HOIST, SPLIT)))
+
+
+def run_against_existing_issue(tmp_path, refactor_overflow, run_cli, fake_processes, body, comments):
+    owed = owed_504(tmp_path)
+    existing = "https://github.com/o/r/issues/42"
+    open_issues = json.dumps([
+        {"number": 42, "title": "Refactor owed by #504", "html_url": existing, "body": body}])
+
+    def gh(line, **kwargs):
+        if is_lookup(line):
+            return 0, open_issues, ""
+        if is_comments_read(line):
+            return 0, json.dumps([{"body": c} for c in comments]), ""
+        return 0, "https://github.com/o/r/issues/43\n", ""
+
+    calls = fake_processes(gh)
+    result = run_cli(refactor_overflow, ["504", str(owed), "0"], cwd=tmp_path)
+    return result, existing, calls
+
+
+def test_cli_posts_no_comment_when_the_open_refactor_owed_issue_lists_every_candidate_in_a_crlf_body_issue_1745(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    result, existing, calls = run_against_existing_issue(
+        tmp_path, refactor_overflow, run_cli, fake_processes, crlf_listing(), [])
+
+    assert result == (0, existing + "\n", "")
+    assert [c for c in calls if "body=" in c] == []
+
+
+def test_cli_posts_no_comment_when_a_comment_on_the_open_refactor_owed_issue_lists_every_candidate_with_crlf_endings_issue_1745(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    result, existing, calls = run_against_existing_issue(
+        tmp_path, refactor_overflow, run_cli, fake_processes, "", [crlf_listing()])
+
+    assert result == (0, existing + "\n", "")
+    assert [c for c in calls if "body=" in c] == []
