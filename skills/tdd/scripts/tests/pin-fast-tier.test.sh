@@ -17,7 +17,7 @@ source "$HERE/lib/harness.sh"
 
 work="$(scratch_dir)"
 mkdir -p "$work/.tdd"
-printf '#!/bin/sh\necho "FAIL - run-finished.test.sh builds its own scratch instead of the harness'"'"'s"\necho "0 passed, 1 failed"\nexit 1\n' > "$work/fast-red"
+printf '#!/bin/sh\necho "FAIL - a suite builds its own scratch instead of the harness'"'"'s"\necho "0 passed, 1 failed"\nexit 1\n' > "$work/fast-red"
 chmod +x "$work/fast-red"
 
 red_out="$(cd "$work" && "$CHECK" "$work/fast-red" 2>&1)"; red_code=$?
