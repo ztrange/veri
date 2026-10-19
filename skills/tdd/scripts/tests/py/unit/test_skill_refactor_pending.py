@@ -5,6 +5,7 @@ import re
 
 ROOT = pathlib.Path(__file__).resolve().parents[6]
 SKILL = ROOT / "skills" / "tdd" / "SKILL.md"
+RESUME_MD = SKILL.with_name("RESUME.md")
 CLAUDE = ROOT / "CLAUDE.md"
 CONTEXT = ROOT / "CONTEXT.md"
 
@@ -43,7 +44,8 @@ def body_of(text):
 
 
 def section_records(heading):
-    return records_of(body_of(importlib.import_module("skill_sections").section(SKILL, heading)).encode())
+    source = RESUME_MD if heading == "## Resume" else SKILL
+    return records_of(body_of(importlib.import_module("skill_sections").section(source, heading)).encode())
 
 
 def resume():
@@ -259,7 +261,7 @@ def reference_list_probes(records):
 
 
 def resume_text():
-    body = body_of(importlib.import_module("skill_sections").section(SKILL, "## Resume"))
+    body = body_of(importlib.import_module("skill_sections").section(RESUME_MD, "## Resume"))
     assert body.strip(), "SKILL.md has no ## Resume section to read"
     return re.sub(" +", " ", body.replace("\n", " "))
 
@@ -343,7 +345,7 @@ def test_1579_skill_md_s_resume_sub_step_1_says_the_ledger_is_not_re_planned_exc
 
 
 def test_1579_skill_md_states_that_a_conductor_never_sets_or_raises_veri_step_growth_revise_budget_veri_refactor_budget_veri_stuck_retries_or_veri_no_verdict_retries_mid_run_and_that_a_budget_it_cannot_fit_inside_is_a_bail():
-    text = re.sub(" +", " ", SKILL.read_text().replace("*", "").replace("`", "").lower().replace("\n", " "))
+    text = re.sub(" +", " ", (SKILL.read_text() + RESUME_MD.read_text()).replace("*", "").replace("`", "").lower().replace("\n", " "))
     sentences = re.sub(r"\. ", ".\n", text).split("\n")
     never = "\n".join(s for s in sentences if "never" in s and "mid-run" in s and "raise" in s)
     for var in ("VERI_STEP_GROWTH", "REVISE_BUDGET", "VERI_REFACTOR_BUDGET", "VERI_STUCK_RETRIES", "VERI_NO_VERDICT_RETRIES"):

@@ -33,7 +33,7 @@ def test_skill_md_computes_the_refactor_touched_files_list_through_refactor_touc
     expected = ["lib/alpha.test.sh", "src/zeta.sh"]
     green = git(repo, "rev-parse", "HEAD").strip()
 
-    lines = [l.strip() for l in SKILL.read_text().splitlines() if re.match(r'^\s*touched="\$\(', l)]
+    lines = [l.strip() for l in (SKILL.read_text() + SKILL.with_name('RESUME.md').read_text()).splitlines() if re.match(r'^\s*touched="\$\(', l)]
 
     problems = []
     if len(lines) != 2:

@@ -16,6 +16,7 @@ import pytest
 
 SKILL = pathlib.Path(__file__).resolve().parents[3] / "SKILL.md"
 BAIL = SKILL.with_name("BAIL.md")
+RESUME = SKILL.with_name("RESUME.md")
 
 INSERTION = rb"\$s/add-ledger-step\.sh"
 
@@ -29,7 +30,7 @@ _SPACE = rb"[ \t\n\r\f\v]"
 def _records():
     out, rec = [], b""
     for line in (SKILL.read_bytes() + b"\n\n" + BAIL.read_bytes() + b"\n"
-                 + SKILL.with_name("PIN.md").read_bytes()).split(b"\n"):
+                 + SKILL.with_name("PIN.md").read_bytes() + b"\n\n" + RESUME.read_bytes()).split(b"\n"):
         if re.match(rb"[0-9]+\. ", line) or re.match(_SPACE + rb"*- ", line):
             if rec:
                 out.append(rec)

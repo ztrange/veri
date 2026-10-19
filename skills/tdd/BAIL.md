@@ -105,7 +105,7 @@ To bail:
    Either way the PR carries sub-step 6's skill-drift block: a link-only comment quotes that
    block alongside the link.
    It stays a **draft**: nobody is asked to review a run that stopped. The ledger's completed
-   steps stay checked, so a re-run resumes from the failing step (see *Resume*) and edits this
+   steps stay checked, so a re-run resumes from the failing step (see `RESUME.md`) and edits this
    same PR rather than opening another.
 8. Report to the user: the phase, the **classification** (system vs process), the reason,
    sub-step 6's skill-drift block, the branch name, and the **worktree path** — the logs named above are inside it, and it
