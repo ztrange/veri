@@ -212,6 +212,22 @@ named=no; [[ "$err" =~ (^|[^0-9])7([^0-9]|$) ]] && named=yes
 expect_eq "claims on a unit with a second | ID | Requirement | Why | table after a blank line exits 2, prints nothing on stdout and names the second header's line on stderr (#1743)" \
   $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
 
+cat > "$work/fenced-pipe.md" <<MD
+$H skills/tdd/SKILL.md
+
+| ID | Requirement | Why |
+|----|-------------|-----|
+| A1 | Says one thing. | Because. |
+
+\`\`\`
+ls | grep x
+\`\`\`
+MD
+
+out="$("$REQUIREMENTS" claims "$work/fenced-pipe.md" skills/tdd/SKILL.md 2> "$work/stderr")" && code=0 || code=$?
+expect_eq "claims on a unit with a fenced code block holding ls | grep x after its table exits 0 and prints only the table's rows (#1743)" \
+  $'0\nA1\tSays one thing.' "$code"$'\n'"${out%$'\n'}"
+
 out="$("$REQUIREMENTS" 2> "$work/stderr")" && code=0 || code=$?
 err="$(< "$work/stderr")"
 usage=no; [[ "$err" == usage:*requirements.sh* ]] && usage=yes
