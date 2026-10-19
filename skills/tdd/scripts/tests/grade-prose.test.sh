@@ -157,4 +157,15 @@ named_reorder=no; grep -iF 'order' "$work/err-reorder" > /dev/null && named_reor
 expect_eq "a final GRADES block with a missing, an extra or a reordered requirement ID exits 2 and names that defect on stderr" \
   "2;2;2;missing=yes;extra=yes;reorder=yes" "$code_missing;$code_extra;$code_reorder;missing=$named_missing;extra=$named_extra;reorder=$named_reorder"
 
+claude_stub "$bin" "printf 'BEGIN GRADES\nA1: PASS — one\nA2: FAIL — two\nVERDICT: PASS\nEND GRADES\n'"
+(cd "$work/role" && CLAUDE_BIN="$bin/claude" "$GRADE" "$work/role/REQUIREMENTS.md" unit.md > /dev/null 2> "$work/err-pass-fail")
+code_pass_fail=$?
+claude_stub "$bin" "printf 'BEGIN GRADES\nA1: PASS — one\nA2: PASS — two\nVERDICT: REJECT\nEND GRADES\n'"
+(cd "$work/role" && CLAUDE_BIN="$bin/claude" "$GRADE" "$work/role/REQUIREMENTS.md" unit.md > /dev/null 2> "$work/err-reject-pass")
+code_reject_pass=$?
+named_pass_fail=no; grep -iF 'disagree' "$work/err-pass-fail" > /dev/null && named_pass_fail=yes
+named_reject_pass=no; grep -iF 'disagree' "$work/err-reject-pass" > /dev/null && named_reject_pass=yes
+expect_eq "a reply whose VERDICT line disagrees with its grade lines exits 2 and names the disagreement on stderr" \
+  "2;2;pass_fail=yes;reject_pass=yes" "$code_pass_fail;$code_reject_pass;pass_fail=$named_pass_fail;reject_pass=$named_reject_pass"
+
 finish

@@ -77,6 +77,11 @@ if [[ "$want_ids" != "$got_ids" ]]; then
   exit 2
 fi
 fails="$(grep -E '^[^:]+: FAIL' <<< "$block")"
+verdict="$(grep -E '^VERDICT: ' <<< "$block" | tail -n 1)"
+if [[ -n "$verdict" ]] && { [[ -n "$fails" && "$verdict" == "VERDICT: PASS" ]] || [[ -z "$fails" && "$verdict" == "VERDICT: REJECT" ]]; }; then
+  echo "grade-prose.sh: VERDICT line disagrees with the grade lines" >&2
+  exit 2
+fi
 if [[ -n "$fails" ]]; then
   echo "$fails"
   exit 1
