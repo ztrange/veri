@@ -36,7 +36,8 @@ def parked_reason(run):
 
 def main(argv):
     sha = out("rev-parse", "main")
-    tag = out("tag", "--sort=-v:refname").splitlines()[0]
+    tags = out("tag", "--sort=-v:refname").splitlines()
+    tag = tags[0] if tags else "(none)"
     print("main %s %s" % (sha, tag))
     print("## Running")
     code, document = status.json_document()
