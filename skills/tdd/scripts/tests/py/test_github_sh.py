@@ -154,6 +154,13 @@ OLD_SHA = "8a7980e1" + "a" * 32
 NEW_SHA = "a245e8b0" + "b" * 32
 
 
+def rest_stub(rest_answers, graphql_reply):
+    """A gh whose issue and pr routes print <graphql_reply> and whose api route answers, or fails with a 502."""
+    fail = "" if rest_answers else "echo 'gh: Bad Gateway (HTTP 502)' >&2; exit 1"
+    return ("case \"$1\" in\n  issue|pr) echo " + graphql_reply + "; exit 0 ;;\n  api)\n    " + fail + "\n"
+            + API_PAGES + "esac\nexit 1\n")
+
+
 def started(calls, command):
     return [call for call in calls if call.startswith(command + " ")]
 
@@ -166,9 +173,7 @@ def reads_of_pr_42(calls):
 def test_with_the_driver_unset_every_graphql_operation_runs_only_gh_api_and_returns_2_when_it_fails(tmp_path):
     for rest_answers in (True, False):
         for op, call in OPS.items():
-            fail = "" if rest_answers else "echo 'gh: Bad Gateway (HTTP 502)' >&2; exit 1"
-            body = ("case \"$1\" in\n  issue|pr) echo '[]'; exit 0 ;;\n  api)\n    " + fail + "\n"
-                    + API_PAGES + "esac\nexit 1\n")
+            body = rest_stub(rest_answers, "'[]'")
 
             code, _, _, calls = run_lib(tmp_path, body, call)
 
@@ -183,9 +188,7 @@ def test_with_the_driver_rest_every_graphql_operation_answers_from_gh_api_alone_
     answers = {"view": "rest-body", "list": '[{"number":1}]', "json": '[{"number":1}]', "ready": ""}
     for rest_answers in (True, False):
         for op, call in OPS.items():
-            fail = "" if rest_answers else "echo 'gh: Bad Gateway (HTTP 502)' >&2; exit 1"
-            body = ("case \"$1\" in\n  issue|pr) echo graphql-answer; exit 0 ;;\n  api)\n    " + fail + "\n"
-                    + API_PAGES + "esac\nexit 1\n")
+            body = rest_stub(rest_answers, "graphql-answer")
 
             code, out, err, calls = run_lib(tmp_path, body, call, "rest")
 
