@@ -123,22 +123,13 @@ mentions_reported() {
 mentions_reported no-report-copies.test.sh docs-read-guard.test.sh harness.test.sh
 report "#595: no-report-copies.test.sh's exemption keys, planted-suite paths and case text naming other suites are not read as launching them"
 
-mentions_reported affected-suites.test.sh run-suite-venv.test.sh
-report "#1011: affected-suites.test.sh's no-same-named-suite fixture mentions of run-suite-venv.test.sh are not read as launching it"
-
-mentions_reported affected-suites.test.sh "#1138"
-report "#1138: affected-suites.test.sh's #1138 case names mentioning another suite are not read as launching it"
-
-mentions_reported affected-suites.test.sh .test.sh
-report "#538: affected-suites.test.sh's cp of SKILL.md and of the suites naming it into a scratch repo does not make its fixture mentions of other suites read as launching them"
-
 plant="$(scratch_dir)"
-cat "$ROOT/$suites_dir/affected-suites.test.sh" > "$plant/affected-suites.test.sh"
-printf '%s\n' 'bash "$HERE/run-suite-offline.test.sh"' >> "$plant/affected-suites.test.sh"
-planted_line="$(wc -l < "$plant/affected-suites.test.sh" | tr -d ' ')"
+cat "$ROOT/$suites_dir/make-test-env.test.sh" > "$plant/make-test-env.test.sh"
+printf '%s\n' 'bash "$HERE/run-suite-offline.test.sh"' >> "$plant/make-test-env.test.sh"
+planted_line="$(wc -l < "$plant/make-test-env.test.sh" | tr -d ' ')"
 problems=()
-scan_launches "$plant/affected-suites.test.sh" | grep -F "$(printf 'affected-suites.test.sh\t%s\trun-suite-offline.test.sh\t' "$planted_line")" > /dev/null \
-  || problems+=("a planted 'bash \"\$HERE/run-suite-offline.test.sh\"' at affected-suites.test.sh:$planted_line was not reported")
-report "#538: a real launch of another suite planted in affected-suites.test.sh is still read as launching it"
+scan_launches "$plant/make-test-env.test.sh" | grep -F "$(printf 'make-test-env.test.sh\t%s\trun-suite-offline.test.sh\t' "$planted_line")" > /dev/null \
+  || problems+=("a planted 'bash \"\$HERE/run-suite-offline.test.sh\"' at make-test-env.test.sh:$planted_line was not reported")
+report "#538: a real launch of another suite planted in make-test-env.test.sh is still read as launching it"
 
 finish
