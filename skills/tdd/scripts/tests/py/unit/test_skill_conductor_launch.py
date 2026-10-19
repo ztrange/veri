@@ -1,9 +1,9 @@
-"""What skills/tdd/SKILL.md tells an operator about launching the conductor, read as text,
+"""What README.md tells an operator about launching the conductor, read as text,
 one paragraph or bullet at a time."""
 import pathlib
 import re
 
-SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
+SKILL = pathlib.Path(__file__).resolve().parents[6] / "README.md"
 
 NESTED = r"claudecode|nested|inside (another|a) claude|interactive session|own session|already in"
 INTERACTIVE = r"interactive|chat session|inside a session|a session you|typed into a session"
