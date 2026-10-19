@@ -60,7 +60,7 @@ def test_main_1621_finds_a_real_pytest_function_and_a_real_bash_suite_case_from_
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     monkeypatch.chdir(ROOT)
     pytest_case = "test_a_planted_develop_prompt_that_makes_no_commit_and_the_real_prompts_directory_are_clean"
-    bash_case = "harvest-usage.sh run through a symlink to the skill directory and from another working directory appends the same usage event and exits as when run in place"
+    bash_case = "make -n watch: its own .PHONY target, separate from test, unit and merge-gates"
     results = []
     for line in ("WRONG_TEST: %s asserts the opposite of the criterion" % pytest_case,
                  "WRONG_TEST: the case `%s` asserts the opposite of the criterion" % bash_case):
