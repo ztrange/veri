@@ -343,11 +343,15 @@ def graphql_ready_calls(calls):
     return [call for call in "\n".join(calls).split("gh ") if call.startswith("api graphql")]
 
 
+def mark_ready_calls(calls):
+    return [call for call in graphql_ready_calls(calls) if "markPullRequestReadyForReview" in call]
+
+
 @pytest.mark.process("bash sources lib/github.sh")
 def test_with_the_driver_unset_a_404_on_the_ccr_route_sends_mark_ready_with_the_node_id_over_gh_api_graphql(tmp_path):
     code, out, err, calls = run_lib(tmp_path, ready_route_stub(CCR_404, GRAPHQL_READIES), "gh_pr_ready 42")
 
-    sent = [call for call in graphql_ready_calls(calls) if "markPullRequestReadyForReview" in call and NODE_ID in call]
+    sent = [call for call in mark_ready_calls(calls) if NODE_ID in call]
     assert (code, out) == (0, "")
     assert sent
     assert not started(calls, "gh pr")
@@ -359,7 +363,7 @@ def test_with_the_driver_unset_a_404_on_the_ccr_route_and_a_502_on_mark_ready_tr
 
     assert (code, out) == (2, "")
     assert [call for call in calls if "ccr/ready_for_review" in call]
-    assert [call for call in graphql_ready_calls(calls) if "markPullRequestReadyForReview" in call]
+    assert mark_ready_calls(calls)
 
 
 @pytest.mark.process("bash sources lib/github.sh")
@@ -367,7 +371,7 @@ def test_with_the_driver_unset_a_404_on_the_ccr_route_that_mark_ready_recovers_f
     code, out, err, calls = run_lib(tmp_path, ready_route_stub(CCR_404, GRAPHQL_READIES), "gh_pr_ready 42")
 
     assert code == 0
-    assert [call for call in graphql_ready_calls(calls) if "markPullRequestReadyForReview" in call]
+    assert mark_ready_calls(calls)
     assert "HTTP 404" not in err
 
 
