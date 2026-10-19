@@ -618,3 +618,10 @@ def test_a_starts_git_case_level_runs_git_with_no_cwd_entry_and_a_whole_file_ent
     output = ran.stdout + ran.stderr
     assert ran.returncode == 0, output
     assert "1 passed" in output, output
+
+
+@pytest.mark.process("a real sleep launched through the process-case PATH shim by a parent that only names push_branch in its arguments")
+def test_a_process_case_whose_sleep_parent_only_names_push_branch_in_its_arguments_is_not_failed_for_reaching_the_push_backoff():
+    done = subprocess.run(["sh", "-c", "sleep 0; echo $?", "push_branch"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    assert (done.returncode, done.stdout, done.stderr) == (0, b"0\n", b"")

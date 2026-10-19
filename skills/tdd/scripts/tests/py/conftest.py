@@ -185,8 +185,10 @@ def case_waits_no_default_push_backoff(request, monkeypatch):
 
 
 SLEEP_SHIM = """#!/bin/sh
-case "$(ps -o command= -p "$PPID")" in
-  *push_branch*) [ -n "${VERI_PUSH_BACKOFF+x}" ] || { echo "$0" >> "$PUSH_BACKOFF_LOG"; exit 1; } ;;
+second() { echo "$2"; }
+set -f
+case "$(second $(ps -o command= -p "$PPID"))" in
+  */veri/push_branch.py) [ -n "${VERI_PUSH_BACKOFF+x}" ] || { echo "$0" >> "$PUSH_BACKOFF_LOG"; exit 1; } ;;
 esac
 exec "$REAL_SLEEP" "$@"
 """
