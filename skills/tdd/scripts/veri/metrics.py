@@ -62,7 +62,7 @@ CONTEXT_KEYS = ["input_tokens", "cache_read_input_tokens", "cache_creation_input
 
 def conductor_sessions(issue, path):
     sessions = []
-    open_turns, open_cost = 0, 0.0
+    open_turns, open_cost, open_priced = 0, 0.0, True
     turn_rows = []
     seen_ids = set()
     with contextlib.suppress(OSError):
@@ -79,7 +79,7 @@ def conductor_sessions(issue, path):
                         continue
                     if record.get("type") == "result":
                         sessions.append(record)
-                        open_turns, open_cost = 0, 0.0
+                        open_turns, open_cost, open_priced = 0, 0.0, True
                     elif record.get("type") == "assistant":
                         message = record.get("message") or {}
                         usage = message.get("usage") or {}
@@ -88,7 +88,14 @@ def conductor_sessions(issue, path):
                                 continue
                             seen_ids.add(message["id"])
                         open_turns += 1
-                        prices = session_cost.PRICES[session_cost.family(message.get("model") or "") or "opus"]
+                        model_name = message.get("model") or ""
+                        model_family = session_cost.family(model_name) or ("opus" if not model_name else None)
+                        if model_family is None:
+                            open_priced = False
+                            turn_rows.append([str(len(turn_rows) + 1), "unpriced",
+                                              str(sum((usage.get(key) or 0) for key in CONTEXT_KEYS))])
+                            continue
+                        prices = session_cost.PRICES[model_family]
                         turn_dollars = sum((usage.get(key) or 0) * prices[rate] / 1e6
                                            for key, rate in TURN_RATES.items())
                         turn_dollars += sum(tokens * prices[rate] / 1e6
@@ -97,7 +104,7 @@ def conductor_sessions(issue, path):
                         turn_rows.append([str(len(turn_rows) + 1), "$%.2f" % turn_dollars,
                                           str(sum((usage.get(key) or 0) for key in CONTEXT_KEYS))])
         if open_turns:
-            sessions.append({"total_cost_usd": open_cost, "num_turns": open_turns})
+            sessions.append({"total_cost_usd": open_cost if open_priced else None, "num_turns": open_turns})
     return sessions, turn_rows
 
 
@@ -428,8 +435,9 @@ def render(issue, path, ledger):
         sessions, turn_rows = conductor_sessions(issue, path)
     if sessions:
         print("Cost is every leaf of the run, and the conductor own spending.")
-        print("Conductor own spending: $%.2f over %d turns, in %d sessions."
-              % (sum(r.get("total_cost_usd") or 0 for r in sessions),
+        priced = not any(r.get("total_cost_usd", 0) is None for r in sessions)
+        print("Conductor own spending: %s over %d turns, in %d sessions."
+              % ("$%.2f" % sum(r.get("total_cost_usd") or 0 for r in sessions) if priced else "unpriced",
                  sum(r.get("num_turns") or 0 for r in sessions), len(sessions)))
     else:
         print("Cost is every leaf of the run, and the conductor own %s."
