@@ -17,15 +17,14 @@ def split_cells(line):
 
 
 def units(path):
-    heading = ""
     found = []
     for line in read_lines(path):
         if line.startswith("## "):
-            heading = line[3:]
-        elif line.startswith("|") and split_cells(line)[1:4] == COLUMNS:
-            if heading:
-                found.append(heading)
-            heading = ""
+            try:
+                claims(path, line[3:])
+            except ValueError:
+                continue
+            found.append(line[3:])
     return found
 
 
