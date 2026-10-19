@@ -244,6 +244,24 @@ out="$("$REQUIREMENTS" claims "$work/fenced-table-line.md" skills/tdd/SKILL.md 2
 expect_eq "claims on a unit with a fenced code block holding a | A | B | line after its table exits 0 and prints only the table's rows (#1743)" \
   $'0\nA1\tSays one thing.' "$code"$'\n'"${out%$'\n'}"
 
+cat > "$work/fence-ends-table.md" <<MD
+$H skills/tdd/SKILL.md
+
+| ID | Requirement | Why |
+|----|-------------|-----|
+| A1 | Says one thing. | Because. |
+\`\`\`
+code
+\`\`\`
+| X | Y |
+MD
+
+out="$("$REQUIREMENTS" claims "$work/fence-ends-table.md" skills/tdd/SKILL.md 2> "$work/stderr")" && code=0 || code=$?
+err="$(< "$work/stderr")"; err="${err//"$work"/}"
+named=no; [[ "$err" =~ (^|[^0-9])9([^0-9]|$) ]] && named=yes
+expect_eq "claims on a unit whose table rows run straight into a fence, then a | X | Y | line after it, exits 2, prints nothing on stdout and names that line on stderr (#1743)" \
+  $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
+
 cat > "$work/prose-pipe.md" <<MD
 $H skills/tdd/SKILL.md
 
