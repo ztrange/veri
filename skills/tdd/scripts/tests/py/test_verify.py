@@ -2371,3 +2371,53 @@ def test_main_saves_a_mode_only_change_of_a_verifier_in_the_diff_byte_exactly_18
              if not m.endswith((".log", ".prompt"))]
     saved = [(repo / m).read_bytes() for m in named if (repo / m).is_file()]
     assert (code, len(named), saved, b"new mode 100755" in expected[0]) == (2, 1, expected, True)
+
+
+@pytest.mark.process("a real git scratch repository and a stub verifier leaf that changes a tracked binary file")
+def test_main_saves_a_binary_change_of_a_verifier_in_a_diff_that_applies_with_binary_1846(
+        tmp_path, monkeypatch, capfd):
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
+                 "VERI_ISSUE", "VERI_STEP"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    (tmp_path / "home").mkdir()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    monkeypatch.chdir(repo)
+    write_inputs(repo)
+    before = bytes([0, 1, 2, 255, 254, 0, 7]) * 40
+    after = bytes([0, 9, 8, 255, 0, 0, 3, 128]) * 40
+    (repo / "blob.bin").write_bytes(before)
+    (repo / ".gitignore").write_text(".tdd/\n")
+
+    def git(*args):
+        return subprocess.run(
+            ["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
+            cwd=repo, stdout=subprocess.PIPE, check=True).stdout
+
+    git("init", "-q")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    verify = importlib.import_module("veri.verify")
+    real_start = verify.start
+
+    def stub_start(args, **kwargs):
+        if os.path.basename(str(args[0])) != "supervise.sh":
+            return real_start(args, **kwargs)
+        (repo / "blob.bin").write_bytes(after)
+        return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nREASON: ok\n")
+
+    monkeypatch.setattr(verify, "start", stub_start)
+
+    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+
+    out = capfd.readouterr().out
+    named = [m for m in re.findall(r"\.tdd/verify-green[\w.-]*", out)
+             if not m.endswith((".log", ".prompt"))]
+    applied = None
+    if len(named) == 1 and (repo / named[0]).is_file():
+        patch = (repo / named[0]).resolve()
+        subprocess.run(["git", "apply", "--binary", str(patch)], cwd=repo,
+                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        applied = (repo / "blob.bin").read_bytes()
+    assert (code, len(named), applied) == (2, 1, after)

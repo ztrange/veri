@@ -106,7 +106,7 @@ def unreadable_gitconfig(path, error):
 
 
 def save_diff(leaf, tree_before, tree_after):
-    diff = git("diff", tree_before, tree_after)
+    diff = git("diff", "--binary", tree_before, tree_after)
     if not diff.stdout:
         return None
     path = ".tdd/%s.diff" % leaf
