@@ -1,7 +1,7 @@
 # Plan for #1718 — PRD 011 S2: grade-prose.sh grades one prose unit against its requirements list on the verdict contract — gate for slices 3+
 
 - [x] grade-prose.sh called with no arguments exits 2 with a usage line naming it on stderr; it is a /bin/sh shim that execs python3 on a module under skills/tdd/scripts/veri/ and holds no Python source, and the test_missing_argument_cli.py sweep covers it and passes ⟦criterion 9⟧
-- [x] grade-prose.sh <requirements-file> <unit> on a whole-file unit sends a stub claude (CLAUDE_BIN) a prompt carrying the unit file's text and every requirement's ID and Requirement text from the unit's list ⟦criterion 1⟧ ⟂ refactor pending
+- [x] grade-prose.sh <requirements-file> <unit> on a whole-file unit sends a stub claude (CLAUDE_BIN) a prompt carrying the unit file's text and every requirement's ID and Requirement text from the unit's list ⟦criterion 1⟧
 - [ ] the prompt grade-prose.sh sends the stub claude contains no text from any Why cell of the requirements list, no diff and no commit message ⟦criterion 1⟧
 - [ ] a unit graded inside a git repository with commits still gets a prompt carrying no diff and no commit message, pinned by a case whose unit sits in a repo with history ⟦criterion 11⟧
 - [ ] a section unit <path>#<heading> sends only that section's text, from its heading to the next heading of the same level ⟦criterion 2⟧
