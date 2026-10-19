@@ -82,14 +82,14 @@ def head_snapshot():
 
 def changed_paths(tree_before, head_before):
     if not tree_before:
-        return [], head_before
+        return [], head_before, ""
     tree_after = in_temp_index("write-tree")
     head_after = head_snapshot()
     diff = git("diff-tree", "-r", "--name-only", "--no-commit-id", tree_before, tree_after)
     paths = diff.stdout.decode().splitlines() if diff.returncode == 0 else []
     if head_after != head_before:
         paths.append("HEAD")
-    return paths, head_after
+    return paths, head_after, tree_after
 
 
 def gitconfig_snapshot(path):
@@ -105,9 +105,21 @@ def unreadable_gitconfig(path, error):
     return 2
 
 
-def refuse_modified(what, leaf, paths):
+def save_diff(leaf, tree_before, tree_after):
+    diff = git("diff", tree_before, tree_after)
+    if not diff.stdout:
+        return None
+    path = ".tdd/%s.diff" % leaf
+    with open(path, "wb") as saved:
+        saved.write(diff.stdout)
+    return path
+
+
+def refuse_modified(what, leaf, paths, diff=None):
     _write(sys.stdout, "verifier leaf modified %s — verdict not accepted"
            " (see .tdd/%s.log); changed:" % (what, leaf))
+    if diff:
+        _write(sys.stdout, "diff saved to %s" % diff)
     _write(sys.stdout, "\n".join(paths))
     return 2
 
@@ -221,14 +233,15 @@ def main(argv):
         if launched.returncode == 2:
             _write(sys.stdout, "verifier leaf killed-stuck — no verdict rendered (see .tdd/%s.log)" % leaf)
             return 2
-        changed, head_after = changed_paths(tree_before, head_before)
+        changed, head_after, tree_after = changed_paths(tree_before, head_before)
         if changed:
+            diff = save_diff(leaf, tree_before, tree_after)
             in_temp_index("read-tree", "-u", "--reset", tree_before)
             if head_before and head_before != head_after:
                 restored = start(["git", "update-ref", "HEAD", head_before])
                 if restored.returncode != 0:
                     return 2
-            return refuse_modified("the repository", leaf, changed)
+            return refuse_modified("the repository", leaf, changed, diff)
         try:
             gitconfig_after = gitconfig_snapshot(gitconfig)
         except OSError as error:
