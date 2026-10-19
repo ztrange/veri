@@ -1447,3 +1447,86 @@ def test_1138_a_suite_the_branch_itself_deleted_is_not_printed(run_cli, affected
     commit_all(repo, "head")
     assert topic_range(run_cli, affected, repo) == (
         0, SUITES + "foo.test.sh\n" + SUITES + "py/unit/test_claude_md_counts.py\n", "")
+
+
+def working_tree_git(touched=(), untracked_=(), counted=(), counted_untracked=()):
+    lines = lambda names: "".join(n + "\n" for n in names)
+
+    def run(args, **kwargs):
+        if list(args[:2]) == ["git", "rev-parse"]:
+            return subprocess.CompletedProcess(args, 0, "abc\n", "")
+        if list(args[:3]) == ["git", "diff", "--name-only"]:
+            return subprocess.CompletedProcess(args, 0, lines(counted if "--diff-filter=AD" in args else touched), "")
+        if list(args[:3]) == ["git", "diff", "-U0"]:
+            return subprocess.CompletedProcess(args, 1, "", "")
+        if list(args[:3]) == ["git", "ls-files", "--others"]:
+            return subprocess.CompletedProcess(args, 0, lines(counted_untracked if "--" in args else untracked_), "")
+        raise AssertionError("unexpected command: %r" % (args,))
+    return run
+
+
+def git_state(repo):
+    return [sh_git(repo, *args) for args in (("stash", "list"), ("worktree", "list"), ("rev-parse", "HEAD"))]
+
+
+@pytest.mark.process("git")
+def test_working_tree_an_uncommitted_edit_to_a_script_prints_its_suite_and_leaves_stash_worktrees_and_head(
+        run_cli, affected, tmp_path):
+    repo = new_git_repo(tmp_path)
+    plant(repo, {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "tests/foo.test.sh": "# foo suite\n",
+                 SCRIPTS_REL + "bar.sh": "bar\n", SCRIPTS_REL + "tests/bar.test.sh": "# bar suite\n"})
+    base = commit_all(repo, "base")
+    plant(repo, {SCRIPTS_REL + "foo.sh": "foo 2\n"})
+    before = git_state(repo)
+    assert run_cli(affected, [base], cwd=repo) == (0, SUITES + "foo.test.sh\n", "")
+    assert git_state(repo) == before
+
+
+@pytest.mark.process("git")
+def test_working_tree_an_uncommitted_edit_inside_one_section_of_skill_md_prints_the_suites_reading_it_or_skill_md_unsliced(
+        run_cli, affected, tmp_path):
+    repo = new_git_repo(tmp_path)
+    plant(repo, {SKILL: skill_text("## Alpha\n\nalpha text\n\n## Beta\n\nbeta text\n"),
+                 SCRIPTS_REL + "tests/skill-whole.test.sh":
+                 '#!/usr/bin/env bash\nskill_md="skills/tdd/SKILL.md"\ngrep -F text "$skill_md"\n'})
+    for name in ("Alpha", "Beta"):
+        section_suite(repo, SKILL, name)
+    base = commit_all(repo, "base")
+    plant(repo, {SKILL: skill_text("## Alpha\n\nalpha text 2\n\n## Beta\n\nbeta text\n")})
+    assert run_cli(affected, [base], cwd=repo) == (
+        0, suites("skill-alpha.test.sh", "skill-whole.test.sh"), "")
+
+
+def test_working_tree_a_new_untracked_suite_is_printed(monkeypatch, run_cli, affected, tmp_path):
+    monkeypatch.setattr(subprocess, "run", working_tree_git(
+        untracked_=[SCRIPTS_REL + "tests/baz.test.sh"], counted_untracked=[SCRIPTS_REL + "tests/baz.test.sh"]))
+    plant(tmp_path, {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "tests/foo.test.sh": "# foo suite\n",
+                     SCRIPTS_REL + "tests/baz.test.sh": "# baz suite\n"})
+    code, out, err = run_cli(affected, ["base"], cwd=tmp_path)
+    assert (code, SUITES + "baz.test.sh" in out.splitlines()) == (0, True)
+
+
+def test_working_tree_a_new_untracked_suite_also_prints_the_claude_md_counts_suite(
+        monkeypatch, run_cli, affected, tmp_path):
+    monkeypatch.setattr(subprocess, "run", working_tree_git(
+        untracked_=[SCRIPTS_REL + "tests/baz.test.sh"], counted_untracked=[SCRIPTS_REL + "tests/baz.test.sh"]))
+    plant(tmp_path, {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "tests/foo.test.sh": "# foo suite\n",
+                     SCRIPTS_REL + "tests/py/unit/test_claude_md_counts.py": "# counts suite\n",
+                     SCRIPTS_REL + "tests/baz.test.sh": "# baz suite\n"})
+    assert run_cli(affected, ["base"], cwd=tmp_path) == (0, SUITES + "baz.test.sh\n" + COUNTS, "")
+
+
+def test_working_tree_a_committed_added_suite_with_no_untracked_file_still_prints_the_claude_md_counts_suite(
+        monkeypatch, run_cli, affected, tmp_path):
+    monkeypatch.setattr(subprocess, "run", working_tree_git(
+        touched=[SCRIPTS_REL + "tests/baz.test.sh"], counted=[SCRIPTS_REL + "tests/baz.test.sh"]))
+    plant(tmp_path, {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "tests/foo.test.sh": "# foo suite\n",
+                     SCRIPTS_REL + "tests/py/unit/test_claude_md_counts.py": "# counts suite\n",
+                     SCRIPTS_REL + "tests/baz.test.sh": "# baz suite\n"})
+    assert run_cli(affected, ["base"], cwd=tmp_path) == (0, SUITES + "baz.test.sh\n" + COUNTS, "")
+
+
+def test_working_tree_with_nothing_changed_since_base_exits_3_and_prints_nothing(
+        monkeypatch, run_cli, affected, tmp_path):
+    monkeypatch.setattr(subprocess, "run", working_tree_git())
+    assert run_cli(affected, ["base"], cwd=tmp_path) == (3, "", "")
