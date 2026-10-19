@@ -167,6 +167,22 @@ def small_case_guard(request, monkeypatch):
         monkeypatch.setenv("PATH", str(SCRIPTS / "tests" / "unit-guard") + os.pathsep + os.environ.get("PATH", ""))
 
 
+@pytest.fixture(autouse=True)
+def case_waits_no_default_push_backoff(request, monkeypatch):
+    import importlib
+
+    for name in ("veri.push_branch", "push_branch"):
+        module = importlib.import_module(name)
+
+        def guarded(args, *rest, _run=module.run, **kwargs):
+            if args[0] == "sleep" and "VERI_PUSH_BACKOFF" not in os.environ:
+                pytest.fail("%s reached the push backoff without setting VERI_PUSH_BACKOFF" % request.node.nodeid,
+                            pytrace=False)
+            return _run(args, *rest, **kwargs)
+
+        monkeypatch.setattr(module, "run", guarded)
+
+
 def in_repository_outside(resolved, scratch):
     return (resolved == ROOT or ROOT in resolved.parents) and scratch != resolved and scratch not in resolved.parents
 
