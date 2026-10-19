@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Unit tests for the guard suite that keeps a suite from asking the `test` recipe to run a
-# named suite while leaving the fast tier on — no-recipe-unit-tier.test.sh. Like
-# job-spec-guard.test.sh this suite has no script as its subject: its subject is what the guard
+# named suite while leaving the fast tier on — no-recipe-unit-tier.test.sh. This suite has no script as its subject: its subject is what the guard
 # reports about the directory it is run in. Zero-dependency plain-shell asserts.
 #
 # Contract under test:

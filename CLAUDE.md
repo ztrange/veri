@@ -125,16 +125,6 @@ count through `lib/harness.sh` like every other.
 alone is not trusted — under `set -u` a suite that dies partway can exit 0 (#157). A non-zero
 exit still fails it.
 
-**Under `pipefail`, a suite never ends a pipeline in `grep -q` or `head`** (#422): the reader
-leaves before EOF, the writer dies of SIGPIPE, and the 141 inverts the assertion on Linux CI.
-Read to EOF (`grep -F … > /dev/null`) or feed it from a redirection; never `trap '' PIPE` or
-drop `pipefail`. `no-sigpipe-pipelines.test.sh` enforces it.
-
-**Kill a background process by the pid recorded at start, never by a job spec** (#424):
-`kill %…` dies with the shell that started it. Use `bg_start`/`bg_kill` from
-`lib/background.sh`; its EXIT trap only reports survivors. `no-job-spec-kills.test.sh`
-enforces it.
-
 **No suite relies on permission bits to make a path unreadable or unwritable** (#846, #860):
 the cloud runs as root, where chmod is a no-op and every system path is accessible. Force the
 failure from the path's type or shape inside the case's scratch tree (a directory where a
