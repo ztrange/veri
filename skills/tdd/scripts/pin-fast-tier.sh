@@ -1,20 +1,6 @@
 #!/bin/sh
-# pin-fast-tier.sh — run the fast tier over the tree a pin would commit; run from the worktree.
+# pin-fast-tier.sh — run the fast tier over the tree a pin would commit: a shim over veri/pin_fast_tier.py.
 #
-# usage: pin-fast-tier.sh <fast-cmd>
-#
-# On failure the command's own output is written to .tdd/verify-pin.reason.
-#
-# Exit: 0 the fast command passed,
-#       1 it failed (output in .tdd/verify-pin.reason),
-#       2 no command given.
-if [ $# -lt 1 ] || [ -z "$1" ]; then
-  echo "usage: pin-fast-tier.sh <fast-cmd>" >&2
-  exit 2
-fi
-mkdir -p .tdd
-if out="$(sh -c "$1" 2>&1 < /dev/null)"; then
-  exit 0
-fi
-printf '%s\n' "$out" > .tdd/verify-pin.reason
-exit 1
+# Usage: pin-fast-tier.sh <fast-cmd>   (run from the worktree; failing output goes to .tdd/verify-pin.reason)
+# Exit:  0 the fast command passed; 1 it failed; 2 no command given
+exec python3 "$(dirname "$0")/veri/pin_fast_tier.py" "$@"
