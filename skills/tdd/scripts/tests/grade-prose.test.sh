@@ -111,4 +111,15 @@ printed=no; grep -F 'FAIL' <<< "$out" > /dev/null && printed=yes
 expect_eq "a FAIL line in the free analysis above a final all-PASS GRADES block with VERDICT: PASS exits 0 and prints no FAIL line" \
   "0;printed=no" "$code;printed=$printed"
 
+claude_stub "$bin" "printf 'Analysis only, no block.\nVERDICT: PASS\n'"
+(cd "$work/role" && CLAUDE_BIN="$bin/claude" "$GRADE" "$work/role/REQUIREMENTS.md" unit.md > /dev/null 2> "$work/err-noblock")
+code_noblock=$?
+claude_stub "$bin" "printf 'BEGIN GRADES\nA1: PASS — one\nA2: PASS — two\nEND GRADES\nVERDICT: PASS\nTrailing words.\n'"
+(cd "$work/role" && CLAUDE_BIN="$bin/claude" "$GRADE" "$work/role/REQUIREMENTS.md" unit.md > /dev/null 2> "$work/err-trailing")
+code_trailing=$?
+named_noblock=no; grep -F 'BEGIN GRADES' "$work/err-noblock" > /dev/null && named_noblock=yes
+named_trailing=no; grep -iF 'after END GRADES' "$work/err-trailing" > /dev/null && named_trailing=yes
+expect_eq "a reply with no BEGIN GRADES block, or with text after END GRADES, exits 2 and names that defect on stderr" \
+  "2;2;noblock=yes;trailing=yes" "$code_noblock;$code_trailing;noblock=$named_noblock;trailing=$named_trailing"
+
 finish

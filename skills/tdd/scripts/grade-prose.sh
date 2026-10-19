@@ -42,6 +42,14 @@ if [[ "$model" != *[0-9]* ]]; then
 fi
 
 reply="$("$HERE/supervise.sh" grade-prose "${CLAUDE_BIN:-claude}" -p --model "$model" <<< "$prompt")" || exit $?
+if ! grep -E '^BEGIN GRADES' <<< "$reply" > /dev/null; then
+  echo "grade-prose.sh: reply has no BEGIN GRADES block" >&2
+  exit 2
+fi
+if awk '/^END GRADES/ { after = 0; seen = 1; next } seen && /[^[:space:]]/ && !/^VERDICT:/ { after = 1 } END { exit !after }' <<< "$reply"; then
+  echo "grade-prose.sh: text after END GRADES" >&2
+  exit 2
+fi
 fails="$(awk '/^BEGIN GRADES/ { buf = ""; on = 1; next } /^END GRADES/ { on = 0; next } on { buf = buf $0 "\n" } END { printf "%s", buf }' <<< "$reply" | grep -E '^[^:]+: FAIL')"
 if [[ -n "$fails" ]]; then
   echo "$fails"

@@ -7,7 +7,7 @@
 - [x] A `grader.conf` whose model value names no version (e.g. `sonnet`) makes `grade-prose.sh` exit 2 with a diagnostic on stderr before anything is launched: the stub `claude` is never invoked ⟦criterion 4⟧
 - [x] A stub reply whose final `BEGIN GRADES` … `END GRADES` block has one `<ID>: PASS — <reason>` line per requirement in list order and `VERDICT: PASS` makes `grade-prose.sh` exit 0 ⟦criterion 5⟧
 - [x] A stub reply whose final block has at least one `<ID>: FAIL — <reason>` line and `VERDICT: REJECT` makes `grade-prose.sh` exit 1 and print each failing ID with its reason on stdout ⟦criterion 5⟧
-- [ ] A stub reply with no `BEGIN GRADES` block, or with text after `END GRADES`, makes `grade-prose.sh` exit 2 and name that defect on stderr ⟦criterion 6⟧
+- [x] A stub reply with no `BEGIN GRADES` block, or with text after `END GRADES`, makes `grade-prose.sh` exit 2 and name that defect on stderr ⟦criterion 6⟧ ⟂ refactor pending
 - [ ] A stub reply whose final block has a missing, an extra or a reordered requirement ID makes `grade-prose.sh` exit 2 and name that defect on stderr ⟦criterion 6⟧
 - [ ] A stub reply whose `VERDICT` line disagrees with its grade lines (`VERDICT: PASS` with a FAIL line, or `VERDICT: REJECT` with all lines PASS) makes `grade-prose.sh` exit 2 and name that defect on stderr ⟦criterion 6⟧
 - [ ] A grader leaf the supervisor kills (a hanging stub `claude`, with `VERI_HEARTBEAT`/`VERI_TIMEOUT`/`VERI_STUCK_RETRIES` shrunk so no real wait is long) makes `grade-prose.sh` exit 2 and say on stderr that no verdict was obtained ⟦criterion 6⟧
