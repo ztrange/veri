@@ -1,0 +1,11 @@
+# Plan for #1722 — PRD 011 helper: stop-reason.sh tells a usage limit or sleep gap from a bail for a run that ended silently
+
+- [ ] `stop-reason.sh` with no argument prints a usage line on stderr and exits 2, and `stop-reason.sh <issue>` for an issue with no run under `.tdd/wt/<issue>` exits 2; the script is a `/bin/sh` shim over a `veri/` module (the `status.sh` convention) and is listed in `SCRIPTS.md` as its declared caller ⟦criterion 5⟧
+- [ ] `stop-reason.sh <issue>` prints `done <pr>` when the run's events log `.tdd/wt/<issue>/.tdd/events.jsonl` ends with a `done` event, carrying that event's `pr` ⟦criterion 1⟧
+- [ ] `stop-reason.sh <issue>` prints `bailed <phase> <classification>` when the run's events log ends with a `bail` event, and `stopped <mode>` when it ends with a `stop` event ⟦criterion 1⟧
+- [ ] `stop-reason.sh <issue>` prints `running` when the run's conductor is live (the pid in the run's `.tdd/conductor.pid` answers) and its events log has no end event ⟦criterion 1⟧
+- [ ] For a run with no end event and no live conductor, `stop-reason.sh <issue>` prints `usage-limit <reset>` when the last `result` record of `.tdd/conductor-<issue>.log` reports a usage limit, `<reset>` being the reset time as worded in that record (e.g. from "You've hit your weekly limit · resets …"), and `usage-limit` alone when the record carries no reset time ⟦criterion 2⟧
+- [ ] For a run with no end event and no live conductor, `stop-reason.sh <issue>` prints `usage-limit` when the run's last leaf log reports a `rate_limit` error, even though the conductor log's last `result` record reports no usage limit ⟦criterion 2⟧
+- [ ] For a run with no end event, no live conductor and no usage limit, `stop-reason.sh <issue>` prints `unknown <last result text>`, the text of the last `result` record of `.tdd/conductor-<issue>.log` ⟦criterion 3⟧
+- [ ] After its first line, `stop-reason.sh <issue>` prints `gap <from> <to>` for each pair of consecutive events in the run's events log whose timestamps lie further apart than `VERI_SLEEP_GAP` seconds (default 900), and no line for pairs at or under it ⟦criterion 4⟧
+- [ ] A `VERI_SLEEP_GAP` that is not a whole number ≥ 1 (`0`, `abc`, `1.5`, set-but-empty) makes `stop-reason.sh <issue>` exit 2 with a stderr diagnostic naming `VERI_SLEEP_GAP` ⟦criterion 5⟧
