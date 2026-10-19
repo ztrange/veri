@@ -18,6 +18,9 @@ def main(argv):
         sys.stderr.write("stop-reason.sh: VERI_SLEEP_GAP must be a whole number >= 1, got %r\n" % gap)
         return 2
     log = os.path.join(".tdd", "wt", argv[0], ".tdd", "events.jsonl")
+    if not os.path.isfile(log):
+        sys.stderr.write("stop-reason.sh: no events log at %s\n" % log)
+        return 2
     events = _records(log)
     last = events[-1]
     if last.get("event") == "done":

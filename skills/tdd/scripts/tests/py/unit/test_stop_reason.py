@@ -138,3 +138,12 @@ def test_a_sleep_gap_that_is_not_a_whole_number_of_at_least_1_exits_2_with_a_dia
         outcomes[bad] = (code, "VERI_SLEEP_GAP" in err)
 
     assert outcomes == {bad: (2, True) for bad in ("0", "abc", "1.5", "")}
+
+
+def test_a_run_directory_with_no_events_log_exits_2_naming_the_missing_events_log_and_prints_no_exception_1816(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    (tmp_path / ".tdd" / "wt" / "7").mkdir(parents=True)
+
+    code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
+
+    assert (code, out, "events.jsonl" in err, "Error" in err or "Traceback" in err) == (2, "", True, False)
