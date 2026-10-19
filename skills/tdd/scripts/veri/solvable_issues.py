@@ -110,7 +110,19 @@ def select(label, priority="priority", repo=None):
         survivors, key=lambda issue: (0 if carries(issue, priority) else 1 if carries(issue, "bug") else 2, issue["number"]))]
 
 
+def running_numbers():
+    scripts = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    listing = subprocess.run(["ps", "-axo", "pid=,command="], stdout=subprocess.PIPE,
+                             stderr=subprocess.DEVNULL, text=True).stdout
+    found = re.findall(re.escape(scripts + "/run-conductor.sh") + r" (\d+)", listing)
+    return {int(number) for number in found}
+
+
 def main(argv):
+    skip = set()
+    if argv[:1] == ["--not-running"]:
+        argv = argv[1:]
+        skip = running_numbers()
     repo = "".join(argv[1:2]) if argv[:1] == ["--repo"] else None
     if repo == "":
         print(USAGE, file=sys.stderr)
@@ -121,7 +133,8 @@ def main(argv):
         return 2
     code, numbers = select(label, priority, repo)
     for number in numbers:
-        print(number)
+        if int(number) not in skip:
+            print(number)
     return code
 
 
