@@ -1,5 +1,6 @@
 """requirements.sh's computations, run in-process."""
 import os
+import re
 import sys
 
 COLUMNS = ["ID", "Requirement", "Why"]
@@ -12,7 +13,7 @@ def read_lines(path):
 
 
 def split_cells(line):
-    return [c.strip() for c in line.split("|")]
+    return [c.strip() for c in re.split(r"(?<!\\)\|", line)]
 
 
 def units(path):
