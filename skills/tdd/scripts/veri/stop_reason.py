@@ -12,8 +12,7 @@ def main(argv):
         sys.stderr.write("stop-reason.sh: no run for issue %s under .tdd/wt\n" % argv[0])
         return 2
     log = os.path.join(".tdd", "wt", argv[0], ".tdd", "events.jsonl")
-    with open(log) as f:
-        events = [json.loads(line) for line in f.read().splitlines()]
+    events = _records(log)
     last = events[-1]
     if last.get("event") == "done":
         sys.stdout.write("done %s\n" % last.get("pr"))
@@ -31,6 +30,11 @@ def main(argv):
     return 0
 
 
+def _records(path):
+    with open(path) as f:
+        return [json.loads(line) for line in f.read().splitlines()]
+
+
 def _live(pidfile):
     try:
         with open(pidfile) as f:
@@ -41,8 +45,7 @@ def _live(pidfile):
 
 
 def _usage_limit(issue):
-    with open(os.path.join(".tdd", "conductor-%s.log" % issue)) as f:
-        results = [r for r in map(json.loads, f.read().splitlines()) if r.get("type") == "result"]
+    results = [r for r in _records(os.path.join(".tdd", "conductor-%s.log" % issue)) if r.get("type") == "result"]
     text = results[-1].get("result", "")
     if "limit" not in text and not _rate_limited(issue):
         return "unknown %s\n" % text
@@ -55,8 +58,7 @@ def _rate_limited(issue):
     logs = sorted((os.path.join(run, n) for n in os.listdir(run) if n.endswith(".log")), key=os.path.getmtime)
     if not logs:
         return False
-    with open(logs[-1]) as f:
-        return any(json.loads(line).get("error") == "rate_limit" for line in f.read().splitlines())
+    return any(r.get("error") == "rate_limit" for r in _records(logs[-1]))
 
 
 if __name__ == "__main__":
