@@ -55,7 +55,7 @@ def main(argv):
         f.write(prompt(unit, text, requirements.claims(path, unit)))
     env = {**os.environ, "PATH": modern_python_dir() + os.environ.get("PATH", "")}
     try:
-        subprocess.run([os.path.join(SCRIPTS, "supervise.sh"), "verify-grade",
+        subprocess.run([os.path.join(SCRIPTS, "supervise.sh"), "grade-prose",
                         os.path.join(SCRIPTS, "run-leaf.sh"), f.name], stdout=subprocess.PIPE, env=env)
     finally:
         os.unlink(f.name)
