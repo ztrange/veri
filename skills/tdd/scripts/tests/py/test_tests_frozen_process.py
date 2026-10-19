@@ -177,3 +177,23 @@ def test_check_step_still_exits_0_on_a_repair_step_when_an_unrecorded_test_file_
     code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
 
     assert (code, out) == (0, "")
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_record_step_lists_by_name_the_pytest_function_red_added_to_a_test_file_1765(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one adds a case"
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_older_case():\n    assert True\n\n\ndef test_added_by_red_1765():\n    assert True\n")
+
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_suite.py"], cwd=tmp_path)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    record = (tmp_path / record_path.rstrip("\n")).read_text()
+
+    assert "test_added_by_red_1765" in record

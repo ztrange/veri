@@ -1,6 +1,7 @@
 """tests-frozen.sh's record and check, run in-process."""
 import hashlib
 import os
+import re
 import subprocess
 import sys
 
@@ -38,6 +39,15 @@ def _differing_tests():
     return names
 
 
+def _added_cases(name):
+    old = subprocess.run(["git", "show", "HEAD:" + name], stdout=subprocess.PIPE,
+                         stderr=subprocess.DEVNULL).stdout.decode("utf-8", "replace")
+    with open(name, encoding="utf-8", errors="replace") as handle:
+        new = handle.read()
+    pattern = re.compile(r"^\s*(?:async\s+)?def\s+(test\w*)", re.M)
+    return [case for case in pattern.findall(new) if case not in pattern.findall(old)]
+
+
 def main(argv):
     mode = argv[0] if argv else ""
     record = argv[1] if len(argv) > 1 else ""
@@ -67,6 +77,8 @@ def main(argv):
             return 2
         try:
             lines = ["%s  %s\n" % (_digest(name), name) for name in files]
+            if by_step and os.path.exists(".git"):
+                lines += ["case: %s\n" % case for name in files for case in _added_cases(name)]
             with open(record, "w") as handle:
                 handle.writelines(lines)
         except OSError as error:
@@ -76,7 +88,8 @@ def main(argv):
     if mode == "check":
         try:
             with open(record) as handle:
-                entries = [line.rstrip("\n").split("  ", 1) for line in handle if line.strip()]
+                entries = [line.rstrip("\n").split("  ", 1) for line in handle
+                           if line.strip() and not line.startswith("case: ")]
         except OSError:
             _write(sys.stderr, "tests-frozen.sh: record %s is missing" % record)
             return 2
