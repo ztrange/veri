@@ -187,3 +187,24 @@ def test_the_stub_claude_receives_model_from_grader_conf_and_veri_model_and_veri
     args = (record.read_text() if record.exists() else "").splitlines()
     given = args[args.index("--model") + 1] if "--model" in args else None
     assert committed and given == committed, (given, committed)
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_the_command_the_stub_claude_receives_carries_the_same_tool_limits_a_verify_leafs_does(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text(STUB)
+    claude.chmod(0o755)
+    record = tmp_path / "record.txt"
+
+    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                                             "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+
+    args = (record.read_text() if record.exists() else "").splitlines()
+    settings = json.loads(args[args.index("--settings") + 1]) if "--settings" in args else None
+    assert ["--disable-slash-commands" in args, "--strict-mcp-config" in args,
+            args[args.index("--mcp-config") + 1] if "--mcp-config" in args else None,
+            settings and settings["autoMemoryEnabled"]] == [True, True, '{"mcpServers": {}}', False], args
