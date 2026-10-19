@@ -1437,3 +1437,15 @@ def test_conductor_sessions_prices_a_turn_by_the_model_its_record_names_1859(tmp
 
     assert [session["total_cost_usd"] for session in sessions] == pytest.approx([3.00])
     assert [row[1] for row in turn_rows] == ["$3.00"]
+
+
+def test_main_names_no_dollar_figure_for_a_conductor_turn_whose_model_the_price_table_lacks_1859(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    message = {"id": "msg_a", "model": "claude-mystery-9", "usage": {"output_tokens": 1000000}}
+    records = [{"type": "system", "subtype": "init"}, {"type": "assistant", "message": message}]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert re.search(r"Conductor own spending:[^\n]*\$\d", out) is None
