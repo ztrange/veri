@@ -1,7 +1,7 @@
 ---
 name: veri-dev
 description: >-
-  The veri dev session, reached by name: `/vdev [N] [--resume <file>]`.
+  The veri dev session, reached by name: `/veri-dev [<lane>] [N] [--resume <file>]`, or `/vdev`.
 ---
 
 # veri-dev — the dev session
@@ -16,7 +16,12 @@ under it. The target repo's CLAUDE.md supplies the project specifics.
 
 ## Starting
 
-Invoked as `/veri-dev [N] [--resume <file>]`.
+Invoked as `/veri-dev [<lane>] [N] [--resume <file>]`.
+
+- **`<lane>`** is an optional first word naming the lane: `/veri-dev mu [N] …` runs every read
+  (`solvable-issues.sh`, `status.sh` included) and every conductor launch with
+  `VERI_LABEL=ready-for-agent:mu`; with no lane word, plain `ready-for-agent`. State the lane
+  in your first line of output.
 
 - **N** is how many conductors to keep running; it defaults to 1.
 - **Merging is always granted** for the runs this session finishes, in the project repo only.
@@ -105,7 +110,7 @@ issue there.
 
 | ID | Requirement | Why |
 |---|---|---|
-| D1 | Invoked as `/veri-dev [N] [--resume <file>]`. N defaults to 1. It carries standing merge permission in the project repo for the runs it finishes; it never merges in another repo. | Mario, 2026-10-18: both operator skills always include merge permission. |
+| D1 | Invoked as `/veri-dev [<lane>] [N] [--resume <file>]`. N defaults to 1. It carries standing merge permission in the project repo for the runs it finishes; it never merges in another repo. | Mario, 2026-10-18: both operator skills always include merge permission. |
 | D2 | It keeps exactly N conductors running while the solvable list is non-empty. | Idle slots were the recurring waste. |
 | D3 | Each conductor is a detached `run-conductor.sh <n>`, never a conductor run inline. | An inline conductor costs ~60k tokens per issue in the session. |
 | D4 | It launches the next issue only after the previous launch's ledger exists. | A claim appears only ~10 minutes into a run. |
