@@ -1335,6 +1335,11 @@ def test_fresh_call_over_a_fetched_remote_tracking_ref_of_a_branch_origin_holds_
             os.path.exists(want), scratch_registry(clone)) == (True, 2, True, False, before)
 
 
+def resumed_on(worktree, code, out, local_tip, remote_tip):
+    return (local_tip != remote_tip, code, out.strip(), scratch_git(worktree, "branch", "--show-current"),
+            scratch_git(worktree, "rev-parse", "HEAD"))
+
+
 @pytest.mark.process("git clone and git worktree add on scratch repositories, a local branch beside a fetched origin one")
 def test_clone_holding_the_local_branch_while_origin_holds_it_too_and_the_remote_tracking_ref_is_fetched_still_starts_as_a_resume_on_the_local_tip_issue_1734(
         tmp_path, issue_worktree, run_cli):
@@ -1353,8 +1358,7 @@ def test_clone_holding_the_local_branch_while_origin_holds_it_too_and_the_remote
 
     code, out, _ = run_cli(issue_worktree, ["65", "took-over"], cwd=clone)
 
-    assert (local_tip != remote_tip, code, out.strip(), scratch_git(mine, "branch", "--show-current"),
-            scratch_git(mine, "rev-parse", "HEAD")) == (True, 0, mine, "tdd/65-took-over", local_tip)
+    assert resumed_on(mine, code, out, local_tip, remote_tip) == (True, 0, mine, "tdd/65-took-over", local_tip)
 
 
 @pytest.mark.process("git clone and git worktree add on scratch repositories, the issue's worktree registered beside a fetched origin branch")
@@ -1371,5 +1375,4 @@ def test_clone_with_the_issues_worktree_registered_while_origin_holds_the_branch
 
     code, out, _ = run_cli(issue_worktree, ["66", "registered"], cwd=clone)
 
-    assert (local_tip != remote_tip, code, out.strip(), scratch_git(mine, "branch", "--show-current"),
-            scratch_git(mine, "rev-parse", "HEAD")) == (True, 0, mine, "tdd/66-registered", local_tip)
+    assert resumed_on(mine, code, out, local_tip, remote_tip) == (True, 0, mine, "tdd/66-registered", local_tip)
