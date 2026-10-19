@@ -1217,6 +1217,7 @@ def test_main_refuses_an_instead_of_over_an_added_anchor_with_more_texts_than_th
     text = ledger.read_bytes().decode()
     assert (code, text.startswith(steps), text[len(steps):]) == (1, True, "\n## Owed steps\n\n- reworded one\n- reworded two\n")
 
+
 def test_shim_header_describes_planned_and_its_exit_2_refusals_and_no_longer_lists_a_criterion_no_step_carries_1579():
     header = "\n".join(l for l in (SCRIPTS / "add-ledger-step.sh").read_text().split("\n") if l.startswith("#"))
     exit2 = header[header.index("# Exit:"):]
