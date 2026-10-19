@@ -329,3 +329,23 @@ def test_a_grades_block_with_a_missing_an_extra_or_a_reordered_requirement_id_ma
         outcomes[defect] = (done.returncode, named in done.stderr)
 
     assert outcomes == {"missing": (2, True), "extra": (2, True), "reordered": (2, True)}, outcomes
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_a_grades_block_whose_verdict_disagrees_with_its_lines_makes_grade_prose_exit_2_and_name_the_disagreement_on_stderr(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    outcomes = {}
+    for defect, text in (("all-pass-but-reject", STUB.replace("VERDICT: PASS", "VERDICT: REJECT")),
+                         ("fail-but-pass", STUB.replace("A2: PASS - ok", "A2: FAIL - hums"))):
+        claude = tmp_path / ("claude-" + defect)
+        claude.write_text(text)
+        claude.chmod(0o755)
+        done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                              capture_output=True, text=True,
+                              env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                                   "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
+        outcomes[defect] = (done.returncode, "VERDICT" in done.stderr)
+
+    assert outcomes == {"all-pass-but-reject": (2, True), "fail-but-pass": (2, True)}, outcomes
