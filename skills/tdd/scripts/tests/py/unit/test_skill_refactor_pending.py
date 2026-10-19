@@ -32,7 +32,10 @@ def records_of(raw):
 
 
 def file_records(path):
-    return records_of(pathlib.Path(path).read_bytes())
+    raw = pathlib.Path(path).read_bytes()
+    if pathlib.Path(path) == SKILL:
+        raw += b"\n" + SKILL.with_name("PIN.md").read_bytes()
+    return records_of(raw)
 
 
 def body_of(text):

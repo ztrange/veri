@@ -37,11 +37,11 @@ pin_record_sentence='A `⟦replaces-case⟧` step skips verify-red, so on that v
 numbered_section() {
   awk -v h="$1" \
     'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside { printf "%d\t%s\n", NR, $0 }' \
-    "$skill_path"
+    "${2:-$skill_path}"
 }
 
 joined_section() {
-  numbered_section "$1" | cut -f 2- | sed 's/^[[:space:]]*//' | tr '\n' ' '
+  numbered_section "$1" "${2:-}" | cut -f 2- | sed 's/^[[:space:]]*//' | tr '\n' ' '
 }
 
 lines_matching() {
@@ -181,7 +181,7 @@ report "$name"
 name="#1586: $skill_md's Already satisfied — the pin records a ⟦replaces-case⟧ step's tests at its verify-pin PASS, before the deletion green is launched"
 problems=()
 pin_heading='## Already satisfied — the pin'
-pin_text="$(joined_section "$pin_heading")"
+pin_text="$(joined_section "$pin_heading" "$ROOT/skills/tdd/PIN.md")"
 if [[ "$pin_text" != *"$pin_record_sentence"* ]]; then
   problems+=("$skill_md's $pin_heading does not record a ⟦replaces-case⟧ step's tests at its verify-pin PASS verbatim: $pin_record_sentence")
 else

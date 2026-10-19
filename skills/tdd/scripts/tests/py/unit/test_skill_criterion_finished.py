@@ -4,6 +4,7 @@ import pathlib
 import re
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
+PIN_MD = SKILL.with_name("PIN.md")
 
 LOOP = "### 3. The cycle loop"
 SCOPE = "### 2. Scope & plan → the ledger"
@@ -32,7 +33,7 @@ def records_of(text):
 
 
 def section_records(heading):
-    text = importlib.import_module("skill_sections").section(SKILL, heading)
+    text = importlib.import_module("skill_sections").section(PIN_MD if heading == PIN else SKILL, heading)
     return records_of(text.split("\n", 1)[1])
 
 
@@ -399,7 +400,7 @@ def reads_ledger_steps(anchor, box, lines, problems):
 
 
 def skill_lines():
-    return SKILL.read_text().splitlines()
+    return SKILL.read_text().splitlines() + PIN_MD.read_text().splitlines()
 
 
 def reconcile_lines():

@@ -51,7 +51,7 @@ def window(text, pattern, radius=250):
 
 
 def skill_lines():
-    return SKILL.read_text().splitlines()
+    return SKILL.read_text().splitlines() + SKILL.with_name("PIN.md").read_text().splitlines()
 
 
 def numbered(pattern):

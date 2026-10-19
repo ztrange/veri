@@ -6,6 +6,7 @@ import re
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 SCOPE_LOOP = SKILL.with_name("SCOPE-LOOP.md")
 STOPPING_MD = SKILL.with_name("STOPPING.md")
+PIN_MD = SKILL.with_name("PIN.md")
 
 STOPPING = "## Stopping"
 LAUNCHING = "## Launching a leaf — detach, then wait in the foreground"
@@ -242,7 +243,7 @@ def test_green_pass_branch_runs_stop_requested_immediately_after_the_atomic_gree
 def test_refactor_pending_clears_push_and_a_pins_test_commit_are_each_followed_by_stop_requested_and_any_mode_it_prints_goes_to_stopping():
     problems = []
     _checkpoint(problems, "the refactor-pending clear", _section(PROCEDURE), *CLEAR_CHECKPOINT, r"push-branch\.sh")
-    _checkpoint(problems, "the pin's test: commit", _section(SATISFIED), *PIN_CHECKPOINT, 'git commit -m "test: pin')
+    _checkpoint(problems, "the pin's test: commit", _section(SATISFIED, PIN_MD), *PIN_CHECKPOINT, 'git commit -m "test: pin')
     assert not problems, problems
 
 
@@ -256,7 +257,7 @@ def test_the_three_ledger_commit_checkpoints_send_stop_requested_exit_2_to_stopp
     problems, procedure = [], _section(PROCEDURE)
     _checkpoint_exit2(problems, "the green PASS branch", procedure, *GREEN_CHECKPOINT)
     _checkpoint_exit2(problems, "the refactor-pending clear", procedure, *CLEAR_CHECKPOINT)
-    _checkpoint_exit2(problems, "the pin's test: commit", _section(SATISFIED), *PIN_CHECKPOINT)
+    _checkpoint_exit2(problems, "the pin's test: commit", _section(SATISFIED, PIN_MD), *PIN_CHECKPOINT)
     assert not problems, problems
 
 
