@@ -151,3 +151,25 @@ def test_main_leaves_yes_no_and_no_covered_line_answering_as_before_beside_a_pro
         "no": (1, ""),
         "none": (2, ""),
     }
+
+
+def run_cli_on_bytes(run_cli, monkeypatch, cover_outcome, report):
+    class Module:
+        @staticmethod
+        def main(argv):
+            monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(report), newline="\n"))
+            return cover_outcome.main(argv)
+
+    return run_cli(Module, [])
+
+
+def test_cli_prints_a_caught_by_line_of_a_nul_b_under_covered_yes_as_ab_and_exits_0(run_cli, monkeypatch, cover_outcome):
+    result = run_cli_on_bytes(run_cli, monkeypatch, cover_outcome, b"COVERED: yes\nCAUGHT_BY: a\0b\n")
+
+    assert result == (0, "ab\n", "")
+
+
+def test_cli_exits_0_for_a_covered_line_of_y_nul_es_as_covered_yes_does(run_cli, monkeypatch, cover_outcome):
+    code, _, _ = run_cli_on_bytes(run_cli, monkeypatch, cover_outcome, b"COVERED: y\0es\nCAUGHT_BY: t\n")
+
+    assert code == 0
