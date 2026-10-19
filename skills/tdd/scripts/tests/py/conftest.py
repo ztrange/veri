@@ -6,6 +6,7 @@ import os
 import pathlib
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -181,6 +182,32 @@ def case_waits_no_default_push_backoff(request, monkeypatch):
             return _run(args, *rest, **kwargs)
 
         monkeypatch.setattr(module, "run", guarded)
+
+
+SLEEP_SHIM = """#!/bin/sh
+case "$(ps -o command= -p "$PPID")" in
+  *push_branch*) [ -n "${VERI_PUSH_BACKOFF+x}" ] || { echo "$0" >> "$PUSH_BACKOFF_LOG"; exit 1; } ;;
+esac
+exec "$REAL_SLEEP" "$@"
+"""
+
+
+@pytest.fixture(autouse=True)
+def process_case_waits_no_default_push_backoff(request, monkeypatch, tmp_path_factory):
+    if request.node.get_closest_marker("process") is None:
+        yield
+        return
+    shim_dir = tmp_path_factory.mktemp("push-backoff-guard")
+    log = shim_dir / "reached"
+    shim = shim_dir / "sleep"
+    shim.write_text(SLEEP_SHIM)
+    shim.chmod(0o755)
+    monkeypatch.setenv("REAL_SLEEP", shutil.which("sleep"))
+    monkeypatch.setenv("PUSH_BACKOFF_LOG", str(log))
+    monkeypatch.setenv("PATH", str(shim_dir) + os.pathsep + os.environ.get("PATH", ""))
+    yield
+    if log.exists():
+        pytest.fail("%s reached the push backoff without setting VERI_PUSH_BACKOFF" % request.node.nodeid, pytrace=False)
 
 
 def in_repository_outside(resolved, scratch):
