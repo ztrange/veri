@@ -94,18 +94,18 @@ launched=no; [[ -e "$work/ran" ]] && launched=yes
 expect_eq "a grader.conf model that names no version exits 2 with a diagnostic on stderr and never launches claude" \
   "2;diag=yes;launched=no" "$code;diag=$diag;launched=$launched"
 
-claude_stub "$bin" "printf 'Some analysis first.\nBEGIN GRADES\nA1: PASS — says one thing\nA2: PASS — says two things\nEND GRADES\nVERDICT: PASS\n'"
+claude_stub "$bin" "printf 'Some analysis first.\nBEGIN GRADES\nA1: PASS — says one thing\nA2: PASS — says two things\nVERDICT: PASS\nEND GRADES\n'"
 (cd "$work/role" && CLAUDE_BIN="$bin/claude" "$GRADE" "$work/role/REQUIREMENTS.md" unit.md > /dev/null 2>&1)
 expect_eq "a reply whose final GRADES block has one PASS line per requirement in list order and VERDICT: PASS exits 0" \
   "0" "$?"
 
-claude_stub "$bin" "printf 'Analysis.\nBEGIN GRADES\nA1: PASS — says one thing\nA2: FAIL — says three things instead\nEND GRADES\nVERDICT: REJECT\n'"
+claude_stub "$bin" "printf 'Analysis.\nBEGIN GRADES\nA1: PASS — says one thing\nA2: FAIL — says three things instead\nVERDICT: REJECT\nEND GRADES\n'"
 out="$(cd "$work/role" && CLAUDE_BIN="$bin/claude" "$GRADE" "$work/role/REQUIREMENTS.md" unit.md 2> /dev/null)" && code=0 || code=$?
 names_fail=no; grep -F 'A2' <<< "$out" | grep -F 'says three things instead' > /dev/null && names_fail=yes
 expect_eq "a reply whose final GRADES block has a FAIL line and VERDICT: REJECT exits 1 and prints each failing ID with its reason on stdout" \
   "1;names_fail=yes" "$code;names_fail=$names_fail"
 
-claude_stub "$bin" "printf 'A1: FAIL — I first thought this failed.\nBEGIN GRADES\nA1: PASS — says one thing\nA2: PASS — says two things\nEND GRADES\nVERDICT: PASS\n'"
+claude_stub "$bin" "printf 'A1: FAIL — I first thought this failed.\nBEGIN GRADES\nA1: PASS — says one thing\nA2: PASS — says two things\nVERDICT: PASS\nEND GRADES\n'"
 out="$(cd "$work/role" && CLAUDE_BIN="$bin/claude" "$GRADE" "$work/role/REQUIREMENTS.md" unit.md 2> /dev/null)" && code=0 || code=$?
 printed=no; grep -F 'FAIL' <<< "$out" > /dev/null && printed=yes
 expect_eq "a FAIL line in the free analysis above a final all-PASS GRADES block with VERDICT: PASS exits 0 and prints no FAIL line" \
@@ -114,7 +114,7 @@ expect_eq "a FAIL line in the free analysis above a final all-PASS GRADES block 
 claude_stub "$bin" "printf 'Analysis only, no block.\nVERDICT: PASS\n'"
 (cd "$work/role" && CLAUDE_BIN="$bin/claude" "$GRADE" "$work/role/REQUIREMENTS.md" unit.md > /dev/null 2> "$work/err-noblock")
 code_noblock=$?
-claude_stub "$bin" "printf 'BEGIN GRADES\nA1: PASS — one\nA2: PASS — two\nEND GRADES\nVERDICT: PASS\nTrailing words.\n'"
+claude_stub "$bin" "printf 'BEGIN GRADES\nA1: PASS — one\nA2: PASS — two\nVERDICT: PASS\nEND GRADES\nTrailing words.\n'"
 (cd "$work/role" && CLAUDE_BIN="$bin/claude" "$GRADE" "$work/role/REQUIREMENTS.md" unit.md > /dev/null 2> "$work/err-trailing")
 code_trailing=$?
 named_noblock=no; grep -F 'BEGIN GRADES' "$work/err-noblock" > /dev/null && named_noblock=yes
