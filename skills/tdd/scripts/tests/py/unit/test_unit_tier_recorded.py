@@ -76,7 +76,7 @@ def test_claude_md_testing_idiom_section_documents_the_unit_tier_migration_patte
              r"cli contract|byte-identical", r"unchanged|unmodified|byte-identical")
         says(problems, IDIOM, records,
              "that lib/github.sh stays bash, sourced by the py/test_github_sh pytest file with gh faked on PATH",
-             r"lib/github\.sh", r"tests/py/test_github_sh\.py", r"(^|[^a-z])gh([^a-z]|$)", r"faked", r"path")
+             r"lib/github\.sh", r"tests/py/test_github_sh\.py\b",r"(^|[^a-z])gh([^a-z]|$)", r"faked", r"path")
         says(problems, IDIOM, records,
              "that push-branch.sh left that pattern for the Python convention status.sh is the worked example of",
              r"push-branch\.sh", r"left|leaves|moved|ported", r"python", r"status\.sh", r"worked example")

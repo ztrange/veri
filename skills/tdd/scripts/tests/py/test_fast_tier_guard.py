@@ -400,3 +400,11 @@ def test_the_placement_audit_still_names_an_offending_file_inside_the_tier_that_
 
     assert guard.offences(tmp_path, guard.EXEMPTIONS) == []
     assert _misplaced(tmp_path) == ["unit/test_waits.py: named by the guard, inside the tier"]
+
+
+def test_the_claude_md_pin_file_in_the_fast_tier_passes_the_guard_with_no_exemption_for_the_pin_naming_the_github_pytest_file(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    pin = SCRIPTS / "tests" / "py" / "unit" / "test_unit_tier_recorded.py"
+    (tmp_path / pin.name).write_text(pin.read_text())
+
+    assert guard.offences(tmp_path, {}) == []
