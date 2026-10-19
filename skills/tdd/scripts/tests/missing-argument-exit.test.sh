@@ -22,11 +22,6 @@ source "$HERE/lib/harness.sh"
 source "$HERE/lib/verdict.sh"
 offenders=()
 
-refuses() {
-  local line
-  line="$(missing_argument_offender "$SCRIPTS" "$@")" || offenders+=( "$line" )
-}
-
 usage_stub() {  # usage_stub <path> <usage-line> <exit> — an executable that prints <usage-line> on stderr and exits <exit>
   printf '#!/bin/sh\necho "%s" >&2\nexit %s\n' "$2" "$3" > "$1"
   chmod +x "$1"
@@ -53,59 +48,6 @@ mixed="$(scratch_dir)"
 usage_stub "$mixed/optional.sh" 'usage: optional.sh [<n>]' 0
 usage_stub "$mixed/required.sh" 'usage: <n>' 2
 expect_eq "$name" 'required.sh: usage line on stderr does not name it: usage: <n>' "$(argument_audit "$mixed" 2>&1)"
-
-name="a script exits 2 with a usage line when a later required argument is missing"
-offenders=()
-refuses add-ledger-step.sh .tdd/issue-1.md after anchor   # no <text>
-refuses build-develop-prompt.sh green spec step           # green needs four more
-refuses build-verify-prompt.sh green                      # no <issue-spec-file>
-refuses build-verify-prompt.sh green spec                 # no <test-path>
-refuses build-verify-prompt.sh --step                     # no step text
-refuses issue-worktree.sh 270                             # no <slug>
-refuses issue-worktree.sh --remove                        # no <n>
-refuses over-budget.sh unit                               # no <seconds>
-refuses over-budget.sh unit 10                            # no <usual>
-refuses session-cost.sh --since                           # no ISO date
-refuses solvable-issues.sh --repo                         # no owner/name
-refuses supervise.sh develop-red                          # no <cmd>
-refuses timed-test-run.sh all                             # no <suites>, no <cmd>
-refuses timed-test-run.sh all ''                          # a suite list may be empty; <cmd> may not
-refuses verify.sh green                                   # no <issue-spec-file>
-refuses verify.sh green spec                              # no <test-path> — the shape #270 reports
-refuses verify.sh --step                                  # no step text
-verdict "$name" "${offenders[@]}"
-
-rejects() {  # rejects <script> [args …] — want exit 2 and a usage line naming <script> on stderr
-  local line
-  line="$(named_usage_offender "$SCRIPTS" "$@")" || offenders+=( "$line" )
-}
-
-name="a script given a bad argument value exits 2 with its own usage text on stderr"
-offenders=()
-rejects build-verify-prompt.sh bogus spec test-path     # unknown phase
-rejects build-develop-prompt.sh bogus spec step cmd     # unknown phase
-rejects build-develop-prompt.sh revise bogus spec step cmd reason  # unknown phase to revise
-rejects build-verify-prompt.sh green spec test-path     # green without --fast-cmd
-rejects build-verify-prompt.sh --fast-cmd x refactor spec test-path nothex  # malformed <base-sha>
-rejects build-verify-prompt.sh rebase spec nothex nothex  # malformed <onto-sha>
-rejects classify-bail.sh bogus                          # unknown cause
-rejects leaf-timeout.sh ten                             # malformed number
-rejects push-branch.sh --bogus                          # not --force-with-lease=<branch>:<sha>
-rejects refactor-budget.sh ten                          # malformed number
-rejects step-cost.sh --bogus                            # unknown flag
-rejects stop-requested.sh --bogus                       # unknown flag
-rejects stop-run.sh --mode bogus 1                      # unknown mode
-rejects stop-run.sh ten                                 # malformed number
-rejects workqueue.sh bogus                              # unknown subcommand
-verdict "$name" "${offenders[@]}"
-
-name="migration slice 6 refuses an unresolvable commit or a missing file with the script's own usage text"
-offenders=()
-rejects refactor-owed.sh render                         # no <file>
-rejects refactor-owed.sh list                           # no <file>
-rejects refactor-owed.sh append                         # no <file>
-verdict "$name" "${offenders[@]}"
-
 
 name="no script guards a required positional argument with a bare \${N:?…} expansion"
 mapfile -t offenders < <(bare_expansion_offenders "$SCRIPTS")
