@@ -31,14 +31,16 @@ def units(path):
     return found
 
 
+def fail(path, number, msg):
+    raise ValueError("%s:%d: %s" % (path, number, msg))
+
+
 def claims(path, unit):
     rows = []
     seen = set()
     inunit = intable = skip = done = fenced = tabled = False
     head = 0
     for number, line in enumerate(read_lines(path), 1):
-        def fail(msg):
-            raise ValueError("%s:%d: %s" % (path, number, msg))
         if line.startswith("## "):
             inunit, intable, done = line[3:] == unit, False, False
             if inunit:
@@ -52,11 +54,11 @@ def claims(path, unit):
         elif fenced:
             continue
         elif done and line.startswith("|"):
-            fail("second table")
+            fail(path, number, "second table")
         elif not intable and line.startswith("|"):
             cells = split_cells(line)
             if cells[1:] != COLUMNS + [""]:
-                fail("header lacks a column")
+                fail(path, number, "header lacks a column")
             intable, skip, tabled = True, True, True
         elif intable and not line.startswith("|"):
             intable, done = False, True
@@ -66,16 +68,16 @@ def claims(path, unit):
             cells = split_cells(line)
             cells += [""] * (3 - len(cells))
             if cells[1] == "":
-                fail("empty ID")
+                fail(path, number, "empty ID")
             if cells[2] == "":
-                fail("empty Requirement for " + cells[1])
+                fail(path, number, "empty Requirement for " + cells[1])
             if cells[1] in seen:
-                fail("duplicate ID " + cells[1])
+                fail(path, number, "duplicate ID " + cells[1])
             seen.add(cells[1])
             rows.append("%s\t%s\n" % (cells[1], cells[2]))
     if head and not tabled:
         number = head
-        fail("unit has no table")
+        fail(path, number, "unit has no table")
     return "".join(rows)
 
 
