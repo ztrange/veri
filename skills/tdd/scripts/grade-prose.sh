@@ -41,4 +41,9 @@ if [[ "$model" != *[0-9]* ]]; then
   exit 2
 fi
 
-"$HERE/supervise.sh" grade-prose "${CLAUDE_BIN:-claude}" -p --model "$model" <<< "$prompt"
+reply="$("$HERE/supervise.sh" grade-prose "${CLAUDE_BIN:-claude}" -p --model "$model" <<< "$prompt")" || exit $?
+fails="$(grep -E '^[^:]+: FAIL' <<< "$reply")"
+if [[ -n "$fails" ]]; then
+  echo "$fails"
+  exit 1
+fi

@@ -99,4 +99,10 @@ claude_stub "$bin" "printf 'Some analysis first.\nBEGIN GRADES\nA1: PASS — say
 expect_eq "a reply whose final GRADES block has one PASS line per requirement in list order and VERDICT: PASS exits 0" \
   "0" "$?"
 
+claude_stub "$bin" "printf 'Analysis.\nBEGIN GRADES\nA1: PASS — says one thing\nA2: FAIL — says three things instead\nEND GRADES\nVERDICT: REJECT\n'"
+out="$(cd "$work/role" && CLAUDE_BIN="$bin/claude" "$GRADE" "$work/role/REQUIREMENTS.md" unit.md 2> /dev/null)" && code=0 || code=$?
+names_fail=no; grep -F 'A2' <<< "$out" | grep -F 'says three things instead' > /dev/null && names_fail=yes
+expect_eq "a reply whose final GRADES block has a FAIL line and VERDICT: REJECT exits 1 and prints each failing ID with its reason on stdout" \
+  "1;names_fail=yes" "$code;names_fail=$names_fail"
+
 finish
