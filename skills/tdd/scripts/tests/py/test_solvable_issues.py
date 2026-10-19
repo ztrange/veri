@@ -1049,3 +1049,32 @@ def test_main_not_running_returns_3_with_empty_stdout_when_every_solvable_issue_
 
     out, err = capsys.readouterr()
     assert (code, out) == (3, "")
+
+
+def test_main_not_running_then_repo_reads_that_repos_issues_and_omits_the_live_conductors_issue(monkeypatch, capsys, solvable_issues):
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+    scripts = pathlib.Path(solvable_issues.__file__).resolve().parent.parent
+    listing = "  1 /sbin/launchd\n 99 bash %s/run-conductor.sh 6\n" % scripts
+    started = []
+
+    def fake_run(args, *rest, **kwargs):
+        args = list(args)
+        if args[:4] == ["git", "worktree", "list", "--porcelain"]:
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if args[0] == "ps":
+            return subprocess.CompletedProcess(args, 0, listing, "")
+        if args[:3] == ["gh", "issue", "list"]:
+            started.append(args[args.index("--repo") + 1:] if "--repo" in args else None)
+            return subprocess.CompletedProcess(args, 0, json.dumps([opted_in(5), opted_in(6), opted_in(7)]), "")
+        if args[:3] == ["gh", "pr", "list"]:
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", fake_run)
+
+    code = solvable_issues.main(["--not-running", "--repo", "o/n"])
+
+    out, err = capsys.readouterr()
+    assert (code, out, started) == (0, "5\n7\n", [["o/n"]])
