@@ -76,6 +76,9 @@ def main(argv):
         os.unlink(f.name)
     with open(os.path.join(".tdd", "grade-prose.log"), encoding="utf-8") as log:
         reply = extract(log.read())
+    if "BEGIN GRADES" not in reply:
+        print("grade-prose.sh: no verdict obtained: the reply has no BEGIN GRADES block", file=sys.stderr)
+        return 2
     failed = re.findall(r"^\S+: FAIL\b.*$", reply, re.M)
     print("\n".join(failed))
     return 1 if failed else 0
