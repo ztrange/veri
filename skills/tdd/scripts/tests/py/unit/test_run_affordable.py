@@ -230,25 +230,29 @@ THREE_FULL = ["step one|0.25|1.00|1.00|1.00|1.00|1.00", "step two|0.50|1.00|1.50
               "step three|0.75|1.50|1.50|2.00|2.00|2.00"]
 
 
+def _cli(run_cli, run_affordable, scratch, remaining):
+    return run_cli(run_affordable, [remaining], env={"VERI_RUN_BUDGET": "50"}, cwd=scratch)
+
+
 def test_a_log_with_only_pins_or_no_usage_at_all_exits_3_printing_nothing(run_cli, scratch, run_affordable):
     _events(scratch, ["pin one|0.25|0.25", "pin two|0.25|0.25"])
-    assert run_cli(run_affordable, ["3"], env={"VERI_RUN_BUDGET": "50"}, cwd=scratch) == (3, "", "")
+    assert _cli(run_cli, run_affordable, scratch, "3") == (3, "", "")
     (scratch / ".tdd" / "events.jsonl").write_text('{"ts": 1, "issue": "453", "actor": "conductor", "event": "phase-start"}\n')
-    assert run_cli(run_affordable, ["3"], env={"VERI_RUN_BUDGET": "50"}, cwd=scratch) == (3, "", "")
+    assert _cli(run_cli, run_affordable, scratch, "3") == (3, "", "")
 
 
 def test_run_from_another_working_directory_it_answers_from_that_directorys_event_log(run_cli, scratch, run_affordable):
     _events(scratch, THREE_FULL)
-    assert run_cli(run_affordable, ["4"], env={"VERI_RUN_BUDGET": "50"}, cwd=scratch) == (
+    assert _cli(run_cli, run_affordable, scratch, "4") == (
         1, "spent 22.50, steps remaining 4, median 7.50, projection 52.50\n", "")
 
     (scratch / ".tdd" / "events.jsonl").unlink()
-    code, out, err = run_cli(run_affordable, ["4"], env={"VERI_RUN_BUDGET": "50"}, cwd=scratch)
+    code, out, err = _cli(run_cli, run_affordable, scratch, "4")
     assert (code, out) == (2, "")
     assert "cannot read .tdd/events.jsonl in %s " % os.path.realpath(scratch) in err
 
 
 def test_an_event_log_step_cost_cannot_decode_exits_2_printing_nothing(run_cli, scratch, run_affordable):
     _events(scratch, THREE_FULL + ["step \xff|1.00|1.00|1.00"])
-    code, out, _ = run_cli(run_affordable, ["4"], env={"VERI_RUN_BUDGET": "50"}, cwd=scratch)
+    code, out, _ = _cli(run_cli, run_affordable, scratch, "4")
     assert (code, out) == (2, "")
