@@ -4,7 +4,6 @@ from pathlib import Path
 
 CLAUDE_MD = Path(__file__).resolve().parents[6] / "CLAUDE.md"
 TRAP_HEADING = "## The one trap"
-IDIOM_HEADING = "## Testing idiom"
 DOCS_LANE = "docs[ -]lane|documentation lane|docs issue|docs merge"
 LOWER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
 
