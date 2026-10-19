@@ -64,7 +64,7 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`).
 the commit recorded in `.tdd/issue-<n>-skill-commit` and exported to every leaf as
 `VERI_SKILL_COMMIT` — not the clone's current tip, so a PR landing on `main` while you work
 does not change the scripts and templates under a running conductor (see *The skill
-snapshot* below). Every launch `supervise.sh` makes also writes the commit it ran under to
+snapshot* in the repository's `README.md`, *Launching the conductor*). Every launch `supervise.sh` makes also writes the commit it ran under to
 the event log (`.tdd/events.jsonl`, key `skill_commit`), so a run that took a newer skill
 with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
 
@@ -198,68 +198,6 @@ The same holds for the conductor's own long commands: no step backgrounds a comm
 
 The conductor never ends its turn while anything it started is still running: a subagent, a background command or a background task. Ending the turn ends the process and kills it, so it waits for each one inside the turn (`detach-command.sh wait` for a command, the subagent's own result for a subagent). That covers the mutation-parity pairs table, which it builds inline or waits for inside the turn.
 
-## Launching the conductor
-
-`/tdd <n>` is a skill, so it can be typed inside an interactive Claude Code session. Every
-leaf is a `claude -p` subprocess, and a session the operator is already in is the situation a
-guard on nested launches refuses; when one fires, every leaf of the run dies at launch. If it
-does, run the conductor from a plain shell **outside** any Claude Code session instead —
-`claude -p "/tdd <n>"`.
-
-**veri never unsets `CLAUDECODE`, or any other such guard, itself.** The binary's refusal
-names the risk it is declining — nested sessions share runtime resources and will crash all
-active sessions — and those are the operator's sessions, not veri's. Unsetting the variable
-in a launcher would spend that risk on their behalf without their knowledge, so preflight
-refuses and says what to run instead, and leaves the decision where it belongs.
-
-**Three launch modes, and which one to pick.** `/tdd <n>` typed into an **interactive**
-Claude Code session is the one to use when you intend to watch the run and steer it — and
-only from a session that is not itself inside another one, per the guard above. The two
-unattended modes both run the conductor in **print mode**: `claude -p "/tdd <n>"` typed by
-hand, and `$S/run-conductor.sh <n>`, which builds that same command line — the procedure as
-the prompt, the streaming flags, `--permission-mode bypassPermissions`, and the parent
-session's handles severed, plus `--model opus` — and is what an unattended or scheduled launch should call.
-
-**Interactive or print mode is a trade you pick per run.** An interactive conductor can be
-steered — asked a question, redirected, interrupted mid-run — and costs ~25,000 tokens a
-request more, the harness surface an interactive session re-sends on every request (#207,
-recorded at `run-conductor.sh:7`). A print-mode conductor is that much cheaper per request,
-and cannot be steered: there is no human on the other end of its turn, so every decision the
-procedure would put to an operator becomes a bail instead — it stops and says why, and you
-read that afterwards rather than answering it at the time.
-
-**The skill snapshot: a run executes one skill from its first launch to its last.**
-`$S/run-conductor.sh <n>` does not run the skill as it sits in the clone. It fetches `origin`,
-records the default branch's tip in `.tdd/issue-<n>-skill-commit` on a run's first launch,
-and runs every launch — the first and each resume — from a snapshot of that commit
-(`git archive` into a temporary directory), so a pull between two launches never changes the
-skill mid-run. The record is run state and is git-ignored. Two cases refuse rather than guess:
-
-- **A recorded commit the launching clone cannot resolve** (a second clone, a shallow one, a
-  pruned branch) is exit 2, never a silent re-pin to whatever the clone holds.
-- **An `origin` remote with `refs/remotes/origin/HEAD` absent** (a cloud clone): the launch
-  resolves the default branch from the remote itself (`git ls-remote --symref origin HEAD`)
-  and pins to that branch's tip; when the remote's default cannot be resolved that way it is
-  exit 2, stderr naming `refs/remotes/origin/HEAD`, never an unpinned run.
-- **Taking the new skill is an explicit act:** `VERI_NEW_SKILL=1` on a resume replaces the
-  recorded commit with the fresh tip and writes a `skill-repin` event to the run worktree's
-  `.tdd/events.jsonl`, where `metrics.sh` reads it.
-- **A fetch of origin that fails** before the snapshot is exit 2, since the tip it would pin
-  may be stale. The one exception is `cannot lock ref`, which a parallel conductor's fetch of the
-  same clone causes: that is retried, up to 60 fetches in all, `VERI_FETCH_RETRY_SLEEP` seconds
-  apart (default 1, so about a minute).
-
-**The record survives only a run that got past preflight.** After the conductor exits,
-`run-conductor.sh` keeps `.tdd/issue-<n>-skill-commit` when `.tdd/wt/<n>` is registered as a
-git worktree or a local `tdd/<n>-*` branch exists — what step 1.2, the first thing after
-preflight, creates — and removes it otherwise, whatever the conductor's exit code. An
-unregistered `.tdd/wt/<n>` directory, such as the one `VERI_NEW_SKILL=1` leaves, does not
-count. So a launch that stopped at preflight pins nothing, and the next launch takes the
-fresh tip.
-
-When no commit can be resolved at all the launch runs unpinned, says so on stderr, and hands
-the conductor `VERI_SKILL_UNPINNED=1` for the plan comment (step 2.4).
-
 ## Inputs
 
 There is one command, so what the user typed after it is what decides which of the two
@@ -310,8 +248,9 @@ unauthenticated baseline never gets a cycle.
    neither a verdict nor a hang and so has no bail classification — catch it here.
    Then run `$S/leaf-launchable.sh`, which asks the other half of the same question: not
    whether the binary would be *allowed* to work, but whether it starts at all. **Exit 2**
-   means it does not — a guard refused the launch, the case *Launching the conductor*
-   above describes (#187) — and is a preflight-class stop: report its stderr diagnostic
+   means it does not — a guard refused the launch, the case `README.md`'s *Launching the
+   conductor* describes (#187); veri never unsets `CLAUDECODE`, or any other such guard,
+   itself — and is a preflight-class stop: report its stderr diagnostic
    verbatim and do not start. It runs **here**, before step 3, because the baseline is the
    expensive half of preflight and is wasted either way when no leaf can launch; a run that
    discovers this later has already paid for the suite, the worktree, the spec and a public

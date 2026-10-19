@@ -4,6 +4,7 @@ import pathlib
 import re
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
+README = pathlib.Path(__file__).resolve().parents[6] / "README.md"
 CLAUDE = pathlib.Path(__file__).resolve().parents[6] / "CLAUDE.md"
 
 PLAN = "### 2. Scope & plan → the ledger"
@@ -11,8 +12,8 @@ SCRIPTS = "## The scripts (this skill's `scripts/` directory)"
 LAUNCH = "## Launching the conductor"
 
 
-def _lines(heading):
-    section = importlib.import_module("skill_sections").section(SKILL, heading)
+def _lines(heading, doc=SKILL):
+    section = importlib.import_module("skill_sections").section(doc, heading)
     lines = section.splitlines()[1:]
     for i, line in enumerate(lines):
         if line.startswith("#"):
@@ -106,7 +107,7 @@ def test_skill_md_says_what_a_change_to_the_skill_means_for_a_running_conductor_
 
 def test_skill_md_documents_the_skill_snapshot_veri_new_skill_and_issue_n_skill_commit_and_claude_md_cross_references_them():
     problems = []
-    for doc in (SKILL, CLAUDE):
+    for doc in (SKILL, README, CLAUDE):
         text = doc.read_text().replace("*", "").replace("`", "").lower()
         if not text:
             problems.append(f"{doc} could not be read")
@@ -130,7 +131,7 @@ def test_skill_md_s_s_paragraph_no_longer_says_nothing_pins_it_and_says_the_skil
 
 
 def test_866_skill_md_s_skill_snapshot_says_the_record_survives_only_a_run_past_preflight_decided_after_the_conductor_exits_by_a_registered_worktree_or_a_local_branch_not_the_exit_code():
-    records = _records(_lines(LAUNCH))
+    records = _records(_lines(LAUNCH, README))
     patterns = ["skill-commit|record", "preflight", "regist[a-z]* .*worktree|worktree .*regist",
                 r"\.tdd/wt/", "tdd/<n>-", "branch", "exit (code|status)", "not|never|whatever"]
     assert any(all(re.search(p, r) for p in patterns) for r in records), \
@@ -138,7 +139,7 @@ def test_866_skill_md_s_skill_snapshot_says_the_record_survives_only_a_run_past_
 
 
 def test_865_skill_md_s_skill_snapshot_resolves_the_default_branch_from_the_remote_when_origin_head_is_absent_refuses_with_exit_2_when_it_cannot_and_runs_unpinned_only_with_no_resolvable_commit_at_all():
-    lines = _lines(LAUNCH)
+    lines = _lines(LAUNCH, README)
     start = next((i for i, line in enumerate(lines) if line.startswith("**The skill snapshot")), None)
     assert start is not None, "no '**The skill snapshot' paragraph"
     paras = _records(lines[start:])
