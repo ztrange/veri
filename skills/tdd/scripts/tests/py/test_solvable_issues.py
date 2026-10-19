@@ -958,3 +958,25 @@ def test_main_not_running_omits_the_issue_with_a_live_conductor_from_this_skill_
 
     out, err = capsys.readouterr()
     assert (code, out) == (0, "5\n7\n")
+
+
+def test_main_not_running_keeps_the_issue_whose_live_conductor_started_from_a_different_skill_path(tmp_path, monkeypatch, capsys, solvable_issues):
+    (tmp_path / "issues.json").write_text(json.dumps([opted_in(5), opted_in(6), opted_in(7)]))
+    (tmp_path / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    listing = "  1 /sbin/launchd\n 99 bash /tmp/skill-copy/scripts/run-conductor.sh 6\n"
+
+    def fake_run(args, *rest, **kwargs):
+        if list(args[:4]) == ["git", "worktree", "list", "--porcelain"]:
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if args[0] == "ps":
+            return subprocess.CompletedProcess(args, 0, listing, "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", fake_run)
+
+    code = solvable_issues.main(["--not-running"])
+
+    out, err = capsys.readouterr()
+    assert (code, out) == (0, "5\n6\n7\n")
