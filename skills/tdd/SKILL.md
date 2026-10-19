@@ -544,6 +544,8 @@ three times over branches its ledger pinned on later lines.
 
    A criterion that changes rendered prompt text, or a SKILL.md sentence that a suite pins by checksum or verbatim, is planned as a `⟦diff-checked⟧` step, never as Red/Green: a Red leaf cannot compute a checksum of text that does not exist yet. The text and every checksum or verbatim pin it moves land in one commit, judged blind against the diff.
 
+   When that criterion also asks for a case pinning that text, the plan holds a `⟦diff-checked⟧` step for the text and a separate step for the case, both tagged with the same `⟦criterion k⟧`, the case's step after the text's: the `⟦diff-checked⟧` step adds no test, so it cannot carry the pin.
+
    A criterion replacing an implementation case under ADR 0027 with a pytest case asserting
    the same behaviour is planned as one step marked `⟦replaces-case⟧`, naming the suite path
    and a list of that suite's cases, each by its exact name: `- [ ] <criterion>: replaces
