@@ -15,6 +15,21 @@ def prompt(unit, text, claims):
     return "Unit: %s\n\n%s\n\nRequirements:\n%s" % (unit, text, rows)
 
 
+def section(text, heading):
+    out, level = [], None
+    for line in text.splitlines(keepends=True):
+        hashes = len(line) - len(line.lstrip("#"))
+        if level is None:
+            if hashes and line[hashes:].strip() == heading:
+                level = hashes
+                out.append(line)
+        elif hashes == level:
+            break
+        else:
+            out.append(line)
+    return "".join(out)
+
+
 def modern_python_dir():
     check = "import sys; sys.exit(sys.version_info < (3, 12))"
     for folder in os.environ.get("PATH", "").split(os.pathsep):
@@ -29,8 +44,11 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     path, unit = argv
-    with open(unit, encoding="utf-8") as f:
+    file, _, heading = unit.partition("#")
+    with open(file, encoding="utf-8") as f:
         text = f.read()
+    if heading:
+        text = section(text, heading)
     with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
         f.write(prompt(unit, text, requirements.claims(path, unit)))
     env = {**os.environ, "PATH": modern_python_dir() + os.environ.get("PATH", "")}

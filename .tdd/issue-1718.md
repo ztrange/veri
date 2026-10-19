@@ -4,7 +4,7 @@
 - [x] grade-prose.sh <requirements-file> <unit> on a whole-file unit sends a stub claude (CLAUDE_BIN) a prompt carrying the unit file's text and every requirement's ID and Requirement text from the unit's list ⟦criterion 1⟧
 - [x] the prompt grade-prose.sh sends the stub claude contains no text from any Why cell of the requirements list, no diff and no commit message ⟦criterion 1⟧
 - [x] a unit graded inside a git repository with commits still gets a prompt carrying no diff and no commit message, pinned by a case whose unit sits in a repo with history ⟦criterion 11⟧
-- [ ] a section unit <path>#<heading> sends only that section's text, from its heading to the next heading of the same level ⟦criterion 2⟧
+- [x] a section unit <path>#<heading> sends only that section's text, from its heading to the next heading of the same level ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] a section unit's text ends at the next heading of higher level as well as the same level, pinned by a fixture where a higher-level heading follows the section ⟦criterion 12⟧
 - [ ] a line starting with # inside a fenced code block never starts or ends a section, pinned by a fixture whose section holds a fenced # comment ⟦criterion 13⟧
 - [ ] the grader leaf is launched through supervise.sh under a leaf name with its own leaf role, distinct from every develop, revise and verify role ⟦criterion 3⟧
