@@ -386,8 +386,8 @@ def test_main_sweeps_the_unit_fixture_guard_and_offline_suites_to_empty_sweepabl
     moved = ["run-affordable", "step-budget", "step-cost"]
 
     assert {
-        "the sweepable report is empty for every tests/unit/*.sh whose name starts with c through e, other than comment-class.test.sh":
-            sweep("unit/[c-e]*.sh", keep=lambda p: p.name != "comment-class.test.sh"),
+        "the sweepable report is empty for every tests/unit/*.sh whose name starts with c through e":
+            sweep("unit/[c-e]*.sh"),
         **{
             f"the sweepable report is empty for tests/unit/{name}.test.sh": sweep(f"unit/{name}.test.sh")
             for name in names
@@ -400,23 +400,13 @@ def test_main_sweeps_the_unit_fixture_guard_and_offline_suites_to_empty_sweepabl
             sweep("unit/[m-p]*.sh"),
         "the sweepable report is empty for every shell file under tests/fixtures/, and for tests/unit-guard/git and tests/offline/gh":
             sweep("fixtures/*/*.sh", "unit-guard/git", "offline/gh"),
-        "the sweepable report is empty for tests/comment-class.test.sh, the case labels of its own sweepable-report cases included":
-            sweep("comment-class.test.sh"),
     } == {
-        "the sweepable report is empty for every tests/unit/*.sh whose name starts with c through e, other than comment-class.test.sh": (0, ""),
+        "the sweepable report is empty for every tests/unit/*.sh whose name starts with c through e": (0, ""),
         **{f"the sweepable report is empty for tests/unit/{name}.test.sh": (0, "") for name in names},
         **{f"the sweepable report is empty for tests/{name}.test.sh": (0, "") for name in moved},
         "the sweepable report is empty for every tests/unit/*.sh whose name starts with m through p": (0, ""),
         "the sweepable report is empty for every shell file under tests/fixtures/, and for tests/unit-guard/git and tests/offline/gh": (0, ""),
-        "the sweepable report is empty for tests/comment-class.test.sh, the case labels of its own sweepable-report cases included": (0, ""),
     }
-
-
-def test_main_sweeps_cover_outcome_test_sh_and_its_1089_nul_cases_to_an_empty_sweepable_report(capsys):
-    comment_class = importlib.import_module("veri.comment_class")
-    suite = SCRIPTS / "tests" / "cover-outcome.test.sh"
-    code = comment_class.main(["--sweepable", str(suite)])
-    assert (code, capsys.readouterr().out) == (0, "")
 
 
 def test_main_keeps_awks_argument_handling_for_a_late_sweepable_an_empty_or_unopenable_file_stdin_and_an_assignment(tmp_path, monkeypatch, capsys):
