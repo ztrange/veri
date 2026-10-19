@@ -156,14 +156,6 @@ def test_main_finds_the_phase_value_blind_past_leading_step_and_fast_cmd_pairs_a
         "option after the phase": ["verify-red.reason"],
     }
 
-    library = SCRIPTS / "lib" / "verify-options.sh"
-    words = ["--step", "--fast-cmd", "--steps", "-s", ""]
-    by_library = {word: subprocess.run(
-        ["bash", "-c", 'source "$1" && verify_takes_a_value "$2"', "bash", str(library), word],
-        stdin=subprocess.DEVNULL).returncode == 0 for word in words}
-    by_main = {word: emptied([word, "v", "red", *tail]) == ["verify-red.reason"] for word in words}
-    assert by_main == by_library
-
 
 @pytest.mark.parametrize("argv, tdd, stderr_file", [
     (["red", "spec.md", "tests/x.test.sh", "case"], "directory", "existing"),

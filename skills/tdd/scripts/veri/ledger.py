@@ -1,4 +1,4 @@
-"""lib/ledger.sh's ledger_steps and ledger_tick, run in-process."""
+"""The ledger reader and ticker, ledger_steps and ledger_tick, run in-process."""
 import os
 import re
 import shutil
@@ -90,7 +90,7 @@ def next_phase(step):
 
 
 def new_step(text, criterion):
-    """lib/ledger.sh's ledger_add_step line for text and criterion."""
+    """The ledger_add_step line for text and criterion."""
     return f"{OPEN_STEP} {text} {ADDED_MARK} {CRITERION_TAG}{criterion}⟧"
 
 

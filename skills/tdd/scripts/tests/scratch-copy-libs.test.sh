@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
-# Audits that no suite copies a script into a scratch tree without the lib it cannot start
-# without. A `cp` line under tests/ or tests/unit/ that names a script under scripts/ which
-# sources lib/exit-contract.sh — by a literal path or through the suite's own variable
-# assignments — is named, unless the suite also puts lib/exit-contract.sh in the tree: by
-# naming it, by copying a directory whole with `cp -R`, or by copying `lib/*.sh`.
-# A suite that plants another suite (its GUARD=) copies every tests/lib file that suite sources.
+# Audits that no suite plants another suite (its GUARD=) without every tests/lib file that suite sources,
+# and that none copies an individual lib file, run-suite.sh without veri/, or a veri/ module importing entry
+# without veri/entry.py.
 # Not in the fast tier: it reads every suite under tests/ and tests/unit/ on each run.
 #
 # Run: scripts/tests/scratch-copy-libs.test.sh
@@ -17,15 +14,11 @@ export LC_ALL=C
 source "$TESTS/lib/harness.sh"
 source "$TESTS/lib/verdict.sh"
 
-needs_contract() {
-  [[ -f "$SCRIPTS/$1" ]] && grep -E '^(source|\.)[[:space:]].*lib/exit-contract\.sh' "$SCRIPTS/$1" > /dev/null
-}
-
 candidates() {
   local f files=()
   for f in "$@"; do [[ -f "$f" ]] && files+=("$f"); done
   (( ${#files[@]} )) || return 0
-  grep -naHE '^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=|(cp|ln)[[:space:]]|exit-contract\.sh|GUARD=|lib/guard-plant\.sh' "${files[@]}"
+  grep -naHE '^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=|(cp|ln)[[:space:]]|GUARD=|lib/guard-plant\.sh' "${files[@]}"
 }
 
 each_suite() {
@@ -100,35 +93,6 @@ expect_hits() {
 }
 
 tree="$(candidates "$TESTS"/*.test.sh "$TESTS"/unit/*.test.sh)"
-
-contract_line() {
-  local suite="$1" entry n line rest hit
-  for entry in "${lines[@]}"; do
-    line="${entry#*:}"
-    [[ "$line" == *exit-contract.sh* ]] && return
-    [[ "$line" =~ (^|[[:space:]])cp[[:space:]]+-[A-Za-z]*R ]] && return
-    [[ "$line" =~ (^|[[:space:]])cp[[:space:]].*lib/\*\.sh ]] && return
-  done
-  local -A vars=()
-  read_vars
-  for entry in "${lines[@]}"; do
-    n="${entry%%:*}" line="${entry#*:}"
-    [[ "$line" =~ (^|[[:space:]])cp[[:space:]] ]] || continue
-    expand "$line"
-    rest="$expanded"
-    while [[ "$rest" =~ (^|[/\"\' ])([A-Za-z0-9_.-]+\.sh)(.*)$ ]]; do
-      rest="${BASH_REMATCH[3]}"
-      hit="    ${suite#"$TESTS"/}:$n copies ${BASH_REMATCH[2]} without lib/exit-contract.sh"$'\n'
-      [[ "$problems" == *"$hit"* ]] && continue
-      needs_contract "${BASH_REMATCH[2]}" && problems+="$hit"
-    done
-  done
-}
-
-name="a suite that copies a script sourcing lib/exit-contract.sh into a scratch tree puts that lib there too"
-problems=""
-each_suite contract_line "$tree"
-verdict "$name"
 
 veri_line() {
   local suite="$1" entry n line rest sites="" has_veri=""
@@ -212,8 +176,8 @@ name="#749: the lib-copy guard names <suite>:<line> for a cp or ln of an individ
 plant="$(scratch_dir)"
 mkdir -p "$plant/unit"
 printf '%s\n' '#!/usr/bin/env bash' 'mkdir -p "$tree/lib"' \
-  'cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/"' > "$plant/a.test.sh"
-printf '%s\n' '#!/usr/bin/env bash' 'ln -s "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/exit-contract.sh"' \
+  'cp "$ROOT/skills/tdd/scripts/lib/github.sh" "$tree/lib/"' > "$plant/a.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'ln -s "$ROOT/skills/tdd/scripts/lib/github.sh" "$tree/lib/github.sh"' \
   > "$plant/unit/b.test.sh"
 printf '%s\n' '#!/usr/bin/env bash' 'cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$tree/lib/"' \
   'cp -R "$ROOT/skills/tdd/scripts/lib" "$tree/"' > "$plant/c.test.sh"
@@ -222,23 +186,23 @@ expect_hits "$plant" a.test.sh:3 unit/b.test.sh:2
 name="#749: the lib-copy guard names a cp or ln of an individual lib file that follows ;, &&, | or \$( with no space"
 plant="$(scratch_dir)"
 printf '%s\n' '#!/usr/bin/env bash' \
-  'mkdir -p "$tree/lib";cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/"' \
-  'true&&ln -s "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/"' \
-  'echo x|cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/"' \
-  'out=$(cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/")' > "$plant/d.test.sh"
+  'mkdir -p "$tree/lib";cp "$ROOT/skills/tdd/scripts/lib/github.sh" "$tree/lib/"' \
+  'true&&ln -s "$ROOT/skills/tdd/scripts/lib/github.sh" "$tree/lib/"' \
+  'echo x|cp "$ROOT/skills/tdd/scripts/lib/github.sh" "$tree/lib/"' \
+  'out=$(cp "$ROOT/skills/tdd/scripts/lib/github.sh" "$tree/lib/")' > "$plant/d.test.sh"
 expect_hits "$plant" d.test.sh:2 d.test.sh:3 d.test.sh:4 d.test.sh:5
 
 name="#749: the lib-copy guard names a cp or ln of an individual lib file opened by a backtick or a { with no space"
 plant="$(scratch_dir)"
 printf '%s\n' '#!/usr/bin/env bash' \
-  'out=`cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/"`' \
-  '{ln -s "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/"; }' > "$plant/e.test.sh"
+  'out=`cp "$ROOT/skills/tdd/scripts/lib/github.sh" "$tree/lib/"`' \
+  '{ln -s "$ROOT/skills/tdd/scripts/lib/github.sh" "$tree/lib/"; }' > "$plant/e.test.sh"
 expect_hits "$plant" e.test.sh:2 e.test.sh:3
 
 name="#749: the lib-copy guard names a cp of an individual lib file made through the suite's own variable assignment"
 plant="$(scratch_dir)"
 printf '%s\n' '#!/usr/bin/env bash' \
-  'cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/"' \
+  'cp "$ROOT/skills/tdd/scripts/lib/github.sh" "$tree/lib/"' \
   'GUARD_LIB="$ROOT/skills/tdd/scripts/lib/count-line-guard.sh"' \
   'cp "$GUARD_LIB" "$tree/lib/"' > "$plant/f.test.sh"
 expect_hits "$plant" f.test.sh:2 f.test.sh:4
@@ -248,21 +212,21 @@ plant="$(scratch_dir)"
 mkdir -p "$plant/lib"
 printf '%s\n' '#!/usr/bin/env bash' \
   'copy_one() {' \
-  '  cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$1/lib/"' \
+  '  cp "$ROOT/skills/tdd/scripts/lib/github.sh" "$1/lib/"' \
   '}' > "$plant/lib/copy-one.sh"
 printf '%s\n' '#!/usr/bin/env bash' \
-  'printf "%s\n" "x() { :; }" > "$tree/skills/tdd/scripts/lib/ledger.sh"' \
+  'printf "%s\n" "x() { :; }" > "$tree/skills/tdd/scripts/lib/github.sh"' \
   'sed "s/a/b/" "$ROOT/skills/tdd/scripts/lib/count-line-guard.sh" > "$tree/skills/tdd/scripts/lib/count-line-guard.sh"' \
-  'cat "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" > "$tree/skills/tdd/scripts/lib/exit-contract.sh"' \
+  'cat "$ROOT/skills/tdd/scripts/lib/github.sh" > "$tree/skills/tdd/scripts/lib/github.sh"' \
   > "$plant/g.test.sh"
 expect_hits "$plant" lib/copy-one.sh:3
 
 name="#749: the lib-copy guard names a cp or ln of an individual lib file reached by a relative path, never a copy of a tests/lib file"
 plant="$(scratch_dir)"
 printf '%s\n' '#!/usr/bin/env bash' \
-  'cp "$HERE/../lib/exit-contract.sh" "$tree/lib/"' \
-  'cp "$(dirname "$X")/lib/exit-contract.sh" "$tree/lib/"' \
-  'ln -s "$SCRIPTS/lib/exit-contract.sh" "$tree/lib/"' \
+  'cp "$HERE/../lib/github.sh" "$tree/lib/"' \
+  'cp "$(dirname "$X")/lib/github.sh" "$tree/lib/"' \
+  'ln -s "$SCRIPTS/lib/github.sh" "$tree/lib/"' \
   'cp "$HERE/lib/harness.sh" "$tree/tests/lib/"' > "$plant/h.test.sh"
 expect_hits "$plant" h.test.sh:2 h.test.sh:3 h.test.sh:4
 
@@ -270,7 +234,7 @@ name="#749: the lib-copy guard names a cp of an individual lib file whose variab
 plant="$(scratch_dir)"
 mkdir -p "$plant/lib"
 printf '%s\n' '#!/usr/bin/env bash' \
-  'ONE_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../lib" && pwd)/exit-contract.sh"' \
+  'ONE_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../lib" && pwd)/github.sh"' \
   'cp "$ONE_LIB" "$1/skills/tdd/scripts/lib/"' > "$plant/lib/copy-via-cd.sh"
 expect_hits "$plant" lib/copy-via-cd.sh:3
 
@@ -279,8 +243,8 @@ plant="$(scratch_dir)"
 printf '%s\n' '#!/usr/bin/env bash' \
   'LIB="$ROOT/skills/tdd/scripts/lib/background.sh"' \
   '( source "$LIB" && cp "$record" "$kept" )' \
-  "cp_line='  cp \"\$ROOT/skills/tdd/scripts/lib/exit-contract.sh\" \"\$tree/lib/\"'" \
-  "  'cp \"\$ROOT/skills/tdd/scripts/lib/exit-contract.sh\" \"\$tree/lib/\"' > \"\$plant/x.test.sh\"" \
+  "cp_line='  cp \"\$ROOT/skills/tdd/scripts/lib/github.sh\" \"\$tree/lib/\"'" \
+  "  'cp \"\$ROOT/skills/tdd/scripts/lib/github.sh\" \"\$tree/lib/\"' > \"\$plant/x.test.sh\"" \
   'source "$LIB"; cp "$LIB" "$tree/lib/"' > "$plant/i.test.sh"
 expect_hits "$plant" i.test.sh:6
 

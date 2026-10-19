@@ -1,4 +1,4 @@
-"""lib/number-in.sh's number_in and lib/pid-file.sh's live_conductor and supervising, run in-process."""
+"""The pid-file reader: number_in, live_conductor and supervising, run in-process."""
 
 import os
 import re

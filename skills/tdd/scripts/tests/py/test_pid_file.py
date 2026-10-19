@@ -1,4 +1,4 @@
-"""In-process cases for veri/pid_file.py, the pid-file reader lib/number-in.sh and lib/pid-file.sh define in bash."""
+"""In-process cases for veri/pid_file.py, the pid-file reader."""
 import importlib
 
 

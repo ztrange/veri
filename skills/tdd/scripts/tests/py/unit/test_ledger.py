@@ -1,4 +1,4 @@
-"""In-process cases for veri/ledger.py, the ledger reader lib/ledger.sh's ledger_steps defines in bash."""
+"""In-process cases for veri/ledger.py, the ledger reader."""
 import importlib
 
 

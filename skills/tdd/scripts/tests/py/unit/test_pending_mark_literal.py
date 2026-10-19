@@ -10,7 +10,7 @@ import re
 from conftest import SCRIPTS
 
 MARK = " ⟂ refactor pending"
-CARRIERS = ("lib/ledger.sh", "veri/ledger.py")
+CARRIERS = ("veri/ledger.py",)
 COMMENT = re.compile(r"^\s*#")
 BOX = (
     r"\\\[\(?([ xX]|\[[^]]*\])\)?\\\]",
@@ -29,28 +29,17 @@ def sources():
 
 
 @pytest.mark.tree_audit("every .sh and .py file under skills/tdd/scripts outside tests/")
-def test_the_pending_mark_is_spelled_in_lib_ledger_sh_and_veri_ledger_py_only():
+def test_the_pending_mark_is_spelled_in_veri_ledger_py_only():
     """Its subject is source text: the files under skills/tdd/scripts, read as text."""
     problems = [f"{name} carries the pending mark" for name, path in sources() if name not in CARRIERS and MARK in read(path)]
-    if MARK not in read(SCRIPTS / "lib/ledger.sh"):
-        problems.append("lib/ledger.sh does not carry the pending mark")
+    if MARK not in read(SCRIPTS / "veri/ledger.py"):
+        problems.append("veri/ledger.py does not carry the pending mark")
 
     assert problems == []
 
 
-def test_the_step_line_pattern_is_spelled_on_one_line_of_lib_ledger_sh():
-    """Its subject is source text: lib/ledger.sh, read as text."""
-    spellers = [
-        f"lib/ledger.sh:{number}:{line}"
-        for number, line in enumerate(read(SCRIPTS / "lib/ledger.sh").split("\n"), 1)
-        if any(box in line for box in ("\\[", "[x]", "[X]", "[ ]")) and not COMMENT.match(line)
-    ]
-
-    assert len(spellers) == 1, spellers
-
-
 @pytest.mark.tree_audit("every .sh and .py file under skills/tdd/scripts outside tests/")
-def test_no_script_or_module_but_lib_ledger_sh_and_veri_ledger_py_and_no_line_of_skill_md_spells_a_box():
+def test_no_script_or_module_but_veri_ledger_py_and_no_line_of_skill_md_spells_a_box():
     """Its subject is source text: the files under skills/tdd/scripts and SKILL.md, read as text."""
     pattern = re.compile("|".join(f"(?:{b})" for b in BOX))
     problems = []
