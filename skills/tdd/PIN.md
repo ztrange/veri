@@ -64,4 +64,4 @@ Every other step takes the verdict as follows:
   on a `⟦replaces-case⟧` step; from `red`,
   continue to Green. On budget-exhausted, **bail** as a **process** failure.
 - **Malformed / killed-stuck (exit 2):** **bail** as a **system** failure (`no-verdict`) —
-  see *Bailing*.
+  see `<base directory>/BAIL.md`.
