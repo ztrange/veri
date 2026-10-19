@@ -45,7 +45,8 @@ def _added_cases(name):
     with open(name, encoding="utf-8", errors="replace") as handle:
         new = handle.read()
     pattern = re.compile(r"^\s*(?:async\s+)?def\s+(test\w*)", re.M)
-    return [case for case in pattern.findall(new) if case not in pattern.findall(old)]
+    before = set(pattern.findall(old))
+    return [case for case in pattern.findall(new) if case not in before]
 
 
 def main(argv):
