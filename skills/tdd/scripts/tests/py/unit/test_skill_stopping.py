@@ -263,7 +263,7 @@ def test_the_three_ledger_commit_checkpoints_send_stop_requested_exit_2_to_stopp
 
 def _phase_exit2(heading, anchor):
     inside, kept = False, []
-    for raw in SKILL.read_text().splitlines():
+    for raw in (SKILL.read_text() + "\n" + SKILL.with_name("REVISE.md").read_text()).splitlines():
         if re.match(r"#{2,4} ", raw):
             inside = bool(re.search(heading, raw.translate(_UPPER)))
             continue

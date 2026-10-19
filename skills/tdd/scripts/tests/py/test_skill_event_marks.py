@@ -30,7 +30,8 @@ _SPACE = rb"[ \t\n\r\f\v]"
 def _records():
     out, rec = [], b""
     for line in (SKILL.read_bytes() + b"\n\n" + BAIL.read_bytes() + b"\n"
-                 + SKILL.with_name("PIN.md").read_bytes() + b"\n\n" + RESUME.read_bytes()).split(b"\n"):
+                 + SKILL.with_name("PIN.md").read_bytes() + b"\n\n" + RESUME.read_bytes()
+                 + b"\n\n" + SKILL.with_name("REVISE.md").read_bytes()).split(b"\n"):
         if re.match(rb"[0-9]+\. ", line) or re.match(_SPACE + rb"*- ", line):
             if rec:
                 out.append(rec)
@@ -308,7 +309,7 @@ def test_skill_md_over_budget_exit_0_branch_writes_step_split_carrying_at_over_b
     split_at, park_at = _cost_branch(start, lines, 0, 1)
     assert park_at, "SKILL.md's cost check has no `- **exit 0` branch followed by an `- **exit 1` one — where the cost-driven split's mark belongs could not be read"
     over_budget = exhausted = 0
-    for lineno, line in enumerate(_file_lines(), 1):
+    for lineno, line in enumerate(_file_lines() + SKILL.with_name("REVISE.md").read_text().splitlines(), 1):
         if not _text_calls_event(line, "step-split"):
             continue
         if split_at < lineno < park_at:

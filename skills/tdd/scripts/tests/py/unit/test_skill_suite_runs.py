@@ -5,6 +5,7 @@ import re
 import skill_sections
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
+REVISE_MD = SKILL.with_name("REVISE.md")
 CLAUDE = pathlib.Path(__file__).resolve().parents[6] / "CLAUDE.md"
 
 RED = "#### Red — one failing test (developer leaf), then verify-red (blind)"
@@ -153,7 +154,7 @@ def test_974_skill_md_s_diff_checked_section_s_build_develop_prompt_sh_diff_and_
 
 
 def test_974_skill_md_s_revise_diff_command_line_passes_the_fast_command_and_its_diff_re_verify_passes_fast_cmd():
-    section = doc_text(SKILL, REVISING, r"^[*][*]The `diff` phase")
+    section = doc_text(REVISE_MD, REVISING, r"^[*][*]The `diff` phase")
     assert section.strip(), "SKILL.md has no '## Revising on a REJECT' section to read"
     problems = []
     text = before(after(section, "build-develop-prompt.sh revise diff"), ".prompt")
@@ -225,7 +226,7 @@ def test_1300_skill_md_runs_suite_reported_sh_before_the_verifier_after_develop_
 def test_1300_skill_md_runs_suite_reported_sh_only_after_a_leaf_whose_prompt_asks_for_a_suite_line_never_after_the_refactor_leaf_or_a_revise_of_red_green_or_refactor():
     problems = []
     for label, heading in (("Refactor loop", REFACTOR_LOOP), ("Revising on a REJECT", REVISING)):
-        if "suite-reported.sh" in doc_text(SKILL, heading):
+        if "suite-reported.sh" in doc_text(REVISE_MD if heading == REVISING else SKILL, heading):
             problems.append(f"{label}: runs suite-reported.sh after a leaf whose prompt asks for no SUITE: line")
     if "suite-reported.sh revise-diff-<k>" not in doc_text(SKILL, DIFF_CHECKED):
         problems.append("diff-checked step: never runs suite-reported.sh revise-diff-<k>, the leaf the conductor launches")

@@ -4,6 +4,7 @@ import pathlib
 import re
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
+REVISE_MD = SKILL.with_name("REVISE.md")
 
 RED = "#### Red — one failing test (developer leaf), then verify-red (blind)"
 REVISE = "## Revising on a REJECT"
@@ -12,7 +13,7 @@ EXIT_0_OR_2 = r"exit(s| code)? 0 (or|\|) 2|0 or 2|\b0\b[^.]*\b2\b"
 
 
 def _window(heading, start):
-    section = importlib.import_module("skill_sections").section(SKILL, heading)
+    section = importlib.import_module("skill_sections").section(REVISE_MD if heading == REVISE else SKILL, heading)
     lines = section.splitlines()[1:]
     for i, line in enumerate(lines):
         if line.startswith("#"):

@@ -4,14 +4,23 @@ import pathlib
 import re
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
+REVISE_MD = SKILL.with_name("REVISE.md")
 
 REVISE = "## Revising on a REJECT"
 COST = "#### The step's cost check"
 STEP_COST = "step-cost.sh"
 
 
+def _doc(heading):
+    return REVISE_MD if heading == REVISE else SKILL
+
+
+def _both():
+    return SKILL.read_text() + "\n" + REVISE_MD.read_text()
+
+
 def _lines(heading):
-    section = importlib.import_module("skill_sections").section(SKILL, heading)
+    section = importlib.import_module("skill_sections").section(_doc(heading), heading)
     lines = section.splitlines()[1:]
     for i, line in enumerate(lines):
         if line.startswith("#"):
@@ -58,7 +67,7 @@ def any_sentence(sents, *patterns):
 def after_wait(leaf):
     marker = f"wait-leaf.sh {leaf}"
     inside, out = False, []
-    for line in SKILL.read_text().splitlines():
+    for line in _both().splitlines():
         if not inside:
             inside = marker in line
             continue
@@ -71,7 +80,7 @@ def after_wait(leaf):
 def test_skill_md_s_exhausted_budget_branch_launches_the_exhausted_leaf_and_acts_on_exhausted_outcome_sh_s_three_answers_replace_the_step_on_a_split_park_it_on_needs_user_bail_revise_exhausted_on_neither():
     section = revise_section()
     problems = []
-    assert section.strip(), f"{SKILL} has no '{REVISE}' section to read"
+    assert section.strip(), f"{REVISE_MD} has no '{REVISE}' section to read"
     outcome_reader = r"\$s/exhausted-outcome\.sh"
     add_ledger_step = r"\$s/add-ledger-step\.sh"
     needs_user = "needs_user|needs-user|needs the user"
@@ -112,11 +121,11 @@ def test_skill_md_s_exhausted_budget_branch_launches_the_exhausted_leaf_and_acts
 
 
 def test_skill_md_s_needs_user_branch_mirrors_the_parked_step_to_the_issue_thread_carrying_the_leaf_s_answer_and_the_verifier_s_last_rejection_reason():
-    assert plain(_lines(REVISE)).strip(), f"{SKILL} has no '{REVISE}' section to read"
+    assert plain(_lines(REVISE)).strip(), f"{REVISE_MD} has no '{REVISE}' section to read"
     opening = "exit 1 — the step needs the user"
     closing = "exit 3"
     inside, branch_lines = False, []
-    for line in SKILL.read_text().splitlines():
+    for line in _both().splitlines():
         if not inside and opening in line:
             inside = True
         if inside and closing in line and opening not in line:
@@ -161,7 +170,7 @@ def test_skill_md_says_in_the_prose_of_the_revise_heading_not_only_in_an_inline_
 
 def test_skill_md_checks_step_cost_sh_after_neither_develop_refactor_nor_verify_refactor_and_the_cost_heading_says_why_no_check_follows_the_green_commit():
     problems = []
-    text = SKILL.read_text()
+    text = _both()
     for leaf in ("develop-refactor", "verdict-refactor"):
         if f"wait-leaf.sh {leaf}" not in text:
             problems.append(f"never waits on {leaf}")
@@ -361,7 +370,7 @@ def test_the_cost_heading_says_a_supervisor_exit_2_on_the_over_budget_leaf_is_a_
 
 def test_880_skill_md_s_revise_heading_covers_the_diff_phase_the_revise_leaf_is_built_with_revise_diff_the_re_verify_is_the_blind_diff_verifier_against_the_same_base_sha_as_the_original_verify_diff_verdict_and_its_pass_is_ticked_as_the_diff_checked_pass_bullet_describes():
     section = revise_section()
-    assert section.strip(), f"{SKILL} has no '{REVISE}' section to read"
+    assert section.strip(), f"{REVISE_MD} has no '{REVISE}' section to read"
     problems = []
     if "$s/build-develop-prompt.sh revise diff" not in section:
         problems.append("the revise section never builds the revise leaf with build-develop-prompt.sh revise diff")
@@ -377,7 +386,7 @@ def test_880_skill_md_s_revise_heading_covers_the_diff_phase_the_revise_leaf_is_
 
 def test_880_skill_md_s_revise_heading_re_verifies_a_diff_revise_with_both_base_shas_the_original_verify_diff_verdict_ran_against_run_verdict_sh_step_step_diff_spec_file_branch_base_sha_step_base_sha_the_step_base_sha_the_one_recorded_before_the_step_s_develop_diff_leaf():
     section = revise_section()
-    assert section.strip(), f"{SKILL} has no '{REVISE}' section to read"
+    assert section.strip(), f"{REVISE_MD} has no '{REVISE}' section to read"
     problems = []
     if not re.search(
         r'run-verdict\.sh --step "<step>" (--fast-cmd [^ ]+ )?diff <spec-file> <branch-base-sha> <step-base-sha>', section
