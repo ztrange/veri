@@ -1,2 +1,4 @@
 ### Under `--not-running`, a conductor in the production process shape — the python interpreter running `<this clone's scripts>/veri/run_conductor.py <n>` — is recognised as live and `<n>` is omitted, pinned by a process listing of that real shape, not a hand-written `bash …/run-conductor.sh <n>` line ⟦criterion 4⟧
 - test-only | extract the repeated fixture setup (issues.json, prs.json, VERI_GH_JSON, fake_run for git and ps, and the monkeypatches) from the four `--not-running` tests into one helper
+### `solvable-issues.sh --repo <x> --not-running` is accepted the same way, and the usage line `solvable-issues.sh` prints on a refused invocation, and its shim's usage comment, name only argument orders that parse ⟦criterion 6⟧
+- test-only | extract the shared fake_run/listing setup of the two `--repo`/`--not-running` order tests (`test_main_repo_then_not_running_…` and `test_main_not_running_then_repo_…`) into one helper
