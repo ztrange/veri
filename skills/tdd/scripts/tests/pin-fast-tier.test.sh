@@ -5,6 +5,7 @@
 # Contract under test:
 #   pin-fast-tier.sh <fast-cmd>, run from the worktree
 #       → exit 1 and .tdd/verify-pin.reason holding the command's own output when it fails
+#       → exit 0, silent, leaving no reason file when it passes
 #       → exit 2 printing a usage line when given no argument
 #
 # Run: scripts/tests/pin-fast-tier.test.sh
@@ -30,6 +31,14 @@ bare_out="$(cd "$bare" && "$CHECK" 2> "$bare/err")"; bare_code=$?
 bare_err="$(cat "$bare/err")"
 if [[ "$bare_code" == 2 && -z "$bare_out" && "$bare_err" == *"usage: pin-fast-tier.sh"* && ! -e "$bare/.tdd/verify-pin.reason" ]]; then ok; else
   no "pin-fast-tier #1747: no argument → usage on stderr, exit 2, no .tdd/verify-pin.reason (code=$bare_code out=$bare_out err=$bare_err)"
+fi
+
+green="$(scratch_dir)"
+printf '#!/bin/sh\necho "0 failed"\nexit 0\n' > "$green/fast-green"
+chmod +x "$green/fast-green"
+green_out="$(cd "$green" && "$CHECK" "$green/fast-green" 2>&1)"; green_code=$?
+if [[ "$green_code" == 0 && -z "$green_out" && ! -e "$green/.tdd/verify-pin.reason" ]]; then ok; else
+  no "pin-fast-tier #1747: a passing fast command → exit 0, silent, no .tdd/verify-pin.reason (code=$green_code out=$green_out)"
 fi
 
 finish
