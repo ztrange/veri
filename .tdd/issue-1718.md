@@ -1,0 +1,29 @@
+# Plan for #1718 — PRD 011 S2: grade-prose.sh grades one prose unit against its requirements list on the verdict contract — gate for slices 3+
+
+- [ ] grade-prose.sh called with no arguments exits 2 with a usage line naming it on stderr; it is a /bin/sh shim that execs python3 on a module under skills/tdd/scripts/veri/ and holds no Python source, and the test_missing_argument_cli.py sweep covers it and passes ⟦criterion 9⟧
+- [ ] grade-prose.sh <requirements-file> <unit> on a whole-file unit sends a stub claude (CLAUDE_BIN) a prompt carrying the unit file's text and every requirement's ID and Requirement text from the unit's list ⟦criterion 1⟧
+- [ ] the prompt grade-prose.sh sends the stub claude contains no text from any Why cell of the requirements list, no diff and no commit message ⟦criterion 1⟧
+- [ ] a unit graded inside a git repository with commits still gets a prompt carrying no diff and no commit message, pinned by a case whose unit sits in a repo with history ⟦criterion 11⟧
+- [ ] a section unit <path>#<heading> sends only that section's text, from its heading to the next heading of the same level ⟦criterion 2⟧
+- [ ] a section unit's text ends at the next heading of higher level as well as the same level, pinned by a fixture where a higher-level heading follows the section ⟦criterion 12⟧
+- [ ] a line starting with # inside a fenced code block never starts or ends a section, pinned by a fixture whose section holds a fenced # comment ⟦criterion 13⟧
+- [ ] the grader leaf is launched through supervise.sh under a leaf name with its own leaf role, distinct from every develop, revise and verify role ⟦criterion 3⟧
+- [ ] the stub claude receives --model with the model value committed in skills/tdd/grader.conf (a full model id), and setting VERI_MODEL or VERI_MODEL_VERIFIER does not change it ⟦criterion 3⟧
+- [ ] a grader.conf model value that names no version (e.g. sonnet) makes grade-prose.sh exit 2 before anything is launched ⟦criterion 4⟧
+- [ ] the grader leaf is launched as the verify leaves are, through run-leaf.sh under supervise.sh, so the command the stub claude receives carries the same tool limits a verify leaf's does (#1705) ⟦criterion 18⟧
+- [ ] a reply whose final BEGIN GRADES … END GRADES block has every ID line PASS and VERDICT: PASS makes grade-prose.sh exit 0 ⟦criterion 5⟧
+- [ ] a reply whose final GRADES block has a FAIL line and VERDICT: REJECT makes grade-prose.sh exit 1 and print the failing ID with its reason ⟦criterion 5⟧
+- [ ] a reply with two or more FAIL lines prints every failing ID with its reason ⟦criterion 15⟧
+- [ ] a reply with no GRADES block makes grade-prose.sh exit 2 and name the missing block on stderr ⟦criterion 6⟧
+- [ ] a reply with text after END GRADES makes grade-prose.sh exit 2 and name the trailing text on stderr ⟦criterion 6⟧
+- [ ] a GRADES block with a missing, an extra or a reordered requirement ID makes grade-prose.sh exit 2 and name the defect on stderr ⟦criterion 6⟧
+- [ ] a GRADES block whose VERDICT disagrees with its lines makes grade-prose.sh exit 2 and name the disagreement on stderr ⟦criterion 6⟧
+- [ ] a GRADES block with no VERDICT: line makes grade-prose.sh exit 2 and name the missing verdict on stderr ⟦criterion 10⟧
+- [ ] a GRADES line whose grade word is other than exactly PASS or FAIL (e.g. PASSABLE) makes grade-prose.sh exit 2 and name the defect on stderr ⟦criterion 10⟧
+- [ ] a reply holding two GRADES blocks is graded on the final one only, pinned by a case whose first block disagrees with its last ⟦criterion 16⟧
+- [ ] a grader leaf the supervisor kills (a hanging stub claude under shrunk VERI_HEARTBEAT/VERI_TIMEOUT) makes grade-prose.sh exit 2 and name the defect on stderr ⟦criterion 6⟧
+- [ ] a grader leaf that fails to launch (supervise.sh exits non-zero, no reply) makes grade-prose.sh exit 2, say no verdict was obtained, and append no grading event; it never exits 1 ⟦criterion 10⟧
+- [ ] a usage-limit reply from the grader leaf makes grade-prose.sh exit 2, say no verdict was obtained, and append no grading event; it never exits 1 ⟦criterion 10⟧
+- [ ] every grading appends one event to .tdd/events.jsonl carrying the unit, the verdict and the failing IDs ⟦criterion 7⟧
+- [ ] every grading event records that grading's cost in dollars, read from the grader leaf's own result ⟦criterion 17⟧
+- [ ] the measurement in specs/grader-poc.md is repeated through grade-prose.sh on the specs/grader-poc/ fixtures (original, harmless, violating and subtle variants, each graded three times), each grading's verdict and cost recorded in that file with a written go/no-go ⟦human-owed⟧ ⟦criterion 8⟧
