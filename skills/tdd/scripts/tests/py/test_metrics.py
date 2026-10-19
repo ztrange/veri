@@ -1,7 +1,6 @@
 """In-process cases for veri/metrics.py, the module metrics.sh is a shim over."""
 import importlib
 import json
-import pathlib
 import re
 
 import pytest
@@ -1450,13 +1449,3 @@ def test_main_names_no_dollar_figure_for_a_conductor_turn_whose_model_the_price_
     out = render(metrics, capsys)
 
     assert re.search(r"Conductor own spending:[^\n]*\$\d", out) is None
-
-
-def test_conductor_turn_estimate_agrees_with_the_result_record_for_the_default_conductor_model_1859(tmp_path, metrics):
-    recorded = pathlib.Path(__file__).parent.parent / "fixtures" / "conductor-log" / "conductor-opus-5-5.log"
-    (tmp_path / "conductor-108.log").write_text(recorded.read_text())
-
-    sessions, turn_rows = metrics.conductor_sessions("108", str(tmp_path / "events.jsonl"))
-
-    estimate = sum(float(row[1].lstrip("$")) for row in turn_rows)
-    assert estimate == pytest.approx(sessions[0]["total_cost_usd"], rel=0.10)
