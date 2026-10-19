@@ -86,9 +86,10 @@ if [[ -n "$verdict" ]] && { [[ -n "$fails" && "$verdict" == "VERDICT: PASS" ]] |
   exit 2
 fi
 failing="$(cut -d: -f1 <<< "$fails" | paste -sd, -)"
+outcome=PASS
+[[ -n "$fails" ]] && outcome=REJECT
+"$HERE/event.sh" grading unit="$unit" verdict="$outcome" failing="$failing" > /dev/null
 if [[ -n "$fails" ]]; then
-  "$HERE/event.sh" grading unit="$unit" verdict=REJECT failing="$failing" > /dev/null
   echo "$fails"
   exit 1
 fi
-"$HERE/event.sh" grading unit="$unit" verdict=PASS failing= > /dev/null
