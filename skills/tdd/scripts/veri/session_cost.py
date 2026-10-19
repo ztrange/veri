@@ -16,6 +16,13 @@ PRICES = {
         "cache_write_1h": 30.00,
         "output": 75.00,
     },
+    "claude-opus-5-5": {
+        "input": 4.00,
+        "cache_read": 0.20,
+        "cache_write_5m": 5.00,
+        "cache_write_1h": 8.00,
+        "output": 20.00,
+    },
 }
 
 RAMP_FACTOR = 1.5
@@ -74,7 +81,7 @@ def weigh(usage, kinds):
 
 
 def family(model):
-    for key in PRICES:
+    for key in sorted(PRICES, key=len, reverse=True):
         if key in model:
             return key
     return None
