@@ -935,3 +935,17 @@ def test_cli_against_a_gh_that_refuses_graphql_with_the_403_and_answers_rest_und
     answer = run_cli(solvable_issues, [], env={"VERI_GH_DRIVER": "auto"}, cwd=tmp_path)
 
     assert answer == (0, "74\n70\n", "")
+
+
+def test_main_not_running_omits_the_issue_with_a_live_conductor_from_this_clones_skill_path_and_prints_the_rest_in_order(tmp_path, monkeypatch, capsys, solvable_issues):
+    (tmp_path / "issues.json").write_text(json.dumps([opted_in(5), opted_in(6), opted_in(7)]))
+    (tmp_path / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    fake_git_answering_nothing(monkeypatch)
+    own = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(solvable_issues.__file__))), "run-conductor.sh")
+    monkeypatch.setattr(solvable_issues, "process_listing", lambda: "bash %s 6\nvim notes.txt\n" % own, raising=False)
+
+    code = solvable_issues.main(["--not-running"])
+
+    out, err = capsys.readouterr()
+    assert (code, out) == (0, "5\n7\n")

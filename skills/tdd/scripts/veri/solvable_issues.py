@@ -42,6 +42,15 @@ def in_flight(main_tree, number):
     return True
 
 
+def process_listing():
+    return subprocess.run(["ps", "-axo", "args="], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True).stdout
+
+
+def running_here():
+    own = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "run-conductor.sh")
+    return {int(n) for n in re.findall(r"(?:^|\s)%s\s+(\d+)\b" % re.escape(own), process_listing(), re.M)}
+
+
 def refused_if_empty(name):
     if tunables.read(name, None) == "":
         print("solvable-issues: %s is set but empty: name a label or leave it unset" % name, file=sys.stderr)
@@ -111,6 +120,8 @@ def select(label, priority="priority", repo=None):
 
 
 def main(argv):
+    skip_running = argv[:1] == ["--not-running"]
+    argv = argv[1:] if skip_running else argv
     repo = "".join(argv[1:2]) if argv[:1] == ["--repo"] else None
     if repo == "":
         print(USAGE, file=sys.stderr)
@@ -120,7 +131,10 @@ def main(argv):
     if label is None or priority is None:
         return 2
     code, numbers = select(label, priority, repo)
+    running = running_here() if skip_running else set()
     for number in numbers:
+        if number in running:
+            continue
         print(number)
     return code
 
