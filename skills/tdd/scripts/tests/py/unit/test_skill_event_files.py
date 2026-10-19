@@ -60,3 +60,18 @@ def test_the_pin_section_lives_in_pin_md_not_skill_md_1852():
     assert [marker for marker in markers if marker in skill] == []
     assert heading in pin.splitlines()
     assert [marker for marker in markers if marker not in pin] == []
+
+
+def test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_1855():
+    """Subject is source text: each site entering the revise loop names REVISE.md to Read; the budget default stays."""
+    sites = r"enter the \*\*revise loop|^\s*\*\*revise loop\*\* for red|revise under|bounded revise loop|goes round the revise loop|a revise of the"
+    lines = _lines_with_pin()
+    entering = [i for i, line in enumerate(lines) if re.search(sites, line)]
+
+    assert len(entering) >= 9
+    missing = [
+        lines[i] for i in entering
+        if not ("`<base directory>/REVISE.md`" in lines[i] + " " + lines[i + 1] and "`Read`" in lines[i] + " " + lines[i + 1])
+    ]
+    assert missing == []
+    assert re.search(r"`REVISE_BUDGET`[^.]*?\*\*default (\d+)\*\*", SKILL.read_text()).group(1) == "2"
