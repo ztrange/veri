@@ -1497,22 +1497,23 @@ def test_working_tree_an_uncommitted_edit_inside_one_section_of_skill_md_prints_
         0, suites("skill-alpha.test.sh", "skill-whole.test.sh"), "")
 
 
-def test_working_tree_a_new_untracked_suite_is_printed(monkeypatch, run_cli, affected, tmp_path):
-    monkeypatch.setattr(subprocess, "run", working_tree_git(
-        untracked_=[SCRIPTS_REL + "tests/baz.test.sh"], counted_untracked=[SCRIPTS_REL + "tests/baz.test.sh"]))
+def untracked_baz_suite(monkeypatch, tmp_path, extra=None):
+    baz = SCRIPTS_REL + "tests/baz.test.sh"
+    monkeypatch.setattr(subprocess, "run", working_tree_git(untracked_=[baz], counted_untracked=[baz]))
     plant(tmp_path, {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "tests/foo.test.sh": "# foo suite\n",
-                     SCRIPTS_REL + "tests/baz.test.sh": "# baz suite\n"})
+                     baz: "# baz suite\n", **(extra or {})})
+
+
+def test_working_tree_a_new_untracked_suite_is_printed(monkeypatch, run_cli, affected, tmp_path):
+    untracked_baz_suite(monkeypatch, tmp_path)
     code, out, err = run_cli(affected, ["base"], cwd=tmp_path)
     assert (code, SUITES + "baz.test.sh" in out.splitlines()) == (0, True)
 
 
 def test_working_tree_a_new_untracked_suite_also_prints_the_claude_md_counts_suite(
         monkeypatch, run_cli, affected, tmp_path):
-    monkeypatch.setattr(subprocess, "run", working_tree_git(
-        untracked_=[SCRIPTS_REL + "tests/baz.test.sh"], counted_untracked=[SCRIPTS_REL + "tests/baz.test.sh"]))
-    plant(tmp_path, {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "tests/foo.test.sh": "# foo suite\n",
-                     SCRIPTS_REL + "tests/py/unit/test_claude_md_counts.py": "# counts suite\n",
-                     SCRIPTS_REL + "tests/baz.test.sh": "# baz suite\n"})
+    untracked_baz_suite(monkeypatch, tmp_path,
+                        {SCRIPTS_REL + "tests/py/unit/test_claude_md_counts.py": "# counts suite\n"})
     assert run_cli(affected, ["base"], cwd=tmp_path) == (0, SUITES + "baz.test.sh\n" + COUNTS, "")
 
 
