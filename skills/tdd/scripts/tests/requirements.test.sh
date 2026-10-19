@@ -274,6 +274,18 @@ named=no; [[ "$err" =~ (^|[^0-9])3([^0-9]|$) ]] && named=yes
 expect_eq "claims on a heading whose only table is Key | Value without leading pipes exits 2, prints nothing on stdout and names the heading line on stderr (#1743)" \
   $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
 
+cat > "$work/escaped-pipe.md" <<MD
+$H skills/tdd/SKILL.md
+
+| ID | Requirement | Why |
+|----|-------------|-----|
+| A1 | Says a \| b in full. | Because. |
+MD
+
+out="$("$REQUIREMENTS" claims "$work/escaped-pipe.md" skills/tdd/SKILL.md 2> "$work/stderr")" && code=0 || code=$?
+expect_eq "claims on a requirement holding an escaped \\| prints the whole requirement with the pipe (#1743)" \
+  $'0\nA1\tSays a \\| b in full.' "$code"$'\n'"${out%$'\n'}"
+
 out="$("$REQUIREMENTS" 2> "$work/stderr")" && code=0 || code=$?
 err="$(< "$work/stderr")"
 usage=no; [[ "$err" == usage:*requirements.sh* ]] && usage=yes
