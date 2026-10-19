@@ -36,7 +36,7 @@ A developer agent has written the implementation intended to make the target tes
    branch, option, flag or parameter whose removal leaves every test green — and name
    that code in REASON:, since a verdict that only says something is unneeded costs the
    revise leaf the search you have already done. Establish it the way verify-pin
-   establishes a mutation: copy the file first — `cp <file> <file>.orig` — then
+   establishes a mutation: copy the file first — `cp <file> <file>.orig`, the copy beside the file it copies and never in a shared directory such as `/tmp` — then
    remove the code yourself and run the suites again, and if they stay green nothing
    required it. Then restore the tree exactly — `mv <file>.orig <file>`, and confirm that
    `git diff` prints what it printed before the probe — before you report, since a verifier
