@@ -47,14 +47,13 @@ def _wrong_test_lines(report):
     return [l for l in _read(report).splitlines() if l.startswith("WRONG_TEST:")]
 
 
-def _test_names(line):
-    return re.findall(r"\btest_\w+", line)
+def _named_cases(line):
+    return re.findall(r"\btest_\w+", line) + re.findall(r"`([^`]+)`", line)
 
 
 def route(report, own_id):
     for line in _wrong_test_lines(report):
-        names = _test_names(line) + re.findall(r"`([^`]+)`", line)
-        for case in names:
+        for case in _named_cases(line):
             if case != own_id.rpartition("::")[2] and _exists(case):
                 return case
     return None
@@ -75,7 +74,7 @@ def _recorded_case(report, step):
         except OSError:
             continue
         for line in lines:
-            for case in _test_names(line) + re.findall(r"`([^`]+)`", line):
+            for case in _named_cases(line):
                 if added and case not in added:
                     continue
                 if re.search(r"def %s\(" % re.escape(case), text) or ('name="%s"' % case) in text:
