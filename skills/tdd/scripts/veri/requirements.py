@@ -44,6 +44,8 @@ def claims(path, unit):
             if cells[1:] != COLUMNS + [""]:
                 fail("header lacks a column")
             intable, skip = True, True
+        elif intable and not line.startswith("|"):
+            intable = False
         elif intable and skip:
             skip = False
         elif intable and line.startswith("|"):
