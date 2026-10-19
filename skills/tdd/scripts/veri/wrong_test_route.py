@@ -4,6 +4,7 @@ import json
 import os
 import re
 import sys
+import tests_frozen
 import tunables
 
 USAGE = "usage: wrong-test-route.sh <green-report> <red-test-id>"
@@ -49,6 +50,21 @@ def route(report, own_id):
     return None
 
 
+def _recorded(report, step):
+    try:
+        with open(tests_frozen._record_path(step), encoding="utf-8", errors="replace") as handle:
+            cases = {l[6:].strip() for l in handle.read().splitlines() if l.startswith("case: ")}
+    except OSError:
+        return None
+    with open(report, encoding="utf-8", errors="replace") as handle:
+        lines = [l for l in handle.read().splitlines() if l.startswith("WRONG_TEST:")]
+    for line in lines:
+        for case in re.findall(r"\btest_\w+", line):
+            if case in cases:
+                return case
+    return None
+
+
 def _rerouted(step):
     try:
         with open(".tdd/events.jsonl", encoding="utf-8", errors="replace") as handle:
@@ -69,7 +85,12 @@ def main(argv):
     if len(argv) != 2 or not argv[0] or not argv[1]:
         _write(sys.stderr, USAGE)
         return 2
-    case = None if _rerouted(tunables.read("VERI_STEP")) else route(argv[0], argv[1])
+    step = tunables.read("VERI_STEP")
+    repair = _recorded(argv[0], step)
+    if repair is not None:
+        _write(sys.stdout, "repair " + repair)
+        return 0
+    case = None if _rerouted(step) else route(argv[0], argv[1])
     if case is None:
         _write(sys.stdout, "revise")
         return 3
