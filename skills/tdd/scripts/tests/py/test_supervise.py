@@ -4116,3 +4116,23 @@ def test_cli_refuses_a_launch_whose_veri_step_is_set_but_empty_exiting_2_naming_
     records = events.records(tmp_path)
     assert [r["event"] for r in records] == ["launch-refused"], records
     assert (records[0]["name"], bool(records[0]["reason"])) == ("verify-red", True), records
+
+
+@pytest.mark.process("a real stub verify command that a launch refused for an empty --step must never start (#1760)")
+def test_cli_refuses_a_verifier_launch_whose_step_argument_is_empty_exiting_2_naming_step_starting_no_leaf_and_appending_one_launch_refused_event_1760(
+        monkeypatch, tmp_path, supervise, run_cli, events):
+    clean_env(monkeypatch)
+    stub = tmp_path / "run-verdict.sh"
+    stub.write_text("#!/bin/sh\ntouch ran\n")
+    stub.chmod(0o755)
+
+    code, out, err = run_cli(supervise, ["verdict-red", str(stub), "--step", "", "red", "spec.md", "t.sh", "case"],
+                             cwd=tmp_path, env={"VERI_ISSUE": "1760"})
+
+    lines = err.splitlines()
+    assert (code, out, len(lines)) == (2, "", 1), err
+    assert "--step" in lines[0], err
+    assert (tmp_path / "ran").exists() is False, err
+    records = events.records(tmp_path)
+    assert [r["event"] for r in records] == ["launch-refused"], records
+    assert (records[0]["name"], bool(records[0]["reason"])) == ("verdict-red", True), records
