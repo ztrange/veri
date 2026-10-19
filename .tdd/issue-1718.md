@@ -1,7 +1,7 @@
 # Plan for #1718 — PRD 011 S2: grade-prose.sh grades one prose unit against its requirements list on the verdict contract — gate for slices 3+
 
 - [x] `grade-prose.sh <requirements-file> <unit>`, given a whole-file unit (a path resolved beside the requirements file), launches a stub `claude` (via `CLAUDE_BIN`, no real model) whose prompt carries the unit file's full text and every requirement's ID and Requirement text from that unit's table, and contains no text from any `Why` cell, no diff and no commit message; run with no arguments it prints a usage line and exits 2 ⟦criterion 1⟧
-- [x] A section unit `<path>#<heading>` sends the stub `claude` only that section's text, from its heading line to the next heading of the same or higher level, and nothing of the file before or after it ⟦criterion 2⟧ ⟂ refactor pending
+- [x] A section unit `<path>#<heading>` sends the stub `claude` only that section's text, from its heading line to the next heading of the same or higher level, and nothing of the file before or after it ⟦criterion 2⟧
 - [ ] The grader leaf is launched through `supervise.sh` under a leaf role of its own, distinct from developer and verifier: the supervisor's launch event in `.tdd/events.jsonl` names that grader role, never `developer` or `verifier` ⟦criterion 3⟧
 - [ ] The stub `claude` receives `--model` with exactly the model value in the committed `skills/tdd/grader.conf`, and setting `VERI_MODEL` or `VERI_MODEL_VERIFIER` to another value does not change the `--model` it receives ⟦criterion 3⟧
 - [ ] A `grader.conf` whose model value names no version (e.g. `sonnet`) makes `grade-prose.sh` exit 2 with a diagnostic on stderr before anything is launched: the stub `claude` is never invoked ⟦criterion 4⟧
