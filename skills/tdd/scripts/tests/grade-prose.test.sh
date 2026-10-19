@@ -122,4 +122,17 @@ named_trailing=no; grep -iF 'after END GRADES' "$work/err-trailing" > /dev/null 
 expect_eq "a reply with no BEGIN GRADES block, or with text after END GRADES, exits 2 and names that defect on stderr" \
   "2;2;noblock=yes;trailing=yes" "$code_noblock;$code_trailing;noblock=$named_noblock;trailing=$named_trailing"
 
+claude_stub "$bin" "cat > '$work/seen-prompt'"
+(cd "$work/role" && CLAUDE_BIN="$bin/claude" "$GRADE" "$work/role/REQUIREMENTS.md" unit.md > /dev/null 2>&1)
+sp="$(cat "$work/seen-prompt" 2> /dev/null)"
+g5=""
+for want in 'BEGIN GRADES' 'END GRADES' 'PASS|FAIL' 'VERDICT: PASS' 'VERDICT: REJECT'; do
+  [[ "$sp" == *"$want"* ]] || g5+="[missing $want]"
+done
+before_verdict="${sp%VERDICT: REJECT*}"
+after_verdict="${sp#"$before_verdict"}"
+[[ "$after_verdict" == *'END GRADES'* ]] || g5+="[VERDICT not inside the block before END GRADES]"
+expect_eq "the prompt tells the grader to end with a BEGIN GRADES block of PASS|FAIL lines and a VERDICT line inside it before END GRADES" \
+  "" "$g5"
+
 finish

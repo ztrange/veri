@@ -33,7 +33,14 @@ Requirements (ID<TAB>Requirement):
 $claims
 
 Unit text:
-$text"
+$text
+
+Analyse freely first. Then end your reply with this block, one line per requirement in list order:
+BEGIN GRADES
+<ID>: PASS|FAIL — <reason>
+VERDICT: PASS or VERDICT: REJECT
+END GRADES
+The VERDICT line goes inside the block, before END GRADES; write nothing after END GRADES."
 
 model="$(awk '/^[[:space:]]*(#|$)/ { next } !found { v = $0; sub(/^[^=]*=/, "", v); gsub(/^[[:space:]"]+|[[:space:]"]+$/, "", v); found = 1 } END { print v }' "$HERE/../grader.conf")"
 if [[ "$model" != *[0-9]* ]]; then
