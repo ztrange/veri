@@ -762,7 +762,7 @@ by eye — which outcome it holds is an exit code, not a judgement made per run:
 $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer.txt; echo $?
 ```
 
-- **exit 0 — split.** Exactly the revise-exhausted path's split (see *Revise*):
+- **exit 0 — split.** Exactly the revise-exhausted path's split (see `<base directory>/REVISE.md`; `Read` it when a verifier answers `REJECT`):
   `.tdd/over-budget-answer.txt` holds the criteria, one per line, and they replace the step.
   Restore the tree first, so the step's uncommitted work cannot become the first replacement
   step's inherited start, then grow the plan in **one** call, then commit it before the run
@@ -785,7 +785,7 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   them, because all three are plan growth. **`add-ledger-step.sh` exit 2 → bail with cause
   `step-add-refused`** — see `<base directory>/BAIL.md`.
 - **exit 1 — a decision for the user.** `.tdd/over-budget-answer.txt` holds the leaf's answer.
-  **Park the step** — the same park the revise-exhausted path takes (see *Revise*): stop the
+  **Park the step** — the same park the revise-exhausted path takes (see `<base directory>/REVISE.md`; `Read` it when a verifier answers `REJECT`): stop the
   run there, carrying that answer and the two figures, what the step has spent and the
   step budget, and leave the plan as it is so the user's decision picks the run back up:
   ```
@@ -871,8 +871,8 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      `$S/preserve-attempt.sh <n> "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" develop-red 1 prediction-diverged` so the tree the
      surprising test came from survives the next leaf that overwrites it (best-effort: note
      it if it fails and carry on), and enter the
-     **revise loop** for red exactly as a verify-red `REJECT` does (see *Revising on a
-     REJECT*) — the revise leaf answers `.tdd/verify-red.reason`, and the attempt spends
+     **revise loop** for red exactly as a verify-red `REJECT` does (`Read` `<base directory>/REVISE.md`
+     when a verifier answers `REJECT`) — the revise leaf answers `.tdd/verify-red.reason`, and the attempt spends
      `REVISE_BUDGET` like any other.
 
    Run `$S/unreplaced-cases.sh "<step line>" .tdd/develop-red.out` on a `⟦replaces-case⟧` step once the
@@ -934,7 +934,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    that thread is the evidence. Follow it with a `### 🔎 verify-red — PASS|REJECT` comment
    carrying the verifier's reason.
    - **PASS (exit 0):** continue to Green.
-   - **REJECT (exit 1):** enter the **revise loop** — see *Revising on a REJECT*. It
+   - **REJECT (exit 1):** enter the **revise loop** — when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`. It
      returns either PASS (continue to Green) or budget-exhausted (**bail**, process failure).
    - **Malformed / killed-stuck (exit 2):** the verdict could not be obtained (unparseable
      or the verifier leaf was killed) — **bail** as a system failure (see `<base directory>/BAIL.md`), not a
@@ -1072,7 +1072,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      is called on the pushed sha, and read the way that step reads it. A red
      CI there is the second red, and **bails** with cause `ci-red`.
      A `⟦ci-repair⟧` step is judged by the ci-repair verify-green variant, which judges only evidence that exists before the push — the failing job's log before the fix, a diff touching what it names, the local suites green — and not the local revert-goes-red check, which a CI-only failure can never pass; the green CI run on the pushed fix comes after. It never requires a CI run on the fix. Its CI verdict is the post-push `wait-ci.sh` wait, where red bails `ci-red`.
-   - **REJECT (exit 1):** enter the **revise loop** — see *Revising on a REJECT*. On a
+   - **REJECT (exit 1):** enter the **revise loop** — when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`. On a
      recovered PASS, do the same atomic tick-and-commit and continue; on budget-exhausted,
      **bail**.
    - **Malformed / killed-stuck (exit 2):** **bail** — see `<base directory>/BAIL.md`.
@@ -1308,7 +1308,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      On exit **2** no answer could be obtained — a missing event log, a bad
      `VERI_RUN_BUDGET`, a count that is not a whole number — a system failure, not a
      projection: **bail**. (Earlier steps' commits are preserved.)
-   - **REJECT (exit 1):** enter the **revise loop**; on recovered PASS, mirror and loop; on
+   - **REJECT (exit 1):** enter the **revise loop** — when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`; on recovered PASS, mirror and loop; on
      budget-exhausted, **bail**. (Earlier steps' commits are preserved.)
    - **Malformed / killed-stuck (exit 2):** **bail**. (Earlier steps' commits are preserved.)
 
@@ -1346,7 +1346,7 @@ before the re-verify with the same exit 2 outcome. The verifier's verdict closes
   `criterion-finished.sh` exit 0, ticking nothing on exit 3, exactly as a Refactor loop's
   PASS does.
 - **REJECT (exit 1):** a revise of the `⟦diff-checked⟧` step's `develop-diff` work under
-  `REVISE_BUDGET` — see *Revising on a REJECT*; on a recovered PASS tick as above, on
+  `REVISE_BUDGET` — when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`; on a recovered PASS tick as above, on
   budget-exhausted **bail**.
 - **Malformed / killed-stuck (exit 2):** no verdict on the `⟦diff-checked⟧` step could be
   obtained, so **bail** as a system failure (`no-verdict`) — see `<base directory>/BAIL.md`.
@@ -1363,7 +1363,7 @@ that base sha. Both are launched through the supervisor and waited on as *Launch
 sets out, the leaf as `develop-<phase>` and the verifier as `verdict-<phase>`. On PASS, mark
 the phase with `tick-ledger.sh --phase <phase> .tdd/issue-<n>.md "<STEP>"` and commit the
 ledger with that phase's commit, then push, and go back to `next-phase` for the step's next
-phase. On REJECT, revise under `REVISE_BUDGET` as *Revising on a REJECT* sets out; on exit 2,
+phase. On REJECT, revise under `REVISE_BUDGET` as `<base directory>/REVISE.md` sets out (`Read` it when a verifier answers `REJECT`); on exit 2,
 **bail** as a system failure (`no-verdict`). Once `next-phase` exits 3 every listed phase is
 marked, the step reads as done, and the loop goes back to `next-unchecked.sh`.
 
@@ -1522,7 +1522,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/detach-leaf.sh $S/supervise.sh verdict-rebase $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" rebase .tdd/issue-<n>-spec.md <onto-sha> <pre-rebase-sha> > .tdd/verify-rebase.reason 2> .tdd/verify-rebase.err
    $S/wait-leaf.sh verdict-rebase   # foreground; on exit 3 call it again
    ```
-   A verify-rebase `REJECT` goes round *Revising on a REJECT* with phase `rebase`, within
+   A verify-rebase `REJECT` goes round the revise loop with phase `rebase` (`Read` `<base directory>/REVISE.md` when a verifier answers `REJECT`), within
    `REVISE_BUDGET` like any other phase; a malformed verdict does **bail** as a **system**
    failure (`no-verdict`).
    Only on a verify-rebase `PASS` does the run go on to ready the PR, and first as on exit 0:
@@ -1853,7 +1853,7 @@ hatch.
   more on the rebased tip when sub-step 1 rebased the branch.
 - The PR is opened as a **draft** at the plan commit and readied for review at the Draft PR
   step, always carries `Closes #<n>`, and is **never merged** by you.
-- On a `REJECT`, run the **bounded revise loop** (default 2 attempts, fresh leaf carrying
+- On a `REJECT`, run the **bounded revise loop** (`Read` `<base directory>/REVISE.md` when a verifier answers `REJECT`; default 2 attempts, fresh leaf carrying
   the reason); if it exhausts, **bail** (process failure). On a **killed-stuck** leaf past
   its retry budget, or an unreadable verdict, **bail** (system failure). Always preserve
   commits and classify the cause. Never hand-fix the code yourself or loop past the budget.
