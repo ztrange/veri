@@ -1,7 +1,7 @@
 # Plan for #1765 — A green WRONG_TEST about the step's own new Red case has no route back to Red, so a one-line test defect exhausts revise
 
 - [x] `tests-frozen.sh record --step` writes into the step's red record (the record file `tests-frozen.sh path "<step>"` names) the name of each pytest test function the step's Red added to a test file, so reading that record back lists the added function by name ⟦criterion 5⟧
-- [x] The step's red record lists, by name, each bash `name="…"` case the step's Red added to a `.test.sh` suite, just as it lists pytest functions; pinned by a case that reads the record itself, not through `wrong-test-route.sh` ⟦criterion 9⟧ ⟂ refactor pending
+- [x] The step's red record lists, by name, each bash `name="…"` case the step's Red added to a `.test.sh` suite, just as it lists pytest functions; pinned by a case that reads the record itself, not through `wrong-test-route.sh` ⟦criterion 9⟧
 - [ ] When the step's Red edits an existing pytest function or bash `name="…"` case instead of adding one, the step's red record lists that edited case by name ⟦criterion 8⟧
 - [ ] `wrong-test-route.sh <green-report> <red-test-id>`, run with `VERI_STEP` set, prints `repair <case>` and exits 0 when the report's `WRONG_TEST:` line names a pytest function listed in that step's red record — including the step's own target test ⟦criterion 5⟧
 - [ ] `wrong-test-route.sh` prints `repair <case>` when the `WRONG_TEST:` line names a bash `name="…"` case listed in the step's red record ⟦criterion 5⟧
