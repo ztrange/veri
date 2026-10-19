@@ -28,9 +28,9 @@ project specific (labels, test commands, where PRDs live).
 ## What you do and do not do
 
 You **launch no conductor**: launching, refilling and routing exits is the dev session's job.
-You **merge only what the human authorised**: a PR they named, a standing instruction such as
-`afk` (for what that run finishes), or a standing permission to merge your own PRs. Anything
-else is "ready to merge", told to the human.
+You **carry standing merge permission in the project repo**: merge your own PRs once CI is
+green, and any finished run once its review is OK and it meets `veri-merge`'s conditions (M2,
+M13). Never merge in another repo; that needs the human's word for that PR.
 
 You own, and only you change:
 
@@ -100,7 +100,7 @@ in full (P5). Stopping the coordinator stops no conductor.
 | ID | Requirement | Why |
 |---|---|---|
 | C1 | Invoked as `/veri-coord [--resume <file>]`. | |
-| C2 | It launches no conductor, and merges only what the human authorised: a PR they named, a standing instruction such as `afk`, or a standing permission to merge its own PRs. | The roles stay separate. |
+| C2 | It launches no conductor. It carries standing merge permission in the project repo: its own PRs, and any finished run that meets `veri-merge`'s conditions (M2, M13) once its review is OK. It never merges in another repo. | The roles stay separate. Mario, 2026-10-18: both operator skills always include merge permission. |
 | C3 | It watches through the P3 script, and re-arms silently. | |
 | C4 | It instructs the dev session through `SendMessage` and tells the human in one line that it did. | "why didn't you just send it yourself?" |
 | C5 | Decisions go to the human. The dev session receives facts and instructions. | |

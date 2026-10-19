@@ -1,7 +1,7 @@
 ---
 name: veri-dev
 description: >-
-  The veri dev session, reached by name: `/vdev [N] [--afk] [--resume <file>]`.
+  The veri dev session, reached by name: `/vdev [N] [--resume <file>]`.
 ---
 
 # veri-dev — the dev session
@@ -16,11 +16,11 @@ under it. The target repo's CLAUDE.md supplies the project specifics.
 
 ## Starting
 
-Invoked as `/veri-dev [N] [--afk] [--resume <file>]`.
+Invoked as `/veri-dev [N] [--resume <file>]`.
 
 - **N** is how many conductors to keep running; it defaults to 1.
-- **`--afk`** grants merge permission for the runs this session finishes, and for nothing else.
-  Without it, a finished run is reported, never merged.
+- **Merging is always granted** for the runs this session finishes, in the project repo only.
+  A run is merged after its review is OK; never one in another repo.
 - **`--resume <file>`** reads a handoff for state only (live conductors, parked runs, PRs
   awaiting merge, N and any timed change, overrides and permissions with their expiry); the
   rules are this skill's. Re-read that state live before the first slot decision.
@@ -73,9 +73,8 @@ On each conductor exit, read the facts — the issue's last comment
 (`gh issue view <n> --json comments`), the committed ledger, the PR — never the exit code
 alone, and route:
 
-- **Last comment ✅ Done.** Under `--afk`, merge it through `veri-merge`. Without `--afk`,
-  report one line, `ready to merge #<n> — <title>`, with the PR url, and do not merge.
-  `veri-merge` does not exist yet: until it does, merge under `--afk` with the installed
+- **Last comment ✅ Done.** Review it, and on OK merge it through `veri-merge`.
+  `veri-merge` does not exist yet: until it does, merge with the installed
   `merge` skill, and only when the ledger has no unchecked step (`$S/next-unchecked.sh <
   .tdd/wt/<n>/.tdd/issue-<n>.md` exits 3) and no `⟂ refactor pending` mark
   (`$S/next-pending-refactor.sh` on the same file exits 3); otherwise report it as not ready.
@@ -106,11 +105,11 @@ issue there.
 
 | ID | Requirement | Why |
 |---|---|---|
-| D1 | Invoked as `/veri-dev [N] [--afk] [--resume <file>]`. N defaults to 1, and `--afk` grants merge permission for what this session finishes. | |
+| D1 | Invoked as `/veri-dev [N] [--resume <file>]`. N defaults to 1. It carries standing merge permission in the project repo for the runs it finishes; it never merges in another repo. | Mario, 2026-10-18: both operator skills always include merge permission. |
 | D2 | It keeps exactly N conductors running while the solvable list is non-empty. | Idle slots were the recurring waste. |
 | D3 | Each conductor is a detached `run-conductor.sh <n>`, never a conductor run inline. | An inline conductor costs ~60k tokens per issue in the session. |
 | D4 | It launches the next issue only after the previous launch's ledger exists. | A claim appears only ~10 minutes into a run. |
-| D5 | On each exit it routes by fact: ✅ Done → `veri-merge` under `--afk`, else "ready to merge #N"; a bail → `veri-bail`; no closing comment → P10. | |
+| D5 | On each exit it routes by fact: ✅ Done → review, then `veri-merge` on OK; a bail → `veri-bail`; no closing comment → P10. | |
 | D6 | After every merge, park or exit it recounts and refills to N. | |
 | D7 | It applies the coordinator's changes to N or to the order at the next slot decision. | |
 | D8 | It stops and asks only for: red CI it cannot fix, a ⟦human-owed⟧ step, an unresolvable conflict, a decision a ledger step asks for. | |
