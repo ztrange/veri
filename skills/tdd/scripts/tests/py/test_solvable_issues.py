@@ -949,3 +949,17 @@ def test_main_not_running_omits_the_issue_with_a_live_conductor_from_this_clones
 
     out, err = capsys.readouterr()
     assert (code, out) == (0, "5\n7\n")
+
+
+def test_main_not_running_keeps_the_issue_whose_live_conductor_was_started_from_a_temporary_copy_of_the_skill(tmp_path, monkeypatch, capsys, solvable_issues):
+    (tmp_path / "issues.json").write_text(json.dumps([opted_in(5), opted_in(6), opted_in(7)]))
+    (tmp_path / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    fake_git_answering_nothing(monkeypatch)
+    copy = "/tmp/veri-fixture-copy/skills/tdd/scripts/run-conductor.sh"
+    monkeypatch.setattr(solvable_issues, "process_listing", lambda: "bash %s 6\n" % copy, raising=False)
+
+    code = solvable_issues.main(["--not-running"])
+
+    out, err = capsys.readouterr()
+    assert (code, out) == (0, "5\n6\n7\n")
