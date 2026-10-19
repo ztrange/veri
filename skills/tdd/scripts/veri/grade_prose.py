@@ -6,6 +6,7 @@ import sys
 import tempfile
 
 import requirements
+from extract_result import extract
 from run_verdict import SCRIPTS
 
 USAGE = "usage: grade-prose.sh <requirements-file> <unit>"
@@ -73,7 +74,11 @@ def main(argv):
                         os.path.join(SCRIPTS, "run-leaf.sh"), f.name], stdout=subprocess.PIPE, env=env)
     finally:
         os.unlink(f.name)
-    return 0
+    with open(os.path.join(".tdd", "grade-prose.log"), encoding="utf-8") as log:
+        reply = extract(log.read())
+    failed = re.findall(r"^\S+: FAIL\b.*$", reply, re.M)
+    print("\n".join(failed))
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

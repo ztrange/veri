@@ -12,7 +12,7 @@
 - [x] a grader.conf model value that names no version (e.g. sonnet) makes grade-prose.sh exit 2 before anything is launched ⟦criterion 4⟧
 - [x] the grader leaf is launched as the verify leaves are, through run-leaf.sh under supervise.sh, so the command the stub claude receives carries the same tool limits a verify leaf's does (#1705) ⟦criterion 18⟧
 - [x] a reply whose final BEGIN GRADES … END GRADES block has every ID line PASS and VERDICT: PASS makes grade-prose.sh exit 0 ⟦criterion 5⟧
-- [ ] a reply whose final GRADES block has a FAIL line and VERDICT: REJECT makes grade-prose.sh exit 1 and print the failing ID with its reason ⟦criterion 5⟧
+- [x] a reply whose final GRADES block has a FAIL line and VERDICT: REJECT makes grade-prose.sh exit 1 and print the failing ID with its reason ⟦criterion 5⟧ ⟂ refactor pending
 - [ ] a reply with two or more FAIL lines prints every failing ID with its reason ⟦criterion 15⟧
 - [ ] a reply with no GRADES block makes grade-prose.sh exit 2 and name the missing block on stderr ⟦criterion 6⟧
 - [ ] a reply with text after END GRADES makes grade-prose.sh exit 2 and name the trailing text on stderr ⟦criterion 6⟧
