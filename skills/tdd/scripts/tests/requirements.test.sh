@@ -258,6 +258,22 @@ out="$("$REQUIREMENTS" claims "$work/prose-pipe.md" skills/tdd/SKILL.md 2> "$wor
 expect_eq "claims on a unit with a prose a | b line after its table exits 0 and prints only the table's rows (#1743)" \
   $'0\nA1\tSays one thing.' "$code"$'\n'"${out%$'\n'}"
 
+cat > "$work/no-pipes.md" <<MD
+${H:0:1} Requirements
+
+$H skills/tdd/SKILL.md
+
+Key | Value
+----|------
+A1  | Says one thing.
+MD
+
+out="$("$REQUIREMENTS" claims "$work/no-pipes.md" skills/tdd/SKILL.md 2> "$work/stderr")" && code=0 || code=$?
+err="$(< "$work/stderr")"; err="${err//"$work"/}"
+named=no; [[ "$err" =~ (^|[^0-9])3([^0-9]|$) ]] && named=yes
+expect_eq "claims on a heading whose only table is Key | Value without leading pipes exits 2, prints nothing on stdout and names the heading line on stderr (#1743)" \
+  $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
+
 out="$("$REQUIREMENTS" 2> "$work/stderr")" && code=0 || code=$?
 err="$(< "$work/stderr")"
 usage=no; [[ "$err" == usage:*requirements.sh* ]] && usage=yes
