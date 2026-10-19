@@ -20,7 +20,7 @@
 - [x] a GRADES block whose VERDICT disagrees with its lines makes grade-prose.sh exit 2 and name the disagreement on stderr ⟦criterion 6⟧
 - [x] a GRADES block with no VERDICT: line makes grade-prose.sh exit 2 and name the missing verdict on stderr ⟦criterion 10⟧
 - [x] a GRADES line whose grade word is other than exactly PASS or FAIL (e.g. PASSABLE) makes grade-prose.sh exit 2 and name the defect on stderr ⟦criterion 10⟧
-- [ ] a reply holding two GRADES blocks is graded on the final one only, pinned by a case whose first block disagrees with its last ⟦criterion 16⟧
+- [x] a reply holding two GRADES blocks is graded on the final one only, pinned by a case whose first block disagrees with its last ⟦criterion 16⟧ ⟂ refactor pending
 - [ ] a grader leaf the supervisor kills (a hanging stub claude under shrunk VERI_HEARTBEAT/VERI_TIMEOUT) makes grade-prose.sh exit 2 and name the defect on stderr ⟦criterion 6⟧
 - [ ] a grader leaf that fails to launch (supervise.sh exits non-zero, no reply) makes grade-prose.sh exit 2, say no verdict was obtained, and append no grading event; it never exits 1 ⟦criterion 10⟧
 - [ ] a usage-limit reply from the grader leaf makes grade-prose.sh exit 2, say no verdict was obtained, and append no grading event; it never exits 1 ⟦criterion 10⟧

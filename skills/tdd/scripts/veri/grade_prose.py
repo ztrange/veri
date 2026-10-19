@@ -84,6 +84,7 @@ def main(argv):
         reply = extract(log.read())
     if "BEGIN GRADES" not in reply:
         return no_verdict("the reply has no BEGIN GRADES block")
+    reply = reply[reply.rindex("BEGIN GRADES"):]
     after = reply.split("END GRADES", 1)[1] if "END GRADES" in reply else ""
     trailing = "\n".join(l for l in after.splitlines() if l.strip() and not l.startswith("VERDICT:"))
     if trailing:
