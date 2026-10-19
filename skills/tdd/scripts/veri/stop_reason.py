@@ -11,6 +11,10 @@ def main(argv):
     if not os.path.isdir(os.path.join(".tdd", "wt", argv[0])):
         sys.stderr.write("stop-reason.sh: no run for issue %s under .tdd/wt\n" % argv[0])
         return 2
+    gap = os.environ.get("VERI_SLEEP_GAP", "900")
+    if not (gap.isascii() and gap.isdigit() and int(gap) >= 1):
+        sys.stderr.write("stop-reason.sh: VERI_SLEEP_GAP must be a whole number >= 1, got %r\n" % gap)
+        return 2
     log = os.path.join(".tdd", "wt", argv[0], ".tdd", "events.jsonl")
     events = _records(log)
     last = events[-1]
@@ -25,7 +29,7 @@ def main(argv):
     else:
         sys.stdout.write(_usage_limit(argv[0]))
     for a, b in zip(events, events[1:]):
-        if b["ts"] - a["ts"] > int(os.environ.get("VERI_SLEEP_GAP", "900")):
+        if b["ts"] - a["ts"] > int(gap):
             sys.stdout.write("gap %s %s\n" % (a["ts"], b["ts"]))
     return 0
 
