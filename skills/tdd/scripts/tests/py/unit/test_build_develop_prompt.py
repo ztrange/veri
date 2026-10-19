@@ -1872,6 +1872,18 @@ def test_cli_red_contradicted_builds_a_prompt_naming_the_case_to_update_and_the_
         0, [True] * (2 + len(footer)), 2, "", 2, "")
 
 
+def test_cli_red_repair_renders_the_named_case_and_the_green_report_path_and_tells_the_leaf_to_edit_that_case_only_never_to_create_a_suite_1765(
+        tmp_path, run_cli, build_develop_prompt):
+    step = "QWIXTLE: a seed ending in a newline gains the block and reports added"
+    case = "zorblat frobs a nitz"
+    report = ".tdd/develop-green.out"
+
+    code, out, err = run_cli(build_develop_prompt, ["red-repair", _spec(tmp_path), step, "make test", case, report])
+
+    assert (code, err, case in out, report in out, "{{" in out, re.search(r"create one", out)) == (
+        0, "", True, True, False, None)
+
+
 def test_cli_unknown_phase_with_no_further_arguments_exits_2_names_the_phase_on_stderr_and_prints_no_prompt(
         run_cli, build_develop_prompt):
     code, out, err = run_cli(build_develop_prompt, ["bogus"])

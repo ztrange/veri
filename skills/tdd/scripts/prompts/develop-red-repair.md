@@ -34,8 +34,7 @@ implements the criterion; leave every other case, and all production code, untou
    or 3, stop here and report `AGAINST_UNMODIFIED: UNTESTABLE` with `WHY:` — do not proceed
    to the steps below.
 1. Read the existing suite the case belongs in and repair the case in that suite's own style,
-   leaving its other cases untouched and green. If no suite fits, create one that matches
-   the repository's testing idiom.
+   leaving its other cases untouched and green. Never create a suite; edit that case only.
 2. **Predict the failure before you run anything.** Read the case you just wrote against
    the production code it will run against, and write — to `.tdd/red-prediction.md`, before
    you run any suite — which assertion fires first, the observed-versus-expected values it fires on,
