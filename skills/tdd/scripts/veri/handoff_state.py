@@ -16,10 +16,14 @@ def out(*args):
     return git(*args, capture_output=True, text=True).stdout.strip()
 
 
-def has_open_pr(branch):
-    answer = subprocess.run(["gh", "pr", "list", "--head", branch, "--state", "open", "--json", "number"],
+def open_prs(fields, *extra):
+    answer = subprocess.run(["gh", "pr", "list", *extra, "--state", "open", "--json", fields],
                             stdout=subprocess.PIPE, text=True)
-    return answer.returncode == 0 and bool(json.loads(answer.stdout or "[]"))
+    return json.loads(answer.stdout or "[]") if answer.returncode == 0 else []
+
+
+def has_open_pr(branch):
+    return bool(open_prs("number", "--head", branch))
 
 
 def parked_reason(run):
@@ -46,9 +50,7 @@ def main(argv):
         if run["state"] in ("bailed", "stopped", "stale") and has_open_pr(run.get("branch", "")):
             print(("#%s %s %s" % (run["issue"], run["state"], parked_reason(run))).rstrip())
     print("## Ready to merge")
-    listing = subprocess.run(["gh", "pr", "list", "--state", "open", "--json", "number,isDraft,body"],
-                             stdout=subprocess.PIPE, text=True)
-    for pr in json.loads(listing.stdout or "[]") if listing.returncode == 0 else []:
+    for pr in open_prs("number,isDraft,body"):
         closes = re.search(r"\bCloses #(\d+)", pr["body"] or "")
         if closes and not pr["isDraft"]:
             print("PR #%s closes #%s" % (pr["number"], closes.group(1)))
