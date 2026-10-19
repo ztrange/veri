@@ -64,6 +64,7 @@ def conductor_sessions(issue, path):
     sessions = []
     open_turns, open_cost = 0, 0.0
     turn_rows = []
+    seen_ids = set()
     with contextlib.suppress(OSError):
         log_name = "conductor-%s.log" % issue
         log_dir = os.path.dirname(path)
@@ -80,7 +81,12 @@ def conductor_sessions(issue, path):
                         sessions.append(record)
                         open_turns, open_cost = 0, 0.0
                     elif record.get("type") == "assistant":
-                        usage = (record.get("message") or {}).get("usage") or {}
+                        message = record.get("message") or {}
+                        usage = message.get("usage") or {}
+                        if message.get("id") is not None:
+                            if message["id"] in seen_ids:
+                                continue
+                            seen_ids.add(message["id"])
                         open_turns += 1
                         prices = session_cost.PRICES["opus"]
                         turn_dollars = sum((usage.get(key) or 0) * prices[rate] / 1e6
