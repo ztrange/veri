@@ -46,9 +46,11 @@ def _added_cases(name):
         new = handle.read()
     pattern = re.compile(r"^\s*(?:async\s+)?def\s+(test\w*)|^\s*name=\"([^\"]+)\"", re.M)
     def cases(text):
-        return [py or bash for py, bash in pattern.findall(text)]
-    before = set(cases(old))
-    return [case for case in cases(new) if case not in before]
+        found = list(pattern.finditer(text))
+        ends = [m.start() for m in found[1:]] + [len(text)]
+        return [(m.group(1) or m.group(2), text[m.start():end]) for m, end in zip(found, ends)]
+    before = dict(cases(old))
+    return [case for case, body in cases(new) if before.get(case) != body]
 
 
 def main(argv):
