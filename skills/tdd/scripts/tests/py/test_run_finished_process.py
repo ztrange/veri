@@ -33,17 +33,26 @@ def make_run(tmp_path, events, steps=STEP):
     return repo
 
 
-def finish(repo, tmp_path, body=None):
-    env = dict(os.environ)
-    if body is not None:
-        bin = tmp_path / "bin"
-        bin.mkdir()
-        (bin / "body").write_text(json.dumps({"body": body}))
-        (bin / "gh").write_text('#!/bin/sh\ncat "$(dirname "$0")/body"\n')
-        (bin / "gh").chmod(0o755)
-        env["PATH"] = "%s:%s" % (bin, env["PATH"])
+def fake_gh(tmp_path, script):
+    bin = tmp_path / "bin"
+    bin.mkdir(exist_ok=True)
+    (bin / "gh").write_text("#!/bin/sh\n" + script)
+    (bin / "gh").chmod(0o755)
+    return {**os.environ, "PATH": "%s:%s" % (bin, os.environ["PATH"])}
+
+
+def finish_with_gh(repo, tmp_path, script):
+    env = fake_gh(tmp_path, script)
     ran = subprocess.run([FINISHED, "4242"], cwd=repo, capture_output=True, text=True, env=env)
     return ran.returncode, ran.stdout, ran.stderr
+
+
+def finish(repo, tmp_path, body=None):
+    if body is None:
+        ran = subprocess.run([FINISHED, "4242"], cwd=repo, capture_output=True, text=True)
+        return ran.returncode, ran.stdout, ran.stderr
+    (tmp_path / "body").write_text(json.dumps({"body": body}))
+    return finish_with_gh(repo, tmp_path, 'cat "%s"\n' % (tmp_path / "body"))
 
 
 @pytest.mark.process("run-finished.sh on a repository with no run under .tdd/wt/")
@@ -130,20 +139,6 @@ def test_a_done_run_whose_ledger_has_unchecked_steps_exits_1_and_prints_one_unch
     assert lines[0].startswith("unchecked ") and "second step" in lines[0]
     assert lines[1].startswith("unchecked ") and "third step" in lines[1]
     assert "first step" not in out
-
-
-def fake_gh(tmp_path, script):
-    bin = tmp_path / "bin"
-    bin.mkdir(exist_ok=True)
-    (bin / "gh").write_text("#!/bin/sh\n" + script)
-    (bin / "gh").chmod(0o755)
-    return {**os.environ, "PATH": "%s:%s" % (bin, os.environ["PATH"])}
-
-
-def finish_with_gh(repo, tmp_path, script):
-    env = fake_gh(tmp_path, script)
-    ran = subprocess.run([FINISHED, "4242"], cwd=repo, capture_output=True, text=True, env=env)
-    return ran.returncode, ran.stdout, ran.stderr
 
 
 @pytest.mark.process("run-finished.sh on a done run whose ledger has refactor-pending steps, with a fake gh")
