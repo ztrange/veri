@@ -53,6 +53,10 @@ NOT_APPLICABLE = "n/a"
 UNBUDGETED_PHASES = {"cover", "transform", "diff"}
 
 
+TURN_RATES = {"input_tokens": 15.0, "output_tokens": 75.0,
+              "cache_read_input_tokens": 1.5, "cache_creation_input_tokens": 18.75}
+
+
 def render(issue, path, ledger):
     def known(number):
         return UNKNOWN if number is None else "%d" % number
@@ -376,14 +380,25 @@ def render(issue, path, ledger):
         print("Outcome: the run bailed — %s, a %s failure."
               % (ending.get("cause") or UNKNOWN, ending.get("classification") or UNKNOWN))
     sessions = []
+    open_turns, open_cost = 0, 0.0
     if not conductor_counted:
         with contextlib.suppress(OSError):
             with open(os.path.join(os.path.dirname(path), "conductor-%s.log" % issue)) as stream_log:
                 for text in stream_log:
                     with contextlib.suppress(ValueError):
                         record = json.loads(text)
-                        if isinstance(record, dict) and record.get("type") == "result":
+                        if not isinstance(record, dict):
+                            continue
+                        if record.get("type") == "result":
                             sessions.append(record)
+                            open_turns, open_cost = 0, 0.0
+                        elif record.get("type") == "assistant":
+                            usage = (record.get("message") or {}).get("usage") or {}
+                            open_turns += 1
+                            open_cost += sum((usage.get(key) or 0) * rate / 1e6
+                                             for key, rate in TURN_RATES.items())
+            if open_turns:
+                sessions.append({"total_cost_usd": open_cost, "num_turns": open_turns})
     if sessions:
         print("Cost is every leaf of the run, and the conductor own spending.")
         print("Conductor own spending: $%.2f over %d turns, in %d sessions."
