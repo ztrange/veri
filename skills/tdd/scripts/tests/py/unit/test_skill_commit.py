@@ -152,3 +152,14 @@ def test_865_skill_md_s_skill_snapshot_resolves_the_default_branch_from_the_remo
               "unpinned", "no (skill )?commit", "at all"),
     ]
     assert [p for p in problems if p] == []
+
+
+def test_1785_launching_the_conductor_lives_in_readme_after_install_and_not_in_skill_md():
+    moved = ["**Three launch modes", "**The skill snapshot:", "**The record survives only a run"]
+    skill = SKILL.read_text()
+    readme = README.read_text()
+    section = readme.partition("\n## Launching the conductor")[2].split("\n## ")[0]
+    assert [t for t in [LAUNCH] + moved if t in skill] == [], "SKILL.md still carries text that moved to README.md"
+    assert "\n## Install" in readme and readme.index("\n## Install") < readme.index("\n" + LAUNCH), \
+        "README.md has no '## Launching the conductor' after '## Install'"
+    assert [t for t in moved if t not in section] == [], "README.md's section lacks moved text"
