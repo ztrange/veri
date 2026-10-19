@@ -20,6 +20,11 @@ def git_file(name):
     return pathlib.Path(output("rev-parse", "--git-path", name)).resolve()
 
 
+def kept_files():
+    kept = git_file("kept-tdd-appends.diff")
+    return sorted(kept.parent.glob(kept.name + "*"))
+
+
 def default_branch():
     local = git("rev-parse", "-q", "--verify", "--abbrev-ref", "refs/remotes/origin/HEAD",
                 text=True, stdout=subprocess.PIPE)
@@ -59,10 +64,8 @@ def main(argv):
     saved =git_file("set-aside-tdd-appends.diff")
     if saved.is_file():
         if git("apply", text=True, input=saved.read_text(), stderr=subprocess.DEVNULL).returncode != 0:
-            kept = git_file("kept-tdd-appends.diff")
-            earlier = sorted(kept.parent.glob(kept.name + "*"))
             return refuse(f"could not re-apply the set-aside appends; kept at"
-                          f" {' '.join(str(p) for p in [saved, *earlier])}")
+                          f" {' '.join(str(p) for p in [saved, *kept_files()])}")
         saved.unlink()
     if git("merge-base", "--is-ancestor", onto, "HEAD", text=True).returncode == 0:
         return 3
@@ -95,7 +98,7 @@ def main(argv):
         saved.unlink()
     if appends and not reapplied:
         kept = git_file("kept-tdd-appends.diff")
-        earlier = sorted(kept.parent.glob(kept.name + "*"))
+        earlier = kept_files()
         if kept.exists():
             kept = kept.with_name(f"{kept.name}.{int(time.time())}.{os.getpid()}")
         kept.write_text(appends + "\n")
