@@ -52,6 +52,11 @@ def grader_model():
     return ""
 
 
+def no_verdict(detail):
+    print("grade-prose.sh: no verdict obtained: %s" % detail, file=sys.stderr)
+    return 2
+
+
 def main(argv):
     if len(argv) != 2:
         print(USAGE, file=sys.stderr)
@@ -78,20 +83,17 @@ def main(argv):
     with open(os.path.join(".tdd", "grade-prose.log"), encoding="utf-8") as log:
         reply = extract(log.read())
     if "BEGIN GRADES" not in reply:
-        print("grade-prose.sh: no verdict obtained: the reply has no BEGIN GRADES block", file=sys.stderr)
-        return 2
+        return no_verdict("the reply has no BEGIN GRADES block")
     after = reply.split("END GRADES", 1)[1] if "END GRADES" in reply else ""
     trailing = "\n".join(l for l in after.splitlines() if l.strip() and not l.startswith("VERDICT:"))
     if trailing:
-        print("grade-prose.sh: no verdict obtained: text after END GRADES: %s" % trailing, file=sys.stderr)
-        return 2
+        return no_verdict("text after END GRADES: %s" % trailing)
     block = reply.rsplit("BEGIN GRADES", 1)[1].split("END GRADES", 1)[0]
     got = re.findall(r"^(\S+): (?:PASS|FAIL)\b", block, re.M)
     wanted = [row.split("\t", 1)[0] for row in claims.splitlines()]
     if got != wanted:
-        print("grade-prose.sh: no verdict obtained: GRADES block IDs %s do not match requirement IDs %s"
-              % (", ".join(got), ", ".join(wanted)), file=sys.stderr)
-        return 2
+        return no_verdict("GRADES block IDs %s do not match requirement IDs %s"
+                          % (", ".join(got), ", ".join(wanted)))
     failed = re.findall(r"^\S+: FAIL\b.*$", reply, re.M)
     print("\n".join(failed))
     return 1 if failed else 0
