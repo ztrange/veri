@@ -29,7 +29,7 @@ def test_main_with_one_retry_runs_a_failed_push_to_its_push_failed_event(tmp_pat
     events.refuse_event_sh()
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_PUSH_RETRIES", "1")
-    monkeypatch.delenv("VERI_PUSH_BACKOFF", raising=False)
+    monkeypatch.setenv("VERI_PUSH_BACKOFF", "2")
 
     code = push_branch.main([])
 
