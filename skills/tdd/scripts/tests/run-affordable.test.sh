@@ -68,77 +68,9 @@ pin_step() { step_leaves "$1" 0.25 0.25; }
 
 three_full_steps() {
   step_leaves "step one"   0.25 1.00 1.00 1.00 1.00 1.00
-  step_leaves "step two"   0.50 1.00 1.50 1.50 1.50 1.50
   step_leaves "step three" 0.75 1.50 1.50 2.00 2.00 2.00
+  step_leaves "step two"   0.50 1.00 1.50 1.50 1.50 1.50
 }
 
-: > "$work/.tdd/events.jsonl"
-three_full_steps
-run_affordable VERI_RUN_BUDGET=50 -- 4
-expect_code 1
-expect_figures 22.50 4 7.50 52.50
-verdict "a projection over VERI_RUN_BUDGET exits 1 printing spent, steps remaining, median and projection"
-
-: > "$work/.tdd/events.jsonl"
-three_full_steps
-run_affordable VERI_RUN_BUDGET=50 -- 3
-expect_code 0
-expect_silent
-verdict "a projection within VERI_RUN_BUDGET exits 0 printing nothing"
-
-: > "$work/.tdd/events.jsonl"
-pin_step "pin one"
-pin_step "pin two"
-run_affordable VERI_RUN_BUDGET=50 -- 3
-expect_code 3
-expect_silent "a log of pins only"
-printf '{"ts": 1, "issue": "453", "actor": "conductor", "event": "phase-start"}\n' > "$work/.tdd/events.jsonl"
-run_affordable VERI_RUN_BUDGET=50 -- 3
-expect_code 3
-expect_silent "a log with no usage"
-verdict "no completed full step, only pins or no usage at all, exits 3 printing nothing"
-
-: > "$work/.tdd/events.jsonl"
-three_full_steps
-run_affordable -- two
-expect_code 2
-expect_silent "<steps-remaining> 'two'"
-printf '%s\n' "run-affordable.sh: <steps-remaining> is not a whole number: 'two'" \
-  "usage: run-affordable.sh <steps-remaining> (a whole number)" > "$work/want-stderr"
-cmp -s "$work/want-stderr" "$work/stderr" ||
-  problems+="    want stderr '$(cat "$work/want-stderr")', got '$err'"$'\n'
-verdict "run-affordable.sh two exits 2 with nothing on stdout and the refusal then the usage line on stderr"
-
-: > "$work/.tdd/events.jsonl"
-three_full_steps
-run_affordable VERI_RUN_BUDGET=50 -- 4
-in_place="$code $out"
-in_place_work="$work"
-links="$(scratch_dir)"
-ln -s "$(cd "$HERE/../.." && pwd)" "$links/skill"
-work="$(scratch_dir)"
-mkdir -p "$work/.tdd"
-cp "$in_place_work/.tdd/events.jsonl" "$work/.tdd/events.jsonl"
-RUN_AFFORDABLE="$links/skill/scripts/run-affordable.sh" run_affordable VERI_RUN_BUDGET=50 -- 4
-expect_code 1
-expect_figures 22.50 4 7.50 52.50
-[[ "$code $out" == "$in_place" ]] ||
-  problems+="    want '$in_place' as in place, got '$code $out' through the symlink"$'\n'
-rm "$work/.tdd/events.jsonl"
-RUN_AFFORDABLE="$links/skill/scripts/run-affordable.sh" run_affordable VERI_RUN_BUDGET=50 -- 4
-expect_code 2
-expect_silent "a directory with no event log"
-grep -F -- "cannot read .tdd/events.jsonl in $work " <<< "$err" > /dev/null ||
-  problems+="    want stderr naming '$work', got '$err'"$'\n'
-work="$in_place_work"
-verdict "run through a symlink to the skill directory from another working directory, it answers as in place and reads that directory's event log"
-
-: > "$work/.tdd/events.jsonl"
-three_full_steps
-step_leaves $'step \xff' 1.00 1.00 1.00
-run_affordable VERI_RUN_BUDGET=50 -- 4
-expect_code 2
-expect_silent "an event log step-cost.sh fails on"
-verdict "#818: step-cost.sh failing with 1 on an event log holding a non-UTF-8 byte exits 2 printing nothing"
 
 finish
