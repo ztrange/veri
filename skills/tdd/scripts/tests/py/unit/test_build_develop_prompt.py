@@ -1872,6 +1872,20 @@ def test_cli_red_contradicted_builds_a_prompt_naming_the_case_to_update_and_the_
         0, [True] * (2 + len(footer)), 2, "", 2, "")
 
 
+def test_cli_red_repair_prompt_carries_the_named_case_and_the_wrong_test_reason_and_tells_the_leaf_to_edit_that_case_only_never_create_a_suite_1765(
+        tmp_path, run_cli, build_develop_prompt):
+    step = "QWIXTLE: a seed ending in a newline gains the block and reports added"
+    case = "zorblat frobs a nitz"
+    report = tmp_path / "green-report.md"
+    report.write_text("noise\nWRONG_TEST: the stub matches GLORPNAK pages it must not\nVERDICT: none\n")
+
+    code, out, err = run_cli(build_develop_prompt, ["red-repair", _spec(tmp_path), step, "make test", case, str(report)])
+
+    flat = " ".join(out.split())
+    assert (code, err) == (0, "")
+    assert [needle in flat for needle in (step, case, "the stub matches GLORPNAK pages it must not", "Edit that case **only**", "create **NO** suite")] == [True] * 5
+
+
 def test_cli_unknown_phase_with_no_further_arguments_exits_2_names_the_phase_on_stderr_and_prints_no_prompt(
         run_cli, build_develop_prompt):
     code, out, err = run_cli(build_develop_prompt, ["bogus"])
