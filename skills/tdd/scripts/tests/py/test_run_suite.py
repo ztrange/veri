@@ -582,3 +582,22 @@ def test_main_leaves_a_unit_guard_refusal_in_the_caller_exported_unit_guard_log_
     code = run_suite.main([str(suite)])
     out, err = capfd.readouterr()
     assert (code, "tried the network" in out, caller_log.read_text().startswith("git fetch origin")) == (0, False, True)
+
+
+@pytest.mark.process("git init for a repository that is not veri, and the real bash fixture suites run from it")
+def test_main_run_from_a_git_repository_that_is_not_veri_exits_with_a_red_suites_own_code_and_refuses_a_countless_suite_617(tmp_path, run_cli, run_suite):
+    fixtures = SCRIPTS / "tests" / "fixtures"
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True, capture_output=True)
+    assert not (repo / "Makefile").exists()
+    red, silent = tmp_path / "ends-red.test.sh", tmp_path / "dies-silently.test.sh"
+    shutil.copy(fixtures / "live-suites" / "ends-red.test.sh", red)
+    shutil.copy(fixtures / "silent-death" / "dies-silently.test.sh", silent)
+    red_code, red_out, red_err = run_cli(run_suite, [str(red)], cwd=repo)
+    silent_code, silent_out, silent_err = run_cli(run_suite, [str(silent)], cwd=repo)
+    assert (red_code, red_err) == (1, "")
+    assert "0 passed, 1 failed" in red_out.splitlines()
+    assert ": never reached its count line" not in red_out + red_err
+    assert silent_code == 1
+    assert "dies-silently.test.sh: never reached its count line" in (silent_out + silent_err).splitlines()
