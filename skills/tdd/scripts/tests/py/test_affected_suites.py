@@ -134,10 +134,15 @@ def test_main_widens_to_every_suite_file_but_not_a_directory_named_like_one(tmp_
     (tests / "unit/dir.test.sh").mkdir(parents=True)
     (tests / "a.test.sh").write_text("")
     (tests / "unit/b.test.sh").write_text("")
+    (tests / "py/unit").mkdir(parents=True)
+    (tests / "py/unit/test_skill_conductor_launch.py").write_text('README = ROOT / "README.md"\n')
+    (tests / "py/unit/test_skill_commit.py").write_text('README = parents[6] / "README.md"\n')
+    (tests / "py/unit/test_other.py").write_text('text = open("CONTRIBUTING.md").read()\n')
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
         0,
-        "skills/tdd/scripts/tests/a.test.sh\nskills/tdd/scripts/tests/unit/b.test.sh\n",
-        "affected-suites: no rule places README.md; widening to every suite\n")
+        "skills/tdd/scripts/tests/py/unit/test_skill_commit.py\n"
+        "skills/tdd/scripts/tests/py/unit/test_skill_conductor_launch.py\n",
+        "")
 
 
 def test_main_skips_a_directory_named_like_a_script_when_reading_lib_callers(tmp_path, monkeypatch, capsys, affected):
