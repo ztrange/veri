@@ -39,18 +39,22 @@ def _differing_tests():
     return names
 
 
+_CASE = re.compile(r"^\s*(?:async\s+)?def\s+(test\w*)|^\s*name=\"([^\"]+)\"", re.M)
+
+
+def _cases(text):
+    found = list(_CASE.finditer(text))
+    ends = [m.start() for m in found[1:]] + [len(text)]
+    return [(m.group(1) or m.group(2), text[m.start():end]) for m, end in zip(found, ends)]
+
+
 def _added_cases(name):
     old = subprocess.run(["git", "show", "HEAD:" + name], stdout=subprocess.PIPE,
                          stderr=subprocess.DEVNULL).stdout.decode("utf-8", "replace")
     with open(name, encoding="utf-8", errors="replace") as handle:
         new = handle.read()
-    pattern = re.compile(r"^\s*(?:async\s+)?def\s+(test\w*)|^\s*name=\"([^\"]+)\"", re.M)
-    def cases(text):
-        found = list(pattern.finditer(text))
-        ends = [m.start() for m in found[1:]] + [len(text)]
-        return [(m.group(1) or m.group(2), text[m.start():end]) for m, end in zip(found, ends)]
-    before = dict(cases(old))
-    return [case for case, body in cases(new) if before.get(case) != body]
+    before = dict(_cases(old))
+    return [case for case, body in _cases(new) if before.get(case) != body]
 
 
 def main(argv):
