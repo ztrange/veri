@@ -383,7 +383,11 @@ def test_main_sweeps_the_unit_fixture_guard_and_offline_suites_to_empty_sweepabl
         return code, capsys.readouterr().out
 
     names = ["ledger"]
+<<<<<<< HEAD
     moved = ["run-affordable", "step-budget", "step-cost"]
+=======
+    moved = ["red-divergence"]
+>>>>>>> 411d39abd (test: pin the comment-class sweep roster without the three deleted suites (#1351))
 
     assert {
         "the sweepable report is empty for every tests/unit/*.sh whose name starts with c through e":
