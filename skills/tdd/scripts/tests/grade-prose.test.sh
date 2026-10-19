@@ -71,4 +71,13 @@ actors="$(grep -F '"event": "launch"' "$work/role/.tdd/events.jsonl" 2> /dev/nul
 expect_eq "the grader leaf's supervisor launch event names a grader role, never developer or verifier" \
   '"actor":"grader" ' "$actors"
 
+conf="$HERE/../../grader.conf"
+want_model="$(awk '/^[[:space:]]*(#|$)/ { next } !found { v = $0; sub(/^[^=]*=/, "", v); gsub(/^[[:space:]"]+|[[:space:]"]+$/, "", v); found = 1 } END { print v }' "$conf" 2> /dev/null)"
+[[ -n "$want_model" ]] || want_model="(no model in skills/tdd/grader.conf)"
+rm -f "$work/seen"
+(cd "$work/role" && VERI_MODEL=exp-model-all VERI_MODEL_VERIFIER=exp-model-verifier CLAUDE_BIN="$bin/claude" "$GRADE" "$work/role/REQUIREMENTS.md" unit.md > /dev/null 2>&1)
+got_model="$(grep -A1 -x -e '--model' "$work/seen" 2> /dev/null | tail -n 1)"
+expect_eq "claude receives --model with grader.conf's value, whatever VERI_MODEL and VERI_MODEL_VERIFIER say" \
+  "$want_model" "$got_model"
+
 finish

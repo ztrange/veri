@@ -35,4 +35,6 @@ $claims
 Unit text:
 $text"
 
-"$HERE/supervise.sh" grade-prose "${CLAUDE_BIN:-claude}" -p <<< "$prompt"
+model="$(awk '/^[[:space:]]*(#|$)/ { next } !found { v = $0; sub(/^[^=]*=/, "", v); gsub(/^[[:space:]"]+|[[:space:]"]+$/, "", v); found = 1 } END { print v }' "$HERE/../grader.conf")"
+
+"$HERE/supervise.sh" grade-prose "${CLAUDE_BIN:-claude}" -p --model "$model" <<< "$prompt"
