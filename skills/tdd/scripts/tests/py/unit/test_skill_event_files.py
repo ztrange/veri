@@ -9,11 +9,15 @@ def _lines():
     return SKILL.read_text().splitlines()
 
 
+def _lines_with_pin():
+    return _lines() + SKILL.with_name("PIN.md").read_text().splitlines()
+
+
 def test_every_line_sending_the_run_to_stopping_points_at_stopping_md_1716():
     """Subject is source text: each line of SKILL.md that sends the run to *Stopping* names the file to read."""
-    sends = [line for line in _lines() if re.search(r"\bgo(es)? to \*Stopping\*", line)]
+    sends = [line for line in _lines_with_pin() if re.search(r"\bgo(es)? to \*Stopping\*", line)]
 
-    assert len(sends) >= 5
+    assert len(sends) == 5
     assert [line for line in sends if "`<base directory>/STOPPING.md`" not in line] == []
 
 

@@ -28,8 +28,9 @@ def verify_calls():
     ]
 
 
-def section(heading):
-    return importlib.import_module("skill_sections").section(BAIL if heading == BAILING else SKILL, heading)
+def section(heading, name=None):
+    path = SKILL.with_name(name) if name else BAIL if heading == BAILING else SKILL
+    return importlib.import_module("skill_sections").section(path, heading)
 
 
 def guard(text):
@@ -106,7 +107,7 @@ def test_1625_skill_md_has_unreplaced_cases_sh_exit_2_bail_at_once_launching_no_
 
 
 def test_1625_skill_md_pin_path_says_the_unreplaced_cases_check_bails_only_on_a_second_exit_1_after_the_correction_leaf_or_on_exit_2():
-    text = plain_join(section("## Already satisfied — the pin"))
+    text = plain_join(section("## Already satisfied — the pin", "PIN.md"))
     sentence = re.search(r"the unreplaced-cases check[^.]*\.", text)
     assert sentence, "skills/tdd/SKILL.md's pin path never says what the unreplaced-cases check did in Red"
     sentence = sentence.group(0)

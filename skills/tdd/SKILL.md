@@ -556,8 +556,8 @@ three times over branches its ledger pinned on later lines.
    related cases of one suite into one step, about a dozen at most; one case is a valid
    group of one. That step's Red is the pytest cases failing against the code before the
    change; its Green deletes the named bash cases and nothing else. A replacement that drives
-   unchanged code passes against it by design: when that Red reports `AGAINST_UNMODIFIED:
-   PASSES`, the step takes the pin path under **Already satisfied — the pin**, verify-pin and
+   unchanged code passes against it by design:
+   `Read` `<base directory>/PIN.md` when a Red reports `AGAINST_UNMODIFIED: PASSES`; the step takes the pin path there, verify-pin and
    then a green leaf that deletes exactly the named cases. Refactor and the ` ⟂ refactor pending`
    mark follow that deletion green as they follow any Green.
 
@@ -908,7 +908,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    0 PASS, 1 REJECT, 2 malformed or killed-stuck — not the supervisor's status.
    On **`PASSES`** the criterion is **already satisfied** — never send that test to
    verify-red, whose verdict on a passing test can only be `REJECT`. Run the pin check
-   instead and continue at *Already satisfied — the pin*:
+   instead and continue at the pin: `Read` `<base directory>/PIN.md` when a Red reports `AGAINST_UNMODIFIED: PASSES`:
    ```
    rm -f .tdd/verdict-pin.exit .tdd/verdict-pin.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-pin $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" pin .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-pin.reason 2> .tdd/verify-pin.err
@@ -1785,74 +1785,6 @@ uncommitted rather than destroying it.
 
 Report back to the user with the branch name, the worktree path, and the PR URL — and say
 that their own checkout was not switched.
-
-## Already satisfied — the pin
-
-A step whose criterion **earlier work already satisfies** has no failing test to write: the
-honest test passes against the unmodified code. That is an **outcome** of the step, not a
-failure of it — the behaviour exists and what it wants is a **regression pin**. You reach
-this section from Red when the developer leaf reported `AGAINST_UNMODIFIED: PASSES` and you
-ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
-`### 🔴 Red` / `### 🔎 verify-red` pair.
-
-A `⟦replaces-case⟧` step whose Red reports `AGAINST_UNMODIFIED: PASSES` takes a different
-path after verify-pin, because deleting the named bash cases is still owed.
-A `⟦replaces-case⟧` step skips verify-red, so on that verify-pin PASS first run
-`$S/tests-frozen.sh record --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" <test-path>` to record its replacement
-cases before the deletion green checks them; tests-frozen exit 2 is a bail. Then commit nothing yet,
-and launch a green leaf exactly as *Green* does, whose only change
-is deleting exactly the named cases. By now the unreplaced-cases check from *Red* has
-bailed with cause=unreplaced-cases only on a second exit 1 after its one correction leaf, or on exit 2. After the
-deletion green, run `$S/replaces-case-survivors.sh "<step text>"` before that verify-green launches;
-on exit 1 relaunch the green leaf naming the survivors, as *Green* does, record the relaunch as an
-event (`$S/event.sh`), and launch no verifier on that green. Each relaunch spends one `REVISE_BUDGET`
-attempt, and when it is spent the run bails with `cause=revise-exhausted`. Judge it by the replaces-case verify-green, whose PASS
-is accepted only once `$S/mutation-parity.sh <pairs-table>` on that step's pairs table
-exits **0**, as on *Green*'s verify, then commit the pytest cases, the deletion
-and the ticked ledger in one tick-and-commit, as *Green*'s PASS does.
-That tick carries `--refactor-pending`, so the ` ⟂ refactor pending` mark follows the
-deletion green and the Refactor phase runs on the step as after any Green.
-Every other step takes the verdict as follows:
-
-- **PASS (exit 0) — on a `⟦replaces-case⟧` step, take the deletion path above instead;
-  on any other step, commit the test as the pin, ticking the ledger atomically.** Same
-  tick-and-commit shape as Green, but the commit carries the **test alone** and the `test:`
-  type, because no production code was written (the verifier reverted its own mutation, so
-  the tree holds only the new test and the ticked ledger):
-  Before it, run `$S/pin-fast-tier.sh '<fast-cmd>'`: on exit 1 the pin tripped a fast-tier
-  guard, so commit nothing and enter the revise loop for red with `.tdd/verify-pin.reason`
-  (the fast tier's output) as the reason, spending a `REVISE_BUDGET` attempt as a verify-pin
-  REJECT does; on exit 0 tick and commit `test: pin` as below; on exit 2 bail as a system failure.
-  ```
-  $S/tick-ledger.sh .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"
-  git add -A && git commit -m "test: pin <STEP summary> (#<n>)"
-  ```
-  **Then run `$S/stop-requested.sh`**, immediately after that commit: it is a ledger commit
-  like Green's, so on exit 0 any mode it printed goes to *Stopping* here (`Read` `<base directory>/STOPPING.md` when that happens); on exit 2 go to
-  *Stopping* in mode `at-ledger`, narrating that the request was unreadable; on exit 3
-  carry on.
-  Then **mirror**: post a `### 📌 Already satisfied — <STEP>` comment carrying the
-  verifier's reason, ask whether the step's criterion is finished
-  (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`) and on exit **0** tick it in the
-  **issue body** (`$S/tick-issue-criterion.sh <n> "$(gh api repos/{owner}/{repo}/issues/<n> -q .body | $S/ledger-steps.sh criterion <k>)"`) — on exit **3** tick
-  nothing — and mark it in the log —
-  `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" VERI_PHASE=pin $S/event.sh pin`.
-  The step is **done** — **no Green and no Refactor**, since there is no new production
-  code to write or to tidy. Loop back to the top of **step 3** for the next unchecked
-  ledger step.
-- **REJECT (exit 1):** enter the **revise loop** for the **red** phase — see *Revising on a
-  REJECT* — building the prompt as `revise red … .tdd/verify-pin.reason`: the phase argument
-  is the *developer* phase being redone, while the reason file is named for the *verifier*
-  that rejected, here `pin`. The rejection reason is the carry-forward signal that tells the
-  fresh leaf which way to go: either the pin is weak (trivial, over-coupled, or it survives
-  the mutation) or a genuinely failing test exists after all. Re-verify with the phase the
-  revise leaf's own `AGAINST_UNMODIFIED` line selects — `pin` on `PASSES`, `red` on `FAILS`.
-  (That line's third value, `N/A`, cannot arise here: a revise of red always touches a
-  test.) On a recovered `PASS` from `pin`, do the tick-and-commit above, or the deletion path
-  on a `⟦replaces-case⟧` step; from `red`,
-  continue to Green. On budget-exhausted, **bail** as a **process** failure.
-- **Malformed / killed-stuck (exit 2):** **bail** as a **system** failure (`no-verdict`) —
-  see `<base directory>/BAIL.md`.
 
 ## Revising on a REJECT
 
