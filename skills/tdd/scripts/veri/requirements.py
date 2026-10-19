@@ -31,13 +31,19 @@ def units(path):
 def claims(path, unit):
     rows = []
     seen = set()
-    inunit = intable = skip = done = False
+    inunit = intable = skip = done = fenced = False
     for number, line in enumerate(read_lines(path), 1):
         def fail(msg):
             raise ValueError("%s:%d: %s" % (path, number, msg))
         if line.startswith("## "):
             inunit, intable, done = line[3:] == unit, False, False
         elif not inunit:
+            continue
+        elif line.startswith("```"):
+            fenced = not fenced
+            if intable:
+                intable, done = False, True
+        elif fenced:
             continue
         elif done and line.startswith("|"):
             fail("second table")

@@ -228,6 +228,22 @@ out="$("$REQUIREMENTS" claims "$work/fenced-pipe.md" skills/tdd/SKILL.md 2> "$wo
 expect_eq "claims on a unit with a fenced code block holding ls | grep x after its table exits 0 and prints only the table's rows (#1743)" \
   $'0\nA1\tSays one thing.' "$code"$'\n'"${out%$'\n'}"
 
+cat > "$work/fenced-table-line.md" <<MD
+$H skills/tdd/SKILL.md
+
+| ID | Requirement | Why |
+|----|-------------|-----|
+| A1 | Says one thing. | Because. |
+
+\`\`\`
+| A | B |
+\`\`\`
+MD
+
+out="$("$REQUIREMENTS" claims "$work/fenced-table-line.md" skills/tdd/SKILL.md 2> "$work/stderr")" && code=0 || code=$?
+expect_eq "claims on a unit with a fenced code block holding a | A | B | line after its table exits 0 and prints only the table's rows (#1743)" \
+  $'0\nA1\tSays one thing.' "$code"$'\n'"${out%$'\n'}"
+
 out="$("$REQUIREMENTS" 2> "$work/stderr")" && code=0 || code=$?
 err="$(< "$work/stderr")"
 usage=no; [[ "$err" == usage:*requirements.sh* ]] && usage=yes
