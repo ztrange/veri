@@ -897,6 +897,92 @@ def test_rule_5_a_rule_1_file_plus_a_file_no_rule_matches_prints_every_suite(
           "affected-suites: no rule places docs/notes.md; widening to every suite\n")
 
 
+def test_rule_5_a_diff_touching_only_files_rules_1_to_4_match_never_falls_back_to_the_full_suite(
+        monkeypatch, run_cli, affected, tmp_path):
+    sourcing = '#!/usr/bin/env bash\nsource "$HERE/lib/bar.sh"\n'
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path,
+        [SCRIPTS_REL + "foo.sh", SCRIPTS_REL + "lib/bar.sh", SCRIPTS_REL + "tests/fixtures/plan.md", "CLAUDE.md"],
+        {"CLAUDE.md": "# veri\n", SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "lib/bar.sh": "bar_fn() { :; }\n",
+         SCRIPTS_REL + "alpha.sh": sourcing, SCRIPTS_REL + "beta.sh": "beta\n",
+         SCRIPTS_REL + "gamma.sh": "gamma\n", SCRIPTS_REL + "zeta.sh": "zeta\n",
+         SCRIPTS_REL + "tests/fixtures/plan.md": "# plan\n",
+         SCRIPTS_REL + "tests/foo.test.sh": "", SCRIPTS_REL + "tests/alpha.test.sh": "",
+         SCRIPTS_REL + "tests/beta.test.sh": 'cat "$HERE/fixtures/plan.md"\n',
+         SCRIPTS_REL + "tests/claude-md-guard.test.sh": 'claude_md="CLAUDE.md"\n',
+         SCRIPTS_REL + "tests/gamma.test.sh": "", SCRIPTS_REL + "tests/unit/zeta.test.sh": ""},
+    ) == (0, suites("alpha.test.sh", "beta.test.sh", "claude-md-guard.test.sh", "foo.test.sh"), "")
+
+
+def test_rule_6_a_change_to_the_prompt_prompts_develop_red_md_prints_every_suite_that_names_it_and_no_others(
+        monkeypatch, run_cli, affected, tmp_path):
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "prompts/develop-red.md"],
+        {SCRIPTS_REL + "prompts/develop-red.md": "# red\n", SCRIPTS_REL + "prompts/develop-green.md": "# green\n",
+         SCRIPTS_REL + "tests/alpha.test.sh": 'cat "$HERE/../prompts/develop-red.md"\n',
+         SCRIPTS_REL + "tests/beta.test.sh": 'cat "$HERE/../prompts/develop-green.md"\n',
+         SCRIPTS_REL + "tests/gamma.test.sh": ""},
+    ) == (0, suites("alpha.test.sh"), "")
+
+
+def test_rule_6_a_prompt_and_a_suite_in_one_range_print_that_suite_and_the_prompts_suites_without_widening(
+        monkeypatch, run_cli, affected, tmp_path):
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path,
+        [SCRIPTS_REL + "prompts/develop-red.md", SCRIPTS_REL + "tests/delta.test.sh"],
+        {SCRIPTS_REL + "prompts/develop-red.md": "# red\n",
+         SCRIPTS_REL + "tests/alpha.test.sh": 'cat "$HERE/../prompts/develop-red.md"\n',
+         SCRIPTS_REL + "tests/delta.test.sh": "", SCRIPTS_REL + "tests/gamma.test.sh": ""},
+    ) == (0, suites("alpha.test.sh", "delta.test.sh"), "")
+
+
+def test_a_widening_caused_by_two_unplaced_files_names_both_on_stderr(monkeypatch, run_cli, affected, tmp_path):
+    code, out, err = affected_by(
+        monkeypatch, run_cli, affected, tmp_path, ["notes.md", "memo.md"],
+        {"notes.md": "# notes\n", "memo.md": "# memo\n", SCRIPTS_REL + "foo.sh": "foo\n",
+         SCRIPTS_REL + "tests/foo.test.sh": ""})
+    assert (code, out, "notes.md" in err, "memo.md" in err) == (0, suites("foo.test.sh"), True, True)
+
+
+def test_run_state_a_tdd_ledger_alongside_a_script_change_prints_exactly_that_scripts_suite(
+        monkeypatch, run_cli, affected, tmp_path):
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [".tdd/issue-416.md", SCRIPTS_REL + "foo.sh"],
+        {".tdd/issue-416.md": "- [x] step one\n", SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "bar.sh": "bar\n",
+         SCRIPTS_REL + "tests/foo.test.sh": "", SCRIPTS_REL + "tests/bar.test.sh": ""},
+    ) == (0, suites("foo.test.sh"), "")
+
+
+def test_run_state_alone_exits_3_and_prints_nothing(monkeypatch, run_cli, affected, tmp_path):
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [".tdd/issue-416.md", ".tdd/issue-416-refactor-owed.md"],
+        {".tdd/issue-416.md": "- [x] step one\n", ".tdd/issue-416-refactor-owed.md": "refactor owed [x]\n",
+         SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "tests/foo.test.sh": ""},
+    ) == (3, "", "")
+
+
+def test_fail_closed_run_state_alongside_a_file_no_rule_places_still_prints_every_suite(
+        monkeypatch, run_cli, affected, tmp_path):
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [".tdd/issue-416.md", "notes.md"],
+        {".tdd/issue-416.md": "- [x] step one\n", "notes.md": "# notes\n",
+         SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "bar.sh": "bar\n",
+         SCRIPTS_REL + "tests/foo.test.sh": "", SCRIPTS_REL + "tests/bar.test.sh": ""},
+    ) == (0, suites("bar.test.sh", "foo.test.sh"),
+          "affected-suites: no rule places notes.md; widening to every suite\n")
+
+
+def test_a_green_commits_shape_ledger_refactor_owed_file_and_a_source_change_prints_exactly_that_scripts_suite(
+        monkeypatch, run_cli, affected, tmp_path):
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path,
+        [".tdd/issue-416.md", ".tdd/issue-416-refactor-owed.md", SCRIPTS_REL + "foo.sh"],
+        {".tdd/issue-416.md": "- [x] step one\n", ".tdd/issue-416-refactor-owed.md": "refactor owed [x]\n",
+         SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "bar.sh": "bar\n",
+         SCRIPTS_REL + "tests/foo.test.sh": "", SCRIPTS_REL + "tests/bar.test.sh": ""},
+    ) == (0, suites("foo.test.sh"), "")
+
+
 SKILL = "skills/tdd/SKILL.md"
 GIT_DIFF_OF_SKILL = pytest.mark.process("real git: the changed lines of SKILL.md come from git diff -U0 between two commits")
 
