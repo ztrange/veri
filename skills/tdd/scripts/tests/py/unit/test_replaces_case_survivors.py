@@ -132,3 +132,15 @@ def test_main_reports_both_cases_of_a_step_joining_two_quoted_names_with_and_153
     assert code == 1
     assert first in out and second in out
     assert "kept case" not in out
+
+
+def test_main_prints_nothing_and_exits_0_once_one_deletion_removed_all_eight_named_cases_1781(tmp_path, run_cli, survivors):
+    names = [f"push case {i}" for i in range(1, 9)]
+    suite = tmp_path / "tests" / "push-branch.test.sh"
+    suite.parent.mkdir()
+    suite.write_text("".join(f'verdict "{n}" 0\n' for n in names) + 'verdict "kept case" 0\n')
+    listed = ", ".join(f"'{n}'" for n in names)
+    step = f"the port takes over: replaces {listed} in tests/push-branch.test.sh ⟦replaces-case⟧ ⟦criterion 2⟧"
+    suite.write_text('verdict "kept case" 0\n')
+
+    assert run_cli(survivors, [step], cwd=tmp_path) == (0, "", "")
