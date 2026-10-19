@@ -94,16 +94,12 @@ grep -Fq "$HEADER_MARKER" <<< "$out" ||
 
 report "$name"
 
-name="\`make test TESTS=<suite>\` over the planted tree runs only the suite it names, none from tests/unit/"
+name="\`make test TESTS=<suite>\` over the planted tree runs only the suite it names"
 problems=()
 
-units=("$ROOT"/skills/tdd/scripts/tests/unit/*.test.sh)
-[[ -e "${units[0]}" ]] ||
-  problems+=("the case is vacuous: no suite under tests/unit/ to have been run")
-for u in "${units[@]}"; do
-  ! grep -Fqx "== ${u##*/}" <<< "$out" ||
-    problems+=("want no tests/unit/ suite in the recipe output of a run naming only $SUITE_NAME; it announced '== ${u##*/}'")
-done
+announced="$(grep -E '^== ' <<< "$out" | grep -Fvx "== $SUITE_NAME")"
+[[ -z "$announced" ]] ||
+  problems+=("want no suite but $SUITE_NAME in the recipe output of a run naming only it; it also announced: $(tr '\n' ' ' <<< "$announced")")
 
 report "$name"
 

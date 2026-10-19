@@ -4,7 +4,7 @@
 # suite list and runs nothing.
 #
 # Contract under test:
-#   1. `make test` with no TESTS override lists every suite in tests/ and in tests/unit/.
+#   1. `make test` with no TESTS override lists every suite in tests/.
 #
 # Run: skills/tdd/scripts/tests/test-roster.test.sh
 set -uo pipefail
@@ -13,7 +13,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-TIERS='skills/tdd/scripts/tests skills/tdd/scripts/tests/unit'
+TIERS='skills/tdd/scripts/tests'
 
 plan="$(make -C "$ROOT" -n test 2>&1 < /dev/null)"
 
@@ -27,6 +27,6 @@ done
 
 problems=()
 [[ "${#missing[@]}" -eq 0 ]] || problems+=("make -n test omits: ${missing[*]}")
-report "make test with no TESTS override runs every suite in tests/ and tests/unit/"
+report "make test with no TESTS override runs every suite in tests/"
 
 finish
