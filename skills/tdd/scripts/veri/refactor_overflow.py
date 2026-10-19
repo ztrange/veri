@@ -21,11 +21,11 @@ def gh_api(*args):
     return subprocess.run(["gh", "api", *args], stdout=subprocess.PIPE, text=True)
 
 
-def read_pages(url, what, check_exit):
+def read_pages(url, what):
     page = 1
     while True:
         found = gh_api(f"{url}per_page=100&page={page}")
-        if check_exit and found.returncode:
+        if found.returncode:
             raise LookupError(f"{what} failed")
         try:
             items = json.loads(found.stdout)
@@ -38,7 +38,7 @@ def read_pages(url, what, check_exit):
 
 
 def find_open_issue(title):
-    issues = read_pages(f"{ISSUES}?state=open&", "open-issue lookup", True)
+    issues = read_pages(f"{ISSUES}?state=open&", "open-issue lookup")
     return next((i for i in issues if i["title"] == title), None)
 
 
@@ -73,7 +73,7 @@ def main(argv):
     if existing:
         comments_url = f"{ISSUES}/{existing['number']}/comments"
         try:
-            comments = list(read_pages(f"{comments_url}?", "the comments read", True))
+            comments = list(read_pages(f"{comments_url}?", "the comments read"))
         except LookupError as e:
             return fail(str(e), 2)
         listed = (existing["body"] or "").split("\n")
