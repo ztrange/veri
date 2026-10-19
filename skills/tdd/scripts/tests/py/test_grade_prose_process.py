@@ -79,3 +79,24 @@ def test_a_unit_graded_in_a_repo_with_history_gets_a_prompt_carrying_no_diff_and
     received = record.read_text() if record.exists() else ""
     assert [PROSE in received, "quokka-commit-message" in received, "green-old-wording" in received,
             "diff --git" in received] == [True, False, False, False], received
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_a_section_unit_sends_only_that_sections_text_from_its_heading_to_the_next_heading_of_the_same_level(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(
+        "# Title\nintro-line-zebra\n## Colour\nThe widget is painted a deep blue.\nIt stays silent.\n"
+        "## Sound\nsound-line-quokka\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS.replace("## guide/unit.md", "## guide/unit.md#Colour"))
+    claude = tmp_path / "claude"
+    claude.write_text(STUB)
+    claude.chmod(0o755)
+    record = tmp_path / "record.txt"
+
+    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md#Colour"], cwd=tmp_path,
+                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                                             "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+
+    received = record.read_text() if record.exists() else ""
+    assert ["## Colour\nThe widget is painted a deep blue.\nIt stays silent.\n" in received,
+            "intro-line-zebra" in received, "sound-line-quokka" in received] == [True, False, False], received
