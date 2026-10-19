@@ -54,8 +54,8 @@ NOT_APPLICABLE = "n/a"
 UNBUDGETED_PHASES = {"cover", "transform", "diff"}
 
 
-TURN_RATES = {"input_tokens": 15.0, "output_tokens": 75.0,
-              "cache_read_input_tokens": 1.5, "cache_creation_input_tokens": 18.75}
+TURN_RATES = {"input_tokens": "input", "output_tokens": "output",
+              "cache_read_input_tokens": "cache_read"}
 
 CONTEXT_KEYS = ["input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"]
 
@@ -82,10 +82,10 @@ def conductor_sessions(issue, path):
                     elif record.get("type") == "assistant":
                         usage = (record.get("message") or {}).get("usage") or {}
                         open_turns += 1
-                        turn_dollars = sum((usage.get(key) or 0) * rate / 1e6
-                                           for key, rate in TURN_RATES.items()
-                                           if key != "cache_creation_input_tokens")
-                        turn_dollars += sum(tokens * session_cost.PRICES["opus"][rate] / 1e6
+                        prices = session_cost.PRICES["opus"]
+                        turn_dollars = sum((usage.get(key) or 0) * prices[rate] / 1e6
+                                           for key, rate in TURN_RATES.items())
+                        turn_dollars += sum(tokens * prices[rate] / 1e6
                                             for rate, tokens in session_cost.cache_write_tokens(usage).items())
                         open_cost += turn_dollars
                         turn_rows.append([str(len(turn_rows) + 1), "$%.2f" % turn_dollars,
