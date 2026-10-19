@@ -481,3 +481,15 @@ def test_standing_bail_rule_is_stated_once_and_no_line_names_bailing_without_bai
     bare = [f"{name}:{n}" for name, lines in texts.items() for n, line in enumerate(lines, 1)
             if re.search(r"\bBailing\b", line) and pointer not in line]
     assert not bare, f"lines name Bailing without {pointer}: {bare}"
+
+
+def test_bailing_section_lives_in_bail_md_and_skill_md_carries_none_of_its_lines():
+    moved = [r"preserve-attempt\.sh <n> .*\bbail\b", r"event\.sh bail cause=<cause>", r"metrics: what bailing on"]
+    skill = SKILL.read_text().split("\n")
+    bail = BAIL.read_text().split("\n")
+    assert not [line for line in skill if line == BAILING], "SKILL.md still carries the ## Bailing heading"
+    assert [line for line in bail if line == BAILING], "BAIL.md carries no ## Bailing heading"
+    left = [p for p in moved if _has(p, skill)]
+    assert not left, f"SKILL.md still carries the moved lines {left}"
+    missing = [p for p in moved if not _has(p, bail)]
+    assert not missing, f"BAIL.md lacks the moved lines {missing}"
