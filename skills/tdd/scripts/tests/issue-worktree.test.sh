@@ -55,7 +55,6 @@ ahead_pair() {
   git clone -q "$upstream" "$clone" >/dev/null 2>&1
   git_q "$upstream" commit -q --allow-empty -m "landed while the clone was busy" >/dev/null 2>&1
   remote_tip="$(git_q "$upstream" rev-parse main)"
-  stale_tip="$(git_q "$clone" rev-parse main)"
 }
 
 upstream="$work/ls-remote-silent-upstream"
@@ -83,11 +82,6 @@ entry="$(awk '
 synopsis="$(grep -m1 -F -- '- `$S/issue-worktree.sh <n> <slug>' "$SKILL" || true)"
 [[ -n "${entry// /}" ]] \
   && ok || no "#1432: the issue-worktree.sh entry is read out of SKILL.md whatever alternatives its synopsis names after '<n> <slug>' (synopsis line in SKILL.md: '$synopsis', entry read: '$entry')"
-
-says() {
-  local complaint="$1" re="$2"
-  [[ "$entry" =~ $re ]] || problems="$problems; $complaint"
-}
 
 ahead_pair remote-claimed
 git_q "$upstream" branch -q tdd/61-someone-else main >/dev/null 2>&1
