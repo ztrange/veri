@@ -163,3 +163,27 @@ def test_the_grader_leaf_is_launched_under_a_leaf_role_distinct_from_every_devel
     launches = [json.loads(line) for line in events.read_text().splitlines() if '"event": "launch"' in line] \
         if events.exists() else []
     assert [launch["actor"] for launch in launches] == ["grader"], launches
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_the_stub_claude_receives_model_from_grader_conf_and_veri_model_and_verifier_model_do_not_change_it(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text(STUB)
+    claude.chmod(0o755)
+    record = tmp_path / "record.txt"
+    conf = SCRIPTS.parents[0] / "grader.conf"
+    lines = [l.strip() for l in conf.read_text().splitlines() if l.strip() and not l.lstrip().startswith("#")] \
+        if conf.exists() else []
+    committed = lines[0].split("=", 1)[-1].strip().strip("'\"") if lines else ""
+
+    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                                             "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record),
+                                             "VERI_MODEL": "env-model-zebra", "VERI_MODEL_VERIFIER": "env-model-quokka"})
+
+    args = (record.read_text() if record.exists() else "").splitlines()
+    given = args[args.index("--model") + 1] if "--model" in args else None
+    assert committed and given == committed, (given, committed)
