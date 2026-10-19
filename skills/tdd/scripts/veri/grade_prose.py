@@ -16,9 +16,11 @@ def prompt(unit, text, claims):
 
 
 def section(text, heading):
-    out, level = [], None
+    out, level, fenced = [], None, False
     for line in text.splitlines(keepends=True):
-        hashes = len(line) - len(line.lstrip("#"))
+        if line.startswith("```"):
+            fenced = not fenced
+        hashes = 0 if fenced else len(line) - len(line.lstrip("#"))
         if level is None:
             if hashes and line[hashes:].strip() == heading:
                 level = hashes
