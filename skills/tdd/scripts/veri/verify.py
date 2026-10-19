@@ -110,8 +110,12 @@ def save_diff(leaf, tree_before, tree_after):
     if not diff.stdout:
         return None
     path = ".tdd/%s.diff" % leaf
-    with open(path, "wb") as saved:
-        saved.write(diff.stdout)
+    try:
+        with open(path, "wb") as saved:
+            saved.write(diff.stdout)
+    except OSError:
+        _write(sys.stdout, "diff could not be saved to %s" % path)
+        return None
     return path
 
 
