@@ -1,2 +1,3 @@
 ### When the step's Red edits an existing pytest function or bash `name="…"` case instead of adding one, the step's red record lists that edited case by name ⟦criterion 8⟧
 - hoist the case-splitting `cases` closure and its `pattern` out of `_added_cases` into a module-level `_cases(text)` helper (it removes no duplication, so it falls outside this phase's allowance)
+applied | 17772620867041ff25b8c9dd307fb9fc76f5b753 | hoist the case-splitting `cases` closure and its `pattern` out of `_added_cases` into a module-level `_cases(text)` helper (it removes no duplication, so it falls outside this phase's allowance)
