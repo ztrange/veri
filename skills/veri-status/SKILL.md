@@ -8,7 +8,7 @@ description: >-
 
 Alias: `/vstatus`
 
-Obeys `../veri-ops/PRINCIPLES.md`; read it first.
+Obeys `operator/PRINCIPLES.md` under the veri clone root (`git -C <base dir> rev-parse --show-toplevel`); read it first.
 
 `$S` is `skills/tdd/scripts/`, reached from this skill's base directory as `../tdd/scripts/`.
 Every read runs against the target repository's main working tree; its CLAUDE.md names the
