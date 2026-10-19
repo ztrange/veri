@@ -23,8 +23,12 @@ def module_of(name):
 
 
 @pytest.mark.tree_audit("every skills/tdd/scripts/*.sh, read for its usage line and its shim")
-@pytest.mark.parametrize("name", subjects())
+@pytest.mark.parametrize("name", sorted(set(subjects()) | {"grade-prose.sh"}))
 def test_a_script_requiring_a_positional_argument_exits_2_with_a_usage_line_when_called_with_none(name, run_cli):
+    script = SCRIPTS / name
+    assert script.is_file(), "%s does not exist" % name
+    assert script.read_text().startswith("#!/bin/sh"), "%s is not a /bin/sh shim" % name
+    assert name in subjects(), "the sweep does not cover %s" % name
     code, out, err = run_cli(module_of(name), [], env=FLOOR_KNOBS)
     assert code == 2, "%s: want exit 2, got %s: %s" % (name, code, err)
     assert "usage" in err, "%s: no usage line on stderr: %r" % (name, err)
@@ -103,3 +107,4 @@ def test_a_script_given_a_bad_argument_value_exits_2_with_its_own_usage_text_on_
 def test_migration_slice_6_refuses_an_unresolvable_commit_or_a_missing_file_with_the_scripts_own_usage_text(name, argv, run_cli):
     err, shown = refused(name, argv, run_cli)
     assert name in err, "%s: usage line does not name it: %r" % (shown, err)
+
