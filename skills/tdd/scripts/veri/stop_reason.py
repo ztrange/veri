@@ -40,8 +40,19 @@ def _usage_limit(issue):
     with open(os.path.join(".tdd", "conductor-%s.log" % issue)) as f:
         results = [r for r in map(json.loads, f.read().splitlines()) if r.get("type") == "result"]
     text = results[-1].get("result", "")
+    if "limit" not in text and not _rate_limited(issue):
+        return "unknown %s\n" % text
     reset = text.partition(" resets ")[2]
     return "usage-limit %s\n" % reset if reset else "usage-limit\n"
+
+
+def _rate_limited(issue):
+    run = os.path.join(".tdd", "wt", issue, ".tdd")
+    logs = sorted((os.path.join(run, n) for n in os.listdir(run) if n.endswith(".log")), key=os.path.getmtime)
+    if not logs:
+        return False
+    with open(logs[-1]) as f:
+        return any(json.loads(line).get("error") == "rate_limit" for line in f.read().splitlines())
 
 
 if __name__ == "__main__":

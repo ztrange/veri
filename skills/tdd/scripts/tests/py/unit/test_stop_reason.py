@@ -79,3 +79,17 @@ def test_a_run_with_no_end_event_and_no_live_conductor_prints_usage_limit_when_i
     code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
 
     assert (code, out) == (0, "usage-limit\n")
+
+
+def test_a_run_with_no_end_event_no_live_conductor_and_no_usage_limit_prints_unknown_and_the_last_result_text(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    run = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    run.mkdir(parents=True)
+    (run / "events.jsonl").write_text(json.dumps({"ts": 100, "issue": "7", "event": "step-done"}) + "\n")
+    (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in (
+        {"type": "system", "subtype": "init"},
+        {"type": "result", "is_error": False, "result": "Connection reset by peer"})))
+
+    code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
+
+    assert (code, out) == (0, "unknown Connection reset by peer\n")
