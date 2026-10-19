@@ -32,7 +32,11 @@ def main(argv):
     elif _live(os.path.join(os.path.dirname(log), "conductor.pid")):
         sys.stdout.write("running\n")
     else:
-        sys.stdout.write(_usage_limit(argv[0]))
+        reason = _usage_limit(argv[0])
+        if reason is None:
+            sys.stderr.write("stop-reason.sh: no result record in %s\n" % os.path.join(".tdd", "conductor-%s.log" % argv[0]))
+            return 2
+        sys.stdout.write(reason)
     for a, b in zip(events, events[1:]):
         if b["ts"] - a["ts"] > int(gap):
             sys.stdout.write("gap %s %s\n" % (a["ts"], b["ts"]))
@@ -55,6 +59,8 @@ def _live(pidfile):
 
 def _usage_limit(issue):
     results = [r for r in _records(os.path.join(".tdd", "conductor-%s.log" % issue)) if r.get("type") == "result"]
+    if not results:
+        return None
     text = results[-1].get("result", "")
     if "limit" not in text and not _rate_limited(issue):
         return "unknown %s\n" % text
