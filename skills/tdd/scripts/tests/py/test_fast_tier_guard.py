@@ -408,3 +408,11 @@ def test_the_claude_md_pin_file_in_the_fast_tier_passes_the_guard_with_no_exempt
     (tmp_path / pin.name).write_text(pin.read_text())
 
     assert guard.offences(tmp_path, {}) == []
+
+
+def test_the_veri_coord_and_veri_dev_lane_prose_suites_live_under_tests_py_unit_and_not_beside_it():
+    tier = SCRIPTS / "tests" / "py"
+    names = ("test_veri_coord_lane.py", "test_veri_dev_lane.py")
+    assert [(name, (tier / name).is_file(), (tier / "unit" / name).is_file()) for name in names] == [
+        (name, False, True) for name in names
+    ]
