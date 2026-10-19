@@ -23,3 +23,14 @@ def test_scope_and_plan_plans_a_step_changing_pinned_prompt_or_skill_text_as_dif
     assert "never as red/green" in sentence, "the rule never rules out a Red/Green step"
     assert re.search(r"one commit", text.split("rendered prompt text", 1)[1]), \
         "the rule never says the text and every pin it moves land in one commit"
+
+
+def test_scope_and_plan_plans_a_pinned_text_criterions_case_as_its_own_step_after_the_diff_checked_one_1730():
+    text = _plain(importlib.import_module("skill_sections").section(SKILL, SCOPE))
+    sentence = next((s for s in re.split(r"(?<=\.)\s", text)
+                     if "also asks for a case pinning that text" in s), "")
+    assert sentence, "Scope & plan never says what to plan when a text-changing criterion also asks for a case pinning it"
+    assert "⟦diff-checked⟧ step for the text" in sentence, "the rule never plans a ⟦diff-checked⟧ step for the text"
+    assert "separate step for the case" in sentence, "the rule never plans the case as a separate step"
+    assert "same ⟦criterion k⟧" in sentence, "the rule never tags both steps with the same ⟦criterion k⟧"
+    assert "after the text's" in sentence, "the rule never places the case's step after the text's"
