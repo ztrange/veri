@@ -173,8 +173,8 @@ with a main guard (`[[ "${BASH_SOURCE[0]}" == "$0" ]] && main "$@"`); a new
 `tests/unit/<script>.test.sh` sources it and mocks every command it shells out to as a
 same-named shell function; the CLI contract stays byte-identical, its integration suite in
 `tests/` unmodified. `push-branch.sh` has left this pattern, ported to Python under the
-convention `status.sh` is the worked example of (#720); `lib/github.sh`, sourced by
-`tests/unit/github.test.sh` with `gh` mocked as a shell function, still follows it.
+convention `status.sh` is the worked example of (#720); `lib/github.sh` stays
+bash, sourced by `tests/py/test_github_sh.py` with `gh` faked on PATH.
 
 **A script ported to Python follows one convention; `status.sh` is the worked example**
 (#634): its logic is a module of `skills/tdd/scripts/veri/`, and its `.sh` entry point a
