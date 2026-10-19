@@ -135,4 +135,11 @@ after_verdict="${sp#"$before_verdict"}"
 expect_eq "the prompt tells the grader to end with a BEGIN GRADES block of PASS|FAIL lines and a VERDICT line inside it before END GRADES" \
   "" "$g5"
 
+claude_stub "$bin" "printf 'BEGIN GRADES\nA1: PASS — one\nA2: PASS — two\nEND GRADES\nVERDICT: PASS\n'"
+(cd "$work/role" && CLAUDE_BIN="$bin/claude" "$GRADE" "$work/role/REQUIREMENTS.md" unit.md > /dev/null 2> "$work/err-late-verdict")
+code_late=$?
+named_late=no; grep -iF 'after END GRADES' "$work/err-late-verdict" > /dev/null && named_late=yes
+expect_eq "a reply whose VERDICT line comes after END GRADES exits 2 and names the text after END GRADES on stderr" \
+  "2;late=yes" "$code_late;late=$named_late"
+
 finish

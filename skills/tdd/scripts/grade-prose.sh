@@ -53,7 +53,7 @@ if ! grep -E '^BEGIN GRADES' <<< "$reply" > /dev/null; then
   echo "grade-prose.sh: reply has no BEGIN GRADES block" >&2
   exit 2
 fi
-if awk '/^END GRADES/ { after = 0; seen = 1; next } seen && /[^[:space:]]/ && !/^VERDICT:/ { after = 1 } END { exit !after }' <<< "$reply"; then
+if awk '/^END GRADES/ { after = 0; seen = 1; next } seen && /[^[:space:]]/ { after = 1 } END { exit !after }' <<< "$reply"; then
   echo "grade-prose.sh: text after END GRADES" >&2
   exit 2
 fi
