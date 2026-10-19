@@ -43,6 +43,14 @@ def test_a_library_is_live_only_through_a_chain_from_an_entry_point(tmp_path, en
     assert dead_libraries([a, b], texts) == dead
 
 
+def test_a_library_named_only_by_the_reference_transaction_hook_is_live(tmp_path):
+    lib, hooks = tmp_path / "lib", tmp_path / "docs" / "hooks"
+    lib.mkdir()
+    hooks.mkdir(parents=True)
+    a, hook = lib / "a.sh", hooks / "reference-transaction"
+    assert dead_libraries([a], {a: "echo a", hook: ". lib/a.sh"}) == []
+
+
 @pytest.mark.tree_audit("every .sh file under skills/tdd/scripts and the files of .github")
 def test_every_library_is_named_by_a_script_a_suite_the_skill_or_the_makefile():
     """Its subject is source text: the library files and the files that may source them, read as text."""
