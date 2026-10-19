@@ -1871,6 +1871,9 @@ Every other step takes the verdict as follows:
   tick-and-commit shape as Green, but the commit carries the **test alone** and the `test:`
   type, because no production code was written (the verifier reverted its own mutation, so
   the tree holds only the new test and the ticked ledger):
+  Before it, run `$S/pin-fast-tier.sh '<fast-cmd>'`: on exit 1 the pin tripped a fast-tier
+  guard, so commit nothing and enter the revise loop for red with `.tdd/verify-pin.reason`
+  (the guard's output) as the reason; on exit 2 bail.
   ```
   $S/tick-ledger.sh .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"
   git add -A && git commit -m "test: pin <STEP summary> (#<n>)"
