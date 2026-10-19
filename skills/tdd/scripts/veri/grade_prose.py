@@ -79,6 +79,11 @@ def main(argv):
     if "BEGIN GRADES" not in reply:
         print("grade-prose.sh: no verdict obtained: the reply has no BEGIN GRADES block", file=sys.stderr)
         return 2
+    after = reply.split("END GRADES", 1)[1] if "END GRADES" in reply else ""
+    trailing = "\n".join(l for l in after.splitlines() if l.strip() and not l.startswith("VERDICT:"))
+    if trailing:
+        print("grade-prose.sh: no verdict obtained: text after END GRADES: %s" % trailing, file=sys.stderr)
+        return 2
     failed = re.findall(r"^\S+: FAIL\b.*$", reply, re.M)
     print("\n".join(failed))
     return 1 if failed else 0
