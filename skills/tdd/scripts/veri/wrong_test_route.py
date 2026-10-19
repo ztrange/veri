@@ -60,7 +60,7 @@ def _recorded(report, step):
     except OSError:
         return None
     for line in _wrong_test_lines(report):
-        for case in re.findall(r"\btest_\w+", line):
+        for case in re.findall(r"\btest_\w+", line) + re.findall(r"`([^`]+)`", line):
             if case in cases:
                 return case
     return None

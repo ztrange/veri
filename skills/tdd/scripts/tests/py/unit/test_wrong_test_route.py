@@ -367,3 +367,27 @@ def test_main_1765_prints_repair_for_a_wrong_test_naming_a_pytest_function_in_th
         results.append((code, stdout))
 
     assert results == [(0, "repair %s\n" % added), (0, "repair %s\n" % own)]
+
+
+def test_main_1765_prints_repair_for_a_wrong_test_naming_a_bash_name_case_in_the_step_red_record(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    suite = tmp_path / "tests"
+    suite.mkdir()
+    added = "a repair text counts as a repair"
+    (suite / ("ledger" + ".test" + ".sh")).write_text('name="%s"\nrun_case\n' % added)
+    (tmp_path / ".tdd").mkdir()
+    step = "wrong-test-route.sh repairs a bash case red added"
+    monkeypatch.setenv("VERI_STEP", step)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    (tmp_path / record_path.rstrip("\n")).write_text("case: %s\n" % added)
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: the case `%s` asserts the opposite of the criterion\n" % added)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "repair %s\n" % added)
