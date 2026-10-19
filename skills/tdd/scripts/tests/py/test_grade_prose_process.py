@@ -403,3 +403,21 @@ def test_a_reply_holding_two_grades_blocks_is_graded_on_the_final_one_only(tmp_p
 
     assert (done.returncode, "quokka-first-thought" in done.stdout) == (0, False), \
         (done.returncode, done.stdout, done.stderr)
+
+
+@pytest.mark.process("grade-prose.sh launching a hanging stub claude through supervise.sh")
+def test_a_grader_leaf_the_supervisor_kills_makes_grade_prose_exit_2_and_name_the_defect_on_stderr(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text("#!/bin/sh\nexec sleep 30\n")
+    claude.chmod(0o755)
+
+    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                          capture_output=True, text=True, timeout=25,
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                               "CLAUDE_BIN": str(claude), "VERI_HEARTBEAT": "1", "VERI_TIMEOUT": "2",
+                               "VERI_STUCK_RETRIES": "0"})
+
+    assert (done.returncode, "no verdict obtained" in done.stderr) == (2, True), (done.returncode, done.stderr)
