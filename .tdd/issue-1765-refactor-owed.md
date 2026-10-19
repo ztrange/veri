@@ -2,3 +2,4 @@
 - `_recorded_case` and `_exists` both open and read a file with `errors="replace"`; a shared `_read(path)` helper would remove that duplication, but `_exists` was not written this cycle
 - `_recorded_case` and `route` both extract `test_\w+` names from a `WRONG_TEST:` line, which one name-extraction helper could share
 applied | 1cca489a217665271851b15f6c8940d3ff3a4341 | `_recorded_case` and `_exists` both open and read a file with `errors="replace"`; a shared `_read(path)` helper would remove that duplication, but `_exists` was not written this cycle
+applied | 5e08407bd5efb997c78b33c386afa67cbc24cfef | `_recorded_case` and `route` both extract `test_\w+` names from a `WRONG_TEST:` line, which one name-extraction helper could share
