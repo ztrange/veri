@@ -63,7 +63,9 @@ def route(report, own_id):
 def _recorded_case(report, step):
     record = ".tdd/tests-frozen-%s.record" % hashlib.sha256(os.fsencode(step)).hexdigest()[:16]
     try:
-        files = [l.split(None, 1)[1].strip() for l in _read(record).splitlines() if len(l.split(None, 1)) == 2]
+        rows = _read(record).splitlines()
+        files = [l.split(None, 1)[1].strip() for l in rows if len(l.split(None, 1)) == 2 and not l.startswith("#")]
+        added = [l.split(":", 1)[1].strip() for l in rows if l.startswith("# case:")]
         lines = _wrong_test_lines(report)
     except OSError:
         return None
@@ -74,6 +76,8 @@ def _recorded_case(report, step):
             continue
         for line in lines:
             for case in _test_names(line):
+                if added and case not in added:
+                    continue
                 if re.search(r"def %s\(" % re.escape(case), text):
                     return case
     return None
