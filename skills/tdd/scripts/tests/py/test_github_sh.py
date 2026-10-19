@@ -318,3 +318,103 @@ def test_gh_pr_ready_with_no_head_sha_marks_ready_at_once_reading_no_pulls_42_an
     assert [call for call in calls if "ccr/ready_for_review" in call]
     assert reads_of_pr_42(calls) == []
     assert not started(calls, "sleep")
+
+
+NODE_ID = "PR_kwDOnode42"
+CCR_404 = "echo 'gh: Not Found (HTTP 404)' >&2; exit 1"
+CCR_404_WITH_BODY = ("printf '{\\n  \"message\": \"Not Found\",\\n  \"documentation_url\": \"https://docs.github.com/rest\","
+                     "\\n  \"status\": \"404\"\\n}\\n'; " + CCR_404)
+GRAPHQL_READIES = ("echo '{\"data\":{\"markPullRequestReadyForReview\":{\"pullRequest\":{\"isDraft\":false}}}}'")
+GRAPHQL_502 = "echo 'gh: Bad Gateway (HTTP 502)' >&2; exit 1"
+
+
+def ready_route_stub(ccr, graphql):
+    """A gh whose ccr ready route runs <ccr>, whose markPullRequestReadyForReview runs <graphql>,
+    and which answers the node id lookup."""
+    return ('[ "$1" = api ] || exit 1\ncase "$*" in\n'
+            "  *ccr/ready_for_review*) " + ccr + " ;;\n"
+            "  *markPullRequestReadyForReview*) " + graphql + " ;;\n"
+            "  *' -q '* | *' --jq '* | *--jq=*) echo " + NODE_ID + " ;;\n"
+            "  *pulls/42*) echo '{\"number\":42,\"node_id\":\"" + NODE_ID + "\",\"draft\":true}' ;;\n"
+            "  *) exit 1 ;;\nesac\n")
+
+
+def graphql_ready_calls(calls):
+    return [call for call in "\n".join(calls).split("gh ") if call.startswith("api graphql")]
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_with_the_driver_unset_a_404_on_the_ccr_route_sends_mark_ready_with_the_node_id_over_gh_api_graphql(tmp_path):
+    code, out, err, calls = run_lib(tmp_path, ready_route_stub(CCR_404, GRAPHQL_READIES), "gh_pr_ready 42")
+
+    sent = [call for call in graphql_ready_calls(calls) if "markPullRequestReadyForReview" in call and NODE_ID in call]
+    assert (code, out) == (0, "")
+    assert sent
+    assert not started(calls, "gh pr")
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_with_the_driver_unset_a_404_on_the_ccr_route_and_a_502_on_mark_ready_tries_both_and_returns_2(tmp_path):
+    code, out, err, calls = run_lib(tmp_path, ready_route_stub(CCR_404, GRAPHQL_502), "gh_pr_ready 42")
+
+    assert (code, out) == (2, "")
+    assert [call for call in calls if "ccr/ready_for_review" in call]
+    assert [call for call in graphql_ready_calls(calls) if "markPullRequestReadyForReview" in call]
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_with_the_driver_unset_a_404_on_the_ccr_route_that_mark_ready_recovers_from_leaves_no_http_404_on_stderr(tmp_path):
+    code, out, err, calls = run_lib(tmp_path, ready_route_stub(CCR_404, GRAPHQL_READIES), "gh_pr_ready 42")
+
+    assert code == 0
+    assert [call for call in graphql_ready_calls(calls) if "markPullRequestReadyForReview" in call]
+    assert "HTTP 404" not in err
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_with_the_driver_unset_a_404_and_a_502_return_2_with_both_routes_failure_messages_on_stderr(tmp_path):
+    code, out, err, calls = run_lib(tmp_path, ready_route_stub(CCR_404, GRAPHQL_502), "gh_pr_ready 42")
+
+    assert code == 2
+    assert "gh: Not Found (HTTP 404)" in err
+    assert "gh: Bad Gateway (HTTP 502)" in err
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_with_the_driver_unset_a_ccr_route_that_readies_the_pr_is_the_only_route_and_gh_api_graphql_never_runs(tmp_path):
+    ccr = "echo '{\"number\":42,\"draft\":false}'"
+
+    code, out, err, calls = run_lib(tmp_path, ready_route_stub(ccr, GRAPHQL_READIES), "gh_pr_ready 42")
+
+    assert code == 0
+    assert "gh api -X POST repos/{owner}/{repo}/pulls/42/ccr/ready_for_review" in calls
+    assert not started(calls, "gh api graphql")
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_with_the_driver_unset_the_404_body_of_the_ccr_route_stays_off_stdout_once_mark_ready_readies_the_pr(tmp_path):
+    code, out, err, calls = run_lib(tmp_path, ready_route_stub(CCR_404_WITH_BODY, GRAPHQL_READIES), "gh_pr_ready 42")
+
+    assert (code, out) == (0, "")
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_with_the_driver_unset_the_404_body_of_the_ccr_route_reaches_stderr_when_mark_ready_also_fails(tmp_path):
+    graphql = "echo 'gh: Something went wrong (HTTP 502)' >&2; exit 1"
+
+    code, out, err, calls = run_lib(tmp_path, ready_route_stub(CCR_404_WITH_BODY, graphql), "gh_pr_ready 42")
+
+    assert code == 2
+    assert '"documentation_url": "https://docs.github.com/rest",' in err
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_with_the_driver_unset_a_gh_pr_ready_refused_with_403_is_never_run_and_the_pr_is_readied_over_the_ccr_route(tmp_path):
+    body = ('case "$1" in\n  pr) echo "%s (HTTP 403)" >&2; exit 1 ;;\n  api) echo \'{"number":42,"draft":false}\' ;;\n'
+            '  *) exit 1 ;;\nesac\n' % REFUSAL)
+
+    code, out, err, calls = run_lib(tmp_path, body, "gh_pr_ready 42")
+
+    assert (code, err) == (0, "")
+    assert "gh api -X POST repos/{owner}/{repo}/pulls/42/ccr/ready_for_review" in calls
+    assert not started(calls, "gh pr")
