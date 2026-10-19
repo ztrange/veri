@@ -57,6 +57,25 @@ if awk '/^END GRADES/ { after = 0; seen = 1; next } seen && /[^[:space:]]/ { aft
   echo "grade-prose.sh: text after END GRADES" >&2
   exit 2
 fi
+block="$(awk '/^BEGIN GRADES/ { buf = ""; on = 1; next } /^END GRADES/ { on = 0; next } on { buf = buf $0 "\n" } END { printf "%s", buf }' <<< "$reply")"
+want_ids="$(cut -f1 <<< "$claims")"
+got_ids="$(grep -E '^[^:]+: (PASS|FAIL)' <<< "$block" | grep -v '^VERDICT:' | cut -d: -f1)"
+for id in $want_ids; do
+  if ! grep -Fx -- "$id" <<< "$got_ids" > /dev/null; then
+    echo "grade-prose.sh: GRADES block is missing $id" >&2
+    exit 2
+  fi
+done
+for id in $got_ids; do
+  if ! grep -Fx -- "$id" <<< "$want_ids" > /dev/null; then
+    echo "grade-prose.sh: GRADES block has extra $id" >&2
+    exit 2
+  fi
+done
+if [[ "$want_ids" != "$got_ids" ]]; then
+  echo "grade-prose.sh: GRADES block IDs are out of order" >&2
+  exit 2
+fi
 fails="$(awk '/^BEGIN GRADES/ { buf = ""; on = 1; next } /^END GRADES/ { on = 0; next } on { buf = buf $0 "\n" } END { printf "%s", buf }' <<< "$reply" | grep -E '^[^:]+: FAIL')"
 if [[ -n "$fails" ]]; then
   echo "$fails"

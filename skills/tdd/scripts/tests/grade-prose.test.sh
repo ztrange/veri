@@ -142,4 +142,19 @@ named_late=no; grep -iF 'after END GRADES' "$work/err-late-verdict" > /dev/null 
 expect_eq "a reply whose VERDICT line comes after END GRADES exits 2 and names the text after END GRADES on stderr" \
   "2;late=yes" "$code_late;late=$named_late"
 
+claude_stub "$bin" "printf 'BEGIN GRADES\nA1: PASS — one\nVERDICT: PASS\nEND GRADES\n'"
+(cd "$work/role" && CLAUDE_BIN="$bin/claude" "$GRADE" "$work/role/REQUIREMENTS.md" unit.md > /dev/null 2> "$work/err-missing")
+code_missing=$?
+claude_stub "$bin" "printf 'BEGIN GRADES\nA1: PASS — one\nA2: PASS — two\nA3: PASS — three\nVERDICT: PASS\nEND GRADES\n'"
+(cd "$work/role" && CLAUDE_BIN="$bin/claude" "$GRADE" "$work/role/REQUIREMENTS.md" unit.md > /dev/null 2> "$work/err-extra")
+code_extra=$?
+claude_stub "$bin" "printf 'BEGIN GRADES\nA2: PASS — two\nA1: PASS — one\nVERDICT: PASS\nEND GRADES\n'"
+(cd "$work/role" && CLAUDE_BIN="$bin/claude" "$GRADE" "$work/role/REQUIREMENTS.md" unit.md > /dev/null 2> "$work/err-reorder")
+code_reorder=$?
+named_missing=no; grep -iF 'missing' "$work/err-missing" | grep -F 'A2' > /dev/null && named_missing=yes
+named_extra=no; grep -iF 'extra' "$work/err-extra" | grep -F 'A3' > /dev/null && named_extra=yes
+named_reorder=no; grep -iF 'order' "$work/err-reorder" > /dev/null && named_reorder=yes
+expect_eq "a final GRADES block with a missing, an extra or a reordered requirement ID exits 2 and names that defect on stderr" \
+  "2;2;2;missing=yes;extra=yes;reorder=yes" "$code_missing;$code_extra;$code_reorder;missing=$named_missing;extra=$named_extra;reorder=$named_reorder"
+
 finish
