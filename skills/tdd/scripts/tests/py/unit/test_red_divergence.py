@@ -6,6 +6,8 @@ import sys
 
 import pytest
 
+from conftest import SCRIPTS
+
 
 @pytest.fixture
 def red_divergence():
@@ -275,3 +277,31 @@ def test_main_1468_quotes_the_prediction_file_as_predicted_failure_when_the_leaf
 
     assert code == 0
     assert "PREDICTED_FAILURE: slugify: command not found\n" in out
+
+
+@pytest.mark.tree_audit("every PREDICTION: line of skills/tdd/scripts/prompts/*.md")
+def test_cli_reads_every_verdict_the_leaf_prompts_offer_on_their_prediction_line(run_cli, monkeypatch, red_divergence):
+    report = None
+
+    class Module:
+        @staticmethod
+        def main(argv):
+            monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(report.encode()), newline="\n"))
+            return red_divergence.main(argv)
+
+    prompts = sorted((SCRIPTS / "prompts").glob("*.md"))
+    offered = []
+    for prompt in prompts:
+        for line in prompt.read_text().splitlines():
+            if line.startswith("PREDICTION: "):
+                alternatives = line[len("PREDICTION: "):].split(" — ")[0]
+                offered += [(prompt.name, word.strip()) for word in alternatives.split("|") if word.strip()]
+
+    unread = []
+    for name, word in offered:
+        report = f"FAIL_OUTPUT: f\nPREDICTION: {word}\n"
+        if run_cli(Module, [])[0] == 2:
+            unread.append((name, word))
+
+    assert offered
+    assert unread == []
