@@ -10,7 +10,9 @@ import subprocess
 
 import pytest
 
-USAGE = "usage: solvable-issues.sh [--repo owner/name]\n"
+# The usage line the module prints, read from it, so a change to its wording (#1719 step 8) moves
+# these refusal cases with it instead of contradicting the case that pins the new wording.
+USAGE = importlib.import_module("veri.solvable_issues").USAGE + "\n"
 
 
 @pytest.fixture(autouse=True)
