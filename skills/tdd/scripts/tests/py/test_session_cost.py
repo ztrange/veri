@@ -1,12 +1,15 @@
 """In-process cases for veri/session_cost.py, the module session-cost.sh is a shim over."""
 import importlib
 import json
+import os
+import pathlib
 import re
 import subprocess
 import time
 
 import pytest
 
+SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 USAGE = "usage: session-cost.sh --since <ISO date> [--json] [<transcript.jsonl> ...]\n"
 
 
@@ -421,3 +424,37 @@ def test_main_names_an_absent_entrypoints_rows_and_band_conductor_apart_from_cli
                 % ((harness, harness) + figures)
             )
     assert (code, problems) == (0, []), out
+
+
+def test_main_given_a_nonexistent_transcript_exits_2_with_the_usage_text_on_stderr(tmp_path, run_cli, session_cost):
+    code, out, err = run_cli(session_cost, ["--since", "2026-09-14", str(tmp_path / "no-such-transcript.jsonl")])
+
+    assert (code, out, USAGE in err) == (2, "", True), err
+
+
+def test_main_given_an_unknown_option_exits_2_with_the_usage_text_on_stderr(run_cli, session_cost):
+    code, out, err = run_cli(session_cost, ["--since", "2026-09-14", "--no-such-option"])
+
+    assert (code, out, USAGE in err) == (2, "", True), err
+
+
+@pytest.mark.process("a real sh shim run through a symlink to the skill directory, from another working directory")
+def test_the_shim_run_through_a_symlink_to_the_skill_directory_prints_the_same_report_and_exit_code_as_in_place(tmp_path):
+    transcript = tmp_path / "2f7b41a9-6c30-4d8e-9f02-1a55c7e3b8d4.jsonl"
+    transcript.write_text(
+        '{"type":"assistant","timestamp":"2026-09-14T12:04:31.807Z","requestId":"req_011CS4kQn7XdF2vHbJ9tLm3p","sessionId":"2f7b41a9-6c30-4d8e-9f02-1a55c7e3b8d4","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":3,"cache_creation_input_tokens":200000,"cache_creation":{"ephemeral_5m_input_tokens":200000,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":800000,"output_tokens":15000}}}\n'
+    )
+    link = tmp_path / "linked-skill"
+    link.symlink_to(SCRIPTS.parent)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+
+    def answer(shim, cwd):
+        done = subprocess.run(["/bin/sh", str(shim), "--since", "2026-09-14", str(transcript)], cwd=cwd,
+                              env={**os.environ, "TZ": "UTC"},
+                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        return done.returncode, done.stdout
+
+    in_place = answer(SCRIPTS / "session-cost.sh", SCRIPTS)
+    assert in_place[0] == 0 and "$" in in_place[1]
+    assert answer(link / "scripts/session-cost.sh", elsewhere) == in_place
