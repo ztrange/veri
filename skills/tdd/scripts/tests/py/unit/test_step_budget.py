@@ -162,25 +162,17 @@ def test_main_answers_each_contract_case_of_the_bash_suite_with_its_return_code_
     assert seen == wanted
 
 
-def test_cli_with_neither_budget_set_prints_12_then_120_each_on_its_own_line_and_exits_0(monkeypatch, run_cli, step_budget, tmp_path):
-    monkeypatch.delenv("VERI_STEP_BUDGET", raising=False)
-    monkeypatch.delenv("VERI_RUN_BUDGET", raising=False)
-
+def test_cli_with_neither_budget_set_prints_12_then_120_each_on_its_own_line_and_exits_0(run_cli, step_budget, tmp_path):
     assert run_cli(step_budget, [], cwd=tmp_path) == (0, "12\n120\n", "")
 
 
-def test_cli_with_an_argument_exits_2_with_nothing_on_stdout_and_the_usage_line_alone_on_stderr(monkeypatch, run_cli, step_budget, tmp_path):
-    monkeypatch.delenv("VERI_STEP_BUDGET", raising=False)
-    monkeypatch.delenv("VERI_RUN_BUDGET", raising=False)
-
+def test_cli_with_an_argument_exits_2_with_nothing_on_stdout_and_the_usage_line_alone_on_stderr(run_cli, step_budget, tmp_path):
     assert run_cli(step_budget, ["0"], cwd=tmp_path) == (2, "", "usage: step-budget.sh (takes no arguments)\n")
 
 
-def test_cli_from_another_working_directory_answers_no_argument_a_bad_step_budget_and_the_argument_0(monkeypatch, run_cli, step_budget, tmp_path):
-    (tmp_path / "elsewhere").mkdir()
-    monkeypatch.delenv("VERI_STEP_BUDGET", raising=False)
-    monkeypatch.delenv("VERI_RUN_BUDGET", raising=False)
+def test_cli_from_another_working_directory_answers_no_argument_a_bad_step_budget_and_the_argument_0(run_cli, step_budget, tmp_path):
     where = tmp_path / "elsewhere"
+    where.mkdir()
 
     seen = [
         run_cli(step_budget, [], cwd=where),
