@@ -93,3 +93,17 @@ def test_a_run_with_no_end_event_no_live_conductor_and_no_usage_limit_prints_unk
     code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
 
     assert (code, out) == (0, "unknown Connection reset by peer\n")
+
+
+def test_after_its_first_line_it_prints_gap_from_to_for_each_pair_of_consecutive_events_further_apart_than_the_default_sleep_gap(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    run = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    run.mkdir(parents=True)
+    (run / "events.jsonl").write_text("".join(json.dumps({"ts": ts, "issue": "7", "event": "step-done"}) + "\n"
+                                             for ts in (100, 1000, 2001, 2500)))
+    (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in (
+        {"type": "result", "is_error": False, "result": "Connection reset by peer"},)))
+
+    code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
+
+    assert (code, out) == (0, "unknown Connection reset by peer\ngap 1000 2001\n")

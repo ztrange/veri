@@ -13,7 +13,8 @@ def main(argv):
         return 2
     log = os.path.join(".tdd", "wt", argv[0], ".tdd", "events.jsonl")
     with open(log) as f:
-        last = json.loads(f.read().splitlines()[-1])
+        events = [json.loads(line) for line in f.read().splitlines()]
+    last = events[-1]
     if last.get("event") == "done":
         sys.stdout.write("done %s\n" % last.get("pr"))
     elif last.get("event") == "bail":
@@ -24,6 +25,9 @@ def main(argv):
         sys.stdout.write("running\n")
     else:
         sys.stdout.write(_usage_limit(argv[0]))
+    for a, b in zip(events, events[1:]):
+        if b["ts"] - a["ts"] > 900:
+            sys.stdout.write("gap %s %s\n" % (a["ts"], b["ts"]))
     return 0
 
 
