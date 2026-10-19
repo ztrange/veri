@@ -62,3 +62,20 @@ def test_a_run_with_no_end_event_and_no_live_conductor_prints_usage_limit_and_th
 
     assert (with_reset[0], with_reset[1], without_reset[0], without_reset[1]) == (
         0, "usage-limit Oct 7, 3pm\n", 0, "usage-limit\n")
+
+
+def test_a_run_with_no_end_event_and_no_live_conductor_prints_usage_limit_when_its_last_leaf_log_reports_a_rate_limit_error(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    run = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    run.mkdir(parents=True)
+    (run / "events.jsonl").write_text(json.dumps({"ts": 100, "issue": "7", "event": "step-done"}) + "\n")
+    (run / "develop-green.log").write_text("".join(json.dumps(r) + "\n" for r in (
+        {"type": "system", "subtype": "init"},
+        {"type": "assistant", "error": "rate_limit", "message": {"content": [{"type": "text", "text": "429"}]}})))
+    (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in (
+        {"type": "system", "subtype": "init"},
+        {"type": "result", "is_error": False, "result": "Step finished"})))
+
+    code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
+
+    assert (code, out) == (0, "usage-limit\n")
