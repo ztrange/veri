@@ -3,6 +3,7 @@ import importlib
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -980,3 +981,147 @@ def test_resume_onto_an_existing_issue_branch_with_the_remote_unreachable_checks
 
     assert (code, out.strip(), scratch_git(want, "branch", "--show-current"), scratch_git(want, "rev-parse", "HEAD"),
             err) == (0, want, "tdd/45-resume-no-fetch", branch_tip, "")
+
+
+def scripts_entry():
+    """SCRIPTS.md's issue-worktree.sh bullet, lower-cased, markup stripped, on one line."""
+    lines = (pathlib.Path(__file__).resolve().parents[3] / "SCRIPTS.md").read_text().splitlines()
+    taken = []
+    for line in lines:
+        if not taken:
+            if line.startswith("- `$S/issue-worktree.sh <n> <slug>"):
+                taken.append(line)
+        elif re.match(r"([-#]|[0-9]+\.)", line):
+            break
+        else:
+            taken.append(line)
+    return " ".join(taken).replace("*", "").replace("`", "").lower()
+
+
+def test_scripts_md_entry_says_the_branch_is_cut_from_the_freshly_fetched_remote_default_branch_and_why_the_local_one_is_not_used():
+    entry = scripts_entry()
+
+    assert entry.strip()
+    assert re.search(r"fetch", entry)
+    assert re.search(r"origin/<[a-z-]+>|origin/(main|master|the default)|remote.s (tip|default)|remote default branch"
+                     r"|tip of (the )?(remote|origin)", entry)
+    assert re.search(r"stale|behind|lags?|out of date", entry)
+
+
+def test_scripts_md_entry_says_the_default_names_name_is_resolved_from_the_remote_when_origin_head_is_absent_the_refusal_names_that_ref_and_the_local_fallback_holds_only_with_no_origin_remote():
+    entry = scripts_entry()
+
+    assert entry.strip()
+    assert re.search(r"refs/remotes/origin/head[^.]*(absent|missing)[^.]*(ls-remote|from the remote|remote itself)"
+                     r"|(ls-remote|from the remote|remote itself)[^.]*refs/remotes/origin/head[^.]*(absent|missing)", entry)
+    assert re.search(r"nam(e|es|ing)[^.]{0,40}refs/remotes/origin/head", entry)
+    assert re.search(r"main/master[^.]*no origin remote|no origin remote[^.]*main/master", entry)
+    assert not re.search(r"records\s+no\s+origin/head", entry)
+
+
+@pytest.mark.process("git clone and git worktree add on scratch repositories, origin/HEAD removed from the clone")
+def test_origin_remote_without_origin_head_cuts_tdd_47_no_origin_head_from_the_freshly_fetched_tip(
+        tmp_path, issue_worktree, run_cli):
+    upstream, clone = scratch_clone(tmp_path, "no-origin-head")
+    scratch_git(upstream, "commit", "-q", "--allow-empty", "-m", "landed while the clone was busy")
+    remote_tip = scratch_git(upstream, "rev-parse", "main")
+    scratch_git(clone, "symbolic-ref", "--delete", "refs/remotes/origin/HEAD")
+    want = scratch_wt_path(clone, 47)
+
+    code, out, _ = run_cli(issue_worktree, ["47", "no-origin-head"], cwd=clone)
+
+    assert (scratch_git(clone, "symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"), code, out.strip(),
+            scratch_git(want, "rev-parse", "HEAD")) == ("", 0, want, remote_tip)
+
+
+@pytest.mark.process("git clone and git worktree add on scratch repositories, the remote's default a develop branch")
+def test_origin_whose_default_is_develop_with_a_local_main_and_no_origin_head_cuts_tdd_865_from_develop_not_main(
+        tmp_path, issue_worktree, run_cli):
+    upstream = scratch_repo(tmp_path / "develop-upstream")
+    main_only_tip = scratch_git(upstream, "rev-parse", "main")
+    scratch_git(upstream, "switch", "-q", "-c", "develop")
+    scratch_git(upstream, "commit", "-q", "--allow-empty", "-m", "work on the default branch")
+    develop_tip = scratch_git(upstream, "rev-parse", "develop")
+    clone = tmp_path / "develop-clone"
+    subprocess.run(["git", "clone", "-q", str(upstream), str(clone)], capture_output=True)
+    scratch_git(clone, "branch", "main", "refs/remotes/origin/main")
+    scratch_git(clone, "config", "remote.origin.followRemoteHEAD", "never")
+    scratch_git(clone, "symbolic-ref", "--delete", "refs/remotes/origin/HEAD")
+    want = scratch_wt_path(clone, 865)
+
+    code, out, err = run_cli(issue_worktree, ["865", "develop-default"], cwd=clone)
+
+    assert (scratch_git(clone, "symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"),
+            scratch_git(clone, "rev-parse", "--verify", "--quiet", "refs/heads/main"), code, out.strip(),
+            scratch_git(want, "rev-parse", "HEAD")) == ("", main_only_tip, 0, want, develop_tip)
+    assert err == ""
+
+
+@pytest.mark.process("git worktree list on a scratch clone whose origin is gone and records no origin/HEAD")
+def test_origin_whose_default_cannot_be_resolved_and_no_origin_head_exits_2_naming_origin_head_and_creates_no_worktree(
+        tmp_path, monkeypatch, issue_worktree, run_cli):
+    real_run = subprocess.run
+
+    def silent_remote(args, **kwargs):
+        if list(args[:2]) == ["git", "ls-remote"]:
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if list(args[:2]) == ["git", "fetch"]:
+            return subprocess.CompletedProcess(args, 128, "", "fatal: unable to access remote\n")
+        return real_run(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", silent_remote)
+    _, clone = scratch_clone(tmp_path, "unresolvable")
+    scratch_git(clone, "config", "remote.origin.followRemoteHEAD", "never")
+    scratch_git(clone, "symbolic-ref", "--delete", "refs/remotes/origin/HEAD")
+    scratch_git(clone, "remote", "set-url", "origin", str(tmp_path / "unresolvable-gone"))
+    want = scratch_wt_path(clone, 866)
+    before = scratch_registry(clone)
+
+    code, out, err = run_cli(issue_worktree, ["866", "unresolvable-default"], cwd=clone)
+
+    assert (scratch_git(clone, "symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"), code, out,
+            "refs/remotes/origin/HEAD" in err, os.path.exists(want), scratch_registry(clone) == before) == (
+        "", 2, "", True, False, True)
+
+
+@pytest.mark.process("git clone and git worktree add on scratch repositories, a local branch one commit ahead of its remote")
+def test_a_local_branch_ahead_of_its_remote_is_checked_out_at_its_own_tip_not_rewound_to_the_remotes(
+        tmp_path, issue_worktree, run_cli):
+    upstream, clone = scratch_clone(tmp_path, "local-ahead")
+    scratch_git(upstream, "switch", "-q", "-c", "tdd/53-local-ahead")
+    scratch_git(upstream, "commit", "-q", "--allow-empty", "-m", "the tip the previous run pushed")
+    remote_branch_tip = scratch_git(upstream, "rev-parse", "tdd/53-local-ahead")
+    scratch_git(upstream, "switch", "-q", "main")
+    scratch_git(clone, "fetch", "-q", "origin")
+    scratch_git(clone, "switch", "-q", "-c", "tdd/53-local-ahead", "origin/tdd/53-local-ahead")
+    scratch_git(clone, "commit", "-q", "--allow-empty", "-m", "committed by the last run and never pushed")
+    local_branch_tip = scratch_git(clone, "rev-parse", "tdd/53-local-ahead")
+    scratch_git(clone, "switch", "-q", "main")
+    want = scratch_wt_path(clone, 53)
+
+    code, out, _ = run_cli(issue_worktree, ["53", "local-ahead"], cwd=clone)
+
+    assert local_branch_tip != remote_branch_tip
+    assert (scratch_git(clone, "rev-parse", "--verify", "--quiet", "refs/heads/tdd/53-local-ahead"),
+            scratch_git(clone, "rev-parse", "--verify", "--quiet", "refs/remotes/origin/tdd/53-local-ahead"),
+            code, out.strip(), scratch_git(want, "branch", "--show-current"), scratch_git(want, "rev-parse", "HEAD")) == (
+        local_branch_tip, remote_branch_tip, 0, want, "tdd/53-local-ahead", local_branch_tip)
+
+
+@pytest.mark.process("git clone and git worktree add on scratch repositories, a name in neither ref namespace")
+def test_a_name_in_neither_namespace_in_a_repo_with_a_remote_is_still_cut_from_the_default_branch(
+        tmp_path, issue_worktree, run_cli):
+    upstream, clone = scratch_clone(tmp_path, "neither")
+    scratch_git(upstream, "switch", "-q", "-c", "tdd/99-some-other-run")
+    scratch_git(upstream, "commit", "-q", "--allow-empty", "-m", "another issue's run, pushed")
+    scratch_git(upstream, "switch", "-q", "main")
+    scratch_git(clone, "fetch", "-q", "origin")
+    main_tip = scratch_git(clone, "rev-parse", "main")
+    want = scratch_wt_path(clone, 55)
+    assert scratch_git(clone, "rev-parse", "--verify", "--quiet", "refs/heads/tdd/55-neither") == ""
+
+    code, out, _ = run_cli(issue_worktree, ["55", "neither"], cwd=clone)
+
+    assert (scratch_git(clone, "rev-parse", "--verify", "--quiet", "refs/remotes/origin/tdd/55-neither"),
+            code, out.strip(), scratch_git(want, "branch", "--show-current"), scratch_git(want, "rev-parse", "HEAD")) == (
+        "", 0, want, "tdd/55-neither", main_tip)
