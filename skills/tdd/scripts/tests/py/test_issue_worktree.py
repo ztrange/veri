@@ -64,6 +64,46 @@ def test_main_refuses_a_bad_argument_list_with_the_usage_line_before_any_git_and
     assert (code, capsys.readouterr().out, calls[:1]) == (2, "", [["git", "worktree", "list", "--porcelain"]])
 
 
+def test_cli_hands_back_a_registered_worktree_whose_pid_file_holds_non_utf8_bytes_with_nothing_on_stderr_issue_965(
+        monkeypatch, tmp_path, issue_worktree, run_cli):
+    main_tree = str(tmp_path / "repo")
+    path = f"{main_tree}/.tdd/wt/965"
+    registry = ("worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n"
+                "worktree %s\nHEAD 2222222222222222222222222222222222222222\nbranch refs/heads/tdd/965-non-utf8\n\n"
+                % (main_tree, path))
+    listing = ("git", "worktree", "list", "--porcelain")
+    pid_file = pathlib.Path(path) / ".tdd" / "conductor.pid"
+    pid_file.parent.mkdir(parents=True)
+    pid_file.write_bytes(b"\xff\xfe\n")
+    routing_git(monkeypatch, {listing: (0, registry, "")})
+
+    code, out, err = run_cli(issue_worktree, ["965", "non-utf8"], cwd=tmp_path)
+
+    assert (code, out, err) == (0, path + "\n", "")
+
+
+def test_cli_refuses_an_n_that_is_not_a_positive_whole_number_with_the_usage_line_and_runs_no_git(
+        monkeypatch, tmp_path, issue_worktree, run_cli):
+    for n in ("abc", "0", "-3", "7a", "../escape"):
+        calls = fake_git(monkeypatch, {})
+
+        code, out, err = run_cli(issue_worktree, [n, "slug"], cwd=tmp_path)
+
+        assert (n, code, out, err, calls, sorted(tmp_path.rglob("*"))) == (n, 2, "", USAGE, [], [])
+
+
+def test_cli_remove_refuses_an_n_that_is_not_a_positive_whole_number_with_the_usage_line_and_runs_no_git(
+        monkeypatch, tmp_path, issue_worktree, run_cli):
+    victim = tmp_path / ".claude" / "worktrees" / "victim"
+    victim.mkdir(parents=True)
+    for n in ("abc", "0", "-3", "../../.claude/worktrees/victim"):
+        calls = fake_git(monkeypatch, {})
+
+        code, out, err = run_cli(issue_worktree, ["--remove", n], cwd=tmp_path)
+
+        assert (n, code, out, err, calls, victim.is_dir()) == (n, 2, "", USAGE, [], True)
+
+
 def routing_git(monkeypatch, answers):
     """subprocess.run answering each git argv tuple in <answers> with (exit code, stdout, stderr), each stream sent where the call routes it."""
     calls = []
