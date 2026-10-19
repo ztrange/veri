@@ -435,3 +435,25 @@ def test_main_1765_prints_red_for_a_wrong_test_naming_an_older_case_when_the_red
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), edited], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % older)
+
+
+def test_main_1765_prints_repair_for_a_wrong_test_naming_an_existing_case_the_step_red_edited_and_listed_in_its_record(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    older, edited = "test_main_totals_an_invoice", "test_main_returns_zero"
+    (suite / ("test_" + "ledger" + ".py")).write_text(
+        "def %s():\n    pass\n\ndef %s():\n    assert True\n" % (older, edited))
+    (tmp_path / ".tdd").mkdir()
+    step = "wrong-test-route.sh repairs a case red edited"
+    monkeypatch.setenv("VERI_STEP", step)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    (tmp_path / record_path.rstrip("\n")).write_text("case: %s\n" % edited)
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % edited)
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), older], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "repair %s\n" % edited)
