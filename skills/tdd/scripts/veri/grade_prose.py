@@ -85,11 +85,10 @@ def main(argv):
     if "BEGIN GRADES" not in reply:
         return no_verdict("the reply has no BEGIN GRADES block")
     reply = reply[reply.rindex("BEGIN GRADES"):]
-    after = reply.split("END GRADES", 1)[1] if "END GRADES" in reply else ""
+    block, _, after = reply.partition("END GRADES")
     trailing = "\n".join(l for l in after.splitlines() if l.strip() and not l.startswith("VERDICT:"))
     if trailing:
         return no_verdict("text after END GRADES: %s" % trailing)
-    block = reply.rsplit("BEGIN GRADES", 1)[1].split("END GRADES", 1)[0]
     for word in re.findall(r"^\S+: (\w+)", block, re.M):
         if word not in ("PASS", "FAIL"):
             return no_verdict("grade word %s is neither PASS nor FAIL" % word)
