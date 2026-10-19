@@ -8,7 +8,7 @@
 - [x] a section unit's text ends at the next heading of higher level as well as the same level, pinned by a fixture where a higher-level heading follows the section ⟦criterion 12⟧
 - [x] a line starting with # inside a fenced code block never starts or ends a section, pinned by a fixture whose section holds a fenced # comment ⟦criterion 13⟧
 - [x] the grader leaf is launched through supervise.sh under a leaf name with its own leaf role, distinct from every develop, revise and verify role ⟦criterion 3⟧
-- [x] the stub claude receives --model with the model value committed in skills/tdd/grader.conf (a full model id), and setting VERI_MODEL or VERI_MODEL_VERIFIER does not change it ⟦criterion 3⟧ ⟂ refactor pending
+- [x] the stub claude receives --model with the model value committed in skills/tdd/grader.conf (a full model id), and setting VERI_MODEL or VERI_MODEL_VERIFIER does not change it ⟦criterion 3⟧
 - [ ] a grader.conf model value that names no version (e.g. sonnet) makes grade-prose.sh exit 2 before anything is launched ⟦criterion 4⟧
 - [ ] the grader leaf is launched as the verify leaves are, through run-leaf.sh under supervise.sh, so the command the stub claude receives carries the same tool limits a verify leaf's does (#1705) ⟦criterion 18⟧
 - [ ] a reply whose final BEGIN GRADES … END GRADES block has every ID line PASS and VERDICT: PASS makes grade-prose.sh exit 0 ⟦criterion 5⟧
