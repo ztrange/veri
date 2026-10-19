@@ -47,3 +47,16 @@ def test_every_line_sending_the_run_into_the_pin_points_at_pin_md_1852():
         if not ("`<base directory>/PIN.md`" in line and "`Read`" in line and "`AGAINST_UNMODIFIED: PASSES`" in line)
     ]
     assert missing == []
+
+
+def test_the_pin_section_lives_in_pin_md_not_skill_md_1852():
+    """Subject is source text: the pin heading and its two distinctive lines are in PIN.md and gone from SKILL.md."""
+    heading = "## Already satisfied — the pin"
+    markers = ("git commit -m \"test: pin", "VERI_PHASE=pin $S/event.sh pin")
+    skill = SKILL.read_text()
+    pin = SKILL.with_name("PIN.md").read_text()
+
+    assert [line for line in _lines() if line == heading] == []
+    assert [marker for marker in markers if marker in skill] == []
+    assert heading in pin.splitlines()
+    assert [marker for marker in markers if marker not in pin] == []
