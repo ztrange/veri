@@ -56,24 +56,6 @@ expect_suites_unwidened() {
   fi
 }
 
-expect_nothing_to_do() {
-  local name="$1" out code
-  out="$(run_affected 2>/dev/null)"; code=$?
-  if [[ "$code" == 3 && -z "$out" ]]; then ok; else
-    no "$name (code=$code, stdout=${out:-<empty>})"
-  fi
-}
-
-expect_widening_names() {
-  local name="$1" err code f named=1
-  shift
-  err="$(run_affected 2>&1 >/dev/null)"; code=$?
-  for f in "$@"; do [[ "$err" == *"$f"* ]] || named=0; done
-  if [[ "$code" == 0 && "$named" == 1 ]]; then ok; else
-    no "$name (code=$code, stderr=${err:-<empty>})"
-  fi
-}
-
 foo_tree() {
   mkdir -p "$s/tests"
   printf 'foo\n' > "$s/foo.sh"
@@ -84,15 +66,6 @@ foo_bar_tree() {
   foo_tree
   printf 'bar\n' > "$s/bar.sh"
   printf '# bar suite\n' > "$s/tests/bar.test.sh"
-}
-
-write_ledger() {
-  mkdir -p "$repo/.tdd"
-  printf -- '- [%s] step one\n' "$1" > "$repo/.tdd/issue-416.md"
-}
-write_refactor_owed() {
-  mkdir -p "$repo/.tdd"
-  printf 'refactor owed [%s]\n' "$1" > "$repo/.tdd/issue-416-refactor-owed.md"
 }
 
 make_repo no-range
