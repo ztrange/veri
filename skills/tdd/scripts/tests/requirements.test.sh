@@ -164,6 +164,20 @@ named=no; [[ "$err" =~ (^|[^0-9])3([^0-9]|$) ]] && named=yes
 expect_eq "claims on a unit whose table header is | Key | Value | exits 2, prints nothing on stdout and names the header's line on stderr (#1743)" \
   $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
 
+cat > "$work/extra-column.md" <<MD
+$H skills/tdd/SKILL.md
+
+| ID | Requirement | Why | Extra |
+|----|-------------|-----|-------|
+| A1 | Says one thing. | Because. | More. |
+MD
+
+out="$("$REQUIREMENTS" claims "$work/extra-column.md" skills/tdd/SKILL.md 2> "$work/stderr")" && code=0 || code=$?
+err="$(< "$work/stderr")"; err="${err//"$work"/}"
+named=no; [[ "$err" =~ (^|[^0-9])3([^0-9]|$) ]] && named=yes
+expect_eq "claims on a unit whose table header is | ID | Requirement | Why | Extra | exits 2, prints nothing on stdout and names the header's line on stderr (#1743)" \
+  $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$named"
+
 out="$("$REQUIREMENTS" 2> "$work/stderr")" && code=0 || code=$?
 err="$(< "$work/stderr")"
 usage=no; [[ "$err" == usage:*requirements.sh* ]] && usage=yes
