@@ -1026,3 +1026,26 @@ def test_main_not_running_omits_the_issue_whose_conductor_is_the_python_interpre
 
     out, err = capsys.readouterr()
     assert (code, out) == (0, "5\n7\n")
+
+
+def test_main_not_running_returns_3_with_empty_stdout_when_every_solvable_issue_has_a_live_conductor_from_this_skill_path(tmp_path, monkeypatch, capsys, solvable_issues):
+    (tmp_path / "issues.json").write_text(json.dumps([opted_in(5), opted_in(6)]))
+    (tmp_path / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    scripts = pathlib.Path(solvable_issues.__file__).resolve().parent.parent
+    listing = "  1 /sbin/launchd\n 98 bash %s/run-conductor.sh 5\n 99 bash %s/run-conductor.sh 6\n" % (scripts, scripts)
+
+    def fake_run(args, *rest, **kwargs):
+        if list(args[:4]) == ["git", "worktree", "list", "--porcelain"]:
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if args[0] == "ps":
+            return subprocess.CompletedProcess(args, 0, listing, "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", fake_run)
+
+    code = solvable_issues.main(["--not-running"])
+
+    out, err = capsys.readouterr()
+    assert (code, out) == (3, "")

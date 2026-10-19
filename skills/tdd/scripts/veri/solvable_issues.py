@@ -132,10 +132,10 @@ def main(argv):
     if label is None or priority is None:
         return 2
     code, numbers = select(label, priority, repo)
+    numbers = [number for number in numbers if int(number) not in skip]
     for number in numbers:
-        if int(number) not in skip:
-            print(number)
-    return code
+        print(number)
+    return code if numbers or code != 0 else 3
 
 
 if __name__ == "__main__":
