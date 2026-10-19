@@ -41,4 +41,26 @@ usage=no; [[ "$(cat "$work/stderr")" == usage:*grade-prose.sh* ]] && usage=yes
 expect_eq "grade-prose.sh with no arguments exits 2 and prints its usage line on stderr" \
   $'2\nyes' "$code"$'\n'"$usage"
 
+mkdir -p "$work/sec"
+cat > "$work/sec/REQUIREMENTS.md" <<MD
+$H doc.md#Middle
+
+| ID | Requirement | Why |
+|----|-------------|-----|
+| B1 | Middle holds. | Because secret-b. |
+MD
+printf '# Top\nbefore-marker line.\n## Middle\nmiddle-marker line.\n### Inner\ninner-marker line.\n## Next\nafter-marker line.\n' > "$work/sec/doc.md"
+rm -f "$work/seen"
+(cd "$work/sec" && CLAUDE_BIN="$bin/claude" "$GRADE" "$work/sec/REQUIREMENTS.md" 'doc.md#Middle' > /dev/null 2>&1)
+seen="$(cat "$work/seen" 2> /dev/null)"
+got=""
+for want in '## Middle' 'middle-marker' '### Inner' 'inner-marker'; do
+  [[ "$seen" == *"$want"* ]] || got+="[missing $want]"
+done
+for not in '# Top' 'before-marker' '## Next' 'after-marker'; do
+  [[ "$seen" == *"$not"* ]] && got+="[leaked $not]"
+done
+expect_eq "a section unit's prompt carries its text from its heading to the next heading of the same or higher level, and nothing else of the file" \
+  "" "$got"
+
 finish

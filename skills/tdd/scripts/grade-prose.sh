@@ -14,7 +14,18 @@ fi
 reqs="$1" unit="$2"
 
 claims="$("$HERE/requirements.sh" claims "$reqs" "$unit")" || exit 2
-text="$(cat "$(dirname "$reqs")/$unit")" || exit 2
+file="$(dirname "$reqs")/${unit%%#*}"
+if [[ "$unit" == *'#'* ]]; then
+  text="$(awk -v want="${unit#*#}" '
+    match($0, /^#+/) {
+      level = RLENGTH; title = substr($0, level + 1); sub(/^[ \t]+/, "", title)
+      if (on && level <= lvl) exit
+      if (!on && title == want) { on = 1; lvl = level }
+    }
+    on' "$file")" || exit 2
+else
+  text="$(cat "$file")" || exit 2
+fi
 
 prompt="Grade the unit below against each requirement.
 
