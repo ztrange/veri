@@ -1352,3 +1352,14 @@ def test_main_lists_the_conductor_dollars_and_context_size_of_each_turn_in_turn_
     assert "\n#### Conductor per turn\n" in out
     assert cells(out, "#### Conductor per turn", ["dollars", "context"]) == {
         "1": ["$0.24", "122010"], "2": ["$0.24", "160005"], "3": ["$0.30", "200000"]}
+
+
+def test_main_says_the_conductor_spend_is_missing_rather_than_zero_when_neither_a_stream_log_nor_a_conductor_usage_event_exists(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert "the conductor own spending is not in it: this log carries no usage record of the conductor own." in out
+    assert "Conductor own spending:" not in out
+    assert "Conductor per turn" not in out
