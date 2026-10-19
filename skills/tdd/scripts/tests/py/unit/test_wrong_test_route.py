@@ -413,3 +413,25 @@ def test_main_1765_prints_red_for_a_wrong_test_naming_an_older_case_in_the_same_
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % older)
+
+
+def test_main_1765_prints_red_for_a_wrong_test_naming_an_older_case_when_the_red_record_names_no_case_only_its_file(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    older, edited = "test_main_totals_an_invoice", "test_main_returns_zero"
+    name = suite / ("test_" + "ledger" + ".py")
+    name.write_text("def %s():\n    pass\n\ndef %s():\n    pass\n" % (older, edited))
+    (tmp_path / ".tdd").mkdir()
+    step = "wrong-test-route.sh never routes a case-less record by file"
+    monkeypatch.setenv("VERI_STEP", step)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    (tmp_path / record_path.rstrip("\n")).write_text("%s  %s\n" % ("0" * 64, name.relative_to(tmp_path)))
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % older)
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), edited], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red %s\n" % older)
