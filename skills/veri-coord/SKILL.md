@@ -1,7 +1,7 @@
 ---
 name: veri-coord
 description: >-
-  The veri coordinator, reached by name: `/vcoord [--resume <file>]`.
+  The veri coordinator, reached by name: `/veri-coord [<lane>] [--resume <file>]`, or `/vcoord`.
 ---
 
 # veri-coord — the coordinator
@@ -16,7 +16,10 @@ project specific (labels, test commands, where PRDs live).
 
 ## Starting
 
-1. Invoked as `/veri-coord`, or `/veri-coord --resume <file>`. With `--resume`, read the
+1. Invoked as `/veri-coord [<lane>] [--resume <file>]`. The optional first word names the
+   lane: `/veri-coord mu` runs every read and every launch with
+   `VERI_LABEL=ready-for-agent:mu`; with no lane word, plain `ready-for-agent`. State the lane
+   in your first line of output and name it in every message to the dev session. With `--resume`, read the
    handoff file for state only — what is running, parked, awaiting merge, N, overrides,
    permissions and their expiry, pending decisions — and take every rule from this skill and
    the principles. Then re-read that state live (below) before acting on any of it.
@@ -99,7 +102,7 @@ in full (P5). Stopping the coordinator stops no conductor.
 
 | ID | Requirement | Why |
 |---|---|---|
-| C1 | Invoked as `/veri-coord [--resume <file>]`. | |
+| C1 | Invoked as `/veri-coord [<lane>] [--resume <file>]`. | |
 | C2 | It launches no conductor. It carries standing merge permission in the project repo: its own PRs, and any finished run that meets `veri-merge`'s conditions (M2, M13) once its review is OK. It never merges in another repo. | The roles stay separate. Mario, 2026-10-18: both operator skills always include merge permission. |
 | C3 | It watches through the P3 script, and re-arms silently. | |
 | C4 | It instructs the dev session through `SendMessage` and tells the human in one line that it did. | "why didn't you just send it yourself?" |
