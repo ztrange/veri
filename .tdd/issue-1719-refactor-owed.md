@@ -1,0 +1,2 @@
+### Under `--not-running`, a conductor in the production process shape — the python interpreter running `<this clone's scripts>/veri/run_conductor.py <n>` — is recognised as live and `<n>` is omitted, pinned by a process listing of that real shape, not a hand-written `bash …/run-conductor.sh <n>` line ⟦criterion 4⟧
+- test-only | extract the repeated fixture setup (issues.json, prs.json, VERI_GH_JSON, fake_run for git and ps, and the monkeypatches) from the four `--not-running` tests into one helper
