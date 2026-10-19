@@ -854,7 +854,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    ```
    $S/red-divergence.sh .tdd/red-prediction.md .tdd/red-run-output.txt < .tdd/develop-red.out > .tdd/verify-red.reason; echo $?
    ```
-   - **Exit 1 — prediction not written before the run:** the prediction file is missing or newer than the run's output. Narrate "prediction not written before the run" in the `### 🔴 Red` comment, not a divergence, and write that line to `.tdd/verify-red.reason`. It still spends the attempt like a `REJECT`: skip verify-red and verify-pin and enter the revise loop for red.
+   - **Exit 1 — prediction not written before the run:** the prediction file is missing or newer than the run's output. Narrate "prediction not written before the run" in the `### 🔴 Red` comment, not a divergence, and write that line to `.tdd/verify-red.reason`. It still spends the attempt like a `REJECT`: skip verify-red and verify-pin and enter the revise loop for red (`Read` `<base directory>/REVISE.md` when a verifier answers `REJECT`).
    - **Exit 3 — `PREDICTION: MATCHED`:** nothing was surprising. The script printed
      nothing; carry on with the verifier below.
    - **Exit 0 or 2 — diverged, or a prediction nobody can read:** the test failed for a
