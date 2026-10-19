@@ -1,0 +1,245 @@
+"""Cases for the tests-frozen record and check in skills/tdd/SKILL.md, read as text.
+
+Contract under test:
+  SKILL.md's Red section runs `tests-frozen.sh record` once verify-red PASSes; it runs
+  `tests-frozen.sh check` before every verify-green — in Green between the develop-green wait
+  and the verify-green launch, and in *Revising on a REJECT* between the revise-green wait and
+  its re-verify; on check exit 1 it writes a reason naming the file to
+  .tdd/verify-green.reason, treats the attempt as a REJECT that spends REVISE_BUDGET and
+  launches no verifier; on exit 0 the verifier is launched as before; on exit 2 it bails. Every
+  record and check names the step's record by `tests-frozen.sh path` over the step text, and a
+  ⟦replaces-case⟧ step records at its verify-pin PASS, while a ⟦suite-repair⟧ or ⟦ci-repair⟧ step
+  is never frozen. Only sentences naming tests-frozen count, so text the sections already held
+  cannot satisfy a case; the outcome sentences are pinned verbatim.
+
+Every case's subject is source text: it reads SKILL.md, REVISE.md and PIN.md and starts no process.
+"""
+import pathlib
+import re
+
+SKILL = pathlib.Path(__file__).resolve().parents[3] / "SKILL.md"
+REVISE_MD = SKILL.parent / "REVISE.md"
+PIN_MD = SKILL.parent / "PIN.md"
+
+RED = "#### Red"
+GREEN = "#### Green"
+REVISE = "## Revising on a REJECT"
+PIN = "## Already satisfied — the pin"
+
+RECORD_ARG = '--step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"'
+KEY_SENTENCE = ('With `--step "<step text>"` in place of a record file, the record file is the one '
+                '`$S/tests-frozen.sh path "<step text>"` prints, `.tdd/tests-frozen-<k>.record` with `<k>` '
+                "the first 16 hex digits of the step text's SHA-256: a step text is often longer than a "
+                'filename may be and may hold a `/`, so the text itself is never the filename.')
+REPAIR_SENTENCE = ('A step marked `⟦suite-repair⟧` or `⟦ci-repair⟧` is never frozen: for it `record --step` '
+                   'writes nothing and `check --step` exits 0, because its fix is often an edit to the very '
+                   'test file the full run or CI left red.')
+CI_SENTENCE = 'A `⟦ci-repair⟧` step therefore records nothing before its green, and its green may edit the test the CI job failed.'
+EXIT2_SENTENCE = ('On tests-frozen exit 2 the check could not answer, so **bail** as a system failure, '
+                  'never a REJECT, and launch no verifier.')
+WRONG_TEST_SENTENCE = ('A revise of green whose leaf reports `WRONG_TEST: <why>` is exempt from the `SUITE:` line '
+                       "and is routed as a develop-green `WRONG_TEST:` report is: "
+                       "`$S/wrong-test-route.sh .tdd/revise-green-<k>.out '<target-test-id>'` runs before the "
+                       "attempt is counted; its exit 0 writes no `revise` mark, spends no `REVISE_BUDGET` attempt "
+                       "and launches the `red-contradicted` red, its exit 3 keeps the attempt's main outcome, a "
+                       "verify-green REJECT, and its exit 2 is a bail; never a `report-missing` bail.")
+PIN_RECORD_SENTENCE = ('A `⟦replaces-case⟧` step skips verify-red, so on that verify-pin PASS first run '
+                       f"`$S/tests-frozen.sh record {RECORD_ARG} <test-path>` to record its replacement cases "
+                       'before the deletion green checks them; tests-frozen exit 2 is a bail.')
+EXIT3_LINE = 'exit 3 (`revise`) runs the existing revise path unchanged: the verify-green REJECT.'
+EXIT2_LINE = 'exit 2 is a system failure: **bail**.'
+
+
+def doc_of(heading):
+    return {"## Revising on a REJECT": REVISE_MD, "## Already satisfied — the pin": PIN_MD}.get(heading, SKILL)
+
+
+def numbered_section(heading):
+    out, inside = [], False
+    for n, line in enumerate(doc_of(heading).read_text().split("\n"), 1):
+        if not inside:
+            inside = line.startswith(heading)
+        elif line.startswith("#"):
+            break
+        else:
+            out.append((n, line))
+    return out
+
+
+def joined_section(heading):
+    return " ".join(line.lstrip() for _, line in numbered_section(heading))
+
+
+def lines_matching(heading, pattern):
+    return [n for n, line in numbered_section(heading) if re.search(pattern, line)]
+
+
+def any_between(numbers, lo, hi):
+    return any(lo < n < hi for n in numbers)
+
+
+def plain(text):
+    return text.replace("*", "").replace("`", "").lower()
+
+
+def sentences(text):
+    return plain(text).replace(". ", ".\n").split("\n")
+
+
+def frozen_sentences(heading):
+    kept, fence = [], False
+    for _, line in numbered_section(heading):
+        if line.lstrip().startswith("```"):
+            fence = not fence
+        elif not fence:
+            kept.append(line)
+    return [s for s in sentences(" ".join(kept)) if "tests-frozen" in s]
+
+
+def first(numbers):
+    return numbers[0] if numbers else 0
+
+
+def check_handling(where, found):
+    text = "\n".join(found)
+    problems = []
+    for ok, what in (
+        (re.search(r"exit 1|exits 1", text), "branches on check exit 1"),
+        ("verify-green.reason" in text, "writes the changed file to .tdd/verify-green.reason"),
+        (re.search(r"nam(e|es|ing) the (changed |test )?file", text), "says the reason names the file"),
+        ("revise_budget" in text, "says a changed test spends REVISE_BUDGET"),
+        (re.search(r"no verifier|not launch|without launching", text), "says no verifier is launched for that attempt"),
+        (re.search(r"exit 0|exits 0", text), "says check exit 0 launches the verifier as before"),
+    ):
+        if not ok:
+            problems.append(f"{where}: no sentence naming tests-frozen {what}")
+    return problems
+
+
+def green_route_text():
+    text = joined_section(GREEN)
+    text = text.partition("A green report carrying `WRONG_TEST:`")[2] or text
+    return text.partition("tests-frozen.sh check")[0]
+
+
+def test_red_section_runs_tests_frozen_record_after_verify_reds_verdict():
+    red_wait = first(lines_matching(RED, r"wait-leaf\.sh verdict-red"))
+    red_record = lines_matching(RED, r"tests-frozen\.sh record")
+    assert red_record, "Red section never runs tests-frozen.sh record"
+    assert any_between(red_record, red_wait, 999999), (
+        f"Red runs tests-frozen.sh record only before verify-red's verdict (line {red_wait})")
+
+
+def test_green_section_runs_tests_frozen_check_between_develop_green_and_verify_green_rejecting_on_exit_1():
+    wait = first(lines_matching(GREEN, r"wait-leaf\.sh develop-green"))
+    verify = first(lines_matching(GREEN, r"supervise\.sh verdict-green"))
+    check = lines_matching(GREEN, r"tests-frozen\.sh check")
+    assert check, "Green section never runs tests-frozen.sh check"
+    assert any_between(check, wait, verify), (
+        f"Green runs tests-frozen.sh check, but not between the develop-green wait (line {wait}) and verify-green (line {verify})")
+    assert check_handling("Green section", frozen_sentences(GREEN)) == []
+
+
+def test_revising_runs_tests_frozen_check_between_revise_green_and_its_reverify_rejecting_on_exit_1():
+    wait = first(lines_matching(REVISE, r"wait-leaf\.sh revise-<phase>-<k>"))
+    verify = first(lines_matching(REVISE, r"supervise\.sh verdict-<phase>"))
+    check = lines_matching(REVISE, r"tests-frozen\.sh check")
+    found = frozen_sentences(REVISE)
+    assert check, "Revising on a REJECT never runs tests-frozen.sh check"
+    assert any_between(check, wait, verify), (
+        f"Revising runs tests-frozen.sh check, but not between the revise wait (line {wait}) and its re-verify (line {verify})")
+    assert any("green" in s for s in found), "no sentence naming tests-frozen scopes the check to a revise of green"
+    assert check_handling("Revising on a REJECT", found) == []
+
+
+def test_every_tests_frozen_record_and_check_names_the_record_by_path_over_the_step_text_and_red_defines_the_key():
+    text = SKILL.read_text()
+    commands = [(n, line) for n, line in enumerate(text.split("\n"), 1) if re.search(r"tests-frozen\.sh (record|check)", line)]
+    assert commands, "no tests-frozen.sh record or check command to read"
+    for n, line in commands:
+        assert f"tests-frozen.sh record {RECORD_ARG}" in line or f"tests-frozen.sh check {RECORD_ARG}" in line, (
+            f"SKILL.md:{n} runs record or check without {RECORD_ARG}")
+    assert "tests-frozen-<step>" not in text
+    assert KEY_SENTENCE in joined_section(RED)
+
+
+def test_revising_runs_tests_frozen_record_once_a_revised_reds_reverify_passes():
+    wait = first(lines_matching(REVISE, r"wait-leaf\.sh verdict-<phase>"))
+    record = lines_matching(REVISE, r"tests-frozen\.sh record")
+    assert record, "Revising on a REJECT never runs tests-frozen.sh record"
+    assert any_between(record, wait, 999999), f"record does not follow the re-verify's wait (line {wait})"
+    body = "\n".join(line for _, line in numbered_section(REVISE))
+    assert f"tests-frozen.sh record {RECORD_ARG}" in body
+    records = [s for s in frozen_sentences(REVISE) if "record" in s]
+    assert re.search("red", "\n".join(records), re.I), "no sentence naming tests-frozen record scopes it to a revise of red"
+
+
+def test_red_section_says_repair_steps_are_never_frozen_and_a_ci_repair_step_records_nothing_before_its_green():
+    red = joined_section(RED)
+    assert REPAIR_SENTENCE in red
+    assert CI_SENTENCE in red
+    ci_records = [s for s in frozen_sentences(RED) if "ci-repair" in s and "tests-frozen.sh record" in s]
+    assert ci_records == []
+
+
+def test_green_and_revising_handle_check_exit_2_as_a_system_failure_bail_never_a_reject():
+    for where in (GREEN, REVISE):
+        assert EXIT2_SENTENCE in joined_section(where), f"{where} lacks the check exit 2 handling verbatim"
+
+
+def test_revising_routes_a_revise_green_wrong_test_report_through_wrong_test_route_never_a_report_missing_bail():
+    outcome = [s for s in sentences(" ".join(line for _, line in numbered_section(GREEN))) if "looks wrong" in s]
+    assert "verify-green reject" in "\n".join(outcome), "no Green sentence about a test that looks wrong names a verify-green REJECT"
+    assert WRONG_TEST_SENTENCE in joined_section(REVISE)
+
+
+def test_the_pin_records_a_replaces_case_steps_tests_at_its_verify_pin_pass_before_the_deletion_green():
+    pin = joined_section(PIN)
+    assert PIN_RECORD_SENTENCE in pin
+    assert PIN_RECORD_SENTENCE in pin.partition("launch a green leaf exactly as")[0]
+
+
+def test_green_routes_a_wrong_test_report_through_wrong_test_route_by_exit_code():
+    route = green_route_text()
+    assert "wrong-test-route.sh" in route
+    assert ("supervise.sh" in route and "red-contradicted" in route)
+    assert "verify-red" in route
+    assert "tests-frozen.sh record --step" in route
+    assert re.search(r"no `?revise`? mark", route, re.I)
+    assert re.search(r"no (revise|REVISE_BUDGET)|spends? no", route, re.I)
+    assert re.search(r"retr(y|ies) green", route, re.I)
+
+
+def test_green_wrong_test_routing_carries_the_exit_3_and_exit_2_lines():
+    route = green_route_text()
+    assert EXIT3_LINE in route
+    assert EXIT2_LINE in route
+
+
+def test_green_wrong_test_repair_route_launches_red_repair_through_the_supervisor_and_verifies_it_with_verify_red_before_retrying_green():
+    route = green_route_text()
+    assert "`repair <case>`" in route, "Green WRONG_TEST: routing has no repair <case> route"
+    repair = route.partition("`repair <case>`")[2].partition("- exit 3")[0]
+    assert re.search(r"supervise\.sh.*red-repair|red-repair.*supervise\.sh", repair), (
+        "the repair <case> route does not launch the red-repair red through supervise.sh")
+    head = repair.partition("retry green")[0]
+    assert re.search(r"red-repair.*verify-red", head), (
+        "the repair <case> route does not verify the repaired red with verify-red before retrying green")
+    assert not re.search(r"\bpins?\b|pinned|verify-pin", repair, re.I), (
+        "the repair <case> route carries a standing order about pins")
+
+
+def test_green_and_revising_send_a_missing_behaviour_answer_to_red_missing_with_no_revise_attempt_and_verify_the_added_case_before_green_runs_again():
+    green = plain(joined_section(GREEN))
+    missing = green.partition("exit 0 may instead print missing <behaviour>")[2].partition("exit 2 is a system failure")[0]
+    revise = plain(joined_section(REVISE))
+    assert "exit 0 may instead print missing <behaviour>" in green, "Green section has no missing <behaviour> route"
+    for entry in ("verify-green reject", "mutation-parity reject"):
+        assert entry in missing, f"the missing <behaviour> route does not name the {entry} entry"
+    assert re.search(r"impossible.*missing_test:.*red-missing", revise), (
+        "REVISE.md's loop does not route a revise answering IMPOSSIBLE with a MISSING_TEST: line to red-missing")
+    assert "red-missing" in missing and "red-missing" in revise
+    assert "no revise mark" in missing
+    assert "no revise_budget attempt" in missing
+    assert re.search(r"verify-red.*verify-pin.*then run green again", missing)
+    assert re.search(r"exit 3.*spend revise_budget", missing)
