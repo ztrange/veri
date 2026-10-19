@@ -44,7 +44,8 @@ def exists_in_tree(test_id):
             source = handle.read()
     except OSError:
         return False
-    return re.search(def_pattern(name.split("::")[-1]), source, re.M) is not None
+    test = re.sub(r"\[.*\]$", "", name.split("::")[-1])
+    return re.search(def_pattern(test), source, re.M) is not None
 
 
 def unescape(name):
