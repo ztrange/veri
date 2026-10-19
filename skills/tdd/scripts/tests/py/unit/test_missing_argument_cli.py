@@ -18,19 +18,17 @@ def subjects():
     return sorted(script.name for script in SCRIPTS.glob("*.sh") if requires_argument(script))
 
 
+def module_of(name):
+    return importlib.import_module(SHIM_MODULE.search((SCRIPTS / name).read_text()).group(1))
+
+
 @pytest.mark.tree_audit("every skills/tdd/scripts/*.sh, read for its usage line and its shim")
 @pytest.mark.parametrize("name", subjects())
 def test_a_script_requiring_a_positional_argument_exits_2_with_a_usage_line_when_called_with_none(name, run_cli):
-    module = importlib.import_module(SHIM_MODULE.search((SCRIPTS / name).read_text()).group(1))
-    code, out, err = run_cli(module, [], env=FLOOR_KNOBS)
+    code, out, err = run_cli(module_of(name), [], env=FLOOR_KNOBS)
     assert code == 2, "%s: want exit 2, got %s: %s" % (name, code, err)
     assert "usage" in err, "%s: no usage line on stderr: %r" % (name, err)
     assert name in err, "%s: usage line does not name it: %r" % (name, err)
-
-
-def refusal(name, argv):
-    module = importlib.import_module(SHIM_MODULE.search((SCRIPTS / name).read_text()).group(1))
-    return name, module, argv
 
 
 def roster_ids(roster):
@@ -83,8 +81,7 @@ SLICE_6_ROSTER = [
 
 
 def refused(name, argv, run_cli):
-    _, module, _ = refusal(name, argv)
-    code, out, err = run_cli(module, argv, env=FLOOR_KNOBS)
+    code, out, err = run_cli(module_of(name), argv, env=FLOOR_KNOBS)
     shown = "%s %s" % (name, argv)
     assert code == 2, "%s: want exit 2, got %s: %s" % (shown, code, err)
     assert "usage" in err, "%s: no usage line on stderr: %r" % (shown, err)
