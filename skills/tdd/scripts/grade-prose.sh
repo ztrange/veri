@@ -2,7 +2,7 @@
 # grade-prose.sh — grade one prose unit against its requirements list.
 #
 # Usage:   grade-prose.sh <requirements-file> <unit>
-# Exit:    2 bad arguments
+# Exit:    2 bad arguments, or a grader.conf model naming no version
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -36,5 +36,9 @@ Unit text:
 $text"
 
 model="$(awk '/^[[:space:]]*(#|$)/ { next } !found { v = $0; sub(/^[^=]*=/, "", v); gsub(/^[[:space:]"]+|[[:space:]"]+$/, "", v); found = 1 } END { print v }' "$HERE/../grader.conf")"
+if [[ "$model" != *[0-9]* ]]; then
+  echo "grade-prose.sh: grader.conf model '$model' names no version" >&2
+  exit 2
+fi
 
 "$HERE/supervise.sh" grade-prose "${CLAUDE_BIN:-claude}" -p --model "$model" <<< "$prompt"

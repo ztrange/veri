@@ -80,4 +80,18 @@ got_model="$(grep -A1 -x -e '--model' "$work/seen" 2> /dev/null | tail -n 1)"
 expect_eq "claude receives --model with grader.conf's value, whatever VERI_MODEL and VERI_MODEL_VERIFIER say" \
   "$want_model" "$got_model"
 
+mkdir -p "$work/nover/scripts"
+for f in "$HERE"/../*; do
+  [[ "$(basename "$f")" == grade-prose.sh ]] && cp "$f" "$work/nover/scripts/" || ln -s "$f" "$work/nover/scripts/$(basename "$f")"
+done
+echo 'model=sonnet' > "$work/nover/grader.conf"
+rm -f "$work/ran"
+claude_stub "$bin" "touch '$work/ran'"
+(cd "$work/role" && CLAUDE_BIN="$bin/claude" "$work/nover/scripts/grade-prose.sh" "$work/role/REQUIREMENTS.md" unit.md > /dev/null 2> "$work/nover/stderr")
+code=$?
+diag=no; [[ -s "$work/nover/stderr" ]] && diag=yes
+launched=no; [[ -e "$work/ran" ]] && launched=yes
+expect_eq "a grader.conf model that names no version exits 2 with a diagnostic on stderr and never launches claude" \
+  "2;diag=yes;launched=no" "$code;diag=$diag;launched=$launched"
+
 finish
