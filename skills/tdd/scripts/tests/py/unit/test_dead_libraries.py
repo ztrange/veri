@@ -2,6 +2,8 @@
 
 Each case's subject is source text: it reads the files of the repository as text and never runs them.
 """
+import sys
+
 import pytest
 
 from conftest import ROOT, SCRIPTS
@@ -43,12 +45,17 @@ def test_a_library_is_live_only_through_a_chain_from_an_entry_point(tmp_path, en
     assert dead_libraries([a, b], texts) == dead
 
 
-def test_a_library_named_only_by_the_reference_transaction_hook_is_live(tmp_path):
-    lib, hooks = tmp_path / "lib", tmp_path / "docs" / "hooks"
-    lib.mkdir()
+def test_a_library_named_only_by_the_reference_transaction_hook_is_live(tmp_path, monkeypatch):
+    scripts, hooks = tmp_path / "skills" / "tdd" / "scripts", tmp_path / "docs" / "hooks"
+    (scripts / "lib").mkdir(parents=True)
     hooks.mkdir(parents=True)
-    a, hook = lib / "a.sh", hooks / "reference-transaction"
-    assert dead_libraries([a], {a: "echo a", hook: ". lib/a.sh"}) == []
+    a = scripts / "lib" / "a.sh"
+    a.write_text("echo a")
+    (hooks / "reference-transaction").write_text(". lib/a.sh")
+    monkeypatch.setattr(sys.modules[__name__], "ROOT", tmp_path)
+    monkeypatch.setattr(sys.modules[__name__], "SCRIPTS", scripts)
+    texts = {p: read(p) for p in carriers() if p.is_file()}
+    assert dead_libraries([a], texts) == []
 
 
 @pytest.mark.tree_audit("every .sh file under skills/tdd/scripts and the files of .github")
