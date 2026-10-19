@@ -33,6 +33,9 @@ test is `{{TARGET_TEST}}`). Confirm the Red step is sound.
    lives in the test file and is written in Red, so production code cannot supply it.
    A test that fails for the wrong reason is a REJECT.
 3. **Quality of the test.** REJECT if the test is:
+   - **missing a named case** — the step's text names a test case the step asks to be
+     pinned (a "separate case", a second behaviour) and the change adds no case for it:
+     REJECT naming the missing case, or
    - **trivial** — it cannot meaningfully fail once the behavior exists (asserts a
      constant, `assert True`, tests nothing the spec asks for), or
    - **over-coupled** — it asserts on private internals / implementation details rather
