@@ -380,3 +380,37 @@ def test_issue_1528_main_from_a_subdirectory_of_a_worktree_appends_under_dot_tdd
     assert os.listdir(cwd) == []
     assert sorted(os.listdir(root)) == [".git", ".tdd", "sub"]
     assert json.loads((root / ".tdd" / "events.jsonl").read_text())["event"] == "x"
+
+
+def test_event_with_dot_tdd_a_regular_file_exits_2_and_leaves_that_file_byte_identical(
+        tmp_path, run_cli, event):
+    (tmp_path / ".tdd").write_bytes(b"not a directory\n")
+
+    code, out, err = run_cli(event, ["step-start"], env={"VERI_AWAKE_CLOCK": "/usr/bin/true"}, cwd=tmp_path)
+
+    assert (code, out) == (2, "")
+    assert err != ""
+    assert (tmp_path / ".tdd").read_bytes() == b"not a directory\n"
+
+
+@pytest.mark.process("event.sh run through a symlink to the scripts directory, its shim starting python3")
+@pytest.mark.tree_audit("the scripts directory listed before and after the run")
+def test_event_run_through_a_symlink_to_the_scripts_directory_appends_to_the_working_directorys_log_and_creates_nothing_beside_the_scripts(
+        monkeypatch, tmp_path):
+    for name in [n for n in os.environ if n.startswith("VERI_")]:
+        monkeypatch.delenv(name)
+    (tmp_path / "linked-scripts").symlink_to(SCRIPTS)
+    (tmp_path / "run").mkdir()
+    clock = tmp_path / "awake-clock"
+    clock.write_text("#!/bin/sh\necho 7\n")
+    clock.chmod(0o755)
+    before = sorted(os.listdir(SCRIPTS))
+
+    done = subprocess.run([str(tmp_path / "linked-scripts" / "event.sh"), "symlinked-mark"],
+                          cwd=tmp_path / "run", env={**os.environ, "VERI_AWAKE_CLOCK": str(clock)},
+                          capture_output=True)
+
+    assert done.returncode == 0
+    lines = (tmp_path / "run" / ".tdd" / "events.jsonl").read_text().splitlines()
+    assert [json.loads(text)["event"] for text in lines] == ["symlinked-mark"]
+    assert sorted(os.listdir(SCRIPTS)) == before
