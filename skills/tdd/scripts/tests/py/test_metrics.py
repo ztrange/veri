@@ -1332,3 +1332,23 @@ def test_main_run_from_the_issue_worktree_finds_the_conductor_stream_log_the_lau
     out = render(metrics, capsys)
 
     assert "Conductor own spending: $1.25 over 40 turns, in 1 sessions.\n" in out
+
+
+def test_main_lists_the_conductor_dollars_and_context_size_of_each_turn_in_turn_order_across_sessions(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    usages = [{"input_tokens": 10, "output_tokens": 300, "cache_read_input_tokens": 120000, "cache_creation_input_tokens": 2000},
+              {"input_tokens": 5, "output_tokens": 0, "cache_read_input_tokens": 160000, "cache_creation_input_tokens": 0},
+              {"input_tokens": 0, "output_tokens": 0, "cache_read_input_tokens": 200000, "cache_creation_input_tokens": 0}]
+    turns = [{"type": "assistant", "message": {"usage": usage}} for usage in usages]
+    sessions = [{"type": "system", "subtype": "init"}, turns[0], turns[1],
+                {"type": "result", "total_cost_usd": 0.5, "num_turns": 2},
+                {"type": "system", "subtype": "init"}, turns[2],
+                {"type": "result", "total_cost_usd": 0.3, "num_turns": 1}]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in sessions))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert "\n#### Conductor per turn\n" in out
+    assert cells(out, "#### Conductor per turn", ["dollars", "context"]) == {
+        "1": ["$0.24", "122010"], "2": ["$0.24", "160005"], "3": ["$0.30", "200000"]}

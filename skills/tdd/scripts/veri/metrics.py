@@ -56,6 +56,8 @@ UNBUDGETED_PHASES = {"cover", "transform", "diff"}
 TURN_RATES = {"input_tokens": 15.0, "output_tokens": 75.0,
               "cache_read_input_tokens": 1.5, "cache_creation_input_tokens": 18.75}
 
+CONTEXT_KEYS = ["input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"]
+
 
 def render(issue, path, ledger):
     def known(number):
@@ -381,6 +383,7 @@ def render(issue, path, ledger):
               % (ending.get("cause") or UNKNOWN, ending.get("classification") or UNKNOWN))
     sessions = []
     open_turns, open_cost = 0, 0.0
+    turn_rows = []
     if not conductor_counted:
         with contextlib.suppress(OSError):
             log_name = "conductor-%s.log" % issue
@@ -400,8 +403,11 @@ def render(issue, path, ledger):
                         elif record.get("type") == "assistant":
                             usage = (record.get("message") or {}).get("usage") or {}
                             open_turns += 1
-                            open_cost += sum((usage.get(key) or 0) * rate / 1e6
-                                             for key, rate in TURN_RATES.items())
+                            turn_dollars = sum((usage.get(key) or 0) * rate / 1e6
+                                               for key, rate in TURN_RATES.items())
+                            open_cost += turn_dollars
+                            turn_rows.append([str(len(turn_rows) + 1), "$%.2f" % turn_dollars,
+                                              str(sum((usage.get(key) or 0) for key in CONTEXT_KEYS))])
             if open_turns:
                 sessions.append({"total_cost_usd": open_cost, "num_turns": open_turns})
     if sessions:
@@ -414,6 +420,10 @@ def render(issue, path, ledger):
               % ("closing accounting with them, which this log carries"
                  if conductor_counted else
                  "spending is not in it: this log carries no usage record of the conductor own"))
+    if turn_rows:
+        table_head("#### Conductor per turn", "turn", ["dollars", "context"], ["---:", "---:"])
+        for turn_row in turn_rows:
+            row(turn_row)
     if models:
         print("Models requested: %s; models that answered: %s."
               % (", ".join("%s %s" % (knob, tunables.read(knob) or "unset")
