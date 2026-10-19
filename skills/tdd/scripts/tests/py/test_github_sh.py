@@ -26,9 +26,9 @@ esac
 """ % PROXY
 
 
-def run_lib(tmp_path, gh_body, call, driver=None):
-    """(returncode, stdout, stderr, gh calls) of <call> run in bash after sourcing lib/github.sh,
-    with an executable gh running <gh_body> first on PATH."""
+def run_lib(tmp_path, gh_body, call, driver=None, env=None):
+    """(returncode, stdout, stderr, calls) of <call> run in bash after sourcing lib/github.sh,
+    with an executable gh running <gh_body> first on PATH, and a sleep and a python3 that only record."""
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir(exist_ok=True)
     calls = tmp_path / "calls"
@@ -36,11 +36,16 @@ def run_lib(tmp_path, gh_body, call, driver=None):
     gh = bin_dir / "gh"
     gh.write_text('#!/bin/sh\necho "gh $*" >> "$CALLS"\n' + gh_body)
     gh.chmod(0o755)
-    env = {"PATH": os.pathsep.join([str(bin_dir), os.path.dirname(shutil.which("bash")), "/usr/bin", "/bin"]),
+    for name, body in (("sleep", 'echo "sleep $*" >> "$CALLS"\n'),
+                       ("python3", 'echo "python3 $*" >> "$CALLS"\ncat > /dev/null\necho rest-body\n')):
+        fake = bin_dir / name
+        fake.write_text("#!/bin/sh\n" + body)
+        fake.chmod(0o755)
+    env = {**(env or {}), "PATH": os.pathsep.join([str(bin_dir), os.path.dirname(shutil.which("bash")), "/usr/bin", "/bin"]),
            "CALLS": str(calls), "LIB": str(LIB)}
     if driver is not None:
         env["VERI_GH_DRIVER"] = driver
-    ran = subprocess.run(["bash", "-c", 'source "$LIB"; ' + call], capture_output=True, text=True, env=env)
+    ran = subprocess.run(["bash", "-c", 'set -o pipefail; source "$LIB"; ' + call], capture_output=True, text=True, env=env)
     return ran.returncode, ran.stdout, ran.stderr, calls.read_text().splitlines()
 
 
@@ -132,3 +137,181 @@ def test_gh_rest_list_and_gh_list_return_2_when_page_2_fails_with_a_502_and_with
 
     assert (rest[0], numbers_in(rest[1]), rest[2]) == (2, [1, 2], "gh: Bad Gateway (HTTP 502)\n")
     assert (listed[0], numbers_in(listed[1]), listed[2]) == (2, [1, 2], "error connecting to api.github.com\n")
+
+
+ISSUES = "'repos/{owner}/{repo}/issues'"
+OPS = {
+    "view": "gh_issue_view 7 body",
+    "list": "gh_list %s issue list --json number" % ISSUES,
+    "json": "gh_json issues.json %s issue list --json number" % ISSUES,
+    "ready": "gh_pr_ready 42",
+}
+API_PAGES = """\
+    case "$*" in *page=1) echo '[{"number":1}]' ;; *page=*) echo '[]' ;; *) echo '{}' ;; esac
+    exit 0 ;;
+"""
+OLD_SHA = "8a7980e1" + "a" * 32
+NEW_SHA = "a245e8b0" + "b" * 32
+
+
+def started(calls, command):
+    return [call for call in calls if call.startswith(command + " ")]
+
+
+def reads_of_pr_42(calls):
+    return [call for call in calls if re.match(r"gh api .*pulls/42([^/]|$)", call)]
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_with_the_driver_unset_every_graphql_operation_runs_only_gh_api_and_returns_2_when_it_fails(tmp_path):
+    for rest_answers in (True, False):
+        for op, call in OPS.items():
+            fail = "" if rest_answers else "echo 'gh: Bad Gateway (HTTP 502)' >&2; exit 1"
+            body = ("case \"$1\" in\n  issue|pr) echo '[]'; exit 0 ;;\n  api)\n    " + fail + "\n"
+                    + API_PAGES + "esac\nexit 1\n")
+
+            code, _, _, calls = run_lib(tmp_path, body, call)
+
+            where = (op, rest_answers)
+            assert code == (0 if rest_answers else 2), where
+            assert started(calls, "gh api"), where
+            assert not started(calls, "gh issue") + started(calls, "gh pr"), where
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_with_the_driver_rest_every_graphql_operation_answers_from_gh_api_alone_and_passes_its_stderr_on(tmp_path):
+    answers = {"view": "rest-body", "list": '[{"number":1}]', "json": '[{"number":1}]', "ready": ""}
+    for rest_answers in (True, False):
+        for op, call in OPS.items():
+            fail = "" if rest_answers else "echo 'gh: Bad Gateway (HTTP 502)' >&2; exit 1"
+            body = ("case \"$1\" in\n  issue|pr) echo graphql-answer; exit 0 ;;\n  api)\n    " + fail + "\n"
+                    + API_PAGES + "esac\nexit 1\n")
+
+            code, out, err, calls = run_lib(tmp_path, body, call, "rest")
+
+            where = (op, rest_answers)
+            assert code == (0 if rest_answers else 2), where
+            assert started(calls, "gh api"), where
+            assert not started(calls, "gh issue") + started(calls, "gh pr"), where
+            if rest_answers:
+                assert out.strip() == answers[op], where
+            else:
+                assert "gh: Bad Gateway (HTTP 502)" in err, where
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_with_the_driver_graphql_every_graphql_operation_returns_2_without_gh_api_when_graphql_fails(tmp_path):
+    for graphql_answers in (True, False):
+        for op, call in OPS.items():
+            fail = "" if graphql_answers else 'echo "%s" >&2; exit 1' % REFUSAL
+            body = ("case \"$1\" in\n  issue|pr)\n    " + fail + "\n    echo graphql-answer; exit 0 ;;\n  api)\n"
+                    + API_PAGES + "esac\nexit 1\n")
+
+            code, out, _, calls = run_lib(tmp_path, body, call, "graphql")
+
+            where = (op, graphql_answers)
+            assert code == (0 if graphql_answers else 2), where
+            assert started(calls, "gh issue") + started(calls, "gh pr"), where
+            assert not started(calls, "gh api"), where
+            if graphql_answers:
+                assert out.strip() == "graphql-answer", where
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_operations_with_no_graphql_route_run_gh_api_and_no_gh_issue_or_pr_under_every_driver(tmp_path):
+    body = "case \"$1\" in\n  issue|pr) echo graphql-answer; exit 0 ;;\n  api)\n" + API_PAGES + "esac\nexit 1\n"
+    body_file = tmp_path / "body"
+    body_file.write_text("a new body\n")
+    ops = {"edit": "gh_issue_edit 7 '%s'" % body_file,
+           "rest_list": "gh_rest_list %s" % ISSUES,
+           "json": "gh_json issues.json %s" % ISSUES}
+    for driver in (None, "auto", "rest", "graphql"):
+        for op, call in ops.items():
+            code, _, _, calls = run_lib(tmp_path, body, call, driver)
+
+            where = (op, driver)
+            assert code == 0, where
+            assert started(calls, "gh api"), where
+            assert not started(calls, "gh issue") + started(calls, "gh pr"), where
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_with_the_driver_empty_or_unknown_every_gh_function_starts_no_gh_and_names_the_variable_and_value(tmp_path):
+    body = "case \"$1\" in\n  issue|pr|api) echo '[]'; exit 0 ;;\nesac\nexit 1\n"
+    ops = {**OPS, "json_rest": "gh_json issues.json %s" % ISSUES,
+           "edit": "gh_issue_edit 7 '%s'" % (tmp_path / "body"),
+           "rest_list": "gh_rest_list %s" % ISSUES}
+    for driver in ("", "REST", "gql"):
+        for op, call in ops.items():
+            code, out, err, calls = run_lib(tmp_path, body, call, driver)
+
+            where = (op, driver)
+            assert code == 2, where
+            assert out == "", where
+            assert not started(calls, "gh"), where
+            assert len(err.splitlines()) == 1, where
+            assert "VERI_GH_DRIVER" in err and "'%s'" % driver in err, where
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_with_veri_gh_json_set_gh_json_prints_the_fixture_and_starts_no_gh_or_python3_under_every_driver(tmp_path):
+    fixtures = tmp_path / "fixtures"
+    fixtures.mkdir()
+    (fixtures / "prs.json").write_text('[{"number":7,"title":"A thing"}]\n')
+    body = "echo '[{\"number\":99}]'\n"
+    path = "'repos/{owner}/{repo}/pulls?state=open'"
+    for driver in (None, "auto", "rest", "graphql"):
+        for call in ("gh_json prs.json %s pr list --json number,title" % path, "gh_json prs.json %s" % path):
+            code, out, _, calls = run_lib(tmp_path, body, call, driver, {"VERI_GH_JSON": str(fixtures)})
+
+            where = (call, driver)
+            assert code == 0, where
+            assert out == '[{"number":7,"title":"A thing"}]\n', where
+            assert calls == [], where
+
+
+def pr_head_stub(tmp_path, answers):
+    """A gh whose pulls/42 read prints the shell expression <answers> and counts its reads in $READS."""
+    reads = tmp_path / "reads"
+    reads.write_text("")
+    return ('case "$*" in\n  *pulls/42/ccr/ready_for_review*) exit 0 ;;\n'
+            '  *pulls/42*) echo x >> "$READS"; n=$(wc -l < "$READS"); ' + answers + '; exit 0 ;;\nesac\n'
+            'echo "stub gh: unexpected call $*" >&2; exit 1\n'), {"READS": str(reads), "VERI_POLL": "7"}
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_gh_pr_ready_with_a_head_sha_marks_ready_only_after_pulls_42_reports_it_polling_every_veri_poll(tmp_path):
+    body, env = pr_head_stub(tmp_path, 'if [ "$n" -ge 3 ]; then echo %s; else echo %s; fi' % (NEW_SHA, OLD_SHA))
+
+    code, out, err, calls = run_lib(tmp_path, body, "gh_pr_ready 42 " + NEW_SHA, None, env)
+
+    ready_at = next(i for i, call in enumerate(calls) if "ccr/ready_for_review" in call)
+    assert (code, out, err) == (0, "", "")
+    assert len(reads_of_pr_42(calls)) == 3
+    assert len(reads_of_pr_42(calls[:ready_at])) == 3
+    assert "sleep 7" in calls
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_gh_pr_ready_with_a_head_sha_returns_2_unready_naming_both_shas_when_pulls_42_never_reports_it(tmp_path):
+    body, env = pr_head_stub(
+        tmp_path, 'if [ "$n" -gt 200 ]; then echo "stub gh: pulls/42 read more than 200 times" >&2; exit 1; fi; echo ' + OLD_SHA)
+
+    code, out, err, calls = run_lib(tmp_path, body, "gh_pr_ready 42 " + NEW_SHA, None, env)
+
+    assert (code, out) == (2, "")
+    assert not [call for call in calls if "ccr/ready_for_review" in call or call.startswith("gh pr ready")]
+    assert len(reads_of_pr_42(calls)) <= 200
+    assert [line for line in err.splitlines() if OLD_SHA in line and NEW_SHA in line]
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_gh_pr_ready_with_no_head_sha_marks_ready_at_once_reading_no_pulls_42_and_never_sleeping(tmp_path):
+    body, env = pr_head_stub(tmp_path, "echo " + OLD_SHA)
+
+    code, out, err, calls = run_lib(tmp_path, body, "gh_pr_ready 42", None, env)
+
+    assert (code, out, err) == (0, "", "")
+    assert [call for call in calls if "ccr/ready_for_review" in call]
+    assert reads_of_pr_42(calls) == []
+    assert not started(calls, "sleep")
