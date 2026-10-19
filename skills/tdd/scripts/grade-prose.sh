@@ -35,4 +35,4 @@ $claims
 Unit text:
 $text"
 
-"${CLAUDE_BIN:-claude}" -p <<< "$prompt"
+"$HERE/supervise.sh" grade-prose "${CLAUDE_BIN:-claude}" -p <<< "$prompt"

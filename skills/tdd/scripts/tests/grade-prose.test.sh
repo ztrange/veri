@@ -63,4 +63,12 @@ done
 expect_eq "a section unit's prompt carries its text from its heading to the next heading of the same or higher level, and nothing else of the file" \
   "" "$got"
 
+mkdir -p "$work/role/.tdd"
+cp "$work/REQUIREMENTS.md" "$work/unit.md" "$work/role/"
+(cd "$work/role" && CLAUDE_BIN="$bin/claude" "$GRADE" "$work/role/REQUIREMENTS.md" unit.md > /dev/null 2>&1)
+actors="$(grep -F '"event": "launch"' "$work/role/.tdd/events.jsonl" 2> /dev/null | grep -o '"actor": *"[a-z]*"' | tr -d ' ' | sort -u | tr '\n' ' ')"
+[[ -n "$actors" ]] || actors="$(grep -F '"event":"launch"' "$work/role/.tdd/events.jsonl" 2> /dev/null | grep -o '"actor": *"[a-z]*"' | tr -d ' ' | sort -u | tr '\n' ' ')"
+expect_eq "the grader leaf's supervisor launch event names a grader role, never developer or verifier" \
+  '"actor":"grader" ' "$actors"
+
 finish

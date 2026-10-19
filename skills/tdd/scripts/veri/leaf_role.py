@@ -4,7 +4,7 @@ import re
 import sys
 
 USAGE = "usage: leaf-role.sh <leaf-name>"
-ACTORS = {"develop": "developer", "revise": "developer", "verify": "verifier", "conductor": "conductor"}
+ACTORS = {"grade": "grader", "develop": "developer", "revise": "developer", "verify": "verifier", "conductor": "conductor"}
 SHAPES = "(want develop-*|revise-*|verify-*|conductor-*)"
 
 
