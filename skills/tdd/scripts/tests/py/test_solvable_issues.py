@@ -963,3 +963,17 @@ def test_main_not_running_keeps_the_issue_whose_live_conductor_was_started_from_
 
     out, err = capsys.readouterr()
     assert (code, out) == (0, "5\n6\n7\n")
+
+
+def test_main_without_not_running_prints_every_solvable_issue_even_while_a_live_conductor_from_this_clones_skill_path_runs(tmp_path, monkeypatch, capsys, solvable_issues):
+    (tmp_path / "issues.json").write_text(json.dumps([opted_in(5), opted_in(6), opted_in(7)]))
+    (tmp_path / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    fake_git_answering_nothing(monkeypatch)
+    own = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(solvable_issues.__file__))), "run-conductor.sh")
+    monkeypatch.setattr(solvable_issues, "process_listing", lambda: "bash %s 6\n" % own, raising=False)
+
+    code = solvable_issues.main([])
+
+    out, err = capsys.readouterr()
+    assert (code, out) == (0, "5\n6\n7\n")
