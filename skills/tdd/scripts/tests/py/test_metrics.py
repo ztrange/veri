@@ -2,6 +2,7 @@
 import importlib
 import json
 import re
+from pathlib import Path
 
 import pytest
 
@@ -1449,3 +1450,25 @@ def test_main_names_no_dollar_figure_for_a_conductor_turn_whose_model_the_price_
     out = render(metrics, capsys)
 
     assert re.search(r"Conductor own spending:[^\n]*\$\d", out) is None
+
+
+def test_issue_1859_the_opus_5_5_price_entry_matches_a_recorded_conductor_result_and_its_per_turn_estimate_stays_close(tmp_path, metrics):
+    fixture = Path(__file__).parent.parent / "fixtures" / "conductor-log" / "conductor-opus-5-5-recorded.log"
+    log = fixture.read_text()
+    result = next(r for r in map(json.loads, log.splitlines()) if r.get("type") == "result")
+    usage = result["usage"]
+    prices = metrics.session_cost.PRICES["claude-opus-5-5"]
+
+    priced = (usage["input_tokens"] * prices["input"]
+              + usage["output_tokens"] * prices["output"]
+              + usage["cache_read_input_tokens"] * prices["cache_read"]
+              + usage["cache_creation"]["ephemeral_5m_input_tokens"] * prices["cache_write_5m"]
+              + usage["cache_creation"]["ephemeral_1h_input_tokens"] * prices["cache_write_1h"]) / 1e6
+    assert priced == pytest.approx(result["total_cost_usd"], rel=0.01)
+
+    (tmp_path / "conductor-108.log").write_text("".join(
+        line + "\n" for line in log.splitlines() if json.loads(line).get("type") != "result"))
+    _, turn_rows = metrics.conductor_sessions("108", str(tmp_path / "events.jsonl"))
+    estimate = sum(float(row[1].lstrip("$")) for row in turn_rows)
+    # assistant records carry output_tokens as of the start of streaming, so per-turn output under-counts
+    assert estimate == pytest.approx(result["total_cost_usd"], rel=0.25)
