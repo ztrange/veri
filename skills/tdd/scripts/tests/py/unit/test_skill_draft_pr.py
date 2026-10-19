@@ -9,6 +9,7 @@ DRAFT_PR = "### 4. Draft PR"
 RESUME = "## Resume"
 BAILING = "## Bailing"
 BAIL = SKILL.with_name("BAIL.md")
+RESUME_MD = SKILL.with_name("RESUME.md")
 GUARDRAILS = "## Guardrails"
 ISSUE = "### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)"
 PLAN = "### 2. Scope & plan → the ledger"
@@ -23,7 +24,7 @@ def _lower(text):
 
 
 def _lines(heading, stop_at_any_hash=False):
-    section = importlib.import_module("skill_sections").section(BAIL if heading == BAILING else SKILL, heading)
+    section = importlib.import_module("skill_sections").section(BAIL if heading == BAILING else RESUME_MD if heading == RESUME else SKILL, heading)
     lines = section.splitlines()[1:]
     if stop_at_any_hash:
         for i, line in enumerate(lines):

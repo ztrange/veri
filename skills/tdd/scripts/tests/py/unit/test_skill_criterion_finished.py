@@ -33,7 +33,8 @@ def records_of(text):
 
 
 def section_records(heading):
-    text = importlib.import_module("skill_sections").section(PIN_MD if heading == PIN else SKILL, heading)
+    doc = {PIN: PIN_MD, "## Resume": SKILL.with_name("RESUME.md")}.get(heading, SKILL)
+    text = importlib.import_module("skill_sections").section(doc, heading)
     return records_of(text.split("\n", 1)[1])
 
 

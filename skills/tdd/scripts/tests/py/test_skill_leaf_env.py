@@ -813,7 +813,7 @@ def scan_resume_last_done(probe):
     stage_title_recorders(probe, stage, "event")
     plant_every_step_ticked_ledger(tree, title)
     lineno = line = None
-    for n, text in enumerate(SKILL.read_text().split("\n"), 1):
+    for n, text in enumerate(SKILL.with_name("RESUME.md").read_text().split("\n"), 1):
         found = re.search(r"`VERI_ISSUE=[^`]*\$S/event\.sh resume`", text)
         if found:
             lineno, line = n, found.group(0).replace("`", "")

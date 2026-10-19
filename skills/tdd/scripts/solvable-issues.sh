@@ -27,7 +27,7 @@
 # The lock `.tdd/wt/<n>/.tdd/conductor.pid`, written under the repository's main working tree,
 # is NOT a second claim: it is the worktree guard, and it guards one machine's worktree only.
 # While the pid in there still answers `kill -0`, no second conductor on that same machine may
-# enter the live run's tree and follow *Resume*, whose `git reset --hard HEAD` throws the live
+# enter the live run's tree and follow `RESUME.md`, whose `git reset --hard HEAD` throws the live
 # leaf's uncommitted work away. A pid is a machine-local name — it means nothing on
 # another computer — so a lock nobody answers for frees the worktree and never the issue: a
 # bailed run's issue stays out of the pool on the strength of its still-open draft PR, whatever

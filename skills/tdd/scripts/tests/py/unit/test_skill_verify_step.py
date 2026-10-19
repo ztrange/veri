@@ -8,6 +8,7 @@ SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 RED = "#### Red — one failing test (developer leaf), then verify-red (blind)"
 BAILING = "## Bailing"
 BAIL = SKILL.with_name("BAIL.md")
+RESUME_MD = SKILL.with_name("RESUME.md")
 
 FLAG = '--step "<STEP>"'
 FAST_FLAG = "--fast-cmd '<fast-cmd>'"
@@ -22,7 +23,7 @@ def plain_join(text):
 
 def verify_calls():
     return [
-        (n, line) for n, line in enumerate(SKILL.read_text().splitlines(), 1)
+        (n, line) for path in (SKILL, RESUME_MD) for n, line in enumerate(path.read_text().splitlines(), 1)
         if re.search(r"verify\.sh.*(<spec-file>|\.tdd/issue-<n>-spec\.md)", line)
         and "<red|green|refactor|pin|plan>" not in line
     ]

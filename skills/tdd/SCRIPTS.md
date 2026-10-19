@@ -230,7 +230,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   stale local ref. And exit 2 when the worktree it would have handed back **holds a live
   conductor**: `.tdd/conductor.pid` there names a process that still answers `kill -0`, so it
   names that pid instead of printing the path (#170) — a second conductor `cd`'ing into a live
-  run's worktree reads that run's ledger as its own and *Resume* throws the live leaf's
+  run's worktree reads that run's ledger as its own and `RESUME.md` throws the live leaf's
   uncommitted work away. A **dead** pid is a bailed or killed run, still a resume, still the path.
   `$S/issue-worktree.sh --remove <n>` removes the worktree once the PR has landed, and
   **refuses** (exit 2) one holding uncommitted changes.

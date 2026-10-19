@@ -29,7 +29,7 @@ def all_lines():
 
 
 def lines_of(heading):
-    return skill_sections.section(SKILL, heading).splitlines()
+    return skill_sections.section(SKILL.with_name("RESUME.md") if heading == RESUME else SKILL, heading).splitlines()
 
 
 def first(lines, want):
