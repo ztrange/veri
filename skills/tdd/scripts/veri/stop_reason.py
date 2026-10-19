@@ -3,6 +3,8 @@ import json
 import os
 import sys
 
+import tunables
+
 
 def main(argv):
     if len(argv) != 1:
@@ -11,7 +13,7 @@ def main(argv):
     if not os.path.isdir(os.path.join(".tdd", "wt", argv[0])):
         sys.stderr.write("stop-reason.sh: no run for issue %s under .tdd/wt\n" % argv[0])
         return 2
-    gap = os.environ.get("VERI_SLEEP_GAP", "900")
+    gap = tunables.read("VERI_SLEEP_GAP", "900")
     if not (gap.isascii() and gap.isdigit() and int(gap) >= 1):
         sys.stderr.write("stop-reason.sh: VERI_SLEEP_GAP must be a whole number >= 1, got %r\n" % gap)
         return 2

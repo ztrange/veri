@@ -77,6 +77,10 @@ def test_run_leaf_run_verdict_and_stop_run_take_their_veri_values_from_the_one_r
     assert [read for path in modules for read in direct_reads(path)] == []
 
 
+def test_stop_reason_takes_its_veri_values_from_the_one_reader():
+    assert direct_reads(VERI / "stop_reason.py") == []
+
+
 def test_the_guard_names_the_line_of_a_planted_read_whose_veri_name_is_held_in_a_variable(tmp_path):
     planted = tmp_path / "planted.py"
     planted.write_text('import os\nname = "VERI_X"\nvalue = os.environ.get(name)\n')
