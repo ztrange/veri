@@ -21,3 +21,14 @@ Every row below is `proven` by the conductor's own `mutation-parity.sh` run agai
 | run through a symlink to the skill directory and from another working directory, it answers as in place | `test_cover_outcome_process.py::test_cli_run_through_a_symlink_to_the_skill_directory_from_another_cwd_answers_as_it_does_in_place` | the shim exits 5 when run through a linked skill directory | proven |
 | #1089: a CAUGHT_BY: line of a NUL b under COVERED: yes prints ab and exits 0 | `unit/test_cover_outcome.py::test_cli_prints_a_caught_by_line_of_a_nul_b_under_covered_yes_as_ab_and_exits_0` | `report_read` no longer strips NULs | proven |
 | #1089: a COVERED: line of y NUL es exits 0, as COVERED: yes does | `unit/test_cover_outcome.py::test_cli_exits_0_for_a_covered_line_of_y_nul_es_as_covered_yes_does` | `report_read` no longer strips NULs | proven |
+
+## Step 3 — red-divergence.test.sh (6/6, exit 0)
+
+| bash case | kept pytest case | mutation | result |
+|---|---|---|---|
+| DIVERGED report exits 0 and prints its PREDICTED_FAILURE, FAIL_OUTPUT and PREDICTION_NOTE | `unit/test_red_divergence.py::test_main_reads_its_report_through_report_read_and_returns_each_exit_code_inside_0_to_3_with_its_stdout_and_stderr_ignoring_arguments` | the reason prints PREDICTED_FAILURE where FAIL_OUTPUT belongs | proven |
+| MATCHED report exits 3 and prints nothing | same | MATCHED returns 0 instead of 3 | proven |
+| report with no PREDICTION: line, or an unrecognised value, exits 2 | same | an unreadable verdict returns 3 instead of 2 | proven |
+| every verdict the leaf prompts offer on their PREDICTION: line is one the parser reads | `unit/test_red_divergence.py::test_cli_reads_every_verdict_the_leaf_prompts_offer_on_their_prediction_line` | the parser no longer reads `MATCHED` | proven |
+| report with no PREDICTION: line exits 2 with nothing on stdout and nothing on stderr | `unit/test_red_divergence.py::test_main_reads_its_report_…_ignoring_arguments` | an unreadable verdict writes `no verdict` on stderr | proven |
+| run through a symlink to the skill directory and from another working directory, it answers as in place | `test_red_divergence_process.py::test_cli_run_through_a_symlink_to_the_skill_directory_from_another_cwd_answers_as_it_does_in_place` | the shim exits 5 when run through a linked skill directory | proven |
