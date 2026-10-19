@@ -29,6 +29,9 @@ make fail. Confirm the test is a genuine **regression pin** worth committing.
    {{INCLUDE:_exit-status-back.md}} so the mutated run stays
    red — and red is what check 2 is after.
 3. **Quality of the test.** REJECT if the test is:
+   - **missing a named case** — the step's text names a test case the step asks to be
+     pinned (a "separate case", a second behaviour) and the change adds no case for it:
+     REJECT naming the missing case, or
    - **trivial** — it asserts a constant or something no plausible change could break, or
    - **over-coupled** — it asserts on private internals / implementation details rather
      than the observable behavior the spec describes, or
