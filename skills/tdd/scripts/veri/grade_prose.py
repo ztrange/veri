@@ -41,6 +41,15 @@ def modern_python_dir():
     return ""
 
 
+def grader_model():
+    with open(os.path.join(SCRIPTS, "..", "grader.conf"), encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#"):
+                return line.split("=", 1)[-1].strip().strip("'\"")
+    return ""
+
+
 def main(argv):
     if len(argv) != 2:
         print(USAGE, file=sys.stderr)
@@ -53,7 +62,7 @@ def main(argv):
         text = section(text, heading)
     with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
         f.write(prompt(unit, text, requirements.claims(path, unit)))
-    env = {**os.environ, "PATH": modern_python_dir() + os.environ.get("PATH", "")}
+    env = {**os.environ, "PATH": modern_python_dir() + os.environ.get("PATH", ""), "VERI_MODEL": grader_model()}
     try:
         subprocess.run([os.path.join(SCRIPTS, "supervise.sh"), "grade-prose",
                         os.path.join(SCRIPTS, "run-leaf.sh"), f.name], stdout=subprocess.PIPE, env=env)
