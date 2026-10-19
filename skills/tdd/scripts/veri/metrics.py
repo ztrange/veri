@@ -1,6 +1,8 @@
 """metrics.sh's report, rendered in-process."""
 import contextlib
 import io
+import json
+import os
 import sys
 import tunables
 
@@ -373,10 +375,25 @@ def render(issue, path, ledger):
     else:
         print("Outcome: the run bailed — %s, a %s failure."
               % (ending.get("cause") or UNKNOWN, ending.get("classification") or UNKNOWN))
-    print("Cost is every leaf of the run, and the conductor own %s."
-          % ("closing accounting with them, which this log carries"
-             if conductor_counted else
-             "spending is not in it: this log carries no usage record of the conductor own"))
+    sessions = []
+    if not conductor_counted:
+        with contextlib.suppress(OSError):
+            with open(os.path.join(os.path.dirname(path), "conductor-%s.log" % issue)) as stream_log:
+                for text in stream_log:
+                    with contextlib.suppress(ValueError):
+                        record = json.loads(text)
+                        if isinstance(record, dict) and record.get("type") == "result":
+                            sessions.append(record)
+    if sessions:
+        print("Cost is every leaf of the run, and the conductor own spending.")
+        print("Conductor own spending: $%.2f over %d turns, in %d sessions."
+              % (sum(r.get("total_cost_usd") or 0 for r in sessions),
+                 sum(r.get("num_turns") or 0 for r in sessions), len(sessions)))
+    else:
+        print("Cost is every leaf of the run, and the conductor own %s."
+              % ("closing accounting with them, which this log carries"
+                 if conductor_counted else
+                 "spending is not in it: this log carries no usage record of the conductor own"))
     if models:
         print("Models requested: %s; models that answered: %s."
               % (", ".join("%s %s" % (knob, tunables.read(knob) or "unset")

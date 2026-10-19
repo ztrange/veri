@@ -1286,3 +1286,18 @@ def test_metrics_sh_run_in_a_working_directory_with_no_tdd_events_jsonl_exits_2_
     code, out, err = run_cli(metrics, ["108"], cwd=tmp_path)
 
     assert (code, out) == (2, "")
+
+
+def test_main_reports_the_conductor_total_dollars_and_turns_summed_over_every_session_of_its_stream_log(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    sessions = [{"type": "system", "subtype": "init"},
+                {"type": "result", "total_cost_usd": 1.25, "num_turns": 40},
+                {"type": "system", "subtype": "init"},
+                {"type": "result", "total_cost_usd": 2.5, "num_turns": 17}]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in sessions))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert "Conductor own spending: $3.75 over 57 turns, in 2 sessions.\n" in out
+    assert "spending is not in it" not in out
