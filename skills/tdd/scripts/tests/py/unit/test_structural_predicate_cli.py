@@ -26,7 +26,7 @@ def fake_bash(monkeypatch, status):
 
     def run(args, *rest, **kwargs):
         ran.append(args)
-        return subprocess.CompletedProcess(args, status)
+        return types.SimpleNamespace(returncode=status)
 
     monkeypatch.setattr(subprocess, "run", run)
     return ran
