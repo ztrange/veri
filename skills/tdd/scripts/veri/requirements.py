@@ -16,15 +16,18 @@ def split_cells(line):
     return [c.strip() for c in re.split(r"(?<!\\)\|", line)]
 
 
+def headings(path):
+    return [l[3:] for l in read_lines(path) if l.startswith("## ")]
+
+
 def units(path):
     found = []
-    for line in read_lines(path):
-        if line.startswith("## "):
-            try:
-                claims(path, line[3:])
-            except ValueError:
-                continue
-            found.append(line[3:])
+    for unit in headings(path):
+        try:
+            claims(path, unit)
+        except ValueError:
+            continue
+        found.append(unit)
     return found
 
 
@@ -85,7 +88,7 @@ def main(argv):
         if not os.path.isfile(path):
             sys.stderr.write("requirements.sh: file is missing: %s\n" % path)
             return 2
-        if unit not in [l[3:] for l in read_lines(path) if l.startswith("## ")]:
+        if unit not in headings(path):
             sys.stderr.write("requirements.sh: unit is not declared: %s\n" % unit)
             return 2
         try:
