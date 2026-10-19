@@ -95,6 +95,9 @@ def main(argv):
         return no_verdict("GRADES block IDs %s do not match requirement IDs %s"
                           % (", ".join(got), ", ".join(wanted)))
     failed = re.findall(r"^\S+: FAIL\b.*$", reply, re.M)
+    said = re.findall(r"^VERDICT: (\S+)", after, re.M)
+    if said and said[-1] != ("REJECT" if failed else "PASS"):
+        return no_verdict("VERDICT %s disagrees with the GRADES lines" % said[-1])
     print("\n".join(failed))
     return 1 if failed else 0
 
