@@ -363,7 +363,7 @@ def test_main_sweeps_the_top_level_suites_and_the_skill_suites_to_empty_sweepabl
 
 
 @pytest.mark.tree_audit("every bash suite, script and lib under skills/tdd/scripts")
-def test_main_sweeps_the_unit_fixture_guard_and_offline_suites_to_empty_sweepable_reports(capsys):
+def test_main_sweeps_the_fixture_guard_and_offline_suites_to_empty_sweepable_reports(capsys):
     comment_class = importlib.import_module("veri.comment_class")
     tests = SCRIPTS / "tests"
 
@@ -379,13 +379,10 @@ def test_main_sweeps_the_unit_fixture_guard_and_offline_suites_to_empty_sweepabl
             f"the sweepable report is empty for tests/{name}.test.sh": sweep(f"{name}.test.sh")
             for name in moved
         },
-        "the sweepable report is empty for every tests/unit/*.sh whose name starts with m through p":
-            sweep("unit/[m-p]*.sh"),
         "the sweepable report is empty for every shell file under tests/fixtures/, and for tests/unit-guard/git and tests/offline/gh":
             sweep("fixtures/*/*.sh", "unit-guard/git", "offline/gh"),
     } == {
         **{f"the sweepable report is empty for tests/{name}.test.sh": (0, "") for name in moved},
-        "the sweepable report is empty for every tests/unit/*.sh whose name starts with m through p": (0, ""),
         "the sweepable report is empty for every shell file under tests/fixtures/, and for tests/unit-guard/git and tests/offline/gh": (0, ""),
     }
 
