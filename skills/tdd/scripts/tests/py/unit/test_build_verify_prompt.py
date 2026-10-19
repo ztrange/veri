@@ -1845,3 +1845,20 @@ def test_main_renders_a_plan_prompt_that_rejects_a_step_adding_a_script_whose_us
     each_owed = [word for word in ("usage", "exit 2", "caller") if word in owed]
     assert (code, re.search(reject_late, prompt, re.I) is not None, names_both, each_owed) == (
         0, True, True, ["usage", "exit 2", "caller"])
+
+
+def test_main_renders_a_plan_prompt_that_rejects_a_pinned_text_criterion_with_a_case_but_only_a_diff_checked_step_1730(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"1. A prompt sentence is changed and a case pins it.\n")
+    ledger = tmp_path / "plan.md"
+    ledger.write_text("- [ ] ⟦diff-checked⟧ rewrite the prompt sentence ⟦criterion 1⟧\n", encoding="utf-8")
+
+    code = build_verify_prompt.main(["plan", str(spec), str(ledger)])
+    out, _ = capsysbinary.readouterr()
+    prompt = re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
+
+    rule = next((s for s in re.split(r"(?<=\.) ", prompt)
+                 if s.startswith("REJECT") and "asks for a case" in s and "only the" in s), "")
+    states = [word in rule for word in ("⟦diff-checked⟧", "separate step for the case", "same `⟦criterion k⟧`", "after the text's")]
+    assert (code, states) == (0, [True, True, True, True])
