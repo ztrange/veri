@@ -383,3 +383,23 @@ def test_a_grades_line_whose_grade_word_is_other_than_exactly_pass_or_fail_makes
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
 
     assert (done.returncode, "PASSABLE" in done.stderr) == (2, True), (done.returncode, done.stderr)
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_a_reply_holding_two_grades_blocks_is_graded_on_the_final_one_only(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    final = "BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nEND GRADES\\nVERDICT: PASS"
+    first = "BEGIN GRADES\\nA1: FAIL - quokka-first-thought\\nA2: PASS - ok\\nEND GRADES\\nVERDICT: REJECT"
+    claude.write_text(STUB.replace(final, first + "\\nOn reflection I was wrong.\\n" + final))
+    claude.chmod(0o755)
+
+    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                          capture_output=True, text=True,
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
+
+    assert (done.returncode, "quokka-first-thought" in done.stdout) == (0, False), \
+        (done.returncode, done.stdout, done.stderr)
