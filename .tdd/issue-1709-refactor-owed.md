@@ -5,3 +5,4 @@
 - Extract the stream-log scan (the `result` / `assistant` accumulation inside `render`) into a helper function. This moves logic rather than removing duplication, so the rules don't allow it here.
 ### metrics.sh run from inside the issue's worktree `.tdd/wt/<n>` finds the conductor's session log the launcher writes under the primary checkout's `.tdd/` (`.tdd/conductor-<n>.log`), not only one under the worktree's own `.tdd/` ⟦criterion 1⟧
 - test-only | the `conductor-108.log` write-out (`write_text("".join(json.dumps(r) + "\n" for r in sessions))`) is repeated in three cases of `test_metrics.py`; a small helper would remove it
+applied | fe69f13b766b484a9b14bc3bb922a3470ce86684 | extract the stream-log session reading in `metrics.render` into a helper function (not duplication removal, so reported rather than applied)
