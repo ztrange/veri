@@ -60,7 +60,7 @@ def test_main_1621_finds_a_real_pytest_function_and_a_real_bash_suite_case_from_
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     monkeypatch.chdir(ROOT)
     pytest_case = "test_a_planted_develop_prompt_that_makes_no_commit_and_the_real_prompts_directory_are_clean"
-    bash_case = "run through a symlink to the skill directory and from another working directory, it answers as in place"
+    bash_case = "timed-test-run.sh, run through a symlink to the skill directory and from another working directory, answers as in place: the command's own status, the same stdout and stderr, event.sh found, and its one test-run line in the caller's .tdd/events.jsonl"
     results = []
     for line in ("WRONG_TEST: %s asserts the opposite of the criterion" % pytest_case,
                  "WRONG_TEST: the case `%s` asserts the opposite of the criterion" % bash_case):
