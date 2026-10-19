@@ -470,3 +470,14 @@ def test_1174_skill_md_tells_the_conductor_it_signals_only_processes_it_started_
              "SKILL.md never says an experiment's processes and leaf names carry the exp- prefix")
     _require(problems, "no live run uses", lines, "SKILL.md never says no live run uses that prefix")
     assert not problems, problems
+
+
+def test_standing_bail_rule_is_stated_once_and_no_line_names_bailing_without_bail_md():
+    pointer = "<base directory>/BAIL.md"
+    files = [SKILL, SKILL.with_name("SCRIPTS.md"), STOPPING_MD, SKILL.with_name("RECONCILE.md")]
+    texts = {path.name: path.read_text().split("\n") for path in files}
+    rule = [line for line in texts["SKILL.md"] if "Whenever this procedure says **bail**" in line and pointer in line]
+    assert len(rule) == 1, f"SKILL.md holds {len(rule)} standing bail rule lines, expected exactly 1"
+    bare = [f"{name}:{n}" for name, lines in texts.items() for n, line in enumerate(lines, 1)
+            if re.search(r"\bBailing\b", line) and pointer not in line]
+    assert not bare, f"lines name Bailing without {pointer}: {bare}"
