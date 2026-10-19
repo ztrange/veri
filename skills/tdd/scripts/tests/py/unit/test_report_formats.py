@@ -185,3 +185,10 @@ def test_1615_every_exempt_stop_prose_entry_names_a_line_of_a_real_develop_promp
             stale.append(where)
 
     assert not stale, "\n".join(stale)
+
+
+@pytest.mark.tree_audit("skills/tdd/scripts/prompts/develop-red-repair.md, includes expanded")
+def test_1765_the_red_repair_prompts_stop_prose_lines_each_name_a_declared_format_or_are_exempt(report_formats):
+    texts = {path.name: text for path, text in expanded_develop_prompts()}
+
+    assert report_formats.stop_prose_offenders("develop-red-repair.md", texts["develop-red-repair.md"]) == []
