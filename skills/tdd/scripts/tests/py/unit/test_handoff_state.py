@@ -127,3 +127,35 @@ def test_main_lists_under_ready_to_merge_each_open_non_draft_pr_that_closes_an_i
     ready = section[0] if len(section) == 1 else ""
     assert (code, len(section), "201" in ready and "301" in ready,
             any(word in out for word in ("202", "302", "203"))) == (0, 1, True, False)
+
+
+def test_main_writes_no_file_and_makes_only_read_calls_to_github(tmp_path, monkeypatch, run_cli, fake_processes):
+    handoff_state = importlib.import_module("veri.handoff_state")
+    status = importlib.import_module("veri.status")
+    monkeypatch.chdir(tmp_path)
+    runs = [
+        {"issue": 61, "title": "Live", "branch": "tdd/61-a", "step": "1 of 2", "phase": "red", "state": "running",
+         "dollars": 1, "elapsed_seconds": 1},
+        {"issue": 62, "title": "Bailed", "branch": "tdd/62-b", "step": "1 of 2", "phase": "red", "state": "bailed",
+         "bail_phase": "verify-red", "classification": "process-failure", "stop_mode": "", "dollars": 1, "elapsed_seconds": 1},
+    ]
+    document = json.dumps({"runs": runs, "scope": None})
+    prs = [{"number": 211, "isDraft": False, "body": "Closes #311", "title": "Ready"}]
+
+    def answer(line, **kwargs):
+        if line.startswith("git rev-parse"):
+            return 0, SHA + "\n", ""
+        if line.startswith("git tag"):
+            return 0, "v0.9\n", ""
+        if line.startswith("gh"):
+            return 0, json.dumps(prs), ""
+        return 0, "", ""
+
+    calls = fake_processes(answer)
+    monkeypatch.setattr(status, "json_document", lambda scope=None: (0, document))
+    code, out, err = run_cli(handoff_state, [])
+    writes = [line for line in calls if line.startswith("gh") and (
+        any(flag in line.split() for flag in ("-X", "--method", "-f", "-F", "--field", "--raw-field", "--input"))
+        or any(verb in line.split()[:3] for verb in ("create", "edit", "merge", "close", "comment", "review", "ready")))]
+    git_writes = [line for line in calls if line.startswith("git") and line.split()[1] not in ("rev-parse", "tag")]
+    assert (code, "## Ready to merge" in out, writes, git_writes, sorted(tmp_path.iterdir())) == (0, True, [], [], [])
