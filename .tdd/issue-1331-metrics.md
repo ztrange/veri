@@ -1,7 +1,7 @@
 ### 📊 Metrics — issue 1331
 
-Wall time for the issue: 695 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 1 s, excluded from it.
+Wall time for the issue: 1265 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 1 of 6 planned.
 Outcome: the run bailed — revise-exhausted, a process failure.
 Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
@@ -12,29 +12,29 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 11 | 8 | 2 | 4 | 1023 | 60396 | 42439 | 0.19 |
-| red | 3 | 0 | 0 | 0 | 243 | 216 | 35 | 68 | 30544 | 1882705 | 166948 | 0.99 |
-| pin | 3 | 3 | 0 | 0 | 52 | 42 | 16 | 32 | 4982 | 578815 | 81716 | 0.38 |
-| green | 12 | 1 | 2 | 0 | 892 | 445 | 117 | 228 | 39768 | 5472710 | 440290 | 3.76 |
-| exhausted | 2 | 0 | 0 | 0 | 60 | 56 | 7 | 14 | 4603 | 271640 | 61924 | 0.60 |
+| red | 4 | 0 | 0 | 0 | 332 | 295 | 46 | 90 | 41761 | 2457778 | 220146 | 1.30 |
+| pin | 4 | 4 | 0 | 0 | 67 | 53 | 20 | 40 | 6382 | 697236 | 101293 | 0.45 |
+| green | 18 | 4 | 2 | 0 | 1078 | 573 | 150 | 294 | 52406 | 6546107 | 546263 | 4.40 |
+| exhausted | 3 | 0 | 0 | 0 | 74 | 68 | 9 | 18 | 5756 | 302228 | 94589 | 0.79 |
 | diff | 2 | 1 | 0 | 0 | 97 | 39 | 13 | 26 | 4898 | 422355 | 42163 | 0.20 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 8 | 6 | 2 | 0 | 232 | 125 | 43 | 84 | 14775 | 1759665 | 257746 | 1.27 |
-| developer | claude-sonnet-5-5 | 4 | 0 | 0 | 0 | 296 | 237 | 42 | 82 | 33314 | 2123128 | 191132 | 1.11 |
-| developer | claude-opus-5-5 | 11 | 0 | 0 | 0 | 827 | 444 | 105 | 206 | 37729 | 4805828 | 386602 | 3.74 |
+| verifier | claude-sonnet-5-5 | 12 | 10 | 2 | 0 | 361 | 209 | 70 | 138 | 24340 | 2658594 | 326728 | 1.63 |
+| developer | claude-sonnet-5-5 | 5 | 0 | 0 | 0 | 385 | 316 | 53 | 104 | 44531 | 2698201 | 244330 | 1.41 |
+| developer | claude-opus-5-5 | 15 | 0 | 0 | 0 | 913 | 511 | 117 | 230 | 43355 | 5129305 | 475835 | 4.28 |
 
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 243 | 0.99 |
-| pin | 0 | 0.00 | 52 | 0.38 |
-| green | 0 | 0.00 | 892 | 3.76 |
-| exhausted | 0 | 0.00 | 60 | 0.60 |
+| red | 0 | 0.00 | 332 | 1.30 |
+| pin | 0 | 0.00 | 67 | 0.45 |
+| green | 0 | 0.00 | 1078 | 4.40 |
+| exhausted | 0 | 0.00 | 74 | 0.79 |
 | diff | 0 | 0.00 | 0 | 0.00 |
 | develop-green | 0 | 0.00 | 0 | 0.00 |
 
@@ -44,19 +44,20 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |
 | push-branch.sh's contract is pinned by pytest cases in tests/py/test_push_branch.py driving the CLI through run_cli, faking only process boundaries with VERI_PUSH_BACKOFF set so no case waits on wall time (a case needing a real git remote, a real event.sh or a symlink marked @pytest.mark.process), asserting the same exit code, stdout, stderr, files and events — a failed push exiting 0 with HEAD, commit count and ledger unchanged and a push-failed event, a landing push leaving the remote at HEAD, a non-fast-forward rejection exiting 1 after one attempt naming the remote sha and recording push-rejected with remote_sha, a landing push writing nothing of its own to stderr and appending no event, no case waiting out the default backoff, --force-with-lease=<branch>:<sha> replacing a remote still at <sha> and refusing a moved one, a symlinked run from another directory recording push-failed in that directory's .tdd/events.jsonl, and the bad-argument and VERI_PUSH_RETRIES=x exit 2 stderr text — an existing pytest case already pinning one named as its replacement rather than duplicated — and the bash cases are gone: replaces 'push-branch.sh: a failing push exits 0 and leaves HEAD, the commit count and the ledger unchanged, recording an event that says the push failed', 'push-branch.sh: a push that lands leaves the branch on the remote at the commit HEAD is on', 'push-branch.sh: a non-fast-forward rejection exits 1 after exactly one attempt, names the remote branch's full sha on stderr, and records a push-rejected event with remote_sha', 'push-branch.sh: a push that lands exits 0, writes nothing to stderr beyond git's own output, and appends no event', 'push-branch.test.sh: case 1's push to a missing origin completes in under 5 s of wall time', 'push-branch.sh --force-with-lease=<branch>:<sha> replaces a remote still at <sha>, refuses one that has moved on, and with no argument still replaces nothing', 'push-branch.sh run through a symlink to the skill directory and from another working directory answers as it does when run in place, finding event.sh and recording push-failed in the working directory's .tdd/events.jsonl', 'push-branch.sh exits 2 with nothing on stdout and its exact stderr for a bad argument (the two bad-argument lines) and for VERI_PUSH_RETRIES=x (one line, no usage)' in skills/tdd/scripts/tests/push-branch.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧ | 20 | 4 | 2 | 0 | 0 | 0 | 759 | 175 | 342 | 79897 | 8205870 | 750878 | 5.73 | unknown | 6/2 | unknown | unknown |  |  | already-satisfied |
 | no-unbacked-pushes.test.sh and push-backoff-guard.test.sh are deleted in this issue. Once push-branch.test.sh is pytest, no bash suite invokes push-branch.sh, and both headers say the guard dies at that point. Their entries in no-nested-suites.test.sh (the exemption-table rows and the cases that name the pair) go with them, and no guard table, roster or CLAUDE.md count outside .tdd/ and docs/ names either suite. Moved here from #1376, decided by Mario on 2026-10-11. ⟦added⟧ ⟦diff-checked⟧ ⟦criterion 3⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 39 | 13 | 26 | 4898 | 422355 | 42163 | 0.20 | 149 | n/a | n/a | n/a |  |  | full |
+| push-branch.sh's contract is pinned by pytest cases in tests/py/test_push_branch_process.py driving the CLI through run_cli, faking only process boundaries with VERI_PUSH_BACKOFF set so no case waits on wall time (a case needing a real git remote, a real event.sh or a symlink marked @pytest.mark.process), asserting the same exit code, stdout, stderr, files and events — a failed push exiting 0 with HEAD, commit count and ledger unchanged and a push-failed event, a landing push leaving the remote at HEAD, a non-fast-forward rejection exiting 1 after one attempt naming the remote sha and recording push-rejected with remote_sha, a landing push writing nothing of its own to stderr and appending no event, no case waiting out the default backoff, --force-with-lease=<branch>:<sha> replacing a remote still at <sha> and refusing a moved one, a symlinked run from another directory recording push-failed in that directory's .tdd/events.jsonl, and the bad-argument and VERI_PUSH_RETRIES=x exit 2 stderr text — an existing pytest case already pinning one named as its replacement rather than duplicated — and the bash cases are gone: replaces 'push-branch.sh: a failing push exits 0 and leaves HEAD, the commit count and the ledger unchanged, recording an event that says the push failed', 'push-branch.sh: a push that lands leaves the branch on the remote at the commit HEAD is on', 'push-branch.sh: a non-fast-forward rejection exits 1 after exactly one attempt, names the remote branch's full sha on stderr, and records a push-rejected event with remote_sha', 'push-branch.sh: a push that lands exits 0, writes nothing to stderr beyond git's own output, and appends no event', 'push-branch.test.sh: case 1's push to a missing origin completes in under 5 s of wall time', 'push-branch.sh --force-with-lease=<branch>:<sha> replaces a remote still at <sha>, refuses one that has moved on, and with no argument still replaces nothing', 'push-branch.sh run through a symlink to the skill directory and from another working directory answers as it does when run in place, finding event.sh and recording push-failed in the working directory's .tdd/events.jsonl', 'push-branch.sh exits 2 with nothing on stdout and its exact stderr for a bad argument (the two bad-argument lines) and for VERI_PUSH_RETRIES=x (one line, no usage)' in skills/tdd/scripts/tests/push-branch.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧ | 9 | 4 | 0 | 0 | 0 | 0 | 230 | 50 | 100 | 26408 | 1797479 | 211413 | 1.21 | unknown | 2/2 | unknown | unknown |  |  | already-satisfied |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| target | 0 | 0 | 0 | 1 | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 1 |  |  |  |  |  |  |  |
-| fast | 24 | 25 | 24 | 24 | 24 | 10 | 10 | 11 | 9 | 10 | 6 | 11 | 9 |  |  |  |  |  |  |
-| affected | 0 | 1 | 0 | 1 | 2 | 19 | 0 | 13 | 3 | 5 | 0 | 5 | 0 | 5 | 3 | 0 | 2 | 141 | 7 |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| target | 0 | 0 | 0 | 1 | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 1 | 0 | 0 | 0 | 2 | 2 | 2 |  |  |  |  |  |  |  |  |  |
+| fast | 24 | 25 | 24 | 24 | 24 | 10 | 10 | 11 | 9 | 10 | 6 | 11 | 9 | 8 | 7 | 6 | 10 |  |  |  |  |  |  |  |  |  |  |
+| affected | 0 | 1 | 0 | 1 | 2 | 19 | 0 | 13 | 3 | 5 | 0 | 5 | 0 | 5 | 3 | 0 | 2 | 141 | 7 | 0 | 2 | 2 | 2 | 2 | 0 | 1 | 2 |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 190 | 372 | 85818 | 8688621 | 835480 | 6.11 |
+| total | 240 | 472 | 112226 | 10486100 | 1046893 | 7.32 |
