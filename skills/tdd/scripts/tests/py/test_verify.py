@@ -1786,6 +1786,31 @@ def test_verify_sh_refuses_a_verifier_leaf_that_changed_the_tree_or_head_with_ex
         assert ("--disallowedTools" in reached, "MultiEdit" in reached) == (True, False)
 
 
+@pytest.mark.process("a real git scratch repository whose global config sets an external diff driver, color.ui=always and a textconv filter")
+def test_verify_sh_saves_the_same_refusal_diff_whatever_the_global_git_config_says_1846(
+        run_cli, tmp_path, monkeypatch):
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {".gitattributes": "*.txt diff=shout\n"})
+    driver = tmp_path / "external-driver"
+    driver.write_text("#!/bin/sh\necho EXTERNAL-DRIVER-OUTPUT\n")
+    driver.chmod(0o755)
+    (tmp_path / ".gitconfig").write_text(
+        "[diff]\n\texternal = %s\n[color]\n\tui = always\n[diff \"shout\"]\n\ttextconv = tr a-z A-Z <\n" % driver)
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "FAKE_MUTATE": 'printf "the verifier rewrote this\\n" > src.txt',
+           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
+    verify = importlib.import_module("veri.verify")
+
+    code, _, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+                                  "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+
+    saved = list((repo / ".tdd").glob("*.diff"))
+    text = saved[0].read_text() if saved else ""
+    assert (code, [l for l in text.splitlines() if not l.startswith("index ")]) == (2, [
+        "diff --git a/src.txt b/src.txt", "--- a/src.txt", "+++ b/src.txt", "@@ -1 +1 @@",
+        "-the developer committed this", "+the verifier rewrote this"])
+
+
 @pytest.mark.process("a real git scratch repository under the repo's own .gitignore that the verifier leaf writes into")
 @pytest.mark.parametrize("tracked, mutation, verdict, expected_code, named", [
     ({}, 'mkdir -p projects/docs/.tdd && printf "{}\\n" > projects/docs/.tdd/events.jsonl',
