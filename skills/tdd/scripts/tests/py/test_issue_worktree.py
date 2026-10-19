@@ -1165,3 +1165,11 @@ def test_a_name_in_neither_namespace_in_a_repo_with_a_remote_is_still_cut_from_t
     assert (scratch_git(clone, "rev-parse", "--verify", "--quiet", "refs/remotes/origin/tdd/55-neither"),
             code, out.strip(), scratch_git(want, "branch", "--show-current"), scratch_git(want, "rev-parse", "HEAD")) == (
         "", 0, want, "tdd/55-neither", main_tip)
+
+
+def test_the_escape_guard_fails_a_case_whose_subject_runs_git_from_the_repository_the_tests_live_in_not_its_scratch_repository(
+        monkeypatch, issue_worktree):
+    monkeypatch.chdir(pathlib.Path(__file__).resolve().parents[5])
+
+    with pytest.raises(AssertionError, match="starts git against the repository the tests live in"):
+        issue_worktree.main(["7", "slug"])
