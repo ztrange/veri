@@ -1,5 +1,6 @@
 """grade-prose.sh's entry point, run in-process."""
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -56,7 +57,7 @@ def main(argv):
         return 2
     path, unit = argv
     model = grader_model()
-    if not any(c.isdigit() for c in model):
+    if not re.search(r"(^|-)\d+(-|$)", model):
         print("grade-prose.sh: grader.conf model %r names no version" % model, file=sys.stderr)
         return 2
     file, _, heading = unit.partition("#")
