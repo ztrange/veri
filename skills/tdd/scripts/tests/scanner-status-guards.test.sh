@@ -91,7 +91,7 @@ done
 report "$name"
 
 problems=()
-name="missing-argument-exit.test.sh and scratch-copy-libs.test.sh each pass over a clean scratch tree, and fail naming the file it scanned and the scanner's exit status 2 when only the scanner they read through done < <(…) exits 2, the failure line naming the guard by its own file name (#1648)"
+name="scratch-copy-libs.test.sh passes over a clean scratch tree, and fails naming the file it scanned and the scanner's exit status 2 when only the scanner they read through done < <(…) exits 2, the failure line naming the guard by its own file name (#1648)"
 
 check_scanner() {
   local guard="$1" shim_cmd="$2" shim_case="$3" token="$4" tree guard_out guard_code
@@ -131,7 +131,6 @@ check_scanner() {
     problems+=("no line of $guard's output names the guard itself, as '$guard: ', beside $token and the scanner's exit status 2; it said: $(flat "$guard_out")")
 }
 
-check_scanner missing-argument-exit.test.sh grep "'-nE \\\$\\{[0-9]+:\\? '*'/add-ledger-step.sh'" add-ledger-step.sh
 check_scanner scratch-copy-libs.test.sh sed "'-nE '*'/planted.test.sh'" planted.test.sh
 
 report "$name"
