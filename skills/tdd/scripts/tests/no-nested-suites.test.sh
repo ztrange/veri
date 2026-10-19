@@ -136,11 +136,11 @@ report "#538: affected-suites.test.sh's cp of SKILL.md and of the suites naming 
 
 plant="$(scratch_dir)"
 cat "$ROOT/$suites_dir/affected-suites.test.sh" > "$plant/affected-suites.test.sh"
-printf '%s\n' 'bash "$HERE/run-suite-venv.test.sh"' >> "$plant/affected-suites.test.sh"
+printf '%s\n' 'bash "$HERE/run-suite-offline.test.sh"' >> "$plant/affected-suites.test.sh"
 planted_line="$(wc -l < "$plant/affected-suites.test.sh" | tr -d ' ')"
 problems=()
-scan_launches "$plant/affected-suites.test.sh" | grep -F "$(printf 'affected-suites.test.sh\t%s\trun-suite-venv.test.sh\t' "$planted_line")" > /dev/null \
-  || problems+=("a planted 'bash \"\$HERE/run-suite-venv.test.sh\"' at affected-suites.test.sh:$planted_line was not reported")
+scan_launches "$plant/affected-suites.test.sh" | grep -F "$(printf 'affected-suites.test.sh\t%s\trun-suite-offline.test.sh\t' "$planted_line")" > /dev/null \
+  || problems+=("a planted 'bash \"\$HERE/run-suite-offline.test.sh\"' at affected-suites.test.sh:$planted_line was not reported")
 report "#538: a real launch of another suite planted in affected-suites.test.sh is still read as launching it"
 
 mentions_reported no-unbacked-pushes.test.sh push-backoff-guard.test.sh
