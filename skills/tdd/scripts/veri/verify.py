@@ -112,6 +112,16 @@ def refuse_modified(what, leaf, paths, diff_path=None):
     return 2
 
 
+def save_diff(leaf, tree_before, tree_after):
+    diff_path = ".tdd/%s.diff" % leaf
+    content = git("diff", tree_before, tree_after).stdout
+    if not content:
+        return None
+    with open(diff_path, "wb") as saved:
+        saved.write(content)
+    return diff_path
+
+
 def leaf_args(words):
     if not words:
         return LEAF_ARGS
@@ -223,13 +233,7 @@ def main(argv):
             return 2
         changed, head_after, tree_after = changed_paths(tree_before, head_before)
         if changed:
-            diff_path = ".tdd/%s.diff" % leaf
-            content = git("diff", tree_before, tree_after).stdout
-            if content:
-                with open(diff_path, "wb") as saved:
-                    saved.write(content)
-            else:
-                diff_path = None
+            diff_path = save_diff(leaf, tree_before, tree_after)
             in_temp_index("read-tree", "-u", "--reset", tree_before)
             if head_before and head_before != head_after:
                 restored = start(["git", "update-ref", "HEAD", head_before])
