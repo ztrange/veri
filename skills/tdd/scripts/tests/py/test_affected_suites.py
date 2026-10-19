@@ -1318,3 +1318,132 @@ def test_496_a_change_to_tests_lib_harness_sh_prints_every_suite_that_sources_it
          SCRIPTS_REL + "tests/unit/beta.test.sh": HEADER + 'source "$HERE/../lib/harness.sh"\n',
          SCRIPTS_REL + "tests/gamma.test.sh": "echo gamma\n"},
     ) == (0, suites("alpha.test.sh", "unit/beta.test.sh"), "")
+
+
+def module_shim(module):
+    return '#!/bin/sh\nexec python3 -m veri.%s "$@"\n' % module
+
+
+def test_a_touched_veri_module_prints_its_pytest_file_and_its_shims_bash_suite_without_widening(
+        monkeypatch, run_cli, affected, tmp_path):
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "veri/event_log.py"],
+        {SCRIPTS_REL + "veri/event_log.py": "def main(): return 2\n",
+         SCRIPTS_REL + "tests/py/test_event_log.py": "def test_main(): pass\n",
+         SCRIPTS_REL + "event-log.sh": module_shim("event_log"),
+         SCRIPTS_REL + "tests/event-log.test.sh": "# event-log suite\n",
+         SCRIPTS_REL + "bar.sh": "bar\n", SCRIPTS_REL + "tests/bar.test.sh": "# bar suite\n"},
+    ) == (0, SUITES + "event-log.test.sh\n" + SUITES + "py/test_event_log.py\n", "")
+
+
+def test_a_touched_veri_module_with_no_pytest_file_prints_only_its_shims_bash_suite_without_widening(
+        monkeypatch, run_cli, affected, tmp_path):
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "veri/probe_queue.py"],
+        {SCRIPTS_REL + "veri/probe_queue.py": "def main(): return 2\n",
+         SCRIPTS_REL + "probe-queue.sh": module_shim("probe_queue"),
+         SCRIPTS_REL + "tests/probe-queue.test.sh": "# probe-queue suite\n"},
+    ) == (0, SUITES + "probe-queue.test.sh\n", "")
+
+
+def test_a_touched_pytest_file_under_tests_py_prints_itself_without_widening(
+        monkeypatch, run_cli, affected, tmp_path):
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "tests/py/test_status.py"],
+        {SCRIPTS_REL + "tests/py/test_status.py": "def test_main(): assert False\n",
+         SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "tests/foo.test.sh": "# foo suite\n",
+         SCRIPTS_REL + "bar.sh": "bar\n", SCRIPTS_REL + "tests/bar.test.sh": "# bar suite\n"},
+    ) == (0, SUITES + "py/test_status.py\n", "")
+
+
+@pytest.mark.process("a real sh shim run through a symlink to the skill directory, over real git")
+def test_the_shim_run_through_a_symlink_to_the_skill_directory_answers_as_it_does_in_place(tmp_path):
+    repo = new_git_repo(tmp_path / "repo")
+    plant(repo, {SCRIPTS_REL + "tests/py/test_status.py": "def test_main(): pass\n"})
+    base = commit_all(repo, "base")
+    plant(repo, {SCRIPTS_REL + "tests/py/test_status.py": "def test_main(): assert False\n"})
+    head = commit_all(repo, "head")
+    link = tmp_path / "linked-skill"
+    link.symlink_to(SCRIPTS.parent)
+
+    def answer(shim):
+        done = subprocess.run(["/bin/sh", str(shim), base + ".." + head], cwd=repo,
+                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        return done.returncode, done.stdout
+
+    assert answer(link / "scripts/affected-suites.sh") == answer(SCRIPTS / "affected-suites.sh") == (
+        0, SUITES + "py/test_status.py\n")
+
+
+def topic_range(run_cli, affected, repo):
+    return run_cli(affected, ["main..HEAD"], cwd=repo)
+
+
+@pytest.mark.process("real git: the merge base of main and topic decides which side a file belongs to")
+def test_1138_a_suite_the_base_gained_after_the_branch_point_is_not_printed_only_the_branchs_own(
+        run_cli, affected, tmp_path):
+    repo = new_git_repo(tmp_path)
+    plant(repo, {SCRIPTS_REL + "tests/py/test_a.py": "# a suite\n"})
+    commit_all(repo, "base")
+    sh_git(repo, "checkout", "-q", "-b", "topic")
+    plant(repo, {SCRIPTS_REL + "tests/py/test_a.py": "# a suite 2\n"})
+    commit_all(repo, "head")
+    sh_git(repo, "checkout", "-q", "main")
+    plant(repo, {SCRIPTS_REL + "tests/py/test_orchestrate.py": "# orchestrate suite\n"})
+    commit_all(repo, "main gains a suite")
+    sh_git(repo, "checkout", "-q", "topic")
+    assert topic_range(run_cli, affected, repo) == (0, SUITES + "py/test_a.py\n", "")
+
+
+@pytest.mark.process("real git: the merge base of main and topic decides which side a file belongs to")
+def test_1138_a_non_suite_file_the_base_changed_or_deleted_after_the_branch_point_contributes_no_suite(
+        run_cli, affected, tmp_path):
+    repo = new_git_repo(tmp_path)
+    plant(repo, {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "tests/foo.test.sh": "# foo suite\n",
+                 SCRIPTS_REL + "bar.sh": "bar\n", SCRIPTS_REL + "tests/bar.test.sh": "# bar suite\n",
+                 SCRIPTS_REL + "prompts/p.md": "a prompt\n",
+                 SCRIPTS_REL + "tests/baz.test.sh": "# reads prompts/p.md\n"})
+    commit_all(repo, "base")
+    sh_git(repo, "checkout", "-q", "-b", "topic")
+    plant(repo, {SCRIPTS_REL + "foo.sh": "foo 2\n"})
+    commit_all(repo, "head")
+    sh_git(repo, "checkout", "-q", "main")
+    plant(repo, {SCRIPTS_REL + "bar.sh": "bar 2\n"})
+    (repo / SCRIPTS_REL / "prompts/p.md").unlink()
+    commit_all(repo, "main changes a script and deletes a prompt")
+    sh_git(repo, "checkout", "-q", "topic")
+    assert topic_range(run_cli, affected, repo) == (0, SUITES + "foo.test.sh\n", "")
+
+
+@pytest.mark.process("real git: the merge base of main and topic decides which side a file belongs to")
+def test_1138_a_suite_the_base_added_or_deleted_after_the_branch_point_does_not_pull_in_the_claude_md_counts_suite(
+        run_cli, affected, tmp_path):
+    repo = new_git_repo(tmp_path)
+    plant(repo, {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "tests/foo.test.sh": "# foo suite\n",
+                 SCRIPTS_REL + "bar.sh": "bar\n", SCRIPTS_REL + "tests/bar.test.sh": "# bar suite\n",
+                 SCRIPTS_REL + "tests/py/unit/test_claude_md_counts.py": "# counts suite\n"})
+    commit_all(repo, "base")
+    sh_git(repo, "checkout", "-q", "-b", "topic")
+    plant(repo, {SCRIPTS_REL + "foo.sh": "foo 2\n"})
+    commit_all(repo, "head")
+    sh_git(repo, "checkout", "-q", "main")
+    plant(repo, {SCRIPTS_REL + "tests/baz.test.sh": "# baz suite\n"})
+    (repo / SCRIPTS_REL / "tests/bar.test.sh").unlink()
+    commit_all(repo, "main adds one suite and deletes another")
+    sh_git(repo, "checkout", "-q", "topic")
+    assert topic_range(run_cli, affected, repo) == (0, SUITES + "foo.test.sh\n", "")
+
+
+@pytest.mark.process("real git: the merge base of main and topic decides which side a file belongs to")
+def test_1138_a_suite_the_branch_itself_deleted_is_not_printed(run_cli, affected, tmp_path):
+    repo = new_git_repo(tmp_path)
+    plant(repo, {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "tests/foo.test.sh": "# foo suite\n",
+                 SCRIPTS_REL + "bar.sh": "bar\n", SCRIPTS_REL + "tests/bar.test.sh": "# bar suite\n",
+                 SCRIPTS_REL + "tests/py/unit/test_claude_md_counts.py": "# counts suite\n"})
+    commit_all(repo, "base")
+    sh_git(repo, "checkout", "-q", "-b", "topic")
+    plant(repo, {SCRIPTS_REL + "foo.sh": "foo 2\n"})
+    (repo / SCRIPTS_REL / "tests/bar.test.sh").unlink()
+    commit_all(repo, "head")
+    assert topic_range(run_cli, affected, repo) == (
+        0, SUITES + "foo.test.sh\n" + SUITES + "py/unit/test_claude_md_counts.py\n", "")
