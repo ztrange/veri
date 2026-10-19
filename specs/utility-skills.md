@@ -84,7 +84,7 @@ against is forgetting, not forgery.
 | K9 | There is no resume. An interrupted run is restarted from the beginning with its budget reset. | A run takes minutes, and resume machinery costs more than a rerun. |
 | K10 | The loop changes nothing outside the one skill's directory, except its `GRADED` line. | |
 
-## P: principles every operator skill obeys (stated once, in `skills/veri-ops/PRINCIPLES.md`)
+## P: principles every operator skill obeys (stated once, in `operator/PRINCIPLES.md`)
 
 | ID | Requirement | Why |
 |---|---|---|
