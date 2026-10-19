@@ -439,3 +439,26 @@ def test_a_grader_leaf_that_fails_to_launch_makes_grade_prose_exit_2_say_no_verd
     graded = [l for l in (events.read_text().splitlines() if events.exists() else []) if "guide/unit.md" in l]
     assert (done.returncode, "no verdict obtained" in done.stderr, graded) == (2, True, []), \
         (done.returncode, done.stderr, graded)
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude that answers with a usage-limit reply through supervise.sh")
+def test_a_usage_limit_reply_from_the_grader_leaf_makes_grade_prose_exit_2_say_no_verdict_was_obtained_and_append_no_event(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text("#!/bin/sh\ncat > /dev/null\n"
+                      "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,"
+                      "\"result\":\"Claude usage limit reached. Your limit will reset at 5pm.\"}'\n")
+    claude.chmod(0o755)
+
+    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                          capture_output=True, text=True, timeout=25,
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                               "CLAUDE_BIN": str(claude), "VERI_HEARTBEAT": "1", "VERI_TIMEOUT": "2",
+                               "VERI_STUCK_RETRIES": "0"})
+
+    events = tmp_path / ".tdd" / "events.jsonl"
+    graded = [l for l in (events.read_text().splitlines() if events.exists() else []) if "guide/unit.md" in l]
+    assert (done.returncode, "no verdict obtained" in done.stderr, graded) == (2, True, []), \
+        (done.returncode, done.stderr, graded)
