@@ -2,3 +2,5 @@
 - test-only | split the test's shim-listing assertions and the entry-point subprocess runs into separate cases (the listing is its own tree_audit case), so each carries only its own mark
 ### For a run with no end event, no live conductor and no usage limit, `stop-reason.sh <issue>` prints `unknown <last result text>`, the text of the last `result` record of `.tdd/conductor-<issue>.log` ⟦criterion 3⟧
 - `stop_reason.py` reads JSONL lines the same way in three places (events log, conductor log, leaf log); a shared helper would remove the repetition, but it is small and I did not apply it
+### fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_tunable_reads.py — FAILED test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment (Left contains one more item: skills/tdd/scripts/veri/stop_reason.py:14) and FAILED test_run_leaf_run_verdict_and_stop_run_take_their_veri_values_from_the_one_reader_and_no_module_is_exempt ⟦suite-repair⟧ ⟦criterion 5⟧
+- test-only | `test_stop_reason_takes_its_veri_values_from_the_one_reader` repeats what the tree-wide "no module is exempt" guard already asserts, so it could be deleted.
