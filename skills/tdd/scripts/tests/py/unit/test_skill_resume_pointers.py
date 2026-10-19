@@ -42,3 +42,16 @@ def test_resume_pointers_name_resume_md_in_the_base_directory():
         for n, line in enumerate(_lines(path), 1):
             if NAMES_RESUME.search(line):
                 assert "RESUME.md" in line, f"{path.name}:{n} names Resume without naming RESUME.md"
+
+
+def test_resume_section_lives_in_resume_md_and_skill_md_carries_none_of_its_lines():
+    moved = [r"\$S/event\.sh resume`", r"left=\$\(\( \$\{VERI_REFACTOR_BUDGET:-5\} - count \)\)",
+             r"add-ledger-step\.sh --planned --criterion"]
+    skill = _lines(SKILL)
+    resume = _lines(TDD / "RESUME.md")
+    assert "## Resume" not in skill, "SKILL.md still carries the ## Resume heading"
+    assert "## Resume" in resume, "RESUME.md carries no ## Resume heading"
+    left = [p for p in moved if any(re.search(p, line) for line in skill)]
+    assert not left, f"SKILL.md still carries the moved lines {left}"
+    missing = [p for p in moved if not any(re.search(p, line) for line in resume)]
+    assert not missing, f"RESUME.md lacks the moved lines {missing}"
