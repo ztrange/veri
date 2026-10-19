@@ -54,3 +54,45 @@ def test_main_lists_under_running_one_line_per_live_run_and_none_for_any_other_s
     live = section[0] if len(section) == 1 else ""
     assert (code, len(section), all(word in live for word in ("41", "Live run alpha", "2 of 5", "green", "1.23", "95")),
             any(word in out for word in ("Bailed run beta", "Stale run gamma"))) == (0, 1, True, False)
+
+
+def test_main_lists_under_parked_each_bailed_stopped_or_stale_run_with_an_open_pr_and_its_reason(tmp_path, monkeypatch, run_cli, fake_processes):
+    handoff_state = importlib.import_module("veri.handoff_state")
+    status = importlib.import_module("veri.status")
+    monkeypatch.chdir(tmp_path)
+    runs = [
+        {"issue": 51, "title": "Bailed with pr", "branch": "tdd/51-a", "step": "1 of 3", "phase": "red", "state": "bailed",
+         "bail_phase": "verify-green", "classification": "process-failure", "stop_mode": "", "dollars": 1, "elapsed_seconds": 1},
+        {"issue": 52, "title": "Stopped with pr", "branch": "tdd/52-b", "step": "1 of 3", "phase": "red", "state": "stopped",
+         "bail_phase": "", "classification": "", "stop_mode": "drain", "dollars": 1, "elapsed_seconds": 1},
+        {"issue": 53, "title": "Stale with pr", "branch": "tdd/53-c", "step": "1 of 3", "phase": "red", "state": "stale",
+         "bail_phase": "", "classification": "", "stop_mode": "", "dollars": 1, "elapsed_seconds": 1},
+        {"issue": 54, "title": "Bailed without pr", "branch": "tdd/54-d", "step": "1 of 3", "phase": "red", "state": "bailed",
+         "bail_phase": "develop-red", "classification": "system-failure", "stop_mode": "", "dollars": 1, "elapsed_seconds": 1},
+    ]
+    document = json.dumps({"runs": runs, "scope": None})
+    open_pr = {"tdd/51-a": 101, "tdd/52-b": 102, "tdd/53-c": 103}
+
+    def answer(line, **kwargs):
+        if line.startswith("git rev-parse"):
+            return 0, SHA + "\n", ""
+        if line.startswith("git tag"):
+            return 0, "v0.9\n", ""
+        if line.startswith("gh"):
+            found = [{"number": n} for branch, n in open_pr.items() if branch in line]
+            return 0, json.dumps(found), ""
+        return 0, "", ""
+
+    fake_processes(answer)
+    monkeypatch.setattr(status, "json_document", lambda scope=None: (0, document))
+    code, out, err = run_cli(handoff_state, [])
+    lines = out.splitlines()
+    section = lines[lines.index("## Parked") + 1:] if "## Parked" in lines else []
+    section = section[:next((i for i, line in enumerate(section) if line.startswith("## ")), len(section))]
+
+    def has(line, *words):
+        return all(word in line for word in words)
+
+    assert (code, len(section), has(section[0], "51", "bailed", "verify-green", "process-failure"),
+            has(section[1], "52", "stopped", "drain"), has(section[2], "53", "stale"),
+            "Bailed without pr" in out or "54" in " ".join(section)) == (0, 3, True, True, True, False)
