@@ -90,11 +90,12 @@ def main(argv):
         _write(sys.stderr, USAGE)
         return 2
     step = tunables.read("VERI_STEP")
-    repair = _recorded(argv[0], step)
+    rerouted = _rerouted(step)
+    repair = None if rerouted else _recorded(argv[0], step)
     if repair is not None:
         _write(sys.stdout, "repair " + repair)
         return 0
-    case = None if _rerouted(step) else route(argv[0], argv[1])
+    case = None if rerouted else route(argv[0], argv[1])
     if case is None:
         _write(sys.stdout, "revise")
         return 3
