@@ -45,7 +45,7 @@ def claims(path, unit):
             inunit, intable = line[3:] == unit, False
         elif not inunit:
             continue
-        elif is_header(line):
+        elif not intable and line.startswith("|"):
             cells = split_cells(line)
             if cells[1:4] != COLUMNS:
                 fail("header lacks a column")
