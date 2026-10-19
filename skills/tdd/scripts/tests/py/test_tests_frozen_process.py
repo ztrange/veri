@@ -218,3 +218,27 @@ def test_record_step_lists_by_name_the_bash_case_red_added_to_a_test_sh_suite_17
 
     assert "case: added by red 1765\n" in record
     assert "older case" not in record
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_record_step_lists_by_name_the_pytest_function_red_edited_and_not_the_one_it_left_alone_1765(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_edited_by_red_1765():\n    assert 1 == 2\n\n\n"
+        "def test_left_alone_1765():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one edits a case"
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_edited_by_red_1765():\n    assert 1 == 1\n\n\n"
+        "def test_left_alone_1765():\n    assert True\n")
+
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_suite.py"], cwd=tmp_path)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    record = (tmp_path / record_path.rstrip("\n")).read_text()
+
+    assert "case: test_edited_by_red_1765\n" in record
+    assert "test_left_alone_1765" not in record
