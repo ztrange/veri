@@ -383,7 +383,7 @@ def test_main_sweeps_the_unit_fixture_guard_and_offline_suites_to_empty_sweepabl
         return code, capsys.readouterr().out
 
     names = ["ledger"]
-    moved = ["red-divergence", "run-affordable", "step-budget", "step-cost"]
+    moved = ["run-affordable", "step-budget", "step-cost"]
 
     assert {
         "the sweepable report is empty for every tests/unit/*.sh whose name starts with c through e, other than comment-class.test.sh":
