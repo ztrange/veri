@@ -120,8 +120,8 @@ def running_numbers():
 
 def main(argv):
     skip = set()
-    if argv[:1] == ["--not-running"]:
-        argv = argv[1:]
+    if argv[:1] == ["--not-running"] or argv[2:] == ["--not-running"]:
+        argv = argv[1:] if argv[0] == "--not-running" else argv[:2]
         skip = running_numbers()
     repo = "".join(argv[1:2]) if argv[:1] == ["--repo"] else None
     if repo == "":
