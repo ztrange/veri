@@ -31,21 +31,23 @@ def units(path):
 def claims(path, unit):
     rows = []
     seen = set()
-    inunit = intable = skip = False
+    inunit = intable = skip = done = False
     for number, line in enumerate(read_lines(path), 1):
         def fail(msg):
             raise ValueError("%s:%d: %s" % (path, number, msg))
         if line.startswith("## "):
-            inunit, intable = line[3:] == unit, False
+            inunit, intable, done = line[3:] == unit, False, False
         elif not inunit:
             continue
+        elif done and line.startswith("|"):
+            fail("second table")
         elif not intable and line.startswith("|"):
             cells = split_cells(line)
             if cells[1:] != COLUMNS + [""]:
                 fail("header lacks a column")
             intable, skip = True, True
         elif intable and not line.startswith("|"):
-            intable = False
+            intable, done = False, True
         elif intable and skip:
             skip = False
         elif intable and line.startswith("|"):
