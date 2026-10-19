@@ -73,7 +73,7 @@ def main(argv):
     if existing:
         comments_url = f"{ISSUES}/{existing['number']}/comments"
         try:
-            comments = list(read_pages(f"{comments_url}?", "the comments read", False))
+            comments = list(read_pages(f"{comments_url}?", "the comments read", True))
         except LookupError as e:
             return fail(str(e), 2)
         listed = (existing["body"] or "").split("\n")
