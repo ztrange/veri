@@ -1,9 +1,9 @@
 ### 📊 Metrics — issue 1349
 
-Wall time for the issue: 2798 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 1 s, excluded from it.
-Steps done: 7 of 8 planned.
-Outcome: the run bailed — suite-red, a process failure.
+Wall time for the issue: 637 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 0 s, excluded from it.
+Steps done: 8 of 8 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/1784.
 Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
@@ -17,13 +17,14 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | green | 14 | 6 | 1 | 0 | 504 | 255 | 79 | 154 | 26559 | 2446356 | 280364 | 1.41 |
 | refactor | 10 | 5 | 0 | 0 | 168 | 77 | 32 | 62 | 7781 | 845999 | 171064 | 0.59 |
 | diff | 2 | 1 | 0 | 0 | 62 | 34 | 13 | 26 | 4147 | 394640 | 35044 | 0.17 |
+| predicate | 1 | 0 | 0 | 0 | 5 | 2 | 2 | 4 | 173 | 48135 | 12364 | 0.04 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | verifier | claude-sonnet-5-5 | 20 | 19 | 1 | 0 | 522 | 269 | 96 | 188 | 31279 | 2819820 | 366963 | 1.51 |
-| developer | claude-sonnet-5-5 | 16 | 0 | 0 | 0 | 493 | 365 | 107 | 196 | 47091 | 3669048 | 388202 | 1.81 |
+| developer | claude-sonnet-5-5 | 17 | 0 | 0 | 0 | 498 | 367 | 109 | 200 | 47264 | 3717183 | 400566 | 1.85 |
 | developer | claude-opus-5-5 | 3 | 0 | 0 | 0 | 133 | 82 | 16 | 32 | 6449 | 505893 | 57761 | 0.46 |
 
 #### Rework and waste, by phase
@@ -36,6 +37,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | green | 213 | 0.51 | 0 | 0.00 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | diff | 0 | 0.00 | 0 | 0.00 |
+| predicate | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -47,7 +49,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | the run-suite-cwd.test.sh case holds as a pytest case in skills/tdd/scripts/tests/py/test_run_suite.py — each a pytest case driving the script's command-line interface in-process through the run_cli fixture, faking only process boundaries, asserting the same exit code, stdout, stderr, files and events as the bash case does; a case whose assertion depends on real git, a signal, a detach or a symlinked entry point is marked @pytest.mark.process("<the boundary it observes>") and lives outside tests/py/unit/, every other case is small and passes under make unit; a behaviour an existing pytest case already pins is not duplicated, that existing case being named as its replacement; no production change: every script, SKILL.md and CLAUDE.md stay unchanged, so each case and every helper it calls are defined in that test file and Red is expected to report AGAINST_UNMODIFIED: PASSES; each REPLACES: line is written at column 0, no bullet, with the full pytest node id <path from the repo root>::<test name> and the bash case name exactly as listed here: replaces `run-suite.sh, run with the working directory inside a git repository that is not veri and has no Makefile, exits with a red suite's own code and exits 1 naming a suite that exits 0 without its count line (#617)` in skills/tdd/scripts/tests/run-suite-cwd.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 98 | 37 | 72 | 11221 | 1259465 | 114143 | 0.52 | 247 | unknown | 0/5 | nothing-left |  |  | already-satisfied |
 | the run-suite-venv.test.sh case holds as a pytest case in skills/tdd/scripts/tests/py/test_run_suite.py — each a pytest case driving the script's command-line interface in-process through the run_cli fixture, faking only process boundaries, asserting the same exit code, stdout, stderr, files and events as the bash case does; a case whose assertion depends on real git, a signal, a detach or a symlinked entry point is marked @pytest.mark.process("<the boundary it observes>") and lives outside tests/py/unit/, every other case is small and passes under make unit; a behaviour an existing pytest case already pins is not duplicated, that existing case being named as its replacement; no production change: every script, SKILL.md and CLAUDE.md stay unchanged, so each case and every helper it calls are defined in that test file and Red is expected to report AGAINST_UNMODIFIED: PASSES; each REPLACES: line is written at column 0, no bullet, with the full pytest node id <path from the repo root>::<test name> and the bash case name exactly as listed here: replaces `run-suite.sh with VERI_VENV unset runs a pytest file with ~/.veri-tools/venv's python3, and with the python3 on PATH when that venv has none` in skills/tdd/scripts/tests/run-suite-venv.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧ | 10 | 4 | 1 | 0 | 0 | 0 | 184 | 54 | 104 | 18389 | 1630292 | 193511 | 1.03 | 452 | 2/2 | 0/5 | nothing-left |  |  | already-satisfied |
 | structural-predicate.test.sh, ensure-run-state-ignored.test.sh, detect-test-command.test.sh, run-suite-cwd.test.sh and run-suite-venv.test.sh, emptied of their cases by this issue, are deleted; no guard table, roster, workflow comment or CLAUDE.md count outside .tdd/ and docs/ names any of them; CLAUDE.md's suite counts match the tree; every suite left with cases still passes; no production code changes ⟦diff-checked⟧ ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 34 | 13 | 26 | 4147 | 394640 | 35044 | 0.17 | 95 | n/a | n/a | n/a |  |  | full |
-| fix the full-suite failure: skills/tdd/scripts/tests/no-nested-suites.test.sh — FAIL - #538: a real launch of another suite planted in affected-suites.test.sh is still read as launching it (the case plants bash "$HERE/run-suite-venv.test.sh", a suite this issue deleted, and the scan reports only suites that exist; repoint that planted launch and the matching #1011 fixture mentions in no-nested-suites.test.sh and affected-suites.test.sh to a suite that exists, no production change) ⟦suite-repair⟧ ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 31 | 11 | 22 | 3937 | 334898 | 35258 | 0.16 | unknown | unknown | unknown | unknown |  |  | pin |
+| fix the full-suite failure: skills/tdd/scripts/tests/no-nested-suites.test.sh — FAIL - #538: a real launch of another suite planted in affected-suites.test.sh is still read as launching it (the case plants bash "$HERE/run-suite-venv.test.sh", a suite this issue deleted, and the scan reports only suites that exist; repoint that planted launch and the matching #1011 fixture mentions in no-nested-suites.test.sh and affected-suites.test.sh to a suite that exists, no production change) ⟦suite-repair⟧ ⟦criterion 2⟧ | 3 | 1 | 0 | 0 | 0 | 0 | 33 | 13 | 26 | 4110 | 383033 | 47622 | 0.20 | unknown | unknown | unknown | unknown |  |  | pin |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -61,6 +63,10 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | the run-suite-cwd.test.sh case holds as a pytest case in skills/tdd/scripts/tests/py/test_run_suite.py — each a pytest case driving the script's command-line interface in-process through the run_cli fixture, faking only process boundaries, asserting the same exit code, stdout, stderr, files and events as the bash case does; a case whose assertion depends on real git, a signal, a detach or a symlinked entry point is marked @pytest.mark.process("<the boundary it observes>") and lives outside tests/py/unit/, every other case is small and passes under make unit; a behaviour an existing pytest case already pins is not duplicated, that existing case being named as its replacement; no production change: every script, SKILL.md and CLAUDE.md stay unchanged, so each case and every helper it calls are defined in that test file and Red is expected to report AGAINST_UNMODIFIED: PASSES; each REPLACES: line is written at column 0, no bullet, with the full pytest node id <path from the repo root>::<test name> and the bash case name exactly as listed here: replaces `run-suite.sh, run with the working directory inside a git repository that is not veri and has no Makefile, exits with a red suite's own code and exits 1 naming a suite that exits 0 without its count line (#617)` in skills/tdd/scripts/tests/run-suite-cwd.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 27 | 0.10 |
 | the run-suite-venv.test.sh case holds as a pytest case in skills/tdd/scripts/tests/py/test_run_suite.py — each a pytest case driving the script's command-line interface in-process through the run_cli fixture, faking only process boundaries, asserting the same exit code, stdout, stderr, files and events as the bash case does; a case whose assertion depends on real git, a signal, a detach or a symlinked entry point is marked @pytest.mark.process("<the boundary it observes>") and lives outside tests/py/unit/, every other case is small and passes under make unit; a behaviour an existing pytest case already pins is not duplicated, that existing case being named as its replacement; no production change: every script, SKILL.md and CLAUDE.md stay unchanged, so each case and every helper it calls are defined in that test file and Red is expected to report AGAINST_UNMODIFIED: PASSES; each REPLACES: line is written at column 0, no bullet, with the full pytest node id <path from the repo root>::<test name> and the bash case name exactly as listed here: replaces `run-suite.sh with VERI_VENV unset runs a pytest file with ~/.veri-tools/venv's python3, and with the python3 on PATH when that venv has none` in skills/tdd/scripts/tests/run-suite-venv.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 30 | 0.11 |
 
+#### Structural pass
+
+Stopped: nothing-structural
+
 #### Test-command seconds, by tier
 
 | tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s |
@@ -73,4 +79,4 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 219 | 416 | 84819 | 6994761 | 812926 | 3.78 |
+| total | 221 | 420 | 84992 | 7042896 | 825290 | 3.81 |
