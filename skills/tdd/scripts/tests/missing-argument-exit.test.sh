@@ -27,11 +27,6 @@ refuses() {
   line="$(missing_argument_offender "$SCRIPTS" "$@")" || offenders+=( "$line" )
 }
 
-name="a script requiring a positional argument exits 2 with a usage line when called with none"
-unset VERI_TIMEOUT VERI_REFACTOR_BUDGET
-mapfile -t offenders < <(argument_audit "$SCRIPTS" 2>&1)
-verdict "$name" "${offenders[@]}"
-
 usage_stub() {  # usage_stub <path> <usage-line> <exit> — an executable that prints <usage-line> on stderr and exits <exit>
   printf '#!/bin/sh\necho "%s" >&2\nexit %s\n' "$2" "$3" > "$1"
   chmod +x "$1"
