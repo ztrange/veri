@@ -1254,6 +1254,25 @@ def test_main_keeps_both_sets_of_appends_recoverable_and_named_when_two_resume_d
     assert (one.returncode, two.returncode, f"+{first}" in kept, f"+{second}" in kept) == (2, 2, True, True)
 
 
+@pytest.mark.process("git: a real resumed worktree holding a set-aside-tdd-appends.diff and kept-tdd-appends.diff* files, whose resume discard cannot re-apply the uncommitted appends, run as SKILL.md writes it")
+def test_resume_discard_stop_names_the_set_aside_file_and_every_kept_file_when_its_reapply_fails_1638(
+        monkeypatch, tmp_path):
+    scripts, clone, ledger, git, discard = _resumed_clone_1611(
+        monkeypatch, tmp_path, "- [ ] step one\n", "plan: scope #1 (#1)")
+    gitdir = pathlib.Path(git(clone, "rev-parse", "--absolute-git-dir"))
+    saved = [gitdir / "set-aside-tdd-appends.diff", gitdir / "kept-tdd-appends.diff",
+             gitdir / "kept-tdd-appends.diff.1700000000.42"]
+    for path in saved:
+        path.write_text("earlier appends\n")
+    ledger.write_text(ledger.read_text() + "- [ ] new step ⟦added⟧\n")
+
+    run = subprocess.run(["bash", "-c", textwrap.dedent(discard) + "\nexit $?"], cwd=clone,
+                         env=_failing_apply_env_1611(tmp_path), text=True,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+
+    assert (run.returncode, [p.name in run.stderr for p in saved]) == (2, [True, True, True])
+
+
 @pytest.mark.process("git and tick-ledger.sh: a real resumed worktree whose ledger carries a step ticked by a green commit on the branch and then reworded in the uncommitted copy, discarded by the resume's own commands")
 def test_main_after_the_resume_discard_unticks_a_reworded_step_even_though_its_green_commit_is_on_the_branch_1611(
         monkeypatch, tmp_path):
