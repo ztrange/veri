@@ -278,7 +278,7 @@ unauthenticated baseline never gets a cycle.
      kept="$base"
      [[ ! -e $kept ]] || kept="$kept.$(date +%s).$$"
      printf '%s\n' "$appends" > "$kept"
-     echo "could not re-apply the uncommitted appends to $(grep -o '^+++ b/.*' <<< "$appends" | cut -c7- | tr '\n' ' ')kept at $(ls -d "$base"* | tr '\n' ' ')" >&2
+     echo "could not re-apply the uncommitted appends to $(grep -o '^+++ b/.*' <<< "$appends" | cut -c7- | tr '\n' ' ')kept at $(ls -d "$(git rev-parse --git-path set-aside-tdd-appends.diff)"* "$base"* 2>/dev/null | tr '\n' ' ')" >&2
      exit 2
    fi
    for f in .tdd/issue-*.md; do
