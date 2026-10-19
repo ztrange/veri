@@ -94,4 +94,9 @@ launched=no; [[ -e "$work/ran" ]] && launched=yes
 expect_eq "a grader.conf model that names no version exits 2 with a diagnostic on stderr and never launches claude" \
   "2;diag=yes;launched=no" "$code;diag=$diag;launched=$launched"
 
+claude_stub "$bin" "printf 'Some analysis first.\nBEGIN GRADES\nA1: PASS — says one thing\nA2: PASS — says two things\nEND GRADES\nVERDICT: PASS\n'"
+(cd "$work/role" && CLAUDE_BIN="$bin/claude" "$GRADE" "$work/role/REQUIREMENTS.md" unit.md > /dev/null 2>&1)
+expect_eq "a reply whose final GRADES block has one PASS line per requirement in list order and VERDICT: PASS exits 0" \
+  "0" "$?"
+
 finish
