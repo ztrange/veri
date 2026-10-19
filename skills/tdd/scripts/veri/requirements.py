@@ -47,7 +47,7 @@ def claims(path, unit):
             continue
         elif not intable and line.startswith("|"):
             cells = split_cells(line)
-            if cells[1:4] != COLUMNS:
+            if cells[1:] != COLUMNS + [""]:
                 fail("header lacks a column")
             intable, skip = True, True
         elif intable and skip:
