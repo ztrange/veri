@@ -19,8 +19,7 @@ def test_a_grader_conf_model_value_that_names_no_version_makes_grade_prose_exit_
         "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
     launched = []
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", lambda argv, *a, **k: launched.append(argv)
-                        or subprocess.CompletedProcess(argv, 0, b"", b""))
+    monkeypatch.setattr(subprocess, "run", lambda argv, *a, **k: launched.append(argv))
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -36,8 +35,7 @@ def test_a_grader_conf_model_value_with_a_digit_but_no_version_makes_grade_prose
         "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
     launched = []
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", lambda argv, *a, **k: launched.append(argv)
-                        or subprocess.CompletedProcess(argv, 0, b"", b""))
+    monkeypatch.setattr(subprocess, "run", lambda argv, *a, **k: launched.append(argv))
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 

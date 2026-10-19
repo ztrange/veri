@@ -76,7 +76,9 @@ def main(argv):
     claims = requirements.claims(path, unit)
     with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
         f.write(prompt(unit, text, claims))
-    env = {**os.environ, "PATH": modern_python_dir() + os.environ.get("PATH", ""), "VERI_MODEL": model}
+    env = dict(os.environ)
+    env["PATH"] = modern_python_dir() + env.get("PATH", "")
+    env["VERI_MODEL"] = model
     try:
         subprocess.run([os.path.join(SCRIPTS, "supervise.sh"), "grade-prose",
                         os.path.join(SCRIPTS, "run-leaf.sh"), f.name], stdout=subprocess.PIPE, env=env)
