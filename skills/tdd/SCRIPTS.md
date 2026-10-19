@@ -261,3 +261,4 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   over it. A Claude Code cloud session, where GraphQL is refused, needs nothing set: the
   default is already `rest`. The conductor does not call this —
   it is rung 2's, driven by the loop branch of this skill.
+- `$S/stop-reason.sh <issue>` — why a run ended with no ✅ Done or ⛔ Bailed comment: the operator's helper. Exit 2 on no argument or an issue with no run under `.tdd/wt`. Nothing in the procedure calls it.
