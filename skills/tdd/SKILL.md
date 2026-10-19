@@ -1873,7 +1873,8 @@ Every other step takes the verdict as follows:
   the tree holds only the new test and the ticked ledger):
   Before it, run `$S/pin-fast-tier.sh '<fast-cmd>'`: on exit 1 the pin tripped a fast-tier
   guard, so commit nothing and enter the revise loop for red with `.tdd/verify-pin.reason`
-  (the guard's output) as the reason; on exit 2 bail.
+  (the fast tier's output) as the reason, spending a `REVISE_BUDGET` attempt as a verify-pin
+  REJECT does; on exit 0 tick and commit `test: pin` as below; on exit 2 bail as a system failure.
   ```
   $S/tick-ledger.sh .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"
   git add -A && git commit -m "test: pin <STEP summary> (#<n>)"
