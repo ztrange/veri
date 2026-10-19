@@ -262,3 +262,4 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   default is already `rest`. The conductor does not call this —
   it is rung 2's, driven by the loop branch of this skill.
 - `$S/stop-reason.sh <issue>` — why a run ended with no ✅ Done or ⛔ Bailed comment: the operator's helper. Exit 2 on no argument or an issue with no run under `.tdd/wt`. Nothing in the procedure calls it.
+- `$S/handoff-state.sh` — print a read-only snapshot of the run state for a context reset. Its first line is `main <sha> <tag>`: main's commit and the highest version tag by `git tag --sort=-v:refname`. Exit **0**, **2** no answer. The conductor does not call this; it is an operator's.
