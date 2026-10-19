@@ -88,7 +88,7 @@ def conductor_sessions(issue, path):
                                 continue
                             seen_ids.add(message["id"])
                         open_turns += 1
-                        prices = session_cost.PRICES["opus"]
+                        prices = session_cost.PRICES[session_cost.family(message.get("model") or "") or "opus"]
                         turn_dollars = sum((usage.get(key) or 0) * prices[rate] / 1e6
                                            for key, rate in TURN_RATES.items())
                         turn_dollars += sum(tokens * prices[rate] / 1e6

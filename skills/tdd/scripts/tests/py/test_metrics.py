@@ -1424,3 +1424,16 @@ def test_conductor_sessions_counts_a_message_repeated_across_assistant_records_o
     assert [session["num_turns"] for session in sessions] == [2]
     assert [session["total_cost_usd"] for session in sessions] == pytest.approx([0.30])
     assert len(turn_rows) == 2
+
+
+def test_conductor_sessions_prices_a_turn_by_the_model_its_record_names_1859(tmp_path, monkeypatch, metrics):
+    monkeypatch.setitem(metrics.session_cost.PRICES, "sonnet",
+                        {"input": 1.0, "cache_read": 1.0, "cache_write_5m": 1.0, "cache_write_1h": 1.0, "output": 3.0})
+    message = {"id": "msg_a", "model": "claude-sonnet-5-5", "usage": {"output_tokens": 1000000}}
+    records = [{"type": "system", "subtype": "init"}, {"type": "assistant", "message": message}]
+    (tmp_path / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+
+    sessions, turn_rows = metrics.conductor_sessions("108", str(tmp_path / "events.jsonl"))
+
+    assert [session["total_cost_usd"] for session in sessions] == pytest.approx([3.00])
+    assert [row[1] for row in turn_rows] == ["$3.00"]
