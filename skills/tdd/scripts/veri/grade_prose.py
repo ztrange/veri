@@ -89,6 +89,9 @@ def main(argv):
     if trailing:
         return no_verdict("text after END GRADES: %s" % trailing)
     block = reply.rsplit("BEGIN GRADES", 1)[1].split("END GRADES", 1)[0]
+    for word in re.findall(r"^\S+: (\w+)", block, re.M):
+        if word not in ("PASS", "FAIL"):
+            return no_verdict("grade word %s is neither PASS nor FAIL" % word)
     got = re.findall(r"^(\S+): (?:PASS|FAIL)\b", block, re.M)
     wanted = [row.split("\t", 1)[0] for row in claims.splitlines()]
     if got != wanted:

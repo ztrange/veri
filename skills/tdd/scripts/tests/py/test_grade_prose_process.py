@@ -366,3 +366,20 @@ def test_a_grades_block_with_no_verdict_line_makes_grade_prose_exit_2_and_name_t
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
 
     assert (done.returncode, "VERDICT" in done.stderr) == (2, True), (done.returncode, done.stderr)
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_a_grades_line_whose_grade_word_is_other_than_exactly_pass_or_fail_makes_grade_prose_exit_2_and_name_the_defect_on_stderr(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text(STUB.replace("A2: PASS - ok", "A2: PASSABLE - ok"))
+    claude.chmod(0o755)
+
+    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                          capture_output=True, text=True,
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
+
+    assert (done.returncode, "PASSABLE" in done.stderr) == (2, True), (done.returncode, done.stderr)
