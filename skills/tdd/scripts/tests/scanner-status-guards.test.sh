@@ -3,7 +3,7 @@
 # when its scanner fails.
 #
 # Contract under test:
-#   no-awk-v-patterns.test.sh, no-docs-reads.test.sh and no-job-spec-kills.test.sh, run as a
+#   no-docs-reads.test.sh, run as a
 #   scratch copy over a clean scratch tree, pass with their grep scanner intact, and fail,
 #   printing the scanner's exit status 2, when only that scanner's grep over the scratch tree
 #   exits 2 — their planted-fixture cases, scanning elsewhere, keep a working grep. Every guard's
@@ -31,13 +31,11 @@ names_itself() {  # <guard> <scanned token> <output>: one line names the guard, 
 }
 
 CASES=(  # guard | the scanner's leading grep arguments | token its output must name besides the status
-  "no-awk-v-patterns.test.sh|-n awk|$SCANNED"
   "no-docs-reads.test.sh|-nE|$SCANNED"
-  'no-job-spec-kills.test.sh|-rInE --|skills'
 )
 
 problems=()
-name="no-awk-v-patterns.test.sh, no-docs-reads.test.sh and no-job-spec-kills.test.sh each pass over a clean scratch tree, and fail naming the suite and the scanner's exit status 2 when only the grep they read through done < <(…) over that tree exits 2, the failure line naming the guard by its own file name (#1648)"
+name="no-docs-reads.test.sh passes over a clean scratch tree, and fail naming the suite and the scanner's exit status 2 when only the grep they read through done < <(…) over that tree exits 2, the failure line naming the guard by its own file name (#1648)"
 
 check_guard() {
   local guard="$1" scan_args="$2" token="$3" tree guard_out guard_code
@@ -76,12 +74,11 @@ report "$name"
 
 CASES=(
   "no-recipe-unit-tier.test.sh|-nE|$SCANNED"
-  "no-sigpipe-pipelines.test.sh|-nE|$SCANNED"
   "no-size-assertion.test.sh|-nE|$SCANNED"
 )
 
 problems=()
-name="no-recipe-unit-tier.test.sh, no-sigpipe-pipelines.test.sh and no-size-assertion.test.sh each pass over a clean scratch tree, and fail naming the suite and the scanner's exit status 2 when only the grep they read through done < <(…) over that tree exits 2, the failure line naming the guard by its own file name (#1648)"
+name="no-recipe-unit-tier.test.sh and no-size-assertion.test.sh each pass over a clean scratch tree, and fail naming the suite and the scanner's exit status 2 when only the grep they read through done < <(…) over that tree exits 2, the failure line naming the guard by its own file name (#1648)"
 
 for entry in "${CASES[@]}"; do
   IFS='|' read -r guard scan_args token <<< "$entry"

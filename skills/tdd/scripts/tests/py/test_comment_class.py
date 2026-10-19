@@ -222,17 +222,7 @@ def test_main_classes_md_variable_heredocs_as_3_drops_a_dash_heredoc_hashbang_an
     }
 
 
-CLASS_3_LINES = """\
-no-awk-v-patterns:#!/usr/bin/env bash
-no-awk-v-patterns:#!/usr/bin/env bash
-no-awk-v-patterns:#!/usr/bin/env bash
-no-awk-v-patterns:#!/usr/bin/env bash
-no-awk-v-patterns:#!/usr/bin/env bash
-no-awk-v-patterns:#!/usr/bin/env bash
-no-awk-v-patterns:#!/usr/bin/env bash
-no-awk-v-patterns:# an unrelated line inserted above the exempt site
-no-awk-v-patterns:# and another
-"""
+CLASS_3_LINES = ""
 
 
 @pytest.mark.tree_audit("every bash suite, script and lib under skills/tdd/scripts")

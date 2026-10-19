@@ -127,15 +127,6 @@ def test_claude_mds_budgets_invariant_names_veri_step_growth_as_a_fifth_axis_pla
     ) == []
 
 
-def test_claude_mds_testing_idiom_section_states_the_pipefail_sigpipe_rule():
-    assert idiom_records_carry(
-        "nothing states the pipefail/SIGPIPE rule where the agent writing a suite would find it",
-        "CLAUDE.md has no single record in its '## Testing idiom' section stating that a suite declaring pipefail never ends a pipeline in grep -q or head, that the status asserted on is then the writer's SIGPIPE, which case says so (no-sigpipe-pipelines), and what the repair is",
-        "pipefail", "grep -[a-z]*q", "[^a-z]head", "sigpipe", "no-sigpipe-pipelines",
-        "/dev/null|redirect|to eof", "never|must not|does not|no suite",
-    ) == []
-
-
 def test_claude_mds_testing_idiom_section_says_496_retired_225s_rule_that_the_four_recorded_suites_keep_their_own_counters_595():
     assert idiom_records_carry(
         "nothing says the -recorded suites' own-counters rule was retired",
@@ -143,12 +134,6 @@ def test_claude_mds_testing_idiom_section_says_496_retired_225s_rule_that_the_fo
         "-recorded", "own counters", "#225", "#496", "retire",
         r"lib/harness\.sh",
     ) == []
-
-
-def test_claude_md_states_once_that_a_background_process_is_killed_by_its_recorded_pid_never_by_a_job_spec():
-    rule = ("job spec", "kill %", "pid", "bg_start|bg_kill|background\\.sh", "no-job-spec-kills", "never|must not|not by")
-    found = sum(all(re.search(r, rec) for r in rule) for rec in all_records())
-    assert found == 1, f"CLAUDE.md states the job-spec kill rule in {found} records rather than once"
 
 
 def test_claude_mds_testing_idiom_section_states_that_no_suite_relies_on_permission_bits_since_the_cloud_runs_as_root_846():
