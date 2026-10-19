@@ -268,3 +268,14 @@ def test_main_over_this_repository_reaches_stop_run_through_stopping_md_so_it_is
 
     assert code == 0
     assert "test-only: stop-run.sh" not in lines
+
+
+@pytest.mark.tree_audit("every script under skills/tdd/scripts reached from this repository's entry points")
+def test_main_over_this_repository_reaches_skill_drift_through_bail_md_so_it_is_not_test_only_1853(capsys):
+    unreachable = importlib.import_module("veri.unreachable")
+
+    code = unreachable.main([str(SCRIPTS.parents[2])])
+    lines = capsys.readouterr().out.splitlines()
+
+    assert code == 0
+    assert "test-only: skill-drift.sh" not in lines
