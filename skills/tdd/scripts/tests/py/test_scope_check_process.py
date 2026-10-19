@@ -23,3 +23,19 @@ def test_1782_a_step_naming_a_new_test_module_whose_basename_exists_exits_1_nami
     assert ran.returncode == 1
     assert f"{PY}/test_push_branch.py" in ran.stderr
     assert f"{PY}/unit/test_push_branch.py" in ran.stderr
+
+
+@pytest.mark.process("scope-check.sh run on a ledger naming an existing tests/py module and a new one with a free basename")
+def test_1782_a_step_naming_an_existing_module_or_a_free_basename_exits_0_silently(tmp_path):
+    existing = tmp_path / PY / "unit" / "test_push_branch.py"
+    existing.parent.mkdir(parents=True)
+    existing.write_text("")
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text(f"# Plan\n\n- [ ] Add cases to `{PY}/unit/test_push_branch.py` ⟦criterion 1⟧\n"
+                      f"- [ ] Pin the CLI in `{PY}/test_push_branch_cli.py` ⟦criterion 2⟧\n")
+
+    ran = subprocess.run(["sh", str(SCRIPTS / "scope-check.sh"), str(ledger), str(tmp_path)],
+                         capture_output=True, text=True,
+                         env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "PYTHONDONTWRITEBYTECODE": "1"})
+
+    assert (ran.returncode, ran.stderr) == (0, "")
