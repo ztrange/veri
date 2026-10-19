@@ -1,6 +1,6 @@
 # Mutation-parity pairs proven for #1346
 
-Every row below is `proven` by the conductor's own `mutation-parity.sh` run, each mutation in `skills/tdd/scripts/veri/affected_suites.py`.
+Every row below is `proven` by the conductor's own `mutation-parity.sh` run (step 1: 10/10, step 2: 7/7, both exit 0), each mutation in `skills/tdd/scripts/veri/affected_suites.py`.
 
 ## Step 1 — rules 5–6, fail-closed widening and its stderr, run state
 
@@ -16,3 +16,15 @@ Every row below is `proven` by the conductor's own `mutation-parity.sh` run, eac
 | fail-closed: run state alongside a file no rule places still prints every suite | `test_fail_closed_run_state_alongside_a_file_no_rule_places_still_prints_every_suite` | widening skipped when the range also touches `.tdd/` | proven |
 | a widening caused by two unplaced files names both on stderr | `test_a_widening_caused_by_two_unplaced_files_names_both_on_stderr` | the widening stderr line names only the first unplaced file | proven |
 | a green commit's shape — ledger, refactor-owed file and a source change — prints exactly that script's suite | `test_a_green_commits_shape_ledger_refactor_owed_file_and_a_source_change_prints_exactly_that_scripts_suite` | only `.tdd/issue-<n>.md` is run state; the refactor-owed file is unplaced | proven |
+
+## Step 2 — the CLAUDE.md-counts pull-in, #487 lib callers, #496 harness.sh
+
+| bash case | kept pytest case | mutation | result |
+|---|---|---|---|
+| a range that adds a suite file under tests/ or tests/unit/ pulls in skills/tdd/scripts/tests/py/unit/test_claude_md_counts.py | `test_a_range_that_adds_a_suite_file_under_tests_or_tests_unit_pulls_in_the_claude_md_counts_suite` | the pull-in skipped when an added suite is under `tests/unit/` | proven |
+| editing an existing suite's contents does not pull in skills/tdd/scripts/tests/py/unit/test_claude_md_counts.py | `test_editing_an_existing_suites_contents_does_not_pull_in_the_claude_md_counts_suite` | the counting diff also counts modified files (`--diff-filter=ADM`) | proven |
+| a range that adds or deletes a script under scripts/ pulls in skills/tdd/scripts/tests/py/unit/test_claude_md_counts.py | `test_a_range_that_adds_or_deletes_a_script_under_scripts_pulls_in_the_claude_md_counts_suite` | the counts pull-in removed (`if counted:` -> `if False:`) | proven |
+| #487: a lib file whose caller's source line ends in a \ continuation maps to that caller's suite | `test_487_a_lib_file_whose_callers_source_line_ends_in_a_continuation_maps_to_that_callers_suite` | the lib-caller pattern drops its `(\)?` continuation tail | proven |
+| #487: a caller whose source line ends at the lib path, with or without a trailing quote and spaces, still maps to its suite | `test_487_a_caller_whose_source_line_ends_at_the_lib_path_with_or_without_a_trailing_quote_and_spaces_still_maps_to_its_suite` | the lib-caller pattern requires a closing quote after the lib path | proven |
+| #487: a comment that names a lib file is still not a dependency | `test_487_a_comment_that_names_a_lib_file_is_still_not_a_dependency` | the lib-caller pattern accepts a `#` before `source`/`.` | proven |
+| #496: a change to tests/lib/harness.sh prints every suite that sources it, and no others | `test_496_a_change_to_tests_lib_harness_sh_prints_every_suite_that_sources_it_and_no_others` | `tests/lib/harness.sh` maps to every suite | proven |

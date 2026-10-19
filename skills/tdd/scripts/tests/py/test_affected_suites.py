@@ -755,13 +755,13 @@ SCRIPTS_REL = "skills/tdd/scripts/"
 SUITES = SCRIPTS_REL + "tests/"
 
 
-def cli_git(touched, unresolvable=None):
+def cli_git(touched, unresolvable=None, counted=()):
     def run(args, **kwargs):
         if list(args[:2]) == ["git", "rev-parse"]:
             bad = unresolvable is not None and unresolvable in args[-1]
             return subprocess.CompletedProcess(args, 1 if bad else 0, "" if bad else "abc\n", "")
         if list(args[:3]) == ["git", "diff", "--name-only"] and "--diff-filter=AD" in args:
-            return subprocess.CompletedProcess(args, 0, "", "")
+            return subprocess.CompletedProcess(args, 0, "".join(f + "\n" for f in counted), "")
         if list(args[:3]) == ["git", "diff", "--name-only"]:
             return subprocess.CompletedProcess(args, 0, "".join(f + "\n" for f in touched), "")
         if list(args[:3]) == ["git", "diff", "-U0"]:
@@ -776,8 +776,8 @@ def plant(root, files):
         (root / name).write_text(text)
 
 
-def affected_by(monkeypatch, run_cli, affected, tmp_path, touched, files, range_="base..head"):
-    monkeypatch.setattr(subprocess, "run", cli_git(touched))
+def affected_by(monkeypatch, run_cli, affected, tmp_path, touched, files, range_="base..head", counted=()):
+    monkeypatch.setattr(subprocess, "run", cli_git(touched, counted=counted))
     plant(tmp_path, files)
     return run_cli(affected, [range_], cwd=tmp_path)
 
@@ -1237,3 +1237,84 @@ def test_on_the_real_skill_md_and_suites_a_one_section_edit_selects_the_suites_r
                   if "skills/tdd/scripts/tests/" + s in printed]
         (repo / "skills/tdd" / doc).write_text(original[doc], encoding="utf-8")
     assert wrong == []
+
+
+COUNTS = SUITES + "py/unit/test_claude_md_counts.py\n"
+HEADER = '#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\n'
+
+
+def test_a_range_that_adds_a_suite_file_under_tests_or_tests_unit_pulls_in_the_claude_md_counts_suite(
+        monkeypatch, run_cli, affected, tmp_path):
+    added = [SCRIPTS_REL + "tests/newbie.test.sh", SCRIPTS_REL + "tests/unit/rookie.test.sh"]
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, added,
+        {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "tests/foo.test.sh": "",
+         SCRIPTS_REL + "tests/py/unit/test_claude_md_counts.py": "", **{a: "" for a in added}},
+        counted=added,
+    ) == (0, SUITES + "newbie.test.sh\n" + COUNTS + SUITES + "unit/rookie.test.sh\n", "")
+
+
+def test_editing_an_existing_suites_contents_does_not_pull_in_the_claude_md_counts_suite(
+        monkeypatch, run_cli, affected, tmp_path):
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "tests/foo.test.sh"],
+        {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "tests/foo.test.sh": "# foo suite 2\n",
+         SCRIPTS_REL + "tests/py/unit/test_claude_md_counts.py": ""},
+    ) == (0, SUITES + "foo.test.sh\n", "")
+
+
+def test_a_range_that_adds_or_deletes_a_script_under_scripts_pulls_in_the_claude_md_counts_suite(
+        monkeypatch, run_cli, affected, tmp_path):
+    touched = [SCRIPTS_REL + "bar.sh", SCRIPTS_REL + "newbie.sh", SCRIPTS_REL + "tests/newbie.test.sh"]
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, touched,
+        {SCRIPTS_REL + "newbie.sh": "newbie\n", SCRIPTS_REL + "tests/newbie.test.sh": "",
+         SCRIPTS_REL + "tests/bar.test.sh": "", SCRIPTS_REL + "tests/py/unit/test_claude_md_counts.py": ""},
+        counted=[SCRIPTS_REL + "bar.sh", SCRIPTS_REL + "newbie.sh", SCRIPTS_REL + "tests/newbie.test.sh"],
+    ) == (0, SUITES + "bar.test.sh\n" + SUITES + "newbie.test.sh\n" + COUNTS, "")
+
+
+def test_487_a_lib_file_whose_callers_source_line_ends_in_a_continuation_maps_to_that_callers_suite(
+        monkeypatch, run_cli, affected, tmp_path):
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "lib/bar.sh"],
+        {SCRIPTS_REL + "lib/bar.sh": "bar_fn() { echo 2; }\n",
+         SCRIPTS_REL + "alpha.sh": HEADER + 'source "$HERE/lib/bar.sh" \\\n  || { echo "alpha: cannot read lib/bar.sh" >&2; exit 2; }\n',
+         SCRIPTS_REL + "gamma.sh": "echo gamma\n",
+         SCRIPTS_REL + "tests/alpha.test.sh": "", SCRIPTS_REL + "tests/gamma.test.sh": ""},
+    ) == (0, SUITES + "alpha.test.sh\n", "")
+
+
+def test_487_a_caller_whose_source_line_ends_at_the_lib_path_with_or_without_a_trailing_quote_and_spaces_still_maps_to_its_suite(
+        monkeypatch, run_cli, affected, tmp_path):
+    callers = {"alpha": 'source "$HERE/lib/bar.sh"\n', "beta": 'source "$HERE/lib/bar.sh"   \n',
+               "delta": "source $HERE/lib/bar.sh\n", "epsilon": "source $HERE/lib/bar.sh  \n"}
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "lib/bar.sh"],
+        {SCRIPTS_REL + "lib/bar.sh": "bar_fn() { echo 2; }\n", SCRIPTS_REL + "gamma.sh": "echo gamma\n",
+         **{SCRIPTS_REL + n + ".sh": HEADER + line for n, line in callers.items()},
+         **{SCRIPTS_REL + "tests/%s.test.sh" % n: "" for n in (*callers, "gamma")}},
+    ) == (0, suites("alpha.test.sh", "beta.test.sh", "delta.test.sh", "epsilon.test.sh"), "")
+
+
+def test_487_a_comment_that_names_a_lib_file_is_still_not_a_dependency(
+        monkeypatch, run_cli, affected, tmp_path):
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "lib/bar.sh"],
+        {SCRIPTS_REL + "lib/bar.sh": "bar_fn() { echo 2; }\n",
+         SCRIPTS_REL + "alpha.sh": HEADER + 'source "$HERE/lib/bar.sh"\n',
+         SCRIPTS_REL + "beta.sh": HEADER + '# source "$HERE/lib/bar.sh" \\\n',
+         SCRIPTS_REL + "gamma.sh": HEADER + '  # . "$HERE/lib/bar.sh"\n',
+         **{SCRIPTS_REL + "tests/%s.test.sh" % n: "" for n in ("alpha", "beta", "gamma")}},
+    ) == (0, SUITES + "alpha.test.sh\n", "")
+
+
+def test_496_a_change_to_tests_lib_harness_sh_prints_every_suite_that_sources_it_and_no_others(
+        monkeypatch, run_cli, affected, tmp_path):
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "tests/lib/harness.sh"],
+        {SCRIPTS_REL + "tests/lib/harness.sh": "ok() { echo 2; }\n",
+         SCRIPTS_REL + "tests/alpha.test.sh": HEADER + 'source "$HERE/lib/harness.sh"\n',
+         SCRIPTS_REL + "tests/unit/beta.test.sh": HEADER + 'source "$HERE/../lib/harness.sh"\n',
+         SCRIPTS_REL + "tests/gamma.test.sh": "echo gamma\n"},
+    ) == (0, suites("alpha.test.sh", "unit/beta.test.sh"), "")
