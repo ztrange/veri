@@ -1,11 +1,11 @@
 ### 📊 Metrics — issue 1718
 
-Wall time for the issue: 3071 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 295 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 8 of 27 planned.
-Outcome: the run bailed — no-verdict, a system failure.
+Outcome: the run bailed — revise-exhausted, a process failure.
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $39.84 over 161 turns, in 1 sessions.
+Conductor own spending: $19.80 over 166 turns, in 2 sessions.
 
 #### Conductor per turn
 
@@ -172,6 +172,71 @@ Conductor own spending: $39.84 over 161 turns, in 1 sessions.
 | 159 | $0.28 | 178320 |
 | 160 | $0.32 | 180908 |
 | 161 | $0.32 | 180908 |
+| 162 | $0.30 | 182185 |
+| 163 | $0.30 | 182185 |
+| 164 | $0.35 | 183044 |
+| 165 | $1.54 | 98053 |
+| 166 | $1.54 | 98053 |
+| 167 | $0.20 | 100672 |
+| 168 | $0.20 | 100672 |
+| 169 | $0.17 | 101319 |
+| 170 | $0.17 | 101319 |
+| 171 | $0.21 | 104310 |
+| 172 | $0.21 | 104310 |
+| 173 | $0.18 | 105533 |
+| 174 | $0.18 | 105533 |
+| 175 | $0.18 | 106470 |
+| 176 | $0.17 | 106781 |
+| 177 | $0.17 | 107246 |
+| 178 | $0.17 | 107576 |
+| 179 | $0.17 | 107900 |
+| 180 | $0.17 | 107900 |
+| 181 | $0.18 | 108808 |
+| 182 | $0.18 | 108808 |
+| 183 | $0.18 | 108808 |
+| 184 | $0.18 | 109538 |
+| 185 | $0.18 | 109538 |
+| 186 | $0.22 | 112630 |
+| 187 | $0.22 | 112630 |
+| 188 | $0.22 | 112630 |
+| 189 | $0.18 | 113386 |
+| 190 | $0.19 | 114285 |
+| 191 | $0.19 | 114285 |
+| 192 | $0.19 | 115041 |
+| 193 | $0.18 | 115209 |
+| 194 | $0.20 | 116427 |
+| 195 | $0.20 | 116427 |
+| 196 | $0.19 | 117203 |
+| 197 | $0.19 | 117203 |
+| 198 | $0.21 | 118783 |
+| 199 | $0.20 | 119864 |
+| 200 | $0.20 | 119864 |
+| 201 | $0.20 | 119864 |
+| 202 | $0.19 | 120365 |
+| 203 | $0.19 | 120740 |
+| 204 | $0.19 | 121290 |
+| 205 | $0.19 | 121290 |
+| 206 | $0.19 | 121665 |
+| 207 | $0.19 | 121665 |
+| 208 | $0.19 | 122257 |
+| 209 | $0.21 | 123553 |
+| 210 | $0.21 | 123553 |
+| 211 | $0.21 | 123553 |
+| 212 | $0.19 | 124019 |
+| 213 | $0.19 | 124019 |
+| 214 | $0.19 | 124019 |
+| 215 | $0.24 | 126595 |
+| 216 | $0.20 | 127131 |
+| 217 | $0.21 | 128154 |
+| 218 | $0.21 | 128154 |
+| 219 | $0.21 | 128154 |
+| 220 | $0.22 | 129413 |
+| 221 | $0.21 | 130286 |
+| 222 | $0.21 | 130286 |
+| 223 | $0.21 | 131125 |
+| 224 | $0.21 | 131125 |
+| 225 | $0.21 | 131886 |
+| 226 | $0.21 | 131886 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -179,29 +244,32 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 16 | 14 | 1 | 2 | 1450 | 0 | 32738 | 0.10 |
-| red | 19 | 8 | 0 | 0 | 956 | 457 | 107 | 212 | 37999 | 3335918 | 424401 | 1.91 |
-| green | 17 | 6 | 1 | 0 | 1115 | 374 | 108 | 212 | 32145 | 3366521 | 313727 | 1.54 |
+| red | 21 | 9 | 0 | 0 | 1026 | 494 | 116 | 230 | 41424 | 3581218 | 500479 | 2.16 |
+| green | 20 | 6 | 1 | 0 | 1187 | 424 | 120 | 236 | 36238 | 3693744 | 379004 | 1.93 |
 | refactor | 12 | 6 | 0 | 0 | 242 | 82 | 32 | 62 | 5457 | 794010 | 173175 | 0.57 |
 | pin | 2 | 2 | 0 | 0 | 43 | 29 | 9 | 18 | 2778 | 233231 | 48351 | 0.17 |
+| exhausted | 1 | 0 | 0 | 0 | 27 | 23 | 7 | 14 | 2209 | 206169 | 17388 | 0.17 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 25 | 23 | 1 | 0 | 984 | 365 | 101 | 200 | 29808 | 2774580 | 417972 | 1.62 |
-| developer | claude-sonnet-5-5 | 22 | 0 | 0 | 0 | 919 | 487 | 131 | 258 | 43078 | 4243163 | 464754 | 2.02 |
-| developer | claude-opus-5-5 | 4 | 0 | 0 | 0 | 469 | 104 | 25 | 48 | 6943 | 711937 | 109666 | 0.65 |
+| verifier | claude-sonnet-5-5 | 26 | 24 | 1 | 0 | 1012 | 377 | 104 | 206 | 30762 | 2836492 | 452528 | 1.72 |
+| developer | claude-sonnet-5-5 | 22 | 0 | 0 | 0 | 802 | 495 | 129 | 254 | 43614 | 4168084 | 486186 | 2.07 |
+| developer | claude-opus-5-5 | 9 | 0 | 0 | 0 | 727 | 194 | 52 | 102 | 15180 | 1503796 | 212421 | 1.31 |
 
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 104 | 0.21 |
-| green | 192 | 0.38 | 249 | 0.19 |
+| red | 0 | 0.00 | 174 | 0.46 |
+| green | 192 | 0.38 | 321 | 0.58 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | pin | 0 | 0.00 | 0 | 0.00 |
+| exhausted | 0 | 0.00 | 27 | 0.17 |
 | verify-green | 0 | 0.00 | 0 | 0.00 |
+| develop-green | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -215,7 +283,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | a section unit's text ends at the next heading of higher level as well as the same level, pinned by a fixture where a higher-level heading follows the section ⟦criterion 12⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 62 | 21 | 42 | 5363 | 580872 | 92216 | 0.34 | 220 | unknown | 0/5 | nothing-left |  |  | full |
 | a line starting with # inside a fenced code block never starts or ends a section, pinned by a fixture whose section holds a fenced # comment ⟦criterion 13⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 86 | 26 | 52 | 7455 | 758340 | 98365 | 0.40 | 258 | unknown | 0/5 | nothing-left |  |  | full |
 | the grader leaf is launched through supervise.sh under a leaf name with its own leaf role, distinct from every develop, revise and verify role ⟦criterion 3⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 130 | 29 | 58 | 7988 | 889750 | 104300 | 0.43 | 385 | unknown | 0/5 | nothing-left |  |  | full |
-| the stub claude receives --model with the model value committed in skills/tdd/grader.conf (a full model id), and setting VERI_MODEL or VERI_MODEL_VERIFIER does not change it ⟦criterion 3⟧ | 4 | 1 | 0 | 0 | 0 | 0 | 133 | 29 | 58 | 9796 | 947384 | 83949 | 0.40 | unknown | unknown | unknown | unknown |  |  | full |
+| the stub claude receives --model with the model value committed in skills/tdd/grader.conf (a full model id), and setting VERI_MODEL or VERI_MODEL_VERIFIER does not change it ⟦criterion 3⟧ | 10 | 2 | 0 | 0 | 0 | 0 | 243 | 57 | 114 | 19523 | 1726076 | 242692 | 1.21 | unknown | 2/2 | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -232,14 +300,14 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 3 | 2 | 4 | 4 | 0 | 4 | 4 | 2 | 2 | 0 | 3 | 0 | 0 | 4 | 3 | 6 | 6 | 6 | 8 | 9 | 7 | 7 | 8 | 9 | 9 | 9 | 9 | 9 | 10 | 11 | 11 | 10 | 11 | 12 | 12 | 0 | 12 | 73 | 12 | 13 | 15 | 0 | 113 |
-| fast | 15 | 15 | 14 | 13 | 14 | 18 | 12 | 12 | 13 | 12 | 13 | 13 | 12 | 13 | 12 | 12 | 12 | 13 | 13 | 12 | 12 | 12 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 16 | 2 | 3 | 0 | 2 | 2 | 2 | 2 | 7 | 2 | 2 | 9 | 12 | 0 | 14 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 3 | 2 | 4 | 4 | 0 | 4 | 4 | 2 | 2 | 0 | 3 | 0 | 0 | 4 | 3 | 6 | 6 | 6 | 8 | 9 | 7 | 7 | 8 | 9 | 9 | 9 | 9 | 9 | 10 | 11 | 11 | 10 | 11 | 12 | 12 | 0 | 12 | 73 | 12 | 13 | 15 | 0 | 113 | 13 | 13 |
+| fast | 15 | 15 | 14 | 13 | 14 | 18 | 12 | 12 | 13 | 12 | 13 | 13 | 12 | 13 | 12 | 12 | 12 | 13 | 13 | 12 | 12 | 12 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 16 | 2 | 3 | 0 | 2 | 2 | 2 | 2 | 7 | 2 | 2 | 9 | 12 | 0 | 14 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 257 | 506 | 79829 | 7729680 | 992392 | 4.29 |
+| total | 285 | 562 | 89556 | 8508372 | 1151135 | 5.10 |
