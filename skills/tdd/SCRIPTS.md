@@ -47,12 +47,12 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   *via* `supervise.sh`, not on its own.
 - `$S/extract-result.sh` — pulls the final result text out of a leaf's stream-json (used
   by `run-leaf.sh`; passes plain text through unchanged).
-- `$S/build-develop-prompt.sh <red|green|refactor|cover|transform|diff|structural|predicate|revise|exhausted|reconcile|over-budget|rebase> …` — assemble a **developer** leaf's prompt from a
+- `$S/build-develop-prompt.sh <red|green|refactor|cover|transform|diff|structural|predicate|revise|exhausted|reconcile|over-budget|rebase|red-repair> …` — assemble a **developer** leaf's prompt from a
   versioned template: `red <spec-file> <step-text> <test-cmd>`, `green <spec-file>
   <step-text> <test-cmd> <test-path> <target> <fast-cmd> [<owed-cases>]` (the optional 8th argument
   is the named cases still owed for deletion), `refactor <spec-file> <step-text>
   <test-cmd> <touched-files>`, `revise <phase> <spec-file> <step-text> <test-cmd>
-  <reason-file>`. Prints the prompt on stdout; **exit 2** with a diagnostic and **no
+  <reason-file>`, `red-repair <case> <report-file>` (the Red leaf that repairs one case the step's own Red wrote, edited in place; never creates a suite). Prints the prompt on stdout; **exit 2** with a diagnostic and **no
   stdout** on an unknown phase or a missing template, spec or reason file — never a partial
   prompt. The mirror of `build-verify-prompt.sh` and its opposite in emphasis: the verifier
   builder is defined by what it **cannot** carry (no rationale parameter, so blindness is
@@ -82,7 +82,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   issue body (the human-facing mirror).
 - `$S/next-unchecked.sh < .tdd/issue-<n>.md` — print the **first unchecked ledger step**'s
   description; **exit 3** when none remain (the loop-done / nothing-to-resume signal).
-- `VERI_STEP=<step> $S/wrong-test-route.sh <green-report> <red-test-id>` — routes a green report's `WRONG_TEST:`: **exit 0** prints `red <case>` (an existing case other than the step's own), **exit 3** prints `revise`, **exit 2** bad arguments. Only a step's first reroute is free: once `.tdd/events.jsonl` holds a `reroute` event with `VERI_STEP`, a later `WRONG_TEST:` in that step answers `revise` and spends one `REVISE_BUDGET` attempt.
+- `VERI_STEP=<step> $S/wrong-test-route.sh <green-report> <red-test-id>` — routes a green report's `WRONG_TEST:`: **exit 0** prints `red <case>` (an existing case other than the step's own that the criterion contradicts) or `repair <case>` (a case the step's own Red wrote, per its red record), **exit 3** prints `revise`, **exit 2** bad arguments. Only a step's first reroute is free: once `.tdd/events.jsonl` holds a `reroute` event with `VERI_STEP`, a later `WRONG_TEST:` in that step answers `revise` and spends one `REVISE_BUDGET` attempt.
 - `$S/pin-fast-tier.sh '<fast-cmd>'` — run the fast tier over the tree a pin would commit,
   from the worktree. Takes the fast command as its one argument. On failure it writes the
   command's output to `.tdd/verify-pin.reason`. **Exit 0 = the command passed, 1 = it failed
