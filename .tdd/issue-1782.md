@@ -1,0 +1,4 @@
+# Plan for #1782 — Scoping names a new pytest module whose basename already exists under tests/py, so collection breaks or Red improvises a name
+
+- [ ] A new scope check, `scope-check.sh <ledger> <repo-root>` (a `/bin/sh` shim over `veri/scope_check.py`), exits 1 when a ledger step names a new `test_<x>.py` (a path under `skills/tdd/scripts/tests/py/` or its `unit/` that does not exist) whose basename already exists anywhere under `skills/tdd/scripts/tests/py/`, with stderr naming both the named path and the existing one; with no arguments it prints a usage line and exits 2; and SKILL.md's *Scope & plan* runs it on the written ledger before the plan commit, so the planner picks a free name (a `_process` or `_cli` suffix) ⟦criterion 1⟧
+- [ ] `scope-check.sh` exits 0 with nothing on stderr for a ledger whose steps name only existing test modules (adding cases to them) or new modules with a free basename ⟦criterion 2⟧
