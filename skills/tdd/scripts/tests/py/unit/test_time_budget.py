@@ -98,3 +98,38 @@ def test_main_raises_rather_than_returning_0_when_stdout_is_closed(monkeypatch, 
     monkeypatch.setattr(sys, "stdout", None)
     with pytest.raises(Exception):
         time_budget.main([])
+
+
+def test_cli_with_both_tunables_unset_prints_10_and_1_5_and_a_non_numeric_one_exits_2_naming_its_variable(run_cli, monkeypatch, time_budget, tmp_path):
+    seen = {"unset": run_cli(time_budget, [], cwd=tmp_path)}
+    monkeypatch.setenv("VERI_UNIT_BUDGET", "ten")
+    seen["budget"] = run_cli(time_budget, [], cwd=tmp_path)
+    monkeypatch.delenv("VERI_UNIT_BUDGET")
+    monkeypatch.setenv("VERI_TIME_WARN_RATIO", "1,5")
+    seen["ratio"] = run_cli(time_budget, [], cwd=tmp_path)
+    assert seen == {
+        "unset": (0, "10\n1.5\n", ""),
+        "budget": (2, "", "time-budget: VERI_UNIT_BUDGET must be a number of seconds: ten\n"),
+        "ratio": (2, "", "time-budget: VERI_TIME_WARN_RATIO must be a number: 1,5\n"),
+    }
+
+
+def test_cli_with_a_non_numeric_budget_exits_2_with_nothing_on_stdout_and_exactly_the_one_diagnostic_line(run_cli, time_budget, tmp_path):
+    assert run_cli(time_budget, [], env={"VERI_UNIT_BUDGET": "ten"}, cwd=tmp_path) == (
+        2, "", "time-budget: VERI_UNIT_BUDGET must be a number of seconds: ten\n")
+
+
+def test_cli_answers_the_same_from_another_working_directory_with_the_tunables_unset_or_a_non_numeric_budget(run_cli, monkeypatch, time_budget, tmp_path):
+    (tmp_path / "here").mkdir()
+    (tmp_path / "elsewhere").mkdir()
+    seen = {}
+    for name, value in (("unset", None), ("ten", "ten")):
+        if value is None:
+            monkeypatch.delenv("VERI_UNIT_BUDGET", raising=False)
+        else:
+            monkeypatch.setenv("VERI_UNIT_BUDGET", value)
+        seen[name] = (run_cli(time_budget, [], cwd=tmp_path / "here"), run_cli(time_budget, [], cwd=tmp_path / "elsewhere"))
+    assert seen == {
+        "unset": ((0, "10\n1.5\n", ""),) * 2,
+        "ten": ((2, "", "time-budget: VERI_UNIT_BUDGET must be a number of seconds: ten\n"),) * 2,
+    }
