@@ -9,6 +9,7 @@ from conftest import SCRIPTS, shim_problems
 EXEMPT = {
     "build-develop-prompt.sh": "a spelling difference; canonicalising it is a change of its own",
     "build-verify-prompt.sh": "a spelling difference; canonicalising it is a change of its own",
+    "grade-prose.sh": "a bash script, not yet ported to a module under veri/",
     "render-leaf-log.sh": "adding \"$@\" changes what a stray argument does, a behaviour change",
     "run-leaf.sh": "the locale preamble must act before the interpreter starts, so it cannot move into the module",
     "run-verdict.sh": "the locale preamble must act before the interpreter starts, so it cannot move into the module",
@@ -35,9 +36,9 @@ def test_shim_problems_names_each_script_with_logic_in_it_or_a_missing_module_an
 
 
 @pytest.mark.tree_audit("every scripts/*.sh against the shim exemption table")
-def test_the_exemption_table_lists_the_six_non_canonical_shims_with_a_reason_each_and_a_stale_row_fails_naming_the_script(tmp_path):
+def test_the_exemption_table_lists_the_seven_non_canonical_shims_with_a_reason_each_and_a_stale_row_fails_naming_the_script(tmp_path):
     assert shim_problems(SCRIPTS, EXEMPT) == []
-    assert len(EXEMPT) == 6 and all(reason.strip() for reason in EXEMPT.values())
+    assert len(EXEMPT) == 7 and all(reason.strip() for reason in EXEMPT.values())
 
     (tmp_path / "veri").mkdir()
     (tmp_path / "veri" / "kept.py").write_text("")
