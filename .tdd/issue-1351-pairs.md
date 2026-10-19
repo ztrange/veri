@@ -29,3 +29,11 @@ Every row is the conductor's own `mutation-parity.sh` run, on a scratch tree at 
 | a step no usage event carries prints nothing, exit 3 | `test_cli_for_a_step_no_usage_event_carries_prints_nothing_and_exits_3` | a step no usage event carries returns 0 instead of 3 | proven |
 | no argument, an unknown option, --run or --steps with a step text, and a missing log each exit 2 with stderr only | `test_cli_exits_2_with_stderr_only_for_no_argument_an_unknown_option_run_or_steps_with_a_step_text_and_a_missing_log` | the unknown-option refusal is removed (`if False:`), so `--bogus` is read as a step text | proven |
 | step-cost.sh run through a symlink to the skill directory and from another working directory prints the same figure and exit code as when run in place | `test_cli_from_another_working_directory_prints_the_figure_and_exit_code_of_that_directorys_event_log` | `logical_cwd()` returns the module directory instead of the working directory | proven |
+
+## Step 4 — time-budget.test.sh (3/3 proven, exit 0)
+
+| bash case | kept pytest case | mutation | result |
+|---|---|---|---|
+| time-budget.sh: unset tunables resolve to 10 and 1.5; a non-numeric one exits 2 naming the variable | `test_cli_with_both_tunables_unset_prints_10_and_1_5_and_a_non_numeric_one_exits_2_naming_its_variable` | the VERI_UNIT_BUDGET default is 11 instead of 10 | proven |
+| time-budget.sh: VERI_UNIT_BUDGET=ten exits 2, nothing on stdout, stderr exactly the one diagnostic line | `test_cli_with_a_non_numeric_budget_exits_2_with_nothing_on_stdout_and_exactly_the_one_diagnostic_line` | the VERI_UNIT_BUDGET diagnostic reads `must be seconds` instead of `must be a number of seconds` | proven |
+| time-budget.sh run through a symlink to the skill directory and from another working directory answers as it does when run in place | `test_cli_answers_the_same_from_another_working_directory_with_the_tunables_unset_or_a_non_numeric_budget` | main exits 2 printing nothing when its working directory is named `elsewhere` | proven |
