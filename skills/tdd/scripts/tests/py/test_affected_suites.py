@@ -145,6 +145,24 @@ def test_main_widens_to_every_suite_file_but_not_a_directory_named_like_one(tmp_
         "")
 
 
+def test_main_widens_a_file_no_rule_handles_to_every_bash_suite_file_and_not_a_directory_named_like_one_1812(
+        tmp_path, monkeypatch, capsys, affected):
+    monkeypatch.setattr(subprocess, "run", fake_git(["docs/notes.md"]))
+    monkeypatch.chdir(tmp_path)
+    tests = tmp_path / "skills/tdd/scripts/tests"
+    (tests / "unit/dir.test.sh").mkdir(parents=True)
+    (tests / "dir2.test.sh").mkdir()
+    (tests / "a.test.sh").write_text("")
+    (tests / "unit/b.test.sh").write_text("")
+    (tests / "py/unit").mkdir(parents=True)
+    (tests / "py/unit/test_other.py").write_text("")
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0,
+        "skills/tdd/scripts/tests/a.test.sh\n"
+        "skills/tdd/scripts/tests/unit/b.test.sh\n",
+        "affected-suites: no rule places docs/notes.md; widening to every suite\n")
+
+
 def test_main_skips_a_directory_named_like_a_script_when_reading_lib_callers(tmp_path, monkeypatch, capsys, affected):
     monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/lib/x.sh"]))
     monkeypatch.chdir(tmp_path)
