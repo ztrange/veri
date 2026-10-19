@@ -15,12 +15,6 @@ def split_cells(line):
     return [c.strip() for c in line.split("|")]
 
 
-def is_header(line):
-    cells = split_cells(line)
-    return line.startswith("|") and len(cells) > 1 and (
-        cells[1] == "ID" or "Requirement" in cells and "Why" in cells)
-
-
 def units(path):
     heading = ""
     found = []
