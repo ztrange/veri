@@ -671,7 +671,11 @@ three times over branches its ledger pinned on later lines.
    the diff from the same base sha. An abandoned refactor-kind step has no untracked test to
    clean — its transform commits are the work — so it is abandoned by resetting to its base
    sha, `git reset --hard <base-sha>`.
-2. **Commit the ledger** as the run's starting point:
+2. **Commit the ledger** as the run's starting point. Before committing, run
+   `$S/scope-check.sh .tdd/issue-<n>.md .`: it exits 1 when a step names a new `test_<x>.py` under
+   `skills/tdd/scripts/tests/py/` whose basename already exists anywhere under it (pytest refuses
+   two modules of one basename) and its stderr names both paths, so rename the step's module with
+   a `_process` or `_cli` suffix and run it again:
    `git add .tdd/issue-<n>.md && git commit -m "plan: scope #<n> into <k> steps (#<n>)"`.
    (The ledger is committed — step 1.4 guaranteed `.gitignore` tracks `.tdd/issue-*.md`
    while ignoring leaf logs.)
