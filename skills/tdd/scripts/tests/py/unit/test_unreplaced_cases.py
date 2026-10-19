@@ -190,3 +190,113 @@ def test_replaces_line_wrapped_in_the_steps_double_quotes_counts_1600(tmp_path, 
     ], {"tests/py/test_x.py": "def test_a():\n    pass\n"})
 
     assert (code, out) == (0, "")
+
+
+TEST_A = {"tests/py/test_x.py": "def test_a():\n    pass\n"}
+TAIL = " in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧"
+
+
+def test_replaces_line_with_a_bare_name_holding_both_quote_characters_counts_1600(tmp_path, run_cli, unreplaced):
+    step = "- [ ] x: replaces `it's a \"quoted\" case`" + TAIL
+    code, out, _ = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
+        "REPLACES: it's a \"quoted\" case => tests/py/test_x.py::test_a",
+    ], TEST_A)
+
+    assert (code, out) == (0, "")
+
+
+def test_replaces_line_naming_a_different_case_in_the_steps_backticks_leaves_the_steps_case_printed_1600(tmp_path, run_cli, unreplaced):
+    step = "- [ ] x: replaces `first case`" + TAIL
+    code, out, _ = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
+        "REPLACES: `other case` => tests/py/test_x.py::test_b",
+    ], {"tests/py/test_x.py": "def test_b():\n    pass\n"})
+
+    assert (code, out.strip()) == (1, "first case")
+
+
+def test_replaces_lines_wrapping_the_name_in_single_or_double_quotes_leave_a_backtick_step_case_printed_1600(tmp_path, run_cli, unreplaced):
+    step = "- [ ] x: replaces `a`" + TAIL
+    code, out, _ = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
+        "REPLACES: 'a' => tests/py/test_x.py::test_a",
+        'REPLACES: "a" => tests/py/test_x.py::test_a',
+    ], TEST_A)
+
+    assert (code, out.strip()) == (1, "a")
+
+
+def test_single_quoted_replaces_line_answers_only_the_bare_name_of_a_backtick_step_1600(tmp_path, run_cli, unreplaced):
+    step = "- [ ] x: replaces `'a'`, `a`" + TAIL
+    code, out, _ = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
+        "REPLACES: 'a' => tests/py/test_x.py::test_a",
+    ], TEST_A)
+
+    assert (code, out.strip()) == (1, "a")
+
+
+def test_replaces_line_wrapped_in_one_pair_of_single_quotes_the_steps_delimiter_counts_1600(tmp_path, run_cli, unreplaced):
+    step = "- [ ] x: replaces 'a'" + TAIL
+    code, out, _ = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
+        "REPLACES: 'a' => tests/py/test_x.py::test_a",
+    ], TEST_A)
+
+    assert (code, out) == (0, "")
+
+
+def test_replaces_line_with_the_steps_name_unescaped_counts_1617(tmp_path, run_cli, unreplaced):
+    step = r"- [ ] x: replaces '\`### 🔴 Red\`'" + TAIL
+    code, out, _ = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
+        "REPLACES: `### 🔴 Red` => tests/py/test_x.py::test_a",
+    ], TEST_A)
+
+    assert (code, out) == (0, "")
+
+
+def test_replaces_line_keeping_the_steps_backslash_escapes_counts_1617(tmp_path, run_cli, unreplaced):
+    step = r"- [ ] x: replaces '\`### 🔴 Red\`'" + TAIL
+    code, out, _ = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
+        r"REPLACES: \`### 🔴 Red\` => tests/py/test_x.py::test_a",
+    ], TEST_A)
+
+    assert (code, out) == (0, "")
+
+
+def test_replaces_line_differing_once_escapes_are_removed_leaves_the_steps_case_printed_1617(tmp_path, run_cli, unreplaced):
+    step = r"- [ ] x: replaces '\`### 🔴 Red\`'" + TAIL
+    code, out, _ = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
+        "REPLACES: `### 🔴 Green` => tests/py/test_x.py::test_a",
+    ], TEST_A)
+
+    assert (code, out.strip()) == (1, r"\`### 🔴 Red\`")
+
+
+def test_each_of_the_escapes_quote_dollar_and_backslash_counts_on_its_own_1617(tmp_path, run_cli, unreplaced):
+    step = r"- [ ] x: replaces 'say \"hi\"', 'cost \$5', 'path a\\b'" + TAIL
+    code, out, _ = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
+        'REPLACES: say "hi" => tests/py/test_x.py::test_a',
+        "REPLACES: cost $5 => tests/py/test_x.py::test_a",
+        r"REPLACES: path a\b => tests/py/test_x.py::test_a",
+    ], TEST_A)
+
+    assert (code, out) == (0, "")
+
+
+def test_only_the_steps_name_is_unescaped_not_the_replaces_name_1617(tmp_path, run_cli, unreplaced):
+    step = r"- [ ] x: replaces 'a\\$b'" + TAIL
+    code, out, _ = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
+        r"REPLACES: a\$b => tests/py/test_x.py::test_a",
+    ], TEST_A)
+
+    assert (code, out) == (0, "")
+
+
+def test_two_reports_each_replacing_one_case_count_both_as_replaced_1625(tmp_path, run_cli, unreplaced):
+    (tmp_path / "tests/py").mkdir(parents=True)
+    (tmp_path / "tests/py/test_x.py").write_text("def test_a():\n    pass\n\n\ndef test_b():\n    pass\n")
+    first, second = tmp_path / "r1.txt", tmp_path / "r2.txt"
+    first.write_text("REPLACES: case a => tests/py/test_x.py::test_a\n")
+    second.write_text("REPLACES: case b => tests/py/test_x.py::test_b\n")
+    step = "- [ ] x: replaces 'case a', 'case b'" + TAIL
+
+    code, out, _ = run_cli(unreplaced, [step, str(first), str(second)], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
