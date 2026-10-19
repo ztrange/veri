@@ -105,4 +105,10 @@ names_fail=no; grep -F 'A2' <<< "$out" | grep -F 'says three things instead' > /
 expect_eq "a reply whose final GRADES block has a FAIL line and VERDICT: REJECT exits 1 and prints each failing ID with its reason on stdout" \
   "1;names_fail=yes" "$code;names_fail=$names_fail"
 
+claude_stub "$bin" "printf 'A1: FAIL — I first thought this failed.\nBEGIN GRADES\nA1: PASS — says one thing\nA2: PASS — says two things\nEND GRADES\nVERDICT: PASS\n'"
+out="$(cd "$work/role" && CLAUDE_BIN="$bin/claude" "$GRADE" "$work/role/REQUIREMENTS.md" unit.md 2> /dev/null)" && code=0 || code=$?
+printed=no; grep -F 'FAIL' <<< "$out" > /dev/null && printed=yes
+expect_eq "a FAIL line in the free analysis above a final all-PASS GRADES block with VERDICT: PASS exits 0 and prints no FAIL line" \
+  "0;printed=no" "$code;printed=$printed"
+
 finish

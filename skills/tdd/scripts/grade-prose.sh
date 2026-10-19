@@ -42,7 +42,7 @@ if [[ "$model" != *[0-9]* ]]; then
 fi
 
 reply="$("$HERE/supervise.sh" grade-prose "${CLAUDE_BIN:-claude}" -p --model "$model" <<< "$prompt")" || exit $?
-fails="$(grep -E '^[^:]+: FAIL' <<< "$reply")"
+fails="$(awk '/^BEGIN GRADES/ { buf = ""; on = 1; next } /^END GRADES/ { on = 0; next } on { buf = buf $0 "\n" } END { printf "%s", buf }' <<< "$reply" | grep -E '^[^:]+: FAIL')"
 if [[ -n "$fails" ]]; then
   echo "$fails"
   exit 1
