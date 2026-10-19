@@ -5,7 +5,7 @@
 - [x] claims on a unit with a later `| A | B |` line after its table (separated by a non-`|` line) exits 2, prints nothing on stdout and names that later line on stderr ⟦criterion 1⟧
 - [x] claims on a unit with a second `| ID | Requirement | Why |` table after a blank line exits 2, prints nothing on stdout and names the second table's header line on stderr ⟦criterion 3⟧
 - [x] claims accepts a fenced code block holding `ls | grep x` after the unit's table: exits 0 and prints only the table's rows ⟦criterion 1⟧
-- [x] claims accepts a fenced code block after the unit's table holding a line that starts with `|`: exits 0 and prints only the table's rows, the fenced line never read as a table line ⟦criterion 1⟧ ⟂ refactor pending
+- [x] claims accepts a fenced code block after the unit's table holding a line that starts with `|`: exits 0 and prints only the table's rows, the fenced line never read as a table line ⟦criterion 1⟧
 - [ ] claims accepts a prose line `a | b` after the unit's table: exits 0 and prints only the table's rows ⟦criterion 1⟧
 - [ ] claims on a heading whose only table is `Key | Value` without leading pipes (no `|`-line under it) exits 2, prints nothing on stdout and names the heading line on stderr ⟦criterion 1⟧
 - [ ] an escaped `\|` inside a requirement cell stays inside it: claims prints the whole requirement with the pipe ⟦criterion 3⟧
