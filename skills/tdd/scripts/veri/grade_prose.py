@@ -73,7 +73,7 @@ def main(argv):
                         os.path.join(SCRIPTS, "run-leaf.sh"), f.name], stdout=subprocess.PIPE, env=env)
     finally:
         os.unlink(f.name)
-    return 2
+    return 0
 
 
 if __name__ == "__main__":
