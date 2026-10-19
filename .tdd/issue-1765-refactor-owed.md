@@ -3,3 +3,5 @@
 - `_recorded_case` and `route` both extract `test_\w+` names from a `WRONG_TEST:` line, which one name-extraction helper could share
 applied | 1cca489a217665271851b15f6c8940d3ff3a4341 | `_recorded_case` and `_exists` both open and read a file with `errors="replace"`; a shared `_read(path)` helper would remove that duplication, but `_exists` was not written this cycle
 applied | 5e08407bd5efb997c78b33c386afa67cbc24cfef | `_recorded_case` and `route` both extract `test_\w+` names from a `WRONG_TEST:` line, which one name-extraction helper could share
+### build-develop-prompt.sh red-repair renders a prompt carrying the named case and the green report path filled in, telling the leaf to edit that case only and never to create a suite (no "create one" fallback); a small in-process pytest case on the rendered prompt ⟦criterion 6⟧
+- out-of-scope | extract the text `develop-red-repair.md` and `develop-red-contradicted.md` share (the sections from "The issue's behavior spec" through the end of the report) into an included fragment
