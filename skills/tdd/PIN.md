@@ -32,7 +32,7 @@ Every other step takes the verdict as follows:
   type, because no production code was written (the verifier reverted its own mutation, so
   the tree holds only the new test and the ticked ledger):
   Before it, run `$S/pin-fast-tier.sh '<fast-cmd>'`: on exit 1 the pin tripped a fast-tier
-  guard, so commit nothing and enter the revise loop for red with `.tdd/verify-pin.reason`
+  guard, so commit nothing and enter the revise loop for red (`Read` `<base directory>/REVISE.md` when a verifier answers `REJECT`) with `.tdd/verify-pin.reason`
   (the fast tier's output) as the reason, spending a `REVISE_BUDGET` attempt as a verify-pin
   REJECT does; on exit 0 tick and commit `test: pin` as below; on exit 2 bail as a system failure.
   ```
@@ -52,8 +52,8 @@ Every other step takes the verdict as follows:
   The step is **done** — **no Green and no Refactor**, since there is no new production
   code to write or to tidy. Loop back to the top of **step 3** for the next unchecked
   ledger step.
-- **REJECT (exit 1):** enter the **revise loop** for the **red** phase — see *Revising on a
-  REJECT* — building the prompt as `revise red … .tdd/verify-pin.reason`: the phase argument
+- **REJECT (exit 1):** enter the **revise loop** for the **red** phase — `Read` `<base directory>/REVISE.md`
+  when a verifier answers `REJECT` — building the prompt as `revise red … .tdd/verify-pin.reason`: the phase argument
   is the *developer* phase being redone, while the reason file is named for the *verifier*
   that rejected, here `pin`. The rejection reason is the carry-forward signal that tells the
   fresh leaf which way to go: either the pin is weak (trivial, over-coupled, or it survives
