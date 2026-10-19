@@ -121,3 +121,20 @@ def test_a_set_sleep_gap_replaces_the_default_so_a_pair_100_seconds_apart_prints
     code, out, err = run_cli(stop_reason, ["7"], env={"VERI_SLEEP_GAP": "60"}, cwd=tmp_path)
 
     assert (code, out) == (0, "unknown Connection reset by peer\ngap 100 200\n")
+
+
+def test_a_sleep_gap_that_is_not_a_whole_number_of_at_least_1_exits_2_with_a_diagnostic_naming_VERI_SLEEP_GAP(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    run = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    run.mkdir(parents=True)
+    (run / "events.jsonl").write_text("".join(json.dumps({"ts": ts, "issue": "7", "event": "step-done"}) + "\n"
+                                             for ts in (100, 200)))
+    (tmp_path / ".tdd" / "conductor-7.log").write_text(json.dumps(
+        {"type": "result", "is_error": False, "result": "Connection reset by peer"}) + "\n")
+
+    outcomes = {}
+    for bad in ("0", "abc", "1.5", ""):
+        code, out, err = run_cli(stop_reason, ["7"], env={"VERI_SLEEP_GAP": bad}, cwd=tmp_path)
+        outcomes[bad] = (code, "VERI_SLEEP_GAP" in err)
+
+    assert outcomes == {bad: (2, True) for bad in ("0", "abc", "1.5", "")}
