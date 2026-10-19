@@ -16,6 +16,10 @@ def main(argv):
         last = json.loads(f.read().splitlines()[-1])
     if last.get("event") == "done":
         sys.stdout.write("done %s\n" % last.get("pr"))
+    elif last.get("event") == "bail":
+        sys.stdout.write("bailed %s %s\n" % (last.get("phase"), last.get("classification")))
+    elif last.get("event") == "stop":
+        sys.stdout.write("stopped %s\n" % last.get("mode"))
     return 0
 
 
