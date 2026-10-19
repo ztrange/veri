@@ -1862,3 +1862,19 @@ def test_main_renders_a_plan_prompt_that_rejects_a_pinned_text_criterion_with_a_
                  if s.startswith("REJECT") and "asks for a case" in s and "only the" in s), "")
     states = [word in rule for word in ("⟦diff-checked⟧", "separate step for the case", "same `⟦criterion k⟧`", "after the text's")]
     assert (code, states) == (0, [True, True, True, True])
+
+
+@pytest.mark.parametrize("phase", ["red", "pin"])
+def test_main_renders_a_red_and_a_pin_prompt_that_rejects_a_red_pinning_only_one_of_two_behaviours_the_step_demands_naming_the_missing_case_1814(
+        phase, tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"1. A finished session is counted once.\n")
+    step = "a finished session is counted once from its result record, and not again from its assistant messages (a separate case pins that)"
+
+    code = build_verify_prompt.main(["--step", step, phase, str(spec), TESTPATH, "t"])
+    out, _ = capsysbinary.readouterr()
+    prompt = re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
+
+    rule = next((s for s in re.split(r"(?<=\.) ", prompt) if "separate case" in s and "REJECT" in s), "")
+    states = [step in prompt, "REJECT naming the missing case" in rule, "adds no case for it" in rule]
+    assert (code, states) == (0, [True, True, True])
