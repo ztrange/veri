@@ -1764,6 +1764,7 @@ def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_a
         out, err = capsysbinary.readouterr()
         return {"code": code, "launches": len(leaves), "preserved": preserved,
                 "retries": [r for r in events.records(work) if r["event"] == "retry"],
+                "refused": [r for r in events.records(work) if r["event"] == "launch-refused"],
                 "out": out, "err": err.decode(errors="replace")}
 
     def kept(*attempts):
@@ -1783,10 +1784,14 @@ def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_a
     assert ("supervise[develop-red]: could not preserve the stuck attempt"
             " (issue 1073 step 27 develop-red attempt 1)\n") in failing["err"]
 
-    unpreserved = [stuck("no-step", VERI_STUCK_RETRIES="0", VERI_ISSUE="1073", VERI_STEP=""),
-                   stuck("no-issue", VERI_STUCK_RETRIES="0", VERI_ISSUE="", VERI_STEP="27"),
+    empty_step = stuck("no-step", VERI_STUCK_RETRIES="0", VERI_ISSUE="1073", VERI_STEP="")
+    assert (empty_step["code"], empty_step["launches"], empty_step["preserved"], empty_step["out"]) == (2, 0, [], b"")
+    assert len(empty_step["err"].splitlines()) == 1 and "VERI_STEP" in empty_step["err"], empty_step["err"]
+    assert [(r["name"], bool(r["reason"])) for r in empty_step["refused"]] == [("develop-red", True)], empty_step["refused"]
+
+    unpreserved = [stuck("no-issue", VERI_STUCK_RETRIES="0", VERI_ISSUE="", VERI_STEP="27"),
                    stuck("no-head", head_ok=False, VERI_STUCK_RETRIES="0", **issue_step)]
-    assert [(r["code"], r["launches"], r["preserved"]) for r in unpreserved] == [(2, 1, [])] * 3
+    assert [(r["code"], r["launches"], r["preserved"]) for r in unpreserved] == [(2, 1, [])] * 2
 
     budgets = {retries: stuck(f"budget{retries}", VERI_STUCK_RETRIES=retries, **issue_step)
                for retries in ("0", "-1", "010", "abc")}
@@ -4091,3 +4096,23 @@ def test_cli_records_exit_2_for_a_refused_develop_green_launched_detached_so_wai
                             capture_output=True, text=True)
 
     assert (detached.returncode, waited.returncode, (tmp_path / "ran").exists()) == (0, 2, False), waited.stderr
+
+
+@pytest.mark.process("a real stub claude that a launch refused for an empty VERI_STEP must never start (#1760)")
+def test_cli_refuses_a_launch_whose_veri_step_is_set_but_empty_exiting_2_naming_veri_step_starting_no_leaf_and_appending_one_launch_refused_event_1760(
+        monkeypatch, tmp_path, supervise, run_cli, events):
+    clean_env(monkeypatch)
+    stub = tmp_path / "claude"
+    stub.write_text("#!/bin/sh\ntouch ran\n")
+    stub.chmod(0o755)
+
+    code, out, err = run_cli(supervise, ["verify-red", str(stub)], cwd=tmp_path,
+                             env={"VERI_ISSUE": "1760", "VERI_STEP": ""})
+
+    lines = err.splitlines()
+    assert (code, out, len(lines)) == (2, "", 1), err
+    assert "VERI_STEP" in lines[0], err
+    assert ((tmp_path / "ran").exists(), (tmp_path / ".tdd" / "leaf.owner").exists()) == (False, False), err
+    records = events.records(tmp_path)
+    assert [r["event"] for r in records] == ["launch-refused"], records
+    assert (records[0]["name"], bool(records[0]["reason"])) == ("verify-red", True), records
