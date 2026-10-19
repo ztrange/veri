@@ -44,3 +44,21 @@ def test_a_run_with_a_live_conductor_and_no_end_event_prints_running(tmp_path, r
     code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
 
     assert (code, out) == (0, "running\n")
+
+
+def test_a_run_with_no_end_event_and_no_live_conductor_prints_usage_limit_and_the_reset_time_of_the_last_result_record(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    for issue, text in (("7", "You've hit your weekly limit · resets Oct 7, 3pm"),
+                        ("8", "You've hit your weekly limit")):
+        run = tmp_path / ".tdd" / "wt" / issue / ".tdd"
+        run.mkdir(parents=True)
+        (run / "events.jsonl").write_text(json.dumps({"ts": 100, "issue": issue, "event": "step-done"}) + "\n")
+        (tmp_path / ".tdd" / ("conductor-%s.log" % issue)).write_text("".join(json.dumps(r) + "\n" for r in (
+            {"type": "system", "subtype": "init"},
+            {"type": "result", "is_error": True, "result": text})))
+
+    with_reset = run_cli(stop_reason, ["7"], cwd=tmp_path)
+    without_reset = run_cli(stop_reason, ["8"], cwd=tmp_path)
+
+    assert (with_reset[0], with_reset[1], without_reset[0], without_reset[1]) == (
+        0, "usage-limit Oct 7, 3pm\n", 0, "usage-limit\n")
