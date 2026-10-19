@@ -31,9 +31,9 @@ class _Conductor:
         self.n = n
         self.log = os.path.join(".tdd", "conductor-%s.log" % n)
         try:
-            os.remove(self.log)
+            earlier = os.path.getsize(self.log)
         except FileNotFoundError:
-            pass
+            earlier = 0
         words = ["%s=%s" % (name, tunables.read(name)) for name in PASSED_THROUGH if tunables.read(name, None) is not None]
         run_timeout = _run_timeout()
         env = tunables.with_values(VERI_HEARTBEAT=run_timeout, VERI_TIMEOUT=run_timeout, VERI_STUCK_RETRIES="0")
@@ -41,7 +41,7 @@ class _Conductor:
                                      *[w for name in PASSED_THROUGH for w in ("-u", name)], *words,
                                      os.path.join(SCRIPTS, "run-conductor.sh"), n],
                                     stdout=subprocess.DEVNULL, env=env)
-        self.read = 0
+        self.read = earlier
         self.part = b""
         self.budget = START
         self.stopped = False
