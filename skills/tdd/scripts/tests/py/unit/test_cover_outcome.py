@@ -11,8 +11,12 @@ def cover_outcome():
     return importlib.import_module("veri.cover_outcome")
 
 
+def feed(monkeypatch, report):
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(report), encoding="utf-8", newline="\n"))
+
+
 def run(monkeypatch, capsys, cover_outcome, report, argv):
-    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(report.encode()), newline="\n"))
+    feed(monkeypatch, report.encode())
     code = cover_outcome.main(argv)
     return (code, *capsys.readouterr())
 
@@ -101,7 +105,7 @@ def test_main_answers_each_proof_branch_of_unreachable_and_type_only(monkeypatch
 
 def test_main_passes_a_byte_that_is_not_utf_8_through_unchanged_from_caught_by_and_from_proof(monkeypatch, capsysbinary, cover_outcome):
     def run_bytes(report):
-        monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(report), encoding="utf-8", newline="\n"))
+        feed(monkeypatch, report)
         code = cover_outcome.main([])
         return (code, *capsysbinary.readouterr())
 
@@ -157,7 +161,7 @@ def run_cli_on_bytes(run_cli, monkeypatch, cover_outcome, report):
     class Module:
         @staticmethod
         def main(argv):
-            monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(report), newline="\n"))
+            feed(monkeypatch, report)
             return cover_outcome.main(argv)
 
     return run_cli(Module, [])
