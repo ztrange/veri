@@ -107,3 +107,17 @@ def test_after_its_first_line_it_prints_gap_from_to_for_each_pair_of_consecutive
     code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
 
     assert (code, out) == (0, "unknown Connection reset by peer\ngap 1000 2001\n")
+
+
+def test_a_set_sleep_gap_replaces_the_default_so_a_pair_100_seconds_apart_prints_a_gap_line_and_a_pair_60_seconds_apart_does_not(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    run = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    run.mkdir(parents=True)
+    (run / "events.jsonl").write_text("".join(json.dumps({"ts": ts, "issue": "7", "event": "step-done"}) + "\n"
+                                             for ts in (100, 200, 260)))
+    (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in (
+        {"type": "result", "is_error": False, "result": "Connection reset by peer"},)))
+
+    code, out, err = run_cli(stop_reason, ["7"], env={"VERI_SLEEP_GAP": "60"}, cwd=tmp_path)
+
+    assert (code, out) == (0, "unknown Connection reset by peer\ngap 100 200\n")

@@ -26,7 +26,7 @@ def main(argv):
     else:
         sys.stdout.write(_usage_limit(argv[0]))
     for a, b in zip(events, events[1:]):
-        if b["ts"] - a["ts"] > 900:
+        if b["ts"] - a["ts"] > int(os.environ.get("VERI_SLEEP_GAP", "900")):
             sys.stdout.write("gap %s %s\n" % (a["ts"], b["ts"]))
     return 0
 
