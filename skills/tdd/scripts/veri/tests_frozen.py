@@ -1,6 +1,7 @@
 """tests-frozen.sh's record and check, run in-process."""
 import hashlib
 import os
+import re
 import subprocess
 import sys
 
@@ -38,6 +39,21 @@ def _differing_tests():
     return names
 
 
+CASE = re.compile(r'^\s*(?:def (test_\w+)\(|name="([^"]+)")', re.M)
+CASE_PREFIX = "# case: "
+
+
+def _cases(text):
+    return [first or second for first, second in CASE.findall(text)]
+
+
+def _added_cases(name):
+    head = subprocess.run(["git", "show", "HEAD:" + name], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    old = set(_cases(os.fsdecode(head.stdout))) if head.returncode == 0 else set()
+    with open(name, errors="replace") as handle:
+        return [case for case in _cases(handle.read()) if case not in old]
+
+
 def main(argv):
     mode = argv[0] if argv else ""
     record = argv[1] if len(argv) > 1 else ""
@@ -67,6 +83,8 @@ def main(argv):
             return 2
         try:
             lines = ["%s  %s\n" % (_digest(name), name) for name in files]
+            if by_step and os.path.exists(".git"):
+                lines += [CASE_PREFIX + case + "\n" for name in files for case in _added_cases(name)]
             with open(record, "w") as handle:
                 handle.writelines(lines)
         except OSError as error:
@@ -76,7 +94,7 @@ def main(argv):
     if mode == "check":
         try:
             with open(record) as handle:
-                entries = [line.rstrip("\n").split("  ", 1) for line in handle if line.strip()]
+                entries = [line.rstrip("\n").split("  ", 1) for line in handle if line.strip() and not line.startswith(CASE_PREFIX)]
         except OSError:
             _write(sys.stderr, "tests-frozen.sh: record %s is missing" % record)
             return 2

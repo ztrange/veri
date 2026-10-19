@@ -177,3 +177,25 @@ def test_check_step_still_exits_0_on_a_repair_step_when_an_unrecorded_test_file_
     code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
 
     assert (code, out) == (0, "")
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked for the HEAD version of a recorded test file")
+def test_record_step_writes_the_names_of_the_cases_red_added_over_head_beside_the_digests_and_check_step_still_answers_on_digests_1765(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_suite.py").write_text("def test_older_case_kept():\n    pass\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one adds a case"
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_older_case_kept():\n    pass\n\n\ndef test_added_case_by_red():\n    pass\n")
+
+    recorded = run_cli(tests_frozen, ["record", "--step", step, "tests/test_suite.py"], cwd=tmp_path)[0]
+    key = run_cli(tests_frozen, ["path", step], cwd=tmp_path)[1].rstrip("\n")
+    text = (tmp_path / key).read_text()
+    checked = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)[:2]
+
+    assert (recorded, "test_added_case_by_red" in text, "test_older_case_kept" in text, checked) == (
+        0, True, False, (0, ""))
