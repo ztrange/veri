@@ -109,3 +109,94 @@ def test_claims_on_a_unit_whose_table_header_is_key_value_exits_2_prints_nothing
 def test_claims_on_a_unit_whose_table_header_is_id_requirement_why_extra_exits_2_prints_nothing_on_stdout_and_names_the_headers_line_on_stderr(tmp_path):
     claims_refused_naming_line(tmp_path, table("| A1 | Says one thing. | Because. | More. |",
                                                header="| ID | Requirement | Why | Extra |"), 3)
+
+
+ROW = "| A1 | Says one thing. | Because. |"
+OWN_ROW = "A1\tSays one thing.\n"
+
+
+def claims_accepted_printing_only_the_rows(tmp_path, body):
+    path = tmp_path / "r.md"
+    path.write_text(body)
+    assert run("claims", str(path), UNIT) == (0, OWN_ROW, "")
+
+
+@pytest.mark.process("requirements.sh claims run as a script")
+def test_claims_on_a_unit_with_a_later_a_b_line_after_its_table_exits_2_prints_nothing_on_stdout_and_names_that_line_on_stderr(tmp_path):
+    claims_refused_naming_line(tmp_path, table(ROW) + "Afterwards:\n| A | B |\n", 7)
+
+
+@pytest.mark.process("requirements.sh claims run as a script")
+def test_claims_on_a_unit_with_a_second_id_requirement_why_table_after_a_blank_line_exits_2_prints_nothing_on_stdout_and_names_the_second_headers_line_on_stderr(tmp_path):
+    claims_refused_naming_line(tmp_path, table(ROW) + "\n" + "\n".join(
+        ["| ID | Requirement | Why |", "|----|-------------|-----|", "| B1 | Says another. | Because. |"]) + "\n", 7)
+
+
+@pytest.mark.process("requirements.sh claims run as a script")
+def test_claims_on_a_unit_with_a_fenced_code_block_holding_ls_grep_x_after_its_table_exits_0_and_prints_only_the_tables_rows(tmp_path):
+    claims_accepted_printing_only_the_rows(tmp_path, table(ROW) + "\n```\nls | grep x\n```\n")
+
+
+@pytest.mark.process("requirements.sh claims run as a script")
+def test_claims_on_a_unit_with_a_fenced_code_block_holding_a_a_b_line_after_its_table_exits_0_and_prints_only_the_tables_rows(tmp_path):
+    claims_accepted_printing_only_the_rows(tmp_path, table(ROW) + "\n```\n| A | B |\n```\n")
+
+
+@pytest.mark.process("requirements.sh claims run as a script")
+def test_claims_on_a_unit_whose_table_rows_run_straight_into_a_fence_then_a_x_y_line_after_it_exits_2_prints_nothing_on_stdout_and_names_that_line_on_stderr(tmp_path):
+    claims_refused_naming_line(tmp_path, table(ROW) + "```\ncode\n```\n| X | Y |\n", 9)
+
+
+@pytest.mark.process("requirements.sh claims run as a script")
+def test_claims_on_a_unit_with_a_prose_a_b_line_after_its_table_exits_0_and_prints_only_the_tables_rows(tmp_path):
+    claims_accepted_printing_only_the_rows(tmp_path, table(ROW) + "\na | b\n")
+
+
+@pytest.mark.process("requirements.sh claims run as a script")
+def test_claims_on_a_heading_whose_only_table_is_key_value_without_leading_pipes_exits_2_prints_nothing_on_stdout_and_names_the_heading_line_on_stderr(tmp_path):
+    claims_refused_naming_line(
+        tmp_path, f"# Requirements\n\n{H} {UNIT}\n\nKey | Value\n----|------\nA1  | Says one thing.\n", 3)
+
+
+@pytest.mark.process("requirements.sh claims run as a script")
+def test_claims_on_a_requirement_holding_an_escaped_pipe_prints_the_whole_requirement_with_the_pipe(tmp_path):
+    path = tmp_path / "r.md"
+    path.write_text(table("| A1 | Says a \\| b in full. | Because. |"))
+    assert run("claims", str(path), UNIT) == (0, "A1\tSays a \\| b in full.\n", "")
+
+
+@pytest.mark.process("requirements.sh units run as a script")
+def test_units_on_a_missing_file_exits_2_prints_nothing_on_stdout_and_one_stderr_line_naming_the_file_with_no_traceback(tmp_path):
+    absent = tmp_path / "absent.md"
+    code, out, err = run("units", str(absent))
+    assert (code, out) == (2, "")
+    assert str(absent) in err and err.count("\n") <= 1 and "Traceback" not in err
+
+
+@pytest.mark.process("requirements.sh units and claims run as a script")
+def test_units_prints_exactly_the_headings_for_which_claims_exits_0_over_a_valid_unit_and_every_malformed_shape(tmp_path):
+    std = ["| ID | Requirement | Why |", "|----|-------------|-----|", "| A1 | Says one thing. | Because. |"]
+    shapes = {
+        "valid": std,
+        "no-why": ["| Requirement | ID |", "|---|---|", "| Says one thing. | A1 |"],
+        "why-id": ["| Why | ID |", "|---|---|", "| Because. | A1 |"],
+        "key-requirement": ["| Key | Requirement |", "|---|---|", "| A1 | Says one thing. |"],
+        "key-value": ["| Key | Value |", "|---|---|", "| A1 | Says one thing. |"],
+        "extra-column": ["| ID | Requirement | Why | Extra |", "|---|---|---|---|", "| A1 | Says one thing. | Because. | More. |"],
+        "no-leading-pipes": ["Key | Value", "----|------", "A1  | Says one thing."],
+        "prose-only": ["Only prose, no table here."],
+        "later-line": [*std, "", "prose between", "", "| A | B |"],
+        "second-table": [*std, "", "| ID | Requirement | Why |", "|---|---|---|", "| B1 | Says another. | Since. |"],
+    }
+    path = tmp_path / "one-parser.md"
+    path.write_text("# Requirements\n\n" + "".join(f"{H} {h}\n\n" + "\n".join(b) + "\n\n" for h, b in shapes.items()))
+    accepted = [h for h in shapes if run("claims", str(path), h)[0] == 0]
+    assert run("units", str(path)) == (0, "".join(f"{h}\n" for h in accepted), "")
+    assert accepted == ["valid"]
+
+
+@pytest.mark.process("requirements.sh run as a script")
+def test_requirements_sh_with_no_arguments_exits_2_prints_nothing_on_stdout_and_its_usage_line_on_stderr():
+    code, out, err = run()
+    assert (code, out) == (2, "")
+    assert err.startswith("usage:") and "requirements.sh" in err
