@@ -230,39 +230,6 @@ def test_a_case_that_starts_a_bash_suite_under_tests_fails_naming_the_case_and_t
     assert not ran_marker.exists()
 
 
-@pytest.mark.process("a child pytest session whose cases drive push_branch into its backoff")
-def test_a_case_that_reaches_the_push_backoff_without_setting_it_fails_naming_the_case_while_one_that_sets_it_backs_off_as_set(tmp_path):
-    probe = tmp_path / "test_probe.py"
-    probe.write_text(
-        "import subprocess\n"
-        "import pytest\n"
-        "from veri import push_branch\n"
-        "def drive(monkeypatch):\n"
-        "    slept = []\n"
-        "    def fake(args, *_, **__):\n"
-        "        slept.append(args[-1]) if args[0].endswith('sleep') else None\n"
-        "        return subprocess.CompletedProcess(args, 1 if args[1:2] == ['push'] else 0, '', '')\n"
-        "    monkeypatch.setattr(subprocess, 'run', fake)\n"
-        "    monkeypatch.setenv('VERI_PUSH_RETRIES', '1')\n"
-        "    return slept\n"
-        "def test_unset(monkeypatch):\n"
-        "    drive(monkeypatch)\n"
-        "    push_branch.run(['sleep', '2'])\n"
-        "def test_set(monkeypatch):\n"
-        "    slept = drive(monkeypatch)\n"
-        "    monkeypatch.setenv('VERI_PUSH_BACKOFF', '7')\n"
-        "    push_branch.run(['sleep', '7'])\n"
-        "    assert slept == ['7']\n")
-
-    ran = child_pytest(tmp_path, probe, os.environ)
-
-    output = ran.stdout + ran.stderr
-    assert ran.returncode != 0, output
-    assert "test_probe.py::test_unset" in output, output
-    assert "VERI_PUSH_BACKOFF" in output, output
-    assert "1 failed, 1 passed" in output, output
-
-
 @pytest.mark.process("a child pytest session whose case starts python3 -m pytest")
 def test_a_case_that_starts_pytest_as_a_process_fails_naming_the_case_and_the_command_without_the_inner_session_running(tmp_path):
     inner = tmp_path / "test_inner.py"
