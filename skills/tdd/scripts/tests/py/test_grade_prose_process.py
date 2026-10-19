@@ -462,3 +462,25 @@ def test_a_usage_limit_reply_from_the_grader_leaf_makes_grade_prose_exit_2_say_n
     graded = [l for l in (events.read_text().splitlines() if events.exists() else []) if "guide/unit.md" in l]
     assert (done.returncode, "no verdict obtained" in done.stderr, graded) == (2, True, []), \
         (done.returncode, done.stderr, graded)
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_every_grading_appends_one_event_to_events_jsonl_carrying_the_unit_the_verdict_and_the_failing_ids(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text(STUB.replace("A2: PASS - ok", "A2: FAIL - the widget hums")
+                      .replace("VERDICT: PASS", "VERDICT: REJECT"))
+    claude.chmod(0o755)
+    record = tmp_path / "record.txt"
+
+    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                   capture_output=True, text=True,
+                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                        "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+
+    events = tmp_path / ".tdd" / "events.jsonl"
+    lines = events.read_text().splitlines() if events.exists() else []
+    graded = [l for l in lines if "guide/unit.md" in l and "REJECT" in l and "A2" in l and "A1" not in l]
+    assert len(graded) == 1, lines
