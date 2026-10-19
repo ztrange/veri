@@ -14,3 +14,9 @@ def test_1778_veri_dev_takes_an_optional_lane_word_in_its_invocation_line_and_d1
     assert form in d1
     assert "[<lane>] [N] [--resume <file>]" in text.split("---")[1]
     assert "VERI_LABEL=ready-for-agent:mu" in text
+
+
+def test_1778_veri_dev_states_its_lane_in_its_first_line_of_output():
+    text = " ".join(SKILL.read_text().split())
+
+    assert "State the lane in your first line of output" in text
