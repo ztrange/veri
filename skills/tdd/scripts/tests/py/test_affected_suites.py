@@ -1209,6 +1209,14 @@ def test_an_edit_to_resume_md_prints_the_bash_suite_naming_it_and_the_pytest_fil
         0, {SUITES + "resume.test.sh", SUITES + "py/unit/test_resume_file.py"}, "")
 
 
+def test_an_edit_to_revise_md_prints_the_bash_suite_naming_it_and_the_pytest_file_mentioning_it_without_widening(
+        monkeypatch, run_cli, affected, tmp_path):
+    code, out, err = doc_edit_with_suites(monkeypatch, run_cli, affected, tmp_path, "skills/tdd/REVISE.md",
+                                          "revise.test.sh", "test_revise_file.py")
+    assert (code, set(out.splitlines()), err) == (
+        0, {SUITES + "revise.test.sh", SUITES + "py/unit/test_revise_file.py"}, "")
+
+
 @pytest.mark.process("real git: the changed lines come from git diff -U0 between two commits")
 def test_an_edit_inside_one_section_of_claude_md_makefile_a_skill_md_other_than_tdds_or_a_prompt_prints_every_suite_naming_it_file_wide(
         run_cli, affected, tmp_path):
