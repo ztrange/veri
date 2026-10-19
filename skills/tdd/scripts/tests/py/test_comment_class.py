@@ -477,3 +477,90 @@ def test_main_resets_md_variables_at_every_file_reads_bytes_that_are_not_utf8_an
     assert (across, across_out, within, within_out, bytes_, bytes_seen.out, bytes_seen.err) == (
         0, "c.sh:2:2\n", 0, "one.sh:3:3\n", 0, "d.sh:3:1\n", "",
     )
+
+
+def test_cli_reports_a_comment_in_code_outside_any_heredoc_as_class_1_with_its_file_and_line(tmp_path, run_cli):
+    comment_class = importlib.import_module("veri.comment_class")
+    plain = tmp_path / "plain.sh"
+    plain.write_text("echo one\n# a comment in code\necho two\n")
+
+    answer = run_cli(comment_class, [str(plain)])
+
+    assert answer == (0, f"{plain}:2:1\n", "")
+
+
+def test_cli_with_no_argument_and_with_sweepable_alone_exits_2_with_empty_stdout_and_only_its_usage_line_on_stderr(run_cli):
+    comment_class = importlib.import_module("veri.comment_class")
+
+    answers = [run_cli(comment_class, argv) for argv in ([], ["--sweepable"])]
+
+    assert answers == [(2, "", "usage: comment-class.sh [--sweepable] <file>…\n")] * 2
+
+
+def header_lines(files):
+    for path in files:
+        lines = pathlib.Path(path).read_bytes().decode("utf-8", "surrogateescape").split("\n")
+        header = bool(lines) and lines[0].startswith("#!")
+        para, fresh = 0, True
+        for number, line in enumerate(lines[1:], 2):
+            if header and line == "#":
+                fresh = True
+                continue
+            if not (header and line.startswith("#")):
+                header = False
+                continue
+            if fresh:
+                para += 1
+            yield path, number, line, para if fresh else 0
+            fresh = False
+
+
+def header_citations(files):
+    return "".join(f"{p}:{n}: {line}\n" for p, n, line, _ in header_lines(files) if re.search("#[0-9]", line))
+
+
+def header_shapeless(files):
+    return "".join(
+        f"{p}:{n}: {line}\n"
+        for p, n, line, para in header_lines(files)
+        if para and para > 1 and not line.startswith(("# Contract under test", "# Run:", "#   "))
+    )
+
+
+def header_paths(*patterns, keep=lambda p: True):
+    tests = SCRIPTS / "tests"
+    return [p for pattern in patterns for p in sorted(tests.glob(pattern)) if keep(p)]
+
+
+@pytest.mark.tree_audit("the leading header block of every top-level tests/[a-e]*.sh")
+def test_cli_no_header_line_of_a_top_level_suite_from_a_through_e_cites_an_issue_number():
+    assert header_citations(header_paths("[a-e]*.sh")) == ""
+
+
+@pytest.mark.tree_audit("the leading header block of every top-level tests/[a-e]*.sh")
+def test_cli_a_top_level_suite_header_from_a_through_e_holds_only_a_description_its_contract_block_and_its_run_line():
+    assert header_shapeless(header_paths("[a-e]*.sh")) == ""
+
+
+@pytest.mark.tree_audit("the leading header block of every top-level tests/[f-p]*.sh")
+def test_cli_a_top_level_suite_header_from_f_through_p_carries_only_its_contract_and_cites_no_issue_number():
+    files = header_paths("[f-p]*.sh")
+    assert (header_citations(files), header_shapeless(files)) == ("", "")
+
+
+@pytest.mark.tree_audit("the leading header block of every top-level tests/[q-z]*.sh other than skill-*")
+def test_cli_a_top_level_suite_header_from_q_through_z_other_than_skill_files_carries_only_its_contract_and_cites_no_issue_number():
+    files = header_paths("[q-z]*.sh", keep=lambda p: not p.name.startswith("skill-"))
+    assert (header_citations(files), header_shapeless(files)) == ("", "")
+
+
+@pytest.mark.tree_audit("the leading header block of every tests/skill-[m-z]*.test.sh")
+def test_cli_a_skill_suite_header_from_m_through_z_carries_only_its_contract_and_cites_no_issue_number():
+    files = header_paths("skill-[m-z]*.sh")
+    assert (header_citations(files), header_shapeless(files)) == ("", "")
+
+
+@pytest.mark.tree_audit("the leading header block of every shell file under tests/unit, fixtures, unit-guard and offline")
+def test_cli_a_header_under_unit_fixtures_unit_guard_and_offline_carries_only_its_contract_and_cites_no_issue_number():
+    files = header_paths("unit/*.sh", "fixtures/*/*.sh", "unit-guard/*", "offline/*")
+    assert (header_citations(files), header_shapeless(files)) == ("", "")
