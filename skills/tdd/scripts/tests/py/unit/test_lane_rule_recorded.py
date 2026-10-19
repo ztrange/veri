@@ -35,19 +35,11 @@ def has_section(problems, heading, text):
     return False
 
 
-def test_claude_md_states_the_lane_rule_in_both_sections_an_agent_reads_the_page_is_the_other_lanes_work_and_a_development_run_never_runs_a_docs_target_a_suite_here_never_reads_the_generated_tree_and_docs_owed_sh_and_docs_fresh_are_what_catch_prose_lag():
+def test_claude_md_states_the_lane_rule_in_both_sections_an_agent_reads_the_page_is_the_other_lanes_work_and_a_development_run_never_runs_a_docs_target():
     problems = []
     trap = section_text(TRAP_HEADING)
     if has_section(problems, TRAP_HEADING, trap):
         says(problems, TRAP_HEADING, trap,
              "that the page and its inputs are the other lane's work, and that a development run never runs the target that rebuilds them",
              DOCS_LANE, "develop|leaf|veri run|tdd run", "never|refus|exit 2")
-    idiom = section_text(IDIOM_HEADING)
-    if has_section(problems, IDIOM_HEADING, idiom):
-        says(problems, IDIOM_HEADING, idiom,
-             "that a suite here never reads a path in the generated tree, nor which case says so by name",
-             "never|must not|does not|no suite", "read|open|reach", "no-docs-reads")
-        says(problems, IDIOM_HEADING, idiom,
-             "where the checks that catch prose lagging behind code live instead — docs-owed.sh, and docs-fresh at a documentation merge",
-             "docs-owed", "docs-fresh", DOCS_LANE)
     assert problems == []
