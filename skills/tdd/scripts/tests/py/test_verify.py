@@ -2314,3 +2314,37 @@ def test_verify_sh_green_returns_the_leafs_reject_with_exit_1_and_its_own_reason
         cwd=tmp_path)
 
     assert (code, out) == (1, "the replacement asserts nothing.\n")
+
+
+@pytest.mark.process("a real git repository whose tracked file a stub verifier leaf makes executable")
+def test_main_refusing_a_verifier_that_changed_only_a_tracked_files_mode_writes_the_byte_exact_mode_change_in_the_diff_under_tdd_named_after_the_leaf_1846(
+        tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES"):
+        monkeypatch.delenv(name, raising=False)
+    for key, value in (("NAME", "t"), ("EMAIL", "t@example.com")):
+        monkeypatch.setenv("GIT_AUTHOR_" + key, value)
+        monkeypatch.setenv("GIT_COMMITTER_" + key, value)
+    write_inputs(tmp_path)
+    (tmp_path / ".gitignore").write_text(".tdd/\n")
+    (tmp_path / "f.txt").write_bytes(b"alpha\n")
+    real_run = subprocess.run
+    for step in (["init", "-q"], ["config", "core.fileMode", "true"], ["add", "-A"], ["commit", "-q", "-m", "base"]):
+        real_run(["git", *step], check=True, cwd=tmp_path)
+
+    def fake(args, *_, **kwargs):
+        if os.path.basename(str(args[0])) == "supervise.sh":
+            os.chmod(tmp_path / "f.txt", 0o755)
+            return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nREASON: ok\n", None)
+        return real_run(args, *_, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+
+    out = capfdbinary.readouterr().out.decode()
+    diffs = [p for p in (tmp_path / ".tdd").glob("verify-green*") if p.suffix not in (".prompt", ".log")]
+    assert (code, len(diffs)) == (2, 1), out
+    assert b"old mode 100644\nnew mode 100755\n" in diffs[0].read_bytes()
