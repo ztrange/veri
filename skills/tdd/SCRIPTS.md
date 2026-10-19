@@ -76,7 +76,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
 - `$S/parse-verdict.sh` — extracts `PASS|REJECT` + reason from a leaf's output (used by
   `verify.sh`).
 - `$S/tick-criterion.sh "<substring>"` — the pure text transform `tick-issue-criterion.sh`
-  delegates to (`tick-ledger.sh` ticks through `lib/ledger.sh`'s `ledger_tick` instead): reads a checkbox body on stdin, flips the first unchecked `- [ ]` matching
+  delegates to (`tick-ledger.sh` ticks through `veri/ledger.py`'s `ledger_tick` instead): reads a checkbox body on stdin, flips the first unchecked `- [ ]` matching
   the substring, writes it back on stdout. **Exit 3** if nothing matched.
 - `$S/tick-issue-criterion.sh <n> "<substring>"` — tick a criterion checkbox in the
   issue body (the human-facing mirror).
