@@ -1878,3 +1878,16 @@ def test_main_renders_a_red_and_a_pin_prompt_that_rejects_a_red_pinning_only_one
     rule = next((s for s in re.split(r"(?<=\.) ", prompt) if "separate case" in s and "REJECT" in s), "")
     states = [step in prompt, "REJECT naming the missing case" in rule, "adds no case for it" in rule]
     assert (code, states) == (0, [True, True, True])
+
+
+@pytest.mark.tree_audit("the templates under prompts/")
+def test_main_tells_the_green_verifier_to_keep_the_orig_copy_beside_its_file_never_in_a_shared_directory_1846(
+        tmp_path, capsysbinary):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    prompt = rendered(tmp_path, capsysbinary, "orig_beside", None,
+                      ["--fast-cmd", "make unit", "green", str(spec), "t/x.test.sh", "case one"])
+    probes = re.findall(r"`cp <file> <file>\.orig`[^`]*", " ".join(prompt.split()))
+
+    assert (len(probes) > 0,
+            any("beside the file it copies" in p and "never in a shared directory such as /tmp" in p for p in probes)) == (True, True)
