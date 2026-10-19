@@ -208,3 +208,21 @@ def test_the_command_the_stub_claude_receives_carries_the_same_tool_limits_a_ver
     assert ["--disable-slash-commands" in args, "--strict-mcp-config" in args,
             args[args.index("--mcp-config") + 1] if "--mcp-config" in args else None,
             settings and settings["autoMemoryEnabled"]] == [True, True, '{"mcpServers": {}}', False], args
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_a_reply_whose_final_grades_block_has_every_id_line_pass_and_verdict_pass_makes_grade_prose_exit_0(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text(STUB)
+    claude.chmod(0o755)
+    record = tmp_path / "record.txt"
+
+    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                          capture_output=True, text=True,
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+
+    assert done.returncode == 0, (done.returncode, done.stderr)
