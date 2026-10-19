@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 
+import event
 import requirements
 from extract_result import extract
 from run_verdict import SCRIPTS
@@ -103,6 +104,8 @@ def main(argv):
         return no_verdict("the GRADES block has no VERDICT line")
     if said[-1] != ("REJECT" if failed else "PASS"):
         return no_verdict("VERDICT %s disagrees with the GRADES lines" % said[-1])
+    event.append(".", {}, "grading", ["unit=" + unit, "verdict=" + said[-1],
+                                       "failing=" + ",".join(l.split(":")[0] for l in failed)])
     print("\n".join(failed))
     return 1 if failed else 0
 
