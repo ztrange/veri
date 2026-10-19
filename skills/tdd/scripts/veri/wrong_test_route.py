@@ -75,10 +75,10 @@ def _recorded_case(report, step):
         except OSError:
             continue
         for line in lines:
-            for case in _test_names(line):
+            for case in _test_names(line) + re.findall(r"`([^`]+)`", line):
                 if added and case not in added:
                     continue
-                if re.search(r"def %s\(" % re.escape(case), text):
+                if re.search(r"def %s\(" % re.escape(case), text) or ('name="%s"' % case) in text:
                     return case
     return None
 

@@ -452,3 +452,30 @@ def test_main_1765_prints_red_not_repair_when_the_wrong_test_names_an_older_case
         wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % older)
+
+
+def test_main_1765_prints_repair_and_exits_0_when_the_wrong_test_names_a_bash_case_the_red_record_lists_as_added(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests"
+    suite.mkdir()
+    older = "an older case still passes"
+    written = "a repair text counts as a repair"
+    (suite / ("ledger" + ".test" + ".sh")).write_text(
+        'name="%s"\nrun_case\n\nname="%s"\nrun_case\n' % (older, written))
+    step = "wrong-test-route.sh routes a case its own red wrote"
+    monkeypatch.setenv("VERI_STEP", step)
+    (tmp_path / ".tdd").mkdir()
+    digest = hashlib.sha256(os.fsencode(step)).hexdigest()[:16]
+    (tmp_path / ".tdd" / ("tests-frozen-%s.record" % digest)).write_text(
+        "0" * 64 + "  tests/ledger.test.sh\n"
+        "# case: %s\n" % written)
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: the case `%s` asserts the opposite of the criterion\n" % written)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "repair %s\n" % written)
