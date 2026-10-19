@@ -1409,3 +1409,18 @@ def test_main_says_the_conductor_spend_is_missing_rather_than_zero_when_neither_
     assert "the conductor own spending is not in it: this log carries no usage record of the conductor own." in out
     assert "Conductor own spending:" not in out
     assert "Conductor per turn" not in out
+
+
+def test_conductor_sessions_counts_a_message_repeated_across_assistant_records_once_1859(tmp_path, metrics):
+    def block(message_id, output_tokens):
+        return {"type": "assistant", "message": {"id": message_id, "usage": {"output_tokens": output_tokens}}}
+
+    records = [{"type": "system", "subtype": "init"},
+               block("msg_a", 2000), block("msg_a", 2000), block("msg_a", 2000), block("msg_b", 2000)]
+    (tmp_path / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+
+    sessions, turn_rows = metrics.conductor_sessions("108", str(tmp_path / "events.jsonl"))
+
+    assert [session["num_turns"] for session in sessions] == [2]
+    assert [session["total_cost_usd"] for session in sessions] == pytest.approx([0.30])
+    assert len(turn_rows) == 2
