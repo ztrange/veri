@@ -7,10 +7,11 @@ SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 RED = "#### Red — one failing test (developer leaf), then verify-red (blind)"
 BAILING = "## Bailing"
+BAIL = SKILL.with_name("BAIL.md")
 
 
 def _window(heading, start, skill=SKILL):
-    section = importlib.import_module("skill_sections").section(skill, heading)
+    section = importlib.import_module("skill_sections").section(BAIL if heading == BAILING else skill, heading)
     lines = section.splitlines()[1:]
     for i, line in enumerate(lines):
         if line.startswith("#"):

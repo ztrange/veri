@@ -7,6 +7,7 @@ SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 RED = "#### Red — one failing test (developer leaf), then verify-red (blind)"
 BAILING = "## Bailing"
+BAIL = SKILL.with_name("BAIL.md")
 
 FLAG = '--step "<STEP>"'
 FAST_FLAG = "--fast-cmd '<fast-cmd>'"
@@ -28,7 +29,7 @@ def verify_calls():
 
 
 def section(heading):
-    return importlib.import_module("skill_sections").section(SKILL, heading)
+    return importlib.import_module("skill_sections").section(BAIL if heading == BAILING else SKILL, heading)
 
 
 def guard(text):

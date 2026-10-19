@@ -59,7 +59,7 @@ def test_main_refuses_stop_and_budget_words_with_2_and_skill_md_calls_ci_conflic
         code = classify_bail.main([cause])
         results[cause] = (code, capsys.readouterr().out)
 
-    bailing = (SCRIPTS.parent / "SKILL.md").read_text().split("\n## Bailing", 1)[1].split("\n## ", 1)[0]
+    bailing = (SCRIPTS.parent / "BAIL.md").read_text().split("## Bailing", 1)[1].split("\n## ", 1)[0]
     entry = bailing.split("\n- `ci-conflict` —", 1)[1].split("\n- ", 1)[0].split("\n\n", 1)[0]
 
     assert results == {cause: (2, "") for cause in results}

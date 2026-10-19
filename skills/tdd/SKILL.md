@@ -114,8 +114,11 @@ the one that loses nothing.
 
 **Before reading any leaf's exit 2 as killed-stuck, run `$S/stop-requested.sh`.** A `now`
 stop kills the live leaf, so its wait comes back 2 exactly as a hung leaf's does: a pending
-`now` explains the 2, and the run goes to *Stopping* instead of *Bailing*: `Read` `<base directory>/STOPPING.md` and run it when that happens. Any other answer
+`now` explains the 2, and the run goes to *Stopping* instead of bailing: `Read` `<base directory>/STOPPING.md` and run it when that happens. Any other answer
 leaves the 2 to be read as the phase below reads it.
+
+Whenever this procedure says **bail**, `Read` `<base directory>/BAIL.md` and run it with the cause the
+bailing line names.
 
 The launch carries `VERI_TEST_CMD`: the run's test command, reaching the leaf through its
 **environment** rather than its prompt, so the verifier stays blind. It is a prefix on the
@@ -183,7 +186,7 @@ leaf's **2** already means: `wait-leaf.sh verdict-<phase>` also exits **2** when
 supervisor died without recording a status — nothing wrote the completion file, so there is
 no verdict behind the code and `.tdd/verify-<phase>.reason` is empty or left over from an
 earlier attempt. Read it as a **killed-stuck** verifier, exactly as *Develop (red)* reads a
-killed developer leaf: **bail** cleanly (see *Bailing*), do not retry, and do not quote the
+killed developer leaf: **bail** cleanly (see `<base directory>/BAIL.md`), do not retry, and do not quote the
 reason file for a verdict nothing wrote.
 
 **Never launch a leaf in a background Bash call and then wait for its notification.** The
@@ -687,10 +690,10 @@ reaches the thread even on a PASS.
   rewrite with `git add .tdd/issue-<n>.md && git commit -m "plan: rewrite #<n> after
   verify-plan REJECT (#<n>)"`, post the revised plan to the thread, and **re-verify** by
   running the launch above again. Rewrite and re-verify up to `REVISE_BUDGET` times; if the
-  last re-verification is still `REJECT`, **bail** as a process failure (see *Bailing*) —
+  last re-verification is still `REJECT`, **bail** as a process failure (see `<base directory>/BAIL.md`) —
   the plan, not a leaf, is what the methodology rejected.
 - **Malformed / killed-stuck (exit 2):** no verdict could be obtained — **bail** as a system
-  failure (see *Bailing*), after the stop check in *Launching a leaf*. A plan nobody looked
+  failure (see `<base directory>/BAIL.md`), after the stop check in *Launching a leaf*. A plan nobody looked
   at is never a PASS.
 
 ### 3. The cycle loop
@@ -777,9 +780,9 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   same behaviour broken smaller.
   Then loop back to `next-unchecked.sh`, which now hands over the first of them.
   **`add-ledger-step.sh` exit 1 → bail with cause `step-too-big`**, as it already is on the
-  other two paths that grow a plan — see *Bailing*. The split shares `VERI_STEP_GROWTH` with
+  other two paths that grow a plan — see `<base directory>/BAIL.md`. The split shares `VERI_STEP_GROWTH` with
   them, because all three are plan growth. **`add-ledger-step.sh` exit 2 → bail with cause
-  `step-add-refused`** — see *Bailing*.
+  `step-add-refused`** — see `<base directory>/BAIL.md`.
 - **exit 1 — a decision for the user.** `.tdd/over-budget-answer.txt` holds the leaf's answer.
   **Park the step** — the same park the revise-exhausted path takes (see *Revise*): stop the
   run there, carrying that answer and the two figures, what the step has spent and the
@@ -798,7 +801,7 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   writes none of its own: leave the check disarmed, and let the step finish normally.
 
 A **supervisor exit 2** on the over-budget leaf — `wait-leaf.sh` exits 2 — is a
-**`killed-stuck` bail** like any other developer leaf's (see *Bailing*), and the step's budget
+**`killed-stuck` bail** like any other developer leaf's (see `<base directory>/BAIL.md`), and the step's budget
 stays crossed: the check has fired for this step, and, as above, nothing re-arms it.
 
 #### Red — one failing test (developer leaf), then verify-red (blind)
@@ -837,12 +840,12 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    that re-ran whole suites under a counter) — the leaf says so rather than writing that test
    to force a pass.
    If the wait exits **2 (killed-stuck)**, the leaf hung or ran away — **bail**
-   cleanly (see *Bailing*), after the stop check in *Launching a leaf*; do not retry.
+   cleanly (see `<base directory>/BAIL.md`), after the stop check in *Launching a leaf*; do not retry.
 2. **Verify (blind).** Branch on the leaf's `AGAINST_UNMODIFIED` line.
    On **`UNTESTABLE`** there is no test on disk for a blind verifier to judge — sending
    nothing to verify-red would only get a malformed-verdict `REJECT` for the wrong reason —
    so skip verify-red and verify-pin entirely and **bail** immediately with cause
-   `untestable-criterion` (see *Bailing*), carrying the leaf's `WHY:` as the reason. This is
+   `untestable-criterion` (see `<base directory>/BAIL.md`), carrying the leaf's `WHY:` as the reason. This is
    a **process** failure: the criterion as phrased cannot be tested as behavior, not that
    the plumbing broke.
    On **`FAILS`**, check the prediction before any verifier: run `red-divergence.sh` on the
@@ -933,7 +936,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    - **REJECT (exit 1):** enter the **revise loop** — see *Revising on a REJECT*. It
      returns either PASS (continue to Green) or budget-exhausted (**bail**, process failure).
    - **Malformed / killed-stuck (exit 2):** the verdict could not be obtained (unparseable
-     or the verifier leaf was killed) — **bail** as a system failure (see *Bailing*), not a
+     or the verifier leaf was killed) — **bail** as a system failure (see `<base directory>/BAIL.md`), not a
      clean process stop. A verifier that exited cleanly with no verdict has already been
      relaunched by `verify.sh` itself, up to `VERI_NO_VERDICT_RETRIES` times (default 1,
      ADR-0020), so exit 2 arrives here only once that budget is spent — never relaunch it
@@ -997,11 +1000,11 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    why. Then loop back to `next-unchecked.sh`, which now hands over the first split step;
    **STEP** itself starts again from Red once the smaller steps ahead of it are done.
 
-   **`add-ledger-step.sh` exit 1 → bail with cause `step-too-big`** — see *Bailing*. The
+   **`add-ledger-step.sh` exit 1 → bail with cause `step-too-big`** — see `<base directory>/BAIL.md`. The
    insertion would take the ledger past `VERI_STEP_GROWTH`, so the script has already filed
    the criteria under `## Owed steps`: the step's own red is discarded and the smaller steps
    it needs are not in the plan, so there is nothing for the run to go on with.
-   **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see *Bailing*.
+   **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see `<base directory>/BAIL.md`.
 2. **Verify (blind)** — the verifier shape again, and the wait's code is again the verdict.
    Neither this verifier nor the develop leaf runs the full suite: a break outside the
    affected suites surfaces at the one full-suite run in *4. Draft PR*.
@@ -1070,7 +1073,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    - **REJECT (exit 1):** enter the **revise loop** — see *Revising on a REJECT*. On a
      recovered PASS, do the same atomic tick-and-commit and continue; on budget-exhausted,
      **bail**.
-   - **Malformed / killed-stuck (exit 2):** **bail** — see *Bailing*.
+   - **Malformed / killed-stuck (exit 2):** **bail** — see `<base directory>/BAIL.md`.
 
 #### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)
 
@@ -1344,7 +1347,7 @@ before the re-verify with the same exit 2 outcome. The verifier's verdict closes
   `REVISE_BUDGET` — see *Revising on a REJECT*; on a recovered PASS tick as above, on
   budget-exhausted **bail**.
 - **Malformed / killed-stuck (exit 2):** no verdict on the `⟦diff-checked⟧` step could be
-  obtained, so **bail** as a system failure (`no-verdict`) — see *Bailing*.
+  obtained, so **bail** as a system failure (`no-verdict`) — see `<base directory>/BAIL.md`.
 
 #### A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier
 
@@ -1422,7 +1425,7 @@ git add .tdd/issue-<n>.md
 git commit -m "plan: repair the red full suite (#<n>)"
 ```
 That call passes no `--criterion` on purpose: the repair step serves its anchor's criterion.
-**`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see *Bailing*.
+**`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see `<base directory>/BAIL.md`.
 **`add-ledger-step.sh` exit 1 on the `⟦suite-repair⟧` insertion → bail with cause `suite-red`, naming every suite still red**, exactly as the second-red-run bail below does.
 
 A second red result on the full run after a repair step does **bail** — the repair step is
@@ -1491,7 +1494,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    the full test command (`$S/detect-test-command.sh --tier all`'s, via `detach-command.sh`) once on the rebased tip,
    in the same start-then-wait shape as the preflight baseline, and read its exit code from `wait`.
    A red result on the rebased tip does **bail**, as a **process** failure
-   (`rebased-tip-red`), with the PR left a draft: it is never readied. Before *Bailing*'s push,
+   (`rebased-tip-red`), with the PR left a draft: it is never readied. Before `<base directory>/BAIL.md`'s push,
    `git reset --hard <pre-rebase-sha>` puts the branch back where it stood, so that push is a
    fast-forward and the un-rebased branch is what is kept. On green, publish the rewritten history:
 
@@ -1522,7 +1525,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    failure (`no-verdict`).
    Only on a verify-rebase `PASS` does the run go on to ready the PR, and first as on exit 0:
    the full test command once on the rebased tip, a bail on red (`rebased-tip-red`) with
-   `git reset --hard <pre-rebase-sha>` before *Bailing*'s push, and on green the push under
+   `git reset --hard <pre-rebase-sha>` before `<base directory>/BAIL.md`'s push, and on green the push under
    the lease pinned to `<pre-rebase-sha>`.
 
    A rebase not resolved within budget — the leaf reports `REBASE: FAILED` or exits 1 or 2,
@@ -1669,8 +1672,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    git commit -m "plan: repair the red CI check (#<n>)"
    ```
    That call passes no `--criterion` on purpose: the repair step serves its anchor's criterion.
-   **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see *Bailing*.
-   A `ci-timeout` or `ci-red` bail ends the step there and goes to *Bailing*: neither the
+   **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see `<base directory>/BAIL.md`.
+   A `ci-timeout` or `ci-red` bail ends the step there and goes to `<base directory>/BAIL.md`: neither the
    `done` mark nor the `metrics:` commit below follows it. Otherwise:
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh done pr=<pr-url>
@@ -1692,7 +1695,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
    gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)" -f body="<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human, followed by <overflow-url>, the issue refactor-overflow.sh filed, when the pass filed one>"
    ```
-   **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see *Bailing*.
+   **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see `<base directory>/BAIL.md`.
    The readied PR's CI is read fail-closed, the way the `merge` skill reads it: an empty
    rollup is never a pass, and a completed check whose conclusion is anything other than
    `SUCCESS`, `NEUTRAL` or `SKIPPED` counts as failed. A pending check never counts as
@@ -1849,7 +1852,7 @@ Every other step takes the verdict as follows:
   on a `⟦replaces-case⟧` step; from `red`,
   continue to Green. On budget-exhausted, **bail** as a **process** failure.
 - **Malformed / killed-stuck (exit 2):** **bail** as a **system** failure (`no-verdict`) —
-  see *Bailing*.
+  see `<base directory>/BAIL.md`.
 
 ## Revising on a REJECT
 
@@ -2004,9 +2007,9 @@ answer. Each is a branch of its own:
   committed before the run goes on because the committed ledger is what a resumed run reads:
   uncommitted, the replacement steps are lost and the step that could not be satisfied is
   handed out again. **`add-ledger-step.sh` exit 1 → bail with cause `step-too-big`** — see
-  *Bailing* — exactly as a Green leaf's volunteered split does when it meets
+  `<base directory>/BAIL.md` — exactly as a Green leaf's volunteered split does when it meets
   `VERI_STEP_GROWTH`: the criteria are filed under `## Owed steps` and the plan is unchanged.
-  **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see *Bailing*.
+  **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see `<base directory>/BAIL.md`.
 - **exit 1 — the step needs the user.** `.tdd/exhausted-answer.txt` holds the leaf's answer:
   the criterion is wrong, contradicts another, or needs a decision this run has no authority
   to make. **Park the step** — stop the run there, carrying that answer and the verifier's
@@ -2035,119 +2038,6 @@ finished with a bad verdict, the second a leaf that never produced one, the thir
 transforms one step's tidying is worth. A `REJECT` is veri working as designed — the blind verifier
 refusing to rubber-stamp — so the bounded revise is a *correction*, never an excuse to keep
 hammering past the budget.
-
-## Bailing
-
-A **bail** terminally stops this issue while preserving progress (ADR-0011). Each bail has
-a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>`:
-
-- `killed-stuck` — `supervise.sh` exited **2** for a developer leaf even after its
-  stuck-retry budget → **system** failure (plumbing broke).
-- `no-verdict` — `verify.sh` exited **2** (unparseable verdict, or the verifier leaf was
-  killed) → **system** failure.
-- `unreplaced-cases` — `unreplaced-cases.sh` exited **1** a second time, after the one correction
-  leaf, naming `⟦replaces-case⟧` cases with no `REPLACES:` line (or exited **2**, no answer, which
-  bails at once with no correction) before verify-green → **process** failure.
-- `replaces-report-failed` → **system** failure: `wait-leaf.sh develop-replaces-report` exited 1 or 2
-  (the correction leaf did not finish cleanly, a killed-stuck one included) before verify-red.
-- `revise-exhausted` — a step spent its `REVISE_BUDGET` and the blind verifier still says
-  `REJECT` → **process** failure (methodology spoke).
-- `untestable-criterion` — a Red developer leaf reported `AGAINST_UNMODIFIED: UNTESTABLE`:
-  the step's criterion cannot be pinned as a lightweight, behavior-level test → **process**
-  failure (the criterion as phrased cannot be tested as behavior, not that the plumbing
-  broke).
-- `step-too-big` — a split was refused for `VERI_STEP_GROWTH`, so the smaller steps are filed
-  under `## Owed steps` rather than in the plan → **process** failure (the step was too big for
-  one green; `add-ledger-step.sh` exit 1 says so, and nothing in the plumbing broke). Three
-  splits lead here, because all three grow the plan and share that one budget: a Green
-  developer leaf's `SPLIT:`, the split the revise-exhausted leaf answers, and the split the
-  over-budget leaf answers.
-- `step-add-refused` → **system** failure: `add-ledger-step.sh` exited 2 at any of its call
-  sites because the anchor matched no step or several, `VERI_STEP_GROWTH` was unreadable, or
-  `--criterion` was malformed (the conductor passed a call the script refused, not a
-  methodology answer).
-- `ci-timeout` — a readied PR's check was still pending when the Draft PR step's bounded CI
-  wait ran out → **system** failure (CI never answered, not the methodology).
-- `ci-conflict` — a readied PR still conflicted with its base branch after the CI step's one
-  rebase, so no workflow could start → **system** failure (CI could not answer, not the
-  methodology).
-- `ci-red` — a readied PR's CI check failed again after a CI repair step → **process**
-  failure (CI answered, and the repair did not fix what it said).
-- `suite-red` — the Draft PR step's full run was red again after a `⟦suite-repair⟧` step →
-  **process** failure (the suite answered, and the repair did not fix what it said).
-- `rebased-tip-red` — the Draft PR step's full run was red on the tip `rebase-onto-default.sh`
-  rebased → **process** failure (the suite answered on the rebased tip).
-
-**A bail reached first stays a bail**, whatever stop is waiting behind it: the methodology or
-the plumbing has already answered, and a pause would hide that answer from the resume. Ask
-`$S/stop-requested.sh` once before sub-step 1 and keep what it printed. A `REJECT` that
-exhausts `REVISE_BUDGET` bails even with a stop pending, and a killed-stuck leaf with no `now`
-pending bails as it always has — only a pending `now` turns a leaf's exit 2 into the stop
-(see *Launching a leaf*). When exit 0 said one was waiting, the bail comment in sub-step 6
-adds that a stop was pending, naming its mode.
-
-To bail:
-
-1. **Preserve the attempt first.** The tree the troubled leaf left is the evidence a reader
-   of this bail will want, and the very next step throws it away — so snapshot it before the
-   reset, from inside the worktree:
-   ```
-   $S/preserve-attempt.sh <n> "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" <phase> <attempt> bail
-   ```
-   `<phase>` is the leaf whose trouble caused the bail (`develop-green`, `verify-red`, …) and
-   `<attempt>` its number (`1` outside the revise loop, `k` inside it). Best-effort: note it
-   if it fails and bail anyway — a bail that stops for a failed snapshot loses the report too.
-2. **Revert only the half-done step.** Completed steps are committed; the failing step's
-   test/code is still uncommitted (the cycle bailed before its atomic green commit). Drop
-   exactly that half-done work — `git reset --hard HEAD` — which leaves every completed
-   step's commit (and the ledger's checked steps) intact.
-3. **Classify deterministically.** `classification="$($S/classify-bail.sh <cause>)"`
-   (`<cause>` is one of the tokens above). This keeps the label consistent rather than
-   ad-hoc; an unknown token makes it exit non-zero — pick the right token. Then mark the stop
-   in the log — the mark sub-step 6's `### ⛔ Bailed` comment mirrors — with the cause token
-   and that classification, before anything renders it:
-   ```
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" VERI_PHASE=<phase> $S/event.sh bail cause=<cause> classification="$classification"
-   ```
-4. **Render and commit the metrics**, from inside the worktree and before the push, so the
-   branch carrying the progress carries the account of it too: `$S/metrics.sh <n> >
-   .tdd/issue-<n>-metrics.md; metrics=$?`, then `if [ "$metrics" = 0 ]; then git add
-   .tdd/issue-<n>-metrics.md && git commit -m "metrics: what bailing on #<n> cost (#<n>)";
-   fi`. This is the ending the report is worth most at — every attempt a bailed step spent is waste, and only the file says how much.
-5. **Push the branch** so completed steps, that metrics commit and the leaf logs are
-   recoverable, from inside the worktree (where you already are):
-   `git push -u origin tdd/<n>-<slug>` (best-effort; note if it fails).
-6. Post a `### ⛔ Bailed — <phase> (<classification> failure)` comment that names the phase,
-   carries the `### 📊 Metrics` block just committed (or, when `$metrics` is not 0, the line
-   `metrics could not be rendered: metrics.sh exited $metrics` in its place), carries the last reason
-   (`.tdd/verify-<phase>.reason` on a `revise-exhausted` bail, the develop-red leaf's `WHY:`
-   line on an `untestable-criterion` bail, the kill cause otherwise; a `ci-red` bail's reason
-   names each CI check that failed, the `failed=` field its bail mark read from the head's
-   check runs),
-   then, after the reason, the skill-drift block — the stdout of `drift="$($S/skill-drift.sh)";
-   drift_exit=$?`, or, when `$drift_exit` is not 0, the line `Skill drift: unavailable —
-   skill-drift.sh exited $drift_exit` in its place, and the bail goes on either way —
-   and points at the progress log (`.tdd/<phase>.log` or
-   `.tdd/revise-<phase>-*.log`) for forensics.
-7. **Leave the draft PR open, and put the bail diagnostic on it.** Step 2.3 opened it at the
-   plan commit, and it is the run's claim on this issue: `solvable-issues.sh` leaves out an
-   issue an open PR says `Closes #<n>` for, so taking it down would hand the issue back to
-   the pool for the next machine to re-take and re-bail, and would discard the visible record
-   a bail exists to leave. A bail also means a human has to look, and the draft PR is where
-   they look — so the comment sub-step 6 posted to the issue thread reaches the PR too, or the
-   page a reader opens still says a run is in progress when it stopped:
-   ```
-   gh api 'repos/{owner}/{repo}/pulls?head={owner}:{branch}' -q '.[0].html_url // empty'   # → <pr-url>, the PR step 2.3 opened; <pr-number> is its last path segment
-   gh api repos/{owner}/{repo}/issues/<pr-number>/comments -f body="<the same ### ⛔ Bailed — <phase> (<classification> failure) comment, or a link to the issue comment sub-step 6 posted>"
-   ```
-   Either way the PR carries sub-step 6's skill-drift block: a link-only comment quotes that
-   block alongside the link.
-   It stays a **draft**: nobody is asked to review a run that stopped. The ledger's completed
-   steps stay checked, so a re-run resumes from the failing step (see *Resume*) and edits this
-   same PR rather than opening another.
-8. Report to the user: the phase, the **classification** (system vs process), the reason,
-   sub-step 6's skill-drift block, the branch name, and the **worktree path** — the logs named above are inside it, and it
-   is where a re-run will resume. Leave it in place; only a merged PR retires it.
 
 ## Resume
 

@@ -17,6 +17,7 @@ SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 DRAFT_PR = "### 4. Draft PR"
 BAILING = "## Bailing"
+BAIL = SKILL.with_name("BAIL.md")
 
 PR_READ = "pulls?head="
 PR_EDIT = "gh api -X PATCH"
@@ -31,7 +32,7 @@ def _lower(text):
 
 
 def _section_lines(heading):
-    section = importlib.import_module("skill_sections").section(SKILL, heading)
+    section = importlib.import_module("skill_sections").section(BAIL if heading == BAILING else SKILL, heading)
     return section.splitlines()[1:]
 
 

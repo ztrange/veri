@@ -6,12 +6,13 @@ import re
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 BAILING = "## Bailing"
+BAIL = SKILL.with_name("BAIL.md")
 PRESERVE_RE = r"\$s/preserve-attempt\.sh"
 MARK_RE = r"event\.sh\s+prediction-diverged([^a-z0-9-]|$)"
 
 
 def bail_lines():
-    section = importlib.import_module("skill_sections").section(SKILL, BAILING)
+    section = importlib.import_module("skill_sections").section(BAIL, BAILING)
     return section.lower().splitlines()[1:]
 
 
