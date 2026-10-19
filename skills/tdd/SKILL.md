@@ -507,7 +507,7 @@ usage header, a null guard) is still one no test of that step requires if only a
 pins it, and the blind verify-green rejects it as unrequired code, as #760's port step was
 three times over branches its ledger pinned on later lines.
 
-**The step that adds a script owes its contract in that same step.** A step that adds a script under `skills/tdd/scripts/` also gives it a no-argument usage line and exit 2, and a declared caller, in that same step, so the step can go green against the repo-wide audits (missing-argument-exit, unreachable); a usage or caller left to a later step leaves the first step red whatever its green does, as #1621's did.
+**The step that adds a script owes its contract in that same step.** A step that adds a script under `skills/tdd/scripts/` also gives it a no-argument usage line and exit 2, and a declared caller, in that same step, so the step can go green against the repo-wide audits (the `run_cli` no-argument case in `tests/py/unit/test_missing_argument_cli.py`, unreachable); a usage or caller left to a later step leaves the first step red whatever its green does, as #1621's did.
 
 1. Write the plan as a checkbox list to the **ledger** `.tdd/issue-<n>.md`, e.g.:
    ```
