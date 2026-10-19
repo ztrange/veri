@@ -160,3 +160,17 @@ def test_a_run_with_no_end_event_and_no_live_conductor_whose_conductor_log_holds
 
     assert (code, out, "conductor-7.log" in err, "result" in err, "Error" in err or "Traceback" in err) == (
         2, "", True, True, False)
+
+
+def test_a_run_with_no_end_event_whose_conductor_pid_names_a_dead_process_does_not_print_running_1816(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    run = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    run.mkdir(parents=True)
+    (run / "events.jsonl").write_text(json.dumps({"ts": 100, "issue": "7", "event": "step-done"}) + "\n")
+    (run / "conductor.pid").write_text("99999999\n")
+    (tmp_path / ".tdd" / "conductor-7.log").write_text(json.dumps(
+        {"type": "result", "is_error": True, "result": "You've hit your weekly limit"}) + "\n")
+
+    code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
+
+    assert (code, out) == (0, "usage-limit\n")
