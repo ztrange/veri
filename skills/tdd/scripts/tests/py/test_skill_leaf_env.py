@@ -14,6 +14,7 @@ from conftest import ROOT, SCRIPTS
 
 SKILL = ROOT / "skills" / "tdd" / "SKILL.md"
 SKILL_MD = "skills/tdd/SKILL.md"
+REVISE_MD = SKILL.with_name("REVISE.md")
 STOPPING = ROOT / "skills" / "tdd" / "STOPPING.md"
 BAIL = ROOT / "skills" / "tdd" / "BAIL.md"
 RECONCILE = ROOT / "skills" / "tdd" / "RECONCILE.md"
@@ -695,7 +696,7 @@ def scan_revise_last_done(probe):
         "re-verify": r"\$S/detach-leaf\.sh .*\$S/supervise\.sh verdict-<phase> \$S/run-verdict\.sh --step .* --fast-cmd ",
     }
     for which, pattern in patterns.items():
-        lineno, line = first_line(pattern)
+        lineno, line = first_line(pattern, REVISE_MD)
         if lineno is None:
             no_launch(probe, f"the revise loop's {which} line")
             continue
@@ -715,7 +716,7 @@ def scan_revise_last_done(probe):
 
 def scan_revise_diff_last_done(probe):
     title = EXPANDING_STEP
-    lineno, line = first_line(r"\$S/build-develop-prompt\.sh revise diff .*> \.tdd/revise-diff-<k>\.prompt")
+    lineno, line = first_line(r"\$S/build-develop-prompt\.sh revise diff .*> \.tdd/revise-diff-<k>\.prompt", REVISE_MD)
     if lineno is None:
         no_launch(probe, "build-develop-prompt.sh revise diff into .tdd/revise-diff-<k>.prompt")
         return
@@ -740,7 +741,7 @@ def scan_exhausted_last_done(probe):
         "mark": r"\$S/event\.sh step-escalated anchor=",
     }
     for which, pattern in patterns.items():
-        lineno, line = first_line(pattern)
+        lineno, line = first_line(pattern, REVISE_MD)
         if lineno is None:
             no_launch(probe, f"the revise-exhausted path's {which} line")
             continue
@@ -862,7 +863,7 @@ def scan_phase_verifiers_last_done(probe):
         "revise": r"\$S/supervise\.sh verdict-<phase> \$S/run-verdict\.sh --step .* --fast-cmd .<fast-cmd>. <phase> ",
     }
     for which, pattern in patterns.items():
-        lineno, line = first_line(r"\$S/detach-leaf\.sh .*" + pattern)
+        lineno, line = first_line(r"\$S/detach-leaf\.sh .*" + pattern, REVISE_MD if which == "revise" else None)
         if lineno is None:
             no_launch(probe, f"the {which} verdict-<phase> shape through supervise.sh into run-verdict.sh")
             continue

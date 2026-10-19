@@ -34,10 +34,13 @@ exit2_sentence='On tests-frozen exit 2 the check could not answer, so **bail** a
 wrong_test_sentence='A revise of green whose leaf reports `WRONG_TEST: <why>` is exempt from the `SUITE:` line and is routed as a develop-green `WRONG_TEST:` report is: `$S/wrong-test-route.sh .tdd/revise-green-<k>.out '"'"'<target-test-id>'"'"'` runs before the attempt is counted; its exit 0 writes no `revise` mark, spends no `REVISE_BUDGET` attempt and launches the `red-contradicted` red, its exit 3 keeps the attempt'"'"'s main outcome, a verify-green REJECT, and its exit 2 is a bail; never a `report-missing` bail.'
 pin_record_sentence='A `⟦replaces-case⟧` step skips verify-red, so on that verify-pin PASS first run `$S/tests-frozen.sh record '"$record_arg"' <test-path>` to record its replacement cases before the deletion green checks them; tests-frozen exit 2 is a bail.'
 
+revise_path="$ROOT/skills/tdd/REVISE.md"
+doc_of() { if [[ "$1" == '## Revising on a REJECT' ]]; then echo "$revise_path"; else echo "$skill_path"; fi; }
+
 numbered_section() {
   awk -v h="$1" \
     'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside { printf "%d\t%s\n", NR, $0 }' \
-    "${2:-$skill_path}"
+    "${2:-$(doc_of "$1")}"
 }
 
 joined_section() {

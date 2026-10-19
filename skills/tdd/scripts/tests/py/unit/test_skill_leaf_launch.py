@@ -140,8 +140,13 @@ def title_guard(text, exempt=None):
                          re.escape(SINGLE_QUOTED_STEP), re.escape(DOUBLE_QUOTED_STEP), table(exempt))
 
 
+def launch_doc(path):
+    text = path.read_text()
+    return text.rstrip("\n") + "\n" + SKILL.with_name("REVISE.md").read_text()
+
+
 def detach_problems(path, exempt=None):
-    launches = launch_lines(path.read_text())
+    launches = launch_lines(launch_doc(path))
     if not launches:
         return ["no leaf launch line inside a fenced block"]
     return [f"{number}: {text}" for number, text in launches if DETACHER not in text or "nohup" in text]
@@ -160,7 +165,7 @@ def nohup_reason_problems(path, exempt=None):
 
 
 def clear_problems(path, exempt=None):
-    clears = fenced_in(path.read_text(), r"rm -f .*\.tdd/[^ ]*\.exit")
+    clears = fenced_in(launch_doc(path), r"rm -f .*\.tdd/[^ ]*\.exit")
     if not clears:
         return ["no line clearing a completion file inside a fenced block"]
     problems = []
@@ -192,11 +197,11 @@ def verifier_launches_without_supervisor(text):
 
 
 def supervisor_problems(path, exempt=None):
-    return verifier_launches_without_supervisor(path.read_text())
+    return verifier_launches_without_supervisor(launch_doc(path))
 
 
 def blind_problems(path, exempt=None):
-    supervised = [(number, text) for number, text in launch_lines(path.read_text())
+    supervised = [(number, text) for number, text in launch_lines(launch_doc(path))
                   if VERDICT_LAUNCHER in text and LAUNCHER in text and re.search(SPEC_RE, text)]
     if not supervised:
         return ["no supervised verifier launch line naming a spec file inside a fenced block"]
@@ -205,7 +210,7 @@ def blind_problems(path, exempt=None):
 
 
 def verdict_launcher_problems(path, exempt=None):
-    verdict_launches = [(n, t) for n, t in launch_lines(path.read_text()) if f"{LAUNCHER} verdict-" in t]
+    verdict_launches = [(n, t) for n, t in launch_lines(launch_doc(path)) if f"{LAUNCHER} verdict-" in t]
     if not verdict_launches:
         return ["no launch line naming supervise.sh and a verdict-<phase> leaf inside a fenced block"]
     problems = []
@@ -239,11 +244,11 @@ def step_title_rule_problems(text, exempt=None):
 
 
 def step_title_problems(path, exempt=None):
-    return step_title_rule_problems(path.read_text(), exempt)
+    return step_title_rule_problems(launch_doc(path), exempt)
 
 
 def fragment_problems(path, exempt=None):
-    lines = (path.read_text() + SKILL.with_name("SCRIPTS.md").read_text()).splitlines()
+    lines = (launch_doc(path) + SKILL.with_name("SCRIPTS.md").read_text()).splitlines()
     fragments = [(n, line) for n, line in enumerate(lines, 1)
                  if re.search(FRAGMENT_PH, line)
                  and re.search(r"\$S/|" + SINGLE_QUOTED_FRAGMENT + "|" + DOUBLE_QUOTED_FRAGMENT, line)]
@@ -254,7 +259,7 @@ def fragment_problems(path, exempt=None):
 
 
 def rule_data_problems(path, exempt=None):
-    text = path.read_text()
+    text = launch_doc(path)
     rules = step_title_rules(text)
     if len(rules) != 1:
         return ["no single paragraph stating the step-title rule"]
@@ -273,7 +278,7 @@ def rule_data_problems(path, exempt=None):
 
 def pin_431_problems(path, exempt=None):
     exempt = table(exempt)
-    text = path.read_text()
+    text = launch_doc(path)
     title_linenos = [n for n, _ in fenced_in(text, STEP_PH)]
     problems = []
     if not title_linenos:
@@ -296,7 +301,7 @@ def pin_431_problems(path, exempt=None):
 
 
 def revise_fast_cmd_problems(path, exempt=None):
-    revise_builds = fenced_in(path.read_text(), r"build-develop-prompt\.sh revise <phase>")
+    revise_builds = fenced_in(launch_doc(path), r"build-develop-prompt\.sh revise <phase>")
     if not revise_builds:
         return ["no line building the revise prompt with build-develop-prompt.sh revise inside a fenced block"]
     return [f"{n}: builds the revise prompt without the run's fast command '<fast-cmd>': {t}"

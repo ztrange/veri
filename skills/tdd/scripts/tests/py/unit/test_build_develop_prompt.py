@@ -1728,7 +1728,7 @@ def test_main_renders_a_revise_of_green_declaring_a_suite_exempt_wrong_test_repo
 
     code = build_develop_prompt.main(["revise", "green", str(spec), "s", "make test", str(reason)])
     out = capsysbinary.readouterr().out.decode()
-    skill = (SCRIPTS.parent / "SKILL.md").read_text()
+    skill = (SCRIPTS.parent / "REVISE.md").read_text()
     revising = skill.split("## Revising on a REJECT", 1)[1].split("\n## ", 1)[0]
 
     outcome = ("A revise of green whose leaf reports `WRONG_TEST: <why>` is exempt from the `SUITE:` line and is"
