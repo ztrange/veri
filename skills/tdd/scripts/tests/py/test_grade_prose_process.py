@@ -226,3 +226,23 @@ def test_a_reply_whose_final_grades_block_has_every_id_line_pass_and_verdict_pas
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     assert done.returncode == 0, (done.returncode, done.stderr)
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_a_reply_whose_final_grades_block_has_a_fail_line_and_verdict_reject_makes_grade_prose_exit_1_and_print_the_failing_id_with_its_reason(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text(STUB.replace("A2: PASS - ok", "A2: FAIL - the widget hums quokka-loudly")
+                      .replace("VERDICT: PASS", "VERDICT: REJECT"))
+    claude.chmod(0o755)
+    record = tmp_path / "record.txt"
+
+    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                          capture_output=True, text=True,
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+
+    assert [done.returncode, "A2" in done.stdout, "the widget hums quokka-loudly" in done.stdout,
+            "A1" in done.stdout] == [1, True, True, False], (done.returncode, done.stdout, done.stderr)
