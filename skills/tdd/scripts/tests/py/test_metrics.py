@@ -1319,3 +1319,16 @@ def test_main_counts_a_still_running_conductor_session_from_its_assistant_messag
     match = re.search(r"Conductor own spending: \$(\d+\.\d\d) over 43 turns, in 2 sessions\.\n", out)
     assert match is not None
     assert float(match.group(1)) > 1.25
+
+
+def test_main_run_from_the_issue_worktree_finds_the_conductor_stream_log_the_launcher_wrote_under_the_primary_checkout(tmp_path, monkeypatch, capsys, metrics):
+    worktree = tmp_path / ".tdd" / "wt" / "108"
+    worktree.mkdir(parents=True)
+    write_log(worktree, ONE_STEP)
+    sessions = [{"type": "result", "total_cost_usd": 1.25, "num_turns": 40}]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in sessions))
+    monkeypatch.chdir(worktree)
+
+    out = render(metrics, capsys)
+
+    assert "Conductor own spending: $1.25 over 40 turns, in 1 sessions.\n" in out

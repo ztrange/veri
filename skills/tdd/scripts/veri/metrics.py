@@ -383,7 +383,12 @@ def render(issue, path, ledger):
     open_turns, open_cost = 0, 0.0
     if not conductor_counted:
         with contextlib.suppress(OSError):
-            with open(os.path.join(os.path.dirname(path), "conductor-%s.log" % issue)) as stream_log:
+            log_name = "conductor-%s.log" % issue
+            log_dir = os.path.dirname(path)
+            log_path = os.path.join(log_dir, log_name)
+            if not os.path.exists(log_path):
+                log_path = os.path.join(log_dir, "..", "..", "..", log_name)
+            with open(log_path) as stream_log:
                 for text in stream_log:
                     with contextlib.suppress(ValueError):
                         record = json.loads(text)
