@@ -197,3 +197,24 @@ def test_record_step_lists_by_name_the_pytest_function_red_added_to_a_test_file_
     record = (tmp_path / record_path.rstrip("\n")).read_text()
 
     assert "test_added_by_red_1765" in record
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_record_step_lists_by_name_the_bash_case_red_added_to_a_test_sh_suite_1765(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/suite.test.sh").write_text('name="older case"\ncheck_older\n')
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one adds a bash case"
+    (tmp_path / "tests/suite.test.sh").write_text(
+        'name="older case"\ncheck_older\nname="added by red 1765"\ncheck_added\n')
+
+    run_cli(tests_frozen, ["record", "--step", step, "tests/suite.test.sh"], cwd=tmp_path)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    record = (tmp_path / record_path.rstrip("\n")).read_text()
+
+    assert "case: added by red 1765\n" in record
+    assert "older case" not in record

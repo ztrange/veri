@@ -44,9 +44,11 @@ def _added_cases(name):
                          stderr=subprocess.DEVNULL).stdout.decode("utf-8", "replace")
     with open(name, encoding="utf-8", errors="replace") as handle:
         new = handle.read()
-    pattern = re.compile(r"^\s*(?:async\s+)?def\s+(test\w*)", re.M)
-    before = set(pattern.findall(old))
-    return [case for case in pattern.findall(new) if case not in before]
+    pattern = re.compile(r"^\s*(?:async\s+)?def\s+(test\w*)|^\s*name=\"([^\"]+)\"", re.M)
+    def cases(text):
+        return [py or bash for py, bash in pattern.findall(text)]
+    before = set(cases(old))
+    return [case for case in cases(new) if case not in before]
 
 
 def main(argv):
