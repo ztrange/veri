@@ -246,3 +246,47 @@ def test_main_names_the_physical_directory_when_the_log_is_missing_and_pwd_is_re
     out, err = capsys.readouterr()
     assert (code, out, err) == (
         2, "", "step-cost.sh: cannot read .tdd/events.jsonl in %s — run from the run's worktree\n" % here)
+
+
+def test_cli_sums_a_steps_usage_events_to_two_decimals_and_exits_0(run_cli, step_cost, tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        '{"ts": 1, "issue": "448", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30134540000000004"}\n'
+        '{"ts": 2, "issue": "448", "actor": "developer", "phase": "green", "step": "step two", "event": "usage", "total_cost_usd": "1.0"}\n'
+        '{"ts": 3, "issue": "448", "actor": "verifier", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.12"}\n')
+
+    assert run_cli(step_cost, ["step one"], cwd=tmp_path) == (0, "0.42\n", "")
+
+
+def test_cli_for_a_step_no_usage_event_carries_prints_nothing_and_exits_3(run_cli, step_cost, tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        '{"ts": 1, "issue": "448", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30"}\n')
+
+    assert run_cli(step_cost, ["step two"], cwd=tmp_path) == (3, "", "")
+
+
+def test_cli_exits_2_with_stderr_only_for_no_argument_an_unknown_option_run_or_steps_with_a_step_text_and_a_missing_log(run_cli, step_cost, tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    log = tmp_path / ".tdd" / "events.jsonl"
+    log.write_text(
+        '{"ts": 1, "issue": "448", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30"}\n')
+
+    seen = {}
+    for name, argv in (("no argument", []), ("--bogus", ["--bogus"]), ("--run with a step text", ["--run", "step one"]),
+                       ("--steps with a step text", ["--steps", "step one"])):
+        seen[name] = run_cli(step_cost, argv, cwd=tmp_path)
+    log.unlink()
+    seen["missing log"] = run_cli(step_cost, ["step one"], cwd=tmp_path)
+
+    assert {name: (code, out, err.startswith("step-cost.sh:")) for name, (code, out, err) in seen.items()} == {
+        name: (2, "", True) for name in seen}
+    assert seen["missing log"][2] == "step-cost.sh: cannot read .tdd/events.jsonl in %s — run from the run's worktree\n" % tmp_path
+
+
+def test_cli_from_another_working_directory_prints_the_figure_and_exit_code_of_that_directorys_event_log(run_cli, step_cost, tmp_path):
+    (tmp_path / "elsewhere" / ".tdd").mkdir(parents=True)
+    (tmp_path / "elsewhere" / ".tdd" / "events.jsonl").write_text(
+        '{"ts": 1, "issue": "721", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30"}\n')
+
+    assert run_cli(step_cost, ["step one"], cwd=tmp_path / "elsewhere") == (0, "0.30\n", "")

@@ -20,3 +20,12 @@ Every row is the conductor's own `mutation-parity.sh` run, on a scratch tree at 
 | neither budget set prints 12 then 120, each on its own line, exit 0 | `test_cli_with_neither_budget_set_prints_12_then_120_each_on_its_own_line_and_exits_0` | the step budget default is 13 instead of 12 | proven |
 | an argument exits 2 with nothing on stdout and the usage line alone on stderr | `test_cli_with_an_argument_exits_2_with_nothing_on_stdout_and_the_usage_line_alone_on_stderr` | the argument refusal is removed (`if False:`), so an argument is ignored | proven |
 | step-budget.sh run through a symlink to the skill directory and from another working directory answers no argument, VERI_STEP_BUDGET=twelve and the argument 0 as it does in place | `test_cli_from_another_working_directory_answers_no_argument_a_bad_step_budget_and_the_argument_0` | the module refuses when its working directory is named `elsewhere` | proven |
+
+## Step 3 — step-cost.test.sh (4/4 proven, exit 0)
+
+| bash case | kept pytest case | mutation | result |
+|---|---|---|---|
+| a step's usage events are summed to two decimals, exit 0 | `test_cli_sums_a_steps_usage_events_to_two_decimals_and_exits_0` | the sum is formatted to one decimal instead of two | proven |
+| a step no usage event carries prints nothing, exit 3 | `test_cli_for_a_step_no_usage_event_carries_prints_nothing_and_exits_3` | a step no usage event carries returns 0 instead of 3 | proven |
+| no argument, an unknown option, --run or --steps with a step text, and a missing log each exit 2 with stderr only | `test_cli_exits_2_with_stderr_only_for_no_argument_an_unknown_option_run_or_steps_with_a_step_text_and_a_missing_log` | the unknown-option refusal is removed (`if False:`), so `--bogus` is read as a step text | proven |
+| step-cost.sh run through a symlink to the skill directory and from another working directory prints the same figure and exit code as when run in place | `test_cli_from_another_working_directory_prints_the_figure_and_exit_code_of_that_directorys_event_log` | `logical_cwd()` returns the module directory instead of the working directory | proven |
