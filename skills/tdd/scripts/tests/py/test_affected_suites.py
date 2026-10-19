@@ -1193,6 +1193,14 @@ def test_an_edit_to_bail_md_prints_the_bash_suite_naming_it_and_the_pytest_file_
         0, SUITES + "bail.test.sh\n" + SUITES + "py/unit/test_bail_file.py\n", "")
 
 
+def test_an_edit_to_pin_md_prints_the_bash_suite_naming_it_and_the_pytest_file_mentioning_it_without_widening(
+        monkeypatch, run_cli, affected, tmp_path):
+    code, out, err = doc_edit_with_suites(monkeypatch, run_cli, affected, tmp_path, "skills/tdd/PIN.md",
+                                          "pin.test.sh", "test_pin_file.py")
+    assert (code, set(out.splitlines()), err) == (
+        0, {SUITES + "pin.test.sh", SUITES + "py/unit/test_pin_file.py"}, "")
+
+
 @pytest.mark.process("real git: the changed lines come from git diff -U0 between two commits")
 def test_an_edit_inside_one_section_of_claude_md_makefile_a_skill_md_other_than_tdds_or_a_prompt_prints_every_suite_naming_it_file_wide(
         run_cli, affected, tmp_path):
