@@ -76,9 +76,9 @@ def main(argv):
             comments = list(read_pages(f"{comments_url}?", "the comments read"))
         except LookupError as e:
             return fail(str(e), 2)
-        listed = (existing["body"] or "").split("\n")
+        listed = (existing["body"] or "").splitlines()
         for comment in comments:
-            listed += comment["body"].split("\n")
+            listed += comment["body"].splitlines()
         sections = [(h, [l for l in lines if f"- {l}" not in listed]) for h, lines in sections]
     body = "\n\n".join(
         f"{heading}:\n\n" + "\n".join(f"- {line}" for line in lines)
