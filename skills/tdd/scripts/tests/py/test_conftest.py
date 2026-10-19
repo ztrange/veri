@@ -625,3 +625,51 @@ def test_a_process_case_whose_sleep_parent_only_names_push_branch_in_its_argumen
     done = subprocess.run(["sh", "-c", "sleep 0; echo $?", "push_branch"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     assert (done.returncode, done.stdout, done.stderr) == (0, b"0\n", b"")
+
+
+@pytest.mark.process("a child pytest session whose small case drives push_branch.main into its retry backoff with VERI_PUSH_BACKOFF unset")
+def test_a_small_case_that_drives_push_branch_into_its_backoff_without_veri_push_backoff_fails_naming_the_case(tmp_path):
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import importlib\n"
+        "def test_probe(tmp_path, monkeypatch, fake_processes, events):\n"
+        "    push_branch = importlib.import_module('veri.push_branch')\n"
+        "    fake_processes(lambda line, **_: (128, 'fatal: unable to access origin\\n', '')\n"
+        "                   if line.startswith('git push') else (0, '', ''))\n"
+        "    events.refuse_event_sh()\n"
+        "    monkeypatch.chdir(tmp_path)\n"
+        "    monkeypatch.setenv('VERI_PUSH_RETRIES', '1')\n"
+        "    push_branch.main([])\n")
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode == 1, output
+    assert "test_probe.py::test_probe reached the push backoff without setting VERI_PUSH_BACKOFF" in output, output
+
+
+@pytest.mark.process("a child pytest session whose process case starts push-branch.sh against an unreachable origin with VERI_PUSH_BACKOFF unset")
+def test_a_process_case_that_starts_push_branch_sh_into_its_backoff_without_veri_push_backoff_fails_at_teardown_naming_the_case(tmp_path):
+    repo = tmp_path / "run"
+    repo.mkdir()
+    for args in (["init", "-q", "-b", "main"], ["commit", "-q", "--allow-empty", "-m", "initial"],
+                 ["checkout", "-q", "-b", "tdd/1376-probe"], ["remote", "add", "origin", str(tmp_path / "no-such-remote.git")]):
+        done = subprocess.run(["git", "-C", str(repo), "-c", "user.name=veri", "-c", "user.email=veri@example.test", *args],
+                              capture_output=True, text=True)
+        assert done.returncode == 0, done.stderr
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import os, subprocess\n"
+        "import pytest\n"
+        "@pytest.mark.process('push-branch.sh pushing to an unreachable origin')\n"
+        "def test_probe():\n"
+        "    env = {**os.environ, 'VERI_PUSH_RETRIES': '1', 'VERI_ISSUE': '1376', 'VERI_ACTOR': 'conductor'}\n"
+        "    subprocess.run([%r], cwd=%r, env=env, capture_output=True)\n"
+        % (str(pathlib.Path(__file__).resolve().parents[2] / "push-branch.sh"), str(repo)))
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode == 1, output
+    assert "1 passed, 1 error" in output, output
+    assert "test_probe.py::test_probe reached the push backoff without setting VERI_PUSH_BACKOFF" in output, output
