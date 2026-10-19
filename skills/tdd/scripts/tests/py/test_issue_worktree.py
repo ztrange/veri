@@ -1173,3 +1173,203 @@ def test_the_escape_guard_fails_a_case_whose_subject_runs_git_from_the_repositor
 
     with pytest.raises(AssertionError, match="starts git against the repository the tests live in"):
         issue_worktree.main(["7", "slug"])
+
+
+def answer_processes(monkeypatch, answer):
+    """subprocess.run with <answer>(args) -> CompletedProcess|None in front of the real one: None lets the call through."""
+    real_run = subprocess.run
+
+    def run(args, **kwargs):
+        got = answer(list(args))
+        return got if got is not None else real_run(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", run)
+
+
+def ls_remote_gets_no_answer(monkeypatch):
+    answer_processes(monkeypatch, lambda args: subprocess.CompletedProcess(args, 128, "", "")
+                     if args[:2] == ["git", "ls-remote"] else None)
+
+
+def commits(repo):
+    return scratch_git(repo, "rev-list", "--all")
+
+
+def prs_fixture(tmp_path, prs):
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    if prs is not None:
+        (gh / "prs.json").write_text(json.dumps(prs) + "\n")
+    return str(gh)
+
+
+@pytest.mark.process("git clone and git worktree add on scratch repositories, ls-remote answering nothing")
+def test_fresh_cut_whose_origin_ls_remote_gets_no_answer_exits_2_naming_the_ls_remote_lookup_and_creates_no_worktree_issue_1672(
+        tmp_path, monkeypatch, issue_worktree, run_cli):
+    _, clone = scratch_clone(tmp_path, "ls-remote-silent")
+    want = scratch_wt_path(clone, 1672)
+    before = scratch_registry(clone)
+    ls_remote_gets_no_answer(monkeypatch)
+
+    code, out, err = run_cli(issue_worktree, ["1672", "ls-remote-silent"], cwd=clone)
+
+    assert (code, out, "ls-remote" in err, os.path.exists(want), scratch_registry(clone)) == (2, "", True, False, before)
+
+
+def test_scripts_md_entry_is_read_whatever_alternatives_its_synopsis_names_after_n_slug_issue_1432():
+    assert scripts_entry().strip()
+
+
+@pytest.mark.process("git clone and git worktree add on scratch repositories, origin holding the issue's branch")
+def test_issue_branch_already_on_the_remote_makes_a_fresh_call_exit_2_naming_that_remote_branch_and_leave_no_worktree_branch_or_commit_behind_issue_1656(
+        tmp_path, issue_worktree, run_cli):
+    upstream, clone = scratch_clone(tmp_path, "remote-claimed")
+    scratch_git(upstream, "branch", "-q", "tdd/61-someone-else", "main")
+    want = scratch_wt_path(clone, 61)
+    before = (scratch_registry(clone), commits(clone))
+
+    code, _, err = run_cli(issue_worktree, ["61", "fresh-start"], cwd=clone)
+
+    assert (code, "tdd/61-someone-else" in err, os.path.exists(want), (scratch_registry(clone), commits(clone))) == (
+        2, True, False, before)
+
+
+@pytest.mark.process("git clone and git worktree add on scratch repositories, a PR fixture claiming the issue")
+def test_open_pr_saying_closes_62_makes_a_fresh_call_exit_2_naming_that_pr_and_leave_no_worktree_branch_or_commit_behind_issue_1656(
+        tmp_path, issue_worktree, run_cli):
+    _, clone = scratch_clone(tmp_path, "pr-claimed")
+    want = scratch_wt_path(clone, 62)
+    gh = prs_fixture(tmp_path, [{"body": "Closes #62", "state": "OPEN", "isDraft": True,
+                                 "url": "https://example.test/pull/620"}])
+    before = (scratch_registry(clone), commits(clone))
+
+    code, _, err = run_cli(issue_worktree, ["62", "fresh-start"], cwd=clone, env={"VERI_GH_JSON": gh})
+
+    assert (code, "pull/620" in err, os.path.exists(want), (scratch_registry(clone), commits(clone))) == (
+        2, True, False, before)
+
+
+@pytest.mark.process("git clone and git worktree add on scratch repositories, a PR fixture directory with no answer")
+def test_fresh_cut_whose_open_pr_lookup_gets_no_answer_exits_2_naming_the_open_pr_lookup_and_creates_no_worktree_issue_1672(
+        tmp_path, issue_worktree, run_cli):
+    _, clone = scratch_clone(tmp_path, "pr-silent")
+    want = scratch_wt_path(clone, 64)
+    before = scratch_registry(clone)
+
+    code, out, err = run_cli(issue_worktree, ["64", "fresh-start"], cwd=clone,
+                             env={"VERI_GH_JSON": prs_fixture(tmp_path, None)})
+
+    assert (code, out, bool(re.search(r"open[- ]PR", err, re.I)), os.path.exists(want), scratch_registry(clone)) == (
+        2, "", True, False, before)
+
+
+@pytest.mark.process("git clone and git worktree add on scratch repositories, a resume whose branch is on origin")
+def test_resume_with_worktree_and_ledger_still_starts_though_its_branch_is_on_the_remote_and_an_open_pr_claims_the_issue_issue_1656(
+        tmp_path, issue_worktree, run_cli):
+    upstream, clone = scratch_clone(tmp_path, "resume-claimed")
+    scratch_git(upstream, "branch", "-q", "tdd/63-mine", "main")
+    mine = scratch_wt_path(clone, 63)
+    scratch_git(clone, "worktree", "add", "-q", "-b", "tdd/63-mine", mine, "main")
+    pathlib.Path(mine, ".tdd").mkdir()
+    pathlib.Path(mine, ".tdd", "issue-63.md").write_text("- [ ] step\n")
+    gh = prs_fixture(tmp_path, [{"body": "Closes #63", "state": "OPEN", "isDraft": True,
+                                 "url": "https://example.test/pull/630"}])
+
+    code, out, _ = run_cli(issue_worktree, ["63", "mine"], cwd=clone, env={"VERI_GH_JSON": gh})
+
+    assert (code, out.strip()) == (0, mine)
+
+
+@pytest.mark.process("git clone and git worktree add on scratch repositories, a resume while ls-remote gets no answer")
+def test_resume_of_the_runs_own_issue_branch_still_hands_back_its_worktree_when_the_ls_remote_and_open_pr_lookups_get_no_answer_issue_1672(
+        tmp_path, monkeypatch, issue_worktree, run_cli):
+    _, clone = scratch_clone(tmp_path, "resume-silent")
+    mine = scratch_wt_path(clone, 65)
+    scratch_git(clone, "worktree", "add", "-q", "-b", "tdd/65-mine", mine, "main")
+    pathlib.Path(mine, ".tdd").mkdir()
+    pathlib.Path(mine, ".tdd", "issue-65.md").write_text("- [ ] step\n")
+    ls_remote_gets_no_answer(monkeypatch)
+
+    code, out, _ = run_cli(issue_worktree, ["65", "mine"], cwd=clone,
+                           env={"VERI_GH_JSON": prs_fixture(tmp_path, None)})
+
+    assert (code, out.strip()) == (0, mine)
+
+
+@pytest.mark.process("git clone on scratch repositories, a faked gh answering for a GitHub Enterprise origin")
+def test_fresh_cut_from_a_github_enterprise_origin_runs_the_open_pr_check_and_an_open_pr_saying_closes_66_exits_2_naming_that_pr_and_creates_no_worktree_issue_1672(
+        tmp_path, monkeypatch, issue_worktree, run_cli):
+    _, clone = scratch_clone(tmp_path, "ghe-claimed")
+    want = scratch_wt_path(clone, 66)
+    before = scratch_registry(clone)
+    page = json.dumps([{"body": "Closes #66", "state": "OPEN", "url": "https://ghe.example.test/acme/veri/pull/660"}])
+
+    def answer(args):
+        if args[:4] == ["git", "remote", "get-url", "origin"]:
+            return subprocess.CompletedProcess(args, 0, "https://ghe.example.test/acme/veri.git\n", "")
+        if args[0] == "gh":
+            return subprocess.CompletedProcess(args, 0, page if re.search(r"[?&]page=1$", args[-1]) else "[]", "")
+        return None
+
+    answer_processes(monkeypatch, answer)
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+
+    code, out, err = run_cli(issue_worktree, ["66", "fresh-start"], cwd=clone)
+
+    assert (code, out, "pull/660" in err, os.path.exists(want), scratch_registry(clone)) == (2, "", True, False, before)
+
+
+@pytest.mark.process("git clone and git worktree add on scratch repositories, a fetched remote-tracking ref of origin's branch")
+def test_fresh_call_over_a_fetched_remote_tracking_ref_of_a_branch_origin_holds_exits_2_naming_the_branch_and_the_git_branch_command_that_takes_the_run_over_creating_no_worktree_or_branch_issue_1734(
+        tmp_path, issue_worktree, run_cli):
+    upstream, clone = scratch_clone(tmp_path, "fetched-claimed")
+    scratch_git(upstream, "branch", "-q", "tdd/64-taken-over", "main")
+    scratch_git(clone, "fetch", "-q", "origin")
+    want = scratch_wt_path(clone, 64)
+    fetched = scratch_git(clone, "rev-parse", "--verify", "--quiet", "refs/remotes/origin/tdd/64-taken-over")
+    before = scratch_registry(clone)
+
+    code, _, err = run_cli(issue_worktree, ["64", "taken-over"], cwd=clone)
+
+    assert (bool(fetched), code, "git branch tdd/64-taken-over origin/tdd/64-taken-over" in err,
+            os.path.exists(want), scratch_registry(clone)) == (True, 2, True, False, before)
+
+
+@pytest.mark.process("git clone and git worktree add on scratch repositories, a local branch beside a fetched origin one")
+def test_clone_holding_the_local_branch_while_origin_holds_it_too_and_the_remote_tracking_ref_is_fetched_still_starts_as_a_resume_on_the_local_tip_issue_1734(
+        tmp_path, issue_worktree, run_cli):
+    upstream, clone = scratch_clone(tmp_path, "taken-over-resume")
+    scratch_git(upstream, "branch", "-q", "tdd/65-took-over", "main")
+    scratch_git(clone, "fetch", "-q", "origin")
+    scratch_git(clone, "branch", "-q", "tdd/65-took-over", "origin/tdd/65-took-over")
+    scratch_git(clone, "switch", "-q", "-c", "scratch-65", "tdd/65-took-over")
+    scratch_git(clone, "commit", "-q", "--allow-empty", "-m", "local work")
+    scratch_git(clone, "branch", "-q", "-f", "tdd/65-took-over", "scratch-65")
+    scratch_git(clone, "switch", "-q", "main")
+    scratch_git(clone, "branch", "-q", "-D", "scratch-65")
+    local_tip = scratch_git(clone, "rev-parse", "tdd/65-took-over")
+    remote_tip = scratch_git(clone, "rev-parse", "refs/remotes/origin/tdd/65-took-over")
+    mine = scratch_wt_path(clone, 65)
+
+    code, out, _ = run_cli(issue_worktree, ["65", "took-over"], cwd=clone)
+
+    assert (local_tip != remote_tip, code, out.strip(), scratch_git(mine, "branch", "--show-current"),
+            scratch_git(mine, "rev-parse", "HEAD")) == (True, 0, mine, "tdd/65-took-over", local_tip)
+
+
+@pytest.mark.process("git clone and git worktree add on scratch repositories, the issue's worktree registered beside a fetched origin branch")
+def test_clone_with_the_issues_worktree_registered_while_origin_holds_the_branch_and_the_remote_tracking_ref_is_fetched_still_starts_as_a_resume_on_the_branchs_own_tip_issue_1734(
+        tmp_path, issue_worktree, run_cli):
+    upstream, clone = scratch_clone(tmp_path, "registered-resume")
+    scratch_git(upstream, "branch", "-q", "tdd/66-registered", "main")
+    scratch_git(clone, "fetch", "-q", "origin")
+    mine = scratch_wt_path(clone, 66)
+    scratch_git(clone, "worktree", "add", "-q", "-b", "tdd/66-registered", mine, "origin/tdd/66-registered")
+    scratch_git(mine, "commit", "-q", "--allow-empty", "-m", "local work")
+    local_tip = scratch_git(mine, "rev-parse", "HEAD")
+    remote_tip = scratch_git(clone, "rev-parse", "refs/remotes/origin/tdd/66-registered")
+
+    code, out, _ = run_cli(issue_worktree, ["66", "registered"], cwd=clone)
+
+    assert (local_tip != remote_tip, code, out.strip(), scratch_git(mine, "branch", "--show-current"),
+            scratch_git(mine, "rev-parse", "HEAD")) == (True, 0, mine, "tdd/66-registered", local_tip)
