@@ -1147,7 +1147,6 @@ def test_main_exits_2_naming_the_log_and_the_unreadable_line_when_a_suite_repair
     assert str(log) in err and "broken" in err
 
 
-<<<<<<< HEAD
 def test_main_replaces_an_added_step_at_the_growth_budget_leaving_the_added_count_unchanged_issue_1631(tmp_path, monkeypatch, capsys, add_ledger_step):
     monkeypatch.setenv("VERI_STEP_GROWTH", "2")
     ledger = tmp_path / "issue-42.md"
@@ -1217,7 +1216,7 @@ def test_main_refuses_an_instead_of_over_an_added_anchor_with_more_texts_than_th
 
     text = ledger.read_bytes().decode()
     assert (code, text.startswith(steps), text[len(steps):]) == (1, True, "\n## Owed steps\n\n- reworded one\n- reworded two\n")
-=======
+
 def test_shim_header_describes_planned_and_its_exit_2_refusals_and_no_longer_lists_a_criterion_no_step_carries_1579():
     header = "\n".join(l for l in (SCRIPTS / "add-ledger-step.sh").read_text().split("\n") if l.startswith("#"))
     exit2 = header[header.index("# Exit:"):]
@@ -1262,4 +1261,3 @@ def test_main_refuses_a_replaces_case_step_with_an_unquoted_name_after_a_quoted_
         shapes.append((code, err.count("\n"), text in err, "Traceback" in err, ledger.read_bytes() == LEDGER))
 
     assert shapes == [(1, 1, True, False, True)] * 2
->>>>>>> 73b6f6463 (test: port add-ledger-step.test.sh's cases to pytest through run_cli (#1348))
