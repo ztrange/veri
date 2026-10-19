@@ -175,4 +175,18 @@ named_killed=no; grep -iF 'no verdict' "$work/err-killed" > /dev/null && named_k
 expect_eq "a grader leaf the supervisor kills exits 2 and says on stderr that no verdict was obtained" \
   "2;killed=yes" "$code_killed;killed=$named_killed"
 
+mkdir -p "$work/ev/.tdd"
+cp "$work/REQUIREMENTS.md" "$work/unit.md" "$work/ev/"
+claude_stub "$bin" "printf 'Analysis.\nBEGIN GRADES\nA1: PASS — one\nA2: FAIL — two\nVERDICT: REJECT\nEND GRADES\n'"
+(cd "$work/ev" && CLAUDE_BIN="$bin/claude" "$GRADE" "$work/ev/REQUIREMENTS.md" unit.md > /dev/null 2>&1)
+rej_events="$(grep -F 'unit.md' "$work/ev/.tdd/events.jsonl" 2> /dev/null | grep -F 'REJECT' | grep -F 'A2')"
+rej_count="$(grep -c . <<< "$rej_events")"
+claude_stub "$bin" "printf 'BEGIN GRADES\nA1: PASS — one\nA2: PASS — two\nVERDICT: PASS\nEND GRADES\n'"
+(cd "$work/ev" && CLAUDE_BIN="$bin/claude" "$GRADE" "$work/ev/REQUIREMENTS.md" unit.md > /dev/null 2>&1)
+pass_events="$(grep -F 'unit.md' "$work/ev/.tdd/events.jsonl" 2> /dev/null | grep -F 'PASS' | grep -vF 'REJECT')"
+pass_count="$(grep -c . <<< "$pass_events")"
+pass_ids=no; grep -E 'A[12]' <<< "$pass_events" > /dev/null && pass_ids=yes
+expect_eq "every grading that reaches a verdict appends one event to .tdd/events.jsonl carrying the unit, the verdict and the failing IDs, none on a PASS" \
+  "reject=1;pass=1;pass_ids=no" "reject=$rej_count;pass=$pass_count;pass_ids=$pass_ids"
+
 finish

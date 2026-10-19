@@ -85,7 +85,10 @@ if [[ -n "$verdict" ]] && { [[ -n "$fails" && "$verdict" == "VERDICT: PASS" ]] |
   echo "grade-prose.sh: VERDICT line disagrees with the grade lines" >&2
   exit 2
 fi
+failing="$(cut -d: -f1 <<< "$fails" | paste -sd, -)"
 if [[ -n "$fails" ]]; then
+  "$HERE/event.sh" grading unit="$unit" verdict=REJECT failing="$failing" > /dev/null
   echo "$fails"
   exit 1
 fi
+"$HERE/event.sh" grading unit="$unit" verdict=PASS failing= > /dev/null
