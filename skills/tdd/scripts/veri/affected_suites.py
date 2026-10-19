@@ -14,6 +14,8 @@ except ImportError:
 USAGE = "usage: affected-suites.sh <base>..<head>"
 SCRIPTS = "skills/tdd/scripts"
 PYTEST_DIRS = (SCRIPTS + "/tests/py", SCRIPTS + "/tests/py/unit")
+SKILL_DOCS = ("skills/tdd/SCRIPTS.md", "skills/tdd/STOPPING.md", "skills/tdd/RECONCILE.md",
+              "skills/tdd/BAIL.md", "skills/tdd/PIN.md")
 SPACE = rb"[ \t\n\v\f\r]"
 
 
@@ -253,8 +255,7 @@ def suite_of(f, revisions=None):
         return naming + pytest_skill_readers() if f == "skills/tdd/SKILL.md" and revisions else naming
     if f == "README.md":
         return [p for p, text in pytest_texts() if b"README.md" in text]
-    if f in ("skills/tdd/SCRIPTS.md", "skills/tdd/STOPPING.md", "skills/tdd/RECONCILE.md",
-             "skills/tdd/BAIL.md", "skills/tdd/PIN.md"):
+    if f in SKILL_DOCS:
         name = basename(f).encode()
         return suites_naming(name.decode()) + [p for p, text in pytest_texts() if name in text]
     if match(SCRIPTS + "/tests/*.test.sh", *[d + "/test_*.py" for d in PYTEST_DIRS]):
