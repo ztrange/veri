@@ -387,12 +387,14 @@ def test_each_issue_launches_as_supervise_env_run_conductor_with_the_caller_s_fo
     (work / ".tdd").mkdir(parents=True)
     monkeypatch.chdir(work)
     log = work / ".tdd" / "conductor-7.log"
-    log.write_bytes(b'{"type":"assistant","cache_read_input_tokens":1,"cache_creation_input_tokens":1}\n')
-    stale_at_launch = []
+    earlier = b'{"type":"assistant","cache_read_input_tokens":1,"cache_creation_input_tokens":1}\n'
+    log.write_bytes(earlier)
+    kept_at_launch = []
 
     def on_launch(sup):
-        stale_at_launch.append(log.exists())
-        log.write_bytes(b"")
+        kept_at_launch.append(log.read_bytes() if log.exists() else None)
+        with open(log, "ab") as f:
+            f.write(b'{"type":"assistant","cache_read_input_tokens":5,"cache_creation_input_tokens":5}\n')
         sup.exit(0)
 
     _boundaries(monkeypatch, tmp_path, on_launch, lambda supervisors: None)
@@ -417,8 +419,9 @@ def test_each_issue_launches_as_supervise_env_run_conductor_with_the_caller_s_fo
     assert (launch_env.get("VERI_HEARTBEAT"), launch_env.get("VERI_TIMEOUT"),
             launch_env.get("VERI_STUCK_RETRIES")) == (run_timeout, run_timeout, "0")
     assert (kwargs.get("stdout"), kwargs.get("stderr")) == (subprocess.DEVNULL, None)
-    assert stale_at_launch == [False]
-    assert "context 7 2" not in out.splitlines()
+    assert kept_at_launch == [earlier]
+    assert log.read_bytes().startswith(earlier)
+    assert [l for l in out.splitlines() if l.startswith("context 7 ")] == ["context 7 10"]
 
 
 @pytest.mark.parametrize("env, answers, exits, launched, slots, stopped, code", [
@@ -1711,3 +1714,29 @@ def test_scope_loop_documents_veri_parallel_at_1_rung_2_unchanged_above_1_parall
         bad.append("neither entry names an ADR numbered above 0024")
 
     assert bad == []
+
+
+def test_a_resumed_conductor_launch_keeps_the_earlier_session_s_log_while_its_context_watch_reads_only_the_new_session(
+        capsys, monkeypatch, tmp_path, parallel_conductors):
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.chdir(tmp_path)
+    log = tmp_path / ".tdd" / "conductor-7.log"
+    log.parent.mkdir()
+
+    def assistant(read, creation):
+        return b'{"type":"assistant","message":{"usage":{"cache_creation_input_tokens":%d,"cache_read_input_tokens":%d}}}\n' % (
+            creation, read)
+
+    earlier = assistant(100, 1)
+    log.write_bytes(earlier)
+    monkeypatch.setattr(subprocess, "Popen", lambda args, **kwargs: FakeSupervisor(args))
+
+    conductor = parallel_conductors._Conductor("7")
+    with open(log, "ab") as f:
+        f.write(assistant(200, 2))
+    conductor.follow()
+    out, _ = capsys.readouterr()
+
+    assert (log.read_bytes().startswith(earlier), [l for l in out.splitlines() if l.startswith("context ")]) == (
+        True, ["context 7 202"])
