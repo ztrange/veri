@@ -4,7 +4,7 @@ import re
 import sys
 
 import tunables
-from replaces_case import is_replaces_case_step
+from replaces_case import is_replaces_case_step, parse as parse_replaces_case
 from build_verify_prompt import INTERFACE_PHASES, _IncludeRefused, _expand, _has_heading, _spec_text, _write
 
 PHASES = ("red", "green", "refactor", "cover", "transform", "diff", "structural", "predicate", "revise",
@@ -171,6 +171,13 @@ def main(argv):
     except _IncludeRefused as refusal:
         sys.stderr.buffer.write(refusal.args[0] + b"\n")
         return 2
+    named = parse_replaces_case(step) if "REPLACES_CASE" in marked else None
+    if named:
+        names, suite = named
+        listing = "".join(f"\n- {name}" for name in names)
+        values["REPLACES_CASE"] += (f"\n\nThe step names these cases in {suite}:{listing}\n\n"
+                                    "Delete each listed case whose replacement verify-pin passed, not only the case "
+                                    "your target test id replaces.").encode()
     if phase == "green" and "REPLACES_CASE" in marked and len(args) > 6 and args[6]:
         values["REPLACES_CASE"] += b"\n\nStill owed for deletion: " + os.fsencode(args[6])
     values.update(ISSUE_SPEC=_read(spec), STEP=os.fsencode(step), TEST_CMD=os.fsencode(args[2]),
