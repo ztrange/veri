@@ -935,3 +935,26 @@ def test_cli_against_a_gh_that_refuses_graphql_with_the_403_and_answers_rest_und
     answer = run_cli(solvable_issues, [], env={"VERI_GH_DRIVER": "auto"}, cwd=tmp_path)
 
     assert answer == (0, "74\n70\n", "")
+
+
+def test_main_not_running_omits_the_issue_with_a_live_conductor_from_this_skill_path_and_keeps_the_rest_in_order(tmp_path, monkeypatch, capsys, solvable_issues):
+    (tmp_path / "issues.json").write_text(json.dumps([opted_in(5), opted_in(6), opted_in(7)]))
+    (tmp_path / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    scripts = pathlib.Path(solvable_issues.__file__).resolve().parent.parent
+    listing = "  1 /sbin/launchd\n 99 bash %s/run-conductor.sh 6\n" % scripts
+
+    def fake_run(args, *rest, **kwargs):
+        if list(args[:4]) == ["git", "worktree", "list", "--porcelain"]:
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if args[0] == "ps":
+            return subprocess.CompletedProcess(args, 0, listing, "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", fake_run)
+
+    code = solvable_issues.main(["--not-running"])
+
+    out, err = capsys.readouterr()
+    assert (code, out) == (0, "5\n7\n")
