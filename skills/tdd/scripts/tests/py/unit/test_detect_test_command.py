@@ -394,3 +394,72 @@ def test_main_hides_package_json_test_behind_an_object_valued_script_counts_a_ma
         (0, "make test\n"),
         (3, ""),
     ]
+
+
+def cli(run_cli, detect, *argv):
+    return run_cli(detect, list(argv))
+
+
+def test_cli_issue_body_first_test_command_beats_veri_test_command_and_every_inference_printed_verbatim(tmp_path, run_cli, detect):
+    repo = tmp_path / "issue-command"
+    (repo / ".veri").mkdir(parents=True)
+    (repo / ".veri" / "test-command").write_text("bin/run-suite --all --strict\n")
+    (repo / "package.json").write_text('{"scripts":{"test":"jest"}}\n')
+    (repo / "Makefile").write_text("test:\n\techo hi\n")
+    body = tmp_path / "body.md"
+    body.write_text("## Notes\n\nTest command: bin/docs-suite --only docs --strict\n\nTest command: make other-test\n")
+
+    assert cli(run_cli, detect, "--issue", str(body), str(repo)) == (0, "bin/docs-suite --only docs --strict\n", "")
+
+
+def test_cli_a_repo_matching_nothing_prints_nothing_and_exits_3(tmp_path, run_cli, detect):
+    repo = tmp_path / "no-markers"
+    (repo / "src").mkdir(parents=True)
+    (repo / "README.md").write_text("# demo\n\nRun the test suite however you like.\n")
+    (repo / "src" / "main.c").write_text("int main(void) { return 0; }\n")
+
+    assert cli(run_cli, detect, str(repo)) == (3, "", "")
+
+
+def test_cli_tier_and_issue_each_with_no_value_exit_1_with_empty_stdout_and_stderr(run_cli, detect):
+    assert [cli(run_cli, detect, flag) for flag in ("--tier", "--issue")] == [(1, "", "")] * 2
+
+
+def test_cli_tier_all_with_an_issue_command_equal_to_the_fast_tiers_prints_claude_mds_all_tests_command(tmp_path, run_cli, detect):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "CLAUDE.md").write_text("# notes\n\nveri: fast tests: `make unit`\nveri: all tests: `make test`\n")
+    body = tmp_path / "body.md"
+    body.write_text("## Notes\n\nTest command: make unit\n")
+
+    fast = cli(run_cli, detect, "--tier", "fast", "--issue", str(body), str(repo))
+    allt = cli(run_cli, detect, "--tier", "all", "--issue", str(body), str(repo))
+
+    assert (fast, allt) == ((0, "make unit\n", ""), (0, "make test\n", ""))
+
+
+def test_cli_tier_all_without_an_all_tests_line_and_an_issue_command_equal_to_the_fast_tiers_prints_what_detection_finds(tmp_path, run_cli, detect):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "CLAUDE.md").write_text("# notes\n\nveri: fast tests: `make unit`\n")
+    (repo / "Makefile").write_text("test:\n\techo hi\n")
+    body = tmp_path / "body.md"
+    body.write_text("## Notes\n\nTest command: make unit\n")
+
+    fast = cli(run_cli, detect, "--tier", "fast", "--issue", str(body), str(repo))
+    allt = cli(run_cli, detect, "--tier", "all", "--issue", str(body), str(repo))
+
+    assert (fast, allt) == ((0, "make unit\n", ""), (0, "make test\n", ""))
+
+
+def test_cli_tier_all_with_an_issue_command_differing_from_the_fast_tiers_prints_the_issues_command(tmp_path, run_cli, detect):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "CLAUDE.md").write_text("# notes\n\nveri: fast tests: `make unit`\nveri: all tests: `make test`\n")
+    body = tmp_path / "body.md"
+    body.write_text("## Notes\n\nTest command: make integration\n")
+
+    fast = cli(run_cli, detect, "--tier", "fast", "--issue", str(body), str(repo))
+    allt = cli(run_cli, detect, "--tier", "all", "--issue", str(body), str(repo))
+
+    assert (fast, allt) == ((0, "make unit\n", ""), (0, "make integration\n", ""))
