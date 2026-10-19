@@ -68,6 +68,12 @@ SKILL.md sentence that a suite pins by checksum or verbatim, instead of a `⟦di
 a Red leaf cannot compute a checksum of text that does not exist yet, so that text and every pin
 it moves land in one commit, judged blind against the diff.
 
+REJECT a plan in which a criterion that both changes rendered prompt text or a SKILL.md sentence
+a suite pins by checksum or verbatim, and asks for a case pinning that text, has only the
+`⟦diff-checked⟧` step: such a criterion needs a `⟦diff-checked⟧` step for the text and a separate
+step for the case, both tagged with the same `⟦criterion k⟧`, the case's step after the text's.
+Every checksum or verbatim pin that template text moves is moved in the same commit as the text.
+
 REJECT a plan with a step that introduces a branch — a fallback an existing suite forces in,
 say — that only a later step's test requires: that step's blind green verifier sees code none
 of its own tests requires, and rejects correct code until the revise budget runs out. Your
