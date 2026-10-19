@@ -286,6 +286,12 @@ out="$("$REQUIREMENTS" claims "$work/escaped-pipe.md" skills/tdd/SKILL.md 2> "$w
 expect_eq "claims on a requirement holding an escaped \\| prints the whole requirement with the pipe (#1743)" \
   $'0\nA1\tSays a \\| b in full.' "$code"$'\n'"${out%$'\n'}"
 
+out="$("$REQUIREMENTS" units "$work/absent.md" 2> "$work/stderr")" && code=0 || code=$?
+err="$(< "$work/stderr")"
+shape=no; [[ "$err" == *"$work/absent.md"* && "$err" != *$'\n'* && "$err" != *Traceback* ]] && shape=yes
+expect_eq "units on a missing file exits 2, prints nothing on stdout and one stderr line naming the file with no traceback (#1743)" \
+  $'2\n\nyes' "$code"$'\n'"$out"$'\n'"$shape"
+
 out="$("$REQUIREMENTS" 2> "$work/stderr")" && code=0 || code=$?
 err="$(< "$work/stderr")"
 usage=no; [[ "$err" == usage:*requirements.sh* ]] && usage=yes
