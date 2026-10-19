@@ -1,6 +1,6 @@
 # Plan for #1743 — requirements.sh: claims refuses every malformed table under a declared unit, as units already does
 
-- [x] claims on a unit whose first `|`-line is the header `| Key | Value |` exits 2, prints nothing on stdout and names that header line on stderr ⟦criterion 1⟧ ⟂ refactor pending
+- [x] claims on a unit whose first `|`-line is the header `| Key | Value |` exits 2, prints nothing on stdout and names that header line on stderr ⟦criterion 1⟧
 - [ ] claims on a unit whose header is `| ID | Requirement | Why | Extra |` exits 2, prints nothing on stdout and names that header line on stderr ⟦criterion 1⟧
 - [ ] claims on a unit with a later `| A | B |` line after its table (separated by a non-`|` line) exits 2, prints nothing on stdout and names that later line on stderr ⟦criterion 1⟧
 - [ ] claims on a unit with a second `| ID | Requirement | Why |` table after a blank line exits 2, prints nothing on stdout and names the second table's header line on stderr ⟦criterion 3⟧
