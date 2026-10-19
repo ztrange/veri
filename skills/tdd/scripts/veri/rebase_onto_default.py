@@ -100,9 +100,13 @@ def main(argv):
         saved.unlink()
     if appends and not reapplied:
         files = re.findall(r"^\+\+\+ b/(.+)$", appends, re.M)
+        base = git_file("kept-tdd-appends.diff")
+        kept = next(k for k in (base.with_name(f"{base.name}.{n}") for n in range(1, 10**6))
+                    if not k.exists())
+        saved.rename(kept)
         return refuse(f"could not re-apply the uncommitted appends to"
                       f" {' '.join(files)}; kept at"
-                      f" {saved_files(saved)}")
+                      f" {' '.join(str(p) for p in kept_files())}")
     if outcome:
         return outcome
     sys.stdout.write(f"{pre}\n{onto}\n")

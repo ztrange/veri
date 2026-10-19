@@ -1517,14 +1517,19 @@ def test_main_exits_2_naming_the_set_aside_file_it_left_and_every_kept_file_when
     git(seed, "push", "-q", str(origin), "main")
     (clone / ".tdd" / "issue-1.md").write_text("- [ ] step one\n- [ ] step two\n")
     gitdir = pathlib.Path(git(clone, "rev-parse", "--absolute-git-dir"))
-    kept = gitdir / "kept-tdd-appends.diff"
-    kept.write_text("earlier appends\n")
+    (gitdir / "kept-tdd-appends.diff").write_text("earlier appends\n")
+    real_path = os.environ["PATH"]
     monkeypatch.setenv("PATH", _failing_apply_env_1611(tmp_path)["PATH"])
 
     code, _, err = run_cli(rebase_onto_default, [], cwd=clone)
+    monkeypatch.setenv("PATH", real_path)
+    run_cli(rebase_onto_default, [], cwd=clone)
+    git(clone, "reset", "--hard", "-q")
 
-    saved = gitdir / "set-aside-tdd-appends.diff"
-    assert (code, saved.is_file(), [str(p) in err for p in [saved, kept]]) == (2, True, [True, True])
+    holders = [p for p in gitdir.glob("*-tdd-appends.diff*") if "step two" in p.read_text()]
+    assert (code, [p.name.startswith("kept-tdd-appends.diff") for p in holders],
+            (gitdir / "set-aside-tdd-appends.diff").exists(), [str(p) in err for p in holders]) == (
+        2, [True], False, [True])
 
 
 @pytest.mark.process("git: a real resumed worktree whose committed ledger ticks a step that still carries ⟂ refactor pending while the uncommitted copy has the mark taken off, discarded by the resume's own commands")
