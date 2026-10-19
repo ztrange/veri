@@ -1439,6 +1439,39 @@ def test_main_exits_2_naming_the_set_aside_file_and_keeps_it_when_its_reapply_fa
     assert (code, str(saved) in err, saved.is_file() and saved.read_text() == before) == (2, True, True)
 
 
+@pytest.mark.process("git: a real clone holding a set-aside-tdd-appends.diff and kept-tdd-appends.diff* files from earlier failures, whose re-apply git apply fails")
+def test_main_exits_2_naming_the_set_aside_file_and_every_kept_file_when_its_reapply_fails_1638(
+        monkeypatch, tmp_path, rebase_onto_default, run_cli):
+    for who in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
+        monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
+
+    def git(repo, *args):
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
+
+    origin, seed, clone = tmp_path / "origin.git", tmp_path / "seed", tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    subprocess.run(["git", "init", "-q", "-b", "main", str(seed)], check=True)
+    (seed / ".tdd").mkdir()
+    (seed / ".tdd" / "issue-1.md").write_text("- [ ] step one\n")
+    git(seed, "add", "-A")
+    git(seed, "commit", "-q", "-m", "initial")
+    git(seed, "push", "-q", str(origin), "main")
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], check=True, stderr=subprocess.DEVNULL)
+    gitdir = pathlib.Path(git(clone, "rev-parse", "--absolute-git-dir"))
+    saved = gitdir / "set-aside-tdd-appends.diff"
+    saved.write_text("--- a/.tdd/issue-1.md\n+++ b/.tdd/issue-1.md\n@@ -1 +1,2 @@\n - [ ] step one\n+- [ ] step two\n")
+    kept = [gitdir / "kept-tdd-appends.diff", gitdir / "kept-tdd-appends.diff.1700000000.42"]
+    for path in kept:
+        path.write_text("earlier appends\n")
+    monkeypatch.setenv("PATH", _failing_apply_env_1611(tmp_path)["PATH"])
+
+    code, _, err = run_cli(rebase_onto_default, [], cwd=clone)
+
+    assert (code, [str(p) in err for p in [saved, *kept]]) == (2, [True, True, True])
+
+
 @pytest.mark.process("git: a real resumed worktree whose committed ledger ticks a step that still carries ⟂ refactor pending while the uncommitted copy has the mark taken off, discarded by the resume's own commands")
 def test_main_after_the_resume_discard_keeps_a_tick_whose_committed_step_carries_refactor_pending_and_whose_working_copy_does_not_1611(
         monkeypatch, tmp_path):

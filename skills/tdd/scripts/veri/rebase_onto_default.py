@@ -59,7 +59,10 @@ def main(argv):
     saved =git_file("set-aside-tdd-appends.diff")
     if saved.is_file():
         if git("apply", text=True, input=saved.read_text(), stderr=subprocess.DEVNULL).returncode != 0:
-            return refuse(f"could not re-apply the set-aside appends; kept at {saved}")
+            kept = git_file("kept-tdd-appends.diff")
+            earlier = sorted(kept.parent.glob(kept.name + "*"))
+            return refuse(f"could not re-apply the set-aside appends; kept at"
+                          f" {' '.join(str(p) for p in [saved, *earlier])}")
         saved.unlink()
     if git("merge-base", "--is-ancestor", onto, "HEAD", text=True).returncode == 0:
         return 3
