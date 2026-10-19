@@ -7,3 +7,4 @@
 - [x] When `--not-running` filters out every solvable issue, `solvable-issues.sh` exits 3 with empty stdout ⟦criterion 5⟧
 - [x] `solvable-issues.sh --not-running --repo <x>` is accepted: it reads `<x>`'s issues and omits live conductors' issues ⟦criterion 6⟧
 - [x] `solvable-issues.sh --repo <x> --not-running` is accepted the same way, and the usage line `solvable-issues.sh` prints on a refused invocation, and its shim's usage comment, name only argument orders that parse ⟦criterion 6⟧
+- [ ] The usage line `solvable-issues.sh` prints on a refused invocation (`--repo` with no value) names `--not-running` and both argument orders it accepts with `--repo <x>`, and the shim `solvable-issues.sh`'s usage comment names the same orders ⟦added⟧ ⟦criterion 6⟧
