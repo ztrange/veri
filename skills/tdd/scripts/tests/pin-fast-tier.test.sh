@@ -25,4 +25,11 @@ if [[ "$red_code" == 1 && "$reason" == *"builds its own scratch instead of the h
   no "pin-fast-tier #1747: a failing fast command → exit 1 and the guard's output in .tdd/verify-pin.reason (code=$red_code reason=$reason out=$red_out)"
 fi
 
+bare="$(scratch_dir)"
+bare_out="$(cd "$bare" && "$CHECK" 2> "$bare/err")"; bare_code=$?
+bare_err="$(cat "$bare/err")"
+if [[ "$bare_code" == 2 && -z "$bare_out" && "$bare_err" == *"usage: pin-fast-tier.sh"* && ! -e "$bare/.tdd/verify-pin.reason" ]]; then ok; else
+  no "pin-fast-tier #1747: no argument → usage on stderr, exit 2, no .tdd/verify-pin.reason (code=$bare_code out=$bare_out err=$bare_err)"
+fi
+
 finish
