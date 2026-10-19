@@ -134,12 +134,3 @@ def test_claude_mds_testing_idiom_section_says_496_retired_225s_rule_that_the_fo
         "-recorded", "own counters", "#225", "#496", "retire",
         r"lib/harness\.sh",
     ) == []
-
-
-def test_claude_mds_testing_idiom_section_states_that_no_suite_relies_on_permission_bits_since_the_cloud_runs_as_root_846():
-    assert idiom_records_carry(
-        "nothing states the permission-bits rule where the agent writing a suite would find it",
-        "CLAUDE.md has no single record in its '## Testing idiom' section stating that no suite relies on permission bits to make a path unreadable or unwritable, because the cloud runs as root and they are a no-op there, naming no-permission-bits as the guard",
-        "permission bits", "unreadable|unwritable", "root|uid 0", "cloud", "no-op",
-        "no-permission-bits", "never|must not|no suite",
-    ) == []

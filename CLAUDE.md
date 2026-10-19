@@ -125,12 +125,6 @@ count through `lib/harness.sh` like every other.
 alone is not trusted — under `set -u` a suite that dies partway can exit 0 (#157). A non-zero
 exit still fails it.
 
-**No suite relies on permission bits to make a path unreadable or unwritable** (#846, #860):
-the cloud runs as root, where chmod is a no-op and every system path is accessible. Force the
-failure from the path's type or shape inside the case's scratch tree (a directory where a
-file is read, a file where a directory is made); never skip under `$EUID` 0.
-`no-permission-bits.test.sh` enforces it.
-
 **`skills/tdd/scripts/tests/unit/` is the fast tier**, run by `make unit` and by `make test`.
 Admission bar, stated in the suite's header and judged from its source: about 100 ms per case,
 no git, network, servers, real waits (`sleep`), nested suites, or script run as a subprocess —
@@ -181,17 +175,13 @@ affected suites; a revise leaf runs the tiers of the phase it redoes. `make test
 appends (#539), and on the rebased tip if the Draft PR step rebased (#1026), so a docs suite
 under its glob would tax every PR (ADR 0016). `docs/tests/suite-lanes.test.sh` pins the split.
 
-**A suite here never reads a path in the generated tree** — page or generator input
-(`no-docs-reads.test.sh`, #143). Prose lag is the documentation lane's to catch:
-`docs/docs-owed.sh` lists owed chunks, and `docs-fresh` goes red at a docs merge.
-
 Tests inject rather than wait on a real model or clock: `CLAUDE_BIN` swaps in a stub,
 `VERI_HEARTBEAT` / `VERI_TIMEOUT` / `VERI_STUCK_RETRIES` shrink the supervisor's windows,
 `VERI_FETCH_RETRY_SLEEP` the ref-lock retry — hence every tunable is read as `${VAR:-default}`.
 
 **A suite asserts behaviour** — outputs, exit codes, files, events; never process counts,
 fork counts or timings (observe those with `make profile`, report them in the PR body).
-**No suite runs another suite**; `no-nested-suites.test.sh` enforces it. When a call count is
+**No suite runs another suite.** When a call count is
 the behaviour, the code calls one wrapper and the test swaps in an in-process spy, never a
 PATH shim counting processes.
 
