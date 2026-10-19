@@ -279,3 +279,19 @@ def test_main_over_this_repository_reaches_skill_drift_through_bail_md_so_it_is_
 
     assert code == 0
     assert "test-only: skill-drift.sh" not in lines
+
+
+def test_main_does_not_list_a_script_named_only_in_resume_md_because_it_follows_a_mention_made_there(tmp_path, capsys):
+    unreachable = importlib.import_module("veri.unreachable")
+    scripts = fixture_root(tmp_path)
+    script(scripts / "helper.sh", "echo helped")
+    script(scripts / "by-resume.sh", "echo resumed")
+    script(scripts / "orphan.sh", "echo alone")
+    with (tmp_path / "skills" / "tdd" / "SKILL.md").open("a") as f:
+        f.write("\nA resumed run reads `RESUME.md`.\n")
+    (tmp_path / "skills" / "tdd" / "RESUME.md").write_text("# resume\n\nRun `$S/by-resume.sh`.\n")
+
+    code = unreachable.main([str(tmp_path)])
+    listing = capsys.readouterr()
+
+    assert (code, listing.out, listing.err) == (0, "orphan.sh\n", "")
