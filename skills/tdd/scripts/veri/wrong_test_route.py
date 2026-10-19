@@ -23,6 +23,11 @@ def is_test_file(name):
     return fnmatch.fnmatch(name, "test_*.py") or name.endswith("_test.py")
 
 
+def _read(path):
+    with open(path, encoding="utf-8", errors="replace") as handle:
+        return handle.read()
+
+
 def _exists(case):
     py = re.compile(r"def %s\(" % re.escape(case))
     for root, dirs, files in os.walk("."):
@@ -30,8 +35,7 @@ def _exists(case):
         for name in files:
             if not name.endswith((".py", ".test.sh")):
                 continue
-            with open(os.path.join(root, name), encoding="utf-8", errors="replace") as handle:
-                text = handle.read()
+            text = _read(os.path.join(root, name))
             if is_test_file(name) and case.startswith("test_") and py.search(text):
                 return True
             if name.endswith(".test.sh") and ('name="%s"' % case) in text:
@@ -40,8 +44,7 @@ def _exists(case):
 
 
 def _wrong_test_lines(report):
-    with open(report, encoding="utf-8", errors="replace") as handle:
-        return [l for l in handle.read().splitlines() if l.startswith("WRONG_TEST:")]
+    return [l for l in _read(report).splitlines() if l.startswith("WRONG_TEST:")]
 
 
 def route(report, own_id):
@@ -56,15 +59,13 @@ def route(report, own_id):
 def _recorded_case(report, step):
     record = ".tdd/tests-frozen-%s.record" % hashlib.sha256(os.fsencode(step)).hexdigest()[:16]
     try:
-        with open(record, encoding="utf-8", errors="replace") as handle:
-            files = [l.split(None, 1)[1].strip() for l in handle.read().splitlines() if len(l.split(None, 1)) == 2]
+        files = [l.split(None, 1)[1].strip() for l in _read(record).splitlines() if len(l.split(None, 1)) == 2]
         lines = _wrong_test_lines(report)
     except OSError:
         return None
     for name in files:
         try:
-            with open(name, encoding="utf-8", errors="replace") as handle:
-                text = handle.read()
+            text = _read(name)
         except OSError:
             continue
         for line in lines:
@@ -76,8 +77,7 @@ def _recorded_case(report, step):
 
 def _rerouted(step):
     try:
-        with open(".tdd/events.jsonl", encoding="utf-8", errors="replace") as handle:
-            lines = handle.read().splitlines()
+        lines = _read(".tdd/events.jsonl").splitlines()
     except OSError:
         return False
     for line in lines:
