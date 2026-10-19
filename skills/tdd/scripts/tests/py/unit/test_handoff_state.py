@@ -22,6 +22,22 @@ def test_main_prints_main_sha_and_the_first_tag_git_lists_by_version_as_its_firs
     assert (code, out.splitlines()[0]) == (0, "main %s v0.10" % SHA)
 
 
+def test_main_names_none_for_the_tag_on_its_first_line_when_git_lists_no_tags_1819(tmp_path, monkeypatch, run_cli, fake_processes):
+    handoff_state = importlib.import_module("veri.handoff_state")
+    monkeypatch.chdir(tmp_path)
+
+    def answer(line, **kwargs):
+        if line.startswith("git rev-parse") and "main" in line:
+            return 0, SHA + "\n", ""
+        if line.startswith("gh"):
+            return 0, "[]", ""
+        return 0, "", ""
+
+    fake_processes(answer)
+    code, out, err = run_cli(handoff_state, [])
+    assert (code, out.splitlines()[0], "Traceback" in err) == (0, "main %s (none)" % SHA, False)
+
+
 def test_main_lists_under_running_one_line_per_live_run_and_none_for_any_other_state(tmp_path, monkeypatch, run_cli, fake_processes):
     handoff_state = importlib.import_module("veri.handoff_state")
     status = importlib.import_module("veri.status")
