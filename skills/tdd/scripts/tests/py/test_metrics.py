@@ -1321,6 +1321,21 @@ def test_main_counts_a_still_running_conductor_session_from_its_assistant_messag
     assert float(match.group(1)) > 1.25
 
 
+def test_main_counts_a_finished_conductor_session_once_from_its_result_record_and_not_again_from_its_assistant_messages(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    turn = {"type": "assistant", "message": {"usage": {"input_tokens": 10, "output_tokens": 500,
+                                                       "cache_read_input_tokens": 120000,
+                                                       "cache_creation_input_tokens": 2000}}}
+    sessions = [{"type": "system", "subtype": "init"}, turn, turn, turn,
+                {"type": "result", "total_cost_usd": 1.25, "num_turns": 3}]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in sessions))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert "Conductor own spending: $1.25 over 3 turns, in 1 sessions.\n" in out
+
+
 def test_main_run_from_the_issue_worktree_finds_the_conductor_stream_log_the_launcher_wrote_under_the_primary_checkout(tmp_path, monkeypatch, capsys, metrics):
     worktree = tmp_path / ".tdd" / "wt" / "108"
     worktree.mkdir(parents=True)
