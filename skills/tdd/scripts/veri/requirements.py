@@ -31,12 +31,15 @@ def units(path):
 def claims(path, unit):
     rows = []
     seen = set()
-    inunit = intable = skip = done = fenced = False
+    inunit = intable = skip = done = fenced = tabled = False
+    head = 0
     for number, line in enumerate(read_lines(path), 1):
         def fail(msg):
             raise ValueError("%s:%d: %s" % (path, number, msg))
         if line.startswith("## "):
             inunit, intable, done = line[3:] == unit, False, False
+            if inunit:
+                head, tabled = number, False
         elif not inunit:
             continue
         elif line.startswith("```"):
@@ -51,7 +54,7 @@ def claims(path, unit):
             cells = split_cells(line)
             if cells[1:] != COLUMNS + [""]:
                 fail("header lacks a column")
-            intable, skip = True, True
+            intable, skip, tabled = True, True, True
         elif intable and not line.startswith("|"):
             intable, done = False, True
         elif intable and skip:
@@ -67,6 +70,9 @@ def claims(path, unit):
                 fail("duplicate ID " + cells[1])
             seen.add(cells[1])
             rows.append("%s\t%s\n" % (cells[1], cells[2]))
+    if head and not tabled:
+        number = head
+        fail("unit has no table")
     return "".join(rows)
 
 
