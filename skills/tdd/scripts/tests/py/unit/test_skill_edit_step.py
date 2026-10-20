@@ -1,0 +1,24 @@
+"""In-process cases for veri/skill_edit_step.py, the module skill-edit-step.sh is a shim over."""
+import importlib
+
+
+def test_apply_adds_the_issue_rows_the_units_list_lacks_at_its_end_and_no_row_the_issue_does_not_state(tmp_path):
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    requirements = importlib.import_module("veri.requirements")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n"
+        "| A2 | The widget is round. | shape |\n\n"
+        "## other.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| B1 | Other. | o |\n")
+    (tmp_path / "issue.md").write_text(
+        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n"
+        "| A3 | The widget is shiny. | gloss |\n\n"
+        "### other.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| B2 | Not ours. | n |\n")
+
+    skill_edit_step.apply(str(tmp_path / "issue.md"), str(tmp_path / "unit.md"))
+
+    ids = [row.split("\t")[0] for row in requirements.claims(str(tmp_path / "REQUIREMENTS.md"), "unit.md").splitlines()]
+    assert ids == ["A1", "A2", "A3"], ids
