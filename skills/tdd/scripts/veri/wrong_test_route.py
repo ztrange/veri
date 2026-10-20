@@ -132,6 +132,8 @@ def main(argv):
         _write(sys.stdout, "supersede " + " ".join(older))
         return 0
     case = None if rerouted else route(argv[0], argv[1])
+    if case is None and len(older) == 1:
+        case = older[0]
     if case is None:
         _write(sys.stdout, "revise")
         return 3
