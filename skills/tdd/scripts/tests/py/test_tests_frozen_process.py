@@ -266,3 +266,25 @@ def test_record_step_lists_only_the_bash_case_red_added_before_the_finish_traile
 
     assert "case: added by red 1861\n" in record
     assert "last case" not in record
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_record_step_lists_only_the_pytest_function_red_inserted_at_file_start_above_an_older_one_1861(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "tests/test_suite.py"
+    suite.write_text("\ndef test_older_case_1861():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one inserts a case above the older one"
+    suite.write_text("def test_inserted_by_red_1861():\n    assert True\n\n\n"
+                     "def test_older_case_1861():\n    assert True\n")
+
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_suite.py"], cwd=tmp_path)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    record = (tmp_path / record_path.rstrip("\n")).read_text()
+
+    assert "case: test_inserted_by_red_1861\n" in record
+    assert "test_older_case_1861" not in record
