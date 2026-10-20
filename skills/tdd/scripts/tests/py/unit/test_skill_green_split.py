@@ -3,6 +3,8 @@ import importlib
 import pathlib
 import re
 
+from skill_sections import plain_lines as plain, window_text as window
+
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 GREEN = "#### Green — minimum implementation (developer leaf), then verify-green (blind)"
@@ -18,10 +20,6 @@ def _lines(heading):
         if line.startswith("#"):
             return lines[:i]
     return lines
-
-
-def plain(lines):
-    return " ".join(line.replace("*", "").replace("`", "").lower() for line in lines) + " "
 
 
 def green():
@@ -40,14 +38,6 @@ def grep(text, pattern, flags=0):
 
 def says(text, pattern, message, flags=0):
     assert grep(text, pattern, flags), message
-
-
-def window(text, pattern, radius=250):
-    for line in text.split("\n"):
-        match = re.search(pattern, line)
-        if match:
-            return line[max(match.start() - radius, 0):match.end() + radius]
-    return ""
 
 
 def skill_lines():

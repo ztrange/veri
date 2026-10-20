@@ -3,6 +3,8 @@ import importlib
 import pathlib
 import re
 
+from skill_sections import plain_lines as plain, window_text as window
+
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 REVISE_MD = SKILL.with_name("REVISE.md")
 
@@ -28,20 +30,8 @@ def _lines(heading):
     return lines
 
 
-def plain(lines):
-    return " ".join(line.replace("*", "").replace("`", "").lower() for line in lines) + " "
-
-
 def sentences(text):
     return re.split(r"[.!?] ", text)
-
-
-def window(text, pattern, radius=250):
-    for line in text.split("\n"):
-        match = re.search(pattern, line)
-        if match:
-            return line[max(match.start() - radius, 0):match.end() + radius]
-    return ""
 
 
 def grep(text, pattern):
