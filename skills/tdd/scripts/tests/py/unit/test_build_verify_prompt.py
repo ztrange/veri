@@ -1891,3 +1891,18 @@ def test_main_tells_the_green_verifier_to_keep_the_orig_copy_beside_its_file_nev
 
     assert (len(probes) > 0,
             any("beside the file it copies" in p and "never in a shared directory such as /tmp" in p for p in probes)) == (True, True)
+
+
+@pytest.mark.tree_audit("the templates under prompts/")
+def test_main_tells_the_plan_verifier_to_reject_a_plan_changing_text_older_cases_pin_without_a_step_updating_them_first_1862(
+        tmp_path, capsysbinary):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(b"- [ ] a step\n")
+    prompt = rendered(tmp_path, capsysbinary, "plan_older_pins", None, ["plan", str(spec), str(ledger)])
+    rules = [s for s in re.split(r"(?<=\.) ", " ".join(prompt.split())) if s.startswith("REJECT a plan that changes text or output")]
+
+    assert (len(rules) > 0,
+            any("older cases" in r and "without a step that updates those older cases ahead of the step that changes the text" in r
+                for r in rules)) == (True, True)
