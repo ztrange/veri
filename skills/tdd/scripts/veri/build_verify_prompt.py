@@ -3,6 +3,7 @@ import os
 import re
 import sys
 
+from ledger import carries_mark
 from replaces_case import is_replaces_case_step
 
 PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff")
@@ -126,7 +127,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id=""):
     if phase == "plan" and _has_heading(spec_text, b"Refactor"):
         optional["REFACTOR_PLAN"] = f"{prompts}/_verify-plan-refactor.md"
     for placeholder, mark in GREEN_PARAGRAPHS.items():
-        marked = is_replaces_case_step(step_arg) if mark == "replaces-case" else f"⟦{mark}⟧" in step_arg
+        marked = is_replaces_case_step(step_arg) if mark == "replaces-case" else carries_mark(step_arg, mark)
         if phase == "green" and marked:
             optional[placeholder] = f"{prompts}/_verify-green-{mark}.md"
     paths = [f"{prompts}/verify-{phase}.md", f"{prompts}/_shared.md", spec, *optional.values()]
