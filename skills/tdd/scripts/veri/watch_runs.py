@@ -38,7 +38,15 @@ def clock():
     return time.monotonic()
 
 
+def _whole_number(text):
+    return text.isascii() and text.isdigit() and int(text) >= 1
+
+
 def main(argv):
+    if argv[:1] in (["--target"], ["--max-wait"]) and not (len(argv) > 1 and _whole_number(argv[1])):
+        print("usage: watch-runs.sh [--target <N>] [--max-wait <seconds>]  (N, seconds: whole numbers >= 1)",
+              file=sys.stderr)
+        return 2
     target = int(argv[1]) if argv[:1] == ["--target"] else None
     max_wait = int(argv[1]) if argv[:1] == ["--max-wait"] else None
     started = live_conductors()
