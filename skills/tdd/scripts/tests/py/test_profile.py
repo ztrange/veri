@@ -390,3 +390,21 @@ def test_this_file_runs_no_clock_and_profiles_only_fixtures_under_tmp_path_and_m
     assert (clocks, unfixtured) == ([], [])
     assert calls > 0
     assert (code, "skills/tdd/scripts/tests/py/test_profile.py" in test_recipe) == (0, True)
+
+
+@pytest.mark.process("make profile run on the real Makefile over a pytest fixture file")
+def test_make_profile_reports_a_pytest_case_at_or_above_the_threshold(tmp_path):
+    fixture = tmp_path / "test_fx.py"
+    fixture.write_text("def test_quick():\n    assert True\n")
+
+    def profiled(threshold):
+        return subprocess.run(["make", "--no-print-directory", "-C", str(ROOT), "profile", "TESTS=%s" % fixture],
+                              env=dict(os.environ, VERI_PROFILE_THRESHOLD=threshold),
+                              stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    reported = profiled("0")
+    skipped = profiled("1000")
+
+    assert reported.returncode == 0, reported.stdout + reported.stderr
+    assert "test_fx.py::test_quick" in reported.stdout
+    assert (skipped.returncode, "test_fx.py::test_quick" in skipped.stdout) == (0, False)
