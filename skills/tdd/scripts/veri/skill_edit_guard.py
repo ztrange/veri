@@ -10,15 +10,19 @@ def _git_lines(*args):
     return subprocess.run(["git", *args], capture_output=True, text=True).stdout.split("\n")
 
 
+def _git_ok(*args):
+    return subprocess.run(["git", *args], capture_output=True).returncode == 0
+
+
 def main(argv):
     if len(argv) != 2:
         print(USAGE, file=sys.stderr)
         return 2
     unit, base = argv
-    if subprocess.run(["git", "rev-parse", "--verify", "--quiet", base + "^{commit}"], capture_output=True).returncode:
+    if not _git_ok("rev-parse", "--verify", "--quiet", base + "^{commit}"):
         print(f"skill-edit-guard.sh: {base} is not a commit", file=sys.stderr)
         return 2
-    at_base = subprocess.run(["git", "cat-file", "-e", f"{base}:{unit}"], capture_output=True).returncode == 0
+    at_base = _git_ok("cat-file", "-e", f"{base}:{unit}")
     if not at_base and not os.path.exists(unit):
         print(f"skill-edit-guard.sh: {unit} exists neither at {base} nor in the working tree", file=sys.stderr)
         return 2
