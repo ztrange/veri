@@ -1487,3 +1487,17 @@ def test_issue_1868_a_finished_conductor_sessions_per_turn_dollars_sum_to_its_re
     rows = cells(out, "#### Conductor per turn", ["dollars", "context"])
     assert sum(float(dollars.lstrip("$")) for dollars, _ in rows.values()) == pytest.approx(result["total_cost_usd"], abs=0.01)
     assert re.search(r"per-turn dollars[^\n]*estimated", out)
+
+
+def test_issue_1868_a_conductor_session_still_open_prices_each_turn_without_its_assistant_records_output_tokens(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    for rate, dollars in {"input": 1.0, "output": 2.0}.items():
+        monkeypatch.setitem(metrics.session_cost.PRICES["opus"], rate, dollars)
+    usage = {"input_tokens": 1000000, "output_tokens": 1000000}
+    sessions = [{"type": "system", "subtype": "init"}, {"type": "assistant", "message": {"usage": usage}}]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in sessions))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert cells(out, "#### Conductor per turn", ["dollars"]) == {"1": ["$1.00"]}
