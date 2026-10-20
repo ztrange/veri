@@ -220,6 +220,28 @@ def test_a_listing_with_no_labelled_open_issue_stops_with_nothing_solvable_and_r
     assert "stopped: nothing solvable" in out.splitlines()
 
 
+def test_run_from_a_subdirectory_of_the_repo_writes_parallel_exit_under_tdd_at_the_repo_root_and_leaves_no_tdd_in_the_subdirectory_1895(
+        capsys, monkeypatch, tmp_path, parallel_conductors):
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(gh))
+    work = tmp_path / "repo" / "skills" / "deep"
+    work.mkdir(parents=True)
+    monkeypatch.chdir(work)
+
+    def on_launch(sup):
+        raise AssertionError("nothing should launch when no labelled issue is open")
+
+    _boundaries(monkeypatch, tmp_path, on_launch, lambda supervisors: None, solvable=(3, ""))
+
+    code = parallel_conductors.main([])
+    capsys.readouterr()
+
+    root_exit = tmp_path / "repo" / ".tdd" / "parallel.exit"
+    assert (code, root_exit.read_text() if root_exit.exists() else None, (work / ".tdd").exists()) == (3, "3\n", False)
+
+
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_a_failing_removal_of_the_run_s_scratch_directory_at_exit_returns_2_and_leaves_parallel_exit_holding_the_code_written_before_it(
         capsys, monkeypatch, tmp_path, parallel_conductors):

@@ -12,11 +12,13 @@ import tunables
 import traceback
 
 try:
+    import event
     from context_budget import START, watch
     from github import NoAnswer, gh_json
     from json_documents import items
     from solvable_issues import solvable_in_scope
 except ImportError:
+    from . import event
     from .context_budget import START, watch
     from .github import NoAnswer, gh_json
     from .json_documents import items
@@ -172,6 +174,9 @@ def main(argv):
         print("parallel-conductors: type this from the target repo's primary checkout,"
               " not from the skill's own scripts directory", file=sys.stderr)
         return 2
+    root = event.toplevel()
+    if root:
+        os.chdir(root)
     if not _exclude_tdd():
         return 2
     parallel = tunables.read("VERI_PARALLEL", "1")
