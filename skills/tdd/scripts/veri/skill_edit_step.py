@@ -106,7 +106,7 @@ def main(argv):
     path = _list_path(unit)
     graded, said = _grade(path, unit)
     authored = graded == 1
-    for _ in range(3):
+    for _ in range(int(os.environ.get("VERI_SKILL_EDIT_BUDGET", "3"))):
         if graded != 1:
             break
         if _author(unit, path, said):
