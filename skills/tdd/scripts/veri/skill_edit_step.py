@@ -9,6 +9,7 @@ import sys
 import event
 import grade_prose
 import skill_edit_guard
+import tunables
 import requirements
 from run_verdict import SCRIPTS
 
@@ -112,7 +113,7 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     issue, unit = argv
-    budget = os.environ.get("VERI_SKILL_EDIT_BUDGET", "3")
+    budget = tunables.read("VERI_SKILL_EDIT_BUDGET", "3")
     if not (budget.isdecimal() and int(budget) >= 1):
         print("VERI_SKILL_EDIT_BUDGET must be a whole number >= 1: " + budget, file=sys.stderr)
         return 2
