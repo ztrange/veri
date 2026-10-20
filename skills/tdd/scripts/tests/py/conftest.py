@@ -110,7 +110,7 @@ def pytest_collection_modifyitems(config, items):
         raise pytest.UsageError("unregistered mark: %s" % ", ".join(unregistered))
     for name, missing in (("process", "a boundary"), ("tree_audit", "a sweep")):
         unnamed = [item.nodeid for item in items
-                   if any(not mark.args or not mark.args[0] for mark in item.iter_markers(name))]
+                   if any(not mark.args or not str(mark.args[0]).strip() for mark in item.iter_markers(name))]
         if unnamed:
             raise pytest.UsageError("%s mark without %s: %s" % (name, missing, ", ".join(unnamed)))
     modules = {item.nodeid.split("/")[-1].split("::")[0]: item.module for item in items if isinstance(item, pytest.Function)}
