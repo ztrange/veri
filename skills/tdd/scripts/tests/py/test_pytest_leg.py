@@ -163,3 +163,56 @@ def test_a_small_case_that_starts_python3_on_a_script_outside_veri_fails_naming_
     assert "1 failed, 1 passed" in out
     assert "python3" in out.split("test_runs_python3_outside_veri", 1)[-1]
     assert "FAILED test_starts_python3.py::test_runs_python3_on_a_veri_module" not in out
+
+
+@pytest.mark.process("the launcher run as a child over a planted tests tree holding cases that reach the network and start gh and curl")
+def test_a_case_that_connects_to_a_non_loopback_address_or_starts_gh_or_curl_fails_naming_it_with_no_offline_shim_on_path_while_a_loopback_connection_works(tmp_path):
+    import os
+    import subprocess
+
+    scripts = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    veri = os.path.join(scripts, "veri")
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    for name in ("gh", "curl"):
+        stub = bin_dir / name
+        stub.write_text("#!/bin/sh\ntouch %s\n" % (tmp_path / ("ran-" + name)))
+        stub.chmod(0o755)
+    planted = tmp_path / "planted"
+    planted.mkdir()
+    (planted / "test_reaches_out.py").write_text(
+        "import socket\n"
+        "import subprocess\n"
+        "\n"
+        "def test_reaches_a_remote_address():\n"
+        "    try:\n"
+        "        socket.create_connection(('192.0.2.1', 80), timeout=0.2)\n"
+        "    except OSError:\n"
+        "        pass\n"
+        "\n"
+        "def test_starts_gh():\n"
+        "    subprocess.run(['gh', 'issue', 'list'])\n"
+        "\n"
+        "def test_starts_curl():\n"
+        "    subprocess.run(['curl', 'http://example.invalid'])\n"
+        "\n"
+        "def test_reaches_loopback():\n"
+        "    server = socket.socket()\n"
+        "    server.bind(('127.0.0.1', 0))\n"
+        "    server.listen(1)\n"
+        "    socket.create_connection(server.getsockname(), timeout=2).close()\n"
+        "    server.close()\n"
+    )
+    path = os.pathsep.join([str(bin_dir)] + [p for p in os.environ["PATH"].split(os.pathsep)
+                                              if "unit-guard" not in p and "offline" not in p])
+    done = subprocess.run(
+        [sys.executable, "-c", "import runpy, sys; sys.argv[0] = sys.argv.pop(1); runpy.run_path(sys.argv[0], run_name='__main__')",
+         os.path.join(veri, "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],
+        cwd=tmp_path, env=dict(os.environ, PATH=path, PYTHONPATH=veri), capture_output=True, text=True, timeout=60,
+    )
+    out = done.stdout + done.stderr
+    assert "3 failed, 1 passed" in out
+    assert "192.0.2.1" in out.split("test_reaches_a_remote_address", 1)[-1]
+    assert "gh" in out.split("test_starts_gh", 1)[-1]
+    assert "curl" in out.split("test_starts_curl", 1)[-1]
+    assert not (tmp_path / "ran-gh").exists() and not (tmp_path / "ran-curl").exists()
