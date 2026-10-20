@@ -54,7 +54,7 @@ def named(name, failed):
     return any(line == name or line.startswith(name + " (") for line in failed)
 
 
-def suite_results(suite, old):
+def suite_results(suite):
     return failed_nodes(suite) if suite.endswith(".py") else failed_cases(suite)
 
 
@@ -64,7 +64,7 @@ def replacement_fails(fate, kept, failed):
 
 def unmutated_failures(suite, old, fate, kept):
     try:
-        failed = suite_results(suite, old)[0]
+        failed = suite_results(suite)[0]
     except SuiteDied:
         return [f"suite {suite} did not run to completion"]
     bad = []
@@ -85,7 +85,7 @@ def check(row):
     try:
         died = None
         try:
-            failed, passed, total = suite_results(suite, old)
+            failed, passed, total = suite_results(suite)
         except SuiteDied as error:
             died = error
         else:
