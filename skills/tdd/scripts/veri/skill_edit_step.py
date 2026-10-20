@@ -1,11 +1,15 @@
 """skill-edit-step.sh's entry point, run in-process."""
+import contextlib
+import io
 import os
 import subprocess
+import tempfile
 import sys
 
 import event
 import grade_prose
 import requirements
+from run_verdict import SCRIPTS
 
 USAGE = "usage: skill-edit-step.sh <issue-body-file> <unit-file>"
 
@@ -69,6 +73,23 @@ def apply(issue, unit):
     _write(path, [l for l in lines if l is not None])
 
 
+def _author(unit, path, reasons):
+    rows = "".join("%s: %s\n" % tuple(r.split("\t", 1)) for r in requirements.claims(path, unit).splitlines())
+    text = ("You edit the prose of %s so that it satisfies every requirement below.\n\nUnit: %s\n\n%s\n\n"
+            "Requirements:\n%s\nGrader FAIL reasons:\n%s\n"
+            % (unit, unit, grade_prose.unit_text(unit), rows, reasons))
+    with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
+        f.write(text)
+    env = dict(os.environ)
+    env["PATH"] = grade_prose.modern_python_dir() + env.get("PATH", "")
+    try:
+        return subprocess.run([os.path.join(SCRIPTS, "supervise.sh"), "author-skill-edit-1",
+                               os.path.join(SCRIPTS, "run-leaf.sh"), f.name], stdout=subprocess.PIPE,
+                              env=env).returncode
+    finally:
+        os.unlink(f.name)
+
+
 def main(argv):
     if len(argv) != 2:
         print(USAGE, file=sys.stderr)
@@ -76,7 +97,13 @@ def main(argv):
     issue, unit = argv
     apply(issue, unit)
     path = _list_path(unit)
-    graded = grade_prose.main([path, unit])
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        graded = grade_prose.main([path, unit])
+    if graded == 1:
+        if _author(unit, path, out.getvalue()):
+            return 2
+        return grade_prose.main([path, unit])
     if graded:
         return graded
     event.append(".", {}, "skill-edit-no-author", ["unit=" + unit])

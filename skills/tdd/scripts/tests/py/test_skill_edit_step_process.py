@@ -50,3 +50,59 @@ def test_changed_ids_that_already_pass_launch_no_author_and_commit_the_list_and_
             sorted(git(repo, "show", "--name-only", "--format=", "HEAD").splitlines()),
             owed.stdout, any("author" in json.dumps(e) for e in others)] \
         == [3, "2", ["GRADED", "REQUIREMENTS.md"], "", True], (ran.stdout, ran.stderr, events)
+
+
+STUB_MODEL = """#!/bin/sh
+prompt=$2
+case "$prompt" in
+*"You grade a piece of prose"*)
+  n=$(cat "$CAP/grades" 2>/dev/null || echo 0)
+  echo $((n + 1)) > "$CAP/grades"
+  if [ "$n" = 0 ]; then
+    reply='BEGIN GRADES\\nA1: FAIL - prose never says crimson\\nA2: PASS - ok\\nVERDICT: REJECT\\nEND GRADES'
+  else
+    reply='BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES'
+  fi ;;
+*)
+  printf '%s' "$prompt" > "$CAP/author.txt"
+  reply='edited' ;;
+esac
+printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"'"$reply"'"}'
+"""
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author")
+def test_a_failing_changed_id_launches_an_author_leaf_under_the_author_role_whose_prompt_has_the_unit_requirements_and_fail_reasons_but_no_why_cell(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
+    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is crimson. | secret-why-cell |\n")
+    cap = tmp_path / "cap"
+    cap.mkdir()
+    claude = tmp_path / "claude"
+    claude.write_text(STUB_MODEL)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+           "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+
+    log = repo / ".tdd" / "events.jsonl"
+    events = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
+    launches = [e for e in events if e.get("event") == "launch" and e.get("actor") == "author"]
+    author = cap / "author.txt"
+    prompt = author.read_text() if author.exists() else ""
+    assert len(launches) == 1, (ran.returncode, ran.stderr[-700:])
+    for wanted in ["It stays silent.", "A1", "The widget is crimson.", "A2", "The widget never hums.",
+                   "prose never says crimson"]:
+        assert wanted in prompt, (wanted, prompt)
+    for secret in ["secret-why-cell", "quiet", "because"]:
+        assert secret not in prompt, (secret, prompt)
