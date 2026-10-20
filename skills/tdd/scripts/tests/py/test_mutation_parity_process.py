@@ -704,3 +704,38 @@ def test_1667_bash_suite_row_sees_no_veri_or_claude_variable_from_the_caller_exc
 
     assert (code, out.strip().endswith("proven")) == (0, True), (
         "exit=%s stdout=%r stderr=%r; want the unmutated run to see no VERI_*/CLAUDE_* variable" % (code, out, err))
+
+
+@pytest.mark.process("pytest and python3 started by pytest() and node_fails(), run with a VERI_* tunable set in the caller")
+def test_1667_pytest_case_row_sees_no_veri_or_claude_variable_from_the_caller_except_veri_venv(tmp_path, monkeypatch, run_cli):
+    monkeypatch.setenv("VERI_MODEL_REVISE", "opus")
+    monkeypatch.setenv("CLAUDE_BIN", "/nonexistent")
+    source = tmp_path / MODULE
+    source.parent.mkdir(parents=True)
+    source.write_text("def code():\n    return 2\n")
+    suite = tmp_path / "checks" / "test_gate.py"
+    suite.parent.mkdir()
+    leak = ("import os\n\n\ndef leaked():\n"
+            "    return sorted(k for k in os.environ if k.startswith(('VERI_', 'CLAUDE_')) and k != 'VERI_VENV')\n\n\n")
+    guarded = PYTEST_SUITE.replace("\n\ndef test_old", "\n\n" + leak.rstrip("\n") + "\n\n\ndef test_old", 1)
+    guarded = guarded.replace("    assert gate.code() == 2", "    assert leaked() == []\n    assert gate.code() == 2")
+    assert guarded.count("assert leaked() == []") == 2
+    suite.write_text(guarded)
+    mutated = source.read_text().replace("return 2", "return 1")
+    patch = tmp_path / "gate.patch"
+    patch.write_text("".join(difflib.unified_diff(
+        source.read_text().splitlines(True), mutated.splitlines(True), "a/" + MODULE, "b/" + MODULE)))
+    table = tmp_path / "pairs.tsv"
+    table.write_text("\t".join(["checks/test_gate.py", "checks/test_gate.py::test_old", "redundant",
+                                "checks/test_gate.py::test_kept", str(patch)]) + "\n")
+    importlib.invalidate_caches()
+    mutation_parity = importlib.import_module("veri.mutation_parity")
+    interpreter = tmp_path / "interp"
+    interpreter.write_text('#!/bin/sh\nexec "%s" "$@"\n' % mutation_parity.venv_python())
+    interpreter.chmod(0o755)
+    monkeypatch.setattr(mutation_parity, "venv_python", lambda: str(interpreter))
+
+    code, out, err = run_cli(mutation_parity, [str(table)], cwd=tmp_path)
+
+    assert (code, out.strip().endswith("proven")) == (0, True), (
+        "exit=%s stdout=%r stderr=%r; want the unmutated pytest run to see no VERI_*/CLAUDE_* variable" % (code, out, err))
