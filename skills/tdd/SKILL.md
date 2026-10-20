@@ -585,6 +585,15 @@ three times over branches its ledger pinned on later lines.
    a test is planned as a test-only step (`⟦diff-checked⟧` or the pin), never as Red/Green,
    since Green may not edit a test.
 
+   The one exception is a defect in a test's own fixture, stub or harness whose script under
+   test is correct. Plan it as `- [ ] <criterion>: repairs the fixture '<fixture or stub name>' in
+   <fixture file>, reproduced by a case in <test file> ⟦fixture-repair⟧ ⟦criterion k⟧`. Name the
+   fixture by a function, stub or helper, never a line range; `<fixture file>` must be a test file
+   by the rule of transform-touches-tests. Use the mark for nothing else: a defect in the script
+   under test is an ordinary step. Such a step is an ordinary Red/Green step whose criterion is
+   that the reproducing case passes against the unchanged script under test; Green may edit only
+   the named fixture.
+
    An issue whose work changes only tests (extracting a repeated helper, sharing a fixture,
    production untouched) is not refactor-kind, whatever its label: it is planned as
    `⟦diff-checked⟧` steps.
