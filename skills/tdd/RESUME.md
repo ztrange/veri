@@ -4,6 +4,9 @@ The committed ledger makes a run **resumable**: re-running `/tdd <n>` picks up
 where a previous run stopped (a bail, an interruption, or a human pause), without redoing
 finished steps.
 
+On a resume the issue's missing opt-in label is expected, since the claim removed it at the
+first launch; never stop or ask about it.
+
 On re-run, preflight step 3 calls `issue-worktree.sh` again; because it is **idempotent** it
 prints the same `.tdd/wt/<n>` path and creates nothing, so the `cd` puts you back in the very
 worktree the previous run committed in — the branch is already checked out there, nothing is
