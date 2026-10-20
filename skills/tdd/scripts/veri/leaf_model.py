@@ -2,7 +2,7 @@
 import sys
 
 import tunables
-from leaf_role import _write, leaf_role
+from leaf_role import _write, is_revise, leaf_role
 
 USAGE = "usage: leaf-model.sh <leaf-name>"
 WHITESPACE = " \t\n\v\f\r"
@@ -30,7 +30,7 @@ def resolve(name):
     if role is None:
         return None
     actor = role["VERI_ACTOR"]
-    revise = name.startswith("revise-") or name == "develop-exhausted"
+    revise = is_revise(name)
     model = ((_env("VERI_MODEL_REVISE") if revise else "")
              or _env("VERI_MODEL_" + actor.upper()) or _env("VERI_MODEL"))
     if not model:
