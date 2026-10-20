@@ -256,3 +256,33 @@ print(derived,' '.join(fails)); sys.exit(0 if derived=='PASS' else 1)
 | BL9 | The issue gets a "### ⛔ Bailed — <phase> (<classification> failure)" comment carrying the metrics block or its fallback line, the last reason, the skill-drift block, and a pointer to the progress log. |
 | BL10 | The draft PR stays open and stays a draft, and receives the bail comment or a link to it. |
 | BL11 | The report to the user names the phase, classification, reason, skill-drift block, branch and worktree path, and the worktree is left in place. |
+
+## DR5 reworded
+
+#1718 criterion 8 measured 35 of 36 gradings matching through `skills/tdd/scripts/grade-prose.sh`.
+The miss: `develop-red.subtle.md` passed DR5 once in 3 runs. The subtle variant softens the
+first half of DR5's source sentence ("never runs another test suite" becomes "avoids running
+another test suite where it can"), and leaves the second half ("never re-runs the suite it lives
+in") intact, so a grader could pass the requirement on the intact half.
+
+- **Old DR5:** A test never runs another test suite, and never re-runs the suite it lives in.
+- **New DR5:** A test never runs another test suite, whole or sliced, and never re-runs the suite it lives in; both prohibitions are absolute, so prose that permits either in some circumstance fails this requirement.
+
+The three `specs/grader-poc/*.req` files are now in grade-prose.sh's format: one
+`## specs/grader-poc/<unit>.<variant>.md` heading per prose file (the unit is the file path) over
+an `| ID | Requirement | Why |` table, requirement text verbatim except DR5. `grade.sh` and
+`parse.py` read the old `ID | text` lines and no longer work on these files; they are the
+proof-of-concept's own harness, superseded by grade-prose.sh.
+
+Command: `grade-prose.sh specs/grader-poc/develop-red.req specs/grader-poc/develop-red.<variant>.md`
+
+| Variant | Expected | Runs | Exit codes | Failing IDs | Cost |
+|---|---|---|---|---|---|
+| orig | PASS | 3 PASS | 0, 0, 0 | none | $0.099 |
+| ok | PASS | 3 PASS | 0, 0, 0 | none | $0.095 |
+| bad | REJECT | 3 REJECT | 1, 1, 1 | DR10, DR12 (all 3) | $0.086 |
+| subtle | REJECT | 3 REJECT | 1, 1, 1 | DR5 (all 3) | $0.085 |
+
+12 of 12 matched. No exit 2. Total cost $0.365 (from `.tdd/events.jsonl` `grading` events).
+Each run printed `leaf-role: leaf name 'grade-prose' has an unknown leading word` to stderr
+before the verdict; it did not change any exit code.
