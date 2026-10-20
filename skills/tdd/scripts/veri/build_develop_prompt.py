@@ -30,9 +30,13 @@ TEST_REWRITE_GRANT = (
 WRONG_TEST_REPORT = (
     "\n\nor, when the green you are redoing has a test that looks wrong, those lines replaced by one:\n\n"
     "WRONG_TEST: <why the test looks wrong>\n\n"
-    "Name in that line the existing test case the step's criterion contradicts.").encode()
+    "Name in that line the existing test case the step's criterion contradicts.\n\n"
+    "or, when older cases fail only because the step supersedes what they pin, those lines replaced by\n"
+    "one per such case:\n\n"
+    "SUPERSEDED: <the older case>\n\n"
+    "A case the step's change does not supersede is a `WRONG_TEST:` line, never a `SUPERSEDED:` one.").encode()
 WRONG_TEST_FORMAT = (
-    "\n\nREPORT-FORMAT revise-wrong-test | keys WRONG_TEST: | suite exempt: the test is wrong, "
+    "\n\nREPORT-FORMAT revise-wrong-test | keys WRONG_TEST: SUPERSEDED: | suite exempt: the test is wrong, "
     "so nothing was changed and no suite ran").encode()
 TEST_REWRITE_NONE = b"**Leave the test files as they are**: this phase has no test of its own to redo."
 TEST_MOVE_CONTRACT_A = (
