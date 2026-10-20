@@ -1,8 +1,7 @@
 """replaces-case-survivors.sh's check, run in-process."""
 import sys
 
-from replaces_case import is_replaces_case_step, parse, unquoted_clause, unreadable, unreadable_message
-from replaces_case import other_suite as replaces_case_other_suite
+from replaces_case import is_replaces_case_step, parse, refusal
 
 USAGE = "usage: replaces-case-survivors.sh <step text>"
 
@@ -13,15 +12,12 @@ def main(argv):
         return 2
     if not is_replaces_case_step(argv[0]):
         return 3
-    parsed = parse(argv[0])
-    if unreadable(argv[0]) or parsed is None and unquoted_clause(argv[0]):
-        print(unreadable_message(argv[0]), file=sys.stderr)
+    refused = refusal(argv[0])
+    if refused:
+        print(refused, file=sys.stderr)
         return 2
+    parsed = parse(argv[0])
     if parsed is None:
-        other = replaces_case_other_suite(argv[0])
-        if other:
-            print("suite " + other + " is not a .test.sh file in step: " + argv[0].replace("\n", " "), file=sys.stderr)
-            return 2
         return 3
     names, path = parsed
     try:
