@@ -393,7 +393,7 @@ def test_both_scripts_exit_2_naming_the_step_when_an_unquoted_name_follows_a_quo
     refuses_with_one_line_naming(
         tmp_path, run_cli,
         "- [ ] x: replaces 'a', b in t/x.test.sh ⟦replaces-case⟧ ⟦criterion 5⟧",
-        "replaces 'a', b in t/x.test.sh",
+        "replaces 'a', b in t/x",
     )
 
 
@@ -401,7 +401,7 @@ def test_both_scripts_exit_2_naming_the_step_when_a_quoted_name_is_followed_by_a
     refuses_with_one_line_naming(
         tmp_path, run_cli,
         "- [ ] x: replaces 'a' (from #12) in t/x.test.sh ⟦replaces-case⟧ ⟦criterion 5⟧",
-        "replaces 'a' (from #12) in t/x.test.sh",
+        "replaces 'a' (from #12) in t/x",
     )
 
 
