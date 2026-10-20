@@ -77,3 +77,21 @@ def test_skill_edit_guard_another_path_changed_exit_1_and_prints_it(tmp_path):
     assert code == 1
     assert "skills/foo/OTHER.md" in out
     assert "skills/foo/FOO.md" not in out
+
+
+@pytest.mark.process("skill-edit-guard.sh run against a real git repository")
+def test_skill_edit_guard_untracked_other_file_exit_1_and_prints_it(tmp_path):
+    repo = tmp_path / "guard"
+    (repo / "skills/foo").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "skills/foo/FOO.md").write_text("prose\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: foo")
+    base = git(repo, "rev-parse", "HEAD")
+    (repo / "skills/foo/NOTES.md").write_text("stray\n")
+
+    assert git(repo, "status", "--porcelain") == "?? skills/foo/NOTES.md"
+    code, out = guard(repo, "skills/foo/FOO.md", base)
+
+    assert code == 1
+    assert "skills/foo/NOTES.md" in out

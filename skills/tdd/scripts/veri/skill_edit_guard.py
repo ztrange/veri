@@ -13,6 +13,7 @@ def main(argv):
     unit, base = argv
     allowed = {unit, os.path.join(os.path.dirname(unit), "REQUIREMENTS.md")}
     changed = subprocess.run(["git", "diff", "--name-only", base], capture_output=True, text=True).stdout.split("\n")
+    changed += subprocess.run(["git", "ls-files", "--others", "--exclude-standard"], capture_output=True, text=True).stdout.split("\n")
     others = [path for path in changed if path and path not in allowed]
     for path in others:
         print(path)
