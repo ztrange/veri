@@ -67,3 +67,24 @@ def test_apply_drops_the_row_an_issue_marks_dropped_and_renumbers_no_other_row(t
         "| A1 | The widget is blue. | because |",
         "| A3 | The widget is shiny. | gloss |",
     ], rows
+
+
+def test_apply_leaves_the_list_byte_for_byte_when_the_issue_has_no_requirements_section_or_none_for_the_unit(tmp_path):
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    original = (
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n"
+        "| A2 | The widget is round. | shape |\n\n"
+        "## other.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| B1 | Other. | o |\n")
+    bodies = [
+        "## Problem\n\nNothing stated here.\n",
+        "## Requirements\n\n### other.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| B2 | Not ours. | n |\n",
+    ]
+    for body in bodies:
+        (tmp_path / "REQUIREMENTS.md").write_bytes(original.encode())
+        (tmp_path / "issue.md").write_text(body)
+
+        skill_edit_step.apply(str(tmp_path / "issue.md"), str(tmp_path / "unit.md"))
+
+        assert (tmp_path / "REQUIREMENTS.md").read_bytes() == original.encode(), body
