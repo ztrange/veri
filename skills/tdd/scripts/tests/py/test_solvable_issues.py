@@ -10,9 +10,7 @@ import subprocess
 
 import pytest
 
-# The usage line the module prints, read from it, so a change to its wording (#1719 step 8) moves
-# these refusal cases with it instead of contradicting the case that pins the new wording.
-USAGE = importlib.import_module("veri.solvable_issues").USAGE + "\n"
+USAGE = "usage: solvable-issues.sh [--repo owner/name] [--not-running]\n"
 
 
 @pytest.fixture(autouse=True)
@@ -1109,3 +1107,39 @@ def test_main_not_running_then_repo_reads_that_repos_issues_and_omits_the_live_c
 
     out, err = capsys.readouterr()
     assert (code, out, started) == (0, "5\n7\n", [["o/n"]])
+
+
+def _not_running_with(tmp_path, monkeypatch, capsys, solvable_issues, issues, live):
+    (tmp_path / "issues.json").write_text(json.dumps(issues))
+    (tmp_path / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    scripts = pathlib.Path(solvable_issues.__file__).resolve().parent.parent
+    listing = "  1 /sbin/launchd\n" + "".join(
+        " %d /usr/bin/python3 %s/veri/run_conductor.py %d\n" % (100 + n, scripts, n) for n in live)
+
+    def fake_run(args, *rest, **kwargs):
+        if list(args[:4]) == ["git", "worktree", "list", "--porcelain"]:
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if args[0] == "ps":
+            return subprocess.CompletedProcess(args, 0, listing, "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", fake_run)
+    code = solvable_issues.main(["--not-running"])
+    return code, capsys.readouterr().out
+
+
+def test_main_not_running_omits_a_multi_digit_issue_whose_conductor_is_live_and_keeps_the_issue_its_digits_start_with(tmp_path, monkeypatch, capsys, solvable_issues):
+    assert _not_running_with(tmp_path, monkeypatch, capsys, solvable_issues,
+                             [opted_in(17), opted_in(1719)], [1719]) == (0, "17\n")
+
+
+def test_main_not_running_keeps_the_priority_bug_rest_order_of_the_issues_it_does_not_omit(tmp_path, monkeypatch, capsys, solvable_issues):
+    def labelled(number, *names):
+        issue = opted_in(number)
+        issue["labels"] += [{"name": name} for name in names]
+        return issue
+
+    issues = [opted_in(1), labelled(8, "bug"), labelled(9, "priority"), opted_in(4), labelled(3, "bug"), labelled(2, "priority")]
+    assert _not_running_with(tmp_path, monkeypatch, capsys, solvable_issues, issues, [9, 4]) == (0, "2\n3\n8\n1\n")
