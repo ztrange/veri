@@ -876,3 +876,20 @@ def test_main_1865_prints_revise_for_one_or_several_superseded_lines_once_the_st
     answers = [run_cli(wrong_test_route, [str(r), added], cwd=tmp_path)[:2] for r in (one, several)]
 
     assert answers == [(3, "revise\n"), (3, "revise\n")]
+
+
+def test_main_1865_drops_a_superseded_line_naming_a_case_no_test_file_defines(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py"
+    suite.mkdir(parents=True)
+    added = "test_main_prints_the_usage_with_not_running"
+    (suite / "test_solvable.py").write_text("def %s():\n    pass\n" % added)
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setenv("VERI_STEP", "solvable-issues.sh usage mentions --not-running, a ghost superseded case")
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nSUPERSEDED: test_a_case_nobody_defines\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
