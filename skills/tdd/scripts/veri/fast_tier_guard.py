@@ -67,7 +67,8 @@ def _discover(root, exemptions):
 def _classify(node, module_aliases, name_imports, modules, functions, defined=frozenset()):
     func = node.func
     receiver, attr = _receiver_and_attr(func)
-    imported = name_imports.get(func.id) if isinstance(func, ast.Name) else None
+    name = func.id if isinstance(func, ast.Name) else None
+    imported = name_imports.get(name)
     module = module_aliases.get(receiver, receiver)
     started = _process_start(module, attr) or (_process_start(*imported) if imported else None)
     if (module, attr) == ("time", "sleep") or imported == ("time", "sleep"):
@@ -76,15 +77,15 @@ def _classify(node, module_aliases, name_imports, modules, functions, defined=fr
         return "opens a socket through socket"
     if attr == "CompletedProcess":
         return None
-    if receiver in modules or (isinstance(func, ast.Name) and func.id in functions):
+    if receiver in modules or name in functions:
         return "starts a process through subprocess"
     if started:
         return f"starts a process through {started}"
     args = [*node.args, *(kw.value for kw in node.keywords)]
-    if isinstance(func, ast.Name) and func.id == "run_cli":
+    if name == "run_cli":
         listed = [item for arg in args if isinstance(arg, (ast.List, ast.Tuple)) for item in arg.elts]
         args += [item for item in listed if isinstance(item, ast.Constant) and "/" in str(item.value)]
-    if isinstance(func, ast.Name) and func.id in defined:
+    if name in defined:
         return None
     if (module, attr) == ("pytest", "main") or any(
         isinstance(arg, ast.Constant) and isinstance(arg.value, str) and _SUITE_PATH.search(arg.value)
