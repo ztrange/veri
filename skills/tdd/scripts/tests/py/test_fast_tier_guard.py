@@ -520,3 +520,16 @@ def test_1668_a_planted_test_file_whose_only_call_passing_a_suite_named_string_i
     )
 
     assert guard.offences(tmp_path) == []
+
+
+def test_1668_a_planted_test_file_passing_a_prose_string_holding_a_suite_path_next_to_other_words_to_a_helper_is_not_reported_as_running_a_nested_suite(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    (tmp_path / "test_prose.py").write_text(
+        "from shared import says\n"
+        "\n"
+        "def test_names_a_path_in_prose():\n"
+        "    says([], \"that a ported script's tests live in tests/py/test_<module>.py\")\n"
+        "    says([], 'the shell suite is tests/foo.test.sh')\n"
+    )
+
+    assert guard.offences(tmp_path) == []
