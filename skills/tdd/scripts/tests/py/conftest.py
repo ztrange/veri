@@ -153,6 +153,8 @@ def hermetic_environment(request, monkeypatch, tmp_path):
             monkeypatch.delenv(name)
         elif name == "LANG" or name.startswith("LC_"):
             monkeypatch.delenv(name)
+        elif name == "PYTEST_PLUGINS":
+            monkeypatch.delenv(name)
     if request.node.path.name in CWD_OUTSIDE_REPOSITORY:
         monkeypatch.chdir(tmp_path)
     elif ROOT in pathlib.Path.cwd().resolve().parents or pathlib.Path.cwd().resolve() == ROOT:

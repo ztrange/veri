@@ -1,6 +1,7 @@
-"""A pytest plugin the launcher loads: no case may reach a non-loopback address or start gh or curl."""
+"""A pytest plugin the launcher loads: no case may reach a non-loopback address or start a gh or curl it did not plant under its basetemp."""
 import ipaddress
 import os
+import shutil
 import socket
 import subprocess
 
@@ -14,8 +15,15 @@ def loopback(host):
         return False
 
 
+def faked(command, kwargs, basetemp):
+    env = kwargs.get("env") or os.environ
+    found = command if os.sep in command else shutil.which(command, path=env.get("PATH"))
+    return bool(found) and os.path.realpath(found).startswith(basetemp + os.sep)
+
+
 @pytest.fixture(autouse=True)
-def network_refusal(monkeypatch):
+def network_refusal(monkeypatch, tmp_path_factory):
+    basetemp = os.path.realpath(tmp_path_factory.getbasetemp())
     real_connect = socket.socket.connect
     real_popen = subprocess.Popen.__init__
 
@@ -30,7 +38,7 @@ def network_refusal(monkeypatch):
     def popen(self, args, *rest, **kwargs):
         words = [args] if isinstance(args, (str, bytes, os.PathLike)) else list(args)
         command = os.path.basename(os.fsdecode(words[0])) if words else ""
-        if command in ("gh", "curl"):
+        if command in ("gh", "curl") and not faked(os.fsdecode(words[0]), kwargs, basetemp):
             raise AssertionError("a case started %s; fake the call" % command)
         return real_popen(self, args, *rest, **kwargs)
 
