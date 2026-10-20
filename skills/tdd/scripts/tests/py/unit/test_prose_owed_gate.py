@@ -89,3 +89,17 @@ def test_prose_owed_sh_reads_a_nested_units_signature_from_the_skills_graded_fil
     code, out, err = run_cli(prose_owed, [str(tmp_path)])
 
     assert (code, out) == (0, ""), (code, out, err)
+
+
+def test_prose_owed_sh_prints_a_unit_listed_only_in_a_requirements_list_beside_it_with_no_graded_line_1911(tmp_path, run_cli):
+    import importlib
+
+    prose_owed = importlib.import_module("veri.prose_owed")
+    (tmp_path / "skills" / "demo").mkdir(parents=True)
+    (tmp_path / "skills" / "demo" / "SKILL.md").write_text("The widget is blue.\n")
+    (tmp_path / "skills" / "demo" / "REQUIREMENTS.md").write_text(
+        "## skills/demo/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+
+    code, out, err = run_cli(prose_owed, [str(tmp_path)])
+
+    assert (code, out.split()) == (1, ["skills/demo/SKILL.md"]), (code, out, err)
