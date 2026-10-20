@@ -633,3 +633,21 @@ def test_main_1862_prints_revise_when_superseded_lines_are_joined_by_a_wrong_tes
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
+
+
+def test_main_1865_prints_red_over_another_existing_case_a_wrong_test_line_says_contradicts_the_step_criterion(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    own, contradicting = "test_main_prices_a_turn_at_the_rates_of_its_model", "test_main_totals_an_invoice"
+    (suite / ("test_" + "ledger" + ".py")).write_text(
+        "def %s():\n    pass\n\ndef %s():\n    pass\n" % (own, contradicting))
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: %s contradicts the step's criterion, it asserts the opposite\n" % contradicting)
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red %s\n" % contradicting)
