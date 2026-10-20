@@ -93,8 +93,8 @@ PROMPTS = [
     ("1126337563 7293", "build-verify-prompt.sh", ["--fast-cmd", "make unit", "green", "{spec}", "t/x.test.sh", "case one"]),
     ("422231210 8319", "build-verify-prompt.sh", ["--fast-cmd", "make unit", "refactor", "{spec}", "t/x.test.sh", "0123456"]),
     ("80220979 7001", "build-verify-prompt.sh", ["pin", "{spec}", "t/x.test.sh", "case one"]),
-    ("1412382229 12143", "build-verify-prompt.sh", ["plan", "{spec}", "{ledger}"]),
-    ("1920502184 13264", "build-verify-prompt.sh", ["plan", "{refactor}", "{ledger}"]),
+    ("2734394304 12832", "build-verify-prompt.sh", ["plan", "{spec}", "{ledger}"]),
+    ("150996615 13953", "build-verify-prompt.sh", ["plan", "{refactor}", "{ledger}"]),
     ("861244543 5404", "build-verify-prompt.sh", ["rebase", "{spec}", "0123456", "89abcde"]),
     ("294442801 5090", "build-verify-prompt.sh", ["transform", "{spec}", "{reason}", "0123456"]),
 ]
