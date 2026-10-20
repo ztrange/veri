@@ -97,7 +97,10 @@ def check(row):
             raise died
         return "owed"
     if named(old, failed) and (passed > 0 or total == 1):
-        return "proven" if caught else "unproven"
+        if caught:
+            return "proven"
+        print(f"MISSING_TEST: {old}: no kept case fails when its mutation is applied", file=sys.stderr)
+        return "unproven"
     return "owed"
 
 

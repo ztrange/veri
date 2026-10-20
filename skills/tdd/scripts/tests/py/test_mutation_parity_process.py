@@ -111,3 +111,36 @@ def test_1501_pytest_suite_row_leaves_no_mutated_bytecode_and_unmutated_runs_rea
     assert (code, out.strip().endswith("proven"), leftover, after.stdout.strip()) == (0, True, [], "2"), (
         "exit=%s stdout=%r stderr=%r; bytecode left %r; module imported after the tool exits answers %r, want '2'"
         % (code, out, err, leftover, after.stdout.strip()))
+
+
+UNCAUGHT_SUITE = PYTEST_SUITE.replace("def test_kept():\n    assert gate.code() == 2", "def test_kept():\n    assert True")
+
+
+@pytest.mark.process("pytest and python3 started by pytest() and node_fails(), applying a mutation only the old case notices")
+def test_1808_unproven_row_names_the_old_case_on_stderr_as_a_missing_test_and_leaves_stdout_unchanged(tmp_path, monkeypatch, run_cli):
+    source = tmp_path / MODULE
+    source.parent.mkdir(parents=True)
+    source.write_text("def code():\n    return 2\n")
+    suite = tmp_path / "checks" / "test_gate.py"
+    suite.parent.mkdir()
+    suite.write_text(UNCAUGHT_SUITE)
+    mutated = source.read_text().replace("return 2", "return 1")
+    patch = tmp_path / "gate.patch"
+    patch.write_text("".join(difflib.unified_diff(
+        source.read_text().splitlines(True), mutated.splitlines(True), "a/" + MODULE, "b/" + MODULE)))
+    row = ["checks/test_gate.py", "checks/test_gate.py::test_old", "redundant",
+           "checks/test_gate.py::test_kept", str(patch)]
+    table = tmp_path / "pairs.tsv"
+    table.write_text("\t".join(row) + "\n")
+    importlib.invalidate_caches()
+    mutation_parity = importlib.import_module("veri.mutation_parity")
+    interpreter = tmp_path / "interp"
+    interpreter.write_text('#!/bin/sh\nexec "%s" "$@"\n' % mutation_parity.venv_python())
+    interpreter.chmod(0o755)
+    monkeypatch.setattr(mutation_parity, "venv_python", lambda: str(interpreter))
+
+    code, out, err = run_cli(mutation_parity, [str(table)], cwd=tmp_path)
+
+    want = "MISSING_TEST: checks/test_gate.py::test_old: no kept case fails when its mutation is applied\n"
+    assert (code, out, err) == (
+        1, "\t".join([row[1], row[3], row[4], "unproven"]) + "\n", want)
