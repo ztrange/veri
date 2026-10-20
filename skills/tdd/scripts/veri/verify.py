@@ -107,9 +107,12 @@ def unreadable_gitconfig(path, error):
 
 def save_diff(leaf, tree_before, tree_after):
     diff = git("diff", "--binary", "--no-ext-diff", "--no-textconv", "--no-color", tree_before, tree_after)
+    path = ".tdd/%s.diff" % leaf
+    if diff.returncode != 0:
+        _write(sys.stdout, "diff could not be saved to %s" % path)
+        return None
     if not diff.stdout:
         return None
-    path = ".tdd/%s.diff" % leaf
     try:
         with open(path, "wb") as saved:
             saved.write(diff.stdout)
