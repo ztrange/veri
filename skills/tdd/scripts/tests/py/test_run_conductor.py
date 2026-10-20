@@ -2879,3 +2879,24 @@ def test_cli_a_conductor_that_exits_0_with_a_result_ending_on_a_question_but_eve
 
     records = [json.loads(line) for line in events.read_text().splitlines()]
     assert (code, [r.get("event") for r in records]) == (0, [closing]), stderr
+
+
+@pytest.mark.process("a stub conductor script as CLAUDE_BIN printing a result record, and git archive and tar materialising the snapshot")
+def test_cli_a_conductor_that_exits_0_with_a_result_not_ending_on_a_question_and_events_ending_in_no_done_bail_or_stop_gets_a_needs_user_bail_appended_1866(
+        tmp_path, monkeypatch, run_cli):
+    skill, run_conductor, caller = skill_and_caller(tmp_path, monkeypatch, "run_conductor_needs_user_statement")
+    events = caller / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl"
+    stub = tmp_path / "exp-stub-conductor"
+    stub.write_text(
+        "#!/bin/sh\n"
+        "cat > /dev/null\n"
+        "mkdir -p .tdd/wt/4242/.tdd\n"
+        "printf '%s\\n' '{\"event\":\"phase-start\",\"ts\":1}' >> .tdd/wt/4242/.tdd/events.jsonl\n"
+        "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"result\":\"I will stop here and wait for you.\"}'\n")
+    stub.chmod(0o755)
+    monkeypatch.setenv("CLAUDE_BIN", str(stub))
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
+
+    records = [json.loads(line) for line in events.read_text().splitlines()]
+    assert (code, records[-1].get("event"), records[-1].get("cause")) == (0, "bail", "needs-user"), stderr
