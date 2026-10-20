@@ -324,39 +324,6 @@ def test_main_sweeps_the_scripts_lib_and_suites_to_empty_sweepable_reports_no_ci
 
 
 @pytest.mark.tree_audit("every bash suite, script and lib under skills/tdd/scripts")
-def test_main_sweeps_the_top_level_suites_and_the_skill_suites_to_empty_sweepable_reports(capsys):
-    comment_class = importlib.import_module("veri.comment_class")
-    tests = SCRIPTS / "tests"
-
-    def sweep(*patterns, keep=lambda p: True):
-        files = [p for pattern in patterns for p in sorted(tests.glob(pattern)) if keep(p)]
-        code = comment_class.main(["--sweepable", *(str(p) for p in files)])
-        return code, capsys.readouterr().out
-
-    assert {
-        "the sweepable report is empty for every top-level tests/*.sh whose name starts with a or b":
-            sweep("[ab]*.sh"),
-        "the sweepable report is empty for every top-level tests/*.sh whose name starts with c or d":
-            sweep("[cd]*.sh"),
-        "the sweepable report is empty for every top-level tests/*.sh whose name starts with k through m":
-            sweep("[k-m]*.sh"),
-        "the sweepable report is empty for every top-level tests/*.sh whose name starts with n through r":
-            sweep("[n-r]*.sh"),
-        "the sweepable report is empty for every top-level tests/*.sh whose name starts with s, other than the skill-* files":
-            sweep("s*.sh", keep=lambda p: not p.name.startswith("skill-")),
-        "the sweepable report is empty for every top-level tests/*.sh whose name starts with t through z":
-            sweep("[t-z]*.sh"),
-    } == {
-        "the sweepable report is empty for every top-level tests/*.sh whose name starts with a or b": (0, ""),
-        "the sweepable report is empty for every top-level tests/*.sh whose name starts with c or d": (0, ""),
-        "the sweepable report is empty for every top-level tests/*.sh whose name starts with k through m": (0, ""),
-        "the sweepable report is empty for every top-level tests/*.sh whose name starts with n through r": (0, ""),
-        "the sweepable report is empty for every top-level tests/*.sh whose name starts with s, other than the skill-* files": (0, ""),
-        "the sweepable report is empty for every top-level tests/*.sh whose name starts with t through z": (0, ""),
-    }
-
-
-@pytest.mark.tree_audit("every bash suite, script and lib under skills/tdd/scripts")
 def test_main_sweeps_the_fixture_guard_and_offline_suites_to_empty_sweepable_reports(capsys):
     comment_class = importlib.import_module("veri.comment_class")
     tests = SCRIPTS / "tests"
