@@ -133,8 +133,10 @@ def _event_log(work, n, text):
     (log / "events.jsonl").write_text(text)
 
 
-def _sigterm_ends_the_live_conductor(monkeypatch, supervisors, events=None):
+def _sigterm_ends_the_live_conductor(monkeypatch, supervisors, events=None, sent=None):
     def recording_kill(pid, sig):
+        if sent is not None:
+            sent.append((pid, sig))
         live = [s for s in supervisors if s.pid == pid and s.returncode is None]
         if not live:
             raise ProcessLookupError(pid)
@@ -155,8 +157,6 @@ def _exit_every_live_conductor(live):
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_an_assistant_event_the_conductor_writes_in_two_pieces_still_prints_one_context_line_for_the_whole_event(
         capsys, monkeypatch, tmp_path, parallel_conductors):
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     gh = tmp_path / "gh"
     gh.mkdir()
     (gh / "prs.json").write_text(json.dumps(
@@ -197,8 +197,6 @@ def test_an_assistant_event_the_conductor_writes_in_two_pieces_still_prints_one_
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_a_listing_with_no_labelled_open_issue_stops_with_nothing_solvable_and_returns_3(
         capsys, monkeypatch, tmp_path, parallel_conductors):
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     gh = tmp_path / "gh"
     gh.mkdir()
     (gh / "prs.json").write_text("[]")
@@ -222,8 +220,6 @@ def test_a_listing_with_no_labelled_open_issue_stops_with_nothing_solvable_and_r
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_a_failing_removal_of_the_run_s_scratch_directory_at_exit_returns_2_and_leaves_parallel_exit_holding_the_code_written_before_it(
         capsys, monkeypatch, tmp_path, parallel_conductors):
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     gh = tmp_path / "gh"
     gh.mkdir()
     (gh / "prs.json").write_text("[]")
@@ -273,8 +269,6 @@ def test_a_failing_removal_of_the_run_s_scratch_directory_at_exit_returns_2_and_
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_tunables_are_validated_in_order_naming_only_the_first_bad_one_and_a_refusal_returns_2_before_the_listing_is_read(
         env, refusal, capsys, monkeypatch, tmp_path, parallel_conductors):
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     for name, value in env.items():
         monkeypatch.setenv(name, value)
     gh = tmp_path / "gh"
@@ -315,8 +309,6 @@ def test_tunables_are_validated_in_order_naming_only_the_first_bad_one_and_a_ref
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_the_exclude_gains_tdd_once_as_a_whole_line_before_any_tunable_is_validated_and_git_failing_returns_2_with_no_parallel_exit(
         env, info, before, git_status, code, after, capsys, monkeypatch, tmp_path, parallel_conductors):
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     for name, value in env.items():
         monkeypatch.setenv(name, value)
     gh = tmp_path / "gh"
@@ -375,8 +367,6 @@ def test_the_exclude_gains_tdd_once_as_a_whole_line_before_any_tunable_is_valida
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_each_issue_launches_as_supervise_env_run_conductor_with_the_caller_s_four_tunables_as_words_and_the_run_timeout_in_supervise_s_environment(
         env, words, run_timeout, capsys, monkeypatch, tmp_path, parallel_conductors):
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     for name, value in env.items():
         monkeypatch.setenv(name, value)
     gh = tmp_path / "gh"
@@ -438,8 +428,6 @@ def test_each_issue_launches_as_supervise_env_run_conductor_with_the_caller_s_fo
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_slots_fill_from_a_fresh_solvable_issues_answer_up_to_the_cap_and_the_exit_code_ranks_plumbing_failure_nothing_launched_then_done(
         env, answers, exits, launched, slots, stopped, code, capsys, monkeypatch, tmp_path, parallel_conductors):
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     for name, value in env.items():
         monkeypatch.setenv(name, value)
     gh = tmp_path / "gh"
@@ -484,8 +472,6 @@ def test_slots_fill_from_a_fresh_solvable_issues_answer_up_to_the_cap_and_the_ex
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_a_user_line_after_the_step_done_call_stops_a_conductor_over_the_context_budget_and_relaunches_it_past_the_cap(
         budget, kills, launched, restarted, capsys, monkeypatch, tmp_path, parallel_conductors):
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", budget)
     monkeypatch.setenv("VERI_MAX_ISSUES", "1")
     gh = tmp_path / "gh"
@@ -528,15 +514,7 @@ def test_a_user_line_after_the_step_done_call_stops_a_conductor_over_the_context
     supervisors = _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n8\n"))
     sent = []
 
-    def recording_kill(pid, sig):
-        sent.append((pid, sig))
-        live = [s for s in supervisors if s.pid == pid and s.returncode is None]
-        if not live:
-            raise ProcessLookupError(pid)
-        if sig == signal.SIGTERM:
-            live[0].exit(143)
-
-    monkeypatch.setattr(os, "kill", recording_kill)
+    _sigterm_ends_the_live_conductor(monkeypatch, supervisors, sent=sent)
 
     code = parallel_conductors.main([])
     out, _ = capsys.readouterr()
@@ -554,8 +532,6 @@ def test_a_user_line_after_the_step_done_call_stops_a_conductor_over_the_context
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_veri_max_issues_with_a_leading_zero_is_read_as_bash_s_bare_arithmetic_reads_it(
         max_issues, launched, code, capsys, monkeypatch, tmp_path, parallel_conductors):
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("VERI_PARALLEL", "20")
     monkeypatch.setenv("VERI_MAX_ISSUES", max_issues)
     gh = tmp_path / "gh"
@@ -593,8 +569,6 @@ def test_veri_max_issues_with_a_leading_zero_is_read_as_bash_s_bare_arithmetic_r
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_veri_conductor_ctx_budget_with_a_leading_zero_is_read_as_bash_s_bare_arithmetic_reads_it(
         budget, kills, launched, restarted, contexts, capsys, monkeypatch, tmp_path, parallel_conductors):
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", budget)
     monkeypatch.setenv("VERI_MAX_ISSUES", "1")
     gh = tmp_path / "gh"
@@ -637,15 +611,7 @@ def test_veri_conductor_ctx_budget_with_a_leading_zero_is_read_as_bash_s_bare_ar
     supervisors = _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n8\n"))
     sent = []
 
-    def recording_kill(pid, sig):
-        sent.append((pid, sig))
-        live = [s for s in supervisors if s.pid == pid and s.returncode is None]
-        if not live:
-            raise ProcessLookupError(pid)
-        if sig == signal.SIGTERM:
-            live[0].exit(143)
-
-    monkeypatch.setattr(os, "kill", recording_kill)
+    _sigterm_ends_the_live_conductor(monkeypatch, supervisors, sent=sent)
 
     code = parallel_conductors.main([])
     out, err = capsys.readouterr()
@@ -666,8 +632,6 @@ def test_veri_conductor_ctx_budget_with_a_leading_zero_is_read_as_bash_s_bare_ar
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_veri_conductor_ctx_budget_of_100000_or_unset_stops_a_conductor_exactly_when_its_context_is_over_it_1127(
         budget, read, kills, launched, restarted, contexts, capsys, monkeypatch, tmp_path, parallel_conductors):
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     if budget is not None:
         monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", budget)
     monkeypatch.setenv("VERI_MAX_ISSUES", "1")
@@ -711,15 +675,7 @@ def test_veri_conductor_ctx_budget_of_100000_or_unset_stops_a_conductor_exactly_
     supervisors = _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n8\n"))
     sent = []
 
-    def recording_kill(pid, sig):
-        sent.append((pid, sig))
-        live = [s for s in supervisors if s.pid == pid and s.returncode is None]
-        if not live:
-            raise ProcessLookupError(pid)
-        if sig == signal.SIGTERM:
-            live[0].exit(143)
-
-    monkeypatch.setattr(os, "kill", recording_kill)
+    _sigterm_ends_the_live_conductor(monkeypatch, supervisors, sent=sent)
 
     code = parallel_conductors.main([])
     out, err = capsys.readouterr()
@@ -733,8 +689,6 @@ def test_veri_conductor_ctx_budget_of_100000_or_unset_stops_a_conductor_exactly_
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_the_report_prints_one_line_per_issue_in_launch_order_killed_ahead_of_any_pr_parked_never_then_the_first_open_pr_closing_it_done_or_bailed(
         capsys, monkeypatch, tmp_path, parallel_conductors):
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("VERI_RUN_TIMEOUT", "60")
     gh = tmp_path / "gh"
     gh.mkdir()
@@ -793,8 +747,6 @@ def test_the_report_prints_one_line_per_issue_in_launch_order_killed_ahead_of_an
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_the_cli_reports_a_ready_pr_done_a_draft_ending_in_a_bail_bailed_a_draft_not_ending_in_one_never_bailed_and_a_supervisor_exit_2_killed_one_line_each_in_launch_order_then_what_stopped_the_loop(
         monkeypatch, tmp_path, parallel_conductors, run_cli):
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     gh = tmp_path / "gh"
     gh.mkdir()
     (gh / "prs.json").write_text(json.dumps([
@@ -829,8 +781,6 @@ def test_the_cli_reports_a_ready_pr_done_a_draft_ending_in_a_bail_bailed_a_draft
 @pytest.mark.process("a faked supervise.sh over a VERI_GH_JSON listing, with the start of solvable-issues.sh refused")
 def test_the_full_answer_is_the_same_when_starting_solvable_issues_sh_as_a_process_is_refused(
         monkeypatch, tmp_path, parallel_conductors, run_cli):
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     gh = tmp_path / "gh"
     gh.mkdir()
     (gh / "prs.json").write_text(json.dumps([
@@ -1029,8 +979,6 @@ def test_a_finished_sweep_in_launch_order_restarts_past_a_stop_prints_parked_alo
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_the_log_is_followed_as_bytes_waiting_veri_poll_seconds_for_it_joining_a_partial_line_reading_once_after_supervise_dies_and_dropping_an_unterminated_last_line(
         capsys, monkeypatch, tmp_path, parallel_conductors):
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("VERI_POLL", "3")
     gh = tmp_path / "gh"
     gh.mkdir()
@@ -1082,8 +1030,6 @@ def test_the_log_is_followed_as_bytes_waiting_veri_poll_seconds_for_it_joining_a
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_a_stopped_conductor_s_context_is_no_longer_watched_and_the_conductor_beside_it_is_never_stopped(
         capsys, monkeypatch, tmp_path, parallel_conductors):
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("VERI_PARALLEL", "2")
     monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", "50")
     gh = tmp_path / "gh"
@@ -1130,12 +1076,7 @@ def test_a_stopped_conductor_s_context_is_no_longer_watched_and_the_conductor_be
     supervisors = _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n8\n"))
     sent = []
 
-    def recording_kill(pid, sig):
-        sent.append((pid, sig))
-        if not [s for s in supervisors if s.pid == pid and s.returncode is None]:
-            raise ProcessLookupError(pid)
-
-    monkeypatch.setattr(os, "kill", recording_kill)
+    _sigterm_ends_the_live_conductor(monkeypatch, supervisors, sent=sent)
 
     code = parallel_conductors.main([])
     out, _ = capsys.readouterr()
@@ -1197,8 +1138,6 @@ def test_the_schedule_launches_one_conductor_at_a_time_in_the_queue_s_printed_or
 
     seen = []
     for cap in ("3", None):
-        for name in TUNABLES:
-            monkeypatch.delenv(name, raising=False)
         env = {}
         if cap:
             env["VERI_MAX_ISSUES"] = cap
@@ -1233,8 +1172,6 @@ def test_with_veri_parallel_1_it_exits_0_once_nothing_is_left_to_take_after_laun
             (work / ".tdd" / "parked" / ("%s.md" % n)).write_text("Which test command should this run use?\n")
 
     _boundaries(monkeypatch, tmp_path, on_launch, _exit_every_live_conductor, solvable=(0, "7\n8\n"))
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     code, out, err = run_cli(parallel_conductors, [], env={"VERI_PARALLEL": "1", "VERI_GH_JSON": str(gh)}, cwd=work)
     assert (code, numbers, [line for line in out.splitlines() if line.startswith(("parked ", "stopped: "))]) == (
         0, ["7", "8"],
@@ -1252,8 +1189,6 @@ def test_veri_parallel_2_starts_two_solvable_issues_conductors_before_either_end
         starts.append((sup.args[-1], sorted(s.args[-1] for s in supervisors if s is not sup and s.returncode is None)))
 
     supervisors = _boundaries(monkeypatch, tmp_path, on_launch, _exit_every_live_conductor, solvable=(0, "7\n8\n"))
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     code, out, err = run_cli(parallel_conductors, [], env={"VERI_PARALLEL": "2", "VERI_GH_JSON": str(gh)}, cwd=work)
     assert (code, starts) == (0, [("7", []), ("8", ["7"])])
 
@@ -1274,8 +1209,6 @@ def test_veri_parallel_2_prints_each_conductor_s_assistant_events_as_context_iss
         (work / ".tdd" / ("conductor-%s.log" % n)).write_text(events[n] + user)
 
     _boundaries(monkeypatch, tmp_path, on_launch, _exit_every_live_conductor, solvable=(0, "7\n8\n"))
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     code, out, err = run_cli(parallel_conductors, [], env={"VERI_PARALLEL": "2", "VERI_GH_JSON": str(gh)}, cwd=work)
     assert sorted(line for line in out.splitlines() if line.startswith("context ")) == [
         "context 7 53438", "context 8 62000"]
@@ -1326,8 +1259,6 @@ def test_a_conductor_over_veri_conductor_ctx_budget_is_stopped_only_once_its_ste
     supervisors = _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n8\n"))
 
     _sigterm_ends_the_live_conductor(monkeypatch, supervisors, events_seen)
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     code, out, err = run_cli(parallel_conductors, [],
                              env=dict(env, VERI_PARALLEL="2", VERI_GH_JSON=str(gh)), cwd=work)
     assert (kills_before_result, events_seen, launches) == ([], events, launched)
@@ -1360,8 +1291,6 @@ def test_a_conductor_stopped_over_veri_conductor_ctx_budget_is_launched_again_fo
     supervisors = _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n8\n"))
 
     _sigterm_ends_the_live_conductor(monkeypatch, supervisors)
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     code, out, err = run_cli(parallel_conductors, [],
                              env={"VERI_CONDUCTOR_CTX_BUDGET": "100000", "VERI_GH_JSON": str(gh)}, cwd=work)
     assert (launches, [line for line in out.splitlines() if line.startswith("restarted ")]) == (
@@ -1413,8 +1342,6 @@ def test_with_veri_parallel_1_a_conductor_over_the_context_budget_is_stopped_onl
         return faked_popen(args, *rest, **kwargs)
 
     monkeypatch.setattr(subprocess, "Popen", recording_popen)
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     code, out, err = run_cli(parallel_conductors, [], env={
         "VERI_PARALLEL": "1", "VERI_CONDUCTOR_CTX_BUDGET": "100000", "VERI_RUN_TIMEOUT": "60",
         "VERI_HEARTBEAT": "111", "VERI_POLL": "0.05", "VERI_STUCK_RETRIES": "3", "VERI_GH_JSON": str(gh)}, cwd=work)
@@ -1586,8 +1513,6 @@ def test_a_launch_in_a_real_repository_leaves_its_git_status_empty_keeps_its_exc
     gh, _ = _gh_and_work(tmp_path)
     (gh / "issues.json").write_text(json.dumps([{
         "number": 7, "title": "issue 7", "labels": [{"name": "ready-for-agent"}], "state": "OPEN", "body": ""}]))
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
 
     ran = []
     real_popen = subprocess.Popen
@@ -1722,8 +1647,6 @@ def test_scope_loop_documents_veri_parallel_at_1_rung_2_unchanged_above_1_parall
 
 def test_a_resumed_conductor_launch_keeps_the_earlier_session_s_log_while_its_context_watch_reads_only_the_new_session(
         capsys, monkeypatch, tmp_path, parallel_conductors):
-    for name in TUNABLES:
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.chdir(tmp_path)
     log = tmp_path / ".tdd" / "conductor-7.log"
     log.parent.mkdir()
