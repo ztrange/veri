@@ -14,6 +14,11 @@ import pytest
 
 from conftest import SCRIPTS
 
+@pytest.fixture(autouse=True)
+def no_ambient_leaf_args(monkeypatch):
+    monkeypatch.delenv("VERIFY_LEAF_ARGS", raising=False)
+
+
 USAGE = (b"usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file>"
          b" <test-path> [<target-test-id>]")
 
@@ -142,9 +147,7 @@ def test_main_launches_the_verifier_leaf_through_supervise_with_the_default_flag
         leaf_args, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
-    if leaf_args is None:
-        monkeypatch.delenv("VERIFY_LEAF_ARGS", raising=False)
-    else:
+    if leaf_args is not None:
         monkeypatch.setenv("VERIFY_LEAF_ARGS", leaf_args)
     started = []
 
@@ -192,8 +195,6 @@ def test_main_reads_the_verdict_from_supervises_stdout_and_prints_the_whole_reas
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_ISSUE", "VERI_STEP", "VERI_NO_VERDICT_RETRIES"):
-        monkeypatch.delenv(name, raising=False)
 
     def fake(args, *_, **__):
         name = os.path.basename(str(args[0]))
@@ -216,8 +217,6 @@ def test_main_drops_nul_bytes_from_the_leafs_output_so_a_verdict_carrying_them_i
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_ISSUE", "VERI_STEP", "VERI_NO_VERDICT_RETRIES"):
-        monkeypatch.delenv(name, raising=False)
 
     def fake(args, *_, **__):
         name = os.path.basename(str(args[0]))
@@ -247,8 +246,6 @@ def test_main_appends_one_verdict_record_with_the_verdict_word_and_the_reasons_f
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_NO_VERDICT_RETRIES"):
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("VERI_ISSUE", "931")
     monkeypatch.setenv("VERI_STEP", "5")
 
@@ -275,9 +272,6 @@ def test_main_launches_the_leaf_with_verify_leaf_args_words_split_on_whitespace_
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_MODEL_DEVELOPER",
-                 "VERI_ISSUE", "VERI_STEP", "VERI_NO_VERDICT_RETRIES"):
-        monkeypatch.delenv(name, raising=False)
     for name in ("b.flag", "a.flag", "c.other"):
         (tmp_path / name).write_text("")
     monkeypatch.setenv("VERIFY_LEAF_ARGS", "--one two\t*.flag\n nomatch-*.zz  --three")
@@ -325,14 +319,9 @@ def test_main_refuses_a_literal_model_word_in_verify_leaf_args_beside_a_resolved
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_MODEL_DEVELOPER",
-                 "VERI_ISSUE", "VERI_STEP", "VERI_NO_VERDICT_RETRIES"):
-        monkeypatch.delenv(name, raising=False)
     for name, value in models.items():
         monkeypatch.setenv(name, value)
-    if leaf_args is None:
-        monkeypatch.delenv("VERIFY_LEAF_ARGS", raising=False)
-    else:
+    if leaf_args is not None:
         monkeypatch.setenv("VERIFY_LEAF_ARGS", leaf_args)
     started = []
 
@@ -365,9 +354,6 @@ def test_main_lets_a_literal_model_word_in_verify_leaf_args_stand_when_no_model_
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_MODEL_DEVELOPER", "VERI_MODEL_REVISE",
-                 "VERI_ISSUE", "VERI_STEP", "VERI_NO_VERDICT_RETRIES"):
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("VERIFY_LEAF_ARGS", "--model x")
     supervised = []
 
@@ -394,9 +380,6 @@ def test_main_still_refuses_a_literal_model_word_in_verify_leaf_args_when_veri_m
         tmp_path, monkeypatch, capfdbinary):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_REVISE",
-                 "VERI_ISSUE", "VERI_STEP", "VERI_NO_VERDICT_RETRIES"):
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("VERI_MODEL_VERIFIER", "opus")
     monkeypatch.setenv("VERIFY_LEAF_ARGS", "--model x")
     started = []
@@ -424,8 +407,6 @@ def test_main_returns_2_on_a_killed_stuck_leaf_with_no_tamper_check_event_or_pre
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER"):
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("VERI_ISSUE", "931")
     monkeypatch.setenv("VERI_STEP", "7")
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
@@ -484,11 +465,7 @@ def test_main_relaunches_a_leaf_with_no_verdict_line_up_to_the_no_verdict_budget
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_ISSUE", "VERI_STEP", "VERI_MODEL", "VERI_MODEL_VERIFIER"):
-        monkeypatch.delenv(name, raising=False)
-    if retries is None:
-        monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
-    else:
+    if retries is not None:
         monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", retries)
     supervised = []
 
@@ -518,9 +495,6 @@ def test_main_returns_2_when_the_relaunch_record_cannot_be_appended_and_makes_no
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_ISSUE", "VERI_STEP", "VERI_MODEL", "VERI_MODEL_VERIFIER",
-                 "VERI_NO_VERDICT_RETRIES"):
-        monkeypatch.delenv(name, raising=False)
     events.unappendable()
     supervised = []
 
@@ -549,8 +523,6 @@ def test_main_returns_2_when_the_verdict_record_cannot_be_appended_with_no_prese
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES"):
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("VERI_ISSUE", "931")
     monkeypatch.setenv("VERI_STEP", "7")
     events.unappendable()
@@ -586,8 +558,6 @@ def test_main_reads_an_empty_no_verdict_budget_as_1_and_a_leading_zero_as_octal_
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_ISSUE", "VERI_STEP", "VERI_MODEL", "VERI_MODEL_VERIFIER"):
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", retries)
     supervised = []
 
@@ -613,8 +583,6 @@ def test_main_copies_parse_verdicts_stderr_to_its_own_stderr_after_every_launch_
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_ISSUE", "VERI_STEP", "VERI_MODEL", "VERI_MODEL_VERIFIER"):
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "2")
     leaf_outs = [NO_VERDICT, NO_VERDICT, b"VERDICT: MAYBE\nundecided\n"]
     supervised = []
@@ -645,8 +613,6 @@ def test_main_refuses_a_no_verdict_budget_that_is_not_a_non_negative_integer_aft
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_ISSUE", "VERI_STEP", "VERI_MODEL", "VERI_MODEL_VERIFIER"):
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", retries)
     launched = []
 
@@ -677,8 +643,6 @@ def test_main_snapshots_the_tree_through_a_temporary_index_and_head_around_the_l
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES"):
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("VERI_ISSUE", "7")
     monkeypatch.setenv("VERI_STEP", "2")
     trees = [b"a" * 40 + b"\n", b"b" * 40 + b"\n"]
@@ -747,9 +711,6 @@ def test_main_takes_a_git_call_that_fails_as_no_snapshot_or_no_change_whatever_i
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
-                 "VERI_ISSUE", "VERI_STEP"):
-        monkeypatch.delenv(name, raising=False)
     trees = [b"a" * 40 + b"\n", b"b" * 40 + b"\n"]
     verbs = []
 
@@ -794,9 +755,6 @@ def test_main_restores_a_modified_tree_through_a_fresh_temporary_index_and_a_mov
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
-                 "VERI_ISSUE", "VERI_STEP"):
-        monkeypatch.delenv(name, raising=False)
     trees = [b"a" * 40 + b"\n", b"b" * 40 + b"\n"]
     heads = [b"1" * 40 + b"\n", (b"2" if head_moved else b"1") * 40 + b"\n"]
     verbs = []
@@ -850,9 +808,6 @@ def test_main_runs_the_tamper_check_after_a_relaunchs_launch_and_refuses_a_relau
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
-                 "VERI_ISSUE", "VERI_STEP"):
-        monkeypatch.delenv(name, raising=False)
     trees = [b"a" * 40 + b"\n", b"a" * 40 + b"\n", b"b" * 40 + b"\n"]
     leaf_outs = [b"no verdict here\n", b"VERDICT: PASS\nfine\n"]
     supervised = []
@@ -900,8 +855,6 @@ def test_main_outside_a_repository_without_git_or_with_a_failing_add_takes_no_sn
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES"):
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("VERI_ISSUE", "7")
     monkeypatch.setenv("VERI_STEP", "2")
     verbs = []
@@ -951,9 +904,6 @@ def test_main_in_a_repository_with_no_commit_reports_a_leaf_that_commits_as_head
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
-                 "VERI_ISSUE", "VERI_STEP"):
-        monkeypatch.delenv(name, raising=False)
     heads = [subprocess.CompletedProcess([], 128, b"", b"fatal: Needed a single revision\n"),
              subprocess.CompletedProcess([], 0, b"2" * 40 + b"\n", b"")]
     reads = []
@@ -996,9 +946,6 @@ def test_main_returns_2_with_no_traceback_when_the_update_ref_restoring_head_fai
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
-                 "VERI_ISSUE", "VERI_STEP"):
-        monkeypatch.delenv(name, raising=False)
     trees = [b"a" * 40 + b"\n", b"b" * 40 + b"\n"]
     heads = [b"1" * 40 + b"\n", b"2" * 40 + b"\n"]
     verbs = []
@@ -1040,9 +987,6 @@ def test_main_returns_2_not_1_when_the_update_ref_restoring_head_exits_1_1183(
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
-                 "VERI_ISSUE", "VERI_STEP"):
-        monkeypatch.delenv(name, raising=False)
     trees = [b"a" * 40 + b"\n", b"b" * 40 + b"\n"]
     heads = [b"1" * 40 + b"\n", b"2" * 40 + b"\n"]
     verbs = []
@@ -1084,9 +1028,6 @@ def test_main_returns_2_with_no_traceback_when_git_cannot_be_started_to_restore_
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
-                 "VERI_ISSUE", "VERI_STEP"):
-        monkeypatch.delenv(name, raising=False)
     trees = [b"a" * 40 + b"\n", b"b" * 40 + b"\n"]
     heads = [b"1" * 40 + b"\n", b"2" * 40 + b"\n"]
     verbs = []
@@ -1141,8 +1082,6 @@ def test_main_returns_2_naming_home_gitconfig_when_the_leaf_changed_created_or_d
     gitconfig = home / ".gitconfig"
     if before is not None:
         gitconfig.write_bytes(before)
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES"):
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("VERI_ISSUE", "931")
     monkeypatch.setenv("VERI_STEP", "7")
     started = []
@@ -1190,9 +1129,6 @@ def test_main_reports_a_leaf_that_changed_both_the_repository_and_home_gitconfig
     monkeypatch.setenv("HOME", str(home))
     gitconfig = home / ".gitconfig"
     gitconfig.write_bytes(b"[user]\n\tname = op\n")
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
-                 "VERI_ISSUE", "VERI_STEP"):
-        monkeypatch.delenv(name, raising=False)
     trees = [b"a" * 40 + b"\n", b"b" * 40 + b"\n"]
     writes = []
 
@@ -1240,9 +1176,6 @@ def test_main_returns_2_before_any_leaf_launches_when_reading_home_gitconfig_a_r
     monkeypatch.setenv("HOME", str(home))
     gitconfig = home / ".gitconfig"
     gitconfig.write_bytes(b"[user]\n\tname = op\n")
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
-                 "VERI_ISSUE", "VERI_STEP"):
-        monkeypatch.delenv(name, raising=False)
     launched = []
 
     def fake(args, *_, **__):
@@ -1282,9 +1215,6 @@ def test_main_returning_2_because_reading_home_gitconfig_raised_oserror_names_th
     monkeypatch.setenv("HOME", str(home))
     gitconfig = home / ".gitconfig"
     gitconfig.write_bytes(b"[user]\n\tname = op\n")
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
-                 "VERI_ISSUE", "VERI_STEP"):
-        monkeypatch.delenv(name, raising=False)
 
     def fake(args, *_, **__):
         return subprocess.CompletedProcess(args, 0, b"", b"")
@@ -1319,9 +1249,6 @@ def test_main_returns_2_naming_home_gitconfig_on_stderr_without_launching_a_leaf
     monkeypatch.setenv("HOME", str(home))
     gitconfig = home / ".gitconfig"
     gitconfig.mkdir()
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
-                 "VERI_ISSUE", "VERI_STEP"):
-        monkeypatch.delenv(name, raising=False)
     launched = []
 
     def fake(args, *_, **__):
@@ -1354,9 +1281,6 @@ def test_main_returns_2_naming_home_gitconfig_on_stderr_when_the_leaf_left_it_a_
     monkeypatch.setenv("HOME", str(home))
     gitconfig = home / ".gitconfig"
     gitconfig.write_bytes(b"[user]\n\tname = op\n")
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
-                 "VERI_ISSUE", "VERI_STEP"):
-        monkeypatch.delenv(name, raising=False)
 
     def fake(args, *_, **__):
         words = [str(a) for a in args]
@@ -1393,9 +1317,6 @@ def test_main_returns_2_naming_home_gitconfig_on_stderr_when_the_leaf_left_it_un
     monkeypatch.setenv("HOME", str(home))
     gitconfig = home / ".gitconfig"
     gitconfig.write_bytes(b"[user]\n\tname = op\n")
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
-                 "VERI_ISSUE", "VERI_STEP"):
-        monkeypatch.delenv(name, raising=False)
     leaf_ran = []
 
     def fake(args, *_, **__):
@@ -1446,8 +1367,6 @@ def test_main_preserves_a_reject_malformed_or_no_verdict_attempt_under_its_attem
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER"):
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("VERI_ISSUE", issue)
     monkeypatch.setenv("VERI_STEP", step)
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
@@ -1501,9 +1420,6 @@ def test_main_writes_every_line_it_prints_the_em_dash_in_its_refusals_included_a
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("LC_ALL", "C")
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
-                 "VERI_NO_VERDICT_RETRIES"):
-        monkeypatch.delenv(name, raising=False)
     answer = {}
 
     def fake(args, *_, **__):
@@ -1518,18 +1434,17 @@ def test_main_writes_every_line_it_prints_the_em_dash_in_its_refusals_included_a
 
     def run(code, out, env):
         answer.update(code=code, out=out)
-        for variable, value in env.items():
-            monkeypatch.setenv(variable, value)
         stdout, stderr = io.BytesIO(), io.BytesIO()
-        monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(stdout, encoding="ascii", write_through=True))
-        monkeypatch.setattr(sys, "stderr", io.TextIOWrapper(stderr, encoding="ascii", write_through=True))
-        try:
-            status = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
-        except Exception as error:
-            status = type(error).__name__
-        for variable in env:
-            monkeypatch.delenv(variable)
-        return status, stdout.getvalue(), stderr.getvalue()
+        with monkeypatch.context() as scoped:
+            for variable, value in env.items():
+                scoped.setenv(variable, value)
+            scoped.setattr(sys, "stdout", io.TextIOWrapper(stdout, encoding="ascii", write_through=True))
+            scoped.setattr(sys, "stderr", io.TextIOWrapper(stderr, encoding="ascii", write_through=True))
+            try:
+                status = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+            except Exception as error:
+                status = type(error).__name__
+            return status, stdout.getvalue(), stderr.getvalue()
 
     seen = [run(2, b"", {}),
             run(0, b"", {"VERIFY_LEAF_ARGS": "--model x", "VERI_MODEL_VERIFIER": "sonnet"}),
@@ -1581,9 +1496,6 @@ HUNG = pytest.mark.process("a hung verifier leaf killed by the real supervise.sh
 ])
 def test_verify_sh_passes_the_blind_prompt_carrying_the_spec_to_the_leaf_and_a_hung_leaf_runs_once_killed_stuck_with_exit_2(
         leaf, ambient, run_cli, tmp_path, monkeypatch):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
-                 "VERI_NO_VERDICT_RETRIES", "VERI_HEARTBEAT", "VERI_AWAKE_CLOCK"):
-        monkeypatch.delenv(name, raising=False)
     if ambient is not None:
         monkeypatch.setenv("VERI_STUCK_RETRIES", ambient)
     (tmp_path / "spec.md").write_text(SPEC)
@@ -1659,9 +1571,6 @@ KILLED = (2, KILLED_OUT, "", 1, [])
 ])
 def test_verify_sh_reads_the_newest_verdict_across_result_records_and_relaunches_only_a_clean_no_verdict_exit_within_its_own_budget_marking_it_no_verdict(
         env, leaf_outs, supervise_code, expected, run_cli, tmp_path, monkeypatch, events):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
-                 "VERI_NO_VERDICT_RETRIES", "VERI_STUCK_RETRIES"):
-        monkeypatch.delenv(name, raising=False)
     write_inputs(tmp_path)
     extract = importlib.import_module("veri.extract_result").extract
     stuck_seen = []
@@ -1703,9 +1612,6 @@ AMBIENT_STEP = "AMBIENT-STEP-must-not-appear"
 ])
 def test_verify_sh_hands_every_launch_the_builders_own_prompt_for_its_arguments_carrying_base_sha_and_step_flag_not_ambient_veri_step_with_no_unfilled_placeholder(
         flags, phase, fourth, leaf_out, expected_code, launches, present, absent, run_cli, tmp_path, monkeypatch):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE",
-                 "VERI_NO_VERDICT_RETRIES", "VERI_STUCK_RETRIES"):
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("VERI_STEP", AMBIENT_STEP)
     (tmp_path / "spec.md").write_text(SPEC)
     argv = [*flags, phase, str(tmp_path / "spec.md"), "tests/test_slugify.py", fourth]
@@ -1731,10 +1637,6 @@ def git_state(repo):
 
 
 def tamper_scratch(tmp_path, monkeypatch, gitignore, tracked):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
-                 "VERI_NO_VERDICT_RETRIES", "VERI_HEARTBEAT", "VERI_AWAKE_CLOCK", "VERI_STUCK_RETRIES",
-                 "VERI_TIMEOUT"):
-        monkeypatch.delenv(name, raising=False)
     repo = tmp_path / "repo"
     subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
@@ -1961,9 +1863,6 @@ STEP_VALUE = "verify: --step needs a value"
 ])
 def test_verify_sh_and_run_verdict_sh_answer_a_rebase_or_diff_verdict_from_one_leaf_named_for_the_phase_and_refuse_a_bad_step_sha_or_extra_argument_with_exit_2_the_named_checks_message_first_and_no_leaf(
         entry, argv, leaf_out, expected, run_cli, tmp_path, monkeypatch):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
-                 "VERI_NO_VERDICT_RETRIES", "VERI_STUCK_RETRIES"):
-        monkeypatch.delenv(name, raising=False)
     (tmp_path / "spec.md").write_text(SPEC)
     argv = [word.format(spec=tmp_path / "spec.md") for word in argv]
     verify = importlib.import_module("veri.verify")
@@ -1989,9 +1888,6 @@ def test_verify_sh_and_run_verdict_sh_answer_a_rebase_or_diff_verdict_from_one_l
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
 def test_verify_sh_diff_exits_1_without_launching_the_leaf_naming_the_pytest_case_a_step_deleted_that_an_earlier_step_added_1486(
         run_cli, tmp_path, monkeypatch):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
-                 "VERI_NO_VERDICT_RETRIES", "VERI_STUCK_RETRIES", "VERI_TIMEOUT"):
-        monkeypatch.delenv(name, raising=False)
     repo = tmp_path / "repo"
     subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
@@ -2031,9 +1927,6 @@ def test_verify_sh_diff_exits_1_without_launching_the_leaf_naming_the_pytest_cas
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
 def test_verify_sh_diff_still_launches_the_leaf_for_a_pytest_case_an_earlier_step_added_and_this_step_moved_to_another_file_under_the_same_name_1486(
         run_cli, tmp_path, monkeypatch):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
-                 "VERI_NO_VERDICT_RETRIES", "VERI_STUCK_RETRIES", "VERI_TIMEOUT"):
-        monkeypatch.delenv(name, raising=False)
     repo = tmp_path / "repo"
     subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
@@ -2076,9 +1969,6 @@ def test_verify_sh_diff_still_launches_the_leaf_for_a_pytest_case_an_earlier_ste
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
 def test_verify_sh_diff_exits_2_without_launching_the_leaf_when_the_step_base_sha_does_not_resolve_1486(
         run_cli, tmp_path, monkeypatch):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
-                 "VERI_NO_VERDICT_RETRIES", "VERI_STUCK_RETRIES", "VERI_TIMEOUT"):
-        monkeypatch.delenv(name, raising=False)
     repo = tmp_path / "repo"
     subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
@@ -2108,9 +1998,6 @@ def test_verify_sh_diff_exits_2_without_launching_the_leaf_when_the_step_base_sh
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
 def test_verify_sh_diff_still_launches_the_leaf_and_returns_its_verdict_when_the_step_deletes_only_a_pytest_case_that_existed_at_the_branch_base_1486(
         run_cli, tmp_path, monkeypatch):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
-                 "VERI_NO_VERDICT_RETRIES", "VERI_STUCK_RETRIES", "VERI_TIMEOUT"):
-        monkeypatch.delenv(name, raising=False)
     repo = tmp_path / "repo"
     subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
@@ -2150,9 +2037,6 @@ def test_verify_sh_diff_still_launches_the_leaf_and_returns_its_verdict_when_the
 @pytest.mark.process("a real supervise.sh and run-leaf.sh around a stub claude that answers VERDICT: PASS")
 def test_verify_sh_green_rejects_a_pass_on_a_replaces_case_step_naming_each_case_its_suite_still_holds_1507(
         run_cli, tmp_path, monkeypatch):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
-                 "VERI_NO_VERDICT_RETRIES", "VERI_STUCK_RETRIES", "VERI_TIMEOUT"):
-        monkeypatch.delenv(name, raising=False)
     write_inputs(tmp_path)
     (tmp_path / "tests" / "demo.test.sh").write_text('verdict "kept case" 0\nverdict "stale second" 0\n')
     claude = tmp_path / "claude-pass"
@@ -2172,9 +2056,6 @@ def test_verify_sh_green_rejects_a_pass_on_a_replaces_case_step_naming_each_case
 @pytest.mark.process("a real supervise.sh and run-leaf.sh around a stub claude that answers VERDICT: PASS")
 def test_verify_sh_green_exits_2_when_the_named_cases_check_cannot_read_the_suite_after_a_pass_1507(
         run_cli, tmp_path, monkeypatch):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
-                 "VERI_NO_VERDICT_RETRIES", "VERI_STUCK_RETRIES", "VERI_TIMEOUT"):
-        monkeypatch.delenv(name, raising=False)
     write_inputs(tmp_path)
     claude = tmp_path / "claude-pass"
     claude.write_text("#!/bin/sh\nprintf 'VERDICT: PASS\\nREASON: the named cases are gone.'\n")
@@ -2194,9 +2075,6 @@ def test_verify_sh_green_exits_2_when_the_named_cases_check_cannot_read_the_suit
 @pytest.mark.process("a real supervise.sh and run-leaf.sh around a stub claude that answers VERDICT: PASS")
 def test_verify_sh_green_returns_the_leafs_pass_unchanged_on_a_step_without_replaces_case_even_when_its_text_names_a_surviving_case_1507(
         run_cli, tmp_path, monkeypatch):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
-                 "VERI_NO_VERDICT_RETRIES", "VERI_STUCK_RETRIES", "VERI_TIMEOUT"):
-        monkeypatch.delenv(name, raising=False)
     write_inputs(tmp_path)
     (tmp_path / "tests" / "demo.test.sh").write_text('verdict "stale first" 0\n')
     claude = tmp_path / "claude-pass"
@@ -2216,9 +2094,6 @@ def test_verify_sh_green_returns_the_leafs_pass_unchanged_on_a_step_without_repl
 @pytest.mark.process("a real supervise.sh and run-leaf.sh around a stub claude that answers VERDICT: PASS")
 def test_verify_sh_green_returns_the_leafs_pass_with_exit_0_on_a_replaces_case_step_whose_every_named_case_is_gone_1507(
         run_cli, tmp_path, monkeypatch):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
-                 "VERI_NO_VERDICT_RETRIES", "VERI_STUCK_RETRIES", "VERI_TIMEOUT"):
-        monkeypatch.delenv(name, raising=False)
     write_inputs(tmp_path)
     (tmp_path / "tests" / "demo.test.sh").write_text('verdict "kept case" 0\n')
     claude = tmp_path / "claude-pass"
@@ -2238,9 +2113,6 @@ def test_verify_sh_green_returns_the_leafs_pass_with_exit_0_on_a_replaces_case_s
 @pytest.mark.process("a real supervise.sh and run-leaf.sh around a stub claude that answers VERDICT: PASS")
 def test_verify_sh_green_returns_the_leafs_pass_with_exit_0_on_a_step_naming_the_replaces_case_mark_without_a_replaces_clause_1603(
         run_cli, tmp_path, monkeypatch):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
-                 "VERI_NO_VERDICT_RETRIES", "VERI_STUCK_RETRIES", "VERI_TIMEOUT"):
-        monkeypatch.delenv(name, raising=False)
     write_inputs(tmp_path)
     claude = tmp_path / "claude-pass"
     claude.write_text("#!/bin/sh\nprintf 'VERDICT: PASS\\nREASON: fine.'\n")
@@ -2259,9 +2131,6 @@ def test_verify_sh_green_returns_the_leafs_pass_with_exit_0_on_a_step_naming_the
 @pytest.mark.process("a real supervise.sh and run-leaf.sh around a stub claude that answers VERDICT: PASS")
 def test_verify_sh_green_returns_the_leafs_pass_with_exit_0_on_a_replaces_case_step_with_a_quoted_case_but_no_suite_path_1603(
         run_cli, tmp_path, monkeypatch):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
-                 "VERI_NO_VERDICT_RETRIES", "VERI_STUCK_RETRIES", "VERI_TIMEOUT"):
-        monkeypatch.delenv(name, raising=False)
     write_inputs(tmp_path)
     claude = tmp_path / "claude-pass"
     claude.write_text("#!/bin/sh\nprintf 'VERDICT: PASS\\nREASON: fine.'\n")
@@ -2285,9 +2154,6 @@ def test_verify_sh_green_returns_the_leafs_pass_with_exit_0_on_a_replaces_case_s
 ], ids=["every-named-case-gone", "a-named-case-survives", "the-check-cannot-answer"])
 def test_verify_sh_green_returns_the_leafs_reject_with_exit_1_and_its_own_reason_on_a_replaces_case_step_whatever_the_named_cases_check_would_say_1507(
         suite, check, run_cli, tmp_path, monkeypatch):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
-                 "VERI_NO_VERDICT_RETRIES", "VERI_STUCK_RETRIES", "VERI_TIMEOUT"):
-        monkeypatch.delenv(name, raising=False)
     write_inputs(tmp_path)
     (tmp_path / "tests" / "demo.test.sh").write_text(suite)
     claude = tmp_path / "claude-reject"
@@ -2309,9 +2175,6 @@ def test_verify_sh_green_returns_the_leafs_reject_with_exit_1_and_its_own_reason
 @pytest.mark.process("a real git scratch repository and a stub verifier leaf that rewrites a tracked file")
 def test_main_saves_the_content_diff_of_a_verifier_that_modified_a_tracked_file_under_dot_tdd_named_after_the_leaf_and_names_it_in_the_refusal_1846(
         tmp_path, monkeypatch, capfd):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
-                 "VERI_ISSUE", "VERI_STEP"):
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     (tmp_path / "home").mkdir()
     repo = tmp_path / "repo"
@@ -2355,9 +2218,6 @@ def test_main_saves_the_content_diff_of_a_verifier_that_modified_a_tracked_file_
 @pytest.mark.process("a real git scratch repository and a stub verifier leaf that changes only a tracked file's mode")
 def test_main_saves_a_mode_only_change_of_a_verifier_in_the_diff_byte_exactly_1846(
         tmp_path, monkeypatch, capfd):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
-                 "VERI_ISSUE", "VERI_STEP"):
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     (tmp_path / "home").mkdir()
     repo = tmp_path / "repo"
@@ -2401,9 +2261,6 @@ def test_main_saves_a_mode_only_change_of_a_verifier_in_the_diff_byte_exactly_18
 @pytest.mark.process("a real git scratch repository and a stub verifier leaf that changes a tracked binary file")
 def test_main_saves_a_binary_change_of_a_verifier_in_a_diff_that_applies_with_binary_1846(
         tmp_path, monkeypatch, capfd):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
-                 "VERI_ISSUE", "VERI_STEP"):
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     (tmp_path / "home").mkdir()
     repo = tmp_path / "repo"
@@ -2451,9 +2308,6 @@ def test_main_saves_a_binary_change_of_a_verifier_in_a_diff_that_applies_with_bi
 @pytest.mark.process("a real git scratch repository and a stub verifier leaf that rewrites a tracked file and leaves a directory at the diff path")
 def test_main_still_refuses_with_2_and_resets_the_tree_saying_the_diff_could_not_be_saved_when_its_path_is_a_directory_1846(
         tmp_path, monkeypatch, capfd):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
-                 "VERI_ISSUE", "VERI_STEP"):
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     (tmp_path / "home").mkdir()
     repo = tmp_path / "repo"
@@ -2497,9 +2351,6 @@ def test_main_still_refuses_with_2_and_resets_the_tree_saying_the_diff_could_not
 @pytest.mark.process("a real git scratch repository and a stub verifier leaf that rewrites a tracked file while git diff is made to fail")
 def test_main_still_refuses_with_2_saying_the_diff_could_not_be_saved_and_writes_no_diff_when_git_diff_fails_1878(
         tmp_path, monkeypatch, capfd):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
-                 "VERI_ISSUE", "VERI_STEP"):
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     (tmp_path / "home").mkdir()
     repo = tmp_path / "repo"
@@ -2540,9 +2391,6 @@ def test_main_still_refuses_with_2_saying_the_diff_could_not_be_saved_and_writes
 @pytest.mark.process("a real git scratch repository and a stub verifier leaf that rewrites a tracked file while git diff is made to fail over an earlier refusal's diff")
 def test_main_removes_an_earlier_refusals_diff_when_this_refusals_diff_could_not_be_saved_1878(
         tmp_path, monkeypatch, capfd):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
-                 "VERI_ISSUE", "VERI_STEP"):
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     (tmp_path / "home").mkdir()
     repo = tmp_path / "repo"
@@ -2584,9 +2432,6 @@ def test_main_removes_an_earlier_refusals_diff_when_this_refusals_diff_could_not
 @pytest.mark.process("a real git scratch repository, a stub verifier leaf that rewrites a tracked file, and a real git apply --check")
 def test_main_saves_a_diff_that_passes_git_apply_check_whatever_the_users_prefix_context_and_abbreviation_config_says_1878(
         tmp_path, monkeypatch, capfd):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
-                 "VERI_ISSUE", "VERI_STEP"):
-        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     (tmp_path / "home").mkdir()
     repo = tmp_path / "repo"
