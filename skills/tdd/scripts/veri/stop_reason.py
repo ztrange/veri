@@ -36,7 +36,7 @@ def main(argv):
         sys.stderr.write("stop-reason.sh: no conductor log at %s\n" % conductor_log)
         return 2
     else:
-        reason = _usage_limit(argv[0])
+        reason = _usage_limit(argv[0], conductor_log)
         if reason is None:
             sys.stderr.write("stop-reason.sh: no result record in %s\n" % conductor_log)
             return 2
@@ -68,8 +68,8 @@ def _conductor_log(issue):
     return os.path.join(".tdd", "conductor-%s.log" % issue)
 
 
-def _usage_limit(issue):
-    results = [r for r in _records(_conductor_log(issue)) if r.get("type") == "result"]
+def _usage_limit(issue, conductor_log):
+    results = [r for r in _records(conductor_log) if r.get("type") == "result"]
     if not results:
         return None
     text = results[-1].get("result", "")
