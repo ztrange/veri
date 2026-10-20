@@ -69,6 +69,26 @@ def _recorded(report, step):
     return None
 
 
+def _recorded_cases(step):
+    try:
+        with open(tests_frozen._record_path(step), encoding="utf-8", errors="replace") as handle:
+            return {l[6:].strip() for l in handle.read().splitlines() if l.startswith("case: ")}
+    except OSError:
+        return set()
+
+
+def _superseded(report, step):
+    with open(report, encoding="utf-8", errors="replace") as handle:
+        lines = handle.read().splitlines()
+    own = _recorded_cases(step)
+    cases = []
+    for line in lines:
+        case = line[11:].strip() if line.startswith("SUPERSEDED:") else ""
+        if case and case not in own and case not in cases and _exists(case):
+            cases.append(case)
+    return cases
+
+
 def _rerouted(step):
     try:
         with open(".tdd/events.jsonl", encoding="utf-8", errors="replace") as handle:
@@ -104,6 +124,10 @@ def main(argv):
     repair = None if rerouted else _recorded(argv[0], step)
     if repair is not None:
         _write(sys.stdout, "repair " + repair)
+        return 0
+    older = [] if rerouted else _superseded(argv[0], step)
+    if len(older) >= 2:
+        _write(sys.stdout, "supersede " + " ".join(older))
         return 0
     case = None if rerouted else route(argv[0], argv[1])
     if case is None:
