@@ -1,0 +1,14 @@
+# Plan for #1861 — Case-body boundaries in tests_frozen._cases: leading blank lines and the bash finish trailer mark a neighbouring older case as edited
+
+- [ ] In a bash suite shaped like the real ones (cases, then a column-0 `finish` trailer; fixture copied from a real suite's shape, trailer included), a Red that adds one case just before `finish` is recorded by `tests-frozen.sh record` as adding that case only: the previous last case is not recorded, and a WRONG_TEST naming it routes `red <case>` ⟦criterion 1⟧
+- [ ] A pytest file with no imports where Red inserts a new case at file start directly above an older one records only the new case (the older case's body starts at its own `def`, not at blank lines above it), and a WRONG_TEST naming the older one routes `red <case>` ⟦criterion 2⟧
+- [ ] A pytest file where Red inserts a new case above an older one that had a single blank line above it, leaving two blank lines there, records only the new case, and a WRONG_TEST naming the older one routes `red <case>` ⟦criterion 2⟧
+- [ ] A pytest class where Red inserts a new test method directly above an older method records only the new method, and a WRONG_TEST naming the older one routes `red <case>` ⟦criterion 2⟧
+- [ ] A bash suite where Red inserts a new `name="…"` case directly above an older one (blank lines above the older case changing) records only the new case — the older case's body starts at its own `name="…"` line — and a WRONG_TEST naming the older one routes `red <case>` ⟦criterion 2⟧
+- [ ] Appending a pytest case at the end of a file records only the new case: trailing blank lines are not part of the case above's compared body, and a WRONG_TEST naming the case above routes `red <case>` ⟦criterion 3⟧
+- [ ] Appending a bash case at the end of a suite with no `finish` trailer records only the new case: trailing blank lines are not part of the case above's compared body, and a WRONG_TEST naming the case above routes `red <case>` ⟦criterion 3⟧
+- [ ] Appending a case to a real copy of a bash suite in this repo (read from the repo, `finish` trailer included) records only the new case, and a WRONG_TEST naming the case above it routes `red <case>` ⟦criterion 3⟧
+- [ ] An older pytest case on the file's first line with nothing above it stays unrecorded when Red inserts a case above it ⟦criterion 4⟧
+- [ ] An older test method directly under its `class` line stays unrecorded when Red inserts a method above it ⟦criterion 4⟧
+- [ ] Only the last column-0 `finish` line of a bash suite is its trailer: a `finish` line inside a heredoc in a case is part of that case's body, so editing it records that case as edited ⟦criterion 5⟧
+- [ ] An indented `finish` (or a `finish_up` call) inside a bash case is part of that case's body, so editing it records that case as edited ⟦criterion 5⟧
