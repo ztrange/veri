@@ -1338,6 +1338,19 @@ def test_main_renders_a_red_prompt_for_a_replaces_case_step_saying_one_replaceme
     assert (marked_result, plain_result) == ((0, False, True, True), (0, True, False))
 
 
+def test_main_renders_the_per_case_red_prompt_for_a_step_whose_text_ends_with_the_replaces_case_mark_not_at_its_start_1882(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    step = "tests/zorblat.test.sh: 'zorblat frobs a nitz' moves to tests/py/test_zorblat.py ⟦replaces-case⟧"
+
+    code = build_verify_prompt.main(["--step", step, "red", str(spec), "tests/py/test_zorblat.py", "test_zorblat"])
+    out, _ = capsysbinary.readouterr()
+    prompt = re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
+
+    assert (code, "judge each of them" in prompt) == (0, True)
+
+
 SPEC_TEXT = 'slugify("Hello & World/Foo") must return "hello-world-foo" — see {ref}\\n done.\n'
 TESTPATH = "tests/test_slugify.py"
 STASH_RULE = (
