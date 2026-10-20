@@ -74,6 +74,8 @@ def _classify(node, module_aliases, name_imports, modules, functions):
         return "sleeps through time.sleep"
     if module == "socket" or imported == ("socket", "socket"):
         return "opens a socket through socket"
+    if attr == "CompletedProcess":
+        return None
     if receiver in modules or (isinstance(func, ast.Name) and func.id in functions):
         return "starts a process through subprocess"
     if started:
