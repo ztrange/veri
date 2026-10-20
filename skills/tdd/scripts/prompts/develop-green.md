@@ -13,12 +13,7 @@ fast command and the affected suites green.
 
 - Test file: `{{TEST_PATH}}`
 - Target case: `{{TARGET_TEST}}`
-- Test command: `{{TEST_CMD}}`
-
-**Do not modify the test.** Not its assertions, not its inputs, not its name. Making the
-bar easier to clear is not clearing it: a pass bought by weakening, skipping or deleting
-the case is a rejected step. If the test itself looks wrong, say so in your report as one
-`WRONG_TEST: <why>` line and stop — do not edit it.{{REPLACES_CASE}}{{SUITE_REPAIR}}
+- Test command: `{{TEST_CMD}}`{{FREEZE_RULE}}{{REPLACES_CASE}}{{SUITE_REPAIR}}
 
 ### When the step is too big for one green
 
