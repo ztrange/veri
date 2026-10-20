@@ -14,7 +14,7 @@ NEEDS = {"green": {"fast-cmd"}, "refactor": {"fast-cmd", "base-sha"}, "diff": {"
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 USAGE = "usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]"
 GREEN_PARAGRAPHS = {"REPLACES_CASE": "replaces-case", "SUITE_REPAIR": "suite-repair",
-                    "CI_REPAIR": "ci-repair"}
+                    "CI_REPAIR": "ci-repair", "FIXTURE_REPAIR": "fixture-repair"}
 
 
 def _last_phase_check(step_arg, phase, number):
