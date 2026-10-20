@@ -73,8 +73,7 @@ def main(argv):
     if git("merge-base", "--is-ancestor", onto, "HEAD", text=True).returncode == 0:
         return 3
     pre = output("rev-parse", "HEAD")
-    callers = any(pathlib.Path(path).is_dir() for path in output(
-        "rev-parse", "--git-path", "rebase-merge", "--git-path", "rebase-apply").splitlines())
+    callers = rebase_in_progress()
     dirty = output("status", "--porcelain", "--untracked-files=no", "--", ".tdd")
     appends = output("diff", "HEAD", "--", ".tdd") if dirty else ""
     if appends:
