@@ -135,6 +135,26 @@ def test_main_calls_the_builder_beside_the_shim_as_called_with_the_consumed_pair
     assert b"AMBIENT-STEP-SENTINEL" not in prompt
 
 
+def test_main_run_from_a_subdirectory_of_the_repo_writes_its_prompt_under_tdd_at_the_repo_root_and_leaves_no_tdd_in_the_subdirectory_1895(
+        tmp_path, monkeypatch):
+    def run_from(root, subdirectory):
+        (root / ".git").mkdir(parents=True)
+        work = root / subdirectory
+        work.mkdir(parents=True, exist_ok=True)
+        monkeypatch.chdir(work)
+        write_inputs(work)
+        answering_leaf(monkeypatch, b"VERDICT: PASS\nfine")
+        verify = importlib.import_module("veri.verify")
+        code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+        prompts = sorted(p.name for p in (root / ".tdd").glob("verify-*.prompt")) if (root / ".tdd").is_dir() else None
+        return code, prompts, (work / ".tdd").exists() and work != root
+
+    assert [run_from(tmp_path / "root", "."), run_from(tmp_path / "nested", "skills/deep")] == [
+        (0, ["verify-green.prompt"], False),
+        (0, ["verify-green.prompt"], False),
+    ]
+
+
 @pytest.mark.parametrize("leaf_args", [None, ""])
 def test_main_launches_the_verifier_leaf_through_supervise_with_the_default_flags_streams_inherited_and_starts_no_ported_helper_process(
         leaf_args, tmp_path, monkeypatch):

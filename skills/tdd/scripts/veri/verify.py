@@ -215,8 +215,9 @@ def main(argv):
             _write(sys.stdout, "step deleted pytest cases an earlier step added: "
                    + ", ".join("%s::%s" % case for case in deleted))
             return 1
-    prompt_path = ".tdd/%s.prompt" % leaf
-    os.makedirs(".tdd", exist_ok=True)
+    state = os.path.join(event.toplevel(), ".tdd")
+    prompt_path = os.path.join(state, "%s.prompt" % leaf)
+    os.makedirs(state, exist_ok=True)
     with open(prompt_path, "wb") as prompt:
         prompt.write(built.rstrip(b"\n"))
     tree_before = in_temp_index("write-tree")
