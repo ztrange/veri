@@ -11,7 +11,7 @@ PHASES = ("red", "green", "refactor", "cover", "transform", "diff", "structural"
           "reconcile", "exhausted", "over-budget", "rebase") + INTERFACE_PHASES
 REVISE_PHASES = ("red", "green", "refactor", "diff")
 WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "transform": 4, "diff": 5, "structural": 5,
-        "predicate": 5, "revise": 6, "reconcile": 6, "exhausted": 5, "over-budget": 6, "rebase": 7, "replaces-report": 6, "red-contradicted": 5, "red-repair": 6, "red-missing": 5,
+        "predicate": 5, "revise": 6, "reconcile": 6, "exhausted": 5, "over-budget": 6, "rebase": 7, "replaces-report": 6, "red-contradicted": 5, "red-repair": 6, "red-missing": 5, "red-supersede": 6,
         **dict.fromkeys(INTERFACE_PHASES, 4)}
 WANT_PHASES = "|".join(PHASES)
 REVISABLE_PHASES = REVISE_PHASES + INTERFACE_PHASES
@@ -67,7 +67,7 @@ def main(argv):
     if not argv:
         return _refuse()
     phase = argv[0]
-    if phase not in PHASES + ("replaces-report", "red-contradicted", "red-repair", "red-missing"):
+    if phase not in PHASES + ("replaces-report", "red-contradicted", "red-repair", "red-missing", "red-supersede"):
         return _refuse(f"build-develop-prompt.sh: unknown phase '{phase}' (want {WANT_PHASES})")
     if len(argv) < WANT[phase]:
         return _refuse(f"build-develop-prompt: {phase} needs {WANT[phase]} arguments, got {len(argv)}")
@@ -95,6 +95,7 @@ def main(argv):
         "red-contradicted": ["<case>"],
         "red-repair": ["<case>", "<report-file>"],
         "red-missing": ["<reason-file>"],
+        "red-supersede": ["<report-file>", "<case>"],
     }.get(phase, [])
     for index, name in enumerate(names):
         if not (args[index] if index < len(args) else ""):
@@ -139,7 +140,7 @@ def main(argv):
     values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "RED_CASES", "RED_LEAD", "REPLACES_CASE", "SUITE_REPAIR", "CI_REPAIR", "STEP",
                             "TEST_CMD", "TEST_PATH", "TARGET_TEST", "FAST_CMD", "TIMED_TEST_RUN", "TOUCHED_FILES",
                             "NODE_ID_RULE", "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "WRONG_TEST_REPORT", "WRONG_TEST_FORMAT", "TEST_REWRITE", "REJECTION_REASON", "BRANCH",
-                            "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES", "REPORT_FILE", "MISSING_CASES", "CASE", "WRONG_TEST_REASON"), b"")
+                            "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES", "REPORT_FILE", "MISSING_CASES", "CASE", "CASES", "WRONG_TEST_REASON"), b"")
     values["NODE_ID_RULE"] = NODE_ID_RULE
     values["RED_CASES"] = (b"One criterion, one case \xe2\x80\x94 no extra cases, and no generality the step does\n"
                            b"not ask for.")
@@ -157,6 +158,8 @@ def main(argv):
     for name, value in zip(names[3:], args[3:]):
         if name in ARGUMENT_PLACEHOLDERS:
             values[ARGUMENT_PLACEHOLDERS[name]] = os.fsencode(value)
+    if phase == "red-supersede":
+        values["CASES"] = os.fsencode("".join(f"\n- {case}" for case in args[4:]))
     if phase == "red-repair":
         reason = re.search(rb"^WRONG_TEST:[ \t]*(.*)$", _read(args[4]), re.MULTILINE)
         values["WRONG_TEST_REASON"] = reason.group(1) if reason else b""
