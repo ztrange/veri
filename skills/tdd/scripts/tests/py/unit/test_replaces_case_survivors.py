@@ -166,3 +166,14 @@ def test_main_exits_2_with_one_stderr_line_naming_the_step_when_the_clause_is_fu
     assert out == ""
     assert len(err.splitlines()) == 1
     assert step in err
+
+
+def test_main_exits_2_with_one_stderr_line_naming_the_step_when_the_suite_is_not_a_test_sh_file_1882(run_cli, survivors):
+    step = "the replacement takes over: replaces 'a' in t/x.py ⟦replaces-case⟧ ⟦criterion 2⟧"
+
+    code, out, err = run_cli(survivors, [step])
+
+    assert code == 2
+    assert out == ""
+    assert len(err.splitlines()) == 1
+    assert step in err
