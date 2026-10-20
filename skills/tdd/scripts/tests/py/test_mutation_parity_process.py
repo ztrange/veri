@@ -530,3 +530,143 @@ def test_1596_a_row_whose_old_suite_holds_several_cases_ends_in_an_error_not_owe
     code, out, err = one_row(tmp_path, run_cli, mp, "checks/calc-suite.sh", "adds two numbers", "redundant", "adds a negative", "dies")
 
     assert (code, "owed" in out.split()) == (2, False), (out, err)
+
+
+NO_COUNT_SUITE = CALC_SUITE.replace('echo "$pass passed, $fail failed"\n', "")
+BREAKS_COLLECTION = CALC_PYTEST + "def (:\n"
+
+
+def git_in(tmp_path, *args):
+    subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *args], cwd=tmp_path, check=True,
+                   capture_output=True, stdin=subprocess.DEVNULL)
+
+
+def committed_scratch(tmp_path, monkeypatch, suites=()):
+    mp = scratch_with(tmp_path, monkeypatch, suites=suites)
+    git_in(tmp_path, "init", "-q", "-b", "main")
+    git_in(tmp_path, "add", "-A")
+    git_in(tmp_path, "commit", "-qm", "init")
+    return mp
+
+
+def dirty_tree(tmp_path):
+    (tmp_path / "staged.txt").write_text("staged\n")
+    git_in(tmp_path, "add", "staged.txt")
+    (tmp_path / "calc.sh").write_text(CALC_SH + "sub() { echo $(( $1 - $2 )); }\n")
+    (tmp_path / "untracked.txt").write_text("untracked\n")
+
+
+def snapshot(tmp_path):
+    files = sorted(p for p in tmp_path.rglob("*") if p.is_file() and p.name != "pairs.tsv" and ".git" not in p.relative_to(tmp_path).parts[:1])
+    index = subprocess.run(["git", "ls-files", "-s"], cwd=tmp_path, capture_output=True, text=True,
+                           stdin=subprocess.DEVNULL).stdout
+    return index, [(str(p.relative_to(tmp_path)), p.read_bytes()) for p in files]
+
+
+def dirty_patch(tmp_path, name, extra=""):
+    before = (tmp_path / "calc.sh").read_text()
+    after = before.replace("$1 + $2", "$1 - $2") + extra
+    (tmp_path / (name + ".patch")).write_text("".join(difflib.unified_diff(
+        before.splitlines(True), after.splitlines(True), "a/calc.sh", "b/calc.sh")))
+
+
+@pytest.mark.process("a bash suite started by failed_cases() and pytest by node_fails(), for a several-case old suite whose every case the mutation fails")
+def test_1594_a_row_whose_old_suite_holds_more_than_one_case_reads_owed_when_the_mutation_fails_every_case_of_that_suite_though_the_replacement_is_caught(tmp_path, monkeypatch, run_cli):
+    mp = scratch_with(tmp_path, monkeypatch)
+
+    code, out, err = one_row(tmp_path, run_cli, mp, "checks/calc-suite.sh", "adds two numbers", "replaced", NODE, "none-stays-green")
+
+    assert (code, out) == (1, verdict_line(tmp_path, ("adds two numbers", NODE), "none-stays-green", "owed")), err
+
+
+@pytest.mark.process("git apply started by check(), refusing a patch written against other content")
+def test_a_row_whose_mutation_does_not_apply_to_the_tree_exits_2(tmp_path, monkeypatch, run_cli):
+    mp = scratch_with(tmp_path, monkeypatch)
+    other = "mul() { echo $(( $1 * $2 )); }\n"
+    (tmp_path / "does-not-apply.patch").write_text("".join(difflib.unified_diff(
+        other.splitlines(True), other.replace("*", "/").splitlines(True), "a/calc.sh", "b/calc.sh")))
+
+    code, out, err = one_row(tmp_path, run_cli, mp, "checks/calc-suite.sh", "adds two numbers", "redundant", "adds a negative", "does-not-apply")
+
+    assert code == 2, (out, err)
+
+
+@pytest.mark.process("a bash suite and pytest started for rows whose case cannot be run")
+def test_a_row_whose_case_cannot_be_run_a_suite_path_that_does_not_exist_a_pytest_node_id_that_is_not_collected_exits_2(tmp_path, monkeypatch, run_cli):
+    mp = scratch_with(tmp_path, monkeypatch)
+
+    missing = one_row(tmp_path, run_cli, mp, "checks/absent-suite.sh", "adds two numbers", "redundant", "adds a negative", "add-subtracts")
+    uncollected = one_row(tmp_path, run_cli, mp, "checks/calc-suite.sh", "adds two numbers", "replaced",
+                          "tests/test_calc.py::test_not_there", "add-subtracts")
+
+    assert (missing[0], uncollected[0]) == (2, 2), (missing, uncollected)
+
+
+@pytest.mark.process("git, a bash suite and pytest started against a scratch repository with a staged, an unstaged and an untracked change")
+def test_after_the_pairs_check_exits_0_or_1_the_working_tree_and_the_index_are_byte_identical_to_before_it_a_staged_change_an_unstaged_change_to_a_file_the_mutation_patches_and_an_untracked_file_included(tmp_path, monkeypatch, run_cli):
+    mp = committed_scratch(tmp_path, monkeypatch)
+    dirty_tree(tmp_path)
+    dirty_patch(tmp_path, "dirty")
+    before = snapshot(tmp_path)
+
+    code, out, err = one_row(tmp_path, run_cli, mp, "checks/calc-suite.sh", "adds two numbers", "redundant", "adds a negative", "dirty")
+
+    assert (code in (0, 1), snapshot(tmp_path) == before) == (True, True), (code, out, err)
+
+
+@pytest.mark.process("a bash suite started by failed_cases(), one that never reaches its count line run unmutated")
+def test_1612_a_row_whose_old_suite_dies_before_its_count_line_run_unmutated_reads_unproven_and_exits_1_with_stderr_naming_the_suite_and_saying_it_did_not_run_to_completion(tmp_path, monkeypatch, run_cli):
+    mp = scratch_with(tmp_path, monkeypatch, suites=[("no-count.sh", NO_COUNT_SUITE)])
+
+    code, out, err = one_row(tmp_path, run_cli, mp, "checks/no-count.sh", "adds two numbers", "redundant", "adds a negative", "add-subtracts")
+
+    assert (code, out.strip().endswith("unproven"), "checks/no-count.sh" in err, "did not run to completion" in err) == (1, True, True, True), (out, err)
+
+
+@pytest.mark.process("git, a bash suite and pytest started for a row whose mutation stops its pytest replacement collecting")
+def test_1612_an_exception_raised_while_a_rows_mutation_is_applied_a_pytest_replacement_the_mutation_stops_collecting_is_raised_after_the_mutation_is_reverted_so_the_tree_is_byte_identical_to_before_the_row(tmp_path, monkeypatch, run_cli):
+    mp = committed_scratch(tmp_path, monkeypatch)
+    (tmp_path / "breaks-collection.patch").write_text("".join(difflib.unified_diff(
+        CALC_PYTEST.splitlines(True), BREAKS_COLLECTION.splitlines(True), "a/tests/test_calc.py", "b/tests/test_calc.py")))
+    before = snapshot(tmp_path)
+
+    code, out, err = one_row(tmp_path, run_cli, mp, "checks/calc-suite.sh", "adds two numbers", "replaced", NODE, "breaks-collection")
+
+    assert (code, snapshot(tmp_path) == before) == (2, True), (out, err)
+
+
+@pytest.mark.process("git, a bash suite and pytest started for a row that raises with its mutation applied")
+def test_1612_a_row_that_raises_with_its_mutation_applied_leaves_every_file_of_the_tree_byte_identical_to_before_it_pytest_cache_included(tmp_path, monkeypatch, run_cli):
+    mp = committed_scratch(tmp_path, monkeypatch)
+    (tmp_path / "breaks-collection.patch").write_text("".join(difflib.unified_diff(
+        CALC_PYTEST.splitlines(True), BREAKS_COLLECTION.splitlines(True), "a/tests/test_calc.py", "b/tests/test_calc.py")))
+    before = snapshot(tmp_path)
+
+    code, out, err = one_row(tmp_path, run_cli, mp, "checks/calc-suite.sh", "adds two numbers", "replaced", NODE, "breaks-collection")
+
+    assert (code, snapshot(tmp_path) == before, (tmp_path / ".pytest_cache").exists()) == (2, True, False), (out, err)
+
+
+@pytest.mark.process("git, a bash suite and pytest started against a dirty scratch repository for rows that end in exit 2")
+def test_after_the_pairs_check_exits_2_a_mutation_that_does_not_apply_a_bash_suite_that_never_reaches_its_count_line_under_the_mutation_or_a_pytest_node_id_that_is_not_collected_while_the_mutation_is_in_place_the_working_tree_and_the_index_are_byte_identical_to_before_it_a_staged_change_an_unstaged_change_and_an_untracked_file_included(tmp_path, monkeypatch, run_cli):
+    mp = committed_scratch(tmp_path, monkeypatch)
+    dirty_tree(tmp_path)
+    dirty_patch(tmp_path, "dirty")
+    dirty_patch(tmp_path, "dirty-dies", extra="exit 9\n")
+    other = "mul() { echo $(( $1 * $2 )); }\n"
+    (tmp_path / "does-not-apply.patch").write_text("".join(difflib.unified_diff(
+        other.splitlines(True), other.replace("*", "/").splitlines(True), "a/calc.sh", "b/calc.sh")))
+    scenarios = {
+        "does-not-apply": ("adds two numbers", "redundant", "adds a negative", "does-not-apply"),
+        "dies": ("adds two numbers", "redundant", "adds a negative", "dirty-dies"),
+        "uncollected": ("adds two numbers", "replaced", "tests/test_calc.py::test_not_there", "dirty"),
+    }
+    problems = {}
+
+    for name, (old, fate, kept, mutation) in scenarios.items():
+        before = snapshot(tmp_path)
+        code, out, err = one_row(tmp_path, run_cli, mp, "checks/calc-suite.sh", old, fate, kept, mutation)
+        if (code, snapshot(tmp_path) == before) != (2, True):
+            problems[name] = (code, snapshot(tmp_path) == before, out, err)
+
+    assert problems == {}
