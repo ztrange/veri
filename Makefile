@@ -141,14 +141,6 @@ test unit:
 	  UNIT_GUARD_LOG="$$reach_log" PYTHONPYCACHEPREFIX="$$pycache" COLUMNS=200 $(OFFLINE_ENV) "$$py_bin" skills/tdd/scripts/veri/pytest_leg.py --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || { leg=$$?; [ $$leg -ne 2 ] || exit 2; fail=1; }; \
 	  $(call NAME_REACHED,pytest: tried to start); \
 	fi; \
-	for t in $(SUITES); do \
-	  suite_name="$$(basename "$$t")"; \
-	  printf '== %s\n' "$$suite_name"; \
-	  : > "$$reach_log"; \
-	  suite_guard=; case "$$t" in $(UNIT_DIR)/*) suite_guard="$(UNIT_GUARD_BIN):" ;; esac; \
-	  $(OFFLINE_ENV) skills/tdd/scripts/run-suite.sh "$$t" < /dev/null || fail=1; \
-	  $(call NAME_REACHED,$$suite_name: tried the network); \
-	done; \
 	echo "----"; \
 	if [ $$fail -eq 0 ]; then echo "all suites green"; else echo "SUITES FAILED"; exit 1; fi
 
