@@ -60,10 +60,15 @@ TURN_RATES = {"input_tokens": "input", "output_tokens": "output",
 CONTEXT_KEYS = ["input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"]
 
 
+class TurnRows(list):
+    estimated = False
+
+
 def conductor_sessions(issue, path):
     sessions = []
+    open_rows = []
     open_turns, open_cost, open_priced = 0, 0.0, True
-    turn_rows = []
+    turn_rows = TurnRows()
     seen_ids = set()
     with contextlib.suppress(OSError):
         log_name = "conductor-%s.log" % issue
@@ -79,6 +84,17 @@ def conductor_sessions(issue, path):
                         continue
                     if record.get("type") == "result":
                         sessions.append(record)
+                        total = record.get("total_cost_usd")
+                        if open_rows and open_priced and total is not None:
+                            share = (total - sum(base for _, base in open_rows)) / len(open_rows)
+                            running, shown = 0.0, 0
+                            for position, base in open_rows:
+                                running += base + share
+                                cents = round(running * 100) - shown
+                                shown += cents
+                                turn_rows[position][1] = "$%.2f" % (cents / 100)
+                            turn_rows.estimated = True
+                        open_rows = []
                         open_turns, open_cost, open_priced = 0, 0.0, True
                     elif record.get("type") == "assistant":
                         message = record.get("message") or {}
@@ -98,9 +114,13 @@ def conductor_sessions(issue, path):
                         prices = session_cost.PRICES[model_family]
                         turn_dollars = sum((usage.get(key) or 0) * prices[rate] / 1e6
                                            for key, rate in TURN_RATES.items())
+                        base_dollars = turn_dollars - (usage.get("output_tokens") or 0) * prices["output"] / 1e6
                         turn_dollars += sum(tokens * prices[rate] / 1e6
                                             for rate, tokens in session_cost.cache_write_tokens(usage).items())
                         open_cost += turn_dollars
+                        open_rows.append((len(turn_rows), base_dollars + sum(
+                            tokens * prices[rate] / 1e6
+                            for rate, tokens in session_cost.cache_write_tokens(usage).items())))
                         turn_rows.append([str(len(turn_rows) + 1), "$%.2f" % turn_dollars, context])
         if open_turns:
             sessions.append({"total_cost_usd": open_cost if open_priced else None, "num_turns": open_turns})
@@ -444,6 +464,9 @@ def render(issue, path, ledger):
                  if conductor_counted else
                  "spending is not in it: this log carries no usage record of the conductor own"))
     if turn_rows:
+        if turn_rows.estimated:
+            print("The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the "
+                  "result record's remaining cost.")
         table_head("#### Conductor per turn", "turn", ["dollars", "context"], ["---:", "---:"])
         for turn_row in turn_rows:
             row(turn_row)
