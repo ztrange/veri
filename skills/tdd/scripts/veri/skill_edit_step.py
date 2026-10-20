@@ -91,18 +91,19 @@ def _author(unit, path, reasons):
         os.unlink(f.name)
 
 
-def _grade(path, unit):
+def _captured(main, argv):
     out = io.StringIO()
     with contextlib.redirect_stdout(out):
-        code = grade_prose.main([path, unit])
+        code = main(argv)
     return code, out.getvalue()
 
 
+def _grade(path, unit):
+    return _captured(grade_prose.main, [path, unit])
+
+
 def _guard(unit, base, issue):
-    out = io.StringIO()
-    with contextlib.redirect_stdout(out):
-        skill_edit_guard.main([unit, base])
-    offending = [p for p in out.getvalue().splitlines() if p != issue]
+    offending = [p for p in _captured(skill_edit_guard.main, [unit, base])[1].splitlines() if p != issue]
     return int(bool(offending)), "".join(p + "\n" for p in offending)
 
 
