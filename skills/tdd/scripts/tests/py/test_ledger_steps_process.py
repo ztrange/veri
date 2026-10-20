@@ -4,7 +4,7 @@ import subprocess
 
 import pytest
 
-from conftest import SCRIPTS
+from conftest import SCRIPTS, ViaStdin
 
 KINDS = (
     "# Plan for #42\n\nprose\n\n"
@@ -32,14 +32,3 @@ def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_cwd_answe
     assert all(in_place == linked_run for in_place, linked_run in answers.values())
     assert answers[KINDS][0][0] == 0 and answers[KINDS][0][1].startswith("1\tdone\t")
     assert answers[NONE][0] == (3, "", "")
-
-
-class ViaStdin:
-    def __init__(self, module, ledger):
-        self.module, self.ledger = module, ledger
-
-    def main(self, argv):
-        import io
-        import sys
-        sys.stdin = io.TextIOWrapper(io.BytesIO(self.ledger.encode()))
-        return self.module.main(argv)
