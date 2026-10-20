@@ -1,12 +1,10 @@
 """Cases for next-unchecked.sh that start the real entry point."""
 import importlib
-import io
 import subprocess
-import sys
 
 import pytest
 
-from conftest import SCRIPTS
+from conftest import SCRIPTS, ViaStdin
 
 LEDGER = (
     "# Plan for #42\n"
@@ -15,15 +13,6 @@ LEDGER = (
     "- [ ] collapse non-alphanumerics to a single hyphen\n"
     "- [ ] strip leading and trailing hyphens"
 )
-
-
-class ViaStdin:
-    def __init__(self, module, ledger):
-        self.module, self.ledger = module, ledger
-
-    def main(self, argv):
-        sys.stdin = io.TextIOWrapper(io.BytesIO(self.ledger.encode()))
-        return self.module.main(argv)
 
 
 @pytest.mark.process("next-unchecked.sh run through a symlink to the skill directory from another working directory")
