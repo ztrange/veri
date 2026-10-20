@@ -1,6 +1,6 @@
 # Plan for #1668 — The fast-tier guard reports a prose string or regex ending in test_*.py as a nested suite run
 
-- [ ] A test file calling `pytest.main([...])` with a list naming a `test_*.py` file is still reported by the fast-tier guard as running a nested suite, naming its file and line (small unmarked case in tests/py/test_fast_tier_guard.py, planted file under tmp_path, no process) ⟦criterion 2⟧
+- [x] A test file calling `pytest.main([...])` with a list naming a `test_*.py` file is still reported by the fast-tier guard as running a nested suite, naming its file and line (small unmarked case in tests/py/test_fast_tier_guard.py, planted file under tmp_path, no process) ⟦criterion 2⟧
 - [ ] A test file calling the `run_cli` fixture with an argument list naming a `test_*.py` or `*.test.sh` file is still reported by the fast-tier guard as running a nested suite, naming its file and line (small unmarked case in tests/py/test_fast_tier_guard.py, planted file under tmp_path, no process) ⟦criterion 2⟧
 - [ ] A test file calling `subprocess.run` with arguments naming a `test_*.py` or `*.test.sh` file is still reported by the fast-tier guard, naming its file and line (small unmarked case in tests/py/test_fast_tier_guard.py, planted file under tmp_path, no process) ⟦criterion 2⟧
 - [ ] A test file calling an `os.exec*` function with arguments naming a `test_*.py` or `*.test.sh` file is still reported by the fast-tier guard, naming its file and line (small unmarked case in tests/py/test_fast_tier_guard.py, planted file under tmp_path, no process) ⟦criterion 2⟧
