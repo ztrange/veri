@@ -21,3 +21,21 @@ def test_main_prints_exited_with_the_first_word_of_the_state_when_a_conductor_li
 
     assert (code, capsys.readouterr().out) == (0, "exited 5 bailed\n")
     assert len(waits) == 2
+
+
+def test_main_with_target_prints_slot_free_with_the_first_solvable_issue_when_fewer_than_target_are_live(
+        monkeypatch, capsys, watch_runs):
+    waits = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) > 3:
+            raise RuntimeError("never printed slot-free")
+
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: ["5"])
+    monkeypatch.setattr(watch_runs, "solvable_issues", lambda: ["12", "15"], raising=False)
+    monkeypatch.setattr(watch_runs, "wait", wait)
+
+    code = watch_runs.main(["--target", "2"])
+
+    assert (code, capsys.readouterr().out) == (0, "slot-free 1/2 next 12\n")
