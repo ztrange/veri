@@ -16,10 +16,6 @@ from run_verdict import SCRIPTS
 USAGE = "usage: skill-edit-step.sh <issue-body-file> <unit-file>"
 
 
-def _list_path(unit):
-    return os.path.join(os.path.dirname(unit), "REQUIREMENTS.md")
-
-
 def _row_id(row):
     return requirements.split_cells(row)[1]
 
@@ -53,7 +49,7 @@ def _create(unit, path, name, rows):
 
 def apply(issue, unit):
     name = os.path.basename(unit)
-    path = _list_path(unit)
+    path = skill_edit_guard.list_path(unit)
     rows = _issue_rows(issue, name)
     if rows and not os.path.exists(unit):
         _create(unit, path, name, rows)
@@ -119,7 +115,7 @@ def main(argv):
         return 2
     base = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     apply(issue, unit)
-    path = _list_path(unit)
+    path = skill_edit_guard.list_path(unit)
     graded, said = _grade(path, unit)
     authored = graded == 1
     for _ in range(int(budget)):
