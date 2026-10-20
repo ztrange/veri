@@ -1,5 +1,5 @@
 # Plan for #1867 — stop-reason.sh dies with a generic FileNotFoundError when the conductor log is missing
 
 - [x] A run with no end event and no live conductor, and no conductor log in either the run's `.tdd/` or the clone's `.tdd/`, exits 2 with `stop-reason.sh: no conductor log at <path>` on stderr (the path of the clone's `.tdd/conductor-<n>.log`, the last place looked) and nothing on stdout, never a generic exception; a small unit case driven in-process through run_cli ⟦criterion 1⟧
-- [ ] A run with no end event and no live conductor whose conductor log sits in the run's own `.tdd/` (`.tdd/wt/<n>/.tdd/conductor-<n>.log`) reports from that log, and prefers it over a different conductor log in the clone's `.tdd/`; a small unit case driven in-process through run_cli ⟦criterion 2⟧
+- [x] A run with no end event and no live conductor whose conductor log sits in the run's own `.tdd/` (`.tdd/wt/<n>/.tdd/conductor-<n>.log`) reports from that log, and prefers it over a different conductor log in the clone's `.tdd/`; a small unit case driven in-process through run_cli ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] A run with no end event and no live conductor whose conductor log is absent from the run's `.tdd/` but present in the clone's `.tdd/` (`.tdd/conductor-<n>.log`) reports from the clone's log; a small unit case driven in-process through run_cli ⟦criterion 2⟧

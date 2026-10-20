@@ -62,6 +62,9 @@ def _live(pidfile):
 
 
 def _conductor_log(issue):
+    own = os.path.join(".tdd", "wt", issue, ".tdd", "conductor-%s.log" % issue)
+    if os.path.isfile(own):
+        return own
     return os.path.join(".tdd", "conductor-%s.log" % issue)
 
 
