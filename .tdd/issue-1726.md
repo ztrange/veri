@@ -1,6 +1,6 @@
 # Plan for #1726 — PRD 011 S4: the ⟦skill-edit⟧ step runner applies the issue's requirements diff, grades, authors, signs and commits one unit
 
-- [ ] `skill-edit-guard.sh <unit-file> <base-sha>` exists as a `/bin/sh` shim over `veri/skill_edit_guard.py`, with a no-argument usage line and exit 2 and an entry in SCRIPTS.md as its declared caller, and exits 0 when every path changed between `<base-sha>` and the working tree (committed, staged, unstaged or untracked) is the unit file or the `REQUIREMENTS.md` beside it ⟦criterion 1⟧
+- [x] `skill-edit-guard.sh <unit-file> <base-sha>` exists as a `/bin/sh` shim over `veri/skill_edit_guard.py`, with a no-argument usage line and exit 2 and an entry in SCRIPTS.md as its declared caller, and exits 0 when every path changed between `<base-sha>` and the working tree (committed, staged, unstaged or untracked) is the unit file or the `REQUIREMENTS.md` beside it ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] `skill-edit-guard.sh` exits 1 and prints each offending path, one per line, when a changed path is neither the unit file nor the `REQUIREMENTS.md` beside it, or is a `GRADED` file ⟦criterion 1⟧
 - [ ] `skill-edit-guard.sh` exits 2 when `<base-sha>` is not a commit, and exits 2 when the unit file exists neither at `<base-sha>` nor in the working tree ⟦criterion 1⟧
 - [ ] `skill-edit-guard.sh` exits 0 for a unit file new on the branch (absent at `<base-sha>`, present in the working tree) changed alongside its new `REQUIREMENTS.md` ⟦criterion 1⟧
