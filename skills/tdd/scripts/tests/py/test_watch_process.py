@@ -28,14 +28,18 @@ def stub(path, text):
     path.chmod(0o755)
 
 
+def git_init_and_add(repo):
+    subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+
+
 def fixture_repo(tmp_path):
     fixture = tmp_path / "repo"
     (fixture / "skills" / "tdd" / "scripts" / "lib").mkdir(parents=True)
     shutil.copy(ROOT / "Makefile", fixture / "Makefile")
     shutil.copy(LIB, fixture / "skills" / "tdd" / "scripts" / "lib" / "watch.sh")
     (fixture / "tracked.txt").write_text("original\n")
-    subprocess.run(["git", "-C", str(fixture), "init", "-q"], check=True)
-    subprocess.run(["git", "-C", str(fixture), "add", "-A"], check=True)
+    git_init_and_add(fixture)
     return fixture
 
 
@@ -109,8 +113,7 @@ def test_make_watch_one_poll_pass_calls_its_stat_wrapper_exactly_once_whatever_t
         repo.mkdir()
         for i in range(n):
             (repo / ("f%d.txt" % i)).write_text("%d\n" % i)
-        subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
-        subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+        git_init_and_add(repo)
         spy = tmp_path / ("spy-%d.log" % n)
         script = '. "$1"; watch_stat() { echo call >> "$SPY_LOG"; cat > /dev/null; }; watch_snapshot'
         subprocess.run(["sh", "-c", script, "sh", str(LIB)], cwd=repo, env=dict(os.environ, SPY_LOG=str(spy)), capture_output=True, text=True, check=True)
