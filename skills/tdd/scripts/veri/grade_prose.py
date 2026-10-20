@@ -88,6 +88,9 @@ def signature(path, unit):
 
 
 def graded_path(unit):
+    parts = unit.partition("#")[0].split("/")
+    if len(parts) > 2 and parts[0] == "skills":
+        return os.path.join(parts[0], parts[1], "GRADED")
     return os.path.join(os.path.dirname(unit.partition("#")[0]), "GRADED")
 
 
