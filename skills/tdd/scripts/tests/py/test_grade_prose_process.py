@@ -1,5 +1,6 @@
 """Cases for grade-prose.sh that start a real process: the launcher and a stub claude."""
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -664,3 +665,30 @@ def test_1874_the_stub_claude_receives_grader_conf_model_when_veri_model_grader_
     args = (record.read_text() if record.exists() else "").splitlines()
     given = args[args.index("--model") + 1] if "--model" in args else None
     assert committed and given == committed, (given, committed)
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_a_full_pass_writes_one_graded_line_carrying_the_unit_its_signature_the_date_and_the_grading_events_id(tmp_path):
+    (tmp_path / "skills" / "guide").mkdir(parents=True)
+    (tmp_path / "skills" / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS.replace("## guide/unit.md", "## skills/guide/unit.md"))
+    claude = tmp_path / "claude"
+    claude.write_text(STUB)
+    claude.chmod(0o755)
+    record = tmp_path / "record.txt"
+
+    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "skills/guide/unit.md"], cwd=tmp_path,
+                   capture_output=True, text=True,
+                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                        "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+
+    events = tmp_path / ".tdd" / "events.jsonl"
+    gradings = [json.loads(l) for l in (events.read_text().splitlines() if events.exists() else [])
+                if '"grading"' in l]
+    graded = tmp_path / "skills" / "guide" / "GRADED"
+    lines = graded.read_text().splitlines() if graded.exists() else []
+    fields = lines[0].split() if len(lines) == 1 else []
+    assert [len(gradings), len(fields) == 4 and fields[0], len(fields) == 4 and bool(re.fullmatch(r"[0-9a-f]{64}", fields[1])),
+            len(fields) == 4 and bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", fields[2])),
+            len(fields) == 4 and fields[3] == gradings[0].get("id", "") != ""] \
+        == [1, "skills/guide/unit.md", True, True, True], lines

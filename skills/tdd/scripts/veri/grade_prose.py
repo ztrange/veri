@@ -5,6 +5,8 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
+import uuid
 
 import event
 import requirements
@@ -85,6 +87,13 @@ def signature(path, unit):
     return hashlib.sha256("\0".join(parts).encode("utf-8")).hexdigest()
 
 
+def record_graded(unit, sig, grading_id):
+    file = unit.partition("#")[0]
+    graded = os.path.join(os.path.dirname(file), "GRADED")
+    with open(graded, "a", encoding="utf-8") as f:
+        f.write("%s %s %s %s\n" % (unit, sig, time.strftime("%Y-%m-%d"), grading_id))
+
+
 def no_verdict(detail):
     print("grade-prose.sh: no verdict obtained: %s" % detail, file=sys.stderr)
     return 2
@@ -142,9 +151,12 @@ def main(argv):
         return no_verdict("the GRADES block has no VERDICT line")
     if said[-1] != ("REJECT" if failed else "PASS"):
         return no_verdict("VERDICT %s disagrees with the GRADES lines" % said[-1])
+    grading_id = uuid.uuid4().hex
     event.append(".", {}, "grading", ["unit=" + unit, "verdict=" + said[-1],
                                        "failing=" + ",".join(l.split(":")[0] for l in failed),
-                                       "cost_usd=%s" % cost])
+                                       "cost_usd=%s" % cost, "id=" + grading_id])
+    if not failed:
+        record_graded(unit, signature(path, unit), grading_id)
     print("\n".join(failed))
     return 1 if failed else 0
 
