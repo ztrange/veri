@@ -1585,3 +1585,13 @@ def test_working_tree_with_nothing_changed_since_base_exits_3_and_prints_nothing
         monkeypatch, run_cli, affected, tmp_path):
     monkeypatch.setattr(subprocess, "run", working_tree_git())
     assert run_cli(affected, ["base"], cwd=tmp_path) == (3, "", "")
+
+
+def test_main_prints_the_pytest_file_of_a_touched_script_and_never_a_bash_suite(tmp_path, monkeypatch, capsys, affected):
+    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/foo.sh"]))
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "skills/tdd/scripts/tests/py").mkdir(parents=True)
+    (tmp_path / "skills/tdd/scripts/tests/foo.test.sh").write_text("")
+    (tmp_path / "skills/tdd/scripts/tests/py/test_foo.py").write_text("")
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0, "skills/tdd/scripts/tests/py/test_foo.py\n", "")

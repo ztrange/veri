@@ -241,6 +241,12 @@ def pytest_skill_readers():
     return [p for p, text in pytest_texts() if b"SKILL.md" in text or re.search(SECTION_CALL, text)]
 
 
+def bash_suite_of(name):
+    return (existing("%s/tests/unit/%s.test.sh" % (SCRIPTS, name))
+            or existing("%s/tests/%s.test.sh" % (SCRIPTS, name))
+            or suites_matching(rb"(?<!lib)/" + re.escape(name.encode()) + rb"\.sh"))
+
+
 def suite_of(f, revisions=None):
     def match(*patterns):
         return any(fnmatch.fnmatchcase(f, p) for p in patterns)
@@ -282,12 +288,11 @@ def suite_of(f, revisions=None):
     if match(SCRIPTS + "/veri/*.py"):
         name = basename(f, ".py")
         return ([s for d in PYTEST_DIRS for s in existing("%s/test_%s.py" % (d, name))]
-                + suite_of("%s/%s.sh" % (SCRIPTS, name.replace("_", "-"))))
+                + bash_suite_of(name.replace("_", "-")))
     if match(SCRIPTS + "/*.sh"):
         name = basename(f, ".sh")
-        return (existing("%s/tests/unit/%s.test.sh" % (SCRIPTS, name))
-                or existing("%s/tests/%s.test.sh" % (SCRIPTS, name))
-                or suites_matching(rb"(?<!lib)/" + re.escape(name.encode()) + rb"\.sh"))
+        return ([s for d in PYTEST_DIRS for s in existing("%s/test_%s.py" % (d, name.replace("-", "_")))]
+                or bash_suite_of(name))
     if match(".tdd/*"):
         return []
     raise Unplaced(f)
