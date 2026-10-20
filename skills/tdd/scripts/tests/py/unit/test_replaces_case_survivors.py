@@ -155,3 +155,14 @@ def test_main_exits_2_with_one_stderr_line_naming_the_step_when_the_clause_mixes
     assert out == ""
     assert len(err.splitlines()) == 1
     assert step in err
+
+
+def test_main_exits_2_with_one_stderr_line_naming_the_step_when_the_clause_is_fully_unquoted_1882(run_cli, survivors):
+    step = "the replacement takes over: replaces a, b in t/x.test.sh ⟦replaces-case⟧ ⟦criterion 2⟧"
+
+    code, out, err = run_cli(survivors, [step])
+
+    assert code == 2
+    assert out == ""
+    assert len(err.splitlines()) == 1
+    assert step in err
