@@ -157,3 +157,43 @@ def test_changed_ids_that_pass_with_an_unchanged_id_failing_make_no_commit_befor
     launches = [e for e in events if e.get("event") == "launch" and e.get("actor") == "author"]
     assert [ran.returncode != 3, len(launches), at_author.read_text().strip() if at_author.exists() else None] \
         == [True, 1, "1"], (ran.returncode, ran.stderr[-700:])
+
+
+STUB_ALWAYS_REJECT = """#!/bin/sh
+prompt=$2
+case "$prompt" in
+*"You grade a piece of prose"*)
+  reply='BEGIN GRADES\\nA1: FAIL - prose never says crimson\\nA2: FAIL - prose still hums\\nVERDICT: REJECT\\nEND GRADES' ;;
+*)
+  reply='edited' ;;
+esac
+printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"'"$reply"'"}'
+"""
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author")
+def test_a_grader_that_keeps_rejecting_relaunches_the_author_for_the_default_budget_of_three_then_exits_1_naming_every_failing_id(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt hums.\n")
+    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is crimson. | shade |\n")
+    claude = tmp_path / "claude"
+    claude.write_text(STUB_ALWAYS_REJECT)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+
+    log = repo / ".tdd" / "events.jsonl"
+    events = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
+    launches = [e for e in events if e.get("event") == "launch" and e.get("actor") == "author"]
+    said = ran.stdout + ran.stderr
+    assert [ran.returncode, len(launches), "A1" in said, "A2" in said] == [1, 3, True, True], (ran.stdout, ran.stderr[-700:])

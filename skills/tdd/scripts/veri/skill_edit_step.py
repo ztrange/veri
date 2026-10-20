@@ -90,6 +90,13 @@ def _author(unit, path, reasons):
         os.unlink(f.name)
 
 
+def _grade(path, unit):
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        code = grade_prose.main([path, unit])
+    return code, out.getvalue()
+
+
 def main(argv):
     if len(argv) != 2:
         print(USAGE, file=sys.stderr)
@@ -97,14 +104,18 @@ def main(argv):
     issue, unit = argv
     apply(issue, unit)
     path = _list_path(unit)
-    out = io.StringIO()
-    with contextlib.redirect_stdout(out):
-        graded = grade_prose.main([path, unit])
-    if graded == 1:
-        if _author(unit, path, out.getvalue()):
+    graded, said = _grade(path, unit)
+    authored = graded == 1
+    for _ in range(3):
+        if graded != 1:
+            break
+        if _author(unit, path, said):
             return 2
-        return grade_prose.main([path, unit])
-    if graded:
+        graded, said = _grade(path, unit)
+    if graded == 1:
+        sys.stdout.write(said)
+        return 1
+    if graded or authored:
         return graded
     event.append(".", {}, "skill-edit-no-author", ["unit=" + unit])
     files = [path, grade_prose.graded_path(unit)]
