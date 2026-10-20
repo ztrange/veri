@@ -311,10 +311,15 @@ def test_the_shim_run_through_a_symlink_from_another_directory_reads_a_relative_
 def test_make_n_profile_names_the_same_suites_as_make_n_test_in_the_same_offline_environment():
     test_code, test_recipe = make_n("test")
     profile_code, profile_recipe = make_n("profile")
+    pytest_files = lambda recipe: sorted(set(re.findall(r"skills/tdd/scripts/tests/py/[\w/]*test_\w+\.py", recipe)))
 
     assert (test_code, profile_code) == (0, 0)
-    assert suites_named(test_recipe) != []
-    assert suites_named(profile_recipe) == suites_named(test_recipe)
+    assert suites_named(test_recipe) == [] and suites_named(profile_recipe) == []
+    assert pytest_files(test_recipe) != []
+    assert pytest_files(profile_recipe) == pytest_files(test_recipe)
+    assert "--durations=0" in profile_recipe
+    assert "VERI_PROFILE_THRESHOLD" in profile_recipe
+    assert "scripts/profile.sh" not in profile_recipe
     for fragment in ("skills/tdd/scripts/tests/offline:", "OFFLINE_REACH_LOG=", "xcrun -f git",
                      "GIT_CONFIG_KEY_0=http.proxy GIT_CONFIG_VALUE_0=http://127.0.0.1:1",
                      "GIT_CONFIG_KEY_1=protocol.allow GIT_CONFIG_VALUE_1=never",
@@ -331,8 +336,8 @@ def test_make_n_test_never_runs_profile_and_make_n_profile_never_runs_test():
 
     assert (test_code, profile_code) == (0, 0)
     assert "all suites green" in test_recipe
-    assert "scripts/profile.sh" in profile_recipe
-    assert "scripts/profile.sh" not in test_recipe
+    assert "--durations=0" in profile_recipe
+    assert "--durations=0" not in test_recipe
     assert "all suites green" not in profile_recipe
     assert not re.search(r"(^|[^[:alnum:]_.-])make[^;]*[ \t]profile([ \t;]|$)".replace("[:alnum:]", "A-Za-z0-9"),
                          test_recipe, re.M)
