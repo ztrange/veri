@@ -334,3 +334,25 @@ def test_record_step_lists_only_the_pytest_method_red_inserted_above_an_older_me
 
     assert "case: test_inserted_by_red_1861\n" in record
     assert "test_older_case_1861" not in record
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_record_step_lists_only_the_bash_case_red_inserted_above_an_older_one_whose_blank_lines_above_changed_1861(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "tests/suite.test.sh"
+    suite.write_text('setup\n\nname="older case"\ncheck_older\nok\n\nfinish\n')
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one inserts a bash case above the older one"
+    suite.write_text('setup\n\nname="inserted by red 1861"\ncheck_added\nok\n'
+                     'name="older case"\ncheck_older\nok\n\nfinish\n')
+
+    run_cli(tests_frozen, ["record", "--step", step, "tests/suite.test.sh"], cwd=tmp_path)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    record = (tmp_path / record_path.rstrip("\n")).read_text()
+
+    assert "case: inserted by red 1861\n" in record
+    assert "older case" not in record
