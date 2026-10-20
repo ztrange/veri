@@ -64,6 +64,15 @@ def _discover(root, exemptions):
     return root, files
 
 
+def _names_a_suite(arg):
+    return (
+        isinstance(arg, ast.Constant)
+        and isinstance(arg.value, str)
+        and _SUITE_PATH.search(arg.value)
+        and not re.search(r"[\s\\]", arg.value)
+    )
+
+
 def _classify(node, module_aliases, name_imports, modules, functions, defined=frozenset()):
     func = node.func
     receiver, attr = _receiver_and_attr(func)
@@ -87,10 +96,7 @@ def _classify(node, module_aliases, name_imports, modules, functions, defined=fr
         args += [item for item in listed if isinstance(item, ast.Constant) and "/" in str(item.value)]
     if name in defined or (name and name.startswith("assert")):
         return None
-    if (module, attr) == ("pytest", "main") or any(
-        isinstance(arg, ast.Constant) and isinstance(arg.value, str) and _SUITE_PATH.search(arg.value) and not re.search(r"[\s\\]", arg.value)
-        for arg in args
-    ):
+    if (module, attr) == ("pytest", "main") or any(_names_a_suite(arg) for arg in args):
         return "runs a nested suite"
     return None
 
