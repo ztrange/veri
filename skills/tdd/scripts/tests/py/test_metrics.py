@@ -1472,3 +1472,18 @@ def test_issue_1859_the_opus_5_5_price_entry_matches_a_recorded_conductor_result
     estimate = sum(float(row[1].lstrip("$")) for row in turn_rows)
     # assistant records carry output_tokens as of the start of streaming, so per-turn output under-counts
     assert estimate == pytest.approx(result["total_cost_usd"], rel=0.25)
+
+
+def test_issue_1868_a_finished_conductor_sessions_per_turn_dollars_sum_to_its_result_total_and_are_said_to_be_estimated(tmp_path, monkeypatch, capsys, metrics):
+    fixture = Path(__file__).parent.parent / "fixtures" / "conductor-log" / "conductor-opus-5-5-recorded.log"
+    log = fixture.read_text()
+    result = next(r for r in map(json.loads, log.splitlines()) if r.get("type") == "result")
+    write_log(tmp_path, ONE_STEP)
+    (tmp_path / ".tdd" / "conductor-108.log").write_text(log)
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    rows = cells(out, "#### Conductor per turn", ["dollars", "context"])
+    assert sum(float(dollars.lstrip("$")) for dollars, _ in rows.values()) == pytest.approx(result["total_cost_usd"], abs=0.01)
+    assert re.search(r"per-turn dollars[^\n]*estimated", out)
