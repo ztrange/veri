@@ -97,3 +97,17 @@ def test_the_bash_version_refusal_precedes_pytest_in_make_unit_and_make_test(tmp
     for target in ("unit", "test"):
         code, ran, output = make(tree, log, target, VERI_BASH_MAJOR="4")
         assert (code, ran, "veri needs bash 5 or newer" in output) == (2, [], True), output
+
+
+@pytest.mark.process("make test started for real over a planted tree, naming a file and a node id together")
+def test_make_test_with_tests_naming_a_file_and_a_node_id_runs_only_those_in_one_invocation(tmp_path):
+    tree, log = planted_tree(tmp_path), tmp_path / "ran.log"
+    py = "skills/tdd/scripts/tests/py"
+    targets = "%s/unit/test_planted_small.py %s/test_planted_medium.py::test_medium" % (py, py)
+    log.write_text("")
+    env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
+    env["PLANTED_RAN_LOG"] = str(log)
+    ran = subprocess.run(["make", "-C", str(tree), "test", "TESTS=" + targets], env=env,
+                         stdin=subprocess.DEVNULL, capture_output=True, text=True)
+    assert (ran.returncode, sorted(log.read_text().splitlines()), ran.stdout.count("== pytest")) == \
+        (0, ["pytest medium", "pytest small"], 1), ran.stdout + ran.stderr
