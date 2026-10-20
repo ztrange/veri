@@ -17,7 +17,7 @@ Every case's subject is source text: it reads SKILL.md, REVISE.md and PIN.md and
 import pathlib
 import re
 
-SKILL = pathlib.Path(__file__).resolve().parents[3] / "SKILL.md"
+SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 REVISE_MD = SKILL.parent / "REVISE.md"
 PIN_MD = SKILL.parent / "PIN.md"
 
