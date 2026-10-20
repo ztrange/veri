@@ -41,7 +41,7 @@ def _exists(case):
 
 def _lines_with(report, prefix):
     with open(report, encoding="utf-8", errors="replace") as handle:
-        return [l for l in handle.read().splitlines() if l.startswith(prefix)]
+        return [l.lstrip() for l in handle.read().splitlines() if l.lstrip().startswith(prefix)]
 
 
 def _named_cases(report):
