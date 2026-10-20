@@ -109,14 +109,7 @@ def test_main_calls_the_builder_beside_the_shim_as_called_with_the_consumed_pair
     monkeypatch.chdir(work)
     write_inputs(work)
     monkeypatch.setenv("VERI_STEP", "AMBIENT-STEP-SENTINEL")
-
-    def fake(args, *_, **__):
-        if os.path.basename(str(args[0])) == "supervise.sh":
-            return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine", b"")
-        return subprocess.CompletedProcess(args, 0, b"", b"")
-
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, fake)
+    answering_leaf(monkeypatch, b"VERDICT: PASS\nfine")
     before = set(sys.modules)
     try:
         verify = importlib.import_module("veri.verify")
@@ -195,15 +188,7 @@ def test_main_reads_the_verdict_from_supervises_stdout_and_prints_the_whole_reas
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-
-    def fake(args, *_, **__):
-        name = os.path.basename(str(args[0]))
-        if name == "supervise.sh":
-            return subprocess.CompletedProcess(args, 0, leaf_out, None)
-        return subprocess.CompletedProcess(args, 0, b"", b"")
-
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, fake)
+    answering_leaf(monkeypatch, leaf_out)
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", phase, "spec.md", "tests/x.test.sh",
@@ -240,15 +225,7 @@ def test_main_appends_one_verdict_record_with_the_verdict_word_and_the_reasons_f
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("VERI_ISSUE", "931")
     monkeypatch.setenv("VERI_STEP", "5")
-
-    def fake(args, *_, **__):
-        name = os.path.basename(str(args[0]))
-        if name == "supervise.sh":
-            return subprocess.CompletedProcess(args, 0, leaf_out, None)
-        return subprocess.CompletedProcess(args, 0, b"", b"")
-
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, fake)
+    answering_leaf(monkeypatch, leaf_out)
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
@@ -268,17 +245,7 @@ def test_main_launches_the_leaf_with_verify_leaf_args_words_split_on_whitespace_
         (tmp_path / name).write_text("")
     monkeypatch.setenv("VERIFY_LEAF_ARGS", "--one two\t*.flag\n nomatch-*.zz  --three")
     supervised = []
-
-    def fake(args, *_, **__):
-        words = [str(a) for a in args]
-        name = os.path.basename(words[0])
-        if name == "supervise.sh":
-            supervised.append(words)
-            return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine", None)
-        return subprocess.CompletedProcess(args, 0, b"", b"")
-
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, fake)
+    answering_leaf(monkeypatch, b"VERDICT: PASS\nfine", supervised=supervised)
     verify = importlib.import_module("veri.verify")
     scripts = os.path.dirname(os.path.dirname(os.path.abspath(verify.__file__)))
 
@@ -348,17 +315,7 @@ def test_main_lets_a_literal_model_word_in_verify_leaf_args_stand_when_no_model_
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("VERIFY_LEAF_ARGS", "--model x")
     supervised = []
-
-    def fake(args, *_, **__):
-        words = [str(a) for a in args]
-        name = os.path.basename(words[0])
-        if name == "supervise.sh":
-            supervised.append(words)
-            return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine", None)
-        return subprocess.CompletedProcess(args, 0, b"", b"")
-
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, fake)
+    answering_leaf(monkeypatch, b"VERDICT: PASS\nfine", supervised=supervised)
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
@@ -459,19 +416,7 @@ def test_main_relaunches_a_leaf_with_no_verdict_line_up_to_the_no_verdict_budget
     monkeypatch.setenv("HOME", str(tmp_path))
     if retries is not None:
         monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", retries)
-    supervised = []
-
-    def fake(args, *_, **__):
-        words = [str(a) for a in args]
-        name = os.path.basename(words[0])
-        if name == "supervise.sh":
-            supervised.append(words)
-            out = leaf_outs[min(len(supervised), len(leaf_outs)) - 1]
-            return subprocess.CompletedProcess(args, 0, out, None)
-        return subprocess.CompletedProcess(args, 0, b"", b"")
-
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, fake)
+    supervised = answering_leaf(monkeypatch, *leaf_outs)
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
@@ -488,19 +433,7 @@ def test_main_returns_2_when_the_relaunch_record_cannot_be_appended_and_makes_no
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
     events.unappendable()
-    supervised = []
-
-    def fake(args, *_, **__):
-        words = [str(a) for a in args]
-        name = os.path.basename(words[0])
-        if name == "supervise.sh":
-            supervised.append(words)
-            out = NO_VERDICT if len(supervised) == 1 else b"VERDICT: PASS\nfine\n"
-            return subprocess.CompletedProcess(args, 0, out, None)
-        return subprocess.CompletedProcess(args, 0, b"", b"")
-
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, fake)
+    supervised = answering_leaf(monkeypatch, NO_VERDICT, b"VERDICT: PASS\nfine\n")
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
@@ -551,17 +484,7 @@ def test_main_reads_an_empty_no_verdict_budget_as_1_and_a_leading_zero_as_octal_
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", retries)
-    supervised = []
-
-    def fake(args, *_, **__):
-        name = os.path.basename(str(args[0]))
-        if name == "supervise.sh":
-            supervised.append(args)
-            return subprocess.CompletedProcess(args, 0, NO_VERDICT, None)
-        return subprocess.CompletedProcess(args, 0, b"", b"")
-
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, fake)
+    supervised = answering_leaf(monkeypatch, NO_VERDICT)
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
@@ -606,15 +529,7 @@ def test_main_refuses_a_no_verdict_budget_that_is_not_a_non_negative_integer_aft
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", retries)
-    launched = []
-
-    def fake(args, *_, **__):
-        name = os.path.basename(str(args[0]))
-        launched.append(name)
-        return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine\n", b"")
-
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, fake)
+    launched = answering_leaf(monkeypatch, b"VERDICT: PASS\nfine\n")
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
@@ -623,11 +538,11 @@ def test_main_refuses_a_no_verdict_budget_that_is_not_a_non_negative_integer_aft
     captured = capfdbinary.readouterr()
     prompt = tmp_path / ".tdd" / "verify-green.prompt"
     assert (code, captured.out, captured.err, b"the behavior spec" in prompt.read_bytes(),
-            "supervise.sh" in launched) == (
+            launched) == (
         2, b"",
         b"verify: VERI_NO_VERDICT_RETRIES must be a non-negative integer, got '"
         + retries.encode() + b"'\n",
-        True, False)
+        True, [])
 
 
 def test_main_snapshots_the_tree_through_a_temporary_index_and_head_around_the_launch_and_returns_2_naming_the_changed_paths_then_head_with_no_verdict_event_or_preservation(
@@ -1168,17 +1083,7 @@ def test_main_returns_2_before_any_leaf_launches_when_reading_home_gitconfig_a_r
     monkeypatch.setenv("HOME", str(home))
     gitconfig = home / ".gitconfig"
     gitconfig.write_bytes(b"[user]\n\tname = op\n")
-    launched = []
-
-    def fake(args, *_, **__):
-        name = os.path.basename(str(args[0]))
-        launched.append(name)
-        if name == "supervise.sh":
-            return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine\n", None)
-        return subprocess.CompletedProcess(args, 0, b"", b"")
-
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, fake)
+    launched = answering_leaf(monkeypatch, b"VERDICT: PASS\nfine\n")
     real_open = open
 
     def unreadable(path, *args, **kwargs):
@@ -1193,7 +1098,7 @@ def test_main_returns_2_before_any_leaf_launches_when_reading_home_gitconfig_a_r
     assert_prompt_rendered()
 
     captured = capfdbinary.readouterr()
-    assert (code, captured.out, "supervise.sh" in launched) == (2, b"", False)
+    assert (code, captured.out, launched) == (2, b"", [])
 
 
 def test_main_returning_2_because_reading_home_gitconfig_raised_oserror_names_that_path_on_stderr_1183(
@@ -1207,12 +1112,7 @@ def test_main_returning_2_because_reading_home_gitconfig_raised_oserror_names_th
     monkeypatch.setenv("HOME", str(home))
     gitconfig = home / ".gitconfig"
     gitconfig.write_bytes(b"[user]\n\tname = op\n")
-
-    def fake(args, *_, **__):
-        return subprocess.CompletedProcess(args, 0, b"", b"")
-
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, fake)
+    answering_leaf(monkeypatch, b"")
     real_open = open
 
     def unreadable(path, *args, **kwargs):
@@ -1241,17 +1141,7 @@ def test_main_returns_2_naming_home_gitconfig_on_stderr_without_launching_a_leaf
     monkeypatch.setenv("HOME", str(home))
     gitconfig = home / ".gitconfig"
     gitconfig.mkdir()
-    launched = []
-
-    def fake(args, *_, **__):
-        name = os.path.basename(str(args[0]))
-        launched.append(name)
-        if name == "supervise.sh":
-            return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine\n", None)
-        return subprocess.CompletedProcess(args, 0, b"", b"")
-
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, fake)
+    launched = answering_leaf(monkeypatch, b"VERDICT: PASS\nfine\n")
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
@@ -1259,7 +1149,7 @@ def test_main_returns_2_naming_home_gitconfig_on_stderr_without_launching_a_leaf
 
     captured = capfdbinary.readouterr()
     assert (code, str(gitconfig).encode() in captured.err, b"Traceback" in captured.err,
-            "supervise.sh" in launched) == (2, True, False, False)
+            launched) == (2, True, False, [])
 
 
 def test_main_returns_2_naming_home_gitconfig_on_stderr_when_the_leaf_left_it_a_directory_1183(
@@ -1464,7 +1354,7 @@ def build_prompt(words, monkeypatch):
 SPEC = "slugify must lowercase the title and join words with hyphens."
 
 
-def answering_leaf(monkeypatch, leaf_out):
+def answering_leaf(monkeypatch, *leaf_outs, supervised=None):
     launches = []
 
     def fake(args, *_, **__):
@@ -1472,7 +1362,10 @@ def answering_leaf(monkeypatch, leaf_out):
         name = os.path.basename(words[0])
         if name == "supervise.sh":
             launches.append((words[1], pathlib.Path(words[3]).read_text()))
-            return subprocess.CompletedProcess(args, 0, (leaf_out + "\n").encode(), None)
+            if supervised is not None:
+                supervised.append(words)
+            out = leaf_outs[min(len(launches), len(leaf_outs)) - 1]
+            return subprocess.CompletedProcess(args, 0, out if isinstance(out, bytes) else (out + "\n").encode(), None)
         return subprocess.CompletedProcess(args, 128 if name == "git" else 0, b"", None)
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
