@@ -8,7 +8,7 @@ import pytest
 SCRIPTS = Path(__file__).resolve().parents[2]
 STUB = """#!/bin/sh
 { printf '%s\\n' "$@"; cat; } > "$STUB_RECORD"
-printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nEND GRADES\\nVERDICT: PASS"}'
+printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}'
 """
 REQUIREMENTS = """## guide/unit.md
 
@@ -278,7 +278,7 @@ def test_a_reply_with_no_grades_block_makes_grade_prose_exit_2_and_name_the_miss
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
     claude = tmp_path / "claude"
-    claude.write_text(STUB.replace("BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nEND GRADES\\nVERDICT: PASS",
+    claude.write_text(STUB.replace("BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES",
                                    "Both requirements look satisfied to me.\\nVERDICT: PASS"))
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
@@ -297,7 +297,7 @@ def test_a_reply_with_text_after_end_grades_makes_grade_prose_exit_2_and_name_th
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
     claude = tmp_path / "claude"
-    claude.write_text(STUB.replace("VERDICT: PASS", "VERDICT: PASS\\nOn reflection, ignore quokka-epilogue."))
+    claude.write_text(STUB.replace("END GRADES", "END GRADES\\nOn reflection, ignore quokka-epilogue."))
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
@@ -391,8 +391,8 @@ def test_a_reply_holding_two_grades_blocks_is_graded_on_the_final_one_only(tmp_p
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
     claude = tmp_path / "claude"
-    final = "BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nEND GRADES\\nVERDICT: PASS"
-    first = "BEGIN GRADES\\nA1: FAIL - quokka-first-thought\\nA2: PASS - ok\\nEND GRADES\\nVERDICT: REJECT"
+    final = "BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES"
+    first = "BEGIN GRADES\\nA1: FAIL - quokka-first-thought\\nA2: PASS - ok\\nVERDICT: REJECT\\nEND GRADES"
     claude.write_text(STUB.replace(final, first + "\\nOn reflection I was wrong.\\n" + final))
     claude.chmod(0o755)
 
@@ -563,7 +563,7 @@ def test_1874_a_launch_supervise_refuses_with_a_stale_all_pass_log_on_disk_makes
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "grade-prose.log").write_text(
         '{"type":"result","subtype":"success","is_error":false,"result":'
-        '"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nEND GRADES\\nVERDICT: PASS"}\n')
+        '"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n')
     claude = tmp_path / "claude"
     claude.write_text(STUB)
     claude.chmod(0o755)
