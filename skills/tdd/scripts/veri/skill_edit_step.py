@@ -102,11 +102,15 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     issue, unit = argv
+    budget = os.environ.get("VERI_SKILL_EDIT_BUDGET", "3")
+    if not (budget.isdecimal() and int(budget) >= 1):
+        print("VERI_SKILL_EDIT_BUDGET must be a whole number >= 1: " + budget, file=sys.stderr)
+        return 2
     apply(issue, unit)
     path = _list_path(unit)
     graded, said = _grade(path, unit)
     authored = graded == 1
-    for _ in range(int(os.environ.get("VERI_SKILL_EDIT_BUDGET", "3"))):
+    for _ in range(int(budget)):
         if graded != 1:
             break
         if _author(unit, path, said):

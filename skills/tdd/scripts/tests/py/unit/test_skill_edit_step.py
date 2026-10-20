@@ -125,3 +125,24 @@ def test_apply_keeps_the_sections_of_an_existing_requirements_list_when_it_creat
     assert text.startswith(other), text
     assert "## unit.md" in text.splitlines(), text
     assert "| A1 | The widget is blue. | because |" in text.splitlines(), text
+
+
+def test_a_veri_skill_edit_budget_that_is_not_a_whole_number_of_at_least_one_exits_2_before_any_grading_or_launch_and_the_shim_header_names_it(tmp_path, monkeypatch, run_cli):
+    from conftest import SCRIPTS
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    calls = []
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: calls.append("grade") or (1, "A1: FAIL - no\n"))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: calls.append("author") or 0)
+
+    codes = {}
+    for budget in ["", "0", "-1", "two", "1.5"]:
+        codes[budget] = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), str(tmp_path / "unit.md")],
+                                env={"VERI_SKILL_EDIT_BUDGET": budget})[0]
+
+    header = (SCRIPTS / "skill-edit-step.sh").read_text().split("exec ")[0]
+    assert (codes, calls, "VERI_SKILL_EDIT_BUDGET" in header) \
+        == ({b: 2 for b in ["", "0", "-1", "two", "1.5"]}, [], True), (codes, calls)
