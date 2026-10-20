@@ -516,3 +516,19 @@ def test_main_1808_prints_missing_behaviour_for_a_verify_green_reject_carrying_a
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "missing a closed conductor session is counted once\n")
+
+
+def test_main_1808_prints_missing_behaviour_for_a_revise_green_impossible_report_carrying_a_missing_test_line(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setenv("VERI_STEP", "wrong-test-route.sh routes an impossible revise")
+    report = tmp_path / "revise-green-report.txt"
+    report.write_text(
+        "OUTCOME: IMPOSSIBLE — the fix is a test the step lacks\n"
+        "MISSING_TEST: a bare force-with-lease is refused\n"
+        "AGAINST_UNMODIFIED: N/A\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "missing a bare force-with-lease is refused\n")
