@@ -466,15 +466,9 @@ def run_cli(monkeypatch, capfd):
         monkeypatch.setattr(sys, "stdin", io.StringIO(stdin))
         environ, start = dict(os.environ), os.getcwd()
         try:
-            code = module.main(argv)
+            code = entry.exit_code(module.main, argv, on_broken_pipe=lambda: None)
         except SystemExit as exit:
             code = exit.code
-        except BrokenPipeError:
-            code = entry.BROKEN_PIPE
-        except Exception as exc:
-            sys.stderr.write(entry.refusal(module.main, exc))
-            sys.stderr.flush()
-            code = 2
         finally:
             os.environ.clear()
             os.environ.update(environ)

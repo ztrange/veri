@@ -22,14 +22,18 @@ def silence_stdout():
         pass
 
 
-def run(main, argv):
+def exit_code(main, argv, on_broken_pipe=silence_stdout):
     try:
         code = main(argv)
         sys.stdout.flush()
     except BrokenPipeError:
-        silence_stdout()
-        sys.exit(BROKEN_PIPE)
+        on_broken_pipe()
+        return BROKEN_PIPE
     except Exception as exc:
         sys.stderr.write(refusal(main, exc))
-        sys.exit(2)
-    sys.exit(code)
+        return 2
+    return code
+
+
+def run(main, argv):
+    sys.exit(exit_code(main, argv))
