@@ -30,14 +30,8 @@ def _record_path(step):
 
 
 def _in_repository():
-    here = os.path.abspath(os.getcwd())
-    while True:
-        if os.path.exists(os.path.join(here, ".git")):
-            return True
-        parent = os.path.dirname(here)
-        if parent == here:
-            return False
-        here = parent
+    return subprocess.run(["git", "rev-parse", "--show-toplevel"], stdout=subprocess.DEVNULL,
+                          stderr=subprocess.DEVNULL).returncode == 0
 
 
 def _differing_tests():
@@ -125,7 +119,10 @@ def main(argv):
                     changed.append(name)
             except OSError:
                 changed.append(name)
-        if by_step and _in_repository():
+        if by_step and not _in_repository():
+            _write(sys.stderr, "tests-frozen.sh: not inside a git repository")
+            return 2
+        if by_step:
             recorded = {name for _, name in entries}
             parsed = replaces_case.parse(step) if replaces_case.is_replaces_case_step(step) else None
             exempt = {parsed[1]} if parsed else set()

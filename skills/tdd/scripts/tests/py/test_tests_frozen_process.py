@@ -572,3 +572,17 @@ def test_an_unmarked_step_quoting_a_repair_mark_in_its_prose_is_still_frozen_158
     checked = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)[:2]
 
     assert (recorded, checked) == (0, (1, "a.test.sh\n"))
+
+
+@pytest.mark.process("git asked for the repository toplevel from a directory under tmp_path that is in none")
+def test_check_step_run_outside_any_git_repository_exits_2_with_stderr_naming_the_missing_repository_1773(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests/test_new.py").write_text("one\n")
+    step = "step one adds a case"
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py"], cwd=tmp_path)
+
+    code, out, err = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    assert (code, out, "repository" in err) == (2, "", True)
