@@ -14,9 +14,27 @@ from run_verdict import SCRIPTS
 USAGE = "usage: grade-prose.sh <requirements-file> <unit>"
 
 
+GRADER_INSTRUCTIONS = """You grade a piece of prose against a list of requirements. You judge only what the prose states or instructs, read as its reader (an AI agent following it) would read it. You do not judge whether the instructions are wise, and you do not judge behaviour.
+
+Rules:
+- `{{NAME}}` and `{{INCLUDE:...}}` are template slots filled in later. Never fail a requirement because of a slot; judge the literal text around it.
+- A requirement PASSES when the prose clearly states or instructs it, in any wording. It FAILS when the prose omits it, contradicts it, or states something that would lead the reader to act against it.
+- Judge each requirement independently.
+
+First, analyse each requirement against the prose in free text — quote the prose you rely on. Change your mind here if you need to.
+
+Then end your reply with this block and nothing after it. Inside the block, one line per requirement, in the order given, starting with the requirement's ID exactly as written in the list (e.g. `DR4`), and no corrections:
+BEGIN GRADES
+<ID>: PASS — <reason, at most 20 words>
+<ID>: FAIL — <reason, at most 20 words, quoting the failing prose when it exists>
+VERDICT: PASS or VERDICT: REJECT
+END GRADES
+VERDICT is PASS only if every line inside the block is PASS."""
+
+
 def prompt(unit, text, claims):
     rows = "".join("%s: %s\n" % tuple(row.split("\t", 1)) for row in claims.splitlines())
-    return "Unit: %s\n\n%s\n\nRequirements:\n%s" % (unit, text, rows)
+    return "%s\n\nUnit: %s\n\n%s\n\nRequirements:\n%s" % (GRADER_INSTRUCTIONS, unit, text, rows)
 
 
 def section(text, heading):
