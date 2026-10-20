@@ -1219,3 +1219,13 @@ def test_main_not_running_1875_omits_the_issue_whose_conductor_started_through_a
 
     out, err = capsys.readouterr()
     assert (code, out) == (0, "5\n7\n")
+
+
+@pytest.mark.parametrize("argv", [["--repo", "o/n", "--not-running", "extra"], ["--not-running", "--repo", "o/n", "extra"]])
+def test_main_1875_refuses_an_unknown_extra_argument_beside_not_running_with_2_and_the_usage_line_alone_reading_no_issue(argv, monkeypatch, capsys, solvable_issues):
+    started = no_process(monkeypatch)
+
+    code = solvable_issues.main(argv)
+
+    out, err = capsys.readouterr()
+    assert (code, started, out, err) == (2, [], "", USAGE)
