@@ -88,3 +88,40 @@ def test_apply_leaves_the_list_byte_for_byte_when_the_issue_has_no_requirements_
         skill_edit_step.apply(str(tmp_path / "issue.md"), str(tmp_path / "unit.md"))
 
         assert (tmp_path / "REQUIREMENTS.md").read_bytes() == original.encode(), body
+
+
+def test_apply_creates_a_new_unit_empty_and_its_section_in_a_requirements_list_it_creates(tmp_path):
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md (new)\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n"
+        "| A2 | The widget is round. | shape |\n")
+
+    skill_edit_step.apply(str(tmp_path / "issue.md"), str(tmp_path / "unit.md"))
+
+    assert (tmp_path / "unit.md").read_bytes() == b""
+    rows = [l for l in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("|")]
+    assert rows[2:] == [
+        "| A1 | The widget is blue. | because |",
+        "| A2 | The widget is round. | shape |",
+    ], rows
+    assert "## unit.md" in (tmp_path / "REQUIREMENTS.md").read_text().splitlines()
+
+
+def test_apply_keeps_the_sections_of_an_existing_requirements_list_when_it_creates_a_new_unit(tmp_path):
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    other = ("## other.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+             "| B1 | The gadget hums. | sound |\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(other)
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md (new)\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n")
+
+    skill_edit_step.apply(str(tmp_path / "issue.md"), str(tmp_path / "unit.md"))
+
+    text = (tmp_path / "REQUIREMENTS.md").read_text()
+    assert text.startswith(other), text
+    assert "## unit.md" in text.splitlines(), text
+    assert "| A1 | The widget is blue. | because |" in text.splitlines(), text
