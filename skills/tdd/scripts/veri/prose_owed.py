@@ -32,8 +32,21 @@ def orphans(units):
                 yield fields[0]
 
 
+def listed_units(path):
+    units = []
+    for unit in requirements.headings(path):
+        try:
+            requirements.claims(path, unit)
+        except ValueError as e:
+            if not str(e).endswith("unit has no table"):
+                raise
+            continue
+        units.append(unit)
+    return units
+
+
 def owed_and_gone(path="REQUIREMENTS.md"):
-    units = requirements.units(path) if os.path.exists(path) else []
+    units = listed_units(path) if os.path.exists(path) else []
     owed = [u for u in units if graded_signature(u) != grade_prose.signature(path, u)]
     return owed, list(orphans(units))
 
@@ -43,7 +56,11 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     os.chdir(argv[0])
-    owed, gone = owed_and_gone()
+    try:
+        owed, gone = owed_and_gone()
+    except ValueError as e:
+        print("prose-owed.sh: " + str(e), file=sys.stderr)
+        return 2
     for unit in owed:
         print(unit)
     for unit in gone:

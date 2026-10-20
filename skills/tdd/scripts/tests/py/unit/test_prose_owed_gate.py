@@ -42,3 +42,18 @@ def test_prose_owed_sh_run_in_process_with_process_launches_spied_records_no_lau
     code, out, err = run_cli(prose_owed, [str(tmp_path)])
 
     assert (code, out.split(), launched) == (1, ["skills/demo/SKILL.md"], []), (code, out, launched, err)
+
+
+def test_prose_owed_sh_given_a_list_repeating_an_id_exits_2_naming_the_list_and_the_duplicate_1911(tmp_path, run_cli):
+    import importlib
+
+    prose_owed = importlib.import_module("veri.prose_owed")
+    (tmp_path / "skills" / "demo").mkdir(parents=True)
+    (tmp_path / "skills" / "demo" / "SKILL.md").write_text("The widget is blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## skills/demo/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n| A1 | The widget is round. | because |\n")
+
+    code, out, err = run_cli(prose_owed, [str(tmp_path)])
+
+    assert code == 2 and "REQUIREMENTS.md" in err and "duplicate ID" in err, (code, out, err)
