@@ -2224,3 +2224,27 @@ def test_main_renders_a_revise_green_prompt_for_a_suite_repair_or_ci_repair_step
         results[name] = (code, leave in prompt, freeze in prompt, re.search(permits, prompt, re.I) is not None)
 
     assert results == {"suite-repair": (0, False, False, True), "ci-repair": (0, False, False, True)}
+
+
+def test_mid_line_marks_render_todays_prompts(tmp_path, capsysbinary, build_develop_prompt):
+    verify = importlib.import_module("veri.build_verify_prompt")
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    step = "zorblat quotes ⟦ci-repair⟧ and ⟦suite-repair⟧ mid-line in its prose ⟦criterion 1⟧"
+
+    def flat(module, argv):
+        assert module.main(argv) == 0
+        return re.sub(rb"\s+", b" ", capsysbinary.readouterr().out)
+
+    red = flat(build_develop_prompt, ["red", str(spec), step, "make test"])
+    green = flat(build_develop_prompt, ["green", str(spec), step, "make test", "tests/py/test_zorblat.py",
+                                        "test_zorblat_frobs_a_nitz", "make unit"])
+    verified = flat(verify, ["--step", step, "--fast-cmd", "make unit", "green", str(spec),
+                             "tests/py/test_zorblat.py", "test_zorblat_frobs_a_nitz"])
+
+    ci_red = b"This step repairs a red CI run.**"
+    suite_develop = b"This step repairs the full run.** Its text lists every suite"
+    ci_verify = b"This step repairs a failure that reproduces only on CI.**"
+    assert ([ci_red in red, suite_develop in red, ci_red in green, suite_develop in green,
+             ci_verify in verified, suite_develop in verified]
+            == [True, False, False, True, True, True])
