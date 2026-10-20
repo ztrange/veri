@@ -1,2 +1,4 @@
 ### A test file passing a prose string that holds a path ending in `test_<x>.py` or `.test.sh` next to other words (such as "that a ported script's tests live in tests/py/test_<module>.py") to a helper is not reported by the fast-tier guard as running a nested suite (small unmarked case in tests/py/test_fast_tier_guard.py, no process) ⟦criterion 1⟧
 - extract the string-constant-names-a-suite predicate in `_classify` (skills/tdd/scripts/veri/fast_tier_guard.py:90-94) into a named helper
+### A test file passing a regex ending in `\.py` (such as r"tests/py/test_<module>\.py") to a helper is not reported by the fast-tier guard as running a nested suite (small unmarked case in tests/py/test_fast_tier_guard.py, no process) ⟦criterion 1⟧
+- extract the string-constant suite-path test at fast_tier_guard.py:90-93 into a named predicate (it is not duplication, so I didn't apply it)
