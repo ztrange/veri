@@ -72,3 +72,15 @@ def test_a_graded_line_whose_unit_no_longer_exists_is_printed_as_an_orphan_and_t
     lines = ran.stdout.splitlines()
     assert (ran.returncode, len(lines)) == (1, 1), ran.stderr
     assert "skills/demo/gone.md" in lines[0] and "orphan" in lines[0]
+
+
+@pytest.mark.process("prose-owed.sh run as a script")
+def test_a_unit_named_in_the_requirements_file_with_no_list_and_no_graded_line_is_never_printed(tmp_path):
+    (tmp_path / "skills" / "bare").mkdir(parents=True)
+    (tmp_path / "skills" / "bare" / "SKILL.md").write_text("The widget is blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text("## skills/bare/SKILL.md\n\nNo list here yet.\n")
+
+    ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
+                         capture_output=True, text=True)
+
+    assert (ran.returncode, ran.stdout) == (0, ""), ran.stderr
