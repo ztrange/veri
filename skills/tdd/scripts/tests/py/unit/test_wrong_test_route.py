@@ -694,3 +694,19 @@ def test_main_1865_prints_missing_behaviour_of_the_first_well_formed_missing_tes
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "missing a closed conductor session is counted once\n")
+
+
+def test_main_1865_prints_revise_and_says_on_stderr_no_well_formed_missing_test_line_was_found_when_every_missing_test_line_is_empty(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setenv("VERI_STEP", "wrong-test-route.sh falls back on empty missing test lines")
+    report = tmp_path / "verify-green-report.txt"
+    report.write_text(
+        "VERDICT: REJECT\n"
+        "MISSING_TEST:\n"
+        "MISSING_TEST:   \n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+
+    assert (code, stdout, "no well-formed MISSING_TEST: line" in stderr) == (3, "revise\n", True)
