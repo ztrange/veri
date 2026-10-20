@@ -10,6 +10,10 @@ import requirements
 USAGE = "usage: skill-edit-step.sh <issue-body-file> <unit-file>"
 
 
+def _list_path(unit):
+    return os.path.join(os.path.dirname(unit), "REQUIREMENTS.md")
+
+
 def _row_id(row):
     return requirements.split_cells(row)[1]
 
@@ -43,7 +47,7 @@ def _create(unit, path, name, rows):
 
 def apply(issue, unit):
     name = os.path.basename(unit)
-    path = os.path.join(os.path.dirname(unit), "REQUIREMENTS.md")
+    path = _list_path(unit)
     rows = _issue_rows(issue, name)
     if rows and not os.path.exists(unit):
         _create(unit, path, name, rows)
@@ -71,7 +75,7 @@ def main(argv):
         return 2
     issue, unit = argv
     apply(issue, unit)
-    path = os.path.join(os.path.dirname(unit), "REQUIREMENTS.md")
+    path = _list_path(unit)
     graded = grade_prose.main([path, unit])
     if graded:
         return graded
