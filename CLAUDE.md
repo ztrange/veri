@@ -111,30 +111,17 @@ no `VERSION` file, no changelog. One merged feature/fix issue is one minor bump,
 
 ## Testing idiom
 
-Plain-shell asserts, zero dependencies, under `skills/tdd/scripts/tests/`, all run by
-`make test`. A suite keeps `pass`/`fail` counters, prints `FAIL - <name>` with a diff, and
-ends with a count; match that, no framework. Suites are hermetic from ambient `VERI_*`:
-`run-suite.sh` strips them for bash, the autouse `hermetic_environment` fixture in
-`tests/py/conftest.py` for pytest.
+Every suite is pytest, under `skills/tdd/scripts/tests/py/`; `make test` and `make unit` each run
+one `pytest` invocation, and nothing under `tests/` ends in `.test.sh`. pytest's own exit code is
+trusted: 0 only when every collected test passed, 5 when none were collected. The autouse
+`hermetic_environment` fixture in `tests/py/conftest.py` makes a case hermetic from ambient `VERI_*`.
+`make test TESTS="<pytest file or node id> …"` runs only those, in the same one invocation.
 
-**The `-recorded` suites no longer keep their own counters**: #496 retired #225's rule; they
-count through `lib/harness.sh` like every other.
+**`skills/tdd/scripts/tests/py/unit/` is the fast tier**, run by `make unit` and by `make test`.
+Admission bar: about 100 ms per case, no git, network, servers, real waits (`sleep`), nested
+suites, or script run as a subprocess.
 
-**The `test` recipe enforces the count line**: a suite whose output does not end in
-`<n> passed, <m> failed` fails, named `<suite>: never reached its count line`. Its exit code
-alone is not trusted — under `set -u` a suite that dies partway can exit 0 (#157). A non-zero
-exit still fails it.
-
-**`skills/tdd/scripts/tests/unit/` is the fast tier**, run by `make unit` and by `make test`.
-Admission bar, stated in the suite's header and judged from its source: about 100 ms per case,
-no git, network, servers, real waits (`sleep`), nested suites, or script run as a subprocess —
-it sources the script and mocks what it shells out to.
-`make unit` shims `git`, `gh`, `curl` and `python3` so a real call fails, named, and
-`make test` applies those shims to the suites under `tests/unit/` only; a unit suite mocks
-them as shell functions. The one `python3` call let through is one whose first argument is a
-module file under `skills/tdd/scripts/veri/`, a ported script's shim hand-off.
-
-**`make unit` and `make test` also run a pytest leg** over `skills/tdd/scripts/tests/py/`
+**`make unit` and `make test` run pytest** over `skills/tdd/scripts/tests/py/`
 (`make unit`: `tests/py/unit/` only), launched by `skills/tdd/scripts/veri/pytest_leg.py` on
 `$VERI_VENV/bin/python3` (default `~/.veri-tools/venv`, from `make install-dev`; else PATH's
 `python3`). Admission rule: no process but the interpreter. Each case times out at 30 s
@@ -152,20 +139,14 @@ and `curl` always refuse. Drive a ported script's CLI in-process with the
 `run_cli(module, argv, stdin="", env=None, cwd=None)` fixture, which returns
 `(code, stdout, stderr)`.
 
-**A script moves into the unit tier by one pattern** (#339): its logic goes behind functions
-with a main guard (`[[ "${BASH_SOURCE[0]}" == "$0" ]] && main "$@"`); a new
-`tests/unit/<script>.test.sh` sources it and mocks every command it shells out to as a
-same-named shell function; the CLI contract stays byte-identical, its integration suite in
-`tests/` unmodified. `push-branch.sh` has left this pattern, ported to Python under the
-convention `status.sh` is the worked example of (#720); `lib/github.sh` stays
-bash, sourced by `tests/py/test_github_sh.py` with `gh` faked on PATH.
+`lib/github.sh` stays bash, sourced by `tests/py/test_github_sh.py` with `gh` faked on PATH.
 
 **A script ported to Python follows one convention; `status.sh` is the worked example**
 (#634): its logic is a module of `skills/tdd/scripts/veri/`, and its `.sh` entry point a
 `/bin/sh` shim that `exec`s `python3` on it, holding no Python source (no heredoc, no
 `python3 -c`). Its tests live in `tests/py/unit/test_<module>.py` (`tests/py/test_<module>.py`
-when the guard names it), faking only process boundaries; its bash suite in `tests/` keeps
-the entry-point contract cases.
+when the guard names it), faking only process boundaries; its entry-point contract cases sit in
+`tests/py/test_<module>_process.py`.
 
 **A suite whose subject is the docs pipeline lives in `docs/tests/`, not here**, and runs by
 existing (`make docs-test` globs it; #137). Per step, the red and refactor leaves run the
@@ -193,7 +174,7 @@ A guard or failure path never watched to fail is not tested: break it, see it go
   (#322, #323): Homebrew bash starts slowly.
 - The `test` recipe gives every suite `LC_ALL=C`, `< /dev/null` and a symlink to the real
   `git` first on PATH; remote git is refused by
-  `protocol.allow=never`, `gh`/`curl` by offline shims.
+  `protocol.allow=never`, `gh`/`curl` by the plugin `pytest_leg.py` loads.
 - macOS checks each new executable on its first run (~330 ms). Fix:
   `sudo spctl developer-mode enable-terminal`, enable the terminal under Privacy & Security →
   Developer Tools, restart it. A Claude desktop session is not covered; launch conductors

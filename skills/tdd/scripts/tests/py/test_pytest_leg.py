@@ -119,7 +119,7 @@ def test_a_small_case_that_starts_git_fails_under_the_launcher_with_its_failure_
         "def test_runs_git():\n"
         "    subprocess.run(['git', '--version'], capture_output=True)\n"
     )
-    path = os.pathsep.join(p for p in os.environ["PATH"].split(os.pathsep) if "unit-guard" not in p)
+    path = os.environ["PATH"]
     done = subprocess.run(
         [sys.executable, "-c", "import runpy, sys; sys.argv[0] = sys.argv.pop(1); runpy.run_path(sys.argv[0], run_name='__main__')",
          os.path.join(scripts, "veri", "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],
@@ -153,7 +153,7 @@ def test_a_small_case_that_starts_python3_on_a_script_outside_veri_fails_naming_
         "    subprocess.run(['python3', %r], capture_output=True)\n"
         % (str(outside), os.path.join(veri, "small_case_guard.py"))
     )
-    path = os.pathsep.join([str(bin_dir)] + [p for p in os.environ["PATH"].split(os.pathsep) if "unit-guard" not in p])
+    path = os.pathsep.join([str(bin_dir), os.environ["PATH"]])
     done = subprocess.run(
         [sys.executable, "-c", "import runpy, sys; sys.argv[0] = sys.argv.pop(1); runpy.run_path(sys.argv[0], run_name='__main__')",
          os.path.join(veri, "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],
@@ -203,8 +203,7 @@ def test_a_case_that_connects_to_a_non_loopback_address_or_starts_gh_or_curl_fai
         "    socket.create_connection(server.getsockname(), timeout=2).close()\n"
         "    server.close()\n"
     )
-    path = os.pathsep.join([str(bin_dir)] + [p for p in os.environ["PATH"].split(os.pathsep)
-                                              if "unit-guard" not in p and "offline" not in p])
+    path = os.pathsep.join([str(bin_dir), os.environ["PATH"]])
     done = subprocess.run(
         [sys.executable, "-c", "import runpy, sys; sys.argv[0] = sys.argv.pop(1); runpy.run_path(sys.argv[0], run_name='__main__')",
          os.path.join(veri, "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],

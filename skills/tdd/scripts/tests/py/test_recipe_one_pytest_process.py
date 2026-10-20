@@ -40,7 +40,7 @@ def planted_tree(tmp_path, small=PLANTED_CASES.split("@pytest.mark.process")[0])
     scripts = tree / "skills" / "tdd" / "scripts"
     scripts.mkdir(parents=True)
     shutil.copy(ROOT / "Makefile", tree / "Makefile")
-    for name in ("veri", "lib", "run-suite.sh"):
+    for name in ("veri", "lib"):
         (scripts / name).symlink_to(SCRIPTS / name)
     py = scripts / "tests" / "py"
     (py / "unit").mkdir(parents=True)

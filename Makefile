@@ -1,22 +1,14 @@
 # veri — developer tasks.
 #
-# `make test` runs every shell unit-test suite that ships with the solve-issue skill.
-# This is also the command veri's own conductor detects in preflight ("Makefile with a
-# test target → make test"), so veri can be run against its own repository: the suite is
-# green when this target exits 0.
-
+# `make test` runs every pytest case that ships with the solve-issue skill, in one pytest
+# invocation. This is also the command veri's own conductor detects in preflight ("Makefile
+# with a test target → make test"), so veri can be run against its own repository: the suite is
+# green when this target exits 0. `make test TESTS="<pytest file or node id> …"` runs only those.
 .PHONY: test unit
-TESTS := $(sort $(wildcard skills/tdd/scripts/tests/*.test.sh))
-
-# `make unit` is the fast tier (#336): only the suites under tests/unit/, through the same
-# recipe as `test`, which runs them too. SUITES is set per target, so the two share one runner;
-# `profile` below takes `test`'s list from the same line rather than restating it.
-UNIT_DIR := skills/tdd/scripts/tests/unit
-UNIT_TESTS := $(sort $(wildcard $(UNIT_DIR)/*.test.sh))
+TESTS :=
+UNIT_TESTS :=
 TESTS_NAMED := $(filter command line,$(origin TESTS))
 UNIT_TESTS_NAMED := $(filter command line,$(origin UNIT_TESTS))
-test profile: SUITES = $(filter-out %.py,$(TESTS)) $(if $(TESTS_NAMED),,$(UNIT_TESTS))
-unit: SUITES = $(filter-out %.py,$(UNIT_TESTS))
 rwildcard = $(foreach d,$(wildcard $(1)/*),$(call rwildcard,$(d),$(2))$(if $(filter $(2),$(notdir $(d))),$(d)))
 PY_ALL := $(sort $(call rwildcard,skills/tdd/scripts/tests/py,test_%.py))
 PY_UNIT := $(sort $(wildcard skills/tdd/scripts/tests/py/unit/test_*.py))
@@ -25,46 +17,13 @@ unit: PY_TESTS = $(call py_tests,$(UNIT_TESTS_NAMED),$(UNIT_TESTS),$(PY_UNIT))
 PY_TESTS := $(call py_tests,$(TESTS_NAMED),$(TESTS),$(PY_ALL))
 unit: PY_SELECT = -m "not process and not tree_audit"
 
-# The fast tier's admission-bar guard: `unit` puts UNIT_GUARD_BIN first on a suite's PATH,
-# where git and python3 refuse, naming themselves; gh and curl fall through to OFFLINE_BIN's shims,
-# which already refuse any call, named, and log it. A unit suite mocks all four as shell functions,
-# which bash finds before PATH, so only a real process call reaches a guard. `test` puts the same
-# guard first only for the suites under tests/unit/, and for no other suite. OFFLINE_ENV below is
-# a recursive `=` rather than `:=` for this reason: it must read GUARD_PATH per target, when the recipe expands it.
-UNIT_GUARD_BIN := $(CURDIR)/skills/tdd/scripts/tests/unit-guard
-unit: GUARD_PATH = $(UNIT_GUARD_BIN):
-test: GUARD_PATH = $$suite_guard
-
-COUNT_LINE_GUARD := skills/tdd/scripts/lib/count-line-guard.sh
-
-# A suite's exit code alone is not trusted (#157). Every suite here declares `set -u`, and
-# under it a word rather than a number inside `[[ … -le … ]]` is read as a variable name; an
-# unset name kills the script, and a script killed that way exits with the status of the
-# command before the comparison rather than a failure — routinely 0. build-guards.test.sh
-# ran 37 of its 54 cases that way until commit c4a6bdb, and no output said so. So the runner
-# also asks each suite for the `<n> passed, <m> failed` line it prints last: output that
-# does not end in it means the suite stopped asserting, whatever it exited with. The check
-# is skills/tdd/scripts/run-suite.sh's, run over each suite, so a suite added under the glob
-# above is covered by existing.
+# Every case runs offline. gh and curl are refused by the plugin pytest_leg.py loads; `git` on
+# PATH is a plain symlink straight to the real binary (the recipe's git_bin directory), and
+# git's own transport allowlist refuses a remote reach: protocol.allow=never with
+# protocol.file.allow=always, set via GIT_CONFIG_COUNT/KEY/VALUE. A local remote — a bare path,
+# or file:// — is untouched, since cases clone, fetch and push between scratch repos on disk.
 #
-# Every suite also runs offline (#301), in this same run rather than a second one. gh and curl are
-# not the hot path — a run makes a handful of calls to each, against ~1,900 git calls — so they
-# still go through bash shims in OFFLINE_BIN that refuse any call and write it to a reach log the
-# recipe empties before every suite; a suite whose log is not empty afterwards fails, one line per
-# attempt naming the suite and what it tried. git does not go through a shim any more (measured
-# 2026-09-18: that wrapper cost ~26 ms/call against ~8 ms for the real binary, and was 1,820 of a
-# run's 4,834 bash starts). Instead, `git` on every suite's PATH is a plain symlink straight to the
-# real binary (the recipe's git_bin directory — a symlink costs no bash start at all, unlike a wrapper script), and
-# what used to be the shim's job — refusing a remote reach — is now git's own transport allowlist:
-# protocol.allow=never with protocol.file.allow=always, set the same way the recipe already sets
-# http.proxy, via GIT_CONFIG_COUNT/KEY/VALUE. That refuses every non-file transport (https, ssh,
-# git://, and the scp-style user@host:path git treats as ssh) and leaves a local remote — a bare
-# path, or file:// — untouched, since suites here clone, fetch and push between scratch repos on
-# disk. The trade-off, accepted: a suite whose git reach is refused is no longer named on a "tried
-# the network: …" line the way a gh or curl reach still is — the failure is git's own "transport …
-# not allowed", on stderr, wherever the suite sends it.
-#
-# The proxies point at a port nothing listens on, for anything that gets past the shims; loopback
+# The proxies point at a port nothing listens on, for anything that gets past the plugin; loopback
 # is exempt, because a suite that serves a page on 127.0.0.1 asks it there.
 #
 # Three more things are fixed for every suite rather than inherited from whoever typed `make test`
@@ -82,7 +41,6 @@ COUNT_LINE_GUARD := skills/tdd/scripts/lib/count-line-guard.sh
 #     xcrun, since xcrun's answer does not depend on PATH and a nested `command -v git` would
 #     otherwise name the outer run's own symlink — harmless (a symlink to a symlink still
 #     resolves to the real binary with no extra process), but pointless to redo.
-OFFLINE_BIN := $(CURDIR)/skills/tdd/scripts/tests/offline
 OFFLINE_PROXY := http://127.0.0.1:1
 
 # The two halves of that environment `test` and `profile` share, so a suite runs under the
@@ -95,18 +53,16 @@ OFFLINE_GIT := real_git="$${OFFLINE_REAL_GIT:-$$(xcrun -f git 2>/dev/null || com
 	if [ -d "$$(dirname "$$real_git")/../share/git-core/templates" ]; then \
 	  export GIT_TEMPLATE_DIR="$$(dirname "$$real_git")/../share/git-core/templates"; \
 	else unset GIT_TEMPLATE_DIR; fi
-OFFLINE_SCRATCH := reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
-	trap 'rm -f "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
+OFFLINE_SCRATCH := git_bin="$$(mktemp -d)"; \
+	trap 'rm -rf "$$git_bin"' EXIT; \
 	$(OFFLINE_GIT)
-OFFLINE_ENV = PATH="$(GUARD_PATH)$$git_bin:$(OFFLINE_BIN):$$PATH" MAKEFLAGS= OFFLINE_REAL_GIT="$$real_git" GIT_EXEC_PATH="$$exec_path" OFFLINE_REACH_LOG="$$reach_log" \
+OFFLINE_ENV = PATH="$$git_bin:$$PATH" MAKEFLAGS= OFFLINE_REAL_GIT="$$real_git" GIT_EXEC_PATH="$$exec_path" \
 	GIT_CONFIG_COUNT=4 GIT_CONFIG_KEY_0=http.proxy GIT_CONFIG_VALUE_0=$(OFFLINE_PROXY) \
 	GIT_CONFIG_KEY_1=protocol.allow GIT_CONFIG_VALUE_1=never \
 	GIT_CONFIG_KEY_2=protocol.file.allow GIT_CONFIG_VALUE_2=always \
 	GIT_CONFIG_KEY_3=maintenance.auto GIT_CONFIG_VALUE_3=false \
 	HTTP_PROXY=$(OFFLINE_PROXY) HTTPS_PROXY=$(OFFLINE_PROXY) NO_PROXY=127.0.0.1,localhost \
 	LC_ALL=C
-
-NAME_REACHED = while IFS= read -r reached; do printf '%s: %s\n' "$(1)" "$$reached"; fail=1; done < "$$reach_log"
 
 VENV_LIB := skills/tdd/scripts/lib/venv-python.sh
 VENV_DIR := $$(bash -c '. $(VENV_LIB) && venv_dir')
@@ -130,16 +86,13 @@ MAX_MAKE_DEPTH := 4
 test unit:
 	@if [ "$(MAKELEVEL)" -gt $(MAX_MAKE_DEPTH) ]; then printf 'make: refusing a make %s nested at depth %s, deeper than %s\n' "$@" "$(MAKELEVEL)" "$(MAX_MAKE_DEPTH)" >&2; exit 2; fi
 	@$(BASH_GUARD)
-	@[ -f "$(COUNT_LINE_GUARD)" ] || { printf 'make: %s is missing, so no suite can be held to its count line\n' "$(COUNT_LINE_GUARD)" >&2; exit 2; }
-	@unset BASH_ENV ENV; fail=0; reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; pycache="$$(mktemp -d)"; \
-	trap 'rm -f "$$reach_log"; rm -rf "$$git_bin" "$$pycache"' EXIT; \
+	@unset BASH_ENV ENV; fail=0; git_bin="$$(mktemp -d)"; pycache="$$(mktemp -d)"; \
+	trap 'rm -rf "$$git_bin" "$$pycache"' EXIT; \
 	$(OFFLINE_GIT); \
 	if [ -n "$(PY_TESTS)" ]; then \
 	  py_bin="$$(bash -c '. $(VENV_LIB) && venv_python')"; \
 	  printf '== pytest\n'; \
-	  : > "$$reach_log"; suite_guard=; \
-	  UNIT_GUARD_LOG="$$reach_log" PYTHONPYCACHEPREFIX="$$pycache" COLUMNS=200 $(OFFLINE_ENV) "$$py_bin" skills/tdd/scripts/veri/pytest_leg.py --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || { leg=$$?; [ $$leg -ne 2 ] || exit 2; fail=1; }; \
-	  $(call NAME_REACHED,pytest: tried to start); \
+	  PYTHONPYCACHEPREFIX="$$pycache" COLUMNS=200 $(OFFLINE_ENV) "$$py_bin" skills/tdd/scripts/veri/pytest_leg.py --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || { leg=$$?; [ $$leg -ne 2 ] || exit 2; fail=1; }; \
 	fi; \
 	echo "----"; \
 	if [ $$fail -eq 0 ]; then echo "all suites green"; else echo "SUITES FAILED"; exit 1; fi

@@ -1,13 +1,21 @@
 """mutation-parity.sh's pairs check, run in-process."""
 import os
 import re
+import shutil
 import subprocess
 import sys
 
-from run_suite import venv_python
+import tunables
 
 USAGE = "usage: mutation-parity.sh <pairs-table>"
 COUNT_LINE = re.compile(r"^(\d+) passed, (\d+) failed$")
+
+
+def venv_python():
+    py = os.path.join(tunables.venv_dir(), "bin", "python3")
+    if os.access(py, os.X_OK):
+        return py
+    return shutil.which("python3") or ""
 
 
 class SuiteDied(RuntimeError):

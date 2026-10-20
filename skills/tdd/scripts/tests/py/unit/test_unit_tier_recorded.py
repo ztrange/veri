@@ -54,37 +54,6 @@ def says(problems, section_name, records, fact, *regexes):
 IDIOM = "Testing idiom"
 
 
-def test_claude_md_testing_idiom_section_names_skills_tdd_scripts_tests_unit_as_the_fast_tier_and_states_its_admission_bar():
-    problems = []
-    records = read_section(problems, IDIOM)
-    if records is not None:
-        says(problems, IDIOM, records, "that skills/tdd/scripts/tests/unit/ is the fast tier",
-             r"skills/tdd/scripts/tests/unit/?", r"fast")
-        says(problems, IDIOM, records,
-             "the admission bar — about 100 ms per case, and no git, network, servers, real waits or nested suites",
-             r"100 ?ms ?(/|per|a|each) ?case", r"git", r"network", r"server", r"real waits?|sleep", r"nested")
-    assert problems == []
-
-
-def test_claude_md_testing_idiom_section_documents_the_unit_tier_migration_pattern_naming_lib_github_sh_as_what_still_follows_it_and_push_branch_sh_as_having_left_it_for_the_python_convention():
-    problems = []
-    records = read_section(problems, IDIOM)
-    if records is not None:
-        says(problems, IDIOM, records,
-             "the migration pattern — a main guard, a unit suite that sources the script, dependencies mocked as same-named shell functions, the CLI contract unchanged",
-             r"bash_source|main guard", r"sources?|sourcing", r"mock", r"shell functions?|same-named",
-             r"cli contract|byte-identical", r"unchanged|unmodified|byte-identical")
-        says(problems, IDIOM, records,
-             "that lib/github.sh stays bash, sourced by the py/test_github_sh pytest file with gh faked on PATH",
-             r"lib/github\.sh", r"tests/py/test_github_sh\.py\b",r"(^|[^a-z])gh([^a-z]|$)", r"faked", r"path")
-        says(problems, IDIOM, records,
-             "that push-branch.sh left that pattern for the Python convention status.sh is the worked example of",
-             r"push-branch\.sh", r"left|leaves|moved|ported", r"python", r"status\.sh", r"worked example")
-        if re.search(r"push-branch\.sh is (its|the) worked example", "\n".join(records)):
-            problems.append(f"{CLAUDE_MD}'s '{IDIOM}' section still names push-branch.sh the worked example of the unit-tier pattern")
-    assert problems == []
-
-
 def test_claude_md_commands_table_and_testing_idiom_section_describe_the_pytest_leg_its_admission_rule_make_install_dev_venv_and_the_two_refusals():
     problems = []
     records = read_section(problems, IDIOM)
@@ -117,15 +86,4 @@ def test_claude_md_testing_idiom_section_records_the_shim_convention_for_a_porte
              r"no python source|never (contains|holds) python source|holds no python")
         says(problems, IDIOM, records, "that a ported script's tests live in tests/py/test_<module>.py, one file per module",
              r"port", r"tests/py/test_<module>\.py\b")
-    assert problems == []
-
-
-def test_claude_md_testing_idiom_section_says_which_python3_call_the_fast_tiers_guard_lets_through_one_whose_first_argument_is_a_module_file_under_skills_tdd_scripts_veri():
-    problems = []
-    records = read_section(problems, IDIOM)
-    if records is not None:
-        says(problems, IDIOM, records,
-             "in the admission-bar passage that shims git, gh, curl and python3, that the python3 call let through is one whose first argument is a module file under skills/tdd/scripts/veri/, a ported script's shim hand-off",
-             r"make unit", r"shims git, gh, curl and python3", r"first argument", r"module",
-             r"skills/tdd/scripts/veri/", r"shim")
     assert problems == []

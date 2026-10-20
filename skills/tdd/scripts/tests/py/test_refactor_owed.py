@@ -285,7 +285,7 @@ def test_main_answers_every_refactor_owed_contract_case_outside_the_floor_as_the
     fixtures = "fold the three answers_none fixtures into one helper"
     ledger = "rename $owed_file to $ledger in the list cases"
     lib_walk = "merge the full-path check at lib-walk.test.sh:45 into the /lib/<name>.sh loop"
-    test_bounds = "skills/tdd/scripts/tests/unit/lib-walk.test.sh,skills/tdd/scripts/tests/lib/harness.sh"
+    test_bounds = "skills/tdd/scripts/tests/unit/lib-walk.test.sh,skills/tdd/scripts/tests/py/conftest.py"
     mixed_bounds = "skills/tdd/scripts/refactor-owed.sh,skills/tdd/scripts/tests/refactor-owed.test.sh"
     test_only_heading = ("### Test-only\n\n"
                          "These change only files under tests/; the structural pass does not work them.\n\n")

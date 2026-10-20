@@ -222,11 +222,8 @@ def test_main_classes_md_variable_heredocs_as_3_drops_a_dash_heredoc_hashbang_an
     }
 
 
-CLASS_3_LINES = ""
-
-
 @pytest.mark.tree_audit("every bash suite, script and lib under skills/tdd/scripts")
-def test_main_sweeps_the_scripts_lib_and_suites_to_empty_sweepable_reports_no_cited_issue_and_unchanged_class_3_lines(capsys):
+def test_main_sweeps_the_scripts_lib_and_suites_to_empty_sweepable_reports_no_cited_issue(capsys):
     comment_class = importlib.import_module("veri.comment_class")
     tests = SCRIPTS / "tests"
 
@@ -253,41 +250,6 @@ def test_main_sweeps_the_scripts_lib_and_suites_to_empty_sweepable_reports_no_ci
     libs = sorted((SCRIPTS / "lib").glob("*.sh"))
     code, comments = by_class(1, scripts + libs)
     cited = "".join(f"{p}:{n}: {text(p, n)}\n" for p, n in comments if re.search("#[0-9]", text(p, n)))
-    suites = (
-        sorted(tests.glob("*.sh"))
-        + sorted((tests / "unit").glob("*.sh"))
-        + sorted(tests.glob("fixtures/*/*.sh"))
-        + [tests / "unit-guard" / "git", tests / "offline" / "gh"]
-    )
-    code_3, found_3 = by_class(3, suites)
-    class_3 = "".join(
-        f"{str(p.relative_to(tests)).removesuffix('.test.sh')}:{text(p, n)}\n" for p, n in found_3
-    )
-
-    remaining = {}
-
-    def in_tree(entry):
-        name, line = entry.split(":", 1)
-        for candidate in (tests / f"{name}.test.sh", tests / name):
-            if candidate.is_file():
-                if candidate not in remaining:
-                    remaining[candidate] = collections.Counter(
-                        candidate.read_bytes().decode("utf-8", "surrogateescape").split("\n")
-                    )
-                if remaining[candidate][line] > 0:
-                    remaining[candidate][line] -= 1
-                    return True
-        return False
-
-    expected_3 = "".join(f"{e}\n" for e in CLASS_3_LINES.splitlines() if in_tree(e))
-    unaccounted = collections.Counter(expected_3.splitlines())
-    unlisted = []
-    for p, n in found_3:
-        entry = f"{str(p.relative_to(tests)).removesuffix('.test.sh')}:{text(p, n)}"
-        if unaccounted[entry] > 0:
-            unaccounted[entry] -= 1
-        else:
-            unlisted.append(f"{p.relative_to(tests)}:{n}: {text(p, n)}")
 
     assert {
         "the sweepable report is empty for metrics.sh, event.sh and harvest-usage.sh":
@@ -301,50 +263,23 @@ def test_main_sweeps_the_scripts_lib_and_suites_to_empty_sweepable_reports_no_ci
         "the sweepable report is empty for build-develop-prompt.sh, build-verify-prompt.sh, run-conductor.sh, stop-run.sh and preserve-attempt.sh":
             sweep("build-develop-prompt.sh", "build-verify-prompt.sh", "run-conductor.sh", "stop-run.sh",
                   "preserve-attempt.sh"),
-        "the sweepable report is empty for leaf-timeout.sh, ensure-run-state-ignored.sh, orchestrate.sh, parallel-conductors.sh, workqueue.sh, push-branch.sh, refactor-triage.sh, invisible-work.sh, over-budget.sh, run-suite.sh, leaf-model.sh and leaf-launchable.sh":
+        "the sweepable report is empty for leaf-timeout.sh, ensure-run-state-ignored.sh, orchestrate.sh, parallel-conductors.sh, workqueue.sh, push-branch.sh, refactor-triage.sh, invisible-work.sh, over-budget.sh, leaf-model.sh and leaf-launchable.sh":
             sweep("leaf-timeout.sh", "ensure-run-state-ignored.sh", "orchestrate.sh", "parallel-conductors.sh",
                   "workqueue.sh", "push-branch.sh", "refactor-triage.sh", "invisible-work.sh", "over-budget.sh",
-                  "run-suite.sh", "leaf-model.sh", "leaf-launchable.sh"),
+                  "leaf-model.sh", "leaf-launchable.sh"),
         "the sweepable report is empty for every scripts/*.sh, the classifier itself included": classify("--sweepable", *scripts),
         "the sweepable report is empty for every shell file under scripts/lib/": classify("--sweepable", *libs),
         "no comment line in scripts/*.sh or scripts/lib/*.sh, the contract header included, cites an issue number": (code, cited),
-        "the text of every class 3 line in the suites is unchanged, in its file and in its order": (code_3, class_3),
     } == {
         "the sweepable report is empty for metrics.sh, event.sh and harvest-usage.sh": (0, ""),
         "the sweepable report is empty for supervise.sh, run-leaf.sh, detach-leaf.sh, wait-leaf.sh and run-verdict.sh": (0, ""),
         "the sweepable report is empty for issue-worktree.sh, verify.sh, parse-verdict.sh and extract-result.sh": (0, ""),
         "the sweepable report is empty for detect-test-command.sh, solvable-issues.sh and session-cost.sh": (0, ""),
         "the sweepable report is empty for build-develop-prompt.sh, build-verify-prompt.sh, run-conductor.sh, stop-run.sh and preserve-attempt.sh": (0, ""),
-        "the sweepable report is empty for leaf-timeout.sh, ensure-run-state-ignored.sh, orchestrate.sh, parallel-conductors.sh, workqueue.sh, push-branch.sh, refactor-triage.sh, invisible-work.sh, over-budget.sh, run-suite.sh, leaf-model.sh and leaf-launchable.sh": (0, ""),
+        "the sweepable report is empty for leaf-timeout.sh, ensure-run-state-ignored.sh, orchestrate.sh, parallel-conductors.sh, workqueue.sh, push-branch.sh, refactor-triage.sh, invisible-work.sh, over-budget.sh, leaf-model.sh and leaf-launchable.sh": (0, ""),
         "the sweepable report is empty for every scripts/*.sh, the classifier itself included": (0, ""),
         "the sweepable report is empty for every shell file under scripts/lib/": (0, ""),
         "no comment line in scripts/*.sh or scripts/lib/*.sh, the contract header included, cites an issue number": (0, ""),
-        "the text of every class 3 line in the suites is unchanged, in its file and in its order": (0, expected_3),
-    }, "class 3 lines not in CLASS_3_LINES:\n" + "\n".join(unlisted)
-
-
-@pytest.mark.tree_audit("every bash suite, script and lib under skills/tdd/scripts")
-def test_main_sweeps_the_fixture_guard_and_offline_suites_to_empty_sweepable_reports(capsys):
-    comment_class = importlib.import_module("veri.comment_class")
-    tests = SCRIPTS / "tests"
-
-    def sweep(*patterns, keep=lambda p: True):
-        files = [p for pattern in patterns for p in sorted(tests.glob(pattern)) if keep(p)]
-        code = comment_class.main(["--sweepable", *(str(p) for p in files)])
-        return code, capsys.readouterr().out
-
-    moved = []
-
-    assert {
-        **{
-            f"the sweepable report is empty for tests/{name}.test.sh": sweep(f"{name}.test.sh")
-            for name in moved
-        },
-        "the sweepable report is empty for every shell file under tests/fixtures/, and for tests/unit-guard/git and tests/offline/gh":
-            sweep("fixtures/*/*.sh", "unit-guard/git", "offline/gh"),
-    } == {
-        **{f"the sweepable report is empty for tests/{name}.test.sh": (0, "") for name in moved},
-        "the sweepable report is empty for every shell file under tests/fixtures/, and for tests/unit-guard/git and tests/offline/gh": (0, ""),
     }
 
 
@@ -486,10 +421,4 @@ def test_cli_a_top_level_suite_header_from_q_through_z_other_than_skill_files_ca
 @pytest.mark.tree_audit("the leading header block of every tests/skill-[m-z]*.test.sh")
 def test_cli_a_skill_suite_header_from_m_through_z_carries_only_its_contract_and_cites_no_issue_number():
     files = header_paths("skill-[m-z]*.sh")
-    assert (header_citations(files), header_shapeless(files)) == ("", "")
-
-
-@pytest.mark.tree_audit("the leading header block of every shell file under tests/unit, fixtures, unit-guard and offline")
-def test_cli_a_header_under_unit_fixtures_unit_guard_and_offline_carries_only_its_contract_and_cites_no_issue_number():
-    files = header_paths("unit/*.sh", "fixtures/*/*.sh", "unit-guard/*", "offline/*")
     assert (header_citations(files), header_shapeless(files)) == ("", "")
