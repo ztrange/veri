@@ -1,0 +1,7 @@
+# Plan for #1653 — A ⟦suite-repair⟧ step's green prompt forbids the test edit its fix needs
+
+- [ ] For a step marked neither ⟦suite-repair⟧ nor ⟦ci-repair⟧, `build-develop-prompt.sh green` still carries the `**Do not modify the test.**` freeze rule and `build-develop-prompt.sh revise green` still says `**Leave the test files as they are**` — both prompts unchanged ⟦criterion 3⟧
+- [ ] `build-develop-prompt.sh green` for a step marked ⟦suite-repair⟧ permits editing the failing test the full run left red, says every other test stays frozen, and does not carry the `**Do not modify the test.**` freeze rule that forbids that edit ⟦criterion 1⟧
+- [ ] `build-develop-prompt.sh green` for a step marked ⟦ci-repair⟧ permits editing the failing test the CI run left red, says every other test stays frozen, and does not carry the `**Do not modify the test.**` freeze rule that forbids that edit ⟦criterion 1⟧
+- [ ] `build-develop-prompt.sh revise green` for a step marked ⟦suite-repair⟧ does not say `**Leave the test files as they are**` and does not carry the `**Do not modify the test.**` freeze rule; it permits editing the failing test the full run left red while every other test stays frozen ⟦criterion 2⟧
+- [ ] `build-develop-prompt.sh revise green` for a step marked ⟦ci-repair⟧ does not say `**Leave the test files as they are**` and does not carry the `**Do not modify the test.**` freeze rule; it permits editing the failing test the CI run left red while every other test stays frozen ⟦criterion 2⟧
