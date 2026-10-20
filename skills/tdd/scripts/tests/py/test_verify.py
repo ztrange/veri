@@ -2579,3 +2579,51 @@ def test_main_removes_an_earlier_refusals_diff_when_this_refusals_diff_could_not
     out = capfd.readouterr().out
     assert (code, bool(re.search(r"diff could not be saved to \.tdd/verify-green\.diff", out)),
             sorted(p.name for p in (repo / ".tdd").glob("*.diff"))) == (2, True, [])
+
+
+@pytest.mark.process("a real git scratch repository, a stub verifier leaf that rewrites a tracked file, and a real git apply --check")
+def test_main_saves_a_diff_that_passes_git_apply_check_whatever_the_users_prefix_context_and_abbreviation_config_says_1878(
+        tmp_path, monkeypatch, capfd):
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
+                 "VERI_ISSUE", "VERI_STEP"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    (tmp_path / "home").mkdir()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    monkeypatch.chdir(repo)
+    write_inputs(repo)
+    (repo / "tracked.txt").write_text("one\ntwo\nthree\nfour\nfive\n")
+    (repo / ".gitignore").write_text(".tdd/\n")
+
+    def git(*args):
+        return subprocess.run(
+            ["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
+            cwd=repo, stdout=subprocess.PIPE, check=True).stdout
+
+    git("init", "-q")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    verify = importlib.import_module("veri.verify")
+    real_start = verify.start
+
+    def stub_start(args, **kwargs):
+        if os.path.basename(str(args[0])) != "supervise.sh":
+            return real_start(args, **kwargs)
+        (repo / "tracked.txt").write_text("one\ntwo\nTHREE\nfour\nfive\n")
+        git("config", "diff.noprefix", "true")
+        git("config", "diff.context", "0")
+        git("config", "core.abbrev", "4")
+        return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nREASON: ok\n")
+
+    monkeypatch.setattr(verify, "start", stub_start)
+
+    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+
+    capfd.readouterr()
+    saved = list((repo / ".tdd").glob("*.diff"))
+    checked = None
+    if len(saved) == 1:
+        checked = subprocess.run(["git", "apply", "--check", str(saved[0])], cwd=repo,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE).returncode
+    assert (code, len(saved), checked) == (2, 1, 0)
