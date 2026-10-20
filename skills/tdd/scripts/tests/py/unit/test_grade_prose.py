@@ -163,3 +163,23 @@ def test_a_units_signature_changes_when_any_id_cell_or_any_requirement_cell_of_i
                signed("A1", "The widget is blue.", "B2", "The widget is round."),
                signed("A1", "The widget is blue.", "A2", "The widget is square.")]
     assert [s != base for s in changed] == [True] * 4
+
+
+def test_a_units_signature_changes_when_the_grader_prompt_template_changes_and_when_the_grader_conf_model_changes_1725(
+        tmp_path, monkeypatch, grade_prose):
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    conf = tmp_path / "skills" / "tdd" / "grader.conf"
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.chdir(tmp_path)
+
+    def signed(model, template):
+        conf.write_text("model=%s\n" % model)
+        monkeypatch.setattr(grade_prose, "GRADER_INSTRUCTIONS", template)
+        return grade_prose.signature("REQUIREMENTS.md", "unit.md")
+
+    base = signed("sonnet-4", "Grade the prose.")
+    assert (signed("sonnet-4", "Grade the prose, strictly.") != base,
+            signed("opus-4", "Grade the prose.") != base) == (True, True)
