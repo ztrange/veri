@@ -1,0 +1,14 @@
+# Plan for #1874 — grade-prose.sh: a failed grader leaf is exit 2 whatever the log says, the prompt carries the PoC's grader contract, and the remaining gaps from PR #1829's review
+
+- [ ] A grader leaf that prints an all-PASS GRADES block and then exits 1 makes grade-prose.sh exit 2, print nothing on stdout and append no grading event to .tdd/events.jsonl (a medium case, a real stub claude through supervise.sh) ⟦criterion 1⟧
+- [ ] A grader leaf whose reply carries a 429 rate-limit error alongside an all-PASS GRADES block makes grade-prose.sh exit 2, print nothing on stdout and append no grading event (a medium case, a real stub claude through supervise.sh) ⟦criterion 1⟧
+- [ ] A grader launch that supervise.sh refuses, with an all-PASS .tdd/grade-prose.log left by an earlier grading on disk, makes grade-prose.sh exit 2, print nothing on stdout and append no grading event: the stale log is never read (a medium case, a real supervise.sh) ⟦criterion 1⟧
+- [ ] The prompt grade-prose renders for a unit carries the PoC's grader instructions from specs/grader-poc/grader-system.txt, asking for the reply to end with a BEGIN GRADES … END GRADES block holding one line per requirement in the order given and the VERDICT: line inside the block ⟦criterion 2⟧
+- [ ] A reply in the PoC's pass-3 shape — one line per requirement and the VERDICT: line inside the BEGIN GRADES … END GRADES block, nothing after END GRADES — parses: all PASS with VERDICT: PASS exits 0, a FAIL line with VERDICT: REJECT exits 1 and prints the failing line ⟦criterion 2⟧
+- [ ] Every existing grade-prose case whose stub reply puts its VERDICT: line after END GRADES instead puts it inside the block, as the last line before END GRADES, each case keeping the outcome it asserts; no production code changes ⟦diff-checked⟧ ⟦criterion 2⟧
+- [ ] A reply with any line after END GRADES, a trailing VERDICT: line included (END GRADES, then VERDICT: REJECT, then VERDICT: PASS), makes grade-prose.sh exit 2 and append no grading event ⟦criterion 2⟧
+- [ ] A line starting with # inside a fenced code block, even one whose text equals the unit's heading, never starts the unit's section: the section starts only at the real heading outside any fence ⟦criterion 3⟧
+- [ ] A unit with no requirements list in the requirements file makes grade-prose.sh exit 2 before launching anything ⟦criterion 3⟧
+- [ ] A GRADES line whose grade word is anything other than exactly PASS or FAIL, such as PASS-ish or FAIL-ish, makes grade-prose.sh exit 2 and append no grading event ⟦criterion 3⟧
+- [ ] The grader leaf is launched with no tools: the command the stub claude receives carries --tools with an empty value (a medium case, a real stub claude through supervise.sh) ⟦criterion 3⟧
+- [ ] The grader leaf's model comes only from grader.conf: with VERI_MODEL_GRADER set in the environment the stub claude still receives grader.conf's model (a medium case, a real stub claude through supervise.sh) ⟦criterion 3⟧
