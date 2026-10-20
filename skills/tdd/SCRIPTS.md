@@ -44,7 +44,8 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
 - `$S/run-leaf.sh <prompt-file|-> [claude args...]` — the inner leaf invocation. Runs
   `claude -p --output-format stream-json` so the leaf **streams events as it works** (that
   is the supervisor's heartbeat), then appends the clean final result. You always run it
-  *via* `supervise.sh`, not on its own.
+  *via* `supervise.sh`, not on its own. Tunable: `VERI_LEAF_TOOLS` — when set, passes
+  `--tools <value>` to `claude` (`grade-prose.sh` sets it empty, so its grader has no tools).
 - `$S/extract-result.sh` — pulls the final result text out of a leaf's stream-json (used
   by `run-leaf.sh`; passes plain text through unchanged).
 - `$S/build-develop-prompt.sh <red|green|refactor|cover|transform|diff|structural|predicate|revise|exhausted|reconcile|over-budget|rebase|red-repair|red-missing> …` — assemble a **developer** leaf's prompt from a
