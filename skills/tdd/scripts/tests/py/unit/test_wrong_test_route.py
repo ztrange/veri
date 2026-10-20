@@ -580,3 +580,29 @@ def test_main_1808_prints_revise_and_exits_3_for_a_product_defect_reject_and_for
                for r in (defect, empty)]
 
     assert answers == [(3, "revise\n"), (3, "revise\n")]
+
+
+def test_main_1862_prints_supersede_naming_every_older_case_a_green_report_lists_as_superseded_when_a_step_changes_a_usage_string_two_of_them_compare_against(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    suite = tmp_path / "tests" / "py"
+    suite.mkdir(parents=True)
+    added = "test_main_prints_the_usage_with_not_running"
+    first, second = "test_main_prints_usage_on_no_arguments", "test_main_prints_usage_on_a_bad_flag"
+    (suite / "test_solvable.py").write_text(
+        "USAGE = 'usage: solvable-issues.sh'\n\n"
+        "def %s():\n    assert USAGE\n\n"
+        "def %s():\n    assert USAGE\n\n"
+        "def %s():\n    pass\n" % (first, second, added))
+    (tmp_path / ".tdd").mkdir()
+    step = "solvable-issues.sh usage mentions --not-running"
+    monkeypatch.setenv("VERI_STEP", step)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    (tmp_path / record_path.rstrip("\n")).write_text("case: %s\n" % added)
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nSUPERSEDED: %s\nSUPERSEDED: %s\n" % (first, second))
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "supersede %s %s\n" % (first, second))
