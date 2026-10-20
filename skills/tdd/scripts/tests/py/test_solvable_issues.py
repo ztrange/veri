@@ -1189,3 +1189,33 @@ def test_main_not_running_1875_keeps_issue_17_listed_for_a_live_conductor_whose_
 
     out, err = capsys.readouterr()
     assert (code, out) == (0, "17\n18\n")
+
+
+def test_main_not_running_1875_omits_the_issue_whose_conductor_started_through_a_symlink_to_this_skill_directory_and_keeps_one_from_a_different_real_directory(tmp_path, monkeypatch, capsys, solvable_issues):
+    (tmp_path / "issues.json").write_text(json.dumps([opted_in(5), opted_in(6), opted_in(7)]))
+    (tmp_path / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    scripts = pathlib.Path(solvable_issues.__file__).resolve().parent.parent
+    linked = tmp_path / "skills" / "tdd"
+    linked.parent.mkdir()
+    linked.symlink_to(scripts)
+    elsewhere = tmp_path / "other" / "scripts"
+    (elsewhere / "veri").mkdir(parents=True)
+    listing = ("  1 /sbin/launchd\n"
+               " 98 /usr/bin/python3 %s/veri/run_conductor.py 6\n"
+               " 99 /usr/bin/python3 %s/veri/run_conductor.py 7\n") % (linked, elsewhere)
+
+    def fake_run(args, *rest, **kwargs):
+        if list(args[:4]) == ["git", "worktree", "list", "--porcelain"]:
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if args[0] == "ps":
+            return subprocess.CompletedProcess(args, 0, listing, "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", fake_run)
+
+    code = solvable_issues.main(["--not-running"])
+
+    out, err = capsys.readouterr()
+    assert (code, out) == (0, "5\n7\n")
