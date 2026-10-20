@@ -24,3 +24,21 @@ def test_make_unit_fails_naming_each_unit_prose_owed_sh_prints_when_it_prints_an
     assert run, "the unit recipe never runs prose-owed.sh on the repository root"
     assert re.fullmatch(r"\|\| *fail=1 *", run["tail"]), "a non-zero prose-owed.sh exit does not fail the run, or its output is redirected: %r" % run["tail"]
     assert "SUITES FAILED" in text and "exit 1" in text, "a failed leg does not end the recipe red"
+
+
+def test_prose_owed_sh_run_in_process_with_process_launches_spied_records_no_launch(tmp_path, monkeypatch, run_cli):
+    import importlib
+    import subprocess
+
+    prose_owed = importlib.import_module("veri.prose_owed")
+    (tmp_path / "skills" / "demo").mkdir(parents=True)
+    (tmp_path / "skills" / "demo" / "SKILL.md").write_text("The widget is blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## skills/demo/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    launched = []
+    monkeypatch.setattr(subprocess, "run", lambda argv, *a, **k: launched.append(argv))
+    monkeypatch.setattr(subprocess, "Popen", lambda argv, *a, **k: launched.append(argv))
+
+    code, out, err = run_cli(prose_owed, [str(tmp_path)])
+
+    assert (code, out.split(), launched) == (1, ["skills/demo/SKILL.md"], []), (code, out, launched, err)
