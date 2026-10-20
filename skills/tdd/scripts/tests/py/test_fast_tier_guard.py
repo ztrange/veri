@@ -443,3 +443,16 @@ def test_1668_a_planted_test_file_calling_pytest_main_with_a_list_naming_a_test_
     found = guard.offences(tmp_path)
 
     assert found == [f"{offender}:4: runs a nested suite"]
+
+
+def test_1668_a_planted_test_file_calling_run_cli_with_an_argument_list_naming_a_test_file_is_still_reported_as_running_a_nested_suite_by_file_and_line(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    offender = tmp_path / "test_offender.py"
+    offender.write_text(
+        "def test_runs_a_suite(run_cli):\n"
+        "    run_cli('veri.runner', ['tests/py/test_other.py', '-q'])\n"
+    )
+
+    found = guard.offences(tmp_path)
+
+    assert found == [f"{offender}:2: runs a nested suite"]
