@@ -174,6 +174,10 @@ def launch(base, issue, commit, **exports):
         if event.mark(".tdd/wt/" + issue, event.context(tunables.with_values(VERI_ISSUE=issue)),
                       "bail", ["cause=needs-user"]) != 0:
             return 2
+        paragraphs = [p for p in result.split("\n\n") if p.strip()]
+        quoted = "\n".join("> " + line for line in (paragraphs[-1] if paragraphs else "").strip().splitlines())
+        subprocess.run(["gh", "issue", "comment", issue, "--body",
+                        "needs-user: the conductor stopped without a verdict.\n\n" + quoted], check=False)
     return 141 if code == 0 and unread else code
 
 
