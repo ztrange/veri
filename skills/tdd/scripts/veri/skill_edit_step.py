@@ -8,6 +8,7 @@ import sys
 
 import event
 import grade_prose
+import skill_edit_guard
 import requirements
 from run_verdict import SCRIPTS
 
@@ -97,6 +98,14 @@ def _grade(path, unit):
     return code, out.getvalue()
 
 
+def _guard(unit, base, issue):
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        skill_edit_guard.main([unit, base])
+    offending = [p for p in out.getvalue().splitlines() if p != issue]
+    return int(bool(offending)), "".join(p + "\n" for p in offending)
+
+
 def main(argv):
     if len(argv) != 2:
         print(USAGE, file=sys.stderr)
@@ -106,6 +115,7 @@ def main(argv):
     if not (budget.isdecimal() and int(budget) >= 1):
         print("VERI_SKILL_EDIT_BUDGET must be a whole number >= 1: " + budget, file=sys.stderr)
         return 2
+    base = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     apply(issue, unit)
     path = _list_path(unit)
     graded, said = _grade(path, unit)
@@ -115,7 +125,9 @@ def main(argv):
             break
         if _author(unit, path, said):
             return 2
-        graded, said = _grade(path, unit)
+        graded, said = _guard(unit, base, issue)
+        if not graded:
+            graded, said = _grade(path, unit)
     if graded == 1:
         sys.stdout.write(said)
         return 1
