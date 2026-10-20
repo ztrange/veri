@@ -3,7 +3,7 @@
 - [x] A unit's signature, a sha256 computed in-process by grade_prose (no new script), changes when the unit's text changes and does not change when only a `Why` cell of its requirements list changes ⟦criterion 1⟧
 - [x] A unit's signature changes when any `ID` cell or any `Requirement` cell of its requirements list changes ⟦criterion 1⟧
 - [x] A unit's signature changes when the grader prompt template changes, and when the model in `skills/tdd/grader.conf` changes ⟦criterion 1⟧
-- [ ] When every requirement PASSes, `grade-prose.sh` writes one line for the unit to `skills/<skill>/GRADED` carrying the unit, its signature, the date and the id of the grading's event (the `grading` event carries that id) — pinned by a case with a stub `claude` ⟦criterion 2⟧
+- [x] When every requirement PASSes, `grade-prose.sh` writes one line for the unit to `skills/<skill>/GRADED` carrying the unit, its signature, the date and the id of the grading's event (the `grading` event carries that id) — pinned by a case with a stub `claude` ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] A PASS replaces any earlier `GRADED` line for the same unit, leaving the lines of other units as they were, so the file holds one line per unit — pinned by a case with a stub `claude` ⟦criterion 2⟧
 - [ ] A REJECT, and an exit 2 (no verdict), leave `GRADED` byte-identical — pinned by a case with a stub `claude` ⟦criterion 2⟧
 - [ ] A new `prose-owed.sh <repo-root>` (a `/bin/sh` shim over a `veri/` module, with a no-argument usage line and exit 2, its SCRIPTS.md entry, and called from the Makefile's `test unit` recipe so `make unit` and `make test` run it) prints nothing and exits 0 on a tree where no unit has a requirements list ⟦criterion 3⟧
