@@ -82,19 +82,19 @@ def never_timed_under(problems, label, prompt, tier):
 
 
 def names_suite_runner(problems, label, prompt):
-    if "run-suite.sh" not in plain(prompt):
-        problems.append("%s's prompt never names run-suite.sh, the invocation for running one suite" % label)
+    if 'make test tests="<pytest file or node id>"' not in plain(prompt):
+        problems.append("%s's prompt never names make test TESTS=\"<pytest file or node id>\", the invocation for running one suite" % label)
     if "convention like any other" in plain(prompt):
         problems.append("%s's prompt still leaves how to run one suite for the leaf to establish" % label)
 
 
 def names_runner_fallback(problems, label, prompt):
-    item = numbered_item(r"run-suite\.sh", plain(prompt))
+    item = numbered_item(r'make test tests="<pytest file or node id>"', plain(prompt))
     if not item:
-        problems.append("%s's prompt has no numbered item naming run-suite.sh" % label)
+        problems.append("%s's prompt has no numbered item naming make test TESTS=\"<pytest file or node id>\"" % label)
         return
     if not has_line(r"fall back", item):
-        problems.append("%s's prompt never tells its leaf what to run when the repository has no run-suite.sh" % label)
+        problems.append("%s's prompt never tells its leaf what to run when make test TESTS=\"<pytest file or node id>\" cannot run a suite" % label)
 
 
 def names_prediction_file(problems, label, prompt):
