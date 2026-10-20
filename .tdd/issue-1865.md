@@ -7,7 +7,7 @@
 - [x] SKILL.md and SCRIPTS.md document the `build-develop-prompt.sh red-missing` call with every argument the script requires, `<test-cmd>` included: a case takes the documented red-missing call shape out of each document, fills its placeholders, runs build_develop_prompt in-process on it and gets exit 0 with a prompt ⟦criterion 4⟧
 - [x] wrong-test-route.sh's usage text (the USAGE line it prints on bad arguments and its shim header) names the `missing` (red-missing) and `repair` (red-repair) routes, with the verbatim usage pin in test_wrong_test_route.py moved to the new text in the same commit ⟦diff-checked⟧ ⟦criterion 4⟧
 - [x] wrong-test-route.sh: a green report naming exactly one SUPERSEDED: case (an existing case outside the step's red record) prints `red <case>` and exits 0 with the step's free reroute, as two or more SUPERSEDED: cases route `supersede` ⟦criterion 5⟧
-- [ ] wrong-test-route.sh: an empty SUPERSEDED: line names no case, and the router reads the remaining SUPERSEDED: lines alone ⟦criterion 5⟧
+- [x] wrong-test-route.sh: an empty SUPERSEDED: line names no case, and the router reads the remaining SUPERSEDED: lines alone ⟦criterion 5⟧
 - [ ] wrong-test-route.sh: a SUPERSEDED: line whose case name is backticked (SUPERSEDED: `test_x`) is read as WRONG_TEST: lines are, naming test_x ⟦criterion 5⟧
 - [ ] wrong-test-route.sh: an indented SUPERSEDED: line (leading whitespace before SUPERSEDED:) is read as a SUPERSEDED: line naming its case ⟦criterion 5⟧
 - [ ] wrong-test-route.sh: a SUPERSEDED: line carrying a trailing reason after its case name (SUPERSEDED: test_x asserts the old usage) names test_x alone, as WRONG_TEST: lines are read ⟦criterion 5⟧
