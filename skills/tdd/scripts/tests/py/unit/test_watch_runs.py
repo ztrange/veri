@@ -59,3 +59,20 @@ def test_main_with_max_wait_prints_timeout_and_returns_3_when_nothing_actionable
     code = watch_runs.main(["--max-wait", "10"])
 
     assert (code, capsys.readouterr().out) == (3, "timeout\n")
+
+
+def test_main_prints_nothing_across_polls_in_which_no_conductor_exits_and_no_slot_frees(
+        monkeypatch, capsys, watch_runs):
+    listings = iter([["5", "7"]] * 5 + [["7"]])
+    printed_during_waits = []
+
+    def wait():
+        printed_during_waits.append(capsys.readouterr().out)
+
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings))
+    monkeypatch.setattr(watch_runs, "run_state", lambda issue: "done")
+    monkeypatch.setattr(watch_runs, "wait", wait)
+
+    code = watch_runs.main([])
+
+    assert (code, printed_during_waits, capsys.readouterr().out) == (0, [""] * 5, "exited 5 done\n")
