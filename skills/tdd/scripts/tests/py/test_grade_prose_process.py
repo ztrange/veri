@@ -668,7 +668,9 @@ def test_1874_the_stub_claude_receives_grader_conf_model_when_veri_model_grader_
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_a_full_pass_writes_one_graded_line_carrying_the_unit_its_signature_the_date_and_the_grading_events_id(tmp_path):
+def test_a_full_pass_writes_one_graded_line_carrying_the_unit_its_signature_the_date_and_the_grading_events_id(tmp_path, monkeypatch):
+    from veri import grade_prose
+
     (tmp_path / "skills" / "guide").mkdir(parents=True)
     (tmp_path / "skills" / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS.replace("## guide/unit.md", "## skills/guide/unit.md"))
@@ -688,7 +690,9 @@ def test_a_full_pass_writes_one_graded_line_carrying_the_unit_its_signature_the_
     graded = tmp_path / "skills" / "guide" / "GRADED"
     lines = graded.read_text().splitlines() if graded.exists() else []
     fields = lines[0].split() if len(lines) == 1 else []
-    assert [len(gradings), len(fields) == 4 and fields[0], len(fields) == 4 and bool(re.fullmatch(r"[0-9a-f]{64}", fields[1])),
+    monkeypatch.chdir(tmp_path)
+    expected = grade_prose.signature("REQUIREMENTS.md", "skills/guide/unit.md")
+    assert [len(gradings), len(fields) == 4 and fields[0], len(fields) == 4 and fields[1] == expected,
             len(fields) == 4 and bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", fields[2])),
             len(fields) == 4 and fields[3] == gradings[0].get("id", "") != ""] \
         == [1, "skills/guide/unit.md", True, True, True], lines
