@@ -1,7 +1,7 @@
 #!/bin/sh
 # clear-refactor-pending.sh — drop the pending mark from one step in the local ledger: a shim over veri/clear_refactor_pending.py.
 #
-# Strips the mark from the first ticked step that contains <matcher> and carries it, in place.
+# Strips the mark from the first ticked step that contains <matcher> and carries it, writing a temporary file beside the ledger and renaming it over the ledger.
 #
 # usage: clear-refactor-pending.sh <ledger-file> <matcher>
 # Exit:    0 the mark cleared, the file rewritten;
