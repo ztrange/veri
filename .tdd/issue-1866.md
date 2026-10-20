@@ -1,7 +1,7 @@
 # Plan for #1866 — A headless conductor can end its turn on a question and exit 0, with neither a bail nor ✅ Done
 
 - [x] classify-bail.sh prints `process` and exits 0 for the cause `needs-user` (the exit-code class 1 of a clean negative), never `system` ⟦criterion 3⟧
-- [ ] SKILL.md tells a conductor that would ask the user a question, or decline the procedure's next instruction, to bail instead with cause `needs-user` (a process failure), writing the question in full into the bail comment so a resume or the human can answer it; the text and every checksum or verbatim pin it moves land in one commit ⟦diff-checked⟧ ⟦criterion 1⟧
+- [x] SKILL.md tells a conductor that would ask the user a question, or decline the procedure's next instruction, to bail instead with cause `needs-user` (a process failure), writing the question in full into the bail comment so a resume or the human can answer it; the text and every checksum or verbatim pin it moves land in one commit ⟦diff-checked⟧ ⟦criterion 1⟧
 - [ ] A prose case pins that SKILL.md tells a conductor which would ask the user a question or decline the next instruction to bail with cause `needs-user`, the question written in full into the bail comment ⟦criterion 1⟧
 - [ ] When the stub conductor (CLAUDE_BIN) exits 0 with a `result` record that ends on a question, and the issue's event log ends in none of `done`, `bail` or `stop`, run-conductor.sh appends a `bail` event with cause `needs-user` to that event log ⟦criterion 2⟧
 - [ ] run-conductor.sh records no `needs-user` bail when the conductor's events already end in `done`, `bail` or `stop`, or when the stub conductor exits non-zero, or exits 0 without a `result` record ⟦criterion 2⟧
