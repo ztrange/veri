@@ -379,3 +379,154 @@ def test_a_row_replaced_by_a_pytest_node_id_is_proven_when_the_node_goes_red_and
     assert (caught[:2], missed[:2]) == (
         (0, verdict_line(tmp_path, ("adds two numbers", node), "add-subtracts", "proven")),
         (1, verdict_line(tmp_path, ("adds two numbers", node), "kept-stays-green", "unproven"))), (caught, missed)
+
+
+SUMS_PYTEST = '''import os
+import subprocess
+
+CALC = os.path.join(os.path.dirname(__file__), "..", "calc.sh")
+
+
+def run(call):
+    return subprocess.run(["sh", "-c", '. "$0"; ' + call, CALC], capture_output=True,
+                          text=True).stdout.strip()
+
+
+def test_adds_two_numbers():
+    assert run("add 2 3") == "5"
+
+
+def test_greets_by_name():
+    assert run("greet ann") == "hello ann"
+'''
+CALC_RED_PYTEST = CALC_PYTEST.replace('"-1"', '"-2"')
+SINGLE_SUITE = CALC_HEAD + PLAIN_CHECK + 'check "adds two numbers" 5 "$(add 2 3)"\n' + CALC_TAIL
+NODE = "tests/test_calc.py::test_adds_a_negative"
+
+
+def patch_of(tmp_path, name, mutated):
+    (tmp_path / (name + ".patch")).write_text("".join(difflib.unified_diff(
+        CALC_SH.splitlines(True), mutated.splitlines(True), "a/calc.sh", "b/calc.sh")))
+
+
+def scratch_with(tmp_path, monkeypatch, suites=(), pytest_files=()):
+    mp = calc_scratch(tmp_path, monkeypatch, suites=suites,
+                      pytest_files=[("test_calc.py", CALC_PYTEST), *pytest_files])
+    patch_of(tmp_path, "greet-byes", CALC_SH.replace("hello", "bye"))
+    patch_of(tmp_path, "dies", CALC_SH + "exit 9\n")
+    return mp
+
+
+def one_row(tmp_path, run_cli, mp, suite, old, fate, kept, mutation):
+    return run_rows(tmp_path, run_cli, mp, [row_of(tmp_path, suite, old, fate, kept, mutation)])
+
+
+@pytest.mark.process("a bash suite started by failed_cases() and pytest by node_fails(), for a row whose old case is a pytest node id")
+def test_a_row_whose_old_case_is_a_pytest_node_id_is_valid_when_the_node_goes_red_and_another_case_of_its_file_stays_green_and_owed_when_none_stays_green(tmp_path, monkeypatch, run_cli):
+    mp = scratch_with(tmp_path, monkeypatch, pytest_files=[("test_sums.py", SUMS_PYTEST)])
+    old = "tests/test_sums.py::test_adds_two_numbers"
+
+    valid = one_row(tmp_path, run_cli, mp, "tests/test_sums.py", old, "replaced", NODE, "add-subtracts")
+    owed = one_row(tmp_path, run_cli, mp, "tests/test_sums.py", old, "replaced", NODE, "none-stays-green")
+
+    assert (valid[:2], owed[:2]) == (
+        (0, verdict_line(tmp_path, (old, NODE), "add-subtracts", "proven")),
+        (1, verdict_line(tmp_path, (old, NODE), "none-stays-green", "owed"))), (valid, owed)
+
+
+@pytest.mark.process("a bash suite started by failed_cases() and pytest by node_fails(), for a table of several rows")
+def test_a_table_of_several_rows_reports_every_row_each_rows_case_run_with_only_its_own_mutation_in_place_and_exits_0_only_when_every_row_is_proven_1_when_any_is_unproven_or_owed(tmp_path, monkeypatch, run_cli):
+    mp = scratch_with(tmp_path, monkeypatch, pytest_files=[("test_sums.py", SUMS_PYTEST)])
+    greets = "tests/test_sums.py::test_greets_by_name"
+    suite = "checks/calc-suite.sh"
+
+    all_proven = run_rows(tmp_path, run_cli, mp, [
+        row_of(tmp_path, suite, "adds two numbers", "redundant", "adds a negative", "add-subtracts"),
+        row_of(tmp_path, suite, "greets by name", "replaced", greets, "greet-byes")])
+    mixed = run_rows(tmp_path, run_cli, mp, [
+        row_of(tmp_path, suite, "greets by name", "replaced", greets, "greet-byes"),
+        row_of(tmp_path, suite, "adds two numbers", "redundant", "adds a negative", "old-stays-green"),
+        row_of(tmp_path, suite, "adds two numbers", "redundant", "adds a negative", "kept-stays-green")])
+
+    assert (all_proven[:2], mixed[:2]) == (
+        (0, verdict_line(tmp_path, ("adds two numbers", "adds a negative"), "add-subtracts", "proven")
+         + verdict_line(tmp_path, ("greets by name", greets), "greet-byes", "proven")),
+        (1, verdict_line(tmp_path, ("greets by name", greets), "greet-byes", "proven")
+         + verdict_line(tmp_path, ("adds two numbers", "adds a negative"), "old-stays-green", "owed")
+         + verdict_line(tmp_path, ("adds two numbers", "adds a negative"), "kept-stays-green", "unproven"))), (all_proven, mixed)
+
+
+@pytest.mark.process("a bash suite started by failed_cases() and pytest by node_fails(), for a one-case old suite")
+def test_1594_a_row_whose_old_suite_holds_exactly_one_case_reads_proven_when_that_suite_runs_to_its_count_line_with_the_named_case_failed_and_the_replacement_is_caught(tmp_path, monkeypatch, run_cli):
+    mp = scratch_with(tmp_path, monkeypatch, suites=[("single.sh", SINGLE_SUITE)])
+
+    code, out, err = one_row(tmp_path, run_cli, mp, "checks/single.sh", "adds two numbers", "replaced", NODE, "add-subtracts")
+
+    assert (code, out) == (0, verdict_line(tmp_path, ("adds two numbers", NODE), "add-subtracts", "proven")), err
+
+
+@pytest.mark.process("a bash suite started by failed_cases(), whose one-case suite dies before its count line under the mutation")
+def test_1594_a_row_whose_old_suite_holds_exactly_one_case_reads_owed_when_under_the_mutation_that_suite_dies_before_its_count_line(tmp_path, monkeypatch, run_cli):
+    mp = scratch_with(tmp_path, monkeypatch, suites=[("single.sh", SINGLE_SUITE)])
+
+    code, out, err = one_row(tmp_path, run_cli, mp, "checks/single.sh", "adds two numbers", "replaced", NODE, "dies")
+
+    assert (code, out) == (1, verdict_line(tmp_path, ("adds two numbers", NODE), "dies", "owed")), err
+
+
+@pytest.mark.process("a bash suite started by failed_cases() and pytest by node_fails(), for a one-case old suite whose replacement the mutation misses")
+def test_1594_a_row_whose_old_suite_holds_exactly_one_case_reads_unproven_when_that_suite_runs_to_its_count_line_with_the_named_case_failed_but_the_replacement_is_not_caught(tmp_path, monkeypatch, run_cli):
+    mp = scratch_with(tmp_path, monkeypatch, suites=[("single.sh", SINGLE_SUITE)])
+
+    code, out, err = one_row(tmp_path, run_cli, mp, "checks/single.sh", "adds two numbers", "replaced", NODE, "kept-stays-green")
+
+    assert (code, out) == (1, verdict_line(tmp_path, ("adds two numbers", NODE), "kept-stays-green", "unproven")), err
+
+
+@pytest.mark.process("a bash suite started by failed_cases() and pytest by node_fails(), for a one-case old suite already red")
+def test_1596_a_row_whose_old_suite_holds_exactly_one_case_reads_unproven_and_names_the_old_case_when_that_case_already_fails_with_the_mutation_not_applied_though_the_replacement_is_caught(tmp_path, monkeypatch, run_cli):
+    mp = scratch_with(tmp_path, monkeypatch,
+                      suites=[("single-red.sh", SINGLE_SUITE.replace('5 "$(add 2 3)"', '6 "$(add 2 3)"'))])
+
+    code, out, err = one_row(tmp_path, run_cli, mp, "checks/single-red.sh", "adds two numbers", "replaced", NODE, "add-subtracts")
+
+    assert (code, out.strip().endswith("unproven"), "old case adds two numbers" in err) == (1, True, True), (out, err)
+
+
+@pytest.mark.process("a bash suite started by failed_cases(), for a several-case old suite whose old case is already red")
+def test_1596_a_row_whose_old_suite_holds_several_cases_reads_unproven_and_names_the_old_case_when_that_case_already_fails_with_the_mutation_not_applied(tmp_path, monkeypatch, run_cli):
+    mp = scratch_with(tmp_path, monkeypatch,
+                      suites=[("calc-red.sh", CALC_SUITE.replace('5 "$(add 2 3)"', '6 "$(add 2 3)"'))])
+
+    code, out, err = one_row(tmp_path, run_cli, mp, "checks/calc-red.sh", "adds two numbers", "redundant", "adds a negative", "add-subtracts")
+
+    assert (code, out.strip().endswith("unproven"), "old case adds two numbers" in err) == (1, True, True), (out, err)
+
+
+@pytest.mark.process("a bash suite started by failed_cases() and pytest by node_fails(), for a pytest replacement already red")
+def test_1596_a_row_whose_pytest_replacement_already_fails_with_the_mutation_not_applied_reads_unproven_and_names_the_replacement_not_the_old_case(tmp_path, monkeypatch, run_cli):
+    mp = scratch_with(tmp_path, monkeypatch, pytest_files=[("test_calc_red.py", CALC_RED_PYTEST)])
+    red = "tests/test_calc_red.py::test_adds_a_negative"
+
+    code, out, err = one_row(tmp_path, run_cli, mp, "checks/calc-suite.sh", "adds two numbers", "replaced", red, "add-subtracts")
+
+    assert (code, out.strip().endswith("unproven"), "replacement " + red in err, "old case" in err) == (1, True, True, False), (out, err)
+
+
+@pytest.mark.process("a bash suite started by failed_cases(), for a kept bash case already red")
+def test_1596_a_row_whose_kept_bash_case_already_fails_with_the_mutation_not_applied_reads_unproven_and_names_the_replacement_not_the_old_case(tmp_path, monkeypatch, run_cli):
+    mp = scratch_with(tmp_path, monkeypatch,
+                      suites=[("neg-red.sh", CALC_SUITE.replace('-1 "$(add 2 -3)"', '-2 "$(add 2 -3)"'))])
+
+    code, out, err = one_row(tmp_path, run_cli, mp, "checks/neg-red.sh", "adds two numbers", "redundant", "adds a negative", "add-subtracts")
+
+    assert (code, out.strip().endswith("unproven"), "replacement adds a negative" in err, "old case" in err) == (1, True, True, False), (out, err)
+
+
+@pytest.mark.process("a bash suite started by failed_cases(), for a several-case old suite that dies before its count line under the mutation")
+def test_1596_a_row_whose_old_suite_holds_several_cases_ends_in_an_error_not_owed_when_under_the_mutation_that_suite_dies_before_its_count_line(tmp_path, monkeypatch, run_cli):
+    mp = scratch_with(tmp_path, monkeypatch)
+
+    code, out, err = one_row(tmp_path, run_cli, mp, "checks/calc-suite.sh", "adds two numbers", "redundant", "adds a negative", "dies")
+
+    assert (code, "owed" in out.split()) == (2, False), (out, err)
