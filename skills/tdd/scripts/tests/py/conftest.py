@@ -34,8 +34,10 @@ def shim_problems(scripts, exempt=()):
     seen = set()
     for script in sorted(pathlib.Path(scripts).glob("*.sh")):
         seen.add(script.name)
-        code = [line for line in script.read_text().splitlines() if line.strip() and not line.startswith("#")]
-        match = CANONICAL_SHIM.fullmatch(code[0]) if len(code) == 1 else None
+        lines = script.read_text().splitlines()
+        code = [line for line in lines if line.strip() and not line.startswith("#")]
+        canonical = len(code) == 1 and bool(lines) and lines[0] == "#!/bin/sh"
+        match = CANONICAL_SHIM.fullmatch(code[0]) if canonical else None
         if match is not None and script.name in exempt:
             problems.append("%s: stale exemption, the script is now the canonical shim" % script.name)
         elif match is None and script.name not in exempt:
