@@ -116,6 +116,10 @@ def save_diff(leaf, tree_before, tree_after):
         with open(path, "wb") as saved:
             saved.write(diff.stdout)
     except OSError:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
         _write(sys.stdout, "diff could not be saved to %s" % path)
         return None
     return path

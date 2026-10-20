@@ -2535,3 +2535,47 @@ def test_main_still_refuses_with_2_saying_the_diff_could_not_be_saved_and_writes
     assert (code, "verifier leaf modified the repository" in out,
             bool(re.search(r"diff could not be saved to \.tdd/verify-green\.diff", out)),
             sorted(p.name for p in (repo / ".tdd").glob("*.diff"))) == (2, True, True, [])
+
+
+@pytest.mark.process("a real git scratch repository and a stub verifier leaf that rewrites a tracked file while git diff is made to fail over an earlier refusal's diff")
+def test_main_removes_an_earlier_refusals_diff_when_this_refusals_diff_could_not_be_saved_1878(
+        tmp_path, monkeypatch, capfd):
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
+                 "VERI_ISSUE", "VERI_STEP"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    (tmp_path / "home").mkdir()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    monkeypatch.chdir(repo)
+    write_inputs(repo)
+    (repo / "tracked.txt").write_text("one\ntwo\nthree\n")
+    (repo / ".gitignore").write_text(".tdd/\n")
+
+    def git(*args):
+        return subprocess.run(
+            ["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
+            cwd=repo, stdout=subprocess.PIPE, check=True).stdout
+
+    git("init", "-q")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    (repo / ".tdd").mkdir(exist_ok=True)
+    (repo / ".tdd" / "verify-green.diff").write_text("an earlier refusal's diff\n")
+    verify = importlib.import_module("veri.verify")
+    real_start = verify.start
+
+    def stub_start(args, **kwargs):
+        if os.path.basename(str(args[0])) != "supervise.sh":
+            return real_start(args, **kwargs)
+        (repo / "tracked.txt").write_text("one\nTWO\nthree\n")
+        git("config", "diff.orderFile", str(tmp_path / "no-such-order-file"))
+        return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nREASON: ok\n")
+
+    monkeypatch.setattr(verify, "start", stub_start)
+
+    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+
+    out = capfd.readouterr().out
+    assert (code, bool(re.search(r"diff could not be saved to \.tdd/verify-green\.diff", out)),
+            sorted(p.name for p in (repo / ".tdd").glob("*.diff"))) == (2, True, [])
