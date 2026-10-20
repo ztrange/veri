@@ -170,7 +170,7 @@ def launch(base, issue, commit, **exports):
             pass
     if code < 0:
         return 128 - code
-    if code == 0 and result is not None and result.rstrip().endswith("?") and not closed(issue):
+    if code == 0 and result is not None and not closed(issue):
         if event.mark(".tdd/wt/" + issue, event.context(tunables.with_values(VERI_ISSUE=issue)),
                       "bail", ["cause=needs-user"]) != 0:
             return 2
