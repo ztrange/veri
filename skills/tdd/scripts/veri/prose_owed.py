@@ -30,15 +30,18 @@ def orphans(units):
                     yield unit
 
 
+def owed_and_gone(path="REQUIREMENTS.md"):
+    units = requirements.units(path) if os.path.exists(path) else []
+    owed = [u for u in units if graded_signature(u) != grade_prose.signature(path, u)]
+    return owed, list(orphans(units))
+
+
 def main(argv):
     if len(argv) != 1:
         print(USAGE, file=sys.stderr)
         return 2
     os.chdir(argv[0])
-    path = "REQUIREMENTS.md"
-    units = requirements.units(path) if os.path.exists(path) else []
-    owed = [u for u in units if graded_signature(u) != grade_prose.signature(path, u)]
-    gone = list(orphans(units))
+    owed, gone = owed_and_gone()
     for unit in owed:
         print(unit)
     for unit in gone:
