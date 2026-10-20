@@ -1,0 +1,2 @@
+### When every requirement PASSes, `grade-prose.sh` writes one line for the unit to `skills/<skill>/GRADED` carrying the unit, its signature, the date and the id of the grading's event (the `grading` event carries that id) — pinned by a case with a stub `claude` ⟦criterion 2⟧
+- `record_graded` only appends; criterion 2's "replacing any earlier line for that unit" belongs to a later step, so don't pre-build it here
