@@ -601,3 +601,22 @@ def test_1874_a_reply_in_the_poc_shape_with_the_verdict_line_inside_the_grades_b
         outcomes[name] = (done.returncode, "the widget hums quokka-loudly" in done.stdout)
 
     assert outcomes == {"all-pass": (0, False), "one-fail": (1, True)}, outcomes
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_1874_a_reply_with_verdict_lines_after_end_grades_makes_grade_prose_exit_2_and_append_no_grading_event(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text(STUB.replace("END GRADES", "END GRADES\\nVERDICT: REJECT\\nVERDICT: PASS"))
+    claude.chmod(0o755)
+
+    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                          capture_output=True, text=True,
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
+
+    events = tmp_path / ".tdd" / "events.jsonl"
+    graded = [l for l in (events.read_text().splitlines() if events.exists() else []) if '"grading"' in l]
+    assert (done.returncode, graded) == (2, []), (done.returncode, done.stdout, done.stderr, graded)

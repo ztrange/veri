@@ -112,7 +112,7 @@ def main(argv):
         return no_verdict("the reply has no BEGIN GRADES block")
     reply = reply[reply.rindex("BEGIN GRADES"):]
     block, _, after = reply.partition("END GRADES")
-    trailing = "\n".join(l for l in after.splitlines() if l.strip() and not l.startswith("VERDICT:"))
+    trailing = "\n".join(l for l in after.splitlines() if l.strip())
     if trailing:
         return no_verdict("text after END GRADES: %s" % trailing)
     for word in re.findall(r"^(?!VERDICT)\S+: (\w+)", block, re.M):
