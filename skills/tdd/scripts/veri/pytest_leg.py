@@ -30,6 +30,8 @@ def main(argv):
                              "Install it with `make install-dev`.\n" % (package, sys.executable, module))
             return 2
     import pytest
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    os.environ["PYTEST_PLUGINS"] = ",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "small_case_guard"]))
     def terminate(signum, frame):
         sys.exit(128 + signum)
     previous = signal.signal(signal.SIGTERM, terminate)
