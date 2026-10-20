@@ -15,12 +15,12 @@ try:
     from context_budget import START, watch
     from github import NoAnswer, gh_json
     from json_documents import items
-    from solvable_issues import priority_label, scope_label, solvable as solvable_set
+    from solvable_issues import solvable_in_scope
 except ImportError:
     from .context_budget import START, watch
     from .github import NoAnswer, gh_json
     from .json_documents import items
-    from .solvable_issues import priority_label, scope_label, solvable as solvable_set
+    from .solvable_issues import solvable_in_scope
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PASSED_THROUGH = ("VERI_HEARTBEAT", "VERI_TIMEOUT", "VERI_STUCK_RETRIES", "VERI_POLL")
@@ -189,14 +189,6 @@ def main(argv):
     return code
 
 
-def _solvable():
-    label = scope_label()
-    priority = label and priority_label()
-    if label is None or priority is None:
-        return 2, []
-    return solvable_set(label, priority)
-
-
 def _run(continue_on_bail, parallel, max_issues):
     try:
         max_issues = _bash_arithmetic(max_issues)
@@ -209,7 +201,7 @@ def _run(continue_on_bail, parallel, max_issues):
             if max_issues < 0 or max_issues and len(launched) >= max_issues:
                 why = "VERI_MAX_ISSUES reached"
                 break
-            code, numbers = _solvable()
+            code, numbers = solvable_in_scope()
             why = "nothing solvable"
             if code == 2:
                 plumbing, why = True, "solvable-issues.sh could not answer"

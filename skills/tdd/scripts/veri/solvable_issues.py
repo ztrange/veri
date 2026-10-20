@@ -86,6 +86,15 @@ def solvable(label, priority="priority", repo=None):
         return 2, []
 
 
+def solvable_in_scope():
+    """(exit code, the solvable issue numbers) for the configured scope; 2 when a label is unusable."""
+    label = scope_label()
+    priority = label and priority_label()
+    if label is None or priority is None:
+        return 2, []
+    return solvable(label, priority)
+
+
 def select(label, priority="priority", repo=None):
     """(exit code, the solvable issue numbers in selection order) for the opt-in <label>."""
     scope = ["--repo", repo] if repo else []
