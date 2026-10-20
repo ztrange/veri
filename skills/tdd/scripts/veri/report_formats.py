@@ -27,9 +27,8 @@ _STOP_WORDS = re.compile(r"\b(stop|skip|skipped|give up|say so)\b", re.IGNORECAS
 
 
 EXEMPT = {
-    "develop-green.md:20": "the declared format continues on the next line of the sentence",
-    "develop-green.md:41": "the SPLIT: format is named in the paragraph that follows",
-    "develop-green.md:54": "the fallback to the test command is reported inside SUITE:",
+    "develop-green.md:36": "the SPLIT: format is named in the paragraph that follows",
+    "develop-green.md:49": "the fallback to the test command is reported inside SUITE:",
     "develop-reconcile.md:43": "a remote that moved again is reported through the declared keys",
     "develop-red-contradicted.md:88": "the fallback to the test command is reported inside SUITE:",
     "develop-red-missing.md:90": "the fallback to the test command is reported inside SUITE:",
