@@ -9,10 +9,10 @@ import tunables
 
 try:
     from context_budget import START, watch
-    from solvable_issues import priority_label, scope_label, solvable
+    from solvable_issues import solvable_in_scope
 except ImportError:
     from .context_budget import START, watch
-    from .solvable_issues import priority_label, scope_label, solvable
+    from .solvable_issues import solvable_in_scope
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONDUCTOR = os.path.join(SCRIPTS, "run-conductor.sh")
@@ -26,7 +26,7 @@ def main(argv):
     if stop_timeout is None:
         return 2
     while True:
-        code, numbers = _solvable()
+        code, numbers = solvable_in_scope()
         if code == 3:
             return 0
         if code != 0:
@@ -48,14 +48,6 @@ def main(argv):
         _drain(conductor.stdout, stop_timeout)
         if _parked(issue):
             _say("parked %s\n" % issue)
-
-
-def _solvable():
-    label = scope_label()
-    priority = label and priority_label()
-    if label is None or priority is None:
-        return 2, []
-    return solvable(label, priority)
 
 
 def _tunable(name):
