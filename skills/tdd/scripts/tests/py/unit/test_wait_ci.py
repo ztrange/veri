@@ -235,6 +235,8 @@ def test_main_polls_until_its_slice_or_deadline_and_records_the_deadline_in_tdd(
          (3, "", True, None, tick * 2 + ["date +%s"])),
         ([PR, "20", "100", "a/b"], None, True, {}, [1000, 1010, 1020],
          (3, "", True, {}, tick * 2 + ["date +%s"])),
+        ([PR, "20", "100", "def456"], None, True, {}, [1000, 1010, 1020],
+         (3, "", "", {}, tick * 2 + ["date +%s"])),
         ([PR, "", "10000", SHA], None, True, {}, [1000, 1539, 1540],
          (3, "", "", {"ci-deadline-abc123": "1600\n"}, tick * 2 + ["date +%s"])),
     ]
@@ -603,7 +605,7 @@ def test_main_keeps_its_bound_across_reads_calls_and_the_head_sha_it_was_given_a
         "total": [(3, False, False), (3, False, False)],
         "skill passes a slice and an empty total": True,
         "stale head": [(3, False, False)],
-        "stale across": [(3, False, False), (2, False, True)],
+        "stale across": [(3, False, False), (3, False, False)],
     }
 
 
@@ -1060,3 +1062,22 @@ def test_main_resets_the_failed_read_count_on_a_successful_poll_so_alternating_f
     code, _, _ = run_cli(wait_ci, [PR, "1800", "1800", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
 
     assert (code, len(polls)) == (0, 7)
+
+
+def test_main_records_no_deadline_and_ends_its_slice_with_3_while_the_pull_head_differs_from_the_given_sha_issue_1896(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    other = "fedcba9876543210fedcba9876543210fedcba98"
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    behind = f"gh api repos/o/r/commits/{other}"
+    bodies = {
+        PULL: json.dumps({"number": 1, "state": "open", "draft": False, "head": {"sha": other}}),
+        f"{behind}/status": json.dumps({"state": "pending", "sha": other, "total_count": 0, "statuses": []}),
+        f"{behind}/check-runs?page=1": json.dumps({"total_count": 1, "check_runs": [check_run("gates", other, "in_progress")]}),
+        f"{behind}/check-runs?page=2": json.dumps({"total_count": 1, "check_runs": []}),
+    }
+
+    served(fake_processes, bodies)
+    code, _, _ = run_cli(wait_ci, [PR, "120", "600", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (code, sorted(p.name for p in (work / ".tdd").iterdir())) == (3, [])

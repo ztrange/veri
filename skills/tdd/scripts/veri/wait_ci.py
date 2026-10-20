@@ -151,6 +151,7 @@ def main(argv):
     want = argv[3] if len(argv) > 3 else ""
     poll = tunables.read("VERI_POLL", unless_empty="10")
     deadline = ""
+    slice_end = None
     unread = 0
     while True:
         try:
@@ -184,9 +185,23 @@ def main(argv):
             return 1
         now = int(subprocess.run(["date", "+%s"], stdout=subprocess.PIPE, text=True).stdout)
         scope["now"] = now
+        if want and head != want:
+            try:
+                if slice_end is None:
+                    slice_end = now + arith(span, scope)
+                    if os.path.dirname(".tdd/ci-deadline-" + want) != ".tdd":
+                        warn("head-sha %s cannot name a deadline file" % want)
+            except ArithError as error:
+                warn(error)
+                break
+            if now >= slice_end:
+                break
+            subprocess.run(["sleep", poll])
+            continue
         if not deadline:
             try:
-                slice_end = now + arith(span, scope)
+                if slice_end is None:
+                    slice_end = now + arith(span, scope)
                 key = want or head
                 mark = ".tdd/ci-deadline-" + key
                 inherited = os.path.exists(mark)
