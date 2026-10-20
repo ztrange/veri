@@ -9,13 +9,13 @@ import tunables
 
 try:
     from .event_log import read_events
-    from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, ledger_steps, multi_tag_refusal, new_step, trailing_markers
+    from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, ledger_steps, multi_tag_refusal, new_step, trailing_markers
 except ImportError:
     from event_log import read_events
-    from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, ledger_steps, multi_tag_refusal, new_step, trailing_markers
+    from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, ledger_steps, multi_tag_refusal, new_step, trailing_markers
 
-SUITE_REPAIR = "⟦suite-repair⟧"
-REPAIR_MARKS = ("⟦ci-repair⟧", SUITE_REPAIR)
+SUITE_REPAIR = "suite-repair"
+REPAIR_MARKS = ("ci-repair", SUITE_REPAIR)
 BYTES = "surrogateescape"
 USAGE = "usage: add-ledger-step.sh [--criterion <k>] <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]  (--planned goes with --criterion <k>)"
 
@@ -37,7 +37,7 @@ def criterion_of(line):
 
 def has_mark(text, marks):
     markers = trailing_markers(text)
-    return any(mark in markers for mark in marks)
+    return any(carries_mark(markers, mark) for mark in marks)
 
 
 def is_repair(text):
@@ -171,7 +171,7 @@ def main(argv):
     if sum(1 for line in lines if is_anchor_step(line, anchor)) != 1:
         return refuse("add-ledger-step.sh: anchor matches no single step: " + anchor)
     for text in texts:
-        if has_mark(text, (replaces_case.REPLACES_MARK,)) and replaces_case.parse(text) is None:
+        if has_mark(text, ("replaces-case",)) and replaces_case.parse(text) is None:
             warn("add-ledger-step.sh: cannot read the case names of step: " + text.replace("\n", " "))
             return 1
     steps = [line for line in lines if ledger_steps(line)]

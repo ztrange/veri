@@ -2,7 +2,7 @@
 import re
 import sys
 
-from ledger import handed_out, ledger_steps, next_phase, read_ledger_stdin, trailing_markers
+from ledger import handed_out, ledger_steps, next_phase, read_ledger_stdin, trailing_markers, carries_mark
 
 VERBS = {
     "current": "current",
@@ -57,8 +57,7 @@ def phase_next(records):
 
 
 def has_mark(records, name):
-    mark = f"⟦{name}⟧"
-    return 0 if any(mark in trailing_markers(r[6]) for r in records) else 3
+    return 0 if any(carries_mark(trailing_markers(r[6]), name) for r in records) else 3
 
 
 def criterion(text, k):
