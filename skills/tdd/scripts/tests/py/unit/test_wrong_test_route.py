@@ -850,3 +850,29 @@ def test_main_1865_prints_repair_keeping_the_superseded_cases_a_repair_report_al
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s %s\n" % (own, older))
+
+
+def test_main_1865_prints_revise_for_one_or_several_superseded_lines_once_the_step_log_holds_a_reroute_event(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    suite = tmp_path / "tests" / "py"
+    suite.mkdir(parents=True)
+    added = "test_main_prints_the_usage_with_not_running"
+    first, second = "test_main_prints_usage_on_no_arguments", "test_main_prints_usage_on_a_bad_flag"
+    (suite / "test_solvable.py").write_text(
+        "def %s():\n    pass\n\ndef %s():\n    pass\n\ndef %s():\n    pass\n" % (first, second, added))
+    (tmp_path / ".tdd").mkdir()
+    step = "solvable-issues.sh usage mentions --not-running, rerouted once"
+    monkeypatch.setenv("VERI_STEP", step)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    (tmp_path / record_path.rstrip("\n")).write_text("case: %s\n" % added)
+    (tmp_path / ".tdd" / "events.jsonl").write_text('{"event": "reroute", "step": "%s"}\n' % step)
+    one = tmp_path / "one-report.txt"
+    one.write_text("SUITE: make test\nSUPERSEDED: %s\n" % first)
+    several = tmp_path / "several-report.txt"
+    several.write_text("SUITE: make test\nSUPERSEDED: %s\nSUPERSEDED: %s\n" % (first, second))
+
+    answers = [run_cli(wrong_test_route, [str(r), added], cwd=tmp_path)[:2] for r in (one, several)]
+
+    assert answers == [(3, "revise\n"), (3, "revise\n")]
