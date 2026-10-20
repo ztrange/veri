@@ -74,8 +74,15 @@ WRONG_TEST: <why the test looks wrong>
 
 Name in that line the existing test case the step's criterion contradicts.
 
+or, when older cases fail only because the step supersedes what they pin, those lines replaced by
+one per such case:
+
+SUPERSEDED: <the older case>
+
+A case the step's change does not supersede is a `WRONG_TEST:` line, never a `SUPERSEDED:` one.
+
 REPORT-FORMAT green | keys IMPL_PATH: SUITE: | suite required
 
 REPORT-FORMAT green-split | keys SPLIT: | suite exempt: a too-big step changes no code and runs no suite
 
-REPORT-FORMAT green-wrong-test | keys WRONG_TEST: | suite exempt: the test is wrong, so nothing was changed and no suite ran
+REPORT-FORMAT green-wrong-test | keys WRONG_TEST: SUPERSEDED: | suite exempt: the test is wrong, so nothing was changed and no suite ran

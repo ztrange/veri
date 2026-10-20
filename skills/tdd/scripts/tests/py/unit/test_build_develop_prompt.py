@@ -2008,7 +2008,7 @@ def test_cli_green_for_a_step_not_carrying_replaces_case_renders_byte_identicall
         env={"VERI_REFACTOR_BUDGET": "5"})
 
     rendered = out.rstrip("\n").replace(str(SCRIPTS), "@SCRIPTS@") + "\n"
-    assert (code, err, _cksum(rendered.encode())) == (0, "", "3888852653 8167")
+    assert (code, err, _cksum(rendered.encode())) == (0, "", "3839410428 8424")
 
 
 def test_cli_develop_cover_restores_a_probe_with_cp_orig_before_the_mutation_and_mv_orig_after_the_run_under_mutation(
