@@ -53,6 +53,12 @@ def test_main_classifies_step_add_refused_as_system_with_0_1379(capsys, classify
     assert (code, *capsys.readouterr()) == (0, "system\n", "")
 
 
+def test_main_classifies_needs_user_as_process_with_0_1866(capsys, classify_bail):
+    code = classify_bail.main(["needs-user"])
+
+    assert (code, *capsys.readouterr()) == (0, "process\n", "")
+
+
 def test_main_refuses_stop_and_budget_words_with_2_and_skill_md_calls_ci_conflict_a_system_failure(capsys, classify_bail):
     results = {}
     for cause in ("stopped", "stop", "at-ledger", "at-leaf", "now", "step-over-budget", "over-budget", "wat"):
