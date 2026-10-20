@@ -26,12 +26,13 @@ def test_shim_problems_names_each_script_with_logic_in_it_or_a_missing_module_an
     shim(tmp_path / "canonical.sh", 'exec python3 "$(dirname "$0")/veri/kept.py" "$@"')
     shim(tmp_path / "logic.sh", 'export EXP_SHIM_WORD=1', 'exec python3 "$(dirname "$0")/veri/kept.py" "$@"')
     shim(tmp_path / "orphaned.sh", 'exec python3 "$(dirname "$0")/veri/gone.py" "$@"')
+    (tmp_path / "bash.sh").write_text('#!/bin/bash\nexec python3 "$(dirname "$0")/veri/kept.py" "$@"\n')
 
     problems = shim_problems(tmp_path)
 
-    assert [line.split(":")[0] for line in problems] == ["logic.sh", "orphaned.sh"]
-    assert "not the canonical shim" in problems[0]
-    assert "veri/gone.py" in problems[1] and "does not exist" in problems[1]
+    assert [line.split(":")[0] for line in problems] == ["bash.sh", "logic.sh", "orphaned.sh"]
+    assert "not the canonical shim" in problems[0] and "not the canonical shim" in problems[1]
+    assert "veri/gone.py" in problems[2] and "does not exist" in problems[2]
 
 
 @pytest.mark.tree_audit("every scripts/*.sh against the shim exemption table")
