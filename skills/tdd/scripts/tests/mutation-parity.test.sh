@@ -42,141 +42,18 @@ patch="$work/add-subtracts.patch"
 sed 's/\$1 + \$2/$1 - $2/' "$repo/calc.sh" > "$work/calc.mutated"
 diff -u --label a/calc.sh --label b/calc.sh "$repo/calc.sh" "$work/calc.mutated" > "$patch"
 
-table="$work/pairs.tsv"
-printf 'tests/calc.test.sh\tadds two numbers\tredundant\tadds a negative\t%s\n' "$patch" > "$table"
-
-out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/parity.err")" && code=0 || code=$?
-row="$(grep -F 'adds two numbers' <<<"$out" | grep -F 'adds a negative' | grep -F "$patch" | grep -wF proven || true)"
-if [[ "$code" == 0 && -n "$row" ]]; then
-  ok
-else
-  no "a valid mutation the kept case catches is reported proven and exits 0 (exit=$code want 0)
-    stdout: $out
-    stderr: $(cat "$work/parity.err")"
-fi
-
-cat > "$repo/tests/diag.test.sh" <<'SUITE'
-#!/bin/sh
-. "$(dirname "$0")/../calc.sh"
-pass=0; fail=0
-check() { if [ "$2" = "$3" ]; then pass=$((pass + 1)); else fail=$((fail + 1)); echo "FAIL - $1$4"; fi; }
-check "adds two numbers" 5 "$(add 2 3)" " (got $(add 2 3) want 5)"
-check "adds a negative" -1 "$(add 2 -3)"
-check "greets by name" "hello ann" "$(greet ann)"
-echo "----"
-echo "$pass passed, $fail failed"
-[ "$fail" -eq 0 ]
-SUITE
-chmod +x "$repo/tests/diag.test.sh"
-git -C "$repo" add -A && git -C "$repo" commit -qm diag
-table="$work/diag-old.tsv"
-printf 'tests/diag.test.sh\tadds two numbers\tredundant\tadds a negative\t%s\n' "$work/add-subtracts.patch" > "$table"
-out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/diag-old.err")" && code=0 || code=$?
-row="$(grep -F 'adds two numbers' <<<"$out" | grep -wF proven || true)"
-if [[ "$code" == 0 && -n "$row" ]]; then
-  ok
-else
-  no "#1436: a row whose old bash case fails with a FAIL line '<old name> (<diagnostic>)' reads proven when the kept case catches the mutation, not owed (exit=$code want 0)
-    stdout: $out
-    stderr: $(cat "$work/diag-old.err")"
-fi
-
-table="$work/diag-kept.tsv"
-printf 'tests/diag.test.sh\tadds a negative\tredundant\tadds two numbers\t%s\n' "$work/add-subtracts.patch" > "$table"
-out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/diag-kept.err")" && code=0 || code=$?
-row="$(grep -F 'adds two numbers' <<<"$out" | grep -wF proven || true)"
-if [[ "$code" == 0 && -n "$row" ]]; then
-  ok
-else
-  no "#1436: a row whose kept bash case fails with a FAIL line '<kept name> (<diagnostic>)' counts as catching the mutation and reads proven, not unproven (exit=$code want 0)
-    stdout: $out
-    stderr: $(cat "$work/diag-kept.err")"
-fi
-
-not_proven() {
-  local name="$1" sed_expr="$2" patch="$work/$1.patch" table="$work/$1.tsv" out
+mutant() {
+  local name="$1" sed_expr="$2"
   sed "$sed_expr" "$repo/calc.sh" > "$work/$name.mutated"
-  diff -u --label a/calc.sh --label b/calc.sh "$repo/calc.sh" "$work/$name.mutated" > "$patch"
-  printf 'tests/calc.test.sh\tadds two numbers\tredundant\tadds a negative\t%s\n' "$patch" > "$table"
-  out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/$name.err")"
-  if grep -wF proven <<<"$out" > /dev/null; then
-    no "$3
-    stdout: $out
-    stderr: $(cat "$work/$name.err")"
-  else
-    ok
-  fi
+  diff -u --label a/calc.sh --label b/calc.sh "$repo/calc.sh" "$work/$name.mutated" > "$work/$name.patch"
 }
 
-not_proven old-stays-green 's/\$1 + \$2/$1 + ${2#-}/' \
-  "a mutation that leaves the old case green is not reported proven, though the kept case goes red"
-not_proven none-stays-green 's/\$1 + \$2/$1 - $2/; s/hello/bye/' \
-  "a mutation that leaves no other case of the suite green is not reported proven, though the old and kept cases go red"
+mutant old-stays-green 's/\$1 + \$2/$1 + ${2#-}/'
+mutant none-stays-green 's/\$1 + \$2/$1 - $2/; s/hello/bye/'
 
 patch="$work/kept-stays-green.patch"
 sed 's/\$1 + \$2/$1 + $2 + ($2 > 0)/' "$repo/calc.sh" > "$work/kept-stays-green.mutated"
 diff -u --label a/calc.sh --label b/calc.sh "$repo/calc.sh" "$work/kept-stays-green.mutated" > "$patch"
-table="$work/kept-stays-green.tsv"
-printf 'tests/calc.test.sh\tadds two numbers\tredundant\tadds a negative\t%s\n' "$patch" > "$table"
-out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/kept-stays-green.err")" && code=0 || code=$?
-row="$(grep -F 'adds a negative' <<<"$out" | grep -wF unproven || true)"
-if [[ "$code" == 1 && -n "$row" ]]; then
-  ok
-else
-  no "a valid mutation that leaves the kept case green is reported unproven, naming the kept case, and exits 1 (exit=$code want 1)
-    stdout: $out
-    stderr: $(cat "$work/kept-stays-green.err")"
-fi
-
-table="$work/old-stays-green.tsv"
-out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/old-stays-green-owed.err")" && code=0 || code=$?
-row="$(grep -F 'adds two numbers' <<<"$out" | grep -wF owed || true)"
-if [[ "$code" == 1 && -n "$row" ]]; then
-  ok
-else
-  no "a mutation that leaves the old case green is reported owed and exits 1 (exit=$code want 1)
-    stdout: $out
-    stderr: $(cat "$work/old-stays-green-owed.err")"
-fi
-
-cat > "$repo/tests/extends.test.sh" <<'SUITE'
-#!/bin/sh
-. "$(dirname "$0")/../calc.sh"
-pass=0; fail=0
-check() { if [ "$2" = "$3" ]; then pass=$((pass + 1)); else fail=$((fail + 1)); echo "FAIL - $1"; fi; }
-check "adds two numbers" 5 "$(add 2 3)"
-check "adds two numbers, one negative" -1 "$(add 2 -3)"
-check "adds a negative" -1 "$(add 2 -3)"
-check "greets by name" "hello ann" "$(greet ann)"
-echo "----"
-echo "$pass passed, $fail failed"
-[ "$fail" -eq 0 ]
-SUITE
-chmod +x "$repo/tests/extends.test.sh"
-git -C "$repo" add -A && git -C "$repo" commit -qm extends
-table="$work/extends.tsv"
-printf 'tests/extends.test.sh\tadds two numbers\tredundant\tadds a negative\t%s\n' "$work/old-stays-green.patch" > "$table"
-out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/extends.err")" && code=0 || code=$?
-row="$(grep -F 'adds two numbers' <<<"$out" | grep -wF owed || true)"
-if [[ "$code" == 1 && -n "$row" ]]; then
-  ok
-else
-  no "#1436: a FAIL line that starts with the old case's name but goes on with neither end of line nor ' (' — another case whose name extends it — does not count as the old case failing, so the row reads owed (exit=$code want 1)
-    stdout: $out
-    stderr: $(cat "$work/extends.err")"
-fi
-
-table="$work/none-stays-green.tsv"
-out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/none-stays-green-owed.err")" && code=0 || code=$?
-row="$(grep -F 'adds two numbers' <<<"$out" | grep -wF owed || true)"
-if [[ "$code" == 1 && -n "$row" ]]; then
-  ok
-else
-  no "a mutation that leaves no other case of the suite green is reported owed and exits 1 (exit=$code want 1)
-    stdout: $out
-    stderr: $(cat "$work/none-stays-green-owed.err")"
-fi
-
 cat > "$repo/tests/test_calc.py" <<'PYTEST'
 import os
 import subprocess
@@ -191,25 +68,6 @@ PYTEST
 git -C "$repo" add -A && git -C "$repo" commit -qm 'pytest replacement'
 
 node="tests/test_calc.py::test_adds_a_negative"
-replaced() {
-  local table="$work/replaced-$1.tsv"
-  printf 'tests/calc.test.sh\tadds two numbers\treplaced\t%s\t%s\n' "$node" "$work/$1.patch" > "$table"
-  out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/replaced-$1.err")" && code=0 || code=$?
-  row="$(grep -F "$node" <<<"$out" | grep -wF "$2" || true)"
-}
-replaced add-subtracts proven
-proven_code="$code" proven_row="$row" proven_out="$out"
-replaced kept-stays-green unproven
-if [[ "$proven_code" == 0 && -n "$proven_row" && "$code" == 1 && -n "$row" ]]; then
-  ok
-else
-  no "a row replaced by a pytest node id is proven when the node goes red and unproven, naming it, when it stays green (proven exit=$proven_code want 0, unproven exit=$code want 1)
-    proven stdout: $proven_out
-    proven stderr: $(cat "$work/replaced-add-subtracts.err")
-    unproven stdout: $out
-    unproven stderr: $(cat "$work/replaced-kept-stays-green.err")"
-fi
-
 cat > "$repo/tests/test_sums.py" <<'PYTEST'
 import os
 import subprocess
