@@ -57,24 +57,20 @@ def route(report, own_id):
     return None
 
 
-def _recorded(report, step):
-    try:
-        with open(tests_frozen._record_path(step), encoding="utf-8", errors="replace") as handle:
-            cases = {l[6:].strip() for l in handle.read().splitlines() if l.startswith("case: ")}
-    except OSError:
-        return None
-    for case in _named_cases(report):
-        if case in cases:
-            return case
-    return None
-
-
 def _recorded_cases(step):
     try:
         with open(tests_frozen._record_path(step), encoding="utf-8", errors="replace") as handle:
             return {l[6:].strip() for l in handle.read().splitlines() if l.startswith("case: ")}
     except OSError:
         return set()
+
+
+def _recorded(report, step):
+    cases = _recorded_cases(step)
+    for case in _named_cases(report):
+        if case in cases:
+            return case
+    return None
 
 
 def _superseded(report, step):
