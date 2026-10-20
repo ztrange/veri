@@ -1,0 +1,2 @@
+### The grader leaf's model comes only from grader.conf: with VERI_MODEL_GRADER set in the environment the stub claude still receives grader.conf's model (a medium case, a real stub claude through supervise.sh) ⟦criterion 3⟧
+- test-only | extract the repeated tmp_path setup (guide/unit.md, REQUIREMENTS.md, stub claude, grade-prose.sh subprocess run) in test_grade_prose_process.py into a shared helper
