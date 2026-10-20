@@ -4,6 +4,7 @@ import re
 import sys
 
 import tunables
+from ledger import carries_mark
 from replaces_case import is_replaces_case_step, parse as parse_replaces_case
 from build_verify_prompt import INTERFACE_PHASES, _IncludeRefused, _expand, _has_heading, _spec_text, _write
 
@@ -124,12 +125,12 @@ def main(argv):
         optional["BUG_REPRODUCTION"] = f"{prompts}/_develop-red-bug.md"
     replaces_case = is_replaces_case_step(step)
     marked = {}
-    if phase == "red" and "⟦ci-repair⟧" in step:
+    if phase == "red" and carries_mark(step, "ci-repair"):
         marked["CI_REPAIR"] = f"{prompts}/_develop-red-ci-repair.md"
     if "green" in (phase, revised_phase):
         if replaces_case:
             marked["REPLACES_CASE"] = f"{prompts}/_develop-green-replaces-case.md"
-        if "⟦suite-repair⟧" in step:
+        if carries_mark(step, "suite-repair"):
             marked["SUITE_REPAIR"] = f"{prompts}/_develop-green-suite-repair.md"
     if revised_phase in INTERFACE_PHASES:
         frozen = "production" if revised_phase == "contract-a" else "test"

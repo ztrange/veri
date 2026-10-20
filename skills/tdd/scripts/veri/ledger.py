@@ -73,6 +73,11 @@ def trailing_markers(step):
     return run.group(1) if run else ""
 
 
+def carries_mark(text, name):
+    """True when ⟦name⟧ occurs anywhere in text."""
+    return f"⟦{name}⟧" in text
+
+
 def listed_phases(step):
     """The phases step lists, in order; [] for a step that lists none."""
     listed = PHASES_RE.search(trailing_markers(step))
