@@ -1079,6 +1079,33 @@ def test_main_renders_a_ci_repair_green_prompt_judged_by_ci_evidence_and_not_by_
             [rule for rule, pattern in rules.items() if says(unmarked, pattern)]) == ([], list(rules)[:0])
 
 
+def test_main_renders_the_fixture_repair_paragraph_in_the_green_prompt_of_a_marked_step_only_rejecting_a_named_path_or_hunk_and_passing_only_when_confined_1021(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"The awake-clock stub must not leak wall time.\n")
+    marked = ("the case passes under load: repairs the fixture 'awake-clock' in tests/zorblat.test.sh, "
+              "reproduced by a case in tests/zorblat.test.sh ⟦fixture-repair⟧ ⟦criterion 1⟧")
+    unmarked = "the case passes under load ⟦criterion 1⟧"
+
+    def rendered(step, phase, third):
+        code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit", phase, str(spec),
+                                         "tests/zorblat.test.sh", third])
+        out, _ = capsysbinary.readouterr()
+        assert code == 0
+        return re.sub(rb"\s+", b" ", out)
+
+    base = "a" * 40
+    prompts = {"marked green": rendered(marked, "green", "case"), "unmarked green": rendered(unmarked, "green", "case"),
+               "marked red": rendered(marked, "red", "case"), "marked refactor": rendered(marked, "refactor", base)}
+    reject = rb"REJECT, naming the path or hunk, any change outside the target test's file, the named fixture file"
+    passes = rb"PASS only when the target case passes with every change confined to those"
+
+    assert {key: (re.search(reject, prompt) is not None, re.search(passes, prompt) is not None)
+            for key, prompt in prompts.items()} == {
+        "marked green": (True, True), "unmarked green": (False, False),
+        "marked red": (False, False), "marked refactor": (False, False)}
+
+
 def test_main_gives_a_green_prompt_the_replaces_case_paragraph_only_to_a_step_whose_trailing_marks_include_the_mark_not_one_that_mentions_it_in_prose_or_backticks_1538(
         tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
