@@ -52,5 +52,15 @@ def other_suite(step):
     return found.group(1) if found else None
 
 
+def refusal(step):
+    parsed = parse(step)
+    if unreadable(step) or parsed is None and unquoted_clause(step):
+        return unreadable_message(step)
+    other = other_suite(step)
+    if parsed is None and other:
+        return "suite " + other + " is not a .test.sh file in step: " + step.replace("\n", " ")
+    return None
+
+
 def quote_of(step):
     return step[_START.search(step).end()]
