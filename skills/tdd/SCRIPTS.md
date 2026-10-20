@@ -52,7 +52,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   <step-text> <test-cmd> <test-path> <target> <fast-cmd> [<owed-cases>]` (the optional 8th argument
   is the named cases still owed for deletion), `refactor <spec-file> <step-text>
   <test-cmd> <touched-files>`, `revise <phase> <spec-file> <step-text> <test-cmd>
-  <reason-file>`, `red-repair <case> <report-file>` (the Red leaf that repairs one case the step's own Red wrote, edited in place; never creates a suite). Prints the prompt on stdout; **exit 2** with a diagnostic and **no
+  <reason-file>`, `red-repair <case> <report-file>` (the Red leaf that repairs one case the step's own Red wrote, edited in place; never creates a suite), `red-missing <spec-file> <step-text> <reason-file>` (the Red leaf that adds the one case pinning the `MISSING_TEST:` behaviour the reason file names, editing no other case). Prints the prompt on stdout; **exit 2** with a diagnostic and **no
   stdout** on an unknown phase or a missing template, spec or reason file — never a partial
   prompt. The mirror of `build-verify-prompt.sh` and its opposite in emphasis: the verifier
   builder is defined by what it **cannot** carry (no rationale parameter, so blindness is
@@ -68,6 +68,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   check: the verifier confirms the test passes now, **fails** under a behaviour-removing
   mutation it applies and then reverts itself, and is behaviour-level — the same trivial
   / over-coupled / too-complex bar as `red`.
+- `$S/mutation-parity.sh <pairs-table>` — proves each row of a `⟦replaces-case⟧` pairs table by applying its mutation: **exit 0** all proven, **exit 1** a REJECT, **exit 2** a bail. A row whose mutation no kept case catches prints `MISSING_TEST: <old>: no kept case fails when its mutation is applied` on stderr; saved to a reason file, that line routes through `wrong-test-route.sh` as `missing`.
 - `$S/run-verdict.sh [--step "<STEP>"] [--fast-cmd '<cmd>'] <red|green|refactor|pin|plan> <spec-file> <test-path> [target]`
   — the **verdict launcher**: `verify.sh`'s own call, argument for argument, reached as a
   command rather than as a shell string. This is what `supervise.sh verdict-<phase>` runs;
@@ -82,7 +83,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   issue body (the human-facing mirror).
 - `$S/next-unchecked.sh < .tdd/issue-<n>.md` — print the **first unchecked ledger step**'s
   description; **exit 3** when none remain (the loop-done / nothing-to-resume signal).
-- `VERI_STEP=<step> $S/wrong-test-route.sh <green-report> <red-test-id>` — routes a green report's `WRONG_TEST:`: **exit 0** prints `red <case>` (an existing case other than the step's own that the criterion contradicts) or `repair <case>` (a case the step's own Red wrote, per its red record), **exit 3** prints `revise`, **exit 2** bad arguments. Only a step's first reroute is free: once `.tdd/events.jsonl` holds a `reroute` event with `VERI_STEP`, a later `WRONG_TEST:` in that step answers `revise` and spends one `REVISE_BUDGET` attempt.
+- `VERI_STEP=<step> $S/wrong-test-route.sh <green-report> <red-test-id>` — routes a green report's `WRONG_TEST:`, or a report carrying `MISSING_TEST:` (a verify-green REJECT reason, a mutation-parity stderr saved to a file, a revise-green report answering `IMPOSSIBLE`): **exit 0** prints `missing <behaviour>` (a behaviour no test pins; the report file is the `red-missing` brief), `red <case>` (an existing case other than the step's own that the criterion contradicts) or `repair <case>` (a case the step's own Red wrote, per its red record), **exit 3** prints `revise`, **exit 2** bad arguments. Only a step's first reroute is free: once `.tdd/events.jsonl` holds a `reroute` event with `VERI_STEP`, a later `WRONG_TEST:` or `MISSING_TEST:` in that step answers `revise` and spends one `REVISE_BUDGET` attempt.
 - `$S/pin-fast-tier.sh '<fast-cmd>'` — run the fast tier over the tree a pin would commit,
   from the worktree. Takes the fast command as its one argument. On failure it writes the
   command's output to `.tdd/verify-pin.reason`. **Exit 0 = the command passed, 1 = it failed
