@@ -15,24 +15,35 @@ def timed_test_run():
     return importlib.import_module("veri.timed_test_run")
 
 
+class Calls(list):
+    """Each argv as strings; status maps argv to the exit code (or raises), log takes full call tuples."""
+    status = staticmethod(lambda args: 7)
+    log = None
+
+
 @pytest.fixture
 def calls(monkeypatch):
-    """subprocess.run, call and Popen recording each argv; the command exits 7."""
-    record = []
+    """subprocess.run, call and Popen recording each argv; the command exits 7 unless status says otherwise."""
+    record = Calls()
+
+    def note(args, rest, kwargs):
+        record.append([str(a) for a in args])
+        if record.log is not None:
+            record.log.append(("call", list(args), rest, kwargs))
 
     def fake_run(args, *rest, **kwargs):
-        record.append([str(a) for a in args])
-        return subprocess.CompletedProcess(args, 7)
+        note(args, rest, kwargs)
+        return subprocess.CompletedProcess(args, record.status(args))
 
     def fake_call(args, *rest, **kwargs):
-        record.append([str(a) for a in args])
-        return 7
+        note(args, rest, kwargs)
+        return record.status(args)
 
     class FakePopen:
         def __init__(self, args, *rest, **kwargs):
-            record.append([str(a) for a in args])
+            note(args, rest, kwargs)
             self.args = args
-            self.returncode = 7
+            self.returncode = record.status(args)
             self.pid = 0
 
         def wait(self, timeout=None):
@@ -81,7 +92,7 @@ def test_main_refuses_every_short_or_empty_argument_shape_and_passes_a_7_through
                         "skill_commit": "", "tier": "fast", "suites": "", "status": "7"}]
 
 
-def test_main_runs_the_command_inheriting_everything_then_records_whole_second_seconds_and_status_in_a_test_run_event(tmp_path, monkeypatch, events, timed_test_run):
+def test_main_runs_the_command_inheriting_everything_then_records_whole_second_seconds_and_status_in_a_test_run_event(tmp_path, monkeypatch, calls, events, timed_test_run):
     log = []
     readings = [100.9, 102.1]
 
@@ -90,39 +101,7 @@ def test_main_runs_the_command_inheriting_everything_then_records_whole_second_s
         log.append(("clock", reading))
         return reading
 
-    def fake_call(args, *rest, **kwargs):
-        log.append(("call", list(args), rest, kwargs))
-        return 7
-
-    def fake_run(args, *rest, **kwargs):
-        log.append(("call", list(args), rest, kwargs))
-        return subprocess.CompletedProcess(args, 7)
-
-    class FakePopen:
-        def __init__(self, args, *rest, **kwargs):
-            log.append(("call", list(args), rest, kwargs))
-            self.args = args
-            self.returncode = 7
-            self.pid = 0
-
-        def wait(self, timeout=None):
-            return self.returncode
-
-        def poll(self):
-            return self.returncode
-
-        def communicate(self, input=None, timeout=None):
-            return None, None
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *exc):
-            return False
-
-    monkeypatch.setattr(subprocess, "call", fake_call)
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    calls.log = log
     monkeypatch.setattr(timed_test_run.time, "time", clock)
     events.refuse_event_sh()
 
@@ -148,7 +127,7 @@ def test_main_runs_the_command_inheriting_everything_then_records_whole_second_s
                 and not (key == "close_fds" and value is True)} == {}
 
 
-def test_main_returns_the_command_status_unmapped_and_records_it_127_not_found_126_not_executable_128_plus_n_for_a_signal(tmp_path, monkeypatch, capfd, events, timed_test_run):
+def test_main_returns_the_command_status_unmapped_and_records_it_127_not_found_126_not_executable_128_plus_n_for_a_signal(tmp_path, monkeypatch, capfd, calls, events, timed_test_run):
     outcomes = {
         "true": 0,
         "seven": 7,
@@ -165,36 +144,7 @@ def test_main_returns_the_command_status_unmapped_and_records_it_127_not_found_1
             raise outcome
         return outcome
 
-    def fake_call(args, *rest, **kwargs):
-        return returncode_for(args)
-
-    def fake_run(args, *rest, **kwargs):
-        return subprocess.CompletedProcess(args, returncode_for(args))
-
-    class FakePopen:
-        def __init__(self, args, *rest, **kwargs):
-            self.args = args
-            self.returncode = returncode_for(args)
-            self.pid = 0
-
-        def wait(self, timeout=None):
-            return self.returncode
-
-        def poll(self):
-            return self.returncode
-
-        def communicate(self, input=None, timeout=None):
-            return None, None
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *exc):
-            return False
-
-    monkeypatch.setattr(subprocess, "call", fake_call)
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    calls.status = returncode_for
     events.refuse_event_sh()
 
     observed = []
@@ -219,18 +169,11 @@ def test_main_returns_the_command_status_unmapped_and_records_it_127_not_found_1
     ]
 
 
-def test_main_returns_the_command_status_when_the_event_cannot_be_appended(tmp_path, monkeypatch, capfd, events, timed_test_run):
+def test_main_returns_the_command_status_when_the_event_cannot_be_appended(tmp_path, monkeypatch, capfd, calls, events, timed_test_run):
     monkeypatch.chdir(tmp_path)
     events.unappendable()
 
-    def fake_call(args, *rest, **kwargs):
-        return 3
-
-    def fake_run(args, *rest, **kwargs):
-        return subprocess.CompletedProcess(args, 3)
-
-    monkeypatch.setattr(subprocess, "call", fake_call)
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    calls.status = lambda args: 3
     events.refuse_event_sh()
 
     try:
