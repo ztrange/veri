@@ -85,12 +85,24 @@ def _rerouted(step):
     return False
 
 
+def _missing(report):
+    with open(report, encoding="utf-8", errors="replace") as handle:
+        for line in handle.read().splitlines():
+            if line.startswith("MISSING_TEST:"):
+                return line.partition(":")[2].strip()
+    return None
+
+
 def main(argv):
     if len(argv) != 2 or not argv[0] or not argv[1]:
         _write(sys.stderr, USAGE)
         return 2
     step = tunables.read("VERI_STEP")
     rerouted = _rerouted(step)
+    missing = None if rerouted else _missing(argv[0])
+    if missing:
+        _write(sys.stdout, "missing " + missing)
+        return 0
     repair = None if rerouted else _recorded(argv[0], step)
     if repair is not None:
         _write(sys.stdout, "repair " + repair)
