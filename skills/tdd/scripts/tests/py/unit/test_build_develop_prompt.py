@@ -2176,3 +2176,27 @@ def test_cli_verify_green_prompt_asks_a_missing_test_reject_for_a_missing_test_l
     assert (v_code, v_err, r_code, r_err) == (0, "", 0, "")
     assert [word in verify_rule for word in ("REJECT", "no test pins")] == [True, True]
     assert [word in revise_rule for word in ("IMPOSSIBLE", "edit no test")] == [True, True]
+
+
+def test_main_renders_a_green_prompt_for_a_suite_repair_or_ci_repair_step_permitting_the_failing_tests_edit_with_every_other_test_frozen_and_without_the_freeze_rule_1653(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    steps = {
+        "suite-repair": "fix the full-suite failure: tests/zorblat.test.sh — FAIL - zorblat frobs a nitz ⟦suite-repair⟧",
+        "ci-repair": "CI job gates is red on a1b2c3d: tests/zorblat.test.sh — FAIL - zorblat frobs a nitz ⟦ci-repair⟧",
+    }
+    freeze = rb"**Do not modify the test.**"
+    permits = rb"may edit the failing test"
+    others_frozen = rb"every other test stays frozen"
+
+    results = {}
+    for name, step in steps.items():
+        code = build_develop_prompt.main(["green", str(spec), step, "make test", "tests/zorblat.test.sh",
+                                          "zorblat frobs a nitz", "make unit"])
+        out, _ = capsysbinary.readouterr()
+        prompt = re.sub(rb"\s+", b" ", out)
+        results[name] = (code, freeze in prompt, re.search(permits, prompt, re.I) is not None,
+                         re.search(others_frozen, prompt, re.I) is not None)
+
+    assert results == {"suite-repair": (0, False, True, True), "ci-repair": (0, False, True, True)}
