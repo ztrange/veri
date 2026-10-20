@@ -71,3 +71,29 @@ def test_the_prompt_grade_prose_renders_carries_the_poc_grader_instructions_with
 def test_a_fenced_hash_line_equal_to_the_units_heading_never_starts_its_section_1874(grade_prose):
     text = "# Intro\n```\n## unit.md\nfenced body\n```\ntext\n## unit.md\nreal body\n"
     assert grade_prose.section(text, "unit.md") == "## unit.md\nreal body\n"
+
+
+def test_a_unit_with_no_requirements_list_in_the_requirements_file_makes_grade_prose_exit_2_before_anything_is_launched_1874(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## other.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "grade-prose.log").write_text(
+        '{"type":"result","subtype":"success","is_error":false,"result":'
+        '"BEGIN GRADES\\nVERDICT: PASS\\nEND GRADES"}\n')
+    launched = []
+
+    def launch(argv, *a, **k):
+        launched.append(argv)
+        return subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(subprocess, "run", launch)
+
+    code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+
+    assert (code, launched) == (2, []), (code, launched, err)
