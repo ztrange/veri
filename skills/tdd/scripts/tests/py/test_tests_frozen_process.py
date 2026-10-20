@@ -608,3 +608,25 @@ def test_check_step_run_outside_any_git_repository_exits_2_with_stderr_naming_th
     code, out, err = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
 
     assert (code, out, "repository" in err) == (2, "", True)
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_record_step_lists_the_pytest_function_red_edited_below_a_finish_line_inside_its_multiline_string_1773(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "tests/test_suite.py"
+    body = ('def test_first():\n    assert True\n\n\n'
+            'def test_last():\n    text = """\nfinish\n"""\n    assert text == {!r}\n')
+    suite.write_text(body.format("one"))
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one edits a function below a string finish"
+    suite.write_text(body.format("two"))
+
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_suite.py"], cwd=tmp_path)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    record = (tmp_path / record_path.rstrip("\n")).read_text()
+
+    assert [line for line in record.splitlines() if line.startswith("case: ")] == ["case: test_last"]
