@@ -1902,6 +1902,20 @@ def test_cli_red_missing_prompt_carries_the_reason_files_missing_test_line_verba
     assert (short[0], short[1], "red-missing needs" in short[2], "Usage:" in short[2] or "usage:" in short[2]) == (2, "", True, True)
 
 
+def test_cli_red_supersede_prompt_names_every_listed_case_lets_the_leaf_update_those_only_and_forbids_new_cases_and_production_code_1862(
+        tmp_path, run_cli, build_develop_prompt):
+    step = "QWIXTLE: the usage line gains --not-zorblat"
+    first, second = "zorblat prints the usage on a bad flag", "zorblat prints the usage on no arguments"
+    report = tmp_path / "green-report.md"
+    report.write_text("SUPERSEDED: " + first + "\nSUPERSEDED: " + second + "\n")
+
+    code, out, err = run_cli(build_develop_prompt, ["red-supersede", _spec(tmp_path), step, "make test", str(report), first, second])
+
+    flat = " ".join(out.split())
+    assert (code, err) == (0, "")
+    assert [needle in flat for needle in (step, first, second, "Edit those cases **only**", "**NO** new test", "**NO** production code")] == [True] * 6
+
+
 def test_cli_unknown_phase_with_no_further_arguments_exits_2_names_the_phase_on_stderr_and_prints_no_prompt(
         run_cli, build_develop_prompt):
     code, out, err = run_cli(build_develop_prompt, ["bogus"])
