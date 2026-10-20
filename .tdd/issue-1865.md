@@ -9,7 +9,7 @@
 - [x] wrong-test-route.sh: a green report naming exactly one SUPERSEDED: case (an existing case outside the step's red record) prints `red <case>` and exits 0 with the step's free reroute, as two or more SUPERSEDED: cases route `supersede` ⟦criterion 5⟧
 - [x] wrong-test-route.sh: an empty SUPERSEDED: line names no case, and the router reads the remaining SUPERSEDED: lines alone ⟦criterion 5⟧
 - [x] wrong-test-route.sh: a SUPERSEDED: line whose case name is backticked (SUPERSEDED: `test_x`) is read as WRONG_TEST: lines are, naming test_x ⟦criterion 5⟧
-- [ ] wrong-test-route.sh: an indented SUPERSEDED: line (leading whitespace before SUPERSEDED:) is read as a SUPERSEDED: line naming its case ⟦criterion 5⟧
+- [x] wrong-test-route.sh: an indented SUPERSEDED: line (leading whitespace before SUPERSEDED:) is read as a SUPERSEDED: line naming its case ⟦criterion 5⟧ ⟂ refactor pending
 - [ ] wrong-test-route.sh: a SUPERSEDED: line carrying a trailing reason after its case name (SUPERSEDED: test_x asserts the old usage) names test_x alone, as WRONG_TEST: lines are read ⟦criterion 5⟧
 - [ ] wrong-test-route.sh: a report that routes `repair <case>` and also carries SUPERSEDED: cases keeps those superseded cases in the route it prints, rather than dropping them ⟦criterion 5⟧
 - [ ] wrong-test-route.sh: the one-free-reroute guard holds on the supersede and single-SUPERSEDED routes — once .tdd/events.jsonl holds a reroute event for VERI_STEP, a report of SUPERSEDED: lines prints `revise` and exits 3, so dropping the guard turns the case red ⟦criterion 6⟧
