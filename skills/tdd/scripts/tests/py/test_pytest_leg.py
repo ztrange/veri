@@ -103,3 +103,63 @@ def test_a_launcher_run_interrupted_by_sigint_or_sigterm_leaves_no_base_director
         base = record.read_text()
         left[sig.name] = os.path.exists(base)
     assert left == {"SIGINT": False, "SIGTERM": False}
+
+
+@pytest.mark.process("the launcher run as a child over a planted tests tree holding a small case that starts git")
+def test_a_small_case_that_starts_git_fails_under_the_launcher_with_its_failure_naming_git_and_no_unit_guard_shim_on_path(tmp_path):
+    import os
+    import subprocess
+
+    scripts = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    planted = tmp_path / "planted"
+    planted.mkdir()
+    (planted / "test_starts_git.py").write_text(
+        "import subprocess\n"
+        "\n"
+        "def test_runs_git():\n"
+        "    subprocess.run(['git', '--version'], capture_output=True)\n"
+    )
+    path = os.pathsep.join(p for p in os.environ["PATH"].split(os.pathsep) if "unit-guard" not in p)
+    done = subprocess.run(
+        [sys.executable, "-c", "import runpy, sys; sys.argv[0] = sys.argv.pop(1); runpy.run_path(sys.argv[0], run_name='__main__')",
+         os.path.join(scripts, "veri", "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],
+        cwd=tmp_path, env=dict(os.environ, PATH=path, PYTHONPATH=os.path.join(scripts, "veri")), capture_output=True, text=True, timeout=60,
+    )
+    assert done.returncode == 1
+    assert "git" in (done.stdout + done.stderr).split("test_runs_git", 1)[-1]
+
+
+@pytest.mark.process("the launcher run as a child over a planted tests tree holding small cases that start python3")
+def test_a_small_case_that_starts_python3_on_a_script_outside_veri_fails_naming_python3_while_one_on_a_veri_module_is_not_refused(tmp_path):
+    import os
+    import subprocess
+
+    scripts = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    veri = os.path.join(scripts, "veri")
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    (bin_dir / "python3").symlink_to(sys.executable)
+    outside = tmp_path / "outside.py"
+    outside.write_text("")
+    planted = tmp_path / "planted"
+    planted.mkdir()
+    (planted / "test_starts_python3.py").write_text(
+        "import subprocess\n"
+        "\n"
+        "def test_runs_python3_outside_veri():\n"
+        "    subprocess.run(['python3', %r], capture_output=True)\n"
+        "\n"
+        "def test_runs_python3_on_a_veri_module():\n"
+        "    subprocess.run(['python3', %r], capture_output=True)\n"
+        % (str(outside), os.path.join(veri, "small_case_guard.py"))
+    )
+    path = os.pathsep.join([str(bin_dir)] + [p for p in os.environ["PATH"].split(os.pathsep) if "unit-guard" not in p])
+    done = subprocess.run(
+        [sys.executable, "-c", "import runpy, sys; sys.argv[0] = sys.argv.pop(1); runpy.run_path(sys.argv[0], run_name='__main__')",
+         os.path.join(veri, "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],
+        cwd=tmp_path, env=dict(os.environ, PATH=path, PYTHONPATH=veri), capture_output=True, text=True, timeout=60,
+    )
+    out = done.stdout + done.stderr
+    assert "1 failed, 1 passed" in out
+    assert "python3" in out.split("test_runs_python3_outside_veri", 1)[-1]
+    assert "FAILED test_starts_python3.py::test_runs_python3_on_a_veri_module" not in out
