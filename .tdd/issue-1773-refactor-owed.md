@@ -3,3 +3,5 @@
 - `main` guards record mode's two `os.path.exists(".git")` checks and check mode's `_in_repository()` separately. They could share one repository test. The record-mode checks are code this cycle did not write.
 ### `check --step` run outside any git repository exits 2, with stderr naming the missing repository, rather than exiting 0 ⟦criterion 2⟧
 - the `record` branch repeats `os.path.exists(".git")` twice, which is the same cwd-`.git` test this issue replaces. It is code the cycle did not write, so I did not change it.
+### `record --step` on a bash suite whose last case holds a column-0 `finish` line inside a heredoc, with no `finish` trailer ending the file, still lists that case when the step edits a line below the heredoc's `finish`: a `finish` line is the trailer only at the end of the file ⟦criterion 3⟧
+- in `_cases` (`tests_frozen.py`), replace the `trailer` list and its `trailer[-1]` guard with a single `re.search` for the end-anchored finish trailer.
