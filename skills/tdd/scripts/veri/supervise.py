@@ -18,6 +18,7 @@ from extract_result import extract
 from leaf_log import result_records
 from leaf_model import leaf_model
 from leaf_role import leaf_role
+from ledger import carries_mark
 from pid_file import number_in
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -314,8 +315,8 @@ def ci_repair_step(issue, step):
         with open(f".tdd/issue-{issue}.md") as f:
             boxes = [t for t in f if re.match(r"\s*- \[.\]", t)]
         if not step.isdigit():
-            return "⟦ci-repair⟧" in step and any(re.sub(r"\s*- \[.\] ", "", t, count=1).startswith(step) for t in boxes)
-        return "⟦ci-repair⟧" in boxes[int(step) - 1]
+            return carries_mark(step, "ci-repair") and any(re.sub(r"\s*- \[.\] ", "", t, count=1).startswith(step) for t in boxes)
+        return carries_mark(boxes[int(step) - 1], "ci-repair")
     except (OSError, ValueError, IndexError):
         return False
 
