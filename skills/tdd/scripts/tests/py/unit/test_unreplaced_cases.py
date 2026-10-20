@@ -416,3 +416,16 @@ def test_unreplaced_cases_exits_2_naming_the_step_and_the_suite_when_the_suite_i
     assert len(err.splitlines()) == 1
     assert "replaces 'a' in t/x.py" in err
     assert "t/x.py" in err
+
+
+def test_unreplaced_cases_exits_2_with_one_stderr_line_naming_the_step_when_the_clause_mixes_quoted_and_unquoted_names_1882(tmp_path, run_cli, unreplaced):
+    step = "- [ ] x: replaces 'a', b, 'c' in t/x.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧"
+    report = tmp_path / "report.txt"
+    report.write_text("")
+
+    code, out, err = run_cli(unreplaced, [step, str(report)], cwd=tmp_path)
+
+    assert code == 2
+    assert out == ""
+    assert len(err.splitlines()) == 1
+    assert "replaces 'a', b, 'c' in t/x" in err
