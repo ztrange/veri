@@ -174,3 +174,16 @@ def test_a_run_with_no_end_event_whose_conductor_pid_names_a_dead_process_does_n
     code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
 
     assert (code, out) == (0, "usage-limit\n")
+
+
+def test_a_run_with_no_end_event_and_no_live_conductor_and_no_conductor_log_anywhere_exits_2_naming_the_clones_log_and_prints_no_exception_1867(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    run = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    run.mkdir(parents=True)
+    (run / "events.jsonl").write_text(json.dumps({"ts": 100, "issue": "7", "event": "step-done"}) + "\n")
+
+    code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
+
+    assert (code, out, err.startswith("stop-reason.sh: no conductor log at "),
+            err.endswith(os.path.join(".tdd", "conductor-7.log") + "\n"), err.count("\n")) == (
+        2, "", True, True, 1)

@@ -31,6 +31,9 @@ def main(argv):
         sys.stdout.write("stopped %s\n" % last.get("mode"))
     elif _live(os.path.join(os.path.dirname(log), "conductor.pid")):
         sys.stdout.write("running\n")
+    elif not os.path.isfile(_conductor_log(argv[0])):
+        sys.stderr.write("stop-reason.sh: no conductor log at %s\n" % _conductor_log(argv[0]))
+        return 2
     else:
         reason = _usage_limit(argv[0])
         if reason is None:
