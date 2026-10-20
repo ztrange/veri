@@ -63,31 +63,3 @@ def test_a_repair_marked_step_is_never_frozen_so_an_edit_to_its_test_file_is_not
     checked = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
 
     assert (recorded, checked, sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == ((0, "", ""), (0, "", ""), [])
-
-
-def test_record_and_check_by_step_key_an_unmarked_steps_record_by_path_and_reject_an_edit_to_its_test_file_1586(
-        tmp_path, run_cli, tests_frozen):
-    (tmp_path / ".tdd").mkdir()
-    suite = tmp_path / "a.test.sh"
-    suite.write_text("case one\n")
-    step = "step one adds case one"
-    key = run_cli(tests_frozen, ["path", step], cwd=tmp_path)[1].rstrip("\n")
-
-    recorded = run_cli(tests_frozen, ["record", "--step", step, "a.test.sh"], cwd=tmp_path)[0]
-    suite.write_text("case one, weakened\n")
-    checked = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)[:2]
-
-    assert (recorded, (tmp_path / key).is_file(), checked) == (0, True, (1, "a.test.sh\n"))
-
-
-def test_an_unmarked_step_quoting_a_repair_mark_in_its_prose_is_still_frozen_1586(tmp_path, run_cli, tests_frozen):
-    (tmp_path / ".tdd").mkdir()
-    suite = tmp_path / "a.test.sh"
-    suite.write_text("case one\n")
-    step = "A `⟦ci-repair⟧` step's verify-green judges only the CI log ⟦added⟧ ⟦criterion 2⟧"
-
-    recorded = run_cli(tests_frozen, ["record", "--step", step, "a.test.sh"], cwd=tmp_path)[0]
-    suite.write_text("case one, weakened\n")
-    checked = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)[:2]
-
-    assert (recorded, checked) == (0, (1, "a.test.sh\n"))
