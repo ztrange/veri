@@ -519,6 +519,8 @@ three times over branches its ledger pinned on later lines.
 
 **The step that adds a script owes its contract in that same step.** A step that adds a script under `skills/tdd/scripts/` also gives it a no-argument usage line and exit 2, and a declared caller, in that same step, so the step can go green against the repo-wide audits (the `run_cli` no-argument case in `tests/py/unit/test_missing_argument_cli.py`, unreachable); a usage or caller left to a later step leaves the first step red whatever its green does, as #1621's did.
 
+**A step that changes text older cases pin is preceded by the step that updates them.** When a criterion changes text or output that existing cases outside the step's own Red pin (a usage string, a constant, the text of a prompt compared verbatim or by checksum), the plan holds a step that updates those older cases, placed ahead of the step that changes the text; Green may not edit a test, so without it the older cases turn red and no leaf allowed to edit them is ever launched, as #1719's step 8 and #1718's first runs found.
+
 1. Write the plan as a checkbox list to the **ledger** `.tdd/issue-<n>.md`, e.g.:
    ```
    # Plan for #<n> — <issue title>

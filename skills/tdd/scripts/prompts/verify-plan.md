@@ -74,6 +74,8 @@ a suite pins by checksum or verbatim, and asks for a case pinning that text, has
 step for the case, both tagged with the same `⟦criterion k⟧`, the case's step after the text's.
 Every checksum or verbatim pin that template text moves is moved in the same commit as the text.
 
+REJECT a plan that changes text or output which existing cases outside the changing step's own Red pin (a usage string, a constant, rendered prompt text compared verbatim or by checksum) without a step that updates those older cases ahead of the step that changes the text: Green may not edit a test, so the older cases go red and the revise budget runs out. Your reason names the changing step and the text its older cases pin.
+
 REJECT a plan with a step that introduces a branch — a fallback an existing suite forces in,
 say — that only a later step's test requires: that step's blind green verifier sees code none
 of its own tests requires, and rejects correct code until the revise budget runs out. Your
