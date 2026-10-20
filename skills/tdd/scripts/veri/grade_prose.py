@@ -80,10 +80,12 @@ def main(argv):
     env["PATH"] = modern_python_dir() + env.get("PATH", "")
     env["VERI_MODEL"] = model
     try:
-        subprocess.run([os.path.join(SCRIPTS, "supervise.sh"), "grade-prose",
+        ran = subprocess.run([os.path.join(SCRIPTS, "supervise.sh"), "grade-prose",
                         os.path.join(SCRIPTS, "run-leaf.sh"), f.name], stdout=subprocess.PIPE, env=env)
     finally:
         os.unlink(f.name)
+    if ran.returncode:
+        return no_verdict("the grader leaf exited %d" % ran.returncode)
     with open(os.path.join(".tdd", "grade-prose.log"), encoding="utf-8") as log:
         raw = log.read()
     reply = extract(raw)
