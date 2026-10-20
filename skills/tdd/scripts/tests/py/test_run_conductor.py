@@ -495,6 +495,32 @@ def test_main_on_a_pinned_launch_seeds_the_gitignore_only_when_absent_writes_an_
     }
 
 
+def test_main_run_from_a_subdirectory_of_the_repo_seeds_tdd_and_its_gitignore_at_the_repo_root_and_leaves_no_tdd_in_the_subdirectory_1895(
+        tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    commit = "1111111111111111111111111111111111111111"
+
+    def run_from(root, subdirectory):
+        (root / ".git").mkdir(parents=True)
+        work = root / subdirectory
+        work.mkdir(parents=True, exist_ok=True)
+        monkeypatch.chdir(work)
+        fake_pin(monkeypatch, commit, set())
+        run_conductor.main(["4242"])
+        capfdbinary.readouterr()
+        seed = root / ".tdd" / ".gitignore"
+        return seed.read_text() if seed.is_file() else None, (work / ".tdd").exists() and work != root
+
+    seeded = ".gitignore\nissue-*-skill-commit\n"
+    assert [run_from(tmp_path / "root", "."), run_from(tmp_path / "nested", "skills/deep")] == [
+        (seeded, False),
+        (seeded, False),
+    ]
+
+
 def test_main_with_veri_new_skill_exactly_1_rewrites_a_readable_record_then_appends_a_skill_repin_event_in_the_run_worktree_returning_2_on_its_failure_and_logs_nothing_on_a_first_launch_or_any_other_value(
         tmp_path, monkeypatch, capfdbinary, events):
     past_the_guards(monkeypatch)

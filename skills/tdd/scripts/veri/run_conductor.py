@@ -66,11 +66,13 @@ def main(argv):
                    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     if resolved.returncode == 0:
         commit = resolved.stdout.strip()
-        os.makedirs(".tdd", exist_ok=True)
-        if not os.path.exists(".tdd/.gitignore"):
-            with open(".tdd/.gitignore", "w") as seed:
+        state = os.path.join(event.toplevel(), ".tdd")
+        os.makedirs(state, exist_ok=True)
+        seed_path = os.path.join(state, ".gitignore")
+        if not os.path.exists(seed_path):
+            with open(seed_path, "w") as seed:
                 seed.write(".gitignore\nissue-*-skill-commit\n")
-        record = record_path(argv[0])
+        record = os.path.join(event.toplevel(), record_path(argv[0]))
         readable = os.access(record, os.R_OK)
         if readable and tunables.read("VERI_NEW_SKILL", None) != "1":
             try:
