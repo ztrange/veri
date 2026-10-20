@@ -11,4 +11,4 @@
 - [x] A unit with no requirements list in the requirements file makes grade-prose.sh exit 2 before launching anything ⟦criterion 3⟧
 - [x] A GRADES line whose grade word is anything other than exactly PASS or FAIL, such as PASS-ish or FAIL-ish, makes grade-prose.sh exit 2 and append no grading event ⟦criterion 3⟧
 - [x] The grader leaf is launched with no tools: the command the stub claude receives carries --tools with an empty value (a medium case, a real stub claude through supervise.sh) ⟦criterion 3⟧
-- [ ] The grader leaf's model comes only from grader.conf: with VERI_MODEL_GRADER set in the environment the stub claude still receives grader.conf's model (a medium case, a real stub claude through supervise.sh) ⟦criterion 3⟧
+- [x] The grader leaf's model comes only from grader.conf: with VERI_MODEL_GRADER set in the environment the stub claude still receives grader.conf's model (a medium case, a real stub claude through supervise.sh) ⟦criterion 3⟧ ⟂ refactor pending
