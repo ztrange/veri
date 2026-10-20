@@ -8,4 +8,4 @@
 - [x] run-conductor.sh records no `needs-user` bail when the conductor's events already end in `done`, `bail` or `stop`, or when the stub conductor exits non-zero, or exits 0 without a `result` record ⟦criterion 2⟧
 - [x] When run-conductor.sh records that `needs-user` bail, it also posts an issue comment quoting the last paragraph of the conductor's `result` text, so a silent stop never looks like a run in progress ⟦criterion 2⟧
 - [x] SKILL.md and RESUME.md say that on a resume the issue's missing opt-in label is expected, since the claim removed it at the first launch, so a conductor never stops or asks about it; the text and every checksum or verbatim pin it moves land in one commit ⟦diff-checked⟧ ⟦criterion 4⟧
-- [ ] A prose case pins that SKILL.md and RESUME.md both say a resumed run's missing opt-in label is expected and never a reason to stop or ask ⟦criterion 4⟧
+- [x] A prose case pins that SKILL.md and RESUME.md both say a resumed run's missing opt-in label is expected and never a reason to stop or ask ⟦criterion 4⟧
