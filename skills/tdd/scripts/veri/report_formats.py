@@ -34,6 +34,7 @@ EXEMPT = {
     "develop-red-contradicted.md:88": "the fallback to the test command is reported inside SUITE:",
     "develop-red-missing.md:90": "the fallback to the test command is reported inside SUITE:",
     "develop-red-repair.md:90": "the fallback to the test command is reported inside SUITE:",
+    "develop-red-supersede.md:88": "the fallback to the test command is reported inside SUITE:",
     "develop-red.md:84": "the fallback to the test command is reported inside SUITE:",
     "develop-refactor.md:76": "the fallback to the test command is reported inside SUITE:",
     "develop-refactor.md:87": "a skipped transform is listed in the declared report",
