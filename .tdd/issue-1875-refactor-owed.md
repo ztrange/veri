@@ -1,0 +1,2 @@
+### `solvable-issues.sh --not-running` omits nothing for a live process whose conductor path is this clone's scripts directory with extra leading components (`/x` prepended to it), so the script path must be a whole argument of the command line; a small case driving `main` in-process with `ps` faked, no real process ⟦criterion 2⟧
+- test-only | extract the shared setup of the two #1875 `--not-running` cases (issues/prs JSON, the `fake_run` ps stub, the `main` call) into a helper that takes the ps listing
