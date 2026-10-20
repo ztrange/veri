@@ -20,6 +20,11 @@ GREEN_FREEZE_RULE = (
     "bar easier to clear is not clearing it: a pass bought by weakening, skipping or deleting\n"
     "the case is a rejected step. If the test itself looks wrong, say so in your report as one\n"
     "`WRONG_TEST: <why>` line and stop \u2014 do not edit it.").encode()
+REPAIR_TEST_EDIT = (
+    "\n\n**You may edit the failing test.** This step repairs a full run, and the fix is often an edit to the\n"
+    "test file that run left red: edit that file, only as far as the repair needs. Every other test stays\n"
+    "frozen. Making the bar easier to clear is not clearing it: a pass bought by weakening, skipping or\n"
+    "deleting a case the repair does not require is a rejected step.").encode()
 TEST_REWRITE_GRANT = (
     "**A rewritten test is a new test, and owes a new prediction**: predict its failure\n"
     "   before you run any suite, in `.tdd/red-prediction.md` \u2014 which assertion fires first against the unmodified\n"
@@ -171,8 +176,12 @@ def main(argv):
         values["REFACTOR_BUDGET"] = os.fsencode(tunables.read("VERI_REFACTOR_BUDGET") or "5")
     values["REVISE_PHASE"] = os.fsencode(revised_phase)
     values["TEST_REWRITE"] = {"red": TEST_REWRITE_GRANT, "contract-a": TEST_MOVE_CONTRACT_A}.get(revised_phase, TEST_REWRITE_NONE)
+    repair = "⟦suite-repair⟧" in step or "⟦ci-repair⟧" in step
+    if "green" in (phase, revised_phase):
+        values["FREEZE_RULE"] = REPAIR_TEST_EDIT if repair else GREEN_FREEZE_RULE
+    if revised_phase == "green" and repair:
+        values["TEST_REWRITE"] = REPAIR_TEST_EDIT.lstrip(b"\n")
     if revised_phase == "green":
-        values["FREEZE_RULE"] = GREEN_FREEZE_RULE
         values["WRONG_TEST_REPORT"] = WRONG_TEST_REPORT
         values["WRONG_TEST_FORMAT"] = WRONG_TEST_FORMAT
     try:
