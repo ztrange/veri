@@ -202,7 +202,7 @@ def test_main_matches_a_step_line_by_the_c_locale_grammar_clearing_a_capital_box
     }
 
 
-def test_main_writes_the_ledger_in_place_keeping_a_symlink_a_symlink_and_reading_a_relative_ledger_file_from_the_working_directory(
+def test_main_writes_the_ledger_through_a_temp_file_renamed_over_it_keeping_a_symlink_a_symlink_and_reading_a_relative_ledger_file_from_the_working_directory(
         tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
     seed = "- [x] a ⟂ refactor pending\n".encode()
     target = tmp_path / "target.md"
@@ -315,7 +315,7 @@ def test_main_returns_2_leaving_the_ledger_byte_identical_and_nothing_beside_it_
     assert (code, led.read_bytes(), sorted(p.name for p in tmp_path.iterdir())) == (2, seed, ["ledger.md"])
 
 
-def test_main_returns_2_without_raising_leaving_the_ledger_byte_identical_and_nothing_beside_it_when_every_write_and_the_restore_of_its_backup_fail_1110(
+def test_main_returns_2_without_raising_leaving_the_ledger_byte_identical_and_nothing_beside_it_when_every_temp_file_write_and_rename_fail_1110(
         tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
     seed = "".join(f"- [x] step {n} ⟂ refactor pending\n" for n in range(8)).encode()
     led = tmp_path / "ledger.md"
