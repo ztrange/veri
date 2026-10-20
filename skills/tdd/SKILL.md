@@ -492,7 +492,8 @@ unauthenticated baseline never gets a cycle.
    `$S/unlabel-issue.sh <n>`, which removes the opt-in label so `solvable-issues.sh` stops
    listing the issue. This is the run's **first claim**; the draft PR is its **durable claim**. A
    bailed or parked issue stays unlabelled until a human relabels it, as parking already does.
-   A resume skips this: it already ran.
+   A resume skips this: it already ran. On a resume the issue's missing opt-in label is
+   expected, since the claim removed it at the first launch, so never stop or ask about it.
 
 ### 2. Scope & plan → the ledger
 
