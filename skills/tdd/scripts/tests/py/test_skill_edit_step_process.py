@@ -106,3 +106,54 @@ def test_a_failing_changed_id_launches_an_author_leaf_under_the_author_role_whos
         assert wanted in prompt, (wanted, prompt)
     for secret in ["secret-why-cell", "quiet", "because"]:
         assert secret not in prompt, (secret, prompt)
+
+
+STUB_UNCHANGED_FAILS = """#!/bin/sh
+prompt=$2
+case "$prompt" in
+*"You grade a piece of prose"*)
+  n=$(cat "$CAP/grades" 2>/dev/null || echo 0)
+  echo $((n + 1)) > "$CAP/grades"
+  if [ "$n" = 0 ]; then
+    reply='BEGIN GRADES\\nA1: PASS - ok\\nA2: FAIL - prose never says silent\\nVERDICT: REJECT\\nEND GRADES'
+  else
+    reply='BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES'
+  fi ;;
+*)
+  git rev-list --count HEAD > "$CAP/commits-at-author"
+  reply='edited' ;;
+esac
+printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"'"$reply"'"}'
+"""
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author")
+def test_changed_ids_that_pass_with_an_unchanged_id_failing_make_no_commit_before_the_author_and_do_not_exit_3(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt hums.\n")
+    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is a deep blue. | shade |\n")
+    cap = tmp_path / "cap"
+    cap.mkdir()
+    claude = tmp_path / "claude"
+    claude.write_text(STUB_UNCHANGED_FAILS)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+           "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+
+    at_author = cap / "commits-at-author"
+    log = repo / ".tdd" / "events.jsonl"
+    events = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
+    launches = [e for e in events if e.get("event") == "launch" and e.get("actor") == "author"]
+    assert [ran.returncode != 3, len(launches), at_author.read_text().strip() if at_author.exists() else None] \
+        == [True, 1, "1"], (ran.returncode, ran.stderr[-700:])
