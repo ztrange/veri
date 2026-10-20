@@ -42,3 +42,18 @@ def test_scope_and_plan_plans_a_step_updating_the_older_cases_pinning_changed_te
     assert "outside the step's own red" in sentence, "the rule never limits itself to cases outside the step's own Red"
     assert "holds a step that updates those older cases" in sentence, "the rule never plans a step updating the older cases"
     assert "ahead of the step that changes the text" in sentence, "the rule never places that step ahead of the one changing the text"
+
+
+def test_scope_and_plan_plans_a_defect_in_a_tests_own_fixture_as_a_fixture_repair_step_1021():
+    text = _plain(importlib.import_module("skill_sections").section(SKILL, SCOPE))
+    sentence = next((s for s in re.split(r"(?<=\.)\s", text)
+                     if "repairs the fixture" in s and "⟦fixture-repair⟧" in s), "")
+    assert sentence, "Scope & plan never gives the ⟦fixture-repair⟧ step's line shape"
+    assert "<fixture or stub name>" in sentence, "the line shape never names the fixture or stub"
+    assert "in <fixture file>, reproduced by a case in <test file>" in sentence, \
+        "the line shape never places the fixture file and the reproducing case's test file"
+    assert "⟦criterion k⟧" in sentence, "the line shape never carries a ⟦criterion k⟧"
+    assert "fixture, stub or harness" in text, "the mark is never limited to a defect in a test's fixture, stub or harness"
+    assert "script under test is correct" in text, "the mark is never limited to a correct script under test"
+    assert re.search(r"<fixture file> must be a test file\s+by the rule of transform-touches-tests".replace(r"\s+", " "), text), \
+        "the rule never says the fixture file must be a test file by transform-touches-tests's rule"
