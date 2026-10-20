@@ -156,10 +156,11 @@ def test_main_widens_a_file_no_rule_handles_to_every_bash_suite_file_and_not_a_d
     (tests / "unit/b.test.sh").write_text("")
     (tests / "py/unit").mkdir(parents=True)
     (tests / "py/unit/test_other.py").write_text("")
+    (tests / "py/test_top.py").write_text("")
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
         0,
-        "skills/tdd/scripts/tests/a.test.sh\n"
-        "skills/tdd/scripts/tests/unit/b.test.sh\n",
+        "skills/tdd/scripts/tests/py/test_top.py\n"
+        "skills/tdd/scripts/tests/py/unit/test_other.py\n",
         "affected-suites: no rule places docs/notes.md; widening to every suite\n")
 
 
@@ -915,8 +916,9 @@ def test_rule_5_a_rule_1_file_plus_a_file_no_rule_matches_prints_every_suite(
         monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "foo.sh", "docs/notes.md"],
         {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "bar.sh": "bar\n", SCRIPTS_REL + "baz.sh": "baz\n",
          SCRIPTS_REL + "tests/foo.test.sh": "", SCRIPTS_REL + "tests/bar.test.sh": "",
-         SCRIPTS_REL + "tests/unit/baz.test.sh": "", "docs/notes.md": "# notes\n"},
-    ) == (0, SUITES + "bar.test.sh\n" + SUITES + "foo.test.sh\n" + SUITES + "unit/baz.test.sh\n",
+         SCRIPTS_REL + "tests/unit/baz.test.sh": "", "docs/notes.md": "# notes\n",
+         SCRIPTS_REL + "tests/py/test_foo.py": "", SCRIPTS_REL + "tests/py/unit/test_baz.py": ""},
+    ) == (0, SCRIPTS_REL + "tests/py/test_foo.py\n" + SCRIPTS_REL + "tests/py/unit/test_baz.py\n",
           "affected-suites: no rule places docs/notes.md; widening to every suite\n")
 
 
@@ -963,8 +965,9 @@ def test_a_widening_caused_by_two_unplaced_files_names_both_on_stderr(monkeypatc
     code, out, err = affected_by(
         monkeypatch, run_cli, affected, tmp_path, ["notes.md", "memo.md"],
         {"notes.md": "# notes\n", "memo.md": "# memo\n", SCRIPTS_REL + "foo.sh": "foo\n",
-         SCRIPTS_REL + "tests/foo.test.sh": ""})
-    assert (code, out, "notes.md" in err, "memo.md" in err) == (0, suites("foo.test.sh"), True, True)
+         SCRIPTS_REL + "tests/foo.test.sh": "", SCRIPTS_REL + "tests/py/test_foo.py": ""})
+    assert (code, out, "notes.md" in err, "memo.md" in err) == (
+        0, SCRIPTS_REL + "tests/py/test_foo.py\n", True, True)
 
 
 def test_run_state_a_tdd_ledger_alongside_a_script_change_prints_exactly_that_scripts_suite(
@@ -990,8 +993,9 @@ def test_fail_closed_run_state_alongside_a_file_no_rule_places_still_prints_ever
         monkeypatch, run_cli, affected, tmp_path, [".tdd/issue-416.md", "notes.md"],
         {".tdd/issue-416.md": "- [x] step one\n", "notes.md": "# notes\n",
          SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "bar.sh": "bar\n",
-         SCRIPTS_REL + "tests/foo.test.sh": "", SCRIPTS_REL + "tests/bar.test.sh": ""},
-    ) == (0, suites("bar.test.sh", "foo.test.sh"),
+         SCRIPTS_REL + "tests/foo.test.sh": "", SCRIPTS_REL + "tests/bar.test.sh": "",
+         SCRIPTS_REL + "tests/py/test_foo.py": "", SCRIPTS_REL + "tests/py/unit/test_bar.py": ""},
+    ) == (0, SCRIPTS_REL + "tests/py/test_foo.py\n" + SCRIPTS_REL + "tests/py/unit/test_bar.py\n",
           "affected-suites: no rule places notes.md; widening to every suite\n")
 
 
