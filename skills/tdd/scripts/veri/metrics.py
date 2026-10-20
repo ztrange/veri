@@ -102,14 +102,13 @@ def conductor_sessions(issue, path):
                         turn_dollars += sum(tokens * prices[rate] / 1e6
                                             for rate, tokens in session_cost.cache_write_tokens(usage).items())
                         if revisit is None:
-                            open_cost += turn_dollars
-                            turn_rows.append([str(len(turn_rows) + 1), "$%.2f" % turn_dollars, context])
-                            if message.get("id") is not None:
-                                seen_ids[message["id"]] = (len(turn_rows) - 1, turn_dollars)
+                            index, previous = len(turn_rows), 0.0
+                            turn_rows.append(None)
                         else:
                             index, previous = revisit
-                            open_cost += turn_dollars - previous
-                            turn_rows[index] = [str(index + 1), "$%.2f" % turn_dollars, context]
+                        open_cost += turn_dollars - previous
+                        turn_rows[index] = [str(index + 1), "$%.2f" % turn_dollars, context]
+                        if message.get("id") is not None:
                             seen_ids[message["id"]] = (index, turn_dollars)
         if open_turns:
             sessions.append({"total_cost_usd": open_cost if open_priced else None, "num_turns": open_turns})
