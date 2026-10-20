@@ -66,3 +66,8 @@ def test_the_prompt_grade_prose_renders_carries_the_poc_grader_instructions_with
     begin, end = prompt.find("BEGIN GRADES"), prompt.find("END GRADES")
     verdict = prompt.find("VERDICT:", begin)
     assert ("You judge only what the prose states" in prompt, 0 <= begin < verdict < end) == (True, True), prompt
+
+
+def test_a_fenced_hash_line_equal_to_the_units_heading_never_starts_its_section_1874(grade_prose):
+    text = "# Intro\n```\n## unit.md\nfenced body\n```\ntext\n## unit.md\nreal body\n"
+    assert grade_prose.section(text, "unit.md") == "## unit.md\nreal body\n"
