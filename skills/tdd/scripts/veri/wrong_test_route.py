@@ -74,12 +74,10 @@ def _recorded(report, step):
 
 
 def _superseded(report, step):
-    with open(report, encoding="utf-8", errors="replace") as handle:
-        lines = handle.read().splitlines()
     own = _recorded_cases(step)
     cases = []
-    for line in lines:
-        case = line[11:].strip() if line.startswith("SUPERSEDED:") else ""
+    for line in _lines_with(report, "SUPERSEDED:"):
+        case = line[11:].strip()
         if case and case not in own and case not in cases and _exists(case):
             cases.append(case)
     return cases
