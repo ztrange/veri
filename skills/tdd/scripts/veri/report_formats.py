@@ -32,6 +32,7 @@ EXEMPT = {
     "develop-green.md:55": "the fallback to the test command is reported inside SUITE:",
     "develop-reconcile.md:43": "a remote that moved again is reported through the declared keys",
     "develop-red-contradicted.md:89": "the fallback to the test command is reported inside SUITE:",
+    "develop-red-missing.md:91": "the fallback to the test command is reported inside SUITE:",
     "develop-red-repair.md:91": "the fallback to the test command is reported inside SUITE:",
     "develop-red.md:85": "the fallback to the test command is reported inside SUITE:",
     "develop-refactor.md:77": "the fallback to the test command is reported inside SUITE:",
