@@ -50,7 +50,7 @@ def test_two_consecutive_steps_on_one_suite_file_each_check_against_their_own_re
         0, 0, {first: (1, "a.test.sh\n"), second: (0, ""), third: (2, "")})
 
 
-@pytest.mark.parametrize("mark", ["⟦suite-repair⟧", "⟦ci-repair⟧"])
+@pytest.mark.parametrize("mark", ["⟦suite-repair⟧", "⟦ci-repair⟧", "⟦fixture-repair⟧"])
 def test_a_repair_marked_step_is_never_frozen_so_an_edit_to_its_test_file_is_not_rejected_and_no_record_is_written_1586(
         tmp_path, run_cli, tests_frozen, mark):
     (tmp_path / ".tdd").mkdir()
@@ -64,17 +64,3 @@ def test_a_repair_marked_step_is_never_frozen_so_an_edit_to_its_test_file_is_not
 
     assert (recorded, checked, sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == ((0, "", ""), (0, "", ""), [])
 
-
-def test_a_fixture_repair_marked_step_is_never_frozen_so_an_edit_to_its_test_file_is_not_rejected_and_no_record_is_written_1021(
-        tmp_path, run_cli, tests_frozen):
-    (tmp_path / ".tdd").mkdir()
-    suite = tmp_path / "a.test.sh"
-    suite.write_text("case one, leaky stub\n")
-    step = ("repairs the fixture 'awake-clock' in a.test.sh, reproduced by a case in a.test.sh "
-            "\u27e6fixture-repair\u27e7 \u27e6criterion 1\u27e7")
-
-    recorded = run_cli(tests_frozen, ["record", "--step", step, "a.test.sh"], cwd=tmp_path)
-    suite.write_text("case one, fixed stub\n")
-    checked = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
-
-    assert (recorded, checked, sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == ((0, "", ""), (0, "", ""), [])
