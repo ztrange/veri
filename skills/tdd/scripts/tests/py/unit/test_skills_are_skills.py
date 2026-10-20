@@ -8,13 +8,46 @@ from conftest import SCRIPTS
 SKILLS = SCRIPTS.parent.parent
 
 
-@pytest.mark.tree_audit("every directory directly under skills/")
-def test_every_directory_directly_under_skills_contains_a_skill_md():
-    without = sorted(
-        d.name for d in SKILLS.iterdir() if d.is_dir() and not (d / "SKILL.md").is_file()
+def _is_run_state_only(path):
+    children = list(path.iterdir())
+    if not children:
+        return path.name == ".tdd"
+    return [c.name for c in children] == [".tdd"] and not any((path / ".tdd").iterdir())
+
+
+def _without_skill_md(skills):
+    return sorted(
+        d.name
+        for d in skills.iterdir()
+        if d.is_dir() and not (d / "SKILL.md").is_file() and not _is_run_state_only(d)
     )
 
+
+@pytest.mark.tree_audit("every directory directly under skills/")
+def test_every_directory_directly_under_skills_contains_a_skill_md():
+    without = _without_skill_md(SKILLS)
+
     assert without == [], "directories under skills/ with no SKILL.md: " + ", ".join(without)
+
+
+def test_an_empty_run_state_directory_under_skills_is_not_a_skill_missing_its_skill_md(tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "stray").mkdir()
+    (tmp_path / "stray" / ".tdd").mkdir()
+    (tmp_path / "real").mkdir()
+    (tmp_path / "real" / "SKILL.md").write_text("x")
+
+    assert _without_skill_md(tmp_path) == []
+
+
+def test_a_skill_directory_without_skill_md_is_still_reported(tmp_path):
+    (tmp_path / "broken").mkdir()
+    (tmp_path / "broken" / "notes.md").write_text("x")
+    (tmp_path / "bare").mkdir()
+    (tmp_path / "bare" / ".tdd").mkdir()
+    (tmp_path / "bare" / ".tdd" / "log").write_text("x")
+
+    assert _without_skill_md(tmp_path) == ["bare", "broken"]
 
 
 @pytest.mark.parametrize("skill", ["veri-coord", "veri-dev", "veri-status", "veri-report"])
