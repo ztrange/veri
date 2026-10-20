@@ -1,0 +1,2 @@
+### prose-owed.sh, given a repo-root REQUIREMENTS.md whose unit's table repeats an ID, exits 2 and its stderr names that list's path and the duplicate-ID defect, never exit 0 — a heading with no table at all stays unprinted with exit 0, as today (small unit-tier case, run in-process with run_cli) ⟦criterion 1⟧
+- out-of-scope | merge `prose_owed.listed_units` with `requirements.units` (same loop, differing only in which ValueError is skipped) by giving `requirements` a strict variant

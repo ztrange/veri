@@ -1,6 +1,6 @@
 # Plan for #1911 — The signature gate passes prose it should fail: malformed lists, nested units' GRADED, and lists beside the unit
 
-- [x] prose-owed.sh, given a repo-root REQUIREMENTS.md whose unit's table repeats an ID, exits 2 and its stderr names that list's path and the duplicate-ID defect, never exit 0 — a heading with no table at all stays unprinted with exit 0, as today (small unit-tier case, run in-process with run_cli) ⟦criterion 1⟧ ⟂ refactor pending
+- [x] prose-owed.sh, given a repo-root REQUIREMENTS.md whose unit's table repeats an ID, exits 2 and its stderr names that list's path and the duplicate-ID defect, never exit 0 — a heading with no table at all stays unprinted with exit 0, as today (small unit-tier case, run in-process with run_cli) ⟦criterion 1⟧
 - [ ] prose-owed.sh, given a requirements table whose header lacks a column, exits 2 and its stderr names the list's path and the header defect (small unit-tier case, run in-process with run_cli) ⟦criterion 1⟧
 - [ ] prose-owed.sh reads a nested unit's signature from skills/<skill>/GRADED: a unit at skills/demo/prompts/x.md whose current signature is recorded in skills/demo/GRADED is not printed and the exit is 0 (small unit-tier case, run in-process with run_cli) ⟦criterion 2⟧
 - [ ] A grade-prose.sh PASS on a nested unit skills/demo/prompts/x.md records its signature line in skills/demo/GRADED and writes no skills/demo/prompts/GRADED (small unit-tier case, run in-process, the grader leaf launch replaced by an in-process fake) ⟦criterion 2⟧
