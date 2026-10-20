@@ -100,10 +100,13 @@ def _rerouted(step):
 
 
 def _missing(report):
-    for line in _lines_with(report, "MISSING_TEST:"):
+    lines = _lines_with(report, "MISSING_TEST:")
+    for line in lines:
         behaviour = line.partition(":")[2].strip()
         if behaviour:
             return behaviour
+    if lines:
+        _write(sys.stderr, "no well-formed MISSING_TEST: line was found")
     return None
 
 
