@@ -123,7 +123,7 @@ def main(argv):
         return 0
     repair = None if rerouted else _recorded(argv[0], step)
     if repair is not None:
-        _write(sys.stdout, "repair " + repair)
+        _write(sys.stdout, " ".join(["repair", repair] + _superseded(argv[0], step)))
         return 0
     older = [] if rerouted else _superseded(argv[0], step)
     if len(older) >= 2:
