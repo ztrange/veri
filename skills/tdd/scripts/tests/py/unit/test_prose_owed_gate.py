@@ -71,3 +71,21 @@ def test_prose_owed_sh_given_a_list_whose_header_lacks_a_column_exits_2_naming_t
     code, out, err = run_cli(prose_owed, [str(tmp_path)])
 
     assert code == 2 and "REQUIREMENTS.md" in err and "header lacks a column" in err, (code, out, err)
+
+
+def test_prose_owed_sh_reads_a_nested_units_signature_from_the_skills_graded_file_1911(tmp_path, monkeypatch, run_cli):
+    import importlib
+
+    prose_owed = importlib.import_module("veri.prose_owed")
+    grade_prose = importlib.import_module("veri.grade_prose")
+    (tmp_path / "skills" / "demo" / "prompts").mkdir(parents=True)
+    (tmp_path / "skills" / "demo" / "prompts" / "x.md").write_text("The widget is blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## skills/demo/prompts/x.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    monkeypatch.chdir(tmp_path)
+    sig = grade_prose.signature("REQUIREMENTS.md", "skills/demo/prompts/x.md")
+    (tmp_path / "skills" / "demo" / "GRADED").write_text("skills/demo/prompts/x.md %s g1\n" % sig)
+
+    code, out, err = run_cli(prose_owed, [str(tmp_path)])
+
+    assert (code, out) == (0, ""), (code, out, err)
