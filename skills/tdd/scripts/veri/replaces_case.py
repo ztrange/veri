@@ -28,6 +28,9 @@ def parse(step):
     if not region.endswith(quote):
         return None
     names = re.split(re.escape(quote) + "(?:, | and )" + re.escape(quote), region[:-1])
+    joint = "(?:, | and )"
+    if any(re.search(re.escape(quote) + joint + "|" + joint + re.escape(quote), name) for name in names):
+        return None
     return names, suite.group(1)
 
 
