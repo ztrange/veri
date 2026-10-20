@@ -533,3 +533,15 @@ def test_1668_a_planted_test_file_passing_a_prose_string_holding_a_suite_path_ne
     )
 
     assert guard.offences(tmp_path) == []
+
+
+def test_1668_a_planted_test_file_passing_a_regex_ending_in_backslash_dot_py_to_a_helper_is_not_reported_as_running_a_nested_suite(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    (tmp_path / "test_regex.py").write_text(
+        "from shared import says\n"
+        "\n"
+        "def test_names_a_path_in_a_regex():\n"
+        "    says([], r\"tests/py/test_<module>\\.py\")\n"
+    )
+
+    assert guard.offences(tmp_path) == []

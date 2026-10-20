@@ -88,7 +88,7 @@ def _classify(node, module_aliases, name_imports, modules, functions, defined=fr
     if name in defined or (name and name.startswith("assert")):
         return None
     if (module, attr) == ("pytest", "main") or any(
-        isinstance(arg, ast.Constant) and isinstance(arg.value, str) and _SUITE_PATH.search(arg.value) and not re.search(r"\s", arg.value)
+        isinstance(arg, ast.Constant) and isinstance(arg.value, str) and _SUITE_PATH.search(arg.value) and not re.search(r"[\s\\]", arg.value)
         for arg in args
     ):
         return "runs a nested suite"
