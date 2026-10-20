@@ -1020,8 +1020,8 @@ def test_ci_red_bail_names_each_failed_ci_check_every_ci_red_bail_mark_in_the_dr
         problems.append("Draft PR step runs no ci-red bail at all")
     for bail in bails:
         fields = [f for f in re.findall(r" [a-z_]+=", bail) if f not in (" cause=", " classification=")]
-        if not (fields and "check-runs" in bail):
-            problems.append(f"ci-red bail mark carries no field naming the failed checks read from the head's check runs: {bail[:200]}")
+        if not (fields and 'failed="$(cat .tdd/wait-ci.out)"' in bail):
+            problems.append(f"ci-red bail mark carries no field naming the failed checks read from the wait's stdout: {bail[:200]}")
     comment = first_record(_records(_lines(BAILING)), re.escape("### ⛔ bailed"), re.escape("ci-red"))
     if not (comment and first_record([comment], re.escape("check"))):
         problems.append("### ⛔ Bailed comment never says that a ci-red bail names each CI check that failed")

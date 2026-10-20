@@ -1671,13 +1671,13 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    gh api 'repos/{owner}/{repo}/pulls?head={owner}:{branch}' -q '.[0].html_url // empty'   # → <pr-url>, the PR step 2.3 opened; <pr-number> is its last path segment
    . $S/lib/github.sh && gh_pr_ready <pr-number> "$(git rev-parse HEAD)"
-   $S/wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)" 2> .tdd/wait-ci.err; ci=$?    # exit 3 → run this line again, in a new Bash call
+   $S/wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)" > .tdd/wait-ci.out 2> .tdd/wait-ci.err; ci=$?    # exit 3 → run this line again, in a new Bash call
    grep -F 'conflicts with its base branch' .tdd/wait-ci.err > /dev/null; conflict=$?
    [ "$ci" != 2 ] || [ "$conflict" = 0 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
    [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"
    gh api "repos/{owner}/{repo}/commits/$(git rev-parse HEAD)/check-runs" -q '.check_runs[] | {name, status, conclusion}'
    gh run view <run-id> --log-failed          # a failed check only → its suite and FAIL - line
-   $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null && VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)" failed="$(gh api "repos/{owner}/{repo}/commits/$(git rev-parse HEAD)/check-runs" -q '[.check_runs[] | select(.conclusion != null and (.conclusion | ascii_upcase | IN("SUCCESS", "NEUTRAL", "SKIPPED") | not)) | .name] | join(",")')"
+   $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null && VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)" failed="$(cat .tdd/wait-ci.out)"
    step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1
    $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the CI failure: <suite> — <its FAIL - line>> ⟦ci-repair⟧'
    git add .tdd/issue-<n>.md
@@ -1695,8 +1695,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
      git commit -m "metrics: what solving #<n> cost (#<n>)"
    fi
    $S/push-branch.sh
-   $S/wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)" 2> .tdd/wait-ci.err; ci=$?    # exit 3 → run this line again, in a new Bash call
-   [ "$ci" != 1 ] || ! $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)" failed="$(gh api "repos/{owner}/{repo}/commits/$(git rev-parse HEAD)/check-runs" -q '[.check_runs[] | select(.conclusion != null and (.conclusion | ascii_upcase | IN("SUCCESS", "NEUTRAL", "SKIPPED") | not)) | .name] | join(",")')"
+   $S/wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)" > .tdd/wait-ci.out 2> .tdd/wait-ci.err; ci=$?    # exit 3 → run this line again, in a new Bash call
+   [ "$ci" != 1 ] || ! $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)" failed="$(cat .tdd/wait-ci.out)"
    [ "$ci" = 0 ] || [ "$ci" = 2 ] || $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null; no_repair=$?
    [ "$no_repair" = 0 ] || { step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1; }
    [ "$no_repair" = 0 ] || $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the CI failure: <suite> — <its FAIL - line>> ⟦ci-repair⟧'
