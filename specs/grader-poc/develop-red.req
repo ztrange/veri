@@ -1,13 +1,71 @@
-DR1 | The leaf pins only the one step it is given, as observable behaviour rather than internal structure.
-DR2 | A valid test asserts outputs, exit codes, written files or events, or named errors — never a process count, a fork count, or a timing across a suite run.
-DR3 | A call count may be asserted only when the criterion itself names it, and then only through an in-process spy on one function, never a PATH shim counting real processes.
-DR4 | Costly dependencies (network, a git remote, the claude binary, a real sleep, a server) are replaced by stubs or fakes unless the behaviour under test is that dependency's real use.
-DR5 | A test never runs another test suite, and never re-runs the suite it lives in.
-DR6 | When the criterion can only be pinned by a test that breaks the lightweight, behaviour or self-contained rules, the leaf writes no test and reports AGAINST_UNMODIFIED: UNTESTABLE with a WHY naming the rule.
-DR7 | A helper only the test uses is defined in the test file during Red, and a failure caused only by an undefined name in the test file does not count as a red.
-DR8 | The leaf writes its failure prediction to .tdd/red-prediction.md before running any suite.
-DR9 | The leaf runs the affected suites — not the full suite and not one picked by hand — against the unmodified production code.
-DR10 | When the observed failure diverges from the prediction, the leaf revises the test and never adjusts the prediction to fit the output.
-DR11 | When the case passes against unmodified code, the leaf shows it can fail by temporarily breaking the behaviour, compares the output to a prediction before restoring, and verifies the restore with git diff --exit-code.
-DR12 | The leaf changes no file other than the test file.
-DR13 | The report, at the end of the output, carries the keys TEST_PATH, TARGET_TEST, AGAINST_UNMODIFIED (FAILS, PASSES or UNTESTABLE), WHY, FAIL_OUTPUT, PREDICTED_FAILURE, PREDICTION (MATCHED or DIVERGED) and PREDICTION_NOTE.
+## specs/grader-poc/develop-red.orig.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| DR1 | The leaf pins only the one step it is given, as observable behaviour rather than internal structure. | |
+| DR2 | A valid test asserts outputs, exit codes, written files or events, or named errors — never a process count, a fork count, or a timing across a suite run. | |
+| DR3 | A call count may be asserted only when the criterion itself names it, and then only through an in-process spy on one function, never a PATH shim counting real processes. | |
+| DR4 | Costly dependencies (network, a git remote, the claude binary, a real sleep, a server) are replaced by stubs or fakes unless the behaviour under test is that dependency's real use. | |
+| DR5 | A test never runs another test suite, whole or sliced, and never re-runs the suite it lives in; both prohibitions are absolute, so prose that permits either in some circumstance fails this requirement. | |
+| DR6 | When the criterion can only be pinned by a test that breaks the lightweight, behaviour or self-contained rules, the leaf writes no test and reports AGAINST_UNMODIFIED: UNTESTABLE with a WHY naming the rule. | |
+| DR7 | A helper only the test uses is defined in the test file during Red, and a failure caused only by an undefined name in the test file does not count as a red. | |
+| DR8 | The leaf writes its failure prediction to .tdd/red-prediction.md before running any suite. | |
+| DR9 | The leaf runs the affected suites — not the full suite and not one picked by hand — against the unmodified production code. | |
+| DR10 | When the observed failure diverges from the prediction, the leaf revises the test and never adjusts the prediction to fit the output. | |
+| DR11 | When the case passes against unmodified code, the leaf shows it can fail by temporarily breaking the behaviour, compares the output to a prediction before restoring, and verifies the restore with git diff --exit-code. | |
+| DR12 | The leaf changes no file other than the test file. | |
+| DR13 | The report, at the end of the output, carries the keys TEST_PATH, TARGET_TEST, AGAINST_UNMODIFIED (FAILS, PASSES or UNTESTABLE), WHY, FAIL_OUTPUT, PREDICTED_FAILURE, PREDICTION (MATCHED or DIVERGED) and PREDICTION_NOTE. | |
+
+## specs/grader-poc/develop-red.ok.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| DR1 | The leaf pins only the one step it is given, as observable behaviour rather than internal structure. | |
+| DR2 | A valid test asserts outputs, exit codes, written files or events, or named errors — never a process count, a fork count, or a timing across a suite run. | |
+| DR3 | A call count may be asserted only when the criterion itself names it, and then only through an in-process spy on one function, never a PATH shim counting real processes. | |
+| DR4 | Costly dependencies (network, a git remote, the claude binary, a real sleep, a server) are replaced by stubs or fakes unless the behaviour under test is that dependency's real use. | |
+| DR5 | A test never runs another test suite, whole or sliced, and never re-runs the suite it lives in; both prohibitions are absolute, so prose that permits either in some circumstance fails this requirement. | |
+| DR6 | When the criterion can only be pinned by a test that breaks the lightweight, behaviour or self-contained rules, the leaf writes no test and reports AGAINST_UNMODIFIED: UNTESTABLE with a WHY naming the rule. | |
+| DR7 | A helper only the test uses is defined in the test file during Red, and a failure caused only by an undefined name in the test file does not count as a red. | |
+| DR8 | The leaf writes its failure prediction to .tdd/red-prediction.md before running any suite. | |
+| DR9 | The leaf runs the affected suites — not the full suite and not one picked by hand — against the unmodified production code. | |
+| DR10 | When the observed failure diverges from the prediction, the leaf revises the test and never adjusts the prediction to fit the output. | |
+| DR11 | When the case passes against unmodified code, the leaf shows it can fail by temporarily breaking the behaviour, compares the output to a prediction before restoring, and verifies the restore with git diff --exit-code. | |
+| DR12 | The leaf changes no file other than the test file. | |
+| DR13 | The report, at the end of the output, carries the keys TEST_PATH, TARGET_TEST, AGAINST_UNMODIFIED (FAILS, PASSES or UNTESTABLE), WHY, FAIL_OUTPUT, PREDICTED_FAILURE, PREDICTION (MATCHED or DIVERGED) and PREDICTION_NOTE. | |
+
+## specs/grader-poc/develop-red.bad.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| DR1 | The leaf pins only the one step it is given, as observable behaviour rather than internal structure. | |
+| DR2 | A valid test asserts outputs, exit codes, written files or events, or named errors — never a process count, a fork count, or a timing across a suite run. | |
+| DR3 | A call count may be asserted only when the criterion itself names it, and then only through an in-process spy on one function, never a PATH shim counting real processes. | |
+| DR4 | Costly dependencies (network, a git remote, the claude binary, a real sleep, a server) are replaced by stubs or fakes unless the behaviour under test is that dependency's real use. | |
+| DR5 | A test never runs another test suite, whole or sliced, and never re-runs the suite it lives in; both prohibitions are absolute, so prose that permits either in some circumstance fails this requirement. | |
+| DR6 | When the criterion can only be pinned by a test that breaks the lightweight, behaviour or self-contained rules, the leaf writes no test and reports AGAINST_UNMODIFIED: UNTESTABLE with a WHY naming the rule. | |
+| DR7 | A helper only the test uses is defined in the test file during Red, and a failure caused only by an undefined name in the test file does not count as a red. | |
+| DR8 | The leaf writes its failure prediction to .tdd/red-prediction.md before running any suite. | |
+| DR9 | The leaf runs the affected suites — not the full suite and not one picked by hand — against the unmodified production code. | |
+| DR10 | When the observed failure diverges from the prediction, the leaf revises the test and never adjusts the prediction to fit the output. | |
+| DR11 | When the case passes against unmodified code, the leaf shows it can fail by temporarily breaking the behaviour, compares the output to a prediction before restoring, and verifies the restore with git diff --exit-code. | |
+| DR12 | The leaf changes no file other than the test file. | |
+| DR13 | The report, at the end of the output, carries the keys TEST_PATH, TARGET_TEST, AGAINST_UNMODIFIED (FAILS, PASSES or UNTESTABLE), WHY, FAIL_OUTPUT, PREDICTED_FAILURE, PREDICTION (MATCHED or DIVERGED) and PREDICTION_NOTE. | |
+
+## specs/grader-poc/develop-red.subtle.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| DR1 | The leaf pins only the one step it is given, as observable behaviour rather than internal structure. | |
+| DR2 | A valid test asserts outputs, exit codes, written files or events, or named errors — never a process count, a fork count, or a timing across a suite run. | |
+| DR3 | A call count may be asserted only when the criterion itself names it, and then only through an in-process spy on one function, never a PATH shim counting real processes. | |
+| DR4 | Costly dependencies (network, a git remote, the claude binary, a real sleep, a server) are replaced by stubs or fakes unless the behaviour under test is that dependency's real use. | |
+| DR5 | A test never runs another test suite, whole or sliced, and never re-runs the suite it lives in; both prohibitions are absolute, so prose that permits either in some circumstance fails this requirement. | |
+| DR6 | When the criterion can only be pinned by a test that breaks the lightweight, behaviour or self-contained rules, the leaf writes no test and reports AGAINST_UNMODIFIED: UNTESTABLE with a WHY naming the rule. | |
+| DR7 | A helper only the test uses is defined in the test file during Red, and a failure caused only by an undefined name in the test file does not count as a red. | |
+| DR8 | The leaf writes its failure prediction to .tdd/red-prediction.md before running any suite. | |
+| DR9 | The leaf runs the affected suites — not the full suite and not one picked by hand — against the unmodified production code. | |
+| DR10 | When the observed failure diverges from the prediction, the leaf revises the test and never adjusts the prediction to fit the output. | |
+| DR11 | When the case passes against unmodified code, the leaf shows it can fail by temporarily breaking the behaviour, compares the output to a prediction before restoring, and verifies the restore with git diff --exit-code. | |
+| DR12 | The leaf changes no file other than the test file. | |
+| DR13 | The report, at the end of the output, carries the keys TEST_PATH, TARGET_TEST, AGAINST_UNMODIFIED (FAILS, PASSES or UNTESTABLE), WHY, FAIL_OUTPUT, PREDICTED_FAILURE, PREDICTION (MATCHED or DIVERGED) and PREDICTION_NOTE. | |

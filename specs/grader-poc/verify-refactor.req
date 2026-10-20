@@ -1,11 +1,63 @@
-VR1 | The verifier reviews the refactor through git diff from the base sha to HEAD, and does not read the range's commit messages.
-VR2 | The verifier runs the fast command and the affected suites itself; both must be green, and a refactor that changed observable behaviour or broke a test is a REJECT.
-VR3 | The settled code must follow the repository's conventions, name things clearly and be reasonably robust, and must not add untested generality.
-VR4 | An unhandled edge case is reported on a FLAGS line carrying its class (overfit, uncovered-spec or beyond-spec), not as a REJECT.
-VR5 | FLAGS lines come before the final VERDICT/REASON pair, one finding per line.
-VR6 | A removed or weakened test assertion in the range is a REJECT that names the assertion.
-VR7 | A purely cosmetic hunk is named in REASON but is not by itself a REJECT.
-VR8 | An empty range is not by itself a REJECT.
-VR9 | A shortfall against a criterion outside the step under judgement is named in REASON as out of scope and is not by itself a REJECT.
-VR10 | A changed file outside the cycle's files (those git diff --name-only base^ base names) is a REJECT, unless its hunk removes duplication between that file and code in the list.
-VR11 | The verifier renders one verdict: PASS when green and up to standard, otherwise REJECT naming the specific weakness.
+## specs/grader-poc/verify-refactor.orig.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VR1 | The verifier reviews the refactor through git diff from the base sha to HEAD, and does not read the range's commit messages. | |
+| VR2 | The verifier runs the fast command and the affected suites itself; both must be green, and a refactor that changed observable behaviour or broke a test is a REJECT. | |
+| VR3 | The settled code must follow the repository's conventions, name things clearly and be reasonably robust, and must not add untested generality. | |
+| VR4 | An unhandled edge case is reported on a FLAGS line carrying its class (overfit, uncovered-spec or beyond-spec), not as a REJECT. | |
+| VR5 | FLAGS lines come before the final VERDICT/REASON pair, one finding per line. | |
+| VR6 | A removed or weakened test assertion in the range is a REJECT that names the assertion. | |
+| VR7 | A purely cosmetic hunk is named in REASON but is not by itself a REJECT. | |
+| VR8 | An empty range is not by itself a REJECT. | |
+| VR9 | A shortfall against a criterion outside the step under judgement is named in REASON as out of scope and is not by itself a REJECT. | |
+| VR10 | A changed file outside the cycle's files (those git diff --name-only base^ base names) is a REJECT, unless its hunk removes duplication between that file and code in the list. | |
+| VR11 | The verifier renders one verdict: PASS when green and up to standard, otherwise REJECT naming the specific weakness. | |
+
+## specs/grader-poc/verify-refactor.ok.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VR1 | The verifier reviews the refactor through git diff from the base sha to HEAD, and does not read the range's commit messages. | |
+| VR2 | The verifier runs the fast command and the affected suites itself; both must be green, and a refactor that changed observable behaviour or broke a test is a REJECT. | |
+| VR3 | The settled code must follow the repository's conventions, name things clearly and be reasonably robust, and must not add untested generality. | |
+| VR4 | An unhandled edge case is reported on a FLAGS line carrying its class (overfit, uncovered-spec or beyond-spec), not as a REJECT. | |
+| VR5 | FLAGS lines come before the final VERDICT/REASON pair, one finding per line. | |
+| VR6 | A removed or weakened test assertion in the range is a REJECT that names the assertion. | |
+| VR7 | A purely cosmetic hunk is named in REASON but is not by itself a REJECT. | |
+| VR8 | An empty range is not by itself a REJECT. | |
+| VR9 | A shortfall against a criterion outside the step under judgement is named in REASON as out of scope and is not by itself a REJECT. | |
+| VR10 | A changed file outside the cycle's files (those git diff --name-only base^ base names) is a REJECT, unless its hunk removes duplication between that file and code in the list. | |
+| VR11 | The verifier renders one verdict: PASS when green and up to standard, otherwise REJECT naming the specific weakness. | |
+
+## specs/grader-poc/verify-refactor.bad.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VR1 | The verifier reviews the refactor through git diff from the base sha to HEAD, and does not read the range's commit messages. | |
+| VR2 | The verifier runs the fast command and the affected suites itself; both must be green, and a refactor that changed observable behaviour or broke a test is a REJECT. | |
+| VR3 | The settled code must follow the repository's conventions, name things clearly and be reasonably robust, and must not add untested generality. | |
+| VR4 | An unhandled edge case is reported on a FLAGS line carrying its class (overfit, uncovered-spec or beyond-spec), not as a REJECT. | |
+| VR5 | FLAGS lines come before the final VERDICT/REASON pair, one finding per line. | |
+| VR6 | A removed or weakened test assertion in the range is a REJECT that names the assertion. | |
+| VR7 | A purely cosmetic hunk is named in REASON but is not by itself a REJECT. | |
+| VR8 | An empty range is not by itself a REJECT. | |
+| VR9 | A shortfall against a criterion outside the step under judgement is named in REASON as out of scope and is not by itself a REJECT. | |
+| VR10 | A changed file outside the cycle's files (those git diff --name-only base^ base names) is a REJECT, unless its hunk removes duplication between that file and code in the list. | |
+| VR11 | The verifier renders one verdict: PASS when green and up to standard, otherwise REJECT naming the specific weakness. | |
+
+## specs/grader-poc/verify-refactor.subtle.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VR1 | The verifier reviews the refactor through git diff from the base sha to HEAD, and does not read the range's commit messages. | |
+| VR2 | The verifier runs the fast command and the affected suites itself; both must be green, and a refactor that changed observable behaviour or broke a test is a REJECT. | |
+| VR3 | The settled code must follow the repository's conventions, name things clearly and be reasonably robust, and must not add untested generality. | |
+| VR4 | An unhandled edge case is reported on a FLAGS line carrying its class (overfit, uncovered-spec or beyond-spec), not as a REJECT. | |
+| VR5 | FLAGS lines come before the final VERDICT/REASON pair, one finding per line. | |
+| VR6 | A removed or weakened test assertion in the range is a REJECT that names the assertion. | |
+| VR7 | A purely cosmetic hunk is named in REASON but is not by itself a REJECT. | |
+| VR8 | An empty range is not by itself a REJECT. | |
+| VR9 | A shortfall against a criterion outside the step under judgement is named in REASON as out of scope and is not by itself a REJECT. | |
+| VR10 | A changed file outside the cycle's files (those git diff --name-only base^ base names) is a REJECT, unless its hunk removes duplication between that file and code in the list. | |
+| VR11 | The verifier renders one verdict: PASS when green and up to standard, otherwise REJECT naming the specific weakness. | |
