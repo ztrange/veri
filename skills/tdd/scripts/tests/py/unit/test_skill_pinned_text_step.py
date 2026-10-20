@@ -34,3 +34,13 @@ def test_scope_and_plan_plans_a_pinned_text_criterions_case_as_its_own_step_afte
     assert "separate step for the case" in sentence, "the rule never plans the case as a separate step"
     assert "same ⟦criterion k⟧" in sentence, "the rule never tags both steps with the same ⟦criterion k⟧"
     assert "after the text's" in sentence, "the rule never places the case's step after the text's"
+
+
+def test_scope_and_plan_plans_a_step_updating_the_older_cases_pinning_changed_text_ahead_of_the_step_changing_it_1862():
+    text = _plain(importlib.import_module("skill_sections").section(SKILL, SCOPE))
+    sentence = next((s for s in re.split(r"(?<=\.)\s", text)
+                     if "changes text or output" in s and "older cases" in s), "")
+    assert sentence, "Scope & plan never tells the planner what to do when a criterion changes text older cases pin"
+    assert "outside the step's own red" in sentence, "the rule never limits itself to cases outside the step's own Red"
+    assert "holds a step that updates those older cases" in sentence, "the rule never plans a step updating the older cases"
+    assert "ahead of the step that changes the text" in sentence, "the rule never places that step ahead of the one changing the text"
