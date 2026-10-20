@@ -1102,3 +1102,22 @@ def test_1656_skill_md_names_the_label_removal_as_the_runs_first_claim_the_draft
     if not _first_record(records, "unlabelled", "relabel", "bail"):
         problems.append("no instruction of SKILL.md says a bailed or parked issue stays unlabelled until a human relabels it")
     assert not problems, problems
+
+
+def test_1904_both_ci_red_bail_lines_take_failed_from_the_stdout_of_the_wait_ci_sh_wait_they_just_ran_and_neither_spells_a_gh_api_check_runs_query():
+    draft_pr_read()
+    lines = _lines(DRAFT_PR)
+    bails = [i for i, line in enumerate(lines) if "cause=ci-red" in line and "event.sh bail" in line]
+    problems = []
+    if len(bails) != 2:
+        problems.append(f"Draft PR step has {len(bails)} ci-red bail lines, not 2")
+    for i in bails:
+        bail = lines[i]
+        if 'failed="$(cat .tdd/wait-ci.out)"' not in bail:
+            problems.append(f"ci-red bail does not take failed= from the wait's stdout file: {bail[:200]}")
+        if "check-runs" in bail or "gh api" in bail:
+            problems.append(f"ci-red bail spells a gh api check-runs query: {bail[:200]}")
+        waits = [j for j in range(i) if "wait-ci.sh" in lines[j] and "> .tdd/wait-ci.out" in lines[j]]
+        if not waits:
+            problems.append(f"no wait-ci.sh run writing its stdout to .tdd/wait-ci.out precedes the bail: {bail[:200]}")
+    assert not problems, problems
