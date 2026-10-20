@@ -2271,3 +2271,43 @@ def test_the_red_missing_call_shape_documented_in_each_doc_filled_in_runs_to_exi
             argv.append(fills.get(tok, tok))
         code, out, err = run_cli(build_develop_prompt, argv)
         assert (code, bool(out.strip())) == (0, True), f"{doc}: `{span}` -> exit {code}: {err}"
+
+
+def test_main_renders_the_fixture_repair_paragraph_in_green_and_revise_green_for_a_marked_step_permitting_the_named_fixture_only_and_in_no_other_prompt_1021(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+    s, r = str(spec), str(reason)
+    marked = ("the case passes under load: repairs the fixture 'awake-clock' in tests/zorblat.test.sh, "
+              "reproduced by a case in tests/zorblat.test.sh ⟦fixture-repair⟧ ⟦criterion 1⟧")
+    unmarked = "the case passes under load ⟦criterion 1⟧"
+
+    def rendered(argv):
+        code = build_develop_prompt.main(argv)
+        out, _ = capsysbinary.readouterr()
+        return re.sub(rb"\s+", b" ", out) if code == 0 else None
+
+    prompts = {
+        ("marked", "green"): rendered(["green", s, marked, "make test", "t.py", "test_x", "make unit"]),
+        ("marked", "revise green"): rendered(["revise", "green", s, marked, "make test", r]),
+        ("unmarked", "green"): rendered(["green", s, unmarked, "make test", "t.py", "test_x", "make unit"]),
+        ("marked", "red"): rendered(["red", s, marked, "make test"]),
+        ("marked", "refactor"): rendered(["refactor", s, marked, "make test", "t.py"]),
+        ("marked", "revise refactor"): rendered(["revise", "refactor", s, marked, "make test", r]),
+    }
+    paragraph = rb"repairs a fixture"
+    permits = (rb"may edit that fixture[^.]*\.? ?[^.]*not the target case, not any other case, "
+               rb"and not any production file")
+
+    assert {key: (prompt is not None and re.search(paragraph, prompt, re.I) is not None,
+                  prompt is not None and re.search(permits, prompt, re.I) is not None)
+            for key, prompt in prompts.items()} == {
+        ("marked", "green"): (True, True),
+        ("marked", "revise green"): (True, True),
+        ("unmarked", "green"): (False, False),
+        ("marked", "red"): (False, False),
+        ("marked", "refactor"): (False, False),
+        ("marked", "revise refactor"): (False, False),
+    }
