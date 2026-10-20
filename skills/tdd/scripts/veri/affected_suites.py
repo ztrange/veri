@@ -349,7 +349,7 @@ def main(argv):
 
     if unplaced:
         print("affected-suites: no rule places %s; widening to every suite" % ",".join(unplaced), file=sys.stderr)
-        placed = every_suite()
+        placed = [p for p, _ in pytest_texts()]
     elif not placed:
         return 3
     sys.stdout.write("".join(s + "\n" for s in sorted(set(placed))))
