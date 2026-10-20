@@ -1,14 +1,9 @@
 """In-process cases for CLAUDE.md's record of the fast test tier."""
 import re
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[6]
+from skill_sections import ROOT, plain
+
 CLAUDE_MD = "CLAUDE.md"
-LOWER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
-
-
-def plain(text):
-    return text.replace("*", "").replace("`", "").translate(LOWER)
 
 
 def section_records(section_name):

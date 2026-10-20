@@ -1,14 +1,10 @@
 """In-process cases for CLAUDE.md as a record of its own rules."""
 import re
-from pathlib import Path
 
-CLAUDE_MD = Path(__file__).resolve().parents[6] / "CLAUDE.md"
+from skill_sections import ROOT, plain
+
+CLAUDE_MD = ROOT / "CLAUDE.md"
 IDIOM_HEADING = "## Testing idiom"
-LOWER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
-
-
-def plain(text):
-    return text.replace("*", "").replace("`", "").translate(LOWER)
 
 
 def split_records(lines):

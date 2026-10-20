@@ -1,26 +1,16 @@
 """In-process cases for the two root documents' record of the per-role model tunables."""
 import re
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[6]
+from skill_sections import LOWER, ROOT, lines_of, plain
+
 SKILL_MD = "skills/tdd/SCRIPTS.md"
 CLAUDE_MD = "CLAUDE.md"
 SUPERVISE_SH = "skills/tdd/scripts/supervise.sh"
-LOWER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
 
 MODEL_ANY = r"veri_model([^_a-z]|$)"
 MODEL_DEV = "veri_model_developer"
 MODEL_VER = "veri_model_verifier"
 MODEL_REV = "veri_model_revise"
-
-
-def plain(text):
-    return text.replace("*", "").replace("`", "").translate(LOWER)
-
-
-def lines_of(path):
-    lines = Path(path).read_text().split("\n")
-    return lines[:-1] if lines and lines[-1] == "" else lines
 
 
 def joined(lines):

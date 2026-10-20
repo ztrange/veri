@@ -2,6 +2,18 @@ import pathlib
 
 import pytest
 
+ROOT = pathlib.Path(__file__).resolve().parents[5]
+LOWER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
+
+
+def plain(text):
+    return text.replace("*", "").replace("`", "").translate(LOWER)
+
+
+def lines_of(path):
+    lines = pathlib.Path(path).read_text().split("\n")
+    return lines[:-1] if lines and lines[-1] == "" else lines
+
 
 def _level(line):
     hashes = len(line) - len(line.lstrip("#"))
