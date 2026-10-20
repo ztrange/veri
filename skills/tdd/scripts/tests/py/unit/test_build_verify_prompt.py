@@ -1919,3 +1919,22 @@ def test_main_tells_the_plan_verifier_to_reject_a_plan_changing_text_older_cases
     assert (len(rules) > 0,
             any("older cases" in r and "without a step that updates those older cases ahead of the step that changes the text" in r
                 for r in rules)) == (True, True)
+
+
+def test_plan_prompt_rejects_a_fixture_repair_step_with_the_defect_in_the_script_no_fixture_or_a_non_test_fixture_file_1021(
+        tmp_path, run_cli, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(SPEC_TEXT.encode())
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(b"- [ ] c: repairs the fixture 'f' in t/x.test.sh, reproduced by a case in t/x.test.sh"
+                       b" \xe2\x9f\xa6fixture-repair\xe2\x9f\xa7 \xe2\x9f\xa6criterion 1\xe2\x9f\xa7\n")
+
+    code, out, _ = run_cli(build_verify_prompt, ["plan", str(spec), str(ledger)])
+
+    text = " ".join(out.split())
+    rule = next((s for s in re.split(r"(?<=\.) ", text) if s.startswith("REJECT a `⟦fixture-repair⟧` step")), "")
+    assert code == 0
+    assert "- [ ] <criterion>: repairs the fixture '<fixture or stub name>' in <fixture file>, reproduced by a case in <test file> ⟦fixture-repair⟧ ⟦criterion k⟧" in text
+    assert "whose spec places the defect in the script under test" in rule
+    assert "names no fixture" in rule
+    assert "whose fixture file is not a test file" in rule
