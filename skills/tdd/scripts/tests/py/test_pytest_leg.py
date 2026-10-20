@@ -215,3 +215,41 @@ def test_a_case_that_connects_to_a_non_loopback_address_or_starts_gh_or_curl_fai
     assert "gh" in out.split("test_starts_gh", 1)[-1]
     assert "curl" in out.split("test_starts_curl", 1)[-1]
     assert not (tmp_path / "ran-gh").exists() and not (tmp_path / "ran-curl").exists()
+
+
+@pytest.mark.process("the launcher run as a child over a planted tests tree whose cases start a gh and a curl they planted under their own basetemp")
+def test_a_gh_or_curl_stub_a_case_plants_under_the_run_s_basetemp_starts_and_passes_the_network_guard(tmp_path):
+    import os
+    import subprocess
+
+    scripts = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    veri = os.path.join(scripts, "veri")
+    planted = tmp_path / "planted"
+    planted.mkdir()
+    (planted / "test_starts_its_own_stubs.py").write_text(
+        "import os\n"
+        "import subprocess\n"
+        "\n"
+        "def stub(directory, name):\n"
+        "    directory.mkdir(exist_ok=True)\n"
+        "    path = directory / name\n"
+        "    path.write_text('#!/bin/sh\\ntouch ' + os.path.join(%r, 'ran-' + name) + '\\n')\n"
+        "    path.chmod(0o755)\n"
+        "\n"
+        "def test_starts_a_gh_found_on_its_own_path(tmp_path):\n"
+        "    stub(tmp_path / 'bin', 'gh')\n"
+        "    subprocess.run(['gh', 'issue', 'list'], env=dict(os.environ, PATH=str(tmp_path / 'bin') + os.pathsep + os.environ['PATH']), check=True)\n"
+        "\n"
+        "def test_starts_a_curl_by_its_full_path(tmp_path):\n"
+        "    stub(tmp_path / 'bin', 'curl')\n"
+        "    subprocess.run([str(tmp_path / 'bin' / 'curl'), 'http://example.invalid'], check=True)\n"
+        % str(tmp_path)
+    )
+    done = subprocess.run(
+        [sys.executable, "-c", "import runpy, sys; sys.argv[0] = sys.argv.pop(1); runpy.run_path(sys.argv[0], run_name='__main__')",
+         os.path.join(veri, "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],
+        cwd=tmp_path, env=dict(os.environ, PYTHONPATH=veri), capture_output=True, text=True, timeout=60,
+    )
+    out = done.stdout + done.stderr
+    assert "2 passed" in out and "failed" not in out
+    assert (tmp_path / "ran-gh").exists() and (tmp_path / "ran-curl").exists()
