@@ -378,3 +378,25 @@ def test_record_step_lists_only_the_pytest_function_red_appended_after_an_older_
 
     assert "case: test_appended_by_red_1861\n" in record
     assert "test_older_case_1861" not in record
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_record_step_lists_only_the_bash_case_red_appended_at_the_end_of_a_suite_with_no_finish_trailer_1861(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "tests/suite.test.sh"
+    suite.write_text('name="older case"\ncheck_older\nok\n')
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one appends a bash case with no trailer"
+    suite.write_text('name="older case"\ncheck_older\nok\n\n\n'
+                     'name="appended by red 1861"\ncheck_added\nok\n')
+
+    run_cli(tests_frozen, ["record", "--step", step, "tests/suite.test.sh"], cwd=tmp_path)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    record = (tmp_path / record_path.rstrip("\n")).read_text()
+
+    assert "case: appended by red 1861\n" in record
+    assert "older case" not in record
