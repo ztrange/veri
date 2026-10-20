@@ -95,3 +95,21 @@ def test_skill_edit_guard_untracked_other_file_exit_1_and_prints_it(tmp_path):
 
     assert code == 1
     assert "skills/foo/NOTES.md" in out
+
+
+@pytest.mark.process("skill-edit-guard.sh run against a real git repository")
+def test_skill_edit_guard_graded_file_changed_exit_1_and_prints_it(tmp_path):
+    repo = tmp_path / "guard"
+    (repo / "skills/foo").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "skills/foo/FOO.md").write_text("prose\n")
+    (repo / "skills/foo/REQUIREMENTS.md").write_text("| K1 | rule |\n")
+    (repo / "skills/foo/GRADED").write_text("skills/foo/FOO.md sig 2026-10-19 ev1\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: foo")
+    base = git(repo, "rev-parse", "HEAD")
+    (repo / "skills/foo/FOO.md").write_text("prose two\n")
+    (repo / "skills/foo/REQUIREMENTS.md").write_text("| K1 | rule two |\n")
+    (repo / "skills/foo/GRADED").write_text("skills/foo/FOO.md forged 2026-10-20 ev2\n")
+
+    assert guard(repo, "skills/foo/FOO.md", base) == (1, "skills/foo/GRADED\n")
