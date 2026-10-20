@@ -269,6 +269,30 @@ def test_main_launches_the_leaf_through_one_sh_wrapper_in_its_own_group_logging_
     ]
 
 
+def test_main_run_from_a_subdirectory_of_the_repo_writes_its_run_state_under_tdd_at_the_repo_root_and_leaves_no_tdd_in_the_subdirectory_1895(
+        monkeypatch, tmp_path, supervise):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    monkeypatch.setattr(time, "sleep", lambda *_: None)
+    clean_env(monkeypatch)
+    fake_leaf_launch(monkeypatch)
+
+    def run_from(root, subdirectory):
+        (root / ".git").mkdir(parents=True)
+        work = root / subdirectory
+        work.mkdir(parents=True, exist_ok=True)
+        monkeypatch.chdir(work)
+        code = supervise.main(["verdict-red", "sh", "-c", "exit 0"])
+        state = sorted(p.name for p in (root / ".tdd").glob("verdict-red.*")) if (root / ".tdd").is_dir() else None
+        return code, state, (work / ".tdd").exists() and work != root
+
+    assert [run_from(tmp_path / "root", "."), run_from(tmp_path / "nested", "skills/deep")] == [
+        (0, ["verdict-red.exit", "verdict-red.log", "verdict-red.pid", "verdict-red.rc"], False),
+        (0, ["verdict-red.exit", "verdict-red.log", "verdict-red.pid", "verdict-red.rc"], False),
+    ]
+
+
 def test_main_maps_the_leaf_rc_to_its_exit_code_records_its_own_pid_and_clears_a_stale_log_rc_and_exit_before_the_launch_leaving_a_leafs_own_exit_record(
         monkeypatch, tmp_path, capsysbinary, supervise):
     import signal

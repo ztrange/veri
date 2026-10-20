@@ -1,6 +1,6 @@
 # Plan for #1895 — A script run from a subdirectory creates an empty .tdd/ there, which the skills-are-skills suite then reads as a skill
 
-- [ ] supervise.py run with its working directory a subdirectory of the repo creates and writes its run state (`.tdd/<name>.log`, `.rc`, `.exit`, `.pid`) under `.tdd/` at the repo root and leaves no `.tdd/` in the subdirectory; run from the root it behaves as before ⟦criterion 1⟧
+- [x] supervise.py run with its working directory a subdirectory of the repo creates and writes its run state (`.tdd/<name>.log`, `.rc`, `.exit`, `.pid`) under `.tdd/` at the repo root and leaves no `.tdd/` in the subdirectory; run from the root it behaves as before ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] verify.py run with its working directory a subdirectory of the repo writes its verifier prompt and run state under `.tdd/` at the repo root and leaves no `.tdd/` in the subdirectory; run from the root it behaves as before ⟦criterion 1⟧
 - [ ] pin_fast_tier.py run with its working directory a subdirectory of the repo writes `verify-pin.reason` under `.tdd/` at the repo root and leaves no `.tdd/` in the subdirectory; run from the root it behaves as before ⟦criterion 1⟧
 - [ ] parallel_conductors.py run with its working directory a subdirectory of the repo writes `parallel.exit` and its conductor logs under `.tdd/` at the repo root and leaves no `.tdd/` in the subdirectory; run from the root it behaves as before ⟦criterion 1⟧

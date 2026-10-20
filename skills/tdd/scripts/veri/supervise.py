@@ -357,8 +357,9 @@ def main(argv):
         return refused
     poll = tunables.read("VERI_POLL", unless_empty="1")
     name = argv[0]
-    tolerated(name, "create", ".tdd", lambda: os.makedirs(".tdd", exist_ok=True))
-    log, rcfile, exitfile = f".tdd/{name}.log", f".tdd/{name}.rc", f".tdd/{name}.exit"
+    state = os.path.join(event.toplevel(), ".tdd")
+    tolerated(name, "create", state, lambda: os.makedirs(state, exist_ok=True))
+    log, rcfile, exitfile = f"{state}/{name}.log", f"{state}/{name}.rc", f"{state}/{name}.exit"
     role = model = ""
     watched = not name.startswith("verdict-")
     if watched:
@@ -388,7 +389,7 @@ def main(argv):
     if watched and not name.startswith("conductor-"):
         tolerated(name, "write", ownerfile, write_line, ownerfile, f"{os.getpid()} {name}")
     mark(role, leaf_env, "launch", f"name={name}", f"cmd={' '.join(argv[1:])}", f"model={model}")
-    pidfile = f".tdd/{name}.pid"
+    pidfile = f"{state}/{name}.pid"
     tolerated(name, "write", pidfile, write_line, pidfile, os.getpid())
     discard(exitfile)
     started = []
