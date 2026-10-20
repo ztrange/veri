@@ -185,23 +185,21 @@ def main(argv):
             return 1
         now = int(subprocess.run(["date", "+%s"], stdout=subprocess.PIPE, text=True).stdout)
         scope["now"] = now
-        if want and head != want:
+        if slice_end is None:
             try:
-                if slice_end is None:
-                    slice_end = now + arith(span, scope)
-                    if os.path.dirname(".tdd/ci-deadline-" + want) != ".tdd":
-                        warn("head-sha %s cannot name a deadline file" % want)
+                slice_end = now + arith(span, scope)
+                if want and head != want and os.path.dirname(".tdd/ci-deadline-" + want) != ".tdd":
+                    warn("head-sha %s cannot name a deadline file" % want)
             except ArithError as error:
                 warn(error)
                 break
+        if want and head != want:
             if now >= slice_end:
                 break
             subprocess.run(["sleep", poll])
             continue
         if not deadline:
             try:
-                if slice_end is None:
-                    slice_end = now + arith(span, scope)
                 key = want or head
                 mark = ".tdd/ci-deadline-" + key
                 inherited = os.path.exists(mark)
