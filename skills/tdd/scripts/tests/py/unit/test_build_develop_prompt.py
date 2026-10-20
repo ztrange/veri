@@ -2311,3 +2311,26 @@ def test_main_renders_the_fixture_repair_paragraph_in_green_and_revise_green_for
         ("marked", "refactor"): (False, False),
         ("marked", "revise refactor"): (False, False),
     }
+
+
+def test_main_refuses_a_fixture_repair_step_in_green_with_exit_2_naming_the_fixture_repair_partial_when_it_is_missing_1021(
+        tmp_path, capsysbinary):
+    scripts = tmp_path / "scripts"
+    (scripts / "veri").mkdir(parents=True)
+    (scripts / "prompts").mkdir()
+    (scripts / "veri" / "build_develop_prompt.py").write_bytes((SCRIPTS / "veri" / "build_develop_prompt.py").read_bytes())
+    for name in ("develop-green.md", "_develop-shared.md"):
+        (scripts / "prompts" / name).write_bytes(b"x\n")
+    loader = importlib.util.spec_from_file_location("build_develop_prompt_no_fixture_partial",
+                                                    scripts / "veri" / "build_develop_prompt.py")
+    module = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(module)
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    step = ("the case passes under load: repairs the fixture 'awake-clock' in tests/zorblat.test.sh, "
+            "reproduced by a case in tests/zorblat.test.sh ⟦fixture-repair⟧ ⟦criterion 1⟧")
+
+    code = module.main(["green", str(spec), step, "make test", "t.py", "test_x", "make unit"])
+
+    assert (code, *capsysbinary.readouterr()) == (
+        2, b"", f"build-develop-prompt: cannot read '{scripts / 'prompts' / '_develop-green-fixture-repair.md'}'\n".encode())
