@@ -159,7 +159,7 @@ def hermetic_environment(request, monkeypatch, tmp_path):
             monkeypatch.delenv(name)
     if request.node.path.name in CWD_OUTSIDE_REPOSITORY:
         monkeypatch.chdir(tmp_path)
-    elif ROOT in pathlib.Path.cwd().resolve().parents or pathlib.Path.cwd().resolve() == ROOT:
+    elif at_or_under_root(pathlib.Path.cwd().resolve()):
         monkeypatch.chdir(ROOT)
     monkeypatch.setenv("LC_ALL", "C")
     for name, value in offline.items():
@@ -213,8 +213,12 @@ def process_case_waits_no_default_push_backoff(request, monkeypatch, tmp_path_fa
         fail_unbacked_push(request)
 
 
+def at_or_under_root(path):
+    return path == ROOT or ROOT in path.parents
+
+
 def in_repository_outside(resolved, scratch):
-    return (resolved == ROOT or ROOT in resolved.parents) and scratch != resolved and scratch not in resolved.parents
+    return at_or_under_root(resolved) and scratch != resolved and scratch not in resolved.parents
 
 
 @pytest.fixture(autouse=True)
