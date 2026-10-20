@@ -62,13 +62,13 @@ COUNT_LINE_GUARD := skills/tdd/scripts/lib/count-line-guard.sh
 # path, or file:// — untouched, since suites here clone, fetch and push between scratch repos on
 # disk. The trade-off, accepted: a suite whose git reach is refused is no longer named on a "tried
 # the network: …" line the way a gh or curl reach still is — the failure is git's own "transport …
-# not allowed", on stderr, wherever the suite sends it. count-line-guard.test.sh pins both halves.
+# not allowed", on stderr, wherever the suite sends it.
 #
 # The proxies point at a port nothing listens on, for anything that gets past the shims; loopback
 # is exempt, because a suite that serves a page on 127.0.0.1 asks it there.
 #
 # Three more things are fixed for every suite rather than inherited from whoever typed `make test`
-# (make-test-env.test.sh pins all three). Each cost the development Mac time CI never paid:
+#. Each cost the development Mac time CI never paid:
 #   - LC_ALL=C. macOS's BSD awk, tr, grep and sed run ~12x slower over text in a UTF-8 locale,
 #     and the terminal a conductor runs in sets one: 121 s of a 440 s run, measured 2026-09-18.
 #     Python still reads UTF-8 under it (PEP 538 coerces the C locale).
@@ -116,7 +116,7 @@ VENV_DIR := $$(bash -c '. $(VENV_LIB) && venv_dir')
 # the bash macOS ships in /bin, so a stale PATH must not be left to fail however a bash-4-only
 # construct happens to fail inside some suite: the recipe asks that bash its major version
 # before any suite runs, and refuses naming what to install. VERI_BASH_MAJOR stands in for the
-# answer, for bash-version-guard.test.sh, because CI's runner has no older bash to ask. An
+# answer, because CI's runner has no older bash to ask. An
 # answer that is not a number (no bash on PATH at all) is refused too, rather than compared.
 BASH_GUARD := bash_major="$${VERI_BASH_MAJOR:-$$(bash -c 'echo "$${BASH_VERSINFO[0]}"' 2>/dev/null)}"; \
 	case "$$bash_major" in ''|*[!0-9]*) bash_major=0 ;; esac; \

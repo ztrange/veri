@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# A fixture, not a suite: only count-line-guard.test.sh runs it, through `make test`.
+# A fixture, not a suite: only a pytest case runs it.
 # One case passes, the suite reaches its count line, reports nothing failed and exits 0.
 set -uo pipefail
 
