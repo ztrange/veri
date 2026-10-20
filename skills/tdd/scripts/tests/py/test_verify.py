@@ -218,15 +218,7 @@ def test_main_drops_nul_bytes_from_the_leafs_output_so_a_verdict_carrying_them_i
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
 
-    def fake(args, *_, **__):
-        name = os.path.basename(str(args[0]))
-        if name == "supervise.sh":
-            return subprocess.CompletedProcess(
-                args, 0, b"VER\x00DICT: REJ\x00ECT\nthe \x00whole\nreason\x00\n", None)
-        return subprocess.CompletedProcess(args, 0, b"", b"")
-
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, fake)
+    answering_leaf(monkeypatch, "VER\x00DICT: REJ\x00ECT\nthe \x00whole\nreason\x00")
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
