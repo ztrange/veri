@@ -1,11 +1,13 @@
 """run-conductor.sh's launch of one conductor, run in-process."""
 # hazard: runs on the python3 it may refuse, so nothing here may need more than Python 3.9.
 import os
+import json
 import shutil
 import signal
 import subprocess
 import sys
 import tempfile
+import threading
 
 sys.dont_write_bytecode = True
 
@@ -127,6 +129,7 @@ def launch(base, issue, commit, **exports):
     env.pop("FORCE_PROMPT_CACHING_5M", None)
     binary = os.environ.get("CLAUDE_BIN") or "claude"
     unread = []
+    result = None
     terminated = []
     previous = {sig: signal.signal(sig, handler) for sig, handler in (
         (signal.SIGPIPE, lambda *_: unread.append(True)),
@@ -134,10 +137,24 @@ def launch(base, issue, commit, **exports):
         (signal.SIGINT, lambda *_: None),
         (signal.SIGHUP, lambda *_: None))}
     try:
-        code = subprocess.run([binary, "-p", "--output-format", "stream-json",
-                               "--verbose"] + context_limits() + [
-                               "--permission-mode", "bypassPermissions", "--model", "opus"],
-                              input=text, env=env).returncode
+        read_end, write_end = os.pipe()
+        seen = []
+        sys.stdout.flush()
+        terminal = os.dup(1)
+        reader = threading.Thread(target=relay, args=(os.fdopen(read_end, "rb"), terminal, unread, seen), daemon=True)
+        reader.start()
+        os.dup2(write_end, 1)
+        try:
+            code = subprocess.run([binary, "-p", "--output-format", "stream-json",
+                                   "--verbose"] + context_limits() + [
+                                   "--permission-mode", "bypassPermissions", "--model", "opus"],
+                                  input=text, env=env).returncode
+        finally:
+            os.dup2(terminal, 1)
+            os.close(write_end)
+            reader.join()
+            os.close(terminal)
+        result = seen[-1] if seen else None
     except FileNotFoundError:
         sys.stderr.write("run-conductor: %s: command not found\n" % binary)
         code = 127
@@ -153,7 +170,34 @@ def launch(base, issue, commit, **exports):
             pass
     if code < 0:
         return 128 - code
+    if code == 0 and result is not None and result.rstrip().endswith("?") and not closed(issue):
+        if event.mark(".tdd/wt/" + issue, event.context(tunables.with_values(VERI_ISSUE=issue)),
+                      "bail", ["cause=needs-user"]) != 0:
+            return 2
     return 141 if code == 0 and unread else code
+
+
+def relay(stream, terminal, unread, results):
+    for raw in stream:
+        try:
+            os.write(terminal, raw)
+        except OSError:
+            unread.append(True)
+        try:
+            record = json.loads(raw)
+        except ValueError:
+            continue
+        if isinstance(record, dict) and record.get("type") == "result" and isinstance(record.get("result"), str):
+            results.append(record["result"])
+
+
+def closed(issue):
+    try:
+        with open(".tdd/wt/%s/.tdd/events.jsonl" % issue) as log:
+            last = [line for line in log if line.strip()][-1]
+        return json.loads(last).get("event") in ("done", "bail", "stop")
+    except (OSError, IndexError, ValueError):
+        return False
 
 
 def record_path(issue):
