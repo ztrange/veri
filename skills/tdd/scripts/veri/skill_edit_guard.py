@@ -6,14 +6,17 @@ import sys
 USAGE = "usage: skill-edit-guard.sh <unit-file> <base-sha>"
 
 
+def _git_lines(*args):
+    return subprocess.run(["git", *args], capture_output=True, text=True).stdout.split("\n")
+
+
 def main(argv):
     if len(argv) != 2:
         print(USAGE, file=sys.stderr)
         return 2
     unit, base = argv
     allowed = {unit, os.path.join(os.path.dirname(unit), "REQUIREMENTS.md")}
-    changed = subprocess.run(["git", "diff", "--name-only", base], capture_output=True, text=True).stdout.split("\n")
-    changed += subprocess.run(["git", "ls-files", "--others", "--exclude-standard"], capture_output=True, text=True).stdout.split("\n")
+    changed = _git_lines("diff", "--name-only", base) + _git_lines("ls-files", "--others", "--exclude-standard")
     others = [path for path in changed if path and path not in allowed]
     for path in others:
         print(path)
