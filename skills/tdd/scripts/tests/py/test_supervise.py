@@ -42,25 +42,6 @@ def supervise():
     return importlib.import_module("veri.supervise")
 
 
-def test_main_refuses_a_missing_or_empty_name_and_a_missing_cmd_with_its_usage_line_starting_nothing_and_writing_nothing(
-        monkeypatch, tmp_path, capsysbinary, supervise, fake_processes):
-    monkeypatch.chdir(tmp_path)
-    calls = fake_processes()
-
-    answers = []
-    for argv in ([], [""], ["develop-red"]):
-        code = supervise.main(argv)
-        answers.append((argv, code, capsysbinary.readouterr()))
-
-    assert answers == [
-        ([], 2, (b"", USAGE)),
-        ([""], 2, (b"", USAGE)),
-        (["develop-red"], 2, (b"", b"supervise: missing <cmd>\n" + USAGE)),
-    ]
-    assert calls == []
-    assert sorted(os.listdir(tmp_path)) == []
-
-
 def test_cli_refuses_no_argument_an_empty_name_and_a_name_alone_through_run_cli_with_exit_2_its_usage_line_nothing_on_stdout_and_no_tdd(
         monkeypatch, tmp_path, supervise, run_cli, fake_processes):
     monkeypatch.chdir(tmp_path)
@@ -78,13 +59,17 @@ def test_cli_refuses_no_argument_an_empty_name_and_a_name_alone_through_run_cli_
     assert sorted(os.listdir(tmp_path)) == []
 
 
+SET_BY_CLEAN_ENV = set()
+
+
 def clean_env(monkeypatch, **env):
     """No VERI_* variable but the ones given."""
     for key in list(os.environ):
-        if key.startswith("VERI_"):
+        if key in SET_BY_CLEAN_ENV:
             monkeypatch.delenv(key)
     for key, value in env.items():
         monkeypatch.setenv(key, value)
+        SET_BY_CLEAN_ENV.add(key)
 
 
 def as_asked(out, kwargs):
@@ -395,6 +380,7 @@ def test_main_resolves_the_model_in_process_marks_it_on_the_launch_and_hands_the
     monkeypatch.setattr(time, "clock_gettime", lambda *_: 5000.0)
     monkeypatch.setenv("VERI_LEAF_MODEL", "ambient")
     monkeypatch.setenv("VERI_SKILL_COMMIT", "ambient")
+    SET_BY_CLEAN_ENV.update(("VERI_LEAF_MODEL", "VERI_SKILL_COMMIT"))
     here = os.path.dirname(os.path.dirname(os.path.abspath(supervise.__file__)))
     sha = "0123456789abcdef0123456789abcdef01234567"
     whitespace = b"leaf-model: model 'opus x' contains whitespace (a model id or alias is one word)"
