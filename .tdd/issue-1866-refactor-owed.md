@@ -1,2 +1,4 @@
 ### When the stub conductor (CLAUDE_BIN) exits 0 with a `result` record that ends on a question, and the issue's event log ends in none of `done`, `bail` or `stop`, run-conductor.sh appends a `bail` event with cause `needs-user` to that event log ⟦criterion 2⟧
 - test-only | extract the repeated stub-conductor setup (write the script, chmod, set CLAUDE_BIN) from the two #1866 tests in test_run_conductor.py into one helper
+### When the stub conductor exits 0 with a `result` record that does not end on a question, and the event log ends in none of `done`, `bail` or `stop`, run-conductor.sh still appends the `needs-user` bail event, since criterion 2 bails on any result with no closing event ⟦added⟧ ⟦criterion 2⟧
+- test-only | the three new `1866` cases in `test_run_conductor.py` repeat the same stub-conductor setup (write the script, `chmod`, set `CLAUDE_BIN`) and could share a helper that takes the event line and the result text
