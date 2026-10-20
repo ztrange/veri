@@ -85,11 +85,13 @@ no `VERSION` file, no changelog. One merged feature/fix issue is one minor bump,
 - **The committed ledger is the source of truth** for done steps; the issue only mirrors it.
   A step's green tick appends `⟂ refactor pending`, removed only by its verify-refactor PASS,
   so a resumed run can tell green from finished.
-- **Five budgets on five axes, never merged**: `VERI_STUCK_RETRIES` (liveness — no answer),
+- **Six budgets on six axes, never merged**: `VERI_STUCK_RETRIES` (liveness — no answer),
   `VERI_NO_VERDICT_RETRIES` (protocol compliance — finished without a `VERDICT:` line),
   `REVISE_BUDGET` (verdict — rejected), `VERI_REFACTOR_BUDGET` (cost — the transforms one
   refactor leaf may apply for the whole step; ADR-0017) and `VERI_STEP_GROWTH` (plan growth —
-  max `⟦added⟧` steps per ledger; ADR-0022), never folded into the other four. One knob over
+  max `⟦added⟧` steps per ledger; ADR-0022), never folded into the other four, and
+  `VERI_SKILL_EDIT_BUDGET` (the attempts one `⟦skill-edit⟧` step's author may make), a sixth on an
+  axis of its own, never folded into the other five. One knob over
   any two would make different failures one decision (ADR-0020). A bad `VERI_REFACTOR_BUDGET`
   is caught in preflight.
 - **The developer's and the verifier's models are separate knobs**: `VERI_MODEL` (every leaf),
