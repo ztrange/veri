@@ -536,3 +536,39 @@ def test_record_step_lists_the_bash_case_red_edited_below_an_indented_finish_lin
     record = (tmp_path / record_path.rstrip("\n")).read_text()
 
     assert [line for line in record.splitlines() if line.startswith("case: ")] == ["case: finishing case"]
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
+def test_record_and_check_by_step_key_an_unmarked_steps_record_by_path_and_reject_an_edit_to_its_test_file_1586(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "a.test.sh"
+    suite.write_text("case one\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "a.test.sh")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one adds case one"
+    key = run_cli(tests_frozen, ["path", step], cwd=tmp_path)[1].rstrip("\n")
+
+    recorded = run_cli(tests_frozen, ["record", "--step", step, "a.test.sh"], cwd=tmp_path)[0]
+    suite.write_text("case one, weakened\n")
+    checked = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)[:2]
+
+    assert (recorded, (tmp_path / key).is_file(), checked) == (0, True, (1, "a.test.sh\n"))
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
+def test_an_unmarked_step_quoting_a_repair_mark_in_its_prose_is_still_frozen_1586(tmp_path, run_cli, tests_frozen):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "a.test.sh"
+    suite.write_text("case one\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "a.test.sh")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "A `⟦ci-repair⟧` step's verify-green judges only the CI log ⟦added⟧ ⟦criterion 2⟧"
+
+    recorded = run_cli(tests_frozen, ["record", "--step", step, "a.test.sh"], cwd=tmp_path)[0]
+    suite.write_text("case one, weakened\n")
+    checked = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)[:2]
+
+    assert (recorded, checked) == (0, (1, "a.test.sh\n"))
