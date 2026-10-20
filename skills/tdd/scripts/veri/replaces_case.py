@@ -9,6 +9,7 @@ _QUOTE = r"['\"`]"
 _START = re.compile(_REPLACES + "(?=" + _QUOTE + ")")
 _UNQUOTED = re.compile(_REPLACES + "(?!" + _QUOTE + r")\S")
 _OTHER_SUITE = re.compile(_REPLACES + "(?=" + _QUOTE + r").*? in ([\w./-]+)")
+_JOINT = "(?:, | and )"
 _SUITE = re.compile(r" in ([\w./-]+\.test\.sh)")
 
 
@@ -27,9 +28,8 @@ def parse(step):
     region = step[start.end() + 1:suite.start()]
     if not region.endswith(quote):
         return None
-    names = re.split(re.escape(quote) + "(?:, | and )" + re.escape(quote), region[:-1])
-    joint = "(?:, | and )"
-    if any(re.search(re.escape(quote) + joint + "|" + joint + re.escape(quote), name) for name in names):
+    names = re.split(re.escape(quote) + _JOINT + re.escape(quote), region[:-1])
+    if any(re.search(re.escape(quote) + _JOINT + "|" + _JOINT + re.escape(quote), name) for name in names):
         return None
     return names, suite.group(1)
 
