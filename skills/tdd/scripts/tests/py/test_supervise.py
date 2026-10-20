@@ -582,11 +582,16 @@ def test_main_gives_the_same_exit_stdout_stderr_and_usage_record_with_any_start_
 
 
 class StubLeaf:
-    pid = 4242
-    returncode = None
     args = []
 
+    def __init__(self, pid=4242, returncode=None, on_poll=None):
+        self.pid = pid
+        self.returncode = returncode
+        self.on_poll = on_poll
+
     def poll(self):
+        if self.on_poll:
+            self.on_poll()
         return self.returncode
 
     def wait(self, timeout=None):
@@ -623,18 +628,7 @@ def test_main_with_veri_heartbeat_unset_kills_a_silent_leaf_at_181s_of_silence_n
     monkeypatch.setattr(time, "sleep", sleep)
     monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
 
-    class Leaf:
-        pid = 4242
-        returncode = None
-        args = []
-
-        def poll(self):
-            return self.returncode
-
-        def wait(self, timeout=None):
-            return self.returncode
-
-    leaf = Leaf()
+    leaf = StubLeaf()
     kills = []
 
     def killpg(pgid, sig):
@@ -723,18 +717,7 @@ def test_main_reads_the_wall_clock_through_date_and_a_logs_mtime_through_stat_c_
         clock = {"wall": 1000, "sleeps": 0}
         calls, kills = [], []
 
-        class Leaf:
-            pid = 4242
-            returncode = None
-            args = []
-
-            def poll(self):
-                return self.returncode
-
-            def wait(self, timeout=None):
-                return self.returncode
-
-        leaf = Leaf()
+        leaf = StubLeaf()
 
         def sleep(_):
             clock["sleeps"] += 1
@@ -861,18 +844,7 @@ def test_main_reads_a_veri_heartbeat_with_leading_zeros_as_decimal_010_a_10s_win
         clock = {"wall": 1000, "sleeps": 0}
         kills = []
 
-        class Leaf:
-            pid = 4242
-            returncode = None
-            args = []
-
-            def poll(self):
-                return self.returncode
-
-            def wait(self, timeout=None):
-                return self.returncode
-
-        leaf = Leaf()
+        leaf = StubLeaf()
 
         def sleep(_):
             clock["sleeps"] += 1
@@ -965,18 +937,7 @@ def test_main_fires_the_hard_timeout_on_the_awake_clock_slides_the_heartbeat_by_
         clock = {"wall": 1000, "awake": 5000, "sleeps": 0}
         clocks, awake_runs, kills = [], [], []
 
-        class Leaf:
-            pid = 4242
-            returncode = None
-            args = []
-
-            def poll(self):
-                return self.returncode
-
-            def wait(self, timeout=None):
-                return self.returncode
-
-        leaf = Leaf()
+        leaf = StubLeaf()
 
         def sleep(_):
             clock["sleeps"] += 1
@@ -1111,18 +1072,7 @@ def test_main_reads_a_veri_timeout_with_leading_zeros_as_decimal_010_a_10s_cap_a
         clock = {"wall": 1000, "awake": 5000, "sleeps": 0}
         kills = []
 
-        class Leaf:
-            pid = 4242
-            returncode = None
-            args = []
-
-            def poll(self):
-                return self.returncode
-
-            def wait(self, timeout=None):
-                return self.returncode
-
-        leaf = Leaf()
+        leaf = StubLeaf()
 
         def sleep(_):
             clock["sleeps"] += 1
@@ -1209,18 +1159,7 @@ def test_main_reads_a_settled_timeout_with_leading_zeros_as_decimal_010_a_10s_ca
     clock = {"wall": 1000, "awake": 5000, "sleeps": 0}
     kills = []
 
-    class Leaf:
-        pid = 4242
-        returncode = None
-        args = []
-
-        def poll(self):
-            return self.returncode
-
-        def wait(self, timeout=None):
-            return self.returncode
-
-    leaf = Leaf()
+    leaf = StubLeaf()
 
     def sleep(_):
         clock["sleeps"] += 1
@@ -1309,19 +1248,7 @@ def test_main_kills_the_leaf_by_term_to_its_group_else_its_pid_then_five_reaping
         clock = {"wall": 1000, "dates": 0}
         events = []
 
-        class Leaf:
-            pid = 4242
-            returncode = None
-            args = []
-
-            def poll(self):
-                events.append(("poll",))
-                return self.returncode
-
-            def wait(self, timeout=None):
-                return self.returncode
-
-        leaf = Leaf()
+        leaf = StubLeaf(on_poll=lambda: events.append(("poll",)))
 
         def signalled(how, target, sig):
             events.append((how, target, sig))
@@ -1419,17 +1346,6 @@ def test_main_ignores_a_kill_whose_group_and_pid_signals_both_raise_and_still_en
               VERI_KILL_POLL="0.25")
     clock = {"wall": 1000, "dates": 0}
 
-    class Leaf:
-        pid = 4242
-        returncode = None
-        args = []
-
-        def poll(self):
-            return self.returncode
-
-        def wait(self, timeout=None):
-            return self.returncode
-
     def gone(*_):
         raise ProcessLookupError(3, "No such process")
 
@@ -1458,7 +1374,7 @@ def test_main_ignores_a_kill_whose_group_and_pid_signals_both_raise_and_still_en
 
     def popen(args, *_, **kwargs):
         if list(args[:2]) == ["/bin/sh", "-c"]:
-            return Leaf()
+            return StubLeaf()
         raise AssertionError(f"unexpected Popen: {args}")
 
     monkeypatch.setattr(subprocess, "run", run)
@@ -1494,18 +1410,7 @@ def test_main_reports_a_killed_leaf_whose_log_ends_in_a_result_record_with_the_l
         clock = {"wall": 1000, "dates": 0}
         launched, ran = [], []
 
-        class Leaf:
-            pid = 4242
-            returncode = None
-            args = []
-
-            def poll(self):
-                return self.returncode
-
-            def wait(self, timeout=None):
-                return self.returncode
-
-        leaf = Leaf()
+        leaf = StubLeaf()
 
         def signalled(*_):
             leaf.returncode = -signal.SIGTERM
@@ -1604,18 +1509,7 @@ def test_main_keeps_a_killed_leaf_whose_log_cannot_be_opened_killed_stuck_writin
               VERI_KILL_POLL="0.25")
     clock = {"wall": 1000, "dates": 0}
 
-    class Leaf:
-        pid = 4242
-        returncode = None
-        args = []
-
-        def poll(self):
-            return self.returncode
-
-        def wait(self, timeout=None):
-            return self.returncode
-
-    leaf = Leaf()
+    leaf = StubLeaf()
 
     def signalled(*_):
         leaf.returncode = -signal.SIGTERM
@@ -1692,17 +1586,6 @@ def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_a
         clock = {"wall": 1000, "dates": 0}
         leaves, preserved = [], []
 
-        class Leaf:
-            pid = 4242
-            returncode = None
-            args = []
-
-            def poll(self):
-                return self.returncode
-
-            def wait(self, timeout=None):
-                return self.returncode
-
         def signalled(*_):
             leaves[-1].returncode = -signal.SIGTERM
 
@@ -1741,7 +1624,7 @@ def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_a
         def popen(args, *_, **kwargs):
             if list(args[:2]) != ["/bin/sh", "-c"]:
                 raise AssertionError(f"unexpected Popen: {args}")
-            leaf = Leaf()
+            leaf = StubLeaf()
             leaves.append(leaf)
             if len(leaves) == ends_at:
                 pathlib.Path(args[5]).write_text("0\n")
@@ -1816,17 +1699,6 @@ def test_main_reads_veri_stuck_retries_with_leading_zeros_as_decimal_08_eight_re
     clock = {"wall": 1000, "dates": 0}
     leaves = []
 
-    class Leaf:
-        pid = 4242
-        returncode = None
-        args = []
-
-        def poll(self):
-            return self.returncode
-
-        def wait(self, timeout=None):
-            return self.returncode
-
     def signalled(*_):
         leaves[-1].returncode = -signal.SIGTERM
 
@@ -1854,7 +1726,7 @@ def test_main_reads_veri_stuck_retries_with_leading_zeros_as_decimal_08_eight_re
     def popen(args, *_, **kwargs):
         if list(args[:2]) != ["/bin/sh", "-c"]:
             raise AssertionError(f"unexpected Popen: {args}")
-        leaves.append(Leaf())
+        leaves.append(StubLeaf())
         return leaves[-1]
 
     monkeypatch.setattr(subprocess, "run", run)
@@ -2129,19 +2001,6 @@ def test_main_restores_sigint_then_traps_term_int_and_hup_after_the_stale_exit_g
         signals = []
         leaves = []
 
-        class Leaf:
-            returncode = None
-            args = []
-
-            def __init__(self, pid):
-                self.pid = pid
-
-            def poll(self):
-                return self.returncode
-
-            def wait(self, timeout=None):
-                return self.returncode
-
         def signalled(how, target, sig):
             signals.append((how, target, sig))
             for leaf in leaves:
@@ -2189,7 +2048,7 @@ def test_main_restores_sigint_then_traps_term_int_and_hup_after_the_stale_exit_g
         def popen(args, *_, **kwargs):
             if list(args[:2]) != ["/bin/sh", "-c"]:
                 raise AssertionError(f"unexpected Popen: {args}")
-            leaf = Leaf(4242 + len(leaves))
+            leaf = StubLeaf(4242 + len(leaves))
             leaves.append(leaf)
             if len(leaves) == 2:
                 exitfile.write_text("0\n")
@@ -2289,19 +2148,6 @@ def test_main_hands_the_leaf_its_dispositions_through_a_preexec_survives_a_close
         monkeypatch.setattr(signal, "getsignal", lambda sig: dispositions.get(sig, signal.SIG_DFL))
         handed = []
 
-        class Leaf:
-            returncode = 0
-            args = []
-
-            def __init__(self, pid):
-                self.pid = pid
-
-            def poll(self):
-                return 0
-
-            def wait(self, timeout=None):
-                return 0
-
         def popen(args, *_, **kwargs):
             if list(args[:2]) != ["/bin/sh", "-c"]:
                 raise AssertionError(f"unexpected Popen: {args}")
@@ -2322,7 +2168,7 @@ def test_main_hands_the_leaf_its_dispositions_through_a_preexec_survives_a_close
             log = pathlib.Path(f".tdd/{name}.log")
             if log.is_file():
                 log.write_bytes(b"leaf out\n")
-            return Leaf(4242)
+            return StubLeaf(4242, returncode=0)
 
         def run(args, *_, **kwargs):
             args = [str(a) for a in args]
