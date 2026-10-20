@@ -29,3 +29,25 @@ def test_a_unit_with_a_requirements_list_and_no_graded_line_is_printed_and_the_e
                          capture_output=True, text=True)
 
     assert (ran.returncode, ran.stdout.split()) == (1, ["skills/demo/SKILL.md"]), ran.stderr
+
+
+@pytest.mark.process("prose-owed.sh run as a script")
+def test_a_unit_whose_signature_differs_from_its_graded_line_is_printed_and_one_that_matches_is_not(tmp_path, monkeypatch):
+    from veri import grade_prose
+
+    requirements = "".join(
+        "## skills/%s/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n\n" % name
+        for name in ("fresh", "stale"))
+    (tmp_path / "REQUIREMENTS.md").write_text(requirements)
+    for name in ("fresh", "stale"):
+        (tmp_path / "skills" / name).mkdir(parents=True)
+        (tmp_path / "skills" / name / "SKILL.md").write_text("The widget is blue.\n")
+    monkeypatch.chdir(tmp_path)
+    fresh = grade_prose.signature("REQUIREMENTS.md", "skills/fresh/SKILL.md")
+    (tmp_path / "skills" / "fresh" / "GRADED").write_text("skills/fresh/SKILL.md %s 2026-01-01 g1\n" % fresh)
+    (tmp_path / "skills" / "stale" / "GRADED").write_text("skills/stale/SKILL.md %s 2026-01-01 g2\n" % ("0" * 64))
+
+    ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
+                         capture_output=True, text=True)
+
+    assert (ran.returncode, ran.stdout.split()) == (1, ["skills/stale/SKILL.md"]), ran.stderr
