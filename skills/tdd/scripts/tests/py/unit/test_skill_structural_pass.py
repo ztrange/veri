@@ -3,15 +3,13 @@ import importlib
 import pathlib
 import re
 
+from skill_sections import plain_lines_cased as plain
+
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 DRAFT_PR = "### 4. Draft PR"
 PASS = "one structural pass"
 TOUCHES = "transform-touches-tests.sh <base-sha>"
 VERIFIER = "transform verifier against <base-sha>"
-
-
-def plain(lines):
-    return " ".join(line.translate({ord("*"): None, ord("`"): None}) for line in lines) + " "
 
 
 def draft_lines():

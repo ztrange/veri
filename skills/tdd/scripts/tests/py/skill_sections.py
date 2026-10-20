@@ -11,6 +11,14 @@ def plain(text):
     return text.replace("*", "").replace("`", "").translate(LOWER)
 
 
+def plain_lines(lines):
+    return " ".join(line.replace("*", "").replace("`", "").lower() for line in lines) + " "
+
+
+def plain_lines_cased(lines):
+    return " ".join(line.translate({ord("*"): None, ord("`"): None}) for line in lines) + " "
+
+
 def plain_bytes(raw):
     return raw.translate(None, b"*`").lower()
 
@@ -33,6 +41,26 @@ def windows(text, pattern, radius=250):
 
 def window(text, pattern, radius=250):
     return next(iter(windows(text, pattern, radius)), b"")
+
+
+def window_text(text, pattern, radius=250):
+    for line in text.split("\n"):
+        match = re.search(pattern, line)
+        if match:
+            return line[max(match.start() - radius, 0):match.end() + radius]
+    return ""
+
+
+def heading_window(doc, heading, start):
+    lines = section(doc, heading).splitlines()[1:]
+    for i, line in enumerate(lines):
+        if line.startswith("#"):
+            lines = lines[:i]
+            break
+    for i, line in enumerate(lines):
+        if re.search(start, line):
+            return plain_lines(lines[i:])
+    raise AssertionError(f"{heading!r} in {doc} has no line matching {start!r}")
 
 
 def lines_of(path):
