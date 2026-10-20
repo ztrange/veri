@@ -21,6 +21,9 @@ def leaf_argv(binary, model, prompt, extra):
             "--output-format", "stream-json", "--verbose"] + context_limits()
     if model and "--model" not in extra:
         argv += ["--model", model]
+    tools = tunables.read("VERI_LEAF_TOOLS", None)
+    if tools is not None and "--tools" not in extra:
+        argv += ["--tools", tools]
     return argv + extra
 
 
