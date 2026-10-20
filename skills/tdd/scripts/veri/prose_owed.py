@@ -9,25 +9,27 @@ import requirements
 USAGE = "usage: prose-owed.sh <repo-root>"
 
 
-def graded_signature(unit):
-    graded = os.path.join(os.path.dirname(unit.partition("#")[0]), "GRADED")
+def graded_lines(graded):
     if not os.path.exists(graded):
-        return None
+        return
     with open(graded, encoding="utf-8") as f:
         for line in f.read().splitlines():
-            fields = line.split(" ")
-            if fields[0] == unit and len(fields) > 1:
-                return fields[1]
+            yield line.split(" ")
+
+
+def graded_signature(unit):
+    graded = os.path.join(os.path.dirname(unit.partition("#")[0]), "GRADED")
+    for fields in graded_lines(graded):
+        if fields[0] == unit and len(fields) > 1:
+            return fields[1]
     return None
 
 
 def orphans(units):
     for graded in sorted(glob.glob("skills/*/GRADED")):
-        with open(graded, encoding="utf-8") as f:
-            for line in f.read().splitlines():
-                unit = line.split(" ")[0]
-                if unit not in units:
-                    yield unit
+        for fields in graded_lines(graded):
+            if fields[0] not in units:
+                yield fields[0]
 
 
 def owed_and_gone(path="REQUIREMENTS.md"):
