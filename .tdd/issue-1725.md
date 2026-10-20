@@ -1,7 +1,7 @@
 # Plan for #1725 — PRD 011 S3: a PASS writes a signature, and make unit fails on prose whose signature no longer matches
 
 - [x] A unit's signature, a sha256 computed in-process by grade_prose (no new script), changes when the unit's text changes and does not change when only a `Why` cell of its requirements list changes ⟦criterion 1⟧
-- [ ] A unit's signature changes when any `ID` cell or any `Requirement` cell of its requirements list changes ⟦criterion 1⟧
+- [x] A unit's signature changes when any `ID` cell or any `Requirement` cell of its requirements list changes ⟦criterion 1⟧
 - [ ] A unit's signature changes when the grader prompt template changes, and when the model in `skills/tdd/grader.conf` changes ⟦criterion 1⟧
 - [ ] When every requirement PASSes, `grade-prose.sh` writes one line for the unit to `skills/<skill>/GRADED` carrying the unit, its signature, the date and the id of the grading's event (the `grading` event carries that id) — pinned by a case with a stub `claude` ⟦criterion 2⟧
 - [ ] A PASS replaces any earlier `GRADED` line for the same unit, leaving the lines of other units as they were, so the file holds one line per unit — pinned by a case with a stub `claude` ⟦criterion 2⟧

@@ -141,3 +141,25 @@ def test_a_units_signature_changes_when_its_text_changes_and_not_when_only_a_why
     base = signed("The widget is painted a deep blue.\n", "because")
     assert (signed("The widget is painted a deep blue.\n", "a different reason") == base,
             signed("The widget is painted a deep red.\n", "because") != base) == (True, True)
+
+
+def test_a_units_signature_changes_when_any_id_cell_or_any_requirement_cell_of_its_list_changes_1725(
+        tmp_path, monkeypatch, grade_prose):
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.chdir(tmp_path)
+
+    def signed(first_id, first_req, second_id, second_req):
+        (tmp_path / "REQUIREMENTS.md").write_text(
+            "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+            "| %s | %s | because |\n| %s | %s | because |\n" % (first_id, first_req, second_id, second_req))
+        return grade_prose.signature("REQUIREMENTS.md", "unit.md")
+
+    base = signed("A1", "The widget is blue.", "A2", "The widget is round.")
+    changed = [signed("B1", "The widget is blue.", "A2", "The widget is round."),
+               signed("A1", "The widget is red.", "A2", "The widget is round."),
+               signed("A1", "The widget is blue.", "B2", "The widget is round."),
+               signed("A1", "The widget is blue.", "A2", "The widget is square.")]
+    assert [s != base for s in changed] == [True] * 4
