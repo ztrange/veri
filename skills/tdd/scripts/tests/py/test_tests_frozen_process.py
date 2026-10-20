@@ -242,3 +242,27 @@ def test_record_step_lists_by_name_the_pytest_function_red_edited_and_not_the_on
 
     assert "case: test_edited_by_red_1765\n" in record
     assert "test_left_alone_1765" not in record
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_record_step_lists_only_the_bash_case_red_added_before_the_finish_trailer_not_the_previous_last_case_1861(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "tests/suite.test.sh"
+    suite.write_text('name="first case"\ncheck_first\nok\n\n'
+                     'name="last case"\ncheck_last\nok\n\nfinish\n')
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one adds a case before finish"
+    suite.write_text('name="first case"\ncheck_first\nok\n\n'
+                     'name="last case"\ncheck_last\nok\n\n'
+                     'name="added by red 1861"\ncheck_added\nok\n\nfinish\n')
+
+    run_cli(tests_frozen, ["record", "--step", step, "tests/suite.test.sh"], cwd=tmp_path)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    record = (tmp_path / record_path.rstrip("\n")).read_text()
+
+    assert "case: added by red 1861\n" in record
+    assert "last case" not in record
