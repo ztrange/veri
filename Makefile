@@ -66,6 +66,7 @@ OFFLINE_ENV = PATH="$$git_bin:$$PATH" MAKEFLAGS= OFFLINE_REAL_GIT="$$real_git" G
 
 VENV_LIB := skills/tdd/scripts/lib/venv-python.sh
 VENV_DIR := $$(bash -c '. $(VENV_LIB) && venv_dir')
+VENV_PY := $$(bash -c '. $(VENV_LIB) && venv_python')
 
 # veri needs bash 5 (since 2026-09-18), and the suites run under whatever `bash` is first on
 # PATH — every one starts with `#!/usr/bin/env bash`. Nothing tests veri on bash 3.2 any more,
@@ -90,7 +91,7 @@ test unit:
 	trap 'rm -rf "$$git_bin" "$$pycache"' EXIT; \
 	$(OFFLINE_GIT); \
 	if [ -n "$(PY_TESTS)" ]; then \
-	  py_bin="$$(bash -c '. $(VENV_LIB) && venv_python')"; \
+	  py_bin="$(VENV_PY)"; \
 	  printf '== pytest\n'; \
 	  PYTHONPYCACHEPREFIX="$$pycache" COLUMNS=200 $(OFFLINE_ENV) "$$py_bin" skills/tdd/scripts/veri/pytest_leg.py --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || { leg=$$?; [ $$leg -ne 2 ] || exit 2; fail=1; }; \
 	fi; \
@@ -117,7 +118,7 @@ profile:
 	@$(BASH_GUARD)
 	@$(OFFLINE_SCRATCH); \
 	if [ -n "$(PY_TESTS)" ]; then \
-	  py_bin="$$(bash -c '. $(VENV_LIB) && venv_python')"; \
+	  py_bin="$(VENV_PY)"; \
 	  $(OFFLINE_ENV) "$$py_bin" skills/tdd/scripts/veri/pytest_leg.py -q --durations=0 --durations-min="$${VERI_PROFILE_THRESHOLD:-1}" $(PY_SELECT) $(PY_TESTS) < /dev/null | grep -E '^[0-9.]+s +call +' || true; \
 	fi
 
