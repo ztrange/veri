@@ -57,3 +57,23 @@ def test_skill_edit_guard_no_arguments_prints_usage_and_exit_2(tmp_path):
     ran = subprocess.run([str(GUARD)], cwd=tmp_path, capture_output=True, text=True)
 
     assert (ran.returncode, ran.stdout, ran.stderr) == (2, "", "usage: skill-edit-guard.sh <unit-file> <base-sha>\n")
+
+
+@pytest.mark.process("skill-edit-guard.sh run against a real git repository")
+def test_skill_edit_guard_another_path_changed_exit_1_and_prints_it(tmp_path):
+    repo = tmp_path / "guard"
+    (repo / "skills/foo").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "skills/foo/FOO.md").write_text("prose\n")
+    (repo / "skills/foo/OTHER.md").write_text("other\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: foo")
+    base = git(repo, "rev-parse", "HEAD")
+    (repo / "skills/foo/FOO.md").write_text("prose two\n")
+    (repo / "skills/foo/OTHER.md").write_text("other two\n")
+
+    code, out = guard(repo, "skills/foo/FOO.md", base)
+
+    assert code == 1
+    assert "skills/foo/OTHER.md" in out
+    assert "skills/foo/FOO.md" not in out
