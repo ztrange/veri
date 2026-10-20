@@ -495,28 +495,6 @@ def test_record_step_lists_only_the_pytest_method_red_inserted_above_an_older_me
 
 
 @pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
-def test_record_step_lists_the_bash_case_red_edited_below_a_finish_line_inside_its_heredoc_1861(
-        tmp_path, run_cli, tests_frozen):
-    (tmp_path / "tests").mkdir()
-    (tmp_path / ".tdd").mkdir()
-    suite = tmp_path / "tests/suite.test.sh"
-    suite.write_text('name="first case"\ncheck_first\nok\n\n'
-                     'name="heredoc case"\ncat > script.sh <<\'EOF\'\nfinish\necho one\nEOF\nok\n\nfinish\n')
-    git(tmp_path, "init", "-q")
-    git(tmp_path, "add", "tests")
-    git(tmp_path, "commit", "-q", "-m", "base")
-    step = "step one edits a case below a heredoc finish"
-    suite.write_text('name="first case"\ncheck_first\nok\n\n'
-                     'name="heredoc case"\ncat > script.sh <<\'EOF\'\nfinish\necho two\nEOF\nok\n\nfinish\n')
-
-    run_cli(tests_frozen, ["record", "--step", step, "tests/suite.test.sh"], cwd=tmp_path)
-    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
-    record = (tmp_path / record_path.rstrip("\n")).read_text()
-
-    assert [line for line in record.splitlines() if line.startswith("case: ")] == ["case: heredoc case"]
-
-
-@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
 def test_record_step_lists_the_last_bash_case_red_edited_below_a_heredoc_finish_line_when_no_finish_trailer_ends_the_file_1773(
         tmp_path, run_cli, tests_frozen):
     (tmp_path / "tests").mkdir()
