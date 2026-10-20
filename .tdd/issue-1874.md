@@ -7,7 +7,7 @@
 - [x] A reply in the PoC's pass-3 shape — one line per requirement and the VERDICT: line inside the BEGIN GRADES … END GRADES block, nothing after END GRADES — parses: all PASS with VERDICT: PASS exits 0, a FAIL line with VERDICT: REJECT exits 1 and prints the failing line ⟦criterion 2⟧
 - [x] Every existing grade-prose case whose stub reply puts its VERDICT: line after END GRADES instead puts it inside the block, as the last line before END GRADES, each case keeping the outcome it asserts; no production code changes ⟦diff-checked⟧ ⟦criterion 2⟧
 - [x] A reply with any line after END GRADES, a trailing VERDICT: line included (END GRADES, then VERDICT: REJECT, then VERDICT: PASS), makes grade-prose.sh exit 2 and append no grading event ⟦criterion 2⟧
-- [ ] A line starting with # inside a fenced code block, even one whose text equals the unit's heading, never starts the unit's section: the section starts only at the real heading outside any fence ⟦criterion 3⟧
+- [x] A line starting with # inside a fenced code block, even one whose text equals the unit's heading, never starts the unit's section: the section starts only at the real heading outside any fence ⟦criterion 3⟧
 - [ ] A unit with no requirements list in the requirements file makes grade-prose.sh exit 2 before launching anything ⟦criterion 3⟧
 - [ ] A GRADES line whose grade word is anything other than exactly PASS or FAIL, such as PASS-ish or FAIL-ish, makes grade-prose.sh exit 2 and append no grading event ⟦criterion 3⟧
 - [ ] The grader leaf is launched with no tools: the command the stub claude receives carries --tools with an empty value (a medium case, a real stub claude through supervise.sh) ⟦criterion 3⟧
