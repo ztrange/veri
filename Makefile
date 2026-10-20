@@ -163,9 +163,6 @@ install-dev:
 profile:
 	@$(BASH_GUARD)
 	@$(OFFLINE_SCRATCH); \
-	if [ -n "$(strip $(SUITES))" ]; then \
-	  $(OFFLINE_ENV) skills/tdd/scripts/profile.sh $(SUITES) < /dev/null || exit $$?; \
-	fi; \
 	if [ -n "$(PY_TESTS)" ]; then \
 	  py_bin="$$(bash -c '. $(VENV_LIB) && venv_python')"; \
 	  $(OFFLINE_ENV) "$$py_bin" skills/tdd/scripts/veri/pytest_leg.py -q --durations=0 --durations-min="$${VERI_PROFILE_THRESHOLD:-1}" $(PY_SELECT) $(PY_TESTS) < /dev/null | grep -E '^[0-9.]+s +call +' || true; \
