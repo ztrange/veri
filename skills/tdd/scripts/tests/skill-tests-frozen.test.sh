@@ -246,4 +246,31 @@ grep -qiE '\bpins?\b|pinned|verify-pin' <<<"$repair_text" &&
   problems+=("$skill_md's repair <case> route carries a standing order about pins")
 report "$name"
 
+name="#1808: $skill_md's Green and Revising on a REJECT send a missing <behaviour> answer from verify-green, mutation-parity and revise-green IMPOSSIBLE to the red-missing red with no revise mark and no REVISE_BUDGET attempt, verify the added case with verify-red or verify-pin before green runs again, and let the route's exit 3 spend a revise attempt"
+problems=()
+missing_text="$(joined_section '#### Green' | plain --join)"
+missing_text="${missing_text#*'exit 0 may instead print missing <behaviour>'}"
+missing_text="${missing_text%%'exit 2 is a system failure'*}"
+revise_missing="$(joined_section "$revise_heading" | plain --join)"
+[[ "$missing_text" != "$(joined_section '#### Green' | plain --join)" ]] ||
+  problems+=("$skill_md's Green section has no missing <behaviour> route")
+for entry in 'verify-green reject' 'mutation-parity reject'; do
+  [[ "$missing_text" == *"$entry"* ]] ||
+    problems+=("$skill_md's missing <behaviour> route does not name the $entry entry")
+done
+[[ "$revise_missing" == *'impossible'*'missing_test:'*'red-missing'* ]] ||
+  problems+=("REVISE.md's loop does not route a revise answering IMPOSSIBLE with a MISSING_TEST: line to red-missing")
+for text in "$missing_text" "$revise_missing"; do
+  [[ "$text" == *'red-missing'* ]] || problems+=("a missing <behaviour> route does not launch the red-missing red")
+done
+[[ "$missing_text" == *'no `revise` mark'* || "$missing_text" == *'no revise mark'* ]] ||
+  problems+=("$skill_md's missing <behaviour> route does not say it writes no revise mark")
+[[ "$missing_text" == *'no revise_budget attempt'* ]] ||
+  problems+=("$skill_md's missing <behaviour> route does not say it spends no REVISE_BUDGET attempt")
+[[ "$missing_text" == *'verify-red'*'verify-pin'*'then run green again'* ]] ||
+  problems+=("$skill_md's missing <behaviour> route does not verify with verify-red or verify-pin before green runs again")
+[[ "$missing_text" == *'exit 3'*'spend revise_budget'* ]] ||
+  problems+=("$skill_md's missing <behaviour> route does not say its exit 3 spends a revise attempt")
+report "$name"
+
 finish
