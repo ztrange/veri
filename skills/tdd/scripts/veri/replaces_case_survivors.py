@@ -2,6 +2,7 @@
 import sys
 
 from replaces_case import is_replaces_case_step, parse, unquoted_clause, unreadable, unreadable_message
+from replaces_case import other_suite as replaces_case_other_suite
 
 USAGE = "usage: replaces-case-survivors.sh <step text>"
 
@@ -17,6 +18,10 @@ def main(argv):
         print(unreadable_message(argv[0]), file=sys.stderr)
         return 2
     if parsed is None:
+        other = replaces_case_other_suite(argv[0])
+        if other:
+            print("suite " + other + " is not a .test.sh file in step: " + argv[0].replace("\n", " "), file=sys.stderr)
+            return 2
         return 3
     names, path = parsed
     try:
