@@ -114,7 +114,7 @@ def running_numbers():
     scripts = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     listing = subprocess.run(["ps", "-axo", "pid=,command="], stdout=subprocess.PIPE,
                              stderr=subprocess.DEVNULL, text=True).stdout
-    found = re.findall(re.escape(scripts) + r"/(?:run-conductor\.sh|veri/run_conductor\.py) (\d+)(?=\s|$)", listing, re.M)
+    found = re.findall(r"(?:^|\s)" + re.escape(scripts) + r"/(?:run-conductor\.sh|veri/run_conductor\.py) (\d+)(?=\s|$)", listing, re.M)
     return {int(number) for number in found}
 
 
