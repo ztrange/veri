@@ -1,4 +1,5 @@
 """prose-owed.sh's entry point, run in-process."""
+import glob
 import os
 import sys
 
@@ -20,18 +21,28 @@ def graded_signature(unit):
     return None
 
 
+def orphans(units):
+    for graded in sorted(glob.glob("skills/*/GRADED")):
+        with open(graded, encoding="utf-8") as f:
+            for line in f.read().splitlines():
+                if line.split(" ")[0] not in units:
+                    yield line.split(" ")[0]
+
+
 def main(argv):
     if len(argv) != 1:
         print(USAGE, file=sys.stderr)
         return 2
     os.chdir(argv[0])
     path = "REQUIREMENTS.md"
-    if not os.path.exists(path):
-        return 0
-    owed = [u for u in requirements.units(path) if graded_signature(u) != grade_prose.signature(path, u)]
+    units = requirements.units(path) if os.path.exists(path) else []
+    owed = [u for u in units if graded_signature(u) != grade_prose.signature(path, u)]
+    gone = list(orphans(units))
     for unit in owed:
         print(unit)
-    return 1 if owed else 0
+    for unit in gone:
+        print(unit, "(orphan)")
+    return 1 if owed or gone else 0
 
 
 if __name__ == "__main__":
