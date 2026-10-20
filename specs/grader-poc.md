@@ -98,6 +98,68 @@ ambiguous, and model self-contradictions, which pass 3's strict parser turns int
 cannot discriminate (the prompts) or miss most of the changes (SKILL.md). Pass 4 cost $0.74 (24
 gradings, including the VR7 rewording check); the PoC in total cost $2.31.
 
+## Repeated through `grade-prose.sh` (#1718 criterion 8), 2026-10-19
+
+Run on `origin/main` 63659ad05, `grader.conf` model `claude-sonnet-5-5`, one grading per
+`skills/tdd/scripts/grade-prose.sh <req> <variant>` call, 12 variants x 3 runs = 36 gradings.
+Verdict is the exit code (0 PASS, 1 REJECT, 2 no verdict); cost is `cost_usd` of the grading
+event in `.tdd/events.jsonl`.
+
+**Fixture adaptation (not a fixture edit).** `grade-prose.sh` reads a requirements file as a
+`## <unit>` heading over an `| ID | Requirement | Why |` table (`veri/requirements.py`), and the
+unit is the prose path. The PoC's `*.req` files (`ID | text` lines) fail that: the first call
+exited 2 with `no verdict obtained: specs/grader-poc/bailing.req has no requirements list for
+specs/grader-poc/bailing.orig.md`. For the run, each `.req` was wrapped mechanically into that
+table (heading = the variant's path, `Why` = `n/a`, which the prompt never carries) in a scratch
+directory. The files in `specs/grader-poc/` are unchanged, and the requirement texts are
+byte-identical to the PoC's. Follow-up: if the fixtures are to be rerun, ship them in the
+accepted format.
+
+| Unit | Variant | Run 1 | Run 2 | Run 3 | Cost, 3 runs |
+|---|---|---|---|---|---|
+| bailing | orig | PASS $0.016 | PASS $0.016 | PASS $0.017 | $0.049 |
+| bailing | ok | PASS $0.043 | PASS $0.017 | PASS $0.017 | $0.077 |
+| bailing | bad | REJECT BL5,BL10 $0.046 | REJECT BL5,BL10 $0.018 | REJECT BL5,BL10 $0.019 | $0.083 |
+| bailing | subtle | REJECT BL3,BL7 $0.045 | REJECT BL3,BL7 $0.020 | REJECT BL3,BL7 $0.019 | $0.084 |
+| develop-red | orig | PASS $0.047 | PASS $0.017 | PASS $0.020 | $0.083 |
+| develop-red | ok | PASS $0.047 | PASS $0.020 | PASS $0.020 | $0.087 |
+| develop-red | bad | REJECT DR10,DR12 $0.044 | REJECT DR10,DR12 $0.021 | REJECT DR10,DR12 $0.020 | $0.085 |
+| develop-red | subtle | **PASS** $0.046 | REJECT DR5 $0.022 | REJECT DR5 $0.022 | $0.091 |
+| verify-refactor | orig | PASS $0.040 | PASS $0.018 | PASS $0.019 | $0.077 |
+| verify-refactor | ok | PASS $0.041 | PASS $0.017 | PASS $0.018 | $0.076 |
+| verify-refactor | bad | REJECT VR1,VR6 $0.037 | REJECT VR1,VR6 $0.017 | REJECT VR1,VR6 $0.016 | $0.070 |
+| verify-refactor | subtle | REJECT VR2 $0.042 | REJECT VR2 $0.020 | REJECT VR2 $0.020 | $0.082 |
+
+- **No exit 2** in 36 gradings. Every stderr was the same two lines, which every run prints:
+  `leaf-role: leaf name 'grade-prose' has an unknown leading word (want
+  develop-*|revise-*|verify-*|conductor-*)` and `supervise[grade-prose]: success`. Report for the
+  `grade-prose.sh` owner: the leaf name `grade-prose` is not one `leaf-role` knows.
+- **Cost:** $0.944 for the 36 gradings ($0.016-0.047 each; the first call after a pause costs
+  about $0.04, the next two about $0.018), plus $0.046 for the smoke-test grading (bailing orig,
+  PASS) = $0.990 spent.
+
+### Against the PoC
+
+| Question | PoC (pass 3 and 4) | Through `grade-prose.sh` |
+|---|---|---|
+| Every orig PASS | 9/9 | 9/9 |
+| Every harmless (ok) PASS | 6/6 | 9/9 |
+| Every violating (bad) REJECT | 9/9 runs, 18/18 planted IDs, no extra IDs | 9/9 runs; exactly two IDs each, the same in all three runs (BL5+BL10, DR10+DR12, VR1+VR6) |
+| Subtle: BL3, BL7 | 3/3 each | 3/3 each, no extra IDs |
+| Subtle: VR2 | 3/3 | 3/3, no extra IDs |
+| Subtle: DR5 | 3/3 | **2/3** (run 1 PASS) |
+| Subtle: DR8, VR7 (not planted violations or ambiguous) | DR8 0/3, VR7 1/3 | Not in the fixtures' failing IDs: no run failed DR8 or VR7 |
+
+- The PoC's document does not name the planted IDs of the violating variants, so the bad rows
+  are compared by count (two per run, no extras) and not by name.
+- **One miss against the criterion's go rule:** `develop-red.subtle` run 1 graded PASS, so one
+  planted change the PoC graded FAIL 3/3 (DR5, "never runs another suite" -> "avoids running
+  another suite where it can") was graded PASS once in three. By the criterion's wording this
+  is not a go on the strict reading ("every planted change the PoC's grader graded FAIL is
+  graded FAIL"). By its stability clause, a requirement whose verdict differs between runs on
+  unchanged prose is reworded and remeasured, so DR5 is the candidate. No original or harmless
+  variant was rejected in any run.
+
 ## Fixtures
 
 The lists, every variant, the grader prompt, the parser and the script that ran them are in
