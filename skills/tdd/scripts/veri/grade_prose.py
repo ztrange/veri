@@ -90,7 +90,12 @@ def signature(path, unit):
 def record_graded(unit, sig, grading_id):
     file = unit.partition("#")[0]
     graded = os.path.join(os.path.dirname(file), "GRADED")
-    with open(graded, "a", encoding="utf-8") as f:
+    kept = []
+    if os.path.exists(graded):
+        with open(graded, encoding="utf-8") as f:
+            kept = [l for l in f.read().splitlines() if l.partition(" ")[0] != unit]
+    with open(graded, "w", encoding="utf-8") as f:
+        f.write("".join(l + "\n" for l in kept))
         f.write("%s %s %s %s\n" % (unit, sig, time.strftime("%Y-%m-%d"), grading_id))
 
 

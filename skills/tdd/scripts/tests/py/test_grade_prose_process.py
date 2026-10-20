@@ -692,3 +692,27 @@ def test_a_full_pass_writes_one_graded_line_carrying_the_unit_its_signature_the_
             len(fields) == 4 and bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", fields[2])),
             len(fields) == 4 and fields[3] == gradings[0].get("id", "") != ""] \
         == [1, "skills/guide/unit.md", True, True, True], lines
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_a_pass_replaces_any_earlier_graded_line_for_the_same_unit_and_leaves_other_units_lines_as_they_were(tmp_path):
+    (tmp_path / "skills" / "guide").mkdir(parents=True)
+    (tmp_path / "skills" / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS.replace("## guide/unit.md", "## skills/guide/unit.md"))
+    other = "skills/guide/other.md " + "b" * 64 + " 2026-01-02 deadbeef"
+    old = "skills/guide/unit.md " + "a" * 64 + " 2026-01-01 cafef00d"
+    graded = tmp_path / "skills" / "guide" / "GRADED"
+    graded.write_text(other + "\n" + old + "\n")
+    claude = tmp_path / "claude"
+    claude.write_text(STUB)
+    claude.chmod(0o755)
+    record = tmp_path / "record.txt"
+
+    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "skills/guide/unit.md"], cwd=tmp_path,
+                   capture_output=True, text=True,
+                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                        "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+
+    lines = graded.read_text().splitlines()
+    mine = [l for l in lines if l.startswith("skills/guide/unit.md ")]
+    assert [lines.count(other), len(mine), old in lines, len(lines)] == [1, 1, False, 2], lines
