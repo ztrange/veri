@@ -309,3 +309,52 @@ def test_an_author_leaf_whose_supervisor_exits_2_exits_2_without_grading_again_o
     launches = [e for e in events if e.get("event") == "launch" and e.get("actor") == "author"]
     assert [ran.returncode, len(launches), (cap / "grades").read_text().strip(),
             git(repo, "rev-list", "--count", "HEAD")] == [2, 1, "1", "1"], (ran.stdout, ran.stderr[-700:])
+
+
+STUB_AUTHOR_TOUCHES_GRADED = """#!/bin/sh
+prompt=$2
+case "$prompt" in
+*"You grade a piece of prose"*)
+  n=$(cat "$CAP/grades" 2>/dev/null || echo 0)
+  echo $((n + 1)) > "$CAP/grades"
+  if [ "$n" = 0 ]; then
+    reply='BEGIN GRADES\\nA1: FAIL - prose never says crimson\\nA2: PASS - ok\\nVERDICT: REJECT\\nEND GRADES'
+  else
+    reply='BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES'
+  fi ;;
+*)
+  echo tampered > "$REPO/GRADED"
+  reply='edited' ;;
+esac
+printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"'"$reply"'"}'
+"""
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author that touches GRADED")
+def test_an_attempt_that_grades_pass_but_whose_author_touched_graded_is_rejected_spending_the_attempt_and_commits_nothing(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
+    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is crimson. | shade |\n")
+    cap = tmp_path / "cap"
+    cap.mkdir()
+    claude = tmp_path / "claude"
+    claude.write_text(STUB_AUTHOR_TOUCHES_GRADED)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "CAP": str(cap), "REPO": str(repo), "VERI_SKILL_EDIT_BUDGET": "1",
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+
+    committed = subprocess.run(["git", "-C", str(repo), "ls-tree", "-r", "--name-only", "HEAD"],
+                               capture_output=True, text=True).stdout.split()
+    assert [ran.returncode, git(repo, "rev-list", "--count", "HEAD"), "GRADED" in committed] \
+        == [1, "1", False], (ran.stdout, ran.stderr[-700:])
