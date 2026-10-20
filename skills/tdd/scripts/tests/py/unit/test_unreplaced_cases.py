@@ -300,3 +300,119 @@ def test_two_reports_each_replacing_one_case_count_both_as_replaced_1625(tmp_pat
     code, out, _ = run_cli(unreplaced, [step, str(first), str(second)], cwd=tmp_path)
 
     assert (code, out) == (0, "")
+
+
+PY_UNIT = "skills/tdd/scripts/tests/py/unit"
+BARE_TAIL = " in scripts/tests/x.test.sh ⟦replaces-case⟧ ⟦criterion 3⟧"
+
+
+def test_replaces_line_with_a_markdown_bullet_in_front_counts_like_the_same_line_without_it_1660(tmp_path, run_cli, unreplaced):
+    step = "- [ ] x: replaces 'case a', 'case b'" + TAIL
+    code, out, _ = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
+        "- REPLACES: case a => tests/py/test_x.py::test_a",
+        "* REPLACES: case b => tests/py/test_x.py::test_b",
+    ], {"tests/py/test_x.py": "def test_a():\n    pass\n\n\ndef test_b():\n    pass\n"})
+
+    assert (code, out) == (0, "")
+
+
+def test_replaces_line_with_a_star_bullet_in_front_counts_like_the_same_line_without_it_1660(tmp_path, run_cli, unreplaced):
+    step = "- [ ] x: replaces 'case a'" + TAIL
+    code, out, _ = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
+        "* REPLACES: case a => tests/py/test_x.py::test_a",
+    ], TEST_A)
+
+    assert (code, out) == (0, "")
+
+
+def test_bare_name_replaces_line_counts_when_exactly_one_test_function_of_that_name_exists_1660(tmp_path, run_cli, unreplaced):
+    step = "- [ ] x: replaces 'case a'" + BARE_TAIL
+    code, out, _ = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
+        "REPLACES: case a => test_a",
+    ], {PY_UNIT + "/test_x.py": "def test_a():\n    pass\n"})
+
+    assert (code, out) == (0, "")
+
+
+def test_bare_name_replaces_line_is_unreplaced_when_no_test_function_of_that_name_exists_1660(tmp_path, run_cli, unreplaced):
+    step = "- [ ] x: replaces 'case a'" + BARE_TAIL
+    code, out, err = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
+        "REPLACES: case a => test_a",
+    ], {PY_UNIT + "/test_x.py": "def test_other():\n    pass\n"})
+
+    assert code == 1
+    assert "case a" in out
+    assert "no test of that name was found" in out + err
+
+
+def test_bare_name_replaces_line_is_unreplaced_when_several_test_functions_of_that_name_exist_1660(tmp_path, run_cli, unreplaced):
+    step = "- [ ] x: replaces 'case a'" + BARE_TAIL
+    code, out, err = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
+        "REPLACES: case a => test_a",
+    ], {PY_UNIT + "/test_x.py": "def test_a():\n    pass\n", PY_UNIT + "/test_y.py": "def test_a():\n    pass\n"})
+
+    assert code == 1
+    assert "case a" in out
+    assert "ambiguous" in out + err
+
+
+def test_unreplaced_bare_name_case_goes_to_stdout_as_the_step_spells_it_and_the_reason_to_stderr_1660(tmp_path, run_cli, unreplaced):
+    step = "- [ ] x: replaces 'case a'" + BARE_TAIL
+    code, out, err = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
+        "REPLACES: case a => test_a",
+    ], {PY_UNIT + "/test_x.py": "def test_other():\n    pass\n"})
+
+    assert (code, out.strip()) == (1, "case a")
+    assert "no test of that name was found" in err
+
+
+def test_bare_name_replaces_line_is_unreplaced_when_the_only_function_of_that_name_is_a_helper_1660(tmp_path, run_cli, unreplaced):
+    step = "- [ ] x: replaces 'case a'" + BARE_TAIL
+    code, out, _ = unreplaced_in(tmp_path, run_cli, unreplaced, step, [
+        "REPLACES: case a => make_a",
+    ], {PY_UNIT + "/test_x.py": "def make_a():\n    pass\n"})
+
+    assert (code, out.strip()) == (1, "case a")
+
+
+def refuses_with_one_line_naming(tmp_path, run_cli, step, fragment):
+    survivors = importlib.import_module("veri.replaces_case_survivors")
+    unreplaced = importlib.import_module("veri.unreplaced_cases")
+    report = tmp_path / "report.txt"
+    report.write_text("")
+    for module, argv in ((unreplaced, [step, str(report)]), (survivors, [step])):
+        code, out, err = run_cli(module, argv, cwd=tmp_path)
+
+        assert code == 2
+        assert len(err.splitlines()) == 1
+        assert fragment in err
+        assert "Traceback" not in err
+
+
+def test_both_scripts_exit_2_naming_the_step_when_an_unquoted_name_follows_a_quoted_one_1538(tmp_path, run_cli):
+    refuses_with_one_line_naming(
+        tmp_path, run_cli,
+        "- [ ] x: replaces 'a', b in t/x.test.sh ⟦replaces-case⟧ ⟦criterion 5⟧",
+        "replaces 'a', b in t/x.test.sh",
+    )
+
+
+def test_both_scripts_exit_2_naming_the_step_when_a_quoted_name_is_followed_by_a_parenthetical_1538(tmp_path, run_cli):
+    refuses_with_one_line_naming(
+        tmp_path, run_cli,
+        "- [ ] x: replaces 'a' (from #12) in t/x.test.sh ⟦replaces-case⟧ ⟦criterion 5⟧",
+        "replaces 'a' (from #12) in t/x.test.sh",
+    )
+
+
+def test_unreplaced_cases_exits_2_naming_the_step_and_the_suite_when_the_suite_is_not_a_test_sh_file_1538(tmp_path, run_cli, unreplaced):
+    step = "- [ ] x: replaces 'a' in t/x.py ⟦replaces-case⟧ ⟦criterion 6⟧"
+    report = tmp_path / "report.txt"
+    report.write_text("")
+
+    code, out, err = run_cli(unreplaced, [step, str(report)], cwd=tmp_path)
+
+    assert code == 2
+    assert len(err.splitlines()) == 1
+    assert "replaces 'a' in t/x.py" in err
+    assert "t/x.py" in err
