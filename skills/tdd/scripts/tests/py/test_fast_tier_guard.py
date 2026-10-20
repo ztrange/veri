@@ -456,3 +456,18 @@ def test_1668_a_planted_test_file_calling_run_cli_with_an_argument_list_naming_a
     found = guard.offences(tmp_path)
 
     assert found == [f"{offender}:2: runs a nested suite"]
+
+
+def test_1668_a_planted_test_file_calling_subprocess_run_with_arguments_naming_a_test_file_is_still_reported_by_file_and_line(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    offender = tmp_path / "test_offender.py"
+    offender.write_text(
+        "import subprocess\n"
+        "\n"
+        "def test_runs_a_suite():\n"
+        "    subprocess.run(['bash', 'tests/foo.test.sh'])\n"
+    )
+
+    found = guard.offences(tmp_path)
+
+    assert [line.split(": ")[0] for line in found] == [f"{offender}:4"]
