@@ -25,8 +25,9 @@ def orphans(units):
     for graded in sorted(glob.glob("skills/*/GRADED")):
         with open(graded, encoding="utf-8") as f:
             for line in f.read().splitlines():
-                if line.split(" ")[0] not in units:
-                    yield line.split(" ")[0]
+                unit = line.split(" ")[0]
+                if unit not in units:
+                    yield unit
 
 
 def main(argv):
