@@ -17,6 +17,10 @@ import time
 from conftest import SCRIPTS
 
 
+def _write_prompt(work, text):
+    (work / "prompt.txt").write_text(text)
+
+
 def _workspace(tmp_path, monkeypatch, *extra_dirs):
     work, home, tmp = (tmp_path / name for name in ("work", "home", "tmp"))
     for path in (work, home, tmp, *(work / name for name in extra_dirs)):
@@ -76,7 +80,7 @@ def test_main_launches_one_leaf_with_the_prompt_the_model_only_when_non_empty_an
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, tmp = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
     head = ["-p", "do the step", "--output-format", "stream-json", "--verbose"]
 
     launched = []
@@ -107,7 +111,7 @@ def test_main_launch_limits_what_the_harness_loads_and_keeps_the_callers_argumen
     import json
     run_leaf = importlib.import_module("veri.run_leaf")
     work, _ = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
     monkeypatch.setenv("VERI_LEAF_MODEL", "sonnet")
     launches = []
     monkeypatch.setattr(subprocess, "Popen",
@@ -154,7 +158,7 @@ def test_main_a_leaf_session_loads_no_skills_connectors_memory_or_user_claude_md
     import json
     run_leaf = importlib.import_module("veri.run_leaf")
     work, _ = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
     home = pathlib.Path(os.environ["HOME"])
     launches = []
 
@@ -180,7 +184,7 @@ def test_main_a_leaf_asked_for_the_five_minute_cache_ttl_reports_five_minute_wri
     run_leaf = importlib.import_module("veri.run_leaf")
     work, _ = _workspace(tmp_path, monkeypatch)
     monkeypatch.delenv("FORCE_PROMPT_CACHING_5M", raising=False)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
     launches = []
 
     def launch(argv, *args, **kwargs):
@@ -276,7 +280,7 @@ def test_main_writes_after_the_leaf_ends_a_newline_then_the_extraction_the_strea
         tmp_path, monkeypatch, capfdbinary):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, tmp = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
     with_result = (b'{"type":"assistant","message":{"content":[]}}\n'
                    b'{"type":"result","subtype":"success","result":"done"}\n')
     without_result = b'{"type":"system","subtype":"init"}\nplain line\n'
@@ -305,7 +309,7 @@ def test_main_writes_each_chunk_of_the_leafs_stdout_to_stdout_and_the_stream_tem
         tmp_path, monkeypatch):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, tmp = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
     first = b'{"type":"system","subtype":"init"}\n'
     second = b'{"type":"result","subtype":"success","result":"done"}\n'
     leaf_read, leaf_write = os.pipe()
@@ -361,7 +365,7 @@ def test_main_returns_the_leafs_status_when_it_is_0_to_3_else_2_and_for_a_leaf_t
         tmp_path, monkeypatch, capfdbinary):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, tmp = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
 
     def answer():
         try:
@@ -402,7 +406,7 @@ def test_main_when_copying_a_regular_gitconfig_into_the_leafs_temp_file_fails_re
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, tmp = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
     (tmp_path / "home" / ".gitconfig").write_text("[user]\n\tname = operator\n")
     made = []
     real_mkstemp = tempfile.mkstemp
@@ -434,7 +438,7 @@ def test_main_when_a_gitconfig_that_was_a_regular_file_cannot_be_read_as_one_ret
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, tmp = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
     gitconfig = tmp_path / "home" / ".gitconfig"
     gitconfig.write_text("[user]\n\tname = operator\n")
     real_isfile = os.path.isfile
@@ -464,7 +468,7 @@ def test_main_when_copying_the_gitconfig_into_the_leafs_temp_git_config_raises_o
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, tmp = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
     (tmp_path / "home" / ".gitconfig").write_text("[user]\n\tname = operator\n")
     made = []
     real_mkstemp = tempfile.mkstemp
@@ -497,7 +501,7 @@ def test_main_when_the_stream_temp_file_vanishes_during_the_leafs_run_returns_2_
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, tmp = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
     made = []
     real_mkstemp = tempfile.mkstemp
 
@@ -526,7 +530,7 @@ def test_main_makes_the_stream_then_the_git_config_temp_file_in_tmpdir_copies_th
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, tmp = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
     home = tmp_path / "home"
     operator_config = tmp_path / "operator.gitconfig"
     operator_config.write_text("[user]\n\tname = operator\n")
@@ -597,7 +601,7 @@ def test_main_strips_the_launched_environment_through_veri_session_env_so_a_name
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, tmp = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
     monkeypatch.delenv("GIT_CONFIG_GLOBAL", raising=False)
     monkeypatch.setenv("VERI_PLANTED_621", "from-the-conductor")
     monkeypatch.setenv("VERI_KEPT_621", "kept")
@@ -622,7 +626,7 @@ def test_main_reads_claude_bin_and_veri_leaf_model_before_the_strip_sets_git_con
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, tmp = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
     session_id = "sess-1071-id"
     session_tmp = tmp_path / f"tmp-{session_id}"
     session_tmp.mkdir()
@@ -674,7 +678,7 @@ sys.exit(veri.run_leaf.main(sys.argv[3:]))
 def test_main_launches_the_leaf_in_its_callers_process_group_with_sigpipe_and_sigxfsz_as_handed_and_on_sigterm_removes_both_temp_files(
         tmp_path, monkeypatch):
     work, tmp = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
     report = tmp_path / "report"
     stub = tmp_path / "claude"
     stub.write_text(
@@ -731,7 +735,7 @@ def _run_over(run_leaf, monkeypatch, capfdbinary, stream=_RESULT_STREAM, returnc
 def test_main_returns_extracted_result_text(tmp_path, monkeypatch, capfdbinary):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, tmp = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("Verify the test for issue 3.")
+    _write_prompt(work, "Verify the test for issue 3.")
 
     code, out = _run_over(run_leaf, monkeypatch, capfdbinary)
 
@@ -741,7 +745,7 @@ def test_main_returns_extracted_result_text(tmp_path, monkeypatch, capfdbinary):
 def test_main_streams_raw_events_for_heartbeat(tmp_path, monkeypatch, capfdbinary):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, tmp = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("Verify the test for issue 3.")
+    _write_prompt(work, "Verify the test for issue 3.")
 
     code, out = _run_over(run_leaf, monkeypatch, capfdbinary)
 
@@ -751,7 +755,7 @@ def test_main_streams_raw_events_for_heartbeat(tmp_path, monkeypatch, capfdbinar
 def test_main_propagates_leaf_exit_status(tmp_path, monkeypatch, capfdbinary):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, tmp = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("Verify the test for issue 3.")
+    _write_prompt(work, "Verify the test for issue 3.")
 
     code, _ = _run_over(run_leaf, monkeypatch, capfdbinary, returncode=1)
 
@@ -761,7 +765,7 @@ def test_main_propagates_leaf_exit_status(tmp_path, monkeypatch, capfdbinary):
 def test_main_maps_a_foreign_leaf_exit_status_to_2(tmp_path, monkeypatch, capfdbinary):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, tmp = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("Verify the test for issue 3.")
+    _write_prompt(work, "Verify the test for issue 3.")
 
     code, _ = _run_over(run_leaf, monkeypatch, capfdbinary, returncode=7)
 
@@ -771,7 +775,7 @@ def test_main_maps_a_foreign_leaf_exit_status_to_2(tmp_path, monkeypatch, capfdb
 def test_main_does_not_own_a_tdd_log(tmp_path, monkeypatch, capfdbinary):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, tmp = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("Verify the test for issue 3.")
+    _write_prompt(work, "Verify the test for issue 3.")
 
     code, _ = _run_over(run_leaf, monkeypatch, capfdbinary)
 
@@ -787,7 +791,7 @@ def _cli_launch(run_cli, monkeypatch, tmp_path, env=None, unset=(), returncode=0
                 stream=_RESULT_STREAM):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, tmp = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
     monkeypatch.delenv("GIT_CONFIG_GLOBAL", raising=False)
     for name in (*_SESSION_VARS_621, "CLAUDE_AUTO_BACKGROUND_TASKS",
                  "CLAUDE_CODE_REMOTE_SESSION_ID"):
@@ -896,7 +900,7 @@ def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_working_d
     import importlib.util
     importlib.import_module("veri.run_leaf")
     work, _ = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("the prompt in the other working directory")
+    _write_prompt(work, "the prompt in the other working directory")
     (tmp_path / "skill").symlink_to(SCRIPTS.parent)
     launches = []
 
@@ -923,7 +927,7 @@ def test_cli_hands_claude_sigpipe_and_sigxfsz_as_its_caller_had_them_at_default_
         tmp_path, monkeypatch, run_cli):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, _ = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
     stub = tmp_path / "claude"
     stub.write_text("#!/usr/bin/env bash\n"
                     'trap -p PIPE XFSZ > "$DISP_OUT"\n'
@@ -959,7 +963,7 @@ os.execv(sys.argv[2], sys.argv[2:])
 @pytest.mark.process("run-leaf.sh exec'd by a real caller holding SIGPIPE and SIGXFSZ default or ignored, deriving what a real stub claude inherits")
 def test_cli_run_leaf_sh_hands_claude_sigpipe_and_sigxfsz_as_its_caller_had_them_at_default_when_default_ignored_when_ignored(
         tmp_path, monkeypatch, run_cli):
-    work = _prompt_workspace(tmp_path, monkeypatch)
+    work = _prompt_workspace(tmp_path, monkeypatch, "Verify the test for issue 3.")
     stub = _executable(tmp_path / "claude", "#!/usr/bin/env bash\n"
                        'trap -p PIPE XFSZ > "$DISP_OUT"\n' + _OK_RESULT_LINE)
     seen = {}
@@ -988,7 +992,7 @@ def test_cli_under_a_leaf_a_python_module_mutated_and_reverted_at_the_same_whole
         tmp_path, monkeypatch, run_cli):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, _ = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
     pyc = tmp_path / "pyc"
     pyc.mkdir()
     (pyc / "mod.py").write_text("ANSWER = 1\n")
@@ -1038,7 +1042,7 @@ def test_cli_a_python_process_under_a_leaf_writes_no_pyc_into_the_tree_it_import
         tmp_path, monkeypatch, run_cli):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, _ = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
     tree = tmp_path / "tree"
     (tree / "pkg").mkdir(parents=True)
     (tree / "mod.py").write_text("ANSWER = 1\n")
@@ -1079,7 +1083,7 @@ def test_cli_refuses_a_leafs_pkill_and_killall_before_they_signal_anything_namin
         tmp_path, monkeypatch, run_cli):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, _ = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
     tools = tmp_path / "tools"
     tools.mkdir()
     for tool in ("pkill", "killall"):
@@ -1107,7 +1111,7 @@ def test_cli_refuses_a_leafs_kill_of_a_pgrep_substitution_naming_the_rule_while_
         tmp_path, monkeypatch, run_cli):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, _ = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
     tools = tmp_path / "tools"
     tools.mkdir()
     _executable(tools / "pgrep", f'#!/bin/sh\nprintf "%s\\n" "$*" >> "{tmp_path}/pgrep-ran"\n')
@@ -1132,7 +1136,7 @@ def test_cli_refuses_a_leafs_kill_of_a_pgrep_substitution_naming_the_rule_while_
 def test_cli_a_leaf_can_still_kill_a_pid_it_started_and_recorded(tmp_path, monkeypatch, run_cli):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, _ = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("do the step\n")
+    _write_prompt(work, "do the step\n")
     stub = _leaf_stub(tmp_path,
                       "bash -c 'sleep 30 & pid=$!\n"
                       "env kill \"$pid\" 2> \"$OWN_DIR/kill-err\"; status=$?\n"
@@ -1147,15 +1151,15 @@ def test_cli_a_leaf_can_still_kill_a_pid_it_started_and_recorded(tmp_path, monke
         0, ["0", "143"])
 
 
-def _prompt_workspace(tmp_path, monkeypatch):
+def _prompt_workspace(tmp_path, monkeypatch, prompt):
     work, _ = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("Verify the test for issue 3.")
+    _write_prompt(work, prompt)
     return work
 
 
 def _cli_argv(run_cli, monkeypatch, tmp_path, prompt_arg, extra=(), stdin=""):
     run_leaf = importlib.import_module("veri.run_leaf")
-    work = _prompt_workspace(tmp_path, monkeypatch)
+    work = _prompt_workspace(tmp_path, monkeypatch, "Verify the test for issue 3.")
     launches = []
 
     def launch(argv, *args, **kwargs):
@@ -1183,7 +1187,7 @@ def test_cli_passes_the_prompt_to_claude_via_dash_p_in_stream_json(tmp_path, mon
 
 @pytest.mark.process("the run-leaf.sh entry point handing its arguments to a real stub claude")
 def test_cli_passes_extra_arguments_through_to_claude(tmp_path, monkeypatch, run_cli):
-    work = _prompt_workspace(tmp_path, monkeypatch)
+    work = _prompt_workspace(tmp_path, monkeypatch, "Verify the test for issue 3.")
     stub = _leaf_stub(tmp_path, 'printf "%s\\n" "$@" > "$ARGV_OUT"\n')
 
     class _EntryPoint:
@@ -1207,7 +1211,7 @@ def test_cli_reads_the_prompt_from_stdin_on_dash(tmp_path, monkeypatch, run_cli)
 def _run_with_operator_gitconfig(tmp_path, monkeypatch, run_cli, gitconfig, stub_body):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, _ = _workspace(tmp_path, monkeypatch)
-    (work / "prompt.txt").write_text("Write the failing test for issue 276.")
+    _write_prompt(work, "Write the failing test for issue 276.")
     home = tmp_path / "home"
     (home / ".gitconfig").write_bytes(gitconfig)
     stub = _executable(tmp_path / "claude", "#!/bin/sh\n" + stub_body +
