@@ -99,11 +99,7 @@ def main(argv):
     if not re.search(r"(^|-)\d+(-|$)", model):
         print("grade-prose.sh: grader.conf model %r names no version" % model, file=sys.stderr)
         return 2
-    file, _, heading = unit.partition("#")
-    with open(file, encoding="utf-8") as f:
-        text = f.read()
-    if heading:
-        text = section(text, heading)
+    text = unit_text(unit)
     claims = requirements.claims(path, unit)
     if not claims.strip():
         return no_verdict("%s has no requirements list for %s" % (path, unit))
