@@ -177,7 +177,7 @@ def main(argv):
         values["REFACTOR_BUDGET"] = os.fsencode(tunables.read("VERI_REFACTOR_BUDGET") or "5")
     values["REVISE_PHASE"] = os.fsencode(revised_phase)
     values["TEST_REWRITE"] = {"red": TEST_REWRITE_GRANT, "contract-a": TEST_MOVE_CONTRACT_A}.get(revised_phase, TEST_REWRITE_NONE)
-    repair = "⟦suite-repair⟧" in step or "⟦ci-repair⟧" in step
+    repair = carries_mark(step, "suite-repair") or carries_mark(step, "ci-repair")
     if "green" in (phase, revised_phase):
         values["FREEZE_RULE"] = REPAIR_TEST_EDIT if repair else GREEN_FREEZE_RULE
     if revised_phase == "green" and repair:
