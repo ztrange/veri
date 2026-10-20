@@ -44,8 +44,10 @@ _CASE = re.compile(r"^\s*(?:async\s+)?def\s+(test\w*)|^\s*name=\"([^\"]+)\"", re
 
 def _cases(text):
     found = list(_CASE.finditer(text))
-    ends = [m.start() for m in found[1:]] + [len(text)]
-    return [(m.group(1) or m.group(2), text[m.start():end]) for m, end in zip(found, ends)]
+    trailer = [m.start() for m in re.finditer(r"^finish\b.*$", text, re.M)]
+    starts = [m.end() - len(m.group().lstrip()) for m in found]
+    ends = starts[1:] + [trailer[-1] if trailer and found and trailer[-1] > found[-1].start() else len(text)]
+    return [(m.group(1) or m.group(2), text[start:end].rstrip()) for m, start, end in zip(found, starts, ends)]
 
 
 def _added_cases(name):
