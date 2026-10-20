@@ -98,6 +98,7 @@ def main(argv):
         f.write(prompt(unit, text, claims))
     env = dict(os.environ)
     env["PATH"] = modern_python_dir() + env.get("PATH", "")
+    env.pop("VERI_MODEL_GRADER", None)
     env["VERI_MODEL"] = model
     env["VERI_LEAF_TOOLS"] = ""
     try:
