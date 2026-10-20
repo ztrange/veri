@@ -6,7 +6,7 @@
 - [x] A pytest class where Red inserts a new test method directly above an older method records only the new method, and a WRONG_TEST naming the older one routes `red <case>` ⟦criterion 2⟧
 - [x] A bash suite where Red inserts a new `name="…"` case directly above an older one (blank lines above the older case changing) records only the new case — the older case's body starts at its own `name="…"` line — and a WRONG_TEST naming the older one routes `red <case>` ⟦criterion 2⟧
 - [x] Appending a pytest case at the end of a file records only the new case: trailing blank lines are not part of the case above's compared body, and a WRONG_TEST naming the case above routes `red <case>` ⟦criterion 3⟧
-- [ ] Appending a bash case at the end of a suite with no `finish` trailer records only the new case: trailing blank lines are not part of the case above's compared body, and a WRONG_TEST naming the case above routes `red <case>` ⟦criterion 3⟧
+- [x] Appending a bash case at the end of a suite with no `finish` trailer records only the new case: trailing blank lines are not part of the case above's compared body, and a WRONG_TEST naming the case above routes `red <case>` ⟦criterion 3⟧
 - [ ] Appending a case to a real copy of a bash suite in this repo (read from the repo, `finish` trailer included) records only the new case, and a WRONG_TEST naming the case above it routes `red <case>` ⟦criterion 3⟧
 - [ ] An older pytest case on the file's first line with nothing above it stays unrecorded when Red inserts a case above it ⟦criterion 4⟧
 - [ ] An older test method directly under its `class` line stays unrecorded when Red inserts a method above it ⟦criterion 4⟧
