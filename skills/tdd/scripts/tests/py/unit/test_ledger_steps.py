@@ -577,3 +577,17 @@ def test_cli_next_phase_and_next_unchecked_both_exit_3_with_nothing_on_a_phased_
            run_cli(via_stdin(next_unchecked, owed), [])]
 
     assert got == [(3, "", ""), (3, "", "")]
+
+
+def test_cli_a_fixture_repair_step_prints_as_kind_step_with_its_criterion_and_next_unchecked_hands_it_over(
+        run_cli, ledger_steps):
+    next_unchecked = importlib.import_module("veri.next_unchecked")
+    step = ("the supervise case passes under load: repairs the fixture 'awake-clock' in"
+            " tests/supervise.test.sh, reproduced by a case in tests/supervise.test.sh"
+            " ⟦fixture-repair⟧ ⟦criterion 1⟧")
+    ledger = f"# Plan for #1021\n\n- [ ] {step}\n"
+
+    got = [run_cli(via_stdin(ledger_steps, ledger), []),
+           run_cli(via_stdin(next_unchecked, ledger), [])]
+
+    assert got == [(0, f"1\topen\tstep\t0\t0\t1\t{step}\n", ""), (0, step + "\n", "")]
