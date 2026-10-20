@@ -123,3 +123,21 @@ def test_a_grades_line_whose_grade_word_is_pass_ish_makes_grade_prose_exit_2_and
     written = "".join(p.read_text() for p in (tmp_path / ".tdd").iterdir()
                       if p.is_file() and p.name != "grade-prose.log")
     assert (code, "grading" in written) == (2, False), (code, written, err)
+
+
+def test_a_units_signature_changes_when_its_text_changes_and_not_when_only_a_why_cell_changes_1725(
+        tmp_path, monkeypatch, grade_prose):
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.chdir(tmp_path)
+
+    def signed(prose, why):
+        (tmp_path / "unit.md").write_text(prose)
+        (tmp_path / "REQUIREMENTS.md").write_text(
+            "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | %s |\n" % why)
+        return grade_prose.signature("REQUIREMENTS.md", "unit.md")
+
+    base = signed("The widget is painted a deep blue.\n", "because")
+    assert (signed("The widget is painted a deep blue.\n", "a different reason") == base,
+            signed("The widget is painted a deep red.\n", "because") != base) == (True, True)

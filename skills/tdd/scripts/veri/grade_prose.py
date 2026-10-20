@@ -1,4 +1,5 @@
 """grade-prose.sh's entry point, run in-process."""
+import hashlib
 import os
 import re
 import subprocess
@@ -70,6 +71,18 @@ def grader_model():
             if line and not line.startswith("#"):
                 return line.split("=", 1)[-1].strip().strip("'\"")
     return ""
+
+
+def unit_text(unit):
+    file, _, heading = unit.partition("#")
+    with open(file, encoding="utf-8") as f:
+        text = f.read()
+    return section(text, heading) if heading else text
+
+
+def signature(path, unit):
+    parts = [unit_text(unit), requirements.claims(path, unit), GRADER_INSTRUCTIONS, grader_model()]
+    return hashlib.sha256("\0".join(parts).encode("utf-8")).hexdigest()
 
 
 def no_verdict(detail):
