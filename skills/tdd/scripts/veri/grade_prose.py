@@ -87,9 +87,12 @@ def signature(path, unit):
     return hashlib.sha256("\0".join(parts).encode("utf-8")).hexdigest()
 
 
+def graded_path(unit):
+    return os.path.join(os.path.dirname(unit.partition("#")[0]), "GRADED")
+
+
 def record_graded(unit, sig, grading_id):
-    file = unit.partition("#")[0]
-    graded = os.path.join(os.path.dirname(file), "GRADED")
+    graded = graded_path(unit)
     kept = []
     if os.path.exists(graded):
         with open(graded, encoding="utf-8") as f:

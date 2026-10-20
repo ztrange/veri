@@ -18,7 +18,7 @@ def graded_lines(graded):
 
 
 def graded_signature(unit):
-    graded = os.path.join(os.path.dirname(unit.partition("#")[0]), "GRADED")
+    graded = grade_prose.graded_path(unit)
     for fields in graded_lines(graded):
         if fields[0] == unit and len(fields) > 1:
             return fields[1]
