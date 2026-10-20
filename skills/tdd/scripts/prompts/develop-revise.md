@@ -54,6 +54,9 @@ instead of an {{INCLUDE:_develop-split.md}} leave the working tree exactly as yo
    code, or the reason asks for something the step cannot deliver — report `IMPOSSIBLE`
    and say why. That is a legitimate outcome and the pipeline acts on it. Do not fake a
    pass, weaken a test, or invent work to look productive.
+   Redoing green only: when the objection can only be met by a test the step lacks, edit
+   no test — report `OUTCOME: IMPOSSIBLE` with one `MISSING_TEST: <behaviour>` line naming
+   the behaviour to pin, before the `OUTCOME:` line.
 
 ### Report (last lines of your output)
 
