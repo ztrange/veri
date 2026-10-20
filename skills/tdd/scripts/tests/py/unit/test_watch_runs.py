@@ -76,3 +76,24 @@ def test_main_prints_nothing_across_polls_in_which_no_conductor_exits_and_no_slo
     code = watch_runs.main([])
 
     assert (code, printed_during_waits, capsys.readouterr().out) == (0, [""] * 5, "exited 5 done\n")
+
+
+def test_main_returns_2_with_a_usage_line_before_any_listing_when_target_or_max_wait_is_not_a_whole_number_of_at_least_1(
+        monkeypatch, capsys, watch_runs):
+    listings = []
+
+    def live_conductors():
+        listings.append(1)
+        raise RuntimeError("listed before validating the arguments")
+
+    monkeypatch.setattr(watch_runs, "live_conductors", live_conductors)
+    monkeypatch.setattr(watch_runs, "wait", lambda: listings.append("wait"))
+
+    outcomes = []
+    for argv in (["--target", "0"], ["--target", "-1"], ["--max-wait", "abc"], ["--max-wait", ""], ["--target"]):
+        code = watch_runs.main(argv)
+        captured = capsys.readouterr()
+        outcomes.append((argv, code, captured.out, captured.err.lower().startswith("usage")))
+
+    assert outcomes == [(argv, 2, "", True) for argv, *_ in outcomes]
+    assert listings == []
