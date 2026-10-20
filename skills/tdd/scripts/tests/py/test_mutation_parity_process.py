@@ -739,3 +739,30 @@ def test_1667_pytest_case_row_sees_no_veri_or_claude_variable_from_the_caller_ex
 
     assert (code, out.strip().endswith("proven")) == (0, True), (
         "exit=%s stdout=%r stderr=%r; want the unmutated pytest run to see no VERI_*/CLAUDE_* variable" % (code, out, err))
+
+
+@pytest.mark.process("a bash suite and python3 started by failed_cases(), one proven and one owed row, run with a VERI_* tunable set in the caller")
+def test_1667_proven_row_still_reports_proven_and_an_owed_row_still_exits_1_with_a_tunable_set(tmp_path, monkeypatch, run_cli):
+    monkeypatch.setenv("VERI_MODEL_REVISE", "opus")
+    source = tmp_path / MODULE
+    source.parent.mkdir(parents=True)
+    source.write_text("def code():\n    return 2\n")
+    suite = tmp_path / "checks" / "gate.sh"
+    suite.parent.mkdir()
+    suite.write_text(SUITE)
+    suite.chmod(0o755)
+    mutated = source.read_text().replace("return 2", "return 1")
+    patch = tmp_path / "gate.patch"
+    patch.write_text("".join(difflib.unified_diff(
+        source.read_text().splitlines(True), mutated.splitlines(True), "a/" + MODULE, "b/" + MODULE)))
+    proven = ["checks/gate.sh", "old case", "redundant", "kept case", str(patch)]
+    owed = ["checks/gate.sh", "never failing case", "redundant", "kept case", str(patch)]
+    table = tmp_path / "pairs.tsv"
+    table.write_text("\t".join(proven) + "\n" + "\t".join(owed) + "\n")
+    importlib.invalidate_caches()
+    mutation_parity = importlib.import_module("veri.mutation_parity")
+
+    code, out, err = run_cli(mutation_parity, [str(table)], cwd=tmp_path)
+
+    want = "\t".join([proven[1], proven[3], proven[4], "proven"]) + "\n" + "\t".join([owed[1], owed[3], owed[4], "owed"]) + "\n"
+    assert (code, out) == (1, want), "exit=%s stdout=%r stderr=%r" % (code, out, err)
