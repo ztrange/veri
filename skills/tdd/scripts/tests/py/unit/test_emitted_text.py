@@ -62,7 +62,7 @@ USAGE = [
     ("3513573825 54", "over-budget.sh", ["unit"]),
     ("3513573825 54", "over-budget.sh", ["unit", "10"]),
     ("28322156 83", "session-cost.sh", ["--since"]),
-    ("1968660819 53", "solvable-issues.sh", ["--repo"]),
+    ("2611868518 69", "solvable-issues.sh", ["--repo"]),
     ("1825838473 75", "supervise.sh", ["develop-red"]),
     ("1826447128 65", "timed-test-run.sh", ["all"]),
     ("1826447128 65", "timed-test-run.sh", ["all", ""]),
