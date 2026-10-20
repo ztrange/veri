@@ -35,8 +35,10 @@ def apply(issue, unit):
             in_unit = line[3:] == name
         elif in_unit and line.startswith("|"):
             last = number
-            lines[number] = reworded.get(requirements.split_cells(line)[1], line)
+            row = reworded.get(requirements.split_cells(line)[1], line)
+            lines[number] = None if requirements.split_cells(row)[2] == "(dropped)" else row
     lines[last + 1:last + 1] = new
+    lines = [l for l in lines if l is not None]
     with open(path, "w", encoding="utf-8", errors="surrogateescape") as f:
         f.write("\n".join(lines))
 
