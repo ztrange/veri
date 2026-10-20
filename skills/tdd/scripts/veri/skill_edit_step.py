@@ -24,15 +24,18 @@ def _issue_rows(issue, name):
     return rows[2:]
 
 
+def _write(path, lines):
+    with open(path, "w", encoding="utf-8", errors="surrogateescape") as f:
+        f.write("\n".join(lines))
+
+
 def _create(unit, path, name, rows):
     open(unit, "w").close()
     head = ["## " + name, "", "| ID | Requirement | Why |", "|---|---|---|"]
     existing = requirements.read_lines(path) if os.path.exists(path) else []
     while existing and existing[-1] == "":
         existing.pop()
-    lines = existing + [""] * bool(existing) + head + rows + [""]
-    with open(path, "w", encoding="utf-8", errors="surrogateescape") as f:
-        f.write("\n".join(lines))
+    _write(path, existing + [""] * bool(existing) + head + rows + [""])
 
 
 def apply(issue, unit):
@@ -56,9 +59,7 @@ def apply(issue, unit):
             row = reworded.get(_row_id(line), line)
             lines[number] = None if requirements.split_cells(row)[2] == "(dropped)" else row
     lines[last + 1:last + 1] = new
-    lines = [l for l in lines if l is not None]
-    with open(path, "w", encoding="utf-8", errors="surrogateescape") as f:
-        f.write("\n".join(lines))
+    _write(path, [l for l in lines if l is not None])
 
 
 def main(argv):
