@@ -1,0 +1,52 @@
+"""Cases for skill-edit-step.sh that start the real entry point against a real git repository and a stub claude."""
+import json
+import subprocess
+
+import pytest
+
+from conftest import SCRIPTS
+
+STEP = SCRIPTS / "skill-edit-step.sh"
+OWED = SCRIPTS / "prose-owed.sh"
+GRADER = """#!/bin/sh
+cat > /dev/null
+printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}'
+"""
+LIST = ("## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is %s. | because |\n| A2 | The widget never hums. | quiet |\n")
+
+
+def git(repo, *args):
+    return subprocess.run(["git", "-C", str(repo), "-c", "user.name=veri", "-c", "user.email=veri@example.test", *args],
+                          capture_output=True, text=True, check=True).stdout.strip()
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
+def test_changed_ids_that_already_pass_launch_no_author_and_commit_the_list_and_graded_line_exiting_3(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
+    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is a deep blue. | shade |\n")
+    claude = tmp_path / "claude"
+    claude.write_text(GRADER)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+    owed = subprocess.run([str(OWED), "."], cwd=repo, capture_output=True, text=True, env=env)
+
+    log = repo / ".tdd" / "events.jsonl"
+    events = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
+    others = [e for e in events if e.get("event") != "grading"]
+    assert [ran.returncode, git(repo, "rev-list", "--count", "HEAD"),
+            sorted(git(repo, "show", "--name-only", "--format=", "HEAD").splitlines()),
+            owed.stdout, any("author" in json.dumps(e) for e in others)] \
+        == [3, "2", ["GRADED", "REQUIREMENTS.md"], "", True], (ran.stdout, ran.stderr, events)

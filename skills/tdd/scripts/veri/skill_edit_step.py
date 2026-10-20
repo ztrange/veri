@@ -1,7 +1,10 @@
 """skill-edit-step.sh's entry point, run in-process."""
 import os
+import subprocess
 import sys
 
+import event
+import grade_prose
 import requirements
 
 USAGE = "usage: skill-edit-step.sh <issue-body-file> <unit-file>"
@@ -66,8 +69,17 @@ def main(argv):
     if len(argv) != 2:
         print(USAGE, file=sys.stderr)
         return 2
-    apply(*argv)
-    return 0
+    issue, unit = argv
+    apply(issue, unit)
+    path = os.path.join(os.path.dirname(unit), "REQUIREMENTS.md")
+    graded = grade_prose.main([path, unit])
+    if graded:
+        return graded
+    event.append(".", {}, "skill-edit-no-author", ["unit=" + unit])
+    files = [path, grade_prose.graded_path(unit)]
+    subprocess.run(["git", "add", *files], check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "docs: requirements for %s, graded" % unit, *files], check=True)
+    return 3
 
 
 if __name__ == "__main__":
