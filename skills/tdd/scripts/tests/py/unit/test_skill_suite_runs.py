@@ -3,6 +3,7 @@ import pathlib
 import re
 
 import skill_sections
+from skill_sections import plain_lower as plain
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 REVISE_MD = SKILL.with_name("REVISE.md")
@@ -14,10 +15,6 @@ REFACTOR_LOOP = "#### Refactor loop — one leaf applies the step's transforms, 
 DIFF_CHECKED = "#### A `⟦diff-checked⟧` step — develop-diff, then verify-diff (blind)"
 REVISING = "## Revising on a REJECT"
 PHASES = "#### A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier"
-
-
-def plain(text):
-    return text.replace("*", "").replace("`", "").lower()
 
 
 def doc_text(skill, heading, start=None):

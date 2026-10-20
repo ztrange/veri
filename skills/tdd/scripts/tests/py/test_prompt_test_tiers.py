@@ -6,17 +6,11 @@ import subprocess
 import pytest
 
 from conftest import SCRIPTS
+from skill_sections import plain
 
 DEVELOP = SCRIPTS / "build-develop-prompt.sh"
 VERIFY = SCRIPTS / "build-verify-prompt.sh"
 BOUNDARY = "build-develop-prompt.sh and build-verify-prompt.sh run as real bash processes"
-
-_UPPER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
-
-
-def plain(text):
-    return text.translate({ord("*"): None, ord("`"): None}).translate(_UPPER)
-
 
 def lines_matching(pattern, text):
     return [line for line in text.split("\n") if re.search(pattern, line)]
