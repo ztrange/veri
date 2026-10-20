@@ -677,3 +677,20 @@ def test_main_1865_prints_repair_of_the_step_own_case_when_the_wrong_test_line_f
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s\n" % own)
+
+
+def test_main_1865_prints_missing_behaviour_of_the_first_well_formed_missing_test_line_skipping_an_empty_one_before_it(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setenv("VERI_STEP", "wrong-test-route.sh skips an empty missing test line")
+    report = tmp_path / "verify-green-report.txt"
+    report.write_text(
+        "VERDICT: REJECT\n"
+        "MISSING_TEST:   \n"
+        "MISSING_TEST: a closed conductor session is counted once\n"
+        "MISSING_TEST: a second behaviour\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "missing a closed conductor session is counted once\n")
