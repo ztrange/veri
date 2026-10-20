@@ -90,6 +90,7 @@ test unit:
 	@unset BASH_ENV ENV; fail=0; git_bin="$$(mktemp -d)"; pycache="$$(mktemp -d)"; \
 	trap 'rm -rf "$$git_bin" "$$pycache"' EXIT; \
 	$(OFFLINE_GIT); \
+	skills/tdd/scripts/prose-owed.sh . || fail=1; \
 	if [ -n "$(PY_TESTS)" ]; then \
 	  py_bin="$(VENV_PY)"; \
 	  printf '== pytest\n'; \
