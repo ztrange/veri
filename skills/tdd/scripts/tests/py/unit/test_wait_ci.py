@@ -1113,3 +1113,21 @@ def test_main_records_the_deadline_at_the_first_call_that_sees_the_given_head_an
 
     assert (behind, recorded_behind, at_head, recorded, later, mark.read_text()) == (
         (3, "", ""), False, (3, "", ""), f"{60 * first_seen + 600}\n", (3, "", ""), f"{60 * first_seen + 600}\n")
+
+
+def test_main_with_no_head_sha_records_the_deadline_for_the_pull_head_on_its_first_pending_call_issue_1896(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    base = f"gh api repos/o/r/commits/{FULL_SHA}"
+    bodies = {
+        PULL: json.dumps({"number": 1, "state": "open", "draft": False, "head": {"sha": FULL_SHA}}),
+        f"{base}/status": json.dumps({"state": "pending", "sha": FULL_SHA, "total_count": 0, "statuses": []}),
+        f"{base}/check-runs?page=1": json.dumps({"total_count": 1, "check_runs": [check_run("gates", FULL_SHA, "in_progress")]}),
+        f"{base}/check-runs?page=2": json.dumps({"total_count": 1, "check_runs": []}),
+    }
+
+    served(fake_processes, bodies)
+    code, _, _ = run_cli(wait_ci, [PR, "120", "600"], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (code, (work / ".tdd" / f"ci-deadline-{FULL_SHA}").read_text()) == (3, "600\n")
