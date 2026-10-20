@@ -1886,6 +1886,22 @@ def test_cli_red_repair_prompt_carries_the_named_case_and_the_wrong_test_reason_
     assert [needle in flat for needle in (step, case, "the stub matches GLORPNAK pages it must not", "Edit that case **only**", "create **NO** suite")] == [True] * 5
 
 
+def test_cli_red_missing_prompt_carries_the_reason_files_missing_test_line_verbatim_and_tells_the_leaf_to_add_one_case_and_a_missing_reason_file_exits_2_with_the_usage_1808(
+        tmp_path, run_cli, build_develop_prompt):
+    step = "QWIXTLE: a seed ending in a newline gains the block and reports added"
+    line = "MISSING_TEST: no case requires GLORPNAK to be counted once when the session is closed"
+    reason = tmp_path / "reason.md"
+    reason.write_text(f"noise\n{line}\nVERDICT: REJECT\n")
+
+    code, out, err = run_cli(build_develop_prompt, ["red-missing", _spec(tmp_path), step, "make test", str(reason)])
+    short = run_cli(build_develop_prompt, ["red-missing", _spec(tmp_path), step, "make test"])
+
+    flat = " ".join(out.split())
+    assert (code, err) == (0, "")
+    assert [needle in flat for needle in (step, line, "Add exactly **ONE** new failing test case", "write **NO** production code", "Never edit another case")] == [True] * 5
+    assert (short[0], short[1], "red-missing needs" in short[2], "Usage:" in short[2] or "usage:" in short[2]) == (2, "", True, True)
+
+
 def test_cli_unknown_phase_with_no_further_arguments_exits_2_names_the_phase_on_stderr_and_prints_no_prompt(
         run_cli, build_develop_prompt):
     code, out, err = run_cli(build_develop_prompt, ["bogus"])
