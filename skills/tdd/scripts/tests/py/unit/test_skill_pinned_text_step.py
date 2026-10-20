@@ -3,13 +3,11 @@ import importlib
 import pathlib
 import re
 
+from skill_sections import plain_collapsed as _plain
+
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 SCOPE = "### 2. Scope & plan → the ledger"
-
-
-def _plain(text):
-    return " ".join(text.replace("*", "").replace("`", "").lower().split())
 
 
 def test_scope_and_plan_plans_a_step_changing_pinned_prompt_or_skill_text_as_diff_checked_with_its_pins_in_one_commit_1713():

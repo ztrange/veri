@@ -15,6 +15,7 @@ import re
 import subprocess
 
 import pytest
+from skill_sections import plain as _plain
 
 SKILL = pathlib.Path(__file__).resolve().parents[3] / "SKILL.md"
 
@@ -23,7 +24,6 @@ CI_END = re.compile(r"^([0-9]+\. |#)")
 WS = r"[ \t\n\r\f\v]"
 NO_STEP = "SKILL.md has no CI step (2. **Mark the PR ready …) to read — nothing could be checked"
 
-_LOWER = str.maketrans("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz")
 
 
 def _ci_step():
@@ -36,10 +36,6 @@ def _ci_step():
         if inside:
             out.append(line)
     return "\n".join(out)
-
-
-def _plain(text):
-    return text.replace("*", "").replace("`", "").translate(_LOWER)
 
 
 def _conflict_text(step):

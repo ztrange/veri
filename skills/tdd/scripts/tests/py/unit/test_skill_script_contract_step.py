@@ -3,13 +3,11 @@ import importlib
 import pathlib
 import re
 
+from skill_sections import plain_collapsed as _plain
+
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 SCOPE = "### 2. Scope & plan → the ledger"
-
-
-def _plain(text):
-    return " ".join(text.replace("*", "").replace("`", "").lower().split())
 
 
 def test_scope_and_plan_gives_the_step_adding_a_script_its_usage_exit_2_and_caller_in_that_same_step_1700():

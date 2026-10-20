@@ -10,15 +10,10 @@ Contract under test:
 import pathlib
 import re
 
+from skill_sections import plain as _plain
+
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 RECONCILE = SKILL.with_name("RECONCILE.md")
-
-_UPPER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
-
-
-def _plain(text):
-    return text.replace("*", "").replace("`", "").translate(_UPPER)
-
 
 def _records(lines):
     out, rec = [], ""

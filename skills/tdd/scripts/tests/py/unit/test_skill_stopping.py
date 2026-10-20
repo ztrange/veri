@@ -3,6 +3,8 @@ import importlib
 import pathlib
 import re
 
+from skill_sections import LOWER, has_match as _has, plain as _plain
+
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 SCOPE_LOOP = SKILL.with_name("SCOPE-LOOP.md")
 STOPPING_MD = SKILL.with_name("STOPPING.md")
@@ -18,23 +20,12 @@ LOOP_4 = "### Loop 4. Stop conditions"
 LOOP_5 = "### Loop 5. Report"
 SCRIPTS = "## The scripts (this skill's `scripts/` directory)"
 
-_UPPER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
-_UNMARK = {ord("*"): None, ord("`"): None}
-
-
-def _plain(text):
-    return text.translate(_UNMARK).translate(_UPPER)
-
 
 def _section(heading, path=SKILL):
     section = importlib.import_module("skill_sections").section(BAIL if heading == BAILING else path, heading)
     lines = _plain(section).split("\n")[1:]
     assert "".join(lines).strip(), f"SKILL.md has no {heading} section — nothing could be checked"
     return lines
-
-
-def _has(pattern, lines):
-    return any(re.search(pattern, line) for line in lines)
 
 
 def _first(pattern, lines):
@@ -265,7 +256,7 @@ def _phase_exit2(heading, anchor):
     inside, kept = False, []
     for raw in (SKILL.read_text() + "\n" + SKILL.with_name("REVISE.md").read_text()).splitlines():
         if re.match(r"#{2,4} ", raw):
-            inside = bool(re.search(heading, raw.translate(_UPPER)))
+            inside = bool(re.search(heading, raw.translate(LOWER)))
             continue
         if inside:
             kept.append(_plain(raw))

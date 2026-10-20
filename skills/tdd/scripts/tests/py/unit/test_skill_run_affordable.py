@@ -3,14 +3,11 @@ import pathlib
 import re
 
 import skill_sections
+from skill_sections import plain_lower as plain
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 CYCLE_LOOP = "### 3. The cycle loop"
-
-
-def plain(text):
-    return text.replace("*", "").replace("`", "").lower()
 
 
 def loop_lines():
