@@ -2144,3 +2144,21 @@ def test_main_builds_the_replaces_case_red_and_green_prompts_for_a_step_whose_te
     assert ([b"Add the replacement test cases the step names" in red,
              b"permitted, and it is required for the step to pass, to delete exactly the cases it names" in green]
             == [True, True])
+
+
+def test_cli_verify_green_prompt_asks_a_missing_test_reject_for_a_missing_test_line_and_revise_green_asks_it_of_an_impossible_with_no_test_edit_1808(
+        tmp_path, run_cli, build_develop_prompt):
+    verify = importlib.import_module("veri.build_verify_prompt")
+    reason = tmp_path / "reason.md"
+    reason.write_text("rejected\n")
+    step = "QWIXTLE: a seed ending in a newline gains the block and reports added"
+
+    v_code, v_out, v_err = run_cli(verify, ["--fast-cmd", "make unit", "green", _spec(tmp_path), "tests/slug_cases.py", "case one"])
+    r_code, r_out, r_err = run_cli(build_develop_prompt, ["revise", "green", _spec(tmp_path), step, "make test", str(reason)])
+
+    verify_flat, revise_flat = " ".join(v_out.split()), " ".join(r_out.split())
+    verify_rule = next((s for s in re.split(r"(?<=\.) ", verify_flat) if "MISSING_TEST: <behaviour>" in s), "")
+    revise_rule = next((s for s in re.split(r"(?<=\.) ", revise_flat) if "MISSING_TEST: <behaviour>" in s), "")
+    assert (v_code, v_err, r_code, r_err) == (0, "", 0, "")
+    assert [word in verify_rule for word in ("REJECT", "no test pins")] == [True, True]
+    assert [word in revise_rule for word in ("IMPOSSIBLE", "edit no test")] == [True, True]
