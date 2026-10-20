@@ -21,6 +21,7 @@ def main(argv):
     if not os.path.isfile(log):
         sys.stderr.write("stop-reason.sh: no events log at %s\n" % log)
         return 2
+    conductor_log = _conductor_log(argv[0])
     events = _records(log)
     last = events[-1]
     if last.get("event") == "done":
@@ -31,13 +32,13 @@ def main(argv):
         sys.stdout.write("stopped %s\n" % last.get("mode"))
     elif _live(os.path.join(os.path.dirname(log), "conductor.pid")):
         sys.stdout.write("running\n")
-    elif not os.path.isfile(_conductor_log(argv[0])):
-        sys.stderr.write("stop-reason.sh: no conductor log at %s\n" % _conductor_log(argv[0]))
+    elif not os.path.isfile(conductor_log):
+        sys.stderr.write("stop-reason.sh: no conductor log at %s\n" % conductor_log)
         return 2
     else:
         reason = _usage_limit(argv[0])
         if reason is None:
-            sys.stderr.write("stop-reason.sh: no result record in %s\n" % _conductor_log(argv[0]))
+            sys.stderr.write("stop-reason.sh: no result record in %s\n" % conductor_log)
             return 2
         sys.stdout.write(reason)
     for a, b in zip(events, events[1:]):
