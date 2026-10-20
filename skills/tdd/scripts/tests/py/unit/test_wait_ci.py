@@ -578,7 +578,7 @@ def test_main_keeps_its_bound_across_reads_calls_and_the_head_sha_it_was_given_a
             answers.append((code, UNREADABLE in err, past in err))
         return answers
 
-    skill = (pathlib.Path(__file__).resolve().parents[3] / "SKILL.md").read_text()
+    skill = (pathlib.Path(__file__).resolve().parents[4] / "SKILL.md").read_text()
     draft_pr_calls = [line for line in skill.splitlines() if "wait-ci.sh <pr-url>" in line]
 
     observed = {

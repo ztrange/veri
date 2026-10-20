@@ -416,3 +416,15 @@ def test_the_veri_coord_and_veri_dev_lane_prose_suites_live_under_tests_py_unit_
     assert [(name, (tier / name).is_file(), (tier / "unit" / name).is_file()) for name in names] == [
         (name, False, True) for name in names
     ]
+
+
+def test_1874_a_planted_test_file_building_a_subprocess_completed_process_is_not_reported_as_starting_a_process(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    (tmp_path / "test_fake_result.py").write_text(
+        "import subprocess\n"
+        "\n"
+        "def test_fakes_a_result():\n"
+        "    return subprocess.CompletedProcess(['true'], 0)\n"
+    )
+
+    assert guard.offences(tmp_path) == []
