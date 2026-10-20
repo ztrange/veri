@@ -112,15 +112,13 @@ def conductor_sessions(issue, path):
                             turn_rows.append([str(len(turn_rows) + 1), "unpriced", context])
                             continue
                         prices = session_cost.PRICES[model_family]
+                        cache_write_dollars = sum(tokens * prices[rate] / 1e6
+                                                  for rate, tokens in session_cost.cache_write_tokens(usage).items())
+                        output_dollars = (usage.get("output_tokens") or 0) * prices["output"] / 1e6
                         turn_dollars = sum((usage.get(key) or 0) * prices[rate] / 1e6
-                                           for key, rate in TURN_RATES.items())
-                        base_dollars = turn_dollars - (usage.get("output_tokens") or 0) * prices["output"] / 1e6
-                        turn_dollars += sum(tokens * prices[rate] / 1e6
-                                            for rate, tokens in session_cost.cache_write_tokens(usage).items())
+                                           for key, rate in TURN_RATES.items()) + cache_write_dollars
                         open_cost += turn_dollars
-                        open_rows.append((len(turn_rows), base_dollars + sum(
-                            tokens * prices[rate] / 1e6
-                            for rate, tokens in session_cost.cache_write_tokens(usage).items())))
+                        open_rows.append((len(turn_rows), turn_dollars - output_dollars))
                         turn_rows.append([str(len(turn_rows) + 1), "$%.2f" % turn_dollars, context])
         if open_turns:
             sessions.append({"total_cost_usd": open_cost if open_priced else None, "num_turns": open_turns})
