@@ -568,6 +568,12 @@ def breaks_collection_patch(tmp_path):
         CALC_PYTEST.splitlines(True), BREAKS_COLLECTION.splitlines(True), "a/tests/test_calc.py", "b/tests/test_calc.py")))
 
 
+def does_not_apply_patch(tmp_path):
+    other = "mul() { echo $(( $1 * $2 )); }\n"
+    (tmp_path / "does-not-apply.patch").write_text("".join(difflib.unified_diff(
+        other.splitlines(True), other.replace("*", "/").splitlines(True), "a/calc.sh", "b/calc.sh")))
+
+
 def dirty_patch(tmp_path, name, extra=""):
     before = (tmp_path / "calc.sh").read_text()
     after = before.replace("$1 + $2", "$1 - $2") + extra
@@ -587,9 +593,7 @@ def test_1594_a_row_whose_old_suite_holds_more_than_one_case_reads_owed_when_the
 @pytest.mark.process("git apply started by check(), refusing a patch written against other content")
 def test_a_row_whose_mutation_does_not_apply_to_the_tree_exits_2(tmp_path, monkeypatch, run_cli):
     mp = scratch_with(tmp_path, monkeypatch)
-    other = "mul() { echo $(( $1 * $2 )); }\n"
-    (tmp_path / "does-not-apply.patch").write_text("".join(difflib.unified_diff(
-        other.splitlines(True), other.replace("*", "/").splitlines(True), "a/calc.sh", "b/calc.sh")))
+    does_not_apply_patch(tmp_path)
 
     code, out, err = one_row(tmp_path, run_cli, mp, "checks/calc-suite.sh", "adds two numbers", "redundant", "adds a negative", "does-not-apply")
 
@@ -656,9 +660,7 @@ def test_after_the_pairs_check_exits_2_a_mutation_that_does_not_apply_a_bash_sui
     dirty_tree(tmp_path)
     dirty_patch(tmp_path, "dirty")
     dirty_patch(tmp_path, "dirty-dies", extra="exit 9\n")
-    other = "mul() { echo $(( $1 * $2 )); }\n"
-    (tmp_path / "does-not-apply.patch").write_text("".join(difflib.unified_diff(
-        other.splitlines(True), other.replace("*", "/").splitlines(True), "a/calc.sh", "b/calc.sh")))
+    does_not_apply_patch(tmp_path)
     scenarios = {
         "does-not-apply": ("adds two numbers", "redundant", "adds a negative", "does-not-apply"),
         "dies": ("adds two numbers", "redundant", "adds a negative", "dirty-dies"),
