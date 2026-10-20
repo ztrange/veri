@@ -1,0 +1,3 @@
+### When several assistant records share a message.id, that turn's row prices the last record's output_tokens, never the first's — pinned by a case in tests/py/test_metrics.py built from the recorded real conductor log tests/fixtures/conductor-log/conductor-opus-5-5-recorded.log whose records sharing one message.id have their output_tokens grown across the message, never from hand-written records ⟦criterion 2⟧
+- the `unpriced` branch still seeds `seen_ids` separately from the priced path
+- test-only | the two #1868 cases in `test_metrics.py` each rebuild the recorded fixture path and parse it; extract a shared helper
