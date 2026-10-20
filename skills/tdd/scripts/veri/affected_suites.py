@@ -241,6 +241,10 @@ def pytest_skill_readers():
     return [p for p, text in pytest_texts() if b"SKILL.md" in text or re.search(SECTION_CALL, text)]
 
 
+def pytest_files_of(name):
+    return [s for d in PYTEST_DIRS for s in existing("%s/test_%s.py" % (d, name))]
+
+
 def bash_suite_of(name):
     return (existing("%s/tests/unit/%s.test.sh" % (SCRIPTS, name))
             or existing("%s/tests/%s.test.sh" % (SCRIPTS, name))
@@ -287,12 +291,10 @@ def suite_of(f, revisions=None):
         return found
     if match(SCRIPTS + "/veri/*.py"):
         name = basename(f, ".py")
-        return ([s for d in PYTEST_DIRS for s in existing("%s/test_%s.py" % (d, name))]
-                + bash_suite_of(name.replace("_", "-")))
+        return pytest_files_of(name) + bash_suite_of(name.replace("_", "-"))
     if match(SCRIPTS + "/*.sh"):
         name = basename(f, ".sh")
-        return ([s for d in PYTEST_DIRS for s in existing("%s/test_%s.py" % (d, name.replace("-", "_")))]
-                or bash_suite_of(name))
+        return pytest_files_of(name.replace("-", "_")) or bash_suite_of(name)
     if match(".tdd/*"):
         return []
     raise Unplaced(f)
