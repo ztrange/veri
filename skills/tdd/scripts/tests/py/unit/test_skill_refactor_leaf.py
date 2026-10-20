@@ -5,6 +5,7 @@ import re
 import sys
 
 import pytest
+from skill_sections import has, plain_bytes as plain, window, windows
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 ROOT = pathlib.Path(__file__).resolve().parents[6]
@@ -21,10 +22,6 @@ DENIAL = f"({DENIAL_WORD})[^.]{{0,80}}"
 AMENDMENT = r"amend|ledger (step|line)|add-ledger-step|grow"
 
 
-def plain(raw):
-    return raw.translate(None, b"*`").lower()
-
-
 def section(document=None):
     sections = importlib.import_module("skill_sections")
     if document is None:
@@ -37,22 +34,6 @@ def section(document=None):
             break
         lines.append(line)
     return plain("\n".join(lines).encode()).replace(b"\n", b" ")
-
-
-def has(text, pattern):
-    return any(re.search(pattern.encode(), line) for line in text.split(b"\n"))
-
-
-def windows(text, pattern, radius=250):
-    found = []
-    for line in text.split(b"\n"):
-        for match in re.finditer(pattern.encode(), line):
-            found.append(line[max(match.start() - radius, 0):match.end() + radius])
-    return found
-
-
-def window(text, pattern, radius=250):
-    return next(iter(windows(text, pattern, radius)), b"")
 
 
 def wins(text, pattern):

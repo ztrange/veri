@@ -1,4 +1,5 @@
 import pathlib
+import re
 
 import pytest
 
@@ -8,6 +9,30 @@ LOWER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
 
 def plain(text):
     return text.replace("*", "").replace("`", "").translate(LOWER)
+
+
+def plain_bytes(raw):
+    return raw.translate(None, b"*`").lower()
+
+
+def plain_folded(raw):
+    return plain_bytes(raw).replace(b"\n", b" ")
+
+
+def has(text, pattern):
+    return any(re.search(pattern.encode(), line) for line in text.split(b"\n"))
+
+
+def windows(text, pattern, radius=250):
+    found = []
+    for line in text.split(b"\n"):
+        for match in re.finditer(pattern.encode(), line):
+            found.append(line[max(match.start() - radius, 0):match.end() + radius])
+    return found
+
+
+def window(text, pattern, radius=250):
+    return next(iter(windows(text, pattern, radius)), b"")
 
 
 def lines_of(path):

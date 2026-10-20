@@ -4,6 +4,7 @@ import pathlib
 import re
 
 import pytest
+from skill_sections import has, plain_folded as plain, window, windows
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
@@ -19,10 +20,6 @@ def build_develop_prompt():
     return importlib.import_module("veri.build_develop_prompt")
 
 
-def plain(raw):
-    return raw.translate(None, b"*`").lower().replace(b"\n", b" ")
-
-
 def section(heading):
     text = importlib.import_module("skill_sections").section(SKILL, heading)
     return plain(text.encode())
@@ -30,22 +27,6 @@ def section(heading):
 
 def skill_text():
     return plain(SKILL.read_bytes())
-
-
-def has(text, pattern):
-    return any(re.search(pattern.encode(), line) for line in text.split(b"\n"))
-
-
-def windows(text, pattern, radius=250):
-    found = []
-    for line in text.split(b"\n"):
-        for match in re.finditer(pattern.encode(), line):
-            found.append(line[max(match.start() - radius, 0):match.end() + radius])
-    return found
-
-
-def window(text, pattern, radius=250):
-    return next(iter(windows(text, pattern, radius)), b"")
 
 
 def test_skill_md_tells_a_refactor_kind_run_to_plan_each_step_as_one_named_refactoring_whose_criterion_is_a_shell_predicate_false_before_the_step_and_true_after_it():

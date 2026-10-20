@@ -3,14 +3,12 @@ import importlib
 import pathlib
 import re
 
+from skill_sections import plain_folded as plain, window
+
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 REFACTOR = "#### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)"
 DRAFT_PR = "### 4. Draft PR"
-
-
-def plain(raw):
-    return raw.translate(None, b"*`").lower().replace(b"\n", b" ")
 
 
 def section(heading):
@@ -27,11 +25,6 @@ def refactor_section():
             break
         lines.append(line)
     return plain("\n".join(lines).encode())
-
-
-def window(text, pattern, radius=250):
-    match = re.search(pattern.encode(), text)
-    return text[max(match.start() - radius, 0):match.end() + radius] if match else b""
 
 
 def narration_of(text):
