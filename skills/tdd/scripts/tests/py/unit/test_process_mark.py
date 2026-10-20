@@ -19,6 +19,10 @@ def test_a_process_mark_with_no_boundary_or_an_empty_one_fails_collection_naming
         @pytest.mark.process("")
         def test_empty_process_mark():
             pass
+
+        @pytest.mark.process(" \\t ")
+        def test_blank_process_mark():
+            pass
     """)
 
     result = pytester.runpytest_inprocess(plugins=[importlib.import_module("conftest")])
@@ -26,7 +30,7 @@ def test_a_process_mark_with_no_boundary_or_an_empty_one_fails_collection_naming
 
     assert result.ret not in (pytest.ExitCode.OK, pytest.ExitCode.TESTS_FAILED), output
     assert "passed" not in result.parseoutcomes(), output
-    assert [name for name in ("test_bare_process_mark", "test_empty_process_mark") if name not in output] == [], output
+    assert [name for name in ("test_bare_process_mark", "test_empty_process_mark", "test_blank_process_mark") if name not in output] == [], output
 
 
 def test_a_tree_audit_mark_with_no_argument_or_an_empty_one_fails_collection_naming_the_test(pytester):
@@ -40,36 +44,6 @@ def test_a_tree_audit_mark_with_no_argument_or_an_empty_one_fails_collection_nam
         @pytest.mark.tree_audit("")
         def test_empty_tree_audit_mark():
             pass
-    """)
-
-    result = pytester.runpytest_inprocess(plugins=[importlib.import_module("conftest")])
-    output = result.stdout.str() + result.stderr.str()
-
-    assert result.ret not in (pytest.ExitCode.OK, pytest.ExitCode.TESTS_FAILED), output
-    assert "passed" not in result.parseoutcomes(), output
-    assert [name for name in ("test_bare_tree_audit_mark", "test_empty_tree_audit_mark") if name not in output] == [], output
-
-
-def test_a_process_mark_whose_argument_is_only_whitespace_fails_collection_naming_the_test(pytester):
-    pytester.makepyfile(test_plant="""
-        import pytest
-
-        @pytest.mark.process(" \\t ")
-        def test_blank_process_mark():
-            pass
-    """)
-
-    result = pytester.runpytest_inprocess(plugins=[importlib.import_module("conftest")])
-    output = result.stdout.str() + result.stderr.str()
-
-    assert result.ret not in (pytest.ExitCode.OK, pytest.ExitCode.TESTS_FAILED), output
-    assert "passed" not in result.parseoutcomes(), output
-    assert "test_blank_process_mark" in output, output
-
-
-def test_a_tree_audit_mark_whose_argument_is_only_whitespace_fails_collection_naming_the_test(pytester):
-    pytester.makepyfile(test_plant="""
-        import pytest
 
         @pytest.mark.tree_audit(" \\t ")
         def test_blank_tree_audit_mark():
@@ -81,7 +55,7 @@ def test_a_tree_audit_mark_whose_argument_is_only_whitespace_fails_collection_na
 
     assert result.ret not in (pytest.ExitCode.OK, pytest.ExitCode.TESTS_FAILED), output
     assert "passed" not in result.parseoutcomes(), output
-    assert "test_blank_tree_audit_mark" in output, output
+    assert [name for name in ("test_bare_tree_audit_mark", "test_empty_tree_audit_mark", "test_blank_tree_audit_mark") if name not in output] == [], output
 
 
 def test_an_unregistered_mark_fails_collection_naming_the_test_and_the_mark_while_process_is_registered(pytester):
