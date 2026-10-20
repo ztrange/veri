@@ -553,3 +553,28 @@ def test_1874_a_grader_leaf_whose_reply_carries_a_429_error_alongside_an_all_pas
     log = (tmp_path / ".tdd" / "grade-prose.log").read_text()
     assert ("API Error: 429" in log, "A2: PASS" in log) == (True, True), log
     assert (done.returncode, done.stdout, graded) == (2, "", []), (done.stderr, lines)
+
+
+@pytest.mark.process("grade-prose.sh launching a real supervise.sh that refuses")
+def test_1874_a_launch_supervise_refuses_with_a_stale_all_pass_log_on_disk_makes_grade_prose_exit_2_with_no_stdout_and_no_event(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "grade-prose.log").write_text(
+        '{"type":"result","subtype":"success","is_error":false,"result":'
+        '"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nEND GRADES\\nVERDICT: PASS"}\n')
+    claude = tmp_path / "claude"
+    claude.write_text(STUB)
+    claude.chmod(0o755)
+    record = tmp_path / "record.txt"
+
+    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                          capture_output=True, text=True,
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record), "VERI_HEARTBEAT": "abc"})
+
+    events = tmp_path / ".tdd" / "events.jsonl"
+    lines = events.read_text().splitlines() if events.exists() else []
+    graded = [l for l in lines if "guide/unit.md" in l and '"verdict": "PASS"' in l]
+    assert (done.returncode, done.stdout, graded) == (2, "", []), (done.stderr, lines)
