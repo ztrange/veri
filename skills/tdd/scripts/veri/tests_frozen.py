@@ -85,7 +85,7 @@ def main(argv):
         record = argv[1]
     if mode == "record":
         files = argv[2:]
-        if by_step and os.path.exists(".git"):
+        if by_step and _in_repository():
             files += [name for name in _differing_tests()
                       if name not in files and os.path.exists(name)]
         if not files:
@@ -93,7 +93,7 @@ def main(argv):
             return 2
         try:
             lines = ["%s  %s\n" % (_digest(name), name) for name in files]
-            if by_step and os.path.exists(".git"):
+            if by_step and _in_repository():
                 lines += ["case: %s\n" % case for name in files for case in _added_cases(name)]
             with open(record, "w") as handle:
                 handle.writelines(lines)
