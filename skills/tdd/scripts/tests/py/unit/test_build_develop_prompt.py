@@ -2200,3 +2200,27 @@ def test_main_renders_a_green_prompt_for_a_suite_repair_or_ci_repair_step_permit
                          re.search(others_frozen, prompt, re.I) is not None)
 
     assert results == {"suite-repair": (0, False, True, True), "ci-repair": (0, False, True, True)}
+
+
+def test_main_renders_a_revise_green_prompt_for_a_suite_repair_or_ci_repair_step_without_the_leave_the_tests_rule_or_the_freeze_rule_and_permitting_the_failing_tests_edit_1653(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected: the roster still lists a deleted suite\n")
+    steps = {
+        "suite-repair": "fix the full-suite failure: tests/zorblat.test.sh — FAIL - zorblat frobs a nitz ⟦suite-repair⟧",
+        "ci-repair": "CI job gates is red on a1b2c3d: tests/zorblat.test.sh — FAIL - zorblat frobs a nitz ⟦ci-repair⟧",
+    }
+    leave = rb"**Leave the test files as they are**"
+    freeze = rb"**Do not modify the test.**"
+    permits = rb"may edit the failing test"
+
+    results = {}
+    for name, step in steps.items():
+        code = build_develop_prompt.main(["revise", "green", str(spec), step, "make test", str(reason)])
+        out, _ = capsysbinary.readouterr()
+        prompt = re.sub(rb"\s+", b" ", out)
+        results[name] = (code, leave in prompt, freeze in prompt, re.search(permits, prompt, re.I) is not None)
+
+    assert results == {"suite-repair": (0, False, False, True), "ci-repair": (0, False, False, True)}
