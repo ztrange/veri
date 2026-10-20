@@ -212,3 +212,33 @@ def test_a_pass_on_a_nested_unit_records_its_signature_in_the_skills_graded_and_
     recorded = graded.read_text().split()[:1] if graded.exists() else []
     assert (code, recorded, (tmp_path / "skills" / "demo" / "prompts" / "GRADED").exists()) \
         == (0, ["skills/demo/prompts/x.md"], False), (code, err)
+
+
+def test_owed_grades_a_unit_listed_only_in_the_requirements_md_beside_it_with_that_lists_requirements_1911(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "skills" / "demo").mkdir(parents=True)
+    (tmp_path / "skills" / "demo" / "x.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "skills" / "demo" / "REQUIREMENTS.md").write_text(
+        "## skills/demo/x.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "grade-prose.log").write_text(
+        '{"type":"result","subtype":"success","is_error":false,"result":'
+        '"BEGIN GRADES\\nA1: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n')
+    prompts = []
+
+    def launch(argv, *a, **k):
+        with open(argv[-1], encoding="utf-8") as f:
+            prompts.append(f.read())
+        return subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(subprocess, "run", launch)
+
+    code, out, err = run_cli(grade_prose, ["--owed"], cwd=tmp_path)
+
+    assert (code, [("Unit: skills/demo/x.md" in p, "A1: The widget is blue." in p) for p in prompts]) \
+        == (0, [(True, True)]), (code, prompts, err)

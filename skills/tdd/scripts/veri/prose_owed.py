@@ -45,11 +45,16 @@ def listed_units(path):
     return units
 
 
-def owed_and_gone(path="REQUIREMENTS.md"):
+def owed_listed(path="REQUIREMENTS.md"):
     paths = [p for p in [path] + sorted(glob.glob("skills/*/REQUIREMENTS.md")) if os.path.exists(p)]
     listed = [(p, u) for p in paths for u in listed_units(p)]
-    owed = [u for p, u in listed if graded_signature(u) != grade_prose.signature(p, u)]
+    owed = [(p, u) for p, u in listed if graded_signature(u) != grade_prose.signature(p, u)]
     return owed, list(orphans([u for _, u in listed]))
+
+
+def owed_and_gone(path="REQUIREMENTS.md"):
+    owed, gone = owed_listed(path)
+    return [u for _, u in owed], gone
 
 
 def main(argv):
