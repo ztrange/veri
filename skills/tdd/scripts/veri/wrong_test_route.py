@@ -123,6 +123,9 @@ def main(argv):
         return 0
     older = [] if rerouted else _superseded(argv[0], step)
     if len(older) >= 2:
+        if any(c not in older and _exists(c) for c in _named_cases(argv[0])):
+            _write(sys.stdout, "revise")
+            return 3
         _write(sys.stdout, "supersede " + " ".join(older))
         return 0
     case = None if rerouted else route(argv[0], argv[1])
