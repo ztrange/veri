@@ -11,4 +11,4 @@
 - [x] An older pytest case on the file's first line with nothing above it stays unrecorded when Red inserts a case above it ⟦criterion 4⟧
 - [x] An older test method directly under its `class` line stays unrecorded when Red inserts a method above it ⟦criterion 4⟧
 - [x] Only the last column-0 `finish` line of a bash suite is its trailer: a `finish` line inside a heredoc in a case is part of that case's body, so editing it records that case as edited ⟦criterion 5⟧
-- [ ] An indented `finish` (or a `finish_up` call) inside a bash case is part of that case's body, so editing it records that case as edited ⟦criterion 5⟧
+- [x] An indented `finish` (or a `finish_up` call) inside a bash case is part of that case's body, so editing it records that case as edited ⟦criterion 5⟧
