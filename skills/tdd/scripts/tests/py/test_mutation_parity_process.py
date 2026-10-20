@@ -563,6 +563,11 @@ def snapshot(tmp_path):
     return index, [(str(p.relative_to(tmp_path)), p.read_bytes()) for p in files]
 
 
+def breaks_collection_patch(tmp_path):
+    (tmp_path / "breaks-collection.patch").write_text("".join(difflib.unified_diff(
+        CALC_PYTEST.splitlines(True), BREAKS_COLLECTION.splitlines(True), "a/tests/test_calc.py", "b/tests/test_calc.py")))
+
+
 def dirty_patch(tmp_path, name, extra=""):
     before = (tmp_path / "calc.sh").read_text()
     after = before.replace("$1 + $2", "$1 - $2") + extra
@@ -626,8 +631,7 @@ def test_1612_a_row_whose_old_suite_dies_before_its_count_line_run_unmutated_rea
 @pytest.mark.process("git, a bash suite and pytest started for a row whose mutation stops its pytest replacement collecting")
 def test_1612_an_exception_raised_while_a_rows_mutation_is_applied_a_pytest_replacement_the_mutation_stops_collecting_is_raised_after_the_mutation_is_reverted_so_the_tree_is_byte_identical_to_before_the_row(tmp_path, monkeypatch, run_cli):
     mp = committed_scratch(tmp_path, monkeypatch)
-    (tmp_path / "breaks-collection.patch").write_text("".join(difflib.unified_diff(
-        CALC_PYTEST.splitlines(True), BREAKS_COLLECTION.splitlines(True), "a/tests/test_calc.py", "b/tests/test_calc.py")))
+    breaks_collection_patch(tmp_path)
     before = snapshot(tmp_path)
 
     code, out, err = one_row(tmp_path, run_cli, mp, "checks/calc-suite.sh", "adds two numbers", "replaced", NODE, "breaks-collection")
@@ -638,8 +642,7 @@ def test_1612_an_exception_raised_while_a_rows_mutation_is_applied_a_pytest_repl
 @pytest.mark.process("git, a bash suite and pytest started for a row that raises with its mutation applied")
 def test_1612_a_row_that_raises_with_its_mutation_applied_leaves_every_file_of_the_tree_byte_identical_to_before_it_pytest_cache_included(tmp_path, monkeypatch, run_cli):
     mp = committed_scratch(tmp_path, monkeypatch)
-    (tmp_path / "breaks-collection.patch").write_text("".join(difflib.unified_diff(
-        CALC_PYTEST.splitlines(True), BREAKS_COLLECTION.splitlines(True), "a/tests/test_calc.py", "b/tests/test_calc.py")))
+    breaks_collection_patch(tmp_path)
     before = snapshot(tmp_path)
 
     code, out, err = one_row(tmp_path, run_cli, mp, "checks/calc-suite.sh", "adds two numbers", "replaced", NODE, "breaks-collection")
