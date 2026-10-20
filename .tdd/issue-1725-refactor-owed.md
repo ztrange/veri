@@ -5,3 +5,4 @@
 - test-only | extract the repeated REQUIREMENTS.md table fixture string in test_prose_owed_process.py
 ### `grade-prose.sh --owed` grades exactly the non-orphan units `prose-owed.sh` prints, and no others — pinned by a case with a stub `claude` ⟦criterion 5⟧
 - share one helper for the `GRADED` path (`os.path.join(os.path.dirname(unit.partition("#")[0]), "GRADED")`) between `grade_prose.record_graded` and `prose_owed.graded_signature`
+applied | 225a9bb3562721f44809d3550df36005121765db | share one helper for the `GRADED` path (`os.path.join(os.path.dirname(unit.partition("#")[0]), "GRADED")`) between `grade_prose.record_graded` and `prose_owed.graded_signature`
