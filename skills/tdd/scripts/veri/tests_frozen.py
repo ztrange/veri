@@ -6,12 +6,12 @@ import subprocess
 import sys
 
 import replaces_case
-from ledger import trailing_markers
+from ledger import carries_mark, trailing_markers
 from transform_touches_tests import TEST_FILE
 
 USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> <test-file>... | "
          "check <record-file>|--step <step-text> | path <step-text>")
-REPAIR_MARKS = ("\u27e6suite-repair\u27e7", "\u27e6ci-repair\u27e7")
+REPAIR_MARKS = ("suite-repair", "ci-repair")
 
 
 def _write(stream, line):
@@ -79,7 +79,7 @@ def main(argv):
         if not step:
             _write(sys.stderr, USAGE)
             return 2
-        if any(mark in trailing_markers(step) for mark in REPAIR_MARKS):
+        if any(carries_mark(trailing_markers(step), mark) for mark in REPAIR_MARKS):
             return 0
         argv = [mode, _record_path(step)] + argv[3:]
         record = argv[1]

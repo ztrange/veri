@@ -1,7 +1,7 @@
 """The named cases and their suite, parsed from a replaces-case step."""
 import re
 
-from ledger import trailing_markers
+from ledger import carries_mark, trailing_markers
 
 REPLACES_MARK = "⟦replaces-case⟧"
 _REPLACES = r"\breplaces "
@@ -13,7 +13,7 @@ _SUITE = re.compile(r" in ([\w./-]+\.test\.sh)")
 
 
 def is_replaces_case_step(step):
-    return step.startswith(REPLACES_MARK) or REPLACES_MARK in trailing_markers(step)
+    return step.startswith(REPLACES_MARK) or carries_mark(trailing_markers(step), "replaces-case")
 
 
 def parse(step):
