@@ -1,5 +1,6 @@
 """Cases for veri/tests_frozen.py that run git in a real repository under tmp_path."""
 import importlib
+from pathlib import Path
 import subprocess
 
 import pytest
@@ -400,3 +401,25 @@ def test_record_step_lists_only_the_bash_case_red_appended_at_the_end_of_a_suite
 
     assert "case: appended by red 1861\n" in record
     assert "older case" not in record
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_record_step_lists_only_the_case_red_appended_to_a_real_copy_of_a_bash_suite_with_its_finish_trailer_1861(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    real = (Path(__file__).resolve().parents[1] / "run-finished.test.sh").read_text()
+    suite = tmp_path / "tests/suite.test.sh"
+    suite.write_text(real)
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one appends a case to a real suite"
+    head, trailer, _ = real.rpartition("\nfinish\n")
+    suite.write_text(head + '\n\nname="appended by red 1861"\ncheck_added\nok\n\nfinish\n')
+
+    run_cli(tests_frozen, ["record", "--step", step, "tests/suite.test.sh"], cwd=tmp_path)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    record = (tmp_path / record_path.rstrip("\n")).read_text()
+
+    assert [line for line in record.splitlines() if line.startswith("case: ")] == ["case: appended by red 1861"]
