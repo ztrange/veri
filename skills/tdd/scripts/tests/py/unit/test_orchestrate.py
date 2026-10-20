@@ -108,6 +108,21 @@ def test_1354_a_refused_start_of_solvable_issues_sh_changes_no_answer_the_run_la
     assert (code, out, err, launches) == (0, "", "", [[conductor, "7"]])
 
 
+@pytest.mark.parametrize("name", ["VERI_LABEL", "VERI_PRIORITY_LABEL"])
+def test_1515_an_empty_label_is_a_selection_that_could_not_answer_and_ends_the_run_with_exit_2_before_any_launch(
+        name, capfd, monkeypatch, tmp_path, orchestrate, listing):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
+    monkeypatch.setenv(name, "")
+    launches = _boundaries(monkeypatch, listing, (0, "7\n"))
+    code = orchestrate.main([])
+    out, err = capfd.readouterr()
+    assert (code, out, err, launches) == (
+        2, "",
+        "solvable-issues: %s is set but empty: name a label or leave it unset\n"
+        "orchestrate.sh: solvable-issues.sh exited 2; no answer about the solvable set\n" % name, [])
+
+
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_selection_takes_the_first_whole_unparked_line_per_pass_reports_and_skips_parked_issues_and_relaunches_unparked_ones(
         capfd, monkeypatch, tmp_path, orchestrate, listing):
