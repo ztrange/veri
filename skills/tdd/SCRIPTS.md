@@ -53,7 +53,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   <step-text> <test-cmd> <test-path> <target> <fast-cmd> [<owed-cases>]` (the optional 8th argument
   is the named cases still owed for deletion), `refactor <spec-file> <step-text>
   <test-cmd> <touched-files>`, `revise <phase> <spec-file> <step-text> <test-cmd>
-  <reason-file>`, `red-repair <case> <report-file>` (the Red leaf that repairs one case the step's own Red wrote, edited in place; never creates a suite), `red-missing <spec-file> <step-text> <reason-file>` (the Red leaf that adds the one case pinning the `MISSING_TEST:` behaviour the reason file names, editing no other case). Prints the prompt on stdout; **exit 2** with a diagnostic and **no
+  <reason-file>`, `red-repair <case> <report-file>` (the Red leaf that repairs one case the step's own Red wrote, edited in place; never creates a suite), `$S/build-develop-prompt.sh red-missing <spec-file> <step-text> <test-cmd> <reason-file>` (the Red leaf that adds the one case pinning the `MISSING_TEST:` behaviour the reason file names, editing no other case). Prints the prompt on stdout; **exit 2** with a diagnostic and **no
   stdout** on an unknown phase or a missing template, spec or reason file — never a partial
   prompt. The mirror of `build-verify-prompt.sh` and its opposite in emphasis: the verifier
   builder is defined by what it **cannot** carry (no rationale parameter, so blindness is

@@ -2248,3 +2248,26 @@ def test_mid_line_marks_render_todays_prompts(tmp_path, capsysbinary, build_deve
     assert ([ci_red in red, suite_develop in red, ci_red in green, suite_develop in green,
              ci_verify in verified, suite_develop in verified]
             == [True, False, False, True, True, True])
+
+
+@pytest.mark.parametrize("doc", ["SKILL.md", "SCRIPTS.md"])
+def test_the_red_missing_call_shape_documented_in_each_doc_filled_in_runs_to_exit_0_with_a_prompt_1865(
+        doc, tmp_path, run_cli, build_develop_prompt):
+    import shlex
+    text = (SCRIPTS.parent / doc).read_text()
+    spans = re.findall(r"`((?:\S*build-develop-prompt\.sh )?red-missing [^`]*)`", text)
+    assert spans, f"{doc} documents no red-missing call"
+    reason = tmp_path / "reason.md"
+    reason.write_text("MISSING_TEST: no case requires GLORPNAK to be counted once\n")
+    step = "QWIXTLE: a seed gains the block"
+    fills = {"<test-cmd>": "make test", "<reason-file>": str(reason), "<step-text>": step, "<spec-file>": _spec(tmp_path)}
+    for span in spans:
+        argv = []
+        for tok in shlex.split(span.split("red-missing", 1)[0] and span[span.index("red-missing"):]):
+            if "$(" in tok:
+                tok = step
+            elif "spec" in tok and tok not in fills:
+                tok = _spec(tmp_path)
+            argv.append(fills.get(tok, tok))
+        code, out, err = run_cli(build_develop_prompt, argv)
+        assert (code, bool(out.strip())) == (0, True), f"{doc}: `{span}` -> exit {code}: {err}"
