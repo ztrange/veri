@@ -105,6 +105,10 @@ def no_verdict(detail):
 
 
 def main(argv):
+    if argv == ["--owed"]:
+        import prose_owed
+        path = "REQUIREMENTS.md"
+        return max([main([path, unit]) for unit in prose_owed.owed_and_gone(path)[0]], default=0)
     if len(argv) != 2:
         print(USAGE, file=sys.stderr)
         return 2

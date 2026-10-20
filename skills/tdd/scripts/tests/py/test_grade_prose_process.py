@@ -741,3 +741,27 @@ def test_a_reject_and_an_exit_2_leave_graded_byte_identical(tmp_path):
         seen[name] = (done.returncode, graded.read_text() == before)
 
     assert seen == {"reject": (1, True), "no verdict": (2, True)}, seen
+
+
+@pytest.mark.process("grade-prose.sh --owed launching a stub claude through supervise.sh")
+def test_grade_prose_owed_grades_exactly_the_non_orphan_units_prose_owed_prints_and_no_others(tmp_path):
+    skill = tmp_path / "skills" / "guide"
+    skill.mkdir(parents=True)
+    for name in ("one", "two"):
+        (skill / (name + ".md")).write_text(PROSE)
+    (skill / "GRADED").write_text("skills/guide/gone.md %s 2026-01-01 abc\n" % ("0" * 64))
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        REQUIREMENTS.replace("## guide/unit.md", "## skills/guide/one.md") + "\n"
+        + REQUIREMENTS.replace("## guide/unit.md", "## skills/guide/two.md"))
+    claude = tmp_path / "claude"
+    claude.write_text(STUB.replace('{ printf \'%s\\n\' "$@"; cat; } > "$STUB_RECORD"',
+                                   '{ printf \'%s\\n\' "$@"; cat; } >> "$STUB_RECORD"'))
+    claude.chmod(0o755)
+    record = tmp_path / "record.txt"
+
+    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "--owed"], cwd=tmp_path, capture_output=True,
+                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                        "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+
+    received = record.read_text() if record.exists() else ""
+    assert re.findall(r"^Unit: (\S+)$", received, re.M) == ["skills/guide/one.md", "skills/guide/two.md"], received
