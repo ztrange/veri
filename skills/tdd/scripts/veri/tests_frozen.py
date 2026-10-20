@@ -29,6 +29,17 @@ def _record_path(step):
     return ".tdd/tests-frozen-%s.record" % hashlib.sha256(os.fsencode(step)).hexdigest()[:16]
 
 
+def _in_repository():
+    here = os.path.abspath(os.getcwd())
+    while True:
+        if os.path.exists(os.path.join(here, ".git")):
+            return True
+        parent = os.path.dirname(here)
+        if parent == here:
+            return False
+        here = parent
+
+
 def _differing_tests():
     names = []
     for command in (["git", "diff", "--name-only", "-z", "HEAD"],
@@ -114,7 +125,7 @@ def main(argv):
                     changed.append(name)
             except OSError:
                 changed.append(name)
-        if by_step and os.path.exists(".git"):
+        if by_step and _in_repository():
             recorded = {name for _, name in entries}
             parsed = replaces_case.parse(step) if replaces_case.is_replaces_case_step(step) else None
             exempt = {parsed[1]} if parsed else set()
