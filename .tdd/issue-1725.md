@@ -11,6 +11,6 @@
 - [x] `prose-owed.sh` prints a unit whose current signature differs from its `GRADED` line and exits 1, and does not print a unit whose `GRADED` signature matches ⟦criterion 3⟧
 - [x] `prose-owed.sh` prints each `GRADED` line whose unit no longer exists, marked as an orphan, and exits 1 ⟦criterion 3⟧
 - [x] `prose-owed.sh` never prints a unit with no requirements list, even one named in a file that has no `GRADED` line ⟦criterion 3⟧
-- [ ] `make unit` (and so `make test`) fails, naming each unit `prose-owed.sh` prints, when it prints anything — pinned by a case ⟦criterion 4⟧
+- [x] `make unit` (and so `make test`) fails, naming each unit `prose-owed.sh` prints, when it prints anything — pinned by a case ⟦criterion 4⟧
 - [ ] `grade-prose.sh --owed` grades exactly the non-orphan units `prose-owed.sh` prints, and no others — pinned by a case with a stub `claude` ⟦criterion 5⟧
 - [ ] The owed check `make unit` and `make test` run launches no grader leaf: `prose-owed.sh` run in-process with process launches spied records no launch — pinned by a case ⟦criterion 6⟧
