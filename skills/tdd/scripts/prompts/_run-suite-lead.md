@@ -1,1 +1,2 @@
-`run-suite.sh <suite>` — the one invocation for a single
+`make test TESTS="<pytest file or node id>"` — the one invocation for a single
+   
