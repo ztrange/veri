@@ -739,3 +739,37 @@ def test_1667_pytest_case_row_sees_no_veri_or_claude_variable_from_the_caller_ex
 
     assert (code, out.strip().endswith("proven")) == (0, True), (
         "exit=%s stdout=%r stderr=%r; want the unmutated pytest run to see no VERI_*/CLAUDE_* variable" % (code, out, err))
+
+
+@pytest.mark.process("a bash suite and pytest and python3 started by failed_cases(), pytest() and node_fails(), run with a VERI_* tunable set in the caller")
+def test_1667_with_a_tunable_set_a_proven_row_still_exits_0_and_an_unproven_row_still_exits_1(tmp_path, monkeypatch, run_cli):
+    monkeypatch.setenv("VERI_MODEL_REVISE", "opus")
+    source = tmp_path / MODULE
+    source.parent.mkdir(parents=True)
+    source.write_text("def code():\n    return 2\n")
+    bash_suite = tmp_path / "checks" / "gate.sh"
+    bash_suite.parent.mkdir()
+    bash_suite.write_text(SUITE)
+    bash_suite.chmod(0o755)
+    (tmp_path / "checks" / "test_gate.py").write_text(UNCAUGHT_SUITE)
+    mutated = source.read_text().replace("return 2", "return 1")
+    patch = tmp_path / "gate.patch"
+    patch.write_text("".join(difflib.unified_diff(
+        source.read_text().splitlines(True), mutated.splitlines(True), "a/" + MODULE, "b/" + MODULE)))
+    proven = ["checks/gate.sh", "old case", "redundant", "kept case", str(patch)]
+    unproven = ["checks/test_gate.py", "checks/test_gate.py::test_old", "redundant",
+                "checks/test_gate.py::test_kept", str(patch)]
+    importlib.invalidate_caches()
+    mutation_parity = importlib.import_module("veri.mutation_parity")
+    interpreter = tmp_path / "interp"
+    interpreter.write_text('#!/bin/sh\nexec "%s" "$@"\n' % mutation_parity.venv_python())
+    interpreter.chmod(0o755)
+    monkeypatch.setattr(mutation_parity, "venv_python", lambda: str(interpreter))
+    results = []
+    for name, row in (("proven", proven), ("unproven", unproven)):
+        table = tmp_path / (name + ".tsv")
+        table.write_text("\t".join(row) + "\n")
+        code, out, _ = run_cli(mutation_parity, [str(table)], cwd=tmp_path)
+        results.append((code, out.strip().endswith(name)))
+
+    assert results == [(0, True), (1, True)]
