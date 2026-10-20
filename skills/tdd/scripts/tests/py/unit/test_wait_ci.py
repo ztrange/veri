@@ -1152,3 +1152,34 @@ def test_main_prints_the_names_of_the_failed_check_runs_as_one_comma_joined_line
     captured = capsys.readouterr()
 
     assert (code, captured.out) == (1, "build,Test\n")
+
+
+def test_main_prints_nothing_on_stdout_on_exit_0_2_or_3_issue_1904(
+        monkeypatch, capsys, tmp_path, wait_ci, fake_processes):
+    def named(name, conclusion, status="completed"):
+        return {"name": name, "status": status, "conclusion": conclusion}
+
+    cases = [
+        (True, [named("build", "success"), named("docs", "skipped")], 0),
+        (False, [], 2),
+        (True, [named("build", "failure", "queued"), named("lint", "success")], 3),
+    ]
+
+    observed = []
+    for i, (mergeable, runs, _) in enumerate(cases):
+        work = tmp_path / str(i)
+        (work / ".tdd").mkdir(parents=True)
+        monkeypatch.chdir(work)
+        monkeypatch.setenv("VERI_POLL", "0")
+        bodies = {
+            PULL: json.dumps({"mergeable": mergeable, "head": {"sha": SHA}}),
+            PAGE_1: json.dumps({"total_count": len(runs), "check_runs": runs}),
+            PAGE_2: json.dumps({"total_count": len(runs), "check_runs": []}),
+            STATUS: json.dumps({"state": "x", "statuses": []}),
+                    "date +%s": "1000\n",
+        }
+        fake_processes(lambda line, **_: (0, bodies.get(line, ""), ""))
+        code = wait_ci.main([PR, "0", "0", SHA])
+        observed.append((code, capsys.readouterr().out))
+
+    assert observed == [(code, "") for *_, code in cases]
