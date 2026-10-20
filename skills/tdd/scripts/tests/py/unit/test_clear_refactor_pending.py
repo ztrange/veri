@@ -5,6 +5,7 @@ import importlib
 import os
 import resource
 import signal
+import stat
 import sys
 import tempfile
 
@@ -444,3 +445,16 @@ def test_main_returns_2_naming_the_temporary_file_left_behind_when_the_write_fai
     assert led.read_bytes() == seed
     monkeypatch.undo()
     os.unlink(tmp)
+
+
+def test_main_keeps_the_original_file_mode_on_a_cleared_ledger(
+        tmp_path, capsysbinary, clear_refactor_pending):
+    led = tmp_path / "issue-42.md"
+    led.write_bytes("- [x] a ⟂ refactor pending\n".encode())
+    led.chmod(0o640)
+
+    code = clear_refactor_pending.main([str(led), "a"])
+
+    assert (code, *capsysbinary.readouterr()) == (0, b"", b"")
+    assert led.read_bytes() == b"- [x] a\n"
+    assert stat.S_IMODE(led.stat().st_mode) == 0o640
