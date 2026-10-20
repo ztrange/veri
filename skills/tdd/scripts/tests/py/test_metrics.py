@@ -1352,12 +1352,12 @@ def test_main_run_from_the_issue_worktree_finds_the_conductor_stream_log_the_lau
 
 def test_main_lists_the_conductor_dollars_and_context_size_of_each_turn_in_turn_order_across_sessions(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, ONE_STEP)
-    usages = [{"input_tokens": 10, "output_tokens": 300, "cache_read_input_tokens": 120000, "cache_creation_input_tokens": 2000},
-              {"input_tokens": 5, "output_tokens": 0, "cache_read_input_tokens": 160000, "cache_creation_input_tokens": 0},
-              {"input_tokens": 0, "output_tokens": 0, "cache_read_input_tokens": 200000, "cache_creation_input_tokens": 0}]
+    usages = [{"input_tokens": 10, "cache_read_input_tokens": 120000, "cache_creation_input_tokens": 2000},
+              {"input_tokens": 5, "cache_read_input_tokens": 160000, "cache_creation_input_tokens": 0},
+              {"input_tokens": 0, "cache_read_input_tokens": 200000, "cache_creation_input_tokens": 0}]
     turns = [{"type": "assistant", "message": {"usage": usage}} for usage in usages]
     sessions = [{"type": "system", "subtype": "init"}, turns[0], turns[1],
-                {"type": "result", "total_cost_usd": 0.5, "num_turns": 2},
+                {"type": "result", "total_cost_usd": 0.46, "num_turns": 2},
                 {"type": "system", "subtype": "init"}, turns[2],
                 {"type": "result", "total_cost_usd": 0.3, "num_turns": 1}]
     (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in sessions))
@@ -1367,7 +1367,7 @@ def test_main_lists_the_conductor_dollars_and_context_size_of_each_turn_in_turn_
 
     assert "\n#### Conductor per turn\n" in out
     assert cells(out, "#### Conductor per turn", ["dollars", "context"]) == {
-        "1": ["$0.24", "122010"], "2": ["$0.24", "160005"], "3": ["$0.30", "200000"]}
+        "1": ["$0.22", "122010"], "2": ["$0.24", "160005"], "3": ["$0.30", "200000"]}
 
 
 def test_issue_1815_a_conductor_turn_with_both_one_hour_and_five_minute_cache_writes_prices_each_at_its_own_rate(tmp_path, monkeypatch, capsys, metrics):
@@ -1389,7 +1389,7 @@ def test_issue_1815_a_conductor_turn_is_priced_from_the_session_cost_price_table
     write_log(tmp_path, ONE_STEP)
     for rate, dollars in {"input": 1.0, "output": 2.0, "cache_read": 3.0, "cache_write_5m": 4.0, "cache_write_1h": 5.0}.items():
         monkeypatch.setitem(metrics.session_cost.PRICES["opus"], rate, dollars)
-    usage = {"input_tokens": 1000000, "output_tokens": 1000000, "cache_read_input_tokens": 1000000,
+    usage = {"input_tokens": 1000000, "cache_read_input_tokens": 1000000,
              "cache_creation_input_tokens": 2000000,
              "cache_creation": {"ephemeral_1h_input_tokens": 1000000, "ephemeral_5m_input_tokens": 1000000}}
     sessions = [{"type": "system", "subtype": "init"}, {"type": "assistant", "message": {"usage": usage}}]
@@ -1398,7 +1398,7 @@ def test_issue_1815_a_conductor_turn_is_priced_from_the_session_cost_price_table
 
     out = render(metrics, capsys)
 
-    assert cells(out, "#### Conductor per turn", ["dollars"]) == {"1": ["$15.00"]}
+    assert cells(out, "#### Conductor per turn", ["dollars"]) == {"1": ["$13.00"]}
 
 
 def test_main_says_the_conductor_spend_is_missing_rather_than_zero_when_neither_a_stream_log_nor_a_conductor_usage_event_exists(tmp_path, monkeypatch, capsys, metrics):
@@ -1413,11 +1413,11 @@ def test_main_says_the_conductor_spend_is_missing_rather_than_zero_when_neither_
 
 
 def test_conductor_sessions_counts_a_message_repeated_across_assistant_records_once_1859(tmp_path, metrics):
-    def block(message_id, output_tokens):
-        return {"type": "assistant", "message": {"id": message_id, "usage": {"output_tokens": output_tokens}}}
+    def block(message_id, cache_read):
+        return {"type": "assistant", "message": {"id": message_id, "usage": {"cache_read_input_tokens": cache_read}}}
 
     records = [{"type": "system", "subtype": "init"},
-               block("msg_a", 2000), block("msg_a", 2000), block("msg_a", 2000), block("msg_b", 2000)]
+               block("msg_a", 100000), block("msg_a", 100000), block("msg_a", 100000), block("msg_b", 100000)]
     (tmp_path / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in records))
 
     sessions, turn_rows = metrics.conductor_sessions("108", str(tmp_path / "events.jsonl"))
@@ -1430,7 +1430,7 @@ def test_conductor_sessions_counts_a_message_repeated_across_assistant_records_o
 def test_conductor_sessions_prices_a_turn_by_the_model_its_record_names_1859(tmp_path, monkeypatch, metrics):
     monkeypatch.setitem(metrics.session_cost.PRICES, "sonnet",
                         {"input": 1.0, "cache_read": 1.0, "cache_write_5m": 1.0, "cache_write_1h": 1.0, "output": 3.0})
-    message = {"id": "msg_a", "model": "claude-sonnet-5-5", "usage": {"output_tokens": 1000000}}
+    message = {"id": "msg_a", "model": "claude-sonnet-5-5", "usage": {"input_tokens": 3000000}}
     records = [{"type": "system", "subtype": "init"}, {"type": "assistant", "message": message}]
     (tmp_path / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in records))
 
