@@ -52,22 +52,17 @@ def owed_listed(path="REQUIREMENTS.md"):
     return owed, list(orphans([u for _, u in listed]))
 
 
-def owed_and_gone(path="REQUIREMENTS.md"):
-    owed, gone = owed_listed(path)
-    return [u for _, u in owed], gone
-
-
 def main(argv):
     if len(argv) != 1:
         print(USAGE, file=sys.stderr)
         return 2
     os.chdir(argv[0])
     try:
-        owed, gone = owed_and_gone()
+        owed, gone = owed_listed()
     except ValueError as e:
         print("prose-owed.sh: " + str(e), file=sys.stderr)
         return 2
-    for unit in owed:
+    for _, unit in owed:
         print(unit)
     for unit in gone:
         print(unit, "(orphan)")
