@@ -1262,3 +1262,13 @@ def test_main_refuses_a_replaces_case_step_with_an_unquoted_name_after_a_quoted_
         shapes.append((code, err.count("\n"), text in err, "Traceback" in err, ledger.read_bytes() == LEDGER))
 
     assert shapes == [(1, 1, True, False, True)] * 2
+
+
+def test_main_refuses_a_replaces_case_step_mixing_quoted_and_unquoted_names_with_one_line_naming_it_1882(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    text = "x: replaces 'a', b, 'c' in t/x.test.sh ⟦replaces-case⟧"
+
+    code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", text])
+
+    assert (code, err.count("\n"), text in err, ledger.read_bytes() == LEDGER) == (1, 1, True, True)
