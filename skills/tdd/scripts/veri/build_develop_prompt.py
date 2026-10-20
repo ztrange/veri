@@ -11,7 +11,7 @@ PHASES = ("red", "green", "refactor", "cover", "transform", "diff", "structural"
           "reconcile", "exhausted", "over-budget", "rebase") + INTERFACE_PHASES
 REVISE_PHASES = ("red", "green", "refactor", "diff")
 WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "transform": 4, "diff": 5, "structural": 5,
-        "predicate": 5, "revise": 6, "reconcile": 6, "exhausted": 5, "over-budget": 6, "rebase": 7, "replaces-report": 6, "red-contradicted": 5, "red-repair": 6,
+        "predicate": 5, "revise": 6, "reconcile": 6, "exhausted": 5, "over-budget": 6, "rebase": 7, "replaces-report": 6, "red-contradicted": 5, "red-repair": 6, "red-missing": 5,
         **dict.fromkeys(INTERFACE_PHASES, 4)}
 WANT_PHASES = "|".join(PHASES)
 REVISABLE_PHASES = REVISE_PHASES + INTERFACE_PHASES
@@ -67,7 +67,7 @@ def main(argv):
     if not argv:
         return _refuse()
     phase = argv[0]
-    if phase not in PHASES + ("replaces-report", "red-contradicted", "red-repair"):
+    if phase not in PHASES + ("replaces-report", "red-contradicted", "red-repair", "red-missing"):
         return _refuse(f"build-develop-prompt.sh: unknown phase '{phase}' (want {WANT_PHASES})")
     if len(argv) < WANT[phase]:
         return _refuse(f"build-develop-prompt: {phase} needs {WANT[phase]} arguments, got {len(argv)}")
@@ -94,6 +94,7 @@ def main(argv):
         "replaces-report": ["<report-file>", "<missing-cases-file>"],
         "red-contradicted": ["<case>"],
         "red-repair": ["<case>", "<report-file>"],
+        "red-missing": ["<reason-file>"],
     }.get(phase, [])
     for index, name in enumerate(names):
         if not (args[index] if index < len(args) else ""):
@@ -107,7 +108,7 @@ def main(argv):
     spec, step = args[0], args[1]
     paths = [f"{prompts}/develop-{template}.md", f"{prompts}/_develop-shared.md", spec]
     optional = {}
-    if phase in ("revise", "exhausted"):
+    if phase in ("revise", "exhausted", "red-missing"):
         optional["REJECTION_REASON"] = args[3]
     if _has_heading(_spec_text(spec), b"Bug"):
         optional["BUG_REPRODUCTION"] = f"{prompts}/_develop-red-bug.md"
