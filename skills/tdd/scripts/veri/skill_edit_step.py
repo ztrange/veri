@@ -132,13 +132,14 @@ def main(argv):
     if graded == 1:
         sys.stdout.write(said)
         return 1
-    if graded or authored:
+    if graded:
         return graded
-    event.append(".", {}, "skill-edit-no-author", ["unit=" + unit])
-    files = [path, grade_prose.graded_path(unit)]
+    if not authored:
+        event.append(".", {}, "skill-edit-no-author", ["unit=" + unit])
+    files = [path, grade_prose.graded_path(unit)] + [unit] * authored
     subprocess.run(["git", "add", *files], check=True)
     subprocess.run(["git", "commit", "-q", "-m", "docs: requirements for %s, graded" % unit, *files], check=True)
-    return 3
+    return 0 if authored else 3
 
 
 if __name__ == "__main__":

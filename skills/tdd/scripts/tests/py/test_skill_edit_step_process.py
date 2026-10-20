@@ -358,3 +358,37 @@ def test_an_attempt_that_grades_pass_but_whose_author_touched_graded_is_rejected
                                capture_output=True, text=True).stdout.split()
     assert [ran.returncode, git(repo, "rev-list", "--count", "HEAD"), "GRADED" in committed] \
         == [1, "1", False], (ran.stdout, ran.stderr[-700:])
+
+
+STUB_AUTHOR_EDITS_PROSE = STUB_AUTHOR_TOUCHES_GRADED.replace(
+    'echo tampered > "$REPO/GRADED"', 'echo "The widget is crimson." >> "$REPO/unit.md"')
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author that edits the prose")
+def test_an_attempt_that_grades_pass_and_passes_the_guard_commits_list_prose_and_graded_in_one_commit_exiting_0_leaving_nothing_owed(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
+    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is crimson. | shade |\n")
+    cap = tmp_path / "cap"
+    cap.mkdir()
+    claude = tmp_path / "claude"
+    claude.write_text(STUB_AUTHOR_EDITS_PROSE)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "CAP": str(cap), "REPO": str(repo),
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+    owed = subprocess.run([str(OWED), "."], cwd=repo, capture_output=True, text=True, env=env)
+
+    assert [ran.returncode, git(repo, "rev-list", "--count", "HEAD"),
+            sorted(git(repo, "show", "--name-only", "--format=", "HEAD").splitlines()), owed.stdout] \
+        == [0, "2", ["GRADED", "REQUIREMENTS.md", "unit.md"], ""], (ran.stdout, ran.stderr[-700:])
