@@ -471,3 +471,18 @@ def test_1668_a_planted_test_file_calling_subprocess_run_with_arguments_naming_a
     found = guard.offences(tmp_path)
 
     assert [line.split(": ")[0] for line in found] == [f"{offender}:4"]
+
+
+def test_1668_a_planted_test_file_calling_os_exec_with_arguments_naming_a_test_file_is_still_reported_by_file_and_line(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    offender = tmp_path / "test_offender.py"
+    offender.write_text(
+        "import os\n"
+        "\n"
+        "def test_runs_a_suite():\n"
+        "    os.execv('/bin/bash', ['bash', 'tests/foo.test.sh'])\n"
+    )
+
+    found = guard.offences(tmp_path)
+
+    assert [line.split(": ")[0] for line in found] == [f"{offender}:4"]
