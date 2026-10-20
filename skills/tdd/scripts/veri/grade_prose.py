@@ -115,16 +115,16 @@ def main(argv):
     trailing = "\n".join(l for l in after.splitlines() if l.strip() and not l.startswith("VERDICT:"))
     if trailing:
         return no_verdict("text after END GRADES: %s" % trailing)
-    for word in re.findall(r"^\S+: (\w+)", block, re.M):
+    for word in re.findall(r"^(?!VERDICT)\S+: (\w+)", block, re.M):
         if word not in ("PASS", "FAIL"):
             return no_verdict("grade word %s is neither PASS nor FAIL" % word)
-    got = re.findall(r"^(\S+): (?:PASS|FAIL)\b", block, re.M)
+    got = [i for i in re.findall(r"^(\S+): (?:PASS|FAIL)\b", block, re.M) if i != "VERDICT"]
     wanted = [row.split("\t", 1)[0] for row in claims.splitlines()]
     if got != wanted:
         return no_verdict("GRADES block IDs %s do not match requirement IDs %s"
                           % (", ".join(got), ", ".join(wanted)))
-    failed = re.findall(r"^\S+: FAIL\b.*$", reply, re.M)
-    said = re.findall(r"^VERDICT: (\S+)", after, re.M)
+    failed = re.findall(r"^(?!VERDICT)\S+: FAIL\b.*$", reply, re.M)
+    said = re.findall(r"^VERDICT: (\S+)", reply, re.M)
     if not said:
         return no_verdict("the GRADES block has no VERDICT line")
     if said[-1] != ("REJECT" if failed else "PASS"):

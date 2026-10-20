@@ -578,3 +578,26 @@ def test_1874_a_launch_supervise_refuses_with_a_stale_all_pass_log_on_disk_makes
     lines = events.read_text().splitlines() if events.exists() else []
     graded = [l for l in lines if "guide/unit.md" in l and '"verdict": "PASS"' in l]
     assert (done.returncode, done.stdout, graded) == (2, "", []), (done.stderr, lines)
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_1874_a_reply_in_the_poc_shape_with_the_verdict_line_inside_the_grades_block_exits_0_when_all_pass_and_1_printing_the_failing_line_on_a_fail(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    inside = STUB.replace("\\nEND GRADES\\nVERDICT: PASS", "\\nVERDICT: PASS\\nEND GRADES")
+    shapes = {"all-pass": inside,
+              "one-fail": inside.replace("A2: PASS - ok", "A2: FAIL - the widget hums quokka-loudly")
+                                .replace("VERDICT: PASS", "VERDICT: REJECT")}
+    outcomes = {}
+    for name, stub in shapes.items():
+        claude = tmp_path / ("claude-" + name)
+        claude.write_text(stub)
+        claude.chmod(0o755)
+        done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                              capture_output=True, text=True,
+                              env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                                   "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
+        outcomes[name] = (done.returncode, "the widget hums quokka-loudly" in done.stdout)
+
+    assert outcomes == {"all-pass": (0, False), "one-fail": (1, True)}, outcomes
