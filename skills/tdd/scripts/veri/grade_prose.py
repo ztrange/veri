@@ -99,6 +99,7 @@ def main(argv):
     env = dict(os.environ)
     env["PATH"] = modern_python_dir() + env.get("PATH", "")
     env["VERI_MODEL"] = model
+    env["VERI_LEAF_TOOLS"] = ""
     try:
         ran = subprocess.run([os.path.join(SCRIPTS, "supervise.sh"), "grade-prose",
                         os.path.join(SCRIPTS, "run-leaf.sh"), f.name], stdout=subprocess.PIPE, env=env)
