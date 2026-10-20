@@ -11,7 +11,7 @@ from transform_touches_tests import TEST_FILE
 
 USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> <test-file>... | "
          "check <record-file>|--step <step-text> | path <step-text>")
-REPAIR_MARKS = ("suite-repair", "ci-repair")
+REPAIR_MARKS = ("suite-repair", "ci-repair", "fixture-repair")
 
 
 def _write(stream, line):
