@@ -118,8 +118,9 @@ def conductor_sessions(issue, path):
                         turn_dollars = sum((usage.get(key) or 0) * prices[rate] / 1e6
                                            for key, rate in TURN_RATES.items()) + cache_write_dollars
                         open_cost += turn_dollars
-                        open_rows.append((len(turn_rows), turn_dollars - output_dollars))
-                        turn_rows.append([str(len(turn_rows) + 1), "$%.2f" % (turn_dollars - output_dollars), context])
+                        base_dollars = turn_dollars - output_dollars
+                        open_rows.append((len(turn_rows), base_dollars))
+                        turn_rows.append([str(len(turn_rows) + 1), "$%.2f" % base_dollars, context])
         if open_turns:
             sessions.append({"total_cost_usd": open_cost if open_priced else None, "num_turns": open_turns})
     return sessions, turn_rows
