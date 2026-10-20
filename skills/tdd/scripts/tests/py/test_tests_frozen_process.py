@@ -408,7 +408,8 @@ def test_record_step_lists_only_the_case_red_appended_to_a_real_copy_of_a_bash_s
         tmp_path, run_cli, tests_frozen):
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
-    real = (Path(__file__).resolve().parents[1] / "run-finished.test.sh").read_text()
+    # run-finished.test.sh as it stood before #1378 replaced it with pytest cases, frozen
+    real = (Path(__file__).resolve().parents[1] / "fixtures" / "tests-frozen" / "run-finished.test.sh.txt").read_text()
     suite = tmp_path / "tests/suite.test.sh"
     suite.write_text(real)
     git(tmp_path, "init", "-q")
