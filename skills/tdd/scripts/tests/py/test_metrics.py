@@ -1487,3 +1487,28 @@ def test_issue_1868_the_rendered_conductor_total_is_the_recorded_result_cost_and
     assert "Conductor own spending: $%.2f over" % result["total_cost_usd"] in out
     rows = table(out, "#### Conductor per turn")
     assert sum(float(row["dollars"].lstrip("$")) for row in rows) <= result["total_cost_usd"]
+
+
+def test_issue_1868_a_turn_whose_recorded_assistant_records_share_a_message_id_is_priced_at_the_last_records_output_tokens(tmp_path, metrics):
+    fixture = Path(__file__).parent.parent / "fixtures" / "conductor-log" / "conductor-opus-5-5-recorded.log"
+    records = [r for r in map(json.loads, fixture.read_text().splitlines()) if r.get("type") != "result"]
+    assistants = [r for r in records if r.get("type") == "assistant"]
+    shared = next(r["message"]["id"] for r in assistants
+                  if sum(a["message"]["id"] == r["message"]["id"] for a in assistants) > 1)
+    turn = list(dict.fromkeys(a["message"]["id"] for a in assistants)).index(shared)
+    sharing = [a for a in assistants if a["message"]["id"] == shared]
+    grown = 100000
+    log = tmp_path / "conductor-108.log"
+
+    log.write_text("".join(json.dumps(r) + "\n" for r in records))
+    _, before = metrics.conductor_sessions("108", str(tmp_path / "events.jsonl"))
+
+    last_output = sharing[-1]["message"]["usage"]["output_tokens"]
+    sharing[0]["message"]["usage"]["output_tokens"] = 1
+    sharing[-1]["message"]["usage"]["output_tokens"] = grown
+    log.write_text("".join(json.dumps(r) + "\n" for r in records))
+    _, after = metrics.conductor_sessions("108", str(tmp_path / "events.jsonl"))
+
+    output_rate = metrics.session_cost.PRICES["claude-opus-5-5"]["output"]
+    expected = float(before[turn][1].lstrip("$")) + (grown - last_output) * output_rate / 1e6
+    assert float(after[turn][1].lstrip("$")) == pytest.approx(expected, abs=0.006)
