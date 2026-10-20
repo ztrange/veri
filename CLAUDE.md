@@ -128,7 +128,7 @@ exit still fails it.
 **`skills/tdd/scripts/tests/unit/` is the fast tier**, run by `make unit` and by `make test`.
 Admission bar, stated in the suite's header and judged from its source: about 100 ms per case,
 no git, network, servers, real waits (`sleep`), nested suites, or script run as a subprocess —
-it sources the script and mocks what it shells out to (`tests/no-unit-subprocess.test.sh`).
+it sources the script and mocks what it shells out to.
 `make unit` shims `git`, `gh`, `curl` and `python3` so a real call fails, named, and
 `make test` applies those shims to the suites under `tests/unit/` only; a unit suite mocks
 them as shell functions. The one `python3` call let through is one whose first argument is a
@@ -192,7 +192,7 @@ A guard or failure path never watched to fail is not tested: break it, see it go
 - Suite stubs are `#!/bin/sh`, and per-leaf helpers are functions sourced from `scripts/lib/`
   (#322, #323): Homebrew bash starts slowly.
 - The `test` recipe gives every suite `LC_ALL=C`, `< /dev/null` and a symlink to the real
-  `git` first on PATH (`make-test-env.test.sh`); remote git is refused by
+  `git` first on PATH; remote git is refused by
   `protocol.allow=never`, `gh`/`curl` by offline shims.
 - macOS checks each new executable on its first run (~330 ms). Fix:
   `sudo spctl developer-mode enable-terminal`, enable the terminal under Privacy & Security →

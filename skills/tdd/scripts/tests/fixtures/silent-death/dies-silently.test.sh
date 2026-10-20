@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# A fixture, not a suite: only count-line-guard.test.sh runs it, through `make test`.
+# A fixture, not a suite: only a pytest case runs it.
 # Its second case compares a word as a number under `set -u`, which kills the script before
 # its count line; the EXIT trap makes it exit 0 on any bash.
 set -uo pipefail
