@@ -414,3 +414,33 @@ def test_cli_returns_2_with_one_stderr_line_naming_a_ledger_path_that_runs_throu
     assert err.startswith(f"clear-refactor-pending.sh: {path}: ") and err.count("\n") == 1
     assert "Traceback" not in err
     assert plain.read_text() == "not a directory\n"
+
+
+def test_main_returns_2_naming_the_temporary_file_left_behind_when_the_write_fails_and_that_file_cannot_be_removed(
+        tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
+    seed = "- [x] a ⟂ refactor pending\n".encode()
+    led = tmp_path / "issue-42.md"
+    led.write_bytes(seed)
+    temporaries = []
+    real_unlink = os.unlink
+
+    def refuse_replace(src, dst):
+        temporaries.append(src)
+        raise OSError(errno.EIO, "I/O error")
+
+    def refuse_unlink(path, *args, **kwargs):
+        if path in temporaries:
+            raise OSError(errno.EACCES, "Permission denied")
+        return real_unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(os, "replace", refuse_replace)
+    monkeypatch.setattr(os, "unlink", refuse_unlink)
+
+    code = clear_refactor_pending.main([str(led), "a"])
+
+    (tmp,) = temporaries
+    assert (code, *capsysbinary.readouterr()) == (
+        2, b"", f"clear-refactor-pending.sh: {led}: left {tmp} behind\n".encode())
+    assert led.read_bytes() == seed
+    monkeypatch.undo()
+    os.unlink(tmp)
