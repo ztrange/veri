@@ -1,11 +1,11 @@
 """In-process case for CLAUDE.md's record of the two test lanes."""
 import re
-from pathlib import Path
 
-CLAUDE_MD = Path(__file__).resolve().parents[6] / "CLAUDE.md"
+from skill_sections import LOWER, ROOT
+
+CLAUDE_MD = ROOT / "CLAUDE.md"
 TRAP_HEADING = "## The one trap"
 DOCS_LANE = "docs[ -]lane|documentation lane|docs issue|docs merge"
-LOWER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
 
 
 def section_text(heading):

@@ -1,12 +1,11 @@
 """In-process cases for the three root documents' record of the selection order."""
 import re
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[6]
+from skill_sections import ROOT, lines_of, plain
+
 CONTEXT_MD = "CONTEXT.md"
 SKILL_MD = "skills/tdd/SCRIPTS.md"
 CLAUDE_MD = "CLAUDE.md"
-LOWER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
 
 PRIORITY_BAND = "priority"
 BUG_BAND = "bug"
@@ -14,15 +13,6 @@ ASCENDING = "ascending|by number|lowest number|increasing|numeric"
 ORDERED = "first|before|then|band|ahead"
 TUNABLE = "veri_priority_label"
 NOT_ENLARGE = "enlarge|reorder|re-order|only.*order|never.*solvable|not.*solvable|still.*not printed"
-
-
-def plain(text):
-    return text.replace("*", "").replace("`", "").translate(LOWER)
-
-
-def lines_of(path):
-    lines = Path(path).read_text().split("\n")
-    return lines[:-1] if lines and lines[-1] == "" else lines
 
 
 def joined(lines):
