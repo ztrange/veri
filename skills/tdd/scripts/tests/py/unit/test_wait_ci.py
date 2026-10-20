@@ -1081,3 +1081,35 @@ def test_main_records_no_deadline_and_ends_its_slice_with_3_while_the_pull_head_
     code, _, _ = run_cli(wait_ci, [PR, "120", "600", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
 
     assert (code, sorted(p.name for p in (work / ".tdd").iterdir())) == (3, [])
+
+
+def test_main_records_the_deadline_at_the_first_call_that_sees_the_given_head_and_a_later_call_inherits_it_issue_1896(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    other = "fedcba9876543210fedcba9876543210fedcba98"
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    mark = work / ".tdd" / f"ci-deadline-{FULL_SHA}"
+    head = {"sha": other}
+    argv = [PR, "120", "600", FULL_SHA]
+    bodies = {
+        PULL: lambda: json.dumps({"number": 1, "state": "open", "draft": False, "head": {"sha": head["sha"]}}),
+    }
+    for sha in (other, FULL_SHA):
+        base = f"gh api repos/o/r/commits/{sha}"
+        bodies.update({
+            f"{base}/status": json.dumps({"state": "pending", "sha": sha, "total_count": 0, "statuses": []}),
+            f"{base}/check-runs?page=1": json.dumps({"total_count": 1, "check_runs": [check_run("gates", sha, "in_progress")]}),
+            f"{base}/check-runs?page=2": json.dumps({"total_count": 1, "check_runs": []}),
+        })
+
+    readings = served(fake_processes, {}, lambda line: bodies[line]() if line == PULL else bodies.get(line))
+    behind = run_cli(wait_ci, argv, env={"VERI_POLL": "0"}, cwd=work)
+    recorded_behind = mark.exists()
+    head["sha"] = FULL_SHA
+    first_seen = len(readings)
+    at_head = run_cli(wait_ci, argv, env={"VERI_POLL": "0"}, cwd=work)
+    recorded = mark.read_text()
+    later = run_cli(wait_ci, argv, env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (behind, recorded_behind, at_head, recorded, later, mark.read_text()) == (
+        (3, "", ""), False, (3, "", ""), f"{60 * first_seen + 600}\n", (3, "", ""), f"{60 * first_seen + 600}\n")
