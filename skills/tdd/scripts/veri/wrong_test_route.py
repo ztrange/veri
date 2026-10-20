@@ -39,13 +39,13 @@ def _exists(case):
     return False
 
 
-def _wrong_test_lines(report):
+def _lines_with(report, prefix):
     with open(report, encoding="utf-8", errors="replace") as handle:
-        return [l for l in handle.read().splitlines() if l.startswith("WRONG_TEST:")]
+        return [l for l in handle.read().splitlines() if l.startswith(prefix)]
 
 
 def _named_cases(report):
-    for line in _wrong_test_lines(report):
+    for line in _lines_with(report, "WRONG_TEST:"):
         yield from re.findall(r"\btest_\w+", line)
         yield from re.findall(r"`([^`]+)`", line)
 
@@ -86,10 +86,8 @@ def _rerouted(step):
 
 
 def _missing(report):
-    with open(report, encoding="utf-8", errors="replace") as handle:
-        for line in handle.read().splitlines():
-            if line.startswith("MISSING_TEST:"):
-                return line.partition(":")[2].strip()
+    for line in _lines_with(report, "MISSING_TEST:"):
+        return line.partition(":")[2].strip()
     return None
 
 
