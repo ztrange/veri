@@ -1635,6 +1635,8 @@ n="$(sed -n 's/^Solve issue #\\([0-9]*\\) .*/\\1/p')"
 echo "start $n" >> "$VERI_STUB_RECORD"
 printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\\n' "$n" "$n" >> "GH/prs.lines"
 printf '[%s]\\n' "$(paste -sd, "GH/prs.lines")" > "GH/prs.json"
+mkdir -p ".tdd/wt/$n/.tdd"
+echo '{"event": "done"}' >> ".tdd/wt/$n/.tdd/events.jsonl"
 printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
 """.replace("GH", str(gh)))
     claude.chmod(0o755)
@@ -1657,10 +1659,12 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
         report = [line for line in output.splitlines() if line.startswith(("#", "stopped: "))]
         answers[shape] = (ran.returncode, report, (repo / ".tdd" / "parallel.exit").read_text().strip(),
                           record.read_text() if record.exists() else None,
-                          [line for line in output.splitlines() if "leaf-role:" in line])
+                          [line for line in output.splitlines() if "leaf-role:" in line],
+                          [json.loads(line).get("event")
+                           for line in (repo / ".tdd" / "wt" / "7" / ".tdd" / "events.jsonl").read_text().splitlines()])
 
     assert answers["in-place"] == (0, ["#7 \u2014 done https://example.test/pull/7", "stopped: nothing solvable"],
-                                   "0", "start 7\n", [])
+                                   "0", "start 7\n", [], ["done"])
     assert answers["symlink"] == answers["in-place"]
 
 
