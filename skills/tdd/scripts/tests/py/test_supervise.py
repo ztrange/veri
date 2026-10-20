@@ -2280,20 +2280,11 @@ def fake_clocked_leaf(monkeypatch, work, name, silent, ends_at, launches=None, l
         if clock["wall"] >= ends_at:
             (work / ".tdd" / f"{name}.rc").write_text("0\n")
 
-    class Leaf:
-        pid = 4242
-        returncode = None
-        args = []
+    def ended():
+        if leaf.returncode is None and clock["wall"] >= ends_at:
+            leaf.returncode = 0
 
-        def poll(self):
-            if self.returncode is None and clock["wall"] >= ends_at:
-                self.returncode = 0
-            return self.returncode
-
-        def wait(self, timeout=None):
-            return self.poll()
-
-    leaf = Leaf()
+    leaf = StubLeaf(on_poll=ended)
 
     def stop(_pid, sig):
         if sig:
@@ -2358,18 +2349,36 @@ class AwakeLeaf:
         return self.returncode
 
 
-def install_awake_fakes(monkeypatch, clock, leaf, sleep, stop, answer):
+def install_awake_fakes(monkeypatch, clock, leaf, sleep, stop, answer, popen=None):
     import time
+    real_run, real_check_output = subprocess.run, subprocess.check_output
+    real_call, real_check_call = subprocess.call, subprocess.check_call
     monkeypatch.setattr(time, "sleep", sleep)
     monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["awake"]))
     monkeypatch.setattr(os, "killpg", stop)
     monkeypatch.setattr(os, "kill", stop)
-    monkeypatch.setattr(subprocess, "run", lambda args, *_, **k: subprocess.CompletedProcess(
-        args, 0, as_asked(answer(args), k), as_asked("", k)))
-    monkeypatch.setattr(subprocess, "check_output", lambda args, *_, **k: as_asked(answer(args), k))
-    monkeypatch.setattr(subprocess, "call", lambda *a, **k: 0)
-    monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: 0)
-    monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: leaf)
+
+    def run(args, *a, **k):
+        out = answer(args)
+        if out is None:
+            return real_run(args, *a, **k)
+        return subprocess.CompletedProcess(args, 0, as_asked(out, k), as_asked("", k))
+
+    def check_output(args, *a, **k):
+        out = answer(args)
+        return real_check_output(args, *a, **k) if out is None else as_asked(out, k)
+
+    monkeypatch.setattr(subprocess, "run", run)
+    monkeypatch.setattr(subprocess, "check_output", check_output)
+    def call(args, *a, **k):
+        return real_call(args, *a, **k) if answer(args) is None else 0
+
+    def check_call(args, *a, **k):
+        return real_check_call(args, *a, **k) if answer(args) is None else 0
+
+    monkeypatch.setattr(subprocess, "call", call)
+    monkeypatch.setattr(subprocess, "check_call", check_call)
+    monkeypatch.setattr(subprocess, "Popen", popen or (lambda *a, **k: leaf))
 
 
 def test_cli_does_not_read_a_suspend_as_silence_or_runtime_a_3s_suspend_against_a_2s_heartbeat_with_the_awake_clock_set_or_unset_a_3s_suspend_past_a_2s_timeout_and_an_hour_against_the_defaults_each_ending_in_the_leafs_own_exit_3(
@@ -3068,42 +3077,22 @@ def test_cli_records_its_own_pid_before_the_leaf_launches_and_preserves_the_rela
     real_run([*git, "add", "-A"], check=True)
     real_run([*git, "commit", "-q", "-m", "initial"], check=True)
 
-    clock = {"wall": 1000}
+    clock = {"wall": 1000, "awake": 5000}
     seen_pids, leaf_box = [], []
-
-    class Leaf:
-        pid = 4242
-        returncode = None
-        args = []
-
-        def poll(self):
-            return self.returncode
-
-        def wait(self, timeout=None):
-            return self.returncode
 
     def sleep(_):
         clock["wall"] += 1
+        clock["awake"] += 1
         if clock["wall"] > 5000:
             raise AssertionError("never ended")
 
-    def fake(args):
+    def answer(args):
         words = [str(a) for a in args]
         if words[:1] == ["date"]:
             return f"{clock['wall']}\n"
         if words[:1] == ["stat"]:
             return "1000\n"
         return None
-
-    def run(args, *a, **kwargs):
-        out = fake(args)
-        if out is None:
-            return real_run(args, *a, **kwargs)
-        return subprocess.CompletedProcess(args, 0, as_asked(out, kwargs), "" if kwargs.get("text") else b"")
-
-    def check_output(args, *a, **kwargs):
-        out = fake(args)
-        return real_check_output(args, *a, **kwargs) if out is None else as_asked(out, kwargs)
 
     def popen(args, *a, **kwargs):
         if list(args[:2]) != ["/bin/sh", "-c"]:
@@ -3115,7 +3104,7 @@ def test_cli_records_its_own_pid_before_the_leaf_launches_and_preserves_the_rela
             f.write("run\n")
         number = len(attempts.read_text().splitlines())
         pathlib.Path(args[4]).write_text(f"leaf: attempt {number}\n")
-        leaf = Leaf()
+        leaf = StubLeaf()
         leaf_box.append(leaf)
         return leaf
 
@@ -3123,13 +3112,7 @@ def test_cli_records_its_own_pid_before_the_leaf_launches_and_preserves_the_rela
         if sig:
             leaf_box[-1].returncode = -sig
 
-    monkeypatch.setattr(time, "sleep", sleep)
-    monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
-    monkeypatch.setattr(os, "killpg", stop)
-    monkeypatch.setattr(os, "kill", stop)
-    monkeypatch.setattr(subprocess, "run", run)
-    monkeypatch.setattr(subprocess, "check_output", check_output)
-    monkeypatch.setattr(subprocess, "Popen", popen)
+    install_awake_fakes(monkeypatch, clock, None, sleep, stop, answer, popen)
 
     code, _, _ = run_cli(supervise, ["develop-red", "leaf"], cwd=work, env={
         "VERI_ISSUE": "409", "VERI_STEP": "6", "VERI_HEARTBEAT": "1", "VERI_TIMEOUT": "5000"})
@@ -3610,17 +3593,6 @@ def test_main_launches_a_leaf_that_never_answers_the_same_number_of_times_with_v
         clock = {"wall": 1000, "awake": 5000}
         launched = []
 
-        class Leaf:
-            pid = 4242
-            returncode = None
-            args = []
-
-            def poll(self):
-                return self.returncode
-
-            def wait(self, timeout=None):
-                return self.returncode
-
         def sleep(_):
             clock["wall"] += 1
             clock["awake"] += 1
@@ -3641,10 +3613,10 @@ def test_main_launches_a_leaf_that_never_answers_the_same_number_of_times_with_v
                 return "1000\n"
             return ""
 
-        install_awake_fakes(monkeypatch, clock, Leaf(), sleep, stop, answer)
+        install_awake_fakes(monkeypatch, clock, StubLeaf(), sleep, stop, answer)
 
         def popen(args, *_, **k):
-            launched.append(Leaf())
+            launched.append(StubLeaf())
             return launched[-1]
 
         monkeypatch.setattr(subprocess, "Popen", popen)
