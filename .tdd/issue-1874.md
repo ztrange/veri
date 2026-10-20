@@ -12,3 +12,4 @@
 - [x] A GRADES line whose grade word is anything other than exactly PASS or FAIL, such as PASS-ish or FAIL-ish, makes grade-prose.sh exit 2 and append no grading event ⟦criterion 3⟧
 - [x] The grader leaf is launched with no tools: the command the stub claude receives carries --tools with an empty value (a medium case, a real stub claude through supervise.sh) ⟦criterion 3⟧
 - [x] The grader leaf's model comes only from grader.conf: with VERI_MODEL_GRADER set in the environment the stub claude still receives grader.conf's model (a medium case, a real stub claude through supervise.sh) ⟦criterion 3⟧
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_fast_tier_guard.py — FAILED test_the_guard_with_the_real_exemption_table_finds_no_offence_in_the_fast_tier_as_committed_and_names_a_planted_one_by_file_and_line (unit/test_grade_prose.py:57, :91, :115: starts a process through subprocess) ⟦suite-repair⟧ ⟦criterion 3⟧
