@@ -142,3 +142,19 @@ def test_skill_edit_guard_unit_file_in_neither_base_nor_working_tree_exit_2(tmp_
     code, _ = guard(repo, "skills/foo/MISSING.md", base)
 
     assert code == 2
+
+
+@pytest.mark.process("skill-edit-guard.sh run against a real git repository")
+def test_skill_edit_guard_new_unit_with_its_new_requirements_exit_0(tmp_path):
+    repo = tmp_path / "guard"
+    (repo / "skills").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "skills/README.md").write_text("skills\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "chore: skills")
+    base = git(repo, "rev-parse", "HEAD")
+    (repo / "skills/foo").mkdir()
+    (repo / "skills/foo/FOO.md").write_text("prose\n")
+    (repo / "skills/foo/REQUIREMENTS.md").write_text("| K1 | rule |\n")
+
+    assert guard(repo, "skills/foo/FOO.md", base) == (0, "")
