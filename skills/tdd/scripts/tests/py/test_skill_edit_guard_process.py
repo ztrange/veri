@@ -127,3 +127,18 @@ def test_skill_edit_guard_base_sha_not_a_commit_exit_2(tmp_path):
     code, _ = guard(repo, "skills/foo/FOO.md", "0123456789abcdef0123456789abcdef01234567")
 
     assert code == 2
+
+
+@pytest.mark.process("skill-edit-guard.sh run against a real git repository")
+def test_skill_edit_guard_unit_file_in_neither_base_nor_working_tree_exit_2(tmp_path):
+    repo = tmp_path / "guard"
+    (repo / "skills/foo").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "skills/foo/FOO.md").write_text("prose\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: foo")
+    base = git(repo, "rev-parse", "HEAD")
+
+    code, _ = guard(repo, "skills/foo/MISSING.md", base)
+
+    assert code == 2

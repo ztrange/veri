@@ -18,6 +18,10 @@ def main(argv):
     if subprocess.run(["git", "rev-parse", "--verify", "--quiet", base + "^{commit}"], capture_output=True).returncode:
         print(f"skill-edit-guard.sh: {base} is not a commit", file=sys.stderr)
         return 2
+    at_base = subprocess.run(["git", "cat-file", "-e", f"{base}:{unit}"], capture_output=True).returncode == 0
+    if not at_base and not os.path.exists(unit):
+        print(f"skill-edit-guard.sh: {unit} exists neither at {base} nor in the working tree", file=sys.stderr)
+        return 2
     allowed = {unit, os.path.join(os.path.dirname(unit), "REQUIREMENTS.md")}
     changed = _git_lines("diff", "--name-only", base) + _git_lines("ls-files", "--others", "--exclude-standard")
     others = [path for path in changed if path and path not in allowed]
