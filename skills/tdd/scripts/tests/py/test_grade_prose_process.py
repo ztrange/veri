@@ -769,3 +769,33 @@ def test_grade_prose_owed_grades_exactly_the_non_orphan_units_prose_owed_prints_
 
     received = record.read_text() if record.exists() else ""
     assert re.findall(r"^Unit: (\S+)$", received, re.M) == ["skills/guide/one.md", "skills/guide/two.md"], received
+
+
+@pytest.mark.process("grade-prose.sh --owed launching a stub claude through supervise.sh")
+def test_grade_prose_owed_grades_the_owed_unit_and_neither_the_unit_whose_signature_is_current_nor_the_orphan_1725(
+        tmp_path, monkeypatch):
+    from veri import grade_prose
+
+    skill = tmp_path / "skills" / "guide"
+    skill.mkdir(parents=True)
+    for name in ("owed", "current"):
+        (skill / (name + ".md")).write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        REQUIREMENTS.replace("## guide/unit.md", "## skills/guide/owed.md") + "\n"
+        + REQUIREMENTS.replace("## guide/unit.md", "## skills/guide/current.md"))
+    monkeypatch.chdir(tmp_path)
+    current = grade_prose.signature("REQUIREMENTS.md", "skills/guide/current.md")
+    (skill / "GRADED").write_text("skills/guide/current.md %s 2026-01-01 g1\nskills/guide/gone.md %s 2026-01-01 g2\n"
+                                  % (current, current))
+    claude = tmp_path / "claude"
+    claude.write_text(STUB.replace('{ printf \'%s\\n\' "$@"; cat; } > "$STUB_RECORD"',
+                                   '{ printf \'%s\\n\' "$@"; cat; } >> "$STUB_RECORD"'))
+    claude.chmod(0o755)
+    record = tmp_path / "record.txt"
+
+    ran = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "--owed"], cwd=tmp_path, capture_output=True, text=True,
+                         env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+
+    received = record.read_text() if record.exists() else ""
+    assert (ran.returncode, re.findall(r"^Unit: (\S+)$", received, re.M)) == (0, ["skills/guide/owed.md"]), ran.stderr
