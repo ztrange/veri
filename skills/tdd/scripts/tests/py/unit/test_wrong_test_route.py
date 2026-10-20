@@ -568,3 +568,19 @@ def test_main_1808_prints_revise_for_a_missing_test_or_wrong_test_report_once_th
     assert other_step == [(0, "missing a closed session is counted once\n"), (0, "repair %s\n" % added)]
     assert after_missing == [(3, "revise\n"), (3, "revise\n")]
     assert after_repair == [(3, "revise\n"), (3, "revise\n")]
+
+
+def test_main_1808_prints_revise_and_exits_3_for_a_product_defect_reject_and_for_a_missing_test_line_with_an_empty_behaviour(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setenv("VERI_STEP", "wrong-test-route.sh keeps product defects on revise")
+    defect = tmp_path / "defect-report.txt"
+    defect.write_text("VERDICT: REJECT\nREASON: the function returns the wrong exit code for an empty list\n")
+    empty = tmp_path / "empty-report.txt"
+    empty.write_text("VERDICT: REJECT\nREASON: a line is unpinned\nMISSING_TEST:   \n")
+
+    answers = [run_cli(wrong_test_route, [str(r), "test_other"], cwd=tmp_path)[:2]
+               for r in (defect, empty)]
+
+    assert answers == [(3, "revise\n"), (3, "revise\n")]
