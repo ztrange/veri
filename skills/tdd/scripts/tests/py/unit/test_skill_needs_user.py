@@ -24,3 +24,14 @@ def test_1866_skill_bails_needs_user_instead_of_asking_the_user():
     if not re.search(r"question[^.]*in full[^.]*bail comment|in full[^.]*question[^.]*bail comment", plain):
         problems.append("the question is not written in full into the bail comment")
     assert "needs-user" in text and not problems, "; ".join(problems) or "SKILL.md never names needs-user"
+
+
+def test_1866_skill_and_resume_say_a_resumes_missing_opt_in_label_is_expected():
+    problems = []
+    for doc in (SKILL, SKILL.with_name("RESUME.md")):
+        plain = _plain(doc.read_text())
+        found = re.search(r"on a resume[^.]*missing opt-in label is expected[^.]*"
+                          r"(?:\.[^.]*)?never (?:stop|ask)[^.]*(?:stop|ask)", plain)
+        if not found:
+            problems.append(f"{doc.name} does not say a resume's missing opt-in label is expected and never a reason to stop or ask")
+    assert not problems, "; ".join(problems)
