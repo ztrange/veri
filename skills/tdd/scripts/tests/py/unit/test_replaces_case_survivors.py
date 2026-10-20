@@ -144,3 +144,14 @@ def test_main_prints_nothing_and_exits_0_once_one_deletion_removed_all_eight_nam
     suite.write_text('verdict "kept case" 0\n')
 
     assert run_cli(survivors, [step], cwd=tmp_path) == (0, "", "")
+
+
+def test_main_exits_2_with_one_stderr_line_naming_the_step_when_the_clause_mixes_quoted_and_unquoted_names_1882(run_cli, survivors):
+    step = "the replacement takes over: replaces 'a', b, 'c' in t/x.test.sh ⟦replaces-case⟧ ⟦criterion 2⟧"
+
+    code, out, err = run_cli(survivors, [step])
+
+    assert code == 2
+    assert out == ""
+    assert len(err.splitlines()) == 1
+    assert step in err
