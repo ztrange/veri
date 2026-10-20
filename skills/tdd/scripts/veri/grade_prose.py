@@ -92,6 +92,8 @@ def main(argv):
     if heading:
         text = section(text, heading)
     claims = requirements.claims(path, unit)
+    if not claims.strip():
+        return no_verdict("%s has no requirements list for %s" % (path, unit))
     with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
         f.write(prompt(unit, text, claims))
     env = dict(os.environ)
