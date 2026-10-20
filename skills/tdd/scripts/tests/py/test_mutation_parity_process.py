@@ -144,3 +144,27 @@ def test_1808_unproven_row_names_the_old_case_on_stderr_as_a_missing_test_and_le
     want = "MISSING_TEST: checks/test_gate.py::test_old: no kept case fails when its mutation is applied\n"
     assert (code, out, err) == (
         1, "\t".join([row[1], row[3], row[4], "unproven"]) + "\n", want)
+
+
+@pytest.mark.process("a bash suite and python3 started by failed_cases(), whose old case name contains '::'")
+def test_1843_bash_suite_row_whose_old_case_name_contains_double_colon_gets_a_verdict(tmp_path, monkeypatch, run_cli):
+    source = tmp_path / MODULE
+    source.parent.mkdir(parents=True)
+    source.write_text("def code():\n    return 2\n")
+    suite = tmp_path / "checks" / "gate.sh"
+    suite.parent.mkdir()
+    suite.write_text(SUITE.replace("old case", "gate::old case"))
+    suite.chmod(0o755)
+    mutated = source.read_text().replace("return 2", "return 1")
+    patch = tmp_path / "gate.patch"
+    patch.write_text("".join(difflib.unified_diff(
+        source.read_text().splitlines(True), mutated.splitlines(True), "a/" + MODULE, "b/" + MODULE)))
+    table = tmp_path / "pairs.tsv"
+    table.write_text("\t".join(["checks/gate.sh", "gate::old case", "redundant", "kept case", str(patch)]) + "\n")
+    importlib.invalidate_caches()
+    mutation_parity = importlib.import_module("veri.mutation_parity")
+
+    code, out, err = run_cli(mutation_parity, [str(table)], cwd=tmp_path)
+
+    assert (code, out.strip().endswith("proven")) == (0, True), (
+        "exit=%s stdout=%r stderr=%r; want exit 0 and a proven verdict for a bash suite row" % (code, out, err))

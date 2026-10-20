@@ -55,7 +55,7 @@ def named(name, failed):
 
 
 def suite_results(suite, old):
-    return failed_nodes(suite) if "::" in old else failed_cases(suite)
+    return failed_nodes(suite) if suite.endswith(".py") else failed_cases(suite)
 
 
 def replacement_fails(fate, kept, failed):
