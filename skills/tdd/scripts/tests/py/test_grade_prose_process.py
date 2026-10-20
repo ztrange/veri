@@ -505,3 +505,24 @@ def test_every_grading_event_records_that_gradings_cost_in_dollars_read_from_the
     lines = events.read_text().splitlines() if events.exists() else []
     graded = [l for l in lines if "guide/unit.md" in l and "0.04271" in l]
     assert len(graded) == 1, lines
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_1874_a_grader_leaf_that_prints_an_all_pass_block_and_then_exits_1_makes_grade_prose_exit_2_with_no_stdout_and_no_event(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text(STUB + "exit 1\n")
+    claude.chmod(0o755)
+    record = tmp_path / "record.txt"
+
+    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                          capture_output=True, text=True,
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+
+    events = tmp_path / ".tdd" / "events.jsonl"
+    lines = events.read_text().splitlines() if events.exists() else []
+    graded = [l for l in lines if "guide/unit.md" in l and '"verdict": "PASS"' in l]
+    assert (done.returncode, done.stdout, graded) == (2, "", []), (done.stderr, lines)
