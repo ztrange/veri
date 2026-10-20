@@ -44,5 +44,9 @@ A developer agent has written the implementation intended to make the target tes
    that reports first leaves the developer's tree mutated for the next leaf.
 5. {{INCLUDE:_verify-comments-lead.md}} change {{INCLUDE:_verify-comments-allowed.md}} change {{INCLUDE:_verify-comments-never-reject.md}}
 
+When a REJECT's cause is a behaviour no test pins — a line the step needs that every test
+leaves unchecked — put one `MISSING_TEST: <behaviour>` line, naming that behaviour, before
+the `VERDICT:` line. A rejection for a product defect carries no such line.
+
 PASS only if the target test, the fast command and the affected suites are green and the pass genuinely reflects
 the behavior the spec requires.
