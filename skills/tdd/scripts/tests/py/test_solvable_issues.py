@@ -1143,3 +1143,26 @@ def test_main_not_running_keeps_the_priority_bug_rest_order_of_the_issues_it_doe
 
     issues = [opted_in(1), labelled(8, "bug"), labelled(9, "priority"), opted_in(4), labelled(3, "bug"), labelled(2, "priority")]
     assert _not_running_with(tmp_path, monkeypatch, capsys, solvable_issues, issues, [9, 4]) == (0, "2\n3\n8\n1\n")
+
+
+def test_main_not_running_1875_keeps_issue_17_listed_for_a_live_conductor_whose_argument_is_17x(tmp_path, monkeypatch, capsys, solvable_issues):
+    (tmp_path / "issues.json").write_text(json.dumps([opted_in(17), opted_in(18)]))
+    (tmp_path / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    scripts = pathlib.Path(solvable_issues.__file__).resolve().parent.parent
+    listing = "  1 /sbin/launchd\n 99 /usr/bin/python3 %s/veri/run_conductor.py 17x\n" % scripts
+
+    def fake_run(args, *rest, **kwargs):
+        if list(args[:4]) == ["git", "worktree", "list", "--porcelain"]:
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if args[0] == "ps":
+            return subprocess.CompletedProcess(args, 0, listing, "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", fake_run)
+
+    code = solvable_issues.main(["--not-running"])
+
+    out, err = capsys.readouterr()
+    assert (code, out) == (0, "17\n18\n")
