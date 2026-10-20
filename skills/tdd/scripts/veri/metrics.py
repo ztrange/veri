@@ -122,7 +122,7 @@ def conductor_sessions(issue, path):
                         open_rows.append((len(turn_rows), base_dollars))
                         turn_rows.append([str(len(turn_rows) + 1), "$%.2f" % base_dollars, context])
         if open_turns:
-            sessions.append({"total_cost_usd": open_cost if open_priced else None, "num_turns": open_turns})
+            sessions.append({"total_cost_usd": open_cost if open_priced else None, "num_turns": open_turns, "open": True})
     return sessions, turn_rows
 
 
@@ -457,6 +457,9 @@ def render(issue, path, ledger):
         print("Conductor own spending: %s over %d turns, in %d sessions."
               % ("$%.2f" % sum(r.get("total_cost_usd") or 0 for r in sessions) if priced else "unpriced",
                  sum(r.get("num_turns") or 0 for r in sessions), len(sessions)))
+        if any(r.get("open") for r in sessions):
+            print("The Conductor own spending figure is estimated: the output tokens of a session without a "
+                  "result record are not yet known.")
     else:
         print("Cost is every leaf of the run, and the conductor own %s."
               % ("closing accounting with them, which this log carries"

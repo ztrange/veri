@@ -1304,6 +1304,19 @@ def test_main_reports_the_conductor_total_dollars_and_turns_summed_over_every_se
     assert "spending is not in it" not in out
 
 
+def test_issue_1868_a_report_with_a_conductor_session_lacking_a_result_record_says_its_own_spending_is_estimated_for_want_of_output_tokens(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    turn = {"type": "assistant", "message": {"usage": {"input_tokens": 10, "output_tokens": 5}}}
+    sessions = [{"type": "system", "subtype": "init"}, turn]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in sessions))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert re.search(r"Conductor own spending: \$\d+\.\d\d over 1 turns, in 1 sessions\.\n", out)
+    assert re.search(r"Conductor own spending[^\n]*\n[^\n]*estimated[^\n]*output tokens[^\n]*not yet known", out)
+
+
 def test_main_counts_a_still_running_conductor_session_from_its_assistant_messages_and_their_usage(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, ONE_STEP)
     turn = {"type": "assistant", "message": {"usage": {"input_tokens": 10, "output_tokens": 500,
