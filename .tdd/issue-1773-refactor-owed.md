@@ -7,3 +7,4 @@
 - in `_cases` (`tests_frozen.py`), replace the `trailer` list and its `trailer[-1]` guard with a single `re.search` for the end-anchored finish trailer.
 applied | 8b5cbbef85a74ae3202d2c9b3bcd3b9670b95508 | `main` guards record mode's two `os.path.exists(".git")` checks and check mode's `_in_repository()` separately. They could share one repository test. The record-mode checks are code this cycle did not write.
 applied | f23934b296d6d6a66847a0d09853a05d324bb769 | the `record` branch repeats `os.path.exists(".git")` twice, which is the same cwd-`.git` test this issue replaces. It is code the cycle did not write, so I did not change it.
+applied | ab6cae3a561982cbe895e7af58a3d59e48065c9c | in `_cases` (`tests_frozen.py`), replace the `trailer` list and its `trailer[-1]` guard with a single `re.search` for the end-anchored finish trailer.
