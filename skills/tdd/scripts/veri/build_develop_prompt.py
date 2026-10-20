@@ -132,6 +132,8 @@ def main(argv):
             marked["REPLACES_CASE"] = f"{prompts}/_develop-green-replaces-case.md"
         if carries_mark(step, "suite-repair"):
             marked["SUITE_REPAIR"] = f"{prompts}/_develop-green-suite-repair.md"
+        if carries_mark(step, "fixture-repair"):
+            marked["FIXTURE_REPAIR"] = f"{prompts}/_develop-green-fixture-repair.md"
     if revised_phase in INTERFACE_PHASES:
         frozen = "production" if revised_phase == "contract-a" else "test"
         marked["FREEZE_RULE"] = f"{prompts}/_develop-revise-freeze-{frozen}.md"
@@ -147,7 +149,7 @@ def main(argv):
             _write(sys.stderr, f"build-develop-prompt: cannot read '{path}'")
             return 2
     prompts_b = os.fsencode(prompts)
-    values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "RED_CASES", "RED_LEAD", "REPLACES_CASE", "SUITE_REPAIR", "CI_REPAIR", "STEP",
+    values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "RED_CASES", "RED_LEAD", "REPLACES_CASE", "SUITE_REPAIR", "FIXTURE_REPAIR", "CI_REPAIR", "STEP",
                             "TEST_CMD", "TEST_PATH", "TARGET_TEST", "FAST_CMD", "TIMED_TEST_RUN", "TOUCHED_FILES",
                             "NODE_ID_RULE", "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "WRONG_TEST_REPORT", "WRONG_TEST_FORMAT", "TEST_REWRITE", "REJECTION_REASON", "BRANCH",
                             "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES", "REPORT_FILE", "MISSING_CASES", "CASE", "CASES", "WRONG_TEST_REASON"), b"")

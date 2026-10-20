@@ -13,7 +13,7 @@ fast command and the affected suites green.
 
 - Test file: `{{TEST_PATH}}`
 - Target case: `{{TARGET_TEST}}`
-- Test command: `{{TEST_CMD}}`{{FREEZE_RULE}}{{REPLACES_CASE}}{{SUITE_REPAIR}}
+- Test command: `{{TEST_CMD}}`{{FREEZE_RULE}}{{REPLACES_CASE}}{{SUITE_REPAIR}}{{FIXTURE_REPAIR}}
 
 ### When the step is too big for one green
 
