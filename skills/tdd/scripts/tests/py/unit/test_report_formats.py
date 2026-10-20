@@ -185,3 +185,10 @@ def test_1615_every_exempt_stop_prose_entry_names_a_line_of_a_real_develop_promp
             stale.append(where)
 
     assert not stale, "\n".join(stale)
+
+
+@pytest.mark.tree_audit("skills/tdd/scripts/prompts/develop-red-supersede.md, includes expanded")
+def test_1862_the_red_supersede_prompts_suite_fallback_line_is_exempt_or_names_a_declared_format(report_formats):
+    texts = {path.name: text for path, text in expanded_develop_prompts()}
+
+    assert report_formats.stop_prose_offenders("develop-red-supersede.md", texts["develop-red-supersede.md"]) == []
