@@ -1,0 +1,2 @@
+### verify.py run with its working directory a subdirectory of the repo writes its verifier prompt and run state under `.tdd/` at the repo root and leaves no `.tdd/` in the subdirectory; run from the root it behaves as before ⟦criterion 1⟧
+- extract a shared run-state-root helper for `os.path.join(event.toplevel(), ".tdd")`, duplicated in verify.py and supervise.py, to be adopted by the remaining entry points (cross-module extraction, left for after the other sites land)
