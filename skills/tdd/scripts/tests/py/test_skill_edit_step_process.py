@@ -226,3 +226,86 @@ def test_a_grader_that_keeps_rejecting_relaunches_the_author_exactly_veri_skill_
     launches = [e for e in events if e.get("event") == "launch" and e.get("actor") == "author"]
     said = ran.stdout + ran.stderr
     assert [ran.returncode, len(launches), "A1" in said, "A2" in said] == [1, 2, True, True], (ran.stdout, ran.stderr[-700:])
+
+
+STUB_UNPARSEABLE = """#!/bin/sh
+printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"no verdict here"}'
+"""
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader that gives no verdict")
+def test_a_grader_that_gives_no_parseable_verdict_exits_2(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
+    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is a deep blue. | shade |\n")
+    claude = tmp_path / "claude"
+    claude.write_text(STUB_UNPARSEABLE)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+
+    log = repo / ".tdd" / "events.jsonl"
+    events = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
+    assert [ran.returncode, git(repo, "rev-list", "--count", "HEAD"),
+            [e.get("event") for e in events if e.get("event") == "skill-edit-no-author"],
+            "skill-edit-step.sh:" in ran.stderr, "grade-prose.sh: no verdict obtained" in ran.stderr] \
+        == [2, "1", [], False, True], (ran.stdout, ran.stderr[-700:])
+
+
+STUB_AUTHOR_KILLED = """#!/bin/sh
+prompt=$2
+case "$prompt" in
+*"You grade a piece of prose"*)
+  n=$(cat "$CAP/grades" 2>/dev/null || echo 0)
+  echo $((n + 1)) > "$CAP/grades"
+  if [ "$n" = 0 ]; then
+    reply='BEGIN GRADES\\nA1: FAIL - prose never says crimson\\nA2: PASS - ok\\nVERDICT: REJECT\\nEND GRADES'
+  else
+    reply='BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES'
+  fi ;;
+*)
+  exit 2 ;;
+esac
+printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"'"$reply"'"}'
+"""
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author that exits 2")
+def test_an_author_leaf_whose_supervisor_exits_2_exits_2_without_grading_again_or_relaunching(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
+    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is crimson. | shade |\n")
+    cap = tmp_path / "cap"
+    cap.mkdir()
+    claude = tmp_path / "claude"
+    claude.write_text(STUB_AUTHOR_KILLED)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "CAP": str(cap), "VERI_STUCK_RETRIES": "0", "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+           "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+
+    log = repo / ".tdd" / "events.jsonl"
+    events = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
+    launches = [e for e in events if e.get("event") == "launch" and e.get("actor") == "author"]
+    assert [ran.returncode, len(launches), (cap / "grades").read_text().strip(),
+            git(repo, "rev-list", "--count", "HEAD")] == [2, 1, "1", "1"], (ran.stdout, ran.stderr[-700:])
