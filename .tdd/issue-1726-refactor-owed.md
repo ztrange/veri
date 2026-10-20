@@ -1,0 +1,2 @@
+### `skill-edit-guard.sh <unit-file> <base-sha>` exists as a `/bin/sh` shim over `veri/skill_edit_guard.py`, with a no-argument usage line and exit 2 and an entry in SCRIPTS.md as its declared caller, and exits 0 when every path changed between `<base-sha>` and the working tree (committed, staged, unstaged or untracked) is the unit file or the `REQUIREMENTS.md` beside it ⟦criterion 1⟧
+- test-only | extract the repeated repo setup (mkdir, git init, write, add, commit, rev-parse base) in test_skill_edit_guard_process.py into a helper
