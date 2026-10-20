@@ -23,7 +23,7 @@ class SuiteDied(RuntimeError):
 
 
 def no_bytecode_env():
-    kept = {k: v for k, v in os.environ.items()
+    kept = {k: v for k, v in tunables.environment().items()
             if k == "VERI_VENV" or not k.startswith(("VERI_", "CLAUDE_"))}
     return {**kept, "PYTHONDONTWRITEBYTECODE": "1"}
 
