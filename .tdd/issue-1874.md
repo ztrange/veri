@@ -1,6 +1,6 @@
 # Plan for #1874 — grade-prose.sh: a failed grader leaf is exit 2 whatever the log says, the prompt carries the PoC's grader contract, and the remaining gaps from PR #1829's review
 
-- [x] A grader leaf that prints an all-PASS GRADES block and then exits 1 makes grade-prose.sh exit 2, print nothing on stdout and append no grading event to .tdd/events.jsonl (a medium case, a real stub claude through supervise.sh) ⟦criterion 1⟧ ⟂ refactor pending
+- [x] A grader leaf that prints an all-PASS GRADES block and then exits 1 makes grade-prose.sh exit 2, print nothing on stdout and append no grading event to .tdd/events.jsonl (a medium case, a real stub claude through supervise.sh) ⟦criterion 1⟧
 - [ ] A grader leaf whose reply carries a 429 rate-limit error alongside an all-PASS GRADES block makes grade-prose.sh exit 2, print nothing on stdout and append no grading event (a medium case, a real stub claude through supervise.sh) ⟦criterion 1⟧
 - [ ] A grader launch that supervise.sh refuses, with an all-PASS .tdd/grade-prose.log left by an earlier grading on disk, makes grade-prose.sh exit 2, print nothing on stdout and append no grading event: the stale log is never read (a medium case, a real supervise.sh) ⟦criterion 1⟧
 - [ ] The prompt grade-prose renders for a unit carries the PoC's grader instructions from specs/grader-poc/grader-system.txt, asking for the reply to end with a BEGIN GRADES … END GRADES block holding one line per requirement in the order given and the VERDICT: line inside the block ⟦criterion 2⟧
