@@ -39,3 +39,23 @@ def test_main_with_target_prints_slot_free_with_the_first_solvable_issue_when_fe
     code = watch_runs.main(["--target", "2"])
 
     assert (code, capsys.readouterr().out) == (0, "slot-free 1/2 next 12\n")
+
+
+def test_main_with_max_wait_prints_timeout_and_returns_3_when_nothing_actionable_happens_within_the_wait(
+        monkeypatch, capsys, watch_runs):
+    now = [100.0]
+    waits = []
+
+    def wait():
+        waits.append(1)
+        now[0] += 4
+        if len(waits) > 10:
+            raise RuntimeError("never printed timeout")
+
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: ["5"])
+    monkeypatch.setattr(watch_runs, "clock", lambda: now[0], raising=False)
+    monkeypatch.setattr(watch_runs, "wait", wait)
+
+    code = watch_runs.main(["--max-wait", "10"])
+
+    assert (code, capsys.readouterr().out) == (3, "timeout\n")

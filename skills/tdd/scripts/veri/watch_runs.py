@@ -34,9 +34,15 @@ def wait():
     time.sleep(2)
 
 
+def clock():
+    return time.monotonic()
+
+
 def main(argv):
     target = int(argv[1]) if argv[:1] == ["--target"] else None
+    max_wait = int(argv[1]) if argv[:1] == ["--max-wait"] else None
     started = live_conductors()
+    deadline = clock() + max_wait if max_wait is not None else None
     while True:
         wait()
         live = live_conductors()
@@ -49,6 +55,9 @@ def main(argv):
             if issue not in live:
                 print("exited %s %s" % (issue, run_state(issue).split(" ")[0]))
                 return 0
+        if deadline is not None and clock() >= deadline:
+            print("timeout")
+            return 3
 
 
 if __name__ == "__main__":
