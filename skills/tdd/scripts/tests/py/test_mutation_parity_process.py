@@ -675,3 +675,32 @@ def test_after_the_pairs_check_exits_2_a_mutation_that_does_not_apply_a_bash_sui
             problems[name] = (code, snapshot(tmp_path) == before, out, err)
 
     assert problems == {}
+
+
+@pytest.mark.process("a bash suite and python3 started by failed_cases(), run with a VERI_* tunable set in the caller")
+def test_1667_bash_suite_row_sees_no_veri_or_claude_variable_from_the_caller_except_veri_venv(tmp_path, monkeypatch, run_cli):
+    monkeypatch.setenv("VERI_MODEL_REVISE", "opus")
+    monkeypatch.setenv("CLAUDE_BIN", "/nonexistent")
+    monkeypatch.setenv("VERI_VENV", str(tmp_path / "venv"))
+    source = tmp_path / MODULE
+    source.parent.mkdir(parents=True)
+    source.write_text("def code():\n    return 2\n")
+    suite = tmp_path / "checks" / "gate.sh"
+    suite.parent.mkdir()
+    guarded = SUITE.replace("if python3 -c", "if ! env | grep -v '^VERI_VENV=' | grep -q -E '^(VERI|CLAUDE)_' && python3 -c")
+    assert guarded != SUITE
+    suite.write_text(guarded)
+    suite.chmod(0o755)
+    mutated = source.read_text().replace("return 2", "return 1")
+    patch = tmp_path / "gate.patch"
+    patch.write_text("".join(difflib.unified_diff(
+        source.read_text().splitlines(True), mutated.splitlines(True), "a/" + MODULE, "b/" + MODULE)))
+    table = tmp_path / "pairs.tsv"
+    table.write_text("\t".join(["checks/gate.sh", "old case", "redundant", "kept case", str(patch)]) + "\n")
+    importlib.invalidate_caches()
+    mutation_parity = importlib.import_module("veri.mutation_parity")
+
+    code, out, err = run_cli(mutation_parity, [str(table)], cwd=tmp_path)
+
+    assert (code, out.strip().endswith("proven")) == (0, True), (
+        "exit=%s stdout=%r stderr=%r; want the unmutated run to see no VERI_*/CLAUDE_* variable" % (code, out, err))

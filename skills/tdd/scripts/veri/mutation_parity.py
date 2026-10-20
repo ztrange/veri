@@ -23,7 +23,9 @@ class SuiteDied(RuntimeError):
 
 
 def no_bytecode_env():
-    return {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+    kept = {k: v for k, v in os.environ.items()
+            if k == "VERI_VENV" or not k.startswith(("VERI_", "CLAUDE_"))}
+    return {**kept, "PYTHONDONTWRITEBYTECODE": "1"}
 
 
 def failed_cases(suite):
