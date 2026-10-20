@@ -187,3 +187,17 @@ def test_a_run_with_no_end_event_and_no_live_conductor_and_no_conductor_log_anyw
     assert (code, out, err.startswith("stop-reason.sh: no conductor log at "),
             err.endswith(os.path.join(".tdd", "conductor-7.log") + "\n"), err.count("\n")) == (
         2, "", True, True, 1)
+
+
+def test_a_run_with_no_end_event_and_no_live_conductor_reports_from_the_conductor_log_in_its_own_tdd_and_prefers_it_over_the_clones_1867(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    run = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    run.mkdir(parents=True)
+    (run / "events.jsonl").write_text(json.dumps({"ts": 100, "issue": "7", "event": "step-done"}) + "\n")
+    for where, reset in ((run, "3pm"), (tmp_path / ".tdd", "9pm")):
+        (where / "conductor-7.log").write_text(json.dumps(
+            {"type": "result", "is_error": True, "result": "You've hit your limit resets %s" % reset}) + "\n")
+
+    code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
+
+    assert (code, out, err) == (0, "usage-limit 3pm\n", "")
