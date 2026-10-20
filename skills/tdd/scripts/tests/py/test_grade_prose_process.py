@@ -716,3 +716,28 @@ def test_a_pass_replaces_any_earlier_graded_line_for_the_same_unit_and_leaves_ot
     lines = graded.read_text().splitlines()
     mine = [l for l in lines if l.startswith("skills/guide/unit.md ")]
     assert [lines.count(other), len(mine), old in lines, len(lines)] == [1, 1, False, 2], lines
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_a_reject_and_an_exit_2_leave_graded_byte_identical(tmp_path):
+    (tmp_path / "skills" / "guide").mkdir(parents=True)
+    (tmp_path / "skills" / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS.replace("## guide/unit.md", "## skills/guide/unit.md"))
+    graded = tmp_path / "skills" / "guide" / "GRADED"
+    before = "skills/guide/other.md " + "b" * 64 + " 2026-01-02 deadbeef\nskills/guide/unit.md " + "a" * 64 + " 2026-01-01 cafef00d\n"
+    graded.write_text(before)
+    record = tmp_path / "record.txt"
+    replies = {"reject": STUB.replace("A2: PASS - ok", "A2: FAIL - hums").replace("VERDICT: PASS", "VERDICT: REJECT"),
+               "no verdict": STUB.replace("BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES", "looks fine")}
+    seen = {}
+    for name, body in replies.items():
+        claude = tmp_path / "claude"
+        claude.write_text(body)
+        claude.chmod(0o755)
+        done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "skills/guide/unit.md"], cwd=tmp_path,
+                              capture_output=True, text=True,
+                              env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                                   "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+        seen[name] = (done.returncode, graded.read_text() == before)
+
+    assert seen == {"reject": (1, True), "no verdict": (2, True)}, seen
