@@ -486,3 +486,25 @@ def test_1668_a_planted_test_file_calling_os_exec_with_arguments_naming_a_test_f
     found = guard.offences(tmp_path)
 
     assert [line.split(": ")[0] for line in found] == [f"{offender}:4"]
+
+
+def test_1668_a_planted_test_file_whose_only_call_passing_a_suite_named_string_is_to_a_function_it_defines_is_not_reported_as_running_a_nested_suite_while_an_undefined_run_it_is(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    (tmp_path / "test_helper_call.py").write_text(
+        "def says(label):\n"
+        "    return label\n"
+        "\n"
+        "def test_names_a_path_in_prose():\n"
+        "    says('that tests live in tests/py/test_<module>.py')\n"
+        "    says('tests/foo.test.sh')\n"
+    )
+    offender = tmp_path / "test_undefined.py"
+    offender.write_text(
+        "def test_runs_a_suite():\n"
+        "    run_it('tests/py/test_other.py')\n"
+        "    run_it(path='tests/foo.test.sh')\n"
+    )
+
+    found = guard.offences(tmp_path)
+
+    assert found == [f"{offender}:2: runs a nested suite", f"{offender}:3: runs a nested suite"]

@@ -64,7 +64,7 @@ def _discover(root, exemptions):
     return root, files
 
 
-def _classify(node, module_aliases, name_imports, modules, functions):
+def _classify(node, module_aliases, name_imports, modules, functions, defined=frozenset()):
     func = node.func
     receiver, attr = _receiver_and_attr(func)
     imported = name_imports.get(func.id) if isinstance(func, ast.Name) else None
@@ -84,6 +84,8 @@ def _classify(node, module_aliases, name_imports, modules, functions):
     if isinstance(func, ast.Name) and func.id == "run_cli":
         listed = [item for arg in args if isinstance(arg, (ast.List, ast.Tuple)) for item in arg.elts]
         args += [item for item in listed if isinstance(item, ast.Constant) and "/" in str(item.value)]
+    if isinstance(func, ast.Name) and func.id in defined:
+        return None
     if (module, attr) == ("pytest", "main") or any(
         isinstance(arg, ast.Constant) and isinstance(arg.value, str) and _SUITE_PATH.search(arg.value)
         for arg in args
@@ -98,11 +100,12 @@ def _file_offences(path):
     modules = {alias for alias, name in module_aliases.items() if name == "subprocess"}
     modules.add("subprocess")
     functions = {alias for alias, (module, _) in name_imports.items() if module == "subprocess"}
+    defined = {node.name for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
     found = []
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
-        message = _classify(node, module_aliases, name_imports, modules, functions)
+        message = _classify(node, module_aliases, name_imports, modules, functions, defined)
         if message:
             found.append(f"{path}:{node.lineno}: {message}")
     return found
