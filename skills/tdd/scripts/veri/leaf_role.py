@@ -18,6 +18,10 @@ def _refuse(name, reason):
     _write(sys.stderr, "leaf-role: leaf name '%s' %s %s" % (name, reason, SHAPES))
 
 
+def is_revise(name):
+    return name.startswith("revise-") or name == "develop-exhausted"
+
+
 def leaf_role(name):
     """VERI_ACTOR, VERI_PHASE and VERI_ATTEMPT for a leaf name."""
     if not name:
