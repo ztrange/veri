@@ -1,4 +1,6 @@
 """skill-edit-guard.sh's entry point, run in-process."""
+import os
+import subprocess
 import sys
 
 USAGE = "usage: skill-edit-guard.sh <unit-file> <base-sha>"
@@ -8,7 +10,13 @@ def main(argv):
     if len(argv) != 2:
         print(USAGE, file=sys.stderr)
         return 2
-    return 0
+    unit, base = argv
+    allowed = {unit, os.path.join(os.path.dirname(unit), "REQUIREMENTS.md")}
+    changed = subprocess.run(["git", "diff", "--name-only", base], capture_output=True, text=True).stdout.split("\n")
+    others = [path for path in changed if path and path not in allowed]
+    for path in others:
+        print(path)
+    return 1 if others else 0
 
 
 if __name__ == "__main__":
