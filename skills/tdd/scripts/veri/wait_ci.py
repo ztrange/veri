@@ -101,14 +101,16 @@ def sha_state(repo, sha):
     states = [s["state"] for s in docs[-1].get("statuses") or []]
     check_runs = [r for p in docs[:-1] for r in p.get("check_runs") or []]
     outcomes = [r.get("conclusion") if r.get("status") == "completed" else None for r in check_runs]
+    failed = [r.get("name", "") for r in check_runs
+              if r.get("conclusion") and r["conclusion"].lower() not in PASSING]
     if any(o is not None and o not in PASSING for o in outcomes) \
             or any(s in ("failure", "error") for s in states):
-        return "red"
+        return "red", ",".join(failed)
     if not check_runs and not states:
-        return "none"
+        return "none", ""
     if None in outcomes or all(o == "skipped" for o in outcomes) or "pending" in states:
-        return "pending"
-    return "green"
+        return "pending", ""
+    return "green", ""
 
 
 def unreadable(what):
@@ -160,9 +162,10 @@ def main(argv):
             traceback.print_exc()
             head = ""
         state = None
+        failed = ""
         if head:
             try:
-                state = sha_state(repo, head)
+                state, failed = sha_state(repo, head)
             except NoAnswer:
                 pass
             except Exception:
@@ -182,6 +185,8 @@ def main(argv):
         if state == "green":
             return 0
         if state == "red":
+            if failed:
+                print(failed)
             return 1
         now = int(subprocess.run(["date", "+%s"], stdout=subprocess.PIPE, text=True).stdout)
         scope["now"] = now

@@ -680,9 +680,9 @@ def test_main_reads_the_given_shas_own_check_runs_to_pending_unreadable_red_gree
     assert observed == {
         "in progress": (3, "", ""),
         "unreadable": (2, "", "gh: Not Found (HTTP 404)\n" * 3 + by_sha),
-        "failure": (1, "", ""),
+        "failure": (1, "gates\n", ""),
         "neutral and skipped beside in progress": (3, "", ""),
-        "failure beyond the first page": (1, "", ""),
+        "failure beyond the first page": (1, "gates-101\n", ""),
         "runs and statuses all succeeded": (0, "", ""),
         "all skipped": (3, "", ""),
     }
@@ -743,7 +743,7 @@ def test_main_reads_the_shas_legacy_statuses_and_with_no_head_sha_the_rest_pull_
         "no head-sha, own run in progress": (3, "", ""),
         **{f"no head-sha, {route} GraphQL, {want}": answer
            for route in ("working", "refused")
-           for want, answer in (("green", (0, "", "")), ("red", (1, "", "")),
+           for want, answer in (("green", (0, "", "")), ("red", (1, "gates\n", "")),
                                 ("pending", (3, "", "")), ("unread", (2, "", by_sha)))},
     }
 
@@ -797,8 +797,8 @@ def test_main_reads_the_rest_head_large_documents_and_every_check_run_page_and_n
         "small documents": (0, "", ""),
         "documents over 256 KiB": (0, "", ""),
         "both large documents over 256 KiB": True,
-        "five runs on one page": (1, "", ""),
-        "the same runs over three pages": (1, "", ""),
+        "five runs on one page": (1, "gates-5\n", ""),
+        "the same runs over three pages": (1, "gates-5\n", ""),
         "first and only page fails": (2, "", by_sha),
         "a later page fails": (2, "", by_sha),
     }
@@ -917,7 +917,7 @@ def test_main_names_a_conflicting_pr_at_its_first_read_only_while_its_head_has_n
         "conflicting, no check, another head given": ([(2, "", conflict)], 1),
         "unknown, no check": ([(3, "", "")], 10),
         "conflicting, green": [(0, "", "")],
-        "conflicting, red": [(1, "", "")],
+        "conflicting, red": [(1, "gates\n", "")],
         "conflicting, pending": [(3, "", "")],
         "conflicting, pending across the deadline": [(3, "", ""), (2, "", past)],
     }
@@ -1131,3 +1131,24 @@ def test_main_with_no_head_sha_records_the_deadline_for_the_pull_head_on_its_fir
     code, _, _ = run_cli(wait_ci, [PR, "120", "600"], env={"VERI_POLL": "0"}, cwd=work)
 
     assert (code, (work / ".tdd" / f"ci-deadline-{FULL_SHA}").read_text()) == (3, "600\n")
+
+
+def test_main_prints_the_names_of_the_failed_check_runs_as_one_comma_joined_line_on_exit_1_issue_1904(
+        monkeypatch, capsys, wait_ci, fake_processes):
+    def named(name, conclusion, status="completed"):
+        return {"name": name, "status": status, "conclusion": conclusion}
+
+    runs = [named("build", "failure"), named("lint", "success"), named("docs", "SKIPPED"),
+            named("Test", "TIMED_OUT"), named("soft", "Neutral"), named("slow", None, "in_progress")]
+    bodies = {
+        PULL: json.dumps({"mergeable": True, "head": {"sha": SHA}}),
+        PAGE_1: json.dumps({"total_count": len(runs), "check_runs": runs}),
+        PAGE_2: json.dumps({"total_count": len(runs), "check_runs": []}),
+        STATUS: json.dumps({"state": "x", "statuses": []}),
+    }
+    fake_processes(lambda line, **_: (0, bodies.get(line, ""), ""))
+
+    code = wait_ci.main([PR, "60", "120", SHA])
+    captured = capsys.readouterr()
+
+    assert (code, captured.out) == (1, "build,Test\n")
