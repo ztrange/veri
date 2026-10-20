@@ -102,6 +102,17 @@ def test_main_refuses_on_bash_before_the_python_floor_and_on_the_floor_before_th
     ], True, [])
 
 
+def patch_process_boundary(monkeypatch, subprocess_fns, os_fn, extra_os=()):
+    """Replace every way the code under test could start a process; os_fn(name, *args, **kwargs) answers the os ones."""
+    if callable(subprocess_fns):
+        subprocess_fns = dict.fromkeys(("run", "Popen", "call", "check_call", "check_output"), subprocess_fns)
+    for name, fn in subprocess_fns.items():
+        monkeypatch.setattr(subprocess, name, fn)
+    for name in ("system", "fork", "posix_spawn", "posix_spawnp", "execv", "execvp", "execve", *extra_os):
+        if hasattr(os, name):
+            monkeypatch.setattr(os, name, lambda *args, _name=name, **kwargs: os_fn(_name, *args, **kwargs))
+
+
 def fake_git(monkeypatch, fetch_code, fetch_err):
     """git faked as a process: origin exists, fetch answers as given, nothing else resolves."""
     calls = []
@@ -120,11 +131,7 @@ def fake_git(monkeypatch, fetch_code, fetch_err):
             out, err = out.encode(), err.encode()
         return subprocess.CompletedProcess(args, code, out, err)
 
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, answer)
-    for name in ("system", "fork", "posix_spawn", "posix_spawnp", "execv", "execvp", "execve"):
-        if hasattr(os, name):
-            monkeypatch.setattr(os, name, answer)
+    patch_process_boundary(monkeypatch, answer, lambda _name, *args, **kwargs: answer(*args, **kwargs))
     import time
     monkeypatch.setattr(time, "sleep", lambda *args: calls.append(["time.sleep", *args]))
     return calls
@@ -191,11 +198,7 @@ def fake_locked_fetch(monkeypatch, sleep_code,
             out, err = out.encode(), err.encode()
         return subprocess.CompletedProcess(args, code, out, err)
 
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, answer)
-    for name in ("system", "fork", "posix_spawn", "posix_spawnp", "execv", "execvp", "execve"):
-        if hasattr(os, name):
-            monkeypatch.setattr(os, name, answer)
+    patch_process_boundary(monkeypatch, answer, lambda _name, *args, **kwargs: answer(*args, **kwargs))
     import time
     monkeypatch.setattr(time, "sleep", lambda *args: calls.append(["time.sleep", *args]))
     return calls, lock
@@ -344,14 +347,11 @@ def fake_resolution(monkeypatch, origin, verifies, ls_remote):
         calls.append(list(args))
         return FakeProcess(list(args))
 
-    monkeypatch.setattr(subprocess, "run", answer)
-    monkeypatch.setattr(subprocess, "call", lambda *a, **k: answer(*a, **k).returncode)
-    monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: answer(*a, **k).returncode)
-    monkeypatch.setattr(subprocess, "check_output", check_output)
-    monkeypatch.setattr(subprocess, "Popen", popen)
-    for name in ("system", "fork", "posix_spawn", "posix_spawnp", "execv", "execvp", "execve"):
-        if hasattr(os, name):
-            monkeypatch.setattr(os, name, lambda *args, **__: calls.append(list(args)))
+    patch_process_boundary(
+        monkeypatch,
+        {"run": answer, "call": lambda *a, **k: answer(*a, **k).returncode,
+         "check_call": lambda *a, **k: answer(*a, **k).returncode, "check_output": check_output, "Popen": popen},
+        lambda _name, *args, **__: calls.append(list(args)))
     return calls
 
 
@@ -431,14 +431,11 @@ def fake_pin(monkeypatch, commit, accepted):
         calls.append(list(args))
         return FakeProcess(list(args))
 
-    monkeypatch.setattr(subprocess, "run", answer)
-    monkeypatch.setattr(subprocess, "call", lambda *a, **k: answer(*a, **k).returncode)
-    monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: answer(*a, **k).returncode)
-    monkeypatch.setattr(subprocess, "check_output", check_output)
-    monkeypatch.setattr(subprocess, "Popen", popen)
-    for name in ("system", "fork", "posix_spawn", "posix_spawnp", "execv", "execvp", "execve"):
-        if hasattr(os, name):
-            monkeypatch.setattr(os, name, lambda *args, **__: calls.append(list(args)))
+    patch_process_boundary(
+        monkeypatch,
+        {"run": answer, "call": lambda *a, **k: answer(*a, **k).returncode,
+         "check_call": lambda *a, **k: answer(*a, **k).returncode, "check_output": check_output, "Popen": popen},
+        lambda _name, *args, **__: calls.append(list(args)))
     return calls
 
 
@@ -674,13 +671,11 @@ def fake_unresolvable(monkeypatch):
         process.communicate = lambda *_, **__: (b"", b"")
         return process
 
-    monkeypatch.setattr(subprocess, "run", answer)
-    monkeypatch.setattr(subprocess, "call", lambda *a, **k: answer(*a, **k).returncode)
-    monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: answer(*a, **k).returncode)
-    monkeypatch.setattr(subprocess, "Popen", popen)
-    for name in ("system", "fork", "posix_spawn", "posix_spawnp", "execv", "execvp", "execve"):
-        if hasattr(os, name):
-            monkeypatch.setattr(os, name, lambda *args, **__: launches.append(list(args)))
+    patch_process_boundary(
+        monkeypatch,
+        {"run": answer, "call": lambda *a, **k: answer(*a, **k).returncode,
+         "check_call": lambda *a, **k: answer(*a, **k).returncode, "Popen": popen},
+        lambda _name, *args, **__: launches.append(list(args)))
     return launches
 
 
@@ -773,13 +768,12 @@ def fake_claude_launch(monkeypatch):
         process.poll = lambda *_, **__: 0
         return process
 
-    monkeypatch.setattr(subprocess, "run", answer)
-    monkeypatch.setattr(subprocess, "call", lambda *a, **k: answer(*a, **k).returncode)
-    monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: answer(*a, **k).returncode)
-    monkeypatch.setattr(subprocess, "Popen", popen)
-    for name in ("system", "fork", "posix_spawn", "posix_spawnp", "execv", "execvp", "execve", "setsid", "setpgid"):
-        if hasattr(os, name):
-            monkeypatch.setattr(os, name, lambda *args, _name=name, **__: launches.append({"os": _name, "args": args}))
+    patch_process_boundary(
+        monkeypatch,
+        {"run": answer, "call": lambda *a, **k: answer(*a, **k).returncode,
+         "check_call": lambda *a, **k: answer(*a, **k).returncode, "Popen": popen},
+        lambda _name, *args, **__: launches.append({"os": _name, "args": args}),
+        extra_os=("setsid", "setpgid"))
     return launches
 
 
