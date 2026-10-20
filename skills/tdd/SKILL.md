@@ -120,6 +120,11 @@ leaves the 2 to be read as the phase below reads it.
 Whenever this procedure says **bail**, `Read` `<base directory>/BAIL.md` and run it with the cause the
 bailing line names.
 
+**A conductor never asks the user a question, and never declines the procedure's next instruction.** No
+one answers a headless run, so a turn that ends on a question leaves a run that looks in progress. If you
+would ask, or would decline, **bail** with cause `needs-user` (a process failure) instead, writing the
+question in full into the bail comment so a resume or the human can answer it.
+
 The launch carries `VERI_TEST_CMD`: the run's test command, reaching the leaf through its
 **environment** rather than its prompt, so the verifier stays blind. It is a prefix on the
 launch line and not a one-off `export` because every Bash call you make is a fresh shell, so
