@@ -532,3 +532,39 @@ def test_main_1808_prints_missing_behaviour_for_a_revise_green_impossible_report
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "missing a bare force-with-lease is refused\n")
+
+
+def test_main_1808_prints_revise_for_a_missing_test_or_wrong_test_report_once_the_step_log_holds_a_reroute_of_any_route_and_ignores_another_steps(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    older, added = "test_main_totals_an_invoice", "test_main_returns_zero"
+    (suite / ("test_" + "ledger" + ".py")).write_text(
+        "def %s():\n    pass\n\ndef %s():\n    pass\n" % (older, added))
+    (tmp_path / ".tdd").mkdir()
+    step = "wrong-test-route.sh shares the reroute bound with the missing route"
+    monkeypatch.setenv("VERI_STEP", step)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    (tmp_path / record_path.rstrip("\n")).write_text("case: %s\n" % added)
+    missing = tmp_path / "missing-report.txt"
+    missing.write_text("VERDICT: REJECT\nMISSING_TEST: a closed session is counted once\n")
+    wrong = tmp_path / "wrong-report.txt"
+    wrong.write_text("SUITE: make test\nWRONG_TEST: %s and %s contradict the criterion\n" % (older, added))
+    events = tmp_path / ".tdd" / "events.jsonl"
+
+    def answers():
+        return [run_cli(wrong_test_route, [str(r), "test_other"], cwd=tmp_path)[:2]
+                for r in (missing, wrong)]
+
+    events.write_text('{"event": "reroute", "step": "another step"}\n')
+    other_step = answers()
+    events.write_text('{"event": "reroute", "step": "%s", "route": "missing"}\n' % step)
+    after_missing = answers()
+    events.write_text('{"event": "reroute", "step": "%s", "route": "repair"}\n' % step)
+    after_repair = answers()
+
+    assert other_step == [(0, "missing a closed session is counted once\n"), (0, "repair %s\n" % added)]
+    assert after_missing == [(3, "revise\n"), (3, "revise\n")]
+    assert after_repair == [(3, "revise\n"), (3, "revise\n")]
