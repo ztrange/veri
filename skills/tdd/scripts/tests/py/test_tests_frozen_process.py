@@ -324,3 +324,30 @@ def test_record_step_1861_lists_only_the_pytest_case_red_inserted_above_an_older
 
     assert ("case: test_inserted_by_red_1861\n" in record, "test_older_case_1861" in record,
             code, stdout) == (True, False, 0, "red test_older_case_1861\n")
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_record_step_1861_lists_only_the_pytest_method_red_inserted_above_an_older_one_in_a_class_and_a_wrong_test_naming_the_older_routes_red(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "tests/test_suite.py"
+    older = "    def test_older_case_1861(self):\n        assert older() == 1\n"
+    suite.write_text("class TestSuite:\n\n" + older)
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one inserts a pytest method above another in a class"
+    suite.write_text("class TestSuite:\n    def test_inserted_by_red_1861(self):\n        assert inserted() == 2\n\n\n" + older)
+
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_suite.py"], cwd=tmp_path)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    record = (tmp_path / record_path.rstrip("\n")).read_text()
+    report = tmp_path / "green-report.txt"
+    report.write_text("WRONG_TEST: `test_older_case_1861` asserts the opposite\n")
+    monkeypatch.setenv("VERI_STEP", step)
+    code, stdout, _ = run_cli(wrong_test_route, [str(report), "test_inserted_by_red_1861"], cwd=tmp_path)
+
+    assert ("case: test_inserted_by_red_1861\n" in record, "test_older_case_1861" in record,
+            code, stdout) == (True, False, 0, "red test_older_case_1861\n")
