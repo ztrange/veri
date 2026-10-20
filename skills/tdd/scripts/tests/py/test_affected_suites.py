@@ -849,20 +849,20 @@ def test_rule_1_a_script_prints_exactly_its_same_named_suite_under_tests_unit(
 def test_a_script_with_no_same_named_suite_prints_no_path_that_does_not_exist_1011(
         monkeypatch, run_cli, affected, tmp_path):
     code, out, _ = affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "run-suite.sh"],
-        {SCRIPTS_REL + "run-suite.sh": "run\n",
-         SCRIPTS_REL + "tests/run-suite-venv.test.sh": 'RUN="$HERE/../run-suite.sh"\n'})
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "runner.sh"],
+        {SCRIPTS_REL + "runner.sh": "run\n",
+         SCRIPTS_REL + "tests/runner-venv.test.sh": 'RUN="$HERE/../runner.sh"\n'})
     assert (code in (0, 3), [p for p in out.splitlines() if not (tmp_path / p).exists()]) == (True, [])
 
 
 def test_a_script_with_no_same_named_suite_prints_the_existing_suites_that_name_its_file_1011(
         monkeypatch, run_cli, affected, tmp_path):
     assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "run-suite.sh"],
-        {SCRIPTS_REL + "run-suite.sh": "run\n", SCRIPTS_REL + "gamma.sh": "gamma\n",
-         SCRIPTS_REL + "tests/run-suite-venv.test.sh": 'RUN="$HERE/../run-suite.sh"\n',
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "runner.sh"],
+        {SCRIPTS_REL + "runner.sh": "run\n", SCRIPTS_REL + "gamma.sh": "gamma\n",
+         SCRIPTS_REL + "tests/runner-venv.test.sh": 'RUN="$HERE/../runner.sh"\n',
          SCRIPTS_REL + "tests/gamma.test.sh": 'GAMMA="$HERE/../gamma.sh"\n'},
-    ) == (0, SUITES + "run-suite-venv.test.sh\n", "")
+    ) == (0, SUITES + "runner-venv.test.sh\n", "")
 
 
 def test_rule_2_a_lib_prints_the_suite_of_every_script_that_sources_it_and_no_others(
@@ -1365,17 +1365,6 @@ def test_487_a_comment_that_names_a_lib_file_is_still_not_a_dependency(
          SCRIPTS_REL + "gamma.sh": HEADER + '  # . "$HERE/lib/bar.sh"\n',
          **{SCRIPTS_REL + "tests/%s.test.sh" % n: "" for n in ("alpha", "beta", "gamma")}},
     ) == (0, SUITES + "alpha.test.sh\n", "")
-
-
-def test_496_a_change_to_tests_lib_harness_sh_prints_every_suite_that_sources_it_and_no_others(
-        monkeypatch, run_cli, affected, tmp_path):
-    assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "tests/lib/harness.sh"],
-        {SCRIPTS_REL + "tests/lib/harness.sh": "ok() { echo 2; }\n",
-         SCRIPTS_REL + "tests/alpha.test.sh": HEADER + 'source "$HERE/lib/harness.sh"\n',
-         SCRIPTS_REL + "tests/unit/beta.test.sh": HEADER + 'source "$HERE/../lib/harness.sh"\n',
-         SCRIPTS_REL + "tests/gamma.test.sh": "echo gamma\n"},
-    ) == (0, suites("alpha.test.sh", "unit/beta.test.sh"), "")
 
 
 def module_shim(module):

@@ -162,12 +162,6 @@ def hermetic_environment(request, monkeypatch, tmp_path):
         monkeypatch.setenv(name, value)
 
 
-@pytest.fixture(autouse=True)
-def small_case_guard(request, monkeypatch):
-    if request.node.get_closest_marker("process") is None:
-        monkeypatch.setenv("PATH", str(SCRIPTS / "tests" / "unit-guard") + os.pathsep + os.environ.get("PATH", ""))
-
-
 def fail_unbacked_push(request):
     pytest.fail("%s reached the push backoff without setting VERI_PUSH_BACKOFF" % request.node.nodeid, pytrace=False)
 
@@ -248,20 +242,6 @@ def unmarked_case_lists_no_repository_directory(request, monkeypatch, tmp_path):
 
 
 STARTS_PYTEST_EXEMPT = {
-    "test_run_suite.py::test_main_runs_a_pytest_suite_in_tests_py_unit_as_a_pytest_suite_without_a_count_line_check":
-        "run_suite probes the venv with `pytest --version` before the suite; the interpreter is a stub in the case's scratch venv",
-    "test_run_suite.py::test_main_runs_a_pytest_suite_under_the_venv_python_and_maps_its_exit_code_without_a_count_line_check":
-        "run_suite.run_pytest is the subject; the interpreter it starts is a stub in the case's scratch venv",
-    "test_run_suite.py::test_main_hands_a_pytest_suite_no_ambient_veri_or_claude_variable_but_veri_venv_and_still_finds_the_caller_venv_1258":
-        "run_suite.run_pytest is the subject; the interpreter it starts is a stub in the case's scratch venv",
-    "test_run_suite.py::test_main_runs_a_pytest_suite_named_by_a_path_relative_to_the_caller_as_a_pytest_suite_1468":
-        "run_suite probes the venv with `pytest --version` before the suite; the interpreter is a stub in the case's scratch venv",
-    "test_run_suite.py::test_main_fails_a_pytest_suite_that_calls_gh_naming_the_reach_through_the_offline_shims_1468":
-        "run_suite probes the venv with `pytest --version` before the suite; the interpreter is a stub in the case's scratch venv",
-    "test_run_suite.py::test_main_fails_a_pytest_suite_whose_unmarked_case_starts_git_and_tolerates_its_refusal_naming_the_start_1468":
-        "run_suite probes the venv with `pytest --version` before the suite; the interpreter is a stub in the case's scratch venv",
-    "test_run_suite.py::test_main_leaves_a_unit_guard_refusal_in_the_caller_exported_unit_guard_log_rather_than_naming_it_a_reach_1468":
-        "run_suite probes the venv with `pytest --version` before the suite; the interpreter is a stub in the case's scratch venv",
     "test_conftest.py::test_a_case_reading_a_cwd_relative_path_gives_the_same_outcome_started_from_the_repository_root_as_from_skills_tdd_scripts":
         "the pytest session started from two directories is the subject",
     "test_conftest.py::test_the_path_setup_case_gives_the_same_outcome_started_from_skills_tdd_scripts_with_a_relative_path_as_from_the_repository_root":

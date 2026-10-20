@@ -125,12 +125,3 @@ def test_claude_mds_budgets_invariant_names_veri_step_growth_as_a_fifth_axis_pla
         "veri_step_growth", "veri_refactor_budget", "five",
         "plan", "never merged|not merged|one knob",
     ) == []
-
-
-def test_claude_mds_testing_idiom_section_says_496_retired_225s_rule_that_the_four_recorded_suites_keep_their_own_counters_595():
-    assert idiom_records_carry(
-        "nothing says the -recorded suites' own-counters rule was retired",
-        "CLAUDE.md has no single record in its '## Testing idiom' section stating that the rule the four -recorded suites keep their own counters (#225) was retired by #496, naming lib/harness.sh",
-        "-recorded", "own counters", "#225", "#496", "retire",
-        r"lib/harness\.sh",
-    ) == []

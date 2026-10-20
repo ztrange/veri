@@ -271,8 +271,6 @@ def suite_of(f, revisions=None):
         return suites_naming(name.decode()) + [p for p, text in pytest_texts() if name in text]
     if match(SCRIPTS + "/tests/*.test.sh", *[d + "/test_*.py" for d in PYTEST_DIRS]):
         return existing(f)
-    if f == SCRIPTS + "/tests/lib/harness.sh":
-        return [s for s in every_suite() if has_line(s, sourcing(rb"harness\.sh"))]
     if match(SCRIPTS + "/tests/fixtures/*"):
         return suites_naming(f[len(SCRIPTS + "/tests/"):])
     if match(SCRIPTS + "/prompts/*.md"):

@@ -6,7 +6,7 @@ import pytest
 VERI = pathlib.Path(__file__).resolve().parents[3] / "veri"
 
 READS_DIRECTLY = frozenset((
-    "event", "github", "launch_floor", "run_leaf", "run_suite", "run_verdict", "skill_drift", "solvable_issues",
+    "event", "github", "launch_floor", "run_leaf", "run_verdict", "skill_drift", "solvable_issues",
     "stop_run",
 ))
 
@@ -63,8 +63,8 @@ def test_parallel_conductors_orchestrate_run_conductor_workqueue_profile_and_sta
     assert [read for path in modules for read in direct_reads(path)] == []
 
 
-def test_github_solvable_issues_skill_drift_launch_floor_run_suite_and_event_take_their_veri_values_from_the_one_reader():
-    names = ("github", "solvable_issues", "skill_drift", "launch_floor", "run_suite", "event")
+def test_github_solvable_issues_skill_drift_launch_floor_and_event_take_their_veri_values_from_the_one_reader():
+    names = ("github", "solvable_issues", "skill_drift", "launch_floor", "event")
     modules = [VERI / ("%s.py" % name) for name in names]
 
     assert [read for path in modules for read in direct_reads(path)] == []

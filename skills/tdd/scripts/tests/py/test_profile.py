@@ -320,7 +320,7 @@ def test_make_n_profile_names_the_same_suites_as_make_n_test_in_the_same_offline
     assert "--durations=0" in profile_recipe
     assert "VERI_PROFILE_THRESHOLD" in profile_recipe
     assert "scripts/profile.sh" not in profile_recipe
-    for fragment in ("skills/tdd/scripts/tests/offline:", "OFFLINE_REACH_LOG=", "xcrun -f git",
+    for fragment in ("xcrun -f git",
                      "GIT_CONFIG_KEY_0=http.proxy GIT_CONFIG_VALUE_0=http://127.0.0.1:1",
                      "GIT_CONFIG_KEY_1=protocol.allow GIT_CONFIG_VALUE_1=never",
                      "GIT_CONFIG_KEY_2=protocol.file.allow GIT_CONFIG_VALUE_2=always",

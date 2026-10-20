@@ -296,21 +296,21 @@ def verifier_roster(problems, spec):
 
 
 @pytest.mark.process(BOUNDARY)
-def test_every_developer_prompt_that_runs_a_suite_names_run_suite_as_the_single_suite_invocation(spec):
+def test_every_developer_prompt_that_runs_a_suite_names_make_test_tests_as_the_single_suite_invocation(spec):
     problems = []
     probe_prompts(problems, names_suite_runner, developer_roster(problems, spec))
     assert problems == []
 
 
 @pytest.mark.process(BOUNDARY)
-def test_every_developer_prompt_that_names_run_suite_tells_its_leaf_what_to_run_when_the_repository_has_none(spec):
+def test_every_developer_prompt_that_names_make_test_tests_tells_its_leaf_what_to_run_when_the_repository_has_none(spec):
     problems = []
     probe_prompts(problems, names_runner_fallback, developer_roster(problems, spec))
     assert problems == []
 
 
 @pytest.mark.process(BOUNDARY)
-def test_every_develop_revise_prompt_names_run_suite_so_a_redos_affected_suite_runs_apply_make_tests_environment(spec, reason):
+def test_every_develop_revise_prompt_names_make_test_tests_so_a_redos_affected_suite_runs_apply_make_tests_environment(spec, reason):
     problems = []
     roster = [
         ("develop-revise " + phase, build(problems, DEVELOP, "revise", phase, spec, "QWIXTLE step", "make test", reason))
@@ -339,14 +339,14 @@ def test_the_develop_red_and_develop_revise_red_prompts_name_a_run_output_file_t
 
 
 @pytest.mark.process(BOUNDARY)
-def test_every_blind_verifier_prompt_names_run_suite_as_the_single_suite_invocation(spec):
+def test_every_blind_verifier_prompt_names_make_test_tests_as_the_single_suite_invocation(spec):
     problems = []
     probe_prompts(problems, names_suite_runner, verifier_roster(problems, spec))
     assert problems == []
 
 
 @pytest.mark.process(BOUNDARY)
-def test_every_blind_verifier_prompt_that_names_run_suite_tells_its_leaf_what_to_run_when_the_repository_has_none(spec):
+def test_every_blind_verifier_prompt_that_names_make_test_tests_tells_its_leaf_what_to_run_when_the_repository_has_none(spec):
     problems = []
     probe_prompts(problems, names_runner_fallback, verifier_roster(problems, spec))
     assert problems == []
@@ -446,5 +446,5 @@ def test_the_prompt_probes_accept_a_matching_prompt_and_object_to_a_non_matching
     assert tally("a prompt that names none of it") != []
 
 
-def test_numbered_item_given_run_suite_dot_literal_selects_the_run_suite_item_not_the_run_suitexsh_one():
-    assert numbered_item(r"run-suite\.sh", "1. run-suiteXsh\n2. run-suite.sh").rstrip("\n") == "2. run-suite.sh"
+def test_numbered_item_given_runner_dot_literal_selects_the_runner_item_not_the_runnerxsh_one():
+    assert numbered_item(r"runner\.sh", "1. runnerXsh\n2. runner.sh").rstrip("\n") == "2. runner.sh"
