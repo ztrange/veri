@@ -198,3 +198,16 @@ def test_main_with_target_exits_2_and_passes_on_stderr_when_solvable_issues_exit
 
     captured = capsys.readouterr()
     assert (code, captured.out, "gh: not logged in" in captured.err) == (2, "", True)
+
+
+def test_main_reports_a_conductor_live_at_start_that_vanished_from_the_run_listing_and_returns_2_1930(
+        monkeypatch, capsys, watch_runs):
+    listings = iter([["5", "7"], ["7"]])
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings))
+    monkeypatch.setattr(watch_runs, "run_state", lambda issue: "")
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+
+    code = watch_runs.main([])
+
+    out = capsys.readouterr().out
+    assert (code, "vanished" in out and "5" in out, "exited" in out) == (2, True, False)
