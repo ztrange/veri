@@ -578,6 +578,11 @@ three times over branches its ledger pinned on later lines.
    then a green leaf that deletes exactly the named cases. Refactor and the ` ⟂ refactor pending`
    mark follow that deletion green as they follow any Green.
 
+   A criterion about behaviour that lives in a guard suite (`tests/no-*.test.sh`) or a test helper
+   a suite sources (such as `tests/lib/harness.sh`), so that only editing that file can meet it, is
+   marked `⟦guard-subject: <path>⟧`, naming that file: `tests-frozen.sh check --step` then lets Green
+   edit it. The case pinning the behaviour stays frozen, and any other unrecorded test file is still flagged.
+
    An **interface change** — a production interface replaced by a new one, its callers moved
    across, the old one removed (ADR 0030) — is planned as one step listing the phases it
    needs, in the order they run: `- [ ] <criterion> ⟦phases: expand, migrate, contract-a,
