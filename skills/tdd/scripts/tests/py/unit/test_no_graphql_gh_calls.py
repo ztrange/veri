@@ -2,7 +2,10 @@
 
 Each case's subject is source text: SKILL.md, planted or shipped, read as text.
 """
+import ast
 import re
+
+import pytest
 
 from conftest import ROOT
 
@@ -34,3 +37,27 @@ def test_a_gh_auth_status_call_planted_in_skill_md_is_named_as_file_line_and_a_c
     clean = calls(plant(tmp_path, "gh api user"))
 
     assert ([f.split(" ")[0] for f in found], clean) == (["SKILL.md:3"], [])
+
+
+def gh_starts(package):
+    found = []
+    for module in sorted(package.glob("*.py")):
+        if module.name == "github.py":
+            continue
+        for node in ast.walk(ast.parse(module.read_text(encoding="utf-8", errors="surrogateescape"))):
+            if isinstance(node, ast.List) and node.elts and isinstance(node.elts[0], ast.Constant) and node.elts[0].value == "gh":
+                found.append(f"{module.name}:{node.lineno} starts a gh process outside the GitHub port")
+    return found
+
+
+def test_a_gh_process_started_outside_github_py_is_named_as_file_line_and_the_shipped_tree_passes_1974(tmp_path):
+    """Its subject is source text: a planted package, read as text."""
+    (tmp_path / "offender.py").write_text("import subprocess\n\nsubprocess.run(['gh', 'api', 'user'])\n", encoding="utf-8")
+    (tmp_path / "github.py").write_text("import subprocess\n\nsubprocess.run(['gh', 'api', 'user'])\n", encoding="utf-8")
+
+    assert [f.split(" ")[0] for f in gh_starts(tmp_path)] == ["offender.py:3"]
+
+
+@pytest.mark.tree_audit("every module under skills/tdd/scripts/veri/")
+def test_no_module_but_github_py_starts_a_gh_process_1974():
+    assert gh_starts(ROOT / "skills" / "tdd" / "scripts" / "veri") == []
