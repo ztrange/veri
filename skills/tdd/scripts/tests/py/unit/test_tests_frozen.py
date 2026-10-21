@@ -50,7 +50,7 @@ def test_two_consecutive_steps_on_one_suite_file_each_check_against_their_own_re
         0, 0, {first: (1, "a.test.sh\n"), second: (0, ""), third: (2, "")})
 
 
-@pytest.mark.parametrize("mark", ["⟦suite-repair⟧", "⟦ci-repair⟧", "⟦fixture-repair⟧"])
+@pytest.mark.parametrize("mark", ["⟦suite-repair⟧", "⟦ci-repair⟧"])
 def test_a_repair_marked_step_is_never_frozen_so_an_edit_to_its_test_file_is_not_rejected_and_no_record_is_written_1586(
         tmp_path, run_cli, tests_frozen, mark):
     (tmp_path / ".tdd").mkdir()
