@@ -158,3 +158,9 @@ def test_1058_skill_md_s_structural_pass_records_a_candidate_whose_predicate_alr
     handling = until(rest, bound)
     requires(handling, APPLIED, "git rev-parse HEAD", "only exit 3")
     assert "1 or 3 ⇒ skip" not in handling, "still says structural-predicate.sh exit 1 or 3 ⇒ skip"
+
+
+def test_skill_md_s_structural_pass_names_neither_refactor_overflow_sh_nor_refactor_owed_sh_out_of_scope_and_files_no_refactor_owed_by_issue():
+    text = pass_text()
+    for phrase in ("refactor-overflow.sh", "refactor-owed.sh out-of-scope", "Refactor owed by #"):
+        assert phrase not in text, f"SKILL.md's structural pass still names {phrase!r}"
