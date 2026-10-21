@@ -61,10 +61,13 @@ def _claimed(path, unit):
     return os.path.exists(path) and requirements.claims(path, unit)
 
 
-def _write_list(path, name, rows):
-    head = ["## " + name, ""] + TABLE_HEAD
+def _append_section(path, name, table):
     existing = _trimmed(requirements.read_lines(path)) if os.path.exists(path) else []
-    _write(path, existing + [""] * bool(existing) + head + rows + [""])
+    _write(path, existing + [""] * bool(existing) + ["## " + name, ""] + table + [""])
+
+
+def _write_list(path, name, rows):
+    _append_section(path, name, TABLE_HEAD + rows)
 
 
 def _create(unit, path, name, rows):
@@ -81,8 +84,7 @@ def _move_table(unit, path, name):
     table = [l for l in lines[start:end] if l.startswith("|")]
     if not table:
         return False
-    existing = _trimmed(requirements.read_lines(path)) if os.path.exists(path) else []
-    _write(path, existing + [""] * bool(existing) + ["## " + name, ""] + table + [""])
+    _append_section(path, name, table)
     _write(unit, _trimmed(lines[:start] + lines[end:]) + [""])
     return True
 
