@@ -1,0 +1,2 @@
+### affected_suites.py: a fence closes only at a line of the same fence character at least as long as its opener, so an edit below a ```` fence holding a ``` line and a `## x` line is attributed to the real enclosing section, not to `## x` ⟦criterion 1⟧
+- out-of-scope | share one fence-tracking helper between skill_sections.py and affected_suites.py, which carry near-identical fence logic (a helper that tests can't be edited by Green, and #1021 owns it)
