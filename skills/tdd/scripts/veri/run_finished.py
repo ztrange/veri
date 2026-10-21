@@ -4,10 +4,21 @@ import os
 import subprocess
 import sys
 
+import github
+import tunables
 from ledger import OPEN_STEP, carries_mark, ledger_steps
 from status import json_document, main_working_tree
 
 USAGE = "usage: run-finished.sh <issue>\n"
+
+
+def pr_body(pr):
+    if tunables.read("VERI_GH_DRIVER") == "rest":
+        number = pr.rstrip("/").rsplit("/", 1)[-1]
+        return json.loads(github.gh_json_page("pr.json", "repos/{owner}/{repo}/pulls/" + number))["body"]
+    return json.loads(subprocess.run(
+        ["gh", "pr", "view", pr, "--json", "body"],
+        capture_output=True, text=True, check=True).stdout)["body"]
 
 
 def main(argv):
@@ -39,10 +50,8 @@ def main(argv):
     unmet = [("unchecked", r[6]) for r in steps if r[1] == "open"]
     unmet += [("refactor-pending", r[6]) for r in steps if r[3] == "1"]
     try:
-        body = json.loads(subprocess.run(
-            ["gh", "pr", "view", pr, "--json", "body"],
-            capture_output=True, text=True, check=True).stdout)["body"]
-    except subprocess.CalledProcessError:
+        body = pr_body(pr)
+    except (subprocess.CalledProcessError, github.NoAnswer):
         sys.stderr.write("run-finished.sh: the PR body could not be read\n")
         return 2
     open_line = OPEN_STEP + " "
