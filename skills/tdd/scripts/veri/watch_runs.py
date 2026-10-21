@@ -24,10 +24,16 @@ def run_state(issue):
     return ""
 
 
+class QueueUnreadable(Exception):
+    pass
+
+
 def solvable_issues():
     script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "solvable-issues.sh")
-    out = subprocess.run([script, "--not-running"], capture_output=True, text=True).stdout
-    return [line.split()[0] for line in out.splitlines() if line.strip()]
+    done = subprocess.run([script, "--not-running"], capture_output=True, text=True)
+    if done.returncode != 0:
+        raise QueueUnreadable(done.stderr)
+    return [line.split()[0] for line in done.stdout.splitlines() if line.strip()]
 
 
 def wait():
@@ -59,7 +65,11 @@ def main(argv):
         wait()
         live = live_conductors()
         if target is not None and len(live) < target:
-            solvable = solvable_issues()
+            try:
+                solvable = solvable_issues()
+            except QueueUnreadable as failure:
+                sys.stderr.write(str(failure))
+                return 2
             if solvable:
                 print("slot-free %d/%d next %s" % (len(live), target, solvable[0]))
                 return 0
