@@ -1,0 +1,3 @@
+# Plan for #1952 — Pin which solvable-issues.sh watch_runs.py runs, so #1881 can move it
+
+- [ ] A small unit case in skills/tdd/scripts/tests/py/unit/test_watch_runs.py, no production change: it imports watch_runs through a symlinked scripts directory under tmp_path, fakes subprocess.run, calls watch_runs.solvable_issues() and asserts the exact argv is [<symlinked scripts dir>/veri/../solvable-issues.sh, "--not-running"] — the solvable-issues.sh beside watch-runs.sh, the directory kept unresolved through the symlink — and the case goes red when abspath in watch_runs.py is changed to realpath, then green once restored ⟦diff-checked⟧ ⟦criterion 1⟧
