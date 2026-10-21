@@ -131,16 +131,13 @@ def running_numbers():
 
 def main(argv):
     skip = set()
-    if argv[:1] == ["--not-running"] or argv[2:3] == ["--not-running"]:
-        argv = argv[1:] if argv[0] == "--not-running" else argv[:2] + argv[3:]
-        if len(argv) > (2 if argv[:1] == ["--repo"] else 0):
-            print(USAGE, file=sys.stderr)
-            return 2
-        skip = running_numbers()
-    repo = "".join(argv[1:2]) if argv[:1] == ["--repo"] else None
-    if repo == "":
+    rest = [word for word in argv if word != "--not-running"]
+    if len(rest) not in (0, 2) or (rest and (rest[0] != "--repo" or rest[1] == "")):
         print(USAGE, file=sys.stderr)
         return 2
+    repo = rest[1] if rest else None
+    if len(rest) != len(argv):
+        skip = running_numbers()
     label = scope_label()
     priority = label and priority_label()
     if label is None or priority is None:
