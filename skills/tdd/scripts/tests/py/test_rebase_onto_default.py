@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import textwrap
+import types
 
 import pytest
 
@@ -14,9 +15,32 @@ PRE = "1111111111111111111111111111111111111111"
 ONTO = "2222222222222222222222222222222222222222"
 
 
+class Cli:
+    """veri.rebase_onto_default driven through run_cli; readouterr() returns what the runs since the last call wrote."""
+
+    def __init__(self, run_cli):
+        self.module = importlib.import_module("veri.rebase_onto_default")
+        self.run_cli = run_cli
+        self.out = self.err = ""
+
+    def main(self, argv):
+        code, out, err = self.run_cli(self.module, argv)
+        self.out, self.err = self.out + out, self.err + err
+        return code
+
+    def readouterr(self):
+        seen, self.out, self.err = (self.out, self.err), "", ""
+        return types.SimpleNamespace(out=seen[0], err=seen[1])
+
+
 @pytest.fixture
 def rebase_onto_default():
     return importlib.import_module("veri.rebase_onto_default")
+
+
+@pytest.fixture
+def cli(run_cli):
+    return Cli(run_cli)
 
 
 def fake_git(monkeypatch, **overrides):
@@ -47,11 +71,11 @@ def fake_git(monkeypatch, **overrides):
 
 
 def test_main_exits_2_on_a_failed_fetch_3_when_up_to_date_0_when_rebased_and_ignores_arguments(
-        monkeypatch, capsys, rebase_onto_default):
+        monkeypatch, cli):
     def run(argv, **overrides):
         calls = fake_git(monkeypatch, **overrides)
-        code = rebase_onto_default.main(argv)
-        captured = capsys.readouterr()
+        code = cli.main(argv)
+        captured = cli.readouterr()
         assert code in range(0, 4)
         return code, captured.out, calls
 
@@ -73,7 +97,7 @@ def test_main_exits_2_on_a_failed_fetch_3_when_up_to_date_0_when_rebased_and_ign
 
 
 def test_main_falls_back_to_the_remote_symref_only_when_the_local_read_fails_and_keeps_its_refs_heads_name_whole(
-        monkeypatch, capsys, rebase_onto_default):
+        monkeypatch, cli):
     symref = "git ls-remote --symref origin HEAD"
     local = "git rev-parse -q --verify --abbrev-ref refs/remotes/origin/HEAD"
 
@@ -88,12 +112,12 @@ def test_main_falls_back_to_the_remote_symref_only_when_the_local_read_fails_and
             return fake_run(args, **kwargs)
 
         monkeypatch.setattr(subprocess, "run", recording_run)
-        code = rebase_onto_default.main([])
-        return code, capsys.readouterr().out, calls, stderrs
+        code = cli.main([])
+        return code, cli.readouterr().out, calls, stderrs
 
     calls = fake_git(monkeypatch)
-    rebase_onto_default.main([])
-    capsys.readouterr()
+    cli.main([])
+    cli.readouterr()
     assert symref not in calls
 
     code, out, calls, stderrs = run((2, f"ref: refs/heads/trunk\tHEAD\n{ONTO}\tHEAD\n"),
@@ -124,15 +148,15 @@ def test_main_falls_back_to_the_remote_symref_only_when_the_local_read_fails_and
 
 
 def test_main_refuses_with_2_and_the_not_set_line_before_any_fetch_when_no_default_branch_resolves_or_git_cannot_start(
-        monkeypatch, capsys, rebase_onto_default):
+        monkeypatch, cli):
     refusal = ("rebase-onto-default: refs/remotes/origin/HEAD is not set — "
                "no default branch to rebase onto\n")
     symref = "git ls-remote --symref origin HEAD"
     calls = fake_git(monkeypatch, **{
         "git rev-parse -q --verify --abbrev-ref refs/remotes/origin/HEAD": (1, ""),
         symref: (0, f"{ONTO}\tHEAD\n")})
-    code = rebase_onto_default.main([])
-    captured = capsys.readouterr()
+    code = cli.main([])
+    captured = cli.readouterr()
     assert (code, captured.out, captured.err) == (2, "", refusal)
     assert calls[calls.index(symref) + 1:] == []
 
@@ -140,14 +164,14 @@ def test_main_refuses_with_2_and_the_not_set_line_before_any_fetch_when_no_defau
         raise FileNotFoundError(2, "No such file or directory", "git")
 
     monkeypatch.setattr(subprocess, "run", no_git)
-    code = rebase_onto_default.main([])
-    captured = capsys.readouterr()
+    code = cli.main([])
+    captured = cli.readouterr()
     assert (code, captured.out) == (2, "")
     assert captured.err.endswith(refusal)
 
 
 def test_main_exits_2_when_ls_remote_fails_after_the_fetch_or_an_unchecked_rev_parse_echo_differs_from_its_first_field(
-        monkeypatch, capsys, rebase_onto_default):
+        monkeypatch, cli):
     ls_remote = "git ls-remote origin refs/heads/main"
     rev_parse = "git rev-parse origin/main"
 
@@ -162,8 +186,8 @@ def test_main_exits_2_when_ls_remote_fails_after_the_fetch_or_an_unchecked_rev_p
             return fake_run(args, **kwargs)
 
         monkeypatch.setattr(subprocess, "run", recording_run)
-        code = rebase_onto_default.main([])
-        return code, capsys.readouterr().out, calls, stderrs
+        code = cli.main([])
+        return code, cli.readouterr().out, calls, stderrs
 
     code, out, calls, stderrs = run(**{ls_remote: (2, f"{ONTO}\trefs/heads/main\n")})
     assert (code, out) == (2, "")
@@ -182,7 +206,7 @@ def test_main_exits_2_when_ls_remote_fails_after_the_fetch_or_an_unchecked_rev_p
 
 
 def test_main_drops_the_fetch_s_stdout_and_stderr_and_the_rebase_s_stdout_and_passes_the_rebase_s_stderr_through(
-        monkeypatch, capsys, rebase_onto_default):
+        monkeypatch, cli):
     fetch = "git fetch -q origin"
     rebase = f"git rebase -q {ONTO}"
     fake_git(monkeypatch)
@@ -199,14 +223,14 @@ def test_main_drops_the_fetch_s_stdout_and_stderr_and_the_rebase_s_stdout_and_pa
         return fake_run(args, **kwargs)
 
     monkeypatch.setattr(subprocess, "run", speaking_run)
-    code = rebase_onto_default.main([])
-    captured = capsys.readouterr()
+    code = cli.main([])
+    captured = cli.readouterr()
     assert (code, captured.out) == (0, f"{PRE}\n{ONTO}\n")
     assert captured.err == "rebase err\n"
 
 
 def test_main_aborts_a_conflicting_rebase_under_either_backend_and_returns_1_printing_the_abort_s_stdout_then_the_unmerged_files(
-        monkeypatch, capsys, tmp_path, rebase_onto_default):
+        monkeypatch, tmp_path, cli):
     rebase = f"git rebase -q {ONTO}"
     diff = "git diff --name-only --diff-filter=U"
     abort = "git rebase --abort"
@@ -231,9 +255,9 @@ def test_main_aborts_a_conflicting_rebase_under_either_backend_and_returns_1_pri
             return fake_run(args, **kwargs)
 
         monkeypatch.setattr(subprocess, "run", speaking_run)
-        code = rebase_onto_default.main([])
+        code = cli.main([])
         present.rmdir()
-        return code, capsys.readouterr().out, calls
+        return code, cli.readouterr().out, calls
 
     for present in (merge, apply):
         code, out, calls = run(present)
@@ -242,20 +266,20 @@ def test_main_aborts_a_conflicting_rebase_under_either_backend_and_returns_1_pri
 
 
 def test_main_returns_2_without_the_conflict_path_when_a_failed_rebase_leaves_neither_rebase_directory(
-        monkeypatch, capsys, tmp_path, rebase_onto_default):
+        monkeypatch, tmp_path, cli):
     calls = fake_git(monkeypatch, **{
         f"git rebase -q {ONTO}": (1, ""),
         "git rev-parse --git-path rebase-merge --git-path rebase-apply":
             (0, f"{tmp_path / 'rebase-merge'}\n{tmp_path / 'rebase-apply'}\n"),
         "git rev-parse --git-path rebase-merge": (0, f"{tmp_path / 'rebase-merge'}\n"),
         "git rev-parse --git-path rebase-apply": (0, f"{tmp_path / 'rebase-apply'}\n")})
-    code = rebase_onto_default.main([])
-    assert (code, capsys.readouterr().out) == (2, "")
+    code = cli.main([])
+    assert (code, cli.readouterr().out) == (2, "")
     assert [c for c in calls if c.startswith(("git diff", "git rebase --abort"))] == []
 
 
 def test_main_returns_2_with_no_rebase_directory_prints_one_empty_line_for_no_unmerged_files_and_leaves_a_rebase_already_in_progress_alone(
-        monkeypatch, capsys, tmp_path, rebase_onto_default):
+        monkeypatch, tmp_path, cli):
     rebase = f"git rebase -q {ONTO}"
     diff = "git diff --name-only --diff-filter=U"
     abort = "git rebase --abort"
@@ -281,8 +305,8 @@ def test_main_returns_2_with_no_rebase_directory_prints_one_empty_line_for_no_un
             return fake_run(args, **kwargs)
 
         monkeypatch.setattr(subprocess, "run", refusing_run)
-        code = rebase_onto_default.main([])
-        return code, capsys.readouterr(), calls
+        code = cli.main([])
+        return code, cli.readouterr(), calls
 
     code, captured, calls = run((0, "a.txt\n"))
     assert (code, captured.out) == (2, "")
@@ -299,7 +323,7 @@ def test_main_returns_2_with_no_rebase_directory_prints_one_empty_line_for_no_un
 
 
 def test_main_exits_2_on_git_s_refusal_when_a_rebase_directory_exists_before_it_runs_without_diffing_or_aborting(
-        monkeypatch, capsys, tmp_path, rebase_onto_default):
+        monkeypatch, tmp_path, cli):
     rebase = f"git rebase -q {ONTO}"
     diff = "git diff --name-only --diff-filter=U"
     abort = "git rebase --abort"
@@ -322,15 +346,15 @@ def test_main_exits_2_on_git_s_refusal_when_a_rebase_directory_exists_before_it_
         return fake_run(args, **kwargs)
 
     monkeypatch.setattr(subprocess, "run", refusing_run)
-    code = rebase_onto_default.main([])
-    captured = capsys.readouterr()
+    code = cli.main([])
+    captured = cli.readouterr()
     assert (code, captured.out) == (2, "")
     assert refusal in captured.err
     assert [c for c in calls if c in (diff, abort)] == []
 
 
 def test_main_returns_1_with_the_conflict_output_when_its_own_rebase_leaves_the_directory_the_two_name_git_path_call_did_not_see(
-        monkeypatch, capsys, tmp_path, rebase_onto_default):
+        monkeypatch, tmp_path, cli):
     rebase = f"git rebase -q {ONTO}"
     two_names = "git rev-parse --git-path rebase-merge --git-path rebase-apply"
     diff = "git diff --name-only --diff-filter=U"
@@ -356,9 +380,9 @@ def test_main_returns_1_with_the_conflict_output_when_its_own_rebase_leaves_the_
             return fake_run(args, **kwargs)
 
         monkeypatch.setattr(subprocess, "run", conflicting_run)
-        code = rebase_onto_default.main([])
+        code = cli.main([])
         present.rmdir()
-        return code, capsys.readouterr().out, calls
+        return code, cli.readouterr().out, calls
 
     code, out, calls = run(merge, (0, ""))
     assert (code, out) == (1, "abort out\n\n")
@@ -371,7 +395,7 @@ def test_main_returns_1_with_the_conflict_output_when_its_own_rebase_leaves_the_
 
 
 def test_main_answers_the_cut_contract_cases_a_dirty_tree_refusal_an_unfetchable_origin_a_fallback_rebase_and_an_unreachable_fallback(
-        monkeypatch, capsys, tmp_path, rebase_onto_default):
+        monkeypatch, tmp_path, cli):
     local = "git rev-parse -q --verify --abbrev-ref refs/remotes/origin/HEAD"
     symref = "git ls-remote --symref origin HEAD"
     rebase = f"git rebase -q {ONTO}"
@@ -395,8 +419,8 @@ def test_main_answers_the_cut_contract_cases_a_dirty_tree_refusal_an_unfetchable
             return result
 
         monkeypatch.setattr(subprocess, "run", refusing_run)
-        code = rebase_onto_default.main([])
-        return code, capsys.readouterr(), calls
+        code = cli.main([])
+        return code, cli.readouterr(), calls
 
     code, captured, calls = run(**{rebase: (1, "")})
     assert (code, captured.out) == (2, "")
@@ -420,7 +444,7 @@ def test_main_answers_the_cut_contract_cases_a_dirty_tree_refusal_an_unfetchable
 
 
 def test_main_leaves_a_rebase_already_in_progress_alone_and_exits_2_however_it_asks_for_the_rebase_directories_819(
-        monkeypatch, capsys, tmp_path, rebase_onto_default):
+        monkeypatch, tmp_path, cli):
     rebase = f"git rebase -q {ONTO}"
     merge = tmp_path / "rebase-merge"
     merge.mkdir()
@@ -438,14 +462,14 @@ def test_main_leaves_a_rebase_already_in_progress_alone_and_exits_2_however_it_a
         return fake_run(args, **kwargs)
 
     monkeypatch.setattr(subprocess, "run", git_path_run)
-    code = rebase_onto_default.main([])
-    assert (code, capsys.readouterr().out) == (2, "")
+    code = cli.main([])
+    assert (code, cli.readouterr().out) == (2, "")
     assert [c for c in calls if c.startswith("git rebase") and c != rebase] == []
     assert sorted(p.name for p in merge.iterdir()) == ["head-name"]
 
 
 def test_main_answers_each_ls_remote_shape_with_its_stdout_stderr_and_exit_code_when_origin_head_is_absent(
-        monkeypatch, capsys, rebase_onto_default):
+        monkeypatch, cli):
     refusal = ("rebase-onto-default: refs/remotes/origin/HEAD is not set — "
                "no default branch to rebase onto\n")
     local = "git rev-parse -q --verify --abbrev-ref refs/remotes/origin/HEAD"
@@ -453,8 +477,8 @@ def test_main_answers_each_ls_remote_shape_with_its_stdout_stderr_and_exit_code_
 
     def run(answer, **overrides):
         fake_git(monkeypatch, **{local: (1, ""), symref: answer}, **overrides)
-        code = rebase_onto_default.main([])
-        captured = capsys.readouterr()
+        code = cli.main([])
+        captured = cli.readouterr()
         return code, captured.out, captured.err
 
     trunk = {"git ls-remote origin refs/heads/trunk": (0, f"{ONTO}\trefs/heads/trunk\n"),
@@ -1582,30 +1606,30 @@ def test_main_removes_the_set_aside_appends_once_it_reapplies_them_so_the_next_r
 
 
 def test_main_exits_2_with_one_stderr_line_naming_the_failed_fetch_of_origin_1605(
-        monkeypatch, capsys, rebase_onto_default):
+        monkeypatch, cli):
     fake_git(monkeypatch, **{"git fetch -q origin": (1, "")})
-    assert rebase_onto_default.main([]) == 2
-    err = capsys.readouterr().err
+    assert cli.main([]) == 2
+    err = cli.readouterr().err
     assert len(err.splitlines()) == 1, err
     assert "fetch" in err and "origin" in err, err
     assert "refs/remotes/origin/HEAD" not in err and "re-apply" not in err, err
 
 
 def test_main_exits_2_with_one_stderr_line_naming_the_failed_ls_remote_of_the_default_branch_1605(
-        monkeypatch, capsys, rebase_onto_default):
+        monkeypatch, cli):
     fake_git(monkeypatch, **{"git ls-remote origin refs/heads/main": (1, "")})
-    assert rebase_onto_default.main([]) == 2
-    err = capsys.readouterr().err
+    assert cli.main([]) == 2
+    err = cli.readouterr().err
     assert len(err.splitlines()) == 1, err
     assert "ls-remote" in err and "main" in err, err
     assert "fetch" not in err and "refs/remotes/origin/HEAD" not in err and "re-apply" not in err, err
 
 
 def test_main_exits_2_with_one_stderr_line_naming_the_stale_remote_tracking_ref_1605(
-        monkeypatch, capsys, rebase_onto_default):
+        monkeypatch, cli):
     fake_git(monkeypatch, **{"git rev-parse origin/main": (0, f"{PRE}\n")})
-    assert rebase_onto_default.main([]) == 2
-    err = capsys.readouterr().err
+    assert cli.main([]) == 2
+    err = cli.readouterr().err
     assert len(err.splitlines()) == 1, err
     assert "origin/main" in err, err
     assert "fetch" not in err and "refs/heads/main" not in err, err
@@ -1613,7 +1637,7 @@ def test_main_exits_2_with_one_stderr_line_naming_the_stale_remote_tracking_ref_
 
 
 def test_main_exits_2_with_one_stderr_line_naming_the_rebase_already_in_progress_1605(
-        monkeypatch, capsys, tmp_path, rebase_onto_default):
+        monkeypatch, tmp_path, cli):
     merge, apply = tmp_path / "rebase-merge", tmp_path / "rebase-apply"
     merge.mkdir()
     fake_git(monkeypatch, **{
@@ -1621,8 +1645,8 @@ def test_main_exits_2_with_one_stderr_line_naming_the_rebase_already_in_progress
         "git rev-parse --git-path rebase-merge --git-path rebase-apply": (0, f"{merge}\n{apply}\n"),
         "git rev-parse --git-path rebase-merge": (0, f"{merge}\n"),
         "git rev-parse --git-path rebase-apply": (0, f"{apply}\n")})
-    assert rebase_onto_default.main([]) == 2
-    err = capsys.readouterr().err
+    assert cli.main([]) == 2
+    err = cli.readouterr().err
     assert len(err.splitlines()) == 1, err
     assert "rebase" in err and "in progress" in err, err
     assert "fetch" not in err and "ls-remote" not in err and "stale" not in err, err
@@ -1630,15 +1654,15 @@ def test_main_exits_2_with_one_stderr_line_naming_the_rebase_already_in_progress
 
 
 def test_main_exits_2_with_one_stderr_line_naming_the_rebase_refused_without_a_conflict_1605(
-        monkeypatch, capsys, tmp_path, rebase_onto_default):
+        monkeypatch, tmp_path, cli):
     merge, apply = tmp_path / "rebase-merge", tmp_path / "rebase-apply"
     fake_git(monkeypatch, **{
         f"git rebase -q {ONTO}": (1, ""),
         "git rev-parse --git-path rebase-merge --git-path rebase-apply": (0, f"{merge}\n{apply}\n"),
         "git rev-parse --git-path rebase-merge": (0, f"{merge}\n"),
         "git rev-parse --git-path rebase-apply": (0, f"{apply}\n")})
-    assert rebase_onto_default.main([]) == 2
-    err = capsys.readouterr().err
+    assert cli.main([]) == 2
+    err = cli.readouterr().err
     assert len(err.splitlines()) == 1, err
     assert "rebase" in err and "without a conflict" in err, err
     assert "in progress" not in err and "fetch" not in err and "ls-remote" not in err, err
