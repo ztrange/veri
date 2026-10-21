@@ -1615,3 +1615,21 @@ def test_main_1957_prints_revise_when_the_named_title_is_found_only_in_a_markdow
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
+
+
+def test_main_1957_prints_revise_when_the_named_title_is_the_tail_of_an_own_id_written_describe_gt_title(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / "foo.test.ts").write_text(
+        "describe('foo', () => {\n"
+        "  it('accepts a name', () => {});\n"
+        "});\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: `accepts a name` contradicts the criterion\n")
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "foo.test.ts::foo > accepts a name"], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
