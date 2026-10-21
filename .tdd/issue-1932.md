@@ -8,4 +8,4 @@
 - [x] A WRONG_TEST:, SUPERSEDED: or MISSING_TEST: line indented as a quote inside prose in the green report is not read as a route line: wrong-test-route.sh answers as if it were absent ⟦criterion 3⟧
 - [x] A bulleted `SUPERSEDED: - x` line is read as superseding case x by wrong-test-route.sh ⟦criterion 3⟧
 - [x] A `MISSING_TEST: NONE` line makes wrong-test-route.sh route nothing missing (never prints `missing NONE`) ⟦criterion 3⟧
-- [ ] A SUPERSEDED: line whose case is wrapped in backticks and followed by a reason containing backticks is read as that case alone, pinning the backtick strip in wrong_test_route._superseded
+- [x] A SUPERSEDED: line whose case is wrapped in backticks and followed by a reason containing backticks is read as that case alone, pinning the backtick strip in wrong_test_route._superseded
