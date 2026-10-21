@@ -74,6 +74,22 @@ def test_past_its_checks_the_launcher_runs_pytest_on_its_arguments_and_exits_1_f
     assert [[a for a in args if not a.startswith("--basetemp=")] for args in calls] == [["-q", "some/dir"]]
 
 
+def test_a_worker_count_of_n_at_least_2_hands_pytest_n_n_while_1_hands_it_no_worker_option(pytest_leg, run_cli, monkeypatch):
+    calls = []
+
+    def spy(args):
+        calls.append([a for a in args if not a.startswith("--basetemp=")])
+        return pytest.ExitCode.OK
+
+    monkeypatch.setattr(pytest, "main", spy)
+    for workers in ("4", "1"):
+        env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": workers}
+        assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
+    parallel, serial = calls
+    assert "-n" in parallel and parallel[parallel.index("-n") + 1] == "4" or "-n4" in parallel or "--numprocesses=4" in parallel
+    assert serial == ["-q", "some/dir"]
+
+
 def test_each_run_hands_pytest_a_base_directory_of_its_own_that_exists_during_the_run_and_is_gone_after_whatever_the_status(pytest_leg, run_cli, monkeypatch):
     import os
 

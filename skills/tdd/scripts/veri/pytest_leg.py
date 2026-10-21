@@ -43,7 +43,8 @@ def main(argv):
     previous = signal.signal(signal.SIGTERM, terminate)
     try:
         with tempfile.TemporaryDirectory(prefix="veri-pytest-") as base:
-            status = pytest.main(["--basetemp=" + base] + argv)
+            parallel = ["-n", workers] if workers and int(workers) >= 2 else []
+            status = pytest.main(["--basetemp=" + base] + parallel + argv)
     finally:
         signal.signal(signal.SIGTERM, previous)
     return 0 if status == pytest.ExitCode.OK else 1
