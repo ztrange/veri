@@ -1,5 +1,6 @@
 """In-process cases for veri/watch_runs.py, the module watch-runs.sh is a shim over."""
 import importlib
+import json
 import subprocess
 
 import pytest
@@ -232,3 +233,24 @@ def test_main_with_no_flags_and_no_live_conductor_at_start_prints_nothing_to_wat
 
     out = capsys.readouterr().out
     assert (code, "nothing to watch" in out) == (3, True)
+
+
+def test_main_reports_vanished_and_returns_2_when_a_conductor_live_at_start_drops_out_of_the_run_listing_1930(
+        monkeypatch, capsys, watch_runs):
+    both = {"runs": [{"issue": 5, "state": "running"}, {"issue": 7, "state": "running"}]}
+    only_7 = {"runs": [{"issue": 7, "state": "running"}]}
+    documents = iter([both])
+    waits = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) > 3:
+            raise RuntimeError("never reported the vanished run")
+
+    monkeypatch.setattr(watch_runs.status, "json_document",
+                        lambda scope=None: (0, json.dumps(next(documents, only_7))))
+    monkeypatch.setattr(watch_runs, "wait", wait)
+
+    code = watch_runs.main([])
+
+    assert (code, capsys.readouterr().out) == (2, "vanished 5\n")
