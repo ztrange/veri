@@ -1422,3 +1422,21 @@ def test_main_1957_routes_a_wrong_test_name_ending_in_either_ellipsis_form_to_a_
         results.append((code, stdout, stderr))
 
     assert results == [(0, "red %s\n" % sibling, "")] * 2
+
+
+def test_main_1957_prints_revise_when_the_wrong_test_name_is_the_title_tail_of_the_step_own_describe_title_test_id(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / "foo.test.ts").write_text(
+        "describe('foo', () => {\n"
+        "  it('accepts a name', () => {});\n"
+        "});\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: `accepts a name` contradicts the criterion\n")
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+
+    assert (code, stdout, stderr) == (3, "revise\n", "")
