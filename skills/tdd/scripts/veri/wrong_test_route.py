@@ -35,6 +35,10 @@ def is_js_test_file(name, root=""):
     return in_tests and re.search(JS_EXT, name) is not None
 
 
+def _has_live_call(pattern, text):
+    return any("//" not in text[text.rfind("\n", 0, m.start()) + 1:m.start()] for m in pattern.finditer(text))
+
+
 def _exists(case):
     py = re.compile(r"def %s\(" % re.escape(case))
     js = re.compile(r"\b(?:it|test)(?:\.(?:only|skip))?(?:\.each(?:\([^)]*\)|`[^`]*`))?\(\s*['\"]%s['\"]" % re.escape(case))
@@ -48,7 +52,7 @@ def _exists(case):
                 text = handle.read()
             if is_test_file(name) and case.startswith("test_") and py.search(text):
                 return True
-            if js_file and any("//" not in text[text.rfind("\n", 0, m.start()) + 1:m.start()] for m in js.finditer(text)):
+            if js_file and _has_live_call(js, text):
                 return True
             if name.endswith(".test.sh") and ('name="%s"' % case) in text:
                 return True
