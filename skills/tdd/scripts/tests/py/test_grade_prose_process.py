@@ -799,3 +799,21 @@ def test_grade_prose_owed_grades_the_owed_unit_and_neither_the_unit_whose_signat
 
     received = record.read_text() if record.exists() else ""
     assert (ran.returncode, re.findall(r"^Unit: (\S+)$", received, re.M)) == (0, ["skills/guide/owed.md"]), ran.stderr
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_a_graded_run_exits_0_and_prints_no_leaf_role_line_on_stderr_1887(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text(STUB)
+    claude.chmod(0o755)
+    record = tmp_path / "record.txt"
+
+    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                          capture_output=True, text=True,
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+
+    assert (done.returncode, "leaf-role" in done.stderr) == (0, False), (done.returncode, done.stderr)
