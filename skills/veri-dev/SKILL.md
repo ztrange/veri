@@ -69,7 +69,7 @@ Launch the next issue only once the previous launch's ledger exists: wait for
 
 Wait on the blocking watch of P3. `watch-runs.sh` does not exist yet: until it does, use a
 Monitor on a script that blocks and prints one line per conductor exit, conductor start or
-merge to the default branch. A start you launched yourself and already announced gets no text;
+merge to the default branch. A start you launched yourself and already announced gets a single `.` (P4);
 re-arm silently.
 
 ## Routing an exit

@@ -64,12 +64,12 @@ project repo; otherwise you report repository, file and change (P11). You do not
 Watch through the blocking watch of P3. `watch-runs.sh` does not exist yet: until it does,
 use a Monitor on a script that blocks and prints one line per conductor exit, conductor start
 or merge to the default branch. When the watch returns, re-read the state the line names
-(P1), act if it calls for it, and re-arm at once, silently — a re-arm gets no text (P4).
+(P1), act if it calls for it, and re-arm at once; a re-arm gets a single `.` (P4).
 
 On each event:
 
 - **Conductor start** the dev session already announced, **merge** already reported, routine
-  dev-session message, watch expiry, a progress check you made yourself: no text; re-arm. This
+  dev-session message, watch expiry, a progress check you made yourself: a single `.`; re-arm. This
   holds while a human decision is pending: it was asked once, and these events do not re-ask it.
 - **Bail or stall** the dev session has not handled: one line to the human, then whatever
   decision it needs, restated in full.
@@ -111,7 +111,7 @@ conductor.
 |---|---|---|
 | C1 | Invoked as `/veri-coord [<lane>] [--resume <file>]`. | |
 | C2 | It launches no conductor. It carries standing merge permission in the project repo: its own PRs, and any finished run that meets `veri-merge`'s conditions (M2, M13) once its review is OK. It never merges in another repo. | The roles stay separate. Mario, 2026-10-18: both operator skills always include merge permission. |
-| C3 | It watches through the P3 script, and re-arms silently. Routine events, watch expiries and its own progress checks get no text, and never re-ask a pending decision. | 2026-10-20: the pending list re-printed on about 15 routine events — "one would have sufficed". |
+| C3 | It watches through the P3 script, and re-arms with a single `.` (P4). Routine events, watch expiries and its own progress checks get a single `.`, and never re-ask a pending decision. | 2026-10-20: the pending list re-printed on about 15 routine events — "one would have sufficed". |
 | C4 | It instructs the dev session through `SendMessage` and tells the human in one line that it did. It answers every dev-session report with an `ack`, or with the ruling the report prompts. | "why didn't you just send it yourself?" 2026-10-20: "when getting a message from dev do you not ack?" |
 | C5 | Decisions go to the human. The dev session receives facts and instructions. | |
 | C6 | It owns: order overrides, N changes (including timed ones), one-resume budget raises, filing (`veri-file`) and grooming (`veri-groom`). | |
