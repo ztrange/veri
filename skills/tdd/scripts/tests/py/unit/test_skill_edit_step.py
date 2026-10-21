@@ -328,3 +328,25 @@ def test_a_unit_with_no_table_whose_requirements_list_holds_only_another_units_s
     code, _, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "skills/veri-dev/SKILL.md"])
 
     assert (code, (tmp_path / "skills" / "veri-dev" / "REQUIREMENTS.md").read_bytes()) == (3, original.encode()), err
+
+
+def test_apply_appends_the_issue_rows_as_a_new_section_beside_a_list_holding_only_another_units_section_1959(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "skills" / "veri-dev").mkdir(parents=True)
+    (tmp_path / "skills" / "veri-dev" / "SKILL.md").write_text("The widget is painted a deep blue.\n")
+    other = ("## skills/other/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+             "| B1 | The gadget is red. | colour |\n")
+    listing = tmp_path / "skills" / "veri-dev" / "REQUIREMENTS.md"
+    listing.write_text(other)
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### skills/veri-dev/SKILL.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n")
+
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "skills/veri-dev/SKILL.md")
+
+    text = listing.read_text()
+    assert text.startswith(other), text
+    assert "## skills/veri-dev/SKILL.md" in text.splitlines(), text
+    assert "| A1 | The widget is blue. | because |" in text.splitlines(), text
