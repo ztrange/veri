@@ -36,7 +36,9 @@ def is_js_test_file(name, root=""):
 
 
 def _has_live_call(pattern, text):
-    return any("//" not in text[text.rfind("\n", 0, m.start()) + 1:m.start()] for m in pattern.finditer(text))
+    def code(prefix):
+        return re.sub(r"\"[^\"]*\"|'[^']*'|`[^`]*`", "", prefix)
+    return any("//" not in code(text[text.rfind("\n", 0, m.start()) + 1:m.start()]) for m in pattern.finditer(text))
 
 
 def _exists(case):
