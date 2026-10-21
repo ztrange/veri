@@ -1,6 +1,6 @@
 # Plan for #1939 — a leaf's claude runs with background tasks disabled
 
-- [x] The claude that run-leaf.sh starts has CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1 in its environment even when the caller's environment sets it to another value (a small case in tests/py/unit/test_run_leaf.py faking only the claude process boundary) ⟦criterion 1⟧ ⟂ refactor pending
+- [x] The claude that run-leaf.sh starts has CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1 in its environment even when the caller's environment sets it to another value (a small case in tests/py/unit/test_run_leaf.py faking only the claude process boundary) ⟦criterion 1⟧
 - [ ] With VERI_TIMEOUT unset and neither variable set by the caller, the claude that run-leaf.sh starts has BASH_DEFAULT_TIMEOUT_MS and BASH_MAX_TIMEOUT_MS both set to 900000, the supervisor's default 900 s hard cap in milliseconds (a small case in tests/py/unit/test_run_leaf.py faking only the claude process boundary) ⟦criterion 2⟧
 - [ ] With VERI_TIMEOUT set to N seconds and neither variable set by the caller, the claude that run-leaf.sh starts has BASH_DEFAULT_TIMEOUT_MS and BASH_MAX_TIMEOUT_MS both set to N × 1000 (a small case in tests/py/unit/test_run_leaf.py faking only the claude process boundary) ⟦criterion 2⟧
 - [ ] A BASH_DEFAULT_TIMEOUT_MS or BASH_MAX_TIMEOUT_MS the caller set reaches the claude that run-leaf.sh starts unchanged, whatever VERI_TIMEOUT says (a small case in tests/py/unit/test_run_leaf.py faking only the claude process boundary) ⟦criterion 2⟧
