@@ -128,7 +128,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id=""):
         optional["REFACTOR_PLAN"] = f"{prompts}/_verify-plan-refactor.md"
     for placeholder, mark in GREEN_PARAGRAPHS.items():
         marked = is_replaces_case_step(step_arg) if mark == "replaces-case" else carries_mark(
-            trailing_markers(step_arg) if mark == "suite-repair" else step_arg, mark)
+            trailing_markers(step_arg) if mark in ("suite-repair", "ci-repair") else step_arg, mark)
         if phase == "green" and marked:
             optional[placeholder] = f"{prompts}/_verify-green-{mark}.md"
     paths = [f"{prompts}/verify-{phase}.md", f"{prompts}/_shared.md", spec, *optional.values()]

@@ -1146,6 +1146,25 @@ def test_main_renders_no_suite_repair_green_paragraph_for_a_step_naming_the_mark
             == [False, True])
 
 
+def test_main_renders_no_ci_repair_green_paragraph_for_a_step_naming_the_mark_mid_sentence_without_ending_in_it_1919(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+
+    def rendered(step):
+        code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit", "green", str(spec),
+                                         "tests/py/test_zorblat.py", "test_zorblat_frobs_a_nitz"])
+        out, _ = capsysbinary.readouterr()
+        assert code == 0
+        return re.sub(rb"\s+", b" ", out)
+
+    paragraph = rb"repairs a failure that reproduces only on CI"
+    mention = "zorblat reads the ⟦ci-repair⟧ mark mid-sentence"
+    assert ([re.search(paragraph, rendered(f"{mention} ⟦criterion 1⟧")) is not None,
+             re.search(paragraph, rendered(f"{mention} ⟦ci-repair⟧ ⟦criterion 1⟧")) is not None]
+            == [False, True])
+
+
 def test_main_renders_a_ci_repair_green_prompt_that_passes_on_evidence_from_before_the_push_and_leaves_the_verdict_on_the_pushed_fix_to_wait_ci_1473(
         tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
