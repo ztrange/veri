@@ -32,15 +32,11 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     try:
-        with open(argv[0], newline="") as file:
-            text = file.read()
+        text = ledger.read_ledger(argv[0])
     except OSError as error:
         complain(f"{argv[0]}: {error.strerror}")
         return 2
-    except UnicodeDecodeError as error:
-        complain(f"{argv[0]}: {error.reason}")
-        return 2
-    text, matcher = text.replace("\0", ""), (argv[1:] or [""])[0]
+    matcher = (argv[1:] or [""])[0]
     if phase:
         try:
             ticked, new = ledger.ledger_mark_phase(text, matcher, phase, owed)
@@ -56,7 +52,7 @@ def main(argv):
     if not ticked:
         return 3
     try:
-        ledger.replace_ledger(argv[0], new.rstrip("\n") + "\n")
+        ledger.replace_ledger(argv[0], (new.rstrip("\n") + "\n").encode(errors="surrogateescape"))
     except ledger.LeftBehind as error:
         complain(f"left {error.filename} behind")
         return 2

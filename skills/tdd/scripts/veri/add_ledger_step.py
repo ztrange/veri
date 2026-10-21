@@ -9,10 +9,10 @@ import tunables
 
 try:
     from .event_log import read_events
-    from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, ledger_steps, multi_tag_refusal, new_step, trailing_markers
+    from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, ledger_steps, read_ledger, read_ledger, multi_tag_refusal, new_step, trailing_markers
 except ImportError:
     from event_log import read_events
-    from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, ledger_steps, multi_tag_refusal, new_step, trailing_markers
+    from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, ledger_steps, read_ledger, multi_tag_refusal, new_step, trailing_markers
 
 SUITE_REPAIR = "suite-repair"
 REPAIR_MARKS = ("ci-repair", SUITE_REPAIR)
@@ -147,8 +147,7 @@ def main(argv):
     if where not in ("after", "before", "instead-of"):
         return refuse("add-ledger-step.sh: position must be after, before or instead-of: " + where)
     try:
-        with open(path, "rb") as f:
-            lines = f.read().decode(errors=BYTES).split("\n")
+        lines = read_ledger(path).split("\n")
     except OSError as error:
         warn(f"add-ledger-step.sh: {path}: {error.strerror}")
         lines = [""]
