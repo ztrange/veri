@@ -163,6 +163,8 @@ def main(argv):
     path = skill_edit_guard.list_path(unit)
     graded, said = _grade(path, unit)
     authored = graded == 1
+    with open(unit, "rb") as f:
+        before = f.read()
     for _ in range(int(budget)):
         if graded != 1:
             break
@@ -171,6 +173,9 @@ def main(argv):
         graded, said = _guard(unit, base, issue)
         if not graded:
             graded, said = _grade(path, unit)
+        if graded == 1:
+            with open(unit, "wb") as f:
+                f.write(before)
     if graded == 1:
         sys.stdout.write(said)
         return 1

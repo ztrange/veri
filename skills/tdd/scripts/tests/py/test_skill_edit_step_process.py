@@ -520,3 +520,37 @@ def test_a_requirements_heading_naming_no_existing_unit_and_not_marked_new_exits
                          text=True, env=env)
 
     assert [ran.returncode, "skills/missing/SKILL.md" in ran.stderr] == [2, True], (ran.returncode, ran.stdout, ran.stderr[-700:])
+
+
+@pytest.mark.process("a real git repository under an in-process skill-edit step with a stub grader and a stub author")
+def test_a_rejected_author_attempts_edits_to_the_unit_are_reset_before_the_next_attempt_1959(tmp_path, monkeypatch, run_cli):
+    import importlib
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text("## Problem\n\nText.\n")
+    monkeypatch.chdir(repo)
+    for name in ("GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"):
+        monkeypatch.setenv(name, "t")
+    for name in ("GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"):
+        monkeypatch.setenv(name, "t@t")
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    seen = []
+
+    def author(unit, path, reasons):
+        seen.append((repo / unit).read_text())
+        with open(repo / unit, "a") as f:
+            f.write("A rejected attempt's edit.\n")
+        return 0
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A1: FAIL - no\n"))
+    monkeypatch.setattr(skill_edit_step, "_author", author)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+
+    run_cli(skill_edit_step, [str(repo / "issue.md"), "unit.md"], env={"VERI_SKILL_EDIT_BUDGET": "2"})
+
+    assert seen == ["The widget is painted a deep blue.\n"] * 2, seen
