@@ -6,4 +6,4 @@
 - [x] build-develop-prompt.sh red, for a step that names the ci-repair marker mid-sentence but does not end in it, renders no ci-repair red paragraph ⟦criterion 1⟧
 - [x] build-verify-prompt.sh green, for a step that names the suite-repair marker mid-sentence but does not end in it, renders no suite-repair verify-green paragraph ⟦criterion 1⟧
 - [x] build-verify-prompt.sh green, for a step that names the ci-repair marker mid-sentence but does not end in it, renders no ci-repair verify-green paragraph ⟦criterion 1⟧
-- [ ] A step whose trailing markers include the suite-repair or ci-repair marker still gets the permissive prompts: the existing cases stay green ⟦full-suite⟧ ⟦criterion 2⟧
+- [x] A step whose trailing markers include the suite-repair or ci-repair marker still gets the permissive prompts: the existing cases stay green ⟦full-suite⟧ ⟦criterion 2⟧
