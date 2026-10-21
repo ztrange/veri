@@ -6,4 +6,4 @@
 - [x] `SKILL-EDIT.md` says a resumed run redoes an unfinished skill-edit step from its start, with its budget reset (K9); pinned by a prose case on SKILL-EDIT.md ⟦criterion 2⟧
 - [x] On a skill-edit step, SKILL.md points the conductor to `Read` `<base directory>/SKILL-EDIT.md` in place of Red, Green and Refactor; pinned by a prose case on SKILL.md ⟦criterion 2⟧
 - [x] `unreachable.sh` run over the repository reaches `SKILL-EDIT.md` (does not list it); pinned by a case ⟦criterion 4⟧
-- [x] SKILL.md's *Draft PR* step regrades, before the PR is readied and after the run's last rebase, every unit the run signed on the rebased tip with `grade-prose.sh`, and handles a REJECT there as a red full suite is handled, by appending a repair step; pinned by a prose case on SKILL.md ⟦criterion 3⟧ ⟂ refactor pending
+- [x] SKILL.md's *Draft PR* step regrades, before the PR is readied and after the run's last rebase, every unit the run signed on the rebased tip with `grade-prose.sh`, and handles a REJECT there as a red full suite is handled, by appending a repair step; pinned by a prose case on SKILL.md ⟦criterion 3⟧

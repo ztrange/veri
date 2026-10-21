@@ -2,3 +2,5 @@
 - test-only | extract the repeated `next((s for s in re.split(...)))` sentence lookup in the new case into a helper
 ### `SKILL-EDIT.md` says a resumed run redoes an unfinished skill-edit step from its start, with its budget reset (K9); pinned by a prose case on SKILL-EDIT.md ⟦criterion 2⟧
 - test-only | hoist `_sentences(DOC.read_text(encoding="utf-8"))` in test_skill_edit_procedure.py into a shared helper or fixture
+### SKILL.md's *Draft PR* step regrades, before the PR is readied and after the run's last rebase, every unit the run signed on the rebased tip with `grade-prose.sh`, and handles a REJECT there as a red full suite is handled, by appending a repair step; pinned by a prose case on SKILL.md ⟦criterion 3⟧
+- test-only | inline the single-use, oddly named `SKILL_DRAFT_PR_TEXT()` helper in test_skill_draft_pr.py into the 1871 case (it is defined after its use and its upper-case name does not match the file's `_lines`/`_lower` helpers)
