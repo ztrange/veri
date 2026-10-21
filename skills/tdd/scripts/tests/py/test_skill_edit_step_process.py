@@ -747,3 +747,35 @@ def test_a_path_new_heading_for_a_unit_in_a_directory_that_does_not_exist_yet_is
 
     assert [ran.returncode in (0, 3), (repo / "skills" / "new-skill" / "SKILL.md").exists()] == [True, True], \
         (ran.returncode, ran.stdout, ran.stderr[-700:])
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
+def test_an_issue_rewording_and_adding_rows_edits_only_the_path_section_leaving_a_following_basename_section_byte_identical_1959(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "skills" / "veri-dev").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "skills" / "veri-dev" / "SKILL.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
+    beside = repo / "skills" / "veri-dev" / "REQUIREMENTS.md"
+    basename_section = "## SKILL.md\n\n" + ROWS
+    beside.write_text("## skills/veri-dev/SKILL.md\n\n" + ROWS + "\n" + basename_section)
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### skills/veri-dev/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is a deep blue. | shade |\n| A3 | The widget never rattles. | steady |\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    claude = tmp_path / "claude"
+    claude.write_text(GRADER.replace("A2: PASS - ok\\n", "A2: PASS - ok\\nA3: PASS - ok\\n")
+                        .replace('"is_error":false,', '"is_error":false,"duration_ms":1,"duration_api_ms":1,"num_turns":1,"total_cost_usd":0,"usage":{"input_tokens":1,"output_tokens":1,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},'))
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "skills/veri-dev/SKILL.md"], cwd=repo, capture_output=True,
+                         text=True, env=env)
+
+    text = beside.read_text()
+    path_part, _, basename_part = text.partition("## SKILL.md\n")
+    assert [ran.returncode, [l for l in path_part.splitlines() if l.startswith("| A")], "## SKILL.md\n" + basename_part] \
+        == [3, ["| A1 | The widget is a deep blue. | shade |", "| A2 | The widget never hums. | quiet |",
+                "| A3 | The widget never rattles. | steady |"], basename_section], (ran.stdout, ran.stderr[-700:], text)

@@ -91,7 +91,6 @@ def _move_table(unit, path, name):
 
 
 def apply(issue, unit):
-    name = os.path.basename(unit)
     path = skill_edit_guard.list_path(unit)
     moved = not _claimed(path, unit) and os.path.exists(unit) and _move_table(unit, path, unit)
     rows = _issue_rows(issue, unit)
@@ -112,7 +111,7 @@ def apply(issue, unit):
     in_unit = False
     for number, line in enumerate(lines):
         if line.startswith("## "):
-            in_unit = line[3:] in (name, unit)
+            in_unit = line[3:] == unit
         elif in_unit and line.startswith("|"):
             last = number
             row = reworded.get(_row_id(line), line)
