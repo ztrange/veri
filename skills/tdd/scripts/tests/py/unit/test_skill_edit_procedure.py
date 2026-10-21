@@ -22,3 +22,11 @@ def test_skill_edit_md_runs_skill_edit_step_ticks_on_exit_0_or_3_bails_on_1_and_
     assert "exhausted revise" in bail, "the exit 1 bail is never an exhausted revise"
     no_answer = next((s for s in sentences if "exit 2" in s and "no answer" in s), "")
     assert no_answer, "SKILL-EDIT.md never handles exit 2 as no answer"
+
+
+def test_skill_edit_md_redoes_an_unfinished_skill_edit_step_from_its_start_with_its_budget_reset_1871():
+    sentences = _sentences(DOC.read_text(encoding="utf-8"))
+    resume = next((s for s in sentences if "resumed run" in s and "unfinished" in s), "")
+    assert resume, "SKILL-EDIT.md never says what a resumed run does with an unfinished skill-edit step"
+    assert "from its start" in resume, "the resumed run never redoes the step from its start"
+    assert "budget" in resume and "reset" in resume, "the resumed run never resets the step's budget"
