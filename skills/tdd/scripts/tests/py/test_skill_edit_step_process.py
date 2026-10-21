@@ -779,3 +779,39 @@ def test_an_issue_rewording_and_adding_rows_edits_only_the_path_section_leaving_
     assert [ran.returncode, [l for l in path_part.splitlines() if l.startswith("| A")], "## SKILL.md\n" + basename_part] \
         == [3, ["| A1 | The widget is a deep blue. | shade |", "| A2 | The widget never hums. | quiet |",
                 "| A3 | The widget never rattles. | steady |"], basename_section], (ran.stdout, ran.stderr[-700:], text)
+
+
+STUB_RECORDING_ARGS = STUB_MODEL.replace(
+    """  printf '%s' "$prompt" > "$CAP/author.txt\"""",
+    """  printf '%s\\n' "$@" > "$CAP/author-args.txt\"""")
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author recording its arguments")
+def test_an_author_leaf_is_launched_with_permission_mode_bypass_permissions_2041(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
+    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is crimson. | why |\n")
+    cap = tmp_path / "cap"
+    cap.mkdir()
+    claude = tmp_path / "claude"
+    claude.write_text(STUB_RECORDING_ARGS)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+           "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+
+    recorded = cap / "author-args.txt"
+    args = recorded.read_text().splitlines() if recorded.exists() else None
+    assert args is not None, (ran.returncode, ran.stderr[-700:])
+    pairs = [args[i:i + 2] for i in range(len(args) - 1)]
+    assert ["--permission-mode", "bypassPermissions"] in pairs, args

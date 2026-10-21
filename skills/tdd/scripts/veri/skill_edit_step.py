@@ -135,7 +135,8 @@ def _author(unit, path, reasons):
     env["PATH"] = grade_prose.modern_python_dir() + env.get("PATH", "")
     try:
         return subprocess.run([os.path.join(SCRIPTS, "supervise.sh"), "author-skill-edit-%d" % _attempt[0],
-                               os.path.join(SCRIPTS, "run-leaf.sh"), f.name], stdout=subprocess.PIPE,
+                               os.path.join(SCRIPTS, "run-leaf.sh"), f.name,
+                               "--permission-mode", "bypassPermissions"], stdout=subprocess.PIPE,
                               env=env).returncode
     finally:
         os.unlink(f.name)
