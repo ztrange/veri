@@ -230,3 +230,17 @@ def test_main_on_the_grader_leaf_grade_prose_appends_a_usage_record_with_actor_g
     captured = capsys.readouterr()
     assert (code, captured.err) == (0, "")
     assert [(r["actor"], r["phase"], r["event"]) for r in events.records()] == [("grader", "prose", "usage")]
+
+
+def test_main_on_the_author_leaf_author_skill_edit_1_appends_a_usage_record_with_actor_author_phase_skill_edit_and_attempt_1_1949(
+        tmp_path, monkeypatch, capsys, harvest_usage, events):
+    _closing_log(tmp_path, "author-skill-edit-1")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_ISSUE", "77")
+
+    events.refuse_event_sh()
+    code = harvest_usage.main(["author-skill-edit-1"])
+
+    assert code == 0
+    assert [(r["actor"], r["phase"], r["attempt"], r["event"]) for r in events.records()] == [
+        ("author", "skill-edit", "1", "usage")]
