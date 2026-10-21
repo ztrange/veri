@@ -43,7 +43,8 @@ def main(argv):
     previous = signal.signal(signal.SIGTERM, terminate)
     try:
         with tempfile.TemporaryDirectory(prefix="veri-pytest-") as base:
-            parallel = ["-n", workers] if workers and int(workers) >= 2 else []
+            count = int(workers) if workers else len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else os.cpu_count() or 1
+            parallel = ["-n", str(count)] if count >= 2 else []
             status = pytest.main(["--basetemp=" + base] + parallel + argv)
     finally:
         signal.signal(signal.SIGTERM, previous)
