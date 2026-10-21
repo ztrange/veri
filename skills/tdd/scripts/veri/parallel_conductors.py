@@ -13,11 +13,13 @@ import traceback
 
 try:
     from context_budget import START, watch
+    from event_log import read_events
     from github import NoAnswer, gh_json
     from json_documents import items
     from solvable_issues import solvable_in_scope
 except ImportError:
     from .context_budget import START, watch
+    from .event_log import read_events
     from .github import NoAnswer, gh_json
     from .json_documents import items
     from .solvable_issues import solvable_in_scope
@@ -101,11 +103,10 @@ def _outcome(n, code, prs):
             if not pr.get("isDraft", pr.get("draft")):
                 return "done %s" % url
             try:
-                with open(os.path.join(".tdd", "wt", n, ".tdd", "events.jsonl"), "rb") as f:
-                    last = f.read().removesuffix(b"\n").rsplit(b"\n", 1)[-1]
+                events = read_events(os.path.join(".tdd", "wt", n, ".tdd", "events.jsonl"), skip_unreadable=True)
             except OSError:
-                last = b""
-            return "bailed %s" % url if b'"event": "bail"' in last else ""
+                events = []
+            return "bailed %s" % url if events and events[-1].get("event") == "bail" else ""
     return ""
 
 
