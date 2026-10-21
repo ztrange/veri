@@ -13,7 +13,7 @@ USAGE = "usage: run-finished.sh <issue>\n"
 
 
 def pr_body(pr):
-    if tunables.read("VERI_GH_DRIVER") == "rest":
+    if tunables.read("VERI_GH_JSON") or tunables.read("VERI_GH_DRIVER") == "rest":
         number = pr.rstrip("/").rsplit("/", 1)[-1]
         return json.loads(github.gh_json_page("pr.json", "repos/{owner}/{repo}/pulls/" + number))["body"]
     return json.loads(subprocess.run(
