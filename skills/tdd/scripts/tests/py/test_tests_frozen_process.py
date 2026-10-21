@@ -735,3 +735,23 @@ def test_check_step_on_a_step_without_the_fixture_repair_mark_exits_1_naming_the
     checked = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)[:2]
 
     assert checked == (1, "tests/conftest.py\n")
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
+def test_check_step_exits_0_when_a_green_edit_touches_the_guard_subject_the_step_names_1775(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    for name in ("tests/test_new.py", "tests/no-thing.test.sh"):
+        (tmp_path / name).write_text("one\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one fixes a guard ⟦guard-subject: tests/no-thing.test.sh⟧"
+    (tmp_path / "tests/test_new.py").write_text("one\ntwo\n")
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py"], cwd=tmp_path)
+
+    (tmp_path / "tests/no-thing.test.sh").write_text("one, fixed\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
