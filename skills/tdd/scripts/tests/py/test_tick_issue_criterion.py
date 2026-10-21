@@ -2,6 +2,7 @@
 import importlib
 import json
 import os
+import pathlib
 import subprocess
 
 import pytest
@@ -346,3 +347,8 @@ def test_cli_1979_ticks_only_the_matching_box_under_acceptance_criteria_and_leav
 
     assert (result, patched) == ((0, "", ""), [
         "## Problem\n\n- [ ] alpha in the problem\n\n## Acceptance criteria\n\n- [x] alpha criterion\n- [ ] beta"])
+
+
+def test_1979_tick_criterion_script_and_module_no_longer_exist_in_the_scripts_directory():
+    scripts = pathlib.Path(__file__).resolve().parents[2]
+    assert [p for p in (scripts / "tick-criterion.sh", scripts / "veri" / "tick_criterion.py") if p.exists()] == []
