@@ -1196,3 +1196,22 @@ def test_main_1957_routes_a_wrong_test_naming_an_it_title_to_a_red_when_the_file
         wrong_test_route, [str(report), "src/__tests__/foo.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % sibling)
+
+
+def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_dts_files_since_a_dts_file_is_never_a_test_file(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "src" / "__tests__"
+    suite.mkdir(parents=True)
+    sibling = "rejects an empty name"
+    (tmp_path / "src" / "foo.test.d.ts").write_text("it('%s', () => {});\n" % sibling)
+    (suite / "types.d.ts").write_text("it('%s', () => {});\n" % sibling)
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "src/foo.test.ts::foo accepts a name"], cwd=tmp_path)
+
+    assert (code, stdout, stderr) == (3, "revise\n", "")

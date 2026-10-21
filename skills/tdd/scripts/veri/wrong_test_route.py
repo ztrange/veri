@@ -27,6 +27,8 @@ JS_EXT = r"\.(?:jsx?|tsx?|mjs|cjs)$"
 
 
 def is_js_test_file(name, root=""):
+    if name.endswith(".d.ts"):
+        return False
     if re.search(r"\.(?:test|spec)" + JS_EXT, name):
         return True
     in_tests = "__tests__" in root.replace("\\", "/").split("/")
