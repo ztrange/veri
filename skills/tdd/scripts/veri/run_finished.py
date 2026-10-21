@@ -12,7 +12,9 @@ USAGE = "usage: run-finished.sh <issue>\n"
 
 def pr_body(pr):
     number = pr.rstrip("/").rsplit("/", 1)[-1]
-    return json.loads(github.gh_json_page("pr.json", "repos/{owner}/{repo}/pulls/" + number))["body"]
+    page = github.gh_json_page("pr.json", "repos/{owner}/{repo}/pulls/" + number,
+                               "pr", "view", pr, "--json", "body")
+    return json.loads(page)["body"]
 
 
 def main(argv):
