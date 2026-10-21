@@ -249,6 +249,7 @@ MECHANICAL_READERS = (
     "test_987_preflight_step_3_runs_stop_requested_clear_beside_the_tdd_conductor_pid_write",  # also pins the stale-request prose: no PF row covers it yet
     "test_1611_skill_md_s_resume_preflight_describes_the_tree_before_rebase_onto_default_sh",  # Preflight prose: no PF row covers it yet
     "test_1611_skill_md_s_resume_preflight_paragraph_under_the_discard_block",  # Preflight prose: no PF row covers it yet
+    "test_1785_skill_md_points_the_pinned_snapshot_and_the_leaf_launchable_exit_2_at_readme",  # exit 2's README pointer: no PF row covers it yet
     "structural_pass_ends_with_one_event_sh_structural_pass_mark",
     "test_954_skill_md_makes_the_leaf_timeout_sh_call_that_records_tdd_issue_n_timeout",
     "test_1297_skill_md_s_draft_pr_step_does_not_write_the_resume_rebase_event",
