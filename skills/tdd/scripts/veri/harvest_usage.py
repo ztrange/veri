@@ -1,11 +1,11 @@
 """harvest-usage.sh's computations, run in-process."""
 import json
-import os
 import re
 import sys
 import traceback
 
 import event
+import tunables
 from leaf_log import result_records
 
 WANT = "develop-*|revise-*|verify-*|conductor-*"
@@ -90,7 +90,7 @@ def main(argv):
     if not argv or not argv[0]:
         print("usage: harvest-usage.sh <leaf-name>", file=sys.stderr)
         return 2
-    return harvest(argv[0], os.environ)
+    return harvest(argv[0], tunables.environment())
 
 
 if __name__ == "__main__":

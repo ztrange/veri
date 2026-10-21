@@ -4,6 +4,7 @@ import re
 import sys
 
 import event
+import tunables
 import report_formats
 
 USAGE = "usage: suite-reported.sh <leaf-name>"
@@ -41,7 +42,7 @@ def main(argv):
                 return 0
     except OSError:
         pass
-    event.mark("", event.context(os.environ), "report-missing", ["name=" + argv[0], "missing=SUITE"])
+    event.mark("", event.context(tunables.environment()), "report-missing", ["name=" + argv[0], "missing=SUITE"])
     print(f"suite-reported.sh: {argv[0]} left no SUITE: line", file=sys.stderr)
     return 2
 

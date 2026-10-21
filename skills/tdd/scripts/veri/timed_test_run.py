@@ -1,10 +1,10 @@
 """timed-test-run.sh's command run and its one test-run event, run in-process."""
-import os
 import subprocess
 import sys
 import time
 
 import event
+import tunables
 
 USAGE = "usage: timed-test-run.sh <tier> <suites> <cmd> [args …]\n"
 
@@ -31,7 +31,7 @@ def main(argv):
     if code < 0:
         code = 128 - code
     ended = int(time.time())
-    event.mark("", event.context(os.environ), "test-run", [f"tier={tier}", f"suites={suites}",
+    event.mark("", event.context(tunables.environment()), "test-run", [f"tier={tier}", f"suites={suites}",
                                                            f"seconds={ended - started}", f"status={code}"], ended)
     return code
 
