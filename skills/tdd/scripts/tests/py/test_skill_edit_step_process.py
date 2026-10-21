@@ -723,3 +723,27 @@ def test_a_unit_with_no_table_beside_a_requirements_md_holding_only_another_unit
     assert [ran.returncode, launched.exists(), beside.read_text(), (beside.parent / "GRADED").exists(),
             git(repo, "status", "--porcelain")] == [3, False, original, False, ""], \
         (ran.stdout, ran.stderr[-700:])
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
+def test_a_path_new_heading_for_a_unit_in_a_directory_that_does_not_exist_yet_is_not_refused_and_creates_the_unit_1959(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "README.md").write_text("hello\n")
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### skills/new-skill/SKILL.md (new)\n\n" + ROWS)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: base")
+    claude = tmp_path / "claude"
+    claude.write_text(GRADER)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "skills/new-skill/SKILL.md"], cwd=repo, capture_output=True,
+                         text=True, env=env)
+
+    assert [ran.returncode in (0, 3), (repo / "skills" / "new-skill" / "SKILL.md").exists()] == [True, True], \
+        (ran.returncode, ran.stdout, ran.stderr[-700:])

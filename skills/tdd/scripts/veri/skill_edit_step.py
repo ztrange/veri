@@ -71,6 +71,7 @@ def _write_list(path, name, rows):
 
 
 def _create(unit, path, name, rows):
+    os.makedirs(os.path.dirname(unit) or ".", exist_ok=True)
     open(unit, "w").close()
     _write_list(path, name, rows)
 
