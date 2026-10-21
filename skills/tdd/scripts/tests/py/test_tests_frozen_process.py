@@ -122,6 +122,27 @@ def test_check_step_exits_1_naming_a_test_file_the_record_holds_as_deleted_that_
     assert (code, out) == (1, "tests/test_gone.py\n")
 
 
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD at record time")
+def test_check_step_exits_1_naming_a_test_file_deleted_after_record_step_held_another_deletion_1772(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    for name in ("tests/test_new.py", "tests/test_gone.py", "tests/test_later.py"):
+        (tmp_path / name).write_text("one\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one adds a case"
+    (tmp_path / "tests/test_new.py").write_text("one\ntwo\n")
+    (tmp_path / "tests/test_gone.py").unlink()
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py"], cwd=tmp_path)
+
+    (tmp_path / "tests/test_later.py").unlink()
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    assert (code, out) == (1, "tests/test_later.py\n")
+
+
 @pytest.mark.process("a real git repository under tmp_path, asked which untracked test files exist")
 def test_check_step_exits_1_naming_an_untracked_test_file_red_did_not_record_1733(
         tmp_path, run_cli, tests_frozen):
