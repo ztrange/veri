@@ -6,6 +6,7 @@ import tempfile
 import ledger
 from github import NoAnswer, gh_issue_edit, gh_issue_view
 
+HEADING = "## Acceptance criteria"
 USAGE = "usage: tick-issue-criterion.sh <issue-number> <matcher>"
 
 
@@ -19,7 +20,11 @@ def main(argv):
         body = gh_issue_view(n, "body").rstrip("\n")
     except NoAnswer:
         return 2
-    ticked, text = ledger.ledger_tick(body.replace("\0", ""), matcher)
+    lines = body.replace("\0", "").split("\n")
+    start = next((i + 1 for i, line in enumerate(lines) if line.strip() == HEADING), 0)
+    end = next((i for i in range(start, len(lines)) if start and lines[i].startswith("## ")), len(lines))
+    ticked, section = ledger.ledger_tick("\n".join(lines[start:end]), matcher)
+    text = "\n".join(lines[:start] + section.split("\n") + lines[end:])
     if not ticked:
         print("tick-issue-criterion: no unchecked criterion matched '%s' on #%s" % (matcher, n),
               file=sys.stderr)
