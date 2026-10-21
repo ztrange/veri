@@ -3,3 +3,5 @@
 - inline `_grade` into its two call sites, or have `_guard` share it with `_captured`
 ### A unit with no requirements list yet (no `REQUIREMENTS.md` beside it and no `## Requirements` table in it), run against an issue whose `## Requirements` section states rows for it, raises nothing and those stated rows become its new list in the `REQUIREMENTS.md` beside it ⟦criterion 4⟧
 - `_create` and the no-list branch of `apply` both write a new list file, differing only in the heading name (basename versus repo-relative path) and in whether they append to an existing file
+### Each author attempt's leaf is launched under the name `author-skill-edit-<k>` for its 1-based attempt number `<k>` (the second attempt is `author-skill-edit-2`) ⟦criterion 5⟧
+- replace the module-level `_attempt = [1]` mutable with an `attempt` parameter on `_author`
