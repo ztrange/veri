@@ -97,6 +97,10 @@ the 600 s foreground cap is the limit, so a wait costs one call per 590 s and no
 answer. Read the leaf's report from `.tdd/<name>.out` — the captured stdout — instead of
 from the launcher's stdout, which the detached call no longer hands you.
 
+A leaf's `BASH_DEFAULT_TIMEOUT_MS` and `BASH_MAX_TIMEOUT_MS` follow its effective timeout, the one
+`supervise.sh` enforces (`VERI_TIMEOUT`, else the run's `.tdd/issue-<n>-timeout`, else 900 s),
+unless the caller set them, so a foreground suite is not cut off at the Bash tool's default.
+
 Never `nohup … &` in place of that detach: `nohup` makes the leaf ignore a hang-up (SIGHUP),
 but it leaves it in the **process group** of the Bash call that launched it, so a harness
 that signals that group when the call ends takes the leaf with it. A leaf killed that way
