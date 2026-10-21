@@ -6,8 +6,7 @@ import pytest
 VERI = pathlib.Path(__file__).resolve().parents[3] / "veri"
 
 READS_DIRECTLY = frozenset((
-    "event", "github", "launch_floor", "run_leaf", "run_verdict", "skill_drift", "solvable_issues",
-    "stop_run",
+    "github", "launch_floor", "run_verdict", "skill_drift", "solvable_issues", "stop_run",
 ))
 
 
