@@ -50,7 +50,7 @@ def _create(unit, path, name, rows):
 def apply(issue, unit):
     name = os.path.basename(unit)
     path = skill_edit_guard.list_path(unit)
-    rows = _issue_rows(issue, name)
+    rows = _issue_rows(issue, unit)
     if rows and not os.path.exists(unit):
         _create(unit, path, name, rows)
         return

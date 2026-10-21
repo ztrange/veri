@@ -212,3 +212,22 @@ def test_the_author_attempts_follow_veri_skill_edit_budget_alone_whatever_the_ot
                    env={**others, "VERI_SKILL_EDIT_BUDGET": "2"})[0]
 
     assert (code, len(authors)) == (1, 2), (code, len(authors))
+
+
+def test_apply_reads_no_rows_for_a_unit_below_the_root_under_a_heading_holding_only_its_basename_1959(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "sub").mkdir()
+    (tmp_path / "sub" / "SKILL.md").write_text("The widget is painted a deep blue.\n")
+    original = (
+        "## SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n")
+    (tmp_path / "sub" / "REQUIREMENTS.md").write_bytes(original.encode())
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### SKILL.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A2 | The widget is round. | shape |\n")
+
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "sub/SKILL.md")
+
+    assert (tmp_path / "sub" / "REQUIREMENTS.md").read_bytes() == original.encode()
