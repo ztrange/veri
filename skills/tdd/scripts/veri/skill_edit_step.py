@@ -95,7 +95,7 @@ def apply(issue, unit):
     if not os.path.exists(path):
         _write_list(path, unit, rows)
         return moved
-    have ={row.split("\t")[0] for row in requirements.claims(path, name).splitlines()}
+    have ={row.split("\t")[0] for row in requirements.claims(path, unit).splitlines()}
     new = [r for r in rows if _row_id(r) not in have]
     reworded = {_row_id(r): r for r in rows}
     lines = requirements.read_lines(path)
