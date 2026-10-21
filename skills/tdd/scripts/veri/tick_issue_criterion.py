@@ -24,6 +24,16 @@ def find_section_start(lines):
     return 0
 
 
+def find_section_end(lines, start):
+    fenced = False
+    for i in range(start, len(lines)):
+        if lines[i].startswith("```"):
+            fenced = not fenced
+        elif not fenced and lines[i].startswith(("# ", "## ")):
+            return i
+    return len(lines)
+
+
 def main(argv):
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
@@ -36,7 +46,7 @@ def main(argv):
         return 2
     lines = body.replace("\0", "").split("\n")
     start = find_section_start(lines)
-    end = next((i for i in range(start, len(lines)) if start and lines[i].startswith(("# ", "## "))), len(lines))
+    end = find_section_end(lines, start) if start else len(lines)
     ticked, section = ledger.ledger_tick("\n".join(lines[start:end]), matcher) if start else (False, "")
     if not ticked:
         print("tick-issue-criterion: no unchecked criterion matched '%s' on #%s" % (matcher, n),
