@@ -23,6 +23,9 @@ GREEN_FREEZE_RULE = (
     "bar easier to clear is not clearing it: a pass bought by weakening, skipping or deleting\n"
     "the case is a rejected step. If the test itself looks wrong, say so in your report as one\n"
     "`WRONG_TEST: <why>` line and stop \u2014 do not edit it.").encode()
+GUARD_SUBJECT_GRANT = (
+    "\n\n**One exception: the step's guard-subject file.** The step names it in its `\u27e6guard-subject: <path>\u27e7` marker:\n"
+    "you may edit that file, and no other test file. The case Red wrote stays frozen.").encode()
 REPAIR_TEST_EDIT = (
     "\n\n**You may edit the failing test.** This step repairs a full run, and the fix is often an edit to the\n"
     "test file that run left red: edit that file, only as far as the repair needs. Every other test stays\n"
@@ -192,6 +195,8 @@ def main(argv):
     repair = carries_mark(markers, "suite-repair") or carries_mark(markers, "ci-repair")
     if "green" in (phase, revised_phase):
         values["FREEZE_RULE"] = REPAIR_TEST_EDIT if repair else GREEN_FREEZE_RULE
+        if not repair and "\u27e6guard-subject: " in markers:
+            values["FREEZE_RULE"] += GUARD_SUBJECT_GRANT
     if revised_phase == "green" and repair:
         values["TEST_REWRITE"] = REPAIR_TEST_EDIT.lstrip(b"\n")
     if revised_phase == "green":
