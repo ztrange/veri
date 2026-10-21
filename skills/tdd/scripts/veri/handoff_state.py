@@ -6,6 +6,10 @@ import sys
 
 from git import git
 
+import github
+import json_documents
+import tunables
+
 try:
     from . import status
 except ImportError:
@@ -16,7 +20,17 @@ def out(*args):
     return git(*args, capture_output=True, text=True).stdout.strip()
 
 
+def rest_open_prs(*extra):
+    path = "repos/{owner}/{repo}/pulls?state=open&per_page=100"
+    if extra:
+        path += "&head={owner}:" + extra[-1]
+    pulls = json_documents.items(github.gh_rest_list(path))
+    return [dict(pr, isDraft=pr.get("draft", False)) for pr in pulls]
+
+
 def open_prs(fields, *extra):
+    if tunables.read("VERI_GH_DRIVER") == "rest":
+        return rest_open_prs(*extra)
     answer = subprocess.run(["gh", "pr", "list", *extra, "--state", "open", "--json", fields],
                             stdout=subprocess.PIPE, text=True)
     return json.loads(answer.stdout or "[]") if answer.returncode == 0 else []
