@@ -1,9 +1,9 @@
 ### 📊 Metrics — issue 1883
 
-Wall time for the issue: 757 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 1 s, excluded from it.
+Wall time for the issue: 48611 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 161 s, excluded from it.
 Steps done: 1 of 2 planned.
-Outcome: the run bailed — uncovered, a process failure.
+Outcome: the run bailed — needs-user, a process failure.
 Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-sonnet-5-5.
 
@@ -30,6 +30,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | diff | 0 | 0.00 | 0 | 0.00 |
 | cover | 0 | 0.00 | 419 | 0.09 |
 | develop-cover | 0 | 0.00 | 0 | 0.00 |
+| rebase | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
