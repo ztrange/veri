@@ -243,3 +243,9 @@ def test_leaf_role_refuses_no_argument_and_one_empty_argument_with_exit_2_and_th
         if err.rstrip("\n") != "usage: leaf-role.sh <leaf-name>":
             problems.append("%s: want stderr exactly the usage line, got: %r" % (label, err))
     assert problems == []
+
+
+def test_main_maps_grade_prose_to_the_grader_role_with_0_and_nothing_on_stderr_1887(capsys, leaf_role):
+    code = leaf_role.main(["grade-prose"])
+    captured = capsys.readouterr()
+    assert (code, captured.out, captured.err) == (0, "VERI_ACTOR=grader VERI_PHASE=prose VERI_ATTEMPT=1\n", "")
