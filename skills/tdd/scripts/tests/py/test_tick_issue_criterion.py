@@ -517,6 +517,29 @@ def test_cli_2027_ticks_the_box_after_a_fenced_block_holding_a_hash_and_a_double
         "## Acceptance criteria\n\n```sh\n# shell comment\n## another\n```\n\n- [x] alpha after fence"])
 
 
+def test_cli_2027_ticks_the_box_after_a_tilde_fenced_and_an_indented_fenced_block_holding_hash_lines_inside_acceptance_criteria(monkeypatch, run_cli, tick_issue_criterion):
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    body = "## Acceptance criteria\n\n~~~sh\n# tilde comment\n~~~\n\n   ```sh\n## indented\n   ```\n\n- [ ] alpha after fences\n"
+    patched = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args == ["gh", "api", "repos/{owner}/{repo}/issues/7"]:
+            return subprocess.CompletedProcess(args, 0, json.dumps({"body": body}), "")
+        if args[:5] == ["gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/7"]:
+            with open(args[6][len("body=@"):]) as f:
+                patched.append(f.read())
+            return subprocess.CompletedProcess(args, 0, "", "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    result = run_cli(tick_issue_criterion, ["7", "alpha"])
+
+    assert (result[0], patched) == (0, [
+        "## Acceptance criteria\n\n~~~sh\n# tilde comment\n~~~\n\n   ```sh\n## indented\n   ```\n\n- [x] alpha after fences"])
+
+
 def test_cli_2027_writes_a_run_log_event_naming_the_matcher_when_no_unchecked_criterion_matched(monkeypatch, run_cli, tick_issue_criterion, tmp_path):
     monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
     (tmp_path / ".git").mkdir()

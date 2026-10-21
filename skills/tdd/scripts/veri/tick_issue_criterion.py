@@ -27,11 +27,15 @@ def find_section_start(lines):
 
 
 def find_section_end(lines, start):
-    fenced = False
+    fence = ""
     for i in range(start, len(lines)):
-        if lines[i].startswith("```"):
-            fenced = not fenced
-        elif not fenced and lines[i].startswith(("# ", "## ")):
+        s = lines[i].strip()
+        if fence:
+            if s.startswith(fence) and not s.strip(fence[0]):
+                fence = ""
+        elif s[:3] in ("```", "~~~"):
+            fence = s[0] * (len(s) - len(s.lstrip(s[0])))
+        elif lines[i].startswith(("# ", "## ")):
             return i
     return len(lines)
 
