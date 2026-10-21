@@ -22,15 +22,12 @@ def main(argv):
     cleared, new = ledger.ledger_clear_pending(text, argv[1] if len(argv) > 1 else "")
     if not cleared:
         return 3
-    data = (new.rstrip("\n") + "\n").encode(errors="surrogateescape")
-    try:
-        ledger.replace_ledger(argv[0], data)
-    except ledger.LeftBehind as error:
-        complain(argv[0], f"left {error.filename} behind")
-        return 2
-    except OSError:
-        return 2
-    return 0
+    left = ledger.rewrite_ledger(argv[0], new)
+    if left is None:
+        return 0
+    if left:
+        complain(argv[0], f"left {left} behind")
+    return 2
 
 
 if __name__ == "__main__":

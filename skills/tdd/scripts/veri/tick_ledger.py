@@ -51,14 +51,12 @@ def main(argv):
             return 2
     if not ticked:
         return 3
-    try:
-        ledger.replace_ledger(argv[0], (new.rstrip("\n") + "\n").encode(errors="surrogateescape"))
-    except ledger.LeftBehind as error:
-        complain(f"left {error.filename} behind")
-        return 2
-    except OSError:
-        return 2
-    return 0
+    left = ledger.rewrite_ledger(argv[0], new)
+    if left is None:
+        return 0
+    if left:
+        complain(f"left {left} behind")
+    return 2
 
 
 if __name__ == "__main__":
