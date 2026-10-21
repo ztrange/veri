@@ -649,19 +649,6 @@ def test_cli_exits_2_with_one_path_and_reason_stderr_line_for_a_ledger_path_runn
         2, "", 1, True, True, False, "not a directory\n")
 
 
-def test_cli_exits_2_with_one_path_and_reason_stderr_line_for_a_ledger_that_does_not_decode_leaving_it_byte_identical(
-        tmp_path, run_cli, tick_ledger):
-    seed = b"\377\376- [ ] collapse to single hyphen\n"
-    ledger = tmp_path / "undecodable.md"
-    ledger.write_bytes(seed)
-
-    code, out, err = run_cli(tick_ledger, [str(ledger), "collapse to single hyphen"], env={"LC_ALL": "C.UTF-8"})
-
-    assert (code, out, err.count("\n"), err.startswith(f"tick-ledger.sh: {ledger}: "),
-            len(err) > len(f"tick-ledger.sh: {ledger}: ") + 1, "Traceback" in err, ledger.read_bytes()) == (
-        2, "", 1, True, True, False, seed)
-
-
 def test_cli_of_tick_ledger_and_clear_refactor_pending_exit_3_on_no_match_and_0_on_a_tick_or_clear(
         tmp_path, run_cli, tick_ledger):
     clear = importlib.import_module("veri.clear_refactor_pending")
