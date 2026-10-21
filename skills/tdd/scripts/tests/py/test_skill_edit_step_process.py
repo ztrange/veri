@@ -443,3 +443,30 @@ def test_a_relaunched_authors_prompt_carries_the_fail_reasons_of_the_latest_grad
     prompt = second.read_text() if second.exists() else ""
     assert "second-reason-bravo" in prompt, (ran.returncode, ran.stderr[-700:], prompt)
     assert "first-reason-alpha" not in prompt, prompt
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a bad VERI_SKILL_EDIT_BUDGET")
+def test_a_bad_veri_skill_edit_budget_exits_2_from_validating_it_when_every_other_call_before_launching_succeeds(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt hums.\n")
+    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is crimson. | shade |\n")
+    claude = tmp_path / "claude"
+    claude.write_text(STUB_ALWAYS_REJECT)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "VERI_SKILL_EDIT_BUDGET": "many",
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+
+    log = repo / ".tdd" / "events.jsonl"
+    launched = log.exists() and log.read_text().strip() != ""
+    assert [ran.returncode, launched, "VERI_SKILL_EDIT_BUDGET" in ran.stderr] == [2, False, True], (ran.stdout, ran.stderr[-700:])
