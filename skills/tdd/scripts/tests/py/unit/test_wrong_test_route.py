@@ -1647,3 +1647,22 @@ def test_main_1957_prints_revise_when_a_missing_test_line_is_indented_by_one_to_
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
+
+
+def test_main_1957_prints_red_over_the_whole_title_when_a_cut_name_expands_to_a_double_quoted_title_holding_a_single_quote(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / "foo.test.ts").write_text(
+        "describe('foo', () => {\n"
+        "  it('accepts a name', () => {});\n"
+        "  it(\"doesn't crash on null\", () => {});\n"
+        "});\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: `doesn…` contradicts the criterion\n")
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+
+    assert (code, stdout, stderr) == (0, "red doesn't crash on null\n", "")
