@@ -818,3 +818,41 @@ def test_1667_row_whose_unmutated_suite_already_fails_is_unproven_with_no_missin
     assert (code, out, err) == (
         1, "\t".join([row[1], row[3], row[4], "unproven"]) + "\n",
         "already failing unmutated: old case checks/test_gate.py::test_old\n")
+
+
+@pytest.mark.process("a bash suite and pytest started by failed_cases(), pytest() and node_fails(), importing a veri module under a mutation, for a bash row and a pytest row")
+def test_1983_after_a_bash_row_and_a_pytest_row_the_mutated_source_is_byte_identical_and_no_bytecode_survives_anywhere_in_the_tree(tmp_path, monkeypatch, run_cli):
+    for name in ("PYTHONDONTWRITEBYTECODE", "PYTHONPYCACHEPREFIX"):
+        monkeypatch.delenv(name, raising=False)
+    source = tmp_path / MODULE
+    source.parent.mkdir(parents=True)
+    source.write_text("def code():\n    return 2\n")
+    (tmp_path / "checks").mkdir()
+    bash_suite = tmp_path / "checks" / "gate.sh"
+    bash_suite.write_text(SUITE)
+    bash_suite.chmod(0o755)
+    (tmp_path / "checks" / "test_gate.py").write_text(PYTEST_SUITE)
+    mutated = source.read_text().replace("return 2", "return 1")
+    patch = tmp_path / "gate.patch"
+    patch.write_text("".join(difflib.unified_diff(
+        source.read_text().splitlines(True), mutated.splitlines(True), "a/" + MODULE, "b/" + MODULE)))
+    table = tmp_path / "pairs.tsv"
+    table.write_text(
+        "\t".join(["checks/gate.sh", "old case", "redundant", "kept case", str(patch)]) + "\n"
+        + "\t".join(["checks/test_gate.py", "checks/test_gate.py::test_old", "redundant",
+                    "checks/test_gate.py::test_kept", str(patch)]) + "\n")
+    importlib.invalidate_caches()
+    mutation_parity = importlib.import_module("veri.mutation_parity")
+    interpreter = tmp_path / "interp"
+    interpreter.write_text('#!/bin/sh\nexec "%s" "$@"\n' % mutation_parity.venv_python())
+    interpreter.chmod(0o755)
+    monkeypatch.setattr(mutation_parity, "venv_python", lambda: str(interpreter))
+    before = source.read_bytes()
+
+    code, out, err = run_cli(mutation_parity, [str(table)], cwd=tmp_path)
+
+    bytecode = sorted(str(p.relative_to(tmp_path)) for p in tmp_path.rglob("*") if p.suffix in (".pyc", ".pyo") or p.name == "__pycache__")
+    verdicts = [line.rsplit("\t", 1)[1] for line in out.splitlines()]
+    assert (code, verdicts, source.read_bytes() == before, bytecode) == (0, ["proven", "proven"], True, []), (
+        "exit=%s stdout=%r stderr=%r; source restored %s; bytecode left %r"
+        % (code, out, err, source.read_bytes() == before, bytecode))
