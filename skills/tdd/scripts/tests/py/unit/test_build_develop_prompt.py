@@ -2316,7 +2316,7 @@ def test_mid_line_marks_render_todays_prompts(tmp_path, capsysbinary, build_deve
     ci_verify = b"This step repairs a failure that reproduces only on CI.**"
     assert ([ci_red in red, suite_develop in red, ci_red in green, suite_develop in green,
              ci_verify in verified, suite_develop in verified]
-            == [True, False, False, False, True, True])
+            == [False, False, False, False, True, True])
 
 
 @pytest.mark.parametrize("doc", ["SKILL.md", "SCRIPTS.md"])

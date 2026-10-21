@@ -132,7 +132,7 @@ def main(argv):
     replaces_case = is_replaces_case_step(step)
     markers = trailing_markers(step)
     marked = {}
-    if phase == "red" and carries_mark(step, "ci-repair"):
+    if phase == "red" and carries_mark(markers, "ci-repair"):
         marked["CI_REPAIR"] = f"{prompts}/_develop-red-ci-repair.md"
     if "green" in (phase, revised_phase):
         if replaces_case:
