@@ -9,7 +9,7 @@ import event
 from leaf_log import result_records
 
 WANT = "develop-*|revise-*|verify-*|conductor-*"
-ACTORS = {"develop": "developer", "revise": "developer", "verify": "verifier", "conductor": "conductor"}
+ACTORS = {"develop": "developer", "revise": "developer", "verify": "verifier", "grade": "grader", "conductor": "conductor"}
 
 
 def closing_result(path):
