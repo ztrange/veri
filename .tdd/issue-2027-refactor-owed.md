@@ -5,3 +5,4 @@
 ### fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_tunable_reads.py — FAILED test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment and FAILED test_run_leaf_run_verdict_and_stop_run_take_their_veri_values_from_the_one_reader_and_no_module_is_exempt: skills/tdd/scripts/veri/tick_issue_criterion.py:55 reads a VERI_ name straight from os.environ instead of through the one reader ⟦suite-repair⟧ ⟦criterion 4⟧
 - unify the fence tracking in find_section_start and find_section_end (would change behavior: end-finder ignores ~~~ fences)
 not-done | transform-rejected | share one fence-tracking helper between find_section_start and find_section_end (would change `~~~` and indented-fence handling in the end scan, so it is not behaviour-preserving)
+not-done | transform-rejected | unify the fence tracking in find_section_start and find_section_end (would change behavior: end-finder ignores ~~~ fences)
