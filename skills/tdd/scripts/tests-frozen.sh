@@ -13,6 +13,8 @@
 # file the full run or CI left red.
 # A step marked ⟦fixture-repair⟧ is frozen like any other step except for the fixture file its step
 # text names, which Green may edit.
+A step marked ⟦guard-subject: <path>⟧ may change the file it
+# names (any other unrecorded test file is still flagged); the case pinning the behaviour stays frozen.
 #
 # Exit: 0 recorded, the path printed, or every recorded file is byte-identical (nothing on stdout),
 #       1 with one path per line on stdout for each recorded file edited or deleted,
