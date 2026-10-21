@@ -64,3 +64,12 @@ def test_section_of_returns_a_section_whole_when_a_backtick_or_tilde_fence_holds
         beta = skill_sections.section_of(text, "## Beta")
 
         assert beta == f"## Beta\nbefore\n{fence}\n## x\nin fence\n{fence}\nafter\n", fence
+
+
+def test_section_of_keeps_a_heading_shaped_line_fenced_after_a_shorter_fence_line_inside_a_longer_fence_1687():
+    skill_sections = importlib.import_module("skill_sections")
+    text = "## Beta\nbefore\n````\n```\n## x\nin fence\n````\nafter\n## Gamma\ngamma body\n"
+
+    beta = skill_sections.section_of(text, "## Beta")
+
+    assert beta == "## Beta\nbefore\n````\n```\n## x\nin fence\n````\nafter\n"
