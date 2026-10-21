@@ -685,6 +685,24 @@ def test_record_step_run_outside_any_git_repository_exits_2_with_stderr_naming_t
     assert (code, out, "repository" in err, list((tmp_path / ".tdd").iterdir())) == (2, "", True, [])
 
 
+@pytest.mark.process("a real git repository with no commits under tmp_path, asked which test files differ from HEAD")
+def test_check_step_in_a_repository_with_no_commits_exits_2_with_stderr_naming_the_missing_head_over_a_staged_test_edit_1960(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_new.py").write_text("one\n")
+    git(tmp_path, "init", "-q")
+    step = "step one adds a case"
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py"], cwd=tmp_path)
+    (tmp_path / "tests/test_other.py").write_text("one, weakened\n")
+    git(tmp_path, "add", "tests/test_other.py")
+
+    code, out, err = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    refusals = [line for line in err.splitlines() if line.startswith("tests-frozen.sh:") and "HEAD" in line]
+    assert (code, out, len(refusals)) == (2, "", 1)
+
+
 @pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
 def test_record_step_lists_the_pytest_function_red_edited_below_a_finish_line_inside_its_multiline_string_1773(
         tmp_path, run_cli, tests_frozen):
