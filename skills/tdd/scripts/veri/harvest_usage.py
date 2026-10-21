@@ -1,15 +1,12 @@
 """harvest-usage.sh's computations, run in-process."""
 import json
-import re
 import sys
 import traceback
 
 import event
 import tunables
+import leaf_role
 from leaf_log import result_records
-
-WANT = "develop-*|revise-*|verify-*|conductor-*"
-ACTORS = {"develop": "developer", "revise": "developer", "verify": "verifier", "grade": "grader", "conductor": "conductor"}
 
 
 def closing_result(path):
@@ -33,22 +30,6 @@ def usage_pairs(record):
     if "modelUsage" in record:
         pairs.append("model_usage=%s" % json.dumps(models, sort_keys=True))
     return pairs
-
-
-def leaf_role(name):
-    """VERI_ACTOR, VERI_PHASE and VERI_ATTEMPT for a leaf name, or None after a diagnostic on stderr."""
-    actor_word = name.split("-", 1)[0]
-    actor = ACTORS.get(actor_word)
-    if actor is None:
-        print("leaf-role: leaf name '%s' has an unknown leading word (want %s)" % (name, WANT), file=sys.stderr)
-        return None
-    phase_attempt = name[len(actor_word) + 1:]
-    if not phase_attempt:
-        print("leaf-role: leaf name '%s' says no phase (want %s)" % (name, WANT), file=sys.stderr)
-        return None
-    numbered = re.fullmatch(r"(.*)-([0-9]+)", phase_attempt)
-    phase, attempt = numbered.groups() if numbered else (phase_attempt, "1")
-    return {"VERI_ACTOR": actor, "VERI_PHASE": phase, "VERI_ATTEMPT": attempt}
 
 
 def to_contract(code):
@@ -80,7 +61,7 @@ def harvest(name, env):
     except Exception:
         traceback.print_exc()
         return 1
-    role = leaf_role(name)
+    role = leaf_role.leaf_role(name)
     if role is None:
         return 2
     return to_contract(event.mark("", event.context(dict(env, **role)), "usage", pairs))
