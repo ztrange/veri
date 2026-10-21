@@ -782,8 +782,9 @@ def test_main_1865_prints_red_over_the_one_case_a_superseded_line_names_in_backt
     assert (code, stdout) == (0, "red %s\n" % older)
 
 
-def test_main_1865_prints_red_over_the_one_case_an_indented_superseded_line_names(
-        run_cli, tmp_path, monkeypatch):
+@pytest.mark.parametrize("indent", [" ", "  ", "   "])
+def test_main_1957_prints_revise_when_a_superseded_line_is_indented_by_one_to_three_spaces_since_it_is_prose(
+        indent, run_cli, tmp_path, monkeypatch):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     tests_frozen = importlib.import_module("veri.tests_frozen")
     suite = tmp_path / "tests" / "py"
@@ -798,11 +799,11 @@ def test_main_1865_prints_red_over_the_one_case_an_indented_superseded_line_name
     _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
     (tmp_path / record_path.rstrip("\n")).write_text("case: %s\n" % added)
     report = tmp_path / "green-report.txt"
-    report.write_text("SUITE: make test\n  SUPERSEDED: %s\n" % older)
+    report.write_text("SUITE: make test\n%sSUPERSEDED: %s\n" % (indent, older))
 
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % older)
+    assert (code, stdout) == (3, "revise\n")
 
 
 def test_main_1865_prints_red_over_the_one_case_a_superseded_line_names_before_a_trailing_reason(
