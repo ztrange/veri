@@ -26,7 +26,7 @@ Every case is a small in-process case in skills/tdd/scripts/tests/py/unit/test_w
 - [x] A WRONG_TEST: naming a bare … whose expansion is the title of the step's own case answers revise, never red <own case> ⟦criterion 10⟧
 - [x] A WRONG_TEST: cut name ending in … that is a prefix of more than one JS/TS title in the searched files answers revise, never red over the first match ⟦criterion 11⟧
 - [x] A live it(…) call on a line below a // comment on an earlier line is a case: a WRONG_TEST: naming its title routes red <title> (holds today; pinned) ⟦criterion 12⟧
-- [ ] A JS/TS test file holding only emit('<title>') and no it(…) or test(…) call has no case of that title: a WRONG_TEST: naming it answers revise (holds today; pinned) ⟦criterion 12⟧
+- [x] A JS/TS test file holding only emit('<title>') and no it(…) or test(…) call has no case of that title: a WRONG_TEST: naming it answers revise (holds today; pinned) ⟦criterion 12⟧
 - [ ] A file __tests__/notes.md holding it('<title>') is not a test file: a WRONG_TEST: naming that title answers revise (holds today; pinned) ⟦criterion 12⟧
 - [ ] A WRONG_TEST: name equal to the title tail of the step's own test id written <describe> > <title> answers revise (holds today; pinned) ⟦criterion 12⟧
 - [ ] A MISSING_TEST: line indented by one, two or three spaces is read as prose, by the same rule as WRONG_TEST: and SUPERSEDED: lines: the report answers revise, never missing <behaviour> (holds today; pinned) ⟦criterion 13⟧
