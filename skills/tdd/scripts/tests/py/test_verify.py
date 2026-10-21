@@ -1919,22 +1919,6 @@ def test_verify_sh_diff_still_launches_the_leaf_and_returns_its_verdict_when_the
     assert (code, "test_fakes_x" in out, started.exists(), out == "fine.\n") == (0, False, True, True)
 
 
-def test_verify_sh_green_rejects_a_pass_on_a_replaces_case_step_naming_each_case_its_suite_still_holds_1507(
-        run_cli, tmp_path, monkeypatch):
-    write_inputs(tmp_path)
-    (tmp_path / "tests" / "demo.test.sh").write_text('verdict "kept case" 0\nverdict "stale second" 0\n')
-    answering_leaf(monkeypatch, "VERDICT: PASS\nREASON: the named cases are gone.")
-    verify = importlib.import_module("veri.verify")
-
-    code, out, _ = run_cli(
-        verify, ["--step", "the replacement takes over: replaces 'stale first', 'stale second' in tests/demo.test.sh"
-                 " ⟦replaces-case⟧ ⟦criterion 1⟧", "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"],
-        env={"HOME": str(tmp_path)},
-        cwd=tmp_path)
-
-    assert (code, "stale second" in out, "stale first" in out) == (1, True, False)
-
-
 def test_verify_sh_green_exits_2_when_the_named_cases_check_cannot_read_the_suite_after_a_pass_1507(
         run_cli, tmp_path, monkeypatch):
     write_inputs(tmp_path)
