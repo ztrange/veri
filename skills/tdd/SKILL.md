@@ -947,6 +947,8 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    A step marked `⟦suite-repair⟧` or `⟦ci-repair⟧` is never frozen: for it `record --step` writes nothing and
    `check --step` exits 0, because its fix is often an edit to the very test file the full run or CI left red.
    A `⟦ci-repair⟧` step therefore records nothing before its green, and its green may edit the test the CI job failed.
+   A step whose trailing marker is `⟦fixture-repair⟧` is frozen like any other, except for the one fixture file its
+   text names (`repairs the fixture '<name>' in <path>,`): `check --step` exits 1 naming any other changed test file.
    Either way, note the **wait's exit code** — the verdict — and read the reason back out of
    `.tdd/verify-<phase>.reason` to narrate it. The file is named for the **verifier** that
    wrote it (`red`, `pin`, `green`, `refactor`), and each verification of that phase
