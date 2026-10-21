@@ -80,7 +80,12 @@ def main(argv):
                 with open(f".tdd/issue-{issue}-timeout") as f:
                     seconds = f.read().strip()
         seconds = seconds or "900"
-        cap_ms = str(int(seconds) * 1000)
+        try:
+            cap_ms = str(int(seconds) * 1000)
+        except ValueError:
+            print(f"run-leaf.sh: VERI_TIMEOUT is not a whole number: {seconds!r}",
+                  file=sys.stderr)
+            return 2
         env.setdefault("BASH_DEFAULT_TIMEOUT_MS", cap_ms)
         env.setdefault("BASH_MAX_TIMEOUT_MS", cap_ms)
         env["PATH"] = GUARD + os.pathsep + env.get("PATH", "")

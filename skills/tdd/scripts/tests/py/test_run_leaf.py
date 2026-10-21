@@ -996,6 +996,15 @@ def test_cli_starts_claude_without_claude_auto_background_tasks(tmp_path, monkey
     assert (code, len(seen), "CLAUDE_AUTO_BACKGROUND_TASKS" in seen[0]) == (0, 1, False)
 
 
+def test_cli_a_non_numeric_veri_timeout_exits_2_before_claude_with_one_stderr_line_naming_it_and_no_traceback_1939(
+        tmp_path, monkeypatch, run_cli):
+    code, _, err, seen = _cli_launch(run_cli, monkeypatch, tmp_path,
+                                     env={"VERI_TIMEOUT": "abc"})
+
+    assert (code, len(seen), err.count("\n"), "Traceback" in err) == (2, 0, 1, False)
+    assert "VERI_TIMEOUT" in err, err
+
+
 def test_cli_still_passes_veri_test_cmd_and_git_config_global_through_to_claude(
         tmp_path, monkeypatch, run_cli):
     code, _, _, seen = _cli_launch(run_cli, monkeypatch, tmp_path,
