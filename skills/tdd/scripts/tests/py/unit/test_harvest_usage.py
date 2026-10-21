@@ -244,3 +244,27 @@ def test_main_on_the_author_leaf_author_skill_edit_1_appends_a_usage_record_with
     assert code == 0
     assert [(r["actor"], r["phase"], r["attempt"], r["event"]) for r in events.records()] == [
         ("author", "skill-edit", "1", "usage")]
+
+
+def test_main_gives_every_leaf_name_the_actor_phase_and_attempt_leaf_role_gives_it_1949(
+        tmp_path, monkeypatch, harvest_usage, events):
+    leaf_role = importlib.import_module("veri.leaf_role")
+    names = ["develop-red", "develop-red-2", "develop-red\n-2", "revise-green-3", "verify-refactor",
+             "grade-prose\n-4", "author-skill-edit-1", "conductor-plan", "develop-exhausted"]
+    monkeypatch.chdir(tmp_path)
+    events.refuse_event_sh()
+    for name in names:
+        _closing_log_named(tmp_path, name)
+        assert harvest_usage.main([name]) == 0, name
+    got = [(r["actor"], r["phase"], r["attempt"]) for r in events.records()]
+    want = [(role["VERI_ACTOR"], role["VERI_PHASE"], role["VERI_ATTEMPT"])
+            for role in map(leaf_role.leaf_role, names)]
+    assert got == want
+
+
+def _closing_log_named(tmp_path, name):
+    (tmp_path / ".tdd").mkdir(exist_ok=True)
+    record = {"type": "result", "duration_ms": 1, "duration_api_ms": 2, "num_turns": 3, "total_cost_usd": 0.5,
+              "usage": {"input_tokens": 4, "cache_creation_input_tokens": 5,
+                        "cache_read_input_tokens": 6, "output_tokens": 7}}
+    (tmp_path / ".tdd" / ("%s.log" % name)).write_text(json.dumps(record) + "\n")
