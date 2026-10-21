@@ -11,15 +11,12 @@ SKILL = pathlib.Path(__file__).resolve().parents[2].parent / "SKILL.md"
 
 PREFLIGHT = "### 0. Preflight — baseline checks (bail before any cycle)"
 STEP1 = "### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)"
-PLAN = "### 2. Scope & plan → the ledger"
 RESUME = "## Resume"
 
 FAST_CALL = "detect-test-command.sh --tier fast"
 FULL_CALL = "detect-test-command.sh --tier all"
 ENTER_CALL = 'cd "$wt"'
 WORKTREE_CALL = "issue-worktree.sh"
-PID_WRITE = "> .tdd/conductor.pid"
-PID_VALUE = '"$PPID"'
 DETACH_START = "detach-command.sh start"
 ITEM_RE = r"^[0-9]+\."
 
@@ -114,10 +111,6 @@ def test_skill_md_s_worktree_guard_prose_says_the_lock_is_taken_in_preflight_ste
 
 DRAFT = "### 4. Draft PR"
 REBASE_CALL = "rebase-onto-default.sh"
-LEASE_PUSH = "push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>"
-RESET_HEAD = "git reset --hard HEAD"
-PRE_SHA = "<pre-rebase-sha>"
-NEGATION = r"(^|[^A-Za-z])(not|never|no)([^A-Za-z]|$)"
 
 
 def resume_step3():
@@ -139,8 +132,6 @@ def test_1297_skill_md_s_draft_pr_step_does_not_write_the_resume_rebase_event():
         "the Draft PR section also writes event.sh resume-rebase"
 
 
-BARE_FORCE_GOVERNED = r"(^|[^A-Za-z])(not|never|no)(\s+[A-Za-z]+){0,3}\s+bare force"
-LEAF_MODEL_CALL = "$S/leaf-model.sh develop-red"
 STATUS_CAPTURE = re.compile(r'="\$\(git status --porcelain\)"')
 FENCE = re.compile(r"^\s*```")
 SCRIPTS = SKILL.parent / "scripts"
