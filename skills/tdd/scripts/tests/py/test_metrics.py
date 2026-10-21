@@ -1465,10 +1465,15 @@ def test_main_names_no_dollar_figure_for_a_conductor_turn_whose_model_the_price_
     assert re.search(r"Conductor own spending:[^\n]*\$\d", out) is None
 
 
-def test_issue_1859_the_opus_5_5_price_entry_matches_a_recorded_conductor_result_and_its_per_turn_estimate_stays_close(tmp_path, metrics):
+def recorded_opus_5_5_conductor_log():
     fixture = Path(__file__).parent.parent / "fixtures" / "conductor-log" / "conductor-opus-5-5-recorded.log"
     log = fixture.read_text()
     result = next(r for r in map(json.loads, log.splitlines()) if r.get("type") == "result")
+    return log, result
+
+
+def test_issue_1859_the_opus_5_5_price_entry_matches_a_recorded_conductor_result_and_its_per_turn_estimate_stays_close(tmp_path, metrics):
+    log, result = recorded_opus_5_5_conductor_log()
     usage = result["usage"]
     prices = metrics.session_cost.PRICES["claude-opus-5-5"]
 
@@ -1488,9 +1493,7 @@ def test_issue_1859_the_opus_5_5_price_entry_matches_a_recorded_conductor_result
 
 
 def test_issue_1868_a_finished_conductor_sessions_per_turn_dollars_sum_to_its_result_total_and_are_said_to_be_estimated(tmp_path, monkeypatch, capsys, metrics):
-    fixture = Path(__file__).parent.parent / "fixtures" / "conductor-log" / "conductor-opus-5-5-recorded.log"
-    log = fixture.read_text()
-    result = next(r for r in map(json.loads, log.splitlines()) if r.get("type") == "result")
+    log, result = recorded_opus_5_5_conductor_log()
     write_log(tmp_path, ONE_STEP)
     (tmp_path / ".tdd" / "conductor-108.log").write_text(log)
     monkeypatch.chdir(tmp_path)
