@@ -590,3 +590,26 @@ def test_each_author_attempts_leaf_is_named_author_skill_edit_k_for_its_attempt_
     run_cli(skill_edit_step, [str(repo / "issue.md"), "unit.md"], env={"VERI_SKILL_EDIT_BUDGET": "2"})
 
     assert names == ["author-skill-edit-1", "author-skill-edit-2"], names
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
+def test_a_unit_with_no_requirements_list_against_an_issue_with_no_requirements_section_exits_3_leaving_the_unit_unchanged_and_creating_no_requirements_md_1959(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "unit.md").write_text("The widget is painted a deep blue.\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text("## Problem\n\nnothing about requirements\n")
+    claude = tmp_path / "claude"
+    claude.write_text(GRADER)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+
+    assert [ran.returncode, "Traceback" in ran.stderr, (repo / "unit.md").read_text(),
+            (repo / "REQUIREMENTS.md").exists()] \
+        == [3, False, "The widget is painted a deep blue.\n", False], (ran.stdout, ran.stderr[-700:])
