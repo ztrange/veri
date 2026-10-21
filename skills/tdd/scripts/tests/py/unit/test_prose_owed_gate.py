@@ -103,3 +103,17 @@ def test_prose_owed_sh_prints_a_unit_listed_only_in_a_requirements_list_beside_i
     code, out, err = run_cli(prose_owed, [str(tmp_path)])
 
     assert (code, out.split()) == (1, ["skills/demo/SKILL.md"]), (code, out, err)
+
+
+def test_prose_owed_sh_given_a_list_written_as_a_table_without_leading_or_trailing_pipes_prints_the_unsigned_unit_and_exits_1_1931(tmp_path, run_cli):
+    import importlib
+
+    prose_owed = importlib.import_module("veri.prose_owed")
+    (tmp_path / "skills" / "demo").mkdir(parents=True)
+    (tmp_path / "skills" / "demo" / "SKILL.md").write_text("The widget is blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## skills/demo/SKILL.md\n\nID | Requirement | Why\n---|---|---\nA1 | The widget is blue. | because\n")
+
+    code, out, err = run_cli(prose_owed, [str(tmp_path)])
+
+    assert (code, out.split()) == (1, ["skills/demo/SKILL.md"]), (code, out, err)

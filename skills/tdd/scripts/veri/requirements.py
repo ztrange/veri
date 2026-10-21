@@ -16,6 +16,24 @@ def split_cells(line):
     return [c.strip() for c in re.split(r"(?<!\\)\|", line)]
 
 
+def table_cells(line):
+    line = line.strip()
+    cells = split_cells(line)
+    if line.startswith("|"):
+        cells = cells[1:]
+    if line.endswith("|"):
+        cells = cells[:-1]
+    return cells
+
+
+def is_row(line):
+    return re.search(r"(?<!\\)\|", line) is not None
+
+
+def starts_table(line):
+    return line.startswith("|") or table_cells(line) == COLUMNS
+
+
 def headings(path):
     return [l[3:] for l in read_lines(path) if l.startswith("## ")]
 
@@ -53,28 +71,28 @@ def claims(path, unit):
                 intable, done = False, True
         elif fenced:
             continue
-        elif done and line.startswith("|"):
+        elif done and starts_table(line):
             fail(path, number, "second table")
-        elif not intable and line.startswith("|"):
-            cells = split_cells(line)
-            if cells[1:] != COLUMNS + [""]:
+        elif not intable and starts_table(line):
+            cells = table_cells(line)
+            if cells != COLUMNS:
                 fail(path, number, "header lacks a column")
             intable, skip, tabled = True, True, True
-        elif intable and not line.startswith("|"):
+        elif intable and not is_row(line):
             intable, done = False, True
         elif intable and skip:
             skip = False
-        elif intable and line.startswith("|"):
-            cells = split_cells(line)
-            cells += [""] * (3 - len(cells))
-            if cells[1] == "":
+        elif intable and is_row(line):
+            cells = table_cells(line)
+            cells += [""] * (2 - len(cells))
+            if cells[0] == "":
                 fail(path, number, "empty ID")
-            if cells[2] == "":
-                fail(path, number, "empty Requirement for " + cells[1])
-            if cells[1] in seen:
-                fail(path, number, "duplicate ID " + cells[1])
-            seen.add(cells[1])
-            rows.append("%s\t%s\n" % (cells[1], cells[2]))
+            if cells[1] == "":
+                fail(path, number, "empty Requirement for " + cells[0])
+            if cells[0] in seen:
+                fail(path, number, "duplicate ID " + cells[0])
+            seen.add(cells[0])
+            rows.append("%s\t%s\n" % (cells[0], cells[1]))
     if head and not tabled:
         number = head
         fail(path, number, "unit has no table")
