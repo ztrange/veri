@@ -76,7 +76,7 @@ def _create(unit, path, rows):
     _write_list(path, unit, rows)
 
 
-def _move_table(unit, path, name):
+def _move_table(unit, path):
     lines = requirements.read_lines(unit)
     start = next((n for n, l in enumerate(lines) if l.strip() == "## Requirements"), None)
     if start is None:
@@ -85,14 +85,14 @@ def _move_table(unit, path, name):
     table = [l for l in lines[start:end] if l.startswith("|")]
     if not table:
         return False
-    _append_section(path, name, table)
+    _append_section(path, unit, table)
     _write(unit, _trimmed(lines[:start] + lines[end:]) + [""])
     return True
 
 
 def apply(issue, unit):
     path = skill_edit_guard.list_path(unit)
-    moved = not _claimed(path, unit) and os.path.exists(unit) and _move_table(unit, path, unit)
+    moved = not _claimed(path, unit) and os.path.exists(unit) and _move_table(unit, path)
     rows = _issue_rows(issue, unit)
     if rows and not os.path.exists(unit):
         _create(unit, path, rows)
