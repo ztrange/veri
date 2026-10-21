@@ -1,11 +1,11 @@
 ### 📊 Metrics — issue 1726
 
-Wall time for the issue: 10858 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 1 s, excluded from it.
-Steps done: 22 of 22 planned.
+Wall time for the issue: 1928 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 0 s, excluded from it.
+Steps done: 28 of 28 planned.
 Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/1940.
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $8.05 over 170 turns, in 1 sessions.
+Conductor own spending: $12.66 over 240 turns, in 2 sessions.
 
 #### Conductor per turn
 
@@ -181,6 +181,75 @@ Conductor own spending: $8.05 over 170 turns, in 1 sessions.
 | 168 | $0.06 | 249058 |
 | 169 | $0.05 | 249492 |
 | 170 | $0.05 | 250080 |
+| 171 | $0.06 | 250713 |
+| 172 | $0.06 | 252369 |
+| 173 | $0.06 | 253293 |
+| 174 | $0.05 | 253756 |
+| 175 | $0.54 | 84874 |
+| 176 | $0.04 | 87674 |
+| 177 | $0.02 | 88145 |
+| 178 | $0.05 | 92628 |
+| 179 | $0.02 | 93118 |
+| 180 | $0.03 | 94644 |
+| 181 | $0.02 | 95105 |
+| 182 | $0.02 | 95421 |
+| 183 | $0.02 | 95918 |
+| 184 | $0.02 | 96219 |
+| 185 | $0.02 | 96602 |
+| 186 | $0.02 | 97098 |
+| 187 | $0.02 | 97545 |
+| 188 | $0.03 | 98260 |
+| 189 | $0.05 | 101441 |
+| 190 | $0.03 | 102658 |
+| 191 | $0.04 | 104564 |
+| 192 | $0.04 | 106824 |
+| 193 | $0.05 | 110923 |
+| 194 | $0.05 | 114737 |
+| 195 | $0.03 | 115289 |
+| 196 | $0.03 | 116000 |
+| 197 | $0.03 | 116782 |
+| 198 | $0.03 | 117079 |
+| 199 | $0.03 | 118448 |
+| 200 | $0.03 | 119198 |
+| 201 | $0.04 | 121032 |
+| 202 | $0.03 | 121621 |
+| 203 | $0.03 | 122054 |
+| 204 | $0.03 | 123009 |
+| 205 | $0.03 | 123572 |
+| 206 | $0.03 | 124540 |
+| 207 | $0.03 | 124923 |
+| 208 | $0.03 | 125881 |
+| 209 | $0.03 | 126650 |
+| 210 | $0.03 | 127094 |
+| 211 | $0.03 | 127787 |
+| 212 | $0.04 | 129335 |
+| 213 | $0.04 | 130697 |
+| 214 | $0.03 | 131728 |
+| 215 | $0.04 | 133559 |
+| 216 | $0.03 | 134533 |
+| 217 | $0.04 | 136159 |
+| 218 | $0.03 | 136956 |
+| 219 | $0.04 | 137834 |
+| 220 | $0.05 | 140282 |
+| 221 | $0.04 | 141145 |
+| 222 | $0.04 | 142417 |
+| 223 | $0.04 | 143289 |
+| 224 | $0.03 | 143719 |
+| 225 | $0.03 | 143999 |
+| 226 | $0.04 | 144799 |
+| 227 | $0.03 | 145298 |
+| 228 | $0.04 | 146086 |
+| 229 | $0.03 | 146711 |
+| 230 | $0.03 | 147200 |
+| 231 | $0.03 | 147520 |
+| 232 | $0.04 | 149253 |
+| 233 | $0.04 | 149999 |
+| 234 | $0.04 | 150936 |
+| 235 | $0.04 | 151690 |
+| 236 | $0.04 | 153098 |
+| 237 | $0.04 | 154395 |
+| 238 | $0.03 | 154710 |
+| 239 | $0.04 | 155217 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -188,22 +257,22 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 2 | 1 | 1 | 0 | 48 | 44 | 3 | 6 | 4184 | 66679 | 33327 | 0.13 |
-| red | 43 | 18 | 1 | 0 | 1520 | 896 | 230 | 440 | 92037 | 6950381 | 804856 | 3.91 |
-| green | 48 | 17 | 6 | 0 | 4275 | 855 | 232 | 448 | 74657 | 6696346 | 730554 | 3.87 |
+| red | 51 | 20 | 1 | 0 | 2058 | 1137 | 295 | 570 | 123133 | 9347877 | 1025558 | 5.02 |
+| green | 52 | 19 | 6 | 0 | 4429 | 901 | 248 | 480 | 78717 | 7145664 | 792193 | 4.11 |
 | red-missing | 2 | 0 | 0 | 0 | 108 | 33 | 7 | 14 | 3484 | 297568 | 72624 | 0.25 |
-| pin | 8 | 7 | 1 | 0 | 192 | 113 | 38 | 72 | 11186 | 1009126 | 123321 | 0.52 |
-| refactor | 33 | 16 | 0 | 0 | 896 | 323 | 110 | 198 | 23920 | 2599969 | 461441 | 1.65 |
+| pin | 12 | 11 | 1 | 0 | 277 | 161 | 55 | 106 | 16087 | 1481772 | 183363 | 0.77 |
+| refactor | 37 | 18 | 0 | 0 | 971 | 345 | 121 | 218 | 25814 | 2854078 | 519151 | 1.84 |
 | diff | 4 | 2 | 0 | 0 | 421 | 62 | 24 | 48 | 5925 | 682921 | 58631 | 0.27 |
-| predicate | 3 | 0 | 0 | 0 | 34 | 24 | 11 | 22 | 2370 | 288590 | 38184 | 0.15 |
-| structural | 2 | 0 | 0 | 0 | 68 | 19 | 9 | 18 | 1975 | 246133 | 26743 | 0.11 |
+| predicate | 5 | 0 | 0 | 0 | 61 | 46 | 20 | 40 | 4272 | 534796 | 65528 | 0.26 |
+| structural | 3 | 0 | 0 | 0 | 82 | 30 | 15 | 30 | 3188 | 419301 | 41423 | 0.18 |
 | transform | 1 | 1 | 0 | 0 | 55 | 9 | 3 | 6 | 746 | 74771 | 14183 | 0.05 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 71 | 62 | 9 | 0 | 3889 | 889 | 253 | 494 | 75991 | 6670721 | 957567 | 3.99 |
-| developer | claude-sonnet-5-5 | 62 | 0 | 0 | 0 | 2606 | 1159 | 335 | 626 | 113863 | 9825422 | 1138676 | 5.13 |
+| verifier | claude-sonnet-5-5 | 81 | 72 | 9 | 0 | 4144 | 991 | 289 | 566 | 86087 | 7629359 | 1125899 | 4.61 |
+| developer | claude-sonnet-5-5 | 75 | 0 | 0 | 0 | 3244 | 1447 | 423 | 800 | 148833 | 12859727 | 1412461 | 6.47 |
 | developer | claude-opus-5-5 | 13 | 0 | 0 | 0 | 1122 | 330 | 79 | 152 | 30630 | 2416341 | 267621 | 1.80 |
 
 #### Rework and waste, by phase
@@ -248,6 +317,12 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | CLAUDE.md's budgets invariant names `VERI_SKILL_EDIT_BUDGET` (the attempts one ⟦skill-edit⟧ step's author may make) as a sixth budget on an axis of its own, never folded into the other five ⟦diff-checked⟧ ⟦criterion 6⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 24 | 10 | 20 | 2462 | 277418 | 27950 | 0.12 | 239 | n/a | n/a | n/a |  |  | full |
 | a test-only case pins `VERI_SKILL_EDIT_BUDGET` as its own budget, adding no production change: the runner's author attempts follow it alone when `REVISE_BUDGET`, `VERI_STUCK_RETRIES`, `VERI_NO_VERDICT_RETRIES`, `VERI_REFACTOR_BUDGET` and `VERI_STEP_GROWTH` are set to other values (stub grader and stub author), and CLAUDE.md's budgets invariant lists it ⟦diff-checked⟧ ⟦criterion 6⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 38 | 14 | 28 | 3463 | 405503 | 30681 | 0.15 | 271 | n/a | n/a | n/a |  |  | full |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/test_shims.py — FAILED test_every_module_a_shim_execs_goes_through_the_shared_entry_point (skill_edit_guard.py does not run through entry.run); skills/tdd/scripts/tests/py/unit/test_tunable_reads.py — FAILED test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment and test_run_leaf_run_verdict_and_stop_run_take_their_veri_values_from_the_one_reader_and_no_module_is_exempt (skill_edit_step.py:115 reads a VERI_ name from the environment directly) ⟦suite-repair⟧ ⟦criterion 6⟧ | 12 | 4 | 0 | 0 | 0 | 0 | 129 | 43 | 88 | 11208 | 1178014 | 160455 | 0.80 | 1452 | unknown | 0/5 | structural-owed |  |  | full |
+| `skill-edit-guard.sh` reports a path moved out of scope: after `git mv` of a file outside the unit onto the unit's file or onto the `REQUIREMENTS.md` beside it, the guard prints the old path and exits 1, never exit 0 with nothing printed; pinned by a case ⟦criterion 7⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 55 | 22 | 44 | 5617 | 585512 | 128630 | 0.44 | 271 | unknown | 0/5 | nothing-left |  |  | full |
+| a `skill-edit-guard.sh` exit 2 makes `skill-edit-step.sh` exit 2 with nothing signed and nothing committed, never treated as a pass; pinned by a case with a stub grader and a stub author ⟦criterion 8⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 147 | 41 | 80 | 17911 | 1539423 | 121165 | 0.64 | 468 | unknown | 0/5 | nothing-left |  |  | full |
+| a relaunched author's prompt carries the FAIL reasons of the latest grading, not the first one's: pinned by a case whose stub grader returns a different FAIL reason on each grading, asserting the second author prompt carries the second reason ⟦criterion 9⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 45 | 14 | 28 | 5359 | 453796 | 40607 | 0.20 | unknown | unknown | unknown | unknown |  |  | pin |
+| the exit 2 for a bad `VERI_SKILL_EDIT_BUDGET` comes from validating it: pinned by a case in which every other call `skill-edit-step.sh` makes before launching (`git rev-parse` included) succeeds, so removing the budget validation turns the case red ⟦criterion 10⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 44 | 12 | 24 | 5011 | 382228 | 37982 | 0.18 | unknown | unknown | unknown | unknown |  |  | pin |
+| a case sets `REVISE_BUDGET`, `VERI_STUCK_RETRIES`, `VERI_NO_VERDICT_RETRIES`, `VERI_REFACTOR_BUDGET` and `VERI_STEP_GROWTH` to values other than `VERI_SKILL_EDIT_BUDGET` alongside it (stub grader that keeps rejecting, stub author) and shows `skill-edit-step.sh`'s author attempts follow `VERI_SKILL_EDIT_BUDGET` alone; no production change ⟦added⟧ ⟦criterion 6⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 43 | 11 | 22 | 5551 | 343715 | 38543 | 0.19 | unknown | unknown | unknown | unknown |  |  | pin |
+| a case pins that CLAUDE.md's budgets invariant names `VERI_SKILL_EDIT_BUDGET` as a sixth budget; no production change ⟦added⟧ ⟦criterion 6⟧ | 5 | 1 | 0 | 0 | 0 | 0 | 56 | 24 | 48 | 5617 | 688269 | 75190 | 0.31 | unknown | unknown | unknown | unknown |  |  | pin |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -271,23 +346,25 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | when an attempt grades PASS, `skill-edit-step.sh` runs `skill-edit-guard.sh` on the unit against the HEAD it started from, judging the author's changes and not `grade-prose.sh`'s own signature; a guard exit 1 (a stub author that touches `GRADED`) rejects the attempt like a REJECT, spending one attempt, and nothing the author wrote to `GRADED` is committed ⟦criterion 5⟧ | 1 | 1/5 | nothing-structural | PASS | 0 | 115 | 0.11 |
 | when an attempt grades PASS and the guard exits 0, `skill-edit-step.sh` signs through `grade-prose.sh` and commits the list, the prose and `GRADED` in one commit and exits 0, leaving `prose-owed.sh` listing nothing for the unit; pinned with a stub grader and a stub author ⟦criterion 5⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 71 | 0.09 |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/test_shims.py — FAILED test_every_module_a_shim_execs_goes_through_the_shared_entry_point (skill_edit_guard.py does not run through entry.run); skills/tdd/scripts/tests/py/unit/test_tunable_reads.py — FAILED test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment and test_run_leaf_run_verdict_and_stop_run_take_their_veri_values_from_the_one_reader_and_no_module_is_exempt (skill_edit_step.py:115 reads a VERI_ name from the environment directly) ⟦suite-repair⟧ ⟦criterion 6⟧ | 1 | 0/5 | structural-owed | PASS | 0 | 36 | 0.10 |
+| `skill-edit-guard.sh` reports a path moved out of scope: after `git mv` of a file outside the unit onto the unit's file or onto the `REQUIREMENTS.md` beside it, the guard prints the old path and exits 1, never exit 0 with nothing printed; pinned by a case ⟦criterion 7⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 41 | 0.09 |
+| a `skill-edit-guard.sh` exit 2 makes `skill-edit-step.sh` exit 2 with nothing signed and nothing committed, never treated as a pass; pinned by a case with a stub grader and a stub author ⟦criterion 8⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 34 | 0.10 |
 
 #### Structural pass
 
 | pass | refactor | stopped |
 | --- | ---: | --- |
-| issue | 1/3 | candidates-done |
+| issue | 0/3 | candidates-done |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s | run 95 s | run 96 s | run 97 s | run 98 s | run 99 s | run 100 s | run 101 s | run 102 s | run 103 s | run 104 s | run 105 s | run 106 s | run 107 s | run 108 s | run 109 s | run 110 s | run 111 s | run 112 s | run 113 s | run 114 s | run 115 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 2 | 2 | 0 | 2 | 2 | 66 | 65 | 63 | 65 | 2 | 2 | 3 | 2 | 3 | 3 | 3 | 2 | 2 | 2 | 2 | 3 | 3 | 2 | 3 | 4 | 3 | 4 | 3 | 4 | 3 | 5 | 3 | 4 | 3 | 4 | 1 | 1 | 1 | 67 | 6 | 2 | 1 | 2 | 1 | 2 | 1 | 1 | 1 | 1 | 2 | 2 | 1 | 2 | 1 | 1 | 1 | 2 | 1 | 2 | 2 | 1 | 2 | 1 | 1 | 2 | 3 | 0 | 4 | 3 | 4 | 3 | 5 | 5 | 5 | 9 | 11 | 8 | 12 | 17 | 17 | 22 | 25 | 22 | 32 | 28 | 28 | 33 | 33 | 1 | 1 | 2 | 1 | 2 | 1 | 37 | 37 | 0 | 37 | 37 | 37 | 37 | 36 | 42 | 41 | 41 | 40 | 40 | 107 | 0 | 105 | 3 | 2 | 2 | 43 | 43 |
-| fast | 15 | 15 | 14 | 14 | 15 | 15 | 15 | 15 | 15 | 15 | 14 | 15 | 14 | 14 | 15 | 15 | 15 | 15 | 14 | 15 | 15 | 15 | 14 | 15 | 15 | 15 | 15 | 15 | 15 | 15 | 15 | 14 | 15 | 19 | 19 | 18 | 17 | 16 | 19 | 18 | 17 | 17 | 18 | 20 | 19 | 18 | 18 | 16 | 16 | 16 | 16 | 16 | 18 | 18 | 18 | 18 | 18 | 16 | 18 | 15 | 15 | 15 | 15 | 16 | 15 | 16 | 15 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 2 | 1 | 2 | 2 | 2 | 2 | 1 | 1 | 1 | 2 | 2 | 4 | 2 | 1 | 2 | 1 | 1 | 2 | 2 | 1 | 2 | 1 | 2 | 2 | 3 | 6 | 12 | 6 | 11 | 28 | 4 | 4 | 5 | 6 | 1 | 1 | 5 | 5 | 5 | 2 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s | run 95 s | run 96 s | run 97 s | run 98 s | run 99 s | run 100 s | run 101 s | run 102 s | run 103 s | run 104 s | run 105 s | run 106 s | run 107 s | run 108 s | run 109 s | run 110 s | run 111 s | run 112 s | run 113 s | run 114 s | run 115 s | run 116 s | run 117 s | run 118 s | run 119 s | run 120 s | run 121 s | run 122 s | run 123 s | run 124 s | run 125 s | run 126 s | run 127 s | run 128 s | run 129 s | run 130 s | run 131 s | run 132 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 2 | 2 | 0 | 2 | 2 | 66 | 65 | 63 | 65 | 2 | 2 | 3 | 2 | 3 | 3 | 3 | 2 | 2 | 2 | 2 | 3 | 3 | 2 | 3 | 4 | 3 | 4 | 3 | 4 | 3 | 5 | 3 | 4 | 3 | 4 | 1 | 1 | 1 | 67 | 6 | 2 | 1 | 2 | 1 | 2 | 1 | 1 | 1 | 1 | 2 | 2 | 1 | 2 | 1 | 1 | 1 | 2 | 1 | 2 | 2 | 1 | 2 | 1 | 1 | 2 | 3 | 0 | 4 | 3 | 4 | 3 | 5 | 5 | 5 | 9 | 11 | 8 | 12 | 17 | 17 | 22 | 25 | 22 | 32 | 28 | 28 | 33 | 33 | 1 | 1 | 2 | 1 | 2 | 1 | 37 | 37 | 0 | 37 | 37 | 37 | 37 | 36 | 42 | 41 | 41 | 40 | 40 | 107 | 0 | 105 | 3 | 2 | 2 | 43 | 43 | 6 | 5 | 5 | 5 | 6 | 44 | 42 | 2 | 1 | 2 | 1 | 1 | 2 | 47 | 47 | 2 | 2 |
+| fast | 15 | 15 | 14 | 14 | 15 | 15 | 15 | 15 | 15 | 15 | 14 | 15 | 14 | 14 | 15 | 15 | 15 | 15 | 14 | 15 | 15 | 15 | 14 | 15 | 15 | 15 | 15 | 15 | 15 | 15 | 15 | 14 | 15 | 19 | 19 | 18 | 17 | 16 | 19 | 18 | 17 | 17 | 18 | 20 | 19 | 18 | 18 | 16 | 16 | 16 | 16 | 16 | 18 | 18 | 18 | 18 | 18 | 16 | 18 | 15 | 15 | 15 | 15 | 16 | 15 | 16 | 15 | 18 | 17 | 17 | 16 | 15 | 15 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 2 | 1 | 2 | 2 | 2 | 2 | 1 | 1 | 1 | 2 | 2 | 4 | 2 | 1 | 2 | 1 | 1 | 2 | 2 | 1 | 2 | 1 | 2 | 2 | 3 | 6 | 12 | 6 | 11 | 28 | 4 | 4 | 5 | 6 | 1 | 1 | 5 | 5 | 5 | 2 | 4 | 1 | 8 | 9 | 1 | 3 | 2 | 1 | 1 | 2 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 667 | 1272 | 220484 | 18912484 | 2363864 | 10.92 |
+| total | 791 | 1518 | 265550 | 22905427 | 2805981 | 12.88 |
