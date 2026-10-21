@@ -26,32 +26,17 @@ def with_draft_flag(pulls):
     return [dict(pr, isDraft=pr.get("draft", pr.get("isDraft", False))) for pr in pulls]
 
 
-def rest_open_prs(*extra):
-    path = OPEN_PULLS
-    if extra:
-        path += "&head={owner}:" + extra[-1]
-    return with_draft_flag(json_documents.items(github.gh_rest_list(path)))
-
-
 def open_prs(fields, *extra):
     if tunables.read("VERI_GH_JSON"):
         pulls = json.loads(github.gh_json("prs.json", OPEN_PULLS))
         if extra:
             pulls = [pr for pr in pulls if pr.get("head", {}).get("ref") == extra[-1]]
         return with_draft_flag(pulls)
-    driver = tunables.read("VERI_GH_DRIVER", "rest")
-    if driver not in ("rest", "graphql", "auto"):
-        print("VERI_GH_DRIVER is '%s': expected auto, rest or graphql" % driver, file=sys.stderr)
-        raise github.NoAnswer("")
-    if driver == "rest":
-        return rest_open_prs(*extra)
-    try:
-        answer = github.GraphQLAdapter().list("pr", "list", *extra, "--state", "open", "--json", fields)
-    except github.NoAnswer:
-        if driver == "auto":
-            return rest_open_prs(*extra)
-        raise
-    return json.loads(answer or "[]")
+    path = OPEN_PULLS
+    if extra:
+        path += "&head={owner}:" + extra[-1]
+    answer = github.gh_list(path, "pr", "list", *extra, "--state", "open", "--json", fields)
+    return with_draft_flag(json_documents.items(answer))
 
 
 def has_open_pr(branch):
