@@ -673,3 +673,25 @@ def test_a_process_case_that_starts_push_branch_sh_into_its_backoff_without_veri
     assert ran.returncode == 1, output
     assert "1 passed, 1 error" in output, output
     assert "test_probe.py::test_probe reached the push backoff without setting VERI_PUSH_BACKOFF" in output, output
+
+
+@pytest.mark.process("a child pytest session whose unmarked and tree_audit-marked cases list a repository directory")
+def test_an_unmarked_case_that_lists_a_repository_directory_outside_its_tmp_path_fails_naming_the_case_and_the_directory_while_a_tree_audit_case_passes(tmp_path):
+    listed = pathlib.Path(__file__).resolve().parent
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import os\n"
+        "import pytest\n"
+        "def test_unmarked():\n"
+        "    os.listdir(%r)\n"
+        "@pytest.mark.tree_audit('the tests directory')\n"
+        "def test_marked():\n"
+        "    os.listdir(%r)\n" % (str(listed), str(listed)))
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode != 0, output
+    assert "FAILED test_probe.py::test_unmarked" in output, output
+    assert "lists the repository directory %s" % listed in output, output
+    assert "test_probe.py::test_marked" not in output, output
