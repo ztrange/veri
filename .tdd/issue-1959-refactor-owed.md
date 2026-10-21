@@ -24,3 +24,5 @@ applied | ad7fc1532ca0f0db394d85958638c7ef91fb8cd5 | `_create` and the no-list b
 - test-only | none
 applied | 90760f226d7436e451b645ddeddec4db662421b4 | `_create(unit, path, name, rows)` is now always called with `name == unit`, so the `name` parameter could be dropped. It is not duplicated code, so I did not apply it under the duplication-only rule.
 applied | f915640fd8df20f535595ade47d4af87d0a047dd | `_create`, `_write_list` and `_move_table` take a `name` parameter that every caller passes as `unit`. Dropping it is a rename or narrowing, not duplication removal, so I didn't apply it.
+applied | 5718e2ded689314306abbdbf5dfa21790349eef4 | In `apply`, `name = os.path.basename(unit)` is only used in `line[3:] in (name, unit)`. The basename is left over from the old heading scheme, now that sections are headed by the full path. Removing it changes which headings match, so it is a behaviour question, not a tidy-up.
+applied | 5718e2ded689314306abbdbf5dfa21790349eef4 | `name` (basename) is still matched as a `## ` section heading at skill_edit_step.py:106 alongside the full unit path. Removing it would change behaviour, so I left it.
