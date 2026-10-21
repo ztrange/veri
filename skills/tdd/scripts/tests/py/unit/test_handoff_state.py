@@ -412,3 +412,30 @@ def test_main_exits_2_naming_the_refused_pr_listing_and_prints_no_empty_lists_wh
     monkeypatch.setattr(status, "json_document", lambda scope=None: (0, document))
     code, out, err = run_cli(handoff_state, [])
     assert (code, "PR listing" in err, "## Parked" in out, "## Ready to merge" in out) == (2, True, False, False)
+
+
+@pytest.mark.parametrize("driver", ["bogus", ""])
+def test_main_exits_2_naming_an_invalid_driver_as_github_select_refuses_it_and_starts_no_gh_1974(tmp_path, monkeypatch, run_cli, fake_processes, driver):
+    handoff_state = importlib.import_module("veri.handoff_state")
+    status = importlib.import_module("veri.status")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_GH_DRIVER", driver)
+    runs = [
+        {"issue": 62, "title": "Bailed", "branch": "tdd/62-b", "step": "1 of 2", "phase": "red", "state": "bailed",
+         "bail_phase": "verify-red", "classification": "process-failure", "stop_mode": "", "dollars": 1, "elapsed_seconds": 1},
+    ]
+    document = json.dumps({"runs": runs, "scope": None})
+
+    def answer(line, **kwargs):
+        if line.startswith("git rev-parse"):
+            return 0, SHA + "\n", ""
+        if line.startswith("git tag"):
+            return 0, "v0.9\n", ""
+        return 0, "[]\n", ""
+
+    calls = fake_processes(answer)
+    monkeypatch.setattr(status, "json_document", lambda scope=None: (0, document))
+    code, out, err = run_cli(handoff_state, [])
+    started_gh = [line for line in calls if line.startswith("gh")]
+    refusal = "VERI_GH_DRIVER is '%s': expected auto, rest or graphql" % driver
+    assert (code, refusal in err, started_gh) == (2, True, [])
