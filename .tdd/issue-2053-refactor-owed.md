@@ -1,2 +1,4 @@
 ### A worker count `VERI_PYTEST_WORKERS` that is set but is not a whole number ≥ 1 (`0`, `-2`, `two`, `1.5`) makes the pytest leg exit 2 with a stderr line naming the variable and the value, before `pytest.main` is called, so no case runs; an in-process case in tests/py/test_pytest_leg.py ⟦criterion 1⟧
 - test-only | the `VERI_PYTEST_IMPORTABLE`/`VERI_PYTEST_TIMEOUT_IMPORTABLE`/`VERI_PYTEST_XDIST_IMPORTABLE` env dicts repeat across the cases in `test_pytest_leg.py`; a shared base dict could replace them
+### `VERI_PYTEST_WORKERS=N` with N ≥ 2 hands pytest the parallel runner's worker option for N workers (`-n N`), and `VERI_PYTEST_WORKERS=1` runs serially, handing pytest exactly today's arguments with no worker option; in-process cases spying on `pytest.main` ⟦criterion 1⟧
+- test-only | test_pytest_leg.py repeats the VERI_PYTEST_IMPORTABLE/TIMEOUT_IMPORTABLE/XDIST_IMPORTABLE/WORKERS env dict across cases; a shared helper or fixture could replace it
