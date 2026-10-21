@@ -31,7 +31,7 @@ def main(argv):
             return 2
     import pytest
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    os.environ["PYTEST_PLUGINS"] = ",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "small_case_guard", "network_guard"]))
+    os.environ["PYTEST_PLUGINS"] = ",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "small_case_guard", "network_guard", "scratch_tree"]))
     def terminate(signum, frame):
         sys.exit(128 + signum)
     previous = signal.signal(signal.SIGTERM, terminate)
