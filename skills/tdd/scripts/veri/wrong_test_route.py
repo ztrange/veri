@@ -35,15 +35,20 @@ def is_js_test_file(name, root=""):
     return in_tests and re.search(JS_EXT, name) is not None
 
 
-def _has_live_call(pattern, text):
+def _live_call(pattern, text):
     def code(prefix):
         return re.sub(r"\"[^\"]*\"|'[^']*'|`[^`]*`", "", prefix)
-    return any("//" not in code(text[text.rfind("\n", 0, m.start()) + 1:m.start()]) for m in pattern.finditer(text))
+    for m in pattern.finditer(text):
+        if "//" not in code(text[text.rfind("\n", 0, m.start()) + 1:m.start()]):
+            return m.group(1)
+    return None
 
 
 def _exists(case):
     py = re.compile(r"def %s\(" % re.escape(case))
-    js = re.compile(r"\b(?:it|test)(?:\.(?:only|skip))?(?:\.each(?:\([^)]*\)|`[^`]*`))?\(\s*['\"]%s['\"]" % re.escape(case))
+    prefix = case[:-1] if case.endswith("…") else case[:-3] if case.endswith("...") else None
+    title = "(%s[^'\"]*)" % re.escape(prefix) if prefix is not None else "(%s)" % re.escape(case)
+    js = re.compile(r"\b(?:it|test)(?:\.(?:only|skip))?(?:\.each(?:\([^)]*\)|`[^`]*`))?\(\s*['\"]" + title + r"['\"]")
     for root, dirs, files in os.walk("."):
         dirs[:] = [d for d in dirs if d not in SKIPPED]
         for name in files:
@@ -54,8 +59,9 @@ def _exists(case):
                 text = handle.read()
             if is_test_file(name) and case.startswith("test_") and py.search(text):
                 return True
-            if js_file and _has_live_call(js, re.sub(r"/\*.*?\*/", "", text, flags=re.S)):
-                return True
+            found = js_file and _live_call(js, re.sub(r"/\*.*?\*/", "", text, flags=re.S))
+            if found:
+                return found
             if name.endswith(".test.sh") and ('name="%s"' % case) in text:
                 return True
     return False
@@ -80,8 +86,10 @@ def _case_name(test_id):
 
 def route(report, own_id):
     for case in _named_cases(report):
-        if case != _case_name(own_id) and _exists(case):
-            return case
+        if case != _case_name(own_id):
+            found = _exists(case)
+            if found:
+                return case if found is True else found
     return None
 
 
