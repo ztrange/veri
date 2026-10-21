@@ -235,6 +235,46 @@ def test_main_reads_parked_and_ready_prs_over_the_rest_pulls_route_and_starts_no
         0, [], ["#62 bailed verify-red process-failure"], ["PR #212 closes #312"])
 
 
+def test_main_reads_parked_and_ready_prs_over_the_rest_pulls_route_by_default_with_the_driver_unset_1974(tmp_path, monkeypatch, run_cli, fake_processes):
+    handoff_state = importlib.import_module("veri.handoff_state")
+    status = importlib.import_module("veri.status")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    runs = [
+        {"issue": 62, "title": "Bailed", "branch": "tdd/62-b", "step": "1 of 2", "phase": "red", "state": "bailed",
+         "bail_phase": "verify-red", "classification": "process-failure", "stop_mode": "", "dollars": 1, "elapsed_seconds": 1},
+        {"issue": 63, "title": "Bailed too", "branch": "tdd/63-c", "step": "1 of 2", "phase": "red", "state": "bailed",
+         "bail_phase": "verify-red", "classification": "process-failure", "stop_mode": "", "dollars": 1, "elapsed_seconds": 1},
+    ]
+    document = json.dumps({"runs": runs, "scope": None})
+    prs = [
+        {"number": 212, "draft": False, "body": "Closes #312", "head": {"ref": "tdd/62-b"}},
+        {"number": 213, "draft": True, "body": "Closes #313", "head": {"ref": "tdd/64-d"}},
+    ]
+
+    def answer(line, **kwargs):
+        if line.startswith("git rev-parse"):
+            return 0, SHA + "\n", ""
+        if line.startswith("git tag"):
+            return 0, "v0.9\n", ""
+        if line.startswith("gh api") and "/pulls" in line and "state=open" in line:
+            if "page=2" in line:
+                return 0, "[]\n", ""
+            wanted = [pr for pr in prs if "head=" not in line or pr["head"]["ref"] in line]
+            return 0, json.dumps(wanted) + "\n", ""
+        return 1, "", "no such route"
+
+    calls = fake_processes(answer)
+    monkeypatch.setattr(status, "json_document", lambda scope=None: (0, document))
+    code, out, err = run_cli(handoff_state, [])
+    lines = out.splitlines()
+    parked = lines[lines.index("## Parked") + 1:lines.index("## Ready to merge")]
+    ready = lines[lines.index("## Ready to merge") + 1:]
+    started_pr = [line for line in calls if line.startswith("gh pr")]
+    assert (code, started_pr, parked, ready) == (
+        0, [], ["#62 bailed verify-red process-failure"], ["PR #212 closes #312"])
+
+
 def test_main_reads_its_open_prs_from_the_gh_json_fixture_and_starts_no_gh_1974(tmp_path, monkeypatch, run_cli, fake_processes):
     handoff_state = importlib.import_module("veri.handoff_state")
     status = importlib.import_module("veri.status")

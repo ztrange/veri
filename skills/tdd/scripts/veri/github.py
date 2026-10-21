@@ -67,7 +67,7 @@ class RestAdapter:
             if run.returncode != 0:
                 raise NoAnswer(answer)
             body = run.stdout.rstrip("\n")
-            if re.search(empty, body):
+            if not body or re.search(empty, body):
                 return answer
             answer += body
             page += 1
