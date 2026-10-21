@@ -164,3 +164,13 @@ def test_skill_md_s_structural_pass_names_neither_refactor_overflow_sh_nor_refac
     text = pass_text()
     for phrase in ("refactor-overflow.sh", "refactor-owed.sh out-of-scope", "Refactor owed by #"):
         assert phrase not in text, f"SKILL.md's structural pass still names {phrase!r}"
+
+
+def test_skill_md_s_structural_pass_runs_a_develop_cover_leaf_read_through_cover_outcome_sh_before_each_transform_leaf_and_cover_no_launches_no_transform_records_uncovered_under_not_done_and_neither_bails_nor_files():
+    text = squeezed()
+    requires(text, "build-develop-prompt.sh cover", "develop-cover", "cover-outcome.sh")
+    cover, outcome, transform = (text.find(p) for p in ("develop-cover", "cover-outcome.sh", "as develop-structural"))
+    assert 0 <= cover < outcome < transform, f"cover leaf not ordered before the transform: cover {cover}, outcome {outcome}, transform {transform}"
+    no = after(text, "COVERED: no")
+    requires(until(no, "predicate leaf"), "launches no transform", "refactor-owed.sh not-done .tdd/issue-<n>-refactor-owed.md '<candidate>' uncovered",
+             "neither bails nor files anything")
