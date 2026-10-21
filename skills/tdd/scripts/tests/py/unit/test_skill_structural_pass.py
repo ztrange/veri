@@ -192,3 +192,7 @@ def test_skill_md_s_structural_pass_computes_each_candidate_s_bound_with_refacto
 
 def test_skill_md_s_structural_pass_records_a_candidate_the_budget_stops_with_refactor_owed_sh_not_done_and_reason_budget_spent():
     requires(pass_text(), "refactor-owed.sh not-done .tdd/issue-<n>-refactor-owed.md '<candidate>' budget-spent")
+
+
+def test_skill_md_s_structural_pass_records_a_candidate_whose_transform_was_rejected_with_refactor_owed_sh_not_done_and_reason_transform_rejected():
+    requires(pass_text(), "candidate transform-rejected with refactor-owed.sh not-done")
