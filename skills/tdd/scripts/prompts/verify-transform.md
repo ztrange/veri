@@ -23,5 +23,8 @@ the range carry the author's rationale. Render one verdict on the settled result
 
 3. **One refactoring.** The range applies the refactoring the step names and nothing else.
 
-PASS if the predicate holds, the suites are green and the range is that one refactoring.
+4. **No observable change.** A range that changes observable behaviour is a REJECT.
+
+PASS if the predicate holds, the suites are green, the range is that one refactoring and it
+changes no observable behaviour.
 REJECT, naming the specific problem, otherwise.

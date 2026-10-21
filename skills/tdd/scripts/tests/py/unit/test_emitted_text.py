@@ -96,7 +96,7 @@ PROMPTS = [
     ("2734394304 12832", "build-verify-prompt.sh", ["plan", "{spec}", "{ledger}"]),
     ("150996615 13953", "build-verify-prompt.sh", ["plan", "{refactor}", "{ledger}"]),
     ("861244543 5404", "build-verify-prompt.sh", ["rebase", "{spec}", "0123456", "89abcde"]),
-    ("294442801 5090", "build-verify-prompt.sh", ["transform", "{spec}", "{reason}", "0123456"]),
+    ("3592128488 5211", "build-verify-prompt.sh", ["transform", "{spec}", "{reason}", "0123456"]),
 ]
 
 
