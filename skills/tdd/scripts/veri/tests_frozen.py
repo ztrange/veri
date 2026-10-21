@@ -120,6 +120,10 @@ def main(argv):
     if mode == "check":
         if by_step and _refused_outside_repository():
             return 2
+        if by_step and subprocess.run(["git", "rev-parse", "--verify", "-q", "HEAD"],
+                                      stdout=subprocess.DEVNULL).returncode != 0:
+            _write(sys.stderr, "tests-frozen.sh: repository has no HEAD commit")
+            return 2
         try:
             with open(record) as handle:
                 entries = [line.rstrip("\n").split("  ", 1) for line in handle
