@@ -3,6 +3,8 @@ import importlib
 import json
 import os
 import pathlib
+import re
+import shlex
 import subprocess
 import sys
 from sys import path as search_path
@@ -87,10 +89,10 @@ def test_fake_processes_hands_output_back_in_the_calls_mode_merges_stderr_on_req
         raise AssertionError("a non-zero answer under check=True returned rather than raising")
 
 
-def child_pytest(tmp_path, probe, env):
+def child_pytest(tmp_path, probe, env, select=()):
     env = {**env, "PYTHONPATH": str(pathlib.Path(__file__).resolve().parent)}
     return subprocess.run([sys.executable, "-m", "pytest", "-p", "conftest", "-p", "no:cacheprovider", "-q",
-                           "--rootdir", str(tmp_path), str(probe)],
+                           "--rootdir", str(tmp_path), *select, str(probe)],
                           env=env, cwd=tmp_path, capture_output=True, text=True)
 
 
@@ -695,3 +697,26 @@ def test_an_unmarked_case_that_lists_a_repository_directory_outside_its_tmp_path
     assert "FAILED test_probe.py::test_unmarked" in output, output
     assert "lists the repository directory %s" % listed in output, output
     assert "test_probe.py::test_marked" not in output, output
+
+
+@pytest.mark.process("a child pytest session run with the unit recipe's own -m selection over an unmarked, a process and a tree_audit case")
+def test_the_unit_recipes_selection_runs_only_the_unmarked_case_and_deselects_the_process_and_tree_audit_cases(tmp_path):
+    makefile = pathlib.Path(__file__).resolve().parents[5] / "Makefile"
+    recipe = re.search(r"^unit: PY_SELECT = (.*)$", makefile.read_text(), re.M).group(1)
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import pytest\n"
+        "def test_unmarked():\n"
+        "    pass\n"
+        "@pytest.mark.process('a probe process')\n"
+        "def test_process():\n"
+        "    raise SystemExit(1)\n"
+        "@pytest.mark.tree_audit('a probe sweep')\n"
+        "def test_tree_audit():\n"
+        "    raise SystemExit(1)\n")
+
+    ran = child_pytest(tmp_path, probe, os.environ, shlex.split(recipe))
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode == 0, output
+    assert "1 passed, 2 deselected" in output, output
