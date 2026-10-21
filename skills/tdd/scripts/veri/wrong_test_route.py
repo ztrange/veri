@@ -84,9 +84,14 @@ def _case_name(test_id):
     return test_id.rpartition("::")[2]
 
 
+def _is_own(case, own_id):
+    tail = _case_name(own_id)
+    return case == tail or tail.endswith(" " + case)
+
+
 def route(report, own_id):
     for case in _named_cases(report):
-        if case != _case_name(own_id):
+        if not _is_own(case, own_id):
             found = _exists(case)
             if found:
                 return case if found is True else found
