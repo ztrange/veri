@@ -34,6 +34,11 @@ def _in_repository():
                           stderr=subprocess.DEVNULL).returncode == 0
 
 
+def _has_head():
+    return subprocess.run(["git", "rev-parse", "--verify", "-q", "HEAD"],
+                          stdout=subprocess.DEVNULL).returncode == 0
+
+
 def _refused_outside_repository():
     if _in_repository():
         return False
@@ -120,8 +125,7 @@ def main(argv):
     if mode == "check":
         if by_step and _refused_outside_repository():
             return 2
-        if by_step and subprocess.run(["git", "rev-parse", "--verify", "-q", "HEAD"],
-                                      stdout=subprocess.DEVNULL).returncode != 0:
+        if by_step and not _has_head():
             _write(sys.stderr, "tests-frozen.sh: repository has no HEAD commit")
             return 2
         try:
