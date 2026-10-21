@@ -214,3 +214,19 @@ def test_a_run_with_no_end_event_and_no_live_conductor_whose_conductor_log_is_on
     code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
 
     assert (code, out, err) == (0, "usage-limit 9pm\n", "")
+
+
+def test_a_conductor_log_whose_last_launch_has_no_result_record_exits_2_and_never_prints_the_earlier_launchs_reason_1938(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    run = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    run.mkdir(parents=True)
+    (run / "events.jsonl").write_text(json.dumps({"ts": 100, "issue": "7", "event": "step-done"}) + "\n")
+    conductor_log = tmp_path / ".tdd" / "conductor-7.log"
+    conductor_log.write_text("".join(json.dumps(r) + "\n" for r in (
+        {"type": "system", "subtype": "init"},
+        {"type": "result", "is_error": True, "result": "You've hit your weekly limit · resets Oct 7, 3pm"},
+        {"type": "system", "subtype": "init"})))
+
+    code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
+
+    assert (code, out, "no result record in" in err, "conductor-7.log" in err) == (2, "", True, True)
