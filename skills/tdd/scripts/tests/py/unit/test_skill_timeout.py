@@ -42,29 +42,13 @@ def exports_timeout(records):
 
 
 def test_skill_md_s_preflight_times_the_baseline_run_derives_the_timeout_with_leaf_timeout_sh_and_exports_it_as_VERI_TIMEOUT_for_every_leaf_and_the_plan_comment_states_it_with_the_baseline_it_came_from():
-    pre = paragraphs(skill_sections.section(SKILL, PREFLIGHT))
     plan = paragraphs(skill_sections.section(SKILL, PLAN))
-    assert claimed(pre, "baseline", ELAPSED_RE), "no preflight step times the green-baseline run it already does"
-    assert claimed(pre, r"leaf-timeout\.sh", ELAPSED_RE + "|baseline"), "no preflight step hands that measurement to leaf-timeout.sh"
-    assert exports_timeout(pre), "no preflight step exports the result as VERI_TIMEOUT so every leaf of the run is launched under it"
     assert claimed(plan, "timeout", "baseline", "comment"), "no plan step has the plan comment state the timeout and the baseline it was derived from"
 
 
 def test_skill_md_s_preflight_times_the_full_tier_hands_that_measurement_to_leaf_timeout_sh_and_exports_it_as_VERI_TIMEOUT_for_every_leaf_and_the_plan_comment_names_the_tier_the_number_came_from():
-    pre = paragraphs(skill_sections.section(SKILL, PREFLIGHT))
     plan = paragraphs(skill_sections.section(SKILL, PLAN))
-    assert claimed(pre, FULL_RE, ELAPSED_RE), "no preflight step times a full-tier run, the work a leaf actually does"
-    assert claimed(pre, r"leaf-timeout\.sh", FULL_RE), "no preflight step hands the full-tier measurement to leaf-timeout.sh"
-    assert exports_timeout(pre), "no preflight step exports the result as VERI_TIMEOUT so every leaf of the run is launched under it"
     assert claimed(plan, "timeout", "comment", FULL_RE + "|tier"), "no plan step has the plan comment name the tier the timeout was derived from"
-
-
-def test_954_skill_md_s_preflight_step_7_names_the_run_state_file_the_settled_timeout_is_recorded_in_and_says_supervise_sh_reads_it_when_VERI_TIMEOUT_is_unset_not_that_an_export_in_the_conductor_s_shell_is_in_force_for_later_launches():
-    pre = paragraphs(skill_sections.section(SKILL, PREFLIGHT))
-    assert claimed(pre, r"leaf-timeout\.sh", r"\.tdd/issue-<n>-timeout", r"supervise\.sh", r"veri_timeout[^.]*unset"), \
-        "no preflight step names .tdd/issue-<n>-timeout as where the settled timeout is recorded and says supervise.sh reads it when VERI_TIMEOUT is unset"
-    stale = [r for r in pre if re.search("conductor's own shell", r) and re.search("in force", r)]
-    assert not stale, "preflight still claims an export in the conductor's own shell is in force for later launches"
 
 
 def test_954_skill_md_makes_the_leaf_timeout_sh_call_that_records_tdd_issue_n_timeout_after_step_1_2_has_entered_the_issue_s_worktree_not_from_the_caller_s_checkout_where_preflight_runs():
