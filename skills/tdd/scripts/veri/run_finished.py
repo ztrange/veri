@@ -1,7 +1,6 @@
 """run-finished.sh's checks, run in-process."""
 import json
 import os
-import subprocess
 import sys
 
 import github
@@ -46,7 +45,7 @@ def main(argv):
     unmet += [("refactor-pending", r[6]) for r in steps if r[3] == "1"]
     try:
         body = pr_body(pr)
-    except (subprocess.CalledProcessError, github.NoAnswer):
+    except github.NoAnswer:
         sys.stderr.write("run-finished.sh: the PR body could not be read\n")
         return 2
     open_line = OPEN_STEP + " "
