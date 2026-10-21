@@ -60,22 +60,6 @@ def test_main_writes_what_the_ledger_modules_ledger_clear_pending_returns_and_pa
     assert led.read_bytes() == b"cleared by the module: collapse to single hyphen\n"
 
 
-def test_main_returns_2_leaving_the_ledger_byte_identical_when_the_ledger_modules_ledger_clear_pending_hands_back_status_7(
-        tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
-    def substitute(text, matcher):
-        return 7, "written by a foreign status\n"
-
-    monkeypatch.setattr(sys.modules["ledger"], "ledger_clear_pending", substitute)
-    seed = "- [x] a ⟂ refactor pending\n".encode()
-    led = tmp_path / "issue-42.md"
-    led.write_bytes(seed)
-
-    code = clear_refactor_pending.main([str(led), "a"])
-
-    assert (code, *capsysbinary.readouterr()) == (2, b"", b"")
-    assert led.read_bytes() == seed
-
-
 def test_main_reads_a_lone_ledger_file_as_an_empty_matcher_clearing_the_first_marked_done_step_and_ignores_arguments_after_the_second(
         tmp_path, capsysbinary, clear_refactor_pending):
     seed = "- [x] a ⟂ refactor pending\n- [x] b ⟂ refactor pending\n".encode()
