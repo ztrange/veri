@@ -69,15 +69,15 @@ def _conductor_log(issue):
 
 
 def _usage_limit(issue, conductor_log):
-    results = []
+    result = None
     for r in _records(conductor_log):
         if r.get("type") == "system" and r.get("subtype") == "init":
-            results = []
+            result = None
         elif r.get("type") == "result":
-            results.append(r)
-    if not results:
+            result = r
+    if result is None:
         return None
-    text = results[-1].get("result", "")
+    text = result.get("result", "")
     if "limit" not in text and not _rate_limited(issue):
         return "unknown %s\n" % text
     reset = text.partition(" resets ")[2]
