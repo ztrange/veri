@@ -1047,6 +1047,26 @@ def test_main_1932_prints_red_over_the_one_case_a_backticked_superseded_line_nam
     assert (code, stdout) == (0, "red %s\n" % older)
 
 
+@pytest.mark.parametrize("indent", [" ", "  ", "   "])
+def test_main_1957_prints_revise_when_a_wrong_test_line_is_indented_by_one_to_three_spaces_since_it_is_prose(
+        indent, run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    contradicted = "test_main_counts_a_repair_text_as_a_repair"
+    (suite / "test_ledger.py").write_text(
+        "def test_main_returns_zero():\n    pass\n\n"
+        "def %s():\n    pass\n" % contradicted)
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setenv("VERI_STEP", "a space-indented quote is not a route line")
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\n%sWRONG_TEST: %s asserts the opposite\n" % (indent, contradicted))
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
+
+
 def test_main_1932_prints_revise_when_a_wrong_test_line_is_indented_by_a_tab_inside_prose(
         run_cli, tmp_path, monkeypatch):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
