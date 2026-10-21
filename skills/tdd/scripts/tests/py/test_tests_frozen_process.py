@@ -672,6 +672,19 @@ def test_check_step_run_outside_any_git_repository_exits_2_with_stderr_naming_th
     assert (code, out, "repository" in err) == (2, "", True)
 
 
+@pytest.mark.process("git asked for the repository toplevel from a directory under tmp_path that is in none")
+def test_record_step_run_outside_any_git_repository_exits_2_with_stderr_naming_the_missing_repository_and_writes_no_record_1960(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests/test_new.py").write_text("one\n")
+    step = "step one adds a case"
+
+    code, out, err = run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py"], cwd=tmp_path)
+
+    assert (code, out, "repository" in err, list((tmp_path / ".tdd").iterdir())) == (2, "", True, [])
+
+
 @pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
 def test_record_step_lists_the_pytest_function_red_edited_below_a_finish_line_inside_its_multiline_string_1773(
         tmp_path, run_cli, tests_frozen):
