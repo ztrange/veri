@@ -579,7 +579,7 @@ three times over branches its ledger pinned on later lines.
    mark follow that deletion green as they follow any Green.
 
    A criterion about behaviour that lives in a guard suite (such as
-   `skills/tdd/scripts/tests/py/test_no_foo.py`) or a test helper a suite uses (such as
+   `skills/tdd/scripts/tests/py/test_no_tracked_artifacts.py`) or a test helper a suite uses (such as
    `skills/tdd/scripts/tests/py/conftest.py`), so that only editing that file can meet it, is
    marked `⟦guard-subject: <path>⟧`, naming that file: the test freeze then lets Green
    edit it. The path is the full repo-relative path, matched exactly: a directory or a glob
