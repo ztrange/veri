@@ -1666,3 +1666,22 @@ def test_main_1957_prints_red_over_the_whole_title_when_a_cut_name_expands_to_a_
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout, stderr) == (0, "red doesn't crash on null\n", "")
+
+
+def test_main_1957_prints_red_over_the_whole_title_when_a_cut_name_expands_to_a_single_quoted_title_holding_double_quotes(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / "foo.test.ts").write_text(
+        "describe('foo', () => {\n"
+        "  it('accepts a name', () => {});\n"
+        "  it('says \"hi\" loudly', () => {});\n"
+        "});\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: `says…` contradicts the criterion\n")
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+
+    assert (code, stdout, stderr) == (0, 'red says "hi" loudly\n', "")
