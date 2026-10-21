@@ -439,6 +439,22 @@ def test_main_returns_2_naming_the_anchor_for_a_missing_or_directory_ledger_and_
         assert ledger.read_bytes() == LEDGER
 
 
+def test_main_leaves_the_ledger_byte_identical_and_no_temporary_file_beside_it_when_the_swap_fails_inserting_or_owing(tmp_path, monkeypatch, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+
+    def refuse_swap(src, dst):
+        raise OSError(28, "No space left on device")
+
+    for budget in ("3", "0"):
+        monkeypatch.setenv("VERI_STEP_GROWTH", budget)
+        ledger.write_bytes(LEDGER)
+        monkeypatch.setattr("os.replace", refuse_swap)
+        with pytest.raises(OSError):
+            add_ledger_step.main([str(ledger), "after", "b two", "t"])
+        monkeypatch.undo()
+        assert (ledger.read_bytes(), sorted(p.name for p in tmp_path.iterdir())) == (LEDGER, ["issue-42.md"])
+
+
 def test_main_finds_a_last_step_without_a_trailing_newline_as_the_anchor_and_keeps_it_after_inserting_817(tmp_path, monkeypatch, capsys, add_ledger_step):
     monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
     ledger = tmp_path / "issue-42.md"
