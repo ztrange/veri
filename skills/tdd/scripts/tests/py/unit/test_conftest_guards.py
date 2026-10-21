@@ -190,3 +190,25 @@ def test_the_system_location_guard_fails_planted_cases_that_read_mkdir_or_create
     monkeypatch.setitem(conftest.SYSTEM_LOCATION_EXEMPT, exempt, "")
     result = pytester.runpytest_inprocess("-p", "no:cacheprovider", plugins=[conftest])
     assert "system-location exemption table: %s: exemption carries no reason" % exempt in result.stderr.str()
+
+
+def test_a_reasonless_starts_pytest_or_starts_git_exemption_and_a_whole_file_starts_git_exemption_with_the_runs_git_with_no_cwd_reason_fail_the_run_naming_the_entry_while_a_case_level_one_and_a_whole_file_one_with_another_reason_pass(pytester, monkeypatch):
+    pytester.makepyfile(test_planted="def test_plain():\n    pass\n")
+
+    def run():
+        return pytester.runpytest_inprocess("-p", "no:cacheprovider", plugins=[conftest])
+
+    monkeypatch.setitem(conftest.STARTS_PYTEST_EXEMPT, "test_planted.py::test_plain", "")
+    assert "starts-pytest exemption table: test_planted.py::test_plain: exemption carries no reason" in run().stderr.str()
+    monkeypatch.delitem(conftest.STARTS_PYTEST_EXEMPT, "test_planted.py::test_plain")
+
+    monkeypatch.setitem(conftest.STARTS_GIT_IN_REPOSITORY_EXEMPT, "test_planted.py::test_plain", "")
+    assert "starts-git exemption table: test_planted.py::test_plain: exemption carries no reason" in run().stderr.str()
+    monkeypatch.delitem(conftest.STARTS_GIT_IN_REPOSITORY_EXEMPT, "test_planted.py::test_plain")
+
+    monkeypatch.setitem(conftest.STARTS_GIT_IN_REPOSITORY_EXEMPT, "test_planted.py", conftest.RUNS_GIT_WITH_NO_CWD)
+    assert "starts-git exemption table: test_planted.py: whole-file exemption with the runs-git-with-no-cwd reason" in run().stderr.str()
+
+    monkeypatch.setitem(conftest.STARTS_GIT_IN_REPOSITORY_EXEMPT, "test_planted.py", "the whole file reads the repository's HEAD")
+    monkeypatch.setitem(conftest.STARTS_GIT_IN_REPOSITORY_EXEMPT, "test_planted.py::test_plain", conftest.RUNS_GIT_WITH_NO_CWD)
+    run().assert_outcomes(passed=1)
