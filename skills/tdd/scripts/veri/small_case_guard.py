@@ -4,19 +4,18 @@ import subprocess
 
 import pytest
 
+from popen_command import command_basename, command_words
+
 VERI = os.path.dirname(os.path.abspath(__file__))
 
 
 def refused(args):
-    words = [args] if isinstance(args, (str, bytes, os.PathLike)) else list(args)
-    words = [os.fsdecode(word) for word in words]
-    if not words:
-        return None
-    command = os.path.basename(words[0])
+    command = command_basename(args)
     if command == "git":
         return command
     if command == "python3":
-        target = os.path.abspath(words[1]) if len(words) > 1 else ""
+        words = command_words(args)
+        target = os.path.abspath(os.fsdecode(words[1])) if len(words) > 1 else ""
         if not target.startswith(VERI + os.sep):
             return command
     return None
