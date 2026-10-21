@@ -39,12 +39,13 @@ def open_prs(fields, *extra):
         if extra:
             pulls = [pr for pr in pulls if pr.get("head", {}).get("ref") == extra[-1]]
         return with_draft_flag(pulls)
-    if tunables.read("VERI_GH_DRIVER") in (None, "", "rest"):
+    driver = tunables.read("VERI_GH_DRIVER")
+    if driver in (None, "", "rest"):
         return rest_open_prs(*extra)
     try:
         answer = github.GraphQLAdapter().list("pr", "list", *extra, "--state", "open", "--json", fields)
     except github.NoAnswer:
-        if tunables.read("VERI_GH_DRIVER") == "auto":
+        if driver == "auto":
             return rest_open_prs(*extra)
         return []
     return json.loads(answer or "[]")
