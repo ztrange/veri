@@ -534,4 +534,5 @@ def test_cli_2027_writes_a_run_log_event_naming_the_matcher_when_no_unchecked_cr
 
     log = tmp_path / ".tdd" / "events.jsonl"
     lines = log.read_text().splitlines() if log.exists() else []
-    assert (code, [line for line in lines if "zeta-matcher" in line] != []) == (3, True)
+    events = [json.loads(line) for line in lines if "zeta-matcher" in line]
+    assert (code, [(e["event"], e["matcher"]) for e in events]) == (3, [("criterion-unticked", "zeta-matcher")])
