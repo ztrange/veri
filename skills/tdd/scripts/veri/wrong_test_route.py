@@ -24,7 +24,7 @@ def is_test_file(name):
 
 
 def is_js_test_file(name):
-    return fnmatch.fnmatch(name, "*.test.ts")
+    return re.search(r"\.(?:test|spec)\.(?:jsx?|tsx?|mjs|cjs)$", name) is not None
 
 
 def _exists(case):
