@@ -1,6 +1,6 @@
 # Plan for #1932 — wrong-test-route.sh still routes to the cited case when the red record has no case: line, and repair drops its superseded cases
 
-- [ ] With no red record for the step, a WRONG_TEST: line that faults the step's own <red-test-id> case and cites another existing case as the correct example makes wrong-test-route.sh print `repair <own>`, never `red <cited>` ⟦criterion 1⟧
+- [x] With no red record for the step, a WRONG_TEST: line that faults the step's own <red-test-id> case and cites another existing case as the correct example makes wrong-test-route.sh print `repair <own>`, never `red <cited>` ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] With a file-only red record (no case: line) for the step, a WRONG_TEST: line that faults the step's own <red-test-id> case and cites another existing case makes wrong-test-route.sh print `repair <own>`, never `red <cited>` ⟦criterion 1⟧
 - [ ] With a red record carrying a `path::id` case for the step, a WRONG_TEST: line that faults the step's own <red-test-id> case and cites another existing case makes wrong-test-route.sh print `repair <own>`, never `red <cited>` ⟦criterion 1⟧
 - [ ] build-develop-prompt.sh red-repair accepts superseded cases after <report-file> (`red-repair <spec> <step> <test-cmd> <case> <report-file> <superseded>…`) and the built repair prompt names every one of them; pinned by a case building it with two superseded cases ⟦criterion 2⟧

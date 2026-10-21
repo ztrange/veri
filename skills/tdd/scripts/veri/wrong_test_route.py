@@ -65,8 +65,11 @@ def _recorded_cases(step):
         return set()
 
 
-def _recorded(report, step):
+def _recorded(report, step, own_id):
     cases = _recorded_cases(step)
+    own = own_id.rpartition("::")[2]
+    if own in set(_named_cases(report)) and route(report, own_id) is not None:
+        cases.add(own)
     for case in _named_cases(report):
         if case in cases:
             return case
@@ -121,7 +124,7 @@ def main(argv):
     if missing:
         _write(sys.stdout, "missing " + missing)
         return 0
-    repair = None if rerouted else _recorded(argv[0], step)
+    repair = None if rerouted else _recorded(argv[0], step, argv[1])
     if repair is not None:
         _write(sys.stdout, " ".join(["repair", repair] + _superseded(argv[0], step)))
         return 0
