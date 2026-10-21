@@ -215,3 +215,36 @@ def test_main_reads_parked_and_ready_prs_over_the_rest_pulls_route_and_starts_no
     started_pr = [line for line in calls if line.startswith("gh pr")]
     assert (code, started_pr, parked, ready) == (
         0, [], ["#62 bailed verify-red process-failure"], ["PR #212 closes #312"])
+
+
+def test_main_reads_its_open_prs_from_the_gh_json_fixture_and_starts_no_gh_1974(tmp_path, monkeypatch, run_cli, fake_processes):
+    handoff_state = importlib.import_module("veri.handoff_state")
+    status = importlib.import_module("veri.status")
+    monkeypatch.chdir(tmp_path)
+    fixtures = tmp_path / "gh"
+    fixtures.mkdir()
+    monkeypatch.setenv("VERI_GH_JSON", str(fixtures))
+    prs = [
+        {"number": 212, "isDraft": False, "body": "Closes #312"},
+        {"number": 213, "isDraft": True, "body": "Closes #313"},
+    ]
+    (fixtures / "prs.json").write_text(json.dumps(prs))
+
+    def answer(line, **kwargs):
+        if line.startswith("git rev-parse"):
+            return 0, SHA + "\n", ""
+        if line.startswith("git tag"):
+            return 0, "v0.9\n", ""
+        if line.startswith("gh") and "page=2" in line:
+            return 0, "[]\n", ""
+        if line.startswith("gh"):
+            return 0, json.dumps([{"number": 999, "isDraft": False, "draft": False, "body": "Closes #998"}]) + "\n", ""
+        return 1, "", "no such route"
+
+    calls = fake_processes(answer)
+    monkeypatch.setattr(status, "json_document", lambda scope=None: (0, json.dumps({"runs": [], "scope": None})))
+    code, out, err = run_cli(handoff_state, [])
+    lines = out.splitlines()
+    ready = lines[lines.index("## Ready to merge") + 1:]
+    started_gh = [line for line in calls if line.startswith("gh")]
+    assert (code, started_gh, ready) == (0, [], ["PR #212 closes #312"])
