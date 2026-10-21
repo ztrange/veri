@@ -114,7 +114,8 @@ def render(file):
     for l in lines:
         if l.startswith(NOT_DONE_MARK):
             continue
-        if l.startswith((APPLIED_MARK, OUT_OF_SCOPE_MARK)) or (l.startswith("- ") and l[2:] in done):
+        if l.startswith((APPLIED_MARK, OUT_OF_SCOPE_MARK)) or (
+                l.startswith("- ") and (l[2:] in done or l[2:] in {t for _, _, t in skipped})):
             continue
         if l.startswith(TEST_ONLY_MARK):
             test_only.append(l[len(TEST_ONLY_MARK):])
@@ -147,9 +148,10 @@ def structural_lines(file):
         return 3, []
     lines = owed_lines(file)
     done = applied_records(lines)
+    skipped = {l[len(NOT_DONE_MARK):].partition(" | ")[2] for l in lines if l.startswith(NOT_DONE_MARK)}
     counts = Counter(l[2:].removeprefix(OUT_OF_SCOPE_PREFIX) for l in lines
                      if l.startswith("- ") and not l.startswith(TEST_ONLY_MARK)
-                     and l[2:] not in done)
+                     and l[2:] not in done and l[2:] not in skipped)
     listed = "\n".join(t for t, _ in counts.most_common()).rstrip("\n")
     return (0, listed.split("\n")) if listed else (3, [])
 

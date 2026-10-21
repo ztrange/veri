@@ -654,3 +654,21 @@ def test_out_of_scope_prints_the_unapplied_out_of_scope_candidates_one_per_line_
     for none_left in (all_applied, tmp_path / "missing.md"):
         code, out, _ = run_cli(refactor_owed, ["out-of-scope", str(none_left)])
         assert (none_left.name, code, out) == (none_left.name, 3, "")
+
+
+def test_list_omits_and_render_shows_once_under_not_done_a_not_done_candidate_that_is_also_a_step_bullet_1963(
+        capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    candidate = "inline the one-use wrapper in lib"
+    owed.write_text(f"### S1\n- {candidate}\n- name the bounds walk once\n")
+    assert refactor_owed.main(["not-done", str(owed), candidate, "budget-spent"]) == 0
+    capsys.readouterr()
+
+    listed = refactor_owed.main(["list", str(owed)])
+    listing = capsys.readouterr().out
+    code = refactor_owed.main(["render", str(owed)])
+    lines = capsys.readouterr().out.splitlines()
+    head = lines.index("### Not done")
+    assert (listed, listing, code, sum(candidate in l for l in lines),
+            f"- {candidate} — budget-spent" in lines[head + 1:]) == (
+        0, "name the bounds walk once\n", 0, 1, True)
