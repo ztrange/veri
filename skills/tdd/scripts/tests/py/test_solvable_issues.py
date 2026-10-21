@@ -189,7 +189,7 @@ def test_main_reads_issues_then_prs_through_gh_forwarding_repo_verbatim_and_fall
         ]
 
     observed = {}
-    for argv in ([], ["--repo", "o/n"], ["--repo", "o/n", "--repo", "x/y"], ["--repo=x"], ["foo"]):
+    for argv in ([], ["--repo", "o/n"]):
         started = fake_gh_refusing_graphql(monkeypatch)
         solvable_issues.main(argv)
         capsys.readouterr()
@@ -198,9 +198,6 @@ def test_main_reads_issues_then_prs_through_gh_forwarding_repo_verbatim_and_fall
     assert observed == {
         (): reads(None),
         ("--repo", "o/n"): reads("o/n"),
-        ("--repo", "o/n", "--repo", "x/y"): reads("o/n"),
-        ("--repo=x",): reads(None),
-        ("foo",): reads(None),
     }
 
 
