@@ -131,7 +131,7 @@ def _recorded(report, step, own_id):
     return None
 
 
-def _superseded(report, step):
+def _superseded(report, step, own_id=None):
     own = _recorded_cases(step)
     cases = []
     for line in _lines_with(report, "SUPERSEDED:"):
@@ -140,7 +140,7 @@ def _superseded(report, step):
         words = body.strip("`").split()
         case = quoted.group(1) if quoted else words[0].strip("`") if words else ""
         found = _exists(case) if case and case not in own else None
-        if found and found not in cases:
+        if found and found not in cases and not (own_id and _is_own(found, own_id)):
             cases.append(found)
     return cases
 
@@ -188,7 +188,7 @@ def main(argv):
     if repair is not None:
         _write(sys.stdout, " ".join(["repair", repair] + _superseded(argv[0], step)))
         return 0
-    older = [] if rerouted else _superseded(argv[0], step)
+    older = [] if rerouted else _superseded(argv[0], step, argv[1])
     if len(older) >= 2:
         if any(c not in older and _exists(c) for c in _named_cases(argv[0])):
             _write(sys.stdout, "revise")
