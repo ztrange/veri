@@ -31,12 +31,15 @@ exist yet: until it does, use a Monitor on a script that blocks and prints one l
 conductor exit, conductor start or merge to the default branch, and treat each line as the
 event.
 
-**Speak only when it matters (P4).** Write text only for: a run started, as
-`Started #N — title`; a bail or a stall; red CI; a merge landed; a decision the human must
-make; a cost or plan surprise. Anything else a watch returns — a re-arm, a conductor start the
-dev session already announced, a merge already reported, a routine message from the dev
-session, a progress check, a watch expiry — gets no text at all, not even "noted" or
-"still watching". **Ask a decision once**, when it arises, and in full: what is being decided,
+**Speak only when it matters (P4).** Every turn shows something, because a turn with no
+text makes the harness ask for visible output, and answering that with prose is how narration
+creeps back in. So the size of the text follows the event. An important event gets one line of
+fewer than ten words: a run started, as `Started #N — title`; a bail or a stall; red CI; a merge
+landed; a cost or plan surprise. Anything else a watch returns — a re-arm, a conductor start
+the dev session already announced, a merge already reported, a routine message from the dev
+session, an ack, a progress check, a watch expiry — gets a single `.` and nothing else, not
+"noted" or "still watching". A decision the human must make is the one exception to the size
+limit: it is written in full. **Ask a decision once**, when it arises, and in full: what is being decided,
 the options in words, what each costs. Later events do not repeat it; a new decision is its own
 message, not a re-print of the pending list. Mention an open decision again only when the human
 asks what is pending or its facts change, and then restate it in full, never as a pointer to an
@@ -45,7 +48,7 @@ earlier message.
 **Never end a turn while work is takeable (P5).** If a slot is empty and the solvable list is
 not, you are not done. A turn that does stop says why in its last line: the queue is empty, or
 it names the pending decision it is waiting on. That line is owed once, by the turn that stops
-on it; a later turn ended by a routine event while the same decision is pending has no text
+on it; a later turn ended by a routine event while the same decision is pending gets a single `.`
 (P4).
 
 **Raw reads go to a subagent (P6).** Leaf logs, diffs and issue sweeps are read by a subagent
@@ -101,7 +104,7 @@ report still gets no text for the human (P4).
 | P1 | A skill re-reads the state it decides on (ledger, `.tdd/`, `solvable-issues.sh`, PR state, processes) at each decision, never from its own memory. | This makes a context reset cheap. Rules were lost across resets at least 4 times. |
 | P2 | A handoff carries state only, and the rules come from the skill on resume. | Same reason as P1. |
 | P3 | Any waiting is done by a script that blocks until an actionable event and returns one line. No agent polls on a timer. | Each "still fine" tick costs tokens and changes nothing. |
-| P4 | The skill writes text only for: a run started (`Started #N — title`), a bail or stall, red CI, a merge landed, a human decision, a cost or plan surprise. A watch event that is none of these (a re-arm, a conductor start the dev session already announced, a merge already reported, a routine message from the dev session) gets no text at all. A progress check or a watch expiry gets no text either. Each human decision is asked once, in full, when it arises; later events never repeat it, and it is restated in full, never as a pointer, only when the human asks what is pending or its facts change. | "No need to narrate everything… tokens I'll never read." Mario asked four times for silence on routine watch events. 2026-10-20: the pending list was re-printed on about 15 routine events — "one would have sufficed". |
+| P4 | Every turn shows text, sized by the event. An important event (a run started as `Started #N — title`, a bail or stall, red CI, a merge landed, a cost or plan surprise) gets one line of fewer than ten words. Every other event (a re-arm, a conductor start the dev session already announced, a merge already reported, a routine message from the dev session, an ack, a progress check, a watch expiry) gets a single `.` and nothing else. A human decision is written in full, asked once when it arises; later events never repeat it, and it is restated in full, never as a pointer, only when the human asks what is pending or its facts change. | "No need to narrate everything… tokens I'll never read." Mario asked four times for silence on routine watch events. 2026-10-20: the pending list was re-printed on about 15 routine events — "one would have sufficed". 2026-10-21: a turn with no text makes the harness ask for visible output; answering it with sentences drifted into narration, so Mario set "less than 10 words" for important events and "." for the rest. |
 | P5 | A turn never ends while work is takeable. A turn that stops names why: queue empty, or the pending decision — once, by the turn that stops on it, not by every later routine-event turn. | An ended turn stalled #131 for 36 minutes. |
 | P6 | Raw reads (leaf logs, diffs, issue sweeps) go to a subagent on the cheapest adequate model, which returns ≤10 lines. A leaf `.out` is never printed. | Keeps the session's context O(1). |
 | P7 | A cost is read from a report's `| total |` row, never by summing phase rows. | Summing double-counted and wrongly parked #388 and #409. |
