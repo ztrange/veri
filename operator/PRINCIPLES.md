@@ -96,24 +96,3 @@ When the receiver's answer carries a ruling or an instruction, that message is t
 the `ack` arrives the message is unconfirmed — a successful send is not a reply, so say "sent,
 unconfirmed", never "delivered". The `ack` goes to the sender, not to the human: a routine
 report still gets no text for the human (P4).
-
-## Requirements
-
-| ID | Requirement | Why |
-|---|---|---|
-| P1 | A skill re-reads the state it decides on (ledger, `.tdd/`, `solvable-issues.sh`, PR state, processes) at each decision, never from its own memory. | This makes a context reset cheap. Rules were lost across resets at least 4 times. |
-| P2 | A handoff carries state only, and the rules come from the skill on resume. | Same reason as P1. |
-| P3 | Any waiting is done by a script that blocks until an actionable event and returns one line. No agent polls on a timer. | Each "still fine" tick costs tokens and changes nothing. |
-| P4 | Every turn shows text, sized by the event. An important event (a run started as `Started #N — title`, a bail or stall, red CI, a merge landed, a cost or plan surprise) gets one line of fewer than ten words. Every other event (a re-arm, a conductor start the dev session already announced, a merge already reported, a routine message from the dev session, an ack, a progress check, a watch expiry) gets a single `.` and nothing else. A human decision is written in full, asked once when it arises; later events never repeat it, and it is restated in full, never as a pointer, only when the human asks what is pending or its facts change. | "No need to narrate everything… tokens I'll never read." Mario asked four times for silence on routine watch events. 2026-10-20: the pending list was re-printed on about 15 routine events — "one would have sufficed". 2026-10-21: a turn with no text makes the harness ask for visible output; answering it with sentences drifted into narration, so Mario set "less than 10 words" for important events and "." for the rest. |
-| P5 | A turn never ends while work is takeable. A turn that stops names why: queue empty, or the pending decision — once, by the turn that stops on it, not by every later routine-event turn. | An ended turn stalled #131 for 36 minutes. |
-| P6 | Raw reads (leaf logs, diffs, issue sweeps) go to a subagent on the cheapest adequate model, which returns ≤10 lines. A leaf `.out` is never printed. | Keeps the session's context O(1). |
-| P7 | A cost is read from a report's `| total |` row, never by summing phase rows. | Summing double-counted and wrongly parked #388 and #409. |
-| P8 | Lowering the conductor count stops no live run. The next exit is simply not refilled. | Running work is never wasted. |
-| P9 | Launch order is `solvable-issues.sh` order minus the issues with a live conductor. Any override is explicit and written down. | Prevents a duplicate launch (#753) and silent reordering. |
-| P10 | An exit with no closing comment is checked for a usage limit or Mac sleep before it is treated as a bail. | A limit and sleep both look like silent exits. |
-| P11 | All writes stay in the project repo. A fix that belongs elsewhere is reported, not made, and every subagent brief says so. | Repo boundary. |
-| P12 | No skill names a fact specific to veri's own repo. Project specifics come from the target repo's CLAUDE.md. | The skills operate veri on any repo. |
-| P13 | A message to another session (the coordinator, the dev session, or another machine's coordinator) is self-contained (no option letters, no references only the sender saw) and is sent with `SendMessage` by the skill itself. Only when delivery is held does the human get the message, as one fenced code block per recipient, named above it. A comm check is the message `ping`, answered `pong`; every other message between operator sessions (instruction, ruling or report) is answered, in both directions, with a reply starting `ack`, or with the ruling or instruction it prompts; an `ack` is not answered. Until that reply arrives the message is unconfirmed: a successful send is not a reply. The `ack` goes to the sender, never as text to the human. | "dev thread does not know what a or b means." "why didn't you just send it yourself?" A send that reached a held inbox looked delivered. 2026-10-20: the coordinator left the dev session's reports unanswered — "when getting a message from dev do you not ack?" |
-
-This unit is **ungraded**: nothing has signed it yet. #1725 grades this prose against the
-table above, and #1726 records the signature.
