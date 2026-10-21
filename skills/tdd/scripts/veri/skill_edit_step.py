@@ -89,7 +89,7 @@ def apply(issue, unit):
     rows = _issue_rows(issue, unit)
     if rows and not os.path.exists(unit):
         _create(unit, path, unit, rows)
-        return False
+        return True
     if not rows and not os.path.exists(path):
         return moved
     if not os.path.exists(path):
