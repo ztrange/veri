@@ -14,6 +14,7 @@ import requirements
 from run_verdict import SCRIPTS
 
 USAGE = "usage: skill-edit-step.sh <issue-body-file> <unit-file>"
+TABLE_HEAD = ["| ID | Requirement | Why |", "|---|---|---|"]
 
 
 def _row_id(row):
@@ -58,7 +59,7 @@ def _trimmed(lines):
 
 def _create(unit, path, name, rows):
     open(unit, "w").close()
-    head = ["## " + name, "", "| ID | Requirement | Why |", "|---|---|---|"]
+    head = ["## " + name, ""] + TABLE_HEAD
     existing = _trimmed(requirements.read_lines(path)) if os.path.exists(path) else []
     _write(path, existing + [""] * bool(existing) + head + rows + [""])
 
@@ -88,7 +89,7 @@ def apply(issue, unit):
     if not rows and not os.path.exists(path):
         return moved
     if not os.path.exists(path):
-        _write(path, ["## " + unit, "", "| ID | Requirement | Why |", "|---|---|---|"] + rows + [""])
+        _write(path, ["## " + unit, ""] + TABLE_HEAD + rows + [""])
         return moved
     have ={row.split("\t")[0] for row in requirements.claims(path, name).splitlines()}
     new = [r for r in rows if _row_id(r) not in have]
