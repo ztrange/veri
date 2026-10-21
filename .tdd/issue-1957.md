@@ -24,7 +24,7 @@ Every case is a small in-process case in skills/tdd/scripts/tests/py/unit/test_w
 - [x] A SUPERSEDED: line naming a JS/TS case by a cut name ending in … (SUPERSEDED: "rejects an empty n…") prints red <the full title>, never the cut name ⟦criterion 9⟧
 - [x] A WRONG_TEST: cut name ending in … whose expansion is the title of the step's own case answers revise, never red <own case>: the own-case check runs on the expanded title ⟦criterion 10⟧
 - [x] A WRONG_TEST: naming a bare … whose expansion is the title of the step's own case answers revise, never red <own case> ⟦criterion 10⟧
-- [x] A WRONG_TEST: cut name ending in … that is a prefix of more than one JS/TS title in the searched files answers revise, never red over the first match ⟦criterion 11⟧ ⟂ refactor pending
+- [x] A WRONG_TEST: cut name ending in … that is a prefix of more than one JS/TS title in the searched files answers revise, never red over the first match ⟦criterion 11⟧
 - [ ] A live it(…) call on a line below a // comment on an earlier line is a case: a WRONG_TEST: naming its title routes red <title> (holds today; pinned) ⟦criterion 12⟧
 - [ ] A JS/TS test file holding only emit('<title>') and no it(…) or test(…) call has no case of that title: a WRONG_TEST: naming it answers revise (holds today; pinned) ⟦criterion 12⟧
 - [ ] A file __tests__/notes.md holding it('<title>') is not a test file: a WRONG_TEST: naming that title answers revise (holds today; pinned) ⟦criterion 12⟧
