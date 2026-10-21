@@ -392,3 +392,54 @@ def test_an_attempt_that_grades_pass_and_passes_the_guard_commits_list_prose_and
     assert [ran.returncode, git(repo, "rev-list", "--count", "HEAD"),
             sorted(git(repo, "show", "--name-only", "--format=", "HEAD").splitlines()), owed.stdout] \
         == [0, "2", ["GRADED", "REQUIREMENTS.md", "unit.md"], ""], (ran.stdout, ran.stderr[-700:])
+
+
+STUB_REASON_PER_GRADING = """#!/bin/sh
+prompt=$2
+case "$prompt" in
+*"You grade a piece of prose"*)
+  n=$(cat "$CAP/grades" 2>/dev/null || echo 0)
+  echo $((n + 1)) > "$CAP/grades"
+  case "$n" in
+  0) reply='BEGIN GRADES\\nA1: FAIL - first-reason-alpha\\nA2: PASS - ok\\nVERDICT: REJECT\\nEND GRADES' ;;
+  1) reply='BEGIN GRADES\\nA1: FAIL - second-reason-bravo\\nA2: PASS - ok\\nVERDICT: REJECT\\nEND GRADES' ;;
+  *) reply='BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES' ;;
+  esac ;;
+*)
+  k=$(cat "$CAP/authors" 2>/dev/null || echo 0)
+  echo $((k + 1)) > "$CAP/authors"
+  printf '%s' "$prompt" > "$CAP/author-$((k + 1)).txt"
+  reply='edited' ;;
+esac
+printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"'"$reply"'"}'
+"""
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader giving a different FAIL reason per grading and a stub author")
+def test_a_relaunched_authors_prompt_carries_the_fail_reasons_of_the_latest_grading_not_the_first_ones(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
+    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is crimson. | shade |\n")
+    cap = tmp_path / "cap"
+    cap.mkdir()
+    claude = tmp_path / "claude"
+    claude.write_text(STUB_REASON_PER_GRADING)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+           "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+
+    second = cap / "author-2.txt"
+    prompt = second.read_text() if second.exists() else ""
+    assert "second-reason-bravo" in prompt, (ran.returncode, ran.stderr[-700:], prompt)
+    assert "first-reason-alpha" not in prompt, prompt
