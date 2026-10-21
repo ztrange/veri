@@ -190,7 +190,7 @@ def main(argv):
         if superseded != _superseded(argv[0], step, argv[1]):
             _write(sys.stdout, "revise")
             return 3
-        _write(sys.stdout, " ".join(["repair", repair] + [c for c in superseded if c != repair]))
+        _write(sys.stdout, " ".join(["repair", repair] + [c for c in superseded if c != repair and c not in _recorded_cases(step)]))
         return 0
     recorded = _recorded_cases(step)
     older = [] if rerouted else [c for c in _superseded(argv[0], step, argv[1]) if c not in recorded]
