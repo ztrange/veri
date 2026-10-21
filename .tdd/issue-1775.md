@@ -10,7 +10,7 @@
 - [x] A step whose prose names a test file's path as plain text, with no bracketed marker, exempts nothing: an edit to that file makes `tests-frozen.sh check --step` exit 1, printing that path ⟦criterion 4⟧
 - [x] A trailing guard-subject marker naming a directory (`tests/lib`) exempts nothing: an edit to a test file under that directory makes `tests-frozen.sh check --step` exit 1, printing that file's path ⟦criterion 5⟧
 - [x] A trailing guard-subject marker naming a glob (`tests/*`) exempts nothing: an edit to a test file the glob would match makes `tests-frozen.sh check --step` exit 1, printing that file's path ⟦criterion 5⟧
-- [ ] A trailing marker of another key (a `phases:` marker) naming a test file exempts nothing: an edit to that file makes `tests-frozen.sh check --step` exit 1, printing that path ⟦criterion 5⟧
+- [x] A trailing marker of another key (a `phases:` marker) naming a test file exempts nothing: an edit to that file makes `tests-frozen.sh check --step` exit 1, printing that path ⟦criterion 5⟧
 - [ ] A Green that deletes the file a trailing guard-subject marker names fails `tests-frozen.sh check --step` with exit 1, printing that path: the exemption allows editing the file, not deleting it ⟦criterion 6⟧
 - [ ] The develop-green freeze rule (`GREEN_FREEZE_RULE` in skills/tdd/scripts/veri/build_develop_prompt.py) tells Green it may edit the step's guard-subject file and no other test file; the text and every pin it moves land in one commit ⟦diff-checked⟧ ⟦criterion 7⟧
 - [ ] A prompt case in skills/tdd/scripts/tests/py/unit/test_build_develop_prompt.py pins that the built develop-green prompt tells Green it may edit the step's guard-subject file and no other test file ⟦criterion 7⟧
