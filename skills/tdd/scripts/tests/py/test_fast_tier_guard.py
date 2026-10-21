@@ -563,3 +563,18 @@ def test_1668_a_planted_test_file_passing_a_regex_ending_in_backslash_dot_py_to_
     )
 
     assert guard.offences(tmp_path) == []
+
+
+def test_1900_a_planted_test_file_passing_a_shell_command_running_a_pytest_suite_to_an_imported_helper_is_reported_as_running_a_nested_suite_by_file_and_line(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    offender = tmp_path / "test_offender.py"
+    offender.write_text(
+        "from shared import sh\n"
+        "\n"
+        "def test_runs_a_suite():\n"
+        "    sh(\"python3 -m pytest tests/py/test_x.py\")\n"
+    )
+
+    found = guard.offences(tmp_path)
+
+    assert found == [f"{offender}:4: runs a nested suite"]
