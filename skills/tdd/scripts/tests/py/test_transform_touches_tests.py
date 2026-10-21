@@ -282,3 +282,18 @@ def test_base_sha_resolves_but_git_log_fails_on_a_missing_commit_object_exits_2_
     (repo / ".git" / "objects" / middle[:2] / middle[2:]).unlink()
     code, out, _ = run_cli(transform_touches_tests, [base], cwd=repo)
     assert (code, out) == (2, "")
+
+
+@pytest.mark.process("git rev-parse and git log over a scratch repository whose range changes two files")
+def test_bound_argument_exits_1_naming_each_file_changed_outside_it_and_0_when_all_are_inside(
+        tmp_path, transform_touches_tests, run_cli):
+    repo = new_repo(tmp_path / "bounded")
+    base = commit_all(repo, "feat: seed", **{"src__a.sh": "a\n", "src__b.sh": "b\n", "src__c.sh": "c\n"})
+    commit_all(repo, "refactor: a and b", **{"src__a.sh": "a2\n", "src__b.sh": "b2\n"})
+    commit_all(repo, "refactor: c", **{"src__c.sh": "c2\n"})
+
+    code, out, err = run_cli(transform_touches_tests, [base, "src/a.sh"], cwd=repo)
+    assert (code, err) == (1, "")
+    assert "src/b.sh" in out and "src/c.sh" in out and "src/a.sh" not in out
+
+    assert run_cli(transform_touches_tests, [base, "src/a.sh,src/b.sh,src/c.sh"], cwd=repo) == (0, "", "")

@@ -22,6 +22,11 @@ def changed_paths(base):
     return log.stdout.split(b"\n")
 
 
+def sorted_names(lines):
+    matched = b"".join(line + b"\n" for line in lines)
+    return subprocess.run(["sort", "-u"], input=matched, stdout=subprocess.PIPE).stdout.rstrip(b"\n").decode()
+
+
 def main(argv):
     base = argv[0] if argv else ""
     if not base:
@@ -33,12 +38,17 @@ def main(argv):
     paths = changed_paths(base)
     if paths is None:
         return 2
-    matched = b"".join(line + b"\n" for line in paths if TEST_FILE.search(line))
-    touched = subprocess.run(["sort", "-u"], input=matched, stdout=subprocess.PIPE).stdout.rstrip(b"\n")
-    if not touched:
+    touched = sorted_names(line for line in paths if TEST_FILE.search(line))
+    if touched:
+        print(f"transform changed a test file: {touched}")
+        return 1
+    bound = set(argv[1].encode().split(b",")) if len(argv) > 1 and argv[1] else None
+    if bound is None:
         return 0
-    touched = touched.decode()
-    print(f"transform changed a test file: {touched}")
+    outside = sorted_names(line for line in paths if line and line not in bound)
+    if not outside:
+        return 0
+    print(f"transform changed a file outside its bound: {outside}")
     return 1
 
 
