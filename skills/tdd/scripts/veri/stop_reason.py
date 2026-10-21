@@ -69,7 +69,12 @@ def _conductor_log(issue):
 
 
 def _usage_limit(issue, conductor_log):
-    results = [r for r in _records(conductor_log) if r.get("type") == "result"]
+    results = []
+    for r in _records(conductor_log):
+        if r.get("type") == "system" and r.get("subtype") == "init":
+            results = []
+        elif r.get("type") == "result":
+            results.append(r)
     if not results:
         return None
     text = results[-1].get("result", "")
