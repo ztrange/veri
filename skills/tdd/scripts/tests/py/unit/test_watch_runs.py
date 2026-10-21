@@ -254,3 +254,26 @@ def test_main_reports_vanished_and_returns_2_when_a_conductor_live_at_start_drop
     code = watch_runs.main([])
 
     assert (code, capsys.readouterr().out) == (2, "vanished 5\n")
+
+
+def test_solvable_issues_asks_the_solvable_issues_script_beside_watch_runs_through_an_unresolved_symlinked_directory(
+        monkeypatch, tmp_path):
+    import importlib.util
+    import pathlib
+    real_scripts = pathlib.Path(__file__).resolve().parents[3]
+    link = tmp_path / "scripts"
+    link.symlink_to(real_scripts)
+    spec = importlib.util.spec_from_file_location("watch_runs_via_symlink", link / "veri" / "watch_runs.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    calls = []
+
+    def fake_run(argv, **kwargs):
+        calls.append(argv)
+        return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    module.solvable_issues()
+
+    assert calls == [[f"{link}/veri/../solvable-issues.sh", "--not-running"]]
