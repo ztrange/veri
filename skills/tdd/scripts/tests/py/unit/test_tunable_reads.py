@@ -30,10 +30,24 @@ def direct_reads(path):
             return parent.comparators[0] is node and not isinstance(parent.left, ast.Constant)
         return False
 
+    def copy_read_by_name_later(node):
+        parent = parents.get(node)
+        assign = parents.get(parent)
+        if not (isinstance(parent, ast.Call) and isinstance(parent.func, ast.Name) and parent.func.id == "dict"
+                and isinstance(assign, ast.Assign) and isinstance(assign.targets[0], ast.Name)):
+            return False
+        copy = assign.targets[0].id
+        def discarded_pop(use):
+            call = parents.get(parents.get(use))
+            return isinstance(call, ast.Call) and isinstance(parents.get(call), ast.Expr)
+
+        return any(isinstance(use, ast.Name) and use.id == copy and use.lineno > assign.lineno
+                   and "VERI_" in lines[use.lineno - 1] and not discarded_pop(use) for use in ast.walk(tree))
+
     return ["%s:%d" % (path, node.lineno) for node in ast.walk(tree)
             if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "os"
             and node.attr in ("environ", "environb", "getenv")
-            and ("VERI_" in lines[node.lineno - 1] or keyed_by_a_variable(node))]
+            and ("VERI_" in lines[node.lineno - 1] or keyed_by_a_variable(node) or copy_read_by_name_later(node))]
 
 
 @pytest.mark.tree_audit("every module under veri/")
@@ -86,3 +100,10 @@ def test_the_guard_names_the_line_of_a_planted_read_whose_veri_name_is_held_in_a
     planted.write_text('import os\nname = "VERI_X"\nvalue = os.environ.get(name)\n')
 
     assert direct_reads(planted) == ["%s:3" % planted]
+
+
+def test_the_guard_names_the_line_of_a_planted_dict_copy_of_the_environment_read_with_a_veri_name_later(tmp_path):
+    planted = tmp_path / "planted.py"
+    planted.write_text('import os\nenv = dict(os.environ)\nvalue = env.get("VERI_X")\n')
+
+    assert direct_reads(planted) == ["%s:2" % planted]
