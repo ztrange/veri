@@ -85,7 +85,7 @@ def _superseded(report, step):
     own = _recorded_cases(step)
     cases = []
     for line in _lines_with(report, "SUPERSEDED:"):
-        words = line[11:].strip().strip("`").split()
+        words = re.sub(r"^[-*]\s+", "", line[11:].strip()).strip("`").split()
         case = words[0].strip("`") if words else ""
         if case and case not in own and case not in cases and _exists(case):
             cases.append(case)
