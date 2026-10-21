@@ -651,3 +651,16 @@ def test_list_omits_and_render_shows_only_under_applied_an_out_of_scope_candidat
     assert (listed, listing, code, sum(candidate in l for l in lines),
             f"- {candidate} — abc1234" in lines[head + 1:]) == (
         0, "name the bounds walk once\n", 0, 1, True)
+
+
+def test_render_emits_no_out_of_scope_heading_and_prints_an_out_of_scope_candidate_exactly_once_1963(
+        monkeypatch, capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    transform = "extract the shared parser across the other scripts"
+    monkeypatch.setattr(sys, "stdin", io.StringIO(f"CANDIDATES: out-of-scope | {transform}\n"))
+    assert refactor_owed.main(["append", str(owed), "step one", "a.sh"]) == 0
+
+    code = refactor_owed.main(["render", str(owed)])
+    lines = capsys.readouterr().out.splitlines()
+    assert (code, [l for l in lines if l.lower().startswith("### out-of-scope")],
+            sum(transform in l for l in lines)) == (0, [], 1)
