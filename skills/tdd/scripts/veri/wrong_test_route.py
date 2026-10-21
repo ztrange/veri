@@ -42,8 +42,12 @@ def _live_call(pattern, text):
             if "//" not in code(text[text.rfind("\n", 0, m.start()) + 1:m.start()])]
 
 
+def _cut_prefix(case):
+    return case[:-1] if case.endswith("…") else case[:-3] if case.endswith("...") else None
+
+
 def _js_title_pattern(case):
-    prefix = case[:-1] if case.endswith("…") else case[:-3] if case.endswith("...") else None
+    prefix = _cut_prefix(case)
     title = "(%s[^'\"]*)" % re.escape(prefix) if prefix is not None else "(%s)" % re.escape(case)
     return re.compile(r"\b(?:it|test)(?:\.(?:only|skip))?(?:\.each(?:\([^)]*\)|`[^`]*`))?\(\s*['\"]" + title + r"['\"]")
 
@@ -63,7 +67,7 @@ def _exists(case):
             if is_test_file(name) and case.startswith("test_") and py.search(text):
                 return case
             found = _live_call(js, re.sub(r"/\*.*?\*/", "", text, flags=re.S)) if js_file else []
-            if found and not case.endswith(("…", "...")):
+            if found and _cut_prefix(case) is None:
                 return found[0]
             titles.update(found)
             if name.endswith(".test.sh") and ('name="%s"' % case) in text:
