@@ -60,6 +60,21 @@ def test_main_refuses_an_unknown_phase_to_revise_with_exit_2_naming_every_phase_
         b"(want red|green|refactor|diff|expand|migrate|contract-a|contract-b)\n" + USAGE)
 
 
+def test_main_names_in_its_unknown_phase_refusal_and_its_usage_line_every_phase_it_accepts_the_replaces_and_red_repair_phases_included_1890(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    accepted = ["replaces-report", "red-contradicted", "red-repair", "red-missing", "red-supersede"]
+
+    code = build_develop_prompt.main(["bogus", str(spec), "s", "c"])
+    _, err = capsysbinary.readouterr()
+    refusal, usage = err.decode().splitlines()
+
+    assert (code, [(p, p in refusal.split("(want ")[1].rstrip(")").split("|"),
+                    p in usage.split("usage: ")[1].split(" ")[0].split("|")) for p in accepted]) == (
+        2, [(p, True, True) for p in accepted])
+
+
 def test_main_refuses_in_the_check_order_each_missing_argument_by_its_own_name_and_ignores_arguments_past_the_count(
         tmp_path, capsysbinary, build_develop_prompt):
     spec = tmp_path / "spec.md"
