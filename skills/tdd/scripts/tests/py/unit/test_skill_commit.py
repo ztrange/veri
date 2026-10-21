@@ -165,13 +165,19 @@ def test_1785_launching_the_conductor_lives_in_readme_after_install_and_not_in_s
     assert [t for t in moved if t not in section] == [], "README.md's section lacks moved text"
 
 
-def test_1785_skill_md_points_the_pinned_snapshot_at_readme_s_launching_the_conductor():
+def test_1785_skill_md_points_the_pinned_snapshot_and_the_leaf_launchable_exit_2_at_readme():
+    flat = " ".join(SKILL.read_text().replace("`", "").replace("*", "").split())
     scripts = " ".join(" ".join(_lines(SCRIPTS)).replace("`", "").replace("*", "").split())
     pin = scripts[scripts.index("not the clone's current tip"):][:400]
+    exit2 = flat[flat.index("Exit 2 means it does not"):][:300]
     ref = re.compile(r"README\.md\W+(s )?Launching the conductor")
     problems = []
     if not ref.search(pin):
         problems.append("The scripts' pinned $S paragraph does not name README.md's Launching the conductor")
     if "below" in pin.split("Every launch")[0]:
         problems.append("The scripts' pinned $S paragraph still points below")
+    if not ref.search(exit2):
+        problems.append("preflight step 2's leaf-launchable.sh exit 2 does not name README.md's Launching the conductor")
+    if "above describes" in exit2:
+        problems.append("preflight step 2's exit 2 still says the case above describes")
     assert problems == []
