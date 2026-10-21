@@ -36,6 +36,16 @@ def read_prompt(path):
     return os.fsdecode(data.replace(b"\0", b"").rstrip(b"\n"))
 
 
+def effective_timeout():
+    seconds = tunables.read("VERI_TIMEOUT")
+    issue = tunables.read("VERI_ISSUE")
+    if not seconds and issue:
+        with contextlib.suppress(OSError):
+            with open(f".tdd/issue-{issue}-timeout") as f:
+                seconds = f.read().strip()
+    return seconds or "900"
+
+
 def complain(name, error):
     print(f"run-leaf.sh: {name}: {error.strerror}", file=sys.stderr)
 
@@ -73,13 +83,7 @@ def main(argv):
         env["PYTHONDONTWRITEBYTECODE"] = "1"
         env["FORCE_PROMPT_CACHING_5M"] = "1"
         env["CLAUDE_CODE_DISABLE_BACKGROUND_TASKS"] = "1"
-        seconds = tunables.read("VERI_TIMEOUT")
-        issue = tunables.read("VERI_ISSUE")
-        if not seconds and issue:
-            with contextlib.suppress(OSError):
-                with open(f".tdd/issue-{issue}-timeout") as f:
-                    seconds = f.read().strip()
-        seconds = seconds or "900"
+        seconds = effective_timeout()
         try:
             cap_ms = str(int(seconds) * 1000)
         except ValueError:
