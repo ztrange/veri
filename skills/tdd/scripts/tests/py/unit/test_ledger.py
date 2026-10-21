@@ -127,3 +127,21 @@ def test_ledger_tick_appends_the_refactor_pending_mark_at_the_line_end_only_when
         True,
         "# Plan for #42\n\n- [ ] add lowercasing\n- [x] collapse to single hyphen\n- [ ] strip edge hyphens\n",
     )
+
+
+def test_the_four_ledger_entry_points_drop_a_nul_and_keep_a_non_utf8_byte_without_exiting_2(tmp_path, run_cli):
+    cases = {
+        "tick_ledger": (b"- [ ] alpha\0 \xff\n- [ ] bravo\n", ["{p}", "alpha"]),
+        "clear_refactor_pending": (b"- [x] alpha\0 \xff \xe2\x9f\x82 refactor pending\n- [ ] bravo\n", ["{p}", "alpha"]),
+        "reorder_ledger_steps": (b"- [ ] alpha\0 \xff\n- [ ] bravo\n", ["{p}", "alpha", "after", "bravo"]),
+        "add_ledger_step": (b"- [ ] alpha\0 \xff\n- [ ] bravo\n", ["{p}", "after", "bravo", "- [ ] charlie"]),
+    }
+    for name, (original, argv) in cases.items():
+        path = tmp_path / (name + ".md")
+        path.write_bytes(original)
+
+        code, out, err = run_cli(importlib.import_module("veri." + name), [a.format(p=path) for a in argv])
+
+        assert (name, code) == (name, 0), err
+        assert b"\0" not in path.read_bytes(), name
+        assert b"alpha \xff" in path.read_bytes(), name

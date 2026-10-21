@@ -39,8 +39,7 @@ def main(argv):
     if len(argv) != 4 or argv[2] not in ("before", "after"):
         print(USAGE, file=sys.stderr)
         return 2
-    with open(argv[0], newline="") as file:
-        lines = file.read().split("\n")
+    lines = ledger.read_ledger(argv[0]).split("\n")
     moved = _open_match(lines, argv[1], "cannot move a ticked step")
     if moved is None:
         return 1
@@ -51,7 +50,7 @@ def main(argv):
     if anchor > moved:
         anchor -= 1
     lines.insert(anchor if argv[2] == "before" else anchor + 1, step)
-    ledger.replace_ledger(argv[0], "\n".join(lines))
+    ledger.replace_ledger(argv[0], "\n".join(lines).encode(errors="surrogateescape"))
     return 0
 
 

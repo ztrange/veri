@@ -15,12 +15,10 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     try:
-        with open(argv[0], "rb") as file:
-            raw = file.read()
+        text = ledger.read_ledger(argv[0])
     except OSError as error:
         complain(argv[0], error.strerror)
         return 2
-    text = ledger.decode_ledger(raw)
     cleared, new = ledger.ledger_clear_pending(text, argv[1] if len(argv) > 1 else "")
     if not cleared:
         return 3

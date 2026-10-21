@@ -43,6 +43,12 @@ def decode_ledger(data):
     return data.replace(b"\0", b"").decode(errors="surrogateescape")
 
 
+def read_ledger(path):
+    """decode_ledger over all of path's bytes; OSError when it cannot be read."""
+    with open(path, "rb") as file:
+        return decode_ledger(file.read())
+
+
 def read_ledger_stdin():
     """decode_ledger over all of stdin's bytes."""
     return decode_ledger(sys.stdin.buffer.read())
