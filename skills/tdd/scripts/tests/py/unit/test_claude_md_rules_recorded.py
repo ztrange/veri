@@ -121,3 +121,12 @@ def test_claude_mds_budgets_invariant_names_veri_step_growth_as_a_fifth_axis_pla
         "veri_step_growth", "veri_refactor_budget", "five",
         "plan", "never merged|not merged|one knob",
     ) == []
+
+
+def test_claude_mds_budgets_invariant_names_veri_skill_edit_budget_as_a_sixth_axis_never_folded_into_the_other_five():
+    assert records_carry(
+        all_records(),
+        "CLAUDE.md has no single record naming VERI_SKILL_EDIT_BUDGET as a sixth budget axis beside the other five, never folded in",
+        "veri_skill_edit_budget", "veri_step_growth", "sixth",
+        "skill-edit", "never folded|never merged|not merged|one knob",
+    ) == []
