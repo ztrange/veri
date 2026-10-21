@@ -230,3 +230,19 @@ def test_a_conductor_log_whose_last_launch_has_no_result_record_exits_2_and_neve
     code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
 
     assert (code, out, "no result record in" in err, "conductor-7.log" in err) == (2, "", True, True)
+
+
+def test_a_conductor_log_whose_last_launch_has_a_result_record_is_decided_by_that_record_alone_1938(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    run = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    run.mkdir(parents=True)
+    (run / "events.jsonl").write_text(json.dumps({"ts": 100, "issue": "7", "event": "step-done"}) + "\n")
+    (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in (
+        {"type": "system", "subtype": "init"},
+        {"type": "result", "is_error": True, "result": "You've hit your weekly limit · resets Oct 7, 3pm"},
+        {"type": "system", "subtype": "init"},
+        {"type": "result", "is_error": True, "result": "boom"})))
+
+    code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
+
+    assert (code, out, err) == (0, "unknown boom\n", "")
