@@ -141,9 +141,12 @@ def main(argv):
             fixture = _FIXTURE_FILE.search(step) if carries_mark(trailing_markers(step), "fixture-repair") else None
             if fixture:
                 exempt.add(fixture.group(1))
-            exempt.update(re.findall(r"⟦guard-subject: ([^⟧]+)⟧", trailing_markers(step)))
+            subjects = re.findall(r"⟦guard-subject: ([^⟧]+)⟧", trailing_markers(step))
+            exempt.update(subjects)
             changed += [name for name in _differing_tests()
-                        if name not in recorded and name not in exempt]
+                        if name not in recorded
+                        and (name not in exempt
+                             or (name in subjects and not os.path.exists(name)))]
         for name in changed:
             _write(sys.stdout, name)
         return 1 if changed else 0
