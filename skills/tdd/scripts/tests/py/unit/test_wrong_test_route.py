@@ -1254,3 +1254,24 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_a_double_quoted_test_
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % sibling)
+
+
+@pytest.mark.parametrize("call", ["it.only", "it.skip", "test.only", "test.skip"])
+def test_main_1957_routes_a_wrong_test_naming_the_title_of_an_only_or_skip_form_of_it_or_test_to_a_red_over_that_title(
+        run_cli, tmp_path, call):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    sibling = "rejects an empty name"
+    (tmp_path / "foo.test.ts").write_text(
+        "describe('foo', () => {\n"
+        "  it('accepts a name', () => {});\n"
+        "  %s('%s', () => {});\n"
+        "});\n" % (call, sibling))
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red %s\n" % sibling)
