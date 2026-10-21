@@ -21,11 +21,18 @@ def git(repo, *args):
                           capture_output=True, text=True, check=True).stdout.strip()
 
 
+def fresh_repo(scratch_copy):
+    repo = scratch_copy()
+    git(repo, "update-ref", "-d", "HEAD")
+    git(repo, "symbolic-ref", "HEAD", "refs/heads/main")
+    git(repo, "rm", "-q", "--cached", "README.md")
+    (repo / "README.md").unlink()
+    return repo
+
+
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
-def test_changed_ids_that_already_pass_launch_no_author_and_commit_the_list_and_graded_line_exiting_3(tmp_path):
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+def test_changed_ids_that_already_pass_launch_no_author_and_commit_the_list_and_graded_line_exiting_3(tmp_path, scratch_copy):
+    repo = fresh_repo(scratch_copy)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -72,10 +79,8 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author")
-def test_a_failing_changed_id_launches_an_author_leaf_under_the_author_role_whose_prompt_has_the_unit_requirements_and_fail_reasons_but_no_why_cell(tmp_path):
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+def test_a_failing_changed_id_launches_an_author_leaf_under_the_author_role_whose_prompt_has_the_unit_requirements_and_fail_reasons_but_no_why_cell(tmp_path, scratch_copy):
+    repo = fresh_repo(scratch_copy)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -128,10 +133,8 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author")
-def test_changed_ids_that_pass_with_an_unchanged_id_failing_make_no_commit_before_the_author_and_do_not_exit_3(tmp_path):
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+def test_changed_ids_that_pass_with_an_unchanged_id_failing_make_no_commit_before_the_author_and_do_not_exit_3(tmp_path, scratch_copy):
+    repo = fresh_repo(scratch_copy)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt hums.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -172,10 +175,8 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author")
-def test_a_grader_that_keeps_rejecting_relaunches_the_author_for_the_default_budget_of_three_then_exits_1_naming_every_failing_id(tmp_path):
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+def test_a_grader_that_keeps_rejecting_relaunches_the_author_for_the_default_budget_of_three_then_exits_1_naming_every_failing_id(tmp_path, scratch_copy):
+    repo = fresh_repo(scratch_copy)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt hums.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -200,10 +201,8 @@ def test_a_grader_that_keeps_rejecting_relaunches_the_author_for_the_default_bud
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author")
-def test_a_grader_that_keeps_rejecting_relaunches_the_author_exactly_veri_skill_edit_budget_times_then_exits_1_naming_the_failing_ids(tmp_path):
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+def test_a_grader_that_keeps_rejecting_relaunches_the_author_exactly_veri_skill_edit_budget_times_then_exits_1_naming_the_failing_ids(tmp_path, scratch_copy):
+    repo = fresh_repo(scratch_copy)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt hums.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -234,10 +233,8 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader that gives no verdict")
-def test_a_grader_that_gives_no_parseable_verdict_exits_2(tmp_path):
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+def test_a_grader_that_gives_no_parseable_verdict_exits_2(tmp_path, scratch_copy):
+    repo = fresh_repo(scratch_copy)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -281,10 +278,8 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author that exits 2")
-def test_an_author_leaf_whose_supervisor_exits_2_exits_2_without_grading_again_or_relaunching(tmp_path):
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+def test_an_author_leaf_whose_supervisor_exits_2_exits_2_without_grading_again_or_relaunching(tmp_path, scratch_copy):
+    repo = fresh_repo(scratch_copy)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -331,10 +326,8 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author that touches GRADED")
-def test_an_attempt_that_grades_pass_but_whose_author_touched_graded_is_rejected_spending_the_attempt_and_commits_nothing(tmp_path):
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+def test_an_attempt_that_grades_pass_but_whose_author_touched_graded_is_rejected_spending_the_attempt_and_commits_nothing(tmp_path, scratch_copy):
+    repo = fresh_repo(scratch_copy)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -365,10 +358,8 @@ STUB_AUTHOR_EDITS_PROSE = STUB_AUTHOR_TOUCHES_GRADED.replace(
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author that edits the prose")
-def test_an_attempt_that_grades_pass_and_passes_the_guard_commits_list_prose_and_graded_in_one_commit_exiting_0_leaving_nothing_owed(tmp_path):
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+def test_an_attempt_that_grades_pass_and_passes_the_guard_commits_list_prose_and_graded_in_one_commit_exiting_0_leaving_nothing_owed(tmp_path, scratch_copy):
+    repo = fresh_repo(scratch_copy)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -416,10 +407,8 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader giving a different FAIL reason per grading and a stub author")
-def test_a_relaunched_authors_prompt_carries_the_fail_reasons_of_the_latest_grading_not_the_first_ones(tmp_path):
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+def test_a_relaunched_authors_prompt_carries_the_fail_reasons_of_the_latest_grading_not_the_first_ones(tmp_path, scratch_copy):
+    repo = fresh_repo(scratch_copy)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -446,10 +435,8 @@ def test_a_relaunched_authors_prompt_carries_the_fail_reasons_of_the_latest_grad
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a bad VERI_SKILL_EDIT_BUDGET")
-def test_a_bad_veri_skill_edit_budget_exits_2_from_validating_it_when_every_other_call_before_launching_succeeds(tmp_path):
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+def test_a_bad_veri_skill_edit_budget_exits_2_from_validating_it_when_every_other_call_before_launching_succeeds(tmp_path, scratch_copy):
+    repo = fresh_repo(scratch_copy)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt hums.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -476,10 +463,9 @@ ROWS = "| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | 
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
-def test_a_unit_holding_its_own_requirements_table_with_no_list_beside_it_has_the_table_moved_into_a_new_requirements_md_in_the_same_commit_1959(tmp_path):
-    repo = tmp_path / "repo"
+def test_a_unit_holding_its_own_requirements_table_with_no_list_beside_it_has_the_table_moved_into_a_new_requirements_md_in_the_same_commit_1959(tmp_path, scratch_copy):
+    repo = fresh_repo(scratch_copy)
     (repo / "skills" / "veri-dev").mkdir(parents=True)
-    git(repo, "init", "-q", "-b", "main")
     (repo / ".gitignore").write_text(".tdd/\n")
     unit = repo / "skills" / "veri-dev" / "SKILL.md"
     unit.write_text("The widget is blue.\nIt stays silent.\n\n## Requirements\n\n" + ROWS)
@@ -504,10 +490,9 @@ def test_a_unit_holding_its_own_requirements_table_with_no_list_beside_it_has_th
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository")
-def test_a_requirements_heading_naming_no_existing_unit_and_not_marked_new_exits_2_naming_the_heading_1959(tmp_path):
-    repo = tmp_path / "repo"
+def test_a_requirements_heading_naming_no_existing_unit_and_not_marked_new_exits_2_naming_the_heading_1959(tmp_path, scratch_copy):
+    repo = fresh_repo(scratch_copy)
     (repo / "skills" / "veri-dev").mkdir(parents=True)
-    git(repo, "init", "-q", "-b", "main")
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "skills" / "veri-dev" / "SKILL.md").write_text("The widget is blue.\n")
     git(repo, "add", "-A")
@@ -523,11 +508,9 @@ def test_a_requirements_heading_naming_no_existing_unit_and_not_marked_new_exits
 
 
 @pytest.mark.process("a real git repository under an in-process skill-edit step with a stub grader and a stub author")
-def test_a_rejected_author_attempts_edits_to_the_unit_are_reset_before_the_next_attempt_1959(tmp_path, monkeypatch, run_cli):
+def test_a_rejected_author_attempts_edits_to_the_unit_are_reset_before_the_next_attempt_1959(tmp_path, scratch_copy, monkeypatch, run_cli):
     import importlib
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    repo = fresh_repo(scratch_copy)
     (repo / "unit.md").write_text("The widget is painted a deep blue.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
     git(repo, "add", "-A")
@@ -557,12 +540,10 @@ def test_a_rejected_author_attempts_edits_to_the_unit_are_reset_before_the_next_
 
 
 @pytest.mark.process("a real git repository under an in-process skill-edit step with a stub grader and a recorded supervise launch")
-def test_each_author_attempts_leaf_is_named_author_skill_edit_k_for_its_attempt_number_1959(tmp_path, monkeypatch, run_cli):
+def test_each_author_attempts_leaf_is_named_author_skill_edit_k_for_its_attempt_number_1959(tmp_path, scratch_copy, monkeypatch, run_cli):
     import importlib
     import types
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    repo = fresh_repo(scratch_copy)
     (repo / "unit.md").write_text("The widget is painted a deep blue.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
     git(repo, "add", "-A")
@@ -593,10 +574,8 @@ def test_each_author_attempts_leaf_is_named_author_skill_edit_k_for_its_attempt_
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
-def test_a_unit_with_no_requirements_list_against_an_issue_with_no_requirements_section_exits_3_leaving_the_unit_unchanged_and_creating_no_requirements_md_1959(tmp_path):
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+def test_a_unit_with_no_requirements_list_against_an_issue_with_no_requirements_section_exits_3_leaving_the_unit_unchanged_and_creating_no_requirements_md_1959(tmp_path, scratch_copy):
+    repo = fresh_repo(scratch_copy)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\n")
     git(repo, "add", "-A")
@@ -616,10 +595,9 @@ def test_a_unit_with_no_requirements_list_against_an_issue_with_no_requirements_
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
-def test_an_issue_rewording_one_row_of_a_unit_below_the_root_with_its_path_section_leaves_one_row_per_id_reworded_in_place_and_no_basename_section_1959(tmp_path):
-    repo = tmp_path / "repo"
+def test_an_issue_rewording_one_row_of_a_unit_below_the_root_with_its_path_section_leaves_one_row_per_id_reworded_in_place_and_no_basename_section_1959(tmp_path, scratch_copy):
+    repo = fresh_repo(scratch_copy)
     (repo / "skills" / "veri-dev").mkdir(parents=True)
-    git(repo, "init", "-q", "-b", "main")
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "skills" / "veri-dev" / "SKILL.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     beside = repo / "skills" / "veri-dev" / "REQUIREMENTS.md"
@@ -646,10 +624,9 @@ def test_an_issue_rewording_one_row_of_a_unit_below_the_root_with_its_path_secti
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
-def test_a_new_unit_from_a_path_new_heading_gets_a_requirements_md_section_headed_by_its_repo_relative_path_1959(tmp_path):
-    repo = tmp_path / "repo"
+def test_a_new_unit_from_a_path_new_heading_gets_a_requirements_md_section_headed_by_its_repo_relative_path_1959(tmp_path, scratch_copy):
+    repo = fresh_repo(scratch_copy)
     (repo / "skills" / "new-skill").mkdir(parents=True)
-    git(repo, "init", "-q", "-b", "main")
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "README.md").write_text("hello\n")
     (repo / "issue.md").write_text(
@@ -671,10 +648,9 @@ def test_a_new_unit_from_a_path_new_heading_gets_a_requirements_md_section_heade
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
-def test_a_new_unit_from_a_path_new_heading_is_graded_and_signed_exiting_0_or_3_with_a_clean_tree_1959(tmp_path):
-    repo = tmp_path / "repo"
+def test_a_new_unit_from_a_path_new_heading_is_graded_and_signed_exiting_0_or_3_with_a_clean_tree_1959(tmp_path, scratch_copy):
+    repo = fresh_repo(scratch_copy)
     (repo / "skills" / "new-skill").mkdir(parents=True)
-    git(repo, "init", "-q", "-b", "main")
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "README.md").write_text("hello\n")
     (repo / "issue.md").write_text(
@@ -698,10 +674,9 @@ def test_a_new_unit_from_a_path_new_heading_is_graded_and_signed_exiting_0_or_3_
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
-def test_a_unit_with_no_table_beside_a_requirements_md_holding_only_another_units_section_against_an_issue_stating_no_rows_exits_3_launching_no_grader_leaving_the_tree_clean_1959(tmp_path):
-    repo = tmp_path / "repo"
+def test_a_unit_with_no_table_beside_a_requirements_md_holding_only_another_units_section_against_an_issue_stating_no_rows_exits_3_launching_no_grader_leaving_the_tree_clean_1959(tmp_path, scratch_copy):
+    repo = fresh_repo(scratch_copy)
     (repo / "skills" / "veri-dev").mkdir(parents=True)
-    git(repo, "init", "-q", "-b", "main")
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "skills" / "veri-dev" / "SKILL.md").write_text("The widget is painted a deep blue.\n")
     beside = repo / "skills" / "veri-dev" / "REQUIREMENTS.md"
@@ -726,10 +701,8 @@ def test_a_unit_with_no_table_beside_a_requirements_md_holding_only_another_unit
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
-def test_a_path_new_heading_for_a_unit_in_a_directory_that_does_not_exist_yet_is_not_refused_and_creates_the_unit_1959(tmp_path):
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+def test_a_path_new_heading_for_a_unit_in_a_directory_that_does_not_exist_yet_is_not_refused_and_creates_the_unit_1959(tmp_path, scratch_copy):
+    repo = fresh_repo(scratch_copy)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "README.md").write_text("hello\n")
     (repo / "issue.md").write_text(
@@ -750,10 +723,9 @@ def test_a_path_new_heading_for_a_unit_in_a_directory_that_does_not_exist_yet_is
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
-def test_an_issue_rewording_and_adding_rows_edits_only_the_path_section_leaving_a_following_basename_section_byte_identical_1959(tmp_path):
-    repo = tmp_path / "repo"
+def test_an_issue_rewording_and_adding_rows_edits_only_the_path_section_leaving_a_following_basename_section_byte_identical_1959(tmp_path, scratch_copy):
+    repo = fresh_repo(scratch_copy)
     (repo / "skills" / "veri-dev").mkdir(parents=True)
-    git(repo, "init", "-q", "-b", "main")
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "skills" / "veri-dev" / "SKILL.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     beside = repo / "skills" / "veri-dev" / "REQUIREMENTS.md"
