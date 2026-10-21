@@ -33,6 +33,18 @@ def _issue_rows(issue, name):
     return rows[2:]
 
 
+def _unknown_heading(issue):
+    in_requirements = False
+    for line in requirements.read_lines(issue):
+        if line.startswith("## "):
+            in_requirements = line[3:].strip() == "Requirements"
+        elif in_requirements and line.startswith("### "):
+            heading = line[4:].strip()
+            if not heading.endswith(" (new)") and not os.path.exists(heading):
+                return heading
+    return None
+
+
 def _write(path, lines):
     with open(path, "w", encoding="utf-8", errors="surrogateescape") as f:
         f.write("\n".join(lines))
@@ -135,6 +147,10 @@ def main(argv):
     budget = tunables.read("VERI_SKILL_EDIT_BUDGET", "3")
     if not (budget.isdecimal() and int(budget) >= 1):
         print("VERI_SKILL_EDIT_BUDGET must be a whole number >= 1: " + budget, file=sys.stderr)
+        return 2
+    unknown = _unknown_heading(issue)
+    if unknown:
+        print("Requirements heading names no existing unit: " + unknown, file=sys.stderr)
         return 2
     base = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     moved = apply(issue, unit)
