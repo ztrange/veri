@@ -1919,119 +1919,100 @@ def test_verify_sh_diff_still_launches_the_leaf_and_returns_its_verdict_when_the
     assert (code, "test_fakes_x" in out, started.exists(), out == "fine.\n") == (0, False, True, True)
 
 
-@pytest.mark.process("a real supervise.sh and run-leaf.sh around a stub claude that answers VERDICT: PASS")
 def test_verify_sh_green_rejects_a_pass_on_a_replaces_case_step_naming_each_case_its_suite_still_holds_1507(
         run_cli, tmp_path, monkeypatch):
     write_inputs(tmp_path)
     (tmp_path / "tests" / "demo.test.sh").write_text('verdict "kept case" 0\nverdict "stale second" 0\n')
-    claude = tmp_path / "claude-pass"
-    claude.write_text("#!/bin/sh\nprintf 'VERDICT: PASS\\nREASON: the named cases are gone.'\n")
-    claude.chmod(0o755)
+    answering_leaf(monkeypatch, "VERDICT: PASS\nREASON: the named cases are gone.")
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
         verify, ["--step", "the replacement takes over: replaces 'stale first', 'stale second' in tests/demo.test.sh"
                  " ⟦replaces-case⟧ ⟦criterion 1⟧", "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"],
-        env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
+        env={"HOME": str(tmp_path)},
         cwd=tmp_path)
 
     assert (code, "stale second" in out, "stale first" in out) == (1, True, False)
 
 
-@pytest.mark.process("a real supervise.sh and run-leaf.sh around a stub claude that answers VERDICT: PASS")
 def test_verify_sh_green_exits_2_when_the_named_cases_check_cannot_read_the_suite_after_a_pass_1507(
         run_cli, tmp_path, monkeypatch):
     write_inputs(tmp_path)
-    claude = tmp_path / "claude-pass"
-    claude.write_text("#!/bin/sh\nprintf 'VERDICT: PASS\\nREASON: the named cases are gone.'\n")
-    claude.chmod(0o755)
+    answering_leaf(monkeypatch, "VERDICT: PASS\nREASON: the named cases are gone.")
     verify = importlib.import_module("veri.verify")
     monkeypatch.setattr(verify.replaces_case_survivors, "main", lambda argv: 2)
 
     code, out, _ = run_cli(
         verify, ["--step", "the replacement takes over: replaces 'stale first' in tests/demo.test.sh"
                  " ⟦replaces-case⟧ ⟦criterion 1⟧", "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"],
-        env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
+        env={"HOME": str(tmp_path)},
         cwd=tmp_path)
 
     assert code == 2
 
 
-@pytest.mark.process("a real supervise.sh and run-leaf.sh around a stub claude that answers VERDICT: PASS")
 def test_verify_sh_green_returns_the_leafs_pass_unchanged_on_a_step_without_replaces_case_even_when_its_text_names_a_surviving_case_1507(
         run_cli, tmp_path, monkeypatch):
     write_inputs(tmp_path)
     (tmp_path / "tests" / "demo.test.sh").write_text('verdict "stale first" 0\n')
-    claude = tmp_path / "claude-pass"
-    claude.write_text("#!/bin/sh\nprintf 'VERDICT: PASS\\nREASON: fine.'\n")
-    claude.chmod(0o755)
+    answering_leaf(monkeypatch, "VERDICT: PASS\nREASON: fine.")
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
         verify, ["--step", "the replacement takes over: replaces 'stale first' in tests/demo.test.sh"
                  " ⟦criterion 2⟧", "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"],
-        env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
+        env={"HOME": str(tmp_path)},
         cwd=tmp_path)
 
     assert (code, out) == (0, "fine.\n")
 
 
-@pytest.mark.process("a real supervise.sh and run-leaf.sh around a stub claude that answers VERDICT: PASS")
 def test_verify_sh_green_returns_the_leafs_pass_with_exit_0_on_a_replaces_case_step_whose_every_named_case_is_gone_1507(
         run_cli, tmp_path, monkeypatch):
     write_inputs(tmp_path)
     (tmp_path / "tests" / "demo.test.sh").write_text('verdict "kept case" 0\n')
-    claude = tmp_path / "claude-pass"
-    claude.write_text("#!/bin/sh\nprintf 'VERDICT: PASS\\nREASON: the named cases are gone.'\n")
-    claude.chmod(0o755)
+    answering_leaf(monkeypatch, "VERDICT: PASS\nREASON: the named cases are gone.")
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
         verify, ["--step", "the replacement takes over: replaces 'stale first', 'stale second' in tests/demo.test.sh"
                  " ⟦replaces-case⟧ ⟦criterion 2⟧", "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"],
-        env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
+        env={"HOME": str(tmp_path)},
         cwd=tmp_path)
 
     assert (code, out) == (0, "the named cases are gone.\n")
 
 
-@pytest.mark.process("a real supervise.sh and run-leaf.sh around a stub claude that answers VERDICT: PASS")
 def test_verify_sh_green_returns_the_leafs_pass_with_exit_0_on_a_step_naming_the_replaces_case_mark_without_a_replaces_clause_1603(
         run_cli, tmp_path, monkeypatch):
     write_inputs(tmp_path)
-    claude = tmp_path / "claude-pass"
-    claude.write_text("#!/bin/sh\nprintf 'VERDICT: PASS\\nREASON: fine.'\n")
-    claude.chmod(0o755)
+    answering_leaf(monkeypatch, "VERDICT: PASS\nREASON: fine.")
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
         verify, ["--step", "the Red prompt describes the \u27e6replaces-case\u27e7 mark \u27e6criterion 1\u27e7",
                  "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"],
-        env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
+        env={"HOME": str(tmp_path)},
         cwd=tmp_path)
 
     assert (code, out) == (0, "fine.\n")
 
 
-@pytest.mark.process("a real supervise.sh and run-leaf.sh around a stub claude that answers VERDICT: PASS")
 def test_verify_sh_green_returns_the_leafs_pass_with_exit_0_on_a_replaces_case_step_with_a_quoted_case_but_no_suite_path_1603(
         run_cli, tmp_path, monkeypatch):
     write_inputs(tmp_path)
-    claude = tmp_path / "claude-pass"
-    claude.write_text("#!/bin/sh\nprintf 'VERDICT: PASS\\nREASON: fine.'\n")
-    claude.chmod(0o755)
+    answering_leaf(monkeypatch, "VERDICT: PASS\nREASON: fine.")
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(
         verify, ["--step", "the Red prompt says replaces 'stale first' \u27e6replaces-case\u27e7 \u27e6criterion 4\u27e7",
                  "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"],
-        env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
+        env={"HOME": str(tmp_path)},
         cwd=tmp_path)
 
     assert (code, out) == (0, "fine.\n")
 
 
-@pytest.mark.process("a real supervise.sh and run-leaf.sh around a stub claude that answers VERDICT: REJECT")
 @pytest.mark.parametrize("suite, check", [
     ('verdict "kept case" 0\n', None),
     ('verdict "stale first" 0\n', None),
@@ -2041,9 +2022,7 @@ def test_verify_sh_green_returns_the_leafs_reject_with_exit_1_and_its_own_reason
         suite, check, run_cli, tmp_path, monkeypatch):
     write_inputs(tmp_path)
     (tmp_path / "tests" / "demo.test.sh").write_text(suite)
-    claude = tmp_path / "claude-reject"
-    claude.write_text("#!/bin/sh\nprintf 'VERDICT: REJECT\\nREASON: the replacement asserts nothing.'\n")
-    claude.chmod(0o755)
+    answering_leaf(monkeypatch, "VERDICT: REJECT\nREASON: the replacement asserts nothing.")
     verify = importlib.import_module("veri.verify")
     if check is not None:
         monkeypatch.setattr(verify.replaces_case_survivors, "main", lambda argv: check)
@@ -2051,7 +2030,7 @@ def test_verify_sh_green_returns_the_leafs_reject_with_exit_1_and_its_own_reason
     code, out, _ = run_cli(
         verify, ["--step", "the replacement takes over: replaces 'stale first' in tests/demo.test.sh"
                  " ⟦replaces-case⟧ ⟦criterion 1⟧", "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"],
-        env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
+        env={"HOME": str(tmp_path)},
         cwd=tmp_path)
 
     assert (code, out) == (1, "the replacement asserts nothing.\n")
