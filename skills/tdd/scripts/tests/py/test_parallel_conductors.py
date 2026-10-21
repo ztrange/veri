@@ -714,7 +714,7 @@ def test_the_report_prints_one_line_per_issue_in_launch_order_killed_ahead_of_an
     (work / ".tdd" / "parked" / "3.md").write_text("parked\n")
     events = {"7": '{"event": "red"}\n{"event": "bail", "why": "stuck"}\n',
               "8": '{"event": "bail", "why": "stuck"}\n{"event": "resume"}\n',
-              "9": '{"event":"bail"}\n'}
+              "9": '{"event":"bail"}\n{"event":"resume"}\n'}
     for n, text in events.items():
         (work / ".tdd" / "wt" / n / ".tdd").mkdir(parents=True)
         (work / ".tdd" / "wt" / n / ".tdd" / "events.jsonl").write_text(text)
@@ -739,7 +739,6 @@ def test_the_report_prints_one_line_per_issue_in_launch_order_killed_ahead_of_an
         "#5 — done https://github.com/o/r/pull/105",
         "#6 — done ",
         "#7 — bailed https://github.com/o/r/pull/107",
-        "#9 — bailed https://github.com/o/r/pull/109",
         "#11 — done https://github.com/o/r/pull/111",
         "#14 — done https://github.com/o/r/pull/114",
     ]
