@@ -38,6 +38,17 @@ def replace_ledger(path, data):
         raise
 
 
+def rewrite_ledger(path, text):
+    """replace_ledger with text newline-terminated; None on success, else the temp file left behind ('' if none)."""
+    try:
+        replace_ledger(path, (text.rstrip("\n") + "\n").encode(errors="surrogateescape"))
+    except LeftBehind as error:
+        return error.filename
+    except OSError:
+        return ""
+    return None
+
+
 def decode_ledger(data):
     """data with every NUL dropped, decoded as UTF-8 with surrogateescape."""
     return data.replace(b"\0", b"").decode(errors="surrogateescape")
