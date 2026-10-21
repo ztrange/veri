@@ -132,7 +132,8 @@ def running_numbers():
 def main(argv):
     skip = set()
     rest = [word for word in argv if word != "--not-running"]
-    if len(rest) not in (0, 2) or (rest and (rest[0] != "--repo" or rest[1] == "")):
+    if (argv.count("--not-running") > 1 or "--repo" in argv[:-1] and argv[argv.index("--repo") + 1] == "--not-running"
+            or len(rest) not in (0, 2) or (rest and (rest[0] != "--repo" or rest[1] == ""))):
         print(USAGE, file=sys.stderr)
         return 2
     repo = rest[1] if rest else None

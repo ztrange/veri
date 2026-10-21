@@ -47,6 +47,16 @@ def test_main_refuses_repo_with_no_value_or_an_empty_one_with_2_and_the_usage_li
     assert (code, started, out, err) == (2, [], "", USAGE)
 
 
+@pytest.mark.parametrize("argv", [["--not-running", "--not-running"], ["--repo", "--not-running", "o/n"]])
+def test_main_refuses_a_repeated_not_running_or_one_between_repo_and_its_value_with_2_and_the_usage_line_alone_starting_no_process_1909(argv, monkeypatch, capsys, solvable_issues):
+    started = no_process(monkeypatch)
+
+    code = solvable_issues.main(argv)
+
+    out, err = capsys.readouterr()
+    assert (code, started, out, err) == (2, [], "", USAGE)
+
+
 def fake_git_answering_nothing(monkeypatch):
     """subprocess.run answering `git worktree list --porcelain` with nothing; any other command fails the case."""
     def fake_run(args, *rest, **kwargs):
