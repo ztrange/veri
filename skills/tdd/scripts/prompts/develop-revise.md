@@ -44,7 +44,7 @@ instead of an {{INCLUDE:_develop-split.md}} leave the working tree exactly as yo
    records what the run cost and names the tier it belongs to:
 
        {{TIMED_TEST_RUN}} fast '' <the command detect-test-command.sh --tier fast printed>
-       {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' make test TESTS="<those paths>"
+       {{INCLUDE:_timed-test-run-affected.md}}
 
    {{INCLUDE:_exit-status-back.md}} so a red run stays red.
 

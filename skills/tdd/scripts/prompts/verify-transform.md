@@ -19,7 +19,7 @@ the range carry the author's rationale. Render one verdict on the settled result
 2. **Behaviour unchanged.** Run the suites covering the files the range touched, through
    the wrapper `{{TIMED_TEST_RUN}}`; they must be **green**:
 
-       {{TIMED_TEST_RUN}} affected '<the suites you ran>' make test TESTS="<those paths>"
+       {{INCLUDE:_timed-test-run-affected.md}}
 
 3. **One refactoring.** The range applies the refactoring the step names and nothing else.
 

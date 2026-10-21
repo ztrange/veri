@@ -1,2 +1,2 @@
        {{TIMED_TEST_RUN}} fast '' {{FAST_CMD}}
-       {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' make test TESTS="<those paths>"
+       {{INCLUDE:_timed-test-run-affected.md}}

@@ -405,7 +405,7 @@ def test_main_substitutes_sequentially_globally_and_literally_in_order_filling_e
     real_timed = f"{build_verify_prompt.HERE}/timed-test-run.sh".encode()
     assert (code, err, b"git diff 0123abc..HEAD" in out, b"git diff 4567def..HEAD" in out,
             b"       " + real_timed + b" fast '' make unit && a/b\n"
-            b"       " + real_timed + b" affected '<the suites affected-suites.sh printed>' make test TESTS=\"<those paths>\"\n"
+            b"       " + real_timed + b" affected '<the suites you ran>' make test TESTS=\"<those paths>\"\n"
             in out) == (0, b"", True, True, True)
 
 
@@ -787,7 +787,7 @@ def test_main_scopes_refactor_to_the_cycles_files_with_flags_lines_checks_plan_r
         "diff step base": (ds[0], b"git diff 0123abcdef..HEAD" in ds[1],
                            has(ds[1], r"(add|adds|added)[^.]{0,40}test[^.]{0,200}git diff 4567abcdef\.\.HEAD"
                                       r"|git diff 4567abcdef\.\.HEAD[^.]{0,200}(add|adds|added)[^.]{0,40}test")),
-        "diff fast-cmd": (df[0], bool(found), b"affected-suites.sh" in after_fast,
+        "diff fast-cmd": (df[0], bool(found), b"affected '<the suites you ran>'" in after_fast,
                           has(df[1], rf"(fast|affected)[^.]{{0,200}}{red_word}[^.]{{0,200}}REJECT"
                                      rf"|REJECT[^.]{{0,200}}(fast|affected)[^.]{{0,200}}{red_word}")),
     } == {
@@ -959,7 +959,7 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
         "suite-repair": (0, True, True, True, False),
         "replaces-case unreadable": (2, b"", True, [0]),
         "suite-repair unreadable": (2, b"", True, [0, 0]),
-        "#671 byte-identity": [(0, "2125116840 7571"), (0, "1113545474 7295")],
+        "#671 byte-identity": [(0, "2406326255 7552"), (0, "1847091654 7276")],
         "#703 include": (0, f"before outer inner judges {testpath} end after\n".encode(), b""),
         "#703 missing partial": (2, b"", True),
         "#703 self-including partial": (2, b"", True),

@@ -20,7 +20,7 @@ some existing test goes red when that behaviour breaks. Write **NO** production 
    guard, invert a condition, drop a branch.
 3. Run the suites that cover that code, through the wrapper `{{TIMED_TEST_RUN}}`:
 
-       {{TIMED_TEST_RUN}} affected '<the suites you ran>' make test TESTS="<those paths>"
+       {{INCLUDE:_timed-test-run-affected.md}}
 
    Expect red. Note the test that caught the mutation.
 4. **Restore** the file exactly — `mv <file>.orig <file>` — and prove the edit is gone: `git diff`

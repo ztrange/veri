@@ -17,7 +17,7 @@ test is `{{TARGET_TEST}}`). Confirm the Red step is sound.
    where the way it failed is judged. Make that run through the wrapper
    {{INCLUDE:_timed-test-run-tier.md}}:
 
-       {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' make test TESTS="<those paths>"
+       {{INCLUDE:_timed-test-run-affected.md}}
 
    {{INCLUDE:_exit-status-back.md}} so a red run stays red —
    and red is what this check is after.
