@@ -50,9 +50,13 @@ def _named_cases(report):
         yield from re.findall(r"`([^`]+)`", line)
 
 
+def _case_name(test_id):
+    return test_id.rpartition("::")[2]
+
+
 def route(report, own_id):
     for case in _named_cases(report):
-        if case != own_id.rpartition("::")[2] and _exists(case):
+        if case != _case_name(own_id) and _exists(case):
             return case
     return None
 
@@ -67,7 +71,7 @@ def _recorded_cases(step):
 
 def _recorded(report, step, own_id):
     cases = _recorded_cases(step)
-    own = own_id.rpartition("::")[2]
+    own = _case_name(own_id)
     if own in set(_named_cases(report)) and route(report, own_id) is not None:
         cases.add(own)
     for case in _named_cases(report):
