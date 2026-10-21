@@ -1,7 +1,7 @@
 """The pytest leg's launcher: refuses an interpreter below the Python floor, then runs pytest."""
 # Usage:   pytest_leg.py [pytest-args...]
 # Exit:    0 pytest passed, 1 any other pytest status
-#          2 the interpreter is below the floor in lib/venv-python.sh, or cannot import pytest or pytest_timeout
+#          2 the interpreter is below the floor in lib/venv-python.sh, or cannot import pytest, pytest_timeout or xdist
 import importlib.util
 import os
 import platform
@@ -23,7 +23,8 @@ def main(argv):
                          % (floor, sys.executable, version))
         return 2
     for package, module, tunable in (("pytest", "pytest", "VERI_PYTEST_IMPORTABLE"),
-                                     ("pytest-timeout", "pytest_timeout", "VERI_PYTEST_TIMEOUT_IMPORTABLE")):
+                                     ("pytest-timeout", "pytest_timeout", "VERI_PYTEST_TIMEOUT_IMPORTABLE"),
+                                     ("pytest-xdist", "xdist", "VERI_PYTEST_XDIST_IMPORTABLE")):
         importable = tunables.read(tunable) or ("1" if importlib.util.find_spec(module) else "0")
         if importable != "1":
             sys.stderr.write("veri needs %s for the suites under skills/tdd/scripts/tests/py/; %s cannot import %s. "
