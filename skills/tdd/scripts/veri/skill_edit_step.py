@@ -57,11 +57,15 @@ def _trimmed(lines):
     return lines
 
 
-def _create(unit, path, name, rows):
-    open(unit, "w").close()
+def _write_list(path, name, rows):
     head = ["## " + name, ""] + TABLE_HEAD
     existing = _trimmed(requirements.read_lines(path)) if os.path.exists(path) else []
     _write(path, existing + [""] * bool(existing) + head + rows + [""])
+
+
+def _create(unit, path, name, rows):
+    open(unit, "w").close()
+    _write_list(path, name, rows)
 
 
 def _move_table(unit, path, name):
@@ -89,7 +93,7 @@ def apply(issue, unit):
     if not rows and not os.path.exists(path):
         return moved
     if not os.path.exists(path):
-        _write(path, ["## " + unit, ""] + TABLE_HEAD + rows + [""])
+        _write_list(path, unit, rows)
         return moved
     have ={row.split("\t")[0] for row in requirements.claims(path, name).splitlines()}
     new = [r for r in rows if _row_id(r) not in have]
