@@ -1571,25 +1571,41 @@ step, so both checkpoints apply to the repair step as they do in step 3.
 
    Then run the issue's **one structural pass**, once, before the PR is readied: the
    structural candidates the steps recorded rather than applied, each taken up by one
-   `structural` transform leaf, bounded to every file the issue touched and counted against
-   the issue's budget, not a step's. The conductor runs the pass whenever
+   `structural` transform leaf, bounded to every file the issue touched plus the files the
+   candidate names, and counted against the issue's budget, not a step's. The conductor runs the pass whenever
    `refactor-owed.sh list` prints a candidate, and never skips or shortens it for cost: the
-   way to spend less is to set a lower `VERI_ISSUE_REFACTOR_BUDGET` before launch, and the
-   candidates past the budget are filed by `refactor-overflow.sh`:
+   way to spend less is to set a lower `VERI_ISSUE_REFACTOR_BUDGET` before launch. A run does
+   a refactor now, or drops it: the pass never files one. Every candidate it does not apply is
+   recorded with `refactor-owed.sh not-done` and its reason, and `render` shows it under
+   `### Not done` in the PR body:
    ```
    git merge-base HEAD origin/<default>                 # → <issue-base>
-   $S/refactor-touched.sh --issue <issue-base>          # → <issue-touched-files>
    $S/refactor-owed.sh list .tdd/issue-<n>-refactor-owed.md   # one candidate per line; exit 3 ⇒ no pass
    ```
    A candidate recorded test-only is never listed, so it launches no predicate or
    transform leaf; `render` still shows it under `### Test-only` in the PR body.
+   An out-of-scope candidate is listed like any other.
    For each candidate, in the order `refactor-owed.sh list` prints them — most valuable first —
    `<count>` being the transforms the pass has already landed:
    ```
    $S/refactor-budget.sh --issue <count>   # exit 0 ⇒ launch; exit 3 ⇒ the pass is over
    git rev-parse HEAD                      # → <base-sha>
+   $S/refactor-touched.sh --issue <issue-base> --candidate '<candidate>'   # → <bound>
    ```
-   This is where each candidate's predicate comes from: before its transform leaf, a
+   A candidate the budget stops is recorded, with every candidate after it:
+   ```
+   $S/refactor-owed.sh not-done .tdd/issue-<n>-refactor-owed.md '<candidate>' budget-spent
+   ```
+   Before its transform leaf, a `develop-cover` leaf, prompted by `build-develop-prompt.sh cover`
+   with the spec, the candidate and the test command, mutates the code the candidate will move, runs the suites,
+   expects red and restores. Read its report through `$S/cover-outcome.sh`: exit 2 bails as a
+   **system** failure (`no-verdict`); exit 3 — `COVERED: unreachable` or `type-only` — goes on;
+   exit 1, `COVERED: no`, launches no transform: the candidate is recorded `uncovered`, and the
+   run neither bails nor files anything:
+   ```
+   $S/refactor-owed.sh not-done .tdd/issue-<n>-refactor-owed.md '<candidate>' uncovered
+   ```
+   This is where each candidate's predicate comes from: after a covered candidate, a
    predicate leaf, prompted by `build-develop-prompt.sh predicate` with the same four
    arguments and launched through the supervisor as `develop-predicate`, reports one
    `PREDICATE:` line, which the conductor checks and records:
@@ -1598,12 +1614,12 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    That record is the test path the transform verifier runs, in place of the prose
    candidate. A candidate with no predicate is skipped — only exit 3, for
-   `PREDICATE: NONE`, appends it to `.tdd/issue-<n>-predicate-skipped`, the
-   `<skipped-file>`, rather than handing it to a transform leaf; exit 1, a command already
+   `PREDICATE: NONE`, is recorded with `refactor-owed.sh not-done` and `no-predicate`
+   rather than handed to a transform leaf; exit 1, a command already
    true, means the candidate is already applied, and it is recorded as applied below
    without a transform leaf; exit 2 is no answer.
    Each transform leaf's prompt is `build-develop-prompt.sh structural`'s, handed the spec, the candidate as
-   `list` printed it, the test command and `<issue-touched-files>`, written to
+   `list` printed it, the test command and `<bound>`, written to
    `.tdd/develop-structural.prompt`; the leaf is launched through the supervisor as
    `develop-structural`. After its wait exits 0 and before its commits are checked, run
    `$S/suite-reported.sh develop-structural`: exit 2 means the report carries no `SUITE:` line,
@@ -1611,10 +1627,12 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    An out-of-bounds skip — the leaf left the tree as it found it and said so — is exempt: it
    keeps its main outcome, a transform `REJECT` and the next candidate (a process outcome),
    never a `report-missing` bail. Its commits are checked with
-   `$S/transform-touches-tests.sh <base-sha>` — exit 1 rejects the transform, exit 2 is no
+   `$S/transform-touches-tests.sh <base-sha> <bound>` — exit 1 rejects the transform (a test file,
+   or a file outside `<bound>`), exit 2 is no
    answer — then judged by the long
    refactor's blind `transform` verifier against `<base-sha>`, one commit per transform —
-   both before the next candidate's leaf is launched. A `REJECT` resets to `<base-sha>` and moves on to the next candidate.
+   both before the next candidate's leaf is launched. A `REJECT`, or a transform `transform-touches-tests.sh` rejected, resets to `<base-sha>`, records the
+   candidate `transform-rejected` with `refactor-owed.sh not-done`, and moves on to the next candidate.
    ```
    rm -f .tdd/verdict-transform.exit .tdd/verdict-transform.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/detach-leaf.sh $S/supervise.sh verdict-transform $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" transform .tdd/issue-<n>-spec.md .tdd/issue-<n>-predicate <base-sha> > .tdd/verify-transform.reason 2> .tdd/verify-transform.err
@@ -1622,8 +1640,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    A `PASS` records the candidate as applied, with the commit that applied it, so `render`
    lists it as applied rather than owed; a candidate `structural-predicate.sh` exited 1 for
-   launches no transform leaf and is recorded the same way, at the current HEAD, so
-   `refactor-overflow.sh` never files it:
+   launches no transform leaf and is recorded the same way, at the current HEAD:
    ```
    $S/refactor-owed.sh applied .tdd/issue-<n>-refactor-owed.md '<candidate>' "$(git rev-parse HEAD)"
    git add .tdd/issue-<n>-refactor-owed.md
@@ -1636,47 +1653,11 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh structural-pass transforms=<count> budget=<VERI_ISSUE_REFACTOR_BUDGET> stopped=<reason>
    ```
-   Before any `refactor-overflow.sh` call below, every out-of-scope candidate is re-checked
-   against the tree, since a later plan step may have applied it:
-   ```
-   $S/refactor-owed.sh out-of-scope .tdd/issue-<n>-refactor-owed.md   # one candidate per line; exit 3 ⇒ none
-   ```
-   For each, a `develop-predicate` leaf is launched as above and its report checked with
-   `structural-predicate.sh`; exit 1 records it applied, with its marker, so the filing leaves
-   it out:
-   ```
-   $S/refactor-owed.sh applied .tdd/issue-<n>-refactor-owed.md 'out-of-scope | <candidate>' "$(git rev-parse HEAD)"
-   ```
-   Any other exit leaves it to be filed.
-   A pass marked `stopped=budget-spent` left candidates no leaf reached, and a pass that
-   skipped a candidate left one no leaf worked; file them as one unlabelled issue naming
-   this one, `<taken>` being the candidates the pass took up, skipped ones included, and
-   `<skipped-file>` passed only when it exists:
-   ```
-   $S/refactor-overflow.sh <n> .tdd/issue-<n>-refactor-owed.md <taken> <skipped-file>   # → <overflow-url>
-   ```
-   With nothing skipped, a pass that ends `candidates-done` or `nothing-structural` files nothing
-   but the owed file's out-of-scope candidates, still handed to `refactor-overflow.sh` with
-   `<taken>` being every candidate it took up:
-   ```
-   $S/refactor-overflow.sh <n> .tdd/issue-<n>-refactor-owed.md <taken>   # exit 3 ⇒ nothing to file
-   ```
-   The filing applies no label to this issue and commits no debt file: the PR body's owed
-   list is the record.
-   An open `Refactor owed by #<n>` issue — filed by an earlier pass of a resumed run — is
-   never filed again: `refactor-overflow.sh` comments on it the candidates its body and
-   comments do not yet list, or nothing when they list every one, and prints its URL.
    No candidate — `list` exits 3, and a missing `.tdd/issue-<n>-refactor-owed.md` is the
    `list` exit-3 case — skips the pass with no bail: it is marked `stopped=nothing-structural`
    before the PR is readied:
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh structural-pass stopped=nothing-structural
-   ```
-   A candidate recorded out-of-scope is never listed either, so it launches no leaf; when
-   `list` exits 3 the owed file's out-of-scope candidates are still handed to
-   `refactor-overflow.sh` with `<taken>` 0, and filed as `Refactor owed by #<n>`:
-   ```
-   $S/refactor-overflow.sh <n> .tdd/issue-<n>-refactor-owed.md 0   # exit 3 ⇒ nothing to file
    ```
 2. **Mark the PR ready for review and read its CI, then close the run's log with the PR's
    URL, render the metrics, commit them, and rewrite the PR into its final form** — one
@@ -1723,7 +1704,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    [ "$ci" != 2 ] || [ "$conflict" = 0 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
    [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
-   gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)" -f body="<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human, followed by <overflow-url>, the issue refactor-overflow.sh filed, when the pass filed one>"
+   gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)" -f body="<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human>"
    ```
    **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see `<base directory>/BAIL.md`.
    The readied PR's CI is read fail-closed, the way the `merge` skill reads it: an empty
