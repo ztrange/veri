@@ -130,13 +130,14 @@ def main(argv):
     if _has_heading(_spec_text(spec), b"Bug"):
         optional["BUG_REPRODUCTION"] = f"{prompts}/_develop-red-bug.md"
     replaces_case = is_replaces_case_step(step)
+    markers = trailing_markers(step)
     marked = {}
     if phase == "red" and carries_mark(step, "ci-repair"):
         marked["CI_REPAIR"] = f"{prompts}/_develop-red-ci-repair.md"
     if "green" in (phase, revised_phase):
         if replaces_case:
             marked["REPLACES_CASE"] = f"{prompts}/_develop-green-replaces-case.md"
-        if carries_mark(trailing_markers(step), "suite-repair"):
+        if carries_mark(markers, "suite-repair"):
             marked["SUITE_REPAIR"] = f"{prompts}/_develop-green-suite-repair.md"
         if carries_mark(step, "fixture-repair"):
             marked["FIXTURE_REPAIR"] = f"{prompts}/_develop-green-fixture-repair.md"
@@ -188,7 +189,6 @@ def main(argv):
         values["REFACTOR_BUDGET"] = os.fsencode(tunables.read("VERI_REFACTOR_BUDGET") or "5")
     values["REVISE_PHASE"] = os.fsencode(revised_phase)
     values["TEST_REWRITE"] = {"red": TEST_REWRITE_GRANT, "contract-a": TEST_MOVE_CONTRACT_A}.get(revised_phase, TEST_REWRITE_NONE)
-    markers = trailing_markers(step)
     repair = carries_mark(markers, "suite-repair") or carries_mark(markers, "ci-repair")
     if "green" in (phase, revised_phase):
         values["FREEZE_RULE"] = REPAIR_TEST_EDIT if repair else GREEN_FREEZE_RULE
