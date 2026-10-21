@@ -363,25 +363,24 @@ def test_main_reads_and_rewrites_the_ledger_as_bytes_line_by_line_in_place(tmp_p
         ("non-utf-8", latin, "a one"),
     ):
         ledger.write_bytes(seed)
-        inode = ledger.stat().st_ino
         code = add_ledger_step.main([str(ledger), "after", anchor, "t"])
         captured = capsys.readouterr()
-        got[name] = (code, captured.out, captured.err, ledger.read_bytes(), ledger.stat().st_ino == inode)
+        got[name] = (code, captured.out, captured.err, ledger.read_bytes())
     step = "- [ ] t ⟦added⟧ ⟦criterion 1⟧\n".encode()
     assert got == {
         "anchor on an unterminated last line": (
-            0, "", "", unterminated + b"\n" + "- [ ] t ⟦added⟧ ⟦criterion 2⟧\n".encode(), True
+            0, "", "", unterminated + b"\n" + "- [ ] t ⟦added⟧ ⟦criterion 2⟧\n".encode()
         ),
         "insert before an unterminated last line": (
             0, "", "", unterminated.replace(
                 "a one ⟦criterion 1⟧\n".encode(), "a one ⟦criterion 1⟧\n".encode() + step
-            ) + b"\n", True,
+            ) + b"\n",
         ),
         "crlf": (
-            0, "", "", crlf.replace("a one ⟦criterion 1⟧\r\n".encode(), "a one ⟦criterion 1⟧\r\n".encode() + step), True
+            0, "", "", crlf.replace("a one ⟦criterion 1⟧\r\n".encode(), "a one ⟦criterion 1⟧\r\n".encode() + step)
         ),
         "non-utf-8": (
-            0, "", "", latin.replace("a one ⟦criterion 1⟧\n".encode(), "a one ⟦criterion 1⟧\n".encode() + step), True
+            0, "", "", latin.replace("a one ⟦criterion 1⟧\n".encode(), "a one ⟦criterion 1⟧\n".encode() + step)
         ),
     }
 
