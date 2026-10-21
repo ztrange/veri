@@ -1661,6 +1661,14 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    git add .tdd/issue-<n>-refactor-owed.md
    git commit -m "chore: record the structural pass's applied candidate (#<n>)"
    ```
+   Every `refactor-owed.sh not-done` call above (`budget-spent`, `uncovered`, `no-predicate`,
+   `transform-rejected`) is followed at once, before the next candidate's leaf is launched, by
+   staging and committing the owed file, so a later candidate's `REJECT` reset to its `<base-sha>`
+   keeps the row:
+   ```
+   git add .tdd/issue-<n>-refactor-owed.md
+   git commit -m "chore: record the structural pass's not-done candidate (#<n>)"
+   ```
    Once the pass ends — the candidates run out, or the budget is spent — mark it once, with
    the transforms it landed, its budget and why it stopped. `stopped=` takes only
    `candidates-done`, `budget-spent` or `nothing-structural`, and `budget-spent` is marked
