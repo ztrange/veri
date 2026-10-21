@@ -47,13 +47,31 @@ def _create(unit, path, name, rows):
     _write(path, existing + [""] * bool(existing) + head + rows + [""])
 
 
+def _move_table(unit, path, name):
+    lines = requirements.read_lines(unit)
+    start = next((n for n, l in enumerate(lines) if l.strip() == "## Requirements"), None)
+    if start is None:
+        return False
+    end = next((n for n in range(start + 1, len(lines)) if lines[n].startswith("## ")), len(lines))
+    table = [l for l in lines[start:end] if l.startswith("|")]
+    if not table:
+        return False
+    _write(path, ["## " + name, ""] + table + [""])
+    rest = lines[:start] + lines[end:]
+    while rest and rest[-1] == "":
+        rest.pop()
+    _write(unit, rest + [""])
+    return True
+
+
 def apply(issue, unit):
     name = os.path.basename(unit)
     path = skill_edit_guard.list_path(unit)
+    moved = not os.path.exists(path) and os.path.exists(unit) and _move_table(unit, path, unit)
     rows = _issue_rows(issue, unit)
     if rows and not os.path.exists(unit):
         _create(unit, path, name, rows)
-        return
+        return False
     have = {row.split("\t")[0] for row in requirements.claims(path, name).splitlines()}
     new = [r for r in rows if _row_id(r) not in have]
     reworded = {_row_id(r): r for r in rows}
@@ -62,13 +80,14 @@ def apply(issue, unit):
     in_unit = False
     for number, line in enumerate(lines):
         if line.startswith("## "):
-            in_unit = line[3:] == name
+            in_unit = line[3:] in (name, unit)
         elif in_unit and line.startswith("|"):
             last = number
             row = reworded.get(_row_id(line), line)
             lines[number] = None if requirements.split_cells(row)[2] == "(dropped)" else row
     lines[last + 1:last + 1] = new
     _write(path, [l for l in lines if l is not None])
+    return moved
 
 
 def _author(unit, path, reasons):
@@ -117,7 +136,7 @@ def main(argv):
         print("VERI_SKILL_EDIT_BUDGET must be a whole number >= 1: " + budget, file=sys.stderr)
         return 2
     base = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
-    apply(issue, unit)
+    moved = apply(issue, unit)
     path = skill_edit_guard.list_path(unit)
     graded, said = _grade(path, unit)
     authored = graded == 1
@@ -136,7 +155,7 @@ def main(argv):
         return graded
     if not authored:
         event.append(".", {}, "skill-edit-no-author", ["unit=" + unit])
-    files = [path, grade_prose.graded_path(unit)] + [unit] * authored
+    files = [path, grade_prose.graded_path(unit)] + [unit] * (authored or moved)
     subprocess.run(["git", "add", *files], check=True)
     subprocess.run(["git", "commit", "-q", "-m", "docs: requirements for %s, graded" % unit, *files], check=True)
     return 0 if authored else 3

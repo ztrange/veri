@@ -470,3 +470,34 @@ def test_a_bad_veri_skill_edit_budget_exits_2_from_validating_it_when_every_othe
     log = repo / ".tdd" / "events.jsonl"
     launched = log.exists() and log.read_text().strip() != ""
     assert [ran.returncode, launched, "VERI_SKILL_EDIT_BUDGET" in ran.stderr] == [2, False, True], (ran.stdout, ran.stderr[-700:])
+
+
+ROWS = "| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n| A2 | The widget never hums. | quiet |\n"
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
+def test_a_unit_holding_its_own_requirements_table_with_no_list_beside_it_has_the_table_moved_into_a_new_requirements_md_in_the_same_commit_1959(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "skills" / "veri-dev").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    unit = repo / "skills" / "veri-dev" / "SKILL.md"
+    unit.write_text("The widget is blue.\nIt stays silent.\n\n## Requirements\n\n" + ROWS)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text("## Problem\n\nnothing about requirements\n")
+    claude = tmp_path / "claude"
+    claude.write_text(GRADER)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "skills/veri-dev/SKILL.md"], cwd=repo, capture_output=True,
+                         text=True, env=env)
+
+    beside = repo / "skills" / "veri-dev" / "REQUIREMENTS.md"
+    moved = beside.read_text() if beside.exists() else ""
+    committed = git(repo, "show", "--name-only", "--format=", "HEAD").splitlines()
+    assert [ROWS in moved, "## Requirements" in unit.read_text(),
+            "skills/veri-dev/REQUIREMENTS.md" in committed and "skills/veri-dev/SKILL.md" in committed] \
+        == [True, False, True], (ran.returncode, ran.stdout, ran.stderr[-700:], moved, committed)
