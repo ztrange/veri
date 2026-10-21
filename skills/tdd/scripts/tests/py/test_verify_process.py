@@ -9,17 +9,24 @@ import pytest
 SCRIPTS = Path(__file__).resolve().parents[2]
 
 
-@pytest.mark.process("verify.sh run as a real shim over veri/verify.py")
-def test_verify_sh_forwards_its_arguments_to_the_module_and_returns_its_exit_code_and_reason(
+@pytest.mark.process("verify.sh run as a real shim over veri/verify.py, a real supervise.sh and run-leaf.sh"
+                     " around a stub claude that answers VERDICT: PASS")
+def test_verify_sh_green_rejects_a_pass_on_a_replaces_case_step_naming_each_case_its_suite_still_holds_1507(
         tmp_path):
+    (tmp_path / "tests").mkdir()
     (tmp_path / "spec.md").write_text("the behavior spec\n")
-    claude = tmp_path / "claude"
-    claude.write_text("#!/bin/sh\nprintf 'VERDICT: REJECT\\nREASON: the reason.'\n")
+    (tmp_path / "tests" / "x.test.sh").write_text("test\n")
+    (tmp_path / "tests" / "demo.test.sh").write_text('verdict "kept case" 0\nverdict "stale second" 0\n')
+    claude = tmp_path / "claude-pass"
+    claude.write_text("#!/bin/sh\nprintf 'VERDICT: PASS\\nREASON: the named cases are gone.'\n")
     claude.chmod(0o755)
     env = {"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
 
-    done = subprocess.run([str(SCRIPTS / "verify.sh"), "red", "spec.md", "tests/x.test.sh", "case"],
-                          cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True)
+    done = subprocess.run(
+        [str(SCRIPTS / "verify.sh"), "--step", "the replacement takes over: replaces 'stale first', 'stale second'"
+         " in tests/demo.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧", "--fast-cmd", "make unit", "green", "spec.md",
+         "tests/x.test.sh"],
+        cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True)
 
-    assert (done.returncode, done.stdout) == (1, b"the reason.\n")
+    assert (done.returncode, b"stale second" in done.stdout, b"stale first" in done.stdout) == (1, True, False)
