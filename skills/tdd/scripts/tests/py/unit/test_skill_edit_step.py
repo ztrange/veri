@@ -239,7 +239,7 @@ def test_apply_adds_the_rows_under_a_repo_relative_path_heading_to_the_list_besi
     (tmp_path / "skills" / "veri-dev").mkdir(parents=True)
     (tmp_path / "skills" / "veri-dev" / "SKILL.md").write_text("The widget is painted a deep blue.\n")
     (tmp_path / "skills" / "veri-dev" / "REQUIREMENTS.md").write_text(
-        "## SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "## skills/veri-dev/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
         "| A1 | The widget is blue. | because |\n")
     (tmp_path / "issue.md").write_text(
         "## Requirements\n\n### skills/veri-dev/SKILL.md\n\n"
