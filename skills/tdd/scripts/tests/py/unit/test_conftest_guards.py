@@ -44,3 +44,25 @@ def test_the_no_test_runner_guard_fails_a_planted_case_that_starts_git_with_dash
     output = result.stdout.str()
     assert "test_planted.py::test_starts_git_with_dash_c starts git against the repository the tests live in: %s (git -C %s status)" % (repository, repository) in output
     assert "test_planted.py::test_starts_git_from_the_module_directory starts git against the repository the tests live in: %s (git status)" % module_directory in output
+
+
+def test_the_directory_listing_guard_fails_a_planted_unmarked_case_that_lists_a_repository_directory_naming_the_case_while_a_tree_audit_mark_passes(pytester):
+    repository = pathlib.Path(conftest.__file__).resolve().parents[5]
+    pytester.makepyfile(test_planted="""
+        import os
+        import pytest
+
+        def test_lists_unmarked():
+            os.listdir(%r)
+
+        @pytest.mark.tree_audit("the repository root")
+        def test_lists_marked():
+            os.listdir(%r)
+    """ % (str(repository), str(repository)))
+
+    result = pytester.runpytest_inprocess("-p", "no:cacheprovider", plugins=[conftest])
+
+    result.assert_outcomes(failed=1, passed=1)
+    output = result.stdout.str()
+    assert "test_planted.py::test_lists_unmarked lists the repository directory %s: mark it tree_audit" % repository in output
+    assert "test_lists_marked lists" not in output
