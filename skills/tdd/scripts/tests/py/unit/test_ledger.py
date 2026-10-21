@@ -1,5 +1,7 @@
 """In-process cases for veri/ledger.py, the ledger reader."""
+import errno
 import importlib
+import os
 
 
 def test_ledger_steps_returns_the_records_lib_ledger_sh_prints():
@@ -145,3 +147,40 @@ def test_the_four_ledger_entry_points_drop_a_nul_and_keep_a_non_utf8_byte_withou
         assert (name, code) == (name, 0), err
         assert b"\0" not in path.read_bytes(), name
         assert b"alpha \xff" in path.read_bytes(), name
+
+
+def test_the_four_entry_points_exit_2_and_name_the_temporary_file_when_a_failed_write_leaves_it_behind(tmp_path, monkeypatch, run_cli):
+    seed = b"- [ ] alpha\n- [ ] beta\n"
+    real_replace, real_unlink = os.replace, os.unlink
+    left = []
+
+    def refusing_replace(src, dst, *args, **kwargs):
+        if os.path.basename(dst) == "ledger.md":
+            raise OSError(errno.EIO, os.strerror(errno.EIO), dst)
+        return real_replace(src, dst, *args, **kwargs)
+
+    def failing_unlink(path, *args, **kwargs):
+        real_unlink(path, *args, **kwargs)
+        if os.path.basename(os.path.dirname(os.path.abspath(path))) == "ledger-dir":
+            left.append(os.path.basename(path))
+            raise OSError(errno.EIO, os.strerror(errno.EIO), path)
+
+    monkeypatch.setattr(os, "replace", refusing_replace)
+    monkeypatch.setattr(os, "unlink", failing_unlink)
+    monkeypatch.setenv("VERI_STEP_GROWTH", "5")
+    outcomes = {}
+    for module, rest in (
+        ("tick_ledger", ["beta"]),
+        ("add_ledger_step", ["after", "alpha", "gamma"]),
+        ("reorder_ledger_steps", ["beta", "before", "alpha"]),
+        ("clear_refactor_pending", ["beta"]),
+    ):
+        directory = tmp_path / module / "ledger-dir"
+        directory.mkdir(parents=True)
+        ledger = directory / "ledger.md"
+        ledger.write_bytes(seed + (b"- [x] beta \xe2\x9f\x82 refactor pending\n" if module == "clear_refactor_pending" else b""))
+        left.clear()
+        code, out, err = run_cli(importlib.import_module("veri." + module), [str(ledger), *rest])
+        outcomes[module] = (code, bool(left) and all(name in err for name in left), "Traceback" in err)
+
+    assert outcomes == {name: (2, True, False) for name in outcomes}
