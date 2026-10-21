@@ -597,8 +597,10 @@ three times over branches its ledger pinned on later lines.
    because the leaves work from the step text and not from the issue: the case size it must
    keep (a medium case, with a real process), "no production change", and any end-to-end path
    through real processes that must stay covered. A step that can be satisfied only by editing
-   a test is planned as a test-only step (`⟦diff-checked⟧` or the pin), never as Red/Green,
-   since Green may not edit a test.
+   a test is planned as a test-only step, never as Red/Green, since Green may not edit a test.
+   A step whose work adds a test case for behaviour that already holds is a pin step (an
+   ordinary step whose Red reports "already passes"), never `⟦diff-checked⟧`: that mark is
+   reserved for steps that leave no test behind.
 
    The one exception is a defect in a test's own fixture, stub or harness whose script under
    test is correct. Plan it as `- [ ] <criterion>: repairs the fixture '<fixture or stub name>' in
