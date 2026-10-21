@@ -30,6 +30,10 @@ def gh_api(path):
     return _gh("api", path)
 
 
+def gh_api_delete(path):
+    return _gh("api", "-X", "DELETE", path, stderr=subprocess.PIPE)
+
+
 _ISSUES = "repos/{owner}/{repo}/issues"
 _EMPTY_PAGE = r"^\[\]$"
 

@@ -109,3 +109,26 @@ def test_main_1672_exits_2_naming_the_unanswered_removal_request_when_gh_gets_no
 
     err = capsys.readouterr().err
     assert (code, "unlabel-issue.sh" in err, "#7" in err) == (2, True, True)
+
+
+def test_main_1974_removes_the_label_through_the_port_and_starts_no_gh_process_itself(monkeypatch, capsys):
+    unlabel_issue = importlib.import_module("veri.unlabel_issue")
+    github = importlib.import_module("veri.github")
+    monkeypatch.setenv("VERI_GH_DRIVER", "rest")
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    ported = []
+
+    def port_launch(*args, **kwargs):
+        ported.append(list(args))
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    def own_launch(args, **kwargs):
+        raise AssertionError("unlabel_issue started a process itself: %s" % " ".join(map(str, args)))
+
+    monkeypatch.setattr(github, "_gh", port_launch)
+    monkeypatch.setattr(subprocess, "run", own_launch)
+
+    code = unlabel_issue.main(["7"])
+
+    assert (code, ported, capsys.readouterr().err) == (
+        0, [["api", "-X", "DELETE", "repos/{owner}/{repo}/issues/7/labels/ready-for-agent"]], "")
