@@ -664,3 +664,23 @@ def test_render_emits_no_out_of_scope_heading_and_prints_an_out_of_scope_candida
     lines = capsys.readouterr().out.splitlines()
     assert (code, [l for l in lines if l.lower().startswith("### out-of-scope")],
             sum(transform in l for l in lines)) == (0, [], 1)
+
+
+def test_applied_records_the_commit_subject_beside_the_sha_and_render_prints_it_while_a_row_without_one_renders_as_before_and_list_omits_both_1963(
+        capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    owed.write_text("### S1\n- extract the parser\n- name the walk once\n- keep me\n")
+    subject = "refactor: extract the parser (#12)"
+    assert refactor_owed.main(["applied", str(owed), "extract the parser", "abc1234", subject]) == 0
+    assert refactor_owed.main(["applied", str(owed), "name the walk once", "def5678"]) == 0
+    capsys.readouterr()
+
+    listed = refactor_owed.main(["list", str(owed)])
+    listing = capsys.readouterr().out
+    code = refactor_owed.main(["render", str(owed)])
+    lines = capsys.readouterr().out.splitlines()
+    head = lines.index("### Applied")
+    applied = lines[head + 1:]
+    assert (listed, listing, code,
+            any("extract the parser" in l and "abc1234" in l and subject in l for l in applied),
+            "- name the walk once — def5678" in applied) == (0, "keep me\n", 0, True, True)
