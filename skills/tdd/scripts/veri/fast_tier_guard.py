@@ -6,6 +6,8 @@ from pathlib import Path
 
 _SUITE_PATH = re.compile(r"(^|/)test_[^/]*\.py$|\.test\.sh$")
 
+_PATH_WITH_SPACES = re.compile(r"[^\s\\]*/[^\\]*$|[^\s\\]+$")
+
 _COMMAND = re.compile(r"(python3 -m pytest|bash) ")
 
 EXEMPTIONS = {}
@@ -71,7 +73,7 @@ def _names_a_suite(arg):
         isinstance(arg, ast.Constant)
         and isinstance(arg.value, str)
         and _SUITE_PATH.search(arg.value)
-        and (_COMMAND.match(arg.value) or not re.search(r"[\s\\]", arg.value))
+        and (_COMMAND.match(arg.value) or _PATH_WITH_SPACES.match(arg.value))
     )
 
 
