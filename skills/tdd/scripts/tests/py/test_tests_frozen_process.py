@@ -693,3 +693,24 @@ def test_check_step_on_a_fixture_repair_step_exits_1_naming_a_test_file_that_is_
     checked = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)[:2]
 
     assert (recorded, (tmp_path / record).exists(), checked) == (0, True, (1, "tests/test_other.py\n"))
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
+def test_check_step_on_a_fixture_repair_step_exits_0_silently_when_only_its_fixture_file_was_edited_1947(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    for name in ("tests/test_new.py", "tests/conftest.py"):
+        (tmp_path / name).write_text("one\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = ("the case passes: repairs the fixture 'db' in tests/conftest.py, "
+            "reproduced by a case in tests/test_new.py ⟦fixture-repair⟧")
+    (tmp_path / "tests/test_new.py").write_text("one\ntwo\n")
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py"], cwd=tmp_path)
+
+    (tmp_path / "tests/conftest.py").write_text("one, repaired\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
