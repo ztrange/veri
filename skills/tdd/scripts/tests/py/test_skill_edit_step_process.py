@@ -501,3 +501,22 @@ def test_a_unit_holding_its_own_requirements_table_with_no_list_beside_it_has_th
     assert [ROWS in moved, "## Requirements" in unit.read_text(),
             "skills/veri-dev/REQUIREMENTS.md" in committed and "skills/veri-dev/SKILL.md" in committed] \
         == [True, False, True], (ran.returncode, ran.stdout, ran.stderr[-700:], moved, committed)
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository")
+def test_a_requirements_heading_naming_no_existing_unit_and_not_marked_new_exits_2_naming_the_heading_1959(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "skills" / "veri-dev").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "skills" / "veri-dev" / "SKILL.md").write_text("The widget is blue.\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text("## Requirements\n\n### skills/missing/SKILL.md\n\n" + ROWS)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "skills/veri-dev/SKILL.md"], cwd=repo, capture_output=True,
+                         text=True, env=env)
+
+    assert [ran.returncode, "skills/missing/SKILL.md" in ran.stderr] == [2, True], (ran.returncode, ran.stdout, ran.stderr[-700:])
