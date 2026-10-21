@@ -32,22 +32,9 @@ def orphans(units):
                 yield fields[0]
 
 
-def listed_units(path):
-    units = []
-    for unit in requirements.headings(path):
-        try:
-            requirements.claims(path, unit)
-        except ValueError as e:
-            if not str(e).endswith("unit has no table"):
-                raise
-            continue
-        units.append(unit)
-    return units
-
-
 def owed_listed(path="REQUIREMENTS.md"):
     paths = [p for p in [path] + sorted(glob.glob("skills/*/REQUIREMENTS.md")) if os.path.exists(p)]
-    listed = [(p, u) for p in paths for u in listed_units(p)]
+    listed = [(p, u) for p in paths for u in requirements.listed_units(p)]
     owed = [(p, u) for p, u in listed if graded_signature(u) != grade_prose.signature(p, u)]
     return owed, list(orphans([u for _, u in listed]))
 
