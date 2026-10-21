@@ -6,3 +6,4 @@
 ### Each author attempt's leaf is launched under the name `author-skill-edit-<k>` for its 1-based attempt number `<k>` (the second attempt is `author-skill-edit-2`) ⟦criterion 5⟧
 - replace the module-level `_attempt = [1]` mutable with an `attempt` parameter on `_author`
 applied | 50d8a41716cfdfbd18c2459cab3e6e903aae8445 | rename `_issue_rows`'s parameter `name` to `unit`, since `apply` passes the repo-relative unit path and the function now matches headings against it, not a basename
+applied | ad7fc1532ca0f0db394d85958638c7ef91fb8cd5 | `_create` and the no-list branch of `apply` both write a new list file, differing only in the heading name (basename versus repo-relative path) and in whether they append to an existing file
