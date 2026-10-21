@@ -16,12 +16,12 @@ def without_budgets(monkeypatch):
 
 @pytest.mark.tree_audit("every tracked file outside the docs and .tdd trees, read by git grep")
 @pytest.mark.process("git grep over the repository this suite runs in")
-def test_no_tracked_file_outside_the_docs_and_tdd_trees_states_10_as_the_veri_issue_refactor_budget_default():
-    stale = "VERI_ISSUE_REFACTOR_BUDGET(:-|[^0-9]{0,40}default[^0-9]{0,4})10([^0-9]|$)"
+def test_no_tracked_file_outside_the_docs_and_tdd_trees_states_3_as_the_veri_issue_refactor_budget_default():
+    stale = "VERI_ISSUE_REFACTOR_BUDGET(:-|[^0-9]{0,40}default[^0-9]{0,4})3([^0-9]|$)"
     hits = subprocess.run(
         ["git", "-C", str(ROOT), "grep", "-nE", stale, "--", ".", ":!docs", ":!projects/docs", ":!.tdd"],
         capture_output=True, text=True).stdout
-    assert hits == "", "want no statement of default 10 for VERI_ISSUE_REFACTOR_BUDGET, found:\n" + hits
+    assert hits == "", "want no statement of default 3 for VERI_ISSUE_REFACTOR_BUDGET, found:\n" + hits
 
 
 @pytest.mark.process("refactor-budget.sh run through a symlink to the skill directory from another working directory")

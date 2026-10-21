@@ -5,7 +5,7 @@ import sys
 import tunables
 
 DEFAULT_BUDGET = 5
-DEFAULT_ISSUE_BUDGET = 3
+DEFAULT_ISSUE_BUDGET = 10
 USAGE = "usage: refactor-budget.sh [--issue] <count>"
 
 

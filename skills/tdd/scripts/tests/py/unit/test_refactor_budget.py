@@ -52,14 +52,14 @@ def test_main_with_both_budgets_unset_answers_against_the_default_every_prose_st
 def test_main_with_both_budgets_unset_answers_each_exit_code_its_header_names(monkeypatch, capsys, refactor_budget):
     budgets(monkeypatch, {})
     seen = []
-    for argv in (["0"], ["--issue", "3"], ["ten"]):
+    for argv in (["0"], ["--issue", "10"], ["ten"]):
         code = refactor_budget.main(argv)
         out, err = capsys.readouterr()
         seen.append((code, out, err))
     assert [code for code, _, _ in seen if code not in range(4)] == []
     assert seen == [
         (0, "refactor 0/5 — another transform may run\n", ""),
-        (3, "refactor 3/3 — budget spent\n", ""),
+        (3, "refactor 10/10 — budget spent\n", ""),
         (2, "", "refactor-budget: <count> must be a whole number >= 0: ten\n"
                 "usage: refactor-budget.sh [--issue] <count>\n"),
     ]
@@ -87,13 +87,13 @@ def test_main_checks_only_the_budget_in_force_before_the_count_and_refuses_what_
             seen.append(run({var: value}, argv[:-1] + ["ten"]))
             wanted.append(refusal)
         seen.append(run({"VERI_REFACTOR_BUDGET": value}, ["--issue", "1"]))
-        wanted.append((0, "refactor 1/3 — another transform may run\n", ""))
+        wanted.append((0, "refactor 1/10 — another transform may run\n", ""))
         seen.append(run({"VERI_ISSUE_REFACTOR_BUDGET": value}, ["1"]))
         wanted.append((0, "refactor 1/5 — another transform may run\n", ""))
     seen.append(run({"VERI_REFACTOR_BUDGET": ""}, ["1"]))
     wanted.append((0, "refactor 1/5 — another transform may run\n", ""))
     seen.append(run({"VERI_ISSUE_REFACTOR_BUDGET": ""}, ["--issue", "1"]))
-    wanted.append((0, "refactor 1/3 — another transform may run\n", ""))
+    wanted.append((0, "refactor 1/10 — another transform may run\n", ""))
     for count in ("ten", "5\n", "٣"):
         seen.append(run({}, [count]))
         wanted.append((2, "", f"refactor-budget: <count> must be a whole number >= 0: {count}\n" + usage))
@@ -230,8 +230,8 @@ def test_main_answers_each_contract_case_the_bash_suite_ran_through_the_entry_po
     for label, env, argv, code, err in (
         ("--issue default count 0", {"VERI_REFACTOR_BUDGET": "0"}, ["--issue", "0"], 0, None),
         ("--issue default count 1", {"VERI_REFACTOR_BUDGET": "0"}, ["--issue", "1"], 0, None),
-        ("--issue default count 2", {"VERI_REFACTOR_BUDGET": "0"}, ["--issue", "2"], 0, None),
-        ("--issue default count 3", {"VERI_REFACTOR_BUDGET": "0"}, ["--issue", "3"], 3, None),
+        ("--issue default count 9", {"VERI_REFACTOR_BUDGET": "0"}, ["--issue", "9"], 0, None),
+        ("--issue default count 10", {"VERI_REFACTOR_BUDGET": "0"}, ["--issue", "10"], 3, None),
         ("--issue VERI_ISSUE_REFACTOR_BUDGET=10 count 9",
          {"VERI_REFACTOR_BUDGET": "0", "VERI_ISSUE_REFACTOR_BUDGET": "10"}, ["--issue", "9"], 0, None),
         ("--issue VERI_ISSUE_REFACTOR_BUDGET=10 count 10",
@@ -312,6 +312,6 @@ def test_run_cli_valid_counts_0_4_and_5_keep_their_answers_exit_0_0_3_one_line_o
     assert problems == []
 
 
-def test_the_refactor_budget_header_states_the_issue_default_as_3():
+def test_the_refactor_budget_header_states_the_issue_default_as_10():
     header_default = stated(SCRIPTS / "refactor-budget.sh", r"VERI_ISSUE_REFACTOR_BUDGET \(default [0-9]+")
-    assert header_default == "3"
+    assert header_default == "10"
