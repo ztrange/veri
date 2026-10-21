@@ -272,3 +272,21 @@ def test_apply_reads_no_rows_for_a_unit_under_a_heading_naming_a_different_units
     skill_edit_step.apply(str(tmp_path / "issue.md"), "skills/veri-dev/SKILL.md")
 
     assert (tmp_path / "skills" / "veri-dev" / "REQUIREMENTS.md").read_bytes() == original.encode()
+
+
+def test_a_unit_with_no_requirements_list_run_against_an_issue_with_no_requirements_section_is_left_unchanged_and_exits_3_1959(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
+    fake = types.SimpleNamespace(
+        run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""),
+        PIPE=subprocess.PIPE)
+    monkeypatch.setattr(skill_edit_step, "subprocess", fake)
+
+    code = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])[0]
+
+    assert (code, (tmp_path / "unit.md").read_bytes()) == (3, b"The widget is painted a deep blue.\n")
