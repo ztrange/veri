@@ -6,10 +6,8 @@ import skill_sections
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
-PREFLIGHT = "### 0. Preflight — baseline checks (bail before any cycle)"
 PLAN = "### 2. Scope & plan → the ledger"
 
-ELAPSED_RE = r"(^|[^a-z])(time|timed|times|timing|elapsed|wall|duration|sec)([^a-z-]|$)"
 FULL_RE = r"(^|[^a-z])full(-[a-z]+)?([^a-z-]|$)"
 
 
@@ -37,16 +35,12 @@ def claimed(records, *patterns):
     return any(all(re.search(p, r) for p in patterns) for r in records)
 
 
-def exports_timeout(records):
-    return claimed(records, "veri_timeout", "export|every leaf|each leaf|all leaves|every launch|rest of the run")
-
-
-def test_skill_md_s_preflight_times_the_baseline_run_derives_the_timeout_with_leaf_timeout_sh_and_exports_it_as_VERI_TIMEOUT_for_every_leaf_and_the_plan_comment_states_it_with_the_baseline_it_came_from():
+def test_skill_md_s_plan_comment_states_the_timeout_and_the_baseline_it_came_from():
     plan = paragraphs(skill_sections.section(SKILL, PLAN))
     assert claimed(plan, "timeout", "baseline", "comment"), "no plan step has the plan comment state the timeout and the baseline it was derived from"
 
 
-def test_skill_md_s_preflight_times_the_full_tier_hands_that_measurement_to_leaf_timeout_sh_and_exports_it_as_VERI_TIMEOUT_for_every_leaf_and_the_plan_comment_names_the_tier_the_number_came_from():
+def test_skill_md_s_plan_comment_names_the_tier_the_timeout_came_from():
     plan = paragraphs(skill_sections.section(SKILL, PLAN))
     assert claimed(plan, "timeout", "comment", FULL_RE + "|tier"), "no plan step has the plan comment name the tier the timeout was derived from"
 
