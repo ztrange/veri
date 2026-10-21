@@ -14,7 +14,10 @@ def pr_body(pr):
     number = pr.rstrip("/").rsplit("/", 1)[-1]
     page = github.gh_json_page("pr.json", "repos/{owner}/{repo}/pulls/" + number,
                                "pr", "view", pr, "--json", "body")
-    return json.loads(page)["body"]
+    try:
+        return json.loads(page)["body"]
+    except (ValueError, KeyError):
+        raise github.NoAnswer("no PR body")
 
 
 def main(argv):
