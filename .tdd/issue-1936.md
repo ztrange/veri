@@ -1,0 +1,4 @@
+# Plan for #1936 — PRINCIPLES P4: with a coordinator attached, the dev session reports an event to the coordinator only
+
+- [ ] operator/PRINCIPLES.md's prose meets its reworded P4 row (with a coordinator attached, an event that earns the dev session text is one facts-only message to the coordinator, never a pasted log or issue tail, and the human gets only the `.` unless the dev session is stopped on a human decision), graded and signed: `GRADED` carries a line for the unit whose signature matches its current text ⟦skill-edit⟧ ⟦criterion 1⟧
+- [ ] skills/veri-dev/SKILL.md's prose meets its new D10 row (with a coordinator attached, each event P4 lets it speak about goes to the coordinator, not the human, unless it stops and asks under D8, said as a pointer to P4 and never a copy of P4's rule), graded and signed: `GRADED` carries a line for the unit whose signature matches its current text ⟦skill-edit⟧ ⟦criterion 1⟧
