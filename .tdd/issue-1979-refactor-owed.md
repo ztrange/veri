@@ -8,3 +8,4 @@ applied | 423e6762e1a7338812a5bad394cc160db0e00b89 | in `tick_issue_criterion.py
 - extract the fence-aware heading scan (lines 24-34) from main into a helper such as find_section_start(lines)
 ### tick-issue-criterion.sh exits 3 and patches nothing when the only matching unchecked box sits under a level-one `# Notes` heading after the `## Acceptance criteria` section — the section ends at the next `# ` or `## ` heading — a small in-process case through run_cli with gh faked ⟦criterion 4⟧
 - test-only | the `1979` cases in `test_tick_issue_criterion.py` each repeat the same `fake_run` gh stub (REST read, PATCH capture). One shared helper fed a body would remove it.
+applied | 732054221c1f87bfbcd575283f9078f570f7e8fc | extract the fence-aware heading scan (lines 24-34) from main into a helper such as find_section_start(lines)
