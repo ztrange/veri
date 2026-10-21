@@ -38,10 +38,8 @@ def is_js_test_file(name, root=""):
 def _live_call(pattern, text):
     def code(prefix):
         return re.sub(r"\"[^\"]*\"|'[^']*'|`[^`]*`", "", prefix)
-    for m in pattern.finditer(text):
-        if "//" not in code(text[text.rfind("\n", 0, m.start()) + 1:m.start()]):
-            return m.group(1)
-    return None
+    return [m.group(1) for m in pattern.finditer(text)
+            if "//" not in code(text[text.rfind("\n", 0, m.start()) + 1:m.start()])]
 
 
 def _js_title_pattern(case):
@@ -53,6 +51,7 @@ def _js_title_pattern(case):
 def _exists(case):
     py = re.compile(r"def %s\(" % re.escape(case))
     js = _js_title_pattern(case)
+    titles = set()
     for root, dirs, files in os.walk("."):
         dirs[:] = [d for d in dirs if d not in SKIPPED]
         for name in files:
@@ -63,12 +62,13 @@ def _exists(case):
                 text = handle.read()
             if is_test_file(name) and case.startswith("test_") and py.search(text):
                 return case
-            found = js_file and _live_call(js, re.sub(r"/\*.*?\*/", "", text, flags=re.S))
-            if found:
-                return found
+            found = _live_call(js, re.sub(r"/\*.*?\*/", "", text, flags=re.S)) if js_file else []
+            if found and not case.endswith(("…", "...")):
+                return found[0]
+            titles.update(found)
             if name.endswith(".test.sh") and ('name="%s"' % case) in text:
                 return case
-    return None
+    return titles.pop() if len(titles) == 1 else None
 
 
 def _lines_with(report, prefix):
