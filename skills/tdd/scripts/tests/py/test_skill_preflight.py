@@ -267,24 +267,31 @@ def preflight_and_rest():
     lines = SKILL.read_text().splitlines()
     start = next(i for i, line in enumerate(lines) if line == PREFLIGHT)
     end = next(i for i in range(start + 1, len(lines)) if re.match(r"#{1,3} ", lines[i]))
-    return plain("\n".join(lines[start:end])), plain("\n".join(lines[:start] + lines[end:]))
+    preflight, rest = plain("\n".join(lines[start:end])), plain("\n".join(lines[:start] + lines[end:]))
+    flat = lambda text: " " + " ".join(text.split()) + " "  # padded, so ^ and $ never match a section edge
+    return (preflight, flat(preflight)), (rest, flat(rest))
 
 
 def only_in_preflight(value, preflight, rest):
+    """preflight and rest are each (line by line, all whitespace flattened): a phrase that wraps a line in SKILL.md
+    matches only the flattened form, a ^-anchored item pattern only the line-by-line one."""
     if NAMES_PREFLIGHT.search(value):
         return True
     probe = " ".join(value.split())
     if len(probe.split(" ")) < 3:
         return False
-    if plain(probe) in preflight and plain(probe) not in rest:
-        return True
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             pattern = re.compile(probe, re.I | re.M)
     except re.error:
-        return False
-    return bool(pattern.search(preflight)) and not pattern.search(rest)
+        pattern = None
+    for inside, outside in zip(preflight, rest):
+        if plain(probe) in inside and plain(probe) not in outside:
+            return True
+        if pattern and pattern.search(inside) and not pattern.search(outside):
+            return True
+    return False
 
 
 def messages(fn):
