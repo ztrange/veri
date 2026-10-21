@@ -1,0 +1,2 @@
+### With VERI_GH_JSON naming a fixture directory, run-finished.sh reads the recorded PR's body from the port's fixture adapter and starts no gh process; small in-process case ⟦criterion 2⟧
+- out-of-scope | remove the `gh pr view` subprocess fallback in `run_finished.pr_body` (and the `subprocess` import and `CalledProcessError` handling that go with it) once the REST route is the only one, as the issue's "no module except github.py starts gh" criterion requires
