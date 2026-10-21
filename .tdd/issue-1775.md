@@ -1,6 +1,6 @@
 # Plan for #1775 — tests-frozen.sh makes a criterion about a guard suite or test helper unsolvable: Green can never edit the file the behaviour lives in
 
-- [x] On a step whose ledger line carries `⟦guard-subject: <path>⟧` naming a test file (a guard suite or a sourced test helper such as `skills/tdd/scripts/tests/lib/harness.sh`), an edit to that file made after `tests-frozen.sh record --step` passes `tests-frozen.sh check --step` (exit 0) ⟦criterion 1⟧ ⟂ refactor pending
+- [x] On a step whose ledger line carries `⟦guard-subject: <path>⟧` naming a test file (a guard suite or a sourced test helper such as `skills/tdd/scripts/tests/lib/harness.sh`), an edit to that file made after `tests-frozen.sh record --step` passes `tests-frozen.sh check --step` (exit 0) ⟦criterion 1⟧
 - [ ] On a step whose ledger line carries two `⟦guard-subject: <path>⟧` markers, edits to both named files pass `tests-frozen.sh check --step` (exit 0) ⟦criterion 1⟧
 - [ ] On a `⟦guard-subject: <path>⟧` step, an edit to an unrecorded test file other than the named path still makes `tests-frozen.sh check --step` exit 1, printing that file's path ⟦criterion 2⟧
 - [ ] On a `⟦guard-subject: <path>⟧` step, an edit to the test file Red wrote, which `record --step` recorded, still makes `tests-frozen.sh check --step` exit 1, printing that file's path, even when the edit to the named guard-subject file is also present ⟦criterion 2⟧
