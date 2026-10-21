@@ -41,13 +41,14 @@ def _exists(case):
     for root, dirs, files in os.walk("."):
         dirs[:] = [d for d in dirs if d not in SKIPPED]
         for name in files:
-            if not name.endswith((".py", ".test.sh")) and not is_js_test_file(name, root):
+            js_file = is_js_test_file(name, root)
+            if not name.endswith((".py", ".test.sh")) and not js_file:
                 continue
             with open(os.path.join(root, name), encoding="utf-8", errors="replace") as handle:
                 text = handle.read()
             if is_test_file(name) and case.startswith("test_") and py.search(text):
                 return True
-            if is_js_test_file(name, root) and js.search(text):
+            if js_file and js.search(text):
                 return True
             if name.endswith(".test.sh") and ('name="%s"' % case) in text:
                 return True
