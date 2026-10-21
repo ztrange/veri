@@ -301,3 +301,25 @@ def test_cli_1979_exits_3_and_patches_nothing_when_the_only_matching_unchecked_b
     result = run_cli(tick_issue_criterion, ["7", "alpha"])
 
     assert (result, patched) == ((3, "", "tick-issue-criterion: no unchecked criterion matched 'alpha' on #7\n"), [])
+
+
+def test_cli_1979_exits_3_and_patches_nothing_when_the_body_has_no_acceptance_criteria_heading_but_a_matching_unchecked_box_sits_elsewhere(monkeypatch, run_cli, tick_issue_criterion):
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    body = "## Problem\n\n- [ ] alpha in the problem\n\n## Blocked by\n\n- [ ] alpha blocker\n"
+    patched = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args == ["gh", "api", "repos/{owner}/{repo}/issues/7"]:
+            return subprocess.CompletedProcess(args, 0, json.dumps({"body": body}), "")
+        if args[:5] == ["gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/7"]:
+            with open(args[6][len("body=@"):]) as f:
+                patched.append(f.read())
+            return subprocess.CompletedProcess(args, 0, "", "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    result = run_cli(tick_issue_criterion, ["7", "alpha"])
+
+    assert (result, patched) == ((3, "", "tick-issue-criterion: no unchecked criterion matched 'alpha' on #7\n"), [])

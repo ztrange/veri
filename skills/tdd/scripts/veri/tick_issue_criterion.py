@@ -23,7 +23,7 @@ def main(argv):
     lines = body.replace("\0", "").split("\n")
     start = next((i + 1 for i, line in enumerate(lines) if line.strip() == HEADING), 0)
     end = next((i for i in range(start, len(lines)) if start and lines[i].startswith("## ")), len(lines))
-    ticked, section = ledger.ledger_tick("\n".join(lines[start:end]), matcher)
+    ticked, section = ledger.ledger_tick("\n".join(lines[start:end]), matcher) if start else (False, "")
     text = "\n".join(lines[:start] + section.split("\n") + lines[end:])
     if not ticked:
         print("tick-issue-criterion: no unchecked criterion matched '%s' on #%s" % (matcher, n),
