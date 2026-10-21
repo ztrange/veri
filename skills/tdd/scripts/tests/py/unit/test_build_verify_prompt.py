@@ -2016,3 +2016,17 @@ def test_main_exits_2_naming_the_fixture_repair_partial_when_it_is_missing_for_a
 
     assert (code, *capsysbinary.readouterr()) == (
         2, b"", f"build-verify-prompt: cannot read '{scripts / 'prompts' / '_verify-green-fixture-repair.md'}'\n".encode())
+
+
+def test_main_renders_a_transform_prompt_that_rejects_a_range_changing_observable_behaviour_1963(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+
+    code = build_verify_prompt.main(["transform", str(spec), str(tmp_path / "predicate.md"), "0123abcdef"])
+    out, _ = capsysbinary.readouterr()
+    prompt = re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
+
+    assert code == 0
+    assert re.search(r"REJECT[^.]{0,60}changes? (any )?observable behaviou?r"
+                     r"|changes? (any )?observable behaviou?r[^.]{0,60}REJECT", prompt, re.I), prompt
