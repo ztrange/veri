@@ -1398,3 +1398,27 @@ def test_main_1957_routes_a_wrong_test_naming_in_curly_quotes_the_title_of_a_js_
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout, stderr) == (0, "red %s\n" % sibling, "")
+
+
+def test_main_1957_routes_a_wrong_test_name_ending_in_either_ellipsis_form_to_a_red_over_the_one_title_it_is_a_prefix_of(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    sibling = "rejects an empty name with a clear message"
+    results = []
+    for directory, ellipsis in (("unicode", "…"), ("dots", "...")):
+        repo = tmp_path / directory
+        repo.mkdir()
+        (repo / "foo.test.ts").write_text(
+            "describe('foo', () => {\n"
+            "  it('accepts a name', () => {});\n"
+            "  it('%s', () => {});\n"
+            "});\n" % sibling)
+        report = repo / "green-report.txt"
+        report.write_text(
+            "SUITE: make test\n"
+            "WRONG_TEST: `rejects an empty name%s` contradicts the criterion\n" % ellipsis)
+        code, stdout, stderr = run_cli(
+            wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=repo)
+        results.append((code, stdout, stderr))
+
+    assert results == [(0, "red %s\n" % sibling, "")] * 2
