@@ -2932,3 +2932,21 @@ def test_cli_the_needs_user_bail_also_posts_an_issue_comment_quoting_only_the_la
 
     logged = " ".join(" ".join(call) for call in gh_calls)
     assert (code, "4242" in logged and "Which option do you want?" in logged and "Options A, B or C." not in logged) == (0, True), stderr + logged
+
+
+def test_cli_the_needs_user_comment_under_the_rest_driver_posts_over_the_issue_comments_route_with_the_body_as_a_field_starts_no_gh_issue_and_quotes_only_the_last_paragraph_1974(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    monkeypatch.setenv("VERI_GH_DRIVER", "rest")
+    run_conductor = importlib.import_module("veri.run_conductor")
+    gh_calls = conductor_that_prints(monkeypatch, tmp_path, ["phase-start"],
+                                     result_record("Options A, B or C.\n\nWhich option do you want?"))
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    posted = [call for call in gh_calls if call[:2] == ["api", "repos/{owner}/{repo}/issues/4242/comments"]]
+    bodies = [arg for call in posted for arg in call if arg.startswith("body=")]
+    assert (code, [call for call in gh_calls if call[:1] == ["issue"]], len(bodies),
+            "Which option do you want?" in "".join(bodies), "Options A, B or C." in "".join(bodies)) == (
+        0, [], 1, True, False), stderr + repr(gh_calls)
