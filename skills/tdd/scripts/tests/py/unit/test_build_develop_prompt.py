@@ -2414,3 +2414,17 @@ def test_main_accepts_exactly_the_phases_in_phases_and_want_has_exactly_their_ke
     assert unknown == {**dict.fromkeys(build_develop_prompt.PHASES, False), "bogus": True}
     assert set(build_develop_prompt.WANT) == set(build_develop_prompt.PHASES)
     assert len(build_develop_prompt.PHASES) == len(set(build_develop_prompt.PHASES))
+
+
+def test_main_tells_a_green_prompt_of_a_guard_subject_step_it_may_edit_the_guard_subject_file_and_no_other_test_file_1775(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    step = ("each guard's scanner-failure output names the guard "
+            "⟦guard-subject: skills/tdd/scripts/tests/py/conftest.py⟧ ⟦criterion 5⟧")
+    build_develop_prompt.main(["green", str(spec), step, "make test", "tests/py/test_zorblat.py",
+                               "test_zorblat_frobs_a_nitz", "make unit"])
+    out, _ = capsysbinary.readouterr()
+    prompt = re.sub(rb"\s+", b" ", out)
+
+    assert re.search(rb"may edit that file, and no other test file", prompt), prompt
