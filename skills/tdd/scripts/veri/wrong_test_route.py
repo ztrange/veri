@@ -23,16 +23,23 @@ def is_test_file(name):
     return fnmatch.fnmatch(name, "test_*.py") or name.endswith("_test.py")
 
 
+def is_js_test_file(name):
+    return fnmatch.fnmatch(name, "*.test.ts")
+
+
 def _exists(case):
     py = re.compile(r"def %s\(" % re.escape(case))
+    js = re.compile(r"\b(?:it|test)\(\s*'%s'" % re.escape(case))
     for root, dirs, files in os.walk("."):
         dirs[:] = [d for d in dirs if d not in SKIPPED]
         for name in files:
-            if not name.endswith((".py", ".test.sh")):
+            if not name.endswith((".py", ".test.sh")) and not is_js_test_file(name):
                 continue
             with open(os.path.join(root, name), encoding="utf-8", errors="replace") as handle:
                 text = handle.read()
             if is_test_file(name) and case.startswith("test_") and py.search(text):
+                return True
+            if is_js_test_file(name) and js.search(text):
                 return True
             if name.endswith(".test.sh") and ('name="%s"' % case) in text:
                 return True

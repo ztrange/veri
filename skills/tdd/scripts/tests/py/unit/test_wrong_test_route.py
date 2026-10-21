@@ -1127,3 +1127,25 @@ def test_main_1932_prints_revise_with_nothing_on_stderr_when_missing_test_none_p
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout, stderr) == (3, "revise\n", "")
+
+
+def test_main_1957_routes_a_wrong_test_naming_in_backticks_an_it_title_in_a_foo_test_ts_file_to_a_red_over_that_title(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "src"
+    suite.mkdir()
+    sibling = "rejects an empty name"
+    (suite / "foo.test.ts").write_text(
+        "describe('foo', () => {\n"
+        "  it('accepts a name', () => {});\n"
+        "  it('%s', () => {});\n"
+        "});\n" % sibling)
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "src/foo.test.ts::foo accepts a name"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red %s\n" % sibling)
