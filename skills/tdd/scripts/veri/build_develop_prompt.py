@@ -136,7 +136,7 @@ def main(argv):
     if "green" in (phase, revised_phase):
         if replaces_case:
             marked["REPLACES_CASE"] = f"{prompts}/_develop-green-replaces-case.md"
-        if carries_mark(step, "suite-repair"):
+        if carries_mark(trailing_markers(step), "suite-repair"):
             marked["SUITE_REPAIR"] = f"{prompts}/_develop-green-suite-repair.md"
         if carries_mark(step, "fixture-repair"):
             marked["FIXTURE_REPAIR"] = f"{prompts}/_develop-green-fixture-repair.md"
