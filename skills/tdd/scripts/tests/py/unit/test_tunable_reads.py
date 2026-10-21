@@ -116,3 +116,10 @@ def test_the_guard_names_the_line_of_a_planted_dict_copy_of_the_environment_read
     planted.write_text('import os\nenv = dict(os.environ)\nvalue = env.get("VERI_X")\n')
 
     assert direct_reads(planted) == ["%s:2" % planted]
+
+
+def test_the_guard_names_the_line_of_a_planted_environment_passed_as_an_argument_to_a_call(tmp_path):
+    planted = tmp_path / "planted.py"
+    planted.write_text('import os\nimport event\nvalue = event.context(os.environ)\n')
+
+    assert direct_reads(planted) == ["%s:3" % planted]
