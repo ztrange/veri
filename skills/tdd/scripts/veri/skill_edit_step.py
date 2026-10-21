@@ -61,13 +61,13 @@ def _claimed(path, unit):
     return os.path.exists(path) and requirements.claims(path, unit)
 
 
-def _append_section(path, name, table):
+def _append_section(path, unit, table):
     existing = _trimmed(requirements.read_lines(path)) if os.path.exists(path) else []
-    _write(path, existing + [""] * bool(existing) + ["## " + name, ""] + table + [""])
+    _write(path, existing + [""] * bool(existing) + ["## " + unit, ""] + table + [""])
 
 
-def _write_list(path, name, rows):
-    _append_section(path, name, TABLE_HEAD + rows)
+def _write_list(path, unit, rows):
+    _append_section(path, unit, TABLE_HEAD + rows)
 
 
 def _create(unit, path, rows):
