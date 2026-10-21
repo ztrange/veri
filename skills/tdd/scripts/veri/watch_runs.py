@@ -75,7 +75,11 @@ def main(argv):
                 return 0
         for issue in started:
             if issue not in live:
-                print("exited %s %s" % (issue, run_state(issue).split(" ")[0]))
+                state = run_state(issue).split(" ")[0]
+                if not state:
+                    print("vanished %s" % issue)
+                    return 2
+                print("exited %s %s" % (issue, state))
                 return 0
         if deadline is not None and clock() >= deadline:
             print("timeout")
