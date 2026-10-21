@@ -207,14 +207,24 @@ def bad_context(log, step):
     return "; ".join(bad)
 
 
-def run_all_launches(probe):
+class Scans:
+    def __init__(self, probe, developer, verifier):
+        self.probe = probe
+        self.developer = developer
+        self.verifier = verifier
+
+
+def launch_scans_once(root, shared):
+    probe = Probe(root, shared)
     run_developer_launches(probe)
+    developer, probe.problems = probe.problems, []
     run_verifier_launches(probe)
-    probe.problems.clear()
+    verifier, probe.problems = probe.problems, []
+    return Scans(probe, developer, verifier)
 
 
-def launched_trees(probe):
-    return sorted(probe.run.iterdir())
+def launched_trees(scans):
+    return sorted(scans.probe.run.iterdir())
 
 
 def want_step_for(line):
@@ -888,33 +898,32 @@ def shared_stages(tmp_path_factory):
     return Shared(tmp_path_factory.mktemp("stages"))
 
 
+@pytest.fixture(scope="module")
+def scans(tmp_path_factory, shared_stages):
+    return launch_scans_once(tmp_path_factory.mktemp("launch-scans"), shared_stages)
+
+
 @pytest.fixture
 def probe(tmp_path, scripts_before, shared_stages):
     return Probe(tmp_path, shared_stages)
 
 
 @pytest.mark.process("SKILL.md launch line through supervise.sh")
-@pytest.mark.timeout(300)
-def test_every_leaf_skill_md_launches_through_supervise_sh_sees_the_runs_test_command_as_veri_test_cmd(probe):
-    run_developer_launches(probe)
-
-    assert probe.problems == []
+@pytest.mark.timeout(900)
+def test_every_leaf_skill_md_launches_through_supervise_sh_sees_the_runs_test_command_as_veri_test_cmd(scans):
+    assert scans.developer == []
 
 
 @pytest.mark.process("SKILL.md launch line through verify.sh")
-@pytest.mark.timeout(300)
-def test_every_verifier_skill_md_launches_through_verify_sh_sees_the_runs_test_command_as_veri_test_cmd(probe):
-    run_verifier_launches(probe)
-
-    assert probe.problems == []
+@pytest.mark.timeout(900)
+def test_every_verifier_skill_md_launches_through_verify_sh_sees_the_runs_test_command_as_veri_test_cmd(scans):
+    assert scans.verifier == []
 
 
 @pytest.mark.process("SKILL.md launch line through supervise.sh")
-@pytest.mark.timeout(600)
-def test_every_leaf_skill_md_launches_leaves_events_carrying_the_runs_issue_and_step(probe):
-    run_all_launches(probe)
-
-    trees = launched_trees(probe)
+@pytest.mark.timeout(900)
+def test_every_leaf_skill_md_launches_leaves_events_carrying_the_runs_issue_and_step(probe, scans):
+    trees = launched_trees(scans)
     if not trees:
         probe.problems.append("no launch line was run, so no leaf's events could be read")
     for tree in trees:
@@ -931,11 +940,9 @@ def test_every_leaf_skill_md_launches_leaves_events_carrying_the_runs_issue_and_
 
 
 @pytest.mark.process("SKILL.md launch line through supervise.sh")
-@pytest.mark.timeout(600)
-def test_every_leaf_skill_md_launches_with_veri_step_set_sees_the_runs_step_as_veri_step(probe):
-    run_all_launches(probe)
-
-    trees = launched_trees(probe)
+@pytest.mark.timeout(900)
+def test_every_leaf_skill_md_launches_with_veri_step_set_sees_the_runs_step_as_veri_step(probe, scans):
+    trees = launched_trees(scans)
     if not trees:
         probe.problems.append("no launch line was run, so no leaf's VERI_STEP could be read")
     for tree in trees:
@@ -1328,9 +1335,8 @@ def test_a_launch_line_that_reaches_no_supervisor_at_all_is_reported_as_no_leaf_
 @pytest.mark.process("SKILL.md launch lines through supervise.sh and detach-leaf.sh")
 @pytest.mark.tree_audit("the scripts directory the stage links every script of")
 @pytest.mark.timeout(600)
-def test_no_launch_line_in_skill_md_is_launched_more_than_once_per_ledger_shape_the_suite_plants(probe):
-    run_developer_launches(probe)
-    run_verifier_launches(probe)
+def test_no_launch_line_in_skill_md_is_launched_more_than_once_per_ledger_shape_the_suite_plants(probe, scans):
+    probe.launches.extend(scans.probe.launches)
     scan_step_title(probe)
     scan_step_title(probe, EXPANDING_STEP, "record-develop-red")
     scan_step_title(probe, EXPANDING_STEP, "record-develop-refactor", leaf="develop-refactor", planter=plant_ticked_ledger)
