@@ -297,3 +297,19 @@ def test_bound_argument_exits_1_naming_each_file_changed_outside_it_and_0_when_a
     assert "src/b.sh" in out and "src/c.sh" in out and "src/a.sh" not in out
 
     assert run_cli(transform_touches_tests, [base, "src/a.sh,src/b.sh,src/c.sh"], cwd=repo) == (0, "", "")
+
+
+@pytest.mark.process("git rev-parse and git log over a scratch repository whose range sweeps in the refactor-owed file")
+def test_2027_a_commit_sweeping_in_the_refactor_owed_file_is_not_outside_the_bound_but_any_other_file_is(
+        tmp_path, transform_touches_tests, run_cli):
+    repo = new_repo(tmp_path / "owed")
+    base = commit_all(repo, "feat: seed", **{"src__a.sh": "a\n", "src__b.sh": "b\n"})
+    commit_all(repo, "refactor: a, with the owed file swept in by commit -a",
+               **{"src__a.sh": "a2\n", ".tdd__issue-2027-refactor-owed.md": "| fold | budget-spent |\n"})
+
+    assert run_cli(transform_touches_tests, [base, "src/a.sh"], cwd=repo) == (0, "", "")
+
+    commit_all(repo, "refactor: b", **{"src__b.sh": "b2\n"})
+    code, out, err = run_cli(transform_touches_tests, [base, "src/a.sh"], cwd=repo)
+    assert (code, err) == (1, "")
+    assert "src/b.sh" in out and ".tdd/" not in out

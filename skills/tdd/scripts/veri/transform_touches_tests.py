@@ -5,6 +5,7 @@ import sys
 
 USAGE = "usage: transform-touches-tests.sh <base-sha>"
 TEST_FILE = re.compile(rb"(^|/)tests/|\.test\.")
+REFACTOR_OWED = re.compile(rb"\.tdd/issue-[0-9]+-refactor-owed\.md")
 
 
 def refuse(message=None, usage=None):
@@ -45,7 +46,7 @@ def main(argv):
     bound = set(argv[1].encode().split(b",")) if len(argv) > 1 and argv[1] else None
     if bound is None:
         return 0
-    outside = sorted_names(line for line in paths if line and line not in bound)
+    outside = sorted_names(line for line in paths if line and line not in bound and not REFACTOR_OWED.fullmatch(line))
     if not outside:
         return 0
     print(f"transform changed a file outside its bound: {outside}")
