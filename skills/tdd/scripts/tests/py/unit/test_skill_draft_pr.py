@@ -1121,3 +1121,18 @@ def test_1904_both_ci_red_bail_lines_take_failed_from_the_stdout_of_the_wait_ci_
         if not waits:
             problems.append(f"no wait-ci.sh run writing its stdout to .tdd/wait-ci.out precedes the bail: {bail[:200]}")
     assert not problems, problems
+
+
+def test_1871_draft_pr_regrades_every_signed_unit_on_the_rebased_tip_with_grade_prose_sh_and_repairs_a_reject_like_a_red_full_suite():
+    text = _lower(re.sub(r"\s+", " ", SKILL_DRAFT_PR_TEXT()))
+    regrade = [s for s in re.split(r"(?<=\.)\s", text) if "grade-prose.sh" in s]
+    problems = []
+    if not any("rebased tip" in s and "signed" in s for s in regrade):
+        problems.append("Draft PR never regrades every unit the run signed on the rebased tip with grade-prose.sh")
+    if not any("reject" in s and "repair step" in s and "red full suite" in s for s in regrade):
+        problems.append("Draft PR never handles a grade-prose.sh REJECT as a red full suite, with a repair step")
+    assert not problems, problems
+
+
+def SKILL_DRAFT_PR_TEXT():
+    return "\n".join(_lines(DRAFT_PR))
