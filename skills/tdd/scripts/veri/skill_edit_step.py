@@ -70,10 +70,10 @@ def _write_list(path, name, rows):
     _append_section(path, name, TABLE_HEAD + rows)
 
 
-def _create(unit, path, name, rows):
+def _create(unit, path, rows):
     os.makedirs(os.path.dirname(unit) or ".", exist_ok=True)
     open(unit, "w").close()
-    _write_list(path, name, rows)
+    _write_list(path, unit, rows)
 
 
 def _move_table(unit, path, name):
@@ -96,7 +96,7 @@ def apply(issue, unit):
     moved = not _claimed(path, unit) and os.path.exists(unit) and _move_table(unit, path, unit)
     rows = _issue_rows(issue, unit)
     if rows and not os.path.exists(unit):
-        _create(unit, path, unit, rows)
+        _create(unit, path, rows)
         return True
     claimed = _claimed(path, unit)
     if not rows and not claimed:
