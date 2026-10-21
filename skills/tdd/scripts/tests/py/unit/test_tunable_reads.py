@@ -47,10 +47,16 @@ def direct_reads(path):
         return any(isinstance(use, ast.Name) and use.id == copy and use.lineno > assign.lineno
                    and "VERI_" in lines[use.lineno - 1] and not discarded_pop(use) for use in ast.walk(tree))
 
+    def passed_as_an_argument(node):
+        call = parents.get(node)
+        return (isinstance(call, ast.Call) and node in call.args
+                and not (isinstance(call.func, ast.Name) and call.func.id == "dict"))
+
     return ["%s:%d" % (path, node.lineno) for node in ast.walk(tree)
             if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "os"
             and node.attr in ("environ", "environb", "getenv")
-            and ("VERI_" in lines[node.lineno - 1] or keyed_by_a_variable(node) or copy_read_by_name_later(node))]
+            and ("VERI_" in lines[node.lineno - 1] or keyed_by_a_variable(node) or copy_read_by_name_later(node)
+                 or passed_as_an_argument(node))]
 
 
 @pytest.mark.tree_audit("every module under veri/")
