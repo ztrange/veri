@@ -21,3 +21,12 @@ Every case is a small in-process case in skills/tdd/scripts/tests/py/unit/test_w
 - [x] A WRONG_TEST: name that is the exact title of a sibling JS/TS case routes red to that sibling even when it is also one word of the step's own test id ⟦criterion 5⟧
 - [x] On the repair path (#1932), a SUPERSEDED: line naming a JS/TS case by its title, quoted, is matched by the same rules and listed after repair <case> ⟦criterion 6⟧
 - [x] wrong-test-route.sh's header comment names the JS/TS test files it searches (*.test.* / *.spec.* over .js .jsx .ts .tsx .mjs .cjs, files under __tests__/, never .d.ts) and the quote forms it reads on a WRONG_TEST: line (backticks, double quotes, curly quotes, a test_\w+ name) ⟦diff-checked⟧ ⟦criterion 7⟧
+- [ ] A SUPERSEDED: line naming a JS/TS case by a cut name ending in … (SUPERSEDED: "rejects an empty n…") prints red <the full title>, never the cut name ⟦criterion 9⟧
+- [ ] A WRONG_TEST: cut name ending in … whose expansion is the title of the step's own case answers revise, never red <own case>: the own-case check runs on the expanded title ⟦criterion 10⟧
+- [ ] A WRONG_TEST: naming a bare … whose expansion is the title of the step's own case answers revise, never red <own case> ⟦criterion 10⟧
+- [ ] A WRONG_TEST: cut name ending in … that is a prefix of more than one JS/TS title in the searched files answers revise, never red over the first match ⟦criterion 11⟧
+- [ ] A live it(…) call on a line below a // comment on an earlier line is a case: a WRONG_TEST: naming its title routes red <title> (holds today; pinned) ⟦criterion 12⟧
+- [ ] A JS/TS test file holding only emit('<title>') and no it(…) or test(…) call has no case of that title: a WRONG_TEST: naming it answers revise (holds today; pinned) ⟦criterion 12⟧
+- [ ] A file __tests__/notes.md holding it('<title>') is not a test file: a WRONG_TEST: naming that title answers revise (holds today; pinned) ⟦criterion 12⟧
+- [ ] A WRONG_TEST: name equal to the title tail of the step's own test id written <describe> > <title> answers revise (holds today; pinned) ⟦criterion 12⟧
+- [ ] A MISSING_TEST: line indented by one, two or three spaces is read as prose, by the same rule as WRONG_TEST: and SUPERSEDED: lines: the report answers revise, never missing <behaviour> (holds today; pinned) ⟦criterion 13⟧
