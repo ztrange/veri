@@ -8,8 +8,8 @@ import pytest
 from conftest import SCRIPTS
 
 
-@pytest.mark.process("run-conductor.sh run for real, refusing an empty issue before any fetch")
-def test_run_conductor_sh_forwards_its_arguments_to_the_module_and_the_modules_exit_code_as_its_own(tmp_path):
+@pytest.mark.process("run-conductor.sh run as a real shim over veri/run_conductor.py, refusing an empty issue before any fetch")
+def test_run_conductor_sh_with_an_empty_issue_forwards_it_to_the_module_and_returns_2_with_the_usage_line_alone(tmp_path):
     ran = subprocess.run([str(SCRIPTS / "run-conductor.sh"), ""], cwd=tmp_path, capture_output=True, text=True,
                          env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_BASH_MAJOR": "5",
                               "PYTHONDONTWRITEBYTECODE": "1"})
