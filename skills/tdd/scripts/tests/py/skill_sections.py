@@ -99,6 +99,8 @@ def section_of(text, heading, skill="the document"):
     end = len(lines)
     for i in range(start + 1, len(lines)):
         stripped = lines[i].lstrip()
+        if len(lines[i]) - len(stripped) >= 4:
+            stripped = ""
         if fence is None and stripped.startswith(("```", "~~~")):
             fence = stripped[:len(stripped) - len(stripped.lstrip(stripped[0]))]
         elif fence is not None:
