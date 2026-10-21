@@ -295,3 +295,19 @@ def test_main_does_not_list_a_script_named_only_in_resume_md_because_it_follows_
     listing = capsys.readouterr()
 
     assert (code, listing.out, listing.err) == (0, "orphan.sh\n", "")
+
+
+def test_main_over_this_repositorys_skill_md_reaches_skill_edit_md_and_follows_its_mention_of_skill_edit_step_1871(tmp_path, capsys):
+    unreachable = importlib.import_module("veri.unreachable")
+    scripts = fixture_root(tmp_path)
+    for doc in ("SKILL.md", "SKILL-EDIT.md"):
+        (tmp_path / "skills" / "tdd" / doc).write_bytes((SCRIPTS.parent / doc).read_bytes())
+    script(scripts / "skill-edit-step.sh", "echo edited")
+    script(scripts / "orphan.sh", "echo alone")
+
+    code = unreachable.main([str(tmp_path)])
+    lines = capsys.readouterr().out.splitlines()
+
+    assert code == 0
+    assert "orphan.sh" in lines
+    assert [line for line in lines if line.endswith("skill-edit-step.sh")] == []
