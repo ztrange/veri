@@ -1296,3 +1296,23 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_the_call_after_an_eac
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % sibling)
+
+
+def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_a_call_commented_out_with_slashes(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    sibling = "rejects an empty name"
+    (tmp_path / "foo.test.ts").write_text(
+        "describe('foo', () => {\n"
+        "  it('accepts a name', () => {});\n"
+        "  // it('%s', () => {});\n"
+        "});\n" % sibling)
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+
+    assert (code, stdout, stderr) == (3, "revise\n", "")
