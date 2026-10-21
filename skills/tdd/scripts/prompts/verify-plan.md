@@ -95,8 +95,10 @@ end-to-end path through real processes that must stay covered. Your reason names
 the constraint it leaves out.
 
 REJECT a plan that plans a test-only change, one satisfiable only by editing a test, as a
-Red/Green step: Green may not edit a test, so the run bails on it. Such a change is a
-`⟦diff-checked⟧` or pin step.
+Red/Green step: Green may not edit a test, so the run bails on it. Such a change is a pin step
+when it adds a test case for behaviour that already holds: an ordinary step whose Red reports
+that the case already passes (`AGAINST_UNMODIFIED: PASSES`). `⟦diff-checked⟧` is reserved for
+steps that leave no test behind, so it is never offered for a change that adds a case.
 
 The exception is a well-formed `⟦fixture-repair⟧` step, for a defect in a test's own fixture,
 stub or harness whose script under test is correct. Its line shape is `- [ ] <criterion>: repairs
