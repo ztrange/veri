@@ -86,7 +86,13 @@ def _case_name(test_id):
 
 def _is_own(case, own_id):
     tail = _case_name(own_id)
-    return case == tail or tail.endswith(" " + case)
+    if case == tail:
+        return True
+    if not tail.endswith(" " + case):
+        return False
+    words = tail.split(" ")
+    longer = (" ".join(words[i:]) for i in range(len(words)))
+    return not any(len(t) > len(case) and t != tail and _exists(t) for t in longer)
 
 
 def route(report, own_id):
