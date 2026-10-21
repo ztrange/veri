@@ -54,7 +54,7 @@ def _exists(case):
                 text = handle.read()
             if is_test_file(name) and case.startswith("test_") and py.search(text):
                 return True
-            if js_file and _has_live_call(js, text):
+            if js_file and _has_live_call(js, re.sub(r"/\*.*?\*/", "", text, flags=re.S)):
                 return True
             if name.endswith(".test.sh") and ('name="%s"' % case) in text:
                 return True
