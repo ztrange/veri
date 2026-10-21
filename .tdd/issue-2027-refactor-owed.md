@@ -1,2 +1,4 @@
 ### `tick-issue-criterion.sh` ticks a box under `## Acceptance criteria` that follows a fenced block holding a line starting `# ` or `## `: a heading-like line inside a fence does not end the section ⟦criterion 3⟧
 - share one fence-tracking helper between find_section_start and find_section_end (would change `~~~` and indented-fence handling in the end scan, so it is not behaviour-preserving)
+### When `tick-issue-criterion.sh` exits 3 (no unchecked criterion matched), it writes a run-log event to `.tdd/events.jsonl` naming the criterion it could not tick (its matcher), so a finished criterion left unticked leaves a visible trace ⟦criterion 4⟧
+- share one fence-tracking helper between find_section_start and find_section_end (changes behaviour: the section end would start honouring `~~~` fences and fence-length matching, so it is not a pure refactor)
