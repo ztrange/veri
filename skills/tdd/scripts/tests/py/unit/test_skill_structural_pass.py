@@ -174,3 +174,9 @@ def test_skill_md_s_structural_pass_runs_a_develop_cover_leaf_read_through_cover
     no = after(text, "COVERED: no")
     requires(until(no, "predicate leaf"), "launches no transform", "refactor-owed.sh not-done .tdd/issue-<n>-refactor-owed.md '<candidate>' uncovered",
              "neither bails nor files anything")
+
+
+def test_refactor_overflow_script_and_module_no_longer_exist():
+    scripts = SKILL.parent / "scripts"
+    leftovers = [p for p in ("refactor-overflow.sh", "veri/refactor_overflow.py") if (scripts / p).exists()]
+    assert leftovers == []
