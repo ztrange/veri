@@ -37,7 +37,7 @@ def is_js_test_file(name, root=""):
 
 def _exists(case):
     py = re.compile(r"def %s\(" % re.escape(case))
-    js = re.compile(r"\b(?:it|test)(?:\.(?:only|skip))?\(\s*['\"]%s['\"]" % re.escape(case))
+    js = re.compile(r"\b(?:it|test)(?:\.(?:only|skip))?(?:\.each(?:\([^)]*\)|`[^`]*`))?\(\s*['\"]%s['\"]" % re.escape(case))
     for root, dirs, files in os.walk("."):
         dirs[:] = [d for d in dirs if d not in SKIPPED]
         for name in files:
