@@ -1459,3 +1459,30 @@ def test_main_1957_routes_a_wrong_test_name_that_is_the_exact_title_of_a_sibling
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout, stderr) == (0, "red name\n", "")
+
+
+def test_main_1957_prints_repair_listing_the_js_ts_case_a_quoted_superseded_line_names_by_its_title(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    (tmp_path / "foo.test.ts").write_text(
+        "describe('foo', () => {\n"
+        "  it('accepts a name', () => {});\n"
+        "  it('rejects an empty name', () => {});\n"
+        "  it('accepts a long name', () => {});\n"
+        "});\n")
+    (tmp_path / ".tdd").mkdir()
+    step = "foo accepts names, a quoted superseded title"
+    monkeypatch.setenv("VERI_STEP", step)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    (tmp_path / record_path.rstrip("\n")).write_text("case: accepts a long name\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        'WRONG_TEST: "accepts a long name" contradicts the criterion\n'
+        'SUPERSEDED: "rejects an empty name" asserts the old behaviour\n')
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "repair accepts a long name rejects an empty name\n")
