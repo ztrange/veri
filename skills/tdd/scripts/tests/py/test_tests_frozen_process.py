@@ -767,7 +767,7 @@ def test_check_step_exits_0_when_a_green_edit_touches_both_guard_subjects_the_st
     git(tmp_path, "init", "-q")
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
-    step = "step two ⟦guard-subject: tests/no-thing.test.sh⟧ and ⟦guard-subject: tests/lib-helper.sh⟧"
+    step = "step two ⟦guard-subject: tests/no-thing.test.sh⟧ ⟦guard-subject: tests/lib-helper.sh⟧"
     (tmp_path / "tests/test_new.py").write_text("one\ntwo\n")
     run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py"], cwd=tmp_path)
 
