@@ -554,3 +554,39 @@ def test_a_rejected_author_attempts_edits_to_the_unit_are_reset_before_the_next_
     run_cli(skill_edit_step, [str(repo / "issue.md"), "unit.md"], env={"VERI_SKILL_EDIT_BUDGET": "2"})
 
     assert seen == ["The widget is painted a deep blue.\n"] * 2, seen
+
+
+@pytest.mark.process("a real git repository under an in-process skill-edit step with a stub grader and a recorded supervise launch")
+def test_each_author_attempts_leaf_is_named_author_skill_edit_k_for_its_attempt_number_1959(tmp_path, monkeypatch, run_cli):
+    import importlib
+    import types
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text("## Problem\n\nText.\n")
+    monkeypatch.chdir(repo)
+    for name in ("GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"):
+        monkeypatch.setenv(name, "t")
+    for name in ("GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"):
+        monkeypatch.setenv(name, "t@t")
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    real_run = subprocess.run
+    names = []
+
+    def run(argv, *args, **kwargs):
+        if str(argv[0]).endswith("supervise.sh"):
+            names.append(argv[1])
+            return types.SimpleNamespace(returncode=0)
+        return real_run(argv, *args, **kwargs)
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A1: FAIL - no\n"))
+    monkeypatch.setattr(skill_edit_step.subprocess, "run", run)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+
+    run_cli(skill_edit_step, [str(repo / "issue.md"), "unit.md"], env={"VERI_SKILL_EDIT_BUDGET": "2"})
+
+    assert names == ["author-skill-edit-1", "author-skill-edit-2"], names

@@ -109,6 +109,9 @@ def apply(issue, unit):
     return moved
 
 
+_attempt = [1]
+
+
 def _author(unit, path, reasons):
     rows = "".join("%s: %s\n" % tuple(r.split("\t", 1)) for r in requirements.claims(path, unit).splitlines())
     text = ("You edit the prose of %s so that it satisfies every requirement below.\n\nUnit: %s\n\n%s\n\n"
@@ -119,7 +122,7 @@ def _author(unit, path, reasons):
     env = dict(os.environ)
     env["PATH"] = grade_prose.modern_python_dir() + env.get("PATH", "")
     try:
-        return subprocess.run([os.path.join(SCRIPTS, "supervise.sh"), "author-skill-edit-1",
+        return subprocess.run([os.path.join(SCRIPTS, "supervise.sh"), "author-skill-edit-%d" % _attempt[0],
                                os.path.join(SCRIPTS, "run-leaf.sh"), f.name], stdout=subprocess.PIPE,
                               env=env).returncode
     finally:
@@ -165,9 +168,10 @@ def main(argv):
     authored = graded == 1
     with open(unit, "rb") as f:
         before = f.read()
-    for _ in range(int(budget)):
+    for attempt in range(1, int(budget) + 1):
         if graded != 1:
             break
+        _attempt[0] = attempt
         if _author(unit, path, said):
             return 2
         graded, said = _guard(unit, base, issue)
