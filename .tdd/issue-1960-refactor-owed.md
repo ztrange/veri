@@ -1,0 +1,2 @@
+### A test file Red renames with `git mv` is recorded by `tests-frozen.sh record --step` as a deletion of the old name plus the new file, so a Green that restores the old name makes `check --step` exit 1, printing the old name (a case driving a real git repository, marked as a process case) ⟦criterion 5⟧
+- extract the inline `git rev-parse --verify HEAD` check in `check` into a `_has_head()` helper beside `_in_repository()` (single use, not duplication)
