@@ -190,7 +190,7 @@ def main(argv):
         if superseded != _superseded(argv[0], step, argv[1]):
             _write(sys.stdout, "revise")
             return 3
-        _write(sys.stdout, " ".join(["repair", repair] + superseded))
+        _write(sys.stdout, " ".join(["repair", repair] + [c for c in superseded if c != repair]))
         return 0
     older = [] if rerouted else _superseded(argv[0], step, argv[1])
     if len(older) >= 2:
