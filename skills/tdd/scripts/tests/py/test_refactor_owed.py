@@ -672,3 +672,21 @@ def test_list_omits_and_render_shows_once_under_not_done_a_not_done_candidate_th
     assert (listed, listing, code, sum(candidate in l for l in lines),
             f"- {candidate} — budget-spent" in lines[head + 1:]) == (
         0, "name the bounds walk once\n", 0, 1, True)
+
+
+def test_list_omits_and_render_shows_only_under_applied_an_out_of_scope_candidate_recorded_applied_with_the_listed_text_1963(
+        capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    candidate = "rename the lib helper"
+    owed.write_text(f"### S1\n- out-of-scope | {candidate}\n- name the bounds walk once\n")
+    assert refactor_owed.main(["applied", str(owed), candidate, "abc1234"]) == 0
+    capsys.readouterr()
+
+    listed = refactor_owed.main(["list", str(owed)])
+    listing = capsys.readouterr().out
+    code = refactor_owed.main(["render", str(owed)])
+    lines = capsys.readouterr().out.splitlines()
+    head = lines.index("### Applied")
+    assert (listed, listing, code, sum(candidate in l for l in lines),
+            f"- {candidate} — abc1234" in lines[head + 1:]) == (
+        0, "name the bounds walk once\n", 0, 1, True)
