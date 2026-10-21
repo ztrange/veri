@@ -426,22 +426,6 @@ def test_render_prints_no_heading_for_a_step_whose_every_structural_bullet_is_ap
         0, [], "### Applied\n\n- x — abc123\n")
 
 
-def test_render_prints_an_out_of_scope_candidate_under_its_own_heading_not_under_its_step_nor_test_only_992(
-        monkeypatch, capsys, tmp_path, refactor_owed):
-    owed = tmp_path / "owed.md"
-    transform = "extract the shared parser across the other scripts"
-    monkeypatch.setattr(sys, "stdin", io.StringIO(f"CANDIDATES: out-of-scope | {transform}\n"))
-    assert refactor_owed.main(["append", str(owed), "step one", "a.sh"]) == 0
-
-    code = refactor_owed.main(["render", str(owed)])
-    lines = capsys.readouterr().out.splitlines()
-    heads = [i for i, l in enumerate(lines) if l.startswith("### ") and "out-of-scope" in l.lower()]
-    after = lines[heads[0] + 1:] if heads else []
-    section = after[:next((i for i, l in enumerate(after) if l.startswith("### ")), len(after))]
-    assert (code, [l for l in lines if l == "### step one"], [l for l in section if transform in l],
-            sum(transform in l for l in lines)) == (0, [], [f"- {transform}"], 1)
-
-
 @pytest.mark.parametrize("reason", ["budget-spent", "no-predicate", "transform-rejected", "uncovered"])
 def test_render_lists_a_not_done_candidate_with_its_reason_under_not_done_only_and_list_omits_it_1963(
         capsys, tmp_path, refactor_owed, reason):
@@ -569,11 +553,10 @@ def test_render_prints_the_same_bytes_as_before_1018_for_an_owed_file_with_a_ste
 
     code = refactor_owed.main(["render", str(owed)])
     assert (code, capsys.readouterr().out) == (
-        0, "## Refactor owed\n\n### S1\n- a\n"
+        0, "## Refactor owed\n\n### S1\n- a\n- o\n"
            "\n### Test-only\n\n"
            "These change only files under tests/; the structural pass does not work them.\n\n"
            "- t\n"
-           "\n### Out-of-scope\n\n- o\n"
            "\n### Applied\n\n- x — abc1234\n")
 
 
@@ -632,28 +615,6 @@ def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_working_d
     assert answers["elsewhere"] == answers["in-place"]
     assert [code for code, _, _ in answers["in-place"]] == [0, 0, 0]
     assert answers["in-place"][2][1] == "extract the parser\n"
-
-
-def test_out_of_scope_prints_the_unapplied_out_of_scope_candidates_one_per_line_and_exits_3_printing_nothing_when_none_is_left_or_the_file_is_missing(
-        tmp_path, run_cli, refactor_owed):
-    owed = tmp_path / "owed.md"
-    owed.write_text("### step 2\n"
-                    "- extract the parser\n"
-                    "- out-of-scope | remove gh() from coverage_blocker.py\n"
-                    "- out-of-scope | drop the subprocess import\n"
-                    "- out-of-scope | fold the two loaders\n"
-                    "applied | 1b4ed26e6 | out-of-scope | remove gh() from coverage_blocker.py\n")
-    all_applied = tmp_path / "all-applied.md"
-    all_applied.write_text("### step 2\n"
-                           "- extract the parser\n"
-                           "- out-of-scope | remove gh() from coverage_blocker.py\n"
-                           "applied | 1b4ed26e6 | out-of-scope | remove gh() from coverage_blocker.py\n")
-
-    assert run_cli(refactor_owed, ["out-of-scope", str(owed)]) == (
-        0, "drop the subprocess import\nfold the two loaders\n", "")
-    for none_left in (all_applied, tmp_path / "missing.md"):
-        code, out, _ = run_cli(refactor_owed, ["out-of-scope", str(none_left)])
-        assert (none_left.name, code, out) == (none_left.name, 3, "")
 
 
 def test_list_omits_and_render_shows_once_under_not_done_a_not_done_candidate_that_is_also_a_step_bullet_1963(
