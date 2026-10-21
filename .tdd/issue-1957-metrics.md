@@ -1,11 +1,11 @@
 ### 📊 Metrics — issue 1957
 
-Wall time for the issue: 1910 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 33 of 33 planned.
+Wall time for the issue: 1345 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 1 s, excluded from it.
+Steps done: 35 of 35 planned.
 Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/1981.
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $13.95 over 307 turns, in 3 sessions.
+Conductor own spending: $17.03 over 362 turns, in 4 sessions.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
@@ -250,76 +250,131 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 235 | $0.05 | 155367 |
 | 236 | $0.05 | 156198 |
 | 237 | $0.04 | 156577 |
-| 238 | $0.55 | 85240 |
-| 239 | $0.04 | 87915 |
-| 240 | $0.02 | 88401 |
-| 241 | $0.04 | 91699 |
-| 242 | $0.04 | 94752 |
-| 243 | $0.03 | 95617 |
-| 244 | $0.02 | 96154 |
-| 245 | $0.02 | 96448 |
-| 246 | $0.02 | 96837 |
-| 247 | $0.02 | 97237 |
-| 248 | $0.02 | 97618 |
+| 238 | $0.56 | 85240 |
+| 239 | $0.05 | 87915 |
+| 240 | $0.03 | 88401 |
+| 241 | $0.06 | 91699 |
+| 242 | $0.05 | 94752 |
+| 243 | $0.04 | 95617 |
+| 244 | $0.04 | 96154 |
+| 245 | $0.03 | 96448 |
+| 246 | $0.04 | 96837 |
+| 247 | $0.03 | 97237 |
+| 248 | $0.04 | 97618 |
 | 249 | $0.03 | 98437 |
-| 250 | $0.02 | 98743 |
-| 251 | $0.02 | 98989 |
-| 252 | $0.03 | 100520 |
-| 253 | $0.04 | 102609 |
-| 254 | $0.03 | 104196 |
-| 255 | $0.05 | 107435 |
-| 256 | $0.04 | 109317 |
-| 257 | $0.03 | 109930 |
-| 258 | $0.03 | 110612 |
-| 259 | $0.02 | 110858 |
-| 260 | $0.03 | 112260 |
-| 261 | $0.03 | 113136 |
-| 262 | $0.03 | 113737 |
-| 263 | $0.03 | 114144 |
-| 264 | $0.03 | 115175 |
-| 265 | $0.03 | 115757 |
-| 266 | $0.03 | 117039 |
-| 267 | $0.03 | 117487 |
-| 268 | $0.03 | 118204 |
-| 269 | $0.03 | 119121 |
-| 270 | $0.03 | 119560 |
-| 271 | $0.03 | 120252 |
-| 272 | $0.03 | 121365 |
-| 273 | $0.04 | 122713 |
-| 274 | $0.04 | 125125 |
-| 275 | $0.03 | 125853 |
-| 276 | $0.03 | 126165 |
-| 277 | $0.03 | 126628 |
+| 250 | $0.04 | 98743 |
+| 251 | $0.03 | 98989 |
+| 252 | $0.05 | 100520 |
+| 253 | $0.05 | 102609 |
+| 254 | $0.04 | 104196 |
+| 255 | $0.06 | 107435 |
+| 256 | $0.05 | 109317 |
+| 257 | $0.04 | 109930 |
+| 258 | $0.04 | 110612 |
+| 259 | $0.03 | 110858 |
+| 260 | $0.05 | 112260 |
+| 261 | $0.04 | 113136 |
+| 262 | $0.04 | 113737 |
+| 263 | $0.04 | 114144 |
+| 264 | $0.04 | 115175 |
+| 265 | $0.04 | 115757 |
+| 266 | $0.05 | 117039 |
+| 267 | $0.04 | 117487 |
+| 268 | $0.04 | 118204 |
+| 269 | $0.04 | 119121 |
+| 270 | $0.04 | 119560 |
+| 271 | $0.04 | 120252 |
+| 272 | $0.05 | 121365 |
+| 273 | $0.05 | 122713 |
+| 274 | $0.05 | 125125 |
+| 275 | $0.04 | 125853 |
+| 276 | $0.04 | 126165 |
+| 277 | $0.05 | 126628 |
 | 278 | $0.04 | 128041 |
-| 279 | $0.03 | 128854 |
-| 280 | $0.04 | 130550 |
-| 281 | $0.03 | 131343 |
+| 279 | $0.05 | 128854 |
+| 280 | $0.05 | 130550 |
+| 281 | $0.05 | 131343 |
 | 282 | $0.04 | 132697 |
-| 283 | $0.03 | 133385 |
-| 284 | $0.04 | 134428 |
+| 283 | $0.05 | 133385 |
+| 284 | $0.05 | 134428 |
 | 285 | $0.04 | 135585 |
-| 286 | $0.03 | 136378 |
-| 287 | $0.04 | 137883 |
-| 288 | $0.03 | 138618 |
-| 289 | $0.04 | 139918 |
-| 290 | $0.03 | 140601 |
-| 291 | $0.04 | 141473 |
-| 292 | $0.04 | 143109 |
-| 293 | $0.04 | 144528 |
-| 294 | $0.04 | 145960 |
-| 295 | $0.05 | 148159 |
-| 296 | $0.09 | 155589 |
-| 297 | $0.05 | 157986 |
-| 298 | $0.04 | 158797 |
-| 299 | $0.04 | 159790 |
-| 300 | $0.03 | 160143 |
-| 301 | $0.03 | 160417 |
-| 302 | $0.04 | 161458 |
-| 303 | $0.04 | 162963 |
-| 304 | $0.04 | 163779 |
-| 305 | $0.04 | 164431 |
-| 306 | $0.04 | 164993 |
-| 307 | $0.04 | 165646 |
+| 286 | $0.05 | 136378 |
+| 287 | $0.05 | 137883 |
+| 288 | $0.05 | 138618 |
+| 289 | $0.05 | 139918 |
+| 290 | $0.04 | 140601 |
+| 291 | $0.05 | 141473 |
+| 292 | $0.05 | 143109 |
+| 293 | $0.06 | 144528 |
+| 294 | $0.05 | 145960 |
+| 295 | $0.06 | 148159 |
+| 296 | $0.10 | 155589 |
+| 297 | $0.06 | 157986 |
+| 298 | $0.05 | 158797 |
+| 299 | $0.05 | 159790 |
+| 300 | $0.05 | 160143 |
+| 301 | $0.05 | 160417 |
+| 302 | $0.05 | 161458 |
+| 303 | $0.06 | 162963 |
+| 304 | $0.05 | 163779 |
+| 305 | $0.05 | 164431 |
+| 306 | $0.05 | 164993 |
+| 307 | $0.05 | 165646 |
+| 308 | $0.05 | 166281 |
+| 309 | $0.05 | 167525 |
+| 310 | $0.06 | 168585 |
+| 311 | $0.05 | 168973 |
+| 312 | $0.55 | 85240 |
+| 313 | $0.02 | 85732 |
+| 314 | $0.04 | 88441 |
+| 315 | $0.02 | 88922 |
+| 316 | $0.04 | 92254 |
+| 317 | $0.03 | 93341 |
+| 318 | $0.02 | 93699 |
+| 319 | $0.02 | 94034 |
+| 320 | $0.02 | 94419 |
+| 321 | $0.02 | 94744 |
+| 322 | $0.02 | 95063 |
+| 323 | $0.02 | 95682 |
+| 324 | $0.04 | 98878 |
+| 325 | $0.04 | 101043 |
+| 326 | $0.03 | 102050 |
+| 327 | $0.03 | 102947 |
+| 328 | $0.03 | 103595 |
+| 329 | $0.02 | 103836 |
+| 330 | $0.03 | 105207 |
+| 331 | $0.03 | 105973 |
+| 332 | $0.03 | 106650 |
+| 333 | $0.03 | 107949 |
+| 334 | $0.03 | 108910 |
+| 335 | $0.03 | 109733 |
+| 336 | $0.03 | 110309 |
+| 337 | $0.03 | 111150 |
+| 338 | $0.03 | 112129 |
+| 339 | $0.03 | 112637 |
+| 340 | $0.03 | 113547 |
+| 341 | $0.03 | 114300 |
+| 342 | $0.03 | 115082 |
+| 343 | $0.03 | 116292 |
+| 344 | $0.04 | 117816 |
+| 345 | $0.04 | 119394 |
+| 346 | $0.03 | 120077 |
+| 347 | $0.03 | 121329 |
+| 348 | $0.03 | 121790 |
+| 349 | $0.03 | 122511 |
+| 350 | $0.03 | 123569 |
+| 351 | $0.03 | 124051 |
+| 352 | $0.03 | 124338 |
+| 353 | $0.03 | 124612 |
+| 354 | $0.03 | 125025 |
+| 355 | $0.04 | 126677 |
+| 356 | $0.03 | 127742 |
+| 357 | $0.03 | 128324 |
+| 358 | $0.03 | 128754 |
+| 359 | $0.03 | 129412 |
+| 360 | $0.03 | 130215 |
+| 361 | $0.03 | 130777 |
+| 362 | $0.03 | 131322 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -327,21 +382,21 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 2 | 2 | 0 | 0 | 28 | 22 | 4 | 8 | 2770 | 99688 | 31522 | 0.12 |
-| red | 56 | 23 | 0 | 0 | 1335 | 926 | 251 | 500 | 89715 | 7514629 | 1055396 | 4.29 |
-| green | 54 | 23 | 4 | 0 | 2224 | 704 | 242 | 446 | 67989 | 6264320 | 802576 | 3.66 |
-| refactor | 44 | 21 | 0 | 0 | 924 | 331 | 132 | 248 | 24965 | 3211542 | 624196 | 2.13 |
+| red | 60 | 25 | 0 | 0 | 1445 | 1014 | 270 | 538 | 96280 | 8076586 | 1167663 | 4.69 |
+| green | 58 | 25 | 4 | 0 | 2470 | 786 | 266 | 490 | 74837 | 6935002 | 872249 | 3.97 |
+| refactor | 48 | 23 | 0 | 0 | 1011 | 365 | 145 | 272 | 27336 | 3533734 | 684609 | 2.34 |
 | pin | 10 | 10 | 0 | 0 | 226 | 148 | 42 | 84 | 10932 | 1139050 | 144440 | 0.58 |
 | diff | 6 | 3 | 0 | 0 | 268 | 134 | 32 | 62 | 9878 | 892329 | 109613 | 0.62 |
-| predicate | 7 | 0 | 0 | 0 | 109 | 88 | 28 | 56 | 5502 | 744265 | 88868 | 0.35 |
-| structural | 6 | 0 | 0 | 0 | 145 | 106 | 31 | 58 | 9312 | 811872 | 89127 | 0.40 |
-| transform | 6 | 2 | 4 | 0 | 94 | 70 | 23 | 46 | 5516 | 583767 | 95174 | 0.35 |
+| predicate | 8 | 0 | 0 | 0 | 138 | 113 | 34 | 68 | 6639 | 896859 | 120504 | 0.46 |
+| structural | 7 | 0 | 0 | 0 | 181 | 138 | 37 | 70 | 10917 | 986021 | 104469 | 0.47 |
+| transform | 7 | 2 | 5 | 0 | 114 | 86 | 26 | 52 | 6337 | 643106 | 125828 | 0.44 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 92 | 84 | 8 | 0 | 2595 | 983 | 309 | 612 | 84108 | 8013886 | 1257733 | 4.79 |
-| developer | claude-sonnet-5-5 | 91 | 0 | 0 | 0 | 2367 | 1361 | 430 | 808 | 128799 | 11979601 | 1593566 | 6.53 |
+| verifier | claude-sonnet-5-5 | 99 | 90 | 9 | 0 | 2793 | 1063 | 331 | 654 | 89774 | 8529901 | 1394156 | 5.24 |
+| developer | claude-sonnet-5-5 | 99 | 0 | 0 | 0 | 2697 | 1558 | 479 | 902 | 142480 | 13404499 | 1777128 | 7.27 |
 | developer | claude-opus-5-5 | 8 | 0 | 0 | 0 | 391 | 185 | 46 | 88 | 13672 | 1267975 | 189613 | 1.18 |
 
 #### Rework and waste, by phase
@@ -356,7 +411,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | diff | 0 | 0.00 | 0 | 0.00 |
 | predicate | 0 | 0.00 | 0 | 0.00 |
 | structural | 0 | 0.00 | 0 | 0.00 |
-| transform | 156 | 0.55 | 0 | 0.00 |
+| transform | 176 | 0.64 | 0 | 0.00 |
 
 #### By step
 
@@ -395,6 +450,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | A lone SUPERSEDED: cut name ending in … that expands to the title of the step's own JS/TS case, on a report whose WRONG_TEST: names no case that routes, answers revise, never red <own case>: the own-case check runs on the expanded SUPERSEDED: title ⟦criterion 15⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 89 | 22 | 44 | 6566 | 636981 | 101491 | 0.38 | 253 | unknown | 0/5 | nothing-structural |  |  | full |
 | A SUPERSEDED: cut name ending in … that expands to the title of the step's own JS/TS case, on the repair path (WRONG_TEST: names the step's own recorded case), answers revise, never a repair in which the own case supersedes itself ⟦criterion 15⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 88 | 23 | 44 | 7158 | 644346 | 104885 | 0.40 | 259 | unknown | 0/5 | nothing-left |  |  | full |
 | .tdd/issue-1957-refactor-owed.md's applied rows cite, for the helpers _js_title_pattern and _cut_prefix, the commits on the rebased branch that applied them, each with its commit subject, so every cited sha resolves on the branch (git cat-file -e) and names that helper's commit ⟦diff-checked⟧ ⟦criterion 16⟧ | 7 | 2 | 1 | 0 | 0 | 0 | 166 | 39 | 76 | 12533 | 1089506 | 148703 | 0.77 | 323 | 1/2 | unknown | unknown |  |  | full |
+| On the repair path (WRONG_TEST: names a case in the step's red record that differs from the own id's tail), a SUPERSEDED: cut name ending in … that expands to that recorded case's full title is dropped as a duplicate: the route prints repair <case> with no superseded entry equal to it, never repair <case> <case> ⟦criterion 17⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 98 | 28 | 50 | 7749 | 710327 | 140112 | 0.50 | 309 | unknown | 0/5 | nothing-left |  |  | full |
+| A lone SUPERSEDED: cut name ending in … that expands to the full title of a case in the step's red record (a recorded case that differs from the own id's tail), on a report whose WRONG_TEST: names no case that routes, answers revise, exactly as the uncut name does, never red <recorded case> ⟦criterion 17⟧ | 9 | 3 | 1 | 0 | 0 | 0 | 179 | 43 | 86 | 11598 | 1230586 | 179873 | 0.69 | 325 | unknown | 0/5 | nothing-left |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -423,6 +480,8 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | A WRONG_TEST: cut name in backticks (`doesn…`) expands to the title of it("doesn't crash on null"), a double-quoted title holding a single quote: red prints doesn't crash on null, the title matched up to the quote that opened it ⟦criterion 14⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 39 | 0.10 |
 | A lone SUPERSEDED: cut name ending in … that expands to the title of the step's own JS/TS case, on a report whose WRONG_TEST: names no case that routes, answers revise, never red <own case>: the own-case check runs on the expanded SUPERSEDED: title ⟦criterion 15⟧ | 1 | 0/5 | nothing-structural | PASS | 0 | 40 | 0.10 |
 | A SUPERSEDED: cut name ending in … that expands to the title of the step's own JS/TS case, on the repair path (WRONG_TEST: names the step's own recorded case), answers revise, never a repair in which the own case supersedes itself ⟦criterion 15⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 45 | 0.10 |
+| On the repair path (WRONG_TEST: names a case in the step's red record that differs from the own id's tail), a SUPERSEDED: cut name ending in … that expands to that recorded case's full title is dropped as a duplicate: the route prints repair <case> with no superseded entry equal to it, never repair <case> <case> ⟦criterion 17⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 44 | 0.11 |
+| A lone SUPERSEDED: cut name ending in … that expands to the full title of a case in the step's red record (a recorded case that differs from the own id's tail), on a report whose WRONG_TEST: names no case that routes, answers revise, exactly as the uncut name does, never red <recorded case> ⟦criterion 17⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 43 | 0.10 |
 
 #### Structural pass
 
@@ -432,14 +491,14 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s | run 95 s | run 96 s | run 97 s | run 98 s | run 99 s | run 100 s | run 101 s | run 102 s | run 103 s | run 104 s | run 105 s | run 106 s | run 107 s | run 108 s | run 109 s | run 110 s | run 111 s | run 112 s | run 113 s | run 114 s | run 115 s | run 116 s | run 117 s | run 118 s | run 119 s | run 120 s | run 121 s | run 122 s | run 123 s | run 124 s | run 125 s | run 126 s | run 127 s | run 128 s | run 129 s | run 130 s | run 131 s | run 132 s | run 133 s | run 134 s | run 135 s | run 136 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2 | 3 | 3 | 4 | 3 | 3 | 3 | 2 | 3 | 3 | 2 | 3 | 2 | 3 | 2 | 3 | 2 | 3 | 2 | 2 | 3 | 3 | 3 | 2 | 3 | 3 | 3 | 3 | 3 | 3 | 2 | 2 | 3 | 3 | 3 | 0 | 2 | 2 | 3 | 3 | 0 | 3 | 3 | 2 | 3 | 3 | 2 | 3 | 3 | 2 | 0 | 2 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2 | 3 | 3 | 3 | 3 | 3 | 3 | 0 | 3 | 2 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 1 | 3 | 3 | 3 | 0 | 2 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2 | 3 | 3 | 2 | 3 | 0 | 2 | 3 | 3 | 2 | 3 | 2 | 3 |
-| fast | 20 | 20 | 20 | 21 | 21 | 21 | 21 | 21 | 19 | 19 | 18 | 18 | 18 | 20 | 19 | 18 | 19 | 18 | 20 | 18 | 19 | 19 | 19 | 19 | 19 | 19 | 21 | 19 | 19 | 19 | 20 | 19 | 18 | 19 | 20 | 19 | 19 | 19 | 20 | 20 | 20 | 19 | 20 | 19 | 19 | 20 | 20 | 23 | 19 | 20 | 19 | 20 | 19 | 19 | 20 | 20 | 18 | 18 | 18 | 19 | 19 | 20 | 18 | 22 | 19 | 19 | 16 | 17 | 16 | 18 | 17 | 18 | 17 | 18 | 16 | 17 | 17 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 2 | 3 | 3 | 2 | 2 | 1 | 2 | 3 | 2 | 2 | 2 | 3 | 3 | 2 | 2 | 3 | 2 | 1 | 1 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 1 | 2 | 2 | 2 | 3 | 4 | 2 | 2 | 2 | 2 | 1 | 2 | 1 | 2 | 1 | 2 | 2 | 3 | 1 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s | run 95 s | run 96 s | run 97 s | run 98 s | run 99 s | run 100 s | run 101 s | run 102 s | run 103 s | run 104 s | run 105 s | run 106 s | run 107 s | run 108 s | run 109 s | run 110 s | run 111 s | run 112 s | run 113 s | run 114 s | run 115 s | run 116 s | run 117 s | run 118 s | run 119 s | run 120 s | run 121 s | run 122 s | run 123 s | run 124 s | run 125 s | run 126 s | run 127 s | run 128 s | run 129 s | run 130 s | run 131 s | run 132 s | run 133 s | run 134 s | run 135 s | run 136 s | run 137 s | run 138 s | run 139 s | run 140 s | run 141 s | run 142 s | run 143 s | run 144 s | run 145 s | run 146 s | run 147 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2 | 3 | 3 | 4 | 3 | 3 | 3 | 2 | 3 | 3 | 2 | 3 | 2 | 3 | 2 | 3 | 2 | 3 | 2 | 2 | 3 | 3 | 3 | 2 | 3 | 3 | 3 | 3 | 3 | 3 | 2 | 2 | 3 | 3 | 3 | 0 | 2 | 2 | 3 | 3 | 0 | 3 | 3 | 2 | 3 | 3 | 2 | 3 | 3 | 2 | 0 | 2 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2 | 3 | 3 | 3 | 3 | 3 | 3 | 0 | 3 | 2 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 1 | 3 | 3 | 3 | 0 | 2 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2 | 3 | 3 | 2 | 3 | 0 | 2 | 3 | 3 | 2 | 3 | 2 | 3 | 3 | 3 | 3 | 3 | 3 | 2 | 2 | 3 | 2 | 3 | 2 |
+| fast | 20 | 20 | 20 | 21 | 21 | 21 | 21 | 21 | 19 | 19 | 18 | 18 | 18 | 20 | 19 | 18 | 19 | 18 | 20 | 18 | 19 | 19 | 19 | 19 | 19 | 19 | 21 | 19 | 19 | 19 | 20 | 19 | 18 | 19 | 20 | 19 | 19 | 19 | 20 | 20 | 20 | 19 | 20 | 19 | 19 | 20 | 20 | 23 | 19 | 20 | 19 | 20 | 19 | 19 | 20 | 20 | 18 | 18 | 18 | 19 | 19 | 20 | 18 | 22 | 19 | 19 | 16 | 17 | 16 | 18 | 17 | 18 | 17 | 18 | 16 | 17 | 17 | 19 | 19 | 18 | 17 | 17 | 17 | 17 | 17 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 2 | 3 | 3 | 2 | 2 | 1 | 2 | 3 | 2 | 2 | 2 | 3 | 3 | 2 | 2 | 3 | 2 | 1 | 1 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 1 | 2 | 2 | 2 | 3 | 4 | 2 | 2 | 2 | 2 | 1 | 2 | 1 | 2 | 1 | 2 | 2 | 3 | 1 | 3 | 2 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 785 | 1508 | 226579 | 21261462 | 3040912 | 12.50 |
+| total | 856 | 1644 | 245926 | 23202375 | 3360897 | 13.69 |
