@@ -3,3 +3,4 @@
 - add_ledger_step.py: spec_criteria and write_ledger still open and decode the file by hand instead of going through ledger.py (write_ledger is owed to the atomic-replace step)
 - tick_ledger.py and clear_refactor_pending.py: the identical `(new.rstrip("\n") + "\n").encode(errors="surrogateescape")` and LeftBehind/OSError block could be extracted into a shared ledger.py helper (moving behaviour, so reported not applied)
 not-done | transform-rejected | reorder_ledger_steps.py: handle LeftBehind and OSError from replace_ledger the way tick_ledger.py and clear_refactor_pending.py do, which duplicates their handler (behaviour change, so owed by a later step, not a tidy)
+not-done | transform-rejected | add_ledger_step.py: spec_criteria and write_ledger still open and decode the file by hand instead of going through ledger.py (write_ledger is owed to the atomic-replace step)
