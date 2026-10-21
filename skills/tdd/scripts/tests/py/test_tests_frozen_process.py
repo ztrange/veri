@@ -623,6 +623,27 @@ def test_record_step_lists_the_bash_case_red_edited_below_an_indented_finish_lin
 
 
 @pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
+def test_check_step_run_from_a_subdirectory_exits_1_naming_a_tracked_test_file_green_edited_again_after_record_step_from_that_subdirectory_1960(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "sub").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_new.py").write_text("one\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one adds a case"
+    (tmp_path / "sub/.tdd").symlink_to("../.tdd")
+    (tmp_path / "tests/test_new.py").write_text("one\ntwo\n")
+    recorded = run_cli(tests_frozen, ["record", "--step", step, "../tests/test_new.py"], cwd=tmp_path / "sub")[0]
+
+    (tmp_path / "tests/test_new.py").write_text("one, weakened\n")
+    checked = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path / "sub")[:2]
+
+    assert (recorded, checked) == (0, (1, "tests/test_new.py\n"))
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
 def test_record_and_check_by_step_key_an_unmarked_steps_record_by_path_and_reject_an_edit_to_its_test_file_1586(
         tmp_path, run_cli, tests_frozen):
     (tmp_path / ".tdd").mkdir()
