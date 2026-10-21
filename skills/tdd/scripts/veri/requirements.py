@@ -49,6 +49,19 @@ def units(path):
     return found
 
 
+def listed_units(path):
+    found = []
+    for unit in headings(path):
+        try:
+            claims(path, unit)
+        except ValueError as e:
+            if not str(e).endswith("unit has no table"):
+                raise
+            continue
+        found.append(unit)
+    return found
+
+
 def fail(path, number, msg):
     raise ValueError("%s:%d: %s" % (path, number, msg))
 
