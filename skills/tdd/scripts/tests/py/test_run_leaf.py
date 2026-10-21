@@ -153,6 +153,29 @@ def test_main_launches_claude_with_background_tasks_disabled_whatever_the_caller
     assert seen == ["1"]
 
 
+def test_main_launches_claude_with_the_bash_tool_timeouts_at_the_default_hard_cap_in_milliseconds_1939(
+        tmp_path, monkeypatch, capfd):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch)
+    _write_prompt(work, "do the step\n")
+    for name in ("VERI_TIMEOUT", "BASH_DEFAULT_TIMEOUT_MS", "BASH_MAX_TIMEOUT_MS"):
+        monkeypatch.delenv(name, raising=False)
+    seen = []
+    launches = []
+
+    def fake_popen(argv, *args, **kwargs):
+        env = kwargs["env"]
+        seen.append((env.get("BASH_DEFAULT_TIMEOUT_MS"), env.get("BASH_MAX_TIMEOUT_MS")))
+        return _FakeLeaf(launches, argv, **kwargs)
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+
+    run_leaf.main(["prompt.txt"])
+    capfd.readouterr()
+
+    assert seen == [("900000", "900000")]
+
+
 def _stream_of_what_the_real_claude_loads(argv, home, repo):
     """A stream shaped by the 2026-10-18 observation of the real binary under each flag."""
     import json
