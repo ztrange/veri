@@ -73,7 +73,13 @@ def main(argv):
         env["PYTHONDONTWRITEBYTECODE"] = "1"
         env["FORCE_PROMPT_CACHING_5M"] = "1"
         env["CLAUDE_CODE_DISABLE_BACKGROUND_TASKS"] = "1"
-        seconds = tunables.read("VERI_TIMEOUT") or "900"
+        seconds = tunables.read("VERI_TIMEOUT")
+        issue = tunables.read("VERI_ISSUE")
+        if not seconds and issue:
+            with contextlib.suppress(OSError):
+                with open(f".tdd/issue-{issue}-timeout") as f:
+                    seconds = f.read().strip()
+        seconds = seconds or "900"
         cap_ms = str(int(seconds) * 1000)
         env.setdefault("BASH_DEFAULT_TIMEOUT_MS", cap_ms)
         env.setdefault("BASH_MAX_TIMEOUT_MS", cap_ms)

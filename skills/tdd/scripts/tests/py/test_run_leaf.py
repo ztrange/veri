@@ -200,6 +200,32 @@ def test_main_launches_claude_with_the_bash_tool_timeouts_at_the_supervisors_har
     assert seen == [("120000", "120000")]
 
 
+def test_main_launches_claude_with_the_bash_tool_timeouts_at_the_runs_timeout_file_in_milliseconds_1939(
+        tmp_path, monkeypatch, capfd):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch, ".tdd")
+    _write_prompt(work, "do the step\n")
+    (work / ".tdd" / "issue-7-timeout").write_text("3570\n")
+    monkeypatch.delenv("BASH_DEFAULT_TIMEOUT_MS", raising=False)
+    monkeypatch.delenv("BASH_MAX_TIMEOUT_MS", raising=False)
+    monkeypatch.delenv("VERI_TIMEOUT", raising=False)
+    monkeypatch.setenv("VERI_ISSUE", "7")
+    seen = []
+    launches = []
+
+    def fake_popen(argv, *args, **kwargs):
+        env = kwargs["env"]
+        seen.append((env.get("BASH_DEFAULT_TIMEOUT_MS"), env.get("BASH_MAX_TIMEOUT_MS")))
+        return _FakeLeaf(launches, argv, **kwargs)
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+
+    run_leaf.main(["prompt.txt"])
+    capfd.readouterr()
+
+    assert seen == [("3570000", "3570000")]
+
+
 def test_main_launches_claude_with_the_bash_tool_timeouts_the_caller_set_unchanged_whatever_veri_timeout_says_1939(
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")
