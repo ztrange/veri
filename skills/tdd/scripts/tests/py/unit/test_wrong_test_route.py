@@ -1149,3 +1149,28 @@ def test_main_1957_routes_a_wrong_test_naming_in_backticks_an_it_title_in_a_foo_
         wrong_test_route, [str(report), "src/foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % sibling)
+
+
+@pytest.mark.parametrize("filename", [
+    "foo.test.js", "foo.test.jsx", "foo.test.tsx", "foo.test.mjs", "foo.test.cjs",
+    "foo.spec.js", "foo.spec.jsx", "foo.spec.ts", "foo.spec.tsx", "foo.spec.mjs", "foo.spec.cjs"])
+def test_main_1957_routes_a_wrong_test_naming_an_it_title_to_a_red_when_the_file_is_a_test_or_spec_file_over_each_js_ts_extension(
+        run_cli, tmp_path, filename):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "src"
+    suite.mkdir()
+    sibling = "rejects an empty name"
+    (suite / filename).write_text(
+        "describe('foo', () => {\n"
+        "  it('accepts a name', () => {});\n"
+        "  it('%s', () => {});\n"
+        "});\n" % sibling)
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "src/%s::foo accepts a name" % filename], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red %s\n" % sibling)
