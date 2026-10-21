@@ -81,15 +81,3 @@ Every ETA comes from observed rates and is a range, never a single time. The rat
 landed per hour at the current N, taken from the wall time of the runs that finished (status
 scope totals, tag dates); the range runs from the fastest to the slowest quartile of those
 runs. With fewer than three finished runs to measure, write "no rate yet" instead of an ETA.
-
-## Requirements
-
-| ID | Requirement | Why |
-|---|---|---|
-| A1 | Invoked as `/veri-status`. It reports what changed since the previous ask, whose time is kept in `.tdd/status-last`. | |
-| A2 | Sections, in order: **Landed** (PR, tag, capability) · **Running** (per issue: awake wall time, steps k/n, phase, cost, model split) · **Queue** (counts by label, blockers, drain ETA at the current N) · **Waiting** (ready PRs, empty slots, bails, decisions). | The format Mario specified twice. |
-| A3 | Every ETA comes from observed rates and carries a range. | |
-| A4 | It reads `status.sh --json`, `metrics.sh`, `git tag` and `gh`. More than three reads go to one subagent. | |
-
-This unit is **ungraded**: nothing has signed it yet. #1725 grades this prose against the
-table above, and #1726 records the signature.
