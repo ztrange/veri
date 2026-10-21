@@ -84,3 +84,15 @@ def test_section_of_ends_at_a_later_heading_when_a_fence_line_is_indented_four_s
         beta = skill_sections.section_of(text, "## Beta")
 
         assert beta == f"## Beta\nbefore\n    {fence}\n", fence
+
+
+def test_section_of_starts_at_the_first_unfenced_heading_and_fails_when_the_heading_is_only_fenced_1687():
+    skill_sections = importlib.import_module("skill_sections")
+    text = "```\n## Beta\nfake\n```\n## Beta\nreal\n## Gamma\ngamma body\n"
+
+    beta = skill_sections.section_of(text, "## Beta")
+
+    assert beta == "## Beta\nreal\n"
+    with pytest.raises(pytest.fail.Exception) as failure:
+        skill_sections.section_of("```\n## Beta\nfake\n```\nafter\n", "## Beta")
+    assert "## Beta" in str(failure.value)

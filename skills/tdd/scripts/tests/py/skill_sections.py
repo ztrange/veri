@@ -89,24 +89,34 @@ def section(skill, heading):
     return section_of(pathlib.Path(skill).read_text(), heading, skill)
 
 
+def _fence_step(fence, line):
+    stripped = line.lstrip()
+    if len(line) - len(stripped) >= 4:
+        stripped = ""
+    if fence is None and stripped.startswith(("```", "~~~")):
+        return stripped[:len(stripped) - len(stripped.lstrip(stripped[0]))], True
+    if fence is not None:
+        return (None if stripped.startswith(fence) else fence), True
+    return None, False
+
+
 def section_of(text, heading, skill="the document"):
     lines = text.splitlines(keepends=True)
     level = _level(heading)
-    start = next((i for i, line in enumerate(lines) if line.rstrip("\n") == heading), None)
+    start = None
+    fence = None
+    for i, line in enumerate(lines):
+        fence, fenced = _fence_step(fence, line)
+        if not fenced and line.rstrip("\n") == heading:
+            start = i
+            break
     if not level or start is None:
         pytest.fail(f"no section headed {heading!r} in {skill}")
     fence = None
     end = len(lines)
     for i in range(start + 1, len(lines)):
-        stripped = lines[i].lstrip()
-        if len(lines[i]) - len(stripped) >= 4:
-            stripped = ""
-        if fence is None and stripped.startswith(("```", "~~~")):
-            fence = stripped[:len(stripped) - len(stripped.lstrip(stripped[0]))]
-        elif fence is not None:
-            if stripped.startswith(fence):
-                fence = None
-        elif min(2, level) <= _level(lines[i]) <= level:
+        fence, fenced = _fence_step(fence, lines[i])
+        if not fenced and min(2, level) <= _level(lines[i]) <= level:
             end = i
             break
     return "".join(lines[start:end])
