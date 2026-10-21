@@ -1,0 +1,11 @@
+# Plan for #1932 — wrong-test-route.sh still routes to the cited case when the red record has no case: line, and repair drops its superseded cases
+
+- [ ] With no red record for the step, a WRONG_TEST: line that faults the step's own <red-test-id> case and cites another existing case as the correct example makes wrong-test-route.sh print `repair <own>`, never `red <cited>` ⟦criterion 1⟧
+- [ ] With a file-only red record (no case: line) for the step, a WRONG_TEST: line that faults the step's own <red-test-id> case and cites another existing case makes wrong-test-route.sh print `repair <own>`, never `red <cited>` ⟦criterion 1⟧
+- [ ] With a red record carrying a `path::id` case for the step, a WRONG_TEST: line that faults the step's own <red-test-id> case and cites another existing case makes wrong-test-route.sh print `repair <own>`, never `red <cited>` ⟦criterion 1⟧
+- [ ] build-develop-prompt.sh red-repair accepts superseded cases after <report-file> (`red-repair <spec> <step> <test-cmd> <case> <report-file> <superseded>…`) and the built repair prompt names every one of them; pinned by a case building it with two superseded cases ⟦criterion 2⟧
+- [ ] SKILL.md's Green WRONG_TEST: routing, SCRIPTS.md's wrong-test-route.sh and build-develop-prompt.sh entries, and the wrong-test-route.sh shim header describe the `repair <case> <superseded>…` route and pass the superseded cases on to `build-develop-prompt.sh red-repair <case> <report-file> <superseded>…`; the shim header names every route it prints; any older case pinning the old wording is updated in the same commit ⟦diff-checked⟧ ⟦criterion 2⟧
+- [ ] A WRONG_TEST:, SUPERSEDED: or MISSING_TEST: line indented as a quote inside prose in the green report is not read as a route line: wrong-test-route.sh answers as if it were absent ⟦criterion 3⟧
+- [ ] A bulleted `SUPERSEDED: - x` line is read as superseding case x by wrong-test-route.sh ⟦criterion 3⟧
+- [ ] A `MISSING_TEST: NONE` line makes wrong-test-route.sh route nothing missing (never prints `missing NONE`) ⟦criterion 3⟧
+- [ ] A SUPERSEDED: line whose case is wrapped in backticks and followed by a reason containing backticks is read as that case alone, pinning the backtick strip in wrong_test_route._superseded
