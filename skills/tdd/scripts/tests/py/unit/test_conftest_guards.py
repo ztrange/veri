@@ -1,7 +1,9 @@
 """The guards conftest.py enforces, driven in-process through pytester with conftest as a plugin."""
 import pathlib
+import subprocess
 
 import conftest
+import small_case_guard
 
 pytest_plugins = ["pytester"]
 
@@ -86,3 +88,29 @@ def test_the_push_backoff_guard_fails_a_planted_small_case_that_reaches_the_retr
 
     result.assert_outcomes(failed=1)
     assert "test_planted.py::test_waits_the_default_backoff reached the push backoff without setting VERI_PUSH_BACKOFF" in result.stdout.str()
+
+
+def test_the_small_case_guard_fails_a_planted_unmarked_case_that_starts_git_naming_the_case_before_any_process_starts_while_a_process_marked_case_is_not_refused(pytester, monkeypatch):
+    started = []
+
+    def record(self, args, *rest, **kwargs):
+        started.append(list(args))
+
+    monkeypatch.setattr(subprocess.Popen, "__init__", record)
+    pytester.makepyfile(test_planted="""
+        import subprocess
+        import pytest
+
+        def test_starts_git_unmarked():
+            subprocess.Popen(["git", "--version"])
+
+        @pytest.mark.process("git as a child")
+        def test_starts_git_marked():
+            subprocess.Popen(["git", "--version"])
+    """)
+
+    result = pytester.runpytest_inprocess("-p", "no:cacheprovider", "-rf", plugins=[conftest, small_case_guard])
+
+    result.assert_outcomes(failed=1, passed=1)
+    assert "FAILED test_planted.py::test_starts_git_unmarked - AssertionError: a small case started git" in result.stdout.str()
+    assert started == [["git", "--version"]]
