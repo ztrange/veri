@@ -61,21 +61,22 @@ def test_the_prompt_sent_to_the_stub_claude_contains_no_text_from_any_why_cell(t
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh, in a git repo with history")
-def test_a_unit_graded_in_a_repo_with_history_gets_a_prompt_carrying_no_diff_and_no_commit_message(tmp_path):
-    (tmp_path / "guide").mkdir()
-    (tmp_path / "guide" / "unit.md").write_text("The widget was painted green-old-wording.\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+def test_a_unit_graded_in_a_repo_with_history_gets_a_prompt_carrying_no_diff_and_no_commit_message(tmp_path, scratch_copy):
+    repo = scratch_copy()
+    (repo / "guide").mkdir()
+    (repo / "guide" / "unit.md").write_text("The widget was painted green-old-wording.\n")
+    (repo / "REQUIREMENTS.md").write_text(REQUIREMENTS)
     claude = tmp_path / "claude"
     claude.write_text(STUB)
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
-    for argv in (["init", "-q"], ["add", "."], ["commit", "-q", "-m", "quokka-commit-message"]):
-        subprocess.run(["git", *argv], cwd=tmp_path, env=env, check=True, capture_output=True)
-    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    for argv in (["add", "."], ["commit", "-q", "-m", "quokka-commit-message"]):
+        subprocess.run(["git", *argv], cwd=repo, env=env, check=True, capture_output=True)
+    (repo / "guide" / "unit.md").write_text(PROSE)
 
-    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=repo,
                    capture_output=True, env={**env, "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
