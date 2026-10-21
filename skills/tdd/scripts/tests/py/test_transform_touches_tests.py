@@ -313,3 +313,16 @@ def test_2027_a_commit_sweeping_in_the_refactor_owed_file_is_not_outside_the_bou
     code, out, err = run_cli(transform_touches_tests, [base, "src/a.sh"], cwd=repo)
     assert (code, err) == (1, "")
     assert "src/b.sh" in out and ".tdd/" not in out
+
+
+@pytest.mark.process("git rev-parse and git log over a scratch repository whose range touches a .tdd/ file other than the refactor-owed one")
+def test_2027_a_commit_touching_any_other_tdd_file_is_still_outside_the_bound(
+        tmp_path, transform_touches_tests, run_cli):
+    repo = new_repo(tmp_path / "other-tdd")
+    base = commit_all(repo, "feat: seed", **{"src__a.sh": "a\n"})
+    commit_all(repo, "refactor: a, with the ledger swept in",
+               **{"src__a.sh": "a2\n", ".tdd__issue-7.md": "- [x] step\n"})
+
+    code, out, err = run_cli(transform_touches_tests, [base, "src/a.sh"], cwd=repo)
+    assert (code, err) == (1, "")
+    assert ".tdd/issue-7.md" in out and "src/a.sh" not in out
