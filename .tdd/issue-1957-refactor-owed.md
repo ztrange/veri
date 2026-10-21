@@ -4,9 +4,12 @@
 - extract the ellipsis-prefix and JS title-pattern construction in `_exists` into a helper (no duplication, so not applied here)
 ### A WRONG_TEST: name equal to the tail of the step's own test id, given as `<describe> <title>` or as `<describe> > <title>`, counts as the step's own case and answers revise ⟦criterion 5⟧
 - split `_exists` into per-language matchers (py def, JS/TS title regex, `.test.sh` name) — moves behaviour, not duplication removal
+<!-- 4d7b5cc05 applied _js_title_pattern: refactor: split the JS title-pattern builder out of _exists (#1957) -->
+<!-- 6c4c00d83: refactor: _exists returns the matched title in every case, so route no longer unwraps True (#1957) -->
+<!-- d02683702 applied _cut_prefix: refactor: one _cut_prefix reads the …/... cut in both title checks (#1957) -->
 ### A WRONG_TEST: name that is the exact title of a sibling JS/TS case routes red to that sibling even when it is also one word of the step's own test id ⟦criterion 5⟧
 - split `_exists` in `wrong_test_route.py` into a JS title-pattern builder (ellipsis prefix, `.only`/`.skip`/`.each`) and the directory walk
 - `_exists` returns either `True` or a title string, so `route` has to unwrap it with `case if found is True else found`; returning the matched title in both cases would remove the unwrapping
-applied | 4d7b5cc05907ee06affbfe80cae63a4859e7cea6 (_js_title_pattern) | refactor: split the JS title-pattern builder out of _exists (#1957) | split `_exists` in `wrong_test_route.py` into a JS title-pattern builder (ellipsis prefix, `.only`/`.skip`/`.each`) and the directory walk
-applied | 6c4c00d837c0849f053db13856d0abf56689e065 | refactor: _exists returns the matched title in every case, so route no longer unwraps True (#1957) | `_exists` returns either `True` or a title string, so `route` has to unwrap it with `case if found is True else found`; returning the matched title in both cases would remove the unwrapping
-applied | d02683702ca79c7f88ca90fd3e819a3d1d001f4b (_cut_prefix) | refactor: one _cut_prefix reads the …/... cut in both title checks (#1957) | extract the ellipsis-prefix and JS title-pattern construction in `_exists` into a helper (no duplication, so not applied here)
+applied | 4d7b5cc05907ee06affbfe80cae63a4859e7cea6 | split `_exists` in `wrong_test_route.py` into a JS title-pattern builder (ellipsis prefix, `.only`/`.skip`/`.each`) and the directory walk
+applied | 6c4c00d837c0849f053db13856d0abf56689e065 | `_exists` returns either `True` or a title string, so `route` has to unwrap it with `case if found is True else found`; returning the matched title in both cases would remove the unwrapping
+applied | d02683702ca79c7f88ca90fd3e819a3d1d001f4b | extract the ellipsis-prefix and JS title-pattern construction in `_exists` into a helper (no duplication, so not applied here)
