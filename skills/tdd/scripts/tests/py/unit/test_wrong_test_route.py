@@ -1633,3 +1633,17 @@ def test_main_1957_prints_revise_when_the_named_title_is_the_tail_of_an_own_id_w
         wrong_test_route, [str(report), "foo.test.ts::foo > accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
+
+
+@pytest.mark.parametrize("indent", [" ", "  ", "   "])
+def test_main_1957_prints_revise_when_a_missing_test_line_is_indented_by_one_to_three_spaces_since_it_is_prose(
+        indent, run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setenv("VERI_STEP", "a space-indented missing test is not a route line")
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\n%sMISSING_TEST: the router ignores quoted lines\n" % indent)
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
