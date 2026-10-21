@@ -3614,7 +3614,19 @@ def test_main_launches_a_leaf_that_never_answers_the_same_number_of_times_with_v
     assert launches_of_a_silent_leaf("with-no-verdict-below", VERI_NO_VERDICT_RETRIES="0") == (2, 2)
 
 
-@pytest.mark.process("a real stub claude that a refused develop-green launch must never start (#1741)")
+def spy_leaf_start(monkeypatch, tmp_path, supervise):
+    """git answers in-process; the leaf's start is a spy that records itself and reports a clean exit."""
+    fake_git_only(monkeypatch, tmp_path)
+    started = []
+
+    def attempt_once(*_):
+        started.append(True)
+        return "success", "", "0", 0
+
+    monkeypatch.setattr(supervise, "attempt_once", attempt_once)
+    return started
+
+
 def test_cli_refuses_a_develop_green_launch_whose_step_has_a_red_launch_followed_only_by_a_verify_red_reject_starting_no_leaf_and_naming_the_step_and_the_missing_pass_1741(
         monkeypatch, tmp_path, supervise, run_cli):
     import json
@@ -3630,18 +3642,16 @@ def test_cli_refuses_a_develop_green_launch_whose_step_has_a_red_launch_followed
     ]
     (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(line) + "\n" for line in log))
     stub = tmp_path / "claude"
-    stub.write_text("#!/bin/sh\ntouch ran\n")
-    stub.chmod(0o755)
+    started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 
     code, out, err = run_cli(supervise, ["develop-green", str(stub)], cwd=tmp_path,
                              env={"VERI_ISSUE": "1741", "VERI_STEP": "3"})
 
-    assert (code, out, (tmp_path / "ran").exists()) == (2, "", False)
+    assert (code, out, bool(started)) == (2, "", False)
     lines = err.splitlines()
     assert len(lines) == 1 and "step 3" in lines[0] and "verify-red" in lines[0] and "PASS" in lines[0], err
 
 
-@pytest.mark.process("a real stub claude that a refused develop-green launch must never start (#1741)")
 def test_cli_refuses_a_develop_green_launch_whose_step_has_a_red_launch_with_no_verdict_after_it_starting_no_leaf_and_naming_the_step_and_the_missing_pass_1741(
         monkeypatch, tmp_path, supervise, run_cli):
     import json
@@ -3655,18 +3665,16 @@ def test_cli_refuses_a_develop_green_launch_whose_step_has_a_red_launch_with_no_
     ]
     (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(line) + "\n" for line in log))
     stub = tmp_path / "claude"
-    stub.write_text("#!/bin/sh\ntouch ran\n")
-    stub.chmod(0o755)
+    started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 
     code, out, err = run_cli(supervise, ["develop-green", str(stub)], cwd=tmp_path,
                              env={"VERI_ISSUE": "1741", "VERI_STEP": "3"})
 
-    assert (code, out, (tmp_path / "ran").exists()) == (2, "", False)
+    assert (code, out, bool(started)) == (2, "", False)
     lines = err.splitlines()
     assert len(lines) == 1 and "step 3" in lines[0] and "verify-red" in lines[0] and "PASS" in lines[0], err
 
 
-@pytest.mark.process("a real stub claude that a refused develop-green launch must never start (#1741)")
 def test_cli_refuses_a_develop_green_launch_whose_only_verify_red_pass_precedes_a_later_red_launch_of_the_step_starting_no_leaf_and_naming_the_step_and_the_missing_pass_1741(
         monkeypatch, tmp_path, supervise, run_cli):
     import json
@@ -3681,18 +3689,16 @@ def test_cli_refuses_a_develop_green_launch_whose_only_verify_red_pass_precedes_
     ]
     (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(line) + "\n" for line in log))
     stub = tmp_path / "claude"
-    stub.write_text("#!/bin/sh\ntouch ran\n")
-    stub.chmod(0o755)
+    started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 
     code, out, err = run_cli(supervise, ["develop-green", str(stub)], cwd=tmp_path,
                              env={"VERI_ISSUE": "1741", "VERI_STEP": "3"})
 
-    assert (code, out, (tmp_path / "ran").exists()) == (2, "", False)
+    assert (code, out, bool(started)) == (2, "", False)
     lines = err.splitlines()
     assert len(lines) == 1 and "step 3" in lines[0] and "verify-red" in lines[0] and "PASS" in lines[0], err
 
 
-@pytest.mark.process("a real stub claude that an allowed develop-green launch must start (#1741)")
 def test_cli_launches_a_develop_green_whose_step_has_a_verify_red_pass_after_its_latest_red_launch_and_records_the_stub_exit_status_1741(
         monkeypatch, tmp_path, supervise, run_cli):
     import json
@@ -3709,16 +3715,14 @@ def test_cli_launches_a_develop_green_whose_step_has_a_verify_red_pass_after_its
     ]
     (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(line) + "\n" for line in log))
     stub = tmp_path / "claude"
-    stub.write_text("#!/bin/sh\ntouch ran\n")
-    stub.chmod(0o755)
+    started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 
     code, out, err = run_cli(supervise, ["develop-green", str(stub)], cwd=tmp_path,
                              env={"VERI_ISSUE": "1741", "VERI_STEP": "3"})
 
-    assert (code, (tmp_path / "ran").exists(), (tmp_path / ".tdd" / "develop-green.exit").read_text().strip()) == (0, True, "0"), err
+    assert (code, bool(started), (tmp_path / ".tdd" / "develop-green.exit").read_text().strip()) == (0, True, "0"), err
 
 
-@pytest.mark.process("a real stub claude that an allowed develop-green launch must start (#1741)")
 def test_cli_launches_a_develop_green_whose_step_has_a_verify_pin_pass_after_its_latest_red_launch_and_records_the_stub_exit_status_1741(
         monkeypatch, tmp_path, supervise, run_cli):
     import json
@@ -3732,16 +3736,14 @@ def test_cli_launches_a_develop_green_whose_step_has_a_verify_pin_pass_after_its
     ]
     (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(line) + "\n" for line in log))
     stub = tmp_path / "claude"
-    stub.write_text("#!/bin/sh\ntouch ran\n")
-    stub.chmod(0o755)
+    started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 
     code, out, err = run_cli(supervise, ["develop-green", str(stub)], cwd=tmp_path,
                              env={"VERI_ISSUE": "1741", "VERI_STEP": "3"})
 
-    assert (code, (tmp_path / "ran").exists(), (tmp_path / ".tdd" / "develop-green.exit").read_text().strip()) == (0, True, "0"), err
+    assert (code, bool(started), (tmp_path / ".tdd" / "develop-green.exit").read_text().strip()) == (0, True, "0"), err
 
 
-@pytest.mark.process("a real stub claude that an allowed develop-green launch must start (#1741)")
 def test_cli_launches_a_develop_green_whose_ci_repair_step_has_a_red_launch_and_no_verdict_and_records_the_stub_exit_status_1741(
         monkeypatch, tmp_path, supervise, run_cli):
     import json
@@ -3758,17 +3760,15 @@ def test_cli_launches_a_develop_green_whose_ci_repair_step_has_a_red_launch_and_
     ]
     (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(line) + "\n" for line in log))
     stub = tmp_path / "claude"
-    stub.write_text("#!/bin/sh\ntouch ran\n")
-    stub.chmod(0o755)
+    started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 
     code, out, err = run_cli(supervise, ["develop-green", str(stub)], cwd=tmp_path,
                              env={"VERI_ISSUE": "1741", "VERI_STEP": "3"})
 
     exitfile = tmp_path / ".tdd" / "develop-green.exit"
-    assert (code, (tmp_path / "ran").exists(), exitfile.read_text().strip() if exitfile.exists() else None) == (0, True, "0"), err
+    assert (code, bool(started), exitfile.read_text().strip() if exitfile.exists() else None) == (0, True, "0"), err
 
 
-@pytest.mark.process("a real stub claude that an allowed develop-green launch must start (#1741)")
 def test_cli_launches_a_develop_green_whose_ci_repair_step_is_named_by_its_full_ledger_text_after_a_red_launch_with_no_verdict_1741(
         monkeypatch, tmp_path, supervise, run_cli):
     import json
@@ -3786,17 +3786,15 @@ def test_cli_launches_a_develop_green_whose_ci_repair_step_is_named_by_its_full_
     ]
     (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(line) + "\n" for line in log))
     stub = tmp_path / "claude"
-    stub.write_text("#!/bin/sh\ntouch ran\n")
-    stub.chmod(0o755)
+    started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 
     code, out, err = run_cli(supervise, ["develop-green", str(stub)], cwd=tmp_path,
                              env={"VERI_ISSUE": "1741", "VERI_STEP": text})
 
     exitfile = tmp_path / ".tdd" / "develop-green.exit"
-    assert (code, (tmp_path / "ran").exists(), exitfile.read_text().strip() if exitfile.exists() else None) == (0, True, "0"), err
+    assert (code, bool(started), exitfile.read_text().strip() if exitfile.exists() else None) == (0, True, "0"), err
 
 
-@pytest.mark.process("a real stub claude that a refused develop-green launch must never start (#1741)")
 def test_cli_refuses_a_develop_green_launch_whose_step_without_the_ci_repair_mark_is_named_by_its_full_ledger_text_after_a_red_launch_with_no_verdict_1741(
         monkeypatch, tmp_path, supervise, run_cli):
     import json
@@ -3814,18 +3812,16 @@ def test_cli_refuses_a_develop_green_launch_whose_step_without_the_ci_repair_mar
     ]
     (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(line) + "\n" for line in log))
     stub = tmp_path / "claude"
-    stub.write_text("#!/bin/sh\ntouch ran\n")
-    stub.chmod(0o755)
+    started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 
     code, out, err = run_cli(supervise, ["develop-green", str(stub)], cwd=tmp_path,
                              env={"VERI_ISSUE": "1741", "VERI_STEP": text})
 
-    assert (code, out, (tmp_path / "ran").exists()) == (2, "", False)
+    assert (code, out, bool(started)) == (2, "", False)
     lines = err.splitlines()
     assert len(lines) == 1 and text in lines[0] and "verify-red" in lines[0] and "PASS" in lines[0], err
 
 
-@pytest.mark.process("a real stub claude that a refused develop-green launch must never start (#1741)")
 def test_cli_refuses_a_develop_green_launch_whose_open_step_lacks_the_ci_repair_mark_though_an_earlier_done_step_carries_it_1741(
         monkeypatch, tmp_path, supervise, run_cli):
     import json
@@ -3843,16 +3839,14 @@ def test_cli_refuses_a_develop_green_launch_whose_open_step_lacks_the_ci_repair_
     ]
     (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(line) + "\n" for line in log))
     stub = tmp_path / "claude"
-    stub.write_text("#!/bin/sh\ntouch ran\n")
-    stub.chmod(0o755)
+    started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 
     code, out, err = run_cli(supervise, ["develop-green", str(stub)], cwd=tmp_path,
                              env={"VERI_ISSUE": "1741", "VERI_STEP": text})
 
-    assert (code, out, (tmp_path / "ran").exists()) == (2, "", False), err
+    assert (code, out, bool(started)) == (2, "", False), err
 
 
-@pytest.mark.process("a real stub claude that a refused develop-green launch must never start (#1741)")
 def test_cli_leaves_no_launch_event_and_no_owner_file_when_it_refuses_a_develop_green_launch_for_a_missing_verify_red_pass_1741(
         monkeypatch, tmp_path, supervise, run_cli):
     import json
@@ -3868,8 +3862,7 @@ def test_cli_leaves_no_launch_event_and_no_owner_file_when_it_refuses_a_develop_
     events.write_text("".join(json.dumps(line) + "\n" for line in log))
     before = events.read_text()
     stub = tmp_path / "claude"
-    stub.write_text("#!/bin/sh\ntouch ran\n")
-    stub.chmod(0o755)
+    started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 
     code, out, err = run_cli(supervise, ["develop-green", str(stub)], cwd=tmp_path,
                              env={"VERI_ISSUE": "1741", "VERI_STEP": "3"})
@@ -3902,13 +3895,11 @@ def test_cli_records_exit_2_for_a_refused_develop_green_launched_detached_so_wai
     assert (detached.returncode, waited.returncode, (tmp_path / "ran").exists()) == (0, 2, False), waited.stderr
 
 
-@pytest.mark.process("a real stub claude that a launch refused for an empty VERI_STEP must never start (#1760)")
 def test_cli_refuses_a_launch_whose_veri_step_is_set_but_empty_exiting_2_naming_veri_step_starting_no_leaf_and_appending_one_launch_refused_event_1760(
         monkeypatch, tmp_path, supervise, run_cli, events):
     clean_env(monkeypatch)
     stub = tmp_path / "claude"
-    stub.write_text("#!/bin/sh\ntouch ran\n")
-    stub.chmod(0o755)
+    started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 
     code, out, err = run_cli(supervise, ["verify-red", str(stub)], cwd=tmp_path,
                              env={"VERI_ISSUE": "1760", "VERI_STEP": ""})
@@ -3916,19 +3907,17 @@ def test_cli_refuses_a_launch_whose_veri_step_is_set_but_empty_exiting_2_naming_
     lines = err.splitlines()
     assert (code, out, len(lines)) == (2, "", 1), err
     assert "VERI_STEP" in lines[0], err
-    assert ((tmp_path / "ran").exists(), (tmp_path / ".tdd" / "leaf.owner").exists()) == (False, False), err
+    assert (bool(started), (tmp_path / ".tdd" / "leaf.owner").exists()) == (False, False), err
     records = events.records(tmp_path)
     assert [r["event"] for r in records] == ["launch-refused"], records
     assert (records[0]["name"], bool(records[0]["reason"])) == ("verify-red", True), records
 
 
-@pytest.mark.process("a real stub verify command that a launch refused for an empty --step must never start (#1760)")
 def test_cli_refuses_a_verifier_launch_whose_step_argument_is_empty_exiting_2_naming_step_starting_no_leaf_and_appending_one_launch_refused_event_1760(
         monkeypatch, tmp_path, supervise, run_cli, events):
     clean_env(monkeypatch)
     stub = tmp_path / "run-verdict.sh"
-    stub.write_text("#!/bin/sh\ntouch ran\n")
-    stub.chmod(0o755)
+    started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 
     code, out, err = run_cli(supervise, ["verdict-red", str(stub), "--step", "", "red", "spec.md", "t.sh", "case"],
                              cwd=tmp_path, env={"VERI_ISSUE": "1760"})
@@ -3936,19 +3925,17 @@ def test_cli_refuses_a_verifier_launch_whose_step_argument_is_empty_exiting_2_na
     lines = err.splitlines()
     assert (code, out, len(lines)) == (2, "", 1), err
     assert "--step" in lines[0], err
-    assert (tmp_path / "ran").exists() is False, err
+    assert bool(started) is False, err
     records = events.records(tmp_path)
     assert [r["event"] for r in records] == ["launch-refused"], records
     assert (records[0]["name"], bool(records[0]["reason"])) == ("verdict-red", True), records
 
 
-@pytest.mark.process("a real stub claude that a launch refused for an empty VERI_STEP must never start (#1760)")
 def test_cli_records_2_in_the_exit_file_of_a_launch_refused_for_an_empty_veri_step_1760(
         monkeypatch, tmp_path, supervise, run_cli):
     clean_env(monkeypatch)
     stub = tmp_path / "claude"
-    stub.write_text("#!/bin/sh\ntouch ran\n")
-    stub.chmod(0o755)
+    started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 
     code, _, err = run_cli(supervise, ["verify-red", str(stub)], cwd=tmp_path,
                            env={"VERI_ISSUE": "1760", "VERI_STEP": ""})
