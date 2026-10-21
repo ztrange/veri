@@ -92,7 +92,7 @@ def apply(issue, unit):
         return True
     if not rows and not (os.path.exists(path) and requirements.claims(path, unit)):
         return moved
-    if not os.path.exists(path):
+    if not (os.path.exists(path) and requirements.claims(path, unit)):
         _write_list(path, unit, rows)
         return moved
     have ={row.split("\t")[0] for row in requirements.claims(path, unit).splitlines()}
