@@ -81,7 +81,8 @@ def _move_table(unit, path, name):
     table = [l for l in lines[start:end] if l.startswith("|")]
     if not table:
         return False
-    _write(path, ["## " + name, ""] + table + [""])
+    existing = _trimmed(requirements.read_lines(path)) if os.path.exists(path) else []
+    _write(path, existing + [""] * bool(existing) + ["## " + name, ""] + table + [""])
     _write(unit, _trimmed(lines[:start] + lines[end:]) + [""])
     return True
 
@@ -89,7 +90,7 @@ def _move_table(unit, path, name):
 def apply(issue, unit):
     name = os.path.basename(unit)
     path = skill_edit_guard.list_path(unit)
-    moved = not os.path.exists(path) and os.path.exists(unit) and _move_table(unit, path, unit)
+    moved = not _claimed(path, unit) and os.path.exists(unit) and _move_table(unit, path, unit)
     rows = _issue_rows(issue, unit)
     if rows and not os.path.exists(unit):
         _create(unit, path, unit, rows)
