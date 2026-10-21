@@ -2,3 +2,4 @@
 - out_of_scope_transforms and the `out-of-scope` verb (list_out_of_scope) are dead once the `### Out-of-scope` heading is gone (criterion 11, not yet implemented)
 ### An out-of-scope candidate (a step bullet `- out-of-scope | <candidate>`) recorded applied with the unprefixed text `list` printed for it, `refactor-owed.sh applied <file> '<candidate>' <sha>` as SKILL.md records it, is no longer printed by `refactor-owed.sh list`, and `render` shows it only under `### Applied` and nowhere else; pinned by an in-process case in skills/tdd/scripts/tests/py/test_refactor_owed.py ⟦criterion 10⟧
 - out-of-scope | remove the `### Out-of-scope` section in `render` and `out_of_scope_transforms` (criterion 11 owns it)
+applied | 2529d5155c3836920fde2c6e0e4654a99dcc19d4 | out_of_scope_transforms and the `out-of-scope` verb (list_out_of_scope) are dead once the `### Out-of-scope` heading is gone (criterion 11, not yet implemented)
