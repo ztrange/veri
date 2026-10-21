@@ -155,7 +155,7 @@ def structural_lines(file):
     counts = Counter(l[2:].removeprefix(OUT_OF_SCOPE_PREFIX) for l in lines
                      if l.startswith("- ") and not l.startswith(TEST_ONLY_MARK)
                      and l[2:] not in done and l[2:] not in skipped
-                     and l[2:].removeprefix(OUT_OF_SCOPE_PREFIX) not in done)
+                     and l[2:].removeprefix(OUT_OF_SCOPE_PREFIX) not in done.keys() | skipped)
     listed = "\n".join(t for t, _ in counts.most_common()).rstrip("\n")
     return (0, listed.split("\n")) if listed else (3, [])
 
