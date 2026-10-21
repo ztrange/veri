@@ -99,7 +99,7 @@ def out_of_scope_transforms(file):
     lines = owed_lines(file)
     done = applied_records(lines)
     return [t for t in (l[len(OUT_OF_SCOPE_MARK):] for l in lines if l.startswith(OUT_OF_SCOPE_MARK))
-            if OUT_OF_SCOPE_PREFIX + t not in done]
+            if OUT_OF_SCOPE_PREFIX + t not in done and t not in done]
 
 
 def applied_records(lines):
@@ -156,7 +156,8 @@ def structural_lines(file):
     skipped = {t for _, _, t in not_done_records(lines)}
     counts = Counter(l[2:].removeprefix(OUT_OF_SCOPE_PREFIX) for l in lines
                      if l.startswith("- ") and not l.startswith(TEST_ONLY_MARK)
-                     and l[2:] not in done and l[2:] not in skipped)
+                     and l[2:] not in done and l[2:] not in skipped
+                     and l[2:].removeprefix(OUT_OF_SCOPE_PREFIX) not in done)
     listed = "\n".join(t for t, _ in counts.most_common()).rstrip("\n")
     return (0, listed.split("\n")) if listed else (3, [])
 
