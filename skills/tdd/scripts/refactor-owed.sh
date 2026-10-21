@@ -6,7 +6,7 @@
 # `render` prints <file> as the `## Refactor owed` section; `list` prints each structural transform once.
 #
 # usage:   refactor-owed.sh append <file> '<STEP>' [<bounds>] < leaf-report.txt
-#          refactor-owed.sh applied <file> '<transform>' <sha>
+#          refactor-owed.sh applied <file> '<transform>' <sha> '<subject>'
 #          refactor-owed.sh render <file>
 #          refactor-owed.sh list <file>
 # Exit:    0 done; 1 the append's or applied's write failed; 2 a missing argument or an unknown verb;
