@@ -150,3 +150,43 @@ def test_the_permission_bits_guard_fails_a_planted_case_that_chmods_a_file_namin
     monkeypatch.setattr(os, "chmod", lambda *args, **kwargs: None)
     result = pytester.runpytest_inprocess("-p", "no:cacheprovider", plugins=[conftest])
     result.assert_outcomes(passed=1)
+
+
+def test_the_system_location_guard_fails_planted_cases_that_read_mkdir_or_create_a_system_location_naming_the_file_and_line_while_tmp_and_tempfile_cases_pass_and_a_reasonless_exemption_fails_the_run(pytester, monkeypatch):
+    calls = {
+        "reads": "open('/etc/veri-planted').read()",
+        "mkdirs": "os.mkdir('/veri-planted')",
+        "creates": "os.open('/etc/veri-planted', os.O_CREAT | os.O_WRONLY)",
+        "reads_through_pathlib": "pathlib.Path('/etc/veri-planted').read_text()",
+        "mkdirs_through_pathlib": "pathlib.Path('/veri-planted').mkdir()",
+    }
+    source = "import os\nimport pathlib\nimport tempfile\n\n"
+    for name, call in calls.items():
+        source += "def test_%s():\n    %s\n\n" % (name, call)
+    source += (
+        "def test_creates_under_tmp(tmp_path):\n"
+        "    made = pathlib.Path('/tmp') / ('veri-planted-' + str(os.getpid()))\n"
+        "    made.mkdir()\n"
+        "    made.rmdir()\n"
+        "\n"
+        "def test_opens_a_tempfile():\n"
+        "    with tempfile.TemporaryFile() as handle:\n"
+        "        handle.write(b'x')\n"
+    )
+    lines = source.splitlines()
+    path = pytester.makepyfile(test_planted=source)
+
+    result = pytester.runpytest_inprocess("-p", "no:cacheprovider", plugins=[conftest])
+
+    result.assert_outcomes(failed=len(calls), passed=2)
+    output = result.stdout.str()
+    for name, call in calls.items():
+        line = lines.index("    " + call) + 1
+        assert "the system location" in output
+        assert "at %s:%d" % (path, line) in output
+        assert "test_planted.py::test_%s " % name in output
+
+    exempt = "test_planted.py::test_reads"
+    monkeypatch.setitem(conftest.SYSTEM_LOCATION_EXEMPT, exempt, "")
+    result = pytester.runpytest_inprocess("-p", "no:cacheprovider", plugins=[conftest])
+    assert "system-location exemption table: %s: exemption carries no reason" % exempt in result.stderr.str()
