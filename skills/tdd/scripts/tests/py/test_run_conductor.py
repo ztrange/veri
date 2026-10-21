@@ -2950,3 +2950,21 @@ def test_cli_the_needs_user_comment_under_the_rest_driver_posts_over_the_issue_c
     assert (code, [call for call in gh_calls if call[:1] == ["issue"]], len(bodies),
             "Which option do you want?" in "".join(bodies), "Options A, B or C." in "".join(bodies)) == (
         0, [], 1, True, False), stderr + repr(gh_calls)
+
+
+def test_cli_a_needs_user_comment_that_github_refuses_is_reported_on_stderr_naming_the_issue_and_the_exit_code_stays_0_1974(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    github = run_conductor.github
+    conductor_that_prints(monkeypatch, tmp_path, ["phase-start"], result_record("Which option do you want?"))
+
+    def refuse(number, body):
+        raise github.NoAnswer("")
+
+    monkeypatch.setattr(github, "gh_issue_comment", refuse)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    assert (code, "needs-user comment" in stderr and "4242" in stderr) == (0, True), stderr
