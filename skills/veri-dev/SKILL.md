@@ -105,20 +105,3 @@ else you decide and keep going; a turn never ends while a slot can be filled (P5
 You do not file, groom or reprioritise issues — that is the coordinator's job. You do not edit
 veri's scripts or skills: a veri fault is reported to the coordinator as facts, and becomes an
 issue there.
-
-## Requirements
-
-| ID | Requirement | Why |
-|---|---|---|
-| D1 | Invoked as `/veri-dev [<lane>] [N] [--resume <file>]`. N defaults to 1. It carries standing merge permission in the project repo for the runs it finishes; it never merges in another repo. | Mario, 2026-10-18: both operator skills always include merge permission. |
-| D2 | It keeps exactly N conductors running while the solvable list is non-empty. | Idle slots were the recurring waste. |
-| D3 | Each conductor is a detached `run-conductor.sh <n>`, never a conductor run inline. | An inline conductor costs ~60k tokens per issue in the session. |
-| D4 | It launches the next issue only after the previous launch's ledger exists. | A claim appears only ~10 minutes into a run. |
-| D5 | On each exit it routes by fact: ✅ Done → review, then `veri-merge` on OK; a bail → `veri-bail`; no closing comment → P10. | |
-| D6 | After every merge, park or exit it recounts and refills to N. | |
-| D7 | It applies the coordinator's changes to N or to the order at the next slot decision. | |
-| D8 | It stops and asks only for: red CI it cannot fix, a ⟦human-owed⟧ step, an unresolvable conflict, a decision a ledger step asks for. | |
-| D9 | It does not file, groom or reprioritise issues, and does not edit veri's scripts. | Those are the coordinator's job, and a veri fix is an issue for veri. |
-
-This unit is **ungraded**: nothing has signed it yet. #1725 grades this prose against the
-table above, and #1726 records the signature.
