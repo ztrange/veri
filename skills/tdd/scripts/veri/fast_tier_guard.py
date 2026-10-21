@@ -6,7 +6,7 @@ from pathlib import Path
 
 _SUITE_PATH = re.compile(r"(^|/)test_[^/]*\.py$|\.test\.sh$")
 
-_COMMAND = re.compile(r"python3 -m pytest ")
+_COMMAND = re.compile(r"(python3 -m pytest|bash) ")
 
 EXEMPTIONS = {}
 

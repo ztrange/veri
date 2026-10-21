@@ -578,3 +578,18 @@ def test_1900_a_planted_test_file_passing_a_shell_command_running_a_pytest_suite
     found = guard.offences(tmp_path)
 
     assert found == [f"{offender}:4: runs a nested suite"]
+
+
+def test_1900_a_planted_test_file_passing_a_shell_command_running_a_bash_suite_to_an_imported_helper_is_reported_as_running_a_nested_suite_by_file_and_line(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    offender = tmp_path / "test_offender.py"
+    offender.write_text(
+        "from shared import sh\n"
+        "\n"
+        "def test_runs_a_suite():\n"
+        "    sh(\"bash skills/tdd/scripts/tests/foo.test.sh\")\n"
+    )
+
+    found = guard.offences(tmp_path)
+
+    assert found == [f"{offender}:4: runs a nested suite"]
