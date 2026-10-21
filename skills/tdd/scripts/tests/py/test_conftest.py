@@ -720,3 +720,32 @@ def test_the_unit_recipes_selection_runs_only_the_unmarked_case_and_deselects_th
     output = ran.stdout + ran.stderr
     assert ran.returncode == 0, output
     assert "1 passed, 2 deselected" in output, output
+
+
+@pytest.mark.process("a child pytest session whose parametrized pair and third case each write a file into their tmp_path")
+def test_each_case_gets_a_private_empty_tmp_path_that_exists_and_a_file_left_in_one_is_absent_from_the_next(tmp_path):
+    seen = tmp_path / "seen.txt"
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import pathlib\n"
+        "import pytest\n"
+        "SEEN = pathlib.Path(%r)\n"
+        "def check(tmp_path):\n"
+        "    assert tmp_path.exists() and tmp_path.is_dir()\n"
+        "    assert list(tmp_path.iterdir()) == []\n"
+        "    (tmp_path / 'left.txt').write_text('left')\n"
+        "    with SEEN.open('a') as log:\n"
+        "        log.write(str(tmp_path) + '\\n')\n"
+        "@pytest.mark.parametrize('n', [1, 2])\n"
+        "def test_pair(tmp_path, n):\n"
+        "    check(tmp_path)\n"
+        "def test_third(tmp_path):\n"
+        "    check(tmp_path)\n" % str(seen))
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode == 0, output
+    assert "3 passed" in output, output
+    paths = seen.read_text().split()
+    assert len(paths) == 3 and len(set(paths)) == 3, paths
