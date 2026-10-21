@@ -3,6 +3,7 @@ import ast
 import pathlib
 import re
 import subprocess
+import warnings
 
 import pytest
 
@@ -244,21 +245,73 @@ MECHANICAL_READERS = (
     "full_tier_measurement_in_the_worktree",
     "test_1420_skill_md_s_preflight_discard",
     "skill_md_preflight_leaf_model_calls_name_a_leaf",
+    "test_skill_preflight_writes_the_long_lived_ppid_not_the_shells_pid",
+    "test_987_preflight_step_3_runs_stop_requested_clear_beside_the_tdd_conductor_pid_write",
+    "structural_pass_ends_with_one_event_sh_structural_pass_mark",
+    "test_954_skill_md_makes_the_leaf_timeout_sh_call_that_records_tdd_issue_n_timeout",
+    "test_1297_skill_md_s_draft_pr_step_does_not_write_the_resume_rebase_event",
+    "test_a_gh_auth_status_call_planted_in_skill_md_is_named_as_file_line",
+    "test_every_remaining_case_that_reads_skill_md_s_preflight_section",
 )
-READS_PREFLIGHT = re.compile(r"^PREFLIGHT$|#+ .*[Pp]reflight")
+NAMES_PREFLIGHT = re.compile(r"^PREFLIGHT$|#+ .*[Pp]reflight|#+ 0\.|Preflight —")
 
 
-def preflight_readers(tree):
+def plain(text):
+    return "\n".join(" ".join(line.replace("`", "").replace("*", "").split()).lower() for line in text.splitlines())
+
+
+def preflight_and_rest():
+    lines = SKILL.read_text().splitlines()
+    start = next(i for i, line in enumerate(lines) if line == PREFLIGHT)
+    end = next(i for i in range(start + 1, len(lines)) if re.match(r"#{1,3} ", lines[i]))
+    return plain("\n".join(lines[start:end])), plain("\n".join(lines[:start] + lines[end:]))
+
+
+def only_in_preflight(value, preflight, rest):
+    if NAMES_PREFLIGHT.search(value):
+        return True
+    probe = " ".join(value.split())
+    if len(probe.split(" ")) < 3:
+        return False
+    if plain(probe) in preflight and plain(probe) not in rest:
+        return True
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            pattern = re.compile(probe, re.I | re.M)
+    except re.error:
+        return False
+    return bool(pattern.search(preflight)) and not pattern.search(rest)
+
+
+def messages(fn):
+    skip = set()
+    for node in ast.walk(fn):
+        if isinstance(node, ast.Assert) and node.msg is not None:
+            skip.update(id(n) for n in ast.walk(node.msg))
+        if isinstance(node, ast.JoinedStr):
+            skip.update(id(n) for n in ast.walk(node))
+    return skip
+
+
+def preflight_readers(tree, preflight, rest):
     defs = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+    consts = {target.id: node.value.value for node in tree.body if isinstance(node, ast.Assign)
+              and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str)
+              for target in node.targets if isinstance(target, ast.Name)}
 
     def reads(fn, seen):
         if fn.name in seen:
             return False
         seen.add(fn.name)
+        skip = messages(fn)
         for node in ast.walk(fn):
-            if isinstance(node, ast.Name) and READS_PREFLIGHT.search(node.id):
+            if isinstance(node, ast.Name) and NAMES_PREFLIGHT.search(node.id):
                 return True
-            if isinstance(node, ast.Constant) and isinstance(node.value, str) and READS_PREFLIGHT.search(node.value):
+            if isinstance(node, ast.Name) and node.id in consts and only_in_preflight(consts[node.id], preflight, rest):
+                return True
+            if (isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in skip
+                    and only_in_preflight(node.value, preflight, rest)):
                 return True
             if isinstance(node, ast.Name) and node.id in defs and reads(defs[node.id], seen):
                 return True
@@ -269,9 +322,13 @@ def preflight_readers(tree):
 
 @pytest.mark.tree_audit("every test module under tests/py, parsed for the cases that read SKILL.md's Preflight section")
 def test_every_remaining_case_that_reads_skill_md_s_preflight_section_is_a_named_mechanical_fact_case():
+    preflight, rest = preflight_and_rest()
     strays = []
     for path in sorted(TESTS_DIR.rglob("test_*.py")):
-        for name in preflight_readers(ast.parse(path.read_text())):
+        source = path.read_text()
+        if "SKILL" not in source:
+            continue
+        for name in preflight_readers(ast.parse(source), preflight, rest):
             if not any(key in name for key in MECHANICAL_READERS):
                 strays.append(f"{path.relative_to(TESTS_DIR)}::{name}")
     assert strays == [], f"cases read the Preflight section but are not on the mechanical-fact allow-list: {strays}"
