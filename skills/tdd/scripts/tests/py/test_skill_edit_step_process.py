@@ -613,3 +613,33 @@ def test_a_unit_with_no_requirements_list_against_an_issue_with_no_requirements_
     assert [ran.returncode, "Traceback" in ran.stderr, (repo / "unit.md").read_text(),
             (repo / "REQUIREMENTS.md").exists()] \
         == [3, False, "The widget is painted a deep blue.\n", False], (ran.stdout, ran.stderr[-700:])
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
+def test_an_issue_rewording_one_row_of_a_unit_below_the_root_with_its_path_section_leaves_one_row_per_id_reworded_in_place_and_no_basename_section_1959(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "skills" / "veri-dev").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "skills" / "veri-dev" / "SKILL.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
+    beside = repo / "skills" / "veri-dev" / "REQUIREMENTS.md"
+    beside.write_text("## skills/veri-dev/SKILL.md\n\n" + ROWS)
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### skills/veri-dev/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is a deep blue. | shade |\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    claude = tmp_path / "claude"
+    claude.write_text(GRADER)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "skills/veri-dev/SKILL.md"], cwd=repo, capture_output=True,
+                         text=True, env=env)
+
+    text = beside.read_text()
+    rows = [l for l in text.splitlines() if l.startswith("| A")]
+    assert [ran.returncode, rows, "## SKILL.md" in text.splitlines(), git(repo, "status", "--porcelain")] \
+        == [3, ["| A1 | The widget is a deep blue. | shade |", "| A2 | The widget never hums. | quiet |"], False, ""], \
+        (ran.stdout, ran.stderr[-700:], text)
