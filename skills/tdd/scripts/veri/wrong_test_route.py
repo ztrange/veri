@@ -135,8 +135,9 @@ def _superseded(report, step):
         quoted = re.match(r'"([^"]+)"', body)
         words = body.strip("`").split()
         case = quoted.group(1) if quoted else words[0].strip("`") if words else ""
-        if case and case not in own and case not in cases and _exists(case):
-            cases.append(case)
+        found = _exists(case) if case and case not in own else None
+        if found and found not in cases:
+            cases.append(found)
     return cases
 
 
