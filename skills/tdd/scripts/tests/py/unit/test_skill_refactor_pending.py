@@ -351,3 +351,27 @@ def test_1579_skill_md_states_that_a_conductor_never_sets_or_raises_veri_step_gr
     for var in ("VERI_STEP_GROWTH", "REVISE_BUDGET", "VERI_REFACTOR_BUDGET", "VERI_STUCK_RETRIES", "VERI_NO_VERDICT_RETRIES"):
         assert var.lower() in never, f"no sentence says a conductor never sets or raises {var} mid-run"
     assert any("budget" in s and "cannot fit" in s and "bail" in s for s in sentences), "no sentence says a budget the conductor cannot fit inside is a bail"
+
+
+def _skill_flat():
+    text = SKILL.read_bytes().replace(b"*", b"").replace(b"`", b"").translate(bytes.maketrans(bytes(range(65, 91)), bytes(range(97, 123))))
+    return re.sub(rb" +", b" ", text.replace(b"\n", b" ")).decode("utf-8", "surrogateescape")
+
+
+def test_1611_skill_md_s_resume_preflight_describes_the_tree_before_rebase_onto_default_sh_as_keeping_uncommitted_tdd_appends_with_ledger_ticks_reconciled_and_no_longer_says_its_worktree_clean_and_its_ledger_untouched():
+    flat = _skill_flat()
+    assert "clean and its ledger untouched" not in flat, "SKILL.md still says the resumed run has its worktree clean and its ledger untouched"
+    sentences = flat.replace(". ", ".\n").split("\n")
+    assert any("rebase-onto-default.sh" in s and "uncommitted" in s and "append" in s and "reconcil" in s for s in sentences), \
+        "no sentence before rebase-onto-default.sh says uncommitted .tdd/ appends are kept and ledger ticks reconciled"
+
+
+def test_1611_skill_md_s_resume_preflight_paragraph_under_the_discard_block_keeps_a_working_copy_tick_only_when_the_committed_ledger_holds_a_tick_of_the_same_step_text_without_its_trailing_markers_counted_and_no_longer_mentions_line_position():
+    flat = _skill_flat()
+    assert "the ledger is judged" in flat, "could not find the Resume paragraph that judges the ledger against the committed one"
+    para = flat.split("the ledger is judged", 1)[1].split("keep this", 1)[0]
+    assert "committed ledger" in para and "same" in para and "step text" in para, \
+        "the paragraph never says a tick is kept only when the committed ledger holds a tick of the same step text"
+    assert "trailing marker" in para, "the paragraph never says the step text is taken without its trailing markers"
+    assert "counted" in para, "the paragraph never says the committed ticks are counted"
+    assert "line position" not in para, "the paragraph still mentions line position"
