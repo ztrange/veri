@@ -147,3 +147,28 @@ def test_main_with_target_and_max_wait_in_either_order_prints_timeout_and_return
     code = watch_runs.main(argv)
 
     assert (code, capsys.readouterr().out) == (3, "timeout\n")
+
+
+@pytest.mark.parametrize("argv", [
+    pytest.param(["--target", "2", "--max-wait", "30"], id="target-first"),
+    pytest.param(["--max-wait", "30", "--target", "2"], id="max-wait-first"),
+])
+def test_main_with_target_and_max_wait_in_either_order_prints_slot_free_and_returns_0_when_a_slot_frees_before_the_wait_elapses_1930(
+        monkeypatch, capsys, watch_runs, argv):
+    now = [100.0]
+    waits = []
+
+    def wait():
+        waits.append(1)
+        now[0] += 1
+        if len(waits) > 10:
+            raise RuntimeError("never printed slot-free")
+
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: ["5"])
+    monkeypatch.setattr(watch_runs, "solvable_issues", lambda: ["12", "15"], raising=False)
+    monkeypatch.setattr(watch_runs, "clock", lambda: now[0], raising=False)
+    monkeypatch.setattr(watch_runs, "wait", wait)
+
+    code = watch_runs.main(argv)
+
+    assert (code, capsys.readouterr().out) == (0, "slot-free 1/2 next 12\n")
