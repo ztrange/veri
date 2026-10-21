@@ -268,3 +268,17 @@ def _closing_log_named(tmp_path, name):
               "usage": {"input_tokens": 4, "cache_creation_input_tokens": 5,
                         "cache_read_input_tokens": 6, "output_tokens": 7}}
     (tmp_path / ".tdd" / ("%s.log" % name)).write_text(json.dumps(record) + "\n")
+
+
+def test_main_harvests_a_leading_word_added_to_leaf_roles_actor_table_with_that_actor_and_no_change_to_harvest_usage_1949(
+        tmp_path, monkeypatch, harvest_usage, events):
+    monkeypatch.setitem(harvest_usage.leaf_role.ACTORS, "plan", "planner")
+    _closing_log_named(tmp_path, "plan-scope-2")
+    monkeypatch.chdir(tmp_path)
+
+    events.refuse_event_sh()
+    code = harvest_usage.main(["plan-scope-2"])
+
+    assert code == 0
+    assert [(r["actor"], r["phase"], r["attempt"], r["event"]) for r in events.records()] == [
+        ("planner", "scope", "2", "usage")]
