@@ -184,3 +184,7 @@ def test_refactor_overflow_script_and_module_no_longer_exist():
 
 def test_skill_md_s_structural_pass_checks_each_transform_s_commits_with_transform_touches_tests_sh_base_sha_bound():
     requires(pass_text(), "transform-touches-tests.sh <base-sha> <bound>")
+
+
+def test_skill_md_s_structural_pass_computes_each_candidate_s_bound_with_refactor_touched_sh_issue_issue_base_candidate_candidate():
+    requires(pass_text(), "refactor-touched.sh --issue <issue-base> --candidate '<candidate>'")
