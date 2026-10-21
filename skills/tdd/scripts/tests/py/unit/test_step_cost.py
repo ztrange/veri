@@ -1,5 +1,6 @@
 """In-process cases for veri/step_cost.py, the module step-cost.sh is a shim over."""
 import importlib
+import json
 import os
 
 import pytest
@@ -290,3 +291,24 @@ def test_cli_from_another_working_directory_prints_the_figure_and_exit_code_of_t
         '{"ts": 1, "issue": "721", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30"}\n')
 
     assert run_cli(step_cost, ["step one"], cwd=tmp_path / "elsewhere") == (0, "0.30\n", "")
+
+
+def test_main_prints_the_same_totals_for_a_log_re_serialised_with_compact_separators_as_for_the_writers_spacing(tmp_path, monkeypatch, capsys, step_cost):
+    events = [
+        {"ts": 1, "issue": "448", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30134540000000004"},
+        {"ts": 2, "issue": "448", "actor": "developer", "phase": "green", "step": "step two", "event": "usage", "total_cost_usd": "1.0"},
+        {"ts": 3, "issue": "448", "actor": "verifier", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.12"},
+    ]
+    (tmp_path / ".tdd").mkdir()
+    log = tmp_path / ".tdd" / "events.jsonl"
+    monkeypatch.chdir(tmp_path)
+
+    def totals(separators):
+        log.write_text("".join(json.dumps(e, separators=separators) + "\n" for e in events))
+        results = {}
+        for arg in ("step one", "--run", "--steps"):
+            code = step_cost.main([arg])
+            results[arg] = (code, capsys.readouterr().out)
+        return results
+
+    assert totals((",", ":")) == totals((", ", ": "))

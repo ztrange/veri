@@ -4,10 +4,10 @@ run's `usage` events.
 The figure is leaf spend only. The conductor's own spending is in no `usage` event, so it is
 in no figure this prints — never quote one as "what this step cost" in full.
 """
-import json
 import os
-import re
 import sys
+
+import event_log
 
 USAGE = "usage: step-cost.sh <step-text> | --run | --steps"
 LOG = ".tdd/events.jsonl"
@@ -29,15 +29,10 @@ def main(argv):
     return code
 
 
-def value(line, key):
-    found = re.search(r'"%s": "((?:[^"\\]|\\.)*)"' % re.escape(key), line)
-    return found.group(1) if found else ""
-
-
-def cost(line):
+def cost(event):
     try:
-        return float(value(line, "total_cost_usd"))
-    except ValueError:
+        return float(event.get("total_cost_usd"))
+    except (TypeError, ValueError):
         return 0.0
 
 
@@ -56,22 +51,20 @@ def step_costs(step, cwd):
     if not os.access(log_path, os.R_OK):
         sys.stderr.write("step-cost.sh: cannot read %s in %s — run from the run's worktree\n" % (LOG, cwd))
         return 2, ""
-    with open(log_path, encoding="utf-8") as log:
-        lines = [line.rstrip("\n") for line in log]
-    usage = [line for line in lines if value(line, "event") == "usage"]
+    events = event_log.read_events(log_path, skip_unreadable=True)
+    usage = [e for e in events if e.get("event") == "usage"]
     if step not in ("--run", "--steps"):
-        escaped = json.dumps(step)[1:-1]
-        usage = [line for line in usage if value(line, "step") == escaped]
+        usage = [e for e in usage if e.get("step", "") == step]
     if not usage:
         return 3, ""
     if step == "--steps":
         dollars, leaves = {}, {}
-        for line in usage:
-            s = value(line, "step")
-            dollars[s] = dollars.get(s, 0.0) + cost(line)
+        for e in usage:
+            s = e.get("step", "")
+            dollars[s] = dollars.get(s, 0.0) + cost(e)
             leaves[s] = leaves.get(s, 0) + 1
         return 0, "".join("%.2f %d\n" % (dollars[s], leaves[s]) for s in leaves)
-    return 0, "%.2f\n" % sum(cost(line) for line in usage)
+    return 0, "%.2f\n" % sum(cost(e) for e in usage)
 
 
 if __name__ == "__main__":
