@@ -57,6 +57,10 @@ def _trimmed(lines):
     return lines
 
 
+def _claimed(path, unit):
+    return os.path.exists(path) and requirements.claims(path, unit)
+
+
 def _write_list(path, name, rows):
     head = ["## " + name, ""] + TABLE_HEAD
     existing = _trimmed(requirements.read_lines(path)) if os.path.exists(path) else []
@@ -90,12 +94,13 @@ def apply(issue, unit):
     if rows and not os.path.exists(unit):
         _create(unit, path, unit, rows)
         return True
-    if not rows and not (os.path.exists(path) and requirements.claims(path, unit)):
+    claimed = _claimed(path, unit)
+    if not rows and not claimed:
         return moved
-    if not (os.path.exists(path) and requirements.claims(path, unit)):
+    if not claimed:
         _write_list(path, unit, rows)
         return moved
-    have ={row.split("\t")[0] for row in requirements.claims(path, unit).splitlines()}
+    have = {row.split("\t")[0] for row in claimed.splitlines()}
     new = [r for r in rows if _row_id(r) not in have]
     reworded = {_row_id(r): r for r in rows}
     lines = requirements.read_lines(path)
@@ -168,7 +173,7 @@ def main(argv):
     base = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     moved = apply(issue, unit)
     path = skill_edit_guard.list_path(unit)
-    if not (os.path.exists(path) and requirements.claims(path, unit)):
+    if not _claimed(path, unit):
         return 3
     graded, said = _grade(path, unit)
     authored = graded == 1
