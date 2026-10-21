@@ -1,9 +1,13 @@
 """unlabel-issue.sh's logic, run in-process."""
-import subprocess
 import sys
 import urllib.parse
 
 import tunables
+
+try:
+    from veri import github
+except ImportError:
+    import github
 
 
 def _refuse(message):
@@ -18,9 +22,7 @@ def main(argv):
     if not argv[0].isdecimal():
         return _refuse("issue number must be numeric, got '%s'" % argv[0])
     label = urllib.parse.quote(tunables.read("VERI_LABEL", "ready-for-agent"), safe="")
-    run = subprocess.run(
-        ["gh", "api", "-X", "DELETE", "repos/{owner}/{repo}/issues/%s/labels/%s" % (argv[0], label)],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    run = github.gh_api_delete("repos/{owner}/{repo}/issues/%s/labels/%s" % (argv[0], label))
     if run.returncode != 0 and "404" not in run.stderr:
         if "HTTP" in run.stderr:
             sys.stderr.write(run.stderr)
