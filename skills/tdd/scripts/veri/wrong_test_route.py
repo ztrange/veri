@@ -44,11 +44,15 @@ def _live_call(pattern, text):
     return None
 
 
-def _exists(case):
-    py = re.compile(r"def %s\(" % re.escape(case))
+def _js_title_pattern(case):
     prefix = case[:-1] if case.endswith("…") else case[:-3] if case.endswith("...") else None
     title = "(%s[^'\"]*)" % re.escape(prefix) if prefix is not None else "(%s)" % re.escape(case)
-    js = re.compile(r"\b(?:it|test)(?:\.(?:only|skip))?(?:\.each(?:\([^)]*\)|`[^`]*`))?\(\s*['\"]" + title + r"['\"]")
+    return re.compile(r"\b(?:it|test)(?:\.(?:only|skip))?(?:\.each(?:\([^)]*\)|`[^`]*`))?\(\s*['\"]" + title + r"['\"]")
+
+
+def _exists(case):
+    py = re.compile(r"def %s\(" % re.escape(case))
+    js = _js_title_pattern(case)
     for root, dirs, files in os.walk("."):
         dirs[:] = [d for d in dirs if d not in SKIPPED]
         for name in files:
