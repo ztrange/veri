@@ -73,3 +73,14 @@ def test_section_of_keeps_a_heading_shaped_line_fenced_after_a_shorter_fence_lin
     beta = skill_sections.section_of(text, "## Beta")
 
     assert beta == "## Beta\nbefore\n````\n```\n## x\nin fence\n````\nafter\n"
+
+
+def test_section_of_ends_at_a_later_heading_when_a_fence_line_is_indented_four_spaces_1687():
+    skill_sections = importlib.import_module("skill_sections")
+
+    for fence in ("```", "~~~"):
+        text = f"## Beta\nbefore\n    {fence}\n## Gamma\ngamma body\n"
+
+        beta = skill_sections.section_of(text, "## Beta")
+
+        assert beta == f"## Beta\nbefore\n    {fence}\n", fence
