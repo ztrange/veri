@@ -196,3 +196,11 @@ def test_skill_md_s_structural_pass_records_a_candidate_the_budget_stops_with_re
 
 def test_skill_md_s_structural_pass_records_a_candidate_whose_transform_was_rejected_with_refactor_owed_sh_not_done_and_reason_transform_rejected():
     requires(pass_text(), "candidate transform-rejected with refactor-owed.sh not-done")
+
+
+def test_skill_md_s_structural_pass_passes_the_commit_subject_git_log_1_format_s_as_the_last_argument_of_every_refactor_owed_sh_applied_call():
+    calls = re.findall(r"refactor-owed\.sh applied .*?(?= {2}|$)", pass_text())
+    assert calls, "SKILL.md's structural pass never calls refactor-owed.sh applied"
+    for call in calls:
+        assert call.endswith('"$(git log -1 --format=%s)"'), \
+            f"SKILL.md's structural pass calls refactor-owed.sh applied without the commit subject last: {call}"
