@@ -126,9 +126,10 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id=""):
         optional["BUG_REPRODUCTION"] = f"{prompts}/_verify-red-bug.md"
     if phase == "plan" and _has_heading(spec_text, b"Refactor"):
         optional["REFACTOR_PLAN"] = f"{prompts}/_verify-plan-refactor.md"
+    trailing = trailing_markers(step_arg)
     for placeholder, mark in GREEN_PARAGRAPHS.items():
         marked = is_replaces_case_step(step_arg) if mark == "replaces-case" else carries_mark(
-            trailing_markers(step_arg) if mark in ("suite-repair", "ci-repair") else step_arg, mark)
+            trailing if mark in ("suite-repair", "ci-repair") else step_arg, mark)
         if phase == "green" and marked:
             optional[placeholder] = f"{prompts}/_verify-green-{mark}.md"
     paths = [f"{prompts}/verify-{phase}.md", f"{prompts}/_shared.md", spec, *optional.values()]
