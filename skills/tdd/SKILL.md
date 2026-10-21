@@ -562,6 +562,8 @@ three times over branches its ledger pinned on later lines.
 
    When that criterion also asks for a case pinning that text, the plan holds a `⟦diff-checked⟧` step for the text and a separate step for the case, both tagged with the same `⟦criterion k⟧`, the case's step after the text's: the `⟦diff-checked⟧` step adds no test, so it cannot carry the pin.
 
+   For each criterion that changes a unit with a requirements list, or for each unit an issue's `## Requirements` section names, the plan holds one `⟦skill-edit⟧` step naming the unit. Never plan Red, Green or Refactor steps that edit such a unit.
+
    A criterion replacing an implementation case under ADR 0027 with a pytest case asserting
    the same behaviour is planned as one step marked `⟦replaces-case⟧`, naming the suite path
    and a list of that suite's cases, each by its exact name: `- [ ] <criterion>: replaces

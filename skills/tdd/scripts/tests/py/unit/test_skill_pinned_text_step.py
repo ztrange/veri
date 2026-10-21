@@ -69,3 +69,16 @@ def test_a_fixture_repair_steps_green_pass_is_ticked_without_refactor_pending_un
     assert "--refactor-pending" not in sentence.replace("without --refactor-pending", ""), \
         "the sentence asks for --refactor-pending"
     assert "`test:` subject" in sentence or "test: subject" in sentence, "the PASS is never committed with a test: subject"
+
+
+def test_scope_and_plan_plans_one_skill_edit_step_per_unit_with_a_requirements_list_and_never_a_red_green_or_refactor_step_for_it_1871():
+    text = _plain(importlib.import_module("skill_sections").section(SKILL, SCOPE))
+    sentence = next((s for s in re.split(r"(?<=\.)\s", text)
+                     if "⟦skill-edit⟧" in s and "requirements list" in s), "")
+    assert sentence, "Scope & plan never tells the planner to emit a ⟦skill-edit⟧ step for a unit with a requirements list"
+    assert "one ⟦skill-edit⟧ step" in sentence, "the rule never plans one ⟦skill-edit⟧ step"
+    assert "naming the unit" in sentence, "the step never names the unit"
+    assert "## requirements" in sentence, "the rule never covers a unit an issue's ## Requirements section names"
+    never = next((s for s in re.split(r"(?<=\.)\s", text)
+                  if "never plan" in s and "red, green or refactor" in s and "⟦skill-edit⟧" not in s), "")
+    assert never, "Scope & plan never forbids Red, Green or Refactor steps that edit such a unit"
