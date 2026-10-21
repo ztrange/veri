@@ -1538,3 +1538,21 @@ def test_main_1957_prints_revise_when_a_wrong_test_bare_ellipsis_expands_to_the_
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
+
+
+def test_main_1957_prints_revise_when_a_wrong_test_cut_name_is_a_prefix_of_more_than_one_js_ts_title(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / "foo.test.ts").write_text(
+        "describe('foo', () => {\n"
+        "  it('accepts a name', () => {});\n"
+        "  it('rejects an empty name', () => {});\n"
+        "  it('rejects an empty list', () => {});\n"
+        "});\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text('SUITE: make test\nWRONG_TEST: "rejects an empty…" contradicts the criterion\n')
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
