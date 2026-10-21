@@ -90,6 +90,31 @@ def test_a_worker_count_of_n_at_least_2_hands_pytest_n_n_while_1_hands_it_no_wor
     assert serial == ["-q", "some/dir"]
 
 
+def test_with_no_worker_count_the_launcher_hands_pytest_one_worker_per_available_core_and_runs_serially_on_a_single_core(pytest_leg, run_cli, monkeypatch):
+    import os
+
+    calls = []
+
+    def spy(args):
+        calls.append([a for a in args if not a.startswith("--basetemp=")])
+        return pytest.ExitCode.OK
+
+    monkeypatch.setattr(pytest, "main", spy)
+    cores = {}
+    monkeypatch.setattr(os, "cpu_count", lambda: cores["n"])
+    monkeypatch.setattr(os, "process_cpu_count", lambda: cores["n"], raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(cores["n"])), raising=False)
+    for cores["n"], workers in ((6, None), (6, ""), (1, None)):
+        env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1"}
+        if workers is not None:
+            env["VERI_PYTEST_WORKERS"] = workers
+        assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
+    unset, empty, single = calls
+    for parallel in (unset, empty):
+        assert parallel[parallel.index("-n") + 1] == "6" if "-n" in parallel else "-n6" in parallel or "--numprocesses=6" in parallel
+    assert single == ["-q", "some/dir"]
+
+
 def test_each_run_hands_pytest_a_base_directory_of_its_own_that_exists_during_the_run_and_is_gone_after_whatever_the_status(pytest_leg, run_cli, monkeypatch):
     import os
 
