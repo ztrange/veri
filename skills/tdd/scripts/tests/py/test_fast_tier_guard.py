@@ -611,3 +611,15 @@ def test_1900_a_planted_test_file_passing_a_suite_path_containing_a_space_to_an_
     found = guard.offences(tmp_path)
 
     assert found == [f"{offender}:7: runs a nested suite"]
+
+
+def test_a_planted_test_file_naming_a_bare_test_file_as_a_table_key_in_monkeypatch_setitem_is_not_reported_as_running_a_nested_suite(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    (tmp_path / "test_keyed.py").write_text(
+        "import conftest\n"
+        "\n"
+        "def test_plants_an_entry(monkeypatch):\n"
+        "    monkeypatch.setitem(conftest.TABLE, \"test_planted.py\", \"the whole file reads HEAD\")\n"
+    )
+
+    assert guard.offences(tmp_path) == []
