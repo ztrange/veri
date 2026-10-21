@@ -1761,6 +1761,34 @@ def test_main_1957_prints_repair_without_a_duplicate_when_a_superseded_cut_name_
     assert (code, stdout) == (0, "repair rejects an empty name\n")
 
 
+def test_main_1957_prints_repair_without_the_other_recorded_case_when_a_two_case_record_and_a_superseded_cut_name_expands_to_the_second_recorded_case(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    (tmp_path / "foo.test.ts").write_text(
+        "describe('foo', () => {\n"
+        "  it('accepts a name', () => {});\n"
+        "  it('rejects an empty name', () => {});\n"
+        "  it('accepts a long name', () => {});\n"
+        "});\n")
+    (tmp_path / ".tdd").mkdir()
+    step = "foo accepts names, a repair with a two-case record and a cut recorded superseded"
+    monkeypatch.setenv("VERI_STEP", step)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    (tmp_path / record_path.rstrip("\n")).write_text(
+        "case: accepts a long name\ncase: rejects an empty name\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        'WRONG_TEST: "accepts a long name" contradicts the criterion\n'
+        'SUPERSEDED: "rejects an empty n…"\n')
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "repair accepts a long name\n")
+
+
 def test_main_1957_prints_revise_when_a_lone_superseded_cut_name_expands_to_a_recorded_case_and_the_wrong_test_names_no_case_that_routes(
         run_cli, tmp_path, monkeypatch):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
