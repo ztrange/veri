@@ -37,6 +37,13 @@ def test_parse_1954_returns_none_for_a_name_left_holding_a_quote_then_a_separato
     assert replaces_case.parse(step) is None
 
 
+def test_parse_1954_returns_none_for_a_name_left_holding_a_separator_then_a_quote():
+    replaces_case = importlib.import_module("veri.replaces_case")
+    step = "- [x] a mixed clause: replaces 'a, 'b' in t/x.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧"
+
+    assert replaces_case.parse(step) is None
+
+
 def test_parse_1603_returns_none_for_a_step_naming_the_mark_without_a_replaces_clause():
     replaces_case = importlib.import_module("veri.replaces_case")
     step = "- [x] the Red prompt for replaces-case steps names the mark ⟦replaces-case⟧ ⟦criterion 5⟧"
