@@ -47,6 +47,9 @@ def _differing_tests():
 _CASE = re.compile(r"^\s*(?:async\s+)?def\s+(test\w*)|^\s*name=\"([^\"]+)\"", re.M)
 
 
+_FIXTURE_FILE = re.compile(r"repairs the fixture '[^']*' in (\S+?),")
+
+
 def _cases(text):
     found = list(_CASE.finditer(text))
     trailer = re.search(r"^finish\b.*\s*\Z", text, re.M)
@@ -79,7 +82,7 @@ def main(argv):
         if not step:
             _write(sys.stderr, USAGE)
             return 2
-        if any(carries_mark(trailing_markers(step), mark) for mark in REPAIR_MARKS):
+        if any(carries_mark(trailing_markers(step), mark) for mark in REPAIR_MARKS if mark != "fixture-repair"):
             return 0
         argv = [mode, _record_path(step)] + argv[3:]
         record = argv[1]
@@ -135,6 +138,9 @@ def main(argv):
             recorded = {name for _, name in entries}
             parsed = replaces_case.parse(step) if replaces_case.is_replaces_case_step(step) else None
             exempt = {parsed[1]} if parsed else set()
+            fixture = _FIXTURE_FILE.search(step) if carries_mark(trailing_markers(step), "fixture-repair") else None
+            if fixture:
+                exempt.add(fixture.group(1))
             changed += [name for name in _differing_tests()
                         if name not in recorded and name not in exempt]
         for name in changed:

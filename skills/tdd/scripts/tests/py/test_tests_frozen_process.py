@@ -670,3 +670,26 @@ def test_record_step_lists_the_pytest_function_red_edited_below_a_finish_line_in
     record = (tmp_path / record_path.rstrip("\n")).read_text()
 
     assert [line for line in record.splitlines() if line.startswith("case: ")] == ["case: test_last"]
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
+def test_check_step_on_a_fixture_repair_step_exits_1_naming_a_test_file_that_is_neither_its_fixture_file_nor_reds_case_1947(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    for name in ("tests/test_new.py", "tests/test_other.py", "tests/conftest.py"):
+        (tmp_path / name).write_text("one\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = ("the case passes: repairs the fixture 'db' in tests/conftest.py, "
+            "reproduced by a case in tests/test_new.py ⟦fixture-repair⟧")
+    (tmp_path / "tests/test_new.py").write_text("one\ntwo\n")
+    recorded = run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py"], cwd=tmp_path)[0]
+    record = run_cli(tests_frozen, ["path", step], cwd=tmp_path)[1].rstrip("\n")
+
+    (tmp_path / "tests/conftest.py").write_text("one, repaired\n")
+    (tmp_path / "tests/test_other.py").write_text("one, weakened\n")
+    checked = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)[:2]
+
+    assert (recorded, (tmp_path / record).exists(), checked) == (0, True, (1, "tests/test_other.py\n"))
