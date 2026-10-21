@@ -44,6 +44,8 @@ def open_prs(fields, *extra):
     try:
         answer = github.GraphQLAdapter().list("pr", "list", *extra, "--state", "open", "--json", fields)
     except github.NoAnswer:
+        if tunables.read("VERI_GH_DRIVER") == "auto":
+            return rest_open_prs(*extra)
         return []
     return json.loads(answer or "[]")
 
