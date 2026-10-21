@@ -6,10 +6,24 @@ TOKEN_KINDS = ("input_tokens", "output_tokens", "cache_read_input_tokens",
                "cache_creation_input_tokens")
 
 
-def read_events(path):
-    """The log's events, one dict per non-blank line."""
+def read_events(path, skip_unreadable=False):
+    """The log's events, one dict per non-blank line; skip_unreadable drops lines that
+    are not a JSON object."""
+    events = []
     with open(path) as f:
-        return [json.loads(raw) for raw in f if raw.strip()]
+        for raw in f:
+            if not raw.strip():
+                continue
+            try:
+                event = json.loads(raw)
+            except ValueError:
+                if skip_unreadable:
+                    continue
+                raise
+            if skip_unreadable and not isinstance(event, dict):
+                continue
+            events.append(event)
+    return events
 
 
 def usage_totals(events):
