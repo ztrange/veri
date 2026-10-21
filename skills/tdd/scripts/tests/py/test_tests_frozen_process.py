@@ -61,6 +61,28 @@ def test_check_step_run_from_a_subdirectory_still_exits_1_naming_a_test_file_red
     assert (code, out) == (1, "tests/test_other.py\n")
 
 
+@pytest.mark.process("a real git repository under tmp_path, asked which untracked test files exist")
+def test_check_step_run_from_a_subdirectory_exits_1_naming_an_untracked_test_file_outside_it_by_its_path_from_the_root_1960(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "sub").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_new.py").write_text("one\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one adds a case"
+    (tmp_path / "tests/test_new.py").write_text("one\ntwo\n")
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py"], cwd=tmp_path)
+
+    (tmp_path / "sub/.tdd").symlink_to("../.tdd")
+    (tmp_path / "sub/tests").symlink_to("../tests")
+    (tmp_path / "tests/test_untracked.py").write_text("new\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path / "sub")
+
+    assert (code, out) == (1, "tests/test_untracked.py\n")
+
+
 @pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
 def test_check_step_exits_1_naming_a_test_file_red_did_not_record_that_was_deleted_since_head_1733(
         tmp_path, run_cli, tests_frozen):
