@@ -1030,3 +1030,22 @@ def test_check_step_exits_1_naming_the_guard_subject_a_green_deleted_1775(
     code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
 
     assert (code, out) == (1, "tests/no-thing.test.sh\n")
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_check_step_from_a_subdirectory_exits_1_naming_an_untracked_test_file_a_green_weakened_by_its_root_path_1960(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "sub/.tdd").mkdir(parents=True)
+    (tmp_path / "lib.py").write_text("one\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "lib.py")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one adds a case"
+    (tmp_path / "tests/test_new.py").write_text("def test_a():\n    assert f() == 1\n")
+    run_cli(tests_frozen, ["record", "--step", step], cwd=tmp_path / "sub")
+
+    (tmp_path / "tests/test_new.py").write_text("def test_a():\n    assert True\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path / "sub")
+
+    assert (code, out) == (1, "tests/test_new.py\n")

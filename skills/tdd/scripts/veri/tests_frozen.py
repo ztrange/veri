@@ -39,6 +39,15 @@ def _has_head():
                           stdout=subprocess.DEVNULL).returncode == 0
 
 
+def _enter_root(record, files):
+    root = subprocess.run(["git", "rev-parse", "--show-toplevel"], stdout=subprocess.PIPE).stdout
+    root = os.fsdecode(root).rstrip("\n")
+    record = os.path.abspath(record)
+    files = [os.path.relpath(os.path.realpath(name), os.path.realpath(root)) for name in files]
+    os.chdir(root)
+    return record, files
+
+
 def _refused_outside_repository():
     if _in_repository():
         return False
@@ -104,6 +113,7 @@ def main(argv):
             return 2
         deleted = []
         if by_step:
+            record, files = _enter_root(record, files)
             for name in _differing_tests():
                 if name in files or name in deleted:
                     continue
@@ -128,6 +138,8 @@ def main(argv):
         if by_step and not _has_head():
             _write(sys.stderr, "tests-frozen.sh: repository has no HEAD commit")
             return 2
+        if by_step:
+            record, _ = _enter_root(record, [])
         try:
             with open(record) as handle:
                 entries = [line.rstrip("\n").split("  ", 1) for line in handle
