@@ -407,3 +407,34 @@ def test_a_guard_rejected_attempts_edits_to_the_unit_are_reset_before_the_next_a
     run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"], env={"VERI_SKILL_EDIT_BUDGET": "2"})
 
     assert seen == ["The widget is painted a deep blue.\n"] * 2, seen
+
+
+def test_a_list_already_passing_the_grader_launches_no_author_commits_the_list_and_graded_and_exits_3_1959(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    launched = []
+    commands = []
+
+    def run(cmd, **kw):
+        commands.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess",
+                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
+
+    commits = [c for c in commands if c[:2] == ["git", "commit"]]
+    assert launched == [], launched
+    assert len(commits) == 1 and "REQUIREMENTS.md" in commits[0], commands
+    assert any(p.endswith("GRADED") or "GRADED" in p for p in commits[0]), commits
+    assert code == 3, (code, out, err)
