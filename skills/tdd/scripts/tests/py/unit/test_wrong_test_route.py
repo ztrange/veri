@@ -1440,3 +1440,22 @@ def test_main_1957_prints_revise_when_the_wrong_test_name_is_the_title_tail_of_t
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout, stderr) == (3, "revise\n", "")
+
+
+def test_main_1957_routes_a_wrong_test_name_that_is_the_exact_title_of_a_sibling_js_ts_case_to_that_sibling_even_when_it_is_also_one_word_of_the_own_id(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / "foo.test.ts").write_text(
+        "describe('foo', () => {\n"
+        "  it('accepts a name', () => {});\n"
+        "  it('name', () => {});\n"
+        "});\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: `name` contradicts the criterion\n")
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+
+    assert (code, stdout, stderr) == (0, "red name\n", "")
