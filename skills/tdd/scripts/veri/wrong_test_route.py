@@ -23,11 +23,14 @@ def is_test_file(name):
     return fnmatch.fnmatch(name, "test_*.py") or name.endswith("_test.py")
 
 
+JS_EXT = r"\.(?:jsx?|tsx?|mjs|cjs)$"
+
+
 def is_js_test_file(name, root=""):
-    if re.search(r"\.(?:test|spec)\.(?:jsx?|tsx?|mjs|cjs)$", name):
+    if re.search(r"\.(?:test|spec)" + JS_EXT, name):
         return True
     in_tests = "__tests__" in root.replace("\\", "/").split("/")
-    return in_tests and re.search(r"\.(?:jsx?|tsx?|mjs|cjs)$", name) is not None
+    return in_tests and re.search(JS_EXT, name) is not None
 
 
 def _exists(case):
