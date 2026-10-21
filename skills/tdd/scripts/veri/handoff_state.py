@@ -20,20 +20,26 @@ def out(*args):
     return git(*args, capture_output=True, text=True).stdout.strip()
 
 
+OPEN_PULLS = "repos/{owner}/{repo}/pulls?state=open&per_page=100"
+
+
+def with_draft_flag(pulls):
+    return [dict(pr, isDraft=pr.get("draft", pr.get("isDraft", False))) for pr in pulls]
+
+
 def rest_open_prs(*extra):
-    path = "repos/{owner}/{repo}/pulls?state=open&per_page=100"
+    path = OPEN_PULLS
     if extra:
         path += "&head={owner}:" + extra[-1]
-    pulls = json_documents.items(github.gh_rest_list(path))
-    return [dict(pr, isDraft=pr.get("draft", False)) for pr in pulls]
+    return with_draft_flag(json_documents.items(github.gh_rest_list(path)))
 
 
 def open_prs(fields, *extra):
     if tunables.read("VERI_GH_JSON"):
-        pulls = json.loads(github.gh_json("prs.json", "repos/{owner}/{repo}/pulls?state=open&per_page=100"))
+        pulls = json.loads(github.gh_json("prs.json", OPEN_PULLS))
         if extra:
             pulls = [pr for pr in pulls if pr.get("head", {}).get("ref") == extra[-1]]
-        return [dict(pr, isDraft=pr.get("draft", pr.get("isDraft", False))) for pr in pulls]
+        return with_draft_flag(pulls)
     if tunables.read("VERI_GH_DRIVER") == "rest":
         return rest_open_prs(*extra)
     answer = subprocess.run(["gh", "pr", "list", *extra, "--state", "open", "--json", fields],
