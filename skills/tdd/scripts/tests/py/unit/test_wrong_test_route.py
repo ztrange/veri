@@ -915,3 +915,29 @@ def test_main_1932_prints_repair_of_the_step_own_case_when_the_wrong_test_line_f
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s\n" % own)
+
+
+def test_main_1932_prints_repair_of_the_step_own_case_when_the_wrong_test_line_faults_it_and_cites_another_as_the_example_and_the_red_record_names_only_its_file(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    own = "test_conductor_sessions_prices_a_turn_at_the_rates_of_the_model_its_record_names_1859"
+    example = "test_issue_1815_a_conductor_turn_is_priced_from_the_session_cost_price_table"
+    name = suite / ("test_" + "metrics" + ".py")
+    name.write_text("def %s():\n    pass\n\ndef %s():\n    pass\n" % (example, own))
+    (tmp_path / ".tdd").mkdir()
+    step = "conductor sessions price a turn at its model's rates, file-only record"
+    monkeypatch.setenv("VERI_STEP", step)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    (tmp_path / record_path.rstrip("\n")).write_text("%s  %s\n" % ("0" * 64, name.relative_to(tmp_path)))
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: %s patches veri.session_cost.PRICES, which metrics never reads;"
+        " the correct example is %s, which patches metrics.session_cost.PRICES\n" % (own, example))
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "repair %s\n" % own)
