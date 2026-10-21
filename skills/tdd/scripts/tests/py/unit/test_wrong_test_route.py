@@ -1596,3 +1596,22 @@ def test_main_1957_prints_revise_when_the_named_title_is_found_only_in_an_emit_c
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
+
+
+def test_main_1957_prints_revise_when_the_named_title_is_found_only_in_a_markdown_file_under_a_tests_directory(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / "__tests__").mkdir()
+    (tmp_path / "__tests__" / "notes.md").write_text(
+        "describe('foo', () => {\n"
+        "  it('rejects an empty name', () => {});\n"
+        "});\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: `rejects an empty name` contradicts the criterion\n")
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
