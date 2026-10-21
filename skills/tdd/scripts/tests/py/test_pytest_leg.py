@@ -59,7 +59,7 @@ def test_past_its_checks_the_launcher_runs_pytest_on_its_arguments_and_exits_1_f
         return pytest.ExitCode.NO_TESTS_COLLECTED
 
     monkeypatch.setattr(pytest, "main", spy)
-    code, out, err = run_cli(pytest_leg, ["-q", "some/dir"], env={"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1"})
+    code, out, err = run_cli(pytest_leg, ["-q", "some/dir"], env={"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"})
     assert (code, out, err) == (1, "", "")
     assert [[a for a in args if not a.startswith("--basetemp=")] for args in calls] == [["-q", "some/dir"]]
 
@@ -76,7 +76,7 @@ def test_each_run_hands_pytest_a_base_directory_of_its_own_that_exists_during_th
         return next(statuses)
 
     monkeypatch.setattr(pytest, "main", spy)
-    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1"}
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
     codes = [run_cli(pytest_leg, ["-q"], env=env)[0] for _ in range(2)]
     bases = [base for base, _ in seen]
     assert None not in bases
