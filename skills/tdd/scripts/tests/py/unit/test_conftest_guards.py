@@ -66,3 +66,23 @@ def test_the_directory_listing_guard_fails_a_planted_unmarked_case_that_lists_a_
     output = result.stdout.str()
     assert "test_planted.py::test_lists_unmarked lists the repository directory %s: mark it tree_audit" % repository in output
     assert "test_lists_marked lists" not in output
+
+
+def test_the_push_backoff_guard_fails_a_planted_small_case_that_reaches_the_retry_backoff_without_veri_push_backoff_naming_the_case(pytester):
+    pytester.makepyfile(test_planted="""
+        import subprocess
+
+        def test_waits_the_default_backoff(monkeypatch):
+            import veri.push_branch as push_branch
+
+            def fake_run(args, **kwargs):
+                return subprocess.CompletedProcess(args, 1, stdout="boom\\n")
+
+            monkeypatch.setattr(subprocess, "run", fake_run)
+            push_branch.main([])
+    """)
+
+    result = pytester.runpytest_inprocess("-p", "no:cacheprovider", plugins=[conftest])
+
+    result.assert_outcomes(failed=1)
+    assert "test_planted.py::test_waits_the_default_backoff reached the push backoff without setting VERI_PUSH_BACKOFF" in result.stdout.str()
