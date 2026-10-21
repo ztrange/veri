@@ -19,24 +19,57 @@ def _write(stream, line):
 SKIPPED = (".git", ".tdd", ".venv", "node_modules")
 
 
+JS_SUFFIXES = (".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs")
+JS_CASE = re.compile(r"""\b(?:it|test)(?:\.\w+)*\s*\(\s*(["'`])((?:\\.|(?!\1).)*)\1""")
+ELLIPSES = ("…", "...")
+
+
 def is_test_file(name):
     return fnmatch.fnmatch(name, "test_*.py") or name.endswith("_test.py")
 
 
-def _exists(case):
+def is_js_test_file(path):
+    name = os.path.basename(path)
+    if not name.endswith(JS_SUFFIXES) or name.endswith(".d.ts"):
+        return False
+    stem = name.rsplit(".", 1)[0]
+    return stem.endswith((".test", ".spec")) or "__tests__" in path.split(os.sep)
+
+
+def _js_case(case, text):
+    stem = None
+    if case.endswith(ELLIPSES):
+        stem = case.rstrip(".…").rstrip(" ,;:")
+    for match in JS_CASE.finditer(text):
+        title = match.group(2)
+        if title == case or (stem and title.startswith(stem)):
+            return title
+    return None
+
+
+def _find(case):
     py = re.compile(r"def %s\(" % re.escape(case))
     for root, dirs, files in os.walk("."):
         dirs[:] = [d for d in dirs if d not in SKIPPED]
         for name in files:
-            if not name.endswith((".py", ".test.sh")):
+            path = os.path.join(root, name)
+            js = is_js_test_file(path)
+            if not js and not name.endswith((".py", ".test.sh")):
                 continue
-            with open(os.path.join(root, name), encoding="utf-8", errors="replace") as handle:
+            with open(path, encoding="utf-8", errors="replace") as handle:
                 text = handle.read()
             if is_test_file(name) and case.startswith("test_") and py.search(text):
-                return True
+                return case
             if name.endswith(".test.sh") and ('name="%s"' % case) in text:
-                return True
-    return False
+                return case
+            title = _js_case(case, text) if js else None
+            if title is not None:
+                return title
+    return None
+
+
+def _exists(case):
+    return _find(case) is not None
 
 
 def _lines_with(report, prefix):
@@ -48,11 +81,19 @@ def _named_cases(report):
     for line in _lines_with(report, "WRONG_TEST:"):
         yield from re.findall(r"\btest_\w+", line)
         yield from re.findall(r"`([^`]+)`", line)
+        yield from re.findall(r'"([^"]+)"', line)
+        yield from re.findall("\u201c([^\u201d]+)\u201d", line)
+
+
+def _is_own(case, own_id):
+    own = own_id.rpartition("::")[2]
+    return case == own or own.endswith((" " + case, ">" + case))
 
 
 def route(report, own_id):
-    for case in _named_cases(report):
-        if case != own_id.rpartition("::")[2] and _exists(case):
+    for named in _named_cases(report):
+        case = None if _is_own(named, own_id) else _find(named)
+        if case is not None and not _is_own(case, own_id):
             return case
     return None
 

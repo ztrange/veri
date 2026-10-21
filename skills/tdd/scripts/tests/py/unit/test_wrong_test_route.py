@@ -893,3 +893,110 @@ def test_main_1865_drops_a_superseded_line_naming_a_case_no_test_file_defines(
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
+
+
+JS_TEST_FILES = tuple(
+    "src/services/config" + suffix
+    for suffix in (".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx", ".test.js", ".test.jsx",
+                   ".spec.js", ".spec.jsx", ".test.mjs", ".test.cjs")) + (
+    "src/services/__tests__/config.ts", "src/services/__tests__/config.jsx")
+
+
+def _js_suite(case):
+    return ('import { describe, it, expect } from "vitest";\n\n'
+            'describe("config", () => {\n'
+            '  it("%s", () => {\n    expect(1).toBe(1);\n  });\n\n'
+            "  test('adds the monthly frequency', () => {\n    expect(1).toBe(1);\n  });\n"
+            '});\n' % case)
+
+
+@pytest.mark.parametrize("filename", JS_TEST_FILES)
+def test_main_routes_a_wrong_test_naming_a_double_quoted_vitest_case_to_a_red_over_that_case(
+        run_cli, tmp_path, filename):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    case = "reads the core mode, the three API bases and the extensions key"
+    (tmp_path / filename).parent.mkdir(parents=True)
+    (tmp_path / filename).write_text(_js_suite(case))
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: npm test\n"
+        'WRONG_TEST: The sibling case "%s" (src/services/config.test.ts:45) asserts the whole '
+        'config with toEqual and its expected object lacks `"monthly": "Mensual"`.\n' % case)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "config adds the monthly frequency"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red %s\n" % case)
+
+
+def test_main_routes_a_wrong_test_naming_a_backticked_single_quoted_vitest_case_to_a_red_over_that_case(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    filename = tmp_path / "src" / ("config" + ".test" + ".ts")
+    filename.parent.mkdir(parents=True)
+    filename.write_text(_js_suite("reads the core mode"))
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: npm test\n"
+        "WRONG_TEST: the case `adds the monthly frequency` asserts the opposite of the criterion\n")
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "reads the core mode"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red adds the monthly frequency\n")
+
+
+def test_main_routes_a_wrong_test_naming_a_vitest_case_cut_short_with_an_ellipsis_to_a_red_over_the_full_case(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    case = "reads the core mode, the three API bases and the extensions key"
+    filename = tmp_path / "src" / ("config" + ".test" + ".ts")
+    filename.parent.mkdir(parents=True)
+    filename.write_text(_js_suite(case))
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: npm test\n"
+        'WRONG_TEST: The sibling case "reads the core mode, the three API bases, …" lacks a key\n')
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "adds the monthly frequency"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red %s\n" % case)
+
+
+def test_main_prints_revise_when_a_wrong_test_names_a_vitest_style_case_found_only_in_a_non_test_source_file(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    case = "reads the core mode"
+    results = []
+    for filename in ("src/services/config.ts", "src/services/config.tsx", "src/testing/config.js",
+                     "src/services/config.d.ts"):
+        repo = tmp_path / filename.replace("/", "_")
+        (repo / filename).parent.mkdir(parents=True)
+        (repo / filename).write_text(_js_suite(case))
+        report = repo / "green-report.txt"
+        report.write_text(
+            "SUITE: npm test\n"
+            'WRONG_TEST: The sibling case "%s" asserts the opposite of the criterion\n' % case)
+        code, stdout, stderr = run_cli(
+            wrong_test_route, [str(report), "adds the monthly frequency"], cwd=repo)
+        results.append((code, stdout))
+
+    assert results == [(3, "revise\n")] * 4
+
+
+def test_main_prints_revise_when_a_wrong_test_names_only_the_step_own_vitest_case_under_its_describe(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    filename = tmp_path / "src" / ("config" + ".test" + ".ts")
+    filename.parent.mkdir(parents=True)
+    filename.write_text(_js_suite("reads the core mode"))
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: npm test\n"
+        'WRONG_TEST: the case "adds the monthly frequency" asserts the opposite of the criterion\n')
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "config adds the monthly frequency"], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
