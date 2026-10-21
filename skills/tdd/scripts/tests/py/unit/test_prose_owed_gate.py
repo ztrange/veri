@@ -117,3 +117,17 @@ def test_prose_owed_sh_given_a_list_written_as_a_table_without_leading_or_traili
     code, out, err = run_cli(prose_owed, [str(tmp_path)])
 
     assert (code, out.split()) == (1, ["skills/demo/SKILL.md"]), (code, out, err)
+
+
+def test_prose_owed_sh_reads_a_table_indented_by_three_spaces_as_the_same_list_1931(tmp_path, run_cli):
+    import importlib
+
+    prose_owed = importlib.import_module("veri.prose_owed")
+    (tmp_path / "skills" / "demo").mkdir(parents=True)
+    (tmp_path / "skills" / "demo" / "SKILL.md").write_text("The widget is blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## skills/demo/SKILL.md\n\n   | ID | Requirement | Why |\n   |---|---|---|\n   | A1 | The widget is blue. | because |\n")
+
+    code, out, err = run_cli(prose_owed, [str(tmp_path)])
+
+    assert (code, out.split()) == (1, ["skills/demo/SKILL.md"]), (code, out, err)
