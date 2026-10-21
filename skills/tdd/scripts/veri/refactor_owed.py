@@ -17,6 +17,8 @@ OUT_OF_SCOPE_PREFIX = "out-of-scope | "
 TEST_ONLY_MARK = "- " + TEST_ONLY_PREFIX
 OUT_OF_SCOPE_MARK = "- " + OUT_OF_SCOPE_PREFIX
 APPLIED_MARK = "applied | "
+NOT_DONE_MARK = "not-done | "
+NOT_DONE_REASONS = ("budget-spent", "no-predicate", "transform-rejected", "uncovered")
 TEST_FILE = re.compile(r"(^|/)tests/|\.test\.")
 
 
@@ -71,6 +73,12 @@ def applied(file, transform, sha):
     return write(file, f"{APPLIED_MARK}{sha} | {transform}\n")
 
 
+def not_done(file, candidate, reason):
+    if reason not in NOT_DONE_REASONS:
+        return refuse()
+    return write(file, f"{NOT_DONE_MARK}{reason} | {candidate}\n")
+
+
 def emit(text):
     sys.stdout.buffer.write(text.encode(errors="surrogateescape"))
 
@@ -102,7 +110,10 @@ def applied_records(lines):
 def render(file):
     lines = owed_lines(file)
     kept, test_only, done = [], [], applied_records(lines)
+    skipped = [l[len(NOT_DONE_MARK):].partition(" | ") for l in lines if l.startswith(NOT_DONE_MARK)]
     for l in lines:
+        if l.startswith(NOT_DONE_MARK):
+            continue
         if l.startswith((APPLIED_MARK, OUT_OF_SCOPE_MARK)) or (l.startswith("- ") and l[2:] in done):
             continue
         if l.startswith(TEST_ONLY_MARK):
@@ -112,7 +123,7 @@ def render(file):
     out_of_scope = out_of_scope_transforms(file)
     kept = [l for l, after in zip(kept, kept[1:] + ["### "])
             if not (l.startswith("### ") and after.startswith("### "))]
-    sections = test_only or out_of_scope or done
+    sections = test_only or out_of_scope or done or skipped
     if not (kept or sections or os.path.isdir(file)):
         return 0
     lead = "" if not kept and sections else "\n"
@@ -123,6 +134,8 @@ def render(file):
                 + bullets(test_only))
     if out_of_scope:
         out += "\n### Out-of-scope\n\n" + bullets(out_of_scope)
+    if skipped:
+        out += "\n### Not done\n\n" + bullets(f"{t} — {r}" for r, _, t in skipped)
     if done:
         out += "\n### Applied\n\n" + bullets(f"{t} — {sha}" for t, sha in done.items())
     emit(out)
@@ -157,15 +170,17 @@ def list_out_of_scope(file):
 
 
 def main(argv):
-    verb, file, *args = (list(argv) + ["", "", "", ""])[:4]
+    verb, file, *args = (list(argv) + ["", "", "", "", ""])[:5]
     if not verb or not file:
         return refuse()
     if verb == "append":
-        step, bounds = args
+        step, bounds = args[:2]
         return append(file, step, bounds)
     if verb == "applied":
-        transform, sha = args
+        transform, sha = args[:2]
         return applied(file, transform, sha)
+    if verb == "not-done":
+        return not_done(file, *args[:2])
     if verb in ("render", "list"):
         if not os.path.exists(file) or os.path.getsize(file) == 0:
             return 3

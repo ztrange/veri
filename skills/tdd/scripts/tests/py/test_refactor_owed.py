@@ -442,6 +442,33 @@ def test_render_prints_an_out_of_scope_candidate_under_its_own_heading_not_under
             sum(transform in l for l in lines)) == (0, [], [f"- {transform}"], 1)
 
 
+@pytest.mark.parametrize("reason", ["budget-spent", "no-predicate", "transform-rejected", "uncovered"])
+def test_render_lists_a_not_done_candidate_with_its_reason_under_not_done_only_and_list_omits_it_1963(
+        capsys, tmp_path, refactor_owed, reason):
+    owed = tmp_path / "owed.md"
+    candidate = "inline the one-use wrapper in lib"
+    assert refactor_owed.main(["not-done", str(owed), candidate, reason]) == 0
+    capsys.readouterr()
+
+    code = refactor_owed.main(["render", str(owed)])
+    lines = capsys.readouterr().out.splitlines()
+    heads = [i for i, l in enumerate(lines) if l == "### Not done"]
+    after = lines[heads[0] + 1:] if heads else []
+    section = after[:next((i for i, l in enumerate(after) if l.startswith("### ")), len(after))]
+    listed = refactor_owed.main(["list", str(owed)])
+    assert (code, len(heads), [l for l in section if candidate in l and reason in l],
+            sum(candidate in l for l in lines), listed, capsys.readouterr().out) == (
+        0, 1, [l for l in section if candidate in l and reason in l], 1, 3, "")
+    assert [l for l in section if candidate in l and reason in l]
+
+
+def test_not_done_exits_2_and_writes_nothing_for_a_reason_outside_the_four_1963(
+        capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    code = refactor_owed.main(["not-done", str(owed), "inline the one-use wrapper in lib", "too-hard"])
+    assert (code, owed.exists()) == (2, False)
+
+
 def test_list_omits_a_candidate_recorded_as_applied_and_still_prints_the_ones_not_applied_1023(
         monkeypatch, capsys, tmp_path, refactor_owed):
     owed = tmp_path / "owed.md"
