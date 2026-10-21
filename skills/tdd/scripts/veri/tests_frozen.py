@@ -34,6 +34,13 @@ def _in_repository():
                           stderr=subprocess.DEVNULL).returncode == 0
 
 
+def _refused_outside_repository():
+    if _in_repository():
+        return False
+    _write(sys.stderr, "tests-frozen.sh: not inside a git repository")
+    return True
+
+
 def _differing_tests():
     names = []
     for command in (["git", "diff", "--name-only", "-z", "HEAD"],
@@ -88,12 +95,10 @@ def main(argv):
         record = argv[1]
     if mode == "record":
         files = argv[2:]
-        in_step_repository = by_step and _in_repository()
-        if by_step and not in_step_repository:
-            _write(sys.stderr, "tests-frozen.sh: not inside a git repository")
+        if by_step and _refused_outside_repository():
             return 2
         deleted = []
-        if in_step_repository:
+        if by_step:
             for name in _differing_tests():
                 if name in files or name in deleted:
                     continue
@@ -104,7 +109,7 @@ def main(argv):
         try:
             lines = ["%s  %s\n" % (_digest(name), name) for name in files]
             lines += ["deleted  %s\n" % name for name in deleted]
-            if in_step_repository:
+            if by_step:
                 lines += ["case: %s\n" % case for name in files for case in _added_cases(name)]
             with open(record, "w") as handle:
                 handle.writelines(lines)
@@ -113,8 +118,7 @@ def main(argv):
             return 2
         return 0
     if mode == "check":
-        if by_step and not _in_repository():
-            _write(sys.stderr, "tests-frozen.sh: not inside a git repository")
+        if by_step and _refused_outside_repository():
             return 2
         try:
             with open(record) as handle:
