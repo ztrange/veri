@@ -94,3 +94,20 @@ def test_five_modules_resolve_the_symlinked_scripts_directory_to_its_target(tmp_
             inside[module] = loaded.inside_own_scripts()
     assert inside == {"ensure_run_state_ignored": True, "issue_worktree": True,
                       "leaf_timeout": True, "preserve_attempt": True, "stop_run": True}
+
+
+def test_launch_floor_and_suite_reported_derive_their_paths_under_the_symlinked_scripts_directory(tmp_path):
+    farm = tmp_path.resolve() / "farm"
+    (farm / "scripts" / "veri").mkdir(parents=True)
+    (farm / "scripts" / "lib").mkdir()
+    (farm / "scripts" / "prompts").mkdir()
+    (farm / "scripts" / "lib" / "venv-python.sh").write_text("VENV_FLOOR=9.9\n")
+    (farm / "scripts" / "prompts" / "probe.md").write_text("REPORT-FORMAT probe | keys PROBE: | suite exempt: a probe\n")
+    loaded = {}
+    for module in ("launch_floor", "suite_reported"):
+        os.symlink(SKILL / "scripts" / "veri" / f"{module}.py", farm / "scripts" / "veri" / f"{module}.py")
+        spec = importlib.util.spec_from_file_location(f"symlinked_{module}", farm / "scripts" / "veri" / f"{module}.py")
+        loaded[module] = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(loaded[module])
+    assert (loaded["launch_floor"].python_floor(), loaded["suite_reported"]._exempt_keys("probe")) == (
+        "9.9", [["PROBE:"]])
