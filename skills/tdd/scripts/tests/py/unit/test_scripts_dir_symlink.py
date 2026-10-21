@@ -74,3 +74,23 @@ def test_run_conductor_and_solvable_issues_keep_the_symlinked_scripts_directory_
     issues = loaded["solvable_issues"]
     monkeypatch.setattr(issues.subprocess, "run", lambda *args, **kwargs: Listing())
     assert (based, issues.running_numbers()) == ([str(farm.parent)], {7})
+
+
+def test_five_modules_resolve_the_symlinked_scripts_directory_to_its_target(tmp_path, monkeypatch):
+    link = tmp_path / "skill-link"
+    os.symlink(SKILL, link)
+    real_scripts = str(SKILL / "scripts")
+    monkeypatch.chdir(real_scripts)
+    inside = {}
+    for module in ("ensure_run_state_ignored", "issue_worktree", "leaf_timeout",
+                   "preserve_attempt", "stop_run"):
+        path = link / "scripts" / "veri" / f"{module}.py"
+        spec = importlib.util.spec_from_file_location(f"symlinked_{module}", path)
+        loaded = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(loaded)
+        if module == "ensure_run_state_ignored":
+            inside[module] = loaded.inside_own_scripts(real_scripts)
+        else:
+            inside[module] = loaded.inside_own_scripts()
+    assert inside == {"ensure_run_state_ignored": True, "issue_worktree": True,
+                      "leaf_timeout": True, "preserve_attempt": True, "stop_run": True}
