@@ -2815,144 +2815,112 @@ SESSION_VARS = ("CLAUDECODE", "CLAUDE_CODE_SESSION_ID", "CLAUDE_CODE_HOST_SESSIO
                 "CLAUDE_CODE_CHILD_SESSION", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_AUTO_BACKGROUND_TASKS")
 
 
-@pytest.mark.process("run-leaf.sh run for real as the supervised command, starting a stub claude")
+def leaf_model_chain(monkeypatch, tmp_path, supervise, run_cli, name, extra=(), env=None, cwd=None):
+    """supervise decides the model and records the exit with the leaf's start spied; run_leaf then builds claude's argv from that environment, claude's start faked."""
+    import io
+    import subprocess
+    run_leaf = importlib.import_module("veri.run_leaf")
+    started = []
+
+    def attempt_once(_started, _name, cmd, log, rcfile, leaf_env, preexec, watch):
+        started.append((cmd, leaf_env))
+        return "success", "", "0", 0
+
+    clean_env(monkeypatch)
+    fake_git_only(monkeypatch, tmp_path)
+    monkeypatch.setattr(supervise, "attempt_once", attempt_once)
+    work = cwd or tmp_path / name
+    work.mkdir(exist_ok=True)
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text("pick the model")
+    code, _, _ = run_cli(supervise, [name, "run-leaf.sh", str(prompt), *extra], cwd=work, env=dict(env or {}))
+    exit_file = (work / ".tdd" / f"{name}.exit").read_text()
+    leaf_env = started[0][1]
+    launched = []
+
+    class Claude:
+        returncode = 0
+
+        def __init__(self, command, env=None, **_):
+            launched.append((command, env))
+            reader, writer = os.pipe()
+            os.write(writer, b'{"type":"result","subtype":"success","is_error":false,"result":"ok"}\n')
+            os.close(writer)
+            self.stdout = os.fdopen(reader, "rb", buffering=0)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            self.stdout.close()
+
+    monkeypatch.setattr(subprocess, "Popen", Claude)
+    leaf_vars = {k: v for k, v in leaf_env.items() if k == "VERI_LEAF_MODEL" or k in SESSION_VARS or k == "CLAUDE_BIN"}
+    leaf_code, _, _ = run_cli(run_leaf, [*started[0][0][1:]], cwd=work, env={"CLAUDE_BIN": "claude", **leaf_vars})
+    command, claude_env = launched[0]
+    flags = [command[i + 1] for i, a in enumerate(command) if a == "--model"]
+    return code, exit_file, leaf_code, flags, command, claude_env
+
+
 def test_cli_launches_a_supervised_run_leaf_with_model_in_claudes_argv_only_when_the_run_chose_one_and_without_the_callers_session_variables(
         monkeypatch, tmp_path, supervise, run_cli):
-    import signal
-    monkeypatch.setattr(signal, "signal", lambda *_: None)
-    clean_env(monkeypatch)
-    stub = tmp_path / "claude-stub"
-    stub.write_text('#!/bin/sh\nprintf \'%s\\n\' "$@" > "$OUT.argv"\nenv > "$OUT.env"\n'
-                    "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"ok\"}'\n")
-    stub.chmod(0o755)
-    prompt = tmp_path / "prompt.txt"
-    prompt.write_text("pin the argv")
-
-    def launched(arm, **env):
-        clean_env(monkeypatch)
-        work = prepare_real_leaf(monkeypatch, tmp_path, arm)
-        out = tmp_path / f"{arm}-claude"
-        env = {**{v: "from-the-conductor" for v in SESSION_VARS},
-               "CLAUDE_BIN": str(stub), "OUT": str(out), **REAL_LEAF_ENV, **env}
-        code, _, _ = run_cli(supervise, ["develop-red", str(SCRIPTS / "run-leaf.sh"), str(prompt)], cwd=work, env=env)
-        argv = out.with_name(out.name + ".argv")
-        leaked = [line.split("=")[0] for line in out.with_name(out.name + ".env").read_text().splitlines()
-                  if line.split("=")[0] in SESSION_VARS] if argv.exists() else ["<claude never started>"]
-        return code, argv.read_text().splitlines() if argv.exists() else None, leaked
-
-    today = ["-p", "pin the argv", "--output-format", "stream-json", "--verbose"]
-    arms = [launched("set", VERI_MODEL="sonnet"), launched("unset")]
-    assert [(code, argv[:len(today)], argv[-2:], leaked) for code, argv, leaked in arms] == [
-        (0, today, ["--model", "sonnet"], []),
-        (0, today, ["--model", "sonnet"], []),
+    session = {v: "from-the-conductor" for v in SESSION_VARS}
+    code, exit_file, leaf_code, flags, command, claude_env = leaf_model_chain(
+        monkeypatch, tmp_path, supervise, run_cli, "develop-red", env={**session, "VERI_MODEL": "sonnet"}, cwd=tmp_path / "set")
+    today = ["-p", "pick the model", "--output-format", "stream-json", "--verbose"]
+    unset = leaf_model_chain(monkeypatch, tmp_path, supervise, run_cli, "develop-red", env=session, cwd=tmp_path / "unset")
+    assert [(code, exit_file, leaf_code, command[1:len(today) + 1], flags,
+             [v for v in SESSION_VARS if v in claude_env]) for code, exit_file, leaf_code, flags, command, claude_env in
+            [(code, exit_file, leaf_code, flags, command, claude_env), unset]] == [
+        (0, "0\n", 0, today, ["sonnet"], []),
+        (0, "0\n", 0, today, ["sonnet"], []),
     ]
 
 
-@pytest.mark.process("run-leaf.sh run for real under a revise leaf, starting a stub claude")
 def test_cli_launches_a_revise_leaf_on_veri_model_revise_recording_it_on_the_launch_and_passing_it_as_claudes_model(
         monkeypatch, tmp_path, supervise, run_cli):
     import json
-    import signal
-    monkeypatch.setattr(signal, "signal", lambda *_: None)
-    clean_env(monkeypatch)
-    stub = tmp_path / "claude-stub"
-    stub.write_text('#!/bin/sh\nprintf \'%s\\n\' "$@" > "$OUT"\n'
-                    "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"ok\"}'\n")
-    stub.chmod(0o755)
-    prompt = tmp_path / "prompt.txt"
-    prompt.write_text("redo the rejected work")
     work = tmp_path / "revise"
-    work.mkdir()
-    out = tmp_path / "revise-claude.argv"
-    env = {"CLAUDE_BIN": str(stub), "OUT": str(out), **REAL_LEAF_ENV,
-           "VERI_MODEL_DEVELOPER": "sonnet", "VERI_MODEL_REVISE": "opus"}
-    code, _, _ = run_cli(supervise, ["revise-green-2", str(SCRIPTS / "run-leaf.sh"), str(prompt)], cwd=work, env=env)
+    code, _, _, flags, _, _ = leaf_model_chain(
+        monkeypatch, tmp_path, supervise, run_cli, "revise-green-2",
+        env={"VERI_MODEL_DEVELOPER": "sonnet", "VERI_MODEL_REVISE": "opus"}, cwd=work)
     launches = [json.loads(line) for line in (work / ".tdd" / "events.jsonl").read_text().splitlines()]
-    argv = out.read_text().splitlines() if out.exists() else []
-    model_flag = argv[argv.index("--model") + 1] if "--model" in argv else None
-    assert (code, [e.get("model") for e in launches if e.get("event") == "launch"], model_flag) == (0, ["opus"], "opus")
+    assert (code, [e.get("model") for e in launches if e.get("event") == "launch"], flags) == (0, ["opus"], ["opus"])
 
 
-@pytest.mark.process("run-leaf.sh run for real under four leaf names, starting a stub claude")
 def test_cli_launches_develop_red_and_verify_green_on_sonnet_and_revise_green_2_and_develop_exhausted_on_opus_when_no_model_variable_is_set(
         monkeypatch, tmp_path, supervise, run_cli):
-    import signal
-    monkeypatch.setattr(signal, "signal", lambda *_: None)
-    clean_env(monkeypatch)
-    stub = tmp_path / "claude-stub"
-    stub.write_text('#!/bin/sh\nprintf \'%s\\n\' "$@" > "$OUT"\n'
-                    "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"ok\"}'\n")
-    stub.chmod(0o755)
-    prompt = tmp_path / "prompt.txt"
-    prompt.write_text("pick the model")
-
-    def model_flag(name):
-        work = tmp_path / name
-        work.mkdir()
-        out = tmp_path / f"{name}-claude.argv"
-        env = {"CLAUDE_BIN": str(stub), "OUT": str(out), **REAL_LEAF_ENV}
-        code, _, _ = run_cli(supervise, [name, str(SCRIPTS / "run-leaf.sh"), str(prompt)], cwd=work, env=env)
-        argv = out.read_text().splitlines() if out.exists() else []
-        return code, argv[argv.index("--model") + 1] if "--model" in argv else None
-
     names = ["develop-red", "verify-green", "revise-green-2", "develop-exhausted"]
-    assert {n: model_flag(n) for n in names} == {
+    got = {}
+    for n in names:
+        code, _, _, flags, _, _ = leaf_model_chain(monkeypatch, tmp_path, supervise, run_cli, n)
+        got[n] = (code, flags[0] if flags else None)
+    assert got == {
         "develop-red": (0, "sonnet"), "verify-green": (0, "sonnet"),
         "revise-green-2": (0, "opus"), "develop-exhausted": (0, "opus")}
 
 
-@pytest.mark.process("run-leaf.sh run for real under four leaf names in one .tdd directory, starting a stub claude")
 def test_cli_launches_revise_green_1_on_opus_after_a_verify_green_reject_then_the_next_develop_red_and_develop_refactor_on_sonnet_in_the_same_tdd_directory_when_no_model_variable_is_set(
         monkeypatch, tmp_path, supervise, run_cli):
-    import signal
-    monkeypatch.setattr(signal, "signal", lambda *_: None)
-    clean_env(monkeypatch)
-    stub = tmp_path / "claude-stub"
-    stub.write_text('#!/bin/sh\nprintf \'%s\\n\' "$@" > "$OUT"\n'
-                    "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"ok\"}'\n")
-    stub.chmod(0o755)
-    prompt = tmp_path / "prompt.txt"
-    prompt.write_text("pick the model")
     work = tmp_path / "one-tdd-dir"
-    work.mkdir()
-
-    def model_flag(name):
-        out = tmp_path / f"{name}-claude.argv"
-        env = {"CLAUDE_BIN": str(stub), "OUT": str(out), **REAL_LEAF_ENV}
-        code, _, _ = run_cli(supervise, [name, str(SCRIPTS / "run-leaf.sh"), str(prompt)], cwd=work, env=env)
-        argv = out.read_text().splitlines() if out.exists() else []
-        return code, argv[argv.index("--model") + 1] if "--model" in argv else None
-
     names = ["verify-green", "revise-green-1", "develop-red", "develop-refactor"]
-    assert [(n, *model_flag(n)) for n in names] == [
+    got = []
+    for n in names:
+        code, _, _, flags, _, _ = leaf_model_chain(monkeypatch, tmp_path, supervise, run_cli, n, cwd=work)
+        got.append((n, code, flags[0] if flags else None))
+    assert got == [
         ("verify-green", 0, "sonnet"), ("revise-green-1", 0, "opus"),
         ("develop-red", 0, "sonnet"), ("develop-refactor", 0, "sonnet")]
 
 
-@pytest.mark.process("run-leaf.sh run for real under a first-try verifier and a redo leaf whose own arguments carry --model, starting a stub claude")
 def test_cli_launches_a_leaf_whose_own_arguments_carry_model_with_exactly_that_one_model_and_no_default_for_a_verifier_and_a_redo_leaf(
         monkeypatch, tmp_path, supervise, run_cli):
-    import signal
-    monkeypatch.setattr(signal, "signal", lambda *_: None)
-    clean_env(monkeypatch)
-    stub = tmp_path / "claude-stub"
-    stub.write_text('#!/bin/sh\nprintf \'%s\\n\' "$@" > "$OUT"\n'
-                    "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"ok\"}'\n")
-    stub.chmod(0o755)
-    prompt = tmp_path / "prompt.txt"
-    prompt.write_text("pick the model")
-
-    def model_flags(name):
-        work = tmp_path / name
-        work.mkdir()
-        out = tmp_path / f"{name}-claude.argv"
-        env = {"CLAUDE_BIN": str(stub), "OUT": str(out), **REAL_LEAF_ENV}
-        code, _, _ = run_cli(supervise, [name, str(SCRIPTS / "run-leaf.sh"), str(prompt), "--model", "x"], cwd=work, env=env)
-        argv = out.read_text().splitlines() if out.exists() else []
-        return code, [argv[i + 1] for i, a in enumerate(argv) if a == "--model"]
-
     names = ["verify-green", "revise-green-2", "develop-exhausted"]
-    assert {n: model_flags(n) for n in names} == {n: (0, ["x"]) for n in names}
+    got = {}
+    for n in names:
+        code, _, _, flags, _, _ = leaf_model_chain(monkeypatch, tmp_path, supervise, run_cli, n, extra=["--model", "x"])
+        got[n] = (code, flags)
+    assert got == {n: (0, ["x"]) for n in names}
 
 
 @pytest.mark.process("git runs for real, and the launch event is appended in-process: a launch event's skill_commit is the skill clone's own HEAD, or unknown outside a clone")
