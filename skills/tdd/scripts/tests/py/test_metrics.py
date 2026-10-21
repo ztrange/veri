@@ -145,7 +145,7 @@ def test_the_planned_count_counts_every_line_break_splitlines_finds_in_a_step_te
 @pytest.mark.parametrize("log, raised", [
     (None, FileNotFoundError),
     ("not json\n", ValueError),
-    ("[1, 2]\n", AttributeError),
+    ("[1, 2]\n", ValueError),
 ])
 def test_a_missing_or_malformed_log_raises_before_anything_is_printed(tmp_path, monkeypatch, capsys, metrics, log, raised):
     (tmp_path / ".tdd").mkdir()
