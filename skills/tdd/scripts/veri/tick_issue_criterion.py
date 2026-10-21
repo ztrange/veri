@@ -3,6 +3,7 @@ import os
 import sys
 import tempfile
 
+import event
 import ledger
 from github import NoAnswer, gh_issue_edit, gh_issue_view
 
@@ -51,6 +52,7 @@ def main(argv):
     if not ticked:
         print("tick-issue-criterion: no unchecked criterion matched '%s' on #%s" % (matcher, n),
               file=sys.stderr)
+        event.mark(os.getcwd(),event.context(os.environ), "criterion-unticked", ["matcher=" + matcher])
         return 3
     text = "\n".join(lines[:start] + section.split("\n") + lines[end:])
     fd, tmp = tempfile.mkstemp()
