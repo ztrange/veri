@@ -88,7 +88,7 @@ def apply(issue, unit):
     moved = not os.path.exists(path) and os.path.exists(unit) and _move_table(unit, path, unit)
     rows = _issue_rows(issue, unit)
     if rows and not os.path.exists(unit):
-        _create(unit, path, name, rows)
+        _create(unit, path, unit, rows)
         return False
     if not rows and not os.path.exists(path):
         return moved
