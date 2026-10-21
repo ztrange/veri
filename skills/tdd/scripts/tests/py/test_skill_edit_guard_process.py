@@ -158,3 +158,18 @@ def test_skill_edit_guard_new_unit_with_its_new_requirements_exit_0(tmp_path):
     (repo / "skills/foo/REQUIREMENTS.md").write_text("| K1 | rule |\n")
 
     assert guard(repo, "skills/foo/FOO.md", base) == (0, "")
+
+
+@pytest.mark.process("skill-edit-guard.sh run against a real git repository")
+def test_skill_edit_guard_file_moved_onto_the_requirements_list_exit_1_and_prints_the_old_path(tmp_path):
+    repo = tmp_path / "guard"
+    (repo / "skills/foo").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "skills/foo/FOO.md").write_text("prose\n")
+    (repo / "skills/foo/OTHER.md").write_text("| K1 | rule |\n| K2 | more |\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: foo")
+    base = git(repo, "rev-parse", "HEAD")
+    git(repo, "mv", "skills/foo/OTHER.md", "skills/foo/REQUIREMENTS.md")
+
+    assert guard(repo, "skills/foo/FOO.md", base) == (1, "skills/foo/OTHER.md\n")

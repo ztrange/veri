@@ -31,7 +31,7 @@ def main(argv):
         print(f"skill-edit-guard.sh: {unit} exists neither at {base} nor in the working tree", file=sys.stderr)
         return 2
     allowed = {unit, list_path(unit)}
-    changed = _git_lines("diff", "--name-only", base) + _git_lines("ls-files", "--others", "--exclude-standard")
+    changed = _git_lines("diff", "--name-only", "--no-renames", base) + _git_lines("ls-files", "--others", "--exclude-standard")
     others = [path for path in changed if path and path not in allowed]
     for path in others:
         print(path)
