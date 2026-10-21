@@ -9,10 +9,10 @@ import tunables
 
 try:
     from .event_log import read_events
-    from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, ledger_steps, read_ledger,multi_tag_refusal, new_step, trailing_markers
+    from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, trailing_markers
 except ImportError:
     from event_log import read_events
-    from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, ledger_steps, read_ledger, multi_tag_refusal, new_step, trailing_markers
+    from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, trailing_markers
 
 SUITE_REPAIR = "suite-repair"
 REPAIR_MARKS = ("ci-repair", SUITE_REPAIR)
@@ -123,9 +123,9 @@ def is_anchor_step(line, anchor):
     return anchor in line and ledger_steps(line)
 
 
-def write_ledger(path, mode, text):
-    with open(path, mode) as f:
-        f.write(text.encode(errors=BYTES))
+def write_ledger(path, text, appended=""):
+    open(path, "ab").close()
+    replace_ledger(path, (text + appended).encode(errors=BYTES))
 
 
 def main(argv):
@@ -207,9 +207,9 @@ def main(argv):
         if not owed and lines is not terminated:
             owed = "\n"
         owed += "".join(f"- {text}\n" for text in texts)
-        write_ledger(path, "ab", owed)
+        write_ledger(path, read_ledger(path), owed)
         return 1
-    write_ledger(path, "wb", "".join(line + "\n" for line in out))
+    write_ledger(path, "".join(line + "\n" for line in out))
     return 0
 
 
