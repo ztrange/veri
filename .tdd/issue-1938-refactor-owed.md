@@ -1,0 +1,2 @@
+### For a conductor log holding two launches (each starting with a `{"type":"system","subtype":"init"}` record) where the last launch has no `result` record, `stop-reason.sh <n>` exits 2 with `no result record in <log>` and never prints the earlier launch's reason, pinned by a small in-process case ⟦criterion 1⟧
+- in `_usage_limit` (`stop_reason.py`), replace the `results` list with a single `result` variable, since only the last record is read. It is not duplication removal, so I did not apply it.
