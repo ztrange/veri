@@ -62,13 +62,13 @@ def _exists(case):
             with open(os.path.join(root, name), encoding="utf-8", errors="replace") as handle:
                 text = handle.read()
             if is_test_file(name) and case.startswith("test_") and py.search(text):
-                return True
+                return case
             found = js_file and _live_call(js, re.sub(r"/\*.*?\*/", "", text, flags=re.S))
             if found:
                 return found
             if name.endswith(".test.sh") and ('name="%s"' % case) in text:
-                return True
-    return False
+                return case
+    return None
 
 
 def _lines_with(report, prefix):
@@ -104,7 +104,7 @@ def route(report, own_id):
         if not _is_own(case, own_id):
             found = _exists(case)
             if found:
-                return case if found is True else found
+                return found
     return None
 
 
