@@ -4,3 +4,6 @@
 - extract the ellipsis-prefix and JS title-pattern construction in `_exists` into a helper (no duplication, so not applied here)
 ### A WRONG_TEST: name equal to the tail of the step's own test id, given as `<describe> <title>` or as `<describe> > <title>`, counts as the step's own case and answers revise ⟦criterion 5⟧
 - split `_exists` into per-language matchers (py def, JS/TS title regex, `.test.sh` name) — moves behaviour, not duplication removal
+### A WRONG_TEST: name that is the exact title of a sibling JS/TS case routes red to that sibling even when it is also one word of the step's own test id ⟦criterion 5⟧
+- split `_exists` in `wrong_test_route.py` into a JS title-pattern builder (ellipsis prefix, `.only`/`.skip`/`.each`) and the directory walk
+- `_exists` returns either `True` or a title string, so `route` has to unwrap it with `case if found is True else found`; returning the matched title in both cases would remove the unwrapping
