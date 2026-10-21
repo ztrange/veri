@@ -93,15 +93,6 @@ def owed_lines(file):
     return lines
 
 
-def out_of_scope_transforms(file):
-    if not os.path.isfile(file):
-        return []
-    lines = owed_lines(file)
-    done = applied_records(lines)
-    return [t for t in (l[len(OUT_OF_SCOPE_MARK):] for l in lines if l.startswith(OUT_OF_SCOPE_MARK))
-            if OUT_OF_SCOPE_PREFIX + t not in done and t not in done]
-
-
 def applied_records(lines):
     return {transform: sha for sha, _, transform in
             (l[len(APPLIED_MARK):].partition(" | ") for l in lines if l.startswith(APPLIED_MARK))}
@@ -119,17 +110,21 @@ def render(file):
     for l in lines:
         if l.startswith(NOT_DONE_MARK):
             continue
-        if l.startswith((APPLIED_MARK, OUT_OF_SCOPE_MARK)) or (
+        if l.startswith(APPLIED_MARK) or (
                 l.startswith("- ") and (l[2:] in done or l[2:] in skipped_transforms)):
+            continue
+        if l.startswith(OUT_OF_SCOPE_MARK):
+            text = l[len(OUT_OF_SCOPE_MARK):]
+            if text not in done and text not in skipped_transforms:
+                kept.append("- " + text)
             continue
         if l.startswith(TEST_ONLY_MARK):
             test_only.append(l[len(TEST_ONLY_MARK):])
         else:
             kept.append(l)
-    out_of_scope = out_of_scope_transforms(file)
     kept = [l for l, after in zip(kept, kept[1:] + ["### "])
             if not (l.startswith("### ") and after.startswith("### "))]
-    sections = test_only or out_of_scope or done or skipped
+    sections = test_only or done or skipped
     if not (kept or sections or os.path.isdir(file)):
         return 0
     lead = "" if not kept and sections else "\n"
@@ -138,8 +133,6 @@ def render(file):
         out += ("\n### Test-only\n\n"
                 "These change only files under tests/; the structural pass does not work them.\n\n"
                 + bullets(test_only))
-    if out_of_scope:
-        out += "\n### Out-of-scope\n\n" + bullets(out_of_scope)
     if skipped:
         out += "\n### Not done\n\n" + bullets(f"{t} — {r}" for r, _, t in skipped)
     if done:
@@ -169,14 +162,6 @@ def list_owed(file):
     return code
 
 
-def list_out_of_scope(file):
-    transforms = out_of_scope_transforms(file)
-    if not transforms:
-        return 3
-    emit(joined(transforms))
-    return 0
-
-
 def main(argv):
     verb, file, *args = (list(argv) + ["", "", "", "", ""])[:5]
     if not verb or not file:
@@ -196,8 +181,6 @@ def main(argv):
         return render(file)
     if verb == "list":
         return list_owed(file)
-    if verb == "out-of-scope":
-        return list_out_of_scope(file)
     return refuse()
 
 
