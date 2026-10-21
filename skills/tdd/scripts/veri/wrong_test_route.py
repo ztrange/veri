@@ -103,7 +103,7 @@ def route(report, own_id):
     for case in _named_cases(report):
         if not _is_own(case, own_id):
             found = _exists(case)
-            if found:
+            if found and not _is_own(found, own_id):
                 return found
     return None
 

@@ -1505,3 +1505,20 @@ def test_main_1957_prints_red_over_the_full_title_when_a_superseded_line_names_a
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red rejects an empty name\n")
+
+
+def test_main_1957_prints_revise_when_a_wrong_test_cut_name_ending_in_an_ellipsis_expands_to_the_step_own_case(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / "foo.test.ts").write_text(
+        "describe('foo', () => {\n"
+        "  it('accepts a name', () => {});\n"
+        "  it('rejects an empty name', () => {});\n"
+        "});\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text('SUITE: make test\nWRONG_TEST: "accepts a n…" contradicts the criterion\n')
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
