@@ -11,3 +11,4 @@
 | D7 | It applies the coordinator's changes to N or to the order at the next slot decision. | |
 | D8 | It stops and asks only for: red CI it cannot fix, a ⟦human-owed⟧ step, an unresolvable conflict, a decision a ledger step asks for. | |
 | D9 | It does not file, groom or reprioritise issues, and does not edit veri's scripts. | Those are the coordinator's job, and a veri fix is an issue for veri. |
+| D10 | Where it describes reporting to the coordinator, it says that with a coordinator attached each event P4 lets it speak about goes to the coordinator, not to the human, unless it stops and asks (D8). It says so as a pointer to P4, never a copy of P4's rule. | 2026-10-20: the mu dev session re-stated a pending decision to Mario about 15 times. A copied rule drifts from P4. |
