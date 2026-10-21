@@ -23,3 +23,4 @@ applied | ad7fc1532ca0f0db394d85958638c7ef91fb8cd5 | `_create` and the no-list b
 - `_move_table` and `_write_list` take a `name` argument, but every caller passes `unit`. `apply` also keeps a basename `name` only for the legacy `in (name, unit)` match. Dropping them is a rename or scope change rather than duplication removal.
 - test-only | none
 applied | 90760f226d7436e451b645ddeddec4db662421b4 | `_create(unit, path, name, rows)` is now always called with `name == unit`, so the `name` parameter could be dropped. It is not duplicated code, so I did not apply it under the duplication-only rule.
+applied | f915640fd8df20f535595ade47d4af87d0a047dd | `_create`, `_write_list` and `_move_table` take a `name` parameter that every caller passes as `unit`. Dropping it is a rename or narrowing, not duplication removal, so I didn't apply it.
