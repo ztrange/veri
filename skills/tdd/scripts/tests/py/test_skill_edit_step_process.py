@@ -643,3 +643,28 @@ def test_an_issue_rewording_one_row_of_a_unit_below_the_root_with_its_path_secti
     assert [ran.returncode, rows, "## SKILL.md" in text.splitlines(), git(repo, "status", "--porcelain")] \
         == [3, ["| A1 | The widget is a deep blue. | shade |", "| A2 | The widget never hums. | quiet |"], False, ""], \
         (ran.stdout, ran.stderr[-700:], text)
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
+def test_a_new_unit_from_a_path_new_heading_gets_a_requirements_md_section_headed_by_its_repo_relative_path_1959(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "skills" / "new-skill").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "README.md").write_text("hello\n")
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### skills/new-skill/SKILL.md (new)\n\n" + ROWS)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: base")
+    claude = tmp_path / "claude"
+    claude.write_text(GRADER)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "skills/new-skill/SKILL.md"], cwd=repo, capture_output=True,
+                         text=True, env=env)
+
+    beside = repo / "skills" / "new-skill" / "REQUIREMENTS.md"
+    headings = [l for l in beside.read_text().splitlines() if l.startswith("## ")] if beside.exists() else []
+    assert headings == ["## skills/new-skill/SKILL.md"], (ran.returncode, ran.stdout, ran.stderr[-700:], headings)
