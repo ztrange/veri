@@ -2,3 +2,5 @@
 - out-of-scope | the `phase == "red" and carries_mark(step, "ci-repair")` check at build_develop_prompt.py:132 still matches the marker anywhere in the step. Moving it to `markers` is a behaviour change that no step in this cycle covers.
 ### build-develop-prompt.sh red, for a step that names the ci-repair marker mid-sentence but does not end in it, renders no ci-repair red paragraph ⟦criterion 1⟧
 - out-of-scope | `carries_mark(step, "fixture-repair")` at build_develop_prompt.py:140 still matches the marker anywhere in the step. That is the same class of disagreement with the freeze gate, but the issue names only the suite-repair and ci-repair markers.
+### build-verify-prompt.sh green, for a step that names the suite-repair marker mid-sentence but does not end in it, renders no suite-repair verify-green paragraph ⟦criterion 1⟧
+- in `build_verify_prompt.py`, the nested conditional in the `GREEN_PARAGRAPHS` loop picks between `trailing_markers(step_arg)` and `step_arg` per mark. Hoisting the trailing markers out of the loop, as `build_develop_prompt.py` does with `markers`, would tidy it. It doesn't remove duplication, so I didn't apply it.
