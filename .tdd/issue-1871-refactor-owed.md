@@ -1,0 +1,2 @@
+### SKILL.md's *Scope & plan* tells the planner to emit one skill-edit step naming the unit for each criterion that changes a unit with a requirements list, or for each unit an issue's `## Requirements` section names, and never to plan Red, Green or Refactor steps that edit such a unit; pinned by a prose case on SKILL.md ⟦criterion 1⟧
+- test-only | extract the repeated `next((s for s in re.split(...)))` sentence lookup in the new case into a helper
