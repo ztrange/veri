@@ -67,14 +67,14 @@ def main(argv):
             return 2
         env = dict(os.environ)
         binary = env.get("CLAUDE_BIN")
-        model = env.get("VERI_LEAF_MODEL", "")
+        model = tunables.read("VERI_LEAF_MODEL")
         strip_session_env(env)
         env["GIT_CONFIG_GLOBAL"] = git_path
         env["PYTHONDONTWRITEBYTECODE"] = "1"
         env["FORCE_PROMPT_CACHING_5M"] = "1"
         env["PATH"] = GUARD + os.pathsep + env.get("PATH", "")
-        if env.get("VERI_SHIM_SET_COERCE") == "1":
-            del env["VERI_SHIM_SET_COERCE"]
+        if tunables.read("VERI_SHIM_SET_COERCE") == "1":
+            env.pop("VERI_SHIM_SET_COERCE", None)
             env.pop("PYTHONCOERCECLOCALE", None)
         command = leaf_argv(binary, model, prompt, argv[1:])
         try:
