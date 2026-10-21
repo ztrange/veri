@@ -94,6 +94,12 @@ def test_main_lists_under_parked_each_bailed_stopped_or_stale_run_with_an_open_p
             return 0, SHA + "\n", ""
         if line.startswith("git tag"):
             return 0, "v0.9\n", ""
+        if line.startswith("gh api") and "/pulls" in line:
+            if "page=2" in line:
+                return 0, "[]\n", ""
+            rest = [{"number": n, "draft": False, "body": "", "head": {"ref": branch}}
+                    for branch, n in open_pr.items() if "head=" not in line or branch in line]
+            return 0, json.dumps(rest) + "\n", ""
         if line.startswith("gh"):
             found = [{"number": n} for branch, n in open_pr.items() if branch in line]
             return 0, json.dumps(found), ""
@@ -130,6 +136,12 @@ def test_main_lists_under_ready_to_merge_each_open_non_draft_pr_that_closes_an_i
             return 0, SHA + "\n", ""
         if line.startswith("git tag"):
             return 0, "v0.9\n", ""
+        if line.startswith("gh api") and "/pulls" in line:
+            if "page=2" in line:
+                return 0, "[]\n", ""
+            rest = [{"number": pr["number"], "draft": pr["isDraft"], "body": pr["body"], "head": {"ref": "tdd/x-%d" % pr["number"]}}
+                    for pr in prs]
+            return 0, json.dumps(rest) + "\n", ""
         if line.startswith("gh"):
             return 0, json.dumps(prs), ""
         return 0, "", ""
@@ -163,6 +175,12 @@ def test_main_writes_no_file_and_makes_only_read_calls_to_github(tmp_path, monke
             return 0, SHA + "\n", ""
         if line.startswith("git tag"):
             return 0, "v0.9\n", ""
+        if line.startswith("gh api") and "/pulls" in line:
+            if "page=2" in line:
+                return 0, "[]\n", ""
+            rest = [{"number": pr["number"], "draft": pr["isDraft"], "body": pr["body"], "head": {"ref": "tdd/x-%d" % pr["number"]}}
+                    for pr in prs]
+            return 0, json.dumps(rest) + "\n", ""
         if line.startswith("gh"):
             return 0, json.dumps(prs), ""
         return 0, "", ""
