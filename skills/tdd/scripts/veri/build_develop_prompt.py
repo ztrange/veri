@@ -66,6 +66,10 @@ def _read(path):
         return f.read().replace(b"\0", b"").rstrip(b"\n")
 
 
+def _bullets(cases):
+    return "".join(f"\n- {case}" for case in cases)
+
+
 def _refuse(message=None):
     if message is not None:
         _write(sys.stderr, message)
@@ -171,13 +175,13 @@ def main(argv):
         if name in ARGUMENT_PLACEHOLDERS:
             values[ARGUMENT_PLACEHOLDERS[name]] = os.fsencode(value)
     if phase == "red-supersede":
-        values["CASES"] = os.fsencode("".join(f"\n- {case}" for case in args[4:]))
+        values["CASES"] = os.fsencode(_bullets(args[4:]))
     if phase == "red-repair":
         reason = re.search(rb"^WRONG_TEST:[ \t]*(.*)$", _read(args[4]), re.MULTILINE)
         values["WRONG_TEST_REASON"] = reason.group(1) if reason else b""
         if args[5:]:
             values["SUPERSEDED_CASES"] = os.fsencode(
-                "\n\nThe step also supersedes these older cases:" + "".join(f"\n- {case}" for case in args[5:]))
+                "\n\nThe step also supersedes these older cases:" + _bullets(args[5:]))
     if phase == "refactor":
         values["REFACTOR_BUDGET"] = os.fsencode(tunables.read("VERI_REFACTOR_BUDGET") or "5")
     values["REVISE_PHASE"] = os.fsencode(revised_phase)
