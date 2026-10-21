@@ -1,6 +1,6 @@
 # Plan for #1871 — PRD 011 S4b: a /tdd run plans and runs ⟦skill-edit⟧ steps through SKILL-EDIT.md, and regrades signed units on the rebased tip
 
-- [ ] `affected-suites` places an edit to `skills/tdd/SKILL-EDIT.md` on the suites that read it, the way it places `BAIL.md` and `PIN.md`, instead of refusing it as unplaced; pinned by a case in the affected-suites suite ⟦criterion 4⟧
+- [x] `affected-suites` places an edit to `skills/tdd/SKILL-EDIT.md` on the suites that read it, the way it places `BAIL.md` and `PIN.md`, instead of refusing it as unplaced; pinned by a case in the affected-suites suite ⟦criterion 4⟧ ⟂ refactor pending
 - [ ] SKILL.md's *Scope & plan* tells the planner to emit one skill-edit step naming the unit for each criterion that changes a unit with a requirements list, or for each unit an issue's `## Requirements` section names, and never to plan Red, Green or Refactor steps that edit such a unit; pinned by a prose case on SKILL.md ⟦criterion 1⟧
 - [ ] A new `skills/tdd/SKILL-EDIT.md` holds the skill-edit step's procedure: it runs `skill-edit-step.sh` on the issue body and the step's unit, ticks the step on exit 0 or 3, bails as an exhausted revise on exit 1, and handles exit 2 as no answer; pinned by a prose case on SKILL-EDIT.md ⟦criterion 2⟧
 - [ ] `SKILL-EDIT.md` says a resumed run redoes an unfinished skill-edit step from its start, with its budget reset (K9); pinned by a prose case on SKILL-EDIT.md ⟦criterion 2⟧
