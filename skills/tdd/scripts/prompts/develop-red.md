@@ -46,7 +46,7 @@ written inside. {{RED_CASES}}{{CI_REPAIR}}
    Make that run through the wrapper {{INCLUDE:_timed-test-run.md}}
    and names the tier it belongs to:
 
-       {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' make test TESTS="<those paths>"
+       {{INCLUDE:_timed-test-run-affected.md}}
 
    {{INCLUDE:_exit-status-back.md}} so a red run stays red —
    and red is the answer this phase is after.

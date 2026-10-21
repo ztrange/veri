@@ -42,7 +42,7 @@ def build(problems, builder, *argv):
 
 
 def runs_affected(problems, label, prompt):
-    named = "\n".join(lines_matching(r"affected-suites\.sh", plain(prompt)))
+    named = "\n".join(lines_matching(r"affected-suites\.sh|timed-test-run\.sh affected", plain(prompt)))
     if not has_line(r"\brun", named):
         problems.append("%s's prompt never tells its leaf to run the suites affected-suites.sh prints" % label)
 

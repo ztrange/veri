@@ -74,7 +74,7 @@ your words rather than its own judgement:
    Make each of those runs through the wrapper `{{TIMED_TEST_RUN}}`, which records what the
    run cost and names the tier it belongs to:
 
-       {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' make test TESTS="<those paths>"
+       {{INCLUDE:_timed-test-run-affected.md}}
 
    {{INCLUDE:_exit-status-back.md}} so a suite a transform
    turned red still reads as red. When a transform reached the one file outside that list
