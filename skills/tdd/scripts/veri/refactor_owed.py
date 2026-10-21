@@ -18,6 +18,7 @@ TEST_ONLY_MARK = "- " + TEST_ONLY_PREFIX
 OUT_OF_SCOPE_MARK = "- " + OUT_OF_SCOPE_PREFIX
 APPLIED_MARK = "applied | "
 NOT_DONE_MARK = "not-done | "
+SUBJECT_SEP = "\t"
 NOT_DONE_REASONS = ("budget-spent", "no-predicate", "transform-rejected", "uncovered")
 TEST_FILE = re.compile(r"(^|/)tests/|\.test\.")
 
@@ -69,8 +70,8 @@ def append(file, step, bounds):
     return write(file, f"### {step}\n" + bullets(owed)) if owed else 0
 
 
-def applied(file, transform, sha):
-    return write(file, f"{APPLIED_MARK}{sha} | {transform}\n")
+def applied(file, transform, sha, subject=""):
+    return write(file, f"{APPLIED_MARK}{sha} | {transform}{SUBJECT_SEP + subject if subject else ''}\n")
 
 
 def not_done(file, candidate, reason):
@@ -94,8 +95,12 @@ def owed_lines(file):
 
 
 def applied_records(lines):
-    return {transform: sha for sha, _, transform in
-            (l[len(APPLIED_MARK):].partition(" | ") for l in lines if l.startswith(APPLIED_MARK))}
+    rows = (l[len(APPLIED_MARK):].partition(" | ") for l in lines if l.startswith(APPLIED_MARK))
+    records = {}
+    for sha, _, rest in rows:
+        transform, _, subject = rest.partition(SUBJECT_SEP)
+        records[transform] = f"{sha} {subject}" if subject else sha
+    return records
 
 
 def not_done_records(lines):
@@ -170,8 +175,7 @@ def main(argv):
         step, bounds = args[:2]
         return append(file, step, bounds)
     if verb == "applied":
-        transform, sha = args[:2]
-        return applied(file, transform, sha)
+        return applied(file, *args[:3])
     if verb == "not-done":
         return not_done(file, *args[:2])
     if verb in ("render", "list"):
