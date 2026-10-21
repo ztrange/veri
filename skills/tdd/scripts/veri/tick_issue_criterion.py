@@ -12,21 +12,7 @@ HEADING = "## Acceptance criteria"
 USAGE = "usage: tick-issue-criterion.sh <issue-number> <matcher>"
 
 
-def find_section_start(lines):
-    fence = ""
-    for i, line in enumerate(lines):
-        s = line.strip()
-        if fence:
-            if s.startswith(fence) and not s.strip(fence[0]):
-                fence = ""
-        elif s[:3] in ("```", "~~~"):
-            fence = s[0] * (len(s) - len(s.lstrip(s[0])))
-        elif s == HEADING:
-            return i + 1
-    return 0
-
-
-def find_section_end(lines, start):
+def _unfenced(lines, start=0):
     fence = ""
     for i in range(start, len(lines)):
         s = lines[i].strip()
@@ -35,7 +21,20 @@ def find_section_end(lines, start):
                 fence = ""
         elif s[:3] in ("```", "~~~"):
             fence = s[0] * (len(s) - len(s.lstrip(s[0])))
-        elif lines[i].startswith(("# ", "## ")):
+        else:
+            yield i, lines[i]
+
+
+def find_section_start(lines):
+    for i, line in _unfenced(lines):
+        if line.strip() == HEADING:
+            return i + 1
+    return 0
+
+
+def find_section_end(lines, start):
+    for i, line in _unfenced(lines, start):
+        if line.startswith(("# ", "## ")):
             return i
     return len(lines)
 
