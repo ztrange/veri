@@ -2,6 +2,7 @@
 import difflib
 import importlib
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -541,9 +542,9 @@ def git_in(tmp_path, *args):
                    capture_output=True, stdin=subprocess.DEVNULL)
 
 
-def committed_scratch(tmp_path, monkeypatch, suites=()):
+def committed_scratch(tmp_path, monkeypatch, scratch_tree, suites=()):
+    shutil.copytree(scratch_tree, tmp_path, dirs_exist_ok=True, copy_function=shutil.copyfile)
     mp = scratch_with(tmp_path, monkeypatch, suites=suites)
-    git_in(tmp_path, "init", "-q", "-b", "main")
     git_in(tmp_path, "add", "-A")
     git_in(tmp_path, "commit", "-qm", "init")
     return mp
@@ -630,8 +631,8 @@ def test_1983_one_scratch_tree_pins_a_proven_an_unproven_and_an_owed_row_and_exi
 
 
 @pytest.mark.process("git, a bash suite and pytest started against a scratch repository with a staged, an unstaged and an untracked change")
-def test_after_the_pairs_check_exits_0_or_1_the_working_tree_and_the_index_are_byte_identical_to_before_it_a_staged_change_an_unstaged_change_to_a_file_the_mutation_patches_and_an_untracked_file_included(tmp_path, monkeypatch, run_cli):
-    mp = committed_scratch(tmp_path, monkeypatch)
+def test_after_the_pairs_check_exits_0_or_1_the_working_tree_and_the_index_are_byte_identical_to_before_it_a_staged_change_an_unstaged_change_to_a_file_the_mutation_patches_and_an_untracked_file_included(tmp_path, monkeypatch, run_cli, scratch_tree):
+    mp = committed_scratch(tmp_path, monkeypatch, scratch_tree)
     dirty_tree(tmp_path)
     dirty_patch(tmp_path, "dirty")
     before = snapshot(tmp_path)
@@ -651,8 +652,8 @@ def test_1612_a_row_whose_old_suite_dies_before_its_count_line_run_unmutated_rea
 
 
 @pytest.mark.process("git, a bash suite and pytest started for a row whose mutation stops its pytest replacement collecting")
-def test_1612_an_exception_raised_while_a_rows_mutation_is_applied_a_pytest_replacement_the_mutation_stops_collecting_is_raised_after_the_mutation_is_reverted_so_the_tree_is_byte_identical_to_before_the_row(tmp_path, monkeypatch, run_cli):
-    mp = committed_scratch(tmp_path, monkeypatch)
+def test_1612_an_exception_raised_while_a_rows_mutation_is_applied_a_pytest_replacement_the_mutation_stops_collecting_is_raised_after_the_mutation_is_reverted_so_the_tree_is_byte_identical_to_before_the_row(tmp_path, monkeypatch, run_cli, scratch_tree):
+    mp = committed_scratch(tmp_path, monkeypatch, scratch_tree)
     breaks_collection_patch(tmp_path)
     before = snapshot(tmp_path)
 
@@ -662,8 +663,8 @@ def test_1612_an_exception_raised_while_a_rows_mutation_is_applied_a_pytest_repl
 
 
 @pytest.mark.process("git, a bash suite and pytest started for a row that raises with its mutation applied")
-def test_1612_a_row_that_raises_with_its_mutation_applied_leaves_every_file_of_the_tree_byte_identical_to_before_it_pytest_cache_included(tmp_path, monkeypatch, run_cli):
-    mp = committed_scratch(tmp_path, monkeypatch)
+def test_1612_a_row_that_raises_with_its_mutation_applied_leaves_every_file_of_the_tree_byte_identical_to_before_it_pytest_cache_included(tmp_path, monkeypatch, run_cli, scratch_tree):
+    mp = committed_scratch(tmp_path, monkeypatch, scratch_tree)
     breaks_collection_patch(tmp_path)
     before = snapshot(tmp_path)
 
@@ -673,8 +674,8 @@ def test_1612_a_row_that_raises_with_its_mutation_applied_leaves_every_file_of_t
 
 
 @pytest.mark.process("git, a bash suite and pytest started against a dirty scratch repository for rows that end in exit 2")
-def test_after_the_pairs_check_exits_2_a_mutation_that_does_not_apply_a_bash_suite_that_never_reaches_its_count_line_under_the_mutation_or_a_pytest_node_id_that_is_not_collected_while_the_mutation_is_in_place_the_working_tree_and_the_index_are_byte_identical_to_before_it_a_staged_change_an_unstaged_change_and_an_untracked_file_included(tmp_path, monkeypatch, run_cli):
-    mp = committed_scratch(tmp_path, monkeypatch)
+def test_after_the_pairs_check_exits_2_a_mutation_that_does_not_apply_a_bash_suite_that_never_reaches_its_count_line_under_the_mutation_or_a_pytest_node_id_that_is_not_collected_while_the_mutation_is_in_place_the_working_tree_and_the_index_are_byte_identical_to_before_it_a_staged_change_an_unstaged_change_and_an_untracked_file_included(tmp_path, monkeypatch, run_cli, scratch_tree):
+    mp = committed_scratch(tmp_path, monkeypatch, scratch_tree)
     dirty_tree(tmp_path)
     dirty_patch(tmp_path, "dirty")
     dirty_patch(tmp_path, "dirty-dies", extra="exit 9\n")
