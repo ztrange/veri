@@ -1,2 +1,4 @@
 ### With VERI_TIMEOUT unset and neither variable set by the caller, the claude that run-leaf.sh starts has BASH_DEFAULT_TIMEOUT_MS and BASH_MAX_TIMEOUT_MS both set to 900000, the supervisor's default 900 s hard cap in milliseconds (a small case in tests/py/unit/test_run_leaf.py faking only the claude process boundary) ⟦criterion 2⟧
 - test-only | the two new 1939 cases in test_run_leaf.py repeat the same workspace, prompt and fake-Popen setup; a shared helper could replace it
+### With VERI_TIMEOUT set to N seconds and neither variable set by the caller, the claude that run-leaf.sh starts has BASH_DEFAULT_TIMEOUT_MS and BASH_MAX_TIMEOUT_MS both set to N × 1000 (a small case in tests/py/unit/test_run_leaf.py faking only the claude process boundary) ⟦criterion 2⟧
+- test-only | the two timeout cases in `test_run_leaf.py` repeat the same `fake_popen` capture-and-assert scaffold; extract a shared helper that launches `run_leaf.main` and returns the captured env
