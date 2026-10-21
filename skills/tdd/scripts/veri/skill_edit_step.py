@@ -20,28 +20,28 @@ def _row_id(row):
     return requirements.split_cells(row)[1]
 
 
-def _issue_rows(issue, name):
-    rows = []
-    in_requirements = in_unit = False
+def _requirements_lines(issue):
+    heading = None
+    in_requirements = False
     for line in requirements.read_lines(issue):
         if line.startswith("## "):
-            in_requirements, in_unit = line[3:].strip() == "Requirements", False
-        elif line.startswith("### "):
-            in_unit = in_requirements and line[4:].strip() in (name, name + " (new)")
-        elif in_unit and line.startswith("|"):
-            rows.append(line)
+            in_requirements, heading = line[3:].strip() == "Requirements", None
+        elif in_requirements:
+            if line.startswith("### "):
+                heading = line[4:].strip()
+            yield heading, line
+
+
+def _issue_rows(issue, name):
+    rows = [line for heading, line in _requirements_lines(issue)
+            if heading in (name, name + " (new)") and line.startswith("|")]
     return rows[2:]
 
 
 def _unknown_heading(issue):
-    in_requirements = False
-    for line in requirements.read_lines(issue):
-        if line.startswith("## "):
-            in_requirements = line[3:].strip() == "Requirements"
-        elif in_requirements and line.startswith("### "):
-            heading = line[4:].strip()
-            if not heading.endswith(" (new)") and not os.path.exists(heading):
-                return heading
+    for heading, line in _requirements_lines(issue):
+        if line.startswith("### ") and not heading.endswith(" (new)") and not os.path.exists(heading):
+            return heading
     return None
 
 
