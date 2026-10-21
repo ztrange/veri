@@ -51,6 +51,16 @@ def test_an_interpreter_that_can_import_pytest_and_pytest_timeout_but_not_xdist_
     )
 
 
+def test_a_worker_count_that_is_not_a_whole_number_of_at_least_1_exits_2_naming_the_variable_and_the_value_before_pytest_runs(pytest_leg, run_cli, monkeypatch):
+    calls = []
+    monkeypatch.setattr(pytest, "main", lambda args: calls.append(list(args)) or pytest.ExitCode.OK)
+    for value in ("0", "-2", "two", "1.5"):
+        code, out, err = run_cli(pytest_leg, [], env={"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": value})
+        assert (code, out) == (2, ""), value
+        assert "VERI_PYTEST_WORKERS" in err and value in err, value
+    assert calls == []
+
+
 def test_past_its_checks_the_launcher_runs_pytest_on_its_arguments_and_exits_1_for_a_status_that_is_not_ok(pytest_leg, run_cli, monkeypatch):
     calls = []
 
