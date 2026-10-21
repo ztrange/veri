@@ -29,6 +29,8 @@ def rest_open_prs(*extra):
 
 
 def open_prs(fields, *extra):
+    if tunables.read("VERI_GH_JSON"):
+        return json.loads(github.gh_json("prs.json", "repos/{owner}/{repo}/pulls?state=open&per_page=100"))
     if tunables.read("VERI_GH_DRIVER") == "rest":
         return rest_open_prs(*extra)
     answer = subprocess.run(["gh", "pr", "list", *extra, "--state", "open", "--json", fields],
