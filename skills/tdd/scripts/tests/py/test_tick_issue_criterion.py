@@ -27,7 +27,8 @@ def test_main_returns_2_with_the_usage_line_and_no_subprocess_call_for_a_missing
         assert (code, captured.out, captured.err) == (2, "", "usage: tick-issue-criterion.sh <issue-number> <matcher>\n")
 
 
-def test_main_returns_3_with_no_patch_and_names_the_matcher_and_issue_when_no_unchecked_criterion_matches(monkeypatch, capsys, tick_issue_criterion):
+def test_main_returns_3_with_no_patch_and_names_the_matcher_and_issue_when_no_unchecked_criterion_matches(monkeypatch, capsys, tick_issue_criterion, tmp_path):
+    monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     real_run = subprocess.run
     patches = []
@@ -97,7 +98,8 @@ def test_main_ticks_the_box_and_patches_the_stripped_body_through_gh_api_reading
         ("patch", "repos/{owner}/{repo}/issues/abc", AC + "- [x] alpha\n- [ ] beta")], [])
 
 
-def test_main_keeps_every_failure_path_inside_0_to_3_and_lets_an_uncaught_exception_propagate(monkeypatch, capsys, tick_issue_criterion):
+def test_main_keeps_every_failure_path_inside_0_to_3_and_lets_an_uncaught_exception_propagate(monkeypatch, capsys, tick_issue_criterion, tmp_path):
+    monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     real_run = subprocess.run
 
@@ -138,7 +140,8 @@ def test_main_keeps_every_failure_path_inside_0_to_3_and_lets_an_uncaught_except
         tick_issue_criterion.main(["7", "alpha"])
 
 
-def test_main_gives_its_full_answer_when_every_process_start_but_gh_is_refused(monkeypatch, capsys, tick_issue_criterion):
+def test_main_gives_its_full_answer_when_every_process_start_but_gh_is_refused(monkeypatch, capsys, tick_issue_criterion, tmp_path):
+    monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
 
     def run_case(matcher):
@@ -282,7 +285,7 @@ def test_cli_exits_2_with_nothing_on_stdout_when_the_body_patch_exits_with_statu
     assert (code, out, patched) == (2, "", [AC + "- [x] alpha\n- [ ] beta"])
 
 
-def test_cli_1979_exits_3_and_patches_nothing_when_the_only_matching_unchecked_box_is_outside_acceptance_criteria(monkeypatch, run_cli, tick_issue_criterion):
+def test_cli_1979_exits_3_and_patches_nothing_when_the_only_matching_unchecked_box_is_outside_acceptance_criteria(monkeypatch, run_cli, tick_issue_criterion, tmp_path):
     monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
     body = "## Problem\n\n- [ ] alpha in the problem\n\n## Acceptance criteria\n\n- [ ] beta\n\n## Blocked by\n\n- [ ] alpha blocker\n"
     patched = []
@@ -299,12 +302,12 @@ def test_cli_1979_exits_3_and_patches_nothing_when_the_only_matching_unchecked_b
 
     monkeypatch.setattr(subprocess, "run", fake_run)
 
-    result = run_cli(tick_issue_criterion, ["7", "alpha"])
+    result = run_cli(tick_issue_criterion, ["7", "alpha"], cwd=tmp_path)
 
     assert (result, patched) == ((3, "", "tick-issue-criterion: no unchecked criterion matched 'alpha' on #7\n"), [])
 
 
-def test_cli_1979_exits_3_and_patches_nothing_when_the_body_has_no_acceptance_criteria_heading_but_a_matching_unchecked_box_sits_elsewhere(monkeypatch, run_cli, tick_issue_criterion):
+def test_cli_1979_exits_3_and_patches_nothing_when_the_body_has_no_acceptance_criteria_heading_but_a_matching_unchecked_box_sits_elsewhere(monkeypatch, run_cli, tick_issue_criterion, tmp_path):
     monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
     body = "## Problem\n\n- [ ] alpha in the problem\n\n## Blocked by\n\n- [ ] alpha blocker\n"
     patched = []
@@ -321,7 +324,7 @@ def test_cli_1979_exits_3_and_patches_nothing_when_the_body_has_no_acceptance_cr
 
     monkeypatch.setattr(subprocess, "run", fake_run)
 
-    result = run_cli(tick_issue_criterion, ["7", "alpha"])
+    result = run_cli(tick_issue_criterion, ["7", "alpha"], cwd=tmp_path)
 
     assert (result, patched) == ((3, "", "tick-issue-criterion: no unchecked criterion matched 'alpha' on #7\n"), [])
 
@@ -400,7 +403,7 @@ def test_cli_1979_ticks_only_the_real_acceptance_criteria_box_and_leaves_the_one
         "## Problem\n\n~~~~md\n## Acceptance criteria\n- [ ] alpha fenced\n~~~~\n\n## Acceptance criteria\n\n- [x] alpha real"])
 
 
-def test_cli_1979_exits_3_and_patches_nothing_when_the_only_acceptance_criteria_line_sits_inside_a_fenced_code_block(monkeypatch, run_cli, tick_issue_criterion):
+def test_cli_1979_exits_3_and_patches_nothing_when_the_only_acceptance_criteria_line_sits_inside_a_fenced_code_block(monkeypatch, run_cli, tick_issue_criterion, tmp_path):
     monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
     body = "## Problem\n\n```\n## Acceptance criteria\n- [ ] alpha fenced\n```\n"
     patched = []
@@ -417,12 +420,12 @@ def test_cli_1979_exits_3_and_patches_nothing_when_the_only_acceptance_criteria_
 
     monkeypatch.setattr(subprocess, "run", fake_run)
 
-    result = run_cli(tick_issue_criterion, ["7", "alpha"])
+    result = run_cli(tick_issue_criterion, ["7", "alpha"], cwd=tmp_path)
 
     assert (result, patched) == ((3, "", "tick-issue-criterion: no unchecked criterion matched 'alpha' on #7\n"), [])
 
 
-def test_cli_1979_exits_3_and_patches_nothing_when_the_only_matching_box_sits_under_a_level_one_notes_heading_after_the_section(monkeypatch, run_cli, tick_issue_criterion):
+def test_cli_1979_exits_3_and_patches_nothing_when_the_only_matching_box_sits_under_a_level_one_notes_heading_after_the_section(monkeypatch, run_cli, tick_issue_criterion, tmp_path):
     monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
     body = "## Acceptance criteria\n\n- [ ] beta\n\n# Notes\n\n- [ ] alpha in the notes\n"
     patched = []
@@ -439,7 +442,7 @@ def test_cli_1979_exits_3_and_patches_nothing_when_the_only_matching_box_sits_un
 
     monkeypatch.setattr(subprocess, "run", fake_run)
 
-    result = run_cli(tick_issue_criterion, ["7", "alpha"])
+    result = run_cli(tick_issue_criterion, ["7", "alpha"], cwd=tmp_path)
 
     assert (result, patched) == ((3, "", "tick-issue-criterion: no unchecked criterion matched 'alpha' on #7\n"), [])
 
