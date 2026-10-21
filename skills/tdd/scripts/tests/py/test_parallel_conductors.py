@@ -808,8 +808,6 @@ def test_the_full_answer_is_the_same_when_starting_solvable_issues_sh_as_a_proce
 @pytest.mark.process("a faked supervise.sh over a VERI_GH_JSON listing, with the start of solvable-issues.sh refused")
 def test_an_empty_label_is_a_selection_that_could_not_answer_when_starting_solvable_issues_sh_as_a_process_is_refused(
         name, monkeypatch, tmp_path, parallel_conductors, run_cli):
-    for tunable in TUNABLES:
-        monkeypatch.delenv(tunable, raising=False)
     gh = tmp_path / "gh"
     gh.mkdir()
     (gh / "prs.json").write_text("[]")
@@ -840,9 +838,13 @@ def test_the_open_pr_list_is_read_through_gh_json_a_no_answer_at_the_report_retu
     rest = "repos/{owner}/{repo}/pulls?state=open&per_page=100&page=%d"
     bailed = json.dumps([{"body": "Closes #7", "draft": True, "html_url": "https://github.com/o/r/pull/107"}])
 
+    applied = []
+
     def run(name, env, solvable, gh_answer):
-        for var in TUNABLES + ("VERI_GH_DRIVER",):
+        for var in applied:
             monkeypatch.delenv(var, raising=False)
+        applied.clear()
+        applied.extend(env)
         for var, value in env.items():
             monkeypatch.setenv(var, value)
         root = tmp_path / name
@@ -908,9 +910,13 @@ def test_a_finished_sweep_in_launch_order_restarts_past_a_stop_prints_parked_alo
                  b'"cache_read_input_tokens":100}}}\n')
     user = b'{"type":"user","message":{"content":[{"type":"tool_result","content":"ok"}]}}\n'
 
+    applied = []
+
     def run(name, argv, env, solvable, exits):
-        for var in TUNABLES:
+        for var in applied:
             monkeypatch.delenv(var, raising=False)
+        applied.clear()
+        applied.extend(env)
         for var, value in env.items():
             monkeypatch.setenv(var, value)
         root = tmp_path / name
@@ -1106,10 +1112,11 @@ def test_a_bad_veri_parallel_veri_max_issues_or_veri_conductor_ctx_budget_is_exi
            ("VERI_MAX_ISSUES", "1.5", 1), ("VERI_MAX_ISSUES", "", 1),
            ("VERI_CONDUCTOR_CTX_BUDGET", "abc", 0), ("VERI_CONDUCTOR_CTX_BUDGET", "1.5", 0),
            ("VERI_CONDUCTOR_CTX_BUDGET", "-1", 0)]
-    seen = []
+    seen, applied = [], []
     for name, value, floor in bad:
-        for tunable in TUNABLES:
-            monkeypatch.delenv(tunable, raising=False)
+        for var in applied:
+            monkeypatch.delenv(var, raising=False)
+        applied.append(name)
         env = {"VERI_GH_JSON": str(gh), name: value}
         code, out, err = run_cli(parallel_conductors, [], env=env, cwd=work)
         seen.append((name, value, code, out, err.splitlines(), list(launched)))
@@ -1356,9 +1363,12 @@ def test_with_veri_parallel_1_a_conductor_over_the_context_budget_is_stopped_onl
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_the_cli_prints_parked_for_a_conductor_that_halts_writing_its_parked_file_and_never_stops_launches_or_reports_a_bail_for_it_the_first_bail_stops_launches_while_running_conductors_finish_continue_on_bail_keeps_launching_and_the_first_kill_stops_launches(
         monkeypatch, tmp_path, parallel_conductors, run_cli):
+    applied = []
+
     def run(name, argv, env, solvable, prs, bailed, parked, exits, slow=()):
-        for var in TUNABLES:
+        for var in applied:
             monkeypatch.delenv(var, raising=False)
+        applied.clear()
         root = tmp_path / name
         gh = root / "gh"
         gh.mkdir(parents=True)
@@ -1387,6 +1397,7 @@ def test_the_cli_prints_parked_for_a_conductor_that_halts_writing_its_parked_fil
 
         _boundaries(monkeypatch, root, on_launch, on_sleep, solvable=(0, solvable))
         code, out, err = run_cli(parallel_conductors, argv, cwd=work, env=dict(env, VERI_GH_JSON=str(gh)))
+        applied.extend(dict(env, VERI_GH_JSON=""))
         return code, launches, [line for line in out.splitlines() if line.startswith(("parked ", "#", "stopped: "))]
 
     for flag in ([], ["--continue-on-bail"]):
@@ -1422,9 +1433,12 @@ def test_the_cli_prints_parked_for_a_conductor_that_halts_writing_its_parked_fil
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_the_cli_exits_0_all_done_1_a_bail_or_a_kill_2_plumbing_and_3_nothing_solvable_with_parallel_exit_holding_the_code_and_prints_the_same_report_over_rest_in_two_or_three_pages_as_over_one_fixture(
         monkeypatch, tmp_path, parallel_conductors, run_cli):
+    applied = []
+
     def prepare(name, solvable, exits=(), prs=(), bailed=(), through_gh=False):
-        for var in TUNABLES + ("VERI_GH_DRIVER",):
+        for var in applied:
             monkeypatch.delenv(var, raising=False)
+        applied.clear()
         root = tmp_path / name
         work = root / "repo"
         (work / ".tdd").mkdir(parents=True)
@@ -1461,6 +1475,7 @@ def test_the_cli_exits_0_all_done_1_a_bail_or_a_kill_2_plumbing_and_3_nothing_so
     for name, solvable, env, setup, want in shapes:
         work, gh, launches = prepare(name, solvable, **setup)
         code, out, err = run_cli(parallel_conductors, [], cwd=work, env=dict(env, VERI_GH_JSON=str(gh)))
+        applied.extend(dict(env, VERI_GH_JSON=""))
         assert report(code, out, work) == want, name
 
     def pull(number, draft, url="https://example.test/pull/%s"):
