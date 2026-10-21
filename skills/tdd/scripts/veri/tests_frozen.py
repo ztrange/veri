@@ -86,14 +86,18 @@ def main(argv):
     if mode == "record":
         files = argv[2:]
         in_step_repository = by_step and _in_repository()
+        deleted = []
         if in_step_repository:
-            files += [name for name in _differing_tests()
-                      if name not in files and os.path.exists(name)]
-        if not files:
+            for name in _differing_tests():
+                if name in files or name in deleted:
+                    continue
+                (files if os.path.exists(name) else deleted).append(name)
+        if not files and not deleted:
             _write(sys.stderr, "tests-frozen.sh: record needs at least one test file")
             return 2
         try:
             lines = ["%s  %s\n" % (_digest(name), name) for name in files]
+            lines += ["deleted  %s\n" % name for name in deleted]
             if in_step_repository:
                 lines += ["case: %s\n" % case for name in files for case in _added_cases(name)]
             with open(record, "w") as handle:
@@ -115,6 +119,10 @@ def main(argv):
             return 2
         changed = []
         for expected, name in entries:
+            if expected == "deleted":
+                if os.path.exists(name):
+                    changed.append(name)
+                continue
             try:
                 if _digest(name) != expected:
                     changed.append(name)
