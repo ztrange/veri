@@ -7,3 +7,4 @@
 ### A WRONG_TEST: name that is the exact title of a sibling JS/TS case routes red to that sibling even when it is also one word of the step's own test id ⟦criterion 5⟧
 - split `_exists` in `wrong_test_route.py` into a JS title-pattern builder (ellipsis prefix, `.only`/`.skip`/`.each`) and the directory walk
 - `_exists` returns either `True` or a title string, so `route` has to unwrap it with `case if found is True else found`; returning the matched title in both cases would remove the unwrapping
+applied | e2df8f99de5886ab009dcd0b5770a4bee9fef99d | split `_exists` in `wrong_test_route.py` into a JS title-pattern builder (ellipsis prefix, `.only`/`.skip`/`.each`) and the directory walk
