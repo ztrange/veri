@@ -4,7 +4,7 @@ Every case is a small in-process case in skills/tdd/scripts/tests/py/unit/test_w
 
 - [x] A WRONG_TEST: or SUPERSEDED: line indented by one, two or three spaces is read as prose, not a route line: the existing #1865 case that treats a two-space-indented SUPERSEDED: line as real is changed to expect revise, for one, two and three spaces ⟦criterion 8⟧
 - [x] A WRONG_TEST: line indented by one, two or three spaces naming an existing sibling case answers revise, not red ⟦criterion 8⟧
-- [ ] A WRONG_TEST: naming in backticks the exact title of an it('…') call in a foo.test.ts file routes red <title> ⟦criterion 1⟧
+- [x] A WRONG_TEST: naming in backticks the exact title of an it('…') call in a foo.test.ts file routes red <title> ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] A WRONG_TEST: naming the title of an it(…) call routes red when the file is a *.test.* or *.spec.* file over each of .js .jsx .ts .tsx .mjs .cjs ⟦criterion 1⟧
 - [ ] A WRONG_TEST: naming the title of an it(…) call routes red when the call sits in a .js or .ts file under a __tests__/ directory whose name carries no .test or .spec ⟦criterion 1⟧
 - [ ] A .d.ts file is never a test file: a WRONG_TEST: naming the title of an it(…) call found only in foo.test.d.ts or __tests__/types.d.ts answers revise ⟦criterion 1⟧
