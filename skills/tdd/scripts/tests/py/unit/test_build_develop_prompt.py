@@ -2282,6 +2282,19 @@ def test_main_renders_the_ordinary_freeze_rule_in_a_green_prompt_for_a_step_nami
     assert (code, b"**Do not modify the test.**" in prompt, b"You may edit the failing test" in prompt) == (0, True, False)
 
 
+def test_main_renders_no_suite_repair_paragraph_in_a_green_prompt_for_a_step_naming_suite_repair_mid_sentence_1919(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    step = "zorblat quotes ⟦suite-repair⟧ mid-sentence in its prose ⟦criterion 1⟧"
+
+    code = build_develop_prompt.main(["green", str(spec), step, "make test", "tests/py/test_zorblat.py",
+                                      "test_zorblat_frobs_a_nitz", "make unit"])
+    prompt = re.sub(rb"\s+", b" ", capsysbinary.readouterr().out)
+
+    assert (code, b"This step repairs the full run.** Its text lists every suite" in prompt) == (0, False)
+
+
 def test_mid_line_marks_render_todays_prompts(tmp_path, capsysbinary, build_develop_prompt):
     verify = importlib.import_module("veri.build_verify_prompt")
     spec = tmp_path / "spec.md"
@@ -2303,7 +2316,7 @@ def test_mid_line_marks_render_todays_prompts(tmp_path, capsysbinary, build_deve
     ci_verify = b"This step repairs a failure that reproduces only on CI.**"
     assert ([ci_red in red, suite_develop in red, ci_red in green, suite_develop in green,
              ci_verify in verified, suite_develop in verified]
-            == [True, False, False, True, True, True])
+            == [True, False, False, False, True, True])
 
 
 @pytest.mark.parametrize("doc", ["SKILL.md", "SCRIPTS.md"])
