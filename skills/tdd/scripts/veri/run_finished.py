@@ -5,7 +5,6 @@ import subprocess
 import sys
 
 import github
-import tunables
 from ledger import OPEN_STEP, carries_mark, ledger_steps
 from status import json_document, main_working_tree
 
@@ -13,12 +12,8 @@ USAGE = "usage: run-finished.sh <issue>\n"
 
 
 def pr_body(pr):
-    if tunables.read("VERI_GH_JSON") or tunables.read("VERI_GH_DRIVER") == "rest":
-        number = pr.rstrip("/").rsplit("/", 1)[-1]
-        return json.loads(github.gh_json_page("pr.json", "repos/{owner}/{repo}/pulls/" + number))["body"]
-    return json.loads(subprocess.run(
-        ["gh", "pr", "view", pr, "--json", "body"],
-        capture_output=True, text=True, check=True).stdout)["body"]
+    number = pr.rstrip("/").rsplit("/", 1)[-1]
+    return json.loads(github.gh_json_page("pr.json", "repos/{owner}/{repo}/pulls/" + number))["body"]
 
 
 def main(argv):

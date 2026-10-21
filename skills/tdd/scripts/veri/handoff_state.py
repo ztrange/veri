@@ -1,7 +1,6 @@
 """handoff-state.sh's computation, run in-process."""
 import json
 import re
-import subprocess
 import sys
 
 from git import git
@@ -42,9 +41,11 @@ def open_prs(fields, *extra):
         return with_draft_flag(pulls)
     if tunables.read("VERI_GH_DRIVER") == "rest":
         return rest_open_prs(*extra)
-    answer = subprocess.run(["gh", "pr", "list", *extra, "--state", "open", "--json", fields],
-                            stdout=subprocess.PIPE, text=True)
-    return json.loads(answer.stdout or "[]") if answer.returncode == 0 else []
+    try:
+        answer = github.GraphQLAdapter().list("pr", "list", *extra, "--state", "open", "--json", fields)
+    except github.NoAnswer:
+        return []
+    return json.loads(answer or "[]")
 
 
 def has_open_pr(branch):
