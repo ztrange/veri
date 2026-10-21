@@ -1257,6 +1257,14 @@ def test_an_edit_to_pin_md_prints_the_bash_suite_naming_it_and_the_pytest_file_m
         0, {SUITES + "pin.test.sh", SUITES + "py/unit/test_pin_file.py"}, "")
 
 
+def test_an_edit_to_skill_edit_md_prints_the_bash_suite_naming_it_and_the_pytest_file_mentioning_it_without_widening(
+        monkeypatch, run_cli, affected, tmp_path):
+    code, out, err = doc_edit_with_suites(monkeypatch, run_cli, affected, tmp_path, "skills/tdd/SKILL-EDIT.md",
+                                          "skill-edit.test.sh", "test_skill_edit_file.py")
+    assert (code, set(out.splitlines()), err) == (
+        0, {SUITES + "skill-edit.test.sh", SUITES + "py/unit/test_skill_edit_file.py"}, "")
+
+
 def test_an_edit_to_resume_md_prints_the_bash_suite_naming_it_and_the_pytest_file_mentioning_it_without_widening(
         monkeypatch, run_cli, affected, tmp_path):
     code, out, err = doc_edit_with_suites(monkeypatch, run_cli, affected, tmp_path, "skills/tdd/RESUME.md",

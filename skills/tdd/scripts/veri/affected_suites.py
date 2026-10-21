@@ -16,7 +16,7 @@ SCRIPTS = "skills/tdd/scripts"
 PYTEST_DIRS = (SCRIPTS + "/tests/py", SCRIPTS + "/tests/py/unit")
 SKILL_DOCS = ("skills/tdd/SCRIPTS.md", "skills/tdd/STOPPING.md", "skills/tdd/RECONCILE.md",
               "skills/tdd/BAIL.md", "skills/tdd/PIN.md", "skills/tdd/RESUME.md",
-              "skills/tdd/REVISE.md")
+              "skills/tdd/REVISE.md", "skills/tdd/SKILL-EDIT.md")
 SPACE = rb"[ \t\n\v\f\r]"
 
 
