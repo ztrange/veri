@@ -112,6 +112,8 @@ def _missing(report):
     lines = _lines_with(report, "MISSING_TEST:")
     for line in lines:
         behaviour = line.partition(":")[2].strip()
+        if behaviour == "NONE":
+            return None
         if behaviour:
             return behaviour
     if lines:

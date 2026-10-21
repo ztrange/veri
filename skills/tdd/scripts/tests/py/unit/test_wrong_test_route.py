@@ -1008,3 +1008,16 @@ def test_main_1932_prints_red_over_the_case_a_bulleted_superseded_line_names(
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % older)
+
+
+def test_main_1932_prints_revise_when_the_missing_test_line_says_none(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setenv("VERI_STEP", "MISSING_TEST: NONE names no behaviour")
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nMISSING_TEST: NONE\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
