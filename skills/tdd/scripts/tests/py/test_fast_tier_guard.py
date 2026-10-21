@@ -593,3 +593,21 @@ def test_1900_a_planted_test_file_passing_a_shell_command_running_a_bash_suite_t
     found = guard.offences(tmp_path)
 
     assert found == [f"{offender}:4: runs a nested suite"]
+
+
+def test_1900_a_planted_test_file_passing_a_suite_path_containing_a_space_to_an_imported_helper_is_reported_as_running_a_nested_suite_while_a_prose_string_and_a_regex_beside_it_are_not(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    offender = tmp_path / "test_offender.py"
+    offender.write_text(
+        "import re\n"
+        "from shared import run_it, note\n"
+        "\n"
+        "def test_runs_a_suite():\n"
+        "    note(\"see tests/py/test_x.py for details\")\n"
+        "    re.compile(r\"\\btest_\\w+\\.py$\")\n"
+        "    run_it(\"tests/py/my dir/test_x.py\")\n"
+    )
+
+    found = guard.offences(tmp_path)
+
+    assert found == [f"{offender}:7: runs a nested suite"]
