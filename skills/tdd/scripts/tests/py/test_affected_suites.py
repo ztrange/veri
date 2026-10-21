@@ -414,6 +414,32 @@ def test_main_attributes_an_edit_below_a_fenced_heading_shaped_line_to_the_real_
         0, "skills/tdd/scripts/tests/py/test_alpha.py\n", "")
 
 
+def test_main_keeps_a_longer_fence_open_past_a_shorter_fence_line_when_attributing_an_edit_1687(
+        tmp_path, monkeypatch, capsys, affected):
+    skill = "skills/tdd/SKILL.md"
+
+    def fake_run(args, **kwargs):
+        if list(args[:2]) == ["git", "rev-parse"]:
+            stdout = "abc\n"
+        elif list(args[:3]) == ["git", "diff", "--name-only"]:
+            stdout = "" if "--diff-filter=AD" in args else skill + "\n"
+        elif list(args[:3]) == ["git", "diff", "-U0"]:
+            stdout = "@@ -5 +5 @@\n-old body\n+alpha body\n"
+        else:
+            raise AssertionError("unexpected command: %r" % (args,))
+        return subprocess.CompletedProcess(args, 0, stdout, "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    py = tmp_path / "skills/tdd/scripts/tests/py"
+    py.mkdir(parents=True)
+    (tmp_path / skill).write_text("## Alpha\n````\n```\n## x\nalpha body\n````\n## Beta\nbeta body\n")
+    (py / "test_alpha.py").write_text('section(SKILL, "## Alpha")\n')
+    (py / "test_x.py").write_text('section(SKILL, "## x")\n')
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0, "skills/tdd/scripts/tests/py/test_alpha.py\n", "")
+
+
 def test_main_prints_a_pytest_file_whose_helper_call_spans_lines_with_the_heading_on_its_own(
         tmp_path, monkeypatch, capsys, affected):
     skill = "skills/tdd/SKILL.md"

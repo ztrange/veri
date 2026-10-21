@@ -99,8 +99,9 @@ def unfenced(lines):
     fence = None
     for line in lines:
         stripped = line.lstrip()
+        run = len(stripped) - len(stripped.lstrip(stripped[:1]))
         if fence is None and stripped.startswith(("```", "~~~")):
-            fence = stripped[:3]
+            fence = stripped[0] * run
         elif fence is not None:
             if stripped.startswith(fence):
                 fence = None
