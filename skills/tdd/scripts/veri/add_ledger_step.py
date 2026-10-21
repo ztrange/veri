@@ -9,7 +9,7 @@ import tunables
 
 try:
     from .event_log import read_events
-    from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, ledger_steps, read_ledger, read_ledger, multi_tag_refusal, new_step, trailing_markers
+    from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, ledger_steps, read_ledger,multi_tag_refusal, new_step, trailing_markers
 except ImportError:
     from event_log import read_events
     from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, ledger_steps, read_ledger, multi_tag_refusal, new_step, trailing_markers
