@@ -1,4 +1,5 @@
 """The guards conftest.py enforces, driven in-process through pytester with conftest as a plugin."""
+import os
 import pathlib
 import subprocess
 
@@ -114,3 +115,38 @@ def test_the_small_case_guard_fails_a_planted_unmarked_case_that_starts_git_nami
     result.assert_outcomes(failed=1, passed=1)
     assert "FAILED test_planted.py::test_starts_git_unmarked - AssertionError: a small case started git" in result.stdout.str()
     assert started == [["git", "--version"]]
+
+
+def test_the_permission_bits_guard_fails_a_planted_case_that_chmods_a_file_naming_the_file_and_line_and_a_reasonless_or_caseless_exemption_fails_the_run_while_a_good_one_passes(pytester, monkeypatch):
+    source = (
+        "import os\n"
+        "\n"
+        "def test_takes_bits(tmp_path):\n"
+        "    victim = tmp_path / 'victim'\n"
+        "    victim.write_text('x')\n"
+        "    os.chmod(victim, 0o444)\n"
+    )
+    line = source.splitlines().index("    os.chmod(victim, 0o444)") + 1
+    path = pytester.makepyfile(test_planted=source)
+
+    result = pytester.runpytest_inprocess("-p", "no:cacheprovider", plugins=[conftest])
+
+    result.assert_outcomes(failed=1)
+    output = result.stdout.str()
+    assert "test_planted.py::test_takes_bits takes permission bits off" in output
+    assert "victim with chmod at %s:%d" % (path, line) in output
+
+    exempt = "test_planted.py::test_takes_bits"
+    monkeypatch.setitem(conftest.PERMISSION_BITS_EXEMPT, exempt, "")
+    result = pytester.runpytest_inprocess("-p", "no:cacheprovider", plugins=[conftest])
+    assert "permission-bits exemption table: %s: exemption carries no reason" % exempt in result.stderr.str()
+
+    monkeypatch.setitem(conftest.PERMISSION_BITS_EXEMPT, exempt, "the case plants the chmod")
+    monkeypatch.setitem(conftest.PERMISSION_BITS_EXEMPT, "test_planted.py::test_gone", "names nothing")
+    result = pytester.runpytest_inprocess("-p", "no:cacheprovider", plugins=[conftest])
+    assert "test_planted.py::test_gone: exemption names no existing case" in result.stderr.str()
+
+    monkeypatch.delitem(conftest.PERMISSION_BITS_EXEMPT, "test_planted.py::test_gone")
+    monkeypatch.setattr(os, "chmod", lambda *args, **kwargs: None)
+    result = pytester.runpytest_inprocess("-p", "no:cacheprovider", plugins=[conftest])
+    result.assert_outcomes(passed=1)
