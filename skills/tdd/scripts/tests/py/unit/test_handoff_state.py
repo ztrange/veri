@@ -2,6 +2,8 @@
 import importlib
 import json
 
+import pytest
+
 SHA = "2222222222222222222222222222222222222222"
 
 
@@ -382,3 +384,31 @@ def test_main_reads_a_rest_shaped_fixture_pr_as_draft_and_parks_only_runs_on_its
     parked = lines[lines.index("## Parked") + 1:lines.index("## Ready to merge")]
     ready = lines[lines.index("## Ready to merge") + 1:]
     assert (code, parked, ready) == (0, ["#71 bailed verify-red process-failure"], ["PR #214 closes #314"])
+
+
+@pytest.mark.parametrize("driver", [None, "rest", "graphql", "auto"])
+def test_main_exits_2_naming_the_refused_pr_listing_and_prints_no_empty_lists_when_gh_refuses_1974(tmp_path, monkeypatch, run_cli, fake_processes, driver):
+    handoff_state = importlib.import_module("veri.handoff_state")
+    status = importlib.import_module("veri.status")
+    monkeypatch.chdir(tmp_path)
+    if driver is None:
+        monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    else:
+        monkeypatch.setenv("VERI_GH_DRIVER", driver)
+    runs = [
+        {"issue": 62, "title": "Bailed", "branch": "tdd/62-b", "step": "1 of 2", "phase": "red", "state": "bailed",
+         "bail_phase": "verify-red", "classification": "process-failure", "stop_mode": "", "dollars": 1, "elapsed_seconds": 1},
+    ]
+    document = json.dumps({"runs": runs, "scope": None})
+
+    def answer(line, **kwargs):
+        if line.startswith("git rev-parse"):
+            return 0, SHA + "\n", ""
+        if line.startswith("git tag"):
+            return 0, "v0.9\n", ""
+        return 1, "", "HTTP 403: refused"
+
+    fake_processes(answer)
+    monkeypatch.setattr(status, "json_document", lambda scope=None: (0, document))
+    code, out, err = run_cli(handoff_state, [])
+    assert (code, "PR listing" in err, "## Parked" in out, "## Ready to merge" in out) == (2, True, False, False)
