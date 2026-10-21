@@ -52,9 +52,18 @@ def direct_reads(path):
         return (isinstance(call, ast.Call) and node in call.args
                 and not (isinstance(call.func, ast.Name) and call.func.id == "dict"))
 
+    imported = {alias.asname or alias.name for node in ast.walk(tree)
+                if isinstance(node, ast.ImportFrom) and node.module == "os"
+                for alias in node.names if alias.name in ("environ", "environb", "getenv")}
+
+    def is_environment(node):
+        if isinstance(node, ast.Name):
+            return node.id in imported
+        return (isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "os"
+                and node.attr in ("environ", "environb", "getenv"))
+
     return ["%s:%d" % (path, node.lineno) for node in ast.walk(tree)
-            if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "os"
-            and node.attr in ("environ", "environb", "getenv")
+            if is_environment(node)
             and ("VERI_" in lines[node.lineno - 1] or keyed_by_a_variable(node) or copy_read_by_name_later(node)
                  or passed_as_an_argument(node))]
 
