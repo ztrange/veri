@@ -7,6 +7,8 @@ import subprocess
 
 import pytest
 
+from popen_command import command_basename, command_words
+
 
 def loopback(host):
     try:
@@ -36,9 +38,8 @@ def network_refusal(monkeypatch, tmp_path_factory):
         return real_connect(self, address)
 
     def popen(self, args, *rest, **kwargs):
-        words = [args] if isinstance(args, (str, bytes, os.PathLike)) else list(args)
-        command = os.path.basename(os.fsdecode(words[0])) if words else ""
-        if command in ("gh", "curl") and not faked(os.fsdecode(words[0]), kwargs, basetemp):
+        command = command_basename(args)
+        if command in ("gh", "curl") and not faked(os.fsdecode(command_words(args)[0]), kwargs, basetemp):
             raise AssertionError("a case started %s; fake the call" % command)
         return real_popen(self, args, *rest, **kwargs)
 
