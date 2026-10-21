@@ -248,3 +248,38 @@ def test_main_reads_its_open_prs_from_the_gh_json_fixture_and_starts_no_gh_1974(
     ready = lines[lines.index("## Ready to merge") + 1:]
     started_gh = [line for line in calls if line.startswith("gh")]
     assert (code, started_gh, ready) == (0, [], ["PR #212 closes #312"])
+
+
+def test_main_reads_a_rest_shaped_fixture_pr_as_draft_and_parks_only_runs_on_its_own_branch_1974(tmp_path, monkeypatch, run_cli, fake_processes):
+    handoff_state = importlib.import_module("veri.handoff_state")
+    status = importlib.import_module("veri.status")
+    monkeypatch.chdir(tmp_path)
+    fixtures = tmp_path / "gh"
+    fixtures.mkdir()
+    monkeypatch.setenv("VERI_GH_JSON", str(fixtures))
+    prs = [
+        {"number": 214, "draft": False, "body": "Closes #314", "head": {"ref": "tdd/71-a"}},
+        {"number": 215, "draft": True, "body": "Closes #315", "head": {"ref": "tdd/72-b"}},
+    ]
+    (fixtures / "prs.json").write_text(json.dumps(prs))
+    runs = [
+        {"issue": 71, "title": "Has pr", "branch": "tdd/71-a", "step": "1 of 2", "phase": "red", "state": "bailed",
+         "bail_phase": "verify-red", "classification": "process-failure", "stop_mode": "", "dollars": 1, "elapsed_seconds": 1},
+        {"issue": 73, "title": "No pr", "branch": "tdd/73-c", "step": "1 of 2", "phase": "red", "state": "bailed",
+         "bail_phase": "verify-red", "classification": "process-failure", "stop_mode": "", "dollars": 1, "elapsed_seconds": 1},
+    ]
+
+    def answer(line, **kwargs):
+        if line.startswith("git rev-parse"):
+            return 0, SHA + "\n", ""
+        if line.startswith("git tag"):
+            return 0, "v0.9\n", ""
+        return 1, "", "no such route"
+
+    fake_processes(answer)
+    monkeypatch.setattr(status, "json_document", lambda scope=None: (0, json.dumps({"runs": runs, "scope": None})))
+    code, out, err = run_cli(handoff_state, [])
+    lines = out.splitlines()
+    parked = lines[lines.index("## Parked") + 1:lines.index("## Ready to merge")]
+    ready = lines[lines.index("## Ready to merge") + 1:]
+    assert (code, parked, ready) == (0, ["#71 bailed verify-red process-failure"], ["PR #214 closes #314"])
