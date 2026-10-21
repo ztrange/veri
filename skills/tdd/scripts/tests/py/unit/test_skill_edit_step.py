@@ -306,3 +306,25 @@ def test_apply_makes_the_issue_rows_the_new_list_beside_a_unit_with_no_requireme
 
     rows = [l for l in (tmp_path / "skills" / "veri-dev" / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("| A")]
     assert rows == ["| A1 | The widget is blue. | because |"], rows
+
+
+def test_a_unit_with_no_table_whose_requirements_list_holds_only_another_units_section_run_against_an_issue_stating_no_rows_for_it_exits_3_leaving_the_list_byte_identical_1959(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "skills" / "veri-dev").mkdir(parents=True)
+    (tmp_path / "skills" / "veri-dev" / "SKILL.md").write_text("The widget is painted a deep blue.\n")
+    original = ("## skills/other/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+                "| B1 | The gadget is red. | colour |\n")
+    (tmp_path / "skills" / "veri-dev" / "REQUIREMENTS.md").write_text(original)
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
+    fake = types.SimpleNamespace(
+        run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""),
+        PIPE=subprocess.PIPE)
+    monkeypatch.setattr(skill_edit_step, "subprocess", fake)
+
+    code, _, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "skills/veri-dev/SKILL.md"])
+
+    assert (code, (tmp_path / "skills" / "veri-dev" / "REQUIREMENTS.md").read_bytes()) == (3, original.encode()), err
