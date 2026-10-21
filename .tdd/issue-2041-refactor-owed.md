@@ -1,0 +1,2 @@
+### Every author leaf skill-edit-step.sh launches through supervise.sh/run-leaf.sh carries the flag pair `--permission-mode bypassPermissions`, as SKILL.md's leaves do: with a stub `claude` recording its arguments, each author launch's recorded arguments include that pair ⟦criterion 1⟧
+- test-only | the new case repeats the repo/stub/env setup of the neighbouring cases in test_skill_edit_step_process.py; a shared fixture would remove it, but it touches code this cycle did not write
