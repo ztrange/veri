@@ -858,3 +858,23 @@ def test_check_step_exits_1_naming_a_test_file_the_steps_prose_names_as_plain_te
     code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
 
     assert (code, out) == (1, "tests/no-thing.test.sh\n")
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
+def test_check_step_exits_1_naming_a_test_file_under_a_directory_a_trailing_guard_subject_marker_names_1775(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests/lib").mkdir(parents=True)
+    (tmp_path / ".tdd").mkdir()
+    for name in ("tests/test_new.py", "tests/lib/harness.sh"):
+        (tmp_path / name).write_text("one\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one fixes a helper ⟦guard-subject: tests/lib⟧"
+    (tmp_path / "tests/test_new.py").write_text("one\ntwo\n")
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py"], cwd=tmp_path)
+
+    (tmp_path / "tests/lib/harness.sh").write_text("one, fixed\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    assert (code, out) == (1, "tests/lib/harness.sh\n")
