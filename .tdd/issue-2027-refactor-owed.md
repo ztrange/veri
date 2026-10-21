@@ -6,3 +6,4 @@
 - unify the fence tracking in find_section_start and find_section_end (would change behavior: end-finder ignores ~~~ fences)
 not-done | transform-rejected | share one fence-tracking helper between find_section_start and find_section_end (would change `~~~` and indented-fence handling in the end scan, so it is not behaviour-preserving)
 not-done | transform-rejected | unify the fence tracking in find_section_start and find_section_end (would change behavior: end-finder ignores ~~~ fences)
+not-done | transform-rejected | share one fence-tracking helper between find_section_start and find_section_end (changes behaviour: the section end would start honouring `~~~` fences and fence-length matching, so it is not a pure refactor)
