@@ -2832,26 +2832,36 @@ def test_cli_sent_sighup_alone_while_its_claude_runs_waits_for_claude_removes_th
     assert (code, during, left, "Traceback" in stderr) == (5, [True], False, False), stderr
 
 
-@pytest.mark.process("a stub conductor script as CLAUDE_BIN printing a result record, and git archive and tar materialising the snapshot")
-def test_cli_a_conductor_that_exits_0_with_a_result_ending_on_a_question_and_events_ending_in_no_done_bail_or_stop_gets_a_needs_user_bail_appended_1866(
-        tmp_path, monkeypatch, run_cli):
-    skill, run_conductor, caller = skill_and_caller(tmp_path, monkeypatch, "run_conductor_needs_user")
-    bin_dir = tmp_path / "exp-bin"
-    bin_dir.mkdir()
-    gh = bin_dir / "gh"
-    gh.write_text("#!/bin/sh\ncat > /dev/null\n")
-    gh.chmod(0o755)
-    monkeypatch.setenv("PATH", str(bin_dir) + os.pathsep + os.environ.get("PATH", ""))
-    events = caller / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl"
+def plant_stub_conductor(tmp_path, monkeypatch, body):
     stub = tmp_path / "exp-stub-conductor"
     stub.write_text(
         "#!/bin/sh\n"
         "cat > /dev/null\n"
-        "mkdir -p .tdd/wt/4242/.tdd\n"
-        "printf '%s\\n' '{\"event\":\"phase-start\",\"ts\":1}' >> .tdd/wt/4242/.tdd/events.jsonl\n"
-        "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"result\":\"Options A, B or C.\\n\\nWhich option do you want?\"}'\n")
+        "mkdir -p .tdd/wt/4242/.tdd\n" + body)
     stub.chmod(0o755)
     monkeypatch.setenv("CLAUDE_BIN", str(stub))
+
+
+def plant_stub_gh(tmp_path, monkeypatch, logging_to=None):
+    bin_dir = tmp_path / "exp-bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    log = "printf '%s\\n' \"$*\" >> " + str(logging_to) + "\n" if logging_to else ""
+    gh.write_text("#!/bin/sh\n" + log + "cat > /dev/null\n")
+    gh.chmod(0o755)
+    monkeypatch.setenv("PATH", str(bin_dir) + os.pathsep + os.environ.get("PATH", ""))
+
+
+@pytest.mark.process("a stub conductor script as CLAUDE_BIN printing a result record, and git archive and tar materialising the snapshot")
+def test_cli_a_conductor_that_exits_0_with_a_result_ending_on_a_question_and_events_ending_in_no_done_bail_or_stop_gets_a_needs_user_bail_appended_1866(
+        tmp_path, monkeypatch, run_cli):
+    skill, run_conductor, caller = skill_and_caller(tmp_path, monkeypatch, "run_conductor_needs_user")
+    plant_stub_gh(tmp_path, monkeypatch)
+    events = caller / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl"
+    plant_stub_conductor(
+        tmp_path, monkeypatch,
+        "printf '%s\\n' '{\"event\":\"phase-start\",\"ts\":1}' >> .tdd/wt/4242/.tdd/events.jsonl\n"
+        "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"result\":\"Options A, B or C.\\n\\nWhich option do you want?\"}'\n")
 
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
 
@@ -2865,15 +2875,10 @@ def test_cli_a_conductor_that_exits_0_with_a_result_ending_on_a_question_but_eve
         closing, tmp_path, monkeypatch, run_cli):
     skill, run_conductor, caller = skill_and_caller(tmp_path, monkeypatch, "run_conductor_needs_user_closed")
     events = caller / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl"
-    stub = tmp_path / "exp-stub-conductor"
-    stub.write_text(
-        "#!/bin/sh\n"
-        "cat > /dev/null\n"
-        "mkdir -p .tdd/wt/4242/.tdd\n"
+    plant_stub_conductor(
+        tmp_path, monkeypatch,
         "printf '%s\\n' '{\"event\":\"" + closing + "\",\"ts\":1}' >> .tdd/wt/4242/.tdd/events.jsonl\n"
         "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"result\":\"Which option do you want?\"}'\n")
-    stub.chmod(0o755)
-    monkeypatch.setenv("CLAUDE_BIN", str(stub))
 
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
 
@@ -2885,22 +2890,12 @@ def test_cli_a_conductor_that_exits_0_with_a_result_ending_on_a_question_but_eve
 def test_cli_a_conductor_that_exits_0_with_a_result_not_ending_on_a_question_and_events_ending_in_no_done_bail_or_stop_gets_a_needs_user_bail_appended_1866(
         tmp_path, monkeypatch, run_cli):
     skill, run_conductor, caller = skill_and_caller(tmp_path, monkeypatch, "run_conductor_needs_user_statement")
-    bin_dir = tmp_path / "exp-bin"
-    bin_dir.mkdir()
-    gh = bin_dir / "gh"
-    gh.write_text("#!/bin/sh\ncat > /dev/null\n")
-    gh.chmod(0o755)
-    monkeypatch.setenv("PATH", str(bin_dir) + os.pathsep + os.environ.get("PATH", ""))
+    plant_stub_gh(tmp_path, monkeypatch)
     events = caller / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl"
-    stub = tmp_path / "exp-stub-conductor"
-    stub.write_text(
-        "#!/bin/sh\n"
-        "cat > /dev/null\n"
-        "mkdir -p .tdd/wt/4242/.tdd\n"
+    plant_stub_conductor(
+        tmp_path, monkeypatch,
         "printf '%s\\n' '{\"event\":\"phase-start\",\"ts\":1}' >> .tdd/wt/4242/.tdd/events.jsonl\n"
         "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"result\":\"I will stop here and wait for you.\"}'\n")
-    stub.chmod(0o755)
-    monkeypatch.setenv("CLAUDE_BIN", str(stub))
 
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
 
@@ -2916,14 +2911,9 @@ def test_cli_a_conductor_that_exits_non_zero_or_exits_0_without_a_result_record_
         ending, expected, tmp_path, monkeypatch, run_cli):
     skill, run_conductor, caller = skill_and_caller(tmp_path, monkeypatch, "run_conductor_needs_user_unanswered")
     events = caller / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl"
-    stub = tmp_path / "exp-stub-conductor"
-    stub.write_text(
-        "#!/bin/sh\n"
-        "cat > /dev/null\n"
-        "mkdir -p .tdd/wt/4242/.tdd\n"
+    plant_stub_conductor(
+        tmp_path, monkeypatch,
         "printf '%s\\n' '{\"event\":\"phase-start\",\"ts\":1}' >> .tdd/wt/4242/.tdd/events.jsonl\n" + ending)
-    stub.chmod(0o755)
-    monkeypatch.setenv("CLAUDE_BIN", str(stub))
 
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
 
@@ -2935,22 +2925,12 @@ def test_cli_a_conductor_that_exits_non_zero_or_exits_0_without_a_result_record_
 def test_cli_the_needs_user_bail_also_posts_an_issue_comment_quoting_only_the_last_paragraph_of_the_result_1866(
         tmp_path, monkeypatch, run_cli):
     skill, run_conductor, caller = skill_and_caller(tmp_path, monkeypatch, "run_conductor_needs_user_comment")
-    bin_dir = tmp_path / "exp-bin"
-    bin_dir.mkdir()
     calls = tmp_path / "gh-calls"
-    gh = bin_dir / "gh"
-    gh.write_text("#!/bin/sh\nprintf '%s\\n' \"$*\" >> " + str(calls) + "\ncat > /dev/null\n")
-    gh.chmod(0o755)
-    monkeypatch.setenv("PATH", str(bin_dir) + os.pathsep + os.environ.get("PATH", ""))
-    stub = tmp_path / "exp-stub-conductor"
-    stub.write_text(
-        "#!/bin/sh\n"
-        "cat > /dev/null\n"
-        "mkdir -p .tdd/wt/4242/.tdd\n"
+    plant_stub_gh(tmp_path, monkeypatch, calls)
+    plant_stub_conductor(
+        tmp_path, monkeypatch,
         "printf '%s\\n' '{\"event\":\"phase-start\",\"ts\":1}' >> .tdd/wt/4242/.tdd/events.jsonl\n"
         "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"result\":\"Options A, B or C.\\n\\nWhich option do you want?\"}'\n")
-    stub.chmod(0o755)
-    monkeypatch.setenv("CLAUDE_BIN", str(stub))
 
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
 
