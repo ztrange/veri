@@ -807,13 +807,17 @@ def test_a_graded_run_exits_0_and_prints_no_leaf_role_line_on_stderr_1887(tmp_pa
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
     claude = tmp_path / "claude"
-    claude.write_text(STUB)
+    claude.write_text("#!/bin/sh\ncat > /dev/null\n"
+                      "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,"
+                      "\"result\":\"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES\","
+                      "\"duration_ms\":10,\"duration_api_ms\":8,\"num_turns\":1,\"total_cost_usd\":0.01,"
+                      "\"usage\":{\"input_tokens\":1,\"output_tokens\":2,"
+                      "\"cache_read_input_tokens\":3,\"cache_creation_input_tokens\":4}}'\n")
     claude.chmod(0o755)
-    record = tmp_path / "record.txt"
 
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                               "CLAUDE_BIN": str(claude)})
 
     assert (done.returncode, "leaf-role" in done.stderr) == (0, False), (done.returncode, done.stderr)
