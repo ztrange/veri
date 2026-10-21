@@ -168,7 +168,7 @@ def main(argv):
     base = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     moved = apply(issue, unit)
     path = skill_edit_guard.list_path(unit)
-    if not os.path.exists(path):
+    if not (os.path.exists(path) and requirements.claims(path, unit)):
         return 3
     graded, said = _grade(path, unit)
     authored = graded == 1

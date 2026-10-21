@@ -695,3 +695,31 @@ def test_a_new_unit_from_a_path_new_heading_is_graded_and_signed_exiting_0_or_3_
     assert [ran.returncode in (0, 3), any("skills/new-skill/SKILL.md" in l for l in lines),
             git(repo, "status", "--porcelain")] == [True, True, ""], \
         (ran.returncode, ran.stdout, ran.stderr[-700:], lines)
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
+def test_a_unit_with_no_table_beside_a_requirements_md_holding_only_another_units_section_against_an_issue_stating_no_rows_exits_3_launching_no_grader_leaving_the_tree_clean_1959(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "skills" / "veri-dev").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "skills" / "veri-dev" / "SKILL.md").write_text("The widget is painted a deep blue.\n")
+    beside = repo / "skills" / "veri-dev" / "REQUIREMENTS.md"
+    original = "## skills/other/SKILL.md\n\n" + ROWS
+    beside.write_text(original)
+    (repo / "issue.md").write_text("## Problem\n\nnothing about requirements\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    launched = tmp_path / "launched"
+    claude = tmp_path / "claude"
+    claude.write_text(GRADER + "echo run >> '%s'\n" % launched)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "skills/veri-dev/SKILL.md"], cwd=repo, capture_output=True,
+                         text=True, env=env)
+
+    assert [ran.returncode, launched.exists(), beside.read_text(), (beside.parent / "GRADED").exists(),
+            git(repo, "status", "--porcelain")] == [3, False, original, False, ""], \
+        (ran.stdout, ran.stderr[-700:])
