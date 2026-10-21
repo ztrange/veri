@@ -1,0 +1,2 @@
+### `step-cost.sh` prints the same totals (a step's figure, `--run` and `--steps`) for a log whose lines are re-serialised with compact separators (`{"event":"usage",...}`) as for the same log in the writer's spacing, reading the log through `event_log.read_events`; every existing case in tests/py/unit/test_step_cost.py keeps its name and its outcome ⟦criterion 2⟧
+- out-of-scope | unify step_cost.cost with event_log.usage_totals' cost parsing (behaviour differs on malformed values; event_log.py is not a file this cycle wrote)
