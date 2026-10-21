@@ -216,3 +216,17 @@ def test_main_on_a_log_path_that_is_a_directory_exits_2_with_one_line_and_no_tra
     assert "Traceback" not in captured.err
     [line] = captured.err.splitlines()
     assert "harvest-usage.sh" in line and ".tdd/verify-green.log" in line and "is a directory" in line
+
+
+def test_main_on_the_grader_leaf_grade_prose_appends_a_usage_record_with_actor_grader_and_phase_prose_and_nothing_on_stderr_1887(
+        tmp_path, monkeypatch, capsys, harvest_usage, events):
+    _closing_log(tmp_path, "grade-prose")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_ISSUE", "77")
+
+    events.refuse_event_sh()
+    code = harvest_usage.main(["grade-prose"])
+
+    captured = capsys.readouterr()
+    assert (code, captured.err) == (0, "")
+    assert [(r["actor"], r["phase"], r["event"]) for r in events.records()] == [("grader", "prose", "usage")]
