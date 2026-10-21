@@ -72,6 +72,7 @@ def main(argv):
         env["GIT_CONFIG_GLOBAL"] = git_path
         env["PYTHONDONTWRITEBYTECODE"] = "1"
         env["FORCE_PROMPT_CACHING_5M"] = "1"
+        env["CLAUDE_CODE_DISABLE_BACKGROUND_TASKS"] = "1"
         env["PATH"] = GUARD + os.pathsep + env.get("PATH", "")
         if tunables.read("VERI_SHIM_SET_COERCE") == "1":
             env.pop("VERI_SHIM_SET_COERCE", None)

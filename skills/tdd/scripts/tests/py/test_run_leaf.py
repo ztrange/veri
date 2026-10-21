@@ -132,6 +132,27 @@ def test_main_launch_limits_what_the_harness_loads_and_keeps_the_callers_argumen
         False, False)
 
 
+def test_main_launches_claude_with_background_tasks_disabled_whatever_the_callers_environment_holds_1939(
+        tmp_path, monkeypatch, capfd):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch)
+    _write_prompt(work, "do the step\n")
+    monkeypatch.setenv("CLAUDE_CODE_DISABLE_BACKGROUND_TASKS", "0")
+    seen = []
+    launches = []
+
+    def fake_popen(argv, *args, **kwargs):
+        seen.append(kwargs["env"].get("CLAUDE_CODE_DISABLE_BACKGROUND_TASKS"))
+        return _FakeLeaf(launches, argv, **kwargs)
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+
+    run_leaf.main(["prompt.txt"])
+    capfd.readouterr()
+
+    assert seen == ["1"]
+
+
 def _stream_of_what_the_real_claude_loads(argv, home, repo):
     """A stream shaped by the 2026-10-18 observation of the real binary under each flag."""
     import json
