@@ -312,3 +312,21 @@ def test_main_prints_the_same_totals_for_a_log_re_serialised_with_compact_separa
         return results
 
     assert totals((",", ":")) == totals((", ", ": "))
+
+
+def test_main_adds_nothing_for_a_line_that_is_not_a_json_object_and_still_counts_the_usage_lines_around_it(tmp_path, monkeypatch, capsys, step_cost):
+    def usage(cost):
+        return json.dumps({"ts": 1, "issue": "1975", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": cost})
+
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text("\n".join([
+        usage("0.30"),
+        "this is not json",
+        json.dumps([{"event": "usage", "step": "step one", "total_cost_usd": "5.00"}]),
+        usage("0.20"),
+    ]) + "\n")
+    monkeypatch.chdir(tmp_path)
+
+    code = step_cost.main(["step one"])
+
+    assert (code, capsys.readouterr().out) == (0, "0.50\n")
