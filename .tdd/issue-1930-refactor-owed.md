@@ -1,0 +1,2 @@
+### when `solvable-issues.sh` exits non-zero during a `--target` wait, watch-runs.sh exits 2 and writes that script's stderr to its own stderr, instead of reading the queue as empty and waiting on; an in-process unit case faking only the subprocess boundary ⟦criterion 2⟧
+- test-only | the timeout and slot-free parametrized cases (test_watch_runs.py:132-175) repeat the same clock and wait fake. A shared fixture or helper for the fake clock would remove it.
