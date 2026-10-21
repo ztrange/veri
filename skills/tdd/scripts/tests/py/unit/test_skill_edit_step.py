@@ -128,6 +128,8 @@ def test_apply_keeps_the_sections_of_an_existing_requirements_list_when_it_creat
 
 
 def test_a_veri_skill_edit_budget_that_is_not_a_whole_number_of_at_least_one_exits_2_before_any_grading_or_launch_and_the_shim_header_names_it(tmp_path, monkeypatch, run_cli):
+    import subprocess
+    import types
     from conftest import SCRIPTS
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -137,6 +139,11 @@ def test_a_veri_skill_edit_budget_that_is_not_a_whole_number_of_at_least_one_exi
     calls = []
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: calls.append("grade") or (1, "A1: FAIL - no\n"))
     monkeypatch.setattr(skill_edit_step, "_author", lambda *a: calls.append("author") or 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: calls.append("guard") or 0)
+    fake = types.SimpleNamespace(
+        run=lambda cmd, **kw: calls.append(" ".join(cmd[:2])) or subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""),
+        PIPE=subprocess.PIPE)
+    monkeypatch.setattr(skill_edit_step, "subprocess", fake)
 
     codes = {}
     for budget in ["", "0", "-1", "two", "1.5"]:
