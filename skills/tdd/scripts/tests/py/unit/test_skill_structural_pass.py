@@ -180,3 +180,7 @@ def test_refactor_overflow_script_and_module_no_longer_exist():
     scripts = SKILL.parent / "scripts"
     leftovers = [p for p in ("refactor-overflow.sh", "veri/refactor_overflow.py") if (scripts / p).exists()]
     assert leftovers == []
+
+
+def test_skill_md_s_structural_pass_checks_each_transform_s_commits_with_transform_touches_tests_sh_base_sha_bound():
+    requires(pass_text(), "transform-touches-tests.sh <base-sha> <bound>")
