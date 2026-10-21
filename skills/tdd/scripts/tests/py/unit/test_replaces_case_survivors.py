@@ -177,3 +177,9 @@ def test_main_exits_2_with_one_stderr_line_naming_the_step_when_the_suite_is_not
     assert out == ""
     assert len(err.splitlines()) == 1
     assert step in err
+
+
+def test_main_exits_3_with_nothing_printed_when_the_quoted_clause_has_no_suite_after_it_1954(run_cli, survivors):
+    step = "the replacement takes over: replaces 'a', 'b' ⟦replaces-case⟧ ⟦criterion 2⟧"
+
+    assert run_cli(survivors, [step]) == (3, "", "")
