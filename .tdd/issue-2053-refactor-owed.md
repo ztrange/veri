@@ -2,3 +2,5 @@
 - test-only | the `VERI_PYTEST_IMPORTABLE`/`VERI_PYTEST_TIMEOUT_IMPORTABLE`/`VERI_PYTEST_XDIST_IMPORTABLE` env dicts repeat across the cases in `test_pytest_leg.py`; a shared base dict could replace them
 ### `VERI_PYTEST_WORKERS=N` with N ≥ 2 hands pytest the parallel runner's worker option for N workers (`-n N`), and `VERI_PYTEST_WORKERS=1` runs serially, handing pytest exactly today's arguments with no worker option; in-process cases spying on `pytest.main` ⟦criterion 1⟧
 - test-only | test_pytest_leg.py repeats the VERI_PYTEST_IMPORTABLE/TIMEOUT_IMPORTABLE/XDIST_IMPORTABLE/WORKERS env dict across cases; a shared helper or fixture could replace it
+### With `VERI_PYTEST_WORKERS` unset or empty (read as `${VAR:-default}`), the pytest leg runs one worker per core available to the process, handing pytest `-n <cores>`, and runs serially (no worker option) when only one core is available; in-process cases with the core count stubbed ⟦criterion 1⟧
+- extract the worker-count expression in `pytest_leg.main` into a named helper (not duplication removal, so reported rather than applied)
