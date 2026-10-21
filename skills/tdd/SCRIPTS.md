@@ -47,8 +47,9 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   *via* `supervise.sh`, not on its own. Tunable: `VERI_LEAF_TOOLS` — when set, passes
   `--tools <value>` to `claude` (`grade-prose.sh` sets it empty, so its grader has no tools).
   It always sets `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` in `claude`'s environment, and sets
-  `BASH_DEFAULT_TIMEOUT_MS` and `BASH_MAX_TIMEOUT_MS` to the supervisor's hard cap (`VERI_TIMEOUT`
-  seconds, default 900) unless the caller already set them.
+  `BASH_DEFAULT_TIMEOUT_MS` and `BASH_MAX_TIMEOUT_MS` to the leaf's effective timeout, the one
+  `supervise.sh` enforces (`VERI_TIMEOUT`, else the run's `.tdd/issue-<n>-timeout`, else 900 s),
+  unless the caller already set them.
 - `$S/extract-result.sh` — pulls the final result text out of a leaf's stream-json (used
   by `run-leaf.sh`; passes plain text through unchanged).
 - `$S/build-develop-prompt.sh <red|green|refactor|cover|transform|diff|structural|predicate|revise|exhausted|reconcile|over-budget|rebase|replaces-report|red-contradicted|red-repair|red-missing|red-supersede|expand|migrate|contract-a|contract-b> …` — assemble a **developer** leaf's prompt from a
