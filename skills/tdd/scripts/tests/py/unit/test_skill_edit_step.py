@@ -290,3 +290,19 @@ def test_a_unit_with_no_requirements_list_run_against_an_issue_with_no_requireme
     code = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])[0]
 
     assert (code, (tmp_path / "unit.md").read_bytes()) == (3, b"The widget is painted a deep blue.\n")
+
+
+def test_apply_makes_the_issue_rows_the_new_list_beside_a_unit_with_no_requirements_list_1959(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "skills" / "veri-dev").mkdir(parents=True)
+    (tmp_path / "skills" / "veri-dev" / "SKILL.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### skills/veri-dev/SKILL.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n")
+
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "skills/veri-dev/SKILL.md")
+
+    rows = [l for l in (tmp_path / "skills" / "veri-dev" / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("| A")]
+    assert rows == ["| A1 | The widget is blue. | because |"], rows
