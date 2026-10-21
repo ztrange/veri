@@ -13,6 +13,7 @@ sys.dont_write_bytecode = True
 
 from context_limits import context_limits
 import event
+import github
 import launch_floor
 import tunables
 from git import symref_default
@@ -176,8 +177,10 @@ def launch(base, issue, commit, **exports):
             return 2
         paragraphs = [p for p in result.split("\n\n") if p.strip()]
         quoted = "\n".join("> " + line for line in (paragraphs[-1] if paragraphs else "").strip().splitlines())
-        subprocess.run(["gh", "issue", "comment", issue, "--body",
-                        "needs-user: the conductor stopped without a verdict.\n\n" + quoted], check=False)
+        try:
+            github.gh_issue_comment(issue, "needs-user: the conductor stopped without a verdict.\n\n" + quoted)
+        except github.NoAnswer:
+            pass
     return 141 if code == 0 and unread else code
 
 
