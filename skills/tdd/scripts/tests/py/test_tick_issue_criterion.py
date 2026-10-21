@@ -512,3 +512,23 @@ def test_cli_2027_ticks_the_box_after_a_fenced_block_holding_a_hash_and_a_double
 
     assert (result, patched) == ((0, "", ""), [
         "## Acceptance criteria\n\n```sh\n# shell comment\n## another\n```\n\n- [x] alpha after fence"])
+
+
+def test_cli_2027_writes_a_run_log_event_naming_the_matcher_when_no_unchecked_criterion_matched(monkeypatch, run_cli, tick_issue_criterion, tmp_path):
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    (tmp_path / ".git").mkdir()
+    body = AC + "- [ ] alpha\n"
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args == ["gh", "api", "repos/{owner}/{repo}/issues/7"]:
+            return subprocess.CompletedProcess(args, 0, json.dumps({"body": body}), "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, _, _ = run_cli(tick_issue_criterion, ["7", "zeta-matcher"], cwd=tmp_path)
+
+    log = tmp_path / ".tdd" / "events.jsonl"
+    lines = log.read_text().splitlines() if log.exists() else []
+    assert (code, [line for line in lines if "zeta-matcher" in line] != []) == (3, True)
