@@ -580,7 +580,7 @@ three times over branches its ledger pinned on later lines.
 
    A criterion about behaviour that lives in a guard suite (`tests/no-*.test.sh`) or a test helper
    a suite sources (such as `tests/lib/harness.sh`), so that only editing that file can meet it, is
-   marked `⟦guard-subject: <path>⟧`, naming that file: `tests-frozen.sh check --step` then lets Green
+   marked `⟦guard-subject: <path>⟧`, naming that file: the test freeze then lets Green
    edit it. The case pinning the behaviour stays frozen, and any other unrecorded test file is still flagged.
 
    An **interface change** — a production interface replaced by a new one, its callers moved
