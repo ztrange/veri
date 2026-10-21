@@ -373,3 +373,37 @@ def test_apply_moves_a_units_own_table_into_a_list_holding_only_another_units_se
     assert "## skills/veri-dev/SKILL.md" in text.splitlines(), text
     assert "| A1 | The widget is blue. | because |" in text.splitlines(), text
     assert "## Requirements" not in unit.read_text().splitlines(), unit.read_text()
+
+
+def test_a_guard_rejected_attempts_edits_to_the_unit_are_reset_before_the_next_author_attempt_1959(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    unit = tmp_path / "unit.md"
+    unit.write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    seen = []
+
+    def author(*a):
+        seen.append(unit.read_text())
+        unit.write_text("Edited by attempt %d.\n" % len(seen))
+        return 0
+
+    def guard(argv):
+        print("stray.md")
+        return 0
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A1: FAIL - no\n"))
+    monkeypatch.setattr(skill_edit_step, "_author", author)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", guard)
+    fake = types.SimpleNamespace(
+        run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""),
+        PIPE=subprocess.PIPE)
+    monkeypatch.setattr(skill_edit_step, "subprocess", fake)
+
+    run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"], env={"VERI_SKILL_EDIT_BUDGET": "2"})
+
+    assert seen == ["The widget is painted a deep blue.\n"] * 2, seen
