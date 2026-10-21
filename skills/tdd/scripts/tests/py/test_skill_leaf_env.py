@@ -41,9 +41,16 @@ PLACEHOLDERS = (
 )
 
 
-class Probe:
+class Shared:
     def __init__(self, root):
         self.root = root
+        self.stages = {}
+
+
+class Probe:
+    def __init__(self, root, shared=None):
+        self.root = root
+        self.shared = shared or Shared(root / "shared")
         self.stub = root / "stub"
         self.run = root / "run"
         self.stub.mkdir()
@@ -272,8 +279,8 @@ def write_executable(path, text):
 
 
 def recorder(probe, name, text):
-    directory = probe.root / "recorders"
-    directory.mkdir(exist_ok=True)
+    directory = probe.shared.root / "recorders"
+    directory.mkdir(parents=True, exist_ok=True)
     path = directory / name
     if not path.exists():
         write_executable(path, text)
@@ -296,23 +303,29 @@ def plant_done_ledger(tree, title):
     write_ledger(tree, f"- [x] {title}\n- [ ] a later step the run has not reached\n")
 
 
-def stage_recorder(probe, tag):
-    stage = probe.root / f"{tag}-scripts"
+def shared_stage(probe, titled):
+    shared = probe.shared
+    if titled not in shared.stages:
+        stage = shared.root / f"stage-{len(shared.stages)}-scripts"
+        stage.mkdir(parents=True)
+        for script in sorted(SCRIPTS.glob("*.sh")) + [SCRIPTS / "lib", SCRIPTS / "prompts", SCRIPTS / "veri"]:
+            if script.name != "detach-leaf.sh" and script.stem not in titled:
+                (stage / script.name).symlink_to(script)
+        (stage / "detach-leaf.sh").symlink_to(recorder(probe, "detach-leaf.sh", DETACH_RECORDER))
+        for script in titled:
+            if script == "ledger-steps":
+                (stage / "ledger-steps.sh").symlink_to(recorder(probe, "ledger-steps.sh", LEDGER_STEPS_RECORDER))
+            else:
+                (stage / f"{script}.sh").symlink_to(recorder(probe, "title.sh", TITLE_RECORDER))
+        shared.stages[titled] = stage
+    return shared.stages[titled]
+
+
+def stage_recorder(probe, tag, *titled):
     seen = probe.root / f"{tag}-seen"
     tree = probe.root / f"{tag}-tree"
-    stage.mkdir()
     (tree / ".tdd").mkdir(parents=True)
-    for script in sorted(SCRIPTS.glob("*.sh")) + [SCRIPTS / "lib", SCRIPTS / "prompts", SCRIPTS / "veri"]:
-        if script.name != "detach-leaf.sh":
-            (stage / script.name).symlink_to(script)
-    (stage / "detach-leaf.sh").symlink_to(recorder(probe, "detach-leaf.sh", DETACH_RECORDER))
-    return stage, seen, tree
-
-
-def stage_title_recorders(probe, stage, *scripts):
-    for script in scripts:
-        (stage / f"{script}.sh").unlink(missing_ok=True)
-        (stage / f"{script}.sh").symlink_to(recorder(probe, "title.sh", TITLE_RECORDER))
+    return shared_stage(probe, tuple(sorted(titled))), seen, tree
 
 
 def read_answer(path, default):
@@ -443,16 +456,13 @@ def scan_current_step_title(probe):
     if not hits:
         probe.problems.append(f"{SKILL_MD} has no line launching a leaf whose VERI_STEP reads the current step — the launch this case is about could not be found")
         return
-    ledger_steps = recorder(probe, "ledger-steps.sh", LEDGER_STEPS_RECORDER)
     for lineno, original in hits:
         launch = runnable(fill_supplied_leaf(original), title)
         if launch is None:
             probe.problem(lineno, fill_supplied_leaf(original), "names a placeholder this probe cannot supply, so its launch could not be run")
             continue
         leaf = supervise_arg(launch)
-        stage, seen, tree = stage_recorder(probe, f"current-step-title-{lineno}")
-        (stage / "ledger-steps.sh").unlink(missing_ok=True)
-        (stage / "ledger-steps.sh").symlink_to(ledger_steps)
+        stage, seen, tree = stage_recorder(probe, f"current-step-title-{lineno}", "ledger-steps")
         plant_ledger(tree, DECOY_STEP)
         pathlib.Path(f"{seen}.current").write_text(title + "\n")
         err, got, argv = run_staged(stage, seen, tree, launch, "<no leaf was launched>")
@@ -520,11 +530,10 @@ def scan_conductor_titles(probe):
     if not hits:
         probe.problems.append(f"{SKILL_MD} has no line launching the conductor's own marks, preserve-attempt.sh or tick calls — the launch this case is about could not be found")
         return
-    stage, _, _ = stage_recorder(probe, "conductor-title")
+    stage, _, _ = stage_recorder(probe, "conductor-title", *CONDUCTOR_CALLEES)
     bin_dir = probe.root / "conductor-title-bin"
     bin_dir.mkdir()
     write_executable(bin_dir / "gh", GH_STUB % CRITERION_TEXT)
-    stage_title_recorders(probe, stage, *CONDUCTOR_CALLEES)
     counter = [0]
     for lineno, text in hits:
         script = CONDUCTOR_CALLEE.search(text).group(1)
@@ -563,8 +572,7 @@ def scan_prompt_titles(probe):
     if not hits:
         probe.problems.append(f"{SKILL_MD} has no line launching build-develop-prompt.sh or add-ledger-step.sh — the launch this case is about could not be found")
         return
-    stage, _, _ = stage_recorder(probe, "prompt-title")
-    stage_title_recorders(probe, stage, "build-develop-prompt", "add-ledger-step")
+    stage, _, _ = stage_recorder(probe, "prompt-title", "build-develop-prompt", "add-ledger-step")
     counter = [0]
     for lineno, text in hits:
         script = PROMPT_CALLEE.search(text).group(1)
@@ -660,8 +668,7 @@ def scan_rebase_verifier_last_done(probe, tag, by_env):
 
 def scan_develop_last_done(probe, phase, source=None):
     title = EXPANDING_STEP
-    stage, seen, tree = stage_recorder(probe, f"develop-{phase}-last-done")
-    stage_title_recorders(probe, stage, "build-develop-prompt")
+    stage, seen, tree = stage_recorder(probe, f"develop-{phase}-last-done", "build-develop-prompt")
     plant_every_step_ticked_ledger(tree, title)
     lineno, line = first_line(rf"\$S/build-develop-prompt\.sh {phase} .*> \.tdd/develop-{phase}\.prompt", source)
     if lineno is None:
@@ -686,8 +693,7 @@ def scan_develop_last_done(probe, phase, source=None):
 
 def scan_revise_last_done(probe):
     title = EXPANDING_STEP
-    stage, seen, tree = stage_recorder(probe, "revise-last-done")
-    stage_title_recorders(probe, stage, "build-develop-prompt", "event")
+    stage, seen, tree = stage_recorder(probe, "revise-last-done", "build-develop-prompt", "event")
     plant_every_step_ticked_ledger(tree, title)
     patterns = {
         "mark": r"\$S/event\.sh revise budget=",
@@ -723,8 +729,7 @@ def scan_revise_diff_last_done(probe):
     launch = take_line(probe, lineno, line, title)
     if launch is None:
         return
-    stage, seen, tree = stage_recorder(probe, "revise-diff-last-done")
-    stage_title_recorders(probe, stage, "build-develop-prompt")
+    stage, seen, tree = stage_recorder(probe, "revise-diff-last-done", "build-develop-prompt")
     plant_every_step_ticked_ledger(tree, title)
     err, _, _ = run_staged(stage, seen, tree, launch, "<no prompt was built>")
     check_prompt_step(probe, lineno, line, seen, title, err, "revise diff")
@@ -732,8 +737,7 @@ def scan_revise_diff_last_done(probe):
 
 def scan_exhausted_last_done(probe):
     title = EXPANDING_STEP
-    stage, seen, tree = stage_recorder(probe, "exhausted-last-done")
-    stage_title_recorders(probe, stage, "build-develop-prompt", "event")
+    stage, seen, tree = stage_recorder(probe, "exhausted-last-done", "build-develop-prompt", "event")
     plant_every_step_ticked_ledger(tree, title)
     patterns = {
         "prompt": r"\$S/build-develop-prompt\.sh exhausted .*> \.tdd/develop-exhausted\.prompt",
@@ -761,8 +765,7 @@ def scan_exhausted_last_done(probe):
 
 def scan_bail_last_done(probe):
     title = EXPANDING_STEP
-    stage, seen, tree = stage_recorder(probe, "bail-last-done")
-    stage_title_recorders(probe, stage, "preserve-attempt", "event")
+    stage, seen, tree = stage_recorder(probe, "bail-last-done", "preserve-attempt", "event")
     plant_every_step_ticked_ledger(tree, title)
     patterns = {
         "preserve": r"\$S/preserve-attempt\.sh <n> .* <phase> <attempt> bail$",
@@ -790,8 +793,7 @@ def scan_bail_last_done(probe):
 
 def scan_event_mark_last_done(probe, tag, pattern, shape, mark, fills=(), source=None):
     title = EXPANDING_STEP
-    stage, seen, tree = stage_recorder(probe, tag)
-    stage_title_recorders(probe, stage, "event")
+    stage, seen, tree = stage_recorder(probe, tag, "event")
     plant_every_step_ticked_ledger(tree, title)
     hits = numbered_lines(pattern, None if source is None else source.read_text())[:1]
     lineno, line = hits[0] if hits else (None, None)
@@ -810,8 +812,7 @@ def scan_event_mark_last_done(probe, tag, pattern, shape, mark, fills=(), source
 
 def scan_resume_last_done(probe):
     title = EXPANDING_STEP
-    stage, seen, tree = stage_recorder(probe, "resume-last-done")
-    stage_title_recorders(probe, stage, "event")
+    stage, seen, tree = stage_recorder(probe, "resume-last-done", "event")
     plant_every_step_ticked_ledger(tree, title)
     lineno = line = None
     for n, text in enumerate(SKILL.with_name("RESUME.md").read_text().split("\n"), 1):
@@ -882,9 +883,14 @@ def scripts_before():
     return scripts_fingerprint()
 
 
+@pytest.fixture(scope="module")
+def shared_stages(tmp_path_factory):
+    return Shared(tmp_path_factory.mktemp("stages"))
+
+
 @pytest.fixture
-def probe(tmp_path, scripts_before):
-    return Probe(tmp_path)
+def probe(tmp_path, scripts_before, shared_stages):
+    return Probe(tmp_path, shared_stages)
 
 
 @pytest.mark.process("SKILL.md launch line through supervise.sh")
@@ -1252,8 +1258,7 @@ def test_each_distinct_recorder_is_written_once_per_suite_run_and_every_stage_re
     titled = ("event", "build-develop-prompt")
     first = None
     for tag in ("a", "b"):
-        stage, _, tree = stage_recorder(probe, f"shared-recorders-{tag}")
-        stage_title_recorders(probe, stage, *titled)
+        stage, _, tree = stage_recorder(probe, f"shared-recorders-{tag}", *titled)
         first = first or stage
     for name in ("detach-leaf", *titled):
         if not ((first / f"{name}.sh").is_symlink() and (stage / f"{name}.sh").is_symlink()):
@@ -1348,8 +1353,7 @@ def test_no_launch_line_in_skill_md_is_launched_more_than_once_per_ledger_shape_
 @pytest.mark.timeout(120)
 def test_a_recorder_replaces_a_stage_s_link_rather_than_writing_through_it_so_the_suite_leaves_every_script_under_skills_tdd_scripts_byte_identical(probe, scripts_before):
     before = scripts_before
-    stage, _, _ = stage_recorder(probe, "untouched")
-    stage_title_recorders(probe, stage, "event", "build-develop-prompt")
+    stage, _, _ = stage_recorder(probe, "untouched", "event", "build-develop-prompt")
     scan_step_title(probe, EXPANDING_STEP, "untouched-run")
     after = scripts_fingerprint()
     for name in sorted(name for name in before.keys() | after.keys() if before.get(name) != after.get(name)):
