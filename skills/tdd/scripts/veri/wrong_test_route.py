@@ -71,6 +71,7 @@ def _named_cases(report):
         yield from re.findall(r"\btest_\w+", line)
         yield from re.findall(r"`([^`]+)`", line)
         yield from re.findall(r'"([^"]+)"', line)
+        yield from re.findall(r"“([^”]+)”", line)
 
 
 def _case_name(test_id):
