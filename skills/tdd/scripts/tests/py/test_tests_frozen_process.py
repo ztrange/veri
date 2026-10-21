@@ -722,6 +722,26 @@ def test_record_step_for_a_red_whose_only_test_change_deletes_a_tracked_test_fil
     assert (code, out, record) == (0, "", "deleted  tests/test_old.py\n")
 
 
+@pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
+def test_check_step_exits_1_naming_the_old_name_when_green_restores_a_test_file_red_renamed_with_git_mv_1960(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_old.py").write_text("one\ntwo\nthree\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one renames a test file"
+    git(tmp_path, "mv", "tests/test_old.py", "tests/test_new.py")
+    run_cli(tests_frozen, ["record", "--step", step], cwd=tmp_path)
+
+    (tmp_path / "tests/test_old.py").write_text("one\ntwo\nthree\n")
+    git(tmp_path, "add", "tests/test_old.py")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    assert (code, out) == (1, "tests/test_old.py\n")
+
+
 @pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
 def test_record_step_lists_the_pytest_function_red_edited_below_a_finish_line_inside_its_multiline_string_1773(
         tmp_path, run_cli, tests_frozen):

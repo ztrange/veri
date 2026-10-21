@@ -43,7 +43,7 @@ def _refused_outside_repository():
 
 def _differing_tests():
     names = []
-    for command in (["git", "diff", "--name-only", "-z", "HEAD"],
+    for command in (["git", "diff", "--name-only", "--no-renames", "-z", "HEAD"],
                     ["git", "ls-files", "--others", "--exclude-standard", "--full-name", "-z", ":/"]):
         for raw in subprocess.run(command, stdout=subprocess.PIPE).stdout.split(b"\0"):
             if raw and TEST_FILE.search(raw):
