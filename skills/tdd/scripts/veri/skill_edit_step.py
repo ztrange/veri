@@ -33,9 +33,9 @@ def _requirements_lines(issue):
             yield heading, line
 
 
-def _issue_rows(issue, name):
+def _issue_rows(issue, unit):
     rows = [line for heading, line in _requirements_lines(issue)
-            if heading in (name, name + " (new)") and line.startswith("|")]
+            if heading in (unit, unit + " (new)") and line.startswith("|")]
     return rows[2:]
 
 
