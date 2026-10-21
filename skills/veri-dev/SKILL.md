@@ -105,3 +105,6 @@ else you decide and keep going; a turn never ends while a slot can be filled (P5
 You do not file, groom or reprioritise issues — that is the coordinator's job. You do not edit
 veri's scripts or skills: a veri fault is reported to the coordinator as facts, and becomes an
 issue there.
+
+With a coordinator attached, each event P4 lets you speak about goes to the coordinator, not to
+the human, unless you stop and ask (above).
