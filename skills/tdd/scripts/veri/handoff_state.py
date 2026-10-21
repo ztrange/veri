@@ -39,8 +39,11 @@ def open_prs(fields, *extra):
         if extra:
             pulls = [pr for pr in pulls if pr.get("head", {}).get("ref") == extra[-1]]
         return with_draft_flag(pulls)
-    driver = tunables.read("VERI_GH_DRIVER")
-    if driver in (None, "", "rest"):
+    driver = tunables.read("VERI_GH_DRIVER", "rest")
+    if driver not in ("rest", "graphql", "auto"):
+        print("VERI_GH_DRIVER is '%s': expected auto, rest or graphql" % driver, file=sys.stderr)
+        raise github.NoAnswer("")
+    if driver == "rest":
         return rest_open_prs(*extra)
     try:
         answer = github.GraphQLAdapter().list("pr", "list", *extra, "--state", "open", "--json", fields)
