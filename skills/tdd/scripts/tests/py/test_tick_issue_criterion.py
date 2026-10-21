@@ -6,6 +6,8 @@ import subprocess
 
 import pytest
 
+AC = "## Acceptance criteria\n\n"
+
 
 @pytest.fixture
 def tick_issue_criterion():
@@ -32,7 +34,7 @@ def test_main_returns_3_with_no_patch_and_names_the_matcher_and_issue_when_no_un
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
         if args[:3] == ["gh", "issue", "view"]:
-            return subprocess.CompletedProcess(args, 0, "- [ ] alpha\n", "")
+            return subprocess.CompletedProcess(args, 0, AC + "- [ ] alpha\n", "")
         if args[:4] == ["gh", "api", "-X", "PATCH"]:
             patches.append(args)
             return subprocess.CompletedProcess(args, 0, "", "")
@@ -50,7 +52,7 @@ def test_main_returns_3_with_no_patch_and_names_the_matcher_and_issue_when_no_un
 def test_main_ticks_the_box_and_patches_the_stripped_body_through_gh_api_reading_either_route(monkeypatch, capsys, tick_issue_criterion):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     real_run = subprocess.run
-    body = "- [ ] alpha\n- [ ] beta\n\n\n"
+    body = AC + "- [ ] alpha\n- [ ] beta\n\n\n"
 
     def run_case(argv, view_ok):
         calls = []
@@ -82,23 +84,23 @@ def test_main_ticks_the_box_and_patches_the_stripped_body_through_gh_api_reading
 
     assert run_case(["7", "alpha"], True) == (0, "", [
         ("view", "7"),
-        ("patch", "repos/{owner}/{repo}/issues/7", "- [x] alpha\n- [ ] beta")], [])
+        ("patch", "repos/{owner}/{repo}/issues/7", AC + "- [x] alpha\n- [ ] beta")], [])
     assert run_case(["7", "alpha"], False) == (0, "", [
         ("view", "7"), ("api", "repos/{owner}/{repo}/issues/7"),
-        ("patch", "repos/{owner}/{repo}/issues/7", "- [x] alpha\n- [ ] beta")], [])
+        ("patch", "repos/{owner}/{repo}/issues/7", AC + "- [x] alpha\n- [ ] beta")], [])
     assert run_case(["7"], True) == (0, "", [
         ("view", "7"),
-        ("patch", "repos/{owner}/{repo}/issues/7", "- [x] alpha\n- [ ] beta")], [])
+        ("patch", "repos/{owner}/{repo}/issues/7", AC + "- [x] alpha\n- [ ] beta")], [])
     assert run_case(["abc", "alpha", "extra"], True) == (0, "", [
         ("view", "abc"),
-        ("patch", "repos/{owner}/{repo}/issues/abc", "- [x] alpha\n- [ ] beta")], [])
+        ("patch", "repos/{owner}/{repo}/issues/abc", AC + "- [x] alpha\n- [ ] beta")], [])
 
 
 def test_main_keeps_every_failure_path_inside_0_to_3_and_lets_an_uncaught_exception_propagate(monkeypatch, capsys, tick_issue_criterion):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     real_run = subprocess.run
 
-    def run_case(argv, view=(0, "- [ ] alpha\n"), api=(0, json.dumps({"body": "- [ ] alpha"})), patch=0):
+    def run_case(argv, view=(0, AC + "- [ ] alpha\n"), api=(0, json.dumps({"body": AC + "- [ ] alpha"})), patch=0):
         patches = []
 
         def fake_run(args, **kwargs):
@@ -124,7 +126,7 @@ def test_main_keeps_every_failure_path_inside_0_to_3_and_lets_an_uncaught_except
     assert run_case(["7", "alpha"], view=(1, ""), api=(0, "")) == (
         2, "", "json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\n", 0)
     assert run_case(["7", "alpha"], patch=1) == (2, "", "", 1)
-    assert run_case(["7", ""], view=(0, "- [x] alpha\n")) == (
+    assert run_case(["7", ""], view=(0, AC + "- [x] alpha\n")) == (
         3, "", "tick-issue-criterion: no unchecked criterion matched '' on #7\n", 0)
 
     def explode(args, **kwargs):
@@ -144,7 +146,7 @@ def test_main_gives_its_full_answer_when_every_process_start_but_gh_is_refused(m
         def fake_run(args, **kwargs):
             args = [str(arg) for arg in args]
             if args[:3] == ["gh", "issue", "view"]:
-                return subprocess.CompletedProcess(args, 0, "- [ ] alpha\n- [ ] beta\n", "")
+                return subprocess.CompletedProcess(args, 0, AC + "- [ ] alpha\n- [ ] beta\n", "")
             if args[:4] == ["gh", "api", "-X", "PATCH"]:
                 with open(args[6][len("body=@"):]) as f:
                     patched.append(f.read())
@@ -160,7 +162,7 @@ def test_main_gives_its_full_answer_when_every_process_start_but_gh_is_refused(m
         captured = capsys.readouterr()
         return code, captured.out, captured.err, patched
 
-    assert run_case("beta") == (0, "", "", ["- [ ] alpha\n- [x] beta"])
+    assert run_case("beta") == (0, "", "", [AC + "- [ ] alpha\n- [x] beta"])
     assert run_case("zeta") == (3, "", "tick-issue-criterion: no unchecked criterion matched 'zeta' on #7\n", [])
 
 
@@ -178,7 +180,7 @@ def test_main_returns_2_after_reaching_the_body_patch_when_graphql_is_refused_an
             calls.append("patch")
             return subprocess.CompletedProcess(args, 1, "", "HTTP 502: Bad Gateway\n")
         if args == ["gh", "api", "repos/{owner}/{repo}/issues/7"]:
-            return subprocess.CompletedProcess(args, 0, json.dumps({"number": 7, "labels": [], "body": "- [ ] the criterion\n\n## Blocked by\n\nNone\n"}), "")
+            return subprocess.CompletedProcess(args, 0, json.dumps({"number": 7, "labels": [], "body": AC + "- [ ] the criterion\n\n## Blocked by\n\nNone\n"}), "")
         if args[0] == "gh":
             raise AssertionError("unexpected gh call: %r" % (args,))
         return real_run(args, **kwargs)
@@ -205,7 +207,7 @@ def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_directory
     (stub / "gh").chmod(0o755)
     (tmp_path / "linked-skill").symlink_to(os.path.dirname(scripts))
     (tmp_path / "elsewhere").mkdir()
-    body = "- [ ] alpha criterion\n- [ ] beta criterion"
+    body = AC + "- [ ] alpha criterion\n- [ ] beta criterion"
 
     def run(script, cwd, out):
         env = dict(os.environ, VERI_GH_DRIVER="auto", FAKE_BODY=body, FAKE_OUT=str(out),
@@ -217,7 +219,7 @@ def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_directory
     linked = run(str(tmp_path / "linked-skill" / "scripts" / "tick-issue-criterion.sh"),
                  tmp_path / "elsewhere", tmp_path / "linked-edit")
 
-    assert in_place == (0, "", "", "- [x] alpha criterion\n- [ ] beta criterion")
+    assert in_place == (0, "", "", AC + "- [x] alpha criterion\n- [ ] beta criterion")
     assert linked == in_place
 
 
@@ -229,13 +231,13 @@ def _rest_only_gh(monkeypatch, patch_status=0):
         args = [str(arg) for arg in args]
         calls.append(args)
         if args == ["gh", "api", "repos/{owner}/{repo}/issues/7"]:
-            return subprocess.CompletedProcess(args, 0, json.dumps({"body": "- [ ] alpha\n- [ ] beta\n"}), "")
+            return subprocess.CompletedProcess(args, 0, json.dumps({"body": AC + "- [ ] alpha\n- [ ] beta\n"}), "")
         if args[:5] == ["gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/7"]:
             with open(args[6][len("body=@"):]) as f:
                 patched.append(f.read())
             return subprocess.CompletedProcess(args, patch_status, "", "")
         if args[:3] == ["gh", "issue", "view"]:
-            return subprocess.CompletedProcess(args, 0, "- [ ] read over graphql\n", "")
+            return subprocess.CompletedProcess(args, 0, AC + "- [ ] read over graphql\n", "")
         raise AssertionError("unexpected command: %r" % (args,))
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -249,7 +251,7 @@ def test_cli_ticks_over_rest_only_with_no_issue_view_call_when_veri_gh_driver_is
     result = run_cli(tick_issue_criterion, ["7", "beta"])
 
     assert [call for call in calls if call[:2] != ["gh", "api"]] == []
-    assert (result, patched) == ((0, "", ""), ["- [ ] alpha\n- [x] beta"])
+    assert (result, patched) == ((0, "", ""), [AC + "- [ ] alpha\n- [x] beta"])
 
 
 def test_cli_ticks_with_the_same_gh_calls_exit_and_patched_body_when_gh_repo_is_set(monkeypatch, run_cli, tick_issue_criterion):
@@ -263,7 +265,7 @@ def test_cli_ticks_with_the_same_gh_calls_exit_and_patched_body_when_gh_repo_is_
         calls, patched = _rest_only_gh(monkeypatch)
         answers.append((run_cli(tick_issue_criterion, ["7", "alpha"]), patched, [call[:5] for call in calls]))
 
-    assert answers[0] == ((0, "", ""), ["- [x] alpha\n- [ ] beta"], [
+    assert answers[0] == ((0, "", ""), [AC + "- [x] alpha\n- [ ] beta"], [
         ["gh", "api", "repos/{owner}/{repo}/issues/7"],
         ["gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/7"]])
     assert answers[1] == answers[0]
@@ -276,7 +278,7 @@ def test_cli_exits_2_with_nothing_on_stdout_when_the_body_patch_exits_with_statu
 
     code, out, _ = run_cli(tick_issue_criterion, ["7", "alpha"])
 
-    assert (code, out, patched) == (2, "", ["- [x] alpha\n- [ ] beta"])
+    assert (code, out, patched) == (2, "", [AC + "- [x] alpha\n- [ ] beta"])
 
 
 def test_cli_1979_exits_3_and_patches_nothing_when_the_only_matching_unchecked_box_is_outside_acceptance_criteria(monkeypatch, run_cli, tick_issue_criterion):
