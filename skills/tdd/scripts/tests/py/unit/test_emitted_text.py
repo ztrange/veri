@@ -53,7 +53,7 @@ USAGE = [
     ("3019634167 120", "verify.sh", []),
     ("3132011146 48", "wait-leaf.sh", []),
     ("3345015868 167", "add-ledger-step.sh", [".tdd/issue-1.md", "after", "anchor"]),
-    ("1563850127 281", "build-develop-prompt.sh", ["green", "spec", "step"]),
+    ("3163156503 351", "build-develop-prompt.sh", ["green", "spec", "step"]),
     ("217537457 94", "build-verify-prompt.sh", ["green"]),
     ("217537457 94", "build-verify-prompt.sh", ["green", "spec"]),
     ("2618584748 136", "build-verify-prompt.sh", ["--step"]),
