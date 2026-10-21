@@ -21,7 +21,17 @@ def main(argv):
     except NoAnswer:
         return 2
     lines = body.replace("\0", "").split("\n")
-    start = next((i + 1 for i, line in enumerate(lines) if line.strip() == HEADING), 0)
+    start, fence = 0, ""
+    for i, line in enumerate(lines):
+        s = line.strip()
+        if fence:
+            if s.startswith(fence) and not s.strip(fence[0]):
+                fence = ""
+        elif s[:3] in ("```", "~~~"):
+            fence = s[0] * (len(s) - len(s.lstrip(s[0])))
+        elif s == HEADING:
+            start = i + 1
+            break
     end = next((i for i in range(start, len(lines)) if start and lines[i].startswith("## ")), len(lines))
     ticked, section = ledger.ledger_tick("\n".join(lines[start:end]), matcher) if start else (False, "")
     if not ticked:
