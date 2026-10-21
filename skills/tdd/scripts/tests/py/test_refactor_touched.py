@@ -298,3 +298,20 @@ def test_a_shim_run_through_a_symlink_and_from_another_cwd_answers_as_in_place(t
     assert run(in_place, code_commit, repo) == (0, "lib/alpha.test.sh,src/zeta.sh\n")
     assert run(linked, code_commit, repo / "elsewhere") == (0, "lib/alpha.test.sh,src/zeta.sh\n")
     assert run(linked, ledger_only, repo / "elsewhere") == (3, "")
+
+
+@pytest.mark.process("git over a scratch repository with an issue range and a candidate naming tracked files")
+def test_issue_with_a_candidate_adds_each_tracked_file_it_names_by_path_or_unique_basename_once(
+        tmp_path, refactor_touched, run_cli):
+    repo = new_repo(tmp_path / "candidate")
+    base = commit_all(repo, "plan: scope #17", **{
+        ".tdd__issue-17.md": "- [ ] a step\n", "lib__gamma.sh": "gamma\n", "docs__delta.sh": "delta\n",
+        "a__util.sh": "a\n", "b__util.sh": "b\n", "other__quiet.sh": "quiet\n"})
+    commit_all(repo, "feat: a step (#17)", **{"src__zeta.sh": "zeta\n"})
+    candidate = "extract the helper from src/zeta.sh into lib/gamma.sh, then reuse delta.sh and util.sh; ghost.sh too"
+
+    code, out, err = run_cli(refactor_touched, ["--issue", base, "--candidate", candidate], cwd=repo)
+    assert (code, err) == (0, "")
+    files = out.strip().split(",")
+    assert (len(files), sorted(files)) == (3, ["docs/delta.sh", "lib/gamma.sh", "src/zeta.sh"])
+    assert run_cli(refactor_touched, ["--issue", base], cwd=repo) == (0, "src/zeta.sh\n", "")

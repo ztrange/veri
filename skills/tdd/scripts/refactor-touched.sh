@@ -4,7 +4,7 @@
 #
 # The ledger under `.tdd/` is run state, not code a refactor may tidy, so it is left out.
 #
-# usage: refactor-touched.sh <commit> | --issue <base>
+# usage: refactor-touched.sh <commit> | --issue <base> [--candidate <text>]
 #
 # Prints the touched files comma-joined, in `git diff --name-only` order: those <commit>
 # touched, or with `--issue` every file changed between <base> and HEAD.
