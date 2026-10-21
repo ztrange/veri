@@ -2364,3 +2364,14 @@ def test_main_refuses_a_fixture_repair_step_in_green_with_exit_2_naming_the_fixt
 
     assert (code, *capsysbinary.readouterr()) == (
         2, b"", f"build-develop-prompt: cannot read '{scripts / 'prompts' / '_develop-green-fixture-repair.md'}'\n".encode())
+
+
+def test_main_accepts_exactly_the_phases_in_phases_and_want_has_exactly_their_keys_1890(capsysbinary, build_develop_prompt):
+    unknown = {}
+    for phase in (*build_develop_prompt.PHASES, "bogus"):
+        build_develop_prompt.main([phase])
+        unknown[phase] = b"unknown phase" in capsysbinary.readouterr().err
+
+    assert unknown == {**dict.fromkeys(build_develop_prompt.PHASES, False), "bogus": True}
+    assert set(build_develop_prompt.WANT) == set(build_develop_prompt.PHASES)
+    assert len(build_develop_prompt.PHASES) == len(set(build_develop_prompt.PHASES))
