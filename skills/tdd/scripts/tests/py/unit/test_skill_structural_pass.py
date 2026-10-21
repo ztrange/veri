@@ -188,3 +188,7 @@ def test_skill_md_s_structural_pass_checks_each_transform_s_commits_with_transfo
 
 def test_skill_md_s_structural_pass_computes_each_candidate_s_bound_with_refactor_touched_sh_issue_issue_base_candidate_candidate():
     requires(pass_text(), "refactor-touched.sh --issue <issue-base> --candidate '<candidate>'")
+
+
+def test_skill_md_s_structural_pass_records_a_candidate_the_budget_stops_with_refactor_owed_sh_not_done_and_reason_budget_spent():
+    requires(pass_text(), "refactor-owed.sh not-done .tdd/issue-<n>-refactor-owed.md '<candidate>' budget-spent")
