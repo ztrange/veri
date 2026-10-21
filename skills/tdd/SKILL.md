@@ -564,6 +564,8 @@ three times over branches its ledger pinned on later lines.
 
    For each criterion that changes a unit with a requirements list, or for each unit an issue's `## Requirements` section names, the plan holds one `⟦skill-edit⟧` step naming the unit. Never plan Red, Green or Refactor steps that edit such a unit.
 
+   On a `⟦skill-edit⟧` step, `Read` `<base directory>/SKILL-EDIT.md` and run it in place of Red, Green and Refactor.
+
    A criterion replacing an implementation case under ADR 0027 with a pytest case asserting
    the same behaviour is planned as one step marked `⟦replaces-case⟧`, naming the suite path
    and a list of that suite's cases, each by its exact name: `- [ ] <criterion>: replaces
