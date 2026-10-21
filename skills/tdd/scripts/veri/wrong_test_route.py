@@ -38,7 +38,7 @@ def is_js_test_file(name, root=""):
 def _live_call(pattern, text):
     def code(prefix):
         return re.sub(r"\"[^\"]*\"|'[^']*'|`[^`]*`", "", prefix)
-    return [m.group(1) for m in pattern.finditer(text)
+    return [m.group(2) for m in pattern.finditer(text)
             if "//" not in code(text[text.rfind("\n", 0, m.start()) + 1:m.start()])]
 
 
@@ -48,8 +48,8 @@ def _cut_prefix(case):
 
 def _js_title_pattern(case):
     prefix = _cut_prefix(case)
-    title = "(%s[^'\"]*)" % re.escape(prefix) if prefix is not None else "(%s)" % re.escape(case)
-    return re.compile(r"\b(?:it|test)(?:\.(?:only|skip))?(?:\.each(?:\([^)]*\)|`[^`]*`))?\(\s*['\"]" + title + r"['\"]")
+    title = "(%s(?:(?!\\1).)*)" % re.escape(prefix) if prefix is not None else "(%s)" % re.escape(case)
+    return re.compile(r"\b(?:it|test)(?:\.(?:only|skip))?(?:\.each(?:\([^)]*\)|`[^`]*`))?\(\s*(['\"])" + title + r"\1")
 
 
 def _exists(case):
