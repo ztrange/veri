@@ -20,8 +20,10 @@ def read_events(path, skip_unreadable=False):
                 if skip_unreadable:
                     continue
                 raise
-            if skip_unreadable and not isinstance(event, dict):
-                continue
+            if not isinstance(event, dict):
+                if skip_unreadable:
+                    continue
+                raise ValueError("not a JSON object: " + raw.strip())
             events.append(event)
     return events
 
