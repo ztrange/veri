@@ -90,7 +90,7 @@ def apply(issue, unit):
     if rows and not os.path.exists(unit):
         _create(unit, path, unit, rows)
         return True
-    if not rows and not os.path.exists(path):
+    if not rows and not (os.path.exists(path) and requirements.claims(path, unit)):
         return moved
     if not os.path.exists(path):
         _write_list(path, unit, rows)
