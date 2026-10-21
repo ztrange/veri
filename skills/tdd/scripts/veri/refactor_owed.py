@@ -7,6 +7,8 @@ from collections import Counter
 from candidates import CLASSES, candidate
 
 USAGE = ("refactor-owed: usage: refactor-owed.sh append <file> '<STEP>' < leaf-report.txt\n"
+         "                      refactor-owed.sh applied <file> '<transform>' <sha> '<subject>'\n"
+         "                      refactor-owed.sh not-done <file> '<candidate>' <reason>\n"
          "                      refactor-owed.sh render <file>\n"
          "                      refactor-owed.sh list <file>")
 
