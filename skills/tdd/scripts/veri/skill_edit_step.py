@@ -38,12 +38,16 @@ def _write(path, lines):
         f.write("\n".join(lines))
 
 
+def _trimmed(lines):
+    while lines and lines[-1] == "":
+        lines.pop()
+    return lines
+
+
 def _create(unit, path, name, rows):
     open(unit, "w").close()
     head = ["## " + name, "", "| ID | Requirement | Why |", "|---|---|---|"]
-    existing = requirements.read_lines(path) if os.path.exists(path) else []
-    while existing and existing[-1] == "":
-        existing.pop()
+    existing = _trimmed(requirements.read_lines(path)) if os.path.exists(path) else []
     _write(path, existing + [""] * bool(existing) + head + rows + [""])
 
 
@@ -57,10 +61,7 @@ def _move_table(unit, path, name):
     if not table:
         return False
     _write(path, ["## " + name, ""] + table + [""])
-    rest = lines[:start] + lines[end:]
-    while rest and rest[-1] == "":
-        rest.pop()
-    _write(unit, rest + [""])
+    _write(unit, _trimmed(lines[:start] + lines[end:]) + [""])
     return True
 
 
