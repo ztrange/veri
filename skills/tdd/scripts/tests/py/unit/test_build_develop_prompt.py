@@ -463,8 +463,8 @@ def test_main_substitutes_every_placeholder_sequentially_globally_and_literally_
         at = next((i for i, line in enumerate(lines) if b"timed-test-run.sh fast" in line), len(lines))
         results[key] = (code, lines[at:at + 2], err)
         expected[key] = (0, [b"       " + here + b"/timed-test-run.sh fast '' " + fast.encode(),
-                             b"       " + here + b"/timed-test-run.sh affected '<the suites affected-suites.sh "
-                             b"printed>' make test TESTS=\"<those paths>\""], b"")
+                             b"       " + here + b"/timed-test-run.sh affected '<the suites you ran>' "
+                             b"make test TESTS=\"<those paths>\""], b"")
 
     assert results == expected
 
