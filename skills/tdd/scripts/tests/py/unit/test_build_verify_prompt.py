@@ -1965,3 +1965,26 @@ def test_plan_prompt_rejects_a_fixture_repair_step_with_the_defect_in_the_script
     assert "whose spec places the defect in the script under test" in rule
     assert "names no fixture" in rule
     assert "whose fixture file is not a test file" in rule
+
+
+def test_main_exits_2_naming_the_fixture_repair_partial_when_it_is_missing_for_a_marked_green_step_1021(
+        tmp_path, capsysbinary):
+    scripts = tmp_path / "scripts"
+    (scripts / "veri").mkdir(parents=True)
+    (scripts / "prompts").mkdir()
+    (scripts / "veri" / "build_verify_prompt.py").write_bytes((SCRIPTS / "veri" / "build_verify_prompt.py").read_bytes())
+    for name in ("verify-green.md", "_shared.md"):
+        (scripts / "prompts" / name).write_bytes(b"x\n")
+    loader = importlib.util.spec_from_file_location("build_verify_prompt_no_fixture_partial",
+                                                    scripts / "veri" / "build_verify_prompt.py")
+    module = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(module)
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    step = ("the case passes under load: repairs the fixture 'awake-clock' in tests/zorblat.test.sh, "
+            "reproduced by a case in tests/zorblat.test.sh ⟦fixture-repair⟧ ⟦criterion 1⟧")
+
+    code = module.main(["--step", step, "--fast-cmd", "make unit", "green", str(spec), "t.py", "test_x"])
+
+    assert (code, *capsysbinary.readouterr()) == (
+        2, b"", f"build-verify-prompt: cannot read '{scripts / 'prompts' / '_verify-green-fixture-repair.md'}'\n".encode())
