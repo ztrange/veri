@@ -89,6 +89,9 @@ def main(argv):
     if mode == "record":
         files = argv[2:]
         in_step_repository = by_step and _in_repository()
+        if by_step and not in_step_repository:
+            _write(sys.stderr, "tests-frozen.sh: not inside a git repository")
+            return 2
         deleted = []
         if in_step_repository:
             for name in _differing_tests():
@@ -110,6 +113,9 @@ def main(argv):
             return 2
         return 0
     if mode == "check":
+        if by_step and not _in_repository():
+            _write(sys.stderr, "tests-frozen.sh: not inside a git repository")
+            return 2
         try:
             with open(record) as handle:
                 entries = [line.rstrip("\n").split("  ", 1) for line in handle
@@ -132,9 +138,6 @@ def main(argv):
             except OSError:
                 changed.append(name)
         if by_step:
-            if not _in_repository():
-                _write(sys.stderr, "tests-frozen.sh: not inside a git repository")
-                return 2
             recorded = {name for _, name in entries}
             parsed = replaces_case.parse(step) if replaces_case.is_replaces_case_step(step) else None
             exempt = {parsed[1]} if parsed else set()
