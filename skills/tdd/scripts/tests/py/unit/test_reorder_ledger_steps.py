@@ -136,3 +136,20 @@ def test_reorder_ledger_steps_a_position_other_than_before_or_after_exits_2(tmp_
 
     assert code == 2
     assert ledger.read_bytes() == original
+
+
+def test_the_four_ledger_entry_points_exit_2_naming_the_path_and_the_os_reason_for_a_ledger_path_that_is_a_directory(tmp_path, run_cli):
+    ledger = tmp_path / "ledger.md"
+    ledger.mkdir()
+    calls = [
+        ("veri.tick_ledger", [str(ledger), "alpha"]),
+        ("veri.add_ledger_step", [str(ledger), "after", "alpha", "new step"]),
+        ("veri.reorder_ledger_steps", [str(ledger), "alpha", "after", "bravo"]),
+        ("veri.clear_refactor_pending", [str(ledger), "alpha"]),
+    ]
+
+    for name, argv in calls:
+        code, out, err = run_cli(importlib.import_module(name), argv)
+
+        assert (name, code) == (name, 2)
+        assert (name, str(ledger) in err, "Is a directory" in err) == (name, True, True)
