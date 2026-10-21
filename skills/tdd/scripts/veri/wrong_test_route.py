@@ -7,7 +7,7 @@ import sys
 import tests_frozen
 import tunables
 
-USAGE = "usage: wrong-test-route.sh <green-report> <red-test-id> (prints red <case>, missing <behaviour>, repair <case>, supersede <cases> or revise)"
+USAGE = "usage: wrong-test-route.sh <green-report> <red-test-id> (prints red <case>, missing <behaviour>, repair <case> <superseded>…, supersede <cases> or revise)"
 
 
 def _write(stream, line):
