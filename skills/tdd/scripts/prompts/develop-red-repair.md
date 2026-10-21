@@ -14,7 +14,7 @@ Repair the one test case named below, which this step's Red wrote and which gree
 
 Green reported this case wrong:
 
-{{WRONG_TEST_REASON}}
+{{WRONG_TEST_REASON}}{{SUPERSEDED_CASES}}
 
 Fix the defect that report names in this case, so it still pins the step's criterion; leave every
 other case, and all production code, untouched.

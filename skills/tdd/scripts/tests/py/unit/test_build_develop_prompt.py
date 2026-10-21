@@ -1886,6 +1886,21 @@ def test_cli_red_repair_prompt_carries_the_named_case_and_the_wrong_test_reason_
     assert [needle in flat for needle in (step, case, "the stub matches GLORPNAK pages it must not", "Edit that case **only**", "create **NO** suite")] == [True] * 5
 
 
+def test_cli_red_repair_prompt_names_every_superseded_case_listed_after_the_report_file_1932(
+        tmp_path, run_cli, build_develop_prompt):
+    step = "QWIXTLE: a seed ending in a newline gains the block and reports added"
+    case = "zorblat frobs a nitz"
+    first, second = "zorblat prints the usage on a bad flag", "zorblat prints the usage on no arguments"
+    report = tmp_path / "green-report.md"
+    report.write_text("WRONG_TEST: the stub matches GLORPNAK pages it must not\n")
+
+    code, out, err = run_cli(build_develop_prompt, ["red-repair", _spec(tmp_path), step, "make test", case, str(report), first, second])
+
+    flat = " ".join(out.split())
+    assert (code, err) == (0, "")
+    assert [needle in flat for needle in (case, first, second)] == [True] * 3
+
+
 def test_cli_red_missing_prompt_carries_the_reason_files_missing_test_line_verbatim_and_tells_the_leaf_to_add_one_case_and_a_missing_reason_file_exits_2_with_the_usage_1808(
         tmp_path, run_cli, build_develop_prompt):
     step = "QWIXTLE: a seed ending in a newline gains the block and reports added"

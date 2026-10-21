@@ -152,7 +152,7 @@ def main(argv):
     values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "RED_CASES", "RED_LEAD", "REPLACES_CASE", "SUITE_REPAIR", "FIXTURE_REPAIR", "CI_REPAIR", "STEP",
                             "TEST_CMD", "TEST_PATH", "TARGET_TEST", "FAST_CMD", "TIMED_TEST_RUN", "TOUCHED_FILES",
                             "NODE_ID_RULE", "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "WRONG_TEST_REPORT", "WRONG_TEST_FORMAT", "TEST_REWRITE", "REJECTION_REASON", "BRANCH",
-                            "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES", "REPORT_FILE", "MISSING_CASES", "CASE", "CASES", "WRONG_TEST_REASON"), b"")
+                            "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES", "REPORT_FILE", "MISSING_CASES", "CASE", "CASES", "WRONG_TEST_REASON", "SUPERSEDED_CASES"), b"")
     values["NODE_ID_RULE"] = NODE_ID_RULE
     values["RED_CASES"] = (b"One criterion, one case \xe2\x80\x94 no extra cases, and no generality the step does\n"
                            b"not ask for.")
@@ -175,6 +175,9 @@ def main(argv):
     if phase == "red-repair":
         reason = re.search(rb"^WRONG_TEST:[ \t]*(.*)$", _read(args[4]), re.MULTILINE)
         values["WRONG_TEST_REASON"] = reason.group(1) if reason else b""
+        if args[5:]:
+            values["SUPERSEDED_CASES"] = os.fsencode(
+                "\n\nThe step also supersedes these older cases:" + "".join(f"\n- {case}" for case in args[5:]))
     if phase == "refactor":
         values["REFACTOR_BUDGET"] = os.fsencode(tunables.read("VERI_REFACTOR_BUDGET") or "5")
     values["REVISE_PHASE"] = os.fsencode(revised_phase)
