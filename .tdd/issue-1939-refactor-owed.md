@@ -5,3 +5,4 @@
 ### With VERI_TIMEOUT unset, VERI_ISSUE=<n> and the run's .tdd/issue-<n>-timeout (relative to run-leaf.sh's working directory) holding N, the claude that run-leaf.sh starts has BASH_DEFAULT_TIMEOUT_MS and BASH_MAX_TIMEOUT_MS both set to N × 1000, the leaf timeout supervise.sh enforces (a small case in tests/py/test_run_leaf.py faking only the claude process boundary) ⟦criterion 4⟧
 - extract the timeout resolution (`VERI_TIMEOUT`, then the timeout file, then 900) from `main` in `run_leaf.py` into a helper; it removes no duplication, so it is not applied here
 - test-only | the Bash-timeout cases in `test_run_leaf.py` repeat the same setup (delenv of the three variables, a fake `Popen` that captures the env) and could share a fixture
+applied | dfaf331a68a69e05348bb7733ac727b6ee4d5c05 | extract the timeout resolution (`VERI_TIMEOUT`, then the timeout file, then 900) from `main` in `run_leaf.py` into a helper; it removes no duplication, so it is not applied here
