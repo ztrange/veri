@@ -1,4 +1,5 @@
 """How skills/tdd/SKILL.md's preflight checks launchability, budgets, GitHub, the worktree baseline and the conductor.pid lock, read as text."""
+import ast
 import pathlib
 import re
 import subprocess
@@ -236,3 +237,41 @@ def test_1420_skill_md_s_preflight_discard_never_loses_an_untracked_tdd_run_stat
     got = discard_stray(wt, tmp_path)
     assert (wt / ".tdd" / "issue-1-refactor-owed.md").is_file(), "the discard block removed the untracked run-state file .tdd/issue-1-refactor-owed.md"
     assert "issue-1-refactor-owed.md" not in got, f"$stray captures the run-state file as a stray: {got}"
+
+
+TESTS_DIR = pathlib.Path(__file__).resolve().parent
+MECHANICAL_READERS = (
+    "full_tier_measurement_in_the_worktree",
+    "test_1420_skill_md_s_preflight_discard",
+    "skill_md_preflight_leaf_model_calls_name_a_leaf",
+)
+READS_PREFLIGHT = re.compile(r"^PREFLIGHT$|#+ .*[Pp]reflight")
+
+
+def preflight_readers(tree):
+    defs = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+
+    def reads(fn, seen):
+        if fn.name in seen:
+            return False
+        seen.add(fn.name)
+        for node in ast.walk(fn):
+            if isinstance(node, ast.Name) and READS_PREFLIGHT.search(node.id):
+                return True
+            if isinstance(node, ast.Constant) and isinstance(node.value, str) and READS_PREFLIGHT.search(node.value):
+                return True
+            if isinstance(node, ast.Name) and node.id in defs and reads(defs[node.id], seen):
+                return True
+        return False
+
+    return [name for name, fn in defs.items() if name.startswith("test_") and reads(fn, set())]
+
+
+@pytest.mark.tree_audit("every test module under tests/py, parsed for the cases that read SKILL.md's Preflight section")
+def test_every_remaining_case_that_reads_skill_md_s_preflight_section_is_a_named_mechanical_fact_case():
+    strays = []
+    for path in sorted(TESTS_DIR.rglob("test_*.py")):
+        for name in preflight_readers(ast.parse(path.read_text())):
+            if not any(key in name for key in MECHANICAL_READERS):
+                strays.append(f"{path.relative_to(TESTS_DIR)}::{name}")
+    assert strays == [], f"cases read the Preflight section but are not on the mechanical-fact allow-list: {strays}"
