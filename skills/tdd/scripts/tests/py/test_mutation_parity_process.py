@@ -611,6 +611,24 @@ def test_a_row_whose_case_cannot_be_run_a_suite_path_that_does_not_exist_a_pytes
     assert (missing[0], uncollected[0]) == (2, 2), (missing, uncollected)
 
 
+@pytest.mark.process("a bash suite and pytest started for a table of a proven, an unproven and an owed row, and for rows whose case cannot be run")
+def test_1983_one_scratch_tree_pins_a_proven_an_unproven_and_an_owed_row_and_exit_2_for_a_missing_suite_and_an_uncollected_node(tmp_path, monkeypatch, run_cli):
+    mp = scratch_with(tmp_path, monkeypatch)
+    suite, pair = "checks/calc-suite.sh", ("adds two numbers", "adds a negative")
+
+    verdicts = run_rows(tmp_path, run_cli, mp, [
+        row_of(tmp_path, suite, pair[0], "redundant", pair[1], "add-subtracts"),
+        row_of(tmp_path, suite, pair[0], "redundant", pair[1], "kept-stays-green"),
+        row_of(tmp_path, suite, pair[0], "redundant", pair[1], "old-stays-green")])
+    missing = one_row(tmp_path, run_cli, mp, "checks/absent-suite.sh", pair[0], "redundant", pair[1], "add-subtracts")
+    uncollected = one_row(tmp_path, run_cli, mp, suite, pair[0], "replaced", "tests/test_calc.py::test_not_there", "add-subtracts")
+
+    assert (verdicts[:2], missing[0], uncollected[0]) == (
+        (1, verdict_line(tmp_path, pair, "add-subtracts", "proven")
+         + verdict_line(tmp_path, pair, "kept-stays-green", "unproven")
+         + verdict_line(tmp_path, pair, "old-stays-green", "owed")), 2, 2), (verdicts, missing, uncollected)
+
+
 @pytest.mark.process("git, a bash suite and pytest started against a scratch repository with a staged, an unstaged and an untracked change")
 def test_after_the_pairs_check_exits_0_or_1_the_working_tree_and_the_index_are_byte_identical_to_before_it_a_staged_change_an_unstaged_change_to_a_file_the_mutation_patches_and_an_untracked_file_included(tmp_path, monkeypatch, run_cli):
     mp = committed_scratch(tmp_path, monkeypatch)
