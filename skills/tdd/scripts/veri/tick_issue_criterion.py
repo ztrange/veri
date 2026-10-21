@@ -32,7 +32,7 @@ def main(argv):
         elif s == HEADING:
             start = i + 1
             break
-    end = next((i for i in range(start, len(lines)) if start and lines[i].startswith("## ")), len(lines))
+    end = next((i for i in range(start, len(lines)) if start and lines[i].startswith(("# ", "## "))), len(lines))
     ticked, section = ledger.ledger_tick("\n".join(lines[start:end]), matcher) if start else (False, "")
     if not ticked:
         print("tick-issue-criterion: no unchecked criterion matched '%s' on #%s" % (matcher, n),
