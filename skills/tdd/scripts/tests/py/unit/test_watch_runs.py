@@ -1,5 +1,6 @@
 """In-process cases for veri/watch_runs.py, the module watch-runs.sh is a shim over."""
 import importlib
+import subprocess
 
 import pytest
 
@@ -172,3 +173,28 @@ def test_main_with_target_and_max_wait_in_either_order_prints_slot_free_and_retu
     code = watch_runs.main(argv)
 
     assert (code, capsys.readouterr().out) == (0, "slot-free 1/2 next 12\n")
+
+
+def test_main_with_target_exits_2_and_passes_on_stderr_when_solvable_issues_exits_non_zero_1930(
+        monkeypatch, capsys, watch_runs):
+    waits = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) > 3:
+            raise RuntimeError("waited on after the queue read failed")
+
+    def run(*args, **kwargs):
+        return subprocess.CompletedProcess(args[0], 1, stdout="", stderr="gh: not logged in\n")
+
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: ["5"])
+    monkeypatch.setattr(watch_runs.subprocess, "run", run)
+    monkeypatch.setattr(watch_runs, "wait", wait)
+
+    try:
+        code = watch_runs.main(["--target", "2"])
+    except RuntimeError:
+        code = "waited on"
+
+    captured = capsys.readouterr()
+    assert (code, captured.out, "gh: not logged in" in captured.err) == (2, "", True)
