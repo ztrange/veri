@@ -1,6 +1,7 @@
 """Cases for run-finished.sh's done, not-done and no-answer verdicts, run as the real entry point."""
 import json
 import os
+import re
 import subprocess
 import time
 
@@ -213,7 +214,7 @@ def test_a_run_of_it_changes_no_file_in_the_repository_and_every_gh_call_it_make
     made = calls.read_text().splitlines()
     assert made
     for call in made:
-        assert call.startswith("pr view ")
+        assert call.startswith("pr view ") or re.fullmatch(r"api repos/\S+/pulls/\d+", call)
         for write in ("POST", "PATCH", "PUT", "DELETE", "-X", "--method", "--input", "-f ", "-F "):
             assert write.lower() not in call.lower()
 
