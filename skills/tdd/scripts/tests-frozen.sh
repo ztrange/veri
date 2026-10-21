@@ -11,6 +11,8 @@
 # file uses that path. A step marked ⟦suite-repair⟧ or ⟦ci-repair⟧ is never frozen: for it record
 # --step writes nothing and check --step exits 0, because its fix is often an edit to the very test
 # file the full run or CI left red.
+# A step marked ⟦fixture-repair⟧ is frozen like any other step except for the fixture file its step
+# text names, which Green may edit.
 #
 # Exit: 0 recorded, the path printed, or every recorded file is byte-identical (nothing on stdout),
 #       1 with one path per line on stdout for each recorded file edited or deleted,
