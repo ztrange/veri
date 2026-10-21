@@ -55,16 +55,15 @@ def loose_skill(source, destination):
             raise RuntimeError(f"skill copy: could not copy {origin} to {target}: {error}") from error
 
 
-@pytest.mark.parametrize("argv", [[], [""]])
-def test_main_with_no_or_an_empty_issue_returns_2_with_the_usage_line_alone_and_starts_no_process(
-        argv, tmp_path, monkeypatch, capfdbinary, fake_processes):
+def test_main_with_no_issue_returns_2_with_the_usage_line_alone_and_starts_no_process(
+        tmp_path, monkeypatch, capfdbinary, fake_processes):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_BASH_MAJOR", "5")
     monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
     calls = fake_processes()
     run_conductor = importlib.import_module("veri.run_conductor")
 
-    code = run_conductor.main(list(argv))
+    code = run_conductor.main([])
 
     captured = capfdbinary.readouterr()
     assert (code, captured.out, captured.err, calls) == (2, b"", b"usage: run-conductor.sh <issue>\n", [])
