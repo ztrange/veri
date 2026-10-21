@@ -27,7 +27,7 @@ def cksum(data):
 USAGE = [
     ("3345015868 167", "add-ledger-step.sh", []),
     ("3115481657 48", "affected-suites.sh", []),
-    ("2927995988 228", "build-develop-prompt.sh", []),
+    ("3715831372 298", "build-develop-prompt.sh", []),
     ("217537457 94", "build-verify-prompt.sh", []),
     ("3916945256 64", "clear-refactor-pending.sh", []),
     ("3860559291 55", "comment-class.sh", []),
