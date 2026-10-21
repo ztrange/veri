@@ -1,11 +1,11 @@
 ### 📊 Metrics — issue 1963
 
-Wall time for the issue: 3939 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 2213 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 24 of 24 planned.
+Steps done: 27 of 27 planned.
 Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/1970.
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $10.95 over 211 turns, in 2 sessions.
+Conductor own spending: $14.45 over 276 turns, in 3 sessions.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
@@ -139,90 +139,154 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 124 | $0.07 | 231490 |
 | 125 | $0.05 | 231864 |
 | 126 | $0.06 | 232112 |
-| 127 | $0.55 | 85179 |
-| 128 | $0.04 | 87794 |
-| 129 | $0.03 | 89250 |
+| 127 | $0.56 | 85179 |
+| 128 | $0.05 | 87794 |
+| 129 | $0.04 | 89250 |
 | 130 | $0.05 | 92643 |
-| 131 | $0.04 | 95661 |
-| 132 | $0.02 | 96088 |
-| 133 | $0.02 | 96580 |
-| 134 | $0.02 | 96921 |
-| 135 | $0.02 | 97203 |
-| 136 | $0.02 | 97677 |
-| 137 | $0.02 | 98138 |
-| 138 | $0.02 | 98590 |
-| 139 | $0.03 | 99483 |
-| 140 | $0.02 | 99988 |
-| 141 | $0.05 | 103781 |
-| 142 | $0.04 | 105793 |
-| 143 | $0.07 | 111497 |
-| 144 | $0.03 | 112769 |
-| 145 | $0.06 | 117448 |
-| 146 | $0.07 | 123869 |
-| 147 | $0.04 | 125822 |
-| 148 | $0.03 | 126615 |
-| 149 | $0.03 | 127203 |
-| 150 | $0.04 | 128559 |
-| 151 | $0.04 | 130007 |
-| 152 | $0.04 | 132043 |
-| 153 | $0.03 | 132732 |
-| 154 | $0.03 | 133561 |
-| 155 | $0.03 | 134031 |
-| 156 | $0.03 | 134594 |
-| 157 | $0.03 | 135593 |
-| 158 | $0.03 | 136021 |
-| 159 | $0.04 | 137881 |
-| 160 | $0.04 | 139206 |
-| 161 | $0.04 | 140317 |
-| 162 | $0.03 | 140921 |
-| 163 | $0.04 | 142333 |
-| 164 | $0.04 | 143640 |
+| 131 | $0.06 | 95661 |
+| 132 | $0.03 | 96088 |
+| 133 | $0.03 | 96580 |
+| 134 | $0.04 | 96921 |
+| 135 | $0.03 | 97203 |
+| 136 | $0.03 | 97677 |
+| 137 | $0.04 | 98138 |
+| 138 | $0.03 | 98590 |
+| 139 | $0.04 | 99483 |
+| 140 | $0.03 | 99988 |
+| 141 | $0.06 | 103781 |
+| 142 | $0.05 | 105793 |
+| 143 | $0.08 | 111497 |
+| 144 | $0.04 | 112769 |
+| 145 | $0.07 | 117448 |
+| 146 | $0.09 | 123869 |
+| 147 | $0.05 | 125822 |
+| 148 | $0.04 | 126615 |
+| 149 | $0.04 | 127203 |
+| 150 | $0.05 | 128559 |
+| 151 | $0.05 | 130007 |
+| 152 | $0.05 | 132043 |
+| 153 | $0.05 | 132732 |
+| 154 | $0.04 | 133561 |
+| 155 | $0.04 | 134031 |
+| 156 | $0.04 | 134594 |
+| 157 | $0.05 | 135593 |
+| 158 | $0.04 | 136021 |
+| 159 | $0.05 | 137881 |
+| 160 | $0.05 | 139206 |
+| 161 | $0.05 | 140317 |
+| 162 | $0.05 | 140921 |
+| 163 | $0.05 | 142333 |
+| 164 | $0.05 | 143640 |
 | 165 | $0.04 | 144784 |
-| 166 | $0.04 | 145643 |
-| 167 | $0.03 | 146367 |
+| 166 | $0.05 | 145643 |
+| 167 | $0.05 | 146367 |
 | 168 | $0.04 | 147094 |
-| 169 | $0.04 | 148764 |
-| 170 | $0.04 | 149920 |
+| 169 | $0.06 | 148764 |
+| 170 | $0.05 | 149920 |
 | 171 | $0.04 | 150678 |
-| 172 | $0.04 | 152312 |
-| 173 | $0.04 | 153097 |
+| 172 | $0.06 | 152312 |
+| 173 | $0.05 | 153097 |
 | 174 | $0.04 | 153912 |
-| 175 | $0.03 | 154178 |
-| 176 | $0.03 | 154697 |
-| 177 | $0.04 | 156186 |
-| 178 | $0.03 | 156459 |
-| 179 | $0.04 | 158087 |
+| 175 | $0.05 | 154178 |
+| 176 | $0.04 | 154697 |
+| 177 | $0.06 | 156186 |
+| 178 | $0.04 | 156459 |
+| 179 | $0.06 | 158087 |
 | 180 | $0.04 | 158565 |
-| 181 | $0.05 | 160978 |
-| 182 | $0.05 | 162638 |
-| 183 | $0.04 | 162954 |
-| 184 | $0.04 | 163513 |
-| 185 | $0.04 | 164624 |
-| 186 | $0.04 | 165630 |
-| 187 | $0.04 | 166969 |
-| 188 | $0.04 | 167704 |
-| 189 | $0.04 | 168278 |
-| 190 | $0.04 | 168776 |
-| 191 | $0.04 | 169209 |
-| 192 | $0.04 | 169936 |
-| 193 | $0.04 | 170188 |
-| 194 | $0.04 | 170752 |
-| 195 | $0.04 | 171256 |
-| 196 | $0.04 | 171823 |
-| 197 | $0.04 | 172535 |
-| 198 | $0.04 | 173069 |
-| 199 | $0.04 | 173552 |
-| 200 | $0.04 | 174474 |
-| 201 | $0.04 | 175226 |
-| 202 | $0.04 | 175595 |
-| 203 | $0.04 | 175874 |
-| 204 | $0.04 | 176761 |
-| 205 | $0.05 | 178455 |
-| 206 | $0.04 | 178732 |
-| 207 | $0.04 | 179458 |
-| 208 | $0.04 | 180181 |
-| 209 | $0.04 | 180609 |
-| 210 | $0.04 | 181248 |
+| 181 | $0.06 | 160978 |
+| 182 | $0.06 | 162638 |
+| 183 | $0.05 | 162954 |
+| 184 | $0.05 | 163513 |
+| 185 | $0.05 | 164624 |
+| 186 | $0.05 | 165630 |
+| 187 | $0.05 | 166969 |
+| 188 | $0.05 | 167704 |
+| 189 | $0.05 | 168278 |
+| 190 | $0.05 | 168776 |
+| 191 | $0.05 | 169209 |
+| 192 | $0.05 | 169936 |
+| 193 | $0.05 | 170188 |
+| 194 | $0.05 | 170752 |
+| 195 | $0.05 | 171256 |
+| 196 | $0.05 | 171823 |
+| 197 | $0.05 | 172535 |
+| 198 | $0.05 | 173069 |
+| 199 | $0.05 | 173552 |
+| 200 | $0.05 | 174474 |
+| 201 | $0.05 | 175226 |
+| 202 | $0.05 | 175595 |
+| 203 | $0.05 | 175874 |
+| 204 | $0.05 | 176761 |
+| 205 | $0.06 | 178455 |
+| 206 | $0.05 | 178732 |
+| 207 | $0.05 | 179458 |
+| 208 | $0.06 | 180181 |
+| 209 | $0.05 | 180609 |
+| 210 | $0.05 | 181248 |
+| 211 | $0.05 | 182010 |
+| 212 | $0.05 | 182356 |
+| 213 | $0.17 | 197509 |
+| 214 | $0.06 | 198332 |
+| 215 | $0.05 | 198839 |
+| 216 | $0.55 | 85177 |
+| 217 | $0.02 | 85660 |
+| 218 | $0.04 | 88151 |
+| 219 | $0.03 | 89134 |
+| 220 | $0.03 | 90143 |
+| 221 | $0.02 | 90434 |
+| 222 | $0.02 | 90918 |
+| 223 | $0.02 | 91218 |
+| 224 | $0.02 | 91634 |
+| 225 | $0.02 | 92034 |
+| 226 | $0.02 | 92389 |
+| 227 | $0.02 | 92649 |
+| 228 | $0.02 | 93105 |
+| 229 | $0.02 | 93462 |
+| 230 | $0.02 | 94192 |
+| 231 | $0.08 | 101562 |
+| 232 | $0.03 | 102228 |
+| 233 | $0.04 | 104593 |
+| 234 | $0.03 | 105659 |
+| 235 | $0.03 | 106913 |
+| 236 | $0.03 | 108003 |
+| 237 | $0.03 | 108624 |
+| 238 | $0.03 | 109392 |
+| 239 | $0.03 | 110617 |
+| 240 | $0.02 | 110798 |
+| 241 | $0.03 | 112080 |
+| 242 | $0.03 | 112974 |
+| 243 | $0.03 | 113628 |
+| 244 | $0.03 | 114001 |
+| 245 | $0.03 | 114319 |
+| 246 | $0.03 | 115037 |
+| 247 | $0.03 | 116006 |
+| 248 | $0.03 | 116352 |
+| 249 | $0.03 | 116698 |
+| 250 | $0.03 | 117420 |
+| 251 | $0.03 | 118246 |
+| 252 | $0.03 | 118766 |
+| 253 | $0.03 | 119192 |
+| 254 | $0.03 | 119545 |
+| 255 | $0.03 | 120034 |
+| 256 | $0.03 | 120904 |
+| 257 | $0.03 | 121325 |
+| 258 | $0.03 | 122016 |
+| 259 | $0.03 | 122393 |
+| 260 | $0.03 | 122997 |
+| 261 | $0.03 | 123909 |
+| 262 | $0.04 | 126344 |
+| 263 | $0.03 | 126784 |
+| 264 | $0.03 | 126969 |
+| 265 | $0.03 | 127625 |
+| 266 | $0.03 | 127845 |
+| 267 | $0.03 | 128345 |
+| 268 | $0.03 | 128652 |
+| 269 | $0.03 | 129076 |
+| 270 | $0.03 | 129588 |
+| 271 | $0.03 | 129909 |
+| 272 | $0.03 | 130995 |
+| 273 | $0.03 | 131431 |
+| 274 | $0.03 | 131827 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -230,21 +294,21 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 32 | 29 | 3 | 6 | 3519 | 85657 | 18727 | 0.09 |
-| diff | 16 | 8 | 0 | 0 | 5157 | 456 | 129 | 254 | 41182 | 4080546 | 493090 | 2.05 |
-| red | 25 | 9 | 0 | 0 | 624 | 437 | 120 | 238 | 42411 | 3679548 | 438279 | 1.89 |
-| green | 23 | 7 | 3 | 0 | 1086 | 387 | 119 | 238 | 37331 | 3594198 | 352284 | 1.88 |
-| refactor | 14 | 7 | 0 | 0 | 299 | 101 | 40 | 78 | 7220 | 1014064 | 197755 | 0.67 |
+| diff | 18 | 9 | 0 | 0 | 5321 | 489 | 140 | 276 | 44435 | 4404492 | 526307 | 2.20 |
+| red | 28 | 10 | 0 | 0 | 718 | 506 | 134 | 266 | 48350 | 4078472 | 533463 | 2.23 |
+| green | 25 | 8 | 3 | 0 | 1197 | 431 | 130 | 260 | 39925 | 3933844 | 385561 | 2.02 |
+| refactor | 16 | 8 | 0 | 0 | 354 | 124 | 48 | 94 | 9173 | 1239867 | 227224 | 0.78 |
 | red-repair | 2 | 0 | 0 | 0 | 48 | 31 | 9 | 16 | 3076 | 230038 | 32226 | 0.13 |
 | red-missing | 1 | 0 | 0 | 0 | 21 | 13 | 4 | 6 | 1636 | 111824 | 30345 | 0.10 |
-| pin | 10 | 10 | 0 | 0 | 200 | 131 | 34 | 68 | 9835 | 890531 | 140223 | 0.54 |
+| pin | 11 | 11 | 0 | 0 | 220 | 143 | 37 | 74 | 10900 | 967987 | 154134 | 0.59 |
 | predicate | 2 | 0 | 0 | 0 | 36 | 30 | 12 | 24 | 2147 | 346574 | 27868 | 0.13 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 45 | 42 | 3 | 0 | 3460 | 626 | 178 | 356 | 50874 | 4887657 | 704457 | 2.76 |
-| developer | claude-sonnet-5-5 | 44 | 0 | 0 | 0 | 3808 | 881 | 259 | 506 | 86881 | 8147242 | 933551 | 4.07 |
+| verifier | claude-sonnet-5-5 | 50 | 47 | 3 | 0 | 3612 | 681 | 193 | 386 | 55484 | 5262109 | 794686 | 3.07 |
+| developer | claude-sonnet-5-5 | 49 | 0 | 0 | 0 | 4100 | 1007 | 291 | 570 | 97075 | 9138565 | 1048380 | 4.56 |
 | developer | claude-opus-5-5 | 5 | 0 | 0 | 0 | 235 | 108 | 33 | 66 | 10602 | 998081 | 92789 | 0.65 |
 
 #### Rework and waste, by phase
@@ -289,6 +353,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | A prose case in skills/tdd/scripts/tests/py/unit/test_skill_structural_pass.py pins that SKILL.md's structural pass computes each candidate's bound with `refactor-touched.sh --issue <issue-base> --candidate '<candidate>'`, and goes red when that command is removed ⟦criterion 12⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 31 | 7 | 14 | 2299 | 194064 | 30969 | 0.12 | unknown | unknown | unknown | unknown |  |  | pin |
 | A prose case in skills/tdd/scripts/tests/py/unit/test_skill_structural_pass.py pins that SKILL.md's structural pass records a candidate the budget stops with `refactor-owed.sh not-done` and reason `budget-spent`, and goes red when that call is removed ⟦criterion 12⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 33 | 7 | 14 | 2490 | 197080 | 33605 | 0.13 | unknown | unknown | unknown | unknown |  |  | pin |
 | A prose case in skills/tdd/scripts/tests/py/unit/test_skill_structural_pass.py pins that SKILL.md's structural pass records a candidate whose transform was rejected with `refactor-owed.sh not-done` and reason `transform-rejected`, and goes red when that instruction is removed ⟦criterion 12⟧ | 4 | 1 | 0 | 0 | 0 | 0 | 86 | 23 | 46 | 6677 | 685112 | 63464 | 0.29 | unknown | unknown | unknown | unknown |  |  | pin |
+| An out-of-scope candidate (a step bullet `- out-of-scope | <candidate>`) recorded not-done with the unprefixed text `list` printed for it, `refactor-owed.sh not-done <file> '<candidate>' <reason>` as SKILL.md records it, is no longer printed by `refactor-owed.sh list`, and `render` shows it exactly once, under `### Not done` with its reason, the skipped check stripping the `out-of-scope | ` prefix as the applied check does; pinned by an in-process case in skills/tdd/scripts/tests/py/test_refactor_owed.py using an out-of-scope bullet ⟦criterion 14⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 102 | 26 | 52 | 7078 | 728737 | 133803 | 0.48 | 311 | unknown | 1/5 | nothing-left |  |  | full |
+| SCRIPTS.md's refactor-owed.sh entry, the refactor-owed.sh header and its usage line name the `not-done <file> '<candidate>' <reason>` verb SKILL.md calls, beside `append`, `applied`, `render` and `list`; no production behaviour changes, and in the same commit any case pinning the old header or usage text is updated ⟦diff-checked⟧ ⟦criterion 15⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 33 | 11 | 22 | 3253 | 323946 | 33217 | 0.15 | 212 | n/a | n/a | n/a |  |  | full |
+| A prose case in skills/tdd/scripts/tests/py/unit/test_skill_structural_pass.py pins that every `refactor-owed.sh applied` call in SKILL.md's structural pass passes the commit subject `"$(git log -1 --format=%s)"` as its last argument, and goes red when that subject argument is removed ⟦criterion 15⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 46 | 10 | 20 | 4473 | 313092 | 38038 | 0.17 | unknown | unknown | unknown | unknown |  |  | pin |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -303,23 +370,22 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `refactor-owed.sh list` omits a candidate recorded `not-done` even when the same candidate is also a step's bullet in the owed file, and `refactor-owed.sh render` shows that candidate exactly once, under `### Not done` with its reason and not under its step's heading; pinned by an in-process case in skills/tdd/scripts/tests/py/test_refactor_owed.py using a not-done candidate that is also a step bullet ⟦criterion 9⟧ | 1 | 1/5 | structural-owed | PASS | 0 | 45 | 0.12 |
 | An out-of-scope candidate (a step bullet `- out-of-scope | <candidate>`) recorded applied with the unprefixed text `list` printed for it, `refactor-owed.sh applied <file> '<candidate>' <sha>` as SKILL.md records it, is no longer printed by `refactor-owed.sh list`, and `render` shows it only under `### Applied` and nowhere else; pinned by an in-process case in skills/tdd/scripts/tests/py/test_refactor_owed.py ⟦criterion 10⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 43 | 0.10 |
 | `refactor-owed.sh applied <file> '<candidate>' <sha> '<subject>'` records the applying commit's subject beside its sha in the applied row of the owed file, and `render` prints that subject beside the sha under `### Applied`, so the record stays readable after a rebase rewrites the sha; an applied row written without a subject (the existing row shape) still parses and renders as before, and `list` still omits a candidate recorded applied with a subject; pinned by an in-process case in skills/tdd/scripts/tests/py/test_refactor_owed.py ⟦criterion 13⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 43 | 0.09 |
+| An out-of-scope candidate (a step bullet `- out-of-scope | <candidate>`) recorded not-done with the unprefixed text `list` printed for it, `refactor-owed.sh not-done <file> '<candidate>' <reason>` as SKILL.md records it, is no longer printed by `refactor-owed.sh list`, and `render` shows it exactly once, under `### Not done` with its reason, the skipped check stripping the `out-of-scope | ` prefix as the applied check does; pinned by an in-process case in skills/tdd/scripts/tests/py/test_refactor_owed.py using an out-of-scope bullet ⟦criterion 14⟧ | 1 | 1/5 | nothing-left | PASS | 0 | 55 | 0.12 |
 
 #### Structural pass
 
-| pass | refactor | stopped |
-| --- | ---: | --- |
-| issue | 0/3 | candidates-done |
+Stopped: nothing-structural
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| fast | 18 | 17 | 19 | 20 | 20 | 20 | 22 | 21 | 21 | 21 | 22 | 20 | 22 | 21 | 21 | 20 | 20 | 21 | 20 | 20 | 21 | 20 | 21 | 20 | 19 | 17 | 18 | 18 | 19 | 17 | 16 | 17 | 16 | 16 | 16 | 18 | 17 | 17 | 18 | 17 | 16 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| affected | 3 | 3 | 3 | 3 | 3 | 3 | 4 | 4 | 4 | 5 | 4 | 25 | 4 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 3 | 3 | 3 | 6 | 3 | 3 | 27 | 3 | 3 | 3 | 3 | 11 | 64 | 3 | 0 | 325 | 335 | 2 | 2 | 2 | 2 | 790 | 2 | 2 | 3 | 2 | 3 | 2 | 3 | 3 | 2 | 2 | 3 | 2 | 3 | 2 | 2 | 2 | 3 | 0 | 5 | 2 | 373 | 372 | 2 | 2 | 1 | 1 |
-| target | 2 | 2 | 2 | 2 | 4 | 3 | 2 | 2 | 3 | 2 | 2 | 1 | 2 | 1 | 1 | 2 | 2 | 2 | 3 | 2 | 1 | 3 | 1 | 2 | 2 | 1 | 2 | 1 | 2 | 1 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fast | 18 | 17 | 19 | 20 | 20 | 20 | 22 | 21 | 21 | 21 | 22 | 20 | 22 | 21 | 21 | 20 | 20 | 21 | 20 | 20 | 21 | 20 | 21 | 20 | 19 | 17 | 18 | 18 | 19 | 17 | 16 | 17 | 16 | 16 | 16 | 18 | 17 | 17 | 18 | 17 | 16 | 20 | 21 | 21 | 25 | 20 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| affected | 3 | 3 | 3 | 3 | 3 | 3 | 4 | 4 | 4 | 5 | 4 | 25 | 4 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 3 | 3 | 3 | 6 | 3 | 3 | 27 | 3 | 3 | 3 | 3 | 11 | 64 | 3 | 0 | 325 | 335 | 2 | 2 | 2 | 2 | 790 | 2 | 2 | 3 | 2 | 3 | 2 | 3 | 3 | 2 | 2 | 3 | 2 | 3 | 2 | 2 | 2 | 3 | 0 | 5 | 2 | 373 | 372 | 2 | 2 | 1 | 1 | 4 | 3 | 3 | 4 | 3 | 3 | 0 | 74 | 4 |
+| target | 2 | 2 | 2 | 2 | 4 | 3 | 2 | 2 | 3 | 2 | 2 | 1 | 2 | 1 | 1 | 2 | 2 | 2 | 3 | 2 | 1 | 3 | 1 | 2 | 2 | 1 | 2 | 1 | 2 | 1 | 2 | 2 | 2 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 470 | 928 | 148357 | 14032980 | 1730797 | 7.48 |
+| total | 517 | 1022 | 163161 | 15398755 | 1935855 | 8.27 |
