@@ -76,7 +76,7 @@ def test_main_1621_refuses_a_wrong_test_naming_no_case_only_its_own_red_or_a_mis
     monkeypatch.chdir(ROOT)
     own_id = "test_a_planted_develop_prompt_that_makes_no_commit_and_the_real_prompts_directory_are_clean"
     usage = ("usage: wrong-test-route.sh <green-report> <red-test-id> "
-             "(prints red <case>, missing <behaviour>, repair <case>, supersede <cases> or revise)\n")
+             "(prints red <case>, missing <behaviour>, repair <case> <superseded>…, supersede <cases> or revise)\n")
     lines = ("WRONG_TEST: the criterion contradicts nothing I can name",
              "WRONG_TEST: %s asserts the opposite of the criterion" % own_id,
              "WRONG_TEST: test_1621_no_such_case_exists_anywhere_in_the_tree asserts the opposite")

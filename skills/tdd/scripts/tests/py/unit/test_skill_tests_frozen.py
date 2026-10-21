@@ -218,8 +218,8 @@ def test_green_wrong_test_routing_carries_the_exit_3_and_exit_2_lines():
 
 def test_green_wrong_test_repair_route_launches_red_repair_through_the_supervisor_and_verifies_it_with_verify_red_before_retrying_green():
     route = green_route_text()
-    assert "`repair <case>`" in route, "Green WRONG_TEST: routing has no repair <case> route"
-    repair = route.partition("`repair <case>`")[2].partition("- exit 3")[0]
+    assert "`repair <case> <superseded>…`" in route, "Green WRONG_TEST: routing has no repair <case> route"
+    repair = route.partition("`repair <case> <superseded>…`")[2].partition("- exit 3")[0]
     assert re.search(r"supervise\.sh.*red-repair|red-repair.*supervise\.sh", repair), (
         "the repair <case> route does not launch the red-repair red through supervise.sh")
     head = repair.partition("retry green")[0]
