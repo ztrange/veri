@@ -1370,6 +1370,11 @@ before the re-verify with the same exit 2 outcome. The verifier's verdict closes
 - **Malformed / killed-stuck (exit 2):** no verdict on the `⟦diff-checked⟧` step could be
   obtained, so **bail** as a system failure (`no-verdict`) — see `<base directory>/BAIL.md`.
 
+A `⟦fixture-repair⟧` step's verify-green PASS closes it the same way: ticked with
+`tick-ledger.sh` without `--refactor-pending`, committed with a `test:` subject, no Refactor
+loop run, and its criterion ticked with `tick-issue-criterion.sh` on `criterion-finished.sh`
+exit 0, ticking nothing on exit 3, as a `⟦diff-checked⟧` PASS does.
+
 #### A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier
 
 A step listing `⟦phases: …⟧` runs no Red, Green or Refactor phase: it runs the phases it
