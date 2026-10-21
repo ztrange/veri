@@ -13,7 +13,7 @@ Every case is a small in-process case in skills/tdd/scripts/tests/py/unit/test_w
 - [x] The .only and .skip forms of it(…) and test(…) (it.only, it.skip, test.only, test.skip) are cases: a WRONG_TEST: naming their title routes red <title> ⟦criterion 2⟧
 - [x] The call after an .each([...]) head and after an .each`…` tagged-template head (it.each, test.each) is a case: a WRONG_TEST: naming its title routes red <title> ⟦criterion 2⟧
 - [x] An it(…) or test(…) call commented out with // is not a case: a WRONG_TEST: naming only its title answers revise ⟦criterion 2⟧
-- [ ] An it(…) or test(…) call inside a /* … */ block comment is not a case: a WRONG_TEST: naming only its title answers revise ⟦criterion 2⟧
+- [x] An it(…) or test(…) call inside a /* … */ block comment is not a case: a WRONG_TEST: naming only its title answers revise ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] A case name in double quotes on the WRONG_TEST: line is a candidate: it routes red <title> to the JS/TS case of that exact title ⟦criterion 3⟧
 - [ ] A case name in curly quotes (“…”) on the WRONG_TEST: line is a candidate: it routes red <title> to the JS/TS case of that exact title ⟦criterion 3⟧
 - [ ] A WRONG_TEST: name ending in … or ... matches the one JS/TS title it is a prefix of, and red prints the full title, for each of the two ellipsis forms ⟦criterion 4⟧
