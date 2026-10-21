@@ -1,5 +1,6 @@
 """parallel-conductors.sh's launcher, run in-process."""
 import os
+import paths
 import re
 import shutil
 import signal
@@ -22,7 +23,7 @@ except ImportError:
     from .json_documents import items
     from .solvable_issues import solvable_in_scope
 
-SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SCRIPTS = paths.scripts_dir(__file__)
 PASSED_THROUGH = ("VERI_HEARTBEAT", "VERI_TIMEOUT", "VERI_STUCK_RETRIES", "VERI_POLL")
 
 

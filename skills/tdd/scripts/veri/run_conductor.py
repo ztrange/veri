@@ -2,6 +2,7 @@
 # hazard: runs on the python3 it may refuse, so nothing here may need more than Python 3.9.
 import os
 import json
+import paths
 import shutil
 import signal
 import subprocess
@@ -28,7 +29,7 @@ def main(argv):
     if not argv or not argv[0]:
         sys.stderr.write(USAGE + "\n")
         return 2
-    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    here = paths.scripts_dir(__file__)
     base = os.path.dirname(here)
     head_rev = "HEAD"
     if git(base, "remote", "get-url", "origin",
