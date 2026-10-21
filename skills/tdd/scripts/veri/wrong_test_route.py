@@ -48,7 +48,7 @@ def _exists(case):
                 text = handle.read()
             if is_test_file(name) and case.startswith("test_") and py.search(text):
                 return True
-            if js_file and js.search(text):
+            if js_file and any("//" not in text[text.rfind("\n", 0, m.start()) + 1:m.start()] for m in js.finditer(text)):
                 return True
             if name.endswith(".test.sh") and ('name="%s"' % case) in text:
                 return True
