@@ -27,7 +27,7 @@ def run(args, **kwargs):
 
 
 def record(*fields):
-    if event.mark("", event.context(os.environ), fields[0], fields[1:]) != 0:
+    if event.mark("", event.context(tunables.environment()), fields[0], fields[1:]) != 0:
         return 2
     return 0
 
