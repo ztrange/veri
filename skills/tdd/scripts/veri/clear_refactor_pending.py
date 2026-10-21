@@ -6,10 +6,6 @@ import ledger
 USAGE = "usage: clear-refactor-pending.sh <ledger-file> <matcher>"
 
 
-def to_contract(code):
-    return code if 0 <= code <= 3 else 2
-
-
 def complain(path, message):
     print(f"clear-refactor-pending.sh: {path}: {message}", file=sys.stderr)
 
@@ -26,8 +22,6 @@ def main(argv):
         return 2
     text = ledger.decode_ledger(raw)
     cleared, new = ledger.ledger_clear_pending(text, argv[1] if len(argv) > 1 else "")
-    if not isinstance(cleared, bool):
-        return to_contract(cleared)
     if not cleared:
         return 3
     data = (new.rstrip("\n") + "\n").encode(errors="surrogateescape")
