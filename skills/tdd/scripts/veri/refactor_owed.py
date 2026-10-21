@@ -134,8 +134,8 @@ def structural_lines(file):
         return 3, []
     lines = owed_lines(file)
     done = applied_records(lines)
-    counts = Counter(l[2:] for l in lines
-                     if l.startswith("- ") and not l.startswith((TEST_ONLY_MARK, OUT_OF_SCOPE_MARK))
+    counts = Counter(l[2:].removeprefix(OUT_OF_SCOPE_PREFIX) for l in lines
+                     if l.startswith("- ") and not l.startswith(TEST_ONLY_MARK)
                      and l[2:] not in done)
     listed = "\n".join(t for t, _ in counts.most_common()).rstrip("\n")
     return (0, listed.split("\n")) if listed else (3, [])

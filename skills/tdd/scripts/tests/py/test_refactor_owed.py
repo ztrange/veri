@@ -455,6 +455,20 @@ def test_list_omits_a_candidate_recorded_as_applied_and_still_prints_the_ones_no
         0, "fold the two awk passes into one\nname the bounds walk once\n")
 
 
+def test_list_prints_an_unapplied_out_of_scope_candidate_like_a_structural_one_most_occurrences_first_1963(
+        capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    owed.write_text("### S1\n- fold the two awk passes into one\n- out-of-scope | rename the lib helper\n"
+                    "- out-of-scope | drop the dead branch in lib\n- test-only | tidy the fixture\n"
+                    "### S2\n- out-of-scope | rename the lib helper\n- name the bounds walk once\n")
+    assert refactor_owed.main(["applied", str(owed), "out-of-scope | drop the dead branch in lib", "abc1234"]) == 0
+    capsys.readouterr()
+
+    code = refactor_owed.main(["list", str(owed)])
+    assert (code, capsys.readouterr().out) == (
+        0, "rename the lib helper\nfold the two awk passes into one\nname the bounds walk once\n")
+
+
 def test_list_exits_3_printing_nothing_when_every_structural_candidate_is_recorded_as_applied_1023(
         capsys, tmp_path, refactor_owed):
     owed = tmp_path / "owed.md"
