@@ -1640,9 +1640,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    A `PASS` records the candidate as applied, with the commit that applied it, so `render`
    lists it as applied rather than owed; a candidate `structural-predicate.sh` exited 1 for
-   launches no transform leaf and is recorded the same way, at the current HEAD:
+   launches no transform leaf and is recorded the same way, at the current HEAD; the fourth argument is the applying commit's subject, which `render` prints beside the sha:
    ```
-   $S/refactor-owed.sh applied .tdd/issue-<n>-refactor-owed.md '<candidate>' "$(git rev-parse HEAD)"
+   $S/refactor-owed.sh applied .tdd/issue-<n>-refactor-owed.md '<candidate>' "$(git rev-parse HEAD)" "$(git log -1 --format=%s)"
    git add .tdd/issue-<n>-refactor-owed.md
    git commit -m "chore: record the structural pass's applied candidate (#<n>)"
    ```
