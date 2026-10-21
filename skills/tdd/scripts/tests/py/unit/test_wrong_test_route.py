@@ -1234,3 +1234,23 @@ def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_non_te
         wrong_test_route, [str(report), "src/foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout, stderr) == (3, "revise\n", "")
+
+
+def test_main_1957_routes_a_wrong_test_naming_the_title_of_a_double_quoted_test_call_in_a_js_ts_test_file_to_a_red_over_that_title(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    sibling = "rejects an empty name"
+    (tmp_path / "foo.test.ts").write_text(
+        'describe("foo", () => {\n'
+        '  test("accepts a name", () => {});\n'
+        '  test("%s", () => {});\n'
+        "});\n" % sibling)
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red %s\n" % sibling)
