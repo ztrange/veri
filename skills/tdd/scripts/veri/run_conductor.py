@@ -180,7 +180,7 @@ def launch(base, issue, commit, **exports):
         try:
             github.gh_issue_comment(issue, "needs-user: the conductor stopped without a verdict.\n\n" + quoted)
         except github.NoAnswer:
-            pass
+            sys.stderr.write("run-conductor: needs-user comment on issue #%s was refused by GitHub\n" % issue)
     return 141 if code == 0 and unread else code
 
 
