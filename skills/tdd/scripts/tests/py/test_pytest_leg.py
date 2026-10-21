@@ -40,6 +40,17 @@ def test_an_interpreter_that_can_import_pytest_but_not_pytest_timeout_exits_2_na
     )
 
 
+def test_an_interpreter_that_can_import_pytest_and_pytest_timeout_but_not_xdist_exits_2_naming_pytest_xdist_the_interpreter_and_make_install_dev(pytest_leg, run_cli, monkeypatch):
+    monkeypatch.setattr(pytest, "main", lambda args: pytest.ExitCode.OK)
+    code, out, err = run_cli(pytest_leg, [], env={"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "0"})
+    assert (code, out, err) == (
+        2,
+        "",
+        "veri needs pytest-xdist for the suites under skills/tdd/scripts/tests/py/; %s cannot import xdist. "
+        "Install it with `make install-dev`.\n" % sys.executable,
+    )
+
+
 def test_past_its_checks_the_launcher_runs_pytest_on_its_arguments_and_exits_1_for_a_status_that_is_not_ok(pytest_leg, run_cli, monkeypatch):
     calls = []
 
