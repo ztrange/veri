@@ -1226,3 +1226,13 @@ def test_main_1875_refuses_an_unknown_extra_argument_beside_not_running_with_2_a
 
     out, err = capsys.readouterr()
     assert (code, started, out, err) == (2, [], "", USAGE)
+
+
+def test_main_refuses_any_argument_but_repo_and_not_running_with_2_and_the_usage_line_alone_starting_no_process_bug_1909(monkeypatch, capsys, solvable_issues):
+    started = no_process(monkeypatch)
+
+    for argv in (["foo"], ["1875"], ["--repo", "o/n", "--not-runing"], ["--repo=x"], ["--repo", "o/n", "--repo", "x/y"]):
+        code = solvable_issues.main(argv)
+
+        out, err = capsys.readouterr()
+        assert (argv, code, started, out, err) == (argv, 2, [], "", USAGE)
