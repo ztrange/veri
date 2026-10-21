@@ -97,3 +97,28 @@ def test_main_returns_2_with_a_usage_line_before_any_listing_when_target_or_max_
 
     assert outcomes == [(argv, 2, "", True) for argv, *_ in outcomes]
     assert listings == []
+
+
+@pytest.mark.parametrize("argv", [
+    pytest.param(["--max-wiat", "3"], id="unknown-flag"),
+    pytest.param(["--target", "2", "junk"], id="trailing-junk"),
+    pytest.param(["--target", "2", "--target", "3"], id="repeated-flag"),
+    pytest.param(["--target", "2", "--max-wait"], id="second-flag-missing-its-value"),
+])
+def test_main_exits_2_with_the_usage_line_before_any_listing_on_an_argument_list_outside_the_accepted_shapes_1930(
+        monkeypatch, capsys, watch_runs, argv):
+    listings = []
+
+    def wait():
+        raise RuntimeError("polled")
+
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: listings.append(1) or [])
+    monkeypatch.setattr(watch_runs, "solvable_issues", lambda: [], raising=False)
+    monkeypatch.setattr(watch_runs, "wait", wait)
+
+    try:
+        code = watch_runs.main(argv)
+    except RuntimeError:
+        code = "polled"
+
+    assert (code, capsys.readouterr().err.startswith("usage: watch-runs.sh"), listings) == (2, True, [])

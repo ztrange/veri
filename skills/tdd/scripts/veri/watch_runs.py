@@ -43,12 +43,16 @@ def _whole_number(text):
 
 
 def main(argv):
-    if argv[:1] in (["--target"], ["--max-wait"]) and not (len(argv) > 1 and _whole_number(argv[1])):
-        print("usage: watch-runs.sh [--target <N>] [--max-wait <seconds>]  (N, seconds: whole numbers >= 1)",
-              file=sys.stderr)
-        return 2
-    target = int(argv[1]) if argv[:1] == ["--target"] else None
-    max_wait = int(argv[1]) if argv[:1] == ["--max-wait"] else None
+    given = {}
+    for i in range(0, len(argv), 2):
+        flag, value = argv[i], argv[i + 1:i + 2]
+        if flag not in ("--target", "--max-wait") or flag in given or not (value and _whole_number(value[0])):
+            print("usage: watch-runs.sh [--target <N>] [--max-wait <seconds>]  (N, seconds: whole numbers >= 1)",
+                  file=sys.stderr)
+            return 2
+        given[flag] = int(value[0])
+    target = given.get("--target")
+    max_wait = given.get("--max-wait")
     started = live_conductors()
     deadline = clock() + max_wait if max_wait is not None else None
     while True:
