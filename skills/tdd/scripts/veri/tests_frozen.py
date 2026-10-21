@@ -29,9 +29,10 @@ def _record_path(step):
     return ".tdd/tests-frozen-%s.record" % hashlib.sha256(os.fsencode(step)).hexdigest()[:16]
 
 
-def _in_repository():
-    return subprocess.run(["git", "rev-parse", "--show-toplevel"], stdout=subprocess.DEVNULL,
-                          stderr=subprocess.DEVNULL).returncode == 0
+def _toplevel():
+    done = subprocess.run(["git", "rev-parse", "--show-toplevel"], stdout=subprocess.PIPE,
+                          stderr=subprocess.DEVNULL)
+    return os.fsdecode(done.stdout).rstrip("\n") if done.returncode == 0 else None
 
 
 def _has_head():
@@ -40,8 +41,7 @@ def _has_head():
 
 
 def _enter_root(record, files):
-    root = subprocess.run(["git", "rev-parse", "--show-toplevel"], stdout=subprocess.PIPE).stdout
-    root = os.fsdecode(root).rstrip("\n")
+    root = _toplevel()
     record = os.path.abspath(record)
     files = [os.path.relpath(os.path.realpath(name), os.path.realpath(root)) for name in files]
     os.chdir(root)
@@ -49,7 +49,7 @@ def _enter_root(record, files):
 
 
 def _refused_outside_repository():
-    if _in_repository():
+    if _toplevel() is not None:
         return False
     _write(sys.stderr, "tests-frozen.sh: not inside a git repository")
     return True
