@@ -186,7 +186,11 @@ def main(argv):
         return 0
     repair = None if rerouted else _recorded(argv[0], step, argv[1])
     if repair is not None:
-        _write(sys.stdout, " ".join(["repair", repair] + _superseded(argv[0], step)))
+        superseded = _superseded(argv[0], step)
+        if superseded != _superseded(argv[0], step, argv[1]):
+            _write(sys.stdout, "revise")
+            return 3
+        _write(sys.stdout, " ".join(["repair", repair] + superseded))
         return 0
     older = [] if rerouted else _superseded(argv[0], step, argv[1])
     if len(older) >= 2:
