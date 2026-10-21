@@ -2256,6 +2256,19 @@ def test_main_renders_a_revise_green_prompt_for_a_suite_repair_or_ci_repair_step
     assert results == {"suite-repair": (0, False, False, True), "ci-repair": (0, False, False, True)}
 
 
+def test_main_renders_the_ordinary_freeze_rule_in_a_green_prompt_for_a_step_naming_suite_repair_mid_sentence_1919(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    step = "zorblat quotes ⟦suite-repair⟧ mid-sentence in its prose ⟦criterion 1⟧"
+
+    code = build_develop_prompt.main(["green", str(spec), step, "make test", "tests/py/test_zorblat.py",
+                                      "test_zorblat_frobs_a_nitz", "make unit"])
+    prompt = re.sub(rb"\s+", b" ", capsysbinary.readouterr().out)
+
+    assert (code, b"**Do not modify the test.**" in prompt, b"You may edit the failing test" in prompt) == (0, True, False)
+
+
 def test_mid_line_marks_render_todays_prompts(tmp_path, capsysbinary, build_develop_prompt):
     verify = importlib.import_module("veri.build_verify_prompt")
     spec = tmp_path / "spec.md"
