@@ -253,3 +253,22 @@ def test_apply_adds_the_rows_under_a_repo_relative_path_heading_to_the_list_besi
         "| A1 | The widget is blue. | because |",
         "| A2 | The widget is round. | shape |",
     ], rows
+
+
+def test_apply_reads_no_rows_for_a_unit_under_a_heading_naming_a_different_units_repo_relative_path_1959(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "skills" / "veri-dev").mkdir(parents=True)
+    (tmp_path / "skills" / "veri-dev" / "SKILL.md").write_text("The widget is painted a deep blue.\n")
+    original = (
+        "## SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n")
+    (tmp_path / "skills" / "veri-dev" / "REQUIREMENTS.md").write_bytes(original.encode())
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### skills/other/SKILL.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A2 | The widget is round. | shape |\n")
+
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "skills/veri-dev/SKILL.md")
+
+    assert (tmp_path / "skills" / "veri-dev" / "REQUIREMENTS.md").read_bytes() == original.encode()
