@@ -16,14 +16,12 @@ def read_events(path, skip_unreadable=False):
                 continue
             try:
                 event = json.loads(raw)
+                if not isinstance(event, dict):
+                    raise ValueError("not a JSON object: " + raw.strip())
             except ValueError:
                 if skip_unreadable:
                     continue
                 raise
-            if not isinstance(event, dict):
-                if skip_unreadable:
-                    continue
-                raise ValueError("not a JSON object: " + raw.strip())
             events.append(event)
     return events
 
