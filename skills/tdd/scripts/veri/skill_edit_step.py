@@ -100,7 +100,10 @@ def _grade(path, unit):
 
 
 def _guard(unit, base, issue):
-    offending = [p for p in _captured(skill_edit_guard.main, [unit, base])[1].splitlines() if p != issue]
+    code, out = _captured(skill_edit_guard.main, [unit, base])
+    if code == 2:
+        return 2, out
+    offending = [p for p in out.splitlines() if p != issue]
     return int(bool(offending)), "".join(p + "\n" for p in offending)
 
 
