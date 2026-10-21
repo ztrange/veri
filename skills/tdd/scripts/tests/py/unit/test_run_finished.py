@@ -71,3 +71,26 @@ def test_main_reads_the_pr_body_over_gh_pr_view_with_the_driver_graphql_and_answ
     fake_processes(answer)
     code, out, err = run_cli(run_finished, ["4242"])
     assert (code, out) == (1, "human-owed a reviewer checks the page ⟦human-owed⟧ ⟦criterion 3⟧\n")
+
+
+def test_main_falls_back_to_the_rest_pulls_route_when_gh_pr_view_is_refused_with_the_driver_auto_1974(tmp_path, monkeypatch, run_cli, fake_processes):
+    run_finished = importlib.import_module("veri.run_finished")
+    ledger = tmp_path / ".tdd" / "wt" / "4242" / ".tdd"
+    ledger.mkdir(parents=True)
+    (ledger / "issue-4242.md").write_text("# Plan for #4242 — a title\n\n- [x] first step ⟦criterion 1⟧\n")
+    run = {"issue": "4242", "state": "done", "pr": "https://github.com/o/r/pull/7"}
+    monkeypatch.setattr(run_finished, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(run_finished, "json_document", lambda scope=None: (0, json.dumps({"runs": [run]})))
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+    body = "Closes #4242\n\n- [ ] a reviewer checks the page ⟦human-owed⟧ ⟦criterion 3⟧"
+
+    def answer(line, **kwargs):
+        if line.startswith("gh api repos/{owner}/{repo}/pulls/7"):
+            return 0, json.dumps({"number": 7, "body": body}) + "\n", ""
+        return 1, "", "GraphQL: refused"
+
+    calls = fake_processes(answer)
+    code, out, err = run_cli(run_finished, ["4242"])
+    tried = [line.split()[1] for line in calls if line.startswith("gh")]
+    assert (code, out, tried[0], "api" in tried) == (
+        1, "human-owed a reviewer checks the page ⟦human-owed⟧ ⟦criterion 3⟧\n", "pr", True)
