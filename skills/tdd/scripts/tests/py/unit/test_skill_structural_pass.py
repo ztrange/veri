@@ -204,3 +204,14 @@ def test_skill_md_s_structural_pass_passes_the_commit_subject_git_log_1_format_s
     for call in calls:
         assert call.endswith('"$(git log -1 --format=%s)"'), \
             f"SKILL.md's structural pass calls refactor-owed.sh applied without the commit subject last: {call}"
+
+
+def test_2027_skill_md_s_structural_pass_commits_the_refactor_owed_file_after_every_refactor_owed_sh_not_done_call_before_the_next_candidate_s_leaf():
+    text = " ".join(pass_text().split())
+    match = re.search(r"Every refactor-owed\.sh not-done call .*?(?=Once the pass ends)", text)
+    assert match, "SKILL.md's structural pass never says every refactor-owed.sh not-done call is followed by a commit"
+    rule = match.group(0)
+    requires(rule, "before the next candidate's leaf is launched",
+             "git add .tdd/issue-<n>-refactor-owed.md git commit -m")
+    assert all(reason in rule for reason in ("budget-spent", "uncovered", "no-predicate", "transform-rejected")), \
+        "SKILL.md's not-done commit rule does not cover all four reasons"
