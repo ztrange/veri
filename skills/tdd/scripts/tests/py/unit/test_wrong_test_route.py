@@ -1044,3 +1044,65 @@ def test_main_1932_prints_red_over_the_one_case_a_backticked_superseded_line_nam
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % older)
+
+
+def test_main_1932_prints_revise_when_a_wrong_test_line_is_indented_by_a_tab_inside_prose(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    contradicted = "test_main_counts_a_repair_text_as_a_repair"
+    (suite / "test_ledger.py").write_text(
+        "def test_main_returns_zero():\n    pass\n\n"
+        "def %s():\n    pass\n" % contradicted)
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setenv("VERI_STEP", "a tab-indented quote is not a route line")
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "The verifier's last report read:\n\n"
+        "\tWRONG_TEST: %s asserts the opposite of the criterion\n\n"
+        "which I could not satisfy.\n" % contradicted)
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
+
+
+def test_main_1932_prints_red_over_the_case_a_star_bulleted_superseded_line_names(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    suite = tmp_path / "tests" / "py"
+    suite.mkdir(parents=True)
+    added = "test_main_prints_the_usage_with_not_running"
+    older = "test_main_prints_usage_on_no_arguments"
+    (suite / "test_solvable.py").write_text(
+        "def %s():\n    pass\n\ndef %s():\n    pass\n" % (older, added))
+    (tmp_path / ".tdd").mkdir()
+    step = "solvable-issues.sh usage mentions --not-running, a star-bulleted superseded line"
+    monkeypatch.setenv("VERI_STEP", step)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    (tmp_path / record_path.rstrip("\n")).write_text("case: %s\n" % added)
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nSUPERSEDED: * %s\n" % older)
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red %s\n" % older)
+
+
+def test_main_1932_prints_revise_with_nothing_on_stderr_when_missing_test_none_precedes_a_well_formed_missing_test_line(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setenv("VERI_STEP", "MISSING_TEST: NONE stops the search")
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "MISSING_TEST: NONE\n"
+        "MISSING_TEST: the router ignores quoted lines\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout, stderr) == (3, "revise\n", "")
