@@ -38,7 +38,10 @@ def direct_reads(path):
             return False
         copy = assign.targets[0].id
         def discarded_pop(use):
-            call = parents.get(parents.get(use))
+            parent = parents.get(use)
+            if isinstance(parent, ast.Subscript):
+                return not isinstance(parent.ctx, ast.Load)
+            call = parents.get(parent)
             return isinstance(call, ast.Call) and isinstance(parents.get(call), ast.Expr)
 
         return any(isinstance(use, ast.Name) and use.id == copy and use.lineno > assign.lineno
