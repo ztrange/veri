@@ -1,0 +1,2 @@
+### build-develop-prompt.sh green, for a step that names the suite-repair marker mid-sentence but does not end in it, renders no suite-repair green paragraph ⟦criterion 1⟧
+- out-of-scope | the `phase == "red" and carries_mark(step, "ci-repair")` check at build_develop_prompt.py:132 still matches the marker anywhere in the step. Moving it to `markers` is a behaviour change that no step in this cycle covers.
