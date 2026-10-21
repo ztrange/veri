@@ -2,7 +2,9 @@
 import importlib
 
 
-def test_apply_adds_the_issue_rows_the_units_list_lacks_at_its_end_and_no_row_the_issue_does_not_state(tmp_path):
+def test_apply_adds_the_issue_rows_the_units_list_lacks_at_its_end_and_no_row_the_issue_does_not_state(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "other.md").write_text("Other unit.\n")
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
     requirements = importlib.import_module("veri.requirements")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -18,13 +20,14 @@ def test_apply_adds_the_issue_rows_the_units_list_lacks_at_its_end_and_no_row_th
         "| A3 | The widget is shiny. | gloss |\n\n"
         "### other.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| B2 | Not ours. | n |\n")
 
-    skill_edit_step.apply(str(tmp_path / "issue.md"), str(tmp_path / "unit.md"))
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
     ids = [row.split("\t")[0] for row in requirements.claims(str(tmp_path / "REQUIREMENTS.md"), "unit.md").splitlines()]
     assert ids == ["A1", "A2", "A3"], ids
 
 
-def test_apply_rewords_a_row_the_list_already_holds_in_place_keeping_its_id_and_position(tmp_path):
+def test_apply_rewords_a_row_the_list_already_holds_in_place_keeping_its_id_and_position(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
     (tmp_path / "REQUIREMENTS.md").write_text(
@@ -37,7 +40,7 @@ def test_apply_rewords_a_row_the_list_already_holds_in_place_keeping_its_id_and_
         "| ID | Requirement | Why |\n|---|---|---|\n"
         "| A2 | The widget is square. | corners |\n")
 
-    skill_edit_step.apply(str(tmp_path / "issue.md"), str(tmp_path / "unit.md"))
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
     rows = [l for l in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("| A")]
     assert rows == [
@@ -47,7 +50,8 @@ def test_apply_rewords_a_row_the_list_already_holds_in_place_keeping_its_id_and_
     ], rows
 
 
-def test_apply_drops_the_row_an_issue_marks_dropped_and_renumbers_no_other_row(tmp_path):
+def test_apply_drops_the_row_an_issue_marks_dropped_and_renumbers_no_other_row(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
     (tmp_path / "REQUIREMENTS.md").write_text(
@@ -60,7 +64,7 @@ def test_apply_drops_the_row_an_issue_marks_dropped_and_renumbers_no_other_row(t
         "| ID | Requirement | Why |\n|---|---|---|\n"
         "| A2 | (dropped) | no longer wanted |\n")
 
-    skill_edit_step.apply(str(tmp_path / "issue.md"), str(tmp_path / "unit.md"))
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
     rows = [l for l in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("| A")]
     assert rows == [
@@ -69,7 +73,9 @@ def test_apply_drops_the_row_an_issue_marks_dropped_and_renumbers_no_other_row(t
     ], rows
 
 
-def test_apply_leaves_the_list_byte_for_byte_when_the_issue_has_no_requirements_section_or_none_for_the_unit(tmp_path):
+def test_apply_leaves_the_list_byte_for_byte_when_the_issue_has_no_requirements_section_or_none_for_the_unit(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "other.md").write_text("Other unit.\n")
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
     original = (
@@ -85,12 +91,13 @@ def test_apply_leaves_the_list_byte_for_byte_when_the_issue_has_no_requirements_
         (tmp_path / "REQUIREMENTS.md").write_bytes(original.encode())
         (tmp_path / "issue.md").write_text(body)
 
-        skill_edit_step.apply(str(tmp_path / "issue.md"), str(tmp_path / "unit.md"))
+        skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
         assert (tmp_path / "REQUIREMENTS.md").read_bytes() == original.encode(), body
 
 
-def test_apply_creates_a_new_unit_empty_and_its_section_in_a_requirements_list_it_creates(tmp_path):
+def test_apply_creates_a_new_unit_empty_and_its_section_in_a_requirements_list_it_creates(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
     (tmp_path / "issue.md").write_text(
         "## Requirements\n\n### unit.md (new)\n\n"
@@ -98,7 +105,7 @@ def test_apply_creates_a_new_unit_empty_and_its_section_in_a_requirements_list_i
         "| A1 | The widget is blue. | because |\n"
         "| A2 | The widget is round. | shape |\n")
 
-    skill_edit_step.apply(str(tmp_path / "issue.md"), str(tmp_path / "unit.md"))
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
     assert (tmp_path / "unit.md").read_bytes() == b""
     rows = [l for l in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("|")]
@@ -109,7 +116,8 @@ def test_apply_creates_a_new_unit_empty_and_its_section_in_a_requirements_list_i
     assert "## unit.md" in (tmp_path / "REQUIREMENTS.md").read_text().splitlines()
 
 
-def test_apply_keeps_the_sections_of_an_existing_requirements_list_when_it_creates_a_new_unit(tmp_path):
+def test_apply_keeps_the_sections_of_an_existing_requirements_list_when_it_creates_a_new_unit(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
     other = ("## other.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
              "| B1 | The gadget hums. | sound |\n")
@@ -119,7 +127,7 @@ def test_apply_keeps_the_sections_of_an_existing_requirements_list_when_it_creat
         "| ID | Requirement | Why |\n|---|---|---|\n"
         "| A1 | The widget is blue. | because |\n")
 
-    skill_edit_step.apply(str(tmp_path / "issue.md"), str(tmp_path / "unit.md"))
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
     text = (tmp_path / "REQUIREMENTS.md").read_text()
     assert text.startswith(other), text
@@ -128,6 +136,7 @@ def test_apply_keeps_the_sections_of_an_existing_requirements_list_when_it_creat
 
 
 def test_a_veri_skill_edit_budget_that_is_not_a_whole_number_of_at_least_one_exits_2_before_any_grading_or_launch_and_the_shim_header_names_it(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
     import subprocess
     import types
     from conftest import SCRIPTS
@@ -147,7 +156,7 @@ def test_a_veri_skill_edit_budget_that_is_not_a_whole_number_of_at_least_one_exi
 
     codes = {}
     for budget in ["", "0", "-1", "two", "1.5"]:
-        codes[budget] = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), str(tmp_path / "unit.md")],
+        codes[budget] = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"],
                                 env={"VERI_SKILL_EDIT_BUDGET": budget})[0]
 
     header = (SCRIPTS / "skill-edit-step.sh").read_text().split("exec ")[0]
@@ -156,6 +165,7 @@ def test_a_veri_skill_edit_budget_that_is_not_a_whole_number_of_at_least_one_exi
 
 
 def test_a_guard_exit_2_exits_the_step_2_signing_nothing_and_committing_nothing(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
     import subprocess
     import types
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
@@ -173,12 +183,13 @@ def test_a_guard_exit_2_exits_the_step_2_signing_nothing_and_committing_nothing(
         PIPE=subprocess.PIPE)
     monkeypatch.setattr(skill_edit_step, "subprocess", fake)
 
-    code = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), str(tmp_path / "unit.md")])[0]
+    code = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])[0]
 
     assert (code, [g for g in gits if g[1] in ("add", "commit")], (tmp_path / "GRADED").exists()) == (2, [], False), (code, gits)
 
 
 def test_the_author_attempts_follow_veri_skill_edit_budget_alone_whatever_the_other_five_budgets_say(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
     import subprocess
     import types
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
@@ -197,7 +208,7 @@ def test_the_author_attempts_follow_veri_skill_edit_budget_alone_whatever_the_ot
     others = {"REVISE_BUDGET": "7", "VERI_STUCK_RETRIES": "8", "VERI_NO_VERDICT_RETRIES": "9",
               "VERI_REFACTOR_BUDGET": "10", "VERI_STEP_GROWTH": "11"}
 
-    code = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), str(tmp_path / "unit.md")],
+    code = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"],
                    env={**others, "VERI_SKILL_EDIT_BUDGET": "2"})[0]
 
     assert (code, len(authors)) == (1, 2), (code, len(authors))
