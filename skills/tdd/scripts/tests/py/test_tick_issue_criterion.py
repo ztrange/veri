@@ -559,3 +559,24 @@ def test_cli_2027_writes_a_run_log_event_naming_the_matcher_when_no_unchecked_cr
     lines = log.read_text().splitlines() if log.exists() else []
     events = [json.loads(line) for line in lines if "zeta-matcher" in line]
     assert (code, [(e["event"], e["matcher"]) for e in events]) == (3, [("criterion-unticked", "zeta-matcher")])
+
+
+def test_cli_2027_criterion_unticked_event_carries_the_issue_number_when_veri_issue_is_unset(monkeypatch, run_cli, tick_issue_criterion, tmp_path):
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    monkeypatch.delenv("VERI_ISSUE", raising=False)
+    (tmp_path / ".git").mkdir()
+    body = AC + "- [ ] alpha\n"
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args == ["gh", "api", "repos/{owner}/{repo}/issues/7"]:
+            return subprocess.CompletedProcess(args, 0, json.dumps({"body": body}), "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, _, _ = run_cli(tick_issue_criterion, ["7", "zeta-matcher"], cwd=tmp_path)
+
+    lines = (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()
+    events = [json.loads(line) for line in lines if "zeta-matcher" in line]
+    assert (code, [(e["event"], e["issue"]) for e in events]) == (3, [("criterion-unticked", "7")])
