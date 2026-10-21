@@ -146,3 +146,26 @@ def test_a_veri_skill_edit_budget_that_is_not_a_whole_number_of_at_least_one_exi
     header = (SCRIPTS / "skill-edit-step.sh").read_text().split("exec ")[0]
     assert (codes, calls, "VERI_SKILL_EDIT_BUDGET" in header) \
         == ({b: 2 for b in ["", "0", "-1", "two", "1.5"]}, [], True), (codes, calls)
+
+
+def test_a_guard_exit_2_exits_the_step_2_signing_nothing_and_committing_nothing(tmp_path, monkeypatch, run_cli):
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    grades = iter([(1, "A1: FAIL - no\n"), (0, "")])
+    gits = []
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: next(grades))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 2)
+    fake = types.SimpleNamespace(
+        run=lambda cmd, **kw: gits.append(cmd[:2]) or subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""),
+        PIPE=subprocess.PIPE)
+    monkeypatch.setattr(skill_edit_step, "subprocess", fake)
+
+    code = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), str(tmp_path / "unit.md")])[0]
+
+    assert (code, [g for g in gits if g[1] in ("add", "commit")], (tmp_path / "GRADED").exists()) == (2, [], False), (code, gits)
