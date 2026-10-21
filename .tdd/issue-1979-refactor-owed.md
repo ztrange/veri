@@ -1,0 +1,3 @@
+### tick-issue-criterion.sh exits 3 and leaves the issue body unedited when the only unchecked box matching the matcher sits outside the `## Acceptance criteria` heading (e.g. under `## Problem` or `## Blocked by`) — a small in-process case through run_cli with gh faked, no production change beyond the tick ⟦criterion 1⟧
+- in `tick_issue_criterion.py`, `text` is built before the `if not ticked` early return, so it is wasted work on exit 3. Moving it below the check is a reorder, not duplication removal.
+- test-only | the new #1979 case copies the `fake_run` gh stub that earlier cases in `test_tick_issue_criterion.py` already define. A shared fixture or helper would remove that.
