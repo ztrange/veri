@@ -211,3 +211,24 @@ def test_main_reports_a_conductor_live_at_start_that_vanished_from_the_run_listi
 
     out = capsys.readouterr().out
     assert (code, "vanished" in out and "5" in out, "exited" in out) == (2, True, False)
+
+
+def test_main_with_no_flags_and_no_live_conductor_at_start_prints_nothing_to_watch_and_returns_3_without_blocking_1930(
+        monkeypatch, capsys, watch_runs):
+    waits = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) > 3:
+            raise RuntimeError("blocked with nothing to watch")
+
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: [])
+    monkeypatch.setattr(watch_runs, "wait", wait)
+
+    try:
+        code = watch_runs.main([])
+    except RuntimeError:
+        code = "blocked"
+
+    out = capsys.readouterr().out
+    assert (code, "nothing to watch" in out) == (3, True)

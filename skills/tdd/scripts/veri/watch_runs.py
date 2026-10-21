@@ -60,6 +60,9 @@ def main(argv):
     target = given.get("--target")
     max_wait = given.get("--max-wait")
     started = live_conductors()
+    if not given and not started:
+        print("nothing to watch")
+        return 3
     deadline = clock() + max_wait if max_wait is not None else None
     while True:
         wait()
