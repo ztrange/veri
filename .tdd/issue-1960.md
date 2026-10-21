@@ -1,6 +1,6 @@
 # Plan for #1960 — tests-frozen.sh fails open from a subdirectory, outside a repository, and in a repository with no commits
 
-- [ ] `tests-frozen.sh check --step` run from a subdirectory of the repository exits 1 for an untracked test file outside that subdirectory, printing it by its path from the repository root (a case driving a real git repository, marked as a process case) ⟦criterion 1⟧
+- [x] `tests-frozen.sh check --step` run from a subdirectory of the repository exits 1 for an untracked test file outside that subdirectory, printing it by its path from the repository root (a case driving a real git repository, marked as a process case) ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] `tests-frozen.sh record --step` run outside any git repository exits 2, its stderr naming the missing git repository, and writes no record file (a case driving a real git binary, marked as a process case) ⟦criterion 2⟧
 - [ ] `tests-frozen.sh check --step` in a git repository with no commits exits 2, its stderr naming the missing `HEAD`, rather than exiting 0 over a staged test-file edit (a case driving a real git repository, marked as a process case) ⟦criterion 3⟧
 - [ ] `tests-frozen.sh record --step` for a Red whose only test change deletes a tracked test file records that deletion and exits 0, watched red with record's `if not files and not deleted` reduced to `if not files` (a case driving a real git repository, marked as a process case) ⟦criterion 4⟧
