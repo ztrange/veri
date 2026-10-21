@@ -63,7 +63,7 @@ class _Conductor:
         for line in lines:
             if self.stopped:
                 return
-            self.budget, readings, exceeded = watch(self.budget, [line], int(_ctx_budget()))
+            self.budget, readings, exceeded = watch(self.budget, [line], tunables.resolve("VERI_CONDUCTOR_CTX_BUDGET")[0])
             for context in readings:
                 print("context %s %d" % (self.n, context), flush=True)
             if exceeded:
@@ -115,10 +115,6 @@ def _parked(n):
 
 def _is_failure(got):
     return got.startswith(("killed ", "bailed "))
-
-
-def _ctx_budget():
-    return tunables.read("VERI_CONDUCTOR_CTX_BUDGET") or "120000"
 
 
 def _bash_arithmetic(value):
@@ -176,8 +172,11 @@ def main(argv):
         return 2
     parallel = tunables.read("VERI_PARALLEL", "1")
     max_issues = tunables.read("VERI_MAX_ISSUES", None)
-    if not (_whole_number("VERI_CONDUCTOR_CTX_BUDGET", _ctx_budget(), 0)
-            and _whole_number("VERI_PARALLEL", parallel, 1)
+    _, bad = tunables.resolve("VERI_CONDUCTOR_CTX_BUDGET")
+    if bad:
+        print("parallel-conductors: VERI_CONDUCTOR_CTX_BUDGET must be a whole number >= 0: '%s'" % bad[0], file=sys.stderr)
+        return _finish(2)
+    if not (_whole_number("VERI_PARALLEL", parallel, 1)
             and (max_issues is None or _whole_number("VERI_MAX_ISSUES", max_issues, 1))):
         return _finish(2)
     rc_dir = tempfile.mkdtemp()
