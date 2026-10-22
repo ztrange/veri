@@ -46,6 +46,13 @@ def drop_stale_bytecode(after_run=False):
         for name in files:
             if not name.endswith(".pyc"):
                 continue
+            if "-pytest-" in name or ".opt-" in name:
+                if not after_run:
+                    try:
+                        os.remove(os.path.join(folder, name))
+                    except FileNotFoundError:
+                        pass
+                continue
             path = os.path.join(source_dir, name.split(".cpython")[0] + ".py")
             if path not in current:
                 try:
