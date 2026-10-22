@@ -11,9 +11,9 @@
 # still reports a head other than <head-sha>, when this call's <slice-seconds> run out.
 #
 # While every pending check is still queued the deadline does not run. It starts at the first
-# call that sees a check in progress for a head commit, <total-seconds> (default
-# <slice-seconds>) after it, and is recorded in .tdd/ci-deadline-<sha>; the first queued
-# sighting is recorded in .tdd/ci-queued-<sha>.
+# call that sees a check in progress for a head commit, <total-seconds> after it (default
+# twice the mean of the last 5 CI runs, capped at 600, else 540), and is recorded in
+# .tdd/ci-deadline-<sha>; the first queued sighting is recorded in .tdd/ci-queued-<sha>.
 #
 # Tunables (env): VERI_POLL poll interval secs (default 10); VERI_CI_QUEUE_WAIT secs checks may
 # stay queued before exit 2 (default 3600).
