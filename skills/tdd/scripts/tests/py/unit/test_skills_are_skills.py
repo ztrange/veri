@@ -48,3 +48,11 @@ def test_issue_1895_audit_still_reports_an_empty_directory_under_skills(tmp_path
         test_every_directory_directly_under_skills_contains_a_skill_md()
 
     assert str(caught.value).splitlines()[0] == "directories under skills/ with no SKILL.md: empty"
+
+
+def test_issue_1895_audit_skips_a_non_empty_run_state_directory_under_skills(tmp_path, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "red-prediction.md").write_text("prediction\n")
+    monkeypatch.setattr(sys.modules[__name__], "SKILLS", tmp_path)
+
+    test_every_directory_directly_under_skills_contains_a_skill_md()
