@@ -855,3 +855,52 @@ def test_2037_the_draft_pr_regrade_block_run_as_written_on_a_branch_that_signed_
     record = tmp_path / "record.txt"
     graded = re.findall(r"^Unit: (\S+)$", record.read_text(), re.M) if record.exists() else []
     assert (ran.returncode, graded) == (0, ["guide/unit.md"]), ran.stdout + ran.stderr
+
+
+REJECT_THEN_PASS_STUB = """#!/bin/sh
+{ printf '%s\\n' "$@"; cat; } > "$STUB_DIR/in.$$"
+grep '^Unit: ' "$STUB_DIR/in.$$" >> "$STUB_DIR/graded.txt"
+if [ "$(wc -l < "$STUB_DIR/graded.txt")" -eq 1 ]; then
+  printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"BEGIN GRADES\\nA1: FAIL - no\\nA2: PASS - ok\\nVERDICT: REJECT\\nEND GRADES"}'
+else
+  printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}'
+fi
+"""
+
+
+@pytest.mark.process("the SKILL.md regrade block run in a git repo with a stub claude through supervise.sh")
+def test_2037_the_draft_pr_regrade_block_run_as_written_on_two_signed_units_with_the_first_rejected_exits_non_zero_after_grading_both(tmp_path):
+    skill = (SCRIPTS.parents[2] / "skills" / "tdd" / "SKILL.md").read_text()
+    draft = skill[skill.index("regrade every unit the run signed"):]
+    block = re.search(r"```\n(.*?)```", draft, re.S).group(1).replace("<default>", "main")
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    def git(*argv):
+        subprocess.run(["git", *argv], cwd=tmp_path, env=env, check=True, capture_output=True)
+
+    git("init", "-q", "-b", "main")
+    git("commit", "-q", "--allow-empty", "-m", "base")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    git("checkout", "-q", "-b", "work")
+    for directory, name in (("alpha", "one.md"), ("beta", "two.md")):
+        (tmp_path / directory).mkdir()
+        unit = f"{directory}/{name}"
+        (tmp_path / unit).write_text(PROSE)
+        (tmp_path / directory / "REQUIREMENTS.md").write_text(REQUIREMENTS.replace("guide/unit.md", unit))
+        (tmp_path / directory / "GRADED").write_text(f"{unit} 0 2026-01-01 id\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "sign two units")
+    stub_dir = tmp_path / "stub"
+    stub_dir.mkdir()
+    claude = tmp_path / "claude"
+    claude.write_text(REJECT_THEN_PASS_STUB)
+    claude.chmod(0o755)
+
+    ran = subprocess.run(["bash", "-c", block], cwd=tmp_path, capture_output=True, text=True,
+                         env={**env, "S": str(SCRIPTS), "CLAUDE_BIN": str(claude), "STUB_DIR": str(stub_dir)})
+
+    graded_file = stub_dir / "graded.txt"
+    graded = re.findall(r"^Unit: (\S+)$", graded_file.read_text(), re.M) if graded_file.exists() else []
+    assert (ran.returncode != 0, sorted(graded)) == (True, ["alpha/one.md", "beta/two.md"]), (
+        ran.returncode, graded, ran.stdout + ran.stderr)
