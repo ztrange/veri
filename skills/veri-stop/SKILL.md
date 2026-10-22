@@ -14,13 +14,14 @@ Obeys `operator/PRINCIPLES.md` under the veri clone root (`git -C <base dir> rev
 
 Invoked as `/veri-stop [<issue>|--all] [ledger|leaf|now]`. The first argument names the run to
 stop: one issue number, or `--all` for every running conductor. The second is the grade, and it
-defaults to `ledger` when omitted. It maps straight onto `$S/stop-run.sh --mode`:
+defaults to `ledger` when omitted. `$S/stop-run.sh --mode` accepts `at-ledger`, `at-leaf` and
+`now`, so each grade maps to the mode it accepts:
 
-- `ledger` — `--mode ledger`: the default.
-- `leaf` — `--mode leaf`.
+- `ledger` — `--mode at-ledger`: the default.
+- `leaf` — `--mode at-leaf`.
 - `now` — `--mode now`.
 
-Pass the grade through unchanged; never pick a harsher one than the user asked for.
+Never pick a harsher grade than the user asked for.
 
 ## After each conductor exits
 
