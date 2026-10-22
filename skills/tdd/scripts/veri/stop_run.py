@@ -5,6 +5,7 @@ import signal
 import subprocess
 import sys
 
+import paths
 import pid_file
 import stop_modes
 import tunables
@@ -44,7 +45,7 @@ def holds(outer, inner):
 
 
 def inside_own_scripts():
-    scripts = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    scripts = paths.resolved_scripts_of(__file__)
     return holds(scripts, os.path.realpath(os.getcwd()))
 
 

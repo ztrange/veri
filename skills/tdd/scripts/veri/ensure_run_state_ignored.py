@@ -3,6 +3,8 @@ import os
 import subprocess
 import sys
 
+import paths
+
 RULE = (".tdd/*", "!.tdd/issue-*.md", ".tdd/issue-*-spec.md")
 
 
@@ -46,7 +48,7 @@ def write_failed(error):
 
 
 def inside_own_scripts(root):
-    scripts = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    scripts = paths.resolved_scripts_of(__file__)
     here = os.path.realpath(root)
     return here == scripts or here.startswith(scripts + os.sep)
 

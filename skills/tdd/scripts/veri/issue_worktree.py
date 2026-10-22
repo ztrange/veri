@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 
+import paths
 import tunables
 from git import git, symref_default
 from github import NoAnswer, gh_json
@@ -98,7 +99,7 @@ def wt_path(main_tree, n):
 
 
 def inside_own_scripts():
-    scripts = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    scripts = paths.resolved_scripts_of(__file__)
     here = os.path.realpath(os.getcwd())
     return here == scripts or here.startswith(scripts + os.sep)
 
