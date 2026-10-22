@@ -10,3 +10,9 @@
 - [ ] The grade-prose cases that check outcomes (all but one entry-point contract case) run in-process through `run_cli` with the supervise.sh launch faked, so none carries a `@pytest.mark.process` mark naming supervise, claude, grader or author, with names and outcomes unchanged ⟦added⟧ ⟦criterion 2⟧
 - [ ] The skill-edit-step cases that check outcomes (all but one entry-point contract case) run in-process through `run_cli` with the supervise.sh launch faked, so none carries a `@pytest.mark.process` mark naming supervise, claude, grader or author, with names and outcomes unchanged ⟦added⟧ ⟦criterion 2⟧
 - [ ] The cases in tests/py/test_grade_prose_process.py and tests/py/test_skill_edit_step_process.py that check grade-prose and skill-edit outcomes no longer launch the stub claude through supervise.sh; only the entry-point contract cases still start a real child process ⟦added⟧ ⟦criterion 2⟧
+
+## Owed steps
+
+- A shared in-process fake of the `supervise.sh` grader launch (scripted reply, scripted exit code, `.tdd/grade-prose.log` written the way the real launch writes it) exists, and the grade-prose cases that check only the verdict (exit code, stdout, stderr) run on it with no process mark, names and outcomes unchanged
+- The grade-prose cases that check what the grader leaf received (prompt text, model, tool limits, launch actor) or what grading wrote (events, graded lines, cost) run on the same fake with no process mark, names and outcomes unchanged
+- The grade-prose cases for a killed, failed-to-launch, usage-limit or refusing launch and for the SKILL.md regrade block run on the fake too, leaving exactly one entry-point contract case with a real-process mark, names and outcomes unchanged
