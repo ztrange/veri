@@ -102,6 +102,7 @@ def pytest_configure(config):
     config.option.importmode = "append"
     config.addinivalue_line("markers", "process(boundary): a medium case, naming the process boundary it observes")
     config.addinivalue_line("markers", "tree_audit(sweeps): a case that lists the repository's own directories, run by make test and not make unit")
+    config.addinivalue_line("markers", "serial(reason): a case that must not run beside a full parallel load, naming why")
 
 
 def pytest_collection_modifyitems(config, items):
@@ -110,7 +111,7 @@ def pytest_collection_modifyitems(config, items):
                     for mark in item.iter_markers() if mark.name not in registered]
     if unregistered:
         raise pytest.UsageError("unregistered mark: %s" % ", ".join(unregistered))
-    for name, missing in (("process", "a boundary"), ("tree_audit", "a sweep")):
+    for name, missing in (("process", "a boundary"), ("tree_audit", "a sweep"), ("serial", "a reason")):
         unnamed = [item.nodeid for item in items
                    if any(not mark.args or not str(mark.args[0]).strip() for mark in item.iter_markers(name))]
         if unnamed:

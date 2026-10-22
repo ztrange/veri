@@ -168,3 +168,29 @@ def test_an_unmarked_case_that_drives_a_module_which_lists_a_repository_director
 
     assert result.parseoutcomes() == {"passed": 1, "failed": 1}, output
     assert [name for name in ("test_drives_the_sweeping_module", "skills/tdd/scripts") if name not in output] == [], output
+
+
+def test_a_serial_mark_with_no_reason_or_a_blank_one_fails_collection_naming_the_test_and_the_missing_reason_2092(pytester):
+    pytester.makepyfile(test_plant="""
+        import pytest
+
+        @pytest.mark.serial
+        def test_bare_serial_mark():
+            pass
+
+        @pytest.mark.serial("")
+        def test_empty_serial_mark():
+            pass
+
+        @pytest.mark.serial(" \\t ")
+        def test_blank_serial_mark():
+            pass
+    """)
+
+    result = pytester.runpytest_inprocess(plugins=[importlib.import_module("conftest")])
+    output = result.stdout.str() + result.stderr.str()
+
+    assert result.ret not in (pytest.ExitCode.OK, pytest.ExitCode.TESTS_FAILED), output
+    assert "unregistered mark" not in output, output
+    assert "serial mark without a reason" in output, output
+    assert [name for name in ("test_bare_serial_mark", "test_empty_serial_mark", "test_blank_serial_mark") if name not in output] == [], output
