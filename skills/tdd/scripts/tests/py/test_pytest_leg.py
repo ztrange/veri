@@ -168,6 +168,31 @@ def test_2100_with_neither_worker_count_nor_legs_directory_set_a_leg_reads_the_d
     assert without_selection(calls[0]) == ["-q", "some/dir"]
 
 
+def test_2100_with_no_worker_count_a_leg_registers_its_worker_count_in_the_legs_registry_while_pytest_runs_and_removes_it_after_whatever_the_status(pytest_leg, run_cli, monkeypatch, tmp_path):
+    import os
+
+    legs = tmp_path / "legs"
+    during, handed = [], []
+    statuses = iter([pytest.ExitCode.TESTS_FAILED, pytest.ExitCode.TESTS_FAILED, pytest.ExitCode.OK, pytest.ExitCode.OK])
+
+    def spy(args):
+        during.append(sorted(p.read_text().strip() for p in legs.iterdir()) if legs.is_dir() else None)
+        handed.append(without_selection(args))
+        return next(statuses)
+
+    monkeypatch.setattr(pytest, "main", spy)
+    monkeypatch.setattr(os, "cpu_count", lambda: 6)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 6, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(6)), raising=False)
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_LEGS": str(legs)}
+    codes, after = [], []
+    for _ in range(2):
+        codes.append(run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0])
+        after.append(sorted(p.name for p in legs.iterdir()) if legs.is_dir() else [])
+    assert (codes, during, after) == ([1, 0], [["6"]] * 4, [[], []])
+    assert handed[0][:2] == handed[2][:2] == ["-n", "6"] or "-n6" in handed[0] and "-n6" in handed[2]
+
+
 def test_launched_from_inside_an_xdist_worker_with_no_worker_count_the_launcher_runs_serially_while_an_explicit_count_still_wins(pytest_leg, run_cli, monkeypatch):
     import os
 

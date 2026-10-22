@@ -80,19 +80,31 @@ def main(argv):
         sys.exit(128 + signum)
     previous = signal.signal(signal.SIGTERM, terminate)
     conftest = sys.modules.get("conftest")
+    entry = None
     try:
         with tempfile.TemporaryDirectory(prefix="veri-pytest-") as run:
             base = os.path.join(run, "base")
             os.mkdir(base)
             count = worker_count(workers)
+            if not workers:
+                legs = tunables.read("VERI_PYTEST_LEGS") or default_legs()
+                os.makedirs(legs, exist_ok=True)
+                entry = os.path.join(legs, str(os.getpid()))
+                with open(entry, "w") as f:
+                    f.write(str(count))
             parallel = ["-n", str(count)] if count >= 2 else []
             rest, selected = split_marks(argv)
             seen = os.path.join(run, "serial-seen")
             os.environ["PYTEST_LEG_SERIAL_SEEN"] = seen
-            statuses = [pytest.main(["--basetemp=" + base] + parallel + ["-m", selected + "not serial"] + rest)]
+            statuses = [pytest.main(parallel + ["--basetemp=" + base, "-m", selected + "not serial"] + rest)]
             if not os.path.exists(seen) or "serial" in open(seen).read().split():
                 statuses.append(pytest.main(["--basetemp=" + base, "-m", selected + "serial"] + rest))
     finally:
+        if entry:
+            try:
+                os.remove(entry)
+            except OSError:
+                pass
         signal.signal(signal.SIGTERM, previous)
         if conftest is None:
             sys.modules.pop("conftest", None)
