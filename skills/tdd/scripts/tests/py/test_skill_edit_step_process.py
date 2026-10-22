@@ -888,3 +888,32 @@ def test_a_new_empty_unit_the_author_then_writes_exits_zero_and_is_committed_207
     committed = subprocess.run(["git", "show", "HEAD:skills/new-skill/SKILL.md"], cwd=repo, capture_output=True,
                                text=True).stdout
     assert [ran.returncode, committed] == [0, "The new skill is described.\n"], (ran.returncode, ran.stderr[-700:])
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub claude recording every call by role")
+def test_a_non_empty_existing_unit_is_graded_first_and_a_grader_that_passes_every_row_launches_no_author_exiting_3_2072(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "unit.md").write_text("The widget is blue.\nIt stays silent.\n")
+    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is a deep blue. | shade |\n")
+    cap = tmp_path / "cap"
+    cap.mkdir()
+    claude = tmp_path / "claude"
+    claude.write_text(STUB_ROLE_LOG)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+           "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+
+    roles = cap / "roles"
+    calls = roles.read_text().split() if roles.exists() else []
+    assert [ran.returncode, calls] == [3, ["grader"]], (ran.returncode, calls, ran.stderr[-700:])
