@@ -1,0 +1,2 @@
+### A ported script's `.sh` shim run with a fixed PATH such as `/usr/bin:/bin:/usr/local/bin`, prefixed by a directory whose `python3` is a stub that exits 9, while `VERI_VENV` points at a venv whose `bin/python3` is the real interpreter, runs its module on the venv's interpreter: the script's normal output and exit code come back, not the stub's 9 (a medium case marked process, starting the real shim) ⟦criterion 1⟧
+- test-only | extract the shared venv/stub-python3 setup and subprocess call duplicated between the two #2106 cases in tests/py/test_shims.py
