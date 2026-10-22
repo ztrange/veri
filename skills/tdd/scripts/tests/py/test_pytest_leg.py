@@ -144,6 +144,37 @@ def test_2100_with_no_worker_count_a_leg_starting_beside_registered_legs_takes_o
     assert beside_one == beside_two == ["-q", "some/dir"]
 
 
+def test_2100_a_leg_starting_with_no_worker_count_when_live_registered_legs_already_take_every_core_runs_and_registers_exactly_1_worker(pytest_leg, run_cli, monkeypatch, tmp_path):
+    import os
+
+    calls, registered = [], []
+    others = [2**22 + 701, 2**22 + 702]
+    real_kill = os.kill
+
+    def kill(pid, sig):
+        return None if pid in others else real_kill(pid, sig)
+
+    def spy(args):
+        calls.append(without_selection([a for a in args if not a.startswith("--basetemp=")]))
+        registered.append((legs / str(os.getpid())).read_text().strip())
+        return pytest.ExitCode.OK
+
+    monkeypatch.setattr(pytest, "main", spy)
+    monkeypatch.setattr(os, "kill", kill)
+    monkeypatch.setattr(os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    for registered_counts in ((16,), (16, 8)):
+        legs = tmp_path / ("legs-%d" % len(registered_counts))
+        legs.mkdir()
+        for pid, count in zip(others, registered_counts):
+            (legs / str(pid)).write_text("%d\n" % count)
+        env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_LEGS": str(legs)}
+        assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
+    assert registered[0::2] == ["1", "1"]
+    assert calls[0::2] == [["-q", "some/dir"]] * 2
+
+
 def test_2100_with_neither_worker_count_nor_legs_directory_set_legs_under_two_different_tmpdirs_share_one_registry_under_the_user_home_so_the_second_takes_1_beside_the_first_s_16(pytest_leg, run_cli, monkeypatch, tmp_path):
     import os
     import tempfile
