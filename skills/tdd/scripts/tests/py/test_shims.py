@@ -326,3 +326,23 @@ def test_issue_2106_shim_runs_its_module_on_the_venv_python3_not_the_stub_python
 
     assert (result.returncode, result.stdout, result.stderr) == (
         0, "VERI_ACTOR=developer VERI_PHASE=red VERI_ATTEMPT=1\n", "")
+
+
+@pytest.mark.process("leaf-role.sh started with VERI_VENV unset, a scratch HOME holding the venv and a stub python3 exiting 9 on PATH")
+def test_issue_2106_shim_with_veri_venv_unset_finds_the_venv_python3_under_home_not_on_path(tmp_path):
+    stub_dir = tmp_path / "stub"
+    stub_dir.mkdir()
+    stub = stub_dir / "python3"
+    stub.write_text("#!/bin/sh\nexit 9\n")
+    stub.chmod(0o755)
+    home = tmp_path / "home"
+    (home / ".veri-tools" / "venv" / "bin").mkdir(parents=True)
+    venv_python = home / ".veri-tools" / "venv" / "bin" / "python3"
+    venv_python.write_text('#!/bin/sh\nexec "%s" "$@"\n' % sys.executable)
+    venv_python.chmod(0o755)
+    env = {"PATH": "%s:/usr/bin:/bin:/usr/local/bin" % stub_dir, "HOME": str(home)}
+
+    result = subprocess.run([str(SCRIPTS / "leaf-role.sh"), "develop-red"], capture_output=True, text=True, env=env)
+
+    assert (result.returncode, result.stdout, result.stderr) == (
+        0, "VERI_ACTOR=developer VERI_PHASE=red VERI_ATTEMPT=1\n", "")
