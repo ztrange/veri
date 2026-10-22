@@ -2,3 +2,4 @@
 - test-only | extract the repeated env dict (the three IMPORTABLE flags plus VERI_PYTEST_LEGS) in test_pytest_leg.py into a helper
 ### A registry entry whose pid no longer answers kill -0 (a leg that died without unregistering) is ignored and holds no share: on a fake 16 cores, a leg starting beside only a stale 16-worker entry gets 16; pinned in-process (a small case) by a case with a stale entry ⟦criterion 2⟧
 - extract the register/unregister of the leg entry in main() into helper functions beside registered_workers (moves behaviour, not duplication removal)
+applied | eebb5f1e9feb00fbe5b060183ec0798ba6eb89a6 | extract the register/unregister of the leg entry in main() into helper functions beside registered_workers (moves behaviour, not duplication removal)	refactor: extract register and unregister of the leg entry beside registered_workers (#2100)
