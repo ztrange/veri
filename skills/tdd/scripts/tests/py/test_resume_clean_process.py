@@ -61,3 +61,28 @@ def test_main_reapplies_uncommitted_tdd_appends_byte_for_byte_while_still_discar
     assert (repo / ".tdd" / "issue-7.md").read_bytes() == b"- [ ] step\nappended line\n"
     assert (repo / ".tdd" / "events.log").read_bytes() == b"start\nevent two\n"
     assert (repo / "file.txt").read_text() == "one\n"
+
+
+@pytest.mark.process("git")
+def test_main_unticks_working_ticks_the_committed_ledger_does_not_hold_counted_and_touches_nothing_else_1967(
+        tmp_path, run_cli):
+    resume_clean = importlib.import_module("veri.resume_clean")
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".tdd" / "issue-7.md").write_text("# plan\n- [x] one\n- [ ] two\n- [ ] three\n")
+    (repo / ".tdd" / "issue-8.md").write_text("- [x] kept ⟂ refactor pending\n- [ ] next\n")
+    (repo / ".tdd" / "notes.md").write_text("- [ ] zzz\n")
+    git(repo, "add", "-f", ".")
+    git(repo, "commit", "-q", "-m", "base")
+    (repo / ".tdd" / "issue-7.md").write_text(
+        "# plan\n- [x] one ⟂ refactor pending\n- [x] two ⟂ refactor pending\n- [x] one\nfree text\n- [ ] three\n")
+    (repo / ".tdd" / "notes.md").write_text("- [x] zzz\n")
+
+    code, out, err = run_cli(resume_clean, [], cwd=repo)
+
+    assert code == 0
+    assert (repo / ".tdd" / "issue-7.md").read_bytes() == (
+        "# plan\n- [x] one ⟂ refactor pending\n- [ ] two\n- [ ] one\nfree text\n- [ ] three\n").encode()
+    assert (repo / ".tdd" / "issue-8.md").read_bytes() == "- [x] kept ⟂ refactor pending\n- [ ] next\n".encode()
+    assert (repo / ".tdd" / "notes.md").read_bytes() == b"- [x] zzz\n"
