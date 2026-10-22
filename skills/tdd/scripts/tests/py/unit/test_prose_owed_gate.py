@@ -164,3 +164,15 @@ def test_prose_owed_sh_prints_a_graded_unit_outside_skills_after_its_prose_chang
     code, out, err = run_cli(prose_owed, [str(tmp_path)])
 
     assert (code, out.split()) == (1, ["operator/PRINCIPLES.md"]), (code, out, err)
+
+
+def test_prose_owed_sh_prints_an_orphan_for_a_unit_in_a_graded_file_outside_skills_that_no_list_names_2025(tmp_path, run_cli):
+    import importlib
+
+    prose_owed = importlib.import_module("veri.prose_owed")
+    (tmp_path / "operator").mkdir()
+    (tmp_path / "operator" / "GRADED").write_text("operator/GONE.md deadbeef g1\n")
+
+    code, out, err = run_cli(prose_owed, [str(tmp_path)])
+
+    assert (code, out.split("\n")[:-1]) == (1, ["operator/GONE.md (orphan)"]), (code, out, err)
