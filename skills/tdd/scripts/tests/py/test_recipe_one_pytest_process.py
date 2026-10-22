@@ -57,7 +57,7 @@ def planted_tree(tmp_path, small=PLANTED_CASES.split("@pytest.mark.process")[0])
 def make(tree, log, target, **veri):
     log.write_text("")
     env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
-    env.update(veri)
+    env.update({"VERI_PYTEST_WORKERS": "1", **veri})
     env["PLANTED_RAN_LOG"] = str(log)
     ran = subprocess.run(["make", "-C", str(tree), target], env=env, stdin=subprocess.DEVNULL,
                          capture_output=True, text=True)
@@ -106,6 +106,7 @@ def test_make_test_with_tests_naming_a_file_and_a_node_id_runs_only_those_in_one
     targets = "%s/unit/test_planted_small.py %s/test_planted_medium.py::test_medium" % (py, py)
     log.write_text("")
     env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
+    env["VERI_PYTEST_WORKERS"] = "1"
     env["PLANTED_RAN_LOG"] = str(log)
     ran = subprocess.run(["make", "-C", str(tree), "test", "TESTS=" + targets], env=env,
                          stdin=subprocess.DEVNULL, capture_output=True, text=True)

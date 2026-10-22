@@ -404,7 +404,7 @@ def test_make_profile_reports_a_pytest_case_at_or_above_the_threshold(tmp_path):
 
     def profiled(threshold):
         return subprocess.run(["make", "--no-print-directory", "-C", str(ROOT), "profile", "TESTS=%s" % fixture],
-                              env=dict(os.environ, VERI_PROFILE_THRESHOLD=threshold),
+                              env=dict(os.environ, VERI_PROFILE_THRESHOLD=threshold, VERI_PYTEST_WORKERS="1"),
                               stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     reported = profiled("0")
