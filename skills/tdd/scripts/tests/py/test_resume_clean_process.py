@@ -113,3 +113,33 @@ def test_main_keeps_appends_it_cannot_reapply_in_the_git_dir_and_exits_2_with_on
     assert kept.is_file() and ".tdd/fresh.md" in kept.read_text()
     assert len(err.splitlines()) == 1
     assert ".tdd/fresh.md" in err and "kept-tdd-appends.diff" in err
+
+
+@pytest.mark.process("git")
+def test_main_keeps_appends_at_a_suffixed_name_when_kept_file_exists_leaving_it_unchanged_and_naming_both_1967(
+        tmp_path, run_cli):
+    resume_clean = importlib.import_module("veri.resume_clean")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "file.txt").write_text("one\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "base")
+    (repo / ".tdd").mkdir()
+    (repo / ".tdd" / "fresh.md").write_text("start\n")
+    git(repo, "add", "-f", ".tdd/fresh.md")
+    git(repo, "commit", "-q", "-m", "ledger")
+    git(repo, "config", "apply.whitespace", "error")
+    kept = repo / git(repo, "rev-parse", "--git-path", "kept-tdd-appends.diff").strip()
+    kept.write_text("earlier kept appends\n")
+    with open(repo / ".tdd" / "fresh.md", "a") as f:
+        f.write("trailing space \n")
+
+    code, out, err = run_cli(resume_clean, [], cwd=repo)
+
+    others = sorted(kept.parent.glob("kept-tdd-appends.diff.*"))
+    assert kept.read_text() == "earlier kept appends\n"
+    assert code == 2
+    assert len(others) == 1 and ".tdd/fresh.md" in others[0].read_text()
+    assert len(err.splitlines()) == 1
+    assert str(kept) in err and str(others[0]) in err
