@@ -11,7 +11,9 @@ PATHSPEC = ["--", ".", ":!.tdd"]
 
 
 class GitFailed(Exception):
-    pass
+    def __init__(self, message, reported=False):
+        super().__init__(message)
+        self.reported = reported
 
 
 def git(*args, text=True):
@@ -80,7 +82,7 @@ def main(argv):
     try:
         return clean()
     except GitFailed as failed:
-        sys.stderr.write(f"resume-clean: {failed} failed\n")
+        sys.stderr.write(f"resume-clean: {failed}{'' if failed.reported else ' failed'}\n")
         return 2
 
 
@@ -92,7 +94,10 @@ def clean():
         git("clean", "-fd", "-e", ".tdd")
     except GitFailed:
         if appends:
-            save(appends)
+            kept = save(appends)
+            paths = " ".join(line[3:] for line in stray.splitlines())
+            raise GitFailed(f"{sys.exc_info()[1]} failed; appends saved in {kept.resolve()}; stray: {paths}",
+                            reported=True)
         raise
     if appends:
         applied = subprocess.run(["git", "apply", "--unidiff-zero", "-"], input=appends,
