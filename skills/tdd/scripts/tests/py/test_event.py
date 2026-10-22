@@ -414,3 +414,20 @@ def test_event_run_through_a_symlink_to_the_scripts_directory_appends_to_the_wor
     lines = (tmp_path / "run" / ".tdd" / "events.jsonl").read_text().splitlines()
     assert [json.loads(text)["event"] for text in lines] == ["symlinked-mark"]
     assert sorted(os.listdir(SCRIPTS)) == before
+
+
+def test_event_suite_repair_retired_exits_0_and_appends_one_line_naming_the_suite_repair_step(
+        tmp_path, run_cli, event):
+    step = "⟦suite-repair⟧ the full suite is red"
+    clock = tmp_path / "awake-clock"
+    clock.write_text("#!/bin/sh\necho 7\n")
+    clock.chmod(0o755)
+
+    code, out, err = run_cli(event, ["suite-repair-retired"], cwd=tmp_path, env={
+        "VERI_AWAKE_CLOCK": str(clock), "VERI_STEP": step})
+
+    assert (code, out, err) == (0, "", "")
+    lines = (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()
+    assert len(lines) == 1
+    logged = json.loads(lines[0])
+    assert (logged["event"], logged["step"]) == ("suite-repair-retired", step)
