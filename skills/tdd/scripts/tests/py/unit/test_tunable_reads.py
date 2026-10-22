@@ -30,9 +30,15 @@ def direct_reads(path):
         return False
 
     def copy_read_by_name_later(node):
+        spread = False
         parent = parents.get(node)
         if isinstance(parent, ast.Attribute) and parent.attr == "copy":
             parent = parents.get(parent)
+        elif isinstance(parent, ast.Dict):
+            if len(parent.keys) != 1:
+                return False
+            parent = parents.get(parent)
+            spread = True
         elif not (isinstance(parent, ast.Assign)
                   or (isinstance(parent, ast.Call) and isinstance(parent.func, ast.Name) and parent.func.id == "dict")):
             return False
@@ -47,8 +53,18 @@ def direct_reads(path):
             call = parents.get(parent)
             return isinstance(call, ast.Call) and isinstance(parents.get(call), ast.Expr)
 
+        def keyed_by_a_veri_name(use):
+            parent = parents.get(use)
+            if isinstance(parent, ast.Attribute):
+                parent = parents.get(parent)
+                key = parent.args[0] if isinstance(parent, ast.Call) and parent.args else None
+            else:
+                key = parent.slice if isinstance(parent, ast.Subscript) else None
+            return isinstance(key, ast.Constant) and str(key.value).startswith("VERI_")
+
         return any(isinstance(use, ast.Name) and use.id == copy and use.lineno > assign.lineno
-                   and "VERI_" in lines[use.lineno - 1] and not discarded_pop(use) for use in ast.walk(tree))
+                   and "VERI_" in lines[use.lineno - 1] and not discarded_pop(use)
+                   and (not spread or keyed_by_a_veri_name(use)) for use in ast.walk(tree))
 
     def passed_as_an_argument(node):
         call = parents.get(node)
