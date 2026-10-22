@@ -424,67 +424,71 @@ def test_with_the_driver_unset_a_gh_pr_ready_refused_with_403_is_never_run_and_t
     assert not started(calls, "gh pr")
 
 
-@pytest.mark.process("bash sources lib/github.sh")
-def test_gh_issue_edit_returns_2_naming_the_missing_gh_when_no_directory_on_path_holds_gh_and_the_wait_is_0_issue_2097(tmp_path):
+NO_WAIT = {name: "0" for name in ("VERI_TOOL_RETRY_SLEEP", "VERI_TOOL_FAST_WAIT", "VERI_TOOL_SLOW_SLEEP", "VERI_TOOL_WAIT")}
+
+
+def run_without_gh(tmp_path, call, env, tools=("bash",), sleep_after=None):
+    """(returncode, stdout, named, taken) of <call> run in bash after sourcing lib/github.sh, with a
+    PATH whose one directory holds only <tools> and, when <sleep_after> is given, a sleep that
+    records its argument and then runs <sleep_after>; no directory on it holds gh. <named> are the
+    stderr lines naming gh other than bash's "command not found", <taken> the sleeps recorded.
+    $BODY names a file holding an issue body, $BIN the directory."""
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
-    (bin_dir / "bash").symlink_to(shutil.which("bash"))
+    for tool in tools:
+        (bin_dir / tool).symlink_to(shutil.which(tool))
+    sleeps = tmp_path / "sleeps"
+    if sleep_after is not None:
+        sleep = bin_dir / "sleep"
+        sleep.write_text('#!/bin/sh\necho "$*" >> "$SLEEPS"\n' + sleep_after)
+        sleep.chmod(0o755)
     body = tmp_path / "body"
     body.write_text("new body")
-    env = {"PATH": str(bin_dir), "LIB": str(LIB), "BODY": str(body),
-           **{name: "0" for name in ("VERI_TOOL_RETRY_SLEEP", "VERI_TOOL_FAST_WAIT", "VERI_TOOL_SLOW_SLEEP", "VERI_TOOL_WAIT")}}
+    env = {**env, "PATH": str(bin_dir), "LIB": str(LIB), "BODY": str(body), "BIN": str(bin_dir), "SLEEPS": str(sleeps)}
 
-    ran = subprocess.run(["bash", "-c", 'source "$LIB"; gh_issue_edit 7 "$BODY"'], capture_output=True, text=True, env=env)
+    ran = subprocess.run(["bash", "-c", 'source "$LIB"; ' + call], capture_output=True, text=True, env=env)
 
     named = [line for line in ran.stderr.splitlines() if "gh" in line and "command not found" not in line]
-    assert (ran.returncode, bool(named)) == (2, True), ran.stderr
+    taken = sleeps.read_text().split() if sleeps.exists() else []
+    return ran.returncode, ran.stdout, named, taken
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_the_gh_function_itself_returns_exactly_2_naming_gh_when_no_directory_on_path_holds_gh_and_the_wait_is_0_issue_2097(tmp_path):
+    code, _, named, _ = run_without_gh(tmp_path, "gh api x", NO_WAIT)
+
+    assert (code, bool(named)) == (2, True), named
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_gh_issue_edit_returns_2_naming_the_missing_gh_when_no_directory_on_path_holds_gh_and_the_wait_is_0_issue_2097(tmp_path):
+    code, _, named, _ = run_without_gh(tmp_path, 'gh_issue_edit 7 "$BODY"', NO_WAIT)
+
+    assert (code, bool(named)) == (2, True), named
 
 
 @pytest.mark.process("bash sources lib/github.sh")
 def test_gh_issue_edit_sleeps_the_retry_then_the_slow_interval_naming_gh_each_wait_and_returns_2_once_the_wait_is_spent_issue_2097(tmp_path):
-    bin_dir = tmp_path / "bin"
-    bin_dir.mkdir()
-    (bin_dir / "bash").symlink_to(shutil.which("bash"))
-    sleeps = tmp_path / "sleeps"
-    sleep = bin_dir / "sleep"
-    sleep.write_text('#!/bin/sh\necho "$*" >> "$SLEEPS"\n')
-    sleep.chmod(0o755)
-    body = tmp_path / "body"
-    body.write_text("new body")
-    env = {"PATH": str(bin_dir), "LIB": str(LIB), "BODY": str(body), "SLEEPS": str(sleeps),
-           "VERI_TOOL_RETRY_SLEEP": "2", "VERI_TOOL_FAST_WAIT": "5", "VERI_TOOL_SLOW_SLEEP": "4", "VERI_TOOL_WAIT": "13"}
+    env = {"VERI_TOOL_RETRY_SLEEP": "2", "VERI_TOOL_FAST_WAIT": "5", "VERI_TOOL_SLOW_SLEEP": "4", "VERI_TOOL_WAIT": "13"}
 
-    ran = subprocess.run(["bash", "-c", 'source "$LIB"; gh_issue_edit 7 "$BODY"'], capture_output=True, text=True, env=env)
+    code, _, named, taken = run_without_gh(tmp_path, 'gh_issue_edit 7 "$BODY"', env, sleep_after="")
 
-    named = [line for line in ran.stderr.splitlines() if "gh" in line and "command not found" not in line]
-    taken = sleeps.read_text().split() if sleeps.exists() else []
-    assert (ran.returncode, taken, len(named)) == (2, ["2", "2", "2", "4", "4"], 6), ran.stderr
+    assert (code, taken, len(named)) == (2, ["2", "2", "2", "4", "4"], 6), named
 
 
 @pytest.mark.process("bash sources lib/github.sh")
 def test_gh_issue_edit_waits_out_a_gh_missing_from_path_sleeping_the_retry_naming_gh_and_answers_once_gh_is_back_issue_2097(tmp_path):
-    bin_dir = tmp_path / "bin"
-    bin_dir.mkdir()
-    (bin_dir / "bash").symlink_to(shutil.which("bash"))
-    (bin_dir / "chmod").symlink_to(shutil.which("chmod"))
-    sleeps = tmp_path / "sleeps"
-    sleep = bin_dir / "sleep"
-    sleep.write_text('#!/bin/sh\necho "$*" >> "$SLEEPS"\n'
-                     'printf \'#!/bin/sh\\necho "gh $*" >> "$CALLS"\\n\' > "$BIN/gh"\nchmod +x "$BIN/gh"\n')
-    sleep.chmod(0o755)
-    env = {"PATH": str(bin_dir), "LIB": str(LIB), "BIN": str(bin_dir), "SLEEPS": str(sleeps), "VERI_TOOL_RETRY_SLEEP": "7", "CALLS": str(tmp_path / "calls")}
+    installs_gh = 'printf \'#!/bin/sh\\necho "gh $*" >> "$CALLS"\\n\' > "$BIN/gh"\nchmod +x "$BIN/gh"\n'
+    env = {"VERI_TOOL_RETRY_SLEEP": "7", "CALLS": str(tmp_path / "calls")}
 
-    ran = subprocess.run(["bash", "-c", 'source "$LIB"; gh_issue_edit 7 /dev/null'], capture_output=True, text=True, env=env)
+    code, out, named, taken = run_without_gh(tmp_path, "gh_issue_edit 7 /dev/null", env, tools=("bash", "chmod"), sleep_after=installs_gh)
 
-    named = [line for line in ran.stderr.splitlines() if "gh" in line]
-    taken = sleeps.read_text().split() if sleeps.exists() else []
     answered = (tmp_path / "calls").read_text().split() if (tmp_path / "calls").exists() else []
-    assert (ran.returncode, ran.stdout, taken, len(named), answered[:2]) == (0, "", ["7"], 1, ["gh", "api"]), ran.stderr
+    assert (code, out, taken, len(named), answered[:2]) == (0, "", ["7"], 1, ["gh", "api"]), named
 
 
 @pytest.mark.process("bash sources lib/github.sh")
 def test_gh_that_runs_and_fails_with_a_code_other_than_127_is_run_once_never_waited_on_and_returns_its_code_issue_2097(tmp_path):
-    env = {name: "0" for name in ("VERI_TOOL_RETRY_SLEEP", "VERI_TOOL_FAST_WAIT", "VERI_TOOL_SLOW_SLEEP", "VERI_TOOL_WAIT")}
     for code in (1, 2, 5, 126):
-        code_out, stdout, stderr, calls = run_lib(tmp_path, f"exit {code}\n", "gh api x; echo \"rc=$?\"", env=env)
+        code_out, stdout, stderr, calls = run_lib(tmp_path, f"exit {code}\n", "gh api x; echo \"rc=$?\"", env=NO_WAIT)
         assert (code_out, stdout, stderr, calls) == (0, f"rc={code}\n", "", ["gh api x"]), (code, stderr)
