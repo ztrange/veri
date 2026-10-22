@@ -6,8 +6,10 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
 - `killed-stuck` — `supervise.sh` exited **2** for a developer leaf even after its
   stuck-retry budget → **system** failure (plumbing broke).
 - `no-verdict` — `verify.sh` exited **2** (unparseable verdict, or the verifier leaf was
-  killed), the Draft PR regrade's `grade-prose.sh` exited **2**, or the skill-edit runner
-  `skill-edit-step.sh` exited **2** → **system** failure.
+  killed), the Draft PR regrade's `grade-prose.sh` exited **2**, the skill-edit runner
+  `skill-edit-step.sh` exited **2**, or `resume-clean.sh`, `rebase-onto-default.sh`,
+  `cover-outcome.sh`, `criterion-finished.sh`, `tick-ledger.sh` or `wait-leaf.sh` exited **2**
+  → **system** failure.
 - `unreplaced-cases` — `unreplaced-cases.sh` exited **1** a second time, after the one correction
   leaf, naming `⟦replaces-case⟧` cases with no `REPLACES:` line (or exited **2**, no answer, which
   bails at once with no correction) before verify-green → **process** failure.

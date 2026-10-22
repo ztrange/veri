@@ -53,3 +53,29 @@ def test_2112_bail_md_no_verdict_entry_names_the_script_of_every_no_verdict_bail
                 line = text.count("\n", 0, site.start()) + 1
                 unnamed.append(f"{doc.name}:{line} ({script})")
     assert not unnamed, "BAIL.md's no-verdict entry does not name the script of: " + ", ".join(unnamed)
+
+
+def _no_verdict_problems(entry, docs):
+    problems = []
+    if not re.search(r"\*\*system\*\*", entry):
+        problems.append("the entry does not call the cause a **system** failure")
+    for name, text in docs.items():
+        for site in re.finditer("no-verdict", text):
+            paragraph_start = text.rfind("\n\n", 0, site.start()) + 1
+            scripts = re.findall(r"[\w-]+\.sh", text[paragraph_start:site.start()])
+            if scripts and scripts[-1] not in entry:
+                line = text.count("\n", 0, site.start()) + 1
+                problems.append(f"{name}:{line} ({scripts[-1]})")
+    return problems
+
+
+def test_2112_no_verdict_guard_reads_each_sites_script_from_the_site_and_requires_a_system_failure():
+    root = SKILL.parent
+    bail = (root / "BAIL.md").read_text()
+    start = bail.index("- `no-verdict`")
+    entry = bail[start:bail.index("\n- `", start + 1)]
+    docs = {n: (root / n).read_text() for n in ("SKILL.md", "SKILL-EDIT.md")}
+    planted = {"PLANTED.md": "Run `frobnicate-new.sh`; on exit 2 bail (`no-verdict`)."}
+    assert _no_verdict_problems(entry, planted) == ["PLANTED.md:1 (frobnicate-new.sh)"]
+    assert _no_verdict_problems(entry.replace("**system**", "**process**"), {}) != []
+    assert _no_verdict_problems(entry, docs) == []
