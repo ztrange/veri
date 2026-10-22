@@ -2484,3 +2484,17 @@ def test_cli_red_red_supersede_red_missing_and_revise_red_prompts_built_from_a_s
                 problems.append(f"{label}: {name} bare={len(bare)} absolute={len(absolute)}")
 
     assert problems == []
+
+
+def test_main_builds_a_revise_prompt_for_the_rebase_phase_and_exits_0_instead_of_refusing_it_as_an_unknown_phase_to_revise_2127(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rebase rejected\n")
+
+    code = build_develop_prompt.main(["revise", "rebase", str(spec), "s", "make test", str(reason)])
+
+    out, err = capsysbinary.readouterr()
+    assert (code, err) == (0, b"")
+    assert out
