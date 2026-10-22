@@ -3790,6 +3790,31 @@ def test_cli_refuses_a_develop_green_launch_whose_step_without_the_ci_repair_mar
     assert len(lines) == 1 and text in lines[0] and "verify-red" in lines[0] and "PASS" in lines[0], err
 
 
+def test_cli_refuses_a_develop_green_launch_whose_step_names_ci_repair_mid_sentence_after_a_red_launch_with_no_verdict_1989(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import json
+    clean_env(monkeypatch)
+    (tmp_path / ".tdd").mkdir()
+    text = "stop treating ⟦ci-repair⟧ as a mark anywhere in the text"
+    (tmp_path / ".tdd" / "issue-1989.md").write_text(
+        "# Plan for #1989\n\n"
+        "- [x] first step\n"
+        f"- [ ] {text}\n")
+    base = {"issue": "1989", "skill_commit": "unknown"}
+    log = [
+        {**base, "ts": 1, "event": "launch", "actor": "developer", "phase": "red", "step": "2", "attempt": "1"},
+    ]
+    (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(line) + "\n" for line in log))
+    stub = tmp_path / "claude"
+    started = spy_leaf_start(monkeypatch, tmp_path, supervise)
+
+    code, out, err = run_cli(supervise, ["develop-green", str(stub)], cwd=tmp_path,
+                             env={"VERI_ISSUE": "1989", "VERI_STEP": "2"})
+
+    assert (code, out, bool(started)) == (2, "", False), err
+    assert "has no verify-red PASS after its latest red leaf" in err
+
+
 def test_cli_refuses_a_develop_green_launch_whose_open_step_lacks_the_ci_repair_mark_though_an_earlier_done_step_carries_it_1741(
         monkeypatch, tmp_path, supervise, run_cli):
     import json
