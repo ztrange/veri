@@ -230,6 +230,10 @@ def main(argv):
                                        "cost_usd=%s" % cost, "id=" + grading_id])
     if not failed:
         record_graded(unit, signature(path, unit), grading_id)
+    else:
+        os.makedirs(".tdd", exist_ok=True)
+        with open(os.path.join(".tdd", "grade-prose-rejected"), "a", encoding="utf-8") as f:
+            f.write("%s %s %s %s\n" % (unit, signature(path, unit), time.strftime("%Y-%m-%d"), grading_id))
     print("\n".join(failed))
     return 1 if failed else 0
 
