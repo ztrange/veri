@@ -1,9 +1,12 @@
 """ledger-growth.sh's check, run in-process."""
+import os
 import sys
 
 try:
+    from .event_log import read_events
     from .ledger import STEP_RE, is_added, read_ledger
 except ImportError:
+    from event_log import read_events
     from ledger import STEP_RE, is_added, read_ledger
 
 USAGE = "usage: ledger-growth.sh <plan-ledger-file> <ledger-file>"
@@ -16,6 +19,17 @@ def step_texts(text):
         if match:
             steps.append((match.group(4) or "").split(" ⟂ ", 1)[0])
     return steps
+
+
+def recorded_steps(ledger):
+    log = os.path.join(os.path.dirname(ledger), "events.jsonl")
+    try:
+        events = read_events(log, skip_unreadable=True)
+    except OSError:
+        return []
+    return [event["step"] for event in events
+            if event.get("event") == "step-added" and event.get("actor") == "add-ledger-step"
+            and isinstance(event.get("step"), str)]
 
 
 def main(argv):
@@ -31,7 +45,12 @@ def main(argv):
     off = [step for step in steps if step not in planned and not is_added(step)]
     for step in off:
         print(f"ledger-growth.sh: step added without ⟦added⟧: {step}", file=sys.stderr)
-    return 1 if off else 0
+    recorded = recorded_steps(argv[1])
+    unrecorded = [step for step in steps if step not in planned and is_added(step)
+                  and not any(step in line for line in recorded)]
+    for step in unrecorded:
+        print(f"ledger-growth.sh: step added without an add-ledger-step.sh record: {step}", file=sys.stderr)
+    return 1 if off or unrecorded else 0
 
 
 if __name__ == "__main__":
