@@ -459,3 +459,24 @@ def test_gh_issue_edit_sleeps_the_retry_then_the_slow_interval_naming_gh_each_wa
     named = [line for line in ran.stderr.splitlines() if "gh" in line and "command not found" not in line]
     taken = sleeps.read_text().split() if sleeps.exists() else []
     assert (ran.returncode, taken, len(named)) == (2, ["2", "2", "2", "4", "4"], 6), ran.stderr
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_gh_issue_edit_waits_out_a_gh_missing_from_path_sleeping_the_retry_naming_gh_and_answers_once_gh_is_back_issue_2097(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    (bin_dir / "bash").symlink_to(shutil.which("bash"))
+    (bin_dir / "chmod").symlink_to(shutil.which("chmod"))
+    sleeps = tmp_path / "sleeps"
+    sleep = bin_dir / "sleep"
+    sleep.write_text('#!/bin/sh\necho "$*" >> "$SLEEPS"\n'
+                     'printf \'#!/bin/sh\\necho "gh $*" >> "$CALLS"\\n\' > "$BIN/gh"\nchmod +x "$BIN/gh"\n')
+    sleep.chmod(0o755)
+    env = {"PATH": str(bin_dir), "LIB": str(LIB), "BIN": str(bin_dir), "SLEEPS": str(sleeps), "VERI_TOOL_RETRY_SLEEP": "7", "CALLS": str(tmp_path / "calls")}
+
+    ran = subprocess.run(["bash", "-c", 'source "$LIB"; gh_issue_edit 7 /dev/null'], capture_output=True, text=True, env=env)
+
+    named = [line for line in ran.stderr.splitlines() if "gh" in line]
+    taken = sleeps.read_text().split() if sleeps.exists() else []
+    answered = (tmp_path / "calls").read_text().split() if (tmp_path / "calls").exists() else []
+    assert (ran.returncode, ran.stdout, taken, len(named), answered[:2]) == (0, "", ["7"], 1, ["gh", "api"]), ran.stderr
