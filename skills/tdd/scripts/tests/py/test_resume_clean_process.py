@@ -30,7 +30,7 @@ def test_main_discards_an_untracked_file_and_a_modified_tracked_file_listing_eac
 
     code, out, err = run_cli(resume_clean, [], cwd=repo)
 
-    assert (code, sorted(out.splitlines()), err) == (0, ["?? other.txt", " M file.txt"][::-1], "")
+    assert (code, sorted(out.splitlines()), err) == (0, [" M file.txt", "?? other.txt"], "")
     assert git(repo, "status", "--porcelain", "--", ":!.tdd").strip() == ""
     assert (repo / "file.txt").read_text() == "one\n"
     assert not (repo / "other.txt").exists()
