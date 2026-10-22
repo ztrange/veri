@@ -1,0 +1,2 @@
+### run_conductor.py run with its working directory a subdirectory of the repo creates `.tdd/` and its seeded `.tdd/.gitignore` at the repo root and leaves no `.tdd/` in the subdirectory; run from the root it behaves as before ⟦criterion 1⟧
+- out-of-scope | `run_conductor.py` still resolves `.tdd/wt/<issue>` relative to the current directory (lines 94, 177, 205, 217), the same subdirectory hazard as the `.tdd` root; other criteria or steps would own it
