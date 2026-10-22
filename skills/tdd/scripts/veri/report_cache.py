@@ -29,7 +29,7 @@ def wall_seconds(comments):
     for comment in comments or []:
         body = comment.get("body") or ""
         found = re.search(r"Wall time for the issue: (\d+) s", body)
-        if body.startswith("### 📊 Metrics") and found:
+        if re.search(r"^### 📊 Metrics", body, re.M) and found:
             seconds = int(found.group(1))
     return seconds
 
