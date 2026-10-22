@@ -212,3 +212,57 @@ def test_a_reasonless_starts_pytest_or_starts_git_exemption_and_a_whole_file_sta
     monkeypatch.setitem(conftest.STARTS_GIT_IN_REPOSITORY_EXEMPT, "test_planted.py", "the whole file reads the repository's HEAD")
     monkeypatch.setitem(conftest.STARTS_GIT_IN_REPOSITORY_EXEMPT, "test_planted.py::test_plain", conftest.RUNS_GIT_WITH_NO_CWD)
     run().assert_outcomes(passed=1)
+
+
+def test_the_guards_survive_a_faked_subprocess_run_and_ignore_a_suite_path_passed_to_echo_and_name_the_system_locations_root_root_and_proc_and_a_pathlib_open_read(pytester):
+    repository = pathlib.Path(conftest.__file__).resolve().parents[5]
+    module_directory = pathlib.Path(conftest.__file__).resolve().parents[3] / "veri"
+    pytester.makepyfile(test_planted="""
+        import os
+        import pathlib
+        import subprocess
+
+        def fake(args, **kwargs):
+            return subprocess.CompletedProcess(args, 0, '', '')
+
+        def test_git_from_the_module_directory_with_run_faked(monkeypatch):
+            monkeypatch.setattr(subprocess, 'run', fake)
+            subprocess.run(['git', 'worktree', 'list'], cwd=%r)
+
+        def test_git_with_no_cwd_with_run_faked(monkeypatch):
+            monkeypatch.setattr(subprocess, 'run', fake)
+            monkeypatch.chdir(%r)
+            subprocess.run(['git', 'rev-parse', '--show-toplevel'])
+
+        def test_git_with_no_cwd_with_run_faked_by_its_dotted_string(monkeypatch):
+            monkeypatch.setattr('subprocess.run', fake)
+            monkeypatch.chdir(%r)
+            subprocess.run(['git', 'rev-parse', '--show-toplevel'])
+
+        def test_echo_carries_a_suite_path(monkeypatch):
+            monkeypatch.setattr(subprocess, 'run', fake)
+            subprocess.run(['echo', 'tests/nested.test.sh', 'tests/py/test_x.py::test_y', 'pytest_leg.py'])
+
+        def test_reads_root():
+            open('/.veri-probe-absent').read()
+
+        def test_reads_root_home():
+            open('/root/.profile').read()
+
+        def test_reads_proc():
+            open('/proc/self/status').read()
+
+        def test_reads_through_pathlib_open():
+            pathlib.Path('/etc/hosts').open().read()
+    """ % (str(module_directory), str(repository), str(repository)))
+
+    result = pytester.runpytest_inprocess("-p", "no:cacheprovider", plugins=[conftest])
+
+    result.assert_outcomes(failed=7, passed=1)
+    output = result.stdout.str()
+    assert "test_planted.py::test_git_from_the_module_directory_with_run_faked" in output
+    assert "test_planted.py::test_git_with_no_cwd_with_run_faked " in output
+    assert "test_planted.py::test_git_with_no_cwd_with_run_faked_by_its_dotted_string" in output
+    assert "test_planted.py::test_echo_carries_a_suite_path" not in output.replace("PASSED", "")
+    for location in ("/.veri-probe-absent", "/root/.profile", "/proc/self/status", "/etc/hosts"):
+        assert "opens the system location %s at " % location in output
