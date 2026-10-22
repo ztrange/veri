@@ -4,6 +4,7 @@ import os
 import re
 import sys
 
+import event
 import git
 import grade_prose
 import requirements
@@ -62,7 +63,9 @@ def waived_owed(owed):
     if not ledger or not os.path.exists(ledger):
         return owed
     with open(ledger, encoding="utf-8") as f:
-        still, _ = waive(f.read(), [u for _, u in owed])
+        still, waived = waive(f.read(), [u for _, u in owed])
+    for unit, step in waived:
+        event.append(".", {}, "prose-owed-waived", ["unit=" + unit, "step=" + step])
     return [(p, u) for p, u in owed if u in still]
 
 
