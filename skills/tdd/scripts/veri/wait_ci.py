@@ -205,6 +205,17 @@ def main(argv):
             except ArithError as error:
                 warn(error)
                 break
+        if queued and not (want and head != want):
+            seen = ".tdd/ci-queued-" + (want or head)
+            try:
+                with open(seen) as found:
+                    first = int(found.read())
+            except (OSError, ValueError):
+                first = now
+                record(seen, now)
+            if now - first > int(tunables.read("VERI_CI_QUEUE_WAIT", unless_empty="3600")):
+                warn("checks of %s never started: queued since %s" % (pr, first))
+                return 2
         if (want and head != want) or queued:
             if now >= slice_end:
                 break
