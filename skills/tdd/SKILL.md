@@ -821,6 +821,13 @@ A **supervisor exit 2** on the over-budget leaf — `wait-leaf.sh` exits 2 — i
 **`killed-stuck` bail** like any other developer leaf's (see `<base directory>/BAIL.md`), and the step's budget
 stays crossed: the check has fired for this step, and, as above, nothing re-arms it.
 
+#### Before the Red of a `⟦suite-repair⟧` step — is the suite still red?
+
+When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on the current tip before its Red: the command is `$S/detect-test-command.sh --tier all`'s, run through `detach-command.sh` in the same start-then-wait shape as the preflight baseline. The red it was appended for may be gone (a rebase or an earlier step fixed it), and a repair step whose red no longer exists could only get an `UNTESTABLE` or a pin.
+
+- **Green:** retire the step. Mark `step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh suite-repair-retired`, tick it with `$S/tick-ledger.sh .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"` (no `--refactor-pending`, since no refactor loop follows), and commit the ledger with `git add .tdd/issue-<n>.md && git commit -m "plan: retire the suite-repair step, the full suite is green (#<n>)"`. Launch no leaf for it. Continue at *4. Draft PR*, whose full run, rebase and regrade follow as usual.
+- **Red:** the step proceeds to Red as below, the failing suites being its red evidence.
+
 #### Red — one failing test (developer leaf), then verify-red (blind)
 
 1. **Develop.** Build the prompt from the `red` template — it already instructs the leaf to
