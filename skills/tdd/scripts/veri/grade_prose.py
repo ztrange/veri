@@ -134,16 +134,20 @@ def main(argv):
     env.pop("VERI_MODEL_GRADER", None)
     env["VERI_MODEL"] = model
     env["VERI_LEAF_TOOLS"] = ""
+    retries = int(os.environ.get("VERI_NO_VERDICT_RETRIES") or "1")
     try:
-        ran = subprocess.run([os.path.join(SCRIPTS, "supervise.sh"), "grade-prose",
-                        os.path.join(SCRIPTS, "run-leaf.sh"), f.name], stdout=subprocess.PIPE, env=env)
+        for _ in range(retries + 1):
+            ran = subprocess.run([os.path.join(SCRIPTS, "supervise.sh"), "grade-prose",
+                            os.path.join(SCRIPTS, "run-leaf.sh"), f.name], stdout=subprocess.PIPE, env=env)
+            if ran.returncode:
+                return no_verdict("the grader leaf exited %d" % ran.returncode)
+            with open(os.path.join(".tdd", "grade-prose.log"), encoding="utf-8") as log:
+                raw = log.read()
+            reply = extract(raw)
+            if "BEGIN GRADES" in reply:
+                break
     finally:
         os.unlink(f.name)
-    if ran.returncode:
-        return no_verdict("the grader leaf exited %d" % ran.returncode)
-    with open(os.path.join(".tdd", "grade-prose.log"), encoding="utf-8") as log:
-        raw = log.read()
-    reply = extract(raw)
     cost = sum(float(r.get("total_cost_usd") or 0) for r in result_records(raw.splitlines()) if "result" in r)
     if "BEGIN GRADES" not in reply:
         return no_verdict("the reply has no BEGIN GRADES block")

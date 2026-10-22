@@ -242,3 +242,31 @@ def test_owed_grades_a_unit_listed_only_in_the_requirements_md_beside_it_with_th
 
     assert (code, [("Unit: skills/demo/x.md" in p, "A1: The widget is blue." in p) for p in prompts]) \
         == (0, [(True, True)]), (code, prompts, err)
+
+
+def test_a_grader_reply_with_no_grades_block_is_retried_once_by_default_and_a_valid_second_reply_exits_0_2062(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / ".tdd").mkdir()
+    replies = iter(['{"type":"result","subtype":"success","is_error":false,"result":"I will Read the file."}\n',
+                    '{"type":"result","subtype":"success","is_error":false,"result":'
+                    '"BEGIN GRADES\\nA1: PASS — blue\\nVERDICT: PASS\\nEND GRADES"}\n'])
+    launched = []
+
+    def launch(argv, *a, **k):
+        launched.append(argv)
+        (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
+        return subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(subprocess, "run", launch)
+
+    code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+
+    assert (code, len(launched)) == (0, 2), (code, len(launched), err)
