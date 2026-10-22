@@ -115,6 +115,29 @@ def test_with_no_worker_count_the_launcher_hands_pytest_one_worker_per_available
     assert single == ["-q", "some/dir"]
 
 
+def test_launched_from_inside_an_xdist_worker_with_no_worker_count_the_launcher_runs_serially_while_an_explicit_count_still_wins(pytest_leg, run_cli, monkeypatch):
+    import os
+
+    calls = []
+
+    def spy(args):
+        calls.append([a for a in args if not a.startswith("--basetemp=")])
+        return pytest.ExitCode.OK
+
+    monkeypatch.setattr(pytest, "main", spy)
+    monkeypatch.setattr(os, "cpu_count", lambda: 6)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 6, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(6)), raising=False)
+    for workers in (None, "3"):
+        env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "PYTEST_XDIST_WORKER": "gw0"}
+        if workers is not None:
+            env["VERI_PYTEST_WORKERS"] = workers
+        assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
+    nested, explicit = calls
+    assert nested == ["-q", "some/dir"]
+    assert explicit[explicit.index("-n") + 1] == "3" if "-n" in explicit else "-n3" in explicit or "--numprocesses=3" in explicit
+
+
 def test_each_run_hands_pytest_a_base_directory_of_its_own_that_exists_during_the_run_and_is_gone_after_whatever_the_status(pytest_leg, run_cli, monkeypatch):
     import os
 
