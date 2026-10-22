@@ -1316,7 +1316,7 @@ REAL_EDITS = [
 @pytest.mark.process("real git: the changed lines come from git diff -U0 between two commits of a copy of the real files")
 @pytest.mark.tree_audit("every suite under skills/tdd/scripts/tests that names or reads SKILL.md")
 def test_on_the_real_skill_md_and_suites_a_one_section_edit_selects_the_suites_reading_that_section_through_a_slicing_helper_and_every_suite_reading_skill_md_any_other_way_and_not_a_suite_slicing_only_other_sections(
-        run_cli, affected, tmp_path):
+        run_cli, affected, tmp_path, tests_py_index):
     import re
     repo = new_git_repo(tmp_path)
     tdd = ROOT / "skills/tdd"
@@ -1326,9 +1326,9 @@ def test_on_the_real_skill_md_and_suites_a_one_section_edit_selects_the_suites_r
     for suite in [*tests.glob("*.test.sh"), *tests.glob("unit/*.test.sh")]:
         if re.search(r'"(?:[^"]*/)?skills/tdd/SKILL\.md"', suite.read_text(encoding="utf-8")):
             plant(repo, {str(suite.relative_to(ROOT)): suite.read_text(encoding="utf-8")})
-    for suite in [*tests.glob("py/test_*.py"), *tests.glob("py/unit/test_*.py")]:
-        if "SKILL.md" in suite.read_text(encoding="utf-8"):
-            plant(repo, {str(suite.relative_to(ROOT)): suite.read_text(encoding="utf-8")})
+    for entry in tests_py_index:
+        if "SKILL.md" in entry.text:
+            plant(repo, {str(entry.path.relative_to(ROOT)): entry.text})
     original = {doc: (repo / "skills/tdd" / doc).read_text(encoding="utf-8")
                 for doc in ("SKILL.md", "SCRIPTS.md", "STOPPING.md", "RECONCILE.md", "BAIL.md", "RESUME.md", "REVISE.md")}
     wrong = []
