@@ -138,3 +138,7 @@ def test_the_guard_names_the_line_of_a_planted_veri_read_through_a_bare_environ_
     planted.write_text('from os import environ\nvalue = environ.get("VERI_X")\n')
 
     assert direct_reads(planted) == ["%s:2" % planted]
+
+
+def test_grade_prose_takes_its_veri_values_from_the_one_reader_2062():
+    assert direct_reads(VERI / "grade_prose.py") == []
