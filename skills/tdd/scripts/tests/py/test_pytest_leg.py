@@ -1,5 +1,6 @@
 """In-process cases for veri/pytest_leg.py, the launcher that makes the pytest leg's refusals and then runs pytest."""
 import importlib
+import os
 import sys
 
 import pytest
@@ -712,3 +713,29 @@ def test_a_pass_that_collects_nothing_counts_as_passed_beside_a_passing_one_whil
 
     assert run_cli(pytest_leg, ["some/dir"], env=env)[0] == code
     assert next(statuses, None) is None
+
+
+@pytest.mark.parametrize("outcome", [pytest.ExitCode.OK, RuntimeError("boom")], ids=["returns", "raises"])
+@pytest.mark.parametrize("prior", [None, "/prior/serial-seen"], ids=["unset", "set"])
+def test_2148_after_a_leg_returns_or_raises_pytest_leg_serial_seen_is_what_it_was_before_the_leg_started(pytest_leg, monkeypatch, prior, outcome):
+    for name, value in leg_env(VERI_PYTEST_WORKERS="1", PYTEST_PLUGINS="").items():
+        monkeypatch.setenv(name, value)
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    if prior is None:
+        monkeypatch.delenv("PYTEST_LEG_SERIAL_SEEN", raising=False)
+    else:
+        monkeypatch.setenv("PYTEST_LEG_SERIAL_SEEN", prior)
+
+    def fake_main(args):
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+    monkeypatch.setattr(pytest, "main", fake_main)
+    if isinstance(outcome, Exception):
+        with pytest.raises(RuntimeError, match="boom"):
+            pytest_leg.main(["some/dir"])
+    else:
+        assert pytest_leg.main(["some/dir"]) == 0
+
+    assert os.environ.get("PYTEST_LEG_SERIAL_SEEN") == prior
