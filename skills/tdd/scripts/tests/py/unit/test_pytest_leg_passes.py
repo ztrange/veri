@@ -39,3 +39,12 @@ def test_a_leg_driven_in_process_on_a_tree_with_its_own_conftest_leaves_the_conf
             sys.modules["conftest"] = before
 
     assert after is before
+
+
+def test_the_serial_probe_collecting_after_its_run_directory_vanished_neither_raises_nor_aborts_the_session_2099(monkeypatch, tmp_path):
+    serial_seen = importlib.import_module("veri.serial_seen")
+    monkeypatch.setenv("PYTEST_LEG_SERIAL_SEEN", str(tmp_path / "veri-pytest-gone" / "serial-seen"))
+
+    serial_seen.pytest_collection_modifyitems([])
+
+    assert not (tmp_path / "veri-pytest-gone").exists()
