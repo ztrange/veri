@@ -8,4 +8,6 @@
 # after a leading `#!` line, a `#!` line opening a heredoc's body and any comment starting `# hazard:` or `# pass-through:`.
 #
 # Exit: 0 printed, 2 bad arguments.
-exec python3 "$(dirname "$0")/veri/comment_class.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/comment_class.py" "$@"

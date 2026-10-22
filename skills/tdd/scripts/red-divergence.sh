@@ -10,4 +10,6 @@
 # stdout:  on DIVERGED, the reason the conductor writes to .tdd/verify-red.reason — the
 #          report's PREDICTED_FAILURE:, FAIL_OUTPUT: and PREDICTION_NOTE: values.
 # exit:    0 DIVERGED · 1 prediction file missing · 3 MATCHED (nothing to do) · 2 no readable PREDICTION: line
-exec python3 "$(dirname "$0")/veri/red_divergence.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/red_divergence.py" "$@"

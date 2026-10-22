@@ -8,4 +8,6 @@
 # Exit:    0 the projection is within the ceiling, nothing printed; 1 it exceeds the ceiling, printing
 #          spent, steps remaining, the median and the projection; 2 a bad argument, or no answer;
 #          3 nothing to do — no completed full step to take a median from
-exec python3 "$(dirname "$0")/veri/run_affordable.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/run_affordable.py" "$@"

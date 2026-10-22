@@ -14,4 +14,6 @@
 # stdout:  the reason text (the human-facing justification), trimmed.
 # exit:    0 PASS · 1 REJECT · 2 malformed/no recognisable verdict (stdout empty,
 #          a diagnostic on stderr).
-exec python3 "$(dirname "$0")/veri/parse_verdict.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/parse_verdict.py" "$@"

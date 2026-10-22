@@ -5,4 +5,6 @@
 #        reads `.tdd/<leaf-name>.log` relative to the directory it is run in.
 # Exit:  0 a usage event appended; 1 no log file; 2 a missing or refused leaf name, or no answer;
 #        3 nothing to do — no closing result record in the log
-exec python3 "$(dirname "$0")/veri/harvest_usage.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/harvest_usage.py" "$@"

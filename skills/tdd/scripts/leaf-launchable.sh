@@ -20,4 +20,6 @@
 # Exit 2, with a diagnostic on stderr, when the probe launch failed — "no answer could be
 # obtained", the plumbing speaking, not a clean negative a caller could act on. Nothing is
 # printed on stdout, so a conductor reading this in a command substitution captures nothing.
-exec python3 "$(dirname "$0")/veri/leaf_launchable.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/leaf_launchable.py" "$@"

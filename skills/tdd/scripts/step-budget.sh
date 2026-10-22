@@ -8,4 +8,6 @@
 #          prints the resolved step budget, then the resolved run budget, one per line.
 # Exit:    0 both printed; 2 an argument, or a budget that is not a non-negative decimal number,
 #          nothing on stdout
-exec python3 "$(dirname "$0")/veri/step_budget.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/step_budget.py" "$@"

@@ -5,4 +5,6 @@
 # or `SUITE:` line; with none, the last result record. Input with no result record passes through unchanged.
 #
 # Usage:   extract-result.sh < leaf-stream.jsonl
-exec python3 "$(dirname "$0")/veri/extract_result.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/extract_result.py" "$@"

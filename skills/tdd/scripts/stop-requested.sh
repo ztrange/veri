@@ -6,4 +6,6 @@
 # usage: stop-requested.sh [--clear]
 # Exits:   0 a mode was printed, or the request was cleared | 2 malformed request, or an
 #          argument this script does not take | 3 no stop request
-exec python3 "$(dirname "$0")/veri/stop_requested.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/stop_requested.py" "$@"

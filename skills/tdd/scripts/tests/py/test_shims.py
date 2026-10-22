@@ -307,3 +307,22 @@ def test_issue_2106_shim_with_a_venv_lacking_python3_runs_its_module_on_the_pyth
 
     assert (result.returncode, result.stdout, result.stderr) == (
         0, "VERI_ACTOR=developer VERI_PHASE=red VERI_ATTEMPT=1\n", "")
+
+
+@pytest.mark.process("leaf-role.sh started with a fixed PATH whose first python3 is a stub exiting 9")
+def test_issue_2106_shim_runs_its_module_on_the_venv_python3_not_the_stub_python3_first_on_a_fixed_path(tmp_path):
+    stub_dir = tmp_path / "stub"
+    stub_dir.mkdir()
+    stub = stub_dir / "python3"
+    stub.write_text("#!/bin/sh\nexit 9\n")
+    stub.chmod(0o755)
+    (tmp_path / "venv" / "bin").mkdir(parents=True)
+    venv_python = tmp_path / "venv" / "bin" / "python3"
+    venv_python.write_text('#!/bin/sh\nexec "%s" "$@"\n' % sys.executable)
+    venv_python.chmod(0o755)
+    env = {"PATH": "%s:/usr/bin:/bin:/usr/local/bin" % stub_dir, "VERI_VENV": str(tmp_path / "venv"), "HOME": str(tmp_path)}
+
+    result = subprocess.run([str(SCRIPTS / "leaf-role.sh"), "develop-red"], capture_output=True, text=True, env=env)
+
+    assert (result.returncode, result.stdout, result.stderr) == (
+        0, "VERI_ACTOR=developer VERI_PHASE=red VERI_ATTEMPT=1\n", "")

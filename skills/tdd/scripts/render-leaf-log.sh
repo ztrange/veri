@@ -13,4 +13,6 @@
 # discarded along with the line that stopped it.
 #
 # usage:   render-leaf-log.sh < .tdd/LEAF.out   (takes no argument)
-exec python3 "$(dirname "$0")/veri/render_leaf_log.py"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/render_leaf_log.py"

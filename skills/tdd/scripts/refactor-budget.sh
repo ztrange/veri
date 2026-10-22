@@ -8,4 +8,6 @@
 # usage: refactor-budget.sh [--issue] <count>   # <count> a whole number >= 0
 # Exit:    0 <count> is below the budget; 2 a budget or <count> that is not a whole number >= 0,
 #          nothing on stdout; 3 the budget is spent
-exec python3 "$(dirname "$0")/veri/refactor_budget.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/refactor_budget.py" "$@"

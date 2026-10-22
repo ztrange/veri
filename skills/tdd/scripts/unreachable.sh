@@ -9,4 +9,6 @@
 #
 # Exit:    0  the list was printed, possibly empty
 #          2  no <repo-root>
-exec python3 "$(dirname "$0")/veri/unreachable.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/unreachable.py" "$@"

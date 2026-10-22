@@ -12,4 +12,6 @@
 #          refactor-owed.sh list <file>
 # Exit:    0 done; 1 the append's, applied's or not-done's write failed; 2 a missing argument or an unknown verb;
 #          3 render or list found <file> absent or empty, or list found no structural transform
-exec python3 "$(dirname "$0")/veri/refactor_owed.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/refactor_owed.py" "$@"

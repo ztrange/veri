@@ -12,4 +12,6 @@
 #   1  the command finished and recorded a non-zero code; that code is printed on stdout
 #   2  the command died without recording a code, or bad arguments
 #   3  no completion file yet — call again
-exec python3 "$(dirname "$0")/veri/detach_command.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/detach_command.py" "$@"

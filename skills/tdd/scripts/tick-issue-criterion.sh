@@ -10,4 +10,6 @@
 #
 # Exit: 0 if a box was ticked and the issue updated, 3 if no unchecked box under
 # `## Acceptance criteria` matched (the issue is left untouched). Requires an authenticated `gh`.
-exec python3 "$(dirname "$0")/veri/tick_issue_criterion.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/tick_issue_criterion.py" "$@"
