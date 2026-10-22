@@ -97,7 +97,7 @@ def child_pytest(tmp_path, probe, env, select=()):
 
 
 @pytest.mark.process("a child pytest session started with ambient VERI_, CLAUDE_, GH_ and GIT_ variables")
-def test_every_case_starts_with_no_veri_claude_gh_or_git_variable_set_but_veri_venv_whatever_the_shell_had(tmp_path):
+def test_every_case_starts_with_no_veri_claude_gh_or_git_variable_set_but_veri_venv_and_its_own_legs_registry_whatever_the_shell_had(tmp_path):
     probe = tmp_path / "test_probe.py"
     seen = tmp_path / "seen.json"
     probe.write_text(
@@ -112,7 +112,7 @@ def test_every_case_starts_with_no_veri_claude_gh_or_git_variable_set_but_veri_v
     ran = child_pytest(tmp_path, probe, env)
 
     assert ran.returncode == 0, ran.stdout + ran.stderr
-    assert json.loads(seen.read_text()) == ["VERI_VENV"]
+    assert json.loads(seen.read_text()) == ["VERI_PYTEST_LEGS", "VERI_VENV"]
 
 
 @pytest.mark.process("a child pytest session started with GIT_TEMPLATE_DIR and GIT_EXEC_PATH set beside other GIT_ variables")
