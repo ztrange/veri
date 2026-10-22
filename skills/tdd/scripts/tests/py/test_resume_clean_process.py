@@ -35,3 +35,29 @@ def test_main_discards_an_untracked_file_and_a_modified_tracked_file_listing_eac
     assert not (repo / "other.txt").exists()
     assert (repo / ".tdd" / "leaf.log").read_text() == "log\n"
     assert (repo / ".tdd" / "issue-1-refactor-owed.md").read_text() == "owed\n"
+
+
+@pytest.mark.process("git")
+def test_main_reapplies_uncommitted_tdd_appends_byte_for_byte_while_still_discarding_the_tracked_change_outside_tdd_1967(
+        tmp_path, run_cli):
+    resume_clean = importlib.import_module("veri.resume_clean")
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "file.txt").write_text("one\n")
+    (repo / ".tdd" / "issue-7.md").write_text("- [ ] step\n")
+    (repo / ".tdd" / "events.log").write_text("start\n")
+    git(repo, "add", "-f", ".")
+    git(repo, "commit", "-q", "-m", "base")
+    (repo / "file.txt").write_text("two\n")
+    with open(repo / ".tdd" / "issue-7.md", "a") as f:
+        f.write("appended line\n")
+    with open(repo / ".tdd" / "events.log", "a") as f:
+        f.write("event two\n")
+
+    code, out, err = run_cli(resume_clean, [], cwd=repo)
+
+    assert code == 0
+    assert (repo / ".tdd" / "issue-7.md").read_bytes() == b"- [ ] step\nappended line\n"
+    assert (repo / ".tdd" / "events.log").read_bytes() == b"start\nevent two\n"
+    assert (repo / "file.txt").read_text() == "one\n"
