@@ -660,3 +660,8 @@ def test_2168_the_readers_audit_suites_and_their_index_guard_live_under_tests_py
     assert [(name, (tier / name).is_file(), (tier / "unit" / name).is_file()) for name in names] == [
         (name, False, True) for name in names
     ]
+
+def test_the_ledger_path_single_source_suite_lives_under_tests_py_unit_and_not_beside_it():
+    tier = SCRIPTS / "tests" / "py"
+    name = "test_ledger_path_single_source.py"
+    assert (name, (tier / name).is_file(), (tier / "unit" / name).is_file()) == (name, False, True)
