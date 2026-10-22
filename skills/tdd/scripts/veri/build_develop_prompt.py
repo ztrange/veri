@@ -8,7 +8,8 @@ import event
 import tunables
 from ledger import carries_mark, trailing_markers
 from replaces_case import is_replaces_case_step, parse as parse_replaces_case
-from build_verify_prompt import INTERFACE_PHASES, _IncludeRefused, _expand, _has_heading, _spec_text, _write
+from entry import write
+from build_verify_prompt import INTERFACE_PHASES, _IncludeRefused, _expand, _has_heading, _spec_text
 
 PHASES = ("red", "green", "refactor", "cover", "transform", "diff", "structural", "predicate", "revise",
           "reconcile", "exhausted", "over-budget", "rebase", "replaces-report", "red-contradicted", "red-repair",
@@ -79,8 +80,8 @@ def _bullets(cases):
 
 def _refuse(message=None):
     if message is not None:
-        _write(sys.stderr, message)
-    _write(sys.stderr, USAGE)
+        write(sys.stderr, message, before=False, after=False)
+    write(sys.stderr, USAGE, before=False, after=False)
     return 2
 
 
@@ -158,7 +159,7 @@ def main(argv):
     paths += optional.values()
     for path in paths:
         if not os.access(path, os.R_OK):
-            _write(sys.stderr, f"build-develop-prompt: cannot read '{path}'")
+            write(sys.stderr, f"build-develop-prompt: cannot read '{path}'", before=False, after=False)
             return 2
     prompts_b = os.fsencode(prompts)
     values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "RED_CASES", "RED_LEAD", "REPLACES_CASE", "SUITE_REPAIR", "FIXTURE_REPAIR", "CI_REPAIR", "STEP",
