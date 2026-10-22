@@ -27,7 +27,7 @@ def worker_count(requested):
     return os.cpu_count() or 1
 
 
-def drop_stale_bytecode():
+def drop_stale_bytecode(after_run=False):
     prefix = sys.pycache_prefix
     if not prefix:
         return
@@ -50,7 +50,7 @@ def drop_stale_bytecode():
                         current[path] = hashlib.sha256(source.read()).hexdigest()
                 except OSError:
                     continue
-            if path in known and known[path] != current[path]:
+            if (path in known or not after_run) and known.get(path) != current[path]:
                 os.remove(os.path.join(folder, name))
     with open(manifest, "w") as handle:
         json.dump(current, handle)
@@ -88,7 +88,7 @@ def main(argv):
             count = worker_count(workers)
             parallel = ["-n", str(count)] if count >= 2 else []
             status = pytest.main(["--basetemp=" + base] + parallel + argv)
-            drop_stale_bytecode()
+            drop_stale_bytecode(after_run=True)
     finally:
         signal.signal(signal.SIGTERM, previous)
     return 0 if status == pytest.ExitCode.OK else 1
