@@ -1584,7 +1584,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    bail comment naming every conflicting file `rebase-onto-default.sh` printed, so the human
    it hands the conflict to knows where it is.
 
-   Then, after the run's last rebase and before the PR is readied, regrade every unit the run signed on the rebased tip with `grade-prose.sh`, and handle a REJECT there as a red full suite is handled, by appending a repair step.
+   Then, after the run's last rebase and before the PR is readied, regrade every unit the run signed on the rebased tip with `grade-prose.sh`, and handle a REJECT there as a red full suite is handled, by appending a repair step. Once that repair step's cycle closes, the run comes back to this Draft PR step and runs the full suite again, then the rebase and the regrade, as it does after a `⟦suite-repair⟧` step.
    ```
    base=$(git merge-base HEAD origin/<default>)
    git diff "$base" HEAD -U0 -- '*/GRADED' | sed -n 's/^+\([^+][^ ]*\) .*/\1/p' | while read -r unit; do
