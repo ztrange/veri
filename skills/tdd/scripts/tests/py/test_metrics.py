@@ -56,6 +56,19 @@ def table(out, heading):
     return rows
 
 
+def test_the_report_carries_a_lane_line_naming_veri_label_or_ready_for_agent_when_it_is_unset(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    monkeypatch.chdir(tmp_path)
+
+    monkeypatch.delenv("VERI_LABEL", raising=False)
+    unset = render(metrics, capsys).split("\n")
+    monkeypatch.setenv("VERI_LABEL", "lane-x")
+    named = render(metrics, capsys).split("\n")
+
+    assert ([line for line in unset if line.startswith("Lane: ")],
+            [line for line in named if line.startswith("Lane: ")]) == (["Lane: ready-for-agent"], ["Lane: lane-x"])
+
+
 def test_main_renders_the_report_for_an_issue_and_ignores_arguments_after_the_first(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, ONE_STEP)
     monkeypatch.chdir(tmp_path)
