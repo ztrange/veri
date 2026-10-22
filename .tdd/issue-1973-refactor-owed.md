@@ -1,0 +1,2 @@
+### `reorder-ledger-steps.sh` refuses to move a ticked step written `  - [X] …` (indented, capital X), exiting 1 as it does for `- [x] …`, and refuses to move another step relative to it; pinned by a case in `tests/py/unit/test_reorder_ledger_steps.py` ⟦criterion 1⟧
+- test-only | the new indented-`[X]` case repeats the run/assert-unchanged/assert-'alpha' block twice and could be parametrized with the neighbouring ticked-step cases
