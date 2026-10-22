@@ -15,6 +15,16 @@ import launch_floor
 import tunables
 
 
+def worker_count(requested):
+    if requested:
+        return int(requested)
+    if os.environ.get("PYTEST_XDIST_WORKER"):
+        return 1
+    if hasattr(os, "sched_getaffinity"):
+        return len(os.sched_getaffinity(0))
+    return os.cpu_count() or 1
+
+
 def main(argv):
     floor = launch_floor.python_floor()
     version = tunables.read("VERI_PYTHON_VERSION") or platform.python_version()
@@ -43,7 +53,7 @@ def main(argv):
     previous = signal.signal(signal.SIGTERM, terminate)
     try:
         with tempfile.TemporaryDirectory(prefix="veri-pytest-") as base:
-            count = int(workers) if workers else 1 if os.environ.get("PYTEST_XDIST_WORKER") else len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else os.cpu_count() or 1
+            count = worker_count(workers)
             parallel = ["-n", str(count)] if count >= 2 else []
             status = pytest.main(["--basetemp=" + base] + parallel + argv)
     finally:
