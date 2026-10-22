@@ -15,6 +15,12 @@ def refusal(main, exc):
     return f"{_shim_name(main)}: {type(exc).__name__}: {reason}\n"
 
 
+def write(stream, text):
+    stream.flush()
+    stream.buffer.write(os.fsencode(text + "\n"))
+    stream.buffer.flush()
+
+
 def silence_stdout():
     try:
         os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
