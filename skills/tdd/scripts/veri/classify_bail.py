@@ -10,7 +10,7 @@ CATEGORIES = {
          "ci-conflict", "step-add-refused", "replaces-report-failed"), "system"),
     **dict.fromkeys(
         ("revise-exhausted", "untestable-criterion", "step-too-big", "rebase-unresolved",
-         "uncovered", "ci-red", "suite-red", "rebased-tip-red", "unreplaced-cases", "needs-user"), "process"),
+         "uncovered", "ci-red", "suite-red", "rebased-tip-red", "unreplaced-cases", "needs-user", "step-added-off-route"), "process"),
 }
 
 
