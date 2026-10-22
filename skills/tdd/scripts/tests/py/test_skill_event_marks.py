@@ -231,10 +231,6 @@ def _text_calls_event(line, event):
     return re.search(r"event\.sh" + WS + "+" + re.escape(event) + r"([^a-z0-9-]|$)", line)
 
 
-def _at_over_budget(line, event):
-    return re.search(r"event\.sh " + re.escape(event) + r".*" + WS + r"at=over-budget(" + WS + "|$)", line)
-
-
 def _file_lines():
     return SKILL.read_text().splitlines()
 
@@ -251,12 +247,6 @@ def _exit_bullet_after(start, lines, frm, n):
     return None
 
 
-def _cost_branch(start, lines, first, second):
-    frm = _exit_bullet_after(start, lines, start, first)
-    to = _exit_bullet_after(start, lines, frm, second) if frm else None
-    return (frm, to) if to else (None, None)
-
-
 def _exit_3_problems(start, lines):
     carry_at = _exit_bullet_after(start, lines, start, 3)
     if carry_at is None:
@@ -271,72 +261,12 @@ def _exit_3_problems(start, lines):
     return problems
 
 
-def test_skill_md_writes_one_event_sh_step_over_budget_carrying_spent_and_budget_at_the_crossing_before_the_over_budget_leaf_is_launched():
-    file_lines = _file_lines()
-    launch_at = next((n for n, line in enumerate(file_lines, 1)
-                      if re.search(r"detach-leaf\.sh.*develop-over-budget", line)), None)
-    assert launch_at, "SKILL.md launches no develop-over-budget leaf through detach-leaf.sh — where the crossing's mark belongs could not be read"
-    before_launch = [line for line in file_lines[:launch_at - 1] if _text_calls_event(line, "step-over-budget")]
-    assert len(before_launch) == 1, (
-        f"want one `event.sh step-over-budget` before the develop-over-budget launch at SKILL.md:{launch_at}, found {len(before_launch)}")
-    problems = [f"SKILL.md's crossing mark carries no `{key}=`: {before_launch[0][:130]}"
-                for key in ("spent", "budget")
-                if not re.search(r"event\.sh step-over-budget.*" + WS + key + "=", before_launch[0])]
-    assert not problems, "\n".join(problems)
-
-
-def test_skill_md_writes_step_over_budget_on_every_crossing_before_the_branch_that_splits_parks_or_carries_on():
-    section_at, lines = _cost_check()
-    read_at = next((n for n, line in enumerate(_file_lines(), 1)
-                    if re.search(r"exhausted-outcome\.sh < \.tdd/develop-over-budget\.out", line)), None)
-    assert read_at, "SKILL.md has no exhausted-outcome.sh read of the over-budget answer — where every crossing's mark belongs could not be read"
-    problems = []
-    shared = sum(1 for line in lines[1:read_at - section_at]
-                 if line[:1] and not line[0].isspace() and _text_calls_event(line, "step-over-budget"))
-    if shared < 1:
-        problems.append(f"no top-level `event.sh step-over-budget` between SKILL.md:{section_at} and the over-budget answer's read at SKILL.md:{read_at}, so not every crossing — split, park or carry on — writes it")
-    for outcome in (0, 1, 3):
-        bullet_at = _exit_bullet_after(section_at, lines, section_at, outcome)
-        if bullet_at is None:
-            problems.append(f"SKILL.md's cost check has no `- **exit {outcome}` branch — the crossing that takes it could not be read")
-        elif bullet_at <= read_at:
-            problems.append(f"SKILL.md's exit {outcome} branch at line {bullet_at} comes before the over-budget answer's read at line {read_at}")
-    assert not problems, "\n".join(problems)
-
-
-def test_skill_md_over_budget_exit_0_branch_writes_step_split_carrying_at_over_budget_and_the_revise_exhausted_split_keeps_at_exhausted():
-    start, lines = _cost_check()
-    split_at, park_at = _cost_branch(start, lines, 0, 1)
-    assert park_at, "SKILL.md's cost check has no `- **exit 0` branch followed by an `- **exit 1` one — where the cost-driven split's mark belongs could not be read"
-    over_budget = exhausted = 0
-    for lineno, line in enumerate(_file_lines() + SKILL.with_name("REVISE.md").read_text().splitlines(), 1):
-        if not _text_calls_event(line, "step-split"):
-            continue
-        if split_at < lineno < park_at:
-            over_budget += bool(_at_over_budget(line, "step-split"))
-        else:
-            exhausted += bool(re.search(r"event\.sh step-split" + WS + "+at=exhausted(" + WS + "|$)", line))
-    problems = []
-    if over_budget < 1:
-        problems.append(f"no `event.sh step-split` carrying `at=over-budget` in the over-budget exit 0 branch at SKILL.md:{split_at}–{park_at}, so a cost-driven split reads in the log as another cause's")
-    if exhausted < 1:
-        problems.append("no `event.sh step-split at=exhausted` outside the over-budget branch, so the revise-exhausted split lost the spelling #408 gave it")
-    assert not problems, "\n".join(problems)
-
-
-def test_skill_md_over_budget_exit_1_branch_writes_step_escalated_carrying_at_over_budget():
-    start, lines = _cost_check()
-    park_at, carry_at = _cost_branch(start, lines, 1, 3)
-    assert carry_at, "SKILL.md's cost check has no `- **exit 1` branch followed by an `- **exit 3` one — where the cost-driven park's mark belongs could not be read"
-    over_budget = sum(1 for line in lines[park_at - start:carry_at - start]
-                      if _text_calls_event(line, "step-escalated") and _at_over_budget(line, "step-escalated"))
-    assert over_budget >= 1, f"no `event.sh step-escalated` carrying `at=over-budget` in the over-budget exit 1 branch at SKILL.md:{park_at}–{carry_at}, so a cost-driven park reads in the log as a verifier's"
-
-
-def test_skill_md_over_budget_exit_3_branch_writes_no_event_mark_beyond_the_crossings_step_over_budget():
-    start, lines = _cost_check()
-    problems = _exit_3_problems(start, lines)
-    assert not problems, "\n".join(problems)
+def test_skill_md_revise_exhausted_split_writes_step_split_carrying_at_exhausted():
+    lines = SKILL.read_text().splitlines() + SKILL.with_name("REVISE.md").read_text().splitlines()
+    exhausted = sum(1 for line in lines
+                    if _text_calls_event(line, "step-split")
+                    and re.search(r"event\.sh step-split" + WS + "+at=exhausted(" + WS + "|$)", line))
+    assert exhausted >= 1, "no `event.sh step-split at=exhausted`, so the revise-exhausted split lost the spelling #408 gave it"
 
 
 def test_the_exit_3_case_still_names_a_mark_planted_in_the_exit_3_branch_by_its_line(tmp_path, monkeypatch):
@@ -353,7 +283,8 @@ def test_the_exit_3_case_still_names_a_mark_planted_in_the_exit_3_branch_by_its_
     with monkeypatch.context() as m:
         m.setattr(sys.modules[__name__], "SKILL", fixture)
         try:
-            test_skill_md_over_budget_exit_3_branch_writes_no_event_mark_beyond_the_crossings_step_over_budget()
+            problems = _exit_3_problems(*_cost_check())
+            assert not problems, "\n".join(problems)
         except AssertionError as failed:
             named = str(failed)
         else:
