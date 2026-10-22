@@ -270,6 +270,8 @@ def test_2100_two_legs_whose_registrations_interleave_at_the_read_together_regis
 
     def spy(args):
         handed.setdefault(threading.current_thread().name, workers_of(args))
+        if threading.current_thread() is threading.main_thread() and second.ident is not None:
+            second.join(10)
         return pytest.ExitCode.OK
 
     real_read = pytest_leg.registered_workers
