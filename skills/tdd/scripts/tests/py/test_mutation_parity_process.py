@@ -838,3 +838,35 @@ def test_1983_shim_forwards_the_pairs_table_and_the_exit_code(tmp_path, monkeypa
 
     assert (run.returncode, run.stdout) == (
         0, verdict_line(tmp_path, ("adds two numbers", "adds a negative"), "add-subtracts", "proven")), run.stderr
+
+
+@pytest.mark.process("git apply started by check(), applying a mutation whose pytest run is in-process")
+def test_1983_in_process_pytest_row_restores_the_source_and_leaves_no_mutated_module_or_bytecode(tmp_path, monkeypatch, run_cli):
+    source = tmp_path / MODULE
+    source.parent.mkdir(parents=True)
+    source.write_text("def code():\n    return 2\n")
+    original = source.read_bytes()
+    suite = tmp_path / "checks" / "test_gate.py"
+    suite.parent.mkdir()
+    suite.write_text(PYTEST_SUITE)
+    mutated = source.read_text().replace("return 2", "return 1")
+    patch = tmp_path / "gate.patch"
+    patch.write_text("".join(difflib.unified_diff(
+        source.read_text().splitlines(True), mutated.splitlines(True), "a/" + MODULE, "b/" + MODULE)))
+    table = tmp_path / "pairs.tsv"
+    table.write_text("\t".join(["checks/test_gate.py", "checks/test_gate.py::test_old", "redundant",
+                                "checks/test_gate.py::test_kept", str(patch)]) + "\n")
+    monkeypatch.delitem(sys.modules, "gate", raising=False)
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    importlib.invalidate_caches()
+    mutation_parity = importlib.import_module("veri.mutation_parity")
+
+    code, out, err = run_cli(mutation_parity, [str(table)], cwd=tmp_path)
+
+    sys.path.insert(0, str(source.parent))
+    importlib.invalidate_caches()
+    later = importlib.import_module("gate")
+    leftover = sorted(str(p.relative_to(tmp_path)) for p in tmp_path.rglob("*.pyc"))
+    assert (code, source.read_bytes(), leftover, later.code()) == (0, original, [], 2), (
+        "exit=%s stderr=%r; source restored=%s; bytecode left %r; a later in-process import of the module answers %r, want 2"
+        % (code, err, source.read_bytes() == original, leftover, later.code()))
