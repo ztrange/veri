@@ -31,6 +31,11 @@
 #   gh_json with no gh args use REST under every value, and VERI_GH_JSON takes precedence over it.
 #   A Claude Code cloud session, where GraphQL is refused, needs nothing set.
 
+gh() {
+  type -P gh > /dev/null || { echo "gh: not found on PATH" >&2; return 2; }
+  command gh "$@"
+}
+
 _gh_driver_known() {
   case "${VERI_GH_DRIVER-rest}" in
     auto|rest|graphql) ;;

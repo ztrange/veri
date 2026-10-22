@@ -422,3 +422,19 @@ def test_with_the_driver_unset_a_gh_pr_ready_refused_with_403_is_never_run_and_t
     assert (code, err) == (0, "")
     assert "gh api -X POST repos/{owner}/{repo}/pulls/42/ccr/ready_for_review" in calls
     assert not started(calls, "gh pr")
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_gh_issue_edit_returns_2_naming_the_missing_gh_when_no_directory_on_path_holds_gh_and_the_wait_is_0_issue_2097(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    (bin_dir / "bash").symlink_to(shutil.which("bash"))
+    body = tmp_path / "body"
+    body.write_text("new body")
+    env = {"PATH": str(bin_dir), "LIB": str(LIB), "BODY": str(body),
+           **{name: "0" for name in ("VERI_TOOL_RETRY_SLEEP", "VERI_TOOL_FAST_WAIT", "VERI_TOOL_SLOW_SLEEP", "VERI_TOOL_WAIT")}}
+
+    ran = subprocess.run(["bash", "-c", 'source "$LIB"; gh_issue_edit 7 "$BODY"'], capture_output=True, text=True, env=env)
+
+    named = [line for line in ran.stderr.splitlines() if "gh" in line and "command not found" not in line]
+    assert (ran.returncode, bool(named)) == (2, True), ran.stderr
