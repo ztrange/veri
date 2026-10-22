@@ -1,9 +1,11 @@
 def fenced_lines(text):
-    inside = False
+    opener = None
     flags = []
     for line in text.splitlines():
-        marker = line.startswith(("```", "~~~"))
-        flags.append(inside or marker)
-        if marker:
-            inside = not inside
+        marker = line[:3] if line.startswith(("```", "~~~")) else None
+        flags.append(opener is not None or marker is not None)
+        if opener is None:
+            opener = marker
+        elif marker == opener:
+            opener = None
     return flags
