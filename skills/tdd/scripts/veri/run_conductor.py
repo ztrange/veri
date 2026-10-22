@@ -67,9 +67,11 @@ def main(argv):
                    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     if resolved.returncode == 0:
         commit = resolved.stdout.strip()
-        os.makedirs(".tdd", exist_ok=True)
-        if not os.path.exists(".tdd/.gitignore"):
-            with open(".tdd/.gitignore", "w") as seed:
+        run_state = os.path.join(event.toplevel(), ".tdd")
+        os.makedirs(run_state, exist_ok=True)
+        seed_path = os.path.join(run_state, ".gitignore")
+        if not os.path.exists(seed_path):
+            with open(seed_path, "w") as seed:
                 seed.write(".gitignore\nissue-*-skill-commit\n")
         record = record_path(argv[0])
         readable = os.access(record, os.R_OK)
@@ -208,7 +210,7 @@ def closed(issue):
 
 
 def record_path(issue):
-    return ".tdd/issue-%s-skill-commit" % issue
+    return os.path.join(event.toplevel(), ".tdd", "issue-%s-skill-commit" % issue)
 
 
 def past_preflight(issue):
