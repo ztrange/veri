@@ -1048,10 +1048,6 @@ def test_1613_draft_prs_step_decides_whether_the_ledger_already_holds_a_ci_repai
     assert not problems, problems
 
 
-def _first_record(records, *needles):
-    return next((r for r in records if all(n in r for n in needles)), "")
-
-
 def test_1904_both_ci_red_bail_lines_take_failed_from_the_stdout_of_the_wait_ci_sh_wait_they_just_ran_and_neither_spells_a_gh_api_check_runs_query():
     draft_pr_read()
     lines = _lines(DRAFT_PR)
