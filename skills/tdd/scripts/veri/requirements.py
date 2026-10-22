@@ -13,7 +13,13 @@ def read_lines(path):
 
 
 def split_cells(line):
-    return [c.strip() for c in re.split(r"(?<!\\)\|", line)]
+    cells, start = [], 0
+    for m in re.finditer(r"`[^`]*`|(?<!\\)\|", line):
+        if m.group() == "|":
+            cells.append(line[start:m.start()])
+            start = m.end()
+    cells.append(line[start:])
+    return [c.strip() for c in cells]
 
 
 def table_cells(line):
