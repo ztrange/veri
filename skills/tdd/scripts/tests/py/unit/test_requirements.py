@@ -18,3 +18,11 @@ def test_claims_ends_a_code_span_cell_at_the_pipe_after_it_2026(tmp_path):
     path.write_text("## operator/PRINCIPLES.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
                     f"| P7 | {claim} | because of the why |\n")
     assert requirements.claims(str(path), "operator/PRINCIPLES.md") == f"P7\t{claim}\n"
+
+
+def test_claims_reads_an_escaped_pipe_outside_a_code_span_as_a_literal_pipe_2026(tmp_path):
+    requirements = importlib.import_module("veri.requirements")
+    path = tmp_path / "REQUIREMENTS.md"
+    path.write_text("## operator/PRINCIPLES.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+                    "| A1 | Says a \\| b in full. | because |\n")
+    assert requirements.claims(str(path), "operator/PRINCIPLES.md") == "A1\tSays a | b in full.\n"
