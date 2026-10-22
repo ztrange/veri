@@ -369,6 +369,25 @@ def test_issue_2106_shim_runs_its_module_on_the_path_python3_when_the_venv_pytho
     assert (ran.returncode, ran.stdout) == (0, "probe ran\n"), ran.stderr
 
 
+def python3_reporting_3_9(path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text('#!/bin/sh\n[ "$1" = --version ] && { echo "Python 3.9.6"; exit 0; }\nexit 9\n')
+    path.chmod(0o755)
+
+
+@pytest.mark.process("leaf-role.sh started with a venv python3 and a PATH python3 that both report 3.9")
+def test_issue_2106_shim_with_both_python3s_below_the_floor_exits_2_without_its_module_naming_each_interpreter_its_source_and_version(tmp_path):
+    python3_reporting_3_9(tmp_path / "path" / "python3")
+    python3_reporting_3_9(tmp_path / "venv" / "bin" / "python3")
+    env = {"PATH": "%s:/usr/bin:/bin" % (tmp_path / "path"), "HOME": str(tmp_path / "home"), "VERI_VENV": str(tmp_path / "venv")}
+
+    ran = subprocess.run([str(SCRIPTS / "leaf-role.sh"), "develop-red"], capture_output=True, text=True, env=env)
+
+    named = [line for line in ran.stderr.splitlines() if "3.9.6" in line]
+    assert (ran.returncode, ran.stdout, [("venv" in line, "PATH" in line) for line in named]) == (
+        2, "", [(True, False), (False, True)]), ran.stderr
+
+
 PATH_PYTHON3_EXEC = re.compile(
     r"""^\s*exec\s+(?:(?:command|(?:/usr)?(?:/bin/)?env)\s+(?:-\S+\s+|\w+=\S*\s+)*)*['"]?python3['"]?(?:\s|$)""")
 
