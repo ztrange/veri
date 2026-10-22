@@ -4,14 +4,10 @@ import re
 import sys
 
 import tunables
+from entry import write
 
 USAGE = "usage: step-budget.sh (takes no arguments)"
 NUMBER = re.compile(rb"[0-9]+(\.[0-9]+)?")
-
-
-def _write(stream, data):
-    stream.buffer.write(data + b"\n")
-    stream.buffer.flush()
 
 
 def budgets():
@@ -19,20 +15,20 @@ def budgets():
     run = tunables.read_bytes("VERI_RUN_BUDGET", b"120")
     for name, value in ((b"VERI_STEP_BUDGET", step), (b"VERI_RUN_BUDGET", run)):
         if not NUMBER.fullmatch(value):
-            _write(sys.stderr, b"step-budget: " + name + b" must be a non-negative decimal number: " + value)
+            write(sys.stderr, b"step-budget: " + name + b" must be a non-negative decimal number: " + value, before=False)
             return 2, step, run
     return 0, step, run
 
 
 def main(argv):
     if argv:
-        _write(sys.stderr, os.fsencode(USAGE))
+        write(sys.stderr, os.fsencode(USAGE), before=False)
         return 2
     code, step, run = budgets()
     if code:
         return code
-    _write(sys.stdout, step)
-    _write(sys.stdout, run)
+    write(sys.stdout, step, before=False)
+    write(sys.stdout, run, before=False)
     return 0
 
 

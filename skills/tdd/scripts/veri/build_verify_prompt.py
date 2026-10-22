@@ -4,6 +4,7 @@ import paths
 import re
 import sys
 
+from entry import write
 from ledger import carries_mark, trailing_markers
 from replaces_case import is_replaces_case_step
 
@@ -27,14 +28,10 @@ def _last_phase_check(step_arg, phase, number):
             "the missing case, when one is absent.").encode()
 
 
-def _write(stream, text):
-    stream.buffer.write(os.fsencode(text + "\n"))
-
-
 def _refuse(message=None):
     if message is not None:
-        _write(sys.stderr, message)
-    _write(sys.stderr, USAGE)
+        write(sys.stderr, message, before=False, after=False)
+    write(sys.stderr, USAGE, before=False, after=False)
     return 2
 
 
@@ -139,7 +136,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id=""):
         paths.append(test_path)
     for path in paths:
         if not os.access(path, os.R_OK):
-            _write(sys.stderr, f"build-verify-prompt: cannot read '{path}'")
+            write(sys.stderr, f"build-verify-prompt: cannot read '{path}'", before=False, after=False)
             return 2, b""
     prompts_b = os.fsencode(prompts)
     values = dict.fromkeys(("BUG_REPRODUCTION", "REFACTOR_PLAN", *GREEN_PARAGRAPHS, "LEDGER"), b"")

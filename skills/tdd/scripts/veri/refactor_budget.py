@@ -3,21 +3,17 @@ import os
 import re
 import sys
 import tunables
+from entry import write
 
 DEFAULT_BUDGET = 5
 DEFAULT_ISSUE_BUDGET = 10
 USAGE = "usage: refactor-budget.sh [--issue] <count>"
 
 
-def _write(stream, text):
-    stream.buffer.write(os.fsencode(text + "\n"))
-    stream.buffer.flush()
-
-
 def _refused(name, value):
     if re.fullmatch(r"[0-9]+", value):
         return False
-    _write(sys.stderr, f"refactor-budget: {name} must be a whole number >= 0: {value}")
+    write(sys.stderr, f"refactor-budget: {name} must be a whole number >= 0: {value}", before=False)
     return True
 
 
@@ -36,10 +32,10 @@ def main(argv):
     if _refused(budget_var, budget):
         return 2
     if _refused("<count>", count):
-        _write(sys.stderr, USAGE)
+        write(sys.stderr, USAGE, before=False)
         return 2
     spent = int(count) >= _arithmetic(budget)
-    _write(sys.stdout, f"refactor {count}/{budget} — {'budget spent' if spent else 'another transform may run'}")
+    write(sys.stdout, f"refactor {count}/{budget} — {'budget spent' if spent else 'another transform may run'}", before=False)
     return 3 if spent else 0
 
 
