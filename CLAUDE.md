@@ -129,8 +129,10 @@ suites, or script run as a subprocess.
 `python3`). Admission rule: no process but the interpreter. Each case times out at 30 s
 (`VERI_PYTEST_TIMEOUT`, `@pytest.mark.timeout(n)`); a fresh `PYTHONPYCACHEPREFIX` per run
 avoids a stale `.pyc` after a same-second mutation (#1127). Cases run across pytest-xdist
-workers: `make test` one per available core, `make unit` 4 (each worker pays its own start-up);
-`VERI_PYTEST_WORKERS=<n>` overrides both, `1` runs serially (#2053). Three refusals, exit 2 before any
+workers: `make unit` 4 (each worker pays its own start-up); `make test` the cores other running
+legs leave free, at least 1 (#2100): each leg registers its pid and count under
+`~/.veri-pytest-legs` (`VERI_PYTEST_LEGS`), and a dead pid holds no share.
+`VERI_PYTEST_WORKERS=<n>` overrides both, used as given; `1` runs serially (#2053). Three refusals, exit 2 before any
 suite: pytest or pytest_timeout not importable (stderr names `make install-dev`), or Python
 older than the 3.12 floor.
 
