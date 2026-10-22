@@ -251,6 +251,59 @@ def test_2100_a_set_worker_count_is_used_as_given_even_beside_a_live_16_worker_e
     assert parallel[parallel.index("-n") + 1] == "3" if "-n" in parallel else "-n3" in parallel or "--numprocesses=3" in parallel
 
 
+def test_2100_two_legs_whose_registrations_interleave_at_the_read_together_register_at_most_16_workers_on_16_cores_the_second_getting_only_what_the_first_left(pytest_leg, monkeypatch, tmp_path):
+    import os
+    import threading
+
+    legs = tmp_path / "legs"
+    handed = {}
+    reads = []
+
+    def workers_of(args):
+        return int(args[args.index("-n") + 1]) if "-n" in args else 1
+
+    def spy(args):
+        handed.setdefault(threading.current_thread().name, workers_of(args))
+        return pytest.ExitCode.OK
+
+    real_read = pytest_leg.registered_workers
+    second = threading.Thread(name="second", target=lambda: pytest_leg.main(["-q", "some/dir"]))
+    real_getpid = os.getpid
+
+    def interleaved_read(directory):
+        total = real_read(directory)
+        reads.append(total)
+        if len(reads) == 1:
+            second.start()
+            second.join(0.3)
+        return total
+
+    import signal
+
+    real_signal = signal.signal
+
+    def main_thread_only(signum, handler):
+        return real_signal(signum, handler) if threading.current_thread() is threading.main_thread() else None
+
+    monkeypatch.setattr(pytest, "main", spy)
+    monkeypatch.setattr(signal, "signal", main_thread_only)
+    monkeypatch.setattr(pytest_leg, "registered_workers", interleaved_read)
+    monkeypatch.setattr(os, "getpid", lambda: os.getppid() if threading.current_thread().name == "second" else real_getpid())
+    monkeypatch.setattr(os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    for name, value in {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_LEGS": str(legs)}.items():
+        monkeypatch.setenv(name, value)
+    monkeypatch.delenv("VERI_PYTEST_WORKERS", raising=False)
+    monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
+    try:
+        assert pytest_leg.main(["-q", "some/dir"]) == 0
+    finally:
+        if second.ident is not None:
+            second.join(10)
+    assert (handed.get("MainThread"), handed.get("second")) == (16, 1)
+
+
 def test_2100_with_no_worker_count_a_leg_registers_its_worker_count_in_the_legs_registry_while_pytest_runs_and_removes_it_after_whatever_the_status(pytest_leg, run_cli, monkeypatch, tmp_path):
     import os
 
