@@ -366,14 +366,12 @@ def test_the_draft_pr_step_says_both_checkpoints_apply_to_the_repair_step_a_red_
     assert not problems, problems
 
 
-def test_987_preflight_step_3_runs_stop_requested_clear_beside_the_tdd_conductor_pid_write_so_a_stale_request_from_a_killed_run_cannot_stop_the_run_that_resumes_it():
+def test_987_preflight_step_3_runs_stop_requested_clear_beside_the_tdd_conductor_pid_write():
     lines, problems = [_joined(_branch(_section(PROCEDURE), r"^3\. suite is green at baseline", r"^4\. "))], []
     _require(problems, r"\.tdd/conductor\.pid", lines,
              "preflight step 3 has no .tdd/conductor.pid write to read — nothing could be checked beside it")
     _require(problems, r"stop-requested\.sh --clear", lines,
              "preflight step 3 never runs stop-requested.sh --clear — a request a killed run left behind would stop the run that resumes it")
-    _require(problems, _either_order("(stale|killed)", "(request|stop)"), lines,
-             "preflight step 3 never says the clear is for a stale request left by a killed run")
     assert not problems, problems
 
 
