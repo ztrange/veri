@@ -246,7 +246,7 @@ MECHANICAL_READERS = (
     "test_1420_skill_md_s_preflight_discard",
     "skill_md_preflight_leaf_model_calls_name_a_leaf",
     "test_skill_preflight_writes_the_long_lived_ppid_not_the_shells_pid",
-    "test_987_preflight_step_3_runs_stop_requested_clear_beside_the_tdd_conductor_pid_write",  # also pins the stale-request prose: no PF row covers it yet
+    "test_987_preflight_step_3_runs_stop_requested_clear_beside_the_tdd_conductor_pid_write",
     "structural_pass_ends_with_one_event_sh_structural_pass_mark",
     "test_954_skill_md_makes_the_leaf_timeout_sh_call_that_records_tdd_issue_n_timeout",
     "test_1297_skill_md_s_draft_pr_step_does_not_write_the_resume_rebase_event",
