@@ -2030,3 +2030,23 @@ def test_main_renders_a_transform_prompt_that_rejects_a_range_changing_observabl
     assert code == 0
     assert re.search(r"REJECT[^.]{0,60}changes? (any )?observable behaviou?r"
                      r"|changes? (any )?observable behaviou?r[^.]{0,60}REJECT", prompt, re.I), prompt
+
+
+def test_main_renders_a_plan_prompt_and_skill_md_sending_a_case_for_behaviour_that_already_holds_to_a_pin_step_never_diff_checked_1889(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"1. A case pins behaviour that already holds.\n")
+    ledger = tmp_path / "plan.md"
+    ledger.write_text("- [ ] a step\n", encoding="utf-8")
+
+    code = build_verify_prompt.main(["plan", str(spec), str(ledger)])
+    out, _ = capsysbinary.readouterr()
+    prompt = " ".join(out.decode("utf-8", "surrogateescape").split())
+    skill = " ".join((SCRIPTS.parent / "SKILL.md").read_text(encoding="utf-8").split())
+
+    states = [("pin step" in text and "already holds" in text and "never `⟦diff-checked⟧`" in text.replace(
+                  "`⟦diff-checked⟧` is reserved for steps that leave no test behind, so it is never offered",
+                  "never `⟦diff-checked⟧`")
+               and "reserved for steps that leave no test behind" in text)
+              for text in (prompt, skill)]
+    assert (code, states) == (0, [True, True])
