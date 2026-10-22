@@ -505,3 +505,22 @@ def test_the_gh_function_gives_up_once_the_clock_shows_the_wait_spent_even_when_
     code, _, named, taken = run_without_gh(tmp_path, clocked_sleep(10) + "gh api x", env)
 
     assert (code, taken, len(named)) == (2, ["2"], 2), (taken, named)
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_the_gh_function_returns_2_at_once_naming_the_variable_and_value_of_an_invalid_tunable_and_accepts_0_for_the_two_limits_issue_2097(tmp_path):
+    invalid = ["-1", "abc", "1.5", "inf", ""]
+    cases = [(var, value, True) for var in NO_WAIT for value in invalid]
+    cases += [(var, "0", True) for var in ("VERI_TOOL_RETRY_SLEEP", "VERI_TOOL_SLOW_SLEEP")]
+    cases += [(var, "0", False) for var in ("VERI_TOOL_FAST_WAIT", "VERI_TOOL_WAIT")]
+    wrong = []
+    for n, (var, value, refused) in enumerate(cases):
+        run_dir = tmp_path / str(n)
+        run_dir.mkdir()
+        code, out, _, taken = run_without_gh(run_dir, clocked_sleep(10**6) + "gh api x 2>&1; echo rc=$?", {**NO_WAIT, var: value})
+        lines = out.splitlines()
+        names_variable = any(var in line and value in line for line in lines)
+        if (lines[-1:], taken, names_variable) != (["rc=2"], [], refused):
+            wrong.append((var, value, refused, out, taken))
+
+    assert wrong == []
