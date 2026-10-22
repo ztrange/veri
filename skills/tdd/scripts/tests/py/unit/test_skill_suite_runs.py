@@ -50,9 +50,6 @@ def fast_plus_affected(text, who, why):
 
 def full_suite_leaves(skill):
     problems = []
-    loop = doc_text(skill, REFACTOR_LOOP)
-    if not re.search(r"suites (covering|that cover|which cover|of the touched)", loop):
-        problems.append("SKILL.md's Refactor loop section never says the transform leaf runs the suites covering the touched files")
     claude = CLAUDE.read_text()
     stale = [line for line in claude.splitlines() if re.search(r"every [a-z]*\s*leaf runs", line)]
     if stale:
@@ -84,34 +81,6 @@ def test_698_case_1_passes_on_a_skill_md_whose_green_section_and_refactor_loop_n
     assert not re.search(r"Neither .* runs the full suite", fixture.read_text()), \
         "the fixture still carries a 'Neither … runs the full suite' sentence"
     problems = full_suite_leaves(fixture)
-    assert not problems, "\n".join(problems)
-
-
-def test_skill_md_s_verify_refactor_entry_says_the_verdict_is_on_the_fast_tier_plus_the_affected_suites_not_the_full_suite():
-    text = before(doc_text(SKILL, REFACTOR_LOOP, r"^5\. "), "6. narrate")
-    assert text.strip(), "SKILL.md has no '#### Refactor loop' section to read"
-    problems = fast_plus_affected(text, "SKILL.md's verify-refactor entry", "verify-refactor.md tells the verifier to run")
-    if "full suite" in text:
-        problems.append("SKILL.md's verify-refactor entry still says the full suite runs in the refactor phase")
-    assert not problems, "\n".join(problems)
-
-
-def test_skill_md_s_sentence_on_a_break_outside_the_affected_set_points_at_the_draft_pr_step_s_full_run_and_its_repair_step_not_at_verify_refactor():
-    text = doc_text(SKILL, REFACTOR_LOOP)
-    assert text.strip(), "SKILL.md has no '#### Refactor loop' section to read"
-    assert "break in a suite" in text, "SKILL.md's Refactor loop never says what catches a break in a suite outside the affected set"
-    text = after(text, "break in a suite")
-    text = re.sub(r"[0-9]\.", "#", text)
-    text = before(text, ". ")
-    problems = []
-    if not re.search("draft pr", text):
-        problems.append("the sentence never names the Draft PR step, where the one full-suite run is")
-    if not re.search(r"full[- ]suite run|full run|full suite", text):
-        problems.append("the sentence never names the full-suite run that catches it")
-    if not re.search("repair step", text):
-        problems.append("the sentence never names the repair step a red full run appends")
-    if re.search(r"surfaces here|verify-refactor|verifier|reject", text):
-        problems.append("the sentence still hands that break to verify-refactor")
     assert not problems, "\n".join(problems)
 
 

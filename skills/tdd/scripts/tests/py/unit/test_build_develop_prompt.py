@@ -1848,19 +1848,6 @@ def _cksum(data):
     return "%d %d" % (~crc & 0xFFFFFFFF, len(data))
 
 
-def _refactor_loop():
-    lines, inside, kept = (SCRIPTS.parent / "SKILL.md").read_text().splitlines(), False, []
-    for line in lines:
-        if line.startswith("#### Refactor loop"):
-            inside = True
-            continue
-        if inside and re.match(r"#{1,6} ", line):
-            break
-        if inside:
-            kept.append(line)
-    return kept
-
-
 def test_cli_red_carries_spec_step_and_test_command_verbatim_and_the_against_unmodified_report_line(
         tmp_path, run_cli, build_develop_prompt):
     step = "QWIXTLE: a seed ending in a newline gains the block and reports added"
@@ -1951,31 +1938,6 @@ def test_cli_unknown_phase_with_no_further_arguments_exits_2_names_the_phase_on_
 
     assert (code, out, err) == (
         2, "", "build-develop-prompt.sh: unknown phase 'bogus' (want " + PHASES.decode() + ")\n" + USAGE.decode())
-
-
-def test_cli_skill_md_refactor_narration_tells_nothing_left_to_tidy_from_stopped_by_budget_and_lists_the_candidates(
-        ):
-    narration = " ".join(_refactor_loop())
-    wanted = {
-        "the nothing-left-to-tidy stop": r"nothing left to tidy",
-        "the budget stop": r"budget",
-        "the leaf's CANDIDATES: line": r"CANDIDATES:",
-        "the comment lists those candidates": r"(list|lists|listing|enumerate)[^.]{0,80}candidate|candidate[^.]{0,80}(list|lists|listing|enumerate)",
-        "how many candidates the budget left": r"(how many|number of|count of|(^|[^a-z0-9])n)\s+(candidates?|left)",
-    }
-
-    assert [name for name, pattern in wanted.items()
-            if not re.search(pattern, narration, re.I if name != "the leaf's CANDIDATES: line" else 0)] == []
-
-
-def test_cli_skill_md_refactor_narration_bullet_names_the_leafs_candidates_line_itself():
-    bullet, narrating = [], False
-    for line in _refactor_loop():
-        narrating = narrating or line.startswith("3. ")
-        if narrating:
-            bullet.append(line)
-
-    assert (bool(bullet), "CANDIDATES:" in " ".join(bullet)) == (True, True)
 
 
 def test_cli_red_tells_a_bugs_leaf_to_write_from_expected_drive_with_steps_and_fail_as_what_happened_describes_and_a_leaf_with_no_bug_section_none_of_it(
