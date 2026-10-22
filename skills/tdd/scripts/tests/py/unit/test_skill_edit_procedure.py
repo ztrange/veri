@@ -41,3 +41,17 @@ def test_skill_md_points_the_conductor_to_skill_edit_md_on_a_skill_edit_step_in_
     assert "⟦skill-edit⟧" in pointer, "the pointer never names the skill-edit step it applies to"
     assert re.search(r"in place of[^.]*Red[^.]*Green[^.]*Refactor", pointer), \
         "the pointer never says SKILL-EDIT.md replaces Red, Green and Refactor"
+
+
+def test_skill_edit_md_bails_at_once_on_exit_2_without_spending_stuck_retries_yet_retries_a_killed_author_inside_the_runner_2037():
+    sentences = _sentences(DOC.read_text(encoding="utf-8"))
+    bail = next((s for s in sentences if "exit 2" in s and "at once" in s), "")
+    assert bail, "SKILL-EDIT.md never bails at once on exit 2"
+    assert "bad argument" in bail, "the exit 2 bail never names a bad argument"
+    assert "system failure" in bail and "no-verdict" in bail, \
+        "the exit 2 bail is never a system failure with cause no-verdict"
+    assert "never relaunch" in bail and "VERI_STUCK_RETRIES" in bail, \
+        "the exit 2 bail never rules out a relaunch under VERI_STUCK_RETRIES"
+    stuck = next((s for s in sentences if "killed" in s and "stuck" in s and "VERI_STUCK_RETRIES" in s
+                  and "supervise.sh" in s and "retried" in s), "")
+    assert stuck, "SKILL-EDIT.md never says a killed or stuck author is retried under VERI_STUCK_RETRIES by supervise.sh"
