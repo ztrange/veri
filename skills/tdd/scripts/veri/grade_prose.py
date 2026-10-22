@@ -176,21 +176,22 @@ def main(argv):
     event.append(".", {}, "grading", ["unit=" + unit, "verdict=" + said[-1],
                                        "failing=" + ",".join(l.split(":")[0] for l in failed),
                                        "cost_usd=%s" % cost, "id=" + grading_id])
+    sig = signature(path, unit)
+    rejected = os.path.join(".tdd", "grade-prose-rejected")
     if not failed:
-        rejected = os.path.join(".tdd", "grade-prose-rejected")
         if os.path.exists(rejected):
             with open(rejected, encoding="utf-8") as f:
                 earlier = [l for l in f.read().splitlines()
-                           if l.split(" ")[:2] == [unit, signature(path, unit)]]
+                           if l.split(" ")[:2] == [unit, sig]]
             if earlier:
                 print("grade-prose.sh: %s was REJECTed on this same text (%s); change the text before it can be signed"
                       % (unit, earlier[-1]))
                 return 1
-        record_graded(unit, signature(path, unit), grading_id)
+        record_graded(unit, sig, grading_id)
     else:
         os.makedirs(".tdd", exist_ok=True)
-        with open(os.path.join(".tdd", "grade-prose-rejected"), "a", encoding="utf-8") as f:
-            f.write("%s %s %s %s\n" % (unit, signature(path, unit), time.strftime("%Y-%m-%d"), grading_id))
+        with open(rejected, "a", encoding="utf-8") as f:
+            f.write("%s %s %s %s\n" % (unit, sig, time.strftime("%Y-%m-%d"), grading_id))
     print("\n".join(failed))
     return 1 if failed else 0
 
