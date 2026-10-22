@@ -229,6 +229,15 @@ def main(argv):
                                        "failing=" + ",".join(l.split(":")[0] for l in failed),
                                        "cost_usd=%s" % cost, "id=" + grading_id])
     if not failed:
+        rejected = os.path.join(".tdd", "grade-prose-rejected")
+        if os.path.exists(rejected):
+            with open(rejected, encoding="utf-8") as f:
+                earlier = [l for l in f.read().splitlines()
+                           if l.split(" ")[:2] == [unit, signature(path, unit)]]
+            if earlier:
+                print("grade-prose.sh: %s was REJECTed on this same text (%s); change the text before it can be signed"
+                      % (unit, earlier[-1]))
+                return 1
         record_graded(unit, signature(path, unit), grading_id)
     else:
         os.makedirs(".tdd", exist_ok=True)
