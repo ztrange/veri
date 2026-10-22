@@ -52,11 +52,11 @@ def _only_in_subsection(literal, subsection, rest):
     return len(flat.split(" ")) >= 3 and flat in subsection and flat not in rest
 
 
-def _readers(path, subsection, rest):
-    text = path.read_text(encoding="utf-8")
+def _readers(entry, subsection, rest):
+    text = entry.text
     if "SKILL" not in text:
         return []
-    tree = ast.parse(text)
+    tree = entry.tree
     own = [
         n for n in tree.body
         if isinstance(n, (ast.FunctionDef, ast.Assign))
@@ -104,15 +104,16 @@ def _readers(path, subsection, rest):
 
 
 @pytest.mark.tree_audit("every test file under skills/tdd/scripts/tests/py")
-def test_every_remaining_case_reading_the_red_subsection_by_its_content_is_on_the_mechanical_allow_list():
+def test_every_remaining_case_reading_the_red_subsection_by_its_content_is_on_the_mechanical_allow_list(tests_py_index):
     subsection, rest = _subsection_and_rest()
     stray = []
-    for path in sorted(TESTS_PY.rglob("test_*.py")):
+    for entry in tests_py_index:
+        path = entry.path
         if path == pathlib.Path(__file__).resolve():
             continue
         rel = str(path.relative_to(TESTS_PY))
         if rel in ALLOWED:
             continue
-        stray += [f"{rel}::{name}" for name in _readers(path, subsection, rest) if f"{rel}::{name}" not in ALLOWED
+        stray += [f"{rel}::{name}" for name in _readers(entry, subsection, rest) if f"{rel}::{name}" not in ALLOWED
                   and f"{path.name}::{name}" not in ALLOWED]
     assert stray == [], "cases read the Red subsection by content and are neither mechanical nor allow-listed:\n" + "\n".join(stray)

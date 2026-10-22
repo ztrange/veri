@@ -1,3 +1,4 @@
+import ast
 import builtins
 import errno
 import io
@@ -21,6 +22,25 @@ for path in (SCRIPTS / "veri", SCRIPTS):
     sys.path.insert(0, str(path))
 
 from veri import entry
+
+class TestFile:
+    def __init__(self, path):
+        self.path = path
+        self.text = path.read_text(encoding="utf-8")
+        self._tree = None
+
+    @property
+    def tree(self):
+        if self._tree is None:
+            self._tree = ast.parse(self.text)
+        return self._tree
+
+
+@pytest.fixture(scope="session")
+def tests_py_index():
+    root = pathlib.Path(__file__).resolve().parent
+    return [TestFile(path) for path in sorted(root.rglob("test_*.py"))]
+
 
 REAL_RUN, REAL_POPEN = subprocess.run, subprocess.Popen
 
