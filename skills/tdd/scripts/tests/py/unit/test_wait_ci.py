@@ -1227,14 +1227,18 @@ def test_main_records_no_deadline_while_every_pending_check_is_queued_and_counts
 
     served(fake_processes, {}, answer)
     observed = []
-    for runs in ([check_run("gates", FULL_SHA, "queued")] * 1, [check_run("gates", FULL_SHA, "queued")],
+    # The clock reads 0, 60, ... and each pending call reads it twice: queued first at 0, in
+    # progress first at 240, so the deadline is 240 + 300 = 540, and the call at 360 is still
+    # inside it. Counted from the first queued sighting it would be 300, and that call answers 2.
+    for runs in ([check_run("gates", FULL_SHA, "queued")], [check_run("gates", FULL_SHA, "queued")],
+                 [check_run("gates", FULL_SHA, "in_progress")],
                  [check_run("gates", FULL_SHA, "in_progress")],
                  [check_run("gates", FULL_SHA, "completed", "success")]):
         rollup["runs"] = runs
-        code, _, _ = run_cli(wait_ci, [PR, "60", "120", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+        code, _, _ = run_cli(wait_ci, [PR, "60", "300", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
         observed.append((code, mark.exists()))
 
-    assert observed == [(3, False), (3, False), (3, True), (0, True)]
+    assert observed == [(3, False), (3, False), (3, True), (3, True), (0, True)]
 
 
 @pytest.mark.parametrize("queue_wait, limit", [(None, 3600), ("120", 120)])
