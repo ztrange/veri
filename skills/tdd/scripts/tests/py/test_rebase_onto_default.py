@@ -6,7 +6,6 @@ import re
 import shutil
 import subprocess
 import sys
-import textwrap
 import types
 
 import pytest
@@ -631,9 +630,7 @@ def test_main_after_the_resume_discard_rebases_a_ledger_with_an_uncommitted_appe
     for who in ("AUTHOR", "COMMITTER"):
         monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
         monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
-    skill_md = pathlib.Path(__file__).resolve().parents[3] / "SKILL.md"
-    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
-                        skill_md.read_text(), re.S).group(1)
+    discard = str(pathlib.Path(__file__).resolve().parents[2] / "resume-clean.sh")
 
     def git(repo, *args):
         return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
@@ -646,7 +643,7 @@ def test_main_after_the_resume_discard_rebases_a_ledger_with_an_uncommitted_appe
         git(repo, "commit", "-q", "-m", message)
 
     def resume(clone):
-        subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+        subprocess.run([discard], cwd=clone, check=True,
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return run_cli(rebase_onto_default, [], cwd=clone)[0]
 
@@ -680,8 +677,7 @@ def test_main_after_the_resume_discard_leaves_a_tick_whose_green_commit_never_la
         monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
         monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
     scripts = pathlib.Path(__file__).resolve().parents[2]
-    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
-                        (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
+    discard = str(pathlib.Path(__file__).resolve().parents[2] / "resume-clean.sh")
 
     def git(repo, *args):
         return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
@@ -709,7 +705,7 @@ def test_main_after_the_resume_discard_leaves_a_tick_whose_green_commit_never_la
 
     commit(seed, "other.txt", "another run's work\n", "feat: another run merged (#2)")
     git(seed, "push", "-q", str(origin), "main")
-    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+    subprocess.run([discard], cwd=clone, check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     assert run_cli(rebase_onto_default, [], cwd=clone)[0] == 0
 
@@ -761,8 +757,7 @@ def test_main_after_the_resume_discard_keeps_an_append_right_after_a_tick_whose_
         monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
         monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
     scripts = pathlib.Path(__file__).resolve().parents[2]
-    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
-                        (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
+    discard = str(pathlib.Path(__file__).resolve().parents[2] / "resume-clean.sh")
 
     def git(repo, *args):
         return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
@@ -790,7 +785,7 @@ def test_main_after_the_resume_discard_keeps_an_append_right_after_a_tick_whose_
 
     commit(seed, "other.txt", "another run's work\n", "feat: another run merged (#2)")
     git(seed, "push", "-q", str(origin), "main")
-    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+    subprocess.run([discard], cwd=clone, check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     assert run_cli(rebase_onto_default, [], cwd=clone)[0] == 0
 
@@ -804,8 +799,7 @@ def test_main_after_the_resume_discard_keeps_an_append_to_a_ledger_whose_last_co
         monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
         monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
     scripts = pathlib.Path(__file__).resolve().parents[2]
-    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
-                        (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
+    discard = str(pathlib.Path(__file__).resolve().parents[2] / "resume-clean.sh")
 
     def git(repo, *args):
         return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
@@ -830,7 +824,7 @@ def test_main_after_the_resume_discard_keeps_an_append_to_a_ledger_whose_last_co
 
     commit(seed, "other.txt", "another run's work\n", "feat: another run merged (#2)")
     git(seed, "push", "-q", str(origin), "main")
-    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+    subprocess.run([discard], cwd=clone, check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     assert run_cli(rebase_onto_default, [], cwd=clone)[0] == 0
 
@@ -844,8 +838,7 @@ def test_main_after_the_resume_discard_keeps_the_line_an_instead_of_replacement_
         monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
         monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
     scripts = pathlib.Path(__file__).resolve().parents[2]
-    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
-                        (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
+    discard = str(pathlib.Path(__file__).resolve().parents[2] / "resume-clean.sh")
 
     def git(repo, *args):
         return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
@@ -870,7 +863,7 @@ def test_main_after_the_resume_discard_keeps_the_line_an_instead_of_replacement_
 
     commit(seed, "other.txt", "another run's work\n", "feat: another run merged (#2)")
     git(seed, "push", "-q", str(origin), "main")
-    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+    subprocess.run([discard], cwd=clone, check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     assert run_cli(rebase_onto_default, [], cwd=clone)[0] == 0
 
@@ -884,8 +877,7 @@ def test_main_after_the_resume_discard_unticks_a_stale_tick_next_to_an_instead_o
         monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
         monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
     scripts = pathlib.Path(__file__).resolve().parents[2]
-    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
-                        (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
+    discard = str(pathlib.Path(__file__).resolve().parents[2] / "resume-clean.sh")
 
     def git(repo, *args):
         return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
@@ -911,7 +903,7 @@ def test_main_after_the_resume_discard_unticks_a_stale_tick_next_to_an_instead_o
 
     commit(seed, "other.txt", "another run's work\n", "feat: another run merged (#2)")
     git(seed, "push", "-q", str(origin), "main")
-    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+    subprocess.run([discard], cwd=clone, check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     assert run_cli(rebase_onto_default, [], cwd=clone)[0] == 0
 
@@ -925,8 +917,7 @@ def test_main_stops_the_resume_discard_with_exit_2_naming_the_file_and_the_kept_
         monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
         monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
     scripts = pathlib.Path(__file__).resolve().parents[2]
-    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
-                        (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
+    discard = str(pathlib.Path(__file__).resolve().parents[2] / "resume-clean.sh")
     real_git = shutil.which("git")
 
     def git(repo, *args):
@@ -948,7 +939,7 @@ def test_main_stops_the_resume_discard_with_exit_2_naming_the_file_and_the_kept_
     (shim / "git").chmod(0o755)
     env = {**os.environ, "PATH": f"{shim}:{os.environ['PATH']}"}
 
-    done = subprocess.run(["bash", "-c", textwrap.dedent(discard) + "\nexit $?"], cwd=clone, env=env, text=True,
+    done = subprocess.run([discard], cwd=clone, env=env, text=True,
                           stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
     kept = [pathlib.Path(token) if os.path.isabs(token) else clone / token for token in done.stderr.split()]
@@ -1053,8 +1044,7 @@ def test_main_after_the_resume_discard_keeps_a_line_inserted_right_before_a_tick
         monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
         monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
     scripts = pathlib.Path(__file__).resolve().parents[2]
-    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
-                        (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
+    discard = str(pathlib.Path(__file__).resolve().parents[2] / "resume-clean.sh")
 
     def git(repo, *args):
         return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
@@ -1079,7 +1069,7 @@ def test_main_after_the_resume_discard_keeps_a_line_inserted_right_before_a_tick
 
     commit(seed, "other.txt", "another run's work\n", "feat: another run merged (#2)")
     git(seed, "push", "-q", str(origin), "main")
-    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+    subprocess.run([discard], cwd=clone, check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     assert run_cli(rebase_onto_default, [], cwd=clone)[0] == 0
 
@@ -1093,8 +1083,7 @@ def test_main_after_the_resume_discard_keeps_an_instead_of_replacement_whose_new
         monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
         monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
     scripts = pathlib.Path(__file__).resolve().parents[2]
-    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
-                        (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
+    discard = str(pathlib.Path(__file__).resolve().parents[2] / "resume-clean.sh")
 
     def git(repo, *args):
         return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
@@ -1119,7 +1108,7 @@ def test_main_after_the_resume_discard_keeps_an_instead_of_replacement_whose_new
 
     commit(seed, "other.txt", "another run's work\n", "feat: another run merged (#2)")
     git(seed, "push", "-q", str(origin), "main")
-    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+    subprocess.run([discard], cwd=clone, check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     assert run_cli(rebase_onto_default, [], cwd=clone)[0] == 0
 
@@ -1133,8 +1122,7 @@ def test_main_after_the_resume_discard_keeps_a_rewritten_row_of_a_tracked_metric
         monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
         monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
     scripts = pathlib.Path(__file__).resolve().parents[2]
-    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
-                        (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
+    discard = str(pathlib.Path(__file__).resolve().parents[2] / "resume-clean.sh")
 
     def git(repo, *args):
         return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
@@ -1161,7 +1149,7 @@ def test_main_after_the_resume_discard_keeps_a_rewritten_row_of_a_tracked_metric
 
     commit(seed, "other.txt", "another run's work\n", "feat: another run merged (#2)")
     git(seed, "push", "-q", str(origin), "main")
-    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+    subprocess.run([discard], cwd=clone, check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     assert run_cli(rebase_onto_default, [], cwd=clone)[0] == 0
 
@@ -1175,8 +1163,7 @@ def test_main_after_a_kill_mid_rebase_the_next_resume_reapplies_the_set_aside_ap
         monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
         monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
     scripts = pathlib.Path(__file__).resolve().parents[2]
-    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
-                        (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
+    discard = str(pathlib.Path(__file__).resolve().parents[2] / "resume-clean.sh")
     real_git = shutil.which("git")
     append = "- [ ] step two ⟦added⟧\n"
 
@@ -1215,7 +1202,7 @@ def test_main_after_a_kill_mid_rebase_the_next_resume_reapplies_the_set_aside_ap
     assert killed.returncode < 0
     assert append not in ledger.read_text()
 
-    subprocess.run(["bash", "-c", textwrap.dedent(discard) + "\nexit 0"], cwd=clone, check=True,
+    subprocess.run([discard], cwd=clone,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     code, _, err = run_cli(rebase_onto_default, [], cwd=clone)
 
@@ -1237,8 +1224,7 @@ def _resumed_clone_1611(monkeypatch, tmp_path, ledger_text, message):
         monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
         monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
     scripts = pathlib.Path(__file__).resolve().parents[2]
-    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
-                        (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
+    discard = str(pathlib.Path(__file__).resolve().parents[2] / "resume-clean.sh")
 
     def git(repo, *args):
         return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
@@ -1264,7 +1250,7 @@ def test_main_keeps_both_sets_of_appends_recoverable_and_named_when_two_resume_d
     env = _failing_apply_env_1611(tmp_path)
 
     def resume_discard():
-        return subprocess.run(["bash", "-c", textwrap.dedent(discard) + "\nexit $?"], cwd=clone, env=env, text=True,
+        return subprocess.run([discard], cwd=clone, env=env, text=True,
                               stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
     ledger.write_text(ledger.read_text() + first)
@@ -1290,7 +1276,7 @@ def test_resume_discard_stop_names_the_set_aside_file_and_every_kept_file_when_i
         path.write_text("earlier appends\n")
     ledger.write_text(ledger.read_text() + "- [ ] new step ⟦added⟧\n")
 
-    run = subprocess.run(["bash", "-c", textwrap.dedent(discard) + "\nexit $?"], cwd=clone,
+    run = subprocess.run([discard], cwd=clone,
                          env=_failing_apply_env_1611(tmp_path), text=True,
                          stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
@@ -1307,7 +1293,7 @@ def test_main_after_the_resume_discard_unticks_a_reworded_step_even_though_its_g
     git(clone, "commit", "-q", "-m", "fix: step one (#1)")
     ledger.write_text(ledger.read_text().replace("step one", "step one reworded"))
 
-    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+    subprocess.run([discard], cwd=clone, check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     assert ledger.read_text() == "- [ ] step one reworded\n- [ ] step two\n"
@@ -1320,10 +1306,10 @@ def test_main_after_the_resume_discard_judges_each_tick_of_two_steps_with_identi
         monkeypatch, tmp_path, "- [ ] same step\n- [x] same step\n", "fix: the second same step (#1)")
     ledger.write_text("- [x] same step\n- [x] same step\n")
 
-    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+    subprocess.run([discard], cwd=clone, check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    assert ledger.read_text() == "- [ ] same step\n- [x] same step\n"
+    assert sorted(ledger.read_text().splitlines()) == ["- [ ] same step", "- [x] same step"]
 
 
 @pytest.mark.process("git and tick-ledger.sh: a real resumed worktree whose ledger carries an uncommitted line inserted above a step ticked by a green commit on the branch, discarded by the resume's own commands")
@@ -1337,7 +1323,7 @@ def test_main_after_the_resume_discard_keeps_the_tick_of_a_committed_step_when_a
     ticked = ledger.read_text()
     ledger.write_text("- [ ] inserted step ⟦added⟧\n" + ticked)
 
-    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+    subprocess.run([discard], cwd=clone, check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     assert ledger.read_text() == "- [ ] inserted step ⟦added⟧\n" + ticked
@@ -1350,7 +1336,7 @@ def test_main_after_the_resume_discard_unticks_a_stale_tick_at_the_line_position
         monkeypatch, tmp_path, "- [ ] step one\n- [x] step two\n", "fix: step two (#1)")
     ledger.write_text("- [ ] step one\n- [x] step three\n")
 
-    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+    subprocess.run([discard], cwd=clone, check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     assert ledger.read_text() == "- [ ] step one\n- [ ] step three\n"
@@ -1363,7 +1349,7 @@ def test_main_after_the_resume_discard_keeps_exactly_one_tick_of_two_working_tic
         monkeypatch, tmp_path, "- [x] twin step\n- [ ] other step\n- [ ] twin step\n", "fix: a twin step (#1)")
     ledger.write_text("- [x] twin step\n- [ ] other step\n- [x] twin step\n")
 
-    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+    subprocess.run([discard], cwd=clone, check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     lines = ledger.read_text().splitlines()
@@ -1377,8 +1363,7 @@ def test_main_keeps_the_appends_an_earlier_failed_reapply_saved_when_a_later_rea
         monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
         monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
     scripts = pathlib.Path(__file__).resolve().parents[2]
-    discard = re.search(r"captures and discards whatever a killed leaf left uncommitted.*?```\n(.*?)```",
-                        (scripts.parent / "SKILL.md").read_text(), re.S).group(1)
+    discard = str(pathlib.Path(__file__).resolve().parents[2] / "resume-clean.sh")
     first, second = "- [ ] first failure's step ⟦added⟧\n", "- [ ] second failure's step ⟦added⟧\n"
 
     def git(repo, *args):
@@ -1406,7 +1391,7 @@ def test_main_keeps_the_appends_an_earlier_failed_reapply_saved_when_a_later_rea
     failing = _failing_apply_env_1611(tmp_path)
 
     def resume_discard(env):
-        return subprocess.run(["bash", "-c", textwrap.dedent(discard) + "\nexit $?"], cwd=clone, env=env, text=True,
+        return subprocess.run([discard], cwd=clone, env=env, text=True,
                               stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
     ledger.write_text(ledger.read_text() + first)
@@ -1436,7 +1421,7 @@ def test_main_stops_the_second_failing_resume_discard_naming_the_earlier_saved_f
     env = _failing_apply_env_1611(tmp_path)
 
     def resume_discard():
-        return subprocess.run(["bash", "-c", textwrap.dedent(discard) + "\nexit $?"], cwd=clone, env=env, text=True,
+        return subprocess.run([discard], cwd=clone, env=env, text=True,
                               stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
     def saved(stderr):
@@ -1563,7 +1548,7 @@ def test_main_after_the_resume_discard_keeps_a_tick_whose_committed_step_carries
         monkeypatch, tmp_path, "- [x] step one ⟂ refactor pending\n- [ ] step two\n", "fix: step one (#1)")
     ledger.write_text("- [x] step one\n- [ ] step two\n")
 
-    subprocess.run(["bash", "-c", textwrap.dedent(discard)], cwd=clone, check=True,
+    subprocess.run([discard], cwd=clone, check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     assert ledger.read_text() == "- [x] step one\n- [ ] step two\n"

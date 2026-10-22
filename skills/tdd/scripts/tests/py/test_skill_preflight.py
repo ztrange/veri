@@ -16,9 +16,6 @@ RESUME = "## Resume"
 
 FAST_CALL = "detect-test-command.sh --tier fast"
 FULL_CALL = "detect-test-command.sh --tier all"
-ENTER_CALL = 'cd "$wt"'
-WORKTREE_CALL = "issue-worktree.sh"
-DETACH_START = "detach-command.sh start"
 ITEM_RE = r"^[0-9]+\."
 
 
@@ -36,19 +33,6 @@ def first(lines, want):
 
 def first_all(lines, *wants, start=0):
     return next((i for i in range(start, len(lines)) if all(w in lines[i] for w in wants)), None)
-
-
-def worktree_entry(lines):
-    at = first_all(lines, WORKTREE_CALL, ENTER_CALL)
-    assert at is not None, "no line runs issue-worktree.sh and then cd \"$wt\""
-    return at
-
-
-def baseline_start(lines, enter_at):
-    at = next((i for i in range(enter_at + 1, len(lines))
-               if FAST_CALL in lines[i] or DETACH_START in lines[i]), None)
-    assert at is not None, "no baseline start after the worktree is entered"
-    return at
 
 
 def paragraph_around(lines, at):
@@ -101,42 +85,13 @@ DRAFT = "### 4. Draft PR"
 REBASE_CALL = "rebase-onto-default.sh"
 
 
-def resume_step3():
-    whole = all_lines()
-    enter_at = worktree_entry(whole)
-    base_at = baseline_start(whole, enter_at)
-    pre = lines_of(PREFLIGHT)
-    offset = whole.index(PREFLIGHT)
-    at = enter_at - offset
-    assert 0 <= at < len(pre), "the worktree is entered outside preflight"
-    begin = max((i for i in range(at + 1) if re.match(ITEM_RE, pre[i])), default=0)
-    end = next((i for i in range(at + 1, len(pre)) if re.match(ITEM_RE, pre[i])), len(pre))
-    return whole, enter_at, base_at, offset + begin, offset + end
-
-
 def test_1297_skill_md_s_draft_pr_step_does_not_write_the_resume_rebase_event():
     draft = lines_of(DRAFT)
     assert not [line for line in draft if re.search(r"event\.sh resume-rebase( |$|`)", line)], \
         "the Draft PR section also writes event.sh resume-rebase"
 
 
-STATUS_CAPTURE = re.compile(r'="\$\(git status --porcelain\)"')
-FENCE = re.compile(r"^\s*```")
 SCRIPTS = SKILL.parent / "scripts"
-
-
-def discard_block():
-    whole, enter_at, base_at, begin, end = resume_step3()
-    capture_at = next((i for i in range(enter_at, end) if STATUS_CAPTURE.search(whole[i])), None)
-    assert capture_at is not None, "preflight step 3 has no line capturing git status --porcelain"
-    body = []
-    for line in whole[:capture_at]:
-        body = [] if FENCE.match(line) else body + [line]
-    for line in whole[capture_at:]:
-        if FENCE.match(line):
-            break
-        body.append(line)
-    return "\n".join(body) + "\n"
 
 
 def git(cwd, *args):
@@ -155,14 +110,12 @@ def commit_all(path, message):
     git(path, "commit", "-q", "-m", message)
 
 
-def run_discard(wt, tail=""):
-    return subprocess.run(["bash", "-c", discard_block() + tail], cwd=wt, capture_output=True, text=True)
+def run_discard(wt):
+    return subprocess.run([str(SCRIPTS / "resume-clean.sh")], cwd=wt, capture_output=True, text=True)
 
 
-def discard_stray(wt, tmp_path):
-    stray_out = tmp_path / "stray.out"
-    run_discard(wt, f'printf \'%s\\n\' "$stray" > "{stray_out}"\n')
-    return stray_out.read_text() if stray_out.exists() else ""
+def discard_stray(wt):
+    return run_discard(wt).stdout
 
 
 @pytest.mark.process("git: a bash-run discard block in a clone, then rebase-onto-default.sh over the default branch's new file")
@@ -196,7 +149,7 @@ def test_1420_skill_md_s_preflight_discard_captures_a_killed_leaf_s_untracked_fi
     (wt / "file.txt").write_text("base\n")
     commit_all(wt, "initial")
     (wt / "other.txt").write_text("a killed leaf's half-written file\n")
-    got = discard_stray(wt, tmp_path)
+    got = discard_stray(wt)
     assert "?? other.txt" in got.splitlines(), f"$stray does not list the untracked file: want a line '?? other.txt', got: {got}"
 
 
@@ -221,7 +174,7 @@ def test_1420_skill_md_s_preflight_discard_never_loses_an_untracked_tdd_run_stat
     (wt / ".tdd" / "issue-1.md").write_text("- [x] step one\n")
     commit_all(wt, "initial")
     (wt / ".tdd" / "issue-1-refactor-owed.md").write_text("a refactor the run owes\n")
-    got = discard_stray(wt, tmp_path)
+    got = discard_stray(wt)
     assert (wt / ".tdd" / "issue-1-refactor-owed.md").is_file(), "the discard block removed the untracked run-state file .tdd/issue-1-refactor-owed.md"
     assert "issue-1-refactor-owed.md" not in got, f"$stray captures the run-state file as a stray: {got}"
 
