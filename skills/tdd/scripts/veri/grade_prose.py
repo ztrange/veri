@@ -23,6 +23,7 @@ Rules:
 - `{{NAME}}` and `{{INCLUDE:...}}` are template slots filled in later. Never fail a requirement because of a slot; judge the literal text around it.
 - A requirement PASSES when the prose clearly states or instructs it, in any wording. It FAILS when the prose omits it, contradicts it, or states something that would lead the reader to act against it.
 - Judge each requirement independently.
+- An empty unit is graded FAIL on every requirement row without using any reading tool.
 
 First, analyse each requirement against the prose in free text — quote the prose you rely on. Change your mind here if you need to.
 
