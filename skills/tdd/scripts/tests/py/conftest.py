@@ -134,6 +134,18 @@ SHIM_EXEC = re.compile(r'^exec (?:python3|"\$py") .*/(veri/[\w-]+\.py)"', re.MUL
 VENV_PREFIX = ['py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"', '[ -x "$py" ] || py=python3']
 
 
+def interpreter_venv():
+    """The venv a process case hands a shim as VERI_VENV: the one running pytest, else the outer VERI_VENV or
+    ~/.veri-tools/venv. A case with a scratch HOME and no VERI_VENV would leave the shim on PATH's python3,
+    /usr/bin/python3 3.9 on the development Mac, under the 3.12 floor (#2106)."""
+    if sys.prefix != sys.base_prefix and os.access(os.path.join(sys.prefix, "bin", "python3"), os.X_OK):
+        return sys.prefix
+    return os.environ.get("VERI_VENV") or os.path.expanduser("~/.veri-tools/venv")
+
+
+INTERPRETER_VENV = interpreter_venv()
+
+
 def shim_problems(scripts, exempt=()):
     problems = []
     seen = set()

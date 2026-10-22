@@ -1,12 +1,13 @@
 """The one check that every top-level skills/tdd/scripts/*.sh is the canonical shim over a module under veri/."""
 import importlib
 import os
+import re
 import subprocess
 import sys
 
 import pytest
 
-from conftest import SCRIPTS, shim_problems
+from conftest import INTERPRETER_VENV, SCRIPTS, VENV_PREFIX, shim_problems
 
 EXEMPT = {
     "build-develop-prompt.sh": "a spelling difference; canonicalising it is a change of its own",
@@ -293,65 +294,85 @@ def test_the_every_shim_guard_finds_no_offender_among_the_real_scripts_including
     assert shim_source_problems(SCRIPTS) == []
 
 
-@pytest.mark.process("leaf-role.sh started with VERI_VENV naming a directory that has no bin/python3")
-def test_issue_2106_shim_with_a_venv_lacking_python3_runs_its_module_on_the_python3_on_path(tmp_path):
-    bin_dir = tmp_path / "bin"
-    bin_dir.mkdir()
-    path_python = bin_dir / "python3"
-    path_python.write_text('#!/bin/sh\nexec "%s" "$@"\n' % sys.executable)
-    path_python.chmod(0o755)
-    (tmp_path / "venv" / "bin").mkdir(parents=True)
-    env = {"PATH": "%s:/usr/bin:/bin" % bin_dir, "VERI_VENV": str(tmp_path / "venv"), "HOME": str(tmp_path)}
+def python3_script(path, runs_real):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text('#!/bin/sh\nexec "%s" "$@"\n' % sys.executable if runs_real else "#!/bin/sh\nexit 9\n")
+    path.chmod(0o755)
+
+
+def run_leaf_role(tmp_path, path_python_runs, venv_python_runs=None, venv_under_home=False):
+    """leaf-role.sh develop-red on a fixed PATH whose first python3 is real or a stub exiting 9, beside a venv
+    under VERI_VENV (or, VERI_VENV unset, under a scratch HOME) whose bin/python3 is real, a stub, or absent (None)."""
+    python3_script(tmp_path / "path" / "python3", path_python_runs)
+    home = tmp_path / "home"
+    venv = home / ".veri-tools" / "venv" if venv_under_home else tmp_path / "venv"
+    (venv / "bin").mkdir(parents=True)
+    if venv_python_runs is not None:
+        python3_script(venv / "bin" / "python3", venv_python_runs)
+    env = {"PATH": "%s:/usr/bin:/bin:/usr/local/bin" % (tmp_path / "path"), "HOME": str(home)}
+    if not venv_under_home:
+        env["VERI_VENV"] = str(venv)
 
     result = subprocess.run([str(SCRIPTS / "leaf-role.sh"), "develop-red"], capture_output=True, text=True, env=env)
+    return result.returncode, result.stdout, result.stderr
 
-    assert (result.returncode, result.stdout, result.stderr) == (
+
+@pytest.mark.process("leaf-role.sh started with VERI_VENV naming a directory that has no bin/python3")
+def test_issue_2106_shim_with_a_venv_lacking_python3_runs_its_module_on_the_python3_on_path(tmp_path):
+    assert run_leaf_role(tmp_path, path_python_runs=True) == (
         0, "VERI_ACTOR=developer VERI_PHASE=red VERI_ATTEMPT=1\n", "")
 
 
 @pytest.mark.process("leaf-role.sh started with a fixed PATH whose first python3 is a stub exiting 9")
 def test_issue_2106_shim_runs_its_module_on_the_venv_python3_not_the_stub_python3_first_on_a_fixed_path(tmp_path):
-    stub_dir = tmp_path / "stub"
-    stub_dir.mkdir()
-    stub = stub_dir / "python3"
-    stub.write_text("#!/bin/sh\nexit 9\n")
-    stub.chmod(0o755)
-    (tmp_path / "venv" / "bin").mkdir(parents=True)
-    venv_python = tmp_path / "venv" / "bin" / "python3"
-    venv_python.write_text('#!/bin/sh\nexec "%s" "$@"\n' % sys.executable)
-    venv_python.chmod(0o755)
-    env = {"PATH": "%s:/usr/bin:/bin:/usr/local/bin" % stub_dir, "VERI_VENV": str(tmp_path / "venv"), "HOME": str(tmp_path)}
-
-    result = subprocess.run([str(SCRIPTS / "leaf-role.sh"), "develop-red"], capture_output=True, text=True, env=env)
-
-    assert (result.returncode, result.stdout, result.stderr) == (
+    assert run_leaf_role(tmp_path, path_python_runs=False, venv_python_runs=True) == (
         0, "VERI_ACTOR=developer VERI_PHASE=red VERI_ATTEMPT=1\n", "")
 
 
 @pytest.mark.process("leaf-role.sh started with VERI_VENV unset, a scratch HOME holding the venv and a stub python3 exiting 9 on PATH")
 def test_issue_2106_shim_with_veri_venv_unset_finds_the_venv_python3_under_home_not_on_path(tmp_path):
-    stub_dir = tmp_path / "stub"
-    stub_dir.mkdir()
-    stub = stub_dir / "python3"
-    stub.write_text("#!/bin/sh\nexit 9\n")
-    stub.chmod(0o755)
-    home = tmp_path / "home"
-    (home / ".veri-tools" / "venv" / "bin").mkdir(parents=True)
-    venv_python = home / ".veri-tools" / "venv" / "bin" / "python3"
-    venv_python.write_text('#!/bin/sh\nexec "%s" "$@"\n' % sys.executable)
-    venv_python.chmod(0o755)
-    env = {"PATH": "%s:/usr/bin:/bin:/usr/local/bin" % stub_dir, "HOME": str(home)}
-
-    result = subprocess.run([str(SCRIPTS / "leaf-role.sh"), "develop-red"], capture_output=True, text=True, env=env)
-
-    assert (result.returncode, result.stdout, result.stderr) == (
+    assert run_leaf_role(tmp_path, path_python_runs=False, venv_python_runs=True, venv_under_home=True) == (
         0, "VERI_ACTOR=developer VERI_PHASE=red VERI_ATTEMPT=1\n", "")
+
+
+@pytest.mark.process("the canonical shim preamble run by sh on the process suites' fixed PATH and scratch HOME,"
+                     " with conftest's INTERPRETER_VENV as VERI_VENV")
+def test_issue_2106_interpreter_venv_gives_a_shim_on_a_fixed_path_and_scratch_home_a_python3_at_the_3_12_floor(tmp_path):
+    shim = tmp_path / "probe.sh"
+    shim.write_text('#!/bin/sh\n%s\nexec "$py" "$(dirname "$0")/probe.py"\n' % "\n".join(VENV_PREFIX))
+    shim.chmod(0o755)
+    (tmp_path / "probe.py").write_text("import sys\nprint('%d.%d' % sys.version_info[:2])\n")
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV}
+
+    ran = subprocess.run([str(shim)], capture_output=True, text=True, env=env)
+
+    assert tuple(int(part) for part in ran.stdout.split(".")) >= (3, 12), (ran.stdout, ran.stderr)
+
+
+PATH_PYTHON3_EXEC = re.compile(
+    r"""^\s*exec\s+(?:(?:command|(?:/usr)?(?:/bin/)?env)\s+(?:-\S+\s+|\w+=\S*\s+)*)*['"]?python3['"]?(?:\s|$)""")
+
+
+@pytest.mark.parametrize("line, runs_path_python3", [
+    ('exec python3 "$(dirname "$0")/veri/x.py" "$@"', True),
+    ('exec env python3 "$(dirname "$0")/veri/x.py" "$@"', True),
+    ('exec /usr/bin/env python3 "$(dirname "$0")/veri/x.py" "$@"', True),
+    ('exec env -i LC_ALL=C python3 x.py', True),
+    ('exec "python3" x.py', True),
+    ("exec 'python3' x.py", True),
+    ("  exec command python3 x.py", True),
+    ('exec "$py" "$(dirname "$0")/veri/x.py" "$@"', False),
+    ('exec python3.12 x.py', False),
+    ('# exec python3 x.py', False),
+])
+def test_issue_2106_the_path_python3_exec_pattern_catches_every_spelling_of_exec_and_spares_the_venv_one(line, runs_path_python3):
+    assert bool(PATH_PYTHON3_EXEC.match(line)) is runs_path_python3
 
 
 @pytest.mark.tree_audit("every scripts/*.sh, the exempt shims included, read as text for an unconditional exec of PATH's python3")
 def test_issue_2106_no_shim_execs_the_python3_on_path_unconditionally():
     offenders = sorted(
         path.name for path in SCRIPTS.glob("*.sh")
-        if any(line.lstrip().startswith("exec python3 ") for line in path.read_text().splitlines()))
+        if any(PATH_PYTHON3_EXEC.match(line) for line in path.read_text().splitlines()))
 
     assert offenders == []

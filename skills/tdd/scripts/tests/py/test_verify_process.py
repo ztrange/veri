@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from conftest import INTERPRETER_VENV
+
 SCRIPTS = Path(__file__).resolve().parents[2]
 
 
@@ -20,7 +22,7 @@ def test_verify_sh_green_rejects_a_pass_on_a_replaces_case_step_naming_each_case
     claude = tmp_path / "claude-pass"
     claude.write_text("#!/bin/sh\nprintf 'VERDICT: PASS\\nREASON: the named cases are gone.'\n")
     claude.chmod(0o755)
-    env = {"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+    env = {"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
 
     done = subprocess.run(
@@ -43,7 +45,7 @@ def test_verify_sh_run_from_a_subdirectory_writes_its_prompt_and_run_state_under
     claude = tmp_path / "claude-pass"
     claude.write_text("#!/bin/sh\nprintf 'VERDICT: PASS\\nREASON: fine.'\n")
     claude.chmod(0o755)
-    env = {"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+    env = {"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", "PYTHONDONTWRITEBYTECODE": "1"}
 
     done = subprocess.run(
