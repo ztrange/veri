@@ -37,6 +37,8 @@ def drop_stale_bytecode(after_run=False):
             known = json.load(handle)
     except (OSError, ValueError):
         known = {}
+    if not isinstance(known, dict):
+        known = {}
     current = {}
     for folder, _, files in os.walk(prefix):
         source_dir = os.sep + os.path.relpath(folder, prefix)
