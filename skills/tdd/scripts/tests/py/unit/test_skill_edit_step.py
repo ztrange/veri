@@ -950,3 +950,39 @@ def test_a_guard_refusal_leaves_a_pre_existing_untracked_symlink_the_guard_names
     run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"], env={"VERI_SKILL_EDIT_BUDGET": "1"})
 
     assert ((tmp_path / "link").is_symlink(), (tmp_path / "stray.py").exists()) == (True, False)
+
+
+def test_a_pass_on_the_unchanged_text_of_a_unit_with_a_recorded_reject_signs_nothing_in_graded_without_an_author_changing_it_2121(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    grade_prose = skill_edit_step.grade_prose
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    sig = grade_prose.signature("REQUIREMENTS.md", "unit.md")
+    (tmp_path / ".tdd" / "grade-prose-rejected").write_text("unit.md %s 2026-10-22 earlier\n" % sig)
+    authors = []
+
+    def run(cmd, **kw):
+        if cmd[0] == "git":
+            return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+        (tmp_path / ".tdd" / "grade-prose.log").write_text(
+            '{"type":"result","subtype":"success","is_error":false,"result":'
+            '"BEGIN GRADES\\nA1: PASS - blue\\nVERDICT: PASS\\nEND GRADES"}\n')
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(subprocess, "run", run)
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: authors.append(a) or 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+
+    code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"],
+                             env={"VERI_SKILL_EDIT_BUDGET": "1"})
+
+    assert (len(authors), (tmp_path / "GRADED").exists()) == (1, False), (code, out, err, authors)
