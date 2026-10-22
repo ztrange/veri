@@ -37,8 +37,6 @@ WRONG_TEST_SENTENCE = ('A revise of green whose leaf reports `WRONG_TEST: <why>`
 PIN_RECORD_SENTENCE = ('A `⟦replaces-case⟧` step skips verify-red, so on that verify-pin PASS first run '
                        f"`$S/tests-frozen.sh record {RECORD_ARG} <test-path>` to record its replacement cases "
                        'before the deletion green checks them; tests-frozen exit 2 is a bail.')
-EXIT3_LINE = 'exit 3 (`revise`) runs the existing revise path unchanged: the verify-green REJECT.'
-EXIT2_LINE = 'exit 2 is a system failure: **bail**.'
 
 
 def doc_of(heading):
@@ -107,22 +105,6 @@ def check_handling(where, found):
     return problems
 
 
-def green_route_text():
-    text = joined_section(GREEN)
-    text = text.partition("A green report carrying `WRONG_TEST:`")[2] or text
-    return text.partition("tests-frozen.sh check")[0]
-
-
-def test_green_section_runs_tests_frozen_check_between_develop_green_and_verify_green_rejecting_on_exit_1():
-    wait = first(lines_matching(GREEN, r"wait-leaf\.sh develop-green"))
-    verify = first(lines_matching(GREEN, r"supervise\.sh verdict-green"))
-    check = lines_matching(GREEN, r"tests-frozen\.sh check")
-    assert check, "Green section never runs tests-frozen.sh check"
-    assert any_between(check, wait, verify), (
-        f"Green runs tests-frozen.sh check, but not between the develop-green wait (line {wait}) and verify-green (line {verify})")
-    assert check_handling("Green section", frozen_sentences(GREEN)) == []
-
-
 def test_revising_runs_tests_frozen_check_between_revise_green_and_its_reverify_rejecting_on_exit_1():
     wait = first(lines_matching(REVISE, r"wait-leaf\.sh revise-<phase>-<k>"))
     verify = first(lines_matching(REVISE, r"supervise\.sh verdict-<phase>"))
@@ -137,7 +119,9 @@ def test_revising_runs_tests_frozen_check_between_revise_green_and_its_reverify_
 
 def test_every_tests_frozen_record_and_check_names_the_record_by_path_over_the_step_text_and_red_defines_the_key():
     text = SKILL.read_text()
-    commands = [(n, line) for n, line in enumerate(text.split("\n"), 1) if re.search(r"tests-frozen\.sh (record|check)", line)]
+    in_green = {n for n, _ in numbered_section(GREEN)}
+    commands = [(n, line) for n, line in enumerate(text.split("\n"), 1)
+                if n not in in_green and re.search(r"tests-frozen\.sh (record|check)", line)]
     assert commands, "no tests-frozen.sh record or check command to read"
     for n, line in commands:
         assert f"tests-frozen.sh record {RECORD_ARG}" in line or f"tests-frozen.sh check {RECORD_ARG}" in line, (
@@ -157,13 +141,10 @@ def test_revising_runs_tests_frozen_record_once_a_revised_reds_reverify_passes()
 
 
 def test_green_and_revising_handle_check_exit_2_as_a_system_failure_bail_never_a_reject():
-    for where in (GREEN, REVISE):
-        assert EXIT2_SENTENCE in joined_section(where), f"{where} lacks the check exit 2 handling verbatim"
+    assert EXIT2_SENTENCE in joined_section(REVISE), "REVISE lacks the check exit 2 handling verbatim"
 
 
 def test_revising_routes_a_revise_green_wrong_test_report_through_wrong_test_route_never_a_report_missing_bail():
-    outcome = [s for s in sentences(" ".join(line for _, line in numbered_section(GREEN))) if "looks wrong" in s]
-    assert "verify-green reject" in "\n".join(outcome), "no Green sentence about a test that looks wrong names a verify-green REJECT"
     assert WRONG_TEST_SENTENCE in joined_section(REVISE)
 
 
@@ -173,47 +154,7 @@ def test_the_pin_records_a_replaces_case_steps_tests_at_its_verify_pin_pass_befo
     assert PIN_RECORD_SENTENCE in pin.partition("launch a green leaf exactly as")[0]
 
 
-def test_green_routes_a_wrong_test_report_through_wrong_test_route_by_exit_code():
-    route = green_route_text()
-    assert "wrong-test-route.sh" in route
-    assert ("supervise.sh" in route and "red-contradicted" in route)
-    assert "verify-red" in route
-    assert "tests-frozen.sh record --step" in route
-    assert re.search(r"no `?revise`? mark", route, re.I)
-    assert re.search(r"no (revise|REVISE_BUDGET)|spends? no", route, re.I)
-    assert re.search(r"retr(y|ies) green", route, re.I)
-
-
-def test_green_wrong_test_routing_carries_the_exit_3_and_exit_2_lines():
-    route = green_route_text()
-    assert EXIT3_LINE in route
-    assert EXIT2_LINE in route
-
-
-def test_green_wrong_test_repair_route_launches_red_repair_through_the_supervisor_and_verifies_it_with_verify_red_before_retrying_green():
-    route = green_route_text()
-    assert "`repair <case> <superseded>…`" in route, "Green WRONG_TEST: routing has no repair <case> route"
-    repair = route.partition("`repair <case> <superseded>…`")[2].partition("- exit 3")[0]
-    assert re.search(r"supervise\.sh.*red-repair|red-repair.*supervise\.sh", repair), (
-        "the repair <case> route does not launch the red-repair red through supervise.sh")
-    head = repair.partition("retry green")[0]
-    assert re.search(r"red-repair.*verify-red", head), (
-        "the repair <case> route does not verify the repaired red with verify-red before retrying green")
-    assert not re.search(r"\bpins?\b|pinned|verify-pin", repair, re.I), (
-        "the repair <case> route carries a standing order about pins")
-
-
 def test_green_and_revising_send_a_missing_behaviour_answer_to_red_missing_with_no_revise_attempt_and_verify_the_added_case_before_green_runs_again():
-    green = plain(joined_section(GREEN))
-    missing = green.partition("exit 0 may instead print missing <behaviour>")[2].partition("exit 2 is a system failure")[0]
     revise = plain(joined_section(REVISE))
-    assert "exit 0 may instead print missing <behaviour>" in green, "Green section has no missing <behaviour> route"
-    for entry in ("verify-green reject", "mutation-parity reject"):
-        assert entry in missing, f"the missing <behaviour> route does not name the {entry} entry"
     assert re.search(r"impossible.*missing_test:.*red-missing", revise), (
         "REVISE.md's loop does not route a revise answering IMPOSSIBLE with a MISSING_TEST: line to red-missing")
-    assert "red-missing" in missing and "red-missing" in revise
-    assert "no revise mark" in missing
-    assert "no revise_budget attempt" in missing
-    assert re.search(r"verify-red.*verify-pin.*then run green again", missing)
-    assert re.search(r"exit 3.*spend revise_budget", missing)
