@@ -1,6 +1,8 @@
 ## The skill-edit step
 
-Run `$S/skill-edit-step.sh` on the issue body and the step's unit.
+Read the issue body into `.tdd/issue-<n>-body` first, with `gh api repos/{owner}/{repo}/issues/<n> -q .body > .tdd/issue-<n>-body`.
+
+Then run `$S/skill-edit-step.sh` on the issue body, `.tdd/issue-<n>-body`, and the step's unit.
 
 On exit 0 or 3, tick the step and commit the ticked ledger.
 
