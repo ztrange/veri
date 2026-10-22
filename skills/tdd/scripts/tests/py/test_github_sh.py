@@ -494,3 +494,14 @@ def test_gh_that_runs_and_fails_with_a_code_other_than_127_is_run_once_never_wai
     for code in (1, 2, 5, 126):
         code_out, stdout, stderr, calls = run_lib(tmp_path, f"exit {code}\n", "gh api x; echo \"rc=$?\"", env=NO_WAIT)
         assert (code_out, stdout, stderr, calls) == (0, f"rc={code}\n", "", ["gh api x"]), (code, stderr)
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_the_gh_function_gives_up_once_the_clock_shows_the_wait_spent_even_when_each_sleep_ran_ten_times_longer_than_asked_issue_2097(tmp_path):
+    env = {"VERI_TOOL_RETRY_SLEEP": "2", "VERI_TOOL_FAST_WAIT": "100", "VERI_TOOL_SLOW_SLEEP": "2", "VERI_TOOL_WAIT": "20"}
+
+    overslept = 'sleep() { echo "$1" >> "$SLEEPS"; SECONDS=$((SECONDS + $1 * 10)); }; '
+
+    code, _, named, taken = run_without_gh(tmp_path, overslept + "gh api x", env)
+
+    assert (code, taken, len(named)) == (2, ["2"], 2), (taken, named)
