@@ -870,3 +870,24 @@ def test_1983_in_process_pytest_row_restores_the_source_and_leaves_no_mutated_mo
     assert (code, source.read_bytes(), leftover, later.code()) == (0, original, [], 2), (
         "exit=%s stderr=%r; source restored=%s; bytecode left %r; a later in-process import of the module answers %r, want 2"
         % (code, err, source.read_bytes() == original, leftover, later.code()))
+
+
+@pytest.mark.process("git apply started by check(), for rows whose pytest runs are in-process")
+def test_1983_in_process_pytest_rows_give_the_verdicts_and_exit_codes_real_pytest_processes_give(tmp_path, monkeypatch, run_cli):
+    mp = scratch_with(tmp_path, monkeypatch, pytest_files=[("test_sums.py", SUMS_PYTEST)])
+    old = "tests/test_sums.py::test_adds_two_numbers"
+    absent = "checks/absent-suite.sh"
+    rows = [
+        (row_of(tmp_path, "checks/calc-suite.sh", "adds two numbers", "replaced", NODE, "add-subtracts"),
+         0, verdict_line(tmp_path, ("adds two numbers", NODE), "add-subtracts", "proven")),
+        (row_of(tmp_path, "checks/calc-suite.sh", "adds two numbers", "replaced", NODE, "kept-stays-green"),
+         1, verdict_line(tmp_path, ("adds two numbers", NODE), "kept-stays-green", "unproven")),
+        (row_of(tmp_path, "tests/test_sums.py", old, "replaced", NODE, "none-stays-green"),
+         1, verdict_line(tmp_path, (old, NODE), "none-stays-green", "owed")),
+        (row_of(tmp_path, absent, "adds two numbers", "redundant", "adds a negative", "add-subtracts"), 2, ""),
+        (row_of(tmp_path, "checks/calc-suite.sh", "adds two numbers", "replaced", "tests/test_calc.py::test_not_there", "add-subtracts"),
+         2, "")]
+
+    got = [run_rows(tmp_path, run_cli, mp, [row])[:2] for row, _, _ in rows]
+
+    assert got == [(code, out) for _, code, out in rows], got
