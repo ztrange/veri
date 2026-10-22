@@ -1,6 +1,8 @@
 """In-process cases for veri/leaf_timeout.py, the module leaf-timeout.sh is a shim over."""
 import importlib
 import importlib.util
+import os
+import pathlib
 import shutil
 
 import pytest
@@ -265,3 +267,14 @@ def test_cli_run_from_the_scripts_directory_of_a_decoy_repository_holding_a_copy
     pinned = repo / ".tdd" / "issue-954-timeout"
     settled = pinned.read_text() if pinned.exists() else None
     assert (outside, settled) == ([], "1200\n" if code == 0 else None)
+
+
+def test_a_symlink_beside_no_scripts_still_finds_the_real_scripts_directory(tmp_path, monkeypatch, leaf_timeout):
+    real = pathlib.Path(leaf_timeout.__file__).resolve()
+    farm = tmp_path.resolve() / "farm" / "veri"
+    farm.mkdir(parents=True)
+    os.symlink(real, farm / "leaf_timeout.py")
+    loaded = _load(farm / "leaf_timeout.py", "symlinked_leaf_timeout")
+    monkeypatch.chdir(real.parent.parent)
+
+    assert loaded.inside_own_scripts() is True
