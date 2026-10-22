@@ -32,14 +32,18 @@ def step_text(line):
 def unseen_ticks(ledger):
     shown = subprocess.run(["git", "show", f"HEAD:{ledger.as_posix()}"], stdout=subprocess.PIPE,
                            stderr=subprocess.DEVNULL, text=True)
-    held = Counter(step_text(line) for line in shown.stdout.splitlines(True) if line.startswith(TICK))
+    held = {}
+    for line in shown.stdout.splitlines(True):
+        if line.startswith((TICK, OPEN_STEP + " ")):
+            held.setdefault(step_text(line), []).append(line.startswith(TICK))
     lines = ledger.read_text(encoding="utf-8").splitlines(True)
+    seen = Counter()
     for i, line in enumerate(lines):
-        if line.startswith(TICK):
+        if line.startswith((TICK, OPEN_STEP + " ")):
             text = step_text(line)
-            if held[text] > 0:
-                held[text] -= 1
-            else:
+            k = seen[text]
+            seen[text] += 1
+            if line.startswith(TICK) and not (k < len(held.get(text, ())) and held[text][k]):
                 lines[i] = OPEN_STEP + " " + text + line[len(line.rstrip("\r\n")):]
     return "".join(lines)
 
