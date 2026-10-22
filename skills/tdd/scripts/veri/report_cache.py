@@ -45,6 +45,9 @@ def refresh():
         kept = {issue["number"]: issue for issue in before["issues"]}
         command += ["--search", "updated:>=" + before["fetched_at"]]
     done = subprocess.run(command, capture_output=True, text=True)
+    if done.returncode != 0:
+        sys.stderr.write("report-cache.sh: gh issue list failed: %s\n" % " ".join(done.stderr.split()))
+        return 2
     issues = json.loads(done.stdout)
     for issue in issues:
         issue["blockedBy"] = blocked_by(issue.pop("body", ""))
