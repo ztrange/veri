@@ -3,6 +3,7 @@
 # Exit:    0 pytest passed, 1 any other pytest status
 #          2 the interpreter is below the floor in lib/venv-python.sh, or cannot import pytest, pytest_timeout or xdist,
 #            or VERI_PYTEST_WORKERS is not a whole number of at least 1
+import fcntl
 import importlib.util
 import os
 import platform
@@ -45,13 +46,16 @@ def registered_workers(legs):
     return total
 
 
-def register(count):
+def claim():
     legs = legs_dir()
     os.makedirs(legs, exist_ok=True)
-    entry = os.path.join(legs, str(os.getpid()))
-    with open(entry, "w") as f:
-        f.write(str(count))
-    return entry
+    with open(legs.rstrip("/") + ".lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        count = worker_count(None)
+        entry = os.path.join(legs, str(os.getpid()))
+        with open(entry, "w") as f:
+            f.write(str(count))
+    return count, entry
 
 
 def unregister(entry):
@@ -106,9 +110,10 @@ def main(argv):
         with tempfile.TemporaryDirectory(prefix="veri-pytest-") as run:
             base = os.path.join(run, "base")
             os.mkdir(base)
-            count = worker_count(workers)
-            if not workers:
-                entry = register(count)
+            if workers:
+                count = worker_count(workers)
+            else:
+                count, entry = claim()
             parallel = ["-n", str(count)] if count >= 2 else []
             rest, selected = split_marks(argv)
             seen = os.path.join(run, "serial-seen")
