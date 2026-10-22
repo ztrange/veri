@@ -10,9 +10,13 @@ def git(*args):
 
 
 def main(argv):
+    appends = subprocess.run(["git", "diff", "--binary", "HEAD", "--", ".tdd"],
+                             check=True, stdout=subprocess.PIPE).stdout
     stray = git("status", "--porcelain", "-uall", *PATHSPEC)
     git("reset", "--hard", "HEAD")
     git("clean", "-fd", "-e", ".tdd")
+    if appends:
+        subprocess.run(["git", "apply", "-"], input=appends, check=True)
     sys.stdout.write(stray)
     return 0
 
