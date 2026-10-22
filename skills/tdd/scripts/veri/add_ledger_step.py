@@ -61,8 +61,12 @@ class UnreadableLog(Exception):
     pass
 
 
+def events_log(path):
+    return os.path.join(os.path.dirname(path), "events.jsonl")
+
+
 def added_since_last_resume(path, steps):
-    log = os.path.join(os.path.dirname(path), "events.jsonl")
+    log = events_log(path)
     try:
         events = read_events(log)
     except OSError:
@@ -117,8 +121,7 @@ def write_ledger(path, text, appended=""):
 
 
 def record_insertions(path, steps):
-    log = os.path.join(os.path.dirname(path), "events.jsonl")
-    with open(log, "a") as f:
+    with open(events_log(path), "a") as f:
         for step in steps:
             f.write(json.dumps({"event": "step-added", "actor": "add-ledger-step", "step": step}) + "\n")
 
