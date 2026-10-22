@@ -21,11 +21,11 @@ def worker_count(requested):
     if os.environ.get("PYTEST_XDIST_WORKER"):
         return 1
     cores = len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else os.cpu_count() or 1
-    return max(1, cores - registered_workers(tunables.read("VERI_PYTEST_LEGS") or default_legs()))
+    return max(1, cores - registered_workers(legs_dir()))
 
 
-def default_legs():
-    return os.path.join(tempfile.gettempdir(), "veri-pytest-legs-%d" % os.getuid())
+def legs_dir():
+    return tunables.read("VERI_PYTEST_LEGS") or os.path.join(tempfile.gettempdir(), "veri-pytest-legs-%d" % os.getuid())
 
 
 def registered_workers(legs):
@@ -87,7 +87,7 @@ def main(argv):
             os.mkdir(base)
             count = worker_count(workers)
             if not workers:
-                legs = tunables.read("VERI_PYTEST_LEGS") or default_legs()
+                legs = legs_dir()
                 os.makedirs(legs, exist_ok=True)
                 entry = os.path.join(legs, str(os.getpid()))
                 with open(entry, "w") as f:
