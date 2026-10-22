@@ -966,3 +966,16 @@ def test_copies_the_leafs_log_and_output_for_a_mark_with_no_user_name_or_email_i
     copies = repo / ".tdd" / "attempts"
     assert (copies / "3-develop-green-1-reject.log").read_text() == "streamed progress\n"
     assert (copies / "3-develop-green-1-reject.out").read_text() == "final result text\n"
+
+
+def test_a_symlink_beside_no_scripts_still_finds_the_real_scripts_directory(tmp_path, monkeypatch, preserve_attempt):
+    real = os.path.realpath(preserve_attempt.__file__)
+    farm = tmp_path.resolve() / "farm" / "veri"
+    farm.mkdir(parents=True)
+    os.symlink(real, farm / "preserve_attempt.py")
+    spec = importlib.util.spec_from_file_location("symlinked_preserve_attempt", farm / "preserve_attempt.py")
+    loaded = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(loaded)
+    monkeypatch.chdir(os.path.dirname(os.path.dirname(real)))
+
+    assert loaded.inside_own_scripts() is True
