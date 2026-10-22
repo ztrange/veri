@@ -86,3 +86,30 @@ def test_main_unticks_working_ticks_the_committed_ledger_does_not_hold_counted_a
         "# plan\n- [x] one ⟂ refactor pending\n- [ ] two\n- [ ] one\nfree text\n- [ ] three\n").encode()
     assert (repo / ".tdd" / "issue-8.md").read_bytes() == "- [x] kept ⟂ refactor pending\n- [ ] next\n".encode()
     assert (repo / ".tdd" / "notes.md").read_bytes() == b"- [x] zzz\n"
+
+
+@pytest.mark.process("git")
+def test_main_keeps_appends_it_cannot_reapply_in_the_git_dir_and_exits_2_with_one_stderr_line_naming_file_and_place_1967(
+        tmp_path, run_cli):
+    resume_clean = importlib.import_module("veri.resume_clean")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "file.txt").write_text("one\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "base")
+    (repo / ".tdd").mkdir()
+    (repo / ".tdd" / "fresh.md").write_text("start\n")
+    git(repo, "add", "-f", ".tdd/fresh.md")
+    git(repo, "commit", "-q", "-m", "ledger")
+    git(repo, "config", "apply.whitespace", "error")
+    with open(repo / ".tdd" / "fresh.md", "a") as f:
+        f.write("trailing space \n")
+
+    code, out, err = run_cli(resume_clean, [], cwd=repo)
+
+    kept = repo / git(repo, "rev-parse", "--git-path", "kept-tdd-appends.diff").strip()
+    assert code == 2
+    assert kept.is_file() and ".tdd/fresh.md" in kept.read_text()
+    assert len(err.splitlines()) == 1
+    assert ".tdd/fresh.md" in err and "kept-tdd-appends.diff" in err
