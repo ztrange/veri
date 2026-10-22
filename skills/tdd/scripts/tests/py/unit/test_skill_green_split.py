@@ -10,7 +10,6 @@ SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 GREEN = "#### Green — minimum implementation (developer leaf), then verify-green (blind)"
 BAILING = "## Bailing"
 BAIL = SKILL.with_name("BAIL.md")
-ADD_LEDGER_STEP = r"\$s/add-ledger-step\.sh"
 
 
 def _lines(heading):
