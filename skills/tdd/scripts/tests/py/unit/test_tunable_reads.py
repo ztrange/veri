@@ -126,11 +126,11 @@ def test_the_guard_names_the_line_of_a_planted_dict_copy_of_the_environment_read
     assert direct_reads(planted) == ["%s:2" % planted]
 
 
-def test_the_guard_names_the_line_of_a_planted_environment_passed_as_an_argument_to_a_call(tmp_path):
+def test_the_guard_names_the_line_of_a_planted_environment_passed_as_an_argument_when_a_veri_name_is_then_read_from_it(tmp_path):
     planted = tmp_path / "planted.py"
-    planted.write_text('import os\nimport event\nvalue = event.context(os.environ)\n')
+    planted.write_text('import os\ndef context(env):\n    return env.get("VERI_X")\nvalue = context(os.environ)\n')
 
-    assert direct_reads(planted) == ["%s:3" % planted]
+    assert direct_reads(planted) == ["%s:4" % planted]
 
 
 def test_the_guard_names_the_line_of_a_planted_veri_read_through_a_bare_environ_imported_from_os(tmp_path):
