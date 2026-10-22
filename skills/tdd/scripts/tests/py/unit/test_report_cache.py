@@ -99,3 +99,33 @@ def test_refresh_carries_the_issue_numbers_under_each_blocked_by_section_empty_w
     cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
     blockers = {i["number"]: i.get("blockedBy") for i in cache["issues"]}
     assert (code, blockers) == (0, {7: [3, 5], 8: []})
+
+
+def test_refresh_carries_the_wall_seconds_of_the_last_metrics_comment_null_with_a_null_lane_when_none(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    metrics = "### 📊 Metrics\n\nWall time for the issue: %d s, from the last `resume`.\n"
+    issues = [
+        {"number": 7, "title": "measured", "state": "CLOSED", "labels": [],
+         "closedAt": "2026-10-21T09:00:00Z", "updatedAt": "2026-10-21T09:00:00Z",
+         "comments": [{"body": metrics % 100}, {"body": "thanks"}, {"body": metrics % 250}]},
+        {"number": 8, "title": "unmeasured", "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-10-20T11:00:00Z", "comments": [{"body": "no report here"}]},
+    ]
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] != ["gh", "issue", "list"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
+    walls = {i["number"]: (i.get("wallSeconds"), i.get("lane")) for i in cache["issues"]}
+    assert (code, walls) == (0, {7: (250, None), 8: (None, None)})

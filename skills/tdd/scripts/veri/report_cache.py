@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 USAGE = "usage: report-cache.sh refresh\n"
-FIELDS = "number,title,state,labels,closedAt,updatedAt,body"
+FIELDS = "number,title,state,labels,closedAt,updatedAt,body,comments"
 
 
 def main_tree():
@@ -24,6 +24,16 @@ def blocked_by(body):
     return [int(n) for n in re.findall(r"#(\d+)", section.group(1))] if section else []
 
 
+def wall_seconds(comments):
+    seconds = None
+    for comment in comments or []:
+        body = comment.get("body") or ""
+        found = re.search(r"Wall time for the issue: (\d+) s", body)
+        if body.startswith("### 📊 Metrics") and found:
+            seconds = int(found.group(1))
+    return seconds
+
+
 def refresh():
     done = subprocess.run(
         ["gh", "issue", "list", "--state", "all", "--limit", "100000", "--json", FIELDS],
@@ -31,6 +41,8 @@ def refresh():
     issues = json.loads(done.stdout)
     for issue in issues:
         issue["blockedBy"] = blocked_by(issue.pop("body", ""))
+        issue["wallSeconds"] = wall_seconds(issue.pop("comments", []))
+        issue["lane"] = None
     fetched_at = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     tdd = os.path.join(main_tree(), ".tdd")
     os.makedirs(tdd, exist_ok=True)
