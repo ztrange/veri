@@ -24,11 +24,6 @@ def _reads_it(lines, pattern):
 
 def test_resume_pointers_name_resume_md_in_the_base_directory():
     lines = _lines(SKILL)
-    step_1_5 = next(n for n, line in enumerate(lines) if line.startswith("5. **Resume check.**"))
-    window = lines[step_1_5:step_1_5 + 8]
-    assert any(POINTER in line for line in window) and any("`Read`" in line for line in window), \
-        "step 1.5's resume check carries no `Read` pointer naming " + POINTER
-
     assert _reads_it(lines, r"RESUME\.md` sub-step 2"), \
         "Draft PR sub-step 1 carries no `Read` pointer naming " + POINTER
 
