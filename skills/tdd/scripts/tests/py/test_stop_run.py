@@ -624,3 +624,17 @@ def test_1158_stop_run_sh_typed_from_a_linked_worktree_outside_the_primary_clone
     code, out, err = run_cli(stop_run, ["7"], cwd=outside)
 
     assert (code, err, stop_text(primary_run)) == (0, "", "at-ledger\n")
+
+
+def test_a_symlink_beside_no_scripts_still_finds_the_real_scripts_directory(tmp_path, monkeypatch, stop_run):
+    import importlib.util
+    real = Path(stop_run.__file__).resolve()
+    farm = tmp_path.resolve() / "farm" / "veri"
+    farm.mkdir(parents=True)
+    os.symlink(real, farm / "stop_run.py")
+    spec = importlib.util.spec_from_file_location("symlinked_stop_run", farm / "stop_run.py")
+    loaded = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(loaded)
+    monkeypatch.chdir(real.parent.parent)
+
+    assert loaded.inside_own_scripts() is True
