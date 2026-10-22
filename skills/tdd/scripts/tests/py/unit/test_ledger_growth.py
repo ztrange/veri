@@ -65,3 +65,18 @@ def test_2130_an_added_step_line_with_its_add_ledger_step_record_exits_0_silentl
     (tmp_path / "events.jsonl").write_text(
         '{"event": "step-added", "actor": "add-ledger-step", "step": "' + line + '"}\n')
     assert run_cli(ledger_growth, [str(plan), str(ledger)]) == (0, "", "")
+
+
+def test_2130_an_unmarked_repair_step_line_is_accepted_with_its_add_ledger_step_record_and_refused_without(
+        tmp_path, run_cli, ledger_growth):
+    plan = tmp_path / "plan.md"
+    ledger = tmp_path / "issue-42.md"
+    plan.write_text("# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n")
+    line = "- [ ] repair the suite ⟦suite-repair⟧ ⟦criterion 1⟧"
+    ledger.write_text(
+        "# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧ ⟂ refactor pending\n" + line + "\n")
+    missing = run_cli(ledger_growth, [str(plan), str(ledger)])
+    (tmp_path / "events.jsonl").write_text(
+        '{"event": "step-added", "actor": "add-ledger-step", "step": "' + line + '"}\n')
+    recorded = run_cli(ledger_growth, [str(plan), str(ledger)])
+    assert (missing[0], "repair the suite" in missing[2], recorded) == (1, True, (0, "", ""))
