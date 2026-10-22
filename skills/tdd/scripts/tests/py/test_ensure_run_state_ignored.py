@@ -416,3 +416,17 @@ def test_1158_a_shim_that_drops_its_root_argument_and_runs_from_its_own_director
         assert ignored(repo, ".tdd/develop-red.log") == 0
     else:
         assert not (repo / ".gitignore").exists()
+
+
+def test_a_symlink_beside_no_scripts_still_finds_the_real_scripts_directory(tmp_path):
+    import importlib.util
+    import os
+    farm = tmp_path.resolve() / "farm" / "veri"
+    farm.mkdir(parents=True)
+    os.symlink(SCRIPTS / "veri" / "ensure_run_state_ignored.py", farm / "ensure_run_state_ignored.py")
+    spec = importlib.util.spec_from_file_location("symlinked_ensure_run_state_ignored",
+                                                  farm / "ensure_run_state_ignored.py")
+    loaded = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(loaded)
+
+    assert loaded.inside_own_scripts(str(SCRIPTS)) is True
