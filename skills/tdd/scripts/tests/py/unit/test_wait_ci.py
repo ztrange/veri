@@ -939,6 +939,20 @@ def test_main_names_a_conflicting_pr_at_its_first_read_when_its_head_has_only_sk
     assert (answer, len(reads)) == ((2, "", conflict), 1)
 
 
+def test_main_ends_its_slice_with_3_when_mergeability_is_unknown_and_its_head_has_only_skipped_check_runs_issue_2141(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([[check_run("gates", FULL_SHA, "completed", "skipped")]], [], "pending")
+    bodies[PULL] = json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": None,
+                               "head": {"sha": FULL_SHA}})
+    served(fake_processes, bodies)
+
+    answer = run_cli(wait_ci, [PR, "540", "600", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert answer == (3, "", "")
+
+
 def test_main_refuses_a_missing_pr_url_or_a_bad_number_and_records_the_deadline_in_its_own_working_directory_issue_775_776(
         tmp_path, wait_ci, fake_processes, run_cli):
     bad = lambda which, value: f"wait-ci.sh: {which} '{value}' is not a non-negative whole number\n"
