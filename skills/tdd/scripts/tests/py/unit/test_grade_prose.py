@@ -300,6 +300,38 @@ def test_a_pass_on_unchanged_text_after_a_reject_exits_1_names_the_reject_and_wr
     assert (code, (tmp_path / "GRADED").exists(), "REJECT" in out + err) == (1, False, True), (code, out, err)
 
 
+def test_a_pass_after_a_reject_and_a_change_of_the_text_exits_0_and_signs_the_new_text_2121(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / ".tdd").mkdir()
+    replies = iter(['{"type":"result","subtype":"success","is_error":false,"result":'
+                    '"BEGIN GRADES\\nA1: FAIL - not stated\\nVERDICT: REJECT\\nEND GRADES"}\n',
+                    '{"type":"result","subtype":"success","is_error":false,"result":'
+                    '"BEGIN GRADES\\nA1: PASS - blue\\nVERDICT: PASS\\nEND GRADES"}\n'])
+
+    def launch(argv, *a, **k):
+        (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
+        return subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(subprocess, "run", launch)
+    monkeypatch.chdir(tmp_path)
+    run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue, stated plainly as blue.\n")
+    new_sig = grade_prose.signature("REQUIREMENTS.md", "unit.md")
+
+    code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+
+    graded = tmp_path / "GRADED"
+    line = graded.read_text().split() if graded.exists() else []
+    assert (code, line[:2]) == (0, ["unit.md", new_sig]), (code, out, err)
+
+
 def test_owed_grades_a_unit_listed_only_in_the_requirements_md_beside_it_with_that_lists_requirements_1911(
         tmp_path, monkeypatch, run_cli, grade_prose):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
