@@ -16,7 +16,7 @@ def test_claims_ends_a_code_span_cell_at_the_pipe_after_it_2026(tmp_path):
     claim = "A cost is read from a report's `| total |` row."
     path = tmp_path / "REQUIREMENTS.md"
     path.write_text("## operator/PRINCIPLES.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-                    f"| P7 | {claim} | because of the why |\n")
+                    "| P7 | A cost is read from a report's `\\| total \\|` row. | because of the why |\n")
     assert requirements.claims(str(path), "operator/PRINCIPLES.md") == f"P7\t{claim}\n"
 
 
