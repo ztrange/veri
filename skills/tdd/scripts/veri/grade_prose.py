@@ -10,6 +10,7 @@ import uuid
 
 import event
 import requirements
+import tunables
 from extract_result import extract
 from leaf_log import result_records
 from run_verdict import SCRIPTS
@@ -135,7 +136,7 @@ def main(argv):
     env.pop("VERI_MODEL_GRADER", None)
     env["VERI_MODEL"] = model
     env["VERI_LEAF_TOOLS"] = ""
-    retries = int(os.environ.get("VERI_NO_VERDICT_RETRIES") or "1")
+    retries = int(tunables.read("VERI_NO_VERDICT_RETRIES") or "1")
     try:
         for _ in range(retries + 1):
             ran = subprocess.run([os.path.join(SCRIPTS, "supervise.sh"), "grade-prose",
