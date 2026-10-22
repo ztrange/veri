@@ -188,6 +188,30 @@ def test_main_exits_2_with_one_stderr_line_naming_the_failed_git_command_and_run
 
 
 @pytest.mark.process("git")
+def test_main_says_the_appends_were_saved_naming_the_kept_file_and_the_stray_paths_when_git_reset_fails_after_capture_2133(
+        tmp_path, run_cli):
+    resume_clean = importlib.import_module("veri.resume_clean")
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".tdd" / "issue-7.md").write_text("- [ ] one\n")
+    git(repo, "add", "-f", ".")
+    git(repo, "commit", "-q", "-m", "base")
+    with open(repo / ".tdd" / "issue-7.md", "a") as f:
+        f.write("appended line\n")
+    (repo / "stray.txt").write_text("stray\n")
+    (repo / ".git" / "index.lock").write_text("")
+
+    code, out, err = run_cli(resume_clean, [], cwd=repo)
+
+    kept = repo / git(repo, "rev-parse", "--git-path", "kept-tdd-appends.diff").strip()
+    assert code == 2
+    assert kept.is_file() and "+appended line" in kept.read_text()
+    assert len(err.splitlines()) == 1 and "git reset --hard HEAD" in err
+    assert "saved" in err and str(kept.resolve()) in err and "stray.txt" in err
+
+
+@pytest.mark.process("git")
 def test_main_keeps_captured_tdd_appends_when_git_clean_fails_on_an_untracked_path_deeper_than_path_max_and_exits_2_naming_it_1967(
         tmp_path, run_cli):
     resume_clean = importlib.import_module("veri.resume_clean")
