@@ -68,6 +68,30 @@ def test_the_prompt_grade_prose_renders_carries_the_poc_grader_instructions_with
     assert ("You judge only what the prose states" in prompt, 0 <= begin < verdict < end) == (True, True), prompt
 
 
+def test_the_prompt_grade_prose_renders_states_that_an_empty_unit_is_graded_fail_on_every_row_without_reading_tools_2062(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "unit.md").write_text("")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    rendered = []
+
+    def refuse(argv, *a, **k):
+        with open(argv[-1], encoding="utf-8") as f:
+            rendered.append(f.read())
+        return subprocess.CompletedProcess(argv, 2)
+
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(subprocess, "run", refuse)
+
+    run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+
+    prompt = " ".join((rendered[0] if rendered else "").split())
+    assert "empty unit is graded FAIL on every requirement row without using any reading tool" in prompt, prompt
+
+
 def test_a_fenced_hash_line_equal_to_the_units_heading_never_starts_its_section_1874(grade_prose):
     text = "# Intro\n```\n## unit.md\nfenced body\n```\ntext\n## unit.md\nreal body\n"
     assert grade_prose.section(text, "unit.md") == "## unit.md\nreal body\n"
