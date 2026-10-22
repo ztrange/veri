@@ -162,7 +162,7 @@ def test_claims_on_a_heading_whose_only_table_is_key_value_without_leading_pipes
 def test_claims_on_a_requirement_holding_an_escaped_pipe_prints_the_whole_requirement_with_the_pipe(tmp_path):
     path = tmp_path / "r.md"
     path.write_text(table("| A1 | Says a \\| b in full. | Because. |"))
-    assert run("claims", str(path), UNIT) == (0, "A1\tSays a \\| b in full.\n", "")
+    assert run("claims", str(path), UNIT) == (0, "A1\tSays a | b in full.\n", "")
 
 
 @pytest.mark.process("requirements.sh units run as a script")
