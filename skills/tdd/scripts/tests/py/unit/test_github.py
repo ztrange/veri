@@ -118,6 +118,40 @@ def test_gh_never_found_on_path_is_polled_every_15s_for_900s_then_every_900s_and
     assert err_lines and all("gh" in line for line in err_lines)
 
 
+def test_gh_never_found_on_path_follows_the_four_tool_wait_tunables_when_set_to_non_default_values_2097(monkeypatch, capsys, github):
+    now = [1000.0]
+    sleeps = []
+    monkeypatch.setattr(time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(time, "time", lambda: now[0])
+
+    def fake_sleep(seconds):
+        assert len(sleeps) < 200, "still waiting after %d sleeps" % len(sleeps)
+        sleeps.append(seconds)
+        now[0] += seconds
+
+    monkeypatch.setattr(time, "sleep", fake_sleep)
+    monkeypatch.setenv("VERI_TOOL_RETRY_SLEEP", "10")
+    monkeypatch.setenv("VERI_TOOL_FAST_WAIT", "30")
+    monkeypatch.setenv("VERI_TOOL_SLOW_SLEEP", "50")
+    monkeypatch.setenv("VERI_TOOL_WAIT", "100")
+    lookups = []
+
+    def fake_run(args, **kwargs):
+        lookups.append(list(args))
+        raise FileNotFoundError(2, "No such file or directory", "gh")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    with pytest.raises(github.NoAnswer):
+        github.gh_api("repos/{owner}/{repo}/issues/7")
+
+    assert sleeps == [10, 10, 10, 50, 50]
+    assert len(lookups) == 6
+    assert now[0] == 1130.0
+    err_lines = capsys.readouterr().err.splitlines()
+    assert err_lines and all("gh" in line for line in err_lines)
+
+
 def test_gh_rest_list_answers_each_page_back_to_back_until_the_first_bare_empty_page(monkeypatch, github):
     path = "repos/{owner}/{repo}/pulls"
     calls = fake_gh(monkeypatch, {
