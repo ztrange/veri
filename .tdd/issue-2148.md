@@ -1,0 +1,3 @@
+# Plan for #2148 — pytest_leg.py leaves PYTEST_LEG_SERIAL_SEEN set after an in-process leg, leaking a deleted temp dir to later sessions
+
+- [ ] After an in-process leg (pytest_leg.main driven through run_cli, pytest.main faked) returns or raises, PYTEST_LEG_SERIAL_SEEN in os.environ is what it was before the leg started: a leg started with the variable unset leaves it unset, and a leg started with it set to a prior value leaves that value restored; pinned by small in-process cases in skills/tdd/scripts/tests/py/test_pytest_leg.py, each checking os.environ after the leg ⟦criterion 1⟧
