@@ -108,9 +108,10 @@ def sha_state(repo, sha):
         return "red", ",".join(failed)
     if not check_runs and not states:
         return "none", ""
-    if not states and all(o == "skipped" for o in outcomes):
+    only_skipped = all(o == "skipped" for o in outcomes)
+    if only_skipped and not states:
         return "skipped", ""
-    if None in outcomes or all(o == "skipped" for o in outcomes) or "pending" in states:
+    if None in outcomes or only_skipped or "pending" in states:
         return "pending", ""
     return "green", ""
 
