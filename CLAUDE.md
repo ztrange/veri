@@ -149,8 +149,9 @@ and `curl` always refuse. Drive a ported script's CLI in-process with the
 
 **A script ported to Python follows one convention; `status.sh` is the worked example**
 (#634): its logic is a module of `skills/tdd/scripts/veri/`, and its `.sh` entry point a
-`/bin/sh` shim that `exec`s `python3` on it, holding no Python source (no heredoc, no
-`python3 -c`). Its tests live in `tests/py/unit/test_<module>.py` (`tests/py/test_<module>.py`
+`/bin/sh` shim that `exec`s `python3` on it — `$VERI_VENV/bin/python3` (default
+`~/.veri-tools/venv/bin/python3`) when executable, else the `python3` on PATH — holding no Python
+source (no heredoc, no `python3 -c`). Its tests live in `tests/py/unit/test_<module>.py` (`tests/py/test_<module>.py`
 when the guard names it), faking only process boundaries; its entry-point contract cases sit in
 `tests/py/test_<module>_process.py`.
 
