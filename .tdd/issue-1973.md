@@ -1,6 +1,6 @@
 # Plan for #1973 — reorder-ledger-steps and supervise read steps as ledger records, and the ledger path is spelled once
 
-- [ ] `reorder-ledger-steps.sh` refuses to move a ticked step written `  - [X] …` (indented, capital X), exiting 1 as it does for `- [x] …`, and refuses to move another step relative to it; pinned by a case in `tests/py/unit/test_reorder_ledger_steps.py` ⟦criterion 1⟧
+- [x] `reorder-ledger-steps.sh` refuses to move a ticked step written `  - [X] …` (indented, capital X), exiting 1 as it does for `- [x] …`, and refuses to move another step relative to it; pinned by a case in `tests/py/unit/test_reorder_ledger_steps.py` ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] `reorder-ledger-steps.sh` matches its step and anchor substrings only in step lines (the lines `ledger-steps.sh` reads as steps), never in a heading or a prose line: a substring found once in a step and once in a heading or prose line moves that step; pinned by a case in `tests/py/unit/test_reorder_ledger_steps.py` ⟦criterion 2⟧
 - [ ] `supervise.sh`'s ci-repair check numbers steps as `ledger-steps.sh` does: given a ledger holding a non-step `- [-]` line before the steps, step number `n` names the same step text in both, so a `⟦ci-repair⟧` step `n` is recognised by its `ledger-steps.sh` number; pinned by a case in `tests/py/test_supervise.py` ⟦criterion 3⟧
 - [ ] `ledger.py` exposes `ledger_path(run_dir, issue)`, the path of issue `n`'s ledger `.tdd/issue-<n>.md` under the run directory `run_dir`; pinned by a case in `tests/py/unit/test_ledger.py` ⟦criterion 4⟧
