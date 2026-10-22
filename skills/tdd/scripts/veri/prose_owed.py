@@ -46,7 +46,7 @@ def waive(ledger, owed):
     steps = [l for l in ledger.splitlines() if l.startswith("- [ ]") and "⟦skill-edit⟧" in l]
     still, waived = [], []
     for unit in owed:
-        step = next((s for s in steps if "`" + unit + "`" in s), None)
+        step = next((s for s in steps if unit in s), None)
         if step is None:
             still.append(unit)
         else:

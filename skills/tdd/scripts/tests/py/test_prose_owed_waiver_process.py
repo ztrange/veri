@@ -44,3 +44,20 @@ def test_2081_a_waived_unit_is_logged_as_a_prose_owed_waived_event_naming_the_st
     waived = [(e.get("unit"), "regrade `skills/demo/SKILL.md`" in e.get("step", "")) for e in events
               if e.get("event") == "prose-owed-waived"]
     assert waived == [("skills/demo/SKILL.md", True)]
+
+
+@pytest.mark.process("git")
+def test_2119_a_unit_a_pending_skill_edit_step_names_bare_exits_0_and_prints_nothing(tmp_path):
+    subprocess.run(["git", "init", "-q", "-b", "tdd/2119-the-stale-unit-waiver-misses-a-skill-edit"], cwd=tmp_path, check=True)
+    (tmp_path / "skills" / "demo").mkdir(parents=True)
+    (tmp_path / "skills" / "demo" / "SKILL.md").write_text("The widget is blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## skills/demo/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-2119.md").write_text(
+        "- [ ] ⟦added⟧ ⟦skill-edit⟧ skills/demo/SKILL.md maps each grade\n")
+
+    ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
+                         capture_output=True, text=True)
+
+    assert (ran.returncode, ran.stdout) == (0, ""), ran.stderr
