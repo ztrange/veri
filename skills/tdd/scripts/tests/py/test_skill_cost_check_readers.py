@@ -6,6 +6,8 @@ import re
 import pytest
 
 TESTS_PY = pathlib.Path(__file__).resolve().parent
+SKILL_MD = TESTS_PY.parents[2] / "SKILL.md"
+HEADING = "#### The step's cost check"
 
 MARKERS = (
     "The step's cost check", "cost check", "develop-over-budget", "step-over-budget",
@@ -23,7 +25,28 @@ ALLOWED = {
 }
 
 
-def _readers(path):
+def _flat(text):
+    return " ".join(text.split())
+
+
+def _subsection_and_rest():
+    text = SKILL_MD.read_text(encoding="utf-8")
+    start = text.index(HEADING)
+    following = re.search(r"^#{1,4} ", text[start + len(HEADING):], re.M)
+    stop = start + len(HEADING) + following.start() if following else len(text)
+    return _flat(text[start:stop]), _flat(text[:start] + "\n" + text[stop:])
+
+
+def _only_in_subsection(literal, subsection, rest):
+    """A phrase a case could only have copied from the cost-check subsection: three or more words no
+    other part of SKILL.md carries (#2084's review: a fixed marker list missed `at most once per step`).
+    A single word such as `instead-of` is script vocabulary, and a two-word label such as `neither
+    answer` reads as a case's own message, so neither counts."""
+    flat = _flat(literal)
+    return len(flat.split(" ")) >= 3 and flat in subsection and flat not in rest
+
+
+def _readers(path, subsection, rest):
     text = path.read_text(encoding="utf-8")
     if "SKILL" not in text:
         return []
@@ -32,14 +55,17 @@ def _readers(path):
         n for n in tree.body
         if isinstance(n, (ast.FunctionDef, ast.Assign))
     ]
-    segments = {}
+    segments, literals = {}, {}
     for node in own:
+        strings = [c.value for c in ast.walk(node) if isinstance(c, ast.Constant) and isinstance(c.value, str)]
         if isinstance(node, ast.FunctionDef):
             segments[node.name] = ast.get_source_segment(text, node)
+            literals[node.name] = strings
         else:
             for target in node.targets:
                 if isinstance(target, ast.Name):
                     segments[target.id] = ast.get_source_segment(text, node.value)
+                    literals[target.id] = strings
     calls = {
         name: {o for o in segments if o != name and re.search(r"\b%s\b" % re.escape(o), src)}
         for name, src in segments.items()
@@ -51,18 +77,24 @@ def _readers(path):
             for other in calls[todo.pop()] - seen:
                 seen.add(other)
                 todo.append(other)
-        return "\n".join(segments[n] for n in seen)
+        return seen
+
+    def reads_the_subsection(names):
+        source = "\n".join(segments[n] for n in names)
+        return any(m in source for m in MARKERS) or any(
+            _only_in_subsection(s, subsection, rest) for n in names for s in literals[n])
 
     return sorted(
         name for name in segments
         if name.startswith("test_")
-        and any(m in reach(name) for m in MARKERS)
-        and re.search(r"\bSKILL\b|skill_lines|skill_sections", reach(name))
+        and reads_the_subsection(reach(name))
+        and re.search(r"\bSKILL\b|skill_lines|skill_sections", "\n".join(segments[n] for n in reach(name)))
     )
 
 
 @pytest.mark.tree_audit("every test file under skills/tdd/scripts/tests/py")
 def test_every_remaining_case_reading_the_cost_check_subsection_by_its_content_is_on_the_mechanical_allow_list():
+    subsection, rest = _subsection_and_rest()
     stray = []
     for path in sorted(TESTS_PY.rglob("test_*.py")):
         if path == pathlib.Path(__file__).resolve():
@@ -70,6 +102,6 @@ def test_every_remaining_case_reading_the_cost_check_subsection_by_its_content_i
         rel = str(path.relative_to(TESTS_PY))
         if rel in ALLOWED:
             continue
-        stray += [f"{rel}::{name}" for name in _readers(path) if f"{rel}::{name}" not in ALLOWED
+        stray += [f"{rel}::{name}" for name in _readers(path, subsection, rest) if f"{rel}::{name}" not in ALLOWED
                   and f"{path.name}::{name}" not in ALLOWED]
     assert stray == [], "cases read the cost-check subsection by content and are neither mechanical nor allow-listed:\n" + "\n".join(stray)
