@@ -20,9 +20,20 @@ def worker_count(requested):
         return int(requested)
     if os.environ.get("PYTEST_XDIST_WORKER"):
         return 1
-    if hasattr(os, "sched_getaffinity"):
-        return len(os.sched_getaffinity(0))
-    return os.cpu_count() or 1
+    cores = len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else os.cpu_count() or 1
+    return max(1, cores - registered_workers(tunables.read("VERI_PYTEST_LEGS")))
+
+
+def registered_workers(legs):
+    if not legs or not os.path.isdir(legs):
+        return 0
+    total = 0
+    for name in os.listdir(legs):
+        try:
+            total += int(open(os.path.join(legs, name)).read())
+        except (ValueError, OSError):
+            continue
+    return total
 
 
 def split_marks(argv):
