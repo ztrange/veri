@@ -1,0 +1,3 @@
+# Plan for #2112 — BAIL.md's no-verdict cause names only verify.sh, not the regrade and skill-edit exits that also bail it
+
+- [ ] BAIL.md's `no-verdict` entry names the script of every site in SKILL.md and SKILL-EDIT.md that bails with cause `no-verdict` (among them `verify.sh` exit 2, the Draft PR regrade's `grade-prose.sh` exit 2 and the skill-edit runner `skill-edit-step.sh`'s exit 2), and the entry still classifies the cause a **system** failure; pinned by a small unit-tier pytest case that collects every `no-verdict` bail site in SKILL.md and SKILL-EDIT.md and fails naming each site whose script BAIL.md's `no-verdict` entry does not name ⟦criterion 1⟧
