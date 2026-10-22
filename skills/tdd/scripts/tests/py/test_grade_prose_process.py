@@ -826,7 +826,7 @@ def test_a_graded_run_exits_0_and_prints_no_leaf_role_line_on_stderr_1887(tmp_pa
 @pytest.mark.process("the SKILL.md regrade block run in a git repo with a stub claude through supervise.sh")
 def test_2037_the_draft_pr_regrade_block_run_as_written_on_a_branch_that_signed_one_unit_exits_0(tmp_path):
     skill = (SCRIPTS.parents[2] / "skills" / "tdd" / "SKILL.md").read_text()
-    draft = skill[skill.index("regrade every unit the run signed"):]
+    draft = skill[skill.index("regrades every unit the run signed"):]
     block = re.search(r"```\n(.*?)```", draft, re.S).group(1).replace("<default>", "main")
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
@@ -871,7 +871,7 @@ fi
 @pytest.mark.process("the SKILL.md regrade block run in a git repo with a stub claude through supervise.sh")
 def test_2037_the_draft_pr_regrade_block_run_as_written_on_two_signed_units_with_the_first_rejected_exits_non_zero_after_grading_both(tmp_path):
     skill = (SCRIPTS.parents[2] / "skills" / "tdd" / "SKILL.md").read_text()
-    draft = skill[skill.index("regrade every unit the run signed"):]
+    draft = skill[skill.index("regrades every unit the run signed"):]
     block = re.search(r"```\n(.*?)```", draft, re.S).group(1).replace("<default>", "main")
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
@@ -923,7 +923,7 @@ esac
 def test_2089_the_draft_pr_regrade_block_run_as_written_exits_with_the_highest_code_any_units_grading_returned(
         tmp_path, answers, expected):
     skill = (SCRIPTS.parents[2] / "skills" / "tdd" / "SKILL.md").read_text()
-    draft = skill[skill.index("regrade every unit the run signed"):]
+    draft = skill[skill.index("regrades every unit the run signed"):]
     block = re.search(r"```\n(.*?)```", draft, re.S).group(1).replace("<default>", "main")
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
