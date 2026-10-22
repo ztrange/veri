@@ -80,10 +80,46 @@ def _added_cases(name):
     with open(name, encoding="utf-8", errors="replace") as handle:
         new = handle.read()
     before = dict(_cases(old))
-    return [case for case, body in _cases(new) if before.get(case) != body]
+    return [(case, body) for case, body in _cases(new) if before.get(case) != body]
+
+
+def _check_earlier(ledger, step):
+    if _refused_outside_repository():
+        return 2
+    root = _toplevel()
+    try:
+        with open(ledger, encoding="utf-8") as handle:
+            lines = handle.read().splitlines()
+    except OSError as error:
+        write(sys.stderr, "tests-frozen.sh: %s" % error)
+        return 2
+    os.chdir(root)
+    changed = []
+    for line in lines:
+        match = re.match(r"\s*- \[.\] (.*)", line)
+        if not match or match.group(1) == step:
+            continue
+        try:
+            with open(_record_path(match.group(1)), encoding="utf-8") as handle:
+                bodies = [l.rstrip("\n")[6:].split("\t") for l in handle if l.startswith("body: ")]
+        except OSError:
+            continue
+        for name, case, digest in bodies:
+            try:
+                with open(name, encoding="utf-8", errors="replace") as handle:
+                    now = dict(_cases(handle.read())).get(case)
+            except OSError:
+                now = None
+            if now is None or hashlib.sha256(now.encode()).hexdigest() != digest:
+                changed.append("%s (%s)" % (case, match.group(1)))
+    for entry in changed:
+        write(sys.stdout, entry)
+    return 1 if changed else 0
 
 
 def main(argv):
+    if argv[:1] == ["check-earlier"] and len(argv) == 4 and argv[2] == "--step" and argv[3]:
+        return _check_earlier(argv[1], argv[3])
     mode = argv[0] if argv else ""
     record = argv[1] if len(argv) > 1 else ""
     if not record:
@@ -120,7 +156,10 @@ def main(argv):
             lines = ["%s  %s\n" % (_digest(name), name) for name in files]
             lines += ["deleted  %s\n" % name for name in deleted]
             if by_step:
-                lines += ["case: %s\n" % case for name in files for case in _added_cases(name)]
+                for name in files:
+                    for case, body in _added_cases(name):
+                        lines += ["case: %s\n" % case,
+                                  "body: %s\t%s\t%s\n" % (name, case, hashlib.sha256(body.encode()).hexdigest())]
             with open(record, "w") as handle:
                 handle.writelines(lines)
         except OSError as error:
@@ -138,7 +177,7 @@ def main(argv):
         try:
             with open(record) as handle:
                 entries = [line.rstrip("\n").split("  ", 1) for line in handle
-                           if line.strip() and not line.startswith("case: ")]
+                           if line.strip() and not line.startswith(("case: ", "body: "))]
         except OSError:
             write(sys.stderr, "tests-frozen.sh: record %s is missing" % record)
             return 2
