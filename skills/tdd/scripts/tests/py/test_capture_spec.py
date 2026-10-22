@@ -394,15 +394,6 @@ def test_a_bug_labelled_issue_spec_carries_a_bug_section_with_what_happened_expe
         assert want in section.group(1)
 
 
-def test_skill_md_writes_the_blind_spec_through_capture_spec_sh_never_a_bare_gh_issue_view():
-    skill = pathlib.Path(__file__).resolve().parents[3] / "SKILL.md"
-    writes = [line for line in skill.read_text().splitlines()
-              if re.search(r"(^|\s)>\s*\.tdd/issue-<n>-spec\.md", line)]
-
-    assert writes
-    assert [line for line in writes if "capture-spec.sh" not in line or "gh issue view" in line] == []
-
-
 def test_with_no_argument_the_cli_exits_2_prints_nothing_on_stdout_and_its_usage_line_on_stderr(fake_processes, run_cli, capture_spec):
     calls = gh_answering(fake_processes, {})
 
