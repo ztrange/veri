@@ -799,3 +799,17 @@ def test_1667_row_whose_unmutated_suite_already_fails_is_unproven_with_no_missin
     assert (code, out, err) == (
         1, "\t".join([row[1], row[3], row[4], "unproven"]) + "\n",
         "already failing unmutated: old case checks/test_gate.py::test_old\n")
+
+
+@pytest.mark.process("mutation-parity.sh started for real, forwarding its pairs-table argument and the exit code of mutation_parity.py")
+def test_1983_shim_forwards_the_pairs_table_and_the_exit_code(tmp_path, monkeypatch):
+    calc_scratch(tmp_path, monkeypatch)
+    row = row_of(tmp_path, "checks/calc-suite.sh", "adds two numbers", "redundant", "adds a negative", "add-subtracts")
+    table = tmp_path / "pairs.tsv"
+    table.write_text("\t".join(row) + "\n")
+    shim = os.path.join(os.getcwd(), "skills/tdd/scripts/mutation-parity.sh")
+
+    run = subprocess.run([shim, str(table)], cwd=tmp_path, capture_output=True, text=True, stdin=subprocess.DEVNULL)
+
+    assert (run.returncode, run.stdout) == (
+        0, verdict_line(tmp_path, ("adds two numbers", "adds a negative"), "add-subtracts", "proven")), run.stderr
