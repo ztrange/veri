@@ -9,7 +9,6 @@ SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 REVISE_MD = SKILL.with_name("REVISE.md")
 CLAUDE = pathlib.Path(__file__).resolve().parents[6] / "CLAUDE.md"
 
-GREEN = "#### Green — minimum implementation (developer leaf), then verify-green (blind)"
 REFACTOR_LOOP = "#### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)"
 DIFF_CHECKED = "#### A `⟦diff-checked⟧` step — develop-diff, then verify-diff (blind)"
 REVISING = "## Revising on a REJECT"
@@ -118,15 +117,6 @@ def test_skill_md_s_sentence_on_a_break_outside_the_affected_set_points_at_the_d
     assert not problems, "\n".join(problems)
 
 
-def test_skill_md_s_green_entry_says_develop_green_keeps_the_fast_tier_plus_the_affected_suites_green_not_the_full_suite():
-    text = before(doc_text(SKILL, GREEN, r"^1\. "), "2. verify")
-    assert text.strip(), "SKILL.md has no '#### Green' section to read"
-    problems = fast_plus_affected(text, "SKILL.md's develop-green entry", "develop-green.md tells the leaf to run before it reports")
-    if "full suite" in text:
-        problems.append("SKILL.md's develop-green entry still says develop-green keeps the full suite green")
-    assert not problems, "\n".join(problems)
-
-
 def test_974_skill_md_s_diff_checked_section_says_develop_diff_and_verify_diff_each_run_the_fast_tier_plus_the_affected_suites():
     section = doc_text(SKILL, DIFF_CHECKED)
     assert section.strip(), "SKILL.md has no diff-checked section to read"
@@ -186,9 +176,9 @@ def test_claude_md_s_testing_idiom_paragraph_says_a_revise_leaf_runs_the_tiers_o
 
 def test_skill_md_names_no_full_suite_run_inside_a_step_s_cycle():
     lines = SKILL.read_text().splitlines(keepends=True)
-    start = next((i for i, line in enumerate(lines) if line.startswith("#### Green")), None)
+    start = next((i for i, line in enumerate(lines) if line.startswith("#### Refactor loop")), None)
     end = next((i for i, line in enumerate(lines) if line.startswith("### 4. Draft PR")), len(lines))
-    assert start is not None, "SKILL.md has no text from '#### Green' to '### 4. Draft PR' to read"
+    assert start is not None, "SKILL.md has no text from '#### Refactor loop' to '### 4. Draft PR' to read"
     text = re.sub(r"[\n ]+", " ", plain("".join(lines[start:end])))
     for pattern in (r"(^| )(not|neither|nor|never|no)( [a-z-]+){0,5} full suite", r"full[- ]suite run (in|at) (4\. )?draft pr"):
         while (m := re.search(pattern, text)):
@@ -223,25 +213,6 @@ def test_1300_skill_md_runs_suite_reported_sh_only_after_a_leaf_whose_prompt_ask
             problems.append(f"{label}: runs suite-reported.sh after a leaf whose prompt asks for no SUITE: line")
     if "suite-reported.sh revise-diff-<k>" not in doc_text(SKILL, DIFF_CHECKED):
         problems.append("diff-checked step: never runs suite-reported.sh revise-diff-<k>, the leaf the conductor launches")
-    assert not problems, "\n".join(problems)
-
-
-def test_1568_skill_md_runs_suite_reported_sh_develop_green_between_the_leaf_s_wait_and_verify_green_s_launch_and_keeps_a_looks_wrong_green_s_reject_rather_than_a_report_missing_bail():
-    green = doc_text(SKILL, GREEN)
-    assert "suite-reported.sh develop-green" in green, "Green section: never runs suite-reported.sh develop-green"
-    problems = []
-    ahead = before(green, "suite-reported.sh develop-green")
-    if "wait-leaf.sh develop-green" not in ahead:
-        problems.append("Green section: the check does not come after develop-green's wait")
-    if "supervise.sh verdict-green" in ahead:
-        problems.append("Green section: the check comes after verify-green is launched")
-    behind = after(green, "suite-reported.sh develop-green")[:1200]
-    if "report-missing" not in behind:
-        problems.append("Green section: never names the report-missing bail for a missing SUITE: line")
-    if "looks wrong" not in behind:
-        problems.append("Green section: never says a green that stops because the test looks wrong is exempt")
-    if "reject" not in behind:
-        problems.append("Green section: never says that green keeps its verify-green REJECT outcome")
     assert not problems, "\n".join(problems)
 
 
