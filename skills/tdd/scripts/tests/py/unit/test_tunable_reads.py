@@ -75,8 +75,12 @@ def direct_reads(path):
 
     def passed_as_an_argument(node):
         call = parents.get(node)
-        return (isinstance(call, ast.Call) and node in call.args
-                and not (isinstance(call.func, ast.Name) and call.func.id == "dict"))
+        if not (isinstance(call, ast.Call) and node in call.args
+                and not (isinstance(call.func, ast.Name) and call.func.id == "dict")):
+            return False
+        local = [fn for fn in ast.walk(tree) if isinstance(fn, ast.FunctionDef)
+                 and isinstance(call.func, ast.Name) and fn.name == call.func.id]
+        return any("VERI_" in "\n".join(lines[fn.lineno - 1:fn.end_lineno]) for fn in local)
 
     imported = {alias.asname or alias.name for node in ast.walk(tree)
                 if isinstance(node, ast.ImportFrom) and node.module == "os"
