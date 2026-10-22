@@ -228,6 +228,28 @@ def test_2100_a_registry_entry_whose_pid_is_alive_but_owned_by_another_user_stil
     assert "-n" not in calls[0] and not any(a.startswith("-n") for a in calls[0])
 
 
+def test_2100_a_set_worker_count_is_used_as_given_even_beside_a_live_16_worker_entry_on_16_cores(pytest_leg, run_cli, monkeypatch, tmp_path):
+    import os
+
+    calls = []
+
+    def spy(args):
+        calls.append([a for a in args if not a.startswith("--basetemp=")])
+        return pytest.ExitCode.OK
+
+    monkeypatch.setattr(pytest, "main", spy)
+    monkeypatch.setattr(os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    (legs / str(os.getpid())).write_text("16\n")
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_LEGS": str(legs), "VERI_PYTEST_WORKERS": "3"}
+    assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
+    parallel = without_selection(calls[0])
+    assert parallel[parallel.index("-n") + 1] == "3" if "-n" in parallel else "-n3" in parallel or "--numprocesses=3" in parallel
+
+
 def test_2100_with_no_worker_count_a_leg_registers_its_worker_count_in_the_legs_registry_while_pytest_runs_and_removes_it_after_whatever_the_status(pytest_leg, run_cli, monkeypatch, tmp_path):
     import os
 
