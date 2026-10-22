@@ -1699,3 +1699,33 @@ def test_the_cli_reports_a_draft_whose_compact_separator_log_ends_in_a_bail_bail
     code, out, err = run_cli(parallel_conductors, ["--continue-on-bail"], cwd=work, env={"VERI_GH_JSON": str(gh)})
 
     assert (code, out.splitlines()) == (1, ["#8 — bailed https://example.test/pull/8", "stopped: nothing solvable"])
+
+
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
+def test_run_from_a_subdirectory_of_the_repo_writes_parallel_exit_under_the_repo_root_and_leaves_no_tdd_in_the_subdirectory_1895(
+        monkeypatch, tmp_path, parallel_conductors, run_cli):
+    gh, work = _gh_and_work(tmp_path)
+    sub = work / "skills"
+    sub.mkdir()
+
+    _boundaries(monkeypatch, tmp_path, lambda sup: sup.exit(0), _exit_every_live_conductor, solvable=(0, "7\n"))
+    code, out, err = run_cli(parallel_conductors, [], env={"VERI_GH_JSON": str(gh)}, cwd=sub)
+
+    assert (code, (work / ".tdd" / "parallel.exit").exists(), (sub / ".tdd").exists()) == (0, True, False)
+
+
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
+def test_run_from_a_subdirectory_of_the_repo_follows_each_conductor_log_at_the_repo_root_1895(
+        monkeypatch, tmp_path, parallel_conductors, run_cli):
+    gh, work = _gh_and_work(tmp_path)
+    sub = work / "skills"
+    sub.mkdir()
+    event = b'{"type":"assistant","message":{"role":"assistant","usage":{"input_tokens":7,"cache_creation_input_tokens":3438,"cache_read_input_tokens":50000,"output_tokens":120}}}\n'
+
+    def on_launch(sup):
+        (work / ".tdd" / ("conductor-%s.log" % sup.args[-1])).write_bytes(event)
+
+    _boundaries(monkeypatch, tmp_path, on_launch, _exit_every_live_conductor, solvable=(0, "7\n"))
+    code, out, err = run_cli(parallel_conductors, [], env={"VERI_GH_JSON": str(gh)}, cwd=sub)
+
+    assert [l for l in out.splitlines() if l.startswith("context ")] == ["context 7 53438"]
