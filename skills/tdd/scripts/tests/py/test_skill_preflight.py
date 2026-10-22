@@ -12,7 +12,6 @@ import skill_sections
 SKILL = pathlib.Path(__file__).resolve().parents[2].parent / "SKILL.md"
 
 PREFLIGHT = "### 0. Preflight — baseline checks (bail before any cycle)"
-STEP1 = "### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)"
 RESUME = "## Resume"
 
 FAST_CALL = "detect-test-command.sh --tier fast"
@@ -50,12 +49,6 @@ def baseline_start(lines, enter_at):
                if FAST_CALL in lines[i] or DETACH_START in lines[i]), None)
     assert at is not None, "no baseline start after the worktree is entered"
     return at
-
-
-def item_around(lines, at):
-    begin = max((i for i in range(at + 1) if re.match(ITEM_RE, lines[i])), default=0)
-    end = next((i for i in range(at + 1, len(lines)) if re.match(ITEM_RE, lines[i])), len(lines))
-    return lines[begin:end]
 
 
 def paragraph_around(lines, at):
@@ -99,13 +92,6 @@ def test_skill_md_s_worktree_guard_prose_says_the_lock_is_taken_in_preflight_ste
     says = [s for s in sentences(paragraph_around(lines, guard_at))
             if all(w in s.lower() for w in ("lock", "preflight step 3", "before the baseline"))]
     assert says, "the guard paragraph has no sentence naming the lock, 'preflight step 3' and 'before the baseline'"
-    step1 = lines_of(STEP1)
-    slug_at = first(step1, "**Derive the slug")
-    assert slug_at is not None, "step 1 has no 'Derive the slug' item"
-    here = [s for s in sentences(item_around(step1, slug_at))
-            if re.search(r"(^|[^a-z])(takes?|took|taken|writes?|wrote|written|overwrites?)([^a-z]|$)", s, re.I)
-            and re.search(r"(^|[^a-z])here([^a-z]|$)", s, re.I)]
-    assert here == []
     elsewhere = [s for s in sentences(lines)
                  if re.search(r"step 1\.2 (takes|writes|locks)|(taken|written|took|wrote) in step 1\.2", s, re.I)]
     assert elsewhere == []

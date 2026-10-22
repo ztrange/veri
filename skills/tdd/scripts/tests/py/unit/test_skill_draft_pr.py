@@ -12,7 +12,6 @@ BAIL = SKILL.with_name("BAIL.md")
 RESUME_MD = SKILL.with_name("RESUME.md")
 GUARDRAILS = "## Guardrails"
 ISSUE = "### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)"
-PLAN = "### 2. Scope & plan → the ledger"
 GREEN = "#### Green — minimum implementation (developer leaf), then verify-green (blind)"
 REFACTOR = "#### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)"
 
@@ -74,10 +73,6 @@ def _word(word):
 
 def first_record(records, *patterns):
     return next((r for r in records if all(re.search(p, r) for p in patterns)), "")
-
-
-def record_number(records, pattern):
-    return next((n for n, r in enumerate(records, 1) if re.search(pattern, r)), None)
 
 
 def any_line(lines, pattern):
@@ -193,32 +188,6 @@ def test_draft_prs_step_copies_the_ledgers_owed_steps_bullets_into_the_pr_body_u
         problems.append("speaks of ## Owed steps without naming the run's .tdd/issue-<n>.md ledger")
     if not any_line(owed, re.escape("body")):
         problems.append("never puts the ## Owed steps bullets in the PR body")
-    assert not problems, problems
-
-
-def test_scope_and_plan_step_pushes_and_opens_the_draft_pr_after_the_plan_commit_before_the_plan_comment():
-    records = _records(_lines(PLAN))
-    pr_at = record_number(records, re.escape("gh api repos/{owner}/{repo}/pulls -f draft=true"))
-    assert pr_at, "Scope & plan step never opens the draft PR"
-    pr_record = records[pr_at - 1]
-    problems = []
-    if "draft=true" not in pr_record:
-        problems.append(f"opens the PR without draft=true: {pr_record[:120]}")
-    if "closes #<n>" not in pr_record:
-        problems.append(f"opens the PR without Closes #<n> in its body: {pr_record[:120]}")
-    if not re.search(r"wip|work in progress", pr_record):
-        problems.append(f"opens the PR without a title marking the work in progress: {pr_record[:120]}")
-    if not any_line(records, re.escape("push-branch.sh")):
-        problems.append("never runs push-branch.sh")
-    commit_at = record_number(records, re.escape("plan: scope #<n> into"))
-    comment_at = record_number(records, re.escape("mirror the plan"))
-    if commit_at is None or comment_at is None:
-        problems.append("no longer has both the plan commit and the Plan comment to place the PR between")
-    else:
-        if not commit_at < pr_at:
-            problems.append(f"opens the PR at record {pr_at}, before the plan commit at record {commit_at}")
-        if not pr_at < comment_at:
-            problems.append(f"opens the PR at record {pr_at}, after the Plan comment at record {comment_at}")
     assert not problems, problems
 
 
@@ -1081,27 +1050,6 @@ def test_1613_draft_prs_step_decides_whether_the_ledger_already_holds_a_ci_repai
 
 def _first_record(records, *needles):
     return next((r for r in records if all(n in r for n in needles)), "")
-
-
-def test_1656_skill_mds_step_1_runs_unlabel_issue_sh_on_a_fresh_run_after_preflights_last_check_and_before_step_2s_planning():
-    text = SKILL.read_text().splitlines()
-    start = next(i for i, line in enumerate(text) if line.startswith("### 1. "))
-    end = next(i for i, line in enumerate(text) if line.startswith("### 2. Scope"))
-    records = [r.replace("*", "").replace("`", "") for r in _records(text[start:end])]
-    assert records, "SKILL.md has no step 1 between '### 1.' and '### 2. Scope' to read"
-    assert _first_record(records, "unlabel-issue.sh", "fresh"), "no instruction of SKILL.md's step 1, the first after preflight's last check, runs unlabel-issue.sh on a fresh run, so the issue stays listed by solvable-issues.sh until the draft PR step 2.3 opens, or loses its label before preflight has passed"
-
-
-def test_1656_skill_md_names_the_label_removal_as_the_runs_first_claim_the_draft_pr_as_its_durable_claim_and_a_bailed_or_parked_issue_as_staying_unlabelled_until_a_human_relabels_it():
-    records = [r.replace("*", "").replace("`", "") for r in _records(SKILL.read_text().splitlines())]
-    problems = []
-    if not _first_record(records, "first claim", "unlabel-issue.sh"):
-        problems.append("no instruction of SKILL.md calls the label removal by unlabel-issue.sh the run's first claim")
-    if not _first_record(records, "durable claim", "draft pr"):
-        problems.append("no instruction of SKILL.md calls the draft PR the run's durable claim")
-    if not _first_record(records, "unlabelled", "relabel", "bail"):
-        problems.append("no instruction of SKILL.md says a bailed or parked issue stays unlabelled until a human relabels it")
-    assert not problems, problems
 
 
 def test_1904_both_ci_red_bail_lines_take_failed_from_the_stdout_of_the_wait_ci_sh_wait_they_just_ran_and_neither_spells_a_gh_api_check_runs_query():

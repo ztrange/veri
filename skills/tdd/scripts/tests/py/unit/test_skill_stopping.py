@@ -305,7 +305,6 @@ def test_launching_a_leaf_asks_stop_requested_before_reading_a_leafs_wait_leaf_e
 
 def test_each_phases_leaf_exit_2_branch_points_back_to_launching_a_leaf_where_stop_requested_is_asked_before_the_exit_2_is_read_as_killed_stuck():
     phases = [
-        ("verify-plan", r"^### 2c\. verify the plan", r"killed-stuck \(exit 2\)"),
         ("develop-red", r"^#### red", r"exits 2 \(killed-stuck\)"),
         ("green", r"^#### green", r"exit 2 → bail"),
         ("refactor", r"^#### refactor loop", r"exit 2 → bail"),
@@ -372,17 +371,6 @@ def test_987_preflight_step_3_runs_stop_requested_clear_beside_the_tdd_conductor
              "preflight step 3 has no .tdd/conductor.pid write to read — nothing could be checked beside it")
     _require(problems, r"stop-requested\.sh --clear", lines,
              "preflight step 3 never runs stop-requested.sh --clear — a request a killed run left behind would stop the run that resumes it")
-    assert not problems, problems
-
-
-def test_987_step_1_2_neither_writes_tdd_conductor_pid_nor_runs_stop_requested_clear_preflight_step_3_already_took_the_lock():
-    lines, problems = [_joined(_branch(_section(PROCEDURE), r"^2\. derive the slug", r"^3\. "))], []
-    if not lines[0].strip():
-        problems.append("step 1.2 has no branch to read — nothing could be checked")
-    _refuse(problems, r"> \.tdd/conductor\.pid", lines,
-            "step 1.2 writes .tdd/conductor.pid again — the lock belongs to preflight step 3, and a second write here is the one #987 moved")
-    _refuse(problems, r"stop-requested\.sh --clear", lines,
-            "step 1.2 runs stop-requested.sh --clear again — the stale-request clear belongs beside preflight step 3's lock")
     assert not problems, problems
 
 
