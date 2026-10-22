@@ -1309,7 +1309,7 @@ def test_main_after_the_resume_discard_judges_each_tick_of_two_steps_with_identi
     subprocess.run([discard], cwd=clone, check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    assert sorted(ledger.read_text().splitlines()) == ["- [ ] same step", "- [x] same step"]
+    assert ledger.read_text() == "- [ ] same step\n- [x] same step\n"
 
 
 @pytest.mark.process("git and tick-ledger.sh: a real resumed worktree whose ledger carries an uncommitted line inserted above a step ticked by a green commit on the branch, discarded by the resume's own commands")
