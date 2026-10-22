@@ -26,7 +26,7 @@ def worker_count(requested):
 
 
 def legs_dir():
-    return tunables.read("VERI_PYTEST_LEGS") or os.path.join(tempfile.gettempdir(), "veri-pytest-legs-%d" % os.getuid())
+    return tunables.read("VERI_PYTEST_LEGS") or os.path.join(os.path.expanduser("~"), ".veri-pytest-legs")
 
 
 def registered_workers(legs):
