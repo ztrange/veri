@@ -357,6 +357,8 @@ def main(argv):
         return refused
     poll = tunables.read("VERI_POLL", unless_empty="1")
     name = argv[0]
+    if top := event.toplevel():
+        os.chdir(top)
     tolerated(name, "create", ".tdd", lambda: os.makedirs(".tdd", exist_ok=True))
     log, rcfile, exitfile = f".tdd/{name}.log", f".tdd/{name}.rc", f".tdd/{name}.exit"
     role = model = ""
