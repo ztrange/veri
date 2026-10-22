@@ -146,6 +146,12 @@ def test_1980_suite_reported_passes_a_retried_develop_red_2_report_made_of_the_k
     assert (code, events) == (0, None)
 
 
+def test_1980_suite_reported_passes_a_retried_develop_structural_3_report_made_of_the_keys_of_the_exempt_skipped_format_develop_structural_declares(run_cli, tmp_path):
+    code, events = run_suite_reported(run_cli, tmp_path, "develop-structural-3", ["SKIPPED:"])
+
+    assert (code, events) == (0, None)
+
+
 def test_1568_stop_prose_guard_names_prompt_and_line_of_a_planted_stop_that_names_no_declared_format_and_passes_one_that_does_or_is_exempt(report_formats):
     planted = (
         "Do the step.\n"
