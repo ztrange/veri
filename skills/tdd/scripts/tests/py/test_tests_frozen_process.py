@@ -1215,3 +1215,23 @@ def test_check_earlier_without_except_exempts_the_cases_a_replaces_case_step_nam
     assert results == [
         (1, "test_unnamed_2125 (%s)\ntest_in_fixture_file_2125 (%s)\n" % (earlier, earlier)),
         (1, "test_named_2125 (%s)\ntest_unnamed_2125 (%s)\n" % (earlier, earlier))]
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked for its top level")
+def test_check_earlier_prints_usage_naming_check_earlier_and_exits_2_without_a_ledger_or_step_or_with_an_unreadable_ledger_2125(
+        tmp_path, run_cli, tests_frozen):
+    git(tmp_path, "init", "-q")
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("- [ ] step\n")
+
+    results = [run_cli(tests_frozen, argv, cwd=tmp_path)[::2] for argv in (
+        ["check-earlier"],
+        ["check-earlier", str(ledger)],
+        ["check-earlier", str(tmp_path / "missing.md"), "--step", "step"])]
+
+    assert [code for code, _ in results] == [2, 2, 2]
+    assert all("usage:" in err and "check-earlier" in err for _, err in results)
+    scripts = Path(__file__).resolve().parents[2]
+    header = (scripts / "tests-frozen.sh").read_text().split("\nexec ")[0]
+    assert "tests-frozen.sh check-earlier" in header
+    assert "check-earlier" in (scripts.parent / "SCRIPTS.md").read_text()

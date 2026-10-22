@@ -3,6 +3,7 @@
 #
 # usage: tests-frozen.sh record <record-file>|--step <step-text> <test-file>...
 #        tests-frozen.sh check <record-file>|--step <step-text>
+#        tests-frozen.sh check-earlier <ledger> --step <step-text> [--except <case>]...
 #        tests-frozen.sh path <step-text>
 #
 # path prints the step's record file, .tdd/tests-frozen-<k>.record, where <k> is the first 16 hex
@@ -18,5 +19,5 @@
 #
 # Exit: 0 recorded, the path printed, or every recorded file is byte-identical (nothing on stdout),
 #       1 with one path per line on stdout for each recorded file edited or deleted,
-#       2 bad arguments (an empty step text included) or an unreadable record/file.
+#       2 bad arguments (a missing ledger or --step for check-earlier, an empty step text included) or an unreadable record/file.
 exec python3 "$(dirname "$0")/veri/tests_frozen.py" "$@"

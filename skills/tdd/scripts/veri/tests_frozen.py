@@ -11,7 +11,8 @@ from ledger import carries_mark, trailing_markers
 from transform_touches_tests import TEST_FILE
 
 USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> <test-file>... | "
-         "check <record-file>|--step <step-text> | path <step-text>")
+         "check <record-file>|--step <step-text> | "
+         "check-earlier <ledger> --step <step-text> [--except <case>]... | path <step-text>")
 REPAIR_MARKS = ("suite-repair", "ci-repair", "fixture-repair")
 
 
@@ -95,7 +96,7 @@ def _check_earlier(ledger, step, exempt=()):
         with open(ledger, encoding="utf-8") as handle:
             lines = handle.read().splitlines()
     except OSError as error:
-        write(sys.stderr, "tests-frozen.sh: %s" % error)
+        write(sys.stderr, "tests-frozen.sh: %s\n%s" % (error, USAGE))
         return 2
     os.chdir(root)
     parsed = replaces_case.parse(step) if replaces_case.is_replaces_case_step(step) else None
@@ -130,6 +131,9 @@ def main(argv):
             and len(rest) % 2 == 0 and all(flag == "--except" and name for flag, name in zip(rest[::2], rest[1::2]))):
         return _check_earlier(argv[1], argv[3], rest[1::2])
     mode = argv[0] if argv else ""
+    if mode == "check-earlier":
+        write(sys.stderr, USAGE)
+        return 2
     record = argv[1] if len(argv) > 1 else ""
     if not record:
         write(sys.stderr, USAGE)
