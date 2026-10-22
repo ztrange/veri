@@ -1094,3 +1094,29 @@ def test_check_earlier_exits_1_naming_the_case_an_earlier_step_recorded_and_the_
 
     assert code == 1
     assert "test_pinned_2125" in out and earlier in out
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_check_earlier_exits_1_naming_the_case_and_its_step_when_the_case_or_its_whole_file_was_deleted_2125(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier, current = "step one adds a case", "step two adds another"
+    recorded = "def test_older_case():\n    assert True\n\n\ndef test_pinned_2125():\n    assert 1 == 2\n"
+    (tmp_path / "tests/test_suite.py").write_text(recorded)
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    argv = ["check-earlier", str(ledger), "--step", current]
+
+    (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
+    case_removed = run_cli(tests_frozen, argv, cwd=tmp_path)
+    (tmp_path / "tests/test_suite.py").unlink()
+    file_deleted = run_cli(tests_frozen, argv, cwd=tmp_path)
+
+    expected = "test_pinned_2125 (%s)\n" % earlier
+    assert [case_removed[:2], file_deleted[:2]] == [(1, expected), (1, expected)]
