@@ -78,3 +78,21 @@ def test_2119_a_unit_a_pending_skill_edit_step_names_in_backticks_still_exits_0_
                          capture_output=True, text=True)
 
     assert (ran.returncode, ran.stdout) == (0, ""), ran.stderr
+
+
+@pytest.mark.process("git")
+def test_2119_a_unit_path_only_inside_a_longer_path_on_a_skill_edit_step_does_not_waive_it(tmp_path):
+    subprocess.run(["git", "init", "-q", "-b", "tdd/2119-the-stale-unit-waiver-misses-a-skill-edit"], cwd=tmp_path, check=True)
+    (tmp_path / "skills" / "demo").mkdir(parents=True)
+    (tmp_path / "skills" / "demo" / "SKILL.md").write_text("The widget is blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## skills/demo/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-2119.md").write_text(
+        "- [ ] ⟦added⟧ ⟦skill-edit⟧ skills/demo/SKILL.md.bak maps each grade\n"
+        "- [ ] ⟦added⟧ ⟦skill-edit⟧ x/skills/demo/SKILL.md maps each grade\n")
+
+    ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
+                         capture_output=True, text=True)
+
+    assert (ran.returncode != 0, "skills/demo/SKILL.md" in ran.stdout) == (True, True), ran.stderr
