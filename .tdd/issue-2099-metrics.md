@@ -1,11 +1,11 @@
 ### 📊 Metrics — issue 2099
 
-Wall time for the issue: 3062 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 3692 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 4 of 4 planned.
-Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/2144.
+Outcome: the run bailed — ci-timeout, a system failure.
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $2.45 over 63 turns, in 1 sessions.
+Conductor own spending: $2.58 over 66 turns, in 1 sessions.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 
 #### Conductor per turn
@@ -75,6 +75,9 @@ The Conductor own spending figure is estimated: the output tokens of a session w
 | 61 | $0.03 | 141697 |
 | 62 | $0.03 | 142048 |
 | 63 | $0.03 | 142391 |
+| 64 | $0.03 | 142926 |
+| 65 | $0.03 | 143346 |
+| 66 | $0.06 | 147135 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-sonnet-5-5.
 
 #### By phase
