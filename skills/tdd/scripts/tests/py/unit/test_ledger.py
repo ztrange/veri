@@ -184,3 +184,9 @@ def test_the_four_entry_points_exit_2_and_name_the_temporary_file_when_a_failed_
         outcomes[module] = (code, bool(left) and all(name in err for name in left), "Traceback" in err)
 
     assert outcomes == {name: (2, True, False) for name in outcomes}
+
+
+def test_ledger_path_is_the_issue_ledger_under_the_run_directory():
+    ledger = importlib.import_module("veri.ledger")
+
+    assert str(ledger.ledger_path("/run/dir", "7")) == "/run/dir/.tdd/issue-7.md"

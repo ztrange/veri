@@ -18,6 +18,10 @@ PHASES_RE = re.compile(r"⟦phases: ([^⟧]*)⟧")
 TRAILING_RUN_RE = re.compile(r"((?:(?:^| )⟦[^⟦⟧]*⟧)+)(?: ⟂ [^⟦⟧⟂]*)*$")
 
 
+def ledger_path(run_dir, issue):
+    return os.path.join(run_dir, ".tdd", f"issue-{issue}.md")
+
+
 class LeftBehind(OSError):
     """A failed replace_ledger whose temp file, its filename, could not be removed."""
 
