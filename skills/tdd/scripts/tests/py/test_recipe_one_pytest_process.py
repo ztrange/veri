@@ -151,3 +151,11 @@ def test_with_no_worker_count_set_make_unit_runs_four_workers_and_make_test_one_
                              capture_output=True, text=True)
         noted = [line for line in log.read_text().splitlines() if line.startswith("workers ")]
         assert (target, ran.returncode, noted) == (target, 0, ["workers %d" % workers]), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("make unit and make test started for real over a planted tree holding no serial-marked case")
+def test_make_unit_and_make_test_over_a_tree_with_no_serial_marked_case_start_one_pytest_session_each_2092(tmp_path):
+    tree, log = planted_tree(tmp_path), tmp_path / "ran.log"
+    for target in ("unit", "test"):
+        code, ran, output = make(tree, log, target, VERI_PYTEST_WORKERS="2")
+        assert (target, code, output.count("test session starts")) == (target, 0, 1), output
