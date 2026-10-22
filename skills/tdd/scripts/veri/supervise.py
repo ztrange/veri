@@ -237,7 +237,7 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
     t0 = now()
     a0 = awake_seconds()
     prev_t, prev_a = int(t0), a0
-    leaf = subprocess.Popen(["/bin/sh", "-c", 'log=$1 rc=$2; shift 2; "$@" >"$log" 2>&1; echo $? >"$rc"',
+    leaf = subprocess.Popen(["/bin/sh", "-c", 'log=$1 rc=$2; shift 2; "$@" >"$log" 2>&1; echo $? >"$rc.tmp" && mv "$rc.tmp" "$rc"',
                              "sh", log, rcfile, *cmd], process_group=0, env=leaf_env,
                             restore_signals=False, preexec_fn=preexec)
     started.append(leaf)
