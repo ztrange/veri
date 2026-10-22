@@ -1,16 +1,15 @@
 """Cases for the tests-frozen record and check in skills/tdd/SKILL.md, read as text.
 
 Contract under test:
-  SKILL.md's Red section runs `tests-frozen.sh record` once verify-red PASSes; it runs
-  `tests-frozen.sh check` before every verify-green — in Green between the develop-green wait
-  and the verify-green launch, and in *Revising on a REJECT* between the revise-green wait and
-  its re-verify; on check exit 1 it writes a reason naming the file to
-  .tdd/verify-green.reason, treats the attempt as a REJECT that spends REVISE_BUDGET and
-  launches no verifier; on exit 0 the verifier is launched as before; on exit 2 it bails. Every
-  record and check names the step's record by `tests-frozen.sh path` over the step text, and a
-  ⟦replaces-case⟧ step records at its verify-pin PASS, while a ⟦suite-repair⟧ or ⟦ci-repair⟧ step
-  is never frozen. Only sentences naming tests-frozen count, so text the sections already held
-  cannot satisfy a case; the outcome sentences are pinned verbatim.
+  *Revising on a REJECT* (REVISE.md) runs `tests-frozen.sh check` between the revise-green wait
+  and its re-verify; on check exit 1 it rejects the attempt, on exit 0 it launches the verifier
+  as before, and on exit 2 it bails as a system failure, never a REJECT (that sentence pinned
+  verbatim). It runs `tests-frozen.sh record` once a revised red's re-verify passes. Every
+  record and check SKILL.md runs outside Green's own check names the step's record by
+  `tests-frozen.sh path` over the step text, and no `tests-frozen-<step>` key survives. A
+  ⟦replaces-case⟧ step records at its verify-pin PASS (PIN.md, pinned verbatim), before the
+  deletion green. REVISE.md routes a revise-green `WRONG_TEST:` report through
+  `wrong-test-route.sh` and a `MISSING_TEST:` answer to red-missing.
 
 Every case's subject is source text: it reads SKILL.md, REVISE.md and PIN.md and starts no process.
 """
