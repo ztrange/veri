@@ -117,6 +117,11 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `next-unchecked.sh` hands the loop and the tick wrappers match on. **Exit 0** when it
   printed one; **exit 3** with empty stdout when no step carries the mark — every green step
   has been tidied, so a resume has no refactor loop to re-enter.
+- `$S/ledger-growth.sh <plan-ledger-file> <ledger-file>` — called by the conductor at each ledger
+  commit: compares the ledger with the plan commit's. **Exit 0** when every step line the plan did
+  not hold carries `⟦added⟧` (ticks, ` ⟂ refactor pending` and phase marks on planned lines are
+  not growth); **exit 1**, naming the line on stderr, when one lacks it; **exit 2** on a missing
+  argument or unreadable file.
 - `$S/clear-refactor-pending.sh .tdd/issue-<n>.md "<substring>"` — the counterpart of
   `tick-ledger.sh --refactor-pending`: **strip the ` ⟂ refactor pending` mark** from the first
   ticked step matching the substring, in place, once that step's refactor has been verified.
