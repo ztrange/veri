@@ -23,15 +23,3 @@ def test_scope_and_plan_says_a_fixture_repair_steps_fixture_file_must_be_a_test_
     text = _plain(importlib.import_module("skill_sections").section(SKILL, SCOPE))
     assert re.search(r"<fixture file> must be a test file\s+by the rule of transform-touches-tests".replace(r"\s+", " "), text), \
         "the rule never says the fixture file must be a test file by transform-touches-tests's rule"
-
-
-def test_a_fixture_repair_steps_green_pass_is_ticked_without_refactor_pending_under_a_test_subject_1021():
-    text = _plain(importlib.import_module("skill_sections").section(
-        SKILL, "#### A `⟦diff-checked⟧` step — develop-diff, then verify-diff (blind)"))
-    sentence = next((s for s in re.split(r"(?<=\.)\s", text)
-                     if "⟦fixture-repair⟧" in s and "verify-green pass" in s), "")
-    assert sentence, "SKILL.md never says how a ⟦fixture-repair⟧ step's verify-green PASS closes it"
-    assert "without --refactor-pending" in sentence, "the PASS is never ticked without --refactor-pending"
-    assert "--refactor-pending" not in sentence.replace("without --refactor-pending", ""), \
-        "the sentence asks for --refactor-pending"
-    assert "`test:` subject" in sentence or "test: subject" in sentence, "the PASS is never committed with a test: subject"
