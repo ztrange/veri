@@ -640,6 +640,16 @@ three times over branches its ledger pinned on later lines.
    `git add .tdd/issue-<n>.md && git commit -m "plan: scope #<n> into <k> steps (#<n>)"`.
    (The ledger is committed — step 1.4 guaranteed `.gitignore` tracks `.tdd/issue-*.md`
    while ignoring leaf logs.)
+
+   **Every ledger commit after this plan commit is checked for growth.** Before it is made, run
+   `$S/ledger-growth.sh <plan-ledger-file> .tdd/issue-<n>.md`, the plan-ledger being the ledger as this
+   commit holds it (`git show <plan-sha>:.tdd/issue-<n>.md` into a temp file). Each step line the plan
+   commit did not hold must carry `⟦added⟧` and have a matching `step-added` record written by
+   `add-ledger-step.sh` itself, never one the conductor wrote by hand with `event.sh`; and the
+   `⟦added⟧` lines never exceed `VERI_STEP_GROWTH`. A line that fails either check — exit 1, the
+   line named on stderr — is **a bail with cause `step-added-off-route`** (a process failure; see
+   `<base directory>/BAIL.md`): the plan grew by a route other than `add-ledger-step.sh`, and no
+   commit is made over it.
 3. **Push the branch and open the draft PR** — the run's claim, made as the first act after
    the plan commit, from inside the worktree:
    ```
