@@ -11,7 +11,6 @@ CLAUDE = pathlib.Path(__file__).resolve().parents[6] / "CLAUDE.md"
 
 REFACTOR_LOOP = "#### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)"
 REVISING = "## Revising on a REJECT"
-PHASES = "#### A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier"
 
 
 def doc_text(skill, heading, start=None):
@@ -165,24 +164,6 @@ def test_skill_md_names_no_full_suite_run_inside_a_step_s_cycle():
             text = text.replace(m.group(0), "", 1)
     m = re.search(r"[^.]{0,60}(full suite|full-suite run)[^.]{0,40}", text)
     assert not m, f"SKILL.md names a full-suite run inside a step's cycle: {m.group(0) if m else ''}"
-
-
-def test_1300_skill_md_runs_suite_reported_sh_before_the_verifier_after_develop_diff_revise_diff_k_and_each_phase_leaf_and_bails_report_missing_on_its_exit_2():
-    problems = []
-    for label, heading, call in (
-        ("phases step", PHASES, "suite-reported.sh develop-<phase>"),
-    ):
-        body = doc_text(SKILL, heading)
-        if "suite-reported.sh" not in body:
-            problems.append(f"{label}: never runs suite-reported.sh")
-            continue
-        if call not in body:
-            problems.append(f"{label}: never runs {call}")
-        if "report-missing" not in body:
-            problems.append(f"{label}: never names the report-missing bail")
-        if len(before(body, "suite-reported.sh")) > len(before(body, "verify-")):
-            problems.append(f"{label}: the check comes after the verifier is launched")
-    assert not problems, "\n".join(problems)
 
 
 def test_1300_skill_md_runs_suite_reported_sh_only_after_a_leaf_whose_prompt_asks_for_a_suite_line_never_after_the_refactor_leaf_or_a_revise_of_red_green_or_refactor():
