@@ -1,0 +1,2 @@
+### A unit whose only table is indented four spaces (an indented code block in GFM, outside any fence) reads as having no table: requirements.py's claims refuses it with "unit has no table", while a table indented up to three spaces is still read as the unit's list (small unit-tier case in tests/py/unit/test_requirements.py, run in-process) ⟦criterion 1⟧
+- test-only | the try/except/else in the new test could use pytest.raises(ValueError, match="unit has no table")
