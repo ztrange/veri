@@ -1,8 +1,8 @@
 ### 📊 Metrics — issue 1985
 
-Wall time for the issue: 4447 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1245 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 11 of 11 planned.
+Steps done: 13 of 13 planned.
 Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/2047.
 Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-sonnet-5-5.
@@ -12,18 +12,18 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 14 | 12 | 1 | 2 | 1271 | 0 | 30646 | 0.09 |
-| red | 10 | 1 | 0 | 0 | 1959 | 263 | 65 | 128 | 30537 | 1964968 | 249716 | 1.13 |
-| pin | 8 | 8 | 0 | 0 | 165 | 122 | 36 | 72 | 10250 | 921323 | 125354 | 0.51 |
+| red | 13 | 2 | 0 | 0 | 2048 | 334 | 85 | 168 | 38626 | 2643487 | 331816 | 1.48 |
+| pin | 9 | 9 | 0 | 0 | 183 | 136 | 41 | 82 | 11752 | 1043061 | 159145 | 0.62 |
 | diff | 4 | 2 | 0 | 0 | 134 | 79 | 23 | 40 | 5890 | 556094 | 55947 | 0.25 |
-| green | 2 | 1 | 0 | 0 | 427 | 26 | 12 | 22 | 2713 | 294074 | 63528 | 0.22 |
-| refactor | 2 | 1 | 0 | 0 | 35 | 17 | 6 | 12 | 1052 | 132087 | 42292 | 0.13 |
+| green | 4 | 2 | 0 | 0 | 484 | 48 | 20 | 38 | 4563 | 502648 | 88866 | 0.32 |
+| refactor | 4 | 2 | 0 | 0 | 59 | 27 | 12 | 22 | 1928 | 251391 | 68205 | 0.21 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 14 | 14 | 0 | 0 | 650 | 183 | 54 | 106 | 16461 | 1266810 | 264946 | 0.95 |
-| developer | claude-sonnet-5-5 | 13 | 0 | 0 | 0 | 2084 | 336 | 89 | 170 | 35252 | 2601736 | 302537 | 1.37 |
+| verifier | claude-sonnet-5-5 | 18 | 18 | 0 | 0 | 732 | 224 | 69 | 136 | 20484 | 1637927 | 336606 | 1.21 |
+| developer | claude-sonnet-5-5 | 17 | 0 | 0 | 0 | 2190 | 412 | 113 | 216 | 43546 | 3358754 | 398019 | 1.77 |
 
 #### Rework and waste, by phase
 
@@ -51,6 +51,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | A reasonless starts-pytest or starts-git exemption, and a whole-file starts-git exemption carrying the RUNS_GIT_WITH_NO_CWD reason, fail the run naming the entry, while a case-level RUNS_GIT_WITH_NO_CWD entry and a whole-file entry with another reason pass — pinned by an unmarked small case in skills/tdd/scripts/tests/py/unit/test_conftest_guards.py driven through pytester.runpytest_inprocess with conftest as a plugin, starting no real process; no production change ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 35 | 11 | 22 | 4885 | 332735 | 35435 | 0.17 | unknown | unknown | unknown | unknown |  |  | pin |
 | Every child-pytest case in skills/tdd/scripts/tests/py/test_conftest.py whose behaviour an in-process case in skills/tdd/scripts/tests/py/unit/test_conftest_guards.py now pins is removed from it, so test_conftest.py starts a child pytest session only where a real child process is the subject (the environment and cwd a session starts with, a real git against a remote, the process-case sleep shim), and no production file changes ⟦diff-checked⟧ ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 34 | 14 | 24 | 3740 | 356129 | 34140 | 0.16 | 107 | n/a | n/a | n/a |  |  | full |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/test_fast_tier_guard.py — FAILED test_fast_tier_guard.py::test_the_guard_with_the_real_exemption_table_finds_no_offence_in_the_fast_tier_as_committed_and_names_a_planted_one_by_file_and_line (unit/test_conftest_guards.py:209 and :212 "runs a nested suite"; also test_1641_a_real_exemption_keyed_relative_to_tests_py_is_not_reported_stale_by_any_case_that_reads_the_real_table and test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it); and skills/tdd/scripts/tests/py/unit/test_skills_are_skills.py — FAILED test_every_directory_directly_under_skills_contains_a_skill_md: directories under skills/ with no SKILL.md: .tdd (an empty untracked skills/.tdd the run left on disk, since removed) ⟦suite-repair⟧ ⟦criterion 2⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 82 | 31 | 60 | 7970 | 807914 | 177853 | 0.61 | 604 | unknown | 0/5 | nothing-left |  |  | full |
+| Restore, in-process, the guard cases the slice dropped: the git guard surviving a faked subprocess.run (plain and dotted string), a suite path only passed to echo not tripping the guard, the system-location paths /.veri-probe-absent, /root/.profile and /proc/self/status, and the pathlib open().read() variant ⟦added⟧ ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 56 | 16 | 32 | 6123 | 553855 | 85089 | 0.33 | unknown | unknown | unknown | unknown |  |  | pin |
+| fast_tier_guard.py:91 exempts setitem and delitem only when called on monkeypatch, not on any receiver; a case each for monkeypatch.setitem, monkeypatch.delitem and a non-monkeypatch setitem that is still reported ⟦added⟧ ⟦criterion 1⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 61 | 23 | 44 | 6194 | 574280 | 82053 | 0.32 | 224 | unknown | 0/5 | nothing-left |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -59,6 +61,7 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | step | pass | refactor | stopped | verdict | revise | wall s | $ |
 | --- | ---: | ---: | --- | --- | ---: | ---: | ---: |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/test_fast_tier_guard.py — FAILED test_fast_tier_guard.py::test_the_guard_with_the_real_exemption_table_finds_no_offence_in_the_fast_tier_as_committed_and_names_a_planted_one_by_file_and_line (unit/test_conftest_guards.py:209 and :212 "runs a nested suite"; also test_1641_a_real_exemption_keyed_relative_to_tests_py_is_not_reported_stale_by_any_case_that_reads_the_real_table and test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it); and skills/tdd/scripts/tests/py/unit/test_skills_are_skills.py — FAILED test_every_directory_directly_under_skills_contains_a_skill_md: directories under skills/ with no SKILL.md: .tdd (an empty untracked skills/.tdd the run left on disk, since removed) ⟦suite-repair⟧ ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 35 | 0.13 |
+| fast_tier_guard.py:91 exempts setitem and delitem only when called on monkeypatch, not on any receiver; a case each for monkeypatch.setitem, monkeypatch.delitem and a non-monkeypatch setitem that is still reported ⟦added⟧ ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 24 | 0.09 |
 
 #### Structural pass
 
@@ -66,14 +69,14 @@ Stopped: nothing-structural
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 7 | 1 | 4 | 4 | 4 |  |  |  |  |  |
-| target | 1 | 1 | 1 | 1 | 0 | 1 | 0 | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 1 | 1 | 0 |
-| fast | 8 | 8 | 8 | 8 | 8 | 7 | 7 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 7 | 1 | 4 | 4 | 4 | 1 | 4 | 4 | 4 | 4 | 4 |  |  |
+| target | 1 | 1 | 1 | 1 | 0 | 1 | 0 | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 1 | 1 | 0 | 1 | 1 | 1 |
+| fast | 8 | 8 | 8 | 8 | 8 | 7 | 7 | 7 | 7 | 7 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 143 | 276 | 51713 | 3868546 | 567483 | 2.32 |
+| total | 182 | 352 | 64030 | 4996681 | 734625 | 2.98 |
