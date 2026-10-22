@@ -31,9 +31,13 @@ def direct_reads(path):
 
     def copy_read_by_name_later(node):
         parent = parents.get(node)
+        if isinstance(parent, ast.Attribute) and parent.attr == "copy":
+            parent = parents.get(parent)
+        elif not (isinstance(parent, ast.Call) and isinstance(parent.func, ast.Name) and parent.func.id == "dict"):
+            return False
         assign = parents.get(parent)
-        if not (isinstance(parent, ast.Call) and isinstance(parent.func, ast.Name) and parent.func.id == "dict"
-                and isinstance(assign, ast.Assign) and isinstance(assign.targets[0], ast.Name)):
+        if not (isinstance(parent, ast.Call) and isinstance(assign, ast.Assign)
+                and isinstance(assign.targets[0], ast.Name)):
             return False
         copy = assign.targets[0].id
         def discarded_pop(use):
