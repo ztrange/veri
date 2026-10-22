@@ -56,10 +56,20 @@ def main(argv):
         with tempfile.TemporaryDirectory(prefix="veri-pytest-") as base:
             count = worker_count(workers)
             parallel = ["-n", str(count)] if count >= 2 else []
-            status = pytest.main(["--basetemp=" + base] + parallel + argv)
+            rest, expressions = [], []
+            args = iter(argv)
+            for arg in args:
+                if arg == "-m":
+                    expressions.append(next(args, ""))
+                else:
+                    rest.append(arg)
+            selected = "(%s) and " % " and ".join("(%s)" % e for e in expressions) if expressions else ""
+            statuses = [pytest.main(["--basetemp=" + base] + parallel + ["-m", selected + "not serial"] + rest),
+                        pytest.main(["--basetemp=" + base, "-m", selected + "serial"] + rest)]
     finally:
         signal.signal(signal.SIGTERM, previous)
-    return 0 if status == pytest.ExitCode.OK else 1
+    passed = {pytest.ExitCode.OK, pytest.ExitCode.NO_TESTS_COLLECTED}
+    return 0 if pytest.ExitCode.OK in statuses and set(statuses) <= passed else 1
 
 
 if __name__ == "__main__":
