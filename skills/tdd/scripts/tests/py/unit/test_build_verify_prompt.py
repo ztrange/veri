@@ -2050,3 +2050,20 @@ def test_main_renders_a_plan_prompt_and_skill_md_sending_a_case_for_behaviour_th
                and "reserved for steps that leave no test behind" in text)
               for text in (prompt, skill)]
     assert (code, states) == (0, [True, True])
+
+
+def test_main_renders_a_plan_prompt_carrying_a_diff_checked_step_that_adds_a_process_case_and_the_rule_to_reject_it_1889(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"1. A process case pins behaviour that already holds.\n")
+    step = "add a process case pinning that the launcher exits 2 on a bad argument ⟦diff-checked⟦ ⟦criterion 3⟧"
+    step = step.replace("⟦diff-checked⟦", "⟦diff-checked⟧")
+    ledger = tmp_path / "plan.md"
+    ledger.write_text(f"# Plan for #1667\n\n- [ ] {step}\n", encoding="utf-8")
+
+    code = build_verify_prompt.main(["plan", str(spec), str(ledger)])
+    out, _ = capsysbinary.readouterr()
+    prompt = " ".join(out.decode("utf-8", "surrogateescape").split())
+
+    rule = re.search(r"REJECT a plan whose ⟦diff-checked⟧ step text asks for a test to be added", prompt.replace("`", ""))
+    assert (code, step in prompt, rule is not None) == (0, True, True)
