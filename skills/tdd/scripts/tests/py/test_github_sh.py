@@ -438,3 +438,24 @@ def test_gh_issue_edit_returns_2_naming_the_missing_gh_when_no_directory_on_path
 
     named = [line for line in ran.stderr.splitlines() if "gh" in line and "command not found" not in line]
     assert (ran.returncode, bool(named)) == (2, True), ran.stderr
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_gh_issue_edit_sleeps_the_retry_then_the_slow_interval_naming_gh_each_wait_and_returns_2_once_the_wait_is_spent_issue_2097(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    (bin_dir / "bash").symlink_to(shutil.which("bash"))
+    sleeps = tmp_path / "sleeps"
+    sleep = bin_dir / "sleep"
+    sleep.write_text('#!/bin/sh\necho "$*" >> "$SLEEPS"\n')
+    sleep.chmod(0o755)
+    body = tmp_path / "body"
+    body.write_text("new body")
+    env = {"PATH": str(bin_dir), "LIB": str(LIB), "BODY": str(body), "SLEEPS": str(sleeps),
+           "VERI_TOOL_RETRY_SLEEP": "2", "VERI_TOOL_FAST_WAIT": "5", "VERI_TOOL_SLOW_SLEEP": "4", "VERI_TOOL_WAIT": "13"}
+
+    ran = subprocess.run(["bash", "-c", 'source "$LIB"; gh_issue_edit 7 "$BODY"'], capture_output=True, text=True, env=env)
+
+    named = [line for line in ran.stderr.splitlines() if "gh" in line and "command not found" not in line]
+    taken = sleeps.read_text().split() if sleeps.exists() else []
+    assert (ran.returncode, taken, len(named)) == (2, ["2", "2", "2", "4", "4"], 6), ran.stderr
