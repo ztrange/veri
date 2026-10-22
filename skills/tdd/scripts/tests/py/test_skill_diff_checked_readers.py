@@ -31,8 +31,6 @@ ALLOWED = {
     "unit/test_skill_event_files.py::test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_1855":
         "no CY row: document-wide site list",
     "test_skill_leaf_env.py::test_907_the_revise_diff_prompt_line": "runs build-develop-prompt.sh revise diff from REVISE.md",
-    "unit/test_skill_criterion_finished.py": "its tick-issue-criterion.sh record is Refactor's, not this subsection's",
-    "unit/test_skill_suite_runs.py": "no CY row: document-wide; asserts an absence over the cycle",
 }
 
 
