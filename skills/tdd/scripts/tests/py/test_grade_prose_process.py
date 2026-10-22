@@ -852,4 +852,6 @@ def test_2037_the_draft_pr_regrade_block_run_as_written_on_a_branch_that_signed_
                          env={**env, "S": str(SCRIPTS), "CLAUDE_BIN": str(claude),
                               "STUB_RECORD": str(tmp_path / "record.txt")})
 
-    assert ran.returncode == 0, ran.stdout + ran.stderr
+    record = tmp_path / "record.txt"
+    graded = re.findall(r"^Unit: (\S+)$", record.read_text(), re.M) if record.exists() else []
+    assert (ran.returncode, graded) == (0, ["guide/unit.md"]), ran.stdout + ran.stderr
