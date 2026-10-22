@@ -87,7 +87,7 @@ def _added_cases(name):
     return [(case, body) for case, body in _cases(new) if before.get(case) != body]
 
 
-def _check_earlier(ledger, step):
+def _check_earlier(ledger, step, exempt=()):
     if _refused_outside_repository():
         return 2
     root = _toplevel()
@@ -114,7 +114,7 @@ def _check_earlier(ledger, step):
                     now = dict(_cases(handle.read())).get(case)
             except OSError:
                 now = None
-            if now is None or _body_digest(now) != digest:
+            if case not in exempt and (now is None or _body_digest(now) != digest):
                 changed.append("%s (%s)" % (case, match.group(1)))
     for entry in changed:
         write(sys.stdout, entry)
@@ -122,8 +122,10 @@ def _check_earlier(ledger, step):
 
 
 def main(argv):
-    if argv[:1] == ["check-earlier"] and len(argv) == 4 and argv[2] == "--step" and argv[3]:
-        return _check_earlier(argv[1], argv[3])
+    rest = argv[4:]
+    if (argv[:1] == ["check-earlier"] and len(argv) >= 4 and argv[2] == "--step" and argv[3]
+            and len(rest) % 2 == 0 and all(flag == "--except" and name for flag, name in zip(rest[::2], rest[1::2]))):
+        return _check_earlier(argv[1], argv[3], rest[1::2])
     mode = argv[0] if argv else ""
     record = argv[1] if len(argv) > 1 else ""
     if not record:
