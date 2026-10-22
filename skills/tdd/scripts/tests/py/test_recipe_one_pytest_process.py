@@ -72,6 +72,7 @@ def make(tree, log, target, **veri):
     return ran.returncode, sorted(log.read_text().splitlines()), ran.stdout + ran.stderr
 
 
+@pytest.mark.timeout(120)
 @pytest.mark.process("make test and make unit started for real over a planted tree holding a small case, a medium case and a bash suite each")
 def test_make_test_and_make_unit_each_run_one_pytest_and_no_bash_suite_unit_the_small_cases_and_test_the_small_and_medium_cases(tmp_path):
     tree, log = planted_tree(tmp_path), tmp_path / "ran.log"
@@ -81,6 +82,7 @@ def test_make_test_and_make_unit_each_run_one_pytest_and_no_bash_suite_unit_the_
     assert (full[0], full[1]) == (0, ["pytest medium", "pytest small", "pytest small"]), full[2]
 
 
+@pytest.mark.timeout(120)
 @pytest.mark.process("make unit and make test started for real over a planted tree whose small case fails")
 def test_a_failing_case_fails_make_unit_and_make_test_with_no_bash_suite_run(tmp_path):
     failing = PLANTED_CASES.split("@pytest.mark.process")[0].replace('note("pytest small")', 'note("pytest small")\n    assert False')
@@ -91,6 +93,7 @@ def test_a_failing_case_fails_make_unit_and_make_test_with_no_bash_suite_run(tmp
     assert (full[0], full[1]) == (2, ["pytest medium", "pytest small", "pytest small"]), full[2]
 
 
+@pytest.mark.timeout(60)
 @pytest.mark.process("make unit started for real over a planted tree whose only unit case is medium, so its selection collects nothing")
 def test_a_selection_that_collects_nothing_fails_make_unit_with_no_bash_suite_run(tmp_path):
     medium_only = PLANTED_CASES.replace("def test_small", "def _not_a_case")
@@ -99,6 +102,7 @@ def test_a_selection_that_collects_nothing_fails_make_unit_with_no_bash_suite_ru
     assert (code, ran) == (2, []), output
 
 
+@pytest.mark.timeout(120)
 @pytest.mark.process("make unit and make test started for real under a bash older than 5")
 def test_the_bash_version_refusal_precedes_pytest_in_make_unit_and_make_test(tmp_path):
     tree, log = planted_tree(tmp_path), tmp_path / "ran.log"
@@ -107,6 +111,7 @@ def test_the_bash_version_refusal_precedes_pytest_in_make_unit_and_make_test(tmp
         assert (code, ran, "veri needs bash 5 or newer" in output) == (2, [], True), output
 
 
+@pytest.mark.timeout(60)
 @pytest.mark.process("make test started for real over a planted tree, naming a file and a node id together")
 def test_make_test_with_tests_naming_a_file_and_a_node_id_runs_only_those_in_one_invocation(tmp_path):
     tree, log = planted_tree(tmp_path), tmp_path / "ran.log"
@@ -123,6 +128,8 @@ def test_make_test_with_tests_naming_a_file_and_a_node_id_runs_only_those_in_one
         (0, ["pytest medium", "pytest small"], 1), ran.stdout + ran.stderr
 
 
+# four nested make runs, 60 s each
+@pytest.mark.timeout(240)
 @pytest.mark.process("make unit and make test started for real, with two pytest workers, over a planted tree whose small case fails")
 @pytest.mark.serial("starts a nested pytest run that times out when every core is busy")
 def test_two_workers_pass_and_fail_the_same_cases_as_serial_and_name_a_failing_case_by_its_node_id(tmp_path):
@@ -156,6 +163,7 @@ def test_with_no_worker_count_set_make_unit_runs_four_workers_and_make_test_one_
         assert (target, ran.returncode, noted) == (target, 0, ["workers %d" % workers]), ran.stdout + ran.stderr
 
 
+@pytest.mark.timeout(120)
 @pytest.mark.process("make unit and make test started for real over a planted tree holding no serial-marked case")
 def test_make_unit_and_make_test_over_a_tree_with_no_serial_marked_case_start_one_pytest_session_each_2092(tmp_path):
     tree, log = planted_tree(tmp_path), tmp_path / "ran.log"
