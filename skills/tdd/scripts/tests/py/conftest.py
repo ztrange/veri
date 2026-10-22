@@ -464,6 +464,7 @@ def run_cli(monkeypatch, capfd):
         if cwd is not None:
             monkeypatch.chdir(cwd)
         monkeypatch.setattr(sys, "stdin", io.StringIO(stdin))
+        monkeypatch.setattr(sys, "path", list(sys.path))
         environ, start = dict(os.environ), os.getcwd()
         try:
             code = entry.exit_code(module.main, argv, on_broken_pipe=lambda: None)
