@@ -267,6 +267,25 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   over it. A Claude Code cloud session, where GraphQL is refused, needs nothing set: the
   default is already `rest`. The conductor does not call this —
   it is rung 2's, driven by the loop branch of this skill.
+- `$S/wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]` — **wait one bounded slice
+  for a PR's checks**, then be called again: *4. Draft PR*'s CI wait. Reads the check runs and
+  commit statuses of the PR's head; given `<head-sha>`, a PR still reporting another head reads
+  as pending. `<slice-seconds>` (default and cap 540) bounds this call; `<total-seconds>` (cap
+  600) bounds the whole wait, and when it is not given it is twice the mean of the last 5
+  completed CI runs, capped at 600, or 540 when fewer than 5 exist or `gh` cannot answer. While
+  every pending check is still `queued` (none `in_progress`) the deadline does not run: it
+  starts at the first call that sees a check in progress for the head and is recorded in
+  `.tdd/ci-deadline-<sha>`, which later calls inherit; the first queued sighting is recorded in
+  `.tdd/ci-queued-<sha>`. A draft PR records no deadline. **Exit 0** every check completed
+  `SUCCESS`, `NEUTRAL` or `SKIPPED`, not all `SKIPPED`. **Exit 1** a completed check concluded
+  anything else, or a commit status is `failure`/`error`; the failed check names go on stdout,
+  comma-separated. **Exit 2** no answer: bad arguments, the rollup unreadable 3 times running, a
+  PR with no checks (or only skipped ones) that conflicts with its base branch (stderr says
+  `conflicts with its base branch`), a check still pending past the recorded deadline, an
+  unreadable deadline file, or checks that never started — still queued more than
+  `VERI_CI_QUEUE_WAIT` seconds after the first call that saw them queued. **Exit 3** still
+  pending, no check yet, every one `SKIPPED`, or a mismatched head, when the slice runs out.
+  Tunables: `VERI_POLL` poll interval (default 10 s), `VERI_CI_QUEUE_WAIT` (default 3600 s).
 - `$S/stop-reason.sh <issue>` — why a run ended with no ✅ Done or ⛔ Bailed comment: the operator's helper. Exit 2 on no argument, an issue with no run under `.tdd/wt`, a missing events log, or a run whose `conductor-<n>.log` has no result record. Nothing in the procedure calls it.
 - `$S/handoff-state.sh` — print a read-only snapshot of the run state for a context reset. Its first line is `main <sha> <tag>`: main's commit and the highest version tag by `git tag --sort=-v:refname`. Exit **0**, **2** no answer. The conductor does not call this; it is an operator's.
 - `$S/prose-owed.sh <repo-root>` — print each prose unit that owes a grade. Exit **0** nothing owed, **1** something printed, **2** no argument. On a `tdd/<n>-…` branch it waives a unit named in backticks by an unchecked `⟦skill-edit⟧` line of that branch's ledger (`.tdd/issue-<n>.md`), since that step will regrade it, and writes a `prose-owed-waived` event (`unit=`, `step=`) for each; every other finding still exits 1. `make unit` and `make test` run it; the procedure does not call it.
