@@ -13,25 +13,33 @@ import traceback
 
 try:
     from context_budget import START, watch
+    from event import toplevel
     from event_log import read_events
     from github import NoAnswer, gh_json
     from json_documents import items
     from solvable_issues import solvable_in_scope
 except ImportError:
     from .context_budget import START, watch
+    from .event import toplevel
     from .event_log import read_events
     from .github import NoAnswer, gh_json
     from .json_documents import items
     from .solvable_issues import solvable_in_scope
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _tdd(*parts):
+    return os.path.join(toplevel(), ".tdd", *parts)
+
+
 PASSED_THROUGH = ("VERI_HEARTBEAT", "VERI_TIMEOUT", "VERI_STUCK_RETRIES", "VERI_POLL")
 
 
 class _Conductor:
     def __init__(self, n):
         self.n = n
-        self.log = os.path.join(".tdd", "conductor-%s.log" % n)
+        self.log = _tdd("conductor-%s.log" % n)
         try:
             earlier = os.path.getsize(self.log)
         except FileNotFoundError:
@@ -103,7 +111,7 @@ def _outcome(n, code, prs):
             if not pr.get("isDraft", pr.get("draft")):
                 return "done %s" % url
             try:
-                events = read_events(os.path.join(".tdd", "wt", n, ".tdd", "events.jsonl"), skip_unreadable=True)
+                events = read_events(_tdd("wt", n, ".tdd", "events.jsonl"), skip_unreadable=True)
             except OSError:
                 events = []
             return "bailed %s" % url if events and events[-1].get("event") == "bail" else ""
@@ -111,7 +119,7 @@ def _outcome(n, code, prs):
 
 
 def _parked(n):
-    return os.path.exists(os.path.join(".tdd", "parked", "%s.md" % n))
+    return os.path.exists(_tdd("parked", "%s.md" % n))
 
 
 def _is_failure(got):
@@ -127,8 +135,8 @@ def _run_timeout():
 
 
 def _finish(code):
-    os.makedirs(".tdd", exist_ok=True)
-    with open(os.path.join(".tdd", "parallel.exit"), "w") as f:
+    os.makedirs(_tdd(), exist_ok=True)
+    with open(_tdd("parallel.exit"), "w") as f:
         f.write("%d\n" % code)
     return code
 
