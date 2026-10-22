@@ -7,6 +7,7 @@ import pytest
 
 TESTS_PY = pathlib.Path(__file__).resolve().parent
 SKILL_MD = TESTS_PY.parents[2] / "SKILL.md"
+PREFIX = "#### Green"
 HEADING = "#### Green — minimum implementation (developer leaf), then verify-green (blind)"
 
 MARKERS = (
@@ -26,6 +27,14 @@ ALLOWED = {
         "asserts REVISE.md's sentence, not Green's",
     "unit/test_skill_refactor_kind.py::test_skill_md_puts_mutation_parity_sh_s_report_into_the_pr_body_as_the_pairs_table_and_each_row_it_reports_owed_under_owed_by_a_human":
         "no CY row: document-wide; searches every mutation-parity.sh in the document",
+    "unit/test_skill_event_files.py::test_every_line_sending_the_run_to_stopping_points_at_stopping_md_1716":
+        "names the Green heading only to exclude it",
+    "unit/test_skill_event_files.py::test_every_line_launching_the_reconcile_leaf_points_at_reconcile_md_1716":
+        "names the Green heading only to exclude it",
+    "unit/test_skill_event_files.py::test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_1855":
+        "names the Green heading only to exclude it",
+    "unit/test_skill_tests_frozen.py::test_every_tests_frozen_record_and_check_names_the_record_by_path_over_the_step_text_and_red_defines_the_key":
+        "names the Green heading only to exclude it",
 }
 
 
@@ -39,6 +48,12 @@ def _subsection_and_rest():
     following = re.search(r"^#{1,4} ", text[start + len(HEADING):], re.M)
     stop = start + len(HEADING) + following.start() if following else len(text)
     return _flat(text[start:stop]), _flat(text[:start] + "\n" + text[stop:])
+
+
+def _names_the_heading(literal):
+    """The subsection's heading, or a prefix of it from `#### Green` on: a case slicing SKILL.md by it
+    reads the subsection whatever it asserts, however short."""
+    return literal.startswith(PREFIX) and HEADING.startswith(literal)
 
 
 def _only_in_subsection(literal, subsection, rest):
@@ -90,7 +105,7 @@ def _readers(path, subsection, rest):
     def reads_the_subsection(names):
         source = "\n".join(segments[n] for n in names)
         return any(m in source for m in MARKERS) or any(
-            _only_in_subsection(s, subsection, rest) for n in names for s in literals[n])
+            _names_the_heading(s) or _only_in_subsection(s, subsection, rest) for n in names for s in literals[n])
 
     return sorted(
         name for name in segments

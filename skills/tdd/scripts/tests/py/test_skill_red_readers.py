@@ -7,6 +7,7 @@ import pytest
 
 TESTS_PY = pathlib.Path(__file__).resolve().parent
 SKILL_MD = TESTS_PY.parents[2] / "SKILL.md"
+PREFIX = "#### Red"
 HEADING = "#### Red — one failing test (developer leaf), then verify-red (blind)"
 
 MARKERS = (
@@ -18,6 +19,10 @@ ALLOWED = {
     "test_skill_leaf_env.py": "runs every launch line against a stub claude and checks what the leaf saw",
     "unit/test_skill_red_untestable.py::test_window_given_a_dotted_start_pattern_starts_at_the_dotted_line_not_at_the_wildcard_match":
         "tests heading_window on a scratch file; goes with the helper, not Red's prose",
+    "unit/test_skill_event_files.py::test_every_line_sending_the_run_into_the_pin_points_at_pin_md_1852":
+        "names the Red heading only to exclude it",
+    "unit/test_skill_event_files.py::test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_1855":
+        "names the Red heading only to exclude it",
 }
 
 
@@ -31,6 +36,12 @@ def _subsection_and_rest():
     following = re.search(r"^#{1,4} ", text[start + len(HEADING):], re.M)
     stop = start + len(HEADING) + following.start() if following else len(text)
     return _flat(text[start:stop]), _flat(text[:start] + "\n" + text[stop:])
+
+
+def _names_the_heading(literal):
+    """The subsection's heading, or a prefix of it from `#### Red` on: a case slicing SKILL.md by it
+    reads the subsection whatever it asserts, however short."""
+    return literal.startswith(PREFIX) and HEADING.startswith(literal)
 
 
 def _only_in_subsection(literal, subsection, rest):
@@ -82,7 +93,7 @@ def _readers(path, subsection, rest):
     def reads_the_subsection(names):
         source = "\n".join(segments[n] for n in names)
         return any(m in source for m in MARKERS) or any(
-            _only_in_subsection(s, subsection, rest) for n in names for s in literals[n])
+            _names_the_heading(s) or _only_in_subsection(s, subsection, rest) for n in names for s in literals[n])
 
     return sorted(
         name for name in segments

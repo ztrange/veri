@@ -146,7 +146,6 @@ def test_skill_md_s_draft_pr_step_puts_the_conductor_s_mutation_parity_sh_report
     assert has(near, r"owed") and b"## owed by a human" in near, "template never puts owed rows under ## Owed by a human"
 
 
-
 def test_skill_md_marks_an_exhausted_contract_phase_owed_with_tick_ledger_sh_phase_owed_phase_before_committing_the_ledger_so_next_phase_never_hands_the_owed_contract_back():
     near = window(section(PHASED), r"exhaust", 700)
     assert near.strip(), "phased step has no exhausted-contract paragraph to read"
