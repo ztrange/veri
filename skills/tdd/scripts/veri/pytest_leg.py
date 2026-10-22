@@ -52,6 +52,7 @@ def main(argv):
     def terminate(signum, frame):
         sys.exit(128 + signum)
     previous = signal.signal(signal.SIGTERM, terminate)
+    conftest = sys.modules.get("conftest")
     try:
         with tempfile.TemporaryDirectory(prefix="veri-pytest-") as run:
             base = os.path.join(run, "base")
@@ -73,6 +74,10 @@ def main(argv):
                 statuses.append(pytest.main(["--basetemp=" + base, "-m", selected + "serial"] + rest))
     finally:
         signal.signal(signal.SIGTERM, previous)
+        if conftest is None:
+            sys.modules.pop("conftest", None)
+        else:
+            sys.modules["conftest"] = conftest
     passed = {pytest.ExitCode.OK, pytest.ExitCode.NO_TESTS_COLLECTED}
     return 0 if pytest.ExitCode.OK in statuses and set(statuses) <= passed else 1
 
