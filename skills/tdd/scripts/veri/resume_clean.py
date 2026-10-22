@@ -57,13 +57,18 @@ def untick_ledgers():
                 ledger.write_bytes(after)
 
 
-def keep(appends):
+def save(appends):
     kept = Path(git("rev-parse", "--git-path", "kept-tdd-appends.diff").strip())
     n = 0
     while kept.exists():
         n += 1
         kept = kept.with_name(f"kept-tdd-appends.diff.{n}")
     kept.write_bytes(appends)
+    return kept
+
+
+def keep(appends):
+    kept = save(appends)
     files = sorted(set(re.findall(r"^diff --git a/(\S+) b/", appends.decode("utf-8", "replace"), re.M)))
     places = sorted(str(f.resolve()) for name in ("set-aside-tdd-appends.diff", "kept-tdd-appends.diff")
                     for f in kept.parent.glob(name + "*"))
@@ -82,8 +87,13 @@ def main(argv):
 def clean():
     appends = git("diff", "--binary", "HEAD", "--", ".tdd", text=False)
     stray = git("status", "--porcelain", "-uall", *PATHSPEC)
-    git("reset", "--hard", "HEAD")
-    git("clean", "-fd", "-e", ".tdd")
+    try:
+        git("reset", "--hard", "HEAD")
+        git("clean", "-fd", "-e", ".tdd")
+    except GitFailed:
+        if appends:
+            save(appends)
+        raise
     if appends:
         applied = subprocess.run(["git", "apply", "--unidiff-zero", "-"], input=appends,
                                  stderr=subprocess.DEVNULL)

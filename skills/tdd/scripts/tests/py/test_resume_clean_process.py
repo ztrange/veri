@@ -1,5 +1,6 @@
 """Cases for veri/resume_clean.py that start a real process."""
 import importlib
+import os
 import subprocess
 
 import pytest
@@ -184,3 +185,32 @@ def test_main_exits_2_with_one_stderr_line_naming_the_failed_git_command_and_run
     assert (repo / "stray.txt").read_text() == "stray\n"
     assert (repo / ".tdd" / "issue-7.md").read_bytes() == b"- [x] one\n"
     assert out == ""
+
+
+@pytest.mark.process("git")
+def test_main_keeps_captured_tdd_appends_when_git_clean_fails_on_an_untracked_path_deeper_than_path_max_and_exits_2_naming_it_1967(
+        tmp_path, run_cli):
+    resume_clean = importlib.import_module("veri.resume_clean")
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".tdd" / "issue-7.md").write_text("- [ ] one\n")
+    git(repo, "add", "-f", ".")
+    git(repo, "commit", "-q", "-m", "base")
+    with open(repo / ".tdd" / "issue-7.md", "a") as f:
+        f.write("appended line\n")
+    name = "d" * os.pathconf(repo, "PC_NAME_MAX")
+    fd = os.open(repo, os.O_RDONLY)
+    for _ in range(os.pathconf(repo, "PC_PATH_MAX") // len(name) + 2):
+        os.mkdir(name, dir_fd=fd)
+        deeper = os.open(name, os.O_RDONLY, dir_fd=fd)
+        os.close(fd)
+        fd = deeper
+    os.close(fd)
+
+    code, out, err = run_cli(resume_clean, [], cwd=repo)
+
+    kept = repo / git(repo, "rev-parse", "--git-path", "kept-tdd-appends.diff").strip()
+    assert code == 2
+    assert len(err.splitlines()) == 1 and "git clean -fd -e .tdd" in err
+    assert kept.is_file() and "+appended line" in kept.read_text()
