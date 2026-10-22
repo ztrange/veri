@@ -5,6 +5,7 @@ import subprocess
 import sys
 import time
 
+import paths
 import status
 
 
@@ -29,7 +30,7 @@ class QueueUnreadable(Exception):
 
 
 def solvable_issues():
-    script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "solvable-issues.sh")
+    script = os.path.join(paths.scripts_of(__file__), "solvable-issues.sh")
     done = subprocess.run([script, "--not-running"], capture_output=True, text=True)
     if done.returncode != 0:
         raise QueueUnreadable(done.stderr)
