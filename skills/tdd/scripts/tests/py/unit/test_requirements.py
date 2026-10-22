@@ -2,7 +2,7 @@
 import importlib
 
 
-def test_claims_reads_a_cell_holding_a_backtick_code_span_with_pipes_whole_2026(tmp_path):
+def test_claims_splits_a_cell_at_an_unescaped_pipe_inside_a_code_span_2080(tmp_path):
     requirements = importlib.import_module("veri.requirements")
     path = tmp_path / "REQUIREMENTS.md"
     path.write_text("## operator/PRINCIPLES.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
