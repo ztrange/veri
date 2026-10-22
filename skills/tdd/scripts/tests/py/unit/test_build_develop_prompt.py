@@ -2307,6 +2307,19 @@ def test_main_renders_no_fixture_repair_paragraph_in_a_green_prompt_for_a_step_n
     assert (code, b"This step repairs a fixture.**" in prompt) == (0, False)
 
 
+def test_main_renders_the_fixture_repair_paragraph_in_a_green_prompt_for_a_step_ending_in_fixture_repair_1989(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    step = "repairs the fixture 'quux' in tests/fx.sh, reproduced by a case in tests/t.sh ⟦fixture-repair⟧ ⟦added⟧ ⟦criterion 3⟧"
+
+    code = build_develop_prompt.main(["green", str(spec), step, "make test", "tests/py/test_zorblat.py",
+                                      "test_zorblat_frobs_a_nitz", "make unit"])
+    prompt = re.sub(rb"\s+", b" ", capsysbinary.readouterr().out)
+
+    assert (code, b"This step repairs a fixture.**" in prompt) == (0, True)
+
+
 def test_mid_line_marks_render_todays_prompts(tmp_path, capsysbinary, build_develop_prompt):
     verify = importlib.import_module("veri.build_verify_prompt")
     spec = tmp_path / "spec.md"
