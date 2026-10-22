@@ -3,7 +3,9 @@
 Each case's subject is text the scripts emit, driven in-process through each script's module.
 """
 import importlib
+import os
 
+import event
 from conftest import SCRIPTS
 
 
@@ -73,8 +75,8 @@ USAGE = [
 
 # Arguments name a fixture file as {spec}, {bug}, {refactor}, {ledger} or {reason}; {step} and {cmd} are fixed text.
 PROMPTS = [
-    ("2536095878 11351", "build-develop-prompt.sh", ["red", "{spec}", "{step}", "{cmd}"]),
-    ("822874996 12326", "build-develop-prompt.sh", ["red", "{bug}", "{step}", "{cmd}"]),
+    ("3261789388 11365", "build-develop-prompt.sh", ["red", "{spec}", "{step}", "{cmd}"]),
+    ("1211736664 12340", "build-develop-prompt.sh", ["red", "{bug}", "{step}", "{cmd}"]),
     ("2696486131 11476", "build-develop-prompt.sh", ["red-repair", "{spec}", "{step}", "{cmd}", "a case", "{reason}"]),
     ("1744801324 11555", "build-develop-prompt.sh", ["red-contradicted", "{spec}", "{step}", "{cmd}", "a case"]),
     ("1450081735 8263", "build-develop-prompt.sh", ["green", "{spec}", "{step}", "{cmd}", "t/x.test.sh", "case one", "make unit"]),
@@ -129,6 +131,7 @@ def test_usage_output_on_a_missing_argument_and_prompt_output_for_fixed_inputs_a
             argv = [a.format(**names) if stream == "prompt" else a for a in argv]
             text = emitted(run_cli, script, argv, stream)
             text = text.replace(str(SCRIPTS), "<scripts>").replace(str(tmp_path), "<work>")
+            text = text.replace((event.toplevel() or os.getcwd()) + "/.tdd/", "<root>/.tdd/")
             got = cksum(text.encode("utf-8", "surrogateescape"))
             if got != want:
                 problems.append("%s %s: want %s, got %s" % (script, " ".join(argv), want, got))
