@@ -1235,3 +1235,30 @@ def test_main_records_no_deadline_while_every_pending_check_is_queued_and_counts
         observed.append((code, mark.exists()))
 
     assert observed == [(3, False), (3, False), (3, True), (0, True)]
+
+
+@pytest.mark.parametrize("queue_wait, limit", [(None, 3600), ("120", 120)])
+def test_main_exits_2_saying_the_checks_never_started_when_they_stay_queued_past_the_queue_wait_issue_2145(
+        tmp_path, wait_ci, fake_processes, run_cli, queue_wait, limit):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([[check_run("gates", FULL_SHA, "queued")]], [], "pending")
+    clock = {"now": 1000}
+
+    def answer(line, **_):
+        if line == "date +%s":
+            clock["now"] += 30
+            return 0, f"{clock['now']}\n", ""
+        if line.startswith("sleep "):
+            return 0, "", ""
+        return 0, bodies[line], ""
+
+    fake_processes(answer)
+    env = {"VERI_POLL": "0"}
+    if queue_wait:
+        env["VERI_CI_QUEUE_WAIT"] = queue_wait
+    first, _, _ = run_cli(wait_ci, [PR, "60", "120", FULL_SHA], env=env, cwd=work)
+    clock["now"] += limit + 1
+    second, _, err = run_cli(wait_ci, [PR, "60", "120", FULL_SHA], env=env, cwd=work)
+
+    assert (first, second, "never started" in err) == (3, 2, True)
