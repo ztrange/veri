@@ -48,3 +48,9 @@ def test_1997_the_guard_does_not_name_a_planted_environ_passed_to_a_local_functi
     planted = plant(tmp_path, 'import os\n\n\ndef home(env):\n    return env.get("HOME")\n\n\nvalue = home(os.environ)\n')
 
     assert direct_reads(planted) == []
+
+
+def test_1997_the_guard_does_not_name_a_planted_environ_passed_as_a_subprocess_env_keyword(tmp_path):
+    planted = plant(tmp_path, 'import os\nimport subprocess\n\nsubprocess.run(["true"], env=os.environ)\n')
+
+    assert direct_reads(planted) == []
