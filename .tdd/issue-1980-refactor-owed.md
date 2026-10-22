@@ -1,2 +1,3 @@
 ### suite-reported.sh exits 0 for a retried leaf `develop-red-2` whose report has no SUITE: line but carries every key of an exempt format develop-red.md declares, exactly as it does for `develop-red`, finding the prompt through leaf_role's parse of the leaf name (its phase), not by stripping the name itself; pinned by a small in-process unit case under skills/tdd/scripts/tests/py/unit/ ⟦criterion 1⟧
 - out-of-scope | fold the pre-existing `revise-diff-` special case in `_exempt_keys` into `leaf_role`'s parse, which would remove the `name == leaf` guard
+not-done | uncovered | fold the pre-existing `revise-diff-` special case in `_exempt_keys` into `leaf_role`'s parse, which would remove the `name == leaf` guard
