@@ -276,3 +276,23 @@ def test_refresh_reads_the_lane_line_of_the_last_metrics_comment_into_the_issue_
     cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
     lanes = {i["number"]: i.get("lane") for i in cache["issues"]}
     assert (code, lanes) == (0, {7: "fast-lane"})
+
+
+def test_refresh_reads_through_the_github_port_so_a_bad_gh_driver_exits_2_naming_it_with_no_gh_started(run_cli, monkeypatch, tmp_path):
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    started = []
+
+    def fake_run(args, **kwargs):
+        started.append([str(arg) for arg in args])
+        return subprocess.CompletedProcess(args, 0, "[]", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setenv("VERI_GH_DRIVER", "bogus")
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    assert (code, out, "VERI_GH_DRIVER" in err, started, (tmp_path / ".tdd" / "report-cache.json").exists()) == (
+        2, "", True, [], False)

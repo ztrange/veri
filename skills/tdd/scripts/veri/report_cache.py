@@ -3,8 +3,9 @@ import datetime
 import json
 import os
 import re
-import subprocess
 import sys
+
+import github
 
 USAGE = "usage: report-cache.sh refresh\n"
 FIELDS = "number,title,state,labels,closedAt,updatedAt,body,comments"
@@ -47,17 +48,17 @@ def refresh():
     tdd = os.path.join(main_tree(), ".tdd")
     path = os.path.join(tdd, "report-cache.json")
     kept = {}
-    command = ["gh", "issue", "list", "--state", "all", "--limit", "100000", "--json", FIELDS]
+    command = ["--state", "all", "--limit", "100000", "--json", FIELDS]
     if os.path.exists(path):
         with open(path) as existing:
             before = json.load(existing)
         kept = {issue["number"]: issue for issue in before["issues"]}
         command += ["--search", "updated:>=" + before["fetched_at"]]
-    done = subprocess.run(command, capture_output=True, text=True)
-    if done.returncode != 0:
-        sys.stderr.write("report-cache.sh: gh issue list failed: %s\n" % " ".join(done.stderr.split()))
+    try:
+        issues = json.loads(github.gh_issue_list(*command))
+    except github.NoAnswer as failure:
+        sys.stderr.write("report-cache.sh: gh issue list failed: %s\n" % failure.answer)
         return 2
-    issues = json.loads(done.stdout)
     for issue in issues:
         issue["blockedBy"] = blocked_by(issue.pop("body", ""))
         comments = issue.pop("comments", [])
