@@ -89,10 +89,10 @@ def _added_cases(name):
 
 
 def _check_earlier(ledger, step, exempt=()):
-    if _toplevel() is None:
+    root = _toplevel()
+    if root is None:
         write(sys.stderr, "tests-frozen.sh: not inside a git repository\n%s" % USAGE)
         return 2
-    root = _toplevel()
     try:
         with open(ledger, encoding="utf-8") as handle:
             lines = handle.read().splitlines()
