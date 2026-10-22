@@ -33,11 +33,11 @@ def direct_reads(path):
         parent = parents.get(node)
         if isinstance(parent, ast.Attribute) and parent.attr == "copy":
             parent = parents.get(parent)
-        elif not (isinstance(parent, ast.Call) and isinstance(parent.func, ast.Name) and parent.func.id == "dict"):
+        elif not (isinstance(parent, ast.Assign)
+                  or (isinstance(parent, ast.Call) and isinstance(parent.func, ast.Name) and parent.func.id == "dict")):
             return False
-        assign = parents.get(parent)
-        if not (isinstance(parent, ast.Call) and isinstance(assign, ast.Assign)
-                and isinstance(assign.targets[0], ast.Name)):
+        assign = parent if isinstance(parent, ast.Assign) else parents.get(parent)
+        if not (isinstance(assign, ast.Assign) and isinstance(assign.targets[0], ast.Name)):
             return False
         copy = assign.targets[0].id
         def discarded_pop(use):
@@ -59,10 +59,13 @@ def direct_reads(path):
                 if isinstance(node, ast.ImportFrom) and node.module == "os"
                 for alias in node.names if alias.name in ("environ", "environb", "getenv")}
 
+    os_names = {"os"} | {alias.asname for node in ast.walk(tree) if isinstance(node, ast.Import)
+                         for alias in node.names if alias.name == "os" and alias.asname}
+
     def is_environment(node):
         if isinstance(node, ast.Name):
             return node.id in imported
-        return (isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "os"
+        return (isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id in os_names
                 and node.attr in ("environ", "environb", "getenv"))
 
     return ["%s:%d" % (path, node.lineno) for node in ast.walk(tree)

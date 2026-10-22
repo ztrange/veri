@@ -7,3 +7,10 @@ def test_1997_the_guard_names_the_line_of_a_planted_environ_copy_read_by_a_veri_
     planted.write_text('import os\ne = os.environ.copy()\nvalue = e.get("VERI_X")\n')
 
     assert direct_reads(planted) == ["%s:2" % planted]
+
+
+def test_1997_the_guard_names_the_line_of_a_planted_aliased_environ_read_by_a_veri_name(tmp_path):
+    planted = tmp_path / "planted.py"
+    planted.write_text('import os as o\ne = o.environ\nvalue = e.get("VERI_X")\n')
+
+    assert direct_reads(planted) == ["%s:2" % planted]
