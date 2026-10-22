@@ -145,6 +145,7 @@ def test_with_no_worker_count_set_make_unit_runs_four_workers_and_make_test_one_
     cores = len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else os.cpu_count()
     env = {k: v for k, v in os.environ.items() if not k.startswith(("VERI_", "PYTEST_XDIST_"))}
     env["PLANTED_RAN_LOG"] = str(log)
+    env["VERI_PYTEST_LEGS"] = str(tmp_path / "legs")
     for target, workers in (("unit", 4), ("test", cores)):
         log.write_text("")
         ran = subprocess.run(["make", "-C", str(tree), target], env=env, stdin=subprocess.DEVNULL,

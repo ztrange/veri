@@ -94,7 +94,7 @@ def test_a_worker_count_of_n_at_least_2_hands_pytest_n_n_while_1_hands_it_no_wor
     assert serial_pass == single == single_serial_pass == ["-q", "some/dir"]
 
 
-def test_with_no_worker_count_the_launcher_hands_pytest_one_worker_per_available_core_and_runs_serially_on_a_single_core(pytest_leg, run_cli, monkeypatch):
+def test_with_no_worker_count_the_launcher_hands_pytest_one_worker_per_available_core_and_runs_serially_on_a_single_core(pytest_leg, run_cli, monkeypatch, tmp_path):
     import os
 
     calls = []
@@ -109,7 +109,7 @@ def test_with_no_worker_count_the_launcher_hands_pytest_one_worker_per_available
     monkeypatch.setattr(os, "process_cpu_count", lambda: cores["n"], raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(cores["n"])), raising=False)
     for cores["n"], workers in ((6, None), (6, ""), (1, None)):
-        env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1"}
+        env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_LEGS": str(tmp_path / "legs")}
         if workers is not None:
             env["VERI_PYTEST_WORKERS"] = workers
         assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
