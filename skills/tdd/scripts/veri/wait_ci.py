@@ -105,15 +105,16 @@ def sha_state(repo, sha):
               if r.get("conclusion") and r["conclusion"].lower() not in PASSING]
     if any(o is not None and o not in PASSING for o in outcomes) \
             or any(s in ("failure", "error") for s in states):
-        return "red", ",".join(failed)
+        return "red", ",".join(failed), False
     if not check_runs and not states:
-        return "none", ""
+        return "none", "", False
     only_skipped = all(o == "skipped" for o in outcomes)
     if only_skipped and not states:
-        return "skipped", ""
+        return "skipped", "", False
     if None in outcomes or only_skipped or "pending" in states:
-        return "pending", ""
-    return "green", ""
+        statuses_of = [r.get("status") for r in check_runs]
+        return "pending", "", "queued" in statuses_of and "in_progress" not in statuses_of
+    return "green", "", False
 
 
 def unreadable(what):
@@ -166,9 +167,10 @@ def main(argv):
             head = ""
         state = None
         failed = ""
+        queued = False
         if head:
             try:
-                state, failed = sha_state(repo, head)
+                state, failed, queued = sha_state(repo, head)
             except NoAnswer:
                 pass
             except Exception:
@@ -204,6 +206,11 @@ def main(argv):
                 warn(error)
                 break
         if want and head != want:
+            if now >= slice_end:
+                break
+            subprocess.run(["sleep", poll])
+            continue
+        if queued:
             if now >= slice_end:
                 break
             subprocess.run(["sleep", poll])

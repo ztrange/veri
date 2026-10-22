@@ -1213,3 +1213,25 @@ def test_main_prints_nothing_on_stdout_on_exit_0_2_or_3_issue_1904(
         observed.append((code, capsys.readouterr().out))
 
     assert observed == [(code, "") for *_, code in cases]
+
+
+def test_main_records_no_deadline_while_every_pending_check_is_queued_and_counts_one_from_the_first_in_progress_call_issue_2145(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    mark = work / ".tdd" / f"ci-deadline-{FULL_SHA}"
+    rollup = {"runs": [check_run("gates", FULL_SHA, "queued")]}
+
+    def answer(line):
+        return sha_bodies([rollup["runs"]], [], "pending").get(line)
+
+    served(fake_processes, {}, answer)
+    observed = []
+    for runs in ([check_run("gates", FULL_SHA, "queued")] * 1, [check_run("gates", FULL_SHA, "queued")],
+                 [check_run("gates", FULL_SHA, "in_progress")],
+                 [check_run("gates", FULL_SHA, "completed", "success")]):
+        rollup["runs"] = runs
+        code, _, _ = run_cli(wait_ci, [PR, "60", "120", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+        observed.append((code, mark.exists()))
+
+    assert observed == [(3, False), (3, False), (3, True), (0, True)]
