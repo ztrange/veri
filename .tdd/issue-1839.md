@@ -1,4 +1,4 @@
 # Plan for #1839 — PRD 011: write veri-stop (stop runs without wasting work) in a ⟦skill-edit⟧ step
 
 - [x] `skills/veri-stop/SKILL.md` is written against rows X1–X3, added to `skills/veri-stop/REQUIREMENTS.md` exactly as the issue's `## Requirements` table states them, and signed: any row the grader REJECTs is fixed in the prose, never by weakening the row; its prose obeys `operator/PRINCIPLES.md`; `prose-owed.sh` prints nothing for it; `GRADED` carries a line for the unit whose signature matches its current text ⟦skill-edit⟧ ⟦criterion 1⟧
-- [ ] skills/veri-stop/SKILL.md maps each grade to the mode stop-run.sh accepts — ledger to at-ledger, leaf to at-leaf, now to now (veri/stop_modes.py:2 STOP_MODES) — instead of passing the grade through as --mode; X1's "mapped to stop-run.sh --mode" is met only by that mapping ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 1⟧
+- [x] skills/veri-stop/SKILL.md maps each grade to the mode stop-run.sh accepts — ledger to at-ledger, leaf to at-leaf, now to now (veri/stop_modes.py:2 STOP_MODES) — instead of passing the grade through as --mode; X1's "mapped to stop-run.sh --mode" is met only by that mapping ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 1⟧
