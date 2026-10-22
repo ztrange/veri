@@ -238,3 +238,20 @@ def test_main_keeps_captured_tdd_appends_when_git_clean_fails_on_an_untracked_pa
     assert code == 2
     assert len(err.splitlines()) == 1 and "git clean -fd -e .tdd" in err
     assert kept.is_file() and "+appended line" in kept.read_text()
+
+
+@pytest.mark.process("git")
+def test_main_leaves_a_crlf_ledger_byte_identical_when_there_is_no_tick_to_change_2133(tmp_path, run_cli):
+    resume_clean = importlib.import_module("veri.resume_clean")
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    ledger = repo / ".tdd" / "issue-7.md"
+    ledger.write_bytes(b"# plan\r\n- [x] one\r\n- [ ] two\r\n")
+    git(repo, "add", "-f", ".")
+    git(repo, "commit", "-q", "-m", "base")
+
+    code, out, err = run_cli(resume_clean, [], cwd=repo)
+
+    assert code == 0
+    assert ledger.read_bytes() == b"# plan\r\n- [x] one\r\n- [ ] two\r\n"

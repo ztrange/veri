@@ -38,7 +38,7 @@ def unseen_ticks(ledger):
     for line in shown.stdout.splitlines(True):
         if line.startswith((TICK, OPEN_STEP + " ")):
             held.setdefault(step_text(line), []).append(line.startswith(TICK))
-    lines = ledger.read_text(encoding="utf-8").splitlines(True)
+    lines = ledger.read_bytes().decode("utf-8").splitlines(True)
     seen = Counter()
     for i, line in enumerate(lines):
         if line.startswith((TICK, OPEN_STEP + " ")):
