@@ -237,6 +237,14 @@ def gh_list(path, *args):
     return _select("list").list(path, *args)
 
 
+def gh_issue_list(*args):
+    _select("list")
+    run = _gh("issue", "list", *args, stderr=subprocess.PIPE)
+    if run.returncode != 0:
+        raise NoAnswer(" ".join(run.stderr.split()))
+    return run.stdout
+
+
 def gh_json(fixture, path, *args):
     return _select("json").json(fixture, path, *args)
 

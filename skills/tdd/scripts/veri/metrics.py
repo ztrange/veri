@@ -448,7 +448,7 @@ def render(issue, path, ledger):
     else:
         print("Outcome: the run bailed — %s, a %s failure."
               % (ending.get("cause") or UNKNOWN, ending.get("classification") or UNKNOWN))
-    print("Lane: %s" % (os.environ.get("VERI_LABEL") or "ready-for-agent"))
+    print("Lane: %s" % (tunables.read("VERI_LABEL", "ready-for-agent", unless_empty="ready-for-agent")))
     sessions, turn_rows = [], []
     if not conductor_counted:
         sessions, turn_rows = conductor_sessions(issue, path)
