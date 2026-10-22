@@ -1,0 +1,2 @@
+### veri/github.py, when the PATH lookup of gh fails twice and then succeeds, sleeps VERI_TOOL_RETRY_SLEEP seconds (default 15) before each retry, writes one stderr line per wait naming the missing tool gh, and returns the call's normal result once gh is back; pinned in-process in tests/py/unit/test_github.py with a fake clock and fake sleep, no real process or wait ⟦criterion 1⟧
+- test-only | the two new tests in `test_github.py` repeat the fake-clock setup and the fails-twice `fake_run`. A shared helper or fixture would remove that.
