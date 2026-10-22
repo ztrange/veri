@@ -98,6 +98,9 @@ def _check_earlier(ledger, step, exempt=()):
         write(sys.stderr, "tests-frozen.sh: %s" % error)
         return 2
     os.chdir(root)
+    parsed = replaces_case.parse(step) if replaces_case.is_replaces_case_step(step) else None
+    exempt = list(exempt) + (parsed[0] if parsed else [])
+    fixture = _FIXTURE_FILE.search(step) if carries_mark(trailing_markers(step), "fixture-repair") else None
     changed = []
     for line in lines:
         match = re.match(r"\s*- \[.\] (.*)", line)
@@ -114,7 +117,7 @@ def _check_earlier(ledger, step, exempt=()):
                     now = dict(_cases(handle.read())).get(case)
             except OSError:
                 now = None
-            if case not in exempt and (now is None or _body_digest(now) != digest):
+            if case not in exempt and not (fixture and name == fixture.group(1)) and (now is None or _body_digest(now) != digest):
                 changed.append("%s (%s)" % (case, match.group(1)))
     for entry in changed:
         write(sys.stdout, entry)

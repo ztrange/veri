@@ -1180,3 +1180,38 @@ def test_check_earlier_except_exempts_each_case_named_and_still_exits_1_for_a_ch
 
     assert [named_only[:2], unnamed_too[:2]] == [
         (0, ""), (1, "test_unnamed_2125 (%s)\n" % earlier)]
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_check_earlier_without_except_exempts_the_cases_a_replaces_case_step_names_and_the_fixture_file_a_fixture_repair_step_names_2125(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier = "step one adds cases"
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_older_case():\n    assert True\n\n\n"
+        "def test_named_2125():\n    assert 1 == 2\n\n\n"
+        "def test_unnamed_2125():\n    assert 1 == 3\n")
+    (tmp_path / "tests/test_fixture.py").write_text("def test_in_fixture_file_2125():\n    assert 1 == 4\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py", "tests/test_fixture.py"],
+            cwd=tmp_path)
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_older_case():\n    assert True\n\n\n"
+        "def test_named_2125():\n    assert True\n\n\n"
+        "def test_unnamed_2125():\n    assert True\n")
+    (tmp_path / "tests/test_fixture.py").write_text("def test_in_fixture_file_2125():\n    assert True\n")
+    replaces = "⟦replaces-case⟧ replaces 'test_named_2125' in tests/test_suite.py.test.sh"
+    repair = "repairs the fixture 'f' in tests/test_fixture.py, reproduced by a case ⟦fixture-repair⟧"
+    results = []
+    for current in (replaces, repair):
+        ledger = tmp_path / ".tdd/ledger.md"
+        ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+        results.append(run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)[:2])
+
+    assert results == [
+        (1, "test_unnamed_2125 (%s)\ntest_in_fixture_file_2125 (%s)\n" % (earlier, earlier)),
+        (1, "test_named_2125 (%s)\ntest_unnamed_2125 (%s)\n" % (earlier, earlier))]
