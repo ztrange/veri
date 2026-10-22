@@ -135,3 +135,9 @@ def test_main_classifies_replaces_report_failed_as_a_system_failure_with_0_1625(
     code = classify_bail.main(["replaces-report-failed"])
 
     assert (code, *capsys.readouterr()) == (0, "system\n", "")
+
+
+def test_main_classifies_step_added_off_route_as_a_process_failure_with_0_2130(capsys, classify_bail):
+    code = classify_bail.main(["step-added-off-route"])
+
+    assert (code, *capsys.readouterr()) == (0, "process\n", "")
