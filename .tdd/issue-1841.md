@@ -1,0 +1,3 @@
+# Plan for #1841 — PRD 011: write veri-file (file a bug or refactor veri can take) in a ⟦skill-edit⟧ step
+
+- [ ] skill-edit step for the new unit `skills/veri-file/SKILL.md`: `skill-edit-step.sh` adds F1–F12 to `skills/veri-file/REQUIREMENTS.md` under `## skills/veri-file/SKILL.md` exactly as the issue's table states them, the author writes `skills/veri-file/SKILL.md` (prose obeying `operator/PRINCIPLES.md`; any row the grader REJECTs fixed in the prose, never by weakening the row) until the grader PASSes it, and signs it in `GRADED`, so `GRADED` carries a line for the unit whose signature matches its current text and `prose-owed.sh` prints nothing for it ⟦skill-edit⟧ ⟦criterion 1⟧
