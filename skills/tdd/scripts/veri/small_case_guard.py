@@ -4,7 +4,7 @@ import subprocess
 
 import pytest
 
-from popen_command import command_basename, command_words
+from veri.popen_command import command_basename, command_words
 
 VERI = os.path.dirname(os.path.abspath(__file__))
 
