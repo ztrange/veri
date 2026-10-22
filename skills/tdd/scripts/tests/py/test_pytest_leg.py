@@ -119,6 +119,31 @@ def test_with_no_worker_count_the_launcher_hands_pytest_one_worker_per_available
     assert unset_serial == empty_serial == single == single_serial == ["-q", "some/dir"]
 
 
+def test_2100_with_no_worker_count_a_leg_starting_beside_registered_legs_takes_only_the_cores_they_leave_free_and_at_least_1(pytest_leg, run_cli, monkeypatch, tmp_path):
+    import os
+
+    calls = []
+
+    def spy(args):
+        calls.append([a for a in args if not a.startswith("--basetemp=")])
+        return pytest.ExitCode.OK
+
+    monkeypatch.setattr(pytest, "main", spy)
+    monkeypatch.setattr(os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    live = [os.getpid(), os.getppid()]
+    for registered in ((16,), (8, 8)):
+        legs = tmp_path / ("legs-%d" % len(registered))
+        legs.mkdir()
+        for pid, count in zip(live, registered):
+            (legs / str(pid)).write_text("%d\n" % count)
+        env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_LEGS": str(legs)}
+        assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
+    beside_one, _, beside_two, _ = [without_selection(c) for c in calls]
+    assert beside_one == beside_two == ["-q", "some/dir"]
+
+
 def test_launched_from_inside_an_xdist_worker_with_no_worker_count_the_launcher_runs_serially_while_an_explicit_count_still_wins(pytest_leg, run_cli, monkeypatch):
     import os
 
