@@ -7,4 +7,4 @@ Option A of the issue: verify-plan rejects the overlap; `tests_frozen.py` is not
 - [x] Option A is the fix: the branch leaves `skills/tdd/scripts/veri/tests_frozen.py` unchanged, so a recorded test case edited or deleted in a recorded file still makes `tests-frozen check --step` exit 1 naming it, as today ⟦diff-checked⟧ ⟦criterion 2⟧
 - [x] Option A is the fix: the branch leaves `skills/tdd/scripts/veri/tests_frozen.py` unchanged, so a step whose guard-subject is not its Red file behaves as today ⟦diff-checked⟧ ⟦criterion 3⟧
 - [ ] Go-red check: with the verify-plan.md paragraph reverted, the new rendered-prompt case fails, watched red and restored ⟦human-owed⟧ ⟦criterion 4⟧
-- [ ] skills/tdd/SKILL.md states the overlap rule in its `⟦guard-subject: <path>⟧` paragraph (requirement PL47 of the issue's `## Requirements`) ⟦skill-edit⟧ ⟦criterion 5⟧
+- [x] skills/tdd/SKILL.md states the overlap rule in its `⟦guard-subject: <path>⟧` paragraph (requirement PL47 of the issue's `## Requirements`) ⟦skill-edit⟧ ⟦criterion 5⟧
