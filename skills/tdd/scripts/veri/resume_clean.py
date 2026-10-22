@@ -8,8 +8,15 @@ from pathlib import Path
 PATHSPEC = ["--", ".", ":!.tdd"]
 
 
-def git(*args):
-    return subprocess.run(["git", *args], check=True, stdout=subprocess.PIPE, text=True).stdout
+class GitFailed(Exception):
+    pass
+
+
+def git(*args, text=True):
+    done = subprocess.run(["git", *args], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=text)
+    if done.returncode:
+        raise GitFailed("git " + " ".join(args))
+    return done.stdout
 
 
 TICK = "- [x] "
@@ -60,8 +67,15 @@ def keep(appends):
 
 
 def main(argv):
-    appends = subprocess.run(["git", "diff", "--binary", "HEAD", "--", ".tdd"],
-                             check=True, stdout=subprocess.PIPE).stdout
+    try:
+        return clean()
+    except GitFailed as failed:
+        sys.stderr.write(f"resume-clean: {failed} failed\n")
+        return 2
+
+
+def clean():
+    appends = git("diff", "--binary", "HEAD", "--", ".tdd", text=False)
     stray = git("status", "--porcelain", "-uall", *PATHSPEC)
     git("reset", "--hard", "HEAD")
     git("clean", "-fd", "-e", ".tdd")

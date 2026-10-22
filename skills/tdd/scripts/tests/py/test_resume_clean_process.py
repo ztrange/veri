@@ -143,3 +143,26 @@ def test_main_keeps_appends_at_a_suffixed_name_when_kept_file_exists_leaving_it_
     assert len(others) == 1 and ".tdd/fresh.md" in others[0].read_text()
     assert len(err.splitlines()) == 1
     assert str(kept) in err and str(others[0]) in err
+
+
+@pytest.mark.process("git")
+def test_main_exits_2_with_one_stderr_line_naming_the_failed_git_command_and_runs_nothing_after_it_1967(
+        tmp_path, run_cli):
+    resume_clean = importlib.import_module("veri.resume_clean")
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".tdd" / "issue-7.md").write_text("- [ ] one\n")
+    git(repo, "add", "-f", ".")
+    git(repo, "commit", "-q", "-m", "base")
+    (repo / ".tdd" / "issue-7.md").write_text("- [x] one\n")
+    (repo / "stray.txt").write_text("stray\n")
+    (repo / ".git" / "index.lock").write_text("")
+
+    code, out, err = run_cli(resume_clean, [], cwd=repo)
+
+    assert code == 2
+    assert len(err.splitlines()) == 1 and "git reset --hard HEAD" in err
+    assert (repo / "stray.txt").read_text() == "stray\n"
+    assert (repo / ".tdd" / "issue-7.md").read_bytes() == b"- [x] one\n"
+    assert out == ""
