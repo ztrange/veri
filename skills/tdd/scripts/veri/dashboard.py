@@ -4,6 +4,7 @@ import http.server
 import io
 import json
 import os
+import paths
 import re
 import signal
 import subprocess
@@ -16,7 +17,7 @@ import metrics
 import render_leaf_log
 import status
 
-SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SCRIPTS = paths.scripts_of(__file__)
 status_sh = os.path.join(SCRIPTS, "status.sh")
 
 

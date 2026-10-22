@@ -1,5 +1,6 @@
 """orchestrate.sh's loop, run in-process."""
 import os
+import paths
 import signal
 import subprocess
 import sys
@@ -14,7 +15,7 @@ except ImportError:
     from .context_budget import START, watch
     from .solvable_issues import solvable_in_scope
 
-SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SCRIPTS = paths.scripts_of(__file__)
 CONDUCTOR = os.path.join(SCRIPTS, "run-conductor.sh")
 
 

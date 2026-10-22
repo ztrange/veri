@@ -1,12 +1,13 @@
 """run-verdict.sh's logic, run in-process."""
 import errno
 import os
+import paths
 import signal
 import sys
 
 import tunables
 
-SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SCRIPTS = paths.scripts_of(__file__)
 
 
 def takes_a_value(word):

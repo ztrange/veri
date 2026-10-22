@@ -2,6 +2,7 @@
 import errno
 import json
 import os
+import paths
 import re
 import signal
 import subprocess
@@ -21,7 +22,7 @@ from leaf_role import leaf_role
 from ledger import carries_mark, trailing_markers
 from pid_file import number_in
 
-HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+HERE = paths.scripts_of(__file__)
 
 USAGE = "usage: supervise.sh <name> <cmd> [args...]"
 
