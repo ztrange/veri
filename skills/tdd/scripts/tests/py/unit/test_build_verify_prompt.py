@@ -1671,6 +1671,20 @@ def test_verify_plan_rejects_a_step_observable_only_once_a_later_step_is_built_n
     assert problems == []
 
 
+def test_verify_plan_rejects_a_guard_subject_that_is_also_the_steps_red_test_file_naming_step_and_path_2111(plan_flat):
+    problems = []
+    if "REJECT a plan holding a step that carries `⟦guard-subject: P⟧`" not in plan_flat:
+        problems.append("never says to REJECT a step carrying a guard-subject P")
+    if "names `P` as that step's Red test file" not in plan_flat:
+        problems.append("never names P as the step's Red test file")
+    if "can never pass `tests-frozen check --step`" not in plan_flat:
+        problems.append("never says the Green can never pass tests-frozen check --step")
+    if "your reason names the step and `P`" not in plan_flat:
+        problems.append("never says the reason names the step and P")
+
+    assert problems == []
+
+
 def test_verify_plan_carries_only_the_issue_spec_and_the_ledger_and_no_cycle_phase_prompt_carries_a_ledger(
         tmp_path, spec, run_cli, build_verify_prompt):
     ledger = tmp_path / "rationale-ledger.md"
