@@ -32,14 +32,14 @@
 #   A Claude Code cloud session, where GraphQL is refused, needs nothing set.
 
 gh() {
-  local waited=0 nap
+  local waited=0 nap first=$SECONDS
   until type -P gh > /dev/null; do
     ((waited < ${VERI_TOOL_WAIT:-3600})) || { echo "gh: not found on PATH after ${waited}s" >&2; return 2; }
     nap=${VERI_TOOL_RETRY_SLEEP:-15}
     ((waited < ${VERI_TOOL_FAST_WAIT:-900})) || nap=${VERI_TOOL_SLOW_SLEEP:-900}
     echo "gh: not found on PATH, retrying in ${nap}s" >&2
     sleep "$nap"
-    ((waited += nap))
+    waited=$((SECONDS - first))
   done
   command gh "$@"
 }
