@@ -179,7 +179,10 @@ def main(argv):
     path = skill_edit_guard.list_path(unit)
     if not _claimed(path, unit):
         return 3
-    graded, said = _grade(path, unit)
+    if os.path.getsize(unit):
+        graded, said = _grade(path, unit)
+    else:
+        graded, said = 1, "FAIL: unit is empty\n"
     authored = graded == 1
     with open(unit, "rb") as f:
         before = f.read()
