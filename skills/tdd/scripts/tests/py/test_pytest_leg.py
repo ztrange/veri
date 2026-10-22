@@ -144,29 +144,35 @@ def test_2100_with_no_worker_count_a_leg_starting_beside_registered_legs_takes_o
     assert beside_one == beside_two == ["-q", "some/dir"]
 
 
-def test_2100_with_neither_worker_count_nor_legs_directory_set_a_leg_reads_the_default_registry_under_the_temp_directory_named_for_the_user_and_takes_1_beside_a_live_16_worker_entry(pytest_leg, run_cli, monkeypatch, tmp_path):
+def test_2100_with_neither_worker_count_nor_legs_directory_set_legs_under_two_different_tmpdirs_share_one_registry_under_the_user_home_so_the_second_takes_1_beside_the_first_s_16(pytest_leg, run_cli, monkeypatch, tmp_path):
     import os
     import tempfile
 
     calls = []
+    nested = []
 
     def spy(args):
         calls.append([a for a in args if not a.startswith("--basetemp=")])
+        if not nested:
+            nested.append(True)
+            monkeypatch.setenv("TMPDIR", str(tmp_path / "tmp-b"))
+            monkeypatch.setattr(tempfile, "tempdir", None)
+            assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
         return pytest.ExitCode.OK
 
     monkeypatch.setattr(pytest, "main", spy)
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
-    temp = tmp_path / "temp"
-    legs = temp / ("veri-pytest-legs-%d" % os.getuid())
-    legs.mkdir(parents=True)
-    (legs / str(os.getpid())).write_text("16\n")
-    monkeypatch.setattr(tempfile, "gettempdir", lambda: str(temp))
+    (tmp_path / "tmp-a").mkdir()
+    (tmp_path / "tmp-b").mkdir()
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("TMPDIR", str(tmp_path / "tmp-a"))
+    monkeypatch.setattr(tempfile, "tempdir", None)
     monkeypatch.delenv("VERI_PYTEST_LEGS")
     env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1"}
     assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
-    assert without_selection(calls[0]) == ["-q", "some/dir"]
+    assert without_selection(calls[1]) == ["-q", "some/dir"]
 
 
 def test_2100_a_registry_entry_whose_pid_no_longer_answers_kill_0_holds_no_share_so_a_leg_beside_only_a_stale_16_worker_entry_takes_all_16_cores(pytest_leg, run_cli, monkeypatch, tmp_path):
