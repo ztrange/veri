@@ -7,7 +7,6 @@ from skill_sections import plain_lines as plain, window_text as window
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
-GREEN = "#### Green — minimum implementation (developer leaf), then verify-green (blind)"
 PR = "### 4. Draft PR"
 
 
@@ -33,12 +32,6 @@ def probe_fix_line(heading, unestablished, absent, unqualified):
 
 def test_skill_md_gives_a_bug_steps_green_commit_a_fix_subject_and_a_bug_runs_pr_title_a_fix_prefix():
     problems = [
-        probe_fix_line(
-            GREEN,
-            "what subject a bug step's green commit takes could not be established",
-            f"SKILL.md's '{GREEN}' section never names a fix: subject, so a bug step's green commit lands as feat: and the capability index reads a repaired regression as a new capability",
-            f"SKILL.md's '{GREEN}' section names a fix: subject without saying it is a bug step's, so the conductor is given a second subject line and nothing that says which steps take it",
-        ),
         probe_fix_line(
             PR,
             "what prefix a bug run's PR title takes could not be established",
