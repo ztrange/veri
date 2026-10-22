@@ -4,6 +4,7 @@ import os
 import pathlib
 import subprocess
 import sys
+import time
 
 import pytest
 
@@ -34,6 +35,56 @@ def fake_gh(monkeypatch, answers):
     monkeypatch.setattr(subprocess, "run", fake_run)
     monkeypatch.setattr(subprocess, "Popen", fake_popen)
     return calls
+
+
+def test_gh_missing_from_path_twice_is_waited_out_with_a_stderr_line_per_wait_then_answers_2097(monkeypatch, capsys, github):
+    now = [1000.0]
+    sleeps = []
+    monkeypatch.setattr(time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "sleep", lambda seconds: (sleeps.append(seconds), now.__setitem__(0, now[0] + seconds)))
+    monkeypatch.delenv("VERI_TOOL_RETRY_SLEEP", raising=False)
+    lookups = []
+
+    def fake_run(args, **kwargs):
+        lookups.append(list(args))
+        if len(lookups) <= 2:
+            raise FileNotFoundError(2, "No such file or directory", "gh")
+        return subprocess.CompletedProcess(args, 0, '{"number":7}', "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    run = github.gh_api("repos/{owner}/{repo}/issues/7")
+
+    assert (run.returncode, run.stdout) == (0, '{"number":7}')
+    assert sleeps == [15, 15]
+    assert len(lookups) == 3
+    err_lines = capsys.readouterr().err.splitlines()
+    assert len(err_lines) == 2
+    assert all("gh" in line for line in err_lines)
+
+
+def test_gh_missing_from_path_twice_sleeps_the_veri_tool_retry_sleep_value_before_each_retry_2097(monkeypatch, capsys, github):
+    now = [1000.0]
+    sleeps = []
+    monkeypatch.setattr(time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "sleep", lambda seconds: (sleeps.append(seconds), now.__setitem__(0, now[0] + seconds)))
+    monkeypatch.setenv("VERI_TOOL_RETRY_SLEEP", "2")
+    lookups = []
+
+    def fake_run(args, **kwargs):
+        lookups.append(list(args))
+        if len(lookups) <= 2:
+            raise FileNotFoundError(2, "No such file or directory", "gh")
+        return subprocess.CompletedProcess(args, 0, '{"number":7}', "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    run = github.gh_api("repos/{owner}/{repo}/issues/7")
+
+    assert (run.returncode, run.stdout) == (0, '{"number":7}')
+    assert sleeps == [2, 2]
 
 
 def test_gh_rest_list_answers_each_page_back_to_back_until_the_first_bare_empty_page(monkeypatch, github):

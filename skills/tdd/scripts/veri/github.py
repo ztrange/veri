@@ -13,6 +13,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 
 import tunables
 
@@ -23,7 +24,13 @@ class NoAnswer(Exception):
 
 
 def _gh(*args, stderr=None):
-    return subprocess.run(["gh", *args], stdout=subprocess.PIPE, stderr=stderr, text=True)
+    while True:
+        try:
+            return subprocess.run(["gh", *args], stdout=subprocess.PIPE, stderr=stderr, text=True)
+        except FileNotFoundError:
+            wait = float(tunables.read("VERI_TOOL_RETRY_SLEEP", "15"))
+            print("gh: command not found; waiting %gs" % wait, file=sys.stderr)
+            time.sleep(wait)
 
 
 def gh_api(path):
