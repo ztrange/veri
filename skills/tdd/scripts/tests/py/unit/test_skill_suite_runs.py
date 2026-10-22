@@ -10,7 +10,6 @@ REVISE_MD = SKILL.with_name("REVISE.md")
 CLAUDE = pathlib.Path(__file__).resolve().parents[6] / "CLAUDE.md"
 
 REFACTOR_LOOP = "#### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)"
-DIFF_CHECKED = "#### A `⟦diff-checked⟧` step — develop-diff, then verify-diff (blind)"
 REVISING = "## Revising on a REJECT"
 PHASES = "#### A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier"
 
@@ -117,25 +116,6 @@ def test_skill_md_s_sentence_on_a_break_outside_the_affected_set_points_at_the_d
     assert not problems, "\n".join(problems)
 
 
-def test_974_skill_md_s_diff_checked_section_says_develop_diff_and_verify_diff_each_run_the_fast_tier_plus_the_affected_suites():
-    section = doc_text(SKILL, DIFF_CHECKED)
-    assert section.strip(), "SKILL.md has no diff-checked section to read"
-    problems = fast_plus_affected(before(section, "verifier"), "SKILL.md's develop-diff account", "develop-diff.md tells the leaf to run before it reports")
-    problems += fast_plus_affected(after(section, "verifier"), "SKILL.md's verify-diff account", "verify-diff.md tells the verifier to run")
-    assert not problems, "\n".join(problems)
-
-
-def test_974_skill_md_s_diff_checked_section_s_build_develop_prompt_sh_diff_and_run_verdict_sh_diff_command_lines_pass_the_fast_command():
-    text = doc_text(SKILL, DIFF_CHECKED)
-    assert text.strip(), "SKILL.md has no diff-checked section to read"
-    problems = []
-    if not re.search(r"build-develop-prompt\.sh diff [^,]*<fast-cmd>", text):
-        problems.append("the diff-checked build-develop-prompt.sh diff command line never passes '<fast-cmd>'")
-    if not re.search(r"run-verdict\.sh [^,]*--fast-cmd [^,]* diff ", text):
-        problems.append("the diff-checked run-verdict.sh … diff command line never passes --fast-cmd")
-    assert not problems, "\n".join(problems)
-
-
 def test_974_skill_md_s_revise_diff_command_line_passes_the_fast_command_and_its_diff_re_verify_passes_fast_cmd():
     section = doc_text(REVISE_MD, REVISING, r"^[*][*]The `diff` phase")
     assert section.strip(), "SKILL.md has no '## Revising on a REJECT' section to read"
@@ -190,7 +170,6 @@ def test_skill_md_names_no_full_suite_run_inside_a_step_s_cycle():
 def test_1300_skill_md_runs_suite_reported_sh_before_the_verifier_after_develop_diff_revise_diff_k_and_each_phase_leaf_and_bails_report_missing_on_its_exit_2():
     problems = []
     for label, heading, call in (
-        ("diff-checked step", DIFF_CHECKED, "suite-reported.sh develop-diff"),
         ("phases step", PHASES, "suite-reported.sh develop-<phase>"),
     ):
         body = doc_text(SKILL, heading)
@@ -211,8 +190,6 @@ def test_1300_skill_md_runs_suite_reported_sh_only_after_a_leaf_whose_prompt_ask
     for label, heading in (("Refactor loop", REFACTOR_LOOP), ("Revising on a REJECT", REVISING)):
         if "suite-reported.sh" in doc_text(REVISE_MD if heading == REVISING else SKILL, heading):
             problems.append(f"{label}: runs suite-reported.sh after a leaf whose prompt asks for no SUITE: line")
-    if "suite-reported.sh revise-diff-<k>" not in doc_text(SKILL, DIFF_CHECKED):
-        problems.append("diff-checked step: never runs suite-reported.sh revise-diff-<k>, the leaf the conductor launches")
     assert not problems, "\n".join(problems)
 
 
