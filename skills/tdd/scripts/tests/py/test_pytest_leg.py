@@ -10,6 +10,11 @@ def pytest_leg():
     return importlib.import_module("veri.pytest_leg")
 
 
+def leg_env(**extra):
+    """The env a case hands the launcher to pass its three importable checks, plus the case's own variables."""
+    return {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", **extra}
+
+
 def without_selection(args):
     return importlib.import_module("veri.pytest_leg").split_marks(args)[0]
 
@@ -59,7 +64,7 @@ def test_a_worker_count_that_is_not_a_whole_number_of_at_least_1_exits_2_naming_
     calls = []
     monkeypatch.setattr(pytest, "main", lambda args: calls.append(list(args)) or pytest.ExitCode.OK)
     for value in ("0", "-2", "two", "1.5"):
-        code, out, err = run_cli(pytest_leg, [], env={"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": value})
+        code, out, err = run_cli(pytest_leg, [], env=leg_env(VERI_PYTEST_WORKERS=value))
         assert (code, out) == (2, ""), value
         assert "VERI_PYTEST_WORKERS" in err and value in err, value
     assert calls == []
@@ -87,7 +92,7 @@ def test_a_worker_count_of_n_at_least_2_hands_pytest_n_n_while_1_hands_it_no_wor
 
     monkeypatch.setattr(pytest, "main", spy)
     for workers in ("4", "1"):
-        env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": workers}
+        env = leg_env(VERI_PYTEST_WORKERS=workers)
         assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
     parallel, serial_pass, single, single_serial_pass = [without_selection(c) for c in calls]
     assert "-n" in parallel and parallel[parallel.index("-n") + 1] == "4" or "-n4" in parallel or "--numprocesses=4" in parallel
@@ -109,7 +114,7 @@ def test_with_no_worker_count_the_launcher_hands_pytest_one_worker_per_available
     monkeypatch.setattr(os, "process_cpu_count", lambda: cores["n"], raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(cores["n"])), raising=False)
     for cores["n"], workers in ((6, None), (6, ""), (1, None)):
-        env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_LEGS": str(tmp_path / "legs")}
+        env = leg_env(VERI_PYTEST_LEGS=str(tmp_path / "legs"))
         if workers is not None:
             env["VERI_PYTEST_WORKERS"] = workers
         assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
@@ -138,7 +143,7 @@ def test_2100_with_no_worker_count_a_leg_starting_beside_registered_legs_takes_o
         legs.mkdir()
         for pid, count in zip(live, registered):
             (legs / str(pid)).write_text("%d\n" % count)
-        env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_LEGS": str(legs)}
+        env = leg_env(VERI_PYTEST_LEGS=str(legs))
         assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
     beside_one, _, beside_two, _ = [without_selection(c) for c in calls]
     assert beside_one == beside_two == ["-q", "some/dir"]
@@ -169,7 +174,7 @@ def test_2100_a_leg_starting_with_no_worker_count_when_live_registered_legs_alre
         legs.mkdir()
         for pid, count in zip(others, registered_counts):
             (legs / str(pid)).write_text("%d\n" % count)
-        env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_LEGS": str(legs)}
+        env = leg_env(VERI_PYTEST_LEGS=str(legs))
         assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
     assert registered[0::2] == ["1", "1"]
     assert calls[0::2] == [["-q", "some/dir"]] * 2
@@ -201,7 +206,7 @@ def test_2100_with_neither_worker_count_nor_legs_directory_set_legs_under_two_di
     monkeypatch.setenv("TMPDIR", str(tmp_path / "tmp-a"))
     monkeypatch.setattr(tempfile, "tempdir", None)
     monkeypatch.delenv("VERI_PYTEST_LEGS")
-    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1"}
+    env = leg_env()
     assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
     assert without_selection(calls[1]) == ["-q", "some/dir"]
 
@@ -231,7 +236,7 @@ def test_2100_a_registry_entry_whose_pid_no_longer_answers_kill_0_holds_no_share
     legs = tmp_path / "legs"
     legs.mkdir()
     (legs / str(stale)).write_text("16\n")
-    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_LEGS": str(legs)}
+    env = leg_env(VERI_PYTEST_LEGS=str(legs))
     assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
     assert calls[0][:2] == ["-n", "16"] or "-n16" in calls[0]
 
@@ -261,7 +266,7 @@ def test_2100_a_registry_entry_whose_pid_is_alive_but_owned_by_another_user_stil
     legs = tmp_path / "legs"
     legs.mkdir()
     (legs / str(foreign)).write_text("16\n")
-    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_LEGS": str(legs)}
+    env = leg_env(VERI_PYTEST_LEGS=str(legs))
     assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
     assert "-n" not in calls[0] and not any(a.startswith("-n") for a in calls[0])
 
@@ -282,7 +287,7 @@ def test_2100_a_set_worker_count_is_used_as_given_even_beside_a_live_16_worker_e
     legs = tmp_path / "legs"
     legs.mkdir()
     (legs / str(os.getpid())).write_text("16\n")
-    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_LEGS": str(legs), "VERI_PYTEST_WORKERS": "3"}
+    env = leg_env(VERI_PYTEST_LEGS=str(legs), VERI_PYTEST_WORKERS="3")
     assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
     parallel = without_selection(calls[0])
     assert parallel[parallel.index("-n") + 1] == "3" if "-n" in parallel else "-n3" in parallel or "--numprocesses=3" in parallel
@@ -331,7 +336,7 @@ def test_2100_two_legs_whose_registrations_interleave_at_the_read_together_regis
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
-    for name, value in {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_LEGS": str(legs)}.items():
+    for name, value in leg_env(VERI_PYTEST_LEGS=str(legs)).items():
         monkeypatch.setenv(name, value)
     monkeypatch.delenv("VERI_PYTEST_WORKERS", raising=False)
     monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
@@ -359,7 +364,7 @@ def test_2100_with_no_worker_count_a_leg_registers_its_worker_count_in_the_legs_
     monkeypatch.setattr(os, "cpu_count", lambda: 6)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 6, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(6)), raising=False)
-    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_LEGS": str(legs)}
+    env = leg_env(VERI_PYTEST_LEGS=str(legs))
     codes, after = [], []
     for _ in range(2):
         codes.append(run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0])
@@ -382,7 +387,7 @@ def test_launched_from_inside_an_xdist_worker_with_no_worker_count_the_launcher_
     monkeypatch.setattr(os, "process_cpu_count", lambda: 6, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(6)), raising=False)
     for workers in (None, "3"):
-        env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "PYTEST_XDIST_WORKER": "gw0"}
+        env = leg_env(PYTEST_XDIST_WORKER="gw0")
         if workers is not None:
             env["VERI_PYTEST_WORKERS"] = workers
         assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
@@ -608,7 +613,7 @@ def test_a_serial_marked_case_is_scheduled_in_a_pass_of_its_own_after_the_parall
         return all(Expression.compile(e).evaluate(lambda name: name in marks) for e in expressions)
 
     monkeypatch.setattr(pytest, "main", spy)
-    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "4"}
+    env = leg_env(VERI_PYTEST_WORKERS="4")
     code = run_cli(pytest_leg, ["-m", "not process", "some/dir"], env=env)[0]
     assert len(calls) == 2, calls
     parallel, serial = calls
@@ -656,8 +661,7 @@ def run_the_real_leg_over(run_cli, tmp_path, cases, selection=()):
     (planted / "conftest.py").write_text(PLANTED_CONFTEST)
     (planted / "test_planted.py").write_text(PLANTED_RAN + cases)
     log = tmp_path / "ran.log"
-    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1",
-           "VERI_PYTEST_WORKERS": "2", "PLANTED_LOG": str(log)}
+    env = leg_env(VERI_PYTEST_WORKERS="2", PLANTED_LOG=str(log))
     try:
         code, out, err = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", *selection, str(planted)], env=env)
     finally:
@@ -704,7 +708,7 @@ def test_a_caller_selection_that_filters_the_serial_case_out_never_runs_it_yet_t
 def test_a_pass_that_collects_nothing_counts_as_passed_beside_a_passing_one_while_a_failure_in_either_pass_exits_1_2092(pytest_leg, run_cli, monkeypatch, parallel, serial, code):
     statuses = iter([parallel, serial])
     monkeypatch.setattr(pytest, "main", lambda args: next(statuses))
-    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "4"}
+    env = leg_env(VERI_PYTEST_WORKERS="4")
 
     assert run_cli(pytest_leg, ["some/dir"], env=env)[0] == code
     assert next(statuses, None) is None
