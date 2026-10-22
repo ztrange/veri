@@ -23,8 +23,17 @@ ALLOWED = {
     "unit/test_skill_suite_runs.py::test_1300_skill_md_runs_suite_reported_sh_only_after_a_leaf_whose_prompt_asks_for_a_suite_line_never_after_the_refactor_leaf_or_a_revise_of_red_green_or_refactor":
         "absence assertion; the prose states nothing about it",
     "test_skill_leaf_env.py": "launch lines are Launching a leaf instances",
-    "test_skill_leaf_launch.py": "launch lines are Launching a leaf instances",
 }
+
+# A heading named in any case, as a regex or a plain string: `(?i)^#{4}\s+refactor\s+loop`, `#### refactor loop`,
+# `refactor loop`. Optional anchors, inline flags, `#` runs and whitespace may lead; `refactor` then `loop` must follow.
+HEADING_IN_ANY_CASE = re.compile(
+    r"(?:\(\?[a-zA-Z]+\)|\^|\\A|\\?#|\[#\]|\{\d+(?:,\d*)?\}|[+*?]|\s|\\s)*"
+    r"refactor(?:\s|\\s|[+*.]|\[ \])+loop",
+    re.I)
+
+# SKILL.md reached through a path literal, whatever the variable is called: `SCRIPTS.parent / "SKILL.md"`.
+SKILL_PATH_LITERAL = re.compile(r"(?:.*/)?SKILL\.md")
 
 
 def _flat(text):
@@ -40,9 +49,9 @@ def _subsection_and_rest():
 
 
 def _names_the_heading(literal):
-    """The subsection's heading, or a prefix of it from `#### Refactor loop` on: a case slicing SKILL.md by it
-    reads the subsection whatever it asserts, however short."""
-    return literal.startswith(PREFIX) and HEADING.startswith(literal)
+    """The subsection's heading, or a prefix of it from `#### Refactor loop` on, in any case and as a regex too: a
+    case slicing SKILL.md by it reads the subsection whatever it asserts, however short."""
+    return (literal.startswith(PREFIX) and HEADING.startswith(literal)) or bool(HEADING_IN_ANY_CASE.match(literal))
 
 
 def _only_in_subsection(literal, subsection, rest):
@@ -69,8 +78,8 @@ def _readers(path, subsection, rest, docs):
     segments, literals, reads = {}, {}, {}
     for node in own:
         fragments = {id(v) for j in ast.walk(node) if isinstance(j, ast.JoinedStr) for v in j.values}
-        strings = [c.value for c in ast.walk(node)
-                   if isinstance(c, ast.Constant) and isinstance(c.value, str) and id(c) not in fragments]
+        strings = [c.value if isinstance(c.value, str) else c.value.decode("utf-8", "replace") for c in ast.walk(node)
+                   if isinstance(c, ast.Constant) and isinstance(c.value, (str, bytes)) and id(c) not in fragments]
         names = {n.id for n in ast.walk(node) if isinstance(n, ast.Name)}
         if isinstance(node, ast.FunctionDef):
             segments[node.name] = ast.get_source_segment(text, node)
@@ -107,7 +116,8 @@ def _readers(path, subsection, rest, docs):
         name for name in segments
         if name.startswith("test_")
         and reads_the_subsection(reach(name))
-        and any(re.fullmatch(r"SKILL(?:_MD)?|skill_lines", i) for n in reach(name) for i in reads[n])
+        and (any(re.fullmatch(r"SKILL(?:_MD)?|skill_lines", i) for n in reach(name) for i in reads[n])
+             or any(SKILL_PATH_LITERAL.fullmatch(s) for n in reach(name) for s in literals[n]))
     )
 
 
@@ -120,7 +130,7 @@ def test_every_remaining_case_reading_the_refactor_loop_subsection_by_its_conten
         if path == pathlib.Path(__file__).resolve():
             continue
         rel = str(path.relative_to(TESTS_PY))
-        if rel in ALLOWED:
+        if rel in ALLOWED:  # a whole-file entry: keyed by the path under tests/py, never a bare file name
             continue
         stray += [f"{rel}::{name}" for name in _readers(path, subsection, rest, docs) if f"{rel}::{name}" not in ALLOWED
                   and f"{path.name}::{name}" not in ALLOWED]
