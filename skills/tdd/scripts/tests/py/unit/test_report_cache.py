@@ -248,3 +248,31 @@ def test_refresh_whose_gh_read_is_unparseable_exits_2_with_one_stderr_line_and_l
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
     assert (code, out, len(err.splitlines()), err.startswith("report-cache.sh:"), cache_file.read_bytes() == before) == (2, "", 1, True, True)
+
+
+def test_refresh_reads_the_lane_line_of_the_last_metrics_comment_into_the_issue_lane(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    metrics = "### 📊 Metrics\n\nOutcome: merged.\nLane: %s\nWall time for the issue: 100 s, from the last `resume`.\n"
+    issues = [
+        {"number": 7, "title": "laned", "state": "CLOSED", "labels": [],
+         "closedAt": "2026-10-21T09:00:00Z", "updatedAt": "2026-10-21T09:00:00Z",
+         "comments": [{"body": metrics % "old-lane"}, {"body": "thanks"}, {"body": metrics % "fast-lane"}]},
+    ]
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] != ["gh", "issue", "list"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
+    lanes = {i["number"]: i.get("lane") for i in cache["issues"]}
+    assert (code, lanes) == (0, {7: "fast-lane"})
