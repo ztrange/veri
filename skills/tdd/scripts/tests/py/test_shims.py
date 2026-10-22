@@ -1,6 +1,8 @@
 """The one check that every top-level skills/tdd/scripts/*.sh is the canonical shim over a module under veri/."""
 import importlib
+import os
 import subprocess
+import sys
 
 import pytest
 
@@ -289,3 +291,19 @@ def test_the_every_shim_guard_finds_no_offender_among_the_real_scripts_including
 
     assert (SCRIPTS / "stop-run.sh").is_file()
     assert shim_source_problems(SCRIPTS) == []
+
+
+@pytest.mark.process("leaf-role.sh started with VERI_VENV naming a directory that has no bin/python3")
+def test_issue_2106_shim_with_a_venv_lacking_python3_runs_its_module_on_the_python3_on_path(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    path_python = bin_dir / "python3"
+    path_python.write_text('#!/bin/sh\nexec "%s" "$@"\n' % sys.executable)
+    path_python.chmod(0o755)
+    (tmp_path / "venv" / "bin").mkdir(parents=True)
+    env = {"PATH": "%s:/usr/bin:/bin" % bin_dir, "VERI_VENV": str(tmp_path / "venv"), "HOME": str(tmp_path)}
+
+    result = subprocess.run([str(SCRIPTS / "leaf-role.sh"), "develop-red"], capture_output=True, text=True, env=env)
+
+    assert (result.returncode, result.stdout, result.stderr) == (
+        0, "VERI_ACTOR=developer VERI_PHASE=red VERI_ATTEMPT=1\n", "")
