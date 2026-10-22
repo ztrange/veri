@@ -480,3 +480,11 @@ def test_gh_issue_edit_waits_out_a_gh_missing_from_path_sleeping_the_retry_namin
     taken = sleeps.read_text().split() if sleeps.exists() else []
     answered = (tmp_path / "calls").read_text().split() if (tmp_path / "calls").exists() else []
     assert (ran.returncode, ran.stdout, taken, len(named), answered[:2]) == (0, "", ["7"], 1, ["gh", "api"]), ran.stderr
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_gh_that_runs_and_fails_with_a_code_other_than_127_is_run_once_never_waited_on_and_returns_its_code_issue_2097(tmp_path):
+    env = {name: "0" for name in ("VERI_TOOL_RETRY_SLEEP", "VERI_TOOL_FAST_WAIT", "VERI_TOOL_SLOW_SLEEP", "VERI_TOOL_WAIT")}
+    for code in (1, 2, 5, 126):
+        code_out, stdout, stderr, calls = run_lib(tmp_path, f"exit {code}\n", "gh api x; echo \"rc=$?\"", env=env)
+        assert (code_out, stdout, stderr, calls) == (0, f"rc={code}\n", "", ["gh api x"]), (code, stderr)
