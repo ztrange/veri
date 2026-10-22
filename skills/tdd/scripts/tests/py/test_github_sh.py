@@ -424,7 +424,7 @@ def test_with_the_driver_unset_a_gh_pr_ready_refused_with_403_is_never_run_and_t
     assert not started(calls, "gh pr")
 
 
-NO_WAIT = {name: "0" for name in ("VERI_TOOL_RETRY_SLEEP", "VERI_TOOL_FAST_WAIT", "VERI_TOOL_SLOW_SLEEP", "VERI_TOOL_WAIT")}
+NO_WAIT = {"VERI_TOOL_RETRY_SLEEP": "1", "VERI_TOOL_FAST_WAIT": "0", "VERI_TOOL_SLOW_SLEEP": "1", "VERI_TOOL_WAIT": "0"}
 
 
 def run_without_gh(tmp_path, call, env, tools=("bash",), sleep_after=None):
@@ -471,7 +471,9 @@ def test_gh_issue_edit_returns_2_naming_the_missing_gh_when_no_directory_on_path
 def test_gh_issue_edit_sleeps_the_retry_then_the_slow_interval_naming_gh_each_wait_and_returns_2_once_the_wait_is_spent_issue_2097(tmp_path):
     env = {"VERI_TOOL_RETRY_SLEEP": "2", "VERI_TOOL_FAST_WAIT": "5", "VERI_TOOL_SLOW_SLEEP": "4", "VERI_TOOL_WAIT": "13"}
 
-    code, _, named, taken = run_without_gh(tmp_path, 'gh_issue_edit 7 "$BODY"', env, sleep_after="")
+    clocked_sleep = 'sleep() { echo "$1" >> "$SLEEPS"; SECONDS=$((SECONDS + $1)); }; '
+
+    code, _, named, taken = run_without_gh(tmp_path, clocked_sleep + 'gh_issue_edit 7 "$BODY"', env)
 
     assert (code, taken, len(named)) == (2, ["2", "2", "2", "4", "4"], 6), named
 
