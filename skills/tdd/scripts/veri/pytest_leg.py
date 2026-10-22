@@ -3,7 +3,9 @@
 # Exit:    0 pytest passed, 1 any other pytest status
 #          2 the interpreter is below the floor in lib/venv-python.sh, or cannot import pytest, pytest_timeout or xdist,
 #            or VERI_PYTEST_WORKERS is not a whole number of at least 1
+import hashlib
 import importlib.util
+import json
 import os
 import platform
 import re
@@ -23,6 +25,35 @@ def worker_count(requested):
     if hasattr(os, "sched_getaffinity"):
         return len(os.sched_getaffinity(0))
     return os.cpu_count() or 1
+
+
+def drop_stale_bytecode():
+    prefix = sys.pycache_prefix
+    if not prefix:
+        return
+    manifest = os.path.join(prefix, "sources.json")
+    try:
+        with open(manifest) as handle:
+            known = json.load(handle)
+    except (OSError, ValueError):
+        known = {}
+    current = {}
+    for folder, _, files in os.walk(prefix):
+        source_dir = os.sep + os.path.relpath(folder, prefix)
+        for name in files:
+            if not name.endswith(".pyc"):
+                continue
+            path = os.path.join(source_dir, name.split(".cpython")[0] + ".py")
+            if path not in current:
+                try:
+                    with open(path, "rb") as source:
+                        current[path] = hashlib.sha256(source.read()).hexdigest()
+                except OSError:
+                    continue
+            if path in known and known[path] != current[path]:
+                os.remove(os.path.join(folder, name))
+    with open(manifest, "w") as handle:
+        json.dump(current, handle)
 
 
 def main(argv):
@@ -45,6 +76,7 @@ def main(argv):
     if workers and not re.fullmatch("[1-9][0-9]*", workers):
         sys.stderr.write("VERI_PYTEST_WORKERS must be a whole number of at least 1; got %s.\n" % workers)
         return 2
+    drop_stale_bytecode()
     import pytest
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     os.environ["PYTEST_PLUGINS"] = ",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "small_case_guard", "network_guard", "private_tmp_path"]))
@@ -56,6 +88,7 @@ def main(argv):
             count = worker_count(workers)
             parallel = ["-n", str(count)] if count >= 2 else []
             status = pytest.main(["--basetemp=" + base] + parallel + argv)
+            drop_stale_bytecode()
     finally:
         signal.signal(signal.SIGTERM, previous)
     return 0 if status == pytest.ExitCode.OK else 1

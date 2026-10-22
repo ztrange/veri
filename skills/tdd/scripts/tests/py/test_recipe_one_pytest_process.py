@@ -170,3 +170,28 @@ def test_a_second_make_unit_over_an_unchanged_tree_leaves_the_bytecode_the_first
     assert (first[0], second[0]) == (0, 0), first[2] + second[2]
     assert after_first, "the first run left no bytecode for the planted test module"
     assert cached() == after_first
+
+
+@pytest.mark.process("make unit started for real twice over a planted tree, a test module edited to same-size contents with its mtime set back between the runs")
+def test_a_test_module_edited_to_same_size_contents_within_the_same_second_is_recompiled_while_an_unchanged_one_keeps_its_bytecode(tmp_path):
+    original = PLANTED_CASES.split("@pytest.mark.process")[0].replace("pytest small", "alpha")
+    tree, log = planted_tree(tmp_path, small=original), tmp_path / "ran.log"
+    venv = os.environ.get("VERI_VENV") or os.path.join(os.path.expanduser("~"), ".veri-tools", "venv")
+    home, scratch = tmp_path / "home", tmp_path / "scratch"
+    home.mkdir()
+    scratch.mkdir()
+    env = {"VERI_VENV": venv, "HOME": str(home), "TMPDIR": str(scratch)}
+    edited = tree / "skills" / "tdd" / "scripts" / "tests" / "py" / "unit" / "test_planted_small.py"
+
+    def cached(stem):
+        return {str(p): (p.stat().st_ino, p.stat().st_mtime_ns) for p in scratch.rglob(stem + "*.pyc")}
+
+    first = make(tree, log, "unit", **env)
+    mtime = edited.stat().st_mtime_ns
+    unchanged = cached("conftest")
+    edited.write_text(original.replace("alpha", "bravo"))
+    os.utime(edited, ns=(mtime, mtime))
+    second = make(tree, log, "unit", **env)
+    assert (first[0], first[1], second[0], second[1]) == (0, ["alpha"], 0, ["bravo"]), first[2] + second[2]
+    assert unchanged, "the first run left no bytecode for the planted conftest"
+    assert cached("conftest") == unchanged
