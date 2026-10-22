@@ -9,6 +9,8 @@ A revise of red, green or refactor is built from a prompt that asks for no `SUIT
 exits 0 straight into its verifier and nothing checks for the line. The `diff` revise does ask for one:
 its check is stated under *A `⟦diff-checked⟧` step*.
 
+The phases sent to `build-develop-prompt.sh revise <phase>` are red, green, refactor, diff, rebase and the interface phases expand, migrate, contract-a, contract-b; a rebase rejection (the Draft PR step's rebase verifier) is revised as `revise rebase`.
+
 A revise of green whose leaf reports `WRONG_TEST: <why>` is exempt from the `SUITE:` line and is routed as a
 develop-green `WRONG_TEST:` report is: `$S/wrong-test-route.sh .tdd/revise-green-<k>.out '<target-test-id>'` runs
 before the attempt is counted; its exit 0 writes no `revise` mark, spends no `REVISE_BUDGET` attempt and launches
