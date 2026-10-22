@@ -821,3 +821,35 @@ def test_a_graded_run_exits_0_and_prints_no_leaf_role_line_on_stderr_1887(tmp_pa
                                "CLAUDE_BIN": str(claude)})
 
     assert (done.returncode, "leaf-role" in done.stderr) == (0, False), (done.returncode, done.stderr)
+
+
+@pytest.mark.process("the SKILL.md regrade block run in a git repo with a stub claude through supervise.sh")
+def test_2037_the_draft_pr_regrade_block_run_as_written_on_a_branch_that_signed_one_unit_exits_0(tmp_path):
+    skill = (SCRIPTS.parents[2] / "skills" / "tdd" / "SKILL.md").read_text()
+    draft = skill[skill.index("regrade every unit the run signed"):]
+    block = re.search(r"```\n(.*?)```", draft, re.S).group(1).replace("<default>", "main")
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    def git(*argv):
+        subprocess.run(["git", *argv], cwd=tmp_path, env=env, check=True, capture_output=True)
+
+    git("init", "-q", "-b", "main")
+    git("commit", "-q", "--allow-empty", "-m", "base")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    git("checkout", "-q", "-b", "work")
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "guide" / "REQUIREMENTS.md").write_text(REQUIREMENTS.replace("## guide/unit.md", "## guide/unit.md", 1))
+    (tmp_path / "guide" / "GRADED").write_text("guide/unit.md 0 2026-01-01 id\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "sign one unit")
+    claude = tmp_path / "claude"
+    claude.write_text(STUB)
+    claude.chmod(0o755)
+
+    ran = subprocess.run(["bash", "-c", block], cwd=tmp_path, capture_output=True, text=True,
+                         env={**env, "S": str(SCRIPTS), "CLAUDE_BIN": str(claude),
+                              "STUB_RECORD": str(tmp_path / "record.txt")})
+
+    assert ran.returncode == 0, ran.stdout + ran.stderr
