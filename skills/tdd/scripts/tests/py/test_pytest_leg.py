@@ -208,7 +208,7 @@ def test_a_small_case_that_starts_git_fails_under_the_launcher_with_its_failure_
     done = subprocess.run(
         [sys.executable, "-c", "import runpy, sys; sys.argv[0] = sys.argv.pop(1); runpy.run_path(sys.argv[0], run_name='__main__')",
          os.path.join(scripts, "veri", "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],
-        cwd=tmp_path, env=dict(os.environ, PATH=path, PYTHONPATH=os.path.join(scripts, "veri")), capture_output=True, text=True, timeout=60,
+        cwd=tmp_path, env=dict(os.environ, VERI_PYTEST_WORKERS="1", PATH=path, PYTHONPATH=os.path.join(scripts, "veri")), capture_output=True, text=True, timeout=60,
     )
     assert done.returncode == 1
     assert "git" in (done.stdout + done.stderr).split("test_runs_git", 1)[-1]
@@ -242,7 +242,7 @@ def test_a_small_case_that_starts_python3_on_a_script_outside_veri_fails_naming_
     done = subprocess.run(
         [sys.executable, "-c", "import runpy, sys; sys.argv[0] = sys.argv.pop(1); runpy.run_path(sys.argv[0], run_name='__main__')",
          os.path.join(veri, "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],
-        cwd=tmp_path, env=dict(os.environ, PATH=path, PYTHONPATH=veri), capture_output=True, text=True, timeout=60,
+        cwd=tmp_path, env=dict(os.environ, VERI_PYTEST_WORKERS="1", PATH=path, PYTHONPATH=veri), capture_output=True, text=True, timeout=60,
     )
     out = done.stdout + done.stderr
     assert "1 failed, 1 passed" in out
@@ -292,7 +292,7 @@ def test_a_case_that_connects_to_a_non_loopback_address_or_starts_gh_or_curl_fai
     done = subprocess.run(
         [sys.executable, "-c", "import runpy, sys; sys.argv[0] = sys.argv.pop(1); runpy.run_path(sys.argv[0], run_name='__main__')",
          os.path.join(veri, "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],
-        cwd=tmp_path, env=dict(os.environ, PATH=path, PYTHONPATH=veri), capture_output=True, text=True, timeout=60,
+        cwd=tmp_path, env=dict(os.environ, VERI_PYTEST_WORKERS="1", PATH=path, PYTHONPATH=veri), capture_output=True, text=True, timeout=60,
     )
     out = done.stdout + done.stderr
     assert "3 failed, 1 passed" in out
@@ -333,7 +333,7 @@ def test_a_gh_or_curl_stub_a_case_plants_under_the_run_s_basetemp_starts_and_pas
     done = subprocess.run(
         [sys.executable, "-c", "import runpy, sys; sys.argv[0] = sys.argv.pop(1); runpy.run_path(sys.argv[0], run_name='__main__')",
          os.path.join(veri, "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],
-        cwd=tmp_path, env=dict(os.environ, PYTHONPATH=veri), capture_output=True, text=True, timeout=60,
+        cwd=tmp_path, env=dict(os.environ, VERI_PYTEST_WORKERS="1", PYTHONPATH=veri), capture_output=True, text=True, timeout=60,
     )
     out = done.stdout + done.stderr
     assert "2 passed" in out and "failed" not in out
