@@ -1533,7 +1533,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    **system** failure (`no-verdict`), with the PR left a draft. An exit 0 — the branch was
    behind and the rebase applied cleanly — has changed the tree, and the first line it
    printed is `<pre-rebase-sha>`, the sha the branch held before the rebase. The rebased tip
-   is a tree no suite has run on, and two green branches can combine into a red one, so run
+   is a tree no suite has run on, and two green branches can combine into a red one, so first run
+   the regrade block below on it, which re-signs a `GRADED` line the rebase alone made stale, and then run
    the full test command (`$S/detect-test-command.sh --tier all`'s, via `detach-command.sh`) once on the rebased tip,
    in the same start-then-wait shape as the preflight baseline, and read its exit code from `wait`.
    A red result on the rebased tip does **bail**, as a **process** failure
@@ -1567,7 +1568,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    `REVISE_BUDGET` like any other phase; a malformed verdict does **bail** as a **system**
    failure (`no-verdict`).
    Only on a verify-rebase `PASS` does the run go on to ready the PR, and first as on exit 0:
-   the full test command once on the rebased tip, a bail on red (`rebased-tip-red`) with
+   the regrade block below, then the full test command once on the rebased tip, a bail on red (`rebased-tip-red`) with
    `git reset --hard <pre-rebase-sha>` before `<base directory>/BAIL.md`'s push, and on green the push under
    the lease pinned to `<pre-rebase-sha>`.
 
@@ -1582,7 +1583,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    bail comment naming every conflicting file `rebase-onto-default.sh` printed, so the human
    it hands the conflict to knows where it is.
 
-   Then, after the run's last rebase and before the PR is readied, regrade every unit the run signed on the rebased tip with `grade-prose.sh`, and read the block's exit: exit 1 (a REJECT) is handled as a red full suite is, by appending a repair step; exit 2 (no verdict could be obtained) is a system-failure bail with cause `no-verdict` (see `<base directory>/BAIL.md`), never a repair step. Once that repair step's cycle closes, the run comes back to this Draft PR step and runs the full suite again, then the rebase and the regrade, as it does after a `⟦suite-repair⟧` step.
+   The regrade runs after the run's last rebase and before the full suite runs on the rebased tip, so a `GRADED` line made stale only by the rebase never turns that suite red; with no rebase it runs here, before the PR is readied. It regrades every unit the run signed with `grade-prose.sh`, and reads the block's exit: exit 1 (a REJECT) is handled as a red full suite is, by appending a repair step; exit 2 (no verdict could be obtained) is a system-failure bail with cause `no-verdict` (see `<base directory>/BAIL.md`), never a repair step. Once that repair step's cycle closes, the run comes back to this Draft PR step and runs the full suite again, then the rebase and the regrade, as it does after a `⟦suite-repair⟧` step.
    ```
    base=$(git merge-base HEAD origin/<default>)
    git diff "$base" HEAD -U0 -- '*/GRADED' | sed -n 's/^+\([^+][^ ]*\) .*/\1/p' | { rc=0; while read -r unit; do
