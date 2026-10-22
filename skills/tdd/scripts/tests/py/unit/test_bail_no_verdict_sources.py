@@ -42,3 +42,20 @@ def test_2152_bail_md_no_verdict_entry_names_every_source_and_calls_it_a_system_
         "extra": ["extra bogus.sh"],
         "process": ["not a system failure"],
     }
+
+
+def test_2152_planted_no_verdict_entries_are_each_refused_by_the_one_fixed_list():
+    names = ", ".join(f"`{name}`" for name in NO_VERDICT_SOURCES)
+    whole = f"- `no-verdict` exit 2 from {names}: a **system** failure.\n- `other` x.\n"
+
+    assert {
+        "whole": entry_problems(whole),
+        "dropped": entry_problems(whole.replace("`grade-prose.sh`, ", "")),
+        "extra": entry_problems(whole.replace("`verify.sh`", "`verify.sh`, `bogus.sh`")),
+        "process": entry_problems(whole.replace("**system**", "**process**")),
+    } == {
+        "whole": [],
+        "dropped": ["missing grade-prose.sh"],
+        "extra": ["extra bogus.sh"],
+        "process": ["not a system failure"],
+    }
