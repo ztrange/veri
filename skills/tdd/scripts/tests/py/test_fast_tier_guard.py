@@ -642,3 +642,20 @@ def test_a_planted_test_file_naming_a_test_file_as_a_table_key_is_exempt_only_wh
     found = guard.offences(tmp_path)
 
     assert found == [f"{tmp_path / 'test_other.py'}:4: runs a nested suite"]
+
+
+def test_2168_the_readers_audit_suites_and_their_index_guard_live_under_tests_py_unit_and_not_beside_it():
+    tier = SCRIPTS / "tests" / "py"
+    names = (
+        "test_readers_tree_index.py",
+        "test_skill_cost_check_readers.py",
+        "test_skill_diff_checked_readers.py",
+        "test_skill_green_readers.py",
+        "test_skill_phased_readers.py",
+        "test_skill_plan_readers.py",
+        "test_skill_red_readers.py",
+        "test_tree_index_guard.py",
+    )
+    assert [(name, (tier / name).is_file(), (tier / "unit" / name).is_file()) for name in names] == [
+        (name, False, True) for name in names
+    ]

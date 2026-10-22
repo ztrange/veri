@@ -1,38 +1,36 @@
-"""Cases for which suites still read SKILL.md's `#### A ⟦phases: …⟧ step — each listed phase, a developer leaf then a blind verifier` subsection by its content."""
+"""Cases for which suites still read SKILL.md's `#### A ⟦diff-checked⟧ step — develop-diff, then verify-diff (blind)` subsection by its content."""
 import ast
 import pathlib
 import re
 
 import pytest
 
-TESTS_PY = pathlib.Path(__file__).resolve().parent
+TESTS_PY = pathlib.Path(__file__).resolve().parent.parent
 SKILL_MD = TESTS_PY.parents[2] / "SKILL.md"
-PREFIX = "#### A `⟦phases: …⟧` step"
-HEADING = "#### A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier"
+PREFIX = "#### A `⟦diff-checked⟧` step"
+HEADING = "#### A `⟦diff-checked⟧` step — develop-diff, then verify-diff (blind)"
 
 MARKERS = (
-    HEADING, "next-phase", "--phase-owed", "--phase <phase>", "production-frozen.sh", "no-product-caller.sh",
+    HEADING, "verdict-diff", "<step-base-sha>", "revise-diff-<k>",
+    "git log -1 --format=%H -- .tdd/issue-<n>.md",
 )
 
 ALLOWED = {
-    "unit/test_skill_refactor_kind.py::test_skill_md_puts_mutation_parity_sh_s_report_into_the_pr_body_as_the_pairs_table_and_each_row_it_reports_owed_under_owed_by_a_human":
-        "windows around every mutation-parity.sh in the document",
-    "unit/test_skill_refactor_kind.py::test_skill_md_s_draft_pr_step_puts_the_conductor_s_mutation_parity_sh_report_into_the_pr_body_template_…":
-        "windows around every mutation-parity.sh in the document",
-    "unit/test_skill_stopping.py::test_each_phases_leaf_exit_2_branch_points_back_to_launching_a_leaf_where_stop_requested_is_asked_before_the_exit_2_is_read_as_killed_stuck":
-        "its rows are verify-plan, Red, Green, Refactor loop and Revising",
+    "test_skill_leaf_launch.py": "parses the document's launch lines and runs the leaf-launch guard over them, the develop-diff and verdict-diff lines among them",
+    "test_skill_leaf_env.py": "runs every launch line against a stub claude and checks what the leaf saw",
+    "test_suite_reported_process.py": "runs suite-reported.sh, which the subsection calls",
+    "test_build_develop_prompt_process.py": "runs build-develop-prompt.sh, which the subsection calls",
+    "test_verify.py": "runs the verifier script the subsection calls",
+    "test_prompt_test_tiers.py": "checks the tiers a rendered prompt names",
+    "unit/test_build_develop_prompt.py": "unit cases of build-develop-prompt.sh",
+    "unit/test_build_verify_prompt.py": "unit cases of build-verify-prompt.sh",
+    "unit/test_commit_suffix.py": "unit cases of the commit suffix helper",
+    "unit/test_ledger.py": "unit cases of the ledger helper",
+    "unit/test_skill_verify_step.py": "no CY row: document-wide; verify.sh calls only",
+    "unit/test_skill_stopping.py": "no CY row: document-wide stop-check cases",
     "unit/test_skill_event_files.py::test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_1855":
-        "document-wide site list",
-    "unit/test_skill_suite_runs.py::test_skill_md_s_phase_sections_and_claude_md_say_which_leaves_run_the_full_suite":
-        "reads Red, the Refactor loop and CLAUDE.md, not this subsection",
-    "test_skill_leaf_launch.py": "launch lines are Launching a leaf instances",
-    "test_skill_leaf_env.py": "launch lines are Launching a leaf instances",
-    "test_ledger_steps.py": "script suite", "test_tick_ledger.py": "script suite", "test_next_unchecked.py": "script suite",
-    "test_transform_touches_tests.py": "script suite", "test_production_frozen_process.py": "script suite",
-    "test_no_product_caller_process.py": "script suite", "test_tests_frozen_process.py": "script suite",
-    "test_suite_reported_process.py": "script suite", "test_prompt_test_tiers.py": "script suite",
-    "test_build_develop_prompt.py": "script suite", "test_build_verify_prompt.py": "script suite",
-    "test_metrics.py": "the phases fixtures",
+        "no CY row: document-wide site list",
+    "test_skill_leaf_env.py::test_907_the_revise_diff_prompt_line": "runs build-develop-prompt.sh revise diff from REVISE.md",
 }
 
 
@@ -49,13 +47,13 @@ def _subsection_and_rest():
 
 
 def _names_the_heading(literal):
-    """The subsection's heading, or a prefix of it from `#### A `⟦phases: …⟧` step` on: a case slicing SKILL.md by it
+    """The subsection's heading, or a prefix of it from `#### A `⟦diff-checked⟧` step` on: a case slicing SKILL.md by it
     reads the subsection whatever it asserts, however short."""
     return literal.startswith(PREFIX) and HEADING.startswith(literal)
 
 
 def _only_in_subsection(literal, subsection, rest):
-    """A phrase a case could only have copied from the phased-step subsection: three or more words no
+    """A phrase a case could only have copied from the diff-checked subsection: three or more words no
     other part of SKILL.md, nor another skill document the case names, carries.
     One or two words read as script vocabulary or a case's own message, so neither counts."""
     flat = _flat(literal)
@@ -121,7 +119,7 @@ def _readers(entry, subsection, rest, docs):
 
 
 @pytest.mark.tree_audit("every test file under skills/tdd/scripts/tests/py")
-def test_every_remaining_case_reading_the_phases_step_subsection_by_its_content_is_on_the_mechanical_allow_list(tests_py_index):
+def test_every_remaining_case_reading_the_diff_checked_subsection_by_its_content_is_on_the_mechanical_allow_list(tests_py_index):
     subsection, rest = _subsection_and_rest()
     docs = _other_docs()
     stray = []
@@ -134,4 +132,4 @@ def test_every_remaining_case_reading_the_phases_step_subsection_by_its_content_
             continue
         stray += [f"{rel}::{name}" for name in _readers(entry, subsection, rest, docs) if f"{rel}::{name}" not in ALLOWED
                   and f"{path.name}::{name}" not in ALLOWED]
-    assert stray == [], "cases read the phased-step subsection by content and are neither mechanical nor allow-listed:\n" + "\n".join(stray)
+    assert stray == [], "cases read the diff-checked subsection by content and are neither mechanical nor allow-listed:\n" + "\n".join(stray)
