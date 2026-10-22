@@ -33,7 +33,7 @@ def orphans(units):
 
 
 def owed_listed(path="REQUIREMENTS.md"):
-    paths = [p for p in [path] + sorted(glob.glob("skills/*/**/REQUIREMENTS.md", recursive=True)) if os.path.exists(p)]
+    paths = [p for p in [path] + sorted(set(glob.glob("*/REQUIREMENTS.md")) | set(glob.glob("skills/*/**/REQUIREMENTS.md", recursive=True))) if os.path.exists(p)]
     listed = [(p, u) for p in paths for u in requirements.listed_units(p)]
     owed = [(p, u) for p, u in listed if graded_signature(u) != grade_prose.signature(p, u)]
     return owed, list(orphans([u for _, u in listed]))

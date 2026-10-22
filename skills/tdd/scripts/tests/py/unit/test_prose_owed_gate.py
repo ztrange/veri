@@ -145,3 +145,22 @@ def test_prose_owed_sh_reads_a_requirements_list_beside_a_nested_unit_and_prints
     code, out, err = run_cli(prose_owed, [str(tmp_path)])
 
     assert (code, out.split()) == (1, ["skills/demo/prompts/P.md"]), (code, out, err)
+
+
+def test_prose_owed_sh_prints_a_graded_unit_outside_skills_after_its_prose_changes_by_one_byte_2025(tmp_path, monkeypatch, run_cli):
+    import importlib
+
+    prose_owed = importlib.import_module("veri.prose_owed")
+    grade_prose = importlib.import_module("veri.grade_prose")
+    (tmp_path / "operator").mkdir()
+    (tmp_path / "operator" / "PRINCIPLES.md").write_text("The widget is blue.\n")
+    (tmp_path / "operator" / "REQUIREMENTS.md").write_text(
+        "## operator/PRINCIPLES.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    monkeypatch.chdir(tmp_path)
+    sig = grade_prose.signature("operator/REQUIREMENTS.md", "operator/PRINCIPLES.md")
+    (tmp_path / "operator" / "GRADED").write_text("operator/PRINCIPLES.md %s g1\n" % sig)
+    (tmp_path / "operator" / "PRINCIPLES.md").write_text("The widget is blue!\n")
+
+    code, out, err = run_cli(prose_owed, [str(tmp_path)])
+
+    assert (code, out.split()) == (1, ["operator/PRINCIPLES.md"]), (code, out, err)
