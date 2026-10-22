@@ -1,6 +1,7 @@
 """In-process cases for veri/stop_run.py, the module stop-run.sh is a shim over."""
 import importlib
 import os
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -486,6 +487,9 @@ def mutant_of(source, before, inserted, destination):
     """A copy of stop-run.sh with <inserted> on a line of its own before the first line starting <before>."""
     (destination / "veri").parent.mkdir(parents=True, exist_ok=True)
     subprocess.run(["cp", "-R", str(SCRIPTS / "veri"), str(destination / "veri")], check=True)
+    if (SCRIPTS / "lib" / "shim-python.sh").is_file():
+        (destination / "lib").mkdir(exist_ok=True)
+        shutil.copy(SCRIPTS / "lib" / "shim-python.sh", destination / "lib" / "shim-python.sh")
     lines = (SCRIPTS / "stop-run.sh").read_text().splitlines()
     at = next(i for i, line in enumerate(lines) if line.startswith(before))
     stub(destination / "stop-run.sh", "\n".join(lines[:at] + [inserted] + lines[at:]) + "\n")
@@ -585,7 +589,7 @@ def assert_planted_cd_contained(tmp_path, started, decoy_name, before, answers_l
 @pytest.mark.process("the shim, with a cd to its own directory planted before the exec, run for real in another repository")
 def test_1158_a_stop_run_sh_that_resolves_its_main_tree_from_its_own_directory_not_the_suite_s_scratch_repository_writes_no_stop_file_and_signals_no_supervisor_outside_that_repository(
         tmp_path, started):
-    assert_planted_cd_contained(tmp_path, started, "decoy", ("exec python3", 'exec "$py"'), answers_live_run=True)
+    assert_planted_cd_contained(tmp_path, started, "decoy", ("exec python3", '. "$(dirname "$0")/lib/shim-python.sh"', 'exec "$py"'), answers_live_run=True)
 
 
 @pytest.mark.process("the shim, with a cd to its own directory planted before it records its caller, run for real in another repository")
