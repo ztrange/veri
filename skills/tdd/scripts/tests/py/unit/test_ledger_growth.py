@@ -80,3 +80,20 @@ def test_2130_an_unmarked_repair_step_line_is_accepted_with_its_add_ledger_step_
         '{"event": "step-added", "actor": "add-ledger-step", "step": "' + line + '"}\n')
     recorded = run_cli(ledger_growth, [str(plan), str(ledger)])
     assert (missing[0], "repair the suite" in missing[2], recorded) == (1, True, (0, "", ""))
+
+
+def test_2130_recorded_added_lines_past_veri_step_growth_exit_1_and_a_malformed_veri_step_growth_exits_2(
+        tmp_path, run_cli, ledger_growth):
+    plan = tmp_path / "plan.md"
+    ledger = tmp_path / "issue-42.md"
+    plan.write_text("# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n")
+    lines = ["- [ ] first inserted step ⟦added⟧ ⟦criterion 1⟧", "- [ ] second inserted step ⟦added⟧ ⟦criterion 1⟧"]
+    ledger.write_text(
+        "# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧ ⟂ refactor pending\n" + "\n".join(lines) + "\n")
+    (tmp_path / "events.jsonl").write_text("".join(
+        '{"event": "step-added", "actor": "add-ledger-step", "step": "' + line + '"}\n' for line in lines))
+    args = [str(plan), str(ledger)]
+    within = run_cli(ledger_growth, args, env={"VERI_STEP_GROWTH": "2"})
+    past = run_cli(ledger_growth, args, env={"VERI_STEP_GROWTH": "1"})
+    malformed = [run_cli(ledger_growth, args, env={"VERI_STEP_GROWTH": value})[0] for value in ("many", "-1", "")]
+    assert (within, past[0], malformed) == ((0, "", ""), 1, [2, 2, 2])

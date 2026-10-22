@@ -1,6 +1,9 @@
 """ledger-growth.sh's check, run in-process."""
 import os
+import re
 import sys
+
+import tunables
 
 try:
     from .event_log import read_events
@@ -42,6 +45,10 @@ def main(argv):
     except OSError as error:
         print(f"ledger-growth.sh: {error.filename}: {error.strerror}", file=sys.stderr)
         return 2
+    budget = tunables.read("VERI_STEP_GROWTH", "5")
+    if not re.fullmatch("[0-9]+", budget):
+        print(f"ledger-growth.sh: VERI_STEP_GROWTH must be a whole number >= 0: {budget}", file=sys.stderr)
+        return 2
     recorded = recorded_steps(argv[1])
     unrecorded_new = [step for step in steps if step not in planned
                       and not any(step in line for line in recorded)]
@@ -51,7 +58,10 @@ def main(argv):
     unrecorded = [step for step in unrecorded_new if is_added(step)]
     for step in unrecorded:
         print(f"ledger-growth.sh: step added without an add-ledger-step.sh record: {step}", file=sys.stderr)
-    return 1 if off or unrecorded else 0
+    over = sum(is_added(step) for step in steps) > int(budget)
+    if over:
+        print(f"ledger-growth.sh: more than {budget} ⟦added⟧ steps (VERI_STEP_GROWTH)", file=sys.stderr)
+    return 1 if off or unrecorded or over else 0
 
 
 if __name__ == "__main__":
