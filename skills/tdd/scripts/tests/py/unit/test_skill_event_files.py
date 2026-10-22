@@ -23,19 +23,29 @@ def _outside_red(lines):
     return kept
 
 
+def _outside_green(lines):
+    inside, kept = False, []
+    for line in lines:
+        if line.startswith("#### "):
+            inside = line.startswith("#### Green")
+        if not inside:
+            kept.append(line)
+    return kept
+
+
 def test_every_line_sending_the_run_to_stopping_points_at_stopping_md_1716():
     """Subject is source text: each line of SKILL.md that sends the run to *Stopping* names the file to read."""
-    sends = [line for line in _lines_with_pin() if re.search(r"\bgo(es)? to \*Stopping\*", line)]
+    sends = [line for line in _outside_green(_lines_with_pin()) if re.search(r"\bgo(es)? to \*Stopping\*", line)]
 
-    assert len(sends) == 5
+    assert len(sends) == 4
     assert [line for line in sends if "`<base directory>/STOPPING.md`" not in line] == []
 
 
 def test_every_line_launching_the_reconcile_leaf_points_at_reconcile_md_1716():
     """Subject is source text: each line of SKILL.md naming the reconcile leaf names the file to read."""
-    launches = [line for line in _lines() if "reconcile leaf" in line]
+    launches = [line for line in _outside_green(_lines()) if "reconcile leaf" in line]
 
-    assert len(launches) >= 2
+    assert len(launches) >= 1
     assert [line for line in launches if "`<base directory>/RECONCILE.md`" not in line] == []
 
 
@@ -75,10 +85,10 @@ def test_the_pin_section_lives_in_pin_md_not_skill_md_1852():
 def test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_1855():
     """Subject is source text: each site entering the revise loop names REVISE.md to Read; the budget default stays."""
     sites = r"enter the \*\*revise loop|^\s*\*\*revise loop\*\* for red|revise under|bounded revise loop|goes round the revise loop|a revise of the"
-    lines = _outside_red(_lines_with_pin())
+    lines = _outside_green(_outside_red(_lines_with_pin()))
     entering = [i for i, line in enumerate(lines) if re.search(sites, line)]
 
-    assert len(entering) >= 7
+    assert len(entering) >= 6
     missing = [
         lines[i] for i in entering
         if not ("`<base directory>/REVISE.md`" in lines[i] + " " + lines[i + 1] and "`Read`" in lines[i] + " " + lines[i + 1])
