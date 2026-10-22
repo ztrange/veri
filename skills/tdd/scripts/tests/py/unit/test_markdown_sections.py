@@ -57,3 +57,19 @@ def test_fenced_lines_treats_a_line_indented_four_spaces_as_no_fence_line():
     assert markdown_sections.fenced_lines(text) == [
         False, False, True, True, True, True, True, False,
     ]
+
+
+def test_fenced_lines_keeps_a_fence_opened_by_a_longer_run_open_past_a_shorter_run():
+    markdown_sections = importlib.import_module("veri.markdown_sections")
+    text = (
+        "````\n"
+        "```\n"
+        "## inside the long fence\n"
+        "```\n"
+        "````\n"
+        "after\n"
+    )
+
+    assert markdown_sections.fenced_lines(text) == [
+        True, True, True, True, True, False,
+    ]
