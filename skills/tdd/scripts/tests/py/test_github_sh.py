@@ -427,6 +427,10 @@ def test_with_the_driver_unset_a_gh_pr_ready_refused_with_403_is_never_run_and_t
 NO_WAIT = {"VERI_TOOL_RETRY_SLEEP": "1", "VERI_TOOL_FAST_WAIT": "0", "VERI_TOOL_SLOW_SLEEP": "1", "VERI_TOOL_WAIT": "0"}
 
 
+def clocked_sleep(factor):
+    return f'sleep() {{ echo "$1" >> "$SLEEPS"; SECONDS=$((SECONDS + $1 * {factor})); }}; '
+
+
 def run_without_gh(tmp_path, call, env, tools=("bash",), sleep_after=None):
     """(returncode, stdout, named, taken) of <call> run in bash after sourcing lib/github.sh, with a
     PATH whose one directory holds only <tools> and, when <sleep_after> is given, a sleep that
@@ -471,9 +475,7 @@ def test_gh_issue_edit_returns_2_naming_the_missing_gh_when_no_directory_on_path
 def test_gh_issue_edit_sleeps_the_retry_then_the_slow_interval_naming_gh_each_wait_and_returns_2_once_the_wait_is_spent_issue_2097(tmp_path):
     env = {"VERI_TOOL_RETRY_SLEEP": "2", "VERI_TOOL_FAST_WAIT": "5", "VERI_TOOL_SLOW_SLEEP": "4", "VERI_TOOL_WAIT": "13"}
 
-    clocked_sleep = 'sleep() { echo "$1" >> "$SLEEPS"; SECONDS=$((SECONDS + $1)); }; '
-
-    code, _, named, taken = run_without_gh(tmp_path, clocked_sleep + 'gh_issue_edit 7 "$BODY"', env)
+    code, _, named, taken = run_without_gh(tmp_path, clocked_sleep(1) + 'gh_issue_edit 7 "$BODY"', env)
 
     assert (code, taken, len(named)) == (2, ["2", "2", "2", "4", "4"], 6), named
 
@@ -500,8 +502,6 @@ def test_gh_that_runs_and_fails_with_a_code_other_than_127_is_run_once_never_wai
 def test_the_gh_function_gives_up_once_the_clock_shows_the_wait_spent_even_when_each_sleep_ran_ten_times_longer_than_asked_issue_2097(tmp_path):
     env = {"VERI_TOOL_RETRY_SLEEP": "2", "VERI_TOOL_FAST_WAIT": "100", "VERI_TOOL_SLOW_SLEEP": "2", "VERI_TOOL_WAIT": "20"}
 
-    overslept = 'sleep() { echo "$1" >> "$SLEEPS"; SECONDS=$((SECONDS + $1 * 10)); }; '
-
-    code, _, named, taken = run_without_gh(tmp_path, overslept + "gh api x", env)
+    code, _, named, taken = run_without_gh(tmp_path, clocked_sleep(10) + "gh api x", env)
 
     assert (code, taken, len(named)) == (2, ["2"], 2), (taken, named)
