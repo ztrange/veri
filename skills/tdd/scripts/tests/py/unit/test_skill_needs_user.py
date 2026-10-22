@@ -35,3 +35,21 @@ def test_1866_skill_and_resume_say_a_resumes_missing_opt_in_label_is_expected():
         if not found:
             problems.append(f"{doc.name} does not say a resume's missing opt-in label is expected and never a reason to stop or ask")
     assert not problems, "; ".join(problems)
+
+
+def test_2112_bail_md_no_verdict_entry_names_the_script_of_every_no_verdict_bail_site():
+    root = SKILL.parent
+    known = ("verify.sh", "grade-prose.sh", "skill-edit-step.sh")
+    bail = (root / "BAIL.md").read_text()
+    start = bail.index("- `no-verdict`")
+    entry = bail[start:bail.index("\n- `", start + 1)]
+    unnamed = []
+    for doc in (root / "SKILL.md", root / "SKILL-EDIT.md"):
+        text = doc.read_text()
+        for site in re.finditer("no-verdict", text):
+            before = text[:site.start()]
+            script = max(known, key=before.rfind)
+            if before.rfind(script) >= 0 and script not in entry:
+                line = text.count("\n", 0, site.start()) + 1
+                unnamed.append(f"{doc.name}:{line} ({script})")
+    assert not unnamed, "BAIL.md's no-verdict entry does not name the script of: " + ", ".join(unnamed)
