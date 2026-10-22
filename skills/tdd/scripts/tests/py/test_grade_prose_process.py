@@ -3,6 +3,7 @@ import json
 import re
 import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -18,11 +19,19 @@ REQUIREMENTS = """## guide/unit.md
 | A1 | The widget is blue. | because |
 | A2 | The widget never hums. | because |
 """
+
+
+def _grade(run_cli, argv, cwd, env):
+    from veri import grade_prose
+    code, out, err = run_cli(grade_prose, argv, env=env, cwd=cwd)
+    return SimpleNamespace(returncode=code, stdout=out, stderr=err)
+
+
 PROSE = "The widget is painted a deep blue.\nIt stays silent.\n"
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_a_whole_file_unit_sends_the_stub_claude_the_unit_text_and_every_requirement_id_and_text(tmp_path):
+def test_a_whole_file_unit_sends_the_stub_claude_the_unit_text_and_every_requirement_id_and_text(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -31,8 +40,8 @@ def test_a_whole_file_unit_sends_the_stub_claude_the_unit_text_and_every_require
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
-    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
@@ -41,7 +50,7 @@ def test_a_whole_file_unit_sends_the_stub_claude_the_unit_text_and_every_require
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_the_prompt_sent_to_the_stub_claude_contains_no_text_from_any_why_cell(tmp_path):
+def test_the_prompt_sent_to_the_stub_claude_contains_no_text_from_any_why_cell(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS.replace("| because |", "| zebra-rationale-%s |", 1)
@@ -51,8 +60,8 @@ def test_the_prompt_sent_to_the_stub_claude_contains_no_text_from_any_why_cell(t
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
-    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
@@ -61,7 +70,7 @@ def test_the_prompt_sent_to_the_stub_claude_contains_no_text_from_any_why_cell(t
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh, in a git repo with history")
-def test_a_unit_graded_in_a_repo_with_history_gets_a_prompt_carrying_no_diff_and_no_commit_message(tmp_path):
+def test_a_unit_graded_in_a_repo_with_history_gets_a_prompt_carrying_no_diff_and_no_commit_message(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text("The widget was painted green-old-wording.\n")
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -75,8 +84,8 @@ def test_a_unit_graded_in_a_repo_with_history_gets_a_prompt_carrying_no_diff_and
         subprocess.run(["git", *argv], cwd=tmp_path, env=env, check=True, capture_output=True)
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
 
-    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                   capture_output=True, env={**env, "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+    _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {**env, "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
     assert [PROSE in received, "quokka-commit-message" in received, "green-old-wording" in received,
@@ -84,7 +93,7 @@ def test_a_unit_graded_in_a_repo_with_history_gets_a_prompt_carrying_no_diff_and
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_a_section_unit_sends_only_that_sections_text_from_its_heading_to_the_next_heading_of_the_same_level(tmp_path):
+def test_a_section_unit_sends_only_that_sections_text_from_its_heading_to_the_next_heading_of_the_same_level(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(
         "# Title\nintro-line-zebra\n## Colour\nThe widget is painted a deep blue.\nIt stays silent.\n"
@@ -95,8 +104,8 @@ def test_a_section_unit_sends_only_that_sections_text_from_its_heading_to_the_ne
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
-    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md#Colour"], cwd=tmp_path,
-                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md#Colour"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
@@ -105,7 +114,7 @@ def test_a_section_unit_sends_only_that_sections_text_from_its_heading_to_the_ne
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_a_section_units_text_ends_at_the_next_heading_of_higher_level_as_well_as_the_same_level(tmp_path):
+def test_a_section_units_text_ends_at_the_next_heading_of_higher_level_as_well_as_the_same_level(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(
         "# Title\n## Colour\nThe widget is painted a deep blue.\nIt stays silent.\n"
@@ -116,8 +125,8 @@ def test_a_section_units_text_ends_at_the_next_heading_of_higher_level_as_well_a
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
-    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md#Colour"], cwd=tmp_path,
-                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md#Colour"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
@@ -126,7 +135,7 @@ def test_a_section_units_text_ends_at_the_next_heading_of_higher_level_as_well_a
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_a_line_starting_with_hash_inside_a_fenced_code_block_never_starts_or_ends_a_section(tmp_path):
+def test_a_line_starting_with_hash_inside_a_fenced_code_block_never_starts_or_ends_a_section(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(
         "## Colour\nThe widget is painted a deep blue.\n```sh\n# comment-line-zebra\npaint --blue\n```\n"
@@ -137,8 +146,8 @@ def test_a_line_starting_with_hash_inside_a_fenced_code_block_never_starts_or_en
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
-    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md#Colour"], cwd=tmp_path,
-                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md#Colour"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
@@ -147,7 +156,7 @@ def test_a_line_starting_with_hash_inside_a_fenced_code_block_never_starts_or_en
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_the_grader_leaf_is_launched_under_a_leaf_role_distinct_from_every_develop_revise_and_verify_role(tmp_path):
+def test_the_grader_leaf_is_launched_under_a_leaf_role_distinct_from_every_develop_revise_and_verify_role(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -156,8 +165,8 @@ def test_the_grader_leaf_is_launched_under_a_leaf_role_distinct_from_every_devel
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
-    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     events = tmp_path / ".tdd" / "events.jsonl"
@@ -167,7 +176,7 @@ def test_the_grader_leaf_is_launched_under_a_leaf_role_distinct_from_every_devel
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_the_stub_claude_receives_model_from_grader_conf_and_veri_model_and_verifier_model_do_not_change_it(tmp_path):
+def test_the_stub_claude_receives_model_from_grader_conf_and_veri_model_and_verifier_model_do_not_change_it(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -180,8 +189,8 @@ def test_the_stub_claude_receives_model_from_grader_conf_and_veri_model_and_veri
         if conf.exists() else []
     committed = lines[0].split("=", 1)[-1].strip().strip("'\"") if lines else ""
 
-    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record),
                                              "VERI_MODEL": "env-model-zebra", "VERI_MODEL_VERIFIER": "env-model-quokka"})
 
@@ -191,7 +200,7 @@ def test_the_stub_claude_receives_model_from_grader_conf_and_veri_model_and_veri
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_the_command_the_stub_claude_receives_carries_the_same_tool_limits_a_verify_leafs_does(tmp_path):
+def test_the_command_the_stub_claude_receives_carries_the_same_tool_limits_a_verify_leafs_does(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -200,8 +209,8 @@ def test_the_command_the_stub_claude_receives_carries_the_same_tool_limits_a_ver
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
-    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     args = (record.read_text() if record.exists() else "").splitlines()
@@ -212,7 +221,7 @@ def test_the_command_the_stub_claude_receives_carries_the_same_tool_limits_a_ver
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_a_reply_whose_final_grades_block_has_every_id_line_pass_and_verdict_pass_makes_grade_prose_exit_0(tmp_path):
+def test_a_reply_whose_final_grades_block_has_every_id_line_pass_and_verdict_pass_makes_grade_prose_exit_0(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -221,9 +230,8 @@ def test_a_reply_whose_final_grades_block_has_every_id_line_pass_and_verdict_pas
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
-    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                          capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    done = _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     assert done.returncode == 0, (done.returncode, done.stderr)
@@ -250,7 +258,7 @@ def test_a_reply_whose_final_grades_block_has_a_fail_line_and_verdict_reject_mak
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_a_reply_with_two_or_more_fail_lines_prints_every_failing_id_with_its_reason(tmp_path):
+def test_a_reply_with_two_or_more_fail_lines_prints_every_failing_id_with_its_reason(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS.replace(
@@ -263,9 +271,8 @@ def test_a_reply_with_two_or_more_fail_lines_prints_every_failing_id_with_its_re
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
-    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                          capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    done = _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     assert [done.returncode, "A1" in done.stdout, "teal-zebra" in done.stdout, "A3" in done.stdout,
@@ -274,7 +281,7 @@ def test_a_reply_with_two_or_more_fail_lines_prints_every_failing_id_with_its_re
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_a_reply_with_no_grades_block_makes_grade_prose_exit_2_and_name_the_missing_block_on_stderr(tmp_path):
+def test_a_reply_with_no_grades_block_makes_grade_prose_exit_2_and_name_the_missing_block_on_stderr(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -284,16 +291,15 @@ def test_a_reply_with_no_grades_block_makes_grade_prose_exit_2_and_name_the_miss
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
-    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                          capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    done = _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     assert [done.returncode, "GRADES" in done.stderr] == [2, True], (done.returncode, done.stdout, done.stderr)
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_a_reply_with_text_after_end_grades_makes_grade_prose_exit_2_and_name_the_trailing_text_on_stderr(tmp_path):
+def test_a_reply_with_text_after_end_grades_makes_grade_prose_exit_2_and_name_the_trailing_text_on_stderr(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -302,16 +308,15 @@ def test_a_reply_with_text_after_end_grades_makes_grade_prose_exit_2_and_name_th
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
-    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                          capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    done = _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     assert [done.returncode, "quokka-epilogue" in done.stderr] == [2, True], (done.returncode, done.stdout, done.stderr)
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_a_grades_block_with_a_missing_an_extra_or_a_reordered_requirement_id_makes_grade_prose_exit_2_and_name_the_defect_on_stderr(tmp_path):
+def test_a_grades_block_with_a_missing_an_extra_or_a_reordered_requirement_id_makes_grade_prose_exit_2_and_name_the_defect_on_stderr(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -323,9 +328,8 @@ def test_a_grades_block_with_a_missing_an_extra_or_a_reordered_requirement_id_ma
         claude = tmp_path / ("claude-" + defect)
         claude.write_text(STUB.replace(block, lines))
         claude.chmod(0o755)
-        done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                              capture_output=True, text=True,
-                              env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+        done = _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                    "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
         outcomes[defect] = (done.returncode, named in done.stderr)
 
@@ -333,7 +337,7 @@ def test_a_grades_block_with_a_missing_an_extra_or_a_reordered_requirement_id_ma
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_a_grades_block_whose_verdict_disagrees_with_its_lines_makes_grade_prose_exit_2_and_name_the_disagreement_on_stderr(tmp_path):
+def test_a_grades_block_whose_verdict_disagrees_with_its_lines_makes_grade_prose_exit_2_and_name_the_disagreement_on_stderr(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -343,9 +347,8 @@ def test_a_grades_block_whose_verdict_disagrees_with_its_lines_makes_grade_prose
         claude = tmp_path / ("claude-" + defect)
         claude.write_text(text)
         claude.chmod(0o755)
-        done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                              capture_output=True, text=True,
-                              env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+        done = _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                    "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
         outcomes[defect] = (done.returncode, "VERDICT" in done.stderr)
 
@@ -353,7 +356,7 @@ def test_a_grades_block_whose_verdict_disagrees_with_its_lines_makes_grade_prose
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_a_grades_block_with_no_verdict_line_makes_grade_prose_exit_2_and_name_the_missing_verdict_on_stderr(tmp_path):
+def test_a_grades_block_with_no_verdict_line_makes_grade_prose_exit_2_and_name_the_missing_verdict_on_stderr(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -361,16 +364,15 @@ def test_a_grades_block_with_no_verdict_line_makes_grade_prose_exit_2_and_name_t
     claude.write_text(STUB.replace("\\nVERDICT: PASS", ""))
     claude.chmod(0o755)
 
-    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                          capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    done = _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
 
     assert (done.returncode, "VERDICT" in done.stderr) == (2, True), (done.returncode, done.stderr)
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_a_grades_line_whose_grade_word_is_other_than_exactly_pass_or_fail_makes_grade_prose_exit_2_and_name_the_defect_on_stderr(tmp_path):
+def test_a_grades_line_whose_grade_word_is_other_than_exactly_pass_or_fail_makes_grade_prose_exit_2_and_name_the_defect_on_stderr(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -378,16 +380,15 @@ def test_a_grades_line_whose_grade_word_is_other_than_exactly_pass_or_fail_makes
     claude.write_text(STUB.replace("A2: PASS - ok", "A2: PASSABLE - ok"))
     claude.chmod(0o755)
 
-    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                          capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    done = _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
 
     assert (done.returncode, "PASSABLE" in done.stderr) == (2, True), (done.returncode, done.stderr)
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_a_reply_holding_two_grades_blocks_is_graded_on_the_final_one_only(tmp_path):
+def test_a_reply_holding_two_grades_blocks_is_graded_on_the_final_one_only(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -397,9 +398,8 @@ def test_a_reply_holding_two_grades_blocks_is_graded_on_the_final_one_only(tmp_p
     claude.write_text(STUB.replace(final, first + "\\nOn reflection I was wrong.\\n" + final))
     claude.chmod(0o755)
 
-    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                          capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    done = _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
 
     assert (done.returncode, "quokka-first-thought" in done.stdout) == (0, False), \
@@ -407,7 +407,7 @@ def test_a_reply_holding_two_grades_blocks_is_graded_on_the_final_one_only(tmp_p
 
 
 @pytest.mark.process("grade-prose.sh launching a hanging stub claude through supervise.sh")
-def test_a_grader_leaf_the_supervisor_kills_makes_grade_prose_exit_2_and_name_the_defect_on_stderr(tmp_path):
+def test_a_grader_leaf_the_supervisor_kills_makes_grade_prose_exit_2_and_name_the_defect_on_stderr(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -415,9 +415,8 @@ def test_a_grader_leaf_the_supervisor_kills_makes_grade_prose_exit_2_and_name_th
     claude.write_text("#!/bin/sh\nexec sleep 30\n")
     claude.chmod(0o755)
 
-    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                          capture_output=True, text=True, timeout=25,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    done = _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                "CLAUDE_BIN": str(claude), "VERI_HEARTBEAT": "1", "VERI_TIMEOUT": "2",
                                "VERI_STUCK_RETRIES": "0"})
 
@@ -425,14 +424,13 @@ def test_a_grader_leaf_the_supervisor_kills_makes_grade_prose_exit_2_and_name_th
 
 
 @pytest.mark.process("grade-prose.sh launching a claude that cannot start through supervise.sh")
-def test_a_grader_leaf_that_fails_to_launch_makes_grade_prose_exit_2_say_no_verdict_was_obtained_and_append_no_event(tmp_path):
+def test_a_grader_leaf_that_fails_to_launch_makes_grade_prose_exit_2_say_no_verdict_was_obtained_and_append_no_event(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
 
-    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                          capture_output=True, text=True, timeout=25,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    done = _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                "CLAUDE_BIN": str(tmp_path / "no-such-claude"), "VERI_HEARTBEAT": "1",
                                "VERI_TIMEOUT": "2", "VERI_STUCK_RETRIES": "0"})
 
@@ -443,7 +441,7 @@ def test_a_grader_leaf_that_fails_to_launch_makes_grade_prose_exit_2_say_no_verd
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude that answers with a usage-limit reply through supervise.sh")
-def test_a_usage_limit_reply_from_the_grader_leaf_makes_grade_prose_exit_2_say_no_verdict_was_obtained_and_append_no_event(tmp_path):
+def test_a_usage_limit_reply_from_the_grader_leaf_makes_grade_prose_exit_2_say_no_verdict_was_obtained_and_append_no_event(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -453,9 +451,8 @@ def test_a_usage_limit_reply_from_the_grader_leaf_makes_grade_prose_exit_2_say_n
                       "\"result\":\"Claude usage limit reached. Your limit will reset at 5pm.\"}'\n")
     claude.chmod(0o755)
 
-    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                          capture_output=True, text=True, timeout=25,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    done = _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                "CLAUDE_BIN": str(claude), "VERI_HEARTBEAT": "1", "VERI_TIMEOUT": "2",
                                "VERI_STUCK_RETRIES": "0"})
 
@@ -466,7 +463,7 @@ def test_a_usage_limit_reply_from_the_grader_leaf_makes_grade_prose_exit_2_say_n
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_every_grading_appends_one_event_to_events_jsonl_carrying_the_unit_the_verdict_and_the_failing_ids(tmp_path):
+def test_every_grading_appends_one_event_to_events_jsonl_carrying_the_unit_the_verdict_and_the_failing_ids(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -476,9 +473,8 @@ def test_every_grading_appends_one_event_to_events_jsonl_carrying_the_unit_the_v
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
-    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                   capture_output=True, text=True,
-                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                         "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     events = tmp_path / ".tdd" / "events.jsonl"
@@ -488,7 +484,7 @@ def test_every_grading_appends_one_event_to_events_jsonl_carrying_the_unit_the_v
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_every_grading_event_records_that_gradings_cost_in_dollars_read_from_the_grader_leafs_own_result(tmp_path):
+def test_every_grading_event_records_that_gradings_cost_in_dollars_read_from_the_grader_leafs_own_result(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -497,9 +493,8 @@ def test_every_grading_event_records_that_gradings_cost_in_dollars_read_from_the
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
-    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                   capture_output=True, text=True,
-                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                         "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     events = tmp_path / ".tdd" / "events.jsonl"
@@ -509,7 +504,7 @@ def test_every_grading_event_records_that_gradings_cost_in_dollars_read_from_the
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_1874_a_grader_leaf_that_prints_an_all_pass_block_and_then_exits_1_makes_grade_prose_exit_2_with_no_stdout_and_no_event(tmp_path):
+def test_1874_a_grader_leaf_that_prints_an_all_pass_block_and_then_exits_1_makes_grade_prose_exit_2_with_no_stdout_and_no_event(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -518,9 +513,8 @@ def test_1874_a_grader_leaf_that_prints_an_all_pass_block_and_then_exits_1_makes
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
-    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                          capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    done = _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     events = tmp_path / ".tdd" / "events.jsonl"
@@ -530,7 +524,7 @@ def test_1874_a_grader_leaf_that_prints_an_all_pass_block_and_then_exits_1_makes
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_1874_a_grader_leaf_whose_reply_carries_a_429_error_alongside_an_all_pass_block_makes_grade_prose_exit_2_with_no_stdout_and_no_event(tmp_path):
+def test_1874_a_grader_leaf_whose_reply_carries_a_429_error_alongside_an_all_pass_block_makes_grade_prose_exit_2_with_no_stdout_and_no_event(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -543,9 +537,8 @@ def test_1874_a_grader_leaf_whose_reply_carries_a_429_error_alongside_an_all_pas
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
-    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                          capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    done = _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     events = tmp_path / ".tdd" / "events.jsonl"
@@ -557,7 +550,7 @@ def test_1874_a_grader_leaf_whose_reply_carries_a_429_error_alongside_an_all_pas
 
 
 @pytest.mark.process("grade-prose.sh launching a real supervise.sh that refuses")
-def test_1874_a_launch_supervise_refuses_with_a_stale_all_pass_log_on_disk_makes_grade_prose_exit_2_with_no_stdout_and_no_event(tmp_path):
+def test_1874_a_launch_supervise_refuses_with_a_stale_all_pass_log_on_disk_makes_grade_prose_exit_2_with_no_stdout_and_no_event(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -570,9 +563,8 @@ def test_1874_a_launch_supervise_refuses_with_a_stale_all_pass_log_on_disk_makes
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
-    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                          capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    done = _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record), "VERI_HEARTBEAT": "abc"})
 
     events = tmp_path / ".tdd" / "events.jsonl"
@@ -582,7 +574,7 @@ def test_1874_a_launch_supervise_refuses_with_a_stale_all_pass_log_on_disk_makes
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_1874_a_reply_in_the_poc_shape_with_the_verdict_line_inside_the_grades_block_exits_0_when_all_pass_and_1_printing_the_failing_line_on_a_fail(tmp_path):
+def test_1874_a_reply_in_the_poc_shape_with_the_verdict_line_inside_the_grades_block_exits_0_when_all_pass_and_1_printing_the_failing_line_on_a_fail(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -595,9 +587,8 @@ def test_1874_a_reply_in_the_poc_shape_with_the_verdict_line_inside_the_grades_b
         claude = tmp_path / ("claude-" + name)
         claude.write_text(stub)
         claude.chmod(0o755)
-        done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                              capture_output=True, text=True,
-                              env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+        done = _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                    "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
         outcomes[name] = (done.returncode, "the widget hums quokka-loudly" in done.stdout)
 
@@ -605,7 +596,7 @@ def test_1874_a_reply_in_the_poc_shape_with_the_verdict_line_inside_the_grades_b
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_1874_a_reply_with_verdict_lines_after_end_grades_makes_grade_prose_exit_2_and_append_no_grading_event(tmp_path):
+def test_1874_a_reply_with_verdict_lines_after_end_grades_makes_grade_prose_exit_2_and_append_no_grading_event(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -613,9 +604,8 @@ def test_1874_a_reply_with_verdict_lines_after_end_grades_makes_grade_prose_exit
     claude.write_text(STUB.replace("END GRADES", "END GRADES\\nVERDICT: REJECT\\nVERDICT: PASS"))
     claude.chmod(0o755)
 
-    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                          capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    done = _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
 
     events = tmp_path / ".tdd" / "events.jsonl"
@@ -624,7 +614,7 @@ def test_1874_a_reply_with_verdict_lines_after_end_grades_makes_grade_prose_exit
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_1874_the_grader_leaf_is_launched_with_no_tools_the_stub_claude_receives_tools_with_an_empty_value(tmp_path):
+def test_1874_the_grader_leaf_is_launched_with_no_tools_the_stub_claude_receives_tools_with_an_empty_value(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -633,9 +623,8 @@ def test_1874_the_grader_leaf_is_launched_with_no_tools_the_stub_claude_receives
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
-    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                   capture_output=True, text=True,
-                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                         "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     argv = (record.read_text() if record.exists() else "").split("\n")
@@ -644,7 +633,7 @@ def test_1874_the_grader_leaf_is_launched_with_no_tools_the_stub_claude_receives
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_1874_the_stub_claude_receives_grader_conf_model_when_veri_model_grader_is_set_in_the_environment(tmp_path):
+def test_1874_the_stub_claude_receives_grader_conf_model_when_veri_model_grader_is_set_in_the_environment(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -657,8 +646,8 @@ def test_1874_the_stub_claude_receives_grader_conf_model_when_veri_model_grader_
         if conf.exists() else []
     committed = lines[0].split("=", 1)[-1].strip().strip("'\"") if lines else ""
 
-    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record),
                                              "VERI_MODEL_GRADER": "env-model-narwhal"})
 
@@ -668,7 +657,7 @@ def test_1874_the_stub_claude_receives_grader_conf_model_when_veri_model_grader_
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_a_full_pass_writes_one_graded_line_carrying_the_unit_its_signature_the_date_and_the_grading_events_id(tmp_path, monkeypatch):
+def test_a_full_pass_writes_one_graded_line_carrying_the_unit_its_signature_the_date_and_the_grading_events_id(tmp_path, monkeypatch, run_cli):
     from veri import grade_prose
 
     (tmp_path / "skills" / "guide").mkdir(parents=True)
@@ -679,9 +668,8 @@ def test_a_full_pass_writes_one_graded_line_carrying_the_unit_its_signature_the_
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
-    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "skills/guide/unit.md"], cwd=tmp_path,
-                   capture_output=True, text=True,
-                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    _grade(run_cli, ["REQUIREMENTS.md", "skills/guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                         "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     events = tmp_path / ".tdd" / "events.jsonl"
@@ -699,7 +687,7 @@ def test_a_full_pass_writes_one_graded_line_carrying_the_unit_its_signature_the_
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_a_pass_replaces_any_earlier_graded_line_for_the_same_unit_and_leaves_other_units_lines_as_they_were(tmp_path):
+def test_a_pass_replaces_any_earlier_graded_line_for_the_same_unit_and_leaves_other_units_lines_as_they_were(tmp_path, run_cli):
     (tmp_path / "skills" / "guide").mkdir(parents=True)
     (tmp_path / "skills" / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS.replace("## guide/unit.md", "## skills/guide/unit.md"))
@@ -712,9 +700,8 @@ def test_a_pass_replaces_any_earlier_graded_line_for_the_same_unit_and_leaves_ot
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
-    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "skills/guide/unit.md"], cwd=tmp_path,
-                   capture_output=True, text=True,
-                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    _grade(run_cli, ["REQUIREMENTS.md", "skills/guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                         "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     lines = graded.read_text().splitlines()
@@ -723,7 +710,7 @@ def test_a_pass_replaces_any_earlier_graded_line_for_the_same_unit_and_leaves_ot
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_a_reject_and_an_exit_2_leave_graded_byte_identical(tmp_path):
+def test_a_reject_and_an_exit_2_leave_graded_byte_identical(tmp_path, run_cli):
     (tmp_path / "skills" / "guide").mkdir(parents=True)
     (tmp_path / "skills" / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS.replace("## guide/unit.md", "## skills/guide/unit.md"))
@@ -738,9 +725,8 @@ def test_a_reject_and_an_exit_2_leave_graded_byte_identical(tmp_path):
         claude = tmp_path / "claude"
         claude.write_text(body)
         claude.chmod(0o755)
-        done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "skills/guide/unit.md"], cwd=tmp_path,
-                              capture_output=True, text=True,
-                              env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+        done = _grade(run_cli, ["REQUIREMENTS.md", "skills/guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                    "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
         seen[name] = (done.returncode, graded.read_text() == before)
 
@@ -748,7 +734,7 @@ def test_a_reject_and_an_exit_2_leave_graded_byte_identical(tmp_path):
 
 
 @pytest.mark.process("grade-prose.sh --owed launching a stub claude through supervise.sh")
-def test_grade_prose_owed_grades_exactly_the_non_orphan_units_prose_owed_prints_and_no_others(tmp_path):
+def test_grade_prose_owed_grades_exactly_the_non_orphan_units_prose_owed_prints_and_no_others(tmp_path, run_cli):
     skill = tmp_path / "skills" / "guide"
     skill.mkdir(parents=True)
     for name in ("one", "two"):
@@ -763,8 +749,8 @@ def test_grade_prose_owed_grades_exactly_the_non_orphan_units_prose_owed_prints_
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
-    subprocess.run([str(SCRIPTS / "grade-prose.sh"), "--owed"], cwd=tmp_path, capture_output=True,
-                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    _grade(run_cli, ["--owed"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                         "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
@@ -773,7 +759,7 @@ def test_grade_prose_owed_grades_exactly_the_non_orphan_units_prose_owed_prints_
 
 @pytest.mark.process("grade-prose.sh --owed launching a stub claude through supervise.sh")
 def test_grade_prose_owed_grades_the_owed_unit_and_neither_the_unit_whose_signature_is_current_nor_the_orphan_1725(
-        tmp_path, monkeypatch):
+        tmp_path, monkeypatch, run_cli):
     from veri import grade_prose
 
     skill = tmp_path / "skills" / "guide"
@@ -793,8 +779,8 @@ def test_grade_prose_owed_grades_the_owed_unit_and_neither_the_unit_whose_signat
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
-    ran = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "--owed"], cwd=tmp_path, capture_output=True, text=True,
-                         env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    ran = _grade(run_cli, ["--owed"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
@@ -802,7 +788,7 @@ def test_grade_prose_owed_grades_the_owed_unit_and_neither_the_unit_whose_signat
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_a_graded_run_exits_0_and_prints_no_leaf_role_line_on_stderr_1887(tmp_path):
+def test_a_graded_run_exits_0_and_prints_no_leaf_role_line_on_stderr_1887(tmp_path, run_cli):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -815,9 +801,8 @@ def test_a_graded_run_exits_0_and_prints_no_leaf_role_line_on_stderr_1887(tmp_pa
                       "\"cache_read_input_tokens\":3,\"cache_creation_input_tokens\":4}}'\n")
     claude.chmod(0o755)
 
-    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                          capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    done = _grade(run_cli, ["REQUIREMENTS.md", "guide/unit.md"], tmp_path,
+                  {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
                                "CLAUDE_BIN": str(claude)})
 
     assert (done.returncode, "leaf-role" in done.stderr) == (0, False), (done.returncode, done.stderr)
