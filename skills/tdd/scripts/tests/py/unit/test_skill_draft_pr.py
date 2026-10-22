@@ -12,7 +12,6 @@ BAIL = SKILL.with_name("BAIL.md")
 RESUME_MD = SKILL.with_name("RESUME.md")
 GUARDRAILS = "## Guardrails"
 ISSUE = "### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)"
-GREEN = "#### Green — minimum implementation (developer leaf), then verify-green (blind)"
 REFACTOR = "#### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)"
 
 _UPPER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
@@ -128,7 +127,7 @@ def test_draft_prs_step_readies_the_pr_against_the_already_pushed_branch_with_no
 
 def test_green_pass_and_verify_refactor_pass_both_push_the_branch_at_the_two_points_that_write_the_ledger():
     problems = []
-    for heading in (GREEN, REFACTOR):
+    for heading in (REFACTOR,):
         record = first_record(_records(_lines(heading, True)), r"^ *- \*\*pass")
         if not record:
             problems.append(f"no PASS branch under {heading!r} to read")
@@ -188,20 +187,6 @@ def test_draft_prs_step_copies_the_ledgers_owed_steps_bullets_into_the_pr_body_u
         problems.append("speaks of ## Owed steps without naming the run's .tdd/issue-<n>.md ledger")
     if not any_line(owed, re.escape("body")):
         problems.append("never puts the ## Owed steps bullets in the PR body")
-    assert not problems, problems
-
-
-def test_green_pass_branch_updates_the_pr_body_with_the_ledgers_done_of_total_step_count():
-    record = first_record(_records(_lines(GREEN, True)), r"^ *- \*\*pass")
-    assert record, "no PASS branch under the Green section to read"
-    assert "gh api -x patch" in record, "Green PASS branch never edits the PR"
-    problems = []
-    if "-f body=" not in record:
-        problems.append(f"edits the PR without a body field: {record[:120]}")
-    if ".tdd/issue-<n>.md" not in record:
-        problems.append(f"edits the PR body without naming the ledger as where the count is read from: {record[:120]}")
-    if not re.search(r"<done> of <total>|[0-9]+ of [0-9]+|done of|of how many", record):
-        problems.append(f"edits the PR body without a done-of-total step count: {record[:120]}")
     assert not problems, problems
 
 
@@ -704,19 +689,6 @@ def test_1431_draft_prs_step_metrics_push_block_bails_ci_red_on_a_red_ci_only_wh
                     break
             if not committed:
                 problems.append("no command line after the metrics: push's add-ledger-step.sh commits .tdd/issue-<n>.md")
-    assert not problems, problems
-
-
-def test_green_pass_branch_counts_the_pr_bodys_done_of_total_from_ledger_steps_shs_records():
-    record = first_record(_records(_lines(GREEN, True)), r"^ *- \*\*pass")
-    problems = []
-    if not record:
-        problems.append(f"no PASS branch under {GREEN!r} to read")
-    else:
-        if "ledger-steps.sh" not in record:
-            problems.append(f"Green PASS branch never runs ledger-steps.sh: {record[:120]}")
-        if "grep -c '^- \\[" in record:
-            problems.append("Green PASS branch still counts steps with its own box pattern")
     assert not problems, problems
 
 

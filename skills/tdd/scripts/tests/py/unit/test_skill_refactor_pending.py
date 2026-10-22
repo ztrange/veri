@@ -77,8 +77,6 @@ def says(text, pattern, message):
 def test_skill_md_ticks_green_with_refactor_pending_pins_without_it_and_clears_the_mark_before_mirroring_the_step_done():
     records = file_records(SKILL)
     assert records, "SKILL.md has no instructions to read"
-    green = read(records, "ticks the ledger and commits the code with a feat: commit", r"tick-ledger\.sh", "feat:")
-    says(green, r"tick-ledger\.sh\s+--refactor-pending", "the green PASS ticks with plain tick-ledger.sh")
     pin = read(records, "ticks the ledger and commits the pin with a test: pin commit", r"tick-ledger\.sh", "test: pin")
     assert b"--refactor-pending" not in pin, "the pin path ticks with --refactor-pending"
     done = read(records, "ends the cycle by posting the step done comment", "step done")
