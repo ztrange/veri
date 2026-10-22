@@ -20,4 +20,6 @@
 #          queued or running for any worker, or a lock not taken within
 #          VERI_WORKQUEUE_LOCK_WAIT seconds — refused before anything is written, so the file
 #          is left byte-identical
-exec python3 "$(dirname "$0")/veri/workqueue.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/workqueue.py" "$@"

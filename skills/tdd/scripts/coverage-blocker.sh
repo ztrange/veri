@@ -12,4 +12,6 @@
 #
 # Prints the new issue's URL. Exit: 0 on success, 2 on bad arguments. Requires an
 # authenticated `gh`, which reads GH_REPO from the environment itself.
-exec python3 "$(dirname "$0")/veri/coverage_blocker.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/coverage_blocker.py" "$@"

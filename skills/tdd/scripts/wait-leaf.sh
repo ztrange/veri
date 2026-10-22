@@ -11,4 +11,6 @@
 # (default 590) pass with no completion file.
 #
 # Tunables (env): VERI_POLL poll interval secs (default 1).
-exec python3 "$(dirname "$0")/veri/wait_leaf.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/wait_leaf.py" "$@"

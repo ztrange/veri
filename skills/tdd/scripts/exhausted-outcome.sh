@@ -18,4 +18,6 @@
 #          the issue) · or nothing.
 # exit:    0 split · 1 needs the user · 3 neither. Never 2: a leaf that volunteered neither
 #          answer gave an answer, not a plumbing failure, so this is veri's "nothing to do".
-exec python3 "$(dirname "$0")/veri/exhausted_outcome.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/exhausted_outcome.py" "$@"

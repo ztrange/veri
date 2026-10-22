@@ -11,4 +11,6 @@
 #   has-mark  exit 0 if a step's trailing markers carry ⟦<name>⟧; exit 3 if none does
 #   criterion the k-th checkbox's text under `## Acceptance criteria`; exit 3 if fewer than k
 # Exit:    0 an answer printed; 2 an unknown verb, or criterion without an integer <k>; 3 nothing qualifies
-exec python3 "$(dirname "$0")/veri/ledger_steps.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/ledger_steps.py" "$@"

@@ -26,4 +26,6 @@ if [ -z "${PYTHONCOERCECLOCALE+set}" ]; then
   PYTHONCOERCECLOCALE=0 VERI_SHIM_SET_COERCE=1
   export PYTHONCOERCECLOCALE VERI_SHIM_SET_COERCE
 fi
-exec python3 "$(dirname "$0")/veri/run_verdict.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/run_verdict.py" "$@"

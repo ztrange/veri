@@ -14,4 +14,6 @@
 # <bound>; 0 when it changed neither; 2 when
 # <base-sha> is missing or resolves to no commit, or the range cannot be read — an unreadable
 # range is no answer.
-exec python3 "$(dirname "$0")/veri/transform_touches_tests.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/transform_touches_tests.py" "$@"

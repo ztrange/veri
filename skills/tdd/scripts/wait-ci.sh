@@ -19,4 +19,6 @@
 #
 # Tunables (env): VERI_POLL poll interval secs (default 10); VERI_CI_QUEUE_WAIT secs checks may
 # stay queued before exit 2 (default 3600).
-exec python3 "$(dirname "$0")/veri/wait_ci.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/wait_ci.py" "$@"

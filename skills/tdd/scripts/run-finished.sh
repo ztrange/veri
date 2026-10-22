@@ -3,4 +3,6 @@
 #
 # Usage:   run-finished.sh <issue>
 # Exit:    0 finished; 1 not finished; 2 no run for the issue, or no answer
-exec python3 "$(dirname "$0")/veri/run_finished.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/run_finished.py" "$@"

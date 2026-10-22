@@ -24,4 +24,6 @@
 #
 # Prints the assembled prompt on stdout (feed it to run-leaf.sh). Exit 2 on an unknown
 # phase, a missing template/spec file, or a green, refactor or diff call without --fast-cmd.
-exec python3 "$(cd "$(dirname "$0")" && pwd)/veri/build_verify_prompt.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(cd "$(dirname "$0")" && pwd)/veri/build_verify_prompt.py" "$@"

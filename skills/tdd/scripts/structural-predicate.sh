@@ -8,4 +8,6 @@
 # exit:  0 the command was written; 1 the command already succeeds on the current tree,
 #        nothing written; 2 bad arguments, or no `PREDICATE:` line; 3 `PREDICATE: NONE [— <why>]`,
 #        `NONE—<why>` or `NONE: <why>`, nothing written.
-exec python3 "$(dirname "$0")/veri/structural_predicate.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/structural_predicate.py" "$@"

@@ -5,4 +5,6 @@
 #
 # Prints `VERI_ACTOR=<actor> VERI_PHASE=<phase> VERI_ATTEMPT=<n>` on one line.
 # Exit:    0 the role line printed; 2 no name, an unknown leading word, or no phase — a diagnostic on stderr, nothing on stdout
-exec python3 "$(dirname "$0")/veri/leaf_role.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/leaf_role.py" "$@"

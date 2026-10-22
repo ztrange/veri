@@ -6,4 +6,6 @@
 # Exit:    0 pushed, or origin unreachable after the retries (recorded push-failed); 1 a non-fast-forward
 #          or stale-lease rejection (recorded push-rejected); 2 a bad argument, a bad tunable or a failed
 #          event write
-exec python3 "$(dirname "$0")/veri/push_branch.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/push_branch.py" "$@"

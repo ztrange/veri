@@ -5,4 +5,6 @@
 #          <step-text> sums the usage events whose step is <step-text>, to two decimals.
 #          --run sums every usage event; --steps prints one `<dollars> <leaves>` line per step, in first-mention order.
 # Exit:    0 a figure printed; 2 a bad argument, or .tdd/events.jsonl unreadable; 3 nothing to do — no usage event for it
-exec python3 "$(dirname "$0")/veri/step_cost.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/step_cost.py" "$@"

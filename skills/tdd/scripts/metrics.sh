@@ -5,4 +5,6 @@
 #        The planned-step count is read from `.tdd/issue-<issue-number>.md`; arguments after the first are ignored.
 # Exit:    0 the markdown report on stdout; 1 a missing or malformed log, or a report cut short — a traceback on stderr;
 #          2 no issue number, or an empty one — nothing on stdout
-exec python3 "$(dirname "$0")/veri/metrics.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/metrics.py" "$@"

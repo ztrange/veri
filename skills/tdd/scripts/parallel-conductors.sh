@@ -8,4 +8,6 @@
 # exit 2 before anything is launched, never a guess at how much to spend.
 #
 # Usage:   parallel-conductors.sh [--repo owner/name] [--continue-on-bail]
-exec python3 "$(dirname "$0")/veri/parallel_conductors.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/parallel_conductors.py" "$@"

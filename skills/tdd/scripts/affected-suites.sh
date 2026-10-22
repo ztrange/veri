@@ -6,4 +6,6 @@
 #
 # Prints one suite path per line, sorted, with no duplicate.
 # Exit:    0 suites printed; 2 a malformed or unresolvable range; 3 nothing to do
-exec python3 "$(dirname "$0")/veri/affected_suites.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/affected_suites.py" "$@"

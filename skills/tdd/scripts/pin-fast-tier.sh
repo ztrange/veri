@@ -3,4 +3,6 @@
 #
 # Usage: pin-fast-tier.sh <fast-cmd>   (run from the worktree; failing output goes to .tdd/verify-pin.reason)
 # Exit:  0 the fast command passed; 1 it failed; 2 no command given
-exec python3 "$(dirname "$0")/veri/pin_fast_tier.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/pin_fast_tier.py" "$@"

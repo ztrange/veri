@@ -34,4 +34,6 @@
 #
 # usage: invisible-work.sh
 #        VERI_GH_JSON=<dir> invisible-work.sh
-exec python3 "$(dirname "$0")/veri/invisible_work.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/invisible_work.py" "$@"

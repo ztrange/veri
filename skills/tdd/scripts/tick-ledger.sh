@@ -8,4 +8,6 @@
 # Exit:    0 a step ticked; 2 no <ledger-file>, it is a directory, the ledger could not be read, or the
 #          ticked ledger could not be written — the file is left untouched; 3 no unchecked step matched —
 #          the file is left untouched
-exec python3 "$(dirname "$0")/veri/tick_ledger.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/tick_ledger.py" "$@"

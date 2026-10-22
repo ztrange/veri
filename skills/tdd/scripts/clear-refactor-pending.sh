@@ -8,4 +8,6 @@
 #          2 a missing argument, the ledger is a directory, does not exist or could not be read, or the cleared
 #          ledger could not be written — the file is left untouched; 3 nothing to do — no step matched, the file
 #          byte-identical
-exec python3 "$(dirname "$0")/veri/clear_refactor_pending.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/clear_refactor_pending.py" "$@"

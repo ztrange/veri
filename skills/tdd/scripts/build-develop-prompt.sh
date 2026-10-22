@@ -30,4 +30,6 @@
 #
 # Prints the assembled prompt on stdout (feed it to supervise.sh). Exit 2 on an unknown
 # phase or a missing template/spec file — never a partial prompt.
-exec python3 "$(cd "$(dirname "$0")" && pwd)/veri/build_develop_prompt.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(cd "$(dirname "$0")" && pwd)/veri/build_develop_prompt.py" "$@"

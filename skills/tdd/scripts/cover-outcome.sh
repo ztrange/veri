@@ -12,4 +12,6 @@
 # exit:    0 COVERED: yes · 1 COVERED: no · 2 no readable COVERED: line, or
 #          unreachable|type-only with no PROOF: line or PROOF: NONE
 #          3 COVERED: unreachable|type-only, proved without a test
-exec python3 "$(dirname "$0")/veri/cover_outcome.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/cover_outcome.py" "$@"

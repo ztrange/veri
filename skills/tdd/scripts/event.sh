@@ -4,4 +4,6 @@
 # usage: event.sh <event> [key=value …]
 # Exit:    0 the line was appended; 1 .tdd or the log could not be written, or the awake clock exited 1;
 #          2 a missing <event>, a refused structural-pass mark, or no answer; 3 the awake clock exited 3
-exec python3 "$(dirname "$0")/veri/event.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/event.py" "$@"
