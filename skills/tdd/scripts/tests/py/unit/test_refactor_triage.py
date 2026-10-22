@@ -1,13 +1,9 @@
 """In-process cases for veri/refactor_triage.py, the module refactor-triage.sh is a shim over."""
 import importlib
 import io
-import re
 import sys
 
 import pytest
-
-from conftest import SCRIPTS
-
 
 @pytest.fixture
 def refactor_triage():
