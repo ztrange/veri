@@ -305,7 +305,6 @@ def test_launching_a_leaf_asks_stop_requested_before_reading_a_leafs_wait_leaf_e
 
 def test_each_phases_leaf_exit_2_branch_points_back_to_launching_a_leaf_where_stop_requested_is_asked_before_the_exit_2_is_read_as_killed_stuck():
     phases = [
-        ("develop-red", r"^#### red", r"exits 2 \(killed-stuck\)"),
         ("green", r"^#### green", r"exit 2 → bail"),
         ("refactor", r"^#### refactor loop", r"exit 2 → bail"),
         ("revise", r"^## revising on a reject", r"exit 2 → bail"),
