@@ -26,3 +26,17 @@ def test_two_readers_audits_in_one_session_parse_each_test_file_once_2168(tests_
 
     assert len(index) == 3, "the real test tree has fewer than three files naming SKILL"
     assert parsed == {entry.path.name: 1 for entry in index}, f"parses per test file: {dict(parsed)}"
+
+
+@pytest.fixture(scope="session")
+def _index_held_by_a_session_consumer(tests_py_index):
+    return tests_py_index
+
+
+@pytest.mark.tree_audit("every test file under skills/tdd/scripts/tests/py")
+def test_a_session_scoped_consumer_and_a_case_get_the_one_index_object_of_the_process_2168(
+        _index_held_by_a_session_consumer, tests_py_index):
+    """Pins the fixture's session scope by behaviour: a session-scoped consumer may hold it only if it lives as long
+    as the process (pytest refuses a narrower one with ScopeMismatch), and every case then gets that same object,
+    so its entries' lazy parses happen once per process however many audits read them."""
+    assert _index_held_by_a_session_consumer is tests_py_index
