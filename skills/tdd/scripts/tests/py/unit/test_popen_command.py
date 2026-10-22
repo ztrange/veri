@@ -87,3 +87,13 @@ def test_network_guard_refuses_an_iterator_args_as_it_does_the_list_2012(monkeyp
         installed["__init__"](None, ["gh"])
     with pytest.raises(AssertionError, match="a case started gh"):
         installed["__init__"](None, iter(["gh"]))
+
+
+def test_small_case_guard_allows_an_iterator_args_as_it_does_the_list_2012():
+    import os
+    import small_case_guard
+
+    words = ["python3", os.path.join(small_case_guard.VERI, "status.py")]
+
+    assert small_case_guard.refused(words) is None
+    assert small_case_guard.refused(iter(words)) is None
