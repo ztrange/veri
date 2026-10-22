@@ -1235,3 +1235,27 @@ def test_check_earlier_prints_usage_naming_check_earlier_and_exits_2_without_a_l
     header = (scripts / "tests-frozen.sh").read_text().split("\nexec ")[0]
     assert "tests-frozen.sh check-earlier" in header
     assert "check-earlier" in (scripts.parent / "SCRIPTS.md").read_text()
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_check_earlier_exits_0_printing_nothing_when_a_later_step_re_recorded_a_case_and_a_still_later_step_left_it_alone_2125(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "tests/test_suite.py"
+    suite.write_text("def test_a():\n    assert 0\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    one, two, three = "step one", "step two", "step three"
+    suite.write_text("def test_a():\n    assert 1\n")
+    run_cli(tests_frozen, ["record", "--step", one, "tests/test_suite.py"], cwd=tmp_path)
+    suite.write_text("def test_a():\n    assert 2\n")
+    run_cli(tests_frozen, ["record", "--step", two, "tests/test_suite.py"], cwd=tmp_path)
+    suite.write_text("def test_a():\n    assert 2\n\n\ndef test_c():\n    assert 3\n")
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [x] %s\n- [ ] %s\n" % (one, two, three))
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", three], cwd=tmp_path)
+
+    assert (code, out) == (0, "")

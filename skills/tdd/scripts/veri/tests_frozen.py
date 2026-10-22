@@ -102,7 +102,7 @@ def _check_earlier(ledger, step, exempt=()):
     parsed = replaces_case.parse(step) if replaces_case.is_replaces_case_step(step) else None
     exempt = list(exempt) + (parsed[0] if parsed else [])
     fixture = _FIXTURE_FILE.search(step) if carries_mark(trailing_markers(step), "fixture-repair") else None
-    changed = []
+    latest = {}
     for line in lines:
         match = re.match(r"\s*- \[.\] (.*)", line)
         if not match or match.group(1) == step:
@@ -113,13 +113,16 @@ def _check_earlier(ledger, step, exempt=()):
         except OSError:
             continue
         for name, case, digest in bodies:
-            try:
-                with open(name, encoding="utf-8", errors="replace") as handle:
-                    now = dict(_cases(handle.read())).get(case)
-            except OSError:
-                now = None
-            if case not in exempt and not (fixture and name == fixture.group(1)) and (now is None or _body_digest(now) != digest):
-                changed.append("%s (%s)" % (case, match.group(1)))
+            latest[(name, case)] = (digest, match.group(1))
+    changed = []
+    for (name, case), (digest, owner) in latest.items():
+        try:
+            with open(name, encoding="utf-8", errors="replace") as handle:
+                now = dict(_cases(handle.read())).get(case)
+        except OSError:
+            now = None
+        if case not in exempt and not (fixture and name == fixture.group(1)) and (now is None or _body_digest(now) != digest):
+            changed.append("%s (%s)" % (case, owner))
     for entry in changed:
         write(sys.stdout, entry)
     return 1 if changed else 0
