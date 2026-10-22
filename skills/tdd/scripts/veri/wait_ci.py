@@ -205,12 +205,7 @@ def main(argv):
             except ArithError as error:
                 warn(error)
                 break
-        if want and head != want:
-            if now >= slice_end:
-                break
-            subprocess.run(["sleep", poll])
-            continue
-        if queued:
+        if (want and head != want) or queued:
             if now >= slice_end:
                 break
             subprocess.run(["sleep", poll])
