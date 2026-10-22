@@ -69,3 +69,21 @@ def test_each_guard_asks_the_helper_for_the_command_2012(monkeypatch, tmp_path_f
         monkeypatch.undo()
         importlib.reload(small_case_guard)
         importlib.reload(network_guard)
+
+
+def test_network_guard_refuses_an_iterator_args_as_it_does_the_list_2012(monkeypatch, tmp_path_factory):
+    import subprocess
+    import network_guard
+
+    installed = {}
+
+    class Recorder:
+        def setattr(self, target, name, value):
+            installed[name] = value
+
+    monkeypatch.setattr(subprocess.Popen, "__init__", lambda self, *a, **k: None)
+    network_guard.network_refusal.__wrapped__(Recorder(), tmp_path_factory)
+    with pytest.raises(AssertionError, match="a case started gh"):
+        installed["__init__"](None, ["gh"])
+    with pytest.raises(AssertionError, match="a case started gh"):
+        installed["__init__"](None, iter(["gh"]))

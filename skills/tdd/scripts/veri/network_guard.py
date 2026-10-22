@@ -38,8 +38,9 @@ def network_refusal(monkeypatch, tmp_path_factory):
         return real_connect(self, address)
 
     def popen(self, args, *rest, **kwargs):
-        command = command_basename(args)
-        if command in ("gh", "curl") and not faked(os.fsdecode(command_words(args)[0]), kwargs, basetemp):
+        words = command_words(args)
+        command = command_basename(words)
+        if command in ("gh", "curl") and not faked(os.fsdecode(words[0]), kwargs, basetemp):
             raise AssertionError("a case started %s; fake the call" % command)
         return real_popen(self, args, *rest, **kwargs)
 
