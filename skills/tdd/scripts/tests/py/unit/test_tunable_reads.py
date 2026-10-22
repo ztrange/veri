@@ -80,7 +80,9 @@ def direct_reads(path):
 
     imported = {alias.asname or alias.name for node in ast.walk(tree)
                 if isinstance(node, ast.ImportFrom) and node.module == "os"
-                for alias in node.names if alias.name in ("environ", "environb", "getenv")}
+                for alias in node.names if alias.name in ("environ", "environb", "getenv", "*")}
+    if "*" in imported:
+        imported |= {"environ", "environb", "getenv"}
 
     os_names = {"os"} | {alias.asname for node in ast.walk(tree) if isinstance(node, ast.Import)
                          for alias in node.names if alias.name == "os" and alias.asname}
