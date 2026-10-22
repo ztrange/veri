@@ -1,12 +1,19 @@
-"""Medium cases for veri/mutation_parity.py: the bash suites and python3 it starts for real."""
+"""Medium cases for veri/mutation_parity.py: the bash suites it starts for real, its pytest runs in-process."""
+import contextlib
 import difflib
 import importlib
+import importlib.util
+import io
 import os
 import subprocess
 import sys
 import time
+from types import SimpleNamespace
 
 import pytest
+from _pytest.pytester import Pytester
+
+pytest_plugins = ["pytester"]
 
 MODULE = "skills/tdd/scripts/veri/gate.py"
 SUITE = """#!/bin/sh
@@ -26,10 +33,53 @@ echo "$pass passed, $fail failed"
 """
 
 
+class ShortNamed:
+    function = SimpleNamespace(__name__="mutation_parity")
+
+    def __init__(self, request):
+        self.request = request
+
+    def __getattr__(self, name):
+        return getattr(self.request, name)
+
+
+@pytest.fixture(autouse=True)
+def pytest_runs_in_process(request, tmp_path_factory, monkeypatch):
+    pytester = Pytester(ShortNamed(request), tmp_path_factory, monkeypatch, _ispytest=True)
+    importlib.invalidate_caches()
+    mutation_parity = importlib.import_module("veri.mutation_parity")
+
+    def run(*args):
+        environ = dict(os.environ)
+        os.environ.clear()
+        os.environ.update(mutation_parity.no_bytecode_env())
+        monkeypatch.setattr(sys, "dont_write_bytecode", True)
+        try:
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                result = pytester.runpytest_inprocess("-q", "-p", "no:cacheprovider", *args)
+        finally:
+            os.environ.clear()
+            os.environ.update(environ)
+        if result.ret not in (0, 1):
+            raise RuntimeError(f"pytest could not run {' '.join(args)}: exit {result.ret}")
+        return SimpleNamespace(returncode=result.ret, stdout="\n".join(result.outlines) + "\n")
+
+    monkeypatch.setattr(mutation_parity, "pytest", run)
+
+
+def imported_now(root):
+    spec = importlib.util.spec_from_file_location("gate_after", root / MODULE)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return str(module.code())
+
+
 @pytest.mark.process("a bash suite and python3 started by failed_cases(), importing a veri module under a same-size mutation reverted within the second")
 def test_1501_same_size_mutation_reverted_within_a_second_leaves_no_mutated_bytecode(tmp_path, monkeypatch, run_cli):
     for name in ("PYTHONDONTWRITEBYTECODE", "PYTHONPYCACHEPREFIX"):
         monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(sys, "dont_write_bytecode", False)
+    monkeypatch.setattr(sys, "pycache_prefix", None)
     source = tmp_path / MODULE
     source.parent.mkdir(parents=True)
     source.write_text("def code():\n    return 2\n")
@@ -51,11 +101,10 @@ def test_1501_same_size_mutation_reverted_within_a_second_leaves_no_mutated_byte
     code, out, err = run_cli(mutation_parity, [str(table)], cwd=tmp_path)
 
     leftover = sorted(str(p.relative_to(tmp_path)) for p in tmp_path.rglob("gate.*.pyc"))
-    after = subprocess.run([sys.executable, "-c", "import sys; sys.path.insert(0, 'skills/tdd/scripts/veri'); import gate; print(gate.code())"],
-                           cwd=tmp_path, capture_output=True, text=True, stdin=subprocess.DEVNULL)
-    assert (code, out.strip().endswith("proven"), leftover, after.stdout.strip()) == (0, True, [], "2"), (
+    after = imported_now(tmp_path)
+    assert (code, out.strip().endswith("proven"), leftover, after) == (0, True, [], "2"), (
         "exit=%s stdout=%r stderr=%r; bytecode left %r; module imported after the tool exits answers %r, want '2'"
-        % (code, out, err, leftover, after.stdout.strip()))
+        % (code, out, err, leftover, after))
 
 
 PYTEST_SUITE = """import sys
@@ -80,6 +129,8 @@ def test_unrelated():
 def test_1501_pytest_suite_row_leaves_no_mutated_bytecode_and_unmutated_runs_read_current_source(tmp_path, monkeypatch, run_cli):
     for name in ("PYTHONDONTWRITEBYTECODE", "PYTHONPYCACHEPREFIX"):
         monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(sys, "dont_write_bytecode", False)
+    monkeypatch.setattr(sys, "pycache_prefix", None)
     source = tmp_path / MODULE
     source.parent.mkdir(parents=True)
     source.write_text("def code():\n    return 2\n")
@@ -97,20 +148,14 @@ def test_1501_pytest_suite_row_leaves_no_mutated_bytecode_and_unmutated_runs_rea
                                 "checks/test_gate.py::test_kept", str(patch)]) + "\n")
     importlib.invalidate_caches()
     mutation_parity = importlib.import_module("veri.mutation_parity")
-    leg_python = mutation_parity.venv_python()
-    interpreter = tmp_path / "interp"
-    interpreter.write_text('#!/bin/sh\nexec "%s" "$@"\n' % leg_python)
-    interpreter.chmod(0o755)
-    monkeypatch.setattr(mutation_parity, "venv_python", lambda: str(interpreter))
 
     code, out, err = run_cli(mutation_parity, [str(table)], cwd=tmp_path)
 
     leftover = sorted(str(p.relative_to(tmp_path)) for p in tmp_path.rglob("gate.*.pyc"))
-    after = subprocess.run([leg_python, "-c", "import sys; sys.path.insert(0, 'skills/tdd/scripts/veri'); import gate; print(gate.code())"],
-                           cwd=tmp_path, capture_output=True, text=True, stdin=subprocess.DEVNULL)
-    assert (code, out.strip().endswith("proven"), leftover, after.stdout.strip()) == (0, True, [], "2"), (
+    after = imported_now(tmp_path)
+    assert (code, out.strip().endswith("proven"), leftover, after) == (0, True, [], "2"), (
         "exit=%s stdout=%r stderr=%r; bytecode left %r; module imported after the tool exits answers %r, want '2'"
-        % (code, out, err, leftover, after.stdout.strip()))
+        % (code, out, err, leftover, after))
 
 
 UNCAUGHT_SUITE = PYTEST_SUITE.replace("def test_kept():\n    assert gate.code() == 2", "def test_kept():\n    assert True")
@@ -134,10 +179,6 @@ def test_1808_unproven_row_names_the_old_case_on_stderr_as_a_missing_test_and_le
     table.write_text("\t".join(row) + "\n")
     importlib.invalidate_caches()
     mutation_parity = importlib.import_module("veri.mutation_parity")
-    interpreter = tmp_path / "interp"
-    interpreter.write_text('#!/bin/sh\nexec "%s" "$@"\n' % mutation_parity.venv_python())
-    interpreter.chmod(0o755)
-    monkeypatch.setattr(mutation_parity, "venv_python", lambda: str(interpreter))
 
     code, out, err = run_cli(mutation_parity, [str(table)], cwd=tmp_path)
 
@@ -187,10 +228,6 @@ def test_1843_pytest_suite_row_is_still_judged_by_the_pytest_runner_and_gets_a_v
                                 "checks/test_gate.py::test_kept", str(patch)]) + "\n")
     importlib.invalidate_caches()
     mutation_parity = importlib.import_module("veri.mutation_parity")
-    interpreter = tmp_path / "interp"
-    interpreter.write_text('#!/bin/sh\nexec "%s" "$@"\n' % mutation_parity.venv_python())
-    interpreter.chmod(0o755)
-    monkeypatch.setattr(mutation_parity, "venv_python", lambda: str(interpreter))
 
     code, out, err = run_cli(mutation_parity, [str(table)], cwd=tmp_path)
 
@@ -254,10 +291,6 @@ def calc_scratch(tmp_path, monkeypatch, suites=(), pytest_files=()):
             CALC_SH.splitlines(True), mutated.splitlines(True), "a/calc.sh", "b/calc.sh")))
     importlib.invalidate_caches()
     mutation_parity = importlib.import_module("veri.mutation_parity")
-    interpreter = tmp_path / "interp"
-    interpreter.write_text('#!/bin/sh\nexec "%s" "$@"\n' % mutation_parity.venv_python())
-    interpreter.chmod(0o755)
-    monkeypatch.setattr(mutation_parity, "venv_python", lambda: str(interpreter))
     return mutation_parity
 
 
@@ -730,10 +763,6 @@ def test_1667_pytest_case_row_sees_no_veri_or_claude_variable_from_the_caller_ex
                                 "checks/test_gate.py::test_kept", str(patch)]) + "\n")
     importlib.invalidate_caches()
     mutation_parity = importlib.import_module("veri.mutation_parity")
-    interpreter = tmp_path / "interp"
-    interpreter.write_text('#!/bin/sh\nexec "%s" "$@"\n' % mutation_parity.venv_python())
-    interpreter.chmod(0o755)
-    monkeypatch.setattr(mutation_parity, "venv_python", lambda: str(interpreter))
 
     code, out, err = run_cli(mutation_parity, [str(table)], cwd=tmp_path)
 
@@ -789,10 +818,6 @@ def test_1667_row_whose_unmutated_suite_already_fails_is_unproven_with_no_missin
     table.write_text("\t".join(row) + "\n")
     importlib.invalidate_caches()
     mutation_parity = importlib.import_module("veri.mutation_parity")
-    interpreter = tmp_path / "interp"
-    interpreter.write_text('#!/bin/sh\nexec "%s" "$@"\n' % mutation_parity.venv_python())
-    interpreter.chmod(0o755)
-    monkeypatch.setattr(mutation_parity, "venv_python", lambda: str(interpreter))
 
     code, out, err = run_cli(mutation_parity, [str(table)], cwd=tmp_path)
 
@@ -807,7 +832,7 @@ def test_1983_shim_forwards_the_pairs_table_and_the_exit_code(tmp_path, monkeypa
     row = row_of(tmp_path, "checks/calc-suite.sh", "adds two numbers", "redundant", "adds a negative", "add-subtracts")
     table = tmp_path / "pairs.tsv"
     table.write_text("\t".join(row) + "\n")
-    shim = os.path.join(os.getcwd(), "skills/tdd/scripts/mutation-parity.sh")
+    shim = os.path.join(os.path.dirname(__file__), "..", "..", "mutation-parity.sh")
 
     run = subprocess.run([shim, str(table)], cwd=tmp_path, capture_output=True, text=True, stdin=subprocess.DEVNULL)
 
