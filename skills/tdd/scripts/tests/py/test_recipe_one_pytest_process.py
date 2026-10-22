@@ -61,6 +61,14 @@ def planted_tree(tmp_path, small=PLANTED_CASES.split("@pytest.mark.process")[0])
     return tree
 
 
+def private_home(tmp_path):
+    venv = os.environ.get("VERI_VENV") or os.path.join(os.path.expanduser("~"), ".veri-tools", "venv")
+    home, scratch = tmp_path / "home", tmp_path / "scratch"
+    home.mkdir()
+    scratch.mkdir()
+    return scratch, {"VERI_VENV": venv, "HOME": str(home), "TMPDIR": str(scratch)}
+
+
 def make(tree, log, target, **veri):
     log.write_text("")
     env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
@@ -155,11 +163,7 @@ def test_with_no_worker_count_set_make_unit_runs_four_workers_and_make_test_one_
 @pytest.mark.process("make unit started for real twice over a planted tree whose sources do not change between the runs")
 def test_a_second_make_unit_over_an_unchanged_tree_leaves_the_bytecode_the_first_run_wrote_for_a_test_module_untouched(tmp_path):
     tree, log = planted_tree(tmp_path), tmp_path / "ran.log"
-    venv = os.environ.get("VERI_VENV") or os.path.join(os.path.expanduser("~"), ".veri-tools", "venv")
-    home, scratch = tmp_path / "home", tmp_path / "scratch"
-    home.mkdir()
-    scratch.mkdir()
-    env = {"VERI_VENV": venv, "HOME": str(home), "TMPDIR": str(scratch)}
+    scratch, env = private_home(tmp_path)
 
     def cached():
         return {str(p): (p.stat().st_ino, p.stat().st_mtime_ns) for p in tmp_path.rglob("test_planted_small*.pyc")}
@@ -176,11 +180,7 @@ def test_a_second_make_unit_over_an_unchanged_tree_leaves_the_bytecode_the_first
 def test_a_test_module_edited_to_same_size_contents_within_the_same_second_is_recompiled_while_an_unchanged_one_keeps_its_bytecode(tmp_path):
     original = PLANTED_CASES.split("@pytest.mark.process")[0].replace("pytest small", "alpha")
     tree, log = planted_tree(tmp_path, small=original), tmp_path / "ran.log"
-    venv = os.environ.get("VERI_VENV") or os.path.join(os.path.expanduser("~"), ".veri-tools", "venv")
-    home, scratch = tmp_path / "home", tmp_path / "scratch"
-    home.mkdir()
-    scratch.mkdir()
-    env = {"VERI_VENV": venv, "HOME": str(home), "TMPDIR": str(scratch)}
+    scratch, env = private_home(tmp_path)
     edited = tree / "skills" / "tdd" / "scripts" / "tests" / "py" / "unit" / "test_planted_small.py"
 
     def cached(stem):
