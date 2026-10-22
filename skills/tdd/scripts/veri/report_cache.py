@@ -2,11 +2,12 @@
 import datetime
 import json
 import os
+import re
 import subprocess
 import sys
 
 USAGE = "usage: report-cache.sh refresh\n"
-FIELDS = "number,title,state,labels,closedAt,updatedAt"
+FIELDS = "number,title,state,labels,closedAt,updatedAt,body"
 
 
 def main_tree():
@@ -18,11 +19,18 @@ def main_tree():
     return os.path.dirname(os.path.dirname(os.path.dirname(gitdir)))
 
 
+def blocked_by(body):
+    section = re.search(r"^## Blocked by\s*\n(.*?)(?=^## |\Z)", body or "", re.M | re.S)
+    return [int(n) for n in re.findall(r"#(\d+)", section.group(1))] if section else []
+
+
 def refresh():
     done = subprocess.run(
         ["gh", "issue", "list", "--state", "all", "--limit", "100000", "--json", FIELDS],
         capture_output=True, text=True)
     issues = json.loads(done.stdout)
+    for issue in issues:
+        issue["blockedBy"] = blocked_by(issue.pop("body", ""))
     fetched_at = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     tdd = os.path.join(main_tree(), ".tdd")
     os.makedirs(tdd, exist_ok=True)
