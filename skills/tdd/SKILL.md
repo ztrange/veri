@@ -565,6 +565,7 @@ three times over branches its ledger pinned on later lines.
    marked `⟦guard-subject: <path>⟧`, naming that file: the test freeze then lets Green
    edit it. The path is the full repo-relative path, matched exactly: a directory or a glob
    exempts nothing. The case pinning the behaviour stays frozen, and any other unrecorded test file is still flagged.
+   A guard-subject that is also its step's Red test file is never exempted, because `tests-frozen` records the Red's test file whole: the plan puts that step's Red case in a different file, and verify-plan rejects a plan whose step names one file as both.
 
    An **interface change** — a production interface replaced by a new one, its callers moved
    across, the old one removed (ADR 0030) — is planned as one step listing the phases it
