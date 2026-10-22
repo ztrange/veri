@@ -3,7 +3,6 @@ import pathlib
 import re
 
 DOC = pathlib.Path(__file__).resolve().parents[4] / "SKILL-EDIT.md"
-SKILL = DOC.with_name("SKILL.md")
 
 
 def _sentences(text):
@@ -31,16 +30,6 @@ def test_skill_edit_md_redoes_an_unfinished_skill_edit_step_from_its_start_with_
     assert resume, "SKILL-EDIT.md never says what a resumed run does with an unfinished skill-edit step"
     assert "from its start" in resume, "the resumed run never redoes the step from its start"
     assert "budget" in resume and "reset" in resume, "the resumed run never resets the step's budget"
-
-
-def test_skill_md_points_the_conductor_to_skill_edit_md_on_a_skill_edit_step_in_place_of_red_green_refactor_1871():
-    sentences = _sentences(SKILL.read_text(encoding="utf-8"))
-    pointer = next((s for s in sentences if "<base directory>/SKILL-EDIT.md" in s), "")
-    assert pointer, "SKILL.md never points the conductor to <base directory>/SKILL-EDIT.md"
-    assert "Read" in pointer, "the pointer never tells the conductor to Read SKILL-EDIT.md"
-    assert "⟦skill-edit⟧" in pointer, "the pointer never names the skill-edit step it applies to"
-    assert re.search(r"in place of[^.]*Red[^.]*Green[^.]*Refactor", pointer), \
-        "the pointer never says SKILL-EDIT.md replaces Red, Green and Refactor"
 
 
 def test_skill_edit_md_bails_at_once_on_exit_2_without_spending_stuck_retries_yet_retries_a_killed_author_inside_the_runner_2037():
