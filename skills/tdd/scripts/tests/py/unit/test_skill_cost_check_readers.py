@@ -5,7 +5,7 @@ import re
 
 import pytest
 
-TESTS_PY = pathlib.Path(__file__).resolve().parent
+TESTS_PY = pathlib.Path(__file__).resolve().parent.parent
 SKILL_MD = TESTS_PY.parents[2] / "SKILL.md"
 HEADING = "#### The step's cost check"
 

@@ -7,7 +7,7 @@ import pytest
 
 import skill_sections
 
-TESTS_PY = pathlib.Path(__file__).resolve().parent
+TESTS_PY = pathlib.Path(__file__).resolve().parent.parent
 SKILL_MD = TESTS_PY.parents[2] / "SKILL.md"
 HEADINGS = (
     "### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)",
