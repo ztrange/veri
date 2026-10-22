@@ -197,6 +197,8 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   section carrying its what-happened, expected, steps to reproduce and environment when the
   issue carries the `bug` label (and nothing extra when it does not). Redirect it into
   `.tdd/issue-<n>-spec.md` (step 3). Exit 2 on a missing issue number.
+- `$S/resume-clean.sh` — a resumed run's first act: discard what a killed leaf left uncommitted
+  outside `.tdd/`, printing each discarded change as its `git status --porcelain` line. Exit 0.
 - `$S/ensure-run-state-ignored.sh [repo-root]` — make the **target repo** ignore veri's run
   scratch (`.tdd/*.log`, `.rc`, `.prompt`, `.reason`, the blind spec) while keeping the ledger
   tracked. Writes the rule to **both** the worktree's `.gitignore` (committed, so the first
