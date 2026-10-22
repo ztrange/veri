@@ -1,6 +1,7 @@
 """Cases for skill-edit-step.sh that start the real entry point against a real git repository and a stub claude."""
 import json
 import subprocess
+from types import SimpleNamespace
 
 import pytest
 
@@ -16,13 +17,19 @@ LIST = ("## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
         "| A1 | The widget is %s. | because |\n| A2 | The widget never hums. | quiet |\n")
 
 
+def _step(run_cli, argv, cwd, env):
+    from veri import skill_edit_step
+    code, out, err = run_cli(skill_edit_step, argv, env=env, cwd=cwd)
+    return SimpleNamespace(returncode=code, stdout=out, stderr=err)
+
+
 def git(repo, *args):
     return subprocess.run(["git", "-C", str(repo), "-c", "user.name=veri", "-c", "user.email=veri@example.test", *args],
                           capture_output=True, text=True, check=True).stdout.strip()
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
-def test_changed_ids_that_already_pass_launch_no_author_and_commit_the_list_and_graded_line_exiting_3(tmp_path):
+def test_changed_ids_that_already_pass_launch_no_author_and_commit_the_list_and_graded_line_exiting_3(tmp_path, run_cli):
     repo = tmp_path / "repo"
     repo.mkdir()
     git(repo, "init", "-q", "-b", "main")
@@ -40,7 +47,7 @@ def test_changed_ids_that_already_pass_launch_no_author_and_commit_the_list_and_
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "unit.md"], repo, env)
     owed = subprocess.run([str(OWED), "."], cwd=repo, capture_output=True, text=True, env=env)
 
     log = repo / ".tdd" / "events.jsonl"
@@ -72,7 +79,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author")
-def test_a_failing_changed_id_launches_an_author_leaf_under_the_author_role_whose_prompt_has_the_unit_requirements_and_fail_reasons_but_no_why_cell(tmp_path):
+def test_a_failing_changed_id_launches_an_author_leaf_under_the_author_role_whose_prompt_has_the_unit_requirements_and_fail_reasons_but_no_why_cell(tmp_path, run_cli):
     repo = tmp_path / "repo"
     repo.mkdir()
     git(repo, "init", "-q", "-b", "main")
@@ -93,7 +100,7 @@ def test_a_failing_changed_id_launches_an_author_leaf_under_the_author_role_whos
            "CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
            "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "unit.md"], repo, env)
 
     log = repo / ".tdd" / "events.jsonl"
     events = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
@@ -128,7 +135,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author")
-def test_changed_ids_that_pass_with_an_unchanged_id_failing_make_no_commit_before_the_author_and_do_not_exit_3(tmp_path):
+def test_changed_ids_that_pass_with_an_unchanged_id_failing_make_no_commit_before_the_author_and_do_not_exit_3(tmp_path, run_cli):
     repo = tmp_path / "repo"
     repo.mkdir()
     git(repo, "init", "-q", "-b", "main")
@@ -149,7 +156,7 @@ def test_changed_ids_that_pass_with_an_unchanged_id_failing_make_no_commit_befor
            "CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
            "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "unit.md"], repo, env)
 
     at_author = cap / "commits-at-author"
     log = repo / ".tdd" / "events.jsonl"
@@ -172,7 +179,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author")
-def test_a_grader_that_keeps_rejecting_relaunches_the_author_for_the_default_budget_of_three_then_exits_1_naming_every_failing_id(tmp_path):
+def test_a_grader_that_keeps_rejecting_relaunches_the_author_for_the_default_budget_of_three_then_exits_1_naming_every_failing_id(tmp_path, run_cli):
     repo = tmp_path / "repo"
     repo.mkdir()
     git(repo, "init", "-q", "-b", "main")
@@ -190,7 +197,7 @@ def test_a_grader_that_keeps_rejecting_relaunches_the_author_for_the_default_bud
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "unit.md"], repo, env)
 
     log = repo / ".tdd" / "events.jsonl"
     events = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
@@ -200,7 +207,7 @@ def test_a_grader_that_keeps_rejecting_relaunches_the_author_for_the_default_bud
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author")
-def test_a_grader_that_keeps_rejecting_relaunches_the_author_exactly_veri_skill_edit_budget_times_then_exits_1_naming_the_failing_ids(tmp_path):
+def test_a_grader_that_keeps_rejecting_relaunches_the_author_exactly_veri_skill_edit_budget_times_then_exits_1_naming_the_failing_ids(tmp_path, run_cli):
     repo = tmp_path / "repo"
     repo.mkdir()
     git(repo, "init", "-q", "-b", "main")
@@ -219,7 +226,7 @@ def test_a_grader_that_keeps_rejecting_relaunches_the_author_exactly_veri_skill_
            "VERI_SKILL_EDIT_BUDGET": "2",
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "unit.md"], repo, env)
 
     log = repo / ".tdd" / "events.jsonl"
     events = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
@@ -234,7 +241,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader that gives no verdict")
-def test_a_grader_that_gives_no_parseable_verdict_exits_2(tmp_path):
+def test_a_grader_that_gives_no_parseable_verdict_exits_2(tmp_path, run_cli):
     repo = tmp_path / "repo"
     repo.mkdir()
     git(repo, "init", "-q", "-b", "main")
@@ -252,7 +259,7 @@ def test_a_grader_that_gives_no_parseable_verdict_exits_2(tmp_path):
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "unit.md"], repo, env)
 
     log = repo / ".tdd" / "events.jsonl"
     events = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
@@ -281,7 +288,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author that exits 2")
-def test_an_author_leaf_whose_supervisor_exits_2_exits_2_without_grading_again_or_relaunching(tmp_path):
+def test_an_author_leaf_whose_supervisor_exits_2_exits_2_without_grading_again_or_relaunching(tmp_path, run_cli):
     repo = tmp_path / "repo"
     repo.mkdir()
     git(repo, "init", "-q", "-b", "main")
@@ -302,7 +309,7 @@ def test_an_author_leaf_whose_supervisor_exits_2_exits_2_without_grading_again_o
            "CAP": str(cap), "VERI_STUCK_RETRIES": "0", "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
            "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "unit.md"], repo, env)
 
     log = repo / ".tdd" / "events.jsonl"
     events = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
@@ -331,7 +338,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author that touches GRADED")
-def test_an_attempt_that_grades_pass_but_whose_author_touched_graded_is_rejected_spending_the_attempt_and_commits_nothing(tmp_path):
+def test_an_attempt_that_grades_pass_but_whose_author_touched_graded_is_rejected_spending_the_attempt_and_commits_nothing(tmp_path, run_cli):
     repo = tmp_path / "repo"
     repo.mkdir()
     git(repo, "init", "-q", "-b", "main")
@@ -352,7 +359,7 @@ def test_an_attempt_that_grades_pass_but_whose_author_touched_graded_is_rejected
            "CAP": str(cap), "REPO": str(repo), "VERI_SKILL_EDIT_BUDGET": "1",
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "unit.md"], repo, env)
 
     committed = subprocess.run(["git", "-C", str(repo), "ls-tree", "-r", "--name-only", "HEAD"],
                                capture_output=True, text=True).stdout.split()
@@ -365,7 +372,7 @@ STUB_AUTHOR_EDITS_PROSE = STUB_AUTHOR_TOUCHES_GRADED.replace(
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author that edits the prose")
-def test_an_attempt_that_grades_pass_and_passes_the_guard_commits_list_prose_and_graded_in_one_commit_exiting_0_leaving_nothing_owed(tmp_path):
+def test_an_attempt_that_grades_pass_and_passes_the_guard_commits_list_prose_and_graded_in_one_commit_exiting_0_leaving_nothing_owed(tmp_path, run_cli):
     repo = tmp_path / "repo"
     repo.mkdir()
     git(repo, "init", "-q", "-b", "main")
@@ -386,7 +393,7 @@ def test_an_attempt_that_grades_pass_and_passes_the_guard_commits_list_prose_and
            "CAP": str(cap), "REPO": str(repo),
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "unit.md"], repo, env)
     owed = subprocess.run([str(OWED), "."], cwd=repo, capture_output=True, text=True, env=env)
 
     assert [ran.returncode, git(repo, "rev-list", "--count", "HEAD"),
@@ -416,7 +423,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader giving a different FAIL reason per grading and a stub author")
-def test_a_relaunched_authors_prompt_carries_the_fail_reasons_of_the_latest_grading_not_the_first_ones(tmp_path):
+def test_a_relaunched_authors_prompt_carries_the_fail_reasons_of_the_latest_grading_not_the_first_ones(tmp_path, run_cli):
     repo = tmp_path / "repo"
     repo.mkdir()
     git(repo, "init", "-q", "-b", "main")
@@ -437,7 +444,7 @@ def test_a_relaunched_authors_prompt_carries_the_fail_reasons_of_the_latest_grad
            "CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
            "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "unit.md"], repo, env)
 
     second = cap / "author-2.txt"
     prompt = second.read_text() if second.exists() else ""
@@ -446,7 +453,7 @@ def test_a_relaunched_authors_prompt_carries_the_fail_reasons_of_the_latest_grad
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a bad VERI_SKILL_EDIT_BUDGET")
-def test_a_bad_veri_skill_edit_budget_exits_2_from_validating_it_when_every_other_call_before_launching_succeeds(tmp_path):
+def test_a_bad_veri_skill_edit_budget_exits_2_from_validating_it_when_every_other_call_before_launching_succeeds(tmp_path, run_cli):
     repo = tmp_path / "repo"
     repo.mkdir()
     git(repo, "init", "-q", "-b", "main")
@@ -465,7 +472,7 @@ def test_a_bad_veri_skill_edit_budget_exits_2_from_validating_it_when_every_othe
            "VERI_SKILL_EDIT_BUDGET": "many",
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "unit.md"], repo, env)
 
     log = repo / ".tdd" / "events.jsonl"
     launched = log.exists() and log.read_text().strip() != ""
@@ -476,7 +483,7 @@ ROWS = "| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | 
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
-def test_a_unit_holding_its_own_requirements_table_with_no_list_beside_it_has_the_table_moved_into_a_new_requirements_md_in_the_same_commit_1959(tmp_path):
+def test_a_unit_holding_its_own_requirements_table_with_no_list_beside_it_has_the_table_moved_into_a_new_requirements_md_in_the_same_commit_1959(tmp_path, run_cli):
     repo = tmp_path / "repo"
     (repo / "skills" / "veri-dev").mkdir(parents=True)
     git(repo, "init", "-q", "-b", "main")
@@ -492,8 +499,7 @@ def test_a_unit_holding_its_own_requirements_table_with_no_list_beside_it_has_th
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "skills/veri-dev/SKILL.md"], cwd=repo, capture_output=True,
-                         text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "skills/veri-dev/SKILL.md"], repo, env)
 
     beside = repo / "skills" / "veri-dev" / "REQUIREMENTS.md"
     moved = beside.read_text() if beside.exists() else ""
@@ -593,7 +599,7 @@ def test_each_author_attempts_leaf_is_named_author_skill_edit_k_for_its_attempt_
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
-def test_a_unit_with_no_requirements_list_against_an_issue_with_no_requirements_section_exits_3_leaving_the_unit_unchanged_and_creating_no_requirements_md_1959(tmp_path):
+def test_a_unit_with_no_requirements_list_against_an_issue_with_no_requirements_section_exits_3_leaving_the_unit_unchanged_and_creating_no_requirements_md_1959(tmp_path, run_cli):
     repo = tmp_path / "repo"
     repo.mkdir()
     git(repo, "init", "-q", "-b", "main")
@@ -608,7 +614,7 @@ def test_a_unit_with_no_requirements_list_against_an_issue_with_no_requirements_
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "unit.md"], repo, env)
 
     assert [ran.returncode, "Traceback" in ran.stderr, (repo / "unit.md").read_text(),
             (repo / "REQUIREMENTS.md").exists()] \
@@ -616,7 +622,7 @@ def test_a_unit_with_no_requirements_list_against_an_issue_with_no_requirements_
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
-def test_an_issue_rewording_one_row_of_a_unit_below_the_root_with_its_path_section_leaves_one_row_per_id_reworded_in_place_and_no_basename_section_1959(tmp_path):
+def test_an_issue_rewording_one_row_of_a_unit_below_the_root_with_its_path_section_leaves_one_row_per_id_reworded_in_place_and_no_basename_section_1959(tmp_path, run_cli):
     repo = tmp_path / "repo"
     (repo / "skills" / "veri-dev").mkdir(parents=True)
     git(repo, "init", "-q", "-b", "main")
@@ -635,8 +641,7 @@ def test_an_issue_rewording_one_row_of_a_unit_below_the_root_with_its_path_secti
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "skills/veri-dev/SKILL.md"], cwd=repo, capture_output=True,
-                         text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "skills/veri-dev/SKILL.md"], repo, env)
 
     text = beside.read_text()
     rows = [l for l in text.splitlines() if l.startswith("| A")]
@@ -646,7 +651,7 @@ def test_an_issue_rewording_one_row_of_a_unit_below_the_root_with_its_path_secti
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
-def test_a_new_unit_from_a_path_new_heading_gets_a_requirements_md_section_headed_by_its_repo_relative_path_1959(tmp_path):
+def test_a_new_unit_from_a_path_new_heading_gets_a_requirements_md_section_headed_by_its_repo_relative_path_1959(tmp_path, run_cli):
     repo = tmp_path / "repo"
     (repo / "skills" / "new-skill").mkdir(parents=True)
     git(repo, "init", "-q", "-b", "main")
@@ -662,8 +667,7 @@ def test_a_new_unit_from_a_path_new_heading_gets_a_requirements_md_section_heade
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "skills/new-skill/SKILL.md"], cwd=repo, capture_output=True,
-                         text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "skills/new-skill/SKILL.md"], repo, env)
 
     beside = repo / "skills" / "new-skill" / "REQUIREMENTS.md"
     headings = [l for l in beside.read_text().splitlines() if l.startswith("## ")] if beside.exists() else []
@@ -671,7 +675,7 @@ def test_a_new_unit_from_a_path_new_heading_gets_a_requirements_md_section_heade
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
-def test_a_new_unit_from_a_path_new_heading_is_graded_and_signed_exiting_0_or_3_with_a_clean_tree_1959(tmp_path):
+def test_a_new_unit_from_a_path_new_heading_is_graded_and_signed_exiting_0_or_3_with_a_clean_tree_1959(tmp_path, run_cli):
     repo = tmp_path / "repo"
     (repo / "skills" / "new-skill").mkdir(parents=True)
     git(repo, "init", "-q", "-b", "main")
@@ -687,8 +691,7 @@ def test_a_new_unit_from_a_path_new_heading_is_graded_and_signed_exiting_0_or_3_
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "skills/new-skill/SKILL.md"], cwd=repo, capture_output=True,
-                         text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "skills/new-skill/SKILL.md"], repo, env)
 
     graded = repo / "skills" / "new-skill" / "GRADED"
     lines = graded.read_text().splitlines() if graded.exists() else []
@@ -698,7 +701,7 @@ def test_a_new_unit_from_a_path_new_heading_is_graded_and_signed_exiting_0_or_3_
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
-def test_a_unit_with_no_table_beside_a_requirements_md_holding_only_another_units_section_against_an_issue_stating_no_rows_exits_3_launching_no_grader_leaving_the_tree_clean_1959(tmp_path):
+def test_a_unit_with_no_table_beside_a_requirements_md_holding_only_another_units_section_against_an_issue_stating_no_rows_exits_3_launching_no_grader_leaving_the_tree_clean_1959(tmp_path, run_cli):
     repo = tmp_path / "repo"
     (repo / "skills" / "veri-dev").mkdir(parents=True)
     git(repo, "init", "-q", "-b", "main")
@@ -717,8 +720,7 @@ def test_a_unit_with_no_table_beside_a_requirements_md_holding_only_another_unit
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "skills/veri-dev/SKILL.md"], cwd=repo, capture_output=True,
-                         text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "skills/veri-dev/SKILL.md"], repo, env)
 
     assert [ran.returncode, launched.exists(), beside.read_text(), (beside.parent / "GRADED").exists(),
             git(repo, "status", "--porcelain")] == [3, False, original, False, ""], \
@@ -726,7 +728,7 @@ def test_a_unit_with_no_table_beside_a_requirements_md_holding_only_another_unit
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
-def test_a_path_new_heading_for_a_unit_in_a_directory_that_does_not_exist_yet_is_not_refused_and_creates_the_unit_1959(tmp_path):
+def test_a_path_new_heading_for_a_unit_in_a_directory_that_does_not_exist_yet_is_not_refused_and_creates_the_unit_1959(tmp_path, run_cli):
     repo = tmp_path / "repo"
     repo.mkdir()
     git(repo, "init", "-q", "-b", "main")
@@ -742,15 +744,14 @@ def test_a_path_new_heading_for_a_unit_in_a_directory_that_does_not_exist_yet_is
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "skills/new-skill/SKILL.md"], cwd=repo, capture_output=True,
-                         text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "skills/new-skill/SKILL.md"], repo, env)
 
     assert [ran.returncode in (0, 3), (repo / "skills" / "new-skill" / "SKILL.md").exists()] == [True, True], \
         (ran.returncode, ran.stdout, ran.stderr[-700:])
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader")
-def test_an_issue_rewording_and_adding_rows_edits_only_the_path_section_leaving_a_following_basename_section_byte_identical_1959(tmp_path):
+def test_an_issue_rewording_and_adding_rows_edits_only_the_path_section_leaving_a_following_basename_section_byte_identical_1959(tmp_path, run_cli):
     repo = tmp_path / "repo"
     (repo / "skills" / "veri-dev").mkdir(parents=True)
     git(repo, "init", "-q", "-b", "main")
@@ -771,8 +772,7 @@ def test_an_issue_rewording_and_adding_rows_edits_only_the_path_section_leaving_
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "skills/veri-dev/SKILL.md"], cwd=repo, capture_output=True,
-                         text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "skills/veri-dev/SKILL.md"], repo, env)
 
     text = beside.read_text()
     path_part, _, basename_part = text.partition("## SKILL.md\n")
@@ -787,7 +787,7 @@ STUB_RECORDING_ARGS = STUB_MODEL.replace(
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author recording its arguments")
-def test_an_author_leaf_is_launched_with_permission_mode_bypass_permissions_2041(tmp_path):
+def test_an_author_leaf_is_launched_with_permission_mode_bypass_permissions_2041(tmp_path, run_cli):
     repo = tmp_path / "repo"
     repo.mkdir()
     git(repo, "init", "-q", "-b", "main")
@@ -808,7 +808,7 @@ def test_an_author_leaf_is_launched_with_permission_mode_bypass_permissions_2041
            "CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
            "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "unit.md"], repo, env)
 
     recorded = cap / "author-args.txt"
     args = recorded.read_text().splitlines() if recorded.exists() else None
@@ -832,7 +832,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub claude recording every call by role")
-def test_a_new_empty_unit_launches_the_author_before_any_grader_call_2072(tmp_path):
+def test_a_new_empty_unit_launches_the_author_before_any_grader_call_2072(tmp_path, run_cli):
     repo = tmp_path / "repo"
     repo.mkdir()
     git(repo, "init", "-q", "-b", "main")
@@ -850,8 +850,7 @@ def test_a_new_empty_unit_launches_the_author_before_any_grader_call_2072(tmp_pa
            "CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
            "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "skills/new-skill/SKILL.md"], cwd=repo, capture_output=True,
-                         text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "skills/new-skill/SKILL.md"], repo, env)
 
     roles = cap / "roles"
     calls = roles.read_text().split() if roles.exists() else []
@@ -864,7 +863,7 @@ STUB_WRITES_UNIT = STUB_ROLE_LOG.replace(
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub claude whose author writes the new unit")
-def test_a_new_empty_unit_the_author_then_writes_exits_zero_and_is_committed_2072(tmp_path):
+def test_a_new_empty_unit_the_author_then_writes_exits_zero_and_is_committed_2072(tmp_path, run_cli):
     repo = tmp_path / "repo"
     repo.mkdir()
     git(repo, "init", "-q", "-b", "main")
@@ -882,8 +881,7 @@ def test_a_new_empty_unit_the_author_then_writes_exits_zero_and_is_committed_207
            "CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
            "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "skills/new-skill/SKILL.md"], cwd=repo, capture_output=True,
-                         text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "skills/new-skill/SKILL.md"], repo, env)
 
     committed = subprocess.run(["git", "show", "HEAD:skills/new-skill/SKILL.md"], cwd=repo, capture_output=True,
                                text=True).stdout
@@ -891,7 +889,7 @@ def test_a_new_empty_unit_the_author_then_writes_exits_zero_and_is_committed_207
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub claude recording every call by role")
-def test_a_non_empty_existing_unit_is_graded_first_and_a_grader_that_passes_every_row_launches_no_author_exiting_3_2072(tmp_path):
+def test_a_non_empty_existing_unit_is_graded_first_and_a_grader_that_passes_every_row_launches_no_author_exiting_3_2072(tmp_path, run_cli):
     repo = tmp_path / "repo"
     repo.mkdir()
     git(repo, "init", "-q", "-b", "main")
@@ -912,7 +910,7 @@ def test_a_non_empty_existing_unit_is_graded_first_and_a_grader_that_passes_ever
            "CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
            "GIT_COMMITTER_EMAIL": "t@t"}
 
-    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+    ran = _step(run_cli, ["issue.md", "unit.md"], repo, env)
 
     roles = cap / "roles"
     calls = roles.read_text().split() if roles.exists() else []
