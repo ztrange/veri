@@ -24,24 +24,23 @@ def blocked_by(body):
     return [int(n) for n in re.findall(r"#(\d+)", section.group(1))] if section else []
 
 
-def wall_seconds(comments):
-    seconds = None
+def last_metrics_field(comments, pattern):
+    value = None
     for comment in comments or []:
         body = comment.get("body") or ""
-        found = re.search(r"Wall time for the issue: (\d+) s", body)
+        found = re.search(pattern, body, re.M)
         if re.search(r"^### 📊 Metrics", body, re.M) and found:
-            seconds = int(found.group(1))
-    return seconds
+            value = found.group(1)
+    return value
+
+
+def wall_seconds(comments):
+    seconds = last_metrics_field(comments, r"Wall time for the issue: (\d+) s")
+    return None if seconds is None else int(seconds)
 
 
 def lane(comments):
-    label = None
-    for comment in comments or []:
-        body = comment.get("body") or ""
-        found = re.search(r"^Lane: (\S+)", body, re.M)
-        if re.search(r"^### 📊 Metrics", body, re.M) and found:
-            label = found.group(1)
-    return label
+    return last_metrics_field(comments, r"^Lane: (\S+)")
 
 
 def refresh():
