@@ -120,7 +120,7 @@ def test_every_tests_frozen_record_and_check_names_the_record_by_path_over_the_s
     text = SKILL.read_text()
     in_green = {n for n, _ in numbered_section(GREEN)}
     commands = [(n, line) for n, line in enumerate(text.split("\n"), 1)
-                if re.search(r"tests-frozen\.sh (record|check)", line)
+                if re.search(r"tests-frozen\.sh (record|check)(?![-\w])", line)
                 and not (n in in_green and "tests-frozen.sh check" in line)]
     assert commands, "no tests-frozen.sh record or check command to read"
     for n, line in commands:
