@@ -18,11 +18,8 @@ def split_cells(line):
         if m.group() == "|":
             cells.append("".join(cell) + line[start:m.start()])
             cell, start = [], m.end()
-        elif m.group().startswith("`"):
+        else:
             cell.append(line[start:m.start()] + m.group().replace("\\|", "|"))
-            start = m.end()
-        elif m.group() == "\\|":
-            cell.append(line[start:m.start()] + "|")
             start = m.end()
     cells.append("".join(cell) + line[start:])
     return [c.strip() for c in cells]
