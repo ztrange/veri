@@ -25,6 +25,18 @@ def worker_count(requested):
     return os.cpu_count() or 1
 
 
+def split_marks(argv):
+    rest, expressions = [], []
+    args = iter(argv)
+    for arg in args:
+        if arg == "-m":
+            expressions.append(next(args, ""))
+        else:
+            rest.append(arg)
+    selected = "(%s) and " % " and ".join("(%s)" % e for e in expressions) if expressions else ""
+    return rest, selected
+
+
 def main(argv):
     floor = launch_floor.python_floor()
     version = tunables.read("VERI_PYTHON_VERSION") or platform.python_version()
@@ -59,14 +71,7 @@ def main(argv):
             os.mkdir(base)
             count = worker_count(workers)
             parallel = ["-n", str(count)] if count >= 2 else []
-            rest, expressions = [], []
-            args = iter(argv)
-            for arg in args:
-                if arg == "-m":
-                    expressions.append(next(args, ""))
-                else:
-                    rest.append(arg)
-            selected = "(%s) and " % " and ".join("(%s)" % e for e in expressions) if expressions else ""
+            rest, selected = split_marks(argv)
             seen = os.path.join(run, "serial-seen")
             os.environ["PYTEST_LEG_SERIAL_SEEN"] = seen
             statuses = [pytest.main(["--basetemp=" + base] + parallel + ["-m", selected + "not serial"] + rest)]
