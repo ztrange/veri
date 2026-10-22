@@ -70,3 +70,32 @@ def test_refresh_from_a_linked_worktree_writes_the_cache_under_the_main_working_
     code, out, err = run_cli(report_cache, ["refresh"], cwd=linked)
 
     assert (code, (main / ".tdd" / "report-cache.json").is_file(), (linked / ".tdd" / "report-cache.json").exists()) == (0, True, False)
+
+
+def test_refresh_carries_the_issue_numbers_under_each_blocked_by_section_empty_when_none(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    issues = [
+        {"number": 7, "title": "blocked", "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-10-20T10:00:00Z",
+         "body": "## Problem\n\nSee #99.\n\n## Blocked by\n\n- #3\n- #5\n\n## Notes\n\n#42\n"},
+        {"number": 8, "title": "free", "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-10-20T11:00:00Z", "body": "## Problem\n\nx\n\n## Blocked by\n\nNone.\n"},
+    ]
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] != ["gh", "issue", "list"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
+    blockers = {i["number"]: i.get("blockedBy") for i in cache["issues"]}
+    assert (code, blockers) == (0, {7: [3, 5], 8: []})
