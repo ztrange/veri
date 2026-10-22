@@ -26,3 +26,12 @@ def test_claims_reads_an_escaped_pipe_outside_a_code_span_as_a_literal_pipe_2026
     path.write_text("## operator/PRINCIPLES.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
                     "| A1 | Says a \\| b in full. | because |\n")
     assert requirements.claims(str(path), "operator/PRINCIPLES.md") == "A1\tSays a | b in full.\n"
+
+
+def test_claims_reads_an_escaped_pipe_inside_a_code_span_as_a_literal_pipe_2080(tmp_path):
+    requirements = importlib.import_module("veri.requirements")
+    path = tmp_path / "REQUIREMENTS.md"
+    path.write_text("## operator/PRINCIPLES.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+                    "| P7 | A cost is read from a report's `\\| total \\|` row. | because |\n")
+    assert requirements.claims(str(path), "operator/PRINCIPLES.md") == \
+        "P7\tA cost is read from a report's `| total |` row.\n"
