@@ -1588,7 +1588,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    base=$(git merge-base HEAD origin/<default>)
    git diff "$base" HEAD -U0 -- '*/GRADED' | sed -n 's/^+\([^+][^ ]*\) .*/\1/p' | { rc=0; while read -r unit; do
-     $S/grade-prose.sh "$(dirname "$unit")/REQUIREMENTS.md" "$unit" </dev/null || rc=1
+     $S/grade-prose.sh "$(dirname "$unit")/REQUIREMENTS.md" "$unit" </dev/null || { r=$?; [ "$r" -gt "$rc" ] && rc=$r; }
    done; exit "$rc"; }
    ```
 
