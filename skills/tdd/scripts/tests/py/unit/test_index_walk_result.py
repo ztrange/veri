@@ -26,3 +26,20 @@ def test_an_index_entry_walk_result_lists_each_module_level_definition_with_what
     assert {"beta", "gamma"} <= set(function.literals)
     assert {"tmp", "other"} <= set(function.names)
     assert set(function.constants) == {"beta"}
+
+
+@pytest.mark.tree_audit("one scratch test file")
+def test_an_audit_cannot_mutate_the_walk_result_the_index_hands_it_2170(tests_py_index, tmp_path):
+    path = tmp_path / "test_scratch.py"
+    path.write_text(SCRATCH)
+    walk = type(tests_py_index[0])(path).walk
+    definition = walk.definitions[0]
+
+    with pytest.raises(AttributeError):
+        walk.definitions = ()
+    with pytest.raises(AttributeError):
+        definition.name = "other"
+    with pytest.raises(TypeError):
+        walk.definitions[0] = definition
+    with pytest.raises((AttributeError, TypeError)):
+        definition.literals.append("x")
