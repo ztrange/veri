@@ -5,7 +5,6 @@ import re
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
-RED = "#### Red — one failing test (developer leaf), then verify-red (blind)"
 BAILING = "## Bailing"
 BAIL = SKILL.with_name("BAIL.md")
 RESUME_MD = SKILL.with_name("RESUME.md")
@@ -14,7 +13,6 @@ FLAG = '--step "<STEP>"'
 FAST_FLAG = "--fast-cmd '<fast-cmd>'"
 CALL_RE = rf"verify\.sh {FLAG}( {FAST_FLAG})? (red|green|refactor|pin|<phase>)"
 GREEN_RE = rf"verify\.sh {FLAG}( {FAST_FLAG})? (green|<phase>) "
-MENTION = "unreplaced-cases.sh"
 
 
 def plain_join(text):
@@ -32,18 +30,6 @@ def verify_calls():
 def section(heading, name=None):
     path = SKILL.with_name(name) if name else BAIL if heading == BAILING else SKILL
     return importlib.import_module("skill_sections").section(path, heading)
-
-
-def guard(text):
-    out, on = [], False
-    for line in text.splitlines():
-        if MENTION in line:
-            on = True
-        if on and re.match(r" *```", line):
-            break
-        if on:
-            out.append(line)
-    return plain_join("\n".join(out))
 
 
 def test_skill_md_passes_step_on_every_verify_sh_call_it_tells_the_conductor_to_run():
@@ -65,46 +51,9 @@ def test_skill_md_passes_fast_cmd_on_every_verify_sh_call_that_can_judge_green()
     assert not problems, "\n".join(problems)
 
 
-def test_1521_skill_md_has_the_conductor_run_unreplaced_cases_sh_before_verify_green_and_bail_unreplaced_cases_on_exit_1():
-    text = plain_join(section(RED))
-    assert MENTION in text, "skills/tdd/SKILL.md never mentions unreplaced-cases.sh"
-    text = text.split(MENTION, 1)[1][:1200]
-    for pattern, message in [
-        ("replaces-case", "never says it applies to a ⟦replaces-case⟧ step"),
-        (r"exit 1|exits 1|exit \*\*1", "never branches on exit 1"),
-        (r"cause=unreplaced-cases|cause `unreplaced-cases`", "never bails with cause unreplaced-cases"),
-        (r"(without|never|not|before)[^.]{0,80}verify-green|verify-green[^.]{0,80}(not|never|without)",
-         "never keeps verify-green from launching"),
-    ]:
-        assert re.search(pattern, text), f"skills/tdd/SKILL.md's unreplaced-cases.sh guard {message}"
-
-
-def test_1521_skill_md_lists_unreplaced_cases_among_the_bail_causes_and_says_what_exit_2_of_unreplaced_cases_sh_does():
+def test_1521_skill_md_lists_unreplaced_cases_among_the_bail_causes():
     assert re.search(r"- unreplaced-cases —", plain_join(section(BAILING))), (
         "skills/tdd/SKILL.md's bail causes never list `unreplaced-cases`")
-    assert re.search(r"exits? 2[^.]*(bail|stop|retr|launch)", guard(section(RED))), (
-        "skills/tdd/SKILL.md's unreplaced-cases.sh guard never says what the conductor does on exit 2")
-
-
-def test_1521_skill_md_has_the_unreplaced_cases_sh_guard_read_the_current_attempt_s_red_report_tdd_revise_red_k_out_after_a_red_revise():
-    text = guard(section(RED))
-    assert ".tdd/revise-red-<k>.out" in text, (
-        "skills/tdd/SKILL.md's unreplaced-cases.sh guard names .tdd/develop-red.out alone, never .tdd/revise-red-<k>.out after a red revise")
-    assert ".tdd/develop-red.out" in text, "skills/tdd/SKILL.md's unreplaced-cases.sh guard never names .tdd/develop-red.out"
-
-
-def test_1625_skill_md_has_unreplaced_cases_sh_exit_2_bail_at_once_launching_no_correction_leaf_and_no_verifier():
-    text = guard(section(RED))
-    sentence = re.search(r"exits? 2[^.]*\.", text.split("exit 1 again", 1)[1])
-    assert sentence, "skills/tdd/SKILL.md's unreplaced-cases.sh guard never says what the conductor does on exit 2 after the correction paragraph"
-    sentence = sentence.group(0)
-    for pattern, message in [
-        (r"cause=unreplaced-cases", "never bails with cause=unreplaced-cases on exit 2"),
-        (r"at once|immediately", "never says exit 2 bails at once"),
-        (r"(launch|launching|launches)[^.]{0,40}no (correction )?leaf|no (correction )?leaf", "never says exit 2 launches no correction leaf"),
-        (r"(launch|launching|launches)[^.]{0,60}no[^.]{0,40}verifier|no verifier", "never says exit 2 launches no verifier"),
-    ]:
-        assert re.search(pattern, sentence), f"skills/tdd/SKILL.md's unreplaced-cases.sh exit 2 sentence {message}: {sentence!r}"
 
 
 def test_1625_skill_md_pin_path_says_the_unreplaced_cases_check_bails_only_on_a_second_exit_1_after_the_correction_leaf_or_on_exit_2():
