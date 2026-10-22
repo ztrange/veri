@@ -519,7 +519,7 @@ def test_the_gh_function_returns_2_at_once_naming_the_variable_and_value_of_an_i
         run_dir.mkdir()
         code, out, _, taken = run_without_gh(run_dir, clocked_sleep(10**6) + "gh api x 2>&1; echo rc=$?", {**NO_WAIT, var: value})
         lines = out.splitlines()
-        names_variable = any(var in line and value in line for line in lines)
+        names_variable = any(var in line and f"'{value}'" in line for line in lines)
         if (lines[-1:], taken, names_variable) != (["rc=2"], [], refused):
             wrong.append((var, value, refused, out, taken))
 
