@@ -29,6 +29,10 @@ def direct_reads(path):
             return parent.comparators[0] is node and not isinstance(parent.left, ast.Constant)
         return False
 
+    veri_names = {node.targets[0].id for node in ast.walk(tree)
+                  if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name)
+                  and isinstance(node.value, ast.Constant) and str(node.value.value).startswith("VERI_")}
+
     def copy_read_by_name_later(node):
         spread = False
         parent = parents.get(node)
@@ -60,11 +64,14 @@ def direct_reads(path):
                 key = parent.args[0] if isinstance(parent, ast.Call) and parent.args else None
             else:
                 key = parent.slice if isinstance(parent, ast.Subscript) else None
+            if isinstance(key, ast.Name):
+                return key.id in veri_names
             return isinstance(key, ast.Constant) and str(key.value).startswith("VERI_")
 
         return any(isinstance(use, ast.Name) and use.id == copy and use.lineno > assign.lineno
-                   and "VERI_" in lines[use.lineno - 1] and not discarded_pop(use)
-                   and (not spread or keyed_by_a_veri_name(use)) for use in ast.walk(tree))
+                   and not discarded_pop(use)
+                   and (keyed_by_a_veri_name(use) if spread else
+                        "VERI_" in lines[use.lineno - 1] or keyed_by_a_veri_name(use)) for use in ast.walk(tree))
 
     def passed_as_an_argument(node):
         call = parents.get(node)
