@@ -1,0 +1,4 @@
+# Plan for #2133 — resume-clean.sh's failure line doesn't say where the appends were saved, and it rewrites a CRLF ledger it didn't change
+
+- [ ] When `git reset --hard` or `git clean` fails after the `.tdd/` appends are captured, resume-clean exits 2 with one stderr line that still names the failed git command and also says the appends were saved, names the saved `kept-tdd-appends.diff` by its path, and lists the stray paths; pinned by a forced-failure case (a medium case, real git, in skills/tdd/scripts/tests/py/test_resume_clean_process.py) asserting that stderr ⟦criterion 1⟧
+- [ ] A ledger whose clean-up changes nothing is left byte-identical by resume-clean, CRLF line endings included; pinned by a case with a CRLF ledger and no tick to change (a medium case, real git, in skills/tdd/scripts/tests/py/test_resume_clean_process.py) ⟦criterion 2⟧
