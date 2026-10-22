@@ -20,7 +20,7 @@ WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "transform": 4, "diff":
         "replaces-report": 6, "red-contradicted": 5, "red-repair": 6, "red-missing": 5, "red-supersede": 6,
         **dict.fromkeys(INTERFACE_PHASES, 4)}
 WANT_PHASES = "|".join(PHASES)
-REVISABLE_PHASES = REVISE_PHASES + INTERFACE_PHASES
+REVISABLE_PHASES = REVISE_PHASES + INTERFACE_PHASES + ("rebase",)
 GREEN_FREEZE_RULE = (
     "\n\n**Do not modify the test.** Not its assertions, not its inputs, not its name. Making the\n"
     "bar easier to clear is not clearing it: a pass bought by weakening, skipping or deleting\n"
