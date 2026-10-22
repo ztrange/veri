@@ -654,6 +654,7 @@ def test_2168_the_readers_audit_suites_and_their_index_guard_live_under_tests_py
         "test_skill_phased_readers.py",
         "test_skill_plan_readers.py",
         "test_skill_red_readers.py",
+        "test_skill_refactor_readers.py",
         "test_tree_index_guard.py",
     )
     assert [(name, (tier / name).is_file(), (tier / "unit" / name).is_file()) for name in names] == [
