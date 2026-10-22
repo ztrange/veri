@@ -34,6 +34,16 @@ def wall_seconds(comments):
     return seconds
 
 
+def lane(comments):
+    label = None
+    for comment in comments or []:
+        body = comment.get("body") or ""
+        found = re.search(r"^Lane: (\S+)", body, re.M)
+        if re.search(r"^### 📊 Metrics", body, re.M) and found:
+            label = found.group(1)
+    return label
+
+
 def refresh():
     tdd = os.path.join(main_tree(), ".tdd")
     path = os.path.join(tdd, "report-cache.json")
@@ -51,8 +61,9 @@ def refresh():
     issues = json.loads(done.stdout)
     for issue in issues:
         issue["blockedBy"] = blocked_by(issue.pop("body", ""))
-        issue["wallSeconds"] = wall_seconds(issue.pop("comments", []))
-        issue["lane"] = None
+        comments = issue.pop("comments", [])
+        issue["wallSeconds"] = wall_seconds(comments)
+        issue["lane"] = lane(comments)
     kept.update({issue["number"]: issue for issue in issues})
     issues = list(kept.values())
     fetched_at = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
