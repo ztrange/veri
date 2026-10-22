@@ -1290,3 +1290,19 @@ def test_check_earlier_exits_0_printing_nothing_for_a_later_step_that_leaves_alo
         results[route] = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", three], cwd=repo)[:2]
 
     assert results == {route: (0, "") for route in routes}
+
+
+@pytest.mark.process("git asked for the repository toplevel from a directory under tmp_path that is in none")
+def test_check_earlier_exits_2_never_1_printing_usage_on_stderr_for_an_empty_step_an_empty_except_an_odd_except_count_and_outside_a_repository_2125(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / ".tdd").mkdir()
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [ ] step one\n")
+    base = ["check-earlier", str(ledger)]
+    runs = [run_cli(tests_frozen, base + argv, cwd=tmp_path) for argv in (
+        ["--step", ""],
+        ["--step", "step one", "--except", ""],
+        ["--step", "step one", "--except"],
+        ["--step", "step one"])]
+
+    assert [(code, out, "usage" in err) for code, out, err in runs] == [(2, "", True)] * 4
