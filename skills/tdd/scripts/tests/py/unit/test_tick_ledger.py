@@ -662,3 +662,14 @@ def test_cli_of_tick_ledger_and_clear_refactor_pending_exit_3_on_no_match_and_0_
 
     assert (tick_miss, tick_hit, clear_miss, clear_hit) == (3, 0, 3, 0)
     assert ledger.read_text() == STEPS.replace("- [ ] collapse", "- [x] collapse")
+
+
+def test_cli_without_refactor_pending_ticks_an_unchecked_suite_repair_line_leaving_no_refactor_pending_mark_2099(
+        tmp_path, run_cli, tick_ledger):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_text("- [x] add lowercasing\n- [ ] fix the full-suite failure: suite_x ⟦suite-repair⟧\n")
+
+    code = run_cli(tick_ledger, [str(ledger), "⟦suite-repair⟧"])[0]
+
+    assert code == 0
+    assert ledger.read_text() == "- [x] add lowercasing\n- [x] fix the full-suite failure: suite_x ⟦suite-repair⟧\n"
