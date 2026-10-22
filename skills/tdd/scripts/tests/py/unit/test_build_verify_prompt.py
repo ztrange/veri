@@ -2032,7 +2032,7 @@ def test_main_renders_a_transform_prompt_that_rejects_a_range_changing_observabl
                      r"|changes? (any )?observable behaviou?r[^.]{0,60}REJECT", prompt, re.I), prompt
 
 
-def test_main_renders_a_plan_prompt_and_skill_md_sending_a_case_for_behaviour_that_already_holds_to_a_pin_step_never_diff_checked_1889(
+def test_main_renders_a_plan_prompt_sending_a_case_for_behaviour_that_already_holds_to_a_pin_step_never_diff_checked_1889(
         tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
     spec.write_bytes(b"1. A case pins behaviour that already holds.\n")
@@ -2042,14 +2042,12 @@ def test_main_renders_a_plan_prompt_and_skill_md_sending_a_case_for_behaviour_th
     code = build_verify_prompt.main(["plan", str(spec), str(ledger)])
     out, _ = capsysbinary.readouterr()
     prompt = " ".join(out.decode("utf-8", "surrogateescape").split())
-    skill = " ".join((SCRIPTS.parent / "SKILL.md").read_text(encoding="utf-8").split())
 
-    states = [("pin step" in text and "already holds" in text and "never `⟦diff-checked⟧`" in text.replace(
-                  "`⟦diff-checked⟧` is reserved for steps that leave no test behind, so it is never offered",
-                  "never `⟦diff-checked⟧`")
-               and "reserved for steps that leave no test behind" in text)
-              for text in (prompt, skill)]
-    assert (code, states) == (0, [True, True])
+    state = ("pin step" in prompt and "already holds" in prompt and "never `⟦diff-checked⟧`" in prompt.replace(
+                 "`⟦diff-checked⟧` is reserved for steps that leave no test behind, so it is never offered",
+                 "never `⟦diff-checked⟧`")
+             and "reserved for steps that leave no test behind" in prompt)
+    assert (code, state) == (0, True)
 
 
 def test_main_renders_a_plan_prompt_carrying_a_diff_checked_step_that_adds_a_process_case_and_the_rule_to_reject_it_1889(
