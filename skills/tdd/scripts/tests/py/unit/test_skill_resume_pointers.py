@@ -50,3 +50,18 @@ def test_resume_section_lives_in_resume_md_and_skill_md_carries_none_of_its_line
     assert not left, f"SKILL.md still carries the moved lines {left}"
     missing = [p for p in moved if not any(re.search(p, line) for line in resume)]
     assert not missing, f"RESUME.md lacks the moved lines {missing}"
+
+
+def test_1967_preflight_step_3_resumed_run_block_is_one_resume_clean_sh_call_and_its_exit_2_bails_as_a_system_failure():
+    text = SKILL.read_text()
+    start = text.index("A resumed run — one whose worktree")
+    end = text.index("Then the resumed run, its uncommitted", start)
+    prose = text[start:end]
+    fences = re.findall(r"```\n(.*?)```", prose, re.S)
+    assert len(fences) == 1, f"the resumed-run block holds {len(fences)} code fences, want 1"
+    code = [line.strip() for line in fences[0].splitlines() if line.strip()]
+    assert len(code) == 1 and "$S/resume-clean.sh" in code[0], f"the block is not one $S/resume-clean.sh call: {code}"
+    for syntax in ("[[", "<<<", "<("):
+        assert syntax not in prose, f"the resumed-run block still holds bash-only {syntax!r}"
+    assert re.search(r"exit 2.*?bails as a \*\*system\*\* failure", " ".join(prose.split())), \
+        "the resumed-run block does not bail its exit 2 as a system failure"

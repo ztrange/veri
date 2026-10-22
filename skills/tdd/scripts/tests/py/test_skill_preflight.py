@@ -183,6 +183,7 @@ TESTS_DIR = pathlib.Path(__file__).resolve().parent
 MECHANICAL_READERS = (
     "full_tier_measurement_in_the_worktree",
     "test_1420_skill_md_s_preflight_discard",
+    "test_1967_preflight_step_3_resumed_run_block_is_one_resume_clean_sh_call",
     "skill_md_preflight_leaf_model_calls_name_a_leaf",
     "test_skill_preflight_writes_the_long_lived_ppid_not_the_shells_pid",
     "test_987_preflight_step_3_runs_stop_requested_clear_beside_the_tdd_conductor_pid_write",
