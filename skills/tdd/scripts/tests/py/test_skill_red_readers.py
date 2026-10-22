@@ -35,7 +35,7 @@ def _subsection_and_rest():
 
 def _only_in_subsection(literal, subsection, rest):
     """A phrase a case could only have copied from the Red subsection: three or more words no
-    other part of SKILL.md carries
+    other part of SKILL.md carries.
     One or two words read as script vocabulary or a case's own message, so neither counts."""
     flat = _flat(literal)
     return len(flat.split(" ")) >= 3 and flat in subsection and flat not in rest

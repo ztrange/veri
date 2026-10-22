@@ -329,10 +329,6 @@ def test_1546_skill_md_s_replaces_case_pin_path_paragraph_runs_replaces_case_sur
         assert needle in section, f"SKILL.md's replaces-case pin-path paragraph {message}"
 
 
-def unreplaced_paragraph():
-    return _paragraph(lambda line: 'Run `$S/unreplaced-cases.sh "<step line>"' in line, lambda line: not line.strip())
-
-
 def test_1625_skill_md_s_develop_replaces_report_wait_leaf_exit_1_or_2_bails_with_cause_replaces_report_failed_launching_no_verifier_runs_step_cost_after_the_wait_and_the_bail_table_lists_the_cause_as_a_system_failure():
     row = next((line for line in BAIL.read_text().splitlines() if line.startswith("- `replaces-report-failed`")), "")
     assert row, "SKILL.md's bail-cause table has no replaces-report-failed entry"
