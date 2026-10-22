@@ -19,3 +19,11 @@ def test_2081_unit_without_an_unchecked_skill_edit_step_naming_it_stays_owed():
     ]
     for ledger in ledgers:
         assert prose_owed.waive(ledger, [unit]) == ([unit], [])
+
+
+def test_2081_only_the_unit_a_pending_skill_edit_step_names_is_waived_and_another_stays_owed():
+    u, v = "skills/veri-stop/SKILL.md", "skills/veri-go/SKILL.md"
+    step = "- [ ] ⟦added⟧ ⟦skill-edit⟧ regrade `" + u + "` against X1"
+    owed, waived = prose_owed.waive(step + "\n", [u, v])
+    assert owed == [v]
+    assert waived == [(u, step)]
