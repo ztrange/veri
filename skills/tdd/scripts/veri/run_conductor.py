@@ -1,6 +1,7 @@
 """run-conductor.sh's launch of one conductor, run in-process."""
 # hazard: runs on the python3 it may refuse, so nothing here may need more than Python 3.9.
 import os
+import paths
 import json
 import shutil
 import signal
@@ -29,7 +30,7 @@ def main(argv):
     if not argv or not argv[0]:
         sys.stderr.write(USAGE + "\n")
         return 2
-    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    here = paths.scripts_of(__file__)
     base = os.path.dirname(here)
     head_rev = "HEAD"
     if git(base, "remote", "get-url", "origin",

@@ -1,5 +1,6 @@
 """build-verify-prompt.sh's argument checks and rendering, run in-process."""
 import os
+import paths
 import re
 import sys
 
@@ -11,7 +12,7 @@ INTERFACE_PHASES = ("expand", "migrate", "contract-a", "contract-b")
 WANT_PHASES = "|".join(PHASES + INTERFACE_PHASES)
 NEEDS = {"green": {"fast-cmd"}, "refactor": {"fast-cmd", "base-sha"}, "diff": {"fast-cmd"},
          "transform": {"base-sha"}, **dict.fromkeys(INTERFACE_PHASES, {"fast-cmd", "base-sha"})}
-HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+HERE = paths.scripts_of(__file__)
 USAGE = "usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]"
 GREEN_PARAGRAPHS = {"REPLACES_CASE": "replaces-case", "SUITE_REPAIR": "suite-repair",
                     "CI_REPAIR": "ci-repair", "FIXTURE_REPAIR": "fixture-repair"}

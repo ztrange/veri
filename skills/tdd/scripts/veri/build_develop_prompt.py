@@ -1,5 +1,6 @@
 """build-develop-prompt.sh's argument checks and rendering, run in-process."""
 import os
+import paths
 import re
 import sys
 
@@ -55,7 +56,7 @@ TEST_MOVE_CONTRACT_A = (
     "**Move the tests off the old interface, as contract-a does**: rewrite or delete only the tests the\n"
     "   rejection names that still exercise it. No new failing test is written, so no prediction is owed.").encode()
 WANT_REVISE_PHASES = "|".join(REVISABLE_PHASES)
-HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+HERE = paths.scripts_of(__file__)
 NODE_ID_RULE = (b"The test id is the pytest node id, `<path from the repository root>::<test name>`, "
                 b"and the line starts at column 0 with no bullet or other prefix.")
 ARGUMENT_PLACEHOLDERS = {"<test-path>": "TEST_PATH", "<target-test>": "TARGET_TEST", "<fast-cmd>": "FAST_CMD",

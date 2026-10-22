@@ -1,6 +1,7 @@
 """solvable-issues.sh's selection, run in-process."""
 import json
 import os
+import paths
 import re
 import subprocess
 import sys
@@ -120,7 +121,7 @@ def select(label, priority="priority", repo=None):
 
 
 def running_numbers():
-    scripts = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    scripts = paths.scripts_of(__file__)
     listing = subprocess.run(["ps", "-axo", "pid=,command="], stdout=subprocess.PIPE,
                              stderr=subprocess.DEVNULL, text=True).stdout
     found = [number for directory, number in re.findall(

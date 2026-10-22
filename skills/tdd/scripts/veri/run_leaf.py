@@ -1,6 +1,7 @@
 """run-leaf.sh's logic, run in-process."""
 import contextlib
 import os
+import paths
 import shutil
 import signal
 import subprocess
@@ -12,7 +13,7 @@ from extract_result import extract
 from session_env import strip_session_env
 import tunables
 
-GUARD = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "leaf-guard")
+GUARD = os.path.join(paths.scripts_of(__file__), "leaf-guard")
 USAGE = "usage: run-leaf.sh <prompt-file|-> [claude args...]"
 
 

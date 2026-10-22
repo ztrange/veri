@@ -1,6 +1,7 @@
 """push-branch.sh's logic, run in-process."""
 import errno
 import os
+import paths
 import re
 import shutil
 import subprocess
@@ -9,7 +10,7 @@ import sys
 import event
 import tunables
 
-SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SCRIPTS = paths.scripts_of(__file__)
 USAGE = "usage: push-branch.sh [--force-with-lease=<branch>:<sha>]"
 LEASE = re.compile(r"--force-with-lease=[^:]+:[0-9a-f]{7,40}")
 REJECTIONS = ("non-fast-forward", "fetch first", "stale info")
