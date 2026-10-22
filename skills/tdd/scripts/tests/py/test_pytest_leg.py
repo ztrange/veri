@@ -144,6 +144,30 @@ def test_2100_with_no_worker_count_a_leg_starting_beside_registered_legs_takes_o
     assert beside_one == beside_two == ["-q", "some/dir"]
 
 
+def test_2100_with_neither_worker_count_nor_legs_directory_set_a_leg_reads_the_default_registry_under_the_temp_directory_named_for_the_user_and_takes_1_beside_a_live_16_worker_entry(pytest_leg, run_cli, monkeypatch, tmp_path):
+    import os
+    import tempfile
+
+    calls = []
+
+    def spy(args):
+        calls.append([a for a in args if not a.startswith("--basetemp=")])
+        return pytest.ExitCode.OK
+
+    monkeypatch.setattr(pytest, "main", spy)
+    monkeypatch.setattr(os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    temp = tmp_path / "temp"
+    legs = temp / ("veri-pytest-legs-%d" % os.getuid())
+    legs.mkdir(parents=True)
+    (legs / str(os.getpid())).write_text("16\n")
+    monkeypatch.setattr(tempfile, "gettempdir", lambda: str(temp))
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1"}
+    assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
+    assert without_selection(calls[0]) == ["-q", "some/dir"]
+
+
 def test_launched_from_inside_an_xdist_worker_with_no_worker_count_the_launcher_runs_serially_while_an_explicit_count_still_wins(pytest_leg, run_cli, monkeypatch):
     import os
 
