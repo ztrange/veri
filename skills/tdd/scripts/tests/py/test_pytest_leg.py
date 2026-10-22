@@ -10,6 +10,18 @@ def pytest_leg():
     return importlib.import_module("veri.pytest_leg")
 
 
+def without_selection(args):
+    kept, skip = [], False
+    for a in args:
+        if skip:
+            skip = False
+        elif a == "-m":
+            skip = True
+        else:
+            kept.append(a)
+    return kept
+
+
 def test_an_interpreter_below_the_floor_exits_2_naming_the_floor_the_interpreter_and_its_version(pytest_leg, run_cli):
     code, out, err = run_cli(pytest_leg, [], env={"VERI_PYTHON_VERSION": "3.11.9"})
     assert (code, out, err) == (
@@ -71,7 +83,7 @@ def test_past_its_checks_the_launcher_runs_pytest_on_its_arguments_and_exits_1_f
     monkeypatch.setattr(pytest, "main", spy)
     code, out, err = run_cli(pytest_leg, ["-q", "some/dir"], env={"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"})
     assert (code, out, err) == (1, "", "")
-    assert [[a for a in args if not a.startswith("--basetemp=")] for args in calls] == [["-q", "some/dir"]]
+    assert [without_selection([a for a in args if not a.startswith("--basetemp=")]) for args in calls] == [["-q", "some/dir"]] * 2
 
 
 def test_a_worker_count_of_n_at_least_2_hands_pytest_n_n_while_1_hands_it_no_worker_option(pytest_leg, run_cli, monkeypatch):
@@ -85,9 +97,9 @@ def test_a_worker_count_of_n_at_least_2_hands_pytest_n_n_while_1_hands_it_no_wor
     for workers in ("4", "1"):
         env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": workers}
         assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
-    parallel, serial = calls
+    parallel, serial_pass, single, single_serial_pass = [without_selection(c) for c in calls]
     assert "-n" in parallel and parallel[parallel.index("-n") + 1] == "4" or "-n4" in parallel or "--numprocesses=4" in parallel
-    assert serial == ["-q", "some/dir"]
+    assert serial_pass == single == single_serial_pass == ["-q", "some/dir"]
 
 
 def test_with_no_worker_count_the_launcher_hands_pytest_one_worker_per_available_core_and_runs_serially_on_a_single_core(pytest_leg, run_cli, monkeypatch):
@@ -109,10 +121,10 @@ def test_with_no_worker_count_the_launcher_hands_pytest_one_worker_per_available
         if workers is not None:
             env["VERI_PYTEST_WORKERS"] = workers
         assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
-    unset, empty, single = calls
+    unset, unset_serial, empty, empty_serial, single, single_serial = [without_selection(c) for c in calls]
     for parallel in (unset, empty):
         assert parallel[parallel.index("-n") + 1] == "6" if "-n" in parallel else "-n6" in parallel or "--numprocesses=6" in parallel
-    assert single == ["-q", "some/dir"]
+    assert unset_serial == empty_serial == single == single_serial == ["-q", "some/dir"]
 
 
 def test_launched_from_inside_an_xdist_worker_with_no_worker_count_the_launcher_runs_serially_while_an_explicit_count_still_wins(pytest_leg, run_cli, monkeypatch):
@@ -133,8 +145,8 @@ def test_launched_from_inside_an_xdist_worker_with_no_worker_count_the_launcher_
         if workers is not None:
             env["VERI_PYTEST_WORKERS"] = workers
         assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
-    nested, explicit = calls
-    assert nested == ["-q", "some/dir"]
+    nested, nested_serial, explicit, explicit_serial = [without_selection(c) for c in calls]
+    assert nested == nested_serial == explicit_serial == ["-q", "some/dir"]
     assert explicit[explicit.index("-n") + 1] == "3" if "-n" in explicit else "-n3" in explicit or "--numprocesses=3" in explicit
 
 
@@ -142,7 +154,7 @@ def test_each_run_hands_pytest_a_base_directory_of_its_own_that_exists_during_th
     import os
 
     seen = []
-    statuses = iter([pytest.ExitCode.OK, pytest.ExitCode.TESTS_FAILED])
+    statuses = iter([pytest.ExitCode.OK, pytest.ExitCode.OK, pytest.ExitCode.OK, pytest.ExitCode.TESTS_FAILED])
 
     def spy(args):
         given = [a.split("=", 1)[1] for a in args if a.startswith("--basetemp=")]
@@ -154,9 +166,9 @@ def test_each_run_hands_pytest_a_base_directory_of_its_own_that_exists_during_th
     codes = [run_cli(pytest_leg, ["-q"], env=env)[0] for _ in range(2)]
     bases = [base for base, _ in seen]
     assert None not in bases
-    assert [existed for _, existed in seen] == [True, True]
-    assert len(set(bases)) == 2
-    assert [os.path.exists(base) for base in bases] == [False, False]
+    assert [existed for _, existed in seen] == [True] * 4
+    assert not set(bases[:2]) & set(bases[2:])
+    assert [os.path.exists(base) for base in bases] == [False] * 4
     assert codes == [0, 1]
 
 
@@ -338,3 +350,32 @@ def test_a_gh_or_curl_stub_a_case_plants_under_the_run_s_basetemp_starts_and_pas
     out = done.stdout + done.stderr
     assert "2 passed" in out and "failed" not in out
     assert (tmp_path / "ran-gh").exists() and (tmp_path / "ran-curl").exists()
+
+
+def test_a_serial_marked_case_is_scheduled_in_a_pass_of_its_own_after_the_parallel_pass_keeping_the_m_selection_and_exiting_0_only_when_both_pass_2092(pytest_leg, run_cli, monkeypatch):
+    from _pytest.mark.expression import Expression
+
+    calls = []
+    statuses = iter([pytest.ExitCode.OK, pytest.ExitCode.TESTS_FAILED])
+
+    def spy(args):
+        calls.append([a for a in args if not a.startswith("--basetemp=")])
+        return next(statuses)
+
+    def selects(args, marks):
+        expressions = [args[i + 1] for i, a in enumerate(args) if a == "-m"]
+        return all(Expression.compile(e).evaluate(lambda name: name in marks) for e in expressions)
+
+    monkeypatch.setattr(pytest, "main", spy)
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "4"}
+    code = run_cli(pytest_leg, ["-m", "not process", "some/dir"], env=env)[0]
+    assert len(calls) == 2, calls
+    parallel, serial = calls
+    assert "-n" in parallel and "-n" not in serial
+    assert [selects(parallel, m) for m in ({"serial"}, set(), {"process"}, {"process", "serial"})] == [False, True, False, False]
+    assert [selects(serial, m) for m in ({"serial"}, set(), {"process"}, {"process", "serial"})] == [True, False, False, False]
+    assert code == 1
+
+    calls.clear()
+    statuses = iter([pytest.ExitCode.OK, pytest.ExitCode.OK])
+    assert run_cli(pytest_leg, ["some/dir"], env=env)[0] == 0
