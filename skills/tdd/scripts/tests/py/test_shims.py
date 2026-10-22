@@ -346,3 +346,12 @@ def test_issue_2106_shim_with_veri_venv_unset_finds_the_venv_python3_under_home_
 
     assert (result.returncode, result.stdout, result.stderr) == (
         0, "VERI_ACTOR=developer VERI_PHASE=red VERI_ATTEMPT=1\n", "")
+
+
+@pytest.mark.tree_audit("every scripts/*.sh, the exempt shims included, read as text for an unconditional exec of PATH's python3")
+def test_issue_2106_no_shim_execs_the_python3_on_path_unconditionally():
+    offenders = sorted(
+        path.name for path in SCRIPTS.glob("*.sh")
+        if any(line.lstrip().startswith("exec python3 ") for line in path.read_text().splitlines()))
+
+    assert offenders == []
