@@ -31,6 +31,16 @@ ALLOWED = {
         "no PL row yet",
     "test_skill_draft_pr.py::test_worktree_step_no_longer_says_the_draft_pr_is_opened_once_every_step_is_green":
         "no PL row yet",
+    "unit/test_skill_pinned_text_step.py::test_scope_and_plan_names_the_repo_wide_audits_a_step_adding_a_script_goes_green_against_1700":
+        "no PL row yet",
+    "unit/test_skill_pinned_text_step.py::test_scope_and_plan_says_a_fixture_repair_steps_fixture_file_must_be_a_test_file_by_transform_touches_tests_1021":
+        "no PL row yet",
+    "test_skill_preflight.py::test_skill_md_s_worktree_guard_prose_says_the_lock_is_taken_in_preflight_step_3_before_the_baseline_and_never_in_step_1_2":
+        "carried by PF5; reads step 1's worktree guard paragraph for `preflight step 3`",
+    "unit/test_skill_fix_identity.py::test_skill_md_issue_body_writes_one_acceptance_criterion_per_manifestation_each_failing_now_and_passing_after_the_fix":
+        "reads skills/tdd-fix/SKILL.md; its `- \\[ \\]` checkbox pattern only splits into three words",
+    "unit/test_selection_order_recorded.py::test_context_mds_selection_layer_and_solvable_entries_skill_mds_solvable_issues_sh_bullet_and_claude_md_record_the_three_band_order_and_veri_priority_label_and_say_priority_reorders_the_solvable_set_without_enlarging_it":
+        "reads SCRIPTS.md, CONTEXT.md and CLAUDE.md, never SKILL.md; its ASCENDING alternation only matches step 2",
 }
 
 
@@ -48,10 +58,14 @@ def _sections_and_rest():
 
 
 def _only_in_sections(literal, inside, rest):
+    """A literal a case could only have copied from steps 1, 2, 2b or 2c: a heading, or three or more
+    words, as text or as a pattern, that those sections carry and no other part of SKILL.md does. Three
+    matches test_skill_cost_check_readers.py's rule (#2114's review: four words let a three-word pin
+    through). A one- or two-word literal reads as script vocabulary or a case's own label."""
     if literal in HEADINGS:
         return True
     flat = _flat(literal)
-    if len(flat.split(" ")) < 4:
+    if len(flat.split(" ")) < 3:
         return False
     if flat in inside and flat not in rest:
         return True
