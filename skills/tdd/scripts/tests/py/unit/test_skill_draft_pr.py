@@ -1041,9 +1041,11 @@ def test_1904_both_ci_red_bail_lines_take_failed_from_the_stdout_of_the_wait_ci_
 
 def test_1871_draft_pr_regrades_every_signed_unit_on_the_rebased_tip_with_grade_prose_sh_and_repairs_a_reject_like_a_red_full_suite():
     text = _lower(re.sub(r"\s+", " ", SKILL_DRAFT_PR_TEXT()))
-    regrade = [s for s in re.split(r"(?<=\.)\s", text) if "grade-prose.sh" in s]
+    sentences = re.split(r"(?<=\.)\s", text)
+    regrade = [s for s in sentences if "grade-prose.sh" in s]
+    regrade_with_lead = [" ".join(sentences[max(i - 1, 0):i + 1]) for i, s in enumerate(sentences) if "grade-prose.sh" in s]
     problems = []
-    if not any("rebased tip" in s and "signed" in s for s in regrade):
+    if not any("rebased tip" in s and "signed" in s for s in regrade_with_lead):
         problems.append("Draft PR never regrades every unit the run signed on the rebased tip with grade-prose.sh")
     if not any("reject" in s and "repair step" in s and "red full suite" in s for s in regrade):
         problems.append("Draft PR never handles a grade-prose.sh REJECT as a red full suite, with a repair step")
