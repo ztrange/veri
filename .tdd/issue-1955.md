@@ -11,4 +11,4 @@
 - [x] A refresh whose `gh` read answers with something unparseable exits 2 with exactly one stderr line naming the failure and leaves `.tdd/report-cache.json` byte-identical ⟦criterion 3⟧
 - [x] The verbatim `OLD_REPORT` comparison in `test_issue_454_every_by_step_column_that_existed_before_and_every_other_section_reads_the_same_for_an_existing_log` (`skills/tdd/scripts/tests/py/test_metrics.py`) drops a `Lane: <label>` line from the report before comparing, so that case keeps passing once the report gains that line; a test-only change, no production change ⟦diff-checked⟧ ⟦criterion 4⟧
 - [x] The `### 📊 Metrics` report `metrics.sh` writes for an issue carries a `Lane: <label>` line naming the opt-in label the run ran under, `VERI_LABEL`, or `ready-for-agent` when it is unset ⟦criterion 4⟧
-- [x] A refresh reads the `Lane: <label>` line of an issue's last `### 📊 Metrics` comment into that issue's `lane` in the cache ⟦criterion 4⟧ ⟂ refactor pending
+- [x] A refresh reads the `Lane: <label>` line of an issue's last `### 📊 Metrics` comment into that issue's `lane` in the cache ⟦criterion 4⟧
