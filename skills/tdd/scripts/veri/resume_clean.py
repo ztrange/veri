@@ -47,9 +47,13 @@ def untick_ledgers():
 
 def keep(appends):
     kept = Path(git("rev-parse", "--git-path", "kept-tdd-appends.diff").strip())
+    n = 0
+    while kept.exists():
+        n += 1
+        kept = kept.with_name(f"kept-tdd-appends.diff.{n}")
     kept.write_bytes(appends)
     files = sorted(set(re.findall(r"^diff --git a/(\S+) b/", appends.decode("utf-8", "replace"), re.M)))
-    places = sorted(str(f) for name in ("set-aside-tdd-appends.diff", "kept-tdd-appends.diff")
+    places = sorted(str(f.resolve()) for name in ("set-aside-tdd-appends.diff", "kept-tdd-appends.diff")
                     for f in kept.parent.glob(name + "*"))
     sys.stderr.write(f"resume-clean: could not re-apply appends to {' '.join(files)}; kept in {' '.join(places)}\n")
     return 2
