@@ -1376,3 +1376,17 @@ def test_clone_with_the_issues_worktree_registered_while_origin_holds_the_branch
     code, out, _ = run_cli(issue_worktree, ["66", "registered"], cwd=clone)
 
     assert resumed_on(mine, code, out, local_tip, remote_tip) == (True, 0, mine, "tdd/66-registered", local_tip)
+
+
+def test_a_symlink_beside_no_scripts_still_finds_the_real_scripts_directory(tmp_path, monkeypatch, issue_worktree):
+    import importlib.util
+    real = pathlib.Path(issue_worktree.__file__).resolve()
+    farm = tmp_path.resolve() / "farm" / "veri"
+    farm.mkdir(parents=True)
+    os.symlink(real, farm / "issue_worktree.py")
+    spec = importlib.util.spec_from_file_location("symlinked_issue_worktree", farm / "issue_worktree.py")
+    loaded = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(loaded)
+    monkeypatch.chdir(real.parent.parent)
+
+    assert loaded.inside_own_scripts() is True
