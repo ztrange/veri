@@ -1,0 +1,9 @@
+"""The shapes of environment read that direct_reads() must name."""
+from test_tunable_reads import direct_reads
+
+
+def test_1997_the_guard_names_the_line_of_a_planted_environ_copy_read_by_a_veri_name(tmp_path):
+    planted = tmp_path / "planted.py"
+    planted.write_text('import os\ne = os.environ.copy()\nvalue = e.get("VERI_X")\n')
+
+    assert direct_reads(planted) == ["%s:2" % planted]
