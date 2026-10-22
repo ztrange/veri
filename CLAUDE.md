@@ -128,7 +128,9 @@ suites, or script run as a subprocess.
 `$VERI_VENV/bin/python3` (default `~/.veri-tools/venv`, from `make install-dev`; else PATH's
 `python3`). Admission rule: no process but the interpreter. Each case times out at 30 s
 (`VERI_PYTEST_TIMEOUT`, `@pytest.mark.timeout(n)`); a fresh `PYTHONPYCACHEPREFIX` per run
-avoids a stale `.pyc` after a same-second mutation (#1127). Three refusals, exit 2 before any
+avoids a stale `.pyc` after a same-second mutation (#1127). Cases run across pytest-xdist
+workers: `make test` one per available core, `make unit` 4 (each worker pays its own start-up);
+`VERI_PYTEST_WORKERS=<n>` overrides both, `1` runs serially (#2053). Three refusals, exit 2 before any
 suite: pytest or pytest_timeout not importable (stderr names `make install-dev`), or Python
 older than the 3.12 floor.
 
