@@ -3,6 +3,7 @@ import os
 import re
 import sys
 
+import event
 import tunables
 from ledger import carries_mark, trailing_markers
 from replaces_case import is_replaces_case_step, parse as parse_replaces_case
@@ -225,6 +226,9 @@ def main(argv):
                   TIMED_TEST_RUN=os.fsencode(f"{HERE}/timed-test-run.sh"))
     for name, value in values.items():
         text = text.replace(b"{{" + name.encode() + b"}}", value)
+    run_state = os.fsencode(os.path.join(event.toplevel() or os.getcwd(), ".tdd"))
+    for name in (b"red-prediction.md", b"red-run-output.txt"):
+        text = text.replace(b"`.tdd/" + name + b"`", b"`" + run_state + b"/" + name + b"`")
     sys.stdout.buffer.write(text + b"\n")
     return 0
 
