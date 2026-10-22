@@ -400,7 +400,7 @@ def test_1158_a_shim_that_drops_its_root_argument_and_runs_from_its_own_director
     shutil.copytree(SCRIPTS / "veri", mutant / "veri", ignore=shutil.ignore_patterns("__pycache__"))
     lines = []
     for line in (SCRIPTS / "ensure-run-state-ignored.sh").read_text().splitlines():
-        if line.startswith("exec python3"):
+        if line.startswith(("exec python3", 'exec "$py"')):
             lines.append('cd "$(dirname "$0")"')
             line = line.replace(' "$@"', "")
         lines.append(line)
