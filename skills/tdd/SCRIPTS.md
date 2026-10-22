@@ -272,11 +272,12 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   commit statuses of the PR's head; given `<head-sha>`, a PR still reporting another head reads
   as pending. `<slice-seconds>` (default and cap 540) bounds this call; `<total-seconds>` (cap
   600) bounds the whole wait, and when it is not given it is twice the mean of the last 5
-  completed CI runs, capped at 600, or 540 when fewer than 5 exist or `gh` cannot answer. While
-  every pending check is still `queued` (none `in_progress`) the deadline does not run: it
-  starts at the first call that sees a check in progress for the head and is recorded in
-  `.tdd/ci-deadline-<sha>`, which later calls inherit; the first queued sighting is recorded in
-  `.tdd/ci-queued-<sha>`. A draft PR records no deadline. **Exit 0** every check completed
+  completed CI runs, capped at 600; 540 when fewer than 5 exist or `gh` cannot answer; the
+  slice length when reading them fails otherwise. The deadline does not run only while every
+  pending check is `queued` (none `in_progress`), or the PR reports another head: it is
+  recorded in `.tdd/ci-deadline-<sha>`, which later calls inherit, by the first call where that
+  is not so — a check in progress, no check yet, or only a commit status pending. The first
+  queued sighting is recorded in `.tdd/ci-queued-<sha>`. A draft PR records no deadline. **Exit 0** every check completed
   `SUCCESS`, `NEUTRAL` or `SKIPPED`, not all `SKIPPED`. **Exit 1** a completed check concluded
   anything else, or a commit status is `failure`/`error`; the failed check names go on stdout,
   comma-separated. **Exit 2** no answer: bad arguments, the rollup unreadable 3 times running, a
