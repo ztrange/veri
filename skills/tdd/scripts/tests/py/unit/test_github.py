@@ -944,6 +944,23 @@ def test_gh_never_found_on_path_with_veri_tool_wait_0_is_accepted_and_gives_up_a
     assert err_lines and all("gh" in line and "VERI_TOOL_WAIT" not in line for line in err_lines)
 
 
+def test_gh_never_found_on_path_with_veri_tool_wait_08_reads_8_decimal_seconds_and_gives_up_only_once_8s_of_clock_have_passed_naming_gh_2132(monkeypatch, capsys, github):
+    now, sleeps = fake_clock(monkeypatch)
+    clear_tool_wait_tunables(monkeypatch)
+    monkeypatch.setenv("VERI_TOOL_RETRY_SLEEP", "2")
+    monkeypatch.setenv("VERI_TOOL_FAST_WAIT", "100")
+    monkeypatch.setenv("VERI_TOOL_SLOW_SLEEP", "2")
+    monkeypatch.setenv("VERI_TOOL_WAIT", "08")
+    lookups = fake_missing_gh(monkeypatch)
+
+    with pytest.raises(github.NoAnswer):
+        github.gh_api("repos/{owner}/{repo}/issues/7")
+
+    assert (sleeps, len(lookups), now[0]) == ([2, 2, 2, 2], 5, 1008.0)
+    err_lines = capsys.readouterr().err.splitlines()
+    assert err_lines and all("gh" in line and "VERI_TOOL_WAIT" not in line for line in err_lines)
+
+
 @pytest.mark.parametrize("name, env", [
     ("VERI_TOOL_RETRY_SLEEP", {}),
     ("VERI_TOOL_SLOW_SLEEP", {"VERI_TOOL_FAST_WAIT": "0"}),
