@@ -187,7 +187,8 @@ def main(argv):
             return 2
         if state == "skipped":
             state = "pending"
-        if want and head != want:
+        mismatched = bool(want and head != want)
+        if mismatched:
             state = "pending"
         if state == "green":
             return 0
@@ -200,12 +201,12 @@ def main(argv):
         if slice_end is None:
             try:
                 slice_end = now + arith(span, scope)
-                if want and head != want and os.path.dirname(".tdd/ci-deadline-" + want) != ".tdd":
+                if mismatched and os.path.dirname(".tdd/ci-deadline-" + want) != ".tdd":
                     warn("head-sha %s cannot name a deadline file" % want)
             except ArithError as error:
                 warn(error)
                 break
-        if queued and not (want and head != want):
+        if queued and not mismatched:
             seen = ".tdd/ci-queued-" + (want or head)
             try:
                 with open(seen) as found:
@@ -216,7 +217,7 @@ def main(argv):
             if now - first > int(tunables.read("VERI_CI_QUEUE_WAIT", unless_empty="3600")):
                 warn("checks of %s never started: queued since %s" % (pr, first))
                 return 2
-        if (want and head != want) or queued:
+        if mismatched or queued:
             if now >= slice_end:
                 break
             subprocess.run(["sleep", poll])
