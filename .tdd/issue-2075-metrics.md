@@ -1,11 +1,12 @@
 ### 📊 Metrics — issue 2075
 
-Wall time for the issue: 14285 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 0 s, excluded from it.
+Wall time for the issue: 69773 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 1 s, excluded from it.
 Steps done: 1 of 3 planned.
-Outcome: the run bailed — revise-exhausted, a process failure.
+Outcome: the run bailed — needs-user, a process failure.
+Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $3.03 over 52 turns, in 2 sessions.
+Conductor own spending: $4.62 over 77 turns, in 3 sessions.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
@@ -33,36 +34,59 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 18 | $0.04 | 122599 |
 | 19 | $0.04 | 123373 |
 | 20 | $0.05 | 124568 |
-| 21 | $0.55 | 86123 |
-| 22 | $0.03 | 87706 |
-| 23 | $0.02 | 88298 |
-| 24 | $0.03 | 90321 |
-| 25 | $0.02 | 90881 |
-| 26 | $0.02 | 91517 |
-| 27 | $0.02 | 91966 |
-| 28 | $0.02 | 92409 |
-| 29 | $0.02 | 92778 |
-| 30 | $0.02 | 93154 |
-| 31 | $0.02 | 93808 |
-| 32 | $0.02 | 94323 |
-| 33 | $0.04 | 96688 |
+| 21 | $0.56 | 86123 |
+| 22 | $0.04 | 87706 |
+| 23 | $0.04 | 88298 |
+| 24 | $0.04 | 90321 |
+| 25 | $0.04 | 90881 |
+| 26 | $0.03 | 91517 |
+| 27 | $0.03 | 91966 |
+| 28 | $0.03 | 92409 |
+| 29 | $0.04 | 92778 |
+| 30 | $0.03 | 93154 |
+| 31 | $0.03 | 93808 |
+| 32 | $0.04 | 94323 |
+| 33 | $0.05 | 96688 |
 | 34 | $0.04 | 98748 |
-| 35 | $0.04 | 101219 |
-| 36 | $0.03 | 102545 |
-| 37 | $0.03 | 103626 |
-| 38 | $0.03 | 105093 |
+| 35 | $0.05 | 101219 |
+| 36 | $0.04 | 102545 |
+| 37 | $0.04 | 103626 |
+| 38 | $0.05 | 105093 |
 | 39 | $0.03 | 105763 |
-| 40 | $0.03 | 106631 |
-| 41 | $0.03 | 107174 |
-| 42 | $0.03 | 107966 |
+| 40 | $0.04 | 106631 |
+| 41 | $0.04 | 107174 |
+| 42 | $0.04 | 107966 |
 | 43 | $0.15 | 123428 |
-| 44 | $0.04 | 125966 |
-| 45 | $0.03 | 126627 |
-| 46 | $0.03 | 126925 |
-| 47 | $0.03 | 127734 |
-| 48 | $0.03 | 128460 |
-| 49 | $0.03 | 129119 |
-| 50 | $0.06 | 133592 |
+| 44 | $0.06 | 125966 |
+| 45 | $0.04 | 126627 |
+| 46 | $0.04 | 126925 |
+| 47 | $0.04 | 127734 |
+| 48 | $0.04 | 128460 |
+| 49 | $0.04 | 129119 |
+| 50 | $0.08 | 133592 |
+| 51 | $0.04 | 134446 |
+| 52 | $0.05 | 135491 |
+| 53 | $0.56 | 87115 |
+| 54 | $0.02 | 87775 |
+| 55 | $0.03 | 89908 |
+| 56 | $0.03 | 91578 |
+| 57 | $0.06 | 96434 |
+| 58 | $0.05 | 99671 |
+| 59 | $0.03 | 100440 |
+| 60 | $0.02 | 100905 |
+| 61 | $0.02 | 101189 |
+| 62 | $0.02 | 101569 |
+| 63 | $0.02 | 102058 |
+| 64 | $0.02 | 102434 |
+| 65 | $0.03 | 103191 |
+| 66 | $0.03 | 104273 |
+| 67 | $0.03 | 105431 |
+| 68 | $0.03 | 106262 |
+| 69 | $0.04 | 108301 |
+| 70 | $0.03 | 109150 |
+| 71 | $0.03 | 110628 |
+| 72 | $0.05 | 114282 |
+| 73 | $0.03 | 114878 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-sonnet-5-5.
 
 #### By phase
