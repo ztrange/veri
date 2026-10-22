@@ -45,6 +45,22 @@ def registered_workers(legs):
     return total
 
 
+def register(count):
+    legs = legs_dir()
+    os.makedirs(legs, exist_ok=True)
+    entry = os.path.join(legs, str(os.getpid()))
+    with open(entry, "w") as f:
+        f.write(str(count))
+    return entry
+
+
+def unregister(entry):
+    try:
+        os.remove(entry)
+    except OSError:
+        pass
+
+
 def split_marks(argv):
     rest, expressions = [], []
     args = iter(argv)
@@ -92,11 +108,7 @@ def main(argv):
             os.mkdir(base)
             count = worker_count(workers)
             if not workers:
-                legs = legs_dir()
-                os.makedirs(legs, exist_ok=True)
-                entry = os.path.join(legs, str(os.getpid()))
-                with open(entry, "w") as f:
-                    f.write(str(count))
+                entry = register(count)
             parallel = ["-n", str(count)] if count >= 2 else []
             rest, selected = split_marks(argv)
             seen = os.path.join(run, "serial-seen")
@@ -106,10 +118,7 @@ def main(argv):
                 statuses.append(pytest.main(["--basetemp=" + base, "-m", selected + "serial"] + rest))
     finally:
         if entry:
-            try:
-                os.remove(entry)
-            except OSError:
-                pass
+            unregister(entry)
         signal.signal(signal.SIGTERM, previous)
         if conftest is None:
             sys.modules.pop("conftest", None)
