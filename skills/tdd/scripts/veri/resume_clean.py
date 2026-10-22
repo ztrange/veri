@@ -92,11 +92,11 @@ def clean():
     try:
         git("reset", "--hard", "HEAD")
         git("clean", "-fd", "-e", ".tdd")
-    except GitFailed:
+    except GitFailed as failed:
         if appends:
             kept = save(appends)
             paths = " ".join(line[3:] for line in stray.splitlines())
-            raise GitFailed(f"{sys.exc_info()[1]} failed; appends saved in {kept.resolve()}; stray: {paths}",
+            raise GitFailed(f"{failed} failed; appends saved in {kept.resolve()}; stray: {paths}",
                             reported=True)
         raise
     if appends:
