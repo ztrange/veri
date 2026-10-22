@@ -2427,3 +2427,34 @@ def test_main_tells_a_green_prompt_of_a_guard_subject_step_it_may_edit_the_guard
     prompt = re.sub(rb"\s+", b" ", out)
 
     assert re.search(rb"may edit that file, and no other test file", prompt), prompt
+
+
+def test_cli_red_red_supersede_red_missing_and_revise_red_prompts_built_from_a_subdirectory_name_red_prediction_and_red_run_output_by_absolute_paths_under_the_repo_root_tdd_1895(
+        tmp_path, monkeypatch, run_cli, build_develop_prompt):
+    repo = tmp_path / "repo"
+    (repo / ".git").mkdir(parents=True)
+    sub = repo / "skills"
+    sub.mkdir()
+    monkeypatch.chdir(sub)
+    root = os.path.realpath(repo)
+    step = "QWIXTLE: a seed ending in a newline gains the block and reports added"
+    reason = tmp_path / "reason.md"
+    reason.write_text("MISSING_TEST: no case requires GLORPNAK\nWRONG_TEST: nope\nVERDICT: REJECT\n")
+    spec = _spec(tmp_path)
+    calls = {
+        "red": ["red", spec, step, "make test"],
+        "red-supersede": ["red-supersede", spec, step, "make test", "test_old_case", "test_other_case"],
+        "red-missing": ["red-missing", spec, step, "make test", str(reason)],
+        "revise-red": ["revise", "red", spec, step, "make test", str(reason)],
+    }
+    problems = []
+    for label, argv in calls.items():
+        code, out, err = run_cli(build_develop_prompt, argv, cwd=str(sub))
+        assert code == 0, err
+        for name in ("red-prediction.md", "red-run-output.txt"):
+            bare = re.findall(rf"(?<![\w/.-]){re.escape('.tdd/' + name)}", out)
+            absolute = re.findall(rf"{re.escape(root + '/.tdd/' + name)}", out)
+            if bare or not absolute:
+                problems.append(f"{label}: {name} bare={len(bare)} absolute={len(absolute)}")
+
+    assert problems == []
