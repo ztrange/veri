@@ -132,6 +132,7 @@ REAL_RUN, REAL_POPEN = subprocess.run, subprocess.Popen
 CANONICAL_SHIM = re.compile(r'exec (?:python3|"\$py") "\$\(dirname "\$0"\)/(veri/[\w-]+\.py)" "\$@"')
 SHIM_EXEC = re.compile(r'^exec (?:python3|"\$py") .*/(veri/[\w-]+\.py)"', re.MULTILINE)
 VENV_PREFIX = ['py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"', '[ -x "$py" ] || py=python3']
+FLOOR_SOURCE = '. "$(dirname "$0")/lib/shim-python.sh"'
 
 
 def interpreter_venv():
@@ -157,6 +158,7 @@ def shim_problems(scripts, exempt=()):
         canonical = bool(lines) and lines[0] == "#!/bin/sh" and (
             (len(code) == 1 and exec_line.startswith("exec python3 "))
             or (len(code) == 3 and code[:2] == VENV_PREFIX and exec_line.startswith('exec "$py" '))
+            or (len(code) == 2 and code[0] == FLOOR_SOURCE and exec_line.startswith('exec "$py" '))
         )
         match = CANONICAL_SHIM.fullmatch(exec_line) if canonical else None
         if match is not None and script.name in exempt:
