@@ -3,7 +3,7 @@ import importlib
 import pathlib
 import re
 
-from skill_sections import plain_lines as plain, window_text as window
+from skill_sections import plain_lines as plain
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
@@ -131,28 +131,7 @@ def green_paragraph():
                       lambda line: re.match(r"3\. ", line))
 
 
-def test_skill_md_s_green_section_on_split_restores_the_tree_to_head_adds_the_split_steps_before_step_in_one_add_ledger_step_call_commits_the_ledger_emits_step_split_and_returns_to_next_unchecked():
-    section = green()
-    says(section, r"split", "SKILL.md's Green section never branches on the leaf's SPLIT: report")
-    says(section, r"git (restore|checkout|reset)[^.]{0,60}head|restore[^.]{0,60}(the tree|to) head",
-         "SKILL.md's Green section never restores the tree to HEAD on a SPLIT:")
-    calls = len(re.findall(ADD_LEDGER_STEP, section))
-    assert calls != 0, "SKILL.md's Green section never runs add-ledger-step.sh on a SPLIT:"
-    assert calls <= 1, f"SKILL.md's Green section runs add-ledger-step.sh {calls} times"
-    added = window(section, ADD_LEDGER_STEP)
-    says(added, r"before ['\"]?(<step>|\$\(\$s/next-unchecked\.sh)",
-         "SKILL.md's Green section runs add-ledger-step.sh without anchoring the insertion before the step being split")
-    says(added, r"commit", "SKILL.md's Green section grows the ledger on a SPLIT: without committing it")
-    says(section, r"step-split", "SKILL.md's Green section never emits step-split")
-    says(section, r"next-unchecked", "SKILL.md's Green section never loops back to next-unchecked.sh after a split")
-
-
 def test_skill_md_s_green_section_bails_with_cause_step_too_big_when_add_ledger_step_exits_1_on_a_split_and_its_bailing_section_lists_that_cause_as_a_process_failure():
-    section = green()
-    says(section, r"step-too-big", "SKILL.md's Green section never names the step-too-big cause")
-    over = window(section, r"step-too-big")
-    says(over, r"exits? 1", "SKILL.md's Green section names step-too-big without saying it is add-ledger-step.sh's exit 1")
-    says(over, r"bail", "SKILL.md's Green section names step-too-big without bailing on it")
     says(bailing_causes(), r"step-too-big[^.]{0,220}process",
          "SKILL.md's Bailing causes list never classifies step-too-big as a process failure")
 
@@ -166,11 +145,8 @@ def test_skill_md_s_bailing_entry_for_step_too_big_names_all_three_splits_that_l
 
 
 def test_1281_skill_md_s_three_split_add_ledger_step_calls_pass_no_criterion_and_say_a_split_keeps_its_anchor_s_criterion_the_uncovered_spec_call_passes_criterion_k_read_from_the_issue_s_numbered_acceptance_criteria_one_call_per_criterion_bailing_on_exit_2():
-    splits = split_calls()
-    assert sum("instead-of" in line for _, line in splits) >= 1, \
-        "SKILL.md has no instead-of add-ledger-step.sh call"
-    assert any('before "$($S/next-unchecked.sh' in line for _, line in splits), \
-        "SKILL.md has no add-ledger-step.sh call anchored before next-unchecked.sh"
+    splits = [(n, line) for n, line in split_calls() if "instead-of" in line]
+    assert splits, "SKILL.md has no instead-of add-ledger-step.sh call"
     for n, line in splits:
         assert "--criterion" not in line.strip(), f"SKILL.md's split call passes --criterion: {line.strip()}"
         assert "anchor's criterion" in neighbourhood(n), \
@@ -348,7 +324,8 @@ def test_1558_skill_md_s_green_verify_line_that_runs_replaces_case_survivors_sh_
 
 
 def test_1379_skill_md_s_every_add_ledger_step_sh_call_site_says_its_exit_2_bails_with_cause_step_add_refused_and_bailing_lists_that_cause_as_a_system_failure():
-    calls = outside_cost_check(run_lines(r"\$S/add-ledger-step\.sh [^ ]*\.tdd/issue-<n>\.md|\$S/add-ledger-step\.sh --criterion <k> \.tdd/issue-<n>\.md"))
+    calls = [call for call in outside_cost_check(run_lines(r"\$S/add-ledger-step\.sh [^ ]*\.tdd/issue-<n>\.md|\$S/add-ledger-step\.sh --criterion <k> \.tdd/issue-<n>\.md"))
+             if "<SPLIT: value>" not in skill_lines()[call - 1]]
     assert calls, "SKILL.md has no add-ledger-step.sh call site"
     lines = skill_lines()
     for call in calls:

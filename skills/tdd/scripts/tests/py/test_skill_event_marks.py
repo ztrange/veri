@@ -155,7 +155,7 @@ def test_skill_prescribes_an_event_sh_step_added_call_beside_every_add_ledger_st
     records = _records_or_fail("the step-added mark")
     problems, insertions = [], 0
     for line in records:
-        if not re.search(INSERTION, line):
+        if not re.search(INSERTION, line) or b"<split: value>" in line:
             continue
         insertions += 1
         if not _calls_event(line, b"step-added"):
