@@ -136,6 +136,7 @@ def test_1281_skill_md_s_three_split_add_ledger_step_calls_pass_no_criterion_and
         assert "--criterion" not in line.strip(), f"SKILL.md's split call passes --criterion: {line.strip()}"
         assert "anchor's criterion" in neighbourhood(n), \
             f"SKILL.md never says beside this split call that the split keeps its anchor's criterion: {line.strip()}"
+    assert "--criterion" in add_ledger_step_entry(), "SKILL.md's add-ledger-step.sh entry never documents --criterion"
 
 
 def test_1281_the_suite_repair_and_ci_repair_add_ledger_step_calls_say_they_pass_no_criterion_because_the_repair_step_serves_its_anchor_s_criterion():
