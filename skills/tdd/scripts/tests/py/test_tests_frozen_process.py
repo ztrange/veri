@@ -1259,3 +1259,34 @@ def test_check_earlier_exits_0_printing_nothing_when_a_later_step_re_recorded_a_
     code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", three], cwd=tmp_path)
 
     assert (code, out) == (0, "")
+
+
+@pytest.mark.process("a real git repository under tmp_path per route, asked which test files differ from HEAD")
+def test_check_earlier_exits_0_printing_nothing_for_a_later_step_that_leaves_alone_a_case_each_re_recording_route_edited_2125(
+        tmp_path, run_cli, tests_frozen):
+    routes = {
+        "red-contradicted": "step two red-contradicted re-edits test_a",
+        "red-supersede": "step two red-supersede re-edits test_a",
+        "replaces-case": "⟦replaces-case⟧ replaces 'test_a' in tests/test_suite.py.test.sh",
+        "fixture-repair": "repairs the fixture 'f' in tests/test_suite.py, reproduced by a case ⟦fixture-repair⟧"}
+    results = {}
+    for route, two in routes.items():
+        repo = tmp_path / route
+        (repo / "tests").mkdir(parents=True)
+        (repo / ".tdd").mkdir()
+        suite = repo / "tests/test_suite.py"
+        suite.write_text("def test_a():\n    assert 0\n")
+        git(repo, "init", "-q")
+        git(repo, "add", "tests")
+        git(repo, "commit", "-q", "-m", "base")
+        one, three = "step one", "step three adds test_c"
+        suite.write_text("def test_a():\n    assert 1\n")
+        run_cli(tests_frozen, ["record", "--step", one, "tests/test_suite.py"], cwd=repo)
+        suite.write_text("def test_a():\n    assert 2\n")
+        run_cli(tests_frozen, ["record", "--step", two, "tests/test_suite.py"], cwd=repo)
+        suite.write_text("def test_a():\n    assert 2\n\n\ndef test_c():\n    assert 3\n")
+        ledger = repo / ".tdd/ledger.md"
+        ledger.write_text("- [x] %s\n- [x] %s\n- [ ] %s\n" % (one, two, three))
+        results[route] = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", three], cwd=repo)[:2]
+
+    assert results == {route: (0, "") for route in routes}
