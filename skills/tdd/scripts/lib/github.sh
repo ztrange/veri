@@ -39,9 +39,9 @@ gh() {
       [[ -z "${!v+x}" ]] && continue
       [[ "${!v}" =~ ^[0-9]+$ ]] && ((10#${!v} >= min)) || { echo "$v is '${!v}': expected a whole number of seconds, at least $min" >&2; return 2; }
     done
-    ((waited < ${VERI_TOOL_WAIT:-3600})) || { echo "gh: not found on PATH after ${waited}s" >&2; return 2; }
+    ((waited < 10#${VERI_TOOL_WAIT:-3600})) || { echo "gh: not found on PATH after ${waited}s" >&2; return 2; }
     nap=${VERI_TOOL_RETRY_SLEEP:-15}
-    ((waited < ${VERI_TOOL_FAST_WAIT:-900})) || nap=${VERI_TOOL_SLOW_SLEEP:-900}
+    ((waited < 10#${VERI_TOOL_FAST_WAIT:-900})) || nap=${VERI_TOOL_SLOW_SLEEP:-900}
     echo "gh: not found on PATH, retrying in ${nap}s" >&2
     sleep "$nap"
     waited=$((SECONDS - first))
