@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 
+import paths
 import tunables
 
 PROBE = 'printf "%s\\n%s\\n" "${BASH_VERSINFO[0]}" "$BASH_VERSION"'
@@ -30,7 +31,7 @@ def bash_refusal(prefix):
 
 
 def python_floor():
-    lib = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lib", "venv-python.sh")
+    lib = os.path.join(paths.scripts_of(__file__), "lib", "venv-python.sh")
     with open(lib) as f:
         return re.search("^VENV_FLOOR=(.*)$", f.read(), re.M).group(1)
 
