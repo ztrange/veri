@@ -61,6 +61,16 @@ def test_reorder_ledger_steps_an_indented_capital_X_ticked_step_to_move_or_to_an
     assert 'alpha' in err
 
 
+def test_reorder_ledger_steps_a_substring_found_in_a_step_and_in_a_heading_or_prose_line_moves_the_step(tmp_path, run_cli, reorder):
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes('# Plan for alpha\n\nalpha is discussed here and so is charlie\n\n- [ ] alpha step\n- [ ] bravo step\n- [ ] charlie step\n'.encode())
+
+    code, out, err = run_cli(reorder, [str(ledger), 'alpha', 'after', 'charlie'])
+
+    assert code == 0
+    assert ledger.read_bytes() == '# Plan for alpha\n\nalpha is discussed here and so is charlie\n\n- [ ] bravo step\n- [ ] charlie step\n- [ ] alpha step\n'.encode()
+
+
 def test_reorder_ledger_steps_a_ticked_anchor_carrying_the_refactor_pending_mark_exits_1(tmp_path, run_cli, reorder):
     ledger = tmp_path / "ledger.md"
     original = '# Plan for #128\n\n- [x] alpha step ⟂ refactor pending\n- [ ] bravo step\n- [ ] charlie step\n'.encode()

@@ -7,7 +7,7 @@ USAGE = "usage: reorder-ledger-steps.sh <ledger-file> <step-substring> before|af
 
 
 def _matches(lines, substring):
-    return [i for i, line in enumerate(lines) if substring in line]
+    return [i for i, line in enumerate(lines) if substring in line and ledger.STEP_RE.fullmatch(line)]
 
 
 def _only_match(lines, substring):
