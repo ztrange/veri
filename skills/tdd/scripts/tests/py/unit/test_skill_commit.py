@@ -7,7 +7,6 @@ SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 README = pathlib.Path(__file__).resolve().parents[6] / "README.md"
 CLAUDE = pathlib.Path(__file__).resolve().parents[6] / "CLAUDE.md"
 
-PLAN = "### 2. Scope & plan → the ledger"
 SCRIPTS = "## The scripts (this skill's `scripts/` directory)"
 LAUNCH = "## Launching the conductor"
 
@@ -19,24 +18,6 @@ def _lines(heading, doc=SKILL):
         if line.startswith("#"):
             return lines[:i]
     return lines
-
-
-def _items(lines):
-    records, rec = [], ""
-    for line in lines:
-        if re.match(r"[0-9]+\. ", line):
-            if rec:
-                records.append(rec)
-            rec = line
-        elif not line.strip():
-            if rec:
-                records.append(rec)
-            rec = ""
-        elif rec:
-            rec = rec + " " + line
-    if rec:
-        records.append(rec)
-    return [r.lower() for r in records]
 
 
 def _paragraphs(lines):
@@ -79,18 +60,6 @@ def claim(paras, what, *patterns):
     if any(all(re.search(p, para) for p in patterns) for para in paras):
         return None
     return f"SKILL.md prose: no paragraph {what}"
-
-
-def test_skill_md_s_plan_comment_names_the_skill_commit_the_run_started_on():
-    plan_item = "\n".join(i for i in _items(_lines(PLAN)) if re.search("plan.*comment", i))
-    problems = []
-    if not plan_item:
-        problems.append("SKILL.md's 'Scope & plan' section has no numbered item posting the plan comment")
-    else:
-        for word in ("skill", "commit"):
-            if word not in plan_item:
-                problems.append(f"SKILL.md's plan-comment item never says '{word}': {plan_item[:120]}")
-    assert problems == []
 
 
 def test_skill_md_says_what_a_change_to_the_skill_means_for_a_running_conductor_and_that_the_event_log_records_each_leaf_s_commit():

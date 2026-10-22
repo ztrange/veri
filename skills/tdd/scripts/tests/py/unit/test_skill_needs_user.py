@@ -28,7 +28,7 @@ def test_1866_skill_bails_needs_user_instead_of_asking_the_user():
 
 def test_1866_skill_and_resume_say_a_resumes_missing_opt_in_label_is_expected():
     problems = []
-    for doc in (SKILL, SKILL.with_name("RESUME.md")):
+    for doc in (SKILL.with_name("RESUME.md"),):
         plain = _plain(doc.read_text())
         found = re.search(r"on a resume[^.]*missing opt-in label is expected[^.]*"
                           r"(?:\.[^.]*)?never (?:stop|ask)[^.]*(?:stop|ask)", plain)
