@@ -100,6 +100,8 @@ when it adds a test case for behaviour that already holds: an ordinary step whos
 that the case already passes (`AGAINST_UNMODIFIED: PASSES`). `⟦diff-checked⟧` is reserved for
 steps that leave no test behind, so it is never offered for a change that adds a case.
 
+REJECT a plan whose `⟦diff-checked⟧` step text asks for a test to be added (a case, a pinning case, a process case): verify-diff rejects every `⟦diff-checked⟧` step whose own commits add a test, so such a step can never pass. Your reason names the step and the test it asks for.
+
 The exception is a well-formed `⟦fixture-repair⟧` step, for a defect in a test's own fixture,
 stub or harness whose script under test is correct. Its line shape is `- [ ] <criterion>: repairs
 the fixture '<fixture or stub name>' in <fixture file>, reproduced by a case in <test file>
