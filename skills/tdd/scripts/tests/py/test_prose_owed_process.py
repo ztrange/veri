@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pytest
 
+from conftest import INTERPRETER_VENV
+
 SCRIPTS = Path(__file__).resolve().parents[2]
 
 
@@ -89,6 +91,6 @@ def test_a_unit_named_in_the_requirements_file_with_no_list_and_no_graded_line_i
 @pytest.mark.process("prose-owed.sh launched as its own entry point")
 def test_a_repo_root_that_does_not_exist_is_refused_with_exit_2_and_a_one_line_prose_owed_sh_message(tmp_path):
     run = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(tmp_path / "gone")], capture_output=True, text=True,
-                         env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path)})
+                         env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV})
 
     assert (run.returncode, run.stderr.startswith("prose-owed.sh: FileNotFoundError: "), run.stderr.count("\n")) == (2, True, 1), run.stderr

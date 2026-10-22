@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from conftest import INTERPRETER_VENV
+
 SCRIPTS = Path(__file__).resolve().parents[2]
 STUB = """#!/bin/sh
 { printf '%s\\n' "$@"; cat; } > "$STUB_RECORD"
@@ -32,7 +34,7 @@ def test_a_whole_file_unit_sends_the_stub_claude_the_unit_text_and_every_require
     record = tmp_path / "record.txt"
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
@@ -52,7 +54,7 @@ def test_the_prompt_sent_to_the_stub_claude_contains_no_text_from_any_why_cell(t
     record = tmp_path / "record.txt"
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
@@ -69,7 +71,7 @@ def test_a_unit_graded_in_a_repo_with_history_gets_a_prompt_carrying_no_diff_and
     claude.write_text(STUB)
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
-    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
     for argv in (["init", "-q"], ["add", "."], ["commit", "-q", "-m", "quokka-commit-message"]):
         subprocess.run(["git", *argv], cwd=tmp_path, env=env, check=True, capture_output=True)
@@ -96,7 +98,7 @@ def test_a_section_unit_sends_only_that_sections_text_from_its_heading_to_the_ne
     record = tmp_path / "record.txt"
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md#Colour"], cwd=tmp_path,
-                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
@@ -117,7 +119,7 @@ def test_a_section_units_text_ends_at_the_next_heading_of_higher_level_as_well_a
     record = tmp_path / "record.txt"
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md#Colour"], cwd=tmp_path,
-                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
@@ -138,7 +140,7 @@ def test_a_line_starting_with_hash_inside_a_fenced_code_block_never_starts_or_en
     record = tmp_path / "record.txt"
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md#Colour"], cwd=tmp_path,
-                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
@@ -157,7 +159,7 @@ def test_the_grader_leaf_is_launched_under_a_leaf_role_distinct_from_every_devel
     record = tmp_path / "record.txt"
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     events = tmp_path / ".tdd" / "events.jsonl"
@@ -181,7 +183,7 @@ def test_the_stub_claude_receives_model_from_grader_conf_and_veri_model_and_veri
     committed = lines[0].split("=", 1)[-1].strip().strip("'\"") if lines else ""
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record),
                                              "VERI_MODEL": "env-model-zebra", "VERI_MODEL_VERIFIER": "env-model-quokka"})
 
@@ -201,7 +203,7 @@ def test_the_command_the_stub_claude_receives_carries_the_same_tool_limits_a_ver
     record = tmp_path / "record.txt"
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     args = (record.read_text() if record.exists() else "").splitlines()
@@ -223,7 +225,7 @@ def test_a_reply_whose_final_grades_block_has_every_id_line_pass_and_verdict_pas
 
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     assert done.returncode == 0, (done.returncode, done.stderr)
@@ -242,7 +244,7 @@ def test_a_reply_whose_final_grades_block_has_a_fail_line_and_verdict_reject_mak
 
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     assert [done.returncode, "A2" in done.stdout, "the widget hums quokka-loudly" in done.stdout,
@@ -265,7 +267,7 @@ def test_a_reply_with_two_or_more_fail_lines_prints_every_failing_id_with_its_re
 
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     assert [done.returncode, "A1" in done.stdout, "teal-zebra" in done.stdout, "A3" in done.stdout,
@@ -286,7 +288,7 @@ def test_a_reply_with_no_grades_block_makes_grade_prose_exit_2_and_name_the_miss
 
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     assert [done.returncode, "GRADES" in done.stderr] == [2, True], (done.returncode, done.stdout, done.stderr)
@@ -304,7 +306,7 @@ def test_a_reply_with_text_after_end_grades_makes_grade_prose_exit_2_and_name_th
 
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     assert [done.returncode, "quokka-epilogue" in done.stderr] == [2, True], (done.returncode, done.stdout, done.stderr)
@@ -325,7 +327,7 @@ def test_a_grades_block_with_a_missing_an_extra_or_a_reordered_requirement_id_ma
         claude.chmod(0o755)
         done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                               capture_output=True, text=True,
-                              env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                              env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                    "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
         outcomes[defect] = (done.returncode, named in done.stderr)
 
@@ -345,7 +347,7 @@ def test_a_grades_block_whose_verdict_disagrees_with_its_lines_makes_grade_prose
         claude.chmod(0o755)
         done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                               capture_output=True, text=True,
-                              env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                              env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                    "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
         outcomes[defect] = (done.returncode, "VERDICT" in done.stderr)
 
@@ -363,7 +365,7 @@ def test_a_grades_block_with_no_verdict_line_makes_grade_prose_exit_2_and_name_t
 
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
 
     assert (done.returncode, "VERDICT" in done.stderr) == (2, True), (done.returncode, done.stderr)
@@ -380,7 +382,7 @@ def test_a_grades_line_whose_grade_word_is_other_than_exactly_pass_or_fail_makes
 
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
 
     assert (done.returncode, "PASSABLE" in done.stderr) == (2, True), (done.returncode, done.stderr)
@@ -399,7 +401,7 @@ def test_a_reply_holding_two_grades_blocks_is_graded_on_the_final_one_only(tmp_p
 
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
 
     assert (done.returncode, "quokka-first-thought" in done.stdout) == (0, False), \
@@ -417,7 +419,7 @@ def test_a_grader_leaf_the_supervisor_kills_makes_grade_prose_exit_2_and_name_th
 
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True, timeout=25,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                "CLAUDE_BIN": str(claude), "VERI_HEARTBEAT": "1", "VERI_TIMEOUT": "2",
                                "VERI_STUCK_RETRIES": "0"})
 
@@ -432,7 +434,7 @@ def test_a_grader_leaf_that_fails_to_launch_makes_grade_prose_exit_2_say_no_verd
 
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True, timeout=25,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                "CLAUDE_BIN": str(tmp_path / "no-such-claude"), "VERI_HEARTBEAT": "1",
                                "VERI_TIMEOUT": "2", "VERI_STUCK_RETRIES": "0"})
 
@@ -455,7 +457,7 @@ def test_a_usage_limit_reply_from_the_grader_leaf_makes_grade_prose_exit_2_say_n
 
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True, timeout=25,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                "CLAUDE_BIN": str(claude), "VERI_HEARTBEAT": "1", "VERI_TIMEOUT": "2",
                                "VERI_STUCK_RETRIES": "0"})
 
@@ -478,7 +480,7 @@ def test_every_grading_appends_one_event_to_events_jsonl_carrying_the_unit_the_v
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                    capture_output=True, text=True,
-                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                         "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     events = tmp_path / ".tdd" / "events.jsonl"
@@ -499,7 +501,7 @@ def test_every_grading_event_records_that_gradings_cost_in_dollars_read_from_the
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                    capture_output=True, text=True,
-                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                         "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     events = tmp_path / ".tdd" / "events.jsonl"
@@ -520,7 +522,7 @@ def test_1874_a_grader_leaf_that_prints_an_all_pass_block_and_then_exits_1_makes
 
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     events = tmp_path / ".tdd" / "events.jsonl"
@@ -545,7 +547,7 @@ def test_1874_a_grader_leaf_whose_reply_carries_a_429_error_alongside_an_all_pas
 
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     events = tmp_path / ".tdd" / "events.jsonl"
@@ -572,7 +574,7 @@ def test_1874_a_launch_supervise_refuses_with_a_stale_all_pass_log_on_disk_makes
 
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record), "VERI_HEARTBEAT": "abc"})
 
     events = tmp_path / ".tdd" / "events.jsonl"
@@ -597,7 +599,7 @@ def test_1874_a_reply_in_the_poc_shape_with_the_verdict_line_inside_the_grades_b
         claude.chmod(0o755)
         done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                               capture_output=True, text=True,
-                              env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                              env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                    "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
         outcomes[name] = (done.returncode, "the widget hums quokka-loudly" in done.stdout)
 
@@ -615,7 +617,7 @@ def test_1874_a_reply_with_verdict_lines_after_end_grades_makes_grade_prose_exit
 
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
 
     events = tmp_path / ".tdd" / "events.jsonl"
@@ -635,7 +637,7 @@ def test_1874_the_grader_leaf_is_launched_with_no_tools_the_stub_claude_receives
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                    capture_output=True, text=True,
-                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                         "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     argv = (record.read_text() if record.exists() else "").split("\n")
@@ -658,7 +660,7 @@ def test_1874_the_stub_claude_receives_grader_conf_model_when_veri_model_grader_
     committed = lines[0].split("=", 1)[-1].strip().strip("'\"") if lines else ""
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                   capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record),
                                              "VERI_MODEL_GRADER": "env-model-narwhal"})
 
@@ -681,7 +683,7 @@ def test_a_full_pass_writes_one_graded_line_carrying_the_unit_its_signature_the_
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "skills/guide/unit.md"], cwd=tmp_path,
                    capture_output=True, text=True,
-                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                         "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     events = tmp_path / ".tdd" / "events.jsonl"
@@ -714,7 +716,7 @@ def test_a_pass_replaces_any_earlier_graded_line_for_the_same_unit_and_leaves_ot
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "skills/guide/unit.md"], cwd=tmp_path,
                    capture_output=True, text=True,
-                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                         "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     lines = graded.read_text().splitlines()
@@ -740,7 +742,7 @@ def test_a_reject_and_an_exit_2_leave_graded_byte_identical(tmp_path):
         claude.chmod(0o755)
         done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "skills/guide/unit.md"], cwd=tmp_path,
                               capture_output=True, text=True,
-                              env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                              env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                    "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
         seen[name] = (done.returncode, graded.read_text() == before)
 
@@ -764,7 +766,7 @@ def test_grade_prose_owed_grades_exactly_the_non_orphan_units_prose_owed_prints_
     record = tmp_path / "record.txt"
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "--owed"], cwd=tmp_path, capture_output=True,
-                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                   env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                         "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
@@ -794,7 +796,7 @@ def test_grade_prose_owed_grades_the_owed_unit_and_neither_the_unit_whose_signat
     record = tmp_path / "record.txt"
 
     ran = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "--owed"], cwd=tmp_path, capture_output=True, text=True,
-                         env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                         env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
@@ -817,7 +819,7 @@ def test_a_graded_run_exits_0_and_prints_no_leaf_role_line_on_stderr_1887(tmp_pa
 
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
-                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                "CLAUDE_BIN": str(claude)})
 
     assert (done.returncode, "leaf-role" in done.stderr) == (0, False), (done.returncode, done.stderr)
@@ -828,7 +830,7 @@ def test_2037_the_draft_pr_regrade_block_run_as_written_on_a_branch_that_signed_
     skill = (SCRIPTS.parents[2] / "skills" / "tdd" / "SKILL.md").read_text()
     draft = skill[skill.index("regrades every unit the run signed"):]
     block = re.search(r"```\n(.*?)```", draft, re.S).group(1).replace("<default>", "main")
-    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
     def git(*argv):
@@ -873,7 +875,7 @@ def test_2037_the_draft_pr_regrade_block_run_as_written_on_two_signed_units_with
     skill = (SCRIPTS.parents[2] / "skills" / "tdd" / "SKILL.md").read_text()
     draft = skill[skill.index("regrades every unit the run signed"):]
     block = re.search(r"```\n(.*?)```", draft, re.S).group(1).replace("<default>", "main")
-    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
     def git(*argv):
@@ -925,7 +927,7 @@ def test_2089_the_draft_pr_regrade_block_run_as_written_exits_with_the_highest_c
     skill = (SCRIPTS.parents[2] / "skills" / "tdd" / "SKILL.md").read_text()
     draft = skill[skill.index("regrades every unit the run signed"):]
     block = re.search(r"```\n(.*?)```", draft, re.S).group(1).replace("<default>", "main")
-    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
     def git(*argv):
