@@ -14,7 +14,7 @@ def read_lines(path):
 
 def split_cells(line):
     cells, cell, start = [], [], 0
-    for m in re.finditer(r"`[^`]*`|\\\||\|", line):
+    for m in re.finditer(r"\\\||\|", line):
         if m.group() == "|":
             cells.append("".join(cell) + line[start:m.start()])
             cell, start = [], m.end()
