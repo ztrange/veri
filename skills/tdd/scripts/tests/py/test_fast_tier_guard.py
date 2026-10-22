@@ -623,3 +623,22 @@ def test_a_planted_test_file_naming_a_bare_test_file_as_a_table_key_in_monkeypat
     )
 
     assert guard.offences(tmp_path) == []
+
+
+def test_a_planted_test_file_naming_a_test_file_as_a_table_key_is_exempt_only_when_setitem_or_delitem_is_called_on_monkeypatch(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    for name, call in (
+        ("set", "monkeypatch.setitem(TABLE, \"test_planted.py\", 1)"),
+        ("del", "monkeypatch.delitem(TABLE, \"test_planted.py\")"),
+        ("other", "runner.setitem(TABLE, \"test_planted.py\", 1)"),
+    ):
+        (tmp_path / f"test_{name}.py").write_text(
+            "from shared import TABLE, runner\n"
+            "\n"
+            "def test_plants_an_entry(monkeypatch):\n"
+            f"    {call}\n"
+        )
+
+    found = guard.offences(tmp_path)
+
+    assert found == [f"{tmp_path / 'test_other.py'}:4: runs a nested suite"]
