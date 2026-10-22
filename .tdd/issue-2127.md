@@ -1,0 +1,5 @@
+# Plan for #2127 — The Draft PR rebase leaves a signed unit's GRADED stale before the regrade runs, and its revise route names a phase build-develop-prompt.sh refuses
+
+- [ ] skills/tdd/SKILL.md: after the Draft PR step's rebase (the exit-0 rebase, the verify-rebase PASS after a conflict, and the CI-conflict rebase), the conductor runs the regrade block over every unit the run signed before the full suite runs on the rebased tip, so a GRADED line made stale only by the rebase never turns that suite red; a REJECT from that regrade appends the repair step and a grader exit 2 bails `no-verdict`, as the block already does ⟦skill-edit⟧ ⟦criterion 1⟧
+- [ ] `build-develop-prompt.sh revise rebase <spec> <step> <test-cmd> <reason-file>` builds a revise prompt for the rebase phase and exits 0, instead of refusing with exit 2 "unknown phase to revise 'rebase'" ⟦criterion 2⟧
+- [ ] A guard case collects every phase REVISE.md sends to `build-develop-prompt.sh revise <phase>` — REVISE.md naming each phase it routes there explicitly, `rebase` among them — and runs the script's argument check for each in-process, failing on any exit 2 ⟦criterion 2⟧
