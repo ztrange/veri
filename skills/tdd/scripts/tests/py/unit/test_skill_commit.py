@@ -165,7 +165,7 @@ def test_1785_launching_the_conductor_lives_in_readme_after_install_and_not_in_s
     assert [t for t in moved if t not in section] == [], "README.md's section lacks moved text"
 
 
-def test_1785_skill_md_points_the_pinned_snapshot_and_the_leaf_launchable_exit_2_at_readme():
+def test_1785_skill_md_points_the_pinned_snapshot_at_readme():
     scripts = " ".join(" ".join(_lines(SCRIPTS)).replace("`", "").replace("*", "").split())
     pin = scripts[scripts.index("not the clone's current tip"):][:400]
     ref = re.compile(r"README\.md\W+(s )?Launching the conductor")
