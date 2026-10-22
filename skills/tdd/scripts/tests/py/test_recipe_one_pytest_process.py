@@ -150,3 +150,23 @@ def test_with_no_worker_count_set_make_unit_runs_four_workers_and_make_test_one_
                              capture_output=True, text=True)
         noted = [line for line in log.read_text().splitlines() if line.startswith("workers ")]
         assert (target, ran.returncode, noted) == (target, 0, ["workers %d" % workers]), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("make unit started for real twice over a planted tree whose sources do not change between the runs")
+def test_a_second_make_unit_over_an_unchanged_tree_leaves_the_bytecode_the_first_run_wrote_for_a_test_module_untouched(tmp_path):
+    tree, log = planted_tree(tmp_path), tmp_path / "ran.log"
+    venv = os.environ.get("VERI_VENV") or os.path.join(os.path.expanduser("~"), ".veri-tools", "venv")
+    home, scratch = tmp_path / "home", tmp_path / "scratch"
+    home.mkdir()
+    scratch.mkdir()
+    env = {"VERI_VENV": venv, "HOME": str(home), "TMPDIR": str(scratch)}
+
+    def cached():
+        return {str(p): (p.stat().st_ino, p.stat().st_mtime_ns) for p in tmp_path.rglob("test_planted_small*.pyc")}
+
+    first = make(tree, log, "unit", **env)
+    after_first = cached()
+    second = make(tree, log, "unit", **env)
+    assert (first[0], second[0]) == (0, 0), first[2] + second[2]
+    assert after_first, "the first run left no bytecode for the planted test module"
+    assert cached() == after_first
