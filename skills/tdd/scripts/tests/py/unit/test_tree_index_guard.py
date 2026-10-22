@@ -8,8 +8,6 @@ EXEMPT = {
         "lists file paths for the fast-tier placement audit, which never parses them; veri.fast_tier_guard reads each file itself",
     "test_fast_tier_guard.py::test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it":
         "lists file paths for the fast-tier placement audit, which never parses them; veri.fast_tier_guard reads each file itself",
-    "test_affected_suites.py::test_on_the_real_skill_md_and_suites_a_one_section_edit_selects_the_suites_reading_that_section_through_a_slicing_helper_and_every_suite_reading_skill_md_any_other_way_and_not_a_suite_slicing_only_other_sections":
-        "copies the real suites into a git repo for affected-suites.sh, a process boundary that reads them itself",
 }
 
 
