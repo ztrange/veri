@@ -2498,3 +2498,27 @@ def test_main_builds_a_revise_prompt_for_the_rebase_phase_and_exits_0_instead_of
     out, err = capsysbinary.readouterr()
     assert (code, err) == (0, b"")
     assert out
+
+
+def test_every_phase_revise_md_sends_to_build_develop_prompt_revise_passes_the_scripts_argument_check_with_no_exit_2_2127(
+        tmp_path, capsysbinary, build_develop_prompt):
+    text = (SCRIPTS.parent / "REVISE.md").read_text()
+    listed = re.search(r"phases sent to `build-develop-prompt\.sh revise <phase>` are ([^;]+);", text)
+    assert listed, "REVISE.md names no list of the phases it sends to build-develop-prompt.sh revise"
+    phases = set(re.findall(r"[a-z][a-z-]*", listed.group(1).replace(" and the interface phases", ",")))
+    phases -= {"and", "the", "interface", "phases"}
+    phases |= set(re.findall(r"build-develop-prompt\.sh revise ([a-z][a-z-]*) ", text))
+    phases |= set(re.findall(r"`revise ([a-z][a-z-]*)`", text))
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+
+    codes = {}
+    for phase in sorted(phases):
+        codes[phase] = build_develop_prompt.main(
+            ["revise", phase, str(spec), "s", "make test", str(reason), "make unit"])
+        capsysbinary.readouterr()
+
+    assert "rebase" in codes
+    assert {p: c for p, c in codes.items() if c == 2} == {}
