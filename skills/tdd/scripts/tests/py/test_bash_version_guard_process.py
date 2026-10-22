@@ -1,6 +1,7 @@
 """Medium cases for the refusal veri gives on a bash older than 5 or a Python below 3.12, at make test, run-conductor.sh and leaf-launchable.sh."""
 import os
 import subprocess
+import sys
 
 import pytest
 
@@ -30,7 +31,7 @@ def fake_venv(tmp_path, name, body):
     venv = tmp_path / name
     (venv / "bin").mkdir(parents=True)
     python = venv / "bin" / "python3"
-    python.write_text("#!/bin/sh\n" + body)
+    python.write_text('#!/bin/sh\ncase "$1" in *.py) : > "$(dirname "$0")/../used"; exec "%s" "$@" ;; esac\n' % sys.executable + body)
     python.chmod(0o755)
     return venv
 
@@ -163,3 +164,11 @@ def test_on_a_real_python3_below_the_floor_first_on_path_usr_bin_python3_leaf_la
                            PATH=str(old) + os.pathsep + os.environ["PATH"])
     want = "veri needs Python %s or newer; the python3 on PATH is version %s." % (FLOOR, version)
     assert code == 2 and want in err, err
+
+
+@pytest.mark.process("leaf-launchable.sh started for real over a fake venv meeting the floor that runs modules on the real interpreter")
+def test_2106_leaf_launchable_sh_runs_its_module_on_the_venv_at_veri_venv_and_answers_0_for_a_launchable_binary(tmp_path):
+    venv = fake_venv(tmp_path, "venv-ok", VENV_OK)
+    code, err = launchable(tmp_path, VERI_BASH_MAJOR="5", VERI_VENV=str(venv))
+    assert code == 0, err
+    assert (venv / "used").exists()
