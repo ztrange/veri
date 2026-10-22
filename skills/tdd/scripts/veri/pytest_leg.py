@@ -48,12 +48,14 @@ def main(argv):
     import pytest
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    os.environ["PYTEST_PLUGINS"] = ",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "small_case_guard", "network_guard", "private_tmp_path"]))
+    os.environ["PYTEST_PLUGINS"] = ",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "small_case_guard", "network_guard", "private_tmp_path", "serial_seen"]))
     def terminate(signum, frame):
         sys.exit(128 + signum)
     previous = signal.signal(signal.SIGTERM, terminate)
     try:
-        with tempfile.TemporaryDirectory(prefix="veri-pytest-") as base:
+        with tempfile.TemporaryDirectory(prefix="veri-pytest-") as run:
+            base = os.path.join(run, "base")
+            os.mkdir(base)
             count = worker_count(workers)
             parallel = ["-n", str(count)] if count >= 2 else []
             rest, expressions = [], []
@@ -64,8 +66,11 @@ def main(argv):
                 else:
                     rest.append(arg)
             selected = "(%s) and " % " and ".join("(%s)" % e for e in expressions) if expressions else ""
-            statuses = [pytest.main(["--basetemp=" + base] + parallel + ["-m", selected + "not serial"] + rest),
-                        pytest.main(["--basetemp=" + base, "-m", selected + "serial"] + rest)]
+            seen = os.path.join(run, "serial-seen")
+            os.environ["PYTEST_LEG_SERIAL_SEEN"] = seen
+            statuses = [pytest.main(["--basetemp=" + base] + parallel + ["-m", selected + "not serial"] + rest)]
+            if not os.path.exists(seen) or "serial" in open(seen).read().split():
+                statuses.append(pytest.main(["--basetemp=" + base, "-m", selected + "serial"] + rest))
     finally:
         signal.signal(signal.SIGTERM, previous)
     passed = {pytest.ExitCode.OK, pytest.ExitCode.NO_TESTS_COLLECTED}
