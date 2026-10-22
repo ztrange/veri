@@ -20,6 +20,10 @@ def _digest(path):
         return hashlib.sha256(handle.read()).hexdigest()
 
 
+def _body_digest(body):
+    return hashlib.sha256(body.encode()).hexdigest()
+
+
 def _record_path(step):
     return ".tdd/tests-frozen-%s.record" % hashlib.sha256(os.fsencode(step)).hexdigest()[:16]
 
@@ -110,7 +114,7 @@ def _check_earlier(ledger, step):
                     now = dict(_cases(handle.read())).get(case)
             except OSError:
                 now = None
-            if now is None or hashlib.sha256(now.encode()).hexdigest() != digest:
+            if now is None or _body_digest(now) != digest:
                 changed.append("%s (%s)" % (case, match.group(1)))
     for entry in changed:
         write(sys.stdout, entry)
@@ -159,7 +163,7 @@ def main(argv):
                 for name in files:
                     for case, body in _added_cases(name):
                         lines += ["case: %s\n" % case,
-                                  "body: %s\t%s\t%s\n" % (name, case, hashlib.sha256(body.encode()).hexdigest())]
+                                  "body: %s\t%s\t%s\n" % (name, case, _body_digest(body))]
             with open(record, "w") as handle:
                 handle.writelines(lines)
         except OSError as error:
