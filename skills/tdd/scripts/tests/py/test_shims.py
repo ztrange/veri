@@ -349,6 +349,26 @@ def test_issue_2106_interpreter_venv_gives_a_shim_on_a_fixed_path_and_scratch_ho
     assert tuple(int(part) for part in ran.stdout.split(".")) >= (3, 12), (ran.stdout, ran.stderr)
 
 
+@pytest.mark.process("the floor-checking canonical shim started with a venv python3 stub reporting 3.9 and a real python3 on PATH")
+def test_issue_2106_shim_runs_its_module_on_the_path_python3_when_the_venv_python3_reports_3_9(tmp_path):
+    (tmp_path / "lib").symlink_to(SCRIPTS / "lib", target_is_directory=True)
+    shim = tmp_path / "probe.sh"
+    shim.write_text('#!/bin/sh\n. "$(dirname "$0")/lib/shim-python.sh"\nexec "$py" "$(dirname "$0")/veri/probe.py" "$@"\n')
+    shim.chmod(0o755)
+    (tmp_path / "veri").mkdir()
+    (tmp_path / "veri" / "probe.py").write_text("print('probe ran')\n")
+    python3_script(tmp_path / "path" / "python3", True)
+    venv_python = tmp_path / "venv" / "bin" / "python3"
+    venv_python.parent.mkdir(parents=True)
+    venv_python.write_text('#!/bin/sh\n[ "$1" = --version ] && { echo "Python 3.9.6"; exit 0; }\nexit 9\n')
+    venv_python.chmod(0o755)
+    env = {"PATH": "%s:/usr/bin:/bin" % (tmp_path / "path"), "HOME": str(tmp_path / "home"), "VERI_VENV": str(tmp_path / "venv")}
+
+    ran = subprocess.run([str(shim)], capture_output=True, text=True, env=env)
+
+    assert (ran.returncode, ran.stdout) == (0, "probe ran\n"), ran.stderr
+
+
 PATH_PYTHON3_EXEC = re.compile(
     r"""^\s*exec\s+(?:(?:command|(?:/usr)?(?:/bin/)?env)\s+(?:-\S+\s+|\w+=\S*\s+)*)*['"]?python3['"]?(?:\s|$)""")
 
