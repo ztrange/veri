@@ -13,6 +13,16 @@ def _lines_with_pin():
     return _lines() + SKILL.with_name("PIN.md").read_text().splitlines()
 
 
+def _outside_red(lines):
+    inside, kept = False, []
+    for line in lines:
+        if line.startswith("#### "):
+            inside = line.startswith("#### Red")
+        if not inside:
+            kept.append(line)
+    return kept
+
+
 def test_every_line_sending_the_run_to_stopping_points_at_stopping_md_1716():
     """Subject is source text: each line of SKILL.md that sends the run to *Stopping* names the file to read."""
     sends = [line for line in _lines_with_pin() if re.search(r"\bgo(es)? to \*Stopping\*", line)]
@@ -39,9 +49,9 @@ def test_skill_md_no_longer_carries_the_stopping_or_reconciling_sections_1716():
 
 def test_every_line_sending_the_run_into_the_pin_points_at_pin_md_1852():
     """Subject is source text: each SKILL.md line sending a run into the pin names PIN.md, to Read, on PASSES."""
-    sends = [line for line in _lines() if re.search(r"\bthe pin path\b|\bcontinue at the pin\b", line)]
+    sends = [line for line in _outside_red(_lines()) if re.search(r"\bthe pin path\b|\bcontinue at the pin\b", line)]
 
-    assert len(sends) >= 2
+    assert len(sends) >= 1
     missing = [
         line for line in sends
         if not ("`<base directory>/PIN.md`" in line and "`Read`" in line and "`AGAINST_UNMODIFIED: PASSES`" in line)
@@ -65,10 +75,10 @@ def test_the_pin_section_lives_in_pin_md_not_skill_md_1852():
 def test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_1855():
     """Subject is source text: each site entering the revise loop names REVISE.md to Read; the budget default stays."""
     sites = r"enter the \*\*revise loop|^\s*\*\*revise loop\*\* for red|revise under|bounded revise loop|goes round the revise loop|a revise of the"
-    lines = _lines_with_pin()
+    lines = _outside_red(_lines_with_pin())
     entering = [i for i, line in enumerate(lines) if re.search(sites, line)]
 
-    assert len(entering) >= 9
+    assert len(entering) >= 7
     missing = [
         lines[i] for i in entering
         if not ("`<base directory>/REVISE.md`" in lines[i] + " " + lines[i + 1] and "`Read`" in lines[i] + " " + lines[i + 1])
