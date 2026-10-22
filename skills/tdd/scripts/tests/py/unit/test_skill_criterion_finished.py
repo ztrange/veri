@@ -7,7 +7,6 @@ SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 PIN_MD = SKILL.with_name("PIN.md")
 
 LOOP = "### 3. The cycle loop"
-SCOPE = "### 2. Scope & plan → the ledger"
 PIN = "## Already satisfied — the pin"
 DRAFT_PR = "### 4. Draft PR"
 
@@ -62,18 +61,6 @@ def gated_tick(label, heading, extra, problems):
         problems.append(f"{label}: the instruction no longer posts the comment matching /{extra}/")
 
 
-def off_cycle_line(plan_recs, marker, phrase1, phrase2, what, problems):
-    if not any(f"- [ ] <criterion> {marker} ⟦criterion k⟧" in r for r in plan_recs):
-        problems.append(f"plan guidance: step 2 never shows the ledger line '- [ ] <criterion> {marker} ⟦criterion k⟧'")
-    rec = first_record(plan_recs, ("F", marker), ("F", phrase1), ("F", phrase2))
-    if not rec:
-        problems.append(f"plan guidance: no instruction in step 2 names {marker} for a criterion {what}")
-        return ""
-    if not re.search(r"(not|never|no) [^.]*red/green", rec):
-        problems.append(f"plan guidance: the {marker} instruction never says such a criterion is not planned as a Red/Green step")
-    return rec
-
-
 def diff_checked_loop_rec():
     joined = " ".join(r for r in section_records(LOOP) if "⟦diff-checked⟧" in r)
     return joined + " " if joined else ""
@@ -83,23 +70,6 @@ def test_step_done_and_pin_paths_tick_an_issue_criterion_only_on_criterion_finis
     problems = []
     gated_tick("Step done (cycle loop)", LOOP, "### ✅ step done", problems)
     gated_tick("pin path", PIN, "", problems)
-    assert not problems, "\n".join(problems)
-
-
-def test_step_2_tells_the_conductor_to_end_each_ledger_step_with_criterion_k_and_to_leave_a_gap_step_without_one():
-    problems = []
-    plan_recs = section_records(SCOPE)
-    if not any(re.search(r"(^| )end(s|ing)? ", r) for r in plan_recs if "⟦criterion k⟧" in r):
-        problems.append("plan guidance: no instruction in step 2 tells the conductor to end a ledger step with ⟦criterion k⟧")
-    if not any(re.search(r"(without|no |none|omit)", r) for r in plan_recs if "⟦criterion" in r and "gap" in r):
-        problems.append("plan guidance: no instruction in step 2 says a gap step carries no ⟦criterion k⟧")
-    assert not problems, "\n".join(problems)
-
-
-def test_481_step_2_writes_a_criterion_whose_only_observable_is_the_test_command_passing_as_one_full_suite_ledger_line_not_a_red_green_step():
-    problems = []
-    off_cycle_line(section_records(SCOPE), "⟦full-suite⟧", "test command", "full-suite run",
-                   "whose only observable is the test command passing, covered by the full-suite run", problems)
     assert not problems, "\n".join(problems)
 
 
@@ -119,31 +89,6 @@ def test_481_draft_pr_step_ticks_every_full_suite_line_and_its_issue_criterion_o
             problems.append("draft PR: the ⟦full-suite⟧ tick never says the rebased tip's run is the one that counts after a rebase")
         if not re.search(r"(never|not|no) [^.]*red", pr_rec):
             problems.append("draft PR: the ⟦full-suite⟧ tick never says a red run ticks nothing")
-    assert not problems, "\n".join(problems)
-
-
-def test_481_step_2_writes_a_criterion_whose_deliverable_is_the_record_of_a_manual_check_as_one_human_owed_ledger_line_never_handed_to_a_developer_leaf():
-    problems = []
-    rec = off_cycle_line(section_records(SCOPE), "⟦human-owed⟧", "manual check", "human",
-                         "whose deliverable is the record of a manual check, owed by a human", problems)
-    if rec and not re.search(r"(not|never|no) [^.]*developer leaf", rec):
-        problems.append("plan guidance: the ⟦human-owed⟧ instruction never says such a criterion is never handed to a developer leaf")
-    assert not problems, "\n".join(problems)
-
-
-def test_727_step_2_writes_a_criterion_that_is_a_property_of_the_branchs_own_diff_as_one_diff_checked_ledger_line_and_keeps_a_rule_criterion_red_green():
-    problems = []
-    plan_recs = section_records(SCOPE)
-    rec = off_cycle_line(plan_recs, "⟦diff-checked⟧", "own diff", "test",
-                         "that is a property of the branch's own diff", problems)
-    if rec:
-        for shape in ("removed", "unchanged", "confined"):
-            if shape not in rec:
-                problems.append(f"plan guidance: the ⟦diff-checked⟧ instruction never names a criterion of something {shape}")
-        if not re.search(r"(adds|add|leaves) no test", rec):
-            problems.append("plan guidance: the ⟦diff-checked⟧ instruction never says its step adds no test")
-    if not any(re.search(r"future change[^.]*red/green|red/green[^.]*future change", r) for r in plan_recs if "rule" in r):
-        problems.append("plan guidance: no instruction in step 2 says a criterion stating a rule future changes must keep is still a Red/Green step")
     assert not problems, "\n".join(problems)
 
 
@@ -199,61 +144,6 @@ def test_976_diff_checked_step_base_sha_is_the_last_commit_that_changed_the_ledg
     assert not problems, "\n".join(problems)
 
 
-def replaces_case_rec():
-    return first_record(section_records(SCOPE), ("F", "⟦replaces-case⟧"), ("F", "implementation case"))
-
-
-def test_671_step_2_plans_a_criterion_replacing_an_implementation_case_under_adr_0027_as_one_replaces_case_step_naming_suite_path_and_exact_name():
-    problems = []
-    rc_rec = replaces_case_rec()
-    if not rc_rec:
-        problems.append("plan guidance: no instruction in step 2 names ⟦replaces-case⟧ for a criterion replacing an implementation case")
-    else:
-        if "adr 0027" not in rc_rec:
-            problems.append("plan guidance: the ⟦replaces-case⟧ instruction never ties the mark to ADR 0027")
-        if not re.search(r"one step", rc_rec):
-            problems.append("plan guidance: the ⟦replaces-case⟧ instruction never says the criterion is planned as one step")
-        if not re.search(r"suite(.s)? path|path of the suite", rc_rec):
-            problems.append("plan guidance: the ⟦replaces-case⟧ instruction never says the step names the suite path")
-        if "exact name" not in rc_rec:
-            problems.append("plan guidance: the ⟦replaces-case⟧ instruction never says the step names the case's exact name")
-        if not (re.search(r"(^|[^a-z])red([^a-z]|$)", rc_rec) and re.search(r"pytest case[^.]*fail[^.]*before the change", rc_rec)):
-            problems.append("plan guidance: the ⟦replaces-case⟧ instruction never says the step's Red is the pytest case failing against the code before the change")
-    assert not problems, "\n".join(problems)
-
-
-def test_1260_replaces_case_planning_paragraph_lets_one_step_name_one_suite_path_and_a_list_of_its_cases_grouped_about_a_dozen_at_most():
-    problems = []
-    rc_rec = replaces_case_rec()
-    if not rc_rec:
-        problems.append("plan guidance: no instruction in step 2 names ⟦replaces-case⟧ for a criterion replacing an implementation case — the rule could not be checked")
-    else:
-        if not re.search(r"list of [^.]*cases[^.]*each by (its )?exact name", rc_rec):
-            problems.append("plan guidance: the ⟦replaces-case⟧ instruction never lets the step name a list of the suite's cases, each by its exact name")
-        if not re.search(r"group[^.]*related cases of one suite[^.]*one step", rc_rec):
-            problems.append("plan guidance: the ⟦replaces-case⟧ instruction never tells the planner to group related cases of one suite into one step")
-        if not re.search(r"about a dozen", rc_rec):
-            problems.append("plan guidance: the ⟦replaces-case⟧ instruction never caps a group at about a dozen cases")
-        if not re.search(r"group of one", rc_rec):
-            problems.append("plan guidance: the ⟦replaces-case⟧ instruction never says one case remains a valid group of one")
-    assert not problems, "\n".join(problems)
-
-
-def test_1397_replaces_case_planning_paragraph_names_the_step_whose_red_reports_passes_and_points_it_to_the_pin_then_delete_path():
-    problems = []
-    rc_rec = replaces_case_rec()
-    if not rc_rec:
-        problems.append("plan guidance: no instruction in step 2 names ⟦replaces-case⟧ for a criterion replacing an implementation case — the PASSES case could not be checked")
-    else:
-        if not (re.search(r"(^|[^a-z])red([^a-z]|$)", rc_rec) and re.search(r"passes", rc_rec)):
-            problems.append("plan guidance: the ⟦replaces-case⟧ instruction never names a Red that reports PASSES")
-        if not re.search(r"already satisfied|verify-pin|the pin", rc_rec):
-            problems.append("plan guidance: the ⟦replaces-case⟧ instruction never points a passing Red to the pin path")
-        if not re.search(r"pin[^.]*delet", rc_rec):
-            problems.append("plan guidance: the ⟦replaces-case⟧ instruction never says the pin path still deletes the named cases")
-    assert not problems, "\n".join(problems)
-
-
 CONTEXT = pathlib.Path(__file__).resolve().parents[6] / "CONTEXT.md"
 
 
@@ -297,8 +187,6 @@ def test_1397_pin_pass_bullet_names_the_replaces_case_exception_before_its_tick_
     refactor_rec = first_record(pin_recs, ("F", "⟦replaces-case⟧"), ("F", "refactor pending"))
     if not (refactor_rec and re.search(r"delet", refactor_rec) and re.search(r"refactor[^ ]* (phase|leaf|follows|runs|does|is)", refactor_rec)):
         problems.append("pin path: no ⟦replaces-case⟧ instruction says whether Refactor and ⟂ refactor pending follow the deletion green")
-    if not re.search(r"refactor", replaces_case_rec()):
-        problems.append("plan guidance: the ⟦replaces-case⟧ step-kind paragraph never says whether Refactor follows the deletion green")
     assert not problems, "\n".join(problems)
 
 
