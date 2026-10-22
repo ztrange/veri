@@ -5,7 +5,7 @@ import re
 import pytest
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[3]
-SHIM_MODULE = re.compile(r'^exec python3 .*/veri/(\w+)\.py"', re.MULTILINE)
+SHIM_MODULE = re.compile(r'^exec (?:python3|"\$py") .*/veri/(\w+)\.py"', re.MULTILINE)
 FLOOR_KNOBS = {"VERI_BASH_MAJOR": "5", "VERI_PYTHON_VERSION": "3.12.0"}
 
 

@@ -129,8 +129,9 @@ def tests_py_index():
 REAL_RUN, REAL_POPEN = subprocess.run, subprocess.Popen
 
 
-CANONICAL_SHIM = re.compile(r'exec python3 "\$\(dirname "\$0"\)/(veri/[\w-]+\.py)" "\$@"')
-SHIM_EXEC = re.compile(r'^exec python3 .*/(veri/[\w-]+\.py)"', re.MULTILINE)
+CANONICAL_SHIM = re.compile(r'exec (?:python3|"\$py") "\$\(dirname "\$0"\)/(veri/[\w-]+\.py)" "\$@"')
+SHIM_EXEC = re.compile(r'^exec (?:python3|"\$py") .*/(veri/[\w-]+\.py)"', re.MULTILINE)
+VENV_PREFIX = ['py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"', '[ -x "$py" ] || py=python3']
 
 
 def shim_problems(scripts, exempt=()):
@@ -140,8 +141,12 @@ def shim_problems(scripts, exempt=()):
         seen.add(script.name)
         lines = script.read_text().splitlines()
         code = [line for line in lines if line.strip() and not line.startswith("#")]
-        canonical = len(code) == 1 and bool(lines) and lines[0] == "#!/bin/sh"
-        match = CANONICAL_SHIM.fullmatch(code[0]) if canonical else None
+        exec_line = code[-1] if code else ""
+        canonical = bool(lines) and lines[0] == "#!/bin/sh" and (
+            (len(code) == 1 and exec_line.startswith("exec python3 "))
+            or (len(code) == 3 and code[:2] == VENV_PREFIX and exec_line.startswith('exec "$py" '))
+        )
+        match = CANONICAL_SHIM.fullmatch(exec_line) if canonical else None
         if match is not None and script.name in exempt:
             problems.append("%s: stale exemption, the script is now the canonical shim" % script.name)
         elif match is None and script.name not in exempt:
