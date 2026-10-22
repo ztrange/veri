@@ -89,7 +89,8 @@ def _added_cases(name):
 
 
 def _check_earlier(ledger, step, exempt=()):
-    if _refused_outside_repository():
+    if _toplevel() is None:
+        write(sys.stderr, "tests-frozen.sh: not inside a git repository\n%s" % USAGE)
         return 2
     root = _toplevel()
     try:
