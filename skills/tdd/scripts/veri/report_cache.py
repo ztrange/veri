@@ -35,7 +35,8 @@ def wall_seconds(comments):
 
 
 def refresh():
-    path = os.path.join(main_tree(), ".tdd", "report-cache.json")
+    tdd = os.path.join(main_tree(), ".tdd")
+    path = os.path.join(tdd, "report-cache.json")
     kept = {}
     command = ["gh", "issue", "list", "--state", "all", "--limit", "100000", "--json", FIELDS]
     if os.path.exists(path):
@@ -52,9 +53,8 @@ def refresh():
     kept.update({issue["number"]: issue for issue in issues})
     issues = list(kept.values())
     fetched_at = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    tdd = os.path.join(main_tree(), ".tdd")
     os.makedirs(tdd, exist_ok=True)
-    with open(os.path.join(tdd, "report-cache.json"), "w") as out:
+    with open(path, "w") as out:
         json.dump({"fetched_at": fetched_at, "issues": issues}, out)
     return 0
 
