@@ -111,3 +111,19 @@ def test_make_test_with_tests_naming_a_file_and_a_node_id_runs_only_those_in_one
                          stdin=subprocess.DEVNULL, capture_output=True, text=True)
     assert (ran.returncode, sorted(log.read_text().splitlines()), ran.stdout.count("== pytest")) == \
         (0, ["pytest medium", "pytest small"], 1), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("make unit and make test started for real, with two pytest workers, over a planted tree whose small case fails")
+def test_two_workers_pass_and_fail_the_same_cases_as_serial_and_name_a_failing_case_by_its_node_id(tmp_path):
+    failing = PLANTED_CASES.split("@pytest.mark.process")[0].replace('note("pytest small")', 'note("pytest small")\n    assert False')
+    tree, log = planted_tree(tmp_path, small=failing), tmp_path / "ran.log"
+    node = "skills/tdd/scripts/tests/py/unit/test_planted_small.py::test_small"
+    for target, ran_cases, counts in (("unit", ["pytest small"], "1 failed in"),
+                                      ("test", ["pytest medium", "pytest small", "pytest small"], "1 failed, 2 passed in")):
+        serial = make(tree, log, target, VERI_PYTEST_WORKERS="1")
+        parallel = make(tree, log, target, VERI_PYTEST_WORKERS="2")
+        output = parallel[2]
+        assert (parallel[0], parallel[1]) == (serial[0], serial[1]) == (2, ran_cases), output
+        assert [line.startswith("FAILED " + node) for line in output.splitlines() if line.startswith("FAILED ")] == [True], output
+        assert counts in output, output
+        assert ("SUITES FAILED" in output, "all suites green" in output) == ("SUITES FAILED" in serial[2], False), output
