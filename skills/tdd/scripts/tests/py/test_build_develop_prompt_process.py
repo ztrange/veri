@@ -38,6 +38,12 @@ def test_cli_run_through_a_symlink_to_the_scripts_directory_answers_red_green_an
         if in_place not in want.stdout:
             problems.append(f"{label} in place names no {in_place}")
         expected = want.stdout.replace(in_place, f"{linked}/veri-scripts/timed-test-run.sh")
+        expected = expected.replace(f"{tmp_path}/.tdd/", f"{linked}/.tdd/")
+        if label == "red":
+            if f"`{tmp_path}/.tdd/red-prediction.md`" not in want.stdout:
+                problems.append(f"red in place names no {tmp_path}/.tdd/red-prediction.md")
+            if f"`{linked}/.tdd/red-prediction.md`" not in got.stdout:
+                problems.append(f"red through the link names no {linked}/.tdd/red-prediction.md")
         if (got.returncode, got.stdout, got.stderr) != (want.returncode, expected, want.stderr):
             problems.append(f"{label} differs through the link")
 
