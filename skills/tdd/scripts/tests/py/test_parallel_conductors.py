@@ -50,7 +50,7 @@ class FakeSupervisor:
 def _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n"), through_gh=False):
     """Fake git, supervise.sh, os.kill and the clock, and serve <solvable> (an answer, or a list of answers in
     turn) as the listings the real solvable-issues.sh selects from, issue 7 by default."""
-    common = tmp_path / ".git"
+    common = tmp_path / "repo" / ".git"
     (common / "info").mkdir(parents=True, exist_ok=True)
     supervisors = []
 
@@ -66,7 +66,7 @@ def _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n"),
         if list(args) == ["git", "rev-parse", "--git-common-dir"]:
             return subprocess.CompletedProcess(args, 0, "%s\n" % common, "")
         if list(args[:3]) == ["git", "worktree", "list"]:
-            return subprocess.CompletedProcess(args, 0, "worktree %s\n\n" % tmp_path, "")
+            return subprocess.CompletedProcess(args, 0, "worktree %s\n\n" % (tmp_path / "repo"), "")
         raise AssertionError("unexpected subprocess call: %r" % (args,))
 
     def fake_run(args, *rest, **kwargs):
@@ -323,7 +323,7 @@ def test_the_exclude_gains_tdd_once_as_a_whole_line_before_any_tunable_is_valida
         raise AssertionError("nothing should launch when no labelled issue is open")
 
     _boundaries(monkeypatch, tmp_path, on_launch, lambda supervisors: None, solvable=(3, ""))
-    exclude = tmp_path / ".git" / "info" / "exclude"
+    exclude = tmp_path / "repo" / ".git" / "info" / "exclude"
     if info is None:
         shutil.rmtree(exclude.parent)
     if before is not None:
