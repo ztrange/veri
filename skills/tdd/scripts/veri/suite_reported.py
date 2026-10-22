@@ -5,6 +5,7 @@ import sys
 
 import event
 import leaf_role
+import paths
 import tunables
 import report_formats
 
@@ -12,7 +13,7 @@ USAGE = "usage: suite-reported.sh <leaf-name>"
 
 
 def _exempt_keys(leaf):
-    prompts = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "prompts")
+    prompts = os.path.join(paths.scripts_of(__file__), "prompts")
     name = "develop-revise-diff" if leaf.startswith("revise-diff-") else leaf
     role = leaf_role.leaf_role(leaf)
     if role and name == leaf:
