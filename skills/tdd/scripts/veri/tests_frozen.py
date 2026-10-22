@@ -6,18 +6,13 @@ import subprocess
 import sys
 
 import replaces_case
+from entry import write
 from ledger import carries_mark, trailing_markers
 from transform_touches_tests import TEST_FILE
 
 USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> <test-file>... | "
          "check <record-file>|--step <step-text> | path <step-text>")
 REPAIR_MARKS = ("suite-repair", "ci-repair", "fixture-repair")
-
-
-def _write(stream, line):
-    stream.flush()
-    stream.buffer.write(os.fsencode(line + "\n"))
-    stream.buffer.flush()
 
 
 def _digest(path):
@@ -51,7 +46,7 @@ def _enter_root(record, files):
 def _refused_outside_repository():
     if _toplevel() is not None:
         return False
-    _write(sys.stderr, "tests-frozen.sh: not inside a git repository")
+    write(sys.stderr, "tests-frozen.sh: not inside a git repository")
     return True
 
 
@@ -92,16 +87,16 @@ def main(argv):
     mode = argv[0] if argv else ""
     record = argv[1] if len(argv) > 1 else ""
     if not record:
-        _write(sys.stderr, USAGE)
+        write(sys.stderr, USAGE)
         return 2
     if mode == "path":
-        _write(sys.stdout, _record_path(record))
+        write(sys.stdout, _record_path(record))
         return 0
     by_step = record == "--step"
     if by_step:
         step = argv[2] if len(argv) > 2 else ""
         if not step:
-            _write(sys.stderr, USAGE)
+            write(sys.stderr, USAGE)
             return 2
         if any(carries_mark(trailing_markers(step), mark) for mark in REPAIR_MARKS if mark != "fixture-repair"):
             return 0
@@ -119,7 +114,7 @@ def main(argv):
                     continue
                 (files if os.path.exists(name) else deleted).append(name)
         if not files and not deleted:
-            _write(sys.stderr, "tests-frozen.sh: record needs at least one test file")
+            write(sys.stderr, "tests-frozen.sh: record needs at least one test file")
             return 2
         try:
             lines = ["%s  %s\n" % (_digest(name), name) for name in files]
@@ -129,14 +124,14 @@ def main(argv):
             with open(record, "w") as handle:
                 handle.writelines(lines)
         except OSError as error:
-            _write(sys.stderr, "tests-frozen.sh: %s" % error)
+            write(sys.stderr, "tests-frozen.sh: %s" % error)
             return 2
         return 0
     if mode == "check":
         if by_step and _refused_outside_repository():
             return 2
         if by_step and not _has_head():
-            _write(sys.stderr, "tests-frozen.sh: repository has no HEAD commit")
+            write(sys.stderr, "tests-frozen.sh: repository has no HEAD commit")
             return 2
         if by_step:
             record, _ = _enter_root(record, [])
@@ -145,10 +140,10 @@ def main(argv):
                 entries = [line.rstrip("\n").split("  ", 1) for line in handle
                            if line.strip() and not line.startswith("case: ")]
         except OSError:
-            _write(sys.stderr, "tests-frozen.sh: record %s is missing" % record)
+            write(sys.stderr, "tests-frozen.sh: record %s is missing" % record)
             return 2
         if not entries or any(len(entry) != 2 for entry in entries):
-            _write(sys.stderr, "tests-frozen.sh: record %s is malformed" % record)
+            write(sys.stderr, "tests-frozen.sh: record %s is malformed" % record)
             return 2
         changed = []
         for expected, name in entries:
@@ -175,9 +170,9 @@ def main(argv):
                         and (name not in exempt
                              or (name in subjects and not os.path.exists(name)))]
         for name in changed:
-            _write(sys.stdout, name)
+            write(sys.stdout, name)
         return 1 if changed else 0
-    _write(sys.stderr, USAGE)
+    write(sys.stderr, USAGE)
     return 2
 
 

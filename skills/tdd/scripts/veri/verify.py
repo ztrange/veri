@@ -16,7 +16,8 @@ import replaces_case_survivors
 import tunables
 
 from leaf_model import _env, resolve
-from leaf_role import _write, leaf_role
+from entry import write
+from leaf_role import leaf_role
 from run_verdict import SCRIPTS, takes_a_value
 
 LEAF_ARGS = ["--permission-mode", "bypassPermissions",
@@ -27,7 +28,7 @@ USAGE = ("usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue
 
 def refuse(*lines):
     for line in lines + (USAGE,):
-        _write(sys.stderr, line)
+        write(sys.stderr, line)
     return 2
 
 
@@ -56,7 +57,7 @@ def mark(role, *words):
 
 def preserve(issue, step, leaf, attempt, outcome):
     if preserve_attempt.preserve(".", issue, step, leaf, attempt, outcome):
-        _write(sys.stderr, "verify: could not preserve the %s attempt (issue %s step %s %s attempt %s)"
+        write(sys.stderr, "verify: could not preserve the %s attempt (issue %s step %s %s attempt %s)"
                % (outcome, issue, step, leaf, attempt))
 
 
@@ -101,7 +102,7 @@ def gitconfig_snapshot(path):
 
 
 def unreadable_gitconfig(path, error):
-    _write(sys.stderr, "verify: cannot read the global git config %s: %s" % (path, error.strerror))
+    write(sys.stderr, "verify: cannot read the global git config %s: %s" % (path, error.strerror))
     return 2
 
 
@@ -121,17 +122,17 @@ def save_diff(leaf, tree_before, tree_after):
             os.remove(path)
         except OSError:
             pass
-        _write(sys.stdout, "diff could not be saved to %s" % path)
+        write(sys.stdout, "diff could not be saved to %s" % path)
         return None
     return path
 
 
 def refuse_modified(what, leaf, paths, diff=None):
-    _write(sys.stdout, "verifier leaf modified %s — verdict not accepted"
+    write(sys.stdout, "verifier leaf modified %s — verdict not accepted"
            " (see .tdd/%s.log); changed:" % (what, leaf))
     if diff:
-        _write(sys.stdout, "diff saved to %s" % diff)
-    _write(sys.stdout, "\n".join(paths))
+        write(sys.stdout, "diff saved to %s" % diff)
+    write(sys.stdout, "\n".join(paths))
     return 2
 
 
@@ -191,7 +192,7 @@ def main(argv):
         model = resolve(leaf)
         if (model and not is_echo_flag(model) and "--model" in flags
                 and (_env("VERI_MODEL_VERIFIER") or _env("VERI_MODEL"))):
-            _write(sys.stderr, "verify: VERIFY_LEAF_ARGS carries its own --model and a role model"
+            write(sys.stderr, "verify: VERIFY_LEAF_ARGS carries its own --model and a role model"
                    " variable resolved '%s' — which one the leaf would run on is flag order;"
                    " unset one of them" % model)
             return 2
@@ -212,7 +213,7 @@ def main(argv):
         if deleted is None:
             return refuse("verify: cannot read the test files at %s, %s or HEAD" % (words[2], words[3]))
         if deleted:
-            _write(sys.stdout, "step deleted pytest cases an earlier step added: "
+            write(sys.stdout, "step deleted pytest cases an earlier step added: "
                    + ", ".join("%s::%s" % case for case in deleted))
             return 1
     top = event.toplevel()
@@ -232,7 +233,7 @@ def main(argv):
     try:
         tunables.tokens(retries)
     except ValueError:
-        _write(sys.stderr, "verify: VERI_NO_VERDICT_RETRIES must be a non-negative integer,"
+        write(sys.stderr, "verify: VERI_NO_VERDICT_RETRIES must be a non-negative integer,"
                " got '%s'" % retries)
         return 2
     retries = no_verdict_budget(retries)
@@ -244,7 +245,7 @@ def main(argv):
              sibling("run-leaf.sh"), prompt_path, *flags],
             stdout=subprocess.PIPE)
         if launched.returncode == 2:
-            _write(sys.stdout, "verifier leaf killed-stuck — no verdict rendered (see .tdd/%s.log)" % leaf)
+            write(sys.stdout, "verifier leaf killed-stuck — no verdict rendered (see .tdd/%s.log)" % leaf)
             return 2
         changed, head_after, tree_after = changed_paths(tree_before, head_before)
         if changed:
@@ -263,7 +264,7 @@ def main(argv):
             return refuse_modified("the operator's global git config", leaf, [gitconfig])
         code, reason, err = parse(launched.stdout)
         if err:
-            _write(sys.stderr, err.removesuffix("\n"))
+            write(sys.stderr, err.removesuffix("\n"))
         no_verdict = code == 2 and "no VERDICT: line found" in err
         if not no_verdict or relaunches >= retries:
             break
@@ -284,7 +285,7 @@ def main(argv):
     if word != "PASS" and tree_before and issue and step:
         preserve(issue, step, leaf, role["VERI_ATTEMPT"],
                  "no-verdict" if no_verdict else word.lower())
-    _write(sys.stdout, reason)
+    write(sys.stdout, reason)
     return to_contract(code)
 
 

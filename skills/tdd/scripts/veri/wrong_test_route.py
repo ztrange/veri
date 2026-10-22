@@ -6,14 +6,9 @@ import re
 import sys
 import tests_frozen
 import tunables
+from entry import write
 
 USAGE = "usage: wrong-test-route.sh <green-report> <red-test-id> (prints red <case>, missing <behaviour>, repair <case> <superseded>…, supersede <cases> or revise)"
-
-
-def _write(stream, line):
-    stream.flush()
-    stream.buffer.write(os.fsencode(line + "\n"))
-    stream.buffer.flush()
 
 
 SKIPPED = (".git", ".tdd", ".venv", "node_modules")
@@ -170,43 +165,43 @@ def _missing(report):
         if behaviour:
             return behaviour
     if lines:
-        _write(sys.stderr, "no well-formed MISSING_TEST: line was found")
+        write(sys.stderr, "no well-formed MISSING_TEST: line was found")
     return None
 
 
 def main(argv):
     if len(argv) != 2 or not argv[0] or not argv[1]:
-        _write(sys.stderr, USAGE)
+        write(sys.stderr, USAGE)
         return 2
     step = tunables.read("VERI_STEP")
     rerouted = _rerouted(step)
     missing = None if rerouted else _missing(argv[0])
     if missing:
-        _write(sys.stdout, "missing " + missing)
+        write(sys.stdout, "missing " + missing)
         return 0
     repair = None if rerouted else _recorded(argv[0], step, argv[1])
     if repair is not None:
         superseded = _superseded(argv[0], step)
         if superseded != _superseded(argv[0], step, argv[1]):
-            _write(sys.stdout, "revise")
+            write(sys.stdout, "revise")
             return 3
-        _write(sys.stdout, " ".join(["repair", repair] + [c for c in superseded if c != repair and c not in _recorded_cases(step)]))
+        write(sys.stdout, " ".join(["repair", repair] + [c for c in superseded if c != repair and c not in _recorded_cases(step)]))
         return 0
     recorded = _recorded_cases(step)
     older = [] if rerouted else [c for c in _superseded(argv[0], step, argv[1]) if c not in recorded]
     if len(older) >= 2:
         if any(c not in older and _exists(c) for c in _named_cases(argv[0])):
-            _write(sys.stdout, "revise")
+            write(sys.stdout, "revise")
             return 3
-        _write(sys.stdout, "supersede " + " ".join(older))
+        write(sys.stdout, "supersede " + " ".join(older))
         return 0
     case = None if rerouted else route(argv[0], argv[1])
     if case is None and len(older) == 1:
         case = older[0]
     if case is None:
-        _write(sys.stdout, "revise")
+        write(sys.stdout, "revise")
         return 3
-    _write(sys.stdout, "red " + case)
+    write(sys.stdout, "red " + case)
     return 0
 
 

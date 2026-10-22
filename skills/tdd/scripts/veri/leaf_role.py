@@ -3,19 +3,15 @@ import os
 import re
 import sys
 
+from entry import write
+
 USAGE = "usage: leaf-role.sh <leaf-name>"
 ACTORS = {"develop": "developer", "revise": "developer", "verify": "verifier", "grade": "grader", "author": "author", "conductor": "conductor"}
 SHAPES = "(want develop-*|revise-*|verify-*|conductor-*)"
 
 
-def _write(stream, line):
-    stream.flush()
-    stream.buffer.write(os.fsencode(line + "\n"))
-    stream.buffer.flush()
-
-
 def _refuse(name, reason):
-    _write(sys.stderr, "leaf-role: leaf name '%s' %s %s" % (name, reason, SHAPES))
+    write(sys.stderr, "leaf-role: leaf name '%s' %s %s" % (name, reason, SHAPES))
 
 
 def is_revise(name):
@@ -25,7 +21,7 @@ def is_revise(name):
 def leaf_role(name):
     """VERI_ACTOR, VERI_PHASE and VERI_ATTEMPT for a leaf name."""
     if not name:
-        _write(sys.stderr, "leaf-role: " + USAGE)
+        write(sys.stderr, "leaf-role: " + USAGE)
         return None
     actor_word = name.split("-", 1)[0]
     if actor_word not in ACTORS:
@@ -43,12 +39,12 @@ def leaf_role(name):
 
 def main(argv):
     if not argv or not argv[0]:
-        _write(sys.stderr, USAGE)
+        write(sys.stderr, USAGE)
         return 2
     role = leaf_role(argv[0])
     if role is None:
         return 2
-    _write(sys.stdout, "VERI_ACTOR=%(VERI_ACTOR)s VERI_PHASE=%(VERI_PHASE)s VERI_ATTEMPT=%(VERI_ATTEMPT)s" % role)
+    write(sys.stdout, "VERI_ACTOR=%(VERI_ACTOR)s VERI_PHASE=%(VERI_PHASE)s VERI_ATTEMPT=%(VERI_ATTEMPT)s" % role)
     return 0
 
 

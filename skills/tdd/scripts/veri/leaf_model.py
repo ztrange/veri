@@ -2,7 +2,8 @@
 import sys
 
 import tunables
-from leaf_role import _write, is_revise, leaf_role
+from entry import write
+from leaf_role import is_revise, leaf_role
 
 USAGE = "usage: leaf-model.sh <leaf-name>"
 WHITESPACE = " \t\n\v\f\r"
@@ -15,9 +16,9 @@ def _is_echo_option(value):
 def _echo(value):
     if _is_echo_option(value):
         if "n" not in value:
-            _write(sys.stdout, "")
+            write(sys.stdout, "")
     else:
-        _write(sys.stdout, value)
+        write(sys.stdout, value)
 
 
 def _env(key):
@@ -36,7 +37,7 @@ def resolve(name):
     if not model:
         model = "opus" if revise else "sonnet"
     if any(c in WHITESPACE for c in model):
-        _write(sys.stderr, f"leaf-model: model '{model}' contains whitespace (a model id or alias is one word)")
+        write(sys.stderr, f"leaf-model: model '{model}' contains whitespace (a model id or alias is one word)")
         return None
     return model
 
@@ -51,7 +52,7 @@ def leaf_model(name):
 
 def main(argv):
     if not argv or not argv[0]:
-        _write(sys.stderr, USAGE)
+        write(sys.stderr, USAGE)
         return 2
     model = resolve(argv[0])
     if model is None:
