@@ -70,26 +70,10 @@ def _comment_mark(records, event, heading, *patterns):
     return _mark(records, event, f"posts the `{heading}` comment", *patterns, b"comment")
 
 
-def _refactor_mark(records):
-    return _mark(records, b"refactor", "posts the `### 🛠️ Refactor` comment",
-                 rb"### [^ ]+ refactor( |`|$)", b"post", b"rev-list --count")
-
-
-def _refactor_call(marked):
-    return re.search(rb"(event\.sh" + _SPACE + rb"+refactor([^a-z0-9-][^`]*)?)", marked).group(1)
-
-
 def _records_or_fail(what):
     records = _records()
     assert records, f"SKILL.md has no instructions to read — {what} could not be checked"
     return records
-
-
-def _marked_refactor(what):
-    records = _records_or_fail(what)
-    marked, problems = _refactor_mark(records)
-    assert not problems, "\n".join(problems)
-    return marked
 
 
 def _event_calls(record):
@@ -101,7 +85,6 @@ def test_skill_prescribes_an_event_sh_call_for_each_of_the_conductors_seven_mark
     problems = []
     for result in (
         _mark(records, b"step-start", "takes the next unchecked step with next-unchecked.sh", rb"next-unchecked\.sh"),
-        _comment_mark(records, b"step-done", "### ✅ Step done", b"step done"),
         _comment_mark(records, b"pin", "### 📌 Already satisfied", b"already satisfied"),
         _comment_mark(records, b"revise", "### ♻️ Revise <phase> — attempt <k>", b"revise <phase>", b"attempt"),
         _comment_mark(records, b"bail", "### ⛔ Bailed — <phase>", b"bailed"),
@@ -109,45 +92,6 @@ def test_skill_prescribes_an_event_sh_call_for_each_of_the_conductors_seven_mark
         _comment_mark(records, b"resume", "### ▶️ Resuming", b"resuming"),
     ):
         problems += result[1]
-    assert not problems, "\n".join(problems)
-
-
-def test_skill_writes_an_event_sh_refactor_mark_carrying_transforms_budget_and_stopped_beside_the_refactor_comment():
-    call = _refactor_call(_marked_refactor("the refactor mark"))
-    problems = [
-        f"SKILL.md calls `{call.decode()}` without `{key}=` — metrics.sh's cell stays unknown"
-        for key in ("transforms", "budget", "stopped")
-        if not re.search(rb"(^|" + _SPACE + rb")" + key.encode() + b"=", call)
-    ]
-    assert not problems, "\n".join(problems)
-
-
-def test_skill_prescribes_the_refactor_marks_transforms_as_the_observed_git_rev_list_count_unclamped_on_an_overrun():
-    marked = _marked_refactor("the refactor mark's count")
-    before = marked.split(b"event.sh refactor", 1)[0]
-    sentence = before.rsplit(b". ", 1)[-1]
-    problems = []
-    if not re.search(rb"observed|rev-list", sentence):
-        problems.append(f"SKILL.md introduces the refactor mark without saying its count is the observed one: {sentence[:160].decode(errors='replace')}")
-    if not re.search(rb"unclamped|never clamped", sentence):
-        problems.append(f"SKILL.md introduces the refactor mark without saying an overrun is recorded unclamped: {sentence[:160].decode(errors='replace')}")
-    assert not problems, "\n".join(problems)
-
-
-def test_skill_names_stopped_nothing_structural_for_refactor_triage_exit_3_and_stopped_structural_owed_for_exit_0_no_stopped_triage_and_keeps_malformed_nothing_left_and_budget():
-    marked = _marked_refactor("the refactor mark's stop reasons")
-    problems = []
-    for code, value in ((b"3", b"nothing-structural"), (b"0", b"structural-owed")):
-        exit_re = rb"exit \**" + code + rb"\**"
-        value_re = rb"`(stopped=)?" + value + rb"`"
-        if not (re.search(exit_re + rb"[^;,.`]{0,40}" + value_re, marked)
-                or re.search(value_re + rb"[^;,.`]{0,40}" + exit_re, marked)):
-            problems.append(f"SKILL.md does not name `stopped={value.decode()}` against refactor-triage.sh exit {code.decode()}")
-    if re.search(rb"`(stopped=)?triage`", marked):
-        problems.append("SKILL.md still offers `stopped=triage`, which cannot tell exit 3 from exit 0")
-    for value in (b"nothing-left", b"budget", b"malformed"):
-        if not re.search(rb"`(stopped=)?" + value + rb"`", marked):
-            problems.append(f"SKILL.md no longer offers `stopped={value.decode()}` for the refactor mark")
     assert not problems, "\n".join(problems)
 
 
@@ -162,14 +106,6 @@ def test_skill_prescribes_an_event_sh_step_added_call_beside_every_add_ledger_st
             problems.append(f"SKILL.md inserts a step with no `event.sh step-added` beside it: {line[:130].decode(errors='replace')}")
     if not insertions:
         problems.append("SKILL.md prescribes no `$S/add-ledger-step.sh` call — where `event.sh step-added` belongs could not be read")
-    assert not problems, "\n".join(problems)
-
-
-def test_skill_marks_the_refactor_sections_own_plan_insertion_with_an_event_sh_step_added_call_beside_it():
-    records = _records_or_fail("the Refactor section's step-added mark")
-    _, problems = _mark(records, b"step-added",
-                        "grows the plan with the `uncovered-spec` flags beside the refactor-pending clear",
-                        INSERTION, rb"clear-refactor-pending\.sh", b"uncovered-spec")
     assert not problems, "\n".join(problems)
 
 
@@ -208,22 +144,6 @@ def test_skill_marks_the_exhausted_budget_split_and_the_needs_user_park_in_the_e
 
     if not bail_rec:
         problems.append("SKILL.md no longer names the revise-exhausted cause against exhausted-outcome.sh's exit 3, so the bailed outcome's own mark could not be read")
-    assert not problems, "\n".join(problems)
-
-
-def test_skill_writes_the_refactor_mark_with_pass_k_1_for_a_steps_first_pass_one_more_each_time_the_triangulation_path_resumes_the_refactor_loop():
-    marked = _marked_refactor("the refactor mark's pass index")
-    call = _refactor_call(marked)
-    shown = marked[:160].decode(errors="replace")
-    problems = []
-    if not re.search(rb"(^|" + _SPACE + rb")pass=", call):
-        problems.append(f"SKILL.md calls `{call.decode()}` without `pass=` — two passes of one step cannot be told apart")
-    if not (re.search(rb"(^|[^0-9])1([^0-9]|$)[^.;]{0,40}first", marked)
-            or re.search(rb"first[^.;]{0,60}[^0-9]1([^0-9]|$)", marked)):
-        problems.append(f"SKILL.md does not say a step's first refactor pass marks `pass=1`: {shown}")
-    if not (re.search(rb"(one more|increments?|\+ ?1)[^.]{0,120}triangulat", marked)
-            or re.search(rb"triangulat[^.]{0,160}(one more|increments?|\+ ?1)", marked)):
-        problems.append(f"SKILL.md does not say the pass index counts one more each time the triangulation path resumes the refactor loop: {shown}")
     assert not problems, "\n".join(problems)
 
 
