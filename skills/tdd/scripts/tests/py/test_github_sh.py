@@ -533,3 +533,12 @@ def test_the_gh_function_reads_a_wait_of_08_as_8_decimal_seconds_and_never_says_
     code, out, _, taken = run_without_gh(tmp_path, clocked_sleep(1) + "gh api x 2>&1; echo rc=$?", env)
 
     assert (code, taken, "value too great for base" in out, out.endswith("rc=2\n")) == (0, ["2", "2", "2", "2"], False, True), out
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_the_gh_function_reads_a_fast_wait_of_015_as_15_decimal_seconds_sleeping_the_retry_interval_until_then_issue_2132(tmp_path):
+    env = {"VERI_TOOL_RETRY_SLEEP": "2", "VERI_TOOL_FAST_WAIT": "015", "VERI_TOOL_SLOW_SLEEP": "4", "VERI_TOOL_WAIT": "22"}
+
+    code, out, _, taken = run_without_gh(tmp_path, clocked_sleep(1) + "gh api x 2>&1; echo rc=$?", env)
+
+    assert (code, taken, "value too great for base" in out, out.endswith("rc=2\n")) == (0, ["2"] * 8 + ["4", "4"], False, True), out
