@@ -100,3 +100,11 @@ When the receiver's answer carries a ruling or an instruction, that message is t
 the `ack` arrives the message is unconfirmed — a successful send is not a reply, so say "sent,
 unconfirmed", never "delivered". The `ack` goes to the sender, not to the human: a routine
 report still gets no text for the human (P4).
+
+**Never ask permission for what a run needs (P14).** A role never asks permission for an
+operation a run needs in order to continue, in the project repo: opening or updating a PR,
+filing, commenting on or closing an issue, editing repo files, running tests, removing a run's
+own files, worktree or branch, and any `gh` command. It does the operation and reports it. That
+holds for the human and for the coordinator alike. Asking is kept for the decisions its own
+skill lists (veri-dev's D8); P11's other-repo boundary and the rulings that hold a merge still
+apply.
