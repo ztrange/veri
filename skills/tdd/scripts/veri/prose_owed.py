@@ -1,8 +1,10 @@
 """prose-owed.sh's entry point, run in-process."""
 import glob
 import os
+import re
 import sys
 
+import git
 import grade_prose
 import requirements
 
@@ -51,6 +53,19 @@ def waive(ledger, owed):
     return still, waived
 
 
+def waived_owed(owed):
+    if not owed or not glob.glob(".tdd/issue-*.md"):
+        return owed
+    ran = git.git("symbolic-ref", "--short", "HEAD", capture_output=True, text=True)
+    m = re.fullmatch(r"tdd/(\d+)-.*", ran.stdout.strip()) if ran.returncode == 0 else None
+    ledger = ".tdd/issue-" + m.group(1) + ".md" if m else None
+    if not ledger or not os.path.exists(ledger):
+        return owed
+    with open(ledger, encoding="utf-8") as f:
+        still, _ = waive(f.read(), [u for _, u in owed])
+    return [(p, u) for p, u in owed if u in still]
+
+
 def main(argv):
     if len(argv) != 1:
         print(USAGE, file=sys.stderr)
@@ -61,6 +76,7 @@ def main(argv):
     except ValueError as e:
         print("prose-owed.sh: " + str(e), file=sys.stderr)
         return 2
+    owed = waived_owed(owed)
     for _, unit in owed:
         print(unit)
     for unit in gone:
