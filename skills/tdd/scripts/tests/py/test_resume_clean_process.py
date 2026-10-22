@@ -89,6 +89,24 @@ def test_main_unticks_working_ticks_the_committed_ledger_does_not_hold_counted_a
 
 
 @pytest.mark.process("git")
+def test_main_keeps_a_working_tick_among_equal_step_texts_only_at_the_position_the_committed_ledger_ticks_1967(
+        tmp_path, run_cli):
+    resume_clean = importlib.import_module("veri.resume_clean")
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".tdd" / "issue-7.md").write_text("- [ ] same\n- [x] same\n")
+    git(repo, "add", "-f", ".")
+    git(repo, "commit", "-q", "-m", "base")
+    (repo / ".tdd" / "issue-7.md").write_text("- [x] same\n- [x] same\n")
+
+    code, out, err = run_cli(resume_clean, [], cwd=repo)
+
+    assert code == 0
+    assert (repo / ".tdd" / "issue-7.md").read_bytes() == b"- [ ] same\n- [x] same\n"
+
+
+@pytest.mark.process("git")
 def test_main_keeps_appends_it_cannot_reapply_in_the_git_dir_and_exits_2_with_one_stderr_line_naming_file_and_place_1967(
         tmp_path, run_cli):
     resume_clean = importlib.import_module("veri.resume_clean")
