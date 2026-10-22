@@ -42,3 +42,18 @@ def test_claims_reads_a_double_backtick_span_with_an_escaped_pipe_whole_2080(tmp
     path.write_text("## operator/PRINCIPLES.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
                     "| A1 | Says ``a\\|`b`` here. | because |\n")
     assert requirements.claims(str(path), "operator/PRINCIPLES.md") == "A1\tSays ``a|`b`` here.\n"
+
+
+def test_claims_reads_a_table_indented_three_spaces_but_not_four_1991(tmp_path):
+    requirements = importlib.import_module("veri.requirements")
+    table = "| ID | Requirement | Why |\n|---|---|---|\n| A1 | Says it. | because |\n"
+    three, four = tmp_path / "three.md", tmp_path / "four.md"
+    three.write_text("## u\n\n" + "".join("   " + l for l in table.splitlines(True)))
+    four.write_text("## u\n\n" + "".join("    " + l for l in table.splitlines(True)))
+    assert requirements.claims(str(three), "u") == "A1\tSays it.\n"
+    try:
+        requirements.claims(str(four), "u")
+    except ValueError as e:
+        assert str(e).endswith("unit has no table")
+    else:
+        raise AssertionError("a four-space-indented table was read as the unit's table")

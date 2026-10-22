@@ -91,7 +91,7 @@ def claims(path, unit):
             fenced = not fenced
             if intable:
                 intable, done = False, True
-        elif fenced:
+        elif fenced or re.match(r" {4}|\t", line):
             continue
         elif done and starts_table(line):
             fail(path, number, "second table")
