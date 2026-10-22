@@ -198,6 +198,36 @@ def test_2100_a_registry_entry_whose_pid_no_longer_answers_kill_0_holds_no_share
     assert calls[0][:2] == ["-n", "16"] or "-n16" in calls[0]
 
 
+def test_2100_a_registry_entry_whose_pid_is_alive_but_owned_by_another_user_still_holds_its_share_so_a_leg_beside_only_such_a_16_worker_entry_takes_1(pytest_leg, run_cli, monkeypatch, tmp_path):
+    import os
+
+    calls = []
+
+    def spy(args):
+        calls.append(without_selection(args))
+        return pytest.ExitCode.OK
+
+    foreign = 2**22 + 54321
+    real_kill = os.kill
+
+    def kill(pid, sig):
+        if pid == foreign:
+            raise PermissionError(pid)
+        return real_kill(pid, sig)
+
+    monkeypatch.setattr(pytest, "main", spy)
+    monkeypatch.setattr(os, "kill", kill)
+    monkeypatch.setattr(os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    (legs / str(foreign)).write_text("16\n")
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_LEGS": str(legs)}
+    assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
+    assert "-n" not in calls[0] and not any(a.startswith("-n") for a in calls[0])
+
+
 def test_2100_with_no_worker_count_a_leg_registers_its_worker_count_in_the_legs_registry_while_pytest_runs_and_removes_it_after_whatever_the_status(pytest_leg, run_cli, monkeypatch, tmp_path):
     import os
 

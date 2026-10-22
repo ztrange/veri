@@ -35,7 +35,10 @@ def registered_workers(legs):
     for name in os.listdir(legs):
         try:
             if name.isdigit():
-                os.kill(int(name), 0)
+                try:
+                    os.kill(int(name), 0)
+                except PermissionError:
+                    pass
             total += int(open(os.path.join(legs, name)).read())
         except (ValueError, OSError):
             continue
