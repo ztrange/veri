@@ -1585,6 +1585,12 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    it hands the conflict to knows where it is.
 
    Then, after the run's last rebase and before the PR is readied, regrade every unit the run signed on the rebased tip with `grade-prose.sh`, and handle a REJECT there as a red full suite is handled, by appending a repair step.
+   ```
+   base=$(git merge-base HEAD origin/<default>)
+   git diff "$base" HEAD -U0 -- '*/GRADED' | sed -n 's/^+\([^+][^ ]*\) .*/\1/p' | while read -r unit; do
+     $S/grade-prose.sh "$(dirname "$unit")/REQUIREMENTS.md" "$unit"
+   done
+   ```
 
    Then run the issue's **one structural pass**, once, before the PR is readied: the
    structural candidates the steps recorded rather than applied, each taken up by one
