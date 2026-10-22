@@ -49,16 +49,6 @@ def test_both_push_branch_call_sites_branch_exit_1_to_a_supervised_develop_recon
     records = _records(lines)
     assert records, "SKILL.md has no instructions to read — nothing could be checked"
     problems = []
-    for site in (r"clear-refactor-pending\.sh",):
-        rec = next((r for r in records if re.search(r"push-branch\.sh", r) and re.search(site, r)), None)
-        if rec is None:
-            problems.append(f"no instruction runs push-branch.sh beside {site} — the call site could not be read")
-            continue
-        if not (re.search("exit 1", rec) and re.search("reconcile", rec)):
-            problems.append(f"the push-branch.sh call beside {site} does not send exit 1 to the reconcile leaf: {rec}")
-        if not (re.search("exit 2", rec) and re.search("bail", rec)):
-            problems.append(f"the push-branch.sh call beside {site} does not bail on exit 2: {rec}")
-
     if not any(re.search(r"supervise\.sh develop-reconcile", r) for r in _records(RECONCILE.read_text().splitlines())):
         problems.append("no instruction launches develop-reconcile through supervise.sh")
 

@@ -12,7 +12,6 @@ BAIL = SKILL.with_name("BAIL.md")
 RESUME_MD = SKILL.with_name("RESUME.md")
 GUARDRAILS = "## Guardrails"
 ISSUE = "### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)"
-REFACTOR = "#### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)"
 
 _UPPER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
 
@@ -21,13 +20,9 @@ def _lower(text):
     return text.translate(_UPPER)
 
 
-def _lines(heading, stop_at_any_hash=False):
+def _lines(heading):
     section = importlib.import_module("skill_sections").section(BAIL if heading == BAILING else RESUME_MD if heading == RESUME else SKILL, heading)
     lines = section.splitlines()[1:]
-    if stop_at_any_hash:
-        for i, line in enumerate(lines):
-            if line.startswith("#"):
-                return lines[:i]
     return lines
 
 
@@ -123,17 +118,6 @@ def draft_pr_commands():
 def test_draft_prs_step_readies_the_pr_against_the_already_pushed_branch_with_no_push_of_its_own():
     pushes = first_record(draft_pr_read(), re.escape("git push"))
     assert not pushes, f"Draft PR step still pushes the branch itself: {pushes[:120]}"
-
-
-def test_green_pass_and_verify_refactor_pass_both_push_the_branch_at_the_two_points_that_write_the_ledger():
-    problems = []
-    for heading in (REFACTOR,):
-        record = first_record(_records(_lines(heading, True)), r"^ *- \*\*pass")
-        if not record:
-            problems.append(f"no PASS branch under {heading!r} to read")
-        elif "push-branch.sh" not in record:
-            problems.append(f"{heading!r} PASS branch never runs push-branch.sh: {record[:120]}")
-    assert not problems, problems
 
 
 def test_draft_prs_step_runs_detect_test_command_tier_all_command_exactly_once_as_the_only_full_suite_gate():

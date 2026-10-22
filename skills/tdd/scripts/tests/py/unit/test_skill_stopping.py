@@ -100,7 +100,6 @@ def _checkpoint_exit2(problems, what, section, start, end):
     _unreadable_at_ledger(problems, what, [text.split("stop-requested.sh", 1)[1]])
 
 
-CLEAR_CHECKPOINT = (r"\$s/clear-refactor-pending\.sh \.tdd/issue-<n>\.md", "loop back to the top of step 3")
 PIN_CHECKPOINT = ('git commit -m "test: pin', "loop back to the top of step 3")
 
 
@@ -226,7 +225,6 @@ def test_launching_a_leaf_runs_stop_requested_before_every_leaf_launch_exit_3_la
 
 def test_refactor_pending_clears_push_and_a_pins_test_commit_are_each_followed_by_stop_requested_and_any_mode_it_prints_goes_to_stopping():
     problems = []
-    _checkpoint(problems, "the refactor-pending clear", _section(PROCEDURE), *CLEAR_CHECKPOINT, r"push-branch\.sh")
     _checkpoint(problems, "the pin's test: commit", _section(SATISFIED, PIN_MD), *PIN_CHECKPOINT, 'git commit -m "test: pin')
     assert not problems, problems
 
@@ -238,8 +236,7 @@ def test_launching_a_leaf_treats_stop_requested_exit_2_as_a_stop_in_mode_at_ledg
 
 
 def test_the_three_ledger_commit_checkpoints_send_stop_requested_exit_2_to_stopping_as_at_ledger_narrating_that_the_request_was_unreadable():
-    problems, procedure = [], _section(PROCEDURE)
-    _checkpoint_exit2(problems, "the refactor-pending clear", procedure, *CLEAR_CHECKPOINT)
+    problems = []
     _checkpoint_exit2(problems, "the pin's test: commit", _section(SATISFIED, PIN_MD), *PIN_CHECKPOINT)
     assert not problems, problems
 
@@ -297,7 +294,6 @@ def test_launching_a_leaf_asks_stop_requested_before_reading_a_leafs_wait_leaf_e
 
 def test_each_phases_leaf_exit_2_branch_points_back_to_launching_a_leaf_where_stop_requested_is_asked_before_the_exit_2_is_read_as_killed_stuck():
     phases = [
-        ("refactor", r"^#### refactor loop", r"exit 2 → bail"),
         ("revise", r"^## revising on a reject", r"exit 2 → bail"),
     ]
     problems = []

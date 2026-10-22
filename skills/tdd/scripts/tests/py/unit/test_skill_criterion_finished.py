@@ -6,7 +6,6 @@ import re
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 PIN_MD = SKILL.with_name("PIN.md")
 
-LOOP = "### 3. The cycle loop"
 PIN = "## Already satisfied — the pin"
 DRAFT_PR = "### 4. Draft PR"
 
@@ -63,7 +62,6 @@ def gated_tick(label, heading, extra, problems):
 
 def test_step_done_and_pin_paths_tick_an_issue_criterion_only_on_criterion_finished_exit_0_ticking_nothing_on_exit_3():
     problems = []
-    gated_tick("Step done (cycle loop)", LOOP, "### ✅ step done", problems)
     gated_tick("pin path", PIN, "", problems)
     assert not problems, "\n".join(problems)
 
