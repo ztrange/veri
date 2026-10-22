@@ -24,11 +24,22 @@ class NoAnswer(Exception):
 
 
 def _gh(*args, stderr=None):
+    first_miss = None
     while True:
         try:
             return subprocess.run(["gh", *args], stdout=subprocess.PIPE, stderr=stderr, text=True)
         except FileNotFoundError:
-            wait = float(tunables.read("VERI_TOOL_RETRY_SLEEP", "15"))
+            now = time.monotonic()
+            if first_miss is None:
+                first_miss = now
+            elapsed = now - first_miss
+            if elapsed >= float(tunables.read("VERI_TOOL_WAIT", "3600")):
+                print("gh: command not found; gave up after %gs" % elapsed, file=sys.stderr)
+                raise NoAnswer("")
+            if elapsed < float(tunables.read("VERI_TOOL_FAST_WAIT", "900")):
+                wait = float(tunables.read("VERI_TOOL_RETRY_SLEEP", "15"))
+            else:
+                wait = float(tunables.read("VERI_TOOL_SLOW_SLEEP", "900"))
             print("gh: command not found; waiting %gs" % wait, file=sys.stderr)
             time.sleep(wait)
 
