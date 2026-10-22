@@ -12,6 +12,7 @@ import sys
 import urllib.parse
 
 from event_log import read_events
+from ledger import ledger_path
 from run_dir import run_file
 import metrics
 import render_leaf_log
@@ -113,7 +114,7 @@ def issue_report(run, issue):
     out = io.StringIO()
     try:
         metrics.report(issue, run_file(run, "events.jsonl"),
-                       run_file(run, "issue-%s.md" % issue), stream=out)
+                       ledger_path(run, issue), stream=out)
     except Exception:
         pass
     return out.getvalue()
@@ -133,7 +134,7 @@ def runs():
 # that is not a number is no issue at all.
 def has_ledger(run, issue):
     return bool(issue) and os.path.exists(
-        run_file(run, "issue-%s.md" % issue))
+        ledger_path(run, issue))
 
 
 # The Metrics pane: one entry per run directory, and its report. The walk is all this is —

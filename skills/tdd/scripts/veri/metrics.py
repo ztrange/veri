@@ -8,7 +8,7 @@ import session_cost
 import tunables
 
 from event_log import read_events
-from ledger import decode_ledger, ledger_steps
+from ledger import decode_ledger, ledger_path, ledger_steps
 
 USAGE = "usage: metrics.sh <issue-number>"
 
@@ -537,7 +537,7 @@ def main(argv):
         sys.stderr.write(USAGE + "\n")
         return 2
     issue = argv[0]
-    report(issue, ".tdd/events.jsonl", ".tdd/issue-%s.md" % issue, stream=sys.stdout)
+    report(issue, ".tdd/events.jsonl", ledger_path(".", issue), stream=sys.stdout)
     return 0
 
 
