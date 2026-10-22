@@ -97,3 +97,10 @@ def test_small_case_guard_allows_an_iterator_args_as_it_does_the_list_2012():
 
     assert small_case_guard.refused(words) is None
     assert small_case_guard.refused(iter(words)) is None
+
+
+def test_small_case_guard_raises_its_own_type_error_for_a_non_str_word_2012():
+    import small_case_guard
+
+    with pytest.raises(TypeError):
+        small_case_guard.refused(["ls", 5])

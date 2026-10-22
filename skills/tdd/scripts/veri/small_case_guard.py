@@ -10,12 +10,12 @@ VERI = os.path.dirname(os.path.abspath(__file__))
 
 
 def refused(args):
-    words = command_words(args)
+    words = [os.fsdecode(word) for word in command_words(args)]
     command = command_basename(words)
     if command == "git":
         return command
     if command == "python3":
-        target = os.path.abspath(os.fsdecode(words[1])) if len(words) > 1 else ""
+        target = os.path.abspath(words[1]) if len(words) > 1 else ""
         if not target.startswith(VERI + os.sep):
             return command
     return None
