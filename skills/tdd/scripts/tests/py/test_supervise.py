@@ -3959,3 +3959,27 @@ def test_cli_records_2_in_the_exit_file_of_a_launch_refused_for_an_empty_veri_st
 
     exit_file = tmp_path / ".tdd" / "verify-red.exit"
     assert (exit_file.read_text().strip() if exit_file.is_file() else None, code) == ("2", 2), err
+
+
+def test_cli_launches_a_develop_green_whose_ci_repair_step_is_numbered_as_ledger_steps_numbers_it_past_a_non_step_box_line_1973(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import json
+    clean_env(monkeypatch)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-1973.md").write_text(
+        "# Plan for #1973\n\n"
+        "- [-] a note that is not a step\n"
+        "- [x] first step\n"
+        "- [ ] fix the CI failure: suite — FAIL - case ⟦ci-repair⟧\n")
+    base = {"issue": "1973", "skill_commit": "unknown"}
+    log = [
+        {**base, "ts": 1, "event": "launch", "actor": "developer", "phase": "red", "step": "2", "attempt": "1"},
+    ]
+    (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(line) + "\n" for line in log))
+    stub = tmp_path / "claude"
+    started = spy_leaf_start(monkeypatch, tmp_path, supervise)
+
+    code, out, err = run_cli(supervise, ["develop-green", str(stub)], cwd=tmp_path,
+                             env={"VERI_ISSUE": "1973", "VERI_STEP": "2"})
+
+    assert (code, bool(started)) == (0, True), err
