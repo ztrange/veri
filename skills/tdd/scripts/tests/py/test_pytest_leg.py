@@ -401,7 +401,7 @@ def ran(name):
 """
 
 
-def run_the_real_leg_over(run_cli, tmp_path, cases):
+def run_the_real_leg_over(run_cli, tmp_path, cases, selection=()):
     planted = tmp_path / "planted"
     planted.mkdir()
     (planted / "conftest.py").write_text(PLANTED_CONFTEST)
@@ -409,7 +409,10 @@ def run_the_real_leg_over(run_cli, tmp_path, cases):
     log = tmp_path / "ran.log"
     env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1",
            "VERI_PYTEST_WORKERS": "2", "PLANTED_LOG": str(log)}
-    code, out, err = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+    try:
+        code, out, err = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", *selection, str(planted)], env=env)
+    finally:
+        sys.modules.pop("test_planted", None)  # an in-process session imports it; the next planted tree's would mismatch
     return code, log.read_text().splitlines(), out + err
 
 
@@ -428,6 +431,17 @@ def test_the_real_leg_over_a_tree_with_no_serial_marked_case_starts_one_session_
     code, log, output = run_the_real_leg_over(run_cli, tmp_path, "\n\ndef test_unmarked():\n    ran('unmarked')\n")
 
     assert (code, log) == (0, ["session", "unmarked session=1 worker=xdist"]), output
+
+
+@pytest.mark.process("the real leg's parallel pass starts two xdist worker processes over a planted tree")
+@pytest.mark.parametrize("selection", [["-m", "not serial"], ["-k", "test_unmarked"]])
+def test_a_caller_selection_that_filters_the_serial_case_out_never_runs_it_yet_the_leg_starts_a_second_session_that_runs_nothing_and_exits_0_2092(run_cli, tmp_path, selection):
+    code, log, output = run_the_real_leg_over(run_cli, tmp_path, (
+        "\n\ndef test_unmarked():\n    ran('unmarked')\n"
+        "\n\n@pytest.mark.serial('planted')\ndef test_serial():\n    ran('serial')\n"
+    ), selection)
+
+    assert (code, log) == (0, ["session", "unmarked session=1 worker=xdist", "session"]), output
 
 
 @pytest.mark.parametrize("parallel, serial, code", [
