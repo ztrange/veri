@@ -57,3 +57,11 @@ def test_claims_reads_a_table_indented_three_spaces_but_not_four_1991(tmp_path):
         assert str(e).endswith("unit has no table")
     else:
         raise AssertionError("a four-space-indented table was read as the unit's table")
+
+
+def test_claims_does_not_refuse_a_four_space_example_table_after_the_real_one_as_a_second_table_1991(tmp_path):
+    requirements = importlib.import_module("veri.requirements")
+    path = tmp_path / "REQUIREMENTS.md"
+    path.write_text("## u\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | Says it. | because |\n\n"
+                    "    | ID | Requirement | Why |\n    |---|---|---|\n    | B2 | Example. | none |\n")
+    assert requirements.claims(str(path), "u") == "A1\tSays it.\n"
