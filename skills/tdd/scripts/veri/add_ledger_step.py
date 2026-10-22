@@ -116,6 +116,13 @@ def write_ledger(path, text, appended=""):
     replace_ledger(path, (text + appended).encode(errors=BYTES))
 
 
+def record_insertions(path, steps):
+    log = os.path.join(os.path.dirname(path), "events.jsonl")
+    with open(log, "a") as f:
+        for step in steps:
+            f.write(json.dumps({"event": "step-added", "actor": "add-ledger-step", "step": step}) + "\n")
+
+
 def main(argv):
     criterion = None
     planned = argv[:1] == ["--planned"]
@@ -174,6 +181,7 @@ def main(argv):
     if not re.fullmatch("[0-9]+", budget):
         return refuse("add-ledger-step.sh: VERI_STEP_GROWTH must be a whole number >= 0: " + budget)
     out = []
+    inserted_lines = []
     for line in lines:
         if not is_anchor_step(line, anchor):
             out.append(line)
@@ -182,6 +190,7 @@ def main(argv):
         if where == "after":
             out.append(line)
         out.extend(inserted)
+        inserted_lines.extend(inserted)
         if where == "before":
             out.append(line)
     kept = [line for line in lines if where != "instead-of" or not is_anchor_step(line, anchor)]
@@ -198,6 +207,7 @@ def main(argv):
         write_ledger(path, read_ledger(path), owed)
         return 1
     write_ledger(path, "".join(line + "\n" for line in out))
+    record_insertions(path, inserted_lines)
     return 0
 
 

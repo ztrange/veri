@@ -1320,3 +1320,23 @@ def test_main_refuses_a_replaces_case_step_mixing_quoted_and_unquoted_names_with
     code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", text])
 
     assert (code, err.count("\n"), text in err, ledger.read_bytes() == LEDGER) == (1, 1, True, True)
+
+
+def test_main_records_one_step_added_event_per_inserted_line_on_exit_0_and_none_on_exit_1_or_2_2130(tmp_path, monkeypatch, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    events = tmp_path / "events.jsonl"
+    ledger.write_bytes(LEDGER)
+
+    monkeypatch.setenv("VERI_STEP_GROWTH", "5")
+    code, _, _ = run_cli(add_ledger_step, [str(ledger), "after", "b two", "first", "second"])
+    assert code == 0
+    inserted = [line for line in ledger.read_text().split("\n") if "⟦added⟧" in line]
+    recorded = [json.loads(raw) for raw in events.read_text().splitlines()] if events.exists() else []
+    assert [(e["event"], e["actor"]) for e in recorded] == [("step-added", "add-ledger-step")] * 2
+    assert [line in e.values() for e, line in zip(recorded, inserted)] == [True, True]
+
+    before = events.read_bytes()
+    monkeypatch.setenv("VERI_STEP_GROWTH", "2")
+    assert run_cli(add_ledger_step, [str(ledger), "after", "b two", "third"])[0] == 1
+    assert run_cli(add_ledger_step, [str(ledger), "sideways", "b two", "t"])[0] == 2
+    assert events.read_bytes() == before
