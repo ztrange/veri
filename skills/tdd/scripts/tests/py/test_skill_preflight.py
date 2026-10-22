@@ -268,14 +268,14 @@ def preflight_readers(tree, preflight, rest):
 
 
 @pytest.mark.tree_audit("every test module under tests/py, parsed for the cases that read SKILL.md's Preflight section")
-def test_every_remaining_case_that_reads_skill_md_s_preflight_section_is_a_named_mechanical_fact_case():
+def test_every_remaining_case_that_reads_skill_md_s_preflight_section_is_a_named_mechanical_fact_case(tests_py_index):
     preflight, rest = preflight_and_rest()
     strays = []
-    for path in sorted(TESTS_DIR.rglob("test_*.py")):
-        source = path.read_text()
-        if "SKILL" not in source:
+    for entry in tests_py_index:
+        path = entry.path
+        if "SKILL" not in entry.text:
             continue
-        for name in preflight_readers(ast.parse(source), preflight, rest):
+        for name in preflight_readers(entry.tree, preflight, rest):
             if not any(key in name for key in MECHANICAL_READERS):
                 strays.append(f"{path.relative_to(TESTS_DIR)}::{name}")
     assert strays == [], f"cases read the Preflight section but are not on the mechanical-fact allow-list: {strays}"

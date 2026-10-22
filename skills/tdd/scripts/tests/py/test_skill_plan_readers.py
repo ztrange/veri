@@ -124,17 +124,17 @@ def _readers(tree, inside, rest):
 
 
 @pytest.mark.tree_audit("every test module under tests/py, parsed for the cases that read SKILL.md's steps 1, 2, 2b and 2c")
-def test_every_remaining_case_reading_skill_md_s_read_the_issue_scope_and_plan_start_comment_and_verify_the_plan_sections_by_content_is_a_mechanical_fact_case():
+def test_every_remaining_case_reading_skill_md_s_read_the_issue_scope_and_plan_start_comment_and_verify_the_plan_sections_by_content_is_a_mechanical_fact_case(tests_py_index):
     inside, rest = _sections_and_rest()
     strays = []
-    for path in sorted(TESTS_PY.rglob("test_*.py")):
+    for entry in tests_py_index:
+        path = entry.path
         rel = str(path.relative_to(TESTS_PY))
         if path == pathlib.Path(__file__).resolve() or rel in ALLOWED or path.name in ALLOWED:
             continue
-        source = path.read_text(encoding="utf-8")
-        if "SKILL" not in source:
+        if "SKILL" not in entry.text:
             continue
-        for name in _readers(ast.parse(source), inside, rest):
+        for name in _readers(entry.tree, inside, rest):
             if f"{rel}::{name}" not in ALLOWED and f"{path.name}::{name}" not in ALLOWED:
                 strays.append(f"{rel}::{name}")
     assert strays == [], "cases read steps 1, 2, 2b or 2c by content and are neither mechanical nor allow-listed:\n" + "\n".join(strays)
