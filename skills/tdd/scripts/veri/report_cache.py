@@ -35,14 +35,22 @@ def wall_seconds(comments):
 
 
 def refresh():
-    done = subprocess.run(
-        ["gh", "issue", "list", "--state", "all", "--limit", "100000", "--json", FIELDS],
-        capture_output=True, text=True)
+    path = os.path.join(main_tree(), ".tdd", "report-cache.json")
+    kept = {}
+    command = ["gh", "issue", "list", "--state", "all", "--limit", "100000", "--json", FIELDS]
+    if os.path.exists(path):
+        with open(path) as existing:
+            before = json.load(existing)
+        kept = {issue["number"]: issue for issue in before["issues"]}
+        command += ["--search", "updated:>=" + before["fetched_at"]]
+    done = subprocess.run(command, capture_output=True, text=True)
     issues = json.loads(done.stdout)
     for issue in issues:
         issue["blockedBy"] = blocked_by(issue.pop("body", ""))
         issue["wallSeconds"] = wall_seconds(issue.pop("comments", []))
         issue["lane"] = None
+    kept.update({issue["number"]: issue for issue in issues})
+    issues = list(kept.values())
     fetched_at = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     tdd = os.path.join(main_tree(), ".tdd")
     os.makedirs(tdd, exist_ok=True)

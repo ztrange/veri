@@ -157,3 +157,42 @@ def test_refresh_reads_the_wall_seconds_from_a_metrics_block_under_another_headi
     cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
     walls = {i["number"]: i.get("wallSeconds") for i in cache["issues"]}
     assert (code, walls) == (0, {7: 321})
+
+
+def test_refresh_with_a_cache_asks_only_for_issues_updated_since_fetched_at_and_merges_them_by_number(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    before = {"fetched_at": "2026-10-01T00:00:00Z", "issues": [
+        {"number": 7, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None},
+        {"number": 8, "title": "stale", "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-09-30T11:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None},
+    ]}
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(before))
+    received = [
+        {"number": 8, "title": "fresh", "state": "CLOSED", "labels": [],
+         "closedAt": "2026-10-02T09:00:00Z", "updatedAt": "2026-10-02T09:00:00Z"},
+        {"number": 9, "title": "new", "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-10-03T09:00:00Z"},
+    ]
+    asked = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] != ["gh", "issue", "list"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        asked.append([args[i + 1] for i, arg in enumerate(args) if arg == "--search"])
+        return subprocess.CompletedProcess(args, 0, json.dumps(received), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
+    titles = {i["number"]: i["title"] for i in cache["issues"]}
+    assert (code, asked, titles, cache["fetched_at"] > before["fetched_at"]) == (
+        0, [["updated:>=2026-10-01T00:00:00Z"]], {7: "kept", 8: "fresh", 9: "new"}, True)
