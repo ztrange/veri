@@ -22,7 +22,9 @@ def _only_match(lines, substring):
 
 
 def _frozen(line):
-    return line.startswith("- [x]") or ledger.PENDING_MARK in line
+    match = ledger.STEP_RE.fullmatch(line)
+    ticked = match is not None and match.group(2) in ("x", "X")
+    return ticked or ledger.PENDING_MARK in line
 
 
 def _open_match(lines, substring, refusal):
