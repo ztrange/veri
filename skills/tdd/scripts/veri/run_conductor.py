@@ -91,7 +91,7 @@ def main(argv):
             with open(record, "w") as out:
                 out.write(commit + "\n")
             if readable:
-                worktree = ".tdd/wt/" + argv[0]
+                worktree = run_worktree(argv[0])
                 os.makedirs(worktree, exist_ok=True)
                 if event.mark(worktree, event.context(tunables.with_values(VERI_ISSUE=argv[0])),
                               "skill-repin", ["commit=" + commit]) != 0:
@@ -174,7 +174,7 @@ def launch(base, issue, commit, **exports):
     if code < 0:
         return 128 - code
     if code == 0 and result is not None and not closed(issue):
-        if event.mark(".tdd/wt/" + issue, event.context(tunables.with_values(VERI_ISSUE=issue)),
+        if event.mark(run_worktree(issue), event.context(tunables.with_values(VERI_ISSUE=issue)),
                       "bail", ["cause=needs-user"]) != 0:
             return 2
         paragraphs = [p for p in result.split("\n\n") if p.strip()]
@@ -202,11 +202,15 @@ def relay(stream, terminal, unread, results):
 
 def closed(issue):
     try:
-        with open(".tdd/wt/%s/.tdd/events.jsonl" % issue) as log:
+        with open(os.path.join(run_worktree(issue), ".tdd", "events.jsonl")) as log:
             last = [line for line in log if line.strip()][-1]
         return json.loads(last).get("event") in ("done", "bail", "stop")
     except (OSError, IndexError, ValueError):
         return False
+
+
+def run_worktree(issue):
+    return os.path.join(event.toplevel(), ".tdd", "wt", issue)
 
 
 def record_path(issue):
@@ -214,7 +218,7 @@ def record_path(issue):
 
 
 def past_preflight(issue):
-    run_wt = ".tdd/wt/" + issue
+    run_wt = run_worktree(issue)
     top = git(run_wt, "rev-parse", "--show-toplevel",
               stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     if top.returncode == 0 and top.stdout.rstrip("\n") == os.path.realpath(run_wt):
