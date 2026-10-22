@@ -54,7 +54,10 @@ def drop_stale_bytecode(after_run=False):
                 except OSError:
                     continue
             if (path in known or not after_run) and known.get(path) != current[path]:
-                os.remove(os.path.join(folder, name))
+                try:
+                    os.remove(os.path.join(folder, name))
+                except FileNotFoundError:
+                    pass
     with open(manifest, "w") as handle:
         json.dump(current, handle)
 
