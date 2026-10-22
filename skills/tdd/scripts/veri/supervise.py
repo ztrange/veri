@@ -19,7 +19,7 @@ from extract_result import extract
 from leaf_log import result_records
 from leaf_model import leaf_model
 from leaf_role import leaf_role
-from ledger import carries_mark, ledger_steps, trailing_markers
+from ledger import carries_mark, ledger_path, ledger_steps, trailing_markers
 from pid_file import number_in
 
 HERE = paths.scripts_of(__file__)
@@ -313,7 +313,7 @@ def red_awaits_pass(step):
 
 def ci_repair_step(issue, step):
     try:
-        with open(f".tdd/issue-{issue}.md") as f:
+        with open(ledger_path(".", issue)) as f:
             boxes = [record[6] for record in ledger_steps(f.read())]
         if not step.isdigit():
             return carries_mark(trailing_markers(step), "ci-repair") and any(t.startswith(step) for t in boxes)

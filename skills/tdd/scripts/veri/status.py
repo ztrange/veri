@@ -10,7 +10,7 @@ import sys
 import time
 
 from event_log import read_events, usage_totals
-from ledger import ledger_steps
+from ledger import ledger_path, ledger_steps
 from run_dir import run_file
 import tunables
 from solvable_issues import priority_label, solvable
@@ -178,7 +178,7 @@ def render(as_json, scope):
                                     timeout, as_json) or ""
             if not as_json:
                 activity = "  " + activity
-        ledger = run_file(run, "issue-%s.md" % os.path.basename(run))
+        ledger = ledger_path(run, os.path.basename(run))
         if not os.path.isfile(ledger):
             continue
         with open(ledger) as f:
