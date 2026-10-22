@@ -143,7 +143,7 @@ def main(argv):
             marked["REPLACES_CASE"] = f"{prompts}/_develop-green-replaces-case.md"
         if carries_mark(markers, "suite-repair"):
             marked["SUITE_REPAIR"] = f"{prompts}/_develop-green-suite-repair.md"
-        if carries_mark(step, "fixture-repair"):
+        if carries_mark(markers, "fixture-repair"):
             marked["FIXTURE_REPAIR"] = f"{prompts}/_develop-green-fixture-repair.md"
     if revised_phase in INTERFACE_PHASES:
         frozen = "production" if revised_phase == "contract-a" else "test"
