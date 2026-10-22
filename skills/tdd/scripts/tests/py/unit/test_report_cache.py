@@ -1,6 +1,8 @@
 """Cases for veri/report_cache.py."""
 import importlib
 
+import pytest
+
 
 def test_no_subcommand_or_an_unknown_one_exits_2_with_the_usage_on_stderr(run_cli):
     report_cache = importlib.import_module("veri.report_cache")
@@ -38,3 +40,33 @@ def test_refresh_with_no_cache_writes_every_issue_open_and_closed_with_fetched_a
     kept = {i["number"]: i for i in cache["issues"]}
     assert (code, sorted(kept), kept[8]["state"], kept[8]["closedAt"], kept[7]["title"], bool(cache["fetched_at"])) == (
         0, [7, 8], "CLOSED", "2026-10-21T09:00:00Z", "open one", True)
+
+
+@pytest.mark.process("git worktree")
+def test_refresh_from_a_linked_worktree_writes_the_cache_under_the_main_working_tree(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    real_run = subprocess.run
+    main = tmp_path / "main"
+    linked = tmp_path / "linked"
+    main.mkdir()
+    git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
+    real_run(git + ["init", "-q"], cwd=main, check=True)
+    real_run(git + ["commit", "-q", "--allow-empty", "-m", "base"], cwd=main, check=True)
+    real_run(git + ["worktree", "add", "-q", "--detach", str(linked)], cwd=main, check=True)
+    issues = [{"number": 7, "title": "open one", "state": "OPEN", "labels": [],
+               "closedAt": None, "updatedAt": "2026-10-20T10:00:00Z"}]
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] == ["gh", "issue", "list"]:
+            return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+        return real_run(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=linked)
+
+    assert (code, (main / ".tdd" / "report-cache.json").is_file(), (linked / ".tdd" / "report-cache.json").exists()) == (0, True, False)
