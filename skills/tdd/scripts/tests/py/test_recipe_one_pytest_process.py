@@ -122,6 +122,7 @@ def test_make_test_with_tests_naming_a_file_and_a_node_id_runs_only_those_in_one
 
 
 @pytest.mark.process("make unit and make test started for real, with two pytest workers, over a planted tree whose small case fails")
+@pytest.mark.serial("starts a nested pytest run that times out when every core is busy")
 def test_two_workers_pass_and_fail_the_same_cases_as_serial_and_name_a_failing_case_by_its_node_id(tmp_path):
     failing = PLANTED_CASES.split("@pytest.mark.process")[0].replace('note("pytest small")', 'note("pytest small")\n    assert False')
     tree, log = planted_tree(tmp_path, small=failing), tmp_path / "ran.log"
