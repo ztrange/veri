@@ -22,11 +22,11 @@ any cycle of the resumed run starts. The **resume check** then finds an existing
    limit takes the conductor and every leaf together — so a resumed worktree may carry
    uncommitted work from a killed **Red** or **Green** leaf just as readily as from a killed
    refactor one. No verifier has seen any of it and none of it may reach the PR, so it is
-   thrown away **before** the ask, not under one of its answers: preflight step 3 already
-   captured `git status --porcelain` into `$stray` and ran `git reset --hard HEAD`, ahead of
-   the resume rebase. Do not capture again here — the tree is clean, so a second capture
+   thrown away **before** the ask, not under one of its answers: preflight step 3's
+   `resume-clean.sh` already captured `git status --porcelain` and ran `git reset --hard HEAD`,
+   ahead of the resume rebase; its stdout is `$stray`. Do not capture again here — the tree is clean, so a second capture
    would empty `$stray`.
-   `$stray` holds the paths that reset discarded, and sub-step 4 is what does the naming:
+   `$stray`, that script's stdout, holds the paths that reset discarded, and sub-step 4 is what does the naming:
    a killed leaf's stray work is real work — the run that prompted this left a 235-line
    untracked test file behind — and it has to go loudly, not in silence.
    Then `$S/next-pending-refactor.sh < .tdd/issue-<n>.md` prints the first checked step whose

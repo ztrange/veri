@@ -277,38 +277,19 @@ unauthenticated baseline never gets a cycle.
    The `--clear` beside it drops a stale stop request a killed run never got to clear, so a
    `.tdd/stop` left behind cannot stop the run that resumes it at its first checkpoint.
    A resumed run — one whose worktree and ledger `.tdd/issue-<n>.md` already exist — first
-   captures and discards whatever a killed leaf left uncommitted, since a rebase refuses a
-   dirty tree:
+   discards whatever a killed leaf left uncommitted, since a rebase refuses a dirty tree:
    ```
-   stray="$(git status --porcelain)"
-   stray="$(grep -v '^.. \.tdd/' <<< "$stray")"
-   appends="$(git diff HEAD -U0 -- .tdd)"
-   git reset --hard HEAD
-   git clean -fd -e .tdd
-   if [[ -n "$appends" ]] && ! git apply --unidiff-zero <<< "$appends"; then
-     base="$(git rev-parse --git-path kept-tdd-appends.diff)"
-     kept="$base"
-     [[ ! -e $kept ]] || kept="$kept.$(date +%s).$$"
-     printf '%s\n' "$appends" > "$kept"
-     echo "could not re-apply the uncommitted appends to $(grep -o '^+++ b/.*' <<< "$appends" | cut -c7- | tr '\n' ' ')kept at $(ls -d "$(git rev-parse --git-path set-aside-tdd-appends.diff)"* "$base"* 2>/dev/null | tr '\n' ' ')" >&2
-     exit 2
-   fi
-   for f in .tdd/issue-*.md; do
-     [[ $f =~ ^\.tdd/issue-[0-9]+\.md$ ]] || continue
-     awk -v M=' ⟂ refactor pending' '
-       function id(l) { sub(/^- [[]x[]] /, "", l); sub(M "$", "", l); return l }
-       P == 1 { if (/^- [[]x[]] /) left[id($0)]++; next }
-       P == 2 { if (/^- [[]x[]] /) have[id($0)]++; next }
-       /^- [[]x[]] / && have[id($0)] > left[id($0)] { have[id($0)]--; $0 = "- [" " ] " id($0) }
-       { print }' P=1 <(git show "HEAD:$f" 2>/dev/null) P=2 "$f" P=3 "$f" > "$f.new"
-     if cmp -s "$f" "$f.new"; then rm -f "$f.new"; else mv "$f.new" "$f"; fi
-   done
+   stray="$($S/resume-clean.sh)"
    ```
-   A tick is committed with its step's green commit, so the committed ledger's ticks record which greens exist: the ledger is judged
-   against the committed ledger by step text, counted. A working-copy `- [x]` line is kept ticked only when the committed
+   `resume-clean.sh` captures `git status --porcelain` and runs `git reset --hard HEAD`, so its
+   stdout is the paths that reset discarded: keep it as `$stray` for `<base directory>/RESUME.md`
+   sub-step 4 to name. An exit 2 — an uncommitted `.tdd/` append it could not re-apply (kept
+   in `kept-tdd-appends.diff`) or a failed git command — bails as a **system** failure
+   (`no-verdict`, see `<base directory>/BAIL.md`).
+   The script also reconciles the ledger: a tick is committed with its step's green commit, so the committed ledger's ticks record which greens exist, and a working-copy `- [x]` line is kept ticked only when the committed
    ledger holds a tick of the same step text (the text without its trailing markers), so n committed ticks of a text keep at
    most n working ticks of it; every other `- [x]` line — its green commit is not on the branch — is unticked and loses its
-   `⟂ refactor pending` mark, and every other working-copy line is kept as written; keep this `$stray` for `<base directory>/RESUME.md` sub-step 4 to name.
+   `⟂ refactor pending` mark, and every other working-copy line is kept as written.
    Then the resumed run, its uncommitted `.tdd/` appends kept
    and its ledger ticks reconciled, runs
    `$S/rebase-onto-default.sh` before its baseline, so the baseline runs on the rebased tip.
