@@ -122,6 +122,8 @@ REJECT a plan in which a step adds a script under `skills/tdd/scripts/` whose no
 
 REJECT a plan holding a step that carries the `⟦replaces-case⟧` mark but does not name its cases in the form `replaces '<case name>', '<case name>' in <suite path>`, quoting each case name: the guard that reads the names cannot read any other form, and your reason names the step.
 
+REJECT a plan holding a step that carries `⟦guard-subject: P⟧` where the step text or the spec names `P` as that step's Red test file (the file its failing case is written in): `tests-frozen` records the Red's test file whole, so a Green editing `P` can never pass `tests-frozen check --step`; your reason names the step and `P`.
+
 {{REFACTOR_PLAN}}
 
 A REJECT must name the criterion it fails on and state the part of it no step covers, in
