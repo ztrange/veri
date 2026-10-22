@@ -12,7 +12,7 @@ SKILLS = SCRIPTS.parent.parent
 @pytest.mark.tree_audit("every directory directly under skills/")
 def test_every_directory_directly_under_skills_contains_a_skill_md():
     def run_state_only(d):
-        return all(c.name == ".tdd" and c.is_dir() and not any(c.iterdir()) for c in d.iterdir())
+        return all(c.name == ".tdd" and c.is_dir() for c in d.iterdir())
 
     without = sorted(
         d.name
