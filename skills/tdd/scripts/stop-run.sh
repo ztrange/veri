@@ -10,4 +10,6 @@
 #          hold the directory it was typed from | 3 nothing to do — no live
 #          run answered to what was named
 export VERI_CALLER_DIR="$PWD"
-exec python3 "$(dirname "$0")/veri/stop_run.py" "$@"
+py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[ -x "$py" ] || py=python3
+exec "$py" "$(dirname "$0")/veri/stop_run.py" "$@"
