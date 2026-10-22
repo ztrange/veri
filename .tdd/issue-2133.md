@@ -2,3 +2,4 @@
 
 - [x] When `git reset --hard` or `git clean` fails after the `.tdd/` appends are captured, resume-clean exits 2 with one stderr line that still names the failed git command and also says the appends were saved, names the saved `kept-tdd-appends.diff` by its path, and lists the stray paths; pinned by a forced-failure case (a medium case, real git, in skills/tdd/scripts/tests/py/test_resume_clean_process.py) asserting that stderr ⟦criterion 1⟧
 - [x] A ledger whose clean-up changes nothing is left byte-identical by resume-clean, CRLF line endings included; pinned by a case with a CRLF ledger and no tick to change (a medium case, real git, in skills/tdd/scripts/tests/py/test_resume_clean_process.py) ⟦criterion 2⟧
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_recipe_one_pytest_process.py — FAILED test_two_workers_pass_and_fail_the_same_cases_as_serial_and_name_a_failing_case_by_its_node_id - Failed: Timeout (>30.0s) ⟦suite-repair⟧ ⟦criterion 2⟧
