@@ -43,12 +43,12 @@ def main(argv):
         print(f"ledger-growth.sh: {error.filename}: {error.strerror}", file=sys.stderr)
         return 2
     recorded = recorded_steps(argv[1])
-    off = [step for step in steps if step not in planned and not is_added(step)
-           and not any(step in line for line in recorded)]
+    unrecorded_new = [step for step in steps if step not in planned
+                      and not any(step in line for line in recorded)]
+    off = [step for step in unrecorded_new if not is_added(step)]
     for step in off:
         print(f"ledger-growth.sh: step added without ⟦added⟧: {step}", file=sys.stderr)
-    unrecorded = [step for step in steps if step not in planned and is_added(step)
-                  and not any(step in line for line in recorded)]
+    unrecorded = [step for step in unrecorded_new if is_added(step)]
     for step in unrecorded:
         print(f"ledger-growth.sh: step added without an add-ledger-step.sh record: {step}", file=sys.stderr)
     return 1 if off or unrecorded else 0
