@@ -4,6 +4,7 @@ import pathlib
 import re
 import sys
 
+import paths
 import tunables
 
 USAGE = "usage: leaf-timeout.sh <baseline-seconds> [refactor | --full <full-seconds>]"
@@ -41,7 +42,7 @@ def record(timeout):
 
 
 def inside_own_scripts():
-    scripts = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    scripts = paths.resolved_scripts_of(__file__)
     here = os.path.realpath(os.getcwd())
     return here == scripts or here.startswith(scripts + os.sep)
 

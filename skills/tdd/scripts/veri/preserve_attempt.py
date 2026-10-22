@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 
+import paths
 from git import git
 from ledger import CRITERION_RE, decode_ledger, ledger_steps
 
@@ -15,7 +16,7 @@ IDENTITY = {"GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@localhost",
 
 
 def inside_own_scripts():
-    scripts = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    scripts = paths.resolved_scripts_of(__file__)
     here = os.path.realpath(os.getcwd())
     return here == scripts or here.startswith(scripts + os.sep)
 
