@@ -238,6 +238,36 @@ def test_a_pass_on_a_nested_unit_records_its_signature_in_the_skills_graded_and_
         == (0, ["skills/demo/prompts/x.md"], False), (code, err)
 
 
+def test_a_rejected_unit_exits_1_writes_no_graded_line_and_leaves_a_record_keyed_by_the_unit_and_its_signature_2121(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "grade-prose.log").write_text(
+        '{"type":"result","subtype":"success","is_error":false,"result":'
+        '"BEGIN GRADES\\nA1: FAIL - not stated\\nVERDICT: REJECT\\nEND GRADES"}\n')
+
+    def launch(argv, *a, **k):
+        return subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(subprocess, "run", launch)
+    monkeypatch.chdir(tmp_path)
+    sig = grade_prose.signature("REQUIREMENTS.md", "unit.md")
+
+    code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+
+    inputs = {"unit.md", "REQUIREMENTS.md", "grader.conf", "grade-prose.log"}
+    records = [f for f in tmp_path.rglob("*") if f.is_file() and f.name not in inputs
+               and "unit.md" in f.read_text(errors="ignore") and sig in f.read_text(errors="ignore")]
+    assert (code, (tmp_path / "unit.md").parent.joinpath("GRADED").exists(), len(records) > 0) \
+        == (1, False, True), (code, [str(r) for r in records], err)
+
+
 def test_owed_grades_a_unit_listed_only_in_the_requirements_md_beside_it_with_that_lists_requirements_1911(
         tmp_path, monkeypatch, run_cli, grade_prose):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
