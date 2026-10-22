@@ -152,6 +152,19 @@ def test_gh_never_found_on_path_follows_the_four_tool_wait_tunables_when_set_to_
     assert err_lines and all("gh" in line for line in err_lines)
 
 
+def test_gh_that_runs_and_fails_is_not_waited_on_and_its_exit_code_reaches_the_caller_unchanged_2097(monkeypatch, capsys, github):
+    sleeps = []
+    monkeypatch.setattr(time, "sleep", lambda seconds: sleeps.append(seconds))
+    calls = fake_gh(monkeypatch, {("gh", "api", "repos/{owner}/{repo}/issues/7"): (4, "", "")})
+
+    run = github.gh_api("repos/{owner}/{repo}/issues/7")
+
+    assert run.returncode == 4
+    assert sleeps == []
+    assert len(calls) == 1
+    assert capsys.readouterr().err == ""
+
+
 def test_gh_rest_list_answers_each_page_back_to_back_until_the_first_bare_empty_page(monkeypatch, github):
     path = "repos/{owner}/{repo}/pulls"
     calls = fake_gh(monkeypatch, {
