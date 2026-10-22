@@ -37,22 +37,43 @@ def fake_gh(monkeypatch, answers):
     return calls
 
 
-def test_gh_missing_from_path_twice_is_waited_out_with_a_stderr_line_per_wait_then_answers_2097(monkeypatch, capsys, github):
+def fake_clock(monkeypatch):
+    """time.monotonic, time.time and time.sleep on one fake clock starting at 1000.0, which
+    each sleep advances; returns ([now], sleeps), the sleeps taken in order. A 200th sleep fails
+    the case, so a wait that never ends is red, not hung."""
     now = [1000.0]
     sleeps = []
+
+    def fake_sleep(seconds):
+        assert len(sleeps) < 200, "still waiting after %d sleeps" % len(sleeps)
+        sleeps.append(seconds)
+        now[0] += seconds
+
     monkeypatch.setattr(time, "monotonic", lambda: now[0])
     monkeypatch.setattr(time, "time", lambda: now[0])
-    monkeypatch.setattr(time, "sleep", lambda seconds: (sleeps.append(seconds), now.__setitem__(0, now[0] + seconds)))
-    monkeypatch.delenv("VERI_TOOL_RETRY_SLEEP", raising=False)
+    monkeypatch.setattr(time, "sleep", fake_sleep)
+    return now, sleeps
+
+
+def fake_missing_gh(monkeypatch, misses=None):
+    """subprocess.run raising the FileNotFoundError of a gh missing from PATH for the first
+    <misses> calls (every call when None), then answering '{"number":7}'; returns the calls."""
     lookups = []
 
     def fake_run(args, **kwargs):
         lookups.append(list(args))
-        if len(lookups) <= 2:
+        if misses is None or len(lookups) <= misses:
             raise FileNotFoundError(2, "No such file or directory", "gh")
         return subprocess.CompletedProcess(args, 0, '{"number":7}', "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
+    return lookups
+
+
+def test_gh_missing_from_path_twice_is_waited_out_with_a_stderr_line_per_wait_then_answers_2097(monkeypatch, capsys, github):
+    _, sleeps = fake_clock(monkeypatch)
+    monkeypatch.delenv("VERI_TOOL_RETRY_SLEEP", raising=False)
+    lookups = fake_missing_gh(monkeypatch, misses=2)
 
     run = github.gh_api("repos/{owner}/{repo}/issues/7")
 
@@ -65,21 +86,9 @@ def test_gh_missing_from_path_twice_is_waited_out_with_a_stderr_line_per_wait_th
 
 
 def test_gh_missing_from_path_twice_sleeps_the_veri_tool_retry_sleep_value_before_each_retry_2097(monkeypatch, capsys, github):
-    now = [1000.0]
-    sleeps = []
-    monkeypatch.setattr(time, "monotonic", lambda: now[0])
-    monkeypatch.setattr(time, "time", lambda: now[0])
-    monkeypatch.setattr(time, "sleep", lambda seconds: (sleeps.append(seconds), now.__setitem__(0, now[0] + seconds)))
+    _, sleeps = fake_clock(monkeypatch)
     monkeypatch.setenv("VERI_TOOL_RETRY_SLEEP", "2")
-    lookups = []
-
-    def fake_run(args, **kwargs):
-        lookups.append(list(args))
-        if len(lookups) <= 2:
-            raise FileNotFoundError(2, "No such file or directory", "gh")
-        return subprocess.CompletedProcess(args, 0, '{"number":7}', "")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake_missing_gh(monkeypatch, misses=2)
 
     run = github.gh_api("repos/{owner}/{repo}/issues/7")
 
@@ -88,26 +97,10 @@ def test_gh_missing_from_path_twice_sleeps_the_veri_tool_retry_sleep_value_befor
 
 
 def test_gh_never_found_on_path_is_polled_every_15s_for_900s_then_every_900s_and_is_a_no_answer_naming_gh_at_3600s_2097(monkeypatch, capsys, github):
-    now = [1000.0]
-    sleeps = []
-    monkeypatch.setattr(time, "monotonic", lambda: now[0])
-    monkeypatch.setattr(time, "time", lambda: now[0])
-
-    def fake_sleep(seconds):
-        assert len(sleeps) < 200, "still waiting after %d sleeps" % len(sleeps)
-        sleeps.append(seconds)
-        now[0] += seconds
-
-    monkeypatch.setattr(time, "sleep", fake_sleep)
+    _, sleeps = fake_clock(monkeypatch)
     for name in ("VERI_TOOL_RETRY_SLEEP", "VERI_TOOL_FAST_WAIT", "VERI_TOOL_SLOW_SLEEP", "VERI_TOOL_WAIT"):
         monkeypatch.delenv(name, raising=False)
-    lookups = []
-
-    def fake_run(args, **kwargs):
-        lookups.append(list(args))
-        raise FileNotFoundError(2, "No such file or directory", "gh")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    lookups = fake_missing_gh(monkeypatch)
 
     with pytest.raises(github.NoAnswer):
         github.gh_api("repos/{owner}/{repo}/issues/7")
@@ -119,28 +112,12 @@ def test_gh_never_found_on_path_is_polled_every_15s_for_900s_then_every_900s_and
 
 
 def test_gh_never_found_on_path_follows_the_four_tool_wait_tunables_when_set_to_non_default_values_2097(monkeypatch, capsys, github):
-    now = [1000.0]
-    sleeps = []
-    monkeypatch.setattr(time, "monotonic", lambda: now[0])
-    monkeypatch.setattr(time, "time", lambda: now[0])
-
-    def fake_sleep(seconds):
-        assert len(sleeps) < 200, "still waiting after %d sleeps" % len(sleeps)
-        sleeps.append(seconds)
-        now[0] += seconds
-
-    monkeypatch.setattr(time, "sleep", fake_sleep)
+    now, sleeps = fake_clock(monkeypatch)
     monkeypatch.setenv("VERI_TOOL_RETRY_SLEEP", "10")
     monkeypatch.setenv("VERI_TOOL_FAST_WAIT", "30")
     monkeypatch.setenv("VERI_TOOL_SLOW_SLEEP", "50")
     monkeypatch.setenv("VERI_TOOL_WAIT", "100")
-    lookups = []
-
-    def fake_run(args, **kwargs):
-        lookups.append(list(args))
-        raise FileNotFoundError(2, "No such file or directory", "gh")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    lookups = fake_missing_gh(monkeypatch)
 
     with pytest.raises(github.NoAnswer):
         github.gh_api("repos/{owner}/{repo}/issues/7")
