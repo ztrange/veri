@@ -222,3 +222,29 @@ def test_refresh_whose_gh_read_fails_exits_2_with_one_stderr_line_and_leaves_the
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
     assert (code, out, len(err.splitlines()), "HTTP 502" in err, cache_file.read_bytes() == before) == (2, "", 1, True, True)
+
+
+def test_refresh_whose_gh_read_is_unparseable_exits_2_with_one_stderr_line_and_leaves_the_cache_byte_identical(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    cache_file = tmp_path / ".tdd" / "report-cache.json"
+    cache_file.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "issues": [
+        {"number": 7, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
+    before = cache_file.read_bytes()
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] != ["gh", "issue", "list"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        return subprocess.CompletedProcess(args, 0, "<html>rate limited</html>", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    assert (code, out, len(err.splitlines()), err.startswith("report-cache.sh:"), cache_file.read_bytes() == before) == (2, "", 1, True, True)
