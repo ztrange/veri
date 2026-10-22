@@ -5,6 +5,8 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+from ledger import OPEN_STEP, PENDING_MARK, TICKED_STEP
+
 PATHSPEC = ["--", ".", ":!.tdd"]
 
 
@@ -19,13 +21,12 @@ def git(*args, text=True):
     return done.stdout
 
 
-TICK = "- [x] "
-PENDING = " ⟂ refactor pending"
+TICK = TICKED_STEP + " "
 
 
 def step_text(line):
     text = line[len(TICK):].rstrip("\r\n")
-    return text[:-len(PENDING)] if text.endswith(PENDING) else text
+    return text[:-len(PENDING_MARK)] if text.endswith(PENDING_MARK) else text
 
 
 def unseen_ticks(ledger):
@@ -39,7 +40,7 @@ def unseen_ticks(ledger):
             if held[text] > 0:
                 held[text] -= 1
             else:
-                lines[i] = "- [ ] " + text + line[len(line.rstrip("\r\n")):]
+                lines[i] = OPEN_STEP + " " + text + line[len(line.rstrip("\r\n")):]
     return "".join(lines)
 
 

@@ -6,6 +6,7 @@ import sys
 import tempfile
 
 OPEN_STEP = "- [ ]"
+TICKED_STEP = "- [x]"
 PENDING_MARK = " ⟂ refactor pending"
 ADDED_MARK = "⟦added⟧"
 CRITERION_TAG = "⟦criterion "
