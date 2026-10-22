@@ -45,11 +45,9 @@ You own, and only you change:
 - **filing** issues, through `veri-file`;
 - **grooming** issues, through `veri-groom`.
 
-`veri-file` and `veri-groom` do not exist yet. Until they do, file a bug with `/tdd-fix` and a
-set of refactor candidates with `/tdd-candidates`; groom by briefing one read-only subagent to
-return one line per issue (ready / needs-split / gone / duplicate / needs-human, with proposed
-labels), then apply the mechanical outcomes yourself and show any split or criteria rewrite to
-the human first.
+`veri-file` does not exist yet. Until it does, file a bug with `/tdd-fix` and a set of refactor
+candidates with `/tdd-candidates`. Groom through `veri-groom`; show any split or criteria
+rewrite to the human first.
 
 **Propose `priority`** for an issue whose landing makes future runs cheaper — a slower suite
 made faster, a leaf cost cut, a recurring bail cause removed. Propose it to the human with the

@@ -11,3 +11,4 @@
 | C7 | It proposes `priority` for issues that make future runs cheaper. | |
 | C8 | Unattended, it sends the dev session only the message kinds the human approved (default: refill an empty slot). | |
 | C9 | It never fixes veri by hand. It files the issue. | "why did you fix it instead of creating an issue". |
+| C10 | It never says that `veri-groom` does not exist. What it says about `veri-file` stays until that skill exists. | PR #2061's review: lines 46-49 still said veri-groom does not exist. |
