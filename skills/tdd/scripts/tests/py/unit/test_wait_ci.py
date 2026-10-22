@@ -923,6 +923,22 @@ def test_main_names_a_conflicting_pr_at_its_first_read_only_while_its_head_has_n
     }
 
 
+def test_main_names_a_conflicting_pr_at_its_first_read_when_its_head_has_only_skipped_check_runs_issue_2141(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    conflict = f"wait-ci.sh: {PR} conflicts with its base branch; no workflow will start until it is rebased\n"
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([[check_run("gates", FULL_SHA, "completed", "skipped")]], [], "pending")
+    bodies[PULL] = json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": False,
+                               "head": {"sha": FULL_SHA}})
+    reads = []
+    served(fake_processes, bodies, lambda line: reads.append(line) if line == PULL else None)
+
+    answer = run_cli(wait_ci, [PR, "540", "600", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (answer, len(reads)) == ((2, "", conflict), 1)
+
+
 def test_main_refuses_a_missing_pr_url_or_a_bad_number_and_records_the_deadline_in_its_own_working_directory_issue_775_776(
         tmp_path, wait_ci, fake_processes, run_cli):
     bad = lambda which, value: f"wait-ci.sh: {which} '{value}' is not a non-negative whole number\n"

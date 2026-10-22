@@ -108,6 +108,8 @@ def sha_state(repo, sha):
         return "red", ",".join(failed)
     if not check_runs and not states:
         return "none", ""
+    if not states and all(o == "skipped" for o in outcomes):
+        return "skipped", ""
     if None in outcomes or all(o == "skipped" for o in outcomes) or "pending" in states:
         return "pending", ""
     return "green", ""
@@ -177,9 +179,11 @@ def main(argv):
             subprocess.run(["sleep", poll])
             continue
         unread = 0
-        if state == "none" and mergeable is False:
+        if state in ("none", "skipped") and mergeable is False:
             warn("%s conflicts with its base branch; no workflow will start until it is rebased" % pr)
             return 2
+        if state == "skipped":
+            state = "pending"
         if want and head != want:
             state = "pending"
         if state == "green":
