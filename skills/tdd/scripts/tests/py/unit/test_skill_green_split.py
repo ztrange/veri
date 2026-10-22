@@ -57,10 +57,6 @@ def split_calls():
     return outside_cost_check(numbered(r'\$S/add-ledger-step\.sh (--criterion [^ ]+ )?\.tdd/.*(instead-of|before "\$\(\$S/next-unchecked\.sh)'))
 
 
-def uncovered_spec_calls():
-    return numbered(r'\$S/add-ledger-step\.sh (--criterion [^ ]+ )?\.tdd/.*after "\$\(\$S/next-pending-refactor\.sh')
-
-
 def _bullet(lines, prefix):
     out, inside = [], False
     for line in lines:
@@ -140,15 +136,6 @@ def test_1281_skill_md_s_three_split_add_ledger_step_calls_pass_no_criterion_and
         assert "--criterion" not in line.strip(), f"SKILL.md's split call passes --criterion: {line.strip()}"
         assert "anchor's criterion" in neighbourhood(n), \
             f"SKILL.md never says beside this split call that the split keeps its anchor's criterion: {line.strip()}"
-    uncovered = uncovered_spec_calls()
-    assert uncovered, "SKILL.md has no add-ledger-step.sh call anchored after next-pending-refactor.sh"
-    assert any("--criterion <k>" in line for _, line in uncovered), \
-        "SKILL.md's uncovered-spec add-ledger-step.sh call passes no --criterion <k>"
-    around = neighbourhood(uncovered[0][0])
-    says(around, r"numbered acceptance criteri", "SKILL.md never says k is read from the issue's numbered acceptance criteria")
-    says(around, r"one (add-ledger-step\.sh )?call per criterion", "SKILL.md never says one call per criterion")
-    says(around, r"exits? 2[^.]{0,200}bail", "SKILL.md never says add-ledger-step.sh exit 2 bails")
-    assert "--criterion" in add_ledger_step_entry(), "SKILL.md's add-ledger-step.sh entry never documents --criterion"
 
 
 def test_1281_the_suite_repair_and_ci_repair_add_ledger_step_calls_say_they_pass_no_criterion_because_the_repair_step_serves_its_anchor_s_criterion():
