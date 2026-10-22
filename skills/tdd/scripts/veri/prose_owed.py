@@ -26,7 +26,7 @@ def graded_signature(unit):
 
 
 def orphans(units):
-    for graded in sorted(glob.glob("skills/*/GRADED")):
+    for graded in sorted(set(glob.glob("skills/*/GRADED")) | set(glob.glob("*/GRADED"))):
         for fields in graded_lines(graded):
             if fields[0] not in units:
                 yield fields[0]
