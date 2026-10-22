@@ -913,6 +913,13 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
    and `$S/wait-leaf.sh develop-replaces-report` in the foreground (on exit 3 call it again).
    Then run `$S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"` like after every other leaf. If that wait exits 1 or 2 (a killed-stuck correction leaf included), **bail with cause=replaces-report-failed** and launch no verify-red.
 
+   **Before each verify-red launch** (and before each verify-green, below), also check every earlier step's frozen record:
+   `$S/tests-frozen.sh check-earlier .tdd/issue-<n>.md --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" [--except <case>]…`,
+   with one `--except` for each case the current step's route names (`red-contradicted`, `red-supersede`, `repair`,
+   `⟦replaces-case⟧`, `⟦fixture-repair⟧`). Exit 1 prints each changed or deleted case of an earlier step, with its step:
+   write that to `.tdd/verify-red.reason`, treat the attempt as a verify-red REJECT that spends REVISE_BUDGET, and launch
+   no verifier for it. Exit 0 launches the verifier as before; exit 2 is a system failure: **bail**.
+
    On a matched prediction, run
    the red verifier against the on-disk test and spec, **redirecting its stdout (the
    reason) to a file** — the revise step takes the reason as a *path*, not as text you
@@ -1002,7 +1009,9 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
    After that and before verify-green is launched, run `$S/tests-frozen.sh check --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"`.
    On tests-frozen exit 1 a test file changed since verify-red, so write a reason naming the changed file to
    `.tdd/verify-green.reason`, treat the attempt as a verify-green REJECT that spends REVISE_BUDGET, and launch
-   no verifier for that attempt. On tests-frozen exit 0 the verifier is launched as before.
+   no verifier for that attempt. Run the earlier-steps check there too, as before verify-red above: its exit 1 is a verify-green
+   REJECT naming the case and its step, spending REVISE_BUDGET, with no verifier launched; exit 2 bails. On tests-frozen exit 0 (and an
+   earlier-steps exit 0) the verifier is launched as before.
    On tests-frozen exit 2 the check could not answer, so **bail** as a system failure, never a REJECT, and launch no verifier.
 
    **`SPLIT:` lines in place of those two** — the step needed more than one new behaviour at
