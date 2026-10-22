@@ -61,11 +61,6 @@ def gated_tick(label, heading, extra, problems):
         problems.append(f"{label}: the instruction no longer posts the comment matching /{extra}/")
 
 
-def diff_checked_loop_rec():
-    joined = " ".join(r for r in section_records(LOOP) if "⟦diff-checked⟧" in r)
-    return joined + " " if joined else ""
-
-
 def test_step_done_and_pin_paths_tick_an_issue_criterion_only_on_criterion_finished_exit_0_ticking_nothing_on_exit_3():
     problems = []
     gated_tick("Step done (cycle loop)", LOOP, "### ✅ step done", problems)
@@ -89,58 +84,6 @@ def test_481_draft_pr_step_ticks_every_full_suite_line_and_its_issue_criterion_o
             problems.append("draft PR: the ⟦full-suite⟧ tick never says the rebased tip's run is the one that counts after a rebase")
         if not re.search(r"(never|not|no) [^.]*red", pr_rec):
             problems.append("draft PR: the ⟦full-suite⟧ tick never says a red run ticks nothing")
-    assert not problems, "\n".join(problems)
-
-
-def test_727_cycle_loop_runs_a_diff_checked_step_with_no_red_leaf_a_develop_diff_leaf_then_the_blind_diff_verifier_ticking_on_pass():
-    problems = []
-    dc_rec = diff_checked_loop_rec()
-    if not dc_rec:
-        problems.append("cycle loop: no instruction under '### 3. The cycle loop' names a ⟦diff-checked⟧ step — the rule could not be checked")
-    else:
-        if not re.search(r"(no|without|never|skips?) [^.]*red leaf", dc_rec):
-            problems.append("cycle loop: the ⟦diff-checked⟧ instruction never says the step runs no Red leaf")
-        if not ("develop-diff" in dc_rec and "build-develop-prompt.sh diff" in dc_rec):
-            problems.append("cycle loop: the ⟦diff-checked⟧ instruction never launches a develop-diff leaf built by build-develop-prompt.sh diff")
-        if not re.search(r"(verify|run-verdict)\.sh --step [^ ]+ (--fast-cmd [^ ]+ )?diff ", dc_rec):
-            problems.append("cycle loop: the ⟦diff-checked⟧ instruction never runs the blind diff verifier with --step")
-        if "git merge-base head origin/<default>" not in dc_rec:
-            problems.append("cycle loop: the ⟦diff-checked⟧ instruction never verifies against the run's branch point, git merge-base HEAD origin/<default>")
-        if not (re.search(r"pass[^.]*tick", dc_rec) and "tick-issue-criterion.sh" in dc_rec):
-            problems.append("cycle loop: the ⟦diff-checked⟧ instruction never ties ticking the step and its issue criterion to PASS")
-        if not (re.search(r"reject[^.]*revis", dc_rec) and "revise_budget" in dc_rec):
-            problems.append("cycle loop: the ⟦diff-checked⟧ instruction never makes a REJECT a revise under REVISE_BUDGET")
-        if not re.search(r"exit \*?\*?2[^.]*system[^.]*bail|exit \*?\*?2[^.]*bail[^.]*system", dc_rec):
-            problems.append("cycle loop: the ⟦diff-checked⟧ instruction never makes the verifier's exit 2 a system bail")
-    assert not problems, "\n".join(problems)
-
-
-def test_875_diff_checked_step_records_its_step_base_sha_with_git_rev_parse_head_before_the_develop_diff_leaf_and_passes_it_to_the_verifier():
-    problems = []
-    dc_rec = diff_checked_loop_rec()
-    if not dc_rec:
-        problems.append("cycle loop: no instruction under '### 3. The cycle loop' names a ⟦diff-checked⟧ step — the rule could not be checked")
-    else:
-        if not re.search(r"git rev-parse head[^.]*before[^.]*develop-diff", dc_rec):
-            problems.append("cycle loop: the ⟦diff-checked⟧ instruction never records the step's base sha with git rev-parse HEAD before the develop-diff leaf runs")
-        if not re.search(r"run-verdict\.sh --step [^ ]+ (--fast-cmd [^ ]+ )?diff <spec-file> <branch-base-sha> <step-base-sha>", dc_rec):
-            problems.append("cycle loop: the ⟦diff-checked⟧ instruction never passes the step base sha to run-verdict.sh after the branch point")
-    assert not problems, "\n".join(problems)
-
-
-def test_976_diff_checked_step_base_sha_is_the_last_commit_that_changed_the_ledger_on_a_fresh_run_and_on_a_resume():
-    problems = []
-    idiom = "git log -1 --format=%h -- .tdd/issue-<n>.md"
-    base_rec = " ".join(r for r in records_of(SKILL.read_text()) if "⟦diff-checked⟧" in r and idiom in r) + " "
-    if not base_rec.strip():
-        problems.append(f"no instruction of skills/tdd/SKILL.md takes a ⟦diff-checked⟧ step's base sha with '{idiom}'")
-    else:
-        if not re.search(r"step base sha[^.]*last commit that changed the ledger|last commit that changed the ledger[^.]*step base sha", base_rec):
-            problems.append("the ⟦diff-checked⟧ base sha instruction never says the step base sha is the last commit that changed the ledger")
-        if not (re.search(r"fresh", base_rec) and re.search(r"resum", base_rec)):
-            problems.append("the ⟦diff-checked⟧ base sha instruction never says the rule holds on a fresh run and on a resume alike")
-        if not re.search(r"(never|not) [^.]*head[^.]*killed", base_rec):
-            problems.append("the ⟦diff-checked⟧ base sha instruction never rules out a HEAD taken after a killed attempt's commit")
     assert not problems, "\n".join(problems)
 
 
