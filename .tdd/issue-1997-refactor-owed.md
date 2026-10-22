@@ -1,0 +1,2 @@
+### direct_reads() names the line of a planted `import os as o` / `e = o.environ` followed by `e.get("VERI_X")`, pinned by a small unmarked case in skills/tdd/scripts/tests/py/unit/test_tunable_read_shapes.py that imports direct_reads from test_tunable_reads and plants a file under tmp_path; no module under veri/ changes ⟦guard-subject: skills/tdd/scripts/tests/py/unit/test_tunable_reads.py⟧ ⟦criterion 1⟧
+- test-only | share the planted-file setup and assertion between the two tests in test_tunable_read_shapes.py
