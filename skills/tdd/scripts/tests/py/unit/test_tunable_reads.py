@@ -93,7 +93,13 @@ def direct_reads(path):
         return (isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id in os_names
                 and node.attr in ("environ", "environb", "getenv"))
 
+    def tunables_environment(node):
+        return (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "environment"
+                and isinstance(node.func.value, ast.Name) and node.func.value.id == "tunables")
+
     return ["%s:%d" % (path, node.lineno) for node in ast.walk(tree)
+            if tunables_environment(node) and copy_read_by_name_later(node)] + \
+           ["%s:%d" % (path, node.lineno) for node in ast.walk(tree)
             if is_environment(node)
             and ("VERI_" in lines[node.lineno - 1] or keyed_by_a_variable(node) or copy_read_by_name_later(node)
                  or passed_as_an_argument(node))]

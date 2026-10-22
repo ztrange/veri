@@ -35,3 +35,10 @@ def test_1997_the_guard_names_the_line_of_a_planted_star_import_environ_read_by_
     planted.write_text('from os import *\nvalue = environ.get("VERI_X")\n')
 
     assert direct_reads(planted) == ["%s:2" % planted]
+
+
+def test_1997_the_guard_names_the_line_of_a_planted_tunables_environment_read_by_a_veri_name(tmp_path):
+    planted = tmp_path / "planted.py"
+    planted.write_text('from veri import tunables\ne = tunables.environment()\nvalue = e.get("VERI_X")\n')
+
+    assert direct_reads(planted) == ["%s:2" % planted]
