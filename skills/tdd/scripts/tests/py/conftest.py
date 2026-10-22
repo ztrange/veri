@@ -1,5 +1,6 @@
 import ast
 import builtins
+import dataclasses
 import errno
 import io
 import json
@@ -39,17 +40,73 @@ def live_conductor(monkeypatch, run_tdd, issue):
                             lambda pid, issues=issues: " ; ".join("run-conductor.sh %s" % i for i in issues),
                             raising=False)
 
+
+@dataclasses.dataclass(frozen=True)
+class Definition:
+    name: str
+    segment: str
+    literals: tuple
+    names: tuple
+    constants: tuple
+
+
+@dataclasses.dataclass(frozen=True)
+class WalkResult:
+    definitions: tuple
+
+
+def _constants(node):
+    if isinstance(node, ast.JoinedStr):
+        return
+    if isinstance(node, ast.Constant):
+        if isinstance(node.value, str):
+            yield node.value
+        return
+    for field, value in ast.iter_fields(node):
+        if isinstance(node, ast.Assert) and field == "msg":
+            continue
+        for child in value if isinstance(value, list) else [value]:
+            if isinstance(child, ast.AST):
+                yield from _constants(child)
+
+
+def _definition(text, node):
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        names = [node.name]
+    else:
+        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+        names = [t.id for target in targets for t in ast.walk(target) if isinstance(t, ast.Name)]
+    parts = list(ast.walk(node))
+    return [Definition(
+        name=name,
+        segment=ast.get_source_segment(text, node),
+        literals=tuple(p.value for p in parts if isinstance(p, ast.Constant) and isinstance(p.value, str)),
+        names=tuple(p.id for p in parts if isinstance(p, ast.Name) and isinstance(p.ctx, ast.Load)),
+        constants=tuple(_constants(node)),
+    ) for name in names]
+
+
 class TestFile:
     def __init__(self, path):
         self.path = path
         self.text = path.read_text(encoding="utf-8")
         self._tree = None
+        self._walk = None
 
     @property
     def tree(self):
         if self._tree is None:
             self._tree = ast.parse(self.text)
         return self._tree
+
+    @property
+    def walk(self):
+        if self._walk is None:
+            self._walk = WalkResult(tuple(
+                d for node in self.tree.body
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Assign, ast.AnnAssign))
+                for d in _definition(self.text, node)))
+        return self._walk
 
 
 @pytest.fixture(scope="session")
