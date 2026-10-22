@@ -1267,6 +1267,7 @@ def test_check_earlier_exits_0_printing_nothing_for_a_later_step_that_leaves_alo
     routes = {
         "red-contradicted": "step two red-contradicted re-edits test_a",
         "red-supersede": "step two red-supersede re-edits test_a",
+        "repair": "step two red-repair re-edits test_a, a case its green report superseded",
         "replaces-case": "⟦replaces-case⟧ replaces 'test_a' in tests/test_suite.py.test.sh",
         "fixture-repair": "repairs the fixture 'f' in tests/test_suite.py, reproduced by a case ⟦fixture-repair⟧"}
     results = {}
