@@ -106,6 +106,7 @@ def main(argv):
     previous = signal.signal(signal.SIGTERM, terminate)
     conftest = sys.modules.get("conftest")
     entry = None
+    serial_seen = os.environ.get("PYTEST_LEG_SERIAL_SEEN")
     try:
         with tempfile.TemporaryDirectory(prefix="veri-pytest-") as run:
             base = os.path.join(run, "base")
@@ -122,6 +123,10 @@ def main(argv):
             if not os.path.exists(seen) or "serial" in open(seen).read().split():
                 statuses.append(pytest.main(["--basetemp=" + base, "-m", selected + "serial"] + rest))
     finally:
+        if serial_seen is None:
+            os.environ.pop("PYTEST_LEG_SERIAL_SEEN", None)
+        else:
+            os.environ["PYTEST_LEG_SERIAL_SEEN"] = serial_seen
         if entry:
             unregister(entry)
         signal.signal(signal.SIGTERM, previous)
