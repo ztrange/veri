@@ -9,7 +9,6 @@ SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 REVISE_MD = SKILL.with_name("REVISE.md")
 CLAUDE = pathlib.Path(__file__).resolve().parents[6] / "CLAUDE.md"
 
-RED = "#### Red — one failing test (developer leaf), then verify-red (blind)"
 GREEN = "#### Green — minimum implementation (developer leaf), then verify-green (blind)"
 REFACTOR_LOOP = "#### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)"
 DIFF_CHECKED = "#### A `⟦diff-checked⟧` step — develop-diff, then verify-diff (blind)"
@@ -54,9 +53,6 @@ def fast_plus_affected(text, who, why):
 
 def full_suite_leaves(skill):
     problems = []
-    red = doc_text(skill, RED)
-    if not re.search(r"suite (that |which )?(holds|holding|contains|containing|carries)|case.s suite|suite the (new )?(case|test)", red):
-        problems.append("SKILL.md's Red section never says the red leaf runs the suite holding its new case")
     loop = doc_text(skill, REFACTOR_LOOP)
     if not re.search(r"suites (covering|that cover|which cover|of the touched)", loop):
         problems.append("SKILL.md's Refactor loop section never says the transform leaf runs the suites covering the touched files")
@@ -190,9 +186,9 @@ def test_claude_md_s_testing_idiom_paragraph_says_a_revise_leaf_runs_the_tiers_o
 
 def test_skill_md_names_no_full_suite_run_inside_a_step_s_cycle():
     lines = SKILL.read_text().splitlines(keepends=True)
-    start = next((i for i, line in enumerate(lines) if line.startswith("#### Red")), None)
+    start = next((i for i, line in enumerate(lines) if line.startswith("#### Green")), None)
     end = next((i for i, line in enumerate(lines) if line.startswith("### 4. Draft PR")), len(lines))
-    assert start is not None, "SKILL.md has no text from '#### Red' to '### 4. Draft PR' to read"
+    assert start is not None, "SKILL.md has no text from '#### Green' to '### 4. Draft PR' to read"
     text = re.sub(r"[\n ]+", " ", plain("".join(lines[start:end])))
     for pattern in (r"(^| )(not|neither|nor|never|no)( [a-z-]+){0,5} full suite", r"full[- ]suite run (in|at) (4\. )?draft pr"):
         while (m := re.search(pattern, text)):

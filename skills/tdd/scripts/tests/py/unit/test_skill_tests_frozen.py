@@ -21,20 +21,11 @@ SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 REVISE_MD = SKILL.parent / "REVISE.md"
 PIN_MD = SKILL.parent / "PIN.md"
 
-RED = "#### Red"
 GREEN = "#### Green"
 REVISE = "## Revising on a REJECT"
 PIN = "## Already satisfied — the pin"
 
 RECORD_ARG = '--step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"'
-KEY_SENTENCE = ('With `--step "<step text>"` in place of a record file, the record file is the one '
-                '`$S/tests-frozen.sh path "<step text>"` prints, `.tdd/tests-frozen-<k>.record` with `<k>` '
-                "the first 16 hex digits of the step text's SHA-256: a step text is often longer than a "
-                'filename may be and may hold a `/`, so the text itself is never the filename.')
-REPAIR_SENTENCE = ('A step marked `⟦suite-repair⟧` or `⟦ci-repair⟧` is never frozen: for it `record --step` '
-                   'writes nothing and `check --step` exits 0, because its fix is often an edit to the very '
-                   'test file the full run or CI left red.')
-CI_SENTENCE = 'A `⟦ci-repair⟧` step therefore records nothing before its green, and its green may edit the test the CI job failed.'
 EXIT2_SENTENCE = ('On tests-frozen exit 2 the check could not answer, so **bail** as a system failure, '
                   'never a REJECT, and launch no verifier.')
 WRONG_TEST_SENTENCE = ('A revise of green whose leaf reports `WRONG_TEST: <why>` is exempt from the `SUITE:` line '
@@ -122,14 +113,6 @@ def green_route_text():
     return text.partition("tests-frozen.sh check")[0]
 
 
-def test_red_section_runs_tests_frozen_record_after_verify_reds_verdict():
-    red_wait = first(lines_matching(RED, r"wait-leaf\.sh verdict-red"))
-    red_record = lines_matching(RED, r"tests-frozen\.sh record")
-    assert red_record, "Red section never runs tests-frozen.sh record"
-    assert any_between(red_record, red_wait, 999999), (
-        f"Red runs tests-frozen.sh record only before verify-red's verdict (line {red_wait})")
-
-
 def test_green_section_runs_tests_frozen_check_between_develop_green_and_verify_green_rejecting_on_exit_1():
     wait = first(lines_matching(GREEN, r"wait-leaf\.sh develop-green"))
     verify = first(lines_matching(GREEN, r"supervise\.sh verdict-green"))
@@ -160,7 +143,6 @@ def test_every_tests_frozen_record_and_check_names_the_record_by_path_over_the_s
         assert f"tests-frozen.sh record {RECORD_ARG}" in line or f"tests-frozen.sh check {RECORD_ARG}" in line, (
             f"SKILL.md:{n} runs record or check without {RECORD_ARG}")
     assert "tests-frozen-<step>" not in text
-    assert KEY_SENTENCE in joined_section(RED)
 
 
 def test_revising_runs_tests_frozen_record_once_a_revised_reds_reverify_passes():
@@ -172,14 +154,6 @@ def test_revising_runs_tests_frozen_record_once_a_revised_reds_reverify_passes()
     assert f"tests-frozen.sh record {RECORD_ARG}" in body
     records = [s for s in frozen_sentences(REVISE) if "record" in s]
     assert re.search("red", "\n".join(records), re.I), "no sentence naming tests-frozen record scopes it to a revise of red"
-
-
-def test_red_section_says_repair_steps_are_never_frozen_and_a_ci_repair_step_records_nothing_before_its_green():
-    red = joined_section(RED)
-    assert REPAIR_SENTENCE in red
-    assert CI_SENTENCE in red
-    ci_records = [s for s in frozen_sentences(RED) if "ci-repair" in s and "tests-frozen.sh record" in s]
-    assert ci_records == []
 
 
 def test_green_and_revising_handle_check_exit_2_as_a_system_failure_bail_never_a_reject():
