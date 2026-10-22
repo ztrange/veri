@@ -27,6 +27,13 @@ def worker_count(requested):
     return os.cpu_count() or 1
 
 
+def remove_cached(path):
+    try:
+        os.remove(path)
+    except FileNotFoundError:
+        pass
+
+
 def drop_stale_bytecode(after_run=False):
     prefix = sys.pycache_prefix
     if not prefix:
@@ -48,10 +55,7 @@ def drop_stale_bytecode(after_run=False):
                 continue
             if "-pytest-" in name or ".opt-" in name:
                 if not after_run:
-                    try:
-                        os.remove(os.path.join(folder, name))
-                    except FileNotFoundError:
-                        pass
+                    remove_cached(os.path.join(folder, name))
                 continue
             path = os.path.join(source_dir, name.split(".cpython")[0] + ".py")
             if path not in current:
@@ -61,10 +65,7 @@ def drop_stale_bytecode(after_run=False):
                 except OSError:
                     continue
             if (path in known or not after_run) and known.get(path) != current[path]:
-                try:
-                    os.remove(os.path.join(folder, name))
-                except FileNotFoundError:
-                    pass
+                remove_cached(os.path.join(folder, name))
     with open(manifest, "w") as handle:
         json.dump(current, handle)
 
