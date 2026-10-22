@@ -11,15 +11,7 @@ def pytest_leg():
 
 
 def without_selection(args):
-    kept, skip = [], False
-    for a in args:
-        if skip:
-            skip = False
-        elif a == "-m":
-            skip = True
-        else:
-            kept.append(a)
-    return kept
+    return importlib.import_module("veri.pytest_leg").split_marks(args)[0]
 
 
 def test_an_interpreter_below_the_floor_exits_2_naming_the_floor_the_interpreter_and_its_version(pytest_leg, run_cli):
@@ -379,3 +371,77 @@ def test_a_serial_marked_case_is_scheduled_in_a_pass_of_its_own_after_the_parall
     calls.clear()
     statuses = iter([pytest.ExitCode.OK, pytest.ExitCode.OK])
     assert run_cli(pytest_leg, ["some/dir"], env=env)[0] == 0
+
+
+PLANTED_CONFTEST = """\
+import os
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "serial(reason): planted")
+
+
+def pytest_sessionstart(session):
+    if not hasattr(session.config, "workerinput"):
+        with open(os.environ["PLANTED_LOG"], "a") as log:
+            log.write("session\\n")
+"""
+
+PLANTED_RAN = """\
+import os
+
+import pytest
+
+
+def ran(name):
+    with open(os.environ["PLANTED_LOG"]) as log:
+        sessions = log.read().split().count("session")
+    with open(os.environ["PLANTED_LOG"], "a") as log:
+        log.write("%s session=%d worker=%s\\n" % (name, sessions, "xdist" if os.environ.get("PYTEST_XDIST_WORKER") else "none"))
+"""
+
+
+def run_the_real_leg_over(run_cli, tmp_path, cases):
+    planted = tmp_path / "planted"
+    planted.mkdir()
+    (planted / "conftest.py").write_text(PLANTED_CONFTEST)
+    (planted / "test_planted.py").write_text(PLANTED_RAN + cases)
+    log = tmp_path / "ran.log"
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1",
+           "VERI_PYTEST_WORKERS": "2", "PLANTED_LOG": str(log)}
+    code, out, err = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+    return code, log.read_text().splitlines(), out + err
+
+
+@pytest.mark.process("the real leg's parallel pass starts two xdist worker processes over a planted tree")
+def test_the_real_leg_runs_the_unmarked_case_on_xdist_workers_in_the_first_session_and_the_serial_case_alone_in_a_second_2092(run_cli, tmp_path):
+    code, log, output = run_the_real_leg_over(run_cli, tmp_path, (
+        "\n\ndef test_unmarked():\n    ran('unmarked')\n"
+        "\n\n@pytest.mark.serial('planted')\ndef test_serial():\n    ran('serial')\n"
+    ))
+
+    assert (code, log) == (0, ["session", "unmarked session=1 worker=xdist", "session", "serial session=2 worker=none"]), output
+
+
+@pytest.mark.process("the real leg's parallel pass starts two xdist worker processes over a planted tree")
+def test_the_real_leg_over_a_tree_with_no_serial_marked_case_starts_one_session_only_2092(run_cli, tmp_path):
+    code, log, output = run_the_real_leg_over(run_cli, tmp_path, "\n\ndef test_unmarked():\n    ran('unmarked')\n")
+
+    assert (code, log) == (0, ["session", "unmarked session=1 worker=xdist"]), output
+
+
+@pytest.mark.parametrize("parallel, serial, code", [
+    (pytest.ExitCode.OK, pytest.ExitCode.NO_TESTS_COLLECTED, 0),
+    (pytest.ExitCode.NO_TESTS_COLLECTED, pytest.ExitCode.OK, 0),
+    (pytest.ExitCode.TESTS_FAILED, pytest.ExitCode.OK, 1),
+    (pytest.ExitCode.OK, pytest.ExitCode.TESTS_FAILED, 1),
+    (pytest.ExitCode.TESTS_FAILED, pytest.ExitCode.NO_TESTS_COLLECTED, 1),
+    (pytest.ExitCode.NO_TESTS_COLLECTED, pytest.ExitCode.TESTS_FAILED, 1),
+])
+def test_a_pass_that_collects_nothing_counts_as_passed_beside_a_passing_one_while_a_failure_in_either_pass_exits_1_2092(pytest_leg, run_cli, monkeypatch, parallel, serial, code):
+    statuses = iter([parallel, serial])
+    monkeypatch.setattr(pytest, "main", lambda args: next(statuses))
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "4"}
+
+    assert run_cli(pytest_leg, ["some/dir"], env=env)[0] == code
+    assert next(statuses, None) is None
