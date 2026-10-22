@@ -46,3 +46,16 @@ def test_a_passing_fast_command_exits_0_silent_without_a_reason_file(tmp_path):
     assert ran.returncode == 0
     assert ran.stdout + ran.stderr == ""
     assert not (tmp_path / ".tdd" / "verify-pin.reason").exists()
+
+
+@pytest.mark.process("pin-fast-tier.sh and git run for real, from a subdirectory of a throwaway repo")
+def test_pin_fast_tier_run_from_a_subdirectory_writes_the_reason_under_the_repo_root_1895(tmp_path):
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    sub = tmp_path / "skills"
+    sub.mkdir()
+    fast = stub(tmp_path / "fast-red", "echo 'FAIL - a case'\nexit 1\n")
+
+    ran = subprocess.run([CHECK, fast], cwd=sub, capture_output=True, text=True)
+
+    assert ran.returncode == 1, ran.stderr
+    assert ((tmp_path / ".tdd" / "verify-pin.reason").exists(), (sub / ".tdd").exists()) == (True, False)
