@@ -42,3 +42,9 @@ def test_1997_the_guard_names_the_line_of_a_planted_tunables_environment_read_by
     planted = plant(tmp_path, 'from veri import tunables\ne = tunables.environment()\nvalue = e.get("VERI_X")\n')
 
     assert direct_reads(planted) == ["%s:2" % planted]
+
+
+def test_1997_the_guard_does_not_name_a_planted_environ_passed_to_a_local_function_that_reads_no_veri_name(tmp_path):
+    planted = plant(tmp_path, 'import os\n\n\ndef home(env):\n    return env.get("HOME")\n\n\nvalue = home(os.environ)\n')
+
+    assert direct_reads(planted) == []
