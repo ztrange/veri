@@ -23,23 +23,35 @@ class NoAnswer(Exception):
         self.answer = answer
 
 
+def _wait_seconds(name, default, least):
+    raw = tunables.read(name, default)
+    if not re.fullmatch(r"[0-9]+", raw) or int(raw) < least:
+        print("%s: invalid value %r" % (name, raw), file=sys.stderr)
+        raise NoAnswer("")
+    return int(raw)
+
+
 def _gh(*args, stderr=None):
     first_miss = None
     while True:
         try:
             return subprocess.run(["gh", *args], stdout=subprocess.PIPE, stderr=stderr, text=True)
         except FileNotFoundError:
+            retry_sleep = _wait_seconds("VERI_TOOL_RETRY_SLEEP", "15", 1)
+            fast_wait = _wait_seconds("VERI_TOOL_FAST_WAIT", "900", 0)
+            slow_sleep = _wait_seconds("VERI_TOOL_SLOW_SLEEP", "900", 1)
+            total_wait = _wait_seconds("VERI_TOOL_WAIT", "3600", 0)
             now = time.monotonic()
             if first_miss is None:
                 first_miss = now
             elapsed = now - first_miss
-            if elapsed >= float(tunables.read("VERI_TOOL_WAIT", "3600")):
+            if elapsed >= total_wait:
                 print("gh: command not found; gave up after %gs" % elapsed, file=sys.stderr)
                 raise NoAnswer("")
-            if elapsed < float(tunables.read("VERI_TOOL_FAST_WAIT", "900")):
-                wait = float(tunables.read("VERI_TOOL_RETRY_SLEEP", "15"))
+            if elapsed < fast_wait:
+                wait = retry_sleep
             else:
-                wait = float(tunables.read("VERI_TOOL_SLOW_SLEEP", "900"))
+                wait = slow_sleep
             print("gh: command not found; waiting %gs" % wait, file=sys.stderr)
             time.sleep(wait)
 

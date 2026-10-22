@@ -883,3 +883,59 @@ def test_gh_never_found_on_path_gives_up_once_veri_tool_wait_seconds_of_clock_ha
     assert now[0] == 1140.0
     err_lines = capsys.readouterr().err.splitlines()
     assert err_lines and all("gh" in line for line in err_lines)
+
+
+_INTERVALS = ("VERI_TOOL_RETRY_SLEEP", "VERI_TOOL_SLOW_SLEEP")
+_LIMITS = ("VERI_TOOL_FAST_WAIT", "VERI_TOOL_WAIT")
+
+
+@pytest.mark.parametrize("name, value", [
+    (name, value)
+    for name in _INTERVALS + _LIMITS
+    for value in (("0", "-1", "abc", "1.5", "inf", "") if name in _INTERVALS else ("-1", "abc", "1.5", "inf", ""))
+])
+def test_gh_never_found_on_path_with_an_invalid_tool_wait_tunable_is_a_no_answer_at_once_naming_the_variable_and_value_2097(monkeypatch, capsys, github, name, value):
+    _, sleeps = fake_clock(monkeypatch)
+    for tunable in _INTERVALS + _LIMITS:
+        monkeypatch.delenv(tunable, raising=False)
+    monkeypatch.setenv(name, value)
+    lookups = fake_missing_gh(monkeypatch)
+
+    with pytest.raises(github.NoAnswer):
+        github.gh_api("repos/{owner}/{repo}/issues/7")
+
+    assert sleeps == []
+    assert len(lookups) == 1
+    err_lines = capsys.readouterr().err.splitlines()
+    assert any(name in line and repr(value) in line for line in err_lines)
+
+
+def test_gh_missing_from_path_with_veri_tool_fast_wait_0_is_accepted_and_waits_at_the_slow_interval_2097(monkeypatch, capsys, github):
+    _, sleeps = fake_clock(monkeypatch)
+    for tunable in _INTERVALS + _LIMITS:
+        monkeypatch.delenv(tunable, raising=False)
+    monkeypatch.setenv("VERI_TOOL_FAST_WAIT", "0")
+    lookups = fake_missing_gh(monkeypatch, misses=1)
+
+    run = github.gh_api("repos/{owner}/{repo}/issues/7")
+
+    assert (run.returncode, run.stdout) == (0, '{"number":7}')
+    assert sleeps == [900]
+    assert len(lookups) == 2
+    assert "VERI_TOOL_FAST_WAIT" not in capsys.readouterr().err
+
+
+def test_gh_never_found_on_path_with_veri_tool_wait_0_is_accepted_and_gives_up_at_the_first_miss_naming_gh_2097(monkeypatch, capsys, github):
+    _, sleeps = fake_clock(monkeypatch)
+    for tunable in _INTERVALS + _LIMITS:
+        monkeypatch.delenv(tunable, raising=False)
+    monkeypatch.setenv("VERI_TOOL_WAIT", "0")
+    lookups = fake_missing_gh(monkeypatch)
+
+    with pytest.raises(github.NoAnswer):
+        github.gh_api("repos/{owner}/{repo}/issues/7")
+
+    assert sleeps == []
+    assert len(lookups) == 1
+    err_lines = capsys.readouterr().err.splitlines()
+    assert err_lines and all("gh" in line and "VERI_TOOL_WAIT" not in line for line in err_lines)
