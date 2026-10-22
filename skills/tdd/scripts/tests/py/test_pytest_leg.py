@@ -163,6 +163,7 @@ def test_2100_with_neither_worker_count_nor_legs_directory_set_a_leg_reads_the_d
     legs.mkdir(parents=True)
     (legs / str(os.getpid())).write_text("16\n")
     monkeypatch.setattr(tempfile, "gettempdir", lambda: str(temp))
+    monkeypatch.delenv("VERI_PYTEST_LEGS")
     env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1"}
     assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0
     assert without_selection(calls[0]) == ["-q", "some/dir"]
