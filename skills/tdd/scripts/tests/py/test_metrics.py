@@ -1200,6 +1200,7 @@ def test_issue_454_every_by_step_column_that_existed_before_and_every_other_sect
         end += 1
     if lines[end + 1] and not lines[end + 1].startswith("#"):
         del lines[end + 1:end + 3]
+    lines = [line for line in lines if not line.startswith("Lane: ")]
     assert "\n".join(lines) == OLD_REPORT + "\n"
 
 
