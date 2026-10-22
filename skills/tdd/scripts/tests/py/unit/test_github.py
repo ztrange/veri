@@ -855,3 +855,31 @@ def test_with_veri_gh_driver_empty_or_unknown_every_public_function_starts_no_gh
 
     refused = [("NoAnswer", [], 1, True, True)] * len(operations)
     assert observed == {driver: refused for driver in ("", "REST", "gql")}
+
+
+def test_gh_never_found_on_path_gives_up_once_veri_tool_wait_seconds_of_clock_have_passed_though_the_sleeps_asked_for_sum_to_less_2097(monkeypatch, capsys, github):
+    now = [1000.0]
+    sleeps = []
+
+    def slow_sleep(seconds):
+        assert len(sleeps) < 200, "still waiting after %d sleeps" % len(sleeps)
+        sleeps.append(seconds)
+        now[0] += 2 * seconds
+
+    monkeypatch.setattr(time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "sleep", slow_sleep)
+    monkeypatch.setenv("VERI_TOOL_RETRY_SLEEP", "10")
+    monkeypatch.setenv("VERI_TOOL_FAST_WAIT", "30")
+    monkeypatch.setenv("VERI_TOOL_SLOW_SLEEP", "50")
+    monkeypatch.setenv("VERI_TOOL_WAIT", "100")
+    lookups = fake_missing_gh(monkeypatch)
+
+    with pytest.raises(github.NoAnswer):
+        github.gh_api("repos/{owner}/{repo}/issues/7")
+
+    assert sleeps == [10, 10, 50]
+    assert len(lookups) == 4
+    assert now[0] == 1140.0
+    err_lines = capsys.readouterr().err.splitlines()
+    assert err_lines and all("gh" in line for line in err_lines)
