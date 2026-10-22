@@ -152,6 +152,15 @@ def test_1980_suite_reported_passes_a_retried_develop_structural_3_report_made_o
     assert (code, events) == (0, None)
 
 
+def test_1980_suite_reported_exits_2_with_one_stderr_line_naming_a_leaf_whose_prompt_file_cannot_be_found_and_records_no_report_missing(run_cli, tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "develop-nosuchphase-2.out").write_text("SKIPPED: reported\n")
+
+    code, _, err = run_cli(importlib.import_module("veri.suite_reported"), ["develop-nosuchphase-2"], env={"VERI_ISSUE": "1"}, cwd=tmp_path)
+
+    assert (code, len(err.splitlines()), "develop-nosuchphase-2" in err, (tmp_path / ".tdd" / "events.jsonl").exists()) == (2, 1, True, False)
+
+
 def test_1568_stop_prose_guard_names_prompt_and_line_of_a_planted_stop_that_names_no_declared_format_and_passes_one_that_does_or_is_exempt(report_formats):
     planted = (
         "Do the step.\n"

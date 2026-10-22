@@ -27,7 +27,9 @@ def _exempt_keys(leaf):
     try:
         with open(os.path.join(prompts, name + ".md"), encoding="utf-8") as prompt:
             declared = report_formats.parse(expand(prompt.read()))
-    except (OSError, ValueError):
+    except OSError:
+        return None
+    except ValueError:
         return []
     return [f["keys"] for f in declared if f["suite"] == "exempt"]
 
@@ -41,7 +43,11 @@ def main(argv):
             lines = out.read().splitlines()
         if any(line.startswith("SUITE:") for line in lines):
             return 0
-        for keys in _exempt_keys(argv[0]):
+        exempt = _exempt_keys(argv[0])
+        if exempt is None:
+            print(f"suite-reported.sh: no prompt file found for {argv[0]}", file=sys.stderr)
+            return 2
+        for keys in exempt:
             if all(any(line.startswith(key) for line in lines) for key in keys):
                 return 0
     except OSError:
