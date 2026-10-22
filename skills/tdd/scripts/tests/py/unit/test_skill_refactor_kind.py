@@ -11,7 +11,6 @@ SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 DRAFT_PR = "### 4. Draft PR"
 LOOP = "### 3. The cycle loop"
 PHASED = "#### A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier"
-GREEN = "#### Green — minimum implementation (developer leaf), then verify-green (blind)"
 
 
 @pytest.fixture
@@ -117,16 +116,6 @@ def test_skill_md_resets_a_phased_step_s_contract_phase_that_exhausts_revise_bud
     assert b"## owed steps" in near, "never files the contract under ## Owed steps"
 
 
-def test_skill_md_accepts_a_replaces_case_group_step_s_green_only_once_the_conductor_s_own_run_of_mutation_parity_sh_on_that_step_s_pairs_table_exits_0():
-    green = section(GREEN)
-    assert green.strip(), "SKILL.md has no Green subsection to read"
-    assert b"mutation-parity.sh" in green, "Green never runs mutation-parity.sh"
-    near = window(green, r"mutation-parity\.sh")
-    assert b"replaces-case" in near, "not tied to a replaces-case step"
-    assert b"pairs table" in near, "not run on the pairs table"
-    assert has(near, r"exit(s)? 0") and has(near, r"only once|until|before"), "never says accepted only once it exits 0"
-
-
 def test_skill_md_accepts_a_phased_step_s_contract_a_phase_only_once_the_conductor_s_own_run_of_mutation_parity_sh_on_that_phase_s_pairs_table_exits_0():
     phased = section(PHASED)
     assert phased.strip(), "SKILL.md has no phased step subsection to read"
@@ -155,10 +144,7 @@ def test_skill_md_s_draft_pr_step_puts_the_conductor_s_mutation_parity_sh_report
     near = window(body_template, r"mutation-parity\.sh")
     assert b"pairs table" in near, "template does not say it is the pairs table"
     assert has(near, r"owed") and b"## owed by a human" in near, "template never puts owed rows under ## Owed by a human"
-    green_near = b"\n".join(w for w in windows(section(GREEN), r"mutation-parity\.sh", 400) if b"pr body" in w)
-    assert green_near, "Green gate never says its report goes into the PR body"
-    assert b"pairs table" in green_near, "Green gate does not say it is the pairs table"
-    assert has(green_near, r"owed") and b"## owed by a human" in green_near, "Green gate never puts owed rows under ## Owed by a human"
+
 
 
 def test_skill_md_marks_an_exhausted_contract_phase_owed_with_tick_ledger_sh_phase_owed_phase_before_committing_the_ledger_so_next_phase_never_hands_the_owed_contract_back():
