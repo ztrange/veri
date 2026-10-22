@@ -266,3 +266,8 @@ def test_the_guards_survive_a_faked_subprocess_run_and_ignore_a_suite_path_passe
     assert "test_planted.py::test_echo_carries_a_suite_path" not in output.replace("PASSED", "")
     for location in ("/.veri-probe-absent", "/root/.profile", "/proc/self/status", "/etc/hosts"):
         assert "opens the system location %s at " % location in output
+
+
+def test_2100_every_case_runs_with_veri_pytest_legs_pointing_into_its_own_tmp_path_so_a_leg_it_starts_never_registers_in_the_machines_real_registry(tmp_path):
+    legs = pathlib.Path(os.environ.get("VERI_PYTEST_LEGS", ""))
+    assert legs.is_absolute() and legs.parent == tmp_path, legs

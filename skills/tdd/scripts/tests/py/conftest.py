@@ -163,6 +163,7 @@ def hermetic_environment(request, monkeypatch, tmp_path):
     elif at_or_under_root(pathlib.Path.cwd().resolve()):
         monkeypatch.chdir(ROOT)
     monkeypatch.setenv("LC_ALL", "C")
+    monkeypatch.setenv("VERI_PYTEST_LEGS", str(tmp_path / "veri-pytest-legs"))
     for name, value in offline.items():
         monkeypatch.setenv(name, value)
 
