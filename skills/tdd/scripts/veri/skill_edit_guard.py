@@ -19,10 +19,10 @@ def list_path(unit):
 
 
 def main(argv):
-    if len(argv) != 2:
+    if len(argv) < 2:
         print(USAGE, file=sys.stderr)
         return 2
-    unit, base = argv
+    unit, base, *pins = argv
     if not _git_ok("rev-parse", "--verify", "--quiet", base + "^{commit}"):
         print(f"skill-edit-guard.sh: {base} is not a commit", file=sys.stderr)
         return 2
@@ -30,7 +30,7 @@ def main(argv):
     if not at_base and not os.path.exists(unit):
         print(f"skill-edit-guard.sh: {unit} exists neither at {base} nor in the working tree", file=sys.stderr)
         return 2
-    allowed = {unit, list_path(unit)}
+    allowed = {unit, list_path(unit), *pins}
     changed = _git_lines("diff", "--name-only", "--no-renames", base) + _git_lines("ls-files", "--others", "--exclude-standard")
     others = [path for path in changed if path and path not in allowed]
     for path in others:
