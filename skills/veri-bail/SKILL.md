@@ -34,7 +34,7 @@ and git. Pick one:
 ## A usage limit or sleep is not a bail
 
 In the run's worktree `.tdd/wt/<n>`, save every uncommitted leaf edit, untracked files
-included, as a patch under `.tdd/` (`git add -A && git diff --cached HEAD > <file>`, then
+included, as a patch under `.tdd/` (`git add -A && git diff --cached --binary HEAD > <file>`, then
 `git reset`), restore that worktree's tree to the last commit (`git reset --hard && git clean -fd`),
 and resume when usage is back. It spends no resume and costs no park.
 
