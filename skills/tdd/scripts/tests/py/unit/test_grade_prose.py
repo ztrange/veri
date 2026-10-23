@@ -604,3 +604,37 @@ def test_a_first_reply_leaving_out_one_requirement_id_is_followed_by_a_second_gr
             "PASS" in [json.loads(line).get("verdict")
                        for line in (events.read_text().splitlines() if events.exists() else [])]) == (
         0, 2, True, True, False, True), (code, len(prompts), err)
+
+
+def test_a_follow_up_reply_leaving_the_missing_requirement_id_out_again_makes_grade_prose_exit_2_naming_it_after_two_launches_and_append_no_grading_event_2215(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n| A2 | The widget is round. | because |\n"
+        "| A3 | The widget is small. | because |\n")
+    (tmp_path / ".tdd").mkdir()
+    replies = iter(['{"type":"result","subtype":"success","is_error":false,"result":'
+                    '"BEGIN GRADES\\nA1: PASS - ok\\nA3: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n',
+                    '{"type":"result","subtype":"success","is_error":false,"result":'
+                    '"BEGIN GRADES\\nVERDICT: PASS\\nEND GRADES"}\n'])
+    launched = []
+
+    def launch(argv, *a, **k):
+        launched.append(argv)
+        (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
+        return subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(subprocess, "run", launch)
+
+    code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+
+    events = tmp_path / ".tdd" / "events.jsonl"
+    assert (code, len(launched), err.strip(), events.exists()) == (
+        2, 2, "grade-prose.sh: no verdict obtained: GRADES block is missing requirement IDs A2", False), (
+        code, len(launched), err)
