@@ -71,12 +71,16 @@ _CASE = re.compile(r"^\s*(?:async\s+)?def\s+(test\w*)|^\s*name=\"([^\"]+)\"", re
 _FIXTURE_FILE = re.compile(r"repairs the fixture '[^']*' in (\S+?),")
 
 
+_DECORATORS = re.compile(r"(?:\n[ \t]*(?:@[^\n]*)?)+\Z")
+
+
 def _cases(text):
     found = list(_CASE.finditer(text))
     trailer = re.search(r"^finish\b.*\s*\Z", text, re.M)
     starts = [m.end() - len(m.group().lstrip()) for m in found]
     ends = starts[1:] + [trailer.start() if trailer and found and trailer.start() > found[-1].start() else len(text)]
-    return [(m.group(1) or m.group(2), text[start:end].rstrip()) for m, start, end in zip(found, starts, ends)]
+    return [(m.group(1) or m.group(2), _DECORATORS.sub("", text[start:end].rstrip()).rstrip())
+            for m, start, end in zip(found, starts, ends)]
 
 
 def _added_cases(name):
