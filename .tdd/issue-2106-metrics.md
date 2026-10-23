@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 2106
 
-Wall time for the issue: 7537 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1319 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 11 of 14 planned.
-Outcome: the run bailed — revise-exhausted, a process failure.
+Outcome: the run bailed — step-added-off-route, a process failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $12.07 over 221 turns, in 4 sessions.
+Conductor own spending: $15.98 over 276 turns, in 6 sessions.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
@@ -172,69 +172,124 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 156 | $0.07 | 172376 |
 | 157 | $0.06 | 173455 |
 | 158 | $0.05 | 174634 |
-| 159 | $0.56 | 87230 |
-| 160 | $0.02 | 87802 |
-| 161 | $0.03 | 89220 |
-| 162 | $0.05 | 93701 |
+| 159 | $0.57 | 87230 |
+| 160 | $0.03 | 87802 |
+| 161 | $0.04 | 89220 |
+| 162 | $0.07 | 93701 |
 | 163 | $0.03 | 94896 |
-| 164 | $0.17 | 113582 |
-| 165 | $0.03 | 113967 |
-| 166 | $0.03 | 114437 |
+| 164 | $0.18 | 113582 |
+| 165 | $0.04 | 113967 |
+| 166 | $0.04 | 114437 |
 | 167 | $0.03 | 114767 |
-| 168 | $0.03 | 115093 |
-| 169 | $0.03 | 115983 |
-| 170 | $0.03 | 116454 |
-| 171 | $0.03 | 117127 |
-| 172 | $0.03 | 118110 |
-| 173 | $0.03 | 118733 |
-| 174 | $0.03 | 120127 |
-| 175 | $0.03 | 121146 |
-| 176 | $0.03 | 122151 |
-| 177 | $0.03 | 122712 |
-| 178 | $0.03 | 123141 |
-| 179 | $0.03 | 123698 |
-| 180 | $0.03 | 124464 |
-| 181 | $0.03 | 125238 |
-| 182 | $0.03 | 125987 |
-| 183 | $0.03 | 126383 |
-| 184 | $0.08 | 133809 |
-| 185 | $0.04 | 135014 |
-| 186 | $0.03 | 135226 |
-| 187 | $0.03 | 135438 |
-| 188 | $0.03 | 135650 |
-| 189 | $0.04 | 137242 |
-| 190 | $0.04 | 138361 |
+| 168 | $0.04 | 115093 |
+| 169 | $0.04 | 115983 |
+| 170 | $0.04 | 116454 |
+| 171 | $0.04 | 117127 |
+| 172 | $0.04 | 118110 |
+| 173 | $0.04 | 118733 |
+| 174 | $0.04 | 120127 |
+| 175 | $0.05 | 121146 |
+| 176 | $0.04 | 122151 |
+| 177 | $0.04 | 122712 |
+| 178 | $0.04 | 123141 |
+| 179 | $0.04 | 123698 |
+| 180 | $0.04 | 124464 |
+| 181 | $0.04 | 125238 |
+| 182 | $0.04 | 125987 |
+| 183 | $0.04 | 126383 |
+| 184 | $0.09 | 133809 |
+| 185 | $0.05 | 135014 |
+| 186 | $0.04 | 135226 |
+| 187 | $0.04 | 135438 |
+| 188 | $0.04 | 135650 |
+| 189 | $0.05 | 137242 |
+| 190 | $0.05 | 138361 |
 | 191 | $0.04 | 139399 |
-| 192 | $0.04 | 140993 |
-| 193 | $0.03 | 141579 |
-| 194 | $0.03 | 142107 |
-| 195 | $0.05 | 145054 |
-| 196 | $0.04 | 146076 |
-| 197 | $0.04 | 147570 |
-| 198 | $0.04 | 148483 |
-| 199 | $0.05 | 150937 |
-| 200 | $0.05 | 152854 |
-| 201 | $0.04 | 154421 |
-| 202 | $0.04 | 155452 |
-| 203 | $0.04 | 156696 |
-| 204 | $0.04 | 158019 |
-| 205 | $0.04 | 158807 |
-| 206 | $0.04 | 160116 |
-| 207 | $0.05 | 162853 |
-| 208 | $0.04 | 163512 |
-| 209 | $0.03 | 163771 |
-| 210 | $0.04 | 164176 |
-| 211 | $0.04 | 164628 |
-| 212 | $0.04 | 165724 |
-| 213 | $0.03 | 165936 |
+| 192 | $0.05 | 140993 |
+| 193 | $0.05 | 141579 |
+| 194 | $0.04 | 142107 |
+| 195 | $0.06 | 145054 |
+| 196 | $0.05 | 146076 |
+| 197 | $0.05 | 147570 |
+| 198 | $0.05 | 148483 |
+| 199 | $0.06 | 150937 |
+| 200 | $0.06 | 152854 |
+| 201 | $0.05 | 154421 |
+| 202 | $0.05 | 155452 |
+| 203 | $0.05 | 156696 |
+| 204 | $0.05 | 158019 |
+| 205 | $0.05 | 158807 |
+| 206 | $0.06 | 160116 |
+| 207 | $0.06 | 162853 |
+| 208 | $0.05 | 163512 |
+| 209 | $0.04 | 163771 |
+| 210 | $0.05 | 164176 |
+| 211 | $0.05 | 164628 |
+| 212 | $0.05 | 165724 |
+| 213 | $0.05 | 165936 |
 | 214 | $0.05 | 167649 |
-| 215 | $0.04 | 169009 |
+| 215 | $0.06 | 169009 |
 | 216 | $0.04 | 169221 |
-| 217 | $0.05 | 170776 |
-| 218 | $0.04 | 171198 |
-| 219 | $0.05 | 172752 |
-| 220 | $0.04 | 173549 |
-| 221 | $0.06 | 177288 |
+| 217 | $0.06 | 170776 |
+| 218 | $0.05 | 171198 |
+| 219 | $0.06 | 172752 |
+| 220 | $0.05 | 173549 |
+| 221 | $0.07 | 177288 |
+| 222 | $0.06 | 178189 |
+| 223 | $0.05 | 179100 |
+| 224 | $0.05 | 180100 |
+| 225 | $0.57 | 88066 |
+| 226 | $0.04 | 89845 |
+| 227 | $0.03 | 90270 |
+| 228 | $0.04 | 91722 |
+| 229 | $0.07 | 97160 |
+| 230 | $0.04 | 99227 |
+| 231 | $0.05 | 102460 |
+| 232 | $0.03 | 102757 |
+| 233 | $0.04 | 103194 |
+| 234 | $0.03 | 103514 |
+| 235 | $0.03 | 103826 |
+| 236 | $0.03 | 104173 |
+| 237 | $0.03 | 104621 |
+| 238 | $0.04 | 106023 |
+| 239 | $0.03 | 106430 |
+| 240 | $0.56 | 88065 |
+| 241 | $0.03 | 89795 |
+| 242 | $0.03 | 91362 |
+| 243 | $0.05 | 94802 |
+| 244 | $0.07 | 101739 |
+| 245 | $0.14 | 116912 |
+| 246 | $0.04 | 118547 |
+| 247 | $0.03 | 119840 |
+| 248 | $0.03 | 120317 |
+| 249 | $0.03 | 120718 |
+| 250 | $0.03 | 120964 |
+| 251 | $0.03 | 121190 |
+| 252 | $0.03 | 121617 |
+| 253 | $0.03 | 121893 |
+| 254 | $0.07 | 127512 |
+| 255 | $0.03 | 128168 |
+| 256 | $0.03 | 128758 |
+| 257 | $0.03 | 129499 |
+| 258 | $0.03 | 130130 |
+| 259 | $0.03 | 130333 |
+| 260 | $0.04 | 131733 |
+| 261 | $0.03 | 132783 |
+| 262 | $0.04 | 134524 |
+| 263 | $0.03 | 134859 |
+| 264 | $0.03 | 135346 |
+| 265 | $0.04 | 136535 |
+| 266 | $0.03 | 137459 |
+| 267 | $0.03 | 137662 |
+| 268 | $0.04 | 139382 |
+| 269 | $0.03 | 139749 |
+| 270 | $0.03 | 140249 |
+| 271 | $0.03 | 140488 |
+| 272 | $0.03 | 140844 |
+| 273 | $0.05 | 143701 |
+| 274 | $0.04 | 145447 |
+| 275 | $0.04 | 146640 |
+| 276 | $0.07 | 151276 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -243,9 +298,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 15 | 11 | 1 | 2 | 1211 | 0 | 30905 | 0.09 |
 | diff | 8 | 4 | 0 | 0 | 437 | 185 | 42 | 82 | 14678 | 1124470 | 178437 | 0.71 |
-| red | 19 | 7 | 1 | 0 | 1209 | 535 | 105 | 210 | 45229 | 3317157 | 551967 | 2.69 |
+| red | 21 | 8 | 1 | 0 | 1297 | 587 | 116 | 232 | 49594 | 3644211 | 634879 | 2.97 |
 | pin | 4 | 3 | 1 | 0 | 142 | 54 | 15 | 30 | 5254 | 359020 | 91649 | 0.32 |
-| green | 19 | 4 | 2 | 0 | 7098 | 824 | 159 | 314 | 73095 | 5607351 | 793281 | 5.16 |
+| green | 21 | 5 | 2 | 0 | 8179 | 893 | 175 | 346 | 77392 | 6082985 | 903686 | 5.53 |
 | refactor | 8 | 4 | 0 | 0 | 236 | 81 | 22 | 42 | 4031 | 523090 | 110132 | 0.37 |
 | red-contradicted | 1 | 0 | 0 | 0 | 385 | 37 | 6 | 12 | 2641 | 142080 | 79471 | 0.24 |
 | exhausted | 1 | 0 | 0 | 0 | 17 | 13 | 2 | 4 | 984 | 47087 | 12709 | 0.09 |
@@ -254,9 +309,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 29 | 23 | 4 | 0 | 2667 | 484 | 105 | 210 | 36126 | 2682708 | 555597 | 2.02 |
-| developer | claude-sonnet-5-5 | 20 | 0 | 0 | 0 | 1604 | 540 | 116 | 228 | 42954 | 3487992 | 515270 | 2.07 |
-| developer | claude-opus-5-5 | 12 | 0 | 0 | 0 | 5268 | 716 | 131 | 258 | 68043 | 4949555 | 777684 | 5.58 |
+| verifier | claude-sonnet-5-5 | 31 | 25 | 4 | 0 | 3404 | 539 | 117 | 234 | 39683 | 3002412 | 623766 | 2.26 |
+| developer | claude-sonnet-5-5 | 30 | 0 | 0 | 0 | 6040 | 1053 | 221 | 436 | 89448 | 7374514 | 1191134 | 6.08 |
+| developer | claude-opus-5-5 | 4 | 0 | 0 | 0 | 1264 | 269 | 41 | 80 | 26654 | 1546017 | 226968 | 1.98 |
 
 #### Rework and waste, by phase
 
@@ -264,9 +319,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
 | diff | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 758 | 1.66 |
+| red | 0 | 0.00 | 846 | 1.94 |
 | pin | 0 | 0.00 | 39 | 0.11 |
-| green | 0 | 0.00 | 6228 | 4.48 |
+| green | 0 | 0.00 | 7309 | 4.85 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | red-contradicted | 0 | 0.00 | 385 | 0.24 |
 | exhausted | 0 | 0.00 | 17 | 0.09 |
@@ -287,7 +342,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | The test helpers and older cases that pin a shim exec line accept the floor-checking canonical shim (after `#!/bin/sh` and comments, exactly two code lines: `. "$(dirname "$0")/lib/shim-python.sh"`, then `exec "$py" "$(dirname "$0")/veri/<module>.py" "$@"`, with any exempted preamble such as stop-run.sh `export VERI_CALLER_DIR` kept ahead of them) as well as the two forms accepted today, with the same module extraction: `CANONICAL_SHIM`, `SHIM_EXEC`, `VENV_PREFIX` and `shim_problems` in skills/tdd/scripts/tests/py/conftest.py, `SHIM_MODULE` in skills/tdd/scripts/tests/py/unit/test_missing_argument_cli.py, the exec-line mutations in skills/tdd/scripts/tests/py/test_ensure_run_state_ignored.py and in the test_1158 cases of skills/tdd/scripts/tests/py/test_stop_run.py, and test_issue_2106_no_shim_execs_the_python3_on_path_unconditionally in skills/tdd/scripts/tests/py/test_shims.py, which must not flag the floor-checking form; no production change, make test stays green ⟦diff-checked⟧ ⟦criterion 3⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 63 | 14 | 28 | 6315 | 409082 | 73028 | 0.29 | 206 | n/a | n/a | n/a |  |  | full |
 | A ported script `.sh` shim run with `VERI_VENV` pointing at a venv whose `bin/python3` is a stub reporting Python 3.9 (it prints `Python 3.9.6` for `--version` and exits 9 for anything else), and a PATH whose `python3` is the real interpreter meeting the 3.12 floor, runs its module on the PATH interpreter: the script normal output and exit code come back, not the stub 9. The shim reads each interpreter version with `<python3> --version` from the sourced POSIX sh file skills/tdd/scripts/lib/shim-python.sh, which sets `py`, holding no Python source; the shim under test takes the floor-checking canonical shim (a medium case marked process, starting the real shim) ⟦criterion 3⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 122 | 23 | 44 | 7411 | 637611 | 105801 | 0.40 | 398 | unknown | 0/5 | nothing-left |  |  | full |
 | A ported script `.sh` shim run with both the venv `python3` and the PATH `python3` stubs reporting Python 3.9 (each prints `Python 3.9.6` for `--version` and exits 9 for anything else) exits 2 without running its module, with a stderr line naming each interpreter it tried, where it came from (venv or PATH) and its version, 3.9.6 (a medium case marked process, starting the real shim) ⟦criterion 3⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 117 | 29 | 58 | 10195 | 895515 | 107342 | 0.46 | 419 | unknown | 0/5 | structural-owed |  |  | full |
-| A guard case reads every ported script `.sh` shim under skills/tdd/scripts/ (tests excluded) and fails naming each one that is not the floor-checking canonical shim (`. "$(dirname "$0")/lib/shim-python.sh"` then `exec "$py" …`); every such shim, the exempted ones included with their preambles kept, becomes that shim with its CLI contract unchanged (a tree_audit case) ⟦criterion 3⟧ | 22 | 3 | 4 | 0 | 0 | 0 | 936 | 174 | 344 | 85357 | 6088059 | 1067584 | 6.59 | unknown | green 4/2, red 2/2 | unknown | unknown |  |  | full |
+| A guard case reads every ported script `.sh` shim under skills/tdd/scripts/ (tests excluded) and fails naming each one that is not the floor-checking canonical shim (`. "$(dirname "$0")/lib/shim-python.sh"` then `exec "$py" …`); every such shim, the exempted ones included with their preambles kept, becomes that shim with its CLI contract unchanged (a tree_audit case) ⟦criterion 3⟧ | 26 | 5 | 4 | 0 | 0 | 0 | 1057 | 201 | 398 | 94019 | 6890747 | 1260901 | 7.24 | unknown | green 4/2, red 2/2 | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -306,14 +361,14 @@ Stopped: nothing-structural
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| fast | 16 | 20 | 28 | 20 | 25 | 16 | 26 | 25 | 26 | 18 | 16 | 17 | 15 | 15 | 18 | 16 | 19 | 19 | 19 | 17 | 18 | 19 | 17 | 17 | 49 | 0 | 17 | 16 | 18 | 17 | 20 | 52 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| affected | 8 | 7 | 8 | 7 | 90 | 107 | 7 | 11 | 10 | 9 | 13 | 8 | 7 | 10 | 0 | 7 | 10 | 14 | 13 | 11 | 11 | 11 | 3 | 10 | 12 | 11 | 4 | 11 | 15 | 11 | 11 | 13 | 91 | 12 | 222 | 1008 | 205 | 12 | 13 | 79 | 0 | 95 | 74 | 400 | 379 | 27 | 340 | 342 | 7 | 3 | 4 | 97 | 0 | 1101 | 103 | 341 | 28 |
-| target | 7 | 7 | 7 | 7 | 7 | 10 | 10 | 10 | 11 | 5 | 11 | 12 | 11 | 16 | 3 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fast | 16 | 20 | 28 | 20 | 25 | 16 | 26 | 25 | 26 | 18 | 16 | 17 | 15 | 15 | 18 | 16 | 19 | 19 | 19 | 17 | 18 | 19 | 17 | 17 | 49 | 0 | 17 | 16 | 18 | 17 | 20 | 52 | 19 | 20 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| affected | 8 | 7 | 8 | 7 | 90 | 107 | 7 | 11 | 10 | 9 | 13 | 8 | 7 | 10 | 0 | 7 | 10 | 14 | 13 | 11 | 11 | 11 | 3 | 10 | 12 | 11 | 4 | 11 | 15 | 11 | 11 | 13 | 91 | 12 | 222 | 1008 | 205 | 12 | 13 | 79 | 0 | 95 | 74 | 400 | 379 | 27 | 340 | 342 | 7 | 3 | 4 | 97 | 0 | 1101 | 103 | 341 | 28 | 11 | 12 | 317 | 12 |
+| target | 7 | 7 | 7 | 7 | 7 | 10 | 10 | 10 | 11 | 5 | 11 | 12 | 11 | 16 | 3 | 13 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 352 | 696 | 147123 | 11120255 | 1848551 | 9.66 |
+| total | 379 | 750 | 155785 | 11922943 | 2041868 | 10.31 |
