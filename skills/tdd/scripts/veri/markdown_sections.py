@@ -32,9 +32,8 @@ def section(text, heading):
     fenced = fenced_lines(text)
     start = next(i for i, line in enumerate(lines) if line == heading and not fenced[i])
     level = _level(heading)
-    end = len(lines)
-    for i in range(start + 1, len(lines)):
-        if not fenced[i] and 0 < _level(lines[i]) <= level:
-            end = i
-            break
+    end = next(
+        (i for i in range(start + 1, len(lines)) if not fenced[i] and 0 < _level(lines[i]) <= level),
+        len(lines),
+    )
     return lines[start:end]
