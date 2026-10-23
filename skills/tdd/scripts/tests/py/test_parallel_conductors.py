@@ -1789,6 +1789,29 @@ def test_a_child_that_died_before_writing_any_event_is_answered_from_its_pr_and_
 
 
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
+def test_whether_a_run_has_ended_is_answered_only_from_run_end_not_from_the_events_log_2009(
+        monkeypatch, tmp_path, parallel_conductors, run_cli):
+    gh, work = _gh_and_work(tmp_path)
+    (gh / "prs.json").write_text(json.dumps([
+        {"body": "Closes #7", "isDraft": True, "url": "https://example.test/pull/7"},
+        {"body": "Closes #8", "isDraft": False, "url": "https://example.test/pull/8"},
+    ]))
+    _event_log(work, "7", '{"event":"launch"}\n{"event":"bail"}\n')
+    _event_log(work, "8", '{"event":"launch"}\n')
+    answers = {"7": (True, "done", {"event": "done"}), "8": (True, "bailed", {"event": "bail"})}
+    monkeypatch.setattr(parallel_conductors, "run_end",
+                        lambda run_dir: answers[os.path.basename(run_dir)])
+    _boundaries(monkeypatch, tmp_path, lambda sup: sup.exit(0), lambda supervisors: None, solvable=(0, "7\n8\n"))
+
+    code, out, err = run_cli(parallel_conductors, ["--continue-on-bail"], cwd=work,
+                             env={"VERI_RUN_TIMEOUT": "60", "VERI_GH_JSON": str(gh)})
+
+    assert out.splitlines()[:2] == [
+        "#7 — done https://example.test/pull/7",
+        "#8 — bailed https://example.test/pull/8"]
+
+
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_run_from_a_subdirectory_of_the_repo_writes_parallel_exit_under_the_repo_root_and_leaves_no_tdd_in_the_subdirectory_1895(
         monkeypatch, tmp_path, parallel_conductors, run_cli):
     gh, work = _gh_and_work(tmp_path)
