@@ -1,6 +1,6 @@
 """Cases for which suites still read SKILL.md's steps 1, 2, 2b and 2c by their content."""
-import ast
 import pathlib
+import re
 import warnings
 
 import pytest
@@ -68,40 +68,32 @@ def _only_in_sections(literal, inside, rest):
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            import re
             pattern = re.compile(flat, re.I)
     except Exception:
         return False
     return bool(pattern.search(inside)) and not pattern.search(rest)
 
 
-def _skipped(fn):
-    skip = set()
-    for node in ast.walk(fn):
-        if isinstance(node, ast.Assert) and node.msg is not None:
-            skip.update(id(n) for n in ast.walk(node.msg))
-        if isinstance(node, ast.JoinedStr):
-            skip.update(id(n) for n in ast.walk(node))
-    return skip
+_STRING_ASSIGN = re.compile(r"(?:[A-Za-z_]\w*\s*=\s*)+[rRbBuU]{0,2}(\"|')[\s\S]*\1\Z")
 
 
-def _readers(tree, inside, rest):
-    defs = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+def _readers(walk, inside, rest):
+    definitions = walk.definitions
+    defs = {d.name: d for d in definitions if d.segment.startswith("def ")}
     consts = {
-        target.id: node.value.value
-        for node in tree.body
-        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str)
-        for target in node.targets if isinstance(target, ast.Name)
+        d.name: d.literals[0]
+        for d in definitions
+        if d.name not in defs and len(d.literals) == 1 and not d.names and _STRING_ASSIGN.match(d.segment)
     }
 
     def mentions_skill(fn, seen):
         if fn.name in seen:
             return False
         seen.add(fn.name)
-        for node in ast.walk(fn):
-            if isinstance(node, ast.Name) and (node.id.startswith("SKILL") or node.id == "skill_sections"):
+        for name in fn.names:
+            if name.startswith("SKILL") or name == "skill_sections":
                 return True
-            if isinstance(node, ast.Name) and node.id in defs and mentions_skill(defs[node.id], seen):
+            if name in defs and mentions_skill(defs[name], seen):
                 return True
         return False
 
@@ -109,16 +101,11 @@ def _readers(tree, inside, rest):
         if fn.name in seen:
             return False
         seen.add(fn.name)
-        skip = _skipped(fn)
-        for node in ast.walk(fn):
-            if isinstance(node, ast.Name) and node.id in consts and _only_in_sections(consts[node.id], inside, rest):
-                return True
-            if (isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in skip
-                    and _only_in_sections(node.value, inside, rest)):
-                return True
-            if isinstance(node, ast.Name) and node.id in defs and reads(defs[node.id], seen):
-                return True
-        return False
+        if any(name in consts and _only_in_sections(consts[name], inside, rest) for name in fn.names):
+            return True
+        if any(_only_in_sections(value, inside, rest) for value in fn.constants):
+            return True
+        return any(name in defs and reads(defs[name], seen) for name in fn.names)
 
     return [name for name, fn in defs.items() if name.startswith("test_") and reads(fn, set()) and mentions_skill(fn, set())]
 
@@ -134,7 +121,7 @@ def test_every_remaining_case_reading_skill_md_s_read_the_issue_scope_and_plan_s
             continue
         if "SKILL" not in entry.text:
             continue
-        for name in _readers(entry.tree, inside, rest):
+        for name in _readers(entry.walk, inside, rest):
             if f"{rel}::{name}" not in ALLOWED and f"{path.name}::{name}" not in ALLOWED:
                 strays.append(f"{rel}::{name}")
     assert strays == [], "cases read steps 1, 2, 2b or 2c by content and are neither mechanical nor allow-listed:\n" + "\n".join(strays)

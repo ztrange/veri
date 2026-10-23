@@ -50,22 +50,9 @@ def _readers(entry, subsection, rest):
     text = entry.text
     if "SKILL" not in text:
         return []
-    tree = entry.tree
-    own = [
-        n for n in tree.body
-        if isinstance(n, (ast.FunctionDef, ast.Assign))
-    ]
-    segments, literals = {}, {}
-    for node in own:
-        strings = [c.value for c in ast.walk(node) if isinstance(c, ast.Constant) and isinstance(c.value, str)]
-        if isinstance(node, ast.FunctionDef):
-            segments[node.name] = ast.get_source_segment(text, node)
-            literals[node.name] = strings
-        else:
-            for target in node.targets:
-                if isinstance(target, ast.Name):
-                    segments[target.id] = ast.get_source_segment(text, node.value)
-                    literals[target.id] = strings
+    definitions = entry.walk.definitions
+    segments = {d.name: d.segment for d in definitions}
+    literals = {d.name: d.literals for d in definitions}
     calls = {
         name: {o for o in segments if o != name and re.search(r"\b%s\b" % re.escape(o), src)}
         for name, src in segments.items()
