@@ -44,28 +44,36 @@ def _globs_test_files(node, strings):
     return pattern.rsplit("/", 1)[-1] == "test_*.py"
 
 
+def _reaches(fn, functions, found):
+    """Whether `found` holds of a node in `fn` or in a module-level function it reaches."""
+    seen = {fn.name}
+
+    def reaches(current):
+        for node in ast.walk(current):
+            if found(node):
+                return True
+            if isinstance(node, ast.Name) and node.id in functions and node.id not in seen:
+                seen.add(node.id)
+                if reaches(functions[node.id]):
+                    return True
+        return False
+
+    return reaches(fn)
+
+
+def _tree_audits(functions, taking_index):
+    return [fn for fn in functions.values()
+            if any(_is_tree_audit(d) for d in fn.decorator_list)
+            and ("tests_py_index" in [a.arg for a in fn.args.args]) == taking_index]
+
+
 def sweepers(tree):
     """The tree_audit cases that glob the test files, in their own body or a module-level function they reach,
     without taking the tests_py_index fixture."""
     strings = _module_strings(tree)
     functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
-
-    def sweeps(fn, seen):
-        for node in ast.walk(fn):
-            if _globs_test_files(node, strings):
-                return True
-            if isinstance(node, ast.Name) and node.id in functions and node.id not in seen:
-                seen.add(node.id)
-                if sweeps(functions[node.id], seen):
-                    return True
-        return False
-
-    return [
-        fn.name for fn in functions.values()
-        if any(_is_tree_audit(d) for d in fn.decorator_list)
-        and "tests_py_index" not in [a.arg for a in fn.args.args]
-        and sweeps(fn, {fn.name})
-    ]
+    return [fn.name for fn in _tree_audits(functions, False)
+            if _reaches(fn, functions, lambda node: _globs_test_files(node, strings))]
 
 
 def _walks_an_entrys_tree(node):
@@ -78,23 +86,8 @@ def walkers(tree):
     """The tree_audit cases taking tests_py_index that ast.walk an entry's tree, in their own body or a
     module-level function they reach."""
     functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
-
-    def walks(fn, seen):
-        for node in ast.walk(fn):
-            if _walks_an_entrys_tree(node):
-                return True
-            if isinstance(node, ast.Name) and node.id in functions and node.id not in seen:
-                seen.add(node.id)
-                if walks(functions[node.id], seen):
-                    return True
-        return False
-
-    return [
-        fn.name for fn in functions.values()
-        if any(_is_tree_audit(d) for d in fn.decorator_list)
-        and "tests_py_index" in [a.arg for a in fn.args.args]
-        and walks(fn, {fn.name})
-    ]
+    return [fn.name for fn in _tree_audits(functions, True)
+            if _reaches(fn, functions, _walks_an_entrys_tree)]
 
 
 @pytest.mark.tree_audit("every test file under skills/tdd/scripts/tests/py")
