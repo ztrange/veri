@@ -2079,3 +2079,24 @@ def test_main_renders_a_plan_prompt_carrying_a_diff_checked_step_that_adds_a_pro
 
     rule = re.search(r"REJECT a plan whose ⟦diff-checked⟧ step text asks for a test to be added", prompt.replace("`", ""))
     assert (code, step in prompt, rule is not None) == (0, True, True)
+
+
+def test_main_renders_a_plan_prompt_for_a_refactor_spec_limiting_its_refactor_checks_to_steps_that_are_not_diff_checked_or_pin_and_rejecting_a_test_only_step_only_when_planned_otherwise_1915(
+        tmp_path, capsysbinary, build_verify_prompt):
+    ledger = tmp_path / "plan.md"
+    ledger.write_text("# Plan for #1417\n\n- [ ] a step ⟦criterion 1⟧\n", encoding="utf-8")
+
+    def plan_prompt(name, spec_bytes):
+        spec = tmp_path / name
+        spec.write_bytes(spec_bytes)
+        assert build_verify_prompt.main(["plan", str(spec), str(ledger)]) == 0
+        out, _ = capsysbinary.readouterr()
+        return " ".join(out.decode("utf-8", "surrogateescape").replace("`", "").split())
+
+    with_refactor = plan_prompt("refactor.md", b"# spec\n\n## Refactor\n\ntidy it\n")
+    without = plan_prompt("plain.md", b"# spec\n\n1. A case pins behaviour.\n")
+
+    limit = "the first three only to a step that is neither ⟦diff-checked⟧ nor a pin step"
+    test_only = "holds a step that only edits tests, unless that step is planned as ⟦diff-checked⟧ or a pin step"
+    assert ((limit in with_refactor, test_only in with_refactor),
+            (limit in without, test_only in without)) == ((True, True), (False, False))
