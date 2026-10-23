@@ -449,6 +449,23 @@ def test_a_launcher_run_interrupted_by_sigint_or_sigterm_leaves_no_base_director
     assert left == {"SIGINT": False, "SIGTERM": False}
 
 
+def test_2184_a_leg_records_its_own_pid_in_its_veri_pytest_folder_where_it_is_readable_while_pytest_runs(pytest_leg, run_cli, monkeypatch):
+    import os
+
+    recorded = []
+
+    def spy(args):
+        base = [a.split("=", 1)[1] for a in args if a.startswith("--basetemp=")][0]
+        run = os.path.dirname(base)
+        recorded.append([open(os.path.join(run, name)).read().strip() for name in os.listdir(run) if os.path.isfile(os.path.join(run, name))])
+        return pytest.ExitCode.OK
+
+    monkeypatch.setattr(pytest, "main", spy)
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
+    run_cli(pytest_leg, [], env=env)
+    assert recorded and str(os.getpid()) in recorded[0]
+
+
 @pytest.mark.process("a launcher child that receives SIGHUP or SIGTERM during its pytest run")
 def test_2184_a_launcher_run_sent_sighup_during_its_pytest_run_leaves_no_veri_pytest_folder_and_exits_as_on_sigterm(tmp_path):
     import os
