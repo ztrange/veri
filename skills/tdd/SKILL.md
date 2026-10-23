@@ -539,11 +539,11 @@ three times over branches its ledger pinned on later lines.
    stating a rule future changes must keep is still a Red/Green step, since it constrains
    every later diff, not only this branch's.
 
-   A criterion that changes rendered prompt text, or a SKILL.md sentence that a suite pins by checksum or verbatim, is planned as a `⟦diff-checked⟧` step, never as Red/Green: a Red leaf cannot compute a checksum of text that does not exist yet. The text and every checksum or verbatim pin it moves land in one commit, judged blind against the diff.
+   A criterion that changes rendered prompt text, or a SKILL.md sentence that a suite pins by checksum or verbatim outside a unit with a requirements list (that unit is a `⟦skill-edit⟧` step, below), is planned as a `⟦diff-checked⟧` step, never as Red/Green: a Red leaf cannot compute a checksum of text that does not exist yet. The text and every checksum or verbatim pin it moves land in one commit, judged blind against the diff.
 
    When that criterion also asks for a case pinning that text, the plan holds a `⟦diff-checked⟧` step for the text and a separate step for the case, both tagged with the same `⟦criterion k⟧`, the case's step after the text's: the `⟦diff-checked⟧` step adds no test, so it cannot carry the pin.
 
-   For each criterion that changes a unit with a requirements list, or for each unit an issue's `## Requirements` section names, the plan holds one `⟦skill-edit⟧` step naming the unit. Never plan Red, Green or Refactor steps that edit such a unit.
+   For each criterion that changes a unit with a requirements list, or for each unit an issue's `## Requirements` section names, the plan holds one `⟦skill-edit⟧` step naming the unit. A change to a unit with a requirements list is planned as its `⟦skill-edit⟧` step whatever kind of step the change would otherwise be, `⟦diff-checked⟧` included; no other step kind (Red, Green, Refactor, `⟦diff-checked⟧`, pin or phased) edits such a unit. A run signs a requirements list only inside a `⟦skill-edit⟧` step: the conductor never runs `grade-prose.sh` and commits a `GRADED` line on its own, except the Draft PR step's regrade of a unit the run already signed.
 
    On a `⟦skill-edit⟧` step, `Read` `<base directory>/SKILL-EDIT.md` and run it in place of Red, Green and Refactor.
 
