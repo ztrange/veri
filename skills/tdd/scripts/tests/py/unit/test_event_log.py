@@ -54,3 +54,13 @@ def test_read_events_2035_returns_a_line_with_an_undecodable_byte_as_u_fffd_whet
 
     assert event_log.read_events(log) == expected
     assert event_log.read_events(log, skip_unreadable=True) == expected
+
+
+def test_read_events_2035_by_default_refuses_a_line_that_is_not_a_json_object_with_a_value_error_naming_the_log_path(tmp_path, event_log):
+    log = tmp_path / "events.jsonl"
+    log.write_text('{"event": "a"}\n[1, 2]\n')
+
+    with pytest.raises(ValueError) as refused:
+        event_log.read_events(log)
+
+    assert str(log) in str(refused.value)

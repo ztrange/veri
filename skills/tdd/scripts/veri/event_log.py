@@ -25,7 +25,9 @@ def read_events(path, skip_unreadable=False, mark_unreadable=False, errors="repl
                     continue
                 if skip_unreadable:
                     continue
-                raise
+                refusal = ValueError(f"{path}: {error}")
+                refusal.line = error.line
+                raise refusal from error
             events.append(event)
     return events
 
