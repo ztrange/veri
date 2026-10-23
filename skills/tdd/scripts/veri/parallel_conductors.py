@@ -15,7 +15,6 @@ import traceback
 try:
     from context_budget import START, watch
     from event import toplevel
-    from event_log import read_events
     from github import NoAnswer, gh_json
     from json_documents import items
     from run_end import run_end
@@ -23,7 +22,6 @@ try:
 except ImportError:
     from .context_budget import START, watch
     from .event import toplevel
-    from .event_log import read_events
     from .github import NoAnswer, gh_json
     from .json_documents import items
     from .run_end import run_end
