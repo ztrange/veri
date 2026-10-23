@@ -1762,6 +1762,24 @@ def test_cli_an_unpinned_launch_whose_run_has_no_tdd_directory_yet_still_records
             str(scratch / "veri-run-4242-") in recorded, str(os.getpid()) in recorded) == (0, ["1"], True, True)
 
 
+def test_cli_a_launch_removes_every_recorded_veri_run_directory_whose_recorded_pid_is_dead_and_keeps_one_whose_pid_is_alive_under_tdd_issue_2183(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch = scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    fake_claude_exiting(monkeypatch, 0, 0)
+    cwd = tmp_path / "cwd"
+    (cwd / ".tdd").mkdir(parents=True)
+    for issue, name, pid in (("77", "veri-run-77-dead", 2**31 - 2), ("88", "veri-run-88-live", os.getpid())):
+        (scratch / name / "cdk.outAbC123").mkdir(parents=True)
+        (cwd / ".tdd" / ("issue-%s-tmpdir-skill-commit" % issue)).write_text("%s %d\n" % (scratch / name, pid))
+
+    code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, sorted(p.name for p in scratch.iterdir())) == (0, ["veri-run-88-live"])
+
+
 def tree_contents(root):
     """Every file and symlink under root but .git, by relative path: its bytes, or the target it links to."""
     contents = {}
