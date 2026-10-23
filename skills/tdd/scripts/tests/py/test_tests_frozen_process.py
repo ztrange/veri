@@ -1333,6 +1333,30 @@ def test_check_earlier_exits_0_printing_nothing_for_a_case_the_current_step_reco
 
 
 @pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_check_earlier_exits_1_naming_the_case_and_its_step_when_only_the_recorded_cases_own_decorator_is_edited_2177(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier, current = "step one adds a decorated case", "step two adds another"
+    body = "def test_decorated_2177():\n    assert 1 == 2\n"
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_older_case():\n    assert True\n\n\n@pytest.mark.timeout(5)\n" + body)
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_older_case():\n    assert True\n\n\n@pytest.mark.timeout(60)\n" + body)
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, out) == (1, "test_decorated_2177 (%s)\n" % earlier)
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
 def test_check_earlier_exits_0_printing_nothing_when_a_module_level_helper_is_inserted_between_two_recorded_cases_2177(
         tmp_path, run_cli, tests_frozen):
     (tmp_path / "tests").mkdir()

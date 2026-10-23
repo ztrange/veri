@@ -80,7 +80,8 @@ def _def_ends(text):
         tree = ast.parse(text)
     except (SyntaxError, ValueError):
         return {}
-    return {node.lineno: node.end_lineno for node in ast.walk(tree)
+    return {node.lineno: (min([d.lineno for d in node.decorator_list] + [node.lineno]), node.end_lineno)
+            for node in ast.walk(tree)
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
 
 
@@ -93,11 +94,10 @@ def _cases(text):
     cases = []
     for m, start, end in zip(found, starts, ends):
         body = text[start:end]
-        last = def_ends.get(text.count("\n", 0, start) + 1)
-        if m.group(1) and last:
-            first = text.count("\n", 0, start)
-            body = "".join(lines[first:last])
-        cases.append((m.group(1) or m.group(2), _DECORATORS.sub("", body.rstrip()).rstrip()))
+        span = def_ends.get(text.count("\n", 0, start) + 1)
+        if m.group(1) and span:
+            body = "".join(lines[span[0] - 1:span[1]])
+        cases.append((m.group(1) or m.group(2), body.rstrip() if span and m.group(1) else _DECORATORS.sub("", body.rstrip()).rstrip()))
     return cases
 
 
