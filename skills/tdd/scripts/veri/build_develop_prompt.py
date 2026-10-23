@@ -231,6 +231,9 @@ def main(argv):
     run_state = os.fsencode(os.path.join(event.toplevel() or os.getcwd(), ".tdd"))
     for name in (b"red-prediction.md", b"red-run-output.txt"):
         text = text.replace(b"`.tdd/" + name + b"`", b"`" + run_state + b"/" + name + b"`")
+    if phase == "revise" and not text.strip():
+        write(sys.stderr, f"build-develop-prompt: the revise prompt for '{revised_phase}' is empty", before=False, after=False)
+        return 2
     sys.stdout.buffer.write(text + b"\n")
     return 0
 
