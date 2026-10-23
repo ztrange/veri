@@ -1,8 +1,8 @@
 """stop-reason.sh's report, run in-process."""
-import json
 import os
 import sys
 
+import event_log
 import tunables
 
 
@@ -48,8 +48,7 @@ def main(argv):
 
 
 def _records(path):
-    with open(path) as f:
-        return [json.loads(line) for line in f.read().splitlines()]
+    return event_log.read_events(path)
 
 
 def _live(pidfile):

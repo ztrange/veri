@@ -1,6 +1,6 @@
 """wrong-test-route.sh's decision, run in-process."""
+import event_log
 import fnmatch
-import json
 import os
 import re
 import sys
@@ -142,18 +142,10 @@ def _superseded(report, step, own_id=None):
 
 def _rerouted(step):
     try:
-        with open(".tdd/events.jsonl", encoding="utf-8", errors="replace") as handle:
-            lines = handle.read().splitlines()
-    except OSError:
+        events = event_log.read_events(".tdd/events.jsonl", skip_unreadable=True)
+    except (OSError, UnicodeDecodeError):
         return False
-    for line in lines:
-        try:
-            event = json.loads(line)
-        except ValueError:
-            continue
-        if isinstance(event, dict) and event.get("event") == "reroute" and event.get("step") == step:
-            return True
-    return False
+    return any(event.get("event") == "reroute" and event.get("step") == step for event in events)
 
 
 def _missing(report):

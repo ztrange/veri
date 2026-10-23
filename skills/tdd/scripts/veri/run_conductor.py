@@ -14,6 +14,7 @@ sys.dont_write_bytecode = True
 
 from context_limits import context_limits
 import event
+import event_log
 import github
 import launch_floor
 import tunables
@@ -203,9 +204,9 @@ def relay(stream, terminal, unread, results):
 
 def closed(issue):
     try:
-        with open(os.path.join(run_worktree(issue), ".tdd", "events.jsonl")) as log:
-            last = [line for line in log if line.strip()][-1]
-        return json.loads(last).get("event") in ("done", "bail", "stop")
+        last = event_log.read_events(os.path.join(run_worktree(issue), ".tdd", "events.jsonl"),
+                                     mark_unreadable=True)[-1]
+        return last is not None and last.get("event") in ("done", "bail", "stop")
     except (OSError, IndexError, ValueError):
         return False
 
