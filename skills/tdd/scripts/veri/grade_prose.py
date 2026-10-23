@@ -104,6 +104,10 @@ def record_graded(unit, sig, grading_id):
         f.write("%s %s %s %s\n" % (unit, sig, time.strftime("%Y-%m-%d"), grading_id))
 
 
+def graded_ids(text):
+    return re.findall(r"^(?!VERDICT)(\S+): (?:PASS|FAIL)\b", text, re.M)
+
+
 def no_verdict(detail):
     print("grade-prose.sh: no verdict obtained: %s" % detail, file=sys.stderr)
     return 2
@@ -159,7 +163,7 @@ def main(argv):
         return no_verdict("the reply has no BEGIN GRADES block")
     reply = reply[reply.rindex("BEGIN GRADES"):]
     wanted = [row.split("\t", 1)[0] for row in claims.splitlines()]
-    seen = re.findall(r"^(?!VERDICT)(\S+): (?:PASS|FAIL)\b", reply, re.M)
+    seen = graded_ids(reply)
     missing = [i for i in wanted if i not in seen]
     if (missing and used <= retries and len(set(seen)) == len(seen) and set(seen) <= set(wanted)
             and "END GRADES" in reply and not reply.partition("END GRADES")[2].strip()):
@@ -176,7 +180,7 @@ def main(argv):
         if "BEGIN GRADES" in follow:
             follow = follow[follow.rindex("BEGIN GRADES"):].partition("END GRADES")[0]
             added = [l for l in follow.splitlines()[1:] if not l.startswith("VERDICT")]
-            ids = re.findall(r"^(\S+): (?:PASS|FAIL)\b", "\n".join(added), re.M)
+            ids = graded_ids("\n".join(added))
             unknown = sorted({i for i in ids if i not in missing})
             if unknown:
                 return no_verdict("GRADES block names requirement IDs unknown: %s" % ", ".join(unknown))
@@ -190,7 +194,7 @@ def main(argv):
     for word in re.findall(r"^(?!VERDICT)\S+: (\S+)", block, re.M):
         if word not in ("PASS", "FAIL"):
             return no_verdict("grade word %s is neither PASS nor FAIL" % word)
-    got = [i for i in re.findall(r"^(\S+): (?:PASS|FAIL)\b", block, re.M) if i != "VERDICT"]
+    got = graded_ids(block)
     if sorted(got) != sorted(wanted):
         missing = [i for i in wanted if i not in got]
         if missing:
