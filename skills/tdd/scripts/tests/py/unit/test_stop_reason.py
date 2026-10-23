@@ -151,7 +151,7 @@ def test_a_run_directory_with_no_events_log_exits_2_naming_the_missing_events_lo
     assert (code, out, "events.jsonl" in err, "Error" in err or "Traceback" in err) == (2, "", True, False)
 
 
-def test_a_run_with_no_end_event_and_no_live_conductor_whose_conductor_log_holds_no_result_record_exits_2_naming_that_log_and_prints_no_exception_1816(tmp_path, run_cli):
+def test_a_run_with_no_end_event_and_no_live_conductor_whose_conductor_log_holds_no_result_record_prints_killed_and_exits_0_1816(tmp_path, run_cli):
     stop_reason = importlib.import_module("veri.stop_reason")
     run = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
     run.mkdir(parents=True)
@@ -160,8 +160,7 @@ def test_a_run_with_no_end_event_and_no_live_conductor_whose_conductor_log_holds
 
     code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
 
-    assert (code, out, "conductor-7.log" in err, "result" in err, "Error" in err or "Traceback" in err) == (
-        2, "", True, True, False)
+    assert (code, out, err) == (0, "killed\n", "")
 
 
 def test_a_run_with_no_end_event_whose_conductor_pid_names_a_dead_process_does_not_print_running_1816(tmp_path, run_cli):
@@ -218,7 +217,7 @@ def test_a_run_with_no_end_event_and_no_live_conductor_whose_conductor_log_is_on
     assert (code, out, err) == (0, "usage-limit 9pm\n", "")
 
 
-def test_a_conductor_log_whose_last_launch_has_no_result_record_exits_2_and_never_prints_the_earlier_launchs_reason_1938(tmp_path, run_cli):
+def test_a_conductor_log_whose_last_launch_has_no_result_record_prints_killed_and_never_the_earlier_launchs_reason_1938(tmp_path, run_cli):
     stop_reason = importlib.import_module("veri.stop_reason")
     run = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
     run.mkdir(parents=True)
@@ -231,7 +230,7 @@ def test_a_conductor_log_whose_last_launch_has_no_result_record_exits_2_and_neve
 
     code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
 
-    assert (code, out, "no result record in" in err, "conductor-7.log" in err) == (2, "", True, True)
+    assert (code, out, err) == (0, "killed\n", "")
 
 
 def test_a_conductor_log_whose_last_launch_has_a_result_record_is_decided_by_that_record_alone_1938(tmp_path, run_cli):
