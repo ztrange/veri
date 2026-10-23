@@ -153,6 +153,30 @@ def test_main_launches_claude_with_background_tasks_disabled_whatever_the_caller
     assert seen == ["1"]
 
 
+def test_main_launches_claude_with_shell_and_claude_code_shell_naming_the_bash_on_path_under_a_zsh_login_shell_2204(
+        tmp_path, monkeypatch, capfd):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch)
+    _write_prompt(work, "do the step\n")
+    monkeypatch.setenv("SHELL", "/bin/zsh")
+    monkeypatch.delenv("CLAUDE_CODE_SHELL", raising=False)
+    seen = []
+    launches = []
+
+    def fake_popen(argv, *args, **kwargs):
+        env = kwargs["env"]
+        seen.append((env.get("SHELL"), env.get("CLAUDE_CODE_SHELL")))
+        return _FakeLeaf(launches, argv, **kwargs)
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+    bash = shutil.which("bash")
+
+    run_leaf.main(["prompt.txt"])
+    capfd.readouterr()
+
+    assert seen == [(bash, bash)]
+
+
 def test_main_launches_claude_with_the_bash_tool_timeouts_at_the_default_hard_cap_in_milliseconds_1939(
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")

@@ -87,6 +87,7 @@ def main(argv):
         env["PYTHONDONTWRITEBYTECODE"] = "1"
         env["FORCE_PROMPT_CACHING_5M"] = "1"
         env["CLAUDE_CODE_DISABLE_BACKGROUND_TASKS"] = "1"
+        env["SHELL"] = env["CLAUDE_CODE_SHELL"] = shutil.which("bash")
         seconds = effective_timeout()
         try:
             cap_ms = str(int(seconds) * 1000)
