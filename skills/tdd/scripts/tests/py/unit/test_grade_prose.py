@@ -467,6 +467,7 @@ def test_a_grades_block_that_leaves_out_one_requirement_id_makes_grade_prose_exi
     def launch(argv, *a, **k):
         return subprocess.CompletedProcess(argv, 0)
 
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
     monkeypatch.setattr(subprocess, "run", launch)

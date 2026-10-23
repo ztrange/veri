@@ -327,7 +327,8 @@ def test_a_grades_block_with_a_missing_or_an_extra_requirement_id_makes_grade_pr
         done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                               capture_output=True, text=True,
                               env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                                   "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
+                                   "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt"),
+                                   "VERI_NO_VERDICT_RETRIES": "0"})
         outcomes[defect] = (done.returncode, named in done.stderr)
 
     assert outcomes == {"missing": (2, True), "extra": (2, True)}, outcomes
