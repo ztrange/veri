@@ -46,28 +46,25 @@ def _boundaries(monkeypatch, orchestrate, solvable):
 
 
 def test_a_bad_budget_refuses_before_any_launch_and_a_listing_with_no_labelled_open_issue_or_an_unreadable_one_ends_the_run(
-        capfd, monkeypatch, tmp_path, orchestrate):
+        run_cli, monkeypatch, tmp_path, orchestrate):
     monkeypatch.chdir(tmp_path)
 
     monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", "120k")
     launches = _boundaries(monkeypatch, orchestrate, (0, "7\n"))
-    code = orchestrate.main([])
-    out, err = capfd.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     assert (code, out, err) == (
         2, "", "orchestrate.sh: VERI_CONDUCTOR_CTX_BUDGET must be a whole number of tokens: 120k\n")
     assert launches == []
 
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET")
     launches = _boundaries(monkeypatch, orchestrate, (2, ""))
-    code = orchestrate.main([])
-    out, err = capfd.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     assert (code, out) == (2, "")
     assert err.endswith("orchestrate.sh: solvable-issues.sh exited 2; no answer about the solvable set\n")
     assert launches == []
 
     launches = _boundaries(monkeypatch, orchestrate, (3, ""))
-    code = orchestrate.main([])
-    out, err = capfd.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     assert (code, out, err) == (0, "", "")
     assert launches == []
 
@@ -108,7 +105,7 @@ def _passes(monkeypatch, orchestrate, answers, park_on_launch, listing=None):
 
 @pytest.mark.process("gh and git started for real behind a listing, solvable-issues.sh refused")
 def test_1354_a_refused_start_of_solvable_issues_sh_changes_no_answer_the_run_launches_and_ends_as_ever(
-        capfd, monkeypatch, tmp_path, orchestrate, listing):
+        run_cli, monkeypatch, tmp_path, orchestrate, listing):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
     conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
@@ -121,20 +118,18 @@ def test_1354_a_refused_start_of_solvable_issues_sh_changes_no_answer_the_run_la
         return start(args, *rest, **kwargs)
 
     monkeypatch.setattr(subprocess, "run", refusing)
-    code = orchestrate.main([])
-    out, err = capfd.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     assert (code, out, err, launches) == (0, "", "", [[conductor, "7"]])
 
 
 @pytest.mark.parametrize("name", ["VERI_LABEL", "VERI_PRIORITY_LABEL"])
 def test_1515_an_empty_label_is_a_selection_that_could_not_answer_and_ends_the_run_with_exit_2_before_any_launch(
-        name, capfd, monkeypatch, tmp_path, orchestrate):
+        name, run_cli, monkeypatch, tmp_path, orchestrate):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
     monkeypatch.setenv(name, "")
     launches = _boundaries(monkeypatch, orchestrate, (0, "7\n"))
-    code = orchestrate.main([])
-    out, err = capfd.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     assert (code, out, err, launches) == (
         2, "",
         "solvable-issues: %s is set but empty: name a label or leave it unset\n"
@@ -142,7 +137,7 @@ def test_1515_an_empty_label_is_a_selection_that_could_not_answer_and_ends_the_r
 
 
 def test_selection_takes_the_first_whole_unparked_line_per_pass_reports_and_skips_parked_issues_and_relaunches_unparked_ones(
-        capfd, monkeypatch, tmp_path, orchestrate):
+        run_cli, monkeypatch, tmp_path, orchestrate):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
     parked = tmp_path / ".tdd" / "parked"
@@ -158,58 +153,53 @@ def test_selection_takes_the_first_whole_unparked_line_per_pass_reports_and_skip
 
     launches = _passes(monkeypatch, orchestrate, [
         (0, "5\n6 x\n9\n\n\n"), (0, "5\n6 x\n9\n\n"), (0, "5\n6 x\n9\n"), (0, "5\n6 x\n9\n")], park)
-    code = orchestrate.main([])
-    out, err = capfd.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     assert (code, out, err) == (0, "parked 6 x\nparked 9\n", "")
     assert launches == [[conductor, "6 x"], [conductor, "6 x"], [conductor, "9"]]
 
     launches = _passes(monkeypatch, orchestrate, [(0, "7\n"), (2, "")], lambda n, issue: None)
-    code = orchestrate.main([])
-    out, err = capfd.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     assert (code, out) == (2, "")
     assert err.endswith("orchestrate.sh: solvable-issues.sh exited 2; no answer about the solvable set\n")
     assert launches == [[conductor, "7"]]
 
 
 def test_1129_an_answer_whose_first_line_is_empty_launches_a_conductor_for_the_first_non_empty_unparked_line(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        run_cli, monkeypatch, tmp_path, orchestrate):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
     conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
     launches = _passes(monkeypatch, orchestrate, [(0, "\n7\n8\n"), (3, "")], lambda n, issue: None)
-    code = orchestrate.main([])
-    out, err = capsys.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     assert (code, out, err, launches) == (0, "", "", [[conductor, "7"]])
 
 
 def test_1129_an_empty_line_between_a_parked_issue_and_an_unparked_one_is_skipped_and_the_unparked_one_launched(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        run_cli, monkeypatch, tmp_path, orchestrate):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
     (tmp_path / ".tdd" / "parked").mkdir(parents=True)
     (tmp_path / ".tdd" / "parked" / "5.md").write_text("")
     conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
     launches = _passes(monkeypatch, orchestrate, [(0, "5\n\n7\n"), (3, "")], lambda n, issue: None)
-    code = orchestrate.main([])
-    out, err = capsys.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     assert (code, out, err, launches) == (0, "", "", [[conductor, "7"]])
 
 
 def test_1129_an_answer_whose_every_line_is_empty_or_parked_ends_the_run_with_exit_0_and_no_launch(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        run_cli, monkeypatch, tmp_path, orchestrate):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
     (tmp_path / ".tdd" / "parked").mkdir(parents=True)
     (tmp_path / ".tdd" / "parked" / "5.md").write_text("")
     (tmp_path / ".tdd" / "parked" / "6.md").write_text("")
     launches = _passes(monkeypatch, orchestrate, [(0, "\n5\n\n6\n\n")], lambda n, issue: None)
-    code = orchestrate.main([])
-    out, err = capsys.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     assert (code, out, err, launches) == (0, "", "", [])
 
 
 def test_a_conductor_launches_as_a_new_session_leader_with_signals_as_todays_launch_hands_them_and_nothing_else_starts(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        run_cli, monkeypatch, tmp_path, orchestrate):
     import signal
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
@@ -224,12 +214,11 @@ def test_a_conductor_launches_as_a_new_session_leader_with_signals_as_todays_lau
 
     monkeypatch.setattr(subprocess, "Popen", spy_popen)
     try:
-        code = orchestrate.main([])
+        code, out, err = run_cli(orchestrate, [])
         after = {sig: signal.getsignal(sig) for sig in watched}
     finally:
         for sig, handler in saved.items():
             signal.signal(sig, handler)
-    out, err = capsys.readouterr()
     assert (code, out, err) == (0, "", "")
     conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
     [(argv, rest, kwargs, dispositions)] = calls
@@ -245,7 +234,7 @@ def test_a_conductor_launches_as_a_new_session_leader_with_signals_as_todays_lau
 
 
 def test_a_conductor_that_cannot_start_prints_one_line_sends_no_stop_and_exits_2(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        run_cli, monkeypatch, tmp_path, orchestrate):
     import errno
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
@@ -259,8 +248,7 @@ def test_a_conductor_that_cannot_start_prints_one_line_sends_no_stop_and_exits_2
     monkeypatch.setattr(subprocess, "Popen", failing_popen)
     monkeypatch.setattr(os, "killpg", lambda pid, sig: stops.append(("killpg", pid, sig)))
     monkeypatch.setattr(os, "kill", lambda pid, sig: stops.append(("kill", pid, sig)))
-    code = orchestrate.main([])
-    out, err = capsys.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
     assert (code, out, err) == (2, "", "orchestrate.sh: cannot start %s: %s\n" % (conductor, os.strerror(errno.ENOENT)))
     assert stops == []
@@ -268,7 +256,7 @@ def test_a_conductor_that_cannot_start_prints_one_line_sends_no_stop_and_exits_2
 
 
 def test_every_conductor_is_stopped_by_sigterm_to_its_group_else_its_pid_silently_and_never_waited_for(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        run_cli, monkeypatch, tmp_path, orchestrate):
     import signal
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
@@ -299,8 +287,7 @@ def test_every_conductor_is_stopped_by_sigterm_to_its_group_else_its_pid_silentl
     monkeypatch.setattr(subprocess, "Popen", lambda args, *rest, **kwargs: Running(next(pids)))
     monkeypatch.setattr(os, "killpg", fake_killpg)
     monkeypatch.setattr(os, "kill", fake_kill)
-    code = orchestrate.main([])
-    out, err = capsys.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     assert (code, out, err) == (0, "", "")
     term = signal.SIGTERM
     assert stops[:6] == [("killpg", 4001, term), ("killpg", 4002, term), ("kill", 4002, term),
@@ -344,7 +331,7 @@ class _Out:
 
 
 def test_the_watch_prints_each_assistant_lines_cache_read_plus_creation_and_stops_on_a_user_line_over_budget_after_step_done(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        run_cli, monkeypatch, tmp_path, orchestrate):
     import signal
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", "100")
@@ -382,8 +369,7 @@ def test_the_watch_prints_each_assistant_lines_cache_read_plus_creation_and_stop
     monkeypatch.setattr(subprocess, "Popen", fake_popen)
     monkeypatch.setattr(os, "killpg", lambda pid, sig: stops.append((pid, sig)))
     monkeypatch.setattr(sys, "stdout", out)
-    code = orchestrate.main([])
-    _, err = capsys.readouterr()
+    code, _, err = run_cli(orchestrate, [])
     assert (code, out.flushed + out.pending, err) == (
         0, "context 7 15\ncontext 7 100\ncontext 7 100\ncontext 7 110\ncontext 7 110\ncontext 8 7\n", "")
     assert out.pending == ""
@@ -392,7 +378,7 @@ def test_the_watch_prints_each_assistant_lines_cache_read_plus_creation_and_stop
 
 
 def test_the_budget_reads_as_bash_does_unset_or_empty_120000(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        run_cli, monkeypatch, tmp_path, orchestrate):
     monkeypatch.chdir(tmp_path)
 
     def step_done(read):
@@ -415,8 +401,7 @@ def test_the_budget_reads_as_bash_does_unset_or_empty_120000(
             return conductor
 
         monkeypatch.setattr(subprocess, "Popen", fake_popen)
-        code = orchestrate.main([])
-        out, err = capsys.readouterr()
+        code, out, err = run_cli(orchestrate, [])
         return code, out, err
 
     assert run(None) == (0, "context 7 32768\ncontext 7 50000\ncontext 7 120000\ncontext 7 120001\n", "")
@@ -424,7 +409,7 @@ def test_the_budget_reads_as_bash_does_unset_or_empty_120000(
 
 
 def test_1250_an_unset_or_empty_stop_timeout_bounds_the_drain_at_10_seconds_and_a_positive_one_as_given(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        run_cli, monkeypatch, tmp_path, orchestrate):
     import signal
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
@@ -437,8 +422,7 @@ def test_1250_an_unset_or_empty_stop_timeout_bounds_the_drain_at_10_seconds_and_
         _passes(monkeypatch, orchestrate, [(0, "7\n"), (3, "")], lambda n, issue: None)
         timers = []
         monkeypatch.setattr(signal, "setitimer", lambda which, seconds: timers.append((which, seconds)))
-        code = orchestrate.main([])
-        out, err = capsys.readouterr()
+        code, out, err = run_cli(orchestrate, [])
         assert (code, out, err) == (0, "", "")
         return timers
 
@@ -448,26 +432,24 @@ def test_1250_an_unset_or_empty_stop_timeout_bounds_the_drain_at_10_seconds_and_
 
 
 def test_1313_a_stop_timeout_too_great_for_setitimer_refuses_with_exit_2_one_line_naming_it_and_its_value_before_any_ask(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        run_cli, monkeypatch, tmp_path, orchestrate):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
     monkeypatch.setenv("VERI_CONDUCTOR_STOP_TIMEOUT", "1e12")
     launches = _boundaries(monkeypatch, orchestrate, (3, ""))
-    code = orchestrate.main([])
-    out, err = capsys.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     assert (code, out, len(err.splitlines()), "VERI_CONDUCTOR_STOP_TIMEOUT" in err, "1e12" in err,
             "Traceback" in err, launches) == (2, "", 1, True, True, False, [])
 
 
 def test_1313_a_stop_timeout_above_the_macos_setitimer_ceiling_of_100000000_refuses_before_any_ask_and_the_header_states_it(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        run_cli, monkeypatch, tmp_path, orchestrate):
     import signal
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
     monkeypatch.setenv("VERI_CONDUCTOR_STOP_TIMEOUT", "100000001")
     launches = _boundaries(monkeypatch, orchestrate, (3, ""))
-    code = orchestrate.main([])
-    out, err = capsys.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     assert (code, out, len(err.splitlines()), "VERI_CONDUCTOR_STOP_TIMEOUT" in err, "100000001" in err,
             "Traceback" in err, launches) == (2, "", 1, True, True, False, [])
 
@@ -475,8 +457,7 @@ def test_1313_a_stop_timeout_above_the_macos_setitimer_ceiling_of_100000000_refu
     _passes(monkeypatch, orchestrate, [(0, "7\n"), (3, "")], lambda n, issue: None)
     timers = []
     monkeypatch.setattr(signal, "setitimer", lambda which, seconds: timers.append((which, seconds)))
-    code = orchestrate.main([])
-    out, err = capsys.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     assert (code, out, err, timers[0]) == (0, "", "", (signal.ITIMER_REAL, 100000000.0))
 
     header = "\n".join((pathlib.Path(__file__).resolve().parents[3] / "orchestrate.sh").read_text().splitlines()[:20])
@@ -484,21 +465,20 @@ def test_1313_a_stop_timeout_above_the_macos_setitimer_ceiling_of_100000000_refu
 
 
 def test_1313_a_budget_that_is_not_a_whole_number_refuses_with_exit_2_one_line_naming_it_and_its_value_before_any_ask(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        run_cli, monkeypatch, tmp_path, orchestrate):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_STOP_TIMEOUT", raising=False)
     for value in ("-1", "1.5", "1_0", " 7", "1e5"):
         monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", value)
         launches = _boundaries(monkeypatch, orchestrate, (3, ""))
-        code = orchestrate.main([])
-        out, err = capsys.readouterr()
+        code, out, err = run_cli(orchestrate, [])
         assert (value, code, out, err.splitlines(), launches) == (
             value, 2, "",
             ["orchestrate.sh: VERI_CONDUCTOR_CTX_BUDGET must be a whole number of tokens: " + value], [])
 
 
 def test_a_leading_zero_budget_reads_as_decimal_so_0100000_stops_a_conductor_over_100000_not_over_32768_1127(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        run_cli, monkeypatch, tmp_path, orchestrate):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", "0100000")
     _passes(monkeypatch, orchestrate, [(0, "7\n"), (3, "")], lambda n, issue: None)
@@ -513,13 +493,12 @@ def test_a_leading_zero_budget_reads_as_decimal_so_0100000_stops_a_conductor_ove
         return conductor
 
     monkeypatch.setattr(subprocess, "Popen", fake_popen)
-    code = orchestrate.main([])
-    out, err = capsys.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     assert (code, out, err) == (0, "context 7 50000\ncontext 7 100001\n", "")
 
 
 def test_a_08_budget_stops_a_conductor_over_8_tokens_with_no_value_too_great_for_base_line_1127(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        run_cli, monkeypatch, tmp_path, orchestrate):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", "08")
     _passes(monkeypatch, orchestrate, [(0, "7\n"), (3, "")], lambda n, issue: None)
@@ -534,13 +513,12 @@ def test_a_08_budget_stops_a_conductor_over_8_tokens_with_no_value_too_great_for
         return conductor
 
     monkeypatch.setattr(subprocess, "Popen", fake_popen)
-    code = orchestrate.main([])
-    out, err = capsys.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     assert (code, out, err) == (0, "context 7 8\ncontext 7 9\n", "")
 
 
 def test_stdout_carries_only_context_and_parked_lines_and_a_closed_stdout_raises_broken_pipe_out_of_the_next_context_write(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        run_cli, monkeypatch, tmp_path, orchestrate):
     import re
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", "100")
@@ -572,8 +550,7 @@ def test_stdout_carries_only_context_and_parked_lines_and_a_closed_stdout_raises
 
     monkeypatch.setattr(subprocess, "Popen", fake_popen)
     monkeypatch.setattr(os, "killpg", lambda pid, sig: stops.append(pid))
-    code = orchestrate.main([])
-    out, err = capsys.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     assert (code, out, err) == (0, "context 7 70\ncontext 7 110\nparked 7\ncontext 8 7\n", "")
     assert all(re.fullmatch(r"(context [0-9]+ [0-9]+|parked [0-9]+)", line) for line in out.splitlines())
     assert stops == [4001, 4002]
@@ -593,8 +570,8 @@ def test_stdout_carries_only_context_and_parked_lines_and_a_closed_stdout_raises
     closed = os.fdopen(write_end, "w")
     monkeypatch.setattr(sys, "stdout", closed)
     try:
-        with pytest.raises(BrokenPipeError):
-            orchestrate.main([])
+        code, out, err = run_cli(orchestrate, [])
+        assert (code, out, err) == (141, "", "")
         assert stream.tell() == len(first)
     finally:
         monkeypatch.setattr(sys, "stdout", sys.__stdout__)
@@ -605,7 +582,7 @@ def test_stdout_carries_only_context_and_parked_lines_and_a_closed_stdout_raises
 
 
 def test_1128_a_missing_run_conductor_ends_the_run_with_exit_2_one_stderr_line_naming_it_and_the_reason_and_no_further_launch(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        run_cli, monkeypatch, tmp_path, orchestrate):
     import errno
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
@@ -617,8 +594,7 @@ def test_1128_a_missing_run_conductor_ends_the_run_with_exit_2_one_stderr_line_n
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), args[0])
 
     monkeypatch.setattr(subprocess, "Popen", missing_popen)
-    code = orchestrate.main([])
-    out, err = capsys.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
     lines = err.splitlines()
     assert (code, out, len(lines), launches) == (2, "", 1, [[conductor, "7"]])
@@ -626,7 +602,7 @@ def test_1128_a_missing_run_conductor_ends_the_run_with_exit_2_one_stderr_line_n
 
 
 def test_1128_a_run_conductor_that_is_not_executable_ends_the_run_with_exit_2_one_stderr_line_naming_it_and_the_reason_and_no_further_launch(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        run_cli, monkeypatch, tmp_path, orchestrate):
     import errno
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
@@ -638,8 +614,7 @@ def test_1128_a_run_conductor_that_is_not_executable_ends_the_run_with_exit_2_on
         raise PermissionError(errno.EACCES, os.strerror(errno.EACCES), args[0])
 
     monkeypatch.setattr(subprocess, "Popen", unexecutable_popen)
-    code = orchestrate.main([])
-    out, err = capsys.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
     lines = err.splitlines()
     assert (code, out, len(lines), launches) == (2, "", 1, [[conductor, "7"]])
@@ -647,7 +622,7 @@ def test_1128_a_run_conductor_that_is_not_executable_ends_the_run_with_exit_2_on
 
 
 def test_1128_after_a_failed_conductor_launch_an_unreadable_listing_is_never_met_and_the_run_ends_with_the_launch_line_alone(
-        capfd, monkeypatch, tmp_path, orchestrate):
+        run_cli, monkeypatch, tmp_path, orchestrate):
     import errno
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
@@ -657,18 +632,16 @@ def test_1128_after_a_failed_conductor_launch_an_unreadable_listing_is_never_met
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), args[0])
 
     monkeypatch.setattr(subprocess, "Popen", missing_popen)
-    code = orchestrate.main([])
-    out, err = capfd.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     assert (code, out, err.count("\n"), "JSONDecodeError" in err) == (2, "", 1, False)
 
 
 def test_1128_a_conductor_that_starts_and_exits_with_its_issue_still_listed_and_unparked_is_relaunched_while_the_listing_still_names_it(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        run_cli, monkeypatch, tmp_path, orchestrate):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
     launches = _passes(monkeypatch, orchestrate, [(0, "7\n"), (0, "7\n"), (3, "")], lambda n, issue: None)
-    code = orchestrate.main([])
-    out, err = capsys.readouterr()
+    code, out, err = run_cli(orchestrate, [])
     conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
     assert (code, out, err, launches) == (0, "", "", [[conductor, "7"], [conductor, "7"]])
 
