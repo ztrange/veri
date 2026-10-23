@@ -258,6 +258,24 @@ def test_main_reads_a_run_whose_done_mark_is_followed_by_a_ci_repair_step_added_
                                                   "scope lamps-label  attempted 1  done 0  bailed 0  wall 80s  $0.00  solvable 0\n")
 
 
+def test_main_reads_a_recent_run_whose_conductor_pid_was_reused_as_stale_at_once_with_run_ends_cause_2007(tmp_path, monkeypatch, capsys, status):
+    run = lamp_run(tmp_path, "19")
+    write_events(run / ".tdd" / "events.jsonl", [lamp_ev(9990, "19", "launch", name="develop-red")])
+    (run / ".tdd" / "conductor.pid").write_text("%d\n" % os.getpid())
+    for name in ("run_end", "veri.run_end"):
+        module = importlib.import_module(name)
+        monkeypatch.setattr(module, "command_line", lambda pid: "vim notes.txt", raising=False)
+        monkeypatch.setattr(module, "parent_pid", lambda pid: 0, raising=False)
+    lamp_git(monkeypatch, tmp_path, [run])
+    monkeypatch.chdir(tmp_path)
+    at_ten_thousand(monkeypatch)
+
+    code = status.main(["--json"])
+    obj = json.loads(capsys.readouterr().out)["runs"][0]
+
+    assert (code, obj["state"], obj.get("cause")) == (0, "stale", "unknown")
+
+
 def test_main_scope_counts_a_run_bailed_only_when_its_standing_end_is_a_bail_1488(tmp_path, monkeypatch, capsys, status):
     def bail(ts, issue):
         return lamp_ev(ts, issue, "bail", actor="conductor", attempt="", cause="stuck", classification="system")
