@@ -47,26 +47,31 @@ def _js_title_pattern(case):
     return re.compile(r"\b(?:it|test)(?:\.(?:only|skip))?(?:\.each(?:\([^)]*\)|`[^`]*`))?\(\s*(['\"])" + title + r"\1")
 
 
+def _files():
+    for root, dirs, files in os.walk("."):
+        dirs[:] = [d for d in dirs if d not in SKIPPED]
+        for name in files:
+            yield root, name
+
+
 def _exists(case):
     py = re.compile(r"def %s\(" % re.escape(case))
     js = _js_title_pattern(case)
     titles = set()
-    for root, dirs, files in os.walk("."):
-        dirs[:] = [d for d in dirs if d not in SKIPPED]
-        for name in files:
-            js_file = is_js_test_file(name, root)
-            if not name.endswith((".py", ".test.sh")) and not js_file:
-                continue
-            with open(os.path.join(root, name), encoding="utf-8", errors="replace") as handle:
-                text = handle.read()
-            if is_test_file(name) and case.startswith("test_") and py.search(text):
-                return case
-            found = _live_call(js, re.sub(r"/\*.*?\*/", "", text, flags=re.S)) if js_file else []
-            if found and _cut_prefix(case) is None:
-                return found[0]
-            titles.update(found)
-            if name.endswith(".test.sh") and ('name="%s"' % case) in text:
-                return case
+    for root, name in _files():
+        js_file = is_js_test_file(name, root)
+        if not name.endswith((".py", ".test.sh")) and not js_file:
+            continue
+        with open(os.path.join(root, name), encoding="utf-8", errors="replace") as handle:
+            text = handle.read()
+        if is_test_file(name) and case.startswith("test_") and py.search(text):
+            return case
+        found = _live_call(js, re.sub(r"/\*.*?\*/", "", text, flags=re.S)) if js_file else []
+        if found and _cut_prefix(case) is None:
+            return found[0]
+        titles.update(found)
+        if name.endswith(".test.sh") and ('name="%s"' % case) in text:
+            return case
     return titles.pop() if len(titles) == 1 else None
 
 
@@ -76,16 +81,14 @@ def _fixture(report):
             continue
         helper = re.compile(r"^def %s\(" % re.escape(name), re.M)
         js_helper = re.compile(r"^\s*(?:export\s+)?(?:async\s+)?function\s+%s\(" % re.escape(name), re.M)
-        for root, dirs, files in os.walk("."):
-            dirs[:] = [d for d in dirs if d not in SKIPPED]
-            for file in files:
-                py_file = is_test_file(file)
-                if not py_file and not is_js_test_file(file, root):
-                    continue
-                path = os.path.join(root, file)
-                with open(path, encoding="utf-8", errors="replace") as handle:
-                    if (helper if py_file else js_helper).search(handle.read()):
-                        return os.path.normpath(path), name
+        for root, file in _files():
+            py_file = is_test_file(file)
+            if not py_file and not is_js_test_file(file, root):
+                continue
+            path = os.path.join(root, file)
+            with open(path, encoding="utf-8", errors="replace") as handle:
+                if (helper if py_file else js_helper).search(handle.read()):
+                    return os.path.normpath(path), name
     return None
 
 
