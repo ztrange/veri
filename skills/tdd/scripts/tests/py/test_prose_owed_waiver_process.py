@@ -96,3 +96,20 @@ def test_2119_a_unit_path_only_inside_a_longer_path_on_a_skill_edit_step_does_no
                          capture_output=True, text=True)
 
     assert (ran.returncode != 0, "skills/demo/SKILL.md" in ran.stdout) == (True, True), ran.stderr
+
+
+@pytest.mark.process("git")
+def test_2101_on_main_a_unit_a_pending_skill_edit_step_names_is_still_owed_and_exits_non_zero(tmp_path):
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=tmp_path, check=True)
+    (tmp_path / "skills" / "demo").mkdir(parents=True)
+    (tmp_path / "skills" / "demo" / "SKILL.md").write_text("The widget is blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## skills/demo/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-2101.md").write_text(
+        "- [ ] ⟦added⟧ ⟦skill-edit⟧ regrade `skills/demo/SKILL.md`\n")
+
+    ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
+                         capture_output=True, text=True)
+
+    assert (ran.returncode != 0, "skills/demo/SKILL.md" in ran.stdout) == (True, True), ran.stderr
