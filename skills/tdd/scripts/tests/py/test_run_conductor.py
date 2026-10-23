@@ -1871,6 +1871,29 @@ def test_cli_a_launch_whose_target_repository_filesystem_has_less_than_veri_min_
     assert (code, launches, str(cwd) in err and "7" in err and "VERI_MIN_FREE_GB" in err) == (2, [], True)
 
 
+def test_cli_a_veri_min_free_gb_that_is_not_a_whole_number_at_least_0_exits_2_naming_veri_min_free_gb_and_launches_no_conductor_under_tdd_issue_2183(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_claude_exiting(monkeypatch, 0, 0)
+    monkeypatch.setattr(run_conductor, "free_gb", lambda path: 500, raising=False)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    outcomes = {}
+    for bad in ("", "abc", "-1", "1.5"):
+        monkeypatch.setenv("VERI_MIN_FREE_GB", bad)
+        try:
+            code, _, err = run_cli(run_conductor, ["4242"], cwd=cwd)
+        except ValueError:
+            code, err = "crashed", ""
+        outcomes[bad] = (code, "VERI_MIN_FREE_GB" in err)
+
+    assert (outcomes, launches) == ({bad: (2, True) for bad in ("", "abc", "-1", "1.5")}, [])
+
+
 def tree_contents(root):
     """Every file and symlink under root but .git, by relative path: its bytes, or the target it links to."""
     contents = {}

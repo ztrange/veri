@@ -3,6 +3,7 @@
 import glob
 import os
 import paths
+import re
 import json
 import shutil
 import signal
@@ -32,7 +33,11 @@ def main(argv):
     if not argv or not argv[0]:
         sys.stderr.write(USAGE + "\n")
         return 2
-    minimum = int(tunables.read("VERI_MIN_FREE_GB", None, "20"))
+    raw_minimum = tunables.read("VERI_MIN_FREE_GB", "20")
+    if not re.fullmatch(r"[0-9]+", raw_minimum, re.ASCII):
+        sys.stderr.write("run-conductor: VERI_MIN_FREE_GB must be a whole number >= 0, got '%s'\n" % raw_minimum)
+        return 2
+    minimum = int(raw_minimum)
     for directory in (tempfile.gettempdir(), os.getcwd()):
         free = free_gb(directory)
         if free < minimum:
