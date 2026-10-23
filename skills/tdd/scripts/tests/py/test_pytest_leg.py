@@ -951,3 +951,55 @@ def test_2051_a_case_s_tmp_path_under_the_launcher_is_the_private_tmp_path_direc
     assert parent.startswith("veri-pytest-")
     assert mode == "0o700"
     assert name.startswith("test_probe_") and len(name) > len("test_probe_")
+
+
+LOCK_CHILD = """\
+import os, sys
+sys.path[:0] = [%r, %r]
+import pytest
+from veri import pytest_leg
+name, marks, release = sys.argv[1:4]
+def spy(args):
+    open(os.path.join(marks, name + "-started"), "a").close()
+    while name == "A" and not os.path.exists(release):
+        pass
+    return pytest.ExitCode.OK
+pytest.main = spy
+sys.exit(pytest_leg.main([]))
+"""
+
+
+@pytest.mark.process("two launcher children run as full runs from different working trees, sharing one home")
+def test_2195_a_second_full_run_waits_for_the_first_saying_once_who_holds_the_lock_then_runs_and_exits_as_its_suites_decide(tmp_path):
+    import subprocess
+    import time
+
+    scripts = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    child = LOCK_CHILD % (scripts, os.path.join(scripts, "veri"))
+    home, marks, release = tmp_path / "home", tmp_path / "marks", tmp_path / "release"
+    for directory in (home, marks, tmp_path / "treeA", tmp_path / "treeB"):
+        directory.mkdir()
+    env = dict(os.environ, HOME=str(home), VERI_PYTEST_IMPORTABLE="1", VERI_PYTEST_TIMEOUT_IMPORTABLE="1", VERI_PYTEST_XDIST_IMPORTABLE="1")
+
+    def launch(name):
+        err = open(tmp_path / (name + ".err"), "w")
+        return subprocess.Popen([sys.executable, "-c", child, name, str(marks), str(release)],
+                                cwd=tmp_path / ("tree" + name), env=env, stdout=subprocess.DEVNULL, stderr=err)
+
+    def until(done):
+        deadline = time.monotonic() + 15
+        while not done() and time.monotonic() < deadline:
+            time.sleep(0.05)
+
+    first = launch("A")
+    until(lambda: (marks / "A-started").exists())
+    second = launch("B")
+    until(lambda: (marks / "B-started").exists() or (tmp_path / "B.err").stat().st_size > 0)
+    second_started_while_first_held = (marks / "B-started").exists()
+    release.touch()
+    codes = (first.wait(timeout=30), second.wait(timeout=30))
+    waiting = (tmp_path / "B.err").read_text()
+    assert (second_started_while_first_held, codes) == (False, (0, 0))
+    assert len(waiting.splitlines()) == 1
+    assert str(first.pid) in waiting and os.path.realpath(tmp_path / "treeA") in waiting
+    assert (marks / "B-started").exists()
