@@ -177,6 +177,7 @@ def conduct(text, issue, env):
     strip_session_env(env)
     env.pop("VERI_NEW_SKILL", None)
     env.pop("FORCE_PROMPT_CACHING_5M", None)
+    env["SHELL"] = env["CLAUDE_CODE_SHELL"] = shutil.which("bash")
     binary = os.environ.get("CLAUDE_BIN") or "claude"
     unread = []
     result = None

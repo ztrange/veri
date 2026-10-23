@@ -1396,6 +1396,39 @@ def test_main_a_conductor_launch_does_not_request_the_five_minute_cache_ttl_so_i
     assert (code, writes) == (0, ["ephemeral_1h_input_tokens"])
 
 
+def test_main_a_conductor_launch_pins_claudes_shell_to_the_bash_on_path_under_a_zsh_login_shell_2204(
+        tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    monkeypatch.setenv("SHELL", "/bin/zsh")
+    monkeypatch.delenv("CLAUDE_CODE_SHELL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    shells = []
+    run = subprocess.run
+
+    def claude_reports_its_shell(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+        env = kwargs.get("env") or os.environ
+        shells.append((env.get("SHELL"), env.get("CLAUDE_CODE_SHELL")))
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    fake_claude_exiting(monkeypatch, 0, 0)
+    fake = subprocess.run
+    monkeypatch.setattr(subprocess, "run", lambda args, *a, **kw: claude_reports_its_shell(args, *a, **kw)
+                        if list(args)[:1] == ["fake-claude"] else fake(args, *a, **kw))
+    bash = shutil.which("bash")
+
+    code = run_conductor.main(["4242"])
+
+    capfdbinary.readouterr()
+    assert (code, shells) == (0, [(bash, bash)])
+
+
 def test_main_a_parent_environment_asking_for_the_five_minute_cache_ttl_reaches_the_leaf_but_not_the_conductor_1738(
         tmp_path, monkeypatch, capfdbinary):
     from test_run_leaf import _FakeLeaf
