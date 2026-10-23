@@ -958,8 +958,9 @@ def test_main_hands_claude_skill_md_stripped_of_trailing_newlines_then_the_base_
     launches = fake_claude_launch(monkeypatch)
     codes = [run_conductor.main(["abc", "extra", "more"])]
     capfdbinary.readouterr()
+    recorded = "".join(f.read_text() for f in sorted((unpinned / ".tdd").glob("*")) if f.is_file())
     answers["unpinned"] = ([launch["stdin"] for launch in launches],
-                           sorted(str(p.relative_to(unpinned)) for p in unpinned.rglob("*")))
+                           (str(scratch / "veri-run-abc-") in recorded, str(os.getpid()) in recorded))
 
     pinned = tmp_path / "pinned"
     pinned.mkdir()
@@ -991,7 +992,7 @@ def test_main_hands_claude_skill_md_stripped_of_trailing_newlines_then_the_base_
     assert answers == {
         "unpinned": ([("# the procedure\n\nlast line"
                        "\n\nBase directory for this skill: %s\n"
-                       "\nSolve issue #abc by the procedure above.\n" % skill).encode()], []),
+                       "\nSolve issue #abc by the procedure above.\n" % skill).encode()], (True, True)),
         "pinned": ([("# the committed procedure"
                      "\n\nBase directory for this skill: %s\n"
                      "\nPinned skill commit (name it in the plan comment): %s\n"
@@ -1716,6 +1717,24 @@ def test_cli_a_launch_whose_run_has_no_tdd_directory_yet_still_records_the_veri_
 
     recorded = "".join(f.read_text() for f in sorted((cwd / ".tdd").glob("*")) if f.is_file())
     assert (code, bool(seen) and seen[0] in recorded, str(os.getpid()) in recorded) == (0, True, True)
+
+
+def test_cli_an_unpinned_launch_whose_run_has_no_tdd_directory_yet_still_records_the_veri_run_n_directory_and_the_launchers_pid_under_tdd_issue_2183(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
+        monkeypatch.delenv(name, raising=False)
+    scratch = scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_unresolvable(monkeypatch)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    recorded = "".join(f.read_text() for f in sorted((cwd / ".tdd").glob("*")) if f.is_file())
+    assert (code, [l["VERI_SKILL_UNPINNED"] for l in launches],
+            str(scratch / "veri-run-4242-") in recorded, str(os.getpid()) in recorded) == (0, ["1"], True, True)
 
 
 def tree_contents(root):
