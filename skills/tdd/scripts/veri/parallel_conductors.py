@@ -111,15 +111,13 @@ def _outcome(n, code, prs):
     for pr in prs:
         if n in re.findall(r"\bCloses #(\d+)", pr.get("body") or ""):
             url = pr.get("html_url", pr.get("url", ""))
-            if not pr.get("isDraft", pr.get("draft")):
-                return "done %s" % url
             try:
-                if run_end(_tdd("wt", n))[1] == "done":
-                    return "done %s" % url
-                events = read_events(_tdd("wt", n, ".tdd", "events.jsonl"), skip_unreadable=True)
+                cause = run_end(_tdd("wt", n))[1]
             except OSError:
-                events = []
-            return "bailed %s" % url if events and events[-1].get("event") == "bail" else ""
+                cause = None
+            if cause == "done" or (cause != "bailed" and not pr.get("isDraft", pr.get("draft"))):
+                return "done %s" % url
+            return "bailed %s" % url if cause == "bailed" else ""
     return ""
 
 

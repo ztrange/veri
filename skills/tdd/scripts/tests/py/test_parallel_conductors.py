@@ -772,6 +772,7 @@ def test_the_cli_reports_a_ready_pr_done_a_draft_ending_in_a_bail_bailed_a_draft
     assert out.splitlines() == [
         "#7 — done https://example.test/pull/7",
         "#8 — bailed https://example.test/pull/8",
+        "#9 — bailed https://example.test/pull/9",
         "#10 — killed after 60s",
         "stopped: nothing solvable",
     ]
@@ -796,6 +797,26 @@ def test_a_finished_run_ending_in_a_standing_done_mark_whose_pr_is_still_a_draft
                              env={"VERI_RUN_TIMEOUT": "60", "VERI_GH_JSON": str(gh)})
 
     assert out.splitlines()[0] == "#7 — done https://example.test/pull/7"
+
+
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
+def test_a_finished_run_ending_in_a_standing_bail_mark_whose_pr_is_ready_for_review_is_reported_bailed_2009(
+        monkeypatch, tmp_path, parallel_conductors, run_cli):
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text(json.dumps([
+        {"body": "Closes #7", "isDraft": False, "url": "https://example.test/pull/7"},
+    ]))
+    work = tmp_path / "repo"
+    (work / ".tdd").mkdir(parents=True)
+    _event_log(work, "7", '{"event":"launch","issue":7}\n{"event":"bail","issue":7}\n')
+
+    _boundaries(monkeypatch, tmp_path, lambda sup: sup.exit(0), lambda supervisors: None, solvable=(0, "7\n"))
+
+    code, out, err = run_cli(parallel_conductors, [], cwd=work,
+                             env={"VERI_RUN_TIMEOUT": "60", "VERI_GH_JSON": str(gh)})
+
+    assert (code, out.splitlines()[0]) == (1, "#7 — bailed https://example.test/pull/7")
 
 
 @pytest.mark.process("a faked supervise.sh over a VERI_GH_JSON listing, with the start of solvable-issues.sh refused")
@@ -1718,7 +1739,10 @@ def test_the_cli_reports_a_draft_whose_compact_separator_log_ends_in_a_bail_bail
 
     code, out, err = run_cli(parallel_conductors, ["--continue-on-bail"], cwd=work, env={"VERI_GH_JSON": str(gh)})
 
-    assert (code, out.splitlines()) == (1, ["#8 — bailed https://example.test/pull/8", "stopped: nothing solvable"])
+    assert (code, out.splitlines()) == (1, [
+        "#8 — bailed https://example.test/pull/8",
+        "#9 — bailed https://example.test/pull/9",
+        "stopped: nothing solvable"])
 
 
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
