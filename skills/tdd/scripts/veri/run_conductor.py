@@ -153,7 +153,9 @@ def sweep_dead_runs(run_state):
         try:
             os.kill(pid, 0)
         except ProcessLookupError:
-            shutil.rmtree(directory, ignore_errors=True)
+            parent, leaf = os.path.split(os.path.realpath(directory))
+            if parent == os.path.realpath(tempfile.gettempdir()) and leaf.startswith("veri-run-"):
+                shutil.rmtree(directory, ignore_errors=True)
 
 
 def conduct(text, issue, env):
