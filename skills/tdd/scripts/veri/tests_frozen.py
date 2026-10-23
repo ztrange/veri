@@ -88,11 +88,21 @@ def _def_ends(text):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
 
 
-def _cases(text):
+def _spans(text):
     found = list(_CASE.finditer(text))
     trailer = re.search(r"^finish\b.*\s*\Z", text, re.M)
     starts = [m.end() - len(m.group().lstrip()) for m in found]
     ends = starts[1:] + [trailer.start() if trailer and found and trailer.start() > found[-1].start() else len(text)]
+    return found, starts, ends
+
+
+def _old_cut_cases(text):
+    found, starts, ends = _spans(text)
+    return {m.group(1) or m.group(2): text[start:end].rstrip() for m, start, end in zip(found, starts, ends)}
+
+
+def _cases(text):
+    found, starts, ends = _spans(text)
     lines, def_ends = text.splitlines(keepends=True), _def_ends(text)
     cases = []
     for m, start, end in zip(found, starts, ends):
@@ -148,10 +158,13 @@ def _check_earlier(ledger, step, exempt=()):
     for (name, case), (digest, owner) in latest.items():
         try:
             with open(name, encoding="utf-8", errors="replace") as handle:
-                now = dict(_cases(handle.read())).get(case)
+                text = handle.read()
+            now = dict(_cases(text)).get(case)
+            old = _old_cut_cases(text).get(case)
         except OSError:
-            now = None
-        if case not in exempt and not (fixture and name == fixture.group(1)) and (now is None or _body_digest(now) != digest):
+            now = old = None
+        if case not in exempt and not (fixture and name == fixture.group(1)) and (
+                now is None or digest not in (_body_digest(now), _body_digest(old))):
             changed.append("%s (%s)" % (case, owner))
     for entry in changed:
         write(sys.stdout, entry)

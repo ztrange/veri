@@ -1333,6 +1333,54 @@ def test_check_earlier_exits_0_printing_nothing_for_a_case_the_current_step_reco
 
 
 @pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_check_earlier_exits_0_printing_nothing_for_a_record_written_with_the_old_cut_against_an_unchanged_file_2177(
+        tmp_path, run_cli, tests_frozen):
+    import hashlib
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    git(tmp_path, "init", "-q")
+    earlier, current = "step one adds a case", "step two adds a decorated case"
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_first_2177():\n    assert 1 == 2\n\n\n@pytest.mark.timeout(60)\n"
+        "def test_second_2177():\n    assert True\n")
+    old_body = "def test_first_2177():\n    assert 1 == 2\n\n\n@pytest.mark.timeout(60)"
+    digest = hashlib.sha256(old_body.encode()).hexdigest()
+    _, record, _ = run_cli(tests_frozen, ["path", earlier], cwd=tmp_path)
+    (tmp_path / record.strip()).write_text(
+        "case: test_first_2177\nbody: tests/test_suite.py\ttest_first_2177\t%s\n" % digest)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_check_earlier_exits_1_naming_a_case_changed_since_a_record_written_with_the_old_cut_2177(
+        tmp_path, run_cli, tests_frozen):
+    import hashlib
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    git(tmp_path, "init", "-q")
+    earlier, current = "step one adds a case", "step two adds a decorated case"
+    old_body = "def test_first_2177():\n    assert 1 == 2\n\n\n@pytest.mark.timeout(60)"
+    digest = hashlib.sha256(old_body.encode()).hexdigest()
+    _, record, _ = run_cli(tests_frozen, ["path", earlier], cwd=tmp_path)
+    (tmp_path / record.strip()).write_text(
+        "case: test_first_2177\nbody: tests/test_suite.py\ttest_first_2177\t%s\n" % digest)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_first_2177():\n    assert 1 == 3\n\n\n@pytest.mark.timeout(60)\n"
+        "def test_second_2177():\n    assert True\n")
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, out) == (1, "test_first_2177 (%s)\n" % earlier)
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
 def test_check_earlier_exits_0_printing_nothing_when_a_helper_function_is_inserted_between_two_recorded_bash_cases_2177(
         tmp_path, run_cli, tests_frozen):
     (tmp_path / "tests").mkdir()
