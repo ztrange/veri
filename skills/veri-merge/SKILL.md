@@ -34,8 +34,8 @@ Take the merge lock before the first write and hold it to the last. Release it o
 ## Steps
 
 1. **Rebase if `main` moved.** Record the PR head sha, rebase onto `origin/main`, and push with `--force-with-lease=<branch>:<recorded sha>`. Never the bare `--force-with-lease`: it silently clobbers a push you have not seen.
-2. **Gates.** If the repo has a `merge-gates` target, run `make merge-gates` on the rebased tip. Run `../veri-dev/prose-owed.sh` (from this skill's base directory); refuse to merge while it lists any unit (T6).
-3. **CI.** Read the check rollup. An empty or missing rollup is not a pass: wait or hand it to the human, never merge on it. The wait is capped at 2× the average duration of the last 5 runs, and never more than 10 minutes. A failure with zero steps run and a payments annotation is billing: report it to the human as billing and stop; it is not a code failure and is not retried.
+2. **Gates.** If the repo has a `merge-gates` target, run `make merge-gates` on the rebased tip. Run `$S/prose-owed.sh`; refuse to merge while it lists any unit or gives no answer (non-zero exit, empty or unparseable output) (T6).
+3. **CI.** Read the check rollup. An empty or missing rollup is not a pass: wait or hand it to the human, never merge on it. Wait with `$S/wait-ci.sh`, and call it again whenever it exits 3. The wait is capped at 2× the average duration of the last 5 runs, and never more than 10 minutes. A failure with zero steps run and a payments annotation is billing: report it to the human as billing and stop; it is not a code failure and is not retried.
 4. **Merge** the PR.
 5. **Read `state`.** Query the PR and continue only when `state == MERGED`. Deleting the branch, cutting the tag and removing the worktree each happen only after that read; deleting an open PR's head closes it (PR #74).
 6. **Tag.** Choose the next `vN.M` from `git tag --sort=-v:refname` (never plain `sort`: lexically `v0.9` outranks `v0.10`). Cut an annotated tag whose message is the capability, in the issue's words. Push it.
