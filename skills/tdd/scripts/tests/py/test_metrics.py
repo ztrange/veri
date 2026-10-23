@@ -251,6 +251,22 @@ def test_issue_2008_a_run_with_no_mark_and_no_live_conductor_whose_latest_launch
     assert "Outcome: the run was killed — its conductor's latest launch left no result.\n" in render(metrics, capsys)
 
 
+def test_issue_2008_the_outcome_is_whatever_run_end_answers_not_the_marks_the_log_carries(tmp_path, monkeypatch, capsys, metrics):
+    import run_end
+    write_log(tmp_path, ONE_STEP + [{"event": "done", "pr": "https://example.test/pr/1"}])
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(run_end, "run_end", lambda run_dir: (False, None, {}))
+    live = render(metrics, capsys)
+
+    write_log(tmp_path, ONE_STEP)
+    bail = {"event": "bail", "cause": "stuck", "classification": "process"}
+    monkeypatch.setattr(run_end, "run_end", lambda run_dir: (True, "bailed", bail))
+    ended = render(metrics, capsys)
+
+    assert "Outcome: none yet — the run is still going.\n" in live
+    assert "Outcome: the run bailed — stuck, a process failure.\n" in ended
+
+
 def test_an_exit_whose_status_is_the_integer_2_is_not_counted_as_a_kill(tmp_path, monkeypatch, capsys, metrics):
     attempt = {"step": "1", "phase": "red", "attempt": "1", "secs": "0"}
     write_log(tmp_path, ONE_STEP + [dict(attempt, event="launch"), dict(attempt, event="exit", status=2),
