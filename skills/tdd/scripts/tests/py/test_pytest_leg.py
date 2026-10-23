@@ -449,6 +449,35 @@ def test_a_launcher_run_interrupted_by_sigint_or_sigterm_leaves_no_base_director
     assert left == {"SIGINT": False, "SIGTERM": False}
 
 
+@pytest.mark.process("a launcher child that receives SIGHUP or SIGTERM during its pytest run")
+def test_2184_a_launcher_run_sent_sighup_during_its_pytest_run_leaves_no_veri_pytest_folder_and_exits_as_on_sigterm(tmp_path):
+    import os
+    import signal
+    import subprocess
+
+    scripts = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    child = (
+        "import os, sys\n"
+        "sys.path[:0] = [%r, %r]\n"
+        "import pytest\n"
+        "from veri import pytest_leg\n"
+        "def spy(args):\n"
+        "    os.kill(os.getpid(), int(sys.argv[1]))\n"
+        "    return pytest.ExitCode.OK\n"
+        "pytest.main = spy\n"
+        "sys.exit(pytest_leg.main([]))\n"
+    ) % (scripts, os.path.join(scripts, "veri"))
+    outcome = {}
+    for sig in (signal.SIGTERM, signal.SIGHUP):
+        scratch = tmp_path / sig.name
+        scratch.mkdir()
+        env = dict(os.environ, VERI_PYTEST_IMPORTABLE="1", VERI_PYTEST_TIMEOUT_IMPORTABLE="1",
+                   VERI_PYTEST_XDIST_IMPORTABLE="1", VERI_PYTEST_WORKERS="1", TMPDIR=str(scratch))
+        done = subprocess.run([sys.executable, "-c", child, str(int(sig))], env=env, capture_output=True, timeout=30)
+        outcome[sig.name] = (sorted(os.listdir(scratch)), done.returncode)
+    assert outcome["SIGHUP"] == ([], outcome["SIGTERM"][1])
+
+
 @pytest.mark.process("the launcher run as a child over a planted tests tree holding a small case that starts git")
 def test_a_small_case_that_starts_git_fails_under_the_launcher_with_its_failure_naming_git_and_no_unit_guard_shim_on_path(tmp_path):
     import os

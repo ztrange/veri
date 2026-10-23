@@ -102,8 +102,9 @@ def main(argv):
     sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     os.environ["PYTEST_PLUGINS"] = ",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "small_case_guard", "network_guard", "private_tmp_path", "serial_seen"]))
     def terminate(signum, frame):
-        sys.exit(128 + signum)
+        sys.exit(128 + signal.SIGTERM)
     previous = signal.signal(signal.SIGTERM, terminate)
+    previous_hup = signal.signal(signal.SIGHUP, terminate)
     conftest = sys.modules.get("conftest")
     entry = None
     serial_seen = os.environ.get("PYTEST_LEG_SERIAL_SEEN")
@@ -130,6 +131,7 @@ def main(argv):
         if entry:
             unregister(entry)
         signal.signal(signal.SIGTERM, previous)
+        signal.signal(signal.SIGHUP, previous_hup)
         if conftest is None:
             sys.modules.pop("conftest", None)
         else:
