@@ -1694,6 +1694,31 @@ def test_cli_a_folder_the_conductor_leaks_into_its_tmpdir_is_gone_from_the_inher
     assert (code, sorted(p.name for p in scratch.iterdir())) == (128 + signal.SIGTERM, [])
 
 
+@pytest.mark.parametrize("sig", [signal.SIGINT, signal.SIGHUP])
+def test_cli_a_folder_the_conductor_leaks_into_its_tmpdir_is_gone_from_the_inherited_tmpdir_when_the_launcher_is_sent_sigint_or_sighup_under_tdd_issue_2183(
+        tmp_path, monkeypatch, run_cli, sig):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch = scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    fake_claude_exiting(monkeypatch, 0, 0)
+    answer = subprocess.run
+
+    def leaking_then_signalled(args, *rest, **kwargs):
+        if list(args)[:1] == ["fake-claude"]:
+            (pathlib.Path(kwargs["env"]["TMPDIR"]) / "cdk.outAbC123").mkdir()
+            os.kill(os.getpid(), sig)
+        return answer(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", leaking_then_signalled)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert sorted(p.name for p in scratch.iterdir()) == []
+
+
 def test_cli_a_launch_whose_run_has_no_tdd_directory_yet_still_records_the_veri_run_n_directory_and_the_launchers_pid_under_tdd_issue_2183(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)
