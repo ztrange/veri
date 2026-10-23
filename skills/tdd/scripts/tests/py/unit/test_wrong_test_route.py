@@ -1942,3 +1942,22 @@ def test_main_2172_prints_red_when_a_wrong_test_name_is_both_a_js_it_title_and_a
     missed = run_cli(wrong_test_route, [str(report), "expires an idle session"], cwd=nowhere)
 
     assert (case[0], case[1], missed[0], missed[1]) == (0, "red adminOnClock\n", 3, "revise\n")
+
+
+def test_main_2172_prints_revise_for_a_wrong_test_naming_a_helper_in_a_test_file_once_the_step_log_holds_a_reroute_event(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / "backend" / "src").mkdir(parents=True)
+    (tmp_path / "backend" / "src" / "router.test.ts").write_text(
+        "function adminOnClock(app) {\n  return app.post('/admin/password');\n}\n"
+        "it('expires an idle session', () => {});\n")
+    (tmp_path / ".tdd").mkdir()
+    step = "the fixture route shares the step's one free reroute"
+    monkeypatch.setenv("VERI_STEP", step)
+    (tmp_path / ".tdd" / "events.jsonl").write_text('{"event": "reroute", "step": "%s"}\n' % step)
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nWRONG_TEST: `adminOnClock` sets a password without the clock\n")
+
+    code, stdout, _ = run_cli(wrong_test_route, [str(report), "expires an idle session"], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")

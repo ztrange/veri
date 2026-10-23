@@ -214,7 +214,7 @@ def main(argv):
     case = None if rerouted else route(argv[0], argv[1])
     if case is None and len(older) == 1:
         case = older[0]
-    fixture = None if case is not None else _fixture(argv[0])
+    fixture = None if case is not None or rerouted else _fixture(argv[0])
     if fixture is not None:
         write(sys.stdout, "fixture %s %s" % fixture)
         return 0
