@@ -5,7 +5,7 @@ import subprocess
 
 import pytest
 
-from conftest import SCRIPTS
+from conftest import INTERPRETER_VENV, SCRIPTS
 
 USAGE = "usage: wait-leaf.sh <name> [max-seconds]\n"
 
@@ -315,7 +315,7 @@ def test_a_run_through_a_symlink_to_the_skills_directory_reads_the_working_direc
 
     ran = subprocess.run([str(tmp_path / "linked" / "tdd" / "scripts" / "wait-leaf.sh"), "via-link", "0"],
                          cwd=tmp_path / "caller", stdin=subprocess.DEVNULL, capture_output=True, text=True,
-                         env={"PATH": "/usr/bin:/bin", "VERI_POLL": "0"})
+                         env={"PATH": "/usr/bin:/bin", "VERI_VENV": INTERPRETER_VENV, "VERI_POLL": "0"})
 
     assert (ran.returncode, ran.stdout, ran.stderr) == (1, "", "")
     assert not (SCRIPTS / ".tdd" / "via-link.exit").exists()
