@@ -259,3 +259,22 @@ def test_an_events_log_holding_a_line_that_is_not_json_exits_2_and_prints_nothin
     code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
 
     assert (code, out) == (2, "")
+
+
+def test_a_run_with_no_end_event_whose_live_pid_is_an_unrelated_process_and_whose_conductor_log_ends_in_a_usage_limit_prints_usage_limit_not_running_2007(tmp_path, monkeypatch, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    run = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    run.mkdir(parents=True)
+    (run / "events.jsonl").write_text(json.dumps({"ts": 100, "issue": "7", "event": "step-done"}) + "\n")
+    (run / "conductor.pid").write_text("%d\n" % os.getpid())
+    (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in (
+        {"type": "system", "subtype": "init"},
+        {"type": "result", "is_error": True, "result": "You've hit your weekly limit · resets Oct 7, 3pm"})))
+    for name in ("run_end", "veri.run_end"):
+        module = importlib.import_module(name)
+        monkeypatch.setattr(module, "command_line", lambda pid: "vim notes.txt", raising=False)
+        monkeypatch.setattr(module, "parent_pid", lambda pid: 424242, raising=False)
+
+    code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
+
+    assert (code, out) == (0, "usage-limit Oct 7, 3pm\n")
