@@ -134,14 +134,21 @@ def main(argv):
     env["VERI_MODEL"] = model
     env["VERI_LEAF_TOOLS"] = ""
     retries = int(tunables.read("VERI_NO_VERDICT_RETRIES") or "1")
+    def launch(path):
+        ran = subprocess.run([os.path.join(SCRIPTS, "supervise.sh"), "grade-prose",
+                        os.path.join(SCRIPTS, "run-leaf.sh"), path], stdout=subprocess.PIPE, env=env)
+        if ran.returncode:
+            return None
+        with open(os.path.join(".tdd", "grade-prose.log"), encoding="utf-8") as log:
+            return log.read()
+
+    used = 0
     try:
         for _ in range(retries + 1):
-            ran = subprocess.run([os.path.join(SCRIPTS, "supervise.sh"), "grade-prose",
-                            os.path.join(SCRIPTS, "run-leaf.sh"), f.name], stdout=subprocess.PIPE, env=env)
-            if ran.returncode:
-                return no_verdict("the grader leaf exited %d" % ran.returncode)
-            with open(os.path.join(".tdd", "grade-prose.log"), encoding="utf-8") as log:
-                raw = log.read()
+            used += 1
+            raw = launch(f.name)
+            if raw is None:
+                return no_verdict("the grader leaf exited non-zero")
             reply = extract(raw)
             if "BEGIN GRADES" in reply:
                 break
@@ -151,6 +158,27 @@ def main(argv):
     if "BEGIN GRADES" not in reply:
         return no_verdict("the reply has no BEGIN GRADES block")
     reply = reply[reply.rindex("BEGIN GRADES"):]
+    wanted = [row.split("\t", 1)[0] for row in claims.splitlines()]
+    seen = re.findall(r"^(?!VERDICT)(\S+): (?:PASS|FAIL)\b", reply, re.M)
+    missing = [i for i in wanted if i not in seen]
+    if (missing and used <= retries and len(set(seen)) == len(seen) and set(seen) <= set(wanted)
+            and "END GRADES" in reply and not reply.partition("END GRADES")[2].strip()):
+        rows = "".join(r + "\n" for r in claims.splitlines() if r.split("\t", 1)[0] in missing)
+        with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as g:
+            g.write(prompt(unit, text, rows))
+        try:
+            more = launch(g.name)
+        finally:
+            os.unlink(g.name)
+        if more is None:
+            return no_verdict("the grader leaf exited non-zero")
+        follow = extract(more)
+        if "BEGIN GRADES" in follow:
+            follow = follow[follow.rindex("BEGIN GRADES"):].partition("END GRADES")[0]
+            added = [l for l in follow.splitlines()[1:] if not l.startswith("VERDICT")]
+            kept = [l for l in reply.partition("END GRADES")[0].splitlines() if not l.startswith("VERDICT")]
+            lines = kept + added
+            reply = "\n".join(lines + ["VERDICT: PASS", "END GRADES"])
     block, _, after = reply.partition("END GRADES")
     trailing = "\n".join(l for l in after.splitlines() if l.strip())
     if trailing:
