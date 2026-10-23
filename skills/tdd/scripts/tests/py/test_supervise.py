@@ -4007,3 +4007,18 @@ def test_cli_launches_a_develop_green_whose_ci_repair_step_is_numbered_as_ledger
                              env={"VERI_ISSUE": "1973", "VERI_STEP": "2"})
 
     assert (code, bool(started)) == (0, True), err
+
+
+def test_red_awaits_pass_reads_an_events_log_holding_an_invalid_utf_8_byte_without_raising_and_still_reads_the_launch_and_verdict_lines_after_it(
+        supervise, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".tdd").mkdir()
+    log = tmp_path / ".tdd" / "events.jsonl"
+    launch = b'{"event": "launch", "phase": "red", "step": 1}\n'
+    verdict = b'{"event": "verdict", "phase": "red", "step": 1, "verdict": "PASS"}\n'
+
+    log.write_bytes(b'{"note": "bad \xff byte"}\n' + launch)
+    assert supervise.red_awaits_pass("1") is True
+
+    log.write_bytes(b'{"note": "bad \xff byte"}\n' + launch + verdict)
+    assert supervise.red_awaits_pass("1") is False
