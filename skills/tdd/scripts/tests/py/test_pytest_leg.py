@@ -1266,3 +1266,46 @@ def test_2195_a_waiting_full_run_with_a_1_s_case_limit_passes_once_a_holder_that
     codes = (first.wait(timeout=30), second.wait(timeout=30))
     output = (tmp_path / "B.out").read_text()
     assert (codes, "waiting for the full run holding the lock" in output, "1 passed" in output) == ((0, 0), True, True), output
+
+
+@pytest.mark.process("two launcher children run as full runs sharing one home, the first holding the lock forever, the second waiting under a bound")
+@pytest.mark.timeout(120)
+def test_2195_a_full_run_waiting_on_a_holder_that_never_releases_the_lock_fails_within_its_bound_instead_of_hanging(tmp_path):
+    import subprocess
+    import time
+
+    scripts = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    child = LOCK_CHILD % (scripts, os.path.join(scripts, "veri"))
+    home, marks, release = tmp_path / "home", tmp_path / "marks", tmp_path / "release"
+    for directory in (home, marks, tmp_path / "treeA", tmp_path / "treeB"):
+        directory.mkdir()
+    env = dict(os.environ, HOME=str(home), VERI_PYTEST_IMPORTABLE="1", VERI_PYTEST_TIMEOUT_IMPORTABLE="1", VERI_PYTEST_XDIST_IMPORTABLE="1")
+
+    def launch(name):
+        err = open(tmp_path / (name + ".err"), "w")
+        return subprocess.Popen([sys.executable, "-c", child, name, str(marks), str(release)],
+                                cwd=tmp_path / ("tree" + name), env=env, stdout=subprocess.DEVNULL, stderr=err)
+
+    def until(done):
+        deadline = time.monotonic() + 15
+        while not done() and time.monotonic() < deadline:
+            time.sleep(0.05)
+
+    first = launch("A")
+    second = None
+    try:
+        until(lambda: (marks / "A-started").exists())
+        second = launch("B")
+        until(lambda: "waiting" in (tmp_path / "B.err").read_text())
+        try:
+            second.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            second.kill()
+        code = second.wait(timeout=30)
+    finally:
+        release.touch()
+        for process in (first, second):
+            if process is not None and process.poll() is None:
+                process.kill()
+        first.wait(timeout=30)
+    assert (code != 0, (marks / "B-started").exists()) == (True, False)
