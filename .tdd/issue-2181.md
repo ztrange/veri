@@ -1,0 +1,6 @@
+# Plan for #2181 — affected_suites.unfenced misaligns fence flags when a line holds \r, \x0c or another splitlines() boundary
+
+- [ ] affected_suites maps a changed line of a markdown file with a `\r\n` line ending before a fenced block containing a `## ` line to the same section as the `\n`-only version of that file (small unit case in tests/py/unit/test_affected_suites_lines.py, no git, no subprocess) ⟦criterion 1⟧
+- [ ] affected_suites maps a changed line of a markdown file holding a line containing `\x0c` before a fenced block containing a `## ` line to the same section as the version without the `\x0c` (small unit case in tests/py/unit/test_affected_suites_lines.py, no git, no subprocess) ⟦criterion 2⟧
+- [ ] affected_suites.unfenced() yields exactly one flag decision per input line whatever characters a line holds — every splitlines() boundary `\r`, `\x0b`, `\x0c`, `\x1c`, `\x1d`, `\x1e`, `\x85`, ` `, ` ` inside a line keeps the following lines' fence flags aligned (small unit case in tests/py/unit/test_affected_suites_lines.py) ⟦criterion 3⟧
+- [ ] grade_prose.section() keeps a mid-line `\x0c`, `\x85` or ` ` inside the line rather than turning it into a newline — `section("## u\nbefore\x0cafter\nend\n## v\n", "u")` returns `'## u\nbefore\x0cafter\nend\n'` — pinned by one case per character (small unit case in tests/py/unit/test_grade_prose.py)
