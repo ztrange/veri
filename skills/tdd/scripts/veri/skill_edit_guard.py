@@ -3,7 +3,7 @@ import os
 import subprocess
 import sys
 
-USAGE = "usage: skill-edit-guard.sh <unit-file> <base-sha>"
+USAGE = "usage: skill-edit-guard.sh <unit-file> <base-sha> [<pin-file>...]"
 
 
 def _git_lines(*args):

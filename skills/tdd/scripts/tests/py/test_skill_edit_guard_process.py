@@ -53,10 +53,10 @@ def test_skill_edit_guard_untracked_requirements_beside_the_unit_exit_0(tmp_path
 
 
 @pytest.mark.process("skill-edit-guard.sh run with no arguments")
-def test_skill_edit_guard_no_arguments_prints_usage_and_exit_2(tmp_path):
+def test_skill_edit_guard_2232_no_arguments_prints_usage_naming_pin_files_and_exit_2(tmp_path):
     ran = subprocess.run([str(GUARD)], cwd=tmp_path, capture_output=True, text=True)
 
-    assert (ran.returncode, ran.stdout, ran.stderr) == (2, "", "usage: skill-edit-guard.sh <unit-file> <base-sha>\n")
+    assert (ran.returncode, ran.stdout, ran.stderr) == (2, "", "usage: skill-edit-guard.sh <unit-file> <base-sha> [<pin-file>...]\n")
 
 
 @pytest.mark.process("skill-edit-guard.sh run against a real git repository")
