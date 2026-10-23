@@ -115,9 +115,11 @@ def _outcome(n, code, prs):
                 cause = run_end(_tdd("wt", n))[1]
             except OSError:
                 cause = None
-            if cause == "done" or (cause != "bailed" and not pr.get("isDraft", pr.get("draft"))):
+            if cause == "bailed":
+                return "bailed %s" % url
+            if cause == "done" or not pr.get("isDraft", pr.get("draft")):
                 return "done %s" % url
-            return "bailed %s" % url if cause == "bailed" else ""
+            return ""
     return ""
 
 
