@@ -389,6 +389,26 @@ def test_a_grades_line_whose_grade_word_is_other_than_exactly_pass_or_fail_makes
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_a_malformed_grade_word_in_the_first_reply_is_named_without_a_follow_up_grader_call_2215(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text(STUB.replace("A2: PASS - ok", "A2: PASSABLE - ok")
+                      .replace("#!/bin/sh\n", "#!/bin/sh\necho call >> \"$STUB_CALLS\"\n", 1))
+    claude.chmod(0o755)
+    calls = tmp_path / "calls.txt"
+
+    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                          capture_output=True, text=True,
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt"), "STUB_CALLS": str(calls)})
+
+    made = len(calls.read_text().splitlines()) if calls.exists() else 0
+    assert (done.returncode, made, "PASSABLE" in done.stderr) == (2, 1, True), (done.returncode, made, done.stderr)
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
 def test_a_reply_holding_two_grades_blocks_is_graded_on_the_final_one_only(tmp_path):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
