@@ -131,9 +131,9 @@ def launch(base, issue, commit, **exports):
     run_tmp = tempfile.mkdtemp(prefix="veri-run-%s-" % issue)
     try:
         run_state = os.path.join(event.toplevel(), ".tdd")
-        if os.path.isdir(run_state):
-            with open(os.path.join(run_state, "issue-%s-tmpdir-skill-commit" % issue), "w") as record:
-                record.write("%s %d\n" % (run_tmp, os.getpid()))
+        os.makedirs(run_state, exist_ok=True)
+        with open(os.path.join(run_state, "issue-%s-tmpdir-skill-commit" % issue), "w") as record:
+            record.write("%s %d\n" % (run_tmp, os.getpid()))
         return conduct(text, issue, dict(os.environ, **exports, TMPDIR=run_tmp))
     finally:
         shutil.rmtree(run_tmp, ignore_errors=True)
