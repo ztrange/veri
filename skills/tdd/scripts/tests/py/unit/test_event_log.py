@@ -64,3 +64,13 @@ def test_read_events_2035_by_default_refuses_a_line_that_is_not_a_json_object_wi
         event_log.read_events(log)
 
     assert str(log) in str(refused.value)
+
+
+def test_read_events_2035_with_errors_strict_keeps_raising_unicode_decode_error_whether_or_not_skip_unreadable_is_set(tmp_path, event_log):
+    log = tmp_path / "events.jsonl"
+    log.write_bytes(b'{"event": "a"}\n{"event": "b", "note": "bad\xff byte"}\n')
+
+    with pytest.raises(UnicodeDecodeError):
+        event_log.read_events(log, errors="strict")
+    with pytest.raises(UnicodeDecodeError):
+        event_log.read_events(log, skip_unreadable=True, errors="strict")
