@@ -148,3 +148,12 @@ def test_2130_an_unreadable_ledger_exits_2_naming_the_file_on_stderr(tmp_path, r
     missing = tmp_path / "issue-42.md"
     code, out, err = run_cli(ledger_growth, [str(plan), str(missing)])
     assert (code, out, str(missing) in err) == (2, "", True)
+
+
+def test_2130_an_unreadable_plan_ledger_file_exits_2_naming_it_never_exit_1(tmp_path, run_cli, ledger_growth):
+    plan = tmp_path / "plan.md"
+    plan.mkdir()
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_text("# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n")
+    code, out, err = run_cli(ledger_growth, [str(plan), str(ledger)])
+    assert (code, out, str(plan) in err) == (2, "", True)

@@ -1353,7 +1353,7 @@ def test_main_writes_each_inserted_step_to_the_tracked_added_file_beside_the_led
     inserted = [line for line in ledger.read_text().split("\n") if "⟦added⟧" in line]
     assert len(inserted) == 2
     recorded = added.read_text() if added.exists() else ""
-    assert [line in recorded.split("\n") or line.removeprefix("- [ ] ") in recorded for line in inserted] == [True, True]
+    assert [line in recorded.split("\n") for line in inserted] == [True, True]
 
     before = added.read_bytes()
     monkeypatch.setenv("VERI_STEP_GROWTH", "2")
