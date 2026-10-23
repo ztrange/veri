@@ -76,18 +76,9 @@ def events_of(run):
 
 
 # The lines of one run's log carrying one of the marks named — which field of a line says
-# which mark it is, asked here and not by each reader that wants a kind of mark. Both of
-# them below read a mark this way: the one that decides a run has ended, and the one the
-# Tests pane counts.
+# which mark it is, asked here and not by each reader that wants a kind of mark.
 def events_marked(run, *marks):
     return [event for event in events_of(run) if event.get("event") in marks]
-
-
-# A run has ENDED when its log carries the mark that ends one — `done` or `bail`, the same
-# pair status.sh reads for its `state` (status.sh:76). That, and not a clock, is what splits
-# the two readings below: a run still going is recomputed, an ended one is quoted.
-def run_ended(run):
-    return bool(event_log(run)) and run_end.run_end(run)[0]
 
 
 # One issue's report, which is the whole of the split the criterion names. For a run still
@@ -108,7 +99,7 @@ def issue_report(run, issue):
     # would let the marker name a path the reader never looked at.
     report = os.path.join(".tdd", "issue-%s-metrics.md" % issue)
     committed = os.path.join(run, report)
-    if run_ended(run):
+    if event_log(run) and run_end.run_end(run)[0]:
         if os.path.exists(committed):
             return open(committed).read()
         return "(no report: this run ended without committing %s)" % report
