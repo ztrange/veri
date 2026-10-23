@@ -1588,3 +1588,31 @@ def test_check_earlier_exit_0_writes_a_pass_marker_under_tdd_naming_the_step_and
     markers = [path for path in (tmp_path / ".tdd").rglob("*")
                if path.is_file() and step in path.read_text() and head in path.read_text()]
     assert (code, out, len(markers)) == (0, "", 1)
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked for HEAD by check-earlier")
+def test_check_earlier_exit_1_removes_the_pass_marker_of_that_step_and_leaves_another_steps_marker_2206(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier, current, other = "step one adds a case", "step two adds another", "step three adds more"
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_older_case():\n    assert True\n\n\ndef test_pinned_2206():\n    assert 1 == 2\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n- [ ] %s\n" % (earlier, current, other))
+    passes = [run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", step], cwd=tmp_path)[0]
+              for step in (current, other)]
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_older_case():\n    assert True\n\n\ndef test_pinned_2206():\n    assert True\n")
+
+    code, _, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    kept = [path.read_text() for path in (tmp_path / ".tdd").rglob("*")
+            if path.is_file() and "head: " in path.read_text()]
+    assert (passes, code, [("step: %s\n" % current in text, "step: %s\n" % other in text) for text in kept]) == (
+        [0, 0], 1, [(False, True)])

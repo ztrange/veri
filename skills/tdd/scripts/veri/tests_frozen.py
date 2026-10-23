@@ -47,6 +47,13 @@ def _write_pass_marker(step):
         handle.write("step: %s\nhead: %s\n" % (step, os.fsdecode(done.stdout).strip()))
 
 
+def _remove_pass_marker(step):
+    try:
+        os.remove(_pass_marker_path(step))
+    except OSError:
+        pass
+
+
 def _toplevel():
     done = subprocess.run(["git", "rev-parse", "--show-toplevel"], stdout=subprocess.PIPE,
                           stderr=subprocess.DEVNULL)
@@ -210,6 +217,8 @@ def _check_earlier(ledger, step, exempt=()):
         write(sys.stdout, entry)
     if not changed:
         _write_pass_marker(step)
+    else:
+        _remove_pass_marker(step)
     return 1 if changed else 0
 
 
