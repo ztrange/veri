@@ -200,6 +200,7 @@ def hermetic_environment(request, monkeypatch, tmp_path):
         monkeypatch.chdir(ROOT)
     monkeypatch.setenv("LC_ALL", "C")
     monkeypatch.setenv("VERI_PYTEST_LEGS", str(tmp_path / "veri-pytest-legs"))
+    monkeypatch.setenv("VERI_MIN_FREE_GB", "0")
     for name, value in offline.items():
         monkeypatch.setenv(name, value)
 
