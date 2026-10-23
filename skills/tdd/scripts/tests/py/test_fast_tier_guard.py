@@ -386,7 +386,8 @@ def test_the_guards_command_line_prints_every_offence_by_file_and_line_and_exits
 
     assert (code, [line.split(": ")[0] for line in stdout.splitlines()]) == (1, [f"{first}:4", f"{second}:5"])
 
-FROZEN_OUTSIDE_THE_TIER = ("test_events_jsonl_openers.py", "test_events_jsonl_openers_shapes.py")
+FROZEN_OUTSIDE_THE_TIER = ("test_events_jsonl_openers.py", "test_events_jsonl_openers_shapes.py",
+                          "test_skill_refactor_readers.py")
 
 
 def _misplaced(tier):
@@ -670,12 +671,13 @@ def test_2168_the_readers_audit_suites_and_their_index_guard_live_under_tests_py
         "test_skill_phased_readers.py",
         "test_skill_plan_readers.py",
         "test_skill_red_readers.py",
-        "test_skill_refactor_readers.py",
         "test_tree_index_guard.py",
     )
     assert [(name, (tier / name).is_file(), (tier / "unit" / name).is_file()) for name in names] == [
         (name, False, True) for name in names
     ]
+    name = "test_skill_refactor_readers.py"
+    assert (name, (tier / name).is_file(), (tier / "unit" / name).is_file()) == (name, True, False)
 
 def test_the_ledger_path_single_source_suite_lives_under_tests_py_unit_and_not_beside_it():
     tier = SCRIPTS / "tests" / "py"
