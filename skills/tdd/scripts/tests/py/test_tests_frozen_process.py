@@ -1616,3 +1616,27 @@ def test_check_earlier_exit_1_removes_the_pass_marker_of_that_step_and_leaves_an
             if path.is_file() and "head: " in path.read_text()]
     assert (passes, code, [("step: %s\n" % current in text, "step: %s\n" % other in text) for text in kept]) == (
         [0, 0], 1, [(False, True)])
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked for HEAD by check-earlier")
+def test_check_earlier_exit_2_for_an_unreadable_ledger_removes_the_pass_marker_of_that_step_and_leaves_another_steps_marker_2206(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    current, other = "step two adds another", "step three adds more"
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [ ] %s\n- [ ] %s\n" % (current, other))
+    passes = [run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", step], cwd=tmp_path)[0]
+              for step in (current, other)]
+
+    code, _, _ = run_cli(tests_frozen, ["check-earlier", str(tmp_path / "missing.md"), "--step", current],
+                         cwd=tmp_path)
+
+    kept = [path.read_text() for path in (tmp_path / ".tdd").rglob("*")
+            if path.is_file() and "head: " in path.read_text()]
+    assert (passes, code, [("step: %s\n" % current in text, "step: %s\n" % other in text) for text in kept]) == (
+        [0, 0], 2, [(False, True)])
