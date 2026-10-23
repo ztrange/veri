@@ -4111,3 +4111,27 @@ def test_cli_launches_verify_red_and_verify_green_with_a_current_pass_marker_and
         answers[name] = answer(name)
 
     assert answers == {name: (0, True, False) for name in answers} and len(answers) == 7
+
+
+def test_cli_gates_a_verify_red_or_verify_green_launch_given_the_step_as_its_ledger_text_on_that_texts_pass_marker_2206(
+        monkeypatch, tmp_path, supervise, run_cli):
+    clean_env(monkeypatch)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-2206.md").write_text("# Plan for #2206\n\n- [ ] first step\n")
+    head = "0123456789abcdef0123456789abcdef01234567"
+    marker = tmp_path / supervise.tests_frozen._pass_marker_path("first step")
+    stub = tmp_path / "claude"
+    started = spy_leaf_start(monkeypatch, tmp_path, supervise)
+
+    def answer(name):
+        started.clear()
+        code, out, err = run_cli(supervise, [name, str(stub)], cwd=tmp_path,
+                                 env={"VERI_ISSUE": "2206", "VERI_STEP": "first step"})
+        return code, bool(started), "check-earlier" in err
+
+    unmarked = {name: answer(name) for name in ("verify-red", "verify-green")}
+    marker.write_text(f"step: first step\nhead: {head}\n")
+    marked = {name: answer(name) for name in ("verify-red", "verify-green")}
+
+    assert unmarked == {name: (2, False, True) for name in unmarked}
+    assert marked == {name: (0, True, False) for name in marked}
