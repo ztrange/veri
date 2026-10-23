@@ -1,0 +1,2 @@
+### `tests-frozen.sh check-earlier` exiting 2 (not inside a git repository, or an unreadable ledger) removes an existing pass marker for that step, leaving markers of other steps in place ⟦added⟧ ⟦criterion 1⟧
+- test-only | none
