@@ -25,8 +25,10 @@ Run it on every question before it reaches the human.
 
 1. **Is it an operation, not a decision?** Opening or updating a PR, filing, commenting on or
    closing an issue, editing repo files, running tests, removing a run's own files, re-arming a
-   watcher, merging a finished run whose review is OK, a `gh` command: do it and report it (P14).
-   Never phrase an operation as a question, and never offer an "(a) do it / (b) hold" menu.
+   watcher, a `gh` command: do it and report it (P14). Never phrase an operation as a question,
+   and never offer an "(a) do it / (b) hold" menu. A merge is not one of these: it follows
+   `veri-merge` and the caveat rule — every caveat the review found goes to the coordinator, and
+   the merge waits for a reply that names each one.
 2. **Is it on the always-surface list below?** Then surface it (step 5), whatever the
    principles seem to say.
 3. **Run it through the principles, J1 to J12.** Name every principle that applies and what each
@@ -53,27 +55,29 @@ it or dropped; never a "refactor owed" issue. Obsolete tests are retired in the 
 makes them obsolete, not batched to the end of a plan. *Overrode:* merge now plus a follow-up
 issue; retiring tests in one sweep at the end.
 
-**J2 — Tests are fast, and the bar does not move.** The fast tier's target stands (about 2 s,
-at most 5 s); a slow test means missing dependency injection, not a looser target. Work that makes
-every future run faster or cheaper outranks ordinary bugs. CI jobs keep tight `timeout-minutes`,
-raised only on evidence of cancelled runs. *Overrode:* relaxing the target to 10 s ("why are you
-so insistent to lower the bar?"); a 10-minute CI cap where 3 sufficed.
+**J2 — Tests are fast, and the bar does not move.** The fast tier's target, as the target
+repo's CLAUDE.md or the human's standing rules state it, stands; a slow test means missing
+dependency injection, not a looser target. Work that makes every future run faster or cheaper
+outranks ordinary bugs. CI jobs keep tight timeouts, raised only on evidence of cancelled runs.
+*Overrode:* relaxing a stated target because it was hard to reach ("why are you so insistent to
+lower the bar?"); a CI cap looser than the jobs needed.
 
 **J3 — Cheapest tier that does the job, proven by measurement.** A cheaper model, runner or
 design is tried and kept if a blind evaluation shows the quality loss is below the saving.
 Recurring spend is cut at the source and never widened silently. A park costs nothing, so a
-tighter budget ceiling beats a split or a bigger ceiling. *Overrode:* keeping macOS CI "on merge
-only"; a $200 ceiling where the projection was $127; a daily canary run that real runs already
-replace.
+tighter budget ceiling beats a split or a bigger ceiling. *Overrode:* keeping a costly CI runner
+for a narrower trigger instead of dropping it; a ceiling well above the run's projected cost; a
+recurring check that real runs already replace.
 
-**J4 — Use the capacity, pace the week.** Weekly usage is paced at about 15 % a day. Before a
-reset, unused capacity is waste: fill the slots. N is lowered by not refilling, never by killing
+**J4 — Use the capacity, pace the week.** Weekly usage is paced at the daily rate the human's
+standing rules set. Before a reset, unused capacity is waste: fill the slots. N is lowered by not refilling, never by killing
 a run. Another model's bucket is not extra capacity when it counts toward the all-models limit.
 *Overrode:* moving work to a "free" model bucket; leaving capacity unspent before a reset.
 
 **J5 — veri fixes veri.** A defect in veri's product code becomes an issue veri runs, not a hand
-fix. A hand fix is for a test-only gap on a run's branch, or a bug that blocks veri itself, and
-then it simulates TDD: failing test first, go-red check, blind review. *Overrode:* a hand-built
+fix — even a bug that blocks veri itself: it is filed through `veri-file`, and the run it stopped
+takes the normal bail handling. The only hand fix is a test-only gap on a run's branch, and it
+simulates TDD: failing test first, go-red check, blind review. *Overrode:* a hand-built
 PR ("why did you fix it instead of creating an issue?").
 
 **J6 — Fix the rule, not the instance.** When a rule forces the same bail or exception on more
@@ -103,10 +107,10 @@ A death from a usage limit, network outage or machine sleep is resumed, not coun
 Environment churn (tool updates, sleep) is absorbed: veri is made resilient, the environment is
 not asked to hold still. *Overrode:* asking to pause tool updates; waiting for an OK to re-arm.
 
-**J11 — The queue's natural order rules.** The order is the selection layer's: priority, bugs,
-the rest. Blockers express dependency; `priority` is proposed only for work that makes future
-runs cheaper or faster, with the saving in one line. *Overrode:* `priority` used to sequence
-work that a blocker line already orders.
+**J11 — The queue's natural order rules.** The order is the selection layer's. Blockers express
+dependency; the priority label the target repo's CLAUDE.md names is proposed only for work that
+makes future runs cheaper or faster, with the saving in one line. *Overrode:* the priority label
+used to sequence work that a blocker line already orders.
 
 **J12 — State lives where the next reader finds it.** A park is a label plus a comment saying
 why; a claim is a label; a decision is in the issue or commit body. Never local memory alone.
@@ -123,8 +127,10 @@ a principle seems to answer them.
   or a dependency rule, closing a PRD, opening a lane.
 - **Weakening a guarantee the owner asked for**: merging with a criterion gap, accepting a
   narrower fix than the issue states, relaxing an ADR or a requirement row.
-- **The third strike on product code**: after one resume failed again, resume vs hand fix vs
-  merge as is vs park.
+- **What becomes of a parked run**: the dev session resumes a first bail once and parks a
+  second, with one issue comment giving the cause and what would unblock it; it never asks.
+  Whether a parked run on product code is resumed with a raised budget, merged as is or closed
+  is the human's, surfaced by the coordinator from that comment.
 - **Preempting a running run** to land another issue sooner.
 - **A first-of-kind precedent**: the first run of a new kind of change, whose review sets the
   bar for the ones after it.
