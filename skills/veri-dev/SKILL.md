@@ -54,8 +54,11 @@ coordinator gave an override (P9). Launch it detached, never as a conductor insi
 session:
 
 ```bash
-$S/detach-leaf.sh $S/run-conductor.sh <n> > .tdd/conductor-<n>.out 2>&1 < /dev/null
+$S/detach-leaf.sh $S/run-conductor.sh <n> >> .tdd/conductor-<n>.log 2>&1 < /dev/null
 ```
+
+Every launch, a resume included, appends with `>>` to that `.log`, the file `stop-reason.sh`
+and `metrics.sh` read; none truncates it.
 
 Announce it as `Started #<n> — <title>`, the title read from `gh issue view <n> --json title`.
 
