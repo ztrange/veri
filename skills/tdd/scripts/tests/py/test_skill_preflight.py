@@ -2,6 +2,7 @@
 import pathlib
 import re
 import subprocess
+import sys
 import warnings
 
 import pytest
@@ -191,6 +192,7 @@ MECHANICAL_READERS = (
     "test_1297_skill_md_s_draft_pr_step_does_not_write_the_resume_rebase_event",
     "test_a_gh_auth_status_call_planted_in_skill_md_is_named_as_file_line",
     "test_every_remaining_case_that_reads_skill_md_s_preflight_section",
+    "test_2220_sweep_flags_a_case_reading_the_preflight_section",
 )
 NAMES_PREFLIGHT = re.compile(r"^PREFLIGHT$|#+ .*[Pp]reflight|#+ 0\.|Preflight —")
 
@@ -271,3 +273,19 @@ def stray_cases(entries, allowed):
 def test_every_remaining_case_that_reads_skill_md_s_preflight_section_is_a_named_mechanical_fact_case(tests_py_index):
     strays = stray_cases(tests_py_index, MECHANICAL_READERS)
     assert strays == [], f"cases read the Preflight section but are not on the mechanical-fact allow-list: {strays}"
+
+
+def test_2220_sweep_flags_a_case_reading_the_preflight_section_until_it_is_on_the_allow_list(tmp_path, monkeypatch):
+    from conftest import TestFile
+    module = tmp_path / "test_synthetic_reader.py"
+    module.write_text(
+        'SKILL_MD = "SKILL.md"\n\n\n'
+        'def test_reads_the_preflight_section():\n'
+        '    assert PREFLIGHT in SKILL_MD\n',
+        encoding="utf-8")
+    monkeypatch.setattr(sys.modules[__name__], "TESTS_DIR", tmp_path)
+    entries = [TestFile(module)]
+    key = "test_synthetic_reader.py::test_reads_the_preflight_section"
+
+    assert stray_cases(entries, []) == [key]
+    assert stray_cases(entries, ["test_reads_the_preflight_section"]) == []
