@@ -51,7 +51,7 @@ def step_costs(step, cwd):
     if not os.access(log_path, os.R_OK):
         sys.stderr.write("step-cost.sh: cannot read %s in %s — run from the run's worktree\n" % (LOG, cwd))
         return 2, ""
-    events = event_log.read_events(log_path, skip_unreadable=True)
+    events = event_log.read_events(log_path, skip_unreadable=True, errors="strict")
     usage = [e for e in events if e.get("event") == "usage"]
     if step not in ("--run", "--steps"):
         usage = [e for e in usage if e.get("step", "") == step]

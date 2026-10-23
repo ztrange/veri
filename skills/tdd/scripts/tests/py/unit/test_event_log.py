@@ -37,3 +37,11 @@ def test_read_events_by_default_refuses_a_line_that_is_not_a_json_object_but_ski
         event_log.read_events(not_json)
     with pytest.raises(ValueError):
         event_log.read_events(not_object)
+
+
+def test_read_events_reads_a_log_holding_an_invalid_utf8_byte_without_raising_and_replaces_it_with_u_fffd(tmp_path, event_log):
+    log = tmp_path / "events.jsonl"
+    log.write_bytes(b'{"event": "a", "note": "bad\xff byte"}\n{"event": "b"}\n')
+
+    assert event_log.read_events(log) == [
+        {"event": "a", "note": "bad� byte"}, {"event": "b"}]
