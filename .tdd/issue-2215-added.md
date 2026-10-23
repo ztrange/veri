@@ -1,0 +1,1 @@
+- [ ] With VERI_NO_VERDICT_RETRIES=0, a first grader reply whose GRADES block leaves out one requirement ID makes grade-prose launch the grader exactly once, exit 2 naming the ID as missing, and append no grading event; a small in-process unit case in skills/tdd/scripts/tests/py/unit/test_grade_prose.py ⟦added⟧ ⟦criterion 1⟧
