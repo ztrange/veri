@@ -413,6 +413,25 @@ def test_get_api_metrics_recomputes_run_37_2008_resumed_after_a_bail_and_launche
     assert json.loads(body(metrics))["issues"]["37"] == recomputed
 
 
+def test_get_api_metrics_quotes_the_committed_report_of_run_38_2008_killed_with_no_mark_and_no_live_conductor(
+        tmp_path, monkeypatch, dashboard):
+    run = os.path.join(str(tmp_path), ".tdd", "wt", "38")
+    write(os.path.join(run, ".tdd", "issue-38.md"), "# Plan for #38\n\n- [ ] a lamp glows\n")
+    write(os.path.join(run, ".tdd", "events.jsonl"),
+          '{"ts": 1, "issue": "38", "event": "step-start"}\n'
+          '{"ts": 2, "issue": "38", "event": "launch", "name": "develop-red"}\n')
+    write(os.path.join(run, ".tdd", "conductor-38.log"),
+          '{"type": "system", "subtype": "init"}\n')
+    committed = "# What solving #38 cost, committed before the conductor was killed\n"
+    write(os.path.join(run, ".tdd", "issue-38-metrics.md"), committed)
+    served = serve_with_real_metrics(monkeypatch, tmp_path)
+
+    dashboard.main([])
+
+    (metrics,) = served[0][1]
+    assert json.loads(body(metrics))["issues"]["38"] == committed
+
+
 def test_get_api_metrics_keys_issues_by_the_run_directory_7_alone_and_answers_the_report_of_its_own_log(
         tmp_path, monkeypatch, dashboard, run_cli):
     run = os.path.join(str(tmp_path), ".tdd", "wt", "7")
