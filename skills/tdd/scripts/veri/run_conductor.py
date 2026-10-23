@@ -128,7 +128,18 @@ def launch(base, issue, commit, **exports):
     text = prompt(base, issue, commit)
     if text is None:
         return 2
-    env = dict(os.environ, **exports)
+    run_tmp = tempfile.mkdtemp(prefix="veri-run-%s-" % issue)
+    try:
+        run_state = os.path.join(event.toplevel(), ".tdd")
+        if os.path.isdir(run_state):
+            with open(os.path.join(run_state, "issue-%s-tmpdir-skill-commit" % issue), "w") as record:
+                record.write("%s %d\n" % (run_tmp, os.getpid()))
+        return conduct(text, issue, dict(os.environ, **exports, TMPDIR=run_tmp))
+    finally:
+        shutil.rmtree(run_tmp, ignore_errors=True)
+
+
+def conduct(text, issue, env):
     strip_session_env(env)
     env.pop("VERI_NEW_SKILL", None)
     env.pop("FORCE_PROMPT_CACHING_5M", None)
