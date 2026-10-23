@@ -555,3 +555,138 @@ def test_refresh_with_a_well_formed_cache_searches_updated_since_fetched_at_and_
 
     searches = [c[c.index("--search") + 1] for c in calls if "--search" in c]
     assert (code, err, searches) == (0, "", ["updated:>=2026-10-01T00:00:00Z"])
+
+
+def test_two_refreshes_interleaved_mid_write_leave_a_cache_that_parses_whole_from_one_writer_2160(run_cli, monkeypatch, tmp_path):
+    import json
+    import os
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    cache = tmp_path / ".tdd" / "report-cache.json"
+    answers = {
+        "A": [{"number": 7, "title": "from writer A", "state": "OPEN", "labels": [], "closedAt": None,
+               "updatedAt": "2026-10-21T10:00:00Z"}],
+        "B": [{"number": n, "title": "from writer B, a longer answer", "state": "OPEN", "labels": [],
+               "closedAt": None, "updatedAt": "2026-10-21T11:00:00Z"} for n in (8, 9)],
+    }
+    writer = ["A"]
+    b_code = []
+    b_replaces = []
+    real_dump, real_replace = json.dump, os.replace
+
+    def fake_run(args, **kwargs):
+        return subprocess.CompletedProcess([str(arg) for arg in args], 0, json.dumps(answers[writer[-1]]), "")
+
+    def interleaving_dump(obj, out, **kwargs):
+        if writer[-1] == "B":
+            return real_dump(obj, out, **kwargs)
+        text = json.dumps(obj, **kwargs)
+        out.write(text[: len(text) // 2])
+        out.flush()
+        writer.append("B")
+        try:
+            b_code.append(report_cache.main(["refresh"]))
+        finally:
+            writer.pop()
+        out.write(text[len(text) // 2:])
+
+    def deferring_replace(src, dst):
+        if writer[-1] == "B":
+            b_replaces.append((src, dst))
+            return None
+        return real_replace(src, dst)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(json, "dump", interleaving_dump)
+    monkeypatch.setattr(os, "replace", deferring_replace)
+
+    a_code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+    b_lost = None
+    for src, dst in b_replaces:
+        try:
+            real_replace(src, dst)
+        except OSError as failure:
+            b_lost = failure
+
+    titles = {i["title"] for i in json.loads(cache.read_text())["issues"]}
+    assert (a_code, b_code, b_lost, titles in ({"from writer A"}, {"from writer B, a longer answer"})) == (0, [0], None, True)
+
+
+def test_refresh_with_a_cache_that_is_not_utf8_names_it_on_stderr_rebuilds_with_a_full_fetch_and_exits_0_2160(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    cache = tmp_path / ".tdd" / "report-cache.json"
+    cache.write_bytes(b'{"fetched_at": "\xff\xfe\x80", "issues": []}')
+    issues = [{"number": 8, "title": "new", "state": "OPEN", "labels": [], "closedAt": None,
+               "updatedAt": "2026-10-21T10:00:00Z"}]
+    searched = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        searched.append("--search" in args)
+        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    assert (code, "report-cache.json" in err and "rebuilding" in err, searched) == (0, True, [False])
+    assert [i["number"] for i in json.loads(cache.read_text())["issues"]] == [8]
+
+
+def test_refresh_with_a_cache_whose_fetched_at_is_not_a_string_names_it_on_stderr_rebuilds_with_a_full_fetch_and_exits_0_2160(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    cache = tmp_path / ".tdd" / "report-cache.json"
+    cache.write_text(json.dumps({"fetched_at": 5, "issues": [{"number": 7, "title": "old", "state": "OPEN"}]}))
+    issues = [{"number": 8, "title": "new", "state": "OPEN", "labels": [], "closedAt": None,
+               "updatedAt": "2026-10-21T10:00:00Z"}]
+    searched = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        searched.append("--search" in args)
+        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    assert (code, "report-cache.json" in err and "rebuilding" in err, searched) == (0, True, [False])
+    assert [i["number"] for i in json.loads(cache.read_text())["issues"]] == [8]
+
+
+def test_refresh_whose_os_replace_raises_removes_its_own_temp_file_2160(run_cli, monkeypatch, tmp_path):
+    import json
+    import os
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps({"fetched_at": "2026-10-20T00:00:00Z", "issues": []}))
+
+    def fake_run(args, **kwargs):
+        return subprocess.CompletedProcess([str(arg) for arg in args], 0, "[]", "")
+
+    def failing_replace(src, dst):
+        raise OSError("interrupted before replace")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(os, "replace", failing_replace)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    assert (code, "interrupted before replace" in err, sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == (
+        2, True, ["report-cache.json"])

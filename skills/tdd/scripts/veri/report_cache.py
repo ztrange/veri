@@ -4,6 +4,7 @@ import json
 import os
 import re
 import sys
+import tempfile
 
 import github
 
@@ -53,13 +54,13 @@ def refresh():
         try:
             with open(path) as existing:
                 before = json.load(existing)
-            since = before["fetched_at"]
+            search = "updated:>=" + before["fetched_at"]
             loaded = {issue["number"]: issue for issue in before["issues"]}
-        except (json.JSONDecodeError, KeyError, TypeError) as failure:
+        except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError) as failure:
             sys.stderr.write("report-cache.sh: %s is unreadable (%s), rebuilding\n" % (path, failure))
         else:
             kept = loaded
-            command += ["--search", "updated:>=" + since]
+            command += ["--search", search]
     try:
         issues = json.loads(github.gh_issue_list(*command))
     except github.NoAnswer as failure:
@@ -74,10 +75,14 @@ def refresh():
     issues = list(kept.values())
     fetched_at = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     os.makedirs(tdd, exist_ok=True)
-    temp = path + ".tmp"
-    with open(temp, "w") as out:
-        json.dump({"fetched_at": fetched_at, "issues": issues}, out)
-    os.replace(temp, path)
+    fd, temp = tempfile.mkstemp(dir=tdd, prefix="report-cache.json.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as out:
+            json.dump({"fetched_at": fetched_at, "issues": issues}, out)
+        os.replace(temp, path)
+    except BaseException:
+        os.unlink(temp)
+        raise
     return 0
 
 
