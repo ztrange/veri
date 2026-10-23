@@ -661,7 +661,15 @@ def test_2168_the_readers_audit_suites_and_their_index_guard_live_under_tests_py
         (name, False, True) for name in names
     ]
 
+<<<<<<< HEAD
 def test_the_ledger_path_single_source_suite_lives_under_tests_py_unit_and_not_beside_it():
     tier = SCRIPTS / "tests" / "py"
     name = "test_ledger_path_single_source.py"
     assert (name, (tier / name).is_file(), (tier / "unit" / name).is_file()) == (name, False, True)
+=======
+
+def test_the_fence_rule_home_suite_lives_under_tests_py_unit_and_not_beside_it():
+    tier = SCRIPTS / "tests" / "py"
+    name = "test_fence_rule_home.py"
+    assert ((tier / name).is_file(), (tier / "unit" / name).is_file()) == (False, True)
+>>>>>>> 243b6dd1c (feat: the fence-rule audit lives in the fast tier, as the fast-tier guard requires (#1976))
