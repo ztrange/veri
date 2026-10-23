@@ -1379,3 +1379,26 @@ def test_dashboard_sh_run_through_a_symlink_to_the_skill_directory_and_from_anot
         assert page == f.read()
     assert runs == want
     assert code == 0
+
+
+def test_get_api_metrics_asks_run_end_alone_whether_runs_39_and_40_2008_ended_whatever_marks_their_logs_carry(
+        tmp_path, monkeypatch, dashboard):
+    import run_end
+    carrying_done = os.path.join(str(tmp_path), ".tdd", "wt", "39")
+    carrying_none = os.path.join(str(tmp_path), ".tdd", "wt", "40")
+    for run, issue, marks in ((carrying_done, "39", '{"ts": 2, "issue": "39", "event": "done"}\n'),
+                              (carrying_none, "40", "")):
+        write(os.path.join(run, ".tdd", "issue-%s.md" % issue), "# Plan for #%s\n\n- [ ] a lamp glows\n" % issue)
+        write(os.path.join(run, ".tdd", "events.jsonl"),
+              '{"ts": 1, "issue": "%s", "event": "step-start"}\n' % issue + marks)
+        write(os.path.join(run, ".tdd", "issue-%s-metrics.md" % issue), "# committed report for #%s\n" % issue)
+    answers = {carrying_done: (False, None, {}), carrying_none: (True, "stopped", {})}
+    monkeypatch.setattr(run_end, "run_end", lambda run_dir: answers[run_dir])
+    served = serve_with_real_metrics(monkeypatch, tmp_path)
+
+    dashboard.main([])
+
+    (metrics,) = served[0][1]
+    issues = json.loads(body(metrics))["issues"]
+    assert issues["39"] != "# committed report for #39\n"
+    assert issues["40"] == "# committed report for #40\n"
