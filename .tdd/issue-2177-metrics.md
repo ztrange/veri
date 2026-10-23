@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 2177
 
-Wall time for the issue: 2503 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1642 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 5 of 5 planned.
+Steps done: 8 of 8 planned.
 Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/2178.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $7.68 over 156 turns, in 3 sessions.
+Conductor own spending: $11.36 over 224 turns, in 4 sessions.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
@@ -95,81 +95,149 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 79 | $0.03 | 106370 |
 | 80 | $0.04 | 106997 |
 | 81 | $0.03 | 107649 |
-| 82 | $0.56 | 87218 |
-| 83 | $0.02 | 87644 |
-| 84 | $0.03 | 88610 |
-| 85 | $0.02 | 89086 |
-| 86 | $0.03 | 90884 |
-| 87 | $0.04 | 94156 |
-| 88 | $0.02 | 94668 |
-| 89 | $0.02 | 94948 |
-| 90 | $0.02 | 95330 |
-| 91 | $0.02 | 95888 |
-| 92 | $0.02 | 96353 |
-| 93 | $0.02 | 96761 |
-| 94 | $0.03 | 97674 |
+| 82 | $0.57 | 87218 |
+| 83 | $0.03 | 87644 |
+| 84 | $0.04 | 88610 |
+| 85 | $0.03 | 89086 |
+| 86 | $0.04 | 90884 |
+| 87 | $0.06 | 94156 |
+| 88 | $0.03 | 94668 |
+| 89 | $0.03 | 94948 |
+| 90 | $0.04 | 95330 |
+| 91 | $0.03 | 95888 |
+| 92 | $0.03 | 96353 |
+| 93 | $0.04 | 96761 |
+| 94 | $0.04 | 97674 |
 | 95 | $0.04 | 99806 |
-| 96 | $0.03 | 100700 |
-| 97 | $0.03 | 101339 |
-| 98 | $0.02 | 101582 |
-| 99 | $0.03 | 103029 |
-| 100 | $0.03 | 103955 |
-| 101 | $0.03 | 105538 |
-| 102 | $0.08 | 113072 |
-| 103 | $0.03 | 114236 |
-| 104 | $0.03 | 115035 |
-| 105 | $0.03 | 115312 |
-| 106 | $0.03 | 116725 |
-| 107 | $0.03 | 117373 |
-| 108 | $0.03 | 118062 |
-| 109 | $0.03 | 118523 |
-| 110 | $0.03 | 119525 |
-| 111 | $0.03 | 120184 |
-| 112 | $0.04 | 121681 |
-| 113 | $0.03 | 122333 |
-| 114 | $0.03 | 122836 |
-| 115 | $0.03 | 124027 |
-| 116 | $0.04 | 125717 |
-| 117 | $0.03 | 126349 |
-| 118 | $0.04 | 127789 |
-| 119 | $0.03 | 128867 |
-| 120 | $0.03 | 129628 |
-| 121 | $0.03 | 130341 |
-| 122 | $0.03 | 131153 |
-| 123 | $0.03 | 131971 |
-| 124 | $0.03 | 132645 |
-| 125 | $0.03 | 133148 |
-| 126 | $0.03 | 134084 |
-| 127 | $0.03 | 134999 |
-| 128 | $0.03 | 135756 |
-| 129 | $0.03 | 136735 |
-| 130 | $0.03 | 137493 |
-| 131 | $0.03 | 137991 |
-| 132 | $0.03 | 138672 |
-| 133 | $0.03 | 139557 |
-| 134 | $0.03 | 140231 |
-| 135 | $0.03 | 140962 |
-| 136 | $0.04 | 142198 |
-| 137 | $0.04 | 143750 |
-| 138 | $0.04 | 144916 |
-| 139 | $0.04 | 145829 |
-| 140 | $0.04 | 147098 |
+| 96 | $0.04 | 100700 |
+| 97 | $0.04 | 101339 |
+| 98 | $0.03 | 101582 |
+| 99 | $0.04 | 103029 |
+| 100 | $0.04 | 103955 |
+| 101 | $0.05 | 105538 |
+| 102 | $0.09 | 113072 |
+| 103 | $0.04 | 114236 |
+| 104 | $0.04 | 115035 |
+| 105 | $0.04 | 115312 |
+| 106 | $0.04 | 116725 |
+| 107 | $0.04 | 117373 |
+| 108 | $0.04 | 118062 |
+| 109 | $0.04 | 118523 |
+| 110 | $0.04 | 119525 |
+| 111 | $0.04 | 120184 |
+| 112 | $0.05 | 121681 |
+| 113 | $0.04 | 122333 |
+| 114 | $0.04 | 122836 |
+| 115 | $0.04 | 124027 |
+| 116 | $0.05 | 125717 |
+| 117 | $0.04 | 126349 |
+| 118 | $0.05 | 127789 |
+| 119 | $0.05 | 128867 |
+| 120 | $0.04 | 129628 |
+| 121 | $0.04 | 130341 |
+| 122 | $0.05 | 131153 |
+| 123 | $0.04 | 131971 |
+| 124 | $0.04 | 132645 |
+| 125 | $0.04 | 133148 |
+| 126 | $0.05 | 134084 |
+| 127 | $0.04 | 134999 |
+| 128 | $0.05 | 135756 |
+| 129 | $0.04 | 136735 |
+| 130 | $0.05 | 137493 |
+| 131 | $0.04 | 137991 |
+| 132 | $0.04 | 138672 |
+| 133 | $0.05 | 139557 |
+| 134 | $0.04 | 140231 |
+| 135 | $0.05 | 140962 |
+| 136 | $0.05 | 142198 |
+| 137 | $0.05 | 143750 |
+| 138 | $0.05 | 144916 |
+| 139 | $0.05 | 145829 |
+| 140 | $0.05 | 147098 |
 | 141 | $0.04 | 148131 |
-| 142 | $0.04 | 148883 |
-| 143 | $0.04 | 149859 |
-| 144 | $0.04 | 151560 |
-| 145 | $0.04 | 152282 |
-| 146 | $0.04 | 153654 |
-| 147 | $0.03 | 154160 |
-| 148 | $0.04 | 154876 |
-| 149 | $0.04 | 156170 |
-| 150 | $0.03 | 156534 |
-| 151 | $0.03 | 156963 |
-| 152 | $0.04 | 157616 |
-| 153 | $0.03 | 158004 |
-| 154 | $0.04 | 158639 |
-| 155 | $0.03 | 158989 |
+| 142 | $0.05 | 148883 |
+| 143 | $0.05 | 149859 |
+| 144 | $0.05 | 151560 |
+| 145 | $0.05 | 152282 |
+| 146 | $0.05 | 153654 |
+| 147 | $0.05 | 154160 |
+| 148 | $0.05 | 154876 |
+| 149 | $0.05 | 156170 |
+| 150 | $0.04 | 156534 |
+| 151 | $0.05 | 156963 |
+| 152 | $0.05 | 157616 |
+| 153 | $0.04 | 158004 |
+| 154 | $0.05 | 158639 |
+| 155 | $0.05 | 158989 |
 | 156 | $0.04 | 159466 |
+| 157 | $0.05 | 160147 |
+| 158 | $0.05 | 160988 |
+| 159 | $0.05 | 161873 |
+| 160 | $0.05 | 162189 |
+| 161 | $0.56 | 87215 |
+| 162 | $0.03 | 89051 |
+| 163 | $0.03 | 90113 |
+| 164 | $0.03 | 91176 |
+| 165 | $0.04 | 94335 |
+| 166 | $0.02 | 94709 |
+| 167 | $0.02 | 95001 |
+| 168 | $0.02 | 95289 |
+| 169 | $0.02 | 95999 |
+| 170 | $0.03 | 96766 |
+| 171 | $0.05 | 101202 |
+| 172 | $0.04 | 103596 |
+| 173 | $0.02 | 104080 |
+| 174 | $0.03 | 104727 |
+| 175 | $0.03 | 105411 |
+| 176 | $0.03 | 106783 |
+| 177 | $0.03 | 107517 |
+| 178 | $0.03 | 108123 |
+| 179 | $0.03 | 108629 |
+| 180 | $0.04 | 110439 |
+| 181 | $0.03 | 111674 |
+| 182 | $0.09 | 119656 |
+| 183 | $0.04 | 121178 |
+| 184 | $0.03 | 122383 |
+| 185 | $0.03 | 123553 |
+| 186 | $0.03 | 124142 |
+| 187 | $0.03 | 124667 |
+| 188 | $0.03 | 125288 |
+| 189 | $0.04 | 127045 |
+| 190 | $0.03 | 127638 |
+| 191 | $0.03 | 128630 |
+| 192 | $0.03 | 129335 |
+| 193 | $0.03 | 129796 |
+| 194 | $0.03 | 130322 |
+| 195 | $0.03 | 130552 |
+| 196 | $0.03 | 131533 |
+| 197 | $0.03 | 132214 |
+| 198 | $0.03 | 133143 |
+| 199 | $0.05 | 135700 |
+| 200 | $0.04 | 137352 |
+| 201 | $0.04 | 138399 |
+| 202 | $0.03 | 139237 |
+| 203 | $0.03 | 139645 |
+| 204 | $0.03 | 140384 |
+| 205 | $0.03 | 140838 |
+| 206 | $0.03 | 141456 |
+| 207 | $0.04 | 142354 |
+| 208 | $0.04 | 143818 |
+| 209 | $0.04 | 144855 |
+| 210 | $0.03 | 145522 |
+| 211 | $0.04 | 146353 |
+| 212 | $0.04 | 147710 |
+| 213 | $0.04 | 148454 |
+| 214 | $0.04 | 149711 |
+| 215 | $0.03 | 150057 |
+| 216 | $0.04 | 150730 |
+| 217 | $0.04 | 151728 |
+| 218 | $0.03 | 152030 |
+| 219 | $0.03 | 152276 |
+| 220 | $0.03 | 152719 |
+| 221 | $0.03 | 152920 |
+| 222 | $0.03 | 153229 |
+| 223 | $0.03 | 153733 |
+| 224 | $0.03 | 154157 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -177,20 +245,20 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 13 | 8 | 1 | 2 | 837 | 0 | 30667 | 0.09 |
-| red | 20 | 6 | 1 | 0 | 1011 | 594 | 113 | 226 | 45704 | 3392212 | 521048 | 2.97 |
-| green | 21 | 5 | 5 | 0 | 1564 | 486 | 103 | 202 | 36449 | 2937257 | 326543 | 1.91 |
-| refactor | 10 | 5 | 0 | 0 | 354 | 90 | 28 | 56 | 5940 | 695673 | 151513 | 0.51 |
+| red | 28 | 8 | 1 | 0 | 1492 | 820 | 159 | 316 | 65657 | 4841579 | 769131 | 4.39 |
+| green | 25 | 7 | 5 | 0 | 1961 | 564 | 128 | 252 | 43634 | 3690500 | 394872 | 2.23 |
+| refactor | 14 | 7 | 0 | 0 | 474 | 128 | 40 | 80 | 8163 | 1003029 | 206349 | 0.70 |
 | exhausted | 1 | 0 | 0 | 0 | 511 | 24 | 7 | 14 | 1820 | 199366 | 16173 | 0.16 |
 | red-missing | 1 | 0 | 0 | 0 | 55 | 26 | 5 | 8 | 2792 | 118802 | 18635 | 0.09 |
-| pin | 1 | 1 | 0 | 0 | 39 | 11 | 3 | 6 | 877 | 76897 | 15389 | 0.05 |
+| pin | 2 | 2 | 0 | 0 | 76 | 23 | 7 | 14 | 2176 | 185432 | 30827 | 0.12 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 24 | 18 | 6 | 0 | 1332 | 377 | 81 | 162 | 25908 | 2147629 | 301303 | 1.23 |
-| developer | claude-sonnet-5-5 | 16 | 0 | 0 | 0 | 809 | 288 | 73 | 140 | 23779 | 1975244 | 314182 | 1.38 |
-| developer | claude-opus-5-5 | 15 | 0 | 0 | 0 | 1406 | 574 | 106 | 212 | 44732 | 3297334 | 464483 | 3.16 |
+| verifier | claude-sonnet-5-5 | 31 | 25 | 6 | 0 | 1672 | 449 | 105 | 210 | 32767 | 2760572 | 419425 | 1.65 |
+| developer | claude-sonnet-5-5 | 20 | 0 | 0 | 0 | 1076 | 364 | 95 | 184 | 29263 | 2636442 | 380549 | 1.67 |
+| developer | claude-opus-5-5 | 21 | 0 | 0 | 0 | 1834 | 780 | 147 | 292 | 63049 | 4641694 | 666680 | 4.43 |
 
 #### Rework and waste, by phase
 
@@ -213,6 +281,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | In a Python test file, a case's own decorator lines are part of its own frozen body: editing the decorator of a case an earlier step recorded (and nothing else) changes that case's digest, so `tests-frozen.sh check-earlier` exits 1 naming that case and its step ⟦criterion 1⟧ | 7 | 3 | 0 | 0 | 0 | 0 | 126 | 32 | 64 | 10793 | 900343 | 131493 | 0.66 | 436 | 1/2 | 1/5 | nothing-structural |  |  | full |
 | In a bash suite, a helper function, comment or blank lines written after a `name="…"` case's own last line and before the next case (or the `finish` trailer) are not part of that case's frozen body, so inserting them leaves both neighbouring cases' digests unchanged and `tests-frozen.sh check-earlier` exits 0 printing nothing ⟦criterion 1⟧ | 25 | 5 | 5 | 0 | 0 | 0 | 649 | 128 | 250 | 45596 | 3666233 | 511629 | 2.93 | 1255 | red 2/2, green 4/2 | 0/5 | nothing-left |  |  | already-satisfied |
 | A record written before the fix stays readable: a `body:` digest an earlier step recorded with the old cut (a case's body running on to the next case's start) is checked by `tests-frozen.sh check-earlier` against the unchanged file without flagging that case, so a run resumed across the fix exits 0 printing nothing for its own untouched earlier cases, while a case genuinely changed since that old record is still named ⟦criterion 2⟧ | 9 | 3 | 1 | 0 | 0 | 0 | 234 | 42 | 84 | 19043 | 1253046 | 168179 | 1.01 | 617 | 2/2 | 0/5 | nothing-left |  |  | full |
+| A record `tests-frozen.sh record --step` writes with the fixed code carries a format marker, and `check-earlier` compares a marked record only under the fixed cut (only an unmarked record is also compared under the old cut): adding a decorator such as `@pytest.mark.skip` above an earlier step's recorded Python case that is the last case in its file, and changing nothing else, makes `tests-frozen.sh check-earlier` exit 1 naming that case and its step ⟦criterion 3⟧ | 7 | 3 | 0 | 0 | 0 | 0 | 123 | 34 | 68 | 10944 | 957997 | 177098 | 0.79 | 580 | 1/2 | 0/5 | nothing-left |  |  | full |
+| Adding a decorator such as `@pytest.mark.skip` above an earlier step's recorded Python case that is followed by another, undecorated case, and changing nothing else, makes `tests-frozen.sh check-earlier` exit 1 naming that case and its step, for a record the fixed code wrote ⟦criterion 3⟧ | 3 | 1 | 0 | 0 | 0 | 0 | 107 | 24 | 46 | 9454 | 802975 | 87403 | 0.60 | unknown | 1/2 | unknown | unknown |  |  | pin |
+| A bash case's frozen body runs to the case's real end, not to the first blank line followed by a `#` comment or a one-line `name() { …; }` function inside it: a recorded bash case holding `name="c1"`, `run_it`, a blank line, `# now check`, `assert_eq 1 1`, whose last line is then edited (and nothing else), makes `tests-frozen.sh check-earlier` exit 1 naming that case and its step, while a helper, comment or blank lines after the case's real end still stay out of its body ⟦criterion 4⟧ | 7 | 3 | 0 | 0 | 0 | 0 | 124 | 29 | 58 | 10262 | 857529 | 122185 | 0.61 | 450 | 1/2 | 0/5 | nothing-left |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -225,6 +296,8 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | In a Python test file, a case's own decorator lines are part of its own frozen body: editing the decorator of a case an earlier step recorded (and nothing else) changes that case's digest, so `tests-frozen.sh check-earlier` exits 1 naming that case and its step ⟦criterion 1⟧ | 1 | 1/5 | nothing-structural | PASS | 0 | 75 | 0.12 |
 | In a bash suite, a helper function, comment or blank lines written after a `name="…"` case's own last line and before the next case (or the `finish` trailer) are not part of that case's frozen body, so inserting them leaves both neighbouring cases' digests unchanged and `tests-frozen.sh check-earlier` exits 0 printing nothing ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 106 | 0.13 |
 | A record written before the fix stays readable: a `body:` digest an earlier step recorded with the old cut (a case's body running on to the next case's start) is checked by `tests-frozen.sh check-earlier` against the unchanged file without flagging that case, so a run resumed across the fix exits 0 printing nothing for its own untouched earlier cases, while a case genuinely changed since that old record is still named ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 57 | 0.09 |
+| A record `tests-frozen.sh record --step` writes with the fixed code carries a format marker, and `check-earlier` compares a marked record only under the fixed cut (only an unmarked record is also compared under the old cut): adding a decorator such as `@pytest.mark.skip` above an earlier step's recorded Python case that is the last case in its file, and changing nothing else, makes `tests-frozen.sh check-earlier` exit 1 naming that case and its step ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 61 | 0.10 |
+| A bash case's frozen body runs to the case's real end, not to the first blank line followed by a `#` comment or a one-line `name() { …; }` function inside it: a recorded bash case holding `name="c1"`, `run_it`, a blank line, `# now check`, `assert_eq 1 1`, whose last line is then edited (and nothing else), makes `tests-frozen.sh check-earlier` exit 1 naming that case and its step, while a helper, comment or blank lines after the case's real end still stay out of its body ⟦criterion 4⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 59 | 0.09 |
 
 #### Structural pass
 
@@ -232,14 +305,14 @@ Stopped: nothing-structural
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 14 | 14 | 16 | 16 | 15 | 14 | 15 | 11 | 13 | 15 | 15 | 13 | 14 | 14 | 14 | 14 | 14 | 14 | 13 | 14 | 15 | 14 | 15 | 14 | 14 | 14 | 15 | 14 | 33 | 15 | 14 | 14 | 14 | 14 | 1 | 14 | 14 | 15 | 13 | 34 | 22 | 13 | 10 | 11 | 14 | 14 | 14 |
-| fast | 16 | 18 | 16 | 16 | 17 | 17 | 16 | 17 | 16 | 17 | 16 | 16 | 17 | 0 | 15 | 17 | 17 | 16 | 17 | 17 | 17 | 16 | 42 | 16 | 16 | 15 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 14 | 10 | 11 | 15 | 11 | 11 | 10 | 12 | 11 | 10 | 10 | 14 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 14 | 14 | 16 | 16 | 15 | 14 | 15 | 11 | 13 | 15 | 15 | 13 | 14 | 14 | 14 | 14 | 14 | 14 | 13 | 14 | 15 | 14 | 15 | 14 | 14 | 14 | 15 | 14 | 33 | 15 | 14 | 14 | 14 | 14 | 1 | 14 | 14 | 15 | 13 | 34 | 22 | 13 | 10 | 11 | 14 | 14 | 14 | 14 | 15 | 6 | 17 | 19 | 14 | 15 | 13 | 14 | 15 | 14 | 15 | 15 | 14 |
+| fast | 16 | 18 | 16 | 16 | 17 | 17 | 16 | 17 | 16 | 17 | 16 | 16 | 17 | 0 | 15 | 17 | 17 | 16 | 17 | 17 | 17 | 16 | 42 | 16 | 16 | 15 | 25 | 20 | 22 | 16 | 17 | 18 | 16 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 14 | 10 | 11 | 15 | 11 | 11 | 10 | 12 | 11 | 10 | 10 | 14 | 13 | 10 | 11 | 10 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 260 | 514 | 94419 | 7420207 | 1079968 | 5.76 |
+| total | 347 | 686 | 125079 | 10038708 | 1466654 | 7.76 |
