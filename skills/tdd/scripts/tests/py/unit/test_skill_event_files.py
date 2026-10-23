@@ -135,3 +135,8 @@ def test_the_revise_section_lives_in_revise_md_not_skill_md_1855():
     assert [marker for marker in markers if marker in skill] == []
     assert [line for line in revise.splitlines() if line == heading] == [heading]
     assert [marker for marker in markers if marker not in revise] == []
+
+
+def test_the_guard_reports_no_unpointed_send_in_the_real_skill_md_2075():
+    """Subject is source text: the event-pointer guard run over SKILL.md reports no place, for every row of its table."""
+    assert unpointed_sends(SKILL.read_text()) == []
