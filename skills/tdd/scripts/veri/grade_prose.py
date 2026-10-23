@@ -186,7 +186,8 @@ def main(argv):
                 return no_verdict("GRADES block names requirement IDs unknown: %s" % ", ".join(unknown))
             kept = [l for l in reply.partition("END GRADES")[0].splitlines() if not l.startswith("VERDICT")]
             lines = kept + added
-            reply = "\n".join(lines + ["VERDICT: PASS", "END GRADES"])
+            verdict = "REJECT" if any(": FAIL" in l for l in lines) else "PASS"
+            reply = "\n".join(lines + ["VERDICT: " + verdict, "END GRADES"])
     block, _, after = reply.partition("END GRADES")
     trailing = "\n".join(l for l in after.splitlines() if l.strip())
     if trailing:
