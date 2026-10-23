@@ -2933,6 +2933,22 @@ def test_cli_a_run_whose_last_non_blank_event_is_done_after_an_open_one_and_befo
         0, ['{"event": "phase-start", "ts": 1}', '{"event": "done", "ts": 2}']), stderr
 
 
+def test_cli_a_run_whose_last_non_blank_event_is_bail_after_an_open_one_and_before_blank_lines_is_closed_and_gets_no_bail_appended_1977(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    conductor_that_prints(monkeypatch, tmp_path, [], result_record("Which option do you want?"))
+    log = tmp_path / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl"
+    log.parent.mkdir(parents=True)
+    log.write_text('{"event": "phase-start", "ts": 1}\n{"event": "bail", "ts": 2}\n\n  \n')
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    assert (code, [line for line in log.read_text().splitlines() if line.strip()]) == (
+        0, ['{"event": "phase-start", "ts": 1}', '{"event": "bail", "ts": 2}']), stderr
+
+
 @pytest.mark.parametrize("stdout, expected", [(result_record("Which option do you want?"), 3), ("", 0)])
 def test_cli_a_conductor_that_exits_non_zero_or_exits_0_without_a_result_record_gets_no_bail_appended_1866(
         stdout, expected, tmp_path, monkeypatch, run_cli):
