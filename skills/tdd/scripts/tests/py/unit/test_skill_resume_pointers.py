@@ -75,3 +75,6 @@ def test_resume_md_runs_record_existing_before_the_first_ledger_commit_issue_221
         r"before the resume's first ledger commit, "
         r"and stage `\.tdd/issue-<n>-added\.md` in that same commit with the ledger",
         text), "RESUME.md does not instruct ledger-growth.sh record-existing before the first ledger commit"
+    record = text.index("ledger-growth.sh record-existing")
+    assert record < text.index("2. **Use the reset preflight already made"), \
+        "RESUME.md asks for record-existing after sub-step 2, whose refactor clear can be the resume's first ledger commit"
