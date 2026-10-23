@@ -1210,3 +1210,59 @@ def test_2195_a_fast_tier_run_starts_its_suites_at_once_beside_a_live_full_run_h
     codes = (first.wait(timeout=30), second.wait(timeout=30))
     assert (started_while_first_held, codes) == (True, (0, 0))
     assert "waiting" not in (tmp_path / "B.err").read_text()
+
+
+WAIT_CHILD = """\
+import os, sys, time
+sys.path[:0] = [%r, %r]
+import pytest
+from veri import pytest_leg
+name, marks, release, planted = sys.argv[1:5]
+def spy(args):
+    open(os.path.join(marks, name + "-started"), "a").close()
+    while not os.path.exists(release):
+        time.sleep(0.01)
+    return pytest.ExitCode.OK
+if name == "A":
+    pytest.main = spy
+sys.exit(pytest_leg.main(["--timeout=1", "-q", "-p", "no:cacheprovider", planted] if name == "B" else []))
+"""
+
+
+@pytest.mark.process("two launcher children run as full runs sharing one home, the second a real pytest session with a 1 s case limit, waiting on the first")
+@pytest.mark.timeout(60)
+def test_2195_a_waiting_full_run_with_a_1_s_case_limit_passes_once_a_holder_that_held_the_lock_over_1_s_releases_it(tmp_path):
+    import subprocess
+    import time
+
+    scripts = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    child = WAIT_CHILD % (scripts, os.path.join(scripts, "veri"))
+    home, marks, release, planted = tmp_path / "home", tmp_path / "marks", tmp_path / "release", tmp_path / "planted"
+    for directory in (home, marks, planted, tmp_path / "treeA", tmp_path / "treeB"):
+        directory.mkdir()
+    (planted / "test_planted.py").write_text(
+        "import os, time\n"
+        "def test_starts_only_after_the_holder_released():\n"
+        "    assert os.path.exists(%r)\n"
+        "    time.sleep(0.5)\n" % str(release))
+    env = dict(os.environ, HOME=str(home), VERI_PYTEST_WORKERS="1", VERI_PYTEST_IMPORTABLE="1", VERI_PYTEST_TIMEOUT_IMPORTABLE="1", VERI_PYTEST_XDIST_IMPORTABLE="1")
+
+    def launch(name):
+        out = open(tmp_path / (name + ".out"), "w")
+        return subprocess.Popen([sys.executable, "-c", child, name, str(marks), str(release), str(planted)],
+                                cwd=tmp_path / ("tree" + name), env=env, stdout=out, stderr=subprocess.STDOUT)
+
+    def until(done):
+        deadline = time.monotonic() + 15
+        while not done() and time.monotonic() < deadline:
+            time.sleep(0.05)
+
+    first = launch("A")
+    until(lambda: (marks / "A-started").exists())
+    second = launch("B")
+    until(lambda: "waiting for the full run holding the lock" in (tmp_path / "B.out").read_text())
+    time.sleep(1.5)
+    release.touch()
+    codes = (first.wait(timeout=30), second.wait(timeout=30))
+    output = (tmp_path / "B.out").read_text()
+    assert (codes, "waiting for the full run holding the lock" in output, "1 passed" in output) == ((0, 0), True, True), output
