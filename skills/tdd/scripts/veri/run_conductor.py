@@ -1,5 +1,6 @@
 """run-conductor.sh's launch of one conductor, run in-process."""
 # hazard: runs on the python3 it may refuse, so nothing here may need more than Python 3.9.
+import glob
 import os
 import paths
 import json
@@ -128,15 +129,30 @@ def launch(base, issue, commit, **exports):
     text = prompt(base, issue, commit)
     if text is None:
         return 2
+    run_state = os.path.join(event.toplevel(), ".tdd")
+    os.makedirs(run_state, exist_ok=True)
+    sweep_dead_runs(run_state)
     run_tmp = tempfile.mkdtemp(prefix="veri-run-%s-" % issue)
     try:
-        run_state = os.path.join(event.toplevel(), ".tdd")
-        os.makedirs(run_state, exist_ok=True)
         with open(os.path.join(run_state, "issue-%s-tmpdir-skill-commit" % issue), "w") as record:
             record.write("%s %d\n" % (run_tmp, os.getpid()))
         return conduct(text, issue, dict(os.environ, **exports, TMPDIR=run_tmp))
     finally:
         shutil.rmtree(run_tmp, ignore_errors=True)
+
+
+def sweep_dead_runs(run_state):
+    for name in glob.glob(os.path.join(run_state, "issue-*-tmpdir-skill-commit")):
+        try:
+            with open(name) as record:
+                directory, pid = record.read().split()
+            pid = int(pid)
+        except (OSError, ValueError):
+            continue
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            shutil.rmtree(directory, ignore_errors=True)
 
 
 def conduct(text, issue, env):
