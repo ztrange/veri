@@ -1,5 +1,4 @@
 """Cases for which suites still read SKILL.md's `#### Green — minimum implementation (developer leaf), then verify-green (blind)` subsection by its content."""
-import ast
 import pathlib
 import re
 

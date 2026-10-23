@@ -1,5 +1,4 @@
 """Cases for which suites still read SKILL.md's `#### The step's cost check` subsection by its content."""
-import ast
 import pathlib
 import re
 
