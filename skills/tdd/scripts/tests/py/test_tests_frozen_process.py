@@ -1330,3 +1330,27 @@ def test_check_earlier_exits_0_printing_nothing_for_a_case_the_current_step_reco
     code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
 
     assert (code, out) == (0, "")
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_check_earlier_exits_0_printing_nothing_when_a_later_step_appends_a_decorated_case_after_an_earlier_recorded_one_2177(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier, current = "step one adds a case", "step two adds a decorated case"
+    recorded = "def test_older_case():\n    assert True\n\n\ndef test_first_2177():\n    assert 1 == 2\n"
+    (tmp_path / "tests/test_suite.py").write_text(recorded)
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    (tmp_path / "tests/test_suite.py").write_text(
+        recorded + '\n\n@pytest.mark.process("a real process")\n@pytest.mark.timeout(60)\n'
+        "def test_second_2177():\n    assert True\n")
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
