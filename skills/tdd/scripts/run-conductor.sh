@@ -56,6 +56,9 @@
 # the filesystems holding the inherited TMPDIR and the repository must each have at least this
 # many GB free, else exit 2 naming the path, the free GB and the variable.
 #
+# The child `claude` is handed SHELL and CLAUDE_CODE_SHELL naming the bash 5+ on PATH, whatever the
+# user's login shell: SKILL.md's blocks are bash, and zsh splits words, sources and ends pipelines differently.
+#
 # CLAUDE_BIN overrides the `claude` binary (used by the tests to inject a stub).
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/run_conductor.py" "$@"

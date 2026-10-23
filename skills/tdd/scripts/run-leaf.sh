@@ -4,6 +4,9 @@
 # usage: run-leaf.sh <prompt-file|-> [claude args...]
 #
 # Exit: the leaf's own status when it is 0-3, else 2; 2 for a missing prompt argument.
+#
+# The child `claude` is handed SHELL and CLAUDE_CODE_SHELL naming the bash 5+ on PATH, whatever the
+# user's login shell: SKILL.md's blocks are bash, and zsh splits words, sources and ends pipelines differently.
 if [ -z "${PYTHONCOERCECLOCALE+set}" ]; then
   PYTHONCOERCECLOCALE=0 VERI_SHIM_SET_COERCE=1
   export PYTHONCOERCECLOCALE VERI_SHIM_SET_COERCE
