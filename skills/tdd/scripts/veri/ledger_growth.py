@@ -7,9 +7,11 @@ import tunables
 
 try:
     from .event_log import read_events
+    from .add_ledger_step import added_file
     from .ledger import STEP_RE, is_added, read_ledger
 except ImportError:
     from event_log import read_events
+    from add_ledger_step import added_file
     from ledger import STEP_RE, is_added, read_ledger
 
 USAGE = "usage: ledger-growth.sh <plan-ledger-file> <ledger-file>"
@@ -26,7 +28,7 @@ def step_texts(text):
 
 def added_steps(ledger):
     try:
-        with open(re.sub(r"\.md$", "", ledger) + "-added.md", "rb") as f:
+        with open(added_file(ledger), "rb") as f:
             return step_texts(f.read().decode(errors="surrogateescape"))
     except OSError:
         return []
