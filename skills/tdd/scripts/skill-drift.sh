@@ -5,6 +5,5 @@
 #
 # usage: skill-drift.sh
 # Exit:  0 always
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/skill_drift.py" "$@"

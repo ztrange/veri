@@ -17,6 +17,5 @@
 #            --planned without --criterion, --planned for a criterion a ledger step already serves,
 #            --planned with no readable spec file beside the ledger (issue-<n>-spec.md),
 #            --planned for a k not unticked in the issue body the run read, or a bad VERI_STEP_GROWTH
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/add_ledger_step.py" "$@"

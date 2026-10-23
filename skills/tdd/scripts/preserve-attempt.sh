@@ -6,6 +6,5 @@
 #
 # usage: preserve-attempt.sh <issue> <step> <phase> <attempt> [<mark>]
 # Exit:    0 preserved; 1 the ref write or a copy failed; 2 bad arguments, or a git failure taking the snapshot
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/preserve_attempt.py" "$@"

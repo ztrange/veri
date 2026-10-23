@@ -14,6 +14,5 @@
 # number of seconds, or a suite whose trace never raises `pass` or `fail`.
 #
 # Usage:   profile.sh <suite>...
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/profile.py" "$@"

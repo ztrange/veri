@@ -9,6 +9,5 @@
 # Prints the touched files comma-joined, in `git diff --name-only` order: those <commit>
 # touched, or with `--issue` every file changed between <base> and HEAD.
 # Exit:    0 files printed; 2 a missing or unresolvable <commit>/<base>; 3 nothing outside .tdd/ touched
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/refactor_touched.py" "$@"

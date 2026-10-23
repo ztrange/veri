@@ -3,6 +3,5 @@
 #
 # usage: next-pending-refactor.sh   (the ledger on stdin)
 # Exit:    0 the first refactor-pending step's text printed, its mark stripped; 3 no step carries the mark
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/next_pending_refactor.py" "$@"

@@ -53,6 +53,5 @@
 # Exit:    0 one or more numbers printed; 2 no answer could be obtained — VERI_LABEL or
 #          VERI_PRIORITY_LABEL is set but empty; 3 nothing to do — no issue is takeable
 # usage: solvable-issues.sh [--repo owner/name] [--not-running]
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/solvable_issues.py" "$@"

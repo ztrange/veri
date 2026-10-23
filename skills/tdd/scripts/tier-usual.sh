@@ -7,6 +7,5 @@
 # usage: tier-usual.sh <tier>
 # Exit:    0 the median on stdout; 1 no answer from the log (no test-run event for the tier, a missing
 #          or malformed log), nothing on stdout; 2 a missing argument
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/tier_usual.py" "$@"

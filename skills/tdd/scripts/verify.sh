@@ -8,6 +8,5 @@
 # stdout: the verifier's reason.
 # exit:   0 PASS · 1 REJECT · 2 malformed verdict, killed-stuck, a leaf that modified the
 #         repository or ~/.gitconfig, a bad argument, or a build error
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/verify.py" "$@"

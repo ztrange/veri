@@ -8,6 +8,5 @@
 #
 # stdout:  one row per pairs-table row: <old case> <kept case> <mutation> <result>
 # exit:    0 every row proven · 1 a row unproven · 2 no <pairs-table>
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/mutation_parity.py" "$@"

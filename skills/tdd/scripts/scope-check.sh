@@ -3,6 +3,5 @@
 #
 # Usage:   scope-check.sh <ledger> <repo-root>
 # Exit:    0 every named module is existing or free; 1 a new module's basename exists under tests/py (stderr names both paths); 2 bad arguments
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/scope_check.py" "$@"

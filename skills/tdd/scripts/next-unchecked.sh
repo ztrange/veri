@@ -3,6 +3,5 @@
 #
 # usage: next-unchecked.sh   (the ledger on stdin)
 # Exit:    0 the first open ordinary or diff-checked step's text printed; 3 none — every step done, or no step
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/next_unchecked.py" "$@"

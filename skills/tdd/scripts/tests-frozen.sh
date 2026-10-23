@@ -20,6 +20,5 @@
 # Exit: 0 recorded, the path printed, or every recorded file is byte-identical (nothing on stdout),
 #       1 with one path per line on stdout for each recorded file edited or deleted,
 #       2 bad arguments (a missing ledger or --step for check-earlier, an empty step text included) or an unreadable record/file.
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/tests_frozen.py" "$@"
