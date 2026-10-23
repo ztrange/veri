@@ -1059,3 +1059,47 @@ def test_2195_a_waiting_full_run_starts_its_suites_after_the_holder_exits_normal
     if not started_after_holder_ended:
         second.kill()
     assert (started_after_holder_ended, second.wait(timeout=30)) == (True, 0)
+
+
+NESTED_CHILD = """\
+import os, subprocess, sys
+sys.path[:0] = [%r, %r]
+import pytest
+from veri import pytest_leg
+name, marks = sys.argv[1:3]
+def spy(args):
+    open(os.path.join(marks, name + "-started"), "a").close()
+    if name == "outer":
+        env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
+        nested = subprocess.Popen([sys.executable, sys.argv[0], "nested", marks], env=env)
+        try:
+            code = nested.wait(timeout=20)
+        except subprocess.TimeoutExpired:
+            nested.kill()
+            code = "waited"
+        open(os.path.join(marks, "nested-exit"), "w").write(str(code))
+    return pytest.ExitCode.OK
+pytest.main = spy
+sys.exit(pytest_leg.main([]))
+"""
+
+
+@pytest.mark.process("a launcher child run as a full run starts a second full run nested under it, its environment stripped of VERI_*")
+@pytest.mark.timeout(60)
+def test_2195_a_full_run_started_under_the_full_run_holding_the_lock_skips_the_lock_and_runs_its_suites_at_once(tmp_path):
+    import subprocess
+
+    scripts = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    child = tmp_path / "child.py"
+    child.write_text(NESTED_CHILD % (scripts, os.path.join(scripts, "veri")))
+    home, marks = tmp_path / "home", tmp_path / "marks"
+    for directory in (home, marks):
+        directory.mkdir()
+    env = {k: v for k, v in os.environ.items() if k != "VERI_PYTEST_LEGS"}
+    env.update(HOME=str(home), VERI_PYTEST_IMPORTABLE="1", VERI_PYTEST_TIMEOUT_IMPORTABLE="1", VERI_PYTEST_XDIST_IMPORTABLE="1")
+    outer = subprocess.run([sys.executable, str(child), "outer", str(marks)], cwd=tmp_path, env=env,
+                           stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=45)
+
+    assert (outer.returncode, (marks / "nested-exit").read_text()) == (0, "0"), outer.stderr
+    assert (marks / "nested-started").exists()
+    assert "waiting for the full run" not in outer.stderr
