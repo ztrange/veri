@@ -1798,6 +1798,41 @@ def test_cli_a_launch_keeps_a_veri_run_directory_whose_record_it_cannot_read_and
     assert (code, (scratch / "veri-run-77-torn" / "cdk.outAbC123").is_dir(), record.name in err) == (0, True, True)
 
 
+def test_cli_a_launch_keeps_a_directory_outside_the_inherited_tmpdir_that_a_dead_pid_record_names_under_tdd_issue_2183(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    fake_claude_exiting(monkeypatch, 0, 0)
+    cwd = tmp_path / "cwd"
+    (cwd / ".tdd").mkdir(parents=True)
+    elsewhere = tmp_path / "elsewhere" / "veri-run-77-dead"
+    (elsewhere / "precious").mkdir(parents=True)
+    (cwd / ".tdd" / "issue-77-tmpdir-skill-commit").write_text("%s %d\n" % (elsewhere, 2**31 - 2))
+
+    code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, (elsewhere / "precious").is_dir()) == (0, True)
+
+
+def test_cli_a_launch_keeps_a_directory_inside_the_inherited_tmpdir_not_named_veri_run_that_a_dead_pid_record_names_under_tdd_issue_2183(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch = scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    fake_claude_exiting(monkeypatch, 0, 0)
+    cwd = tmp_path / "cwd"
+    (cwd / ".tdd").mkdir(parents=True)
+    (scratch / "cdk.outXyz" / "precious").mkdir(parents=True)
+    (cwd / ".tdd" / "issue-77-tmpdir-skill-commit").write_text("%s %d\n" % (scratch / "cdk.outXyz", 2**31 - 2))
+
+    code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, (scratch / "cdk.outXyz" / "precious").is_dir()) == (0, True)
+
+
 def tree_contents(root):
     """Every file and symlink under root but .git, by relative path: its bytes, or the target it links to."""
     contents = {}
