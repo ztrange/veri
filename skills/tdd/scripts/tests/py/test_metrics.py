@@ -1,6 +1,7 @@
 """In-process cases for veri/metrics.py, the module metrics.sh is a shim over."""
 import importlib
 import json
+import os
 import re
 from pathlib import Path
 
@@ -214,7 +215,22 @@ def test_a_resume_after_a_done_keeps_the_run_landed(tmp_path, monkeypatch, capsy
                                     {"event": "resume"}])
     monkeypatch.chdir(tmp_path)
 
-    assert "Outcome: the run landed — its draft PR is https://example.test/pr/1.\n" in render(metrics, capsys)
+    assert "Outcome: unknown — the log carries no mark ending the run.\n" in render(metrics, capsys)
+
+
+def test_issue_2008_a_bail_then_resume_then_launch_with_a_live_conductor_prints_no_outcome_yet(tmp_path, monkeypatch, capsys, metrics):
+    import run_end
+    write_log(tmp_path, ONE_STEP + [{"event": "bail", "issue": "108", "cause": "stuck", "classification": "process"},
+                                    {"event": "resume", "issue": "108"},
+                                    {"event": "launch", "issue": "108", "step": "1", "phase": "red", "attempt": "1"}])
+    (tmp_path / ".tdd" / "conductor.pid").write_text("%d\n" % os.getpid())
+    monkeypatch.setattr(run_end, "command_line", lambda pid: "run-conductor.sh 108")
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert "Outcome: none yet — the run is still going.\n" in out
+    assert "bailed" not in out
 
 
 def test_an_exit_whose_status_is_the_integer_2_is_not_counted_as_a_kill(tmp_path, monkeypatch, capsys, metrics):

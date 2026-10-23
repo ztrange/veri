@@ -4,6 +4,7 @@ import io
 import json
 import os
 import sys
+import run_end
 import session_cost
 import tunables
 
@@ -237,8 +238,6 @@ def render(issue, path, ledger):
 
     opening = None
 
-    ending = None
-
     structural = None
 
     launched = {}
@@ -255,10 +254,6 @@ def render(issue, path, ledger):
         ts = line.get("ts")
         if opening is None or event == "resume":
             opening = line
-        if event == "resume" and ending is not None and ending.get("event") == "stop":
-            ending = None
-        if event in ("done", "bail", "stop"):
-            ending = line
         if event == "structural-pass":
             structural = line
         if event in ("step-start", "step-done") and step:
@@ -422,6 +417,8 @@ def render(issue, path, ledger):
         for tier, runs in tier_runs.items():
             row([tier] + runs + [""] * (width - len(runs)))
 
+    ended, _cause, ending = run_end.run_end(os.path.dirname(os.path.dirname(os.path.abspath(path))))
+    ending = ending or None
     print("### 📊 Metrics — issue %s" % issue)
     print()
     wall_span, awake_span = wall_and_awake_spans(opening, ending)
@@ -437,7 +434,9 @@ def render(issue, path, ledger):
     planned, full_suite = planned_steps(ledger)
     print("Steps done: %s of %s planned."
           % (known(counted(len(recovered) + full_suite)), known(planned)))
-    if ending is None:
+    if not ended:
+        print("Outcome: none yet — the run is still going.")
+    elif ending is None:
         print("Outcome: %s — the log carries no mark ending the run." % UNKNOWN)
     elif ending.get("event") == "done":
         print("Outcome: the run landed — its draft PR is %s."
