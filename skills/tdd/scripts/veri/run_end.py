@@ -8,16 +8,18 @@ from event_log import read_events
 MARKS = {"done": "done", "bail": "bailed", "stop": "stopped"}
 
 
-def command_line(pid):
-    out = subprocess.run(["ps", "-o", "command=", "-p", str(pid)],
+def _ps(field, pid):
+    out = subprocess.run(["ps", "-o", field + "=", "-p", str(pid)],
                          capture_output=True, text=True)
     return out.stdout.strip()
 
 
+def command_line(pid):
+    return _ps("command", pid)
+
+
 def parent_pid(pid):
-    out = subprocess.run(["ps", "-o", "ppid=", "-p", str(pid)],
-                         capture_output=True, text=True)
-    return int(out.stdout.strip() or 0)
+    return int(_ps("ppid", pid) or 0)
 
 
 def _is_conductor(line, issue):
