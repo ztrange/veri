@@ -3265,6 +3265,25 @@ def test_cli_a_conductor_that_exits_0_with_a_result_ending_on_a_question_but_eve
     assert (code, [r.get("event") for r in events_named(tmp_path)]) == (0, [closing]), stderr
 
 
+@pytest.mark.parametrize("answer, log_events, bails", [
+    ((True, "bailed", {"event": "bail"}), ["phase-start"], False),
+    ((True, "unknown", {}), ["done"], True),
+])
+def test_cli_a_run_is_closed_by_what_run_end_answers_and_not_by_the_events_log_2009(
+        answer, log_events, bails, tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    monkeypatch.setattr(run_conductor.run_end, "run_end", lambda run_dir: answer)
+    conductor_that_prints(monkeypatch, tmp_path, log_events, result_record("Which option do you want?"))
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    records = events_named(tmp_path)
+    appended = records[-1].get("event") == "bail" and records[-1].get("cause") == "needs-user"
+    assert (code, appended) == (0, bails), stderr
+
+
 def test_cli_a_conductor_that_exits_0_with_a_result_not_ending_on_a_question_and_events_ending_in_no_done_bail_or_stop_gets_a_needs_user_bail_appended_1866(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)
