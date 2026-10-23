@@ -1,4 +1,5 @@
 """Cases for which suites still read SKILL.md's `#### A ⟦phases: …⟧ step — each listed phase, a developer leaf then a blind verifier` subsection by its content."""
+import functools
 import pathlib
 import re
 import sys
@@ -66,6 +67,11 @@ def _other_docs():
     return {d.name: d.read_text(encoding="utf-8") for d in SKILL_MD.parent.glob("*.md") if d != SKILL_MD}
 
 
+@functools.cache
+def _held(rest, *also_read):
+    return _flat("\n".join([rest, *also_read]))
+
+
 def _readers(entry, subsection, rest, docs):
     text = entry.text
     if "SKILL" not in text:
@@ -75,7 +81,7 @@ def _readers(entry, subsection, rest, docs):
     literals = {d.name: d.strings for d in definitions}
     reads = {d.name: set(d.names) for d in definitions}
     calls = {
-        name: {o for o in segments if o != name and re.search(r"\b%s\b" % re.escape(o), src)}
+        name: (set(re.findall(r"\w+", src)) & segments.keys()) - {name}
         for name, src in segments.items()
     }
 
@@ -91,7 +97,7 @@ def _readers(entry, subsection, rest, docs):
         source = "\n".join(segments[n] for n in names)
         also_read = [text for doc, text in docs.items() if doc in source]
         markers = [m for m in MARKERS if not any(m in text for text in also_read)]
-        held_elsewhere = _flat("\n".join([rest, *also_read]))
+        held_elsewhere = _held(rest, *also_read)
         return any(m in source for m in markers) or any(
             _names_the_heading(s) or _only_in_subsection(s, subsection, held_elsewhere) for n in names for s in literals[n])
 

@@ -1,4 +1,5 @@
 """How skills/tdd/SKILL.md's preflight checks launchability, budgets, GitHub, the worktree baseline and the conductor.pid lock, read as text."""
+import functools
 import pathlib
 import re
 import subprocess
@@ -193,6 +194,7 @@ MECHANICAL_READERS = (
     "test_a_gh_auth_status_call_planted_in_skill_md_is_named_as_file_line",
     "test_every_remaining_case_that_reads_skill_md_s_preflight_section",
     "test_2220_sweep_flags_a_case_reading_the_preflight_section",
+    "test_2220_sweep_flags_a_case_reading_a_phrase_only_the_preflight_section",
 )
 NAMES_PREFLIGHT = re.compile(r"^PREFLIGHT$|#+ .*[Pp]reflight|#+ 0\.|Preflight —")
 
@@ -210,6 +212,7 @@ def preflight_and_rest():
     return (preflight, flat(preflight)), (rest, flat(rest))
 
 
+@functools.cache
 def only_in_preflight(value, preflight, rest):
     """preflight and rest are each (line by line, all whitespace flattened): a phrase that wraps a line in SKILL.md
     matches only the flattened form, a ^-anchored item pattern only the line-by-line one."""
@@ -289,3 +292,25 @@ def test_2220_sweep_flags_a_case_reading_the_preflight_section_until_it_is_on_th
 
     assert stray_cases(entries, []) == [key]
     assert stray_cases(entries, ["test_reads_the_preflight_section"]) == []
+
+
+def test_2220_sweep_flags_a_case_reading_a_phrase_only_the_preflight_section_holds_until_it_is_on_the_allow_list(
+        tmp_path, monkeypatch):
+    from conftest import TestFile
+    (preflight, _), (rest, _) = preflight_and_rest()
+    phrase = next(
+        line for line in preflight.splitlines()
+        if len(line.split()) >= 4 and not re.search(r"['\"\\{}]", line) and line not in rest
+        and not NAMES_PREFLIGHT.search(line))
+    module = tmp_path / "test_synthetic_reader.py"
+    module.write_text(
+        'SKILL_MD = "SKILL.md"\n\n\n'
+        'def test_reads_a_preflight_phrase():\n'
+        '    assert "%s" in SKILL_MD\n' % phrase,
+        encoding="utf-8")
+    monkeypatch.setattr(sys.modules[__name__], "TESTS_DIR", tmp_path)
+    entries = [TestFile(module)]
+    key = "test_synthetic_reader.py::test_reads_a_preflight_phrase"
+
+    assert stray_cases(entries, []) == [key]
+    assert stray_cases(entries, ["test_reads_a_preflight_phrase"]) == []

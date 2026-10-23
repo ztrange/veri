@@ -79,7 +79,20 @@ def _strings(parts, kind):
     return tuple(p.value for p in parts if isinstance(p, ast.Constant) and type(p.value) is kind and id(p) not in fragments)
 
 
-def _definition(text, node):
+def _lines(text):
+    """text split as ast.get_source_segment splits it, once per file instead of once per definition."""
+    return re.findall(r"[^\r\n]*(?:\r\n|\n|\r)|[^\r\n]+$", text)
+
+
+def _segment(lines, node):
+    first, last = node.lineno - 1, node.end_lineno - 1
+    if first == last:
+        return lines[first].encode()[node.col_offset:node.end_col_offset].decode()
+    return "".join([lines[first].encode()[node.col_offset:].decode(), *lines[first + 1:last],
+                    lines[last].encode()[:node.end_col_offset].decode()])
+
+
+def _definition(text, node, lines=None):
     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
         names = [node.name]
     else:
@@ -88,7 +101,7 @@ def _definition(text, node):
     parts = list(ast.walk(node))
     return [Definition(
         name=name,
-        segment=ast.get_source_segment(text, node),
+        segment=_segment(lines if lines is not None else _lines(text), node),
         literals=tuple(p.value for p in parts if isinstance(p, ast.Constant) and isinstance(p.value, str)),
         names=tuple(p.id for p in parts if isinstance(p, ast.Name) and isinstance(p.ctx, ast.Load)),
         constants=tuple(_constants(node)),
@@ -113,10 +126,11 @@ class TestFile:
     @property
     def walk(self):
         if self._walk is None:
+            lines = _lines(self.text)
             self._walk = WalkResult(tuple(
                 d for node in self.tree.body
                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Assign, ast.AnnAssign))
-                for d in _definition(self.text, node)))
+                for d in _definition(self.text, node, lines)))
         return self._walk
 
 
