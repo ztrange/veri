@@ -1,0 +1,2 @@
+### The events.jsonl openers audit reports a module that reads events.jsonl through Path(...).read_text or Path(...).read_bytes, shown by a case per call feeding the audit a source of that shape, the case in a file other than the audit's own ⟦guard-subject: skills/tdd/scripts/tests/py/test_events_jsonl_openers.py⟧ ⟦criterion 8⟧
+- test-only | fold the Path.open shape case into the parametrized read_text/read_bytes case to share the source template (would rename a pinned case)
