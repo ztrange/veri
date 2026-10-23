@@ -1,0 +1,2 @@
+### The section reader in veri/markdown_sections.py never starts a section at a heading inside a fence and never ends one at a heading inside a fence; pinned by a small in-process case in skills/tdd/scripts/tests/py/unit/test_markdown_sections.py ⟦criterion 2⟧
+- replace the for/break end-of-section search in `section` with a `next(...)` generator expression (not duplication removal, so not applied)
