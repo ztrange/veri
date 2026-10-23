@@ -382,14 +382,35 @@ def test_get_api_metrics_recomputes_run_35_whose_log_carries_a_stop_mark_and_no_
           '{"ts": 1, "issue": "35", "event": "step-start"}\n'
           '{"ts": 2, "issue": "35", "event": "launch", "name": "develop-red"}\n'
           '{"ts": 3, "issue": "35", "event": "stop", "mode": "at-leaf", "at": "planned"}\n')
-    recomputed = report_of(run_cli, "35", run)
+    committed = "# What solving #35 cost, committed at the stop\n"
+    write(os.path.join(run, ".tdd", "issue-35-metrics.md"), committed)
     served = serve_with_real_metrics(monkeypatch, tmp_path)
 
     dashboard.main([])
     assert os.getcwd() == str(tmp_path)
 
     (metrics,) = served[0][1]
-    assert json.loads(body(metrics))["issues"]["35"] == recomputed
+    assert json.loads(body(metrics))["issues"]["35"] == committed
+
+
+def test_get_api_metrics_recomputes_run_37_2008_resumed_after_a_bail_and_launched_again_with_a_live_conductor(
+        tmp_path, monkeypatch, dashboard, run_cli):
+    run = os.path.join(str(tmp_path), ".tdd", "wt", "37")
+    write(os.path.join(run, ".tdd", "issue-37.md"), "# Plan for #37\n\n- [ ] a lamp glows\n")
+    write(os.path.join(run, ".tdd", "events.jsonl"),
+          '{"ts": 1, "issue": "37", "event": "step-start"}\n'
+          '{"ts": 2, "issue": "37", "event": "bail", "reason": "killed-stuck"}\n'
+          '{"ts": 3, "issue": "37", "event": "resume"}\n'
+          '{"ts": 4, "issue": "37", "event": "launch", "name": "develop-red"}\n')
+    write(os.path.join(run, ".tdd", "issue-37-metrics.md"), "# stale report from before the resume\n")
+    live_conductor(monkeypatch, run, "37")
+    recomputed = report_of(run_cli, "37", run)
+    served = serve_with_real_metrics(monkeypatch, tmp_path)
+
+    dashboard.main([])
+
+    (metrics,) = served[0][1]
+    assert json.loads(body(metrics))["issues"]["37"] == recomputed
 
 
 def test_get_api_metrics_keys_issues_by_the_run_directory_7_alone_and_answers_the_report_of_its_own_log(

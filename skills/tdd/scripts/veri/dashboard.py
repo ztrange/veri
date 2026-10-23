@@ -16,6 +16,7 @@ from ledger import ledger_path
 from run_dir import run_file
 import metrics
 import render_leaf_log
+import run_end
 import status
 
 SCRIPTS = paths.scripts_of(__file__)
@@ -86,7 +87,7 @@ def events_marked(run, *marks):
 # pair status.sh reads for its `state` (status.sh:76). That, and not a clock, is what splits
 # the two readings below: a run still going is recomputed, an ended one is quoted.
 def run_ended(run):
-    return bool(events_marked(run, "done", "bail"))
+    return bool(event_log(run)) and run_end.run_end(run)[0]
 
 
 # One issue's report, which is the whole of the split the criterion names. For a run still
