@@ -2,3 +2,5 @@
 - rename the record file `issue-<n>-tmpdir-skill-commit` to drop the misleading `skill-commit` suffix (a path later steps read, so decide it with them)
 ### An unpinned `run-conductor.sh <n>` launch — no skill commit resolvable from the skill clone, so it runs unpinned — for a run that has no `.tdd/` directory yet still writes its record of the launch's `veri-run-<n>-…` directory and the launcher's pid under the run's `.tdd/` (pinned by an unpinned-launch case whose run has no `.tdd/` before the launch) ⟦added⟧ ⟦criterion 1⟧
 - test-only | The two new "no .tdd/ yet" cases in `test_run_conductor.py` repeat the same setup (empty `cwd`, `run_cli(["4242"], cwd=cwd)`, and the read-back of the `.tdd` record). A shared helper for that read-back would remove the duplication.
+### The start-up sweep fails closed: it never removes a `veri-run-*` directory with no record, nor a recorded path outside the inherited `TMPDIR`, and a record it cannot read is left alone with the record named on stderr (pinned by an unreadable-record case: kept, named) ⟦criterion 2⟧
+- test-only | extract the repeated set-up block of the four sweep cases in test_run_conductor.py into one helper
