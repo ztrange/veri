@@ -64,6 +64,9 @@ def git_out(directory, *args):
 
 def record_existing(ledger):
     added = added_file(ledger)
+    if os.path.exists(added):
+        print(f"ledger-growth.sh: {os.path.basename(added)} already exists", file=sys.stderr)
+        return 2
     directory = os.path.dirname(os.path.abspath(ledger))
     sha = plan_sha(git_out(directory, "log", "--format=%H %s"))
     planned = set(step_texts(git_out(directory, "show", f"{sha}:./{os.path.basename(ledger)}")))

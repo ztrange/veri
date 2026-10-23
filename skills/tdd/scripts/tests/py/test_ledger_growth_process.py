@@ -41,3 +41,23 @@ def test_2213_record_existing_writes_a_record_per_step_the_plan_commit_lacked_an
     added = repo / ".tdd" / "issue-42-added.md"
     assert (before[0], recorded[0], added.read_text() if added.exists() else None, after[0]) == (
         1, 0, "".join(line + "\n" for line in lines), 0)
+
+
+@pytest.mark.process("git")
+def test_2213_record_existing_refuses_when_the_added_file_already_exists_and_leaves_it_byte_identical(
+        tmp_path, run_cli):
+    ledger_growth = importlib.import_module("veri.ledger_growth")
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    ledger = repo / ".tdd" / "issue-42.md"
+    ledger.write_text("# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "plan: scope #42 (#42)")
+    ledger.write_text("# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n- [ ] a wheel turns ⟦added⟧ ⟦criterion 1⟧\n")
+    git(repo, "commit", "-q", "-am", "chore: step added (#42)")
+    added = repo / ".tdd" / "issue-42-added.md"
+    existing = b"- [ ] a hand-written record \xe2\x9f\xa6added\xe2\x9f\xa7\n"
+    added.write_bytes(existing)
+    code, _, err = run_cli(ledger_growth, ["record-existing", str(ledger)], cwd=repo)
+    assert (code, added.read_bytes(), "issue-42-added.md" in err) == (2, existing, True)
