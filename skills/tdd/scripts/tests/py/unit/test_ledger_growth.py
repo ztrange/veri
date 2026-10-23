@@ -140,3 +140,11 @@ def test_2130_plan_sha_prints_the_newest_plan_scope_or_rewrite_commit_and_exits_
     newest = run_cli(ledger_growth, ["plan-sha"], stdin=log)
     none = run_cli(ledger_growth, ["plan-sha"], stdin=f"{'a' * 40} plan: split step 1\n")
     assert (newest, none[0]) == ((0, "c" * 40 + "\n", ""), 2)
+
+
+def test_2130_an_unreadable_ledger_exits_2_naming_the_file_on_stderr(tmp_path, run_cli, ledger_growth):
+    plan = tmp_path / "plan.md"
+    plan.write_text("# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n")
+    missing = tmp_path / "issue-42.md"
+    code, out, err = run_cli(ledger_growth, [str(plan), str(missing)])
+    assert (code, out, str(missing) in err) == (2, "", True)
