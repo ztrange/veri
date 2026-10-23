@@ -6,3 +6,4 @@
 - test-only | extract the repeated set-up block of the four sweep cases in test_run_conductor.py into one helper
 ### Before launching, `run-conductor.sh` reads the free space of the filesystem holding the inherited `TMPDIR` and of the target repository through one free-space reader, and refuses with exit 2 and a stderr message naming the path, its free GB and `VERI_MIN_FREE_GB` when either is below `VERI_MIN_FREE_GB` (default 20 when unset), launching no conductor; `VERI_MIN_FREE_GB=0` disables the check (pinned with the free-space reader stubbed in-process) ⟦criterion 3⟧
 - test-only | the four new #2183 cases repeat the same setup (past_the_guards, delenv, scratch_tmpdir, fake_claude_exiting, cwd/.tdd) and could share a helper
+not-done | transform-rejected | rename the record file `issue-<n>-tmpdir-skill-commit` to drop the misleading `skill-commit` suffix (a path later steps read, so decide it with them)
