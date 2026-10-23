@@ -1507,3 +1507,26 @@ def test_cli_a_leafs_private_global_git_config_starts_as_a_copy_of_the_operators
         "note=\"sees: $seen\"\n")
 
     assert (after, code, "sees: veri-test-helper" in out) == (before, 0, True)
+
+
+@pytest.mark.process("run-leaf.sh under a zsh login shell, a stub claude running word-splitting and pipeline-exit forms through the SHELL it was handed")
+def test_cli_run_leaf_sh_under_a_zsh_login_shell_hands_claude_a_shell_that_splits_words_and_survives_a_pipeline_ending_in_exit_2204(
+        tmp_path, monkeypatch, run_cli):
+    work = _prompt_workspace(tmp_path, monkeypatch, "Verify the test for issue 3.")
+    out = tmp_path / "seen"
+    stub = _executable(tmp_path / "claude", "#!/bin/sh\n"
+                       "\"$SHELL\" -c 'x=\"make unit\"; set -- $x; echo $#' > \"$OUT_DIR.count\"\n"
+                       "\"$SHELL\" -c 'true | { exit 3; }; echo later' > \"$OUT_DIR.later\"\n"
+                       + _OK_RESULT_LINE)
+
+    class _Launcher:
+        @staticmethod
+        def main(argv):
+            return subprocess.run([str(SCRIPTS / "run-leaf.sh"), *argv], stdin=subprocess.DEVNULL,
+                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
+
+    code, _, _ = run_cli(_Launcher, ["prompt.txt"], cwd=work,
+                         env={"CLAUDE_BIN": str(stub), "SHELL": "/bin/zsh", "OUT_DIR": str(out)})
+    read = lambda suffix: (out.parent / f"seen.{suffix}").read_text() if (out.parent / f"seen.{suffix}").exists() else None
+
+    assert (code, read("count"), read("later")) == (0, "2\n", "later\n")
