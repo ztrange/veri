@@ -233,6 +233,16 @@ def test_issue_2008_a_bail_then_resume_then_launch_with_a_live_conductor_prints_
     assert "bailed" not in out
 
 
+def test_issue_2008_a_run_with_no_mark_and_no_live_conductor_whose_latest_launch_ended_in_a_usage_limit_prints_it_hit_a_usage_limit(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP + [{"event": "launch", "issue": "108", "step": "2", "phase": "red", "attempt": "1"}])
+    (tmp_path / ".tdd" / "conductor-108.log").write_text(
+        json.dumps({"type": "system", "subtype": "init"}) + "\n"
+        + json.dumps({"type": "result", "result": "You have hit your usage limit"}) + "\n")
+    monkeypatch.chdir(tmp_path)
+
+    assert "Outcome: the run hit a usage limit.\n" in render(metrics, capsys)
+
+
 def test_an_exit_whose_status_is_the_integer_2_is_not_counted_as_a_kill(tmp_path, monkeypatch, capsys, metrics):
     attempt = {"step": "1", "phase": "red", "attempt": "1", "secs": "0"}
     write_log(tmp_path, ONE_STEP + [dict(attempt, event="launch"), dict(attempt, event="exit", status=2),

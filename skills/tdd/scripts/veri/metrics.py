@@ -417,7 +417,7 @@ def render(issue, path, ledger):
         for tier, runs in tier_runs.items():
             row([tier] + runs + [""] * (width - len(runs)))
 
-    ended, _cause, ending = run_end.run_end(os.path.dirname(os.path.dirname(os.path.abspath(path))))
+    ended, cause, ending = run_end.run_end(os.path.dirname(os.path.dirname(os.path.abspath(path))))
     ending = ending or None
     print("### 📊 Metrics — issue %s" % issue)
     print()
@@ -436,6 +436,8 @@ def render(issue, path, ledger):
           % (known(counted(len(recovered) + full_suite)), known(planned)))
     if not ended:
         print("Outcome: none yet — the run is still going.")
+    elif ending is None and cause == "usage-limit":
+        print("Outcome: the run hit a usage limit.")
     elif ending is None:
         print("Outcome: %s — the log carries no mark ending the run." % UNKNOWN)
     elif ending.get("event") == "done":
