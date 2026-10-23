@@ -1,4 +1,5 @@
 """The verdict launch SKILL.md prescribes, run through every real script between the launch and the exit code."""
+import hashlib
 import json
 import os
 import subprocess
@@ -19,6 +20,18 @@ def launch_verdict(tmp_path, result):
     (work / ".tdd").mkdir()
     (work / "spec.md").write_text("## Acceptance criteria\n\n- [ ] it works\n")
     (work / "probe.test.sh").write_text("true\n")
+    (work / ".tdd" / "issue-2206.md").write_text("# Plan for #2206\n\n- [ ] first step\n")
+    identity = {"GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@example.test", "GIT_COMMITTER_NAME": "veri",
+                "GIT_COMMITTER_EMAIL": "veri@example.test", "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
+    git = {**os.environ, **identity}
+    (work / ".gitignore").write_text(".tdd/\n")
+    subprocess.run(["git", "-C", str(work), "init", "-q", "-b", "main"], check=True, env=git)
+    subprocess.run(["git", "-C", str(work), "add", "-A"], check=True, env=git)
+    subprocess.run(["git", "-C", str(work), "commit", "-q", "-m", "initial"], check=True, env=git)
+    head = subprocess.run(["git", "-C", str(work), "rev-parse", "HEAD"], check=True, env=git,
+                          capture_output=True, text=True).stdout.strip()
+    (work / ".tdd" / "check-earlier-{}.pass".format(hashlib.sha256(b"first step").hexdigest()[:16])).write_text(
+        f"step: first step\nhead: {head}\n")
     stub = tmp_path / "claude"
     stub.write_text(STUB)
     stub.chmod(0o755)
@@ -26,7 +39,7 @@ def launch_verdict(tmp_path, result):
     home.mkdir()
     env = {name: value for name, value in os.environ.items() if not name.startswith("VERI_")}
     env.update(S=str(SCRIPTS), CLAUDE_BIN=str(stub), HOME=str(home), VERDICT_RESULT=result,
-               VERI_STUCK_RETRIES="0", VERI_NO_VERDICT_RETRIES="0", VERI_HEARTBEAT="30", VERI_TIMEOUT="60", VERI_POLL="0.2")
+               VERI_ISSUE="2206", VERI_STEP="1", VERI_STUCK_RETRIES="0", VERI_NO_VERDICT_RETRIES="0", VERI_HEARTBEAT="30", VERI_TIMEOUT="60", VERI_POLL="0.2")
     launch = ('$S/detach-leaf.sh $S/supervise.sh verdict-red $S/run-verdict.sh red spec.md probe.test.sh probe-target'
               ' > .tdd/verify-red.reason && $S/wait-leaf.sh verdict-red 60')
     done = subprocess.run(["bash", "-c", launch], cwd=work, env=env, stdin=subprocess.DEVNULL,
