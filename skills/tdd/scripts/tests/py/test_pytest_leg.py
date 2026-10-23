@@ -970,6 +970,7 @@ sys.exit(pytest_leg.main([]))
 
 
 @pytest.mark.process("two launcher children run as full runs from different working trees, sharing one home")
+@pytest.mark.timeout(60)
 def test_2195_a_second_full_run_waits_for_the_first_saying_once_who_holds_the_lock_then_runs_and_exits_as_its_suites_decide(tmp_path):
     import subprocess
     import time
@@ -1023,6 +1024,7 @@ sys.exit(pytest_leg.main([]))
 
 @pytest.mark.process("two launcher children run as full runs sharing one home, the first ended each way the lock must survive")
 @pytest.mark.parametrize("ending", ["exits_ok", "exits_red", "SIGTERM", "SIGINT", "SIGHUP"])
+@pytest.mark.timeout(60)
 def test_2195_a_waiting_full_run_starts_its_suites_after_the_holder_exits_normally_exits_red_or_is_ended_by_a_signal(tmp_path, ending):
     import signal
     import subprocess
