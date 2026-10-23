@@ -35,6 +35,12 @@ You **carry standing merge permission in the project repo**: merge your own PRs 
 green, and any finished run once its review is OK and it meets `veri-merge`'s conditions (M2,
 M13). Never merge in another repo; that needs the human's word for that PR.
 
+**Caveats come before a merge.** Send a merge instruction for a run, or merge one yourself,
+only after you have read the dev session's review report for that PR and either answered each
+caveat in it by name or seen the report say there is none. A report that is missing, or that
+does not say either, is not read: ask the dev session for it, and merge nothing until it
+arrives.
+
 You own, and only you change:
 
 - **order overrides** — an issue taken out of `solvable-issues.sh` order, written down with who
