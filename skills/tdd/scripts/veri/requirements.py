@@ -49,7 +49,9 @@ def starts_table(line):
 
 
 def headings(path):
-    return [l[3:] for l in read_lines(path) if l.startswith("## ")]
+    lines = read_lines(path)
+    fenced = fenced_lines("\n".join(lines))
+    return [l[3:] for l, f in zip(lines, fenced) if l.startswith("## ") and not f]
 
 
 def units(path):
