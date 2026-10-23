@@ -149,13 +149,15 @@ def _check_earlier(ledger, step, exempt=()):
             continue
         try:
             with open(_record_path(match.group(1)), encoding="utf-8") as handle:
-                bodies = [l.rstrip("\n")[6:].split("\t") for l in handle if l.startswith("body: ")]
+                records = handle.read().splitlines()
+            bodies = [l[6:].split("\t") for l in records if l.startswith("body: ")]
+            marked = "format: 2" in records
         except OSError:
             continue
         for name, case, digest in bodies:
-            latest[(name, case)] = (digest, match.group(1))
+            latest[(name, case)] = (digest, match.group(1), marked)
     changed = []
-    for (name, case), (digest, owner) in latest.items():
+    for (name, case), (digest, owner, marked) in latest.items():
         try:
             with open(name, encoding="utf-8", errors="replace") as handle:
                 text = handle.read()
@@ -164,7 +166,7 @@ def _check_earlier(ledger, step, exempt=()):
         except OSError:
             now = old = None
         if case not in exempt and not (fixture and name == fixture.group(1)) and (
-                now is None or digest not in (_body_digest(now), _body_digest(old))):
+                now is None or digest not in ((_body_digest(now),) if marked else (_body_digest(now), _body_digest(old)))):
             changed.append("%s (%s)" % (case, owner))
     for entry in changed:
         write(sys.stdout, entry)
@@ -215,6 +217,8 @@ def main(argv):
             lines = ["%s  %s\n" % (_digest(name), name) for name in files]
             lines += ["deleted  %s\n" % name for name in deleted]
             if by_step:
+                if files:
+                    lines.append("format: 2\n")
                 for name in files:
                     for case, body in _added_cases(name):
                         lines += ["case: %s\n" % case,
@@ -236,7 +240,7 @@ def main(argv):
         try:
             with open(record) as handle:
                 entries = [line.rstrip("\n").split("  ", 1) for line in handle
-                           if line.strip() and not line.startswith(("case: ", "body: "))]
+                           if line.strip() and not line.startswith(("case: ", "body: ", "format: "))]
         except OSError:
             write(sys.stderr, "tests-frozen.sh: record %s is missing" % record)
             return 2
