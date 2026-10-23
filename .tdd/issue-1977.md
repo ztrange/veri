@@ -18,4 +18,4 @@
 - [x] `add_ledger_step.py` no longer opens `events.jsonl` itself, and its unreadable-log message and exit behaviour are unchanged. ⟦added⟧ ⟦criterion 8⟧
 - [x] `dashboard.py` no longer opens `events.jsonl` itself, and its tailing of an events log behaves as before. ⟦added⟧ ⟦criterion 8⟧
 - [x] `issue_worktree.py` no longer opens `events.jsonl` itself, and its seeded-log set-aside and restore behave as before. ⟦added⟧ ⟦criterion 8⟧
-- [x] The events.jsonl openers audit reports a module that holds an events.jsonl path in a variable and then opens that variable, shown by a case feeding the audit a source of that shape, the case in a file other than the audit's own ⟦guard-subject: skills/tdd/scripts/tests/py/test_events_jsonl_openers.py⟧ ⟦criterion 8⟧ ⟂ refactor pending
+- [x] The events.jsonl openers audit reports a module that holds an events.jsonl path in a variable and then opens that variable, shown by a case feeding the audit a source of that shape, the case in a file other than the audit's own ⟦guard-subject: skills/tdd/scripts/tests/py/test_events_jsonl_openers.py⟧ ⟦criterion 8⟧
