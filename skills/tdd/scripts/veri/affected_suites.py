@@ -11,6 +11,11 @@ try:
 except ImportError:
     from .git import git
 
+try:
+    from . import markdown_sections
+except ImportError:
+    import markdown_sections
+
 USAGE = "usage: affected-suites.sh <base>..<head>"
 SCRIPTS = "skills/tdd/scripts"
 PYTEST_DIRS = (SCRIPTS + "/tests/py", SCRIPTS + "/tests/py/unit")
@@ -96,18 +101,8 @@ def heading(line):
 
 
 def unfenced(lines):
-    fence = None
-    for line in lines:
-        stripped = line.lstrip()
-        if len(line) - len(stripped) >= 4:
-            stripped = ""
-        run = len(stripped) - len(stripped.lstrip(stripped[:1]))
-        if fence is None and stripped.startswith(("```", "~~~")):
-            fence = stripped[0] * run
-        elif fence is not None:
-            if stripped.startswith(fence):
-                fence = None
-        else:
+    for line, fenced in zip(lines, markdown_sections.fenced_lines("\n".join(lines))):
+        if not fenced:
             yield line
 
 
