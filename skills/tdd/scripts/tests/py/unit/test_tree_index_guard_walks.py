@@ -14,9 +14,24 @@ def test_planted_walker_2170(tests_py_index):
     return [n for entry in tests_py_index for n in ast.walk(entry.tree)]
 '''
 
+# The shape the real readers audits had before #2170: the tree bound to a name, its body walked node by node, in a
+# module-level helper the case reaches.
+PLANTED_THROUGH_A_NAME = '''import ast
+import pytest
 
-def test_2170_the_guard_names_a_tree_audit_case_that_walks_its_entrys_tree_itself():
-    entry = types.SimpleNamespace(path=pathlib.Path("test_planted.py"), tree=ast.parse(PLANTED))
+def _readers(entry):
+    tree = entry.tree
+    return [c for node in tree.body for c in ast.walk(node)]
+
+@pytest.mark.tree_audit("x")
+def test_planted_walker_2170(tests_py_index):
+    return [_readers(entry) for entry in tests_py_index]
+'''
+
+
+@pytest.mark.parametrize("source", [PLANTED, PLANTED_THROUGH_A_NAME], ids=["walk-entry-tree", "tree-bound-then-walked"])
+def test_2170_the_guard_names_a_tree_audit_case_that_walks_its_entrys_tree_itself(source):
+    entry = types.SimpleNamespace(path=pathlib.Path("test_planted.py"), tree=ast.parse(source))
     with pytest.raises(AssertionError) as raised:
         test_tree_index_guard.test_every_tree_audit_case_sweeping_all_test_files_uses_the_shared_index_2168([entry])
     assert "test_planted.py::test_planted_walker_2170" in str(raised.value)
