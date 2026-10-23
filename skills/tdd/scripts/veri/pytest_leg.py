@@ -168,7 +168,8 @@ def main(argv):
     entry = None
     full_lock = None
     holder = os.environ.get("PYTEST_LEG_FULL_LOCK_HOLDER")
-    if "-m" not in argv and not os.environ.get("PYTEST_XDIST_WORKER") and not under_full_lock_holder():
+    locking = tunables.read("VERI_TEST_LOCK") != "0"
+    if "-m" not in argv and not os.environ.get("PYTEST_XDIST_WORKER") and locking and not under_full_lock_holder():
         full_lock = acquire_full_lock()
         os.environ["PYTEST_LEG_FULL_LOCK_HOLDER"] = str(os.getpid())
     serial_seen = os.environ.get("PYTEST_LEG_SERIAL_SEEN")

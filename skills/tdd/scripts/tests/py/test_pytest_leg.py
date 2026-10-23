@@ -1103,3 +1103,37 @@ def test_2195_a_full_run_started_under_the_full_run_holding_the_lock_skips_the_l
     assert (outer.returncode, (marks / "nested-exit").read_text()) == (0, "0"), outer.stderr
     assert (marks / "nested-started").exists()
     assert "waiting for the full run" not in outer.stderr
+
+
+@pytest.mark.process("two launcher children run as full runs sharing one home, the second with VERI_TEST_LOCK=0 while the first holds the lock")
+@pytest.mark.timeout(60)
+def test_2195_a_full_run_started_with_veri_test_lock_0_starts_its_suites_at_once_beside_a_live_holder_and_writes_no_waiting_message(tmp_path):
+    import subprocess
+    import time
+
+    scripts = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    child = LOCK_CHILD % (scripts, os.path.join(scripts, "veri"))
+    home, marks, release = tmp_path / "home", tmp_path / "marks", tmp_path / "release"
+    for directory in (home, marks, tmp_path / "treeA", tmp_path / "treeB"):
+        directory.mkdir()
+    env = dict(os.environ, HOME=str(home), VERI_PYTEST_IMPORTABLE="1", VERI_PYTEST_TIMEOUT_IMPORTABLE="1", VERI_PYTEST_XDIST_IMPORTABLE="1")
+
+    def launch(name, extra):
+        err = open(tmp_path / (name + ".err"), "w")
+        return subprocess.Popen([sys.executable, "-c", child, name, str(marks), str(release)],
+                                cwd=tmp_path / ("tree" + name), env=dict(env, **extra), stdout=subprocess.DEVNULL, stderr=err)
+
+    def until(done):
+        deadline = time.monotonic() + 15
+        while not done() and time.monotonic() < deadline:
+            time.sleep(0.05)
+
+    first = launch("A", {})
+    until(lambda: (marks / "A-started").exists())
+    second = launch("B", {"VERI_TEST_LOCK": "0"})
+    until(lambda: (marks / "B-started").exists() or (tmp_path / "B.err").stat().st_size > 0)
+    started_while_first_held = (marks / "B-started").exists()
+    release.touch()
+    codes = (first.wait(timeout=30), second.wait(timeout=30))
+    assert (started_while_first_held, codes) == (True, (0, 0))
+    assert "waiting" not in (tmp_path / "B.err").read_text()
