@@ -161,6 +161,9 @@ def main(argv):
     got = [i for i in re.findall(r"^(\S+): (?:PASS|FAIL)\b", block, re.M) if i != "VERDICT"]
     wanted = [row.split("\t", 1)[0] for row in claims.splitlines()]
     if sorted(got) != sorted(wanted):
+        missing = [i for i in wanted if i not in got]
+        if missing:
+            return no_verdict("GRADES block is missing requirement IDs %s" % ", ".join(missing))
         return no_verdict("GRADES block IDs %s do not match requirement IDs %s"
                           % (", ".join(got), ", ".join(wanted)))
     failed = re.findall(r"^(?!VERDICT)\S+: FAIL\b.*$", reply, re.M)
