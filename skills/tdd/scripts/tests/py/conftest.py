@@ -23,6 +23,22 @@ for path in (SCRIPTS / "veri", SCRIPTS):
 
 from veri import entry
 
+
+def live_conductor(monkeypatch, run_tdd, issue):
+    """A conductor.pid in <run_tdd> that answers kill -0, its command line run-conductor for <issue>."""
+    import importlib
+    (run_tdd / "conductor.pid").write_text("%d\n" % os.getpid())
+    for name in ("run_end", "veri.run_end"):
+        module = importlib.import_module(name)
+        issues = getattr(module, "_live_issues", None)
+        if issues is None:
+            issues = []
+            monkeypatch.setattr(module, "_live_issues", issues, raising=False)
+        issues.append(issue)
+        monkeypatch.setattr(module, "command_line",
+                            lambda pid, issues=issues: " ; ".join("run-conductor.sh %s" % i for i in issues),
+                            raising=False)
+
 class TestFile:
     def __init__(self, path):
         self.path = path

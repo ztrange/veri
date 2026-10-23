@@ -3,6 +3,8 @@ import importlib
 import json
 import os
 
+from conftest import live_conductor
+
 
 def test_a_run_whose_events_log_ends_with_a_done_event_prints_done_and_that_events_pr(tmp_path, run_cli):
     stop_reason = importlib.import_module("veri.stop_reason")
@@ -34,12 +36,12 @@ def test_a_run_whose_events_log_ends_with_a_bail_or_a_stop_event_prints_that_eve
         0, "bailed red process\n", 0, "stopped graceful\n")
 
 
-def test_a_run_with_a_live_conductor_and_no_end_event_prints_running(tmp_path, run_cli):
+def test_a_run_with_a_live_conductor_and_no_end_event_prints_running(tmp_path, monkeypatch, run_cli):
     stop_reason = importlib.import_module("veri.stop_reason")
     run = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
     run.mkdir(parents=True)
     (run / "events.jsonl").write_text(json.dumps({"ts": 100, "issue": "7", "event": "step-done"}) + "\n")
-    (run / "conductor.pid").write_text("%d\n" % os.getpid())
+    live_conductor(monkeypatch, run, "7")
 
     code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
 
