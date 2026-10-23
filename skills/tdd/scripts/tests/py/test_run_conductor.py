@@ -3338,6 +3338,22 @@ def test_cli_a_run_whose_last_non_blank_event_is_neither_done_bail_nor_stop_even
 
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
 
+    assert (code, [line for line in log.read_text().splitlines() if line.strip()]) == (
+        0, ['{"event": "done", "ts": 1}', '{"event": "phase-start", "ts": 2}']), stderr
+
+
+def test_cli_a_run_whose_events_are_bail_then_resume_then_launch_is_open_and_gets_a_needs_user_bail_appended_2009(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    conductor_that_prints(monkeypatch, tmp_path, [], result_record("Which option do you want?"))
+    log = tmp_path / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl"
+    log.parent.mkdir(parents=True)
+    log.write_text('{"event": "bail", "ts": 1}\n{"event": "resume", "ts": 2}\n{"event": "launch", "ts": 3}\n')
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
     records = [json.loads(line) for line in log.read_text().splitlines() if line.strip()]
     assert (code, records[-1].get("event"), records[-1].get("cause")) == (0, "bail", "needs-user"), stderr
 
