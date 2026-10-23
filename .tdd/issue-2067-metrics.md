@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 2067
 
-Wall time for the issue: 91 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1861 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: unknown of 3 planned.
-Outcome: the run bailed — no-verdict, a system failure.
+Steps done: 3 of 3 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/2214.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $3.91 over 62 turns, in 3 sessions.
+Conductor own spending: $5.98 over 103 turns, in 4 sessions.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
@@ -58,24 +58,65 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 42 | $0.07 | 112738 |
 | 43 | $0.03 | 113536 |
 | 44 | $0.04 | 114313 |
-| 45 | $0.56 | 88089 |
-| 46 | $0.02 | 88541 |
-| 47 | $0.03 | 89943 |
-| 48 | $0.03 | 91973 |
-| 49 | $0.10 | 102116 |
+| 45 | $0.57 | 88089 |
+| 46 | $0.03 | 88541 |
+| 47 | $0.04 | 89943 |
+| 48 | $0.04 | 91973 |
+| 49 | $0.11 | 102116 |
 | 50 | $0.03 | 102775 |
-| 51 | $0.02 | 103292 |
-| 52 | $0.02 | 103542 |
-| 53 | $0.02 | 103764 |
-| 54 | $0.02 | 104244 |
-| 55 | $0.02 | 104623 |
-| 56 | $0.03 | 105409 |
+| 51 | $0.04 | 103292 |
+| 52 | $0.03 | 103542 |
+| 53 | $0.03 | 103764 |
+| 54 | $0.03 | 104244 |
+| 55 | $0.03 | 104623 |
+| 56 | $0.04 | 105409 |
 | 57 | $0.05 | 108462 |
-| 58 | $0.03 | 109520 |
-| 59 | $0.03 | 110138 |
+| 58 | $0.04 | 109520 |
+| 59 | $0.04 | 110138 |
 | 60 | $0.03 | 110756 |
-| 61 | $0.04 | 113030 |
-| 62 | $0.06 | 117297 |
+| 61 | $0.05 | 113030 |
+| 62 | $0.07 | 117297 |
+| 63 | $0.04 | 118316 |
+| 64 | $0.04 | 119314 |
+| 65 | $0.57 | 88620 |
+| 66 | $0.02 | 89129 |
+| 67 | $0.03 | 90523 |
+| 68 | $0.03 | 92611 |
+| 69 | $0.10 | 103350 |
+| 70 | $0.04 | 105721 |
+| 71 | $0.03 | 107164 |
+| 72 | $0.03 | 108627 |
+| 73 | $0.03 | 109727 |
+| 74 | $0.03 | 110338 |
+| 75 | $0.02 | 110693 |
+| 76 | $0.03 | 111173 |
+| 77 | $0.03 | 111576 |
+| 78 | $0.03 | 112368 |
+| 79 | $0.05 | 115824 |
+| 80 | $0.03 | 116303 |
+| 81 | $0.03 | 117016 |
+| 82 | $0.03 | 117589 |
+| 83 | $0.03 | 118106 |
+| 84 | $0.03 | 118880 |
+| 85 | $0.03 | 119195 |
+| 86 | $0.06 | 123926 |
+| 87 | $0.03 | 124676 |
+| 88 | $0.03 | 125318 |
+| 89 | $0.03 | 125801 |
+| 90 | $0.03 | 126527 |
+| 91 | $0.03 | 127228 |
+| 92 | $0.03 | 128151 |
+| 93 | $0.03 | 129078 |
+| 94 | $0.03 | 129712 |
+| 95 | $0.03 | 130011 |
+| 96 | $0.03 | 131055 |
+| 97 | $0.03 | 131478 |
+| 98 | $0.03 | 131784 |
+| 99 | $0.03 | 132201 |
+| 100 | $0.04 | 133413 |
+| 101 | $0.03 | 134167 |
+| 102 | $0.03 | 134653 |
+| 103 | $0.03 | 135072 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-sonnet-5-5.
 
 #### By phase
@@ -83,8 +124,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 15 | 10 | 1 | 2 | 924 | 0 | 31145 | 0.09 |
-| prose | 3 | 0 | 0 | 0 | 203 | 194 | 3 | 6 | 30580 | 2866 | 289125 | 1.03 |
-| skill-edit | 1 | 0 | 0 | 0 | 24 | 18 | 5 | 8 | 1409 | 344157 | 116097 | 0.34 |
+| prose | 8 | 0 | 0 | 0 | 536 | 512 | 8 | 16 | 83584 | 8868 | 774707 | 2.77 |
+| skill-edit | 2 | 0 | 0 | 0 | 38 | 29 | 8 | 12 | 2818 | 459210 | 232270 | 0.65 |
 
 #### By model
 
@@ -97,16 +138,22 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| prose | 0 | 0.00 | 203 | 1.03 |
-| skill-edit | 0 | 0.00 | 24 | 0.34 |
+| prose | 0 | 0.00 | 0 | 0.00 |
+| skill-edit | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
 | step | attempts | PASS | REJECT | kills | retries | no-verdict | API s | turns | input | output | cache read | cache creation | $ | wall s | revise | refactor | stopped | crossed at | split | kind |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |
-| `skills/tdd/SKILL.md`'s *Scope & plan* plans every change to a unit with a requirements list as its ⟦skill-edit⟧ step whatever kind of step the change would otherwise be, `⟦diff-checked⟧` included, and no other step kind (Red, Green, Refactor, `⟦diff-checked⟧`, pin or phased) edits such a unit; row PL35 replaces the existing PL35 in `skills/tdd/REQUIREMENTS.md` exactly as the issue states it, and PL10 is replaced by the issue's PL10 (its `⟦diff-checked⟧` rule applies only outside a unit with a requirements list); the unit grades PASS against its whole list and `GRADED` carries a line whose signature matches its current text ⟦skill-edit⟧ ⟦criterion 1⟧ | 4 | 0 | 0 | 0 | 0 | 0 | 212 | 8 | 14 | 31989 | 347023 | 405222 | 1.37 | unknown | unknown | unknown | unknown |  |  | full |
+| `skills/tdd/SKILL.md`'s *Scope & plan* plans every change to a unit with a requirements list as its ⟦skill-edit⟧ step whatever kind of step the change would otherwise be, `⟦diff-checked⟧` included, and no other step kind (Red, Green, Refactor, `⟦diff-checked⟧`, pin or phased) edits such a unit; row PL35 replaces the existing PL35 in `skills/tdd/REQUIREMENTS.md` exactly as the issue states it, and PL10 is replaced by the issue's PL10 (its `⟦diff-checked⟧` rule applies only outside a unit with a requirements list); the unit grades PASS against its whole list and `GRADED` carries a line whose signature matches its current text ⟦skill-edit⟧ ⟦criterion 1⟧ | 7 | 0 | 0 | 0 | 0 | 0 | 341 | 13 | 22 | 52598 | 464293 | 715679 | 2.36 | 184 | unknown | unknown | unknown |  |  | full |
+| `skills/tdd/SKILL.md` states that a run signs a requirements list only inside a ⟦skill-edit⟧ step: the conductor never runs `grade-prose.sh` and commits a `GRADED` line on its own, except the Draft PR step's regrade of a unit the run already signed (DP1); row PL49 is added to `skills/tdd/REQUIREMENTS.md` exactly as the issue states it, the unit grades PASS against its whole list and is signed ⟦skill-edit⟧ ⟦criterion 2⟧ | 1 | 0 | 0 | 0 | 0 | 0 | 73 | 1 | 2 | 12057 | 1568 | 96776 | 0.36 | 119 | unknown | unknown | unknown |  |  | full |
+| `skills/tdd/REQUIREMENTS.md` holds every row of the issue's `## Requirements` table for `skills/tdd/SKILL.md` (PL35, PL49, PL10), changed rows replacing the existing row of the same ID, each stated in `skills/tdd/SKILL.md`'s prose; the unit grades PASS against its whole list, `prose-owed.sh` prints nothing for it, and `GRADED` carries a line for it whose signature matches its current text ⟦skill-edit⟧ ⟦criterion 3⟧ | 1 | 0 | 0 | 0 | 0 | 0 | 64 | 1 | 2 | 10997 | 1568 | 96794 | 0.35 | 115 | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
+
+#### Structural pass
+
+Stopped: nothing-structural
 
 #### Test-command seconds, by tier
 
@@ -117,4 +164,4 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 9 | 16 | 32913 | 347023 | 436367 | 1.45 |
+| total | 17 | 30 | 87326 | 468078 | 1038122 | 3.52 |
