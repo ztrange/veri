@@ -4,5 +4,5 @@
 - [x] `build-develop-prompt.sh revise transform <spec> <step> <test-cmd> <reason-file>` exits 0 and prints a non-empty prompt naming `transform` as the phase being redone, built from a template or mapping `build_develop_prompt.py` declares, where today it exits 2 with `unknown phase to revise 'transform'` ⟦criterion 1⟧
 - [x] When the revise template the builder reads is empty (a plant that blanks it), `build-develop-prompt.sh revise <phase> …` exits 2 with nothing on stdout and a stderr line naming the phase being revised, where today it exits 0 with an empty body ⟦criterion 2⟧
 - [x] `run-leaf.sh` given a prompt file that is empty (or holds only NUL bytes and newlines) exits 2 with a stderr line saying the prompt is empty and never starts `claude`, where today it launches `claude -p ""` ⟦criterion 3⟧
-- [ ] `run-leaf.sh -` given empty stdin exits 2 with a stderr line saying the prompt is empty and never starts `claude` ⟦criterion 3⟧
+- [x] `run-leaf.sh -` given empty stdin exits 2 with a stderr line saying the prompt is empty and never starts `claude` ⟦criterion 3⟧
 - [ ] Each guard (the revise-transform build, the builder's empty-prompt refusal, run-leaf's empty-prompt refusal) was watched to fail on purpose: broken, seen red, restored ⟦human-owed⟧ ⟦criterion 4⟧
