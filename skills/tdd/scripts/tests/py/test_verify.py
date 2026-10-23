@@ -13,6 +13,7 @@ import pytest
 
 
 from conftest import SCRIPTS
+from test_supervise import checked_head, checked_step, committed_head
 
 @pytest.fixture(autouse=True)
 def no_ambient_leaf_args(monkeypatch):
@@ -1395,6 +1396,8 @@ def test_verify_sh_passes_the_blind_prompt_carrying_the_spec_to_the_leaf_and_a_h
         claude.chmod(0o755)
         env.update(CLAUDE_BIN=str(claude), VERI_STUCK_RETRIES="0", VERI_TIMEOUT="0",
                    VERI_POLL="0.02", VERI_KILL_POLL="0.01")
+        (tmp_path / ".gitignore").write_text(".tdd/\n")
+        env.update(checked_step(tmp_path, committed_head(tmp_path)))
 
     code, out, err = run_cli(verify, argv, env=env, cwd=tmp_path)
 
@@ -1561,6 +1564,7 @@ def test_verify_sh_refuses_a_verifier_leaf_that_changed_the_tree_or_head_with_ex
            "LEAFARGS_OUT": str(leafargs_out), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
     if leaf_args is not None:
         env["VERIFY_LEAF_ARGS"] = leaf_args
+    env.update(checked_head(repo))
     verify = importlib.import_module("veri.verify")
     before = git_state(repo)
 
@@ -1585,7 +1589,7 @@ def test_verify_sh_saves_the_same_refusal_diff_whatever_the_global_git_config_sa
     env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
            "FAKE_MUTATE": 'printf "the verifier rewrote this\\n" > src.txt',
            "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
-           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
     code, _, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
@@ -1622,7 +1626,7 @@ def test_verify_sh_under_the_repos_own_gitignore_accepts_nested_run_state_and_re
     ignored = [subprocess.run(["git", "-C", str(repo), "check-ignore", "--no-index", "-q", path]).returncode == 0
                for path in (".tdd/issue-569.md", ".tdd/issue-569-spec.md")]
     env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation, "FAKE_OUT_TEXT": verdict,
-           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
@@ -1691,8 +1695,9 @@ def test_verify_sh_preserves_a_rejected_or_no_verdict_attempt_under_its_ref_and_
         claude.write_text({"fails": "#!/bin/sh\nprintf '%s' \"$FAKE_OUT_TEXT\"\nexit 1\n",
                            "hangs": HUNG_LEAF}[leaf])
         claude.chmod(0o755)
+    step = checked_head(repo, issue=env["VERI_ISSUE"], step=int(env["VERI_STEP"])) if "VERI_STEP" in env else {}
     env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_OUT_TEXT": text,
-           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **env}
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **step, **env}
     if leaf == "hangs":
         env.update(VERI_STUCK_RETRIES="0", VERI_TIMEOUT="0")
     verify = importlib.import_module("veri.verify")
