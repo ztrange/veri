@@ -68,8 +68,10 @@ def refresh():
     issues = list(kept.values())
     fetched_at = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     os.makedirs(tdd, exist_ok=True)
-    with open(path, "w") as out:
+    temp = path + ".tmp"
+    with open(temp, "w") as out:
         json.dump({"fetched_at": fetched_at, "issues": issues}, out)
+    os.replace(temp, path)
     return 0
 
 

@@ -1,6 +1,6 @@
 # Plan for #2160 — report_cache.py writes its cache in place, and a corrupt cache wedges every later run at exit 2
 
-- [ ] A refresh whose os.replace raises, after the temp file is written, leaves the previous report-cache.json byte-identical and still parseable (the write goes to a temp file in .tdd/ then os.replace onto report-cache.json); a unit case in skills/tdd/scripts/tests/py/unit/test_report_cache.py ⟦criterion 1⟧
+- [x] A refresh whose os.replace raises, after the temp file is written, leaves the previous report-cache.json byte-identical and still parseable (the write goes to a temp file in .tdd/ then os.replace onto report-cache.json); a unit case in skills/tdd/scripts/tests/py/unit/test_report_cache.py ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] After a successful refresh no temp file is left in .tdd/ beside report-cache.json; a unit case in skills/tdd/scripts/tests/py/unit/test_report_cache.py ⟦criterion 2⟧
 - [ ] A stray temp file left in .tdd/ by an interrupted refresh does not make the next refresh fail: it exits 0 and writes a complete cache; a unit case in skills/tdd/scripts/tests/py/unit/test_report_cache.py ⟦criterion 2⟧
 - [ ] A truncated cache file (valid JSON cut mid-way) is rebuilt: stderr names the cache file and says it is rebuilding, the gh issue list call carries no --search updated:>=, the file is replaced with a complete cache, and refresh exits 0; a unit case in skills/tdd/scripts/tests/py/unit/test_report_cache.py ⟦criterion 3⟧
