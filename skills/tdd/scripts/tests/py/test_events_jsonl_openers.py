@@ -1,22 +1,30 @@
 """Which modules of veri/ open a run's events.jsonl."""
+import ast
+
 import pytest
+
+
+def opens_events_jsonl(source):
+    for call in ast.walk(ast.parse(source)):
+        if isinstance(call, ast.Call) and (
+                getattr(call.func, "id", None) == "open" or getattr(call.func, "attr", None) == "open"
+        ) and any(
+                isinstance(node, ast.Constant) and isinstance(node.value, str)
+                and node.value.endswith("events.jsonl")
+                for node in ast.walk(call)):
+            return True
+    return False
 
 
 @pytest.mark.tree_audit("every module of veri/")
 def test_no_module_but_event_and_event_log_opens_events_jsonl():
-    import ast
-
     from conftest import SCRIPTS
 
-    openers = []
-    for source in sorted((SCRIPTS / "veri").glob("*.py")):
-        if source.name in ("event.py", "event_log.py"):
-            continue
-        for call in ast.walk(ast.parse(source.read_text(encoding="utf-8"))):
-            if isinstance(call, ast.Call) and getattr(call.func, "id", None) == "open" and any(
-                    isinstance(node, ast.Constant) and isinstance(node.value, str)
-                    and node.value.endswith("events.jsonl")
-                    for node in ast.walk(call)):
-                openers.append(source.name)
+    openers = [
+        source.name
+        for source in sorted((SCRIPTS / "veri").glob("*.py"))
+        if source.name not in ("event.py", "event_log.py")
+        and opens_events_jsonl(source.read_text(encoding="utf-8"))
+    ]
 
     assert openers == []
