@@ -331,3 +331,24 @@ def test_refresh_whose_os_replace_raises_leaves_the_previous_cache_byte_identica
 
     after = cache.read_bytes()
     assert (after == before, json.loads(after)["issues"][0]["title"]) == (True, "old")
+
+
+def test_refresh_that_succeeds_leaves_no_temp_file_in_tdd_beside_the_cache_2160(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps({"fetched_at": "2026-10-20T00:00:00Z", "issues": []}))
+    issues = [{"number": 8, "title": "new", "state": "OPEN", "labels": [], "closedAt": None,
+               "updatedAt": "2026-10-21T10:00:00Z"}]
+
+    def fake_run(args, **kwargs):
+        return subprocess.CompletedProcess([str(arg) for arg in args], 0, json.dumps(issues), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    assert (code, sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == (0, ["report-cache.json"])
