@@ -124,7 +124,21 @@ def test_a_stale_run_exits_1_and_prints_a_not_done_line_naming_the_stale_state(t
 
 @pytest.mark.process("run-finished.sh on a running run")
 def test_a_running_run_exits_1_and_prints_a_not_done_line_naming_the_running_state(tmp_path):
-    assert_not_done(tmp_path, [LAUNCH % int(time.time())], "running")
+    repo = make_run(tmp_path, [(LAUNCH % int(time.time()))[:-1] + ',"issue":"4242"}'])
+    conductor = tmp_path / "run-conductor.sh"
+    conductor.write_text("#!/bin/sh\nsleep 30\n")
+    conductor.chmod(0o755)
+    child = subprocess.Popen([str(conductor), "4242"])
+    try:
+        (repo / ".tdd" / "wt" / "4242" / ".tdd" / "conductor.pid").write_text("%d\n" % child.pid)
+
+        code, out, _ = finish(repo, tmp_path)
+    finally:
+        child.kill()
+        child.wait()
+
+    assert code == 1
+    assert out.startswith("not-done running")
 
 
 @pytest.mark.process("run-finished.sh on a done run whose ledger has unchecked steps, with a fake gh")
