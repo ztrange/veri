@@ -1895,3 +1895,29 @@ def test_main_2172_prints_fixture_for_a_ts_function_helper_in_a_test_ts_file_and
 
     assert (found[0], found[1], missed[0], missed[1]) == (
         0, "fixture backend/src/router.test.ts adminOnClock\n", 3, "revise\n")
+
+
+def test_main_2172_prints_fixture_for_a_const_arrow_helper_in_a_spec_file_and_a_const_function_expression_helper_in_a_tests_directory_file(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: `adminOnClock` sets a password without the injected clock\n")
+    arrow = tmp_path / "arrow"
+    (arrow / "backend" / "src").mkdir(parents=True)
+    (arrow / "backend" / "src" / "router.spec.ts").write_text(
+        "const adminOnClock = async (app) => {\n  await app.post('/admin/password');\n};\n"
+        "it('expires an idle session', () => {});\n")
+    expression = tmp_path / "expression"
+    (expression / "backend" / "__tests__").mkdir(parents=True)
+    (expression / "backend" / "__tests__" / "router.ts").write_text(
+        "const adminOnClock = function (app) {\n  return app.post('/admin/password');\n};\n"
+        "it('expires an idle session', () => {});\n")
+
+    first = run_cli(wrong_test_route, [str(report), "expires an idle session"], cwd=arrow)
+    second = run_cli(wrong_test_route, [str(report), "expires an idle session"], cwd=expression)
+
+    assert (first[0], first[1], second[0], second[1]) == (
+        0, "fixture backend/src/router.spec.ts adminOnClock\n",
+        0, "fixture backend/__tests__/router.ts adminOnClock\n")
