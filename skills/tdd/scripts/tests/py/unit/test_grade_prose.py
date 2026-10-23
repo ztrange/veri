@@ -734,3 +734,9 @@ def test_a_fail_row_in_the_first_reply_makes_the_merged_verdict_reject_when_the_
     verdicts = [json.loads(line).get("verdict") for line in events.read_text().splitlines()] if events.exists() else []
     assert (code, out.strip(), verdicts, (tmp_path / "GRADED").exists()) == (
         1, "A1: FAIL - not blue", ["REJECT"], False), (code, out, err)
+
+
+@pytest.mark.parametrize("char", ["\x0c", "\x85", " "])
+def test_a_mid_line_splitlines_separator_stays_inside_its_line_of_the_units_section_2181(grade_prose, char):
+    text = "## u\nbefore%safter\nend\n## v\n" % char
+    assert grade_prose.section(text, "u") == "## u\nbefore%safter\nend\n" % char
