@@ -1,5 +1,4 @@
 """How skills/tdd/SKILL.md's preflight checks launchability, budgets, GitHub, the worktree baseline and the conductor.pid lock, read as text."""
-import ast
 import pathlib
 import re
 import subprocess
@@ -231,38 +230,26 @@ def only_in_preflight(value, preflight, rest):
     return False
 
 
-def messages(fn):
-    skip = set()
-    for node in ast.walk(fn):
-        if isinstance(node, ast.Assert) and node.msg is not None:
-            skip.update(id(n) for n in ast.walk(node.msg))
-        if isinstance(node, ast.JoinedStr):
-            skip.update(id(n) for n in ast.walk(node))
-    return skip
+STRING_ASSIGNMENT = re.compile(r"\w+\s*=\s*[rRbBuU]*['\"]")
 
 
-def preflight_readers(tree, preflight, rest):
-    defs = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
-    consts = {target.id: node.value.value for node in tree.body if isinstance(node, ast.Assign)
-              and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str)
-              for target in node.targets if isinstance(target, ast.Name)}
+def preflight_readers(walk, preflight, rest):
+    defs = {d.name: d for d in walk.definitions if d.segment.startswith("def ")}
+    consts = {d.name: d.literals[0] for d in walk.definitions
+              if not d.names and len(d.literals) == 1 and STRING_ASSIGNMENT.match(d.segment)}
 
     def reads(fn, seen):
         if fn.name in seen:
             return False
         seen.add(fn.name)
-        skip = messages(fn)
-        for node in ast.walk(fn):
-            if isinstance(node, ast.Name) and NAMES_PREFLIGHT.search(node.id):
+        for name in fn.names:
+            if NAMES_PREFLIGHT.search(name):
                 return True
-            if isinstance(node, ast.Name) and node.id in consts and only_in_preflight(consts[node.id], preflight, rest):
+            if name in consts and only_in_preflight(consts[name], preflight, rest):
                 return True
-            if (isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in skip
-                    and only_in_preflight(node.value, preflight, rest)):
+            if name in defs and reads(defs[name], seen):
                 return True
-            if isinstance(node, ast.Name) and node.id in defs and reads(defs[node.id], seen):
-                return True
-        return False
+        return any(only_in_preflight(value, preflight, rest) for value in fn.constants)
 
     return [name for name, fn in defs.items() if name.startswith("test_") and reads(fn, set())]
 
@@ -275,7 +262,7 @@ def test_every_remaining_case_that_reads_skill_md_s_preflight_section_is_a_named
         path = entry.path
         if "SKILL" not in entry.text:
             continue
-        for name in preflight_readers(entry.tree, preflight, rest):
+        for name in preflight_readers(entry.walk, preflight, rest):
             if not any(key in name for key in MECHANICAL_READERS):
                 strays.append(f"{path.relative_to(TESTS_DIR)}::{name}")
     assert strays == [], f"cases read the Preflight section but are not on the mechanical-fact allow-list: {strays}"
