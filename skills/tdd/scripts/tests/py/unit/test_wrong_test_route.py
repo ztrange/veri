@@ -1872,3 +1872,26 @@ def test_main_2172_prints_revise_when_a_wrong_test_names_a_python_method_without
         wrong_test_route, [str(report), "test_session_expires"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
+
+
+def test_main_2172_prints_fixture_for_a_ts_function_helper_in_a_test_ts_file_and_revise_when_it_sits_only_in_a_non_test_ts_file(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    helper = "async function adminOnClock(app) {\n  await app.post('/admin/password');\n}\n"
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: `adminOnClock` sets a password without the injected clock\n")
+    with_test = tmp_path / "with-test"
+    (with_test / "backend" / "src").mkdir(parents=True)
+    (with_test / "backend" / "src" / "router.test.ts").write_text(
+        helper + "it('expires an idle session', () => {});\n")
+    without_test = tmp_path / "without-test"
+    (without_test / "backend" / "src").mkdir(parents=True)
+    (without_test / "backend" / "src" / "router.ts").write_text(helper)
+
+    found = run_cli(wrong_test_route, [str(report), "expires an idle session"], cwd=with_test)
+    missed = run_cli(wrong_test_route, [str(report), "expires an idle session"], cwd=without_test)
+
+    assert (found[0], found[1], missed[0], missed[1]) == (
+        0, "fixture backend/src/router.test.ts adminOnClock\n", 3, "revise\n")
