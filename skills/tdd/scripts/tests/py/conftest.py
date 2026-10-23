@@ -48,6 +48,8 @@ class Definition:
     literals: tuple
     names: tuple
     constants: tuple
+    strings: tuple
+    byte_strings: tuple
 
 
 @dataclasses.dataclass(frozen=True)
@@ -70,6 +72,13 @@ def _constants(node):
                 yield from _constants(child)
 
 
+def _strings(parts, kind):
+    """Every `kind` constant but an f-string's own literal fragments: the text a readers audit counts as read,
+    assert messages and constants inside an f-string's `{...}` included, as each audit's own walk counted it before #2170."""
+    fragments = {id(v) for j in parts if isinstance(j, ast.JoinedStr) for v in j.values}
+    return tuple(p.value for p in parts if isinstance(p, ast.Constant) and type(p.value) is kind and id(p) not in fragments)
+
+
 def _definition(text, node):
     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
         names = [node.name]
@@ -83,6 +92,8 @@ def _definition(text, node):
         literals=tuple(p.value for p in parts if isinstance(p, ast.Constant) and isinstance(p.value, str)),
         names=tuple(p.id for p in parts if isinstance(p, ast.Name) and isinstance(p.ctx, ast.Load)),
         constants=tuple(_constants(node)),
+        strings=_strings(parts, str),
+        byte_strings=tuple(b.decode("utf-8", "replace") for b in _strings(parts, bytes)),
     ) for name in names]
 
 
