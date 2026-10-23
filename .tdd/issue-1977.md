@@ -10,7 +10,7 @@
 - [x] supervise.sh's red-awaits-pass answer reads an events log holding an invalid UTF-8 byte without raising, the byte replaced (encoding utf-8, errors replace), and still reads the launch and verdict lines after it (a case in the supervise suite) ⟦criterion 6⟧
 - [x] event_log.read_events reads an events log holding an invalid UTF-8 byte without raising and replaces the byte with U+FFFD, so every reader that goes through event_log does too (a unit case in tests/py/unit/test_event_log.py) ⟦criterion 6⟧
 - [x] run-conductor.sh reads a run whose last non-blank event is bail as closed, a case of its own, no production change (a pin, in the run-conductor suite) ⟦criterion 7⟧
-- [ ] run-conductor.sh reads a run whose last non-blank event is stop as closed, a case of its own, no production change (a pin, in the run-conductor suite) ⟦criterion 7⟧
+- [x] run-conductor.sh reads a run whose last non-blank event is stop as closed, a case of its own, no production change (a pin, in the run-conductor suite) ⟦criterion 7⟧
 - [ ] run-conductor.sh reads a run whose last non-blank event is any event other than done, bail or stop as open, a case of its own, no production change (a pin, in the run-conductor suite) ⟦criterion 7⟧
 - [ ] run-conductor.sh reads a run whose last non-blank line is not JSON, after a done event, as open, as it did before this issue, no production change (a pin, in the run-conductor suite) ⟦criterion 7⟧
 - [ ] The events.jsonl openers audit reports a module that opens events.jsonl through Path(...).open, shown by a case feeding the audit a source of that shape, the case in a file other than the audit's own ⟦guard-subject: skills/tdd/scripts/tests/py/test_events_jsonl_openers.py⟧ ⟦criterion 8⟧
