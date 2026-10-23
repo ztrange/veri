@@ -194,3 +194,24 @@ def test_skill_edit_guard_2232_pin_file_named_after_base_sha_is_not_printed_and_
     ran = subprocess.run([str(GUARD), "skills/foo/FOO.md", base, "tests/test_pin.py"], cwd=repo, capture_output=True, text=True)
 
     assert (ran.returncode, ran.stdout) == (1, "tests/test_stray.py\n")
+
+
+@pytest.mark.process("skill-edit-guard.sh run against a real git repository")
+def test_skill_edit_guard_2232_only_unit_its_requirements_and_a_named_pin_file_changed_exit_0_and_prints_nothing(tmp_path):
+    repo = tmp_path / "guard"
+    (repo / "skills/foo").mkdir(parents=True)
+    (repo / "tests").mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "skills/foo/FOO.md").write_text("prose\n")
+    (repo / "skills/foo/REQUIREMENTS.md").write_text("| K1 | rule |\n")
+    (repo / "tests/test_pin.py").write_text("pin one\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: foo")
+    base = git(repo, "rev-parse", "HEAD")
+    (repo / "skills/foo/FOO.md").write_text("prose two\n")
+    (repo / "skills/foo/REQUIREMENTS.md").write_text("| K1 | rule |\n| K2 | more |\n")
+    (repo / "tests/test_pin.py").write_text("pin two\n")
+
+    ran = subprocess.run([str(GUARD), "skills/foo/FOO.md", base, "tests/test_pin.py"], cwd=repo, capture_output=True, text=True)
+
+    assert (ran.returncode, ran.stdout, ran.stderr) == (0, "", "")
