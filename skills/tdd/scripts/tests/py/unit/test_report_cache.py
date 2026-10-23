@@ -508,3 +508,24 @@ def test_refresh_with_a_cache_that_is_a_json_null_names_it_on_stderr_rebuilds_wi
     assert (code, "report-cache.json" in err and "rebuilding" in err, searched) == (0, True, [False])
     written = json.loads(cache.read_text())
     assert ("fetched_at" in written, [i["number"] for i in written["issues"]]) == (True, [8])
+
+
+def test_refresh_with_a_corrupt_cache_and_a_failing_gh_issue_list_exits_2_with_the_gh_message_and_leaves_the_corrupt_file_byte_identical_2160(run_cli, monkeypatch, tmp_path):
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    cache = tmp_path / ".tdd" / "report-cache.json"
+    cache.write_text('{"fetched_at": "2026-10-01T00:00:00Z", "issues": [{"numb')
+    before = cache.read_bytes()
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        return subprocess.CompletedProcess(args, 1, "", "gh: HTTP 502")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    assert (code, out, "gh issue list failed" in err, "HTTP 502" in err, cache.read_bytes() == before) == (2, "", True, True, True)
