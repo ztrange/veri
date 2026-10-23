@@ -1693,6 +1693,31 @@ def test_cli_a_folder_the_conductor_leaks_into_its_tmpdir_is_gone_from_the_inher
     assert (code, sorted(p.name for p in scratch.iterdir())) == (128 + signal.SIGTERM, [])
 
 
+def test_cli_a_launch_whose_run_has_no_tdd_directory_yet_still_records_the_veri_run_n_directory_and_the_launchers_pid_under_tdd_issue_2183(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    fake_claude_exiting(monkeypatch, 0, 0)
+    answer, seen = subprocess.run, []
+
+    def reporting(args, *rest, **kwargs):
+        if list(args)[:1] == ["fake-claude"]:
+            seen.append(kwargs["env"]["TMPDIR"])
+        return answer(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", reporting)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    assert not (cwd / ".tdd").exists()
+
+    code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    recorded = "".join(f.read_text() for f in sorted((cwd / ".tdd").glob("*")) if f.is_file())
+    assert (code, bool(seen) and seen[0] in recorded, str(os.getpid()) in recorded) == (0, True, True)
+
+
 def tree_contents(root):
     """Every file and symlink under root but .git, by relative path: its bytes, or the target it links to."""
     contents = {}
