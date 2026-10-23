@@ -1,5 +1,4 @@
 """Cases for which suites still read SKILL.md's `#### Red — one failing test (developer leaf), then verify-red (blind)` subsection by its content."""
-import ast
 import pathlib
 import re
 
