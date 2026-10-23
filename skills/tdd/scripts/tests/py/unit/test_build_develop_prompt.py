@@ -79,6 +79,22 @@ def test_main_builds_a_revise_prompt_naming_transform_as_the_phase_redone_instea
     assert (code, err, b"(redoing transform)" in out, b"(redoing refactor)" in out) == (0, b"", True, False)
 
 
+def test_main_refuses_a_revise_prompt_whose_template_is_empty_with_exit_2_naming_the_phase_2137(
+        tmp_path, capsysbinary, monkeypatch, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+    read = build_develop_prompt._read
+    monkeypatch.setattr(build_develop_prompt, "_read",
+                        lambda path: b"" if str(path).endswith("develop-revise.md") else read(path))
+
+    code = build_develop_prompt.main(["revise", "transform", str(spec), "s", "make test", str(reason)])
+
+    out, err = capsysbinary.readouterr()
+    assert (code, out, b"transform" in err) == (2, b"", True)
+
+
 def test_main_names_in_its_unknown_phase_refusal_and_its_usage_line_every_phase_it_accepts_the_replaces_and_red_repair_phases_included_1890(
         tmp_path, capsysbinary, build_develop_prompt):
     spec = tmp_path / "spec.md"
