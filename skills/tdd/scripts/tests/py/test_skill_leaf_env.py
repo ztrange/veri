@@ -109,6 +109,16 @@ def launched_beside(probe, lineno, planter, line):
     return (lineno, shape, line) in probe.launches
 
 
+def write_check_earlier_pass(directory, step):
+    identity = ["-c", "user.name=probe", "-c", "user.email=probe@example.com"]
+    subprocess.run(["git", "init", "-q"], cwd=directory, check=True)
+    (directory / ".git" / "info" / "exclude").write_text("*\n")
+    subprocess.run(["git", *identity, "commit", "-q", "--allow-empty", "-m", "probe"], cwd=directory, check=True)
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=directory, check=True, capture_output=True, text=True).stdout.strip()
+    key = hashlib.sha256(os.fsencode(step)).hexdigest()[:16]
+    (directory / ".tdd" / f"check-earlier-{key}.pass").write_text(f"step: {step}\nhead: {head}\n")
+
+
 def launched_test_cmd(probe, lineno, line, leaf, launch, *files, scripts=SCRIPTS, clock=time.monotonic, sleep=time.sleep):
     directory = probe.run / f"{lineno}-{leaf}"
     (directory / ".tdd").mkdir(parents=True, exist_ok=True)
@@ -119,6 +129,8 @@ def launched_test_cmd(probe, lineno, line, leaf, launch, *files, scripts=SCRIPTS
     else:
         ledger.write_text(f"# Plan for #{SENTINEL_ISSUE}\n\n- [ ] {SENTINEL_STEP}\n")
     note_launch(probe, lineno, line, directory)
+    if leaf in ("verify-red", "verify-green"):
+        write_check_earlier_pass(directory, SENTINEL_STEP)
     for name in files:
         if name:
             (directory / name).write_text(f"the {name} this launch names, which the stub never reads\n")
