@@ -44,12 +44,15 @@ def prompt(unit, text, claims):
 
 
 def section(text, heading):
-    lines = text.splitlines()
-    for index, (line, fenced) in enumerate(zip(lines, markdown_sections.fenced_lines(text))):
+    lines = text.split("\n")
+    if lines[-1] == "":
+        lines.pop()
+    flat = "\n".join(" ".join(line.splitlines()) for line in lines)
+    for index, (line, fenced) in enumerate(zip(flat.split("\n"), markdown_sections.fenced_lines(flat))):
         hashes = len(line) - len(line.lstrip("#"))
         if not fenced and hashes and line[hashes:].strip() == heading:
-            body = markdown_sections.section(text, line, bare=True)
-            joined = "".join(l + "\n" for l in body)
+            body = markdown_sections.section(flat, line, bare=True)
+            joined = "".join(l + "\n" for l in lines[index:index + len(body)])
             if not text.endswith("\n") and index + len(body) == len(lines):
                 return joined.removesuffix("\n")
             return joined
