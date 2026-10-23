@@ -200,6 +200,24 @@ def test_880_skill_md_s_revise_heading_re_verifies_a_diff_revise_with_both_base_
     assert not problems, "\n".join(problems)
 
 
+def _phases_sent_line():
+    return next((l for l in REVISE_MD.read_text().splitlines()
+                 if l.startswith("The phases sent to `build-develop-prompt.sh revise <phase>`")), "")
+
+
 def test_2137_revise_md_lists_transform_among_the_phases_sent_to_build_develop_prompt_revise():
-    line = next(l for l in REVISE_MD.read_text().splitlines() if l.startswith("The phases sent to `build-develop-prompt.sh revise <phase>`"))
-    assert "transform" in line, line
+    line = _phases_sent_line()
+    listed = re.search(r"phases sent to `build-develop-prompt\.sh revise <phase>` are ([^;]+);", line)
+    assert listed, f"{REVISE_MD} names no list of the phases it sends to build-develop-prompt.sh revise: {line!r}"
+    phases = set(re.findall(r"[a-z][a-z-]*", listed.group(1).replace(" and the interface phases", ",")))
+    phases -= {"and", "the", "interface", "phases"}
+    assert "transform" in phases, f"transform is not among the listed phases {sorted(phases)}"
+
+
+def test_2137_revise_md_says_a_rejected_transform_is_revised_as_revise_transform_never_mapped_to_refactor():
+    clauses = [c.strip() for c in _phases_sent_line().split(";")]
+    assert any(
+        re.search(r"rejected transform is revised as `revise transform`", c)
+        and re.search(r"never mapped to `refactor`", c)
+        for c in clauses
+    ), f"no clause of {REVISE_MD}'s phase-list line says a rejected transform is revised as `revise transform`, never mapped to `refactor`: {clauses}"
