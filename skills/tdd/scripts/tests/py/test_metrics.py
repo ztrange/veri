@@ -243,6 +243,14 @@ def test_issue_2008_a_run_with_no_mark_and_no_live_conductor_whose_latest_launch
     assert "Outcome: the run hit a usage limit.\n" in render(metrics, capsys)
 
 
+def test_issue_2008_a_run_with_no_mark_and_no_live_conductor_whose_latest_launch_has_no_result_prints_it_was_killed(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP + [{"event": "launch", "issue": "108", "step": "2", "phase": "red", "attempt": "1"}])
+    (tmp_path / ".tdd" / "conductor-108.log").write_text(json.dumps({"type": "system", "subtype": "init"}) + "\n")
+    monkeypatch.chdir(tmp_path)
+
+    assert "Outcome: the run was killed — its conductor's latest launch left no result.\n" in render(metrics, capsys)
+
+
 def test_an_exit_whose_status_is_the_integer_2_is_not_counted_as_a_kill(tmp_path, monkeypatch, capsys, metrics):
     attempt = {"step": "1", "phase": "red", "attempt": "1", "secs": "0"}
     write_log(tmp_path, ONE_STEP + [dict(attempt, event="launch"), dict(attempt, event="exit", status=2),

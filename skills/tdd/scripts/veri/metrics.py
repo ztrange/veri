@@ -438,6 +438,8 @@ def render(issue, path, ledger):
         print("Outcome: none yet — the run is still going.")
     elif ending is None and cause == "usage-limit":
         print("Outcome: the run hit a usage limit.")
+    elif ending is None and cause == "killed":
+        print("Outcome: the run was killed — its conductor's latest launch left no result.")
     elif ending is None:
         print("Outcome: %s — the log carries no mark ending the run." % UNKNOWN)
     elif ending.get("event") == "done":
