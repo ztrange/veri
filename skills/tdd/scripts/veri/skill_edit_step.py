@@ -122,6 +122,7 @@ def apply(issue, unit):
 
 
 _attempt = [1]
+_pins = [()]
 
 
 def _author(unit, path, reasons):
@@ -129,6 +130,9 @@ def _author(unit, path, reasons):
     text = ("You edit the prose of %s so that it satisfies every requirement below.\n\nUnit: %s\n\n%s\n\n"
             "Requirements:\n%s\nGrader FAIL reasons:\n%s\n"
             % (unit, unit, grade_prose.unit_text(unit), rows, reasons))
+    if _pins[0]:
+        text += ("\nPin files: %s\nUpdate there the checksum or verbatim pin of any sentence of the unit "
+                 "you change.\n" % ", ".join(_pins[0]))
     with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
         f.write(text)
     env = dict(os.environ)
@@ -196,6 +200,7 @@ def main(argv):
         if graded != 1:
             break
         _attempt[0] = attempt
+        _pins[0] = pins
         if _author(unit, path, said):
             return 2
         graded, said = _guard(unit, base, issue, pins)
