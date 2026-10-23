@@ -1,3 +1,5 @@
+import importlib
+
 import pytest
 
 SCRATCH = '''LIMIT = "alpha"
@@ -43,3 +45,25 @@ def test_an_audit_cannot_mutate_the_walk_result_the_index_hands_it_2170(tests_py
         walk.definitions[0] = definition
     with pytest.raises((AttributeError, TypeError)):
         definition.literals.append("x")
+
+
+# One planted case per shape the shared walk once dropped from "the text a case reads" (#2170): each reads SKILL.md's
+# subsection only through that shape, so an audit blind to the shape stops naming it.
+@pytest.mark.parametrize("audit, source", [
+    ("test_skill_red_readers",
+     'SKILL = "skills/tdd/SKILL.md"\n\n\ndef test_a(text):\n    assert SKILL in text, "#### Red"\n'),
+    ("test_skill_green_readers",
+     'SKILL = "skills/tdd/SKILL.md"\n\n\ndef test_a(text):\n    return SKILL, text.index(f"{\'#### Green\'} \u2014")\n'),
+    ("test_skill_refactor_readers",
+     'SKILL = "skills/tdd/SKILL.md"\n\n\ndef test_a(text):\n    assert SKILL and b"#### Refactor loop" in text\n'),
+], ids=["assert-message", "f-string-nested-constant", "bytes-literal"])
+@pytest.mark.tree_audit("one scratch test file")
+def test_a_readers_audit_still_counts_a_skill_md_read_made_only_through_each_shape_it_once_dropped_2170(
+        tests_py_index, tmp_path, audit, source):
+    path = tmp_path / "test_scratch.py"
+    path.write_text(source)
+    entry = type(tests_py_index[0])(path)
+    readers = importlib.import_module(audit)._readers
+    extra = ({},) if readers.__code__.co_argcount == 4 else ()
+
+    assert readers(entry, "", "", *extra) == ["test_a"]

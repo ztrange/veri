@@ -69,7 +69,7 @@ def _readers(entry, subsection, rest, docs):
         return []
     definitions = entry.walk.definitions
     segments = {d.name: d.segment for d in definitions}
-    literals = {d.name: d.constants for d in definitions}
+    literals = {d.name: d.strings for d in definitions}
     reads = {d.name: set(d.names) for d in definitions}
     calls = {
         name: {o for o in segments if o != name and re.search(r"\b%s\b" % re.escape(o), src)}
