@@ -246,3 +246,15 @@ def test_a_conductor_log_whose_last_launch_has_a_result_record_is_decided_by_tha
     code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
 
     assert (code, out, err) == (0, "unknown boom\n", "")
+
+
+def test_an_events_log_holding_a_line_that_is_not_json_exits_2_and_prints_nothing_to_stdout(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    events = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "events.jsonl"
+    events.parent.mkdir(parents=True)
+    events.write_text(json.dumps({"ts": 100, "issue": "7", "event": "step-done"}) + "\nnot json\n"
+                      + json.dumps({"ts": 200, "issue": "7", "event": "done", "pr": "p"}) + "\n")
+
+    code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
+
+    assert (code, out) == (2, "")

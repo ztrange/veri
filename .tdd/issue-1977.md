@@ -1,6 +1,6 @@
 # Plan for #1977 — stop-reason, supervise, wrong-test-route and run-conductor read events.jsonl through event_log
 
-- [ ] Given an events log holding a line that is not JSON, stop-reason.sh exits with the code it exits with today, no production change (a pin, in the stop-reason suites) ⟦criterion 2⟧
+- [x] Given an events log holding a line that is not JSON, stop-reason.sh exits with the code it exits with today, no production change (a pin, in the stop-reason suites) ⟦criterion 2⟧
 - [ ] supervise.sh's red-awaits-pass answer skips a line of the events log that is not JSON and still reads the launch and verdict lines after it, no production change (a pin, in the supervise suite) ⟦criterion 3⟧
 - [ ] wrong-test-route.sh's rerouted answer skips a line of the events log that is not JSON and still finds a reroute event for the step on a line after it, no production change (a pin, in the wrong-test-route suite) ⟦criterion 3⟧
 - [ ] run-conductor.sh treats a run whose last non-blank event is done, bail or stop as closed, and a run whose last non-blank event is any other event as open, no production change (a pin, in the run-conductor suite) ⟦criterion 4⟧
