@@ -80,7 +80,9 @@ def _fixture(report):
         if name.startswith("test_"):
             continue
         helper = re.compile(r"^def %s\(" % re.escape(name), re.M)
-        js_helper = re.compile(r"^\s*(?:export\s+)?(?:async\s+)?function\s+%s\(" % re.escape(name), re.M)
+        js_helper = re.compile(
+            r"^\s*(?:export\s+)?(?:(?:async\s+)?function\s+%s\(|const\s+%s\s*=\s*(?:async\s+)?(?:function\b|\([^)]*\)\s*=>))"
+            % (re.escape(name), re.escape(name)), re.M)
         for root, file in _files():
             py_file = is_test_file(file)
             if not py_file and not is_js_test_file(file, root):
