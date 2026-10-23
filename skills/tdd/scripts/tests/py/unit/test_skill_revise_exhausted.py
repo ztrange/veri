@@ -198,3 +198,8 @@ def test_880_skill_md_s_revise_heading_re_verifies_a_diff_revise_with_both_base_
     if not any_sentence(revise_prose_sentences(), "step base sha", "develop-diff", "record|before"):
         problems.append("no sentence of the revise section says the step base sha is the one recorded before the step's develop-diff leaf")
     assert not problems, "\n".join(problems)
+
+
+def test_2137_revise_md_lists_transform_among_the_phases_sent_to_build_develop_prompt_revise():
+    line = next(l for l in REVISE_MD.read_text().splitlines() if l.startswith("The phases sent to `build-develop-prompt.sh revise <phase>`"))
+    assert "transform" in line, line
