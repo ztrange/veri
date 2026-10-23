@@ -4,7 +4,7 @@ import re
 
 import pytest
 
-TESTS_PY = pathlib.Path(__file__).resolve().parent.parent
+TESTS_PY = pathlib.Path(__file__).resolve().parent
 SKILL_MD = TESTS_PY.parents[2] / "SKILL.md"
 PREFIX = "#### Refactor loop"
 HEADING = "#### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)"
@@ -103,18 +103,23 @@ def _readers(entry, subsection, rest, docs):
     )
 
 
-@pytest.mark.tree_audit("every test file under skills/tdd/scripts/tests/py")
-def test_every_remaining_case_reading_the_refactor_loop_subsection_by_its_content_is_on_the_mechanical_allow_list(tests_py_index):
+def stray_cases(entries, allowed):
     subsection, rest = _subsection_and_rest()
     docs = _other_docs()
     stray = []
-    for entry in tests_py_index:
+    for entry in entries:
         path = entry.path
         if path == pathlib.Path(__file__).resolve():
             continue
         rel = str(path.relative_to(TESTS_PY))
-        if rel in ALLOWED:  # a whole-file entry: keyed by the path under tests/py, never a bare file name
+        if rel in allowed:  # a whole-file entry: keyed by the path under tests/py, never a bare file name
             continue
-        stray += [f"{rel}::{name}" for name in _readers(entry, subsection, rest, docs) if f"{rel}::{name}" not in ALLOWED
-                  and f"{path.name}::{name}" not in ALLOWED]
+        stray += [f"{rel}::{name}" for name in _readers(entry, subsection, rest, docs) if f"{rel}::{name}" not in allowed
+                  and f"{path.name}::{name}" not in allowed]
+    return stray
+
+
+@pytest.mark.tree_audit("every test file under skills/tdd/scripts/tests/py")
+def test_every_remaining_case_reading_the_refactor_loop_subsection_by_its_content_is_on_the_mechanical_allow_list(tests_py_index):
+    stray = stray_cases(tests_py_index, ALLOWED)
     assert stray == [], "cases read the Refactor loop subsection by content and are neither mechanical nor allow-listed:\n" + "\n".join(stray)
