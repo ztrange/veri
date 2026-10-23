@@ -45,5 +45,16 @@
 # passing it by argv died on `unknown option '---` before any conductor existed.
 # Nothing parses options on stdin, so the fence — and any future first line — arrives intact.
 #
+# TMPDIR: the conductor, and so every leaf and test command it starts, gets a fresh
+# `veri-run-<n>-…` directory made inside the inherited TMPDIR. Its path and this launcher's pid
+# are recorded under the run's `.tdd/` (`issue-<n>-tmpdir-skill-commit`); the directory is removed when the
+# conductor exits and on SIGTERM/SIGINT/SIGHUP. Each start sweeps the recorded `veri-run-*`
+# directories whose pid no longer answers `kill -0`; a live owner, a missing record or a
+# directory outside the inherited TMPDIR is left alone, and an unreadable record is named on stderr.
+#
+# VERI_MIN_FREE_GB (default 20, `0` disables; a whole number >= 0, else exit 2): before launching,
+# the filesystems holding the inherited TMPDIR and the repository must each have at least this
+# many GB free, else exit 2 naming the path, the free GB and the variable.
+#
 # CLAUDE_BIN overrides the `claude` binary (used by the tests to inject a stub).
 exec python3 "$(dirname "$0")/veri/run_conductor.py" "$@"
