@@ -1,4 +1,5 @@
 """tests-frozen.sh's record and check, run in-process."""
+import ast
 import hashlib
 import os
 import re
@@ -74,13 +75,30 @@ _FIXTURE_FILE = re.compile(r"repairs the fixture '[^']*' in (\S+?),")
 _DECORATORS = re.compile(r"(?:\n[ \t]*(?:@[^\n]*)?)+\Z")
 
 
+def _def_ends(text):
+    try:
+        tree = ast.parse(text)
+    except (SyntaxError, ValueError):
+        return {}
+    return {node.lineno: node.end_lineno for node in ast.walk(tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+
+
 def _cases(text):
     found = list(_CASE.finditer(text))
     trailer = re.search(r"^finish\b.*\s*\Z", text, re.M)
     starts = [m.end() - len(m.group().lstrip()) for m in found]
     ends = starts[1:] + [trailer.start() if trailer and found and trailer.start() > found[-1].start() else len(text)]
-    return [(m.group(1) or m.group(2), _DECORATORS.sub("", text[start:end].rstrip()).rstrip())
-            for m, start, end in zip(found, starts, ends)]
+    lines, def_ends = text.splitlines(keepends=True), _def_ends(text)
+    cases = []
+    for m, start, end in zip(found, starts, ends):
+        body = text[start:end]
+        last = def_ends.get(text.count("\n", 0, start) + 1)
+        if m.group(1) and last:
+            first = text.count("\n", 0, start)
+            body = "".join(lines[first:last])
+        cases.append((m.group(1) or m.group(2), _DECORATORS.sub("", body.rstrip()).rstrip()))
+    return cases
 
 
 def _added_cases(name):
