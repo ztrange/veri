@@ -3,7 +3,9 @@
 # `make test` runs every pytest case that ships with the solve-issue skill, in one pytest
 # invocation. This is also the command veri's own conductor detects in preflight ("Makefile
 # with a test target → make test"), so veri can be run against its own repository: the suite is
-# green when this target exits 0. `make test TESTS="<pytest file or node id> …"` runs only those.
+# green when this target exits 0. `make test TESTS="<pytest file or node id> …"` runs only those:
+# each entry must name a pytest file or node id, and a directory, a missing file or any entry
+# selecting no suite is refused with exit 2 naming the entry, rather than run.
 .PHONY: test unit
 TESTS :=
 UNIT_TESTS :=
