@@ -2981,6 +2981,23 @@ def test_cli_a_run_whose_last_non_blank_event_is_neither_done_bail_nor_stop_even
     assert (code, records[-1].get("event"), records[-1].get("cause")) == (0, "bail", "needs-user"), stderr
 
 
+def test_cli_a_run_whose_last_non_blank_line_is_not_json_after_a_done_event_is_open_and_gets_a_needs_user_bail_appended_1977(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    conductor_that_prints(monkeypatch, tmp_path, [], result_record("Which option do you want?"))
+    log = tmp_path / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl"
+    log.parent.mkdir(parents=True)
+    log.write_text('{"event": "done", "ts": 1}\nnot json at all\n\n  \n')
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    last = [line for line in log.read_text().splitlines() if line.strip()][-1]
+    record = json.loads(last)
+    assert (code, record.get("event"), record.get("cause")) == (0, "bail", "needs-user"), stderr
+
+
 @pytest.mark.parametrize("stdout, expected", [(result_record("Which option do you want?"), 3), ("", 0)])
 def test_cli_a_conductor_that_exits_non_zero_or_exits_0_without_a_result_record_gets_no_bail_appended_1866(
         stdout, expected, tmp_path, monkeypatch, run_cli):
