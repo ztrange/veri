@@ -181,6 +181,8 @@ def _check_earlier(ledger, step, exempt=()):
         with open(ledger, encoding="utf-8") as handle:
             lines = handle.read().splitlines()
     except OSError as error:
+        os.chdir(root)
+        _remove_pass_marker(step)
         write(sys.stderr, "tests-frozen.sh: %s\n%s" % (error, USAGE))
         return 2
     os.chdir(root)
