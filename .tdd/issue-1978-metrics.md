@@ -1,9 +1,9 @@
 ### 📊 Metrics — issue 1978
 
-Wall time for the issue: 217 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 1 s, excluded from it.
+Wall time for the issue: 8 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 11 of 12 planned.
-Outcome: the run bailed — revise-exhausted, a process failure.
+Outcome: the run bailed — needs-user, a process failure.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
