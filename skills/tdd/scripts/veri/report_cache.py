@@ -53,11 +53,12 @@ def refresh():
         try:
             with open(path) as existing:
                 before = json.load(existing)
-        except json.JSONDecodeError as failure:
+            since = before["fetched_at"]
+        except (json.JSONDecodeError, KeyError) as failure:
             sys.stderr.write("report-cache.sh: %s is unreadable (%s), rebuilding\n" % (path, failure))
         else:
             kept = {issue["number"]: issue for issue in before["issues"]}
-            command += ["--search", "updated:>=" + before["fetched_at"]]
+            command += ["--search", "updated:>=" + since]
     try:
         issues = json.loads(github.gh_issue_list(*command))
     except github.NoAnswer as failure:
