@@ -1,6 +1,7 @@
 """ledger-growth.sh's check, run in-process."""
 import os
 import re
+import subprocess
 import sys
 
 import tunables
@@ -56,7 +57,26 @@ def plan_sha(log):
     return None
 
 
+def git_out(directory, *args):
+    return subprocess.run(["git", "-C", directory, *args], check=True, stdout=subprocess.PIPE,
+                          text=True, errors="surrogateescape").stdout
+
+
+def record_existing(ledger):
+    added = added_file(ledger)
+    directory = os.path.dirname(os.path.abspath(ledger))
+    sha = plan_sha(git_out(directory, "log", "--format=%H %s"))
+    planned = set(step_texts(git_out(directory, "show", f"{sha}:./{os.path.basename(ledger)}")))
+    steps = step_texts(read_ledger(ledger))
+    with open(added, "wb") as f:
+        f.write("".join(f"- [ ] {step}\n" for step in steps if step not in planned)
+                .encode(errors="surrogateescape"))
+    return 0
+
+
 def main(argv):
+    if len(argv) == 2 and argv[0] == "record-existing":
+        return record_existing(argv[1])
     if argv == ["plan-sha"]:
         sha = plan_sha(sys.stdin.read())
         if sha is None:
