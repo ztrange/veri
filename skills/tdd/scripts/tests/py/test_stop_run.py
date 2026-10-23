@@ -490,6 +490,7 @@ def mutant_of(source, before, inserted, destination):
     if (SCRIPTS / "lib" / "shim-python.sh").is_file():
         (destination / "lib").mkdir(exist_ok=True)
         shutil.copy(SCRIPTS / "lib" / "shim-python.sh", destination / "lib" / "shim-python.sh")
+        shutil.copy(SCRIPTS / "lib" / "venv-python.sh", destination / "lib" / "venv-python.sh")
     lines = (SCRIPTS / "stop-run.sh").read_text().splitlines()
     at = next(i for i, line in enumerate(lines) if line.startswith(before))
     stub(destination / "stop-run.sh", "\n".join(lines[:at] + [inserted] + lines[at:]) + "\n")
@@ -545,6 +546,7 @@ def test_stop_run_sh_run_through_a_symlink_to_the_skill_s_scripts_directory_from
     subprocess.run(["cp", "-R", str(SCRIPTS / "stop-run.sh"), str(SCRIPTS / "veri"), str(skill_scripts)], check=True)
     (skill_scripts / "lib").mkdir()
     shutil.copy(SCRIPTS / "lib" / "shim-python.sh", skill_scripts / "lib" / "shim-python.sh")
+    shutil.copy(SCRIPTS / "lib" / "venv-python.sh", skill_scripts / "lib" / "venv-python.sh")
     git("add", "-A", cwd=skill_main)
     git("commit", "-q", "-m", "skill", cwd=skill_main)
     skill_worktree = tmp_path.resolve() / "skill-worktree"
