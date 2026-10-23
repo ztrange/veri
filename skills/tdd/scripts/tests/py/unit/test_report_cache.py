@@ -352,3 +352,25 @@ def test_refresh_that_succeeds_leaves_no_temp_file_in_tdd_beside_the_cache_2160(
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
     assert (code, sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == (0, ["report-cache.json"])
+
+
+def test_refresh_with_a_stray_temp_file_left_in_tdd_exits_0_and_writes_a_complete_cache_2160(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "report-cache.json.tmp").write_text('{"fetched_at": "2026-10-2')
+    issues = [{"number": 8, "title": "new", "state": "OPEN", "labels": [], "closedAt": None,
+               "updatedAt": "2026-10-21T10:00:00Z"}]
+
+    def fake_run(args, **kwargs):
+        return subprocess.CompletedProcess([str(arg) for arg in args], 0, json.dumps(issues), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    written = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
+    assert (code, [i["number"] for i in written["issues"]]) == (0, [8])
