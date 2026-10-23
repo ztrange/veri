@@ -331,7 +331,8 @@ def ci_repair_step(issue, step):
 def step_text(issue, step):
     try:
         with open(ledger_path(".", issue)) as f:
-            return [record[6] for record in ledger_steps(f.read())][int(step) - 1]
+            boxes = [record[6] for record in ledger_steps(f.read())]
+        return boxes[int(step) - 1] if step.isdigit() else step if step in boxes else None
     except (OSError, ValueError, IndexError):
         return None
 
