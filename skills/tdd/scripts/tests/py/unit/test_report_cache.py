@@ -296,3 +296,38 @@ def test_refresh_reads_through_the_github_port_so_a_bad_gh_driver_exits_2_naming
 
     assert (code, out, "VERI_GH_DRIVER" in err, started, (tmp_path / ".tdd" / "report-cache.json").exists()) == (
         2, "", True, [], False)
+
+
+def test_refresh_whose_os_replace_raises_leaves_the_previous_cache_byte_identical_and_parseable_2160(run_cli, monkeypatch, tmp_path):
+    import json
+    import os
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    cache = tmp_path / ".tdd" / "report-cache.json"
+    cache.write_text(json.dumps({"fetched_at": "2026-10-20T00:00:00Z", "issues": [
+        {"number": 7, "title": "old", "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-10-19T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
+    before = cache.read_bytes()
+    issues = [{"number": 8, "title": "new", "state": "OPEN", "labels": [], "closedAt": None,
+               "updatedAt": "2026-10-21T10:00:00Z"}]
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+
+    def failing_replace(src, dst):
+        raise OSError("interrupted before replace")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(os, "replace", failing_replace)
+
+    try:
+        run_cli(report_cache, ["refresh"], cwd=tmp_path)
+    except OSError:
+        pass
+
+    after = cache.read_bytes()
+    assert (after == before, json.loads(after)["issues"][0]["title"]) == (True, "old")
