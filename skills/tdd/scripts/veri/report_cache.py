@@ -55,7 +55,7 @@ def refresh():
                 before = json.load(existing)
             since = before["fetched_at"]
             loaded = {issue["number"]: issue for issue in before["issues"]}
-        except (json.JSONDecodeError, KeyError) as failure:
+        except (json.JSONDecodeError, KeyError, TypeError) as failure:
             sys.stderr.write("report-cache.sh: %s is unreadable (%s), rebuilding\n" % (path, failure))
         else:
             kept = loaded
