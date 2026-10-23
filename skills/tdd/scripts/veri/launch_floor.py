@@ -44,13 +44,14 @@ def python_refusal(prefix):
     numbers = [_bash_number(major), _bash_number(minor)]
     if None not in numbers and numbers < [int(part) for part in floor.split(".")[:2]]:
         venv = tunables.venv_dir()
-        if sys.executable == os.path.join(venv, "bin", "python3"):
+        venv_python = os.path.join(venv, "bin", "python3")
+        if sys.executable == venv_python:
             sys.stderr.write("%s: veri needs Python %s or newer; the environment at %s is version %s; "
                              "remove it and run `make install-dev` again.\n" % (prefix, floor, venv, version))
             return 2
         sys.stderr.write("%s: veri needs Python %s or newer; the python3 on PATH is version %s.\n"
                          % (prefix, floor, version))
-        if _meets_floor(os.path.join(venv, "bin", "python3"), floor):
+        if _meets_floor(venv_python, floor):
             sys.stderr.write("%s: the environment at %s meets it; put %s/bin first on PATH.\n" % (prefix, venv, venv))
         return 2
     return 0
