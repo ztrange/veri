@@ -453,6 +453,23 @@ def test_main_when_the_prompt_file_is_a_directory_returns_2_launches_nothing_and
     assert (code, launches, err) == (2, [], "run-leaf.sh: adir: Is a directory\n")
 
 
+def test_main_when_the_prompt_file_is_empty_or_only_nul_bytes_and_newlines_returns_2_launches_nothing_and_says_the_prompt_is_empty_2137(
+        tmp_path, monkeypatch, capfd):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, tmp = _workspace(tmp_path, monkeypatch)
+    launches = []
+    monkeypatch.setattr(subprocess, "Popen",
+                        lambda argv, *args, **kwargs: _FakeLeaf(launches, argv, **kwargs))
+
+    answers = []
+    for content in (b"", b"\0\n\0\n\n"):
+        (work / "prompt.txt").write_bytes(content)
+        code = run_leaf.main(["prompt.txt"])
+        answers.append((code, "empty" in capfd.readouterr().err))
+
+    assert (answers, launches) == ([(2, True), (2, True)], [])
+
+
 def _as_extract_result_sh_prints(stream):
     extract_result = importlib.import_module("veri.extract_result")
     stdin = io.TextIOWrapper(io.BytesIO(stream), encoding=sys.__stdin__.encoding,
