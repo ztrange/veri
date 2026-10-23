@@ -4161,3 +4161,25 @@ def test_cli_gates_a_verify_red_or_verify_green_launch_given_the_step_as_its_led
 
     assert unmarked == {name: (2, False, True) for name in unmarked}
     assert marked == {name: (0, True, False) for name in marked}
+
+
+def test_cli_refuses_a_verify_red_or_verify_green_launch_whose_veri_step_is_unset_or_resolves_to_no_ledger_step_exit_2_naming_the_check_and_launching_nothing_2206(
+        monkeypatch, tmp_path, supervise, run_cli):
+    clean_env(monkeypatch)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-2206.md").write_text("# Plan for #2206\n\n- [ ] first step\n")
+    head = "0123456789abcdef0123456789abcdef01234567"
+    (tmp_path / supervise.tests_frozen._pass_marker_path("first step")).write_text(f"step: first step\nhead: {head}\n")
+    stub = tmp_path / "claude"
+    started = spy_leaf_start(monkeypatch, tmp_path, supervise)
+
+    answers = {}
+    for name in ("verify-red", "verify-green"):
+        for label, step in (("unset", None), ("no-such-text", "no such step"), ("past-the-end", "9")):
+            env = {"VERI_ISSUE": "2206", **({} if step is None else {"VERI_STEP": step})}
+            code, out, err = run_cli(supervise, [name, str(stub)], cwd=tmp_path, env=env)
+            answers[name, label] = (code, out, "check-earlier" in err)
+
+    assert answers == {(name, label): (2, "", True) for name in ("verify-red", "verify-green")
+                       for label in ("unset", "no-such-text", "past-the-end")}
+    assert not started
