@@ -26,11 +26,12 @@ def _level(line):
 
 def section(text, heading):
     lines = text.splitlines()
-    start = lines.index(heading)
+    fenced = fenced_lines(text)
+    start = next(i for i, line in enumerate(lines) if line == heading and not fenced[i])
     level = _level(heading)
     end = len(lines)
     for i in range(start + 1, len(lines)):
-        if 0 < _level(lines[i]) <= level:
+        if not fenced[i] and 0 < _level(lines[i]) <= level:
             end = i
             break
     return lines[start:end]

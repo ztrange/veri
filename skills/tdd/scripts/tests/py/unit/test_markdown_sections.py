@@ -95,3 +95,24 @@ def test_section_runs_from_its_heading_to_the_next_heading_of_the_same_or_a_high
     ]
     assert markdown_sections.section(text, "## B") == ["## B", "b body"]
     assert markdown_sections.section(text, "# Next") == ["# Next", "next body"]
+
+
+def test_section_never_starts_or_ends_at_a_heading_inside_a_fence():
+    markdown_sections = importlib.import_module("veri.markdown_sections")
+    text = (
+        "```\n"
+        "## A\n"
+        "```\n"
+        "## A\n"
+        "a body\n"
+        "```\n"
+        "## B\n"
+        "```\n"
+        "more body\n"
+        "## B\n"
+        "b body\n"
+    )
+
+    assert markdown_sections.section(text, "## A") == [
+        "## A", "a body", "```", "## B", "```", "more body",
+    ]
