@@ -120,7 +120,13 @@ def write_ledger(path, text, appended=""):
     replace_ledger(path, (text + appended).encode(errors=BYTES))
 
 
+def added_file(path):
+    return re.sub(r"\.md$", "", path) + "-added.md"
+
+
 def record_insertions(path, steps):
+    with open(added_file(path), "ab") as f:
+        f.write("".join(step + "\n" for step in steps).encode(errors=BYTES))
     with open(events_log(path), "a") as f:
         for step in steps:
             f.write(json.dumps({"event": "step-added", "actor": "add-ledger-step", "step": step}) + "\n")

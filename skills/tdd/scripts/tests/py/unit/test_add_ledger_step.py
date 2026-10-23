@@ -1340,3 +1340,23 @@ def test_main_records_one_step_added_event_per_inserted_line_on_exit_0_and_none_
     assert run_cli(add_ledger_step, [str(ledger), "after", "b two", "third"])[0] == 1
     assert run_cli(add_ledger_step, [str(ledger), "sideways", "b two", "t"])[0] == 2
     assert events.read_bytes() == before
+
+
+def test_main_writes_each_inserted_step_to_the_tracked_added_file_beside_the_ledger_on_exit_0_and_none_on_exit_1_or_2_2130(tmp_path, monkeypatch, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    added = tmp_path / "issue-42-added.md"
+    ledger.write_bytes(LEDGER)
+
+    monkeypatch.setenv("VERI_STEP_GROWTH", "5")
+    code, _, _ = run_cli(add_ledger_step, [str(ledger), "after", "b two", "first", "second"])
+    assert code == 0
+    inserted = [line for line in ledger.read_text().split("\n") if "⟦added⟧" in line]
+    assert len(inserted) == 2
+    recorded = added.read_text() if added.exists() else ""
+    assert [line in recorded.split("\n") or line.removeprefix("- [ ] ") in recorded for line in inserted] == [True, True]
+
+    before = added.read_bytes()
+    monkeypatch.setenv("VERI_STEP_GROWTH", "2")
+    assert run_cli(add_ledger_step, [str(ledger), "after", "b two", "third"])[0] == 1
+    assert run_cli(add_ledger_step, [str(ledger), "sideways", "b two", "t"])[0] == 2
+    assert added.read_bytes() == before
