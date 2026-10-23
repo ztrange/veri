@@ -1003,3 +1003,59 @@ def test_2195_a_second_full_run_waits_for_the_first_saying_once_who_holds_the_lo
     assert len(waiting.splitlines()) == 1
     assert str(first.pid) in waiting and os.path.realpath(tmp_path / "treeA") in waiting
     assert (marks / "B-started").exists()
+
+
+EXIT_CHILD = """\
+import os, sys, time
+sys.path[:0] = [%r, %r]
+import pytest
+from veri import pytest_leg
+name, marks, release, status = sys.argv[1:5]
+def spy(args):
+    open(os.path.join(marks, name + "-started"), "a").close()
+    while name == "A" and not os.path.exists(release):
+        time.sleep(0.01)
+    return pytest.ExitCode[status] if name == "A" else pytest.ExitCode.OK
+pytest.main = spy
+sys.exit(pytest_leg.main([]))
+"""
+
+
+@pytest.mark.process("two launcher children run as full runs sharing one home, the first ended each way the lock must survive")
+@pytest.mark.parametrize("ending", ["exits_ok", "exits_red", "SIGTERM", "SIGINT", "SIGHUP"])
+def test_2195_a_waiting_full_run_starts_its_suites_after_the_holder_exits_normally_exits_red_or_is_ended_by_a_signal(tmp_path, ending):
+    import signal
+    import subprocess
+    import time
+
+    scripts = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    child = EXIT_CHILD % (scripts, os.path.join(scripts, "veri"))
+    home, marks, release = tmp_path / "home", tmp_path / "marks", tmp_path / "release"
+    for directory in (home, marks, tmp_path / "treeA", tmp_path / "treeB"):
+        directory.mkdir()
+    env = dict(os.environ, HOME=str(home), VERI_PYTEST_IMPORTABLE="1", VERI_PYTEST_TIMEOUT_IMPORTABLE="1", VERI_PYTEST_XDIST_IMPORTABLE="1")
+
+    def launch(name, status):
+        err = open(tmp_path / (name + ".err"), "w")
+        return subprocess.Popen([sys.executable, "-c", child, name, str(marks), str(release), status],
+                                cwd=tmp_path / ("tree" + name), env=env, stdout=subprocess.DEVNULL, stderr=err)
+
+    def until(done):
+        deadline = time.monotonic() + 15
+        while not done() and time.monotonic() < deadline:
+            time.sleep(0.05)
+
+    first = launch("A", "TESTS_FAILED" if ending == "exits_red" else "OK")
+    until(lambda: (marks / "A-started").exists())
+    second = launch("B", "OK")
+    until(lambda: (marks / "B-started").exists() or (tmp_path / "B.err").stat().st_size > 0)
+    if ending.startswith("exits"):
+        release.touch()
+    else:
+        first.send_signal(getattr(signal, ending))
+    first.wait(timeout=30)
+    until(lambda: (marks / "B-started").exists())
+    started_after_holder_ended = (marks / "B-started").exists()
+    if not started_after_holder_ended:
+        second.kill()
+    assert (started_after_holder_ended, second.wait(timeout=30)) == (True, 0)
