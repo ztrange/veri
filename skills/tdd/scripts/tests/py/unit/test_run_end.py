@@ -1,6 +1,7 @@
 """Small cases for veri.run_end's answer to whether a run has ended."""
 import importlib
 import json
+import os
 
 
 def test_a_run_whose_log_holds_a_done_bail_or_stop_event_with_no_later_resume_has_ended_with_that_cause_and_mark(tmp_path):
@@ -104,3 +105,50 @@ def test_a_run_with_bail_then_resume_then_launch_events_and_a_live_conductor_has
     stopped_after = run_end.run_end(tmp_path)
 
     assert (resumed, stopped_after[:2]) == ((False, None, {}), (True, "stopped"))
+
+
+def test_a_run_with_no_mark_and_no_live_conductor_whose_latest_launch_ends_in_a_usage_limit_result_has_ended_with_cause_usage_limit_2007(tmp_path):
+    run_end = importlib.import_module("veri.run_end")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        json.dumps({"ts": 100, "issue": "7", "event": "step-done"}) + "\n")
+    records = [{"type": "system", "subtype": "init"},
+               {"type": "result", "result": "boom"},
+               {"type": "system", "subtype": "init"},
+               {"type": "result", "result": "Claude usage limit reached. The limit resets 3pm"}]
+    (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+
+    ended, cause, mark = run_end.run_end(tmp_path)
+
+    assert (ended, cause, not mark) == (True, "usage-limit", True)
+
+
+def test_a_run_with_no_mark_and_no_live_conductor_ends_with_cause_usage_limit_on_a_rate_limit_leaf_log_or_the_clones_conductor_log_2007(tmp_path, monkeypatch):
+    run_end = importlib.import_module("veri.run_end")
+    event = json.dumps({"ts": 100, "issue": "7", "event": "step-done"}) + "\n"
+
+    def lines(*records):
+        return "".join(json.dumps(r) + "\n" for r in records)
+
+    leafy = tmp_path / "leafy"
+    (leafy / ".tdd").mkdir(parents=True)
+    (leafy / ".tdd" / "events.jsonl").write_text(event)
+    (leafy / ".tdd" / "conductor-7.log").write_text(
+        lines({"type": "system", "subtype": "init"}, {"type": "result", "result": "boom"}))
+    leaf_log = leafy / ".tdd" / "develop-green.log"
+    leaf_log.write_text(lines({"type": "assistant"}, {"type": "assistant", "error": "rate_limit"}))
+    os.utime(leaf_log, (4102444800, 4102444800))
+
+    clone = tmp_path / "clone"
+    (clone / ".tdd").mkdir(parents=True)
+    (clone / ".tdd" / "conductor-7.log").write_text(
+        lines({"type": "system", "subtype": "init"},
+              {"type": "result", "result": "Claude usage limit reached"}))
+    bare = tmp_path / "bare"
+    (bare / ".tdd").mkdir(parents=True)
+    (bare / ".tdd" / "events.jsonl").write_text(event)
+    monkeypatch.chdir(clone)
+
+    answers = [run_end.run_end(d)[:2] for d in (leafy, bare)]
+
+    assert answers == [(True, "usage-limit"), (True, "usage-limit")]
