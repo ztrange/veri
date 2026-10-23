@@ -187,7 +187,6 @@ def main(argv):
         if word not in ("PASS", "FAIL"):
             return no_verdict("grade word %s is neither PASS nor FAIL" % word)
     got = [i for i in re.findall(r"^(\S+): (?:PASS|FAIL)\b", block, re.M) if i != "VERDICT"]
-    wanted = [row.split("\t", 1)[0] for row in claims.splitlines()]
     if sorted(got) != sorted(wanted):
         missing = [i for i in wanted if i not in got]
         if missing:
