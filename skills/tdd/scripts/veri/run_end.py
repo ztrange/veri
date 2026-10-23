@@ -15,4 +15,6 @@ def run_end(run_dir):
             mark = event
         elif event.get("event") in ("resume", "step-added"):
             mark = {}
+    if not mark:
+        return True, "unknown", mark
     return True, MARKS[mark["event"]], mark
