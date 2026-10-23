@@ -1894,6 +1894,59 @@ def test_cli_a_veri_min_free_gb_that_is_not_a_whole_number_at_least_0_exits_2_na
     assert (outcomes, launches) == ({bad: (2, True) for bad in ("", "abc", "-1", "1.5")}, [])
 
 
+def test_cli_a_launch_whose_inherited_tmpdir_filesystem_has_3_gb_free_launches_the_conductor_when_veri_min_free_gb_is_0_under_tdd_issue_2183(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    monkeypatch.setenv("VERI_MIN_FREE_GB", "0")
+    scratch = scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_claude_exiting(monkeypatch, 0, 0)
+    monkeypatch.setattr(run_conductor, "free_gb",
+                        lambda path: 3 if os.path.realpath(path) == os.path.realpath(scratch) else 500,
+                        raising=False)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, len(launches)) == (0, 1)
+
+
+def test_cli_a_launch_whose_filesystems_have_19_gb_free_exits_2_and_launches_no_conductor_when_veri_min_free_gb_is_unset_under_tdd_issue_2183(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    monkeypatch.delenv("VERI_MIN_FREE_GB", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_claude_exiting(monkeypatch, 0, 0)
+    monkeypatch.setattr(run_conductor, "free_gb", lambda path: 19, raising=False)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    code, _, err = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, launches, "VERI_MIN_FREE_GB=20" in err) == (2, [], True)
+
+
+def test_cli_a_launch_whose_filesystems_have_20_gb_free_launches_the_conductor_when_veri_min_free_gb_is_unset_under_tdd_issue_2183(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    monkeypatch.delenv("VERI_MIN_FREE_GB", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_claude_exiting(monkeypatch, 0, 0)
+    monkeypatch.setattr(run_conductor, "free_gb", lambda path: 20, raising=False)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, len(launches)) == (0, 1)
+
+
 def tree_contents(root):
     """Every file and symlink under root but .git, by relative path: its bytes, or the target it links to."""
     contents = {}
