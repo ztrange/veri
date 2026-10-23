@@ -113,6 +113,16 @@ def answered(*args):
     return done.stdout.rstrip("\n") if done.returncode == 0 else None
 
 
+def pass_marker_current(text):
+    try:
+        with open(tests_frozen._pass_marker_path(text), encoding="utf-8") as handle:
+            lines = handle.read().splitlines()
+    except OSError:
+        return False
+    head = answered("git", "rev-parse", "HEAD")
+    return head is not None and f"step: {text}" in lines and f"head: {head}" in lines
+
+
 def now():
     return captured("date", "+%s").stdout.rstrip("\n")
 
@@ -387,9 +397,9 @@ def main(argv):
         write_line(exitfile, 2)
         return refuse(f"supervise: refusing to launch {name}: step {step} has no verify-red PASS after its latest red leaf")
     if name.startswith(("verify-red", "verify-green")) and step and (text := step_text(issue, step)) is not None \
-            and not os.path.exists(tests_frozen._pass_marker_path(text)):
+            and not pass_marker_current(text):
         write_line(exitfile, 2)
-        return refuse(f"supervise: refusing to launch {name}: step {step} has no check-earlier pass marker"
+        return refuse(f"supervise: refusing to launch {name}: step {step} has no current check-earlier pass marker"
                       " (run tests-frozen.sh check-earlier first)")
     ownerfile = ".tdd/leaf.owner"
     owner = still_alive_owner(ownerfile)
