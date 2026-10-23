@@ -1,6 +1,5 @@
 """supervise.sh's watchdog, run in-process."""
 import errno
-import json
 import os
 import paths
 import re
@@ -12,6 +11,7 @@ from typing import NamedTuple
 
 import entry
 import event
+import event_log
 import harvest_usage
 import preserve_attempt
 import tunables
@@ -294,19 +294,14 @@ def trap(started, exitfile, kill_poll, ignored):
 def red_awaits_pass(step):
     last = None
     try:
-        with open(".tdd/events.jsonl") as f:
-            for text in f:
-                try:
-                    rec = json.loads(text)
-                except ValueError:
-                    continue
-                if not isinstance(rec, dict) or str(rec.get("step")) != step or rec.get("phase") not in ("red", "pin"):
-                    continue
-                if rec.get("event") == "launch" and rec.get("phase") == "red":
-                    last = False
-                elif rec.get("event") == "verdict" and last is not None:
-                    last = rec.get("verdict") == "PASS"
-    except OSError:
+        for rec in event_log.read_events(".tdd/events.jsonl", skip_unreadable=True):
+            if str(rec.get("step")) != step or rec.get("phase") not in ("red", "pin"):
+                continue
+            if rec.get("event") == "launch" and rec.get("phase") == "red":
+                last = False
+            elif rec.get("event") == "verdict" and last is not None:
+                last = rec.get("verdict") == "PASS"
+    except (OSError, UnicodeDecodeError):
         return False
     return last is False
 
