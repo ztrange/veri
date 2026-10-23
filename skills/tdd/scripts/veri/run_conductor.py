@@ -221,7 +221,7 @@ def conduct(text, issue, env):
             pass
     if code < 0:
         return 128 - code
-    if code == 0 and result is not None and not closed(issue):
+    if code == 0 and result is not None and not closed(issue) and not done_posted(issue):
         if event.mark(run_worktree(issue), event.context(tunables.with_values(VERI_ISSUE=issue)),
                       "bail", ["cause=needs-user"]) != 0:
             return 2
@@ -253,6 +253,16 @@ def closed(issue):
         return bool(run_end.run_end(run_worktree(issue))[2])
     except (OSError, ValueError):
         return False
+
+
+def done_posted(issue):
+    try:
+        page = github.gh_json_page("", "repos/{owner}/{repo}/issues/%s/comments?per_page=100" % issue)
+        thread = json.loads(page)
+    except (github.NoAnswer, ValueError):
+        return False
+    bodies = thread if isinstance(thread, list) else thread.get("comments", [])
+    return any(isinstance(c, dict) and str(c.get("body", "")).startswith("### ✅ Done") for c in bodies)
 
 
 def run_worktree(issue):
