@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 2106
 
-Wall time for the issue: 1319 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 2479 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 11 of 14 planned.
-Outcome: the run bailed — step-added-off-route, a process failure.
+Steps done: 14 of 14 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/2131.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $15.98 over 276 turns, in 6 sessions.
+Conductor own spending: $18.71 over 331 turns, in 7 sessions.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
@@ -253,43 +253,98 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 237 | $0.03 | 104621 |
 | 238 | $0.04 | 106023 |
 | 239 | $0.03 | 106430 |
-| 240 | $0.56 | 88065 |
-| 241 | $0.03 | 89795 |
-| 242 | $0.03 | 91362 |
-| 243 | $0.05 | 94802 |
-| 244 | $0.07 | 101739 |
-| 245 | $0.14 | 116912 |
+| 240 | $0.57 | 88065 |
+| 241 | $0.04 | 89795 |
+| 242 | $0.04 | 91362 |
+| 243 | $0.06 | 94802 |
+| 244 | $0.08 | 101739 |
+| 245 | $0.15 | 116912 |
 | 246 | $0.04 | 118547 |
-| 247 | $0.03 | 119840 |
-| 248 | $0.03 | 120317 |
-| 249 | $0.03 | 120718 |
+| 247 | $0.04 | 119840 |
+| 248 | $0.04 | 120317 |
+| 249 | $0.04 | 120718 |
 | 250 | $0.03 | 120964 |
 | 251 | $0.03 | 121190 |
-| 252 | $0.03 | 121617 |
-| 253 | $0.03 | 121893 |
+| 252 | $0.04 | 121617 |
+| 253 | $0.04 | 121893 |
 | 254 | $0.07 | 127512 |
-| 255 | $0.03 | 128168 |
-| 256 | $0.03 | 128758 |
-| 257 | $0.03 | 129499 |
-| 258 | $0.03 | 130130 |
-| 259 | $0.03 | 130333 |
+| 255 | $0.04 | 128168 |
+| 256 | $0.04 | 128758 |
+| 257 | $0.04 | 129499 |
+| 258 | $0.04 | 130130 |
+| 259 | $0.04 | 130333 |
 | 260 | $0.04 | 131733 |
-| 261 | $0.03 | 132783 |
-| 262 | $0.04 | 134524 |
-| 263 | $0.03 | 134859 |
-| 264 | $0.03 | 135346 |
+| 261 | $0.04 | 132783 |
+| 262 | $0.05 | 134524 |
+| 263 | $0.04 | 134859 |
+| 264 | $0.04 | 135346 |
 | 265 | $0.04 | 136535 |
-| 266 | $0.03 | 137459 |
+| 266 | $0.05 | 137459 |
 | 267 | $0.03 | 137662 |
-| 268 | $0.04 | 139382 |
-| 269 | $0.03 | 139749 |
-| 270 | $0.03 | 140249 |
-| 271 | $0.03 | 140488 |
-| 272 | $0.03 | 140844 |
-| 273 | $0.05 | 143701 |
-| 274 | $0.04 | 145447 |
-| 275 | $0.04 | 146640 |
+| 268 | $0.05 | 139382 |
+| 269 | $0.04 | 139749 |
+| 270 | $0.04 | 140249 |
+| 271 | $0.04 | 140488 |
+| 272 | $0.04 | 140844 |
+| 273 | $0.06 | 143701 |
+| 274 | $0.05 | 145447 |
+| 275 | $0.05 | 146640 |
 | 276 | $0.07 | 151276 |
+| 277 | $0.05 | 152381 |
+| 278 | $0.05 | 153524 |
+| 279 | $0.04 | 153983 |
+| 280 | $0.57 | 88123 |
+| 281 | $0.02 | 88685 |
+| 282 | $0.03 | 90091 |
+| 283 | $0.02 | 90658 |
+| 284 | $0.03 | 92025 |
+| 285 | $0.06 | 97389 |
+| 286 | $0.04 | 100466 |
+| 287 | $0.02 | 100855 |
+| 288 | $0.02 | 101261 |
+| 289 | $0.02 | 101599 |
+| 290 | $0.02 | 101939 |
+| 291 | $0.02 | 102192 |
+| 292 | $0.03 | 102859 |
+| 293 | $0.04 | 104948 |
+| 294 | $0.03 | 105837 |
+| 295 | $0.03 | 106854 |
+| 296 | $0.04 | 109413 |
+| 297 | $0.03 | 110077 |
+| 298 | $0.02 | 110286 |
+| 299 | $0.13 | 124061 |
+| 300 | $0.03 | 124774 |
+| 301 | $0.03 | 125059 |
+| 302 | $0.03 | 125785 |
+| 303 | $0.03 | 126661 |
+| 304 | $0.03 | 127441 |
+| 305 | $0.03 | 128412 |
+| 306 | $0.03 | 128970 |
+| 307 | $0.03 | 129668 |
+| 308 | $0.04 | 130841 |
+| 309 | $0.03 | 131744 |
+| 310 | $0.04 | 132975 |
+| 311 | $0.03 | 133725 |
+| 312 | $0.03 | 134736 |
+| 313 | $0.03 | 135295 |
+| 314 | $0.03 | 135988 |
+| 315 | $0.04 | 137336 |
+| 316 | $0.03 | 138168 |
+| 317 | $0.04 | 139131 |
+| 318 | $0.03 | 139755 |
+| 319 | $0.03 | 140358 |
+| 320 | $0.03 | 140974 |
+| 321 | $0.03 | 141248 |
+| 322 | $0.03 | 141455 |
+| 323 | $0.03 | 141762 |
+| 324 | $0.04 | 143415 |
+| 325 | $0.03 | 143967 |
+| 326 | $0.04 | 144903 |
+| 327 | $0.03 | 145315 |
+| 328 | $0.03 | 145718 |
+| 329 | $0.03 | 146241 |
+| 330 | $0.03 | 146517 |
+| 331 | $0.03 | 146820 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -297,20 +352,21 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 15 | 11 | 1 | 2 | 1211 | 0 | 30905 | 0.09 |
-| diff | 8 | 4 | 0 | 0 | 437 | 185 | 42 | 82 | 14678 | 1124470 | 178437 | 0.71 |
-| red | 21 | 8 | 1 | 0 | 1297 | 587 | 116 | 232 | 49594 | 3644211 | 634879 | 2.97 |
+| diff | 10 | 5 | 0 | 0 | 509 | 209 | 51 | 100 | 16629 | 1368754 | 205249 | 0.82 |
+| red | 23 | 9 | 1 | 0 | 1359 | 624 | 126 | 252 | 53202 | 3961944 | 673655 | 3.14 |
 | pin | 4 | 3 | 1 | 0 | 142 | 54 | 15 | 30 | 5254 | 359020 | 91649 | 0.32 |
-| green | 21 | 5 | 2 | 0 | 8179 | 893 | 175 | 346 | 77392 | 6082985 | 903686 | 5.53 |
-| refactor | 8 | 4 | 0 | 0 | 236 | 81 | 22 | 42 | 4031 | 523090 | 110132 | 0.37 |
+| green | 23 | 6 | 2 | 0 | 8338 | 919 | 185 | 362 | 79822 | 6304331 | 933996 | 5.65 |
+| refactor | 12 | 6 | 0 | 0 | 396 | 122 | 35 | 66 | 6820 | 802987 | 205987 | 0.66 |
 | red-contradicted | 1 | 0 | 0 | 0 | 385 | 37 | 6 | 12 | 2641 | 142080 | 79471 | 0.24 |
 | exhausted | 1 | 0 | 0 | 0 | 17 | 13 | 2 | 4 | 984 | 47087 | 12709 | 0.09 |
+| cover | 1 | 0 | 0 | 0 | 30 | 14 | 5 | 10 | 1094 | 119626 | 31116 | 0.10 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 31 | 25 | 4 | 0 | 3404 | 539 | 117 | 234 | 39683 | 3002412 | 623766 | 2.26 |
-| developer | claude-sonnet-5-5 | 30 | 0 | 0 | 0 | 6040 | 1053 | 221 | 436 | 89448 | 7374514 | 1191134 | 6.08 |
+| verifier | claude-sonnet-5-5 | 36 | 30 | 4 | 0 | 3620 | 584 | 132 | 264 | 43321 | 3364358 | 709613 | 2.54 |
+| developer | claude-sonnet-5-5 | 36 | 0 | 0 | 0 | 6307 | 1150 | 253 | 494 | 97682 | 8195454 | 1328156 | 6.58 |
 | developer | claude-opus-5-5 | 4 | 0 | 0 | 0 | 1264 | 269 | 41 | 80 | 26654 | 1546017 | 226968 | 1.98 |
 
 #### Rework and waste, by phase
@@ -319,13 +375,13 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
 | diff | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 846 | 1.94 |
-| pin | 0 | 0.00 | 39 | 0.11 |
-| green | 0 | 0.00 | 7309 | 4.85 |
+| red | 799 | 1.72 | 0 | 0.00 |
+| pin | 39 | 0.11 | 0 | 0.00 |
+| green | 12218 | 6.37 | 0 | 0.00 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
-| red-contradicted | 0 | 0.00 | 385 | 0.24 |
-| exhausted | 0 | 0.00 | 17 | 0.09 |
-| verify-green | 0 | 0.00 | 0 | 0.00 |
+| red-contradicted | 0 | 0.00 | 0 | 0.00 |
+| exhausted | 0 | 0.00 | 0 | 0.00 |
+| cover | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -342,7 +398,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | The test helpers and older cases that pin a shim exec line accept the floor-checking canonical shim (after `#!/bin/sh` and comments, exactly two code lines: `. "$(dirname "$0")/lib/shim-python.sh"`, then `exec "$py" "$(dirname "$0")/veri/<module>.py" "$@"`, with any exempted preamble such as stop-run.sh `export VERI_CALLER_DIR` kept ahead of them) as well as the two forms accepted today, with the same module extraction: `CANONICAL_SHIM`, `SHIM_EXEC`, `VENV_PREFIX` and `shim_problems` in skills/tdd/scripts/tests/py/conftest.py, `SHIM_MODULE` in skills/tdd/scripts/tests/py/unit/test_missing_argument_cli.py, the exec-line mutations in skills/tdd/scripts/tests/py/test_ensure_run_state_ignored.py and in the test_1158 cases of skills/tdd/scripts/tests/py/test_stop_run.py, and test_issue_2106_no_shim_execs_the_python3_on_path_unconditionally in skills/tdd/scripts/tests/py/test_shims.py, which must not flag the floor-checking form; no production change, make test stays green ⟦diff-checked⟧ ⟦criterion 3⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 63 | 14 | 28 | 6315 | 409082 | 73028 | 0.29 | 206 | n/a | n/a | n/a |  |  | full |
 | A ported script `.sh` shim run with `VERI_VENV` pointing at a venv whose `bin/python3` is a stub reporting Python 3.9 (it prints `Python 3.9.6` for `--version` and exits 9 for anything else), and a PATH whose `python3` is the real interpreter meeting the 3.12 floor, runs its module on the PATH interpreter: the script normal output and exit code come back, not the stub 9. The shim reads each interpreter version with `<python3> --version` from the sourced POSIX sh file skills/tdd/scripts/lib/shim-python.sh, which sets `py`, holding no Python source; the shim under test takes the floor-checking canonical shim (a medium case marked process, starting the real shim) ⟦criterion 3⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 122 | 23 | 44 | 7411 | 637611 | 105801 | 0.40 | 398 | unknown | 0/5 | nothing-left |  |  | full |
 | A ported script `.sh` shim run with both the venv `python3` and the PATH `python3` stubs reporting Python 3.9 (each prints `Python 3.9.6` for `--version` and exits 9 for anything else) exits 2 without running its module, with a stderr line naming each interpreter it tried, where it came from (venv or PATH) and its version, 3.9.6 (a medium case marked process, starting the real shim) ⟦criterion 3⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 117 | 29 | 58 | 10195 | 895515 | 107342 | 0.46 | 419 | unknown | 0/5 | structural-owed |  |  | full |
-| A guard case reads every ported script `.sh` shim under skills/tdd/scripts/ (tests excluded) and fails naming each one that is not the floor-checking canonical shim (`. "$(dirname "$0")/lib/shim-python.sh"` then `exec "$py" …`); every such shim, the exempted ones included with their preambles kept, becomes that shim with its CLI contract unchanged (a tree_audit case) ⟦criterion 3⟧ | 26 | 5 | 4 | 0 | 0 | 0 | 1057 | 201 | 398 | 94019 | 6890747 | 1260901 | 7.24 | unknown | green 4/2, red 2/2 | unknown | unknown |  |  | full |
+| A guard case reads every ported script `.sh` shim under skills/tdd/scripts/ (tests excluded) and fails naming each one that is not the floor-checking canonical shim (`. "$(dirname "$0")/lib/shim-python.sh"` then `exec "$py" …`); every such shim, the exempted ones included with their preambles kept, becomes that shim with its CLI contract unchanged (a tree_audit case) ⟦criterion 3⟧ | 28 | 6 | 4 | 0 | 0 | 0 | 1073 | 206 | 408 | 95072 | 6981131 | 1328069 | 7.43 | 3245 | green 4/2, red 2/2 | 0/5 | nothing-left |  |  | full |
+| When the interpreter running skills/tdd/scripts/veri/launch_floor.py python_refusal is the venv python3 (`$VERI_VENV/bin/python3`, default `~/.veri-tools/venv/bin/python3`) and is below the floor, its refusal names the environment at that venv and its version and advises removing it and running `make install-dev` again, never calling it the python3 on PATH nor advising to put that venv bin first on PATH; on any other interpreter the refusal stays as today (a unit-tier case, in-process) ⟦criterion 3⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 88 | 28 | 50 | 7774 | 728592 | 97773 | 0.40 | 436 | unknown | 1/5 | nothing-structural |  |  | full |
+| CLAUDE.md description of the port convention says the shim takes the venv `python3` when it meets the 3.12 floor (`VENV_FLOOR`), else the PATH `python3` when that does, and otherwise exits 2 naming each interpreter tried, its source and its version ⟦diff-checked⟧ ⟦criterion 3⟧ | 3 | 1 | 0 | 0 | 0 | 0 | 38 | 14 | 28 | 3045 | 363910 | 57928 | 0.21 | 148 | n/a | n/a | n/a |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -354,21 +412,25 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | A guard case reads every ported script's `.sh` shim under skills/tdd/scripts/ (tests excluded) and fails naming each one that execs PATH's `python3` unconditionally; every such shim, the exempted ones included with their preambles kept, becomes the venv-preferring canonical shim with its CLI contract unchanged (a tree_audit case) ⟦criterion 1⟧ | 1 | 0/5 | nothing-structural | PASS | 0 | 60 | 0.10 |
 | A ported script `.sh` shim run with `VERI_VENV` pointing at a venv whose `bin/python3` is a stub reporting Python 3.9 (it prints `Python 3.9.6` for `--version` and exits 9 for anything else), and a PATH whose `python3` is the real interpreter meeting the 3.12 floor, runs its module on the PATH interpreter: the script normal output and exit code come back, not the stub 9. The shim reads each interpreter version with `<python3> --version` from the sourced POSIX sh file skills/tdd/scripts/lib/shim-python.sh, which sets `py`, holding no Python source; the shim under test takes the floor-checking canonical shim (a medium case marked process, starting the real shim) ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 52 | 0.09 |
 | A ported script `.sh` shim run with both the venv `python3` and the PATH `python3` stubs reporting Python 3.9 (each prints `Python 3.9.6` for `--version` and exits 9 for anything else) exits 2 without running its module, with a stderr line naming each interpreter it tried, where it came from (venv or PATH) and its version, 3.9.6 (a medium case marked process, starting the real shim) ⟦criterion 3⟧ | 1 | 0/5 | structural-owed | PASS | 0 | 61 | 0.09 |
+| A guard case reads every ported script `.sh` shim under skills/tdd/scripts/ (tests excluded) and fails naming each one that is not the floor-checking canonical shim (`. "$(dirname "$0")/lib/shim-python.sh"` then `exec "$py" …`); every such shim, the exempted ones included with their preambles kept, becomes that shim with its CLI contract unchanged (a tree_audit case) ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 55 | 0.19 |
+| When the interpreter running skills/tdd/scripts/veri/launch_floor.py python_refusal is the venv python3 (`$VERI_VENV/bin/python3`, default `~/.veri-tools/venv/bin/python3`) and is below the floor, its refusal names the environment at that venv and its version and advises removing it and running `make install-dev` again, never calling it the python3 on PATH nor advising to put that venv bin first on PATH; on any other interpreter the refusal stays as today (a unit-tier case, in-process) ⟦criterion 3⟧ | 1 | 1/5 | nothing-structural | PASS | 0 | 105 | 0.11 |
 
 #### Structural pass
 
-Stopped: nothing-structural
+| pass | refactor | stopped |
+| --- | ---: | --- |
+| issue | 0/10 | candidates-done |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| fast | 16 | 20 | 28 | 20 | 25 | 16 | 26 | 25 | 26 | 18 | 16 | 17 | 15 | 15 | 18 | 16 | 19 | 19 | 19 | 17 | 18 | 19 | 17 | 17 | 49 | 0 | 17 | 16 | 18 | 17 | 20 | 52 | 19 | 20 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| affected | 8 | 7 | 8 | 7 | 90 | 107 | 7 | 11 | 10 | 9 | 13 | 8 | 7 | 10 | 0 | 7 | 10 | 14 | 13 | 11 | 11 | 11 | 3 | 10 | 12 | 11 | 4 | 11 | 15 | 11 | 11 | 13 | 91 | 12 | 222 | 1008 | 205 | 12 | 13 | 79 | 0 | 95 | 74 | 400 | 379 | 27 | 340 | 342 | 7 | 3 | 4 | 97 | 0 | 1101 | 103 | 341 | 28 | 11 | 12 | 317 | 12 |
-| target | 7 | 7 | 7 | 7 | 7 | 10 | 10 | 10 | 11 | 5 | 11 | 12 | 11 | 16 | 3 | 13 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fast | 16 | 20 | 28 | 20 | 25 | 16 | 26 | 25 | 26 | 18 | 16 | 17 | 15 | 15 | 18 | 16 | 19 | 19 | 19 | 17 | 18 | 19 | 17 | 17 | 49 | 0 | 17 | 16 | 18 | 17 | 20 | 52 | 19 | 20 | 19 | 61 | 24 | 16 | 60 | 19 | 17 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| affected | 8 | 7 | 8 | 7 | 90 | 107 | 7 | 11 | 10 | 9 | 13 | 8 | 7 | 10 | 0 | 7 | 10 | 14 | 13 | 11 | 11 | 11 | 3 | 10 | 12 | 11 | 4 | 11 | 15 | 11 | 11 | 13 | 91 | 12 | 222 | 1008 | 205 | 12 | 13 | 79 | 0 | 95 | 74 | 400 | 379 | 27 | 340 | 342 | 7 | 3 | 4 | 97 | 0 | 1101 | 103 | 341 | 28 | 11 | 12 | 317 | 12 | 12 | 3 | 2 | 6 | 5 | 2 | 3 | 4 | 6 | 10 |
+| target | 7 | 7 | 7 | 7 | 7 | 10 | 10 | 10 | 11 | 5 | 11 | 12 | 11 | 16 | 3 | 13 | 3 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 379 | 750 | 155785 | 11922943 | 2041868 | 10.31 |
+| total | 426 | 838 | 167657 | 13105829 | 2264737 | 11.11 |
