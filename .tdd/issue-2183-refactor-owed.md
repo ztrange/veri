@@ -1,0 +1,2 @@
+### `run-conductor.sh <n>` starts the conductor with `TMPDIR` set to a fresh directory it created for this launch inside the inherited `TMPDIR`, named `veri-run-<n>-…`, and records that directory and the launcher's pid under the run's `.tdd/` (pinned with a stub `CLAUDE_BIN` that reports the `TMPDIR` it was handed and exits 0) ⟦criterion 1⟧
+- rename the record file `issue-<n>-tmpdir-skill-commit` to drop the misleading `skill-commit` suffix (a path later steps read, so decide it with them)
