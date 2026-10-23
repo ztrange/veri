@@ -1,5 +1,4 @@
 """Cases for which suites still read SKILL.md's `#### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)` subsection by its content."""
-import ast
 import pathlib
 import re
 
@@ -70,27 +69,10 @@ def _readers(entry, subsection, rest, docs):
     text = entry.text
     if "SKILL" not in text:
         return []
-    tree = entry.tree
-    own = [
-        n for n in tree.body
-        if isinstance(n, (ast.FunctionDef, ast.Assign))
-    ]
-    segments, literals, reads = {}, {}, {}
-    for node in own:
-        fragments = {id(v) for j in ast.walk(node) if isinstance(j, ast.JoinedStr) for v in j.values}
-        strings = [c.value if isinstance(c.value, str) else c.value.decode("utf-8", "replace") for c in ast.walk(node)
-                   if isinstance(c, ast.Constant) and isinstance(c.value, (str, bytes)) and id(c) not in fragments]
-        names = {n.id for n in ast.walk(node) if isinstance(n, ast.Name)}
-        if isinstance(node, ast.FunctionDef):
-            segments[node.name] = ast.get_source_segment(text, node)
-            literals[node.name] = strings
-            reads[node.name] = names
-        else:
-            for target in node.targets:
-                if isinstance(target, ast.Name):
-                    segments[target.id] = ast.get_source_segment(text, node.value)
-                    literals[target.id] = strings
-                    reads[target.id] = names
+    definitions = entry.walk.definitions
+    segments = {d.name: d.segment for d in definitions}
+    literals = {d.name: d.constants for d in definitions}
+    reads = {d.name: set(d.names) for d in definitions}
     calls = {
         name: {o for o in segments if o != name and re.search(r"\b%s\b" % re.escape(o), src)}
         for name, src in segments.items()
