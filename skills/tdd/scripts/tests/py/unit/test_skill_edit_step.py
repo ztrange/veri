@@ -470,3 +470,34 @@ def test_an_added_step_on_a_unit_graded_pass_before_any_author_ran_exits_2_namin
     commits = [c for c in commands if c[:2] in (["git", "add"], ["git", "commit"])]
     assert (code, step in err, launched, events, commits, (tmp_path / "GRADED").exists(), "--added" in usage) \
         == (2, True, [], [], [], False, True), (code, err, launched, events, commits, usage)
+
+
+def test_an_added_step_on_a_unit_whose_grade_fails_first_runs_its_author_attempt_commits_the_list_graded_and_unit_and_exits_0_2063(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    launched = []
+    commands = []
+    grades = [(1, "A1: FAIL - no\n"), (0, "")]
+
+    def run(cmd, **kw):
+        commands.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: grades.pop(0))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess",
+                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, ["--added", "map each grade to a mode", str(tmp_path / "issue.md"), "unit.md"])
+
+    commits = [c for c in commands if c[:2] == ["git", "commit"]]
+    assert len(launched) == 1 and code == 0, (code, err, launched)
+    assert len(commits) == 1 and all(any(n in p for p in commits[0]) for n in ("REQUIREMENTS.md", "GRADED", "unit.md")), commands
