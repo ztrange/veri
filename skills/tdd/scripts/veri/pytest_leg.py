@@ -8,6 +8,7 @@ import importlib.util
 import os
 import platform
 import re
+import shutil
 import signal
 import sys
 import tempfile
@@ -65,6 +66,26 @@ def unregister(entry):
         pass
 
 
+def sweep_dead_runs():
+    root = tempfile.gettempdir()
+    try:
+        names = os.listdir(root)
+    except OSError:
+        return
+    for name in names:
+        if not name.startswith("veri-pytest-"):
+            continue
+        folder = os.path.join(root, name)
+        try:
+            with open(os.path.join(folder, "pid")) as record:
+                pid = int(record.read())
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            shutil.rmtree(folder, ignore_errors=True)
+        except (ValueError, OSError):
+            continue
+
+
 def split_marks(argv):
     rest, expressions = [], []
     args = iter(argv)
@@ -109,6 +130,7 @@ def main(argv):
     entry = None
     serial_seen = os.environ.get("PYTEST_LEG_SERIAL_SEEN")
     try:
+        sweep_dead_runs()
         with tempfile.TemporaryDirectory(prefix="veri-pytest-") as run:
             base = os.path.join(run, "base")
             os.mkdir(base)
