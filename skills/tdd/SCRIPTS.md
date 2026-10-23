@@ -117,7 +117,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `next-unchecked.sh` hands the loop and the tick wrappers match on. **Exit 0** when it
   printed one; **exit 3** with empty stdout when no step carries the mark — every green step
   has been tidied, so a resume has no refactor loop to re-enter.
-- `$S/ledger-growth.sh <plan-ledger-file> <ledger-file> | plan-sha` — called by the conductor at each ledger
+- `$S/ledger-growth.sh <plan-ledger-file> <ledger-file> | plan-sha | record-existing <ledger-file>` — called by the conductor at each ledger
   commit: compares the ledger with the plan commit's. The plan commit, `<plan-sha>`, is the newest
   `plan: scope` or `plan: rewrite` commit, so after a verify-plan REJECT the rewrite is the
   baseline: `git log --format='%H %s' | $S/ledger-growth.sh plan-sha` prints its sha (**exit 2**
@@ -130,7 +130,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   are not growth. **Exit 0** when every line passes; **exit 1**, naming each failing line on
   stderr, when one lacks its record or `⟦added⟧`, or the cap is passed; **exit 2** on a missing
   argument, an unreadable ledger or plan file, or a malformed `VERI_STEP_GROWTH`.
-- `$S/ledger-growth.sh record-existing <ledger-file>` — the one-off migration for a ledger that grew before
+  **`record-existing`** — the one-off migration for a ledger that grew before
   the records existed: writes `.tdd/issue-<n>-added.md` beside the ledger, one `- [ ] <step>` line, as
   `add-ledger-step.sh` writes it, for each step line the plan commit (the newest `plan: scope` or
   `plan: rewrite`) did not hold; `⟦suite-repair⟧`, `⟦ci-repair⟧` and `⟦added⟧` lines keep their marks.
