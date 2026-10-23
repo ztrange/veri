@@ -1746,6 +1746,26 @@ def test_the_cli_reports_a_draft_whose_compact_separator_log_ends_in_a_bail_bail
 
 
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
+def test_a_draft_run_whose_bail_mark_is_spaced_or_compact_is_reported_bailed_either_way_2009(
+        monkeypatch, tmp_path, parallel_conductors, run_cli):
+    gh, work = _gh_and_work(tmp_path)
+    (gh / "prs.json").write_text(json.dumps([
+        {"body": "Closes #8", "isDraft": True, "url": "https://example.test/pull/8"},
+        {"body": "Closes #9", "isDraft": True, "url": "https://example.test/pull/9"},
+    ]))
+    _event_log(work, "8", '{ "event" : "launch" }\n{ "event" : "bail" }\n')
+    _event_log(work, "9", '{"event":"launch"}\n{"event":"bail"}\n')
+    _boundaries(monkeypatch, tmp_path, lambda sup: sup.exit(0), lambda supervisors: None, solvable=(0, "8\n9\n"))
+
+    code, out, err = run_cli(parallel_conductors, ["--continue-on-bail"], cwd=work, env={"VERI_GH_JSON": str(gh)})
+
+    assert (code, out.splitlines()) == (1, [
+        "#8 — bailed https://example.test/pull/8",
+        "#9 — bailed https://example.test/pull/9",
+        "stopped: nothing solvable"])
+
+
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_run_from_a_subdirectory_of_the_repo_writes_parallel_exit_under_the_repo_root_and_leaves_no_tdd_in_the_subdirectory_1895(
         monkeypatch, tmp_path, parallel_conductors, run_cli):
     gh, work = _gh_and_work(tmp_path)
