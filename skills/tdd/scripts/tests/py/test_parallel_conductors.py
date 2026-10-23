@@ -820,6 +820,28 @@ def test_a_finished_run_ending_in_a_standing_bail_mark_whose_pr_is_ready_for_rev
 
 
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
+def test_the_report_over_a_run_whose_events_log_holds_one_non_utf_8_byte_prints_that_run_s_line_and_exits_0_2035(
+        monkeypatch, tmp_path, parallel_conductors, run_cli):
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text(json.dumps([
+        {"body": "Closes #7", "isDraft": False, "url": "https://example.test/pull/7"},
+    ]))
+    work = tmp_path / "repo"
+    (work / ".tdd").mkdir(parents=True)
+    _event_log(work, "7", "")
+    (work / ".tdd" / "wt" / "7" / ".tdd" / "events.jsonl").write_bytes(
+        b'{"event":"launch","issue":7}\n{"event":"done","why":"cut \xff off"}\n')
+
+    _boundaries(monkeypatch, tmp_path, lambda sup: sup.exit(0), lambda supervisors: None, solvable=(0, "7\n"))
+
+    code, out, err = run_cli(parallel_conductors, [], cwd=work,
+                             env={"VERI_RUN_TIMEOUT": "60", "VERI_GH_JSON": str(gh)})
+
+    assert (out.splitlines()[0], code) == ("#7 — done https://example.test/pull/7", 0)
+
+
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_the_exit_code_the_parked_file_and_a_missing_pr_each_answer_beside_a_standing_mark_2009(
         monkeypatch, tmp_path, parallel_conductors, run_cli):
     gh = tmp_path / "gh"
