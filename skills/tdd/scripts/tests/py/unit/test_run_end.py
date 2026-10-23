@@ -17,3 +17,14 @@ def test_a_run_whose_log_holds_a_done_bail_or_stop_event_with_no_later_resume_ha
         answers[cause] = run_end.run_end(run)
 
     assert answers == {cause: (True, cause, mark) for cause, mark in marks.items()}
+
+
+def test_a_run_with_no_mark_no_live_conductor_and_no_conductor_log_has_ended_with_cause_unknown_2007(tmp_path):
+    run_end = importlib.import_module("veri.run_end")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        json.dumps({"ts": 100, "issue": "7", "event": "step-done"}) + "\n")
+
+    ended, cause, mark = run_end.run_end(tmp_path)
+
+    assert (ended, cause, not mark) == (True, "unknown", True)
