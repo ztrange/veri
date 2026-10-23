@@ -1,11 +1,12 @@
 ### 📊 Metrics — issue 2106
 
-Wall time for the issue: 3751 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 7537 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 11 of 14 planned.
-Outcome: the run bailed — no-verdict, a system failure.
+Outcome: the run bailed — revise-exhausted, a process failure.
+Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $8.19 over 156 turns, in 3 sessions.
+Conductor own spending: $12.07 over 221 turns, in 4 sessions.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
@@ -106,70 +107,135 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 91 | $0.06 | 100715 |
 | 92 | $0.04 | 101901 |
 | 93 | $0.03 | 102842 |
-| 94 | $0.55 | 86197 |
-| 95 | $0.02 | 86684 |
-| 96 | $0.03 | 88513 |
-| 97 | $0.02 | 88942 |
-| 98 | $0.04 | 91597 |
-| 99 | $0.05 | 95144 |
-| 100 | $0.05 | 99429 |
-| 101 | $0.02 | 99717 |
-| 102 | $0.02 | 100185 |
-| 103 | $0.02 | 100524 |
-| 104 | $0.02 | 100775 |
-| 105 | $0.02 | 101248 |
-| 106 | $0.02 | 101742 |
-| 107 | $0.03 | 102383 |
+| 94 | $0.57 | 86197 |
+| 95 | $0.03 | 86684 |
+| 96 | $0.04 | 88513 |
+| 97 | $0.04 | 88942 |
+| 98 | $0.05 | 91597 |
+| 99 | $0.06 | 95144 |
+| 100 | $0.06 | 99429 |
+| 101 | $0.04 | 99717 |
+| 102 | $0.04 | 100185 |
+| 103 | $0.03 | 100524 |
+| 104 | $0.04 | 100775 |
+| 105 | $0.03 | 101248 |
+| 106 | $0.04 | 101742 |
+| 107 | $0.04 | 102383 |
 | 108 | $0.03 | 103017 |
-| 109 | $0.03 | 103967 |
-| 110 | $0.05 | 107883 |
-| 111 | $0.07 | 113622 |
-| 112 | $0.05 | 116961 |
-| 113 | $0.03 | 117300 |
-| 114 | $0.04 | 119005 |
-| 115 | $0.03 | 120236 |
-| 116 | $0.03 | 120763 |
-| 117 | $0.03 | 121208 |
-| 118 | $0.12 | 133106 |
-| 119 | $0.03 | 133954 |
-| 120 | $0.04 | 135058 |
-| 121 | $0.03 | 135768 |
-| 122 | $0.03 | 136489 |
-| 123 | $0.03 | 137319 |
-| 124 | $0.04 | 138973 |
-| 125 | $0.03 | 139696 |
-| 126 | $0.04 | 140592 |
+| 109 | $0.04 | 103967 |
+| 110 | $0.07 | 107883 |
+| 111 | $0.08 | 113622 |
+| 112 | $0.06 | 116961 |
+| 113 | $0.04 | 117300 |
+| 114 | $0.05 | 119005 |
+| 115 | $0.05 | 120236 |
+| 116 | $0.04 | 120763 |
+| 117 | $0.04 | 121208 |
+| 118 | $0.13 | 133106 |
+| 119 | $0.04 | 133954 |
+| 120 | $0.05 | 135058 |
+| 121 | $0.05 | 135768 |
+| 122 | $0.04 | 136489 |
+| 123 | $0.05 | 137319 |
+| 124 | $0.05 | 138973 |
+| 125 | $0.05 | 139696 |
+| 126 | $0.05 | 140592 |
 | 127 | $0.04 | 141475 |
-| 128 | $0.03 | 142278 |
-| 129 | $0.03 | 143005 |
-| 130 | $0.03 | 143424 |
-| 131 | $0.03 | 144127 |
-| 132 | $0.04 | 145442 |
-| 133 | $0.04 | 146364 |
-| 134 | $0.03 | 147060 |
-| 135 | $0.04 | 148038 |
-| 136 | $0.04 | 149177 |
-| 137 | $0.04 | 150843 |
-| 138 | $0.04 | 151936 |
-| 139 | $0.04 | 153688 |
-| 140 | $0.03 | 154214 |
-| 141 | $0.04 | 155075 |
-| 142 | $0.04 | 156462 |
-| 143 | $0.04 | 157334 |
+| 128 | $0.05 | 142278 |
+| 129 | $0.05 | 143005 |
+| 130 | $0.04 | 143424 |
+| 131 | $0.05 | 144127 |
+| 132 | $0.05 | 145442 |
+| 133 | $0.05 | 146364 |
+| 134 | $0.05 | 147060 |
+| 135 | $0.05 | 148038 |
+| 136 | $0.05 | 149177 |
+| 137 | $0.05 | 150843 |
+| 138 | $0.06 | 151936 |
+| 139 | $0.05 | 153688 |
+| 140 | $0.05 | 154214 |
+| 141 | $0.05 | 155075 |
+| 142 | $0.05 | 156462 |
+| 143 | $0.06 | 157334 |
 | 144 | $0.04 | 157832 |
-| 145 | $0.04 | 158464 |
-| 146 | $0.04 | 159792 |
-| 147 | $0.05 | 161582 |
-| 148 | $0.05 | 163671 |
-| 149 | $0.04 | 164089 |
-| 150 | $0.04 | 164614 |
+| 145 | $0.05 | 158464 |
+| 146 | $0.06 | 159792 |
+| 147 | $0.06 | 161582 |
+| 148 | $0.06 | 163671 |
+| 149 | $0.05 | 164089 |
+| 150 | $0.05 | 164614 |
 | 151 | $0.04 | 164925 |
-| 152 | $0.04 | 165236 |
-| 153 | $0.05 | 167196 |
-| 154 | $0.04 | 167562 |
-| 155 | $0.04 | 168758 |
-| 156 | $0.06 | 172376 |
-Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-sonnet-5-5.
+| 152 | $0.05 | 165236 |
+| 153 | $0.06 | 167196 |
+| 154 | $0.05 | 167562 |
+| 155 | $0.06 | 168758 |
+| 156 | $0.07 | 172376 |
+| 157 | $0.06 | 173455 |
+| 158 | $0.05 | 174634 |
+| 159 | $0.56 | 87230 |
+| 160 | $0.02 | 87802 |
+| 161 | $0.03 | 89220 |
+| 162 | $0.05 | 93701 |
+| 163 | $0.03 | 94896 |
+| 164 | $0.17 | 113582 |
+| 165 | $0.03 | 113967 |
+| 166 | $0.03 | 114437 |
+| 167 | $0.03 | 114767 |
+| 168 | $0.03 | 115093 |
+| 169 | $0.03 | 115983 |
+| 170 | $0.03 | 116454 |
+| 171 | $0.03 | 117127 |
+| 172 | $0.03 | 118110 |
+| 173 | $0.03 | 118733 |
+| 174 | $0.03 | 120127 |
+| 175 | $0.03 | 121146 |
+| 176 | $0.03 | 122151 |
+| 177 | $0.03 | 122712 |
+| 178 | $0.03 | 123141 |
+| 179 | $0.03 | 123698 |
+| 180 | $0.03 | 124464 |
+| 181 | $0.03 | 125238 |
+| 182 | $0.03 | 125987 |
+| 183 | $0.03 | 126383 |
+| 184 | $0.08 | 133809 |
+| 185 | $0.04 | 135014 |
+| 186 | $0.03 | 135226 |
+| 187 | $0.03 | 135438 |
+| 188 | $0.03 | 135650 |
+| 189 | $0.04 | 137242 |
+| 190 | $0.04 | 138361 |
+| 191 | $0.04 | 139399 |
+| 192 | $0.04 | 140993 |
+| 193 | $0.03 | 141579 |
+| 194 | $0.03 | 142107 |
+| 195 | $0.05 | 145054 |
+| 196 | $0.04 | 146076 |
+| 197 | $0.04 | 147570 |
+| 198 | $0.04 | 148483 |
+| 199 | $0.05 | 150937 |
+| 200 | $0.05 | 152854 |
+| 201 | $0.04 | 154421 |
+| 202 | $0.04 | 155452 |
+| 203 | $0.04 | 156696 |
+| 204 | $0.04 | 158019 |
+| 205 | $0.04 | 158807 |
+| 206 | $0.04 | 160116 |
+| 207 | $0.05 | 162853 |
+| 208 | $0.04 | 163512 |
+| 209 | $0.03 | 163771 |
+| 210 | $0.04 | 164176 |
+| 211 | $0.04 | 164628 |
+| 212 | $0.04 | 165724 |
+| 213 | $0.03 | 165936 |
+| 214 | $0.05 | 167649 |
+| 215 | $0.04 | 169009 |
+| 216 | $0.04 | 169221 |
+| 217 | $0.05 | 170776 |
+| 218 | $0.04 | 171198 |
+| 219 | $0.05 | 172752 |
+| 220 | $0.04 | 173549 |
+| 221 | $0.06 | 177288 |
+Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
@@ -177,18 +243,20 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 15 | 11 | 1 | 2 | 1211 | 0 | 30905 | 0.09 |
 | diff | 8 | 4 | 0 | 0 | 437 | 185 | 42 | 82 | 14678 | 1124470 | 178437 | 0.71 |
-| red | 13 | 5 | 0 | 0 | 534 | 307 | 64 | 128 | 27798 | 1985561 | 289624 | 1.20 |
-| pin | 3 | 3 | 0 | 0 | 103 | 39 | 11 | 22 | 3531 | 265929 | 57548 | 0.21 |
-| green | 11 | 4 | 0 | 0 | 1039 | 254 | 55 | 110 | 18299 | 1691774 | 185157 | 0.82 |
+| red | 19 | 7 | 1 | 0 | 1209 | 535 | 105 | 210 | 45229 | 3317157 | 551967 | 2.69 |
+| pin | 4 | 3 | 1 | 0 | 142 | 54 | 15 | 30 | 5254 | 359020 | 91649 | 0.32 |
+| green | 19 | 4 | 2 | 0 | 7098 | 824 | 159 | 314 | 73095 | 5607351 | 793281 | 5.16 |
 | refactor | 8 | 4 | 0 | 0 | 236 | 81 | 22 | 42 | 4031 | 523090 | 110132 | 0.37 |
+| red-contradicted | 1 | 0 | 0 | 0 | 385 | 37 | 6 | 12 | 2641 | 142080 | 79471 | 0.24 |
+| exhausted | 1 | 0 | 0 | 0 | 17 | 13 | 2 | 4 | 984 | 47087 | 12709 | 0.09 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 21 | 21 | 0 | 0 | 932 | 319 | 71 | 142 | 22621 | 1762352 | 361218 | 1.31 |
-| developer | claude-sonnet-5-5 | 21 | 0 | 0 | 0 | 1432 | 558 | 124 | 244 | 46927 | 3828472 | 490585 | 2.08 |
-| verifier | not recorded | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0.00 |
+| verifier | claude-sonnet-5-5 | 29 | 23 | 4 | 0 | 2667 | 484 | 105 | 210 | 36126 | 2682708 | 555597 | 2.02 |
+| developer | claude-sonnet-5-5 | 20 | 0 | 0 | 0 | 1604 | 540 | 116 | 228 | 42954 | 3487992 | 515270 | 2.07 |
+| developer | claude-opus-5-5 | 12 | 0 | 0 | 0 | 5268 | 716 | 131 | 258 | 68043 | 4949555 | 777684 | 5.58 |
 
 #### Rework and waste, by phase
 
@@ -196,10 +264,12 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
 | diff | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 83 | 0.17 |
-| pin | 0 | 0.00 | 0 | 0.00 |
-| green | 0 | 0.00 | 169 | 0.14 |
+| red | 0 | 0.00 | 758 | 1.66 |
+| pin | 0 | 0.00 | 39 | 0.11 |
+| green | 0 | 0.00 | 6228 | 4.48 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
+| red-contradicted | 0 | 0.00 | 385 | 0.24 |
+| exhausted | 0 | 0.00 | 17 | 0.09 |
 | verify-green | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
@@ -217,7 +287,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | The test helpers and older cases that pin a shim exec line accept the floor-checking canonical shim (after `#!/bin/sh` and comments, exactly two code lines: `. "$(dirname "$0")/lib/shim-python.sh"`, then `exec "$py" "$(dirname "$0")/veri/<module>.py" "$@"`, with any exempted preamble such as stop-run.sh `export VERI_CALLER_DIR` kept ahead of them) as well as the two forms accepted today, with the same module extraction: `CANONICAL_SHIM`, `SHIM_EXEC`, `VENV_PREFIX` and `shim_problems` in skills/tdd/scripts/tests/py/conftest.py, `SHIM_MODULE` in skills/tdd/scripts/tests/py/unit/test_missing_argument_cli.py, the exec-line mutations in skills/tdd/scripts/tests/py/test_ensure_run_state_ignored.py and in the test_1158 cases of skills/tdd/scripts/tests/py/test_stop_run.py, and test_issue_2106_no_shim_execs_the_python3_on_path_unconditionally in skills/tdd/scripts/tests/py/test_shims.py, which must not flag the floor-checking form; no production change, make test stays green ⟦diff-checked⟧ ⟦criterion 3⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 63 | 14 | 28 | 6315 | 409082 | 73028 | 0.29 | 206 | n/a | n/a | n/a |  |  | full |
 | A ported script `.sh` shim run with `VERI_VENV` pointing at a venv whose `bin/python3` is a stub reporting Python 3.9 (it prints `Python 3.9.6` for `--version` and exits 9 for anything else), and a PATH whose `python3` is the real interpreter meeting the 3.12 floor, runs its module on the PATH interpreter: the script normal output and exit code come back, not the stub 9. The shim reads each interpreter version with `<python3> --version` from the sourced POSIX sh file skills/tdd/scripts/lib/shim-python.sh, which sets `py`, holding no Python source; the shim under test takes the floor-checking canonical shim (a medium case marked process, starting the real shim) ⟦criterion 3⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 122 | 23 | 44 | 7411 | 637611 | 105801 | 0.40 | 398 | unknown | 0/5 | nothing-left |  |  | full |
 | A ported script `.sh` shim run with both the venv `python3` and the PATH `python3` stubs reporting Python 3.9 (each prints `Python 3.9.6` for `--version` and exits 9 for anything else) exits 2 without running its module, with a stderr line naming each interpreter it tried, where it came from (venv or PATH) and its version, 3.9.6 (a medium case marked process, starting the real shim) ⟦criterion 3⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 117 | 29 | 58 | 10195 | 895515 | 107342 | 0.46 | 419 | unknown | 0/5 | structural-owed |  |  | full |
-| A guard case reads every ported script `.sh` shim under skills/tdd/scripts/ (tests excluded) and fails naming each one that is not the floor-checking canonical shim (`. "$(dirname "$0")/lib/shim-python.sh"` then `exec "$py" …`); every such shim, the exempted ones included with their preambles kept, becomes that shim with its CLI contract unchanged (a tree_audit case) ⟦criterion 3⟧ | 5 | 1 | 0 | 0 | 0 | 0 | 73 | 17 | 34 | 7782 | 558628 | 70836 | 0.31 | unknown | unknown | unknown | unknown |  |  | full |
+| A guard case reads every ported script `.sh` shim under skills/tdd/scripts/ (tests excluded) and fails naming each one that is not the floor-checking canonical shim (`. "$(dirname "$0")/lib/shim-python.sh"` then `exec "$py" …`); every such shim, the exempted ones included with their preambles kept, becomes that shim with its CLI contract unchanged (a tree_audit case) ⟦criterion 3⟧ | 22 | 3 | 4 | 0 | 0 | 0 | 936 | 174 | 344 | 85357 | 6088059 | 1067584 | 6.59 | unknown | green 4/2, red 2/2 | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -236,14 +306,14 @@ Stopped: nothing-structural
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| fast | 16 | 20 | 28 | 20 | 25 | 16 | 26 | 25 | 26 | 18 | 16 | 17 | 15 | 15 | 18 | 16 | 19 | 19 | 19 | 17 | 18 | 19 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| affected | 8 | 7 | 8 | 7 | 90 | 107 | 7 | 11 | 10 | 9 | 13 | 8 | 7 | 10 | 0 | 7 | 10 | 14 | 13 | 11 | 11 | 11 | 3 | 10 | 12 | 11 | 4 | 11 | 15 | 11 | 11 | 13 | 91 | 12 | 222 | 1008 |
-| target | 7 | 7 | 7 | 7 | 7 | 10 | 10 | 10 | 11 | 5 | 11 | 12 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fast | 16 | 20 | 28 | 20 | 25 | 16 | 26 | 25 | 26 | 18 | 16 | 17 | 15 | 15 | 18 | 16 | 19 | 19 | 19 | 17 | 18 | 19 | 17 | 17 | 49 | 0 | 17 | 16 | 18 | 17 | 20 | 52 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| affected | 8 | 7 | 8 | 7 | 90 | 107 | 7 | 11 | 10 | 9 | 13 | 8 | 7 | 10 | 0 | 7 | 10 | 14 | 13 | 11 | 11 | 11 | 3 | 10 | 12 | 11 | 4 | 11 | 15 | 11 | 11 | 13 | 91 | 12 | 222 | 1008 | 205 | 12 | 13 | 79 | 0 | 95 | 74 | 400 | 379 | 27 | 340 | 342 | 7 | 3 | 4 | 97 | 0 | 1101 | 103 | 341 | 28 |
+| target | 7 | 7 | 7 | 7 | 7 | 10 | 10 | 10 | 11 | 5 | 11 | 12 | 11 | 16 | 3 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 195 | 386 | 69548 | 5590824 | 851803 | 3.38 |
+| total | 352 | 696 | 147123 | 11120255 | 1848551 | 9.66 |
