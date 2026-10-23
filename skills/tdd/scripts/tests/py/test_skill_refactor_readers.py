@@ -1,6 +1,7 @@
 """Cases for which suites still read SKILL.md's `#### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)` subsection by its content."""
 import pathlib
 import re
+import sys
 
 import pytest
 
@@ -123,3 +124,20 @@ def stray_cases(entries, allowed):
 def test_every_remaining_case_reading_the_refactor_loop_subsection_by_its_content_is_on_the_mechanical_allow_list(tests_py_index):
     stray = stray_cases(tests_py_index, ALLOWED)
     assert stray == [], "cases read the Refactor loop subsection by content and are neither mechanical nor allow-listed:\n" + "\n".join(stray)
+
+
+def test_2220_sweep_flags_a_case_reading_the_refactor_loop_subsection_until_it_is_on_the_allow_list(tmp_path, monkeypatch):
+    from conftest import TestFile
+    module = tmp_path / "test_synthetic_reader.py"
+    module.write_text(
+        'SKILL_MD = "SKILL.md"\n\n\n'
+        'def test_reads_the_triage_step():\n'
+        '    assert "refactor-triage.sh" in SKILL_MD\n',
+        encoding="utf-8")
+    monkeypatch.setattr(sys.modules[__name__], "TESTS_PY", tmp_path)
+    monkeypatch.setattr(sys.modules[__name__], "_other_docs", dict)
+    entries = [TestFile(module)]
+    key = "test_synthetic_reader.py::test_reads_the_triage_step"
+
+    assert stray_cases(entries, {}) == [key]
+    assert stray_cases(entries, {key: "mechanical: synthetic"}) == []
