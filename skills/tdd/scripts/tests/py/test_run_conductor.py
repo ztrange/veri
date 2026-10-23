@@ -3468,3 +3468,30 @@ def test_cli_a_needs_user_comment_that_github_refuses_is_reported_on_stderr_nami
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
 
     assert (code, "needs-user comment" in stderr and "4242" in stderr) == (0, True), stderr
+
+
+def test_cli_a_conductor_exiting_0_over_an_open_log_whose_issue_thread_already_carries_a_done_comment_gets_no_needs_user_bail_and_no_comment_2070(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    gh_calls = conductor_that_prints(monkeypatch, tmp_path, ["done", "resume"],
+                                     result_record("Which option do you want?"))
+    done = "### ✅ Done\n\nhttps://github.com/ztrange/veri/pull/2066"
+    thread = json.dumps({"comments": [{"body": done}], "body": done})
+    recorded = subprocess.run
+
+    def gh_answering_the_thread(args, *a, **kwargs):
+        args = list(args)
+        if args[:1] == ["gh"] and "needs-user" not in " ".join(args) and "comment" not in args[1:2] and not any(
+                arg.startswith("body=") for arg in args):
+            gh_calls.append(args[1:])
+            return subprocess.CompletedProcess(args, 0, thread.encode() if not kwargs.get("text") else thread, b"")
+        return recorded(args, *a, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", gh_answering_the_thread)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    posted = [call for call in gh_calls if "needs-user" in " ".join(call)]
+    assert (code, [r.get("event") for r in events_named(tmp_path)], posted) == (0, ["done", "resume"], []), stderr
