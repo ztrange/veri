@@ -148,6 +148,7 @@ def sweep_dead_runs(run_state):
                 directory, pid = record.read().split()
             pid = int(pid)
         except (OSError, ValueError):
+            sys.stderr.write("run-conductor: cannot read '%s'; leaving its directory alone\n" % name)
             continue
         try:
             os.kill(pid, 0)
