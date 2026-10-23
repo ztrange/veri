@@ -121,13 +121,20 @@ def fake_git_only(monkeypatch, toplevel):
     return calls
 
 
-def checked_step(work, head="0123456789abcdef0123456789abcdef01234567"):
-    """A ledger step with a current check-earlier pass marker at head; the environment naming that step."""
+def checked_step(work, head="0123456789abcdef0123456789abcdef01234567", issue="2206", step=1):
+    """Ledger step number step of issue with a current check-earlier pass marker at head; the environment naming it."""
     tests_frozen = importlib.import_module("veri.tests_frozen")
+    boxes = ["first step", *(f"step {n}" for n in range(2, step + 1))]
     (work / ".tdd").mkdir(parents=True, exist_ok=True)
-    (work / ".tdd" / "issue-2206.md").write_text("# Plan for #2206\n\n- [ ] first step\n")
-    (work / tests_frozen._pass_marker_path("first step")).write_text(f"step: first step\nhead: {head}\n")
-    return {"VERI_ISSUE": "2206", "VERI_STEP": "1"}
+    (work / ".tdd" / f"issue-{issue}.md").write_text(f"# Plan for #{issue}\n\n" + "".join(f"- [ ] {b}\n" for b in boxes))
+    (work / tests_frozen._pass_marker_path(boxes[-1])).write_text(f"step: {boxes[-1]}\nhead: {head}\n")
+    return {"VERI_ISSUE": issue, "VERI_STEP": str(step)}
+
+
+def checked_head(work, **step):
+    """checked_step at work's own HEAD, work already a git repository with a commit."""
+    head = subprocess.run(["git", "-C", str(work), "rev-parse", "HEAD"], check=True, capture_output=True, text=True)
+    return checked_step(work, head.stdout.strip(), **step)
 
 
 def committed_head(work):

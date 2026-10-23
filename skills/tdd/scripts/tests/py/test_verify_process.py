@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from conftest import INTERPRETER_VENV
+from test_supervise import checked_step, committed_head
 
 SCRIPTS = Path(__file__).resolve().parents[2]
 
@@ -22,8 +23,9 @@ def test_verify_sh_green_rejects_a_pass_on_a_replaces_case_step_naming_each_case
     claude = tmp_path / "claude-pass"
     claude.write_text("#!/bin/sh\nprintf 'VERDICT: PASS\\nREASON: the named cases are gone.'\n")
     claude.chmod(0o755)
+    (tmp_path / ".gitignore").write_text(".tdd/\n")
     env = {"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
-           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_step(tmp_path, committed_head(tmp_path))}
 
     done = subprocess.run(
         [str(SCRIPTS / "verify.sh"), "--step", "the replacement takes over: replaces 'stale first', 'stale second'"

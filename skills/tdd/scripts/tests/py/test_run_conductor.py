@@ -11,6 +11,8 @@ import sys
 
 import pytest
 
+from test_supervise import checked_step, committed_head
+
 SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 for path in (SCRIPTS, SCRIPTS / "veri"):
     if str(path) not in sys.path:
@@ -2392,6 +2394,8 @@ def test_cli_each_phases_leaf_is_launched_with_its_tier_red_and_refactor_affecte
     tiers = tmp_path / "tiers"
     tiers.mkdir()
     (tiers / "spec.md").write_text("spec\n")
+    (tiers / ".gitignore").write_text(".tdd/\n*.received\n")
+    step = checked_step(tiers, committed_head(tiers))
     stub = tmp_path / "tier-claude"
     stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { printf \'%s\\n\' "$2" > "$LEAF_PROMPT_OUT"; shift; }\n'
                     '  shift\ndone\nprintf \'%s\\n\' \'{"type":"result","subtype":"success","is_error":false,"result":"VERDICT: PASS\\nREASON: ok"}\'\n')
@@ -2403,7 +2407,8 @@ def test_cli_each_phases_leaf_is_launched_with_its_tier_red_and_refactor_affecte
             return run(args, *a, **kwargs)
 
         def leaf(name, *command):
-            env = dict(os.environ, CLAUDE_BIN=str(stub), LEAF_PROMPT_OUT=str(tiers / (name + ".received")), VERI_POLL="0.02")
+            env = dict(os.environ, CLAUDE_BIN=str(stub), LEAF_PROMPT_OUT=str(tiers / (name + ".received")), VERI_POLL="0.02",
+                       **(step if name.startswith("verify-") else {}))
             exits[name] = run([str(c) for c in command], cwd=tiers, env=env, capture_output=True).returncode
 
         def prompt(name, *builder):
