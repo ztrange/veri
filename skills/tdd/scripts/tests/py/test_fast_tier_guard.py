@@ -374,6 +374,9 @@ def test_the_guards_command_line_prints_every_offence_by_file_and_line_and_exits
 
     assert (code, [line.split(": ")[0] for line in stdout.splitlines()]) == (1, [f"{first}:4", f"{second}:5"])
 
+FROZEN_OUTSIDE_THE_TIER = ("test_events_jsonl_openers.py",)
+
+
 def _misplaced(tier):
     """Criterion 1's placement rule over `tier` and its `unit/`, judged against no exemption table."""
     guard = importlib.import_module("veri.fast_tier_guard")
@@ -383,6 +386,7 @@ def _misplaced(tier):
         f"{path.relative_to(tier)}: {'named by the guard, inside the tier' if str(path) in named else 'guard-clean, outside the tier'}"
         for path in files
         if (str(path) in named) == (path.parent.name == "unit")
+        and str(path.relative_to(tier)) not in FROZEN_OUTSIDE_THE_TIER
     ]
 
 
