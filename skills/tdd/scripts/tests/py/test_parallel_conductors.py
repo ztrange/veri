@@ -819,6 +819,31 @@ def test_a_finished_run_ending_in_a_standing_bail_mark_whose_pr_is_ready_for_rev
     assert (code, out.splitlines()[0]) == (1, "#7 — bailed https://example.test/pull/7")
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
+def test_the_exit_code_the_parked_file_and_a_missing_pr_each_answer_beside_a_standing_mark_2009(
+        monkeypatch, tmp_path, parallel_conductors, run_cli):
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text(json.dumps([
+        {"body": "Closes #7", "isDraft": False, "url": "https://example.test/pull/7"},
+        {"body": "Closes #8", "isDraft": True, "url": "https://example.test/pull/8"},
+    ]))
+    work = tmp_path / "repo"
+    (work / ".tdd" / "parked").mkdir(parents=True)
+    (work / ".tdd" / "parked" / "8.md").write_text("parked\n")
+    _event_log(work, "7", '{"event": "launch", "issue": 7}\n{"event": "done", "issue": 7}\n')
+    _event_log(work, "8", '{"event": "launch", "issue": 8}\n{"event": "bail", "issue": 8}\n')
+    _event_log(work, "9", '{"event": "launch", "issue": 9}\n{"event": "bail", "issue": 9}\n')
+
+    _boundaries(monkeypatch, tmp_path, lambda sup: sup.exit(2 if sup.args[-1] == "7" else 0),
+                lambda supervisors: None, solvable=(0, "7\n8\n9\n"))
+
+    code, out, err = run_cli(parallel_conductors, ["--continue-on-bail"], cwd=work,
+                             env={"VERI_RUN_TIMEOUT": "60", "VERI_GH_JSON": str(gh)})
+
+    assert [line for line in out.splitlines() if line.startswith("#")] == ["#7 — killed after 60s"]
+
+
 @pytest.mark.process("a faked supervise.sh over a VERI_GH_JSON listing, with the start of solvable-issues.sh refused")
 def test_the_full_answer_is_the_same_when_starting_solvable_issues_sh_as_a_process_is_refused(
         monkeypatch, tmp_path, parallel_conductors, run_cli):
