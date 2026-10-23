@@ -7,8 +7,8 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   stuck-retry budget → **system** failure (plumbing broke).
 - `no-verdict` — exit **2** from `verify.sh` / `run-verdict.sh` (a verifier with no verdict:
   unparseable, or the leaf was killed), `grade-prose.sh` (the Draft PR regrade), the
-  ⟦skill-edit⟧ runner (`skill-edit-step.sh`), `resume-clean.sh`, `rebase-onto-default.sh` or
-  `cover-outcome.sh` → **system** failure.
+  ⟦skill-edit⟧ runner (`skill-edit-step.sh`), `resume-clean.sh`, `rebase-onto-default.sh`,
+  `ledger-growth.sh` (the growth check at a ledger commit) or `cover-outcome.sh` → **system** failure.
 - `unreplaced-cases` — `unreplaced-cases.sh` exited **1** a second time, after the one correction
   leaf, naming `⟦replaces-case⟧` cases with no `REPLACES:` line (or exited **2**, no answer, which
   bails at once with no correction) before verify-green → **process** failure.
@@ -26,6 +26,14 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   splits lead here, because all three grow the plan and share that one budget: a Green
   developer leaf's `SPLIT:`, the split the revise-exhausted leaf answers, and the split the
   over-budget leaf answers.
+- `step-added-off-route` — `ledger-growth.sh` exited **1** at a ledger commit: a step line the
+  plan commit did not hold has no matching record from `add-ledger-step.sh` (in the tracked
+  `.tdd/issue-<n>-added.md` or its `step-added` events), lacks `⟦added⟧` when its record shows
+  no repair or `--planned` insertion, or the `⟦added⟧` lines exceed `VERI_STEP_GROWTH` →
+  **process** failure (the plan grew by a route other than `add-ledger-step.sh`; stderr names
+  the line). No commit is made over it. To resume, take the named line out of the uncommitted
+  ledger, or put it back in through `add-ledger-step.sh` within `VERI_STEP_GROWTH`, commit, and
+  resume the run.
 - `step-add-refused` → **system** failure: `add-ledger-step.sh` exited 2 at any of its call
   sites because the anchor matched no step or several, `VERI_STEP_GROWTH` was unreadable, or
   `--criterion` was malformed (the conductor passed a call the script refused, not a
