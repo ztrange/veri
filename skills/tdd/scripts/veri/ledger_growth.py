@@ -24,13 +24,21 @@ def step_texts(text):
     return steps
 
 
+def added_steps(ledger):
+    try:
+        with open(re.sub(r"\.md$", "", ledger) + "-added.md", "rb") as f:
+            return step_texts(f.read().decode(errors="surrogateescape"))
+    except OSError:
+        return []
+
+
 def recorded_steps(ledger):
     log = os.path.join(os.path.dirname(ledger), "events.jsonl")
     try:
         events = read_events(log, skip_unreadable=True)
     except OSError:
-        return []
-    return [step for event in events
+        return added_steps(ledger)
+    return added_steps(ledger) + [step for event in events
             if event.get("event") == "step-added" and event.get("actor") == "add-ledger-step"
             and isinstance(event.get("step"), str)
             for step in step_texts(event["step"])]
