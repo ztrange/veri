@@ -62,6 +62,9 @@ def main(argv):
     except OSError as error:
         complain(argv[0], error)
         return 2
+    if not prompt:
+        print(f"run-leaf.sh: {argv[0]}: the prompt is empty", file=sys.stderr)
+        return 2
     with contextlib.suppress(ValueError):
         signal.signal(signal.SIGTERM, lambda *_: sys.exit(2))
     tmpdir = os.environ.get("TMPDIR") or "/tmp"
