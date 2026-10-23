@@ -1813,3 +1813,25 @@ def test_main_1957_prints_revise_when_a_lone_superseded_cut_name_expands_to_a_re
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
+
+
+def test_main_1977_prints_revise_when_the_step_reroute_event_follows_a_line_of_the_log_that_is_not_json(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    case = "test_main_counts_a_repair_text_as_a_repair"
+    (suite / ("test_" + "ledger" + ".py")).write_text(
+        "def test_main_returns_zero():\n    pass\n\ndef %s():\n    pass\n" % case)
+    (tmp_path / ".tdd").mkdir()
+    step = "wrong-test-route.sh reads past a line that is not JSON"
+    monkeypatch.setenv("VERI_STEP", step)
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        'this line is not json\n{"event": "reroute", "step": "%s"}\n' % step)
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % case)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
