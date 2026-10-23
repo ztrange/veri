@@ -1,0 +1,2 @@
+### `VERI_TEST_LOCK=0` disables the lock: with the lock held by a live full run, a full run started with VERI_TEST_LOCK=0 starts its suites at once without waiting and writes no waiting message. Pinned by a medium case with real processes, @pytest.mark.process ⟦criterion 2⟧
+- test-only | the `until` polling helper is defined inline in three lock cases in `test_pytest_leg.py` (around lines 777, 831 and 914). Hoist it to one module-level helper, and likewise the shared launch and env setup.
