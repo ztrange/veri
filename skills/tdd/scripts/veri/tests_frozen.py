@@ -96,8 +96,10 @@ def _cases(text):
         body = text[start:end]
         span = def_ends.get(text.count("\n", 0, start) + 1)
         if m.group(1) and span:
-            body = "".join(lines[span[0] - 1:span[1]])
-        cases.append((m.group(1) or m.group(2), body.rstrip() if span and m.group(1) else _DECORATORS.sub("", body.rstrip()).rstrip()))
+            body = "".join(lines[span[0] - 1:span[1]]).rstrip()
+        else:
+            body = _DECORATORS.sub("", body.rstrip()).rstrip()
+        cases.append((m.group(1) or m.group(2), body))
     return cases
 
 
