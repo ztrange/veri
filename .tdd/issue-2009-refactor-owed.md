@@ -2,3 +2,4 @@
 - in `_outcome`, test `cause == "bailed"` first, then `cause == "done" or not draft`, in place of the current compound condition followed by a second `cause == "bailed"` test
 - drop the `read_events` import from `parallel_conductors.py` if nothing else in the module uses it (I didn't check)
 applied | 72cc1d7f71314a0844907eda080084e061a08c6c | in `_outcome`, test `cause == "bailed"` first, then `cause == "done" or not draft`, in place of the current compound condition followed by a second `cause == "bailed"` test	refactor: test the bailed cause first in _outcome (#2009)
+applied | 47e70e2403a715aee1f73c2285cd77a2ede63ffd | drop the `read_events` import from `parallel_conductors.py` if nothing else in the module uses it (I didn't check)	refactor: drop the unused read_events import from parallel_conductors (#2009)
