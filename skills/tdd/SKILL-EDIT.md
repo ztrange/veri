@@ -2,7 +2,7 @@
 
 Read the issue body into `.tdd/issue-<n>-body` first, with `gh api repos/{owner}/{repo}/issues/<n> -q .body > .tdd/issue-<n>-body`.
 
-Then run `$S/skill-edit-step.sh` on the issue body, `.tdd/issue-<n>-body`, and the step's unit.
+Then run `$S/skill-edit-step.sh` on the issue body, `.tdd/issue-<n>-body`, the step's unit, and then every pin file the step names.
 
 On exit 0 or 3, tick the step and commit the ticked ledger.
 

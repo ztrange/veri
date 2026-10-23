@@ -67,3 +67,13 @@ def test_skill_edit_md_runs_added_step_with_added_flag_and_text_refusing_a_pass_
     assert "grade" in refusal and "author" in refusal, "the refusal never names the grade passing before any author ran"
     reach = next((s for s in sentences if "never reaches" in s and "author" in s and "grader" in s), "")
     assert reach, "SKILL-EDIT.md never states the step's own text never reaches the author or the grader"
+
+
+def test_skill_edit_md_hands_skill_edit_step_after_the_unit_every_pin_file_the_step_names_2232():
+    sentences = _sentences(DOC.read_text(encoding="utf-8"))
+    run = next((s for s in sentences if "skill-edit-step.sh" in s and "issue body" in s), "")
+    assert run, "SKILL-EDIT.md never runs skill-edit-step.sh on the issue body"
+    assert "pin file" in run, "the run never hands skill-edit-step.sh the pin files"
+    assert "every pin file" in run, "the run never hands every pin file the step names"
+    assert "unit" in run and run.index("unit") < run.index("pin file"), \
+        "the pin files are never handed after the unit"
