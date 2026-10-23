@@ -1,4 +1,5 @@
 """add-ledger-step.sh's computations, run in-process."""
+import json
 import os
 import re
 import sys
