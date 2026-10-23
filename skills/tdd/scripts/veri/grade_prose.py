@@ -160,7 +160,7 @@ def main(argv):
             return no_verdict("grade word %s is neither PASS nor FAIL" % word)
     got = [i for i in re.findall(r"^(\S+): (?:PASS|FAIL)\b", block, re.M) if i != "VERDICT"]
     wanted = [row.split("\t", 1)[0] for row in claims.splitlines()]
-    if got != wanted:
+    if sorted(got) != sorted(wanted):
         return no_verdict("GRADES block IDs %s do not match requirement IDs %s"
                           % (", ".join(got), ", ".join(wanted)))
     failed = re.findall(r"^(?!VERDICT)\S+: FAIL\b.*$", reply, re.M)
