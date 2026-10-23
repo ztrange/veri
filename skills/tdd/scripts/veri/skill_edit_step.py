@@ -13,7 +13,7 @@ import tunables
 import requirements
 from run_verdict import SCRIPTS
 
-USAGE = "usage: skill-edit-step.sh [--added \"<step>\"] <issue-body-file> <unit-file>"
+USAGE = "usage: skill-edit-step.sh [--added \"<step>\"] <issue-body-file> <unit-file> [<pin-file>...]"
 TABLE_HEAD = ["| ID | Requirement | Why |", "|---|---|---|"]
 
 
@@ -153,8 +153,8 @@ def _grade(path, unit):
     return _captured(grade_prose.main, [path, unit])
 
 
-def _guard(unit, base, issue):
-    code, out = _captured(skill_edit_guard.main, [unit, base])
+def _guard(unit, base, issue, pins):
+    code, out = _captured(skill_edit_guard.main, [unit, base, *pins])
     if code == 2:
         return 2, out
     offending = [p for p in out.splitlines() if p != issue]
@@ -163,12 +163,12 @@ def _guard(unit, base, issue):
 
 def main(argv):
     added = None
-    if len(argv) == 4 and argv[0] == "--added":
+    if len(argv) >= 4 and argv[0] == "--added":
         added, argv = argv[1], argv[2:]
-    if len(argv) != 2:
+    if len(argv) < 2:
         print(USAGE, file=sys.stderr)
         return 2
-    issue, unit = argv
+    issue, unit, *pins = argv
     budget = tunables.read("VERI_SKILL_EDIT_BUDGET", "3")
     if not (budget.isdecimal() and int(budget) >= 1):
         print("VERI_SKILL_EDIT_BUDGET must be a whole number >= 1: " + budget, file=sys.stderr)
@@ -198,7 +198,7 @@ def main(argv):
         _attempt[0] = attempt
         if _author(unit, path, said):
             return 2
-        graded, said = _guard(unit, base, issue)
+        graded, said = _guard(unit, base, issue, pins)
         if not graded:
             graded, said = _grade(path, unit)
         if graded == 1:
@@ -211,7 +211,7 @@ def main(argv):
         return graded
     if not authored:
         event.append(".", {}, "skill-edit-no-author", ["unit=" + unit])
-    files = [path, grade_prose.graded_path(unit)] + [unit] * (authored or moved)
+    files = [path, grade_prose.graded_path(unit)] + [unit] * (authored or moved) + pins * authored
     subprocess.run(["git", "add", *files], check=True)
     subprocess.run(["git", "commit", "-q", "-m", "docs: requirements for %s, graded" % unit, *files], check=True)
     return 0 if authored else 3

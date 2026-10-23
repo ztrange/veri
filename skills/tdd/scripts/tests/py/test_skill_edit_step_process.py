@@ -917,3 +917,37 @@ def test_a_non_empty_existing_unit_is_graded_first_and_a_grader_that_passes_ever
     roles = cap / "roles"
     calls = roles.read_text().split() if roles.exists() else []
     assert [ran.returncode, calls] == [3, ["grader"]], (ran.returncode, calls, ran.stderr[-700:])
+
+
+STUB_AUTHOR_EDITS_PROSE_AND_PIN = STUB_AUTHOR_EDITS_PROSE.replace(
+    "  reply='edited' ;;", "  echo pinned-crimson > \"$REPO/pin.txt\"\n  reply='edited' ;;")
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author that edits the prose and a pin file")
+def test_an_attempt_that_edits_the_unit_and_a_named_pin_file_commits_the_pin_file_with_the_unit_list_and_graded_in_one_commit_exiting_0_2232(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
+    (repo / "pin.txt").write_text("pinned-blue\n")
+    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is crimson. | shade |\n")
+    cap = tmp_path / "cap"
+    cap.mkdir()
+    claude = tmp_path / "claude"
+    claude.write_text(STUB_AUTHOR_EDITS_PROSE_AND_PIN)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
+           "CAP": str(cap), "REPO": str(repo),
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "unit.md", "pin.txt"], cwd=repo, capture_output=True, text=True, env=env)
+
+    assert [ran.returncode, git(repo, "rev-list", "--count", "HEAD"),
+            sorted(git(repo, "show", "--name-only", "--format=", "HEAD").splitlines())] \
+        == [0, "2", ["GRADED", "REQUIREMENTS.md", "pin.txt", "unit.md"]], (ran.stdout, ran.stderr[-700:])
