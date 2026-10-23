@@ -20,20 +20,20 @@ def fenced_lines(text):
     return flags
 
 
-def _level(line):
+def _level(line, bare=False):
     hashes = len(line) - len(line.lstrip("#"))
-    if hashes and line[hashes:hashes + 1] == " ":
+    if hashes and (bare or line[hashes:hashes + 1] == " "):
         return hashes
     return 0
 
 
-def section(text, heading):
+def section(text, heading, bare=False):
     lines = text.splitlines()
     fenced = fenced_lines(text)
     start = next(i for i, line in enumerate(lines) if line == heading and not fenced[i])
-    level = _level(heading)
+    level = _level(heading, bare)
     end = next(
-        (i for i in range(start + 1, len(lines)) if not fenced[i] and 0 < _level(lines[i]) <= level),
+        (i for i in range(start + 1, len(lines)) if not fenced[i] and 0 < _level(lines[i], bare) <= level),
         len(lines),
     )
     return lines[start:end]
