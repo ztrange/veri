@@ -194,6 +194,18 @@ def test_1641_a_planted_test_file_passing_a_suite_path_as_a_keyword_argument_is_
     assert "nested" in found[0].split(": ", 1)[1]
 
 
+def test_2170_a_planted_test_file_only_building_a_path_object_from_a_test_file_name_is_not_reported_as_a_nested_suite(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    (tmp_path / "test_path_only.py").write_text(
+        "import pathlib\n"
+        "\n"
+        "def test_it():\n"
+        "    assert pathlib.Path('test_planted.py').name == 'test_planted.py'\n"
+    )
+
+    assert guard.offences(tmp_path) == []
+
+
 def test_an_offence_whose_file_and_line_the_exemption_table_lists_with_a_reason_is_not_reported_and_an_entry_with_an_empty_reason_is_refused_by_name(tmp_path):
     import pytest
 
