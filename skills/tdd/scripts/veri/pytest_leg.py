@@ -59,6 +59,26 @@ def claim():
     return count, entry
 
 
+def full_lock_path():
+    return legs_dir().rstrip("/") + "-full.lock"
+
+
+def acquire_full_lock():
+    lock = open(full_lock_path(), "a+")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        lock.seek(0)
+        sys.stderr.write("waiting for the full run holding the lock: %s\n" % " ".join(lock.read().split("\n")[0].split("\t")))
+        sys.stderr.flush()
+        fcntl.flock(lock, fcntl.LOCK_EX)
+    lock.seek(0)
+    lock.truncate()
+    lock.write("pid %d\ttree %s\n" % (os.getpid(), os.path.realpath(os.getcwd())))
+    lock.flush()
+    return lock
+
+
 def unregister(entry):
     try:
         os.remove(entry)
@@ -128,6 +148,10 @@ def main(argv):
     previous_hup = signal.signal(signal.SIGHUP, terminate)
     conftest = sys.modules.get("conftest")
     entry = None
+    full_lock = None
+    if "-m" not in argv and not os.environ.get("PYTEST_XDIST_WORKER") and not os.environ.get("VERI_FULL_LOCK_HELD"):
+        full_lock = acquire_full_lock()
+        os.environ["VERI_FULL_LOCK_HELD"] = "1"
     serial_seen = os.environ.get("PYTEST_LEG_SERIAL_SEEN")
     try:
         sweep_dead_runs()
@@ -154,6 +178,9 @@ def main(argv):
             os.environ["PYTEST_LEG_SERIAL_SEEN"] = serial_seen
         if entry:
             unregister(entry)
+        if full_lock:
+            os.environ.pop("VERI_FULL_LOCK_HELD", None)
+            full_lock.close()
         signal.signal(signal.SIGTERM, previous)
         signal.signal(signal.SIGHUP, previous_hup)
         if conftest is None:
