@@ -144,9 +144,9 @@ Considered and set aside: a separate `/veri-skill-edit` loop, run outside `/tdd`
 | M4 | It holds the merge lock from the first write to the last, and releases it on every exit path. | |
 | M5 | If `main` moved, it rebases and force-pushes with `--force-with-lease` pinned to the recorded sha. | The bare form silently clobbers. |
 | M6 | An empty or missing CI rollup is not a pass. | |
-| M7 | The CI wait is capped at 2× the average of the last 5 runs, and at 10 minutes. | "30 min is too much." |
+| M7 | The CI wait is `$S/wait-ci.sh`, called again on exit 3, capped at 2× the average of the last 5 runs, and at 10 minutes. | "30 min is too much." The wait is a blocking script (P3), not a wait the agent improvises. |
 | M8 | A zero-step CI failure with a payments annotation goes to the human as billing. | |
-| M9 | It runs `make merge-gates` when the repo has that target, and refuses to merge while `prose-owed.sh` lists any unit (T6). | |
+| M9 | It runs `make merge-gates` when the repo has that target, and refuses to merge while `$S/prose-owed.sh` lists any unit or gives no answer (T6). | A missing or failing check never reads as "nothing owed": in PR #2166 a wrong script path printed nothing and skipped the refusal. |
 | M10 | Deleting the branch, cutting the tag and removing the worktree each happen only after `state == MERGED` is read. | Deleting an open PR's head closes it (PR #74). |
 | M11 | The tag is `vN.M`, chosen with `--sort=-v:refname`, with the capability in the issue's words as its message. | Lexically `v0.9` > `v0.10`. |
 | M12 | It reports one line: PR url, merge sha, tag. | |
@@ -188,9 +188,9 @@ Considered and set aside: a separate `/veri-skill-edit` loop, run outside `/tdd`
 | ID | Requirement | Why |
 |---|---|---|
 | B1 | Invoked as `/veri-bail <issue>`. `veri-dev` calls it on every exit that is not ✅ Done. | |
-| B2 | It classifies from facts before acting: usage limit, sleep, killed-stuck, a budget, revise-exhausted, red baseline, a ledger question. | Not from the comment's wording. |
-| B3 | A usage limit or sleep is not a bail: it saves any uncommitted leaf edit as a patch, restores the tree, and resumes when usage is back. | |
-| B4 | A first real bail is resumed once, with `VERI_NEW_SKILL=1` when the fix it needs landed after its launch. | |
+| B2 | It classifies from facts before acting: `$S/stop-reason.sh <issue>` for a usage limit or sleep, otherwise the run's `bail cause=` event read with `$S/classify-bail.sh <cause>` (killed-stuck, a budget, revise-exhausted, a red baseline, a ledger question). | Not from the comment's wording, and each class has one named source. |
+| B3 | A usage limit or sleep is not a bail: in the run's worktree `.tdd/wt/<n>`, it saves every uncommitted leaf edit, untracked files included, as a patch under `.tdd/`, restores that worktree's tree, and resumes when usage is back. | The leaf's edit lives in the run's worktree; saved from the main clone the patch is empty and the edit is lost (PR #2175 review). |
+| B4 | A first real bail is resumed once with `$S/detach-leaf.sh $S/run-conductor.sh <n>`, with `VERI_NEW_SKILL=1` when the fix it needs landed after the commit recorded in `.tdd/issue-<n>-skill-commit`. | The resume command and the "landed after" test are things an agent can run. |
 | B5 | A second bail is parked: one issue comment with the cause and what would unblock it, then the next issue is taken. | |
 | B6 | Budget raises and ledger amendments come only from the coordinator or the human, and apply to that one resume. | |
 | B7 | It leaves the run's logs in place. | |
