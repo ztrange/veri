@@ -134,3 +134,19 @@ def test_fenced_lines_treats_a_fence_line_indented_one_to_three_spaces_as_a_fenc
     assert markdown_sections.fenced_lines(text) == [
         True, True, True, False, True, True, True, False,
     ]
+
+
+def test_fenced_lines_counts_a_tab_as_one_whitespace_character_of_fence_indent():
+    markdown_sections = importlib.import_module("veri.markdown_sections")
+    text = (
+        "\t```\n"
+        "## in a tab-led fence\n"
+        "```\n"
+        "body\n"
+        "\t\t\t\t```\n"
+        "end\n"
+    )
+
+    assert markdown_sections.fenced_lines(text) == [
+        True, True, True, False, False, False,
+    ]
