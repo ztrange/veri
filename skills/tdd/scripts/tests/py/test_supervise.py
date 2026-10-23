@@ -2875,6 +2875,7 @@ def test_cli_launches_a_supervised_run_leaf_with_model_in_claudes_argv_only_when
         (0, "0\n", 0, today, ["sonnet"], []),
         (0, "0\n", 0, today, ["sonnet"], []),
     ]
+    assert command[-2:] == unset[4][-2:] == ["--model", "sonnet"]
 
 
 def test_cli_launches_a_revise_leaf_on_veri_model_revise_recording_it_on_the_launch_and_passing_it_as_claudes_model(
