@@ -1854,3 +1854,21 @@ def test_main_2172_prints_fixture_with_the_test_file_path_when_a_wrong_test_name
         wrong_test_route, [str(report), "test_session_expires"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "fixture backend/tests/test_router.py admin_on_clock\n")
+
+
+def test_main_2172_prints_revise_when_a_wrong_test_names_a_python_method_without_test_prefix_defined_only_in_a_test_class(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / "test_router.py").write_text(
+        "class TestRouter:\n"
+        "    def admin_on_clock(self, client):\n        client.post('/admin/password')\n\n"
+        "    def test_session_expires(self):\n        pass\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: `admin_on_clock` sets a password without the injected clock\n")
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "test_session_expires"], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
