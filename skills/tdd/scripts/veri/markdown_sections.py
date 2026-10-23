@@ -1,4 +1,7 @@
 def _run(line):
+    indent = len(line) - len(line.lstrip(" "))
+    if indent <= 3:
+        line = line[indent:]
     if not line.startswith(("```", "~~~")):
         return None
     return line[0], len(line) - len(line.lstrip(line[0]))
