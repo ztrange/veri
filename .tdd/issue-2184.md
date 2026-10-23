@@ -6,4 +6,4 @@
 - [x] At start a pytest leg removes a veri-pytest-* folder in the TMPDIR it uses whose recorded pid no longer answers kill -0, deciding by that dead-pid check alone and never by the folder's age ⟦criterion 2⟧
 - [x] At start a pytest leg keeps a veri-pytest-* folder whose recorded pid answers kill -0, whether that pid is another running leg or an unrelated live process that reused it ⟦criterion 2⟧
 - [x] At start a pytest leg keeps a veri-pytest-* folder with no recorded pid, and one whose record cannot be read or parsed as a pid ⟦criterion 3⟧
-- [ ] The start-up sweep never touches an entry in the TMPDIR not named veri-pytest-*, even one recording a dead pid, nor anything outside the TMPDIR the leg uses ⟦criterion 3⟧
+- [x] The start-up sweep never touches an entry in the TMPDIR not named veri-pytest-*, even one recording a dead pid, nor anything outside the TMPDIR the leg uses ⟦criterion 3⟧

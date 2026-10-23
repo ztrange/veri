@@ -890,3 +890,33 @@ def test_2184_at_start_a_leg_keeps_a_veri_pytest_folder_in_its_tmpdir_with_no_re
     assert present and present[0] == [True, True]
     assert (unrecorded / "leftover").exists()
     assert (garbled / "leftover").exists()
+
+
+def test_2184_at_start_a_leg_keeps_a_dead_pid_folder_not_named_veri_pytest_in_its_tmpdir_and_a_veri_pytest_one_outside_it(pytest_leg, run_cli, monkeypatch, tmp_path):
+    import tempfile
+
+    dead = next(pid for pid in range(99999, 1000, -1) if not _answers_kill_0(pid))
+    tmpdir = tmp_path / "tmp"
+    tmpdir.mkdir()
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    other = tmpdir / "other-deadleg"
+    outside = elsewhere / "veri-pytest-deadleg"
+    for folder in (other, outside):
+        folder.mkdir()
+        (folder / "pid").write_text("%d\n" % dead)
+        (folder / "leftover").write_text("x")
+    monkeypatch.setattr(tempfile, "tempdir", str(tmpdir))
+    monkeypatch.setenv("TMPDIR", str(tmpdir))
+    present = []
+
+    def spy(args):
+        present.append([(other / "leftover").exists(), (outside / "leftover").exists()])
+        return pytest.ExitCode.OK
+
+    monkeypatch.setattr(pytest, "main", spy)
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
+    assert run_cli(pytest_leg, [], env=env)[0] == 0
+    assert present and present[0] == [True, True]
+    assert (other / "leftover").exists()
+    assert (outside / "leftover").exists()
