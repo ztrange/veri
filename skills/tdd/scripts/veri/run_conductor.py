@@ -32,6 +32,12 @@ def main(argv):
     if not argv or not argv[0]:
         sys.stderr.write(USAGE + "\n")
         return 2
+    minimum = int(tunables.read("VERI_MIN_FREE_GB", None, "20"))
+    for directory in (tempfile.gettempdir(), os.getcwd()):
+        free = free_gb(directory)
+        if free < minimum:
+            sys.stderr.write("run-conductor: '%s' has %d GB free, below VERI_MIN_FREE_GB=%d\n" % (directory, free, minimum))
+            return 2
     here = paths.scripts_of(__file__)
     base = os.path.dirname(here)
     head_rev = "HEAD"
@@ -109,6 +115,10 @@ def main(argv):
             shutil.rmtree(snapshot, ignore_errors=True)
     sys.stderr.write("run-conductor: no skill commit resolvable from '%s' — running unpinned\n" % base)
     return launch(base, argv[0], None, VERI_SKILL_UNPINNED="1")
+
+
+def free_gb(path):
+    return shutil.disk_usage(path).free // 2 ** 30
 
 
 def prompt(base, issue, commit):
