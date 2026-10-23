@@ -72,3 +72,10 @@ def test_skill_md_s_draft_pr_step_puts_the_conductor_s_mutation_parity_sh_report
     near = window(body_template, r"mutation-parity\.sh")
     assert b"pairs table" in near, "template does not say it is the pairs table"
     assert has(near, r"owed") and b"## owed by a human" in near, "template never puts owed rows under ## Owed by a human"
+
+
+def test_skill_md_says_a_diff_checked_step_in_a_refactor_kind_run_runs_develop_diff_then_verify_diff_and_never_cover_or_transform_1915():
+    near = window(b" ".join(skill_text().split()), r"unless it is ⟦diff-checked⟧", 400)
+    assert near, "never says what a diff-checked step runs in a refactor-kind run"
+    assert has(near, r"develop-diff then verify-diff"), "does not say it runs develop-diff then verify-diff"
+    assert has(near, r"never cover or transform"), "does not say it never runs Cover or Transform"
