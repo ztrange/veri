@@ -75,6 +75,7 @@ def test_target_slot_is_free_only_below_target_asking_for_not_running_issues_193
     (scripts / "veri").mkdir(parents=True)
     shutil.copy(SCRIPTS / "veri" / "watch_runs.py", scripts / "veri" / "watch_runs.py")
     shutil.copy(SHIM, scripts / "watch-runs.sh")
+    (scripts / "lib").symlink_to(SCRIPTS / "lib")
     calls = tmp_path / "calls"
     stub = scripts / "solvable-issues.sh"
     stub.write_text('#!/bin/sh\necho "$*" >> "%s"\necho "777 next one"\necho "888 next two"\n' % calls)
