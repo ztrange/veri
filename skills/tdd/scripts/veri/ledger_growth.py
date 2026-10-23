@@ -30,9 +30,10 @@ def recorded_steps(ledger):
         events = read_events(log, skip_unreadable=True)
     except OSError:
         return []
-    return [event["step"] for event in events
+    return [step for event in events
             if event.get("event") == "step-added" and event.get("actor") == "add-ledger-step"
-            and isinstance(event.get("step"), str)]
+            and isinstance(event.get("step"), str)
+            for step in step_texts(event["step"])]
 
 
 def main(argv):
@@ -51,7 +52,7 @@ def main(argv):
         return 2
     recorded = recorded_steps(argv[1])
     unrecorded_new = [step for step in steps if step not in planned
-                      and not any(step in line for line in recorded)]
+                      and step not in recorded]
     off = [step for step in unrecorded_new if not is_added(step)]
     for step in off:
         print(f"ledger-growth.sh: step added without ⟦added⟧: {step}", file=sys.stderr)
