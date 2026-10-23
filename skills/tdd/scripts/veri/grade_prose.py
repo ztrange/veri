@@ -164,6 +164,9 @@ def main(argv):
         missing = [i for i in wanted if i not in got]
         if missing:
             return no_verdict("GRADES block is missing requirement IDs %s" % ", ".join(missing))
+        repeated = sorted({i for i in got if got.count(i) > 1})
+        if repeated:
+            return no_verdict("GRADES block names requirement IDs repeated: %s" % ", ".join(repeated))
         return no_verdict("GRADES block IDs %s do not match requirement IDs %s"
                           % (", ".join(got), ", ".join(wanted)))
     failed = re.findall(r"^(?!VERDICT)\S+: FAIL\b.*$", reply, re.M)
