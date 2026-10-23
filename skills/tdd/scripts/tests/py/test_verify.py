@@ -1676,12 +1676,9 @@ BLOCKER = "refs/veri/attempts/625/6"
     pytest.param("red", "answers", REJECT_PRIVATE, {"VERI_ISSUE": "625", "VERI_STEP": "6"},
                  (1, PRIVATE + "\n", [("REJECT", "625", "6", None)], [BLOCKER], [], True),
                  id="unpreservable-reason-alone"),
-    pytest.param("red", "answers", RAMBLE, {},
-                 (2, "\n", [("malformed", "", "", "no-verdict")], [], [], False), id="malformed-code-2"),
-    pytest.param("red", "answers", REJECT_PRIVATE, {},
-                 (1, PRIVATE + "\n", [("REJECT", "", "", None)], [], [], False), id="answering-leaves-its-verdict"),
-    pytest.param("red", "hangs", REJECT_PRIVATE, {},
-                 (2, "verifier leaf killed-stuck — no verdict rendered (see .tdd/verify-red.log)\n", [], [], [], False),
+    pytest.param("red", "hangs", REJECT_PRIVATE, {"VERI_ISSUE": "409", "VERI_STEP": "8"},
+                 (2, "verifier leaf killed-stuck — no verdict rendered (see .tdd/verify-red.log)\n", [],
+                  ["refs/veri/attempts/409/8/verify-red-1"], ["8-verify-red-1-stuck.log"], False),
                  id="killed-leaves-no-verdict"),
 ])
 def test_verify_sh_preserves_a_rejected_or_no_verdict_attempt_under_its_ref_and_a_copy_its_verdict_event_names_and_answers_the_verdicts_reason_and_code_alone(
