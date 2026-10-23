@@ -6,11 +6,11 @@ TOKEN_KINDS = ("input_tokens", "output_tokens", "cache_read_input_tokens",
                "cache_creation_input_tokens")
 
 
-def read_events(path, skip_unreadable=False, mark_unreadable=False):
+def read_events(path, skip_unreadable=False, mark_unreadable=False, errors="strict"):
     """The log's events, one dict per non-blank line; skip_unreadable drops lines that
     are not a JSON object, mark_unreadable keeps each as None."""
     events = []
-    with open(path) as f:
+    with open(path, encoding="utf-8", errors=errors) as f:
         for raw in f:
             if not raw.strip():
                 continue

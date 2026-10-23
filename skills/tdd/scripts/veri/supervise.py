@@ -294,7 +294,7 @@ def trap(started, exitfile, kill_poll, ignored):
 def red_awaits_pass(step):
     last = None
     try:
-        for rec in event_log.read_events(".tdd/events.jsonl", skip_unreadable=True):
+        for rec in event_log.read_events(".tdd/events.jsonl", skip_unreadable=True, errors="replace"):
             if str(rec.get("step")) != step or rec.get("phase") not in ("red", "pin"):
                 continue
             if rec.get("event") == "launch" and rec.get("phase") == "red":
