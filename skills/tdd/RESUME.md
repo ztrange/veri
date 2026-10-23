@@ -70,6 +70,9 @@ any cycle of the resumed run starts. The **resume check** then finds an existing
    --planned, stays `⟦added⟧` and counts. A conductor never sets or raises `VERI_STEP_GROWTH`,
    `REVISE_BUDGET`, `VERI_REFACTOR_BUDGET`, `VERI_STUCK_RETRIES` or `VERI_NO_VERDICT_RETRIES`
    mid-run, in its environment or in a scratch helper, and a budget it cannot fit inside is a bail.
+   When the committed ledger holds step lines beyond its plan commit and there is no
+   `.tdd/issue-<n>-added.md`, run `$S/ledger-growth.sh record-existing .tdd/issue-<n>.md` once, before
+   the resume's first ledger commit, and stage `.tdd/issue-<n>-added.md` in that same commit with the ledger.
 4. Post a `### ▶️ Resuming` comment naming that step and, when `$stray` is non-empty, the
    paths it lists, said as what they are: the stray work sub-step 2's reset discarded, seen
    by no verifier and now gone. Mark the pick-up in the log —

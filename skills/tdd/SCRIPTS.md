@@ -130,6 +130,13 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   are not growth. **Exit 0** when every line passes; **exit 1**, naming each failing line on
   stderr, when one lacks its record or `⟦added⟧`, or the cap is passed; **exit 2** on a missing
   argument, an unreadable ledger or plan file, or a malformed `VERI_STEP_GROWTH`.
+- `$S/ledger-growth.sh record-existing <ledger-file>` — the one-off migration for a ledger that grew before
+  the records existed: writes `.tdd/issue-<n>-added.md` beside the ledger, one `- [ ] <step>` line, as
+  `add-ledger-step.sh` writes it, for each step line the plan commit (the newest `plan: scope` or
+  `plan: rewrite`) did not hold; `⟦suite-repair⟧`, `⟦ci-repair⟧` and `⟦added⟧` lines keep their marks.
+  **Exit 0** once the file is written; **exit 2**, writing nothing, when `issue-<n>-added.md` already
+  exists (so it runs once per ledger), when the history holds no plan commit, or when the ledger or the
+  plan's copy cannot be read.
 - `$S/clear-refactor-pending.sh .tdd/issue-<n>.md "<substring>"` — the counterpart of
   `tick-ledger.sh --refactor-pending`: **strip the ` ⟂ refactor pending` mark** from the first
   ticked step matching the substring, in place, once that step's refactor has been verified.
