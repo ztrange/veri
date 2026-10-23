@@ -3864,6 +3864,30 @@ def test_cli_refuses_a_develop_green_launch_whose_open_step_lacks_the_ci_repair_
     assert (code, out, bool(started)) == (2, "", False), err
 
 
+def test_cli_refuses_a_develop_green_launch_when_a_red_launch_follows_a_non_json_line_that_follows_the_only_verify_red_pass_1977(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import json
+    clean_env(monkeypatch)
+    (tmp_path / ".tdd").mkdir()
+    base = {"issue": "1977", "skill_commit": "unknown"}
+    log = [
+        {**base, "ts": 1, "event": "launch", "actor": "developer", "phase": "red", "step": "3", "attempt": "1"},
+        {**base, "ts": 2, "event": "verdict", "actor": "verifier", "phase": "red", "step": "3", "attempt": "1",
+         "verdict": "PASS"},
+    ]
+    later = {**base, "ts": 3, "event": "launch", "actor": "developer", "phase": "red", "step": "3", "attempt": "2"}
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        "".join(json.dumps(line) + "\n" for line in log) + "this line is not json\n" + json.dumps(later) + "\n")
+    stub = tmp_path / "claude"
+    started = spy_leaf_start(monkeypatch, tmp_path, supervise)
+
+    code, out, err = run_cli(supervise, ["develop-green", str(stub)], cwd=tmp_path,
+                             env={"VERI_ISSUE": "1977", "VERI_STEP": "3"})
+
+    assert (code, out, bool(started)) == (2, "", False), err
+    assert "step 3" in err and "verify-red" in err, err
+
+
 def test_cli_leaves_no_launch_event_and_no_owner_file_when_it_refuses_a_develop_green_launch_for_a_missing_verify_red_pass_1741(
         monkeypatch, tmp_path, supervise, run_cli):
     import json
