@@ -592,6 +592,49 @@ def test_main_appends_a_seeded_log_into_the_tdd_directory_a_successful_cut_check
         0, path + "\n", b'{"event":"committed"}\n{"event":"seeded"}\n', [])
 
 
+def test_main_restores_a_seeded_log_after_a_successful_cut_without_issue_worktree_opening_events_jsonl_itself(
+        monkeypatch, capsys, tmp_path, issue_worktree):
+    import builtins
+
+    main_tree = str(tmp_path / "repo")
+    path = f"{main_tree}/.tdd/wt/63"
+    seeded = pathlib.Path(path, ".tdd", "events.jsonl")
+    seeded.parent.mkdir(parents=True)
+    seeded.write_bytes(b'{"event":"seeded"}\n')
+    tmpdir = tmp_path / "tmp"
+    tmpdir.mkdir()
+    monkeypatch.setenv("TMPDIR", str(tmpdir))
+    monkeypatch.setattr(tempfile, "tempdir", None)
+    registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
+    routing_git(monkeypatch, {
+        ("git", "worktree", "list", "--porcelain"): (0, registry, ""),
+        ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/63-own-trap"): (0, "", ""),
+        ("git", "worktree", "add", "-q", path, "tdd/63-own-trap"): (0, "", ""),
+    })
+    routed = subprocess.run
+
+    def run(args, **kwargs):
+        if list(args[:3]) == ["git", "worktree", "add"]:
+            pathlib.Path(path, ".tdd").mkdir(parents=True)
+            pathlib.Path(path, ".tdd", "events.jsonl").write_bytes(b'{"event":"committed"}\n')
+        return routed(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", run)
+    opened = []
+
+    def spy_open(file, *args, **kwargs):
+        opened.append(str(file))
+        return builtins.open(file, *args, **kwargs)
+
+    monkeypatch.setattr(issue_worktree, "open", spy_open, raising=False)
+
+    code = issue_worktree.main(["63", "own-trap"])
+
+    assert (code, capsys.readouterr().out, seeded.read_bytes(), sorted(tmpdir.rglob("*"))) == (
+        0, path + "\n", b'{"event":"committed"}\n{"event":"seeded"}\n', [])
+    assert [p for p in opened if p.endswith("events.jsonl")] == []
+
+
 def test_main_puts_a_seeded_log_back_when_it_refuses_for_the_origin_default_the_missing_default_or_the_failed_fetch(
         monkeypatch, capsys, tmp_path, issue_worktree):
     main_tree = str(tmp_path / "repo")

@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 
+import event_log
 import paths
 import tunables
 from git import git, symref_default
@@ -160,8 +161,8 @@ def seeded_log_set_aside(path):
     finally:
         if seeded_log is not None:
             os.makedirs(tdd, exist_ok=True)
-            with open(seeded_log, "rb") as src, open(log, "ab") as dst:
-                dst.write(src.read())
+            with open(seeded_log, "rb") as src:
+                event_log.append_bytes(log, src.read())
             os.remove(seeded_log)
 
 

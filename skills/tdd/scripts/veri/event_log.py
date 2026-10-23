@@ -30,6 +30,11 @@ def read_events(path, skip_unreadable=False, mark_unreadable=False, errors="repl
     return events
 
 
+def append_bytes(path, data):
+    with open(path, "ab") as f:
+        f.write(data)
+
+
 def usage_totals(events):
     """(dollars, tokens) summed over the usage events."""
     dollars, tokens = 0.0, 0
