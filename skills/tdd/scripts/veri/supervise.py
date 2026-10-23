@@ -14,6 +14,7 @@ import event
 import event_log
 import harvest_usage
 import preserve_attempt
+import tests_frozen
 import tunables
 from extract_result import extract
 from leaf_log import result_records
@@ -317,6 +318,14 @@ def ci_repair_step(issue, step):
         return False
 
 
+def step_text(issue, step):
+    try:
+        with open(ledger_path(".", issue)) as f:
+            return [record[6] for record in ledger_steps(f.read())][int(step) - 1]
+    except (OSError, ValueError, IndexError):
+        return None
+
+
 def main(argv):
     ignored = {sig for sig in TRAPPED if signal.getsignal(sig) is signal.SIG_IGN}
     if signal.SIGINT not in ignored:
@@ -377,6 +386,11 @@ def main(argv):
     if name.startswith("develop-green") and step and red_awaits_pass(step) and not ci_repair_step(issue, step):
         write_line(exitfile, 2)
         return refuse(f"supervise: refusing to launch {name}: step {step} has no verify-red PASS after its latest red leaf")
+    if name.startswith(("verify-red", "verify-green")) and step and (text := step_text(issue, step)) is not None \
+            and not os.path.exists(tests_frozen._pass_marker_path(text)):
+        write_line(exitfile, 2)
+        return refuse(f"supervise: refusing to launch {name}: step {step} has no check-earlier pass marker"
+                      " (run tests-frozen.sh check-earlier first)")
     ownerfile = ".tdd/leaf.owner"
     owner = still_alive_owner(ownerfile)
     if owner is not None:
