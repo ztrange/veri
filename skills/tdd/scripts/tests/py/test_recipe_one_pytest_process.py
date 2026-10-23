@@ -202,3 +202,19 @@ def test_make_test_with_tests_naming_a_missing_file_exits_2_names_it_and_runs_no
                          stdin=subprocess.DEVNULL, capture_output=True, text=True)
     assert (ran.returncode, log.read_text().splitlines(), "all suites green" in ran.stdout + ran.stderr,
             missing in ran.stderr) == (2, [], False, True), ran.stdout + ran.stderr
+
+
+@pytest.mark.timeout(60)
+@pytest.mark.process("make test started for real over a planted tree, naming an existing directory")
+def test_make_test_with_tests_naming_a_directory_exits_2_names_it_and_runs_no_suite_2016(tmp_path):
+    tree, log = planted_tree(tmp_path), tmp_path / "ran.log"
+    log.write_text("")
+    env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
+    env["VERI_PYTEST_LEGS"] = os.environ["VERI_PYTEST_LEGS"]
+    env["VERI_PYTEST_WORKERS"] = "1"
+    env["PLANTED_RAN_LOG"] = str(log)
+    directory = "skills/tdd/scripts/tests/py"
+    ran = subprocess.run(["make", "-C", str(tree), "test", "TESTS=" + directory], env=env,
+                         stdin=subprocess.DEVNULL, capture_output=True, text=True)
+    assert (ran.returncode, log.read_text().splitlines(), "all suites green" in ran.stdout + ran.stderr,
+            directory in ran.stderr) == (2, [], False, True), ran.stdout + ran.stderr
