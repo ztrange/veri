@@ -804,3 +804,39 @@ def test_2148_after_a_leg_returns_or_raises_pytest_leg_serial_seen_is_what_it_wa
         assert pytest_leg.main(["some/dir"]) == 0
 
     assert os.environ.get("PYTEST_LEG_SERIAL_SEEN") == prior
+
+
+def test_2184_at_start_a_leg_removes_a_veri_pytest_folder_in_its_tmpdir_whose_recorded_pid_no_longer_answers_kill_0_whatever_its_age(pytest_leg, run_cli, monkeypatch, tmp_path):
+    import os
+    import tempfile
+
+    dead = next(pid for pid in range(99999, 1000, -1) if not _answers_kill_0(pid))
+    stale = tmp_path / "veri-pytest-deadleg"
+    stale.mkdir()
+    (stale / "pid").write_text("%d\n" % dead)
+    (stale / "leftover").write_text("x")
+    os.utime(stale, (1, 1))
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+    monkeypatch.setenv("TMPDIR", str(tmp_path))
+    present = []
+
+    def spy(args):
+        present.append(stale.exists())
+        return pytest.ExitCode.OK
+
+    monkeypatch.setattr(pytest, "main", spy)
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
+    assert run_cli(pytest_leg, [], env=env)[0] == 0
+    assert present and present[0] is False
+
+
+def _answers_kill_0(pid):
+    import os
+
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
