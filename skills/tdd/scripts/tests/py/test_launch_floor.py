@@ -347,3 +347,23 @@ def test_python_refusal_hint_asks_the_venv_interpreter_with_version_info_and_nam
         ("", "3.11.9", 2, python3(default), "", refusal + hint(default)),
         (str(meets), "3.12.0", 0, [], "", ""),
     ]
+
+
+def test_python_refusal_when_the_running_interpreter_is_the_venv_python3_below_the_floor_names_the_environment_and_advises_reinstalling_it_not_path_2106(
+        capsys, monkeypatch, tmp_path, launch_floor):
+    import os
+
+    venv = str(tmp_path / "venv")
+    monkeypatch.setenv("VERI_VENV", venv)
+    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.9.6")
+    monkeypatch.setattr("sys.executable", os.path.join(venv, "bin", "python3"))
+    monkeypatch.setattr(subprocess, "call", lambda args, **kwargs: 1)
+
+    code = launch_floor.python_refusal("some-prefix")
+    captured = capsys.readouterr()
+
+    assert code == 2 and captured.out == ""
+    assert venv in captured.err and "3.9.6" in captured.err
+    assert "make install-dev" in captured.err and "remov" in captured.err
+    assert "python3 on PATH" not in captured.err
+    assert "first on PATH" not in captured.err
