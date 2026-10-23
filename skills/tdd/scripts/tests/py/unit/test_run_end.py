@@ -168,3 +168,19 @@ def test_a_run_with_no_mark_and_no_live_conductor_whose_latest_launch_has_no_res
     ended, cause, mark = run_end.run_end(tmp_path)
 
     assert (ended, cause, not mark) == (True, "killed", True)
+
+
+def test_a_run_with_no_mark_and_no_live_conductor_whose_latest_launch_ends_in_a_result_that_is_not_a_usage_limit_has_ended_with_cause_unknown_2007(tmp_path):
+    run_end = importlib.import_module("veri.run_end")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        json.dumps({"ts": 100, "issue": "7", "event": "step-done"}) + "\n")
+    records = [{"type": "system", "subtype": "init"},
+               {"type": "result", "result": "Claude usage limit reached"},
+               {"type": "system", "subtype": "init"},
+               {"type": "result", "result": "all steps finished"}]
+    (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+
+    ended, cause, mark = run_end.run_end(tmp_path)
+
+    assert (ended, cause, not mark) == (True, "unknown", True)
