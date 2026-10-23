@@ -13,7 +13,9 @@ rwildcard = $(foreach d,$(wildcard $(1)/*),$(call rwildcard,$(d),$(2))$(if $(fil
 PY_ALL := $(sort $(call rwildcard,skills/tdd/scripts/tests/py,test_%.py))
 PY_UNIT := $(sort $(wildcard skills/tdd/scripts/tests/py/unit/test_*.py))
 py_tests = $(if $(1),$(foreach t,$(2),$(if $(findstring .py,$(t)),$(t))),$(3))
+py_refused = $(if $(1),$(foreach t,$(2),$(if $(findstring .py,$(t)),,$(t))))
 unit: PY_TESTS = $(call py_tests,$(UNIT_TESTS_NAMED),$(UNIT_TESTS),$(PY_UNIT))
+PY_REFUSED = $(call py_refused,$(TESTS_NAMED),$(TESTS))
 PY_TESTS := $(call py_tests,$(TESTS_NAMED),$(TESTS),$(PY_ALL))
 unit: PY_SELECT = -m "not process and not tree_audit"
 # The fast tier's default worker count: each xdist worker pays its own start-up and collection, so
@@ -93,6 +95,7 @@ MAX_MAKE_DEPTH := 4
 test unit:
 	@if [ "$(MAKELEVEL)" -gt $(MAX_MAKE_DEPTH) ]; then printf 'make: refusing a make %s nested at depth %s, deeper than %s\n' "$@" "$(MAKELEVEL)" "$(MAX_MAKE_DEPTH)" >&2; exit 2; fi
 	@$(BASH_GUARD)
+	@for e in $(PY_REFUSED); do printf 'refusing: %s selects no suite\n' "$$e" >&2; exit 2; done
 	@unset BASH_ENV ENV; fail=0; git_bin="$$(mktemp -d)"; pycache="$$(mktemp -d)"; \
 	trap 'rm -rf "$$git_bin" "$$pycache"' EXIT; \
 	$(OFFLINE_GIT); \
