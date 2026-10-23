@@ -170,3 +170,18 @@ def test_make_unit_and_make_test_over_a_tree_with_no_serial_marked_case_start_on
     for target in ("unit", "test"):
         code, ran, output = make(tree, log, target, VERI_PYTEST_WORKERS="2")
         assert (target, code, output.count("test session starts")) == (target, 0, 1), output
+
+
+@pytest.mark.timeout(60)
+@pytest.mark.process("make test started for real over a planted tree, naming one real pytest file among several suites")
+def test_make_test_with_tests_naming_only_real_suites_runs_exactly_those_and_exits_0_2016(tmp_path):
+    tree, log = planted_tree(tmp_path), tmp_path / "ran.log"
+    log.write_text("")
+    env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
+    env["VERI_PYTEST_LEGS"] = os.environ["VERI_PYTEST_LEGS"]
+    env["VERI_PYTEST_WORKERS"] = "1"
+    env["PLANTED_RAN_LOG"] = str(log)
+    named = "TESTS=skills/tdd/scripts/tests/py/unit/test_planted_small.py"
+    ran = subprocess.run(["make", "-C", str(tree), "test", named], env=env,
+                         stdin=subprocess.DEVNULL, capture_output=True, text=True)
+    assert (ran.returncode, sorted(log.read_text().splitlines())) == (0, ["pytest small"]), ran.stdout + ran.stderr
