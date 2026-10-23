@@ -46,7 +46,24 @@ def recorded_steps(ledger):
             for step in step_texts(event["step"])]
 
 
+PLAN_BASELINE_RE = re.compile(r"[0-9a-f]+ plan: (scope|rewrite)\b")
+
+
+def plan_sha(log):
+    for line in log.split("\n"):
+        if PLAN_BASELINE_RE.match(line):
+            return line.split(" ", 1)[0]
+    return None
+
+
 def main(argv):
+    if argv == ["plan-sha"]:
+        sha = plan_sha(sys.stdin.read())
+        if sha is None:
+            print("ledger-growth.sh: no plan commit in the log", file=sys.stderr)
+            return 2
+        print(sha)
+        return 0
     if len(argv) != 2 or not argv[0] or not argv[1]:
         print(USAGE, file=sys.stderr)
         return 2

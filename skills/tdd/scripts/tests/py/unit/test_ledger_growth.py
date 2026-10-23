@@ -127,3 +127,16 @@ def test_2130_an_added_line_recorded_in_the_tracked_added_file_still_exits_0_wit
     (tmp_path / "issue-42-added.md").write_text(line + "\n")
     assert not (tmp_path / "events.jsonl").exists()
     assert run_cli(ledger_growth, [str(plan), str(ledger)]) == (0, "", "")
+
+
+def test_2130_plan_sha_prints_the_newest_plan_scope_or_rewrite_commit_and_exits_2_when_there_is_none(run_cli, ledger_growth):
+    log = (
+        f"{'e' * 40} plan: replace step 2\n"
+        f"{'d' * 40} plan: split step 1\n"
+        f"{'c' * 40} plan: rewrite after verify-plan REJECT\n"
+        f"{'b' * 40} plan: scope #42\n"
+        f"{'a' * 40} chore: unrelated\n"
+    )
+    newest = run_cli(ledger_growth, ["plan-sha"], stdin=log)
+    none = run_cli(ledger_growth, ["plan-sha"], stdin=f"{'a' * 40} plan: split step 1\n")
+    assert (newest, none[0]) == ((0, "c" * 40 + "\n", ""), 2)
