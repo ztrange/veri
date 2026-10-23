@@ -5,6 +5,29 @@ import re
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 
+EVENT_FILES = {
+    "BAIL.md": r"\*\*bail\*\*|\bbails with\b|→ bail",
+    "PIN.md": r"\bthe pin path\b|\bcontinue at the pin\b",
+    "REVISE.md": r"enter the \*\*revise loop|^\s*\*\*revise loop\*\* for red|revise under|bounded revise loop|goes round the revise loop|a revise of the",
+    "RECONCILE.md": r"reconcile leaf",
+    "STOPPING.md": r"\bgo(es)? to \*Stopping\*",
+    "RESUME.md": r"\bresum(e|ing) (the run|at)\b",
+    "SKILL-EDIT.md": r"⟦skill-edit⟧ step",
+}
+
+
+def unpointed_sends(text):
+    lines = text.splitlines()
+    found = []
+    for event_file, trigger in EVENT_FILES.items():
+        pointer = f"`<base directory>/{event_file}`"
+        for i, line in enumerate(lines):
+            nearby = line + " " + (lines[i + 1] if i + 1 < len(lines) else "")
+            if re.search(trigger, line) and pointer not in nearby:
+                found.append((event_file, i + 1))
+    return found
+
+
 def _lines():
     return SKILL.read_text().splitlines()
 
