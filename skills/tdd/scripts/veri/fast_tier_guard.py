@@ -98,7 +98,7 @@ def _classify(node, module_aliases, name_imports, modules, functions, defined=fr
     if name == "run_cli":
         listed = [item for arg in args if isinstance(arg, (ast.List, ast.Tuple)) for item in arg.elts]
         args += [item for item in listed if isinstance(item, ast.Constant) and "/" in str(item.value)]
-    if name in defined or (name and name.startswith("assert")):
+    if name in defined or (name and name.startswith("assert")) or "Path" in (name, attr):
         return None
     if (module, attr) == ("pytest", "main") or any(_names_a_suite(arg) for arg in args):
         return "runs a nested suite"
