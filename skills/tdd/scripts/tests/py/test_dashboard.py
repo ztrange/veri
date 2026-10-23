@@ -929,6 +929,21 @@ def test_get_api_chatter_answers_the_rendering_of_the_four_stream_json_lines_of_
     assert json.loads(body(chatter)) == {"chatter": rendered}
 
 
+def test_rendering_a_log_tailed_by_plain_text_does_not_open_the_log_in_dashboard_py_itself(
+        tmp_path, monkeypatch, dashboard):
+    record = {"type": "assistant", "message": {"role": "assistant", "content": [
+        {"type": "text", "text": "Making the flicker case pass."}]}}
+    log = tmp_path / "develop-green.log"
+    log.write_text(json.dumps(record) + "\n\nThe step is green.\n")
+
+    def refuse(*args, **kwargs):
+        raise AssertionError("dashboard.py opened " + str(args[0]))
+
+    monkeypatch.setattr(dashboard, "open", refuse, raising=False)
+
+    assert dashboard.rendered_log(str(log)) == "Making the flicker case pass.\n"
+
+
 def test_get_api_chatter_answers_the_empty_rendering_for_run_63_on_no_leaf_and_run_65_whose_leaf_wrote_nothing(
         tmp_path, monkeypatch, dashboard):
     noleaf = os.path.join(str(tmp_path), ".tdd", "wt", "63")
