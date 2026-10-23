@@ -121,6 +121,27 @@ def fake_git_only(monkeypatch, toplevel):
     return calls
 
 
+def checked_step(work, head="0123456789abcdef0123456789abcdef01234567"):
+    """A ledger step with a current check-earlier pass marker at head; the environment naming that step."""
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    (work / ".tdd").mkdir(parents=True, exist_ok=True)
+    (work / ".tdd" / "issue-2206.md").write_text("# Plan for #2206\n\n- [ ] first step\n")
+    (work / tests_frozen._pass_marker_path("first step")).write_text(f"step: first step\nhead: {head}\n")
+    return {"VERI_ISSUE": "2206", "VERI_STEP": "1"}
+
+
+def committed_head(work):
+    """work as a git repository with one commit; its HEAD."""
+    identity = {"GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@example.test",
+                "GIT_COMMITTER_NAME": "veri", "GIT_COMMITTER_EMAIL": "veri@example.test",
+                "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
+    git = ["git", "-C", str(work)]
+    env = {**os.environ, **identity}
+    subprocess.run([*git, "init", "-q", "-b", "main"], check=True, env=env)
+    subprocess.run([*git, "commit", "-q", "--allow-empty", "-m", "initial"], check=True, env=env)
+    return subprocess.run([*git, "rev-parse", "HEAD"], check=True, env=env, capture_output=True, text=True).stdout.strip()
+
+
 def test_main_refuses_a_settled_timeout_not_a_whole_number_of_seconds_and_a_kill_poll_not_a_non_negative_number_starting_nothing_but_git_and_creating_no_tdd(
         monkeypatch, tmp_path, capsysbinary, supervise):
     import signal
@@ -1869,6 +1890,7 @@ def test_main_refuses_a_launch_while_the_leaf_recorded_in_leaf_owner_is_alive_an
             (tdd / "leaf.owner").write_text(owner)
         if owner_exit is not None:
             (tdd / f"{owner_exit}.exit").write_text("0\n")
+        clean_env(monkeypatch, **(checked_step(work) if name.startswith("verify-") else {}))
         monkeypatch.chdir(work)
         calls = fake_git_only(monkeypatch, work)
         events.refuse_event_sh()
@@ -1950,6 +1972,7 @@ def test_main_treats_a_leaf_owner_pid_below_1_as_stale_and_launches_1200(
         tdd = work / ".tdd"
         tdd.mkdir(parents=True)
         (tdd / "leaf.owner").write_text(f"{owner_pid} develop-red\n")
+        clean_env(monkeypatch, **checked_step(work))
         monkeypatch.chdir(work)
         fake_git_only(monkeypatch, work)
         events.refuse_event_sh()
@@ -2851,9 +2874,10 @@ def leaf_model_chain(monkeypatch, tmp_path, supervise, run_cli, name, extra=(), 
     monkeypatch.setattr(supervise, "attempt_once", attempt_once)
     work = cwd or tmp_path / name
     work.mkdir(exist_ok=True)
+    step = checked_step(work) if name.startswith("verify-") else {}
     prompt = tmp_path / "prompt.txt"
     prompt.write_text("pick the model")
-    code, _, _ = run_cli(supervise, [name, "run-leaf.sh", str(prompt), *extra], cwd=work, env=dict(env or {}))
+    code, _, _ = run_cli(supervise, [name, "run-leaf.sh", str(prompt), *extra], cwd=work, env={**step, **(env or {})})
     exit_file = (work / ".tdd" / f"{name}.exit").read_text()
     leaf_env = started[0][1]
     launched = []
@@ -3273,7 +3297,7 @@ def test_cli_refuses_a_launch_under_another_name_or_the_same_name_even_after_the
     clean_env(monkeypatch)
     work = tmp_path / "live"
     work.mkdir()
-    window = LIVE_LEAF_WINDOW
+    window = {**LIVE_LEAF_WINDOW, **checked_step(work, committed_head(work))}
     sup = subprocess.Popen([str(SCRIPTS / "supervise.sh"), "develop-red", "sh", "-c", "echo $$ > leaf-pid; exec sleep 60"],
                            cwd=work, env={**os.environ, **window}, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     leaf = None
@@ -3332,6 +3356,7 @@ def test_cli_launches_when_the_recorded_leaf_is_gone_or_finished_under_the_same_
 
     done = tmp_path / "done"
     done.mkdir()
+    window = {**LIVE_LEAF_WINDOW, **checked_step(done, committed_head(done))}
     done_answers = []
     for name, word in (("revise-green-1", "first"), ("revise-green-1", "second"), ("verify-green", "third")):
         for suffix in ("exit", "pid"):
@@ -3342,6 +3367,7 @@ def test_cli_launches_when_the_recorded_leaf_is_gone_or_finished_under_the_same_
 
     nest = tmp_path / "nest"
     nest.mkdir()
+    window = {**LIVE_LEAF_WINDOW, **checked_step(nest, committed_head(nest))}
     inner = f"{shlex.quote(sup)} verify-green sh -c 'echo inner >> ran' 2> inner-err; echo $? > inner-code"
     nest_answer = (launch(nest, "verdict-green", "sh", "-c", inner),
                    (nest / "inner-code").read_text().strip(), (nest / "ran").read_text(),
