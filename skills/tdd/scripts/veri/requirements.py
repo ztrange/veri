@@ -59,28 +59,25 @@ def headings(path):
     return [l[3:] for l, f in zip(lines, fenced) if l.startswith("## ") and not f]
 
 
-def units(path):
-    found = []
-    for unit in headings(path):
-        try:
-            claims(path, unit)
-        except ValueError:
-            continue
-        found.append(unit)
-    return found
-
-
-def listed_units(path):
+def declared_units(path, swallows):
     found = []
     for unit in headings(path):
         try:
             claims(path, unit)
         except ValueError as e:
-            if not str(e).endswith("unit has no table"):
+            if not swallows(e):
                 raise
             continue
         found.append(unit)
     return found
+
+
+def units(path):
+    return declared_units(path, lambda e: True)
+
+
+def listed_units(path):
+    return declared_units(path, lambda e: str(e).endswith("unit has no table"))
 
 
 def fail(path, number, msg):
