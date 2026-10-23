@@ -1833,6 +1833,44 @@ def test_cli_a_launch_keeps_a_directory_inside_the_inherited_tmpdir_not_named_ve
     assert (code, (scratch / "cdk.outXyz" / "precious").is_dir()) == (0, True)
 
 
+def test_cli_a_launch_whose_inherited_tmpdir_filesystem_has_less_than_the_default_20_gb_free_exits_2_naming_the_path_the_free_gb_and_veri_min_free_gb_and_launches_no_conductor_under_tdd_issue_2183(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    monkeypatch.delenv("VERI_MIN_FREE_GB", raising=False)
+    scratch = scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_claude_exiting(monkeypatch, 0, 0)
+    monkeypatch.setattr(run_conductor, "free_gb",
+                        lambda path: 3 if os.path.realpath(path) == os.path.realpath(scratch) else 500,
+                        raising=False)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    code, _, err = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, launches, str(scratch) in err and "3" in err and "VERI_MIN_FREE_GB" in err) == (2, [], True)
+
+
+def test_cli_a_launch_whose_target_repository_filesystem_has_less_than_veri_min_free_gb_free_while_the_inherited_tmpdir_has_plenty_exits_2_naming_the_repository_path_the_free_gb_and_veri_min_free_gb_and_launches_no_conductor_under_tdd_issue_2183(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    monkeypatch.delenv("VERI_MIN_FREE_GB", raising=False)
+    scratch = scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_claude_exiting(monkeypatch, 0, 0)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    monkeypatch.setattr(run_conductor, "free_gb",
+                        lambda path: 7 if os.path.realpath(path) == os.path.realpath(cwd) else 500,
+                        raising=False)
+
+    code, _, err = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, launches, str(cwd) in err and "7" in err and "VERI_MIN_FREE_GB" in err) == (2, [], True)
+
+
 def tree_contents(root):
     """Every file and symlink under root but .git, by relative path: its bytes, or the target it links to."""
     contents = {}
