@@ -504,3 +504,31 @@ def test_a_grades_block_naming_one_requirement_id_twice_makes_grade_prose_exit_2
     events = tmp_path / ".tdd" / "events.jsonl"
     assert (code, "grading" in (events.read_text() if events.exists() else ""),
             "repeated" in err and "A2" in err) == (2, False, True), (code, err)
+
+
+def test_a_grades_block_naming_an_id_the_requirements_list_does_not_hold_makes_grade_prose_exit_2_naming_it_as_unknown_and_append_no_grading_event_2208(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n| A2 | The widget is round. | because |\n"
+        "| A3 | The widget is small. | because |\n")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "grade-prose.log").write_text(
+        '{"type":"result","subtype":"success","is_error":false,"result":'
+        '"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nA3: PASS - ok\\nA9: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n')
+
+    def launch(argv, *a, **k):
+        return subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(subprocess, "run", launch)
+
+    code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+
+    events = tmp_path / ".tdd" / "events.jsonl"
+    assert (code, "grading" in (events.read_text() if events.exists() else ""),
+            "unknown" in err and "A9" in err) == (2, False, True), (code, err)

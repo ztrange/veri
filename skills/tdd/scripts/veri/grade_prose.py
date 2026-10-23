@@ -167,6 +167,9 @@ def main(argv):
         repeated = sorted({i for i in got if got.count(i) > 1})
         if repeated:
             return no_verdict("GRADES block names requirement IDs repeated: %s" % ", ".join(repeated))
+        unknown = sorted({i for i in got if i not in wanted})
+        if unknown:
+            return no_verdict("GRADES block names requirement IDs unknown: %s" % ", ".join(unknown))
         return no_verdict("GRADES block IDs %s do not match requirement IDs %s"
                           % (", ".join(got), ", ".join(wanted)))
     failed = re.findall(r"^(?!VERDICT)\S+: FAIL\b.*$", reply, re.M)

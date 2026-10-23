@@ -5,4 +5,4 @@
 - [x] grade-prose reads a GRADES block naming every requirement ID exactly once with a FAIL row swapped out of file order as a REJECT verdict: exit 1, the FAIL row printed and an events.jsonl grading event whose verdict field is REJECT, naming it, as the same rows in file order would give ⟦criterion 1⟧
 - [x] a GRADES block that leaves out one requirement ID makes grade-prose exit 2 with no verdict, its stderr naming the missing ID as missing, and no grading event appended ⟦criterion 2⟧
 - [x] a GRADES block that names one requirement ID twice makes grade-prose exit 2 with no verdict, its stderr naming the repeated ID as repeated, and no grading event appended ⟦criterion 2⟧
-- [ ] a GRADES block that names an ID the unit's requirements list does not hold makes grade-prose exit 2 with no verdict, its stderr naming the unknown ID as unknown, and no grading event appended ⟦criterion 2⟧
+- [x] a GRADES block that names an ID the unit's requirements list does not hold makes grade-prose exit 2 with no verdict, its stderr naming the unknown ID as unknown, and no grading event appended ⟦criterion 2⟧ ⟂ refactor pending
