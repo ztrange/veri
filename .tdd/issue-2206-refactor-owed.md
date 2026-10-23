@@ -4,3 +4,4 @@
 - fold the `write_line(exitfile, 2); return refuse(...)` pair, repeated across the launch guards in `main`, into one helper (the earlier guards predate this cycle, so it is out of scope here)
 - out-of-scope | make `tests_frozen._pass_marker_path` public, since `supervise.py` now calls a private name from another module (a rename across files)
 not-done | transform-rejected | fold the `write_line(exitfile, 2); return refuse(...)` pair, repeated across the launch guards in `main`, into one helper (the earlier guards predate this cycle, so it is out of scope here)
+not-done | transform-rejected | make `tests_frozen._pass_marker_path` public, since `supervise.py` now calls a private name from another module (a rename across files)
