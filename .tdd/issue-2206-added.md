@@ -1,1 +1,2 @@
 - [ ] `tests-frozen.sh check-earlier` exiting 2 (not inside a git repository, or an unreadable ledger) removes an existing pass marker for that step, leaving markers of other steps in place ⟦added⟧ ⟦criterion 1⟧
+- [ ] `supervise.sh verify-red` / `verify-green` launched with `VERI_STEP` set to the current step's ledger text (as every conductor launch sets it, not a step number) and no current pass marker for that text exits 2 and launches nothing; with a current marker for that text at HEAD it launches ⟦added⟧ ⟦criterion 2⟧
