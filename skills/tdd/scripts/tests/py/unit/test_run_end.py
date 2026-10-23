@@ -47,3 +47,25 @@ def test_a_live_pid_whose_command_line_is_not_run_conductor_for_this_issue_leave
 
     assert answers == {name: (True, "unknown", True)
                        for name in ("other-issue", "python-other-issue", "unrelated")}
+
+
+def test_a_live_claude_child_whose_parent_is_run_conductor_for_this_issue_has_not_ended_and_for_another_issue_has_2007(tmp_path, monkeypatch):
+    import os
+    run_end = importlib.import_module("veri.run_end")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        json.dumps({"ts": 100, "issue": "7", "event": "step-done"}) + "\n")
+    (tmp_path / ".tdd" / "conductor.pid").write_text(f"{os.getpid()}\n")
+    parent = 424242
+    answers = {}
+    for name, parent_line in {"this-issue": "bash /x/run-conductor.sh 7",
+                              "python-this-issue": "python3 /x/veri/run_conductor.py 7",
+                              "other-issue": "bash /x/run-conductor.sh 8"}.items():
+        lines = {os.getpid(): "claude -p --model sonnet", parent: parent_line}
+        monkeypatch.setattr(run_end, "parent_pid", lambda pid: parent, raising=False)
+        monkeypatch.setattr(run_end, "command_line", lambda pid, lines=lines: lines.get(pid, ""), raising=False)
+        ended, cause, mark = run_end.run_end(tmp_path)
+        answers[name] = (ended, not mark)
+
+    assert answers == {"this-issue": (False, True), "python-this-issue": (False, True),
+                       "other-issue": (True, True)}
