@@ -152,3 +152,19 @@ def test_a_run_with_no_mark_and_no_live_conductor_ends_with_cause_usage_limit_on
     answers = [run_end.run_end(d)[:2] for d in (leafy, bare)]
 
     assert answers == [(True, "usage-limit"), (True, "usage-limit")]
+
+
+def test_a_run_with_no_mark_and_no_live_conductor_whose_latest_launch_has_no_result_record_has_ended_with_cause_killed_2007(tmp_path):
+    run_end = importlib.import_module("veri.run_end")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        json.dumps({"ts": 100, "issue": "7", "event": "step-done"}) + "\n")
+    records = [{"type": "system", "subtype": "init"},
+               {"type": "result", "result": "done"},
+               {"type": "system", "subtype": "init"},
+               {"type": "assistant"}]
+    (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+
+    ended, cause, mark = run_end.run_end(tmp_path)
+
+    assert (ended, cause, not mark) == (True, "killed", True)
