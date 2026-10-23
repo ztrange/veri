@@ -88,6 +88,27 @@ def _def_ends(text):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
 
 
+def _helpers_only(tail):
+    in_function = False
+    for line in tail.splitlines():
+        if in_function:
+            in_function = line.rstrip() != "}"
+        elif not line.strip() or line.lstrip().startswith("#"):
+            continue
+        elif re.match(r"\w+[ \t]*\(\)", line):
+            in_function = not line.rstrip().endswith("}")
+        else:
+            return False
+    return True
+
+
+def _module_level_cut(body):
+    for cut in _MODULE_LEVEL.finditer(body):
+        if _helpers_only(body[cut.start():]):
+            return cut
+    return None
+
+
 def _spans(text):
     found = list(_CASE.finditer(text))
     trailer = re.search(r"^finish\b.*\s*\Z", text, re.M)
@@ -111,7 +132,7 @@ def _cases(text):
         if m.group(1) and span:
             body = "".join(lines[span[0] - 1:span[1]]).rstrip()
         else:
-            cut = None if m.group(1) else _MODULE_LEVEL.search(body)
+            cut = None if m.group(1) else _module_level_cut(body)
             body = body[:cut.start()] if cut else body
             body = _DECORATORS.sub("", body.rstrip()).rstrip()
         cases.append((m.group(1) or m.group(2), body))

@@ -1310,6 +1310,29 @@ def test_check_earlier_exits_2_never_1_printing_usage_on_stderr_for_an_empty_ste
 
 
 @pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_check_earlier_exits_1_naming_the_case_and_its_step_when_a_line_below_an_inner_comment_of_a_recorded_bash_case_is_edited_2177(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/suite.test.sh").write_text('name="older case"\ncheck_older\nok\n')
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier, current = "step one adds a bash case", "step two adds another"
+    (tmp_path / "tests/suite.test.sh").write_text(
+        'name="c1"\nrun_it\n\n# now check\nassert_eq 1 1\n\nname="c2"\ncheck_second\nok\n\nfinish\n')
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/suite.test.sh"], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    (tmp_path / "tests/suite.test.sh").write_text(
+        'name="c1"\nrun_it\n\n# now check\nassert_eq 1 2\n\nname="c2"\ncheck_second\nok\n\nfinish\n')
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, out) == (1, "c1 (%s)\n" % earlier)
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
 def test_check_earlier_exits_1_naming_the_case_and_its_step_when_a_decorator_is_added_above_a_recorded_case_followed_by_an_undecorated_case_2177(
         tmp_path, run_cli, tests_frozen):
     (tmp_path / "tests").mkdir()
