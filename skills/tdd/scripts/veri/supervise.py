@@ -397,10 +397,10 @@ def main(argv):
     if name.startswith("develop-green") and step and red_awaits_pass(step) and not ci_repair_step(issue, step):
         write_line(exitfile, 2)
         return refuse(f"supervise: refusing to launch {name}: step {step} has no verify-red PASS after its latest red leaf")
-    if name.startswith(("verify-red", "verify-green")) and step and (text := step_text(issue, step)) is not None \
-            and not pass_marker_current(text):
+    if name.startswith(("verify-red", "verify-green")) \
+            and not ((text := step_text(issue, step) if step else None) is not None and pass_marker_current(text)):
         write_line(exitfile, 2)
-        return refuse(f"supervise: refusing to launch {name}: step {step} has no current check-earlier pass marker"
+        return refuse(f"supervise: refusing to launch {name}: step {step or '(unset)'} has no current check-earlier pass marker"
                       " (run tests-frozen.sh check-earlier first)")
     ownerfile = ".tdd/leaf.owner"
     owner = still_alive_owner(ownerfile)
