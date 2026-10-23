@@ -350,21 +350,14 @@ def tests_json(query):
 # own contract (render-leaf-log.sh:11), and it is the caller holding a log of two parts that
 # knows which part is a transcript.
 def record_lines(log):
-    kept = []
-    with open(log, "rb") as f:
-        for raw in f:
-            try:
-                json.loads(raw)
-            except ValueError:
-                continue
-            kept.append(raw)
-    return b"".join(kept)
+    return "".join(json.dumps(event) + "\n"
+                   for event in read_events(log, skip_unreadable=True))
 
 
 def rendered_log(log):
     if not log or not os.path.exists(log):
         return ""
-    return render_leaf_log.render_log(record_lines(log).decode("utf-8", "replace"))[1]
+    return render_leaf_log.render_log(record_lines(log))[1]
 
 
 # The leaf a run is CURRENTLY on: the name its newest `launch` event carries, which is the
