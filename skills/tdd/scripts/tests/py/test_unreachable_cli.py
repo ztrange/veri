@@ -14,6 +14,7 @@ def test_make_unreachable_runs_unreachable_sh_over_the_repository_it_is_run_in_a
     shutil.copy(ROOT / "Makefile", tmp_path / "Makefile")
     shutil.copy(SCRIPTS / "unreachable.sh", scripts / "unreachable.sh")
     (scripts / "veri").symlink_to(SCRIPTS / "veri")
+    (scripts / "lib").symlink_to(SCRIPTS / "lib")
     script(scripts / "helper.sh", "echo helped")
     script(scripts / "orphan.sh", "echo alone")
 
