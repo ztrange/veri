@@ -331,3 +331,40 @@ def test_with_two_retries_a_grader_that_never_writes_a_grades_block_is_launched_
 def test_a_line_indented_four_spaces_that_starts_with_backticks_is_text_so_a_real_heading_after_it_still_ends_the_section_1978(grade_prose):
     text = "## unit.md\nbefore\n    ```\nafter\n## next\nother\n"
     assert grade_prose.section(text, "unit.md") == "## unit.md\nbefore\n    ```\nafter\n"
+
+
+def test_grade_prose_and_requirements_read_fences_and_a_units_section_through_the_markdown_sections_reader_1978(
+        tmp_path, monkeypatch, grade_prose):
+    import markdown_sections
+    requirements = importlib.import_module("veri.requirements")
+    reader = importlib.import_module("veri.markdown_sections")
+    calls = []
+
+    def spy(name):
+        def wrapped(*a, **k):
+            calls.append(name)
+            return getattr(markdown_sections, "_orig_" + name)(*a, **k)
+        return wrapped
+
+    for name in ("fenced_lines", "section"):
+        original = getattr(markdown_sections, name)
+        monkeypatch.setattr(markdown_sections, "_orig_" + name, original, raising=False)
+        monkeypatch.setattr(reader, "_orig_" + name, getattr(reader, name), raising=False)
+        for owner in (markdown_sections, reader):
+            monkeypatch.setattr(owner, name, spy(name))
+        for consumer in (grade_prose, requirements):
+            if getattr(consumer, name, None) in (original, getattr(reader, "_orig_" + name)):
+                monkeypatch.setattr(consumer, name, spy(name))
+
+    (tmp_path / "unit.md").write_text("## unit.md\nbody\n## next\nother\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | blue | because |\n")
+
+    grade_prose.unit_text(str(tmp_path / "unit.md") + "#unit.md")
+    through_grade_prose = set(calls)
+    calls.clear()
+    requirements.units(str(tmp_path / "REQUIREMENTS.md"))
+    requirements.claims(str(tmp_path / "REQUIREMENTS.md"), "unit.md")
+
+    assert (through_grade_prose, set(calls)) == ({"section", "fenced_lines"}, {"fenced_lines"}), (
+        through_grade_prose, set(calls))

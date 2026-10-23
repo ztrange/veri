@@ -11,7 +11,7 @@ import uuid
 import event
 import requirements
 import tunables
-from markdown_sections import fenced_lines
+import markdown_sections
 from extract_result import extract
 from leaf_log import result_records
 from run_verdict import SCRIPTS
@@ -44,18 +44,12 @@ def prompt(unit, text, claims):
 
 
 def section(text, heading):
-    out, level = [], None
-    for line, fenced in zip(text.splitlines(keepends=True), fenced_lines(text)):
-        hashes = 0 if fenced else len(line) - len(line.lstrip("#"))
-        if level is None:
-            if hashes and line[hashes:].strip() == heading:
-                level = hashes
-                out.append(line)
-        elif 0 < hashes <= level:
-            break
-        else:
-            out.append(line)
-    return "".join(out)
+    lines = text.splitlines()
+    for line, fenced in zip(lines, markdown_sections.fenced_lines(text)):
+        hashes = len(line) - len(line.lstrip("#"))
+        if not fenced and hashes and line[hashes:].strip() == heading:
+            return "".join(l + "\n" for l in markdown_sections.section(text, line))
+    return ""
 
 
 def modern_python_dir():
