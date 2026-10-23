@@ -65,3 +65,13 @@ def test_1967_preflight_step_3_resumed_run_block_is_one_resume_clean_sh_call_and
         assert syntax not in prose, f"the resumed-run block still holds bash-only {syntax!r}"
     assert re.search(r"exit 2.*?bails as a \*\*system\*\* failure", " ".join(prose.split())), \
         "the resumed-run block does not bail its exit 2 as a system failure"
+
+
+def test_resume_md_runs_record_existing_before_the_first_ledger_commit_issue_2213():
+    text = " ".join((TDD / "RESUME.md").read_text().split())
+    assert re.search(
+        r"step lines beyond its plan commit and there is no `\.tdd/issue-<n>-added\.md`, "
+        r"run `\$S/ledger-growth\.sh record-existing \.tdd/issue-<n>\.md` once, "
+        r"before the resume's first ledger commit, "
+        r"and stage `\.tdd/issue-<n>-added\.md` in that same commit with the ledger",
+        text), "RESUME.md does not instruct ledger-growth.sh record-existing before the first ledger commit"
