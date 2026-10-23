@@ -85,3 +85,22 @@ def test_a_run_with_no_mark_whose_conductor_pid_answers_kill_0_as_run_conductor_
         answers[name] = run_end.run_end(tmp_path)
 
     assert answers == {"shell": (False, None, {}), "python": (False, None, {})}
+
+
+def test_a_run_with_bail_then_resume_then_launch_events_and_a_live_conductor_has_not_ended_and_only_marks_after_the_last_resume_stand_2007(tmp_path, monkeypatch):
+    import os
+    run_end = importlib.import_module("veri.run_end")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "conductor.pid").write_text(f"{os.getpid()}\n")
+    monkeypatch.setattr(run_end, "command_line", lambda pid: "bash /x/run-conductor.sh 7", raising=False)
+    log = tmp_path / ".tdd" / "events.jsonl"
+    prefix = [{"ts": 100, "issue": "7", "event": "bail", "phase": "red"},
+              {"ts": 200, "issue": "7", "event": "resume"},
+              {"ts": 300, "issue": "7", "event": "launch"},
+              {"ts": 400, "issue": "7", "event": "launch"}]
+    log.write_text("".join(json.dumps(e) + "\n" for e in prefix))
+    resumed = run_end.run_end(tmp_path)
+    log.write_text("".join(json.dumps(e) + "\n" for e in prefix + [{"ts": 500, "issue": "7", "event": "stop", "mode": "graceful"}]))
+    stopped_after = run_end.run_end(tmp_path)
+
+    assert (resumed, stopped_after[:2]) == ((False, None, {}), (True, "stopped"))
