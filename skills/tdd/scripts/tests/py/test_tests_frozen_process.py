@@ -1640,3 +1640,25 @@ def test_check_earlier_exit_2_for_an_unreadable_ledger_removes_the_pass_marker_o
             if path.is_file() and "head: " in path.read_text()]
     assert (passes, code, [("step: %s\n" % current in text, "step: %s\n" % other in text) for text in kept]) == (
         [0, 0], 2, [(False, True)])
+
+
+@pytest.mark.process("a real git repository under tmp_path, then git asked for the toplevel from a directory in none")
+def test_check_earlier_exit_2_outside_any_git_repository_removes_the_pass_marker_of_that_step_2206(
+        tmp_path, run_cli, tests_frozen):
+    repo, plain = tmp_path / "repo", tmp_path / "plain"
+    (repo / ".tdd").mkdir(parents=True)
+    (plain / ".tdd").mkdir(parents=True)
+    (repo / "a.txt").write_text("one\n")
+    git(repo, "init", "-q")
+    git(repo, "add", "a.txt")
+    git(repo, "commit", "-q", "-m", "first")
+    step = "add the second case"
+    ledger = repo / ".tdd/ledger.md"
+    ledger.write_text("- [ ] %s\n" % step)
+    passed = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", step], cwd=repo)[0]
+    for marker in (repo / ".tdd").glob("check-earlier-*.pass"):
+        (plain / ".tdd" / marker.name).write_text(marker.read_text())
+
+    code, _, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", step], cwd=plain)
+
+    assert (passed, code, list((plain / ".tdd").glob("check-earlier-*.pass"))) == (0, 2, [])

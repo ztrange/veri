@@ -175,6 +175,7 @@ def _added_cases(name):
 def _check_earlier(ledger, step, exempt=()):
     root = _toplevel()
     if root is None:
+        _remove_pass_marker(step)
         write(sys.stderr, "tests-frozen.sh: not inside a git repository\n%s" % USAGE)
         return 2
     try:
