@@ -438,3 +438,35 @@ def test_a_list_already_passing_the_grader_launches_no_author_commits_the_list_a
     assert len(commits) == 1 and "REQUIREMENTS.md" in commits[0], commands
     assert any(p.endswith("GRADED") or "GRADED" in p for p in commits[0]), commits
     assert code == 3, (code, out, err)
+
+
+def test_an_added_step_on_a_unit_graded_pass_before_any_author_ran_exits_2_naming_the_step_launching_and_committing_nothing_2063(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    launched = []
+    commands = []
+    events = []
+
+    def run(cmd, **kw):
+        commands.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: events.append(a))
+    monkeypatch.setattr(skill_edit_step, "subprocess",
+                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+    step = "map each grade to the mode stop-run.sh accepts"
+
+    code, out, err = run_cli(skill_edit_step, ["--added", step, str(tmp_path / "issue.md"), "unit.md"])
+    usage = run_cli(skill_edit_step, [])[2]
+
+    commits = [c for c in commands if c[:2] in (["git", "add"], ["git", "commit"])]
+    assert (code, step in err, launched, events, commits, (tmp_path / "GRADED").exists(), "--added" in usage) \
+        == (2, True, [], [], [], False, True), (code, err, launched, events, commits, usage)

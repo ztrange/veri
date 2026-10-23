@@ -13,7 +13,7 @@ import tunables
 import requirements
 from run_verdict import SCRIPTS
 
-USAGE = "usage: skill-edit-step.sh <issue-body-file> <unit-file>"
+USAGE = "usage: skill-edit-step.sh [--added \"<step>\"] <issue-body-file> <unit-file>"
 TABLE_HEAD = ["| ID | Requirement | Why |", "|---|---|---|"]
 
 
@@ -162,6 +162,9 @@ def _guard(unit, base, issue):
 
 
 def main(argv):
+    added = None
+    if len(argv) == 4 and argv[0] == "--added":
+        added, argv = argv[1], argv[2:]
     if len(argv) != 2:
         print(USAGE, file=sys.stderr)
         return 2
@@ -183,6 +186,9 @@ def main(argv):
         graded, said = _grade(path, unit)
     else:
         graded, said = 1, "FAIL: unit is empty\n"
+    if added is not None and graded == 0:
+        print("added step graded PASS before any author ran, so no prose would change: " + added, file=sys.stderr)
+        return 2
     authored = graded == 1
     with open(unit, "rb") as f:
         before = f.read()
