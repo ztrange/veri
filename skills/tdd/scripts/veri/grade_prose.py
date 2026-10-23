@@ -166,6 +166,7 @@ def main(argv):
     seen = graded_ids(reply)
     missing = [i for i in wanted if i not in seen]
     if (missing and used <= retries and len(set(seen)) == len(seen) and set(seen) <= set(wanted)
+            and not re.search(r"^(?!VERDICT)\S+: (?!PASS\b|FAIL\b)\S", reply, re.M)
             and "END GRADES" in reply and not reply.partition("END GRADES")[2].strip()):
         rows = "".join(r + "\n" for r in claims.splitlines() if r.split("\t", 1)[0] in missing)
         with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as g:
