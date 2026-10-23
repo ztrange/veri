@@ -22,7 +22,7 @@ def main(argv):
         sys.stderr.write("stop-reason.sh: no events log at %s\n" % log)
         return 2
     conductor_log = _conductor_log(argv[0])
-    events = _records(log)
+    events = event_log.read_events(log)
     last = events[-1]
     if last.get("event") == "done":
         sys.stdout.write("done %s\n" % last.get("pr"))
@@ -47,10 +47,6 @@ def main(argv):
     return 0
 
 
-def _records(path):
-    return event_log.read_events(path)
-
-
 def _live(pidfile):
     try:
         with open(pidfile) as f:
@@ -69,7 +65,7 @@ def _conductor_log(issue):
 
 def _usage_limit(issue, conductor_log):
     result = None
-    for r in _records(conductor_log):
+    for r in event_log.read_events(conductor_log):
         if r.get("type") == "system" and r.get("subtype") == "init":
             result = None
         elif r.get("type") == "result":
@@ -88,7 +84,7 @@ def _rate_limited(issue):
     logs = sorted((os.path.join(run, n) for n in os.listdir(run) if n.endswith(".log")), key=os.path.getmtime)
     if not logs:
         return False
-    return any(r.get("error") == "rate_limit" for r in _records(logs[-1]))
+    return any(r.get("error") == "rate_limit" for r in event_log.read_events(logs[-1]))
 
 
 if __name__ == "__main__":
