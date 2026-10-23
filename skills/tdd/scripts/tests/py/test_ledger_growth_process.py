@@ -94,3 +94,25 @@ def test_2213_record_existing_exits_2_naming_the_cause_and_writes_nothing_when_t
     code, _, err = run_cli(ledger_growth, ["record-existing", str(ledger)], cwd=repo)
     added = repo / ".tdd" / "issue-42-added.md"
     assert (code, added.exists(), "cannot read" in err) == (2, False, True)
+
+
+@pytest.mark.process("git")
+def test_2213_record_existing_takes_its_baseline_from_the_newest_of_two_plan_commits(tmp_path, run_cli):
+    ledger_growth = importlib.import_module("veri.ledger_growth")
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    ledger = repo / ".tdd" / "issue-42.md"
+    ledger.write_text("# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "plan: scope #42 (#42)")
+    ledger.write_text("# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n- [ ] a wheel turns ⟦criterion 2⟧\n")
+    git(repo, "commit", "-q", "-am", "plan: rewrite #42's plan (#42)")
+    ledger.write_text("# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n- [ ] a wheel turns ⟦criterion 2⟧\n"
+                      "- [ ] a gear meshes ⟦added⟧ ⟦criterion 2⟧\n")
+    git(repo, "commit", "-q", "-am", "chore: step added (#42)")
+
+    code, _, err = run_cli(ledger_growth, ["record-existing", str(ledger)], cwd=repo)
+
+    assert (code, (repo / ".tdd" / "issue-42-added.md").read_text()) == (
+        0, "- [ ] a gear meshes ⟦added⟧ ⟦criterion 2⟧\n"), err
