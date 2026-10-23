@@ -176,6 +176,10 @@ def main(argv):
         if "BEGIN GRADES" in follow:
             follow = follow[follow.rindex("BEGIN GRADES"):].partition("END GRADES")[0]
             added = [l for l in follow.splitlines()[1:] if not l.startswith("VERDICT")]
+            ids = re.findall(r"^(\S+): (?:PASS|FAIL)\b", "\n".join(added), re.M)
+            unknown = sorted({i for i in ids if i not in missing})
+            if unknown:
+                return no_verdict("GRADES block names requirement IDs unknown: %s" % ", ".join(unknown))
             kept = [l for l in reply.partition("END GRADES")[0].splitlines() if not l.startswith("VERDICT")]
             lines = kept + added
             reply = "\n".join(lines + ["VERDICT: PASS", "END GRADES"])
