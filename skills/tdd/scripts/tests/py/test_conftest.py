@@ -89,9 +89,11 @@ def test_fake_processes_hands_output_back_in_the_calls_mode_merges_stderr_on_req
         raise AssertionError("a non-zero answer under check=True returned rather than raising")
 
 
-def child_pytest(tmp_path, probe, env, select=()):
-    env = {**env, "PYTHONPATH": str(pathlib.Path(__file__).resolve().parent)}
-    return subprocess.run([sys.executable, "-m", "pytest", "-p", "conftest", "-p", "no:cacheprovider", "-q",
+def child_pytest(tmp_path, probe, env, select=(), plugins=()):
+    here = pathlib.Path(__file__).resolve().parent
+    env = {**env, "PYTHONPATH": os.pathsep.join([str(here), str(here.parents[1])] if plugins else [str(here)])}
+    loaded = [arg for plugin in plugins for arg in ("-p", plugin)]
+    return subprocess.run([sys.executable, "-m", "pytest", "-p", "conftest", *loaded, "-p", "no:cacheprovider", "-q",
                            "--rootdir", str(tmp_path), *select, str(probe)],
                           env=env, cwd=tmp_path, capture_output=True, text=True)
 
@@ -308,7 +310,7 @@ def test_each_case_gets_a_private_empty_tmp_path_that_exists_and_a_file_left_in_
         "def test_third(tmp_path):\n"
         "    check(tmp_path)\n" % str(seen))
 
-    ran = child_pytest(tmp_path, probe, os.environ)
+    ran = child_pytest(tmp_path, probe, os.environ, plugins=["veri.private_tmp_path"])
 
     output = ran.stdout + ran.stderr
     assert ran.returncode == 0, output
