@@ -73,3 +73,25 @@ def test_fenced_lines_keeps_a_fence_opened_by_a_longer_run_open_past_a_shorter_r
     assert markdown_sections.fenced_lines(text) == [
         True, True, True, True, True, False,
     ]
+
+
+def test_section_runs_from_its_heading_to_the_next_heading_of_the_same_or_a_higher_level():
+    markdown_sections = importlib.import_module("veri.markdown_sections")
+    text = (
+        "# Top\n"
+        "intro\n"
+        "## A\n"
+        "a body\n"
+        "### Sub\n"
+        "sub body\n"
+        "## B\n"
+        "b body\n"
+        "# Next\n"
+        "next body\n"
+    )
+
+    assert markdown_sections.section(text, "## A") == [
+        "## A", "a body", "### Sub", "sub body",
+    ]
+    assert markdown_sections.section(text, "## B") == ["## B", "b body"]
+    assert markdown_sections.section(text, "# Next") == ["# Next", "next body"]
