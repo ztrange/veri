@@ -4,3 +4,4 @@
 ### A follow-up reply whose GRADES block names an ID twice, or names an ID that was not asked for in that follow-up, is still no verdict: exit 2 naming the repeated or unknown ID, no grading event; a small in-process unit case in skills/tdd/scripts/tests/py/unit/test_grade_prose.py ⟦criterion 1⟧
 - merge the follow-up reply handling in `main` with the final block validation; this is a larger restructure of `main`, so I left it
 not-done | uncovered | the prompt temp-file write-and-unlink is repeated for the first grade and the follow-up; a helper would remove it
+not-done | transform-rejected | the "BEGIN GRADES"-to-"END GRADES" line extraction in the follow-up merge repeats the block parsing done elsewhere in `main`
