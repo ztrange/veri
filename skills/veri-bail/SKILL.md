@@ -17,8 +17,11 @@ Invoked as `/veri-bail <issue>`. `veri-dev` calls it on every exit that is not â
 
 ## Classify first
 
-Classify from facts before acting, never from the wording of the bail comment. Read the
-ledger, `$S/status.sh`, the run's events and logs, and git. Pick one:
+Classify from facts before acting, never from the wording of the bail comment. First run
+`$S/stop-reason.sh <issue>`: it says whether the run stopped on a usage limit or a sleep.
+Otherwise read the run's `bail cause=` event and label that cause with
+`$S/classify-bail.sh <cause>`; check its answer against the ledger, `$S/status.sh`, the logs
+and git. Pick one:
 
 - usage limit;
 - sleep;
@@ -28,18 +31,18 @@ ledger, `$S/status.sh`, the run's events and logs, and git. Pick one:
 - red baseline;
 - a ledger question.
 
-`$S/classify-bail.sh <cause>` labels a cause; check its answer against the facts.
-
 ## A usage limit or sleep is not a bail
 
-Save any uncommitted leaf edit as a patch under `.tdd/` (`git diff > <file>`), restore the
-tree to the last commit, and resume when usage is back. It spends no resume and costs no
-park.
+In the run's worktree `.tdd/wt/<n>`, save every uncommitted leaf edit, untracked files
+included, as a patch under `.tdd/` (`git add -A && git diff --cached HEAD > <file>`, then
+`git reset`), restore that worktree's tree to the last commit (`git reset --hard && git clean -fd`),
+and resume when usage is back. It spends no resume and costs no park.
 
 ## A first real bail: resume once
 
-Resume the run once. If the fix it needs landed after the run launched, set
-`VERI_NEW_SKILL=1` on that resume so it re-pins the skill; otherwise resume as it was.
+Resume the run once with `$S/detach-leaf.sh $S/run-conductor.sh <n>`. If the fix it needs
+landed after the commit recorded in `.tdd/issue-<n>-skill-commit`, set `VERI_NEW_SKILL=1`
+on that resume so it re-pins the skill; otherwise resume as it was.
 
 ## A second bail: park
 
