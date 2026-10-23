@@ -1,2 +1,4 @@
 ### A refresh whose os.replace raises, after the temp file is written, leaves the previous report-cache.json byte-identical and still parseable (the write goes to a temp file in .tdd/ then os.replace onto report-cache.json); a unit case in skills/tdd/scripts/tests/py/unit/test_report_cache.py ⟦criterion 1⟧
 - test-only | hoist the function-local `import json/os/subprocess` in the new test to module level if the file's other tests already import them there
+### A cache that parses but lacks fetched_at is rebuilt the same way (stderr names the file and the reason, full fetch, complete cache, exit 0); a unit case in skills/tdd/scripts/tests/py/unit/test_report_cache.py ⟦criterion 4⟧
+- test-only | the fake gh `fake_run` stub and cache-file setup repeat across the 2160 cases; a shared helper could replace them
