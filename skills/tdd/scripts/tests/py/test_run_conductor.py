@@ -3284,6 +3284,19 @@ def test_cli_a_run_is_closed_by_what_run_end_answers_and_not_by_the_events_log_2
     assert (code, appended) == (0, bails), stderr
 
 
+@pytest.mark.parametrize("code, stdout", [(1, result_record("Which option do you want?")), (0, "")])
+def test_cli_a_conductor_failing_or_silent_over_bail_resume_launch_gets_no_bail_appended_and_keeps_its_exit_code_2009(
+        code, stdout, tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    conductor_that_prints(monkeypatch, tmp_path, ["bail", "resume", "launch"], stdout, code=code)
+
+    got, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    assert (got, [r.get("event") for r in events_named(tmp_path)]) == (code, ["bail", "resume", "launch"]), stderr
+
+
 def test_cli_a_conductor_that_exits_0_with_a_result_not_ending_on_a_question_and_events_ending_in_no_done_bail_or_stop_gets_a_needs_user_bail_appended_1866(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)
