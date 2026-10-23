@@ -173,3 +173,24 @@ def test_skill_edit_guard_file_moved_onto_the_requirements_list_exit_1_and_print
     git(repo, "mv", "skills/foo/OTHER.md", "skills/foo/REQUIREMENTS.md")
 
     assert guard(repo, "skills/foo/FOO.md", base) == (1, "skills/foo/OTHER.md\n")
+
+
+@pytest.mark.process("skill-edit-guard.sh run against a real git repository")
+def test_skill_edit_guard_2232_pin_file_named_after_base_sha_is_not_printed_and_an_unnamed_test_file_is(tmp_path):
+    repo = tmp_path / "guard"
+    (repo / "skills/foo").mkdir(parents=True)
+    (repo / "tests").mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "skills/foo/FOO.md").write_text("prose\n")
+    (repo / "tests/test_pin.py").write_text("pin one\n")
+    (repo / "tests/test_stray.py").write_text("stray one\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: foo")
+    base = git(repo, "rev-parse", "HEAD")
+    (repo / "skills/foo/FOO.md").write_text("prose two\n")
+    (repo / "tests/test_pin.py").write_text("pin two\n")
+    (repo / "tests/test_stray.py").write_text("stray two\n")
+
+    ran = subprocess.run([str(GUARD), "skills/foo/FOO.md", base, "tests/test_pin.py"], cwd=repo, capture_output=True, text=True)
+
+    assert (ran.returncode, ran.stdout) == (1, "tests/test_stray.py\n")
