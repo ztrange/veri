@@ -2,3 +2,5 @@
 - test-only | hoist the function-local `import json/os/subprocess` in the new test to module level if the file's other tests already import them there
 ### A cache that parses but lacks fetched_at is rebuilt the same way (stderr names the file and the reason, full fetch, complete cache, exit 0); a unit case in skills/tdd/scripts/tests/py/unit/test_report_cache.py ⟦criterion 4⟧
 - test-only | the fake gh `fake_run` stub and cache-file setup repeat across the 2160 cases; a shared helper could replace them
+### A cache that parses but lacks issues is rebuilt the same way (stderr names the file and the reason, full fetch, complete cache, exit 0); a unit case in skills/tdd/scripts/tests/py/unit/test_report_cache.py ⟦criterion 4⟧
+- test-only | The three rebuild cases in test_report_cache.py (truncated, lacking fetched_at, lacking issues) repeat the same setup, the same `fake_run` and the same assertion. A shared helper or a parametrized case would remove that.
