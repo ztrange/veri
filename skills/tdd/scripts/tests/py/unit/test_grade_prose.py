@@ -380,3 +380,10 @@ def test_in_a_file_with_no_fence_a_hash_run_with_no_space_after_it_ends_a_sectio
 def test_a_crlf_files_unit_text_is_byte_identical_to_what_main_produced_before_the_section_reader_1978(tmp_path, grade_prose):
     (tmp_path / "unit.md").write_bytes(b"## unit.md\r\nbody\r\n## next\r\nother\r\n")
     assert grade_prose.unit_text(str(tmp_path / "unit.md") + "#unit.md") == "## unit.md\nbody\n"
+
+
+def test_a_file_with_no_final_newline_has_a_unit_text_byte_identical_to_what_main_produced_with_no_newline_added_1978(tmp_path, grade_prose):
+    (tmp_path / "unit.md").write_bytes(b"## unit.md\nbody\n## next\nother")
+    (tmp_path / "last.md").write_bytes(b"## first\nx\n## last.md\nbody")
+    assert grade_prose.unit_text(str(tmp_path / "unit.md") + "#unit.md") == "## unit.md\nbody\n"
+    assert grade_prose.unit_text(str(tmp_path / "last.md") + "#last.md") == "## last.md\nbody"
