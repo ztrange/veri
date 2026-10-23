@@ -18,7 +18,8 @@ def read_events(path, skip_unreadable=False, mark_unreadable=False, errors="repl
                 event = json.loads(raw)
                 if not isinstance(event, dict):
                     raise ValueError("not a JSON object: " + raw.strip())
-            except ValueError:
+            except ValueError as error:
+                error.line = raw.rstrip("\n")
                 if mark_unreadable:
                     events.append(None)
                     continue

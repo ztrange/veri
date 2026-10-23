@@ -1,5 +1,4 @@
 """add-ledger-step.sh's computations, run in-process."""
-import json
 import os
 import re
 import sys
@@ -62,25 +61,14 @@ class UnreadableLog(Exception):
     pass
 
 
-def parses(raw):
-    try:
-        json.loads(raw.decode())
-    except ValueError:
-        return False
-    return True
-
-
 def added_since_last_resume(path, steps):
     log = os.path.join(os.path.dirname(path), "events.jsonl")
     try:
         events = read_events(log)
     except OSError:
         return True
-    except ValueError:
-        with open(log, "rb") as f:
-            bad = next(raw.rstrip(b"\n") for raw in f if raw.strip() and not parses(raw))
-        bad = bad.decode(errors="replace")
-        raise UnreadableLog(f"add-ledger-step.sh: cannot read {log}, line: {bad}")
+    except ValueError as error:
+        raise UnreadableLog(f"add-ledger-step.sh: cannot read {log}, line: {error.line}")
     names = [event.get("event") for event in events]
     if "resume" not in names:
         return True

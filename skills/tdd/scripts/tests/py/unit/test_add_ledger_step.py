@@ -1162,6 +1162,39 @@ def test_main_exits_2_naming_the_log_and_the_unreadable_line_when_a_suite_repair
     assert str(log) in err and "broken" in err
 
 
+def test_main_names_the_log_and_the_unreadable_line_without_add_ledger_step_opening_events_jsonl_itself(tmp_path, monkeypatch, run_cli, add_ledger_step):
+    import builtins
+
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    before = (
+        "# Plan for #42\n"
+        "\n"
+        "- [x] a one ⟦criterion 1⟧\n"
+        "- [x] fix the full-suite failure: first.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧\n"
+        "- [ ] b two ⟦criterion 2⟧\n"
+    ).encode()
+    ledger.write_bytes(before)
+    log = ledger.parent / "events.jsonl"
+    log.write_text(json.dumps({"ts": 1, "issue": "42", "event": "resume"}) + "\n{not json\n")
+    opened = []
+
+    def spy_open(file, *args, **kwargs):
+        opened.append(str(file))
+        return builtins.open(file, *args, **kwargs)
+
+    monkeypatch.setattr(add_ledger_step, "open", spy_open, raising=False)
+
+    code, out, err = run_cli(
+        add_ledger_step,
+        [str(ledger), "after", "b two", "fix the full-suite failure: second.test.sh ⟦suite-repair⟧"],
+    )
+
+    assert (code, out, ledger.read_bytes()) == (2, "", before)
+    assert str(log) in err and "{not json" in err
+    assert [path for path in opened if path.endswith("events.jsonl")] == []
+
+
 def test_main_replaces_an_added_step_at_the_growth_budget_leaving_the_added_count_unchanged_issue_1631(tmp_path, monkeypatch, capsys, add_ledger_step):
     monkeypatch.setenv("VERI_STEP_GROWTH", "2")
     ledger = tmp_path / "issue-42.md"
