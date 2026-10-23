@@ -14,6 +14,7 @@ NO_VERDICT_SOURCES = [
     "resume-clean.sh",
     "rebase-onto-default.sh",
     "cover-outcome.sh",
+    "ledger-growth.sh",
 ]
 
 

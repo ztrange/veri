@@ -642,17 +642,25 @@ three times over branches its ledger pinned on later lines.
    while ignoring leaf logs.)
 
    **Every ledger commit after this plan commit is checked for growth.** Before it is made, run
-   `$S/ledger-growth.sh <plan-ledger-file> .tdd/issue-<n>.md`, the plan-ledger being the ledger as this
-   commit holds it (`git show <plan-sha>:.tdd/issue-<n>.md` into a temp file). Each step line the plan
-   commit did not hold must have a matching `step-added` record written by
-   `add-ledger-step.sh` itself, never one the conductor wrote by hand with `event.sh`, and must
+   `$S/ledger-growth.sh <plan-ledger-file> .tdd/issue-<n>.md`, the plan-ledger being the ledger as the
+   plan commit holds it (`git show <plan-sha>:.tdd/issue-<n>.md` into a temp file). `<plan-sha>` is the
+   newest plan commit, as `git log --format='%H %s' | $S/ledger-growth.sh plan-sha` prints it: after a
+   verify-plan REJECT, the `plan: rewrite` commit is that baseline, so a rewritten plan's own lines
+   are never checked as added. Each step line the plan commit did not hold must have a matching
+   record written by `add-ledger-step.sh` itself, never one the conductor wrote by hand with
+   `event.sh`. The records the check reads are the ones `ledger-growth.sh` reads: the tracked
+   `.tdd/issue-<n>-added.md` that `add-ledger-step.sh` writes, and the run's `step-added` events
+   it wrote. So every commit that inserts a ledger step stages that file with the ledger
+   (`git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md`, or `git add -A`), the `⟦suite-repair⟧` and
+   `⟦ci-repair⟧` plan commits and the resume's `--planned` commit included. Each such line must
    carry `⟦added⟧` unless that record shows it was inserted as a `⟦suite-repair⟧` or
    `⟦ci-repair⟧` step or with `--planned`; and the
    `⟦added⟧` lines never exceed `VERI_STEP_GROWTH`. A line that fails either check — exit 1, the
    line named on stderr — is **a bail with cause `step-added-off-route`** (a process failure; see
    `<base directory>/BAIL.md`): the plan grew by a route other than `add-ledger-step.sh`, and no
-   commit is made over it. Exit 2 — no answer could be obtained (an unreadable ledger file, a bad
-   `VERI_STEP_GROWTH`) — is **a bail with cause `no-verdict`** (a system failure; see
+   commit is made over it. `ledger-growth.sh` exit 2 — no answer could be obtained (an unreadable
+   ledger or plan file, a bad `VERI_STEP_GROWTH`, no plan commit for `plan-sha`) — is **a bail
+   with cause `no-verdict`** (a system failure; see
    `<base directory>/BAIL.md`), never `step-added-off-route`, and no commit is made over it.
 3. **Push the branch and open the draft PR** — the run's claim, made as the first act after
    the plan commit, from inside the worktree:
@@ -1478,7 +1486,7 @@ verifier judges the fix against the full command, not the fast one.
 ```
 step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1
 $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the full-suite failure: <suite> — <its FAIL - line>> ⟦suite-repair⟧'
-git add .tdd/issue-<n>.md
+git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md
 git commit -m "plan: repair the red full suite (#<n>)"
 ```
 That call passes no `--criterion` on purpose: the repair step serves its anchor's criterion.
@@ -1723,7 +1731,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null && VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)" failed="$(cat .tdd/wait-ci.out)"
    step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1
    $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the CI failure: <suite> — <its FAIL - line>> ⟦ci-repair⟧'
-   git add .tdd/issue-<n>.md
+   git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md
    git commit -m "plan: repair the red CI check (#<n>)"
    ```
    That call passes no `--criterion` on purpose: the repair step serves its anchor's criterion.
@@ -1743,7 +1751,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    [ "$ci" = 0 ] || [ "$ci" = 2 ] || $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null; no_repair=$?
    [ "$no_repair" = 0 ] || { step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1; }
    [ "$no_repair" = 0 ] || $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the CI failure: <suite> — <its FAIL - line>> ⟦ci-repair⟧'
-   [ "$no_repair" = 0 ] || { git add .tdd/issue-<n>.md && git commit -m "plan: repair the red CI check (#<n>)"; }
+   [ "$no_repair" = 0 ] || { git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit -m "plan: repair the red CI check (#<n>)"; }
    grep -F 'conflicts with its base branch' .tdd/wait-ci.err > /dev/null; conflict=$?
    [ "$ci" != 2 ] || [ "$conflict" = 0 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
    [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"

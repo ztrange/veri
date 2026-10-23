@@ -64,7 +64,8 @@ any cycle of the resumed run starts. The **resume check** then finds an existing
    kept. Before that pick, plan each criterion that is unticked in the issue body when the
    resume starts and that no ledger step's `⟦criterion k⟧` serves — scope a human amended in —
    with `add-ledger-step.sh --planned --criterion k`, one call per criterion, committed as a
-   `plan:` commit before the cycle loop. Those steps are planned steps, not `⟦added⟧` growth,
+   `plan:` commit before the cycle loop with `git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md`,
+   so the insertion records travel with the ledger. Those steps are planned steps, not `⟦added⟧` growth,
    and do not count against `VERI_STEP_GROWTH`. Every other insertion during the resume omits
    --planned, stays `⟦added⟧` and counts. A conductor never sets or raises `VERI_STEP_GROWTH`,
    `REVISE_BUDGET`, `VERI_REFACTOR_BUDGET`, `VERI_STUCK_RETRIES` or `VERI_NO_VERDICT_RETRIES`

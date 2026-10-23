@@ -117,11 +117,19 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `next-unchecked.sh` hands the loop and the tick wrappers match on. **Exit 0** when it
   printed one; **exit 3** with empty stdout when no step carries the mark — every green step
   has been tidied, so a resume has no refactor loop to re-enter.
-- `$S/ledger-growth.sh <plan-ledger-file> <ledger-file>` — called by the conductor at each ledger
-  commit: compares the ledger with the plan commit's. **Exit 0** when every step line the plan did
-  not hold carries `⟦added⟧` (ticks, ` ⟂ refactor pending` and phase marks on planned lines are
-  not growth); **exit 1**, naming the line on stderr, when one lacks it; **exit 2** on a missing
-  argument or unreadable file.
+- `$S/ledger-growth.sh <plan-ledger-file> <ledger-file> | plan-sha` — called by the conductor at each ledger
+  commit: compares the ledger with the plan commit's. The plan commit, `<plan-sha>`, is the newest
+  `plan: scope` or `plan: rewrite` commit, so after a verify-plan REJECT the rewrite is the
+  baseline: `git log --format='%H %s' | $S/ledger-growth.sh plan-sha` prints its sha (**exit 2**
+  when the log holds none). Each step line the plan did not hold must match, by equal step text, a
+  record `add-ledger-step.sh` wrote: a line of the tracked `.tdd/issue-<n>-added.md` beside the
+  ledger (committed with it, so it survives a resume in a fresh worktree) or a `step-added` event
+  of actor `add-ledger-step` in `events.jsonl`; and it must carry `⟦added⟧` unless it is a
+  `⟦suite-repair⟧`, `⟦ci-repair⟧` or `--planned` insertion. The `⟦added⟧` lines never exceed
+  `VERI_STEP_GROWTH` (default 5). Ticks, ` ⟂ refactor pending` and phase marks on planned lines
+  are not growth. **Exit 0** when every line passes; **exit 1**, naming each failing line on
+  stderr, when one lacks its record or `⟦added⟧`, or the cap is passed; **exit 2** on a missing
+  argument, an unreadable ledger or plan file, or a malformed `VERI_STEP_GROWTH`.
 - `$S/clear-refactor-pending.sh .tdd/issue-<n>.md "<substring>"` — the counterpart of
   `tick-ledger.sh --refactor-pending`: **strip the ` ⟂ refactor pending` mark** from the first
   ticked step matching the substring, in place, once that step's refactor has been verified.
