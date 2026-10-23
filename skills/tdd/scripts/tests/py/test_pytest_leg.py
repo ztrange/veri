@@ -920,3 +920,34 @@ def test_2184_at_start_a_leg_keeps_a_dead_pid_folder_not_named_veri_pytest_in_it
     assert present and present[0] == [True, True]
     assert (other / "leftover").exists()
     assert (outside / "leftover").exists()
+
+
+@pytest.mark.process("the launcher run as a child over a planted tests tree whose case reports its own tmp_path")
+def test_2051_a_case_s_tmp_path_under_the_launcher_is_the_private_tmp_path_directory_of_mode_0700_under_the_run_s_basetemp_not_a_numbered_one(tmp_path):
+    import os
+    import stat
+    import subprocess
+
+    scripts = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    veri = os.path.join(scripts, "veri")
+    planted = tmp_path / "planted"
+    planted.mkdir()
+    report = tmp_path / "report"
+    (planted / "test_reports_its_tmp_path.py").write_text(
+        "import os\n"
+        "import stat\n"
+        "\n"
+        "def test_probe(tmp_path):\n"
+        "    open(%r, 'w').write('\\n'.join([tmp_path.name, tmp_path.parent.parent.name, oct(stat.S_IMODE(os.stat(tmp_path).st_mode))]))\n"
+        % str(report)
+    )
+    done = subprocess.run(
+        [sys.executable, "-c", "import runpy, sys; sys.argv[0] = sys.argv.pop(1); runpy.run_path(sys.argv[0], run_name='__main__')",
+         os.path.join(veri, "pytest_leg.py"), "-q", "-p", "no:cacheprovider", str(planted)],
+        cwd=tmp_path, env=dict(os.environ, VERI_PYTEST_WORKERS="1", PYTHONPATH=veri), capture_output=True, text=True, timeout=60,
+    )
+    assert done.returncode == 0, done.stdout + done.stderr
+    name, parent, mode = report.read_text().split("\n")
+    assert parent.startswith("veri-pytest-")
+    assert mode == "0o700"
+    assert name.startswith("test_probe_") and len(name) > len("test_probe_")
