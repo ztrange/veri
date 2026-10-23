@@ -408,6 +408,7 @@ def test_1158_a_shim_that_drops_its_root_argument_and_runs_from_its_own_director
     if (SCRIPTS / "lib" / "shim-python.sh").is_file():
         (mutant / "lib").mkdir()
         shutil.copy(SCRIPTS / "lib" / "shim-python.sh", mutant / "lib" / "shim-python.sh")
+        shutil.copy(SCRIPTS / "lib" / "venv-python.sh", mutant / "lib" / "venv-python.sh")
     (mutant / "ensure-run-state-ignored.sh").write_text("\n".join(lines) + "\n")
     (mutant / "ensure-run-state-ignored.sh").chmod(0o755)
 
