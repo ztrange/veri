@@ -12,6 +12,12 @@ from conftest import SCRIPTS
 
 PHASES = b"red|green|refactor|cover|transform|diff|structural|predicate|revise|reconcile|exhausted|over-budget|rebase|replaces-report|red-contradicted|red-repair|red-missing|red-supersede|expand|migrate|contract-a|contract-b"
 USAGE = b"build-develop-prompt.sh: usage: " + PHASES + b" <issue-spec-file> <step-text> <test-cmd> ...\n"
+NAMED_REVISABLE = {"expand", "migrate", "contract-a", "contract-b", "rebase"}
+
+
+def want_revise(module):
+    assert NAMED_REVISABLE <= set(module.REVISABLE_PHASES)
+    return "|".join(module.REVISABLE_PHASES)
 
 
 @pytest.fixture
@@ -40,7 +46,7 @@ def test_main_refuses_no_argument_an_unknown_phase_a_short_count_an_unknown_revi
         ("green", s, "s", "c"): (2, b"", b"build-develop-prompt: green needs 7 arguments, got 4\n" + USAGE),
         ("revise", "bogus", s, "s", "c", r): (
             2, b"", b"build-develop-prompt.sh: unknown phase to revise 'bogus' (want "
-            + "|".join(build_develop_prompt.REVISABLE_PHASES).encode() + b")\n" + USAGE),
+            + want_revise(build_develop_prompt).encode() + b")\n" + USAGE),
         ("diff", s, "s", "c"): (2, b"", b"build-develop-prompt: diff needs 5 arguments, got 4\n" + USAGE),
         ("revise", "diff", s, "s", "c", r): (2, b"", b"build-develop-prompt: missing <fast-cmd>\n" + USAGE),
     }
@@ -57,7 +63,7 @@ def test_main_refuses_an_unknown_phase_to_revise_with_exit_2_naming_every_phase_
 
     assert (code, *capsysbinary.readouterr()) == (
         2, b"", b"build-develop-prompt.sh: unknown phase to revise 'bogus' "
-        b"(want " + "|".join(build_develop_prompt.REVISABLE_PHASES).encode() + b")\n" + USAGE)
+        b"(want " + want_revise(build_develop_prompt).encode() + b")\n" + USAGE)
 
 
 def test_main_names_in_its_unknown_phase_refusal_and_its_usage_line_every_phase_it_accepts_the_replaces_and_red_repair_phases_included_1890(
@@ -177,7 +183,7 @@ def test_main_refuses_a_spent_then_a_budget_that_is_not_a_whole_string_non_negat
         expected[("over-budget", s, "s", "c", "3.47", bad)] = not_decimal("budget", bad)
     expected[("over-budget", s, "s", "c", "qwixnum", "zork")] = not_decimal("spent", "qwixnum")
     expected[("revise", "red\n", s, "s", "c", r)] = refused(
-        "build-develop-prompt.sh: unknown phase to revise 'red\n' (want " + "|".join(no_prompts.REVISABLE_PHASES) + ")")
+        "build-develop-prompt.sh: unknown phase to revise 'red\n' (want " + want_revise(no_prompts) + ")")
     results = {}
     for argv in expected:
         code = no_prompts.main(list(argv))
