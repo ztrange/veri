@@ -1569,3 +1569,22 @@ def test_check_earlier_exits_0_printing_nothing_when_a_later_step_appends_a_deco
     code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
 
     assert (code, out) == (0, "")
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked for HEAD by check-earlier")
+def test_check_earlier_exit_0_writes_a_pass_marker_under_tdd_naming_the_step_and_the_head_it_checked_2206(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "a.txt").write_text("one\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "a.txt")
+    git(tmp_path, "commit", "-q", "-m", "first")
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, capture_output=True, text=True).stdout.strip()
+    step = "add the second case"
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("- [ ] %s\n" % step)
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", step], cwd=tmp_path)
+
+    markers = [path for path in (tmp_path / ".tdd").rglob("*")
+               if path.is_file() and step in path.read_text() and head in path.read_text()]
+    assert (code, out, len(markers)) == (0, "", 1)

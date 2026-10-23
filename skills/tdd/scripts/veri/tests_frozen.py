@@ -30,6 +30,19 @@ def _record_path(step):
     return ".tdd/tests-frozen-%s.record" % hashlib.sha256(os.fsencode(step)).hexdigest()[:16]
 
 
+def _pass_marker_path(step):
+    return ".tdd/check-earlier-%s.pass" % hashlib.sha256(os.fsencode(step)).hexdigest()[:16]
+
+
+def _write_pass_marker(step):
+    done = subprocess.run(["git", "rev-parse", "HEAD"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    if done.returncode != 0:
+        return
+    os.makedirs(".tdd", exist_ok=True)
+    with open(_pass_marker_path(step), "w", encoding="utf-8") as handle:
+        handle.write("step: %s\nhead: %s\n" % (step, os.fsdecode(done.stdout).strip()))
+
+
 def _toplevel():
     done = subprocess.run(["git", "rev-parse", "--show-toplevel"], stdout=subprocess.PIPE,
                           stderr=subprocess.DEVNULL)
@@ -191,6 +204,8 @@ def _check_earlier(ledger, step, exempt=()):
             changed.append("%s (%s)" % (case, owner))
     for entry in changed:
         write(sys.stdout, entry)
+    if not changed:
+        _write_pass_marker(step)
     return 1 if changed else 0
 
 
