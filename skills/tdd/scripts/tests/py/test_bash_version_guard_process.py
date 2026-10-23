@@ -7,7 +7,6 @@ import pytest
 from conftest import ROOT, SCRIPTS
 
 REQUIREMENT = "needs bash 5 or newer"
-GREEN_FIXTURE = "skills/tdd/scripts/tests/fixtures/live-suites/ends-green.test.sh"
 FLOOR = next(line.split("=", 1)[1] for line in (SCRIPTS / "lib" / "venv-python.sh").read_text().splitlines()
              if line.startswith("VENV_FLOOR="))
 TODAYS_REFUSAL = "%s: veri needs Python 3.12 or newer; the python3 on PATH is version 3.11.9."
@@ -55,13 +54,15 @@ def launchable(tmp_path, **env):
 
 
 @pytest.mark.process("make started for real, once with a stand-in bash 3 and once with bash 5, over the green fixture suite")
-def test_make_test_refuses_before_any_suite_runs_when_the_bash_on_path_is_older_than_5_and_runs_them_when_it_is_not():
-    argv = ["make", "-C", str(ROOT), "test", "TESTS=" + GREEN_FIXTURE, "UNIT_TESTS="]
+def test_make_test_refuses_before_any_suite_runs_when_the_bash_on_path_is_older_than_5_and_runs_them_when_it_is_not(tmp_path):
+    green = tmp_path / "test_ends_green.py"
+    green.write_text("def test_green():\n    pass\n")
+    argv = ["make", "-C", str(ROOT), "test", "TESTS=" + str(green), "UNIT_TESTS="]
     old_code, old_out, _ = run(argv, ROOT, VERI_BASH_MAJOR="3")
     new_code, new_out, _ = run(argv, ROOT, VERI_BASH_MAJOR="5")
     assert old_code != 0, old_out
     assert REQUIREMENT in old_out
-    assert "== ends-green.test.sh" not in old_out
+    assert "== pytest" not in old_out
     assert new_code == 0 and "all suites green" in new_out, new_out
 
 
