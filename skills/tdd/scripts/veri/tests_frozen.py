@@ -72,6 +72,9 @@ _CASE = re.compile(r"^\s*(?:async\s+)?def\s+(test\w*)|^\s*name=\"([^\"]+)\"", re
 _FIXTURE_FILE = re.compile(r"repairs the fixture '[^']*' in (\S+?),")
 
 
+_MODULE_LEVEL = re.compile(r"\n[ \t]*\n(?:[ \t]*\n)*(?:#|\w+[ \t]*\(\))")
+
+
 _DECORATORS = re.compile(r"(?:\n[ \t]*(?:@[^\n]*)?)+\Z")
 
 
@@ -98,6 +101,8 @@ def _cases(text):
         if m.group(1) and span:
             body = "".join(lines[span[0] - 1:span[1]]).rstrip()
         else:
+            cut = None if m.group(1) else _MODULE_LEVEL.search(body)
+            body = body[:cut.start()] if cut else body
             body = _DECORATORS.sub("", body.rstrip()).rstrip()
         cases.append((m.group(1) or m.group(2), body))
     return cases

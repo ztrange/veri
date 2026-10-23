@@ -1333,6 +1333,54 @@ def test_check_earlier_exits_0_printing_nothing_for_a_case_the_current_step_reco
 
 
 @pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_check_earlier_exits_0_printing_nothing_when_a_helper_function_is_inserted_between_two_recorded_bash_cases_2177(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/suite.test.sh").write_text('name="older case"\ncheck_older\nok\n')
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier, current = "step one adds two bash cases", "step two adds another"
+    (tmp_path / "tests/suite.test.sh").write_text(
+        'name="first case"\ncheck_first\nok\n\nname="second case"\ncheck_second\nok\n\nfinish\n')
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/suite.test.sh"], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    (tmp_path / "tests/suite.test.sh").write_text(
+        'name="first case"\ncheck_first\nok\n\n# shared between the cases\nhelper() {\n  echo shared\n}\n'
+        'one_liner() { echo shared; }\n\nname="second case"\ncheck_second\nok\n\nfinish\n')
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_check_earlier_exits_0_printing_nothing_when_an_uncommented_one_line_helper_follows_a_blank_line_between_two_recorded_bash_cases_2177(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/suite.test.sh").write_text('name="older case"\ncheck_older\nok\n')
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier, current = "step one adds two bash cases", "step two adds another"
+    (tmp_path / "tests/suite.test.sh").write_text(
+        'name="first case"\ncheck_first\nok\n\nname="second case"\ncheck_second\nok\n\nfinish\n')
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/suite.test.sh"], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    (tmp_path / "tests/suite.test.sh").write_text(
+        'name="first case"\ncheck_first\nok\n\none_liner() { echo shared; }\n\n'
+        'name="second case"\ncheck_second\nok\n\nfinish\n')
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
 def test_check_earlier_exits_1_naming_the_case_and_its_step_when_only_the_recorded_cases_own_decorator_is_edited_2177(
         tmp_path, run_cli, tests_frozen):
     (tmp_path / "tests").mkdir()
