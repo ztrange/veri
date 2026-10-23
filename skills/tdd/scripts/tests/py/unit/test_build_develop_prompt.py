@@ -66,6 +66,19 @@ def test_main_refuses_an_unknown_phase_to_revise_with_exit_2_naming_every_phase_
         b"(want " + want_revise(build_develop_prompt).encode() + b")\n" + USAGE)
 
 
+def test_main_builds_a_revise_prompt_naming_transform_as_the_phase_redone_instead_of_refusing_it_2137(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+
+    code = build_develop_prompt.main(["revise", "transform", str(spec), "s", "make test", str(reason)])
+
+    out, err = capsysbinary.readouterr()
+    assert (code, err, b"(redoing transform)" in out, b"(redoing refactor)" in out) == (0, b"", True, False)
+
+
 def test_main_names_in_its_unknown_phase_refusal_and_its_usage_line_every_phase_it_accepts_the_replaces_and_red_repair_phases_included_1890(
         tmp_path, capsysbinary, build_develop_prompt):
     spec = tmp_path / "spec.md"
@@ -142,8 +155,8 @@ def test_main_refuses_in_the_check_order_each_missing_argument_by_its_own_name_a
                 ("diff", s, "s", "c", "f"), ("refactor", s, "s", "c", "t"), ("structural", s, "s", "c", "t"),
                 ("predicate", s, "s", "c", "t"), ("exhausted", s, "s", "c", r),
                 ("revise", "red", s, "s", "c", r), ("revise", "green", s, "s", "c", r),
-                ("revise", "refactor", s, "s", "c", r), ("revise", "diff", s, "s", "c", r, "f"),
-                ("reconcile", s, "s", "c", "b", "sha"), ("over-budget", s, "s", "c", "1", "2"),
+                ("revise", "refactor", s, "s", "c", r), ("revise", "transform", s, "s", "c", r),
+                ("revise", "diff", s, "s", "c", r, "f"), ("reconcile", s, "s", "c", "b", "sha"), ("over-budget", s, "s", "c", "1", "2"),
                 ("green", s, "s", "c", "tp", "tt", "f"), ("rebase", s, "s", "c", "a", "b", "x")]
     ignored = {}
     for argv in complete:
@@ -157,7 +170,7 @@ def test_main_refuses_in_the_check_order_each_missing_argument_by_its_own_name_a
     assert ignored == {argv: (0, True, True) for argv in complete}
     assert type(build_develop_prompt.PHASES) is tuple
     assert "|".join(build_develop_prompt.PHASES).encode() == PHASES
-    assert build_develop_prompt.REVISE_PHASES == ("red", "green", "refactor", "diff")
+    assert set(build_develop_prompt.REVISE_PHASES) == {"red", "green", "refactor", "transform", "diff"}
 
 
 def test_main_refuses_a_spent_then_a_budget_that_is_not_a_whole_string_non_negative_decimal_before_any_file_is_read_and_a_revised_phase_with_a_trailing_newline(
@@ -1116,8 +1129,10 @@ def test_main_answers_what_the_bash_contract_cases_from_the_rebase_prompt_to_the
         "#995 develop-diff with an empty <test-cmd> exits 2 with 'missing <test-cmd>' first on stderr": (
             dd_empty_cmd[0] == 2 and dd_empty_cmd[1] == b""
             and dd_empty_cmd[2].split(b"\n")[0] == b"build-develop-prompt: missing <test-cmd>"),
-        "#880 a revise of an unknown phase names red|green|refactor|diff": (
-            bogus_revise[0] == 2 and bogus_revise[1] == b"" and b"red|green|refactor|diff" in bogus_revise[2]),
+        "#880 a revise of an unknown phase names red, green, refactor, transform and diff": (
+            bogus_revise[0] == 2 and bogus_revise[1] == b""
+            and all(p in bogus_revise[2].split(b"(want ")[1].split(b")")[0].split(b"|")
+                    for p in (b"red", b"green", b"refactor", b"transform", b"diff"))),
         "#880 a revise of a diff-checked step carries the step and the rejection reason": carries(
             revise_diff, dd_step, reason_text),
         "#880 a revise of a diff-checked step asks for no test": (
