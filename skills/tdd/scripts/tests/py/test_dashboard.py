@@ -237,6 +237,13 @@ def serve_with_real_metrics(monkeypatch, tmp_path):
     return fake_server(monkeypatch, ["/api/metrics"])
 
 
+def live_conductor(monkeypatch, run, issue):
+    """Make <run> read as live: its pid file holds this process, whose command line names the run."""
+    import run_end
+    write(os.path.join(run, ".tdd", "conductor.pid"), "%d\n" % os.getpid())
+    monkeypatch.setattr(run_end, "command_line", lambda pid: "run-conductor.sh %s" % issue)
+
+
 def test_get_api_metrics_recomputes_a_live_run_and_quotes_the_committed_report_of_one_ended_by_done(
         tmp_path, monkeypatch, dashboard, run_cli):
     live = os.path.join(str(tmp_path), ".tdd", "wt", "31")
@@ -252,6 +259,7 @@ def test_get_api_metrics_recomputes_a_live_run_and_quotes_the_committed_report_o
           '{"ts": 1, "issue": "32", "event": "step-done"}\n'
           '{"ts": 2, "issue": "32", "event": "done"}\n')
     write(os.path.join(ended, ".tdd", "issue-32-metrics.md"), committed)
+    live_conductor(monkeypatch, live, "31")
     recomputed = report_of(run_cli, "31", live)
     served = serve_with_real_metrics(monkeypatch, tmp_path)
 
@@ -271,6 +279,7 @@ def test_get_api_metrics_gives_its_full_answer_for_a_live_run_when_starting_metr
     write(os.path.join(run, ".tdd", "events.jsonl"),
           '{"ts": 1, "issue": "36", "event": "step-start"}\n'
           '{"ts": 2, "issue": "36", "event": "launch", "name": "develop-red"}\n')
+    live_conductor(monkeypatch, run, "36")
     want = report_of(run_cli, "36", run)
     served = serve_with_real_metrics(monkeypatch, tmp_path)
     capfd.readouterr()
@@ -394,6 +403,7 @@ def test_get_api_metrics_keys_issues_by_the_run_directory_7_alone_and_answers_th
     write(os.path.join(run, ".tdd", "events.jsonl"),
           '{"ts": 1, "issue": "7", "event": "step-start"}\n'
           '{"ts": 2, "issue": "7", "event": "launch", "name": "develop-red"}\n')
+    live_conductor(monkeypatch, run, "7")
     want = report_of(run_cli, "7", run)
     served = serve_with_real_metrics(monkeypatch, tmp_path)
 
