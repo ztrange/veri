@@ -9,6 +9,7 @@ import subprocess
 import sys
 import time
 
+import run_end
 from event_log import read_events, usage_totals
 from ledger import ledger_path, ledger_steps
 from run_dir import run_file
@@ -16,33 +17,13 @@ import tunables
 from solvable_issues import priority_label, solvable
 
 
-def conductor_answers(pid_file):
-    try:
-        with open(pid_file) as f:
-            os.kill(int(f.read().strip()), 0)
-        return True
-    except (OSError, ValueError):
-        return False
-
-
-def end_mark(events):
-    """The run's standing done, bail or stop event, or {} when none stands."""
-    end = {}
-    for line in events:
-        if line.get("event") in ("done", "bail", "stop"):
-            end = line
-        elif line.get("event") in ("resume", "step-added"):
-            end = {}
-    return end
-
-
-def run_activity(events_path, pid_file, timeout, as_json=False):
+def run_activity(run, as_json=False):
     """The activity line for one run, or None when it has launched no leaf."""
     last, attempts = None, 0
     newest = None
-    events = read_events(events_path)
+    events = read_events(run_file(run, "events.jsonl"))
     dollars, tokens = usage_totals(events)
-    end = end_mark(events)
+    ended, cause, end = run_end.run_end(run)
     for line in events:
         newest = line
         if line.get("event") == "launch":
@@ -58,8 +39,7 @@ def run_activity(events_path, pid_file, timeout, as_json=False):
         state = "stopped %s" % end.get("mode", "")
     elif end.get("event") == "bail":
         state = "bailed %s %s" % (end.get("phase", ""), end.get("classification", ""))
-    elif newest is not None and now - int(newest["ts"]) > int(timeout) \
-            and not conductor_answers(pid_file):
+    elif ended:
         state = "stale"
     else:
         state = "running"
@@ -73,20 +53,21 @@ def run_activity(events_path, pid_file, timeout, as_json=False):
                            "state": state.split(" ")[0], "pr": end.get("pr", ""),
                            "bail_phase": end.get("phase", ""),
                            "classification": end.get("classification", ""),
-                           "stop_mode": end.get("mode", "")})
+                           "stop_mode": end.get("mode", ""),
+                           "cause": cause or ""})
     return "%s  %s  %s %ds  attempt %d  $%.2f  %d tokens  %s" % (phase, actor, leaf, elapsed,
            attempts, dollars, tokens, state)
 
 
-def scope_totals(name, solvable, event_paths, as_json=False):
+def scope_totals(name, solvable, runs, as_json=False):
     """The scope totals line over every run's events."""
     attempted = done = bailed = wall = 0
     dollars = 0.0
-    for path in event_paths:
+    for run in runs:
         attempted += 1
-        events = read_events(path)
+        events = read_events(run_file(run, "events.jsonl"))
         dollars += usage_totals(events)[0]
-        end = end_mark(events).get("event")
+        end = run_end.run_end(run)[2].get("event")
         done += end == "done"
         bailed += end == "bail"
         if events:
@@ -160,7 +141,6 @@ def parse_args(argv):
 
 
 def render(as_json, scope):
-    timeout = tunables.read("VERI_TIMEOUT") or "900"
     main_tree = main_working_tree()
     runs = sorted(glob.glob(os.path.join(main_tree, ".tdd", "wt", "*", ""))) if main_tree else []
     if not runs:
@@ -173,9 +153,8 @@ def render(as_json, scope):
         activity = ""
         events_path = run_file(run, "events.jsonl")
         if os.path.isfile(events_path):
-            events.append(events_path)
-            activity = run_activity(events_path, run_file(run, "conductor.pid"),
-                                    timeout, as_json) or ""
+            events.append(run)
+            activity = run_activity(run, as_json) or ""
             if not as_json:
                 activity = "  " + activity
         ledger = ledger_path(run, os.path.basename(run))
