@@ -84,6 +84,13 @@ alone, and route:
   .tdd/wt/<n>/.tdd/issue-<n>.md` exits 3) and no `⟂ refactor pending` mark
   (`$S/next-pending-refactor.sh` on the same file exits 3); otherwise report it as not ready.
   A run that ended with an open question for the human is never merged.
+
+  **Caveats before any merge**, whether on your own OK or on a coordinator's merge
+  instruction: send the coordinator every caveat your review found, of three kinds only:
+  a test never watched failing; a change to a guard or other product code outside the
+  issue's stated scope; a departure from the issue's wording. Merge only after a reply that
+  names each caveat. A review with none says so in the same report, and that report is
+  still sent.
 - **Last comment is a bail.** Hand it to `veri-bail <n>`. `veri-bail` does not exist yet: until
   it does, classify the cause with `$S/classify-bail.sh <cause>`, resume a first bail once with
   `$S/run-conductor.sh <n>` launched as above (with `VERI_NEW_SKILL=1` when the fix it needs
