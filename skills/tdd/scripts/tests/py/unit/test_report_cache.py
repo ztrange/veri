@@ -529,3 +529,29 @@ def test_refresh_with_a_corrupt_cache_and_a_failing_gh_issue_list_exits_2_with_t
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
     assert (code, out, "gh issue list failed" in err, "HTTP 502" in err, cache.read_bytes() == before) == (2, "", True, True, True)
+
+
+def test_refresh_with_a_well_formed_cache_searches_updated_since_fetched_at_and_writes_nothing_to_stderr_2160(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    cache = tmp_path / ".tdd" / "report-cache.json"
+    cache.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "issues": [
+        {"number": 7, "title": "old", "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
+    calls = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        calls.append(args)
+        return subprocess.CompletedProcess(args, 0, "[]", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    searches = [c[c.index("--search") + 1] for c in calls if "--search" in c]
+    assert (code, err, searches) == (0, "", ["updated:>=2026-10-01T00:00:00Z"])
