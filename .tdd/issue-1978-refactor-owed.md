@@ -1,0 +1,2 @@
+### In a file with no fence, `grade-prose.sh` ends a unit's section at exactly the lines `main` before PR #2187 ended it at: a line starting with k `#`s and no space after them (`##unit.md`, `#tag`) ends a level-L section when k ≤ L and leaves it running otherwise, and a section whose own heading has no space after its `#`s ends where it did on `main` ⟦criterion 6⟧
+- grade_prose.section duplicates markdown_sections._level's hash-counting and recomputes fenced_lines; fold the heading-title lookup into markdown_sections
