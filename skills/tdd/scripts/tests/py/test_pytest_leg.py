@@ -478,6 +478,25 @@ def test_2184_a_launcher_run_sent_sighup_during_its_pytest_run_leaves_no_veri_py
     assert outcome["SIGHUP"] == ([], outcome["SIGTERM"][1])
 
 
+def test_2184_when_the_leg_s_main_returns_the_sighup_handler_in_force_before_it_started_is_in_force_again(pytest_leg, monkeypatch):
+    import signal
+
+    for name, value in leg_env(VERI_PYTEST_WORKERS="1", PYTEST_PLUGINS="").items():
+        monkeypatch.setenv(name, value)
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    monkeypatch.setattr(pytest, "main", lambda args: pytest.ExitCode.OK)
+
+    def prior(signum, frame):
+        pass
+
+    original = signal.signal(signal.SIGHUP, prior)
+    try:
+        assert pytest_leg.main(["some/dir"]) == 0
+        assert signal.getsignal(signal.SIGHUP) is prior
+    finally:
+        signal.signal(signal.SIGHUP, original)
+
+
 @pytest.mark.process("the launcher run as a child over a planted tests tree holding a small case that starts git")
 def test_a_small_case_that_starts_git_fails_under_the_launcher_with_its_failure_naming_git_and_no_unit_guard_shim_on_path(tmp_path):
     import os
