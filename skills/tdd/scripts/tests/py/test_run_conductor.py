@@ -1780,6 +1780,24 @@ def test_cli_a_launch_removes_every_recorded_veri_run_directory_whose_recorded_p
     assert (code, sorted(p.name for p in scratch.iterdir())) == (0, ["veri-run-88-live"])
 
 
+def test_cli_a_launch_keeps_a_veri_run_directory_whose_record_it_cannot_read_and_names_the_record_on_stderr_under_tdd_issue_2183(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch = scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    fake_claude_exiting(monkeypatch, 0, 0)
+    cwd = tmp_path / "cwd"
+    (cwd / ".tdd").mkdir(parents=True)
+    (scratch / "veri-run-77-torn" / "cdk.outAbC123").mkdir(parents=True)
+    record = cwd / ".tdd" / "issue-77-tmpdir-skill-commit"
+    record.write_text("%s not-a-pid\n" % (scratch / "veri-run-77-torn"))
+
+    code, _, err = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, (scratch / "veri-run-77-torn" / "cdk.outAbC123").is_dir(), record.name in err) == (0, True, True)
+
+
 def tree_contents(root):
     """Every file and symlink under root but .git, by relative path: its bytes, or the target it links to."""
     contents = {}
