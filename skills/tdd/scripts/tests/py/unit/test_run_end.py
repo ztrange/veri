@@ -184,3 +184,22 @@ def test_a_run_with_no_mark_and_no_live_conductor_whose_latest_launch_ends_in_a_
     ended, cause, mark = run_end.run_end(tmp_path)
 
     assert (ended, cause, not mark) == (True, "unknown", True)
+
+
+def test_a_pid_that_answers_kill_0_but_whose_process_and_parent_are_not_run_conductor_for_this_issue_has_ended_with_the_cause_read_from_the_conductor_log_2007(tmp_path, monkeypatch):
+    run_end = importlib.import_module("veri.run_end")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        json.dumps({"ts": 100, "issue": "7", "event": "step-done"}) + "\n")
+    (tmp_path / ".tdd" / "conductor.pid").write_text(f"{os.getpid()}\n")
+    records = [{"type": "system", "subtype": "init"},
+               {"type": "result", "result": "Claude usage limit reached"}]
+    (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+    parent = 424242
+    lines = {os.getpid(): "vim notes.txt", parent: "bash /x/run-conductor.sh 8"}
+    monkeypatch.setattr(run_end, "parent_pid", lambda pid: parent, raising=False)
+    monkeypatch.setattr(run_end, "command_line", lambda pid: lines.get(pid, ""), raising=False)
+
+    ended, cause, mark = run_end.run_end(tmp_path)
+
+    assert (ended, cause, not mark) == (True, "usage-limit", True)
