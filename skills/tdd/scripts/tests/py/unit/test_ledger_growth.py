@@ -97,3 +97,20 @@ def test_2130_recorded_added_lines_past_veri_step_growth_exit_1_and_a_malformed_
     past = run_cli(ledger_growth, args, env={"VERI_STEP_GROWTH": "1"})
     malformed = [run_cli(ledger_growth, args, env={"VERI_STEP_GROWTH": value})[0] for value in ("many", "-1", "")]
     assert (within, past[0], malformed) == ((0, "", ""), 1, [2, 2, 2])
+
+
+def test_2130_a_record_covers_a_ledger_line_only_by_equal_step_text_never_by_substring(
+        tmp_path, run_cli, ledger_growth):
+    plan = tmp_path / "plan.md"
+    ledger = tmp_path / "issue-42.md"
+    plan.write_text("# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n")
+    recorded = "- [ ] fix the suite: x ⟦suite-repair⟧ ⟦criterion 1⟧"
+    ledger.write_text(
+        "# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧ ⟂ refactor pending\n"
+        "- [ ] fix the suite\n- [ ] x ⟦suite-repair⟧ ⟦criterion 1⟧\n")
+    (tmp_path / "events.jsonl").write_text(
+        '{"event": "step-added", "actor": "add-ledger-step", "step": "' + recorded + '"}\n')
+    code, out, err = run_cli(ledger_growth, [str(plan), str(ledger)])
+    named = [line for line in err.splitlines()
+             if line.endswith(": fix the suite") or line.endswith(": x ⟦suite-repair⟧ ⟦criterion 1⟧")]
+    assert (code, out, len(named)) == (1, "", 2)
