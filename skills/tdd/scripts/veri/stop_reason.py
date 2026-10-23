@@ -37,10 +37,7 @@ def main(argv):
         return 2
     else:
         reason = _usage_limit(argv[0], conductor_log)
-        if reason is None:
-            sys.stderr.write("stop-reason.sh: no result record in %s\n" % conductor_log)
-            return 2
-        sys.stdout.write(reason)
+        sys.stdout.write("killed\n" if reason is None else reason)
     for a, b in zip(events, events[1:]):
         if b["ts"] - a["ts"] > int(gap):
             sys.stdout.write("gap %s %s\n" % (a["ts"], b["ts"]))
