@@ -368,3 +368,10 @@ def test_grade_prose_and_requirements_read_fences_and_a_units_section_through_th
 
     assert (through_grade_prose, set(calls)) == ({"section", "fenced_lines"}, {"fenced_lines"}), (
         through_grade_prose, set(calls))
+
+
+def test_in_a_file_with_no_fence_a_hash_run_with_no_space_after_it_ends_a_section_exactly_where_it_did_before_the_section_reader_1978(grade_prose):
+    text = "## unit.md\nbody\n###deep\nkept\n##next\nother\n"
+    assert grade_prose.section(text, "unit.md") == "## unit.md\nbody\n###deep\nkept\n"
+    spaceless = "##unit.md\nbody\n###deep\nkept\n#tag\nother\n"
+    assert grade_prose.section(spaceless, "unit.md") == "##unit.md\nbody\n###deep\nkept\n"

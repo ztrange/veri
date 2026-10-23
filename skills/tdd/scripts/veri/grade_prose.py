@@ -48,7 +48,7 @@ def section(text, heading):
     for line, fenced in zip(lines, markdown_sections.fenced_lines(text)):
         hashes = len(line) - len(line.lstrip("#"))
         if not fenced and hashes and line[hashes:].strip() == heading:
-            return "".join(l + "\n" for l in markdown_sections.section(text, line))
+            return "".join(l + "\n" for l in markdown_sections.section(text, line, bare=True))
     return ""
 
 
