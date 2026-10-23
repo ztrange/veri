@@ -10,7 +10,7 @@ import time
 
 import pytest
 
-from conftest import SCRIPTS, listed, serve_listing, started_for_real
+from conftest import SCRIPTS, listed, live_conductor, serve_listing, started_for_real
 
 
 @pytest.fixture(autouse=True)
@@ -123,6 +123,7 @@ def test_main_shows_a_runs_phase_actor_leaf_elapsed_seconds_and_attempts_in_the_
         ev(9900, "developer", "green", "a gear turns", "launch", "2", "develop-green"),
     ])
     fake_git(monkeypatch, tmp_path, {str(run): "tdd/8-gears-turn"})
+    live_conductor(monkeypatch, run / ".tdd", "8")
     at_ten_thousand(monkeypatch)
 
     code = status.main([])
@@ -171,6 +172,7 @@ def test_main_shows_a_runs_cost_in_dollars_and_tokens_summed_from_its_event_log(
                 cache_read_input_tokens="4000", cache_creation_input_tokens="0"),
     ])
     lamp_git(monkeypatch, tmp_path, [run])
+    live_conductor(monkeypatch, run / ".tdd", "9")
     at_ten_thousand(monkeypatch)
 
     code = status.main([])
@@ -226,6 +228,7 @@ def test_main_reads_a_run_as_running_again_after_a_resume_mark_follows_its_stop_
         lamp_ev(9990, "17", "resume", actor="conductor", phase="", attempt=""),
     ])
     lamp_git(monkeypatch, tmp_path, [run])
+    live_conductor(monkeypatch, run / ".tdd", "17")
     at_ten_thousand(monkeypatch)
 
     code = status.main([])
@@ -245,6 +248,7 @@ def test_main_reads_a_run_whose_done_mark_is_followed_by_a_ci_repair_step_added_
                 anchor="a lamp glows", added="1"),
     ])
     lamp_git(monkeypatch, tmp_path, [run], (3, ""))
+    live_conductor(monkeypatch, run / ".tdd", "18")
     at_ten_thousand(monkeypatch)
 
     code = status.main(["--scope", "lamps-label"])
@@ -296,6 +300,7 @@ def lamps_scope(tmp_path, monkeypatch, solvable):
                      [lamp_ev(launch, issue, "launch", name="develop-red"), lamp_usage(usage, issue, dollars)]
                      + endings[issue])
     lamp_git(monkeypatch, tmp_path, runs.values(), solvable)
+    live_conductor(monkeypatch, runs["21"] / ".tdd", "21")
     at_ten_thousand(monkeypatch)
 
 
@@ -472,6 +477,7 @@ def test_main_takes_the_run_activity_and_scope_totals_lines_from_event_logs_one_
     (run / ".tdd" / "events.jsonl").write_text("\n" + json.dumps(cogs[0]) + "\n" + json.dumps(cogs[1]) + "\n\n\n"
                                               + json.dumps(cogs[2]) + "\n" + json.dumps(cogs[3]) + "\n\n")
     fake_git(monkeypatch, tmp_path, {str(run): "tdd/9-cogs-mesh"}, (3, ""))
+    live_conductor(monkeypatch, run / ".tdd", "9")
     at_ten_thousand(monkeypatch)
 
     text_code = status.main(["--scope", "cogs-label"])
@@ -482,6 +488,7 @@ def test_main_takes_the_run_activity_and_scope_totals_lines_from_event_logs_one_
     figures = (run_obj["leaf"], run_obj["attempts"], run_obj["dollars"], run_obj["tokens"],
                scope["dollars"], scope["wall_seconds"], scope["attempted"])
 
+    (run / ".tdd" / "conductor.pid").unlink()
     standin = tmp_path / "standin"
     standin.mkdir()
     (standin / "event_log.py").write_text(
@@ -562,10 +569,10 @@ def test_status_shows_a_runs_state_running_done_with_its_pr_url_bailed_with_phas
     for issue, run in runs.items():
         write_events(run / ".tdd" / "events.jsonl",
                      [lamp_ev(launches[issue], issue, "launch", name="develop-red")] + endings.get(issue, []))
-    (runs["11"] / ".tdd" / "conductor.pid").write_text("%d\n" % os.getpid())
     # #14 names a pid no process can hold (above every pid_max), so os.kill rejects it, not open.
     (runs["14"] / ".tdd" / "conductor.pid").write_text("%d\n" % (2 ** 31 - 1))
     fake_processes(git_answering(tmp_path, {str(run): "tdd/%s-lamps" % issue for issue, run in runs.items()}))
+    live_conductor(monkeypatch, runs["11"] / ".tdd", "11")
     at_ten_thousand(monkeypatch)
 
     code, out, err = run_cli(status, [], env={"VERI_TIMEOUT": "600"})
@@ -583,8 +590,8 @@ def test_status_watch_redraws_in_place_recomputing_every_run_from_disk_on_each_r
     run = lamp_run(tmp_path, "41")
     events = run / ".tdd" / "events.jsonl"
     write_events(events, [lamp_ev(9990, "41", "launch", name="develop-red")])
-    (run / ".tdd" / "conductor.pid").write_text("%d\n" % os.getpid())
     fake_processes(git_answering(tmp_path, {str(run): "tdd/41-lamps"}))
+    live_conductor(monkeypatch, run / ".tdd", "41")
     at_ten_thousand(monkeypatch)
     sleeps = []
 
