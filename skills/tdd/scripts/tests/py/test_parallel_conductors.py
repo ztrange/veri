@@ -1766,6 +1766,29 @@ def test_a_draft_run_whose_bail_mark_is_spaced_or_compact_is_reported_bailed_eit
 
 
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
+def test_a_child_that_died_before_writing_any_event_is_answered_from_its_pr_and_exit_code_2009(
+        monkeypatch, tmp_path, parallel_conductors, run_cli):
+    gh, work = _gh_and_work(tmp_path)
+    (gh / "prs.json").write_text(json.dumps([
+        {"body": "Closes #7", "isDraft": False, "url": "https://example.test/pull/7"},
+        {"body": "Closes #8", "isDraft": True, "url": "https://example.test/pull/8"},
+    ]))
+
+    def on_launch(sup):
+        sup.exit(2 if sup.args[-1] == "9" else 0)
+
+    _boundaries(monkeypatch, tmp_path, on_launch, lambda supervisors: None, solvable=(0, "7\n8\n9\n"))
+
+    code, out, err = run_cli(parallel_conductors, ["--continue-on-bail"], cwd=work,
+                             env={"VERI_RUN_TIMEOUT": "60", "VERI_GH_JSON": str(gh)})
+
+    assert out.splitlines() == [
+        "#7 — done https://example.test/pull/7",
+        "#9 — killed after 60s",
+        "stopped: nothing solvable"]
+
+
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_run_from_a_subdirectory_of_the_repo_writes_parallel_exit_under_the_repo_root_and_leaves_no_tdd_in_the_subdirectory_1895(
         monkeypatch, tmp_path, parallel_conductors, run_cli):
     gh, work = _gh_and_work(tmp_path)
