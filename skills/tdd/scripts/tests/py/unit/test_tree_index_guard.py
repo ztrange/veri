@@ -68,10 +68,42 @@ def sweepers(tree):
     ]
 
 
+def _walks_an_entrys_tree(node):
+    return (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "walk"
+            and isinstance(node.func.value, ast.Name) and node.func.value.id == "ast"
+            and any(isinstance(a, ast.Attribute) and a.attr == "tree" for a in node.args))
+
+
+def walkers(tree):
+    """The tree_audit cases taking tests_py_index that ast.walk an entry's tree, in their own body or a
+    module-level function they reach."""
+    functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+
+    def walks(fn, seen):
+        for node in ast.walk(fn):
+            if _walks_an_entrys_tree(node):
+                return True
+            if isinstance(node, ast.Name) and node.id in functions and node.id not in seen:
+                seen.add(node.id)
+                if walks(functions[node.id], seen):
+                    return True
+        return False
+
+    return [
+        fn.name for fn in functions.values()
+        if any(_is_tree_audit(d) for d in fn.decorator_list)
+        and "tests_py_index" in [a.arg for a in fn.args.args]
+        and walks(fn, {fn.name})
+    ]
+
+
 @pytest.mark.tree_audit("every test file under skills/tdd/scripts/tests/py")
 def test_every_tree_audit_case_sweeping_all_test_files_uses_the_shared_index_2168(tests_py_index):
     found = [f"{entry.path.name}::{name}" for entry in tests_py_index if entry.path.name != "conftest.py"
              for name in sweepers(entry.tree)]
+    walking = [f"{entry.path.name}::{name}" for entry in tests_py_index if entry.path.name != "conftest.py"
+               for name in walkers(entry.tree)]
+    assert walking == [], "tree_audit cases walk an entry's tree instead of querying the index:\n" + "\n".join(walking)
     stray = [case for case in found if case not in EXEMPT]
     stale = [case for case in EXEMPT if case not in found]
     assert (stray, stale) == ([], []), (
