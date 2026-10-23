@@ -6,4 +6,4 @@
 - [x] a GRADES block that leaves out one requirement ID makes grade-prose exit 2 with no verdict, its stderr naming the missing ID as missing, and no grading event appended ⟦criterion 2⟧
 - [x] a GRADES block that names one requirement ID twice makes grade-prose exit 2 with no verdict, its stderr naming the repeated ID as repeated, and no grading event appended ⟦criterion 2⟧
 - [x] a GRADES block that names an ID the unit's requirements list does not hold makes grade-prose exit 2 with no verdict, its stderr naming the unknown ID as unknown, and no grading event appended ⟦criterion 2⟧
-- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_skill_preflight.py — FAILED test_every_remaining_case_that_reads_skill_md_s_preflight_section_is_a_named_mechanical_fact_case - Failed: Timeout (>30.0s) ⟦suite-repair⟧ ⟦criterion 2⟧
+- [x] fix the full-suite failure: skills/tdd/scripts/tests/py/test_skill_preflight.py — FAILED test_every_remaining_case_that_reads_skill_md_s_preflight_section_is_a_named_mechanical_fact_case - Failed: Timeout (>30.0s) ⟦suite-repair⟧ ⟦criterion 2⟧
