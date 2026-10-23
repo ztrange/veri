@@ -501,3 +501,33 @@ def test_an_added_step_on_a_unit_whose_grade_fails_first_runs_its_author_attempt
     commits = [c for c in commands if c[:2] == ["git", "commit"]]
     assert len(launched) == 1 and code == 0, (code, err, launched)
     assert len(commits) == 1 and all(any(n in p for p in commits[0]) for n in ("REQUIREMENTS.md", "GRADED", "unit.md")), commands
+
+
+def test_the_author_prompt_names_every_pin_file_and_tells_it_to_update_the_checksum_or_verbatim_pins_there_2232(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    prompts = []
+
+    def run(cmd, **kw):
+        if cmd[0].endswith("supervise.sh"):
+            prompts.append(open(cmd[3]).read())
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
+    monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+    for pins in (["tests/test_alpha.py", "tests/test_beta.py"], []):
+        grades = iter([(1, "A1: FAIL - no\n"), (0, "")])
+        monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: next(grades))
+        run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md", *pins])
+
+    with_pins, without = prompts
+    assert (all(p in with_pins for p in ["tests/test_alpha.py", "tests/test_beta.py", "checksum", "verbatim"]),
+            "tests/test_" in without) == (True, False), (with_pins, without)
