@@ -97,6 +97,11 @@ def test_a_fenced_hash_line_equal_to_the_units_heading_never_starts_its_section_
     assert grade_prose.section(text, "unit.md") == "## unit.md\nreal body\n"
 
 
+def test_a_unit_headed_section_with_a_tilde_fence_holding_a_hash_line_is_one_section_ending_at_the_next_real_heading_1978(grade_prose):
+    text = "## unit.md\nbefore\n~~~\n# fenced\n~~~\nafter\n## next\nother\n"
+    assert grade_prose.section(text, "unit.md") == "## unit.md\nbefore\n~~~\n# fenced\n~~~\nafter\n"
+
+
 def test_a_unit_with_no_requirements_list_in_the_requirements_file_makes_grade_prose_exit_2_before_anything_is_launched_1874(
         tmp_path, monkeypatch, run_cli, grade_prose):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)

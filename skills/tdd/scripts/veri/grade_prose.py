@@ -11,6 +11,7 @@ import uuid
 import event
 import requirements
 import tunables
+from markdown_sections import fenced_lines
 from extract_result import extract
 from leaf_log import result_records
 from run_verdict import SCRIPTS
@@ -43,10 +44,8 @@ def prompt(unit, text, claims):
 
 
 def section(text, heading):
-    out, level, fenced = [], None, False
-    for line in text.splitlines(keepends=True):
-        if line.startswith("```"):
-            fenced = not fenced
+    out, level = [], None
+    for line, fenced in zip(text.splitlines(keepends=True), fenced_lines(text)):
         hashes = 0 if fenced else len(line) - len(line.lstrip("#"))
         if level is None:
             if hashes and line[hashes:].strip() == heading:
