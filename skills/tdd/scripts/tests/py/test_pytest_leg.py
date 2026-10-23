@@ -840,3 +840,27 @@ def _answers_kill_0(pid):
     except PermissionError:
         return True
     return True
+
+
+def test_2184_at_start_a_leg_keeps_a_veri_pytest_folder_in_its_tmpdir_whose_recorded_pid_answers_kill_0_whatever_its_age(pytest_leg, run_cli, monkeypatch, tmp_path):
+    import os
+    import tempfile
+
+    kept = tmp_path / "veri-pytest-liveleg"
+    kept.mkdir()
+    (kept / "pid").write_text("%d\n" % os.getpid())
+    (kept / "leftover").write_text("x")
+    os.utime(kept, (1, 1))
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+    monkeypatch.setenv("TMPDIR", str(tmp_path))
+    present = []
+
+    def spy(args):
+        present.append((kept / "leftover").exists())
+        return pytest.ExitCode.OK
+
+    monkeypatch.setattr(pytest, "main", spy)
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
+    assert run_cli(pytest_leg, [], env=env)[0] == 0
+    assert present and present[0] is True
+    assert (kept / "leftover").exists()
