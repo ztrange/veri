@@ -69,3 +69,19 @@ def test_a_live_claude_child_whose_parent_is_run_conductor_for_this_issue_has_no
 
     assert answers == {"this-issue": (False, True), "python-this-issue": (False, True),
                        "other-issue": (True, True)}
+
+
+def test_a_run_with_no_mark_whose_conductor_pid_answers_kill_0_as_run_conductor_for_this_issue_has_not_ended_with_cause_none_2007(tmp_path, monkeypatch):
+    import os
+    run_end = importlib.import_module("veri.run_end")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        json.dumps({"ts": 100, "issue": "7", "event": "step-done"}) + "\n")
+    (tmp_path / ".tdd" / "conductor.pid").write_text(f"{os.getpid()}\n")
+    answers = {}
+    for name, line in {"shell": "bash /x/run-conductor.sh 7",
+                       "python": "python3 /x/veri/run_conductor.py 7 --flag"}.items():
+        monkeypatch.setattr(run_end, "command_line", lambda pid, line=line: line, raising=False)
+        answers[name] = run_end.run_end(tmp_path)
+
+    assert answers == {"shell": (False, None, {}), "python": (False, None, {})}
