@@ -45,3 +45,12 @@ def test_read_events_reads_a_log_holding_an_invalid_utf8_byte_without_raising_an
 
     assert event_log.read_events(log) == [
         {"event": "a", "note": "bad� byte"}, {"event": "b"}]
+
+
+def test_read_events_2035_returns_a_line_with_an_undecodable_byte_as_u_fffd_whether_or_not_skip_unreadable_is_set(tmp_path, event_log):
+    log = tmp_path / "events.jsonl"
+    log.write_bytes(b'{"event": "a"}\n{"event": "b", "note": "bad\xff\xfe bytes"}\n')
+    expected = [{"event": "a"}, {"event": "b", "note": "bad�� bytes"}]
+
+    assert event_log.read_events(log) == expected
+    assert event_log.read_events(log, skip_unreadable=True) == expected
