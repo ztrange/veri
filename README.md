@@ -162,6 +162,18 @@ skill mid-run. The record is run state and is git-ignored. Two cases refuse rath
   same clone causes: that is retried, up to 60 fetches in all, `VERI_FETCH_RETRY_SLEEP` seconds
   apart (default 1, so about a minute).
 
+**Disk: a per-launch `TMPDIR`, and a free-space check.** `run-conductor.sh` starts the conductor
+with `TMPDIR` set to a fresh `veri-run-<n>-…` directory inside the inherited one, so whatever a
+project's tests leave in `os.tmpdir()` goes with it: the directory is removed when the conductor
+exits (any exit code) and on SIGTERM, SIGINT or SIGHUP. Its path and the launcher's pid are
+recorded in `.tdd/issue-<n>-tmpdir-skill-commit`; a launcher killed outright leaves the directory, and the next
+`run-conductor.sh` start for any issue removes each recorded `veri-run-*` directory whose pid no
+longer answers `kill -0` — never a live owner's, one with no record, or one outside the inherited
+`TMPDIR`; an unreadable record is left alone and named on stderr. `VERI_MIN_FREE_GB` (default
+20, a whole number >= 0, `0` disables) is the free space, in GB, that the filesystems holding the
+inherited `TMPDIR` and the repository must each have before launch; below it the launch is exit 2,
+naming the path, the free GB and the variable, and so is a value that is not a whole number >= 0.
+
 **The record survives only a run that got past preflight.** After the conductor exits,
 `run-conductor.sh` keeps `.tdd/issue-<n>-skill-commit` when `.tdd/wt/<n>` is registered as a
 git worktree or a local `tdd/<n>-*` branch exists — what step 1.2, the first thing after
