@@ -5,3 +5,4 @@
 - merge the follow-up reply handling in `main` with the final block validation; this is a larger restructure of `main`, so I left it
 not-done | uncovered | the prompt temp-file write-and-unlink is repeated for the first grade and the follow-up; a helper would remove it
 not-done | transform-rejected | the "BEGIN GRADES"-to-"END GRADES" line extraction in the follow-up merge repeats the block parsing done elsewhere in `main`
+not-done | uncovered | merge the follow-up reply handling in `main` with the final block validation; this is a larger restructure of `main`, so I left it
