@@ -470,6 +470,21 @@ def test_main_when_the_prompt_file_is_empty_or_only_nul_bytes_and_newlines_retur
     assert (answers, launches) == ([(2, True), (2, True)], [])
 
 
+def test_main_when_stdin_is_empty_for_the_dash_prompt_returns_2_launches_nothing_and_says_the_prompt_is_empty_2137(
+        tmp_path, monkeypatch, capfd):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    _workspace(tmp_path, monkeypatch)
+    launches = []
+    monkeypatch.setattr(subprocess, "Popen",
+                        lambda argv, *args, **kwargs: _FakeLeaf(launches, argv, **kwargs))
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(b"")))
+
+    code = run_leaf.main(["-"])
+    err = capfd.readouterr().err
+
+    assert (code, launches, "empty" in err) == (2, [], True)
+
+
 def _as_extract_result_sh_prints(stream):
     extract_result = importlib.import_module("veri.extract_result")
     stdin = io.TextIOWrapper(io.BytesIO(stream), encoding=sys.__stdin__.encoding,
