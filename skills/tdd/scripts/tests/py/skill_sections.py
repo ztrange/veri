@@ -3,6 +3,8 @@ import re
 
 import pytest
 
+from veri.markdown_sections import fenced_lines
+
 ROOT = pathlib.Path(__file__).resolve().parents[5]
 LOWER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
 
@@ -89,34 +91,20 @@ def section(skill, heading):
     return section_of(pathlib.Path(skill).read_text(), heading, skill)
 
 
-def _fence_step(fence, line):
-    stripped = line.lstrip()
-    if len(line) - len(stripped) >= 4:
-        stripped = ""
-    if fence is None and stripped.startswith(("```", "~~~")):
-        return stripped[:len(stripped) - len(stripped.lstrip(stripped[0]))], True
-    if fence is not None:
-        return (None if stripped.startswith(fence) else fence), True
-    return None, False
-
-
 def section_of(text, heading, skill="the document"):
     lines = text.splitlines(keepends=True)
+    fenced = fenced_lines(text)
     level = _level(heading)
     start = None
-    fence = None
     for i, line in enumerate(lines):
-        fence, fenced = _fence_step(fence, line)
-        if not fenced and line.rstrip("\n") == heading:
+        if not fenced[i] and line.rstrip("\n") == heading:
             start = i
             break
     if not level or start is None:
         pytest.fail(f"no section headed {heading!r} in {skill}")
-    fence = None
     end = len(lines)
     for i in range(start + 1, len(lines)):
-        fence, fenced = _fence_step(fence, lines[i])
-        if not fenced and min(2, level) <= _level(lines[i]) <= level:
+        if not fenced[i] and min(2, level) <= _level(lines[i]) <= level:
             end = i
             break
     return "".join(lines[start:end])
