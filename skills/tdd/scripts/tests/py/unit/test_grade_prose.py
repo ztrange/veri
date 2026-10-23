@@ -326,3 +326,8 @@ def test_with_two_retries_a_grader_that_never_writes_a_grades_block_is_launched_
 
     assert (code, len(launched), err.strip()) == (
         2, 3, "grade-prose.sh: no verdict obtained: the reply has no BEGIN GRADES block"), (code, len(launched), err)
+
+
+def test_a_line_indented_four_spaces_that_starts_with_backticks_is_text_so_a_real_heading_after_it_still_ends_the_section_1978(grade_prose):
+    text = "## unit.md\nbefore\n    ```\nafter\n## next\nother\n"
+    assert grade_prose.section(text, "unit.md") == "## unit.md\nbefore\n    ```\nafter\n"
