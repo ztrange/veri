@@ -114,3 +114,16 @@ def test_2130_a_record_covers_a_ledger_line_only_by_equal_step_text_never_by_sub
     named = [line for line in err.splitlines()
              if line.endswith(": fix the suite") or line.endswith(": x ⟦suite-repair⟧ ⟦criterion 1⟧")]
     assert (code, out, len(named)) == (1, "", 2)
+
+
+def test_2130_an_added_line_recorded_in_the_tracked_added_file_still_exits_0_with_events_jsonl_deleted(
+        tmp_path, run_cli, ledger_growth):
+    plan = tmp_path / "plan.md"
+    ledger = tmp_path / "issue-42.md"
+    plan.write_text("# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n")
+    line = "- [ ] a inserted step ⟦added⟧ ⟦criterion 1⟧"
+    ledger.write_text(
+        "# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧ ⟂ refactor pending\n" + line + "\n")
+    (tmp_path / "issue-42-added.md").write_text(line + "\n")
+    assert not (tmp_path / "events.jsonl").exists()
+    assert run_cli(ledger_growth, [str(plan), str(ledger)]) == (0, "", "")
