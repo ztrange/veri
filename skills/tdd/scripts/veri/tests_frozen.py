@@ -26,12 +26,16 @@ def _body_digest(body):
     return hashlib.sha256(body.encode()).hexdigest()
 
 
+def _step_key(step):
+    return hashlib.sha256(os.fsencode(step)).hexdigest()[:16]
+
+
 def _record_path(step):
-    return ".tdd/tests-frozen-%s.record" % hashlib.sha256(os.fsencode(step)).hexdigest()[:16]
+    return ".tdd/tests-frozen-%s.record" % _step_key(step)
 
 
 def _pass_marker_path(step):
-    return ".tdd/check-earlier-%s.pass" % hashlib.sha256(os.fsencode(step)).hexdigest()[:16]
+    return ".tdd/check-earlier-%s.pass" % _step_key(step)
 
 
 def _write_pass_marker(step):
