@@ -141,3 +141,9 @@ def test_main_classifies_step_added_off_route_as_a_process_failure_with_0_2130(c
     code = classify_bail.main(["step-added-off-route"])
 
     assert (code, *capsys.readouterr()) == (0, "process\n", "")
+
+
+def test_main_classifies_fixture_owed_as_a_process_failure_with_0_2172(capsys, classify_bail):
+    code = classify_bail.main(["fixture-owed"])
+
+    assert (code, *capsys.readouterr()) == (0, "process\n", "")
