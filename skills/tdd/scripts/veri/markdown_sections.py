@@ -15,3 +15,22 @@ def fenced_lines(text):
         elif run is not None and run[0] == opener[0] and run[1] >= opener[1]:
             opener = None
     return flags
+
+
+def _level(line):
+    hashes = len(line) - len(line.lstrip("#"))
+    if hashes and line[hashes:hashes + 1] == " ":
+        return hashes
+    return 0
+
+
+def section(text, heading):
+    lines = text.splitlines()
+    start = lines.index(heading)
+    level = _level(heading)
+    end = len(lines)
+    for i in range(start + 1, len(lines)):
+        if 0 < _level(lines[i]) <= level:
+            end = i
+            break
+    return lines[start:end]
