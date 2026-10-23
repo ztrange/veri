@@ -371,6 +371,26 @@ def test_main_marks_a_watched_names_launch_and_exit_as_records_under_its_role_an
     assert (code, out, exit_record, records, role_lines) == (0, b"leaf out\n", b"0\n", [], [diagnostic, diagnostic])
 
 
+def test_main_hands_a_verify_leaf_veri_test_lock_0_and_a_develop_leaf_no_such_variable_2195(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    monkeypatch.setattr(time, "sleep", lambda *_: None)
+    clean_env(monkeypatch, VERI_TIMEOUT="900")
+    seen = {}
+    for name in ("verify-red", "develop-red"):
+        work = tmp_path / name
+        work.mkdir()
+        monkeypatch.chdir(work)
+        fake_leaf_launch(monkeypatch)
+        code = supervise.main([name, "sh", "-c", 'printf "%s" "${VERI_TEST_LOCK-unset}"'])
+        out, _ = capsysbinary.readouterr()
+        seen[name] = (code, out)
+
+    assert seen == {"verify-red": (0, b"0"), "develop-red": (0, b"unset")}
+
+
 def test_main_resolves_the_model_in_process_marks_it_on_the_launch_and_hands_the_leaf_its_own_environment_plus_veri_leaf_model_and_veri_skill_commit(
         monkeypatch, tmp_path, capsysbinary, supervise, events):
     import signal

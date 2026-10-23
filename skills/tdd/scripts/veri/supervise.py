@@ -367,6 +367,8 @@ def main(argv):
     skill_commit = answered("git", "-C", HERE, "rev-parse", "HEAD") or tunables.read("VERI_SKILL_COMMIT") or "unknown"
     leaf_env = {**os.environ}
     leaf_env.update(VERI_LEAF_MODEL=model, VERI_SKILL_COMMIT=skill_commit)
+    if name.startswith("verify-"):
+        leaf_env["VERI_TEST_LOCK"] = "0"
     step = tunables.read("VERI_STEP")
     if "VERI_STEP" in tunables.environment() and not step:
         return refuse_empty_step(role, leaf_env, name, "VERI_STEP is set but empty")
