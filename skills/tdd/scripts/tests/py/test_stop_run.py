@@ -543,6 +543,8 @@ def test_stop_run_sh_run_through_a_symlink_to_the_skill_s_scripts_directory_from
     skill_scripts = skill_main / "skills" / "tdd" / "scripts"
     skill_scripts.mkdir(parents=True)
     subprocess.run(["cp", "-R", str(SCRIPTS / "stop-run.sh"), str(SCRIPTS / "veri"), str(skill_scripts)], check=True)
+    (skill_scripts / "lib").mkdir()
+    shutil.copy(SCRIPTS / "lib" / "shim-python.sh", skill_scripts / "lib" / "shim-python.sh")
     git("add", "-A", cwd=skill_main)
     git("commit", "-q", "-m", "skill", cwd=skill_main)
     skill_worktree = tmp_path.resolve() / "skill-worktree"
