@@ -18,6 +18,7 @@ try:
     from event_log import read_events
     from github import NoAnswer, gh_json
     from json_documents import items
+    from run_end import run_end
     from solvable_issues import solvable_in_scope
 except ImportError:
     from .context_budget import START, watch
@@ -25,6 +26,7 @@ except ImportError:
     from .event_log import read_events
     from .github import NoAnswer, gh_json
     from .json_documents import items
+    from .run_end import run_end
     from .solvable_issues import solvable_in_scope
 
 SCRIPTS = paths.scripts_of(__file__)
@@ -112,6 +114,8 @@ def _outcome(n, code, prs):
             if not pr.get("isDraft", pr.get("draft")):
                 return "done %s" % url
             try:
+                if run_end(_tdd("wt", n))[1] == "done":
+                    return "done %s" % url
                 events = read_events(_tdd("wt", n, ".tdd", "events.jsonl"), skip_unreadable=True)
             except OSError:
                 events = []
