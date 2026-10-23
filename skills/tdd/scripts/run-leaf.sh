@@ -16,6 +16,5 @@ for sig in PIPE XFSZ; do
   trap - "$sig"
 done
 export VERI_SHIM_DEFAULT_SIGNALS
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/run_leaf.py" "$@"

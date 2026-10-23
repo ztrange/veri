@@ -6,6 +6,5 @@
 #
 # Exit: 1 printing file:line for each line that names it, 0 when none does, 2 when <name>.sh
 # is missing.
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/no_product_caller.py" "$@"

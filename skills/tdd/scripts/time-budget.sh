@@ -8,6 +8,5 @@
 # usage: time-budget.sh          # prints the resolved seconds, then the resolved ratio
 # Exit:    0 the seconds then the ratio on stdout; 2 a value that is not a number, nothing on stdout,
 #          a diagnostic naming the variable at fault on stderr
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/time_budget.py" "$@"

@@ -3,6 +3,5 @@
 #
 # Usage:   prose-owed.sh <repo-root>
 # Exit:    0 nothing owed; 1 something printed; 2 bad arguments
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/prose_owed.py" "$@"

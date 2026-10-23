@@ -3,6 +3,5 @@
 #
 # Usage:   handoff-state.sh
 # Exit:    0 the snapshot printed; 2 no answer
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/handoff_state.py" "$@"

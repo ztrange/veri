@@ -7,6 +7,5 @@
 # usage:   detect-test-command.sh [--tier fast|all] [--issue <body-file>] [repo-root]
 #          (repo-root defaults to the current directory)
 # Exit:    0 a command printed on stdout; 1 --tier or --issue with no value; 3 cannot decide, nothing printed
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/detect_test_command.py" "$@"

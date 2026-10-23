@@ -12,6 +12,5 @@
 # Exit:    0 solvable-issues.sh answered 3, or every issue it names is parked; 2 solvable-issues.sh
 #          exited anything but 0 or 3, VERI_CONDUCTOR_CTX_BUDGET is not a whole number,
 #          VERI_CONDUCTOR_STOP_TIMEOUT is outside its bounds, run-conductor.sh cannot be started, or its stdout is closed or its reader has exited
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/orchestrate.py" "$@"

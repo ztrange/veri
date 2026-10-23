@@ -7,6 +7,5 @@
 # Searches Python test files, bash suites and JS/TS test files: *.test.* / *.spec.* over .js .jsx .ts .tsx .mjs .cjs, and files under __tests__/, never .d.ts.
 # Reads a WRONG_TEST: name in backticks, double quotes, curly quotes, or as a test_\w+ name.
 # Exit:    0 a route other than `revise` printed; 2 bad arguments or an unreadable report — nothing on stdout; 3 `revise` printed
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/wrong_test_route.py" "$@"

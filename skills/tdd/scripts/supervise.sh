@@ -61,6 +61,5 @@
 # runs on, resolved through leaf-model.sh and exported to the leaf as VERI_LEAF_MODEL (all
 # unset by default: a first-try developer and every verifier run on sonnet, a redo leaf on
 # opus).
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/supervise.py" "$@"

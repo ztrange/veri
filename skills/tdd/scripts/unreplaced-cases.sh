@@ -3,6 +3,5 @@
 #
 # usage: unreplaced-cases.sh
 # exit:  2 bad arguments
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/unreplaced_cases.py" "$@"

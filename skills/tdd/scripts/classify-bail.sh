@@ -5,6 +5,5 @@
 # An unrecognised cause prints an error to stderr and exits non-zero (2).
 #
 # usage: classify-bail.sh <cause>
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/classify_bail.py" "$@"

@@ -6,6 +6,5 @@
 # A step serves criterion k when it carries `⟦criterion k⟧`.
 # Exit:    0 every step serving k done and not refactor-pending; 2 a missing or empty <k>;
 #          3 some step serving k open or pending, or no step serving k
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/criterion_finished.py" "$@"

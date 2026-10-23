@@ -12,6 +12,5 @@
 # exit:    0 COVERED: yes · 1 COVERED: no · 2 no readable COVERED: line, or
 #          unreachable|type-only with no PROOF: line or PROOF: NONE
 #          3 COVERED: unreachable|type-only, proved without a test
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/cover_outcome.py" "$@"

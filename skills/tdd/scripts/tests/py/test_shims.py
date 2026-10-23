@@ -7,7 +7,7 @@ import sys
 
 import pytest
 
-from conftest import INTERPRETER_VENV, SCRIPTS, VENV_PREFIX, shim_problems
+from conftest import FLOOR_SOURCE, INTERPRETER_VENV, SCRIPTS, VENV_PREFIX, shim_problems
 
 EXEMPT = {
     "build-develop-prompt.sh": "a spelling difference; canonicalising it is a change of its own",
@@ -413,5 +413,19 @@ def test_issue_2106_no_shim_execs_the_python3_on_path_unconditionally():
     offenders = sorted(
         path.name for path in SCRIPTS.glob("*.sh")
         if any(PATH_PYTHON3_EXEC.match(line) for line in path.read_text().splitlines()))
+
+    assert offenders == []
+
+
+@pytest.mark.tree_audit("every ported scripts/**/*.sh shim, the exempt ones included, read as text for the floor-checking canonical shim")
+def test_issue_2106_every_ported_shim_sources_the_floor_check_then_execs_the_py_it_sets():
+    def floor_checked(lines):
+        code = [line for line in lines if line.strip() and not line.startswith("#")]
+        return FLOOR_SOURCE in code and code[-1].startswith('exec "$py" ') and code.index(FLOOR_SOURCE) < len(code) - 1
+
+    offenders = sorted(
+        str(path.relative_to(SCRIPTS)) for path in SCRIPTS.rglob("*.sh")
+        if "tests" not in path.relative_to(SCRIPTS).parts and re.search(r"/veri/\w+\.py", path.read_text())
+        and not floor_checked(path.read_text().splitlines()))
 
     assert offenders == []

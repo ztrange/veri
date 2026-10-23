@@ -3,6 +3,5 @@
 #
 # usage: detach-leaf.sh <cmd> [args…]
 # Exit:    0 launched; 2 no <cmd>, or <cmd> could not be started (named on stderr)
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/detach_leaf.py" "$@"

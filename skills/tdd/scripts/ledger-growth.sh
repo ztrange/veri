@@ -13,6 +13,5 @@
 #          1 a new line lacks its record or ⟦added⟧, or the cap is passed, named on stderr;
 #          2 a missing argument, an unreadable ledger or plan file, a bad VERI_STEP_GROWTH, or
 #          (plan-sha) no plan commit in the log
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/ledger_growth.py" "$@"

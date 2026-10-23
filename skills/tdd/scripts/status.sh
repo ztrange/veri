@@ -8,6 +8,5 @@
 #          --json prints the same runs and scope totals as one JSON document.
 #          --watch redraws in place every <seconds> (default 2), each render recomputed from disk.
 # Exit:    0 one or more runs printed; 2 an unknown option, or no answer; 3 nothing to do — "no runs"
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/status.py" "$@"

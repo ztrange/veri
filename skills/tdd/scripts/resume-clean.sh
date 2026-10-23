@@ -3,6 +3,5 @@
 #
 # Usage:   resume-clean.sh
 # Exit:    0 cleaned; prints each discarded change as a git status short line
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/resume_clean.py" "$@"

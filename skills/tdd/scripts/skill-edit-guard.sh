@@ -3,6 +3,5 @@
 #
 # Usage:   skill-edit-guard.sh <unit-file> <base-sha>
 # Exit:    0 only the unit and its REQUIREMENTS.md changed; 2 bad arguments
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/skill_edit_guard.py" "$@"

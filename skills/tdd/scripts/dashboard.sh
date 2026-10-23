@@ -11,6 +11,5 @@
 #          (SIGINT) is how it is meant to be stopped, so that is a clean stop and not a
 #          failure.
 # Exit:    0 served and was interrupted
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/dashboard.py" "$@"

@@ -3,6 +3,5 @@
 #
 # usage: grade-prose.sh <requirements-file> <unit>
 # Exit:  0 PASS · 1 REJECT · 2 bad arguments, or no verdict could be obtained
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/grade_prose.py" "$@"

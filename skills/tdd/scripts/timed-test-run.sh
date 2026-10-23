@@ -3,6 +3,5 @@
 #
 # usage: timed-test-run.sh <tier> <suites> <cmd> [args …]
 # Exit:    the command's own status, unmapped; 2 a missing or empty <tier> or <cmd>
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/timed_test_run.py" "$@"

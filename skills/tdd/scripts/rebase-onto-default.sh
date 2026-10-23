@@ -5,6 +5,5 @@
 # Exit:    3 the branch already contains origin/<default>, HEAD and tree untouched; 0 rebased, stdout the
 #          pre-rebase sha then the onto sha; 1 a conflict, aborted, stdout the conflicting files one per line;
 #          2 git refused the rebase, no default branch resolved, origin not fetched, or origin/<default> stale
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/rebase_onto_default.py" "$@"

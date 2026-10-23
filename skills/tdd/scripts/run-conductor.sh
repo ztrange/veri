@@ -57,6 +57,5 @@
 # many GB free, else exit 2 naming the path, the free GB and the variable.
 #
 # CLAUDE_BIN overrides the `claude` binary (used by the tests to inject a stub).
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/run_conductor.py" "$@"

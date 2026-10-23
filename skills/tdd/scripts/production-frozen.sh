@@ -9,6 +9,5 @@
 #
 # Exit: 1 naming each production file the range <base-sha>..HEAD changed, 2 when <base-sha>
 # is missing or does not resolve to a commit.
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/production_frozen.py" "$@"

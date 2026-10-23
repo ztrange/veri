@@ -6,6 +6,5 @@
 # Exit:    0 list and GRADED committed after an author attempt; 1 the grader rejects every attempt;
 #          2 bad arguments, budget or heading, or no answer; 3 nothing left to commit: the list and GRADED
 #          were committed with no author run, or there was no list and none was stated
-py="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[ -x "$py" ] || py=python3
+. "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/skill_edit_step.py" "$@"
