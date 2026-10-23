@@ -102,7 +102,7 @@ def main(argv):
     sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     os.environ["PYTEST_PLUGINS"] = ",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "small_case_guard", "network_guard", "private_tmp_path", "serial_seen"]))
     def terminate(signum, frame):
-        sys.exit(128 + signal.SIGTERM)
+        sys.exit(128 + signum)
     previous = signal.signal(signal.SIGTERM, terminate)
     previous_hup = signal.signal(signal.SIGHUP, terminate)
     conftest = sys.modules.get("conftest")

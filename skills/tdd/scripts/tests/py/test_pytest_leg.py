@@ -492,7 +492,7 @@ def test_2184_a_launcher_run_sent_sighup_during_its_pytest_run_leaves_no_veri_py
                    VERI_PYTEST_XDIST_IMPORTABLE="1", VERI_PYTEST_WORKERS="1", TMPDIR=str(scratch))
         done = subprocess.run([sys.executable, "-c", child, str(int(sig))], env=env, capture_output=True, timeout=30)
         outcome[sig.name] = (sorted(os.listdir(scratch)), done.returncode)
-    assert outcome["SIGHUP"] == ([], outcome["SIGTERM"][1])
+    assert (outcome["SIGTERM"], outcome["SIGHUP"]) == (([], 143), ([], 129))
 
 
 def test_2184_when_the_leg_s_main_returns_the_sighup_handler_in_force_before_it_started_is_in_force_again(pytest_leg, monkeypatch):
