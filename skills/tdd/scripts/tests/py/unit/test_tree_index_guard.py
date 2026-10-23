@@ -10,6 +10,16 @@ EXEMPT = {
         "lists file paths for the fast-tier placement audit, which never parses them; veri.fast_tier_guard reads each file itself",
 }
 
+# tree_audit cases taking tests_py_index that may still read an entry's tree or call ast.walk, each with why.
+WALKING_EXEMPT = {
+    "test_tree_index_guard.py::test_every_tree_audit_case_sweeping_all_test_files_uses_the_shared_index_2168":
+        "this guard: it reads decorators, fixtures and calls, which the index's definitions do not carry",
+    "test_readers_tree_index.py::test_two_readers_audits_in_one_session_walk_each_test_file_once_2170":
+        "reads each entry's tree only to key its spy on ast.walk by node, counting the audits' walks",
+    "test_readers_tree_index.py::test_phased_and_refactor_loop_audits_in_one_session_walk_each_test_file_once_2170":
+        "reads each entry's tree only to key its spy on ast.walk by node, counting the audits' walks",
+}
+
 
 def _is_tree_audit(decorator):
     return (isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Attribute)
@@ -77,13 +87,16 @@ def sweepers(tree):
 
 
 def _walks_an_entrys_tree(node):
+    """Any `ast.walk(...)` call, and any read of a `.tree` attribute: an audit doing `tree = entry.tree` and then
+    walking `tree.body` node by node is as much its own walk as `ast.walk(entry.tree)`."""
+    if isinstance(node, ast.Attribute) and node.attr == "tree":
+        return True
     return (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "walk"
-            and isinstance(node.func.value, ast.Name) and node.func.value.id == "ast"
-            and any(isinstance(a, ast.Attribute) and a.attr == "tree" for a in node.args))
+            and isinstance(node.func.value, ast.Name) and node.func.value.id == "ast")
 
 
 def walkers(tree):
-    """The tree_audit cases taking tests_py_index that ast.walk an entry's tree, in their own body or a
+    """The tree_audit cases taking tests_py_index that call ast.walk or read a `.tree`, in their own body or a
     module-level function they reach."""
     functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
     return [fn.name for fn in _tree_audits(functions, True)
@@ -96,7 +109,11 @@ def test_every_tree_audit_case_sweeping_all_test_files_uses_the_shared_index_216
              for name in sweepers(entry.tree)]
     walking = [f"{entry.path.name}::{name}" for entry in tests_py_index if entry.path.name != "conftest.py"
                for name in walkers(entry.tree)]
-    assert walking == [], "tree_audit cases walk an entry's tree instead of querying the index:\n" + "\n".join(walking)
+    own_walks = [case for case in walking if case not in WALKING_EXEMPT]
+    stale_walks = [case for case in WALKING_EXEMPT if case not in walking]
+    assert (own_walks, stale_walks) == ([], []), (
+        "tree_audit cases walk an entry's tree instead of querying the index:\n" + "\n".join(own_walks)
+        + "\nwalking exemptions naming no such case:\n" + "\n".join(stale_walks))
     stray = [case for case in found if case not in EXEMPT]
     stale = [case for case in EXEMPT if case not in found]
     assert (stray, stale) == ([], []), (
