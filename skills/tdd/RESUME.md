@@ -17,6 +17,10 @@ any cycle of the resumed run starts. The **resume check** then finds an existing
 1. Do **not** re-plan — the ledger is the source of truth — except that the amended
    criteria are planned with `--planned` in sub-step 3. Re-write only the blind spec
    file (`.tdd/issue-<n>-spec.md`) since it is run scratch, not committed.
+   Here, ahead of sub-step 2's refactor clear and every later ledger commit: when the
+   committed ledger holds step lines beyond its plan commit and there is no
+   `.tdd/issue-<n>-added.md`, run `$S/ledger-growth.sh record-existing .tdd/issue-<n>.md` once, before
+   the resume's first ledger commit, and stage `.tdd/issue-<n>-added.md` in that same commit with the ledger.
 2. **Use the reset preflight already made, then ask for a pending refactor.** Whatever killed
    the previous run killed its leaf too, at whatever point the run had reached — a usage
    limit takes the conductor and every leaf together — so a resumed worktree may carry
@@ -70,9 +74,6 @@ any cycle of the resumed run starts. The **resume check** then finds an existing
    --planned, stays `⟦added⟧` and counts. A conductor never sets or raises `VERI_STEP_GROWTH`,
    `REVISE_BUDGET`, `VERI_REFACTOR_BUDGET`, `VERI_STUCK_RETRIES` or `VERI_NO_VERDICT_RETRIES`
    mid-run, in its environment or in a scratch helper, and a budget it cannot fit inside is a bail.
-   When the committed ledger holds step lines beyond its plan commit and there is no
-   `.tdd/issue-<n>-added.md`, run `$S/ledger-growth.sh record-existing .tdd/issue-<n>.md` once, before
-   the resume's first ledger commit, and stage `.tdd/issue-<n>-added.md` in that same commit with the ledger.
 4. Post a `### ▶️ Resuming` comment naming that step and, when `$stray` is non-empty, the
    paths it lists, said as what they are: the stray work sub-step 2's reset discarded, seen
    by no verifier and now gone. Mark the pick-up in the log —
