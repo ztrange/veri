@@ -1137,3 +1137,41 @@ def test_2195_a_full_run_started_with_veri_test_lock_0_starts_its_suites_at_once
     codes = (first.wait(timeout=30), second.wait(timeout=30))
     assert (started_while_first_held, codes) == (True, (0, 0))
     assert "waiting" not in (tmp_path / "B.err").read_text()
+
+
+@pytest.mark.process("two launcher children run as full runs sharing one home, the first SIGKILLed while it holds the lock")
+@pytest.mark.timeout(60)
+def test_2195_a_full_run_started_after_the_holder_was_sigkilled_takes_the_lock_over_without_waiting_and_runs_its_suites(tmp_path):
+    import signal
+    import subprocess
+    import time
+
+    scripts = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    child = LOCK_CHILD % (scripts, os.path.join(scripts, "veri"))
+    home, marks, release = tmp_path / "home", tmp_path / "marks", tmp_path / "release"
+    for directory in (home, marks, tmp_path / "treeA", tmp_path / "treeB"):
+        directory.mkdir()
+    env = dict(os.environ, HOME=str(home), VERI_PYTEST_IMPORTABLE="1", VERI_PYTEST_TIMEOUT_IMPORTABLE="1", VERI_PYTEST_XDIST_IMPORTABLE="1")
+
+    def launch(name):
+        err = open(tmp_path / (name + ".err"), "w")
+        return subprocess.Popen([sys.executable, "-c", child, name, str(marks), str(release)],
+                                cwd=tmp_path / ("tree" + name), env=env, stdout=subprocess.DEVNULL, stderr=err)
+
+    def until(done):
+        deadline = time.monotonic() + 15
+        while not done() and time.monotonic() < deadline:
+            time.sleep(0.05)
+
+    first = launch("A")
+    until(lambda: (marks / "A-started").exists())
+    first.send_signal(signal.SIGKILL)
+    first.wait(timeout=30)
+    second = launch("B")
+    until(lambda: (marks / "B-started").exists())
+    started = (marks / "B-started").exists()
+    if not started:
+        second.kill()
+    code = second.wait(timeout=30)
+    assert (started, code) == (True, 0)
+    assert "waiting" not in (tmp_path / "B.err").read_text()
