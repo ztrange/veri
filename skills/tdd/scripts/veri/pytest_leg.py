@@ -112,6 +112,8 @@ def main(argv):
         with tempfile.TemporaryDirectory(prefix="veri-pytest-") as run:
             base = os.path.join(run, "base")
             os.mkdir(base)
+            with open(os.path.join(run, "pid"), "w") as record:
+                record.write("%d\n" % os.getpid())
             if workers:
                 count = worker_count(workers)
             else:
