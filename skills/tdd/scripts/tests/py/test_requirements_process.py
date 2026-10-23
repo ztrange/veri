@@ -148,10 +148,11 @@ def test_claims_on_a_unit_whose_table_rows_run_straight_into_a_fence_then_a_x_y_
 
 
 @pytest.mark.process("requirements.sh claims run as a script")
-def test_claims_on_a_unit_with_a_fenced_code_block_holding_a_heading_line_before_its_table_exits_0_and_prints_the_tables_rows_1978(tmp_path):
+@pytest.mark.parametrize("fence", ["```", "~~~"])
+def test_claims_on_a_unit_with_a_fenced_code_block_holding_a_heading_line_before_its_table_exits_0_and_prints_the_tables_rows_1978(tmp_path, fence):
     body = table(ROW)
     head, rest = body.split("\n", 1)
-    claims_accepted_printing_only_the_rows(tmp_path, head + "\n\n```\n" + H + " x\n```\n" + rest)
+    claims_accepted_printing_only_the_rows(tmp_path, head + "\n\n" + fence + "\n" + H + " x\n" + fence + "\n" + rest)
 
 
 @pytest.mark.process("requirements.sh claims run as a script")
