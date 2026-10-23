@@ -70,6 +70,23 @@ def _exists(case):
     return titles.pop() if len(titles) == 1 else None
 
 
+def _fixture(report):
+    for name in _named_cases(report):
+        if name.startswith("test_"):
+            continue
+        helper = re.compile(r"^def %s\(" % re.escape(name), re.M)
+        for root, dirs, files in os.walk("."):
+            dirs[:] = [d for d in dirs if d not in SKIPPED]
+            for file in files:
+                if not is_test_file(file):
+                    continue
+                path = os.path.join(root, file)
+                with open(path, encoding="utf-8", errors="replace") as handle:
+                    if helper.search(handle.read()):
+                        return os.path.normpath(path), name
+    return None
+
+
 def _lines_with(report, prefix):
     with open(report, encoding="utf-8", errors="replace") as handle:
         return [l for l in handle.read().splitlines() if l.startswith(prefix)]
@@ -190,6 +207,10 @@ def main(argv):
     case = None if rerouted else route(argv[0], argv[1])
     if case is None and len(older) == 1:
         case = older[0]
+    fixture = None if case is not None else _fixture(argv[0])
+    if fixture is not None:
+        write(sys.stdout, "fixture %s %s" % fixture)
+        return 0
     if case is None:
         write(sys.stdout, "revise")
         return 3

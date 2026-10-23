@@ -1835,3 +1835,22 @@ def test_main_1977_prints_revise_when_the_step_reroute_event_follows_a_line_of_t
         wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
+
+
+def test_main_2172_prints_fixture_with_the_test_file_path_when_a_wrong_test_names_a_python_helper_with_no_test_prefix(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "backend" / "tests"
+    suite.mkdir(parents=True)
+    (suite / "test_router.py").write_text(
+        "def admin_on_clock(client):\n    client.post('/admin/password')\n\n"
+        "def test_session_expires():\n    pass\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: `admin_on_clock` sets a password without the injected clock\n")
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "test_session_expires"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "fixture backend/tests/test_router.py admin_on_clock\n")
