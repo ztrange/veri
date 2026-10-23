@@ -7,7 +7,8 @@ import pytest
 def opens_events_jsonl(source):
     for call in ast.walk(ast.parse(source)):
         if isinstance(call, ast.Call) and (
-                getattr(call.func, "id", None) == "open" or getattr(call.func, "attr", None) == "open"
+                getattr(call.func, "id", None) == "open"
+                or getattr(call.func, "attr", None) in ("open", "read_text", "read_bytes")
         ) and any(
                 isinstance(node, ast.Constant) and isinstance(node.value, str)
                 and node.value.endswith("events.jsonl")
