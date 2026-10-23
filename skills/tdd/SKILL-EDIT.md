@@ -13,3 +13,9 @@ On exit 2 (a bad argument, budget or heading, or no answer), bail at once as a s
 A killed or stuck author leaf is still retried under `VERI_STUCK_RETRIES` by the `supervise.sh` launch inside the runner, before that exit 2 reaches the conductor.
 
 A resumed run redoes an unfinished skill-edit step from its start, with its budget reset.
+
+For a skill-edit step whose ledger line carries `⟦added⟧`, run `$S/skill-edit-step.sh` with `--added` and the step's text, before the issue body and the unit.
+
+The refusal holds: such a step whose grade passes before any author ran gets exit 2 and is bailed, never ticked.
+
+The step's own text never reaches the author or the grader.

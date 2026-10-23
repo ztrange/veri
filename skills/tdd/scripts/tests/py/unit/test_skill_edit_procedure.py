@@ -55,3 +55,15 @@ def test_skill_edit_md_names_the_issue_body_file_and_the_gh_api_command_that_wri
         "the issue body file is never produced before skill-edit-step.sh runs"
     handed = next((s for s in _sentences(text) if "skill-edit-step.sh" in s and ".tdd/issue-<n>-body" in s), "")
     assert handed, "SKILL-EDIT.md never hands skill-edit-step.sh the issue body path"
+
+
+def test_skill_edit_md_runs_added_step_with_added_flag_and_text_refusing_a_pass_before_any_author_with_exit_2_and_a_bail_2063():
+    sentences = _sentences(DOC.read_text(encoding="utf-8"))
+    run = next((s for s in sentences if "--added" in s and "⟦added⟧" in s), "")
+    assert run, "SKILL-EDIT.md never runs skill-edit-step.sh with --added for an ⟦added⟧ step"
+    assert "text" in run, "the --added run never hands the step's text"
+    refusal = next((s for s in sentences if "refus" in s and "exit 2" in s and "bail" in s and "never ticked" in s), "")
+    assert refusal, "SKILL-EDIT.md never states that an ⟦added⟧ step graded PASS before any author ran exits 2 and is bailed, never ticked"
+    assert "grade" in refusal and "author" in refusal, "the refusal never names the grade passing before any author ran"
+    reach = next((s for s in sentences if "never reaches" in s and "author" in s and "grader" in s), "")
+    assert reach, "SKILL-EDIT.md never states the step's own text never reaches the author or the grader"
