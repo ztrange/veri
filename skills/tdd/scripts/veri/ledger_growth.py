@@ -68,9 +68,16 @@ def record_existing(ledger):
         print(f"ledger-growth.sh: {os.path.basename(added)} already exists", file=sys.stderr)
         return 2
     directory = os.path.dirname(os.path.abspath(ledger))
-    sha = plan_sha(git_out(directory, "log", "--format=%H %s"))
-    planned = set(step_texts(git_out(directory, "show", f"{sha}:./{os.path.basename(ledger)}")))
-    steps = step_texts(read_ledger(ledger))
+    try:
+        sha = plan_sha(git_out(directory, "log", "--format=%H %s"))
+        if sha is None:
+            print("ledger-growth.sh: no plan commit in the ledger's history", file=sys.stderr)
+            return 2
+        planned = set(step_texts(git_out(directory, "show", f"{sha}:./{os.path.basename(ledger)}")))
+        steps = step_texts(read_ledger(ledger))
+    except (OSError, subprocess.CalledProcessError) as error:
+        print(f"ledger-growth.sh: cannot read {ledger}: {error}", file=sys.stderr)
+        return 2
     with open(added, "wb") as f:
         f.write("".join(f"- [ ] {step}\n" for step in steps if step not in planned)
                 .encode(errors="surrogateescape"))

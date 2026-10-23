@@ -61,3 +61,36 @@ def test_2213_record_existing_refuses_when_the_added_file_already_exists_and_lea
     added.write_bytes(existing)
     code, _, err = run_cli(ledger_growth, ["record-existing", str(ledger)], cwd=repo)
     assert (code, added.read_bytes(), "issue-42-added.md" in err) == (2, existing, True)
+
+
+@pytest.mark.process("git")
+def test_2213_record_existing_exits_2_naming_the_cause_and_writes_nothing_when_the_history_holds_no_plan_commit(
+        tmp_path, run_cli):
+    ledger_growth = importlib.import_module("veri.ledger_growth")
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    ledger = repo / ".tdd" / "issue-42.md"
+    ledger.write_text("# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "chore: a ledger without a plan commit (#42)")
+    code, _, err = run_cli(ledger_growth, ["record-existing", str(ledger)], cwd=repo)
+    added = repo / ".tdd" / "issue-42-added.md"
+    assert (code, added.exists(), "no plan commit" in err) == (2, False, True)
+
+
+@pytest.mark.process("git")
+def test_2213_record_existing_exits_2_naming_the_cause_and_writes_nothing_when_the_ledger_cannot_be_read(
+        tmp_path, run_cli):
+    ledger_growth = importlib.import_module("veri.ledger_growth")
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    ledger = repo / ".tdd" / "issue-42.md"
+    ledger.write_text("# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "plan: scope #42 (#42)")
+    ledger.unlink()
+    code, _, err = run_cli(ledger_growth, ["record-existing", str(ledger)], cwd=repo)
+    added = repo / ".tdd" / "issue-42-added.md"
+    assert (code, added.exists(), "cannot read" in err) == (2, False, True)
