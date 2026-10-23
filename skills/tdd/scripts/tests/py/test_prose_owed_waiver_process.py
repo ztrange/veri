@@ -165,3 +165,22 @@ def test_2101_on_a_run_branch_a_unit_whose_skill_edit_step_is_already_checked_is
                          capture_output=True, text=True)
 
     assert (ran.returncode != 0, "skills/demo/SKILL.md" in ran.stdout) == (True, True), ran.stderr
+
+
+@pytest.mark.process("git")
+def test_2101_on_a_run_branch_a_second_stale_unit_no_pending_skill_edit_step_names_is_still_owed_and_the_waived_one_is_not(tmp_path):
+    subprocess.run(["git", "init", "-q", "-b", "tdd/2101-prose-owed-py-s-branch-gate"], cwd=tmp_path, check=True)
+    for name in ("demo", "other"):
+        (tmp_path / "skills" / name).mkdir(parents=True)
+        (tmp_path / "skills" / name / "SKILL.md").write_text("The widget is blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## skills/demo/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n\n"
+        "## skills/other/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-2101.md").write_text(
+        "- [ ] ⟦added⟧ ⟦skill-edit⟧ regrade `skills/demo/SKILL.md`\n")
+
+    ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
+                         capture_output=True, text=True)
+
+    assert (ran.returncode != 0, ran.stdout.split()) == (True, ["skills/other/SKILL.md"]), ran.stderr
