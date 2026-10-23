@@ -160,6 +160,14 @@ def test_claims_on_a_unit_with_a_prose_a_b_line_after_its_table_exits_0_and_prin
 
 
 @pytest.mark.process("requirements.sh claims run as a script")
+@pytest.mark.parametrize("sep", ["\x0c", "\x85", "\u2028"])
+def test_claims_on_a_unit_with_a_line_holding_a_line_break_character_before_a_fenced_heading_line_exits_0_and_prints_the_tables_rows_1978(tmp_path, sep):
+    body = table(ROW)
+    head, rest = body.split("\n", 1)
+    claims_accepted_printing_only_the_rows(tmp_path, head + "\n\nbefore" + sep + "after\n```\n" + H + " x\n```\n" + rest.lstrip("\n"))
+
+
+@pytest.mark.process("requirements.sh claims run as a script")
 def test_claims_on_a_heading_whose_only_table_is_key_value_without_leading_pipes_exits_2_prints_nothing_on_stdout_and_names_the_heading_line_on_stderr(tmp_path):
     claims_refused_naming_line(
         tmp_path, f"# Requirements\n\n{H} {UNIT}\n\nKey | Value\n----|------\nA1  | Says one thing.\n", 3)

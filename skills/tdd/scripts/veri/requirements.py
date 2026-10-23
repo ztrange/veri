@@ -48,9 +48,14 @@ def starts_table(line):
     return line.startswith("|") or table_cells(line) == COLUMNS
 
 
+def fence_flags(lines):
+    text = re.sub("[\x0b\x0c\x1c-\x1e\x85\u2028\u2029\r]", " ", "\n".join(lines))
+    return fenced_lines(text)
+
+
 def headings(path):
     lines = read_lines(path)
-    fenced = fenced_lines("\n".join(lines))
+    fenced = fence_flags(lines)
     return [l[3:] for l, f in zip(lines, fenced) if l.startswith("## ") and not f]
 
 
@@ -88,7 +93,7 @@ def claims(path, unit):
     inunit = intable = skip = done = tabled = False
     head = 0
     lines = read_lines(path)
-    fenced = fenced_lines("\n".join(lines)) + [False]
+    fenced = fence_flags(lines) + [False]
     for number, line in enumerate(lines, 1):
         if fenced[number - 1]:
             if inunit and intable:
