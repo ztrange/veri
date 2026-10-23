@@ -644,8 +644,10 @@ three times over branches its ledger pinned on later lines.
    **Every ledger commit after this plan commit is checked for growth.** Before it is made, run
    `$S/ledger-growth.sh <plan-ledger-file> .tdd/issue-<n>.md`, the plan-ledger being the ledger as this
    commit holds it (`git show <plan-sha>:.tdd/issue-<n>.md` into a temp file). Each step line the plan
-   commit did not hold must carry `⟦added⟧` and have a matching `step-added` record written by
-   `add-ledger-step.sh` itself, never one the conductor wrote by hand with `event.sh`; and the
+   commit did not hold must have a matching `step-added` record written by
+   `add-ledger-step.sh` itself, never one the conductor wrote by hand with `event.sh`, and must
+   carry `⟦added⟧` unless that record shows it was inserted as a `⟦suite-repair⟧` or
+   `⟦ci-repair⟧` step or with `--planned`; and the
    `⟦added⟧` lines never exceed `VERI_STEP_GROWTH`. A line that fails either check — exit 1, the
    line named on stderr — is **a bail with cause `step-added-off-route`** (a process failure; see
    `<base directory>/BAIL.md`): the plan grew by a route other than `add-ledger-step.sh`, and no
