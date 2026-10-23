@@ -207,3 +207,11 @@ def test_requirements_sh_with_no_arguments_exits_2_prints_nothing_on_stdout_and_
     code, out, err = run()
     assert (code, out) == (2, "")
     assert err.startswith("usage:") and "requirements.sh" in err
+
+
+@pytest.mark.process("requirements.sh units run as a script")
+@pytest.mark.parametrize("fence", ["```", "~~~"])
+def test_units_lists_a_unit_once_when_a_fenced_block_holds_its_heading_line_1978(tmp_path, fence):
+    path = tmp_path / "r.md"
+    path.write_text(table(ROW) + "\n" + fence + "\n" + H + " " + UNIT + "\n" + fence + "\n")
+    assert run("units", str(path)) == (0, UNIT + "\n", "")
