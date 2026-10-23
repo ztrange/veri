@@ -148,6 +148,13 @@ def test_claims_on_a_unit_whose_table_rows_run_straight_into_a_fence_then_a_x_y_
 
 
 @pytest.mark.process("requirements.sh claims run as a script")
+def test_claims_on_a_unit_with_a_fenced_code_block_holding_a_heading_line_before_its_table_exits_0_and_prints_the_tables_rows_1978(tmp_path):
+    body = table(ROW)
+    head, rest = body.split("\n", 1)
+    claims_accepted_printing_only_the_rows(tmp_path, head + "\n\n```\n" + H + " x\n```\n" + rest)
+
+
+@pytest.mark.process("requirements.sh claims run as a script")
 def test_claims_on_a_unit_with_a_prose_a_b_line_after_its_table_exits_0_and_prints_only_the_tables_rows(tmp_path):
     claims_accepted_printing_only_the_rows(tmp_path, table(ROW) + "\na | b\n")
 

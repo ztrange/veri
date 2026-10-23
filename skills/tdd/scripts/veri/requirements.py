@@ -3,6 +3,11 @@ import os
 import re
 import sys
 
+try:
+    from .markdown_sections import fenced_lines
+except ImportError:
+    from markdown_sections import fenced_lines
+
 COLUMNS = ["ID", "Requirement", "Why"]
 USAGE = "usage: requirements.sh units <file> | claims <file> <unit>"
 
@@ -78,20 +83,21 @@ def fail(path, number, msg):
 def claims(path, unit):
     rows = []
     seen = set()
-    inunit = intable = skip = done = fenced = tabled = False
+    inunit = intable = skip = done = tabled = False
     head = 0
-    for number, line in enumerate(read_lines(path), 1):
-        if line.startswith("## "):
+    lines = read_lines(path)
+    fenced = fenced_lines("\n".join(lines)) + [False]
+    for number, line in enumerate(lines, 1):
+        if fenced[number - 1]:
+            if inunit and intable:
+                intable, done = False, True
+        elif line.startswith("## "):
             inunit, intable, done = line[3:] == unit, False, False
             if inunit:
                 head, tabled = number, False
         elif not inunit:
             continue
-        elif line.startswith("```"):
-            fenced = not fenced
-            if intable:
-                intable, done = False, True
-        elif fenced or re.match(r" {4}|\t", line):
+        elif re.match(r" {4}|\t", line):
             continue
         elif done and starts_table(line):
             fail(path, number, "second table")

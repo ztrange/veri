@@ -1,6 +1,6 @@
 # Plan for #1978 — grade-prose and requirements read sections through the fence-aware reader, so a fenced heading no longer ends a section
 
-- [ ] `requirements.sh claims` on a unit whose section holds a backtick or tilde fence containing a `## <heading>` line keeps reading that unit past the fence: the unit's table rows after the fence are printed, and the fenced line ends nothing ⟦criterion 1⟧
+- [x] `requirements.sh claims` on a unit whose section holds a backtick or tilde fence containing a `## <heading>` line keeps reading that unit past the fence: the unit's table rows after the fence are printed, and the fenced line ends nothing ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] `requirements.sh units` never lists a `## <heading>` line that sits inside a backtick or tilde fence as a unit of its own
 - [ ] `grade-prose.sh` grades a unit whose section holds a `~~~` fence containing a line starting with `#` as one section: the grader receives the fenced `#` line and the text after the fence, and the section ends at the next real heading of its level or above, never at the fenced line ⟦criterion 2⟧
 - [ ] `grade-prose.sh` treats a line indented four or more spaces that starts with backticks as text, not as a fence: a real heading after it still ends the graded section ⟦criterion 3⟧
