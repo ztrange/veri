@@ -116,3 +116,21 @@ def test_section_never_starts_or_ends_at_a_heading_inside_a_fence():
     assert markdown_sections.section(text, "## A") == [
         "## A", "a body", "```", "## B", "```", "more body",
     ]
+
+
+def test_fenced_lines_treats_a_fence_line_indented_one_to_three_spaces_as_a_fence_line():
+    markdown_sections = importlib.import_module("veri.markdown_sections")
+    text = (
+        " ```\n"
+        "## in an indented fence\n"
+        "   ```\n"
+        "after\n"
+        "  ~~~\n"
+        "## in an indented tilde fence\n"
+        " ~~~\n"
+        "end\n"
+    )
+
+    assert markdown_sections.fenced_lines(text) == [
+        True, True, True, False, True, True, True, False,
+    ]
