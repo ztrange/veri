@@ -38,13 +38,15 @@ def _live(run_dir, issue):
     return bool(_is_conductor(command_line(parent_pid(pid)), issue))
 
 
-def _launch_cause(run_dir, issue):
-    tdd = os.path.join(run_dir, ".tdd")
-    path = os.path.join(tdd, "conductor-%s.log" % issue)
-    if not os.path.isfile(path):
-        path = os.path.join(".tdd", "conductor-%s.log" % issue)
-    if not os.path.isfile(path):
-        return None
+def conductor_log(run_dir, issue):
+    own = os.path.join(run_dir, ".tdd", "conductor-%s.log" % issue)
+    if os.path.isfile(own):
+        return own
+    return os.path.join(".tdd", "conductor-%s.log" % issue)
+
+
+def latest_result(path):
+    """(launched, the latest launch's result record or None) for the conductor log at path."""
     result = None
     launched = False
     for r in read_events(path):
@@ -53,6 +55,15 @@ def _launch_cause(run_dir, issue):
             launched = True
         elif r.get("type") == "result":
             result = r
+    return launched, result
+
+
+def _launch_cause(run_dir, issue):
+    tdd = os.path.join(run_dir, ".tdd")
+    path = conductor_log(run_dir, issue)
+    if not os.path.isfile(path):
+        return None
+    launched, result = latest_result(path)
     if result is None:
         return "killed" if launched else None
     if "limit" in result.get("result", ""):
