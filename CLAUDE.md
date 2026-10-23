@@ -136,6 +136,11 @@ legs leave free, at least 1 (#2100): each leg registers its pid and count under
 suite: pytest or pytest_timeout not importable (stderr names `make install-dev`), or Python
 older than the 3.12 floor.
 
+At most one full `make test` runs per machine (#2195): a second waits, naming the holder's pid and working tree on stderr,
+before its suites start, so the wait counts toward no per-case timeout. The lock is an `flock` held for the whole run, so a dead
+holder's lock is taken over; a run nested under the holder (`PYTEST_LEG_FULL_LOCK_HOLDER`) skips it, and `make unit` never waits.
+`VERI_TEST_LOCK=0` turns the lock off, and the launcher sets it in a verifier's environment.
+
 **Pytest case sizes** (#1259, #1513): an unmarked case is small — `git` and `python3` refuse
 on its PATH (save `python3` on a `veri/` module). A case that starts a real process carries
 `@pytest.mark.process("<boundary>")`; one that lists a repo directory outside its `tmp_path`
