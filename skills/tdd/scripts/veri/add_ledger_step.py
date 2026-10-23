@@ -85,8 +85,12 @@ def added_since_last_resume(path, steps):
     return next((line for line in found if line), False)
 
 
+def sibling(path, suffix):
+    return re.sub(r"\.md$", "", path) + suffix
+
+
 def spec_path(path):
-    return re.sub(r"\.md$", "", path) + "-spec.md"
+    return sibling(path, "-spec.md")
 
 
 def spec_criteria(path):
@@ -121,7 +125,7 @@ def write_ledger(path, text, appended=""):
 
 
 def added_file(path):
-    return re.sub(r"\.md$", "", path) + "-added.md"
+    return sibling(path, "-added.md")
 
 
 def record_insertions(path, steps):
