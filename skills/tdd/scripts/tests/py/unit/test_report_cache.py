@@ -374,3 +374,29 @@ def test_refresh_with_a_stray_temp_file_left_in_tdd_exits_0_and_writes_a_complet
 
     written = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
     assert (code, [i["number"] for i in written["issues"]]) == (0, [8])
+
+
+def test_refresh_with_a_truncated_cache_names_it_on_stderr_rebuilds_with_a_full_fetch_and_exits_0_2160(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    cache = tmp_path / ".tdd" / "report-cache.json"
+    cache.write_text('{"fetched_at": "2026-10-20T00:00:00Z", "issues": [{"number": 7, "tit')
+    issues = [{"number": 8, "title": "new", "state": "OPEN", "labels": [], "closedAt": None,
+               "updatedAt": "2026-10-21T10:00:00Z"}]
+    searched = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        searched.append("--search" in args)
+        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    assert (code, "report-cache.json" in err and "rebuilding" in err, searched) == (0, True, [False])
+    assert [i["number"] for i in json.loads(cache.read_text())["issues"]] == [8]
