@@ -203,13 +203,16 @@ def _read_existing(names):
 
 def _tree():
     tree = {}
+    present = set()
     for root, dirs, files in os.walk("."):
         dirs[:] = [d for d in dirs if d not in (".git", ".tdd")]
+        present.update(os.path.relpath(os.path.join(root, d)) for d in dirs)
         for name in files:
             path = os.path.relpath(os.path.join(root, name))
+            present.add(path)
             with open(path, "rb") as f:
                 tree[path] = f.read()
-    return tree
+    return tree, present
 
 
 def main(argv):
@@ -266,13 +269,14 @@ def main(argv):
             break
         _attempt[0] = attempt
         _pins[0] = pins
-        tree = _tree()
+        tree, present = _tree()
         if _author(unit, path, said):
             return 2
         graded, said = _guard(unit, base, issue, pins)
         if graded == 1:
             _restore(tree, *[n for n in said.splitlines()
-                             if n in tree or not {".git", ".tdd"} & set(os.path.normpath(n).split(os.sep))])
+                             if n in tree or (os.path.normpath(n) not in present
+                                              and not {".git", ".tdd"} & set(os.path.normpath(n).split(os.sep)))])
         if not graded:
             graded, said = _grade(path, unit)
         if graded == 1:
