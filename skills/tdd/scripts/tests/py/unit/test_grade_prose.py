@@ -769,3 +769,32 @@ def test_a_first_reply_whose_grades_block_names_one_requirement_id_twice_relaunc
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
     assert (code, len(launched)) == (0, 2), (code, len(launched), err)
+
+
+def test_a_first_reply_whose_grades_block_names_an_id_the_requirements_list_does_not_hold_relaunches_the_grader_and_a_well_formed_second_reply_exits_0_2300(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / ".tdd").mkdir()
+    replies = iter(['{"type":"result","subtype":"success","is_error":false,"result":'
+                    '"BEGIN GRADES\\nA1: PASS - blue\\nZ9: PASS - blue\\nVERDICT: PASS\\nEND GRADES"}\n',
+                    '{"type":"result","subtype":"success","is_error":false,"result":'
+                    '"BEGIN GRADES\\nA1: PASS - blue\\nVERDICT: PASS\\nEND GRADES"}\n'])
+    launched = []
+
+    def launch(argv, *a, **k):
+        launched.append(argv)
+        (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
+        return subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(subprocess, "run", launch)
+
+    code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+
+    assert (code, len(launched)) == (0, 2), (code, len(launched), err)
