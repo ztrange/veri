@@ -5,6 +5,7 @@ import os
 import re
 import sys
 import tempfile
+import time
 
 import github
 
@@ -46,15 +47,25 @@ def lane(comments):
     return last_metrics_field(comments, r"^Lane: (\S+)")
 
 
+def read_page(*args):
+    attempts = int(os.environ.get("VERI_PAGE_RETRIES", "3"))
+    for attempt in range(attempts):
+        try:
+            return json.loads(github.gh_issue_list(*args))
+        except github.NoAnswer:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(float(os.environ.get("VERI_PAGE_RETRY_SLEEP", "2")))
+
+
 def fetch_pages():
-    first = json.loads(github.gh_issue_list("--state", "all", "--limit", str(PAGE_SIZE), "--json", FIELDS))
+    first = read_page("--state", "all", "--limit", str(PAGE_SIZE), "--json", FIELDS)
     if len(first) < PAGE_SIZE:
         return first
     seen = {}
     search = "sort:updated-desc"
     while True:
-        page = json.loads(github.gh_issue_list(
-            "--state", "all", "--limit", str(PAGE_SIZE), "--json", FIELDS, "--search", search))
+        page = read_page("--state", "all", "--limit", str(PAGE_SIZE), "--json", FIELDS, "--search", search)
         fresh = [issue for issue in page if issue["number"] not in seen]
         seen.update({issue["number"]: issue for issue in fresh})
         if len(page) < PAGE_SIZE or not fresh:
