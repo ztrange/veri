@@ -59,14 +59,18 @@ def read_page(*args):
             time.sleep(float(tunables.read("VERI_PAGE_RETRY_SLEEP", "2")))
 
 
+def read_issue_page(*search):
+    return read_page("--state", "all", "--limit", str(PAGE_SIZE), "--json", FIELDS, *search)
+
+
 def fetch_pages():
-    first = read_page("--state", "all", "--limit", str(PAGE_SIZE), "--json", FIELDS)
+    first = read_issue_page()
     if len(first) < PAGE_SIZE:
         return first
     seen = {}
     search = "sort:updated-desc"
     while True:
-        page = read_page("--state", "all", "--limit", str(PAGE_SIZE), "--json", FIELDS, "--search", search)
+        page = read_issue_page("--search", search)
         fresh = [issue for issue in page if issue["number"] not in seen]
         seen.update({issue["number"]: issue for issue in fresh})
         if len(page) < PAGE_SIZE or not fresh:
