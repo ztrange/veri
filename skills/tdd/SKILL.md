@@ -573,8 +573,9 @@ three times over branches its ledger pinned on later lines.
 
    An **interface change** — a production interface replaced by a new one, its callers moved
    across, the old one removed (ADR 0030) — is planned as one step listing the phases it
-   needs, in the order they run: `- [ ] <criterion> ⟦phases: expand, migrate, contract-a,
-   contract-b⟧ ⟦criterion k⟧`. A phase with nothing to do is left out of the list.
+   needs, in the order they run: `- [ ] <criterion> ⟦phases: expand, cover-new, migrate,
+   contract-a, contract-b⟧ ⟦criterion k⟧`. `cover-new` is listed for every interface change
+   that adds a new interface; a phase with nothing to do is left out of the list.
    When the criterion also asks for a test case (a case that refuses a sibling script's
    start at the process boundary, say), plan that case as a separate Red/Green step tagged
    with the same `⟦criterion k⟧`, so the case never exists only inside the phased step.
@@ -1460,9 +1461,14 @@ The whole step spends one refactor of the budget, not one per phase: wherever
 
 The freeze check runs on the developer leaf's commit, before the verifier. An expand, migrate
 or contract-b commit runs `$S/transform-touches-tests.sh <base-sha>`: exit 1 rejects it, tests
-being frozen there. A contract-a commit runs `$S/production-frozen.sh <base-sha>`: exit 1
-rejects it, production being frozen there. Either rejection is revised as a REJECT is; exit 2
-**bails** as a system failure.
+being frozen there. A cover-new or contract-a commit runs `$S/production-frozen.sh <base-sha>`:
+exit 1 rejects it, production being frozen there. Either rejection is revised as a REJECT is;
+exit 2 **bails** as a system failure.
+
+A cover-new phase adds cases that call the new interface directly, and its PASS is accepted
+only once those cases pass against the expand commit and go red under a mutation of the new
+interface's behaviour. A migrate phase does not start until the step's cover-new phase has
+passed: `next-phase` never hands over migrate while a listed cover-new is unmarked.
 
 A contract-a phase's PASS is accepted only once the conductor's own run of
 `$S/mutation-parity.sh <pairs-table>` on that phase's pairs table exits 0; exit 1 is a
