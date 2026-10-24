@@ -15,8 +15,12 @@ def main(argv):
             sys.stderr.write("park-issue.sh: bad %s\n" % name)
             return 2
     pr = "PR: %s\n" % argv[3] if len(argv) == 4 else ""
-    github.gh_label_ensure("parked")
-    github.gh_issue_add_label(number, "parked")
+    try:
+        github.gh_label_ensure("parked")
+        github.gh_issue_add_label(number, "parked")
+    except github.NoAnswer:
+        sys.stderr.write("park-issue.sh: no answer from gh to the label call\n")
+        return 2
     try:
         github.gh_issue_comment(number, "### ⏸ Parked\nCause: %s\n%sUnblock: %s\n" % (cause, pr, unblock))
     except github.NoAnswer:
