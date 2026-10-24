@@ -1,0 +1,2 @@
+### A `SUPERSEDED:` line of the form `` `<path>` “<title>” `` (backticked path, then the title in curly quotes) naming one existing case resolves to that case; pinned by a small in-process case in skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py ⟦criterion 1⟧
+- test-only | the two #2227 cases (double-quoted and curly-quoted title) repeat the same fixture and run; they could be one parametrized case or share a helper.
