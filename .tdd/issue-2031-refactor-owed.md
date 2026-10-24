@@ -7,3 +7,5 @@ applied | 3275bd33b4d049e880b5b0b8e8756bc2595ffa24 | share the "### ⏸ Parked" 
 - test-only | extract the repeated gh-stub setup (bin dir, `gh` stub, log file, env) in test_park_issue_process.py into a shared helper or fixture
 ### `parked-issues.sh` reads every page of the parked listing (`gh_rest_list`'s back-to-back pages, read with `json_documents.items()`), so a parked issue served on the second page of the listing is printed; pinned by a case whose stub serves two pages of issues ⟦criterion 8⟧
 - test-only | extract the repeated gh-stub setup and `subprocess.run` call in `test_parked_issues_process.py` into one helper
+### When a parked issue's latest `### ⏸ Parked` comment lacks its `Cause:` line or its `Unblock:` line, `parked-issues.sh` exits 2 with stderr naming that issue, and the lines of the parked issues listed before it are still printed ⟦criterion 9⟧
+- the "no parked comment" and "lacks Cause or Unblock" refusals in parked_issues.py could share one helper that writes the stderr line and returns 2. Both lines are short, so it earns no transform.
