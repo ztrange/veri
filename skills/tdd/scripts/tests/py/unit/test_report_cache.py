@@ -830,3 +830,45 @@ def test_refresh_takes_its_page_retry_count_and_sleep_from_the_one_tunable_reade
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
     assert (code, len(calls)) == (2, 2)
+
+
+def test_refresh_with_no_cache_whose_first_page_fails_every_retry_at_100_fetches_it_again_at_a_smaller_limit_and_writes_the_full_cache_2279(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    monkeypatch.setenv("VERI_PAGE_RETRY_SLEEP", "0")
+    (tmp_path / ".git").mkdir()
+    everything = [
+        {"number": n, "title": "issue %d" % n, "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-10-%02dT%02d:00:00Z" % (1 + n // 24, n % 24)}
+        for n in range(1, 121)
+    ]
+    limits = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] != ["gh", "issue", "list"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        limit = int(args[args.index("--limit") + 1])
+        limits.append(limit)
+        if len(limits) > 100:
+            raise AssertionError("retried without bound")
+        if limit > 50:
+            return subprocess.CompletedProcess(args, 1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
+        pool = sorted(everything, key=lambda i: i["updatedAt"], reverse=True)
+        search = args[args.index("--search") + 1] if "--search" in args else ""
+        for bound in search.split():
+            if bound.startswith("updated:<="):
+                pool = [i for i in pool if i["updatedAt"] <= bound[len("updated:<="):]]
+            elif bound.startswith("updated:<"):
+                pool = [i for i in pool if i["updatedAt"] < bound[len("updated:<"):]]
+        return subprocess.CompletedProcess(args, 0, json.dumps(pool[:limit]), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    written = tmp_path / ".tdd" / "report-cache.json"
+    kept = sorted(i["number"] for i in json.loads(written.read_text())["issues"]) if written.exists() else []
+    assert (code, kept, limits[0]) == (0, list(range(1, 121)), 100)
