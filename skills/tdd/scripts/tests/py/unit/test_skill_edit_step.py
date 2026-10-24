@@ -828,3 +828,38 @@ def test_a_refused_attempts_edit_to_a_file_the_guard_names_is_restored_so_the_ne
     code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
 
     assert (code, (tmp_path / "stray_test.py").read_text()) == (0, "ORIGINAL = 1\n"), (code, err)
+
+
+def test_exhausted_author_attempts_exit_1_with_the_tree_as_before_the_run_requirements_list_included_2281(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is blue.\n")
+    (tmp_path / "stray_test.py").write_text("ORIGINAL = 1\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget hums. | because |\n")
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A2 | The widget glows. | light |\n")
+    before = {p.name: p.read_bytes() for p in tmp_path.iterdir()}
+
+    def author(*a):
+        (tmp_path / "unit.md").write_text("The widget hums.\n")
+        (tmp_path / "stray_test.py").write_text("EDITED = 1\n")
+        return 0
+
+    def guard(argv):
+        print("stray_test.py")
+        return 0
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A2: FAIL - dark\n"))
+    monkeypatch.setattr(skill_edit_step, "_author", author)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", guard)
+    monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(
+        run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""), PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
+
+    after = {p.name: p.read_bytes() for p in tmp_path.iterdir()}
+    assert (code, after) == (1, before), (code, err)
