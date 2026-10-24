@@ -3,3 +3,5 @@
 ### `merge-lock.sh holder` exits 1 when the lock's recorded pid is dead on this host, printing the record marked as a stale lock ⟦criterion 1⟧
 - merge_lock.py: split main() into per-verb functions once release is added (no duplication to remove yet)
 - test-only | extract the repeated repo+linked-worktree setup (init, empty commit, worktree add) in test_merge_lock.py into a fixture
+### `merge-lock.sh release` removes `.tdd/merge.lock` and exits 0 only when the caller (identified as `take` identifies it) is the recorded holder; a caller who is not the holder gets exit 1 with the lock left in place, and `release --force` removes the lock whoever holds it ⟦criterion 1⟧
+- test-only | extract the repeated repo+worktree setup in test_merge_lock.py into a fixture
