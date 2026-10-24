@@ -162,7 +162,8 @@ def main(argv):
             if "BEGIN GRADES" in reply:
                 ids = graded_ids(reply[reply.rindex("BEGIN GRADES"):])
                 if (len(set(ids)) == len(ids) and set(ids) <= set(wanted)
-                        and not BAD_GRADE.search(reply[reply.rindex("BEGIN GRADES"):])):
+                        and not BAD_GRADE.search(reply[reply.rindex("BEGIN GRADES"):])
+                        and not reply.partition("END GRADES")[2].strip()):
                     break
     finally:
         os.unlink(f.name)
