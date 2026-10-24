@@ -128,7 +128,7 @@ suites, or script run as a subprocess.
 `$VERI_VENV/bin/python3` (default `~/.veri-tools/venv`, from `make install-dev`; else PATH's
 `python3`). Admission rule: no process but the interpreter. Each case times out at 30 s
 (`VERI_PYTEST_TIMEOUT`, `@pytest.mark.timeout(n)`); the bytecode cache
-(`PYTHONPYCACHEPREFIX`) persists between runs, and a manifest of source hashes keeps a changed module,
+(`PYTHONPYCACHEPREFIX`, at `VERI_PYCACHE`, default `${TMPDIR:-/tmp}/veri-pycache-<uid>`) persists between runs, and a manifest of source hashes keeps a changed module,
 a same-second mutation included, from being served a stale `.pyc`: before importing, the leg drops
 every `.pyc` the manifest does not vouch for, and pytest-rewritten and `.opt-N` files always
 (#1127, #2054). Cases run across pytest-xdist
