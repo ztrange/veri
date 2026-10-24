@@ -171,3 +171,28 @@ def test_the_record_after_a_run_does_not_list_a_pyc_planted_after_the_check_with
     pytest_leg.record_bytecode_cache(str(prefix), run)
 
     assert pytest_leg.read_manifest(str(prefix)) == {}
+
+
+def test_the_record_after_a_run_leaves_out_a_source_modified_after_the_runs_start_and_lists_one_modified_before_it_2054(tmp_path, monkeypatch):
+    pytest_leg = importlib.import_module("veri.pytest_leg")
+    prefix = tmp_path / "prefix"
+    prefix.mkdir()
+    old = tmp_path / "old.py"
+    edited = tmp_path / "edited.py"
+    old.write_text("VALUE = 1\n")
+    edited.write_text("VALUE = 1\n")
+    an_hour_ago = time.time() - 3600
+    os.utime(old, (an_hour_ago, an_hour_ago))
+    os.utime(edited, (an_hour_ago, an_hour_ago))
+    monkeypatch.setattr(sys, "pycache_prefix", str(prefix))
+    old_pyc = importlib.util.cache_from_source(str(old))
+    edited_pyc = importlib.util.cache_from_source(str(edited))
+
+    run = pytest_leg.check_bytecode_cache(str(prefix))
+    for source, cfile in ((old, old_pyc), (edited, edited_pyc)):
+        py_compile.compile(str(source), cfile=cfile, doraise=True)
+        os.utime(cfile, (time.time() + 60, time.time() + 60))
+    os.utime(edited, (time.time() + 30, time.time() + 30))
+    pytest_leg.record_bytecode_cache(str(prefix), run)
+
+    assert sorted(pytest_leg.read_manifest(str(prefix))) == [old_pyc]
