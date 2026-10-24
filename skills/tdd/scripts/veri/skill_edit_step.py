@@ -91,6 +91,7 @@ def _move_table(unit, path):
 
 
 def _numbered(rows, have):
+    have = set(have)
     out = []
     for row in rows:
         cells = requirements.split_cells(row)
@@ -100,6 +101,7 @@ def _numbered(rows, have):
                       default=0)
             cells[1] = "%s%d" % (prefix, top + 1)
             row = "| " + " | ".join(cells[1:-1]) + " |"
+            have.add(cells[1])
         out.append(row)
     return out
 

@@ -615,3 +615,24 @@ def test_apply_gives_a_prefix_next_row_the_next_free_number_for_its_prefix_and_c
 
     ids = [row.split("\t")[0] for row in requirements.claims(str(tmp_path / "REQUIREMENTS.md"), "unit.md").splitlines()]
     assert ids == ["PL3", "PL7", "CY9", "PL8", "CY12"], ids
+
+
+def test_apply_numbers_two_next_rows_of_one_prefix_in_issue_order_as_max_plus_1_then_max_plus_2_2262(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| PL3 | The widget is blue. | because |\n"
+        "| PL7 | The widget is round. | shape |\n")
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| PL<next> | The widget is shiny. | gloss |\n"
+        "| PL<next> | The widget is heavy. | weight |\n")
+
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
+
+    rows = [line for line in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if line.startswith("| PL")]
+    assert [row.split(" | ")[0] for row in rows] == ["| PL3", "| PL7", "| PL8", "| PL9"], rows
+    assert ["shiny" in rows[2], "heavy" in rows[3]] == [True, True], rows
