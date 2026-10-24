@@ -412,6 +412,9 @@ def test_main_hands_a_verify_leaf_veri_test_lock_0_and_a_develop_leaf_no_such_va
         work.mkdir()
         monkeypatch.chdir(work)
         fake_leaf_launch(monkeypatch)
+        if name == "verify-red":
+            for variable, value in checked_step(work).items():
+                monkeypatch.setenv(variable, value)
         code = supervise.main([name, "sh", "-c", 'printf "%s" "${VERI_TEST_LOCK-unset}"'])
         out, _ = capsysbinary.readouterr()
         seen[name] = (code, out)
