@@ -270,9 +270,7 @@ def main(argv):
         if not graded:
             graded, said = _grade(path, unit)
         if graded == 1:
-            for name, content in before.items():
-                with open(name, "wb") as f:
-                    f.write(content)
+            _restore(before, *before)
     if graded == 1:
         _restore(snapshot, path, unit, graded_file)
         sys.stdout.write(said)
