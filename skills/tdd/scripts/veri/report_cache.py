@@ -8,6 +8,7 @@ import tempfile
 import time
 
 import github
+import tunables
 
 USAGE = "usage: report-cache.sh refresh\n"
 PAGE_SIZE = 100
@@ -48,14 +49,14 @@ def lane(comments):
 
 
 def read_page(*args):
-    attempts = int(os.environ.get("VERI_PAGE_RETRIES", "3"))
+    attempts = int(tunables.read("VERI_PAGE_RETRIES", "3"))
     for attempt in range(attempts):
         try:
             return json.loads(github.gh_issue_list(*args))
         except github.NoAnswer:
             if attempt == attempts - 1:
                 raise
-            time.sleep(float(os.environ.get("VERI_PAGE_RETRY_SLEEP", "2")))
+            time.sleep(float(tunables.read("VERI_PAGE_RETRY_SLEEP", "2")))
 
 
 def fetch_pages():
