@@ -959,7 +959,7 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
         "suite-repair": (0, True, True, True, False),
         "replaces-case unreadable": (2, b"", True, [0]),
         "suite-repair unreadable": (2, b"", True, [0, 0]),
-        "#671 byte-identity": [(0, "2406326255 7552"), (0, "1847091654 7276")],
+        "#671 byte-identity": [(0, "2434469828 7831"), (0, "2428881744 7555")],
         "#703 include": (0, f"before outer inner judges {testpath} end after\n".encode(), b""),
         "#703 missing partial": (2, b"", True),
         "#703 self-including partial": (2, b"", True),
