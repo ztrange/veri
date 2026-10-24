@@ -693,3 +693,23 @@ def test_an_issue_row_whose_id_is_neither_prefix_digits_nor_prefix_next_exits_2_
     code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
 
     assert (code, "PLsoon" in err, (tmp_path / "REQUIREMENTS.md").read_text()) == (2, True, original), (code, err)
+
+
+def test_apply_numbers_a_prefix_next_row_past_the_max_over_the_lists_ids_and_the_issues_own_explicit_ids_2262(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    requirements = importlib.import_module("veri.requirements")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| PL5 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| PL<next> | The widget is shiny. | gloss |\n"
+        "| PL7 | The widget is heavy. | weight |\n")
+
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
+
+    ids = [row.split("\t")[0] for row in requirements.claims(str(tmp_path / "REQUIREMENTS.md"), "unit.md").splitlines()]
+    assert ids == ["PL5", "PL8", "PL7"], ids
