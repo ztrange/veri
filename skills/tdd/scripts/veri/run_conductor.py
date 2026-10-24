@@ -201,7 +201,8 @@ def conduct(text, issue, env):
         try:
             code = subprocess.run([binary, "-p", "--output-format", "stream-json",
                                    "--verbose"] + context_limits() + [
-                                   "--permission-mode", "bypassPermissions", "--model", "opus"],
+                                   "--permission-mode", "bypassPermissions", "--model",
+                                   tunables.read("VERI_MODEL_CONDUCTOR") or "opus"],
                                   input=text, env=env).returncode
         finally:
             os.dup2(terminal, 1)
