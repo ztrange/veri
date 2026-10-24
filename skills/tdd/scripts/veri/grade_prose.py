@@ -158,7 +158,9 @@ def main(argv):
                 return no_verdict("the grader leaf exited non-zero")
             reply = extract(raw)
             if "BEGIN GRADES" in reply:
-                break
+                ids = graded_ids(reply[reply.rindex("BEGIN GRADES"):])
+                if len(set(ids)) == len(ids):
+                    break
     finally:
         os.unlink(f.name)
     cost = sum(float(r.get("total_cost_usd") or 0) for r in result_records(raw.splitlines()) if "result" in r)
