@@ -36,6 +36,13 @@ def never_recorded(pyc):
     return "-pytest-" in name or ".opt-" in name
 
 
+def stat_or_none(path):
+    try:
+        return os.stat(path)
+    except FileNotFoundError:
+        return None
+
+
 def source_digest(pyc):
     try:
         with open(importlib.util.source_from_cache(pyc), "rb") as source:
@@ -64,9 +71,8 @@ def check_bytecode_cache(prefix):
             except FileNotFoundError:
                 pass
             continue
-        try:
-            stat = os.stat(pyc)
-        except FileNotFoundError:
+        stat = stat_or_none(pyc)
+        if stat is None:
             continue
         snapshot[pyc] = (stat.st_mtime_ns, stat.st_size)
     return {"start": start, "snapshot": snapshot}
@@ -77,9 +83,8 @@ def record_bytecode_cache(prefix, run):
     for pyc in pyc_files(prefix):
         if never_recorded(pyc):
             continue
-        try:
-            stat = os.stat(pyc)
-        except FileNotFoundError:
+        stat = stat_or_none(pyc)
+        if stat is None:
             continue
         if run["snapshot"].get(pyc) == (stat.st_mtime_ns, stat.st_size) or stat.st_mtime_ns < run["start"]:
             continue
