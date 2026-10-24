@@ -305,3 +305,11 @@ def test_a_killed_run_whose_events_hold_a_pair_further_apart_than_the_sleep_gap_
     code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path, env={"VERI_SLEEP_GAP": "900"})
 
     assert (code, out, err) == (0, "killed\ngap 100 1100\n", "")
+
+
+def test_issue_2205_a_directory_holding_no_run_for_the_issue_exits_2_and_prints_nothing_to_stdout(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+
+    code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
+
+    assert (code, out) == (2, "")
