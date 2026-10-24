@@ -229,3 +229,39 @@ def test_the_record_replaces_the_manifest_by_moving_a_complete_temp_file_from_it
     new = pytest_leg.read_manifest(str(prefix))
     leftovers = [n for n in os.listdir(prefix) if n not in (pytest_leg.MANIFEST, pytest_leg.MANIFEST + ".lock") and not n.endswith(".pyc") and n != os.path.relpath(os.path.dirname(plain), prefix).split(os.sep)[0]]
     assert (calls, leftovers) == ([(str(prefix), manifest_path, new, {"old": "entry"})], [])
+
+
+def test_the_record_holds_an_exclusive_flock_on_the_lock_file_beside_the_manifest_and_keeps_an_entry_another_run_recorded_after_the_check_2054(tmp_path, monkeypatch):
+    pytest_leg = importlib.import_module("veri.pytest_leg")
+    prefix = tmp_path / "prefix"
+    prefix.mkdir()
+    helper = tmp_path / "helper.py"
+    helper.write_text("VALUE = 1\n")
+    other = tmp_path / "other.py"
+    other.write_text("VALUE = 2\n")
+    an_hour_ago = time.time() - 3600
+    os.utime(helper, (an_hour_ago, an_hour_ago))
+    monkeypatch.setattr(sys, "pycache_prefix", str(prefix))
+    plain = importlib.util.cache_from_source(str(helper))
+    others_pyc = importlib.util.cache_from_source(str(other))
+    lock_path = str(prefix / (pytest_leg.MANIFEST + ".lock"))
+
+    run = pytest_leg.check_bytecode_cache(str(prefix))
+    py_compile.compile(str(helper), cfile=plain, doraise=True)
+    os.utime(plain, (time.time() + 60, time.time() + 60))
+    py_compile.compile(str(other), cfile=others_pyc, doraise=True)
+    os.utime(others_pyc, (an_hour_ago, an_hour_ago))
+    (prefix / pytest_leg.MANIFEST).write_text(json.dumps({others_pyc: "recorded-by-another-run"}))
+    calls = []
+    real_flock = pytest_leg.fcntl.flock
+
+    def spy(fd, operation):
+        calls.append((os.path.samestat(os.fstat(fd if isinstance(fd, int) else fd.fileno()),os.stat(lock_path)), operation))
+        return real_flock(fd, operation)
+
+    monkeypatch.setattr(pytest_leg.fcntl, "flock", spy)
+
+    pytest_leg.record_bytecode_cache(str(prefix), run)
+
+    manifest = pytest_leg.read_manifest(str(prefix))
+    assert (calls, sorted(manifest), manifest.get(others_pyc)) == ([(True, pytest_leg.fcntl.LOCK_EX)], sorted([plain, others_pyc]), "recorded-by-another-run")
