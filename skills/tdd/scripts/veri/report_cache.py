@@ -61,26 +61,27 @@ def read_issue_page(size, *search):
             time.sleep(float(tunables.read("VERI_PAGE_RETRY_SLEEP", "2")))
 
 
-def fetch_pages():
-    first, size = read_issue_page(PAGE_SIZE)
+def fetch_pages(since=None):
+    bound = [since] if since else []
+    first, size = read_issue_page(PAGE_SIZE, *(["--search", since] if since else []))
     if len(first) < size:
         return first
     seen = {}
-    search = "sort:updated-desc"
+    search = " ".join(bound + ["sort:updated-desc"])
     while True:
         page, size = read_issue_page(size, "--search", search)
         fresh = [issue for issue in page if issue["number"] not in seen]
         seen.update({issue["number"]: issue for issue in fresh})
         if len(page) < size or not fresh:
             return list(seen.values())
-        search = "sort:updated-desc updated:<=" + min(issue["updatedAt"] for issue in page)
+        search = " ".join(bound + ["sort:updated-desc updated:<="]) + min(issue["updatedAt"] for issue in page)
 
 
 def refresh():
     tdd = os.path.join(main_tree(), ".tdd")
     path = os.path.join(tdd, "report-cache.json")
     kept = {}
-    command = ["--state", "all", "--limit", "100000", "--json", FIELDS]
+    since = None
     if os.path.exists(path):
         try:
             with open(path) as existing:
@@ -91,12 +92,9 @@ def refresh():
             sys.stderr.write("report-cache.sh: %s is unreadable (%s), rebuilding\n" % (path, failure))
         else:
             kept = loaded
-            command += ["--search", search]
+            since = search
     try:
-        if kept:
-            issues = json.loads(github.gh_issue_list(*command))
-        else:
-            issues = fetch_pages()
+        issues = fetch_pages(since)
     except github.NoAnswer as failure:
         sys.stderr.write("report-cache.sh: gh issue list failed: %s\n" % failure.answer)
         return 2

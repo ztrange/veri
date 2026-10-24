@@ -897,3 +897,90 @@ def test_refresh_with_no_cache_whose_first_page_fails_at_every_size_exits_2_with
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
     assert (code, out, "gh issue list failed: HTTP 504" in err, 0 < len(limits) <= 10, sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == (2, "", True, True, [])
+
+
+def test_refresh_with_a_well_formed_cache_retries_a_failed_gh_read_pages_the_updated_issues_and_merges_them_2279(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    monkeypatch.setenv("VERI_PAGE_RETRY_SLEEP", "0")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    cache = tmp_path / ".tdd" / "report-cache.json"
+    cache.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "issues": [
+        {"number": 900, "title": "old", "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
+    updated = [
+        {"number": n, "title": "issue %d" % n, "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-10-%02dT%02d:00:00Z" % (1 + n // 24, n % 24)}
+        for n in range(1, 251)
+    ]
+    searches = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] != ["gh", "issue", "list"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        limit = int(args[args.index("--limit") + 1])
+        search = args[args.index("--search") + 1] if "--search" in args else ""
+        searches.append(search)
+        if len(searches) == 1:
+            return subprocess.CompletedProcess(args, 1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
+        pool = sorted(updated, key=lambda i: i["updatedAt"], reverse=True)
+        for bound in search.split():
+            if bound.startswith("updated:<="):
+                pool = [i for i in pool if i["updatedAt"] <= bound[len("updated:<="):]]
+        return subprocess.CompletedProcess(args, 0, json.dumps(pool[:limit]), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    kept = sorted(i["number"] for i in json.loads(cache.read_text())["issues"])
+    assert (code, searches[0], kept) == (0, "updated:>=2026-10-01T00:00:00Z", list(range(1, 251)) + [900])
+
+
+def test_refresh_with_a_well_formed_cache_bounds_every_later_page_by_fetched_at_so_older_issues_stay_out_2279(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    monkeypatch.setenv("VERI_PAGE_RETRY_SLEEP", "0")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    cache = tmp_path / ".tdd" / "report-cache.json"
+    cache.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "issues": [
+        {"number": 900, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
+    recent = [
+        {"number": n, "title": "issue %d" % n, "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-10-%02dT%02d:00:00Z" % (2 + n // 24, n % 24)}
+        for n in range(1, 121)
+    ]
+    older = [
+        {"number": 1000 + n, "title": "older %d" % n, "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-09-%02dT%02d:00:00Z" % (1 + n // 24, n % 24)}
+        for n in range(30)
+    ]
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] != ["gh", "issue", "list"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        limit = int(args[args.index("--limit") + 1])
+        search = args[args.index("--search") + 1] if "--search" in args else ""
+        pool = sorted(recent + older, key=lambda i: i["updatedAt"], reverse=True)
+        for term in search.split():
+            if term.startswith("updated:>="):
+                pool = [i for i in pool if i["updatedAt"] >= term[len("updated:>="):]]
+            if term.startswith("updated:<="):
+                pool = [i for i in pool if i["updatedAt"] <= term[len("updated:<="):]]
+        return subprocess.CompletedProcess(args, 0, json.dumps(pool[:limit]), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    kept = sorted(i["number"] for i in json.loads(cache.read_text())["issues"])
+    assert (code, kept) == (0, list(range(1, 121)) + [900])
