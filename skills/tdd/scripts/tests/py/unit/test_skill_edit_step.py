@@ -593,3 +593,25 @@ def test_an_added_step_on_a_unit_no_requirements_list_claims_exits_2_naming_the_
 
     commits = [c for c in commands if c[:2] in (["git", "add"], ["git", "commit"])]
     assert (code, step in err, launched, commits) == (2, True, [], []), (code, err, launched, commits)
+
+
+def test_apply_gives_a_prefix_next_row_the_next_free_number_for_its_prefix_and_copies_a_numbered_row_as_is_2262(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    requirements = importlib.import_module("veri.requirements")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| PL3 | The widget is blue. | because |\n"
+        "| PL7 | The widget is round. | shape |\n"
+        "| CY9 | The widget is old. | age |\n")
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| PL<next> | The widget is shiny. | gloss |\n"
+        "| CY12 | The widget is heavy. | weight |\n")
+
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
+
+    ids = [row.split("\t")[0] for row in requirements.claims(str(tmp_path / "REQUIREMENTS.md"), "unit.md").splitlines()]
+    assert ids == ["PL3", "PL7", "CY9", "PL8", "CY12"], ids
