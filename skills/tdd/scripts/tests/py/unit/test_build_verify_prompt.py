@@ -2119,3 +2119,19 @@ def test_the_green_prompt_tells_the_verifier_to_probe_every_added_branch_option_
         "name each in REASON": re.search(
             r"name each[^.:]{0,40}in REASON:", prompt, re.I) is not None,
     } == {"probe every added item before answering": True, "not only the first": True, "name each in REASON": True}
+
+
+def test_main_renders_a_green_prompt_carrying_no_instruction_to_name_only_the_first_unrequired_item_2259(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    code = build_verify_prompt.main(["--fast-cmd", "make unit", "green", str(spec),
+                                     "tests/py/test_slugify.py", "test_slugify_lowercases"])
+    out, _ = capsysbinary.readouterr()
+    assert code == 0
+    prompt = re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
+
+    first_only = re.findall(
+        r"(?<!not )(?<!n't )\b(?:name|list|report|give)\s+(?:\w+\s+)?(?:only\s+|just\s+)?the\s+first\b[^.]{0,60}",
+        prompt, re.I)
+    assert first_only == []
