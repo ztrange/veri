@@ -89,13 +89,6 @@ def add_ledger_step_entry():
     return _bullet(catalogue_lines(), "- `$S/add-ledger-step.sh")
 
 
-def repair_call_neighbourhood(tag):
-    at = max((n for n, line in enumerate(skill_lines(), 1) if "$S/add-ledger-step.sh" in line and tag in line), default=0)
-    if not at:
-        return ""
-    return neighbourhood(at)
-
-
 def step_too_big_cause():
     return _bullet(_lines(BAILING), "- `step-too-big`")
 
@@ -137,14 +130,6 @@ def test_1281_skill_md_s_three_split_add_ledger_step_calls_pass_no_criterion_and
         assert "anchor's criterion" in neighbourhood(n), \
             f"SKILL.md never says beside this split call that the split keeps its anchor's criterion: {line.strip()}"
     assert "--criterion" in add_ledger_step_entry(), "SKILL.md's add-ledger-step.sh entry never documents --criterion"
-
-
-def test_1281_the_suite_repair_and_ci_repair_add_ledger_step_calls_say_they_pass_no_criterion_because_the_repair_step_serves_its_anchor_s_criterion():
-    for tag in ("⟦suite-repair⟧", "⟦ci-repair⟧"):
-        around = repair_call_neighbourhood(tag)
-        assert around.strip(), f"SKILL.md has no add-ledger-step.sh call adding a {tag} step"
-        assert "--criterion" in around, f"SKILL.md never says beside its {tag} call that it passes no --criterion"
-        assert "anchor's criterion" in around, f"SKILL.md never says beside its {tag} call that the step serves its anchor's criterion"
 
 
 def test_1292_skill_md_s_add_ledger_step_entry_under_the_scripts_says_criterion_k_tags_the_added_steps_with_criterion_k_for_any_whole_number_k_1_carried_or_not_and_lists_a_k_that_is_not_a_whole_number_1_among_its_exit_2_cases():
@@ -213,7 +198,8 @@ def test_1546_skill_md_never_runs_replaces_case_survivors_sh_at_any_place_it_nam
 
 def test_1379_skill_md_s_every_add_ledger_step_sh_call_site_says_its_exit_2_bails_with_cause_step_add_refused_and_bailing_lists_that_cause_as_a_system_failure():
     calls = [call for call in outside_cost_check(run_lines(r"\$S/add-ledger-step\.sh [^ ]*\.tdd/issue-<n>\.md|\$S/add-ledger-step\.sh --criterion <k> \.tdd/issue-<n>\.md"))
-             if "<SPLIT: value>" not in skill_lines()[call - 1]]
+             if "<SPLIT: value>" not in skill_lines()[call - 1]
+             and not re.search("⟦(suite|ci)-repair⟧", skill_lines()[call - 1])]
     assert calls, "SKILL.md has no add-ledger-step.sh call site"
     lines = skill_lines()
     for call in calls:

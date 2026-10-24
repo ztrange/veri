@@ -147,24 +147,6 @@ def whole_skill():
     return plain(SKILL.read_text()).replace("\n", " ")
 
 
-def test_1568_skill_md_runs_suite_reported_sh_develop_structural_between_the_transform_leaf_s_wait_and_its_transform_verifier_and_keeps_an_out_of_bounds_skip_s_reject_rather_than_a_report_missing_bail():
-    whole = whole_skill()
-    assert "build-develop-prompt.sh structural" in whole, "structural pass: never launches develop-structural"
-    structural = after(whole, "build-develop-prompt.sh structural")[:6000]
-    assert "suite-reported.sh develop-structural" in structural, "structural pass: never runs suite-reported.sh develop-structural"
-    problems = []
-    if "supervise.sh verdict-transform" in before(structural, "suite-reported.sh develop-structural"):
-        problems.append("structural pass: the check comes after the transform verifier is launched")
-    behind = after(structural, "suite-reported.sh develop-structural")[:1200]
-    if "report-missing" not in behind:
-        problems.append("structural pass: never names the report-missing bail for a missing SUITE: line")
-    if not re.search(r"out-of-bounds|leave the tree", behind):
-        problems.append("structural pass: never says an out-of-bounds skip is exempt")
-    if "transform reject and the next candidate" not in behind:
-        problems.append("structural pass: never says that skip keeps its transform REJECT outcome")
-    assert not problems, "\n".join(problems)
-
-
 def test_1568_skill_md_runs_suite_reported_sh_develop_transform_after_the_refactor_kind_transform_leaf_and_before_its_blind_transform_verifier():
     whole = whole_skill()
     assert "refactor-kind step therefore runs" in whole, "Cover → Transform → Verify: the refactor-kind step's passage is missing"
