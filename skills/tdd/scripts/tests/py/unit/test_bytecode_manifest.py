@@ -265,3 +265,37 @@ def test_the_record_holds_an_exclusive_flock_on_the_lock_file_beside_the_manifes
 
     manifest = pytest_leg.read_manifest(str(prefix))
     assert (calls, sorted(manifest), manifest.get(others_pyc)) == ([(True, pytest_leg.fcntl.LOCK_EX)], sorted([plain, others_pyc]), "recorded-by-another-run")
+
+
+def test_a_pyc_planted_after_the_start_with_the_sources_mtime_and_size_but_compiled_from_other_text_is_dropped_by_the_next_check_and_a_pyc_this_run_compiled_stays_2054(tmp_path, monkeypatch):
+    pytest_leg = importlib.import_module("veri.pytest_leg")
+    prefix = tmp_path / "prefix"
+    prefix.mkdir()
+    planted = tmp_path / "planted.py"
+    honest = tmp_path / "honest.py"
+    decoy = tmp_path / "decoy.py"
+    planted.write_text("VALUE = 1\n")
+    honest.write_text("VALUE = 1\n")
+    decoy.write_text("VALUE = 9\n")
+    an_hour_ago = int(time.time()) - 3600
+    for source in (planted, honest, decoy):
+        os.utime(source, (an_hour_ago, an_hour_ago))
+    monkeypatch.setattr(sys, "pycache_prefix", str(prefix))
+    planted_pyc = importlib.util.cache_from_source(str(planted))
+    honest_pyc = importlib.util.cache_from_source(str(honest))
+
+    run = pytest_leg.check_bytecode_cache(str(prefix))
+    py_compile.compile(str(decoy), cfile=planted_pyc, doraise=True)
+    py_compile.compile(str(honest), cfile=honest_pyc, doraise=True)
+    for cfile in (planted_pyc, honest_pyc):
+        os.utime(cfile, (time.time() + 60, time.time() + 60))
+    pytest_leg.record_bytecode_cache(str(prefix), run)
+    pytest_leg.check_bytecode_cache(str(prefix))
+
+    values = {}
+    for name, source in (("planted", planted), ("honest", honest)):
+        spec = importlib.util.spec_from_file_location("exp_" + name, str(source))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        values[name] = module.VALUE
+    assert (values, os.path.exists(honest_pyc)) == ({"planted": 1, "honest": 1}, True)
