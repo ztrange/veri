@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 2173
 
-Wall time for the issue: 1412 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 715 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Every figure in this report is wall-clock: the log carries no awake-clock reading, so time the machine spent asleep is counted in them.
-Steps done: 12 of 21 planned.
+Steps done: 12 of 20 planned.
 Outcome: the run bailed — revise-exhausted, a process failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $9.26 over 182 turns, in 2 sessions.
+Conductor own spending: $11.72 over 226 turns, in 3 sessions.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
@@ -160,42 +160,86 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 144 | $0.06 | 205988 |
 | 145 | $0.05 | 207037 |
 | 146 | $0.06 | 207496 |
-| 147 | $0.57 | 89063 |
-| 148 | $0.04 | 91536 |
-| 149 | $0.02 | 92290 |
-| 150 | $0.03 | 93391 |
-| 151 | $0.06 | 98576 |
-| 152 | $0.02 | 98892 |
-| 153 | $0.02 | 99303 |
-| 154 | $0.02 | 99588 |
-| 155 | $0.02 | 99867 |
-| 156 | $0.02 | 100483 |
-| 157 | $0.03 | 101382 |
-| 158 | $0.04 | 103654 |
-| 159 | $0.04 | 106422 |
-| 160 | $0.03 | 107729 |
-| 161 | $0.03 | 108896 |
-| 162 | $0.02 | 109294 |
-| 163 | $0.03 | 110801 |
-| 164 | $0.07 | 116908 |
-| 165 | $0.03 | 117388 |
-| 166 | $0.03 | 117833 |
-| 167 | $0.03 | 118607 |
-| 168 | $0.03 | 119455 |
-| 169 | $0.11 | 129998 |
-| 170 | $0.03 | 130670 |
-| 171 | $0.03 | 131131 |
-| 172 | $0.04 | 132471 |
-| 173 | $0.09 | 140936 |
-| 174 | $0.04 | 142007 |
-| 175 | $0.04 | 142854 |
-| 176 | $0.03 | 143600 |
-| 177 | $0.04 | 145129 |
-| 178 | $0.03 | 145584 |
-| 179 | $0.03 | 146195 |
-| 180 | $0.03 | 146906 |
-| 181 | $0.03 | 147526 |
-| 182 | $0.06 | 151542 |
+| 147 | $0.58 | 89063 |
+| 148 | $0.05 | 91536 |
+| 149 | $0.04 | 92290 |
+| 150 | $0.04 | 93391 |
+| 151 | $0.07 | 98576 |
+| 152 | $0.04 | 98892 |
+| 153 | $0.03 | 99303 |
+| 154 | $0.03 | 99588 |
+| 155 | $0.04 | 99867 |
+| 156 | $0.03 | 100483 |
+| 157 | $0.04 | 101382 |
+| 158 | $0.05 | 103654 |
+| 159 | $0.06 | 106422 |
+| 160 | $0.04 | 107729 |
+| 161 | $0.05 | 108896 |
+| 162 | $0.03 | 109294 |
+| 163 | $0.05 | 110801 |
+| 164 | $0.08 | 116908 |
+| 165 | $0.04 | 117388 |
+| 166 | $0.04 | 117833 |
+| 167 | $0.04 | 118607 |
+| 168 | $0.04 | 119455 |
+| 169 | $0.12 | 129998 |
+| 170 | $0.05 | 130670 |
+| 171 | $0.04 | 131131 |
+| 172 | $0.05 | 132471 |
+| 173 | $0.10 | 140936 |
+| 174 | $0.05 | 142007 |
+| 175 | $0.05 | 142854 |
+| 176 | $0.04 | 143600 |
+| 177 | $0.06 | 145129 |
+| 178 | $0.04 | 145584 |
+| 179 | $0.05 | 146195 |
+| 180 | $0.04 | 146906 |
+| 181 | $0.05 | 147526 |
+| 182 | $0.07 | 151542 |
+| 183 | $0.06 | 153043 |
+| 184 | $0.05 | 154070 |
+| 185 | $0.57 | 89200 |
+| 186 | $0.02 | 89689 |
+| 187 | $0.04 | 91955 |
+| 188 | $0.02 | 92431 |
+| 189 | $0.03 | 93897 |
+| 190 | $0.04 | 96921 |
+| 191 | $0.05 | 100280 |
+| 192 | $0.06 | 104812 |
+| 193 | $0.02 | 105245 |
+| 194 | $0.03 | 105772 |
+| 195 | $0.02 | 106068 |
+| 196 | $0.02 | 106386 |
+| 197 | $0.02 | 106659 |
+| 198 | $0.03 | 107347 |
+| 199 | $0.03 | 108012 |
+| 200 | $0.03 | 108636 |
+| 201 | $0.03 | 109289 |
+| 202 | $0.03 | 110681 |
+| 203 | $0.03 | 111565 |
+| 204 | $0.03 | 111925 |
+| 205 | $0.03 | 112456 |
+| 206 | $0.03 | 113618 |
+| 207 | $0.03 | 114226 |
+| 208 | $0.03 | 115193 |
+| 209 | $0.03 | 115821 |
+| 210 | $0.03 | 116499 |
+| 211 | $0.03 | 117563 |
+| 212 | $0.03 | 118119 |
+| 213 | $0.03 | 118546 |
+| 214 | $0.08 | 125896 |
+| 215 | $0.03 | 126787 |
+| 216 | $0.03 | 127384 |
+| 217 | $0.03 | 128164 |
+| 218 | $0.05 | 131091 |
+| 219 | $0.03 | 131666 |
+| 220 | $0.03 | 132424 |
+| 221 | $0.03 | 133471 |
+| 222 | $0.04 | 134515 |
+| 223 | $0.03 | 135389 |
+| 224 | $0.03 | 136241 |
+| 225 | $0.03 | 137134 |
+| 226 | $0.06 | 141184 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -203,8 +247,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 14 | 10 | 1 | 2 | 1212 | 0 | 32084 | 0.09 |
-| red | 18 | 8 | 0 | 0 | 683 | 298 | 90 | 174 | 32816 | 2528906 | 370676 | 1.51 |
-| green | 22 | 8 | 2 | 0 | 2138 | 281 | 98 | 190 | 28234 | 2681446 | 332706 | 1.58 |
+| red | 20 | 9 | 0 | 0 | 753 | 331 | 99 | 192 | 36288 | 2776428 | 422795 | 1.70 |
+| green | 28 | 8 | 5 | 0 | 2572 | 411 | 127 | 248 | 37695 | 3544757 | 428653 | 2.21 |
 | refactor | 16 | 8 | 0 | 0 | 415 | 109 | 47 | 90 | 9006 | 1131352 | 238123 | 0.80 |
 | red-missing | 1 | 0 | 0 | 0 | 47 | 14 | 3 | 6 | 1651 | 82704 | 17081 | 0.07 |
 | pin | 3 | 3 | 0 | 0 | 98 | 39 | 11 | 22 | 3886 | 291080 | 44277 | 0.18 |
@@ -215,23 +259,23 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | structural | 1 | 0 | 0 | 0 | 30 | 15 | 4 | 8 | 1603 | 108684 | 14030 | 0.06 |
 | transform | 1 | 1 | 0 | 0 | 28 | 11 | 4 | 8 | 1003 | 90299 | 31439 | 0.10 |
 | diff | 3 | 0 | 0 | 0 | 169 | 40 | 10 | 20 | 2932 | 241625 | 64051 | 0.33 |
-| exhausted | 1 | 0 | 0 | 0 | 978 | 28 | 3 | 6 | 1435 | 46825 | 42532 | 0.25 |
+| exhausted | 2 | 0 | 0 | 0 | 1000 | 46 | 6 | 12 | 2802 | 125685 | 60114 | 0.38 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 32 | 29 | 2 | 0 | 1929 | 328 | 106 | 208 | 31452 | 2693998 | 474283 | 1.77 |
-| developer | claude-sonnet-5-5 | 32 | 0 | 0 | 1 | 1419 | 443 | 153 | 294 | 47610 | 4245199 | 603846 | 2.51 |
-| developer | claude-opus-5-5 | 6 | 0 | 0 | 0 | 1300 | 94 | 20 | 40 | 6406 | 460200 | 152852 | 0.84 |
+| verifier | claude-sonnet-5-5 | 36 | 30 | 5 | 0 | 2204 | 385 | 122 | 240 | 36556 | 3143576 | 529567 | 2.00 |
+| developer | claude-sonnet-5-5 | 33 | 0 | 0 | 1 | 1464 | 464 | 159 | 306 | 50181 | 4432660 | 624281 | 2.60 |
+| developer | claude-opus-5-5 | 10 | 0 | 0 | 0 | 1506 | 197 | 39 | 78 | 13031 | 1012854 | 242781 | 1.46 |
 
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 0 | 0.00 |
-| green | 548 | 0.75 | 0 | 0.00 |
+| red | 0 | 0.00 | 70 | 0.19 |
+| green | 548 | 0.75 | 434 | 0.63 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | red-missing | 0 | 0.00 | 0 | 0.00 |
 | pin | 0 | 0.00 | 0 | 0.00 |
@@ -242,7 +286,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | structural | 0 | 0.00 | 0 | 0.00 |
 | transform | 0 | 0.00 | 0 | 0.00 |
 | diff | 0 | 0.00 | 169 | 0.33 |
-| exhausted | 0 | 0.00 | 978 | 0.25 |
+| exhausted | 0 | 0.00 | 1000 | 0.38 |
 
 #### By step
 
@@ -261,6 +305,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | `skills/veri-handoff/REQUIREMENTS.md`'s H2 is replaced by the issue's H2 row exactly as the issue states it, `skills/veri-handoff/SKILL.md` states it in its prose (for the dev role, refusing while `$S/merge-lock.sh holder` names a live holder, or a launch is half done), the unit grades PASS against its whole list and `GRADED` carries a line whose signature matches its current text ⟦skill-edit⟧ ⟦criterion 3⟧ | 3 | 0 | 0 | 0 | 0 | 0 | 23 | 4 | 8 | 2723 | 47469 | 25555 | 0.10 | 60 | unknown | unknown | unknown |  |  | full |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_tunable_reads.py — FAILED test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment (and test_run_leaf_run_verdict_and_stop_run_take_their_veri_values_from_the_one_reader_and_no_module_is_exempt): AssertionError: assert [`.../skills/tdd/scripts/veri/merge_lock.py:43`] == [] (merge_lock.py reads a VERI_ name from the environment outside the one reader); skills/tdd/scripts/tests/py/test_github_sh.py — FAILED test_the_gh_function_reads_a_fast_wait_of_015_as_15_decimal_seconds_sleeping_the_retry_interval_until_then_issue_2132 - AssertionError: gh: not found on PATH, retrying in 2s ⟦suite-repair⟧ ⟦criterion 3⟧ | 12 | 4 | 0 | 1 | 0 | 0 | 126 | 46 | 88 | 12225 | 1165449 | 239986 | 0.84 | 3061 | unknown | 0/5 | nothing-left |  |  | full |
 | the case `test_take_without_pid_records_the_parent_process_of_the_caller_and_holder_prints_it` is deleted from `skills/tdd/scripts/tests/py/test_merge_lock.py`, since it pins `take` without `--pid` recording the caller parent process, the behaviour criterion 4 removes; no other test and no production file changes ⟦diff-checked⟧ ⟦criterion 4⟧ | 4 | 0 | 0 | 0 | 0 | 0 | 68 | 13 | 26 | 4367 | 288450 | 106583 | 0.58 | unknown | 2/2 | unknown | unknown |  |  | full |
+| `merge-lock.sh take` with no `--pid <pid>`, and `merge-lock.sh release` with neither `--pid <pid>` nor `--force`, exit 2 with a stderr line naming `--pid`, creating no lock and removing none ⟦criterion 4⟧ | 9 | 1 | 3 | 0 | 0 | 0 | 181 | 41 | 82 | 14300 | 1189693 | 165648 | 0.95 | unknown | 2/2 | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -285,14 +330,14 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 10 | 11 | 27 | 10 | 12 | 9 | 11 | 9 | 11 | 11 | 10 | 11 | 12 | 12 | 13 | 12 | 3 | 12 | 3 | 7 | 16 | 26 | 13 | 13 | 13 | 15 | 9 | 10 | 11 | 4 | 10 | 10 | 10 | 10 | 10 | 11 | 12 | 12 | 11 | 11 | 0 | 13 | 11 | 23 | 23 | 18 | 9 | 8 | 11 | 11 | 10 | 0 | 13 | 18 | 12 | 10 | 20 | 10 | 13 | 4 | 3 | 3 |
-| fast | 16 | 17 | 18 | 16 | 18 | 16 | 18 | 20 | 31 | 19 | 20 | 39 | 27 | 20 | 17 | 22 | 21 | 19 | 18 | 17 | 16 | 16 | 18 | 37 | 60 | 17 | 104 | 25 | 15 | 13 | 50 | 15 | 35 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 10 | 10 | 13 | 12 | 14 | 12 | 4 | 12 | 3 | 3 | 10 | 12 | 12 | 4 | 4 | 3 | 10 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 10 | 11 | 27 | 10 | 12 | 9 | 11 | 9 | 11 | 11 | 10 | 11 | 12 | 12 | 13 | 12 | 3 | 12 | 3 | 7 | 16 | 26 | 13 | 13 | 13 | 15 | 9 | 10 | 11 | 4 | 10 | 10 | 10 | 10 | 10 | 11 | 12 | 12 | 11 | 11 | 0 | 13 | 11 | 23 | 23 | 18 | 9 | 8 | 11 | 11 | 10 | 0 | 13 | 18 | 12 | 10 | 20 | 10 | 13 | 4 | 3 | 3 | 10 | 10 | 10 | 11 | 17 | 10 | 10 | 10 | 11 |
+| fast | 16 | 17 | 18 | 16 | 18 | 16 | 18 | 20 | 31 | 19 | 20 | 39 | 27 | 20 | 17 | 22 | 21 | 19 | 18 | 17 | 16 | 16 | 18 | 37 | 60 | 17 | 104 | 25 | 15 | 13 | 50 | 15 | 35 | 15 | 53 | 14 | 13 | 13 | 14 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 10 | 10 | 13 | 12 | 14 | 12 | 4 | 12 | 3 | 3 | 10 | 12 | 12 | 4 | 4 | 3 | 10 | 14 | 11 | 10 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 290 | 564 | 94269 | 7524235 | 1304752 | 5.40 |
+| total | 331 | 646 | 108569 | 8713928 | 1470400 | 6.35 |
