@@ -11,4 +11,4 @@
 - [x] A `WRONG_TEST:` line of the form `` `<path>` "<title>" `` routes to the named existing case (`red <case>`), not `revise`; pinned by a small in-process case in skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py ⟦criterion 3⟧
 - [x] A `WRONG_TEST:` line of the form `` `<path>` “<title>” `` routes to the named existing case, not `revise`; pinned by a small in-process case in skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py ⟦criterion 3⟧
 - [x] A `WRONG_TEST:` line of the form `<path> › <title>` (unquoted title to end of line) routes to the named existing case, not `revise`; pinned by a small in-process case in skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py ⟦criterion 3⟧
-- [ ] A `WRONG_TEST:` line of the form `<path> › "<title>"` routes to the named existing case, not `revise`; pinned by a small in-process case in skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py ⟦criterion 3⟧
+- [x] A `WRONG_TEST:` line of the form `<path> › "<title>"` routes to the named existing case, not `revise`; pinned by a small in-process case in skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py ⟦criterion 3⟧
