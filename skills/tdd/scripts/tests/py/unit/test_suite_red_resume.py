@@ -58,6 +58,22 @@ def test_check_refuses_when_the_last_bail_is_not_suite_red_or_absent_and_exits_2
     assert no_args[0] == 2 and "usage" in no_args[2]
 
 
+def test_check_names_an_unreadable_branch_red_file_and_exits_2_without_an_events_log_2226(run_cli, tmp_path):
+    module = importlib.import_module("veri.suite_red_resume")
+    ledger = tmp_path / "issue-7-ledger.md"
+    ledger.write_text("- [ ] step\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text("test_a.py — FAIL a\n")
+    default = tmp_path / "default-red"
+    default.write_text("none\n")
+
+    no_events = run_cli(module, ["check", str(ledger), str(branch), str(default)])
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "suite-red"}) + "\n")
+    unreadable = run_cli(module, ["check", str(ledger), str(tmp_path / "missing"), str(default)])
+
+    assert no_events[0] == 2 and no_events[1] == "" and str(tmp_path / "events.jsonl") in no_events[2]
+    assert unreadable[0] == 2 and unreadable[1] == "" and str(tmp_path / "missing") in unreadable[2]
+
 def test_insert_adds_one_suite_repair_step_before_the_first_unchecked_step_through_add_ledger_step_2226(run_cli, tmp_path):
     module = importlib.import_module("veri.suite_red_resume")
     ledger = tmp_path / "issue-7.md"
