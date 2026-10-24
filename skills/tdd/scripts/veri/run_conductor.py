@@ -4,6 +4,7 @@ import glob
 import os
 import paths
 import re
+import calendar
 import json
 import shutil
 import signal
@@ -11,11 +12,13 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 
 sys.dont_write_bytecode = True
 
 from context_limits import context_limits
 import event
+from event_log import read_events
 import github
 import launch_floor
 import run_end
@@ -262,7 +265,24 @@ def done_posted(issue):
     except (github.NoAnswer, ValueError):
         return False
     bodies = thread if isinstance(thread, list) else thread.get("comments", [])
-    return any(isinstance(c, dict) and str(c.get("body", "")).startswith("### ✅ Done") for c in bodies)
+    since = last_resume(issue)
+    return any(isinstance(c, dict) and str(c.get("body", "")).startswith("### ✅ Done")
+               and posted_at(c) >= since for c in bodies)
+
+
+def last_resume(issue):
+    try:
+        events = read_events(os.path.join(run_worktree(issue), ".tdd", "events.jsonl"), skip_unreadable=True)
+    except OSError:
+        return 0
+    return max([e.get("ts", 0) for e in events if e.get("event") == "resume" and isinstance(e.get("ts"), int)] or [0])
+
+
+def posted_at(comment):
+    try:
+        return calendar.timegm(time.strptime(comment["created_at"], "%Y-%m-%dT%H:%M:%SZ"))
+    except (KeyError, TypeError, ValueError):
+        return float("inf")
 
 
 def run_worktree(issue):
