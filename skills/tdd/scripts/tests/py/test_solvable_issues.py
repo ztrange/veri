@@ -1306,3 +1306,13 @@ def test_in_flight_2253_is_false_when_the_lock_pid_answers_kill_0_but_neither_it
     monkeypatch.setattr(run_end, "parent_pid", lambda pid: 1)
 
     assert solvable_issues.in_flight(str(tmp_path), 7) is False
+
+
+def test_in_flight_2253_is_true_when_the_lock_pid_answers_kill_0_and_its_command_line_is_that_issues_conductor(tmp_path, monkeypatch, solvable_issues):
+    lock = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "conductor.pid"
+    lock.parent.mkdir(parents=True)
+    lock.write_text("%d\n" % os.getpid())
+    monkeypatch.setattr(run_end, "command_line", lambda pid: "bash run-conductor.sh 7")
+    monkeypatch.setattr(run_end, "parent_pid", lambda pid: 1)
+
+    assert solvable_issues.in_flight(str(tmp_path), 7) is True
