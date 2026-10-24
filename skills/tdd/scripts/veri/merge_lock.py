@@ -21,6 +21,11 @@ def _start_time(pid):
     return "_".join(out.split())
 
 
+def _read(record):
+    with open(record) as f:
+        return f.read()
+
+
 def _needs_pid(args, force_ok):
     if "--pid" in args or (force_ok and "--force" in args):
         return False
@@ -44,8 +49,7 @@ def _take(lock, record, args):
         except OSError:
             if not reported:
                 try:
-                    with open(record) as f:
-                        text = f.read()
+                    text = _read(record)
                     os.kill(int(text.split()[0]), 0)
                 except ProcessLookupError:
                     print("stale lock: " + text, end="", file=sys.stderr, flush=True)
@@ -61,9 +65,8 @@ def _release(lock, record, args):
         return 2
     pid = _caller_pid([a for a in args if a != "--force"])
     if "--force" not in args:
-        with open(record) as f:
-            if f.read().split()[0] != pid:
-                return 1
+        if _read(record).split()[0] != pid:
+            return 1
     shutil.rmtree(lock)
     return 0
 
@@ -71,8 +74,7 @@ def _release(lock, record, args):
 def _holder(lock, record, args):
     if not os.path.isdir(lock):
         return 3
-    with open(record) as f:
-        text = f.read()
+    text = _read(record)
     try:
         try:
             os.kill(int(text.split()[0]), 0)
