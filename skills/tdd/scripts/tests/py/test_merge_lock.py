@@ -1,6 +1,7 @@
 """In-process cases for veri/merge_lock.py, the module merge-lock.sh is a shim over."""
 import importlib
 import os
+import shutil
 import socket
 import subprocess
 import sys
@@ -88,3 +89,21 @@ def test_holder_exits_2_when_the_lock_directory_exists_but_its_record_is_missing
     held = run_cli(merge_lock, ["holder"], cwd=tmp_path)
 
     assert (held[0], held[1]) == (2, "")
+
+
+@pytest.mark.process("git init on a scratch repository, take and release run from it")
+def test_release_removes_the_lock_only_for_the_recorded_holder_and_release_force_removes_it_whoever_holds_it(
+        tmp_path, merge_lock, run_cli):
+    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    lock = tmp_path / ".tdd" / "merge.lock"
+    run_cli(merge_lock, ["take", "--pid", "1"], cwd=tmp_path)
+
+    stranger = run_cli(merge_lock, ["release", "--pid", "2"], cwd=tmp_path)
+    kept = lock.is_dir()
+    holder = run_cli(merge_lock, ["release", "--pid", "1"], cwd=tmp_path)
+    removed = not lock.exists()
+    shutil.rmtree(lock, ignore_errors=True)
+    run_cli(merge_lock, ["take", "--pid", "1"], cwd=tmp_path)
+    forced = run_cli(merge_lock, ["release", "--force", "--pid", "2"], cwd=tmp_path)
+
+    assert (stranger[0], kept, holder[0], removed, forced[0], not lock.exists()) == (1, True, 0, True, 0, True)
