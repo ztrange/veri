@@ -75,3 +75,32 @@ def test_the_check_drops_a_cached_plain_pyc_whose_source_the_manifest_does_not_l
     pytest_leg.check_bytecode_cache(str(prefix))
 
     assert os.path.exists(plain) is False
+
+
+def test_the_check_drops_every_cached_pyc_when_the_manifest_is_empty_truncated_or_not_a_json_object_2054(tmp_path, monkeypatch):
+    pytest_leg = importlib.import_module("veri.pytest_leg")
+    prefix = tmp_path / "prefix"
+    prefix.mkdir()
+    source = tmp_path / "recorded.py"
+    source.write_text("VALUE = 1\n")
+    an_hour_ago = time.time() - 3600
+    os.utime(source, (an_hour_ago, an_hour_ago))
+    monkeypatch.setattr(sys, "pycache_prefix", str(prefix))
+    plain = importlib.util.cache_from_source(str(source))
+    os.makedirs(os.path.dirname(plain))
+    manifest = prefix / "veri-manifest.json"
+    survivors = {}
+    for broken in ("", '{"' + plain + '": "ab', "[]", "not json at all"):
+        run = pytest_leg.check_bytecode_cache(str(prefix))
+        py_compile.compile(str(source), cfile=plain, doraise=True)
+        a_minute_on = time.time() + 60
+        os.utime(plain, (a_minute_on, a_minute_on))
+        pytest_leg.record_bytecode_cache(str(prefix), run)
+        assert plain in manifest.read_text()
+        manifest.write_text(broken)
+
+        pytest_leg.check_bytecode_cache(str(prefix))
+
+        survivors[broken] = os.path.exists(plain)
+
+    assert survivors == {"": False, '{"' + plain + '": "ab': False, "[]": False, "not json at all": False}
