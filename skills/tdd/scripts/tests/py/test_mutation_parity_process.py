@@ -367,18 +367,18 @@ def test_a_mutation_that_leaves_no_other_case_of_the_suite_green_is_reported_owe
 
 
 @pytest.mark.process("a bash suite started by failed_cases() and pytest by node_fails(), for a row replaced by a node id")
-def test_a_row_replaced_by_a_pytest_node_id_is_proven_when_the_node_goes_red_and_unproven_naming_it_when_it_stays_green(tmp_path, monkeypatch, run_cli):
+@pytest.mark.parametrize("mutation, want_code, verdict", [
+    ("add-subtracts", 0, "proven"),
+    ("kept-stays-green", 1, "unproven"),
+])
+def test_a_row_replaced_by_a_pytest_node_id_is_proven_when_the_node_goes_red_and_unproven_naming_it_when_it_stays_green(tmp_path, monkeypatch, run_cli, mutation, want_code, verdict):
     mp = calc_scratch(tmp_path, monkeypatch, pytest_files=[("test_calc.py", CALC_PYTEST)])
     node = "tests/test_calc.py::test_adds_a_negative"
 
-    caught = run_rows(tmp_path, run_cli, mp, [
-        row_of(tmp_path, "checks/calc-suite.sh", "adds two numbers", "replaced", node, "add-subtracts")])
-    missed = run_rows(tmp_path, run_cli, mp, [
-        row_of(tmp_path, "checks/calc-suite.sh", "adds two numbers", "replaced", node, "kept-stays-green")])
+    result = run_rows(tmp_path, run_cli, mp, [
+        row_of(tmp_path, "checks/calc-suite.sh", "adds two numbers", "replaced", node, mutation)])
 
-    assert (caught[:2], missed[:2]) == (
-        (0, verdict_line(tmp_path, ("adds two numbers", node), "add-subtracts", "proven")),
-        (1, verdict_line(tmp_path, ("adds two numbers", node), "kept-stays-green", "unproven"))), (caught, missed)
+    assert result[:2] == (want_code, verdict_line(tmp_path, ("adds two numbers", node), mutation, verdict)), result
 
 
 SUMS_PYTEST = '''import os
@@ -422,38 +422,39 @@ def one_row(tmp_path, run_cli, mp, suite, old, fate, kept, mutation):
 
 
 @pytest.mark.process("a bash suite started by failed_cases() and pytest by node_fails(), for a row whose old case is a pytest node id")
-def test_a_row_whose_old_case_is_a_pytest_node_id_is_valid_when_the_node_goes_red_and_another_case_of_its_file_stays_green_and_owed_when_none_stays_green(tmp_path, monkeypatch, run_cli):
+@pytest.mark.parametrize("mutation, want_code, verdict", [
+    ("add-subtracts", 0, "proven"),
+    ("none-stays-green", 1, "owed"),
+])
+def test_a_row_whose_old_case_is_a_pytest_node_id_is_valid_when_the_node_goes_red_and_another_case_of_its_file_stays_green_and_owed_when_none_stays_green(tmp_path, monkeypatch, run_cli, mutation, want_code, verdict):
     mp = scratch_with(tmp_path, monkeypatch, pytest_files=[("test_sums.py", SUMS_PYTEST)])
     old = "tests/test_sums.py::test_adds_two_numbers"
 
-    valid = one_row(tmp_path, run_cli, mp, "tests/test_sums.py", old, "replaced", NODE, "add-subtracts")
-    owed = one_row(tmp_path, run_cli, mp, "tests/test_sums.py", old, "replaced", NODE, "none-stays-green")
+    result = one_row(tmp_path, run_cli, mp, "tests/test_sums.py", old, "replaced", NODE, mutation)
 
-    assert (valid[:2], owed[:2]) == (
-        (0, verdict_line(tmp_path, (old, NODE), "add-subtracts", "proven")),
-        (1, verdict_line(tmp_path, (old, NODE), "none-stays-green", "owed"))), (valid, owed)
+    assert result[:2] == (want_code, verdict_line(tmp_path, (old, NODE), mutation, verdict)), result
+
+
+GREETS = "tests/test_sums.py::test_greets_by_name"
+ADDS_ROW = ("adds two numbers", "redundant", "adds a negative")
+GREETS_ROW = ("greets by name", "replaced", GREETS)
 
 
 @pytest.mark.process("a bash suite started by failed_cases() and pytest by node_fails(), for a table of several rows")
-def test_a_table_of_several_rows_reports_every_row_each_rows_case_run_with_only_its_own_mutation_in_place_and_exits_0_only_when_every_row_is_proven_1_when_any_is_unproven_or_owed(tmp_path, monkeypatch, run_cli):
+@pytest.mark.parametrize("rows, want_code", [
+    pytest.param([(ADDS_ROW, "add-subtracts", "proven"), (GREETS_ROW, "greet-byes", "proven")], 0, id="all_proven"),
+    pytest.param([(GREETS_ROW, "greet-byes", "proven"), (ADDS_ROW, "old-stays-green", "owed"),
+                  (ADDS_ROW, "kept-stays-green", "unproven")], 1, id="mixed"),
+])
+def test_a_table_of_several_rows_reports_every_row_each_rows_case_run_with_only_its_own_mutation_in_place_and_exits_0_only_when_every_row_is_proven_1_when_any_is_unproven_or_owed(tmp_path, monkeypatch, run_cli, rows, want_code):
     mp = scratch_with(tmp_path, monkeypatch, pytest_files=[("test_sums.py", SUMS_PYTEST)])
-    greets = "tests/test_sums.py::test_greets_by_name"
     suite = "checks/calc-suite.sh"
 
-    all_proven = run_rows(tmp_path, run_cli, mp, [
-        row_of(tmp_path, suite, "adds two numbers", "redundant", "adds a negative", "add-subtracts"),
-        row_of(tmp_path, suite, "greets by name", "replaced", greets, "greet-byes")])
-    mixed = run_rows(tmp_path, run_cli, mp, [
-        row_of(tmp_path, suite, "greets by name", "replaced", greets, "greet-byes"),
-        row_of(tmp_path, suite, "adds two numbers", "redundant", "adds a negative", "old-stays-green"),
-        row_of(tmp_path, suite, "adds two numbers", "redundant", "adds a negative", "kept-stays-green")])
+    result = run_rows(tmp_path, run_cli, mp, [
+        row_of(tmp_path, suite, old, fate, kept, mutation) for (old, fate, kept), mutation, _ in rows])
 
-    assert (all_proven[:2], mixed[:2]) == (
-        (0, verdict_line(tmp_path, ("adds two numbers", "adds a negative"), "add-subtracts", "proven")
-         + verdict_line(tmp_path, ("greets by name", greets), "greet-byes", "proven")),
-        (1, verdict_line(tmp_path, ("greets by name", greets), "greet-byes", "proven")
-         + verdict_line(tmp_path, ("adds two numbers", "adds a negative"), "old-stays-green", "owed")
-         + verdict_line(tmp_path, ("adds two numbers", "adds a negative"), "kept-stays-green", "unproven"))), (all_proven, mixed)
+    assert result[:2] == (want_code, "".join(
+        verdict_line(tmp_path, (old, kept), mutation, verdict) for (old, _, kept), mutation, verdict in rows)), result
 
 
 @pytest.mark.process("a bash suite started by failed_cases() and pytest by node_fails(), for a one-case old suite")
@@ -601,14 +602,16 @@ def test_a_row_whose_mutation_does_not_apply_to_the_tree_exits_2(tmp_path, monke
 
 
 @pytest.mark.process("a bash suite and pytest started for rows whose case cannot be run")
-def test_a_row_whose_case_cannot_be_run_a_suite_path_that_does_not_exist_a_pytest_node_id_that_is_not_collected_exits_2(tmp_path, monkeypatch, run_cli):
+@pytest.mark.parametrize("suite, fate, kept", [
+    pytest.param("checks/absent-suite.sh", "redundant", "adds a negative", id="missing_suite"),
+    pytest.param("checks/calc-suite.sh", "replaced", "tests/test_calc.py::test_not_there", id="uncollected_node"),
+])
+def test_a_row_whose_case_cannot_be_run_a_suite_path_that_does_not_exist_a_pytest_node_id_that_is_not_collected_exits_2(tmp_path, monkeypatch, run_cli, suite, fate, kept):
     mp = scratch_with(tmp_path, monkeypatch)
 
-    missing = one_row(tmp_path, run_cli, mp, "checks/absent-suite.sh", "adds two numbers", "redundant", "adds a negative", "add-subtracts")
-    uncollected = one_row(tmp_path, run_cli, mp, "checks/calc-suite.sh", "adds two numbers", "replaced",
-                          "tests/test_calc.py::test_not_there", "add-subtracts")
+    result = one_row(tmp_path, run_cli, mp, suite, "adds two numbers", fate, kept, "add-subtracts")
 
-    assert (missing[0], uncollected[0]) == (2, 2), (missing, uncollected)
+    assert result[0] == 2, result
 
 
 @pytest.mark.process("git, a bash suite and pytest started against a scratch repository with a staged, an unstaged and an untracked change")
@@ -655,26 +658,22 @@ def test_1612_a_row_that_raises_with_its_mutation_applied_leaves_every_file_of_t
 
 
 @pytest.mark.process("git, a bash suite and pytest started against a dirty scratch repository for rows that end in exit 2")
-def test_after_the_pairs_check_exits_2_a_mutation_that_does_not_apply_a_bash_suite_that_never_reaches_its_count_line_under_the_mutation_or_a_pytest_node_id_that_is_not_collected_while_the_mutation_is_in_place_the_working_tree_and_the_index_are_byte_identical_to_before_it_a_staged_change_an_unstaged_change_and_an_untracked_file_included(tmp_path, monkeypatch, run_cli):
+@pytest.mark.parametrize("old, fate, kept, mutation", [
+    pytest.param("adds two numbers", "redundant", "adds a negative", "does-not-apply", id="does-not-apply"),
+    pytest.param("adds two numbers", "redundant", "adds a negative", "dirty-dies", id="dies"),
+    pytest.param("adds two numbers", "replaced", "tests/test_calc.py::test_not_there", "dirty", id="uncollected"),
+])
+def test_after_the_pairs_check_exits_2_a_mutation_that_does_not_apply_a_bash_suite_that_never_reaches_its_count_line_under_the_mutation_or_a_pytest_node_id_that_is_not_collected_while_the_mutation_is_in_place_the_working_tree_and_the_index_are_byte_identical_to_before_it_a_staged_change_an_unstaged_change_and_an_untracked_file_included(tmp_path, monkeypatch, run_cli, old, fate, kept, mutation):
     mp = committed_scratch(tmp_path, monkeypatch)
     dirty_tree(tmp_path)
     dirty_patch(tmp_path, "dirty")
     dirty_patch(tmp_path, "dirty-dies", extra="exit 9\n")
     does_not_apply_patch(tmp_path)
-    scenarios = {
-        "does-not-apply": ("adds two numbers", "redundant", "adds a negative", "does-not-apply"),
-        "dies": ("adds two numbers", "redundant", "adds a negative", "dirty-dies"),
-        "uncollected": ("adds two numbers", "replaced", "tests/test_calc.py::test_not_there", "dirty"),
-    }
-    problems = {}
+    before = snapshot(tmp_path)
 
-    for name, (old, fate, kept, mutation) in scenarios.items():
-        before = snapshot(tmp_path)
-        code, out, err = one_row(tmp_path, run_cli, mp, "checks/calc-suite.sh", old, fate, kept, mutation)
-        if (code, snapshot(tmp_path) == before) != (2, True):
-            problems[name] = (code, snapshot(tmp_path) == before, out, err)
+    code, out, err = one_row(tmp_path, run_cli, mp, "checks/calc-suite.sh", old, fate, kept, mutation)
 
-    assert problems == {}
+    assert (code, snapshot(tmp_path) == before) == (2, True), (out, err)
 
 
 @pytest.mark.process("a bash suite and python3 started by failed_cases(), run with a VERI_* tunable set in the caller")
