@@ -43,7 +43,11 @@ def _cut_prefix(case):
 
 def _js_title_pattern(case):
     prefix = _cut_prefix(case)
-    title = "(%s(?:(?!\\1).)*)" % re.escape(prefix) if prefix is not None else "(%s)" % re.escape(case)
+    gap = "(?:(?!\\1).)*"
+    if prefix is not None:
+        title = "(%s%s)" % (re.escape(prefix), gap)
+    else:
+        title = "(%s)" % gap.join(re.escape(part) for part in case.split("…"))
     return re.compile(r"\b(?:it|test)(?:\.(?:only|skip))?(?:\.each(?:\([^)]*\)|`[^`]*`))?\(\s*(['\"])" + title + r"\1")
 
 
