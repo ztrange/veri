@@ -210,7 +210,7 @@ def test_an_ending_mark_missing_its_keys_prints_unknown_in_their_place(tmp_path,
     assert outcome in render(metrics, capsys)
 
 
-def test_a_resume_after_a_done_keeps_the_run_landed(tmp_path, monkeypatch, capsys, metrics):
+def test_a_resume_after_a_done_with_no_live_conductor_reads_unknown(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, ONE_STEP + [{"event": "done", "pr": "https://example.test/pr/1"},
                                     {"event": "resume"}])
     monkeypatch.chdir(tmp_path)
