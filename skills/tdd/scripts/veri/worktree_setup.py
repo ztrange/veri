@@ -20,12 +20,13 @@ def main(argv):
         done = f".tdd/issue-{argv[0]}-setup-done"
         if os.path.exists(done):
             return 3
-        code = subprocess.run(found.command.decode(), shell=True).returncode
+        command = found.command.decode()
+        code = subprocess.run(command, shell=True).returncode
         if code == 0:
             os.makedirs(".tdd", exist_ok=True)
             open(done, "w").close()
             return 0
-        sys.stderr.write(f"setup failed: {found.command.decode()} exit {code}\n")
+        sys.stderr.write(f"setup failed: {command} exit {code}\n")
         return 1
     return 3
 
