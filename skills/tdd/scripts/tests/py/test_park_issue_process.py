@@ -126,3 +126,27 @@ def test_park_issue_creates_the_parked_label_when_the_repository_lacks_it_then_l
     assert created.exists(), "no call created the parked label:\n" + log.read_text()
     assert labelled.exists(), "the issue was never labelled parked:\n" + log.read_text()
     assert ran.returncode == 0, ran.stderr
+
+
+@pytest.mark.process("park-issue.sh run against a gh stub that records every call")
+def test_park_issue_with_a_bad_argument_exits_2_naming_which_argument_and_calls_no_gh(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(GH_STUB)
+    gh.chmod(0o755)
+    log = tmp_path / "gh.log"
+    log.write_text("")
+    env = {"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+           "GH_LOG": str(log), "PYTHONDONTWRITEBYTECODE": "1"}
+
+    for args, named in ((["seven", "cause", "unblock"], "issue number"),
+                        (["7", "", "unblock"], "cause"),
+                        (["7", "cause", ""], "unblock"),
+                        (["7", "cause", "unblock", "12", "extra"], "too many")):
+        ran = subprocess.run([str(SCRIPTS / "park-issue.sh"), *args], cwd=tmp_path, capture_output=True,
+                             text=True, stdin=subprocess.DEVNULL, env=env)
+
+        assert ran.returncode == 2, (args, ran.stderr)
+        assert named in ran.stderr, (args, ran.stderr)
+        assert log.read_text() == "", args
