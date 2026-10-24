@@ -266,9 +266,13 @@ def _check_earlier(ledger, step, exempt=()):
     return 1 if changed else 0
 
 
+def is_diff_checked(line):
+    kind = KIND_RE.search(line)
+    return bool(kind) and kind.group(1) == "diff-checked"
+
+
 def rerecord_earlier(ledger, step):
-    kind = KIND_RE.search(step)
-    if not kind or kind.group(1) != "diff-checked":
+    if not is_diff_checked(step):
         return 3
     root = _toplevel()
     if root is None:
