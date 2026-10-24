@@ -763,3 +763,22 @@ def test_apply_still_rewords_a_list_row_when_the_issue_states_its_explicit_id_be
 
     rows = requirements.claims(str(tmp_path / "REQUIREMENTS.md"), "unit.md").splitlines()
     assert rows == ["PL5\tThe widget is deep blue.", "PL6\tThe widget is shiny."], rows
+
+
+def test_apply_writes_a_prefix_next_rows_other_cells_byte_for_byte_keeping_an_escaped_pipe_2262(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| PL5 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| PL<next> | The widget shows a\\|b. | gloss\\|shine |\n")
+
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
+
+    rows = [l for l in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("| PL")]
+    assert rows == ["| PL5 | The widget is blue. | because |",
+                    "| PL6 | The widget shows a\\|b. | gloss\\|shine |"], rows

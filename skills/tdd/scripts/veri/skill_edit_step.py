@@ -101,7 +101,7 @@ def _numbered(rows, have):
             top = max([int(i[len(prefix):]) for i in have if i.startswith(prefix) and i[len(prefix):].isdigit()],
                       default=0)
             cells[1] = "%s%d" % (prefix, top + 1)
-            row = "| " + " | ".join(cells[1:-1]) + " |"
+            row = row.replace("<next>", str(top + 1), 1)
             have.add(cells[1])
         out.append(row)
     return out
