@@ -152,3 +152,22 @@ def test_the_record_after_a_run_does_not_newly_record_a_pyc_present_in_the_snaps
     pytest_leg.record_bytecode_cache(str(prefix), run)
 
     assert pytest_leg.read_manifest(str(prefix)) == {plain: first_digest}
+
+
+def test_the_record_after_a_run_does_not_list_a_pyc_planted_after_the_check_with_its_sources_mtime_and_size_2054(tmp_path, monkeypatch):
+    pytest_leg = importlib.import_module("veri.pytest_leg")
+    prefix = tmp_path / "prefix"
+    prefix.mkdir()
+    helper = tmp_path / "helper.py"
+    helper.write_text("VALUE = 1\n")
+    an_hour_ago = time.time() - 3600
+    os.utime(helper, (an_hour_ago, an_hour_ago))
+    monkeypatch.setattr(sys, "pycache_prefix", str(prefix))
+    plain = importlib.util.cache_from_source(str(helper))
+
+    run = pytest_leg.check_bytecode_cache(str(prefix))
+    py_compile.compile(str(helper), cfile=plain, doraise=True)
+    os.utime(plain, (an_hour_ago, an_hour_ago))
+    pytest_leg.record_bytecode_cache(str(prefix), run)
+
+    assert pytest_leg.read_manifest(str(prefix)) == {}
