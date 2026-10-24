@@ -194,8 +194,11 @@ def main(argv):
         print("added step graded PASS before any author ran, so no prose would change: " + added, file=sys.stderr)
         return 2
     authored = graded == 1
-    with open(unit, "rb") as f:
-        before = f.read()
+    before = {}
+    for name in [unit, *pins]:
+        if os.path.exists(name):
+            with open(name, "rb") as f:
+                before[name] = f.read()
     for attempt in range(1, int(budget) + 1):
         if graded != 1:
             break
@@ -207,8 +210,9 @@ def main(argv):
         if not graded:
             graded, said = _grade(path, unit)
         if graded == 1:
-            with open(unit, "wb") as f:
-                f.write(before)
+            for name, content in before.items():
+                with open(name, "wb") as f:
+                    f.write(content)
     if graded == 1:
         sys.stdout.write(said)
         return 1
