@@ -98,8 +98,8 @@ test unit:
 	@if [ "$(MAKELEVEL)" -gt $(MAX_MAKE_DEPTH) ]; then printf 'make: refusing a make %s nested at depth %s, deeper than %s\n' "$@" "$(MAKELEVEL)" "$(MAX_MAKE_DEPTH)" >&2; exit 2; fi
 	@$(BASH_GUARD)
 	@for e in $(PY_REFUSED); do printf 'refusing: %s selects no suite\n' "$$e" >&2; exit 2; done
-	@unset BASH_ENV ENV; fail=0; git_bin="$$(mktemp -d)"; pycache="$$(mktemp -d)"; \
-	trap 'rm -rf "$$git_bin" "$$pycache"' EXIT; \
+	@unset BASH_ENV ENV PYTHONDONTWRITEBYTECODE; fail=0; git_bin="$$(mktemp -d)"; pycache="$${VERI_PYCACHE:-$${TMPDIR:-/tmp}/veri-pycache-$$(id -u)}"; mkdir -p "$$pycache"; \
+	trap 'rm -rf "$$git_bin"' EXIT; \
 	$(OFFLINE_GIT); \
 	skills/tdd/scripts/prose-owed.sh . || fail=1; \
 	if [ -n "$(PY_TESTS)" ]; then \
