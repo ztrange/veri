@@ -2100,3 +2100,22 @@ def test_main_renders_a_plan_prompt_for_a_refactor_spec_limiting_its_refactor_ch
     test_only = "holds a step that only edits tests, unless that step is planned as ⟦diff-checked⟧ or a pin step"
     assert ((limit in with_refactor, test_only in with_refactor),
             (limit in without, test_only in without)) == ((True, True), (False, False))
+
+
+def test_the_green_prompt_tells_the_verifier_to_probe_every_added_branch_option_flag_parameter_and_guard_and_to_name_each_one_left_green_in_reason_not_only_the_first(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    assert build_verify_prompt.main(
+        ["--fast-cmd", "make unit", "green", str(spec), "tests/test_slugify.py", "test_slugify_lowercases"]) == 0
+    prompt = " ".join(capsysbinary.readouterr()[0].decode("utf-8", "surrogateescape").split())
+
+    assert {
+        "probe every added item before answering": re.search(
+            r"probe every branch, option, flag, parameter and guard[^.]{0,40}diff added before you answer",
+            prompt, re.I) is not None,
+        "not only the first": re.search(
+            r"(not|n't) stop at the first[^.:]{0,80}leaves every test green", prompt, re.I) is not None,
+        "name each in REASON": re.search(
+            r"name each[^.:]{0,40}in REASON:", prompt, re.I) is not None,
+    } == {"probe every added item before answering": True, "not only the first": True, "name each in REASON": True}
