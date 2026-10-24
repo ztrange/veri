@@ -6,6 +6,8 @@ import subprocess
 import sys
 import time
 
+import tunables
+
 VERBS = ("take", "release", "holder")
 
 
@@ -40,7 +42,7 @@ def main(argv):
                         reported = True
                     except (OSError, ValueError, IndexError):
                         pass
-                time.sleep(float(os.environ.get("VERI_MERGE_LOCK_POLL", "30")))
+                time.sleep(float(tunables.read("VERI_MERGE_LOCK_POLL", "30")))
         with open(record, "w") as f:
             f.write(f"{pid} {socket.gethostname()} {time.strftime('%Y-%m-%dT%H:%M:%S%z')}\n")
     elif argv[0] == "release":
