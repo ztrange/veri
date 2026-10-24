@@ -3,6 +3,7 @@ import json
 import sys
 
 import github
+from json_documents import items
 
 USAGE = "usage: parked-issues.sh"
 
@@ -31,7 +32,7 @@ def main(argv):
         except github.NoAnswer:
             sys.stderr.write("parked-issues.sh: no answer from gh to reading the comments of issue #%d\n" % number)
             return 2
-        comments = json.loads(raw, strict=False)
+        comments = items(raw, strict=False)
         body = [c["body"] for c in comments if c["body"].startswith(github.PARKED_HEADING)][-1]
         sys.stdout.write("%d\t%s\t%s\t%s\n" % (number, issue["title"], field(body, "Cause"), field(body, "Unblock")))
     return 0
