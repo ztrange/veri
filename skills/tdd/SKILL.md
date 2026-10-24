@@ -328,7 +328,7 @@ unauthenticated baseline never gets a cycle.
    is the HEAD recorded before `rebase-onto-default.sh` ran. It is never a bare force: the
    pinned lease refuses the push when the remote branch is no longer the commit this run
    rebased from. A red baseline on the rebased tip resets the branch to `<pre-rebase-sha>`
-   before the run bails, so a bailed resume leaves the branch on the commit it resumed from, not on a rebased tip no suite proved green.
+   before the run bails, so a bailed resume leaves the branch on the commit it resumed from, not on a rebased tip no suite proved green (`Read` `<base directory>/BAIL.md`).
 
    **Then time the full tier too.** Get its command from
    `$S/detect-test-command.sh --tier all --issue "$body"`, run it once through `detach-command.sh` in the same start-then-wait shape as the preflight baseline,
@@ -472,8 +472,7 @@ unauthenticated baseline never gets a cycle.
    `/tdd` without waiting for this one's PR to merge.
 5. **Resume check.** If `.tdd/issue-<n>.md` (the ledger) already exists in the worktree, this
    is a **resume**: skip step 2 (the plan is already written), post a `### ▶️ Resuming`
-   comment naming the next unchecked step, and go straight to the cycle loop (step 3). `Read`
-   `<base directory>/RESUME.md` when this check finds the ledger, and follow it.
+   comment naming the next unchecked step, and go straight to the cycle loop (step 3), once you `Read` and follow `<base directory>/RESUME.md`.
    Otherwise continue to step 2 to scope and plan. This check needs no special casing for a
    re-run: `issue-worktree.sh` is **idempotent**, so a second invocation puts you back in the
    same worktree the first run built, with its committed ledger already on disk.
@@ -1579,10 +1578,10 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    A non-empty `git status --porcelain` is work no verifier has seen — the transform a
    killed refactor leaf left on disk — and an exit 0 from `next-pending-refactor.sh` is a
-   step that is checked but still only green. On either, **do not ready the PR**: go to
-   `<base directory>/RESUME.md` sub-step 2 (`Read` it now), whose reset runs before its ask and so discards that work whatever
-   the ask answers, and come back here only once both questions have gone quiet — an empty
-   status, and `next-pending-refactor.sh` exiting 3. For a pending step sub-step 2 also
+   step that is checked but still only green. On either, **do not ready the PR**, and come back
+   here only once both questions have gone quiet — an empty status, and
+   `next-pending-refactor.sh` exiting 3 — by going to sub-step 2, whose reset runs before its ask and so discards that work whatever the ask answers: `Read`
+   `<base directory>/RESUME.md` sub-step 2 now. For a pending step sub-step 2 also
    re-enters that step's refactor loop. With **no step pending and none unchecked** the
    reset is the whole remedy: sub-steps 2 and 3 both exit 3, sub-step 4's `### ▶️ Resuming`
    comment names the paths the reset discarded, and the run comes back here and readies the
