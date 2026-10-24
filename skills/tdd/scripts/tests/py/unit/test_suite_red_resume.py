@@ -100,3 +100,22 @@ def test_check_on_an_empty_branch_red_file_exits_2_naming_that_file_2226(run_cli
 
     assert (code, out) == (2, "")
     assert str(branch) in err
+
+
+def test_insert_on_an_empty_or_unreadable_branch_red_file_exits_2_naming_it_and_adds_no_step_2226(run_cli, tmp_path):
+    module = importlib.import_module("veri.suite_red_resume")
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n- [ ] b ⟦criterion 2⟧\n")
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "suite-red"}) + "\n")
+    (tmp_path / "issue-7-added.md").write_text("- [ ] earlier ⟦suite-repair⟧\n")
+    before = (ledger.read_bytes(), (tmp_path / "issue-7-added.md").read_bytes())
+    empty = tmp_path / "branch-red"
+    empty.write_text("")
+    missing = tmp_path / "no-such-branch-red"
+
+    for branch in (empty, missing):
+        code, _, err = run_cli(module, ["insert", str(ledger), str(branch)])
+
+        assert code == 2
+        assert str(branch) in err
+        assert (ledger.read_bytes(), (tmp_path / "issue-7-added.md").read_bytes()) == before
