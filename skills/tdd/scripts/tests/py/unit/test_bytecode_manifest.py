@@ -104,3 +104,26 @@ def test_the_check_drops_every_cached_pyc_when_the_manifest_is_empty_truncated_o
         survivors[broken] = os.path.exists(plain)
 
     assert survivors == {"": False, '{"' + plain + '": "ab': False, "[]": False, "not json at all": False}
+
+
+def test_the_record_after_a_run_lists_a_plain_module_pyc_this_run_compiled_and_never_a_pytest_rewritten_or_optimised_one_2054(tmp_path, monkeypatch):
+    pytest_leg = importlib.import_module("veri.pytest_leg")
+    prefix = tmp_path / "prefix"
+    prefix.mkdir()
+    helper = tmp_path / "helper.py"
+    helper.write_text("VALUE = 1\n")
+    an_hour_ago = time.time() - 3600
+    os.utime(helper, (an_hour_ago, an_hour_ago))
+    monkeypatch.setattr(sys, "pycache_prefix", str(prefix))
+    plain = importlib.util.cache_from_source(str(helper))
+    optimised = importlib.util.cache_from_source(str(helper), optimization=2)
+    rewritten = plain[:-len(".pyc")] + "-pytest-8.3.4.pyc"
+
+    run = pytest_leg.check_bytecode_cache(str(prefix))
+    a_minute_on = time.time() + 60
+    for cfile in (plain, optimised, rewritten):
+        py_compile.compile(str(helper), cfile=cfile, doraise=True)
+        os.utime(cfile, (a_minute_on, a_minute_on))
+    pytest_leg.record_bytecode_cache(str(prefix), run)
+
+    assert sorted(pytest_leg.read_manifest(str(prefix))) == [plain]
