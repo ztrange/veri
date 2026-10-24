@@ -7,7 +7,7 @@
 - [x] `park-issue.sh` exits 2 when `gh` gives no answer to adding the label or to posting the comment, naming on stderr which of the two calls got no answer ⟦criterion 1⟧
 - [x] Parking an issue already labelled `parked` posts the new `### ⏸ Parked` comment and exits 0, not an error ⟦criterion 2⟧
 - [x] `solvable-issues.sh` never lists an issue labelled `parked`, even when it carries the opt-in label ⟦criterion 3⟧
-- [ ] `parked-issues.sh` reads the parked set from GitHub alone: for each open issue labelled `parked` it prints one tab-separated line — the issue's number, its title, and the cause and unblock text of its `### ⏸ Parked` comment — and exits 0; the script ships in this step as a shim over a `veri/` module with a usage line, exit 2 on any argument, and its entry in `skills/tdd/SCRIPTS.md` ⟦criterion 4⟧
+- [x] `parked-issues.sh` reads the parked set from GitHub alone: for each open issue labelled `parked` it prints one tab-separated line — the issue's number, its title, and the cause and unblock text of its `### ⏸ Parked` comment — and exits 0; the script ships in this step as a shim over a `veri/` module with a usage line, exit 2 on any argument, and its entry in `skills/tdd/SCRIPTS.md` ⟦criterion 4⟧ ⟂ refactor pending
 - [ ] When an issue carries several `### ⏸ Parked` comments, `parked-issues.sh` prints the cause and unblock text of the latest one ⟦criterion 4⟧
 - [ ] With no open issue labelled `parked`, `parked-issues.sh` prints nothing and exits 3 ⟦criterion 4⟧
 - [ ] `parked-issues.sh` exits 2 when `gh` gives no answer to listing the issues or reading an issue's comments, naming the call on stderr
