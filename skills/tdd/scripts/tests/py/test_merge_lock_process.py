@@ -98,3 +98,21 @@ def test_take_on_a_stale_lock_reports_the_stale_holder_on_stderr_and_waits_with_
         if taker.poll() is None:
             taker.kill()
         taker.communicate()
+
+
+@pytest.mark.process("merge-lock.sh take and holder as two separate shims in a scratch repository")
+def test_take_with_pid_of_a_long_lived_process_keeps_the_lock_live_for_a_holder_run_in_a_later_shell(tmp_path):
+    subprocess.run(["git", "-C", str(tmp_path), "init", "-q", "-b", "main"], check=True)
+    sleeper = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+
+    def shim(*args):
+        return subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), *args], cwd=tmp_path,
+                              stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    try:
+        taken = shim("take", "--pid", str(sleeper.pid))
+        held = shim("holder")
+        assert (taken.returncode, held.returncode, str(sleeper.pid) in held.stdout.split()) == (0, 0, True)
+    finally:
+        sleeper.kill()
+        sleeper.wait()
