@@ -153,3 +153,9 @@ def test_main_classifies_criterion_unreadable_as_system_with_0_2222(capsys, clas
     code = classify_bail.main(["criterion-unreadable"])
 
     assert (code, *capsys.readouterr()) == (0, "system\n", "")
+
+
+def test_main_refuses_red_baseline_with_2_and_prints_nothing_to_stdout_2205(capsys, classify_bail):
+    code = classify_bail.main(["red-baseline"])
+
+    assert (code, capsys.readouterr().out) == (2, "")
