@@ -241,6 +241,8 @@ def _check_earlier(ledger, step, exempt=()):
 
 
 def _rerecord_earlier(ledger, step):
+    if "⟦diff-checked⟧" not in step:
+        return 3
     root = _toplevel()
     if root is None:
         write(sys.stderr, "tests-frozen.sh: not inside a git repository\n%s" % USAGE)
