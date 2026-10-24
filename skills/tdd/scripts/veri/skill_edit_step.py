@@ -266,7 +266,8 @@ def main(argv):
             return 2
         graded, said = _guard(unit, base, issue, pins)
         if graded == 1:
-            _restore(tree, *said.splitlines())
+            _restore(tree, *[n for n in said.splitlines()
+                             if n in tree or not {".git", ".tdd"} & set(os.path.normpath(n).split(os.sep))])
         if not graded:
             graded, said = _grade(path, unit)
         if graded == 1:

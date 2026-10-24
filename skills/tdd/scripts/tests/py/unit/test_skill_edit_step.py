@@ -863,3 +863,62 @@ def test_exhausted_author_attempts_exit_1_with_the_tree_as_before_the_run_requir
 
     after = {p.name: p.read_bytes() for p in tmp_path.iterdir()}
     assert (code, after) == (1, before), (code, err)
+
+
+def test_a_guard_refusal_never_deletes_a_tdd_file_the_guard_names_that_it_holds_no_snapshot_for_2281(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget hums. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-9-added.md").write_text("an untracked added ledger\n")
+    (tmp_path / ".tdd" / "issue-9.md").write_text("a dirty ledger\n")
+    before = {p.name: p.read_bytes() for p in (tmp_path / ".tdd").iterdir()}
+
+    def guard(argv):
+        print(".tdd/issue-9-added.md")
+        print(".tdd/issue-9.md")
+        return 0
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A1: FAIL - silent\n"))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", guard)
+    monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(
+        run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""), PIPE=subprocess.PIPE))
+
+    run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"], env={"VERI_SKILL_EDIT_BUDGET": "1"})
+
+    after = {p.name: p.read_bytes() for p in (tmp_path / ".tdd").iterdir()}
+    assert after == before, after
+
+
+def test_a_guard_refusal_removes_a_new_file_the_author_created_and_the_guard_named_beside_a_surviving_tdd_file_2281(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget hums. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-9.md").write_text("a dirty ledger\n")
+
+    def guard(argv):
+        print("stray.py")
+        print(".tdd/issue-9.md")
+        return 0
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A1: FAIL - silent\n"))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: (tmp_path / "stray.py").write_text("NEW = 1\n") and 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", guard)
+    monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(
+        run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""), PIPE=subprocess.PIPE))
+
+    run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"], env={"VERI_SKILL_EDIT_BUDGET": "1"})
+
+    assert ((tmp_path / "stray.py").exists(), (tmp_path / ".tdd" / "issue-9.md").read_text()) == (False, "a dirty ledger\n")
