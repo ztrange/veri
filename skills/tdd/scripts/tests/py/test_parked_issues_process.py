@@ -338,3 +338,26 @@ def test_parked_issues_when_a_parked_comment_lacks_its_unblock_line_exits_2_nami
     assert "#8" in ran.stderr, ran.stderr
     assert ran.stdout == "7\tTeach the verifier to refuse\tbail on the verifier\ta human reads the diff\n"
     assert ran.returncode == 2, ran.stderr
+
+
+NO_CAUSE_LINE_GH_STUB = NO_UNBLOCK_LINE_GH_STUB.replace(
+    '"### ⏸ Parked\\nCause: held PR"', '"### ⏸ Parked\\nUnblock: a human readies the PR"')
+
+
+@pytest.mark.process("parked-issues.sh run against a gh stub whose second parked issue's comment lacks its Cause line")
+def test_parked_issues_when_a_parked_comment_lacks_its_cause_line_exits_2_naming_the_issue_after_printing_the_issues_before_it(tmp_path):
+    assert NO_CAUSE_LINE_GH_STUB != NO_UNBLOCK_LINE_GH_STUB
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(NO_CAUSE_LINE_GH_STUB)
+    gh.chmod(0o755)
+
+    ran = subprocess.run([str(SCRIPTS / "parked-issues.sh")], cwd=tmp_path, capture_output=True, text=True,
+                         stdin=subprocess.DEVNULL,
+                         env={"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+                              "PYTHONDONTWRITEBYTECODE": "1"})
+
+    assert "#8" in ran.stderr, ran.stderr
+    assert ran.stdout == "7\tTeach the verifier to refuse\tbail on the verifier\ta human reads the diff\n"
+    assert ran.returncode == 2, ran.stderr
