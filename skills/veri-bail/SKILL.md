@@ -17,26 +17,45 @@ Invoked as `/veri-bail <issue>`. `veri-dev` calls it on every exit that is not �
 
 ## Classify first
 
-Classify from facts before acting, never from the wording of the bail comment. First run
-`$S/stop-reason.sh <issue>`: it says whether the run stopped on a usage limit or a sleep.
-Otherwise read the run's `bail cause=` event and label that cause with
-`$S/classify-bail.sh <cause>`; check its answer against the ledger, `$S/status.sh`, the logs
-and git. Pick one:
+Classify from facts before acting, never from the wording of the bail comment. Name one source
+per class. First run `$S/stop-reason.sh <issue>` from the target repository's main working
+tree and read its first line:
 
-- usage limit;
-- sleep;
-- killed-stuck;
-- a budget (name which: stuck, no-verdict, revise, refactor, step growth, skill edit);
-- revise-exhausted;
-- red baseline;
-- a ledger question.
+- `running`: the run is live; take no action.
+- `done <pr>`: not a bail; take no action.
+- `stopped <mode>`: a requested stop, not a bail; report the mode and take no action.
+- `usage-limit [<reset text>]`: a usage limit (see below).
+- `bailed <phase> <classification>`: classify by the bail event, next.
+- `killed [<text>]` or `unknown [<text>]`: a sleep (see below) when a `gap <ts> <ts>` line
+  follows (two consecutive events more than `VERI_SLEEP_GAP` seconds apart); otherwise ask
+  the human.
+
+Exit 2 is no answer: classify nothing, take no action, and report stop-reason's stderr.
+
+On `bailed …`, read the `cause` of the last `bail` event in `.tdd/wt/<n>/.tdd/events.jsonl`
+and label it with `$S/classify-bail.sh <cause>`; check its answer against the ledger,
+`$S/status.sh`, the logs and git:
+
+- `killed-stuck`: killed-stuck;
+- `no-verdict`: the no-verdict budget;
+- `step-too-big`: the step-growth budget;
+- `revise-exhausted`: revise-exhausted (`REVISE_BUDGET`, or a ⟦skill-edit⟧ step's budget);
+- `needs-user` with `classification` `process`: a ledger question. Quote it from that run's
+  `### ⛔ Bailed — <phase> (process failure)` comment and take it to the coordinator or the
+  human (see Budgets and ledger);
+- `needs-user` with no `classification` field: the conductor stopped unmarked (a red baseline
+  or any other preflight stop, with the issue comment `needs-user: the conductor stopped
+  without a verdict.`). No source tells these apart, so ask the human which;
+- any other cause: a real bail of that cause and its classify-bail category.
 
 ## A usage limit or sleep is not a bail
 
-In the run's worktree `.tdd/wt/<n>`, save every uncommitted leaf edit, untracked files
-included, as a patch under `.tdd/` (`git add -A && git diff --cached --binary HEAD > <file>`, then
-`git reset`), restore that worktree's tree to the last commit (`git reset --hard && git clean -fd`),
-and resume when usage is back. It spends no resume and costs no park.
+In the run's worktree `.tdd/wt/<n>` (the only place this save and restore happens), save every
+uncommitted leaf edit, untracked files included, as a binary-safe patch under `.tdd/`
+(`git add -A && git diff --cached --binary HEAD > <file>`, then `git reset`), and restore that
+worktree's tree to the last commit (`git reset --hard && git clean -fd`). When usage is back,
+re-apply the patch in that worktree with `git apply <file>`, then resume. It spends no resume
+and costs no park.
 
 ## A first real bail: resume once
 
