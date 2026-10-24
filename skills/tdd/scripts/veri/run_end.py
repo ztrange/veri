@@ -84,7 +84,7 @@ def run_end(run_dir):
         elif event.get("event") in ("resume", "step-added"):
             mark = {}
     if not mark:
-        issue = str(events[-1].get("issue", "")) if events else ""
+        issue = next((str(e["issue"]) for e in reversed(events) if "issue" in e), "")
         if _live(run_dir, issue):
             return False, None, mark
         return True, _launch_cause(run_dir, issue) or "unknown", mark

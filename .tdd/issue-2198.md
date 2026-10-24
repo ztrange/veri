@@ -1,4 +1,4 @@
 # Plan for #2198 — live_conductor fixture patches run_end with raising=False, and run_end reads a live conductor as ended when the last event has no issue field
 
 - [x] The `live_conductor` helper in `tests/py/conftest.py` fails at setup, raising instead of silently adding a new attribute, when an attribute of `run_end` it patches (such as `command_line`) does not exist on the module; shown by a small unit case in `tests/py/unit/test_conftest_guards.py` that makes a patched name missing and expects the failure ⟦guard-subject: skills/tdd/scripts/tests/py/conftest.py⟧ ⟦criterion 1⟧
-- [ ] `run_end` answers a run whose conductor is live as not ended (ended False) when the last event of its `events.jsonl` lacks an `issue` field; pinned by a small unit case in `tests/py/unit/test_run_end.py` ⟦criterion 2⟧
+- [x] `run_end` answers a run whose conductor is live as not ended (ended False) when the last event of its `events.jsonl` lacks an `issue` field; pinned by a small unit case in `tests/py/unit/test_run_end.py` ⟦criterion 2⟧ ⟂ refactor pending

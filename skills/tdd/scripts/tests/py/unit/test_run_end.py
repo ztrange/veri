@@ -203,3 +203,16 @@ def test_a_pid_that_answers_kill_0_but_whose_process_and_parent_are_not_run_cond
     ended, cause, mark = run_end.run_end(tmp_path)
 
     assert (ended, cause, not mark) == (True, "usage-limit", True)
+
+
+def test_a_live_conductor_for_this_issue_leaves_the_run_not_ended_when_the_last_event_has_no_issue_field_2198(tmp_path, monkeypatch):
+    run_end = importlib.import_module("veri.run_end")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in (
+        {"ts": 100, "issue": "7", "event": "step-done"}, {"ts": 200, "event": "note"})))
+    (tmp_path / ".tdd" / "conductor.pid").write_text(f"{os.getpid()}\n")
+    monkeypatch.setattr(run_end, "command_line", lambda pid: "bash /x/run-conductor.sh 7")
+
+    ended, cause, mark = run_end.run_end(tmp_path)
+
+    assert (ended, cause, not mark) == (False, None, True)
