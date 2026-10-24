@@ -271,6 +271,11 @@ def is_diff_checked(line):
     return bool(kind) and kind.group(1) == "diff-checked"
 
 
+def _cases_at(rev, name):
+    shown = subprocess.run(["git", "show", "%s:%s" % (rev, name)], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    return dict(_cases(shown.stdout.decode("utf-8", "replace")))
+
+
 def rerecord_earlier(ledger, step):
     if not is_diff_checked(step):
         return 3
@@ -285,6 +290,9 @@ def rerecord_earlier(ledger, step):
         write(sys.stderr, "tests-frozen.sh: %s\n%s" % (error, USAGE))
         return 2
     os.chdir(root)
+    base = subprocess.run(["git", "log", "-1", "--format=%H", "--", os.path.abspath(ledger)],
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.decode().strip()
+    before, after = {}, {}
     for line in lines:
         match = re.match(r"\s*- \[.\] (.*)", line)
         if not match or match.group(1) == step:
@@ -300,12 +308,10 @@ def rerecord_earlier(ledger, step):
             parsed = _body_record(record)
             if parsed:
                 name, case, _ = parsed
-                try:
-                    with open(name, encoding="utf-8", errors="replace") as handle:
-                        now = dict(_cases(handle.read())).get(case)
-                except OSError:
-                    now = None
-                if now is not None:
+                if name not in after:
+                    before[name], after[name] = _cases_at(base, name), _cases_at("HEAD", name)
+                now = after[name].get(case)
+                if now is not None and now != before[name].get(case):
                     record = "body: %s\t%s\t%s" % (name, case, _body_digest(now))
             out.append(record + "\n")
         with open(path, "w", encoding="utf-8") as handle:
