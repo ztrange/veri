@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 2199
 
-Wall time for the issue: 1154 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 2530 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Every figure in this report is wall-clock: the log carries no awake-clock reading, so time the machine spent asleep is counted in them.
-Steps done: 6 of 11 planned.
-Outcome: the run bailed — revise-exhausted, a process failure.
+Steps done: 10 of 11 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/2256.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $11.99 over 252 turns, in 3 sessions.
+Conductor own spending: $15.64 over 323 turns, in 4 sessions.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
@@ -167,72 +167,143 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 151 | $0.08 | 181456 |
 | 152 | $0.12 | 190406 |
 | 153 | $0.07 | 191849 |
-| 154 | $0.58 | 89487 |
-| 155 | $0.02 | 89823 |
-| 156 | $0.03 | 91231 |
-| 157 | $0.02 | 91875 |
-| 158 | $0.03 | 93252 |
+| 154 | $0.59 | 89487 |
+| 155 | $0.03 | 89823 |
+| 156 | $0.04 | 91231 |
+| 157 | $0.03 | 91875 |
+| 158 | $0.04 | 93252 |
 | 159 | $0.04 | 95560 |
-| 160 | $0.02 | 95894 |
-| 161 | $0.02 | 96354 |
-| 162 | $0.02 | 96754 |
-| 163 | $0.02 | 97113 |
-| 164 | $0.02 | 97483 |
-| 165 | $0.02 | 98114 |
-| 166 | $0.05 | 101574 |
-| 167 | $0.03 | 102899 |
+| 160 | $0.04 | 95894 |
+| 161 | $0.03 | 96354 |
+| 162 | $0.03 | 96754 |
+| 163 | $0.03 | 97113 |
+| 164 | $0.03 | 97483 |
+| 165 | $0.04 | 98114 |
+| 166 | $0.06 | 101574 |
+| 167 | $0.04 | 102899 |
 | 168 | $0.04 | 104947 |
-| 169 | $0.03 | 105700 |
-| 170 | $0.03 | 106377 |
-| 171 | $0.02 | 106605 |
-| 172 | $0.03 | 108002 |
-| 173 | $0.03 | 108626 |
-| 174 | $0.02 | 109025 |
-| 175 | $0.03 | 109587 |
+| 169 | $0.04 | 105700 |
+| 170 | $0.04 | 106377 |
+| 171 | $0.03 | 106605 |
+| 172 | $0.04 | 108002 |
+| 173 | $0.04 | 108626 |
+| 174 | $0.03 | 109025 |
+| 175 | $0.04 | 109587 |
 | 176 | $0.03 | 110061 |
-| 177 | $0.03 | 111075 |
-| 178 | $0.03 | 112199 |
+| 177 | $0.04 | 111075 |
+| 178 | $0.05 | 112199 |
 | 179 | $0.03 | 112924 |
-| 180 | $0.03 | 113260 |
-| 181 | $0.03 | 114187 |
-| 182 | $0.03 | 114790 |
+| 180 | $0.04 | 113260 |
+| 181 | $0.04 | 114187 |
+| 182 | $0.04 | 114790 |
 | 183 | $0.03 | 115521 |
-| 184 | $0.03 | 116175 |
-| 185 | $0.03 | 116746 |
-| 186 | $0.03 | 117132 |
-| 187 | $0.03 | 117874 |
-| 188 | $0.03 | 118745 |
-| 189 | $0.03 | 119533 |
-| 190 | $0.03 | 120367 |
-| 191 | $0.03 | 121182 |
-| 192 | $0.03 | 122133 |
-| 193 | $0.03 | 123121 |
-| 194 | $0.04 | 124670 |
+| 184 | $0.04 | 116175 |
+| 185 | $0.04 | 116746 |
+| 186 | $0.04 | 117132 |
+| 187 | $0.04 | 117874 |
+| 188 | $0.04 | 118745 |
+| 189 | $0.04 | 119533 |
+| 190 | $0.04 | 120367 |
+| 191 | $0.04 | 121182 |
+| 192 | $0.04 | 122133 |
+| 193 | $0.04 | 123121 |
+| 194 | $0.05 | 124670 |
 | 195 | $0.03 | 125127 |
-| 196 | $0.04 | 127344 |
-| 197 | $0.03 | 128000 |
-| 198 | $0.03 | 128962 |
-| 199 | $0.03 | 129216 |
-| 200 | $0.03 | 129876 |
-| 201 | $0.03 | 130822 |
-| 202 | $0.04 | 131932 |
-| 203 | $0.04 | 133489 |
-| 204 | $0.08 | 140668 |
-| 205 | $0.04 | 141796 |
-| 206 | $0.04 | 143080 |
-| 207 | $0.03 | 143464 |
-| 208 | $0.03 | 144234 |
-| 209 | $0.03 | 144847 |
-| 210 | $0.04 | 145765 |
-| 211 | $0.04 | 146628 |
-| 212 | $0.03 | 146953 |
-| 213 | $0.04 | 148766 |
-| 214 | $0.04 | 149738 |
-| 215 | $0.03 | 150263 |
-| 216 | $0.04 | 151287 |
-| 217 | $0.04 | 152365 |
-| 218 | $0.04 | 153069 |
+| 196 | $0.06 | 127344 |
+| 197 | $0.04 | 128000 |
+| 198 | $0.04 | 128962 |
+| 199 | $0.04 | 129216 |
+| 200 | $0.04 | 129876 |
+| 201 | $0.04 | 130822 |
+| 202 | $0.05 | 131932 |
+| 203 | $0.05 | 133489 |
+| 204 | $0.09 | 140668 |
+| 205 | $0.05 | 141796 |
+| 206 | $0.05 | 143080 |
+| 207 | $0.04 | 143464 |
+| 208 | $0.04 | 144234 |
+| 209 | $0.04 | 144847 |
+| 210 | $0.05 | 145765 |
+| 211 | $0.05 | 146628 |
+| 212 | $0.04 | 146953 |
+| 213 | $0.05 | 148766 |
+| 214 | $0.05 | 149738 |
+| 215 | $0.04 | 150263 |
+| 216 | $0.05 | 151287 |
+| 217 | $0.05 | 152365 |
+| 218 | $0.05 | 153069 |
 | 219 | $0.07 | 157855 |
+| 220 | $0.05 | 158641 |
+| 221 | $0.05 | 159696 |
+| 222 | $0.05 | 160819 |
+| 223 | $0.58 | 90203 |
+| 224 | $0.02 | 90826 |
+| 225 | $0.02 | 91311 |
+| 226 | $0.03 | 92799 |
+| 227 | $0.04 | 95235 |
+| 228 | $0.04 | 97953 |
+| 229 | $0.05 | 101271 |
+| 230 | $0.03 | 101898 |
+| 231 | $0.02 | 102273 |
+| 232 | $0.02 | 102596 |
+| 233 | $0.02 | 102911 |
+| 234 | $0.03 | 103644 |
+| 235 | $0.03 | 104859 |
+| 236 | $0.03 | 105652 |
+| 237 | $0.03 | 106343 |
+| 238 | $0.03 | 106995 |
+| 239 | $0.03 | 108391 |
+| 240 | $0.03 | 109294 |
+| 241 | $0.04 | 111029 |
+| 242 | $0.03 | 111442 |
+| 243 | $0.03 | 112046 |
+| 244 | $0.03 | 112496 |
+| 245 | $0.03 | 113593 |
+| 246 | $0.03 | 114421 |
+| 247 | $0.03 | 115126 |
+| 248 | $0.03 | 116384 |
+| 249 | $0.08 | 123834 |
+| 250 | $0.03 | 125041 |
+| 251 | $0.04 | 126520 |
+| 252 | $0.03 | 127189 |
+| 253 | $0.03 | 127773 |
+| 254 | $0.03 | 128527 |
+| 255 | $0.03 | 129129 |
+| 256 | $0.03 | 129996 |
+| 257 | $0.03 | 130656 |
+| 258 | $0.03 | 131441 |
+| 259 | $0.03 | 131951 |
+| 260 | $0.03 | 132844 |
+| 261 | $0.03 | 133687 |
+| 262 | $0.05 | 136148 |
+| 263 | $0.03 | 136928 |
+| 264 | $0.03 | 137217 |
+| 265 | $0.04 | 138582 |
+| 266 | $0.04 | 139958 |
+| 267 | $0.04 | 141053 |
+| 268 | $0.03 | 141562 |
+| 269 | $0.04 | 142483 |
+| 270 | $0.04 | 143564 |
+| 271 | $0.03 | 144052 |
+| 272 | $0.03 | 144700 |
+| 273 | $0.04 | 145741 |
+| 274 | $0.04 | 147317 |
+| 275 | $0.04 | 148009 |
+| 276 | $0.04 | 148735 |
+| 277 | $0.05 | 150777 |
+| 278 | $0.04 | 152293 |
+| 279 | $0.04 | 153368 |
+| 280 | $0.04 | 154260 |
+| 281 | $0.04 | 155064 |
+| 282 | $0.04 | 156373 |
+| 283 | $0.03 | 156744 |
+| 284 | $0.04 | 157230 |
+| 285 | $0.04 | 157951 |
+| 286 | $0.04 | 158569 |
+| 287 | $0.04 | 159313 |
+| 288 | $0.04 | 159838 |
+| 289 | $0.03 | 160158 |
+| 290 | $0.04 | 160668 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -240,32 +311,34 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 16 | 12 | 1 | 2 | 1482 | 0 | 31085 | 0.09 |
-| red | 21 | 10 | 1 | 0 | 777 | 410 | 100 | 196 | 46331 | 2900453 | 524169 | 2.22 |
-| green | 21 | 5 | 3 | 0 | 1543 | 426 | 115 | 230 | 40875 | 3492156 | 360402 | 2.00 |
-| refactor | 10 | 5 | 0 | 0 | 314 | 92 | 32 | 64 | 7382 | 840478 | 137026 | 0.50 |
-| pin | 3 | 1 | 2 | 0 | 100 | 45 | 11 | 22 | 4569 | 293991 | 47561 | 0.19 |
+| red | 25 | 11 | 1 | 0 | 929 | 493 | 123 | 242 | 57163 | 3612695 | 649127 | 2.72 |
+| green | 25 | 6 | 4 | 0 | 1838 | 478 | 133 | 266 | 46430 | 4012712 | 432317 | 2.39 |
+| refactor | 12 | 6 | 0 | 0 | 378 | 113 | 40 | 78 | 9690 | 1033201 | 167555 | 0.62 |
+| pin | 5 | 3 | 2 | 0 | 149 | 68 | 20 | 40 | 7137 | 546584 | 80477 | 0.33 |
 | cover | 3 | 0 | 0 | 0 | 115 | 48 | 15 | 30 | 5210 | 403971 | 65007 | 0.26 |
 | predicate | 2 | 0 | 0 | 0 | 26 | 19 | 7 | 14 | 1711 | 179065 | 24141 | 0.10 |
 | structural | 2 | 0 | 0 | 0 | 73 | 23 | 10 | 20 | 2459 | 270627 | 26203 | 0.12 |
 | transform | 2 | 2 | 0 | 0 | 54 | 17 | 7 | 14 | 1454 | 158875 | 41929 | 0.14 |
 | red-supersede | 1 | 0 | 0 | 0 | 56 | 30 | 9 | 18 | 3812 | 313707 | 23649 | 0.13 |
 | exhausted | 2 | 0 | 0 | 0 | 66 | 52 | 9 | 18 | 3827 | 250921 | 32705 | 0.29 |
+| diff | 6 | 2 | 1 | 0 | 313 | 113 | 36 | 70 | 12569 | 1041523 | 128076 | 0.73 |
+| rebase | 2 | 1 | 0 | 0 | 424 | 22 | 11 | 20 | 2308 | 252277 | 70268 | 0.22 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 30 | 24 | 6 | 0 | 1375 | 375 | 108 | 214 | 37487 | 2822523 | 501574 | 1.91 |
-| developer | claude-sonnet-5-5 | 28 | 0 | 0 | 0 | 1319 | 536 | 157 | 312 | 57958 | 4727296 | 615468 | 2.73 |
-| developer | claude-opus-5-5 | 10 | 0 | 0 | 0 | 446 | 263 | 51 | 102 | 23667 | 1554425 | 196835 | 1.39 |
+| verifier | claude-sonnet-5-5 | 40 | 32 | 8 | 0 | 1927 | 482 | 148 | 290 | 48694 | 3836377 | 684336 | 2.58 |
+| developer | claude-sonnet-5-5 | 37 | 0 | 0 | 0 | 1871 | 736 | 211 | 418 | 82683 | 6338658 | 854791 | 3.90 |
+| developer | claude-opus-5-5 | 11 | 0 | 0 | 0 | 639 | 270 | 62 | 124 | 23875 | 1901123 | 233412 | 1.64 |
 
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 232 | 0.70 |
-| green | 1968 | 2.43 | 184 | 0.42 |
+| red | 314 | 0.94 | 0 | 0.00 |
+| green | 2417 | 3.17 | 0 | 0.00 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | pin | 116 | 0.27 | 0 | 0.00 |
 | cover | 0 | 0.00 | 0 | 0.00 |
@@ -273,7 +346,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | structural | 0 | 0.00 | 0 | 0.00 |
 | transform | 0 | 0.00 | 0 | 0.00 |
 | red-supersede | 0 | 0.00 | 0 | 0.00 |
-| exhausted | 0 | 0.00 | 44 | 0.16 |
+| exhausted | 0 | 0.00 | 0 | 0.00 |
+| diff | 231 | 0.58 | 82 | 0.14 |
+| rebase | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -285,7 +360,11 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | A frozen case changed by a step not marked `⟦diff-checked⟧` still trips `check-earlier`: `tick-ledger.sh` ticking such a step, and `tests-frozen.sh rerecord-earlier` given such a step (exit 3, nothing to do), leave every earlier record unchanged, and a later step's `check-earlier` exits 1 naming the case and its owning step (a git repo in tmp_path: a medium case marked process) ⟦criterion 2⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 79 | 23 | 46 | 8117 | 641060 | 94790 | 0.38 | 392 | unknown | 0/5 | structural-owed |  |  | full |
 | The fresh record the ⟦diff-checked⟧ tick writes is computed by the `tests_frozen` beside the `tick-ledger.sh` that ran (the run's pinned skill snapshot), never by a `tests_frozen` in the working tree: with two copies of the scripts directory whose `tests_frozen` digest a case differently, the tick and `check-earlier` run from the snapshot copy pass for the re-recorded case though the checkout copy would digest it otherwise (a medium case marked process) ⟦criterion 4⟧ | 11 | 3 | 0 | 0 | 0 | 0 | 166 | 51 | 102 | 17946 | 1426290 | 205429 | 0.84 | unknown | unknown | unknown | unknown |  |  | pin |
 | `tick-ledger.sh` re-records earlier frozen cases only when the ticked line's kind, as `ledger.KIND_RE` parses it from the line's trailing markers, is `⟦diff-checked⟧`: ticking an ordinary step whose text merely mentions `⟦diff-checked⟧` in its prose leaves every earlier frozen record unchanged, `tests-frozen.sh rerecord-earlier` given that step exits 3, and a later step's `check-earlier` exits 1 naming the edited case and its owning step (a git repo in tmp_path: a medium case marked process) ⟦criterion 5⟧ | 21 | 6 | 5 | 0 | 0 | 0 | 399 | 106 | 210 | 40802 | 3090002 | 451517 | 2.14 | 425 | 2/2 | 1/5 | nothing-left |  |  | full |
-| `tests-frozen.sh rerecord-earlier` (and so the `⟦diff-checked⟧` tick) re-records only the earlier frozen cases that the step's own diff changed, from the step base (the last commit that changed the ledger, `git log -1 --format=%H -- <ledger>`) to HEAD, reading each case's content at HEAD and never from the working tree: an earlier frozen case edited in a commit before the step base, or edited only in the working tree and left uncommitted, keeps its old record entry, and a later step's `check-earlier` still exits 1 naming it (a git repo in tmp_path: medium cases marked process) ⟦criterion 6⟧ | 11 | 2 | 1 | 0 | 0 | 0 | 249 | 54 | 108 | 24548 | 1624658 | 210044 | 1.29 | unknown | red 1/2, green 2/2 | unknown | unknown |  |  | full |
+| `tests-frozen.sh rerecord-earlier` (and so the `⟦diff-checked⟧` tick) re-records only the earlier frozen cases that the step's own diff changed, from the step base (the last commit that changed the ledger, `git log -1 --format=%H -- <ledger>`) to HEAD, reading each case's content at HEAD and never from the working tree: an earlier frozen case edited in a commit before the step base, or edited only in the working tree and left uncommitted, keeps its old record entry, and a later step's `check-earlier` still exits 1 naming it (a git repo in tmp_path: medium cases marked process) ⟦criterion 6⟧ | 19 | 5 | 2 | 0 | 0 | 0 | 351 | 89 | 176 | 36088 | 2569553 | 384649 | 2.04 | 621 | red 1/2, green 3/2 | 1/5 | nothing-left |  |  | full |
+| `rerecord_earlier` never rewrites the ticked step's own frozen record: when the `⟦diff-checked⟧` step being ticked has a record of its own holding a case its diff changed, that record file is byte-for-byte unchanged after `tick-ledger.sh` ticks the step, while an earlier step's record of the same case is re-recorded (a git repo in tmp_path: a medium case marked process) ⟦criterion 7⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 34 | 10 | 20 | 4517 | 326109 | 44490 | 0.19 | unknown | unknown | unknown | unknown |  |  | pin |
+| After `tick-ledger.sh` ticks a `⟦diff-checked⟧` step that re-records an earlier step's frozen case, committing with `git add .tdd/issue-<n>.md && git commit` leaves `git status --porcelain` empty: every record the tick rewrote is either in that commit or ignored run state, and the tick changes no tracked file besides the ledger; no SKILL.md text is changed (a git repo in tmp_path: a medium case marked process) ⟦criterion 8⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 43 | 13 | 26 | 5206 | 407110 | 41223 | 0.20 | unknown | unknown | unknown | unknown |  |  | pin |
+| `tests_frozen.rerecord_earlier` and `tests_frozen._check_earlier` read the ledger's steps and their frozen records through one shared reader in `veri/tests_frozen.py`, neither keeping a ledger-reading loop of its own, with no behaviour changed and every suite green ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 8⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 27 | 10 | 20 | 3727 | 281537 | 31009 | 0.14 | unknown | n/a | n/a | n/a |  |  | full |
+| The documentation names the new behaviour: `tests-frozen.sh`'s header and its `USAGE` line in `veri/tests_frozen.py` name `rerecord-earlier <ledger> --step <step-text>` and its exits; `tick-ledger.sh`'s header states that exit 2 can follow a write of the ledger (a `⟦diff-checked⟧` tick whose re-record failed); and `SCRIPTS.md`'s `tests-frozen.sh` and `tick-ledger.sh` entries describe `rerecord-earlier` and the `⟦diff-checked⟧` tick's re-record ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 8⟧ | 6 | 2 | 1 | 0 | 0 | 0 | 108 | 37 | 70 | 11150 | 1012263 | 167335 | 0.81 | 378 | 1/2 | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -298,23 +377,23 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `tick-ledger.sh` ticking a step marked `⟦diff-checked⟧` re-records, as `rerecord-earlier` does, every earlier step's frozen case that step changed, so after the ⟦diff-checked⟧ step's tick a later step's `tests-frozen.sh check-earlier` exits 0 for the edited case, with no extra conductor command (a git repo in tmp_path: a medium case marked process) ⟦criterion 1⟧ | 1 | 0/5 | structural-owed | PASS | 0 | 50 | 0.09 |
 | A frozen case changed by a step not marked `⟦diff-checked⟧` still trips `check-earlier`: `tick-ledger.sh` ticking such a step, and `tests-frozen.sh rerecord-earlier` given such a step (exit 3, nothing to do), leave every earlier record unchanged, and a later step's `check-earlier` exits 1 naming the case and its owning step (a git repo in tmp_path: a medium case marked process) ⟦criterion 2⟧ | 1 | 0/5 | structural-owed | PASS | 0 | 48 | 0.09 |
 | `tick-ledger.sh` re-records earlier frozen cases only when the ticked line's kind, as `ledger.KIND_RE` parses it from the line's trailing markers, is `⟦diff-checked⟧`: ticking an ordinary step whose text merely mentions `⟦diff-checked⟧` in its prose leaves every earlier frozen record unchanged, `tests-frozen.sh rerecord-earlier` given that step exits 3, and a later step's `check-earlier` exits 1 naming the edited case and its owning step (a git repo in tmp_path: a medium case marked process) ⟦criterion 5⟧ | 1 | 1/5 | nothing-left | PASS | 0 | 78 | 0.12 |
+| `tests-frozen.sh rerecord-earlier` (and so the `⟦diff-checked⟧` tick) re-records only the earlier frozen cases that the step's own diff changed, from the step base (the last commit that changed the ledger, `git log -1 --format=%H -- <ledger>`) to HEAD, reading each case's content at HEAD and never from the working tree: an earlier frozen case edited in a commit before the step base, or edited only in the working tree and left uncommitted, keeps its old record entry, and a later step's `check-earlier` still exits 1 naming it (a git repo in tmp_path: medium cases marked process) ⟦criterion 6⟧ | 1 | 1/5 | nothing-left | PASS | 0 | 64 | 0.12 |
 
 #### Structural pass
 
-| pass | refactor | stopped |
-| --- | ---: | --- |
-| issue | 2/10 | candidates-done |
+Stopped: nothing-structural
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 12 | 14 | 14 | 30 | 20 | 18 | 13 | 13 | 14 | 15 | 13 | 9 | 9 | 10 | 24 | 10 | 19 | 16 | 13 | 16 | 12 | 10 | 11 | 13 | 14 | 14 | 14 | 14 | 14 | 13 | 14 | 14 | 7 | 5 | 11 | 6 | 10 | 16 | 37 | 38 | 0 | 0 | 30 | 40 | 6 | 4 | 0 | 4 | 22 | 21 | 7 | 17 | 34 | 16 | 7 | 6 | 7 | 7 | 6 |
-| fast | 15 | 25 | 17 | 16 | 18 | 14 | 14 | 15 | 15 | 15 | 20 | 14 | 23 | 24 | 33 | 25 | 29 | 55 | 19 | 19 | 20 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 9 | 9 | 8 | 10 | 11 | 11 | 11 | 12 | 8 | 0 | 4 | 3 | 1 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 12 | 14 | 14 | 30 | 20 | 18 | 13 | 13 | 14 | 15 | 13 | 9 | 9 | 10 | 24 | 10 | 19 | 16 | 13 | 16 | 12 | 10 | 11 | 13 | 14 | 14 | 14 | 14 | 14 | 13 | 14 | 14 | 7 | 5 | 11 | 6 | 10 | 16 | 37 | 38 | 0 | 0 | 30 | 40 | 6 | 4 | 0 | 4 | 22 | 21 | 7 | 17 | 34 | 16 | 7 | 6 | 7 | 7 | 6 | 29 | 16 | 24 | 16 | 17 | 7 | 7 | 4 | 7 | 3 | 3 | 7 | 7 | 19 | 7 | 7 |
+| fast | 15 | 25 | 17 | 16 | 18 | 14 | 14 | 15 | 15 | 15 | 20 | 14 | 23 | 24 | 33 | 25 | 29 | 55 | 19 | 19 | 20 | 53 | 20 | 20 | 19 | 18 | 17 | 18 | 18 | 19 | 19 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 9 | 9 | 8 | 10 | 11 | 11 | 11 | 12 | 8 | 0 | 4 | 3 | 1 | 1 | 4 | 4 | 5 | 3 | 4 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 195 | 190 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 316 | 628 | 119112 | 9104244 | 1313877 | 6.03 |
+| total | 421 | 832 | 155252 | 12076158 | 1772539 | 8.12 |
