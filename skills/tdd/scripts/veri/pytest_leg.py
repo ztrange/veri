@@ -44,22 +44,24 @@ def stat_or_none(path):
         return None
 
 
+def source_text(pyc):
+    with open(importlib.util.source_from_cache(pyc), "rb") as source:
+        return source.read()
+
+
 def source_digest(pyc):
     try:
-        with open(importlib.util.source_from_cache(pyc), "rb") as source:
-            return hashlib.sha256(source.read()).hexdigest()
+        return hashlib.sha256(source_text(pyc)).hexdigest()
     except (OSError, ValueError, NotImplementedError):
         return None
 
 
 def compiled_from_current_source(pyc):
     try:
-        source = importlib.util.source_from_cache(pyc)
-        with open(source, "rb") as f:
-            text = f.read()
         with open(pyc, "rb") as f:
             cached = marshal.loads(f.read()[16:])
-        return cached == compile(text, source, "exec", dont_inherit=True)
+        source = importlib.util.source_from_cache(pyc)
+        return cached == compile(source_text(pyc), source, "exec", dont_inherit=True)
     except (OSError, ValueError, NotImplementedError, SyntaxError, EOFError, TypeError):
         return False
 
