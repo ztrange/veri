@@ -1375,3 +1375,28 @@ def test_main_writes_the_step_added_record_with_an_integer_ts_and_an_awake_readi
     assert (record["event"], record["actor"], record["step"]) == ("step-added", "add-ledger-step", inserted[0])
     assert isinstance(record.get("ts"), int)
     assert "awake" in record
+
+
+def test_stop_reason_and_metrics_read_a_run_log_holding_an_add_ledger_step_insertion_2265(tmp_path, monkeypatch, run_cli, add_ledger_step):
+    run = tmp_path / ".tdd" / "wt" / "42"
+    ledger = run / ".tdd" / "issue-42.md"
+    events = run / ".tdd" / "events.jsonl"
+    ledger.parent.mkdir(parents=True)
+    ledger.write_bytes(LEDGER)
+    marks = [
+        {"ts": 100, "awake": 10, "issue": "42", "event": "step-start", "step": "1"},
+        {"ts": 130, "awake": 40, "issue": "42", "event": "step-done", "step": "1"}]
+    events.write_text("".join(json.dumps(mark) + "\n" for mark in marks))
+    monkeypatch.setenv("VERI_STEP_GROWTH", "5")
+    monkeypatch.setenv("VERI_SLEEP_GAP", str(2**50))
+    assert run_cli(add_ledger_step, [str(ledger), "after", "b two", "first"])[0] == 0
+    with open(events, "a") as f:
+        f.write(json.dumps({"ts": 2**40, "awake": 2**40, "issue": "42", "event": "done", "pr": "https://github.com/o/r/pull/9"}) + "\n")
+
+    stopped = run_cli(importlib.import_module("veri.stop_reason"), ["42"], cwd=tmp_path)
+    measured = run_cli(importlib.import_module("veri.metrics"), ["42"], cwd=run)
+
+    assert stopped[:2] == (0, "done https://github.com/o/r/pull/9\n")
+    assert "KeyError" not in stopped[2]
+    assert measured[0] == 0
+    assert "the log carries no awake-clock reading" not in measured[1]
