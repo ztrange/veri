@@ -27,7 +27,7 @@ def read_text(path):
         return handle.read()
 
 
-def read_branch_red(path):
+def read_nonempty(path):
     text = read_text(path)
     if not text.strip():
         raise OSError(errno.ENODATA, "empty", path)
@@ -50,7 +50,7 @@ def last_bail_cause(path):
 
 def insert(ledger, branch_file):
     try:
-        text = read_branch_red(branch_file)
+        text = read_nonempty(branch_file)
     except OSError as error:
         complain(f"{error.filename}: {error.strerror}")
         return 2
@@ -71,8 +71,8 @@ def main(argv):
     _, ledger, branch_file, default_file = argv
     try:
         cause = last_bail_cause(os.path.join(os.path.dirname(ledger), "events.jsonl"))
-        branch = read_branch_red(branch_file)
-        default = read_branch_red(default_file)
+        branch = read_nonempty(branch_file)
+        default = read_nonempty(default_file)
     except OSError as error:
         complain(f"{error.filename}: {error.strerror}")
         return 2
