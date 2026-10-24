@@ -302,6 +302,8 @@ def render(issue, path, ledger):
             current = open_pass(step)
             current["verdict"] = line.get("verdict", "")
             settle_pass(step, current)
+        if event == "verify-refactor-skipped" and step:
+            open_pass(step)["verdict"] = "skipped"
         if event == "revise" and step:
             per_phase = step_mark(step).setdefault("revise phases", {})
             per_phase[phase] = (per_phase.get(phase, (0, ""))[0] + 1, line.get("budget", ""))
