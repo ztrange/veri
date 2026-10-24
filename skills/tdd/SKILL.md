@@ -669,7 +669,7 @@ three times over branches its ledger pinned on later lines.
    line named on stderr — is **a bail with cause `step-added-off-route`** (a process failure; see
    `<base directory>/BAIL.md`): the plan grew by a route other than `add-ledger-step.sh`, and no
    commit is made over it. `ledger-growth.sh` exit 2 — no answer could be obtained (an unreadable
-   ledger or plan file, a bad `VERI_STEP_GROWTH`, no plan commit for `plan-sha`) — is **a bail
+   ledger, plan file or record, a bad `VERI_STEP_GROWTH`, no plan commit for `plan-sha`) — is **a bail
    with cause `no-verdict`** (a system failure; see
    `<base directory>/BAIL.md`), never `step-added-off-route`, and no commit is made over it.
 3. **Push the branch and open the draft PR** — the run's claim, made as the first act after
