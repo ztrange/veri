@@ -15,7 +15,16 @@ def _caller_pid(args):
     return args[1] if args[:1] == ["--pid"] else str(os.getppid())
 
 
+def _needs_pid(args, force_ok):
+    if "--pid" in args or (force_ok and "--force" in args):
+        return False
+    print("merge-lock.sh: --pid <pid> is required", file=sys.stderr)
+    return True
+
+
 def _take(lock, record, args):
+    if _needs_pid(args, False):
+        return 2
     pid = _caller_pid(args)
     os.makedirs(os.path.dirname(lock), exist_ok=True)
     reported = False
@@ -41,6 +50,8 @@ def _take(lock, record, args):
 
 
 def _release(lock, record, args):
+    if _needs_pid(args, True):
+        return 2
     pid = _caller_pid([a for a in args if a != "--force"])
     if "--force" not in args:
         with open(record) as f:
