@@ -89,3 +89,36 @@ def test_parked_issues_when_the_final_comment_is_not_a_parked_comment_still_prin
 
     assert ran.returncode == 0, ran.stderr
     assert ran.stdout == "7\tTeach the verifier to refuse\tsecond bail on the verifier\ta human reads the diff\n"
+
+
+SEVERAL_PARKED_GH_STUB = """#!/bin/sh
+for a in "$@"; do
+  case "$a" in
+    *page=[2-9]*) echo '[]'; exit 0 ;;
+    */issues/7/comments*)
+      echo '[{"body":"### ⏸ Parked\\nCause: first bail\\nUnblock: old"},{"body":"chatter"},{"body":"### ⏸ Parked\\nCause: held PR\\nUnblock: the human merges"},{"body":"### ⏸ Parked\\nCause: third bail\\nUnblock: fix the fixture"},{"body":"Still waiting."}]'
+      exit 0 ;;
+    */issues*)
+      echo '[{"number":7,"title":"Teach the verifier to refuse","labels":[{"name":"parked"}]}]'
+      exit 0 ;;
+  esac
+done
+echo '[]'
+"""
+
+
+@pytest.mark.process("parked-issues.sh run against a gh stub whose parked issue carries three parked comments")
+def test_parked_issues_when_an_issue_carries_several_parked_comments_prints_the_cause_and_unblock_of_the_latest(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(SEVERAL_PARKED_GH_STUB)
+    gh.chmod(0o755)
+
+    ran = subprocess.run([str(SCRIPTS / "parked-issues.sh")], cwd=tmp_path, capture_output=True, text=True,
+                         stdin=subprocess.DEVNULL,
+                         env={"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+                              "PYTHONDONTWRITEBYTECODE": "1"})
+
+    assert ran.returncode == 0, ran.stderr
+    assert ran.stdout == "7\tTeach the verifier to refuse\tthird bail\tfix the fixture\n"
