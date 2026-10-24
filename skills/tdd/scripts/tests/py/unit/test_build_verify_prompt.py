@@ -65,7 +65,7 @@ def test_main_refuses_a_missing_argument_an_option_with_no_value_an_unknown_phas
         ("red", "", "t"): (2, b"", USAGE),
         ("--fast-cmd",): (2, b"", b"build-verify-prompt: --fast-cmd needs a value\n" + USAGE),
         ("bogus", str(spec), "t"): (2, b"", b"build-verify-prompt: unknown phase 'bogus' "
-                                    b"(want red|green|refactor|pin|plan|rebase|transform|diff|expand|migrate|contract-a|contract-b)\n"
+                                    b"(want red|green|refactor|pin|plan|rebase|transform|diff|expand|cover-new|migrate|contract-a|contract-b)\n"
                                     + USAGE),
         ("green", str(spec), "t", "x"): (
             2, b"", b"build-verify-prompt: green needs --fast-cmd '<fast-tier test command>'\n" + USAGE),
