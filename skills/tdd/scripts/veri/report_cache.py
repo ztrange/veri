@@ -48,32 +48,30 @@ def lane(comments):
     return last_metrics_field(comments, r"^Lane: (\S+)")
 
 
-def read_page(*args):
+def read_issue_page(size, *search):
     attempts = int(tunables.read("VERI_PAGE_RETRIES", "3"))
     for attempt in range(attempts):
         try:
-            return json.loads(github.gh_issue_list(*args))
+            args = ("--state", "all", "--limit", str(size), "--json", FIELDS) + search
+            return json.loads(github.gh_issue_list(*args)), size
         except github.NoAnswer:
             if attempt == attempts - 1:
                 raise
+            size = size // 2
             time.sleep(float(tunables.read("VERI_PAGE_RETRY_SLEEP", "2")))
 
 
-def read_issue_page(*search):
-    return read_page("--state", "all", "--limit", str(PAGE_SIZE), "--json", FIELDS, *search)
-
-
 def fetch_pages():
-    first = read_issue_page()
-    if len(first) < PAGE_SIZE:
+    first, size = read_issue_page(PAGE_SIZE)
+    if len(first) < size:
         return first
     seen = {}
     search = "sort:updated-desc"
     while True:
-        page = read_issue_page("--search", search)
+        page, size = read_issue_page(size, "--search", search)
         fresh = [issue for issue in page if issue["number"] not in seen]
         seen.update({issue["number"]: issue for issue in fresh})
-        if len(page) < PAGE_SIZE or not fresh:
+        if len(page) < size or not fresh:
             return list(seen.values())
         search = "sort:updated-desc updated:<=" + min(issue["updatedAt"] for issue in page)
 
