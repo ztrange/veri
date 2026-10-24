@@ -1,6 +1,7 @@
 """Cases that run the launch lines skills/tdd/SKILL.md prescribes against a stub `claude`, asking the leaf at the far end what it saw."""
 import collections
 import hashlib
+import importlib
 import json
 import os
 import pathlib
@@ -114,9 +115,12 @@ def write_check_earlier_pass(directory, step):
     subprocess.run(["git", "init", "-q"], cwd=directory, check=True)
     (directory / ".git" / "info" / "exclude").write_text("*\n")
     subprocess.run(["git", *identity, "commit", "-q", "--allow-empty", "-m", "probe"], cwd=directory, check=True)
-    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=directory, check=True, capture_output=True, text=True).stdout.strip()
-    key = hashlib.sha256(os.fsencode(step)).hexdigest()[:16]
-    (directory / ".tdd" / f"check-earlier-{key}.pass").write_text(f"step: {step}\nhead: {head}\n")
+    here = os.getcwd()
+    os.chdir(directory)
+    try:
+        importlib.import_module("veri.tests_frozen")._write_pass_marker(step)
+    finally:
+        os.chdir(here)
 
 
 def launched_test_cmd(probe, lineno, line, leaf, launch, *files, scripts=SCRIPTS, clock=time.monotonic, sleep=time.sleep):
@@ -129,11 +133,11 @@ def launched_test_cmd(probe, lineno, line, leaf, launch, *files, scripts=SCRIPTS
     else:
         ledger.write_text(f"# Plan for #{SENTINEL_ISSUE}\n\n- [ ] {SENTINEL_STEP}\n")
     note_launch(probe, lineno, line, directory)
-    if leaf in ("verify-red", "verify-green"):
-        write_check_earlier_pass(directory, SENTINEL_STEP)
     for name in files:
         if name:
             (directory / name).write_text(f"the {name} this launch names, which the stub never reads\n")
+    if leaf in ("verify-red", "verify-green"):
+        write_check_earlier_pass(directory, SENTINEL_STEP)
     env = {name: value for name, value in os.environ.items() if name not in ("VERI_TEST_CMD", "VERI_ISSUE", "VERI_STEP")}
     env.update(S=str(scripts), CLAUDE_BIN=str(probe.stub / "claude"), SEEN=str(directory / "seen"),
                VERI_STUCK_RETRIES="0", VERI_NO_VERDICT_RETRIES="0", VERI_HEARTBEAT="30", VERI_TIMEOUT="60", VERI_POLL="0.2")
