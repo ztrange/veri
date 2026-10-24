@@ -3,6 +3,7 @@ import json
 import os
 import paths
 import re
+import run_end
 import subprocess
 import sys
 
@@ -29,18 +30,7 @@ def main_working_tree():
 def in_flight(main_tree, number):
     if not main_tree:
         return False
-    try:
-        with open(os.path.join(main_tree, ".tdd", "wt", str(number), ".tdd", "conductor.pid")) as lock:
-            pid = int(lock.read().strip())
-    except (OSError, ValueError):
-        return False
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except OSError:
-        pass
-    return True
+    return run_end._live(os.path.join(main_tree, ".tdd", "wt", str(number)), str(number))
 
 
 def refused_if_empty(name):
