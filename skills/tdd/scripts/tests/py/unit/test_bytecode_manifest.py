@@ -1,6 +1,7 @@
 """The bytecode cache functions of veri/pytest_leg.py, called in-process over a cache prefix and sources inside tmp_path."""
 import importlib
 import importlib.util
+import json
 import os
 import py_compile
 import sys
@@ -127,3 +128,27 @@ def test_the_record_after_a_run_lists_a_plain_module_pyc_this_run_compiled_and_n
     pytest_leg.record_bytecode_cache(str(prefix), run)
 
     assert sorted(pytest_leg.read_manifest(str(prefix))) == [plain]
+
+
+def test_the_record_after_a_run_does_not_newly_record_a_pyc_present_in_the_snapshot_and_unchanged_since_2054(tmp_path, monkeypatch):
+    pytest_leg = importlib.import_module("veri.pytest_leg")
+    prefix = tmp_path / "prefix"
+    prefix.mkdir()
+    helper = tmp_path / "helper.py"
+    helper.write_text("VALUE = 1\n")
+    an_hour_ago = time.time() - 3600
+    os.utime(helper, (an_hour_ago, an_hour_ago))
+    monkeypatch.setattr(sys, "pycache_prefix", str(prefix))
+    plain = importlib.util.cache_from_source(str(helper))
+    py_compile.compile(str(helper), cfile=plain, doraise=True)
+    first_digest = pytest_leg.source_digest(plain)
+    (prefix / pytest_leg.MANIFEST).write_text(json.dumps({plain: first_digest}))
+    a_minute_on = time.time() + 60
+    os.utime(plain, (a_minute_on, a_minute_on))
+
+    run = pytest_leg.check_bytecode_cache(str(prefix))
+    helper.write_text("VALUE = 2\n")
+    os.utime(helper, (an_hour_ago, an_hour_ago))
+    pytest_leg.record_bytecode_cache(str(prefix), run)
+
+    assert pytest_leg.read_manifest(str(prefix)) == {plain: first_digest}
