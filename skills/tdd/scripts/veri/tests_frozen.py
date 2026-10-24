@@ -163,13 +163,17 @@ def _cases(text):
     return cases
 
 
-def _added_cases(name):
+def _head_and_new_cases(name):
     old = subprocess.run(["git", "show", "HEAD:" + name], stdout=subprocess.PIPE,
                          stderr=subprocess.DEVNULL).stdout.decode("utf-8", "replace")
     with open(name, encoding="utf-8", errors="replace") as handle:
         new = handle.read()
-    before = dict(_cases(old))
-    return [(case, body) for case, body in _cases(new) if before.get(case) != body]
+    return dict(_cases(old)), _cases(new)
+
+
+def _added_cases(name):
+    before, new = _head_and_new_cases(name)
+    return [(case, body) for case, body in new if before.get(case) != body]
 
 
 def _kept_cases(record, name):
@@ -179,12 +183,8 @@ def _kept_cases(record, name):
                     if l.startswith("body: ") and l[6:].split("\t")[0] == name}
     except OSError:
         return []
-    old = subprocess.run(["git", "show", "HEAD:" + name], stdout=subprocess.PIPE,
-                         stderr=subprocess.DEVNULL).stdout.decode("utf-8", "replace")
-    before = dict(_cases(old))
-    with open(name, encoding="utf-8", errors="replace") as handle:
-        new = handle.read()
-    return [(case, body) for case, body in _cases(new) if case in held and before.get(case) == body]
+    before, new = _head_and_new_cases(name)
+    return [(case, body) for case, body in new if case in held and before.get(case) == body]
 
 
 def _check_earlier(ledger, step, exempt=()):
