@@ -1296,3 +1296,13 @@ def test_main_refuses_any_argument_but_repo_and_not_running_with_2_and_the_usage
 
         out, err = capsys.readouterr()
         assert (argv, code, started, out, err) == (argv, 2, [], "", USAGE)
+
+
+def test_in_flight_2253_is_false_when_the_lock_pid_answers_kill_0_but_neither_it_nor_its_parent_is_that_issues_conductor(tmp_path, monkeypatch, solvable_issues):
+    lock = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "conductor.pid"
+    lock.parent.mkdir(parents=True)
+    lock.write_text("%d\n" % os.getpid())
+    monkeypatch.setattr(run_end, "command_line", lambda pid: "python3 /tmp/pytest-of-x/tmp_script.py")
+    monkeypatch.setattr(run_end, "parent_pid", lambda pid: 1)
+
+    assert solvable_issues.in_flight(str(tmp_path), 7) is False
