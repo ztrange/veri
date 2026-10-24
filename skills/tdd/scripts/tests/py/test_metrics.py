@@ -1600,3 +1600,23 @@ def test_issue_1868_a_conductor_session_still_open_prices_each_turn_without_its_
     out = render(metrics, capsys)
 
     assert cells(out, "#### Conductor per turn", ["dollars"]) == {"1": ["$1.00"]}
+
+
+def test_issue_2309_the_conductor_own_spending_section_prints_one_context_line_per_session_with_its_first_and_largest_turn_context(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+
+    def turn(context):
+        return {"type": "assistant", "message": {"usage": {"input_tokens": 10, "output_tokens": 5,
+                                                           "cache_read_input_tokens": context - 110,
+                                                           "cache_creation_input_tokens": 100}}}
+    result = {"type": "result", "total_cost_usd": 1.0, "num_turns": 3}
+    sessions = [{"type": "system", "subtype": "init"}, turn(1000), turn(5000), turn(3000), result,
+                {"type": "system", "subtype": "init"}, turn(2000), turn(9000), result]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in sessions))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert [line for line in out.split("\n") if line.startswith("Conductor context:")] == [
+        "Conductor context: first turn 1000 tokens, largest 5000 tokens",
+        "Conductor context: first turn 2000 tokens, largest 9000 tokens"]
