@@ -9,7 +9,7 @@ from ledger import carries_mark, trailing_markers
 from replaces_case import is_replaces_case_step
 
 PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff")
-INTERFACE_PHASES = ("expand", "migrate", "contract-a", "contract-b")
+INTERFACE_PHASES = ("expand", "cover-new", "migrate", "contract-a", "contract-b")
 WANT_PHASES = "|".join(PHASES + INTERFACE_PHASES)
 NEEDS = {"green": {"fast-cmd"}, "refactor": {"fast-cmd", "base-sha"}, "diff": {"fast-cmd"},
          "transform": {"base-sha"}, **dict.fromkeys(INTERFACE_PHASES, {"fast-cmd", "base-sha"})}
@@ -160,7 +160,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id=""):
     written = b"**one new failing test**"
     if phase == "red" and is_replaces_case_step(step_arg):
         written = (b"**one replacement case per named case** (judge each of them, not only the target test)")
-    number = 5 if phase in ("expand", "migrate") else 4
+    number = 5 if phase in ("expand", "cover-new", "migrate") else 4
     for placeholder, value in ((b"LAST_PHASE_CHECK", _last_phase_check(step_arg, phase, number)),
                                (b"RED_WRITTEN", written), (b"SHARED", shared), (b"STEP", step_block), (b"ISSUE_SPEC", _read(spec)),
                                *((placeholder.encode(), value) for placeholder, value in values.items()),

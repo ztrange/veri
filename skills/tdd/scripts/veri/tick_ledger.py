@@ -25,7 +25,7 @@ def main(argv):
     if pending and phase:
         complain("--phase and --refactor-pending cannot be combined")
         return 2
-    if owed and phase not in INTERFACE_PHASES[2:]:
+    if owed and phase not in ("contract-a", "contract-b"):
         complain(f"--phase-owed {phase}: only a contract phase can be owed")
         return 2
     if not argv or not argv[0]:

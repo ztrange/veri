@@ -148,7 +148,7 @@ def main(argv):
         if carries_mark(markers, "fixture-repair"):
             marked["FIXTURE_REPAIR"] = f"{prompts}/_develop-green-fixture-repair.md"
     if revised_phase in INTERFACE_PHASES:
-        frozen = "production" if revised_phase == "contract-a" else "test"
+        frozen = "production" if revised_phase in ("cover-new", "contract-a") else "test"
         marked["FREEZE_RULE"] = f"{prompts}/_develop-revise-freeze-{frozen}.md"
     if phase == "red-repair":
         paths.append(args[4])

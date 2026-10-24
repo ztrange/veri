@@ -10,7 +10,7 @@ import pytest
 
 from conftest import SCRIPTS
 
-PHASES = b"red|green|refactor|cover|transform|diff|structural|predicate|revise|reconcile|exhausted|over-budget|rebase|replaces-report|red-contradicted|red-repair|red-missing|red-supersede|expand|migrate|contract-a|contract-b"
+PHASES = b"red|green|refactor|cover|transform|diff|structural|predicate|revise|reconcile|exhausted|over-budget|rebase|replaces-report|red-contradicted|red-repair|red-missing|red-supersede|expand|cover-new|migrate|contract-a|contract-b"
 USAGE = b"build-develop-prompt.sh: usage: " + PHASES + b" <issue-spec-file> <step-text> <test-cmd> ...\n"
 NAMED_REVISABLE = {"expand", "migrate", "contract-a", "contract-b", "rebase"}
 
