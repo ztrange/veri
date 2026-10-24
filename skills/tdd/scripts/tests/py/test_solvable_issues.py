@@ -516,6 +516,15 @@ def test_cli_never_opts_in_an_issue_by_the_priority_label_alone(tmp_path, monkey
     assert answer == (0, "180\n", "")
 
 
+def test_cli_never_lists_an_issue_carrying_a_taken_label_even_with_the_opt_in_label_while_an_opt_in_only_issue_is_listed(tmp_path, monkeypatch, run_cli, solvable_issues):
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [
+        labelled(200, "ready-for-agent", "taken:main"), labelled(210, "ready-for-agent", "taken:mu"), opted_in(220)])
+
+    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert answer == (0, "220\n", "")
+
+
 def test_cli_still_withholds_a_priority_or_bug_issue_that_is_blocked_claimed_or_closed(tmp_path, monkeypatch, run_cli, solvable_issues):
     fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [
         labelled(189), dict(blocked_by(190, "#189"), labels=[{"name": "ready-for-agent"}, {"name": "priority"}]),

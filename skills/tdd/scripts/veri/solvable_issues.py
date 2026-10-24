@@ -79,6 +79,10 @@ def open_listing(fixture, path, *args):
     return listing
 
 
+def taken(issue):
+    return any(entry["name"].startswith("taken:") for entry in issue.get("labels", []))
+
+
 def solvable(label, priority="priority", repo=None):
     """(exit code, the solvable issue numbers in selection order) for the opt-in <label>; 2 for an unreadable listing."""
     try:
@@ -111,7 +115,7 @@ def select(label, priority="priority", repo=None):
     open_issues = {issue["number"] for issue in issues if is_open(issue)}
     main_tree = main_working_tree()
     survivors = [issue for issue in issues
-                 if is_open(issue) and carries(issue, label) and issue["number"] not in claimed
+                 if is_open(issue) and carries(issue, label) and not taken(issue) and issue["number"] not in claimed
                  and not in_flight(main_tree, issue["number"])
                  and all(n not in open_issues for n in blocked_by.blockers(issue.get("body") or "", repo or ""))]
     if not survivors:
