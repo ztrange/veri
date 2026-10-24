@@ -650,3 +650,18 @@ def test_apply_numbers_a_prefix_next_row_1_when_the_list_holds_no_row_of_that_pr
 
     rows = [l for l in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("|")]
     assert rows[2:] == ["| PL1 | The widget is shiny. | gloss |"], rows
+
+
+def test_apply_numbers_a_prefix_next_row_1_when_the_unit_exists_but_no_requirements_list_claims_it_2262(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| PL<next> | The widget is shiny. | gloss |\n")
+
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
+
+    rows = [l for l in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("|")]
+    assert rows[2:] == ["| PL1 | The widget is shiny. | gloss |"], rows
