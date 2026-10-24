@@ -636,3 +636,17 @@ def test_apply_numbers_two_next_rows_of_one_prefix_in_issue_order_as_max_plus_1_
     rows = [line for line in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if line.startswith("| PL")]
     assert [row.split(" | ")[0] for row in rows] == ["| PL3", "| PL7", "| PL8", "| PL9"], rows
     assert ["shiny" in rows[2], "heavy" in rows[3]] == [True, True], rows
+
+
+def test_apply_numbers_a_prefix_next_row_1_when_the_list_holds_no_row_of_that_prefix_including_a_list_it_creates_2262(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md (new)\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| PL<next> | The widget is shiny. | gloss |\n")
+
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
+
+    rows = [l for l in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("|")]
+    assert rows[2:] == ["| PL1 | The widget is shiny. | gloss |"], rows

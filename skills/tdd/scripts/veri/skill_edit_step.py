@@ -111,7 +111,7 @@ def apply(issue, unit):
     moved = not _claimed(path, unit) and os.path.exists(unit) and _move_table(unit, path)
     rows = _issue_rows(issue, unit)
     if rows and not os.path.exists(unit):
-        _create(unit, path, rows)
+        _create(unit, path, _numbered(rows, ()))
         return True
     claimed = _claimed(path, unit)
     if not rows and not claimed:
