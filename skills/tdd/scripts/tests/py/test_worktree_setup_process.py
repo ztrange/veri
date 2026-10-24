@@ -38,3 +38,13 @@ def test_2231_no_arguments_prints_a_usage_line_on_stderr_and_exits_2(tmp_path):
     result = subprocess.run([SHIM], capture_output=True, text=True, cwd=str(tmp_path))
 
     assert (result.returncode, result.stderr.strip()) == (2, "usage: worktree-setup.sh <n>")
+
+
+@pytest.mark.process("worktree-setup.sh called again in a worktree whose setup already succeeded")
+def test_2231_second_call_after_a_successful_setup_runs_nothing_and_exits_3(tmp_path):
+    (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: setup: `echo ran >> setup-marker`\n")
+    subprocess.run([SHIM, "2231"], capture_output=True, text=True, cwd=str(tmp_path))
+
+    result = subprocess.run([SHIM, "2231"], capture_output=True, text=True, cwd=str(tmp_path))
+
+    assert (result.returncode, (tmp_path / "setup-marker").read_text()) == (3, "ran\n")
