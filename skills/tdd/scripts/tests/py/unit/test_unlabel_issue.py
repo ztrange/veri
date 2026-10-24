@@ -272,3 +272,35 @@ def test_main_2030_exits_2_naming_the_taken_label_when_gh_gets_no_answer_to_crea
 
     assert [silent_on("create"), silent_on("add")] == [(2, True, True, True)] * 2
 
+
+
+def test_main_2301_creates_a_missing_taken_lane_label_once_with_a_fixed_colour_and_description_and_no_force_and_exits_2_when_the_lookup_gets_no_answer(monkeypatch, capsys):
+    unlabel_issue = importlib.import_module("veri.unlabel_issue")
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+
+    def claim(lookup):
+        calls = []
+
+        def fake_run(args, **kwargs):
+            args = [str(arg) for arg in args]
+            calls.append(args)
+            if args[:2] == ["gh", "api"] and "/labels/" in args[-1] and "-X" not in args:
+                return lookup(args)
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        code = unlabel_issue.main(["7"])
+        return code, calls, capsys.readouterr().err
+
+    code, calls, _ = claim(lambda args: subprocess.CompletedProcess(args, 1, "", "gh: Not Found (HTTP 404)\n"))
+    creates = [call for call in calls if call[:3] == ["gh", "label", "create"]]
+    adds = [call for call in calls if "labels[]=taken:main" in call]
+    create = creates[0] if creates else []
+    colour = create[create.index("--color") + 1] if "--color" in create else ""
+    description = create[create.index("--description") + 1] if "--description" in create else ""
+    ordered = bool(creates) and bool(adds) and calls.index(creates[0]) < calls.index(adds[0])
+    assert (code, len(creates), len(colour) == 6 and set(colour) <= set("0123456789abcdefABCDEF"), bool(description),
+            "--force" in create, ordered) == (0, 1, True, True, False, True)
+
+    code, calls, err = claim(lambda args: subprocess.CompletedProcess(args, 1, "", "error connecting to api.github.com\n"))
+    assert (code, "taken:main" in err, "#7" in err, [call for call in calls if call[:3] == ["gh", "label", "create"]]) == (2, True, True, [])

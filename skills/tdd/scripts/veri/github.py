@@ -56,8 +56,8 @@ def _gh(*args, stderr=None):
             time.sleep(wait)
 
 
-def gh_api(path):
-    return _gh("api", path)
+def gh_api(path, stderr=None):
+    return _gh("api", path, stderr=stderr)
 
 
 def gh_api_delete(path):
@@ -65,7 +65,8 @@ def gh_api_delete(path):
 
 
 def gh_label_create(name):
-    return _gh("label", "create", name, "--force", stderr=subprocess.PIPE)
+    return _gh("label", "create", name, "--color", "ededed",
+               "--description", "Claimed by a veri run", stderr=subprocess.PIPE)
 
 
 def gh_api_add_label(path, name):

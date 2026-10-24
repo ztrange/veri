@@ -1,4 +1,5 @@
 """unlabel-issue.sh's logic, run in-process."""
+import subprocess
 import sys
 import urllib.parse
 
@@ -33,7 +34,9 @@ def main(argv):
     if run.returncode != 0 and "Label does not exist" not in run.stderr:
         return _refuse("issue #%s not found: %s" % (argv[0], run.stderr.strip()))
     taken = "taken:" + (opt_in.rpartition(":")[2] if ":" in opt_in else "main")
-    run = github.gh_api("repos/{owner}/{repo}/labels/%s" % urllib.parse.quote(taken, safe=""))
+    run = github.gh_api("repos/{owner}/{repo}/labels/%s" % urllib.parse.quote(taken, safe=""), stderr=subprocess.PIPE)
+    if run.returncode != 0 and "404" not in run.stderr:
+        return _refuse("no answer to looking up %s for issue #%s: %s" % (taken, argv[0], run.stderr.strip()))
     if run.returncode != 0:
         run = github.gh_label_create(taken)
     if run.returncode == 0:
