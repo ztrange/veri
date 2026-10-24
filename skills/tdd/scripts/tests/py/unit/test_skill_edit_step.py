@@ -713,3 +713,33 @@ def test_apply_numbers_a_prefix_next_row_past_the_max_over_the_lists_ids_and_the
 
     ids = [row.split("\t")[0] for row in requirements.claims(str(tmp_path / "REQUIREMENTS.md"), "unit.md").splitlines()]
     assert ids == ["PL5", "PL8", "PL7"], ids
+
+
+def test_an_issue_whose_rows_for_one_unit_resolve_to_the_same_id_twice_exits_2_naming_the_id_and_leaves_the_list_byte_identical_2262(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    original = ("## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+                "| PL3 | The widget is blue. | because |\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(original)
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| PL7 | The widget is shiny. | gloss |\n"
+        "| PL7 | The widget is heavy. | weight |\n")
+
+    def run(cmd, **kw):
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess",
+                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
+
+    assert (tmp_path / "REQUIREMENTS.md").read_text() == original, (code, err)
+    assert (code, "PL7" in err) == (2, True), (code, err)
