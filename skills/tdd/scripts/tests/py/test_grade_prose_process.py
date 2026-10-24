@@ -389,7 +389,7 @@ def test_a_grades_line_whose_grade_word_is_other_than_exactly_pass_or_fail_makes
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
-def test_a_malformed_grade_word_in_the_first_reply_is_named_without_a_follow_up_grader_call_2215(tmp_path):
+def test_a_malformed_grade_word_on_every_launch_is_named_after_retries_plus_one_launches_without_a_follow_up_2215(tmp_path):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
@@ -405,7 +405,7 @@ def test_a_malformed_grade_word_in_the_first_reply_is_named_without_a_follow_up_
                                "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt"), "STUB_CALLS": str(calls)})
 
     made = len(calls.read_text().splitlines()) if calls.exists() else 0
-    assert (done.returncode, made, "PASSABLE" in done.stderr) == (2, 1, True), (done.returncode, made, done.stderr)
+    assert (done.returncode, made, "PASSABLE" in done.stderr) == (2, 2, True), (done.returncode, made, done.stderr)
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
