@@ -24,7 +24,12 @@ def main(argv):
     if argv[0] == "take":
         pid = _caller_pid(argv[1:])
         os.makedirs(os.path.dirname(lock), exist_ok=True)
-        os.mkdir(lock)
+        while True:
+            try:
+                os.mkdir(lock)
+                break
+            except FileExistsError:
+                time.sleep(float(os.environ.get("VERI_MERGE_LOCK_POLL", "30")))
         with open(record, "w") as f:
             f.write(f"{pid} {socket.gethostname()} {time.strftime('%Y-%m-%dT%H:%M:%S%z')}\n")
     elif argv[0] == "release":
