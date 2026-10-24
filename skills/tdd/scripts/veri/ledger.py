@@ -100,6 +100,10 @@ def carries_mark(text, name):
     return f"⟦{name}⟧" in text
 
 
+def is_human_owed(step):
+    return step.startswith("⟦human-owed⟧") or carries_mark(trailing_markers(step), "human-owed")
+
+
 def listed_phases(step):
     """The phases step lists, in order; [] for a step that lists none."""
     listed = PHASES_RE.search(trailing_markers(step))
@@ -148,7 +152,7 @@ def ledger_steps(text):
         records.append((
             str(len(records) + 1),
             state,
-            kind.group(1) if kind else "human-owed" if step.startswith("⟦human-owed⟧") or carries_mark(markers, "human-owed") else "step",
+            kind.group(1) if kind else "human-owed" if is_human_owed(step) else "step",
             "1" if pending else "0",
             "1" if added else "0",
             criterion,
