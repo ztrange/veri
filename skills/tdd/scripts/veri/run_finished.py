@@ -4,7 +4,7 @@ import os
 import sys
 
 import github
-from ledger import OPEN_STEP, carries_mark, ledger_path, ledger_steps
+from ledger import OPEN_STEP, carries_mark, ledger_path, ledger_steps, trailing_markers
 from status import json_document, main_working_tree
 
 USAGE = "usage: run-finished.sh <issue>\n"
@@ -55,8 +55,10 @@ def main(argv):
         return 2
     open_line = OPEN_STEP + " "
     star_line = "* " + OPEN_STEP[2:] + " "
-    unmet += [("human-owed", ln.lstrip()[len(open_line):]) for ln in body.splitlines()
-              if ln.lstrip().startswith((open_line, star_line)) and carries_mark(ln, "human-owed")]
+    texts = [ln.lstrip()[len(open_line):] for ln in body.splitlines()
+             if ln.lstrip().startswith((open_line, star_line))]
+    unmet += [("human-owed", t) for t in texts
+              if t.startswith("⟦human-owed⟧") or carries_mark(trailing_markers(t), "human-owed")]
     for name, step in unmet:
         print("%s %s" % (name, step))
     return 1 if unmet else 0
