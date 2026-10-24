@@ -1662,3 +1662,26 @@ def test_check_earlier_exit_2_outside_any_git_repository_removes_the_pass_marker
     code, _, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", step], cwd=plain)
 
     assert (passed, code, list((plain / ".tdd").glob("check-earlier-*.pass"))) == (0, 2, [])
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked for the version of a test file at HEAD")
+def test_record_step_again_for_a_case_committed_unchanged_keeps_its_body_entry_at_the_current_digest_2199(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_new.py").write_text("def test_one():\n    assert 1\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one adds a case"
+    (tmp_path / "tests/test_new.py").write_text("def test_one():\n    assert 1\n\n\ndef test_two():\n    assert 2\n")
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py"], cwd=tmp_path)
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "red")
+    record = tmp_path / run_cli(tests_frozen, ["path", step], cwd=tmp_path)[1].strip()
+    first = [l for l in record.read_text().splitlines() if l.startswith("body: ")]
+
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py"], cwd=tmp_path)
+
+    again = [l for l in record.read_text().splitlines() if l.startswith("body: ")]
+    assert (len(first), again) == (1, first)
