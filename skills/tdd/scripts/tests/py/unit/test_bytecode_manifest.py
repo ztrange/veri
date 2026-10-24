@@ -59,3 +59,19 @@ def test_the_check_treats_a_pyc_another_run_already_removed_as_dropped_and_carri
     run = pytest_leg.check_bytecode_cache(str(prefix))
 
     assert (removed, os.path.exists(rewritten), sorted(run)) == ([rewritten], False, ["snapshot", "start"])
+
+
+def test_the_check_drops_a_cached_plain_pyc_whose_source_the_manifest_does_not_list_2054(tmp_path, monkeypatch):
+    pytest_leg = importlib.import_module("veri.pytest_leg")
+    prefix = tmp_path / "prefix"
+    prefix.mkdir()
+    source = tmp_path / "unlisted.py"
+    source.write_text("VALUE = 1\n")
+    monkeypatch.setattr(sys, "pycache_prefix", str(prefix))
+    plain = importlib.util.cache_from_source(str(source))
+    os.makedirs(os.path.dirname(plain))
+    py_compile.compile(str(source), cfile=plain, doraise=True)
+
+    pytest_leg.check_bytecode_cache(str(prefix))
+
+    assert os.path.exists(plain) is False

@@ -58,7 +58,7 @@ def check_bytecode_cache(prefix):
     snapshot = {}
     manifest = read_manifest(prefix)
     for pyc in pyc_files(prefix):
-        if never_recorded(pyc) or pyc in manifest and source_digest(pyc) != manifest[pyc]:
+        if never_recorded(pyc) or pyc not in manifest or source_digest(pyc) != manifest[pyc]:
             try:
                 os.remove(pyc)
             except FileNotFoundError:
