@@ -8,6 +8,7 @@ import fcntl
 import hashlib
 import importlib.util
 import json
+import marshal
 import os
 import platform
 import re
@@ -49,6 +50,18 @@ def source_digest(pyc):
             return hashlib.sha256(source.read()).hexdigest()
     except (OSError, ValueError, NotImplementedError):
         return None
+
+
+def compiled_from_current_source(pyc):
+    try:
+        source = importlib.util.source_from_cache(pyc)
+        with open(source, "rb") as f:
+            text = f.read()
+        with open(pyc, "rb") as f:
+            cached = marshal.loads(f.read()[16:])
+        return cached == compile(text, source, "exec", dont_inherit=True)
+    except (OSError, ValueError, NotImplementedError, SyntaxError, EOFError, TypeError):
+        return False
 
 
 def read_manifest(prefix):
@@ -94,7 +107,7 @@ def record_bytecode_cache(prefix, run):
         except (OSError, ValueError, NotImplementedError):
             continue
         digest = source_digest(pyc)
-        if digest:
+        if digest and compiled_from_current_source(pyc):
             recorded[pyc] = digest
     with open(os.path.join(prefix, MANIFEST + ".lock"), "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
