@@ -62,6 +62,16 @@ def test_cli_refuses_no_argument_an_empty_name_and_a_name_alone_through_run_cli_
 SET_BY_CLEAN_ENV = set()
 
 
+REAL_WORK_TREE_HASH = importlib.import_module("veri.supervise").tests_frozen._work_tree_hash
+
+
+@pytest.fixture(autouse=True)
+def work_tree_hashes_to_tree(monkeypatch):
+    """A directory that is no git repository hashes to "tree"; a repository, as it really does."""
+    monkeypatch.setattr(importlib.import_module("veri.supervise").tests_frozen, "_work_tree_hash",
+                        lambda: REAL_WORK_TREE_HASH() if os.path.isdir(".git") else "tree")
+
+
 def clean_env(monkeypatch, **env):
     """No VERI_* variable but the ones given."""
     for key in list(os.environ):
@@ -127,7 +137,17 @@ def checked_step(work, head="0123456789abcdef0123456789abcdef01234567", issue="2
     boxes = ["first step", *(f"step {n}" for n in range(2, step + 1))]
     (work / ".tdd").mkdir(parents=True, exist_ok=True)
     (work / ".tdd" / f"issue-{issue}.md").write_text(f"# Plan for #{issue}\n\n" + "".join(f"- [ ] {b}\n" for b in boxes))
-    (work / tests_frozen._pass_marker_path(boxes[-1])).write_text(f"step: {boxes[-1]}\nhead: {head}\n")
+    tree = "tree"
+    if (work / ".git").exists():
+        (work / ".git" / "info").mkdir(exist_ok=True)
+        (work / ".git" / "info" / "exclude").write_text("/*\n!/.tdd\n")
+        here = os.getcwd()
+        os.chdir(work)
+        try:
+            tree = REAL_WORK_TREE_HASH()
+        finally:
+            os.chdir(here)
+    (work / tests_frozen._pass_marker_path(boxes[-1])).write_text(f"step: {boxes[-1]}\nhead: {head}\ntree: {tree}\n")
     return {"VERI_ISSUE": issue, "VERI_STEP": str(step)}
 
 
@@ -4106,8 +4126,8 @@ def test_cli_refuses_a_verify_red_or_verify_green_launch_whose_only_pass_markers
     (tmp_path / ".tdd" / "issue-2206.md").write_text("# Plan for #2206\n\n- [ ] first step\n")
     head = "0123456789abcdef0123456789abcdef01234567"
     marker_path = supervise.tests_frozen._pass_marker_path
-    (tmp_path / marker_path("another step")).write_text(f"step: another step\nhead: {head}\n")
-    (tmp_path / marker_path("first step")).write_text(f"step: first step\nhead: {'f' * 40}\n")
+    (tmp_path / marker_path("another step")).write_text(f"step: another step\nhead: {head}\ntree: tree\n")
+    (tmp_path / marker_path("first step")).write_text(f"step: first step\nhead: {'f' * 40}\ntree: tree\n")
     stub = tmp_path / "claude"
     started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 
@@ -4136,7 +4156,7 @@ def test_cli_launches_verify_red_and_verify_green_with_a_current_pass_marker_and
                                  env={"VERI_ISSUE": "2206", "VERI_STEP": "1"})
         return code, bool(started), "refusing" in err
 
-    marker.write_text(f"step: first step\nhead: {head}\n")
+    marker.write_text(f"step: first step\nhead: {head}\ntree: tree\n")
     answers = {}
     for name in ("verify-red", "verify-green"):
         started.clear()
@@ -4166,7 +4186,7 @@ def test_cli_gates_a_verify_red_or_verify_green_launch_given_the_step_as_its_led
         return code, bool(started), "check-earlier" in err
 
     unmarked = {name: answer(name) for name in ("verify-red", "verify-green")}
-    marker.write_text(f"step: first step\nhead: {head}\n")
+    marker.write_text(f"step: first step\nhead: {head}\ntree: tree\n")
     marked = {name: answer(name) for name in ("verify-red", "verify-green")}
 
     assert unmarked == {name: (2, False, True) for name in unmarked}
@@ -4179,7 +4199,7 @@ def test_cli_refuses_a_verify_red_or_verify_green_launch_whose_veri_step_is_unse
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-2206.md").write_text("# Plan for #2206\n\n- [ ] first step\n")
     head = "0123456789abcdef0123456789abcdef01234567"
-    (tmp_path / supervise.tests_frozen._pass_marker_path("first step")).write_text(f"step: first step\nhead: {head}\n")
+    (tmp_path / supervise.tests_frozen._pass_marker_path("first step")).write_text(f"step: first step\nhead: {head}\ntree: tree\n")
     stub = tmp_path / "claude"
     started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 
