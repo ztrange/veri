@@ -1291,7 +1291,21 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
    `refactor-owed.sh`, below and at the Draft PR, and is not narrated as a backlog. Each
    list says **how many candidates** it holds and then **lists** them, one per line. A
    count with no items is not a backlog, and the two classes run together are a backlog
-   nobody can size. Mark the same three figures in the log — the observed count, unclamped,
+   nobody can size.
+
+   An **out-of-scope** candidate is routed by whether its transform changes a file in
+   `<touched-files>`. One that changes **at least one** is done in the step: a cover leaf
+   (`build-develop-prompt.sh cover`, launched through the supervisor and read through
+   `$S/cover-outcome.sh`, as the structural pass does) first mutates the code the candidate
+   will move; on `COVERED: no` it is recorded with `refactor-owed.sh` as for a test-only one
+   (RF20) and not transformed. When covered, its transform is bounded to `<touched-files>`
+   plus the files the candidate names, is checked with `$S/transform-touches-tests.sh
+   <green-sha> <bound>` before verify-refactor runs, and counts against the step's budget.
+   One that changes **no** file in `<touched-files>` is never done in the step: it is
+   recorded with `refactor-owed.sh` as `out-of-bounds`, apart from the candidates left to
+   the structural pass at the Draft PR.
+
+   Mark the same three figures in the log — the observed count, unclamped,
    the budget, and why it stopped (`nothing-left`, `budget`, `malformed`, `nothing-structural` for triage exit **3** or
    `structural-owed` for triage exit **0**) — and which pass of the step's refactor this is,
    `pass`: `1` for the step's first pass, and one more each time the triangulation path at 3
