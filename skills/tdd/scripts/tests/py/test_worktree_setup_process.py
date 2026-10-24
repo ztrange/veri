@@ -7,12 +7,16 @@ import pytest
 SHIM = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "..", "worktree-setup.sh"))
 
 
+def run_shim(cwd, *args):
+    return subprocess.run([SHIM, *args], capture_output=True, text=True, cwd=str(cwd))
+
+
 @pytest.mark.process("worktree-setup.sh runs the CLAUDE.md setup line in the worktree root")
 def test_2231_setup_line_in_claude_md_runs_once_in_the_worktree_root_and_exits_0(tmp_path):
     (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: setup: `echo ran >> setup-marker`\n")
     (tmp_path / "sub").mkdir()
 
-    result = subprocess.run([SHIM, "2231"], capture_output=True, text=True, cwd=str(tmp_path))
+    result = run_shim(tmp_path, "2231")
 
     assert (result.returncode, (tmp_path / "setup-marker").read_text()) == (0, "ran\n")
 
@@ -21,21 +25,21 @@ def test_2231_setup_line_in_claude_md_runs_once_in_the_worktree_root_and_exits_0
 def test_2231_no_setup_line_runs_nothing_writes_nothing_and_exits_3(tmp_path):
     (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: all tests: `echo ran >> all-marker`\n")
 
-    result = subprocess.run([SHIM, "2231"], capture_output=True, text=True, cwd=str(tmp_path))
+    result = run_shim(tmp_path, "2231")
 
     assert (result.returncode, sorted(p.name for p in tmp_path.iterdir())) == (3, ["CLAUDE.md"])
 
 
 @pytest.mark.process("worktree-setup.sh finds no CLAUDE.md and does nothing")
 def test_2231_no_claude_md_runs_nothing_writes_nothing_and_exits_3(tmp_path):
-    result = subprocess.run([SHIM, "2231"], capture_output=True, text=True, cwd=str(tmp_path))
+    result = run_shim(tmp_path, "2231")
 
     assert (result.returncode, sorted(p.name for p in tmp_path.iterdir())) == (3, [])
 
 
 @pytest.mark.process("worktree-setup.sh refuses a call with no arguments")
 def test_2231_no_arguments_prints_a_usage_line_on_stderr_and_exits_2(tmp_path):
-    result = subprocess.run([SHIM], capture_output=True, text=True, cwd=str(tmp_path))
+    result = run_shim(tmp_path)
 
     assert (result.returncode, result.stderr.strip()) == (2, "usage: worktree-setup.sh <n>")
 
@@ -43,19 +47,19 @@ def test_2231_no_arguments_prints_a_usage_line_on_stderr_and_exits_2(tmp_path):
 @pytest.mark.process("worktree-setup.sh called again in a worktree whose setup already succeeded")
 def test_2231_second_call_after_a_successful_setup_runs_nothing_and_exits_3(tmp_path):
     (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: setup: `echo ran >> setup-marker`\n")
-    subprocess.run([SHIM, "2231"], capture_output=True, text=True, cwd=str(tmp_path))
+    run_shim(tmp_path, "2231")
 
-    result = subprocess.run([SHIM, "2231"], capture_output=True, text=True, cwd=str(tmp_path))
+    result = run_shim(tmp_path, "2231")
 
     assert (result.returncode, (tmp_path / "setup-marker").read_text()) == (3, "ran\n")
 
 
 @pytest.mark.process("worktree-setup.sh called again in a worktree whose setup failed")
-def test_2231_second_call_after_a_failed_setup_runs_the_command_again_and_exits_with_its_code(tmp_path):
+def test_2231_second_call_after_a_failed_setup_runs_the_command_again_and_exits_1(tmp_path):
     (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: setup: `echo ran >> setup-marker; exit 7`\n")
-    first = subprocess.run([SHIM, "2231"], capture_output=True, text=True, cwd=str(tmp_path))
+    first = run_shim(tmp_path, "2231")
 
-    second = subprocess.run([SHIM, "2231"], capture_output=True, text=True, cwd=str(tmp_path))
+    second = run_shim(tmp_path, "2231")
 
     assert (
         first.returncode,
