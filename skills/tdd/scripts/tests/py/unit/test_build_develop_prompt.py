@@ -2521,3 +2521,21 @@ def test_every_phase_revise_md_sends_to_build_develop_prompt_revise_passes_the_s
 
     assert "rebase" in codes
     assert {p: c for p, c in codes.items() if c == 2} == {}
+
+
+def test_main_renders_a_green_prompt_telling_the_developer_to_probe_each_added_branch_guard_default_flag_parameter_main_block_flush_or_encoding_line_by_removing_it_before_the_fast_plus_affected_run_and_keep_the_removal_when_the_suite_stays_green_2258(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    code = build_develop_prompt.main(["green", str(spec), "s", "make test", "tests/py/test_zorblat.py",
+                                      "test_zorblat", "make unit"])
+    out, _ = capsysbinary.readouterr()
+    text = out.decode()
+
+    probe = re.search(r"probe\b[^.]*?branch[^.]*?guard[^.]*?default[^.]*?flag[^.]*?parameter"
+                      r"[^.]*?`__main__` block[^.]*?flush[^.]*?encoding line", text, re.S)
+    assert code == 0 and probe is not None
+    tail = text[probe.start():]
+    assert re.search(r"remove", tail) and re.search(r"rerun the suite holding the target case", tail)
+    assert re.search(r"still\s+green[^.]*keep the removal", tail, re.I)
+    assert probe.start() < text.index("Exactly once, immediately before you write the `SUITE:`")
