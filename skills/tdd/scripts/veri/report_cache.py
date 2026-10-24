@@ -57,7 +57,7 @@ def read_issue_page(size, *search):
         except github.NoAnswer:
             if attempt == attempts - 1:
                 raise
-            size = size // 2
+            size = max(1, size // 2)
             time.sleep(float(tunables.read("VERI_PAGE_RETRY_SLEEP", "2")))
 
 

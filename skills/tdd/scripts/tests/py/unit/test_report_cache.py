@@ -1024,3 +1024,30 @@ def test_refresh_with_no_cache_and_over_100_issues_sharing_one_updated_at_second
     written = tmp_path / ".tdd" / "report-cache.json"
     kept = sorted(i["number"] for i in json.loads(written.read_text())["issues"]) if written.exists() else None
     assert (code, kept) in [(0, everything), (2, None)]
+
+
+def test_refresh_with_many_page_retries_never_asks_for_limit_0_exits_2_and_writes_no_cache_2286(run_cli, monkeypatch, tmp_path):
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    monkeypatch.setenv("VERI_PAGE_RETRIES", "10")
+    monkeypatch.setenv("VERI_PAGE_RETRY_SLEEP", "0")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    limits = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] != ["gh", "issue", "list"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        limit = int(args[args.index("--limit") + 1])
+        limits.append(limit)
+        if limit == 0:
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        return subprocess.CompletedProcess(args, 1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    assert (code, 0 in limits, sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == (2, False, [])
