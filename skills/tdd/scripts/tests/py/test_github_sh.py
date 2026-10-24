@@ -542,3 +542,14 @@ def test_the_gh_function_reads_a_fast_wait_of_015_as_15_decimal_seconds_sleeping
     code, out, _, taken = run_without_gh(tmp_path, clocked_sleep(1) + "gh api x 2>&1; echo rc=$?", env)
 
     assert (code, taken, "value too great for base" in out, out.endswith("rc=2\n")) == (0, ["2"] * 8 + ["4", "4"], False, True), out
+
+
+@pytest.mark.process("bash sources lib/github.sh")
+def test_the_gh_function_sleeps_the_same_sequence_when_real_time_passes_during_each_fake_sleep_issue_2291(tmp_path):
+    env = {"VERI_TOOL_RETRY_SLEEP": "2", "VERI_TOOL_FAST_WAIT": "015", "VERI_TOOL_SLOW_SLEEP": "4", "VERI_TOOL_WAIT": "22"}
+    drifting = ('TICKS=0; SECONDS=50; _gh_now() { echo "$TICKS"; }; '
+                'sleep() { echo "$1" >> "$SLEEPS"; TICKS=$((TICKS + $1)); SECONDS=$((SECONDS + $1 + 1)); }; ')
+
+    code, out, _, taken = run_without_gh(tmp_path, drifting + "gh api x 2>&1; echo rc=$?", env)
+
+    assert (code, taken, out.endswith("rc=2\n")) == (0, ["2"] * 8 + ["4", "4"], True), (taken, out)

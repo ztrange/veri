@@ -31,8 +31,10 @@
 #   gh_json with no gh args use REST under every value, and VERI_GH_JSON takes precedence over it.
 #   A Claude Code cloud session, where GraphQL is refused, needs nothing set.
 
+_gh_now() { echo "$SECONDS"; }
+
 gh() {
-  local waited=0 nap first=$SECONDS v min
+  local waited=0 nap first=$(_gh_now) v min
   until type -P gh > /dev/null; do
     for v in VERI_TOOL_RETRY_SLEEP:1 VERI_TOOL_SLOW_SLEEP:1 VERI_TOOL_FAST_WAIT:0 VERI_TOOL_WAIT:0; do
       min=${v#*:} v=${v%:*}
@@ -44,7 +46,7 @@ gh() {
     ((waited < 10#${VERI_TOOL_FAST_WAIT:-900})) || nap=${VERI_TOOL_SLOW_SLEEP:-900}
     echo "gh: not found on PATH, retrying in ${nap}s" >&2
     sleep "$nap"
-    waited=$((SECONDS - first))
+    waited=$(($(_gh_now) - first))
   done
   command gh "$@"
 }
