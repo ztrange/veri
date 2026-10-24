@@ -65,6 +65,7 @@ case "$prompt" in
   fi ;;
 *)
   printf '%s' "$prompt" > "$CAP/author.txt"
+  [ -n "$REPO" ] && echo "The widget is crimson." >> "$REPO/unit.md"
   reply='edited' ;;
 esac
 printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"'"$reply"'"}'
@@ -90,7 +91,7 @@ def test_a_failing_changed_id_launches_an_author_leaf_under_the_author_role_whos
     claude.write_text(STUB_MODEL)
     claude.chmod(0o755)
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
-           "CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+           "CAP": str(cap), "REPO": str(repo), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
            "GIT_COMMITTER_EMAIL": "t@t"}
 
     ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
@@ -121,6 +122,7 @@ case "$prompt" in
   fi ;;
 *)
   git rev-list --count HEAD > "$CAP/commits-at-author"
+  [ -n "$REPO" ] && echo "It stays silent." >> "$REPO/unit.md"
   reply='edited' ;;
 esac
 printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"'"$reply"'"}'
@@ -146,7 +148,7 @@ def test_changed_ids_that_pass_with_an_unchanged_id_failing_make_no_commit_befor
     claude.write_text(STUB_UNCHANGED_FAILS)
     claude.chmod(0o755)
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
-           "CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+           "CAP": str(cap), "REPO": str(repo), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
            "GIT_COMMITTER_EMAIL": "t@t"}
 
     ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
