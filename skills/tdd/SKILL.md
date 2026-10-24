@@ -281,6 +281,15 @@ unauthenticated baseline never gets a cycle.
    `.tdd/stop` left behind cannot stop the run that resumes it at its first checkpoint. The `rm -f`
    drops a `.tdd/ci-conflict-rebased` an earlier run left, so the Draft PR step's one CI-conflict
    rebase is counted per run and a resume never inherits it.
+   **Then, before the baseline, set the worktree up.** When the target repo's `CLAUDE.md`
+   declares `veri: setup: <cmd>`, run `$S/worktree-setup.sh <n>` once, in a newly created run
+   worktree (one with no ledger `.tdd/issue-<n>.md` yet): a fresh worktree holds no installed
+   dependencies of a nested package, so a suite can pass in it while the merge gate fails on a
+   missing module. A resume whose worktree already exists does not run it again, unless the
+   last `bail` event in `.tdd/events.jsonl` has cause `setup-failed`. Exit 3 means there is no
+   such line: preflight is unchanged. **Exit 1** — the command exited non-zero — **bails** with
+   cause `setup-failed`, a system failure (see `<base directory>/BAIL.md`), naming the command
+   in the bail comment.
    A resumed run — one whose worktree and ledger `.tdd/issue-<n>.md` already exist — first
    discards whatever a killed leaf left uncommitted, since a rebase refuses a dirty tree:
    ```
