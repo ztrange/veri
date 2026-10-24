@@ -1,0 +1,1 @@
+- [ ] With no cache, a page whose `gh` read keeps failing makes the refresh exit 2 after a bounded number of attempts and leaves no cache file and no temp file under .tdd (a small unit case, `gh` faked in-process through `subprocess.run`, `VERI_PAGE_RETRY_SLEEP=0` so no case sleeps; no production change expected) ⟦added⟧ ⟦criterion 1⟧
