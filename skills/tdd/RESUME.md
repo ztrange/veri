@@ -11,7 +11,10 @@ On re-run, preflight step 3 calls `issue-worktree.sh` again; because it is **ide
 prints the same `.tdd/wt/<n>` path and creates nothing, so the `cd` puts you back in the very
 worktree the previous run committed in — the branch is already checked out there, nothing is
 re-created or switched, and a resumed run's baseline runs on the branch head there, before
-any cycle of the resumed run starts. The **resume check** then finds an existing
+any cycle of the resumed run starts. When that baseline is red, preflight step 3 runs the red suites on
+`origin/<default>` and asks `$S/suite-red-resume.sh check .tdd/issue-<n>.md <branch-red-file> <default-red-file>`:
+exit 1 refuses as it always has, and exit 0 — the last bail was `suite-red` and every branch-red suite is green on the
+default branch — saves the branch-red list to `.tdd/resume-suite-red` and goes on. The **resume check** then finds an existing
 `.tdd/issue-<n>.md`. When it does:
 
 1. Do **not** re-plan — the ledger is the source of truth — except that the amended
@@ -77,8 +80,10 @@ any cycle of the resumed run starts. The **resume check** then finds an existing
 4. Post a `### ▶️ Resuming` comment naming that step and, when `$stray` is non-empty, the
    paths it lists, said as what they are: the stray work sub-step 2's reset discarded, seen
    by no verifier and now gone. Mark the pick-up in the log —
-   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/event.sh resume` — then
-   **reuse the claim the previous run left on the branch**, which every tick of the cycle
+   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/event.sh resume` — then, when
+   `.tdd/resume-suite-red` exists, run `$S/suite-red-resume.sh insert .tdd/issue-<n>.md .tdd/resume-suite-red`, commit the
+   ledger with `.tdd/issue-<n>-added.md`, and hand the inserted `⟦suite-repair⟧` step to the cycle loop first;
+   then **reuse the claim the previous run left on the branch**, which every tick of the cycle
    loop edits and step 4 rewrites:
    ```
    gh api 'repos/{owner}/{repo}/pulls?head={owner}:{branch}' -q '.[0].html_url // empty'   # → <pr-url>, the PR step 2.3 opened; <pr-number> is its last path segment
