@@ -487,10 +487,10 @@ def test_main_on_a_pinned_launch_seeds_the_gitignore_only_when_absent_writes_an_
             answers[name] = (seeded, kept, cat_files,
                              expanded if record else None, b"refusing to re-pin" in captured.err)
     assert answers == {
-        "fresh": (".gitignore\nissue-*-skill-commit\n", commit + "\n", [], None, False),
+        "fresh": (".gitignore\nissue-*-skill-commit\nissue-*-conductor-model\n", commit + "\n", [], None, False),
         "own-gitignore": ("mine\n", commit + "\n", [], None, False),
-        "abbreviation": (".gitignore\nissue-*-skill-commit\n", "1111111\n\n", ["1111111^{commit}"], [], False),
-        "ref-name": (".gitignore\nissue-*-skill-commit\n", "main\n", ["main^{commit}"], [], False),
+        "abbreviation": (".gitignore\nissue-*-skill-commit\nissue-*-conductor-model\n", "1111111\n\n", ["1111111^{commit}"], [], False),
+        "ref-name": (".gitignore\nissue-*-skill-commit\nissue-*-conductor-model\n", "main\n", ["main^{commit}"], [], False),
         "foreign": (2, b"", [refusal % "2222222"], "2222222\n"),
         "directory": (2, b"", [refusal % ""], None),
     }
@@ -514,7 +514,7 @@ def test_main_run_from_a_subdirectory_of_the_repo_makes_the_run_state_at_the_rep
 
     seed = root / ".tdd" / ".gitignore"
     assert (seed.read_text() if seed.is_file() else None, (sub / ".tdd").exists()) == (
-        ".gitignore\nissue-*-skill-commit\n", False)
+        ".gitignore\nissue-*-skill-commit\nissue-*-conductor-model\n", False)
 
 
 def test_main_with_veri_new_skill_exactly_1_rewrites_a_readable_record_then_appends_a_skill_repin_event_in_the_run_worktree_returning_2_on_its_failure_and_logs_nothing_on_a_first_launch_or_any_other_value(
@@ -3618,3 +3618,20 @@ def test_cli_a_done_comment_that_is_comment_101_or_later_on_a_thread_served_over
 
     posted = [call for call in gh_calls if "needs-user" in " ".join(call)]
     assert (code, [r.get("event") for r in events_named(tmp_path)], posted) == (0, ["done", "resume"], []), stderr
+
+
+def test_cli_a_launch_with_veri_model_conductor_set_records_that_model_in_tdd_issue_n_conductor_model_under_tdd_issue_2308(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    monkeypatch.setenv("VERI_MODEL_CONDUCTOR", "sonnet")
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    fake_claude_exiting(monkeypatch, 0, 0)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    record = cwd / ".tdd" / "issue-4242-conductor-model"
+    assert (code, record.read_text().strip() if record.is_file() else None) == (0, "sonnet")
