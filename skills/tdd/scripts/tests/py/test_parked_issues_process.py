@@ -161,3 +161,34 @@ def test_parked_issues_exits_2_naming_the_listing_call_when_gh_gives_no_answer_t
 
     assert ran.returncode == 2, ran.stderr
     assert "listing the issues" in ran.stderr, ran.stderr
+
+
+UNANSWERED_COMMENTS_GH_STUB = """#!/bin/sh
+for a in "$@"; do
+  case "$a" in
+    *page=[2-9]*) echo '[]'; exit 0 ;;
+    */issues/7/comments*) exit 1 ;;
+    */issues*)
+      echo '[{"number":7,"title":"Teach the verifier to refuse","labels":[{"name":"parked"}]}]'
+      exit 0 ;;
+  esac
+done
+echo '[]'
+"""
+
+
+@pytest.mark.process("parked-issues.sh run against a gh stub that lists an issue but gives no answer to reading its comments")
+def test_parked_issues_exits_2_naming_the_comments_call_when_gh_answers_the_listing_but_not_an_issues_comments(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(UNANSWERED_COMMENTS_GH_STUB)
+    gh.chmod(0o755)
+
+    ran = subprocess.run([str(SCRIPTS / "parked-issues.sh")], cwd=tmp_path, capture_output=True, text=True,
+                         stdin=subprocess.DEVNULL,
+                         env={"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+                              "PYTHONDONTWRITEBYTECODE": "1"})
+
+    assert ran.returncode == 2, ran.stderr
+    assert "reading the comments" in ran.stderr, ran.stderr
