@@ -1263,7 +1263,7 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
    — one verdict on the final state (the **fast tier** plus the **affected suites** still
    green, code up to standard, no smuggled generality).
 6. **Narrate + branch.** Post `### 🛠️ Refactor` (the transforms applied, or "no refactor
-   warranted", plus any triangulation flagged) and `### 🔎 verify-refactor — PASS|REJECT`.
+   warranted", plus any triangulation flagged) and `### 🔎 verify-refactor — PASS|REJECT|SKIPPED`.
    Say **how many transforms landed** — the `git rev-list --count` figure, never the leaf's
    own account of what it did — against the budget, in `refactor-budget.sh`'s own shape
    (`refactor 2/5`). A count **above** the budget is narrated as an **overrun** (`refactor
