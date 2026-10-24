@@ -6,3 +6,4 @@
 - extract a shared `body:` record parser used by `_kept_cases`, `_rerecord_earlier` and `_check_earlier` (touches `_check_earlier`, which this cycle did not write)
 not-done | uncovered | extract the shared ledger read and step-line parse from `_rerecord_earlier` and `_check_earlier` into one helper (`_check_earlier` also touches pass-marker handling, which makes the extraction delicate)
 applied | b0554403ee929ca3639f7e4378ec9ea697201ed6 | `tick_ledger.py` calls the underscore-private `tests_frozen._rerecord_earlier`; making it public means renaming it across modules, so I left it.	refactor: make tests_frozen.rerecord_earlier public (#2199)
+applied | 645505c1d77e60b9143dadf94a9944ddcad8c5c5 | extract a shared `body:` record parser used by `_kept_cases`, `_rerecord_earlier` and `_check_earlier` (touches `_check_earlier`, which this cycle did not write)	refactor: extract shared body-record parser in tests_frozen (#2199)
