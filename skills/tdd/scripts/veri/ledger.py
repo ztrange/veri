@@ -141,7 +141,7 @@ def ledger_steps(text):
         records.append((
             str(len(records) + 1),
             state,
-            kind.group(1) if kind else "step",
+            kind.group(1) if kind else "human-owed" if step.startswith("⟦human-owed⟧") else "step",
             "1" if pending else "0",
             "1" if added else "0",
             criterion,

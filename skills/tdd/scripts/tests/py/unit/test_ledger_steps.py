@@ -591,3 +591,14 @@ def test_cli_a_fixture_repair_step_prints_as_kind_step_with_its_criterion_and_ne
            run_cli(via_stdin(next_unchecked, ledger), [])]
 
     assert got == [(0, f"1\topen\tstep\t0\t0\t1\t{step}\n", ""), (0, step + "\n", "")]
+
+
+def test_cli_a_human_owed_step_with_the_mark_before_its_text_and_no_criterion_tag_is_kind_human_owed_and_next_unchecked_skips_it_2248(
+        run_cli, ledger_steps):
+    next_unchecked = importlib.import_module("veri.next_unchecked")
+    ledger = "# Plan for #42\n\n- [ ] ⟦human-owed⟧ measure X once deployed\n"
+
+    got = [run_cli(via_stdin(ledger_steps, ledger), []),
+           run_cli(via_stdin(next_unchecked, ledger), [])]
+
+    assert got == [(0, "1\topen\thuman-owed\t0\t0\t\t⟦human-owed⟧ measure X once deployed\n", ""), (3, "", "")]
