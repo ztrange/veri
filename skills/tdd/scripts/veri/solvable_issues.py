@@ -105,7 +105,7 @@ def select(label, priority="priority", repo=None):
     open_issues = {issue["number"] for issue in issues if is_open(issue)}
     main_tree = main_working_tree()
     survivors = [issue for issue in issues
-                 if is_open(issue) and carries(issue, label) and not taken(issue) and issue["number"] not in claimed
+                 if is_open(issue) and carries(issue, label) and not taken(issue) and not carries(issue, "parked") and issue["number"] not in claimed
                  and not in_flight(main_tree, issue["number"])
                  and all(n not in open_issues for n in blocked_by.blockers(issue.get("body") or "", repo or ""))]
     if not survivors:
