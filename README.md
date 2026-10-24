@@ -84,6 +84,9 @@ repo: its first non-empty line is run verbatim as the full suite, ahead of every
 inference. That file is the per-repo escape hatch; without it, a repo veri cannot read is
 asked about rather than guessed at.
 
+The `veri: all tests` command must be the project's whole merge gate: a run's full suite is
+never a subset of what the merge checks, or a run can report green and still fail the gate.
+
 The run does not switch your checkout. The issue branch is checked out in a **linked git
 worktree** at `.tdd/wt/<n>` inside the target repo (created by `issue-worktree.sh`, cut
 from the default branch, sharing the one object store), and everything — spec, ledger, leaf
