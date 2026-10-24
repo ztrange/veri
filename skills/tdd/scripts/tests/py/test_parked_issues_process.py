@@ -122,3 +122,20 @@ def test_parked_issues_when_an_issue_carries_several_parked_comments_prints_the_
 
     assert ran.returncode == 0, ran.stderr
     assert ran.stdout == "7\tTeach the verifier to refuse\tthird bail\tfix the fixture\n"
+
+
+@pytest.mark.process("parked-issues.sh run against a gh stub serving no issue at all")
+def test_parked_issues_with_no_open_issue_labelled_parked_prints_nothing_and_exits_3(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text("#!/bin/sh\necho '[]'\n")
+    gh.chmod(0o755)
+
+    ran = subprocess.run([str(SCRIPTS / "parked-issues.sh")], cwd=tmp_path, capture_output=True, text=True,
+                         stdin=subprocess.DEVNULL,
+                         env={"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+                              "PYTHONDONTWRITEBYTECODE": "1"})
+
+    assert ran.returncode == 3, ran.stderr
+    assert ran.stdout == ""

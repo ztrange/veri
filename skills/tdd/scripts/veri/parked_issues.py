@@ -16,7 +16,10 @@ def main(argv):
     if argv:
         sys.stderr.write(USAGE + "\n")
         return 2
-    for issue in json.loads(github.gh_rest_list("repos/{owner}/{repo}/issues?state=open&labels=parked&per_page=100")):
+    issues = json.loads(github.gh_rest_list("repos/{owner}/{repo}/issues?state=open&labels=parked&per_page=100") or "[]")
+    if not issues:
+        return 3
+    for issue in issues:
         number = issue["number"]
         comments = json.loads(github.gh_rest_list("repos/{owner}/{repo}/issues/%d/comments?per_page=100" % number), strict=False)
         body = [c["body"] for c in comments if c["body"].startswith("### ⏸ Parked")][-1]
