@@ -38,7 +38,7 @@ def live_conductor(monkeypatch, run_tdd, issue):
         issues.append(issue)
         monkeypatch.setattr(module, "command_line",
                             lambda pid, issues=issues: " ; ".join("run-conductor.sh %s" % i for i in issues),
-                            raising=False)
+                            raising=True)
 
 
 @dataclasses.dataclass(frozen=True)
