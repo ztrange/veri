@@ -120,7 +120,8 @@ def pass_marker_current(text):
     except OSError:
         return False
     head = answered("git", "rev-parse", "HEAD")
-    return head is not None and f"step: {text}" in lines and f"head: {head}" in lines
+    return (head is not None and f"step: {text}" in lines and f"head: {head}" in lines
+            and f"tree: {tests_frozen._work_tree_hash()}" in lines)
 
 
 def now():
