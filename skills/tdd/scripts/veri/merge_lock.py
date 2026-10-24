@@ -26,7 +26,13 @@ def main(argv):
         if not os.path.isdir(lock):
             return 3
         with open(record) as f:
-            print(f.read(), end="")
+            text = f.read()
+        try:
+            os.kill(int(text.split()[0]), 0)
+        except ProcessLookupError:
+            print("stale lock: " + text, end="")
+            return 1
+        print(text, end="")
     return 0
 
 
