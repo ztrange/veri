@@ -53,8 +53,12 @@ def test_ticking_a_diff_checked_step_rerecords_the_earlier_frozen_case_it_change
     git(tmp_path, "commit", "-q", "-m", "red")
     ledger = tmp_path / ".tdd/ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n- [ ] %s\n" % (earlier, edit, later))
+    git(tmp_path, "add", ".tdd/ledger.md")
+    git(tmp_path, "commit", "-q", "-m", "ledger")
     (tmp_path / "tests/test_suite.py").write_text(
         "def test_older_case():\n    assert True\n\n\ndef test_pinned_2199():\n    assert 2 == 2\n")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "edit")
 
     ticked = run_cli(tick_ledger, [str(ledger), "diff-checked"], cwd=tmp_path)[0]
     code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)
@@ -81,8 +85,12 @@ def test_ticking_an_ordinary_step_that_only_mentions_the_diff_checked_tag_rereco
     git(tmp_path, "commit", "-q", "-m", "red")
     ledger = tmp_path / ".tdd/ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n- [ ] %s\n" % (earlier, edit, later))
+    git(tmp_path, "add", ".tdd/ledger.md")
+    git(tmp_path, "commit", "-q", "-m", "ledger")
     (tmp_path / "tests/test_suite.py").write_text(
         "def test_older_case():\n    assert True\n\n\ndef test_pinned_2199():\n    assert 2 == 2\n")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "edit")
 
     ticked = run_cli(tick_ledger, [str(ledger), "step two"], cwd=tmp_path)[0]
     rerecorded = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)[0]
@@ -124,8 +132,12 @@ def test_the_diff_checked_tick_digests_the_rerecorded_case_with_the_snapshot_tes
     git(repo, "commit", "-q", "-m", "red")
     ledger = repo / ".tdd/ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n- [ ] %s\n" % (earlier, edit, later))
+    git(repo, "add", ".tdd/ledger.md")
+    git(repo, "commit", "-q", "-m", "ledger")
     (repo / "tests/test_suite.py").write_text(
         "def test_older_case():\n    assert True\n\n\ndef test_pinned_2199():\n    assert 2 == 2\n")
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "edit")
 
     ticked = snap("tick-ledger.sh", str(ledger), "diff-checked")[0]
     checked = snap("tests-frozen.sh", "check-earlier", str(ledger), "--step", later)
