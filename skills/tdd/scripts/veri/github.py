@@ -280,3 +280,7 @@ def gh_issue_comment(number, body):
 
 def gh_issue_add_label(number, label):
     _gh("api", _issue(number) + "/labels", "-f", "labels[]=%s" % label)
+
+
+def gh_label_ensure(label):
+    _gh("api", "repos/{owner}/{repo}/labels", "-f", "name=%s" % label)
