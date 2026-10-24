@@ -1631,3 +1631,38 @@ def test_issue_2309_a_conductor_log_with_no_assistant_turn_prints_no_context_lin
     out = render(metrics, capsys)
 
     assert "Conductor context:" not in out
+
+
+def context_turn(context):
+    return {"type": "assistant", "message": {"usage": {"input_tokens": 10, "output_tokens": 5,
+                                                       "cache_read_input_tokens": context - 110,
+                                                       "cache_creation_input_tokens": 100}}}
+
+
+def test_issue_2309_a_trailing_conductor_session_with_no_result_record_still_gets_its_context_line(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    sessions = [{"type": "system", "subtype": "init"}, context_turn(1000), context_turn(5000),
+                {"type": "result", "total_cost_usd": 1.0, "num_turns": 2},
+                {"type": "system", "subtype": "init"}, context_turn(2000), context_turn(7000), context_turn(4000)]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in sessions))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert " in 2 sessions." in out
+    assert [line for line in out.split("\n") if line.startswith("Conductor context:")] == [
+        "Conductor context: first turn 1000 tokens, largest 5000 tokens",
+        "Conductor context: first turn 2000 tokens, largest 7000 tokens"]
+
+
+def test_issue_2309_the_context_line_reports_the_first_turn_even_when_a_later_turn_is_smaller(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    sessions = [{"type": "system", "subtype": "init"}, context_turn(4000), context_turn(1000), context_turn(6000),
+                {"type": "result", "total_cost_usd": 1.0, "num_turns": 3}]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in sessions))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert [line for line in out.split("\n") if line.startswith("Conductor context:")] == [
+        "Conductor context: first turn 4000 tokens, largest 6000 tokens"]
