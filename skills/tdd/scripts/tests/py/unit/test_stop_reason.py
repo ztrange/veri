@@ -278,3 +278,16 @@ def test_a_run_with_no_end_event_whose_live_pid_is_an_unrelated_process_and_whos
     code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
 
     assert (code, out) == (0, "usage-limit Oct 7, 3pm\n")
+
+
+def test_a_run_whose_only_end_mark_is_the_runners_needs_user_bail_with_no_phase_and_no_classification_prints_bailed_none_and_exits_0_2205(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    events = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "events.jsonl"
+    events.parent.mkdir(parents=True)
+    events.write_text("".join(json.dumps(e) + "\n" for e in (
+        {"ts": 100, "issue": "7", "event": "step-done"},
+        {"ts": 200, "issue": "7", "event": "bail", "cause": "needs-user", "phase": ""})))
+
+    code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
+
+    assert (code, out.splitlines()[0]) == (0, "bailed  None")
