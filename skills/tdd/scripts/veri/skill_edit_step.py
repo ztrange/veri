@@ -213,6 +213,11 @@ def main(argv):
             print("Requirement row ID is neither <prefix><digits> nor <prefix><next>: " + _row_id(row),
                   file=sys.stderr)
             return 2
+    explicit = [_row_id(r) for r in _issue_rows(issue, unit) if not _row_id(r).endswith("<next>")]
+    for dup in explicit:
+        if explicit.count(dup) > 1:
+            print("Requirement rows resolve to the same ID twice: " + dup, file=sys.stderr)
+            return 2
     base = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     path = skill_edit_guard.list_path(unit)
     graded_file = grade_prose.graded_path(unit)
