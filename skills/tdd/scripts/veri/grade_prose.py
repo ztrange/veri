@@ -117,6 +117,13 @@ def no_verdict(detail):
     return 2
 
 
+def keeps_protocol(reply, wanted):
+    block = reply[reply.rindex("BEGIN GRADES"):]
+    ids = graded_ids(block)
+    return (len(set(ids)) == len(ids) and set(ids) <= set(wanted)
+            and not BAD_GRADE.search(block) and not reply.partition("END GRADES")[2].strip())
+
+
 def main(argv):
     if argv == ["--owed"]:
         import prose_owed
@@ -159,12 +166,8 @@ def main(argv):
             if raw is None:
                 return no_verdict("the grader leaf exited non-zero")
             reply = extract(raw)
-            if "BEGIN GRADES" in reply:
-                ids = graded_ids(reply[reply.rindex("BEGIN GRADES"):])
-                if (len(set(ids)) == len(ids) and set(ids) <= set(wanted)
-                        and not BAD_GRADE.search(reply[reply.rindex("BEGIN GRADES"):])
-                        and not reply.partition("END GRADES")[2].strip()):
-                    break
+            if "BEGIN GRADES" in reply and keeps_protocol(reply, wanted):
+                break
     finally:
         os.unlink(f.name)
     cost = sum(float(r.get("total_cost_usd") or 0) for r in result_records(raw.splitlines()) if "result" in r)
@@ -173,9 +176,7 @@ def main(argv):
     reply = reply[reply.rindex("BEGIN GRADES"):]
     seen = graded_ids(reply)
     missing = [i for i in wanted if i not in seen]
-    if (missing and used <= retries and len(set(seen)) == len(seen) and set(seen) <= set(wanted)
-            and not BAD_GRADE.search(reply)
-            and "END GRADES" in reply and not reply.partition("END GRADES")[2].strip()):
+    if missing and used <= retries and "END GRADES" in reply and keeps_protocol(reply, wanted):
         rows = "".join(r + "\n" for r in claims.splitlines() if r.split("\t", 1)[0] in missing)
         with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as g:
             g.write(prompt(unit, text, rows))
