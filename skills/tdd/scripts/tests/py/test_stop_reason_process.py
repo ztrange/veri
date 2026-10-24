@@ -38,3 +38,27 @@ def test_stop_reason_on_an_events_log_of_only_blank_lines_exits_2_with_a_refusal
                            cwd=str(tmp_path))
     assert blank.returncode == 2 and blank.stdout == ""
     assert "stop-reason.sh" in blank.stderr
+
+
+@pytest.mark.process("git worktree add, then event.sh and stop-reason.sh run for real")
+def test_a_bail_marked_through_event_sh_inside_a_worktree_lands_in_its_events_log_and_stop_reason_run_from_the_main_tree_reports_it_2205(
+        tmp_path):
+    def git(*args):
+        subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *args], cwd=tmp_path, check=True,
+                       capture_output=True)
+
+    git("init", "-q")
+    git("commit", "-q", "--allow-empty", "-m", "root")
+    git("worktree", "add", "-q", "--detach", ".tdd/wt/7")
+    worktree = tmp_path / ".tdd" / "wt" / "7"
+
+    marked = subprocess.run([str(SCRIPTS / "event.sh"), "bail", "cause=needs-user", "classification=process",
+                             "phase=green"], capture_output=True, text=True, cwd=str(worktree))
+    assert marked.returncode == 0, marked.stderr
+    assert '"event": "bail"' in (worktree / ".tdd" / "events.jsonl").read_text()
+    assert not (tmp_path / ".tdd" / "events.jsonl").exists()
+
+    reported = subprocess.run([str(SCRIPTS / "stop-reason.sh"), "7"], capture_output=True, text=True,
+                              cwd=str(tmp_path))
+    assert reported.returncode == 0, reported.stderr
+    assert reported.stdout.splitlines()[0] == "bailed green process"

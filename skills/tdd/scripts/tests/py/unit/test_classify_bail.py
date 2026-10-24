@@ -147,3 +147,9 @@ def test_main_classifies_fixture_owed_as_a_process_failure_with_0_2172(capsys, c
     code = classify_bail.main(["fixture-owed"])
 
     assert (code, *capsys.readouterr()) == (0, "process\n", "")
+
+
+def test_main_refuses_red_baseline_with_2_and_prints_nothing_to_stdout_2205(capsys, classify_bail):
+    code = classify_bail.main(["red-baseline"])
+
+    assert (code, capsys.readouterr().out) == (2, "")

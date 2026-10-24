@@ -278,3 +278,48 @@ def test_a_run_with_no_end_event_whose_live_pid_is_an_unrelated_process_and_whos
     code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
 
     assert (code, out) == (0, "usage-limit Oct 7, 3pm\n")
+
+
+def test_a_run_whose_only_end_mark_is_the_runners_needs_user_bail_with_no_phase_and_no_classification_prints_bailed_none_and_exits_0_2205(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    events = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "events.jsonl"
+    events.parent.mkdir(parents=True)
+    events.write_text("".join(json.dumps(e) + "\n" for e in (
+        {"ts": 100, "issue": "7", "event": "step-done"},
+        {"ts": 200, "issue": "7", "event": "bail", "cause": "needs-user", "phase": ""})))
+
+    code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
+
+    assert (code, out.splitlines()[0]) == (0, "bailed  None")
+
+
+def test_a_killed_run_whose_events_hold_a_pair_further_apart_than_the_sleep_gap_prints_killed_then_a_gap_line_2205(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    run = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    run.mkdir(parents=True)
+    (run / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in (
+        {"ts": 100, "issue": "7", "event": "step-done"},
+        {"ts": 1100, "issue": "7", "event": "step-done"})))
+    (tmp_path / ".tdd" / "conductor-7.log").write_text(json.dumps({"type": "system", "subtype": "init"}) + "\n")
+
+    code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path, env={"VERI_SLEEP_GAP": "900"})
+
+    assert (code, out, err) == (0, "killed\ngap 100 1100\n", "")
+
+
+def test_issue_2205_a_directory_holding_no_run_for_the_issue_exits_2_and_prints_nothing_to_stdout(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+
+    code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
+
+    assert (code, out) == (2, "")
+
+
+def test_issue_2205_run_from_inside_the_runs_worktree_exits_2_with_a_diagnostic_naming_dot_tdd_wt(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    worktree = tmp_path / ".tdd" / "wt" / "7"
+    (worktree / ".tdd").mkdir(parents=True)
+
+    code, out, err = run_cli(stop_reason, ["7"], cwd=worktree)
+
+    assert (code, out, err) == (2, "", "stop-reason.sh: no run for issue 7 under .tdd/wt\n")
