@@ -1311,3 +1311,42 @@ def test_2195_a_full_run_waiting_on_a_holder_that_never_releases_the_lock_fails_
                 process.kill()
         first.wait(timeout=30)
     assert (code != 0, (marks / "B-started").exists()) == (True, False)
+
+
+def in_process_leg(pytest_leg, monkeypatch, spy):
+    for name, value in leg_env(VERI_PYTEST_WORKERS="1", PYTEST_PLUGINS="").items():
+        monkeypatch.setenv(name, value)
+    monkeypatch.delenv("PYTEST_LEG_FULL_LOCK_HOLDER", raising=False)
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    monkeypatch.setattr(pytest, "main", spy)
+
+
+@pytest.mark.timeout(10)
+def test_2195_a_subset_run_starts_its_suites_at_once_while_a_full_run_holds_the_lock_and_writes_no_waiting_message(pytest_leg, monkeypatch, capsys):
+    import fcntl
+
+    started = []
+    in_process_leg(pytest_leg, monkeypatch, lambda args: started.append(args) or pytest.ExitCode.OK)
+    os.makedirs(os.path.dirname(pytest_leg.full_lock_path()), exist_ok=True)
+    with open(pytest_leg.full_lock_path(), "w") as held:
+        held.write("pid 1\ttree /elsewhere\n")
+        held.flush()
+        fcntl.flock(held, fcntl.LOCK_EX)
+        code = pytest_leg.main(["--subset", "some/test_file.py"])
+
+    assert (code, len(started) >= 1, "waiting" in capsys.readouterr().err) == (0, True, False)
+    assert all("--subset" not in args and "some/test_file.py" in args for args in started)
+
+
+def test_2195_after_a_full_run_releases_the_lock_the_lock_file_names_no_pid(pytest_leg, monkeypatch):
+    seen = []
+
+    def spy(args):
+        seen.append(open(pytest_leg.full_lock_path()).read())
+        return pytest.ExitCode.OK
+
+    in_process_leg(pytest_leg, monkeypatch, spy)
+
+    assert pytest_leg.main(["some/dir"]) == 0
+    assert seen and all(("pid %d" % os.getpid()) in held for held in seen)
+    assert "pid" not in open(pytest_leg.full_lock_path()).read()
