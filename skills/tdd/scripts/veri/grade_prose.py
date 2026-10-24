@@ -160,7 +160,8 @@ def main(argv):
             reply = extract(raw)
             if "BEGIN GRADES" in reply:
                 ids = graded_ids(reply[reply.rindex("BEGIN GRADES"):])
-                if len(set(ids)) == len(ids) and set(ids) <= set(wanted):
+                if (len(set(ids)) == len(ids) and set(ids) <= set(wanted)
+                        and not re.search(r"^(?!VERDICT)\S+: (?!PASS\b|FAIL\b)\S", reply[reply.rindex("BEGIN GRADES"):], re.M)):
                     break
     finally:
         os.unlink(f.name)
