@@ -30,7 +30,7 @@ def main(argv):
     refusal = ledger.multi_tag_refusal(ledger.ledger_steps(text))
     if refusal:
         print("scope-check.sh: " + refusal, file=sys.stderr)
-        return 2
+        return 1
     named = NAMED.findall(text)
     clashes = []
     for path in dict.fromkeys(named):
