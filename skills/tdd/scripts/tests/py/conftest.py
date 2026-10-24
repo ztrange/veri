@@ -357,11 +357,17 @@ def process_case_waits_no_default_push_backoff(request, monkeypatch, tmp_path_fa
 @pytest.fixture(autouse=True)
 def process_case_children_do_not_inherit_ignored_signals(request):
     if request.node.get_closest_marker("process") is None:
+        yield
         return
+    ignored = []
     for number, handler in ((signal.SIGINT, signal.default_int_handler), (signal.SIGTERM, signal.SIG_DFL),
                             (signal.SIGHUP, signal.SIG_DFL)):
         if signal.getsignal(number) == signal.SIG_IGN:
+            ignored.append(number)
             signal.signal(number, handler)
+    yield
+    for number in ignored:
+        signal.signal(number, signal.SIG_IGN)
 
 
 def at_or_under_root(path):
