@@ -802,3 +802,31 @@ def test_refresh_with_no_cache_whose_page_keeps_failing_exits_2_after_bounded_at
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
     assert (code, out, "504" in err, sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == (2, "", True, [])
+
+
+def test_refresh_takes_its_page_retry_count_and_sleep_from_the_one_tunable_reader_2244(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    tunables = report_cache.tunables
+    values = {"VERI_PAGE_RETRIES": "2", "VERI_PAGE_RETRY_SLEEP": "0"}
+    real_read = tunables.read
+    monkeypatch.setattr(tunables, "read", lambda name, default="", unless_empty=None:
+                        values.get(name) or real_read(name, default, unless_empty))
+    monkeypatch.setattr(report_cache.time, "sleep", lambda seconds: None)
+    (tmp_path / ".git").mkdir()
+    calls = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        calls.append(args)
+        if len(calls) > 50:
+            raise AssertionError("retried without bound")
+        return subprocess.CompletedProcess(args, 1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    assert (code, len(calls)) == (2, 2)
