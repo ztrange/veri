@@ -4,6 +4,7 @@ import shutil
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 
 import tunables
@@ -32,12 +33,15 @@ def _take(lock, record, args):
         return 2
     pid = _caller_pid(args)
     os.makedirs(os.path.dirname(lock), exist_ok=True)
+    staged = tempfile.mkdtemp(prefix=".merge.lock.", dir=os.path.dirname(lock))
+    with open(os.path.join(staged, "holder"), "w") as f:
+        f.write(f"{pid} {socket.gethostname()} {_start_time(pid)}\n")
     reported = False
     while True:
         try:
-            os.mkdir(lock)
+            os.rename(staged, lock)
             break
-        except FileExistsError:
+        except OSError:
             if not reported:
                 try:
                     with open(record) as f:
@@ -49,8 +53,6 @@ def _take(lock, record, args):
                 except (OSError, ValueError, IndexError):
                     pass
             time.sleep(float(tunables.read("VERI_MERGE_LOCK_POLL", "30")))
-    with open(record, "w") as f:
-        f.write(f"{pid} {socket.gethostname()} {_start_time(pid)}\n")
     return 0
 
 

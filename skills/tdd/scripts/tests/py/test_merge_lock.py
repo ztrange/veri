@@ -171,3 +171,27 @@ def test_holder_exits_0_and_prints_the_record_when_the_recorded_live_pid_belongs
     held = run_cli(merge_lock, ["holder"], cwd=tmp_path)
 
     assert (taken[0], held[0], held[1].split()[:1], "stale" in held[1].lower(), held[2]) == (0, 0, ["1"], False, "")
+
+
+@pytest.mark.process("git init on a scratch repository, take run from it with directory creation and renames observed")
+def test_take_makes_the_lock_directory_visible_only_with_its_holder_record_complete(
+        tmp_path, merge_lock, run_cli, monkeypatch):
+    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    lock = tmp_path / ".tdd" / "merge.lock"
+    seen = []
+
+    def observing(real):
+        def wrapper(*args, **kwargs):
+            result = real(*args, **kwargs)
+            if lock.is_dir():
+                record = lock / "holder"
+                seen.append(record.is_file() and len(record.read_text().split()) >= 3)
+            return result
+        return wrapper
+
+    for name in ("mkdir", "rename", "replace"):
+        monkeypatch.setattr(os, name, observing(getattr(os, name)))
+
+    taken = run_cli(merge_lock, ["take", "--pid", str(os.getpid())], cwd=tmp_path)
+
+    assert (taken[0], bool(seen), all(seen)) == (0, True, True)
