@@ -159,3 +159,15 @@ def test_holder_exits_1_and_prints_the_record_marked_stale_when_the_recorded_pid
     held = run_cli(merge_lock, ["holder"], cwd=tmp_path)
 
     assert (held[0], pid in held[1].split(), "stale" in held[1].lower()) == (1, True, True)
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root owns pid 1, so it is not another user's")
+@pytest.mark.process("git init on a scratch repository, take and holder run from it, ps reading pid 1's start time")
+def test_holder_exits_0_and_prints_the_record_when_the_recorded_live_pid_belongs_to_another_user(
+        tmp_path, merge_lock, run_cli):
+    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    taken = run_cli(merge_lock, ["take", "--pid", "1"], cwd=tmp_path)
+
+    held = run_cli(merge_lock, ["holder"], cwd=tmp_path)
+
+    assert (taken[0], held[0], held[1].split()[:1], "stale" in held[1].lower(), held[2]) == (0, 0, ["1"], False, "")

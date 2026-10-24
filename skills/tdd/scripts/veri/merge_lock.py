@@ -72,7 +72,10 @@ def _holder(lock, record, args):
     with open(record) as f:
         text = f.read()
     try:
-        os.kill(int(text.split()[0]), 0)
+        try:
+            os.kill(int(text.split()[0]), 0)
+        except PermissionError:
+            pass
         reused = text.split()[2:3] != [_start_time(text.split()[0])]
     except ProcessLookupError:
         reused = True
