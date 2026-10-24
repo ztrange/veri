@@ -1,76 +1,110 @@
 ### 📊 Metrics — issue 2205
 
-Wall time for the issue: 2042 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 80 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Every figure in this report is wall-clock: the log carries no awake-clock reading, so time the machine spent asleep is counted in them.
-Steps done: 8 of 9 planned.
-Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/2273.
+Steps done: 8 of 10 planned.
+Outcome: the run bailed — needs-user, a process failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $2.57 over 58 turns, in 1 sessions.
+Conductor own spending: $4.65 over 92 turns, in 2 sessions.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
+The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
 
 | turn | dollars | context |
 | --- | ---: | ---: |
-| 1 | $0.57 | 89178 |
-| 2 | $0.02 | 89642 |
-| 3 | $0.04 | 93021 |
-| 4 | $0.03 | 94245 |
-| 5 | $0.03 | 96121 |
-| 6 | $0.02 | 96561 |
-| 7 | $0.02 | 96887 |
-| 8 | $0.02 | 97209 |
-| 9 | $0.02 | 97837 |
-| 10 | $0.02 | 98241 |
+| 1 | $0.58 | 89178 |
+| 2 | $0.03 | 89642 |
+| 3 | $0.05 | 93021 |
+| 4 | $0.04 | 94245 |
+| 5 | $0.04 | 96121 |
+| 6 | $0.03 | 96561 |
+| 7 | $0.03 | 96887 |
+| 8 | $0.03 | 97209 |
+| 9 | $0.04 | 97837 |
+| 10 | $0.03 | 98241 |
 | 11 | $0.04 | 100206 |
-| 12 | $0.05 | 103455 |
-| 13 | $0.09 | 112531 |
-| 14 | $0.04 | 114916 |
+| 12 | $0.06 | 103455 |
+| 13 | $0.10 | 112531 |
+| 14 | $0.05 | 114916 |
 | 15 | $0.04 | 116549 |
 | 16 | $0.03 | 116910 |
-| 17 | $0.03 | 117478 |
-| 18 | $0.03 | 118026 |
-| 19 | $0.03 | 118925 |
+| 17 | $0.04 | 117478 |
+| 18 | $0.04 | 118026 |
+| 19 | $0.04 | 118925 |
 | 20 | $0.03 | 119398 |
-| 21 | $0.03 | 120698 |
-| 22 | $0.03 | 121449 |
-| 23 | $0.04 | 123879 |
-| 24 | $0.03 | 124764 |
-| 25 | $0.03 | 125843 |
-| 26 | $0.03 | 126722 |
+| 21 | $0.04 | 120698 |
+| 22 | $0.04 | 121449 |
+| 23 | $0.05 | 123879 |
+| 24 | $0.04 | 124764 |
+| 25 | $0.05 | 125843 |
+| 26 | $0.04 | 126722 |
 | 27 | $0.03 | 127165 |
-| 28 | $0.03 | 128000 |
-| 29 | $0.03 | 128446 |
-| 30 | $0.03 | 129204 |
-| 31 | $0.03 | 129622 |
-| 32 | $0.03 | 130515 |
-| 33 | $0.03 | 130954 |
-| 34 | $0.03 | 131701 |
+| 28 | $0.04 | 128000 |
+| 29 | $0.04 | 128446 |
+| 30 | $0.04 | 129204 |
+| 31 | $0.04 | 129622 |
+| 32 | $0.04 | 130515 |
+| 33 | $0.04 | 130954 |
+| 34 | $0.04 | 131701 |
 | 35 | $0.03 | 132136 |
-| 36 | $0.08 | 139322 |
+| 36 | $0.10 | 139322 |
 | 37 | $0.04 | 140626 |
-| 38 | $0.03 | 141104 |
-| 39 | $0.03 | 141486 |
-| 40 | $0.03 | 142145 |
-| 41 | $0.04 | 144053 |
+| 38 | $0.04 | 141104 |
+| 39 | $0.04 | 141486 |
+| 40 | $0.04 | 142145 |
+| 41 | $0.06 | 144053 |
 | 42 | $0.04 | 145010 |
 | 43 | $0.04 | 145841 |
-| 44 | $0.03 | 146293 |
-| 45 | $0.03 | 146638 |
-| 46 | $0.03 | 147107 |
-| 47 | $0.04 | 148447 |
-| 48 | $0.03 | 148917 |
-| 49 | $0.03 | 149347 |
-| 50 | $0.03 | 149828 |
-| 51 | $0.03 | 150405 |
-| 52 | $0.03 | 150898 |
-| 53 | $0.04 | 152332 |
-| 54 | $0.04 | 152905 |
-| 55 | $0.03 | 153416 |
-| 56 | $0.04 | 154146 |
-| 57 | $0.03 | 154432 |
-| 58 | $0.03 | 154772 |
+| 44 | $0.05 | 146293 |
+| 45 | $0.04 | 146638 |
+| 46 | $0.04 | 147107 |
+| 47 | $0.05 | 148447 |
+| 48 | $0.04 | 148917 |
+| 49 | $0.04 | 149347 |
+| 50 | $0.04 | 149828 |
+| 51 | $0.04 | 150405 |
+| 52 | $0.04 | 150898 |
+| 53 | $0.05 | 152332 |
+| 54 | $0.05 | 152905 |
+| 55 | $0.04 | 153416 |
+| 56 | $0.05 | 154146 |
+| 57 | $0.04 | 154432 |
+| 58 | $0.04 | 154772 |
+| 59 | $0.04 | 155185 |
+| 60 | $0.04 | 155454 |
+| 61 | $0.05 | 156503 |
+| 62 | $0.05 | 158317 |
+| 63 | $0.05 | 158643 |
+| 64 | $0.57 | 89190 |
+| 65 | $0.02 | 89517 |
+| 66 | $0.05 | 93522 |
+| 67 | $0.03 | 94525 |
+| 68 | $0.03 | 95411 |
+| 69 | $0.04 | 97874 |
+| 70 | $0.02 | 98348 |
+| 71 | $0.02 | 98786 |
+| 72 | $0.02 | 99084 |
+| 73 | $0.02 | 99634 |
+| 74 | $0.03 | 100273 |
+| 75 | $0.05 | 103736 |
+| 76 | $0.04 | 105618 |
+| 77 | $0.03 | 106155 |
+| 78 | $0.04 | 108537 |
+| 79 | $0.03 | 109667 |
+| 80 | $0.03 | 110133 |
+| 81 | $0.03 | 111205 |
+| 82 | $0.03 | 111564 |
+| 83 | $0.03 | 112122 |
+| 84 | $0.03 | 112731 |
+| 85 | $0.03 | 113522 |
+| 86 | $0.03 | 113978 |
+| 87 | $0.03 | 114264 |
+| 88 | $0.03 | 115197 |
+| 89 | $0.03 | 115829 |
+| 90 | $0.03 | 116640 |
+| 91 | $0.06 | 121216 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -80,7 +114,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | plan | 1 | 1 | 0 | 0 | 17 | 10 | 2 | 4 | 1307 | 34003 | 35752 | 0.11 |
 | red | 8 | 0 | 0 | 0 | 306 | 137 | 40 | 80 | 16589 | 1253958 | 201592 | 0.92 |
 | pin | 8 | 7 | 1 | 0 | 259 | 84 | 30 | 58 | 8305 | 813436 | 112013 | 0.44 |
-| prose | 3 | 0 | 0 | 0 | 39 | 30 | 3 | 6 | 4487 | 2866 | 30781 | 0.12 |
+| prose | 4 | 0 | 0 | 0 | 58 | 46 | 4 | 8 | 6899 | 3515 | 41558 | 0.17 |
 | skill-edit | 1 | 0 | 0 | 0 | 15 | 13 | 3 | 6 | 1871 | 56750 | 30173 | 0.10 |
 | reconcile | 1 | 0 | 0 | 0 | 16 | 10 | 3 | 6 | 618 | 63691 | 32963 | 0.09 |
 
@@ -99,7 +133,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | plan | 0 | 0.00 | 0 | 0.00 |
 | red | 0 | 0.00 | 0 | 0.00 |
 | pin | 64 | 0.09 | 0 | 0.00 |
-| prose | 0 | 0.00 | 0 | 0.00 |
+| prose | 0 | 0.00 | 19 | 0.05 |
 | skill-edit | 0 | 0.00 | 0 | 0.00 |
 | reconcile | 0 | 0.00 | 16 | 0.09 |
 
@@ -115,6 +149,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | `stop-reason.sh <n>` run with the current directory inside `.tdd/wt/<n>` exits 2 with a stderr diagnostic naming `.tdd/wt`; one small in-process case in `skills/tdd/scripts/tests/py/unit/test_stop_reason.py`, no production change ⟦criterion 4⟧ | 4 | 1 | 1 | 0 | 0 | 0 | 62 | 18 | 36 | 6835 | 532933 | 74665 | 0.43 | unknown | 1/2 | unknown | unknown |  |  | pin |
 | Saving every uncommitted edit in a git worktree as a binary-safe patch under `.tdd/` (`git add -A && git diff --cached --binary HEAD`), restoring the tree (`git reset --hard && git clean -fd`) and re-applying the patch with `git apply` brings back both a tracked and an untracked binary edit with matching content hashes; one medium case with real git, `@pytest.mark.process`, in `skills/tdd/scripts/tests/py/test_veri_bail_patch_process.py`, no production change ⟦criterion 6⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 33 | 11 | 20 | 3980 | 313629 | 37785 | 0.17 | unknown | unknown | unknown | unknown |  |  | pin |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/test_fast_tier_guard.py — FAILED test_1641_a_real_exemption_keyed_relative_to_tests_py_is_not_reported_stale_by_any_case_that_reads_the_real_table - Failed: Timeout (>30s) ⟦suite-repair⟧ ⟦criterion 6⟧ | 1 | 0 | 0 | 0 | 0 | 0 | 10 | 3 | 6 | 618 | 63691 | 32963 | 0.09 | unknown | unknown | unknown | unknown |  |  | full |
+| `skills/veri-bail/SKILL.md` is edited against `skills/veri-bail/REQUIREMENTS.md`, to which the B9 row is added after B8 exactly as the issue's `## Requirements` row states it; the prose states B9 at SKILL.md's opening rule (every command from the target repository's main working tree, except the save and restore in `.tdd/wt/<n>`) and at its resume command (run from the main working tree); the unit is graded PASS against its whole list and signed in `GRADED` ⟦skill-edit⟧ ⟦criterion 7⟧ | 1 | 0 | 0 | 0 | 0 | 0 | 16 | 1 | 2 | 2412 | 649 | 10777 | 0.05 | unknown | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -133,4 +168,4 @@ Stopped: nothing-structural
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 81 | 160 | 33177 | 2224704 | 443274 | 1.79 |
+| total | 82 | 162 | 35589 | 2225353 | 454051 | 1.84 |
