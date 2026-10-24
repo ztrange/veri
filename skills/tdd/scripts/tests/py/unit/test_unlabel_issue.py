@@ -3,6 +3,16 @@ import importlib
 import subprocess
 
 
+def _claim_call(args):
+    """The taken:<lane> label's create and add calls, answered 0 and left unasserted; None for any other call."""
+    joined = " ".join(args)
+    if args[:3] == ["gh", "label", "create"] or "--add-label" in args:
+        return subprocess.CompletedProcess(args, 0, "", "")
+    if args[:3] == ["gh", "api", "-X"] and args[3] == "POST" or args[:2] == ["gh", "api"] and "/labels" in joined and "DELETE" not in args and "-X" not in args:
+        return subprocess.CompletedProcess(args, 0, "{}", "")
+    return None
+
+
 def test_main_1656_removes_the_opt_in_label_so_the_issue_is_unlisted_and_a_label_already_absent_exits_0(monkeypatch, capsys):
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
@@ -11,6 +21,9 @@ def test_main_1656_removes_the_opt_in_label_so_the_issue_is_unlisted_and_a_label
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
         joined = " ".join(args)
+        claim = _claim_call(args)
+        if claim:
+            return claim
         if args[:3] == ["gh", "api", "-X"] and args[3] == "DELETE":
             number, _, name = args[4].partition("/issues/")[2].partition("/labels/")
             if name not in labels[number]:
@@ -37,6 +50,9 @@ def _deleting(monkeypatch, answer):
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
+        claim = _claim_call(args)
+        if claim:
+            return claim
         if args[:4] != ["gh", "api", "-X", "DELETE"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
         deleted.append(args[4])
@@ -81,6 +97,9 @@ def test_main_1672_exits_2_naming_a_nonexistent_issue_while_an_existing_issue_wi
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
+        claim = _claim_call(args)
+        if claim and args[-1].partition("/issues/")[2].partition("/")[0] in labels or args[:3] == ["gh", "label", "create"]:
+            return claim
         if args[:2] != ["gh", "api"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
         path = args[-1].partition("/issues/")[2]
@@ -130,5 +149,6 @@ def test_main_1974_removes_the_label_through_the_port_and_starts_no_gh_process_i
 
     code = unlabel_issue.main(["7"])
 
-    assert (code, ported, capsys.readouterr().err) == (
+    deletions = [call for call in ported if "DELETE" in call]
+    assert (code, deletions, capsys.readouterr().err) == (
         0, [["api", "-X", "DELETE", "repos/{owner}/{repo}/issues/7/labels/ready-for-agent"]], "")
