@@ -643,3 +643,22 @@ def test_next_phase_hands_over_cover_new_never_migrate_while_cover_new_is_listed
     capsysbinary.readouterr()
 
     assert (next_code, next_out, tick_code, ledger.read_bytes()) == (0, b"cover-new\n", 2, seed)
+
+
+def test_next_phase_resumes_at_cover_new_once_expand_is_marked_and_at_migrate_once_cover_new_is_marked_2034(
+        monkeypatch, capsysbinary, ledger_steps):
+    phased = "- [ ] rename the slug helper ⟦phases: expand, cover-new, migrate, contract-a, contract-b⟧ ⟦criterion 4⟧"
+    ledgers = {
+        "expand marked": f"# Plan for #42\n\n{phased} ⟂ expand done\n",
+        "cover-new marked": f"# Plan for #42\n\n{phased} ⟂ expand done ⟂ cover-new done\n",
+    }
+    results = {}
+    for name, ledger in ledgers.items():
+        fake_stdin(monkeypatch, ledger.encode())
+        code = ledger_steps.main(["next-phase"])
+        results[name] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        "expand marked": (0, b"cover-new\n", b""),
+        "cover-new marked": (0, b"migrate\n", b""),
+    }
