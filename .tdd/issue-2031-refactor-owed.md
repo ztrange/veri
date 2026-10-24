@@ -9,3 +9,5 @@ applied | 3275bd33b4d049e880b5b0b8e8756bc2595ffa24 | share the "### ⏸ Parked" 
 - test-only | extract the repeated gh-stub setup and `subprocess.run` call in `test_parked_issues_process.py` into one helper
 ### When a parked issue's latest `### ⏸ Parked` comment lacks its `Cause:` line or its `Unblock:` line, `parked-issues.sh` exits 2 with stderr naming that issue, and the lines of the parked issues listed before it are still printed ⟦criterion 9⟧
 - the "no parked comment" and "lacks Cause or Unblock" refusals in parked_issues.py could share one helper that writes the stderr line and returns 2. Both lines are short, so it earns no transform.
+### `park-issue.sh` exits 2 on an all-zero issue number such as `00`, naming that number on stderr, and calls `gh` not at all ⟦criterion 10⟧
+- test-only | the gh-stub setup (bin dir, `gh` stub, log file, subprocess env) is repeated in each case of test_park_issue_process.py and could move into a helper
