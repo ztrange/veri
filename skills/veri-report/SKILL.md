@@ -16,27 +16,37 @@ Every read runs against the target repository's main working tree. Where `/veri-
 
 ## The reads
 
+Run `$S/report-cache.sh refresh` once, first, from the main working tree. Exit 2 means no
+fresh cache: report that and stop; never build the report from a stale `.tdd/report-cache.json`
+(Q5). Every read below is of that file (`{fetched_at, issues}`; each issue carries `number`,
+`title`, `state`, `labels`, `closedAt`, `updatedAt`, `body`, `comments`, `wallSeconds`, `lane`),
+never a full `gh issue list`.
+
 Count the reads before making them: there is one per PRD and more, so **all of them go to one
 subagent** on the cheapest model that can run them (P6). Brief it with this section and have it
 return only the figures, at most 10 lines per PRD.
 
-1. **Active PRDs.** `gh issue list --state open --search "PRD in:title"`, keeping the issues
-   whose title starts `PRD <nnn>`. A draft counts (Q1).
+1. **Active PRDs.** The cached issues that are open and whose title starts `PRD <nnn>`. A draft
+   counts (Q1).
 2. **Children, per PRD** (Q3): the union of
-   - the issues, open and closed, whose title starts with that PRD's `PRD <nnn>`, and
+   - the cached issues, open and closed, whose title starts with that PRD's `PRD <nnn>`, and
    - every `#<n>` its body and comments link,
 
-   minus the PRD itself and minus links to other PRDs. For each child, record its state, its
-   labels and, if closed, its close date.
+   minus the PRD itself and minus links to other PRDs. For each child, read its state, its
+   labels, its blockers (from its body) and, if closed, its `closedAt`.
 3. **Lanes.** For each open child, its opt-in label (`ready-for-agent`, `ready-for-agent:<lane>`,
    or none) and whether `VERI_LABEL=<that label> $S/solvable-issues.sh` lists it now. An open
    child with no opt-in label and no `tdd/<n>-*` branch on origin is held by no lane.
-4. **Rate, per lane.** From the issues that lane closed in the last 7 days: issues per day, and
-   the fastest and slowest quartile of their run times (the `### 📊 Metrics` comment's wall time).
-   With fewer than three closed in the window, the lane has "no rate yet".
-5. **Owed** (Q4). The subagent reads each PRD's body and returns the work items it names
+4. **Rate, per lane** (Q7). Group the issues closed in the last 7 days by the cache's `lane`
+   field: issues per day, and the fastest and slowest quartile of their `wallSeconds`. An issue
+   whose `lane` is null counts toward no lane's rate. With fewer than three closed in the window,
+   the lane has "no rate yet".
+5. **Owed** (Q4, Q6). The subagent reads each PRD's body and returns the work items it names
    (sections, slices, stories, table rows) that no child covers, each with the PRD section it
-   comes from.
+   comes from. Each answer is stored in `.tdd/report-owed.json` under the PRD number, with the
+   PRD's `updatedAt` from the cache. A PRD whose cached `updatedAt` equals the stored one reuses
+   the stored answer and is not read; only a PRD updated since (or with no stored answer) is
+   sent to the subagent, and its new answer is stored with the new `updatedAt`.
 
 ## The report
 
