@@ -717,3 +717,10 @@ def test_the_fence_rule_home_suite_lives_under_tests_py_unit_and_not_beside_it()
     tier = SCRIPTS / "tests" / "py"
     name = "test_fence_rule_home.py"
     assert ((tier / name).is_file(), (tier / "unit" / name).is_file()) == (False, True)
+
+
+def test_2226_the_suite_red_resume_cases_in_the_fast_tier_are_not_reported_as_running_a_nested_suite():
+    guard = importlib.import_module("veri.fast_tier_guard")
+    path = SCRIPTS / "tests" / "py" / "unit" / "test_suite_red_resume.py"
+
+    assert guard._file_offences(path) == []
