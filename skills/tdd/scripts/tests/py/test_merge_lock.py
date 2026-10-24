@@ -3,6 +3,7 @@ import importlib
 import os
 import socket
 import subprocess
+import sys
 
 import pytest
 
@@ -61,3 +62,18 @@ def test_take_without_pid_records_the_parent_process_of_the_caller_and_holder_pr
     held = run_cli(merge_lock, ["holder"], cwd=tmp_path)
 
     assert (taken[0], held[0], held[1].split()[:1]) == (0, 0, [parent])
+
+
+@pytest.mark.process("git init on a scratch repository, and a child process started and reaped for a dead pid")
+def test_holder_exits_1_and_prints_the_record_marked_stale_when_the_recorded_pid_is_dead_on_this_host(
+        tmp_path, merge_lock, run_cli):
+    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    child = subprocess.Popen([sys.executable, "-c", "pass"])
+    child.wait()
+    dead = str(child.pid)
+    run_cli(merge_lock, ["take", "--pid", dead], cwd=tmp_path)
+
+    held = run_cli(merge_lock, ["holder"], cwd=tmp_path)
+
+    assert (held[0], dead in held[1].split(), socket.gethostname() in held[1], "stale" in held[1].lower()) == (
+        1, True, True, True)
