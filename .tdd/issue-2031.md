@@ -23,4 +23,4 @@
 - [x] When a parked issue has no `### ⏸ Parked` comment, `parked-issues.sh` exits 2 with stderr naming that issue, and the lines of the parked issues listed before it are still printed ⟦criterion 9⟧
 - [x] When a parked issue's latest `### ⏸ Parked` comment lacks its `Cause:` line or its `Unblock:` line, `parked-issues.sh` exits 2 with stderr naming that issue, and the lines of the parked issues listed before it are still printed ⟦criterion 9⟧
 - [x] `park-issue.sh` exits 2 on an all-zero issue number such as `00`, naming that number on stderr, and calls `gh` not at all ⟦criterion 10⟧
-- [ ] skills/veri-coord/SKILL.md: remove "parked" from the list of state `## Starting` reads from the handoff file (it contradicts "never the parked set" right after it); graded PASS against its whole list and signed ⟦skill-edit⟧ ⟦criterion 11⟧
+- [x] skills/veri-coord/SKILL.md: remove "parked" from the list of state `## Starting` reads from the handoff file (it contradicts "never the parked set" right after it); graded PASS against its whole list and signed ⟦skill-edit⟧ ⟦criterion 11⟧
