@@ -1360,3 +1360,18 @@ def test_main_writes_each_inserted_step_to_the_tracked_added_file_beside_the_led
     assert run_cli(add_ledger_step, [str(ledger), "after", "b two", "third"])[0] == 1
     assert run_cli(add_ledger_step, [str(ledger), "sideways", "b two", "t"])[0] == 2
     assert added.read_bytes() == before
+
+
+def test_main_writes_the_step_added_record_with_an_integer_ts_and_an_awake_reading_2265(tmp_path, monkeypatch, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    monkeypatch.setenv("VERI_STEP_GROWTH", "5")
+
+    code, _, _ = run_cli(add_ledger_step, [str(ledger), "after", "b two", "first"])
+
+    assert code == 0
+    inserted = [line for line in ledger.read_text().split("\n") if "⟦added⟧" in line]
+    record = json.loads((tmp_path / "events.jsonl").read_text().splitlines()[-1])
+    assert (record["event"], record["actor"], record["step"]) == ("step-added", "add-ledger-step", inserted[0])
+    assert isinstance(record.get("ts"), int)
+    assert "awake" in record

@@ -102,6 +102,20 @@ def line(args, context, ts, awake):
     return text + b"}\n"
 
 
+def awake_reading():
+    clock = tunables.read_bytes("VERI_AWAKE_CLOCK")
+    if clock:
+        result = run_clock(os.fsdecode(clock))
+        if result is None:
+            return 2
+        if result.returncode != 0:
+            return result.returncode if 0 < result.returncode <= 3 else 2
+        awake = result.stdout.rstrip(b"\n")
+    else:
+        awake = b"%d" % time.clock_gettime(getattr(time, "CLOCK_UPTIME_RAW", time.CLOCK_MONOTONIC))
+    return awake
+
+
 def append(directory, context, event, fields=(), ts=None):
     args = [os.fsencode(event)] + [os.fsencode(field) for field in fields]
     context = {os.fsencode(key): os.fsencode(value) for key, value in context.items()}
@@ -116,16 +130,9 @@ def append(directory, context, event, fields=(), ts=None):
     tdd = os.path.join(os.fspath(directory) or toplevel(), ".tdd")
     os.makedirs(tdd, exist_ok=True)
     ts = int(time.time()) if ts is None else ts
-    clock = tunables.read_bytes("VERI_AWAKE_CLOCK")
-    if clock:
-        result = run_clock(os.fsdecode(clock))
-        if result is None:
-            return 2
-        if result.returncode != 0:
-            return result.returncode if 0 < result.returncode <= 3 else 2
-        awake = result.stdout.rstrip(b"\n")
-    else:
-        awake = b"%d" % time.clock_gettime(getattr(time, "CLOCK_UPTIME_RAW", time.CLOCK_MONOTONIC))
+    awake = awake_reading()
+    if isinstance(awake, int):
+        return awake
     fd = os.open(tdd + "/events.jsonl", os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o666)
     try:
         os.write(fd, line(args, context, ts, awake))
