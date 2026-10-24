@@ -442,12 +442,39 @@ def new_repo(path):
     return path
 
 
+class ConductorHolder:
+    """A claude -p stand-in run by a run_conductor.py stand-in; pid is the claude's."""
+
+    def __init__(self, launcher, pid):
+        self.launcher, self.pid = launcher, pid
+
+    def kill(self):
+        for target in (self.pid, self.launcher.pid):
+            try:
+                os.kill(target, 9)
+            except OSError:
+                pass
+
+    def wait(self):
+        self.launcher.wait()
+
+
 def live_conductor(run, started):
-    (run / ".tdd").mkdir(parents=True, exist_ok=True)
-    proc = subprocess.Popen(["sleep", "60"])
-    started.append(proc)
-    (run / ".tdd" / "conductor.pid").write_text("%d\n" % proc.pid)
-    return proc
+    holder_dir = run / ".tdd" / "holder"
+    holder_dir.mkdir(parents=True, exist_ok=True)
+    claude_pid = holder_dir / "claude.pid"
+    claude = stub(holder_dir / "claude", '#!/bin/sh\necho $$ > "%s"\n%s' % (claude_pid, SPINNER.split("\n", 1)[1]))
+    launcher = stub(holder_dir / "run_conductor.py", '#!/bin/sh\n"%s" -p run\n' % claude)
+    proc = subprocess.Popen([str(launcher), run.name])
+    holder = ConductorHolder(proc, proc.pid)
+    started.append(holder)
+    for _ in range(200):
+        if claude_pid.is_file() and claude_pid.read_text().strip():
+            break
+        time.sleep(0.05)
+    holder.pid = int(claude_pid.read_text())
+    (run / ".tdd" / "conductor.pid").write_text("%d\n" % holder.pid)
+    return holder
 
 
 def stub(path, text=SPINNER):
