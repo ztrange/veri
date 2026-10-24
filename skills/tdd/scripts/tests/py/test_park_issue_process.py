@@ -204,3 +204,36 @@ def test_park_issue_exits_2_naming_the_label_call_when_gh_gives_no_answer_to_it(
 
     assert ran.returncode == 2, ran.stderr
     assert "label call" in ran.stderr, ran.stderr
+
+
+ALREADY_PARKED_GH_STUB = """#!/bin/sh
+echo "ARGS: $*" >> "$GH_LOG"
+for a in "$@"; do
+  case "$a" in
+    */issues/*/comments) cat >> "$GH_LOG" 2>/dev/null; echo '{}'; exit 0 ;;
+    */issues/*/labels) echo '[{"name":"parked"}]'; exit 0 ;;
+    */labels) echo '{"message":"Validation Failed","errors":[{"code":"already_exists"}]}' >&2; exit 1 ;;
+  esac
+done
+echo '{}'
+"""
+
+
+@pytest.mark.process("park-issue.sh run against a gh stub whose issue already carries the parked label")
+def test_park_issue_on_an_issue_already_labelled_parked_posts_the_new_comment_and_exits_0(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(ALREADY_PARKED_GH_STUB)
+    gh.chmod(0o755)
+    log = tmp_path / "gh.log"
+    log.write_text("")
+
+    ran = subprocess.run([str(SCRIPTS / "park-issue.sh"), "7", "second park, new cause", "a human reads the diff"],
+                         cwd=tmp_path, capture_output=True, text=True, stdin=subprocess.DEVNULL,
+                         env={"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+                              "GH_LOG": str(log), "PYTHONDONTWRITEBYTECODE": "1"})
+
+    recorded = log.read_text()
+    assert ran.returncode == 0, ran.stderr
+    assert recorded.count("### ⏸ Parked\nCause: second park, new cause\n") == 1, recorded
