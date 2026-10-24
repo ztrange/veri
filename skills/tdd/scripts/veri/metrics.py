@@ -471,9 +471,14 @@ def render(issue, path, ledger):
     if sessions:
         print("Cost is every leaf of the run, and the conductor own spending.")
         priced = not any(r.get("total_cost_usd", 0) is None for r in sessions)
-        print("Conductor own spending: %s over %d turns, in %d sessions."
+        model = ""
+        with contextlib.suppress(OSError):
+            with open(os.path.join(os.path.dirname(path), "issue-%s-conductor-model" % issue)) as recorded:
+                model = recorded.read().strip()
+        print("Conductor own spending: %s over %d turns, in %d sessions%s."
               % ("$%.2f" % sum(r.get("total_cost_usd") or 0 for r in sessions) if priced else "unpriced",
-                 sum(r.get("num_turns") or 0 for r in sessions), len(sessions)))
+                 sum(r.get("num_turns") or 0 for r in sessions), len(sessions),
+                 ", on %s" % model if model else ""))
         if any(r.get("open") for r in sessions):
             print("The Conductor own spending figure is estimated: the output tokens of a session without a "
                   "result record are not yet known.")
