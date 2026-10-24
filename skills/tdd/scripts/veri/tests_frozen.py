@@ -240,7 +240,7 @@ def _check_earlier(ledger, step, exempt=()):
     return 1 if changed else 0
 
 
-def _rerecord_earlier(ledger, step):
+def rerecord_earlier(ledger, step):
     if "⟦diff-checked⟧" not in step:
         return 3
     root = _toplevel()
@@ -284,7 +284,7 @@ def _rerecord_earlier(ledger, step):
 def main(argv):
     rest = argv[4:]
     if argv[:1] == ["rerecord-earlier"] and len(argv) == 4 and argv[2] == "--step" and argv[3]:
-        return _rerecord_earlier(argv[1], argv[3])
+        return rerecord_earlier(argv[1], argv[3])
     if (argv[:1] == ["check-earlier"] and len(argv) >= 4 and argv[2] == "--step" and argv[3]
             and len(rest) % 2 == 0 and all(flag == "--except" and name for flag, name in zip(rest[::2], rest[1::2]))):
         return _check_earlier(argv[1], argv[3], rest[1::2])

@@ -56,7 +56,7 @@ def main(argv):
     if left is None:
         ticked_line = next(line for old, line in zip(text.split("\n"), new.split("\n")) if old != line)
         if "⟦diff-checked⟧" in ticked_line:
-            return tests_frozen._rerecord_earlier(argv[0], ticked_line.split("] ", 1)[1])
+            return tests_frozen.rerecord_earlier(argv[0], ticked_line.split("] ", 1)[1])
         return 0
     if left:
         complain(f"left {left} behind")
