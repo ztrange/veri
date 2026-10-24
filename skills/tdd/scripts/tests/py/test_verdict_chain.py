@@ -32,7 +32,8 @@ def launch_verdict(tmp_path, result):
     here = os.getcwd()
     os.chdir(work)
     try:
-        importlib.import_module("veri.tests_frozen")._write_pass_marker("first step")
+        tests_frozen = importlib.import_module("veri.tests_frozen")
+        tests_frozen._write_pass_marker("first step", tests_frozen._work_tree_hash())
     finally:
         os.chdir(here)
     stub = tmp_path / "claude"

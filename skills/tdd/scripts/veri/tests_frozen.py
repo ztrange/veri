@@ -40,9 +40,14 @@ def _pass_marker_path(step):
 
 
 def _work_tree_hash():
+    # An ignored .tdd/ is already left out by `add -A`, and naming it in an exclude
+    # pathspec makes git refuse ("paths are ignored"), so the exclude is passed only
+    # when .tdd is not ignored as a whole (#2230).
+    ignored = subprocess.run(["git", "check-ignore", "-q", ".tdd"], stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL).returncode == 0
     with tempfile.TemporaryDirectory() as scratch:
         env = dict(os.environ, GIT_INDEX_FILE=os.path.join(scratch, "index"))
-        added = subprocess.run(["git", "add", "-A", "--", ".", ":(exclude).tdd"], env=env,
+        added = subprocess.run(["git", "add", "-A", "--", "."] + ([] if ignored else [":(exclude).tdd"]), env=env,
                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         done = subprocess.run(["git", "write-tree"], env=env, stdout=subprocess.PIPE,
                               stderr=subprocess.DEVNULL)
