@@ -335,6 +335,25 @@ def test_a_refactor_mark_with_empty_transforms_prints_its_by_step_and_per_pass_c
     assert [row["refactor"] for row in table(out, "#### By refactor pass")] == ["/3"]
 
 
+def test_a_pass_whose_verify_refactor_was_skipped_reads_skipped_beside_a_verified_pass_keeping_its_pass(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [{"event": "step-start", "step": "1", "ts": 100},
+                         {"event": "launch", "step": "1", "phase": "refactor", "attempt": "1"},
+                         {"event": "refactor", "step": "1", "pass": "1", "transforms": "2", "budget": "3",
+                          "stopped": "nothing-structural"},
+                         {"event": "verdict", "step": "1", "phase": "refactor", "verdict": "PASS"},
+                         {"event": "step-done", "step": "1", "ts": 160},
+                         {"event": "step-start", "step": "2", "ts": 200},
+                         {"event": "refactor", "step": "2", "pass": "1", "transforms": "0", "budget": "3",
+                          "stopped": "nothing-structural"},
+                         {"event": "verify-refactor-skipped", "step": "2", "reason": "nothing-landed"},
+                         {"event": "step-done", "step": "2", "ts": 260}])
+    monkeypatch.chdir(tmp_path)
+
+    rows = table(render(metrics, capsys), "#### By refactor pass")
+
+    assert {row["step"]: row["verdict"] for row in rows} == {"1": "PASS", "2": "skipped"}
+
+
 def test_test_runs_without_seconds_are_skipped_and_a_run_without_a_tier_lands_in_unknown_padded(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, ONE_STEP + [{"event": "test-run", "tier": "fast", "seconds": 3},
                                     {"event": "test-run", "tier": "fast", "seconds": ""},
