@@ -173,11 +173,13 @@ def test_main_2030_adds_the_taken_lane_label_named_after_the_text_after_the_last
         else:
             monkeypatch.setenv("VERI_LABEL", label)
         code = unlabel_issue.main(["7"])
-        added = sorted({word for call in calls if "DELETE" not in call for word in call if word.startswith("taken:")})
-        return code, added
+        added = sorted({word[len("labels[]="):] for call in calls if call[:4] == ["gh", "api", "-X", "POST"]
+                        for word in call if word.startswith("labels[]=taken:")})
+        label_writes = [call for call in calls if call[:3] in (["gh", "label", "create"], ["gh", "label", "edit"])]
+        return code, added, label_writes
 
     assert [taken_after(None), taken_after("ready-for-agent"), taken_after("ready-for-agent:mu")] == [
-        (0, ["taken:main"]), (0, ["taken:main"]), (0, ["taken:mu"])]
+        (0, ["taken:main"], []), (0, ["taken:main"], []), (0, ["taken:mu"], [])]
 
 
 def test_main_2030_creates_the_taken_lane_label_in_the_repository_when_absent_so_the_add_succeeds_and_the_issue_carries_it(monkeypatch, capsys):
@@ -269,3 +271,4 @@ def test_main_2030_exits_2_naming_the_taken_label_when_gh_gets_no_answer_to_crea
         return code, "unlabel-issue.sh" in err, "taken:main" in err, "#7" in err
 
     assert [silent_on("create"), silent_on("add")] == [(2, True, True, True)] * 2
+
