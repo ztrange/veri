@@ -743,3 +743,23 @@ def test_an_issue_whose_rows_for_one_unit_resolve_to_the_same_id_twice_exits_2_n
 
     assert (tmp_path / "REQUIREMENTS.md").read_text() == original, (code, err)
     assert (code, "PL7" in err) == (2, True), (code, err)
+
+
+def test_apply_still_rewords_a_list_row_when_the_issue_states_its_explicit_id_beside_a_prefix_next_row_2262(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    requirements = importlib.import_module("veri.requirements")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| PL5 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| PL<next> | The widget is shiny. | gloss |\n"
+        "| PL5 | The widget is deep blue. | because |\n")
+
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
+
+    rows = requirements.claims(str(tmp_path / "REQUIREMENTS.md"), "unit.md").splitlines()
+    assert rows == ["PL5\tThe widget is deep blue.", "PL6\tThe widget is shiny."], rows
