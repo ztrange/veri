@@ -18,6 +18,21 @@ import launch_floor
 import tunables
 
 
+def check_bytecode_cache(prefix):
+    for directory, _, names in os.walk(prefix):
+        for name in names:
+            if "-pytest-" in name or ".opt-" in name:
+                try:
+                    os.remove(os.path.join(directory, name))
+                except FileNotFoundError:
+                    pass
+    return {}
+
+
+def record_bytecode_cache(prefix, run):
+    pass
+
+
 def worker_count(requested):
     if requested:
         return int(requested)
