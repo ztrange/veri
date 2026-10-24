@@ -167,7 +167,7 @@ def _superseded(report, step, own_id=None):
 def _rerouted(step):
     try:
         events = event_log.read_events(".tdd/events.jsonl", skip_unreadable=True)
-    except (OSError, UnicodeDecodeError):
+    except OSError:
         return False
     return any(event.get("event") == "reroute" and event.get("step") == step for event in events)
 

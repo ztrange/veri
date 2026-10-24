@@ -301,7 +301,7 @@ def red_awaits_pass(step):
                 last = False
             elif rec.get("event") == "verdict" and last is not None:
                 last = rec.get("verdict") == "PASS"
-    except (OSError, UnicodeDecodeError):
+    except OSError:
         return False
     return last is False
 
