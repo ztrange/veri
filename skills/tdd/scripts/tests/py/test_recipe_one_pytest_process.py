@@ -245,3 +245,41 @@ def test_a_second_make_unit_over_unchanged_sources_leaves_the_plain_module_pyc_t
     first, second = cached(), cached()
     assert (first[0], second[0]) == (0, 0), first[2] + second[2]
     assert first[1] is not None and second[1] == first[1], "first run's .pyc: %s; after the second run: %s\n%s" % (first[1], second[1], second[2])
+
+
+MUTATION_CASE = '''import os
+
+import planted_helper
+import planted_steady
+
+
+def test_small():
+    with open(os.environ["PLANTED_RAN_LOG"], "a") as log:
+        log.write("value %s\\n" % planted_helper.VALUE)
+        log.write("steady %s\\n" % planted_steady.__cached__)
+'''
+
+
+@pytest.mark.timeout(120)
+@pytest.mark.process("make unit started for real twice over a planted tree whose helper module is rewritten to the same size and the same mtime between the runs")
+def test_a_helper_module_rewritten_within_the_second_of_the_first_runs_compile_is_seen_by_the_second_make_unit_while_an_unchanged_one_keeps_its_pyc(tmp_path):
+    tree, log = planted_tree(tmp_path, small=MUTATION_CASE), tmp_path / "ran.log"
+    unit = tree / "skills" / "tdd" / "scripts" / "tests" / "py" / "unit"
+    helper = unit / "planted_helper.py"
+    helper.write_text("VALUE = 1\n")
+    (unit / "planted_steady.py").write_text("VALUE = 1\n")
+    pycache = tmp_path / "pycache"
+    stamp = os.stat(helper).st_mtime_ns
+
+    def run():
+        code, ran, output = make(tree, log, "unit", VERI_PYCACHE=str(pycache))
+        noted = dict(line.split(" ", 1) for line in ran)
+        steady = noted.get("steady")
+        stat = os.stat(steady) if steady and os.path.exists(steady) else None
+        return code, noted.get("value"), stat and (stat.st_ino, stat.st_mtime_ns), output
+    first = run()
+    helper.write_text("VALUE = 2\n")
+    os.utime(helper, ns=(stamp, stamp))
+    second = run()
+    assert (first[0], first[1], second[0], second[1]) == (0, "1", 0, "2"), first[3] + second[3]
+    assert first[2] is not None and second[2] == first[2], "unchanged helper's .pyc: %s then %s" % (first[2], second[2])

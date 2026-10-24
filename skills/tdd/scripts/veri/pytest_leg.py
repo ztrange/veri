@@ -5,7 +5,9 @@
 #          2 the interpreter is below the floor in lib/venv-python.sh, or cannot import pytest, pytest_timeout or xdist,
 #            or VERI_PYTEST_WORKERS is not a whole number of at least 1
 import fcntl
+import hashlib
 import importlib.util
+import json
 import os
 import platform
 import re
@@ -13,24 +15,88 @@ import shutil
 import signal
 import sys
 import tempfile
+import time
 
 import launch_floor
 import tunables
 
 
-def check_bytecode_cache(prefix):
+MANIFEST = "veri-manifest.json"
+
+
+def pyc_files(prefix):
     for directory, _, names in os.walk(prefix):
         for name in names:
-            if "-pytest-" in name or ".opt-" in name:
-                try:
-                    os.remove(os.path.join(directory, name))
-                except FileNotFoundError:
-                    pass
-    return {}
+            if name.endswith(".pyc"):
+                yield os.path.join(directory, name)
+
+
+def source_digest(pyc):
+    try:
+        with open(importlib.util.source_from_cache(pyc), "rb") as source:
+            return hashlib.sha256(source.read()).hexdigest()
+    except (OSError, ValueError, NotImplementedError):
+        return None
+
+
+def read_manifest(prefix):
+    try:
+        with open(os.path.join(prefix, MANIFEST)) as f:
+            manifest = json.load(f)
+    except (OSError, ValueError):
+        return {}
+    return manifest if isinstance(manifest, dict) else {}
+
+
+def check_bytecode_cache(prefix):
+    start = time.time_ns()
+    snapshot = {}
+    manifest = read_manifest(prefix)
+    for pyc in pyc_files(prefix):
+        name = os.path.basename(pyc)
+        if "-pytest-" in name or ".opt-" in name or pyc in manifest and source_digest(pyc) != manifest[pyc]:
+            try:
+                os.remove(pyc)
+            except FileNotFoundError:
+                pass
+            continue
+        try:
+            stat = os.stat(pyc)
+        except FileNotFoundError:
+            continue
+        snapshot[pyc] = (stat.st_mtime_ns, stat.st_size)
+    return {"start": start, "snapshot": snapshot}
 
 
 def record_bytecode_cache(prefix, run):
-    pass
+    recorded = {}
+    for pyc in pyc_files(prefix):
+        name = os.path.basename(pyc)
+        if "-pytest-" in name or ".opt-" in name:
+            continue
+        try:
+            stat = os.stat(pyc)
+        except FileNotFoundError:
+            continue
+        if run["snapshot"].get(pyc) == (stat.st_mtime_ns, stat.st_size) or stat.st_mtime_ns < run["start"]:
+            continue
+        try:
+            if os.stat(importlib.util.source_from_cache(pyc)).st_mtime_ns > run["start"]:
+                continue
+        except (OSError, ValueError, NotImplementedError):
+            continue
+        digest = source_digest(pyc)
+        if digest:
+            recorded[pyc] = digest
+    with open(os.path.join(prefix, MANIFEST + ".lock"), "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        manifest = read_manifest(prefix)
+        manifest.update(recorded)
+        manifest = {pyc: digest for pyc, digest in manifest.items() if os.path.exists(pyc)}
+        temporary = os.path.join(prefix, MANIFEST + ".%d" % os.getpid())
+        with open(temporary, "w") as f:
+            json.dump(manifest, f)
+        os.replace(temporary, os.path.join(prefix, MANIFEST))
 
 
 def worker_count(requested):
@@ -236,4 +302,11 @@ def main(argv):
 
 if __name__ == "__main__":
     sys.path[0] = os.getcwd()
-    sys.exit(main(sys.argv[1:]))
+    prefix = sys.pycache_prefix
+    cache_run = check_bytecode_cache(prefix) if prefix and os.path.isdir(prefix) else None
+    try:
+        status = main(sys.argv[1:])
+    finally:
+        if cache_run:
+            record_bytecode_cache(prefix, cache_run)
+    sys.exit(status)
