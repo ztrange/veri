@@ -37,7 +37,7 @@ def test_2226_a_resume_after_a_suite_red_bail_inserts_one_suite_repair_step_for_
     branch = tmp_path / "branch-red"
     branch.write_text("test_a.py — FAIL a\ntest_b.py\n")
     green = tmp_path / "default-green"
-    green.write_text("")
+    green.write_text("none\n")
     red_too = tmp_path / "default-red"
     red_too.write_text("test_b.py — FAIL b\n")
     step = "- [ ] fix the full-suite failure: test_a.py — FAIL a; test_b.py ⟦suite-repair⟧ ⟦criterion 2⟧"
