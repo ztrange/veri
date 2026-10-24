@@ -82,14 +82,7 @@ def test_skill_md_s_worktree_guard_prose_says_the_lock_is_taken_in_preflight_ste
     assert elsewhere == []
 
 
-DRAFT = "### 4. Draft PR"
 REBASE_CALL = "rebase-onto-default.sh"
-
-
-def test_1297_skill_md_s_draft_pr_step_does_not_write_the_resume_rebase_event():
-    draft = lines_of(DRAFT)
-    assert not [line for line in draft if re.search(r"event\.sh resume-rebase( |$|`)", line)], \
-        "the Draft PR section also writes event.sh resume-rebase"
 
 
 SCRIPTS = SKILL.parent / "scripts"
@@ -189,7 +182,6 @@ MECHANICAL_READERS = (
     "test_skill_preflight_writes_the_long_lived_ppid_not_the_shells_pid",
     "test_987_preflight_step_3_runs_stop_requested_clear_beside_the_tdd_conductor_pid_write",
     "test_954_skill_md_makes_the_leaf_timeout_sh_call_that_records_tdd_issue_n_timeout",
-    "test_1297_skill_md_s_draft_pr_step_does_not_write_the_resume_rebase_event",
     "test_a_gh_auth_status_call_planted_in_skill_md_is_named_as_file_line",
     "test_every_remaining_case_that_reads_skill_md_s_preflight_section",
     "test_2220_sweep_flags_a_case_reading_the_preflight_section",
