@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 2173
 
-Wall time for the issue: 1813 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1444 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Every figure in this report is wall-clock: the log carries no awake-clock reading, so time the machine spent asleep is counted in them.
-Steps done: 16 of 20 planned.
+Steps done: 17 of 22 planned.
 Outcome: the run bailed — revise-exhausted, a process failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $15.72 over 310 turns, in 4 sessions.
+Conductor own spending: $18.91 over 361 turns, in 5 sessions.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
@@ -242,88 +242,139 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 226 | $0.06 | 141184 |
 | 227 | $0.05 | 142218 |
 | 228 | $0.05 | 143269 |
-| 229 | $0.58 | 89504 |
-| 230 | $0.02 | 90045 |
-| 231 | $0.04 | 92311 |
+| 229 | $0.59 | 89504 |
+| 230 | $0.03 | 90045 |
+| 231 | $0.05 | 92311 |
 | 232 | $0.03 | 93278 |
-| 233 | $0.05 | 97422 |
+| 233 | $0.07 | 97422 |
 | 234 | $0.05 | 100690 |
-| 235 | $0.02 | 101142 |
-| 236 | $0.02 | 101594 |
-| 237 | $0.02 | 101843 |
-| 238 | $0.02 | 102129 |
+| 235 | $0.04 | 101142 |
+| 236 | $0.03 | 101594 |
+| 237 | $0.03 | 101843 |
+| 238 | $0.04 | 102129 |
 | 239 | $0.03 | 102836 |
-| 240 | $0.03 | 103882 |
-| 241 | $0.05 | 107285 |
-| 242 | $0.03 | 107997 |
-| 243 | $0.03 | 108809 |
-| 244 | $0.03 | 109522 |
+| 240 | $0.04 | 103882 |
+| 241 | $0.06 | 107285 |
+| 242 | $0.04 | 107997 |
+| 243 | $0.04 | 108809 |
+| 244 | $0.04 | 109522 |
 | 245 | $0.03 | 110184 |
-| 246 | $0.03 | 111301 |
+| 246 | $0.05 | 111301 |
 | 247 | $0.03 | 111928 |
-| 248 | $0.05 | 114802 |
-| 249 | $0.03 | 115699 |
-| 250 | $0.08 | 122941 |
-| 251 | $0.03 | 123811 |
-| 252 | $0.03 | 124613 |
-| 253 | $0.03 | 125489 |
-| 254 | $0.03 | 125867 |
-| 255 | $0.03 | 126365 |
-| 256 | $0.03 | 127493 |
-| 257 | $0.03 | 127792 |
-| 258 | $0.03 | 128737 |
-| 259 | $0.03 | 129360 |
-| 260 | $0.03 | 129720 |
-| 261 | $0.03 | 130432 |
-| 262 | $0.03 | 131046 |
-| 263 | $0.03 | 131659 |
-| 264 | $0.03 | 132637 |
-| 265 | $0.03 | 133434 |
-| 266 | $0.03 | 134319 |
-| 267 | $0.03 | 135032 |
-| 268 | $0.03 | 135696 |
-| 269 | $0.03 | 136351 |
-| 270 | $0.03 | 136740 |
-| 271 | $0.04 | 137950 |
-| 272 | $0.04 | 139097 |
-| 273 | $0.05 | 141567 |
-| 274 | $0.04 | 142852 |
-| 275 | $0.03 | 143119 |
-| 276 | $0.03 | 143739 |
-| 277 | $0.03 | 144353 |
-| 278 | $0.04 | 145555 |
-| 279 | $0.04 | 147107 |
-| 280 | $0.04 | 148121 |
-| 281 | $0.04 | 149249 |
+| 248 | $0.06 | 114802 |
+| 249 | $0.04 | 115699 |
+| 250 | $0.09 | 122941 |
+| 251 | $0.05 | 123811 |
+| 252 | $0.04 | 124613 |
+| 253 | $0.04 | 125489 |
+| 254 | $0.04 | 125867 |
+| 255 | $0.04 | 126365 |
+| 256 | $0.04 | 127493 |
+| 257 | $0.04 | 127792 |
+| 258 | $0.05 | 128737 |
+| 259 | $0.04 | 129360 |
+| 260 | $0.04 | 129720 |
+| 261 | $0.04 | 130432 |
+| 262 | $0.04 | 131046 |
+| 263 | $0.04 | 131659 |
+| 264 | $0.05 | 132637 |
+| 265 | $0.04 | 133434 |
+| 266 | $0.04 | 134319 |
+| 267 | $0.05 | 135032 |
+| 268 | $0.04 | 135696 |
+| 269 | $0.04 | 136351 |
+| 270 | $0.04 | 136740 |
+| 271 | $0.05 | 137950 |
+| 272 | $0.05 | 139097 |
+| 273 | $0.06 | 141567 |
+| 274 | $0.05 | 142852 |
+| 275 | $0.04 | 143119 |
+| 276 | $0.04 | 143739 |
+| 277 | $0.05 | 144353 |
+| 278 | $0.05 | 145555 |
+| 279 | $0.05 | 147107 |
+| 280 | $0.05 | 148121 |
+| 281 | $0.05 | 149249 |
 | 282 | $0.04 | 150162 |
-| 283 | $0.04 | 151414 |
-| 284 | $0.04 | 152068 |
-| 285 | $0.04 | 152927 |
-| 286 | $0.04 | 153894 |
-| 287 | $0.03 | 154402 |
-| 288 | $0.05 | 156227 |
-| 289 | $0.03 | 156481 |
-| 290 | $0.05 | 158290 |
-| 291 | $0.04 | 159423 |
-| 292 | $0.04 | 160919 |
+| 283 | $0.05 | 151414 |
+| 284 | $0.05 | 152068 |
+| 285 | $0.05 | 152927 |
+| 286 | $0.05 | 153894 |
+| 287 | $0.04 | 154402 |
+| 288 | $0.06 | 156227 |
+| 289 | $0.04 | 156481 |
+| 290 | $0.06 | 158290 |
+| 291 | $0.05 | 159423 |
+| 292 | $0.06 | 160919 |
 | 293 | $0.04 | 161691 |
-| 294 | $0.04 | 163197 |
-| 295 | $0.04 | 163975 |
-| 296 | $0.04 | 165168 |
-| 297 | $0.05 | 166904 |
-| 298 | $0.04 | 167796 |
-| 299 | $0.05 | 169228 |
-| 300 | $0.04 | 170293 |
-| 301 | $0.04 | 170692 |
+| 294 | $0.06 | 163197 |
+| 295 | $0.05 | 163975 |
+| 296 | $0.05 | 165168 |
+| 297 | $0.06 | 166904 |
+| 298 | $0.05 | 167796 |
+| 299 | $0.06 | 169228 |
+| 300 | $0.05 | 170293 |
+| 301 | $0.05 | 170692 |
 | 302 | $0.05 | 172183 |
-| 303 | $0.04 | 172980 |
+| 303 | $0.06 | 172980 |
 | 304 | $0.04 | 173413 |
-| 305 | $0.05 | 175094 |
-| 306 | $0.04 | 175816 |
-| 307 | $0.04 | 176242 |
-| 308 | $0.04 | 177074 |
-| 309 | $0.04 | 177752 |
-| 310 | $0.07 | 181812 |
+| 305 | $0.06 | 175094 |
+| 306 | $0.05 | 175816 |
+| 307 | $0.05 | 176242 |
+| 308 | $0.06 | 177074 |
+| 309 | $0.05 | 177752 |
+| 310 | $0.08 | 181812 |
+| 311 | $0.05 | 182615 |
+| 312 | $0.05 | 183628 |
+| 313 | $0.58 | 90043 |
+| 314 | $0.04 | 92648 |
+| 315 | $0.02 | 93410 |
+| 316 | $0.04 | 95554 |
+| 317 | $0.05 | 98821 |
+| 318 | $0.02 | 99236 |
+| 319 | $0.02 | 99761 |
+| 320 | $0.02 | 100187 |
+| 321 | $0.02 | 100600 |
+| 322 | $0.05 | 104752 |
+| 323 | $0.03 | 105337 |
+| 324 | $0.03 | 106075 |
+| 325 | $0.03 | 106769 |
+| 326 | $0.03 | 108156 |
+| 327 | $0.03 | 109417 |
+| 328 | $0.04 | 111488 |
+| 329 | $0.03 | 111977 |
+| 330 | $0.03 | 112693 |
+| 331 | $0.03 | 113391 |
+| 332 | $0.03 | 113727 |
+| 333 | $0.03 | 114377 |
+| 334 | $0.03 | 115318 |
+| 335 | $0.03 | 116223 |
+| 336 | $0.03 | 117218 |
+| 337 | $0.03 | 117650 |
+| 338 | $0.03 | 118376 |
+| 339 | $0.03 | 118899 |
+| 340 | $0.03 | 119792 |
+| 341 | $0.03 | 120508 |
+| 342 | $0.03 | 121248 |
+| 343 | $0.04 | 123059 |
+| 344 | $0.09 | 130746 |
+| 345 | $0.03 | 131622 |
+| 346 | $0.03 | 132314 |
+| 347 | $0.04 | 134407 |
+| 348 | $0.04 | 135637 |
+| 349 | $0.04 | 137393 |
+| 350 | $0.03 | 137907 |
+| 351 | $0.03 | 138779 |
+| 352 | $0.04 | 139851 |
+| 353 | $0.03 | 140698 |
+| 354 | $0.03 | 141018 |
+| 355 | $0.04 | 142382 |
+| 356 | $0.03 | 143152 |
+| 357 | $0.04 | 144292 |
+| 358 | $0.04 | 145527 |
+| 359 | $0.03 | 146173 |
+| 360 | $0.04 | 147336 |
+| 361 | $0.06 | 151479 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -331,9 +382,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 14 | 10 | 1 | 2 | 1212 | 0 | 32084 | 0.09 |
-| red | 31 | 13 | 0 | 0 | 1111 | 555 | 150 | 294 | 59410 | 4249526 | 703849 | 3.10 |
-| green | 40 | 11 | 8 | 0 | 3180 | 599 | 183 | 360 | 55116 | 5186129 | 615850 | 3.22 |
-| refactor | 22 | 11 | 0 | 0 | 536 | 148 | 65 | 124 | 12784 | 1578142 | 325333 | 1.10 |
+| red | 37 | 15 | 0 | 0 | 1343 | 740 | 182 | 356 | 78205 | 5208172 | 888670 | 4.19 |
+| green | 48 | 12 | 11 | 0 | 3651 | 779 | 222 | 438 | 71734 | 6376315 | 731328 | 3.97 |
+| refactor | 24 | 12 | 0 | 0 | 589 | 166 | 72 | 138 | 14490 | 1772345 | 355859 | 1.21 |
 | red-missing | 1 | 0 | 0 | 0 | 47 | 14 | 3 | 6 | 1651 | 82704 | 17081 | 0.07 |
 | pin | 4 | 4 | 0 | 0 | 119 | 49 | 15 | 30 | 5046 | 400472 | 59364 | 0.24 |
 | prose | 6 | 0 | 0 | 0 | 80 | 50 | 6 | 12 | 7623 | 7570 | 54055 | 0.21 |
@@ -343,23 +394,23 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | structural | 1 | 0 | 0 | 0 | 30 | 15 | 4 | 8 | 1603 | 108684 | 14030 | 0.06 |
 | transform | 1 | 1 | 0 | 0 | 28 | 11 | 4 | 8 | 1003 | 90299 | 31439 | 0.10 |
 | diff | 3 | 0 | 0 | 0 | 169 | 40 | 10 | 20 | 2932 | 241625 | 64051 | 0.33 |
-| exhausted | 3 | 0 | 0 | 0 | 1015 | 58 | 8 | 16 | 3618 | 172678 | 73233 | 0.47 |
+| exhausted | 4 | 0 | 0 | 0 | 1428 | 79 | 12 | 24 | 4865 | 284082 | 88325 | 0.60 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 50 | 41 | 8 | 0 | 2676 | 525 | 172 | 340 | 50539 | 4503660 | 735246 | 2.79 |
-| developer | claude-sonnet-5-5 | 43 | 0 | 0 | 1 | 1808 | 602 | 201 | 388 | 63270 | 5610241 | 809870 | 3.43 |
-| developer | claude-opus-5-5 | 17 | 0 | 0 | 0 | 1813 | 392 | 78 | 156 | 32256 | 2192834 | 435180 | 2.70 |
+| verifier | claude-sonnet-5-5 | 57 | 45 | 11 | 0 | 2984 | 629 | 199 | 394 | 60991 | 5264892 | 841436 | 3.24 |
+| developer | claude-sonnet-5-5 | 46 | 0 | 0 | 1 | 1903 | 651 | 214 | 414 | 69133 | 5977236 | 882276 | 3.71 |
+| developer | claude-opus-5-5 | 24 | 0 | 0 | 0 | 2579 | 643 | 120 | 238 | 54307 | 3519046 | 602501 | 4.06 |
 
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 48 | 0.15 |
-| green | 1940 | 2.47 | 341 | 0.61 |
+| red | 0 | 0.00 | 234 | 1.00 |
+| green | 1940 | 2.47 | 698 | 1.22 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | red-missing | 0 | 0.00 | 0 | 0.00 |
 | pin | 0 | 0.00 | 0 | 0.00 |
@@ -370,7 +421,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | structural | 0 | 0.00 | 0 | 0.00 |
 | transform | 0 | 0.00 | 0 | 0.00 |
 | diff | 0 | 0.00 | 169 | 0.33 |
-| exhausted | 0 | 0.00 | 993 | 0.34 |
+| exhausted | 0 | 0.00 | 1406 | 0.46 |
 
 #### By step
 
@@ -394,6 +445,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | `merge-lock.sh take` records the holder pid own process start time, and `merge-lock.sh holder` reads a record whose pid is alive but whose recorded start time differs from that process start time (pid reuse) as a stale lock: it prints the record marked stale and exits 1 ⟦criterion 5⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 71 | 24 | 46 | 8315 | 649808 | 100183 | 0.40 | 278 | unknown | 1/5 | structural-owed |  |  | full |
 | `merge-lock.sh holder` reports a live holder pid owned by another user (such as pid 1) as live, printing the record and exiting 0, not crashing ⟦criterion 6⟧ | 7 | 3 | 0 | 0 | 0 | 0 | 98 | 30 | 60 | 9339 | 867488 | 133818 | 0.67 | 326 | 1/2 | 0/5 | nothing-left |  |  | full |
 | `merge-lock.sh take` on a lock whose record is missing, unreadable or malformed exits 2 with stderr naming the record path, instead of waiting, and leaves the lock in place ⟦criterion 6⟧ | 9 | 1 | 3 | 0 | 0 | 0 | 156 | 39 | 78 | 13337 | 1145503 | 142447 | 0.85 | unknown | 2/2 | unknown | unknown |  |  | full |
+| `merge-lock.sh take` makes the lock visible only once its holder record is complete: it writes the record in a temporary directory beside `.tdd/merge.lock` and renames that directory into place, so no other `take` or `holder` ever sees the lock directory without its full record; pinned by a case that observes the lock directory only with a complete record ⟦criterion 6⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 89 | 23 | 46 | 8960 | 617981 | 135441 | 0.49 | 326 | unknown | 1/5 | nothing-left |  |  | full |
+| `merge-lock.sh take` on a lock whose record is missing, unreadable or malformed (an empty record, a non-integer pid) exits 2 with stderr naming the record path, instead of waiting, and leaves the lock in place; pinned by one case each for a missing, an unreadable and a malformed record ⟦criterion 6⟧ | 11 | 1 | 3 | 0 | 0 | 0 | 315 | 59 | 116 | 29406 | 1836458 | 210476 | 1.59 | unknown | red 2/2, green 2/2 | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -412,6 +465,7 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `merge-lock.sh take` with no `--pid <pid>`, and `merge-lock.sh release` with neither `--pid <pid>` nor `--force`, exit 2 with a stderr line naming `--pid`, creating no lock and removing none ⟦criterion 4⟧ | 1 | 0/5 | structural-owed | PASS | 0 | 36 | 0.09 |
 | `merge-lock.sh take` records the holder pid own process start time, and `merge-lock.sh holder` reads a record whose pid is alive but whose recorded start time differs from that process start time (pid reuse) as a stale lock: it prints the record marked stale and exits 1 ⟦criterion 5⟧ | 1 | 1/5 | structural-owed | PASS | 0 | 45 | 0.12 |
 | `merge-lock.sh holder` reports a live holder pid owned by another user (such as pid 1) as live, printing the record and exiting 0, not crashing ⟦criterion 6⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 40 | 0.09 |
+| `merge-lock.sh take` makes the lock visible only once its holder record is complete: it writes the record in a temporary directory beside `.tdd/merge.lock` and renames that directory into place, so no other `take` or `holder` ever sees the lock directory without its full record; pinned by a case that observes the lock directory only with a complete record ⟦criterion 6⟧ | 1 | 1/5 | nothing-left | PASS | 0 | 53 | 0.11 |
 
 #### Structural pass
 
@@ -421,14 +475,14 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s | run 95 s | run 96 s | run 97 s | run 98 s | run 99 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 10 | 11 | 27 | 10 | 12 | 9 | 11 | 9 | 11 | 11 | 10 | 11 | 12 | 12 | 13 | 12 | 3 | 12 | 3 | 7 | 16 | 26 | 13 | 13 | 13 | 15 | 9 | 10 | 11 | 4 | 10 | 10 | 10 | 10 | 10 | 11 | 12 | 12 | 11 | 11 | 0 | 13 | 11 | 23 | 23 | 18 | 9 | 8 | 11 | 11 | 10 | 0 | 13 | 18 | 12 | 10 | 20 | 10 | 13 | 4 | 3 | 3 | 10 | 10 | 10 | 11 | 17 | 10 | 10 | 10 | 11 | 33 | 4 | 4 | 5 | 3 | 2 | 4 | 5 | 3 | 3 | 4 | 5 | 4 | 4 | 5 | 4 | 4 | 4 | 2 | 4 | 6 | 3 | 2 | 2 | 4 | 7 | 2 | 4 |
-| fast | 16 | 17 | 18 | 16 | 18 | 16 | 18 | 20 | 31 | 19 | 20 | 39 | 27 | 20 | 17 | 22 | 21 | 19 | 18 | 17 | 16 | 16 | 18 | 37 | 60 | 17 | 104 | 25 | 15 | 13 | 50 | 15 | 35 | 15 | 53 | 14 | 13 | 13 | 14 | 27 | 16 | 15 | 15 | 15 | 15 | 17 | 17 | 17 | 16 | 16 | 21 | 15 | 55 | 17 | 16 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 10 | 10 | 13 | 12 | 14 | 12 | 4 | 12 | 3 | 3 | 10 | 12 | 12 | 4 | 4 | 3 | 10 | 14 | 11 | 10 | 0 | 1 | 3 | 4 | 4 | 7 | 7 | 3 | 4 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s | run 95 s | run 96 s | run 97 s | run 98 s | run 99 s | run 100 s | run 101 s | run 102 s | run 103 s | run 104 s | run 105 s | run 106 s | run 107 s | run 108 s | run 109 s | run 110 s | run 111 s | run 112 s | run 113 s | run 114 s | run 115 s | run 116 s | run 117 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 10 | 11 | 27 | 10 | 12 | 9 | 11 | 9 | 11 | 11 | 10 | 11 | 12 | 12 | 13 | 12 | 3 | 12 | 3 | 7 | 16 | 26 | 13 | 13 | 13 | 15 | 9 | 10 | 11 | 4 | 10 | 10 | 10 | 10 | 10 | 11 | 12 | 12 | 11 | 11 | 0 | 13 | 11 | 23 | 23 | 18 | 9 | 8 | 11 | 11 | 10 | 0 | 13 | 18 | 12 | 10 | 20 | 10 | 13 | 4 | 3 | 3 | 10 | 10 | 10 | 11 | 17 | 10 | 10 | 10 | 11 | 33 | 4 | 4 | 5 | 3 | 2 | 4 | 5 | 3 | 3 | 4 | 5 | 4 | 4 | 5 | 4 | 4 | 4 | 2 | 4 | 6 | 3 | 2 | 2 | 4 | 7 | 2 | 4 | 3 | 4 | 3 | 4 | 3 | 4 | 3 | 3 | 4 | 3 | 3 | 3 | 5 | 4 | 4 | 2 | 3 | 4 |
+| fast | 16 | 17 | 18 | 16 | 18 | 16 | 18 | 20 | 31 | 19 | 20 | 39 | 27 | 20 | 17 | 22 | 21 | 19 | 18 | 17 | 16 | 16 | 18 | 37 | 60 | 17 | 104 | 25 | 15 | 13 | 50 | 15 | 35 | 15 | 53 | 14 | 13 | 13 | 14 | 27 | 16 | 15 | 15 | 15 | 15 | 17 | 17 | 17 | 16 | 16 | 21 | 15 | 55 | 17 | 16 | 22 | 22 | 22 | 22 | 24 | 25 | 23 | 23 | 22 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 10 | 10 | 13 | 12 | 14 | 12 | 4 | 12 | 3 | 3 | 10 | 12 | 12 | 4 | 4 | 3 | 10 | 14 | 11 | 10 | 0 | 1 | 3 | 4 | 4 | 7 | 7 | 3 | 4 | 4 | 4 | 0 | 4 | 0 | 3 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 462 | 906 | 154866 | 12431573 | 2054067 | 9.21 |
+| total | 544 | 1068 | 193232 | 14886012 | 2399984 | 11.29 |
