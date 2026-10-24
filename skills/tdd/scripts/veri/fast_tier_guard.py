@@ -4,9 +4,9 @@ import re
 import sys
 from pathlib import Path
 
-_SUITE_PATH = re.compile(r"(^|/)test_[^/]*\.py$|\.test\.sh$")
+_SUITE_PATH = re.compile(r"(^|/)test_[^/]*\.py\Z|\.test\.sh\Z")
 
-_PATH_WITH_SPACES = re.compile(r"[^\s\\]*/[^\\]*$|[^\s\\]+$")
+_PATH_WITH_SPACES = re.compile(r"[^\s\\]*/[^\\]*\Z|[^\s\\]+\Z")
 
 _COMMAND = re.compile(r"(python3 -m pytest|bash) ")
 
