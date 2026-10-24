@@ -22,7 +22,7 @@ def main(argv):
         sys.stderr.write("park-issue.sh: no answer from gh to the label call\n")
         return 2
     try:
-        github.gh_issue_comment(number, "### ⏸ Parked\nCause: %s\n%sUnblock: %s\n" % (cause, pr, unblock))
+        github.gh_issue_comment(number, github.PARKED_HEADING + "\nCause: %s\n%sUnblock: %s\n" % (cause, pr, unblock))
     except github.NoAnswer:
         sys.stderr.write("park-issue.sh: no answer from gh to the comment call\n")
         return 2
