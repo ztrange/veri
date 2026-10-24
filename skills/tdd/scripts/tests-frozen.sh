@@ -23,7 +23,9 @@
 #
 # Exit: 0 recorded, the path printed, or every recorded file is byte-identical (nothing on stdout),
 #       1 with one path per line on stdout for each recorded file edited or deleted,
-#       2 bad arguments (a missing ledger or --step for check-earlier, an empty step text included) or an unreadable record/file,
+#       2 bad arguments (a missing ledger or --step for check-earlier, an empty step text included) or an unreadable record/file;
+#         for rerecord-earlier also a ledger no commit touches (no step base), a git show of a recorded file that
+#         fails, or a record that cannot be written,
 #       3 rerecord-earlier given a step that is not ⟦diff-checked⟧.
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/tests_frozen.py" "$@"

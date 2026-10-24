@@ -183,7 +183,14 @@ def _cases(text):
 
 
 def _cases_at(rev, name):
-    shown = subprocess.run(["git", "show", "%s:%s" % (rev, name)], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    shown = subprocess.run(["git", "show", "%s:%s" % (rev, name)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if shown.returncode != 0:
+        # A file absent from a readable revision has no cases there; any other failure is no answer.
+        listed = subprocess.run(["git", "ls-tree", "--name-only", rev, "--", name], stdout=subprocess.PIPE,
+                                stderr=subprocess.DEVNULL)
+        if listed.returncode == 0 and not listed.stdout.strip():
+            return {}
+        raise OSError("git show %s:%s failed: %s" % (rev, name, " ".join(os.fsdecode(shown.stderr).split())))
     return dict(_cases(shown.stdout.decode("utf-8", "replace")))
 
 
@@ -294,9 +301,13 @@ def rerecord_earlier(ledger, step):
     except OSError as error:
         write(sys.stderr, "tests-frozen.sh: %s\n%s" % (error, USAGE))
         return 2
+    ledger = os.path.abspath(ledger)
     os.chdir(root)
-    base = subprocess.run(["git", "log", "-1", "--format=%H", "--", os.path.abspath(ledger)],
+    base = subprocess.run(["git", "log", "-1", "--format=%H", "--", ledger],
                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.decode().strip()
+    if not base:
+        write(sys.stderr, "tests-frozen.sh: no commit touches the ledger %s, so the step base is unknown" % ledger)
+        return 2
     before, after = {}, {}
     for _, path, records in _earlier_records(lines, step):
         out = []
@@ -305,13 +316,21 @@ def rerecord_earlier(ledger, step):
             if parsed:
                 name, case, _ = parsed
                 if name not in after:
-                    before[name], after[name] = _cases_at(base, name), _cases_at("HEAD", name)
+                    try:
+                        before[name], after[name] = _cases_at(base, name), _cases_at("HEAD", name)
+                    except OSError as error:
+                        write(sys.stderr, "tests-frozen.sh: %s" % error)
+                        return 2
                 now = after[name].get(case)
                 if now is not None and now != before[name].get(case):
                     record = "body: %s\t%s\t%s" % (name, case, _body_digest(now))
             out.append(record + "\n")
-        with open(path, "w", encoding="utf-8") as handle:
-            handle.writelines(out)
+        try:
+            with open(path, "w", encoding="utf-8") as handle:
+                handle.writelines(out)
+        except OSError as error:
+            write(sys.stderr, "tests-frozen.sh: the record %s could not be written: %s" % (path, error))
+            return 2
     return 0
 
 

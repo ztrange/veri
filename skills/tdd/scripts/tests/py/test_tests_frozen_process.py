@@ -1910,3 +1910,88 @@ def test_rerecord_earlier_keeps_the_record_of_a_frozen_case_edited_only_in_the_w
     code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)
 
     assert (rerecorded, code, "test_pinned_2199 (%s)" % earlier in out) == (0, 1, True)
+
+
+def _diff_checked_repo(tmp_path, run_cli, tests_frozen, commit_ledger=True):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    steps = "step one adds a case", "step two ⟦diff-checked⟧ ⟦criterion 1⟧", "step three adds another"
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_older_case():\n    assert True\n\n\ndef test_pinned_2199():\n    assert 1 == 2\n")
+    run_cli(tests_frozen, ["record", "--step", steps[0], "tests/test_suite.py"], cwd=tmp_path)
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "red")
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [x] %s\n- [ ] %s\n" % steps)
+    if commit_ledger:
+        git(tmp_path, "add", "-f", ".tdd/ledger.md")
+        git(tmp_path, "commit", "-q", "-m", "ledger")
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_older_case():\n    assert True\n\n\ndef test_pinned_2199():\n    assert 2 == 2\n")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "edit")
+    return ledger, steps
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked for the commit that last touched the ledger")
+def test_rerecord_earlier_run_from_a_subdirectory_with_a_relative_ledger_path_rewrites_the_changed_case_2199(
+        tmp_path, run_cli, tests_frozen):
+    ledger, (_, edit, later) = _diff_checked_repo(tmp_path, run_cli, tests_frozen)
+
+    rerecorded = run_cli(tests_frozen, ["rerecord-earlier", "../.tdd/ledger.md", "--step", edit],
+                         cwd=tmp_path / "tests")[0]
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)
+
+    assert (rerecorded, code, out) == (0, 0, "")
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked for the commit that last touched the ledger")
+def test_rerecord_earlier_with_a_ledger_no_commit_touched_is_exit_2_and_rewrites_no_record_2199(
+        tmp_path, run_cli, tests_frozen):
+    ledger, (earlier, edit, _) = _diff_checked_repo(tmp_path, run_cli, tests_frozen, commit_ledger=False)
+    record = tmp_path / run_cli(tests_frozen, ["path", earlier], cwd=tmp_path)[1].strip()
+    before = record.read_bytes()
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)
+
+    assert (code, record.read_bytes() == before, "ledger" in err) == (2, True, True)
+
+
+@pytest.mark.process("a real git repository under tmp_path whose blob at HEAD is corrupted, so git show fails")
+def test_rerecord_earlier_when_git_show_fails_on_a_recorded_file_is_exit_2_not_read_as_no_cases_2199(
+        tmp_path, run_cli, tests_frozen):
+    ledger, (earlier, edit, _) = _diff_checked_repo(tmp_path, run_cli, tests_frozen)
+    blob = subprocess.run(["git", "rev-parse", "HEAD:tests/test_suite.py"], cwd=tmp_path, check=True,
+                          capture_output=True, text=True).stdout.strip()
+    loose = tmp_path / ".git/objects" / blob[:2] / blob[2:]
+    loose.chmod(0o644)
+    loose.write_bytes(b"not a zlib stream")
+    record = tmp_path / run_cli(tests_frozen, ["path", earlier], cwd=tmp_path)[1].strip()
+    before = record.read_bytes()
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)
+
+    assert (code, record.read_bytes() == before, "tests/test_suite.py" in err) == (2, True, True)
+
+
+@pytest.mark.process("a real git repository under tmp_path, the earlier record's write made to raise")
+def test_rerecord_earlier_returns_2_naming_the_record_when_writing_it_raises_2199(
+        tmp_path, run_cli, tests_frozen, monkeypatch, capfd):
+    ledger, (earlier, edit, _) = _diff_checked_repo(tmp_path, run_cli, tests_frozen)
+    record = run_cli(tests_frozen, ["path", earlier], cwd=tmp_path)[1].strip()
+
+    def refusing_open(name, mode="r", *rest, **kwargs):
+        if "w" in mode and str(name).endswith(record):
+            raise OSError(28, "No space left on device", str(name))
+        return open(name, mode, *rest, **kwargs)
+
+    monkeypatch.setattr(tests_frozen, "open", refusing_open, raising=False)
+    monkeypatch.chdir(tmp_path)
+
+    code = tests_frozen.rerecord_earlier(str(ledger), edit)
+
+    assert (code, record in capfd.readouterr().err) == (2, True)
