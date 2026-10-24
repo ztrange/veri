@@ -192,6 +192,17 @@ def _restore(snapshot, *names):
             os.unlink(name)
 
 
+def _tree():
+    tree = {}
+    for root, dirs, files in os.walk("."):
+        dirs[:] = [d for d in dirs if d not in (".git", ".tdd")]
+        for name in files:
+            path = os.path.relpath(os.path.join(root, name))
+            with open(path, "rb") as f:
+                tree[path] = f.read()
+    return tree
+
+
 def main(argv):
     added = None
     if len(argv) >= 4 and argv[0] == "--added":
@@ -250,9 +261,12 @@ def main(argv):
             break
         _attempt[0] = attempt
         _pins[0] = pins
+        tree = _tree()
         if _author(unit, path, said):
             return 2
         graded, said = _guard(unit, base, issue, pins)
+        if graded == 1:
+            _restore(tree, *said.splitlines())
         if not graded:
             graded, said = _grade(path, unit)
         if graded == 1:

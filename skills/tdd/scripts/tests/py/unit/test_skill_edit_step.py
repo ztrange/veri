@@ -793,3 +793,38 @@ def test_apply_numbers_a_prefix_next_row_past_the_issues_explicit_ids_in_a_list_
     rows = [l for l in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("| PL")]
     assert rows == ["| PL2 | The widget is shiny. | gloss |",
                     "| PL1 | The widget is heavy. | weight |"], rows
+
+
+def test_a_refused_attempts_edit_to_a_file_the_guard_names_is_restored_so_the_next_attempt_is_accepted_with_the_file_unchanged_2281(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is blue.\n")
+    (tmp_path / "stray_test.py").write_text("ORIGINAL = 1\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget hums. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    grades = [(1, "A1: FAIL - silent\n"), (0, "")]
+    attempts = iter([
+        lambda: ((tmp_path / "unit.md").write_text("The widget hums.\n"),
+                 (tmp_path / "stray_test.py").write_text("EDITED = 1\n")),
+        lambda: (tmp_path / "unit.md").write_text("The widget hums.\n"),
+    ])
+    guarded = []
+
+    def guard(argv):
+        guarded.append(argv)
+        if len(guarded) == 1:
+            print("stray_test.py")
+        return 0
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: grades.pop(0))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: next(attempts)() and 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", guard)
+    monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(
+        run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""), PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
+
+    assert (code, (tmp_path / "stray_test.py").read_text()) == (0, "ORIGINAL = 1\n"), (code, err)
