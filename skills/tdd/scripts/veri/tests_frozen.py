@@ -163,13 +163,31 @@ def _cases(text):
     return cases
 
 
-def _added_cases(name):
+def _head_and_new_cases(name):
     old = subprocess.run(["git", "show", "HEAD:" + name], stdout=subprocess.PIPE,
                          stderr=subprocess.DEVNULL).stdout.decode("utf-8", "replace")
     with open(name, encoding="utf-8", errors="replace") as handle:
         new = handle.read()
-    before = dict(_cases(old))
-    return [(case, body) for case, body in _cases(new) if before.get(case) != body]
+    return dict(_cases(old)), _cases(new)
+
+
+def _added_cases(name):
+    before, new = _head_and_new_cases(name)
+    return [(case, body) for case, body in new if before.get(case) != body]
+
+
+def _body_record(line):
+    return line[6:].split("\t") if line.startswith("body: ") else None
+
+
+def _kept_cases(record, name):
+    try:
+        with open(record, encoding="utf-8") as handle:
+            held = {r[1] for r in map(_body_record, handle.read().splitlines()) if r and r[0] == name}
+    except OSError:
+        return []
+    before, new = _head_and_new_cases(name)
+    return [(case, body) for case, body in new if case in held and before.get(case) == body]
 
 
 def _check_earlier(ledger, step, exempt=()):
@@ -198,7 +216,7 @@ def _check_earlier(ledger, step, exempt=()):
         try:
             with open(_record_path(match.group(1)), encoding="utf-8") as handle:
                 records = handle.read().splitlines()
-            bodies = [l[6:].split("\t") for l in records if l.startswith("body: ")]
+            bodies = [r for r in map(_body_record, records) if r]
             marked = "format: 2" in records
         except OSError:
             continue
@@ -225,8 +243,52 @@ def _check_earlier(ledger, step, exempt=()):
     return 1 if changed else 0
 
 
+def rerecord_earlier(ledger, step):
+    if "⟦diff-checked⟧" not in step:
+        return 3
+    root = _toplevel()
+    if root is None:
+        write(sys.stderr, "tests-frozen.sh: not inside a git repository\n%s" % USAGE)
+        return 2
+    try:
+        with open(ledger, encoding="utf-8") as handle:
+            lines = handle.read().splitlines()
+    except OSError as error:
+        write(sys.stderr, "tests-frozen.sh: %s\n%s" % (error, USAGE))
+        return 2
+    os.chdir(root)
+    for line in lines:
+        match = re.match(r"\s*- \[.\] (.*)", line)
+        if not match or match.group(1) == step:
+            continue
+        path = _record_path(match.group(1))
+        try:
+            with open(path, encoding="utf-8") as handle:
+                records = handle.read().splitlines()
+        except OSError:
+            continue
+        out = []
+        for record in records:
+            parsed = _body_record(record)
+            if parsed:
+                name, case, _ = parsed
+                try:
+                    with open(name, encoding="utf-8", errors="replace") as handle:
+                        now = dict(_cases(handle.read())).get(case)
+                except OSError:
+                    now = None
+                if now is not None:
+                    record = "body: %s\t%s\t%s" % (name, case, _body_digest(now))
+            out.append(record + "\n")
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.writelines(out)
+    return 0
+
+
 def main(argv):
     rest = argv[4:]
+    if argv[:1] == ["rerecord-earlier"] and len(argv) == 4 and argv[2] == "--step" and argv[3]:
+        return rerecord_earlier(argv[1], argv[3])
     if (argv[:1] == ["check-earlier"] and len(argv) >= 4 and argv[2] == "--step" and argv[3]
             and len(rest) % 2 == 0 and all(flag == "--except" and name for flag, name in zip(rest[::2], rest[1::2]))):
         return _check_earlier(argv[1], argv[3], rest[1::2])
@@ -272,7 +334,9 @@ def main(argv):
                 if files:
                     lines.append("format: 2\n")
                 for name in files:
-                    for case, body in _added_cases(name):
+                    added = _added_cases(name)
+                    kept = [c for c in _kept_cases(record, name) if c[0] not in {a[0] for a in added}]
+                    for case, body in added + kept:
                         lines += ["case: %s\n" % case,
                                   "body: %s\t%s\t%s\n" % (name, case, _body_digest(body))]
             with open(record, "w") as handle:
