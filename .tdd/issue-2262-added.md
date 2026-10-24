@@ -1,0 +1,1 @@
+- [ ] skill-edit-step's apply numbers a `<prefix><next>` row (`<prefix>1` for a prefix with no row) when the unit file exists but no requirements list claims it yet, instead of writing `<prefix><next>` verbatim through that path (unit-tier case in tests/py/unit/test_skill_edit_step.py) ⟦added⟧ ⟦criterion 1⟧
