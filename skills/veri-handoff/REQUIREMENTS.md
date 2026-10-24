@@ -3,7 +3,7 @@
 | ID | Requirement | Why |
 |---|---|---|
 | H1 | Invoked as `/veri-handoff dev\|coord`. Resume is `/veri-dev --resume <file>` or `/veri-coord --resume <file>`. | |
-| H2 | For the dev role, it refuses while a merge is in flight, the lock is held, or a launch is half done. | |
+| H2 | For the dev role, it refuses while `$S/merge-lock.sh holder` names a live holder, or a launch is half done. | A reset mid-merge would hand the next session a merge it does not know is running; a lock held by a dead process does not block the handoff. |
 | H3 | It writes the handoff to `.tdd/handoff-<role>.md` in the main clone. | `/tmp` and scratch dirs vanish mid-run. |
 | H4 | It carries: time, main sha and tag, live conductors (issue, step k/n, phase, cost), parked runs with their reason, PRs awaiting merge, N and any timed change, overrides and one-off permissions with their expiry, pending decisions. | |
 | H5 | It carries no rule that the role's skill states (P2). | |
