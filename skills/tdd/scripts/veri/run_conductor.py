@@ -259,15 +259,21 @@ def closed(issue):
 
 
 def done_posted(issue):
-    try:
-        page = github.gh_json_page("", "repos/{owner}/{repo}/issues/%s/comments?per_page=100" % issue)
-        thread = json.loads(page)
-    except (github.NoAnswer, ValueError):
-        return False
-    bodies = thread if isinstance(thread, list) else thread.get("comments", [])
     since = last_resume(issue)
-    return any(isinstance(c, dict) and str(c.get("body", "")).startswith("### ✅ Done")
-               and posted_at(c) >= since for c in bodies)
+    number = 1
+    while True:
+        try:
+            page = github.gh_json_page("", "repos/{owner}/{repo}/issues/%s/comments?per_page=100&page=%d" % (issue, number))
+            thread = json.loads(page)
+        except (github.NoAnswer, ValueError):
+            return False
+        bodies = thread if isinstance(thread, list) else thread.get("comments", [])
+        if any(isinstance(c, dict) and str(c.get("body", "")).startswith("### ✅ Done")
+               and posted_at(c) >= since for c in bodies):
+            return True
+        if len(bodies) < 100:
+            return False
+        number += 1
 
 
 def last_resume(issue):

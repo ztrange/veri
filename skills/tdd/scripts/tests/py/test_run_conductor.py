@@ -4,6 +4,7 @@ import io
 import json
 import os
 import pathlib
+import re
 import shutil
 import signal
 import subprocess
@@ -3531,3 +3532,33 @@ def test_cli_a_resumed_run_stopping_without_a_verdict_still_bails_needs_user_and
     posted = [call for call in gh_calls if "needs-user" in " ".join(call)]
     last = json.loads(log.read_text().splitlines()[-1])
     assert (code, last.get("event"), last.get("cause"), len(posted)) == (0, "bail", "needs-user", 1), stderr + repr(gh_calls)
+
+
+def test_cli_a_done_comment_that_is_comment_101_or_later_on_a_thread_served_over_several_pages_still_suppresses_the_needs_user_bail_and_comment_2238(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    gh_calls = conductor_that_prints(monkeypatch, tmp_path, ["done", "resume"],
+                                     result_record("Which option do you want?"))
+    chatter = [{"body": "comment %d" % n, "created_at": "2099-01-01T00:00:00Z"} for n in range(100)]
+    done = {"body": "### ✅ Done\n\nhttps://github.com/ztrange/veri/pull/2066", "created_at": "2099-01-02T00:00:00Z"}
+    pages = {"1": chatter, "2": [done]}
+    recorded = subprocess.run
+
+    def gh_serving_the_thread_by_page(args, *a, **kwargs):
+        args = list(args)
+        if args[:1] == ["gh"] and "needs-user" not in " ".join(args) and "comment" not in args[1:2] and not any(
+                arg.startswith("body=") for arg in args):
+            gh_calls.append(args[1:])
+            page = (re.search(r"[?&]page=(\d+)", args[-1]) or [None, "1"])[1]
+            served = json.dumps(pages.get(page, []))
+            return subprocess.CompletedProcess(args, 0, served.encode() if not kwargs.get("text") else served, b"")
+        return recorded(args, *a, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", gh_serving_the_thread_by_page)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    posted = [call for call in gh_calls if "needs-user" in " ".join(call)]
+    assert (code, [r.get("event") for r in events_named(tmp_path)], posted) == (0, ["done", "resume"], []), stderr
