@@ -63,7 +63,8 @@ def main(argv):
     if cause != "suite-red":
         complain("the last bail was not suite-red")
         return 1
-    shared = [suite for suite in suites(branch) if suite in set(suites(default))]
+    red_on_default = set(suites(default))
+    shared = [suite for suite in suites(branch) if suite in red_on_default]
     if shared:
         for suite in shared:
             complain(f"{suite} is red on the default branch too")
