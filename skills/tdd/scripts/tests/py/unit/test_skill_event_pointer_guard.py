@@ -36,3 +36,20 @@ def test_a_skill_edit_step_send_without_a_skill_edit_md_pointer_is_reported_and_
 
     assert ("SKILL-EDIT.md", 3) in guard.unpointed_sends(bare)
     assert ("SKILL-EDIT.md", 3) not in guard.unpointed_sends(pointed)
+
+
+def test_the_pointer_is_read_within_the_whole_sentence_however_many_lines_it_spans_and_not_in_another_sentence():
+    """Subject is the guard: a pointer ending a sentence four lines below its trigger counts; one in the next sentence does not."""
+    spanning = "\n".join([
+        "If the push is refused, **bail**",
+        "once the retries",
+        "are spent and the",
+        "remote still says no, Read `<base directory>/BAIL.md`.",
+    ])
+    next_sentence = "\n".join([
+        "If the push is refused, **bail**.",
+        "Then Read `<base directory>/BAIL.md` for the procedure.",
+    ])
+
+    assert ("BAIL.md", 1) not in guard.unpointed_sends(spanning)
+    assert ("BAIL.md", 1) in guard.unpointed_sends(next_sentence)
