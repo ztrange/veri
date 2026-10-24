@@ -5,3 +5,5 @@ applied | 3275bd33b4d049e880b5b0b8e8756bc2595ffa24 | share the "### ⏸ Parked" 
 - test-only | the gh stub setup (bin dir, `gh` write, chmod, log file, subprocess env) is repeated in each park-issue process test, including the new one; extract a fixture or helper
 ### `park-issue.sh` exits 2 on an issue number containing a non-ASCII digit (such as `١٢` or `１２`), naming that number on stderr, and calls `gh` not at all ⟦criterion 7⟧
 - test-only | extract the repeated gh-stub setup (bin dir, `gh` stub, log file, env) in test_park_issue_process.py into a shared helper or fixture
+### `parked-issues.sh` reads every page of the parked listing (`gh_rest_list`'s back-to-back pages, read with `json_documents.items()`), so a parked issue served on the second page of the listing is printed; pinned by a case whose stub serves two pages of issues ⟦criterion 8⟧
+- test-only | extract the repeated gh-stub setup and `subprocess.run` call in `test_parked_issues_process.py` into one helper
