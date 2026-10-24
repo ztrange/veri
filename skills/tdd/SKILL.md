@@ -474,9 +474,13 @@ unauthenticated baseline never gets a cycle.
    re-run: `issue-worktree.sh` is **idempotent**, so a second invocation puts you back in the
    same worktree the first run built, with its committed ledger already on disk.
 6. **Claim the issue on a fresh run.** Preflight has passed; before step 2's planning, run
-   `$S/unlabel-issue.sh <n>`, which removes the opt-in label so `solvable-issues.sh` stops
-   listing the issue. This is the run's **first claim**; the draft PR is its **durable claim**. A
-   bailed or parked issue stays unlabelled until a human relabels it, as parking already does.
+   `$S/unlabel-issue.sh <n>`, which removes the opt-in label (`VERI_LABEL`) so `solvable-issues.sh`
+   stops listing the issue, and adds the label `taken:<lane>`, `<lane>` being the text after
+   `VERI_LABEL`'s last `:`, or `main` when it has none. This is the run's **first claim**; the
+   draft PR is its **durable claim**. A bailed or parked issue keeps `taken:<lane>`, so it never
+   looks like one nobody opted in, as parking already does. A human re-queues a claimed issue by
+   restoring the opt-in label and removing `taken:<lane>`: `solvable-issues.sh` never lists an
+   issue carrying any `taken:*` label, so both edits are needed (#2030).
    A resume skips this: it already ran. On a resume the issue's missing opt-in label is
    expected, since the claim removed it at the first launch, so never stop or ask about it.
 
