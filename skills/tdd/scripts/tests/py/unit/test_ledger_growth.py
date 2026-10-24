@@ -183,3 +183,15 @@ def test_2209_a_directory_in_the_place_of_events_jsonl_exits_2_naming_it_never_e
     (tmp_path / "events.jsonl").mkdir()
     code, out, err = run_cli(ledger_growth, [str(plan), str(ledger)])
     assert (code, out, "events.jsonl" in err) == (2, "", True)
+
+
+def test_2209_with_neither_the_added_record_file_nor_events_jsonl_present_a_new_step_without_added_exits_1_naming_it_never_2(
+        tmp_path, run_cli, ledger_growth):
+    plan = tmp_path / "plan.md"
+    ledger = tmp_path / "issue-42.md"
+    plan.write_text("# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n")
+    ledger.write_text(
+        "# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧ ⟂ refactor pending\n"
+        "- [ ] a sneaked in step ⟦criterion 1⟧\n")
+    code, out, err = run_cli(ledger_growth, [str(plan), str(ledger)])
+    assert (code, out, "a sneaked in step" in err) == (1, "", True)
