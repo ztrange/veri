@@ -1,4 +1,5 @@
 """In-process cases for veri/fast_tier_guard.py, the fast tier's admission-bar guard."""
+import functools
 import importlib
 
 import pytest
@@ -285,6 +286,13 @@ def test_1641_an_exemption_entry_that_matches_no_file_under_the_root_makes_the_g
         guard.offences(tmp_path, {"unit/test_gone.py:4": "waits on a fake clock"})
 
 
+@functools.lru_cache(maxsize=None)
+def _sweep(directory, table=()):
+    """`guard.offences` over a real `directory` under `table` (a tuple of items), run once per session."""
+    guard = importlib.import_module("veri.fast_tier_guard")
+    return tuple(guard.offences(directory, dict(table)))
+
+
 def _real_table_audit(tmp_path):
     """The planted offences under `tmp_path`, by file and line, and the committed fast tier's offences under the real table.
 
@@ -301,7 +309,7 @@ def _real_table_audit(tmp_path):
     )
 
     planted = guard.offences(tmp_path, {})
-    committed = guard.offences(SCRIPTS / "tests" / "py" / "unit", guard.EXEMPTIONS)
+    committed = list(_sweep(SCRIPTS / "tests" / "py" / "unit", tuple(guard.EXEMPTIONS.items())))
 
     return [line.split(": ")[0] for line in planted], committed
 
@@ -393,7 +401,7 @@ FROZEN_OUTSIDE_THE_TIER = ("test_events_jsonl_openers.py", "test_events_jsonl_op
 def _misplaced(tier):
     """Criterion 1's placement rule over `tier` and its `unit/`, judged against no exemption table."""
     guard = importlib.import_module("veri.fast_tier_guard")
-    named = {line.split(":")[0] for line in guard.offences(tier, {})}
+    named = {line.split(":")[0] for line in (_sweep(tier) if tier.is_relative_to(SCRIPTS) else guard.offences(tier, {}))}
     files = sorted(tier.glob("test_*.py")) + sorted((tier / "unit").glob("test_*.py"))
     return [
         f"{path.relative_to(tier)}: {'named by the guard, inside the tier' if str(path) in named else 'guard-clean, outside the tier'}"
