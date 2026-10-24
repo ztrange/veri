@@ -1,2 +1,4 @@
 - [ ] `parked-issues.sh` exits 2 when `gh` answers the issue listing but gives no answer to reading an issue's comments, naming the comments call on stderr ⟦added⟧
 - [ ] fix the CI failure: skills/tdd/scripts/tests/py/test_detach_leaf.py — FAILED skills/tdd/scripts/tests/py/test_detach_leaf.py::test_main_launches_a_child_that_writes_its_completion_file_after_a_term_to_the_launchers_process_group_where_a_nohup_child_does_not - Failed: Timeout (>30.0s) from pytest-timeout. ⟦ci-repair⟧ ⟦criterion 6⟧
+- [ ] `park-issue.sh` exits 2 on the issue number `0`, naming the number `0` on stderr, and calls `gh` not at all ⟦criterion 7⟧
+- [ ] `park-issue.sh` exits 2 on an issue number containing a non-ASCII digit (such as `١٢` or `１２`), naming that number on stderr, and calls `gh` not at all ⟦criterion 7⟧
