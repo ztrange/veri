@@ -826,12 +826,13 @@ def test_main_launches_exactly_one_claude_with_the_fixed_print_mode_argv_and_no_
 
     capfdbinary.readouterr()
     assert code == 0
-    observed = [dict(launch, argv=launch["argv"][:1] + launch["argv"][-4:],
-                     stdin=b"# the procedure, read from SKILL.md" in launch.get("stdin", b""))
+    observed = [{key: value for key, value in dict(launch, argv=launch["argv"][:1] + launch["argv"][-4:],
+                                                   stdin=b"# the procedure, read from SKILL.md" in launch.get("stdin", b"")).items()
+                 if key != "preexec_fn"}
                 for launch in launches]
     assert observed == [{"argv": [program, "--permission-mode", "bypassPermissions", "--model", "opus"],
                          "stdin": True, "stdout": None, "stderr": None, "capture_output": False,
-                         "start_new_session": False, "process_group": None, "preexec_fn": None}]
+                         "start_new_session": False, "process_group": None}]
 
 
 def test_main_with_no_model_variable_set_launches_claude_with_model_opus(tmp_path, monkeypatch, capfdbinary):
@@ -3084,8 +3085,17 @@ def test_cli_a_conductor_that_exits_with_tdd_wt_n_registered_as_a_worktree_keeps
     first = head_commit(skill)
     recorded = tree_contents(skill)
     worktree = caller / ".tdd" / "wt" / "4242"
-    seen = claude_that_runs(
-        monkeypatch, lambda: subprocess.run(git_as_veri(caller) + ["worktree", "add", "-q", "--detach", str(worktree)], check=True))
+    def add_worktree_then_seed_pid():
+        pid_file = worktree / ".tdd" / "conductor.pid"
+        seeded = pid_file.read_bytes() if pid_file.is_file() else None
+        if worktree.exists():
+            shutil.rmtree(worktree)
+        subprocess.run(git_as_veri(caller) + ["worktree", "add", "-q", "--detach", str(worktree)], check=True)
+        if seeded is not None:
+            pid_file.parent.mkdir(exist_ok=True)
+            pid_file.write_bytes(seeded)
+
+    seen = claude_that_runs(monkeypatch, add_worktree_then_seed_pid)
     record = caller / ".tdd" / "issue-4242-skill-commit"
 
     first_code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
