@@ -428,7 +428,8 @@ NO_WAIT = {"VERI_TOOL_RETRY_SLEEP": "1", "VERI_TOOL_FAST_WAIT": "0", "VERI_TOOL_
 
 
 def clocked_sleep(factor):
-    return f'sleep() {{ echo "$1" >> "$SLEEPS"; SECONDS=$((SECONDS + $1 * {factor})); }}; '
+    return (f'TICKS=0; _gh_now() {{ echo "$TICKS"; }}; '
+            f'sleep() {{ echo "$1" >> "$SLEEPS"; TICKS=$((TICKS + $1 * {factor})); }}; ')
 
 
 def run_without_gh(tmp_path, call, env, tools=("bash",), sleep_after=None):
