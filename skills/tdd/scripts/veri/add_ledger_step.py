@@ -1,9 +1,10 @@
 """add-ledger-step.sh's computations, run in-process."""
-import json
 import os
 import re
 import sys
+import time
 
+import event
 import replaces_case
 import tunables
 
@@ -130,11 +131,13 @@ def added_file(path):
 
 
 def record_insertions(path, steps):
+    awake = event.awake_reading()
     with open(added_file(path), "ab") as f:
         f.write("".join(step + "\n" for step in steps).encode(errors=BYTES))
-    with open(events_log(path), "a") as f:
+    with open(events_log(path), "ab") as f:
         for step in steps:
-            f.write(json.dumps({"event": "step-added", "actor": "add-ledger-step", "step": step}) + "\n")
+            fields = [(b"actor", b"add-ledger-step"), (b"step", step.encode(errors=BYTES))]
+            f.write(event.line([b"step-added"], dict(fields), int(time.time()), awake))
 
 
 def main(argv):
