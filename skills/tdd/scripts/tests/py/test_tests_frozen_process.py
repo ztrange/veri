@@ -1780,8 +1780,12 @@ def test_rerecord_earlier_for_a_diff_checked_step_rewrites_the_changed_case_so_a
     git(tmp_path, "commit", "-q", "-m", "red")
     ledger = tmp_path / ".tdd/ledger.md"
     ledger.write_text("- [x] %s\n- [x] %s\n- [ ] %s\n" % (earlier, edit, later))
+    git(tmp_path, "add", ".tdd/ledger.md")
+    git(tmp_path, "commit", "-q", "-m", "ledger")
     (tmp_path / "tests/test_suite.py").write_text(
         "def test_older_case():\n    assert True\n\n\ndef test_pinned_2199():\n    assert 2 == 2\n")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "edit")
 
     rerecorded = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)[0]
     code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)
