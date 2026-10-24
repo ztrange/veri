@@ -97,12 +97,19 @@ alone, and route:
 - **Last comment is a bail.** Hand it to `veri-bail <n>`. `veri-bail` does not exist yet: until
   it does, classify the cause with `$S/classify-bail.sh <cause>`, resume a first bail once with
   `$S/run-conductor.sh <n>` launched as above (with `VERI_NEW_SKILL=1` when the fix it needs
-  landed after its launch), and park a second one: one issue comment with the cause and what
+  landed after its launch), and park a second one with `$S/park-issue.sh <n> <cause> <unblock>
+  [<pr>]`, the only way to park: it labels the issue `parked` and posts the cause and what
   would unblock it. Budget raises come only from the coordinator or the human.
 - **No closing comment.** Check for a usage limit or sleep first (P10). Either one is not a
   bail: resume the run once usage is back. Neither one: route it as a bail.
 
 Then take the slot decision.
+
+## Parked issues
+
+On resume, read the parked set with `$S/parked-issues.sh` (exit 3: none parked), never from a
+handoff or memory: GitHub holds it and each park's cause. Un-parking an issue removes its
+`parked` label.
 
 ## When to stop and ask
 
