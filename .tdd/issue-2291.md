@@ -1,4 +1,4 @@
 # Plan for #2291 — test_github_sh's clocked_sleep cases get the same sleeps however much real time passes
 
 - [x] The gh function in lib/github.sh reads its wait clock through a seam a test can override, so a case whose fake sleep also lets real time drift (bash's SECONDS advanced beyond the fake sleeps, or already advanced when the call starts) still records the expected sleep sequence, e.g. VERI_TOOL_FAST_WAIT=015 giving ["2"] * 8 + ["4", "4"]; a medium case (bash sources lib/github.sh), in test_github_sh.py ⟦criterion 1⟧
-- [ ] Every existing clocked_sleep-based case in skills/tdd/scripts/tests/py/test_github_sh.py advances the fake clock through that seam rather than bash's SECONDS, so each asserts the same sleep sequence however much real time passes; a test-only change, no production change ⟦diff-checked⟧ ⟦criterion 1⟧
+- [x] Every existing clocked_sleep-based case in skills/tdd/scripts/tests/py/test_github_sh.py advances the fake clock through that seam rather than bash's SECONDS, so each asserts the same sleep sequence however much real time passes; a test-only change, no production change ⟦diff-checked⟧ ⟦criterion 1⟧
