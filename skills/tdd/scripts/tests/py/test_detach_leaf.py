@@ -196,6 +196,7 @@ def test_main_launches_a_child_that_writes_its_completion_file_after_a_term_to_t
     if launcher == 0:
         try:
             os.setpgid(0, 0)
+            signal.signal(signal.SIGTERM, signal.SIG_DFL)
             subprocess.Popen(["nohup", "sh", str(leaf), str(control_exit), str(control_pid)],
                              stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             answer.write_text(repr(run_cli(detach_leaf, ["sh", str(leaf), str(detached_exit), str(detached_pid)])))
@@ -203,13 +204,16 @@ def test_main_launches_a_child_that_writes_its_completion_file_after_a_term_to_t
         finally:
             os._exit(0)
 
-    pids = []
+    pids, launcher_gone = [], False
     try:
         launched = all(appeared(path) for path in (answer, detached_pid, control_pid))
         pids = [int(path.read_text()) for path in (detached_pid, control_pid) if appeared(path, 0)]
         alive_at_term = [alive(pid) for pid in pids]
         os.killpg(launcher, signal.SIGTERM)
-        os.waitpid(launcher, 0)
+        deadline = time.monotonic() + 3
+        while not launcher_gone and time.monotonic() < deadline:
+            launcher_gone = os.waitpid(launcher, os.WNOHANG)[0] == launcher
+            time.sleep(0.02)
         deadline = time.monotonic() + 3
         while len(pids) == 2 and alive(pids[1]) and time.monotonic() < deadline:
             time.sleep(0.02)
@@ -228,9 +232,9 @@ def test_main_launches_a_child_that_writes_its_completion_file_after_a_term_to_t
         except (ProcessLookupError, ChildProcessError):
             pass
 
-    assert (launched, answer.read_text() if answer.exists() else "never answered", alive_at_term,
+    assert (launched, answer.read_text() if answer.exists() else "never answered", alive_at_term, launcher_gone,
             detached_exit.read_text() if detached_exit.exists() else "never written",
-            control_alive, control_exit.exists()) == (True, repr((0, "", "")), [True, True], "0\n", False, False)
+            control_alive, control_exit.exists()) == (True, repr((0, "", "")), [True, True], True, "0\n", False, False)
 
 
 @pytest.mark.process("a detached bash whose pipeline writer dies of SIGPIPE")
