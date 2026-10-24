@@ -1,0 +1,16 @@
+# Plan for #2031 — A parked issue carries a parked label and a structured comment, so resuming reads GitHub, not memory
+
+- [ ] `park-issue.sh <issue-number> <cause> <unblock> [<pr>]` parks an issue in one call: it adds the label `parked` to the issue and posts one comment whose first line is `### ⏸ Parked`, followed by a `Cause: <cause>` line and an `Unblock: <unblock>` line taken from its arguments, and exits 0; the script ships in this step as a shim over a `veri/` module with a no-argument usage line and exit 2, and its entry in `skills/tdd/SCRIPTS.md` ⟦criterion 1⟧
+- [ ] Given a `<pr>` argument, `park-issue.sh`'s `### ⏸ Parked` comment also carries a `PR: <pr>` line; without one the comment carries no `PR:` line ⟦criterion 1⟧
+- [ ] `park-issue.sh` creates the label `parked` in the repository when it does not exist yet, then labels the issue with it, and exits 0 ⟦criterion 1⟧
+- [ ] `park-issue.sh` exits 2 on a bad argument — a non-numeric issue number, an empty cause, an empty unblock text, or too many arguments — naming on stderr which argument was bad, and calls `gh` not at all ⟦criterion 1⟧
+- [ ] `park-issue.sh` exits 2 when `gh` gives no answer to adding the label or to posting the comment, naming on stderr which of the two calls got no answer ⟦criterion 1⟧
+- [ ] Parking an issue already labelled `parked` posts the new `### ⏸ Parked` comment and exits 0, not an error ⟦criterion 2⟧
+- [ ] `solvable-issues.sh` never lists an issue labelled `parked`, even when it carries the opt-in label ⟦criterion 3⟧
+- [ ] `parked-issues.sh` reads the parked set from GitHub alone: for each open issue labelled `parked` it prints one tab-separated line — the issue's number, its title, and the cause and unblock text of its `### ⏸ Parked` comment — and exits 0; the script ships in this step as a shim over a `veri/` module with a usage line, exit 2 on any argument, and its entry in `skills/tdd/SCRIPTS.md` ⟦criterion 4⟧
+- [ ] When an issue carries several `### ⏸ Parked` comments, `parked-issues.sh` prints the cause and unblock text of the latest one ⟦criterion 4⟧
+- [ ] With no open issue labelled `parked`, `parked-issues.sh` prints nothing and exits 3 ⟦criterion 4⟧
+- [ ] `parked-issues.sh` exits 2 when `gh` gives no answer to listing the issues or reading an issue's comments, naming the call on stderr
+- [ ] skills/veri-dev/SKILL.md: add requirement D13 to its REQUIREMENTS.md exactly as the issue states it; the unit parks an issue only through `park-issue.sh`, on resume reads the parked set through `parked-issues.sh` rather than a handoff or memory, and un-parking removes the `parked` label; graded PASS against its whole list and signed ⟦skill-edit⟧ ⟦criterion 5⟧
+- [ ] skills/veri-coord/SKILL.md: add requirement C13 to its REQUIREMENTS.md exactly as the issue states it; the unit parks an issue only through `park-issue.sh`, on resume reads the parked set through `parked-issues.sh` rather than a handoff or memory, and un-parking removes the `parked` label; graded PASS against its whole list and signed ⟦skill-edit⟧ ⟦criterion 5⟧
+- [ ] The branch adds rows D13 to skills/veri-dev/REQUIREMENTS.md and C13 to skills/veri-coord/REQUIREMENTS.md exactly as the issue's `## Requirements` tables state them, replacing no other row, and each unit's GRADED line was re-signed on this branch for its current text ⟦diff-checked⟧ ⟦criterion 6⟧
