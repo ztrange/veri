@@ -121,7 +121,7 @@ def apply(issue, unit):
         _write_list(path, unit, rows)
         return moved
     have = {row.split("\t")[0] for row in claimed.splitlines()}
-    rows = _numbered(rows, have)
+    rows = _numbered(rows, have | {_row_id(r) for r in rows})
     new = [r for r in rows if _row_id(r) not in have]
     reworded = {_row_id(r): r for r in rows}
     lines = requirements.read_lines(path)
