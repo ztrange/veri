@@ -38,12 +38,20 @@ def last_bail_cause(path):
 
 
 def insert(ledger, branch_file):
-    reds = read_text(branch_file).splitlines()
+    try:
+        text = read_text(branch_file)
+    except OSError as error:
+        complain(f"{error.filename}: {error.strerror}")
+        return 2
+    if not text.strip():
+        complain(f"{branch_file}: empty")
+        return 2
+    reds = text.splitlines()
     steps = [line for line in read_ledger(ledger).split("\n") if STEP_RE.fullmatch(line)]
     unchecked = [line for line in steps if STEP_RE.fullmatch(line).group(2) == " "]
     where, anchor = ("before", unchecked[0]) if unchecked else ("after", steps[-1])
-    text = "fix the full-suite failure: " + "; ".join(reds) + " ⟦suite-repair⟧"
-    return add_ledger_step.main([ledger, where, anchor, text])
+    step = "fix the full-suite failure: " + "; ".join(reds) + " ⟦suite-repair⟧"
+    return add_ledger_step.main([ledger, where, anchor, step])
 
 
 def main(argv):
