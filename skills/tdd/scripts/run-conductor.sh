@@ -12,7 +12,7 @@
 # Exit:    2 a refusal (bash or Python below its floor, no argument, a failed fetch, an
 #          unresolvable pin); otherwise the conductor's own status, whatever it is.
 #
-# The conductor runs on `--model opus`; no variable chooses it.
+# The conductor runs on `--model opus` unless VERI_MODEL_CONDUCTOR is set and non-empty, then on that value.
 #
 # The prompt is the `/tdd` procedure itself — SKILL.md, verbatim, beside this script — with
 # the issue number appended, because print mode loads no skills roster: a conductor launched
