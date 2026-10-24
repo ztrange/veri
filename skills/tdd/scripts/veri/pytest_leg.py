@@ -1,5 +1,6 @@
 """The pytest leg's launcher: refuses an interpreter below the Python floor, then runs pytest."""
-# Usage:   pytest_leg.py [pytest-args...]
+# Usage:   pytest_leg.py [--subset] [pytest-args...]
+#          --subset: the caller named the suites to run (`make test TESTS=…`), so no full-run lock is taken
 # Exit:    0 pytest passed, 1 any other pytest status
 #          2 the interpreter is below the floor in lib/venv-python.sh, or cannot import pytest, pytest_timeout or xdist,
 #            or VERI_PYTEST_WORKERS is not a whole number of at least 1
@@ -169,7 +170,9 @@ def main(argv):
     full_lock = None
     holder = os.environ.get("PYTEST_LEG_FULL_LOCK_HOLDER")
     locking = tunables.read("VERI_TEST_LOCK") != "0"
-    if "-m" not in argv and not os.environ.get("PYTEST_XDIST_WORKER") and locking and not under_full_lock_holder():
+    subset = "--subset" in argv
+    argv = [arg for arg in argv if arg != "--subset"]
+    if not subset and "-m" not in argv and not os.environ.get("PYTEST_XDIST_WORKER") and locking and not under_full_lock_holder():
         full_lock = acquire_full_lock()
         os.environ["PYTEST_LEG_FULL_LOCK_HOLDER"] = str(os.getpid())
     serial_seen = os.environ.get("PYTEST_LEG_SERIAL_SEEN")
@@ -203,6 +206,8 @@ def main(argv):
                 os.environ.pop("PYTEST_LEG_FULL_LOCK_HOLDER", None)
             else:
                 os.environ["PYTEST_LEG_FULL_LOCK_HOLDER"] = holder
+            full_lock.seek(0)
+            full_lock.truncate()
             full_lock.close()
         signal.signal(signal.SIGTERM, previous)
         signal.signal(signal.SIGHUP, previous_hup)
