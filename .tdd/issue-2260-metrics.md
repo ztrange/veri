@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 2260
 
-Wall time for the issue: 171 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 686 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 2 of 3 planned.
-Outcome: the run bailed — revise-exhausted, a process failure.
+Steps done: 3 of 3 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/2283.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $4.20 over 86 turns, in 2 sessions.
+Conductor own spending: $5.81 over 115 turns, in 3 sessions.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
@@ -73,31 +73,60 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 57 | $0.04 | 142641 |
 | 58 | $0.04 | 143085 |
 | 59 | $0.58 | 89496 |
-| 60 | $0.02 | 89822 |
-| 61 | $0.03 | 91282 |
-| 62 | $0.03 | 93220 |
-| 63 | $0.03 | 94626 |
-| 64 | $0.02 | 95156 |
-| 65 | $0.02 | 95635 |
-| 66 | $0.02 | 95972 |
-| 67 | $0.02 | 96437 |
-| 68 | $0.02 | 96838 |
-| 69 | $0.04 | 100028 |
+| 60 | $0.03 | 89822 |
+| 61 | $0.04 | 91282 |
+| 62 | $0.04 | 93220 |
+| 63 | $0.04 | 94626 |
+| 64 | $0.03 | 95156 |
+| 65 | $0.03 | 95635 |
+| 66 | $0.03 | 95972 |
+| 67 | $0.03 | 96437 |
+| 68 | $0.03 | 96838 |
+| 69 | $0.06 | 100028 |
 | 70 | $0.03 | 100829 |
-| 71 | $0.03 | 101637 |
+| 71 | $0.04 | 101637 |
 | 72 | $0.05 | 105262 |
-| 73 | $0.03 | 106196 |
-| 74 | $0.02 | 106503 |
-| 75 | $0.03 | 107038 |
+| 73 | $0.04 | 106196 |
+| 74 | $0.03 | 106503 |
+| 75 | $0.04 | 107038 |
 | 76 | $0.03 | 107887 |
-| 77 | $0.03 | 108585 |
+| 77 | $0.04 | 108585 |
 | 78 | $0.03 | 109072 |
-| 79 | $0.03 | 109680 |
-| 80 | $0.05 | 113704 |
-| 81 | $0.03 | 114720 |
-| 82 | $0.03 | 115764 |
-| 83 | $0.03 | 117225 |
-| 84 | $0.06 | 121602 |
+| 79 | $0.04 | 109680 |
+| 80 | $0.06 | 113704 |
+| 81 | $0.04 | 114720 |
+| 82 | $0.04 | 115764 |
+| 83 | $0.04 | 117225 |
+| 84 | $0.07 | 121602 |
+| 85 | $0.04 | 123035 |
+| 86 | $0.04 | 124078 |
+| 87 | $0.58 | 89490 |
+| 88 | $0.03 | 91179 |
+| 89 | $0.03 | 93169 |
+| 90 | $0.05 | 96632 |
+| 91 | $0.02 | 97201 |
+| 92 | $0.02 | 97672 |
+| 93 | $0.02 | 98080 |
+| 94 | $0.02 | 98410 |
+| 95 | $0.02 | 99059 |
+| 96 | $0.05 | 102262 |
+| 97 | $0.03 | 102866 |
+| 98 | $0.04 | 105204 |
+| 99 | $0.03 | 106212 |
+| 100 | $0.03 | 107059 |
+| 101 | $0.02 | 107383 |
+| 102 | $0.03 | 107930 |
+| 103 | $0.03 | 108413 |
+| 104 | $0.03 | 109087 |
+| 105 | $0.03 | 109527 |
+| 106 | $0.03 | 110023 |
+| 107 | $0.03 | 110672 |
+| 108 | $0.02 | 110985 |
+| 109 | $0.02 | 111215 |
+| 110 | $0.03 | 111784 |
+| 111 | $0.03 | 112210 |
+| 112 | $0.03 | 112677 |
+| 113 | $0.03 | 113049 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -108,8 +137,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | red | 2 | 1 | 0 | 0 | 42 | 28 | 10 | 18 | 3222 | 243860 | 55196 | 0.19 |
 | green | 4 | 1 | 1 | 0 | 192 | 68 | 22 | 44 | 5739 | 636830 | 69335 | 0.41 |
 | refactor | 2 | 1 | 0 | 0 | 38 | 9 | 5 | 10 | 694 | 124401 | 26966 | 0.09 |
-| prose | 4 | 0 | 0 | 0 | 276 | 263 | 4 | 8 | 44307 | 4434 | 394631 | 1.43 |
-| skill-edit | 4 | 0 | 0 | 0 | 58 | 44 | 18 | 34 | 4329 | 1662095 | 339852 | 1.06 |
+| prose | 7 | 0 | 0 | 0 | 460 | 440 | 7 | 14 | 74169 | 8219 | 690406 | 2.47 |
+| skill-edit | 5 | 0 | 0 | 0 | 67 | 51 | 21 | 40 | 4785 | 1895599 | 456995 | 1.38 |
 
 #### By model
 
@@ -127,15 +156,15 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | red | 0 | 0.00 | 0 | 0.00 |
 | green | 192 | 0.41 | 0 | 0.00 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
-| prose | 0 | 0.00 | 80 | 0.38 |
-| skill-edit | 0 | 0.00 | 42 | 0.72 |
+| prose | 0 | 0.00 | 0 | 0.00 |
+| skill-edit | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
 | step | attempts | PASS | REJECT | kills | retries | no-verdict | API s | turns | input | output | cache read | cache creation | $ | wall s | revise | refactor | stopped | crossed at | split | kind |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |
 | `$S/metrics.sh <n>` counts `verify-refactor-skipped` events in its "By refactor pass" table: a pass whose step logged `verify-refactor-skipped reason=nothing-landed` and no refactor verdict shows its verdict cell as skipped, never as a missing verdict, beside a verified pass that keeps its PASS — pinned by a small in-process case over an events file holding one skipped and one verified pass ⟦criterion 2⟧ | 8 | 3 | 1 | 0 | 0 | 0 | 105 | 37 | 72 | 9655 | 1005091 | 151497 | 0.69 | 450 | 1/2 | 0/5 | nothing-left |  |  | full |
-| skills/tdd/SKILL.md: reword RF49 in place in the `## skills/tdd/SKILL.md` section of skills/tdd/REQUIREMENTS.md exactly as the issue's RF49 row states it (`### 🔎 verify-refactor — PASS\|REJECT\|SKIPPED`), and edit SKILL.md's Refactor step 6 heading so it reads `### 🔎 verify-refactor — PASS|REJECT|SKIPPED`; nothing else changes; it grades PASS against its whole list and is signed: `prose-owed.sh` prints nothing for it; `GRADED` carries a line whose signature matches its current text ⟦skill-edit⟧ ⟦criterion 1⟧ ⟦added⟧ | 4 | 0 | 0 | 0 | 0 | 0 | 109 | 15 | 28 | 15939 | 1312124 | 321011 | 1.09 | unknown | unknown | unknown | unknown |  |  | full |
+| skills/tdd/SKILL.md: reword RF49 in place in the `## skills/tdd/SKILL.md` section of skills/tdd/REQUIREMENTS.md exactly as the issue's RF49 row states it (`### 🔎 verify-refactor — PASS\|REJECT\|SKIPPED`), and edit SKILL.md's Refactor step 6 heading so it reads `### 🔎 verify-refactor — PASS|REJECT|SKIPPED`; nothing else changes; it grades PASS against its whole list and is signed: `prose-owed.sh` prints nothing for it; `GRADED` carries a line whose signature matches its current text ⟦skill-edit⟧ ⟦criterion 1⟧ ⟦added⟧ | 7 | 0 | 0 | 0 | 0 | 0 | 222 | 20 | 38 | 33848 | 1547845 | 635656 | 2.08 | 138 | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -161,4 +190,4 @@ Stopped: nothing-structural
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 60 | 116 | 58905 | 2671620 | 917079 | 3.27 |
+| total | 66 | 128 | 89223 | 2908909 | 1329997 | 4.63 |
