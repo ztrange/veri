@@ -6,7 +6,7 @@ SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 
 EVENT_FILES = {
-    "BAIL.md": r"\*\*bail\*\*|\bbails with\b|→ bail",
+    "BAIL.md": r"\*\*bails?\*\*|\bbails (with|as)\b|\bbail with\b|→ bail|\bis a bail\b|(?<=: )bail\b(?![-.]\w)",
     "PIN.md": r"\bthe pin path\b|\bcontinue at the pin\b",
     "REVISE.md": r"enter the \*\*revise loop|^\s*\*\*revise loop\*\* for red|revise under|bounded revise loop|goes round the revise loop|a revise of the",
     "RECONCILE.md": r"reconcile leaf",
@@ -146,3 +146,23 @@ def test_the_revise_section_lives_in_revise_md_not_skill_md_1855():
 def test_the_guard_reports_no_unpointed_send_in_the_real_skill_md_2075():
     """Subject is source text: the event-pointer guard run over SKILL.md reports no place, for every row of its table."""
     assert unpointed_sends(SKILL.read_text()) == []
+
+
+def test_the_guard_reports_a_bolded_bails_and_a_bolded_bail_with_cause_without_a_pointer_2075():
+    """Subject is the guard: '**bails**' and '**bail with cause …**' with no colon before them each name BAIL.md and their line."""
+    text = "\n".join([
+        "The step **bails** once the budget is spent.",
+        "Exit 1 again: then **bail with cause `x`** and stop.",
+    ])
+
+    assert [line for event_file, line in unpointed_sends(text) if event_file == "BAIL.md"] == [1, 2]
+
+
+def test_the_guard_ignores_a_bail_script_or_hyphenated_name_after_a_colon_2075():
+    """Subject is the guard: a name such as 'bail.sh' or 'bail-cause' after a colon is not a bare bail instruction."""
+    text = "\n".join([
+        "The helper is named: bail.sh in the scripts.",
+        "The label it prints: bail-stuck for that case.",
+    ])
+
+    assert unpointed_sends(text) == []

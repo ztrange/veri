@@ -53,3 +53,17 @@ def test_the_pointer_is_read_within_the_whole_sentence_however_many_lines_it_spa
 
     assert ("BAIL.md", 1) not in guard.unpointed_sends(spanning)
     assert ("BAIL.md", 1) in guard.unpointed_sends(next_sentence)
+
+
+def test_every_other_phrasing_that_sends_the_run_into_a_bail_is_reported_without_a_pointer():
+    """Subject is the guard: 'bails as', 'bail with cause', 'bails with cause', '→ bail', 'is a bail' and a bare 'bail' each name BAIL.md and their line."""
+    text = "\n".join([
+        "A refused push bails as stuck.",
+        "A refused push: bail with cause push-refused.",
+        "A refused push bails with cause push-refused.",
+        "A refused push → bail.",
+        "A third refusal is a bail.",
+        "A refused push twice in a row: bail.",
+    ])
+
+    assert sorted(line for event_file, line in guard.unpointed_sends(text) if event_file == "BAIL.md") == [1, 2, 3, 4, 5, 6]
