@@ -38,7 +38,11 @@ which file it sits in:
 - **test-only** — any transform that would change only files under a `tests/` directory.
   Report it on a `CANDIDATES: test-only | <transform>` line, never on a `CANDIDATES: structural` one.
 - **out-of-scope** — a structural transform outside the issue's bounds or ruled out by its spec.
-  Report it on a `CANDIDATES: out-of-scope | <transform>` line instead of a `CANDIDATES: structural` one.
+  Report it on a `CANDIDATES: out-of-scope | <transform>` line instead of a `CANDIDATES: structural` one,
+  with two exceptions decided by the files its transform changes. One that changes at least one of
+  the touched files above goes on a line kind of its own, `CANDIDATES: in-step | <the files the
+  transform changes, comma-separated> | <transform>`, so the conductor can cover it. One that
+  changes none of the touched files goes on a `CANDIDATES: out-of-bounds | <transform>` line.
 
 ### The three classes of flag
 
@@ -60,7 +64,7 @@ your words rather than its own judgement:
    other structural transform here — extract a module, move behaviour, rename across files.
    Report every other structural candidate you see on its own `CANDIDATES: structural` line
    rather than apply it, and one outside the issue's bounds on its own
-   `CANDIDATES: out-of-scope` line.
+   `CANDIDATES: out-of-scope` line (or its `CANDIDATES: in-step` or `CANDIDATES: out-of-bounds` kind).
 2. Commit each transform on its own, as `refactor: <what changed> (#<issue>)`, never a
    batch, so a break stays attributable to one change. That attribution is the whole of
    what a leaf per transform used to buy, and it is what has to survive several transforms
@@ -98,7 +102,7 @@ your words rather than its own judgement:
 ### Report (last lines of your output)
 
 RESULT: <"applied <the transform>, suites green" — one line per transform you applied, each on its own RESULT: line, in the order you applied them — or "nothing left to tidy" if you applied none>
-CANDIDATES: <"structural | <transform>", "cosmetic | <transform>", "test-only | <transform>" or "out-of-scope | <transform>" — a transform you still see left in those files, carrying the class it falls into — one per line, each on its own CANDIDATES: line — or "none">
+CANDIDATES: <"structural | <transform>", "cosmetic | <transform>", "test-only | <transform>", "out-of-scope | <transform>", "in-step | <files> | <transform>" or "out-of-bounds | <transform>" — a transform you still see left in those files, carrying the class it falls into — one per line, each on its own CANDIDATES: line — or "none">
 FLAGS: <"overfit | <the {{INCLUDE:_flag-overfit.md}}", "{{INCLUDE:_flag-uncovered-spec.md}}" or "{{INCLUDE:_flag-beyond-spec.md}}" — one finding per line, each on its own FLAGS: line, carrying the class it falls into — or "none">
 
 REPORT-FORMAT refactor | keys RESULT: CANDIDATES: FLAGS: | suite exempt: each transform is verified by its own step
