@@ -1,0 +1,2 @@
+### `worktree-setup.sh <n>` in a worktree whose CLAUDE.md has no `veri: setup:` line, or which has no CLAUDE.md at all, runs no command, writes no file and exits 3, so a repo without the line keeps today's preflight ⟦criterion 1⟧
+- the `os.path.isfile("CLAUDE.md")` guard in `worktree_setup.py` could be dropped if `detect.lines_of` tolerates a missing file. That is dead-code removal, not duplication, so I did not apply it.
