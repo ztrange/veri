@@ -1,3 +1,5 @@
 ### `parked-issues.sh` reads the parked set from GitHub alone: for each open issue labelled `parked` it prints one tab-separated line — the issue's number, its title, and the cause and unblock text of its `### ⏸ Parked` comment — and exits 0; the script ships in this step as a shim over a `veri/` module with a usage line, exit 2 on any argument, and its entry in `skills/tdd/SCRIPTS.md` ⟦criterion 4⟧
 - share the "### ⏸ Parked" heading literal between park_issue.py and parked_issues.py as one constant (cross-file extraction, reported rather than applied)
 applied | 3275bd33b4d049e880b5b0b8e8756bc2595ffa24 | share the "### ⏸ Parked" heading literal between park_issue.py and parked_issues.py as one constant (cross-file extraction, reported rather than applied)	refactor: share the Parked heading as github.PARKED_HEADING (#2031)
+### `park-issue.sh` exits 2 on the issue number `0`, naming the number `0` on stderr, and calls `gh` not at all ⟦criterion 7⟧
+- test-only | the gh stub setup (bin dir, `gh` write, chmod, log file, subprocess env) is repeated in each park-issue process test, including the new one; extract a fixture or helper
