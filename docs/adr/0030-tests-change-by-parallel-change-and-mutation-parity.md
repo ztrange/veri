@@ -135,3 +135,28 @@ and are no longer bash cases.
   production-frozen check and the conductor-run mutation probe exist only here; a
   `⟦replaces-case⟧` group step's parity is the pairs table's.
 - C4's ports are planned as group steps of about a dozen cases each.
+
+## Amendment 2026-10-21: cover-new, between expand and migrate
+
+The decision above stays as written. Until contract (a) the new interface had no test of its
+own: callers migrated onto it while it was exercised only through the old tests and the proxy.
+Following Parallel Change as *TDD by Example* practice reads it (#2034), the new interface is
+tested before any caller depends on it.
+
+The phase order is **expand → cover-new → migrate → contract (a) → contract (b)**:
+
+| phase | changes | frozen | proof |
+|---|---|---|---|
+| **expand** | production: the new interface is added and the old one becomes a proxy onto it | tests | the old tests green, unmodified |
+| **cover-new** | tests: cases that call the new interface directly | production (`production-frozen.sh`, as contract (a)) | the new cases pass against the expand commit and go red under a mutation of the new interface's behaviour |
+| **migrate** | production: product callers move to the new interface, one per commit | tests | the suite green, through the proxy; starts only once cover-new has passed |
+| **contract (a)** | tests: the old interface's cases are deleted, each deletion proved by mutation parity against a kept case, or moved to the human as today | production | mutation parity |
+| **contract (b)** | production: the proxy is deleted | tests | the suite green |
+
+- Cover-new is listed for every interface change that adds a new interface; an empty phase is
+  still skipped. Each phase keeps its own ledger mark, and a resumed run starts at the first
+  unmarked phase, cover-new included.
+- With the new cases in place, contract (a) shrinks to deleting old cases the new ones make
+  redundant, rather than rewriting them.
+- The no-product-caller static check gates contract (b) only. Contract (a) starts on migrate's
+  PASS (#1475, folded in from #1526, 2026-10-21).
