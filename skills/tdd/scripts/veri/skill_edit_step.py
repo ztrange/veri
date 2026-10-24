@@ -68,7 +68,7 @@ def _append_section(path, unit, table):
 
 
 def _write_list(path, unit, rows):
-    _append_section(path, unit, TABLE_HEAD + _numbered(rows, ()))
+    _append_section(path, unit, TABLE_HEAD + _numbered(rows, {_row_id(r) for r in rows}))
 
 
 def _create(unit, path, rows):
