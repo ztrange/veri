@@ -1,0 +1,2 @@
+### When the repository already holds the taken:<lane> label (the label lookup answers 200), a claim by unlabel_issue.main makes no `gh label create` call and no label-update call, and only adds the label to the issue; pinned by a small in-process case with gh faked at the subprocess boundary github.py calls through, recording every call made ⟦criterion 1⟧
+- test-only | share the label-lookup fake that three test cases repeat, each with a different answer
