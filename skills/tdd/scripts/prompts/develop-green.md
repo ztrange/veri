@@ -40,6 +40,12 @@ exactly as you found it.
    suite answers the only question each iteration asks, and answers it in a fraction of
    the time. Run one suite through {{INCLUDE:_run-suite-lead.md}}
    suite, {{INCLUDE:_run-suite-same-way.md}} the test command above and say so in your report.
+   Before that run, probe each branch, guard, default, flag, parameter, `__main__` block,
+   flush or encoding line you added this step — the usual offenders for code no test
+   requires. Copy the file beside itself (`cp <file> <file>.orig`, never in a shared
+   directory), remove that code, and rerun the suite holding the target case. Still
+   green: the code was not required, so keep the removal and delete the copy. Red:
+   restore with `mv <file>.orig <file>`. Leave no `.orig` file behind either way.
 3. Exactly once, immediately before you write the `SUITE:` report line, run the fast
    command, `{{FAST_CMD}}` (`detect-test-command.sh --tier fast` prints it), then run
    the suites that {{INCLUDE:_affected-suites-working-tree.md}} — and confirm both runs are green. Make each of those two runs through the wrapper
