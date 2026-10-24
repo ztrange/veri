@@ -3500,3 +3500,34 @@ def test_cli_a_conductor_exiting_0_over_an_open_log_whose_issue_thread_already_c
 
     posted = [call for call in gh_calls if "needs-user" in " ".join(call)]
     assert (code, [r.get("event") for r in events_named(tmp_path)], posted) == (0, ["done", "resume"], []), stderr
+
+
+def test_cli_a_resumed_run_stopping_without_a_verdict_still_bails_needs_user_and_comments_when_the_only_done_on_the_thread_predates_its_last_resume_event_2238(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    gh_calls = conductor_that_prints(monkeypatch, tmp_path, [], result_record("Which option do you want?"))
+    log = tmp_path / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl"
+    log.parent.mkdir(parents=True)
+    log.write_text('{"event": "done", "ts": 1761000000}\n{"event": "resume", "ts": 1761100000}\n')
+    earlier_done = {"body": "### ✅ Done\n\nhttps://github.com/ztrange/veri/pull/2066",
+                    "created_at": "2025-10-20T22:00:00Z"}
+    thread = json.dumps([earlier_done])
+    recorded = subprocess.run
+
+    def gh_answering_the_thread(args, *a, **kwargs):
+        args = list(args)
+        if args[:1] == ["gh"] and "needs-user" not in " ".join(args) and "comment" not in args[1:2] and not any(
+                arg.startswith("body=") for arg in args):
+            gh_calls.append(args[1:])
+            return subprocess.CompletedProcess(args, 0, thread.encode() if not kwargs.get("text") else thread, b"")
+        return recorded(args, *a, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", gh_answering_the_thread)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    posted = [call for call in gh_calls if "needs-user" in " ".join(call)]
+    last = json.loads(log.read_text().splitlines()[-1])
+    assert (code, last.get("event"), last.get("cause"), len(posted)) == (0, "bail", "needs-user", 1), stderr + repr(gh_calls)
