@@ -30,7 +30,7 @@ def test_check_refuses_when_the_last_bail_is_not_suite_red_or_absent_and_exits_2
     branch = tmp_path / "branch-red"
     branch.write_text("test_a.py — FAIL a\n")
     default = tmp_path / "default-red"
-    default.write_text("")
+    default.write_text("none\n")
     events = tmp_path / "events.jsonl"
 
     events.write_text("".join(json.dumps(e) + "\n" for e in [
@@ -43,7 +43,15 @@ def test_check_refuses_when_the_last_bail_is_not_suite_red_or_absent_and_exits_2
     events.write_text(json.dumps({"event": "bail", "cause": "suite-red"}) + "\n")
     unreadable = run_cli(module, ["check", str(ledger), str(tmp_path / "missing"), str(default)])
     no_args = run_cli(module, [])
+    default.write_text("")
+    empty_default = run_cli(module, ["check", str(ledger), str(branch), str(default)])
+    missing_default = run_cli(module, ["check", str(ledger), str(branch), str(tmp_path / "no-default")])
+    default.write_text("none\n")
+    none_default = run_cli(module, ["check", str(ledger), str(branch), str(default)])
 
+    assert empty_default[0] == 2 and empty_default[1] == "" and str(default) in empty_default[2]
+    assert missing_default[0] == 2 and missing_default[1] == "" and str(tmp_path / "no-default") in missing_default[2]
+    assert none_default == (0, "test_a.py — FAIL a\n", "")
     assert other_cause[0] == 1 and other_cause[1] == ""
     assert no_bail[0] == 1 and no_bail[1] == ""
     assert unreadable[0] == 2 and unreadable[1] == ""
@@ -135,3 +143,24 @@ def test_check_with_an_empty_branch_red_file_and_an_unreadable_default_red_file_
     assert (code, out) == (2, "")
     assert str(branch) in err
     assert str(missing) not in err
+
+
+def test_check_on_an_empty_or_unreadable_default_red_file_exits_2_naming_it_while_none_means_no_suite_red_2226(run_cli, tmp_path):
+    module = importlib.import_module("veri.suite_red_resume")
+    ledger = tmp_path / "issue-7-ledger.md"
+    ledger.write_text("- [ ] step\n")
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "suite-red"}) + "\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text("test_a.py — FAIL a\n")
+    empty = tmp_path / "default-empty"
+    empty.write_text("")
+    none = tmp_path / "default-none"
+    none.write_text("none\n")
+    missing = tmp_path / "no-such-default-red"
+
+    for default in (empty, missing):
+        code, out, err = run_cli(module, ["check", str(ledger), str(branch), str(default)])
+
+        assert (code, out) == (2, "")
+        assert str(default) in err
+    assert run_cli(module, ["check", str(ledger), str(branch), str(none)]) == (0, "test_a.py — FAIL a\n", "")
