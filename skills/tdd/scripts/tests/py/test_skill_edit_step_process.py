@@ -991,3 +991,53 @@ def test_a_step_that_changes_a_checksum_pinned_unit_sentence_leaves_the_pin_matc
     commits = git(repo, "rev-list", base + "..HEAD").splitlines()
     assert [ran.returncode, len(commits), [pin_holds(c) for c in [base, *commits]]] == [0, 1, [True, True]], \
         (ran.stdout, ran.stderr[-700:])
+
+
+@pytest.mark.process("skill-edit-step.sh --added run against a real git repository with a stub grader")
+def test_an_added_step_refused_with_exit_2_leaves_git_status_porcelain_empty_2236(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
+    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is a deep blue. | shade |\n")
+    git(repo, "add", "issue.md")
+    git(repo, "commit", "-q", "-m", "issue")
+    claude = tmp_path / "claude"
+    claude.write_text(GRADER)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "--added", "reword the widget", "issue.md", "unit.md"], cwd=repo,
+                         capture_output=True, text=True, env=env)
+
+    assert [ran.returncode, git(repo, "status", "--porcelain")] == [2, ""], (ran.stdout, ran.stderr)
+
+
+@pytest.mark.process("skill-edit-step.sh --added run against a real git repository with a stub grader")
+def test_an_added_step_on_a_unit_whose_own_table_has_no_rows_refused_with_exit_2_leaves_git_status_porcelain_empty_2236(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "unit.md").write_text(
+        "The widget is painted a deep blue.\n\n## Requirements\n\n| ID | Requirement | Why |\n|---|---|---|\n")
+    (repo / "issue.md").write_text("## Requirements\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    claude = tmp_path / "claude"
+    claude.write_text(GRADER)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "--added", "reword the widget", "issue.md", "unit.md"], cwd=repo,
+                         capture_output=True, text=True, env=env)
+
+    assert [ran.returncode, git(repo, "status", "--porcelain")] == [2, ""], (ran.stdout, ran.stderr)
