@@ -9,7 +9,7 @@ import tempfile
 
 import replaces_case
 from entry import write
-from ledger import carries_mark, trailing_markers
+from ledger import KIND_RE, carries_mark, trailing_markers
 from transform_touches_tests import TEST_FILE
 
 USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> <test-file>... | "
@@ -267,7 +267,8 @@ def _check_earlier(ledger, step, exempt=()):
 
 
 def rerecord_earlier(ledger, step):
-    if "⟦diff-checked⟧" not in step:
+    kind = KIND_RE.search(step)
+    if not kind or kind.group(1) != "diff-checked":
         return 3
     root = _toplevel()
     if root is None:

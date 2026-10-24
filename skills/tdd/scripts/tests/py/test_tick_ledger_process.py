@@ -62,6 +62,35 @@ def test_ticking_a_diff_checked_step_rerecords_the_earlier_frozen_case_it_change
     assert (ticked, code, out) == (0, 0, "")
 
 
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_ticking_an_ordinary_step_that_only_mentions_the_diff_checked_tag_rerecords_nothing_2199(
+        tmp_path, run_cli):
+    tick_ledger = importlib.import_module("veri.tick_ledger")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier, edit, later = "step one adds a case", "step two mentions ⟦diff-checked⟧ in prose ⟦criterion 5⟧", "step three adds another"
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_older_case():\n    assert True\n\n\ndef test_pinned_2199():\n    assert 1 == 2\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "red")
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n- [ ] %s\n" % (earlier, edit, later))
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_older_case():\n    assert True\n\n\ndef test_pinned_2199():\n    assert 2 == 2\n")
+
+    ticked = run_cli(tick_ledger, [str(ledger), "step two"], cwd=tmp_path)[0]
+    rerecorded = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)[0]
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)
+
+    assert (ticked, rerecorded, code, "test_pinned_2199 (%s)" % earlier in out) == (0, 3, 1, True)
+
+
 @pytest.mark.tree_audit("copies the lib and veri script directories")
 @pytest.mark.process("the pinned snapshot's tick-ledger.sh and tests-frozen.sh, run beside a differing checkout copy")
 def test_the_diff_checked_tick_digests_the_rerecorded_case_with_the_snapshot_tests_frozen_not_the_checkouts_2199(
