@@ -704,3 +704,21 @@ def test_list_omits_and_render_shows_once_under_not_done_an_out_of_scope_candida
     assert (listed, listing, code, sum(candidate in l for l in lines),
             f"- {candidate} — budget-spent" in lines[head + 1:]) == (
         0, "name the bounds walk once\n", 0, 1, True)
+
+
+def test_append_records_an_out_of_bounds_candidate_under_its_own_class_and_list_does_not_print_it_2305(
+        monkeypatch, capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    report = ("CANDIDATES: structural | fold the two awk passes into one\n"
+              "CANDIDATES: test-only | tidy the fixture\n"
+              "CANDIDATES: out-of-scope | rename the lib helper\n"
+              "CANDIDATES: out-of-bounds | drop the dead branch in an untouched script\n")
+    monkeypatch.setattr(sys, "stdin", io.StringIO(report))
+    assert refactor_owed.main(["append", str(owed), "step one", "a.sh"]) == 0
+
+    code = refactor_owed.main(["list", str(owed)])
+    assert (owed.read_text().splitlines(), code, capsys.readouterr().out) == (
+        ["### step one", "- fold the two awk passes into one", "- test-only | tidy the fixture",
+         "- out-of-scope | rename the lib helper",
+         "- out-of-bounds | drop the dead branch in an untouched script"],
+        0, "fold the two awk passes into one\nrename the lib helper\n")

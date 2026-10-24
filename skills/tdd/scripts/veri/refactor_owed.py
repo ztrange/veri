@@ -16,6 +16,8 @@ USAGE = ("refactor-owed: usage: refactor-owed.sh append <file> '<STEP>' < leaf-r
 STRUCTURAL, _, TEST_ONLY, OUT_OF_SCOPE = (candidate(cls) for cls in CLASSES)
 TEST_ONLY_PREFIX = "test-only | "
 OUT_OF_SCOPE_PREFIX = "out-of-scope | "
+OUT_OF_BOUNDS = candidate("out-of-bounds")
+OUT_OF_BOUNDS_PREFIX = "out-of-bounds | "
 TEST_ONLY_MARK = "- " + TEST_ONLY_PREFIX
 OUT_OF_SCOPE_MARK = "- " + OUT_OF_SCOPE_PREFIX
 APPLIED_MARK = "applied | "
@@ -57,18 +59,19 @@ def write(file, text):
 
 
 def append(file, step, bounds):
-    structural, test_only, out_of_scope = [], [], []
+    structural, test_only, out_of_scope, out_of_bounds = [], [], [], []
     tests_bound = all_tests(bounds)
     stream = getattr(sys.stdin, "buffer", None)
     report = stream.read().decode(errors="surrogateescape") if stream else sys.stdin.read()
     routes = ((STRUCTURAL, test_only if tests_bound else structural, TEST_ONLY_PREFIX if tests_bound else ""),
               (TEST_ONLY, test_only, TEST_ONLY_PREFIX),
-              (OUT_OF_SCOPE, out_of_scope, OUT_OF_SCOPE_PREFIX))
+              (OUT_OF_SCOPE, out_of_scope, OUT_OF_SCOPE_PREFIX),
+              (OUT_OF_BOUNDS, out_of_bounds, OUT_OF_BOUNDS_PREFIX))
     for line in report.split("\n"):
         for pattern, group, prefix in routes:
             if (match := pattern.match(line)) and match.group(1):
                 group.append(prefix + match.group(1))
-    owed = structural + test_only + out_of_scope
+    owed = structural + test_only + out_of_scope + out_of_bounds
     return write(file, f"### {step}\n" + bullets(owed)) if owed else 0
 
 
@@ -156,6 +159,7 @@ def structural_lines(file):
     handled = done.keys() | {t for _, _, t in not_done_records(lines)}
     counts = Counter(l[2:].removeprefix(OUT_OF_SCOPE_PREFIX) for l in lines
                      if l.startswith("- ") and not l.startswith(TEST_ONLY_MARK)
+                     and not l.startswith("- " + OUT_OF_BOUNDS_PREFIX)
                      and l[2:] not in handled
                      and l[2:].removeprefix(OUT_OF_SCOPE_PREFIX) not in handled)
     listed = "\n".join(t for t, _ in counts.most_common()).rstrip("\n")
