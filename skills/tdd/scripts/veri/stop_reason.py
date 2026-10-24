@@ -23,6 +23,9 @@ def main(argv):
         sys.stderr.write("stop-reason.sh: no events log at %s\n" % log)
         return 2
     events = event_log.read_events(log)
+    if not events:
+        sys.stderr.write("stop-reason.sh: no events in %s\n" % log)
+        return 2
     run_dir = os.path.join(".tdd", "wt", argv[0])
     ended, cause, mark = run_end.run_end(run_dir)
     conductor_log = run_end.conductor_log(run_dir, argv[0])
