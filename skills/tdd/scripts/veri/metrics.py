@@ -113,13 +113,13 @@ def conductor_sessions(issue, path):
                                 continue
                             seen_ids.add(message["id"])
                         open_turns += 1
-                        context = str(sum((usage.get(key) or 0) for key in CONTEXT_KEYS))
-                        open_contexts.append(int(context))
+                        context = sum((usage.get(key) or 0) for key in CONTEXT_KEYS)
+                        open_contexts.append(context)
                         model_name = message.get("model") or ""
                         model_family = session_cost.family(model_name) or ("opus" if not model_name else None)
                         if model_family is None:
                             open_priced = False
-                            turn_rows.append([str(len(turn_rows) + 1), "unpriced", context])
+                            turn_rows.append([str(len(turn_rows) + 1), "unpriced", str(context)])
                             continue
                         prices = session_cost.PRICES[model_family]
                         cache_write_dollars = sum(tokens * prices[rate] / 1e6
@@ -130,7 +130,7 @@ def conductor_sessions(issue, path):
                         open_cost += turn_dollars
                         base_dollars = turn_dollars - output_dollars
                         open_rows.append((len(turn_rows), base_dollars))
-                        turn_rows.append([str(len(turn_rows) + 1), "$%.2f" % base_dollars, context])
+                        turn_rows.append([str(len(turn_rows) + 1), "$%.2f" % base_dollars, str(context)])
         if open_turns:
             sessions.append({"total_cost_usd": open_cost if open_priced else None, "num_turns": open_turns, "open": True})
     return sessions, turn_rows
