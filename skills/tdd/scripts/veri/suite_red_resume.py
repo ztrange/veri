@@ -57,6 +57,9 @@ def main(argv):
         cause = last_bail_cause(os.path.join(os.path.dirname(ledger), "events.jsonl"))
         branch = read_text(branch_file)
         default = read_text(default_file)
+        if not branch.strip():
+            complain(f"{branch_file}: empty")
+            return 2
     except OSError as error:
         complain(f"{error.filename}: {error.strerror}")
         return 2
