@@ -34,6 +34,14 @@ def read_nonempty(path):
     return text
 
 
+def attempt(read):
+    try:
+        return read(), None
+    except OSError as error:
+        complain(f"{error.filename}: {error.strerror}")
+        return None, 2
+
+
 def suites(text):
     return [line.split(SEPARATOR)[0] for line in text.splitlines()]
 
@@ -49,11 +57,9 @@ def last_bail_cause(path):
 
 
 def insert(ledger, branch_file):
-    try:
-        text = read_nonempty(branch_file)
-    except OSError as error:
-        complain(f"{error.filename}: {error.strerror}")
-        return 2
+    text, failed = attempt(lambda: read_nonempty(branch_file))
+    if failed:
+        return failed
     reds = text.splitlines()
     steps = [line for line in read_ledger(ledger).split("\n") if STEP_RE.fullmatch(line)]
     unchecked = [line for line in steps if STEP_RE.fullmatch(line).group(2) == " "]
@@ -69,13 +75,14 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     _, ledger, branch_file, default_file = argv
-    try:
-        cause = last_bail_cause(os.path.join(os.path.dirname(ledger), "events.jsonl"))
-        branch = read_nonempty(branch_file)
-        default = read_nonempty(default_file)
-    except OSError as error:
-        complain(f"{error.filename}: {error.strerror}")
-        return 2
+    inputs, failed = attempt(lambda: (
+        last_bail_cause(os.path.join(os.path.dirname(ledger), "events.jsonl")),
+        read_nonempty(branch_file),
+        read_nonempty(default_file),
+    ))
+    if failed:
+        return failed
+    cause, branch, default = inputs
     if cause != "suite-red":
         complain("the last bail was not suite-red")
         return 1
