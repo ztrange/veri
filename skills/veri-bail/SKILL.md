@@ -9,7 +9,8 @@ description: >-
 Obeys `operator/PRINCIPLES.md` under the veri clone root (`git -C <base dir> rev-parse --show-toplevel`); read it first.
 
 `$S` is `skills/tdd/scripts/`, reached from this skill's base directory as `../tdd/scripts/`.
-Every command runs from the target repository's main working tree.
+Every command runs from the target repository's main working tree, except the save and restore in
+the run's worktree `.tdd/wt/<n>`.
 
 ## Invocation
 
@@ -59,7 +60,8 @@ and costs no park.
 
 ## A first real bail: resume once
 
-Resume the run once with `$S/detach-leaf.sh $S/run-conductor.sh <n>`. If the fix it needs
+Resume the run once with `$S/detach-leaf.sh $S/run-conductor.sh <n>`, run from the target
+repository's main working tree. If the fix it needs
 landed after the commit recorded in `.tdd/issue-<n>-skill-commit`, set `VERI_NEW_SKILL=1`
 on that resume so it re-pins the skill; otherwise resume as it was.
 
