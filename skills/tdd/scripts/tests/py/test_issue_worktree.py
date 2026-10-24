@@ -194,8 +194,9 @@ def test_main_remove_returns_a_dying_gits_status_inside_0_to_3_as_it_is_and_maps
             remove_code, want, "", [list(listing), list(status), list(remove)])
 
 
+@pytest.mark.process("a stand-in conductor (a claude under run_conductor.py) left running beside real git worktree calls")
 def test_main_hands_back_a_registered_worktree_by_n_alone_unless_its_pid_file_names_a_live_conductor(
-        monkeypatch, capsys, tmp_path, issue_worktree):
+        monkeypatch, capfd, tmp_path, issue_worktree, run_cli):
     import os
 
     main_tree = str(tmp_path / "repo")
@@ -219,23 +220,51 @@ def test_main_hands_back_a_registered_worktree_by_n_alone_unless_its_pid_file_na
     for slug in ("slug", "other"):
         calls = routing_git(monkeypatch, {listing: (0, registry, "")})
         code = issue_worktree.main(["7", slug])
-        assert (slug, code, capsys.readouterr()[:], calls) == (slug, 0, (path + "\n", ""), [list(listing)])
+        assert (slug, code, capfd.readouterr()[:], calls) == (slug, 0, (path + "\n", ""), [list(listing)])
 
     pid_file = pathlib.Path(path) / ".tdd" / "conductor.pid"
     pid_file.parent.mkdir(parents=True)
-    held = "issue-worktree: %s is held by a live conductor (pid %s) — refusing to hand back a run in flight\n"
-    for content, digits in ((" \t4242\t \nignored\n", "4242"), ("004242\n", "004242")):
-        pid_file.write_text(content)
-        calls = routing_git(monkeypatch, {listing: (0, registry, "")})
-        code = issue_worktree.main(["7", "slug"])
-        assert (content, code, capsys.readouterr()[:], calls) == (
-            content, 2, ("", held % (path, digits)), [list(listing)])
-
     for content in ("4242\r\n", "pid 4242\n", "-4242\n", "1\n", "999\n", "99999999999999999999\n", "", "\n", "0\n"):
         pid_file.write_text(content)
         calls = routing_git(monkeypatch, {listing: (0, registry, "")})
         code = issue_worktree.main(["7", "slug"])
-        assert (content, code, capsys.readouterr()[:], calls) == (content, 0, (path + "\n", ""), [list(listing)])
+        assert (content, code, capfd.readouterr()[:], calls) == (content, 0, (path + "\n", ""), [list(listing)])
+
+    monkeypatch.undo()
+    import time
+
+    repo = scratch_repo(tmp_path / "held")
+    want = scratch_wt_path(repo, 13)
+    assert run_cli(issue_worktree, ["13", "own-run"], cwd=repo)[0] == 0
+    real_pid_file = pathlib.Path(want, ".tdd", "conductor.pid")
+    real_pid_file.parent.mkdir(parents=True, exist_ok=True)
+
+    real_pid_file.write_text("%d\n" % os.getppid())
+    own = run_cli(issue_worktree, ["13", "own-run"], cwd=repo)
+
+    claude_pid = tmp_path / "claude.pid"
+    claude = tmp_path / "claude"
+    claude.write_text('#!/bin/sh\necho $$ > "%s"\nsleep 30\n' % claude_pid)
+    launcher = tmp_path / "run_conductor.py"
+    launcher.write_text('#!/bin/sh\n"%s" -p run\n' % claude)
+    for stub in (claude, launcher):
+        stub.chmod(0o755)
+    parent = subprocess.Popen([str(launcher), "13"])
+    try:
+        for _ in range(200):
+            if claude_pid.exists() and claude_pid.read_text().strip():
+                break
+            time.sleep(0.05)
+        holder = claude_pid.read_text().strip()
+        real_pid_file.write_text(holder + "\n")
+        other = run_cli(issue_worktree, ["13", "own-run"], cwd=repo)
+    finally:
+        if claude_pid.exists() and claude_pid.read_text().strip():
+            os.kill(int(claude_pid.read_text()), 15)
+        parent.terminate()
+        parent.wait()
+
+    assert (own[0], own[1].strip(), other[0], other[1], holder in other[2]) == (0, want, 2, "", True)
 
 
 def test_main_hands_back_a_registered_worktree_whose_pid_file_holds_0_or_00_issue_819(

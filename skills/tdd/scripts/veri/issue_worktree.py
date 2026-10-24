@@ -105,6 +105,22 @@ def inside_own_scripts():
     return here == scripts or here.startswith(scripts + os.sep)
 
 
+def ps_field(pid, field):
+    ps = subprocess.Popen(["ps", "-p", str(pid), "-o", field + "="], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    out = ps.communicate()[0].strip()
+    return out if ps.returncode == 0 else ""
+
+
+def ancestors():
+    found = set()
+    pid = os.getpid()
+    while pid > 1 and pid not in found:
+        found.add(pid)
+        parent = ps_field(pid, "ppid")
+        pid = int(parent) if parent.isdigit() else 0
+    return found
+
+
 def main(argv):
     if len(argv) < 2 or not argv[0] or not argv[1] or not positive_whole(argv[1] if argv[0] == "--remove" else argv[0]):
         sys.stderr.write(USAGE + "\n")
@@ -129,7 +145,7 @@ def main(argv):
     path = wt_path(main_tree, argv[0])
     if "worktree " + path in registry.stdout.split("\n"):
         pid = live_conductor(path)
-        if pid is not None:
+        if pid is not None and int(pid) not in ancestors():
             sys.stderr.write("issue-worktree: %s is held by a live conductor (pid %s)"
                              " — refusing to hand back a run in flight\n" % (path, pid))
             return 2
