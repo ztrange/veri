@@ -1,5 +1,6 @@
 """merge-lock.sh's verbs, run in-process."""
 import os
+import shutil
 import socket
 import subprocess
 import sys
@@ -22,6 +23,14 @@ def main(argv):
         os.mkdir(lock)
         with open(record, "w") as f:
             f.write(f"{pid} {socket.gethostname()} {time.strftime('%Y-%m-%dT%H:%M:%S%z')}\n")
+    elif argv[0] == "release":
+        rest = [a for a in argv[1:] if a != "--force"]
+        pid = rest[1] if rest[:1] == ["--pid"] else str(os.getppid())
+        if "--force" not in argv:
+            with open(record) as f:
+                if f.read().split()[0] != pid:
+                    return 1
+        shutil.rmtree(lock)
     elif argv[0] == "holder":
         if not os.path.isdir(lock):
             return 3
