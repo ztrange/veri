@@ -24,11 +24,22 @@ def main(argv):
     if argv[0] == "take":
         pid = _caller_pid(argv[1:])
         os.makedirs(os.path.dirname(lock), exist_ok=True)
+        reported = False
         while True:
             try:
                 os.mkdir(lock)
                 break
             except FileExistsError:
+                if not reported:
+                    try:
+                        with open(record) as f:
+                            text = f.read()
+                        os.kill(int(text.split()[0]), 0)
+                    except ProcessLookupError:
+                        print("stale lock: " + text, end="", file=sys.stderr, flush=True)
+                        reported = True
+                    except (OSError, ValueError, IndexError):
+                        pass
                 time.sleep(float(os.environ.get("VERI_MERGE_LOCK_POLL", "30")))
         with open(record, "w") as f:
             f.write(f"{pid} {socket.gethostname()} {time.strftime('%Y-%m-%dT%H:%M:%S%z')}\n")

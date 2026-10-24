@@ -55,3 +55,46 @@ def test_two_takers_racing_for_a_free_lock_end_with_one_holding_it_and_the_other
             t.communicate()
         sleeper.kill()
         sleeper.wait()
+
+
+@pytest.mark.process("a merge-lock.sh take shim waiting on a stale lock in a scratch repository, then release --force")
+def test_take_on_a_stale_lock_reports_the_stale_holder_on_stderr_and_waits_with_the_lock_in_place_until_release_force(
+        tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "-C", str(repo), "init", "-q", "-b", "main"], check=True)
+    env = {**os.environ, "VERI_MERGE_LOCK_POLL": "0.05"}
+    child = subprocess.Popen([sys.executable, "-c", "pass"])
+    child.wait()
+    dead = str(child.pid)
+    lock = repo / ".tdd" / "merge.lock"
+
+    def shim(*args, **kw):
+        return subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), *args], cwd=repo, env=env,
+                              stdin=subprocess.DEVNULL, capture_output=True, text=True, **kw)
+
+    shim("take", "--pid", dead)
+    errfile = tmp_path / "take.err"
+    with open(errfile, "w") as err:
+        taker = subprocess.Popen(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), "take", "--pid", str(os.getpid())],
+                                 cwd=repo, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=err)
+    try:
+        deadline = time.monotonic() + 10
+        while not errfile.read_text() and taker.poll() is None and time.monotonic() < deadline:
+            time.sleep(0.02)
+        time.sleep(0.3)
+        reported = errfile.read_text()
+        waiting = taker.poll() is None
+        kept = lock.is_dir()
+        forced = shim("release", "--force")
+        try:
+            taker.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            taker.kill()
+        held = shim("holder")
+        assert (dead in reported.split(), "stale" in reported.lower(), waiting, kept, forced.returncode,
+                taker.returncode, str(os.getpid()) in held.stdout.split()) == (True, True, True, True, 0, 0, True)
+    finally:
+        if taker.poll() is None:
+            taker.kill()
+        taker.communicate()
