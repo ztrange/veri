@@ -80,7 +80,7 @@ PROMPTS = [
     ("3608423958 11490", "build-develop-prompt.sh", ["red-repair", "{spec}", "{step}", "{cmd}", "a case", "{reason}"]),
     ("262724168 11569", "build-develop-prompt.sh", ["red-contradicted", "{spec}", "{step}", "{cmd}", "a case"]),
     ("1063481444 8774", "build-develop-prompt.sh", ["green", "{spec}", "{step}", "{cmd}", "t/x.test.sh", "case one", "make unit"]),
-    ("1273238902 10085", "build-develop-prompt.sh", ["refactor", "{spec}", "{step}", "{cmd}", "a.sh b.sh"]),
+    ("2686151139 10601", "build-develop-prompt.sh", ["refactor", "{spec}", "{step}", "{cmd}", "a.sh b.sh"]),
     ("524036992 6107", "build-develop-prompt.sh", ["cover", "{spec}", "{step}", "{cmd}"]),
     ("1243556179 5043", "build-develop-prompt.sh", ["transform", "{spec}", "{step}", "{cmd}"]),
     ("1651725326 5297", "build-develop-prompt.sh", ["structural", "{spec}", "a candidate", "{cmd}", "a.sh b.sh"]),
