@@ -208,12 +208,13 @@ def main(argv):
     if unknown:
         print("Requirements heading names no existing unit: " + unknown, file=sys.stderr)
         return 2
-    for row in _issue_rows(issue, unit):
+    issue_rows = _issue_rows(issue, unit)
+    for row in issue_rows:
         if not re.fullmatch(r".+(\d+|<next>)", _row_id(row)):
             print("Requirement row ID is neither <prefix><digits> nor <prefix><next>: " + _row_id(row),
                   file=sys.stderr)
             return 2
-    explicit = [_row_id(r) for r in _issue_rows(issue, unit) if not _row_id(r).endswith("<next>")]
+    explicit = [_row_id(r) for r in issue_rows if not _row_id(r).endswith("<next>")]
     for dup in explicit:
         if explicit.count(dup) > 1:
             print("Requirement rows resolve to the same ID twice: " + dup, file=sys.stderr)
