@@ -291,3 +291,17 @@ def test_a_run_whose_only_end_mark_is_the_runners_needs_user_bail_with_no_phase_
     code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
 
     assert (code, out.splitlines()[0]) == (0, "bailed  None")
+
+
+def test_a_killed_run_whose_events_hold_a_pair_further_apart_than_the_sleep_gap_prints_killed_then_a_gap_line_2205(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    run = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    run.mkdir(parents=True)
+    (run / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in (
+        {"ts": 100, "issue": "7", "event": "step-done"},
+        {"ts": 1100, "issue": "7", "event": "step-done"})))
+    (tmp_path / ".tdd" / "conductor-7.log").write_text(json.dumps({"type": "system", "subtype": "init"}) + "\n")
+
+    code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path, env={"VERI_SLEEP_GAP": "900"})
+
+    assert (code, out, err) == (0, "killed\ngap 100 1100\n", "")
