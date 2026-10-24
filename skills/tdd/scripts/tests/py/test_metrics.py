@@ -1433,6 +1433,20 @@ def test_main_counts_a_finished_conductor_session_once_from_its_result_record_an
     assert "Conductor own spending: $1.25 over 3 turns, in 1 sessions.\n" in out
 
 
+def test_main_names_the_conductor_model_the_run_recorded_at_launch_on_the_conductor_own_spending_line(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    sessions = [{"type": "system", "subtype": "init"},
+                {"type": "result", "total_cost_usd": 1.25, "num_turns": 40}]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in sessions))
+    (tmp_path / ".tdd" / "issue-108-conductor-model").write_text("sonnet\n")
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    line = next(l for l in out.splitlines() if l.startswith("Conductor own spending:"))
+    assert "sonnet" in line
+
+
 def test_main_run_from_the_issue_worktree_finds_the_conductor_stream_log_the_launcher_wrote_under_the_primary_checkout(tmp_path, monkeypatch, capsys, metrics):
     worktree = tmp_path / ".tdd" / "wt" / "108"
     worktree.mkdir(parents=True)
