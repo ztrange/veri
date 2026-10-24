@@ -165,6 +165,15 @@ def _guard(unit, base, issue, pins):
     return int(bool(offending)), "".join(p + "\n" for p in offending)
 
 
+def _restore(snapshot, *names):
+    for name in names:
+        if name in snapshot:
+            with open(name, "wb") as f:
+                f.write(snapshot[name])
+        elif os.path.exists(name):
+            os.unlink(name)
+
+
 def main(argv):
     added = None
     if len(argv) >= 4 and argv[0] == "--added":
@@ -182,12 +191,15 @@ def main(argv):
         print("Requirements heading names no existing unit: " + unknown, file=sys.stderr)
         return 2
     base = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
-    moved = apply(issue, unit)
     path = skill_edit_guard.list_path(unit)
+    graded_file = grade_prose.graded_path(unit)
+    snapshot = {n: open(n, "rb").read() for n in (path, unit, graded_file) if os.path.exists(n)}
+    moved = apply(issue, unit)
     if not _claimed(path, unit):
         if added is not None:
             print("added step names a unit no requirements list claims, so nothing would change: " + added,
                   file=sys.stderr)
+            _restore(snapshot, path, unit, graded_file)
             return 2
         return 3
     if os.path.getsize(unit):
@@ -196,6 +208,7 @@ def main(argv):
         graded, said = 1, "FAIL: unit is empty\n"
     if added is not None and graded == 0:
         print("added step graded PASS before any author ran, so no prose would change: " + added, file=sys.stderr)
+        _restore(snapshot, path, unit, graded_file)
         return 2
     authored = graded == 1
     before = {}
