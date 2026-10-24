@@ -313,3 +313,13 @@ def test_issue_2205_a_directory_holding_no_run_for_the_issue_exits_2_and_prints_
     code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
 
     assert (code, out) == (2, "")
+
+
+def test_issue_2205_run_from_inside_the_runs_worktree_exits_2_with_a_diagnostic_naming_dot_tdd_wt(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    worktree = tmp_path / ".tdd" / "wt" / "7"
+    (worktree / ".tdd").mkdir(parents=True)
+
+    code, out, err = run_cli(stop_reason, ["7"], cwd=worktree)
+
+    assert (code, out, err) == (2, "", "stop-reason.sh: no run for issue 7 under .tdd/wt\n")
