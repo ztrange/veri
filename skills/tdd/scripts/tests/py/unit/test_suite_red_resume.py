@@ -164,3 +164,14 @@ def test_check_on_an_empty_or_unreadable_default_red_file_exits_2_naming_it_whil
         assert (code, out) == (2, "")
         assert str(default) in err
     assert run_cli(module, ["check", str(ledger), str(branch), str(none)]) == (0, "test_a.py — FAIL a\n", "")
+
+
+def test_usage_names_the_insert_verb_beside_check_on_stderr_with_exit_2_for_no_arguments_or_an_unknown_verb_2226(run_cli):
+    module = importlib.import_module("veri.suite_red_resume")
+
+    for argv in ([], ["bogus", "a", "b"]):
+        code, out, err = run_cli(module, argv)
+
+        assert (code, out) == (2, "")
+        assert "suite-red-resume.sh check <ledger-file> <branch-red-file> <default-red-file>" in err
+        assert "suite-red-resume.sh insert <ledger-file> <branch-red-file>" in err

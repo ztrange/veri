@@ -11,7 +11,10 @@ except ImportError:
     import add_ledger_step
     from ledger import STEP_RE, read_ledger
 
-USAGE = "usage: suite-red-resume.sh check <ledger-file> <branch-red-file> <default-red-file>"
+USAGE = (
+    "usage: suite-red-resume.sh check <ledger-file> <branch-red-file> <default-red-file>\n"
+    "       suite-red-resume.sh insert <ledger-file> <branch-red-file>"
+)
 SEPARATOR = " — "
 
 
