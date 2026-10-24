@@ -77,3 +77,14 @@ def test_holder_exits_1_and_prints_the_record_marked_stale_when_the_recorded_pid
 
     assert (held[0], dead in held[1].split(), socket.gethostname() in held[1], "stale" in held[1].lower()) == (
         1, True, True, True)
+
+
+@pytest.mark.process("git init on a scratch repository, holder run against a lock directory with no record")
+def test_holder_exits_2_when_the_lock_directory_exists_but_its_record_is_missing(
+        tmp_path, merge_lock, run_cli):
+    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    (tmp_path / ".tdd" / "merge.lock").mkdir(parents=True)
+
+    held = run_cli(merge_lock, ["holder"], cwd=tmp_path)
+
+    assert (held[0], held[1]) == (2, "")
