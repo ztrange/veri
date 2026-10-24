@@ -7,6 +7,8 @@ import sys
 
 import pytest
 
+from pass_marker import write_pass_marker
+
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 USAGE = b"usage: supervise.sh <name> <cmd> [args...]\n"
@@ -60,6 +62,16 @@ def test_cli_refuses_no_argument_an_empty_name_and_a_name_alone_through_run_cli_
 
 
 SET_BY_CLEAN_ENV = set()
+
+
+REAL_WORK_TREE_HASH = importlib.import_module("veri.supervise").tests_frozen._work_tree_hash
+
+
+@pytest.fixture(autouse=True)
+def work_tree_hashes_to_tree(monkeypatch):
+    """A directory that is no git repository hashes to "tree"; a repository, as it really does."""
+    monkeypatch.setattr(importlib.import_module("veri.supervise").tests_frozen, "_work_tree_hash",
+                        lambda: REAL_WORK_TREE_HASH() if os.path.isdir(".git") else "tree")
 
 
 def clean_env(monkeypatch, **env):
@@ -123,11 +135,18 @@ def fake_git_only(monkeypatch, toplevel):
 
 def checked_step(work, head="0123456789abcdef0123456789abcdef01234567", issue="2206", step=1):
     """Ledger step number step of issue with a current check-earlier pass marker at head; the environment naming it."""
-    tests_frozen = importlib.import_module("veri.tests_frozen")
     boxes = ["first step", *(f"step {n}" for n in range(2, step + 1))]
     (work / ".tdd").mkdir(parents=True, exist_ok=True)
     (work / ".tdd" / f"issue-{issue}.md").write_text(f"# Plan for #{issue}\n\n" + "".join(f"- [ ] {b}\n" for b in boxes))
-    (work / tests_frozen._pass_marker_path(boxes[-1])).write_text(f"step: {boxes[-1]}\nhead: {head}\n")
+    tree = "tree"
+    if (work / ".git").exists():
+        here = os.getcwd()
+        os.chdir(work)
+        try:
+            tree = REAL_WORK_TREE_HASH()
+        finally:
+            os.chdir(here)
+    write_pass_marker(work, boxes[-1], head, tree)
     return {"VERI_ISSUE": issue, "VERI_STEP": str(step)}
 
 
@@ -135,6 +154,13 @@ def checked_head(work, **step):
     """checked_step at work's own HEAD, work already a git repository with a commit."""
     head = subprocess.run(["git", "-C", str(work), "rev-parse", "HEAD"], check=True, capture_output=True, text=True)
     return checked_step(work, head.stdout.strip(), **step)
+
+
+def ignoring_run_files(work, window):
+    """window, with work's git told to ignore what the launched leaves write beside the checked tree."""
+    (work / ".git" / "info").mkdir(exist_ok=True)
+    (work / ".git" / "info" / "exclude").write_text("/*\n!/.tdd\n")
+    return window
 
 
 def committed_head(work):
@@ -3307,7 +3333,7 @@ def test_cli_refuses_a_launch_under_another_name_or_the_same_name_even_after_the
     clean_env(monkeypatch)
     work = tmp_path / "live"
     work.mkdir()
-    window = {**LIVE_LEAF_WINDOW, **checked_step(work, committed_head(work))}
+    window = ignoring_run_files(work, {**LIVE_LEAF_WINDOW, **checked_step(work, committed_head(work))})
     sup = subprocess.Popen([str(SCRIPTS / "supervise.sh"), "develop-red", "sh", "-c", "echo $$ > leaf-pid; exec sleep 60"],
                            cwd=work, env={**os.environ, **window}, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     leaf = None
@@ -3366,7 +3392,7 @@ def test_cli_launches_when_the_recorded_leaf_is_gone_or_finished_under_the_same_
 
     done = tmp_path / "done"
     done.mkdir()
-    window = {**LIVE_LEAF_WINDOW, **checked_step(done, committed_head(done))}
+    window = ignoring_run_files(done, {**LIVE_LEAF_WINDOW, **checked_step(done, committed_head(done))})
     done_answers = []
     for name, word in (("revise-green-1", "first"), ("revise-green-1", "second"), ("verify-green", "third")):
         for suffix in ("exit", "pid"):
@@ -3377,7 +3403,7 @@ def test_cli_launches_when_the_recorded_leaf_is_gone_or_finished_under_the_same_
 
     nest = tmp_path / "nest"
     nest.mkdir()
-    window = {**LIVE_LEAF_WINDOW, **checked_step(nest, committed_head(nest))}
+    window = ignoring_run_files(nest, {**LIVE_LEAF_WINDOW, **checked_step(nest, committed_head(nest))})
     inner = f"{shlex.quote(sup)} verify-green sh -c 'echo inner >> ran' 2> inner-err; echo $? > inner-code"
     nest_answer = (launch(nest, "verdict-green", "sh", "-c", inner),
                    (nest / "inner-code").read_text().strip(), (nest / "ran").read_text(),
@@ -4105,9 +4131,8 @@ def test_cli_refuses_a_verify_red_or_verify_green_launch_whose_only_pass_markers
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-2206.md").write_text("# Plan for #2206\n\n- [ ] first step\n")
     head = "0123456789abcdef0123456789abcdef01234567"
-    marker_path = supervise.tests_frozen._pass_marker_path
-    (tmp_path / marker_path("another step")).write_text(f"step: another step\nhead: {head}\n")
-    (tmp_path / marker_path("first step")).write_text(f"step: first step\nhead: {'f' * 40}\n")
+    write_pass_marker(tmp_path, "another step", head)
+    write_pass_marker(tmp_path, "first step", "f" * 40)
     stub = tmp_path / "claude"
     started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 
@@ -4119,6 +4144,17 @@ def test_cli_refuses_a_verify_red_or_verify_green_launch_whose_only_pass_markers
 
     assert answers == {name: (2, "", True) for name in ("verify-red", "verify-green")}
     assert not started
+
+
+@pytest.mark.process("a real git scratch repository that checked_head marks as check-earlier passed")
+def test_checked_head_leaves_a_file_the_developer_adds_visible_to_git_status_2230(tmp_path):
+    committed_head(tmp_path)
+    checked_head(tmp_path)
+    (tmp_path / "added.txt").write_text("the developer added this\n")
+
+    status = subprocess.run(["git", "-C", str(tmp_path), "status", "--porcelain"], check=True, capture_output=True, text=True)
+
+    assert "added.txt" in status.stdout
 
 
 def test_cli_launches_verify_red_and_verify_green_with_a_current_pass_marker_and_every_other_leaf_name_with_no_marker_2206(
@@ -4136,7 +4172,7 @@ def test_cli_launches_verify_red_and_verify_green_with_a_current_pass_marker_and
                                  env={"VERI_ISSUE": "2206", "VERI_STEP": "1"})
         return code, bool(started), "refusing" in err
 
-    marker.write_text(f"step: first step\nhead: {head}\n")
+    write_pass_marker(tmp_path, "first step", head)
     answers = {}
     for name in ("verify-red", "verify-green"):
         started.clear()
@@ -4155,7 +4191,6 @@ def test_cli_gates_a_verify_red_or_verify_green_launch_given_the_step_as_its_led
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-2206.md").write_text("# Plan for #2206\n\n- [ ] first step\n")
     head = "0123456789abcdef0123456789abcdef01234567"
-    marker = tmp_path / supervise.tests_frozen._pass_marker_path("first step")
     stub = tmp_path / "claude"
     started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 
@@ -4166,7 +4201,7 @@ def test_cli_gates_a_verify_red_or_verify_green_launch_given_the_step_as_its_led
         return code, bool(started), "check-earlier" in err
 
     unmarked = {name: answer(name) for name in ("verify-red", "verify-green")}
-    marker.write_text(f"step: first step\nhead: {head}\n")
+    write_pass_marker(tmp_path, "first step", head)
     marked = {name: answer(name) for name in ("verify-red", "verify-green")}
 
     assert unmarked == {name: (2, False, True) for name in unmarked}
@@ -4179,7 +4214,7 @@ def test_cli_refuses_a_verify_red_or_verify_green_launch_whose_veri_step_is_unse
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-2206.md").write_text("# Plan for #2206\n\n- [ ] first step\n")
     head = "0123456789abcdef0123456789abcdef01234567"
-    (tmp_path / supervise.tests_frozen._pass_marker_path("first step")).write_text(f"step: first step\nhead: {head}\n")
+    write_pass_marker(tmp_path, "first step", head)
     stub = tmp_path / "claude"
     started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 

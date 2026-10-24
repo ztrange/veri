@@ -1662,3 +1662,59 @@ def test_check_earlier_exit_2_outside_any_git_repository_removes_the_pass_marker
     code, _, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", step], cwd=plain)
 
     assert (passed, code, list((plain / ".tdd").glob("check-earlier-*.pass"))) == (0, 2, [])
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked for HEAD and the work tree's content")
+def test_check_earlier_pass_marker_differs_after_a_work_tree_edit_and_is_the_same_without_one_2230(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
+    (tmp_path / "lib.py").write_text("one\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests", "lib.py")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier, current = "step one adds a case", "step two adds another"
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    argv = ["check-earlier", str(ledger), "--step", current]
+
+    def marker():
+        code = run_cli(tests_frozen, argv, cwd=tmp_path)[0]
+        (path,) = (tmp_path / ".tdd").glob("check-earlier-*.pass")
+        return code, path.read_text()
+
+    first = marker()
+    again = marker()
+    (tmp_path / "lib.py").write_text("two\n")
+    edited = marker()
+    (tmp_path / "notes.txt").write_text("untracked\n")
+    untracked = marker()
+
+    assert [first[0], again[0], edited[0], untracked[0]] == [0, 0, 0, 0]
+    assert first[1] == again[1]
+    assert len({first[1], edited[1], untracked[1]}) == 3
+    assert "step: %s\nhead: " % current in edited[1]
+
+
+@pytest.mark.process("a real git repository under tmp_path holding a nested repository made by git init")
+def test_check_earlier_exits_2_naming_the_work_tree_hash_and_writes_no_pass_marker_for_an_untracked_nested_repo_with_no_commits_2230(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier, current = "step one adds a case", "step two adds another"
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    (tmp_path / "nested").mkdir()
+    git(tmp_path / "nested", "init", "-q")
+
+    code, out, err = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, out, "work-tree hash" in err, list((tmp_path / ".tdd").glob("check-earlier-*.pass"))) == (
+        2, "", True, [])
