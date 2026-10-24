@@ -10,8 +10,8 @@ def main(argv):
         sys.stderr.write("usage: park-issue.sh <issue-number> <cause> <unblock> [<pr>]\n")
         return 2
     number, cause, unblock = argv[:3]
-    if number == "0":
-        sys.stderr.write("park-issue.sh: bad issue number 0\n")
+    if number == "0" or not number.isascii():
+        sys.stderr.write("park-issue.sh: bad issue number %s\n" % number)
         return 2
     for bad, name in ((not number.isdigit(), "issue number"), (not cause, "cause"), (not unblock, "unblock")):
         if bad:
