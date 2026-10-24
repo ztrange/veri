@@ -185,6 +185,10 @@ def main(argv):
     moved = apply(issue, unit)
     path = skill_edit_guard.list_path(unit)
     if not _claimed(path, unit):
+        if added is not None:
+            print("added step names a unit no requirements list claims, so nothing would change: " + added,
+                  file=sys.stderr)
+            return 2
         return 3
     if os.path.getsize(unit):
         graded, said = _grade(path, unit)
