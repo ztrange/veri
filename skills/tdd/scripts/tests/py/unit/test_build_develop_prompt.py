@@ -2539,3 +2539,20 @@ def test_main_renders_a_green_prompt_telling_the_developer_to_probe_each_added_b
     assert re.search(r"remove", tail) and re.search(r"rerun the suite holding the target case", tail)
     assert re.search(r"still\s+green[^.]*keep the removal", tail, re.I)
     assert probe.start() < text.index("Exactly once, immediately before you write the `SUITE:`")
+
+
+def test_main_renders_a_green_prompt_telling_the_developer_to_make_the_probe_copy_beside_the_file_restore_it_with_mv_when_the_suite_goes_red_and_leave_no_orig_file_behind_either_way_2258(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    code = build_develop_prompt.main(["green", str(spec), "s", "make test", "tests/py/test_zorblat.py",
+                                      "test_zorblat", "make unit"])
+    out, _ = capsysbinary.readouterr()
+    text = out.decode()
+
+    copy = re.search(r"Copy the file beside itself \(`cp <file> <file>\.orig`", text)
+    assert code == 0 and copy is not None
+    tail = text[copy.start():]
+    restore = re.search(r"Red:\s+restore with `mv <file>\.orig <file>`", tail)
+    assert restore is not None
+    assert re.search(r"Leave no `\.orig` file behind either way", tail[restore.end():])
