@@ -26,7 +26,12 @@ landed, issues added to or taken from the queue.
 
 ## The reads
 
-The report is built from four sources and nothing else:
+Run `$S/report-cache.sh refresh` once, first, from the main working tree. Exit 2 means no
+fresh cache: report that and stop; never build the report from a stale `.tdd/report-cache.json`.
+Issue states, labels, blockers (from each body's `## Blocked by` section) and wall times are read
+from that file (`{fetched_at, issues}`; each issue carries `number`, `title`, `state`, `labels`,
+`closedAt`, `updatedAt`, `body`, `comments`, `wallSeconds`, `lane`), the same file `/vreport`
+reads, never a full `gh issue list`. The other reads stay direct:
 
 - `$S/status.sh --json` — every run: issue, title, step k/n, phase, attempts, elapsed seconds,
   cost, state, PR; and the scope totals (attempted, done, bailed, wall seconds).
@@ -35,9 +40,8 @@ The report is built from four sources and nothing else:
   `| total |` row only, never summed from phase rows (P7).
 - `git tag --sort=-v:refname --format='%(refname:short) %(creatordate:iso-strict) %(contents:subject)'`
   — the tags cut since the last ask; each tag's message is its capability.
-- `gh` — merged PRs since the last ask (`gh pr list --state merged --search "merged:>=<time>"`),
-  open PRs, the opt-in-labelled open issues with their labels and `## Blocked by` sections, and
-  the open children of each PRD the queue's issues belong to.
+- `gh`, for PRs only — merged PRs since the last ask (`gh pr list --state merged --search
+  "merged:>=<time>"`) and open PRs.
 
 Count the reads before making them. **More than three go to one subagent**, on the cheapest
 model that can run them, briefed with this list and returning only the figures — one line per
