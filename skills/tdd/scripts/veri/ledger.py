@@ -107,8 +107,15 @@ def listed_phases(step):
 
 
 def next_phase(step):
-    """The first phase step lists and has not marked done, or None once a phase is marked owed."""
-    for phase in listed_phases(step):
+    """The first phase step lists and has not marked done, or None once a phase is marked owed.
+
+    cover-new runs before migrate whatever order the step lists them in.
+    """
+    phases = listed_phases(step)
+    if "cover-new" in phases and "migrate" in phases:
+        phases.remove("cover-new")
+        phases.insert(phases.index("migrate"), "cover-new")
+    for phase in phases:
         if mark(phase, "owed") in step:
             return None
         if mark(phase, "done") not in step:
