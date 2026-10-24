@@ -398,6 +398,9 @@ def main(argv):
     if name.startswith("develop-green") and step and red_awaits_pass(step) and not ci_repair_step(issue, step):
         write_line(exitfile, 2)
         return refuse(f"supervise: refusing to launch {name}: step {step} has no verify-red PASS after its latest red leaf")
+    if name.startswith(("verify-red", "verify-green")) and not tests_frozen._work_tree_hash():
+        write_line(exitfile, 2)
+        return refuse(f"supervise: refusing to launch {name}: the work-tree hash could not be computed")
     if name.startswith(("verify-red", "verify-green")) \
             and not ((text := step_text(issue, step) if step else None) is not None and pass_marker_current(text)):
         write_line(exitfile, 2)
