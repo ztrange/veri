@@ -1,0 +1,1 @@
+- [ ] `parked-issues.sh` exits 2 when `gh` answers the issue listing but gives no answer to reading an issue's comments, naming the comments call on stderr ⟦added⟧
