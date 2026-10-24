@@ -69,6 +69,13 @@ class TurnRows(list):
         self.session_contexts = []
 
 
+def main_checkout_file(path, name):
+    found = os.path.join(os.path.dirname(path), name)
+    if not os.path.exists(found):
+        found = os.path.join(os.path.dirname(path), "..", "..", "..", name)
+    return found
+
+
 def conductor_sessions(issue, path):
     sessions = []
     open_rows = []
@@ -77,12 +84,7 @@ def conductor_sessions(issue, path):
     turn_rows = TurnRows()
     seen_ids = set()
     with contextlib.suppress(OSError):
-        log_name = "conductor-%s.log" % issue
-        log_dir = os.path.dirname(path)
-        log_path = os.path.join(log_dir, log_name)
-        if not os.path.exists(log_path):
-            log_path = os.path.join(log_dir, "..", "..", "..", log_name)
-        with open(log_path) as stream_log:
+        with open(main_checkout_file(path, "conductor-%s.log" % issue)) as stream_log:
             for text in stream_log:
                 with contextlib.suppress(ValueError):
                     record = json.loads(text)
@@ -472,13 +474,8 @@ def render(issue, path, ledger):
         print("Cost is every leaf of the run, and the conductor own spending.")
         priced = not any(r.get("total_cost_usd", 0) is None for r in sessions)
         model = ""
-        record_name = "issue-%s-conductor-model" % issue
-        record_dir = os.path.dirname(path)
-        record_path = os.path.join(record_dir, record_name)
-        if not os.path.exists(record_path):
-            record_path = os.path.join(record_dir, "..", "..", "..", record_name)
         with contextlib.suppress(OSError):
-            with open(record_path) as recorded:
+            with open(main_checkout_file(path, "issue-%s-conductor-model" % issue)) as recorded:
                 model = recorded.read().strip()
         print("Conductor own spending: %s over %d turns, in %d sessions%s."
               % ("$%.2f" % sum(r.get("total_cost_usd") or 0 for r in sessions) if priced else "unpriced",
