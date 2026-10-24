@@ -2577,3 +2577,17 @@ def test_main_renders_a_green_prompt_telling_the_developer_to_make_the_probe_cop
     restore = re.search(r"Red:\s+restore with `mv <file>\.orig <file>`", tail)
     assert restore is not None
     assert re.search(r"Leave no `\.orig` file behind either way", tail[restore.end():])
+
+
+def test_main_renders_a_refactor_prompt_naming_the_in_step_line_kind_with_the_files_it_changes_for_an_out_of_scope_candidate_changing_a_touched_file_and_candidates_out_of_bounds_for_one_changing_none_2305(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    code = build_develop_prompt.main(["refactor", str(spec), "s", "make test", "a.sh b.sh"])
+    out, _ = capsysbinary.readouterr()
+    text = " ".join(out.decode().split())
+
+    assert code == 0
+    assert re.search(r"changes at least one of the touched files[^.]*`CANDIDATES: in-step \| <the files the "
+                     r"transform changes, comma-separated> \| <transform>`", text)
+    assert re.search(r"changes none of the touched files[^.]*`CANDIDATES: out-of-bounds \| <transform>`", text)
