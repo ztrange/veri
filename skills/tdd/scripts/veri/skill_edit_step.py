@@ -192,6 +192,15 @@ def _restore(snapshot, *names):
             os.unlink(name)
 
 
+def _read_existing(names):
+    snapshot = {}
+    for name in names:
+        if os.path.exists(name):
+            with open(name, "rb") as f:
+                snapshot[name] = f.read()
+    return snapshot
+
+
 def _tree():
     tree = {}
     for root, dirs, files in os.walk("."):
@@ -233,7 +242,7 @@ def main(argv):
     base = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     path = skill_edit_guard.list_path(unit)
     graded_file = grade_prose.graded_path(unit)
-    snapshot = {n: open(n, "rb").read() for n in (path, unit, graded_file) if os.path.exists(n)}
+    snapshot = _read_existing((path, unit, graded_file))
     moved = apply(issue, unit)
     if not _claimed(path, unit):
         if added is not None:
@@ -251,11 +260,7 @@ def main(argv):
         _restore(snapshot, path, unit, graded_file)
         return 2
     authored = graded == 1
-    before = {}
-    for name in [unit, *pins]:
-        if os.path.exists(name):
-            with open(name, "rb") as f:
-                before[name] = f.read()
+    before = _read_existing([unit, *pins])
     for attempt in range(1, int(budget) + 1):
         if graded != 1:
             break
