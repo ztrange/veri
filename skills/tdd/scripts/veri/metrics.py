@@ -64,11 +64,16 @@ CONTEXT_KEYS = ["input_tokens", "cache_read_input_tokens", "cache_creation_input
 class TurnRows(list):
     estimated = False
 
+    def __init__(self):
+        super().__init__()
+        self.session_contexts = []
+
 
 def conductor_sessions(issue, path):
     sessions = []
     open_rows = []
     open_turns, open_cost, open_priced = 0, 0.0, True
+    open_contexts = []
     turn_rows = TurnRows()
     seen_ids = set()
     with contextlib.suppress(OSError):
@@ -97,6 +102,9 @@ def conductor_sessions(issue, path):
                             turn_rows.estimated = True
                         open_rows = []
                         open_turns, open_cost, open_priced = 0, 0.0, True
+                        if open_contexts:
+                            turn_rows.session_contexts.append(open_contexts)
+                        open_contexts = []
                     elif record.get("type") == "assistant":
                         message = record.get("message") or {}
                         usage = message.get("usage") or {}
@@ -106,6 +114,7 @@ def conductor_sessions(issue, path):
                             seen_ids.add(message["id"])
                         open_turns += 1
                         context = str(sum((usage.get(key) or 0) for key in CONTEXT_KEYS))
+                        open_contexts.append(int(context))
                         model_name = message.get("model") or ""
                         model_family = session_cost.family(model_name) or ("opus" if not model_name else None)
                         if model_family is None:
@@ -466,6 +475,8 @@ def render(issue, path, ledger):
         if any(r.get("open") for r in sessions):
             print("The Conductor own spending figure is estimated: the output tokens of a session without a "
                   "result record are not yet known.")
+        for contexts in turn_rows.session_contexts:
+            print("Conductor context: first turn %d tokens, largest %d tokens" % (contexts[0], max(contexts)))
     else:
         print("Cost is every leaf of the run, and the conductor own %s."
               % ("closing accounting with them, which this log carries"
