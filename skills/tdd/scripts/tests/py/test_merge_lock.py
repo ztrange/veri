@@ -54,15 +54,15 @@ def test_take_from_a_linked_worktree_creates_the_lock_directory_in_the_main_tree
 
 
 @pytest.mark.process("git init on a scratch repository, take and holder run from it")
-def test_take_without_pid_records_the_parent_process_of_the_caller_and_holder_prints_it(
+def test_take_with_pid_records_that_pid_and_holder_prints_it(
         tmp_path, merge_lock, run_cli):
     scratch_git(tmp_path, "init", "-q", "-b", "main")
-    parent = str(os.getppid())
+    pid = str(os.getpid())
 
-    taken = run_cli(merge_lock, ["take"], cwd=tmp_path)
+    taken = run_cli(merge_lock, ["take", "--pid", pid], cwd=tmp_path)
     held = run_cli(merge_lock, ["holder"], cwd=tmp_path)
 
-    assert (taken[0], held[0], held[1].split()[:1]) == (0, 0, [parent])
+    assert (taken[0], held[0], held[1].split()[:1]) == (0, 0, [pid])
 
 
 @pytest.mark.process("git init on a scratch repository, and a child process started and reaped for a dead pid")
