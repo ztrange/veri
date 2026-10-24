@@ -159,7 +159,7 @@ def main(argv):
             reply = extract(raw)
             if "BEGIN GRADES" in reply:
                 ids = graded_ids(reply[reply.rindex("BEGIN GRADES"):])
-                if len(set(ids)) == len(ids):
+                if len(set(ids)) == len(ids) and set(ids) <= {r.split("\t", 1)[0] for r in claims.splitlines()}:
                     break
     finally:
         os.unlink(f.name)
