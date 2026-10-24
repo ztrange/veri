@@ -1,0 +1,2 @@
+### in_flight returns False when the pid in the issue's conductor.pid answers kill -0 but neither its command line nor its parent's command line is that issue's conductor, pinned by a small in-process case with a fake run_end.command_line ⟦criterion 1⟧
+- test-only | the new in_flight case in test_solvable_issues.py patches `run_end.command_line` and `parent_pid` by hand, where the `conducting` helper patches them for the conducting-pid cases. The "not the conductor" patch could become a sibling helper.
