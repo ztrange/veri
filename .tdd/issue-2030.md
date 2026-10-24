@@ -1,0 +1,9 @@
+# Plan for #2030 — A run marks its issue taken:<lane> when it claims it, not just unlabelled
+
+- [ ] unlabel-issue.sh <n> removes VERI_LABEL from the issue and adds the label `taken:<lane>` to it, `<lane>` being the text after VERI_LABEL's last `:` or `main` when it has none: with VERI_LABEL=ready-for-agent (and unset) the issue gains `taken:main`, with VERI_LABEL=ready-for-agent:mu it gains `taken:mu` (small in-process case in skills/tdd/scripts/tests/py/unit/test_unlabel_issue.py, gh faked at subprocess.run) ⟦criterion 1⟧
+- [ ] unlabel-issue.sh creates the `taken:<lane>` label in the repository when it does not exist yet, so the add succeeds and the issue carries it, exit 0 (small in-process case in skills/tdd/scripts/tests/py/unit/test_unlabel_issue.py, gh faked at subprocess.run) ⟦criterion 1⟧
+- [ ] unlabel-issue.sh exits 0 when the issue already carries `taken:<lane>`, leaving it on the issue (small in-process case in skills/tdd/scripts/tests/py/unit/test_unlabel_issue.py, gh faked at subprocess.run) ⟦criterion 2⟧
+- [ ] unlabel-issue.sh exits 2 with a diagnostic on stderr when gh gives no answer to adding `taken:<lane>` (or to creating the label), as it does for the label removal (small in-process case in skills/tdd/scripts/tests/py/unit/test_unlabel_issue.py, gh faked at subprocess.run) ⟦criterion 2⟧
+- [ ] solvable-issues.sh never lists an open, unblocked, unclaimed issue carrying any `taken:*` label (`taken:main`, `taken:mu`), even when it also carries the opt-in label, while an issue carrying only the opt-in label is still listed (in-process case in skills/tdd/scripts/tests/py/test_solvable_issues.py, gh documents faked as that suite already does) ⟦criterion 3⟧
+- [ ] skills/tdd/SKILL.md ⟦skill-edit⟧ ⟦criterion 5⟧
+- [ ] No bail or park path the branch touches removes the `taken:<lane>` label: the branch's diff adds no call removing a `taken:` label from an issue, so a bailed or parked issue keeps it ⟦diff-checked⟧ ⟦criterion 4⟧
