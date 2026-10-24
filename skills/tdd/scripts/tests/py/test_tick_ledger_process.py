@@ -45,7 +45,7 @@ def test_ticking_a_diff_checked_step_rerecords_the_earlier_frozen_case_it_change
     git(tmp_path, "init", "-q")
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
-    earlier, edit, later = "step one adds a case", "⟦diff-checked⟧ step two", "step three adds another"
+    earlier, edit, later = "step one adds a case", "step two ⟦diff-checked⟧ ⟦criterion 1⟧", "step three adds another"
     (tmp_path / "tests/test_suite.py").write_text(
         "def test_older_case():\n    assert True\n\n\ndef test_pinned_2199():\n    assert 1 == 2\n")
     run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
@@ -81,7 +81,7 @@ def test_the_diff_checked_tick_digests_the_rerecorded_case_with_the_snapshot_tes
     git(repo, "init", "-q")
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
-    earlier, edit, later = "step one adds a case", "⟦diff-checked⟧ step two", "step three adds another"
+    earlier, edit, later = "step one adds a case", "step two ⟦diff-checked⟧ ⟦criterion 4⟧", "step three adds another"
     (repo / "tests/test_suite.py").write_text(
         "def test_older_case():\n    assert True\n\n\ndef test_pinned_2199():\n    assert 1 == 2\n")
 
