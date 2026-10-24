@@ -287,10 +287,17 @@ def test_1641_an_exemption_entry_that_matches_no_file_under_the_root_makes_the_g
 
 
 @functools.lru_cache(maxsize=None)
-def _sweep(directory, table=()):
-    """`guard.offences` over a real `directory` under `table` (a tuple of items), run once per session."""
+def _sweep(directory):
+    """`guard.offences` over a real `directory` under no table, run once per session."""
     guard = importlib.import_module("veri.fast_tier_guard")
-    return tuple(guard.offences(directory, dict(table)))
+    return tuple(guard.offences(directory, {}))
+
+
+def _under(directory, table):
+    """`_sweep(directory)` judged against `table` as `guard.offences(directory, table)` would, without sweeping again."""
+    guard = importlib.import_module("veri.fast_tier_guard")
+    root, _ = guard._discover(directory, table)
+    return [line for line in _sweep(directory) if not guard._exempt(line, root, table)]
 
 
 def _real_table_audit(tmp_path):
@@ -309,7 +316,7 @@ def _real_table_audit(tmp_path):
     )
 
     planted = guard.offences(tmp_path, {})
-    committed = list(_sweep(SCRIPTS / "tests" / "py" / "unit", tuple(guard.EXEMPTIONS.items())))
+    committed = _under(SCRIPTS / "tests" / "py" / "unit", guard.EXEMPTIONS)
 
     return [line.split(": ")[0] for line in planted], committed
 
