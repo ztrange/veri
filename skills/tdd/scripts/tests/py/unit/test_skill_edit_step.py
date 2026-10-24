@@ -531,3 +531,38 @@ def test_the_author_prompt_names_every_pin_file_and_tells_it_to_update_the_check
     with_pins, without = prompts
     assert (all(p in with_pins for p in ["tests/test_alpha.py", "tests/test_beta.py", "checksum", "verbatim"]),
             "tests/test_" in without) == (True, False), (with_pins, without)
+
+
+def test_a_rejected_attempts_edits_to_a_pin_file_are_reset_with_the_unit_so_the_committed_pin_matches_the_committed_unit_2232(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is blue.\n")
+    (tmp_path / "pin.py").write_text("PINNED = 'The widget is blue.'\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget hums. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    committed = []
+    grades = [(1, "A1: FAIL - silent\n"), (1, "A1: FAIL - red is wrong\n"), (0, "")]
+    attempts = iter([
+        lambda: ((tmp_path / "unit.md").write_text("The widget is red.\n"),
+                 (tmp_path / "pin.py").write_text("PINNED = 'The widget is red.'\n")),
+        lambda: (tmp_path / "unit.md").write_text((tmp_path / "unit.md").read_text() + "It hums.\n"),
+    ])
+
+    def run(cmd, **kw):
+        if cmd[:2] == ["git", "commit"]:
+            committed.append(((tmp_path / "unit.md").read_text(), (tmp_path / "pin.py").read_text()))
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: grades.pop(0))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: next(attempts)() and 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess",
+                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md", "pin.py"])
+
+    assert (code, committed) == (0, [("The widget is blue.\nIt hums.\n", "PINNED = 'The widget is blue.'\n")]), (code, err)
