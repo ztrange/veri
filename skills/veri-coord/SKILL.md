@@ -20,7 +20,7 @@ project specific (labels, test commands, where PRDs live).
    lane: `/veri-coord mu` runs every read and every launch with
    `VERI_LABEL=ready-for-agent:mu`; with no lane word, plain `ready-for-agent`. State the lane
    in your first line of output and name it in every message to the dev session. With `--resume`, read the
-   handoff file for state only — what is running, parked, awaiting merge, N, overrides,
+   handoff file for state only — what is running, awaiting merge, N, overrides,
    permissions and their expiry, pending decisions — never the parked set (below) — and take every rule from this skill and
    the principles. Then re-read that state live (below) before acting on any of it.
 2. Read the live state: `$S/status.sh --json` (every run, its step k/n, phase, cost),
