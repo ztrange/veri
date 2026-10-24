@@ -2,6 +2,7 @@
 import contextlib
 import io
 import os
+import re
 import subprocess
 import tempfile
 import sys
@@ -67,7 +68,7 @@ def _append_section(path, unit, table):
 
 
 def _write_list(path, unit, rows):
-    _append_section(path, unit, TABLE_HEAD + rows)
+    _append_section(path, unit, TABLE_HEAD + _numbered(rows, ()))
 
 
 def _create(unit, path, rows):
@@ -90,6 +91,22 @@ def _move_table(unit, path):
     return True
 
 
+def _numbered(rows, have):
+    have = set(have)
+    out = []
+    for row in rows:
+        cells = requirements.split_cells(row)
+        if cells[1].endswith("<next>"):
+            prefix = cells[1][:-len("<next>")]
+            top = max([int(i[len(prefix):]) for i in have if i.startswith(prefix) and i[len(prefix):].isdigit()],
+                      default=0)
+            cells[1] = "%s%d" % (prefix, top + 1)
+            row = row.replace("<next>", str(top + 1), 1)
+            have.add(cells[1])
+        out.append(row)
+    return out
+
+
 def apply(issue, unit):
     path = skill_edit_guard.list_path(unit)
     moved = not _claimed(path, unit) and os.path.exists(unit) and _move_table(unit, path)
@@ -104,6 +121,7 @@ def apply(issue, unit):
         _write_list(path, unit, rows)
         return moved
     have = {row.split("\t")[0] for row in claimed.splitlines()}
+    rows = _numbered(rows, have | {_row_id(r) for r in rows})
     new = [r for r in rows if _row_id(r) not in have]
     reworded = {_row_id(r): r for r in rows}
     lines = requirements.read_lines(path)
@@ -190,6 +208,17 @@ def main(argv):
     if unknown:
         print("Requirements heading names no existing unit: " + unknown, file=sys.stderr)
         return 2
+    issue_rows = _issue_rows(issue, unit)
+    for row in issue_rows:
+        if not re.fullmatch(r".+(\d+|<next>)", _row_id(row)):
+            print("Requirement row ID is neither <prefix><digits> nor <prefix><next>: " + _row_id(row),
+                  file=sys.stderr)
+            return 2
+    explicit = [_row_id(r) for r in issue_rows if not _row_id(r).endswith("<next>")]
+    for dup in explicit:
+        if explicit.count(dup) > 1:
+            print("Requirement rows resolve to the same ID twice: " + dup, file=sys.stderr)
+            return 2
     base = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     path = skill_edit_guard.list_path(unit)
     graded_file = grade_prose.graded_path(unit)
