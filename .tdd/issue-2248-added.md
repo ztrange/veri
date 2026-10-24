@@ -1,0 +1,1 @@
+- [ ] A ledger step whose ⟦human-owed⟧ mark trails the prose with no ⟦criterion N⟧ tag (`- [ ] measure X ⟦human-owed⟧`) is read as kind human-owed by ledger_steps, never returned as a coding step, and agrees with run_finished.py's carries_mark: pinned by a small unit case in tests/py/unit/test_ledger_steps.py; the #1450 mid-prose quote guard stays green ⟦added⟧ ⟦criterion 1⟧
