@@ -155,9 +155,9 @@ def _superseded(report, step, own_id=None):
     cases = []
     for line in _lines_with(report, "SUPERSEDED:"):
         body = re.sub(r"^[-*]\s+", "", line[11:].strip())
-        quoted = re.match(r'(?:`[^`]+`\s+)?"([^"]+)"', body)
+        quoted = re.match(r'(?:`[^`]+`\s+)?(?:"([^"]+)"|“([^”]+)”)', body)
         words = body.strip("`").split()
-        case = quoted.group(1) if quoted else words[0].strip("`") if words else ""
+        case = (quoted.group(1) or quoted.group(2)) if quoted else words[0].strip("`") if words else ""
         found = _exists(case) if case and case not in own else None
         if found and found not in cases and not (own_id and _is_own(found, own_id)):
             cases.append(found)
