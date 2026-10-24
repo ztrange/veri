@@ -16,7 +16,12 @@ def main(argv):
     if argv:
         sys.stderr.write(USAGE + "\n")
         return 2
-    issues = json.loads(github.gh_rest_list("repos/{owner}/{repo}/issues?state=open&labels=parked&per_page=100") or "[]")
+    try:
+        listing = github.gh_rest_list("repos/{owner}/{repo}/issues?state=open&labels=parked&per_page=100")
+    except github.NoAnswer:
+        sys.stderr.write("parked-issues.sh: no answer from gh to listing the issues\n")
+        return 2
+    issues = json.loads(listing or "[]")
     if not issues:
         return 3
     for issue in issues:

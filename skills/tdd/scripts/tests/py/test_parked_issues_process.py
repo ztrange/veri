@@ -139,3 +139,25 @@ def test_parked_issues_with_no_open_issue_labelled_parked_prints_nothing_and_exi
 
     assert ran.returncode == 3, ran.stderr
     assert ran.stdout == ""
+
+
+UNANSWERED_LISTING_GH_STUB = """#!/bin/sh
+exit 1
+"""
+
+
+@pytest.mark.process("parked-issues.sh run against a gh stub that gives no answer to listing the issues")
+def test_parked_issues_exits_2_naming_the_listing_call_when_gh_gives_no_answer_to_it(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(UNANSWERED_LISTING_GH_STUB)
+    gh.chmod(0o755)
+
+    ran = subprocess.run([str(SCRIPTS / "parked-issues.sh")], cwd=tmp_path, capture_output=True, text=True,
+                         stdin=subprocess.DEVNULL,
+                         env={"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+                              "PYTHONDONTWRITEBYTECODE": "1"})
+
+    assert ran.returncode == 2, ran.stderr
+    assert "listing the issues" in ran.stderr, ran.stderr
