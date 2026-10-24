@@ -209,3 +209,31 @@ def test_main_2030_creates_the_taken_lane_label_in_the_repository_when_absent_so
 
     assert (code, issue_labels["7"], "taken:mu" in repository_labels, capsys.readouterr().err) == (
         0, {"taken:mu"}, True, "")
+
+
+def test_main_2030_exits_0_when_the_issue_already_carries_the_taken_lane_label_and_leaves_it_on_the_issue(monkeypatch, capsys):
+    unlabel_issue = importlib.import_module("veri.unlabel_issue")
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+    monkeypatch.setenv("VERI_LABEL", "ready-for-agent:mu")
+    issue_labels = {"7": {"taken:mu", "bug"}}
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] == ["gh", "label", "create"]:
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if args[:4] == ["gh", "api", "-X", "DELETE"]:
+            name = args[4].rpartition("/labels/")[2].replace("%3A", ":")
+            if name not in issue_labels["7"]:
+                return subprocess.CompletedProcess(args, 1, "", "gh: Label does not exist (HTTP 404)\n")
+            issue_labels["7"].discard(name)
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        if args[:4] == ["gh", "api", "-X", "POST"]:
+            issue_labels["7"].update(word[len("labels[]="):] for word in args if word.startswith("labels[]="))
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        raise AssertionError("unexpected call: %s" % " ".join(args))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code = unlabel_issue.main(["7"])
+
+    assert (code, issue_labels["7"], capsys.readouterr().err) == (0, {"taken:mu", "bug"}, "")
