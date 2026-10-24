@@ -2,6 +2,7 @@
 import sys
 
 import ledger
+import tests_frozen
 from build_verify_prompt import INTERFACE_PHASES
 
 USAGE = "usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase>] <ledger-file> <matcher>"
@@ -53,6 +54,9 @@ def main(argv):
         return 3
     left = ledger.rewrite_ledger(argv[0], new)
     if left is None:
+        ticked_line = next(line for old, line in zip(text.split("\n"), new.split("\n")) if old != line)
+        if "⟦diff-checked⟧" in ticked_line:
+            return tests_frozen._rerecord_earlier(argv[0], ticked_line.split("] ", 1)[1])
         return 0
     if left:
         complain(f"left {left} behind")
