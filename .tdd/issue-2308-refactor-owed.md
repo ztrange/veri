@@ -1,0 +1,2 @@
+### run-conductor.sh <issue> launches claude with `--model <value>` when VERI_MODEL_CONDUCTOR is set to a value (e.g. sonnet), pinned by a small in-process case on the launched argv ⟦criterion 1⟧
+- test-only | The new case in `test_run_conductor.py` copies the setup of the preceding `--model opus` case almost line for line (symlinked skill dir, module load, chdir, fake launch). A shared helper would remove it.
