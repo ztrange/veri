@@ -123,3 +123,22 @@ def test_release_exits_2_and_leaves_the_lock_in_place_when_the_lock_exists_but_i
     kept_empty = lock.is_dir()
 
     assert (missing[0], kept_missing, empty[0], kept_empty) == (2, True, 2, True)
+
+
+@pytest.mark.process("git init on a scratch repository, take run without --pid")
+def test_take_without_pid_exits_2_naming_pid_and_creates_no_lock(tmp_path, merge_lock, run_cli):
+    scratch_git(tmp_path, "init", "-q", "-b", "main")
+
+    bare = run_cli(merge_lock, ["take"], cwd=tmp_path)
+
+    assert (bare[0], "--pid" in bare[2], (tmp_path / ".tdd" / "merge.lock").exists()) == (2, True, False)
+
+
+@pytest.mark.process("git init on a scratch repository, take with --pid then release run without --pid or --force")
+def test_release_without_pid_or_force_exits_2_naming_pid_and_removes_no_lock(tmp_path, merge_lock, run_cli):
+    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    run_cli(merge_lock, ["take", "--pid", str(os.getpid())], cwd=tmp_path)
+
+    bare = run_cli(merge_lock, ["release"], cwd=tmp_path)
+
+    assert (bare[0], "--pid" in bare[2], (tmp_path / ".tdd" / "merge.lock").is_dir()) == (2, True, True)
