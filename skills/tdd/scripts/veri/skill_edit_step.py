@@ -117,7 +117,7 @@ def apply(issue, unit):
     if not rows and not claimed:
         return moved
     if not claimed:
-        _write_list(path, unit, rows)
+        _write_list(path, unit, _numbered(rows, ()))
         return moved
     have = {row.split("\t")[0] for row in claimed.splitlines()}
     rows = _numbered(rows, have)
