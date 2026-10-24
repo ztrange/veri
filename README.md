@@ -131,7 +131,7 @@ only from a session that is not itself inside another one, per the guard above. 
 unattended modes both run the conductor in **print mode**: `claude -p "/tdd <n>"` typed by
 hand, and `skills/tdd/scripts/run-conductor.sh <n>`, which builds that same command line — the procedure as
 the prompt, the streaming flags, `--permission-mode bypassPermissions`, and the parent
-session's handles severed, plus `--model opus` — and is what an unattended or scheduled launch should call.
+session's handles severed, plus `--model opus` (or `--model $VERI_MODEL_CONDUCTOR` when that variable is set and non-empty; unset or empty means Opus) — and is what an unattended or scheduled launch should call.
 
 **Interactive or print mode is a trade you pick per run.** An interactive conductor can be
 steered — asked a question, redirected, interrupted mid-run — and costs ~25,000 tokens a
