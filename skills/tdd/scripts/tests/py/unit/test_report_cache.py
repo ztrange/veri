@@ -984,3 +984,43 @@ def test_refresh_with_a_well_formed_cache_bounds_every_later_page_by_fetched_at_
 
     kept = sorted(i["number"] for i in json.loads(cache.read_text())["issues"])
     assert (code, kept) == (0, list(range(1, 121)) + [900])
+
+
+def test_refresh_with_no_cache_and_over_100_issues_sharing_one_updated_at_second_never_exits_0_with_a_partial_cache_2272(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    monkeypatch.setenv("VERI_PAGE_RETRY_SLEEP", "0")
+    (tmp_path / ".git").mkdir()
+    same_second = [
+        {"number": n, "title": "issue %d" % n, "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-10-05T12:00:00Z"}
+        for n in range(1, 151)
+    ]
+    older = [
+        {"number": 1000 + n, "title": "older %d" % n, "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-09-%02dT00:00:00Z" % (1 + n)}
+        for n in range(30)
+    ]
+    everything = sorted(i["number"] for i in same_second + older)
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] != ["gh", "issue", "list"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        limit = int(args[args.index("--limit") + 1])
+        search = args[args.index("--search") + 1] if "--search" in args else ""
+        pool = sorted(same_second + older, key=lambda i: i["updatedAt"], reverse=True)
+        for term in search.split():
+            if term.startswith("updated:<="):
+                pool = [i for i in pool if i["updatedAt"] <= term[len("updated:<="):]]
+        return subprocess.CompletedProcess(args, 0, json.dumps(pool[:limit]), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    written = tmp_path / ".tdd" / "report-cache.json"
+    kept = sorted(i["number"] for i in json.loads(written.read_text())["issues"]) if written.exists() else None
+    assert (code, kept) in [(0, everything), (2, None)]

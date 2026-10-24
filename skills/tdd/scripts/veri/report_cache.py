@@ -72,8 +72,10 @@ def fetch_pages(since=None):
         page, size = read_issue_page(size, "--search", search)
         fresh = [issue for issue in page if issue["number"] not in seen]
         seen.update({issue["number"]: issue for issue in fresh})
-        if len(page) < size or not fresh:
+        if len(page) < size:
             return list(seen.values())
+        if not fresh:
+            raise github.NoAnswer("a full page of issues brought nothing new")
         search = " ".join(bound + ["sort:updated-desc updated:<="]) + min(issue["updatedAt"] for issue in page)
 
 
