@@ -890,6 +890,34 @@ def test_main_with_veri_model_conductor_set_to_a_value_launches_claude_with_that
     assert [argv[i + 1] for i, word in enumerate(argv[:-1]) if word == "--model"] == ["sonnet"]
 
 
+def test_main_with_veri_model_conductor_set_but_empty_launches_claude_with_model_opus(tmp_path, monkeypatch, capfdbinary):
+    import importlib.util
+    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
+    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
+    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    monkeypatch.setenv("VERI_MODEL_CONDUCTOR", "")
+    skill = tmp_path / "skill"
+    (skill / "scripts" / "veri").mkdir(parents=True)
+    (skill / "scripts" / "veri" / "run_conductor.py").symlink_to(SCRIPTS / "veri" / "run_conductor.py")
+    (skill / "SKILL.md").write_text("# the procedure, read from SKILL.md\n")
+    spec = importlib.util.spec_from_file_location("run_conductor_empty_conductor_model", str(skill / "scripts" / "veri" / "run_conductor.py"))
+    run_conductor = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(run_conductor)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    launches = fake_claude_launch(monkeypatch)
+
+    code = run_conductor.main(["4242"])
+
+    capfdbinary.readouterr()
+    assert code == 0
+    assert len(launches) == 1
+    argv = launches[0]["argv"]
+    assert [argv[i + 1] for i, word in enumerate(argv[:-1]) if word == "--model"] == ["opus"]
+
+
 def test_main_on_a_pinned_launch_whose_snapshot_holds_no_readable_skill_md_names_it_launches_no_claude_removes_the_snapshot_and_returns_2(
         tmp_path, monkeypatch, capfdbinary):
     past_the_guards(monkeypatch)
