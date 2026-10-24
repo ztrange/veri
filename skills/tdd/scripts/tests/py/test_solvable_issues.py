@@ -10,6 +10,8 @@ import subprocess
 
 import pytest
 
+import run_end
+
 USAGE = "usage: solvable-issues.sh [--repo owner/name] [--not-running]\n"
 
 
@@ -17,6 +19,31 @@ USAGE = "usage: solvable-issues.sh [--repo owner/name] [--not-running]\n"
 def no_ambient_tunables(monkeypatch):
     for name in ("VERI_GH_JSON", "VERI_LABEL", "VERI_PRIORITY_LABEL"):
         monkeypatch.delenv(name, raising=False)
+
+
+def conducting(monkeypatch, *numbers):
+    """run_end.command_line and parent_pid answering every pid as the conductor of each of `numbers`, its parent as none."""
+    line = " ".join("bash run-conductor.sh %d" % n for n in numbers)
+    monkeypatch.setattr(run_end, "command_line", lambda pid: line if pid else "")
+    monkeypatch.setattr(run_end, "parent_pid", lambda pid: 0)
+
+
+@pytest.fixture
+def conductor_process(request):
+    """conductor_process(*numbers) starts a real process whose command line names run-conductor.sh <n> for each, returning its pid; killed at the end."""
+    started = []
+
+    def start(*numbers):
+        argv = [word for n in numbers for word in ("run-conductor.sh", str(n))]
+        child = subprocess.Popen(["/bin/sh", "-c", "read x", *argv], stdin=subprocess.PIPE)
+        started.append(child)
+        return child.pid
+
+    yield start
+    for child in started:
+        child.kill()
+        child.wait()
+        child.stdin.close()
 
 
 @pytest.fixture
@@ -114,6 +141,7 @@ def test_main_withholds_the_issue_whose_lock_under_the_main_working_tree_git_nam
     lock = decoy / ".tdd" / "wt" / "5" / ".tdd" / "conductor.pid"
     lock.parent.mkdir(parents=True)
     lock.write_text("%d\n" % os.getpid())
+    conducting(monkeypatch, 5)
     fake_git_answering(monkeypatch, decoy)
 
     code = solvable_issues.main([])
@@ -347,13 +375,14 @@ def dead_pid():
 
 
 def test_main_reads_a_lock_under_the_main_tree_git_names_from_the_callers_directory_as_an_int_pid_that_is_alive(tmp_path, monkeypatch, capsys, solvable_issues):
-    numbers = range(10, 21)
+    numbers = [10, 11, 12, 13, 14, 15, 18, 19, 20]
     (tmp_path / "issues.json").write_text(json.dumps([opted_in(n) for n in numbers]))
     (tmp_path / "prs.json").write_text("[]")
     monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
     pid = str(os.getpid())
     texts = {10: " %s \n" % pid, 11: "+" + pid, 12: pid[0] + "_" + pid[1:] if len(pid) > 1 else pid,
-             14: "abc\n", 15: "%d\n" % dead_pid(), 16: "1\n", 17: "0\n", 18: pid + "\n"}
+             14: "abc\n", 15: "%d\n" % dead_pid(), 18: pid + "\n"}
+    conducting(monkeypatch, *texts)
     decoy = tmp_path / "decoy"
     for number, text in texts.items():
         lock = decoy / ".tdd" / "wt" / str(number) / ".tdd" / "conductor.pid"
@@ -670,6 +699,7 @@ def test_cli_withholds_the_issue_whose_worktree_lock_holds_a_live_pid_and_lists_
     main_tree = tmp_path / "main-tree"
     plant_claim(main_tree, 170, os.getpid())
     plant_claim(main_tree, 171, dead_pid())
+    conducting(monkeypatch, 170)
     fake_git_answering(monkeypatch, main_tree)
 
     answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
@@ -815,13 +845,13 @@ def git_in(*args):
 
 
 @pytest.mark.process("git and solvable-issues.sh: a linked worktree's run through a symlink to the skill directory")
-def test_cli_run_through_a_symlink_to_the_skill_directory_from_a_linked_worktree_answers_as_in_place_withholding_the_issue_locked_under_the_main_tree(tmp_path, run_cli, plant_claim, solvable_issues):
+def test_cli_run_through_a_symlink_to_the_skill_directory_from_a_linked_worktree_answers_as_in_place_withholding_the_issue_locked_under_the_main_tree(tmp_path, run_cli, plant_claim, conductor_process, solvable_issues):
     fixtures, repo, linked, link = tmp_path / "fixtures", tmp_path / "repo", tmp_path / "linked", tmp_path / "skill-link"
     write_gh_fixtures(fixtures, [opted_in(5), opted_in(6)])
     git_in("init", "-q", "-b", "main", str(repo))
     git_in("-C", str(repo), "commit", "-q", "--allow-empty", "-m", "initial")
     git_in("-C", str(repo), "worktree", "add", "-q", "-b", "linked", str(linked), "main")
-    plant_claim(repo, 5, os.getpid())
+    plant_claim(repo, 5, conductor_process(5))
     link.symlink_to(REPO_ROOT / "skills" / "tdd", target_is_directory=True)
 
     in_place = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=linked)
@@ -871,16 +901,17 @@ def numbers_this_files_fixtures_name():
 
 
 @pytest.mark.process("git: a surrounding repository whose main tree holds live conductor locks")
-def test_cli_answer_is_unchanged_by_live_conductor_locks_under_the_surrounding_repository_for_unrelated_numbers_and_every_number_this_file_names(tmp_path, monkeypatch, run_cli, plant_claim, solvable_issues):
+def test_cli_answer_is_unchanged_by_live_conductor_locks_under_the_surrounding_repository_for_unrelated_numbers_and_every_number_this_file_names(tmp_path, monkeypatch, run_cli, plant_claim, conductor_process, solvable_issues):
     unrelated, named = [108, 117, 120, 124], numbers_this_files_fixtures_name()
     fixtures, cwd = tmp_path / "fixtures", tmp_path / "no-claims"
     write_gh_fixtures(fixtures, [opted_in(n) for n in sorted(set(unrelated + named))])
     git_in("init", "-q", "-b", "main", str(cwd))
     surroundings = {"surrounding-unrelated": unrelated, "surrounding-every": named}
+    conductor = conductor_process(*unrelated, *named)
     for name, numbers in surroundings.items():
         git_in("init", "-q", "-b", "main", str(tmp_path / name))
         for n in numbers:
-            plant_claim(tmp_path / name, n, os.getpid())
+            plant_claim(tmp_path / name, n, conductor)
 
     def answers():
         run = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
