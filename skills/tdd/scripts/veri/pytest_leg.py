@@ -31,6 +31,11 @@ def pyc_files(prefix):
                 yield os.path.join(directory, name)
 
 
+def never_recorded(pyc):
+    name = os.path.basename(pyc)
+    return "-pytest-" in name or ".opt-" in name
+
+
 def source_digest(pyc):
     try:
         with open(importlib.util.source_from_cache(pyc), "rb") as source:
@@ -53,8 +58,7 @@ def check_bytecode_cache(prefix):
     snapshot = {}
     manifest = read_manifest(prefix)
     for pyc in pyc_files(prefix):
-        name = os.path.basename(pyc)
-        if "-pytest-" in name or ".opt-" in name or pyc in manifest and source_digest(pyc) != manifest[pyc]:
+        if never_recorded(pyc) or pyc in manifest and source_digest(pyc) != manifest[pyc]:
             try:
                 os.remove(pyc)
             except FileNotFoundError:
@@ -71,8 +75,7 @@ def check_bytecode_cache(prefix):
 def record_bytecode_cache(prefix, run):
     recorded = {}
     for pyc in pyc_files(prefix):
-        name = os.path.basename(pyc)
-        if "-pytest-" in name or ".opt-" in name:
+        if never_recorded(pyc):
             continue
         try:
             stat = os.stat(pyc)
