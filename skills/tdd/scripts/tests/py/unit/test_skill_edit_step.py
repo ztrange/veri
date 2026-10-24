@@ -566,3 +566,30 @@ def test_a_rejected_attempts_edits_to_a_pin_file_are_reset_with_the_unit_so_the_
     code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md", "pin.py"])
 
     assert (code, committed) == (0, [("The widget is blue.\nIt hums.\n", "PINNED = 'The widget is blue.'\n")]), (code, err)
+
+
+def test_an_added_step_on_a_unit_no_requirements_list_claims_exits_2_naming_the_step_launching_and_committing_nothing_2236(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    launched = []
+    commands = []
+
+    def run(cmd, **kw):
+        commands.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess",
+                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+    step = "map each grade to the mode stop-run.sh accepts"
+
+    code, out, err = run_cli(skill_edit_step, ["--added", step, str(tmp_path / "issue.md"), "unit.md"])
+
+    commits = [c for c in commands if c[:2] in (["git", "add"], ["git", "commit"])]
+    assert (code, step in err, launched, commits) == (2, True, [], []), (code, err, launched, commits)
