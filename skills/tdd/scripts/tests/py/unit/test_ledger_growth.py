@@ -195,3 +195,8 @@ def test_2209_with_neither_the_added_record_file_nor_events_jsonl_present_a_new_
         "- [ ] a sneaked in step ⟦criterion 1⟧\n")
     code, out, err = run_cli(ledger_growth, [str(plan), str(ledger)])
     assert (code, out, "a sneaked in step" in err) == (1, "", True)
+
+
+def test_2209_no_arguments_exits_2_and_the_usage_line_names_the_plan_sha_subcommand(run_cli, ledger_growth):
+    code, out, err = run_cli(ledger_growth, [])
+    assert (code, out, "plan-sha" in err) == (2, "", True)
