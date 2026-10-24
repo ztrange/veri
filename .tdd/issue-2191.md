@@ -2,4 +2,4 @@
 
 - [x] dashboard.record_lines returns exactly the lines it returned before #1977: each line that parses as JSON (an object or not, non-ASCII text included) with its raw bytes and line ending (\r\n too) unchanged, while a line holding invalid UTF-8 is dropped as before #1977; dashboard.py opens no file and reads the raw lines through a bytes-mode reader added to event_log; pinned by a small unit case whose log holds a non-object JSON line, a non-ASCII line, a \r\n-ended line and an invalid-UTF-8 line, expecting the last one dropped ⟦criterion 1⟧
 - [x] stop-reason.sh given an events log of only blank lines exits as it did before #1977 (exit 2, a refusal on stderr, nothing on stdout), pinned by a process case driving the stop-reason.sh entry point ⟦criterion 2⟧
-- [ ] The unreachable except UnicodeDecodeError in supervise.py's red_awaits_pass and in wrong_test_route.py's _rerouted are removed, each keeping its except OSError ⟦diff-checked⟧ ⟦criterion 3⟧
+- [x] The unreachable except UnicodeDecodeError in supervise.py's red_awaits_pass and in wrong_test_route.py's _rerouted are removed, each keeping its except OSError ⟦diff-checked⟧ ⟦criterion 3⟧
