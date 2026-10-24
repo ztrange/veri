@@ -271,3 +271,14 @@ def test_the_guards_survive_a_faked_subprocess_run_and_ignore_a_suite_path_passe
 def test_2100_every_case_runs_with_veri_pytest_legs_pointing_into_its_own_tmp_path_so_a_leg_it_starts_never_registers_in_the_machines_real_registry(tmp_path):
     legs = pathlib.Path(os.environ.get("VERI_PYTEST_LEGS", ""))
     assert legs.is_absolute() and legs.parent == tmp_path, legs
+
+
+def test_2198_live_conductor_fails_at_setup_when_an_attribute_of_run_end_it_patches_does_not_exist(monkeypatch, tmp_path):
+    import importlib
+    import pytest
+
+    for name in ("run_end", "veri.run_end"):
+        monkeypatch.delattr(importlib.import_module(name), "command_line")
+
+    with pytest.raises(AttributeError, match="command_line"):
+        conftest.live_conductor(monkeypatch, tmp_path, 2198)
