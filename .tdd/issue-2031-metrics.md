@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 2031
 
-Wall time for the issue: 629 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 2112 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Every figure in this report is wall-clock: the log carries no awake-clock reading, so time the machine spent asleep is counted in them.
-Steps done: 15 of 15 planned.
+Steps done: 16 of 16 planned.
 Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/2285.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $8.66 over 176 turns, in 2 sessions.
+Conductor own spending: $9.70 over 202 turns, in 2 sessions.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
@@ -189,6 +189,32 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 173 | $0.03 | 135116 |
 | 174 | $0.03 | 135741 |
 | 175 | $0.03 | 136091 |
+| 176 | $0.03 | 136509 |
+| 177 | $0.03 | 136864 |
+| 178 | $0.05 | 139664 |
+| 179 | $0.04 | 141099 |
+| 180 | $0.03 | 141846 |
+| 181 | $0.04 | 142715 |
+| 182 | $0.04 | 143722 |
+| 183 | $0.04 | 145720 |
+| 184 | $0.04 | 146585 |
+| 185 | $0.04 | 147317 |
+| 186 | $0.04 | 148391 |
+| 187 | $0.09 | 155820 |
+| 188 | $0.04 | 156783 |
+| 189 | $0.04 | 158292 |
+| 190 | $0.04 | 159344 |
+| 191 | $0.04 | 160329 |
+| 192 | $0.04 | 161254 |
+| 193 | $0.04 | 161607 |
+| 194 | $0.04 | 162357 |
+| 195 | $0.04 | 162729 |
+| 196 | $0.04 | 163545 |
+| 197 | $0.04 | 164151 |
+| 198 | $0.04 | 164727 |
+| 199 | $0.04 | 165037 |
+| 200 | $0.04 | 165564 |
+| 201 | $0.04 | 166248 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -196,12 +222,12 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 19 | 17 | 5 | 10 | 2031 | 134206 | 35944 | 0.12 |
-| red | 29 | 12 | 0 | 0 | 778 | 533 | 147 | 290 | 59811 | 4321650 | 618280 | 3.04 |
-| green | 34 | 12 | 4 | 0 | 2009 | 595 | 194 | 380 | 61199 | 5732815 | 565602 | 3.08 |
+| red | 31 | 13 | 0 | 0 | 865 | 593 | 156 | 308 | 65762 | 4548701 | 688265 | 3.30 |
+| green | 38 | 13 | 5 | 0 | 2268 | 736 | 218 | 428 | 72441 | 6476014 | 661715 | 3.71 |
 | red-missing | 2 | 0 | 0 | 0 | 71 | 34 | 11 | 18 | 4607 | 270316 | 35327 | 0.16 |
 | pin | 4 | 4 | 0 | 0 | 90 | 43 | 18 | 34 | 4723 | 466077 | 60370 | 0.24 |
-| refactor | 22 | 10 | 0 | 0 | 454 | 143 | 65 | 118 | 11526 | 1491674 | 297717 | 1.01 |
-| prose | 8 | 0 | 0 | 0 | 108 | 88 | 8 | 16 | 13656 | 11625 | 84305 | 0.35 |
+| refactor | 23 | 10 | 0 | 0 | 460 | 146 | 67 | 122 | 11670 | 1521914 | 329499 | 1.09 |
+| prose | 10 | 0 | 0 | 0 | 134 | 109 | 10 | 20 | 16840 | 13842 | 106079 | 0.44 |
 | skill-edit | 2 | 0 | 0 | 0 | 27 | 23 | 10 | 18 | 2668 | 242401 | 26451 | 0.12 |
 | diff | 2 | 1 | 0 | 0 | 471 | 44 | 19 | 38 | 4552 | 572162 | 52497 | 0.23 |
 | cover | 1 | 0 | 0 | 0 | 22 | 11 | 4 | 8 | 1273 | 88626 | 31091 | 0.10 |
@@ -213,9 +239,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 45 | 41 | 4 | 0 | 1707 | 546 | 184 | 352 | 54918 | 4784730 | 679772 | 2.73 |
-| developer | claude-sonnet-5-5 | 44 | 0 | 0 | 0 | 1824 | 640 | 230 | 446 | 70972 | 6665502 | 830121 | 3.72 |
-| developer | claude-opus-5-5 | 9 | 0 | 0 | 0 | 428 | 259 | 61 | 122 | 26327 | 1927267 | 242458 | 1.74 |
+| verifier | claude-sonnet-5-5 | 48 | 43 | 5 | 0 | 1800 | 592 | 195 | 374 | 59221 | 5065938 | 743569 | 2.96 |
+| developer | claude-sonnet-5-5 | 46 | 0 | 0 | 0 | 1895 | 689 | 238 | 462 | 75729 | 6863326 | 900303 | 3.96 |
+| developer | claude-opus-5-5 | 11 | 0 | 0 | 0 | 616 | 368 | 77 | 154 | 34604 | 2448725 | 306359 | 2.23 |
 
 #### Rework and waste, by phase
 
@@ -223,7 +249,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
 | red | 0 | 0.00 | 0 | 0.00 |
-| green | 2018 | 2.78 | 0 | 0.00 |
+| green | 2277 | 3.41 | 0 | 0.00 |
 | red-missing | 0 | 0.00 | 0 | 0.00 |
 | pin | 0 | 0.00 | 0 | 0.00 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
@@ -254,6 +280,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | skills/veri-dev/SKILL.md: add requirement D13 to its REQUIREMENTS.md exactly as the issue states it; the unit parks an issue only through `park-issue.sh`, on resume reads the parked set through `parked-issues.sh` rather than a handoff or memory, and un-parking removes the `parked` label; graded PASS against its whole list and signed ⟦skill-edit⟧ ⟦criterion 5⟧ | 3 | 0 | 0 | 0 | 0 | 0 | 37 | 8 | 14 | 5463 | 141058 | 35252 | 0.16 | 67 | unknown | unknown | unknown |  |  | full |
 | skills/veri-coord/SKILL.md: add requirement C13 to its REQUIREMENTS.md exactly as the issue states it; the unit parks an issue only through `park-issue.sh`, on resume reads the parked set through `parked-issues.sh` rather than a handoff or memory, and un-parking removes the `parked` label; graded PASS against its whole list and signed ⟦skill-edit⟧ ⟦criterion 5⟧ | 3 | 0 | 0 | 0 | 0 | 0 | 30 | 6 | 12 | 4066 | 107615 | 32839 | 0.13 | 52 | unknown | unknown | unknown |  |  | full |
 | The branch adds rows D13 to skills/veri-dev/REQUIREMENTS.md and C13 to skills/veri-coord/REQUIREMENTS.md exactly as the issue's `## Requirements` tables state them, replacing no other row, and each unit's GRADED line was re-signed on this branch for its current text ⟦diff-checked⟧ ⟦criterion 6⟧ | 6 | 2 | 0 | 0 | 0 | 0 | 80 | 35 | 70 | 8320 | 960761 | 139111 | 0.53 | 520 | unknown | unknown | unknown |  |  | full |
+| fix the CI failure: skills/tdd/scripts/tests/py/test_detach_leaf.py — FAILED skills/tdd/scripts/tests/py/test_detach_leaf.py::test_main_launches_a_child_that_writes_its_completion_file_after_a_term_to_the_launchers_process_group_where_a_nohup_child_does_not - Failed: Timeout (>30.0s) from pytest-timeout. ⟦ci-repair⟧ ⟦criterion 6⟧ | 7 | 2 | 1 | 0 | 0 | 0 | 204 | 35 | 70 | 17337 | 1000490 | 197880 | 0.97 | 750 | 1/2 | 0/5 | nothing-left |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -271,6 +298,7 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | With no open issue labelled `parked`, `parked-issues.sh` prints nothing and exits 3 ⟦criterion 4⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 66 | 0.09 |
 | `parked-issues.sh` exits 2 when `gh` gives no answer to listing the issues or reading an issue's comments, naming the call on stderr | 1 | 0/5 | nothing-left | PASS | 0 | 44 | 0.10 |
 | `parked-issues.sh` exits 2 when `gh` answers the issue listing but gives no answer to reading an issue's comments, naming the comments call on stderr ⟦added⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 38 | 0.09 |
+| fix the CI failure: skills/tdd/scripts/tests/py/test_detach_leaf.py — FAILED skills/tdd/scripts/tests/py/test_detach_leaf.py::test_main_launches_a_child_that_writes_its_completion_file_after_a_term_to_the_launchers_process_group_where_a_nohup_child_does_not - Failed: Timeout (>30.0s) from pytest-timeout. ⟦ci-repair⟧ ⟦criterion 6⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 6 | 0.08 |
 
 #### Structural pass
 
@@ -280,14 +308,14 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 3 | 3 | 93 | 4 | 18 | 19 | 19 | 4 | 23 | 4 | 4 | 0 | 4 | 4 | 4 | 4 | 4 | 3 | 3 | 3 | 4 | 5 | 4 | 4 | 4 | 3 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 5 | 5 | 5 | 4 | 4 | 2 | 2 | 4 | 5 | 4 | 4 | 3 | 79 | 5 | 17 | 3 | 17 | 4 | 18 | 4 | 4 | 4 | 5 | 4 | 4 | 3 | 3 | 3 | 3 | 4 | 4 | 6 | 3 | 3 | 2 | 4 | 4 | 34 | 4 | 4 | 4 | 4 | 4 | 169 | 0 | 211 | 5 | 3 | 5 | 4 |
-| fast | 38 | 17 | 18 | 18 | 17 | 17 | 17 | 19 | 18 | 18 | 18 | 18 | 18 | 18 | 18 | 18 | 19 | 19 | 17 | 18 | 18 | 18 | 18 | 18 | 18 | 18 | 41 | 18 | 18 | 17 | 18 | 18 | 18 | 18 | 19 | 18 | 18 | 19 | 18 | 41 | 19 | 18 | 18 | 19 | 19 | 18 | 18 | 19 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 4 | 4 | 3 | 3 | 3 | 3 | 4 | 4 | 4 | 4 | 4 | 3 | 4 | 0 | 3 | 4 | 3 | 4 | 3 | 4 | 3 | 4 | 3 | 4 | 4 | 4 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 3 | 3 | 93 | 4 | 18 | 19 | 19 | 4 | 23 | 4 | 4 | 0 | 4 | 4 | 4 | 4 | 4 | 3 | 3 | 3 | 4 | 5 | 4 | 4 | 4 | 3 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 5 | 5 | 5 | 4 | 4 | 2 | 2 | 4 | 5 | 4 | 4 | 3 | 79 | 5 | 17 | 3 | 17 | 4 | 18 | 4 | 4 | 4 | 5 | 4 | 4 | 3 | 3 | 3 | 3 | 4 | 4 | 6 | 3 | 3 | 2 | 4 | 4 | 34 | 4 | 4 | 4 | 4 | 4 | 169 | 0 | 211 | 5 | 3 | 5 | 4 | 6 | 5 | 3 | 1 | 3 |
+| fast | 38 | 17 | 18 | 18 | 17 | 17 | 17 | 19 | 18 | 18 | 18 | 18 | 18 | 18 | 18 | 18 | 19 | 19 | 17 | 18 | 18 | 18 | 18 | 18 | 18 | 18 | 41 | 18 | 18 | 17 | 18 | 18 | 18 | 18 | 19 | 18 | 18 | 19 | 18 | 41 | 19 | 18 | 18 | 19 | 19 | 18 | 18 | 19 | 21 | 23 | 22 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 4 | 4 | 3 | 3 | 3 | 3 | 4 | 4 | 4 | 4 | 4 | 3 | 4 | 0 | 3 | 4 | 3 | 4 | 3 | 4 | 3 | 4 | 3 | 4 | 4 | 4 | 4 | 3 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 493 | 954 | 168541 | 13631525 | 1863107 | 8.65 |
+| total | 530 | 1028 | 189062 | 14634232 | 2082761 | 9.71 |
