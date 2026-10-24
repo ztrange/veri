@@ -3,6 +3,13 @@ import json
 import os
 import sys
 
+try:
+    from . import add_ledger_step
+    from .ledger import STEP_RE, read_ledger
+except ImportError:
+    import add_ledger_step
+    from ledger import STEP_RE, read_ledger
+
 USAGE = "usage: suite-red-resume.sh check <ledger-file> <branch-red-file> <default-red-file>"
 SEPARATOR = " — "
 
@@ -25,7 +32,19 @@ def last_bail_cause(path):
     return cause
 
 
+def insert(ledger, branch_file):
+    with open(branch_file, encoding="utf-8") as handle:
+        reds = handle.read().splitlines()
+    steps = [line for line in read_ledger(ledger).split("\n") if STEP_RE.fullmatch(line)]
+    unchecked = [line for line in steps if STEP_RE.fullmatch(line).group(2) == " "]
+    where, anchor = ("before", unchecked[0]) if unchecked else ("after", steps[-1])
+    text = "fix the full-suite failure: " + "; ".join(reds) + " ⟦suite-repair⟧"
+    return add_ledger_step.main([ledger, where, anchor, text])
+
+
 def main(argv):
+    if len(argv) == 3 and argv[0] == "insert":
+        return insert(argv[1], argv[2])
     if len(argv) != 4 or argv[0] != "check":
         print(USAGE, file=sys.stderr)
         return 2
