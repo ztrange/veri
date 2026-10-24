@@ -1,5 +1,4 @@
 """parked-issues.sh's work, run in-process."""
-import json
 import sys
 
 import github
@@ -22,7 +21,7 @@ def main(argv):
     except github.NoAnswer:
         sys.stderr.write("parked-issues.sh: no answer from gh to listing the issues\n")
         return 2
-    issues = json.loads(listing or "[]")
+    issues = items(listing, strict=False)
     if not issues:
         return 3
     for issue in issues:

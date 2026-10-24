@@ -226,3 +226,43 @@ def test_parked_issues_reads_the_parked_comment_served_on_the_second_page_of_an_
 
     assert ran.returncode == 0, ran.stderr
     assert ran.stdout == "7\tTeach the verifier to refuse\tbail found on page two\ta human reads page two\n"
+
+
+TWO_PAGES_OF_LISTING_GH_STUB = """#!/bin/sh
+for a in "$@"; do
+  case "$a" in
+    */issues/7/comments*page=1)
+      echo '[{"body":"### ⏸ Parked\\nCause: bail on the first page\\nUnblock: a human reads page one"}]'
+      exit 0 ;;
+    */issues/8/comments*page=1)
+      echo '[{"body":"### ⏸ Parked\\nCause: held PR on the second page\\nUnblock: the human merges"}]'
+      exit 0 ;;
+    */comments*) echo '[]'; exit 0 ;;
+    */issues*page=1)
+      echo '[{"number":7,"title":"Teach the verifier to refuse","labels":[{"name":"parked"}]}]'
+      exit 0 ;;
+    */issues*page=2)
+      echo '[{"number":8,"title":"Hold the PR","labels":[{"name":"parked"}]}]'
+      exit 0 ;;
+  esac
+done
+echo '[]'
+"""
+
+
+@pytest.mark.process("parked-issues.sh run against a gh stub serving the parked listing over two pages")
+def test_parked_issues_prints_the_parked_issue_served_on_the_second_page_of_the_listing(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(TWO_PAGES_OF_LISTING_GH_STUB)
+    gh.chmod(0o755)
+
+    ran = subprocess.run([str(SCRIPTS / "parked-issues.sh")], cwd=tmp_path, capture_output=True, text=True,
+                         stdin=subprocess.DEVNULL,
+                         env={"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+                              "PYTHONDONTWRITEBYTECODE": "1"})
+
+    assert ran.returncode == 0, ran.stderr
+    assert ran.stdout == ("7\tTeach the verifier to refuse\tbail on the first page\ta human reads page one\n"
+                          "8\tHold the PR\theld PR on the second page\tthe human merges\n")
