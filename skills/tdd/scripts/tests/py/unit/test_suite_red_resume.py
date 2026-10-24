@@ -48,3 +48,39 @@ def test_check_refuses_when_the_last_bail_is_not_suite_red_or_absent_and_exits_2
     assert no_bail[0] == 1 and no_bail[1] == ""
     assert unreadable[0] == 2 and unreadable[1] == ""
     assert no_args[0] == 2 and "usage" in no_args[2]
+
+
+def test_insert_adds_one_suite_repair_step_before_the_first_unchecked_step_through_add_ledger_step_2226(run_cli, tmp_path):
+    module = importlib.import_module("veri.suite_red_resume")
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n- [ ] b ⟦criterion 2⟧\n- [ ] c ⟦criterion 3⟧\n")
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "suite-red"}) + "\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text("test_a.py — FAIL a\ntest_b.py\n")
+    step = "- [ ] fix the full-suite failure: test_a.py — FAIL a; test_b.py ⟦suite-repair⟧ ⟦criterion 2⟧"
+
+    code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
+
+    assert code == 0
+    assert ledger.read_text().split("\n")[2:6] == ["- [x] a ⟦criterion 1⟧", step, "- [ ] b ⟦criterion 2⟧", "- [ ] c ⟦criterion 3⟧"]
+    assert (tmp_path / "issue-7-added.md").read_text() == step + "\n"
+    logged = [json.loads(line) for line in (tmp_path / "events.jsonl").read_text().splitlines()]
+    assert [e["step"] for e in logged if e["event"] == "step-added"] == [step]
+
+
+def test_insert_with_no_unchecked_step_adds_the_suite_repair_step_after_the_last_done_step_2226(run_cli, tmp_path):
+    module = importlib.import_module("veri.suite_red_resume")
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n- [x] b ⟦criterion 2⟧\n")
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "suite-red"}) + "\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text("test_a.py\n")
+    step = "- [ ] fix the full-suite failure: test_a.py ⟦suite-repair⟧ ⟦criterion 2⟧"
+
+    code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
+
+    assert code == 0
+    assert ledger.read_text().split("\n")[2:5] == ["- [x] a ⟦criterion 1⟧", "- [x] b ⟦criterion 2⟧", step]
+    assert (tmp_path / "issue-7-added.md").read_text() == step + "\n"
+    logged = [json.loads(line) for line in (tmp_path / "events.jsonl").read_text().splitlines()]
+    assert [e["step"] for e in logged if e["event"] == "step-added"] == [step]
