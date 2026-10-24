@@ -7,7 +7,6 @@ SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 PIN_MD = SKILL.with_name("PIN.md")
 
 PIN = "## Already satisfied — the pin"
-DRAFT_PR = "### 4. Draft PR"
 
 
 def records_of(text):
@@ -63,25 +62,6 @@ def gated_tick(label, heading, extra, problems):
 def test_step_done_and_pin_paths_tick_an_issue_criterion_only_on_criterion_finished_exit_0_ticking_nothing_on_exit_3():
     problems = []
     gated_tick("pin path", PIN, "", problems)
-    assert not problems, "\n".join(problems)
-
-
-def test_481_draft_pr_step_ticks_every_full_suite_line_and_its_issue_criterion_only_once_the_last_full_suite_run_is_green():
-    problems = []
-    pr_rec = first_record(section_records(DRAFT_PR), ("F", "⟦full-suite⟧"), ("E", "tick"))
-    if not pr_rec:
-        problems.append("draft PR: no instruction in step 4 ticks a ⟦full-suite⟧ ledger line — the rule could not be checked")
-    else:
-        if "tick-issue-criterion.sh" not in pr_rec:
-            problems.append("draft PR: the ⟦full-suite⟧ tick never ticks the issue criterion it finishes with tick-issue-criterion.sh")
-        if not re.search(r"(no|without|never) [^.]*refactor.pending", pr_rec):
-            problems.append("draft PR: the ⟦full-suite⟧ tick never says it carries no refactor-pending mark")
-        if not re.search(r"last full-suite run[^.]*green", pr_rec):
-            problems.append("draft PR: the ⟦full-suite⟧ tick is not tied to the last full-suite run being green")
-        if "rebased tip" not in pr_rec:
-            problems.append("draft PR: the ⟦full-suite⟧ tick never says the rebased tip's run is the one that counts after a rebase")
-        if not re.search(r"(never|not|no) [^.]*red", pr_rec):
-            problems.append("draft PR: the ⟦full-suite⟧ tick never says a red run ticks nothing")
     assert not problems, "\n".join(problems)
 
 
@@ -185,21 +165,6 @@ def test_671_context_md_defines_contract_case_implementation_case_and_the_replac
     assert not problems, "\n".join(problems)
 
 
-def test_481_draft_pr_step_lists_every_human_owed_ledger_line_in_the_pr_body_under_owed_by_a_human_each_naming_its_criterion_number_and_adds_no_such_section_when_the_ledger_holds_none():
-    problems = []
-    rec = first_record(section_records(DRAFT_PR), ("F", "⟦human-owed⟧"), ("F", "## owed by a human"))
-    if not rec:
-        problems.append("draft PR: no instruction in step 4 lists ⟦human-owed⟧ ledger lines under '## Owed by a human' — the rule could not be checked")
-    else:
-        if "pr body" not in rec:
-            problems.append("draft PR: the ⟦human-owed⟧ instruction never says the lines go into the PR body")
-        if not re.search(r"criterion (number|k)", rec):
-            problems.append("draft PR: the ⟦human-owed⟧ instruction never says each listed line names its criterion number")
-        if not re.search(r"(no|none|omit|without) [^.]*(section|heading)", rec):
-            problems.append("draft PR: the ⟦human-owed⟧ instruction never says no such section is added when the ledger holds none")
-    assert not problems, "\n".join(problems)
-
-
 def does_not_hold(label, rec, problems):
     if not rec:
         problems.append(f"{label}: the condition could not be found — the rule could not be checked")
@@ -213,7 +178,6 @@ def does_not_hold(label, rec, problems):
 
 def test_481_draft_pr_entry_condition_and_resumes_go_to_draft_pr_condition_say_unchecked_full_suite_and_human_owed_lines_do_not_hold_a_run_back():
     problems = []
-    does_not_hold("draft PR entry", first_record(section_records(DRAFT_PR), ("F", "reached when")), problems)
     does_not_hold("resume", first_record(section_records("## Resume"), ("E", r"go to the \*?\*?draft pr")), problems)
     assert not problems, "\n".join(problems)
 

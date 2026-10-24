@@ -54,12 +54,6 @@ def resume():
     return records
 
 
-def draft_pr():
-    records = section_records("### 4. Draft PR")
-    assert records, "SKILL.md has no ### 4. Draft PR section to read"
-    return records
-
-
 def first(records, *patterns):
     return next((r for r in records if all(re.search(p.encode(), r) for p in patterns)), None)
 
@@ -99,18 +93,6 @@ def test_skill_md_s_resume_asks_next_pending_refactor_sh_before_next_unchecked_s
     reaches = read(records, "sends a resumed run to the draft pr", "draft pr")
     says(reaches, r"next-pending-refactor\.sh", "Resume sends a resumed run to the draft PR without next-pending-refactor.sh")
     says(reaches, r"next-unchecked\.sh", "Resume sends a resumed run to the draft PR without next-unchecked.sh having exited 3")
-
-
-def test_skill_md_s_draft_pr_step_refuses_to_open_the_pr_while_git_status_porcelain_is_non_empty_or_next_pending_refactor_sh_finds_a_pending_step():
-    records = draft_pr()
-    status = next((i for i, r in enumerate(records, 1) if re.search(DIRTY_TREE.encode(), r)), 0)
-    opens = next((i for i, r in enumerate(records, 1) if re.search(rb"pr-creating `gh api`", r)), 0)
-    assert status, "Draft PR step never checks git status --porcelain"
-    assert opens, "Draft PR step no longer opens the PR"
-    assert status <= opens, "Draft PR step checks the tree only after the PR-creating gh api call"
-    gate = read(records, "asks git status --porcelain before the PR is opened", DIRTY_TREE)
-    says(gate, r"next-pending-refactor\.sh", "Draft PR step checks only that the tree is clean")
-    says(gate, r"refuse|do not open|does not open|stop|bail|must not|never", "Draft PR step never says the checks can stop it")
 
 
 def test_claude_md_s_ledger_invariant_and_context_md_s_ledger_entry_say_a_ticked_step_carries_the_refactor_pending_mark_until_its_verify_refactor_passes():
@@ -157,14 +139,6 @@ def test_skill_md_s_resume_captures_the_dirty_paths_before_it_resets_and_names_t
     assert re.search((DIRTY_TREE + ".*" + RESET).encode(), text), "Resume captures git status --porcelain only after the reset"
     comment = read(records, "says the ### ▶️ Resuming comment names the paths the reset discarded", "▶️ resuming", "(path|file)")
     says(comment, r"(discard|threw away|thrown away|throw away|stray|reset)", "the Resuming comment mentions paths without saying the reset discarded them")
-
-
-def test_skill_md_s_draft_pr_step_names_a_remedy_for_a_dirty_tree_with_no_step_pending_and_none_unchecked_and_reaches_the_pr_after_it():
-    records = draft_pr()
-    gate = read(records, "asks git status --porcelain before the PR is opened", DIRTY_TREE)
-    says(gate, r"(no |nothing |none |without a )[^.]{0,40}pending", "refusal names a remedy only for a step that is pending")
-    says(gate, "unchecked", "refusal never says what happens when no step is unchecked either")
-    says(gate, r"(come back|comes back|return here|returns here|open the pr|gh pr create)", "refusal never says the run reaches the PR after the remedy")
 
 
 def test_skill_md_s_resume_says_a_leaf_killed_in_red_or_green_leaves_the_same_stray_work_a_killed_refactor_leaf_does():

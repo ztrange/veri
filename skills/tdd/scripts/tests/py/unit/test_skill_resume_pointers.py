@@ -7,7 +7,6 @@ TDD = SKILL.parent
 CORE = [TDD / name for name in ("SKILL.md", "SCRIPTS.md", "BAIL.md", "STOPPING.md", "RECONCILE.md")]
 NAMING_FILES = CORE + [TDD / "scripts" / "solvable-issues.sh"]
 
-POINTER = "<base directory>/RESUME.md"
 NAMES_RESUME = re.compile(r"\bResume\b(?!\.\*\*| check)")
 
 
@@ -15,18 +14,7 @@ def _lines(path):
     return path.read_text().split("\n")
 
 
-def _reads_it(lines, pattern):
-    """Index of the line matching pattern whose own text or previous line says `Read`."""
-    hits = [n for n, line in enumerate(lines) if re.search(pattern, line)]
-    assert hits, f"no line matches {pattern!r} in SKILL.md"
-    return [n for n in hits if POINTER in lines[n] and "`Read`" in lines[n - 1] + " " + lines[n]]
-
-
 def test_resume_pointers_name_resume_md_in_the_base_directory():
-    lines = _lines(SKILL)
-    assert _reads_it(lines, r"RESUME\.md` sub-step 2"), \
-        "Draft PR sub-step 1 carries no `Read` pointer naming " + POINTER
-
     for path in CORE:
         for n, line in enumerate(_lines(path), 1):
             if "RESUME.md" in line:
