@@ -6,9 +6,14 @@ import github
 
 def main(argv):
     if len(argv) not in (3, 4):
+        sys.stderr.write("park-issue.sh: too many arguments\n" if len(argv) > 4 else "")
         sys.stderr.write("usage: park-issue.sh <issue-number> <cause> <unblock> [<pr>]\n")
         return 2
     number, cause, unblock = argv[:3]
+    for bad, name in ((not number.isdigit(), "issue number"), (not cause, "cause"), (not unblock, "unblock")):
+        if bad:
+            sys.stderr.write("park-issue.sh: bad %s\n" % name)
+            return 2
     pr = "PR: %s\n" % argv[3] if len(argv) == 4 else ""
     github.gh_label_ensure("parked")
     github.gh_issue_add_label(number, "parked")
