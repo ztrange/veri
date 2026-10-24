@@ -1,4 +1,5 @@
 """suite-red-resume.sh's check, run in-process."""
+import errno
 import json
 import os
 import sys
@@ -23,6 +24,13 @@ def read_text(path):
         return handle.read()
 
 
+def read_branch_red(path):
+    text = read_text(path)
+    if not text.strip():
+        raise OSError(errno.ENODATA, "empty", path)
+    return text
+
+
 def suites(text):
     return [line.split(SEPARATOR)[0] for line in text.splitlines()]
 
@@ -39,12 +47,9 @@ def last_bail_cause(path):
 
 def insert(ledger, branch_file):
     try:
-        text = read_text(branch_file)
+        text = read_branch_red(branch_file)
     except OSError as error:
         complain(f"{error.filename}: {error.strerror}")
-        return 2
-    if not text.strip():
-        complain(f"{branch_file}: empty")
         return 2
     reds = text.splitlines()
     steps = [line for line in read_ledger(ledger).split("\n") if STEP_RE.fullmatch(line)]
@@ -63,11 +68,8 @@ def main(argv):
     _, ledger, branch_file, default_file = argv
     try:
         cause = last_bail_cause(os.path.join(os.path.dirname(ledger), "events.jsonl"))
-        branch = read_text(branch_file)
+        branch = read_branch_red(branch_file)
         default = read_text(default_file)
-        if not branch.strip():
-            complain(f"{branch_file}: empty")
-            return 2
     except OSError as error:
         complain(f"{error.filename}: {error.strerror}")
         return 2
