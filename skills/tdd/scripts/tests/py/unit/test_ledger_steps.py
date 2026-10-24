@@ -602,3 +602,15 @@ def test_cli_a_human_owed_step_with_the_mark_before_its_text_and_no_criterion_ta
            run_cli(via_stdin(next_unchecked, ledger), [])]
 
     assert got == [(0, "1\topen\thuman-owed\t0\t0\t\t⟦human-owed⟧ measure X once deployed\n", ""), (3, "", "")]
+
+
+def test_cli_a_human_owed_step_with_the_mark_before_its_text_and_a_criterion_tag_is_kind_human_owed_with_that_criterion_and_next_unchecked_skips_it_2248(
+        run_cli, ledger_steps):
+    next_unchecked = importlib.import_module("veri.next_unchecked")
+    step = "⟦human-owed⟧ measure X once deployed ⟦criterion 2⟧"
+    ledger = f"# Plan for #42\n\n- [ ] {step}\n"
+
+    got = [run_cli(via_stdin(ledger_steps, ledger), []),
+           run_cli(via_stdin(next_unchecked, ledger), [])]
+
+    assert got == [(0, f"1\topen\thuman-owed\t0\t0\t2\t{step}\n", ""), (3, "", "")]
