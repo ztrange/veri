@@ -326,3 +326,22 @@ def test_2027_a_commit_touching_any_other_tdd_file_is_still_outside_the_bound(
     code, out, err = run_cli(transform_touches_tests, [base, "src/a.sh"], cwd=repo)
     assert (code, err) == (1, "")
     assert ".tdd/issue-7.md" in out and "src/a.sh" not in out
+
+
+@pytest.mark.process("git over a scratch repository whose bound is the green commit's files plus a file the candidate names")
+def test_2305_a_covered_candidates_transform_is_inside_the_bound_on_the_files_it_names_and_refused_on_a_planted_one(
+        tmp_path, transform_touches_tests, run_cli):
+    refactor_touched = importlib.import_module("veri.refactor_touched")
+    repo = new_repo(tmp_path / "covered")
+    commit_all(repo, "feat: seed", **{"src__a.sh": "a\n", "src__b.sh": "b\n", "src__c.sh": "c\n"})
+    green = commit_all(repo, "feat: green", **{"src__a.sh": "a2\n"})
+    code, bound, _ = run_cli(refactor_touched, [green, "--candidate", "move the helper in b.sh"], cwd=repo)
+    assert (code, bound.strip()) == (0, "src/a.sh,src/b.sh")
+
+    commit_all(repo, "refactor: the candidate", **{"src__b.sh": "b2\n"})
+    assert run_cli(transform_touches_tests, [green, bound.strip()], cwd=repo) == (0, "", "")
+
+    commit_all(repo, "refactor: planted", **{"src__c.sh": "c2\n"})
+    code, out, err = run_cli(transform_touches_tests, [green, bound.strip()], cwd=repo)
+    assert (code, err) == (1, "")
+    assert "src/c.sh" in out and "src/b.sh" not in out
