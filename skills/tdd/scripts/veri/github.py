@@ -276,3 +276,7 @@ def gh_issue_create(title, body):
 
 def gh_issue_comment(number, body):
     _select("issue_comment").issue_comment(number, body)
+
+
+def gh_issue_add_label(number, label):
+    _gh("api", _issue(number) + "/labels", "-f", "labels[]=%s" % label)
