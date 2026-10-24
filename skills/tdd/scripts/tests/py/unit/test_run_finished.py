@@ -114,3 +114,25 @@ def test_main_exits_2_saying_the_pr_body_could_not_be_read_when_gh_answers_non_z
             code, out, err = run_cli(run_finished, ["4242"])
             outcomes[driver, name] = (code, out, "the PR body could not be read" in err, "Traceback" in err)
     assert outcomes == {key: (2, "", True, False) for key in outcomes}
+
+
+def test_main_lists_a_pr_body_line_human_owed_only_for_a_leading_or_trailing_mark_not_one_quoted_mid_prose_2288(tmp_path, monkeypatch, run_cli, fake_processes):
+    run_finished = importlib.import_module("veri.run_finished")
+    ledger = tmp_path / ".tdd" / "wt" / "4242" / ".tdd"
+    ledger.mkdir(parents=True)
+    (ledger / "issue-4242.md").write_text("# Plan for #4242 — a title\n\n- [x] first step ⟦criterion 1⟧\n")
+    run = {"issue": "4242", "state": "done", "pr": "https://github.com/o/r/pull/7"}
+    monkeypatch.setattr(run_finished, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(run_finished, "json_document", lambda scope=None: (0, json.dumps({"runs": [run]})))
+    monkeypatch.setenv("VERI_GH_DRIVER", "rest")
+    body = "\n".join(["Closes #4242", "", "- [ ] a ⟦human-owed⟧ x",
+                      "- [ ] measure X ⟦human-owed⟧", "- [ ] ⟦human-owed⟧ measure X"])
+
+    def answer(line, **kwargs):
+        if line.startswith("gh api repos/{owner}/{repo}/pulls/7"):
+            return 0, json.dumps({"number": 7, "body": body}) + "\n", ""
+        return 1, "", "no such route"
+
+    fake_processes(answer)
+    code, out, err = run_cli(run_finished, ["4242"])
+    assert (code, out) == (1, "human-owed measure X ⟦human-owed⟧\nhuman-owed ⟦human-owed⟧ measure X\n")
