@@ -639,7 +639,10 @@ three times over branches its ledger pinned on later lines.
    `$S/scope-check.sh .tdd/issue-<n>.md .`: it exits 1 when a step names a new `test_<x>.py` under
    `skills/tdd/scripts/tests/py/` whose basename already exists anywhere under it (pytest refuses
    two modules of one basename) and its stderr names both paths, so rename the step's module with
-   a `_process` or `_cli` suffix and run it again:
+   a `_process` or `_cli` suffix and run it again. It also exits 1 when a step line carries more than
+   one `⟦criterion k⟧` tag, naming the line on stderr: rewrite the plan so each such step serves one
+   criterion, splitting it where needed, and run the check again. The plan is never committed with a
+   multi-tag step:
    `git add .tdd/issue-<n>.md && git commit -m "plan: scope #<n> into <k> steps (#<n>)"`.
    (The ledger is committed — step 1.4 guaranteed `.gitignore` tracks `.tdd/issue-*.md`
    while ignoring leaf logs.)
@@ -1342,7 +1345,9 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`, k from the step's `⟦criterion k⟧`):
      on exit **0** tick it in the **issue body** (`$S/tick-issue-criterion.sh <n>
      "$(gh api repos/{owner}/{repo}/issues/<n> -q .body | $S/ledger-steps.sh criterion <k>)"`, the human mirror); on exit **3** tick nothing, since a step serving it is
-     still open or pending. Mark
+     still open or pending; on exit **2** the criterion could not be read, so **bail** with cause
+     `criterion-unreadable` (a system failure; see `<base directory>/BAIL.md`) and never treat it as
+     exit 3. Mark
      the same moment in the log —
      `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" $S/event.sh step-done`.
      **Then ask whether the run can still afford to finish** — this step boundary is where
