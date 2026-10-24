@@ -26,7 +26,7 @@ Invoked as `/veri-dev [<lane>] [N] [--resume <file>]`.
 - **N** is how many conductors to keep running; it defaults to 1.
 - **Merging is always granted** for the runs this session finishes, in the project repo only.
   A run is merged after its review is OK; never one in another repo.
-- **`--resume <file>`** reads a handoff for state only (live conductors, parked runs, PRs
+- **`--resume <file>`** reads a handoff for state only (live conductors, PRs
   awaiting merge, N and any timed change, overrides and permissions with their expiry); the
   rules are this skill's. Re-read that state live before the first slot decision.
 
