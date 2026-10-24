@@ -5,7 +5,7 @@
 | M1 | Invoked as `/veri-merge <issue-or-PR>`. It merges with the standing permission `veri-dev` and `veri-coord` carry in the project repo, or with explicit permission; never in another repo. | |
 | M2 | It merges only when all of these hold: the last comment is ✅ Done; the ledger has no unchecked step and no `⟂ refactor pending`; every ⟦human-owed⟧ line is ticked. | |
 | M3 | An unticked ⟦human-owed⟧ line gets one read-only review subagent. NOT OK goes to the human. | |
-| M4 | It holds the merge lock from the first write to the last, and releases it on every exit path. | |
+| M4 | It takes the merge lock with `$S/merge-lock.sh take` before its first write and releases it with `$S/merge-lock.sh release` on every exit path; a merge that stops on a conflict or a refused push leaves the lock held and says so, for a human to clear with `$S/merge-lock.sh release`. | One merge lands at a time, and a stopped merge is visible instead of letting the next one rebase onto half-finished work. |
 | M5 | If `main` moved, it rebases and force-pushes with `--force-with-lease` pinned to the recorded sha. | The bare form silently clobbers. |
 | M6 | An empty or missing CI rollup is not a pass. | |
 | M7 | The CI wait is `$S/wait-ci.sh`, called again on exit 3, capped at 2× the average of the last 5 runs, and at 10 minutes. | "30 min is too much." The wait is a blocking script (P3), not a wait the agent improvises. |
