@@ -32,7 +32,11 @@ def main(argv):
             sys.stderr.write("parked-issues.sh: no answer from gh to reading the comments of issue #%d\n" % number)
             return 2
         comments = items(raw, strict=False)
-        body = [c["body"] for c in comments if c["body"].startswith(github.PARKED_HEADING)][-1]
+        bodies = [c["body"] for c in comments if c["body"].startswith(github.PARKED_HEADING)]
+        if not bodies:
+            sys.stderr.write("parked-issues.sh: issue #%d has no parked comment\n" % number)
+            return 2
+        body = bodies[-1]
         sys.stdout.write("%d\t%s\t%s\t%s\n" % (number, issue["title"], field(body, "Cause"), field(body, "Unblock")))
     return 0
 
