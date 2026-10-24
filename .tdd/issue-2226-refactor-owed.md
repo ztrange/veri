@@ -6,3 +6,4 @@ applied | d8374afdd291eb618c7b69513e2f9b76ea8e06c2 | in `veri/suite_red_resume.p
 ### `suite_red_resume.py`'s USAGE names the `insert` verb beside `check` (`suite-red-resume.sh check <ledger-file> <branch-red-file> <default-red-file>` and `suite-red-resume.sh insert <ledger-file> <branch-red-file>`), printed on stderr with exit 2 for no arguments or an unknown verb; a unit case in `tests/py/unit/test_suite_red_resume.py` driven by `run_cli` ⟦criterion 6⟧
 - rename `read_branch_red` to `read_red`, because `check` also uses it for the default-red file
 - fold the repeated `except OSError` and `complain` handling in `insert` and `check` into one helper
+applied | ffe46d61f3cd2d9bef6ef61685d8f7c451713744 | rename `read_branch_red` to a neutral name such as `read_nonempty`, since `check` now also uses it for the default-red file	refactor: rename read_branch_red to read_nonempty (#2226)
