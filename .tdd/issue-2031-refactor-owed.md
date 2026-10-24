@@ -1,0 +1,2 @@
+### `parked-issues.sh` reads the parked set from GitHub alone: for each open issue labelled `parked` it prints one tab-separated line — the issue's number, its title, and the cause and unblock text of its `### ⏸ Parked` comment — and exits 0; the script ships in this step as a shim over a `veri/` module with a usage line, exit 2 on any argument, and its entry in `skills/tdd/SCRIPTS.md` ⟦criterion 4⟧
+- share the "### ⏸ Parked" heading literal between park_issue.py and parked_issues.py as one constant (cross-file extraction, reported rather than applied)
