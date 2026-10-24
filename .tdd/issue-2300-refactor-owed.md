@@ -1,0 +1,2 @@
+### A first grader reply whose GRADES block names one requirement ID twice relaunches the grader, and a well-formed second reply grades normally: grade-prose exits 0 after 2 launches (a small case in skills/tdd/scripts/tests/py/unit/test_grade_prose.py with the grader stubbed in-process) ⟦criterion 1⟧
+- extract a shared "block is well-formed" predicate (unique IDs, known IDs, PASS/FAIL words, nothing after END GRADES) used by both the launch loop and the follow-up check in grade_prose.py; the next steps for #2300 will add these checks to the loop, so it is deferred
