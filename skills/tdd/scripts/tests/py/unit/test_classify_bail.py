@@ -147,3 +147,9 @@ def test_main_classifies_fixture_owed_as_a_process_failure_with_0_2172(capsys, c
     code = classify_bail.main(["fixture-owed"])
 
     assert (code, *capsys.readouterr()) == (0, "process\n", "")
+
+
+def test_main_classifies_criterion_unreadable_as_system_with_0_2222(capsys, classify_bail):
+    code = classify_bail.main(["criterion-unreadable"])
+
+    assert (code, *capsys.readouterr()) == (0, "system\n", "")
