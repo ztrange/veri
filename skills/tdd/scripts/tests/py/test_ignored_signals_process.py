@@ -37,3 +37,30 @@ def test_a_detach_leaf_signal_case_passes_in_a_pytest_run_started_with_int_term_
         pytest.fail("the detach-leaf signal case did not finish in 25 s: %r" % (exc.stdout,))
 
     assert done.returncode == 0, done.stdout[-1500:]
+
+
+CASES_AFTER_A_PROCESS_CASE = '''
+import signal
+
+import pytest
+
+
+@pytest.mark.process("stands in for a case that signals a child")
+def test_process_case():
+    pass
+
+
+def test_unmarked_case_sees_hup_still_ignored():
+    assert signal.getsignal(signal.SIGHUP) == signal.SIG_IGN
+'''
+
+
+@pytest.mark.process("a child pytest session started with SIGHUP ignored, running a process case then an unmarked one")
+def test_an_unmarked_case_after_a_process_case_still_sees_hup_ignored_in_a_run_started_with_it_ignored_2294(tmp_path):
+    (tmp_path / "test_order.py").write_text(CASES_AFTER_A_PROCESS_CASE)
+    command = "trap '' HUP; exec \"$0\" -m pytest -p conftest -p no:cacheprovider -q --timeout=10 test_order.py"
+    env = dict(os.environ, PYTHONPATH=str(HERE))
+    done = subprocess.run(["sh", "-c", command, sys.executable], cwd=tmp_path, env=env,
+                          capture_output=True, text=True, timeout=25)
+
+    assert done.returncode == 0, done.stdout[-1500:]
