@@ -133,6 +133,8 @@ def conductor_sessions(issue, path):
                         turn_rows.append([str(len(turn_rows) + 1), "$%.2f" % base_dollars, str(context)])
         if open_turns:
             sessions.append({"total_cost_usd": open_cost if open_priced else None, "num_turns": open_turns, "open": True})
+        if open_contexts:
+            turn_rows.session_contexts.append(open_contexts)
     return sessions, turn_rows
 
 
