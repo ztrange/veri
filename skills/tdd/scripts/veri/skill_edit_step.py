@@ -67,7 +67,7 @@ def _append_section(path, unit, table):
 
 
 def _write_list(path, unit, rows):
-    _append_section(path, unit, TABLE_HEAD + rows)
+    _append_section(path, unit, TABLE_HEAD + _numbered(rows, ()))
 
 
 def _create(unit, path, rows):
@@ -111,13 +111,13 @@ def apply(issue, unit):
     moved = not _claimed(path, unit) and os.path.exists(unit) and _move_table(unit, path)
     rows = _issue_rows(issue, unit)
     if rows and not os.path.exists(unit):
-        _create(unit, path, _numbered(rows, ()))
+        _create(unit, path, rows)
         return True
     claimed = _claimed(path, unit)
     if not rows and not claimed:
         return moved
     if not claimed:
-        _write_list(path, unit, _numbered(rows, ()))
+        _write_list(path, unit, rows)
         return moved
     have = {row.split("\t")[0] for row in claimed.splitlines()}
     rows = _numbered(rows, have)
