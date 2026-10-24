@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 2173
 
-Wall time for the issue: 715 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1813 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Every figure in this report is wall-clock: the log carries no awake-clock reading, so time the machine spent asleep is counted in them.
-Steps done: 12 of 20 planned.
+Steps done: 16 of 20 planned.
 Outcome: the run bailed — revise-exhausted, a process failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $11.72 over 226 turns, in 3 sessions.
+Conductor own spending: $15.72 over 310 turns, in 4 sessions.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
@@ -198,48 +198,132 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 182 | $0.07 | 151542 |
 | 183 | $0.06 | 153043 |
 | 184 | $0.05 | 154070 |
-| 185 | $0.57 | 89200 |
-| 186 | $0.02 | 89689 |
-| 187 | $0.04 | 91955 |
-| 188 | $0.02 | 92431 |
-| 189 | $0.03 | 93897 |
-| 190 | $0.04 | 96921 |
+| 185 | $0.58 | 89200 |
+| 186 | $0.03 | 89689 |
+| 187 | $0.05 | 91955 |
+| 188 | $0.03 | 92431 |
+| 189 | $0.04 | 93897 |
+| 190 | $0.05 | 96921 |
 | 191 | $0.05 | 100280 |
-| 192 | $0.06 | 104812 |
-| 193 | $0.02 | 105245 |
-| 194 | $0.03 | 105772 |
-| 195 | $0.02 | 106068 |
-| 196 | $0.02 | 106386 |
-| 197 | $0.02 | 106659 |
-| 198 | $0.03 | 107347 |
-| 199 | $0.03 | 108012 |
+| 192 | $0.07 | 104812 |
+| 193 | $0.03 | 105245 |
+| 194 | $0.04 | 105772 |
+| 195 | $0.03 | 106068 |
+| 196 | $0.03 | 106386 |
+| 197 | $0.03 | 106659 |
+| 198 | $0.04 | 107347 |
+| 199 | $0.04 | 108012 |
 | 200 | $0.03 | 108636 |
-| 201 | $0.03 | 109289 |
-| 202 | $0.03 | 110681 |
-| 203 | $0.03 | 111565 |
+| 201 | $0.04 | 109289 |
+| 202 | $0.04 | 110681 |
+| 203 | $0.04 | 111565 |
 | 204 | $0.03 | 111925 |
-| 205 | $0.03 | 112456 |
-| 206 | $0.03 | 113618 |
+| 205 | $0.04 | 112456 |
+| 206 | $0.04 | 113618 |
 | 207 | $0.03 | 114226 |
-| 208 | $0.03 | 115193 |
-| 209 | $0.03 | 115821 |
-| 210 | $0.03 | 116499 |
-| 211 | $0.03 | 117563 |
+| 208 | $0.04 | 115193 |
+| 209 | $0.04 | 115821 |
+| 210 | $0.04 | 116499 |
+| 211 | $0.04 | 117563 |
 | 212 | $0.03 | 118119 |
-| 213 | $0.03 | 118546 |
-| 214 | $0.08 | 125896 |
-| 215 | $0.03 | 126787 |
-| 216 | $0.03 | 127384 |
-| 217 | $0.03 | 128164 |
-| 218 | $0.05 | 131091 |
-| 219 | $0.03 | 131666 |
-| 220 | $0.03 | 132424 |
-| 221 | $0.03 | 133471 |
-| 222 | $0.04 | 134515 |
-| 223 | $0.03 | 135389 |
-| 224 | $0.03 | 136241 |
-| 225 | $0.03 | 137134 |
+| 213 | $0.04 | 118546 |
+| 214 | $0.09 | 125896 |
+| 215 | $0.04 | 126787 |
+| 216 | $0.04 | 127384 |
+| 217 | $0.04 | 128164 |
+| 218 | $0.06 | 131091 |
+| 219 | $0.04 | 131666 |
+| 220 | $0.04 | 132424 |
+| 221 | $0.04 | 133471 |
+| 222 | $0.05 | 134515 |
+| 223 | $0.04 | 135389 |
+| 224 | $0.04 | 136241 |
+| 225 | $0.05 | 137134 |
 | 226 | $0.06 | 141184 |
+| 227 | $0.05 | 142218 |
+| 228 | $0.05 | 143269 |
+| 229 | $0.58 | 89504 |
+| 230 | $0.02 | 90045 |
+| 231 | $0.04 | 92311 |
+| 232 | $0.03 | 93278 |
+| 233 | $0.05 | 97422 |
+| 234 | $0.05 | 100690 |
+| 235 | $0.02 | 101142 |
+| 236 | $0.02 | 101594 |
+| 237 | $0.02 | 101843 |
+| 238 | $0.02 | 102129 |
+| 239 | $0.03 | 102836 |
+| 240 | $0.03 | 103882 |
+| 241 | $0.05 | 107285 |
+| 242 | $0.03 | 107997 |
+| 243 | $0.03 | 108809 |
+| 244 | $0.03 | 109522 |
+| 245 | $0.03 | 110184 |
+| 246 | $0.03 | 111301 |
+| 247 | $0.03 | 111928 |
+| 248 | $0.05 | 114802 |
+| 249 | $0.03 | 115699 |
+| 250 | $0.08 | 122941 |
+| 251 | $0.03 | 123811 |
+| 252 | $0.03 | 124613 |
+| 253 | $0.03 | 125489 |
+| 254 | $0.03 | 125867 |
+| 255 | $0.03 | 126365 |
+| 256 | $0.03 | 127493 |
+| 257 | $0.03 | 127792 |
+| 258 | $0.03 | 128737 |
+| 259 | $0.03 | 129360 |
+| 260 | $0.03 | 129720 |
+| 261 | $0.03 | 130432 |
+| 262 | $0.03 | 131046 |
+| 263 | $0.03 | 131659 |
+| 264 | $0.03 | 132637 |
+| 265 | $0.03 | 133434 |
+| 266 | $0.03 | 134319 |
+| 267 | $0.03 | 135032 |
+| 268 | $0.03 | 135696 |
+| 269 | $0.03 | 136351 |
+| 270 | $0.03 | 136740 |
+| 271 | $0.04 | 137950 |
+| 272 | $0.04 | 139097 |
+| 273 | $0.05 | 141567 |
+| 274 | $0.04 | 142852 |
+| 275 | $0.03 | 143119 |
+| 276 | $0.03 | 143739 |
+| 277 | $0.03 | 144353 |
+| 278 | $0.04 | 145555 |
+| 279 | $0.04 | 147107 |
+| 280 | $0.04 | 148121 |
+| 281 | $0.04 | 149249 |
+| 282 | $0.04 | 150162 |
+| 283 | $0.04 | 151414 |
+| 284 | $0.04 | 152068 |
+| 285 | $0.04 | 152927 |
+| 286 | $0.04 | 153894 |
+| 287 | $0.03 | 154402 |
+| 288 | $0.05 | 156227 |
+| 289 | $0.03 | 156481 |
+| 290 | $0.05 | 158290 |
+| 291 | $0.04 | 159423 |
+| 292 | $0.04 | 160919 |
+| 293 | $0.04 | 161691 |
+| 294 | $0.04 | 163197 |
+| 295 | $0.04 | 163975 |
+| 296 | $0.04 | 165168 |
+| 297 | $0.05 | 166904 |
+| 298 | $0.04 | 167796 |
+| 299 | $0.05 | 169228 |
+| 300 | $0.04 | 170293 |
+| 301 | $0.04 | 170692 |
+| 302 | $0.05 | 172183 |
+| 303 | $0.04 | 172980 |
+| 304 | $0.04 | 173413 |
+| 305 | $0.05 | 175094 |
+| 306 | $0.04 | 175816 |
+| 307 | $0.04 | 176242 |
+| 308 | $0.04 | 177074 |
+| 309 | $0.04 | 177752 |
+| 310 | $0.07 | 181812 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -247,11 +331,11 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 14 | 10 | 1 | 2 | 1212 | 0 | 32084 | 0.09 |
-| red | 20 | 9 | 0 | 0 | 753 | 331 | 99 | 192 | 36288 | 2776428 | 422795 | 1.70 |
-| green | 28 | 8 | 5 | 0 | 2572 | 411 | 127 | 248 | 37695 | 3544757 | 428653 | 2.21 |
-| refactor | 16 | 8 | 0 | 0 | 415 | 109 | 47 | 90 | 9006 | 1131352 | 238123 | 0.80 |
+| red | 31 | 13 | 0 | 0 | 1111 | 555 | 150 | 294 | 59410 | 4249526 | 703849 | 3.10 |
+| green | 40 | 11 | 8 | 0 | 3180 | 599 | 183 | 360 | 55116 | 5186129 | 615850 | 3.22 |
+| refactor | 22 | 11 | 0 | 0 | 536 | 148 | 65 | 124 | 12784 | 1578142 | 325333 | 1.10 |
 | red-missing | 1 | 0 | 0 | 0 | 47 | 14 | 3 | 6 | 1651 | 82704 | 17081 | 0.07 |
-| pin | 3 | 3 | 0 | 0 | 98 | 39 | 11 | 22 | 3886 | 291080 | 44277 | 0.18 |
+| pin | 4 | 4 | 0 | 0 | 119 | 49 | 15 | 30 | 5046 | 400472 | 59364 | 0.24 |
 | prose | 6 | 0 | 0 | 0 | 80 | 50 | 6 | 12 | 7623 | 7570 | 54055 | 0.21 |
 | skill-edit | 2 | 0 | 0 | 0 | 23 | 14 | 5 | 10 | 1178 | 117268 | 19716 | 0.07 |
 | cover | 1 | 0 | 0 | 0 | 32 | 9 | 4 | 8 | 972 | 90656 | 31352 | 0.10 |
@@ -259,23 +343,23 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | structural | 1 | 0 | 0 | 0 | 30 | 15 | 4 | 8 | 1603 | 108684 | 14030 | 0.06 |
 | transform | 1 | 1 | 0 | 0 | 28 | 11 | 4 | 8 | 1003 | 90299 | 31439 | 0.10 |
 | diff | 3 | 0 | 0 | 0 | 169 | 40 | 10 | 20 | 2932 | 241625 | 64051 | 0.33 |
-| exhausted | 2 | 0 | 0 | 0 | 1000 | 46 | 6 | 12 | 2802 | 125685 | 60114 | 0.38 |
+| exhausted | 3 | 0 | 0 | 0 | 1015 | 58 | 8 | 16 | 3618 | 172678 | 73233 | 0.47 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 36 | 30 | 5 | 0 | 2204 | 385 | 122 | 240 | 36556 | 3143576 | 529567 | 2.00 |
-| developer | claude-sonnet-5-5 | 33 | 0 | 0 | 1 | 1464 | 464 | 159 | 306 | 50181 | 4432660 | 624281 | 2.60 |
-| developer | claude-opus-5-5 | 10 | 0 | 0 | 0 | 1506 | 197 | 39 | 78 | 13031 | 1012854 | 242781 | 1.46 |
+| verifier | claude-sonnet-5-5 | 50 | 41 | 8 | 0 | 2676 | 525 | 172 | 340 | 50539 | 4503660 | 735246 | 2.79 |
+| developer | claude-sonnet-5-5 | 43 | 0 | 0 | 1 | 1808 | 602 | 201 | 388 | 63270 | 5610241 | 809870 | 3.43 |
+| developer | claude-opus-5-5 | 17 | 0 | 0 | 0 | 1813 | 392 | 78 | 156 | 32256 | 2192834 | 435180 | 2.70 |
 
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 70 | 0.19 |
-| green | 548 | 0.75 | 434 | 0.63 |
+| red | 0 | 0.00 | 48 | 0.15 |
+| green | 1940 | 2.47 | 341 | 0.61 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | red-missing | 0 | 0.00 | 0 | 0.00 |
 | pin | 0 | 0.00 | 0 | 0.00 |
@@ -286,7 +370,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | structural | 0 | 0.00 | 0 | 0.00 |
 | transform | 0 | 0.00 | 0 | 0.00 |
 | diff | 0 | 0.00 | 169 | 0.33 |
-| exhausted | 0 | 0.00 | 1000 | 0.38 |
+| exhausted | 0 | 0.00 | 993 | 0.34 |
 
 #### By step
 
@@ -305,7 +389,11 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | `skills/veri-handoff/REQUIREMENTS.md`'s H2 is replaced by the issue's H2 row exactly as the issue states it, `skills/veri-handoff/SKILL.md` states it in its prose (for the dev role, refusing while `$S/merge-lock.sh holder` names a live holder, or a launch is half done), the unit grades PASS against its whole list and `GRADED` carries a line whose signature matches its current text ⟦skill-edit⟧ ⟦criterion 3⟧ | 3 | 0 | 0 | 0 | 0 | 0 | 23 | 4 | 8 | 2723 | 47469 | 25555 | 0.10 | 60 | unknown | unknown | unknown |  |  | full |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_tunable_reads.py — FAILED test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment (and test_run_leaf_run_verdict_and_stop_run_take_their_veri_values_from_the_one_reader_and_no_module_is_exempt): AssertionError: assert [`.../skills/tdd/scripts/veri/merge_lock.py:43`] == [] (merge_lock.py reads a VERI_ name from the environment outside the one reader); skills/tdd/scripts/tests/py/test_github_sh.py — FAILED test_the_gh_function_reads_a_fast_wait_of_015_as_15_decimal_seconds_sleeping_the_retry_interval_until_then_issue_2132 - AssertionError: gh: not found on PATH, retrying in 2s ⟦suite-repair⟧ ⟦criterion 3⟧ | 12 | 4 | 0 | 1 | 0 | 0 | 126 | 46 | 88 | 12225 | 1165449 | 239986 | 0.84 | 3061 | unknown | 0/5 | nothing-left |  |  | full |
 | the case `test_take_without_pid_records_the_parent_process_of_the_caller_and_holder_prints_it` is deleted from `skills/tdd/scripts/tests/py/test_merge_lock.py`, since it pins `take` without `--pid` recording the caller parent process, the behaviour criterion 4 removes; no other test and no production file changes ⟦diff-checked⟧ ⟦criterion 4⟧ | 4 | 0 | 0 | 0 | 0 | 0 | 68 | 13 | 26 | 4367 | 288450 | 106583 | 0.58 | unknown | 2/2 | unknown | unknown |  |  | full |
-| `merge-lock.sh take` with no `--pid <pid>`, and `merge-lock.sh release` with neither `--pid <pid>` nor `--force`, exit 2 with a stderr line naming `--pid`, creating no lock and removing none ⟦criterion 4⟧ | 9 | 1 | 3 | 0 | 0 | 0 | 181 | 41 | 82 | 14300 | 1189693 | 165648 | 0.95 | unknown | 2/2 | unknown | unknown |  |  | full |
+| `merge-lock.sh take` with no `--pid <pid>`, and `merge-lock.sh release` with neither `--pid <pid>` nor `--force`, exit 2 with a stderr line naming `--pid`, creating no lock and removing none ⟦criterion 4⟧ | 16 | 4 | 3 | 0 | 0 | 0 | 303 | 70 | 140 | 26536 | 1980922 | 339388 | 1.75 | 477 | green 2/2, red 1/2 | 0/5 | structural-owed |  |  | full |
+| with `--pid`, the lock stays live across separate shell calls for as long as that pid lives: `merge-lock.sh take --pid <long-lived pid>` run in one shell, then `merge-lock.sh holder` run in a later, separate shell reports that holder live and exits 0 (a medium case with real processes, `@pytest.mark.process`, in `skills/tdd/scripts/tests/py/test_merge_lock_process.py`) ⟦criterion 4⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 26 | 9 | 18 | 3070 | 263617 | 33479 | 0.14 | unknown | unknown | unknown | unknown |  |  | pin |
+| `merge-lock.sh take` records the holder pid own process start time, and `merge-lock.sh holder` reads a record whose pid is alive but whose recorded start time differs from that process start time (pid reuse) as a stale lock: it prints the record marked stale and exits 1 ⟦criterion 5⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 71 | 24 | 46 | 8315 | 649808 | 100183 | 0.40 | 278 | unknown | 1/5 | structural-owed |  |  | full |
+| `merge-lock.sh holder` reports a live holder pid owned by another user (such as pid 1) as live, printing the record and exiting 0, not crashing ⟦criterion 6⟧ | 7 | 3 | 0 | 0 | 0 | 0 | 98 | 30 | 60 | 9339 | 867488 | 133818 | 0.67 | 326 | 1/2 | 0/5 | nothing-left |  |  | full |
+| `merge-lock.sh take` on a lock whose record is missing, unreadable or malformed exits 2 with stderr naming the record path, instead of waiting, and leaves the lock in place ⟦criterion 6⟧ | 9 | 1 | 3 | 0 | 0 | 0 | 156 | 39 | 78 | 13337 | 1145503 | 142447 | 0.85 | unknown | 2/2 | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -321,6 +409,9 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `merge-lock.sh take` waits while another live holder has the lock, polling at an interval read as `${VERI_MERGE_LOCK_POLL:-30}` seconds, and takes it once it is released: two takers racing for a free lock end with exactly one holding it while the other is still waiting, and the waiter takes it after the winner's release (a medium case with real processes, `@pytest.mark.process`) ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 52 | 0.09 |
 | A stale lock (recorded pid dead on this host) is never removed silently: `merge-lock.sh take` on it reports the stale holder on stderr and keeps waiting with the lock left in place, and only `merge-lock.sh release --force` clears it, after which a waiting `take` gets it ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 48 | 0.10 |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_tunable_reads.py — FAILED test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment (and test_run_leaf_run_verdict_and_stop_run_take_their_veri_values_from_the_one_reader_and_no_module_is_exempt): AssertionError: assert [`.../skills/tdd/scripts/veri/merge_lock.py:43`] == [] (merge_lock.py reads a VERI_ name from the environment outside the one reader); skills/tdd/scripts/tests/py/test_github_sh.py — FAILED test_the_gh_function_reads_a_fast_wait_of_015_as_15_decimal_seconds_sleeping_the_retry_interval_until_then_issue_2132 - AssertionError: gh: not found on PATH, retrying in 2s ⟦suite-repair⟧ ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 43 | 0.13 |
+| `merge-lock.sh take` with no `--pid <pid>`, and `merge-lock.sh release` with neither `--pid <pid>` nor `--force`, exit 2 with a stderr line naming `--pid`, creating no lock and removing none ⟦criterion 4⟧ | 1 | 0/5 | structural-owed | PASS | 0 | 36 | 0.09 |
+| `merge-lock.sh take` records the holder pid own process start time, and `merge-lock.sh holder` reads a record whose pid is alive but whose recorded start time differs from that process start time (pid reuse) as a stale lock: it prints the record marked stale and exits 1 ⟦criterion 5⟧ | 1 | 1/5 | structural-owed | PASS | 0 | 45 | 0.12 |
+| `merge-lock.sh holder` reports a live holder pid owned by another user (such as pid 1) as live, printing the record and exiting 0, not crashing ⟦criterion 6⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 40 | 0.09 |
 
 #### Structural pass
 
@@ -330,14 +421,14 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 10 | 11 | 27 | 10 | 12 | 9 | 11 | 9 | 11 | 11 | 10 | 11 | 12 | 12 | 13 | 12 | 3 | 12 | 3 | 7 | 16 | 26 | 13 | 13 | 13 | 15 | 9 | 10 | 11 | 4 | 10 | 10 | 10 | 10 | 10 | 11 | 12 | 12 | 11 | 11 | 0 | 13 | 11 | 23 | 23 | 18 | 9 | 8 | 11 | 11 | 10 | 0 | 13 | 18 | 12 | 10 | 20 | 10 | 13 | 4 | 3 | 3 | 10 | 10 | 10 | 11 | 17 | 10 | 10 | 10 | 11 |
-| fast | 16 | 17 | 18 | 16 | 18 | 16 | 18 | 20 | 31 | 19 | 20 | 39 | 27 | 20 | 17 | 22 | 21 | 19 | 18 | 17 | 16 | 16 | 18 | 37 | 60 | 17 | 104 | 25 | 15 | 13 | 50 | 15 | 35 | 15 | 53 | 14 | 13 | 13 | 14 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 10 | 10 | 13 | 12 | 14 | 12 | 4 | 12 | 3 | 3 | 10 | 12 | 12 | 4 | 4 | 3 | 10 | 14 | 11 | 10 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s | run 95 s | run 96 s | run 97 s | run 98 s | run 99 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 10 | 11 | 27 | 10 | 12 | 9 | 11 | 9 | 11 | 11 | 10 | 11 | 12 | 12 | 13 | 12 | 3 | 12 | 3 | 7 | 16 | 26 | 13 | 13 | 13 | 15 | 9 | 10 | 11 | 4 | 10 | 10 | 10 | 10 | 10 | 11 | 12 | 12 | 11 | 11 | 0 | 13 | 11 | 23 | 23 | 18 | 9 | 8 | 11 | 11 | 10 | 0 | 13 | 18 | 12 | 10 | 20 | 10 | 13 | 4 | 3 | 3 | 10 | 10 | 10 | 11 | 17 | 10 | 10 | 10 | 11 | 33 | 4 | 4 | 5 | 3 | 2 | 4 | 5 | 3 | 3 | 4 | 5 | 4 | 4 | 5 | 4 | 4 | 4 | 2 | 4 | 6 | 3 | 2 | 2 | 4 | 7 | 2 | 4 |
+| fast | 16 | 17 | 18 | 16 | 18 | 16 | 18 | 20 | 31 | 19 | 20 | 39 | 27 | 20 | 17 | 22 | 21 | 19 | 18 | 17 | 16 | 16 | 18 | 37 | 60 | 17 | 104 | 25 | 15 | 13 | 50 | 15 | 35 | 15 | 53 | 14 | 13 | 13 | 14 | 27 | 16 | 15 | 15 | 15 | 15 | 17 | 17 | 17 | 16 | 16 | 21 | 15 | 55 | 17 | 16 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 10 | 10 | 13 | 12 | 14 | 12 | 4 | 12 | 3 | 3 | 10 | 12 | 12 | 4 | 4 | 3 | 10 | 14 | 11 | 10 | 0 | 1 | 3 | 4 | 4 | 7 | 7 | 3 | 4 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 331 | 646 | 108569 | 8713928 | 1470400 | 6.35 |
+| total | 462 | 906 | 154866 | 12431573 | 2054067 | 9.21 |
