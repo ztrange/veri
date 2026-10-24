@@ -279,7 +279,9 @@ def gh_issue_comment(number, body):
 
 
 def gh_issue_add_label(number, label):
-    _gh("api", _issue(number) + "/labels", "-f", "labels[]=%s" % label)
+    run = _gh("api", _issue(number) + "/labels", "-f", "labels[]=%s" % label)
+    if run.returncode != 0:
+        raise NoAnswer("")
 
 
 def gh_label_ensure(label):

@@ -177,3 +177,30 @@ def test_park_issue_exits_2_naming_the_comment_call_when_gh_gives_no_answer_to_i
 
     assert ran.returncode == 2, ran.stderr
     assert "comment" in ran.stderr, ran.stderr
+
+
+UNANSWERED_LABEL_GH_STUB = """#!/bin/sh
+for a in "$@"; do
+  case "$a" in
+    */labels) exit 1 ;;
+  esac
+done
+echo '{}'
+"""
+
+
+@pytest.mark.process("park-issue.sh run against a gh stub that gives no answer to the label call")
+def test_park_issue_exits_2_naming_the_label_call_when_gh_gives_no_answer_to_it(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(UNANSWERED_LABEL_GH_STUB)
+    gh.chmod(0o755)
+
+    ran = subprocess.run([str(SCRIPTS / "park-issue.sh"), "7", "held for review", "a human merges"],
+                         cwd=tmp_path, capture_output=True, text=True, stdin=subprocess.DEVNULL,
+                         env={"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+                              "PYTHONDONTWRITEBYTECODE": "1"})
+
+    assert ran.returncode == 2, ran.stderr
+    assert "label call" in ran.stderr, ran.stderr
