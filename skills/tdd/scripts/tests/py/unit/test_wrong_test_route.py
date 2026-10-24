@@ -1999,3 +1999,22 @@ def test_main_2227_prints_red_over_the_title_when_a_superseded_line_names_a_js_t
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red rejects an empty name\n")
+
+
+def test_main_2227_prints_red_over_the_title_when_a_superseded_line_names_a_js_ts_case_by_a_path_then_a_separator_then_an_unquoted_title(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / "foo.test.ts").write_text(
+        "describe('foo', () => {\n"
+        "  it('accepts a name', () => {});\n"
+        "  it('rejects an empty name', () => {});\n"
+        "});\n")
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setenv("VERI_STEP", "foo accepts names, a separator-form superseded title")
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nSUPERSEDED: foo.test.ts › rejects an empty name\n")
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red rejects an empty name\n")
