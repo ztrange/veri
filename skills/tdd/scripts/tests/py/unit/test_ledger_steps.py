@@ -662,3 +662,16 @@ def test_next_phase_resumes_at_cover_new_once_expand_is_marked_and_at_migrate_on
         "expand marked": (0, b"cover-new\n", b""),
         "cover-new marked": (0, b"migrate\n", b""),
     }
+
+
+def test_is_human_owed_tolerates_whitespace_around_and_inside_the_marker_run_yet_not_a_mark_quoted_mid_prose_2288():
+    is_human_owed = importlib.import_module("veri.ledger").is_human_owed
+
+    got = [is_human_owed(step) for step in (
+        "measure X ⟦human-owed⟧  ",
+        " ⟦human-owed⟧ x",
+        "measure X ⟦human-owed⟧⟦criterion 1⟧",
+        "a ⟦human-owed⟧ x",
+    )]
+
+    assert got == [True, True, True, False]

@@ -15,7 +15,7 @@ STEP_RE = re.compile(rf"({SPACE}*-{SPACE})\[([ xX])\]( (.*))?")
 CRITERION_RE = CRITERION_TAG + "([0-9]+)⟧"
 KIND_RE = re.compile(r"⟦(full-suite|human-owed|diff-checked)⟧ (?:" + ADDED_MARK + " )?" + CRITERION_RE)
 PHASES_RE = re.compile(r"⟦phases: ([^⟧]*)⟧")
-TRAILING_RUN_RE = re.compile(r"((?:(?:^| )⟦[^⟦⟧]*⟧)+)(?: ⟂ [^⟦⟧⟂]*)*$")
+TRAILING_RUN_RE = re.compile(r"((?:(?:^| |(?<=⟧))⟦[^⟦⟧]*⟧)+)(?: ⟂ [^⟦⟧⟂]*)*$")
 
 
 def ledger_path(run_dir, issue):
@@ -101,6 +101,7 @@ def carries_mark(text, name):
 
 
 def is_human_owed(step):
+    step = step.strip()
     return step.startswith("⟦human-owed⟧") or carries_mark(trailing_markers(step), "human-owed")
 
 
