@@ -263,8 +263,49 @@ def _check_earlier(ledger, step, exempt=()):
     return 1 if changed else 0
 
 
+def _rerecord_earlier(ledger, step):
+    root = _toplevel()
+    if root is None:
+        write(sys.stderr, "tests-frozen.sh: not inside a git repository\n%s" % USAGE)
+        return 2
+    try:
+        with open(ledger, encoding="utf-8") as handle:
+            lines = handle.read().splitlines()
+    except OSError as error:
+        write(sys.stderr, "tests-frozen.sh: %s\n%s" % (error, USAGE))
+        return 2
+    os.chdir(root)
+    for line in lines:
+        match = re.match(r"\s*- \[.\] (.*)", line)
+        if not match or match.group(1) == step:
+            continue
+        path = _record_path(match.group(1))
+        try:
+            with open(path, encoding="utf-8") as handle:
+                records = handle.read().splitlines()
+        except OSError:
+            continue
+        out = []
+        for record in records:
+            if record.startswith("body: "):
+                name, case, _ = record[6:].split("\t")
+                try:
+                    with open(name, encoding="utf-8", errors="replace") as handle:
+                        now = dict(_cases(handle.read())).get(case)
+                except OSError:
+                    now = None
+                if now is not None:
+                    record = "body: %s\t%s\t%s" % (name, case, _body_digest(now))
+            out.append(record + "\n")
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.writelines(out)
+    return 0
+
+
 def main(argv):
     rest = argv[4:]
+    if argv[:1] == ["rerecord-earlier"] and len(argv) == 4 and argv[2] == "--step" and argv[3]:
+        return _rerecord_earlier(argv[1], argv[3])
     if (argv[:1] == ["check-earlier"] and len(argv) >= 4 and argv[2] == "--step" and argv[3]
             and len(rest) % 2 == 0 and all(flag == "--except" and name for flag, name in zip(rest[::2], rest[1::2]))):
         return _check_earlier(argv[1], argv[3], rest[1::2])
