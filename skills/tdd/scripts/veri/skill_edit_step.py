@@ -2,6 +2,7 @@
 import contextlib
 import io
 import os
+import re
 import subprocess
 import tempfile
 import sys
@@ -207,6 +208,11 @@ def main(argv):
     if unknown:
         print("Requirements heading names no existing unit: " + unknown, file=sys.stderr)
         return 2
+    for row in _issue_rows(issue, unit):
+        if not re.fullmatch(r".+(\d+|<next>)", _row_id(row)):
+            print("Requirement row ID is neither <prefix><digits> nor <prefix><next>: " + _row_id(row),
+                  file=sys.stderr)
+            return 2
     base = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     path = skill_edit_guard.list_path(unit)
     graded_file = grade_prose.graded_path(unit)
