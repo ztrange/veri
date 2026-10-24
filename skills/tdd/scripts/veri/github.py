@@ -17,6 +17,8 @@ import time
 
 import tunables
 
+PARKED_HEADING = "### ⏸ Parked"
+
 
 class NoAnswer(Exception):
     def __init__(self, answer):
