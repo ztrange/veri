@@ -39,7 +39,7 @@ def recorded_steps(ledger):
     log = os.path.join(os.path.dirname(ledger), "events.jsonl")
     try:
         events = read_events(log, skip_unreadable=True)
-    except OSError:
+    except FileNotFoundError:
         return added_steps(ledger)
     return added_steps(ledger) + [step for event in events
             if event.get("event") == "step-added" and event.get("actor") == "add-ledger-step"
