@@ -237,3 +237,25 @@ def test_main_2030_exits_0_when_the_issue_already_carries_the_taken_lane_label_a
     code = unlabel_issue.main(["7"])
 
     assert (code, issue_labels["7"], capsys.readouterr().err) == (0, {"taken:mu", "bug"}, "")
+
+
+def test_main_2030_exits_2_naming_the_taken_label_when_gh_gets_no_answer_to_creating_it_or_to_adding_it(monkeypatch, capsys):
+    unlabel_issue = importlib.import_module("veri.unlabel_issue")
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+
+    def silent_on(step):
+        def fake_run(args, **kwargs):
+            args = [str(arg) for arg in args]
+            if args[:4] == ["gh", "api", "-X", "DELETE"]:
+                return subprocess.CompletedProcess(args, 0, "[]", "")
+            asked = "create" if args[:3] == ["gh", "label", "create"] else "add"
+            if asked == step:
+                return subprocess.CompletedProcess(args, 1, "", "error connecting to api.github.com\n")
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        code = unlabel_issue.main(["7"])
+        err = capsys.readouterr().err
+        return code, "unlabel-issue.sh" in err, "taken:main" in err, "#7" in err
+
+    assert [silent_on("create"), silent_on("add")] == [(2, True, True, True)] * 2
