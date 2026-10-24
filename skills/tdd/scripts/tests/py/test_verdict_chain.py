@@ -1,5 +1,6 @@
 """The verdict launch SKILL.md prescribes, run through every real script between the launch and the exit code."""
 import hashlib
+import importlib
 import json
 import os
 import subprocess
@@ -28,10 +29,12 @@ def launch_verdict(tmp_path, result):
     subprocess.run(["git", "-C", str(work), "init", "-q", "-b", "main"], check=True, env=git)
     subprocess.run(["git", "-C", str(work), "add", "-A"], check=True, env=git)
     subprocess.run(["git", "-C", str(work), "commit", "-q", "-m", "initial"], check=True, env=git)
-    head = subprocess.run(["git", "-C", str(work), "rev-parse", "HEAD"], check=True, env=git,
-                          capture_output=True, text=True).stdout.strip()
-    (work / ".tdd" / "check-earlier-{}.pass".format(hashlib.sha256(b"first step").hexdigest()[:16])).write_text(
-        f"step: first step\nhead: {head}\n")
+    here = os.getcwd()
+    os.chdir(work)
+    try:
+        importlib.import_module("veri.tests_frozen")._write_pass_marker("first step")
+    finally:
+        os.chdir(here)
     stub = tmp_path / "claude"
     stub.write_text(STUB)
     stub.chmod(0o755)
