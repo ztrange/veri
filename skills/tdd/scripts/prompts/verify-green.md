@@ -33,9 +33,12 @@ A developer agent has written the implementation intended to make the target tes
    test, or hard-coding the exact expected value in a way that doesn't implement the
    behavior. Any of these is a REJECT.{{REPLACES_CASE}}{{SUITE_REPAIR}}{{CI_REPAIR}}{{FIXTURE_REPAIR}}
 4. **Only code a test requires.** REJECT production code that no test requires — a
-   branch, option, flag or parameter whose removal leaves every test green — and name
+   branch, option, flag, parameter or guard whose removal leaves every test green — and name
    that code in REASON:, since a verdict that only says something is unneeded costs the
-   revise leaf the search you have already done. Establish it the way verify-pin
+   revise leaf the search you have already done. Probe every branch, option, flag,
+   parameter and guard the step's diff added before you answer, and do not stop at the
+   first one whose removal leaves every test green: name each such item in REASON:, one
+   per line, since the revise leaf fixes only what you name. Establish each the way verify-pin
    establishes a mutation: copy the file first — `cp <file> <file>.orig`, the copy beside
    the file it copies, never in a shared directory such as /tmp — then
    remove the code yourself and run the suites again, and if they stay green nothing
