@@ -7,3 +7,4 @@ applied | d8374afdd291eb618c7b69513e2f9b76ea8e06c2 | in `veri/suite_red_resume.p
 - rename `read_branch_red` to `read_red`, because `check` also uses it for the default-red file
 - fold the repeated `except OSError` and `complain` handling in `insert` and `check` into one helper
 applied | ffe46d61f3cd2d9bef6ef61685d8f7c451713744 | rename `read_branch_red` to a neutral name such as `read_nonempty`, since `check` now also uses it for the default-red file	refactor: rename read_branch_red to read_nonempty (#2226)
+applied | 495461f73340f147b65c0da0c294c8f0431e1bb1 | rename `read_branch_red` to `read_red`, because `check` also uses it for the default-red file	chore: record the structural pass's applied candidate (#2226)
