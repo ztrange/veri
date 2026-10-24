@@ -1,0 +1,2 @@
+### A conductor run resumed after an earlier `### ✅ Done` comment, whose run log holds a `resume` event later than that comment, that then stops without a verdict still marks `bail cause=needs-user` and posts its needs-user comment; a `### ✅ Done` posted after the run's last `resume` event still suppresses both (bug reproduction in tests/py/test_run_conductor.py, gh faked) ⟦criterion 1⟧
+- `last_resume` and `posted_at` are the only code this cycle added. Neither duplicates anything it wrote, so there is no duplication to remove.
