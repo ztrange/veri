@@ -211,6 +211,20 @@ def _kept_cases(record, name):
     return [(case, body) for case, body in new if case in held and before.get(case) == body]
 
 
+def _earlier_records(lines, step):
+    for line in lines:
+        match = re.match(r"\s*- \[.\] (.*)", line)
+        if not match or match.group(1) == step:
+            continue
+        path = _record_path(match.group(1))
+        try:
+            with open(path, encoding="utf-8") as handle:
+                records = handle.read().splitlines()
+        except OSError:
+            continue
+        yield match.group(1), path, records
+
+
 def _check_earlier(ledger, step, exempt=()):
     root = _toplevel()
     if root is None:
@@ -230,19 +244,11 @@ def _check_earlier(ledger, step, exempt=()):
     exempt = list(exempt) + (parsed[0] if parsed else [])
     fixture = _FIXTURE_FILE.search(step) if carries_mark(trailing_markers(step), "fixture-repair") else None
     latest = {}
-    for line in lines:
-        match = re.match(r"\s*- \[.\] (.*)", line)
-        if not match or match.group(1) == step:
-            continue
-        try:
-            with open(_record_path(match.group(1)), encoding="utf-8") as handle:
-                records = handle.read().splitlines()
-            bodies = [r for r in map(_body_record, records) if r]
-            marked = "format: 2" in records
-        except OSError:
-            continue
+    for owner, _, records in _earlier_records(lines, step):
+        bodies = [r for r in map(_body_record, records) if r]
+        marked = "format: 2" in records
         for name, case, digest in bodies:
-            latest[(name, case)] = (digest, match.group(1), marked)
+            latest[(name, case)] = (digest, owner, marked)
     changed = []
     for (name, case), (digest, owner, marked) in latest.items():
         try:
@@ -291,16 +297,7 @@ def rerecord_earlier(ledger, step):
     base = subprocess.run(["git", "log", "-1", "--format=%H", "--", os.path.abspath(ledger)],
                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.decode().strip()
     before, after = {}, {}
-    for line in lines:
-        match = re.match(r"\s*- \[.\] (.*)", line)
-        if not match or match.group(1) == step:
-            continue
-        path = _record_path(match.group(1))
-        try:
-            with open(path, encoding="utf-8") as handle:
-                records = handle.read().splitlines()
-        except OSError:
-            continue
+    for _, path, records in _earlier_records(lines, step):
         out = []
         for record in records:
             parsed = _body_record(record)
