@@ -218,3 +218,30 @@ def test_make_test_with_tests_naming_a_directory_exits_2_names_it_and_runs_no_su
                          stdin=subprocess.DEVNULL, capture_output=True, text=True)
     assert (ran.returncode, log.read_text().splitlines(), "all suites green" in ran.stdout + ran.stderr,
             directory in ran.stderr) == (2, [], False, True), ran.stdout + ran.stderr
+
+
+CACHE_CASE = '''import os
+
+import planted_helper
+
+
+def test_small():
+    with open(os.environ["PLANTED_RAN_LOG"], "a") as log:
+        log.write("pyc %s\\n" % planted_helper.__cached__)
+'''
+
+
+@pytest.mark.timeout(120)
+@pytest.mark.process("make unit started for real twice over a planted tree whose unit case imports a plain helper module")
+def test_a_second_make_unit_over_unchanged_sources_leaves_the_plain_module_pyc_the_first_run_wrote_untouched(tmp_path):
+    tree, log = planted_tree(tmp_path, small=CACHE_CASE), tmp_path / "ran.log"
+    (tree / "skills" / "tdd" / "scripts" / "tests" / "py" / "unit" / "planted_helper.py").write_text("VALUE = 1\n")
+
+    def cached():
+        code, ran, output = make(tree, log, "unit")
+        pyc = [line.split(" ", 1)[1] for line in ran if line.startswith("pyc ")]
+        stat = os.stat(pyc[0]) if pyc and os.path.exists(pyc[0]) else None
+        return code, stat and (stat.st_ino, stat.st_mtime_ns, stat.st_size), output
+    first, second = cached(), cached()
+    assert (first[0], second[0]) == (0, 0), first[2] + second[2]
+    assert first[1] is not None and second[1] == first[1], "first run's .pyc: %s; after the second run: %s\n%s" % (first[1], second[1], second[2])
