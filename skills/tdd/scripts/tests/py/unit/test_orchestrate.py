@@ -908,6 +908,7 @@ i=0
 while [ $i -lt 1000 ] && [ ! -e "$MARKS.done" ]; do sleep 0.01; i=$((i + 1)); done
 """ % {"heartbeat": _HEARTBEAT, "step_done": _step_done("1355", 150000, 100), "user": _USER},
         "1356": """#!/usr/bin/env bash
+exec 2> /dev/null
 trap '' TERM
 (i=0
  while [ $i -lt 1000 ] && [ ! -e "$MARKS.asked" ]; do sleep 0.01; i=$((i + 1)); done
