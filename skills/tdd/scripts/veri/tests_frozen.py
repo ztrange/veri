@@ -14,7 +14,8 @@ from transform_touches_tests import TEST_FILE
 
 USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> <test-file>... | "
          "check <record-file>|--step <step-text> | "
-         "check-earlier <ledger> --step <step-text> [--except <case>]... | path <step-text>")
+         "check-earlier <ledger> --step <step-text> [--except <case>]... | "
+         "rerecord-earlier <ledger> --step <step-text> | path <step-text>")
 REPAIR_MARKS = ("suite-repair", "ci-repair", "fixture-repair")
 
 
