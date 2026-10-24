@@ -243,8 +243,15 @@ def main(argv):
         launched = start(
             [sibling("supervise.sh"), leaf,
              sibling("run-leaf.sh"), prompt_path, *flags],
-            stdout=subprocess.PIPE)
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        said = (launched.stderr or b"").decode("utf-8", "replace")
+        if said:
+            write(sys.stderr, said.removesuffix("\n"))
         if launched.returncode == 2:
+            refused = [line for line in said.splitlines() if line.startswith("supervise: refusing to launch")]
+            if refused:
+                write(sys.stdout, "verifier leaf not launched — %s" % refused[0])
+                return 2
             write(sys.stdout, "verifier leaf killed-stuck — no verdict rendered (see .tdd/%s.log)" % leaf)
             return 2
         changed, head_after, tree_after = changed_paths(tree_before, head_before)
