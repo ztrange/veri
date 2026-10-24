@@ -1,8 +1,10 @@
 """skill-edit-guard.sh's entry point, run in-process."""
 import os
+import re
 import subprocess
 import sys
 
+LEDGER = re.compile(r"\.tdd/issue-\d+(-added)?\.md")
 USAGE = "usage: skill-edit-guard.sh <unit-file> <base-sha> [<pin-file>...]"
 
 
@@ -32,7 +34,7 @@ def main(argv):
         return 2
     allowed = {unit, list_path(unit), *pins}
     changed = _git_lines("diff", "--name-only", "--no-renames", base) + _git_lines("ls-files", "--others", "--exclude-standard")
-    others = [path for path in changed if path and path not in allowed]
+    others = [path for path in changed if path and path not in allowed and not LEDGER.fullmatch(path)]
     for path in others:
         print(path)
     return 1 if others else 0

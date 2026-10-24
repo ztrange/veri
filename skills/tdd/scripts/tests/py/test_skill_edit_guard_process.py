@@ -215,3 +215,23 @@ def test_skill_edit_guard_2232_only_unit_its_requirements_and_a_named_pin_file_c
     ran = subprocess.run([str(GUARD), "skills/foo/FOO.md", base, "tests/test_pin.py"], cwd=repo, capture_output=True, text=True)
 
     assert (ran.returncode, ran.stdout, ran.stderr) == (0, "", "")
+
+
+@pytest.mark.process("skill-edit-guard.sh run against a real git repository")
+def test_skill_edit_guard_2287_untracked_ledger_bookkeeping_is_not_printed_and_an_untracked_stray_file_is(tmp_path):
+    repo = tmp_path / "guard"
+    (repo / "skills/foo").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "skills/foo/FOO.md").write_text("prose\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: foo")
+    base = git(repo, "rev-parse", "HEAD")
+    (repo / "skills/foo/FOO.md").write_text("prose two\n")
+    (repo / ".tdd").mkdir()
+    (repo / ".tdd/issue-2287-added.md").write_text("")
+
+    assert guard(repo, "skills/foo/FOO.md", base) == (0, "")
+
+    (repo / "skills/foo/NOTES.md").write_text("stray\n")
+
+    assert guard(repo, "skills/foo/FOO.md", base) == (1, "skills/foo/NOTES.md\n")
