@@ -237,3 +237,23 @@ def test_park_issue_on_an_issue_already_labelled_parked_posts_the_new_comment_an
     recorded = log.read_text()
     assert ran.returncode == 0, ran.stderr
     assert recorded.count("### ⏸ Parked\nCause: second park, new cause\n") == 1, recorded
+
+
+@pytest.mark.process("park-issue.sh run against a gh stub that records every call")
+def test_park_issue_refuses_the_issue_number_0_exiting_2_naming_the_number_and_calls_no_gh(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(GH_STUB)
+    gh.chmod(0o755)
+    log = tmp_path / "gh.log"
+    log.write_text("")
+
+    ran = subprocess.run([str(SCRIPTS / "park-issue.sh"), "0", "held for review", "a human merges"],
+                         cwd=tmp_path, capture_output=True, text=True, stdin=subprocess.DEVNULL,
+                         env={"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+                              "GH_LOG": str(log), "PYTHONDONTWRITEBYTECODE": "1"})
+
+    assert ran.returncode == 2, ran.stderr
+    assert "0" in ran.stderr, ran.stderr
+    assert log.read_text() == ""
