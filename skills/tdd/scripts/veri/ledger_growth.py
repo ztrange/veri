@@ -31,7 +31,7 @@ def added_steps(ledger):
     try:
         with open(added_file(ledger), "rb") as f:
             return step_texts(f.read().decode(errors="surrogateescape"))
-    except OSError:
+    except FileNotFoundError:
         return []
 
 
@@ -107,7 +107,11 @@ def main(argv):
     if not re.fullmatch("[0-9]+", budget):
         print(f"ledger-growth.sh: VERI_STEP_GROWTH must be a whole number >= 0: {budget}", file=sys.stderr)
         return 2
-    recorded = recorded_steps(argv[1])
+    try:
+        recorded = recorded_steps(argv[1])
+    except OSError as error:
+        print(f"ledger-growth.sh: {error.filename}: {error.strerror}", file=sys.stderr)
+        return 2
     unrecorded_new = [step for step in steps if step not in planned
                       and step not in recorded]
     off = [step for step in unrecorded_new if not is_added(step)]
