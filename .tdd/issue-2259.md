@@ -1,0 +1,3 @@
+# Plan for #2259 — verify-green names every unrequired item in one REJECT, not one per revise cycle
+
+- [ ] The green-phase prompt build-verify-prompt.sh renders tells the verifier, in its only-code-a-test-requires check, to probe every branch, option, flag, parameter and guard the step's diff added before answering, not stopping at the first, and to name in REASON: each one whose removal left every test green, one per line; the copy-remove-rerun-restore procedure and restore check stay, and build-verify-prompt.sh takes no new input (a small unit case on the rendered prompt, in skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py) ⟦criterion 1⟧
