@@ -34,11 +34,18 @@ def numbered_item(regex, text):
     return collected if re.search(regex, item) else ""
 
 
+_BUILDS = {}
+
+
 def build(problems, builder, *argv):
-    done = subprocess.run([str(builder), *argv], capture_output=True, text=True)
-    if done.returncode != 0:
-        problems.append("%s %s exited %d" % (builder.name, argv[2] if argv[0] == "--fast-cmd" else argv[0], done.returncode))
-    return done.stdout
+    key = (builder, argv)
+    if key not in _BUILDS:
+        done = subprocess.run([str(builder), *argv], capture_output=True, text=True)
+        _BUILDS[key] = (done.returncode, done.stdout)
+    returncode, stdout = _BUILDS[key]
+    if returncode != 0:
+        problems.append("%s %s exited %d" % (builder.name, argv[2] if argv[0] == "--fast-cmd" else argv[0], returncode))
+    return stdout
 
 
 def runs_affected(problems, label, prompt):
@@ -106,16 +113,16 @@ def probe_prompts(problems, probe, roster):
         probe(problems, label, prompt)
 
 
-@pytest.fixture
-def spec(tmp_path):
-    path = tmp_path / "spec.md"
+@pytest.fixture(scope="session")
+def spec(tmp_path_factory):
+    path = tmp_path_factory.mktemp("prompt-tiers") / "spec.md"
     path.write_text("zorblat must return frob\n")
     return str(path)
 
 
-@pytest.fixture
-def reason(tmp_path):
-    path = tmp_path / "reason.md"
+@pytest.fixture(scope="session")
+def reason(tmp_path_factory):
+    path = tmp_path_factory.mktemp("prompt-tiers") / "reason.md"
     path.write_text("the verifier objected to the fixture path\n")
     return str(path)
 
