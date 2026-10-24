@@ -159,3 +159,9 @@ def test_main_refuses_red_baseline_with_2_and_prints_nothing_to_stdout_2205(caps
     code = classify_bail.main(["red-baseline"])
 
     assert (code, capsys.readouterr().out) == (2, "")
+
+
+def test_main_classifies_setup_failed_as_a_system_failure_with_0_2231(capsys, classify_bail):
+    code = classify_bail.main(["setup-failed"])
+
+    assert (code, *capsys.readouterr()) == (0, "system\n", "")
