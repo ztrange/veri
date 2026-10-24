@@ -1,5 +1,6 @@
 """Cases for tick-ledger.sh that start the real entry point."""
 import importlib
+import shutil
 import subprocess
 
 import pytest
@@ -59,3 +60,45 @@ def test_ticking_a_diff_checked_step_rerecords_the_earlier_frozen_case_it_change
     code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)
 
     assert (ticked, code, out) == (0, 0, "")
+
+
+@pytest.mark.tree_audit("copies the lib and veri script directories")
+@pytest.mark.process("the pinned snapshot's tick-ledger.sh and tests-frozen.sh, run beside a differing checkout copy")
+def test_the_diff_checked_tick_digests_the_rerecorded_case_with_the_snapshot_tests_frozen_not_the_checkouts_2199(
+        tmp_path):
+    repo, snapshot = tmp_path / "repo", tmp_path / "snapshot"
+    checkout = repo / "skills/tdd/scripts"
+    for target in (snapshot, checkout):
+        for name in ("lib", "veri"):
+            shutil.copytree(SCRIPTS / name, target / name, ignore=shutil.ignore_patterns("__pycache__"))
+        for name in ("tick-ledger.sh", "tests-frozen.sh"):
+            shutil.copy(SCRIPTS / name, target / name)
+    digest = checkout / "veri/tests_frozen.py"
+    digest.write_text(digest.read_text().replace("hashlib.sha256(body.encode())", "hashlib.sha256(b'x' + body.encode())"))
+    (repo / "tests").mkdir()
+    (repo / ".tdd").mkdir()
+    (repo / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
+    git(repo, "init", "-q")
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "base")
+    earlier, edit, later = "step one adds a case", "⟦diff-checked⟧ step two", "step three adds another"
+    (repo / "tests/test_suite.py").write_text(
+        "def test_older_case():\n    assert True\n\n\ndef test_pinned_2199():\n    assert 1 == 2\n")
+
+    def snap(script, *argv):
+        done = subprocess.run([str(snapshot / script), *argv], cwd=repo, stdin=subprocess.DEVNULL,
+                              capture_output=True, text=True)
+        return done.returncode, done.stdout
+
+    snap("tests-frozen.sh", "record", "--step", earlier, "tests/test_suite.py")
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "red")
+    ledger = repo / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n- [ ] %s\n" % (earlier, edit, later))
+    (repo / "tests/test_suite.py").write_text(
+        "def test_older_case():\n    assert True\n\n\ndef test_pinned_2199():\n    assert 2 == 2\n")
+
+    ticked = snap("tick-ledger.sh", str(ledger), "diff-checked")[0]
+    checked = snap("tests-frozen.sh", "check-earlier", str(ledger), "--step", later)
+
+    assert (ticked, *checked) == (0, 0, "")
