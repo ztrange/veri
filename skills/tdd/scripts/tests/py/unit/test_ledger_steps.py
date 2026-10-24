@@ -626,3 +626,20 @@ def test_cli_a_human_owed_step_with_the_mark_trailing_its_text_and_no_criterion_
            run_cli(via_stdin(next_unchecked, ledger), [])]
 
     assert got == [(0, f"1\topen\thuman-owed\t0\t0\t\t{step}\n", ""), (3, "", "")]
+
+
+def test_next_phase_hands_over_cover_new_never_migrate_while_cover_new_is_listed_and_unmarked_and_tick_phase_migrate_exits_2_leaving_the_ledger_byte_identical_2034(
+        monkeypatch, tmp_path, capsysbinary, ledger_steps):
+    tick_ledger = importlib.import_module("veri.tick_ledger")
+    step = "- [ ] rename the slug helper ⟦phases: expand, migrate, cover-new⟧ ⟦criterion 4⟧"
+    seed = f"# Plan for #42\n\n{step} ⟂ expand done\n".encode()
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(seed)
+
+    fake_stdin(monkeypatch, seed)
+    next_code = ledger_steps.main(["next-phase"])
+    next_out, _ = capsysbinary.readouterr()
+    tick_code = tick_ledger.main(["--phase", "migrate", str(ledger), "rename the slug helper"])
+    capsysbinary.readouterr()
+
+    assert (next_code, next_out, tick_code, ledger.read_bytes()) == (0, b"cover-new\n", 2, seed)
