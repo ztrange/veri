@@ -1,0 +1,3 @@
+# Plan for #2287 — The skill-edit scope guard ignores the run's own .tdd ledger files, so a resumed run's untracked -added.md never refuses an author
+
+- [ ] The ⟦skill-edit⟧ scope guard (`skill-edit-guard.sh`) does not count the run's own ledger bookkeeping under `.tdd/` (`.tdd/issue-<n>.md`, `.tdd/issue-<n>-added.md`), tracked or untracked, as a change outside the step: an untracked empty `.tdd/issue-<n>-added.md` alongside a unit edit passes (exit 0, nothing printed), while an untracked file elsewhere outside the unit, its list and the named pin files is still refused (exit 1, its path printed); pinned in `skills/tdd/scripts/tests/py/test_skill_edit_guard_process.py` ⟦criterion 1⟧
