@@ -2,3 +2,4 @@
 - the `os.path.isfile("CLAUDE.md")` guard in `worktree_setup.py` could be dropped if `detect.lines_of` tolerates a missing file. That is dead-code removal, not duplication, so I did not apply it.
 ### When `<cmd>` exits non-zero, `worktree-setup.sh <n>` exits 1 with a stderr line naming the command and its exit code, and records no success, so the next call in that worktree (the resume after a `setup-failed` bail) runs `<cmd>` again ⟦criterion 2⟧
 - test-only | the five `subprocess.run([SHIM, "2231"], capture_output=True, text=True, cwd=str(tmp_path))` calls in `test_worktree_setup_process.py` could share a small helper
+not-done | transform-rejected | the `os.path.isfile("CLAUDE.md")` guard in `worktree_setup.py` could be dropped if `detect.lines_of` tolerates a missing file. That is dead-code removal, not duplication, so I did not apply it.
