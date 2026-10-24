@@ -33,7 +33,9 @@ def main(argv):
     if run.returncode != 0 and "Label does not exist" not in run.stderr:
         return _refuse("issue #%s not found: %s" % (argv[0], run.stderr.strip()))
     taken = "taken:" + (opt_in.rpartition(":")[2] if ":" in opt_in else "main")
-    run = github.gh_label_create(taken)
+    run = github.gh_api("repos/{owner}/{repo}/labels/%s" % urllib.parse.quote(taken, safe=""))
+    if run.returncode != 0:
+        run = github.gh_label_create(taken)
     if run.returncode == 0:
         run = github.gh_api_add_label("repos/{owner}/{repo}/issues/%s/labels" % argv[0], taken)
     if run.returncode != 0:
