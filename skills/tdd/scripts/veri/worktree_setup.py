@@ -17,7 +17,13 @@ def main(argv):
     try:
         detect.answer_from_file("CLAUDE.md", MARKER)
     except detect.Answer as found:
-        return subprocess.run(found.command.decode(), shell=True).returncode
+        done = f".tdd/issue-{argv[0]}-setup-done"
+        if os.path.exists(done):
+            return 3
+        code = subprocess.run(found.command.decode(), shell=True).returncode
+        os.makedirs(".tdd", exist_ok=True)
+        open(done, "w").close()
+        return code
     return 3
 
 
