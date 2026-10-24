@@ -189,6 +189,10 @@ def test_main_2030_creates_the_taken_lane_label_in_the_repository_when_absent_so
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
+        if args[:2] == ["gh", "api"] and "/labels/" in args[-1] and "-X" not in args:
+            if args[-1].rpartition("/labels/")[2].replace("%3A", ":") in repository_labels:
+                return subprocess.CompletedProcess(args, 0, "{}", "")
+            return subprocess.CompletedProcess(args, 1, "", "gh: Not Found (HTTP 404)\n")
         if args[:3] == ["gh", "label", "create"]:
             repository_labels.add(args[3])
             return subprocess.CompletedProcess(args, 0, "", "")
@@ -219,6 +223,8 @@ def test_main_2030_exits_0_when_the_issue_already_carries_the_taken_lane_label_a
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
+        if args[:2] == ["gh", "api"] and "/labels/" in args[-1] and "-X" not in args:
+            return subprocess.CompletedProcess(args, 0, "{}", "")
         if args[:3] == ["gh", "label", "create"]:
             return subprocess.CompletedProcess(args, 0, "", "")
         if args[:4] == ["gh", "api", "-X", "DELETE"]:
@@ -246,6 +252,10 @@ def test_main_2030_exits_2_naming_the_taken_label_when_gh_gets_no_answer_to_crea
     def silent_on(step):
         def fake_run(args, **kwargs):
             args = [str(arg) for arg in args]
+            if args[:2] == ["gh", "api"] and "/labels/" in args[-1] and "-X" not in args:
+                if step == "create":
+                    return subprocess.CompletedProcess(args, 1, "", "gh: Not Found (HTTP 404)\n")
+                return subprocess.CompletedProcess(args, 0, "{}", "")
             if args[:4] == ["gh", "api", "-X", "DELETE"]:
                 return subprocess.CompletedProcess(args, 0, "[]", "")
             asked = "create" if args[:3] == ["gh", "label", "create"] else "add"
