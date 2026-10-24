@@ -150,15 +150,23 @@ def _recorded(report, step, own_id):
     return None
 
 
+def _superseded_case(body):
+    quoted = re.match(r'(?:`[^`]+`\s+)?(?:"([^"]+)"|“([^”]+)”)', body)
+    if quoted:
+        return quoted.group(1) or quoted.group(2)
+    separated = re.match(r'\S+\s+›\s+(?:"([^"]+)"$|(\S.*)$)', body)
+    if separated:
+        return (separated.group(1) or separated.group(2)).strip()
+    words = body.strip("`").split()
+    return words[0].strip("`") if words else ""
+
+
 def _superseded(report, step, own_id=None):
     own = _recorded_cases(step)
     cases = []
     for line in _lines_with(report, "SUPERSEDED:"):
         body = re.sub(r"^[-*]\s+", "", line[11:].strip())
-        quoted = re.match(r'(?:`[^`]+`\s+)?(?:"([^"]+)"|“([^”]+)”)', body)
-        words = body.strip("`").split()
-        separated = re.match(r'\S+\s+›\s+(?:"([^"]+)"$|(\S.*)$)', body)
-        case = (quoted.group(1) or quoted.group(2)) if quoted else (separated.group(1) or separated.group(2)).strip() if separated else words[0].strip("`") if words else ""
+        case = _superseded_case(body)
         found = _exists(case) if case and case not in own else None
         if found and found not in cases and not (own_id and _is_own(found, own_id)):
             cases.append(found)
