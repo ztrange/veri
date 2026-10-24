@@ -21,7 +21,8 @@ def main(argv):
         return 2
     if not argv[0].isdecimal():
         return _refuse("issue number must be numeric, got '%s'" % argv[0])
-    label = urllib.parse.quote(tunables.read("VERI_LABEL", "ready-for-agent"), safe="")
+    opt_in = tunables.read("VERI_LABEL", "ready-for-agent")
+    label = urllib.parse.quote(opt_in, safe="")
     run = github.gh_api_delete("repos/{owner}/{repo}/issues/%s/labels/%s" % (argv[0], label))
     if run.returncode != 0 and "404" not in run.stderr:
         if "HTTP" in run.stderr:
@@ -31,6 +32,12 @@ def main(argv):
         return 2
     if run.returncode != 0 and "Label does not exist" not in run.stderr:
         return _refuse("issue #%s not found: %s" % (argv[0], run.stderr.strip()))
+    taken = "taken:" + (opt_in.rpartition(":")[2] if ":" in opt_in else "main")
+    run = github.gh_label_create(taken)
+    if run.returncode == 0:
+        run = github.gh_api_add_label("repos/{owner}/{repo}/issues/%s/labels" % argv[0], taken)
+    if run.returncode != 0:
+        return _refuse("no answer to adding %s to issue #%s: %s" % (taken, argv[0], run.stderr.strip()))
     return 0
 
 

@@ -64,6 +64,14 @@ def gh_api_delete(path):
     return _gh("api", "-X", "DELETE", path, stderr=subprocess.PIPE)
 
 
+def gh_label_create(name):
+    return _gh("label", "create", name, "--force", stderr=subprocess.PIPE)
+
+
+def gh_api_add_label(path, name):
+    return _gh("api", "-X", "POST", "-f", "labels[]=%s" % name, path, stderr=subprocess.PIPE)
+
+
 _ISSUES = "repos/{owner}/{repo}/issues"
 _EMPTY_PAGE = r"^\[\]$"
 
