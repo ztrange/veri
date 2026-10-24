@@ -236,9 +236,10 @@ def test_small():
 def test_a_second_make_unit_over_unchanged_sources_leaves_the_plain_module_pyc_the_first_run_wrote_untouched(tmp_path):
     tree, log = planted_tree(tmp_path, small=CACHE_CASE), tmp_path / "ran.log"
     (tree / "skills" / "tdd" / "scripts" / "tests" / "py" / "unit" / "planted_helper.py").write_text("VALUE = 1\n")
+    pycache = tmp_path / "pycache"
 
     def cached():
-        code, ran, output = make(tree, log, "unit")
+        code, ran, output = make(tree, log, "unit", VERI_PYCACHE=str(pycache))
         pyc = [line.split(" ", 1)[1] for line in ran if line.startswith("pyc ")]
         stat = os.stat(pyc[0]) if pyc and os.path.exists(pyc[0]) else None
         return code, stat and (stat.st_ino, stat.st_mtime_ns, stat.st_size), output
