@@ -181,12 +181,15 @@ def _cases(text):
     return cases
 
 
+def _cases_at(rev, name):
+    shown = subprocess.run(["git", "show", "%s:%s" % (rev, name)], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    return dict(_cases(shown.stdout.decode("utf-8", "replace")))
+
+
 def _head_and_new_cases(name):
-    old = subprocess.run(["git", "show", "HEAD:" + name], stdout=subprocess.PIPE,
-                         stderr=subprocess.DEVNULL).stdout.decode("utf-8", "replace")
     with open(name, encoding="utf-8", errors="replace") as handle:
         new = handle.read()
-    return dict(_cases(old)), _cases(new)
+    return _cases_at("HEAD", name), _cases(new)
 
 
 def _added_cases(name):
@@ -269,11 +272,6 @@ def _check_earlier(ledger, step, exempt=()):
 def is_diff_checked(line):
     kind = KIND_RE.search(line)
     return bool(kind) and kind.group(1) == "diff-checked"
-
-
-def _cases_at(rev, name):
-    shown = subprocess.run(["git", "show", "%s:%s" % (rev, name)], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-    return dict(_cases(shown.stdout.decode("utf-8", "replace")))
 
 
 def rerecord_earlier(ledger, step):
