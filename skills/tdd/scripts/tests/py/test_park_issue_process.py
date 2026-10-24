@@ -150,3 +150,30 @@ def test_park_issue_with_a_bad_argument_exits_2_naming_which_argument_and_calls_
         assert ran.returncode == 2, (args, ran.stderr)
         assert named in ran.stderr, (args, ran.stderr)
         assert log.read_text() == "", args
+
+
+UNANSWERED_GH_STUB = """#!/bin/sh
+for a in "$@"; do
+  case "$a" in
+    */comments) exit 1 ;;
+  esac
+done
+echo '{}'
+"""
+
+
+@pytest.mark.process("park-issue.sh run against a gh stub that gives no answer to the comment call")
+def test_park_issue_exits_2_naming_the_comment_call_when_gh_gives_no_answer_to_it(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(UNANSWERED_GH_STUB)
+    gh.chmod(0o755)
+
+    ran = subprocess.run([str(SCRIPTS / "park-issue.sh"), "7", "held for review", "a human merges"],
+                         cwd=tmp_path, capture_output=True, text=True, stdin=subprocess.DEVNULL,
+                         env={"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+                              "PYTHONDONTWRITEBYTECODE": "1"})
+
+    assert ran.returncode == 2, ran.stderr
+    assert "comment" in ran.stderr, ran.stderr
