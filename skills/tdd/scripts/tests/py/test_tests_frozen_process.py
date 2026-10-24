@@ -1718,3 +1718,23 @@ def test_check_earlier_exits_2_naming_the_work_tree_hash_and_writes_no_pass_mark
 
     assert (code, out, "work-tree hash" in err, list((tmp_path / ".tdd").glob("check-earlier-*.pass"))) == (
         2, "", True, [])
+
+
+@pytest.mark.process("a real git repository under tmp_path whose .gitignore lists .tdd/")
+def test_check_earlier_exits_0_and_writes_a_pass_marker_when_the_repository_gitignores_tdd_2230(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
+    (tmp_path / ".gitignore").write_text(".tdd/\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests", ".gitignore")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier, current = "step one adds a case", "step two adds another"
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+
+    code, _, err = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, len(list((tmp_path / ".tdd").glob("check-earlier-*.pass")))) == (0, 1), err
