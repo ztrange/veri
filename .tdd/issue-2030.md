@@ -7,4 +7,4 @@
 - [x] unlabel-issue.sh exits 2 with a diagnostic on stderr when gh gives no answer to adding `taken:<lane>` (or to creating the label), as it does for the label removal (small in-process case in skills/tdd/scripts/tests/py/unit/test_unlabel_issue.py, gh faked at subprocess.run) ⟦criterion 2⟧
 - [x] solvable-issues.sh never lists an open, unblocked, unclaimed issue carrying any `taken:*` label (`taken:main`, `taken:mu`), even when it also carries the opt-in label, while an issue carrying only the opt-in label is still listed (in-process case in skills/tdd/scripts/tests/py/test_solvable_issues.py, gh documents faked as that suite already does) ⟦criterion 3⟧
 - [x] skills/tdd/SKILL.md ⟦skill-edit⟧ ⟦criterion 5⟧
-- [ ] No bail or park path the branch touches removes the `taken:<lane>` label: the branch's diff adds no call removing a `taken:` label from an issue, so a bailed or parked issue keeps it ⟦diff-checked⟧ ⟦criterion 4⟧
+- [x] No bail or park path the branch touches removes the `taken:<lane>` label: the branch's diff adds no call removing a `taken:` label from an issue, so a bailed or parked issue keeps it ⟦diff-checked⟧ ⟦criterion 4⟧
