@@ -196,3 +196,36 @@ def test_the_record_after_a_run_leaves_out_a_source_modified_after_the_runs_star
     pytest_leg.record_bytecode_cache(str(prefix), run)
 
     assert sorted(pytest_leg.read_manifest(str(prefix))) == [old_pyc]
+
+
+def test_the_record_replaces_the_manifest_by_moving_a_complete_temp_file_from_its_own_directory_and_leaves_no_temp_file_2054(tmp_path, monkeypatch):
+    pytest_leg = importlib.import_module("veri.pytest_leg")
+    prefix = tmp_path / "prefix"
+    prefix.mkdir()
+    helper = tmp_path / "helper.py"
+    helper.write_text("VALUE = 1\n")
+    an_hour_ago = time.time() - 3600
+    os.utime(helper, (an_hour_ago, an_hour_ago))
+    monkeypatch.setattr(sys, "pycache_prefix", str(prefix))
+    plain = importlib.util.cache_from_source(str(helper))
+    manifest_path = str(prefix / pytest_leg.MANIFEST)
+    (prefix / pytest_leg.MANIFEST).write_text('{"old": "entry"}')
+
+    run = pytest_leg.check_bytecode_cache(str(prefix))
+    py_compile.compile(str(helper), cfile=plain, doraise=True)
+    os.utime(plain, (time.time() + 60, time.time() + 60))
+    calls = []
+    real_replace = os.replace
+
+    def spy(src, dst, *args, **kwargs):
+        with open(src) as temporary, open(dst) as current:
+            calls.append((os.path.dirname(src), dst, json.load(temporary), json.load(current)))
+        return real_replace(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(os, "replace", spy)
+
+    pytest_leg.record_bytecode_cache(str(prefix), run)
+
+    new = pytest_leg.read_manifest(str(prefix))
+    leftovers = [n for n in os.listdir(prefix) if n not in (pytest_leg.MANIFEST, pytest_leg.MANIFEST + ".lock") and not n.endswith(".pyc") and n != os.path.relpath(os.path.dirname(plain), prefix).split(os.sep)[0]]
+    assert (calls, leftovers) == ([(str(prefix), manifest_path, new, {"old": "entry"})], [])
