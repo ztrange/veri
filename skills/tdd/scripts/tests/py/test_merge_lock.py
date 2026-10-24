@@ -107,3 +107,19 @@ def test_release_removes_the_lock_only_for_the_recorded_holder_and_release_force
     forced = run_cli(merge_lock, ["release", "--force", "--pid", "2"], cwd=tmp_path)
 
     assert (stranger[0], kept, holder[0], removed, forced[0], not lock.exists()) == (1, True, 0, True, 0, True)
+
+
+@pytest.mark.process("git init on a scratch repository, release run against a lock with a missing or empty record")
+def test_release_exits_2_and_leaves_the_lock_in_place_when_the_lock_exists_but_its_record_is_missing_or_empty(
+        tmp_path, merge_lock, run_cli):
+    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    lock = tmp_path / ".tdd" / "merge.lock"
+    lock.mkdir(parents=True)
+
+    missing = run_cli(merge_lock, ["release", "--pid", "1"], cwd=tmp_path)
+    kept_missing = lock.is_dir()
+    (lock / "holder").write_text("")
+    empty = run_cli(merge_lock, ["release", "--pid", "1"], cwd=tmp_path)
+    kept_empty = lock.is_dir()
+
+    assert (missing[0], kept_missing, empty[0], kept_empty) == (2, True, 2, True)
