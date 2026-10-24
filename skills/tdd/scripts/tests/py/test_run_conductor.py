@@ -2395,7 +2395,7 @@ def test_cli_each_phases_leaf_is_launched_with_its_tier_red_and_refactor_affecte
     tiers = tmp_path / "tiers"
     tiers.mkdir()
     (tiers / "spec.md").write_text("spec\n")
-    (tiers / ".gitignore").write_text(".tdd/\n*.received\n")
+    (tiers / ".gitignore").write_text(".tdd/\n*.received\n*.prompt\n")
     step = checked_step(tiers, committed_head(tiers))
     stub = tmp_path / "tier-claude"
     stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { printf \'%s\\n\' "$2" > "$LEAF_PROMPT_OUT"; shift; }\n'
