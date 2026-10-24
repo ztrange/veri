@@ -335,6 +335,20 @@ def test_1641_a_real_exemption_keyed_relative_to_tests_py_is_not_reported_stale_
     assert (_real_table_audit(tmp_path), _misplaced(SCRIPTS / "tests" / "py")) == (([f"{tmp_path / 'test_offender.py'}:4"], []), [])
 
 
+def test_the_shared_sweep_runs_guard_offences_once_per_real_directory_however_often_the_cases_request_it(monkeypatch, request):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    swept = []
+    monkeypatch.setattr(guard, "offences", lambda directory, table: swept.append(directory) or [])
+    _sweep.cache_clear()
+    request.addfinalizer(_sweep.cache_clear)
+    tier = SCRIPTS / "tests" / "py"
+
+    for directory in (tier / "unit", tier, tier / "unit", tier, tier / "unit"):
+        _sweep(directory)
+
+    assert sorted(swept) == sorted({tier, tier / "unit"})
+
+
 def test_a_root_that_does_not_exist_is_refused_with_exit_2_and_a_stderr_line_naming_the_path_instead_of_reporting_no_offences(tmp_path, run_cli):
     guard = importlib.import_module("veri.fast_tier_guard")
     missing = tmp_path / "no-such-tier"
