@@ -257,3 +257,25 @@ def test_park_issue_refuses_the_issue_number_0_exiting_2_naming_the_number_and_c
     assert ran.returncode == 2, ran.stderr
     assert "0" in ran.stderr, ran.stderr
     assert log.read_text() == ""
+
+
+@pytest.mark.process("park-issue.sh run against a gh stub that records every call")
+def test_park_issue_refuses_an_issue_number_with_a_non_ascii_digit_exiting_2_naming_the_number_and_calls_no_gh(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(GH_STUB)
+    gh.chmod(0o755)
+    log = tmp_path / "gh.log"
+    env = {"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+           "GH_LOG": str(log), "PYTHONDONTWRITEBYTECODE": "1", "PYTHONIOENCODING": "utf-8"}
+
+    for number in ("١٢", "１２"):
+        log.write_text("")
+        ran = subprocess.run([str(SCRIPTS / "park-issue.sh"), number, "held for review", "a human merges"],
+                             cwd=tmp_path, capture_output=True, text=True, encoding="utf-8",
+                             stdin=subprocess.DEVNULL, env=env)
+
+        assert ran.returncode == 2, (number, ran.stderr)
+        assert number in ran.stderr, (number, ran.stderr)
+        assert log.read_text() == "", number
