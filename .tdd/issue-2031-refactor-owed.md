@@ -3,3 +3,5 @@
 applied | 3275bd33b4d049e880b5b0b8e8756bc2595ffa24 | share the "### ⏸ Parked" heading literal between park_issue.py and parked_issues.py as one constant (cross-file extraction, reported rather than applied)	refactor: share the Parked heading as github.PARKED_HEADING (#2031)
 ### `park-issue.sh` exits 2 on the issue number `0`, naming the number `0` on stderr, and calls `gh` not at all ⟦criterion 7⟧
 - test-only | the gh stub setup (bin dir, `gh` write, chmod, log file, subprocess env) is repeated in each park-issue process test, including the new one; extract a fixture or helper
+### `park-issue.sh` exits 2 on an issue number containing a non-ASCII digit (such as `١٢` or `１２`), naming that number on stderr, and calls `gh` not at all ⟦criterion 7⟧
+- test-only | extract the repeated gh-stub setup (bin dir, `gh` stub, log file, env) in test_park_issue_process.py into a shared helper or fixture
