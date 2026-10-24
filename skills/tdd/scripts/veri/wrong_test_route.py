@@ -47,7 +47,7 @@ def _js_title_pattern(case):
     if prefix is not None:
         title = "(%s%s)" % (re.escape(prefix), gap)
     else:
-        title = "(%s)" % gap.join(re.escape(part) for part in case.split("…"))
+        title = "(%s)" % gap.join(re.escape(part) for part in re.split(r"…|\.\.\.", case))
     return re.compile(r"\b(?:it|test)(?:\.(?:only|skip))?(?:\.each(?:\([^)]*\)|`[^`]*`))?\(\s*(['\"])" + title + r"\1")
 
 
