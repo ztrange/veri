@@ -629,7 +629,7 @@ three times over branches its ledger pinned on later lines.
    **bail with cause `uncovered`**, narrating the remedy —
    find a seam and surround the behaviour with tests first — and run
    `$S/coverage-blocker.sh <n>`, which files the coverage issue and blocks this one on it,
-   so the queue cannot retake it only to refuse again.
+   so the queue cannot retake it only to refuse again (`Read` `<base directory>/BAIL.md`).
    A refactor-kind step therefore runs **Cover → Transform → Verify**, not Red → Green →
    Refactor, unless it is `⟦diff-checked⟧`, which runs develop-diff then verify-diff and never
    Cover or Transform. After Cover, a transform leaf applies the step's one named refactoring and
@@ -1609,7 +1609,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    the full test command (`$S/detect-test-command.sh --tier all`'s, via `detach-command.sh`) once on the rebased tip,
    in the same start-then-wait shape as the preflight baseline, and read its exit code from `wait`.
    A red result on the rebased tip does **bail**, as a **process** failure
-   (`rebased-tip-red`), with the PR left a draft: it is never readied. Before `<base directory>/BAIL.md`'s push,
+   (`rebased-tip-red`), with the PR left a draft: it is never readied (`Read` `<base directory>/BAIL.md`). Before the bail's push,
    `git reset --hard <pre-rebase-sha>` puts the branch back where it stood, so that push is a
    fast-forward and the un-rebased branch is what is kept. On green, publish the rewritten history:
 
@@ -1698,7 +1698,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    Before its transform leaf, a `develop-cover` leaf, prompted by `build-develop-prompt.sh cover`
    with the spec, the candidate and the test command, mutates the code the candidate will move, runs the suites,
    expects red and restores. Read its report through `$S/cover-outcome.sh`: exit 2 bails as a
-   **system** failure (`no-verdict`); exit 3 — `COVERED: unreachable` or `type-only` — goes on;
+   **system** failure (`no-verdict`) (`Read` `<base directory>/BAIL.md`). Exit 3 — `COVERED: unreachable` or `type-only` — goes on;
    exit 1, `COVERED: no`, launches no transform: the candidate is recorded `uncovered`, and the
    run neither bails nor files anything:
    ```
