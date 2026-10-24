@@ -5,3 +5,4 @@
 - out-of-scope | replace the `before` write-back loop in `main` with `_restore(before, *before)`. That loop is not code this cycle wrote.
 applied | 4ea2bd97b505af26c4733252d0cc00031a03bd20 | the `before` write-back loop at the end of `main`'s attempt loop repeats `_restore`'s write branch, and could become `_restore(before, *before)` (the loop is older code, not written this cycle)	refactor: write the attempt loop's before-snapshot back through _restore (#2281)
 not-done | transform-rejected | `snapshot` and `before` in `main` both read the same files as bytes. They could be merged, but the two differ in which files they hold, so the merge changes behaviour.
+applied | 8e8e0decbfa438a3324776ee51d2bd2206f14cb4 | replace the `before` write-back loop in `main` with `_restore(before, *before)`. That loop is not code this cycle wrote.	chore: record the structural pass's not-done candidate (#2281)
