@@ -90,6 +90,20 @@ def _move_table(unit, path):
     return True
 
 
+def _numbered(rows, have):
+    out = []
+    for row in rows:
+        cells = requirements.split_cells(row)
+        if cells[1].endswith("<next>"):
+            prefix = cells[1][:-len("<next>")]
+            top = max([int(i[len(prefix):]) for i in have if i.startswith(prefix) and i[len(prefix):].isdigit()],
+                      default=0)
+            cells[1] = "%s%d" % (prefix, top + 1)
+            row = "| " + " | ".join(cells[1:-1]) + " |"
+        out.append(row)
+    return out
+
+
 def apply(issue, unit):
     path = skill_edit_guard.list_path(unit)
     moved = not _claimed(path, unit) and os.path.exists(unit) and _move_table(unit, path)
@@ -104,6 +118,7 @@ def apply(issue, unit):
         _write_list(path, unit, rows)
         return moved
     have = {row.split("\t")[0] for row in claimed.splitlines()}
+    rows = _numbered(rows, have)
     new = [r for r in rows if _row_id(r) not in have]
     reworded = {_row_id(r): r for r in rows}
     lines = requirements.read_lines(path)
