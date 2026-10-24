@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 
 import replaces_case
 from entry import write
@@ -38,13 +39,25 @@ def _pass_marker_path(step):
     return ".tdd/check-earlier-%s.pass" % _step_key(step)
 
 
+def _work_tree_hash():
+    with tempfile.TemporaryDirectory() as scratch:
+        env = dict(os.environ, GIT_INDEX_FILE=os.path.join(scratch, "index"))
+        added = subprocess.run(["git", "add", "-A", "--", ".", ":(exclude).tdd"], env=env,
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        done = subprocess.run(["git", "write-tree"], env=env, stdout=subprocess.PIPE,
+                              stderr=subprocess.DEVNULL)
+    if added.returncode != 0 or done.returncode != 0:
+        return ""
+    return os.fsdecode(done.stdout).strip()
+
+
 def _write_pass_marker(step):
     done = subprocess.run(["git", "rev-parse", "HEAD"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     if done.returncode != 0:
         return
     os.makedirs(".tdd", exist_ok=True)
     with open(_pass_marker_path(step), "w", encoding="utf-8") as handle:
-        handle.write("step: %s\nhead: %s\n" % (step, os.fsdecode(done.stdout).strip()))
+        handle.write("step: %s\nhead: %s\ntree: %s\n" % (step, os.fsdecode(done.stdout).strip(), _work_tree_hash()))
 
 
 def _remove_pass_marker(step):
