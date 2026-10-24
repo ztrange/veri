@@ -1620,3 +1620,14 @@ def test_issue_2309_the_conductor_own_spending_section_prints_one_context_line_p
     assert [line for line in out.split("\n") if line.startswith("Conductor context:")] == [
         "Conductor context: first turn 1000 tokens, largest 5000 tokens",
         "Conductor context: first turn 2000 tokens, largest 9000 tokens"]
+
+
+def test_issue_2309_a_conductor_log_with_no_assistant_turn_prints_no_context_line_and_the_report_still_exits_0(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    records = [{"type": "system", "subtype": "init"}, {"type": "result", "total_cost_usd": 1.0, "num_turns": 0}]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert "Conductor context:" not in out
