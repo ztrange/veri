@@ -1247,7 +1247,14 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      costing it a step: one made from a `beyond-spec` flag would build behaviour no
      criterion of the issue states, and nothing ahead could judge it — the blind verifier
      is given the spec, and the spec is where that behaviour is not.
-5. **Verify (blind, once) on the settled result.**
+5. **Verify (blind, once) on the settled result — unless nothing landed.** After the checks
+   in 2, when `git rev-list --count <green-sha>..HEAD` is 0 and `git status --porcelain`
+   prints nothing — the leaf landed no transform, or the budget was 0 and no leaf ran —
+   launch **no** verify-refactor: there is no change for it to judge. Record
+   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" $S/event.sh verify-refactor-skipped reason=nothing-landed`,
+   post `### 🔎 verify-refactor — SKIPPED (nothing landed)`, and treat the step as on a
+   verify-refactor PASS whose verdict carries no flags: 6's PASS branch runs with the
+   leaf's flags only. Otherwise:
    ```
    rm -f .tdd/verdict-refactor.exit .tdd/verdict-refactor.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh verdict-refactor $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" --fast-cmd '<fast-cmd>' refactor .tdd/issue-<n>-spec.md <test-path> <green-sha> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err
