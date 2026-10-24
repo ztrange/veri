@@ -4,6 +4,8 @@ import subprocess
 
 import pytest
 
+from pass_marker import write_pass_marker
+
 
 def git(repo, *argv):
     subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *argv], cwd=repo, check=True,
@@ -51,7 +53,6 @@ def test_supervise_refuses_verify_green_when_the_work_tree_changed_after_check_e
 @pytest.mark.process("a real git repository under tmp_path holding a nested repository made by git init")
 def test_supervise_refuses_verify_red_naming_the_work_tree_hash_when_it_cannot_be_computed_even_with_an_empty_tree_marker_2230(
         monkeypatch, tmp_path, run_cli):
-    tests_frozen = importlib.import_module("veri.tests_frozen")
     supervise = importlib.import_module("veri.supervise")
     step = "first step"
     (tmp_path / ".tdd").mkdir()
@@ -62,8 +63,7 @@ def test_supervise_refuses_verify_red_naming_the_work_tree_hash_when_it_cannot_b
     git(tmp_path, "commit", "-q", "-m", "base")
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
                           text=True).stdout.strip()
-    (tmp_path / ".tdd" / tests_frozen._pass_marker_path(step).split("/")[-1]).write_text(
-        f"step: {step}\nhead: {head}\ntree: \n")
+    write_pass_marker(tmp_path, step, head, "")
     (tmp_path / "nested").mkdir()
     git(tmp_path / "nested", "init", "-q")
     started = []

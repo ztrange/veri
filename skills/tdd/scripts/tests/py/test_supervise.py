@@ -7,6 +7,8 @@ import sys
 
 import pytest
 
+from pass_marker import write_pass_marker
+
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 USAGE = b"usage: supervise.sh <name> <cmd> [args...]\n"
@@ -133,7 +135,6 @@ def fake_git_only(monkeypatch, toplevel):
 
 def checked_step(work, head="0123456789abcdef0123456789abcdef01234567", issue="2206", step=1):
     """Ledger step number step of issue with a current check-earlier pass marker at head; the environment naming it."""
-    tests_frozen = importlib.import_module("veri.tests_frozen")
     boxes = ["first step", *(f"step {n}" for n in range(2, step + 1))]
     (work / ".tdd").mkdir(parents=True, exist_ok=True)
     (work / ".tdd" / f"issue-{issue}.md").write_text(f"# Plan for #{issue}\n\n" + "".join(f"- [ ] {b}\n" for b in boxes))
@@ -145,7 +146,7 @@ def checked_step(work, head="0123456789abcdef0123456789abcdef01234567", issue="2
             tree = REAL_WORK_TREE_HASH()
         finally:
             os.chdir(here)
-    (work / tests_frozen._pass_marker_path(boxes[-1])).write_text(f"step: {boxes[-1]}\nhead: {head}\ntree: {tree}\n")
+    write_pass_marker(work, boxes[-1], head, tree)
     return {"VERI_ISSUE": issue, "VERI_STEP": str(step)}
 
 
@@ -4130,9 +4131,8 @@ def test_cli_refuses_a_verify_red_or_verify_green_launch_whose_only_pass_markers
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-2206.md").write_text("# Plan for #2206\n\n- [ ] first step\n")
     head = "0123456789abcdef0123456789abcdef01234567"
-    marker_path = supervise.tests_frozen._pass_marker_path
-    (tmp_path / marker_path("another step")).write_text(f"step: another step\nhead: {head}\ntree: tree\n")
-    (tmp_path / marker_path("first step")).write_text(f"step: first step\nhead: {'f' * 40}\ntree: tree\n")
+    write_pass_marker(tmp_path, "another step", head)
+    write_pass_marker(tmp_path, "first step", "f" * 40)
     stub = tmp_path / "claude"
     started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 
@@ -4172,7 +4172,7 @@ def test_cli_launches_verify_red_and_verify_green_with_a_current_pass_marker_and
                                  env={"VERI_ISSUE": "2206", "VERI_STEP": "1"})
         return code, bool(started), "refusing" in err
 
-    marker.write_text(f"step: first step\nhead: {head}\ntree: tree\n")
+    write_pass_marker(tmp_path, "first step", head)
     answers = {}
     for name in ("verify-red", "verify-green"):
         started.clear()
@@ -4191,7 +4191,6 @@ def test_cli_gates_a_verify_red_or_verify_green_launch_given_the_step_as_its_led
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-2206.md").write_text("# Plan for #2206\n\n- [ ] first step\n")
     head = "0123456789abcdef0123456789abcdef01234567"
-    marker = tmp_path / supervise.tests_frozen._pass_marker_path("first step")
     stub = tmp_path / "claude"
     started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 
@@ -4202,7 +4201,7 @@ def test_cli_gates_a_verify_red_or_verify_green_launch_given_the_step_as_its_led
         return code, bool(started), "check-earlier" in err
 
     unmarked = {name: answer(name) for name in ("verify-red", "verify-green")}
-    marker.write_text(f"step: first step\nhead: {head}\ntree: tree\n")
+    write_pass_marker(tmp_path, "first step", head)
     marked = {name: answer(name) for name in ("verify-red", "verify-green")}
 
     assert unmarked == {name: (2, False, True) for name in unmarked}
@@ -4215,7 +4214,7 @@ def test_cli_refuses_a_verify_red_or_verify_green_launch_whose_veri_step_is_unse
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-2206.md").write_text("# Plan for #2206\n\n- [ ] first step\n")
     head = "0123456789abcdef0123456789abcdef01234567"
-    (tmp_path / supervise.tests_frozen._pass_marker_path("first step")).write_text(f"step: first step\nhead: {head}\ntree: tree\n")
+    write_pass_marker(tmp_path, "first step", head)
     stub = tmp_path / "claude"
     started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 
