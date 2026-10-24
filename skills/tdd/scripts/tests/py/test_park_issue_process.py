@@ -81,3 +81,48 @@ def test_park_issue_comment_carries_a_pr_line_only_when_given_a_pr(tmp_path):
 
     assert "\nPR: 12\n" in park("7", "held for review", "a human merges", "12")
     assert "PR:" not in park("7", "held for review", "a human merges")
+
+
+
+LABEL_STATE_GH_STUB = """#!/bin/sh
+echo "ARGS: $*" >> "$GH_LOG"
+for a in "$@"; do
+  case "$a" in
+    */issues/*/labels)
+      [ -f "$GH_LABEL_CREATED" ] || { echo "label parked not found" >&2; exit 1; }
+      touch "$GH_ISSUE_LABELLED"; echo '{}'; exit 0 ;;
+    */labels/parked)
+      [ -f "$GH_LABEL_CREATED" ] || { echo "HTTP 404: Not Found" >&2; exit 1; }
+      echo '{}'; exit 0 ;;
+  esac
+done
+for a in "$@"; do
+  case "$a" in
+    label|*/labels) touch "$GH_LABEL_CREATED"; echo '{}'; exit 0 ;;
+  esac
+done
+echo '{}'
+"""
+
+
+@pytest.mark.process("park-issue.sh run against a gh stub whose repository starts without the parked label")
+def test_park_issue_creates_the_parked_label_when_the_repository_lacks_it_then_labels_the_issue_and_exits_0(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(LABEL_STATE_GH_STUB)
+    gh.chmod(0o755)
+    log = tmp_path / "gh.log"
+    log.write_text("")
+    created = tmp_path / "repo-has-parked-label"
+    labelled = tmp_path / "issue-7-labelled-parked"
+
+    ran = subprocess.run([str(SCRIPTS / "park-issue.sh"), "7", "held for review", "a human merges"],
+                         cwd=tmp_path, capture_output=True, text=True, stdin=subprocess.DEVNULL,
+                         env={"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+                              "GH_LOG": str(log), "GH_LABEL_CREATED": str(created),
+                              "GH_ISSUE_LABELLED": str(labelled), "PYTHONDONTWRITEBYTECODE": "1"})
+
+    assert created.exists(), "no call created the parked label:\n" + log.read_text()
+    assert labelled.exists(), "the issue was never labelled parked:\n" + log.read_text()
+    assert ran.returncode == 0, ran.stderr
