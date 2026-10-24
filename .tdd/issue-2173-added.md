@@ -1,0 +1,1 @@
+- [ ] `merge-lock.sh release` and `merge-lock.sh take` exit 2 when `.tdd/merge.lock` exists but its record is missing, unreadable or malformed, as `holder` does, leaving the lock in place ⟦added⟧ ⟦criterion 1⟧
