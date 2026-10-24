@@ -872,3 +872,28 @@ def test_refresh_with_no_cache_whose_first_page_fails_every_retry_at_100_fetches
     written = tmp_path / ".tdd" / "report-cache.json"
     kept = sorted(i["number"] for i in json.loads(written.read_text())["issues"]) if written.exists() else []
     assert (code, kept, limits[0]) == (0, list(range(1, 121)), 100)
+
+
+def test_refresh_with_no_cache_whose_first_page_fails_at_every_size_exits_2_with_the_gh_message_after_bounded_calls_and_writes_nothing_2279(run_cli, monkeypatch, tmp_path):
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    monkeypatch.setenv("VERI_PAGE_RETRY_SLEEP", "0")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    limits = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] != ["gh", "issue", "list"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        limits.append(int(args[args.index("--limit") + 1]))
+        if len(limits) > 50:
+            raise AssertionError("retried without bound")
+        return subprocess.CompletedProcess(args, 1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    assert (code, out, "gh issue list failed: HTTP 504" in err, 0 < len(limits) <= 10, sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == (2, "", True, True, [])
