@@ -782,3 +782,36 @@ def test_apply_writes_a_prefix_next_rows_other_cells_byte_for_byte_keeping_an_es
     rows = [l for l in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("| PL")]
     assert rows == ["| PL5 | The widget is blue. | because |",
                     "| PL6 | The widget shows a\\|b. | gloss\\|shine |"], rows
+
+
+def test_apply_numbers_a_prefix_next_row_past_the_issues_explicit_ids_when_the_unit_exists_but_no_requirements_list_claims_it_2262(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| PL<next> | The widget is shiny. | gloss |\n"
+        "| PL1 | The widget is heavy. | weight |\n")
+
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
+
+    rows = [l for l in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("| PL")]
+    assert rows == ["| PL2 | The widget is shiny. | gloss |",
+                    "| PL1 | The widget is heavy. | weight |"], rows
+
+
+def test_apply_numbers_a_prefix_next_row_past_the_issues_explicit_ids_in_a_list_it_creates_under_a_new_heading_2262(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md (new)\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| PL<next> | The widget is shiny. | gloss |\n"
+        "| PL1 | The widget is heavy. | weight |\n")
+
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
+
+    rows = [l for l in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("| PL")]
+    assert rows == ["| PL2 | The widget is shiny. | gloss |",
+                    "| PL1 | The widget is heavy. | weight |"], rows
