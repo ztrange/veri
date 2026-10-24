@@ -18,7 +18,8 @@ def main(argv):
         return 2
     for issue in json.loads(github.gh_rest_list("repos/{owner}/{repo}/issues?state=open&labels=parked&per_page=100")):
         number = issue["number"]
-        body = json.loads(github.gh_rest_list("repos/{owner}/{repo}/issues/%d/comments?per_page=100" % number), strict=False)[-1]["body"]
+        comments = json.loads(github.gh_rest_list("repos/{owner}/{repo}/issues/%d/comments?per_page=100" % number), strict=False)
+        body = [c["body"] for c in comments if c["body"].startswith("### ⏸ Parked")][-1]
         sys.stdout.write("%d\t%s\t%s\t%s\n" % (number, issue["title"], field(body, "Cause"), field(body, "Unblock")))
     return 0
 
