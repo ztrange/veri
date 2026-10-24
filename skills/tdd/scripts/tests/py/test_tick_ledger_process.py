@@ -131,3 +131,37 @@ def test_the_diff_checked_tick_digests_the_rerecorded_case_with_the_snapshot_tes
     checked = snap("tests-frozen.sh", "check-earlier", str(ledger), "--step", later)
 
     assert (ticked, *checked) == (0, 0, "")
+
+
+@pytest.mark.process("a real git repository under tmp_path, committed after a diff-checked tick")
+def test_committing_the_ledger_after_a_diff_checked_tick_leaves_the_tree_clean_2199(tmp_path, run_cli):
+    tick_ledger = importlib.import_module("veri.tick_ledger")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".gitignore").write_text(".tdd/*\n!.tdd/issue-*.md\n")
+    (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", ".gitignore", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier, edit = "step one adds a case", "step two ⟦diff-checked⟧ ⟦criterion 8⟧"
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_older_case():\n    assert True\n\n\ndef test_pinned_2199():\n    assert 1 == 2\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "red")
+    ledger = tmp_path / ".tdd/issue-7.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, edit))
+    git(tmp_path, "add", ".tdd/issue-7.md")
+    git(tmp_path, "commit", "-q", "-m", "ledger")
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_older_case():\n    assert True\n\n\ndef test_pinned_2199():\n    assert 2 == 2\n")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "edit")
+
+    ticked = run_cli(tick_ledger, [str(ledger), "diff-checked"], cwd=tmp_path)[0]
+    git(tmp_path, "add", ".tdd/issue-7.md")
+    git(tmp_path, "commit", "-q", "-m", "tick")
+    status = subprocess.run(["git", "status", "--porcelain"], cwd=tmp_path, capture_output=True, text=True).stdout
+
+    assert (ticked, status) == (0, "")
