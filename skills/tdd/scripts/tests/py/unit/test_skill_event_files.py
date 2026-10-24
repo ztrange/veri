@@ -17,14 +17,20 @@ EVENT_FILES = {
 
 
 def unpointed_sends(text):
+    ends = [m.end() for m in re.finditer(r"\.(?=\s|\Z)", text)] + [len(text)]
     lines = text.splitlines()
     found = []
     for event_file, trigger in EVENT_FILES.items():
         pointer = f"`<base directory>/{event_file}`"
-        for i, line in enumerate(lines):
-            nearby = line + " " + (lines[i + 1] if i + 1 < len(lines) else "")
-            if re.search(trigger, line) and pointer not in nearby:
-                found.append((event_file, i + 1))
+        start = 0
+        for end in ends:
+            sentence = text[start:end]
+            match = re.search(trigger, sentence)
+            if match:
+                line = text.count("\n", 0, start + match.start())
+                if pointer not in sentence and pointer not in lines[line]:
+                    found.append((event_file, line + 1))
+            start = end
     return found
 
 
