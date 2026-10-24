@@ -9,6 +9,10 @@ import time
 VERBS = ("take", "release", "holder")
 
 
+def _caller_pid(args):
+    return args[1] if args[:1] == ["--pid"] else str(os.getppid())
+
+
 def main(argv):
     if not argv or argv[0] not in VERBS:
         print("usage: merge-lock.sh take|release|holder", file=sys.stderr)
@@ -18,14 +22,14 @@ def main(argv):
     lock = os.path.join(os.path.dirname(common), ".tdd", "merge.lock")
     record = os.path.join(lock, "holder")
     if argv[0] == "take":
-        pid = argv[2] if argv[1:2] == ["--pid"] else str(os.getppid())
+        pid = _caller_pid(argv[1:])
         os.makedirs(os.path.dirname(lock), exist_ok=True)
         os.mkdir(lock)
         with open(record, "w") as f:
             f.write(f"{pid} {socket.gethostname()} {time.strftime('%Y-%m-%dT%H:%M:%S%z')}\n")
     elif argv[0] == "release":
         rest = [a for a in argv[1:] if a != "--force"]
-        pid = rest[1] if rest[:1] == ["--pid"] else str(os.getppid())
+        pid = _caller_pid(rest)
         if "--force" not in argv:
             with open(record) as f:
                 if f.read().split()[0] != pid:
