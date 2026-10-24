@@ -84,3 +84,19 @@ def test_insert_with_no_unchecked_step_adds_the_suite_repair_step_after_the_last
     assert (tmp_path / "issue-7-added.md").read_text() == step + "\n"
     logged = [json.loads(line) for line in (tmp_path / "events.jsonl").read_text().splitlines()]
     assert [e["step"] for e in logged if e["event"] == "step-added"] == [step]
+
+
+def test_check_on_an_empty_branch_red_file_exits_2_naming_that_file_2226(run_cli, tmp_path):
+    module = importlib.import_module("veri.suite_red_resume")
+    ledger = tmp_path / "issue-7-ledger.md"
+    ledger.write_text("- [ ] step\n")
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "suite-red"}) + "\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text("")
+    default = tmp_path / "default-red"
+    default.write_text("test_c.py — FAIL c\n")
+
+    code, out, err = run_cli(module, ["check", str(ledger), str(branch), str(default)])
+
+    assert (code, out) == (2, "")
+    assert str(branch) in err
