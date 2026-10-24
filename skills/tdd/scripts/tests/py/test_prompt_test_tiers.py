@@ -38,7 +38,7 @@ _BUILDS = {}
 
 
 def build(problems, builder, *argv):
-    key = (builder, argv)
+    key = (builder, argv, os.getcwd(), tuple(sorted(i for i in os.environ.items() if i[0].startswith("VERI_"))))
     if key not in _BUILDS:
         done = subprocess.run([str(builder), *argv], capture_output=True, text=True)
         _BUILDS[key] = (done.returncode, done.stdout)
