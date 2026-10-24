@@ -26,7 +26,12 @@ def main(argv):
         return 3
     for issue in issues:
         number = issue["number"]
-        comments = json.loads(github.gh_rest_list("repos/{owner}/{repo}/issues/%d/comments?per_page=100" % number), strict=False)
+        try:
+            raw = github.gh_rest_list("repos/{owner}/{repo}/issues/%d/comments?per_page=100" % number)
+        except github.NoAnswer:
+            sys.stderr.write("parked-issues.sh: no answer from gh to reading the comments of issue #%d\n" % number)
+            return 2
+        comments = json.loads(raw, strict=False)
         body = [c["body"] for c in comments if c["body"].startswith("### ⏸ Parked")][-1]
         sys.stdout.write("%d\t%s\t%s\t%s\n" % (number, issue["title"], field(body, "Cause"), field(body, "Unblock")))
     return 0
