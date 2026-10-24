@@ -4,3 +4,4 @@
 - split the nested conditional expression that picks `case` in `_superseded` (wrong_test_route.py:161) into a small helper or if-chain
 ### A `WRONG_TEST:` line of the form `<path> › <title>` (unquoted title to end of line) routes to the named existing case, not `revise`; pinned by a small in-process case in skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py ⟦criterion 3⟧
 - extract the repeated open-with-utf-8-errors=replace file read (`_exists`, `_fixture`, `_lines_with`, `_recorded_cases`) into one helper; predates this cycle, so reported and not applied
+applied | df9920aff809ef31dc56b58ec8a4f193affff654 | split the nested conditional expression that picks `case` in `_superseded` (wrong_test_route.py:161) into a small helper or if-chain	test: pin a WRONG_TEST: line of the form path › double-quoted title routes to the case (#2227)
