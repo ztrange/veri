@@ -3,6 +3,8 @@ import os
 import re
 import sys
 
+import ledger
+
 USAGE = "usage: scope-check.sh <ledger> <repo-root>"
 PY_ROOT = "skills/tdd/scripts/tests/py"
 NAMED = re.compile(re.escape(PY_ROOT) + r"/(?:unit/)?test_\w+\.py")
@@ -21,10 +23,15 @@ def main(argv):
     if len(argv) != 2:
         print(USAGE, file=sys.stderr)
         return 2
-    ledger, root = argv
+    path, root = argv
     existing = existing_by_basename(root)
-    with open(ledger, encoding="utf-8") as lines:
-        named = NAMED.findall(lines.read())
+    with open(path, encoding="utf-8") as lines:
+        text = lines.read()
+    refusal = ledger.multi_tag_refusal(ledger.ledger_steps(text))
+    if refusal:
+        print("scope-check.sh: " + refusal, file=sys.stderr)
+        return 2
+    named = NAMED.findall(text)
     clashes = []
     for path in dict.fromkeys(named):
         taken = existing.get(os.path.basename(path))
