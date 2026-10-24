@@ -9,6 +9,7 @@ import pathlib
 import re
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -351,6 +352,16 @@ def process_case_waits_no_default_push_backoff(request, monkeypatch, tmp_path_fa
     yield
     if log.exists():
         fail_unbacked_push(request)
+
+
+@pytest.fixture(autouse=True)
+def process_case_children_do_not_inherit_ignored_signals(request):
+    if request.node.get_closest_marker("process") is None:
+        return
+    for number, handler in ((signal.SIGINT, signal.default_int_handler), (signal.SIGTERM, signal.SIG_DFL),
+                            (signal.SIGHUP, signal.SIG_DFL)):
+        if signal.getsignal(number) == signal.SIG_IGN:
+            signal.signal(number, handler)
 
 
 def at_or_under_root(path):
