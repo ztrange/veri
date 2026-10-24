@@ -12,3 +12,4 @@
 | C8 | Unattended, it sends the dev session only the message kinds the human approved (default: refill an empty slot). | |
 | C9 | It never fixes veri by hand. It files the issue. | "why did you fix it instead of creating an issue". |
 | C12 | It sends a merge instruction for a run, or merges one itself, only after reading the dev session's review report for that PR and either answering each caveat in it by name or seeing the report say there is none. | Same incident: "merge" was sent from the ✅ Done comment, before the caveats were read. |
+| C13 | It parks an issue only through the park script, and on resume reads the parked set through the parked-set script, never from a handoff or memory; un-parking removes the `parked` label. | Same as D13: the coordinator's parks were kept in its handoff file and local memory. |

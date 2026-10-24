@@ -21,9 +21,10 @@ project specific (labels, test commands, where PRDs live).
    `VERI_LABEL=ready-for-agent:mu`; with no lane word, plain `ready-for-agent`. State the lane
    in your first line of output and name it in every message to the dev session. With `--resume`, read the
    handoff file for state only — what is running, parked, awaiting merge, N, overrides,
-   permissions and their expiry, pending decisions — and take every rule from this skill and
+   permissions and their expiry, pending decisions — never the parked set (below) — and take every rule from this skill and
    the principles. Then re-read that state live (below) before acting on any of it.
 2. Read the live state: `$S/status.sh --json` (every run, its step k/n, phase, cost),
+   `$S/parked-issues.sh` (the parked set, from GitHub; exit 3 means none parked),
    `$S/solvable-issues.sh` (the queue in launch order), `gh pr list --state open` (PRs
    awaiting merge) and the target repo's CLAUDE.md.
 3. Arm the watch (below) and stay in it.
@@ -49,7 +50,11 @@ You own, and only you change:
   until 18:00"), written down with its expiry;
 - **one-resume budget raises** — a larger budget for exactly one resume of one issue;
 - **filing** issues, through `veri-file`;
-- **grooming** issues, through `veri-groom`.
+- **grooming** issues, through `veri-groom`;
+- **parking** issues, only through `$S/park-issue.sh <issue> <cause> <unblock> [<pr>]`, which
+  labels the issue `parked` and posts the comment. Read the parked set only through
+  `$S/parked-issues.sh`, on resume and whenever you need it, never from a handoff file or
+  memory. To un-park, remove the `parked` label from the issue.
 
 `veri-file` and `veri-groom` do not exist yet. Until they do, file a bug with `/tdd-fix` and a
 set of refactor candidates with `/tdd-candidates`; groom by briefing one read-only subagent to
