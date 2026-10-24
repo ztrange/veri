@@ -6,3 +6,5 @@
 ### `merge-lock.sh release` removes `.tdd/merge.lock` and exits 0 only when the caller (identified as `take` identifies it) is the recorded holder; a caller who is not the holder gets exit 1 with the lock left in place, and `release --force` removes the lock whoever holds it ⟦criterion 1⟧
 - test-only | extract the repeated repo+worktree setup in test_merge_lock.py into a fixture
 applied | eee894e88df7b08f26a2dc05dc6864ffbe1d8e27 | merge_lock.py: split main() into per-verb functions once release is added (no duplication to remove yet)	refactor: split merge_lock.py main() into per-verb functions (#2173)
+### `merge-lock.sh take` with no `--pid <pid>`, and `merge-lock.sh release` with neither `--pid <pid>` nor `--force`, exit 2 with a stderr line naming `--pid`, creating no lock and removing none ⟦criterion 4⟧
+- drop the now-unreachable `os.getppid()` fallback in `_caller_pid` (merge_lock.py); dead code, not duplication removal, so not applied here
