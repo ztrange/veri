@@ -472,8 +472,13 @@ def render(issue, path, ledger):
         print("Cost is every leaf of the run, and the conductor own spending.")
         priced = not any(r.get("total_cost_usd", 0) is None for r in sessions)
         model = ""
+        record_name = "issue-%s-conductor-model" % issue
+        record_dir = os.path.dirname(path)
+        record_path = os.path.join(record_dir, record_name)
+        if not os.path.exists(record_path):
+            record_path = os.path.join(record_dir, "..", "..", "..", record_name)
         with contextlib.suppress(OSError):
-            with open(os.path.join(os.path.dirname(path), "issue-%s-conductor-model" % issue)) as recorded:
+            with open(record_path) as recorded:
                 model = recorded.read().strip()
         print("Conductor own spending: %s over %d turns, in %d sessions%s."
               % ("$%.2f" % sum(r.get("total_cost_usd") or 0 for r in sessions) if priced else "unpriced",

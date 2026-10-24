@@ -1460,6 +1460,21 @@ def test_main_run_from_the_issue_worktree_finds_the_conductor_stream_log_the_lau
     assert "Conductor own spending: $1.25 over 40 turns, in 1 sessions.\n" in out
 
 
+def test_main_run_from_the_issue_worktree_names_the_conductor_model_the_launcher_recorded_under_the_primary_checkout(tmp_path, monkeypatch, capsys, metrics):
+    worktree = tmp_path / ".tdd" / "wt" / "108"
+    worktree.mkdir(parents=True)
+    write_log(worktree, ONE_STEP)
+    sessions = [{"type": "result", "total_cost_usd": 1.25, "num_turns": 40}]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in sessions))
+    (tmp_path / ".tdd" / "issue-108-conductor-model").write_text("sonnet\n")
+    monkeypatch.chdir(worktree)
+
+    out = render(metrics, capsys)
+
+    line = next(l for l in out.splitlines() if l.startswith("Conductor own spending:"))
+    assert "sonnet" in line
+
+
 def test_main_lists_the_conductor_dollars_and_context_size_of_each_turn_in_turn_order_across_sessions(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, ONE_STEP)
     usages = [{"input_tokens": 10, "cache_read_input_tokens": 120000, "cache_creation_input_tokens": 2000},
