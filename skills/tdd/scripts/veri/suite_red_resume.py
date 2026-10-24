@@ -18,6 +18,11 @@ def complain(message):
     print(f"suite-red-resume.sh: {message}", file=sys.stderr)
 
 
+def read_text(path):
+    with open(path, encoding="utf-8") as handle:
+        return handle.read()
+
+
 def suites(text):
     return [line.split(SEPARATOR)[0] for line in text.splitlines()]
 
@@ -33,8 +38,7 @@ def last_bail_cause(path):
 
 
 def insert(ledger, branch_file):
-    with open(branch_file, encoding="utf-8") as handle:
-        reds = handle.read().splitlines()
+    reds = read_text(branch_file).splitlines()
     steps = [line for line in read_ledger(ledger).split("\n") if STEP_RE.fullmatch(line)]
     unchecked = [line for line in steps if STEP_RE.fullmatch(line).group(2) == " "]
     where, anchor = ("before", unchecked[0]) if unchecked else ("after", steps[-1])
@@ -51,10 +55,8 @@ def main(argv):
     _, ledger, branch_file, default_file = argv
     try:
         cause = last_bail_cause(os.path.join(os.path.dirname(ledger), "events.jsonl"))
-        with open(branch_file, encoding="utf-8") as handle:
-            branch = handle.read()
-        with open(default_file, encoding="utf-8") as handle:
-            default = handle.read()
+        branch = read_text(branch_file)
+        default = read_text(default_file)
     except OSError as error:
         complain(f"{error.filename}: {error.strerror}")
         return 2
