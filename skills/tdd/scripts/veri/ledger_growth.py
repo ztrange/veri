@@ -84,6 +84,11 @@ def record_existing(ledger):
     return 0
 
 
+def unreadable(error):
+    print(f"ledger-growth.sh: {error.filename}: {error.strerror}", file=sys.stderr)
+    return 2
+
+
 def main(argv):
     if len(argv) == 2 and argv[0] == "record-existing":
         return record_existing(argv[1])
@@ -101,8 +106,7 @@ def main(argv):
         planned = set(step_texts(read_ledger(argv[0])))
         steps = step_texts(read_ledger(argv[1]))
     except OSError as error:
-        print(f"ledger-growth.sh: {error.filename}: {error.strerror}", file=sys.stderr)
-        return 2
+        return unreadable(error)
     budget = tunables.read("VERI_STEP_GROWTH", "5")
     if not re.fullmatch("[0-9]+", budget):
         print(f"ledger-growth.sh: VERI_STEP_GROWTH must be a whole number >= 0: {budget}", file=sys.stderr)
@@ -110,8 +114,7 @@ def main(argv):
     try:
         recorded = recorded_steps(argv[1])
     except OSError as error:
-        print(f"ledger-growth.sh: {error.filename}: {error.strerror}", file=sys.stderr)
-        return 2
+        return unreadable(error)
     unrecorded_new = [step for step in steps if step not in planned
                       and step not in recorded]
     off = [step for step in unrecorded_new if not is_added(step)]
