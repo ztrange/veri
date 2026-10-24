@@ -136,8 +136,8 @@ def record_insertions(path, steps):
         f.write("".join(step + "\n" for step in steps).encode(errors=BYTES))
     with open(events_log(path), "ab") as f:
         for step in steps:
-            fields = [(b"actor", b"add-ledger-step"), (b"step", step.encode(errors=BYTES))]
-            f.write(event.line([b"step-added"], dict(fields), int(time.time()), awake))
+            context = {b"actor": b"add-ledger-step", b"step": step.encode(errors=BYTES)}
+            f.write(event.line([b"step-added"], context, int(time.time()), awake))
 
 
 def main(argv):
