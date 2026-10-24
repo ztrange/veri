@@ -3,7 +3,7 @@
 - [x] `park-issue.sh <issue-number> <cause> <unblock> [<pr>]` parks an issue in one call: it adds the label `parked` to the issue and posts one comment whose first line is `### ⏸ Parked`, followed by a `Cause: <cause>` line and an `Unblock: <unblock>` line taken from its arguments, and exits 0; the script ships in this step as a shim over a `veri/` module with a no-argument usage line and exit 2, and its entry in `skills/tdd/SCRIPTS.md` ⟦criterion 1⟧
 - [x] Given a `<pr>` argument, `park-issue.sh`'s `### ⏸ Parked` comment also carries a `PR: <pr>` line; without one the comment carries no `PR:` line ⟦criterion 1⟧
 - [x] `park-issue.sh` creates the label `parked` in the repository when it does not exist yet, then labels the issue with it, and exits 0 ⟦criterion 1⟧
-- [x] `park-issue.sh` exits 2 on a bad argument — a non-numeric issue number, an empty cause, an empty unblock text, or too many arguments — naming on stderr which argument was bad, and calls `gh` not at all ⟦criterion 1⟧ ⟂ refactor pending
+- [x] `park-issue.sh` exits 2 on a bad argument — a non-numeric issue number, an empty cause, an empty unblock text, or too many arguments — naming on stderr which argument was bad, and calls `gh` not at all ⟦criterion 1⟧
 - [ ] `park-issue.sh` exits 2 when `gh` gives no answer to adding the label or to posting the comment, naming on stderr which of the two calls got no answer ⟦criterion 1⟧
 - [ ] Parking an issue already labelled `parked` posts the new `### ⏸ Parked` comment and exits 0, not an error ⟦criterion 2⟧
 - [ ] `solvable-issues.sh` never lists an issue labelled `parked`, even when it carries the opt-in label ⟦criterion 3⟧
