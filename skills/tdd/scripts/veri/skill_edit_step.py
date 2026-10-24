@@ -274,6 +274,7 @@ def main(argv):
                 with open(name, "wb") as f:
                     f.write(content)
     if graded == 1:
+        _restore(snapshot, path, unit, graded_file)
         sys.stdout.write(said)
         return 1
     if graded:
