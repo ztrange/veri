@@ -4,9 +4,9 @@ import json
 _WHITESPACE = " \t\n\r"
 
 
-def documents(text):
+def documents(text, strict=True):
     """The JSON documents in `text`, in order, unflattened."""
-    found, at, decoder = [], 0, json.JSONDecoder()
+    found, at, decoder = [], 0, json.JSONDecoder(strict=strict)
     while True:
         while at < len(text) and text[at] in _WHITESPACE:
             at += 1
@@ -16,6 +16,6 @@ def documents(text):
         found.append(document)
 
 
-def items(text):
+def items(text, strict=True):
     """The elements of every document in `text`, as one list."""
-    return [item for document in documents(text) for item in document]
+    return [item for document in documents(text, strict) for item in document]
