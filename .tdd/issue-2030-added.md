@@ -1,0 +1,1 @@
+- [ ] The existing cases in skills/tdd/scripts/tests/py/unit/test_unlabel_issue.py keep passing when unlabel-issue.sh also creates and adds a `taken:<lane>` label: their fake gh accepts a label-create and an add-label call beside the opt-in label's DELETE without asserting them; no production change, test-only ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 1⟧
