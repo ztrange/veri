@@ -148,22 +148,29 @@ def main(argv):
 @contextlib.contextmanager
 def seeded_log_set_aside(path):
     tdd = path + "/.tdd"
-    log = tdd + "/events.jsonl"
-    seeded_log = None
-    if os.path.isfile(log) and os.listdir(path) == [".tdd"] and os.listdir(tdd) == ["events.jsonl"]:
-        fd, seeded_log = tempfile.mkstemp()
-        os.close(fd)
-        shutil.move(log, seeded_log)
-        os.rmdir(tdd)
-        os.rmdir(path)
+    aside = None
+    names = []
+    if os.path.isdir(tdd) and os.listdir(path) == [".tdd"]:
+        found = os.listdir(tdd)
+        if set(found) <= {"events.jsonl", "conductor.pid"}:
+            names = found
+            aside = tempfile.mkdtemp()
+            for name in names:
+                shutil.move(tdd + "/" + name, aside + "/" + name + ".kept")
+            os.rmdir(tdd)
+            os.rmdir(path)
     try:
         yield
     finally:
-        if seeded_log is not None:
+        if aside is not None:
             os.makedirs(tdd, exist_ok=True)
-            with open(seeded_log, "rb") as src:
-                event_log.append_bytes(log, src.read())
-            os.remove(seeded_log)
+            for name in names:
+                if name == "events.jsonl":
+                    with open(aside + "/" + name + ".kept", "rb") as src:
+                        event_log.append_bytes(tdd + "/" + name, src.read())
+                else:
+                    shutil.move(aside + "/" + name + ".kept", tdd + "/" + name)
+            shutil.rmtree(aside)
 
 
 def refuse(message):

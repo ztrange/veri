@@ -803,6 +803,23 @@ def test_fresh_call_creates_a_worktree_at_dot_tdd_wt_7_on_a_new_branch_off_the_d
         0, want, want, "tdd/7-add-worktree", main_tip)
 
 
+@pytest.mark.process("git worktree add on a scratch repository whose path holds the run state a conductor seeds")
+def test_fresh_call_cuts_the_worktree_and_keeps_the_seeded_events_and_conductor_pid_issue_2249(
+        tmp_path, issue_worktree, run_cli):
+    repo = scratch_repo(tmp_path / "seeded")
+    want = scratch_wt_path(repo, 11)
+    state = pathlib.Path(want, ".tdd")
+    state.mkdir(parents=True)
+    (state / "events.jsonl").write_bytes(b'{"event":"seeded"}\n')
+    (state / "conductor.pid").write_bytes(b"4242\n")
+
+    code, out, _ = run_cli(issue_worktree, ["11", "seeded-state"], cwd=repo)
+
+    assert (code, out.strip(), scratch_git(want, "branch", "--show-current"),
+            (state / "events.jsonl").read_bytes(), (state / "conductor.pid").read_bytes()) == (
+        0, want, "tdd/11-seeded-state", b'{"event":"seeded"}\n', b"4242\n")
+
+
 @pytest.mark.process("git worktree add twice on a scratch repository, its registry read back")
 def test_second_call_prints_the_same_path_exits_0_and_creates_nothing_new(tmp_path, issue_worktree, run_cli):
     repo = scratch_repo(tmp_path / "again")
