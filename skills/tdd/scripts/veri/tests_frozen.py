@@ -176,11 +176,14 @@ def _added_cases(name):
     return [(case, body) for case, body in new if before.get(case) != body]
 
 
+def _body_record(line):
+    return line[6:].split("\t") if line.startswith("body: ") else None
+
+
 def _kept_cases(record, name):
     try:
         with open(record, encoding="utf-8") as handle:
-            held = {l[6:].split("\t")[1] for l in handle.read().splitlines()
-                    if l.startswith("body: ") and l[6:].split("\t")[0] == name}
+            held = {r[1] for r in map(_body_record, handle.read().splitlines()) if r and r[0] == name}
     except OSError:
         return []
     before, new = _head_and_new_cases(name)
@@ -213,7 +216,7 @@ def _check_earlier(ledger, step, exempt=()):
         try:
             with open(_record_path(match.group(1)), encoding="utf-8") as handle:
                 records = handle.read().splitlines()
-            bodies = [l[6:].split("\t") for l in records if l.startswith("body: ")]
+            bodies = [r for r in map(_body_record, records) if r]
             marked = "format: 2" in records
         except OSError:
             continue
@@ -266,8 +269,9 @@ def rerecord_earlier(ledger, step):
             continue
         out = []
         for record in records:
-            if record.startswith("body: "):
-                name, case, _ = record[6:].split("\t")
+            parsed = _body_record(record)
+            if parsed:
+                name, case, _ = parsed
                 try:
                     with open(name, encoding="utf-8", errors="replace") as handle:
                         now = dict(_cases(handle.read())).get(case)
