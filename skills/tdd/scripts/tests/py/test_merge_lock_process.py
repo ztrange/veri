@@ -1,5 +1,8 @@
 """merge-lock.sh through the real /bin/sh shim."""
+import os
 import subprocess
+import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -12,3 +15,43 @@ def test_merge_lock_sh_with_no_argument_prints_a_usage_line_naming_take_release_
     done = subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh")], stdin=subprocess.DEVNULL,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     assert (done.returncode, all(verb in done.stderr for verb in ("take", "release", "holder"))) == (2, True)
+
+
+@pytest.mark.process("two merge-lock.sh take shims racing for one lock in a scratch repository")
+def test_two_takers_racing_for_a_free_lock_end_with_one_holding_it_and_the_other_waiting_until_the_winners_release(
+        tmp_path):
+    subprocess.run(["git", "-C", str(tmp_path), "init", "-q", "-b", "main"], check=True)
+    env = {**os.environ, "VERI_MERGE_LOCK_POLL": "0.05"}
+    sleeper = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+    pids = {"a": str(os.getpid()), "b": str(sleeper.pid)}
+
+    def shim(*args, wait=True):
+        cmd = ["/bin/sh", str(SCRIPTS / "merge-lock.sh"), *args]
+        kw = dict(cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                  stderr=subprocess.PIPE, text=True)
+        return subprocess.run(cmd, **kw) if wait else subprocess.Popen(cmd, **kw)
+
+    takers = {k: shim("take", "--pid", pid, wait=False) for k, pid in pids.items()}
+    try:
+        deadline = time.monotonic() + 10
+        while all(t.poll() is None for t in takers.values()) and time.monotonic() < deadline:
+            time.sleep(0.02)
+        time.sleep(0.5)
+        winner = next((k for k, t in takers.items() if t.returncode == 0), "a")
+        loser = "b" if winner == "a" else "a"
+        waiting = takers[loser].poll() is None
+        released = shim("release", "--pid", pids[winner])
+        try:
+            takers[loser].wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            takers[loser].kill()
+        held = shim("holder")
+        assert (takers[winner].returncode, waiting, released.returncode, takers[loser].returncode,
+                pids[loser] in held.stdout.split()) == (0, True, 0, 0, True)
+    finally:
+        for t in takers.values():
+            if t.poll() is None:
+                t.kill()
+            t.communicate()
+        sleeper.kill()
+        sleeper.wait()
