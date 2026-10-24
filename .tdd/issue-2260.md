@@ -1,0 +1,4 @@
+# Plan for #2260 — a refactor that landed nothing launches no verify-refactor
+
+- [ ] `$S/metrics.sh <n>` counts `verify-refactor-skipped` events in its "By refactor pass" table: a pass whose step logged `verify-refactor-skipped reason=nothing-landed` and no refactor verdict shows its verdict cell as skipped, never as a missing verdict, beside a verified pass that keeps its PASS — pinned by a small in-process case over an events file holding one skipped and one verified pass ⟦criterion 2⟧
+- [ ] skills/tdd/SKILL.md: apply the issue's requirements diff (RF53 added, RF49 reworded to PASS|REJECT|SKIPPED) to the `## skills/tdd/SKILL.md` section of skills/tdd/REQUIREMENTS.md, edit SKILL.md's Refactor step 5 so it states RF53, grade it PASS and sign it in skills/tdd/GRADED ⟦skill-edit⟧ ⟦criterion 1⟧
