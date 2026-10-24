@@ -595,21 +595,31 @@ def test_an_added_step_on_a_unit_no_requirements_list_claims_exits_2_naming_the_
     assert (code, step in err, launched, commits) == (2, True, [], []), (code, err, launched, commits)
 
 
-def test_apply_gives_a_prefix_next_row_the_next_free_number_for_its_prefix_and_copies_a_numbered_row_as_is_2262(tmp_path, monkeypatch):
+def _next_case_2262(tmp_path, monkeypatch, list_rows, issue_rows, heading="unit.md"):
+    """A unit, its list holding list_rows (None: no list), and an issue stating issue_rows under heading.
+
+    A heading ending " (new)" names a unit that does not exist yet, so no unit.md is written.
+    """
     monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    requirements = importlib.import_module("veri.requirements")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| PL3 | The widget is blue. | because |\n"
-        "| PL7 | The widget is round. | shape |\n"
-        "| CY9 | The widget is old. | age |\n")
+    if not heading.endswith(" (new)"):
+        (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    table = "| ID | Requirement | Why |\n|---|---|---|\n"
+    if list_rows is not None:
+        (tmp_path / "REQUIREMENTS.md").write_text("## unit.md\n\n" + table + "".join(r + "\n" for r in list_rows))
     (tmp_path / "issue.md").write_text(
-        "## Requirements\n\n### unit.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n"
-        "| PL<next> | The widget is shiny. | gloss |\n"
-        "| CY12 | The widget is heavy. | weight |\n")
+        "## Requirements\n\n### %s\n\n" % heading + table + "".join(r + "\n" for r in issue_rows))
+    return importlib.import_module("veri.skill_edit_step")
+
+
+def test_apply_gives_a_prefix_next_row_the_next_free_number_for_its_prefix_and_copies_a_numbered_row_as_is_2262(tmp_path, monkeypatch):
+    skill_edit_step = _next_case_2262(
+        tmp_path, monkeypatch,
+        ["| PL3 | The widget is blue. | because |",
+         "| PL7 | The widget is round. | shape |",
+         "| CY9 | The widget is old. | age |"],
+        ["| PL<next> | The widget is shiny. | gloss |",
+         "| CY12 | The widget is heavy. | weight |"])
+    requirements = importlib.import_module("veri.requirements")
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
@@ -618,18 +628,12 @@ def test_apply_gives_a_prefix_next_row_the_next_free_number_for_its_prefix_and_c
 
 
 def test_apply_numbers_two_next_rows_of_one_prefix_in_issue_order_as_max_plus_1_then_max_plus_2_2262(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| PL3 | The widget is blue. | because |\n"
-        "| PL7 | The widget is round. | shape |\n")
-    (tmp_path / "issue.md").write_text(
-        "## Requirements\n\n### unit.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n"
-        "| PL<next> | The widget is shiny. | gloss |\n"
-        "| PL<next> | The widget is heavy. | weight |\n")
+    skill_edit_step = _next_case_2262(
+        tmp_path, monkeypatch,
+        ["| PL3 | The widget is blue. | because |",
+         "| PL7 | The widget is round. | shape |"],
+        ["| PL<next> | The widget is shiny. | gloss |",
+         "| PL<next> | The widget is heavy. | weight |"])
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
@@ -639,12 +643,11 @@ def test_apply_numbers_two_next_rows_of_one_prefix_in_issue_order_as_max_plus_1_
 
 
 def test_apply_numbers_a_prefix_next_row_1_when_the_list_holds_no_row_of_that_prefix_including_a_list_it_creates_2262(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "issue.md").write_text(
-        "## Requirements\n\n### unit.md (new)\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n"
-        "| PL<next> | The widget is shiny. | gloss |\n")
+    skill_edit_step = _next_case_2262(
+        tmp_path, monkeypatch,
+        None,
+        ["| PL<next> | The widget is shiny. | gloss |"],
+        heading="unit.md (new)")
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
@@ -653,13 +656,10 @@ def test_apply_numbers_a_prefix_next_row_1_when_the_list_holds_no_row_of_that_pr
 
 
 def test_apply_numbers_a_prefix_next_row_1_when_the_unit_exists_but_no_requirements_list_claims_it_2262(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "issue.md").write_text(
-        "## Requirements\n\n### unit.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n"
-        "| PL<next> | The widget is shiny. | gloss |\n")
+    skill_edit_step = _next_case_2262(
+        tmp_path, monkeypatch,
+        None,
+        ["| PL<next> | The widget is shiny. | gloss |"])
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
@@ -696,18 +696,12 @@ def test_an_issue_row_whose_id_is_neither_prefix_digits_nor_prefix_next_exits_2_
 
 
 def test_apply_numbers_a_prefix_next_row_past_the_max_over_the_lists_ids_and_the_issues_own_explicit_ids_2262(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    skill_edit_step = _next_case_2262(
+        tmp_path, monkeypatch,
+        ["| PL5 | The widget is blue. | because |"],
+        ["| PL<next> | The widget is shiny. | gloss |",
+         "| PL7 | The widget is heavy. | weight |"])
     requirements = importlib.import_module("veri.requirements")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| PL5 | The widget is blue. | because |\n")
-    (tmp_path / "issue.md").write_text(
-        "## Requirements\n\n### unit.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n"
-        "| PL<next> | The widget is shiny. | gloss |\n"
-        "| PL7 | The widget is heavy. | weight |\n")
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
@@ -746,18 +740,12 @@ def test_an_issue_whose_rows_for_one_unit_resolve_to_the_same_id_twice_exits_2_n
 
 
 def test_apply_still_rewords_a_list_row_when_the_issue_states_its_explicit_id_beside_a_prefix_next_row_2262(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    skill_edit_step = _next_case_2262(
+        tmp_path, monkeypatch,
+        ["| PL5 | The widget is blue. | because |"],
+        ["| PL<next> | The widget is shiny. | gloss |",
+         "| PL5 | The widget is deep blue. | because |"])
     requirements = importlib.import_module("veri.requirements")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| PL5 | The widget is blue. | because |\n")
-    (tmp_path / "issue.md").write_text(
-        "## Requirements\n\n### unit.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n"
-        "| PL<next> | The widget is shiny. | gloss |\n"
-        "| PL5 | The widget is deep blue. | because |\n")
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
@@ -766,16 +754,10 @@ def test_apply_still_rewords_a_list_row_when_the_issue_states_its_explicit_id_be
 
 
 def test_apply_writes_a_prefix_next_rows_other_cells_byte_for_byte_keeping_an_escaped_pipe_2262(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "REQUIREMENTS.md").write_text(
-        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| PL5 | The widget is blue. | because |\n")
-    (tmp_path / "issue.md").write_text(
-        "## Requirements\n\n### unit.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n"
-        "| PL<next> | The widget shows a\\|b. | gloss\\|shine |\n")
+    skill_edit_step = _next_case_2262(
+        tmp_path, monkeypatch,
+        ["| PL5 | The widget is blue. | because |"],
+        ["| PL<next> | The widget shows a\\|b. | gloss\\|shine |"])
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
@@ -785,14 +767,11 @@ def test_apply_writes_a_prefix_next_rows_other_cells_byte_for_byte_keeping_an_es
 
 
 def test_apply_numbers_a_prefix_next_row_past_the_issues_explicit_ids_when_the_unit_exists_but_no_requirements_list_claims_it_2262(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-    (tmp_path / "issue.md").write_text(
-        "## Requirements\n\n### unit.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n"
-        "| PL<next> | The widget is shiny. | gloss |\n"
-        "| PL1 | The widget is heavy. | weight |\n")
+    skill_edit_step = _next_case_2262(
+        tmp_path, monkeypatch,
+        None,
+        ["| PL<next> | The widget is shiny. | gloss |",
+         "| PL1 | The widget is heavy. | weight |"])
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
@@ -802,13 +781,12 @@ def test_apply_numbers_a_prefix_next_row_past_the_issues_explicit_ids_when_the_u
 
 
 def test_apply_numbers_a_prefix_next_row_past_the_issues_explicit_ids_in_a_list_it_creates_under_a_new_heading_2262(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    skill_edit_step = importlib.import_module("veri.skill_edit_step")
-    (tmp_path / "issue.md").write_text(
-        "## Requirements\n\n### unit.md (new)\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n"
-        "| PL<next> | The widget is shiny. | gloss |\n"
-        "| PL1 | The widget is heavy. | weight |\n")
+    skill_edit_step = _next_case_2262(
+        tmp_path, monkeypatch,
+        None,
+        ["| PL<next> | The widget is shiny. | gloss |",
+         "| PL1 | The widget is heavy. | weight |"],
+        heading="unit.md (new)")
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
