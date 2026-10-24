@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 2075
 
-Wall time for the issue: 977 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 578 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Every figure in this report is wall-clock: the log carries no awake-clock reading, so time the machine spent asleep is counted in them.
 Steps done: 5 of 9 planned.
 Outcome: the run bailed — revise-exhausted, a process failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $11.24 over 197 turns, in 6 sessions.
+Conductor own spending: $12.69 over 219 turns, in 7 sessions.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
@@ -185,28 +185,50 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 169 | $0.08 | 128263 |
 | 170 | $0.05 | 129202 |
 | 171 | $0.04 | 130267 |
-| 172 | $0.57 | 89200 |
-| 173 | $0.02 | 89695 |
-| 174 | $0.04 | 93017 |
-| 175 | $0.04 | 95487 |
-| 176 | $0.05 | 99133 |
+| 172 | $0.58 | 89200 |
+| 173 | $0.03 | 89695 |
+| 174 | $0.05 | 93017 |
+| 175 | $0.05 | 95487 |
+| 176 | $0.06 | 99133 |
 | 177 | $0.03 | 99851 |
-| 178 | $0.02 | 100336 |
-| 179 | $0.02 | 100601 |
-| 180 | $0.02 | 100908 |
-| 181 | $0.02 | 101166 |
-| 182 | $0.03 | 101861 |
+| 178 | $0.03 | 100336 |
+| 179 | $0.03 | 100601 |
+| 180 | $0.03 | 100908 |
+| 181 | $0.03 | 101166 |
+| 182 | $0.04 | 101861 |
 | 183 | $0.05 | 105173 |
-| 184 | $0.03 | 106356 |
+| 184 | $0.04 | 106356 |
 | 185 | $0.03 | 107261 |
-| 186 | $0.03 | 108189 |
-| 187 | $0.02 | 108472 |
-| 188 | $0.03 | 109605 |
-| 189 | $0.03 | 110239 |
-| 190 | $0.02 | 110456 |
+| 186 | $0.04 | 108189 |
+| 187 | $0.03 | 108472 |
+| 188 | $0.04 | 109605 |
+| 189 | $0.04 | 110239 |
+| 190 | $0.03 | 110456 |
 | 191 | $0.03 | 111135 |
-| 192 | $0.03 | 112324 |
-| 193 | $0.05 | 116364 |
+| 192 | $0.04 | 112324 |
+| 193 | $0.07 | 116364 |
+| 194 | $0.03 | 117355 |
+| 195 | $0.04 | 118278 |
+| 196 | $0.58 | 89488 |
+| 197 | $0.02 | 89908 |
+| 198 | $0.03 | 91996 |
+| 199 | $0.03 | 93071 |
+| 200 | $0.04 | 95575 |
+| 201 | $0.05 | 99196 |
+| 202 | $0.02 | 99579 |
+| 203 | $0.02 | 100030 |
+| 204 | $0.02 | 100344 |
+| 205 | $0.03 | 101063 |
+| 206 | $0.03 | 102099 |
+| 207 | $0.04 | 104845 |
+| 208 | $0.03 | 105957 |
+| 209 | $0.03 | 106547 |
+| 210 | $0.03 | 108039 |
+| 211 | $0.03 | 109513 |
+| 212 | $0.03 | 110964 |
+| 213 | $0.03 | 111786 |
+| 214 | $0.04 | 114412 |
+| 215 | $0.06 | 118708 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-sonnet-5-5.
 
 #### By phase
@@ -219,8 +241,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | refactor | 2 | 1 | 0 | 0 | 70 | 25 | 9 | 16 | 2061 | 224319 | 31462 | 0.12 |
 | pin | 3 | 3 | 0 | 0 | 99 | 38 | 12 | 24 | 3502 | 318310 | 43741 | 0.18 |
 | diff | 2 | 1 | 0 | 0 | 349 | 73 | 14 | 28 | 3463 | 411389 | 34463 | 0.16 |
-| prose | 9 | 0 | 0 | 0 | 642 | 604 | 9 | 18 | 96284 | 11355 | 839014 | 3.06 |
-| skill-edit | 6 | 0 | 0 | 0 | 696 | 360 | 57 | 114 | 41367 | 7185153 | 716193 | 2.92 |
+| prose | 16 | 0 | 0 | 0 | 1011 | 956 | 15 | 30 | 155332 | 19844 | 1405917 | 5.07 |
+| skill-edit | 10 | 0 | 0 | 0 | 1447 | 710 | 104 | 208 | 89078 | 13519282 | 1272175 | 5.42 |
 
 #### By model
 
@@ -239,8 +261,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | pin | 0 | 0.00 | 0 | 0.00 |
 | diff | 0 | 0.00 | 0 | 0.00 |
-| prose | 0 | 0.00 | 642 | 3.06 |
-| skill-edit | 0 | 0.00 | 696 | 2.92 |
+| prose | 0 | 0.00 | 852 | 4.15 |
+| skill-edit | 0 | 0.00 | 1016 | 4.44 |
 | develop-green | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
@@ -254,7 +276,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | The guard run over the real skills/tdd/SKILL.md reports no place, for every row of its table; pinned by a small case in skills/tdd/scripts/tests/py/unit/test_skill_event_files.py ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 33 | 8 | 16 | 2962 | 221701 | 31616 | 0.13 | unknown | unknown | unknown | unknown |  |  | pin |
 | `skills/tdd/SKILL.md` gets EV1 added to `skills/tdd/REQUIREMENTS.md` under `## skills/tdd/SKILL.md` exactly as the issue's `## Requirements` table states it, grades PASS against its whole list and is signed: no prose is edited unless the grader rejects a row; `prose-owed.sh` prints nothing for it; `GRADED` carries a line for the unit whose signature matches its current text ⟦skill-edit⟧ ⟦criterion 3⟧ | 7 | 0 | 0 | 0 | 0 | 0 | 376 | 16 | 32 | 50306 | 1081287 | 670851 | 2.29 | unknown | unknown | unknown | unknown |  |  | full |
 | The event-pointer guard in skills/tdd/scripts/tests/py/unit/test_skill_event_files.py reads a send and its pointer within the whole sentence that sends the run, however many lines that sentence spans, so a pointer at the end of a sentence several lines below its trigger counts and a pointer in a different sentence does not; pinned by small cases in skills/tdd/scripts/tests/py/unit/test_skill_event_pointer_guard.py; test files only, no production change ⟦guard-subject: skills/tdd/scripts/tests/py/unit/test_skill_event_files.py⟧ ⟦criterion 5⟧ | 3 | 1 | 0 | 0 | 0 | 0 | 76 | 14 | 28 | 5653 | 377877 | 86179 | 0.31 | unknown | unknown | unknown | unknown |  |  | full |
-| `skills/tdd/SKILL.md` gets EV1 and EV2 added to `skills/tdd/REQUIREMENTS.md` under `## skills/tdd/SKILL.md` exactly as the issue's `## Requirements` table states them, and its prose is edited so it satisfies both: the `Read` `<base directory>/BAIL.md` pointer is added to every sentence that sends the run into a bail by a phrasing other than a bolded "**bail**" (bolded or not: "bails as …", "bail with cause …", "bails with cause …", "→ bail", "is a bail", a bare "bail" used as an instruction) and names no BAIL.md pointer, and every `<base directory>/` event pointer that sits inside a clause or in a later sentence moves to the end of the sentence that sends the run, after its last clause and before its final period; nothing else changes; it grades PASS against its whole list and is signed: `prose-owed.sh` prints nothing for it; `GRADED` carries a line for the unit whose signature matches its current text; pin files: skills/tdd/scripts/tests/py/unit/test_skill_tests_frozen.py, skills/tdd/scripts/tests/py/unit/test_skill_stopping.py, skills/tdd/scripts/tests/py/unit/test_skill_resume_pointers.py, skills/tdd/scripts/tests/py/unit/test_skill_needs_user.py ⟦skill-edit⟧ ⟦criterion 3⟧ | 8 | 0 | 0 | 0 | 0 | 0 | 588 | 50 | 100 | 87345 | 6115221 | 884356 | 3.70 | unknown | unknown | unknown | unknown |  |  | full |
+| `skills/tdd/SKILL.md` gets EV1 and EV2 added to `skills/tdd/REQUIREMENTS.md` under `## skills/tdd/SKILL.md` exactly as the issue's `## Requirements` table states them, and its prose is edited so it satisfies both: the `Read` `<base directory>/BAIL.md` pointer is added to every sentence that sends the run into a bail by a phrasing other than a bolded "**bail**" (bolded or not: "bails as …", "bail with cause …", "bails with cause …", "→ bail", "is a bail", a bare "bail" used as an instruction) and names no BAIL.md pointer, and every `<base directory>/` event pointer that sits inside a clause or in a later sentence moves to the end of the sentence that sends the run, after its last clause and before its final period; nothing else changes; it grades PASS against its whole list and is signed: `prose-owed.sh` prints nothing for it; `GRADED` carries a line for the unit whose signature matches its current text; pin files: skills/tdd/scripts/tests/py/unit/test_skill_tests_frozen.py, skills/tdd/scripts/tests/py/unit/test_skill_stopping.py, skills/tdd/scripts/tests/py/unit/test_skill_resume_pointers.py, skills/tdd/scripts/tests/py/unit/test_skill_needs_user.py ⟦skill-edit⟧ ⟦criterion 3⟧ | 14 | 0 | 0 | 0 | 0 | 0 | 984 | 82 | 164 | 144759 | 9787194 | 1548968 | 6.30 | unknown | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -276,4 +298,4 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 144 | 280 | 164932 | 9205990 | 1915304 | 7.36 |
+| total | 197 | 386 | 271691 | 15548608 | 3038189 | 11.87 |
