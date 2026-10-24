@@ -152,3 +152,29 @@ def test_main_1974_removes_the_label_through_the_port_and_starts_no_gh_process_i
     deletions = [call for call in ported if "DELETE" in call]
     assert (code, deletions, capsys.readouterr().err) == (
         0, [["api", "-X", "DELETE", "repos/{owner}/{repo}/issues/7/labels/ready-for-agent"]], "")
+
+
+def test_main_2030_adds_the_taken_lane_label_named_after_the_text_after_the_last_colon_of_veri_label_or_main(monkeypatch):
+    unlabel_issue = importlib.import_module("veri.unlabel_issue")
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+    calls = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        calls.append(args)
+        return subprocess.CompletedProcess(args, 0, "{}", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    def taken_after(label):
+        calls.clear()
+        if label is None:
+            monkeypatch.delenv("VERI_LABEL", raising=False)
+        else:
+            monkeypatch.setenv("VERI_LABEL", label)
+        code = unlabel_issue.main(["7"])
+        added = sorted({word for call in calls if "DELETE" not in call for word in call if word.startswith("taken:")})
+        return code, added
+
+    assert [taken_after(None), taken_after("ready-for-agent"), taken_after("ready-for-agent:mu")] == [
+        (0, ["taken:main"]), (0, ["taken:main"]), (0, ["taken:mu"])]
