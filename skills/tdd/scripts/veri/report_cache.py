@@ -9,7 +9,8 @@ import tempfile
 import github
 
 USAGE = "usage: report-cache.sh refresh\n"
-FIELDS = "number,title,state,labels,closedAt,updatedAt,body,comments"
+PAGE_SIZE = 100
+FIELDS ="number,title,state,labels,closedAt,updatedAt,body,comments"
 
 
 def main_tree():
@@ -45,6 +46,22 @@ def lane(comments):
     return last_metrics_field(comments, r"^Lane: (\S+)")
 
 
+def fetch_pages():
+    first = json.loads(github.gh_issue_list("--state", "all", "--limit", str(PAGE_SIZE), "--json", FIELDS))
+    if len(first) < PAGE_SIZE:
+        return first
+    seen = {}
+    search = "sort:updated-desc"
+    while True:
+        page = json.loads(github.gh_issue_list(
+            "--state", "all", "--limit", str(PAGE_SIZE), "--json", FIELDS, "--search", search))
+        fresh = [issue for issue in page if issue["number"] not in seen]
+        seen.update({issue["number"]: issue for issue in fresh})
+        if len(page) < PAGE_SIZE or not fresh:
+            return list(seen.values())
+        search = "sort:updated-desc updated:<=" + min(issue["updatedAt"] for issue in page)
+
+
 def refresh():
     tdd = os.path.join(main_tree(), ".tdd")
     path = os.path.join(tdd, "report-cache.json")
@@ -62,7 +79,10 @@ def refresh():
             kept = loaded
             command += ["--search", search]
     try:
-        issues = json.loads(github.gh_issue_list(*command))
+        if kept:
+            issues = json.loads(github.gh_issue_list(*command))
+        else:
+            issues = fetch_pages()
     except github.NoAnswer as failure:
         sys.stderr.write("report-cache.sh: gh issue list failed: %s\n" % failure.answer)
         return 2

@@ -690,3 +690,42 @@ def test_refresh_whose_os_replace_raises_removes_its_own_temp_file_2160(run_cli,
 
     assert (code, "interrupted before replace" in err, sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == (
         2, True, ["report-cache.json"])
+
+
+def test_refresh_with_no_cache_fetches_in_bounded_pages_and_merges_them_into_the_cache_a_single_answer_would_give_2244(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    everything = [
+        {"number": n, "title": "issue %d" % n, "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-10-%02dT%02d:00:00Z" % (1 + n // 24, n % 24)}
+        for n in range(1, 251)
+    ]
+    limits = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] != ["gh", "issue", "list"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        limit = int(args[args.index("--limit") + 1])
+        limits.append(limit)
+        if limit > 100:
+            return subprocess.CompletedProcess(args, 1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
+        pool = sorted(everything, key=lambda i: i["updatedAt"], reverse=True)
+        search = args[args.index("--search") + 1] if "--search" in args else ""
+        for bound in search.split():
+            if bound.startswith("updated:<="):
+                pool = [i for i in pool if i["updatedAt"] <= bound[len("updated:<="):]]
+            elif bound.startswith("updated:<"):
+                pool = [i for i in pool if i["updatedAt"] < bound[len("updated:<"):]]
+        return subprocess.CompletedProcess(args, 0, json.dumps(pool[:limit]), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    written = tmp_path / ".tdd" / "report-cache.json"
+    kept = sorted(i["number"] for i in json.loads(written.read_text())["issues"]) if written.exists() else []
+    assert (code, kept, max(limits)) == (0, list(range(1, 251)), 100)
