@@ -190,6 +190,21 @@ def _added_cases(name):
     return [(case, body) for case, body in _cases(new) if before.get(case) != body]
 
 
+def _kept_cases(record, name):
+    try:
+        with open(record, encoding="utf-8") as handle:
+            held = {l[6:].split("\t")[1] for l in handle.read().splitlines()
+                    if l.startswith("body: ") and l[6:].split("\t")[0] == name}
+    except OSError:
+        return []
+    old = subprocess.run(["git", "show", "HEAD:" + name], stdout=subprocess.PIPE,
+                         stderr=subprocess.DEVNULL).stdout.decode("utf-8", "replace")
+    before = dict(_cases(old))
+    with open(name, encoding="utf-8", errors="replace") as handle:
+        new = handle.read()
+    return [(case, body) for case, body in _cases(new) if case in held and before.get(case) == body]
+
+
 def _check_earlier(ledger, step, exempt=()):
     root = _toplevel()
     if root is None:
@@ -295,7 +310,9 @@ def main(argv):
                 if files:
                     lines.append("format: 2\n")
                 for name in files:
-                    for case, body in _added_cases(name):
+                    added = _added_cases(name)
+                    kept = [c for c in _kept_cases(record, name) if c[0] not in {a[0] for a in added}]
+                    for case, body in added + kept:
                         lines += ["case: %s\n" % case,
                                   "body: %s\t%s\t%s\n" % (name, case, _body_digest(body))]
             with open(record, "w") as handle:
