@@ -1,0 +1,4 @@
+# Plan for #2238 — run_conductor.done_posted counts a ✅ Done from before the last resume, so a post-review resume that stops without a verdict posts nothing
+
+- [ ] A conductor run resumed after an earlier `### ✅ Done` comment, whose run log holds a `resume` event later than that comment, that then stops without a verdict still marks `bail cause=needs-user` and posts its needs-user comment; a `### ✅ Done` posted after the run's last `resume` event still suppresses both (bug reproduction in tests/py/test_run_conductor.py, gh faked) ⟦criterion 1⟧
+- [ ] A `### ✅ Done` comment that is comment 101 or later on the issue thread still suppresses the needs-user fallback: done_posted reads every page of the issue's comments, pinned by a case whose faked GitHub serves the comments over more than one page ⟦criterion 2⟧
