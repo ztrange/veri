@@ -17,6 +17,7 @@ from leaf_log import result_records
 from run_verdict import SCRIPTS
 
 USAGE = "usage: grade-prose.sh <requirements-file> <unit>"
+BAD_GRADE = re.compile(r"^(?!VERDICT)\S+: (?!PASS\b|FAIL\b)\S", re.M)
 
 
 GRADER_INSTRUCTIONS = """You grade a piece of prose against a list of requirements. You judge only what the prose states or instructs, read as its reader (an AI agent following it) would read it. You do not judge whether the instructions are wise, and you do not judge behaviour.
@@ -161,7 +162,7 @@ def main(argv):
             if "BEGIN GRADES" in reply:
                 ids = graded_ids(reply[reply.rindex("BEGIN GRADES"):])
                 if (len(set(ids)) == len(ids) and set(ids) <= set(wanted)
-                        and not re.search(r"^(?!VERDICT)\S+: (?!PASS\b|FAIL\b)\S", reply[reply.rindex("BEGIN GRADES"):], re.M)):
+                        and not BAD_GRADE.search(reply[reply.rindex("BEGIN GRADES"):])):
                     break
     finally:
         os.unlink(f.name)
@@ -172,7 +173,7 @@ def main(argv):
     seen = graded_ids(reply)
     missing = [i for i in wanted if i not in seen]
     if (missing and used <= retries and len(set(seen)) == len(seen) and set(seen) <= set(wanted)
-            and not re.search(r"^(?!VERDICT)\S+: (?!PASS\b|FAIL\b)\S", reply, re.M)
+            and not BAD_GRADE.search(reply)
             and "END GRADES" in reply and not reply.partition("END GRADES")[2].strip()):
         rows = "".join(r + "\n" for r in claims.splitlines() if r.split("\t", 1)[0] in missing)
         with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as g:
