@@ -1,0 +1,1 @@
+- [ ] _restore after a guard refusal never deletes a path it holds no snapshot for (a .tdd/ file, or anything _tree skipped); it unlinks only a path proven absent before the attempt: pinned by a case where an untracked .tdd/issue-<n>-added.md and a dirty .tdd/issue-<n>.md named by the guard both survive the refusal byte-identical ⟦added⟧ ⟦criterion 1⟧
