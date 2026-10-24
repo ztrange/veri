@@ -91,6 +91,38 @@ def test_parked_issues_when_the_final_comment_is_not_a_parked_comment_still_prin
     assert ran.stdout == "7\tTeach the verifier to refuse\tsecond bail on the verifier\ta human reads the diff\n"
 
 
+QUOTED_HEADING_GH_STUB = """#!/bin/sh
+for a in "$@"; do
+  case "$a" in
+    *page=[2-9]*) echo '[]'; exit 0 ;;
+    */issues/7/comments*)
+      echo '[{"body":"### ⏸ Parked\\nCause: second bail on the verifier\\nUnblock: a human reads the diff"},{"body":"Quoting the old note:\\n### ⏸ Parked\\nCause: quoted cause\\nUnblock: quoted unblock"}]'
+      exit 0 ;;
+    */issues*)
+      echo '[{"number":7,"title":"Teach the verifier to refuse","labels":[{"name":"parked"}]}]'
+      exit 0 ;;
+  esac
+done
+echo '[]'
+"""
+
+
+@pytest.mark.process("parked-issues.sh run against a gh stub whose later comment quotes the Parked heading mid-body")
+def test_parked_issues_does_not_read_a_comment_that_quotes_the_parked_heading_mid_body_as_the_parked_comment(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(QUOTED_HEADING_GH_STUB)
+    gh.chmod(0o755)
+
+    ran = subprocess.run([str(SCRIPTS / "parked-issues.sh")], cwd=tmp_path, capture_output=True, text=True,
+                         stdin=subprocess.DEVNULL,
+                         env={"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+                              "PYTHONDONTWRITEBYTECODE": "1"})
+
+    assert ran.returncode == 0, ran.stderr
+    assert ran.stdout == "7\tTeach the verifier to refuse\tsecond bail on the verifier\ta human reads the diff\n"
+
 SEVERAL_PARKED_GH_STUB = """#!/bin/sh
 for a in "$@"; do
   case "$a" in
