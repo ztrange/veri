@@ -9,7 +9,7 @@ USAGE = "usage: parked-issues.sh"
 
 def field(body, name):
     prefix = name + ": "
-    return next(line[len(prefix):] for line in body.splitlines() if line.startswith(prefix))
+    return next((line[len(prefix):] for line in body.splitlines() if line.startswith(prefix)), None)
 
 
 def main(argv):
@@ -37,7 +37,11 @@ def main(argv):
             sys.stderr.write("parked-issues.sh: issue #%d has no parked comment\n" % number)
             return 2
         body = bodies[-1]
-        sys.stdout.write("%d\t%s\t%s\t%s\n" % (number, issue["title"], field(body, "Cause"), field(body, "Unblock")))
+        cause, unblock = field(body, "Cause"), field(body, "Unblock")
+        if cause is None or unblock is None:
+            sys.stderr.write("parked-issues.sh: issue #%d's parked comment lacks its Cause or Unblock line\n" % number)
+            return 2
+        sys.stdout.write("%d\t%s\t%s\t%s\n" % (number, issue["title"], cause, unblock))
     return 0
 
 
