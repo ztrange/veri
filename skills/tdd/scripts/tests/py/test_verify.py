@@ -137,7 +137,7 @@ def test_main_calls_the_builder_beside_the_shim_as_called_with_the_consumed_pair
 
 
 @pytest.mark.parametrize("leaf_args", [None, ""])
-def test_main_launches_the_verifier_leaf_through_supervise_with_the_default_flags_streams_inherited_and_starts_no_ported_helper_process(
+def test_main_launches_the_verifier_leaf_through_supervise_with_the_default_flags_stdin_inherited_stderr_captured_and_starts_no_ported_helper_process(
         leaf_args, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
@@ -169,7 +169,7 @@ def test_main_launches_the_verifier_leaf_through_supervise_with_the_default_flag
                             os.path.join(scripts, "run-leaf.sh"), ".tdd/verify-green.prompt",
                             "--permission-mode", "bypassPermissions",
                             "--disallowedTools", "Write", "Edit", "MultiEdit", "NotebookEdit"],
-                           None, None)]
+                           None, subprocess.PIPE)]
     forbidden = {"parse-verdict.sh", "leaf-role.sh", "leaf-model.sh"}
     assert [words for words, _, _ in started
             if os.path.basename(words[0]) in forbidden
@@ -388,6 +388,42 @@ def test_main_returns_2_on_a_killed_stuck_leaf_with_no_tamper_check_event_or_pre
         launch = [os.path.basename(words[0]) for words in started].index("supervise.sh")
         assert [words for words in started[launch + 1:] if os.path.basename(words[0]) == "git"] == []
         assert events.records() == []
+
+
+REFUSAL = ("supervise: refusing to launch verify-green: step 7 has no current check-earlier pass marker"
+           " (run tests-frozen.sh check-earlier first)")
+
+
+def test_2206_a_verify_green_supervise_refuses_to_launch_exits_2_naming_the_refusal_not_killed_stuck(
+        tmp_path, monkeypatch, capfdbinary, events):
+    monkeypatch.chdir(tmp_path)
+    write_inputs(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("VERI_ISSUE", "931")
+    monkeypatch.setenv("VERI_STEP", "7")
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
+
+    def fake(args, *_, **kwargs):
+        words = [str(a) for a in (args if isinstance(args, (list, tuple)) else [args])]
+        if os.path.basename(words[0]) == "supervise.sh":
+            if kwargs.get("stderr") == subprocess.PIPE:
+                return subprocess.CompletedProcess(args, 2, b"", (REFUSAL + "\n").encode())
+            os.write(2, (REFUSAL + "\n").encode())
+            return subprocess.CompletedProcess(args, 2, b"", None)
+        if words[0] == "git" and "write-tree" in words:
+            return subprocess.CompletedProcess(args, 0, b"0123456789abcdef0123456789abcdef01234567\n", b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    events.refuse_event_sh()
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+
+    captured = capfdbinary.readouterr()
+    out, err = captured.out.decode("utf-8"), captured.err.decode("utf-8")
+    assert (code, "killed-stuck" in out, REFUSAL in out, err.count(REFUSAL)) == (2, False, True, 1), (out, err)
 
 
 NO_VERDICT = b"I looked around and have no opinion\n"
