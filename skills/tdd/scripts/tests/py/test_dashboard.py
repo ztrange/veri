@@ -1402,3 +1402,12 @@ def test_get_api_metrics_asks_run_end_alone_whether_runs_39_and_40_2008_ended_wh
     issues = json.loads(body(metrics))["issues"]
     assert issues["39"] != "# committed report for #39\n"
     assert issues["40"] == "# committed report for #40\n"
+
+
+def test_record_lines_keeps_each_json_line_raw_and_drops_invalid_utf8_one_for_issue_2191(
+        dashboard, tmp_path):
+    log = tmp_path / "leaf.log"
+    log.write_bytes(b'[1, 2]\n{"b":  "caf\xc3\xa9", "a": "\xe2\x82\xac"}\n{"x":1}\r\n'
+                    b'{"bad": "\xff\xfe"}\n')
+    assert dashboard.record_lines(str(log)) == (
+        '[1, 2]\n{"b":  "café", "a": "€"}\n{"x":1}\r\n')

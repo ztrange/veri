@@ -11,7 +11,7 @@ import subprocess
 import sys
 import urllib.parse
 
-from event_log import read_events
+from event_log import read_events, read_json_lines
 from ledger import ledger_path
 from run_dir import run_file
 import metrics
@@ -342,8 +342,7 @@ def tests_json(query):
 # own contract (render-leaf-log.sh:11), and it is the caller holding a log of two parts that
 # knows which part is a transcript.
 def record_lines(log):
-    return "".join(json.dumps(event) + "\n"
-                   for event in read_events(log, skip_unreadable=True))
+    return "".join(read_json_lines(log))
 
 
 def rendered_log(log):

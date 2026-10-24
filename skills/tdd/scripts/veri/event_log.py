@@ -32,6 +32,21 @@ def read_events(path, skip_unreadable=False, mark_unreadable=False, errors="repl
     return events
 
 
+def read_json_lines(path):
+    """The log's JSON lines as text, each with its line ending kept; a line that is not
+    valid UTF-8 or not JSON is dropped."""
+    lines = []
+    with open(path, "rb") as f:
+        for raw in f:
+            try:
+                text = raw.decode("utf-8")
+                json.loads(text)
+            except ValueError:
+                continue
+            lines.append(text)
+    return lines
+
+
 def append_bytes(path, data):
     with open(path, "ab") as f:
         f.write(data)
