@@ -143,6 +143,10 @@ def prompt(base, issue, commit):
     return text + ("\nSolve issue #%s by the procedure above.\n" % issue).encode()
 
 
+def conductor_model():
+    return tunables.read("VERI_MODEL_CONDUCTOR") or "opus"
+
+
 def launch(base, issue, commit, **exports):
     text = prompt(base, issue, commit)
     if text is None:
@@ -155,7 +159,7 @@ def launch(base, issue, commit, **exports):
         with open(os.path.join(run_state, "issue-%s-tmpdir-skill-commit" % issue), "w") as record:
             record.write("%s %d\n" % (run_tmp, os.getpid()))
         with open(os.path.join(run_state, "issue-%s-conductor-model" % issue), "w") as record:
-            record.write((tunables.read("VERI_MODEL_CONDUCTOR") or "opus") + "\n")
+            record.write(conductor_model() + "\n")
         return conduct(text, issue, dict(os.environ, **exports, TMPDIR=run_tmp))
     finally:
         shutil.rmtree(run_tmp, ignore_errors=True)
@@ -204,7 +208,7 @@ def conduct(text, issue, env):
             code = subprocess.run([binary, "-p", "--output-format", "stream-json",
                                    "--verbose"] + context_limits() + [
                                    "--permission-mode", "bypassPermissions", "--model",
-                                   tunables.read("VERI_MODEL_CONDUCTOR") or "opus"],
+                                   conductor_model()],
                                   input=text, env=env).returncode
         finally:
             os.dup2(terminal, 1)
