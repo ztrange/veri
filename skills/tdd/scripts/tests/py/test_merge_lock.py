@@ -142,3 +142,20 @@ def test_release_without_pid_or_force_exits_2_naming_pid_and_removes_no_lock(tmp
     bare = run_cli(merge_lock, ["release"], cwd=tmp_path)
 
     assert (bare[0], "--pid" in bare[2], (tmp_path / ".tdd" / "merge.lock").is_dir()) == (2, True, True)
+
+
+@pytest.mark.process("git init on a scratch repository, take and holder run from it")
+def test_holder_exits_1_and_prints_the_record_marked_stale_when_the_recorded_pid_is_alive_but_its_recorded_start_time_differs(
+        tmp_path, merge_lock, run_cli):
+    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    pid = str(os.getpid())
+    run_cli(merge_lock, ["take", "--pid", pid], cwd=tmp_path)
+    record = tmp_path / ".tdd" / "merge.lock" / "holder"
+    host = socket.gethostname()
+    shifted = [t if t in (pid, host) else "".join(str((int(c) + 1) % 10) if c.isdigit() else c for c in t)
+               for t in record.read_text().split()]
+    record.write_text(" ".join(shifted) + "\n")
+
+    held = run_cli(merge_lock, ["holder"], cwd=tmp_path)
+
+    assert (held[0], pid in held[1].split(), "stale" in held[1].lower()) == (1, True, True)

@@ -15,6 +15,11 @@ def _caller_pid(args):
     return args[1] if args[:1] == ["--pid"] else str(os.getppid())
 
 
+def _start_time(pid):
+    out = subprocess.run(["ps", "-o", "lstart=", "-p", pid], stdout=subprocess.PIPE, text=True).stdout
+    return "_".join(out.split())
+
+
 def _needs_pid(args, force_ok):
     if "--pid" in args or (force_ok and "--force" in args):
         return False
@@ -45,7 +50,7 @@ def _take(lock, record, args):
                     pass
             time.sleep(float(tunables.read("VERI_MERGE_LOCK_POLL", "30")))
     with open(record, "w") as f:
-        f.write(f"{pid} {socket.gethostname()} {time.strftime('%Y-%m-%dT%H:%M:%S%z')}\n")
+        f.write(f"{pid} {socket.gethostname()} {_start_time(pid)}\n")
     return 0
 
 
@@ -69,6 +74,9 @@ def _holder(lock, record, args):
     try:
         os.kill(int(text.split()[0]), 0)
     except ProcessLookupError:
+        print("stale lock: " + text, end="")
+        return 1
+    if text.split()[2:3] != [_start_time(text.split()[0])]:
         print("stale lock: " + text, end="")
         return 1
     print(text, end="")
