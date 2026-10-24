@@ -922,3 +922,31 @@ def test_a_guard_refusal_removes_a_new_file_the_author_created_and_the_guard_nam
     run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"], env={"VERI_SKILL_EDIT_BUDGET": "1"})
 
     assert ((tmp_path / "stray.py").exists(), (tmp_path / ".tdd" / "issue-9.md").read_text()) == (False, "a dirty ledger\n")
+
+
+def test_a_guard_refusal_leaves_a_pre_existing_untracked_symlink_the_guard_names_and_still_removes_a_new_file_2281(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget hums. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    (tmp_path / "target").mkdir()
+    (tmp_path / "link").symlink_to("target", target_is_directory=True)
+
+    def guard(argv):
+        print("link")
+        print("stray.py")
+        return 0
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A1: FAIL - silent\n"))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: (tmp_path / "stray.py").write_text("NEW = 1\n") and 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", guard)
+    monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(
+        run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""), PIPE=subprocess.PIPE))
+
+    run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"], env={"VERI_SKILL_EDIT_BUDGET": "1"})
+
+    assert ((tmp_path / "link").is_symlink(), (tmp_path / "stray.py").exists()) == (True, False)
