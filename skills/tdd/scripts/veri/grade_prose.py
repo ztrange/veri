@@ -149,6 +149,7 @@ def main(argv):
         with open(os.path.join(".tdd", "grade-prose.log"), encoding="utf-8") as log:
             return log.read()
 
+    wanted = [row.split("\t", 1)[0] for row in claims.splitlines()]
     used = 0
     try:
         for _ in range(retries + 1):
@@ -159,7 +160,7 @@ def main(argv):
             reply = extract(raw)
             if "BEGIN GRADES" in reply:
                 ids = graded_ids(reply[reply.rindex("BEGIN GRADES"):])
-                if len(set(ids)) == len(ids) and set(ids) <= {r.split("\t", 1)[0] for r in claims.splitlines()}:
+                if len(set(ids)) == len(ids) and set(ids) <= set(wanted):
                     break
     finally:
         os.unlink(f.name)
@@ -167,7 +168,6 @@ def main(argv):
     if "BEGIN GRADES" not in reply:
         return no_verdict("the reply has no BEGIN GRADES block")
     reply = reply[reply.rindex("BEGIN GRADES"):]
-    wanted = [row.split("\t", 1)[0] for row in claims.splitlines()]
     seen = graded_ids(reply)
     missing = [i for i in wanted if i not in seen]
     if (missing and used <= retries and len(set(seen)) == len(seen) and set(seen) <= set(wanted)
