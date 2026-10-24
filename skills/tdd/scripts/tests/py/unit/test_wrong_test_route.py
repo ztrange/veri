@@ -2100,3 +2100,25 @@ def test_main_2227_prints_red_over_the_full_title_when_a_superseded_title_has_th
         wrong_test_route, [str(report), "CotizadorPage.test.tsx::CotizadorPage accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red " + full + "\n")
+
+
+def test_main_2227_prints_red_over_the_full_title_when_a_superseded_title_ends_in_an_ellipsis_prefix(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    full = "shows the earlier ocupación, deporte answer and sexo of the titular when a removed titular is added again"
+    (tmp_path / "CotizadorPage.test.tsx").write_text(
+        "describe('CotizadorPage', () => {\n"
+        "  it('accepts a name', () => {});\n"
+        "  it('%s', () => {});\n"
+        "});\n" % full)
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setenv("VERI_STEP", "cotizador accepts names, a trailing-ellipsis superseded title")
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        'SUITE: make test\nSUPERSEDED: `CotizadorPage.test.tsx` '
+        '"shows the earlier ocupación, deporte answer and sexo …"\n')
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "CotizadorPage.test.tsx::CotizadorPage accepts a name"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red " + full + "\n")
