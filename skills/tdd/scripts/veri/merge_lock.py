@@ -73,10 +73,10 @@ def _holder(lock, record, args):
         text = f.read()
     try:
         os.kill(int(text.split()[0]), 0)
+        reused = text.split()[2:3] != [_start_time(text.split()[0])]
     except ProcessLookupError:
-        print("stale lock: " + text, end="")
-        return 1
-    if text.split()[2:3] != [_start_time(text.split()[0])]:
+        reused = True
+    if reused:
         print("stale lock: " + text, end="")
         return 1
     print(text, end="")
