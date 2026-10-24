@@ -57,4 +57,9 @@ def test_2231_second_call_after_a_failed_setup_runs_the_command_again_and_exits_
 
     second = subprocess.run([SHIM, "2231"], capture_output=True, text=True, cwd=str(tmp_path))
 
-    assert (first.returncode, second.returncode, (tmp_path / "setup-marker").read_text()) == (7, 7, "ran\nran\n")
+    assert (
+        first.returncode,
+        "exit 7" in first.stderr and "echo ran >> setup-marker; exit 7" in first.stderr,
+        second.returncode,
+        (tmp_path / "setup-marker").read_text(),
+    ) == (1, True, 1, "ran\nran\n")

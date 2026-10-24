@@ -24,7 +24,9 @@ def main(argv):
         if code == 0:
             os.makedirs(".tdd", exist_ok=True)
             open(done, "w").close()
-        return code
+            return 0
+        sys.stderr.write(f"setup failed: {found.command.decode()} exit {code}\n")
+        return 1
     return 3
 
 
