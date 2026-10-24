@@ -51,13 +51,13 @@ def _work_tree_hash():
     return os.fsdecode(done.stdout).strip()
 
 
-def _write_pass_marker(step):
+def _write_pass_marker(step, tree):
     done = subprocess.run(["git", "rev-parse", "HEAD"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     if done.returncode != 0:
         return
     os.makedirs(".tdd", exist_ok=True)
     with open(_pass_marker_path(step), "w", encoding="utf-8") as handle:
-        handle.write("step: %s\nhead: %s\ntree: %s\n" % (step, os.fsdecode(done.stdout).strip(), _work_tree_hash()))
+        handle.write("step: %s\nhead: %s\ntree: %s\n" % (step, os.fsdecode(done.stdout).strip(), tree))
 
 
 def _remove_pass_marker(step):
@@ -232,7 +232,12 @@ def _check_earlier(ledger, step, exempt=()):
     for entry in changed:
         write(sys.stdout, entry)
     if not changed:
-        _write_pass_marker(step)
+        tree = _work_tree_hash()
+        if not tree:
+            _remove_pass_marker(step)
+            write(sys.stderr, "tests-frozen.sh: the work-tree hash could not be computed: git add -A or git write-tree failed")
+            return 2
+        _write_pass_marker(step, tree)
     else:
         _remove_pass_marker(step)
     return 1 if changed else 0
