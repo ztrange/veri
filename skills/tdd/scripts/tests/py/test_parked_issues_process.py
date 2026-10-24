@@ -301,3 +301,40 @@ def test_parked_issues_when_a_parked_issue_has_no_parked_comment_exits_2_naming_
     assert "#8" in ran.stderr, ran.stderr
     assert ran.stdout == "7\tTeach the verifier to refuse\tbail on the verifier\ta human reads the diff\n"
     assert ran.returncode == 2, ran.stderr
+
+
+NO_UNBLOCK_LINE_GH_STUB = """#!/bin/sh
+for a in "$@"; do
+  case "$a" in
+    */issues/7/comments*page=1)
+      echo '[{"body":"### ⏸ Parked\\nCause: bail on the verifier\\nUnblock: a human reads the diff"}]'
+      exit 0 ;;
+    */issues/8/comments*page=1)
+      echo '[{"body":"### ⏸ Parked\\nCause: held PR"}]'
+      exit 0 ;;
+    */comments*) echo '[]'; exit 0 ;;
+    */issues*page=1)
+      echo '[{"number":7,"title":"Teach the verifier to refuse","labels":[{"name":"parked"}]},{"number":8,"title":"Hold the PR","labels":[{"name":"parked"}]}]'
+      exit 0 ;;
+  esac
+done
+echo '[]'
+"""
+
+
+@pytest.mark.process("parked-issues.sh run against a gh stub whose second parked issue's comment lacks its Unblock line")
+def test_parked_issues_when_a_parked_comment_lacks_its_unblock_line_exits_2_naming_the_issue_after_printing_the_issues_before_it(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(NO_UNBLOCK_LINE_GH_STUB)
+    gh.chmod(0o755)
+
+    ran = subprocess.run([str(SCRIPTS / "parked-issues.sh")], cwd=tmp_path, capture_output=True, text=True,
+                         stdin=subprocess.DEVNULL,
+                         env={"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+                              "PYTHONDONTWRITEBYTECODE": "1"})
+
+    assert "#8" in ran.stderr, ran.stderr
+    assert ran.stdout == "7\tTeach the verifier to refuse\tbail on the verifier\ta human reads the diff\n"
+    assert ran.returncode == 2, ran.stderr
