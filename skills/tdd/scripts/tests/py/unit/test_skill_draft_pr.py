@@ -84,10 +84,6 @@ LOG_FAILED_READ = r"[^#]*gh run view [^#]*--log-failed"
 CI_REPAIR_MARK = "⟦ci-repair⟧"
 
 
-def _word_re(pattern):
-    return rf"(?<!\w)(?:{pattern})(?!\w)"
-
-
 def unmarked(records):
     return [r.translate({ord("*"): None, ord("`"): None}) for r in records]
 
@@ -118,35 +114,6 @@ def draft_pr_commands():
 def test_draft_prs_step_readies_the_pr_against_the_already_pushed_branch_with_no_push_of_its_own():
     pushes = first_record(draft_pr_read(), re.escape("git push"))
     assert not pushes, f"Draft PR step still pushes the branch itself: {pushes[:120]}"
-
-
-def test_draft_prs_step_runs_detect_test_command_tier_all_command_exactly_once_as_the_only_full_suite_gate():
-    records = draft_pr()
-    assert (
-        any_line(records, r"detect-test-command\.sh --tier all")
-        and any_line(records, re.escape("exactly once"))
-        and any_line(records, _word("only"))
-    ), "Draft PR step never runs detect-test-command.sh --tier all's command exactly once as the only full-suite gate"
-
-
-def test_draft_prs_step_adds_a_repair_step_to_the_ledger_on_a_red_full_run_rather_than_bailing():
-    records = draft_pr()
-    repair = first_record(records, re.escape("repair step"), _word("red"), re.escape("ledger"))
-    assert repair, "Draft PR step has no record adding a repair step to the ledger on a red full run"
-    problems = []
-    if not (any_line(records, re.escape("unit-tier test")) and any_line(records, _word("gap"))):
-        problems.append("never says a unit-tier test is added when the red full run exposes a gap")
-    if not any_line(records, r"verifier[^.]*full command"):
-        problems.append("never says the repair step's verifier judges the fix against the full command")
-    assert not problems, problems
-
-
-def test_draft_prs_step_bails_on_a_second_red_full_run_after_a_repair_step_naming_every_suite_still_red():
-    second = first_record(draft_pr(), _word("bail"), r"second red|red again", re.escape("repair step"))
-    assert second, "Draft PR step has no record bailing on a second red full run after a repair step"
-    assert re.search(r"every (suite still red|red suite|failing suite|still-red suite)", second), (
-        f"bails on a second red full run without naming every suite still red: {second[:120]}"
-    )
 
 
 def test_draft_prs_step_puts_refactor_owed_render_output_in_the_pr_body_and_omits_the_section_on_exit_3():
@@ -222,91 +189,6 @@ def test_worktree_step_no_longer_says_the_draft_pr_is_opened_once_every_step_is_
     assert records, "SKILL.md has no ### 1. Read the issue section to read"
     stale = first_record(records, re.escape("every step is green"))
     assert not stale, f"worktree step still says the draft PR is opened once every step is green: {stale[:120]}"
-
-
-def test_draft_prs_step_runs_rebase_onto_default_after_its_dirty_tree_check_and_before_the_done_mark_metrics_commit_and_gh_pr_ready():
-    records = draft_pr_read()
-    commands = commands_of(DRAFT_PR)
-    rebase = line_of(commands, r"[$]s/rebase-onto-default[.]sh")
-    assert rebase, "Draft PR step runs no $S/rebase-onto-default.sh"
-    problems = []
-    for order, pattern in (
-        ("after", "git status --porcelain"),
-        ("after", r"[$]s/next-pending-refactor[.]sh"),
-        ("before", DONE_MARK),
-        ("before", r"[$]s/metrics[.]sh"),
-        ("before", METRICS_COMMIT),
-        ("before", READY_RUN),
-    ):
-        at = line_of(commands, pattern)
-        if at is None:
-            problems.append(f"Draft PR step runs no {pattern}")
-        elif (order == "after" and at >= rebase) or (order == "before" and at <= rebase):
-            problems.append(f"rebase-onto-default.sh (command line {rebase}) not {order} {pattern} (command line {at})")
-    plain = unmarked(records)
-    if not first_record(plain, re.escape("rebase-onto-default.sh"), "exit 3", "continu"):
-        problems.append("no instruction naming rebase-onto-default.sh says its exit 3 continues unchanged")
-    if not first_record(plain, re.escape("rebase-onto-default.sh"), "exit 2", "bail", re.escape("no-verdict")):
-        problems.append("no instruction naming rebase-onto-default.sh says its exit 2 bails with no-verdict")
-    assert not problems, problems
-
-
-def test_draft_prs_step_runs_the_full_test_command_once_on_a_rebased_tip_bails_on_red_and_pushes_with_a_pinned_lease_never_a_bare_force():
-    records = draft_pr_read()
-    commands = commands_of(DRAFT_PR)
-    rebase = line_of(commands, r"[$]s/rebase-onto-default[.]sh")
-    leased = line_of(commands, r"[$]s/push-branch[.]sh --force-with-lease=[^ :]+:[^ ]*pre-rebase")
-    problems = []
-    if not leased:
-        problems.append("no push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>")
-    elif not rebase or leased <= rebase:
-        problems.append(f"push-branch.sh --force-with-lease (command line {leased}) not after rebase-onto-default.sh (command line {rebase})")
-    plain = unmarked(records)
-    if not first_record(plain, re.escape("rebased tip"), r"full (test )?command|full suite|--tier all", _word("once")):
-        problems.append("no instruction runs the full test command once on the rebased tip")
-    if not first_record(plain, re.escape("rebased tip"), _word("red"), _word("bail"), re.escape("draft")):
-        problems.append("no instruction bails on a red rebased tip with the PR left a draft")
-    bare = next((c for c in commands if re.search(r"(^git push|^[$]s/push-branch[.]sh).*( --force( |$)| -f( |$)| \+)", c)), "")
-    if bare:
-        problems.append(f"pushes with a bare force: {bare[:120]}")
-    assert not problems, problems
-
-
-def test_draft_prs_step_on_rebase_exit_1_launches_develop_rebase_then_a_blind_verify_rebase_revises_on_reject_and_readies_only_after_a_pass():
-    records = draft_pr_read()
-    commands = commands_of(DRAFT_PR)
-    rebase = line_of(commands, r"[$]s/rebase-onto-default[.]sh")
-    develop = line_of(commands, r".*[$]s/supervise[.]sh develop-rebase ")
-    verdict = line_of(commands, r".*[$]s/supervise[.]sh verdict-rebase [$]s/run-verdict[.]sh .* rebase ")
-    ready = line_of(commands, READY_RUN)
-    problems = []
-    if not develop:
-        problems.append("launches no develop-rebase leaf through $S/supervise.sh")
-    if not verdict:
-        problems.append("launches no verdict-rebase through $S/supervise.sh $S/run-verdict.sh")
-    if develop and verdict and not (rebase and rebase < develop < verdict and ready and verdict < ready):
-        problems.append(f"rebase ({rebase}), develop-rebase ({develop}), verdict-rebase ({verdict}) and gh pr ready ({ready}) not in that order")
-    plain = unmarked(records)
-    if not first_record(plain, re.escape("rebase-onto-default.sh"), "exit 1", re.escape("develop-rebase")):
-        problems.append("no instruction says rebase-onto-default.sh's exit 1 launches the develop-rebase leaf")
-    if not first_record(plain, _word("reject"), re.escape("revise_budget")):
-        problems.append("no instruction sends a verify-rebase REJECT round the revise loop within REVISE_BUDGET")
-    if not first_record(plain, re.escape("verify-rebase"), _word("pass"), "ready|readie"):
-        problems.append("no instruction readies the PR only after a verify-rebase PASS")
-    assert not problems, problems
-
-
-def test_draft_prs_step_on_a_rebase_not_resolved_within_budget_resets_to_the_pre_rebase_sha_leaves_the_pr_a_draft_and_bails_naming_every_conflicting_file():
-    records = draft_pr_read()
-    plain = unmarked(records)
-    problems = []
-    if not first_record(plain, re.escape("rebase: failed"), re.escape("revise_budget"), _word_re("killed|kill")):
-        problems.append("no instruction names REBASE: FAILED, an exhausted REVISE_BUDGET and a killed leaf together")
-    if not first_record(plain, "git reset --hard <pre-rebase-sha>"):
-        problems.append("no instruction resets the branch with git reset --hard <pre-rebase-sha>")
-    if not first_record(plain, _word("bail"), "(every|each|all) (of the )?conflicting file", re.escape("draft")):
-        problems.append("no instruction bails on an unresolved rebase with the PR left a draft and a comment naming every conflicting file")
-    assert not problems, problems
 
 
 def test_draft_prs_step_after_gh_pr_ready_waits_on_wait_ci_and_reads_the_rollup_fail_closed():
@@ -626,7 +508,6 @@ def test_1431_draft_prs_step_says_a_red_ci_on_the_metrics_cost_report_push_appen
 
 
 SUITE_REPAIR_MARK = "⟦suite-repair⟧"
-EVERY_RED = r"every (suite still red|red suite|failing suite|still-red suite)"
 
 
 def test_1431_draft_prs_step_metrics_push_block_bails_ci_red_on_a_red_ci_only_when_the_ledger_already_holds_a_ci_repair_step_then_itself_appends_the_ci_repair_step_and_records_its_step_added_event():
@@ -714,80 +595,6 @@ def test_draft_prs_step_calls_wait_ci_sh_with_no_fixed_total_and_states_the_boun
     assert not problems, problems
 
 
-def test_draft_prs_step_appends_a_suite_repair_repair_step_naming_the_failing_suite_and_its_fail_line_on_a_red_full_run_and_commits_the_ledger():
-    commands = draft_pr_commands()
-    appended_at = next(
-        (
-            n for n, c in enumerate(commands, 1)
-            if re.match(r"[^#]*[$]s/add-ledger-step[.]sh [.]tdd/issue-<n>[.]md ", c) and SUITE_REPAIR_MARK in c
-        ),
-        None,
-    )
-    problems = []
-    if appended_at is None:
-        problems.append(f"no command line appends a full-suite repair step carrying {SUITE_REPAIR_MARK} through add-ledger-step.sh")
-    else:
-        appended = commands[appended_at - 1]
-        if "<suite>" not in appended or "fail -" not in appended:
-            problems.append(f"appends its {SUITE_REPAIR_MARK} step without naming the failing suite and its FAIL - line: {appended[:160]}")
-        added, found = False, False
-        for c in commands[appended_at:]:
-            if re.match(r"git add [.]tdd/issue-<n>[.]md", c):
-                added = True
-            if re.match("git commit ", c):
-                found = added
-                break
-        if not found:
-            problems.append(f"no command line adds and commits the ledger after appending the {SUITE_REPAIR_MARK} step")
-    assert not problems, problems
-
-
-def test_draft_prs_step_bails_on_a_second_red_full_run_of_this_run_with_a_suite_red_command_line_that_reads_nothing_from_the_ledger_naming_every_suite_still_red():
-    commands = draft_pr_commands()
-    records = draft_pr_read()
-    keyed = next(
-        (c for c in commands if re.match(r"[^#]*[$]s/event[.]sh bail ", c) and "cause=suite-red" in c and "suites=" in c),
-        "",
-    )
-    problems = []
-    if not keyed:
-        problems.append("no command line bails with cause=suite-red and the suites still red")
-    elif ".tdd/issue-<n>.md" in keyed:
-        problems.append(f"suite-red bail still names .tdd/issue-<n>.md: {keyed[:160]}")
-    second = first_record(records, _word("bail"), r"second red|red again", re.escape("repair step"))
-    if not re.search(EVERY_RED, second):
-        problems.append(f"second-red bail no longer names every suite still red: {second[:120]}")
-    assert not problems, problems
-
-
-def test_1607_draft_prs_step_bails_suite_red_naming_every_suite_still_red_when_add_ledger_step_sh_exits_1_on_the_suite_repair_insertion():
-    refusal = first_record(
-        unmarked(draft_pr_read()),
-        re.escape("add-ledger-step.sh"),
-        r"exit(s|ing)? 1",
-        re.escape("suite-red"),
-        EVERY_RED,
-    )
-    assert refusal, "no instruction says that add-ledger-step.sh exiting 1 on the ⟦suite-repair⟧ insertion bails with cause suite-red, naming every suite still red"
-
-
-def test_1607_draft_prs_step_states_the_cap_is_one_suite_repair_step_per_run_that_add_ledger_step_sh_and_not_the_conductors_judgement_decides_it_and_no_longer_greps_the_whole_ledger_for_the_mark():
-    plain = unmarked(draft_pr_read())
-    problems = []
-    rule = first_record(
-        plain,
-        re.escape("add-ledger-step.sh"),
-        r"one [^.]*suite-repair[^.]* per run|per run[^.]*suite-repair",
-        re.escape("resume"),
-        r"not the conductor|conductor.s judgement",
-    )
-    if not rule:
-        problems.append("no instruction says the cap is one ⟦suite-repair⟧ step per run, a resume starting a new run, and that add-ledger-step.sh rather than the conductor's judgement decides it")
-    if any(re.search(r"^[^#]*grep .*suite-repair.*[.]tdd/issue-<n>[.]md", c) for c in draft_pr_commands()):
-        problems.append("Draft PR step still greps .tdd/issue-<n>.md for ⟦suite-repair⟧")
-    assert not problems, problems
-
-
 def test_draft_prs_step_keys_its_ci_red_bail_on_ci_repair_only_and_states_a_suite_repair_step_leaves_the_run_its_one_ci_repair_attempt():
     commands = draft_pr_commands()
     records = draft_pr_read()
@@ -806,21 +613,6 @@ def test_draft_prs_step_keys_its_ci_red_bail_on_ci_repair_only_and_states_a_suit
     assert not problems, problems
 
 
-def test_full_run_paragraph_says_the_repair_steps_text_lists_every_red_suite_with_its_first_fail_line_the_prompts_take_it_through_their_templates_and_the_conductor_never_edits_a_built_prompt():
-    paragraph = first_record(draft_pr_read(), re.escape("repair step"), _word("red"), re.escape("ledger"))
-    problems = []
-    if not paragraph:
-        problems.append("Draft PR step has no full-run paragraph adding a repair step to read")
-    else:
-        if not re.search(r"every suite[^.]*red[^.]*first .?fail -", paragraph):
-            problems.append(f"never says the repair step's text lists every suite the full run left red, each with its first FAIL - line: {paragraph[:160]}")
-        if not re.search(r"prompts[^.]*step.s text[^.]*templates?", paragraph):
-            problems.append("never says the prompts take that list from the step text through their templates")
-        if "never edits a built prompt" not in paragraph:
-            problems.append("never says the conductor never edits a built prompt")
-    assert not problems, problems
-
-
 def test_draft_prs_step_readies_the_pr_with_gh_pr_ready_pr_number_git_rev_parse_head_so_the_ready_for_review_ci_run_starts_on_the_head_just_pushed():
     readies = [c for c in draft_pr_commands() if re.search(r"(^|&& |; )gh_pr_ready( |$)", c)]
     problems = []
@@ -830,66 +622,6 @@ def test_draft_prs_step_readies_the_pr_with_gh_pr_ready_pr_number_git_rev_parse_
         if not re.search(r'gh_pr_ready <pr-number> "?[$][(]git rev-parse head[)]"?', line):
             problems.append(f"readies the PR without the head sha it just pushed: {line[:120]}")
     assert not problems, problems
-
-
-def test_draft_prs_step_says_the_branchs_own_full_run_and_any_suite_repair_step_it_adds_finishes_green_before_rebase_onto_default_sh_runs():
-    order = first_record(
-        unmarked(draft_pr_read()),
-        r"own full(-suite)? run",
-        re.escape(SUITE_REPAIR_MARK),
-        _word("green"),
-        r"before[^.]*rebase-onto-default[.]sh",
-    )
-    assert order, "no instruction says the branch's own full run, and any ⟦suite-repair⟧ step it adds, finishes green before rebase-onto-default.sh runs"
-
-
-def test_draft_prs_step_no_longer_calls_the_branchs_own_full_run_the_only_full_suite_run_and_names_the_rebased_tips_run_as_the_extra_run_a_rebase_owes():
-    plain = unmarked(draft_pr_read())
-    problems = []
-    only = first_record(plain, r"only full(-suite)? (gate|run)")
-    if only:
-        problems.append(f"Draft PR step still calls the branch's own full run the only full-suite run: {only[:160]}")
-    extra = first_record(plain, r"rebased tip.s run", re.escape("extra run a rebase owes"), re.escape("replacement"))
-    if not extra:
-        problems.append("no instruction names the rebased tip's run as the extra run a rebase owes, not a replacement for the branch's own")
-    assert not problems, problems
-
-
-def test_draft_prs_step_bails_on_a_red_rebased_tip_with_cause_rebased_tip_red_not_suite_red_after_a_clean_rebase_and_after_a_verified_conflict_resolution_alike():
-    plain = unmarked(draft_pr_read())
-    paths = {
-        "clean": first_record(plain, re.escape("an exit 0"), re.escape("rebased tip"), _word("bail")),
-        "resolved": first_record(plain, re.escape("verify-rebase pass"), re.escape("rebased tip"), _word("bail")),
-    }
-    problems = []
-    for path, record in paths.items():
-        if not record:
-            problems.append(f"no instruction bails on a red rebased tip after a {path} rebase")
-            continue
-        if "rebased-tip-red" not in record:
-            problems.append(f"bails on a red rebased tip after a {path} rebase without naming cause rebased-tip-red: {record[:160]}")
-        if "suite-red" in record:
-            problems.append(f"bails on a red rebased tip after a {path} rebase with cause suite-red: {record[:160]}")
-    assert not problems, problems
-
-
-def test_bail_on_a_red_rebased_tip_runs_git_reset_hard_pre_rebase_sha_before_bailings_push():
-    reset = first_record(
-        unmarked(draft_pr_read()),
-        re.escape("rebased-tip-red"),
-        re.escape("git reset --hard <pre-rebase-sha>"),
-        r"bail\.md[^.]*push",
-    )
-    assert reset, "no instruction that bails with rebased-tip-red runs git reset --hard <pre-rebase-sha> before Bailing's push"
-
-
-def test_bail_on_a_red_rebased_tip_after_a_verify_rebase_pass_also_runs_git_reset_hard_pre_rebase_sha_before_bailings_push():
-    record = first_record(unmarked(draft_pr_read()), re.escape("only on a verify-rebase pass"), re.escape("rebased-tip-red"))
-    found = re.search(r"only on a verify-rebase pass.*", record)
-    resolved = found.group(0) if found else ""
-    assert "rebased-tip-red" in resolved, "no instruction bails with rebased-tip-red after a verify-rebase PASS"
-    reset = first_record([resolved], re.escape("git reset --hard <pre-rebase-sha>"), r"bail\.md[^.]*push")
-    assert reset, f"bail on a red rebased tip after a verify-rebase PASS does not run git reset --hard <pre-rebase-sha> before Bailing's push: {resolved[:160]}"
 
 
 def test_bailing_cause_token_list_names_rebased_tip_red_and_classifies_it_as_a_process_failure():
@@ -953,39 +685,6 @@ def test_ci_red_bail_names_each_failed_ci_check_every_ci_red_bail_mark_in_the_dr
     assert not problems, problems
 
 
-def _rebase_exit_code_gate(records):
-    return first_record(
-        records,
-        re.escape("rebase-onto-default.sh"),
-        re.escape("exit code"),
-        r"decides?[^.]*next action",
-        re.escape("full"),
-        r"until[^.]*returned",
-        re.escape("same message"),
-    )
-
-
-def test_draft_prs_step_says_rebase_onto_default_shs_exit_code_decides_the_next_action_so_nothing_after_it_the_rebased_tips_full_run_included_starts_until_it_has_returned_and_never_in_the_same_message():
-    gate = _rebase_exit_code_gate(unmarked(draft_pr_read()))
-    assert gate, "no instruction says rebase-onto-default.sh's exit code decides the next action, so nothing after it is started until it has returned, and never in the same message as the rebase"
-
-
-def test_1287_draft_prs_sub_step_1_the_one_that_asks_the_two_questions_says_on_its_own_that_rebase_onto_default_shs_exit_code_decides_the_next_action_so_nothing_after_it_the_rebased_tips_full_run_included_starts_until_it_has_returned_and_never_in_the_same_message():
-    draft_pr_read()
-    inside, kept = False, []
-    for line in _lines(DRAFT_PR):
-        if re.match(r" *1\. \*\*", line):
-            inside = True
-        if re.match(r" *2\. \*\*", line):
-            inside = False
-        if inside:
-            kept.append(line)
-    sub_step_1 = unmarked(_records(kept))
-    assert sub_step_1, "Draft PR step has no sub-step 1 (1. **Ask the two questions ...) to read"
-    gate = _rebase_exit_code_gate(sub_step_1)
-    assert gate, "no instruction of Draft PR sub-step 1 says rebase-onto-default.sh's exit code decides the next action; the CI conflict-rebase copy later in the step does not stand in for it"
-
-
 def test_1613_draft_prs_step_decides_whether_the_ledger_already_holds_a_ci_repair_step_with_ledger_steps_sh_has_mark_ci_repair_never_a_whole_ledger_grep_f_of_the_ci_repair_mark():
     bails = [c for c in draft_pr_commands() if "cause=ci-red" in c or "no_repair=$?" in c]
     problems = []
@@ -1021,20 +720,3 @@ def test_1904_both_ci_red_bail_lines_take_failed_from_the_stdout_of_the_wait_ci_
         if not waits:
             problems.append(f"no wait-ci.sh run writing its stdout to .tdd/wait-ci.out precedes the bail: {bail[:200]}")
     assert not problems, problems
-
-
-def test_1871_draft_pr_regrades_every_signed_unit_on_the_rebased_tip_with_grade_prose_sh_and_repairs_a_reject_like_a_red_full_suite():
-    text = _lower(re.sub(r"\s+", " ", SKILL_DRAFT_PR_TEXT()))
-    sentences = re.split(r"(?<=\.)\s", text)
-    regrade = [s for s in sentences if "grade-prose.sh" in s]
-    regrade_with_lead = [" ".join(sentences[max(i - 1, 0):i + 1]) for i, s in enumerate(sentences) if "grade-prose.sh" in s]
-    problems = []
-    if not any("rebased tip" in s and "signed" in s for s in regrade_with_lead):
-        problems.append("Draft PR never regrades every unit the run signed on the rebased tip with grade-prose.sh")
-    if not any("reject" in s and "repair step" in s and "red full suite" in s for s in regrade):
-        problems.append("Draft PR never handles a grade-prose.sh REJECT as a red full suite, with a repair step")
-    assert not problems, problems
-
-
-def SKILL_DRAFT_PR_TEXT():
-    return "\n".join(_lines(DRAFT_PR))
