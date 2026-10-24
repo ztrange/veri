@@ -89,7 +89,7 @@ def main(argv):
         seed_path = os.path.join(run_state, ".gitignore")
         if not os.path.exists(seed_path):
             with open(seed_path, "w") as seed:
-                seed.write(".gitignore\nissue-*-skill-commit\n")
+                seed.write(".gitignore\nissue-*-skill-commit\nissue-*-conductor-model\n")
         record = record_path(argv[0])
         readable = os.access(record, os.R_OK)
         if readable and tunables.read("VERI_NEW_SKILL", None) != "1":
@@ -154,6 +154,8 @@ def launch(base, issue, commit, **exports):
     try:
         with open(os.path.join(run_state, "issue-%s-tmpdir-skill-commit" % issue), "w") as record:
             record.write("%s %d\n" % (run_tmp, os.getpid()))
+        with open(os.path.join(run_state, "issue-%s-conductor-model" % issue), "w") as record:
+            record.write((tunables.read("VERI_MODEL_CONDUCTOR") or "opus") + "\n")
         return conduct(text, issue, dict(os.environ, **exports, TMPDIR=run_tmp))
     finally:
         shutil.rmtree(run_tmp, ignore_errors=True)
