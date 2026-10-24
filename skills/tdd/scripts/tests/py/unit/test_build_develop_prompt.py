@@ -1449,6 +1449,27 @@ def test_main_states_each_interface_phases_freeze_rule_in_its_revise_prompt_1448
                       "contract-a": (0, {b"production"}), "contract-b": (0, {b"test"})}
 
 
+def test_main_freezes_production_in_a_cover_new_revise_prompt_as_contract_a_does_and_tests_in_expand_migrate_and_contract_b_2034(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"REJECT: the new cases do not call the new interface.\n")
+
+    frozen = {}
+    for phase in ("cover-new", "contract-a", "expand", "migrate", "contract-b"):
+        code = build_develop_prompt.main(
+            ["revise", phase, str(spec), "QWIXTLE: zorblat quuxes", "make test", str(reason), "make unit"])
+        out, _ = capsysbinary.readouterr()
+        text = re.sub(rb"\s+", b" ", out)
+        kinds = {kind.lower() for kind in
+                 re.findall(rb"\bnever modify\b[^.]{0,20}?\b(test|production) files?\b", text, re.I)}
+        frozen[phase] = (code, kinds)
+
+    assert frozen == {"cover-new": (0, {b"production"}), "contract-a": (0, {b"production"}),
+                      "expand": (0, {b"test"}), "migrate": (0, {b"test"}), "contract-b": (0, {b"test"})}
+
+
 def test_main_renders_a_red_prompt_taking_a_ci_repair_steps_quoted_ci_log_as_its_evidence_of_failure_and_a_local_pass_as_no_pin_only_for_the_mark_1431(
         tmp_path, capsysbinary, build_develop_prompt):
     spec = tmp_path / "spec.md"
