@@ -1,95 +1,148 @@
 ### 📊 Metrics — issue 2308
 
-Wall time for the issue: 2133 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 5 of 6 planned.
-Outcome: the run bailed — needs-user, a process failure.
+Wall time for the issue: 2388 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 1 s, excluded from it.
+Steps done: 7 of 7 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/2332.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $3.30 over 77 turns, in 1 sessions.
+Conductor own spending: $6.42 over 129 turns, in 2 sessions.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
+The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
 
 | turn | dollars | context |
 | --- | ---: | ---: |
-| 1 | $0.58 | 90272 |
-| 2 | $0.02 | 90598 |
+| 1 | $0.59 | 90272 |
+| 2 | $0.04 | 90598 |
 | 3 | $0.03 | 91662 |
-| 4 | $0.03 | 93632 |
-| 5 | $0.02 | 93942 |
-| 6 | $0.02 | 94456 |
-| 7 | $0.02 | 94767 |
-| 8 | $0.02 | 95116 |
-| 9 | $0.02 | 95736 |
-| 10 | $0.02 | 96044 |
-| 11 | $0.04 | 99264 |
-| 12 | $0.04 | 101435 |
-| 13 | $0.04 | 103415 |
+| 4 | $0.05 | 93632 |
+| 5 | $0.03 | 93942 |
+| 6 | $0.04 | 94456 |
+| 7 | $0.03 | 94767 |
+| 8 | $0.03 | 95116 |
+| 9 | $0.04 | 95736 |
+| 10 | $0.03 | 96044 |
+| 11 | $0.06 | 99264 |
+| 12 | $0.05 | 101435 |
+| 13 | $0.05 | 103415 |
 | 14 | $0.04 | 105312 |
-| 15 | $0.04 | 107599 |
-| 16 | $0.07 | 114104 |
-| 17 | $0.03 | 115363 |
-| 18 | $0.03 | 116530 |
-| 19 | $0.03 | 117072 |
-| 20 | $0.03 | 117634 |
-| 21 | $0.03 | 118103 |
-| 22 | $0.03 | 118585 |
+| 15 | $0.06 | 107599 |
+| 16 | $0.08 | 114104 |
+| 17 | $0.04 | 115363 |
+| 18 | $0.05 | 116530 |
+| 19 | $0.04 | 117072 |
+| 20 | $0.04 | 117634 |
+| 21 | $0.04 | 118103 |
+| 22 | $0.04 | 118585 |
 | 23 | $0.04 | 120016 |
-| 24 | $0.03 | 120869 |
+| 24 | $0.05 | 120869 |
 | 25 | $0.03 | 121316 |
-| 26 | $0.03 | 122054 |
-| 27 | $0.03 | 122565 |
-| 28 | $0.03 | 123487 |
-| 29 | $0.03 | 124557 |
-| 30 | $0.03 | 125322 |
-| 31 | $0.03 | 126032 |
-| 32 | $0.03 | 126752 |
-| 33 | $0.03 | 127269 |
-| 34 | $0.03 | 128385 |
-| 35 | $0.03 | 129515 |
+| 26 | $0.05 | 122054 |
+| 27 | $0.04 | 122565 |
+| 28 | $0.04 | 123487 |
+| 29 | $0.05 | 124557 |
+| 30 | $0.04 | 125322 |
+| 31 | $0.04 | 126032 |
+| 32 | $0.04 | 126752 |
+| 33 | $0.04 | 127269 |
+| 34 | $0.05 | 128385 |
+| 35 | $0.05 | 129515 |
 | 36 | $0.05 | 132112 |
-| 37 | $0.03 | 132801 |
-| 38 | $0.03 | 133055 |
-| 39 | $0.03 | 133557 |
-| 40 | $0.03 | 134044 |
-| 41 | $0.04 | 135235 |
-| 42 | $0.03 | 136053 |
-| 43 | $0.03 | 136975 |
-| 44 | $0.04 | 138372 |
-| 45 | $0.03 | 139120 |
-| 46 | $0.04 | 140363 |
-| 47 | $0.04 | 141565 |
-| 48 | $0.03 | 141990 |
-| 49 | $0.04 | 143396 |
-| 50 | $0.04 | 145218 |
-| 51 | $0.04 | 146530 |
-| 52 | $0.04 | 147575 |
-| 53 | $0.04 | 148880 |
-| 54 | $0.03 | 149496 |
-| 55 | $0.04 | 150579 |
+| 37 | $0.05 | 132801 |
+| 38 | $0.04 | 133055 |
+| 39 | $0.04 | 133557 |
+| 40 | $0.04 | 134044 |
+| 41 | $0.05 | 135235 |
+| 42 | $0.05 | 136053 |
+| 43 | $0.04 | 136975 |
+| 44 | $0.05 | 138372 |
+| 45 | $0.05 | 139120 |
+| 46 | $0.05 | 140363 |
+| 47 | $0.05 | 141565 |
+| 48 | $0.04 | 141990 |
+| 49 | $0.05 | 143396 |
+| 50 | $0.06 | 145218 |
+| 51 | $0.05 | 146530 |
+| 52 | $0.05 | 147575 |
+| 53 | $0.05 | 148880 |
+| 54 | $0.04 | 149496 |
+| 55 | $0.06 | 150579 |
 | 56 | $0.04 | 151550 |
-| 57 | $0.04 | 152445 |
-| 58 | $0.04 | 153308 |
-| 59 | $0.04 | 154483 |
-| 60 | $0.04 | 155105 |
-| 61 | $0.04 | 155852 |
-| 62 | $0.04 | 156801 |
-| 63 | $0.04 | 157955 |
-| 64 | $0.04 | 158769 |
-| 65 | $0.05 | 160626 |
-| 66 | $0.04 | 161888 |
-| 67 | $0.04 | 163134 |
-| 68 | $0.04 | 163955 |
-| 69 | $0.04 | 164593 |
-| 70 | $0.04 | 165801 |
-| 71 | $0.04 | 166546 |
-| 72 | $0.04 | 167346 |
-| 73 | $0.04 | 167918 |
-| 74 | $0.04 | 168535 |
-| 75 | $0.04 | 169024 |
-| 76 | $0.04 | 169701 |
-| 77 | $0.07 | 174778 |
+| 57 | $0.05 | 152445 |
+| 58 | $0.05 | 153308 |
+| 59 | $0.05 | 154483 |
+| 60 | $0.05 | 155105 |
+| 61 | $0.05 | 155852 |
+| 62 | $0.05 | 156801 |
+| 63 | $0.05 | 157955 |
+| 64 | $0.05 | 158769 |
+| 65 | $0.06 | 160626 |
+| 66 | $0.06 | 161888 |
+| 67 | $0.05 | 163134 |
+| 68 | $0.05 | 163955 |
+| 69 | $0.05 | 164593 |
+| 70 | $0.05 | 165801 |
+| 71 | $0.05 | 166546 |
+| 72 | $0.06 | 167346 |
+| 73 | $0.05 | 167918 |
+| 74 | $0.05 | 168535 |
+| 75 | $0.05 | 169024 |
+| 76 | $0.05 | 169701 |
+| 77 | $0.08 | 174778 |
+| 78 | $0.06 | 176177 |
+| 79 | $0.06 | 177510 |
+| 80 | $0.58 | 90353 |
+| 81 | $0.03 | 91975 |
+| 82 | $0.02 | 92429 |
+| 83 | $0.04 | 95114 |
+| 84 | $0.05 | 98899 |
+| 85 | $0.02 | 99549 |
+| 86 | $0.02 | 100123 |
+| 87 | $0.02 | 100424 |
+| 88 | $0.02 | 100763 |
+| 89 | $0.03 | 101443 |
+| 90 | $0.03 | 102614 |
+| 91 | $0.04 | 104624 |
+| 92 | $0.04 | 106856 |
+| 93 | $0.03 | 107366 |
+| 94 | $0.03 | 109038 |
+| 95 | $0.03 | 109583 |
+| 96 | $0.03 | 110270 |
+| 97 | $0.03 | 111033 |
+| 98 | $0.02 | 111275 |
+| 99 | $0.08 | 118592 |
+| 100 | $0.03 | 119169 |
+| 101 | $0.03 | 119803 |
+| 102 | $0.03 | 120559 |
+| 103 | $0.03 | 121254 |
+| 104 | $0.03 | 121980 |
+| 105 | $0.03 | 122934 |
+| 106 | $0.03 | 123351 |
+| 107 | $0.03 | 124047 |
+| 108 | $0.03 | 124684 |
+| 109 | $0.03 | 124996 |
+| 110 | $0.03 | 125655 |
+| 111 | $0.04 | 127023 |
+| 112 | $0.03 | 127849 |
+| 113 | $0.03 | 128775 |
+| 114 | $0.03 | 129492 |
+| 115 | $0.03 | 130072 |
+| 116 | $0.03 | 130789 |
+| 117 | $0.03 | 131459 |
+| 118 | $0.03 | 132218 |
+| 119 | $0.03 | 132505 |
+| 120 | $0.03 | 132748 |
+| 121 | $0.03 | 133186 |
+| 122 | $0.03 | 133845 |
+| 123 | $0.03 | 134513 |
+| 124 | $0.03 | 134905 |
+| 125 | $0.03 | 135740 |
+| 126 | $0.03 | 136200 |
+| 127 | $0.03 | 136641 |
+| 128 | $0.03 | 137038 |
+| 129 | $0.03 | 137484 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-sonnet-5-5.
 
 #### By phase
@@ -97,20 +150,21 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 13 | 10 | 2 | 4 | 1213 | 31123 | 32355 | 0.10 |
-| red | 9 | 5 | 0 | 0 | 336 | 129 | 45 | 90 | 15732 | 1305979 | 174113 | 0.72 |
-| green | 7 | 3 | 0 | 0 | 772 | 120 | 51 | 98 | 13423 | 1526943 | 125913 | 0.60 |
-| refactor | 4 | 1 | 0 | 0 | 98 | 26 | 14 | 28 | 2564 | 391084 | 58770 | 0.21 |
+| red | 11 | 6 | 0 | 0 | 374 | 153 | 54 | 108 | 18739 | 1563193 | 207623 | 0.86 |
+| green | 9 | 4 | 0 | 0 | 865 | 145 | 62 | 120 | 16405 | 1850717 | 157264 | 0.74 |
+| refactor | 6 | 2 | 0 | 0 | 160 | 50 | 23 | 46 | 4797 | 647920 | 89077 | 0.34 |
 | pin | 1 | 1 | 0 | 0 | 21 | 10 | 4 | 8 | 1159 | 105579 | 13823 | 0.06 |
 | red-supersede | 1 | 0 | 0 | 0 | 40 | 19 | 6 | 12 | 2253 | 190338 | 21487 | 0.10 |
-| diff | 2 | 1 | 0 | 0 | 171 | 22 | 11 | 22 | 2563 | 300166 | 26165 | 0.12 |
+| diff | 4 | 2 | 0 | 0 | 439 | 43 | 22 | 44 | 4509 | 566639 | 86957 | 0.32 |
 | prose | 1 | 0 | 0 | 0 | 74 | 71 | 1 | 2 | 12162 | 649 | 100130 | 0.37 |
+| rebase | 2 | 1 | 0 | 0 | 405 | 33 | 11 | 20 | 2667 | 240272 | 66827 | 0.22 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 12 | 12 | 0 | 0 | 559 | 129 | 43 | 86 | 14331 | 1095200 | 209236 | 0.78 |
-| developer | claude-sonnet-5-5 | 13 | 0 | 0 | 0 | 892 | 207 | 90 | 176 | 24576 | 2756012 | 243390 | 1.13 |
+| verifier | claude-sonnet-5-5 | 17 | 17 | 0 | 0 | 882 | 172 | 61 | 120 | 18666 | 1500610 | 314648 | 1.12 |
+| developer | claude-sonnet-5-5 | 18 | 0 | 0 | 0 | 1435 | 291 | 123 | 242 | 33076 | 3695171 | 360765 | 1.60 |
 
 #### Rework and waste, by phase
 
@@ -124,6 +178,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | red-supersede | 0 | 0.00 | 0 | 0.00 |
 | diff | 0 | 0.00 | 0 | 0.00 |
 | prose | 0 | 0.00 | 74 | 0.37 |
+| rebase | 0 | 0.00 | 0 | 0.00 |
 | skill-edit | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
@@ -136,6 +191,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | metrics.sh <n> names the conductor's model on its "Conductor own spending" line, read from the run's `.tdd/issue-<n>-conductor-model` record, pinned by a case over a run recorded with a non-default conductor model ⟦criterion 2⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 47 | 22 | 44 | 5565 | 628408 | 77356 | 0.31 | 224 | unknown | 0/5 | nothing-left |  |  | full |
 | run-conductor.sh's header comment and CLAUDE.md's model-knobs invariant name VERI_MODEL_CONDUCTOR and its Opus default, and no text in either says no variable chooses the conductor's model ⟦diff-checked⟧ ⟦criterion 3⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 22 | 11 | 22 | 2563 | 300166 | 26165 | 0.12 | 228 | n/a | n/a | n/a |  |  | full |
 | skills/tdd/SKILL.md's launch passage (the `run-conductor.sh` skill-snapshot paragraph) names VERI_MODEL_CONDUCTOR and its Opus default, and no text there says no variable chooses the conductor's model ⟦skill-edit⟧ ⟦criterion 3⟧ | 1 | 0 | 0 | 0 | 0 | 0 | 71 | 1 | 2 | 12162 | 649 | 100130 | 0.37 | unknown | unknown | unknown | unknown |  |  | full |
+| README.md's "Launching the conductor" section (run-conductor.sh <n>) names VERI_MODEL_CONDUCTOR and its Opus default, and no text there says no variable chooses the conductor's model ⟦diff-checked⟧ ⟦criterion 3⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 21 | 11 | 22 | 1946 | 266473 | 60792 | 0.20 | 362 | n/a | n/a | n/a |  |  | full |
+| metrics.sh <n> names the conductor's model on its "Conductor own spending" line for a real run's layout: the model record `.tdd/issue-<n>-conductor-model` in the main checkout, where run-conductor.sh writes it, while the events log is in the worktree `.tdd/wt/<n>/.tdd/`, pinned by a case that records the model where run-conductor.sh writes it and reads it through metrics.sh from that layout ⟦criterion 4⟧ | 8 | 4 | 0 | 0 | 0 | 0 | 106 | 40 | 78 | 10889 | 1078096 | 161995 | 0.62 | 317 | unknown | 1/5 | nothing-structural |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -146,17 +203,23 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | run-conductor.sh <issue> launches claude with `--model <value>` when VERI_MODEL_CONDUCTOR is set to a value (e.g. sonnet), pinned by a small in-process case on the launched argv ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.04 |
 | run-conductor.sh records, at launch, the model it hands the conductor's `--model` (opus by default, else VERI_MODEL_CONDUCTOR's value) in the run's `.tdd/issue-<n>-conductor-model` beside its `issue-<n>-tmpdir-skill-commit` record, pinned by a case over a launch with VERI_MODEL_CONDUCTOR set ⟦criterion 2⟧ | 1 | 1/5 | nothing-left | PASS | 0 | 85 | 0.13 |
 | metrics.sh <n> names the conductor's model on its "Conductor own spending" line, read from the run's `.tdd/issue-<n>-conductor-model` record, pinned by a case over a run recorded with a non-default conductor model ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 6 | 0.04 |
+| metrics.sh <n> names the conductor's model on its "Conductor own spending" line for a real run's layout: the model record `.tdd/issue-<n>-conductor-model` in the main checkout, where run-conductor.sh writes it, while the events log is in the worktree `.tdd/wt/<n>/.tdd/`, pinned by a case that records the model where run-conductor.sh writes it and reads it through metrics.sh from that layout ⟦criterion 4⟧ | 1 | 1/5 | nothing-structural | PASS | 0 | 62 | 0.12 |
+
+#### Structural pass
+
+Stopped: nothing-structural
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 37 | 40 | 78 | 38 | 19 | 18 | 18 | 18 | 19 | 18 | 18 | 17 | 17 | 17 | 18 | 17 | 4 | 4 | 4 | 5 | 18 | 71 |
-| fast | 37 | 30 | 23 | 23 | 23 | 23 | 24 | 23 | 23 | 26 | 26 |  |  |  |  |  |  |  |  |  |  |  |
-| target | 4 | 4 | 4 | 4 | 3 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 37 | 40 | 78 | 38 | 19 | 18 | 18 | 18 | 19 | 18 | 18 | 17 | 17 | 17 | 18 | 17 | 4 | 4 | 4 | 5 | 18 | 71 | 142 | 3 | 2 | 4 | 4 | 4 | 4 |
+| fast | 37 | 30 | 23 | 23 | 23 | 23 | 24 | 23 | 23 | 26 | 26 | 27 | 24 | 23 | 25 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 4 | 4 | 4 | 4 | 3 | 3 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 181 | 182 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 134 | 264 | 51069 | 3851861 | 552756 | 2.28 |
+| total | 185 | 364 | 63904 | 5196430 | 775543 | 3.10 |
