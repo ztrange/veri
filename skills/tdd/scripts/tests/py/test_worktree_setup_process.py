@@ -17,6 +17,22 @@ def test_2231_setup_line_in_claude_md_runs_once_in_the_worktree_root_and_exits_0
     assert (result.returncode, (tmp_path / "setup-marker").read_text()) == (0, "ran\n")
 
 
+@pytest.mark.process("worktree-setup.sh finds no setup line and does nothing")
+def test_2231_no_setup_line_runs_nothing_writes_nothing_and_exits_3(tmp_path):
+    (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: all tests: `echo ran >> all-marker`\n")
+
+    result = subprocess.run([SHIM, "2231"], capture_output=True, text=True, cwd=str(tmp_path))
+
+    assert (result.returncode, sorted(p.name for p in tmp_path.iterdir())) == (3, ["CLAUDE.md"])
+
+
+@pytest.mark.process("worktree-setup.sh finds no CLAUDE.md and does nothing")
+def test_2231_no_claude_md_runs_nothing_writes_nothing_and_exits_3(tmp_path):
+    result = subprocess.run([SHIM, "2231"], capture_output=True, text=True, cwd=str(tmp_path))
+
+    assert (result.returncode, sorted(p.name for p in tmp_path.iterdir())) == (3, [])
+
+
 @pytest.mark.process("worktree-setup.sh refuses a call with no arguments")
 def test_2231_no_arguments_prints_a_usage_line_on_stderr_and_exits_2(tmp_path):
     result = subprocess.run([SHIM], capture_output=True, text=True, cwd=str(tmp_path))

@@ -1,4 +1,5 @@
 """worktree-setup.sh's computations, run in-process."""
+import os
 import subprocess
 import sys
 
@@ -11,11 +12,13 @@ def main(argv):
     if len(argv) != 1:
         sys.stderr.write("usage: worktree-setup.sh <n>\n")
         return 2
+    if not os.path.isfile("CLAUDE.md"):
+        return 3
     try:
         detect.answer_from_file("CLAUDE.md", MARKER)
     except detect.Answer as found:
         return subprocess.run(found.command.decode(), shell=True).returncode
-    return 0
+    return 3
 
 
 if __name__ == "__main__":
