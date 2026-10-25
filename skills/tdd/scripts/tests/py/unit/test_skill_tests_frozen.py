@@ -25,7 +25,8 @@ RECORD_ARG = '--step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"'
 EXIT2_SENTENCE = ('On tests-frozen exit 2 the check could not answer, so **bail** as a system failure, '
                   'never a REJECT, and launch no verifier.')
 WRONG_TEST_SENTENCE = ('A revise of green whose leaf reports `WRONG_TEST: <why>` is exempt from the `SUITE:` line '
-                       "and is routed as a develop-green `WRONG_TEST:` report is: "
+                       "and is routed as a develop-green `WRONG_TEST:` report is, as is one carrying a `SUPERSEDED:` line, "
+                       "with or without `WRONG_TEST:`: "
                        "`$S/wrong-test-route.sh .tdd/revise-green-<k>.out '<target-test-id>'` runs before the "
                        "attempt is counted; its exit 0 writes no `revise` mark, spends no `REVISE_BUDGET` attempt "
                        "and launches the `red-contradicted` red, its exit 3 keeps the attempt's main outcome, a "
