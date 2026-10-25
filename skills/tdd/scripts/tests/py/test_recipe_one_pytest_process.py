@@ -149,9 +149,12 @@ def test_two_workers_pass_and_fail_the_same_cases_as_serial_and_name_a_failing_c
 
 @pytest.mark.timeout(120)
 @pytest.mark.process("make unit and make test started for real with VERI_PYTEST_WORKERS unset, over a planted tree whose small case notes its worker count")
-def test_with_no_worker_count_set_make_unit_runs_four_workers_and_make_test_one_per_available_core(tmp_path):
+def test_with_no_worker_count_set_make_unit_runs_four_workers_and_make_test_one_per_available_core(tmp_path, monkeypatch):
+    from veri import pytest_leg
     tree, log = planted_tree(tmp_path, small=WORKER_COUNT_CASE), tmp_path / "ran.log"
-    cores = len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else os.cpu_count()
+    monkeypatch.setenv("VERI_PYTEST_LEGS", str(tmp_path / "legs"))
+    monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
+    cores = pytest_leg.worker_count(None)
     env = {k: v for k, v in os.environ.items() if not k.startswith(("VERI_", "PYTEST_XDIST_"))}
     env["PLANTED_RAN_LOG"] = str(log)
     env["VERI_PYTEST_LEGS"] = str(tmp_path / "legs")
