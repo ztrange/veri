@@ -29,6 +29,12 @@ def main(argv):
     except github.NoAnswer:
         sys.stderr.write("park-issue.sh: no answer from gh to the comment call\n")
         return 2
+    if len(argv) == 4:
+        try:
+            github.gh_issue_add_label(argv[3], "parked")
+        except github.NoAnswer:
+            sys.stderr.write("park-issue.sh: no answer from gh to the PR write\n")
+            return 2
     return 0
 
 
