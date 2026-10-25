@@ -25,6 +25,18 @@ ALLOWED = {
         "its rows are verify-plan, Red, Green, Refactor loop and Revising",
     "unit/test_skill_event_files.py::test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_1855":
         "document-wide site list",
+    "unit/test_skill_event_files.py::test_every_line_sending_the_run_into_the_pin_points_at_pin_md_1852":
+        "document-wide site list",
+    "unit/test_skill_event_files.py::test_every_line_sending_the_run_to_stopping_points_at_stopping_md_1716":
+        "document-wide site list",
+    "unit/test_skill_event_files.py::test_the_guard_reports_no_misplaced_bail_pointer_in_the_real_skill_md_2075":
+        "document-wide site list",
+    "unit/test_skill_event_files.py::test_the_guard_reports_no_unpointed_send_in_the_real_skill_md_2075":
+        "document-wide site list",
+    "unit/test_skill_event_files.py::test_the_send_scoped_placement_check_finds_no_misplaced_pointer_in_skill_md_or_any_event_file_2339":
+        "document-wide site list",
+    "unit/test_skill_event_files.py::test_the_moved_sections_distinctive_lines_are_absent_from_skill_md_and_present_in_their_files_2218":
+        "reads the moved lines from PHASED.md and asserts them absent from SKILL.md",
     "unit/test_skill_suite_runs.py::test_skill_md_s_phase_sections_and_claude_md_say_which_leaves_run_the_full_suite":
         "reads Red, the Refactor loop and CLAUDE.md, not this subsection",
     "test_skill_leaf_launch.py": "launch lines are Launching a leaf instances",
