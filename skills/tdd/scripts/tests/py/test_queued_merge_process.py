@@ -99,3 +99,41 @@ def test_queued_merge_stopped_by_a_rebase_conflict_exits_1_and_keeps_the_merge_l
         second = "blocked"
 
     assert (stopped.returncode, second) == (1, "blocked")
+
+
+FAKE_GIT_PUSH_REFUSED = """#!/bin/sh
+for word in "$@"; do
+  case "$word" in
+    push) echo "! [rejected] feature -> feature (stale info)" >&2; exit 1 ;;
+    rebase|fetch|pull) exit 0 ;;
+  esac
+done
+exec "$REAL_GIT" "$@"
+"""
+
+
+@pytest.mark.process("queued-merge.sh and merge-lock.sh run as /bin/sh shims in a scratch repository, with gh and git planted on PATH")
+def test_queued_merge_whose_push_under_the_pinned_lease_is_refused_exits_1_and_keeps_the_merge_lock_held_2372(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    real_git = shutil.which("git")
+    for args in (["init", "-q", "-b", "main"],
+                 ["-c", "user.name=veri", "-c", "user.email=veri@example.test", "commit", "-q", "--allow-empty", "-m", "initial"]):
+        subprocess.run([real_git, "-C", str(repo), *args], check=True)
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    plant(bin_dir, "gh", FAKE_GH_GREEN)
+    plant(bin_dir, "git", FAKE_GIT_PUSH_REFUSED)
+    env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "REAL_GIT": real_git,
+           "VERI_MERGE_LOCK_POLL": "0.05", "VERI_POLL": "0"}
+    run = dict(cwd=repo, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    stopped = subprocess.run(["/bin/sh", str(SCRIPTS / "queued-merge.sh"), "https://github.com/o/r/pull/7", str(repo), "feature", "-"],
+                             timeout=30, **run)
+    try:
+        second = subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), "take", "--pid", str(os.getpid())],
+                                timeout=5, **run).returncode
+    except subprocess.TimeoutExpired:
+        second = "blocked"
+
+    assert (stopped.returncode, second) == (1, "blocked")
