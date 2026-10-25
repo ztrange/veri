@@ -130,3 +130,41 @@ def test_target_slot_is_free_only_below_target_asking_for_not_running_issues_193
     assert (full.returncode, full.stdout.strip()) == (3, "timeout"), full.stderr
     assert (below.returncode, below.stdout.strip()) == (0, "slot-free 1/2 next 777"), below.stderr
     assert calls.read_text().split("\n")[:-1] == ["--not-running"]
+
+
+@pytest.mark.process("watch-runs.sh as a real process over a real conductor whose leaf spawns and reaps children")
+def test_it_prints_exactly_one_exit_line_when_a_conductor_whose_leaf_reaps_children_exits_2249(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    claude = bin_dir / "claude"
+    claude.write_text("#!/bin/sh\ntrap 'exit 0' TERM\nwhile :; do sleep 0.05 & wait $!; done\n")
+    claude.chmod(0o755)
+    launcher = bin_dir / "run_conductor.py"
+    launcher.write_text("#!/bin/sh\n\"$(dirname \"$0\")/claude\" &\np=$!\necho $p > \"$1\"\n"
+                        "trap 'kill $p; wait $p; exit 0' TERM\nwait $p\n")
+    launcher.chmod(0o755)
+    pid_file = tmp_path / "claude.pid"
+    proc = subprocess.Popen([str(launcher), str(pid_file)])
+    watcher = None
+    try:
+        deadline = time.monotonic() + 5
+        while not (pid_file.exists() and pid_file.read_text().strip()) and time.monotonic() < deadline:
+            time.sleep(0.05)
+        make_run(repo, 201, int(pid_file.read_text()))
+        watcher = subprocess.Popen([str(SHIM), "--max-wait", "10"], cwd=repo, stdin=subprocess.DEVNULL,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        time.sleep(1)
+        proc.terminate()
+        proc.wait()
+        out, err = watcher.communicate(timeout=20)
+    finally:
+        if watcher is not None and watcher.poll() is None:
+            watcher.kill()
+            watcher.wait()
+        if proc.poll() is None:
+            proc.terminate()
+            proc.wait()
+    assert (watcher.returncode, out.strip().splitlines()) == (0, ["exited 201 stale"]), err
