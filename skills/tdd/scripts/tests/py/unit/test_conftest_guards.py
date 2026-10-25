@@ -152,7 +152,11 @@ def test_the_permission_bits_guard_fails_a_planted_case_that_chmods_a_file_namin
     result.assert_outcomes(passed=1)
 
 
-def test_the_system_location_guard_fails_planted_cases_that_read_mkdir_or_create_a_system_location_naming_the_file_and_line_while_tmp_and_tempfile_cases_pass_and_a_reasonless_exemption_fails_the_run(pytester, monkeypatch):
+def test_the_system_location_guard_fails_planted_cases_that_read_mkdir_or_create_a_system_location_naming_the_file_and_line_while_tmp_and_tempfile_cases_pass_and_a_reasonless_exemption_fails_the_run(pytester, monkeypatch, tmp_path):
+    inherited = tmp_path / "inherited"
+    inherited.mkdir()
+    monkeypatch.setenv("TMPDIR", str(inherited))
+    monkeypatch.setattr(conftest.tempfile, "tempdir", str(inherited))
     calls = {
         "reads": "open('/etc/veri-planted').read()",
         "mkdirs": "os.mkdir('/veri-planted')",
@@ -167,6 +171,11 @@ def test_the_system_location_guard_fails_planted_cases_that_read_mkdir_or_create
         "def test_mkdirs_tmp_itself():\n"
         "    pathlib.Path('/tmp').mkdir(exist_ok=True)\n"
         "\n"
+        "def test_creates_and_removes_a_directory_under_tmp():\n"
+        "    planted = pathlib.Path('/tmp/veri-planted-%d' % os.getpid())\n"
+        "    planted.mkdir()\n"
+        "    planted.rmdir()\n"
+        "\n"
         "def test_opens_a_tempfile():\n"
         "    with tempfile.TemporaryFile() as handle:\n"
         "        handle.write(b'x')\n"
@@ -176,7 +185,7 @@ def test_the_system_location_guard_fails_planted_cases_that_read_mkdir_or_create
 
     result = pytester.runpytest_inprocess("-p", "no:cacheprovider", plugins=[conftest])
 
-    result.assert_outcomes(failed=len(calls), passed=2)
+    result.assert_outcomes(failed=len(calls), passed=3)
     output = result.stdout.str()
     for name, call in calls.items():
         line = lines.index("    " + call) + 1
