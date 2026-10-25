@@ -20,15 +20,35 @@ def make_run(repo, issue, pid):
     (run / "conductor.pid").write_text("%d\n" % pid)
 
 
+class Conductor:
+    """A claude child of a run_conductor.py <issue> process: pid is the claude's, terminate() ends both."""
+
+    def __init__(self, proc, pid):
+        self.proc = proc
+        self.pid = pid
+
+    def terminate(self):
+        self.proc.terminate()
+
+    def wait(self):
+        return self.proc.wait()
+
+
 def start_conductor(tmp_path, issue):
-    """A live process whose command line is run-conductor.sh <issue>; terminate() ends it."""
-    script = tmp_path / "bin" / "run-conductor.sh"
-    script.parent.mkdir(exist_ok=True)
-    script.write_text("#!/bin/sh\nsleep 60 &\np=$!\ntrap 'kill $p; exit 0' TERM\nwait $p\n")
+    """A live claude whose parent's command line is run_conductor.py <issue>."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(exist_ok=True)
+    claude = bin_dir / "claude"
+    claude.write_text("#!/bin/sh\nsleep 60 &\np=$!\ntrap 'kill $p; exit 0' TERM\nwait $p\n")
+    claude.chmod(0o755)
+    script = bin_dir / "run_conductor.py"
+    script.write_text("#!/bin/sh\n\"$(dirname \"$0\")/claude\" &\np=$!\necho $p > \"$2\"\n"
+                      "trap 'kill $p; wait $p; exit 0' TERM\nwait $p\n")
     script.chmod(0o755)
-    proc = subprocess.Popen([str(script), str(issue)])
+    pid_file = tmp_path / ("claude-%s.pid" % issue)
+    proc = subprocess.Popen([str(script), str(issue), str(pid_file)])
     time.sleep(0.3)
-    return proc
+    return Conductor(proc, int(pid_file.read_text()))
 
 
 @pytest.mark.process("watch-runs.sh as a real process over real conductor pid files")

@@ -26,10 +26,26 @@ for path in (SCRIPTS / "veri", SCRIPTS):
 from veri import entry
 
 
+def fake_pid_file_ps(monkeypatch, conductor=True):
+    """Answer pid_file's ps reads: the pid is a claude under run_conductor.py, or else an unrelated process."""
+    import importlib
+
+    def ps(field, pid):
+        if field == "ppid":
+            return "1"
+        if not conductor:
+            return "vim notes.txt"
+        return "python3 run_conductor.py 1" if str(pid) == "1" else "claude -p"
+
+    for name in ("pid_file", "veri.pid_file"):
+        monkeypatch.setattr(importlib.import_module(name), "_ps", ps, raising=True)
+
+
 def live_conductor(monkeypatch, run_tdd, issue):
     """A conductor.pid in <run_tdd> that answers kill -0, its command line run-conductor for <issue>."""
     import importlib
     (run_tdd / "conductor.pid").write_text("%d\n" % os.getpid())
+    fake_pid_file_ps(monkeypatch)
     for name in ("run_end", "veri.run_end"):
         module = importlib.import_module(name)
         issues = getattr(module, "_live_issues", None)

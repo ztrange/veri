@@ -15,7 +15,7 @@ import urllib.request
 
 import pytest
 
-from conftest import SCRIPTS
+from conftest import SCRIPTS, fake_pid_file_ps
 
 
 @pytest.fixture(autouse=True)
@@ -242,6 +242,7 @@ def live_conductor(monkeypatch, run, issue):
     import run_end
     write(os.path.join(run, ".tdd", "conductor.pid"), "%d\n" % os.getpid())
     monkeypatch.setattr(run_end, "command_line", lambda pid: "run-conductor.sh %s" % issue)
+    fake_pid_file_ps(monkeypatch)
 
 
 def test_get_api_metrics_recomputes_a_live_run_and_quotes_the_committed_report_of_one_ended_by_done(

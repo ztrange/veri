@@ -10,7 +10,7 @@ import time
 
 import pytest
 
-from conftest import SCRIPTS, listed, live_conductor, serve_listing, started_for_real
+from conftest import SCRIPTS, fake_pid_file_ps, listed, live_conductor, serve_listing, started_for_real
 
 
 @pytest.fixture(autouse=True)
@@ -266,6 +266,7 @@ def test_main_reads_a_recent_run_whose_conductor_pid_was_reused_as_stale_at_once
         module = importlib.import_module(name)
         monkeypatch.setattr(module, "command_line", lambda pid: "vim notes.txt", raising=False)
         monkeypatch.setattr(module, "parent_pid", lambda pid: 0, raising=False)
+    fake_pid_file_ps(monkeypatch, conductor=False)
     lamp_git(monkeypatch, tmp_path, [run])
     monkeypatch.chdir(tmp_path)
     at_ten_thousand(monkeypatch)
