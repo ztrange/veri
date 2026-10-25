@@ -219,3 +219,50 @@ def test_queued_merge_whose_pr_is_not_merged_afterwards_exits_1_and_leaves_the_m
         second = "blocked"
 
     assert (stopped.returncode, second) == (1, 0)
+
+
+FAKE_GIT_TAGGING = """#!/bin/sh
+echo "git $*" >> "$CALL_LOG"
+case "$*" in
+  *"tag --sort"*|*"tag -l"*|*"tag --list"*) exec "$REAL_GIT" "$@" ;;
+esac
+for word in "$@"; do
+  case "$word" in
+    rebase|push|fetch|pull|worktree|tag) exit 0 ;;
+  esac
+done
+exec "$REAL_GIT" "$@"
+"""
+
+
+@pytest.mark.process("queued-merge.sh and merge-lock.sh run as /bin/sh shims in a scratch repository, with gh and git planted on PATH")
+def test_queued_merge_after_a_confirmed_merge_cuts_the_next_version_tag_on_origin_main_with_the_message_and_pushes_it_but_cuts_none_for_a_dash_2372(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    real_git = shutil.which("git")
+    for args in (["init", "-q", "-b", "main"],
+                 ["-c", "user.name=veri", "-c", "user.email=veri@example.test", "commit", "-q", "--allow-empty", "-m", "initial"],
+                 ["tag", "v0.2"], ["tag", "v0.9"], ["tag", "v0.10"]):
+        subprocess.run([real_git, "-C", str(repo), *args], check=True)
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    plant(bin_dir, "gh", FAKE_GH_MERGING)
+    plant(bin_dir, "git", FAKE_GIT_TAGGING)
+    call_log = tmp_path / "calls.log"
+    env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "REAL_GIT": real_git, "CALL_LOG": str(call_log),
+           "VERI_MERGE_LOCK_POLL": "0.05", "VERI_POLL": "0"}
+    run = dict(cwd=repo, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    def queued(message):
+        call_log.write_text("")
+        code = subprocess.run(["/bin/sh", str(SCRIPTS / "queued-merge.sh"), "https://github.com/o/r/pull/7", str(repo), "feature", message],
+                              timeout=30, **run).returncode
+        return code, call_log.read_text().splitlines()
+
+    code, calls = queued("the capability")
+    tag_cmds = [c for c in calls if " tag " in c and "v0.11" in c and "-a" in c and "the capability" in c and "origin/main" in c]
+    pushed = [c for c in calls if " push " in c and "v0.11" in c]
+    dash_code, dash_calls = queued("-")
+    dash_tagged = [c for c in dash_calls if "v0.11" in c]
+
+    assert (code, len(tag_cmds), len(pushed), dash_code, dash_tagged) == (0, 1, 1, 0, [])

@@ -34,6 +34,14 @@ def ci_verdict(pr):
     return 1 if any(r.get("conclusion") and r["conclusion"].lower() not in PASSING for r in runs) else 0
 
 
+def _tag(worktree, message):
+    tags = subprocess.run(["git", "-C", worktree, "tag", "--sort=-v:refname"], capture_output=True, text=True).stdout.split()
+    major, minor = tags[0].removeprefix("v").split(".")
+    name = "v%s.%d" % (major, int(minor) + 1)
+    subprocess.run(["git", "-C", worktree, "tag", "-a", name, "-m", message, "origin/main"])
+    subprocess.run(["git", "-C", worktree, "push", "origin", name])
+
+
 def main(argv):
     if argv[:1] == ["--ci"]:
         return ci_verdict(argv[1])
@@ -60,6 +68,8 @@ def main(argv):
         return 1
     subprocess.run(["git", "-C", argv[1], "push", "origin", "--delete", argv[2]])
     subprocess.run(["git", "-C", argv[1], "worktree", "remove", argv[1]])
+    if argv[3] != "-":
+        _tag(argv[1], argv[3])
     return 0
 
 
