@@ -234,8 +234,13 @@ def main(argv):
     if said[-1] != ("REJECT" if failed else "PASS"):
         return no_verdict("VERDICT %s disagrees with the GRADES lines" % said[-1])
     if failed:
+        counted = {l.split(":")[0] for l in failed}
         for _ in range(2):
-            launch_rows({l.split(":")[0] for l in failed})
+            again = extract(launch_rows({l.split(":")[0] for l in failed}))
+            counted &= set(re.findall(r"^(?!VERDICT)(\S+): FAIL\b", again, re.M))
+        failed = [l for l in failed if l.split(":")[0] in counted]
+        if not failed:
+            said = ["PASS"]
     grading_id = uuid.uuid4().hex
     event.append(".", {}, "grading", ["unit=" + unit, "verdict=" + said[-1],
                                        "failing=" + ",".join(l.split(":")[0] for l in failed),
