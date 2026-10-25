@@ -106,8 +106,12 @@ def _gate(lock, record, args):
     if _needs_pid(args, False):
         return 2
     code = subprocess.run(args[args.index("--") + 1:]).returncode
-    if code not in (0, 3):
-        _release(lock, record, args[:2])
+    if code in (0, 3):
+        return code
+    if "--keep" in args:
+        print(f"merge-lock.sh: command exited {code}; lock kept, clear it with merge-lock.sh release --force", file=sys.stderr)
+        return code
+    _release(lock, record, args[:2])
     return code
 
 

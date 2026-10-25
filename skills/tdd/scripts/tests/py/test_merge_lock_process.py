@@ -170,3 +170,20 @@ def test_2245_gate_keeps_the_lock_held_when_the_command_exits_0_or_3_and_refuses
     finally:
         sleeper.kill()
         sleeper.wait()
+
+
+@pytest.mark.process("merge-lock.sh gate --keep running a real command that exits 1 against a held lock in a scratch repository")
+def test_2245_gate_keep_running_a_command_that_exits_1_exits_1_keeps_the_lock_for_its_pid_and_names_release_force_on_stderr(
+        tmp_path):
+    subprocess.run(["git", "-C", str(tmp_path), "init", "-q", "-b", "main"], check=True)
+    pid = str(os.getpid())
+
+    def shim(*args):
+        return subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), *args], cwd=tmp_path,
+                              stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=10)
+
+    taken = shim("take", "--pid", pid)
+    gated = shim("gate", "--keep", "--pid", pid, "--", sys.executable, "-c", "raise SystemExit(1)")
+    held = shim("holder")
+    assert (taken.returncode, gated.returncode, held.returncode, pid in held.stdout.split(),
+            "release --force" in gated.stderr) == (0, 1, 0, True, True)
