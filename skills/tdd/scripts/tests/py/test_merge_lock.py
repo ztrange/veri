@@ -305,3 +305,25 @@ def test_release_with_pid_or_force_and_no_lock_exits_3_and_the_usage_line_names_
 
     assert (by_pid[0], forced[0], bare[0], unknown[0],
             all("--pid" in r[2] and "--force" in r[2] for r in (bare, unknown))) == (3, 3, 2, 2, True)
+
+
+@pytest.mark.process("git init on a scratch repository, take run against a lock whose live holder pid has another start time")
+def test_take_reports_stale_lock_with_the_record_when_the_holder_pid_is_alive_but_its_recorded_start_time_differs_2344(
+        tmp_path, merge_lock, run_cli, monkeypatch):
+    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    lock = tmp_path / ".tdd" / "merge.lock"
+    lock.mkdir(parents=True)
+    text = f"{os.getpid()} {socket.gethostname()} Thu_Jan__1_00:00:00_1970\n"
+    (lock / "holder").write_text(text)
+    waits = []
+
+    def release_on_wait(seconds):
+        waits.append(seconds)
+        shutil.rmtree(lock)
+
+    monkeypatch.setattr(merge_lock.time, "sleep", release_on_wait)
+    mine = str(os.getpid())
+
+    taken = run_cli(merge_lock, ["take", "--pid", mine], cwd=tmp_path)
+
+    assert (taken[0], taken[2], len(waits)) == (0, "stale lock: " + text, 1)
