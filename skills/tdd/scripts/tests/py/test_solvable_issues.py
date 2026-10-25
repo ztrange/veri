@@ -35,7 +35,7 @@ def conductor_process(request):
     def start(*numbers):
         claude = pathlib.Path(tempfile.mkdtemp(prefix="exp-claude-")) / "claude"
         claude.symlink_to("/bin/sh")
-        parent = subprocess.Popen(["/bin/sh", "-c", '"$1" -c "read x" <&0 & echo $!; wait', "run_conductor.py", str(claude)],
+        parent = subprocess.Popen(["/bin/sh", "-c", 'exec 3<&0; "$1" -c "read x" <&3 3<&- & echo $!; wait', "run_conductor.py", str(claude)],
                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
         started.append(parent)
         return int(parent.stdout.readline())
