@@ -287,7 +287,10 @@ def gh_issue_add_label(number, label):
 
 
 def gh_label_ensure(label):
-    _gh("api", "repos/{owner}/{repo}/labels", "-f", "name=%s" % label)
+    run = _gh("api", "repos/{owner}/{repo}/labels", "-f", "name=%s" % label, stderr=subprocess.PIPE)
+    if run.returncode != 0 and "HTTP 422" not in run.stderr and "already_exists" not in run.stderr:
+        sys.stderr.write(run.stderr)
+        raise NoAnswer(" ".join(run.stderr.split()))
 
 
 _PULLS = "repos/{owner}/{repo}/pulls"
