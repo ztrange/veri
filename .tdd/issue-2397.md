@@ -1,0 +1,4 @@
+# Plan for #2397 — A failing sysctl makes a pytest leg raise ValueError instead of falling back: only OSError is caught
+
+- [ ] With sys.platform faked to "darwin" and the sysctl call faked to return returncode=1 and empty stdout, worker_count(None) in skills/tdd/scripts/veri/pytest_leg.py returns the affinity-derived count and raises nothing; pinned by a small in-process case in skills/tdd/scripts/tests/py/test_pytest_leg.py (faking only the subprocess boundary), which fails on the current code with ValueError ⟦criterion 1⟧
+- [ ] With sys.platform faked to "darwin" and the sysctl call faked to exit 0 with non-numeric stdout, worker_count(None) returns the affinity-derived count and raises nothing; pinned by a small in-process case in skills/tdd/scripts/tests/py/test_pytest_leg.py (faking only the subprocess boundary) ⟦criterion 1⟧
