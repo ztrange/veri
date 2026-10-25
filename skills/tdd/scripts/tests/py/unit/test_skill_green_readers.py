@@ -34,6 +34,8 @@ ALLOWED = {
         "names the Green heading only to exclude it",
     "unit/test_skill_event_files.py::test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_1855":
         "names the Green heading only to exclude it",
+    "unit/test_skill_green_superseded.py::test_2254_a_green_report_naming_a_superseded_case_alone_goes_through_wrong_test_route_to_a_free_red_contradicted_reroute":
+        "asserts the Green subsection's SUPERSEDED: routing text",
     "unit/test_skill_tests_frozen.py::test_every_tests_frozen_record_and_check_names_the_record_by_path_over_the_step_text_and_red_defines_the_key":
         "names the Green heading only to exclude it",
 }
