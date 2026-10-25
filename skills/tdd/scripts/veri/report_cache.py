@@ -12,6 +12,7 @@ import tunables
 
 USAGE = "usage: report-cache.sh refresh\n"
 PAGE_SIZE = 100
+SEARCH_CAP = 1000
 FIELDS ="number,title,state,labels,closedAt,updatedAt,body,comments"
 
 
@@ -72,6 +73,8 @@ def fetch_pages(since=None):
         fresh = [issue for issue in page if issue["number"] not in seen]
         seen.update({issue["number"]: issue for issue in fresh})
         if len(page) < size:
+            if len(page) >= SEARCH_CAP:
+                raise github.NoAnswer("the search API capped a page at %d rows" % len(page))
             return list(seen.values())
         if fresh:
             search = " ".join(bound + ["sort:updated-desc updated:<="]) + min(issue["updatedAt"] for issue in page)
