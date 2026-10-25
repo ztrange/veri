@@ -340,3 +340,17 @@ def test_take_leaves_no_staging_directory_behind_when_it_exits_2_on_a_missing_re
     taken = run_cli(merge_lock, ["take", "--pid", str(os.getpid())], cwd=tmp_path)
 
     assert (taken[0], sorted(p.name for p in (tmp_path / ".tdd").glob(".merge.lock.*"))) == (2, [])
+
+
+@pytest.mark.process("git init on a scratch repository, take run against a held lock with an invalid poll interval")
+def test_take_leaves_no_staging_directory_behind_when_an_invalid_poll_interval_raises_after_staging_2344(
+        tmp_path, merge_lock, run_cli, monkeypatch):
+    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    lock = tmp_path / ".tdd" / "merge.lock"
+    lock.mkdir(parents=True)
+    (lock / "holder").write_text(f"{os.getpid()} {socket.gethostname()} Thu_Jan__1_00:00:00_1970\n")
+    monkeypatch.setenv("VERI_MERGE_LOCK_POLL", "not-a-number")
+
+    taken = run_cli(merge_lock, ["take", "--pid", str(os.getpid())], cwd=tmp_path)
+
+    assert (taken[0] != 0, sorted(p.name for p in (tmp_path / ".tdd").glob(".merge.lock.*"))) == (True, [])
