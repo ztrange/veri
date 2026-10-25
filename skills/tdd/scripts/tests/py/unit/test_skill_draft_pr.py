@@ -180,3 +180,20 @@ def test_guardrails_invariant_about_opening_the_pr_names_the_branchs_own_full_ru
 def test_ci_red_bail_names_each_failed_ci_check_bailings_bailed_comment_names_them():
     comment = first_record(_records(_lines(BAILING)), re.escape("### ⛔ bailed"), re.escape("ci-red"))
     assert comment and first_record([comment], re.escape("check")), "### ⛔ Bailed comment never says that a ci-red bail names each CI check that failed"
+
+
+def test_2307_conflicted_rebase_regrades_after_develop_rebase_and_before_verdict_rebase_and_a_stale_graded_line_spends_no_revise_mark_and_no_revise_budget_attempt():
+    text = _lower(re.sub(r"\s+", " ", "\n".join(_lines(DRAFT_PR))))
+    start = text.index("an exit 1 from `rebase-onto-default.sh`")
+    para = text[start:]
+    developed = para.index("wait-leaf.sh develop-rebase")
+    regrade = para.index("regrade block", developed)
+    verifier = para.index("verdict-rebase", developed)
+    problems = []
+    if not regrade < verifier:
+        problems.append("the regrade block is not run after the develop-rebase leaf and before the verdict-rebase launch")
+    sentences = re.split(r"(?<=\.)\s", para[regrade:])
+    stale = [s for s in sentences if "stale" in s and "graded" in s]
+    if not any("revise_budget" in s and re.search(r"no `revise` mark|no revise mark", s) for s in stale):
+        problems.append(f"no sentence says a stale GRADED line spends no `revise` mark and no REVISE_BUDGET attempt: {stale}")
+    assert not problems, problems
