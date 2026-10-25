@@ -33,17 +33,58 @@ def _say(message):
     print("queued-merge: %s" % message, file=sys.stderr)
 
 
+def _release(pid):
+    code = _script("merge-lock.sh", "release", "--pid", pid)
+    if code:
+        _say("releasing the merge lock failed (exit %d)" % code)
+    return code
+
+
 def _rev(worktree, ref):
     run = _git(worktree, "rev-parse", "--verify", ref)
     return run.stdout.strip() if run.returncode == 0 else ""
 
 
+def _merged(repo, pr):
+    """True only when GitHub answers merged: true; False when it answers anything else."""
+    run = gh_api("repos/%s/pulls/%s" % (repo, pr.rsplit("/pull/", 1)[-1]))
+    try:
+        return run.returncode == 0 and json.loads(run.stdout).get("merged") is True
+    except (ValueError, AttributeError):
+        return False
+
+
 def _tag(worktree, message):
-    tags = subprocess.run(["git", "-C", worktree, "tag", "--sort=-v:refname"], capture_output=True, text=True).stdout.split()
+    tags = _git(worktree, "tag", "--sort=-v:refname").stdout.split()
+    if not tags:
+        _say("no vN.M tag to bump from; no tag cut")
+        return False
     major, minor = tags[0].removeprefix("v").split(".")
     name = "v%s.%d" % (major, int(minor) + 1)
-    subprocess.run(["git", "-C", worktree, "tag", "-a", name, "-m", message, "origin/main"])
-    subprocess.run(["git", "-C", worktree, "push", "origin", name])
+    for args in (("tag", "-a", name, "-m", message, "origin/main"), ("push", "origin", name)):
+        if _git(worktree, *args).returncode:
+            _say("git %s failed; tag %s not published" % (args[0], name))
+            return False
+    return True
+
+
+def _cleanup(pid, worktree, branch, message):
+    """Tag, delete the branch, remove the worktree, release the lock: every step runs, each failure is named."""
+    failed = []
+    if message != "-" and not _tag(worktree, message):
+        failed.append("tag")
+    for what, args in (("branch delete", ("push", "origin", "--delete", branch)),
+                       ("worktree remove", ("worktree", "remove", worktree))):
+        run = _git(worktree, *args)
+        if run.returncode:
+            _say("%s failed (exit %d): %s" % (what, run.returncode, run.stderr.strip()))
+            failed.append(what)
+    if _release(pid):
+        failed.append("release")
+    if failed:
+        _say("merged, but cleanup failed: %s" % ", ".join(failed))
+        return 2
+    return 0
 
 
 def main(argv):
@@ -53,14 +94,17 @@ def main(argv):
     pr, worktree, branch, message = argv
     repo = _repo(pr)
     pid = str(os.getpid())
-    _script("merge-lock.sh", "take", "--pid", pid)
+    code = _script("merge-lock.sh", "take", "--pid", pid)
+    if code:
+        _say("taking the merge lock failed (exit %d)" % code)
+        return code
     code = _gate(pid, "git", "-C", worktree, "fetch", "origin")
     if code:
         return code
     lease = _rev(worktree, "refs/remotes/origin/%s" % branch)
     if not lease:
         _say("origin/%s does not resolve; no lease to pin" % branch)
-        _script("merge-lock.sh", "release", "--pid", pid)
+        _release(pid)
         return 2
     for git_args in (("rebase", "origin/main"),
                      ("push", "--force-with-lease=%s:%s" % (branch, lease), "origin", branch)):
@@ -70,7 +114,7 @@ def main(argv):
     head = _rev(worktree, "HEAD")
     if not head:
         _say("the pushed head does not resolve")
-        _script("merge-lock.sh", "release", "--pid", pid)
+        _release(pid)
         return 2
     code = 3
     while code == 3:
@@ -80,15 +124,11 @@ def main(argv):
     code = _gate(pid, "gh", "pr", "merge", pr, "--rebase", "--match-head-commit", head)
     if code:
         return code
-    landed = json.loads(gh_api("repos/%s/pulls/%s" % (repo, pr.rsplit("/pull/", 1)[-1])).stdout).get("merged") is not False
-    _script("merge-lock.sh", "release", "--pid", pid)
-    if not landed:
+    if not _merged(repo, pr):
+        _say("%s is not reported merged; no tag, branch delete or worktree removal" % pr)
+        _release(pid)
         return 1
-    subprocess.run(["git", "-C", worktree, "push", "origin", "--delete", branch])
-    subprocess.run(["git", "-C", worktree, "worktree", "remove", worktree])
-    if message != "-":
-        _tag(worktree, message)
-    return 0
+    return _cleanup(pid, worktree, branch, message)
 
 
 if __name__ == "__main__":
