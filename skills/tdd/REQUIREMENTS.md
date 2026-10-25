@@ -344,6 +344,7 @@
 | PL54 | In the Draft PR step's conflicted-rebase paragraph, the regrade that runs before `verify-rebase` writes no `revise` mark and spends no `REVISE_BUDGET` attempt: a `GRADED` line made stale only by the rebase is no defect of the resolution. | The revise budget is for rejected work; spending it on a signature the procedure refreshes anyway would bail runs whose resolution was correct. |
 | EV1 | Every sentence that sends the run into an event (a bail, phrased as "**bail**", "bails as …", "bail with cause …", "bails with cause …", "→ bail", "is a bail" or a bare "bail" instruction, bolded or not; a resume; a skill-edit step) names the file to Read for that event under `<base directory>/` (`BAIL.md`, `RESUME.md`, `SKILL-EDIT.md`). | A leaf or conductor that reaches an event with no pointer improvises the procedure instead of reading it (PRD 010). |
 | DP81 | When the ready script exits non-zero, `wait-ci.sh` is not run, so no CI deadline is started, and the run **bails** as a **system** failure (`no-verdict`) with the PR left a draft. | A PR that was never readied is not waited on, and the failed ready is named as the plumbing failure it is. |
+| DP82 | In the Draft PR block, `wait-ci.sh` runs in the same command as the ready script and only on its exit 0 (the ready line ends `|| ` and the bail, so a failed ready never reaches `wait-ci.sh`). | A sentence beside two separate commands can be skipped under load; a gate inside the command cannot. |
 
 ## skills/tdd/PIN.md
 
