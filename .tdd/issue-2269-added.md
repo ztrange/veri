@@ -1,0 +1,1 @@
+- [ ] `tests-frozen.sh record --red-case` refuses (exit 2) a value whose half before or after `::` is empty (`::name`, `path::`), one case per empty half ⟦added⟧ ⟦criterion 1⟧
