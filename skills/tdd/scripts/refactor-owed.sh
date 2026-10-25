@@ -10,7 +10,8 @@
 #          refactor-owed.sh not-done <file> '<candidate>' <reason>
 #          refactor-owed.sh render <file>
 #          refactor-owed.sh list <file>
-# Exit:    0 done; 1 the append's, applied's or not-done's write failed; 2 a missing argument or an unknown verb;
+# Exit:    0 done; 1 the append's, applied's or not-done's write failed; 2 a missing argument, an unknown verb,
+#          or an append report line naming an unknown candidate class;
 #          3 render or list found <file> absent or empty, or list found no structural transform
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/refactor_owed.py" "$@"
