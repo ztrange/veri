@@ -180,6 +180,7 @@ MECHANICAL_READERS = (
     "test_1967_preflight_step_3_resumed_run_block_is_one_resume_clean_sh_call",
     "skill_md_preflight_leaf_model_calls_name_a_leaf",
     "test_skill_preflight_writes_the_long_lived_ppid_not_the_shells_pid",
+    "test_skill_preflight_never_writes_the_conductor_lock_itself_leaving_it_to_run_conductor",
     "test_987_preflight_step_3_runs_stop_requested_clear_beside_the_tdd_conductor_pid_write",
     "test_954_skill_md_makes_the_leaf_timeout_sh_call_that_records_tdd_issue_n_timeout",
     "test_a_gh_auth_status_call_planted_in_skill_md_is_named_as_file_line",
