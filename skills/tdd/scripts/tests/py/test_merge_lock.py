@@ -291,3 +291,17 @@ def test_take_exits_2_naming_the_record_path_and_leaves_the_lock_in_place_when_i
     taken = run_cli(merge_lock, ["take", "--pid", str(os.getpid())], cwd=tmp_path)
 
     assert (taken[0], str(record) in taken[2], record.read_text(), len(waits)) == (2, True, text, 0)
+
+
+@pytest.mark.process("git init on a scratch repository, release run with --pid and with --force against no lock, and a bare run")
+def test_release_with_pid_or_force_and_no_lock_exits_3_and_the_usage_line_names_pid_and_force(
+        tmp_path, merge_lock, run_cli):
+    scratch_git(tmp_path, "init", "-q", "-b", "main")
+
+    by_pid = run_cli(merge_lock, ["release", "--pid", str(os.getpid())], cwd=tmp_path)
+    forced = run_cli(merge_lock, ["release", "--force"], cwd=tmp_path)
+    bare = run_cli(merge_lock, [], cwd=tmp_path)
+    unknown = run_cli(merge_lock, ["frobnicate"], cwd=tmp_path)
+
+    assert (by_pid[0], forced[0], bare[0], unknown[0],
+            all("--pid" in r[2] and "--force" in r[2] for r in (bare, unknown))) == (3, 3, 2, 2, True)
