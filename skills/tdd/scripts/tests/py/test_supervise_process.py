@@ -1,7 +1,9 @@
 """Cases for supervise.sh that start a real process."""
+import fcntl
 import os
 import subprocess
 import sys
+import threading
 
 import pytest
 
@@ -63,3 +65,40 @@ def test_2377_a_verify_leaf_whose_mutation_breaks_the_full_suite_lock_wait_is_ki
                               "VERI_PYTEST_XDIST_IMPORTABLE": "1", "PYTHONDONTWRITEBYTECODE": "1"})
 
     assert ran.returncode == 2, ran.stderr
+
+
+SHORT_FULL_RUN = """\
+import sys
+sys.path[:0] = [%r, %r]
+import pytest
+from veri import pytest_leg
+pytest.main = lambda args: pytest.ExitCode.OK
+sys.exit(pytest_leg.main([]))
+"""
+
+
+@pytest.mark.process("supervise.sh runs a real leaf whose full run queues behind a lock the test holds past VERI_TIMEOUT")
+@pytest.mark.timeout(60)
+def test_2380_a_leaf_queued_on_the_full_suite_lock_past_the_hard_timeout_is_not_killed_stuck(tmp_path):
+    work = tmp_path / "work"
+    work.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=work, check=True)
+    script = work / "full_run.py"
+    script.write_text(SHORT_FULL_RUN % (str(SCRIPTS), str(SCRIPTS / "veri")))
+    held = open(str(tmp_path / "legs") + "-full.lock", "a+")
+    fcntl.flock(held, fcntl.LOCK_EX)
+    release = threading.Timer(3.5, lambda: (fcntl.flock(held, fcntl.LOCK_UN), held.close()))
+    release.start()
+
+    try:
+        ran = subprocess.run([str(SCRIPTS / "supervise.sh"), "verify-rebase", sys.executable, str(script)],
+                             cwd=work, capture_output=True, text=True, timeout=30,
+                             env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
+                                  "VERI_POLL": "0.05", "VERI_TIMEOUT": "2", "VERI_HEARTBEAT": "600",
+                                  "HOME": str(tmp_path), "VERI_PYTEST_LEGS": str(tmp_path / "legs"),
+                                  "VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1",
+                                  "VERI_PYTEST_XDIST_IMPORTABLE": "1", "PYTHONDONTWRITEBYTECODE": "1"})
+    finally:
+        release.join()
+
+    assert ran.returncode == 0, ran.stderr
