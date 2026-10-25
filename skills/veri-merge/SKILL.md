@@ -29,9 +29,9 @@ An unticked ⟦human-owed⟧ line gets one read-only review subagent (it may rea
 
 ## The merge lock
 
-Take the merge lock with `$S/merge-lock.sh take` before the first write and hold it to the last. Release it with `$S/merge-lock.sh release` on every exit path: success, refusal, failure and interruption alike. A lock left held blocks every other merge.
+Take the merge lock with `$S/merge-lock.sh take --pid <driver>` before the first write and hold it to the last. `<driver>` is the long-lived process driving the merge: `$PPID` in an agent session's Bash call. Release it with `$S/merge-lock.sh release --pid <driver>` on every exit path: success, refusal, failure and interruption alike. A lock left held blocks every other merge.
 
-The one exception: a merge that stops on a rebase conflict or a refused push leaves the lock held, and says so in its report. A human clears it with `$S/merge-lock.sh release` once the cause is dealt with.
+The one exception: a merge that stops on a rebase conflict or a refused push leaves the lock held, and says so in its report. A human clears it with `$S/merge-lock.sh release --force` once the cause is dealt with.
 
 ## Steps
 
@@ -42,7 +42,7 @@ The one exception: a merge that stops on a rebase conflict or a refused push lea
 5. **Read `state`.** Query the PR and continue only when `state == MERGED`. Deleting the branch, cutting the tag and removing the worktree each happen only after that read; deleting an open PR's head closes it (PR #74).
 6. **Tag.** Choose the next `vN.M` from `git tag --sort=-v:refname` (never plain `sort`: lexically `v0.9` outranks `v0.10`). Cut an annotated tag whose message is the capability, in the issue's words. Push it.
 7. **Clean up.** Delete the branch and remove the worktree.
-8. **Release the lock** with `$S/merge-lock.sh release`.
+8. **Release the lock** with `$S/merge-lock.sh release --pid <driver>`.
 
 ## Report
 
