@@ -4,7 +4,7 @@ import re
 import sys
 from collections import Counter
 
-from candidates import CLASSES, candidate
+from candidates import CLASSES, LINE, candidate
 from report import report_read
 
 USAGE = ("refactor-owed: usage: refactor-owed.sh append <file> '<STEP>' < leaf-report.txt\n"
@@ -20,6 +20,7 @@ OUT_OF_SCOPE_PREFIX = "out-of-scope | "
 OUT_OF_BOUNDS = candidate("out-of-bounds")
 OUT_OF_BOUNDS_PREFIX = "out-of-bounds | "
 IN_STEP = candidate("in-step")
+KNOWN_CLASSES = (*CLASSES, "in-step", "out-of-bounds", "none")
 TEST_ONLY_MARK = "- " + TEST_ONLY_PREFIX
 OUT_OF_SCOPE_MARK = "- " + OUT_OF_SCOPE_PREFIX
 APPLIED_MARK = "applied | "
@@ -71,6 +72,9 @@ def append(file, step, bounds):
               (OUT_OF_BOUNDS, out_of_bounds, OUT_OF_BOUNDS_PREFIX))
     uncovered = report_read(report, ("COVERED",)).get("COVERED") == "no"
     for line in report.split("\n"):
+        if (found := LINE.match(line)) and (cls := found.group(1).partition("|")[0].strip()).lower() not in KNOWN_CLASSES:
+            print(f"refactor-owed.sh: unknown candidate class '{cls}': {line}", file=sys.stderr)
+            return 2
         if uncovered and (match := IN_STEP.match(line)):
             structural.append(match.group(1).partition(" | ")[2])
         for pattern, group, prefix in routes:
