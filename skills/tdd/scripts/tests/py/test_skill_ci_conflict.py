@@ -88,3 +88,52 @@ def test_the_block_run_after_the_metrics_push_bails_nothing_on_a_conflict_the_fi
         elif got != "bail cause=ci-conflict classification=ci-conflict":
             problems.append(f"second conflict exit 2 after the metrics: push recorded [{got}], not bail cause=ci-conflict")
     assert not problems, "\n".join(problems)
+
+
+def _first_block(step):
+    out, on = [], False
+    for line in step.split("\n"):
+        if not on and re.search(r"\$S/wait-ci\.sh", line):
+            on = True
+        if on and line.strip() == "```":
+            break
+        if on:
+            out.append(line)
+    return "\n".join(out).rstrip("\n").replace("<n>", "1458").replace("<pr-url>", "https://example.test/pull/1").replace("<run-id>", "1")
+
+
+@pytest.mark.process("the two CI blocks SKILL.md prescribes run under bash -c in a git repo, against stub scripts")
+def test_a_green_ci_wait_in_either_ci_block_bails_no_ci_red_and_appends_no_ci_repair_step_with_or_without_one_in_the_ledger(tmp_path):
+    step = _ci_step()
+    assert step.strip(), NO_STEP
+    blocks = {"first CI wait": _first_block(step), "post-metrics CI wait": _block(step)}
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    stubs = {"wait-ci.sh": "#!/bin/sh\nexit 0\n",
+             "event.sh": '#!/bin/sh\necho "$*" >> events.log\n',
+             "classify-bail.sh": '#!/bin/sh\necho "$1"\n',
+             "add-ledger-step.sh": '#!/bin/sh\necho "$*" >> added.log\n',
+             "ledger-steps.sh": '#!/bin/sh\n[ "$1" != has-mark ] || [ -e has-repair ] || exit 1\n[ "$1" != last-done ] || echo "step 1"\nexit 0\n',
+             "gh": "#!/bin/sh\nexit 0\n"}
+    for name, body in stubs.items():
+        (bin_dir / name).write_text(body)
+        (bin_dir / name).chmod(0o755)
+    problems = []
+    for label, block in blocks.items():
+        assert block.strip(), f"no {label} block found in the CI step — nothing could be run"
+        for held in ("with-repair", "no-repair"):
+            work = tmp_path / f"work-{label.split()[0]}-{held}"
+            work.mkdir()
+            subprocess.run(["git", "-C", str(work), "init", "-q"], check=True)
+            (work / ".tdd").mkdir()
+            (work / ".tdd" / "issue-1458.md").write_text("")
+            if held == "with-repair":
+                (work / "has-repair").write_text("")
+            env = dict(os.environ, S=str(bin_dir), PATH=f"{bin_dir}:{os.environ['PATH']}")
+            subprocess.run(["bash", "-c", block.encode("latin-1").decode("utf-8", "surrogateescape")], cwd=work, env=env,
+                           stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            events = (work / "events.log").read_text() if (work / "events.log").exists() else ""
+            added = (work / "added.log").read_text() if (work / "added.log").exists() else ""
+            if "bail" in events or "step-added" in events or added:
+                problems.append(f"{label}, green CI, ledger {held}: events [{events.strip()}] added [{added.strip()}]")
+    assert not problems, "\n".join(problems)
