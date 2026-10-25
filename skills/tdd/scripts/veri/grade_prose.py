@@ -163,6 +163,15 @@ def main(argv):
         with open(os.path.join(".tdd", "grade-prose.log"), encoding="utf-8") as log:
             return log.read()
 
+    def launch_rows(ids):
+        rows = "".join(r + "\n" for r in claims.splitlines() if r.split("\t", 1)[0] in ids)
+        with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as g:
+            g.write(prompt(unit, text, rows))
+        try:
+            return launch(g.name)
+        finally:
+            os.unlink(g.name)
+
     wanted = [row.split("\t", 1)[0] for row in claims.splitlines()]
     used = 0
     try:
@@ -183,13 +192,7 @@ def main(argv):
     seen = graded_ids(reply)
     missing = [i for i in wanted if i not in seen]
     if missing and used <= retries and "END GRADES" in reply and keeps_protocol(reply, wanted):
-        rows = "".join(r + "\n" for r in claims.splitlines() if r.split("\t", 1)[0] in missing)
-        with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as g:
-            g.write(prompt(unit, text, rows))
-        try:
-            more = launch(g.name)
-        finally:
-            os.unlink(g.name)
+        more = launch_rows(set(missing))
         if more is None:
             return no_verdict("the grader leaf exited non-zero")
         follow = extract(more)
@@ -231,15 +234,8 @@ def main(argv):
     if said[-1] != ("REJECT" if failed else "PASS"):
         return no_verdict("VERDICT %s disagrees with the GRADES lines" % said[-1])
     if failed:
-        rows = "".join(r + "\n" for r in claims.splitlines()
-                       if r.split("\t", 1)[0] in {l.split(":")[0] for l in failed})
         for _ in range(2):
-            with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as g:
-                g.write(prompt(unit, text, rows))
-            try:
-                launch(g.name)
-            finally:
-                os.unlink(g.name)
+            launch_rows({l.split(":")[0] for l in failed})
     grading_id = uuid.uuid4().hex
     event.append(".", {}, "grading", ["unit=" + unit, "verdict=" + said[-1],
                                        "failing=" + ",".join(l.split(":")[0] for l in failed),
