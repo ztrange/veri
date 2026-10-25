@@ -275,9 +275,12 @@ unauthenticated baseline never gets a cycle.
    ```
    wt="$($S/issue-worktree.sh <n> <slug>)" && cd "$wt"
    mkdir -p .tdd && $S/stop-requested.sh --clear
+   rm -f .tdd/ci-conflict-rebased
    ```
    The `--clear` beside the lock drops a stale stop request a killed run never got to clear, so a
-   `.tdd/stop` left behind cannot stop the run that resumes it at its first checkpoint.
+   `.tdd/stop` left behind cannot stop the run that resumes it at its first checkpoint. The `rm -f`
+   drops a `.tdd/ci-conflict-rebased` an earlier run left, so the Draft PR step's one CI-conflict
+   rebase is counted per run and a resume never inherits it.
    A resumed run — one whose worktree and ledger `.tdd/issue-<n>.md` already exist — first
    discards whatever a killed leaf left uncommitted, since a rebase refuses a dirty tree:
    ```
