@@ -1,18 +1,19 @@
 ### 📊 Metrics — issue 2246
 
-Wall time for the issue: 1399 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 3 of 3 planned.
-Outcome: the run bailed — step-added-off-route, a process failure.
+Wall time for the issue: 2172 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 1 s, excluded from it.
+Steps done: 4 of 4 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/2347.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $9.24 over 162 turns, in 5 sessions, on opus.
+Conductor own spending: $12.29 over 219 turns, in 6 sessions, on opus.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 89473 tokens, largest 134971 tokens
 Conductor context: first turn 89464 tokens, largest 116118 tokens
 Conductor context: first turn 90636 tokens, largest 94852 tokens
 Conductor context: first turn 90702 tokens, largest 153564 tokens
-Conductor context: first turn 90704 tokens, largest 156238 tokens
+Conductor context: first turn 90704 tokens, largest 165030 tokens
+Conductor context: first turn 90705 tokens, largest 150434 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -130,54 +131,110 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 109 | $0.07 | 151682 |
 | 110 | $0.05 | 152687 |
 | 111 | $0.05 | 153564 |
-| 112 | $0.58 | 90704 |
-| 113 | $0.02 | 91133 |
+| 112 | $0.59 | 90704 |
+| 113 | $0.04 | 91133 |
 | 114 | $0.03 | 92276 |
-| 115 | $0.06 | 97781 |
+| 115 | $0.08 | 97781 |
 | 116 | $0.03 | 98792 |
-| 117 | $0.04 | 100769 |
-| 118 | $0.02 | 101132 |
-| 119 | $0.02 | 101451 |
+| 117 | $0.05 | 100769 |
+| 118 | $0.03 | 101132 |
+| 119 | $0.04 | 101451 |
 | 120 | $0.03 | 102179 |
-| 121 | $0.05 | 105945 |
-| 122 | $0.03 | 106812 |
-| 123 | $0.03 | 107591 |
+| 121 | $0.06 | 105945 |
+| 122 | $0.04 | 106812 |
+| 123 | $0.04 | 107591 |
 | 124 | $0.03 | 108193 |
-| 125 | $0.03 | 109546 |
-| 126 | $0.03 | 110812 |
+| 125 | $0.05 | 109546 |
+| 126 | $0.04 | 110812 |
 | 127 | $0.03 | 111219 |
-| 128 | $0.03 | 111834 |
-| 129 | $0.04 | 113424 |
-| 130 | $0.03 | 114173 |
-| 131 | $0.03 | 115108 |
-| 132 | $0.03 | 115795 |
-| 133 | $0.03 | 116939 |
+| 128 | $0.04 | 111834 |
+| 129 | $0.05 | 113424 |
+| 130 | $0.04 | 114173 |
+| 131 | $0.04 | 115108 |
+| 132 | $0.04 | 115795 |
+| 133 | $0.04 | 116939 |
 | 134 | $0.03 | 117331 |
-| 135 | $0.03 | 117929 |
-| 136 | $0.03 | 118401 |
-| 137 | $0.11 | 129477 |
-| 138 | $0.03 | 130495 |
+| 135 | $0.04 | 117929 |
+| 136 | $0.04 | 118401 |
+| 137 | $0.12 | 129477 |
+| 138 | $0.05 | 130495 |
 | 139 | $0.04 | 131793 |
-| 140 | $0.04 | 132930 |
-| 141 | $0.03 | 133960 |
-| 142 | $0.04 | 135014 |
-| 143 | $0.03 | 135430 |
-| 144 | $0.03 | 136080 |
-| 145 | $0.03 | 136909 |
+| 140 | $0.05 | 132930 |
+| 141 | $0.04 | 133960 |
+| 142 | $0.05 | 135014 |
+| 143 | $0.04 | 135430 |
+| 144 | $0.04 | 136080 |
+| 145 | $0.05 | 136909 |
 | 146 | $0.04 | 137995 |
-| 147 | $0.04 | 139081 |
-| 148 | $0.03 | 139530 |
-| 149 | $0.03 | 139843 |
-| 150 | $0.03 | 140368 |
-| 151 | $0.03 | 141138 |
-| 152 | $0.03 | 141658 |
-| 153 | $0.03 | 142073 |
-| 154 | $0.03 | 142733 |
-| 155 | $0.06 | 147197 |
-| 156 | $0.04 | 148307 |
+| 147 | $0.05 | 139081 |
+| 148 | $0.04 | 139530 |
+| 149 | $0.04 | 139843 |
+| 150 | $0.04 | 140368 |
+| 151 | $0.05 | 141138 |
+| 152 | $0.04 | 141658 |
+| 153 | $0.04 | 142073 |
+| 154 | $0.05 | 142733 |
+| 155 | $0.07 | 147197 |
+| 156 | $0.05 | 148307 |
 | 157 | $0.04 | 149070 |
-| 158 | $0.05 | 151606 |
-| 159 | $0.07 | 156238 |
+| 158 | $0.06 | 151606 |
+| 159 | $0.08 | 156238 |
+| 160 | $0.05 | 157399 |
+| 161 | $0.06 | 158757 |
+| 162 | $0.09 | 165030 |
+| 163 | $0.58 | 90705 |
+| 164 | $0.03 | 91667 |
+| 165 | $0.03 | 93379 |
+| 166 | $0.06 | 98351 |
+| 167 | $0.06 | 103255 |
+| 168 | $0.03 | 104585 |
+| 169 | $0.05 | 108437 |
+| 170 | $0.03 | 109338 |
+| 171 | $0.02 | 109546 |
+| 172 | $0.02 | 109898 |
+| 173 | $0.02 | 110148 |
+| 174 | $0.02 | 110468 |
+| 175 | $0.03 | 111128 |
+| 176 | $0.03 | 111725 |
+| 177 | $0.03 | 112598 |
+| 178 | $0.02 | 112850 |
+| 179 | $0.02 | 113142 |
+| 180 | $0.03 | 113611 |
+| 181 | $0.03 | 114015 |
+| 182 | $0.03 | 114326 |
+| 183 | $0.03 | 114809 |
+| 184 | $0.05 | 118223 |
+| 185 | $0.04 | 120356 |
+| 186 | $0.03 | 120693 |
+| 187 | $0.03 | 121390 |
+| 188 | $0.03 | 121601 |
+| 189 | $0.04 | 122980 |
+| 190 | $0.03 | 124012 |
+| 191 | $0.04 | 125378 |
+| 192 | $0.03 | 125983 |
+| 193 | $0.08 | 133417 |
+| 194 | $0.03 | 134349 |
+| 195 | $0.03 | 135071 |
+| 196 | $0.04 | 136650 |
+| 197 | $0.04 | 138411 |
+| 198 | $0.03 | 138848 |
+| 199 | $0.04 | 139797 |
+| 200 | $0.03 | 140451 |
+| 201 | $0.03 | 141263 |
+| 202 | $0.04 | 142667 |
+| 203 | $0.03 | 142978 |
+| 204 | $0.03 | 143723 |
+| 205 | $0.03 | 144050 |
+| 206 | $0.04 | 145183 |
+| 207 | $0.03 | 145775 |
+| 208 | $0.03 | 146087 |
+| 209 | $0.04 | 147101 |
+| 210 | $0.04 | 147842 |
+| 211 | $0.04 | 148805 |
+| 212 | $0.03 | 149365 |
+| 213 | $0.03 | 149732 |
+| 214 | $0.03 | 150124 |
+| 215 | $0.03 | 150434 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -185,25 +242,25 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 17 | 13 | 1 | 2 | 1645 | 17442 | 14640 | 0.05 |
-| red | 6 | 3 | 0 | 0 | 116 | 92 | 22 | 42 | 11824 | 598557 | 127997 | 0.50 |
-| green | 12 | 2 | 4 | 0 | 2561 | 430 | 106 | 208 | 48256 | 3854964 | 293129 | 2.24 |
-| refactor | 2 | 0 | 0 | 0 | 18 | 12 | 5 | 10 | 1124 | 132531 | 32724 | 0.11 |
+| red | 9 | 3 | 1 | 0 | 278 | 231 | 45 | 88 | 26576 | 1420265 | 215549 | 1.23 |
+| green | 14 | 3 | 4 | 0 | 2622 | 447 | 114 | 224 | 50208 | 4078117 | 321841 | 2.35 |
+| refactor | 3 | 0 | 0 | 0 | 24 | 15 | 7 | 14 | 1243 | 181758 | 48206 | 0.15 |
 | exhausted | 1 | 0 | 0 | 0 | 12 | 10 | 2 | 4 | 925 | 47294 | 13968 | 0.10 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 10 | 6 | 4 | 0 | 1085 | 167 | 48 | 94 | 19921 | 1401935 | 159145 | 0.74 |
-| developer | claude-sonnet-5-5 | 6 | 0 | 0 | 0 | 309 | 87 | 25 | 48 | 11040 | 724361 | 140138 | 0.53 |
-| developer | claude-opus-5-5 | 6 | 0 | 0 | 0 | 1330 | 303 | 63 | 124 | 32813 | 2524492 | 183175 | 1.72 |
+| verifier | claude-sonnet-5-5 | 12 | 7 | 5 | 0 | 1132 | 188 | 55 | 108 | 22434 | 1591183 | 189684 | 0.86 |
+| developer | claude-sonnet-5-5 | 8 | 0 | 0 | 0 | 345 | 98 | 31 | 60 | 12062 | 886221 | 169853 | 0.63 |
+| developer | claude-opus-5-5 | 8 | 0 | 0 | 0 | 1476 | 430 | 83 | 164 | 46101 | 3267472 | 254667 | 2.39 |
 
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 37 | 0.15 |
+| red | 162 | 0.73 | 37 | 0.15 |
 | green | 767 | 0.88 | 1519 | 1.17 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | exhausted | 0 | 0.00 | 12 | 0.10 |
@@ -216,6 +273,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | Every pytest case runs with the TMPDIR environment variable and tempfile.tempdir both set to one per-case directory that sits beside the case's tmp_path (never inside it, never None), so a run-conductor.sh the case launches makes its veri-run-<n>-* directory there and not in the inherited TMPDIR; tempfile.gettempdir() called under conftest's os.open system-location guard returns that directory without deadlocking. Pinned by a fast unit case in skills/tdd/scripts/tests/py/unit/test_case_tmpdir.py (no production change; the change lives in the autouse hermetic_environment fixture) ⟦guard-subject: skills/tdd/scripts/tests/py/conftest.py⟧ ⟦criterion 1⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 61 | 22 | 40 | 7338 | 590146 | 90353 | 0.36 | 400 | unknown | 0/5 | nothing-left |  |  | full |
 | A pytest case that creates a file or directory in the TMPDIR the suite inherited fails, its failure naming the created path, while a case writing only into its per-case TMPDIR passes, and files other processes on the machine create there concurrently never fail a case. Pinned by a pytester case in skills/tdd/scripts/tests/py/unit/test_conftest_guards.py that writes into the inherited TMPDIR and fails naming it (no production change; the guard lives in conftest.py) ⟦guard-subject: skills/tdd/scripts/tests/py/conftest.py⟧ ⟦criterion 1⟧ | 9 | 1 | 3 | 0 | 0 | 0 | 270 | 64 | 126 | 31002 | 2209326 | 195174 | 1.42 | unknown | 2/2 | unknown | unknown |  |  | full |
 | A pytest case that creates a file or directory in the TMPDIR the suite inherited fails, its failure naming the created path, while a case writing only into its per-case TMPDIR passes, and files other processes on the machine create there concurrently never fail a case. Pinned by pytester cases in skills/tdd/scripts/tests/py/unit/test_conftest_guards.py that leak into the inherited TMPDIR through each of three paths — Path.mkdir, open(<inherited>/x, "w") (which also pins io.open, the same function in Python 3) and os.open(<inherited>/y, os.O_CREAT|os.O_WRONLY) — each failing and naming its created path, plus a control case writing only under its per-case TMPDIR that passes (no production change; the guard lives in conftest.py) ⟦guard-subject: skills/tdd/scripts/tests/py/conftest.py⟧ ⟦criterion 1⟧ | 7 | 2 | 1 | 0 | 0 | 0 | 213 | 49 | 98 | 23789 | 1833874 | 182291 | 1.16 | 987 | 1/2 | 0/5 | nothing-left |  |  | full |
+| fix the CI failure: skills/tdd/scripts/tests/py/unit/test_conftest_guards.py — FAILED test_the_system_location_guard_fails_planted_cases_that_read_mkdir_or_create_a_system_location_naming_the_file_and_line_while_tmp_and_tempfile_cases_pass_and_a_reasonless_exemption_fails_the_run: assert_outcomes(failed=len(calls), passed=2) saw failed 6, passed 1 on Linux, because its planted case that writes /tmp/veri-planted-<pid> (meant to pass, /tmp not being a system location) now fails the inherited-TMPDIR guard ("creates /tmp/veri-planted-2168 in the inherited TMPDIR /tmp"), the inherited TMPDIR being /tmp on Linux where it is /var/folders/… on macOS ⟦ci-repair⟧ ⟦criterion 1⟧ | 6 | 1 | 1 | 0 | 0 | 0 | 159 | 33 | 66 | 16823 | 1094088 | 131746 | 0.89 | 581 | 1/2 | 0/5 | nothing-left |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -225,6 +283,7 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | --- | ---: | ---: | --- | --- | ---: | ---: | ---: |
 | Every pytest case runs with the TMPDIR environment variable and tempfile.tempdir both set to one per-case directory that sits beside the case's tmp_path (never inside it, never None), so a run-conductor.sh the case launches makes its veri-run-<n>-* directory there and not in the inherited TMPDIR; tempfile.gettempdir() called under conftest's os.open system-location guard returns that directory without deadlocking. Pinned by a fast unit case in skills/tdd/scripts/tests/py/unit/test_case_tmpdir.py (no production change; the change lives in the autouse hermetic_environment fixture) ⟦guard-subject: skills/tdd/scripts/tests/py/conftest.py⟧ ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 6 | 0.04 |
 | A pytest case that creates a file or directory in the TMPDIR the suite inherited fails, its failure naming the created path, while a case writing only into its per-case TMPDIR passes, and files other processes on the machine create there concurrently never fail a case. Pinned by pytester cases in skills/tdd/scripts/tests/py/unit/test_conftest_guards.py that leak into the inherited TMPDIR through each of three paths — Path.mkdir, open(<inherited>/x, "w") (which also pins io.open, the same function in Python 3) and os.open(<inherited>/y, os.O_CREAT|os.O_WRONLY) — each failing and naming its created path, plus a control case writing only under its per-case TMPDIR that passes (no production change; the guard lives in conftest.py) ⟦guard-subject: skills/tdd/scripts/tests/py/conftest.py⟧ ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 12 | 0.06 |
+| fix the CI failure: skills/tdd/scripts/tests/py/unit/test_conftest_guards.py — FAILED test_the_system_location_guard_fails_planted_cases_that_read_mkdir_or_create_a_system_location_naming_the_file_and_line_while_tmp_and_tempfile_cases_pass_and_a_reasonless_exemption_fails_the_run: assert_outcomes(failed=len(calls), passed=2) saw failed 6, passed 1 on Linux, because its planted case that writes /tmp/veri-planted-<pid> (meant to pass, /tmp not being a system location) now fails the inherited-TMPDIR guard ("creates /tmp/veri-planted-2168 in the inherited TMPDIR /tmp"), the inherited TMPDIR being /tmp on Linux where it is /var/folders/… on macOS ⟦ci-repair⟧ ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 6 | 0.04 |
 
 #### Structural pass
 
@@ -232,14 +291,14 @@ Stopped: nothing-structural
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 1 | 1 | 185 | 14 | 1 | 1 | 129 | 135 | 0 | 0 | 136 | 0 | 132 | 137 | 0 | 2 | 2 | 160 | 2 | 0 | 158 | 156 | 1 | 1 |
-| fast | 16 | 17 | 17 | 16 | 16 | 16 | 16 | 16 | 17 | 16 | 16 | 8 | 16 | 17 | 16 |  |  |  |  |  |  |  |  |  |
-| target | 1 | 2 | 1 | 1 | 1 | 0 | 1 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 1 | 1 | 185 | 14 | 1 | 1 | 129 | 135 | 0 | 0 | 136 | 0 | 132 | 137 | 0 | 2 | 2 | 160 | 2 | 0 | 158 | 156 | 1 | 1 | 0 | 2 | 1 | 1 | 1 | 1 | 1 |
+| fast | 16 | 17 | 17 | 16 | 16 | 16 | 16 | 16 | 17 | 16 | 16 | 8 | 16 | 17 | 16 | 17 | 17 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 1 | 2 | 1 | 1 | 1 | 0 | 1 | 1 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 136 | 266 | 63774 | 4650788 | 482458 | 2.99 |
+| total | 169 | 332 | 80597 | 5744876 | 614204 | 3.88 |
