@@ -96,11 +96,11 @@ no `VERSION` file, no changelog. One merged feature/fix issue is one minor bump,
   is caught in preflight.
 - **The developer's and the verifier's models are separate knobs**: `VERI_MODEL` (every leaf),
   `VERI_MODEL_DEVELOPER` (`develop-*`, `revise-*`), `VERI_MODEL_REVISE` (redo leaves:
-  `revise-*`, `develop-exhausted`) and `VERI_MODEL_VERIFIER` (`verify-*`) and
-  `VERI_MODEL_CONDUCTOR` (the conductor); the narrower one
-  wins. Unset, first-try developers and verifiers run on sonnet, redo leaves and the conductor
-  on opus (an empty `VERI_MODEL_CONDUCTOR` counts as unset). A weaker verifier shows as a changed verdict distribution, a weaker developer as more
-  revise cycles; one knob would hide which.
+  `revise-*`, `develop-exhausted`), `VERI_MODEL_VERIFIER` (`verify-*`) and
+  `VERI_MODEL_CONDUCTOR` (the conductor); the narrower one wins. Unset, first-try developers
+  and verifiers run on sonnet, redo leaves and the conductor on opus (an empty
+  `VERI_MODEL_CONDUCTOR` counts as unset). A weaker verifier shows as a changed verdict
+  distribution, a weaker developer as more revise cycles; one knob would hide which.
 - **Selection is three bands, one sort key.** `solvable-issues.sh` lists `priority`-labelled
   issues first (`VERI_PRIORITY_LABEL`; set-but-empty is exit 2), then `bug`s, then the rest,
   each band ascending by number. The bands only reorder the solvable set, never enlarge it:
