@@ -102,3 +102,16 @@ def test_record_with_a_red_case_still_present_records_exactly_as_without_it_2269
 
     recorded = {p.name: p.read_text() for p in (tmp_path / ".tdd").iterdir()}
     assert (plain[0], withcase, recorded.get("case.record")) == (0, (0, "", ""), recorded["plain.record"])
+
+
+def test_record_step_with_a_red_case_whose_test_file_is_gone_exits_1_naming_it_and_writes_no_record_2269(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "test_b.py").write_text("def test_b():\n    assert 1\n")
+
+    code, out, err = run_cli(
+        tests_frozen,
+        ["record", "--step", "step one", "--red-case", "gone/test_a.py::test_gone", "test_b.py"],
+        cwd=tmp_path)
+
+    assert (code, "gone/test_a.py::test_gone" in out, "Traceback" in err, sorted(p.name for p in tmp_path.rglob("*"))) == (
+        1, True, False, ["test_b.py"])
