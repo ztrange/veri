@@ -4,7 +4,7 @@ import re
 
 import pytest
 
-TESTS_PY = pathlib.Path(__file__).resolve().parent
+TESTS_PY = pathlib.Path(__file__).resolve().parent.parent
 SKILL_MD = TESTS_PY.parents[2] / "SKILL.md"
 PREFIX = "### 4. Draft"
 HEADING = "### 4. Draft PR"
