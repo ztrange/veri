@@ -75,29 +75,6 @@ def _unreadable_at_ledger(problems, what, lines):
              f"{what} never says to narrate that the stop request was unreadable on exit 2")
 
 
-def _checkpoint(problems, what, section, start, end, anchor):
-    window = _branch(section, start, end)
-    if not window:
-        problems.append(f"{what} has no branch to read — nothing could be checked")
-        return
-    anchor_at = _first(anchor, window)
-    stop_at = _first(r"stop-requested\.sh", window)
-    if stop_at is None:
-        problems.append(f"{what} is never followed by stop-requested.sh")
-    elif not _after(stop_at, anchor_at):
-        problems.append(f"{what} runs stop-requested.sh (line {stop_at}) before its ledger commit lands (line {anchor_at})")
-    _require(problems, _either_order("(any|every|whatever)[^.;]*mode", "stopping"), [_joined(window)],
-             f"{what} never says any mode stop-requested.sh prints goes to Stopping there")
-
-
-def _checkpoint_exit2(problems, what, section, start, end):
-    text = _joined(_branch(section, start, end))
-    if "stop-requested.sh" not in text:
-        problems.append(f"{what} has no stop-requested.sh checkpoint to read — nothing could be checked")
-        return
-    _unreadable_at_ledger(problems, what, [text.split("stop-requested.sh", 1)[1]])
-
-
 def test_stopping_section_waits_with_wait_leaf_on_every_running_supervisor_before_it_touches_the_tree_and_reaches_only_for_git_reset_hard_head_never_git_checkout():
     lines, problems = _section(STOPPING, STOPPING_MD), []
     wait_at = _first(r"wait-leaf\.sh", lines)
