@@ -1,0 +1,2 @@
+### When the taken:<lane> lookup answers 404 and gh label create fails with "already exists", the claim (unlabel-issue.sh) adds taken:<lane> to the issue and exits 0 — a small in-process case in skills/tdd/scripts/tests/py/unit/test_unlabel_issue.py faking gh at the github.py boundary ⟦criterion 1⟧
+- in unlabel_issue.py, replace the synthetic `CompletedProcess` built for the "already exists" case (lines 40-47) with a boolean such as `created = returncode == 0 or "already exists" in stderr`. It removes no duplication, so I did not apply it.
