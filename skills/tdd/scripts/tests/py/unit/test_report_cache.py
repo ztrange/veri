@@ -1051,3 +1051,39 @@ def test_refresh_with_many_page_retries_never_asks_for_limit_0_exits_2_and_write
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
     assert (code, 0 in limits, sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == (2, False, [])
+
+
+def test_refresh_with_no_cache_and_150_issues_sharing_one_updated_at_second_writes_all_200_and_exits_0_2324(run_cli, monkeypatch, tmp_path):
+    import json
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    same_second = [
+        {"number": n, "title": "issue %d" % n, "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-10-05T12:00:00Z", "body": "", "comments": []}
+        for n in range(1, 151)
+    ]
+    older = [
+        {"number": 1000 + n, "title": "older %d" % n, "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-09-%02dT00:00:00Z" % (1 + n % 28), "body": "", "comments": []}
+        for n in range(50)
+    ]
+
+    def fake_gh_issue_list(*args):
+        limit = int(args[args.index("--limit") + 1])
+        search = args[args.index("--search") + 1] if "--search" in args else ""
+        pool = sorted(same_second + older, key=lambda i: (i["updatedAt"], i["number"]), reverse=True)
+        for term in search.split():
+            if term.startswith("updated:<="):
+                pool = [i for i in pool if i["updatedAt"] <= term[len("updated:<="):]]
+            elif term.startswith("updated:<"):
+                pool = [i for i in pool if i["updatedAt"] < term[len("updated:<"):]]
+        return json.dumps(pool[:limit])
+
+    monkeypatch.setattr(report_cache.github, "gh_issue_list", fake_gh_issue_list)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    written = tmp_path / ".tdd" / "report-cache.json"
+    kept = sorted(i["number"] for i in json.loads(written.read_text())["issues"]) if written.exists() else None
+    assert (code, kept) == (0, sorted(i["number"] for i in same_second + older))
