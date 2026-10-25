@@ -221,3 +221,16 @@ def test_the_moved_sections_distinctive_lines_are_absent_from_skill_md_and_prese
     in_skill = [line for lines in moved.values() for line in lines if line in skill]
     missing = [(name, line) for name, lines in moved.items() for line in lines if line not in (SKILL.parent / name).read_text()]
     assert (in_skill, missing) == ([], [])
+
+
+def test_the_structural_phased_and_refactor_kind_files_exist_and_skill_md_tells_the_run_to_read_each_2218():
+    """Subject is source text: each of the three files exists, and SKILL.md holds a sentence naming it under <base directory>/ that says to Read it."""
+    text = SKILL.read_text()
+    sentences = re.split(r"\.(?=\s|\Z)", text)
+    missing = []
+    for name in ("STRUCTURAL.md", "PHASED.md", "REFACTOR-KIND.md"):
+        pointer = f"`<base directory>/{name}`"
+        reads = any(pointer in s and "`Read`" in s for s in sentences)
+        if not ((SKILL.parent / name).is_file() and reads):
+            missing.append(name)
+    assert missing == []
