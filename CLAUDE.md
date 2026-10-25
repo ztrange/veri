@@ -134,7 +134,7 @@ a same-second mutation included, from being served a stale `.pyc`: before import
 every `.pyc` the manifest does not vouch for, and pytest-rewritten and `.opt-N` files always
 (#1127, #2054). Cases run across pytest-xdist
 workers: `make unit` 4 (each worker pays its own start-up); `make test` the cores other running
-legs leave free, at least 1 (#2100): each leg registers its pid and count under
+legs leave free (physical cores on macOS, the CPU-affinity count elsewhere), at least 1 (#2100): each leg registers its pid and count under
 `~/.veri-pytest-legs` (`VERI_PYTEST_LEGS`), and a dead pid holds no share.
 `VERI_PYTEST_WORKERS=<n>` overrides both, used as given; `1` runs serially (#2053). Three refusals, exit 2 before any
 suite: pytest or pytest_timeout not importable (stderr names `make install-dev`), or Python
