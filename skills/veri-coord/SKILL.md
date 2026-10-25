@@ -59,9 +59,8 @@ You own, and only you change:
   `$S/parked-issues.sh`, on resume and whenever you need it, never from a handoff file or
   memory. To un-park, remove the `parked` label from the issue.
 
-`veri-file` does not exist yet. Until it does, file a bug with `/tdd-fix` and a set of refactor
-candidates with `/tdd-candidates`. Groom through `veri-groom`; show any split or criteria
-rewrite to the human first.
+File every issue through `/veri-file`, and groom through `/veri-groom`; show any split or
+criteria rewrite to the human first.
 
 **Propose `priority`** for an issue whose landing makes future runs cheaper — a slower suite
 made faster, a leaf cost cut, a recurring bail cause removed. Propose it to the human with the
