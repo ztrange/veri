@@ -37,6 +37,6 @@ def test_1866_skill_and_resume_say_a_resumes_missing_opt_in_label_is_expected():
     assert not problems, "; ".join(problems)
 
 
-def test_issue_2147_skill_marks_the_pr_ready_by_running_a_script_never_sourcing_lib_github_sh():
+def test_issue_2147_skill_marks_the_pr_ready_by_running_pr_ready_sh_never_sourcing_a_bash_library():
     sourcing = [line for line in SKILL.read_text().splitlines() if re.search(r"\. \$S/lib/github\.sh", line)]
     assert not sourcing, f"SKILL.md sources the bash GitHub library into the conductor's shell: {sourcing}"
