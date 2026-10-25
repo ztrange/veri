@@ -44,3 +44,15 @@ def test_main_exits_0_when_the_reason_lines_are_equal_after_collapsing_runs_of_w
     code, out, err = run_cli(same_reject, [str(previous), str(current)])
 
     assert (code, out, err) == (0, "", "")
+
+
+def test_main_exits_1_when_the_reason_lines_differ_after_collapsing_runs_of_whitespace(
+        tmp_path, run_cli, same_reject):
+    previous = tmp_path / "previous.txt"
+    previous.write_text("VERDICT: REJECT\nREASON: WRONG_TEST   the  test\tpins mechanism\n")
+    current = tmp_path / "current.txt"
+    current.write_text("VERDICT: REJECT\nREASON:  tests-frozen blocked   the edit\n")
+
+    code, out, err = run_cli(same_reject, [str(previous), str(current)])
+
+    assert (code, out, err) == (1, "", "")
