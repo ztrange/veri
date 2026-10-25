@@ -128,12 +128,14 @@ def worker_count(requested):
         return int(requested)
     if os.environ.get("PYTEST_XDIST_WORKER"):
         return 1
-    cores = len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else os.cpu_count() or 1
+    affinity = len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else os.cpu_count() or 1
     if sys.platform == "darwin":
         try:
             cores = int(subprocess.run(["sysctl", "-n", "hw.physicalcpu"], capture_output=True, text=True).stdout)
         except OSError:
-            pass
+            cores = affinity
+    else:
+        cores = affinity
     return max(1, cores - registered_workers(legs_dir()))
 
 
