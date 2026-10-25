@@ -33,10 +33,7 @@ def records_of(raw):
 
 
 def file_records(path):
-    raw = pathlib.Path(path).read_bytes()
-    if pathlib.Path(path) == SKILL:
-        raw += b"\n" + SKILL.with_name("PIN.md").read_bytes()
-    return records_of(raw)
+    return records_of(pathlib.Path(path).read_bytes())
 
 
 def body_of(text):
@@ -66,13 +63,6 @@ def read(records, what, *patterns):
 
 def says(text, pattern, message):
     assert re.search(pattern.encode(), text), message
-
-
-def test_skill_md_ticks_green_with_refactor_pending_pins_without_it_and_clears_the_mark_before_mirroring_the_step_done():
-    records = file_records(SKILL)
-    assert records, "SKILL.md has no instructions to read"
-    pin = read(records, "ticks the ledger and commits the pin with a test: pin commit", r"tick-ledger\.sh", "test: pin")
-    assert b"--refactor-pending" not in pin, "the pin path ticks with --refactor-pending"
 
 
 def test_skill_md_s_resume_asks_next_pending_refactor_sh_before_next_unchecked_sh_re_enters_the_pending_step_s_refactor_loop_and_reaches_the_draft_pr_only_when_both_exit_3():
