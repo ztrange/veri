@@ -1,13 +1,16 @@
 ### 📊 Metrics — issue 2249
 
-Wall time for the issue: 2361 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 731 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 5 of 10 planned.
+Steps done: 6 of 11 planned.
 Outcome: the run bailed — revise-exhausted, a process failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $8.23 over 172 turns, in 2 sessions.
+Conductor own spending: $11.47 over 244 turns, in 3 sessions, on opus.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
+Conductor context: first turn 89947 tokens, largest 188642 tokens
+Conductor context: first turn 90195 tokens, largest 182201 tokens
+Conductor context: first turn 90403 tokens, largest 162736 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -103,88 +106,131 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 87 | $0.05 | 187377 |
 | 88 | $0.05 | 188292 |
 | 89 | $0.05 | 188642 |
-| 90 | $0.58 | 90195 |
-| 91 | $0.02 | 90840 |
-| 92 | $0.03 | 92778 |
-| 93 | $0.05 | 96241 |
-| 94 | $0.02 | 96687 |
-| 95 | $0.02 | 97133 |
-| 96 | $0.02 | 97643 |
-| 97 | $0.02 | 98113 |
-| 98 | $0.02 | 98778 |
-| 99 | $0.05 | 101979 |
-| 100 | $0.03 | 103022 |
-| 101 | $0.03 | 103879 |
-| 102 | $0.03 | 104589 |
-| 103 | $0.02 | 104795 |
-| 104 | $0.03 | 106147 |
-| 105 | $0.03 | 106960 |
-| 106 | $0.02 | 107384 |
-| 107 | $0.03 | 108376 |
-| 108 | $0.03 | 109279 |
-| 109 | $0.03 | 110108 |
-| 110 | $0.03 | 110867 |
-| 111 | $0.02 | 111203 |
-| 112 | $0.03 | 112057 |
-| 113 | $0.03 | 112698 |
-| 114 | $0.03 | 113013 |
-| 115 | $0.03 | 114019 |
-| 116 | $0.03 | 114841 |
-| 117 | $0.03 | 115715 |
-| 118 | $0.03 | 116743 |
-| 119 | $0.04 | 118596 |
-| 120 | $0.03 | 119842 |
-| 121 | $0.03 | 121195 |
-| 122 | $0.03 | 122248 |
-| 123 | $0.03 | 123413 |
-| 124 | $0.03 | 123881 |
-| 125 | $0.03 | 124850 |
-| 126 | $0.03 | 125760 |
-| 127 | $0.03 | 126613 |
-| 128 | $0.05 | 130310 |
-| 129 | $0.04 | 132245 |
-| 130 | $0.04 | 133361 |
-| 131 | $0.04 | 135008 |
-| 132 | $0.03 | 135669 |
-| 133 | $0.04 | 136903 |
-| 134 | $0.04 | 138079 |
-| 135 | $0.06 | 142308 |
-| 136 | $0.04 | 143915 |
-| 137 | $0.04 | 144880 |
-| 138 | $0.04 | 145949 |
-| 139 | $0.04 | 147034 |
-| 140 | $0.04 | 147908 |
-| 141 | $0.03 | 148335 |
-| 142 | $0.04 | 149305 |
-| 143 | $0.03 | 149828 |
-| 144 | $0.03 | 150269 |
-| 145 | $0.04 | 151194 |
-| 146 | $0.04 | 152174 |
-| 147 | $0.04 | 152963 |
-| 148 | $0.04 | 153888 |
-| 149 | $0.04 | 154704 |
-| 150 | $0.04 | 155540 |
-| 151 | $0.04 | 156398 |
-| 152 | $0.04 | 157491 |
-| 153 | $0.04 | 158256 |
-| 154 | $0.03 | 158662 |
-| 155 | $0.05 | 160534 |
-| 156 | $0.04 | 161679 |
-| 157 | $0.04 | 162156 |
-| 158 | $0.04 | 163066 |
-| 159 | $0.04 | 164148 |
-| 160 | $0.04 | 165162 |
-| 161 | $0.05 | 167208 |
-| 162 | $0.04 | 168509 |
-| 163 | $0.04 | 169312 |
-| 164 | $0.04 | 170376 |
-| 165 | $0.04 | 170844 |
-| 166 | $0.04 | 172132 |
-| 167 | $0.05 | 173524 |
-| 168 | $0.04 | 173941 |
-| 169 | $0.04 | 175165 |
-| 170 | $0.04 | 176303 |
-| 171 | $0.07 | 180326 |
+| 90 | $0.59 | 90195 |
+| 91 | $0.04 | 90840 |
+| 92 | $0.04 | 92778 |
+| 93 | $0.06 | 96241 |
+| 94 | $0.04 | 96687 |
+| 95 | $0.03 | 97133 |
+| 96 | $0.04 | 97643 |
+| 97 | $0.03 | 98113 |
+| 98 | $0.04 | 98778 |
+| 99 | $0.06 | 101979 |
+| 100 | $0.04 | 103022 |
+| 101 | $0.04 | 103879 |
+| 102 | $0.04 | 104589 |
+| 103 | $0.03 | 104795 |
+| 104 | $0.04 | 106147 |
+| 105 | $0.04 | 106960 |
+| 106 | $0.04 | 107384 |
+| 107 | $0.04 | 108376 |
+| 108 | $0.04 | 109279 |
+| 109 | $0.04 | 110108 |
+| 110 | $0.04 | 110867 |
+| 111 | $0.04 | 111203 |
+| 112 | $0.04 | 112057 |
+| 113 | $0.04 | 112698 |
+| 114 | $0.04 | 113013 |
+| 115 | $0.04 | 114019 |
+| 116 | $0.04 | 114841 |
+| 117 | $0.04 | 115715 |
+| 118 | $0.05 | 116743 |
+| 119 | $0.05 | 118596 |
+| 120 | $0.04 | 119842 |
+| 121 | $0.05 | 121195 |
+| 122 | $0.05 | 122248 |
+| 123 | $0.04 | 123413 |
+| 124 | $0.04 | 123881 |
+| 125 | $0.05 | 124850 |
+| 126 | $0.04 | 125760 |
+| 127 | $0.04 | 126613 |
+| 128 | $0.07 | 130310 |
+| 129 | $0.05 | 132245 |
+| 130 | $0.05 | 133361 |
+| 131 | $0.05 | 135008 |
+| 132 | $0.05 | 135669 |
+| 133 | $0.05 | 136903 |
+| 134 | $0.05 | 138079 |
+| 135 | $0.07 | 142308 |
+| 136 | $0.05 | 143915 |
+| 137 | $0.05 | 144880 |
+| 138 | $0.05 | 145949 |
+| 139 | $0.05 | 147034 |
+| 140 | $0.05 | 147908 |
+| 141 | $0.04 | 148335 |
+| 142 | $0.05 | 149305 |
+| 143 | $0.05 | 149828 |
+| 144 | $0.04 | 150269 |
+| 145 | $0.05 | 151194 |
+| 146 | $0.05 | 152174 |
+| 147 | $0.05 | 152963 |
+| 148 | $0.05 | 153888 |
+| 149 | $0.05 | 154704 |
+| 150 | $0.05 | 155540 |
+| 151 | $0.05 | 156398 |
+| 152 | $0.05 | 157491 |
+| 153 | $0.05 | 158256 |
+| 154 | $0.05 | 158662 |
+| 155 | $0.06 | 160534 |
+| 156 | $0.05 | 161679 |
+| 157 | $0.05 | 162156 |
+| 158 | $0.05 | 163066 |
+| 159 | $0.06 | 164148 |
+| 160 | $0.05 | 165162 |
+| 161 | $0.06 | 167208 |
+| 162 | $0.06 | 168509 |
+| 163 | $0.05 | 169312 |
+| 164 | $0.05 | 170376 |
+| 165 | $0.05 | 170844 |
+| 166 | $0.06 | 172132 |
+| 167 | $0.06 | 173524 |
+| 168 | $0.05 | 173941 |
+| 169 | $0.05 | 175165 |
+| 170 | $0.06 | 176303 |
+| 171 | $0.08 | 180326 |
+| 172 | $0.05 | 181239 |
+| 173 | $0.06 | 182201 |
+| 174 | $0.58 | 90403 |
+| 175 | $0.03 | 92420 |
+| 176 | $0.03 | 93495 |
+| 177 | $0.05 | 97751 |
+| 178 | $0.04 | 100390 |
+| 179 | $0.05 | 104168 |
+| 180 | $0.03 | 104792 |
+| 181 | $0.02 | 105265 |
+| 182 | $0.02 | 105549 |
+| 183 | $0.02 | 105874 |
+| 184 | $0.03 | 106748 |
+| 185 | $0.03 | 107915 |
+| 186 | $0.04 | 109821 |
+| 187 | $0.04 | 112107 |
+| 188 | $0.03 | 112960 |
+| 189 | $0.03 | 113834 |
+| 190 | $0.03 | 114592 |
+| 191 | $0.03 | 114872 |
+| 192 | $0.14 | 129193 |
+| 193 | $0.03 | 129975 |
+| 194 | $0.03 | 130407 |
+| 195 | $0.03 | 131302 |
+| 196 | $0.03 | 131756 |
+| 197 | $0.03 | 132600 |
+| 198 | $0.03 | 133387 |
+| 199 | $0.03 | 133681 |
+| 200 | $0.03 | 134431 |
+| 201 | $0.03 | 134999 |
+| 202 | $0.03 | 135881 |
+| 203 | $0.03 | 136621 |
+| 204 | $0.03 | 137300 |
+| 205 | $0.04 | 138400 |
+| 206 | $0.05 | 141142 |
+| 207 | $0.09 | 149037 |
+| 208 | $0.05 | 151378 |
+| 209 | $0.04 | 153032 |
+| 210 | $0.04 | 154166 |
+| 211 | $0.05 | 156251 |
+| 212 | $0.04 | 157104 |
+| 213 | $0.04 | 158758 |
+| 214 | $0.06 | 162736 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -192,11 +238,11 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 2 | 1 | 1 | 0 | 32 | 26 | 2 | 4 | 3226 | 17160 | 48856 | 0.16 |
-| red | 22 | 12 | 1 | 0 | 801 | 435 | 101 | 202 | 47531 | 3363832 | 561876 | 2.50 |
-| green | 24 | 3 | 5 | 0 | 4208 | 817 | 183 | 354 | 78265 | 6189628 | 645926 | 4.34 |
+| red | 24 | 13 | 1 | 0 | 848 | 468 | 110 | 220 | 51211 | 3641221 | 600446 | 2.66 |
+| green | 29 | 3 | 7 | 0 | 4420 | 907 | 205 | 396 | 87288 | 6808163 | 748380 | 4.98 |
 | refactor | 3 | 0 | 0 | 0 | 25 | 18 | 7 | 14 | 1364 | 161063 | 66016 | 0.19 |
-| exhausted | 2 | 0 | 0 | 0 | 53 | 41 | 5 | 10 | 3368 | 126723 | 30311 | 0.24 |
-| diff | 4 | 2 | 0 | 0 | 328 | 87 | 22 | 44 | 11204 | 701905 | 126171 | 0.50 |
+| exhausted | 3 | 0 | 0 | 0 | 100 | 63 | 9 | 18 | 4852 | 236630 | 47532 | 0.38 |
+| diff | 6 | 3 | 0 | 0 | 481 | 133 | 36 | 72 | 16734 | 1130949 | 202507 | 0.79 |
 | red-supersede | 3 | 0 | 0 | 1 | 118 | 85 | 18 | 36 | 9286 | 680081 | 58477 | 0.31 |
 | pin | 1 | 0 | 1 | 0 | 27 | 17 | 7 | 14 | 1822 | 217195 | 19438 | 0.09 |
 
@@ -204,19 +250,19 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 26 | 18 | 8 | 0 | 1262 | 333 | 97 | 194 | 35646 | 2661592 | 466881 | 1.79 |
-| developer | claude-sonnet-5-5 | 15 | 0 | 0 | 1 | 731 | 358 | 88 | 172 | 39448 | 2937128 | 401133 | 1.90 |
-| developer | claude-opus-5-5 | 20 | 0 | 0 | 0 | 3599 | 835 | 160 | 312 | 80972 | 5858867 | 689057 | 4.63 |
+| verifier | claude-sonnet-5-5 | 30 | 20 | 10 | 0 | 1406 | 373 | 110 | 220 | 39832 | 3003693 | 536499 | 2.04 |
+| developer | claude-sonnet-5-5 | 14 | 0 | 0 | 1 | 713 | 335 | 81 | 162 | 40286 | 2751176 | 382088 | 1.63 |
+| developer | claude-opus-5-5 | 27 | 0 | 0 | 0 | 3932 | 1009 | 203 | 392 | 95665 | 7137593 | 873065 | 5.88 |
 
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 442 | 1.67 | 52 | 0.21 |
-| green | 6608 | 4.37 | 337 | 1.00 |
+| red | 442 | 1.67 | 99 | 0.37 |
+| green | 6608 | 4.37 | 549 | 1.65 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
-| exhausted | 0 | 0.00 | 24 | 0.11 |
+| exhausted | 0 | 0.00 | 71 | 0.24 |
 | diff | 0 | 0.00 | 0 | 0.00 |
 | red-supersede | 0 | 0.00 | 54 | 0.16 |
 | pin | 27 | 0.09 | 0 | 0.00 |
@@ -230,7 +276,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | `run_conductor.py` records the pid of the `claude -p` process it starts in the run's worktree `.tdd/conductor.pid` (`.tdd/wt/<n>/.tdd/conductor.pid` under the main working tree) before that process runs preflight: with a stubbed `CLAUDE_BIN` that reads the file at its start and reports its own pid, the recorded pid is the stub's and was already on disk when the stub started; pinned in `skills/tdd/scripts/tests/py/test_run_conductor_process.py` (a medium case, a real stub process) ⟦criterion 1⟧ | 28 | 8 | 4 | 1 | 1 | 0 | 816 | 172 | 338 | 81029 | 6026546 | 795848 | 4.43 | 1154 | red 2/2, green 3/2 | 0/5 | structural-owed |  |  | full |
 | skills/tdd/scripts/tests/py/test_run_conductor.py: the older cases that block the pid write are rewritten so each keeps pinning what it pins today without forbidding it: `test_main_launches_exactly_one_claude_with_the_fixed_print_mode_argv…` (all 3 parametrizations) still pins the exact `claude -p` argv and that exactly one `claude` is launched, but no longer pins `preexec_fn: None` or the launch's stdin wiring; the `…registered_as_a_worktree…_866` case stands up the run's worktree through `issue-worktree.sh` (or seeds `.tdd/conductor.pid` only after its `git worktree add`) instead of a plain `git worktree add` into a directory the conductor has already seeded; test file only, no production change ⟦diff-checked⟧ ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 30 | 8 | 16 | 3646 | 192741 | 69460 | 0.23 | 264 | n/a | n/a | n/a |  |  | full |
 | The existing cases that stand a plain live process (the test's own pid, a bare `sleep`) in a run's `.tdd/conductor.pid` as its live holder — in `skills/tdd/scripts/tests/py/test_issue_worktree.py`, `skills/tdd/scripts/tests/py/test_stop_run.py`, `skills/tdd/scripts/tests/py/unit/test_stop_run_cli.py`, `skills/tdd/scripts/tests/py/unit/test_pid_file.py` and any other suite reaching `pid_file.live_conductor` — are moved to a conductor-shaped holder (a process run as `claude` whose parent is `run_conductor.py`), each still asserting what it asserted and staying green against the current code; no production change ⟦diff-checked⟧ ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 57 | 14 | 28 | 7558 | 509164 | 56711 | 0.27 | 246 | n/a | n/a | n/a |  |  | full |
-| `pid_file.live_conductor(<run-dir>)` returns the recorded pid only when `kill -0` succeeds on it and that process is a conductor — a `claude` process whose parent is `run_conductor.py` — and returns None when the recorded pid now belongs to a live unrelated process, so a dead run whose pid was reused reads ended; no issue number is read or required ⟦criterion 2⟧ | 10 | 2 | 1 | 0 | 0 | 0 | 257 | 63 | 120 | 23974 | 2034416 | 231423 | 1.47 | unknown | 2/2 | unknown | unknown |  |  | full |
+| `pid_file.live_conductor(<run-dir>)` returns the recorded pid only when `kill -0` succeeds on it and that process is a conductor — a `claude` process whose parent is `run_conductor.py` — and returns None when the recorded pid now belongs to a live unrelated process, so a dead run whose pid was reused reads ended; no issue number is read or required ⟦criterion 2⟧ | 18 | 3 | 3 | 0 | 0 | 0 | 402 | 98 | 188 | 38161 | 3040247 | 389668 | 2.41 | unknown | 4/2 | unknown | unknown |  |  | full |
+| The five in-process cases in `skills/tdd/scripts/tests/py/test_stop_run.py` that stand a bare live pid (4242) in a run's `.tdd/conductor.pid` with `os.kill` faked to succeed and no `ps` answer for it (`test_main_accepts_a_mode_stop_modes_lists_and_writes_it_to_the_runs_stop_file`, `test_main_prints_each_stopped_run_exactly_answers_3_byte_for_byte_and_lists_all_runs_sorted_skipping_files_and_dot_names`, `test_main_now_terms_only_pids_whose_ps_runs_supervise_sh_of_their_name_ignoring_kill_errors_and_other_modes_signal_nothing`, `test_main_answers_as_stop_run_test_sh_s_refusal_write_overwrite_all_no_main_tree_and_pid_0_cases_do`, `test_main_refuses_no_issue_and_a_non_integer_and_stops_a_live_run_or_answers_3_for_a_dead_one`) are moved to a conductor-shaped holder, their fakes answering `ps` for the recorded pid with a `claude` whose parent is `run_conductor.py`, as 5ed2126aca did for the file's other cases; the step also carries step 6's earlier red-supersede edits to `skills/tdd/scripts/tests/py/unit/test_pid_file.py` and `skills/tdd/scripts/tests/py/unit/test_stop_run_cli.py` (preserved by preserve-attempt.sh); each case still asserts what it asserted and stays green against the current code; no production change ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 46 | 14 | 28 | 5530 | 429044 | 76336 | 0.29 | 263 | n/a | n/a | n/a |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -244,14 +291,14 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 23 | 19 | 5 | 23 | 12 | 5 | 7 | 5 | 27 | 31 | 26 | 13 | 15 | 7 | 18 | 8 | 4 | 3 | 6 | 6 | 18 | 21 | 19 | 18 | 5 | 6 | 19 | 19 | 18 | 20 | 44 | 37 | 3 | 3 | 17 | 18 | 17 | 16 | 3 | 3 | 69 | 67 | 50 | 32 | 17 | 4 | 3 | 4 | 3 | 4 | 4 | 22 | 3 |
-| fast | 22 | 24 | 22 | 23 | 23 | 26 | 42 | 26 | 23 | 23 | 23 | 22 | 23 | 24 | 26 | 22 | 25 | 46 | 23 | 24 | 23 | 23 | 23 | 22 | 22 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 3 | 1 | 4 | 4 | 5 | 0 | 6 | 4 | 1 | 4 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 23 | 19 | 5 | 23 | 12 | 5 | 7 | 5 | 27 | 31 | 26 | 13 | 15 | 7 | 18 | 8 | 4 | 3 | 6 | 6 | 18 | 21 | 19 | 18 | 5 | 6 | 19 | 19 | 18 | 20 | 44 | 37 | 3 | 3 | 17 | 18 | 17 | 16 | 3 | 3 | 69 | 67 | 50 | 32 | 17 | 4 | 3 | 4 | 3 | 4 | 4 | 22 | 3 | 9 | 3 | 4 |
+| fast | 22 | 24 | 22 | 23 | 23 | 26 | 42 | 26 | 23 | 23 | 23 | 22 | 23 | 24 | 26 | 22 | 25 | 46 | 23 | 24 | 23 | 23 | 23 | 22 | 22 | 31 | 23 | 22 | 22 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 3 | 1 | 4 | 4 | 5 | 0 | 6 | 4 | 1 | 4 | 4 | 4 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 345 | 678 | 156066 | 11457587 | 1557071 | 8.33 |
+| total | 394 | 774 | 175783 | 12892462 | 1791652 | 9.56 |
