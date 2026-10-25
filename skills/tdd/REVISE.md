@@ -22,16 +22,24 @@ The route runs with `VERI_STEP` set to the current step and its exit 0 writes a 
 
 For attempt `k = 1 … REVISE_BUDGET`:
 
-1. **Mirror.** Post a `### ♻️ Revise <phase> — attempt <k>/<REVISE_BUDGET>` comment carrying
+1. **Same reason?** First, before anything about attempt `k` is posted or logged, save the reason
+   attempt `k` answers under the attempt's own number, since the re-verify below (and, before it, the
+   red prediction check and the green frozen-tests check) overwrites `.tdd/verify-<phase>.reason`:
+   ```
+   cp .tdd/verify-<phase>.reason .tdd/verify-<phase>-<k>.reason
+   ```
+   On attempt 1 there is no previous attempt, so the comparison is skipped. For each attempt after
+   the first, run
+   `$S/same-reject.sh .tdd/verify-<phase>-<k-1>.reason .tdd/verify-<phase>.reason; echo $?`: on exit 0
+   (attempt `k-1` was rejected for the same reason it was revising) go to the `develop-exhausted` leaf
+   without posting attempt `k`'s comment, writing its `revise` mark or launching it; on exit 1 or
+   exit 2 continue the revise loop as today.
+2. **Mirror.** Post a `### ♻️ Revise <phase> — attempt <k>/<REVISE_BUDGET>` comment carrying
    the verifier's **rejection reason verbatim**, and mark the same attempt in the log:
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" VERI_PHASE=<phase> VERI_ATTEMPT=<k> $S/event.sh revise budget=<REVISE_BUDGET>
    ```
-   For each attempt after the first, run first
-   `$S/same-reject.sh <previous-reason-file> .tdd/verify-<phase>.reason; echo $?`: on exit 0 (the same
-   reason twice) go to the `develop-exhausted` leaf without launching the attempt; on exit 1 or exit 2
-   continue the revise loop as today.
-2. **Fresh developer leaf.** Build the revise prompt from the `revise` template, naming the
+3. **Fresh developer leaf.** Build the revise prompt from the `revise` template, naming the
    phase being redone and the **reason file** the verifier's stdout went to, then launch
    **through the supervisor** (exit **2 → bail**, system failure, after the stop check in
    *Launching a leaf*):
@@ -53,7 +61,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    which is every revise of green or refactor. `IMPOSSIBLE` is a legitimate answer, not a
    crash: the leaf says the objection cannot be met as stated. It still spends attempt `k` —
    re-verify below and let the blind verdict, not the leaf's own account, decide.
-3. **Check the prediction first (red only).** When `<phase>` is red the revise leaf rewrote
+4. **Check the prediction first (red only).** When `<phase>` is red the revise leaf rewrote
    the failing test and reported its own `PREDICTED_FAILURE:` and `PREDICTION:` lines, so run
    the same gate the Red section runs before anything reaches a verifier:
    ```
@@ -80,7 +88,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    as a REJECT that spends REVISE_BUDGET, and launch no verifier for that attempt. On tests-frozen exit 0 the verifier is launched as before.
    On tests-frozen exit 2 the check could not answer, so **bail** as a system failure, never a REJECT, and launch no verifier.
 
-4. **Re-verify (blind, same phase).**
+5. **Re-verify (blind, same phase).**
    ```
    rm -f .tdd/verdict-<phase>.exit .tdd/verdict-<phase>.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/detach-leaf.sh $S/supervise.sh verdict-<phase> $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" --fast-cmd '<fast-cmd>' <phase> .tdd/issue-<n>-spec.md <test-path> [target] > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err
