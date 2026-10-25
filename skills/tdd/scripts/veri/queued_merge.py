@@ -19,8 +19,12 @@ def _script(name, *args):
     return subprocess.run([os.path.join(SCRIPTS, name), *args]).returncode
 
 
+def _repo(pr):
+    return pr.removeprefix("https://github.com/").rsplit("/pull/", 1)[0]
+
+
 def ci_verdict(pr):
-    repo = pr.removeprefix("https://github.com/").rsplit("/pull/", 1)[0]
+    repo = _repo(pr)
     _, head, _ = pr_head(repo, pr)
     runs = json.loads(gh_api("repos/%s/commits/%s/check-runs" % (repo, head)).stdout)["check_runs"]
     return 1 if any(r.get("conclusion") and r["conclusion"].lower() not in PASSING for r in runs) else 0
@@ -42,6 +46,13 @@ def main(argv):
         code = _script("merge-lock.sh", "gate", "--keep", "--pid", pid, "--", "git", "-C", argv[1], *git_args)
         if code:
             return code
+    _, head, _ = pr_head(_repo(pr), pr)
+    code = _script("merge-lock.sh", "gate", "--pid", pid, "--", "gh", "pr", "merge", pr, "--rebase", "--match-head-commit", head)
+    if code:
+        return code
+    _script("merge-lock.sh", "release", "--pid", pid)
+    subprocess.run(["git", "-C", argv[1], "push", "origin", "--delete", argv[2]])
+    subprocess.run(["git", "-C", argv[1], "worktree", "remove", argv[1]])
     return 0
 
 
