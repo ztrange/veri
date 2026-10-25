@@ -778,14 +778,14 @@ def test_context_solvable_entry_names_the_conductor_pid_lock_and_a_live_holder_a
             bool(re.search(r"kill -0|alive|still running|live (conductor|process|run)", entry, re.IGNORECASE))) == (True, True)
 
 
-def test_skill_preflight_writes_the_long_lived_ppid_not_the_shells_pid_into_the_conductor_lock():
+def test_skill_preflight_never_writes_the_conductor_lock_itself_leaving_it_to_run_conductor_2249():
     lines = (REPO_ROOT / "skills" / "tdd" / "SKILL.md").read_text().splitlines()
     start = next(i for i, line in enumerate(lines) if line.startswith("### 0."))
     end = next((i for i, line in enumerate(lines) if i > start and line.startswith("### ")), len(lines))
     preflight = "\n".join(lines[start + 1:end])
 
-    assert (bool(re.search(r'> *"?\.tdd/conductor\.pid', preflight)),
-            bool(re.search(r'\$PPID[^>\n]*> *"?\.tdd/conductor\.pid', preflight))) == (True, True)
+    assert (bool(re.search(r'> *"?\.tdd/conductor\.pid', preflight)), "$PPID" in preflight,
+            "run_conductor.py" in preflight) == (False, False, True)
 
 
 def header_paragraphs():
