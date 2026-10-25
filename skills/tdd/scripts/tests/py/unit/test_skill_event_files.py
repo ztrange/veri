@@ -34,6 +34,15 @@ def unpointed_sends(text):
     return found
 
 
+def misplaced_pointers(text):
+    found = []
+    for event_file in EVENT_FILES:
+        for m in re.finditer(re.escape(f"`<base directory>/{event_file}`"), text):
+            if not re.match(r"\)?[.:](\s|\Z)", text[m.end():]):
+                found.append((event_file, text.count("\n", 0, m.start()) + 1))
+    return found
+
+
 def _lines():
     return SKILL.read_text().splitlines()
 
