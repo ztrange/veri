@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 2075
 
-Wall time for the issue: 3306 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1653 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Every figure in this report is wall-clock: the log carries no awake-clock reading, so time the machine spent asleep is counted in them.
 Steps done: 11 of 11 planned.
-Outcome: the run bailed — revise-exhausted, a process failure.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/2207.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $21.55 over 381 turns, in 10 sessions.
+Conductor own spending: $23.56 over 404 turns, in 11 sessions, on opus.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 85784 tokens, largest 124568 tokens
 Conductor context: first turn 86123 tokens, largest 135491 tokens
@@ -17,7 +17,8 @@ Conductor context: first turn 89200 tokens, largest 118278 tokens
 Conductor context: first turn 89488 tokens, largest 130012 tokens
 Conductor context: first turn 89805 tokens, largest 125971 tokens
 Conductor context: first turn 90043 tokens, largest 171343 tokens
-Conductor context: first turn 90363 tokens, largest 191238 tokens
+Conductor context: first turn 90363 tokens, largest 194111 tokens
+Conductor context: first turn 91137 tokens, largest 112508 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -336,70 +337,92 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 310 | $0.05 | 169832 |
 | 311 | $0.06 | 171009 |
 | 312 | $0.04 | 171343 |
-| 313 | $0.58 | 90363 |
-| 314 | $0.04 | 93024 |
+| 313 | $0.59 | 90363 |
+| 314 | $0.06 | 93024 |
 | 315 | $0.05 | 96613 |
-| 316 | $0.05 | 100515 |
-| 317 | $0.03 | 101973 |
-| 318 | $0.04 | 103910 |
-| 319 | $0.07 | 110233 |
-| 320 | $0.04 | 112406 |
-| 321 | $0.05 | 115419 |
-| 322 | $0.03 | 116742 |
-| 323 | $0.03 | 116965 |
-| 324 | $0.03 | 117216 |
-| 325 | $0.03 | 117440 |
-| 326 | $0.03 | 118160 |
+| 316 | $0.07 | 100515 |
+| 317 | $0.04 | 101973 |
+| 318 | $0.05 | 103910 |
+| 319 | $0.08 | 110233 |
+| 320 | $0.05 | 112406 |
+| 321 | $0.06 | 115419 |
+| 322 | $0.04 | 116742 |
+| 323 | $0.04 | 116965 |
+| 324 | $0.04 | 117216 |
+| 325 | $0.04 | 117440 |
+| 326 | $0.04 | 118160 |
 | 327 | $0.04 | 119748 |
-| 328 | $0.04 | 121429 |
-| 329 | $0.03 | 122342 |
-| 330 | $0.03 | 122958 |
-| 331 | $0.14 | 137031 |
-| 332 | $0.03 | 137385 |
-| 333 | $0.03 | 138103 |
-| 334 | $0.04 | 139181 |
-| 335 | $0.04 | 140993 |
-| 336 | $0.04 | 141932 |
-| 337 | $0.03 | 142643 |
-| 338 | $0.04 | 143684 |
-| 339 | $0.03 | 144049 |
-| 340 | $0.03 | 144361 |
-| 341 | $0.04 | 145677 |
-| 342 | $0.04 | 147244 |
-| 343 | $0.05 | 149728 |
+| 328 | $0.05 | 121429 |
+| 329 | $0.05 | 122342 |
+| 330 | $0.04 | 122958 |
+| 331 | $0.15 | 137031 |
+| 332 | $0.04 | 137385 |
+| 333 | $0.04 | 138103 |
+| 334 | $0.05 | 139181 |
+| 335 | $0.05 | 140993 |
+| 336 | $0.05 | 141932 |
+| 337 | $0.05 | 142643 |
+| 338 | $0.05 | 143684 |
+| 339 | $0.04 | 144049 |
+| 340 | $0.04 | 144361 |
+| 341 | $0.05 | 145677 |
+| 342 | $0.06 | 147244 |
+| 343 | $0.06 | 149728 |
 | 344 | $0.04 | 150420 |
-| 345 | $0.03 | 150687 |
+| 345 | $0.05 | 150687 |
 | 346 | $0.04 | 151381 |
-| 347 | $0.04 | 152218 |
-| 348 | $0.03 | 152515 |
-| 349 | $0.03 | 152984 |
-| 350 | $0.04 | 153683 |
-| 351 | $0.04 | 154518 |
-| 352 | $0.04 | 155422 |
-| 353 | $0.04 | 156029 |
-| 354 | $0.06 | 159873 |
-| 355 | $0.04 | 161312 |
+| 347 | $0.05 | 152218 |
+| 348 | $0.05 | 152515 |
+| 349 | $0.04 | 152984 |
+| 350 | $0.05 | 153683 |
+| 351 | $0.05 | 154518 |
+| 352 | $0.05 | 155422 |
+| 353 | $0.05 | 156029 |
+| 354 | $0.07 | 159873 |
+| 355 | $0.06 | 161312 |
 | 356 | $0.04 | 161786 |
-| 357 | $0.04 | 162763 |
-| 358 | $0.04 | 163331 |
-| 359 | $0.09 | 170941 |
-| 360 | $0.04 | 171678 |
-| 361 | $0.06 | 174345 |
-| 362 | $0.04 | 175135 |
-| 363 | $0.05 | 177133 |
-| 364 | $0.04 | 178272 |
-| 365 | $0.04 | 178714 |
-| 366 | $0.04 | 179274 |
-| 367 | $0.04 | 179958 |
-| 368 | $0.04 | 180968 |
-| 369 | $0.04 | 181596 |
-| 370 | $0.04 | 182008 |
-| 371 | $0.04 | 183062 |
-| 372 | $0.04 | 183532 |
-| 373 | $0.04 | 184099 |
-| 374 | $0.05 | 186361 |
-| 375 | $0.04 | 187018 |
-| 376 | $0.07 | 191238 |
+| 357 | $0.05 | 162763 |
+| 358 | $0.05 | 163331 |
+| 359 | $0.11 | 170941 |
+| 360 | $0.05 | 171678 |
+| 361 | $0.07 | 174345 |
+| 362 | $0.05 | 175135 |
+| 363 | $0.06 | 177133 |
+| 364 | $0.06 | 178272 |
+| 365 | $0.05 | 178714 |
+| 366 | $0.05 | 179274 |
+| 367 | $0.05 | 179958 |
+| 368 | $0.06 | 180968 |
+| 369 | $0.05 | 181596 |
+| 370 | $0.05 | 182008 |
+| 371 | $0.06 | 183062 |
+| 372 | $0.05 | 183532 |
+| 373 | $0.05 | 184099 |
+| 374 | $0.07 | 186361 |
+| 375 | $0.06 | 187018 |
+| 376 | $0.08 | 191238 |
+| 377 | $0.06 | 192545 |
+| 378 | $0.06 | 194111 |
+| 379 | $0.59 | 91137 |
+| 380 | $0.04 | 93759 |
+| 381 | $0.02 | 94223 |
+| 382 | $0.05 | 98355 |
+| 383 | $0.08 | 106290 |
+| 384 | $0.03 | 106859 |
+| 385 | $0.03 | 107388 |
+| 386 | $0.02 | 107636 |
+| 387 | $0.02 | 107957 |
+| 388 | $0.02 | 108202 |
+| 389 | $0.03 | 108798 |
+| 390 | $0.03 | 109213 |
+| 391 | $0.03 | 109773 |
+| 392 | $0.02 | 110147 |
+| 393 | $0.02 | 110361 |
+| 394 | $0.02 | 110681 |
+| 395 | $0.03 | 111302 |
+| 396 | $0.03 | 111760 |
+| 397 | $0.03 | 112095 |
+| 398 | $0.03 | 112508 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -412,7 +435,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | refactor | 5 | 1 | 0 | 0 | 94 | 41 | 17 | 32 | 3069 | 419482 | 97290 | 0.32 |
 | pin | 4 | 4 | 0 | 0 | 122 | 50 | 17 | 34 | 4916 | 461941 | 60359 | 0.25 |
 | diff | 2 | 1 | 0 | 0 | 349 | 73 | 14 | 28 | 3463 | 411389 | 34463 | 0.16 |
-| prose | 31 | 0 | 0 | 0 | 2624 | 2524 | 30 | 60 | 413250 | 37850 | 2911465 | 11.42 |
+| prose | 35 | 0 | 0 | 0 | 3097 | 2984 | 34 | 68 | 487893 | 42284 | 3357120 | 13.28 |
 | skill-edit | 18 | 0 | 0 | 0 | 2709 | 1077 | 168 | 336 | 135423 | 21049752 | 2403205 | 9.47 |
 | rebase | 3 | 0 | 1 | 0 | 921 | 111 | 39 | 76 | 11534 | 1271446 | 103514 | 0.50 |
 
@@ -470,6 +493,10 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | The guard's BAIL.md trigger in skills/tdd/scripts/tests/py/unit/test_skill_event_files.py also matches "bails as …", "bail with cause …", "bails with cause …", "→ bail", "is a bail" and a bare "bail" used as an instruction, bolded or not, while still ignoring headings, script names such as `classify-bail.sh`, cause tokens in backticks and sentences that only mention bailing, and the guard still reports nothing on the real SKILL.md; pinned by one small planted case per phrasing in skills/tdd/scripts/tests/py/unit/test_skill_event_pointer_guard.py; test files only, no production change ⟦guard-subject: skills/tdd/scripts/tests/py/unit/test_skill_event_files.py⟧ ⟦criterion 4⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.10 |
 | A pointer-placement check in skills/tdd/scripts/tests/py/unit/test_skill_event_files.py reports, by line, each `<base directory>/BAIL.md` pointer that does not end the sentence sending the run (after its last clause, before its final period), and accepts a pointer just before a `):` that ends a sentence introducing a code block; pinned by small planted cases in skills/tdd/scripts/tests/py/unit/test_skill_event_pointer_guard.py: one where a pointer before `):` ahead of a code block passes, one where a pointer before the final period passes, one where a pointer inside a clause is reported; test files only, no production change, no SKILL.md edit ⟦guard-subject: skills/tdd/scripts/tests/py/unit/test_skill_event_files.py⟧ ⟦added⟧ ⟦criterion 5⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.05 |
 
+#### Structural pass
+
+Stopped: nothing-structural
+
 #### Test-command seconds, by tier
 
 | tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s |
@@ -483,4 +510,4 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 439 | 864 | 634195 | 28058479 | 6256405 | 25.01 |
+| total | 443 | 872 | 708838 | 28062913 | 6702060 | 26.87 |
