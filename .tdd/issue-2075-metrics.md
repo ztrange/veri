@@ -1,13 +1,23 @@
 ### 📊 Metrics — issue 2075
 
-Wall time for the issue: 1568 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 3306 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Every figure in this report is wall-clock: the log carries no awake-clock reading, so time the machine spent asleep is counted in them.
-Steps done: 8 of 9 planned.
-Outcome: the run bailed — needs-user, a process failure.
+Steps done: 11 of 11 planned.
+Outcome: the run bailed — revise-exhausted, a process failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $17.51 over 313 turns, in 9 sessions.
+Conductor own spending: $21.55 over 381 turns, in 10 sessions.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
+Conductor context: first turn 85784 tokens, largest 124568 tokens
+Conductor context: first turn 86123 tokens, largest 135491 tokens
+Conductor context: first turn 87115 tokens, largest 123219 tokens
+Conductor context: first turn 87217 tokens, largest 144923 tokens
+Conductor context: first turn 88136 tokens, largest 130267 tokens
+Conductor context: first turn 89200 tokens, largest 118278 tokens
+Conductor context: first turn 89488 tokens, largest 130012 tokens
+Conductor context: first turn 89805 tokens, largest 125971 tokens
+Conductor context: first turn 90043 tokens, largest 171343 tokens
+Conductor context: first turn 90363 tokens, largest 191238 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -258,71 +268,138 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 242 | $0.04 | 124226 |
 | 243 | $0.05 | 125632 |
 | 244 | $0.03 | 125971 |
-| 245 | $0.58 | 90043 |
-| 246 | $0.02 | 90541 |
-| 247 | $0.04 | 92835 |
-| 248 | $0.03 | 94261 |
-| 249 | $0.04 | 96712 |
-| 250 | $0.02 | 97331 |
-| 251 | $0.02 | 97856 |
-| 252 | $0.02 | 98102 |
-| 253 | $0.02 | 98388 |
-| 254 | $0.02 | 98981 |
-| 255 | $0.05 | 102215 |
-| 256 | $0.07 | 108312 |
-| 257 | $0.03 | 109809 |
-| 258 | $0.03 | 110448 |
-| 259 | $0.03 | 110969 |
-| 260 | $0.02 | 111295 |
-| 261 | $0.03 | 111988 |
+| 245 | $0.59 | 90043 |
+| 246 | $0.03 | 90541 |
+| 247 | $0.05 | 92835 |
+| 248 | $0.04 | 94261 |
+| 249 | $0.05 | 96712 |
+| 250 | $0.03 | 97331 |
+| 251 | $0.04 | 97856 |
+| 252 | $0.03 | 98102 |
+| 253 | $0.03 | 98388 |
+| 254 | $0.03 | 98981 |
+| 255 | $0.06 | 102215 |
+| 256 | $0.08 | 108312 |
+| 257 | $0.04 | 109809 |
+| 258 | $0.04 | 110448 |
+| 259 | $0.04 | 110969 |
+| 260 | $0.03 | 111295 |
+| 261 | $0.04 | 111988 |
 | 262 | $0.03 | 112462 |
-| 263 | $0.03 | 113356 |
-| 264 | $0.03 | 114721 |
-| 265 | $0.03 | 115938 |
-| 266 | $0.03 | 116272 |
+| 263 | $0.04 | 113356 |
+| 264 | $0.05 | 114721 |
+| 265 | $0.04 | 115938 |
+| 266 | $0.04 | 116272 |
 | 267 | $0.03 | 116777 |
-| 268 | $0.03 | 117833 |
-| 269 | $0.03 | 118864 |
-| 270 | $0.03 | 119774 |
+| 268 | $0.04 | 117833 |
+| 269 | $0.05 | 118864 |
+| 270 | $0.04 | 119774 |
 | 271 | $0.03 | 120072 |
-| 272 | $0.03 | 120590 |
-| 273 | $0.03 | 121043 |
-| 274 | $0.03 | 121811 |
-| 275 | $0.03 | 122523 |
-| 276 | $0.03 | 122948 |
-| 277 | $0.03 | 123686 |
-| 278 | $0.03 | 124425 |
-| 279 | $0.03 | 125066 |
-| 280 | $0.03 | 125986 |
-| 281 | $0.03 | 126690 |
-| 282 | $0.03 | 127517 |
-| 283 | $0.03 | 128102 |
-| 284 | $0.04 | 129385 |
-| 285 | $0.03 | 130065 |
-| 286 | $0.09 | 137626 |
-| 287 | $0.03 | 137964 |
-| 288 | $0.03 | 138876 |
-| 289 | $0.04 | 140353 |
-| 290 | $0.03 | 141057 |
-| 291 | $0.03 | 141399 |
+| 272 | $0.04 | 120590 |
+| 273 | $0.04 | 121043 |
+| 274 | $0.04 | 121811 |
+| 275 | $0.04 | 122523 |
+| 276 | $0.04 | 122948 |
+| 277 | $0.04 | 123686 |
+| 278 | $0.04 | 124425 |
+| 279 | $0.04 | 125066 |
+| 280 | $0.04 | 125986 |
+| 281 | $0.04 | 126690 |
+| 282 | $0.04 | 127517 |
+| 283 | $0.04 | 128102 |
+| 284 | $0.05 | 129385 |
+| 285 | $0.04 | 130065 |
+| 286 | $0.10 | 137626 |
+| 287 | $0.04 | 137964 |
+| 288 | $0.04 | 138876 |
+| 289 | $0.05 | 140353 |
+| 290 | $0.05 | 141057 |
+| 291 | $0.04 | 141399 |
 | 292 | $0.04 | 142327 |
-| 293 | $0.04 | 143390 |
-| 294 | $0.03 | 143916 |
-| 295 | $0.03 | 144444 |
-| 296 | $0.03 | 145179 |
-| 297 | $0.04 | 146092 |
+| 293 | $0.05 | 143390 |
+| 294 | $0.04 | 143916 |
+| 295 | $0.05 | 144444 |
+| 296 | $0.04 | 145179 |
+| 297 | $0.05 | 146092 |
 | 298 | $0.04 | 147022 |
-| 299 | $0.04 | 148012 |
-| 300 | $0.04 | 148886 |
+| 299 | $0.05 | 148012 |
+| 300 | $0.05 | 148886 |
 | 301 | $0.04 | 149543 |
-| 302 | $0.04 | 150887 |
-| 303 | $0.04 | 152178 |
-| 304 | $0.09 | 160190 |
-| 305 | $0.04 | 161359 |
-| 306 | $0.04 | 162219 |
-| 307 | $0.04 | 163422 |
-| 308 | $0.07 | 167977 |
-| 309 | $0.04 | 168337 |
+| 302 | $0.05 | 150887 |
+| 303 | $0.05 | 152178 |
+| 304 | $0.11 | 160190 |
+| 305 | $0.05 | 161359 |
+| 306 | $0.05 | 162219 |
+| 307 | $0.05 | 163422 |
+| 308 | $0.08 | 167977 |
+| 309 | $0.05 | 168337 |
+| 310 | $0.05 | 169832 |
+| 311 | $0.06 | 171009 |
+| 312 | $0.04 | 171343 |
+| 313 | $0.58 | 90363 |
+| 314 | $0.04 | 93024 |
+| 315 | $0.05 | 96613 |
+| 316 | $0.05 | 100515 |
+| 317 | $0.03 | 101973 |
+| 318 | $0.04 | 103910 |
+| 319 | $0.07 | 110233 |
+| 320 | $0.04 | 112406 |
+| 321 | $0.05 | 115419 |
+| 322 | $0.03 | 116742 |
+| 323 | $0.03 | 116965 |
+| 324 | $0.03 | 117216 |
+| 325 | $0.03 | 117440 |
+| 326 | $0.03 | 118160 |
+| 327 | $0.04 | 119748 |
+| 328 | $0.04 | 121429 |
+| 329 | $0.03 | 122342 |
+| 330 | $0.03 | 122958 |
+| 331 | $0.14 | 137031 |
+| 332 | $0.03 | 137385 |
+| 333 | $0.03 | 138103 |
+| 334 | $0.04 | 139181 |
+| 335 | $0.04 | 140993 |
+| 336 | $0.04 | 141932 |
+| 337 | $0.03 | 142643 |
+| 338 | $0.04 | 143684 |
+| 339 | $0.03 | 144049 |
+| 340 | $0.03 | 144361 |
+| 341 | $0.04 | 145677 |
+| 342 | $0.04 | 147244 |
+| 343 | $0.05 | 149728 |
+| 344 | $0.04 | 150420 |
+| 345 | $0.03 | 150687 |
+| 346 | $0.04 | 151381 |
+| 347 | $0.04 | 152218 |
+| 348 | $0.03 | 152515 |
+| 349 | $0.03 | 152984 |
+| 350 | $0.04 | 153683 |
+| 351 | $0.04 | 154518 |
+| 352 | $0.04 | 155422 |
+| 353 | $0.04 | 156029 |
+| 354 | $0.06 | 159873 |
+| 355 | $0.04 | 161312 |
+| 356 | $0.04 | 161786 |
+| 357 | $0.04 | 162763 |
+| 358 | $0.04 | 163331 |
+| 359 | $0.09 | 170941 |
+| 360 | $0.04 | 171678 |
+| 361 | $0.06 | 174345 |
+| 362 | $0.04 | 175135 |
+| 363 | $0.05 | 177133 |
+| 364 | $0.04 | 178272 |
+| 365 | $0.04 | 178714 |
+| 366 | $0.04 | 179274 |
+| 367 | $0.04 | 179958 |
+| 368 | $0.04 | 180968 |
+| 369 | $0.04 | 181596 |
+| 370 | $0.04 | 182008 |
+| 371 | $0.04 | 183062 |
+| 372 | $0.04 | 183532 |
+| 373 | $0.04 | 184099 |
+| 374 | $0.05 | 186361 |
+| 375 | $0.04 | 187018 |
+| 376 | $0.07 | 191238 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -330,20 +407,21 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 14 | 12 | 1 | 2 | 1517 | 0 | 31702 | 0.09 |
-| red | 13 | 5 | 0 | 0 | 370 | 190 | 48 | 94 | 19647 | 1265972 | 273802 | 1.01 |
-| green | 13 | 4 | 2 | 0 | 1030 | 330 | 79 | 152 | 31609 | 2421619 | 217231 | 1.32 |
-| refactor | 4 | 1 | 0 | 0 | 87 | 36 | 15 | 28 | 2857 | 370157 | 82041 | 0.27 |
-| pin | 3 | 3 | 0 | 0 | 99 | 38 | 12 | 24 | 3502 | 318310 | 43741 | 0.18 |
+| red | 16 | 6 | 0 | 0 | 455 | 247 | 65 | 126 | 26452 | 1723344 | 364299 | 1.35 |
+| green | 15 | 5 | 2 | 0 | 1125 | 356 | 88 | 170 | 34571 | 2683275 | 250108 | 1.46 |
+| refactor | 5 | 1 | 0 | 0 | 94 | 41 | 17 | 32 | 3069 | 419482 | 97290 | 0.32 |
+| pin | 4 | 4 | 0 | 0 | 122 | 50 | 17 | 34 | 4916 | 461941 | 60359 | 0.25 |
 | diff | 2 | 1 | 0 | 0 | 349 | 73 | 14 | 28 | 3463 | 411389 | 34463 | 0.16 |
-| prose | 23 | 0 | 0 | 0 | 1734 | 1653 | 22 | 44 | 269445 | 27144 | 2106800 | 7.96 |
-| skill-edit | 14 | 0 | 0 | 0 | 2646 | 1026 | 150 | 300 | 130867 | 19325710 | 1974596 | 8.18 |
+| prose | 31 | 0 | 0 | 0 | 2624 | 2524 | 30 | 60 | 413250 | 37850 | 2911465 | 11.42 |
+| skill-edit | 18 | 0 | 0 | 0 | 2709 | 1077 | 168 | 336 | 135423 | 21049752 | 2403205 | 9.47 |
+| rebase | 3 | 0 | 1 | 0 | 921 | 111 | 39 | 76 | 11534 | 1271446 | 103514 | 0.50 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 17 | 15 | 2 | 0 | 916 | 249 | 63 | 126 | 22468 | 1699148 | 271170 | 1.07 |
-| developer | claude-sonnet-5-5 | 16 | 0 | 0 | 0 | 799 | 309 | 84 | 158 | 30677 | 2336843 | 347667 | 1.41 |
+| verifier | claude-sonnet-5-5 | 21 | 18 | 3 | 0 | 1419 | 310 | 84 | 166 | 29085 | 2243759 | 373374 | 1.45 |
+| developer | claude-sonnet-5-5 | 22 | 0 | 0 | 0 | 1427 | 459 | 135 | 258 | 46987 | 3975662 | 504218 | 2.13 |
 | developer | claude-opus-5-5 | 3 | 0 | 0 | 0 | 234 | 121 | 22 | 44 | 9450 | 751456 | 64143 | 0.55 |
 
 #### Rework and waste, by phase
@@ -356,8 +434,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | pin | 0 | 0.00 | 0 | 0.00 |
 | diff | 0 | 0.00 | 0 | 0.00 |
-| prose | 0 | 0.00 | 852 | 4.15 |
-| skill-edit | 0 | 0.00 | 1016 | 4.44 |
+| prose | 0 | 0.00 | 1216 | 5.74 |
+| skill-edit | 0 | 0.00 | 1061 | 5.35 |
+| rebase | 643 | 0.33 | 0 | 0.00 |
 | develop-green | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
@@ -375,6 +454,10 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | `skills/tdd/SKILL.md` gets EV1 and EV2 added to `skills/tdd/REQUIREMENTS.md` under `## skills/tdd/SKILL.md` exactly as the issue's `## Requirements` table states them, and its prose is edited so it satisfies both: the `Read` `<base directory>/BAIL.md` pointer is added to every sentence that sends the run into a bail by a phrasing other than a bolded "**bail**" (bolded or not: "bails as …", "bail with cause …", "bails with cause …", "→ bail", "is a bail", a bare "bail" used as an instruction) and names no BAIL.md pointer, and every `<base directory>/` event pointer that sits inside a clause or in a later sentence moves to the end of the sentence that sends the run, after its last clause and before its final period; nothing else changes; it grades PASS against its whole list and is signed: `prose-owed.sh` prints nothing for it; `GRADED` carries a line for the unit whose signature matches its current text; pin files: skills/tdd/scripts/tests/py/unit/test_skill_tests_frozen.py, skills/tdd/scripts/tests/py/unit/test_skill_stopping.py, skills/tdd/scripts/tests/py/unit/test_skill_resume_pointers.py, skills/tdd/scripts/tests/py/unit/test_skill_needs_user.py, skills/tdd/scripts/tests/py/unit/test_skill_draft_pr.py ⟦skill-edit⟧ ⟦criterion 3⟧ | 8 | 0 | 0 | 0 | 0 | 0 | 768 | 46 | 92 | 115803 | 5332255 | 1080506 | 4.39 | 18260 | unknown | unknown | unknown |  |  | full |
 | The guard's BAIL.md trigger in skills/tdd/scripts/tests/py/unit/test_skill_event_files.py also matches "bails as …", "bail with cause …", "bails with cause …", "→ bail", "is a bail" and a bare "bail" used as an instruction, bolded or not, while still ignoring headings, script names such as `classify-bail.sh`, cause tokens in backticks and sentences that only mention bailing, and the guard still reports nothing on the real SKILL.md; pinned by one small planted case per phrasing in skills/tdd/scripts/tests/py/unit/test_skill_event_pointer_guard.py; test files only, no production change ⟦guard-subject: skills/tdd/scripts/tests/py/unit/test_skill_event_files.py⟧ ⟦criterion 4⟧ | 9 | 2 | 2 | 0 | 0 | 0 | 208 | 46 | 92 | 19572 | 1444715 | 157315 | 0.95 | 695 | 2/2 | 0/5 | nothing-left |  |  | full |
 | Every `<base directory>/BAIL.md` pointer in skills/tdd/SKILL.md follows the last clause of the sentence it sits in, just before that sentence's final period; pinned by a small case in skills/tdd/scripts/tests/py/unit/test_skill_event_files.py that reads the real SKILL.md ⟦criterion 5⟧ | 4 | 2 | 0 | 0 | 0 | 0 | 74 | 24 | 46 | 7850 | 714417 | 79135 | 0.35 | unknown | unknown | unknown | unknown |  |  | full |
+| A pointer-placement check in skills/tdd/scripts/tests/py/unit/test_skill_event_files.py reports, by line, each `<base directory>/BAIL.md` pointer that does not end the sentence sending the run (after its last clause, before its final period), and accepts a pointer just before a `):` that ends a sentence introducing a code block; pinned by small planted cases in skills/tdd/scripts/tests/py/unit/test_skill_event_pointer_guard.py: one where a pointer before `):` ahead of a code block passes, one where a pointer before the final period passes, one where a pointer inside a clause is reported; test files only, no production change, no SKILL.md edit ⟦guard-subject: skills/tdd/scripts/tests/py/unit/test_skill_event_files.py⟧ ⟦added⟧ ⟦criterion 5⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 64 | 20 | 38 | 6634 | 506244 | 118364 | 0.41 | 254 | unknown | 0/5 | nothing-left |  |  | full |
+| The pointer-placement check run over the real skills/tdd/SKILL.md reports no misplaced `<base directory>/BAIL.md` pointer; pinned by a small case in skills/tdd/scripts/tests/py/unit/test_skill_event_files.py that reads the real SKILL.md; test files only, no production change, no SKILL.md edit ⟦added⟧ ⟦criterion 5⟧ | 4 | 1 | 1 | 0 | 0 | 0 | 94 | 36 | 70 | 11272 | 1110707 | 114613 | 0.51 | unknown | unknown | unknown | unknown |  |  | pin |
+| `skills/tdd/SKILL.md` is edited so it satisfies EV2 where the Draft PR regrade REJECTed it: the `Read` `<base directory>/RESUME.md` pointer in the preflight suite-red resume sentence ("`Read` `<base directory>/RESUME.md` for the check (`suite-red-resume.sh check`); on its exit 0 …") moves to the end of the sentence that sends the run, after its last clause and before its final period; nothing else changes; it grades PASS against its whole list and is signed: `prose-owed.sh` prints nothing for it; `GRADED` carries a line for the unit whose signature matches its current text ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 5⟧ | 4 | 0 | 0 | 0 | 0 | 0 | 324 | 24 | 48 | 49606 | 1165466 | 345870 | 1.48 | 310 | unknown | unknown | unknown |  |  | full |
+| `skills/tdd/SKILL.md`, as merged by the rebase onto main, is edited so it satisfies EV2 where the rebased tip's regrade REJECTed it ("`Read` `<base directory>/SKILL-EDIT.md` and run it in place of Red, Green and Refactor." read as a pointer mid-sentence); nothing else changes; it grades PASS against its whole list and is signed: `prose-owed.sh` prints nothing for it; `GRADED` carries a line for the unit whose signature matches its current text ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 5⟧ | 7 | 0 | 0 | 0 | 0 | 0 | 391 | 16 | 32 | 61117 | 1134463 | 710247 | 2.50 | unknown | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -385,17 +468,19 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | The event-pointer guard in skills/tdd/scripts/tests/py/unit/test_skill_event_files.py declares one table of event files and their trigger words, one row each for BAIL.md, PIN.md, REVISE.md, RECONCILE.md, STOPPING.md, RESUME.md and SKILL-EDIT.md, and reports by file and line each place that sends the run into an event without naming that event's file to `Read` under `<base directory>/`; pinned by a small case in skills/tdd/scripts/tests/py/unit/test_skill_event_pointer_guard.py that plants a bare "**bail**" instruction with no BAIL.md pointer and sees the guard name its file and line; test files only, no production change ⟦criterion 1⟧ ⟦guard-subject: skills/tdd/scripts/tests/py/unit/test_skill_event_files.py⟧ | 1 | 1/5 | nothing-structural | PASS | 0 | 70 | 0.12 |
 | The event-pointer guard in skills/tdd/scripts/tests/py/unit/test_skill_event_files.py reads a send and its pointer within the whole sentence that sends the run, however many lines that sentence spans, so a pointer at the end of a sentence several lines below its trigger counts and a pointer in a different sentence does not; pinned by small cases in skills/tdd/scripts/tests/py/unit/test_skill_event_pointer_guard.py; test files only, no production change ⟦guard-subject: skills/tdd/scripts/tests/py/unit/test_skill_event_files.py⟧ ⟦criterion 5⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 9 | 0.05 |
 | The guard's BAIL.md trigger in skills/tdd/scripts/tests/py/unit/test_skill_event_files.py also matches "bails as …", "bail with cause …", "bails with cause …", "→ bail", "is a bail" and a bare "bail" used as an instruction, bolded or not, while still ignoring headings, script names such as `classify-bail.sh`, cause tokens in backticks and sentences that only mention bailing, and the guard still reports nothing on the real SKILL.md; pinned by one small planted case per phrasing in skills/tdd/scripts/tests/py/unit/test_skill_event_pointer_guard.py; test files only, no production change ⟦guard-subject: skills/tdd/scripts/tests/py/unit/test_skill_event_files.py⟧ ⟦criterion 4⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.10 |
+| A pointer-placement check in skills/tdd/scripts/tests/py/unit/test_skill_event_files.py reports, by line, each `<base directory>/BAIL.md` pointer that does not end the sentence sending the run (after its last clause, before its final period), and accepts a pointer just before a `):` that ends a sentence introducing a code block; pinned by small planted cases in skills/tdd/scripts/tests/py/unit/test_skill_event_pointer_guard.py: one where a pointer before `):` ahead of a code block passes, one where a pointer before the final period passes, one where a pointer inside a clause is reported; test files only, no production change, no SKILL.md edit ⟦guard-subject: skills/tdd/scripts/tests/py/unit/test_skill_event_files.py⟧ ⟦added⟧ ⟦criterion 5⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.05 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 10 | 11 | 11 | 12 | 10 | 11 | 11 | 110 | 106 | 11 | 11 | 12 | 11 | 2 | 3 | 5 | 4 | 4 | 3 | 4 | 0 | 4 | 3 | 4 | 3 | 3 | 3 | 3 | 2 |
-| fast | 17 | 17 | 17 | 17 | 17 | 18 | 22 | 23 | 23 | 23 | 23 | 22 | 24 | 22 | 24 | 68 |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 11 | 11 | 10 | 11 | 11 | 3 | 5 | 3 | 1 | 4 | 3 | 4 | 5 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 10 | 11 | 11 | 12 | 10 | 11 | 11 | 110 | 106 | 11 | 11 | 12 | 11 | 2 | 3 | 5 | 4 | 4 | 3 | 4 | 0 | 4 | 3 | 4 | 3 | 3 | 3 | 3 | 2 | 1 | 4 | 3 | 3 | 3 | 3 | 3 | 3 |
+| fast | 17 | 17 | 17 | 17 | 17 | 18 | 22 | 23 | 23 | 23 | 23 | 22 | 24 | 22 | 24 | 68 | 24 | 23 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 11 | 11 | 10 | 11 | 11 | 3 | 5 | 3 | 1 | 4 | 3 | 4 | 5 | 4 | 3 | 3 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 170 | 183 | 187 | 204 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 341 | 672 | 462907 | 24140301 | 4764376 | 19.17 |
+| total | 439 | 864 | 634195 | 28058479 | 6256405 | 25.01 |
