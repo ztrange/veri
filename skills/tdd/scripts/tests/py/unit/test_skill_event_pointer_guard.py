@@ -67,3 +67,20 @@ def test_every_other_phrasing_that_sends_the_run_into_a_bail_is_reported_without
     ])
 
     assert sorted(line for event_file, line in guard.unpointed_sends(text) if event_file == "BAIL.md") == [1, 2, 3, 4, 5, 6]
+
+
+def test_a_pointer_before_a_colon_ahead_of_a_code_block_or_before_the_final_period_passes_and_one_inside_a_clause_is_reported():
+    """Subject is the guard: a pointer ends its sentence before '):' or the final period; one mid-clause is named by event file and line."""
+    colon = "\n".join([
+        "If the push is refused, bail (see `<base directory>/BAIL.md`):",
+        "",
+        "```",
+        "git push",
+        "```",
+    ])
+    period = "If the push is refused, **bail**, Read `<base directory>/BAIL.md`."
+    mid_clause = "If the push is refused, Read `<base directory>/BAIL.md` and then **bail** at once."
+
+    assert guard.misplaced_pointers(colon) == []
+    assert guard.misplaced_pointers(period) == []
+    assert guard.misplaced_pointers(mid_clause) == [("BAIL.md", 1)]
