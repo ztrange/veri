@@ -14,6 +14,7 @@ import platform
 import re
 import shutil
 import signal
+import subprocess
 import sys
 import tempfile
 import time
@@ -128,6 +129,8 @@ def worker_count(requested):
     if os.environ.get("PYTEST_XDIST_WORKER"):
         return 1
     cores = len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else os.cpu_count() or 1
+    if sys.platform == "darwin":
+        cores = int(subprocess.run(["sysctl", "-n", "hw.physicalcpu"], capture_output=True, text=True).stdout)
     return max(1, cores - registered_workers(legs_dir()))
 
 
