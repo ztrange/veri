@@ -221,7 +221,7 @@ def test_take_waits_on_a_live_holder_owned_by_another_user_instead_of_refusing(
 
 
 @pytest.mark.process("git init on a scratch repository, take run against a lock directory with no record")
-def test_take_exits_2_naming_the_record_path_and_leaves_the_lock_in_place_when_the_lock_exists_but_its_record_is_missing(
+def test_take_exits_0_holding_the_lock_when_release_force_removes_the_lock_directory_while_it_waits_on_a_directory_with_no_record(
         tmp_path, merge_lock, run_cli, monkeypatch):
     scratch_git(tmp_path, "init", "-q", "-b", "main")
     lock = tmp_path / ".tdd" / "merge.lock"
@@ -234,10 +234,11 @@ def test_take_exits_2_naming_the_record_path_and_leaves_the_lock_in_place_when_t
 
     monkeypatch.setattr(merge_lock.time, "sleep", release_on_wait)
 
-    taken = run_cli(merge_lock, ["take", "--pid", str(os.getpid())], cwd=tmp_path)
+    mine = str(os.getpid())
 
-    assert (taken[0], str(lock / "holder") in taken[2], lock.is_dir(), (lock / "holder").exists(), len(waits)) == (
-        2, True, True, False, 0)
+    taken = run_cli(merge_lock, ["take", "--pid", mine], cwd=tmp_path)
+
+    assert (taken[0], len(waits), (lock / "holder").read_text().split()[0]) == (0, 1, mine)
 
 
 @pytest.mark.process("git init on a scratch repository, take run against a lock whose record cannot be read")
