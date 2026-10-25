@@ -137,7 +137,7 @@ def test_skill_md_reaches_the_default_branch_the_issue_and_the_pr_through_the_he
     for n, line in enumerate(text.splitlines(), 1):
         if re.search(r"\bgh (repo view|issue (view|comment)|pr (create|view|edit|ready|comment))\b", line):
             problems.append(f"SKILL.md:{n}:{line}")
-    for route in ("gh_pr_ready", "lib/github.sh", "gh api ", "default_branch"):
+    for route in ("gh_pr_ready", "veri/github.py", "gh api ", "default_branch"):
         if route not in text:
             problems.append(f"SKILL.md never names {route}")
     assert not problems, problems
