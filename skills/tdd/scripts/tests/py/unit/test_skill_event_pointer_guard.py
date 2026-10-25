@@ -97,3 +97,20 @@ def test_a_mid_clause_pointer_in_a_send_is_reported_by_file_and_line_and_a_bare_
 
     assert guard.misplaced_send_pointers(send) == [("RESUME.md", 3)]
     assert guard.misplaced_send_pointers(bare) == []
+
+
+def test_a_send_into_a_refactor_kind_run_a_phased_step_or_the_structural_pass_without_its_pointer_is_reported_by_file_and_line():
+    """Subject is the guard: each planted send to REFACTOR-KIND.md, PHASED.md and STRUCTURAL.md is named by file and line until its pointer is added."""
+    bare = "\n".join([
+        "A **refactor-kind** run is planned as named refactorings, so run it when planning such a run.",
+        "",
+        "A step listing `⟦phases: …⟧` runs no Red phase, so run it when `next-unchecked.sh` hands over such a step.",
+        "",
+        "Then run the issue's **one structural pass**, once, before the PR is readied.",
+    ])
+    pointed = bare.replace("run it when planning such a run.", "`Read` `<base directory>/REFACTOR-KIND.md` and run it.")
+    pointed = pointed.replace("such a step.", "such a step: `Read` `<base directory>/PHASED.md`.")
+    pointed = pointed.replace("readied.", "readied: `Read` `<base directory>/STRUCTURAL.md`.")
+
+    assert sorted(guard.unpointed_sends(bare)) == [("PHASED.md", 3), ("REFACTOR-KIND.md", 1), ("STRUCTURAL.md", 5)]
+    assert guard.unpointed_sends(pointed) == []
