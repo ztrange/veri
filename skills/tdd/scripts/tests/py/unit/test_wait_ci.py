@@ -1010,6 +1010,38 @@ def test_main_exits_2_naming_draft_and_records_no_deadline_on_a_draft_pr_issue_2
     assert (code, "draft" in err, sorted(p.name for p in (work / ".tdd").iterdir())) == (2, True, [])
 
 
+def test_main_on_a_non_draft_pr_still_records_its_deadline_and_ends_0_green_1_red_2_past_it_3_pending_issue_2147(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    mark = work / ".tdd" / f"ci-deadline-{FULL_SHA}"
+    base = f"gh api repos/o/r/commits/{FULL_SHA}"
+    state = {"runs": []}
+
+    def answer(line):
+        if line == PULL:
+            return OPEN_PULL
+        if line == f"{base}/check-runs?page=1":
+            return json.dumps({"total_count": 1, "check_runs": state["runs"]})
+        if line == f"{base}/check-runs?page=2":
+            return json.dumps({"total_count": 1, "check_runs": []})
+        if line == f"{base}/status":
+            return json.dumps({"state": "pending", "sha": FULL_SHA, "total_count": 0, "statuses": []})
+
+    served(fake_processes, {}, answer)
+    observed = []
+    for conclusion in (None, "success", "failure"):
+        state["runs"] = [check_run("gates", FULL_SHA, "completed" if conclusion else "in_progress", conclusion)]
+        code, _, _ = run_cli(wait_ci, [PR, "120", "600", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+        observed.append((code, mark.exists()))
+    mark.write_text("0\n")
+    state["runs"] = [check_run("gates", FULL_SHA, "in_progress")]
+    code, _, _ = run_cli(wait_ci, [PR, "120", "600", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+    observed.append((code, mark.exists()))
+
+    assert observed == [(3, True), (0, True), (1, True), (2, True)]
+
+
 def test_main_counts_a_failed_read_of_the_checks_as_one_pending_poll_and_reads_again_issue_1553(
         tmp_path, wait_ci, fake_processes, run_cli):
     work = tmp_path / "work"
