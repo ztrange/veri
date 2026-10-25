@@ -1,0 +1,2 @@
+### grade-prose.sh run with a non-integer VERI_NO_VERDICT_RETRIES (e.g. abc), past its earlier checks, exits 2 with stderr naming VERI_NO_VERDICT_RETRIES and no Python traceback, launching no grader leaf (a small in-process case in skills/tdd/scripts/tests/py/unit/test_grade_prose.py) ⟦criterion 1⟧
+- out-of-bounds | share the VERI_NO_VERDICT_RETRIES non-negative-integer validation between grade_prose.py and verify.py as a helper in tunables.
