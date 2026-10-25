@@ -734,3 +734,12 @@ def test_append_records_an_in_step_candidate_whose_cover_answered_no_and_list_pr
 
     code = refactor_owed.main(["list", str(owed)])
     assert (code, capsys.readouterr().out) == (0, "fold the two awk passes into one\n")
+
+
+def test_append_records_nothing_for_an_in_step_candidate_whose_cover_answered_yes_2305(
+        monkeypatch, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    report = ("CANDIDATES: in-step | a.sh | fold x\n"
+              "COVERED: yes\n")
+    monkeypatch.setattr(sys, "stdin", io.StringIO(report))
+    assert (refactor_owed.main(["append", str(owed), "step one", "a.sh"]), owed.exists()) == (0, False)

@@ -5,6 +5,7 @@ import sys
 from collections import Counter
 
 from candidates import CLASSES, candidate
+from report import report_read
 
 USAGE = ("refactor-owed: usage: refactor-owed.sh append <file> '<STEP>' < leaf-report.txt\n"
          "                      refactor-owed.sh applied <file> '<transform>' <sha> '<subject>'\n"
@@ -68,8 +69,9 @@ def append(file, step, bounds):
               (TEST_ONLY, test_only, TEST_ONLY_PREFIX),
               (OUT_OF_SCOPE, out_of_scope, OUT_OF_SCOPE_PREFIX),
               (OUT_OF_BOUNDS, out_of_bounds, OUT_OF_BOUNDS_PREFIX))
+    uncovered = report_read(report, ("COVERED",)).get("COVERED") == "no"
     for line in report.split("\n"):
-        if match := IN_STEP.match(line):
+        if uncovered and (match := IN_STEP.match(line)):
             structural.append(match.group(1).partition(" | ")[2])
         for pattern, group, prefix in routes:
             if (match := pattern.match(line)) and match.group(1):
