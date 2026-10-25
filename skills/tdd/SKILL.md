@@ -606,8 +606,8 @@ three times over branches its ledger pinned on later lines.
    production untouched) is planned as `⟦diff-checked⟧` steps, whatever its label, refactor-kind or not.
 
    When the spec carries the `## Refactor` section `capture-spec.sh` writes for the `refactor`
-   label, `Read` and run `<base directory>/REFACTOR-KIND.md` when you plan, and on a resume before
-   the first step, since a resume skips the plan; read it then, not before.
+   label: when you plan, and on a resume before the first step since a resume skips the plan, and
+   not before, `Read` and run `<base directory>/REFACTOR-KIND.md`.
 2. **Commit the ledger** as the run's starting point. Before committing, run
    `$S/scope-check.sh .tdd/issue-<n>.md .`: it exits 1 when a step names a new `test_<x>.py` under
    `skills/tdd/scripts/tests/py/` whose basename already exists anywhere under it (pytest refuses
@@ -1432,8 +1432,8 @@ exit 0, ticking nothing on exit 3, as a `⟦diff-checked⟧` PASS does.
 
 #### A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier
 
-When `next-unchecked.sh` hands over a step listing `⟦phases: …⟧`, `Read` and run
-`<base directory>/PHASED.md` in place of Red, Green and Refactor, and read it then, not before.
+When `next-unchecked.sh` hands over a step listing `⟦phases: …⟧`, then and not before, in place
+of Red, Green and Refactor, `Read` and run `<base directory>/PHASED.md`.
 
 ### 4. Draft PR
 
@@ -1590,8 +1590,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
 
    Run `$S/refactor-owed.sh list .tdd/issue-<n>-refactor-owed.md` once, before the PR is readied.
-   When it prints a candidate (exit 0), `Read` and run `<base directory>/STRUCTURAL.md`, the
-   issue's one structural pass, and read it then, not before. On exit 3 the run never reads it.
+   When it prints a candidate (exit 0), then and not before, run the issue's one structural pass:
+   `Read` and run `<base directory>/STRUCTURAL.md`. On exit 3 the run never reads it.
    No candidate — `list` exits 3, and a missing `.tdd/issue-<n>-refactor-owed.md` is the
    `list` exit-3 case — skips the pass with no bail: it is marked `stopped=nothing-structural`
    before the PR is readied:
