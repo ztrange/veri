@@ -73,6 +73,7 @@ def _take(lock, record, args):
         except (OSError, ValueError, IndexError):
             if not os.path.isdir(lock):
                 continue
+            shutil.rmtree(staged, ignore_errors=True)
             print(f"merge-lock.sh: missing, unreadable or malformed holder record {record}", file=sys.stderr)
             return 2
         if not reported:
