@@ -1,0 +1,2 @@
+### `tests-frozen.sh check --step` on a fixture-repair step whose recorded Red case lives in the named fixture file exits 0 when Green changed that fixture file only outside the recorded case's body, while the recorded case itself stays frozen (a pytest case in skills/tdd/scripts/tests/py/test_tests_frozen_process.py) ⟦criterion 1⟧
+- test-only | the two new #2359 cases repeat the same repo setup and could share a helper
