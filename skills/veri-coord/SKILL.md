@@ -27,7 +27,10 @@ project specific (labels, test commands, where PRDs live).
    `$S/parked-issues.sh` (the parked set, from GitHub; exit 3 means none parked),
    `$S/solvable-issues.sh` (the queue in launch order), `gh pr list --state open` (PRs
    awaiting merge) and the target repo's CLAUDE.md.
-3. Arm the watch (below) and stay in it.
+3. Switch off every claude.ai connector loaded in this session, for this session only, with the
+   desktop app's per-session connector tool; never change the account's settings. The
+   coordinator needs none of them, and their tool definitions are re-read on every turn.
+4. Arm the watch (below) and stay in it.
 
 ## What you do and do not do
 
