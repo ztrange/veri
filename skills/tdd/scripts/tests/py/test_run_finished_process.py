@@ -125,15 +125,21 @@ def test_a_stale_run_exits_1_and_prints_a_not_done_line_naming_the_stale_state(t
 @pytest.mark.process("run-finished.sh on a running run")
 def test_a_running_run_exits_1_and_prints_a_not_done_line_naming_the_running_state(tmp_path):
     repo = make_run(tmp_path, [(LAUNCH % int(time.time()))[:-1] + ',"issue":"4242"}'])
-    conductor = tmp_path / "run-conductor.sh"
-    conductor.write_text("#!/bin/sh\nsleep 30\n")
+    claude = tmp_path / "claude"
+    claude.write_text("#!/bin/sh\nsleep 30\n")
+    claude.chmod(0o755)
+    conductor = tmp_path / "run_conductor.py"
+    conductor.write_text("#!/bin/sh\n\"$(dirname \"$0\")/claude\" &\necho $! > \"$2\"\nwait\n")
     conductor.chmod(0o755)
-    child = subprocess.Popen([str(conductor), "4242"])
+    claude_pid = tmp_path / "claude.pid"
+    child = subprocess.Popen([str(conductor), "4242", str(claude_pid)])
     try:
-        (repo / ".tdd" / "wt" / "4242" / ".tdd" / "conductor.pid").write_text("%d\n" % child.pid)
+        time.sleep(0.3)
+        (repo / ".tdd" / "wt" / "4242" / ".tdd" / "conductor.pid").write_text(claude_pid.read_text())
 
         code, out, _ = finish(repo, tmp_path)
     finally:
+        os.kill(int(claude_pid.read_text()), 9)
         child.kill()
         child.wait()
 
