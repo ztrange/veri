@@ -343,7 +343,6 @@
 | PL53 | After a conflicted rebase is resolved, the regrade block runs before `verify-rebase` is launched, so the verifier judges a tip whose `GRADED` lines are current. | A `GRADED` line made stale only by the rebase is not a defect in the resolution, and rejecting it spends a revise attempt on work the procedure does next anyway. |
 | PL54 | In the Draft PR step's conflicted-rebase paragraph, the regrade that runs before `verify-rebase` writes no `revise` mark and spends no `REVISE_BUDGET` attempt: a `GRADED` line made stale only by the rebase is no defect of the resolution. | The revise budget is for rejected work; spending it on a signature the procedure refreshes anyway would bail runs whose resolution was correct. |
 | EV1 | Every sentence that sends the run into an event (a bail, phrased as "**bail**", "bails as …", "bail with cause …", "bails with cause …", "→ bail", "is a bail" or a bare "bail" instruction, bolded or not; a resume; a skill-edit step) names the file to Read for that event under `<base directory>/` (`BAIL.md`, `RESUME.md`, `SKILL-EDIT.md`). | A leaf or conductor that reaches an event with no pointer improvises the procedure instead of reading it (PRD 010). |
-| EV2 | Each `<base directory>/` event pointer ends the sentence that sends the run, after its last clause and before its final period, never inside a clause or in a later sentence. | A pointer mid-clause or one sentence away reads as belonging to a different instruction. |
 
 ## skills/tdd/PIN.md
 
