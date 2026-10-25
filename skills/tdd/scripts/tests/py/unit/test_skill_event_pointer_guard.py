@@ -84,3 +84,16 @@ def test_a_pointer_before_a_colon_ahead_of_a_code_block_or_before_the_final_peri
     assert guard.misplaced_pointers(colon) == []
     assert guard.misplaced_pointers(period) == []
     assert guard.misplaced_pointers(mid_clause) == [("BAIL.md", 1)]
+
+
+def test_a_mid_clause_pointer_in_a_send_is_reported_by_file_and_line_and_a_bare_mention_in_a_sentence_that_sends_nothing_is_not():
+    """Subject is the guard: only a pointer inside a sentence that sends the run into its event, and does not end it, is named."""
+    send = "\n".join([
+        "## Some section",
+        "",
+        "If the run stops, resume at `<base directory>/RESUME.md` and read the ledger.",
+    ])
+    bare = "The ledger is described in `<base directory>/RESUME.md` and in the glossary."
+
+    assert guard.misplaced_send_pointers(send) == [("RESUME.md", 3)]
+    assert guard.misplaced_send_pointers(bare) == []

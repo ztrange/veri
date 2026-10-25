@@ -43,6 +43,22 @@ def misplaced_pointers(text):
     return found
 
 
+def misplaced_send_pointers(text):
+    ends = [m.end() for m in re.finditer(r"\.(?=\s|\Z)", text)] + [len(text)]
+    found = []
+    for event_file, trigger in EVENT_FILES.items():
+        pointer = f"`<base directory>/{event_file}`"
+        start = 0
+        for end in ends:
+            sentence = text[start:end]
+            if re.search(trigger, sentence):
+                for m in re.finditer(re.escape(pointer), sentence):
+                    if not re.match(r"\)?[.:](\s|\Z)", sentence[m.end():]):
+                        found.append((event_file, text.count("\n", 0, start + m.start()) + 1))
+            start = end
+    return found
+
+
 def _lines():
     return SKILL.read_text().splitlines()
 
