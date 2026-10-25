@@ -57,6 +57,45 @@ def test_two_takers_racing_for_a_free_lock_end_with_one_holding_it_and_the_other
         sleeper.wait()
 
 
+@pytest.mark.process("a merge-lock.sh take shim blocked reading a holder record that its release removes, in a scratch repository")
+def test_2381_take_waiting_on_a_held_lock_whose_release_removes_it_mid_read_exits_0_holding_the_lock(tmp_path):
+    subprocess.run(["git", "-C", str(tmp_path), "init", "-q", "-b", "main"], check=True)
+    lock = tmp_path / ".tdd" / "merge.lock"
+    lock.mkdir(parents=True)
+    record = lock / "holder"
+    os.mkfifo(record)
+    env = {**os.environ, "VERI_MERGE_LOCK_POLL": "0.05"}
+    sleeper = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+    taker = subprocess.Popen(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), "take", "--pid", str(sleeper.pid)],
+                             cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, text=True)
+    try:
+        deadline = time.monotonic() + 20
+        writer = None
+        while writer is None and taker.poll() is None and time.monotonic() < deadline:
+            try:
+                writer = os.open(record, os.O_WRONLY | os.O_NONBLOCK)
+            except OSError:
+                time.sleep(0.02)
+        if writer is not None:
+            subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), "release", "--force"],
+                           cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True, check=True)
+            os.close(writer)
+        try:
+            taker.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            taker.kill()
+        held = subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), "holder"], cwd=tmp_path, env=env,
+                              stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, text=True)
+        assert (taker.returncode, str(sleeper.pid) in held.stdout.split()) == (0, True)
+    finally:
+        if taker.poll() is None:
+            taker.kill()
+        taker.communicate()
+        sleeper.kill()
+        sleeper.wait()
+
+
 @pytest.mark.process("a merge-lock.sh take shim waiting on a stale lock in a scratch repository, then release --force")
 def test_take_on_a_stale_lock_reports_the_stale_holder_on_stderr_and_waits_with_the_lock_in_place_until_release_force(
         tmp_path):
