@@ -15,3 +15,4 @@
 | M11 | The tag is `vN.M`, chosen with `--sort=-v:refname`, with the capability in the issue's words as its message. | Lexically `v0.9` > `v0.10`. |
 | M12 | It reports one line: PR url, merge sha, tag. | |
 | M13 | It does not merge a run that ended with an open question for the human. | Merging would answer the question for them. |
+| M14 | A merge that stops because CI is red, or because a gate before the merge refuses, releases the merge lock before it exits; only a conflict or a refused push (M4) keeps it held. | A red-CI stop otherwise blocks every later merge until the lock is removed by hand (#2224 waited 31 min). |
