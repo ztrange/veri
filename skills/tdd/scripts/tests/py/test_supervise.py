@@ -7,6 +7,7 @@ import sys
 
 import pytest
 
+from leaf_waits import leaf_left, leaf_started
 from pass_marker import write_pass_marker
 
 
@@ -3163,6 +3164,7 @@ def test_cli_records_its_own_pid_before_the_leaf_launches_and_preserves_the_rela
 
 
 @pytest.mark.process("a real TERM, INT and HUP delivered to the supervising process, a real leaf, and wait-leaf.sh run against a live supervisor.sh")
+@pytest.mark.timeout(300)
 def test_cli_on_term_int_or_hup_writes_2_exits_2_and_leaves_no_leaf_while_an_ignored_int_lets_the_leaf_finish_with_its_own_0_and_wait_leaf_against_a_live_supervisor_exits_3_silently(
         monkeypatch, tmp_path, supervise, run_cli):
     import signal
@@ -3180,12 +3182,11 @@ def test_cli_on_term_int_or_hup_writes_2_exits_2_and_leaves_no_leaf_while_an_ign
     monkeypatch.setattr(os, "_exit", exit_now)
 
     def leaf_pid(work):
-        for _ in range(500):
+        def read_pid():
             text = (work / "leaf-pid").read_text() if (work / "leaf-pid").exists() else ""
-            if text.strip():
-                return int(text)
-            time.sleep(0.02)
-        raise AssertionError("the leaf never started")
+            return int(text) if text.strip() else None
+
+        return leaf_started(read_pid, time.sleep, time.monotonic)
 
     def sent(work, sig, then=None):
         def deliver():
@@ -3203,11 +3204,7 @@ def test_cli_on_term_int_or_hup_writes_2_exits_2_and_leaves_no_leaf_while_an_ign
         sent(work, sig)
         code, _, _ = run_cli(supervise, ["develop-red", "sh", "-c", held], cwd=work, env=window)
         pid = int((work / "leaf-pid").read_text())
-        for _ in range(20):
-            if not alive(pid):
-                break
-            time.sleep(0.1)
-        left = alive(pid)
+        left = leaf_left(pid, alive, time.sleep, time.monotonic)
         if left:
             os.kill(pid, signal.SIGKILL)
         return code, (work / ".tdd" / "develop-red.exit").read_text(), left
