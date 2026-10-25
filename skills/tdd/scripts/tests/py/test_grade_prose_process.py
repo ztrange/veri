@@ -1093,3 +1093,67 @@ def test_2338_a_grade_with_no_fail_row_launches_the_grader_exactly_once_and_exit
                                "STUB_LAUNCHES": str(launches)})
 
     assert (done.returncode, len(launches.read_text()) if launches.exists() else 0) == (0, 1), done.stdout + done.stderr
+
+
+@pytest.mark.parametrize("regrade", [
+    "exit 1",
+    """printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"I could not grade these rows."}'""",
+], ids=["leaf-exits-non-zero", "reply-has-no-grades-block"])
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_2338_a_regrade_that_returns_no_verdict_makes_grade_prose_exit_2_with_no_stdout_and_no_event(tmp_path, regrade):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text("""#!/bin/sh
+cat > /dev/null
+echo call >> "$STUB_CALLS"
+n=$(wc -l < "$STUB_CALLS" | tr -d ' ')
+if [ "$n" != 1 ]; then
+""" + regrade + """
+  exit 0
+fi
+printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"BEGIN GRADES\\nA1: PASS - ok\\nA2: FAIL - hums-quokka\\nVERDICT: REJECT\\nEND GRADES"}'
+""")
+    claude.chmod(0o755)
+
+    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                          capture_output=True, text=True, timeout=25,
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt"),
+                               "STUB_CALLS": str(tmp_path / "calls.txt"), "VERI_STUCK_RETRIES": "0"})
+
+    events = tmp_path / ".tdd" / "events.jsonl"
+    graded = [l for l in (events.read_text().splitlines() if events.exists() else []) if "grading" in l]
+    assert (done.returncode, "no verdict obtained" in done.stderr, done.stdout, graded) == (2, True, "", []), \
+        (done.returncode, done.stdout, done.stderr, graded)
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_2338_a_regrade_block_that_leaves_out_an_asked_fail_row_makes_grade_prose_exit_2_with_no_stdout_and_no_event(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text("""#!/bin/sh
+cat > /dev/null
+echo call >> "$STUB_CALLS"
+n=$(wc -l < "$STUB_CALLS" | tr -d ' ')
+if [ "$n" != 1 ]; then
+  printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"BEGIN GRADES\\nA1: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}'
+  exit 0
+fi
+printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"BEGIN GRADES\\nA1: PASS - ok\\nA2: FAIL - hums-quokka\\nVERDICT: REJECT\\nEND GRADES"}'
+""")
+    claude.chmod(0o755)
+
+    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                          capture_output=True, text=True, timeout=25,
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt"),
+                               "STUB_CALLS": str(tmp_path / "calls.txt"), "VERI_STUCK_RETRIES": "0"})
+
+    events = tmp_path / ".tdd" / "events.jsonl"
+    graded = [l for l in (events.read_text().splitlines() if events.exists() else []) if "grading" in l]
+    assert (done.returncode, "no verdict obtained" in done.stderr, done.stdout, graded) == (2, True, "", []), \
+        (done.returncode, done.stdout, done.stderr, graded)
