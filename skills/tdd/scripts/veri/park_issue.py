@@ -18,22 +18,17 @@ def main(argv):
             sys.stderr.write("park-issue.sh: bad %s\n" % name)
             return 2
     pr = "PR: %s\n" % argv[3] if len(argv) == 4 else ""
-    try:
-        github.gh_label_ensure("parked")
-        github.gh_issue_add_label(number, "parked")
-    except github.NoAnswer:
-        sys.stderr.write("park-issue.sh: no answer from gh to the label call\n")
-        return 2
-    try:
-        github.gh_issue_comment(number, github.PARKED_HEADING + "\nCause: %s\n%sUnblock: %s\n" % (cause, pr, unblock))
-    except github.NoAnswer:
-        sys.stderr.write("park-issue.sh: no answer from gh to the comment call\n")
-        return 2
+    writes = [
+        ("label", lambda: (github.gh_label_ensure("parked"), github.gh_issue_add_label(number, "parked"))),
+        ("comment", lambda: github.gh_issue_comment(number, github.PARKED_HEADING + "\nCause: %s\n%sUnblock: %s\n" % (cause, pr, unblock))),
+    ]
     if len(argv) == 4:
+        writes.append(("PR write", lambda: github.gh_issue_add_label(argv[3], "parked")))
+    for name, write in writes:
         try:
-            github.gh_issue_add_label(argv[3], "parked")
+            write()
         except github.NoAnswer:
-            sys.stderr.write("park-issue.sh: no answer from gh to the PR write\n")
+            sys.stderr.write("park-issue.sh: no answer from gh to the %s%s\n" % (name, "" if name == "PR write" else " call"))
             return 2
     return 0
 
