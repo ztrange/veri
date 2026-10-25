@@ -20,7 +20,6 @@ Invoked as `/veri-handoff dev|coord`. The role is the one argument. Resume is
 
 For the dev role, refuse, say which, and write nothing while:
 
-- a merge is in flight;
 - `$S/merge-lock.sh holder` names a live holder (a stale lock, whose holder is gone, does not refuse);
 - a launch is half done (a worktree or claim exists without its conductor running).
 
