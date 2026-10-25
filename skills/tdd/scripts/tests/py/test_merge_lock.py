@@ -195,3 +195,25 @@ def test_take_makes_the_lock_directory_visible_only_with_its_holder_record_compl
     taken = run_cli(merge_lock, ["take", "--pid", str(os.getpid())], cwd=tmp_path)
 
     assert (taken[0], bool(seen), all(seen)) == (0, True, True)
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root owns pid 1, so it is not another user's")
+@pytest.mark.process("git init on a scratch repository, two takes run from it, ps reading pid 1's start time")
+def test_take_waits_on_a_live_holder_owned_by_another_user_instead_of_refusing(
+        tmp_path, merge_lock, run_cli, monkeypatch):
+    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    lock = tmp_path / ".tdd" / "merge.lock"
+    run_cli(merge_lock, ["take", "--pid", "1"], cwd=tmp_path)
+    waits = []
+
+    def release_on_wait(seconds):
+        waits.append(seconds)
+        shutil.rmtree(lock)
+
+    monkeypatch.setattr(merge_lock.time, "sleep", release_on_wait)
+    mine = str(os.getpid())
+
+    taken = run_cli(merge_lock, ["take", "--pid", mine], cwd=tmp_path)
+
+    assert (taken[0], len(waits), "stale" in taken[2].lower(), (lock / "holder").read_text().split()[0]) == (
+        0, 1, False, mine)
