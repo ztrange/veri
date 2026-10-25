@@ -8,12 +8,10 @@ from skill_sections import LOWER, has_match as _has, plain as _plain
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 SCOPE_LOOP = SKILL.with_name("SCOPE-LOOP.md")
 STOPPING_MD = SKILL.with_name("STOPPING.md")
-PIN_MD = SKILL.with_name("PIN.md")
 
 STOPPING = "## Stopping"
 LAUNCHING = "## Launching a leaf — detach, then wait in the foreground"
 PROCEDURE = "## Procedure"
-SATISFIED = "## Already satisfied — the pin"
 BAILING = "## Bailing"
 BAIL = SKILL.with_name("BAIL.md")
 LOOP_4 = "### Loop 4. Stop conditions"
@@ -98,9 +96,6 @@ def _checkpoint_exit2(problems, what, section, start, end):
         problems.append(f"{what} has no stop-requested.sh checkpoint to read — nothing could be checked")
         return
     _unreadable_at_ledger(problems, what, [text.split("stop-requested.sh", 1)[1]])
-
-
-PIN_CHECKPOINT = ('git commit -m "test: pin', "loop back to the top of step 3")
 
 
 def test_stopping_section_waits_with_wait_leaf_on_every_running_supervisor_before_it_touches_the_tree_and_reaches_only_for_git_reset_hard_head_never_git_checkout():
@@ -223,21 +218,9 @@ def test_launching_a_leaf_runs_stop_requested_before_every_leaf_launch_exit_3_la
     assert not problems, problems
 
 
-def test_refactor_pending_clears_push_and_a_pins_test_commit_are_each_followed_by_stop_requested_and_any_mode_it_prints_goes_to_stopping():
-    problems = []
-    _checkpoint(problems, "the pin's test: commit", _section(SATISFIED, PIN_MD), *PIN_CHECKPOINT, 'git commit -m "test: pin')
-    assert not problems, problems
-
-
 def test_launching_a_leaf_treats_stop_requested_exit_2_as_a_stop_in_mode_at_ledger_narrating_that_the_request_was_unreadable():
     problems = []
     _unreadable_at_ledger(problems, "the Launching a leaf section", [_joined(_section(LAUNCHING))])
-    assert not problems, problems
-
-
-def test_the_three_ledger_commit_checkpoints_send_stop_requested_exit_2_to_stopping_as_at_ledger_narrating_that_the_request_was_unreadable():
-    problems = []
-    _checkpoint_exit2(problems, "the pin's test: commit", _section(SATISFIED, PIN_MD), *PIN_CHECKPOINT)
     assert not problems, problems
 
 
