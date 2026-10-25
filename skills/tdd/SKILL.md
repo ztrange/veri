@@ -1781,7 +1781,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    run remembers it, so a resumed run edits the PR its branch already has:
    ```
    gh api 'repos/{owner}/{repo}/pulls?head={owner}:{branch}' -q '.[0].html_url // empty'   # → <pr-url>, the PR step 2.3 opened; <pr-number> is its last path segment
-   . $S/lib/github.sh && gh_pr_ready <pr-number> "$(git rev-parse HEAD)"
+   $S/pr-ready.sh <pr-number> "$(git rev-parse HEAD)"
    $S/wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)" > .tdd/wait-ci.out 2> .tdd/wait-ci.err; ci=$?    # exit 3 → run this line again, in a new Bash call
    grep -F 'conflicts with its base branch' .tdd/wait-ci.err > /dev/null; conflict=$?
    [ "$ci" != 2 ] || [ "$conflict" = 0 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
@@ -1795,6 +1795,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    That call passes no `--criterion` on purpose: the repair step serves its anchor's criterion.
    **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see `<base directory>/BAIL.md`.
+   When `pr-ready.sh` exits non-zero, `wait-ci.sh` is not run, so no CI deadline is started, and the run **bails** as a **system** failure (`no-verdict`) with the PR left a draft (`Read` `<base directory>/BAIL.md`).
    A `ci-timeout` or `ci-red` bail ends the step there, and neither the `done` mark nor the
    `metrics:` commit below follows it (`Read` `<base directory>/BAIL.md`). Otherwise:
    ```
@@ -1864,7 +1865,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    and the issue's wall time: a report rendered before it exists says `unknown` for both. The
    body is rewritten only after the `metrics:` commit is pushed, so it never quotes a file the
    branch does not yet carry. The title drops the `WIP:` prefix step 2.3 opened it with, and
-   `gh_pr_ready` is what turns the run's claim into a review request: a finished run that left
+   `gh_pr_ready` (in `lib/github.sh`, run by `pr-ready.sh`, never sourced into the conductor's shell) is what turns the run's claim into a review request: a finished run that left
    a draft behind asks nobody to look.
    `<type>` is **`fix`** on a bug run — the issue carries the `bug` label, so the title
    starts with the `fix:` prefix, the same prefix its green commits took — **`refactor`** on
