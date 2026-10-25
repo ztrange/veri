@@ -303,11 +303,41 @@ def hermetic_environment(request, monkeypatch, tmp_path, tmp_path_factory):
     monkeypatch.setenv("LC_ALL", "C")
     monkeypatch.setenv("VERI_PYTEST_LEGS", str(tmp_path / "veri-pytest-legs"))
     monkeypatch.setenv("VERI_MIN_FREE_GB", "0")
+    inherited = os.path.realpath(tempfile.tempdir or os.environ.get("TMPDIR") or "/tmp")
+    basetemp = os.path.realpath(tmp_path_factory.getbasetemp())
     case_tmpdir = str(tmp_path_factory.mktemp("tmpdir"))
     monkeypatch.setenv("TMPDIR", case_tmpdir)
     monkeypatch.setattr(tempfile, "tempdir", case_tmpdir)
     for name, value in offline.items():
         monkeypatch.setenv(name, value)
+
+    def refuse_inherited_tmpdir(path, frame):
+        if not isinstance(path, (str, bytes, os.PathLike)):
+            return
+        name = os.path.basename(frame.f_code.co_filename)
+        target = os.path.realpath(os.fsdecode(path))
+        if (name.startswith(("test_", "conftest")) and target.startswith(inherited + os.sep)
+                and not target.startswith(basetemp + os.sep)):
+            raise AssertionError("%s creates %s in the inherited TMPDIR %s at %s:%d"
+                                 % (request.node.nodeid, os.fsdecode(path), inherited, frame.f_code.co_filename, frame.f_lineno))
+
+    real_open, real_mkdir, real_os_open = builtins.open, os.mkdir, os.open
+
+    def guarded_open(file, *rest, **kwargs):
+        refuse_inherited_tmpdir(file, caller_outside_pathlib())
+        return real_open(file, *rest, **kwargs)
+
+    def guarded_mkdir(path, *rest, **kwargs):
+        refuse_inherited_tmpdir(path, caller_outside_pathlib())
+        return real_mkdir(path, *rest, **kwargs)
+
+    def guarded_os_open(path, flags, *rest, **kwargs):
+        refuse_inherited_tmpdir(path, caller_outside_pathlib())
+        return real_os_open(path, flags, *rest, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", guarded_open)
+    monkeypatch.setattr(os, "mkdir", guarded_mkdir)
+    monkeypatch.setattr(os, "open", guarded_os_open)
 
 
 def fail_unbacked_push(request):
@@ -533,9 +563,13 @@ def case_starts_no_test_runner(request, monkeypatch):
 PATHLIB_SOURCE = os.path.splitext(pathlib.__file__)[0].removesuffix("__init__")
 
 
+GUARD_WRAPPERS = {"checked", "checked_mkdir", "checked_os_open", "guarded_open", "guarded_mkdir", "guarded_os_open"}
+
+
 def caller_outside_pathlib():
     frame = sys._getframe(2)
-    while frame.f_code.co_filename.startswith(PATHLIB_SOURCE):
+    while frame.f_code.co_filename.startswith(PATHLIB_SOURCE) or (
+            frame.f_code.co_filename == __file__ and frame.f_code.co_name in GUARD_WRAPPERS):
         frame = frame.f_back
     return frame
 
