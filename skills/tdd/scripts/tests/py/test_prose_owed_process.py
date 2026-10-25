@@ -94,3 +94,14 @@ def test_a_repo_root_that_does_not_exist_is_refused_with_exit_2_and_a_one_line_p
                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV})
 
     assert (run.returncode, run.stderr.startswith("prose-owed.sh: FileNotFoundError: "), run.stderr.count("\n")) == (2, True, 1), run.stderr
+
+
+@pytest.mark.process("prose-owed.sh run as a script")
+@pytest.mark.tree_audit("the repository's own graded prose units")
+def test_2307_this_repository_owes_no_grade_for_any_prose_unit():
+    repo = SCRIPTS.parents[2]
+
+    ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(repo)], stdin=subprocess.DEVNULL,
+                         capture_output=True, text=True)
+
+    assert (ran.returncode, ran.stdout) == (0, ""), ran.stderr
