@@ -164,10 +164,8 @@ def test_the_system_location_guard_fails_planted_cases_that_read_mkdir_or_create
     for name, call in calls.items():
         source += "def test_%s():\n    %s\n\n" % (name, call)
     source += (
-        "def test_creates_under_tmp(tmp_path):\n"
-        "    made = pathlib.Path('/tmp') / ('veri-planted-' + str(os.getpid()))\n"
-        "    made.mkdir()\n"
-        "    made.rmdir()\n"
+        "def test_mkdirs_tmp_itself():\n"
+        "    pathlib.Path('/tmp').mkdir(exist_ok=True)\n"
         "\n"
         "def test_opens_a_tempfile():\n"
         "    with tempfile.TemporaryFile() as handle:\n"
