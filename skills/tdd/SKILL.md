@@ -620,7 +620,7 @@ three times over branches its ledger pinned on later lines.
    `git status --porcelain` prints anything once it exits, refuse to continue — stop the
    run: the transform would otherwise commit the leftover mutation as a refactoring.
    Read its report through `$S/cover-outcome.sh`: exit 2 bails as a **system** failure
-   (`no-verdict`); exit 3 — `COVERED: unreachable` or `type-only` with its `PROOF:` — goes
+   (`no-verdict`) (`Read` `<base directory>/BAIL.md`). Exit 3 — `COVERED: unreachable` or `type-only` with its `PROOF:` — goes
    on to Transform without bailing or running `coverage-blocker.sh`, posting the proof it
    prints in the step's Cover comment, and for a `type-only` step saves to
    `.tdd/issue-<n>-proof` the text `cover-outcome.sh` printed after `type-only: ` — the
