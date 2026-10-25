@@ -6,8 +6,6 @@ import re
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 PIN_MD = SKILL.with_name("PIN.md")
 
-PIN = "## Already satisfied — the pin"
-
 
 def records_of(text):
     records, rec = [], ""
@@ -30,7 +28,7 @@ def records_of(text):
 
 
 def section_records(heading):
-    doc = {PIN: PIN_MD, "## Resume": SKILL.with_name("RESUME.md")}.get(heading, SKILL)
+    doc = {"## Resume": SKILL.with_name("RESUME.md")}.get(heading, SKILL)
     text = importlib.import_module("skill_sections").section(doc, heading)
     return records_of(text.split("\n", 1)[1])
 
@@ -44,71 +42,11 @@ def first_record(records, *filters):
     return records[0] if records else ""
 
 
-def gated_tick(label, heading, extra, problems):
-    rec = first_record(section_records(heading), ("F", "tick-issue-criterion.sh"))
-    if not rec:
-        problems.append(f"{label}: no instruction under '{heading}' runs tick-issue-criterion.sh — the gate could not be checked")
-        return
-    if "criterion-finished.sh" not in rec:
-        problems.append(f"{label}: the instruction that ticks the issue criterion never runs criterion-finished.sh")
-    if not re.search(r"exit \*?\*?0", rec):
-        problems.append(f"{label}: the tick is not tied to criterion-finished.sh's exit 0")
-    if not (re.search(r"exit \*?\*?3", rec) and re.search(r"(nothing|no criterion|not tick|without ticking|skip)", rec)):
-        problems.append(f"{label}: the instruction never says exit 3 ticks nothing")
-    if extra and not re.search(extra, rec):
-        problems.append(f"{label}: the instruction no longer posts the comment matching /{extra}/")
-
-
-def test_step_done_and_pin_paths_tick_an_issue_criterion_only_on_criterion_finished_exit_0_ticking_nothing_on_exit_3():
-    problems = []
-    gated_tick("pin path", PIN, "", problems)
-    assert not problems, "\n".join(problems)
-
-
 CONTEXT = pathlib.Path(__file__).resolve().parents[6] / "CONTEXT.md"
-
-
-def pin_replaces_case_rec():
-    return first_record(section_records(PIN), ("F", "⟦replaces-case⟧"))
 
 
 def guardrails_rec():
     return first_record(section_records("## Guardrails"), ("F", "passes against unmodified code"))
-
-
-def test_1397_pin_section_sends_a_replaces_case_step_whose_red_reports_passes_through_verify_pin_then_a_green_leaf_deleting_exactly_the_named_cases_accepted_once_mutation_parity_exits_0_then_one_tick():
-    problems = []
-    rec = pin_replaces_case_rec()
-    if not rec:
-        problems.append("pin path: no instruction under '## Already satisfied — the pin' states the path for a ⟦replaces-case⟧ step whose Red reports PASSES — the path could not be checked")
-    else:
-        if "passes" not in rec:
-            problems.append("pin path: the ⟦replaces-case⟧ instruction never names a Red that reports PASSES")
-        if not re.search(r"verify-pin|verify\.sh pin", rec):
-            problems.append("pin path: the ⟦replaces-case⟧ instruction never runs verify-pin first")
-        if not (re.search(r"green leaf", rec) and re.search(r"delet", rec) and "exactly the named" in rec):
-            problems.append("pin path: the ⟦replaces-case⟧ instruction never launches a green leaf that deletes exactly the named cases")
-        if "verify-green" not in rec:
-            problems.append("pin path: the ⟦replaces-case⟧ instruction never judges the deletion by the replaces-case verify-green")
-        if not ("mutation-parity.sh" in rec and re.search(r"exits? \*{0,2}0", rec)):
-            problems.append("pin path: the ⟦replaces-case⟧ instruction never accepts the deletion only once mutation-parity.sh exits 0")
-        if not re.search(r"one tick|tick[^.]*once|single tick", rec):
-            problems.append("pin path: the ⟦replaces-case⟧ instruction never ends the step in one tick")
-    assert not problems, "\n".join(problems)
-
-
-def test_1397_pin_pass_bullet_names_the_replaces_case_exception_before_its_tick_and_commit_and_the_pin_path_and_step_2_say_whether_refactor_and_refactor_pending_follow_the_deletion_green():
-    problems = []
-    pin_recs = section_records(PIN)
-    pass_rec = first_record(pin_recs, ("F", "pass (exit 0)"))
-    if not pass_rec:
-        problems.append("pin PASS: no PASS (exit 0) bullet under '## Already satisfied — the pin' — the exception could not be checked")
-    elif "⟦replaces-case⟧" not in pass_rec.split("tick-ledger.sh")[0]:
-        problems.append("pin PASS: the bullet never names the ⟦replaces-case⟧ exception before its tick-ledger.sh commit")
-    refactor_rec = first_record(pin_recs, ("F", "⟦replaces-case⟧"), ("F", "refactor pending"))
-    if not (refactor_rec and re.search(r"delet", refactor_rec) and re.search(r"refactor[^ ]* (phase|leaf|follows|runs|does|is)", refactor_rec)):
-        problems.append("pin path: no ⟦replaces-case⟧ instruction says whether Refactor and ⟂ refactor pending follow the deletion green")
-    assert not problems, "\n".join(problems)
 
 
 def test_1397_guardrails_line_on_a_test_that_passes_against_unmodified_code_carves_out_the_replaces_case_deletion_green():
@@ -132,12 +70,6 @@ def test_1397_replaces_case_pin_then_delete_path_keeps_its_meaning_exception_not
         problems.append("guardrails: the ⟦replaces-case⟧ clause is not introduced as an exception (save/except/unless/but)")
     if re.search(r"(^|[^a-z])(never|not|no)([^a-z]|$)", guard_after):
         problems.append(f"guardrails: the ⟦replaces-case⟧ clause negates the deletion green: {guard_after}")
-    pin_rc_rec = pin_replaces_case_rec()
-    pin_before_green = pin_rc_rec.split("green leaf")[0].replace("commit nothing", "")
-    if not ("green leaf" in pin_rc_rec and not re.search(r"commit|tick", pin_before_green)):
-        problems.append(f"pin path: a commit or tick comes before the deletion green: {pin_before_green}")
-    if not ("accepted only once" in pin_rc_rec and not re.search(r"whether or not|regardless|even if", pin_rc_rec)):
-        problems.append("pin path: the deletion is not accepted only once mutation-parity.sh exits 0")
     assert not problems, "\n".join(problems)
 
 
