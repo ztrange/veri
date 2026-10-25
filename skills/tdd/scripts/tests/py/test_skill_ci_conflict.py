@@ -137,3 +137,37 @@ def test_a_green_ci_wait_in_either_ci_block_bails_no_ci_red_and_appends_no_ci_re
             if "bail" in events or "step-added" in events or added:
                 problems.append(f"{label}, green CI, ledger {held}: events [{events.strip()}] added [{added.strip()}]")
     assert not problems, "\n".join(problems)
+
+
+@pytest.mark.process("the Draft PR step's ready line runs under bash -c in a git repo, against stub scripts")
+def test_issue_2147_a_failing_pr_ready_script_leaves_wait_ci_unrun_and_writes_no_ci_deadline(tmp_path):
+    step = _ci_step()
+    assert step.strip(), NO_STEP
+    lines = [l for l in step.split("\n") if re.search(r"\$S/pr-ready\.sh", l)]
+    assert lines, "no line running $S/pr-ready.sh in the CI step — nothing could be run"
+    block = "\n".join(lines).replace("<n>", "2147").replace("<pr-number>", "7").replace("<pr-url>", "https://example.test/pull/7")
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    stubs = {"pr-ready.sh": "#!/bin/sh\nexit 1\n",
+             "wait-ci.sh": '#!/bin/sh\necho called >> wait-ci.log\nmkdir -p .tdd\n: > ".tdd/ci-deadline-$4"\nexit 0\n',
+             "event.sh": "#!/bin/sh\nexit 0\n",
+             "classify-bail.sh": '#!/bin/sh\necho "$1"\n'}
+    for name, body in stubs.items():
+        (bin_dir / name).write_text(body)
+        (bin_dir / name).chmod(0o755)
+    work = tmp_path / "work"
+    work.mkdir()
+    subprocess.run(["git", "-C", str(work), "init", "-q"], check=True)
+    subprocess.run(["git", "-C", str(work), "-c", "user.email=t@t", "-c", "user.name=t",
+                    "commit", "-q", "--allow-empty", "-m", "init"], check=True)
+    (work / ".tdd").mkdir()
+    env = dict(os.environ, S=str(bin_dir), PATH=f"{bin_dir}:{os.environ['PATH']}")
+    subprocess.run(["bash", "-c", block.encode("latin-1").decode("utf-8", "surrogateescape")], cwd=work, env=env,
+                   stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    problems = []
+    if (work / "wait-ci.log").exists():
+        problems.append("wait-ci.sh ran although pr-ready.sh exited non-zero")
+    deadlines = sorted(p.name for p in (work / ".tdd").glob("ci-deadline-*"))
+    if deadlines:
+        problems.append(f"a CI deadline was written after a failed ready: {deadlines}")
+    assert not problems, "\n".join(problems)
