@@ -75,6 +75,11 @@ with the cause and what would unblock it, then take the next issue.
 Raise a budget or amend the ledger only on the coordinator's or the human's word, never on
 your own. The change applies to that one resume and is not kept.
 
+A ledger step amended in place between runs, on that word, is committed with a `plan: rewrite`
+subject. That commit becomes the growth baseline `ledger-growth.sh plan-sha` reads; under a
+plain `plan:` subject the reworded step reads as a new line with no `⟦added⟧` record, and the
+resumed run bails `step-added-off-route`.
+
 ## What it must not do
 
 It leaves the run's logs in place: it deletes none of them.
