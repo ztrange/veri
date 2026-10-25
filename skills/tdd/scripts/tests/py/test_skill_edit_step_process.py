@@ -125,7 +125,7 @@ case "$prompt" in
 *"You grade a piece of prose"*)
   n=$(cat "$CAP/grades" 2>/dev/null || echo 0)
   case "$prompt" in *"A2: "*) echo $((n + 1)) > "$CAP/grades"; echo "$n" > "$CAP/cur" ;; *) n=$(cat "$CAP/cur") ;; esac
-  if [ "$n" = 0 ]; then
+  if [ "$n" -lt 3 ]; then
     reply_rows A2 'prose never says silent'
   else
     reply_rows '' ''
