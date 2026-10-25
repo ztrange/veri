@@ -16,3 +16,5 @@
 | M12 | It reports one line: PR url, merge sha, tag. | |
 | M13 | It does not merge a run that ended with an open question for the human. | Merging would answer the question for them. |
 | M14 | A merge that stops because CI is red, or because a gate before the merge refuses, releases the merge lock before it exits; only a conflict or a refused push (M4) keeps it held. | A red-CI stop otherwise blocks every later merge until the lock is removed by hand (#2224 waited 31 min). |
+| M16 | A merge that stops because CI is red, or because a gate before the merge refuses, releases the merge lock before it exits; only a conflict or a refused push (M4) keeps it held. | A red-CI stop otherwise blocks every later merge until the lock is removed by hand (#2224 waited 31 min). |
+| M15 | The merge's Gates and CI steps run under `$S/merge-lock.sh gate --pid <driver> -- …` and its rebase and push under `$S/merge-lock.sh gate --keep --pid <driver> -- …`, and the merge-lock section lists the red-CI and refused-gate stops among those that release the lock. | A release rule only stated in prose is skipped; the gate in the command releases the lock whatever the reader does. |
