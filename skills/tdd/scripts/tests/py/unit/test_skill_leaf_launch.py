@@ -369,7 +369,7 @@ def test_skill_md_launches_every_verifier_through_supervise_sh_the_way_it_launch
 
 
 SUPERVISED_VERDICT_FRAGMENT = "$S/supervise.sh verdict-red "
-STEP_ANCHOR = "$S/refactor-owed.sh append "
+STEP_ANCHOR = '"$touched" < '
 EXEMPT_REASON = "planted by test_skill_leaf_launch.py to ask what an exemption with a reason does"
 
 

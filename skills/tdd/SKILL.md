@@ -1318,10 +1318,16 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
    step**. It copies them — never the cosmetic ones — into the run's owed file under this
    step's name, where the Draft PR renders every step's, not just the last one's:
    ```
-   { cat .tdd/develop-refactor.out; <for each in-step candidate: its CANDIDATES: in-step line, then its own cover leaf's report>; } | $S/refactor-owed.sh append .tdd/issue-<n>-refactor-owed.md "<STEP>" "$touched"
+   $S/refactor-owed.sh append .tdd/issue-<n>-refactor-owed.md "<STEP>" "$touched" < .tdd/develop-refactor.out
    ```
-   Its input on stdin is the refactor leaf's report `.tdd/develop-refactor.out`, followed, for
-   each in-step candidate, by that candidate's `CANDIDATES: in-step` line and its own cover
+   Each in-step candidate is appended on its own, right after its own cover leaf exits and
+   before the next cover leaf is launched, because every cover leaf writes the same
+   `.tdd/develop-cover.out` and the next one overwrites it:
+   ```
+   { printf '%s\n' '<its CANDIDATES: in-step line>'; cat .tdd/develop-cover.out; } | $S/refactor-owed.sh append .tdd/issue-<n>-refactor-owed.md "<STEP>" "$touched"
+   ```
+   Its input on stdin is the refactor leaf's report `.tdd/develop-refactor.out` once, and, for
+   each in-step candidate, that candidate's `CANDIDATES: in-step` line followed by its own cover
    leaf's report. `append` records an in-step candidate exactly when its own cover leaf
    answered `COVERED: no`, and no other in-step candidate.
    `$touched` is the step's bounds: when all are test files, a structural candidate is
