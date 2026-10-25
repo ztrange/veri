@@ -266,6 +266,28 @@ def test_a_reply_whose_final_grades_block_has_a_fail_line_and_verdict_reject_mak
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_a_fail_row_is_regraded_twice_against_only_the_failed_rows_and_one_failing_both_times_rejects_the_unit(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text(rows_stub({"A2": "the widget hums quokka-loudly"}).replace(
+        '> "$STUB_RECORD"\n', '> "$STUB_RECORD"\n'
+        'sed -n \'/^Requirements:$/,$ s/^\\([A-Z][0-9]*\\): .*/\\1/p\' "$STUB_RECORD" | tr \'\\n\' \' \' >> "$STUB_LOG"; echo >> "$STUB_LOG"\n', 1))
+    claude.chmod(0o755)
+    log = tmp_path / "log.txt"
+
+    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                          capture_output=True, text=True,
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt"), "STUB_LOG": str(log)})
+
+    asked = [l.split() for l in log.read_text().splitlines()] if log.exists() else []
+    assert [done.returncode, "A2" in done.stdout, "A1" in done.stdout, asked] == [
+        1, True, False, [["A1", "A2"], ["A2"], ["A2"]]], (done.returncode, done.stdout, done.stderr, asked)
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
 def test_a_reply_with_two_or_more_fail_lines_prints_every_failing_id_with_its_reason(tmp_path):
     (tmp_path / "guide").mkdir()
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
