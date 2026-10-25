@@ -65,3 +65,27 @@ def test_claims_does_not_refuse_a_four_space_example_table_after_the_real_one_as
     path.write_text("## u\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | Says it. | because |\n\n"
                     "    | ID | Requirement | Why |\n    |---|---|---|\n    | B2 | Example. | none |\n")
     assert requirements.claims(str(path), "u") == "A1\tSays it.\n"
+
+
+def test_malformed_row_id_names_a_bare_next_row_and_none_for_a_well_formed_body_2373(tmp_path):
+    requirements = importlib.import_module("veri.requirements")
+    head = "## Requirements\n\n### skills/tdd/SKILL.md\n\n| | ID | Requirement | Why |\n|---|---|---|---|\n"
+    good, bad = tmp_path / "good.md", tmp_path / "bad.md"
+    good.write_text(head + "| | R1 | Says it. | because |\n| | R<next> | Says more. | because |\n")
+    bad.write_text(head + "| | R1 | Says it. | because |\n| | <next> | Says more. | because |\n")
+    assert requirements.malformed_row_id(str(good)) is None
+    assert requirements.malformed_row_id(str(bad)) == "<next>"
+
+
+def test_malformed_row_id_reads_every_unit_of_the_requirements_section_and_nothing_outside_it_2373(tmp_path):
+    requirements = importlib.import_module("veri.requirements")
+    table = "| | ID | Requirement | Why |\n|---|---|---|---|\n"
+    two_units, elsewhere, absent = (tmp_path / n for n in ("two.md", "else.md", "absent.md"))
+    two_units.write_text("## Requirements\n\n### a.md\n\n" + table + "| | R1 | One. | because |\n\n"
+                         "### b.md\n\n" + table + "| | <next> | Two. | because |\n")
+    elsewhere.write_text("## Notes\n\n" + table + "| | <next> | Two. | because |\n\n"
+                         "## Requirements\n\n### a.md\n\n" + table + "| | R1 | One. | because |\n")
+    absent.write_text("## Notes\n\n" + table + "| | <next> | Two. | because |\n")
+    assert requirements.malformed_row_id(str(two_units)) == "<next>"
+    assert requirements.malformed_row_id(str(elsewhere)) is None
+    assert requirements.malformed_row_id(str(absent)) is None

@@ -233,7 +233,7 @@ def main(argv):
         return 2
     issue_rows = _issue_rows(issue, unit)
     for row in issue_rows:
-        if not re.fullmatch(r".+(\d+|<next>)", _row_id(row)):
+        if not re.fullmatch(requirements.ROW_ID, _row_id(row)):
             print("Requirement row ID is neither <prefix><digits> nor <prefix><next>: " + _row_id(row),
                   file=sys.stderr)
             return 2

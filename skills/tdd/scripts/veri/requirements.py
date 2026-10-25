@@ -9,6 +9,7 @@ except ImportError:
     from markdown_sections import fenced_lines
 
 COLUMNS = ["ID", "Requirement", "Why"]
+ROW_ID = r".+(\d+|<next>)"
 USAGE = "usage: requirements.sh units <file> | claims <file> <unit>"
 
 
@@ -129,6 +130,22 @@ def claims(path, unit):
         number = head
         fail(path, number, "unit has no table")
     return "".join(rows)
+
+
+def malformed_row_id(path):
+    seen = 0
+    in_requirements = False
+    for line in read_lines(path):
+        if line.startswith("## "):
+            in_requirements = line[3:].strip() == "Requirements"
+        elif in_requirements and line.startswith("### "):
+            seen = 0
+        elif in_requirements and line.startswith("|"):
+            seen += 1
+            cells = table_cells(line)
+            if seen > 2 and not re.fullmatch(ROW_ID, cells[1]):
+                return cells[1]
+    return None
 
 
 def main(argv):
