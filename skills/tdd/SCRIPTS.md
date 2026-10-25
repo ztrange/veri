@@ -282,7 +282,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   **exit 3** with empty stdout when none is takeable (nothing to do, not an error).
   `VERI_GH_JSON=<dir>` reads `issues.json` / `prs.json` fixtures instead of shelling out to
   `gh`, which is what makes it testable with no network. `VERI_GH_DRIVER` picks the route
-  every GitHub read and write takes, through `veri/github.py` and `lib/github.sh` alike:
+  every GitHub read and write takes, through `veri/github.py`:
   `rest` (the default when unset) runs only `gh api`, `graphql` runs only the `gh issue` /
   `gh pr` command with no fallback, and `auto` tries GraphQL then REST. Set but empty, or any
   other value, is **exit 2**, with a stderr line naming `VERI_GH_DRIVER` and the value, checked

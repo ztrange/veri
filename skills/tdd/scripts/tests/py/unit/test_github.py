@@ -1,4 +1,4 @@
-"""In-process cases for veri/github.py, lib/github.sh's GraphQL→REST fallback in Python."""
+"""In-process cases for veri/github.py, veri's GitHub access through gh and its GraphQL→REST fallback."""
 import importlib
 import os
 import pathlib

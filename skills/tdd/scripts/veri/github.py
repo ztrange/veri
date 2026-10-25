@@ -1,4 +1,4 @@
-"""veri's GitHub access through gh, the Python twin of lib/github.sh.
+"""veri's GitHub access through gh: the one home of gh_pr_ready and every other GitHub call.
 
 VERI_GH_DRIVER picks the route an operation with a GraphQL route takes (gh_pr_ready,
 gh_issue_view, gh_list, gh_json with gh args): rest, the default when unset, runs only `gh api`; graphql
