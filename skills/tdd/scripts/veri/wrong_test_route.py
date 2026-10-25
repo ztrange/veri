@@ -73,7 +73,7 @@ def _exists(case):
         if match:
             return match.group(1)
         found = _live_call(js, re.sub(r"/\*.*?\*/", "", text, flags=re.S)) if js_file else []
-        if found and _cut_prefix(case) is None:
+        if found and cut is None:
             return found[0]
         titles.update(found)
         if name.endswith(".test.sh") and ('name="%s"' % case) in text:
