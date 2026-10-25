@@ -52,16 +52,26 @@ def test_changed_ids_that_already_pass_launch_no_author_and_commit_the_list_and_
         == [3, "2", ["GRADED", "REQUIREMENTS.md"], "", True], (ran.stdout, ran.stderr, events)
 
 
+ROWS_SH = r"""
+reply_rows() {
+  body=""; verdict=PASS
+  for id in $(printf '%s\n' "$prompt" | sed -n '/^Requirements:$/,$ s/^\([A-Z][0-9]*\): .*/\1/p'); do
+    if [ "$id" = "$1" ]; then body="$body\\n$id: FAIL - $2"; verdict=REJECT; else body="$body\\n$id: PASS - ok"; fi
+  done
+  reply="BEGIN GRADES$body\\nVERDICT: $verdict\\nEND GRADES"
+}
+"""
+
 STUB_MODEL = """#!/bin/sh
-prompt=$2
+""" + ROWS_SH + """prompt=$2
 case "$prompt" in
 *"You grade a piece of prose"*)
   n=$(cat "$CAP/grades" 2>/dev/null || echo 0)
-  echo $((n + 1)) > "$CAP/grades"
+  case "$prompt" in *"A2: "*) echo $((n + 1)) > "$CAP/grades"; echo "$n" > "$CAP/cur" ;; *) n=$(cat "$CAP/cur") ;; esac
   if [ "$n" = 0 ]; then
-    reply='BEGIN GRADES\\nA1: FAIL - prose never says crimson\\nA2: PASS - ok\\nVERDICT: REJECT\\nEND GRADES'
+    reply_rows A1 'prose never says crimson'
   else
-    reply='BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES'
+    reply_rows '' ''
   fi ;;
 *)
   printf '%s' "$prompt" > "$CAP/author.txt"
@@ -110,15 +120,15 @@ def test_a_failing_changed_id_launches_an_author_leaf_under_the_author_role_whos
 
 
 STUB_UNCHANGED_FAILS = """#!/bin/sh
-prompt=$2
+""" + ROWS_SH + """prompt=$2
 case "$prompt" in
 *"You grade a piece of prose"*)
   n=$(cat "$CAP/grades" 2>/dev/null || echo 0)
-  echo $((n + 1)) > "$CAP/grades"
+  case "$prompt" in *"A2: "*) echo $((n + 1)) > "$CAP/grades"; echo "$n" > "$CAP/cur" ;; *) n=$(cat "$CAP/cur") ;; esac
   if [ "$n" = 0 ]; then
-    reply='BEGIN GRADES\\nA1: PASS - ok\\nA2: FAIL - prose never says silent\\nVERDICT: REJECT\\nEND GRADES'
+    reply_rows A2 'prose never says silent'
   else
-    reply='BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES'
+    reply_rows '' ''
   fi ;;
 *)
   git rev-list --count HEAD > "$CAP/commits-at-author"
@@ -265,15 +275,15 @@ def test_a_grader_that_gives_no_parseable_verdict_exits_2(tmp_path):
 
 
 STUB_AUTHOR_KILLED = """#!/bin/sh
-prompt=$2
+""" + ROWS_SH + """prompt=$2
 case "$prompt" in
 *"You grade a piece of prose"*)
   n=$(cat "$CAP/grades" 2>/dev/null || echo 0)
-  echo $((n + 1)) > "$CAP/grades"
+  case "$prompt" in *"A2: "*) echo $((n + 1)) > "$CAP/grades"; echo "$n" > "$CAP/cur" ;; *) n=$(cat "$CAP/cur") ;; esac
   if [ "$n" = 0 ]; then
-    reply='BEGIN GRADES\\nA1: FAIL - prose never says crimson\\nA2: PASS - ok\\nVERDICT: REJECT\\nEND GRADES'
+    reply_rows A1 'prose never says crimson'
   else
-    reply='BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES'
+    reply_rows '' ''
   fi ;;
 *)
   exit 2 ;;
@@ -314,15 +324,15 @@ def test_an_author_leaf_whose_supervisor_exits_2_exits_2_without_grading_again_o
 
 
 STUB_AUTHOR_TOUCHES_GRADED = """#!/bin/sh
-prompt=$2
+""" + ROWS_SH + """prompt=$2
 case "$prompt" in
 *"You grade a piece of prose"*)
   n=$(cat "$CAP/grades" 2>/dev/null || echo 0)
-  echo $((n + 1)) > "$CAP/grades"
+  case "$prompt" in *"A2: "*) echo $((n + 1)) > "$CAP/grades"; echo "$n" > "$CAP/cur" ;; *) n=$(cat "$CAP/cur") ;; esac
   if [ "$n" = 0 ]; then
-    reply='BEGIN GRADES\\nA1: FAIL - prose never says crimson\\nA2: PASS - ok\\nVERDICT: REJECT\\nEND GRADES'
+    reply_rows A1 'prose never says crimson'
   else
-    reply='BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES'
+    reply_rows '' ''
   fi ;;
 *)
   echo tampered > "$REPO/GRADED"
@@ -397,15 +407,15 @@ def test_an_attempt_that_grades_pass_and_passes_the_guard_commits_list_prose_and
 
 
 STUB_REASON_PER_GRADING = """#!/bin/sh
-prompt=$2
+""" + ROWS_SH + """prompt=$2
 case "$prompt" in
 *"You grade a piece of prose"*)
   n=$(cat "$CAP/grades" 2>/dev/null || echo 0)
-  echo $((n + 1)) > "$CAP/grades"
+  case "$prompt" in *"A2: "*) echo $((n + 1)) > "$CAP/grades"; echo "$n" > "$CAP/cur" ;; *) n=$(cat "$CAP/cur") ;; esac
   case "$n" in
-  0) reply='BEGIN GRADES\\nA1: FAIL - first-reason-alpha\\nA2: PASS - ok\\nVERDICT: REJECT\\nEND GRADES' ;;
-  1) reply='BEGIN GRADES\\nA1: FAIL - second-reason-bravo\\nA2: PASS - ok\\nVERDICT: REJECT\\nEND GRADES' ;;
-  *) reply='BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES' ;;
+  0) reply_rows A1 'first-reason-alpha' ;;
+  1) reply_rows A1 'second-reason-bravo' ;;
+  *) reply_rows '' '' ;;
   esac ;;
 *)
   k=$(cat "$CAP/authors" 2>/dev/null || echo 0)
@@ -820,11 +830,11 @@ def test_an_author_leaf_is_launched_with_permission_mode_bypass_permissions_2041
 
 
 STUB_ROLE_LOG = """#!/bin/sh
-prompt=$2
+""" + ROWS_SH + """prompt=$2
 case "$prompt" in
 *"You grade a piece of prose"*)
   echo grader >> "$CAP/roles"
-  reply='BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES' ;;
+  reply_rows '' '' ;;
 *)
   echo author >> "$CAP/roles"
   reply='edited' ;;
