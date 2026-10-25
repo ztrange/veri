@@ -54,7 +54,10 @@ def main(argv):
     code = _gate(pid, ("gh", "pr", "merge", pr, "--rebase", "--match-head-commit", head))
     if code:
         return code
+    landed = json.loads(gh_api("repos/%s/pulls/%s" % (_repo(pr), pr.rsplit("/pull/", 1)[-1])).stdout).get("merged") is not False
     _script("merge-lock.sh", "release", "--pid", pid)
+    if not landed:
+        return 1
     subprocess.run(["git", "-C", argv[1], "push", "origin", "--delete", argv[2]])
     subprocess.run(["git", "-C", argv[1], "worktree", "remove", argv[1]])
     return 0

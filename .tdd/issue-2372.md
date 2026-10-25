@@ -4,6 +4,6 @@
 - [x] A queued merge stopped by a rebase conflict onto origin/main exits 1 and keeps the merge lock held; gh and git faked ⟦criterion 1⟧
 - [x] A queued merge whose push under the pinned lease is refused exits 1 and keeps the merge lock held; gh and git faked ⟦criterion 1⟧
 - [x] A queued merge whose CI is green on the pushed head rebase-merges the PR matching that head, deletes the remote branch, removes the worktree, and exits 0 with the merge lock free; gh and git faked
-- [ ] A queued merge whose merge does not land (gh refuses it, or the PR's state is not MERGED afterwards) exits 1 and leaves the merge lock free; gh and git faked
+- [x] A queued merge whose merge does not land (gh refuses it, or the PR's state is not MERGED afterwards) exits 1 and leaves the merge lock free; gh and git faked ⟂ refactor pending
 - [ ] After a confirmed merge a queued merge cuts the next vN.M tag (by git tag --sort=-v:refname) on origin/main annotated with the tag message and pushes it, and cuts no tag when the message is '-'; gh and git faked
 - [ ] A queued merge takes the lock through `merge-lock.sh take --pid <its pid>`, so a lock left by a dead holder is reported on stderr naming that holder ⟦criterion 2⟧
