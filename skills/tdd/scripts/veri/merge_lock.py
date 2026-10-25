@@ -41,6 +41,10 @@ def _alive(pid):
     return True
 
 
+def _reused(text, pid):
+    return not _alive(pid) or text.split()[2:3] != [_start_time(str(pid))]
+
+
 def _needs_pid(args, force_ok):
     if "--pid" in args or (force_ok and "--force" in args):
         return False
@@ -72,7 +76,7 @@ def _take(lock, record, args):
             print(f"merge-lock.sh: missing, unreadable or malformed holder record {record}", file=sys.stderr)
             return 2
         if not reported:
-            if not _alive(holder):
+            if _reused(text, holder):
                 print("stale lock: " + text, end="", file=sys.stderr, flush=True)
                 reported = True
         time.sleep(float(tunables.read("VERI_MERGE_LOCK_POLL", "30")))
@@ -96,8 +100,7 @@ def _holder(lock, record, args):
     if not os.path.isdir(lock):
         return 3
     text, pid = _read_pid(record)
-    reused = not _alive(pid) or text.split()[2:3] != [_start_time(str(pid))]
-    if reused:
+    if _reused(text, pid):
         print("stale lock: " + text, end="")
         return 1
     print(text, end="")
