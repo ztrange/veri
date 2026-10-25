@@ -1,6 +1,6 @@
 # Plan for #2372 — Queued merges run from the repo on merge-lock.sh, releasing the lock on red CI as veri-merge does
 
-- [x] A queued merge, `queued-merge.sh <pr> <worktree> <branch> <tag-message|->` (a new /bin/sh shim over a new veri/queued_merge.py module, listed in SCRIPTS.md, exiting 2 with a usage line naming it when called with no argument), that rebases and pushes cleanly but is stopped by red CI exits 1 and leaves the merge lock free, so a second queued merge takes it at once; gh and git faked ⟦criterion 1⟧ ⟂ refactor pending
+- [x] A queued merge, `queued-merge.sh <pr> <worktree> <branch> <tag-message|->` (a new /bin/sh shim over a new veri/queued_merge.py module, listed in SCRIPTS.md, exiting 2 with a usage line naming it when called with no argument), that rebases and pushes cleanly but is stopped by red CI exits 1 and leaves the merge lock free, so a second queued merge takes it at once; gh and git faked ⟦criterion 1⟧
 - [ ] A queued merge stopped by a rebase conflict onto origin/main exits 1 and keeps the merge lock held; gh and git faked ⟦criterion 1⟧
 - [ ] A queued merge whose push under the pinned lease is refused exits 1 and keeps the merge lock held; gh and git faked ⟦criterion 1⟧
 - [ ] A queued merge whose CI is green on the pushed head rebase-merges the PR matching that head, deletes the remote branch, removes the worktree, and exits 0 with the merge lock free; gh and git faked
