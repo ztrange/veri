@@ -371,8 +371,11 @@ def main(argv):
                 write(sys.stderr, "tests-frozen.sh: --red-case %s needs a path and a case around '::'" % value)
                 return 2
             path, _, case = value.partition("::")
-            with open(path, encoding="utf-8", errors="replace") as handle:
-                present = case in dict(_cases(handle.read()))
+            try:
+                with open(path, encoding="utf-8", errors="replace") as handle:
+                    present = case in dict(_cases(handle.read()))
+            except FileNotFoundError:
+                present = False
             if not present:
                 write(sys.stdout, "tests-frozen.sh: red case %s::%s no longer exists\n" % (path, case))
                 return 1
