@@ -203,7 +203,7 @@ def test_issue_2375_a_resumed_run_with_a_marker_an_earlier_run_left_records_no_c
     stubs = {"issue-worktree.sh": '#!/bin/sh\necho "$PWD"\n',
              "stop-requested.sh": "#!/bin/sh\nexit 0\n",
              "pr-ready.sh": "#!/bin/sh\nexit 0\n",
-             "wait-ci.sh": '#!/bin/sh\necho "PR conflicts with its base branch" >&2\nexit 2\n',
+             "wait-ci.sh": '#!/bin/sh\necho called >> wait-ci.log\necho "PR conflicts with its base branch" >&2\nexit 2\n',
              "event.sh": '#!/bin/sh\necho "$*" >> events.log\n',
              "classify-bail.sh": '#!/bin/sh\necho "$1"\n',
              "ledger-steps.sh": "#!/bin/sh\nexit 0\n",
@@ -223,6 +223,10 @@ def test_issue_2375_a_resumed_run_with_a_marker_an_earlier_run_left_records_no_c
     log = work / "events.log"
     got = log.read_text().rstrip("\n") if log.exists() else ""
     assert "bail" not in got, f"a resumed run with a leftover marker met its first conflict and recorded [{got}] instead of rebasing"
+    waits = (work / "wait-ci.log").read_text().split() if (work / "wait-ci.log").exists() else []
+    assert waits == ["called"], f"the first CI-wait block ran wait-ci.sh {len(waits)} times, not once, so the conflict it rebases on was never met"
+    assert got == "", f"the first conflict of a resumed run recorded [{got}]; it must record nothing and leave the one rebase to the run"
+    assert not (work / ".tdd" / "ci-conflict-rebased").exists(), "the leftover marker survived preflight, so the run's one rebase was already spent"
 
 
 @pytest.mark.process("SKILL.md's preflight, its CI-conflict rebase marker, then its first CI-wait block, run under bash -c in a git repo, against stub scripts")
