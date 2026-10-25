@@ -23,6 +23,7 @@ IDs are stable: a reworded requirement keeps its ID, and a dropped one leaves a 
 | G7 | The grader is launched through `supervise.sh`, with its own leaf role, on the model named in the committed `skills/tdd/grader.conf` as a full model id (never an alias). No environment variable overrides it. | Every leaf goes through the supervisor. CI must be able to recompute the model part of a signature (T1), and an alias's meaning shifts between releases. |
 | G8 | Each grading records its cost and its per-requirement results in `.tdd/events.jsonl`. | The lane's price must be read from the log, not estimated. |
 | G9 | The grader's suites run with a stub `CLAUDE_BIN` covering PASS, REJECT, a malformed reply and a hang. No suite calls a real model. | The plumbing is tested, while the judgement is measured (S1–S3). |
+| G10 | When a grade has one or more FAIL rows, the unit is re-graded twice against only those rows, and a row counts as failed only when it reads FAIL in both re-grades. The unit is REJECT when at least one row counts as failed, else PASS, and the reason lists only the rows that counted. A re-grade that returns no verdict is exit 2, never a PASS of the rows it was asked about. | One grader sample is noisy over a large list, and a REJECT has to reproduce before it costs an author attempt. |
 
 ## S: stability (measured by the PoC on 2026-10-17, see `specs/grader-poc.md`; repeated when slice 2 lands)
 
