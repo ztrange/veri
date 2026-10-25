@@ -16,7 +16,7 @@ def number_in(file):
     return n.decode() if re.fullmatch(rb"[0-9]+", n) else None
 
 
-def live_conductor(path):
+def recorded_alive(path):
     pid = number_in(path + "/.tdd/conductor.pid")
     if pid is None or int(pid) == 0:
         return None
@@ -25,6 +25,10 @@ def live_conductor(path):
     except (OSError, OverflowError):
         return None
     return pid
+
+
+def live_conductor(path):
+    return recorded_alive(path)
 
 
 def supervising(pid, name):
