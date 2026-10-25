@@ -1,0 +1,2 @@
+### run-conductor.sh refuses an issue whose `## Requirements` table has a bare `<next>` row ID: exit 2 before any conductor `claude` process is launched, with a stderr line naming `<next>`, using the requirements module's row-ID rule ⟦criterion 1⟧
+- The "Requirement row ID is neither <prefix><digits> nor <prefix><next>: …" message is spelled out in both run_conductor.py and skill_edit_step.py. Moving it into one constant or function in requirements.py would keep the two from drifting. skill_edit_step.py's copy predates this cycle, so I did not apply it.
