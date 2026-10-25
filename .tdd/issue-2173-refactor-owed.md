@@ -10,3 +10,5 @@ applied | eee894e88df7b08f26a2dc05dc6864ffbe1d8e27 | merge_lock.py: split main()
 - drop the now-unreachable `os.getppid()` fallback in `_caller_pid` (merge_lock.py); dead code, not duplication removal, so not applied here
 ### `merge-lock.sh take` records the holder pid own process start time, and `merge-lock.sh holder` reads a record whose pid is alive but whose recorded start time differs from that process start time (pid reuse) as a stale lock: it prints the record marked stale and exits 1 ⟦criterion 5⟧
 - `_take` and `_holder` both read the record and `os.kill`-probe its pid, a possible shared helper. I left it because `_take` handles each error separately and the shared part is only two lines.
+### `merge-lock.sh release --pid <pid>` and `merge-lock.sh release --force` with no lock exit 3, and the usage line printed on a missing or unknown verb names `--pid` and `--force` beside the three verbs ⟦criterion 6⟧
+- `_take` leaves its staged temporary directory behind when it returns 2 on a broken record; this is a leak fix and changes behaviour, so it is not a pure refactor
