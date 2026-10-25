@@ -67,17 +67,18 @@ def fetch_pages(since=None):
     if len(first) < size:
         return first
     seen = {}
-    search = " ".join(bound + ["sort:updated-desc"])
+    page = first
     while True:
-        page, size = read_issue_page(size, "--search", search)
         fresh = [issue for issue in page if issue["number"] not in seen]
         seen.update({issue["number"]: issue for issue in fresh})
         if len(page) < size:
             return list(seen.values())
         if not fresh:
             size *= 2
+            page, size = read_issue_page(size, "--search", search)
             continue
         search = " ".join(bound + ["sort:updated-desc updated:<="]) + min(issue["updatedAt"] for issue in page)
+        page, size = read_issue_page(size, "--search", search)
 
 
 def refresh():
