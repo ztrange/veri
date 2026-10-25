@@ -18,6 +18,7 @@ TEST_ONLY_PREFIX = "test-only | "
 OUT_OF_SCOPE_PREFIX = "out-of-scope | "
 OUT_OF_BOUNDS = candidate("out-of-bounds")
 OUT_OF_BOUNDS_PREFIX = "out-of-bounds | "
+IN_STEP = candidate("in-step")
 TEST_ONLY_MARK = "- " + TEST_ONLY_PREFIX
 OUT_OF_SCOPE_MARK = "- " + OUT_OF_SCOPE_PREFIX
 APPLIED_MARK = "applied | "
@@ -68,6 +69,8 @@ def append(file, step, bounds):
               (OUT_OF_SCOPE, out_of_scope, OUT_OF_SCOPE_PREFIX),
               (OUT_OF_BOUNDS, out_of_bounds, OUT_OF_BOUNDS_PREFIX))
     for line in report.split("\n"):
+        if match := IN_STEP.match(line):
+            structural.append(match.group(1).partition(" | ")[2])
         for pattern, group, prefix in routes:
             if (match := pattern.match(line)) and match.group(1):
                 group.append(prefix + match.group(1))

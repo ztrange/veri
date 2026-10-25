@@ -722,3 +722,15 @@ def test_append_records_an_out_of_bounds_candidate_under_its_own_class_and_list_
          "- out-of-scope | rename the lib helper",
          "- out-of-bounds | drop the dead branch in an untouched script"],
         0, "fold the two awk passes into one\nrename the lib helper\n")
+
+
+def test_append_records_an_in_step_candidate_whose_cover_answered_no_and_list_prints_its_transform_2305(
+        monkeypatch, capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    report = ("CANDIDATES: in-step | lib/a.sh,lib/b.sh | fold the two awk passes into one\n"
+              "COVERED: no\n")
+    monkeypatch.setattr(sys, "stdin", io.StringIO(report))
+    assert refactor_owed.main(["append", str(owed), "step one", "a.sh"]) == 0
+
+    code = refactor_owed.main(["list", str(owed)])
+    assert (code, capsys.readouterr().out) == (0, "fold the two awk passes into one\n")
