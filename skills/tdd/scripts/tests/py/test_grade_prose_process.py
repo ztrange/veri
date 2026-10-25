@@ -891,7 +891,7 @@ def test_2037_the_draft_pr_regrade_block_run_as_written_on_a_branch_that_signed_
 
 REJECT_THEN_PASS_STUB = """#!/bin/sh
 { printf '%s\\n' "$@"; cat; } > "$STUB_DIR/in.$$"
-grep '^Unit: ' "$STUB_DIR/in.$$" >> "$STUB_DIR/graded.txt"
+sed -n '/^Requirements:$/,$ p' "$STUB_DIR/in.$$" | grep -q '^A2: ' && grep '^Unit: ' "$STUB_DIR/in.$$" >> "$STUB_DIR/graded.txt"
 unit=$(sed -n 's/^Unit: //p' "$STUB_DIR/in.$$")
 body=""; verdict=PASS
 for id in $(sed -n '/^Requirements:$/,$ s/^\\([A-Z][0-9]*\\): .*/\\1/p' "$STUB_DIR/in.$$"); do
