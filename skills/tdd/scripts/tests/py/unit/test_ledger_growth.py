@@ -200,3 +200,19 @@ def test_2209_with_neither_the_added_record_file_nor_events_jsonl_present_a_new_
 def test_2209_no_arguments_exits_2_and_the_usage_line_names_the_plan_sha_subcommand(run_cli, ledger_growth):
     code, out, err = run_cli(ledger_growth, [])
     assert (code, out, "plan-sha" in err) == (2, "", True)
+
+
+def test_2351_a_step_reworded_in_a_plan_rewrite_commit_is_the_baseline_and_passes_the_growth_check(
+        tmp_path, run_cli, ledger_growth):
+    log = (
+        f"{'c' * 40} plan: rewrite step 2 on the coordinator's ruling (#42)\n"
+        f"{'b' * 40} plan: scope #42\n"
+    )
+    plan = tmp_path / "plan.md"
+    ledger = tmp_path / "issue-42.md"
+    reworded = "- [ ] step 2's red cases leak through mkdir, so every guard is pinned ⟦criterion 2⟧"
+    plan.write_text("# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧\n" + reworded + "\n")
+    ledger.write_text("# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧ ⟂ refactor pending\n" + reworded + "\n")
+    baseline = run_cli(ledger_growth, ["plan-sha"], stdin=log)
+    growth = run_cli(ledger_growth, [str(plan), str(ledger)])
+    assert (baseline, growth) == ((0, "c" * 40 + "\n", ""), (0, "", ""))
