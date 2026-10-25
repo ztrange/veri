@@ -338,6 +338,9 @@ def _take_red_case(files):
     if "--red-case" not in files:
         return None
     at = files.index("--red-case")
+    if at + 1 == len(files):
+        write(sys.stderr, "tests-frozen.sh: --red-case needs a <red-test-id>\n%s" % USAGE)
+        return 2
     value = files[at + 1]
     if not all(value.partition("::")[::2]):
         write(sys.stderr, "tests-frozen.sh: --red-case %s needs a path and a case around '::'" % value)
