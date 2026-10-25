@@ -148,7 +148,13 @@ def main(argv):
     env.pop("VERI_MODEL_GRADER", None)
     env["VERI_MODEL"] = model
     env["VERI_LEAF_TOOLS"] = ""
-    retries = int(tunables.read("VERI_NO_VERDICT_RETRIES") or "1")
+    raw_retries = tunables.read("VERI_NO_VERDICT_RETRIES", unless_empty="1")
+    try:
+        retries = tunables.tokens(raw_retries)
+    except ValueError:
+        print("grade-prose.sh: VERI_NO_VERDICT_RETRIES must be a non-negative integer, got '%s'"
+              % raw_retries, file=sys.stderr)
+        return 2
     def launch(path):
         ran = subprocess.run([os.path.join(SCRIPTS, "supervise.sh"), "grade-prose",
                         os.path.join(SCRIPTS, "run-leaf.sh"), path], stdout=subprocess.PIPE, env=env)
