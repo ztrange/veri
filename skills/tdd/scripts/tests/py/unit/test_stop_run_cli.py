@@ -15,12 +15,19 @@ def stop_run():
 
 @pytest.fixture
 def world(monkeypatch, fake_processes):
-    """Git names the working directory as the main tree; ps answers per pid; os.kill answers per pid and records each TERM."""
+    """Git names the working directory as the main tree; ps answers per pid (a live pid is a claude under run_conductor.py); os.kill answers per pid and records each TERM."""
     live, args_of, terms = set(), {}, []
 
     def answer(line, **_):
         if line == "git worktree list --porcelain":
             return 0, b"worktree %s\nHEAD abc\n" % os.fsencode(os.getcwd()), b""
+        if line.startswith("ps -o command= -p ") or line.startswith("ps -o ppid= -p "):
+            pid = int(line.split()[-1])
+            if pid > 1000000:
+                return (0, b"python3 run_conductor.py 5\n", b"") if "command=" in line else (1, b"", b"")
+            if pid not in live:
+                return 1, b"", b""
+            return (0, b"claude -p /tdd 5\n", b"") if "command=" in line else (0, b"%d\n" % (pid + 1000000), b"")
         if line.startswith("ps -p "):
             pid = line.split()[2]
             return (0, args_of[pid], b"") if pid in args_of else (1, b"", b"")
