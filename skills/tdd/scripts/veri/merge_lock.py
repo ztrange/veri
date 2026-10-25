@@ -43,20 +43,27 @@ def _take(lock, record, args):
         f.write(f"{pid} {socket.gethostname()} {_start_time(pid)}\n")
     reported = False
     while True:
+        if not os.path.isdir(lock):
+            try:
+                os.rename(staged, lock)
+                break
+            except OSError:
+                pass
         try:
-            os.rename(staged, lock)
-            break
-        except OSError:
-            if not reported:
-                try:
-                    text = _read(record)
-                    os.kill(int(text.split()[0]), 0)
-                except ProcessLookupError:
-                    print("stale lock: " + text, end="", file=sys.stderr, flush=True)
-                    reported = True
-                except (OSError, ValueError, IndexError):
-                    pass
-            time.sleep(float(tunables.read("VERI_MERGE_LOCK_POLL", "30")))
+            text = _read(record)
+            holder = int(text.split()[0])
+        except (OSError, ValueError, IndexError):
+            print(f"merge-lock.sh: missing, unreadable or malformed holder record {record}", file=sys.stderr)
+            return 2
+        if not reported:
+            try:
+                os.kill(holder, 0)
+            except ProcessLookupError:
+                print("stale lock: " + text, end="", file=sys.stderr, flush=True)
+                reported = True
+            except OSError:
+                pass
+        time.sleep(float(tunables.read("VERI_MERGE_LOCK_POLL", "30")))
     return 0
 
 

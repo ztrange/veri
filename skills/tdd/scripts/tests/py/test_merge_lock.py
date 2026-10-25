@@ -1,4 +1,5 @@
 """In-process cases for veri/merge_lock.py, the module merge-lock.sh is a shim over."""
+import builtins
 import importlib
 import os
 import shutil
@@ -217,3 +218,76 @@ def test_take_waits_on_a_live_holder_owned_by_another_user_instead_of_refusing(
 
     assert (taken[0], len(waits), "stale" in taken[2].lower(), (lock / "holder").read_text().split()[0]) == (
         0, 1, False, mine)
+
+
+@pytest.mark.process("git init on a scratch repository, take run against a lock directory with no record")
+def test_take_exits_2_naming_the_record_path_and_leaves_the_lock_in_place_when_the_lock_exists_but_its_record_is_missing(
+        tmp_path, merge_lock, run_cli, monkeypatch):
+    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    lock = tmp_path / ".tdd" / "merge.lock"
+    lock.mkdir(parents=True)
+    waits = []
+
+    def release_on_wait(seconds):
+        waits.append(seconds)
+        shutil.rmtree(lock)
+
+    monkeypatch.setattr(merge_lock.time, "sleep", release_on_wait)
+
+    taken = run_cli(merge_lock, ["take", "--pid", str(os.getpid())], cwd=tmp_path)
+
+    assert (taken[0], str(lock / "holder") in taken[2], lock.is_dir(), (lock / "holder").exists(), len(waits)) == (
+        2, True, True, False, 0)
+
+
+@pytest.mark.process("git init on a scratch repository, take run against a lock whose record cannot be read")
+def test_take_exits_2_naming_the_record_path_and_leaves_the_lock_in_place_when_its_record_is_unreadable(
+        tmp_path, merge_lock, run_cli, monkeypatch):
+    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    lock = tmp_path / ".tdd" / "merge.lock"
+    lock.mkdir(parents=True)
+    record = lock / "holder"
+    text = f"1 {socket.gethostname()} start\n"
+    record.write_text(text)
+    real_open = builtins.open
+
+    def refusing_open(file, *args, **kwargs):
+        if os.fspath(file) == str(record):
+            raise PermissionError(13, "Permission denied", str(record))
+        return real_open(file, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", refusing_open)
+    waits = []
+
+    def release_on_wait(seconds):
+        waits.append(seconds)
+        shutil.rmtree(lock)
+
+    monkeypatch.setattr(merge_lock.time, "sleep", release_on_wait)
+
+    taken = run_cli(merge_lock, ["take", "--pid", str(os.getpid())], cwd=tmp_path)
+
+    with real_open(record) as kept:
+        assert (taken[0], str(record) in taken[2], kept.read(), len(waits)) == (2, True, text, 0)
+
+
+@pytest.mark.parametrize("text", ["", "not-a-pid somehost start\n"], ids=["empty", "non-integer-pid"])
+@pytest.mark.process("git init on a scratch repository, take run against a lock whose record is malformed")
+def test_take_exits_2_naming_the_record_path_and_leaves_the_lock_in_place_when_its_record_is_malformed(
+        tmp_path, merge_lock, run_cli, monkeypatch, text):
+    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    lock = tmp_path / ".tdd" / "merge.lock"
+    lock.mkdir(parents=True)
+    record = lock / "holder"
+    record.write_text(text)
+    waits = []
+
+    def release_on_wait(seconds):
+        waits.append(seconds)
+        shutil.rmtree(lock)
+
+    monkeypatch.setattr(merge_lock.time, "sleep", release_on_wait)
+
+    taken = run_cli(merge_lock, ["take", "--pid", str(os.getpid())], cwd=tmp_path)
+
+    assert (taken[0], str(record) in taken[2], record.read_text(), len(waits)) == (2, True, text, 0)
