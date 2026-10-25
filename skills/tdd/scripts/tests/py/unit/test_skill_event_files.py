@@ -143,12 +143,12 @@ def test_the_pin_section_lives_in_pin_md_not_skill_md_1852():
 
 
 def test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_1855():
-    """Subject is source text: each site entering the revise loop names REVISE.md to Read; the budget default stays."""
+    """Subject is source text: each site entering the revise loop, in SKILL.md, PIN.md or PHASED.md, names REVISE.md to Read; the budget default stays."""
     sites = EVENT_FILES["REVISE.md"]
-    lines = _outside_green(_outside_red(_lines_with_pin()))
+    lines = _outside_green(_outside_red(_lines_with_pin())) + SKILL.with_name("PHASED.md").read_text().splitlines()
     entering = [i for i, line in enumerate(lines) if re.search(sites, line)]
 
-    assert len(entering) >= 5
+    assert len(entering) >= 6
     missing = [
         lines[i] for i in entering
         if not ("`<base directory>/REVISE.md`" in lines[i] + " " + lines[i + 1] and "`Read`" in lines[i] + " " + lines[i + 1])
