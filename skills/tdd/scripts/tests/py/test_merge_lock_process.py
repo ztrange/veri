@@ -266,3 +266,15 @@ def test_2245_gate_with_pid_only_after_the_double_dash_exits_2_naming_usage_runs
     held = shim("holder")
     assert (taken.returncode, gated.returncode, "usage" in gated.stderr.lower(), marker.exists(),
             held.returncode, pid in held.stdout.split()) == (0, 2, True, False, 0, True)
+
+
+@pytest.mark.process("merge-lock.sh gate called with --pid and no command in a scratch repository")
+def test_2374_gate_with_pid_and_no_command_exits_2_with_the_gate_usage_line_and_no_traceback_and_creates_no_tdd(
+        tmp_path):
+    subprocess.run(["git", "-C", str(tmp_path), "init", "-q", "-b", "main"], check=True)
+
+    gated = subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), "gate", "--pid", "1"], cwd=tmp_path,
+                           stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=10)
+
+    assert (gated.returncode, "usage: merge-lock.sh gate" in gated.stderr, "Traceback" in gated.stderr,
+            (tmp_path / ".tdd").exists()) == (2, True, False, False)
