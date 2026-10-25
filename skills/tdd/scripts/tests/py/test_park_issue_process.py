@@ -299,3 +299,33 @@ def test_park_issue_refuses_an_all_zero_issue_number_exiting_2_naming_the_number
     assert ran.returncode == 2, ran.stderr
     assert "00" in ran.stderr, ran.stderr
     assert log.read_text() == ""
+
+
+UNANSWERED_PR_GH_STUB = """#!/bin/sh
+echo "ARGS: $*" >> "$GH_LOG"
+for a in "$@"; do
+  case "$a" in
+    12|*/12|*/12/*) echo "gh: Validation Failed (HTTP 422)" >&2; exit 1 ;;
+  esac
+done
+echo '{}'
+"""
+
+
+@pytest.mark.process("park-issue.sh run against a gh stub that fails only the write aimed at the PR")
+def test_park_issue_exits_2_naming_the_pr_write_when_gh_fails_only_that_write_2343(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(UNANSWERED_PR_GH_STUB)
+    gh.chmod(0o755)
+    log = tmp_path / "gh.log"
+    log.write_text("")
+
+    ran = subprocess.run([str(SCRIPTS / "park-issue.sh"), "7", "held for review", "a human merges", "12"],
+                         cwd=tmp_path, capture_output=True, text=True, stdin=subprocess.DEVNULL,
+                         env={"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+                              "GH_LOG": str(log), "PYTHONDONTWRITEBYTECODE": "1"})
+
+    assert ran.returncode == 2, (ran.returncode, ran.stderr, log.read_text())
+    assert "PR" in ran.stderr, ran.stderr
