@@ -38,6 +38,8 @@ ALLOWED = {
         "asserts the Green subsection's SUPERSEDED: routing text",
     "unit/test_skill_tests_frozen.py::test_every_tests_frozen_record_and_check_names_the_record_by_path_over_the_step_text_and_red_defines_the_key":
         "names the Green heading only to exclude it",
+    "unit/test_skill_tests_frozen.py::test_every_reroute_re_record_in_green_passes_the_steps_own_red_case_and_routes_its_refusal_to_verify_red_reason":
+        "asserts the Green subsection's reroute re-record commands and their --red-case refusal routing (CY120)",
 }
 
 
