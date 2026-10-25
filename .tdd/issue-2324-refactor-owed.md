@@ -1,0 +1,2 @@
+### A paged first refresh makes no gh issue list call whose arguments repeat an earlier call in the same refresh, retries of a failed page excepted; pinned by a small in-process case in skills/tdd/scripts/tests/py/unit/test_report_cache.py whose fake gh at the github.py boundary records its calls ⟦criterion 2⟧
+- test-only | the two #2324 cases in test_report_cache.py repeat the same issue-dict literal and the same fake-gh setup; a shared helper would remove that
