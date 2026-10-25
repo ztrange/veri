@@ -209,3 +209,22 @@ def test_2245_gate_with_a_pid_that_does_not_hold_the_lock_running_a_command_that
     finally:
         sleeper.kill()
         sleeper.wait()
+
+
+@pytest.mark.process("merge-lock.sh gate called with --pid only after the -- against a held lock in a scratch repository")
+def test_2245_gate_with_pid_only_after_the_double_dash_exits_2_naming_usage_runs_nothing_and_leaves_the_lock_held(
+        tmp_path):
+    subprocess.run(["git", "-C", str(tmp_path), "init", "-q", "-b", "main"], check=True)
+    pid = str(os.getpid())
+    marker = tmp_path / "ran"
+
+    def shim(*args):
+        return subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), *args], cwd=tmp_path,
+                              stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=10)
+
+    taken = shim("take", "--pid", pid)
+    gated = shim("gate", "--", sys.executable, "-c", f"open({str(marker)!r}, 'w'); raise SystemExit(1)",
+                 "--pid", pid)
+    held = shim("holder")
+    assert (taken.returncode, gated.returncode, "usage" in gated.stderr.lower(), marker.exists(),
+            held.returncode, pid in held.stdout.split()) == (0, 2, True, False, 0, True)
