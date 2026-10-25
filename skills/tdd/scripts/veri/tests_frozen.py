@@ -219,6 +219,14 @@ def _kept_cases(record, name):
     return [(case, body) for case, body in new if case in held and before.get(case) == body]
 
 
+def _recorded_cases_intact(record, name):
+    with open(record, encoding="utf-8") as handle:
+        held = [r for r in map(_body_record, handle.read().splitlines()) if r and r[0] == name]
+    with open(name, encoding="utf-8", errors="replace") as handle:
+        now = dict(_cases(handle.read()))
+    return all(_body_digest(now.get(case, "")) == digest for _, case, digest in held)
+
+
 def _earlier_records(lines, step):
     for line in lines:
         match = re.match(r"\s*- \[.\] (.*)", line)
@@ -439,6 +447,8 @@ def main(argv):
         if not entries or any(len(entry) != 2 for entry in entries):
             write(sys.stderr, "tests-frozen.sh: record %s is malformed" % record)
             return 2
+        fixture = _FIXTURE_FILE.search(step) if by_step and carries_mark(trailing_markers(step), "fixture-repair") else None
+        loose = fixture.group(1) if fixture else None
         changed = []
         for expected, name in entries:
             if expected == "deleted":
@@ -446,7 +456,7 @@ def main(argv):
                     changed.append(name)
                 continue
             try:
-                if _digest(name) != expected:
+                if _digest(name) != expected and name != (loose if loose and _recorded_cases_intact(record, loose) else None):
                     changed.append(name)
             except OSError:
                 changed.append(name)
@@ -454,7 +464,6 @@ def main(argv):
             recorded = {name for _, name in entries}
             parsed = replaces_case.parse(step) if replaces_case.is_replaces_case_step(step) else None
             exempt = {parsed[1]} if parsed else set()
-            fixture = _FIXTURE_FILE.search(step) if carries_mark(trailing_markers(step), "fixture-repair") else None
             if fixture:
                 exempt.add(fixture.group(1))
             subjects = re.findall(r"⟦guard-subject: ([^⟧]+)⟧", trailing_markers(step))
