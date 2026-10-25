@@ -180,3 +180,46 @@ def test_issue_2147_a_failing_pr_ready_script_leaves_wait_ci_unrun_and_writes_no
     if deadlines:
         problems.append(f"a CI deadline was written after a failed ready: {deadlines}")
     assert not problems, "\n".join(problems)
+
+
+def _preflight_block():
+    lines = SKILL.read_bytes().decode("latin-1").split("\n")
+    at = next((i for i, l in enumerate(lines) if l.strip() == "rm -f .tdd/ci-conflict-rebased"), None)
+    if at is None:
+        return ""
+    top = max(i for i in range(at) if lines[i].strip() == "```")
+    bottom = next(i for i in range(at, len(lines)) if lines[i].strip() == "```")
+    return "\n".join(lines[top + 1:bottom]).replace("<n>", "2375").replace("<slug>", "a-slug")
+
+
+@pytest.mark.process("SKILL.md's preflight lines, then its first CI-wait block, run under bash -c in a git repo, against stub scripts")
+def test_issue_2375_a_resumed_run_with_a_marker_an_earlier_run_left_records_no_ci_conflict_bail_on_its_first_conflict(tmp_path):
+    preflight = _preflight_block()
+    assert preflight.strip(), "no `rm -f .tdd/ci-conflict-rebased` line in a SKILL.md code block — no preflight to run"
+    first = _first_block(_ci_step())
+    assert first.strip(), "no first CI-wait block in the CI step — nothing could be run"
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    stubs = {"issue-worktree.sh": '#!/bin/sh\necho "$PWD"\n',
+             "stop-requested.sh": "#!/bin/sh\nexit 0\n",
+             "pr-ready.sh": "#!/bin/sh\nexit 0\n",
+             "wait-ci.sh": '#!/bin/sh\necho "PR conflicts with its base branch" >&2\nexit 2\n',
+             "event.sh": '#!/bin/sh\necho "$*" >> events.log\n',
+             "classify-bail.sh": '#!/bin/sh\necho "$1"\n',
+             "ledger-steps.sh": "#!/bin/sh\nexit 0\n",
+             "gh": "#!/bin/sh\nexit 0\n"}
+    for name, body in stubs.items():
+        (bin_dir / name).write_text(body)
+        (bin_dir / name).chmod(0o755)
+    work = tmp_path / "work"
+    work.mkdir()
+    subprocess.run(["git", "-C", str(work), "init", "-q"], check=True)
+    (work / ".tdd").mkdir()
+    (work / ".tdd" / "ci-conflict-rebased").write_text("")
+    env = dict(os.environ, S=str(bin_dir), PATH=f"{bin_dir}:{os.environ['PATH']}")
+    script = (preflight + "\n" + first).encode("latin-1").decode("utf-8", "surrogateescape")
+    subprocess.run(["bash", "-c", script], cwd=work, env=env,
+                   stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    log = work / "events.log"
+    got = log.read_text().rstrip("\n") if log.exists() else ""
+    assert "bail" not in got, f"a resumed run with a leftover marker met its first conflict and recorded [{got}] instead of rebasing"
