@@ -187,3 +187,25 @@ def test_2245_gate_keep_running_a_command_that_exits_1_exits_1_keeps_the_lock_fo
     held = shim("holder")
     assert (taken.returncode, gated.returncode, held.returncode, pid in held.stdout.split(),
             "release --force" in gated.stderr) == (0, 1, 0, True, True)
+
+
+@pytest.mark.process("merge-lock.sh gate --pid of a non-holder running a real command that exits 1 against a lock held by another live pid")
+def test_2245_gate_with_a_pid_that_does_not_hold_the_lock_running_a_command_that_exits_1_exits_nonzero_and_leaves_the_lock_held_by_its_holder(
+        tmp_path):
+    subprocess.run(["git", "-C", str(tmp_path), "init", "-q", "-b", "main"], check=True)
+    sleeper = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+
+    def shim(*args):
+        return subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), *args], cwd=tmp_path,
+                              stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=10)
+
+    try:
+        holder = str(sleeper.pid)
+        taken = shim("take", "--pid", holder)
+        gated = shim("gate", "--pid", str(os.getpid()), "--", sys.executable, "-c", "raise SystemExit(1)")
+        held = shim("holder")
+        assert (taken.returncode, gated.returncode != 0, held.returncode, holder in held.stdout.split()) == (
+            0, True, 0, True)
+    finally:
+        sleeper.kill()
+        sleeper.wait()
