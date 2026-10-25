@@ -37,11 +37,11 @@ def main(argv):
     run = github.gh_api("repos/{owner}/{repo}/labels/%s" % urllib.parse.quote(taken, safe=""), stderr=subprocess.PIPE)
     if run.returncode != 0 and "404" not in run.stderr:
         return _refuse("no answer to looking up %s for issue #%s: %s" % (taken, argv[0], run.stderr.strip()))
+    created = True
     if run.returncode != 0:
         run = github.gh_label_create(taken)
-        if "already exists" in run.stderr:
-            run = subprocess.CompletedProcess(run.args, 0, run.stdout, "")
-    if run.returncode == 0:
+        created = run.returncode == 0 or "already exists" in run.stderr
+    if created:
         run = github.gh_api_add_label("repos/{owner}/{repo}/issues/%s/labels" % argv[0], taken)
     if run.returncode != 0:
         return _refuse("no answer to adding %s to issue #%s: %s" % (taken, argv[0], run.stderr.strip()))
