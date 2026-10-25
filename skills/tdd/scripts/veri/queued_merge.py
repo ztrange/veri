@@ -19,6 +19,10 @@ def _script(name, *args):
     return subprocess.run([os.path.join(SCRIPTS, name), *args]).returncode
 
 
+def _gate(pid, cmd, keep=False):
+    return _script("merge-lock.sh", "gate", *(["--keep"] if keep else []), "--pid", pid, "--", *cmd)
+
+
 def _repo(pr):
     return pr.removeprefix("https://github.com/").rsplit("/pull/", 1)[0]
 
@@ -39,15 +43,15 @@ def main(argv):
     pr = argv[0]
     pid = str(os.getpid())
     _script("merge-lock.sh", "take", "--pid", pid)
-    code = _script("merge-lock.sh", "gate", "--pid", pid, "--", sys.executable, os.path.abspath(__file__), "--ci", pr)
+    code = _gate(pid, (sys.executable, os.path.abspath(__file__), "--ci", pr))
     if code:
         return code
     for git_args in (("rebase", "origin/main"), ("push", "--force-with-lease", "origin", argv[2])):
-        code = _script("merge-lock.sh", "gate", "--keep", "--pid", pid, "--", "git", "-C", argv[1], *git_args)
+        code = _gate(pid, ("git", "-C", argv[1], *git_args), keep=True)
         if code:
             return code
     _, head, _ = pr_head(_repo(pr), pr)
-    code = _script("merge-lock.sh", "gate", "--pid", pid, "--", "gh", "pr", "merge", pr, "--rebase", "--match-head-commit", head)
+    code = _gate(pid, ("gh", "pr", "merge", pr, "--rebase", "--match-head-commit", head))
     if code:
         return code
     _script("merge-lock.sh", "release", "--pid", pid)
