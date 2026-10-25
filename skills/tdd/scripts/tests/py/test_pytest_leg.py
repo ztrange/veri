@@ -114,6 +114,7 @@ def test_with_no_worker_count_the_launcher_hands_pytest_one_worker_per_available
     monkeypatch.setattr(os, "cpu_count", lambda: cores["n"])
     monkeypatch.setattr(os, "process_cpu_count", lambda: cores["n"], raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(cores["n"])), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
     for cores["n"], workers in ((6, None), (6, ""), (1, None)):
         env = leg_env(VERI_PYTEST_LEGS=str(tmp_path / "legs"))
         if workers is not None:
@@ -138,6 +139,7 @@ def test_2100_with_no_worker_count_a_leg_starting_beside_registered_legs_takes_o
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
     live = [os.getpid(), os.getppid()]
     for registered in ((16,), (8, 8)):
         legs = tmp_path / ("legs-%d" % len(registered))
@@ -170,6 +172,7 @@ def test_2100_a_leg_starting_with_no_worker_count_when_live_registered_legs_alre
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
     for registered_counts in ((16,), (16, 8)):
         legs = tmp_path / ("legs-%d" % len(registered_counts))
         legs.mkdir()
@@ -201,6 +204,7 @@ def test_2100_with_neither_worker_count_nor_legs_directory_set_legs_under_two_di
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
     (tmp_path / "tmp-a").mkdir()
     (tmp_path / "tmp-b").mkdir()
     monkeypatch.setenv("HOME", str(tmp_path))
@@ -234,6 +238,7 @@ def test_2100_a_registry_entry_whose_pid_no_longer_answers_kill_0_holds_no_share
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
     legs = tmp_path / "legs"
     legs.mkdir()
     (legs / str(stale)).write_text("16\n")
@@ -264,6 +269,7 @@ def test_2100_a_registry_entry_whose_pid_is_alive_but_owned_by_another_user_stil
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
     legs = tmp_path / "legs"
     legs.mkdir()
     (legs / str(foreign)).write_text("16\n")
@@ -285,6 +291,7 @@ def test_2100_a_set_worker_count_is_used_as_given_even_beside_a_live_16_worker_e
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
     legs = tmp_path / "legs"
     legs.mkdir()
     (legs / str(os.getpid())).write_text("16\n")
@@ -337,6 +344,7 @@ def test_2100_two_legs_whose_registrations_interleave_at_the_read_together_regis
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
     for name, value in leg_env(VERI_PYTEST_LEGS=str(legs)).items():
         monkeypatch.setenv(name, value)
     monkeypatch.delenv("VERI_PYTEST_WORKERS", raising=False)
@@ -365,6 +373,7 @@ def test_2100_with_no_worker_count_a_leg_registers_its_worker_count_in_the_legs_
     monkeypatch.setattr(os, "cpu_count", lambda: 6)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 6, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(6)), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
     env = leg_env(VERI_PYTEST_LEGS=str(legs))
     codes, after = [], []
     for _ in range(2):
@@ -387,6 +396,7 @@ def test_launched_from_inside_an_xdist_worker_with_no_worker_count_the_launcher_
     monkeypatch.setattr(os, "cpu_count", lambda: 6)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 6, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(6)), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
     for workers in (None, "3"):
         env = leg_env(PYTEST_XDIST_WORKER="gw0")
         if workers is not None:
