@@ -579,3 +579,23 @@ def test_issue_2147_pr_ready_script_marks_a_draft_ready_from_zsh_and_is_listed_w
     assert "gh pr ready 42" in calls.read_text().splitlines()
     assert bare.returncode == 2 and "usage" in bare.stderr.lower()
     assert len(listed) == 1 and "conductor" in listed[0]
+
+
+@pytest.mark.skipif(shutil.which("zsh") is None, reason="no zsh installed")
+@pytest.mark.process("zsh -c sources lib/github.sh into its own shell")
+def test_issue_2147_gh_pr_ready_sourced_into_zsh_fails_where_pr_ready_script_succeeds(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    calls = tmp_path / "calls"
+    calls.write_text("")
+    gh = bin_dir / "gh"
+    gh.write_text('#!/bin/sh\necho "gh $*" >> "$CALLS"\n[ "$1" = api ] && echo abc123\nexit 0\n')
+    gh.chmod(0o755)
+    env = {"PATH": os.pathsep.join([str(bin_dir), os.path.dirname(shutil.which("bash")), "/usr/bin", "/bin"]),
+           "CALLS": str(calls), "VERI_GH_DRIVER": "auto", "VERI_POLL": "0"}
+
+    sourced = subprocess.run(["zsh", "-c", '. "$1" && gh_pr_ready 42 abc123', "zsh", str(LIB)],
+                             capture_output=True, text=True, env=env)
+
+    assert sourced.returncode != 0, (sourced.stdout, sourced.stderr)
+    assert "gh pr ready 42" not in calls.read_text().splitlines()
