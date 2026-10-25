@@ -605,45 +605,9 @@ three times over branches its ledger pinned on later lines.
    An issue whose work changes only tests (extracting a repeated helper, sharing a fixture,
    production untouched) is planned as `⟦diff-checked⟧` steps, whatever its label, refactor-kind or not.
 
-   A **refactor-kind** run — the spec carries the `## Refactor` section `capture-spec.sh`
-   writes for the `refactor` label — changes no behaviour, so it has no failing test to plan
-   around. Plan each step that is neither `⟦diff-checked⟧` nor a pin step as one named
-   refactoring whose criterion is a shell predicate, false before the step and true after it:
-   the smell being present is the step's Red. The plan verifier REJECTs such a step not
-   written that way; a test-only step is REJECTed only when it is planned as anything but
-   `⟦diff-checked⟧` or a pin step. A refactor-kind plan may mix refactoring steps with
-   `⟦diff-checked⟧` or pin steps for its test-only criteria. In a
-   refactor-kind plan, fold a deletion into the step that makes the code dead: never leave a
-   no-op in place for a later step to delete, whose Cover would run on code nothing reaches.
-   Each refactoring step opens with a cover leaf, which mutates the code the step will move, runs the suite,
-   expects red, restores and reports `COVERED:` and `CAUGHT_BY:`. If
-   `git status --porcelain` prints anything once it exits, refuse to continue — stop the
-   run: the transform would otherwise commit the leftover mutation as a refactoring.
-   Read its report through `$S/cover-outcome.sh`: exit 2 bails as a **system** failure
-   (`no-verdict`) (`Read` `<base directory>/BAIL.md`). Exit 3 — `COVERED: unreachable` or `type-only` with its `PROOF:` — goes
-   on to Transform without bailing or running `coverage-blocker.sh`, posting the proof it
-   prints in the step's Cover comment, and for a `type-only` step saves to
-   `.tdd/issue-<n>-proof` the text `cover-outcome.sh` printed after `type-only: ` — the
-   proof command the transform is checked against; exit 1, `COVERED: no`, refuses the step:
-   **bail with cause `uncovered`**, narrating the remedy —
-   find a seam and surround the behaviour with tests first — and run
-   `$S/coverage-blocker.sh <n>`, which files the coverage issue and blocks this one on it,
-   so the queue cannot retake it only to refuse again (`Read` `<base directory>/BAIL.md`).
-   A refactor-kind step therefore runs **Cover → Transform → Verify**, not Red → Green →
-   Refactor, unless it is `⟦diff-checked⟧`, which runs develop-diff then verify-diff and never
-   Cover or Transform. After Cover, a transform leaf applies the step's one named refactoring and
-   commits it; after its wait exits 0 and before the transform verifier is launched, run
-   `$S/suite-reported.sh develop-transform`: exit 2 means the report carries no `SUITE:` line,
-   so launch no verifier and **bail** as a system failure with cause `report-missing` (`Read` `<base directory>/BAIL.md`). Then
-   `$S/transform-touches-tests.sh <base-sha>` reads every commit since the
-   step's base sha, and exit 1 rejects the transform — a refactoring that edits a test file
-   has moved the goalposts — while exit 2 is no answer. After the transform commits, the
-   conductor itself — not a leaf — reruns a `type-only` step's saved proof command in
-   `.tdd/issue-<n>-proof`: a non-zero exit rejects the transform as
-   `transform-touches-tests.sh` exit 1 does. The blind `transform` verifier reads
-   the diff from the same base sha. An abandoned refactor-kind step has no untracked test to
-   clean — its transform commits are the work — so it is abandoned by resetting to its base
-   sha, `git reset --hard <base-sha>`.
+   When the spec carries the `## Refactor` section `capture-spec.sh` writes for the `refactor`
+   label, `Read` and run `<base directory>/REFACTOR-KIND.md` when you plan, and on a resume before
+   the first step, since a resume skips the plan; read it then, not before.
 2. **Commit the ledger** as the run's starting point. Before committing, run
    `$S/scope-check.sh .tdd/issue-<n>.md .`: it exits 1 when a step names a new `test_<x>.py` under
    `skills/tdd/scripts/tests/py/` whose basename already exists anywhere under it (pytest refuses
@@ -1468,58 +1432,8 @@ exit 0, ticking nothing on exit 3, as a `⟦diff-checked⟧` PASS does.
 
 #### A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier
 
-A step listing `⟦phases: …⟧` runs no Red, Green or Refactor phase: it runs the phases it
-lists, in order, one at a time. `$S/ledger-steps.sh next-phase < .tdd/issue-<n>.md` names the
-next one, <phase>; record `git rev-parse HEAD` as that phase's base sha. Its developer leaf,
-built by `build-develop-prompt.sh <phase> <spec-file> "<STEP>" '<test-cmd>'`, makes that
-phase's change and commits it, which the phase's freeze check below must accept; then the blind verifier, `run-verdict.sh --step "<STEP>"
---fast-cmd '<fast-cmd>' <phase> <spec-file> <test-path> <base-sha>`, judges the diff from
-that base sha. Both are launched through the supervisor and waited on as *Launching a leaf*
-sets out, the leaf as `develop-<phase>` and the verifier as `verdict-<phase>`. On PASS, mark
-the phase with `tick-ledger.sh --phase <phase> .tdd/issue-<n>.md "<STEP>"` and commit the
-ledger with that phase's commit, then push, and go back to `next-phase` for the step's next
-phase. On REJECT, revise under `REVISE_BUDGET` as `REVISE.md` sets out (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`). On exit 2,
-**bail** as a system failure (`no-verdict`, see `<base directory>/BAIL.md`). Once `next-phase` exits 3 every listed phase is
-marked, the step reads as done, and the loop goes back to `next-unchecked.sh`.
-
-After a phase leaf's wait exits 0, `$S/suite-reported.sh develop-<phase>` runs before its verifier is
-launched: exit 2 means no `SUITE:` line, so launch no verifier and **bail** as a system failure
-with cause `report-missing` (`Read` `<base directory>/BAIL.md`).
-
-The whole step spends one refactor of the budget, not one per phase: wherever
-`refactor-budget.sh <count>` counts the transforms already landed, a phased step adds one to
-`<count>` once its last phase is marked, however many phases it listed.
-
-The freeze check runs on the developer leaf's commit, before the verifier. An expand, migrate
-or contract-b commit runs `$S/transform-touches-tests.sh <base-sha>`: exit 1 rejects it, tests
-being frozen there. A cover-new or contract-a commit runs `$S/production-frozen.sh <base-sha>`:
-exit 1 rejects it, production being frozen there. Either rejection is revised as a REJECT is;
-exit 2 **bails** as a system failure (see `<base directory>/BAIL.md`).
-
-A cover-new phase adds cases that call the new interface directly, and its PASS is accepted
-only once those cases pass against the expand commit and go red under a mutation of the new
-interface's behaviour. A migrate phase does not start until the step's cover-new phase has
-passed: `next-phase` never hands over migrate while a listed cover-new is unmarked.
-
-A contract-a phase's PASS is accepted only once the conductor's own run of
-`$S/mutation-parity.sh <pairs-table>` on that phase's pairs table exits 0; exit 1 is a
-REJECT, exit 2 a bail (see `<base directory>/BAIL.md`). The PR body's pairs table is that run's report, and each row it reports
-owed goes into the PR body under `## Owed by a human`.
-
-Contract-b starts only once `$S/no-product-caller.sh <old-interface>` on the old
-interface exits 0. Before it launches contract-b, the phase that deletes the interface, run it:
-exit 1 names each product file still calling the old interface, so contract-b does not start and
-the step **bails** as a process failure, the migrate phase having left a caller behind; exit 2
-**bails** as a system failure (see `<base directory>/BAIL.md`). Contract-a starts on the migrate phase's PASS without the scan:
-it removes the tests' routing to the old interface, not the interface, and a shim kept on
-purpose is never scanned.
-
-A contract phase that exhausts `REVISE_BUDGET` does not abandon the step: reset the contract
-to its own base sha with `git reset --hard <base-sha>`, so the expand and migrate commits are
-kept, and file the contract under the ledger's `## Owed steps`: append it as a plain bullet
-under that trailing heading, adding the heading when the ledger has none, and mark the
-contract phase owed with `tick-ledger.sh --phase-owed <phase> .tdd/issue-<n>.md "<STEP>"`, so
-`next-phase` never hands it back; then commit the ledger and go back to `next-unchecked.sh`.
+When `next-unchecked.sh` hands over a step listing `⟦phases: …⟧`, `Read` and run
+`<base directory>/PHASED.md` in place of Red, Green and Refactor, and read it then, not before.
 
 ### 4. Draft PR
 
@@ -1675,98 +1589,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    done; exit "$rc"; }
    ```
 
-   Then run the issue's **one structural pass**, once, before the PR is readied: the
-   structural candidates the steps recorded rather than applied, each taken up by one
-   `structural` transform leaf, bounded to every file the issue touched plus the files the
-   candidate names, and counted against the issue's budget, not a step's. The conductor runs the pass whenever
-   `refactor-owed.sh list` prints a candidate, and never skips or shortens it for cost: the
-   way to spend less is to set a lower `VERI_ISSUE_REFACTOR_BUDGET` before launch. A run does
-   a refactor now, or drops it: the pass never files one. Every candidate it does not apply is
-   recorded with `refactor-owed.sh not-done` and its reason, and `render` shows it under
-   `### Not done` in the PR body:
-   ```
-   git merge-base HEAD origin/<default>                 # → <issue-base>
-   $S/refactor-owed.sh list .tdd/issue-<n>-refactor-owed.md   # one candidate per line; exit 3 ⇒ no pass
-   ```
-   A candidate recorded test-only is never listed, so it launches no predicate or
-   transform leaf; `render` still shows it under `### Test-only` in the PR body.
-   An out-of-scope candidate is listed like any other.
-   For each candidate, in the order `refactor-owed.sh list` prints them — most valuable first —
-   `<count>` being the transforms the pass has already landed:
-   ```
-   $S/refactor-budget.sh --issue <count>   # exit 0 ⇒ launch; exit 3 ⇒ the pass is over
-   git rev-parse HEAD                      # → <base-sha>
-   $S/refactor-touched.sh --issue <issue-base> --candidate '<candidate>'   # → <bound>
-   ```
-   A candidate the budget stops is recorded, with every candidate after it:
-   ```
-   $S/refactor-owed.sh not-done .tdd/issue-<n>-refactor-owed.md '<candidate>' budget-spent
-   ```
-   Before its transform leaf, a `develop-cover` leaf, prompted by `build-develop-prompt.sh cover`
-   with the spec, the candidate and the test command, mutates the code the candidate will move, runs the suites,
-   expects red and restores. Read its report through `$S/cover-outcome.sh`: exit 2 bails as a
-   **system** failure (`no-verdict`) (`Read` `<base directory>/BAIL.md`). Exit 3 — `COVERED: unreachable` or `type-only` — goes on;
-   exit 1, `COVERED: no`, launches no transform: the candidate is recorded `uncovered`, and the
-   run neither bails nor files anything:
-   ```
-   $S/refactor-owed.sh not-done .tdd/issue-<n>-refactor-owed.md '<candidate>' uncovered
-   ```
-   This is where each candidate's predicate comes from: after a covered candidate, a
-   predicate leaf, prompted by `build-develop-prompt.sh predicate` with the spec, the
-   candidate, the test command and `<bound>`, and launched through the supervisor as `develop-predicate`, reports one
-   `PREDICATE:` line, which the conductor checks and records:
-   ```
-   $S/structural-predicate.sh .tdd/issue-<n>-predicate < <leaf-report>   # exit 0 ⇒ recorded; 1 ⇒ already applied; 3 ⇒ skip
-   ```
-   That record is the test path the transform verifier runs, in place of the prose
-   candidate. A candidate with no predicate is skipped — only exit 3, for
-   `PREDICATE: NONE`, is recorded with `refactor-owed.sh not-done` and `no-predicate`
-   rather than handed to a transform leaf; exit 1, a command already
-   true, means the candidate is already applied, and it is recorded as applied below
-   without a transform leaf; exit 2 is no answer and **bails** as a **system** failure (`no-verdict`, see `<base directory>/BAIL.md`).
-   Each transform leaf's prompt is `build-develop-prompt.sh structural`'s, handed the spec, the candidate as
-   `list` printed it, the test command and `<bound>`, written to
-   `.tdd/develop-structural.prompt`; the leaf is launched through the supervisor as
-   `develop-structural`. After its wait exits 0 and before its commits are checked, run
-   `$S/suite-reported.sh develop-structural`: exit 2 means the report carries no `SUITE:` line,
-   so launch no transform verifier and **bail** as a system failure with cause `report-missing` (`Read` `<base directory>/BAIL.md`).
-   An out-of-bounds skip — the leaf left the tree as it found it and said so — is exempt: it
-   keeps its main outcome, a transform `REJECT` and the next candidate (a process outcome),
-   never a `report-missing` bail. Its commits are checked with
-   `$S/transform-touches-tests.sh <base-sha> <bound>` — exit 1 rejects the transform (a test file,
-   or a file outside `<bound>`), exit 2 is no
-   answer — then judged by the long
-   refactor's blind `transform` verifier against `<base-sha>`, one commit per transform —
-   both before the next candidate's leaf is launched. A `REJECT`, or a transform `transform-touches-tests.sh` rejected, resets to `<base-sha>`, records the
-   candidate `transform-rejected` with `refactor-owed.sh not-done`, and moves on to the next candidate.
-   ```
-   rm -f .tdd/verdict-transform.exit .tdd/verdict-transform.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/detach-leaf.sh $S/supervise.sh verdict-transform $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" transform .tdd/issue-<n>-spec.md .tdd/issue-<n>-predicate <base-sha> > .tdd/verify-transform.reason 2> .tdd/verify-transform.err
-   $S/wait-leaf.sh verdict-transform   # foreground; on exit 3 call it again
-   ```
-   A `PASS` records the candidate as applied, with the commit that applied it, so `render`
-   lists it as applied rather than owed; a candidate `structural-predicate.sh` exited 1 for
-   launches no transform leaf and is recorded the same way, at the current HEAD; the fourth argument is the applying commit's subject, which `render` prints beside the sha:
-   ```
-   $S/refactor-owed.sh applied .tdd/issue-<n>-refactor-owed.md '<candidate>' "$(git rev-parse HEAD)" "$(git log -1 --format=%s)"
-   git add .tdd/issue-<n>-refactor-owed.md
-   git commit -m "chore: record the structural pass's applied candidate (#<n>)"
-   ```
-   Every `refactor-owed.sh not-done` call above (`budget-spent`, `uncovered`, `no-predicate`,
-   `transform-rejected`) is followed at once, before the next candidate's leaf is launched, by
-   staging and committing the owed file, so a later candidate's `REJECT` reset to its `<base-sha>`
-   keeps the row:
-   ```
-   git add .tdd/issue-<n>-refactor-owed.md
-   git commit -m "chore: record the structural pass's not-done candidate (#<n>)"
-   ```
-   Once the pass ends — the candidates run out, or the budget is spent — mark it once, with
-   the transforms it landed, its budget and why it stopped. `stopped=` takes only
-   `candidates-done`, `budget-spent` or `nothing-structural`, and `budget-spent` is marked
-   only when `refactor-budget.sh --issue` exited 3, i.e. `transforms` equals the budget:
-   ```
-   VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh structural-pass transforms=<count> budget=<VERI_ISSUE_REFACTOR_BUDGET> stopped=<reason>
-   ```
+   Run `$S/refactor-owed.sh list .tdd/issue-<n>-refactor-owed.md` once, before the PR is readied.
+   When it prints a candidate (exit 0), `Read` and run `<base directory>/STRUCTURAL.md`, the
+   issue's one structural pass, and read it then, not before. On exit 3 the run never reads it.
    No candidate — `list` exits 3, and a missing `.tdd/issue-<n>-refactor-owed.md` is the
    `list` exit-3 case — skips the pass with no bail: it is marked `stopped=nothing-structural`
    before the PR is readied:
