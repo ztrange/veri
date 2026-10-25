@@ -208,3 +208,16 @@ def test_the_send_scoped_placement_check_finds_no_misplaced_pointer_in_skill_md_
     """Subject is source text: the send-scoped placement check over SKILL.md and every file a pointer names reports no misplaced pointer."""
     files = [SKILL] + [SKILL.parent / name for name in EVENT_FILES]
     assert {f.name: misplaced_send_pointers(f.read_text()) for f in files} == {f.name: [] for f in files}
+
+
+def test_the_moved_sections_distinctive_lines_are_absent_from_skill_md_and_present_in_their_files_2218():
+    """Subject is source text: each moved section's distinctive lines sit in STRUCTURAL.md, PHASED.md and REFACTOR-KIND.md, not in SKILL.md."""
+    moved = {
+        "STRUCTURAL.md": ["$S/transform-touches-tests.sh <base-sha> <bound>", "event.sh structural-pass transforms="],
+        "PHASED.md": ["tick-ledger.sh --phase-owed", "no-product-caller.sh <old-interface>"],
+        "REFACTOR-KIND.md": ["coverage-blocker.sh <n>", ".tdd/issue-<n>-proof"],
+    }
+    skill = SKILL.read_text()
+    in_skill = [line for lines in moved.values() for line in lines if line in skill]
+    missing = [(name, line) for name, lines in moved.items() for line in lines if line not in (SKILL.parent / name).read_text()]
+    assert (in_skill, missing) == ([], [])
