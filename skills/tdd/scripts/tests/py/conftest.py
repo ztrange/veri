@@ -285,7 +285,7 @@ CWD_OUTSIDE_REPOSITORY = {
 
 
 @pytest.fixture(autouse=True)
-def hermetic_environment(request, monkeypatch, tmp_path):
+def hermetic_environment(request, monkeypatch, tmp_path, tmp_path_factory):
     offline = {name: value for name, value in os.environ.items()
                if name in ("GIT_CONFIG_COUNT", "GIT_TEMPLATE_DIR", "GIT_EXEC_PATH")
                or name.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))}
@@ -303,6 +303,9 @@ def hermetic_environment(request, monkeypatch, tmp_path):
     monkeypatch.setenv("LC_ALL", "C")
     monkeypatch.setenv("VERI_PYTEST_LEGS", str(tmp_path / "veri-pytest-legs"))
     monkeypatch.setenv("VERI_MIN_FREE_GB", "0")
+    case_tmpdir = str(tmp_path_factory.mktemp("tmpdir"))
+    monkeypatch.setenv("TMPDIR", case_tmpdir)
+    monkeypatch.setattr(tempfile, "tempdir", case_tmpdir)
     for name, value in offline.items():
         monkeypatch.setenv(name, value)
 
