@@ -152,14 +152,14 @@ def test_2380_a_leaf_whose_full_run_queues_on_the_lock_from_its_own_process_grou
     tool.write_text(NEW_SESSION % (str(script), str(pidfile)))
     held = open(str(tmp_path / "legs") + "-full.lock", "a+")
     fcntl.flock(held, fcntl.LOCK_EX)
-    release = threading.Timer(3.5, lambda: (fcntl.flock(held, fcntl.LOCK_UN), held.close()))
+    release = threading.Timer(6, lambda: (fcntl.flock(held, fcntl.LOCK_UN), held.close()))
     release.start()
 
     try:
         ran = subprocess.run([str(SCRIPTS / "supervise.sh"), "verify-rebase", sys.executable, str(tool)],
                              cwd=work, capture_output=True, text=True, timeout=30,
                              env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
-                                  "VERI_POLL": "0.05", "VERI_TIMEOUT": "2", "VERI_HEARTBEAT": "600",
+                                  "VERI_POLL": "0.05", "VERI_TIMEOUT": "4", "VERI_HEARTBEAT": "600",
                                   "HOME": str(tmp_path), "VERI_PYTEST_LEGS": str(tmp_path / "legs"),
                                   "VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1",
                                   "VERI_PYTEST_XDIST_IMPORTABLE": "1", "PYTHONDONTWRITEBYTECODE": "1"})
@@ -194,14 +194,14 @@ def test_2380_a_leaf_that_hangs_after_acquiring_the_full_suite_lock_is_still_kil
     script.write_text(HANG_AFTER_LOCK % (str(SCRIPTS), str(SCRIPTS / "veri"), str(acquired)))
     held = open(str(tmp_path / "legs") + "-full.lock", "a+")
     fcntl.flock(held, fcntl.LOCK_EX)
-    release = threading.Timer(3.5, lambda: (fcntl.flock(held, fcntl.LOCK_UN), held.close()))
+    release = threading.Timer(6, lambda: (fcntl.flock(held, fcntl.LOCK_UN), held.close()))
     release.start()
 
     try:
         ran = subprocess.run([str(SCRIPTS / "supervise.sh"), "verify-rebase", sys.executable, str(script)],
                              cwd=work, capture_output=True, text=True, timeout=30,
                              env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
-                                  "VERI_POLL": "0.05", "VERI_TIMEOUT": "2", "VERI_HEARTBEAT": "600",
+                                  "VERI_POLL": "0.05", "VERI_TIMEOUT": "4", "VERI_HEARTBEAT": "600",
                                   "HOME": str(tmp_path), "VERI_PYTEST_LEGS": str(tmp_path / "legs"),
                                   "VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1",
                                   "VERI_PYTEST_XDIST_IMPORTABLE": "1", "PYTHONDONTWRITEBYTECODE": "1"})
