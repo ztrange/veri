@@ -1408,3 +1408,22 @@ def test_2386_off_macos_with_no_worker_count_the_budget_is_the_cpu_affinity_coun
     (legs / str(os.getpid())).write_text("5\n")
     beside_five = pytest_leg.worker_count(None)
     assert (alone, beside_five) == (12, 7)
+
+
+def test_2386_on_macos_a_set_worker_count_is_used_as_given_even_above_the_physical_core_count(pytest_leg, monkeypatch, tmp_path):
+    import subprocess
+
+    def sysctl_answer(argv, *args, **kwargs):
+        return subprocess.CompletedProcess(argv, 0, stdout="8\n", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", sysctl_answer)
+    monkeypatch.setattr(subprocess, "check_output", lambda argv, *a, **k: sysctl_answer(argv).stdout)
+    monkeypatch.setattr(os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(sys, "platform", "darwin")
+    monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    monkeypatch.setenv("VERI_PYTEST_LEGS", str(legs))
+    assert pytest_leg.worker_count("12") == 12
