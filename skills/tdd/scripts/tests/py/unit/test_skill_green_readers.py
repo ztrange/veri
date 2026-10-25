@@ -26,6 +26,8 @@ ALLOWED = {
         "asserts REVISE.md's sentence, not Green's",
     "unit/test_skill_refactor_kind.py::test_skill_md_puts_mutation_parity_sh_s_report_into_the_pr_body_as_the_pairs_table_and_each_row_it_reports_owed_under_owed_by_a_human":
         "no CY row: document-wide; searches every mutation-parity.sh in the document",
+    "unit/test_skill_green_split.py::test_1558_skill_md_runs_every_replaces_case_survivors_sh_occurrence_before_the_verify_green_launch_it_gates_on_the_green_path_and_the_pin_path_alike":
+        "no CY row: document-wide; orders the first survivors run against the verify-green launch line",
     "unit/test_skill_event_files.py::test_every_line_sending_the_run_to_stopping_points_at_stopping_md_1716":
         "names the Green heading only to exclude it",
     "unit/test_skill_event_files.py::test_every_line_launching_the_reconcile_leaf_points_at_reconcile_md_1716":
