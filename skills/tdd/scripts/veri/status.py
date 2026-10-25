@@ -70,8 +70,9 @@ def scope_totals(name, solvable, runs, as_json=False):
         end = run_end.run_end(run)[2].get("event")
         done += end == "done"
         bailed += end == "bail"
-        if events:
-            wall += int(events[-1]["ts"]) - int(events[0]["ts"])
+        timed = [e for e in events if "ts" in e]
+        if timed:
+            wall += int(timed[-1]["ts"]) - int(timed[0]["ts"])
     if as_json:
         return json.dumps({"name": name, "attempted": attempted, "done": done,
                            "bailed": bailed, "wall_seconds": wall, "dollars": round(dollars, 2),
