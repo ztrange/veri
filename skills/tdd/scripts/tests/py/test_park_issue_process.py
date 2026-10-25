@@ -329,3 +329,37 @@ def test_park_issue_exits_2_naming_the_pr_write_when_gh_fails_only_that_write_23
 
     assert ran.returncode == 2, (ran.returncode, ran.stderr, log.read_text())
     assert "PR" in ran.stderr, ran.stderr
+
+
+EXISTING_LABEL_422_GH_STUB = """#!/bin/sh
+echo "ARGS: $*" >> "$GH_LOG"
+for a in "$@"; do
+  case "$a" in
+    */issues/*/comments) cat >> "$GH_LOG" 2>/dev/null; echo '{}'; exit 0 ;;
+    */issues/*/labels) echo '[{"name":"parked"}]'; exit 0 ;;
+    */labels) echo "gh: Validation Failed (HTTP 422)" >&2; exit 1 ;;
+  esac
+done
+echo '{}'
+"""
+
+
+@pytest.mark.process("park-issue.sh run against a gh stub whose repository already has the parked label")
+def test_park_issue_labels_comments_and_exits_0_when_gh_answers_the_label_creation_with_422_2343(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(EXISTING_LABEL_422_GH_STUB)
+    gh.chmod(0o755)
+    log = tmp_path / "gh.log"
+    log.write_text("")
+
+    ran = subprocess.run([str(SCRIPTS / "park-issue.sh"), "7", "held for review", "a human merges"],
+                         cwd=tmp_path, capture_output=True, text=True, stdin=subprocess.DEVNULL,
+                         env={"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+                              "GH_LOG": str(log), "PYTHONDONTWRITEBYTECODE": "1"})
+
+    recorded = log.read_text()
+    assert "repos/{owner}/{repo}/issues/7/labels" in recorded, recorded
+    assert recorded.count("### ⏸ Parked\nCause: held for review\n") == 1, recorded
+    assert ran.returncode == 0, ran.stderr
