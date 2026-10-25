@@ -10,7 +10,7 @@ def _encoded(pattern):
 
 
 CANDIDATE = _encoded(candidates.LINE)
-PATTERNS = tuple((cls.encode(), _encoded(candidates.candidate(cls))) for cls in candidates.CLASSES)
+PATTERNS = tuple((cls.encode(), _encoded(candidates.candidate(cls))) for cls in (*candidates.CLASSES, "in-step", "out-of-bounds"))
 CLASS_LIST = ", ".join(candidates.CLASSES[:-1]).encode() + b" or " + candidates.CLASSES[-1].encode()
 NONE = re.compile(rb"^none\s*$")
 
