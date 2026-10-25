@@ -4,7 +4,7 @@
 |---|---|---|
 | GR1 | Invoked as `/veri-groom [<issue>...\|--unlabelled\|--refactor-owed]`. | |
 | GR2 | One read-only subagent returns one line per issue: ready / needs-split / gone / duplicate / needs-human, plus proposed labels. | |
-| GR3 | Mechanical outcomes are applied: labels, a close with a reason, `Blocked by` edits. Nothing else is mechanical: any other outcome is shown to the human first. | |
+| GR3 | Mechanical outcomes are applied without asking: adding or removing a label, closing an issue with a reason, and editing its `Blocked by`. Nothing else is mechanical: filing a new issue (a consolidated or split one included), rewriting criteria, and any other outcome are shown to the human first and applied only on their yes. | Grooming changes queue state cheaply and reversibly on its own; new work enters the queue only with a human's yes (PR #2118 review: filing was treated as mechanical, and the grader judged the old wording both ways). |
 | GR4 | A split or a criteria rewrite is shown to the human first unless they said "go". | |
 | GR5 | `--refactor-owed` classifies each item GONE / FOLDS-INTO-OTHER / LIVE on `main`, consolidates the live ones into one issue per module, and closes the sources. | ~5–6 such items are filed per day. |
 | GR6 | Near its top, the skill says it obeys `operator/PRINCIPLES.md` and reads it first. | PR #2061's prose passed GR1–GR5 without it, so no principle reached the skill. |

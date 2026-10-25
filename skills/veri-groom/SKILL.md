@@ -55,6 +55,8 @@ subagents; never lift the limit.
 **Nothing else is mechanical.** Any other outcome is shown to the human first, in full: what
 is proposed, the options in words, what each costs (P4).
 
+- **Filing a new issue** is never mechanical: it is applied only on the human's yes (for a split or
+  a criteria rewrite, a "go" for this run is that yes).
 - A **split** (new issues carved from one) and a **criteria rewrite** are shown to the human
   first, unless the human has said "go" for this run — then they are applied and reported.
 - `needs-human` lines are shown as they are.
@@ -75,10 +77,11 @@ calls it):
 Then, in the project repo:
 
 1. Group the LIVE items by module.
-2. File **one consolidated issue per module** listing every source item, each with its
-   location and the refactor owed.
-3. Close every source — GONE and FOLDS-INTO-OTHER with their reason, LIVE with a pointer to
-   the consolidated issue.
+2. Show the human, in full, **one consolidated issue per module** listing every source item,
+   each with its location and the refactor owed. Filing an issue is not mechanical: file each
+   only on the human's yes.
+3. Close every source — GONE and FOLDS-INTO-OTHER with their reason at once, LIVE with a
+   pointer to the consolidated issue once that issue is filed.
 
-Closing and filing here are mechanical; a consolidation that would also rewrite a source's
-criteria is shown to the human first, as a criteria rewrite.
+Closing is mechanical; filing the consolidated issues is not, and a consolidation that would
+also rewrite a source's criteria is shown to the human first, as a criteria rewrite.
