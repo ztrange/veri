@@ -3,7 +3,7 @@ import importlib
 import json
 import os
 
-from conftest import live_conductor
+from conftest import fake_pid_file_ps, live_conductor
 
 
 def test_a_run_whose_events_log_ends_with_a_done_event_prints_done_and_that_events_pr(tmp_path, run_cli):
@@ -270,10 +270,7 @@ def test_a_run_with_no_end_event_whose_live_pid_is_an_unrelated_process_and_whos
     (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in (
         {"type": "system", "subtype": "init"},
         {"type": "result", "is_error": True, "result": "You've hit your weekly limit · resets Oct 7, 3pm"})))
-    for name in ("run_end", "veri.run_end"):
-        module = importlib.import_module(name)
-        monkeypatch.setattr(module, "command_line", lambda pid: "vim notes.txt", raising=False)
-        monkeypatch.setattr(module, "parent_pid", lambda pid: 424242, raising=False)
+    fake_pid_file_ps(monkeypatch, conductor=False)
 
     code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
 

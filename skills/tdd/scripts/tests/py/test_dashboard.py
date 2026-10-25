@@ -241,7 +241,6 @@ def live_conductor(monkeypatch, run, issue):
     """Make <run> read as live: its pid file holds this process, whose command line names the run."""
     import run_end
     write(os.path.join(run, ".tdd", "conductor.pid"), "%d\n" % os.getpid())
-    monkeypatch.setattr(run_end, "command_line", lambda pid: "run-conductor.sh %s" % issue)
     fake_pid_file_ps(monkeypatch)
 
 

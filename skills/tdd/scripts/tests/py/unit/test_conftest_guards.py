@@ -288,17 +288,6 @@ def test_2100_every_case_runs_with_veri_pytest_legs_pointing_into_its_own_tmp_pa
     assert legs.is_absolute() and legs.parent == tmp_path, legs
 
 
-def test_2198_live_conductor_fails_at_setup_when_an_attribute_of_run_end_it_patches_does_not_exist(monkeypatch, tmp_path):
-    import importlib
-    import pytest
-
-    for name in ("run_end", "veri.run_end"):
-        monkeypatch.delattr(importlib.import_module(name), "command_line")
-
-    with pytest.raises(AttributeError, match="command_line"):
-        conftest.live_conductor(monkeypatch, tmp_path, 2198)
-
-
 def test_2246_the_inherited_tmpdir_guard_fails_planted_cases_that_create_in_it_through_mkdir_open_or_os_open_naming_the_path_while_a_case_writing_under_its_own_tmpdir_passes(pytester, monkeypatch, tmp_path):
     inherited = tmp_path / "inherited"
     inherited.mkdir()

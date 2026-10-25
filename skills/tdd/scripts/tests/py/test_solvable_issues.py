@@ -7,10 +7,11 @@ import os
 import pathlib
 import re
 import subprocess
+import tempfile
 
 import pytest
 
-import run_end
+from conftest import fake_pid_file_ps
 
 USAGE = "usage: solvable-issues.sh [--repo owner/name] [--not-running]\n"
 
@@ -22,10 +23,8 @@ def no_ambient_tunables(monkeypatch):
 
 
 def conducting(monkeypatch, *numbers):
-    """run_end.command_line and parent_pid answering every pid as the conductor of each of `numbers`, its parent as none."""
-    line = " ".join("bash run-conductor.sh %d" % n for n in numbers)
-    monkeypatch.setattr(run_end, "command_line", lambda pid: line if pid else "")
-    monkeypatch.setattr(run_end, "parent_pid", lambda pid: 0)
+    """pid_file's ps answering every pid as a claude under run_conductor.py."""
+    fake_pid_file_ps(monkeypatch)
 
 
 @pytest.fixture
@@ -34,16 +33,18 @@ def conductor_process(request):
     started = []
 
     def start(*numbers):
-        argv = [word for n in numbers for word in ("run-conductor.sh", str(n))]
-        child = subprocess.Popen(["/bin/sh", "-c", "read x", *argv], stdin=subprocess.PIPE)
-        started.append(child)
-        return child.pid
+        claude = pathlib.Path(tempfile.mkdtemp(prefix="exp-claude-")) / "claude"
+        claude.symlink_to("/bin/sh")
+        parent = subprocess.Popen(["/bin/sh", "-c", '"$1" -c "read x" <&0 & echo $!; wait', "run_conductor.py", str(claude)],
+                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+        started.append(parent)
+        return int(parent.stdout.readline())
 
     yield start
     for child in started:
-        child.kill()
-        child.wait()
         child.stdin.close()
+        child.wait()
+        child.stdout.close()
 
 
 @pytest.fixture
@@ -412,8 +413,8 @@ def test_main_reads_a_lock_under_the_main_tree_git_names_from_the_callers_direct
         return code, out
 
     unlocked = "".join("%d\n" % n for n in numbers)
-    assert run((0, "worktree %s\nHEAD 0000000\n" % decoy, "")) == (0, "13\n14\n15\n19\n20\n")
-    assert run((0, "%s\nHEAD 0000000\n" % decoy, "")) == (0, "13\n14\n15\n19\n20\n")
+    assert run((0, "worktree %s\nHEAD 0000000\n" % decoy, "")) == (0, "11\n12\n13\n14\n15\n19\n20\n")
+    assert run((0, "%s\nHEAD 0000000\n" % decoy, "")) == (0, "11\n12\n13\n14\n15\n19\n20\n")
     assert run((128, "", "fatal: not a git repository\n")) == (0, unlocked)
     assert run((0, "", "")) == (0, unlocked)
     assert run(FileNotFoundError(2, "No such file or directory", "git")) == (0, unlocked)
@@ -1310,8 +1311,7 @@ def test_in_flight_2253_is_false_when_the_lock_pid_answers_kill_0_but_neither_it
     lock = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "conductor.pid"
     lock.parent.mkdir(parents=True)
     lock.write_text("%d\n" % os.getpid())
-    monkeypatch.setattr(run_end, "command_line", lambda pid: "python3 /tmp/pytest-of-x/tmp_script.py")
-    monkeypatch.setattr(run_end, "parent_pid", lambda pid: 1)
+    fake_pid_file_ps(monkeypatch, conductor=False)
 
     assert solvable_issues.in_flight(str(tmp_path), 7) is False
 
@@ -1320,7 +1320,6 @@ def test_in_flight_2253_is_true_when_the_lock_pid_answers_kill_0_and_its_command
     lock = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "conductor.pid"
     lock.parent.mkdir(parents=True)
     lock.write_text("%d\n" % os.getpid())
-    monkeypatch.setattr(run_end, "command_line", lambda pid: "bash run-conductor.sh 7")
-    monkeypatch.setattr(run_end, "parent_pid", lambda pid: 1)
+    fake_pid_file_ps(monkeypatch)
 
     assert solvable_issues.in_flight(str(tmp_path), 7) is True
