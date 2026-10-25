@@ -52,6 +52,10 @@ def _needs_pid(args, force_ok):
     return True
 
 
+def _poll_wait():
+    time.sleep(float(tunables.read("VERI_MERGE_LOCK_POLL", "30")))
+
+
 def _take(lock, record, args):
     if _needs_pid(args, False):
         return 2
@@ -75,7 +79,7 @@ def _take(lock, record, args):
                 if not os.path.isdir(lock):
                     continue
                 if isinstance(err, FileNotFoundError):
-                    time.sleep(float(tunables.read("VERI_MERGE_LOCK_POLL", "30")))
+                    _poll_wait()
                     continue
                 print(f"merge-lock.sh: missing, unreadable or malformed holder record {record}", file=sys.stderr)
                 return 2
@@ -83,7 +87,7 @@ def _take(lock, record, args):
                 if _reused(text, holder):
                     print("stale lock: " + text, end="", file=sys.stderr, flush=True)
                     reported = True
-            time.sleep(float(tunables.read("VERI_MERGE_LOCK_POLL", "30")))
+            _poll_wait()
     finally:
         shutil.rmtree(staged, ignore_errors=True)
 
