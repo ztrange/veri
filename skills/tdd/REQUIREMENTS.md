@@ -343,12 +343,9 @@
 | PL53 | After a conflicted rebase is resolved, the regrade block runs before `verify-rebase` is launched, so the verifier judges a tip whose `GRADED` lines are current. | A `GRADED` line made stale only by the rebase is not a defect in the resolution, and rejecting it spends a revise attempt on work the procedure does next anyway. |
 | PL54 | In the Draft PR step's conflicted-rebase paragraph, the regrade that runs before `verify-rebase` writes no `revise` mark and spends no `REVISE_BUDGET` attempt: a `GRADED` line made stale only by the rebase is no defect of the resolution. | The revise budget is for rejected work; spending it on a signature the procedure refreshes anyway would bail runs whose resolution was correct. |
 | EV1 | Every sentence that sends the run into an event (a bail, phrased as "**bail**", "bails as …", "bail with cause …", "bails with cause …", "→ bail", "is a bail" or a bare "bail" instruction, bolded or not; a resume; a skill-edit step) names the file to Read for that event under `<base directory>/` (`BAIL.md`, `RESUME.md`, `SKILL-EDIT.md`). | A leaf or conductor that reaches an event with no pointer improvises the procedure instead of reading it (PRD 010). |
-<<<<<<< HEAD
 | DP81 | When the ready script exits non-zero, `wait-ci.sh` is not run, so no CI deadline is started, and the run **bails** as a **system** failure (`no-verdict`) with the PR left a draft. | A PR that was never readied is not waited on, and the failed ready is named as the plumbing failure it is. |
 | DP82 | In the Draft PR block, `wait-ci.sh` runs in the same command as the ready script and only on its exit 0 (the ready line ends `|| ` and the bail, so a failed ready never reaches `wait-ci.sh`). | A sentence beside two separate commands can be skipped under load; a gate inside the command cannot. |
-=======
 | CY119 | A green report carrying a `SUPERSEDED:` line, with or without `WRONG_TEST:`, goes through `wrong-test-route.sh` before any revise, and shares the step's one free reroute. | The develop prompt sends a case the step's change supersedes to `SUPERSEDED:`, never `WRONG_TEST:`. Without this, that case can only be fixed by revise, which cannot touch a frozen test, and the step bails. |
->>>>>>> 8723d8e2f0 (docs: requirements for skills/tdd/SKILL.md, graded)
 
 ## skills/tdd/PIN.md
 
