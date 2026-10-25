@@ -64,3 +64,15 @@ def test_a_repair_marked_step_is_never_frozen_so_an_edit_to_its_test_file_is_not
 
     assert (recorded, checked, sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == ((0, "", ""), (0, "", ""), [])
 
+
+
+@pytest.mark.parametrize("value", ["::name", "path::"])
+def test_record_refuses_a_red_case_value_with_an_empty_half_around_the_double_colon_and_writes_no_record_2269(
+        tmp_path, run_cli, tests_frozen, value):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "a.test.sh").write_text("case one\n")
+
+    code, out, err = run_cli(tests_frozen, ["record", ".tdd/x.record", "--red-case", value, "a.test.sh"], cwd=tmp_path)
+
+    assert (code, out, "--red-case" in err and value in err, sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == (
+        2, "", True, [])
