@@ -33,6 +33,17 @@ def main_tree_at(main_tree):
     return {("git", "worktree", "list", "--porcelain"): (0, b"worktree %s\nHEAD abc\n" % os.fsencode(main_tree))}
 
 
+def conductor_answers(*pids):
+    """ps answers making each pid a claude whose parent is run_conductor.py."""
+    answers = {}
+    for pid in pids:
+        parent = pid + 1000000
+        answers[("ps", "-o", "command=", "-p", str(pid))] = (0, b"claude -p /tdd 5\n")
+        answers[("ps", "-o", "ppid=", "-p", str(pid))] = (0, b"%d\n" % parent)
+        answers[("ps", "-o", "command=", "-p", str(parent))] = (0, b"python3 run_conductor.py 5\n")
+    return answers
+
+
 def run_with_conductor(main_tree):
     """<main_tree>/.tdd/wt/5, its .tdd/conductor.pid holding 4242."""
     run = main_tree / ".tdd" / "wt" / "5"
@@ -44,7 +55,7 @@ def run_with_conductor(main_tree):
 def test_main_refuses_no_issue_and_a_non_integer_and_stops_a_live_run_or_answers_3_for_a_dead_one(
         monkeypatch, tmp_path, capsysbinary, stop_run, fake_processes):
     monkeypatch.chdir(tmp_path)
-    calls = fake_processes(answering(main_tree_at(tmp_path)))
+    calls = fake_processes(answering({**main_tree_at(tmp_path), **conductor_answers(4242)}))
     live = {"4242": True}
 
     def fake_kill(pid, sig):
@@ -78,7 +89,7 @@ def test_main_accepts_a_mode_stop_modes_lists_and_writes_it_to_the_runs_stop_fil
     import stop_modes
     monkeypatch.setattr(stop_modes, "STOP_MODES", ("at-ledger", "at-leaf", "now", "at-step"))
     monkeypatch.chdir(tmp_path)
-    fake_processes(answering(main_tree_at(tmp_path)))
+    fake_processes(answering({**main_tree_at(tmp_path), **conductor_answers(4242)}))
     monkeypatch.setattr(os, "kill", lambda pid, sig: None)
     run = run_with_conductor(tmp_path)
 
@@ -152,7 +163,7 @@ def test_main_prints_each_stopped_run_exactly_answers_3_byte_for_byte_and_lists_
     decoy = tmp_path / "maiXnY"
     elsewhere = tmp_path / "elsewhere"
     monkeypatch.chdir(tmp_path)
-    fake_processes(answering(main_tree_at(main_tree)))
+    fake_processes(answering({**main_tree_at(main_tree), **conductor_answers(8008, 6006, 1212, 7007, 2020)}))
     live = set()
 
     def fake_kill(pid, sig):
@@ -250,7 +261,7 @@ def test_main_now_terms_only_pids_whose_ps_runs_supervise_sh_of_their_name_ignor
         (tdd / (name + ".pid")).write_bytes(content.encode() + b"\n")
     (tdd / "d.pid").mkdir()
     (tdd / "j").write_bytes(b"109\n")
-    answers = main_tree_at(tmp_path)
+    answers = {**main_tree_at(tmp_path), **conductor_answers(4242)}
     for pid, args in (("4242", b"bash supervise.sh conductor x\n"), ("101", b"bash supervise.sh a develop-red\n"),
                       ("103", b"bash supervise.sh .c x\n"), ("105", b"sleep 60\n"),
                       ("106", b"bash supervise.sh f x\n"), ("107", b"bash supervise.sh g x\n"),
@@ -310,8 +321,11 @@ def test_main_answers_as_stop_run_test_sh_s_refusal_write_overwrite_all_no_main_
     outside.mkdir()
     run = repo / ".tdd" / "wt" / "5"
     trees = {str(repo): b"worktree %s\nHEAD abc\n" % os.fsencode(repo), str(outside): b""}
+    held = conductor_answers(4242, 7007)
 
     def fake_run(args, **kwargs):
+        if tuple(args) in held:
+            return subprocess.CompletedProcess(args, 0, held[tuple(args)][1].decode(), None)
         if list(args[:2]) == ["ps", "-p"]:
             return subprocess.CompletedProcess(args, 1, "", None)
         if list(args) != ["git", "worktree", "list", "--porcelain"]:
