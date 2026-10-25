@@ -99,7 +99,7 @@ def _first_block(step):
             break
         if on:
             out.append(line)
-    return "\n".join(out).rstrip("\n").replace("<n>", "1458").replace("<pr-url>", "https://example.test/pull/1").replace("<run-id>", "1")
+    return "\n".join(out).rstrip("\n").replace("<n>", "1458").replace("<pr-url>", "https://example.test/pull/1").replace("<run-id>", "1").replace("<pr-number>", "1")
 
 
 @pytest.mark.process("the two CI blocks SKILL.md prescribes run under bash -c in a git repo, against stub scripts")
@@ -109,7 +109,8 @@ def test_a_green_ci_wait_in_either_ci_block_bails_no_ci_red_and_appends_no_ci_re
     blocks = {"first CI wait": _first_block(step), "post-metrics CI wait": _block(step)}
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
-    stubs = {"wait-ci.sh": "#!/bin/sh\nexit 0\n",
+    stubs = {"pr-ready.sh": "#!/bin/sh\nexit 0\n",
+             "wait-ci.sh": "#!/bin/sh\nexit 0\n",
              "event.sh": '#!/bin/sh\necho "$*" >> events.log\n',
              "classify-bail.sh": '#!/bin/sh\necho "$1"\n',
              "add-ledger-step.sh": '#!/bin/sh\necho "$*" >> added.log\n',
