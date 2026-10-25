@@ -258,6 +258,24 @@ def test_main_reads_a_run_whose_done_mark_is_followed_by_a_ci_repair_step_added_
                                                   "scope lamps-label  attempted 1  done 0  bailed 0  wall 80s  $0.00  solvable 0\n")
 
 
+def test_main_skips_a_step_added_record_with_no_ts_in_the_runs_elapsed_and_the_scope_wall_seconds_2322(tmp_path, monkeypatch, capsys, status):
+    run = lamp_run(tmp_path, "24")
+    write_events(run / ".tdd" / "events.jsonl", [
+        lamp_ev(9900, "24", "launch", name="develop-red"),
+        lamp_ev(9930, "24", "launch", name="develop-red"),
+        {"event": "step-added", "actor": "add-ledger-step", "step": "x"},
+    ])
+    lamp_git(monkeypatch, tmp_path, [run], (3, ""))
+    live_conductor(monkeypatch, run / ".tdd", "24")
+    at_ten_thousand(monkeypatch)
+
+    code = status.main(["--scope", "lamps-label"])
+
+    out = capsys.readouterr().out
+    assert (code, last_line(out)) == (0, "scope lamps-label  attempted 1  done 0  bailed 0  wall 30s  $0.00  solvable 0")
+    assert "develop-red 70s" in out
+
+
 def test_main_reads_a_recent_run_whose_conductor_pid_was_reused_as_stale_at_once_with_run_ends_cause_2007(tmp_path, monkeypatch, capsys, status):
     run = lamp_run(tmp_path, "19")
     write_events(run / ".tdd" / "events.jsonl", [lamp_ev(9990, "19", "launch", name="develop-red")])
