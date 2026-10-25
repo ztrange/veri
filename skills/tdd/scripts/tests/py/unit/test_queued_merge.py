@@ -99,3 +99,44 @@ def test_2372_queued_merge_treats_pending_or_absent_checks_as_not_green_and_asks
     asked = len([c for c in calls if "wait-ci.sh" in c])
     merged_after = first(calls, "pr merge") is not None
     assert (code, asked, merged_after) == (expected, len(ci), expected == 0)
+
+
+@pytest.mark.parametrize("take", [2, 1])
+def test_2372_queued_merge_whose_take_fails_stops_with_takes_code_and_touches_nothing(fake_processes, run_cli, take):
+    calls = scenario(fake_processes, take=take)
+
+    code, _, _ = run_cli(queued_merge, ARGV)
+
+    assert (code, [c.split()[1] for c in calls]) == (take, ["take"])
+
+
+@pytest.mark.parametrize("merged, gh_code", [
+    (json.dumps({"merged": None}), 0),
+    (json.dumps({"state": "closed"}), 0),
+    (json.dumps({"merged": "true"}), 0),
+    ("not json", 0),
+    ("", 1),
+])
+def test_2372_queued_merge_proceeds_to_tag_and_cleanup_only_on_an_observed_merged_true(fake_processes, run_cli, merged, gh_code):
+    calls = scenario(fake_processes, merged=merged, gh_code=gh_code)
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code != 0, PR in err, cleaned(calls), len(released)) == (True, True, [], 1)
+
+
+@pytest.mark.parametrize("failing, named", [
+    ("push origin --delete feature", "branch delete"),
+    ("worktree remove", "worktree remove"),
+    ("merge-lock.sh release", "release"),
+    ("tag -a", "tag"),
+])
+def test_2372_queued_merge_reports_a_failed_cleanup_step_on_stderr_and_exits_2_running_the_rest(fake_processes, run_cli, failing, named):
+    calls = scenario(fake_processes, fail=(failing,))
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    ran = {step: first(calls, needle) is not None for step, needle in (
+        ("branch delete", "--delete feature"), ("worktree remove", "worktree remove"), ("release", "merge-lock.sh release"))}
+    assert (code, named in err, ran) == (2, True, {"branch delete": True, "worktree remove": True, "release": True})
