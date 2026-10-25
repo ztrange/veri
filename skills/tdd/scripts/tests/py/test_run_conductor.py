@@ -555,7 +555,7 @@ def test_main_with_veri_new_skill_exactly_1_rewrites_a_readable_record_then_appe
     assert answers == {
         "re-pin": (commit + "\n", True, [repin], [], 0),
         "re-pin-event-fails": (commit + "\n", True, [], [], 2),
-        "first-launch": (commit + "\n", False, [], [], 0),
+        "first-launch": (commit + "\n", True, [], [], 0),
         "other-value": ("2222222\n", False, [], [], 2),
     }
 
@@ -1837,6 +1837,33 @@ def test_cli_a_launch_whose_run_has_no_tdd_directory_yet_still_records_the_veri_
     assert (code, bool(seen) and seen[0] in recorded, str(os.getpid()) in recorded) == (0, True, True)
 
 
+def test_cli_a_launch_whose_run_worktree_does_not_exist_yet_records_the_conductors_pid_in_its_conductor_pid_file_issue_2390(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    fake_claude_exiting(monkeypatch, 0, 0)
+    answer, seen = subprocess.run, []
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    pid_file = cwd / ".tdd" / "wt" / "4242" / ".tdd" / "conductor.pid"
+
+    def running_the_child_setup(args, *rest, **kwargs):
+        if list(args)[:1] == ["fake-claude"]:
+            if kwargs.get("preexec_fn") is not None:
+                kwargs["preexec_fn"]()
+            seen.append(pid_file.read_text() if pid_file.is_file() else None)
+        return answer(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", running_the_child_setup)
+    assert not (cwd / ".tdd" / "wt" / "4242").exists()
+
+    code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, seen) == (0, ["%d\n" % os.getpid()])
+
+
 def test_cli_an_unpinned_launch_whose_run_has_no_tdd_directory_yet_still_records_the_veri_run_n_directory_and_the_launchers_pid_under_tdd_issue_2183(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)
@@ -2752,7 +2779,7 @@ def launched_once_then_moved_on(tmp_path, monkeypatch, run_cli, module_name):
 def test_cli_the_skill_repin_event_lands_in_the_run_worktrees_events_jsonl_never_the_callers(
         tmp_path, monkeypatch, run_cli):
     run_conductor, caller, first_code, current = launched_once_then_moved_on(tmp_path, monkeypatch, run_cli, "run_conductor_repin_log")
-    (caller / ".tdd" / "wt" / "4242").mkdir(parents=True)
+    (caller / ".tdd" / "wt" / "4242").mkdir(parents=True, exist_ok=True)
     resumed_code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller, env={"VERI_NEW_SKILL": "1"})
 
     assert (first_code, resumed_code, repin_commits(caller / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl"),
@@ -2763,6 +2790,7 @@ def test_cli_the_skill_repin_event_lands_in_the_run_worktrees_events_jsonl_never
 def test_cli_a_veri_new_skill_1_re_pin_that_runs_before_the_run_worktree_exists_writes_its_skill_repin_event_to_the_run_worktrees_events_jsonl_and_never_to_the_callers(
         tmp_path, monkeypatch, run_cli):
     run_conductor, caller, first_code, current = launched_once_then_moved_on(tmp_path, monkeypatch, run_cli, "run_conductor_repin_before_worktree")
+    shutil.rmtree(caller / ".tdd" / "wt" / "4242", ignore_errors=True)
     worktree_existed = (caller / ".tdd" / "wt" / "4242").exists()
     resumed_code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller, env={"VERI_NEW_SKILL": "1"})
 

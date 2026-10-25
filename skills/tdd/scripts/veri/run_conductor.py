@@ -205,14 +205,12 @@ def conduct(text, issue, env):
         reader.start()
         os.dup2(write_end, 1)
         try:
-            record_pid = None
-            if os.path.isdir(run_worktree(issue)):
-                pid_file = os.path.join(run_worktree(issue), ".tdd", "conductor.pid")
-                os.makedirs(os.path.dirname(pid_file), exist_ok=True)
+            pid_file = os.path.join(run_worktree(issue), ".tdd", "conductor.pid")
+            os.makedirs(os.path.dirname(pid_file), exist_ok=True)
 
-                def record_pid():
-                    with open(pid_file, "w") as handle:
-                        handle.write("%d\n" % os.getpid())
+            def record_pid():
+                with open(pid_file, "w") as handle:
+                    handle.write("%d\n" % os.getpid())
             code = subprocess.run([binary, "-p", "--output-format", "stream-json",
                                    "--verbose"] + context_limits() + [
                                    "--permission-mode", "bypassPermissions", "--model",
