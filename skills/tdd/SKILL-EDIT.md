@@ -16,6 +16,6 @@ A resumed run redoes an unfinished skill-edit step from its start, with its budg
 
 For a skill-edit step whose ledger line carries `⟦added⟧`, run `$S/skill-edit-step.sh` with `--added` and the step's text, before the issue body and the unit.
 
-The refusal holds: such a step whose grade passes before any author ran gets exit 2 and is bailed, never ticked.
+The refusal holds: such a step whose grade passes before any author ran, or that has nothing left to commit, gets exit 2 and is bailed, never ticked.
 
 The step's own text never reaches the author or the grader.
