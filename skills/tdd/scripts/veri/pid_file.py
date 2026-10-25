@@ -27,8 +27,18 @@ def recorded_alive(path):
     return pid
 
 
+def _ps(field, pid):
+    ps = subprocess.run(["ps", "-o", field + "=", "-p", str(int(pid))], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    return ps.stdout.strip() if ps.returncode == 0 else ""
+
+
 def live_conductor(path):
-    return recorded_alive(path)
+    pid = recorded_alive(path)
+    if pid is None:
+        return None
+    if "run_conductor.py" not in _ps("command", _ps("ppid", pid)):
+        return None
+    return pid
 
 
 def supervising(pid, name):
