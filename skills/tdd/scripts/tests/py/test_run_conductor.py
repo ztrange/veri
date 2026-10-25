@@ -20,6 +20,12 @@ for path in (SCRIPTS, SCRIPTS / "veri"):
         sys.path.insert(0, str(path))
 
 
+@pytest.fixture(autouse=True)
+def issue_body_without_rows(monkeypatch):
+    """The issue's body fetched as empty: no Requirements rows to check."""
+    monkeypatch.setattr(importlib.import_module("veri.run_conductor").github, "gh_issue_view", lambda number, field: "")
+
+
 def past_the_guards(monkeypatch):
     """The bash and Python floors met, and claude named fake-claude."""
     monkeypatch.setenv("VERI_BASH_MAJOR", "5")
@@ -178,6 +184,22 @@ def test_cli_a_failed_fetch_of_origin_exits_2_before_any_conductor_is_launched_a
 
     launched = [call for call in calls if call[:1] == ["fake-claude"]]
     assert (code, launched, "fetch of origin failed" in stderr) == (2, [], True), stderr
+
+
+def test_cli_an_issue_whose_requirements_table_has_a_bare_next_row_id_exits_2_naming_it_before_any_conductor_is_launched_2373(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    body = ("## Requirements\n\n### skills/tdd/SKILL.md\n\n| | ID | Requirement | Why |\n|---|---|---|---|\n"
+            "| | R1 | Says it. | because |\n| | <next> | Says more. | because |\n")
+    monkeypatch.setattr(run_conductor.github, "gh_issue_view", lambda number, field: body)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    launches = fake_claude_exiting(monkeypatch, 0, 0)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    launched = [args[:1] for args, _ in launches]
+    assert (code, launched, "<next>" in stderr) == (2, [], True), stderr
 
 
 def fake_locked_fetch(monkeypatch, sleep_code,

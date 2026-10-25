@@ -21,6 +21,7 @@ import event
 from event_log import read_events
 import github
 import launch_floor
+import requirements
 import run_end
 import tunables
 from git import symref_default
@@ -46,6 +47,14 @@ def main(argv):
         if free < minimum:
             sys.stderr.write("run-conductor: '%s' has %d GB free, below VERI_MIN_FREE_GB=%d\n" % (directory, free, minimum))
             return 2
+    with tempfile.TemporaryDirectory() as scratch:
+        body_path = os.path.join(scratch, "body.md")
+        with open(body_path, "w", encoding="utf-8") as body_file:
+            body_file.write(github.gh_issue_view(argv[0], "body"))
+        malformed = requirements.malformed_row_id(body_path)
+    if malformed is not None:
+        sys.stderr.write("run-conductor: Requirement row ID is neither <prefix><digits> nor <prefix><next>: %s\n" % malformed)
+        return 2
     here = paths.scripts_of(__file__)
     base = os.path.dirname(here)
     head_rev = "HEAD"
