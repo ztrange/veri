@@ -49,6 +49,8 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   **process** failure (the suite answered, and the repair did not fix what it said).
 - `rebased-tip-red` — the Draft PR step's full run was red on the tip `rebase-onto-default.sh`
   rebased → **process** failure (the suite answered on the rebased tip).
+- `rebase-unresolved` — a rebase not resolved within budget → **process** failure (the
+  conflict was not resolved, and the plumbing did not break).
 
 **A bail reached first stays a bail**, whatever stop is waiting behind it: the methodology or
 the plumbing has already answered, and a pause would hide that answer from the resume. Ask
