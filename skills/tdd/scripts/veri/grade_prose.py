@@ -230,6 +230,16 @@ def main(argv):
         return no_verdict("the GRADES block has no VERDICT line")
     if said[-1] != ("REJECT" if failed else "PASS"):
         return no_verdict("VERDICT %s disagrees with the GRADES lines" % said[-1])
+    if failed:
+        rows = "".join(r + "\n" for r in claims.splitlines()
+                       if r.split("\t", 1)[0] in {l.split(":")[0] for l in failed})
+        for _ in range(2):
+            with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as g:
+                g.write(prompt(unit, text, rows))
+            try:
+                launch(g.name)
+            finally:
+                os.unlink(g.name)
     grading_id = uuid.uuid4().hex
     event.append(".", {}, "grading", ["unit=" + unit, "verdict=" + said[-1],
                                        "failing=" + ",".join(l.split(":")[0] for l in failed),
