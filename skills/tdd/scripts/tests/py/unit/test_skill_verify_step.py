@@ -54,18 +54,3 @@ def test_skill_md_passes_fast_cmd_on_every_verify_sh_call_that_can_judge_green()
 def test_1521_skill_md_lists_unreplaced_cases_among_the_bail_causes():
     assert re.search(r"- unreplaced-cases —", plain_join(section(BAILING))), (
         "skills/tdd/SKILL.md's bail causes never list `unreplaced-cases`")
-
-
-def test_1625_skill_md_pin_path_says_the_unreplaced_cases_check_bails_only_on_a_second_exit_1_after_the_correction_leaf_or_on_exit_2():
-    text = plain_join(section("## Already satisfied — the pin", "PIN.md"))
-    sentence = re.search(r"the unreplaced-cases check[^.]*\.", text)
-    assert sentence, "skills/tdd/SKILL.md's pin path never says what the unreplaced-cases check did in Red"
-    sentence = sentence.group(0)
-    assert not re.search(r"already bailed with cause=unreplaced-cases on exit 1\b(?! again)", sentence) or re.search(r"second|again|correction", sentence), (
-        f"skills/tdd/SKILL.md's pin path still says the unreplaced-cases check bailed on exit 1 alone: {sentence!r}")
-    for pattern, message in [
-        (r"second exit 1|exit 1 again|again exit(s)? 1|exits? 1 a second time", "never says a second exit 1 is what bails"),
-        (r"correction", "never names the one correction leaf"),
-        (r"exit 2", "never says exit 2 bails"),
-    ]:
-        assert re.search(pattern, sentence), f"skills/tdd/SKILL.md's pin-path unreplaced-cases sentence {message}: {sentence!r}"

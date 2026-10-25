@@ -6,23 +6,20 @@ Contract under test:
   as before, and on exit 2 it bails as a system failure, never a REJECT (that sentence pinned
   verbatim). It runs `tests-frozen.sh record` once a revised red's re-verify passes. Every
   record and check SKILL.md runs outside Green's own check names the step's record by
-  `tests-frozen.sh path` over the step text, and no `tests-frozen-<step>` key survives. A
-  ⟦replaces-case⟧ step records at its verify-pin PASS (PIN.md, pinned verbatim), before the
-  deletion green. REVISE.md routes a revise-green `WRONG_TEST:` report through
+  `tests-frozen.sh path` over the step text, and no `tests-frozen-<step>` key survives.
+  REVISE.md routes a revise-green `WRONG_TEST:` report through
   `wrong-test-route.sh` and a `MISSING_TEST:` answer to red-missing.
 
-Every case's subject is source text: it reads SKILL.md, REVISE.md and PIN.md and starts no process.
+Every case's subject is source text: it reads SKILL.md and REVISE.md and starts no process.
 """
 import pathlib
 import re
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 REVISE_MD = SKILL.parent / "REVISE.md"
-PIN_MD = SKILL.parent / "PIN.md"
 
 GREEN = "#### Green"
 REVISE = "## Revising on a REJECT"
-PIN = "## Already satisfied — the pin"
 
 RECORD_ARG = '--step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"'
 EXIT2_SENTENCE = ('On tests-frozen exit 2 the check could not answer, so **bail** as a system failure, '
@@ -33,13 +30,10 @@ WRONG_TEST_SENTENCE = ('A revise of green whose leaf reports `WRONG_TEST: <why>`
                        "attempt is counted; its exit 0 writes no `revise` mark, spends no `REVISE_BUDGET` attempt "
                        "and launches the `red-contradicted` red, its exit 3 keeps the attempt's main outcome, a "
                        "verify-green REJECT, and its exit 2 is a bail; never a `report-missing` bail.")
-PIN_RECORD_SENTENCE = ('A `⟦replaces-case⟧` step skips verify-red, so on that verify-pin PASS first run '
-                       f"`$S/tests-frozen.sh record {RECORD_ARG} <test-path>` to record its replacement cases "
-                       'before the deletion green checks them; tests-frozen exit 2 is a bail.')
 
 
 def doc_of(heading):
-    return {"## Revising on a REJECT": REVISE_MD, "## Already satisfied — the pin": PIN_MD}.get(heading, SKILL)
+    return {"## Revising on a REJECT": REVISE_MD}.get(heading, SKILL)
 
 
 def numbered_section(heading):
@@ -146,12 +140,6 @@ def test_green_and_revising_handle_check_exit_2_as_a_system_failure_bail_never_a
 
 def test_revising_routes_a_revise_green_wrong_test_report_through_wrong_test_route_never_a_report_missing_bail():
     assert WRONG_TEST_SENTENCE in joined_section(REVISE)
-
-
-def test_the_pin_records_a_replaces_case_steps_tests_at_its_verify_pin_pass_before_the_deletion_green():
-    pin = joined_section(PIN)
-    assert PIN_RECORD_SENTENCE in pin
-    assert PIN_RECORD_SENTENCE in pin.partition("launch a green leaf exactly as")[0]
 
 
 def test_green_and_revising_send_a_missing_behaviour_answer_to_red_missing_with_no_revise_attempt_and_verify_the_added_case_before_green_runs_again():
