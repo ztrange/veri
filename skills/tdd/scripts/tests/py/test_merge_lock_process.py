@@ -121,7 +121,6 @@ def test_take_on_a_stale_lock_reports_the_stale_holder_on_stderr_and_waits_with_
         deadline = time.monotonic() + 10
         while not errfile.read_text() and taker.poll() is None and time.monotonic() < deadline:
             time.sleep(0.02)
-        time.sleep(0.3)
         reported = errfile.read_text()
         waiting = taker.poll() is None
         kept = lock.is_dir()
