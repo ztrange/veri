@@ -1864,7 +1864,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    and the issue's wall time: a report rendered before it exists says `unknown` for both. The
    body is rewritten only after the `metrics:` commit is pushed, so it never quotes a file the
    branch does not yet carry. The title drops the `WIP:` prefix step 2.3 opened it with, and
-   `gh_pr_ready` (in `lib/github.sh`, run by `pr-ready.sh`, never sourced into the conductor's shell) is what turns the run's claim into a review request: a finished run that left
+   `gh_pr_ready` (in `veri/github.py`, behind `pr-ready.sh`, never sourced into the conductor's shell) is what turns the run's claim into a review request: a finished run that left
    a draft behind asks nobody to look.
    `<type>` is **`fix`** on a bug run — the issue carries the `bug` label, so the title
    starts with the `fix:` prefix, the same prefix its green commits took — **`refactor`** on
