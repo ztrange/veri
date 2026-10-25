@@ -147,3 +147,18 @@ def test_green_and_revising_send_a_missing_behaviour_answer_to_red_missing_with_
     revise = plain(joined_section(REVISE))
     assert re.search(r"impossible.*missing_test:.*red-missing", revise), (
         "REVISE.md's loop does not route a revise answering IMPOSSIBLE with a MISSING_TEST: line to red-missing")
+
+
+def test_every_reroute_re_record_in_green_passes_the_steps_own_red_case_and_routes_its_refusal_to_verify_red_reason():
+    rerecords = [(n, line) for n, line in numbered_section(GREEN)
+                 if "re-record the step's frozen tests with `$S/tests-frozen.sh record" in line]
+    leaves = {leaf for leaf in ("red-contradicted", "red-repair", "red-supersede", "red-missing")
+              if any(f"`{leaf}` red" in line for _, line in rerecords)}
+    assert leaves == {"red-contradicted", "red-repair", "red-supersede", "red-missing"}, (
+        f"Green's reroute re-records found only for {sorted(leaves)}")
+    for n, line in rerecords:
+        assert f"tests-frozen.sh record {RECORD_ARG} --red-case '<red-test-id>'" in line, (
+            f"SKILL.md:{n} re-records a reroute's frozen tests without --red-case '<red-test-id>'")
+    refusal = [s for s in frozen_sentences(GREEN) if "exit 1" in s and "deleted case" in s]
+    assert any("verify-red.reason" in s for s in refusal), (
+        "no Green sentence routes tests-frozen record exit 1 (the deleted case) to .tdd/verify-red.reason")

@@ -115,3 +115,11 @@ def test_record_step_with_a_red_case_whose_test_file_is_gone_exits_1_naming_it_a
 
     assert (code, "gone/test_a.py::test_gone" in out, "Traceback" in err, sorted(p.name for p in tmp_path.rglob("*"))) == (
         1, True, False, ["test_b.py"])
+
+
+def test_record_with_a_red_case_flag_and_no_value_is_exit_2_printing_the_usage_line_without_a_traceback_2269(
+        tmp_path, run_cli, tests_frozen):
+    code, out, err = run_cli(tests_frozen, ["record", "--step", "x", "--red-case"], cwd=tmp_path)
+
+    assert (code, out, tests_frozen.USAGE in err, "Traceback" in err, sorted(p.name for p in tmp_path.rglob("*"))) == (
+        2, "", True, False, [])
