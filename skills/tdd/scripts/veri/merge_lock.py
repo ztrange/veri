@@ -127,7 +127,7 @@ def _holder(lock, record, args):
 
 def _gate(lock, record, args):
     head = args[:args.index("--")] if "--" in args else args
-    if "--pid" not in head:
+    if "--pid" not in head or "--" not in args:
         print("usage: merge-lock.sh gate [--keep] --pid <pid> -- <cmd>", file=sys.stderr)
         return 2
     code = subprocess.run(args[args.index("--") + 1:]).returncode
