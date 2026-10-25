@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 2249
 
-Wall time for the issue: 1225 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 5766 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 11 of 16 planned.
-Outcome: the run bailed — revise-exhausted, a process failure.
+Steps done: 17 of 17 planned.
+Outcome: the run bailed — suite-red, a process failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $28.13 over 522 turns, in 8 sessions, on opus.
+Conductor own spending: $31.86 over 597 turns, in 9 sessions, on opus.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 89947 tokens, largest 188642 tokens
 Conductor context: first turn 90195 tokens, largest 182201 tokens
@@ -15,7 +15,8 @@ Conductor context: first turn 90404 tokens, largest 132540 tokens
 Conductor context: first turn 90405 tokens, largest 175430 tokens
 Conductor context: first turn 91001 tokens, largest 187822 tokens
 Conductor context: first turn 90936 tokens, largest 203554 tokens
-Conductor context: first turn 91139 tokens, largest 160284 tokens
+Conductor context: first turn 91139 tokens, largest 163075 tokens
+Conductor context: first turn 91152 tokens, largest 175303 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -472,47 +473,122 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 448 | $0.09 | 201129 |
 | 449 | $0.06 | 202211 |
 | 450 | $0.06 | 203554 |
-| 451 | $0.59 | 91139 |
+| 451 | $0.60 | 91139 |
 | 452 | $0.04 | 93459 |
-| 453 | $0.03 | 94817 |
-| 454 | $0.09 | 103885 |
-| 455 | $0.05 | 106954 |
-| 456 | $0.06 | 112393 |
-| 457 | $0.03 | 113078 |
+| 453 | $0.04 | 94817 |
+| 454 | $0.10 | 103885 |
+| 455 | $0.06 | 106954 |
+| 456 | $0.07 | 112393 |
+| 457 | $0.04 | 113078 |
 | 458 | $0.03 | 113566 |
-| 459 | $0.02 | 113817 |
+| 459 | $0.04 | 113817 |
 | 460 | $0.03 | 114149 |
-| 461 | $0.03 | 114735 |
-| 462 | $0.05 | 118439 |
-| 463 | $0.03 | 119392 |
-| 464 | $0.04 | 121334 |
-| 465 | $0.03 | 121909 |
+| 461 | $0.04 | 114735 |
+| 462 | $0.06 | 118439 |
+| 463 | $0.04 | 119392 |
+| 464 | $0.05 | 121334 |
+| 465 | $0.04 | 121909 |
 | 466 | $0.03 | 122121 |
-| 467 | $0.04 | 123487 |
-| 468 | $0.03 | 124226 |
-| 469 | $0.03 | 124838 |
+| 467 | $0.05 | 123487 |
+| 468 | $0.04 | 124226 |
+| 469 | $0.04 | 124838 |
 | 470 | $0.04 | 126343 |
-| 471 | $0.04 | 127859 |
-| 472 | $0.05 | 130743 |
-| 473 | $0.07 | 136244 |
-| 474 | $0.03 | 137178 |
-| 475 | $0.03 | 137676 |
-| 476 | $0.03 | 138555 |
-| 477 | $0.03 | 139173 |
+| 471 | $0.05 | 127859 |
+| 472 | $0.06 | 130743 |
+| 473 | $0.08 | 136244 |
+| 474 | $0.04 | 137178 |
+| 475 | $0.04 | 137676 |
+| 476 | $0.04 | 138555 |
+| 477 | $0.05 | 139173 |
 | 478 | $0.03 | 139462 |
-| 479 | $0.03 | 140199 |
-| 480 | $0.03 | 140814 |
-| 481 | $0.03 | 141029 |
-| 482 | $0.03 | 141719 |
-| 483 | $0.03 | 142112 |
-| 484 | $0.09 | 149915 |
-| 485 | $0.04 | 151505 |
-| 486 | $0.04 | 152499 |
-| 487 | $0.03 | 152884 |
-| 488 | $0.04 | 153903 |
-| 489 | $0.04 | 154919 |
-| 490 | $0.04 | 155793 |
+| 479 | $0.05 | 140199 |
+| 480 | $0.04 | 140814 |
+| 481 | $0.04 | 141029 |
+| 482 | $0.04 | 141719 |
+| 483 | $0.04 | 142112 |
+| 484 | $0.10 | 149915 |
+| 485 | $0.05 | 151505 |
+| 486 | $0.05 | 152499 |
+| 487 | $0.04 | 152884 |
+| 488 | $0.05 | 153903 |
+| 489 | $0.05 | 154919 |
+| 490 | $0.05 | 155793 |
 | 491 | $0.07 | 160284 |
+| 492 | $0.05 | 161236 |
+| 493 | $0.05 | 161597 |
+| 494 | $0.05 | 162748 |
+| 495 | $0.04 | 163075 |
+| 496 | $0.59 | 91152 |
+| 497 | $0.04 | 93565 |
+| 498 | $0.02 | 94094 |
+| 499 | $0.03 | 95506 |
+| 500 | $0.07 | 102339 |
+| 501 | $0.05 | 106071 |
+| 502 | $0.03 | 106583 |
+| 503 | $0.02 | 106976 |
+| 504 | $0.02 | 107294 |
+| 505 | $0.02 | 107596 |
+| 506 | $0.03 | 108250 |
+| 507 | $0.04 | 110454 |
+| 508 | $0.03 | 111175 |
+| 509 | $0.03 | 111908 |
+| 510 | $0.02 | 112147 |
+| 511 | $0.04 | 114079 |
+| 512 | $0.03 | 115115 |
+| 513 | $0.03 | 115757 |
+| 514 | $0.03 | 116077 |
+| 515 | $0.03 | 116519 |
+| 516 | $0.03 | 117349 |
+| 517 | $0.03 | 118143 |
+| 518 | $0.03 | 119158 |
+| 519 | $0.03 | 120028 |
+| 520 | $0.08 | 127549 |
+| 521 | $0.04 | 128758 |
+| 522 | $0.04 | 130298 |
+| 523 | $0.03 | 131173 |
+| 524 | $0.03 | 132145 |
+| 525 | $0.03 | 133096 |
+| 526 | $0.03 | 133879 |
+| 527 | $0.03 | 134833 |
+| 528 | $0.03 | 135532 |
+| 529 | $0.03 | 136140 |
+| 530 | $0.03 | 136937 |
+| 531 | $0.03 | 137798 |
+| 532 | $0.03 | 138653 |
+| 533 | $0.04 | 139708 |
+| 534 | $0.05 | 142119 |
+| 535 | $0.03 | 142832 |
+| 536 | $0.03 | 143083 |
+| 537 | $0.04 | 144038 |
+| 538 | $0.03 | 144780 |
+| 539 | $0.03 | 144992 |
+| 540 | $0.04 | 146170 |
+| 541 | $0.03 | 146730 |
+| 542 | $0.03 | 147064 |
+| 543 | $0.04 | 147832 |
+| 544 | $0.04 | 148898 |
+| 545 | $0.04 | 149580 |
+| 546 | $0.03 | 149993 |
+| 547 | $0.04 | 150695 |
+| 548 | $0.05 | 153235 |
+| 549 | $0.04 | 154074 |
+| 550 | $0.03 | 154484 |
+| 551 | $0.03 | 154736 |
+| 552 | $0.03 | 154947 |
+| 553 | $0.03 | 155389 |
+| 554 | $0.04 | 155914 |
+| 555 | $0.03 | 156288 |
+| 556 | $0.09 | 163419 |
+| 557 | $0.04 | 164713 |
+| 558 | $0.04 | 165367 |
+| 559 | $0.04 | 165696 |
+| 560 | $0.04 | 166245 |
+| 561 | $0.05 | 168109 |
+| 562 | $0.04 | 168979 |
+| 563 | $0.04 | 169820 |
+| 564 | $0.04 | 170069 |
+| 565 | $0.04 | 171098 |
+| 566 | $0.07 | 175303 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -520,29 +596,31 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 2 | 1 | 1 | 0 | 32 | 26 | 2 | 4 | 3226 | 17160 | 48856 | 0.16 |
-| red | 43 | 24 | 1 | 0 | 1261 | 721 | 186 | 368 | 80967 | 5743151 | 1082979 | 4.37 |
-| green | 60 | 6 | 16 | 0 | 7742 | 1564 | 387 | 736 | 152144 | 12121633 | 1401057 | 9.00 |
-| refactor | 6 | 0 | 0 | 0 | 49 | 30 | 15 | 26 | 2455 | 290461 | 129678 | 0.38 |
+| red | 49 | 25 | 2 | 0 | 1554 | 921 | 221 | 438 | 103855 | 6918432 | 1247975 | 5.39 |
+| green | 62 | 7 | 16 | 0 | 7937 | 1606 | 406 | 770 | 156564 | 12715508 | 1445296 | 9.21 |
+| refactor | 7 | 0 | 0 | 0 | 59 | 35 | 18 | 30 | 2942 | 339671 | 145717 | 0.43 |
 | exhausted | 7 | 0 | 0 | 0 | 557 | 140 | 22 | 44 | 9967 | 582638 | 105209 | 0.84 |
-| diff | 10 | 5 | 0 | 0 | 710 | 181 | 53 | 106 | 21984 | 1566719 | 348416 | 1.25 |
+| diff | 14 | 7 | 0 | 0 | 2740 | 348 | 102 | 202 | 43408 | 3589266 | 624046 | 2.35 |
 | red-supersede | 4 | 0 | 0 | 1 | 181 | 139 | 25 | 50 | 16382 | 937464 | 89080 | 0.48 |
-| pin | 3 | 2 | 1 | 0 | 61 | 35 | 13 | 26 | 4058 | 374384 | 50642 | 0.20 |
+| pin | 5 | 4 | 1 | 0 | 118 | 60 | 22 | 44 | 7062 | 610540 | 99923 | 0.38 |
 | red-missing | 1 | 0 | 0 | 0 | 30 | 20 | 4 | 8 | 2270 | 179569 | 38345 | 0.14 |
+| prose | 2 | 0 | 0 | 0 | 142 | 137 | 2 | 4 | 23295 | 2217 | 198831 | 0.73 |
+| skill-edit | 1 | 0 | 0 | 0 | 46 | 20 | 7 | 14 | 2361 | 723435 | 125022 | 0.41 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 57 | 38 | 19 | 0 | 3078 | 719 | 220 | 436 | 77521 | 6049758 | 1032812 | 3.96 |
-| developer | claude-sonnet-5-5 | 33 | 0 | 0 | 1 | 1408 | 642 | 176 | 338 | 77782 | 5459782 | 916213 | 3.72 |
-| developer | claude-opus-5-5 | 46 | 0 | 0 | 0 | 6137 | 1495 | 311 | 594 | 138150 | 10303639 | 1345237 | 9.13 |
+| verifier | claude-sonnet-5-5 | 64 | 44 | 20 | 0 | 4078 | 828 | 255 | 506 | 89322 | 7013889 | 1232762 | 4.68 |
+| developer | claude-sonnet-5-5 | 39 | 0 | 0 | 1 | 2853 | 853 | 242 | 462 | 104992 | 8054868 | 1188586 | 4.93 |
+| developer | claude-opus-5-5 | 48 | 0 | 0 | 0 | 6277 | 1614 | 325 | 622 | 151362 | 10821491 | 1423099 | 9.76 |
 
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 442 | 1.67 | 174 | 0.71 |
+| red | 630 | 2.43 | 174 | 0.71 |
 | green | 17147 | 21.24 | 1383 | 1.65 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | exhausted | 0 | 0.00 | 45 | 0.22 |
@@ -550,6 +628,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | red-supersede | 0 | 0.00 | 63 | 0.17 |
 | pin | 27 | 0.09 | 0 | 0.00 |
 | red-missing | 0 | 0.00 | 0 | 0.00 |
+| prose | 0 | 0.00 | 0 | 0.00 |
+| skill-edit | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -568,6 +648,11 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | `pid_file.live_conductor(<run-dir>)` returns None when the live recorded pid is a process under `run_conductor.py` that is not a `claude`; pinned in `skills/tdd/scripts/tests/py/unit/test_pid_file.py` with `ps` faked, the red failing against code that lacks the command guard ⟦added⟧ ⟦criterion 2⟧ | 7 | 2 | 1 | 0 | 0 | 0 | 111 | 36 | 68 | 10406 | 987677 | 144705 | 0.69 | 620 | 1/2 | 0/5 | nothing-left |  |  | full |
 | `run_end.run_end` (behind `status` and `watch-runs`) decides liveness through `pid_file.live_conductor`, with no issue number required: a live conductor (a `claude` child of `run_conductor.py`) recorded in a run's `.tdd/conductor.pid` with no events yet reads `running` in `status.sh`, and a run whose recorded pid now belongs to an unrelated live process reads ended ⟦criterion 2⟧ | 14 | 5 | 2 | 0 | 0 | 0 | 366 | 80 | 156 | 39261 | 2634944 | 325759 | 1.95 | unknown | 2/2 | unknown | unknown |  |  | full |
 | Every shared fake and fixture that patches `run_end.command_line` or `run_end.parent_pid` (the `live_conductor` fixture in `tests/py/conftest.py`, `conducting` in `test_solvable_issues.py`, the fakes in `test_metrics.py` and `test_dashboard.py`, and `test_conftest_guards.py`'s #2198 guard case) patches the `pid_file` seam (`pid_file._ps` / `pid_file.live_conductor`) instead, with no dead alias left behind, and `make unit` stays green ⟦added⟧ ⟦criterion 2⟧ | 6 | 1 | 0 | 0 | 0 | 0 | 104 | 24 | 46 | 8598 | 593358 | 186662 | 0.80 | unknown | 2/2 | unknown | unknown |  |  | full |
+| The shared fakes and holders that make a run read live or ended through `run_end.run_end` also answer the `pid_file` seam, so they hold under both `run_end._live` and `pid_file.live_conductor`: the `live_conductor` fixture in `skills/tdd/scripts/tests/py/conftest.py`, `live_conductor` in `skills/tdd/scripts/tests/py/test_dashboard.py` and the fake in `skills/tdd/scripts/tests/py/test_metrics.py`'s `test_issue_2008_a_bail_then_resume_then_launch_with_a_live_conductor_prints_no_outcome_yet` also fake `pid_file._ps` (in both `pid_file` and `veri.pid_file`) so the recorded pid reads as a `claude` whose parent is `run_conductor.py`; `skills/tdd/scripts/tests/py/test_status.py`'s `test_main_reads_a_recent_run_whose_conductor_pid_was_reused_as_stale_at_once_with_run_ends_cause_2007` also fakes `pid_file._ps` answering an unrelated process; `start_conductor` in `skills/tdd/scripts/tests/py/test_watch_runs_process.py` and the holder in `skills/tdd/scripts/tests/py/test_run_finished_process.py`'s `test_a_running_run_exits_1_and_prints_a_not_done_line_naming_the_running_state` start a real `claude` child of a real `run_conductor.py <issue>` and record the `claude`'s pid; every `run_end.command_line` / `parent_pid` patch stays, since `run_end._live` still reads them until the diff-checked step that removes it, and `conducting` in `test_solvable_issues.py` and `test_conftest_guards.py`'s #2198 case stay unchanged, since `solvable_issues.in_flight` still reads `run_end._live`; test files only, no production change; `make unit` and the affected suites stay green against the current code ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 71 | 18 | 34 | 9929 | 610675 | 85052 | 0.37 | 266 | n/a | n/a | n/a |  |  | full |
+| `run_end.run_end` (behind `status` and `watch-runs`) decides liveness through `pid_file.live_conductor`, with no issue number required: a live conductor (a `claude` child of `run_conductor.py`) recorded in a run's `.tdd/conductor.pid` with no events yet reads `running` in `status.sh`, and a run whose recorded pid now belongs to an unrelated live process reads ended; pinned in `skills/tdd/scripts/tests/py/unit/test_run_end.py` with `pid_file._ps` faked, whose live-run cases the Red moves onto the `pid_file` seam; Green edits only `skills/tdd/scripts/veri/run_end.py` and keeps `command_line`, `parent_pid` and `_live`, which `solvable_issues.in_flight` still calls until the diff-checked step that removes them, since every shared fake already answers both seams ⟦added⟧ ⟦criterion 2⟧ | 7 | 2 | 1 | 0 | 0 | 0 | 198 | 44 | 82 | 21415 | 1403716 | 165385 | 1.02 | 547 | 1/2 | 0/5 | nothing-left |  |  | full |
+| `watch-runs.sh` prints exactly one `exited <n> <state>` line per run when a watched live conductor (a `claude` child of `run_conductor.py`, recorded in `.tdd/conductor.pid`) exits while its leaf spawns and reaps children; pinned in `skills/tdd/scripts/tests/py/test_watch_runs_process.py` (a medium case, real processes) ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 39 | 12 | 24 | 5188 | 385552 | 39785 | 0.19 | unknown | unknown | unknown | unknown |  |  | pin |
+| One liveness function, `pid_file.live_conductor`, backs `status`, `watch-runs`, `issue_worktree` and `stop_run`: `run_end.py`'s own `_live` and its issue-number match are gone, and none of those four modules keeps a `kill -0` liveness check of its own; `solvable_issues.in_flight` moves off `run_end._live` onto `pid_file.live_conductor`, and the shared fakes drop their old `run_end.command_line` / `run_end.parent_pid` patches, so no dead alias remains ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 96 | 31 | 62 | 11495 | 1411872 | 190578 | 0.73 | 1927 | n/a | n/a | n/a |  |  | full |
+| fix the full-suite failure: skills/tdd/scripts/tests/py/test_solvable_issues.py — FAILED skills/tdd/scripts/tests/py/test_solvable_issues.py::test_skill_preflight_writes_the_long_lived_ppid_not_the_shells_pid_into_the_conductor_lock - assert (False, False) == (True, True) ⟦suite-repair⟧ ⟦criterion 3⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 35 | 10 | 20 | 4196 | 265254 | 69385 | 0.24 | unknown | unknown | unknown | unknown |  |  | pin |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -581,17 +666,18 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `stop_run` calls `pid_file.live_conductor` only in its `now` mode, the one mode that signals a pid: in `at-ledger` and `at-leaf` (for one issue and for `--all`) it writes the run's stop request without calling `pid_file.live_conductor` and without any `ps` call — deciding the run is live from its recorded pid through a `pid_file` function that runs no `ps` — and still answers 3, writing no stop file, for a recorded pid that is not alive; `test_stop_run.py::test_main_now_terms_only_pids_whose_ps_runs_supervise_sh_of_their_name_ignoring_kill_errors_and_other_modes_signal_nothing` stays green unedited ⟦criterion 4⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.05 |
 | `pid_file.live_conductor(<run-dir>)` returns None when the live recorded pid is a `claude` process whose parent is not `run_conductor.py`; pinned in `skills/tdd/scripts/tests/py/unit/test_pid_file.py` with `ps` faked, the red failing against code that lacks the parent guard ⟦added⟧ ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.05 |
 | `pid_file.live_conductor(<run-dir>)` returns None when the live recorded pid is a process under `run_conductor.py` that is not a `claude`; pinned in `skills/tdd/scripts/tests/py/unit/test_pid_file.py` with `ps` faked, the red failing against code that lacks the command guard ⟦added⟧ ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 9 | 0.09 |
+| `run_end.run_end` (behind `status` and `watch-runs`) decides liveness through `pid_file.live_conductor`, with no issue number required: a live conductor (a `claude` child of `run_conductor.py`) recorded in a run's `.tdd/conductor.pid` with no events yet reads `running` in `status.sh`, and a run whose recorded pid now belongs to an unrelated live process reads ended; pinned in `skills/tdd/scripts/tests/py/unit/test_run_end.py` with `pid_file._ps` faked, whose live-run cases the Red moves onto the `pid_file` seam; Green edits only `skills/tdd/scripts/veri/run_end.py` and keeps `command_line`, `parent_pid` and `_live`, which `solvable_issues.in_flight` still calls until the diff-checked step that removes them, since every shared fake already answers both seams ⟦added⟧ ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 10 | 0.05 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s | run 95 s | run 96 s | run 97 s | run 98 s | run 99 s | run 100 s | run 101 s | run 102 s | run 103 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 23 | 19 | 5 | 23 | 12 | 5 | 7 | 5 | 27 | 31 | 26 | 13 | 15 | 7 | 18 | 8 | 4 | 3 | 6 | 6 | 18 | 21 | 19 | 18 | 5 | 6 | 19 | 19 | 18 | 20 | 44 | 37 | 3 | 3 | 17 | 18 | 17 | 16 | 3 | 3 | 69 | 67 | 50 | 32 | 17 | 4 | 3 | 4 | 3 | 4 | 4 | 22 | 3 | 9 | 3 | 4 | 2 | 2 | 2 | 4 | 1 | 1 | 81 | 18 | 3 | 26 | 10 | 4 | 7 | 55 | 4 | 11 | 1 | 19 | 3 | 1 | 3 | 37 | 8 | 2 | 1 | 85 | 3 | 2 | 1 | 48 | 19 | 1 | 4 | 2 | 4 | 3 | 5 | 2 | 3 | 2 | 2 | 1 | 2 | 4 | 4 | 7 | 843 |
-| fast | 22 | 24 | 22 | 23 | 23 | 26 | 42 | 26 | 23 | 23 | 23 | 22 | 23 | 24 | 26 | 22 | 25 | 46 | 23 | 24 | 23 | 23 | 23 | 22 | 22 | 31 | 23 | 22 | 22 | 48 | 56 | 25 | 24 | 65 | 22 | 22 | 23 | 52 | 45 | 25 | 23 | 53 | 24 | 24 | 70 | 23 | 31 | 57 | 25 | 23 | 23 | 24 | 23 | 23 | 50 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 3 | 1 | 4 | 4 | 5 | 0 | 6 | 4 | 1 | 4 | 4 | 4 | 4 | 4 | 3 | 3 | 4 | 3 | 5 | 4 | 4 | 4 | 4 | 1 | 1 | 1 | 1 | 4 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s | run 95 s | run 96 s | run 97 s | run 98 s | run 99 s | run 100 s | run 101 s | run 102 s | run 103 s | run 104 s | run 105 s | run 106 s | run 107 s | run 108 s | run 109 s | run 110 s | run 111 s | run 112 s | run 113 s | run 114 s | run 115 s | run 116 s | run 117 s | run 118 s | run 119 s | run 120 s | run 121 s | run 122 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 23 | 19 | 5 | 23 | 12 | 5 | 7 | 5 | 27 | 31 | 26 | 13 | 15 | 7 | 18 | 8 | 4 | 3 | 6 | 6 | 18 | 21 | 19 | 18 | 5 | 6 | 19 | 19 | 18 | 20 | 44 | 37 | 3 | 3 | 17 | 18 | 17 | 16 | 3 | 3 | 69 | 67 | 50 | 32 | 17 | 4 | 3 | 4 | 3 | 4 | 4 | 22 | 3 | 9 | 3 | 4 | 2 | 2 | 2 | 4 | 1 | 1 | 81 | 18 | 3 | 26 | 10 | 4 | 7 | 55 | 4 | 11 | 1 | 19 | 3 | 1 | 3 | 37 | 8 | 2 | 1 | 85 | 3 | 2 | 1 | 48 | 19 | 1 | 4 | 2 | 4 | 3 | 5 | 2 | 3 | 2 | 2 | 1 | 2 | 4 | 4 | 7 | 843 | 1 | 17 | 16 | 15 | 2 | 4 | 4 | 2 | 3 | 4 | 2 | 53 | 14 | 0 | 128 | 124 | 732 | 0 | 671 |
+| fast | 22 | 24 | 22 | 23 | 23 | 26 | 42 | 26 | 23 | 23 | 23 | 22 | 23 | 24 | 26 | 22 | 25 | 46 | 23 | 24 | 23 | 23 | 23 | 22 | 22 | 31 | 23 | 22 | 22 | 48 | 56 | 25 | 24 | 65 | 22 | 22 | 23 | 52 | 45 | 25 | 23 | 53 | 24 | 24 | 70 | 23 | 31 | 57 | 25 | 23 | 23 | 24 | 23 | 23 | 50 | 23 | 23 | 48 | 29 | 23 | 24 | 23 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 3 | 1 | 4 | 4 | 5 | 0 | 6 | 4 | 1 | 4 | 4 | 4 | 4 | 4 | 3 | 3 | 4 | 3 | 5 | 4 | 4 | 4 | 4 | 1 | 1 | 1 | 1 | 4 | 1 | 4 | 12 | 4 | 3 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 707 | 1368 | 293453 | 21813179 | 3294262 | 16.82 |
+| total | 831 | 1608 | 371332 | 26615900 | 4168300 | 20.51 |
