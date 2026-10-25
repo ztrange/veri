@@ -1074,3 +1074,22 @@ def test_2089_the_draft_pr_regrade_block_run_as_written_exits_with_the_highest_c
                               "ANSWER_ALPHA": first, "ANSWER_BETA": second})
 
     assert ran.returncode == expected, (answers, ran.returncode, ran.stdout + ran.stderr)
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_2338_a_grade_with_no_fail_row_launches_the_grader_exactly_once_and_exits_0(tmp_path):
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text(STUB.replace("\n", "\nprintf x >> \"$STUB_LAUNCHES\"\n", 1))
+    claude.chmod(0o755)
+    launches = tmp_path / "launches.txt"
+
+    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                          capture_output=True, text=True,
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt"),
+                               "STUB_LAUNCHES": str(launches)})
+
+    assert (done.returncode, len(launches.read_text()) if launches.exists() else 0) == (0, 1), done.stdout + done.stderr
