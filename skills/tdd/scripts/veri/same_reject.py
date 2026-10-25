@@ -18,9 +18,8 @@ def main(argv):
     if len(argv) != 2:
         print("usage: same-reject.sh <previous-reason-file> <current-reason-file>", file=sys.stderr)
         return 2
-    for path in argv:
-        has_reason(path)
-    return 2
+    found = [has_reason(path) for path in argv]
+    return 0 if all(found) else 2
 
 
 if __name__ == "__main__":
