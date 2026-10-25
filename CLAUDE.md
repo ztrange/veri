@@ -143,7 +143,8 @@ older than the 3.12 floor.
 At most one full `make test` runs per machine (#2195): a second waits, naming the holder's pid and working tree on stderr,
 before its suites start, so the wait counts toward no per-case timeout. The lock is an `flock` held for the whole run, so a dead
 holder's lock is taken over; a run nested under the holder (`PYTEST_LEG_FULL_LOCK_HOLDER`) skips it, and neither `make unit` nor a
-`make test TESTS=…` subset (`--subset`) ever waits. Release empties the lock file, so it names a pid only while held.
+`make test TESTS=…` subset (`--subset`) ever waits. Release empties the lock file, so it names a pid only while held. By that rule a live holder that never releases blocks the waiter
+without bound: the wait counts toward no timeout that could bail it, a supervised leaf's hard timeout and silence window included (#2380).
 `VERI_TEST_LOCK=0` turns the lock off. A verifier's full run takes the lock like any other, and a verifier that breaks the lock code still cannot hang on it.
 
 **Pytest case sizes** (#1259, #1513): an unmarked case is small — `git` and `python3` refuse
