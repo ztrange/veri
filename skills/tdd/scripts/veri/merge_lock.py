@@ -9,7 +9,7 @@ import time
 
 import tunables
 
-VERBS = ("take", "release", "holder")
+VERBS = ("take", "release", "holder", "gate")
 
 
 def _caller_pid(args):
@@ -102,12 +102,21 @@ def _holder(lock, record, args):
     return 0
 
 
-_HANDLERS = {"take": _take, "release": _release, "holder": _holder}
+def _gate(lock, record, args):
+    if _needs_pid(args, False):
+        return 2
+    code = subprocess.run(args[args.index("--") + 1:]).returncode
+    if code not in (0, 3):
+        _release(lock, record, args[:2])
+    return code
+
+
+_HANDLERS = {"take": _take, "release": _release, "holder": _holder, "gate": _gate}
 
 
 def main(argv):
     if not argv or argv[0] not in VERBS:
-        print("usage: merge-lock.sh take --pid <pid> | release --pid <pid> | release --force | holder", file=sys.stderr)
+        print("usage: merge-lock.sh take --pid <pid> | release --pid <pid> | release --force | holder | gate --pid <pid> -- <cmd>", file=sys.stderr)
         return 2
     common = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
                             stdout=subprocess.PIPE, text=True, check=True).stdout.strip()

@@ -116,3 +116,57 @@ def test_take_with_pid_of_a_long_lived_process_keeps_the_lock_live_for_a_holder_
     finally:
         sleeper.kill()
         sleeper.wait()
+
+
+@pytest.mark.process("merge-lock.sh gate running a real command that exits 1 against a held lock in a scratch repository")
+def test_2245_gate_running_a_command_that_exits_1_exits_1_and_releases_the_lock_so_a_second_take_gets_it_at_once(
+        tmp_path):
+    subprocess.run(["git", "-C", str(tmp_path), "init", "-q", "-b", "main"], check=True)
+    env = {**os.environ, "VERI_MERGE_LOCK_POLL": "0.05"}
+    sleeper = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+
+    def shim(*args, **kw):
+        return subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), *args], cwd=tmp_path, env=env,
+                              stdin=subprocess.DEVNULL, capture_output=True, text=True, **kw)
+
+    try:
+        taken = shim("take", "--pid", str(os.getpid()))
+        gated = shim("gate", "--pid", str(os.getpid()), "--", sys.executable, "-c", "raise SystemExit(1)")
+        held = shim("holder")
+        second = shim("take", "--pid", str(sleeper.pid), timeout=5)
+        assert (taken.returncode, gated.returncode, held.returncode, second.returncode) == (0, 1, 3, 0)
+    finally:
+        sleeper.kill()
+        sleeper.wait()
+
+
+@pytest.mark.process("merge-lock.sh gate running real commands that exit 0 and 3, and malformed gate calls, in scratch repositories")
+def test_2245_gate_keeps_the_lock_held_when_the_command_exits_0_or_3_and_refuses_a_call_missing_pid_or_command_with_2(
+        tmp_path):
+    held_repo, bare_repo = tmp_path / "held", tmp_path / "bare"
+    for repo in (held_repo, bare_repo):
+        repo.mkdir()
+        subprocess.run(["git", "-C", str(repo), "init", "-q", "-b", "main"], check=True)
+    sleeper = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+
+    def shim(repo, *args):
+        return subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), *args], cwd=repo,
+                              stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=10)
+
+    try:
+        pid = str(sleeper.pid)
+        assert shim(held_repo, "take", "--pid", pid).returncode == 0
+        results = []
+        for code in (0, 3):
+            gated = shim(held_repo, "gate", "--pid", pid, "--", sys.executable, "-c", f"raise SystemExit({code})")
+            held = shim(held_repo, "holder")
+            results.append((gated.returncode, held.returncode, pid in held.stdout.split()))
+        no_pid = shim(bare_repo, "gate", "--", sys.executable, "-c", "raise SystemExit(0)")
+        no_cmd = shim(bare_repo, "gate", "--pid", pid)
+        no_cmd_after_dashes = shim(bare_repo, "gate", "--pid", pid, "--")
+        assert results == [(0, 0, True), (3, 0, True)]
+        assert (no_pid.returncode, no_cmd.returncode, no_cmd_after_dashes.returncode) == (2, 2, 2)
+        assert not (bare_repo / ".tdd" / "merge.lock").exists()
+    finally:
+        sleeper.kill()
+        sleeper.wait()
