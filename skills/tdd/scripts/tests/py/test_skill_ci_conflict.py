@@ -144,8 +144,12 @@ def test_a_green_ci_wait_in_either_ci_block_bails_no_ci_red_and_appends_no_ci_re
 def test_issue_2147_a_failing_pr_ready_script_leaves_wait_ci_unrun_and_writes_no_ci_deadline(tmp_path):
     step = _ci_step()
     assert step.strip(), NO_STEP
-    lines = [l for l in step.split("\n") if re.search(r"\$S/pr-ready\.sh", l)]
-    assert lines, "no line running $S/pr-ready.sh in the CI step — nothing could be run"
+    all_lines = step.split("\n")
+    start = next((i for i, l in enumerate(all_lines) if re.search(r"\$S/pr-ready\.sh", l)), None)
+    assert start is not None, "no line running $S/pr-ready.sh in the CI step — nothing could be run"
+    end = next((i for i in range(start, len(all_lines)) if re.search(r"\$S/wait-ci\.sh", all_lines[i])), None)
+    assert end is not None, "no line running $S/wait-ci.sh at or after the $S/pr-ready.sh line in the CI step"
+    lines = all_lines[start:end + 1]
     block = "\n".join(lines).replace("<n>", "2147").replace("<pr-number>", "7").replace("<pr-url>", "https://example.test/pull/7")
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
@@ -163,7 +167,11 @@ def test_issue_2147_a_failing_pr_ready_script_leaves_wait_ci_unrun_and_writes_no
                     "commit", "-q", "--allow-empty", "-m", "init"], check=True)
     (work / ".tdd").mkdir()
     env = dict(os.environ, S=str(bin_dir), PATH=f"{bin_dir}:{os.environ['PATH']}")
-    subprocess.run(["bash", "-c", block.encode("latin-1").decode("utf-8", "surrogateescape")], cwd=work, env=env,
+    script = block.encode("latin-1").decode("utf-8", "surrogateescape")
+    parsed = subprocess.run(["bash", "-n", "-c", script], cwd=work, env=env,
+                            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+    assert parsed.returncode == 0, f"the pr-ready..wait-ci lines are not valid bash as written:\n{parsed.stderr}"
+    subprocess.run(["bash", "-c", script], cwd=work, env=env,
                    stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     problems = []
     if (work / "wait-ci.log").exists():
