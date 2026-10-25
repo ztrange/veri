@@ -1,0 +1,1 @@
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_supervise_process.py — FAILED test_supervise_process.py::test_2380_a_leaf_queued_on_the_full_suite_lock_past_the_hard_timeout_is_not_killed_stuck - AssertionError: supervise[verify-rebase]: killed-stuck — hard timeout 2s exceeded (passes alone, fails under the full run's parallel load) ⟦suite-repair⟧ ⟦criterion 2⟧
