@@ -67,6 +67,8 @@ def _take(lock, record, args):
         try:
             text, holder = _read_pid(record)
         except (OSError, ValueError, IndexError):
+            if not os.path.isdir(lock):
+                continue
             print(f"merge-lock.sh: missing, unreadable or malformed holder record {record}", file=sys.stderr)
             return 2
         if not reported:
