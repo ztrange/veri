@@ -1042,6 +1042,8 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
    - exit 0 may instead print `fixture <path> <name>`: `<name>` is a function defined in the test file `<path>` that is not a test case (a helper, fixture or shared setup). It shares the step's one free reroute and spends no `REVISE_BUDGET` attempt. Insert before the current step, with `add-ledger-step.sh … before`, the step `<the current step's criterion>: repairs the fixture '<name>' in <path>, reproduced by a case in <path> ⟦fixture-repair⟧`, commit the ledger, write the same `reroute` event, and run that step's cycle; the current step then resumes at develop-green with its red case and frozen record kept. `add-ledger-step.sh` exit 1 (the growth cap, which files the step under `## Owed steps`) **bails** with cause `fixture-owed`, a process failure; exit 2 bails `step-add-refused` (see `<base directory>/BAIL.md`).
    - exit 2 is a system failure: **bail** (`Read` `<base directory>/BAIL.md`).
 
+   After a reroute's red leaf and before the step's frozen tests are re-recorded, check that the step's own Red case (its `<red-test-id>`) still exists in its test file. A reroute that deleted it is a verify-red REJECT that spends `REVISE_BUDGET` (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`), and nothing is re-recorded.
+
    After that and before verify-green is launched, run `$S/tests-frozen.sh check --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"`.
    On tests-frozen exit 1 a test file changed since verify-red, so write a reason naming the changed file to
    `.tdd/verify-green.reason`, treat the attempt as a verify-green REJECT that spends REVISE_BUDGET, and launch
