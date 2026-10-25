@@ -1,5 +1,9 @@
 """next-unchecked.sh's computation, run in-process."""
+import os
 import sys
+
+if sys.pycache_prefix is None:
+    sys.pycache_prefix = os.environ.get("VERI_PYCACHE") or os.path.join(os.environ.get("TMPDIR") or "/tmp", "veri-pycache-%d" % os.getuid())
 
 from ledger import handed_out, ledger_steps, read_ledger_stdin
 
