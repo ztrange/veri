@@ -248,6 +248,7 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
     watched, timeout, heartbeat, poll, kill_poll = watch
     tolerated(name, "remove", rcfile, discard, rcfile)
     tolerated(name, "truncate", log, truncate, log)
+    tolerated(name, "remove", leaf_env["PYTEST_LEG_LOCK_WAIT_MARKER"], discard, leaf_env["PYTEST_LEG_LOCK_WAIT_MARKER"])
     t0 = now()
     a0 = awake_seconds()
     prev_t, prev_a = int(t0), a0
@@ -255,7 +256,7 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
                              "sh", log, rcfile, *cmd], process_group=0, env=leaf_env,
                             restore_signals=False, preexec_fn=preexec)
     started.append(leaf)
-    waitfile = lock_wait_path(leaf.pid)
+    waitfile = leaf_env["PYTEST_LEG_LOCK_WAIT_MARKER"]
     status = reason = ""
     rc = "0"
     seen_at = int(t0)
@@ -289,6 +290,7 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
             break
         pause(poll)
     leaf.wait()
+    tolerated(name, "remove", waitfile, discard, waitfile)
     if status == "killed-stuck":
         outcome = recover_finished_leaf(name, log, reason)
         if outcome is not None:
@@ -392,7 +394,8 @@ def main(argv):
         model = leaf_model(name)
     skill_commit = answered("git", "-C", HERE, "rev-parse", "HEAD") or tunables.read("VERI_SKILL_COMMIT") or "unknown"
     leaf_env = {**os.environ}
-    leaf_env.update(VERI_LEAF_MODEL=model, VERI_SKILL_COMMIT=skill_commit)
+    leaf_env.update(VERI_LEAF_MODEL=model, VERI_SKILL_COMMIT=skill_commit,
+                    PYTEST_LEG_LOCK_WAIT_MARKER=lock_wait_path(os.getpid()))
     step = tunables.read("VERI_STEP")
     if "VERI_STEP" in tunables.environment() and not step:
         return refuse_empty_step(role, leaf_env, name, "VERI_STEP is set but empty")

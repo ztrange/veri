@@ -553,7 +553,8 @@ def test_main_resolves_the_model_in_process_marks_it_on_the_launch_and_hands_the
         return code, launches, added, dropped, err.splitlines().count(whitespace)
 
     def leaf(model, commit):
-        return [{"VERI_LEAF_MODEL": model, "VERI_SKILL_COMMIT": commit}]
+        return [{"VERI_LEAF_MODEL": model, "VERI_SKILL_COMMIT": commit,
+                 "PYTEST_LEG_LOCK_WAIT_MARKER": supervise.lock_wait_path(os.getpid())}]
 
     def launch(model, commit):
         return [{"actor": "developer", "phase": "red", "attempt": "1", "model": model, "skill_commit": commit}]

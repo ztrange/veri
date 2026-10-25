@@ -1317,6 +1317,7 @@ def in_process_leg(pytest_leg, monkeypatch, spy):
     for name, value in leg_env(VERI_PYTEST_WORKERS="1", PYTEST_PLUGINS="").items():
         monkeypatch.setenv(name, value)
     monkeypatch.delenv("PYTEST_LEG_FULL_LOCK_HOLDER", raising=False)
+    monkeypatch.delenv("PYTEST_LEG_LOCK_WAIT_MARKER", raising=False)
     monkeypatch.setattr(sys, "path", list(sys.path))
     monkeypatch.setattr(pytest, "main", spy)
 

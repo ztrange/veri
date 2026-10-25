@@ -168,8 +168,8 @@ def full_lock_path():
     return legs_dir().rstrip("/") + "-full.lock"
 
 
-def lock_wait_path(pgid):
-    return "%s.wait-%d" % (full_lock_path(), pgid)
+def lock_wait_path(key):
+    return "%s.wait-%d" % (full_lock_path(), key)
 
 
 def under_full_lock_holder():
@@ -198,13 +198,19 @@ def acquire_full_lock():
         lock.seek(0)
         sys.stderr.write("waiting for the full run holding the lock: %s\n" % " ".join(lock.read().split("\n")[0].split("\t")))
         sys.stderr.flush()
-        waitfile = lock_wait_path(os.getpgrp())
-        open(waitfile, "w").close()
+        waitfile = os.environ.get("PYTEST_LEG_LOCK_WAIT_MARKER", "")
+        try:
+            if waitfile:
+                open(waitfile, "w").close()
+        except OSError as error:
+            sys.stderr.write("cannot mark the lock wait, so it counts toward the leaf's timeout: %s\n" % error)
+            waitfile = ""
         try:
             fcntl.flock(lock, fcntl.LOCK_EX)
         finally:
             try:
-                os.remove(waitfile)
+                if waitfile:
+                    os.remove(waitfile)
             except OSError:
                 pass
     lock.seek(0)
