@@ -24,6 +24,9 @@ Invoked as `/veri-dev [<lane>] [N] [--resume <file>]`.
   in your first line of output.
 
 - **N** is how many conductors to keep running; it defaults to 1.
+- **MCP servers:** when this session has tools from any MCP server, tell the human once, in one
+  line, the launch line that starts the session without them:
+  `claude --strict-mcp-config --mcp-config '{"mcpServers":{}}'`. Change no setting yourself.
 - **Merging is always granted** for the runs this session finishes, in the project repo only.
   A run is merged after its review is OK; never one in another repo.
 - **`--resume <file>`** reads a handoff for state only (live conductors, PRs
