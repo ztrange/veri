@@ -284,7 +284,7 @@ def _check_earlier(ledger, step, exempt=()):
 
 
 def is_diff_checked(line):
-    kind = KIND_RE.search(line)
+    kind = KIND_RE.search(trailing_markers(line))
     return bool(kind) and kind.group(1) == "diff-checked"
 
 
