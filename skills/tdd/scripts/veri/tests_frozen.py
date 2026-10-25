@@ -456,7 +456,7 @@ def main(argv):
                     changed.append(name)
                 continue
             try:
-                if _digest(name) != expected and name != (loose if loose and _recorded_cases_intact(record, loose) else None):
+                if _digest(name) != expected and not (name == loose and _recorded_cases_intact(record, loose)):
                     changed.append(name)
             except OSError:
                 changed.append(name)
