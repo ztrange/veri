@@ -304,3 +304,29 @@ def test_main_2301_creates_a_missing_taken_lane_label_once_with_a_fixed_colour_a
 
     code, calls, err = claim(lambda args: subprocess.CompletedProcess(args, 1, "", "error connecting to api.github.com\n"))
     assert (code, "taken:main" in err, "#7" in err, [call for call in calls if call[:3] == ["gh", "label", "create"]]) == (2, True, True, [])
+
+
+def test_main_2328_adds_the_taken_lane_label_and_exits_0_when_the_create_fails_because_the_label_already_exists(monkeypatch, capsys):
+    unlabel_issue = importlib.import_module("veri.unlabel_issue")
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+    issue_labels = {"7": {"ready-for-agent"}}
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:2] == ["gh", "api"] and "/labels/" in args[-1] and "-X" not in args:
+            return subprocess.CompletedProcess(args, 1, "", "gh: Not Found (HTTP 404)\n")
+        if args[:3] == ["gh", "label", "create"]:
+            return subprocess.CompletedProcess(args, 1, "", 'label with name "taken:main" already exists; use `--force` to update its color and description\n')
+        if args[:4] == ["gh", "api", "-X", "DELETE"]:
+            issue_labels["7"].discard(args[4].rpartition("/labels/")[2])
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        if args[:4] == ["gh", "api", "-X", "POST"]:
+            issue_labels["7"].update(word[len("labels[]="):] for word in args if word.startswith("labels[]="))
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        raise AssertionError("unexpected call: %s" % " ".join(args))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code = unlabel_issue.main(["7"])
+
+    assert (code, issue_labels["7"], capsys.readouterr().err) == (0, {"taken:main"}, "")
