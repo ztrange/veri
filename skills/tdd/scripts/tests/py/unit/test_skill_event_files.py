@@ -199,3 +199,9 @@ def test_the_guard_ignores_a_bail_script_or_hyphenated_name_after_a_colon_2075()
 def test_the_guard_reports_no_misplaced_bail_pointer_in_the_real_skill_md_2075():
     """Subject is source text: the pointer-placement check run over SKILL.md reports no pointer that fails to end its sentence."""
     assert [place for place in misplaced_pointers(SKILL.read_text()) if place[0] == "BAIL.md"] == []
+
+
+def test_the_send_scoped_placement_check_finds_no_misplaced_pointer_in_skill_md_or_any_event_file_2339():
+    """Subject is source text: the send-scoped placement check over SKILL.md and every file a pointer names reports no misplaced pointer."""
+    files = [SKILL] + [SKILL.parent / name for name in EVENT_FILES]
+    assert {f.name: misplaced_send_pointers(f.read_text()) for f in files} == {f.name: [] for f in files}
