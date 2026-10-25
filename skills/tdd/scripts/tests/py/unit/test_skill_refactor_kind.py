@@ -14,7 +14,7 @@ def build_develop_prompt():
 
 
 def skill_text():
-    return plain(SKILL.read_bytes())
+    return plain(SKILL.with_name("REFACTOR-KIND.md").read_bytes())
 
 
 def test_the_develop_cover_prompt_tells_the_leaf_to_mutate_run_the_suite_expect_red_restore_and_prove_the_tree_unchanged_ending_in_covered_and_caught_by_and_skill_md_refuses_to_continue_past_cover_on_a_non_empty_git_status_porcelain(

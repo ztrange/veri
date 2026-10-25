@@ -144,7 +144,7 @@ def test_1300_skill_md_runs_suite_reported_sh_only_after_a_leaf_whose_prompt_ask
 
 
 def whole_skill():
-    return plain(SKILL.read_text()).replace("\n", " ")
+    return plain(SKILL.with_name("REFACTOR-KIND.md").read_text()).replace("\n", " ")
 
 
 def test_1568_skill_md_runs_suite_reported_sh_develop_transform_after_the_refactor_kind_transform_leaf_and_before_its_blind_transform_verifier():
