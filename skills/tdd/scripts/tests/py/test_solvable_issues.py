@@ -12,6 +12,7 @@ import tempfile
 import pytest
 
 from conftest import fake_pid_file_ps
+from test_run_conductor import fake_claude_exiting, past_the_guards, scratch_tmpdir
 
 USAGE = "usage: solvable-issues.sh [--repo owner/name] [--not-running]\n"
 
@@ -1323,3 +1324,37 @@ def test_in_flight_2253_is_true_when_the_lock_pid_answers_kill_0_and_its_command
     fake_pid_file_ps(monkeypatch)
 
     assert solvable_issues.in_flight(str(tmp_path), 7) is True
+
+
+def test_in_flight_reads_a_fresh_run_whose_worktree_did_not_exist_at_launch_as_in_flight_while_its_conductor_runs_issue_2390(
+        tmp_path, monkeypatch, run_cli, solvable_issues):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    fake_claude_exiting(monkeypatch, 0, 0)
+    conducting(monkeypatch, 4242)
+    answer, seen = subprocess.run, []
+
+    def fake_git(base, *args, **kwargs):
+        resolved = args == ("rev-parse", "HEAD")
+        out = "1111111111111111111111111111111111111111\n" if resolved else ""
+        return subprocess.CompletedProcess(args, 0 if resolved else 2, out if kwargs.get("text") else out.encode(), b"")
+
+    monkeypatch.setattr(run_conductor, "git", fake_git)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    def reading_the_claim_while_running(args, *rest, **kwargs):
+        if list(args)[:1] == ["fake-claude"]:
+            if kwargs.get("preexec_fn") is not None:
+                kwargs["preexec_fn"]()
+            seen.append(solvable_issues.in_flight(str(cwd), 4242))
+        return answer(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", reading_the_claim_while_running)
+    assert not (cwd / ".tdd" / "wt" / "4242").exists()
+
+    code, _, err = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, seen, err) == (0, [True], "")
