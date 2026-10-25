@@ -2208,3 +2208,24 @@ def test_main_2254_prints_red_over_the_full_name_when_a_lone_superseded_line_nam
         wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % older)
+
+
+def test_main_2254_prints_red_over_the_older_case_a_revise_green_report_names_only_on_a_superseded_line_as_a_node_id(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    older = "test_take_without_pid_records_the_parent_process"
+    (suite / "test_take.py").write_text(
+        "def test_main_returns_zero():\n    pass\n\n"
+        "def %s():\n    pass\n" % older)
+    report = tmp_path / "revise-green-report.txt"
+    report.write_text(
+        "OUTCOME: the revised green still fails the suite\n"
+        "AGAINST_UNMODIFIED: N/A\n"
+        "SUPERSEDED: tests/py/unit/test_take.py::%s asserts the old behaviour\n" % older)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red %s\n" % older)
