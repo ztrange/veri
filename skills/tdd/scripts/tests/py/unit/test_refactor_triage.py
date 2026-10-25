@@ -322,3 +322,23 @@ def test_main_refuses_an_out_of_scope_candidate_with_nothing_after_the_bar_with_
     assert (code, out) == (2, b"")
     assert err.startswith(b"refactor-triage: ")
     assert err.endswith(b": " + line + b"\n")
+
+
+def test_main_reads_an_in_step_and_an_out_of_bounds_candidate_printing_neither_while_still_refusing_an_unknown_class_2305(
+        monkeypatch, capsysbinary, refactor_triage):
+    results = {}
+    for report in (
+            b"CANDIDATES: in-step | a.py b.py | extract the shared parser\n",
+            b"CANDIDATES: out-of-bounds | inline the unused wrapper\n",
+            b"CANDIDATES: in-step | a.py | x\nCANDIDATES: out-of-bounds | y\nCANDIDATES: structural | z\n",
+            b"CANDIDATES: in-steps | a.py | x\n"):
+        fake_stdin(monkeypatch, report)
+        code = refactor_triage.main([])
+        results[report] = (code, capsysbinary.readouterr().out)
+
+    assert results == {
+        b"CANDIDATES: in-step | a.py b.py | extract the shared parser\n": (3, b""),
+        b"CANDIDATES: out-of-bounds | inline the unused wrapper\n": (3, b""),
+        b"CANDIDATES: in-step | a.py | x\nCANDIDATES: out-of-bounds | y\nCANDIDATES: structural | z\n": (0, b"z\n"),
+        b"CANDIDATES: in-steps | a.py | x\n": (2, b""),
+    }
