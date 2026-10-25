@@ -1,5 +1,9 @@
 """The guards conftest.py enforces, driven in-process through pytester with conftest as a plugin."""
+import _io
+import builtins
+import io
 import os
+import posix
 import pathlib
 import subprocess
 
@@ -157,6 +161,10 @@ def test_the_system_location_guard_fails_planted_cases_that_read_mkdir_or_create
     inherited.mkdir()
     monkeypatch.setenv("TMPDIR", str(inherited))
     monkeypatch.setattr(conftest.tempfile, "tempdir", str(inherited))
+    monkeypatch.setattr(builtins, "open", _io.open)
+    monkeypatch.setattr(io, "open", _io.open)
+    monkeypatch.setattr(os, "open", posix.open)
+    monkeypatch.setattr(os, "mkdir", posix.mkdir)
     calls = {
         "reads": "open('/etc/veri-planted').read()",
         "mkdirs": "os.mkdir('/veri-planted')",
