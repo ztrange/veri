@@ -23,6 +23,21 @@ REQUIREMENTS = """## guide/unit.md
 PROSE = "The widget is painted a deep blue.\nIt stays silent.\n"
 
 
+def rows_stub(fails):
+    """A grader that answers exactly the rows its prompt asks about: FAIL with its reason for each id in fails, PASS for the rest."""
+    arms = "".join('    %s) body="$body\\n$id: FAIL - %s"; verdict=REJECT ;;\n' % (i, r) for i, r in fails.items())
+    return """#!/bin/sh
+{ printf '%s\\n' "$@"; cat; } > "$STUB_RECORD"
+body=""; verdict=PASS
+for id in $(sed -n '/^Requirements:$/,$ s/^\\([A-Z][0-9]*\\): .*/\\1/p' "$STUB_RECORD"); do
+  case "$id" in
+""" + arms + """    *) body="$body\\n$id: PASS - ok" ;;
+  esac
+done
+printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"BEGIN GRADES'"$body"'\\nVERDICT: '"$verdict"'\\nEND GRADES"}'
+"""
+
+
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
 def test_a_whole_file_unit_sends_the_stub_claude_the_unit_text_and_every_requirement_id_and_text(tmp_path):
     (tmp_path / "guide").mkdir()
@@ -237,8 +252,7 @@ def test_a_reply_whose_final_grades_block_has_a_fail_line_and_verdict_reject_mak
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
     claude = tmp_path / "claude"
-    claude.write_text(STUB.replace("A2: PASS - ok", "A2: FAIL - the widget hums quokka-loudly")
-                      .replace("VERDICT: PASS", "VERDICT: REJECT"))
+    claude.write_text(rows_stub({"A2": "the widget hums quokka-loudly"}))
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
@@ -259,9 +273,7 @@ def test_a_reply_with_two_or_more_fail_lines_prints_every_failing_id_with_its_re
         "| A2 | The widget never hums. | because |",
         "| A2 | The widget never hums. | because |\n| A3 | The widget is round. | because |"))
     claude = tmp_path / "claude"
-    claude.write_text(STUB.replace("A1: PASS - ok", "A1: FAIL - the widget is teal-zebra")
-                      .replace("A2: PASS - ok", "A2: PASS - ok\\nA3: FAIL - the widget is square-quokka")
-                      .replace("VERDICT: PASS", "VERDICT: REJECT"))
+    claude.write_text(rows_stub({"A1": "the widget is teal-zebra", "A3": "the widget is square-quokka"}))
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
@@ -493,8 +505,7 @@ def test_every_grading_appends_one_event_to_events_jsonl_carrying_the_unit_the_v
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
     claude = tmp_path / "claude"
-    claude.write_text(STUB.replace("A2: PASS - ok", "A2: FAIL - the widget hums")
-                      .replace("VERDICT: PASS", "VERDICT: REJECT"))
+    claude.write_text(rows_stub({"A2": "the widget hums"}))
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
@@ -610,8 +621,7 @@ def test_1874_a_reply_in_the_poc_shape_with_the_verdict_line_inside_the_grades_b
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
     inside = STUB.replace("\\nEND GRADES\\nVERDICT: PASS", "\\nVERDICT: PASS\\nEND GRADES")
     shapes = {"all-pass": inside,
-              "one-fail": inside.replace("A2: PASS - ok", "A2: FAIL - the widget hums quokka-loudly")
-                                .replace("VERDICT: PASS", "VERDICT: REJECT")}
+              "one-fail": rows_stub({"A2": "the widget hums quokka-loudly"})}
     outcomes = {}
     for name, stub in shapes.items():
         claude = tmp_path / ("claude-" + name)
@@ -753,7 +763,7 @@ def test_a_reject_and_an_exit_2_leave_graded_byte_identical(tmp_path):
     before = "skills/guide/other.md " + "b" * 64 + " 2026-01-02 deadbeef\nskills/guide/unit.md " + "a" * 64 + " 2026-01-01 cafef00d\n"
     graded.write_text(before)
     record = tmp_path / "record.txt"
-    replies = {"reject": STUB.replace("A2: PASS - ok", "A2: FAIL - hums").replace("VERDICT: PASS", "VERDICT: REJECT"),
+    replies = {"reject": rows_stub({"A2": "hums"}),
                "no verdict": STUB.replace("BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES", "looks fine")}
     seen = {}
     for name, body in replies.items():
@@ -882,11 +892,16 @@ def test_2037_the_draft_pr_regrade_block_run_as_written_on_a_branch_that_signed_
 REJECT_THEN_PASS_STUB = """#!/bin/sh
 { printf '%s\\n' "$@"; cat; } > "$STUB_DIR/in.$$"
 grep '^Unit: ' "$STUB_DIR/in.$$" >> "$STUB_DIR/graded.txt"
-if [ "$(wc -l < "$STUB_DIR/graded.txt")" -eq 1 ]; then
-  printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"BEGIN GRADES\\nA1: FAIL - no\\nA2: PASS - ok\\nVERDICT: REJECT\\nEND GRADES"}'
-else
-  printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}'
-fi
+unit=$(sed -n 's/^Unit: //p' "$STUB_DIR/in.$$")
+body=""; verdict=PASS
+for id in $(sed -n '/^Requirements:$/,$ s/^\\([A-Z][0-9]*\\): .*/\\1/p' "$STUB_DIR/in.$$"); do
+  if [ "$unit" = "$(head -1 "$STUB_DIR/graded.txt" | sed 's/^Unit: //')" ] && [ "$id" = A1 ]; then
+    body="$body\\n$id: FAIL - no"; verdict=REJECT
+  else
+    body="$body\\n$id: PASS - ok"
+  fi
+done
+printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"BEGIN GRADES'"$body"'\\nVERDICT: '"$verdict"'\\nEND GRADES"}'
 """
 
 
@@ -934,7 +949,11 @@ unit=$(sed -n 's/^Unit: //p' "$STUB_DIR/in.$$")
 case "$unit" in alpha/*) answer=$ANSWER_ALPHA ;; *) answer=$ANSWER_BETA ;; esac
 case "$answer" in
   2) printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"no grades here"}' ;;
-  1) printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"BEGIN GRADES\\nA1: FAIL - no\\nA2: PASS - ok\\nVERDICT: REJECT\\nEND GRADES"}' ;;
+  1) body=""; verdict=PASS
+     for id in $(sed -n '/^Requirements:$/,$ s/^\\([A-Z][0-9]*\\): .*/\\1/p' "$STUB_DIR/in.$$"); do
+       if [ "$id" = A1 ]; then body="$body\\n$id: FAIL - no"; verdict=REJECT; else body="$body\\n$id: PASS - ok"; fi
+     done
+     printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"BEGIN GRADES'"$body"'\\nVERDICT: '"$verdict"'\\nEND GRADES"}' ;;
   *) printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}' ;;
 esac
 """

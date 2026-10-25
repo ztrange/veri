@@ -281,19 +281,22 @@ def test_a_pass_on_unchanged_text_after_a_reject_exits_1_names_the_reject_and_wr
     (tmp_path / "REQUIREMENTS.md").write_text(
         "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
     (tmp_path / ".tdd").mkdir()
-    replies = iter(['{"type":"result","subtype":"success","is_error":false,"result":'
-                    '"BEGIN GRADES\\nA1: FAIL - not stated\\nVERDICT: REJECT\\nEND GRADES"}\n',
-                    '{"type":"result","subtype":"success","is_error":false,"result":'
-                    '"BEGIN GRADES\\nA1: PASS - blue\\nVERDICT: PASS\\nEND GRADES"}\n'])
+    replies = {
+        "first": '{"type":"result","subtype":"success","is_error":false,"result":'
+                 '"BEGIN GRADES\\nA1: FAIL - not stated\\nVERDICT: REJECT\\nEND GRADES"}\n',
+        "second": '{"type":"result","subtype":"success","is_error":false,"result":'
+                  '"BEGIN GRADES\\nA1: PASS - blue\\nVERDICT: PASS\\nEND GRADES"}\n'}
+    run = ["first"]
 
     def launch(argv, *a, **k):
-        (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
+        (tmp_path / ".tdd" / "grade-prose.log").write_text(replies[run[0]])
         return subprocess.CompletedProcess(argv, 0)
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
     monkeypatch.setattr(subprocess, "run", launch)
     run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+    run[0] = "second"
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -308,13 +311,15 @@ def test_a_pass_after_a_reject_and_a_change_of_the_text_exits_0_and_signs_the_ne
     (tmp_path / "REQUIREMENTS.md").write_text(
         "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
     (tmp_path / ".tdd").mkdir()
-    replies = iter(['{"type":"result","subtype":"success","is_error":false,"result":'
-                    '"BEGIN GRADES\\nA1: FAIL - not stated\\nVERDICT: REJECT\\nEND GRADES"}\n',
-                    '{"type":"result","subtype":"success","is_error":false,"result":'
-                    '"BEGIN GRADES\\nA1: PASS - blue\\nVERDICT: PASS\\nEND GRADES"}\n'])
+    replies = {
+        "first": '{"type":"result","subtype":"success","is_error":false,"result":'
+                 '"BEGIN GRADES\\nA1: FAIL - not stated\\nVERDICT: REJECT\\nEND GRADES"}\n',
+        "second": '{"type":"result","subtype":"success","is_error":false,"result":'
+                  '"BEGIN GRADES\\nA1: PASS - blue\\nVERDICT: PASS\\nEND GRADES"}\n'}
+    run = ["first"]
 
     def launch(argv, *a, **k):
-        (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
+        (tmp_path / ".tdd" / "grade-prose.log").write_text(replies[run[0]])
         return subprocess.CompletedProcess(argv, 0)
 
     monkeypatch.setenv("PATH", "")
@@ -322,6 +327,7 @@ def test_a_pass_after_a_reject_and_a_change_of_the_text_exits_0_and_signs_the_ne
     monkeypatch.setattr(subprocess, "run", launch)
     monkeypatch.chdir(tmp_path)
     run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+    run[0] = "second"
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue, stated plainly as blue.\n")
     new_sig = grade_prose.signature("REQUIREMENTS.md", "unit.md")
 
@@ -569,11 +575,15 @@ def test_a_grades_block_naming_every_id_once_with_a_fail_row_swapped_out_of_file
         "| A1 | The widget is blue. | because |\n| A2 | The widget is round. | because |\n"
         "| A3 | The widget is small. | because |\n")
     (tmp_path / ".tdd").mkdir()
-    (tmp_path / ".tdd" / "grade-prose.log").write_text(
-        '{"type":"result","subtype":"success","is_error":false,"result":'
-        '"BEGIN GRADES\\nA1: PASS - ok\\nA3: PASS - ok\\nA2: FAIL - not round\\nVERDICT: REJECT\\nEND GRADES"}\n')
+    replies = iter(['{"type":"result","subtype":"success","is_error":false,"result":'
+                    '"BEGIN GRADES\\nA1: PASS - ok\\nA3: PASS - ok\\nA2: FAIL - not round\\nVERDICT: REJECT\\nEND GRADES"}\n',
+                    '{"type":"result","subtype":"success","is_error":false,"result":'
+                    '"BEGIN GRADES\\nA2: FAIL - not round\\nVERDICT: REJECT\\nEND GRADES"}\n',
+                    '{"type":"result","subtype":"success","is_error":false,"result":'
+                    '"BEGIN GRADES\\nA2: FAIL - not round\\nVERDICT: REJECT\\nEND GRADES"}\n'])
 
     def launch(argv, *a, **k):
+        (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
         return subprocess.CompletedProcess(argv, 0)
 
     monkeypatch.setenv("PATH", "")
@@ -719,7 +729,11 @@ def test_a_first_reply_leaving_out_one_requirement_id_is_followed_by_a_second_gr
     replies = iter(['{"type":"result","subtype":"success","is_error":false,"result":'
                     '"BEGIN GRADES\\nA1: PASS - ok\\nA3: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n',
                     '{"type":"result","subtype":"success","is_error":false,"result":'
-                    '"BEGIN GRADES\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n'])
+                    '"BEGIN GRADES\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n',
+                    '{"type":"result","subtype":"success","is_error":false,"result":'
+                    '"BEGIN GRADES\\nA1: FAIL - not blue\\nVERDICT: REJECT\\nEND GRADES"}\n',
+                    '{"type":"result","subtype":"success","is_error":false,"result":'
+                    '"BEGIN GRADES\\nA1: FAIL - not blue\\nVERDICT: REJECT\\nEND GRADES"}\n'])
     prompts = []
 
     def launch(argv, *a, **k):
@@ -822,6 +836,10 @@ def test_a_fail_row_in_the_follow_up_reply_makes_the_merged_verdict_reject_with_
     replies = iter(['{"type":"result","subtype":"success","is_error":false,"result":'
                     '"BEGIN GRADES\\nA1: PASS - ok\\nA3: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n',
                     '{"type":"result","subtype":"success","is_error":false,"result":'
+                    '"BEGIN GRADES\\nA2: FAIL - not round\\nVERDICT: REJECT\\nEND GRADES"}\n',
+                    '{"type":"result","subtype":"success","is_error":false,"result":'
+                    '"BEGIN GRADES\\nA2: FAIL - not round\\nVERDICT: REJECT\\nEND GRADES"}\n',
+                    '{"type":"result","subtype":"success","is_error":false,"result":'
                     '"BEGIN GRADES\\nA2: FAIL - not round\\nVERDICT: REJECT\\nEND GRADES"}\n'])
 
     def launch(argv, *a, **k):
@@ -855,7 +873,11 @@ def test_a_fail_row_in_the_first_reply_makes_the_merged_verdict_reject_when_the_
     replies = iter(['{"type":"result","subtype":"success","is_error":false,"result":'
                     '"BEGIN GRADES\\nA1: FAIL - not blue\\nA3: PASS - ok\\nVERDICT: REJECT\\nEND GRADES"}\n',
                     '{"type":"result","subtype":"success","is_error":false,"result":'
-                    '"BEGIN GRADES\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n'])
+                    '"BEGIN GRADES\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n',
+                    '{"type":"result","subtype":"success","is_error":false,"result":'
+                    '"BEGIN GRADES\\nA1: FAIL - not blue\\nVERDICT: REJECT\\nEND GRADES"}\n',
+                    '{"type":"result","subtype":"success","is_error":false,"result":'
+                    '"BEGIN GRADES\\nA1: FAIL - not blue\\nVERDICT: REJECT\\nEND GRADES"}\n'])
 
     def launch(argv, *a, **k):
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
