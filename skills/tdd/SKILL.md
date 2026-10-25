@@ -1634,8 +1634,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    Once the `develop-rebase` leaf has resolved the conflict, run the regrade block below
    **before** `verify-rebase` is launched, so the verifier judges a tip whose `GRADED` lines are
-   current: a line made stale only by the rebase is no defect of the resolution, and a REJECT
-   for it would spend a revise attempt on work the run does next anyway. Then launch the verifier:
+   current. A stale `GRADED` line from the rebase is no defect of the resolution: it spends no
+   `revise` mark and no `REVISE_BUDGET` attempt. Then launch the verifier:
    ```
    rm -f .tdd/verdict-rebase.exit .tdd/verdict-rebase.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/detach-leaf.sh $S/supervise.sh verdict-rebase $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" rebase .tdd/issue-<n>-spec.md <onto-sha> <pre-rebase-sha> > .tdd/verify-rebase.reason 2> .tdd/verify-rebase.err
