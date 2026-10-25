@@ -49,6 +49,7 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     pr = argv[0]
+    repo = _repo(pr)
     pid = str(os.getpid())
     _script("merge-lock.sh", "take", "--pid", pid)
     code = _gate(pid, (sys.executable, os.path.abspath(__file__), "--ci", pr))
@@ -58,11 +59,11 @@ def main(argv):
         code = _gate(pid, ("git", "-C", argv[1], *git_args), keep=True)
         if code:
             return code
-    _, head, _ = pr_head(_repo(pr), pr)
+    _, head, _ = pr_head(repo, pr)
     code = _gate(pid, ("gh", "pr", "merge", pr, "--rebase", "--match-head-commit", head))
     if code:
         return code
-    landed = json.loads(gh_api("repos/%s/pulls/%s" % (_repo(pr), pr.rsplit("/pull/", 1)[-1])).stdout).get("merged") is not False
+    landed = json.loads(gh_api("repos/%s/pulls/%s" % (repo, pr.rsplit("/pull/", 1)[-1])).stdout).get("merged") is not False
     _script("merge-lock.sh", "release", "--pid", pid)
     if not landed:
         return 1
