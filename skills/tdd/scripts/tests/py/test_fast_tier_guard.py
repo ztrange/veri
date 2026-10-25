@@ -696,6 +696,7 @@ def test_2168_the_readers_audit_suites_and_their_index_guard_live_under_tests_py
         "test_readers_tree_index.py",
         "test_skill_cost_check_readers.py",
         "test_skill_diff_checked_readers.py",
+        "test_skill_draft_pr_readers.py",
         "test_skill_green_readers.py",
         "test_skill_plan_readers.py",
         "test_skill_red_readers.py",
