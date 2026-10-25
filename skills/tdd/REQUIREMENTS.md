@@ -346,6 +346,7 @@
 | DP81 | When the ready script exits non-zero, `wait-ci.sh` is not run, so no CI deadline is started, and the run **bails** as a **system** failure (`no-verdict`) with the PR left a draft. | A PR that was never readied is not waited on, and the failed ready is named as the plumbing failure it is. |
 | DP82 | In the Draft PR block, `wait-ci.sh` runs in the same command as the ready script and only on its exit 0 (the ready line ends `|| ` and the bail, so a failed ready never reaches `wait-ci.sh`). | A sentence beside two separate commands can be skipped under load; a gate inside the command cannot. |
 | CY119 | A green report carrying a `SUPERSEDED:` line, with or without `WRONG_TEST:`, goes through `wrong-test-route.sh` before any revise, and shares the step's one free reroute. | The develop prompt sends a case the step's change supersedes to `SUPERSEDED:`, never `WRONG_TEST:`. Without this, that case can only be fixed by revise, which cannot touch a frozen test, and the step bails. |
+| CY120 | After a reroute's red leaf, and before the step's frozen tests are re-recorded, the step's own Red case (its `<red-test-id>`) still exists. A reroute that deleted it is a verify-red REJECT that spends `REVISE_BUDGET`, and nothing is re-recorded. | Re-recording over the tree as found would freeze the deletion, and Green would then run with no failing test for the step's criterion. |
 
 ## skills/tdd/PIN.md
 
