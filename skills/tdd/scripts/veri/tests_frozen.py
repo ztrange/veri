@@ -364,6 +364,12 @@ def main(argv):
         record = argv[1]
     if mode == "record":
         files = argv[2:]
+        if "--red-case" in files:
+            at = files.index("--red-case")
+            value = files[at + 1]
+            if not all(value.partition("::")[::2]):
+                write(sys.stderr, "tests-frozen.sh: --red-case %s needs a path and a case around '::'" % value)
+                return 2
         if by_step and _refused_outside_repository():
             return 2
         deleted = []
