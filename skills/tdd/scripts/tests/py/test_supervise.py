@@ -426,27 +426,62 @@ def test_main_marks_a_watched_names_launch_and_exit_as_records_under_its_role_an
     assert (code, out, exit_record, records, role_lines) == (0, b"leaf out\n", b"0\n", [], [diagnostic, diagnostic])
 
 
-def test_main_hands_a_verify_leaf_veri_test_lock_0_and_a_develop_leaf_no_such_variable_2195(
-        monkeypatch, tmp_path, capsysbinary, supervise):
-    import signal
-    import time
-    monkeypatch.setattr(signal, "signal", lambda *_: None)
-    monkeypatch.setattr(time, "sleep", lambda *_: None)
-    clean_env(monkeypatch, VERI_TIMEOUT="900")
-    seen = {}
-    for name in ("verify-red", "develop-red"):
-        work = tmp_path / name
-        work.mkdir()
-        monkeypatch.chdir(work)
-        fake_leaf_launch(monkeypatch)
-        if name == "verify-red":
-            for variable, value in checked_step(work).items():
-                monkeypatch.setenv(variable, value)
-        code = supervise.main([name, "sh", "-c", 'printf "%s" "${VERI_TEST_LOCK-unset}"'])
-        out, _ = capsysbinary.readouterr()
-        seen[name] = (code, out)
+VERIFIER_FULL_RUN = """\
+import os, sys
+sys.path[:0] = [%r, %r]
+import pytest
+from veri import pytest_leg
+marks, release = sys.argv[1:3]
+def spy(args):
+    open(os.path.join(marks, "started-after-release" if os.path.exists(release) else "started-before-release"), "a").close()
+    return pytest.ExitCode.OK
+pytest.main = spy
+sys.exit(pytest_leg.main([]))
+"""
 
-    assert seen == {"verify-red": (0, b"0"), "develop-red": (0, b"unset")}
+
+@pytest.mark.process("a verify leaf launched through supervise runs a real full-run launcher beside a test-held full-suite flock")
+@pytest.mark.timeout(60)
+def test_main_hands_a_verify_leaf_veri_test_lock_0_and_a_develop_leaf_no_such_variable_2195(
+        monkeypatch, tmp_path, supervise):
+    import fcntl
+    import signal
+    import threading
+    import time
+    pytest_leg = importlib.import_module("veri.pytest_leg")
+    scripts = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    home, marks, work = tmp_path / "home", tmp_path / "marks", tmp_path / "work"
+    for directory in (home, marks, work):
+        directory.mkdir()
+    release = tmp_path / "release"
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    clean_env(monkeypatch, VERI_STUCK_RETRIES="0", VERI_HEARTBEAT="50", VERI_TIMEOUT="50")
+    monkeypatch.setenv("HOME", str(home))
+    for variable in ("VERI_PYTEST_IMPORTABLE", "VERI_PYTEST_TIMEOUT_IMPORTABLE", "VERI_PYTEST_XDIST_IMPORTABLE"):
+        monkeypatch.setenv(variable, "1")
+    monkeypatch.chdir(work)
+    fake_leaf_launch(monkeypatch)
+    for variable, value in checked_step(work).items():
+        monkeypatch.setenv(variable, value)
+    script = work / "full_run.py"
+    script.write_text(VERIFIER_FULL_RUN % (scripts, os.path.join(scripts, "veri")))
+
+    codes = []
+    with open(pytest_leg.full_lock_path(), "a+") as held:
+        fcntl.flock(held, fcntl.LOCK_EX)
+        runner = threading.Thread(target=lambda: codes.append(
+            supervise.main(["verify-red", sys.executable, str(script), str(marks), str(release)])))
+        runner.start()
+        log = work / ".tdd" / "verify-red.log"
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and not (log.exists() and "waiting for the full run" in log.read_text()) \
+                and not (marks / "started-before-release").exists():
+            time.sleep(0.05)
+        release.touch()
+        fcntl.flock(held, fcntl.LOCK_UN)
+    runner.join(timeout=30)
+
+    assert (sorted(p.name for p in marks.iterdir()), codes) == (["started-after-release"], [0])
 
 
 def test_main_resolves_the_model_in_process_marks_it_on_the_launch_and_hands_the_leaf_its_own_environment_plus_veri_leaf_model_and_veri_skill_commit(
@@ -4225,3 +4260,4 @@ def test_cli_refuses_a_verify_red_or_verify_green_launch_whose_veri_step_is_unse
     assert answers == {(name, label): (2, "", True) for name in ("verify-red", "verify-green")
                        for label in ("unset", "no-such-text", "past-the-end")}
     assert not started
+
