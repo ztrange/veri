@@ -1,0 +1,3 @@
+# Plan for #2356 — test_supervise's signal case reads a leaf that dies slowly under load as a leaf left alive
+
+- [ ] The leaf-death wait in test_supervise's signal case waits for the leaf's death up to a bound well above any load-induced delay (returning as soon as the leaf is gone) and still reports a leaf that never dies as left: a small unit case (no real process, no real sleep; liveness and the clock or sleep injected) shows a leaf whose death comes after 2 s reads as not left, and a leaf that never dies (one that ignores the signal) reads as left; no production change: repairs the fixture 'killed_by' in skills/tdd/scripts/tests/py/test_supervise.py, reproduced by a case in skills/tdd/scripts/tests/py/unit/test_supervise_leaf_death.py ⟦fixture-repair⟧ ⟦criterion 1⟧
