@@ -282,3 +282,40 @@ def test_2198_live_conductor_fails_at_setup_when_an_attribute_of_run_end_it_patc
 
     with pytest.raises(AttributeError, match="command_line"):
         conftest.live_conductor(monkeypatch, tmp_path, 2198)
+
+
+def test_2246_the_inherited_tmpdir_guard_fails_planted_cases_that_create_in_it_through_mkdir_open_or_os_open_naming_the_path_while_a_case_writing_under_its_own_tmpdir_passes(pytester, monkeypatch, tmp_path):
+    inherited = tmp_path / "inherited"
+    inherited.mkdir()
+    monkeypatch.setenv("TMPDIR", str(inherited))
+    monkeypatch.setattr(conftest.tempfile, "tempdir", str(inherited))
+    pytester.makepyfile(test_planted="""
+        import os
+        import pathlib
+
+        INHERITED = pathlib.Path(%r)
+
+        def test_leaks_through_mkdir():
+            (INHERITED / "leak-mkdir").mkdir()
+
+        def test_leaks_through_open():
+            with open(INHERITED / "leak-open", "w") as handle:
+                handle.write("x")
+
+        def test_leaks_through_os_open():
+            os.close(os.open(str(INHERITED / "leak-os-open"), os.O_CREAT | os.O_WRONLY))
+
+        def test_writes_under_its_own_tmpdir():
+            assert pathlib.Path(os.environ["TMPDIR"]) != INHERITED
+            made = pathlib.Path(os.environ["TMPDIR"]) / "fine"
+            made.mkdir()
+            made.rmdir()
+    """ % str(inherited))
+
+    result = pytester.runpytest_inprocess("-p", "no:cacheprovider", plugins=[conftest])
+
+    result.assert_outcomes(failed=3, passed=1)
+    output = result.stdout.str()
+    for leak in ("leak-mkdir", "leak-open", "leak-os-open"):
+        assert "the inherited TMPDIR" in output
+        assert str(inherited / leak) in output
