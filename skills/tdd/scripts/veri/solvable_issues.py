@@ -2,8 +2,8 @@
 import json
 import os
 import paths
+import pid_file
 import re
-import run_end
 import subprocess
 import sys
 
@@ -30,7 +30,7 @@ def main_working_tree():
 def in_flight(main_tree, number):
     if not main_tree:
         return False
-    return run_end._live(os.path.join(main_tree, ".tdd", "wt", str(number)), str(number))
+    return bool(pid_file.live_conductor(os.path.join(main_tree, ".tdd", "wt", str(number))))
 
 
 def refused_if_empty(name):

@@ -1,42 +1,10 @@
 """One rule for whether a run has ended."""
 import os
-import re
-import subprocess
 
 from event_log import read_events
 from pid_file import live_conductor
 
 MARKS = {"done": "done", "bail": "bailed", "stop": "stopped"}
-
-
-def _ps(field, pid):
-    out = subprocess.run(["ps", "-o", field + "=", "-p", str(pid)],
-                         capture_output=True, text=True)
-    return out.stdout.strip()
-
-
-def command_line(pid):
-    return _ps("command", pid)
-
-
-def parent_pid(pid):
-    return int(_ps("ppid", pid) or 0)
-
-
-def _is_conductor(line, issue):
-    return re.search(r"(run-conductor\.sh|run_conductor\.py)\s+%s(\s|$)" % re.escape(issue), line)
-
-
-def _live(run_dir, issue):
-    try:
-        with open(os.path.join(run_dir, ".tdd", "conductor.pid")) as f:
-            pid = int(f.read().strip())
-        os.kill(pid, 0)
-    except (OSError, ValueError):
-        return False
-    if _is_conductor(command_line(pid), issue):
-        return True
-    return bool(_is_conductor(command_line(parent_pid(pid)), issue))
 
 
 def conductor_log(run_dir, issue):

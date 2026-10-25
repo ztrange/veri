@@ -226,7 +226,6 @@ def test_issue_2008_a_bail_then_resume_then_launch_with_a_live_conductor_prints_
                                     {"event": "resume", "issue": "108"},
                                     {"event": "launch", "issue": "108", "step": "1", "phase": "red", "attempt": "1"}])
     (tmp_path / ".tdd" / "conductor.pid").write_text("%d\n" % os.getpid())
-    monkeypatch.setattr(run_end, "command_line", lambda pid: "run-conductor.sh 108")
     fake_pid_file_ps(monkeypatch)
     monkeypatch.chdir(tmp_path)
 
