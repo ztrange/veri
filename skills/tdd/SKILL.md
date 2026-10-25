@@ -1662,7 +1662,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    git reset --hard <pre-rebase-sha>
    ```
-   The branch is left un-rebased, and the run does **bail** with the PR left a draft, its
+   The branch is left un-rebased, and the run does **bail** with cause `rebase-unresolved`, a **process** failure, with the PR left a draft, its
    bail comment naming every conflicting file `rebase-onto-default.sh` printed, so the human it hands the conflict to knows where it is (`Read` `<base directory>/BAIL.md`).
 
    The regrade runs after the run's last rebase and before the full suite runs on the rebased tip, so a `GRADED` line made stale only by the rebase never turns that suite red; with no rebase it runs here, before the PR is readied. It regrades every unit the run signed with `grade-prose.sh`, and reads the block's exit: exit 1 (a REJECT) is handled as a red full suite is, by appending a repair step; exit 2 (no verdict could be obtained) is a system-failure bail with cause `no-verdict`, never a repair step (see `<base directory>/BAIL.md`). Once a unit's text has been REJECTed, a regrade of the same text (the same signature input) may not re-sign it: only an author run that changes the text, followed by a PASS, may. Once that repair step's cycle closes, the run comes back to this Draft PR step and runs the full suite again, then the rebase and the regrade, as it does after a `⟦suite-repair⟧` step.
@@ -1721,7 +1721,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    `PREDICATE: NONE`, is recorded with `refactor-owed.sh not-done` and `no-predicate`
    rather than handed to a transform leaf; exit 1, a command already
    true, means the candidate is already applied, and it is recorded as applied below
-   without a transform leaf; exit 2 is no answer.
+   without a transform leaf; exit 2 is no answer and **bails** as a **system** failure (`no-verdict`, see `<base directory>/BAIL.md`).
    Each transform leaf's prompt is `build-develop-prompt.sh structural`'s, handed the spec, the candidate as
    `list` printed it, the test command and `<bound>`, written to
    `.tdd/develop-structural.prompt`; the leaf is launched through the supervisor as
@@ -1824,7 +1824,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    green, and the wait is `wait-ci.sh`, one bounded slice per Bash call, given the sha just
    pushed (`git rev-parse HEAD`) so a rollup still reporting the previous head reads as pending: its exit 3 means a
    check is still pending, so call it again in a new Bash call; its exit 2 — a check still
-   pending past the deadline its first call recorded, or no answer from `gh` — does
+   pending past the deadline its first call recorded, checks still queued `VERI_CI_QUEUE_WAIT` seconds after the first call that saw them queued, or no answer from `gh` — does
    **bail**, with cause `ci-timeout`, rather than waiting on (`Read` `<base directory>/BAIL.md`).
    That deadline is `wait-ci.sh`'s own bound, since the call gives no total-seconds: twice the
    mean of the last 5 completed CI runs, capped at 10 minutes, or 540 s when fewer than 5
@@ -1846,7 +1846,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    branch, so no workflow will start on it — is not a timeout. Rebase onto
    `origin/<default>` once, through the existing rebase path of sub-step 1: `touch
    .tdd/ci-conflict-rebased`, then `$S/rebase-onto-default.sh`, its `develop-rebase` leaf and
-   rebase verifier (`verify-rebase`) when it conflicts, the full suite once on the rebased
+   rebase verifier (`verify-rebase`) when it conflicts, the regrade block and then the full suite once on the rebased
    tip, and the push under the lease pinned to `<pre-rebase-sha>` — then wait for CI again
    with the same `wait-ci.sh` line. There too `rebase-onto-default.sh`'s exit code decides the
    next action, so nothing after it — the rebased tip's full test run in particular — is
