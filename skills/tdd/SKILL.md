@@ -1710,8 +1710,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    $S/refactor-owed.sh not-done .tdd/issue-<n>-refactor-owed.md '<candidate>' uncovered
    ```
    This is where each candidate's predicate comes from: after a covered candidate, a
-   predicate leaf, prompted by `build-develop-prompt.sh predicate` with the same four
-   arguments and launched through the supervisor as `develop-predicate`, reports one
+   predicate leaf, prompted by `build-develop-prompt.sh predicate` with the spec, the
+   candidate, the test command and `<bound>`, and launched through the supervisor as `develop-predicate`, reports one
    `PREDICATE:` line, which the conductor checks and records:
    ```
    $S/structural-predicate.sh .tdd/issue-<n>-predicate < <leaf-report>   # exit 0 ⇒ recorded; 1 ⇒ already applied; 3 ⇒ skip
