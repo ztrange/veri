@@ -16,6 +16,9 @@ EVENT_FILES = {
 }
 
 
+PLACED = r"\)?[.:](\s|\Z)"
+
+
 def unpointed_sends(text):
     ends = [m.end() for m in re.finditer(r"\.(?=\s|\Z)", text)] + [len(text)]
     lines = text.splitlines()
@@ -38,7 +41,7 @@ def misplaced_pointers(text):
     found = []
     for event_file in EVENT_FILES:
         for m in re.finditer(re.escape(f"`<base directory>/{event_file}`"), text):
-            if not re.match(r"\)?[.:](\s|\Z)", text[m.end():]):
+            if not re.match(PLACED, text[m.end():]):
                 found.append((event_file, text.count("\n", 0, m.start()) + 1))
     return found
 
@@ -53,7 +56,7 @@ def misplaced_send_pointers(text):
             sentence = text[start:end]
             if re.search(trigger, sentence):
                 for m in re.finditer(re.escape(pointer), sentence):
-                    if not re.match(r"\)?[.:](\s|\Z)", sentence[m.end():]):
+                    if not re.match(PLACED, sentence[m.end():]):
                         found.append((event_file, text.count("\n", 0, start + m.start()) + 1))
             start = end
     return found
