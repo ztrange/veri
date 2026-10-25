@@ -70,6 +70,8 @@ def _take(lock, record, args):
 def _release(lock, record, args):
     if _needs_pid(args, True):
         return 2
+    if not os.path.isdir(lock):
+        return 3
     pid = _caller_pid([a for a in args if a != "--force"])
     if "--force" not in args:
         if _read(record).split()[0] != pid:
@@ -102,7 +104,7 @@ _HANDLERS = {"take": _take, "release": _release, "holder": _holder}
 
 def main(argv):
     if not argv or argv[0] not in VERBS:
-        print("usage: merge-lock.sh take|release|holder", file=sys.stderr)
+        print("usage: merge-lock.sh take --pid <pid> | release --pid <pid> | release --force | holder", file=sys.stderr)
         return 2
     common = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
                             stdout=subprocess.PIPE, text=True, check=True).stdout.strip()
