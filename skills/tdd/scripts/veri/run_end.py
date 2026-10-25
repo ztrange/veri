@@ -4,6 +4,7 @@ import re
 import subprocess
 
 from event_log import read_events
+from pid_file import live_conductor
 
 MARKS = {"done": "done", "bail": "bailed", "stop": "stopped"}
 
@@ -85,7 +86,7 @@ def run_end(run_dir):
             mark = {}
     if not mark:
         issue = next((str(e["issue"]) for e in reversed(events) if "issue" in e), "")
-        if _live(run_dir, issue):
+        if live_conductor(os.fspath(run_dir)):
             return False, None, mark
         return True, _launch_cause(run_dir, issue) or "unknown", mark
     return True, MARKS[mark["event"]], mark
