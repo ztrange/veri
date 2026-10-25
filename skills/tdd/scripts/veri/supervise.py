@@ -22,6 +22,7 @@ from leaf_model import leaf_model
 from leaf_role import leaf_role
 from ledger import carries_mark, ledger_path, ledger_steps, trailing_markers
 from pid_file import number_in
+from pytest_leg import lock_wait_path
 
 HERE = paths.scripts_of(__file__)
 
@@ -254,6 +255,7 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
                              "sh", log, rcfile, *cmd], process_group=0, env=leaf_env,
                             restore_signals=False, preexec_fn=preexec)
     started.append(leaf)
+    waitfile = lock_wait_path(leaf.pid)
     status = reason = ""
     rc = "0"
     seen_at = int(t0)
@@ -268,6 +270,8 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
         t = int(now())
         a = awake_seconds()
         seen_at += (t - prev_t) - (a - prev_a)
+        if os.path.exists(waitfile):
+            a0 += a - prev_a
         prev_t, prev_a = t, a
         if a - a0 >= int(timeout, 10):
             reason = f"hard timeout {timeout}s exceeded"

@@ -168,6 +168,10 @@ def full_lock_path():
     return legs_dir().rstrip("/") + "-full.lock"
 
 
+def lock_wait_path(pgid):
+    return "%s.wait-%d" % (full_lock_path(), pgid)
+
+
 def under_full_lock_holder():
     holder = os.environ.get("PYTEST_LEG_FULL_LOCK_HOLDER", "")
     try:
@@ -194,7 +198,15 @@ def acquire_full_lock():
         lock.seek(0)
         sys.stderr.write("waiting for the full run holding the lock: %s\n" % " ".join(lock.read().split("\n")[0].split("\t")))
         sys.stderr.flush()
-        fcntl.flock(lock, fcntl.LOCK_EX)
+        waitfile = lock_wait_path(os.getpgrp())
+        open(waitfile, "w").close()
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+        finally:
+            try:
+                os.remove(waitfile)
+            except OSError:
+                pass
     lock.seek(0)
     lock.truncate()
     lock.write("pid %d\ttree %s\n" % (os.getpid(), os.path.realpath(os.getcwd())))
