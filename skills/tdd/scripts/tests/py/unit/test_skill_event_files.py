@@ -13,9 +13,9 @@ EVENT_FILES = {
     "STOPPING.md": r"\bgo(es)? to \*Stopping\*",
     "RESUME.md": r"\bresum(e|ing) (the run|at)\b",
     "SKILL-EDIT.md": r"⟦skill-edit⟧ step",
-    "REFACTOR-KIND.md": r"\*\*refactor-kind\*\* run",
-    "PHASED.md": r"⟦phases: …⟧` runs no",
-    "STRUCTURAL.md": r"\*\*one structural pass\*\*",
+    "REFACTOR-KIND.md": r"the `## Refactor` section `capture-spec\.sh` writes",
+    "PHASED.md": r"hands over a step listing `⟦phases: …⟧`",
+    "STRUCTURAL.md": r"\bone structural pass\b",
 }
 
 
