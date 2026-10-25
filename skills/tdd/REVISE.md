@@ -27,6 +27,10 @@ For attempt `k = 1 … REVISE_BUDGET`:
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" VERI_PHASE=<phase> VERI_ATTEMPT=<k> $S/event.sh revise budget=<REVISE_BUDGET>
    ```
+   For each attempt after the first, run first
+   `$S/same-reject.sh <previous-reason-file> .tdd/verify-<phase>.reason; echo $?`: on exit 0 (the same
+   reason twice) go to the `develop-exhausted` leaf without launching the attempt; on exit 1 or exit 2
+   continue the revise loop as today.
 2. **Fresh developer leaf.** Build the revise prompt from the `revise` template, naming the
    phase being redone and the **reason file** the verifier's stdout went to, then launch
    **through the supervisor** (exit **2 → bail**, system failure, after the stop check in
