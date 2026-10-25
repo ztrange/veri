@@ -1309,6 +1309,23 @@ def test_an_edit_to_revise_md_prints_the_bash_suite_naming_it_and_the_pytest_fil
         0, {SUITES + "revise.test.sh", SUITES + "py/unit/test_revise_file.py"}, "")
 
 
+def test_an_edit_to_structural_phased_or_refactor_kind_md_prints_exactly_the_two_suites_reading_that_file(
+        monkeypatch, run_cli, affected, tmp_path):
+    docs = {"STRUCTURAL.md": "structural", "PHASED.md": "phased", "REFACTOR-KIND.md": "refactor-kind"}
+    files = {}
+    for doc, stem in docs.items():
+        files["skills/tdd/" + doc] = "# doc\n\nstep 2\n"
+        files[SCRIPTS_REL + "tests/%s.test.sh" % stem] = 'procedure="%s"\ngrep -F step "$procedure"\n' % doc
+        files[SCRIPTS_REL + "tests/py/unit/test_%s_file.py" % stem.replace("-", "_")] = (
+            'def test_step():\n    open("%s").read()\n' % doc)
+    results, wanted = {}, {}
+    for doc, stem in docs.items():
+        code, out, err = affected_by(monkeypatch, run_cli, affected, tmp_path, ["skills/tdd/" + doc], files)
+        results[doc] = (code, set(out.splitlines()), err)
+        wanted[doc] = (0, {SUITES + stem + ".test.sh", SUITES + "py/unit/test_%s_file.py" % stem.replace("-", "_")}, "")
+    assert results == wanted
+
+
 @pytest.mark.process("real git: the changed lines come from git diff -U0 between two commits")
 def test_an_edit_inside_one_section_of_claude_md_makefile_a_skill_md_other_than_tdds_or_a_prompt_prints_every_suite_naming_it_file_wide(
         run_cli, affected, tmp_path):
