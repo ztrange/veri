@@ -416,8 +416,8 @@ unauthenticated baseline never gets a cycle.
    the **worktree guard**, and it guards this machine's worktree only: for
    exactly as long as the pid in there answers `kill -0`, `issue-worktree.sh` refuses this
    worktree to a second conductor on this computer, so none can land in a live run's tree and
-   follow `<base directory>/RESUME.md`, whose `git reset --hard HEAD` on a `⟂ refactor pending` step throws your
-   leaf's uncommitted work away (#170). It is **not** the claim on the issue. A pid is a
+   resume it (#170), and a `git reset --hard HEAD` on a `⟂ refactor pending` step throws your
+   leaf's uncommitted work away, per `<base directory>/RESUME.md`. It is **not** the claim on the issue. A pid is a
    machine-local name, veri is developed from more than one computer, and `origin` is all they
    share: what keeps the issue out of `solvable-issues.sh`'s pool is the draft PR step 2.3
    opens as the first act after the plan commit — minutes from here, and open for the rest of
