@@ -32,3 +32,15 @@ def test_main_exits_2_with_a_usage_line_without_arguments_and_exits_2_when_eithe
         (str(reasonless), str(reasoned)): (2, "", True),
         (str(reasoned), str(reasonless)): (2, "", True),
     }
+
+
+def test_main_exits_0_when_the_reason_lines_are_equal_after_collapsing_runs_of_whitespace(
+        tmp_path, run_cli, same_reject):
+    previous = tmp_path / "previous.txt"
+    previous.write_text("VERDICT: REJECT\nREASON: WRONG_TEST   the  test\tpins mechanism\n")
+    current = tmp_path / "current.txt"
+    current.write_text("REASON:  WRONG_TEST the test pins   mechanism \nVERDICT: REJECT\n")
+
+    code, out, err = run_cli(same_reject, [str(previous), str(current)])
+
+    assert (code, out, err) == (0, "", "")
