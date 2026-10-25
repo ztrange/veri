@@ -1385,3 +1385,26 @@ def test_2386_on_macos_with_no_worker_count_the_budget_is_the_physical_core_coun
     (legs / str(os.getpid())).write_text("6\n")
     beside_six = pytest_leg.worker_count(None)
     assert (alone, beside_six) == (8, 2)
+
+
+def test_2386_off_macos_with_no_worker_count_the_budget_is_the_cpu_affinity_count_less_the_live_legs_workers_never_the_physical_core_count(pytest_leg, monkeypatch, tmp_path):
+    import subprocess
+
+    def sysctl_answer(argv, *args, **kwargs):
+        return subprocess.CompletedProcess(argv, 0, stdout="4\n", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", sysctl_answer)
+    monkeypatch.setattr(subprocess, "check_output", lambda argv, *a, **k: sysctl_answer(argv).stdout)
+    monkeypatch.setattr(os, "cpu_count", lambda: 12)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 12, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(12)), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.delenv("VERI_PYTEST_WORKERS", raising=False)
+    monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    monkeypatch.setenv("VERI_PYTEST_LEGS", str(legs))
+    alone = pytest_leg.worker_count(None)
+    (legs / str(os.getpid())).write_text("5\n")
+    beside_five = pytest_leg.worker_count(None)
+    assert (alone, beside_five) == (12, 7)
