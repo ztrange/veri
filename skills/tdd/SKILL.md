@@ -813,7 +813,7 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
 ```
 
 - **exit 0 — split.** Exactly the revise-exhausted path's split:
-  `.tdd/over-budget-answer.txt` holds the criteria, one per line, and they replace the step (see `<base directory>/REVISE.md`; `Read` it when a verifier answers `REJECT`).
+  `.tdd/over-budget-answer.txt` holds the criteria, one per line, and they replace the step (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`).
   Restore the tree first, so the step's uncommitted work cannot become the first replacement
   step's inherited start, then grow the plan in **one** call, then commit it before the run
   goes on, because the committed ledger is what a resumed run reads:
@@ -837,7 +837,7 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
 - **exit 1 — a decision for the user.** `.tdd/over-budget-answer.txt` holds the leaf's answer.
   **Park the step** — the same park the revise-exhausted path takes: stop the
   run there, carrying that answer and the two figures, what the step has spent and the
-  step budget, and leave the plan as it is so the user's decision picks the run back up (see `<base directory>/REVISE.md`; `Read` it when a verifier answers `REJECT`):
+  step budget, and leave the plan as it is so the user's decision picks the run back up (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`):
   ```
   step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-escalated at=over-budget anchor="$step"
   ```
@@ -911,7 +911,7 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
    ```
    $S/red-divergence.sh .tdd/red-prediction.md .tdd/red-run-output.txt < .tdd/develop-red.out > .tdd/verify-red.reason; echo $?
    ```
-   - **Exit 1 — prediction not written before the run:** the prediction file is missing or newer than the run's output. Narrate "prediction not written before the run" in the `### 🔴 Red` comment, not a divergence, and write that line to `.tdd/verify-red.reason`. It still spends the attempt like a `REJECT`: skip verify-red and verify-pin and enter the revise loop for red (`Read` `<base directory>/REVISE.md` when a verifier answers `REJECT`).
+   - **Exit 1 — prediction not written before the run:** the prediction file is missing or newer than the run's output. Narrate "prediction not written before the run" in the `### 🔴 Red` comment, not a divergence, and write that line to `.tdd/verify-red.reason`. It still spends the attempt like a `REJECT`: skip verify-red and verify-pin and enter the revise loop for red (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`).
    - **Exit 3 — `PREDICTION: MATCHED`:** nothing was surprising. The script printed
      nothing; carry on with the verifier below.
    - **Exit 0 or 2 — diverged, or a prediction nobody can read:** the test failed for a
@@ -929,7 +929,7 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      surprising test came from survives the next leaf that overwrites it (best-effort: note
      it if it fails and carry on), and enter the
      **revise loop** for red exactly as a verify-red `REJECT` does — the revise leaf answers `.tdd/verify-red.reason`, and the attempt spends
-     `REVISE_BUDGET` like any other (`Read` `<base directory>/REVISE.md` when a verifier answers `REJECT`).
+     `REVISE_BUDGET` like any other (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`).
 
    Run `$S/unreplaced-cases.sh "<step line>" .tdd/develop-red.out` on a `⟦replaces-case⟧` step once the
    Red report is written, against the current attempt's report (`.tdd/revise-red-<k>.out` after a red
@@ -972,7 +972,7 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
    0 PASS, 1 REJECT, 2 malformed or killed-stuck — not the supervisor's status.
    On **`PASSES`** the criterion is **already satisfied** — never send that test to
    verify-red, whose verdict on a passing test can only be `REJECT`. Run the pin check
-   instead and continue at the pin (`Read` `<base directory>/PIN.md` when a Red reports `AGAINST_UNMODIFIED: PASSES`):
+   instead and continue at the pin (when a Red reports `AGAINST_UNMODIFIED: PASSES`, `Read` `<base directory>/PIN.md`):
    ```
    rm -f .tdd/verdict-pin.exit .tdd/verdict-pin.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-pin $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" pin .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-pin.reason 2> .tdd/verify-pin.err
@@ -1134,7 +1134,7 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      event could not be written) **bail** (`Read` `<base directory>/BAIL.md`).
      **Then run `$S/stop-requested.sh`**, immediately after that push: this ledger commit is
      the boundary `at-ledger` was waiting for, and `at-leaf` and `now` have nothing left to
-     abandon, so on exit 0 any mode it printed goes to *Stopping* here (`Read` `<base directory>/STOPPING.md` when that happens). On exit 2 go to
+     abandon, so on exit 0 any mode it printed goes to *Stopping* here (when that happens, `Read` `<base directory>/STOPPING.md`). On exit 2 go to
      *Stopping* in mode `at-ledger`, narrating that the request was unreadable. On exit 3
      continue to the Refactor loop.
      A `⟦ci-repair⟧` step's green is judged against a fresh CI run on the pushed fix,
@@ -1375,9 +1375,9 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      until that commit exists the step still says pending and the plan is still the one the
      leaf grew from. The push copies the step's
      finished state to the remote on the same terms as Green's above: exit **1** launches
-     the reconcile leaf (`Read` `<base directory>/RECONCILE.md` and run it when that happens). Exit **2** is a **bail** (`Read` `<base directory>/BAIL.md`).
+     the reconcile leaf (when that happens, `Read` and run `<base directory>/RECONCILE.md`). Exit **2** is a **bail** (`Read` `<base directory>/BAIL.md`).
      **Then run `$S/stop-requested.sh`**, immediately after that push, as Green does after
-     its own: on exit 0 any mode it printed goes to *Stopping* here (`Read` `<base directory>/STOPPING.md` when that happens). On exit 2 go to
+     its own: on exit 0 any mode it printed goes to *Stopping* here (when that happens, `Read` `<base directory>/STOPPING.md`). On exit 2 go to
      *Stopping* in mode `at-ledger`, narrating that the request was unreadable; on exit 3
      carry on.
      Then **mirror to the issue**:
@@ -1474,7 +1474,7 @@ that base sha. Both are launched through the supervisor and waited on as *Launch
 sets out, the leaf as `develop-<phase>` and the verifier as `verdict-<phase>`. On PASS, mark
 the phase with `tick-ledger.sh --phase <phase> .tdd/issue-<n>.md "<STEP>"` and commit the
 ledger with that phase's commit, then push, and go back to `next-phase` for the step's next
-phase. On REJECT, revise under `REVISE_BUDGET` as `REVISE.md` sets out (`Read` `<base directory>/REVISE.md` when a verifier answers `REJECT`). On exit 2,
+phase. On REJECT, revise under `REVISE_BUDGET` as `REVISE.md` sets out (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`). On exit 2,
 **bail** as a system failure (`no-verdict`, see `<base directory>/BAIL.md`). Once `next-phase` exits 3 every listed phase is
 marked, the step reads as done, and the loop goes back to `next-unchecked.sh`.
 
@@ -1646,7 +1646,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    $S/wait-leaf.sh verdict-rebase   # foreground; on exit 3 call it again
    ```
    A verify-rebase `REJECT` goes round the revise loop with phase `rebase`, within
-   `REVISE_BUDGET` like any other phase (`Read` `<base directory>/REVISE.md` when a verifier answers `REJECT`). A malformed verdict does **bail** as a **system**
+   `REVISE_BUDGET` like any other phase (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`). A malformed verdict does **bail** as a **system**
    failure (`no-verdict`, see `<base directory>/BAIL.md`).
    Only on a verify-rebase `PASS` does the run go on to ready the PR, and first as on exit 0:
    the full test command once on the rebased tip (the regrade having already run before `verify-rebase`), a bail on red (`rebased-tip-red`) with
@@ -1972,6 +1972,6 @@ hatch.
 - The PR is opened as a **draft** at the plan commit and readied for review at the Draft PR
   step, always carries `Closes #<n>`, and is **never merged** by you.
 - On a `REJECT`, run the **bounded revise loop** (default 2 attempts, fresh leaf carrying
-  the reason; `Read` `<base directory>/REVISE.md` when a verifier answers `REJECT`). If it exhausts, **bail** (process failure, see `<base directory>/BAIL.md`). On a **killed-stuck** leaf past
+  the reason; when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`). If it exhausts, **bail** (process failure, see `<base directory>/BAIL.md`). On a **killed-stuck** leaf past
   its retry budget, or an unreadable verdict, **bail** (system failure, see `<base directory>/BAIL.md`). Always preserve
   commits and classify the cause. Never hand-fix the code yourself or loop past the budget.
