@@ -1,73 +1,105 @@
 ### 📊 Metrics — issue 2315
 
-Wall time for the issue: 1523 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 549 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 6 of 6 planned.
+Steps done: 7 of 7 planned.
 Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/2352.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $2.50 over 54 turns, in 1 sessions, on opus.
+Conductor own spending: $4.81 over 85 turns, in 2 sessions, on opus.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
-Conductor context: first turn 91293 tokens, largest 156426 tokens
+Conductor context: first turn 91293 tokens, largest 165606 tokens
+Conductor context: first turn 91296 tokens, largest 130700 tokens
+The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
 
 | turn | dollars | context |
 | --- | ---: | ---: |
-| 1 | $0.59 | 91293 |
-| 2 | $0.08 | 98556 |
+| 1 | $0.60 | 91293 |
+| 2 | $0.09 | 98556 |
 | 3 | $0.04 | 100517 |
-| 4 | $0.02 | 100893 |
-| 5 | $0.02 | 101269 |
-| 6 | $0.02 | 101624 |
-| 7 | $0.02 | 101961 |
-| 8 | $0.03 | 102931 |
-| 9 | $0.04 | 105938 |
-| 10 | $0.03 | 106450 |
-| 11 | $0.03 | 107702 |
-| 12 | $0.02 | 108034 |
-| 13 | $0.05 | 111932 |
-| 14 | $0.06 | 116590 |
-| 15 | $0.04 | 119038 |
+| 4 | $0.04 | 100893 |
+| 5 | $0.03 | 101269 |
+| 6 | $0.03 | 101624 |
+| 7 | $0.04 | 101961 |
+| 8 | $0.04 | 102931 |
+| 9 | $0.05 | 105938 |
+| 10 | $0.04 | 106450 |
+| 11 | $0.04 | 107702 |
+| 12 | $0.04 | 108034 |
+| 13 | $0.06 | 111932 |
+| 14 | $0.07 | 116590 |
+| 15 | $0.06 | 119038 |
 | 16 | $0.03 | 119558 |
-| 17 | $0.03 | 120540 |
-| 18 | $0.03 | 121284 |
-| 19 | $0.03 | 121686 |
-| 20 | $0.03 | 122276 |
-| 21 | $0.03 | 122849 |
-| 22 | $0.03 | 123602 |
-| 23 | $0.03 | 124072 |
+| 17 | $0.05 | 120540 |
+| 18 | $0.04 | 121284 |
+| 19 | $0.04 | 121686 |
+| 20 | $0.04 | 122276 |
+| 21 | $0.04 | 122849 |
+| 22 | $0.04 | 123602 |
+| 23 | $0.04 | 124072 |
 | 24 | $0.04 | 125387 |
-| 25 | $0.06 | 129469 |
-| 26 | $0.05 | 132740 |
-| 27 | $0.03 | 133248 |
+| 25 | $0.07 | 129469 |
+| 26 | $0.06 | 132740 |
+| 27 | $0.05 | 133248 |
 | 28 | $0.04 | 134300 |
-| 29 | $0.03 | 135078 |
-| 30 | $0.03 | 135468 |
-| 31 | $0.03 | 136316 |
-| 32 | $0.04 | 137375 |
-| 33 | $0.03 | 138063 |
-| 34 | $0.03 | 138887 |
-| 35 | $0.05 | 141909 |
-| 36 | $0.03 | 142520 |
-| 37 | $0.03 | 142917 |
-| 38 | $0.03 | 143214 |
-| 39 | $0.03 | 143785 |
-| 40 | $0.04 | 144565 |
-| 41 | $0.04 | 145613 |
-| 42 | $0.04 | 146911 |
+| 29 | $0.05 | 135078 |
+| 30 | $0.04 | 135468 |
+| 31 | $0.04 | 136316 |
+| 32 | $0.05 | 137375 |
+| 33 | $0.04 | 138063 |
+| 34 | $0.05 | 138887 |
+| 35 | $0.06 | 141909 |
+| 36 | $0.04 | 142520 |
+| 37 | $0.05 | 142917 |
+| 38 | $0.04 | 143214 |
+| 39 | $0.04 | 143785 |
+| 40 | $0.05 | 144565 |
+| 41 | $0.05 | 145613 |
+| 42 | $0.05 | 146911 |
 | 43 | $0.04 | 147788 |
-| 44 | $0.04 | 149606 |
-| 45 | $0.04 | 150709 |
-| 46 | $0.04 | 151720 |
-| 47 | $0.04 | 152594 |
-| 48 | $0.04 | 153681 |
-| 49 | $0.03 | 154007 |
-| 50 | $0.03 | 154289 |
+| 44 | $0.06 | 149606 |
+| 45 | $0.05 | 150709 |
+| 46 | $0.05 | 151720 |
+| 47 | $0.05 | 152594 |
+| 48 | $0.05 | 153681 |
+| 49 | $0.04 | 154007 |
+| 50 | $0.05 | 154289 |
 | 51 | $0.04 | 154830 |
-| 52 | $0.04 | 155498 |
-| 53 | $0.03 | 155900 |
-| 54 | $0.04 | 156426 |
+| 52 | $0.05 | 155498 |
+| 53 | $0.04 | 155900 |
+| 54 | $0.05 | 156426 |
+| 55 | $0.05 | 156988 |
+| 56 | $0.09 | 162888 |
+| 57 | $0.06 | 165147 |
+| 58 | $0.05 | 165606 |
+| 59 | $0.59 | 91296 |
+| 60 | $0.08 | 98612 |
+| 61 | $0.03 | 99695 |
+| 62 | $0.05 | 103293 |
+| 63 | $0.05 | 107191 |
+| 64 | $0.03 | 107791 |
+| 65 | $0.03 | 108743 |
+| 66 | $0.02 | 109132 |
+| 67 | $0.03 | 109916 |
+| 68 | $0.04 | 111964 |
+| 69 | $0.03 | 113163 |
+| 70 | $0.03 | 113927 |
+| 71 | $0.03 | 114844 |
+| 72 | $0.03 | 116314 |
+| 73 | $0.03 | 117417 |
+| 74 | $0.04 | 119491 |
+| 75 | $0.03 | 120174 |
+| 76 | $0.07 | 126249 |
+| 77 | $0.03 | 126778 |
+| 78 | $0.03 | 127589 |
+| 79 | $0.03 | 128203 |
+| 80 | $0.03 | 128512 |
+| 81 | $0.03 | 129152 |
+| 82 | $0.03 | 129833 |
+| 83 | $0.03 | 130344 |
+| 84 | $0.03 | 130700 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-sonnet-5-5.
 
 #### By phase
@@ -75,8 +107,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 13 | 10 | 1 | 2 | 1401 | 0 | 38264 | 0.11 |
-| prose | 2 | 0 | 0 | 0 | 30 | 23 | 2 | 4 | 3826 | 1298 | 26054 | 0.10 |
-| diff | 8 | 4 | 0 | 0 | 313 | 143 | 46 | 90 | 16594 | 1542332 | 203522 | 0.83 |
+| prose | 3 | 0 | 0 | 0 | 45 | 36 | 3 | 6 | 5926 | 1947 | 39050 | 0.16 |
+| diff | 10 | 5 | 0 | 0 | 375 | 166 | 56 | 110 | 18702 | 1832252 | 278322 | 1.07 |
 | red | 2 | 1 | 0 | 0 | 36 | 22 | 6 | 12 | 2347 | 181489 | 41515 | 0.15 |
 | green | 2 | 1 | 0 | 0 | 243 | 25 | 9 | 18 | 2535 | 297944 | 43162 | 0.16 |
 | refactor | 1 | 0 | 0 | 0 | 7 | 3 | 2 | 4 | 120 | 54409 | 21001 | 0.06 |
@@ -85,8 +117,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 7 | 7 | 0 | 0 | 367 | 86 | 23 | 44 | 9617 | 642651 | 163605 | 0.57 |
-| developer | claude-sonnet-5-5 | 7 | 0 | 0 | 0 | 245 | 117 | 41 | 82 | 13380 | 1433523 | 183859 | 0.74 |
+| verifier | claude-sonnet-5-5 | 8 | 8 | 0 | 0 | 394 | 94 | 26 | 50 | 10349 | 712189 | 199563 | 0.67 |
+| developer | claude-sonnet-5-5 | 8 | 0 | 0 | 0 | 280 | 132 | 48 | 96 | 14756 | 1653905 | 222701 | 0.87 |
 
 #### Rework and waste, by phase
 
@@ -109,6 +141,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | `skills/tdd/scripts/tests/py/unit/test_skill_stopping.py` loses only the pin's `test: pin` checkpoint assertion of test_refactor_pending_clears_push_and_a_pins_test_commit_are_each_followed_by_stop_requested… and of test_the_three_ledger_commit_checkpoints_send_stop_requested_exit_2_to_stopping_as_at_ledger… (PN9; their other checkpoints stay), with `PIN_CHECKPOINT`, `SATISFIED` and `PIN_MD` removed if nothing else reads them; and `skills/tdd/scripts/tests/py/unit/test_skill_refactor_pending.py`'s test_skill_md_ticks_green_with_refactor_pending_pins_without_it_and_clears_the_mark… loses only its pin-tick-carries-no-`--refactor-pending` assertion (PN8; its Green and clear-the-mark halves stay), with the PIN.md append in `file_records` removed if nothing else reads it; every remaining case still passes; no production change ⟦diff-checked⟧ ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 35 | 11 | 20 | 4324 | 338103 | 46188 | 0.19 | 110 | n/a | n/a | n/a |  |  | full |
 | `skills/tdd/scripts/tests/py/unit/test_skill_tests_frozen.py` deletes test_the_pin_records_a_replaces_case_steps_tests_at_its_verify_pin_pass_before_the_deletion_green (PN2), with `PIN_RECORD_SENTENCE`, `PIN`, `PIN_MD` and the PIN.md entry of `doc_of` removed if nothing else reads them (and the module docstring's mention of the PIN.md record updated to match), and `skills/tdd/scripts/tests/py/unit/test_skill_verify_step.py` deletes test_1625_skill_md_pin_path_says_the_unreplaced_cases_check_bails_only_on_a_second_exit_1_after_the_correction_leaf_or_on_exit_2 (PN3); every remaining case still passes; no production change ⟦diff-checked⟧ ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 30 | 10 | 20 | 3305 | 329566 | 45010 | 0.18 | 94 | n/a | n/a | n/a |  |  | full |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_skill_green_readers.py — FAILED test_every_remaining_case_reading_the_green_subsection_by_its_content_is_on_the_mechanical_allow_list - AssertionError: cases read the Green subsection by content and are neither mechanical nor allow-listed: unit/test_skill_green_split.py::test_1558_skill_md_runs_every_replaces_case_survivors_sh_occurrence_before_the_verify_green_launch_it_gates_on_the_green_path_and_the_pin_path_alike (test_1558 lost its PIN.md half in this run and is now flagged by the Green-readers audit) ⟦suite-repair⟧ ⟦criterion 2⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 50 | 17 | 34 | 5002 | 533842 | 105678 | 0.37 | 350 | unknown | 0/5 | nothing-left |  |  | full |
+| Delete `_checkpoint` and `_checkpoint_exit2` from skills/tdd/scripts/tests/py/unit/test_skill_stopping.py, now uncalled since the pin checkpoint cases were deleted (R4) ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 23 | 10 | 20 | 2108 | 289920 | 74800 | 0.24 | 103 | n/a | n/a | n/a |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -124,14 +157,14 @@ Stopped: nothing-structural
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| fast | 16 | 15 | 16 | 16 | 16 | 15 | 16 | 16 | 15 | 15 |  |
-| affected | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 4 | 4 | 2 | 2 |
-| target | 2 |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fast | 16 | 15 | 16 | 16 | 16 | 15 | 16 | 16 | 15 | 15 | 15 | 15 |  |
+| affected | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 4 | 4 | 2 | 2 | 1 | 1 |
+| target | 2 |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 66 | 130 | 26823 | 2077472 | 373518 | 1.41 |
+| total | 77 | 152 | 31031 | 2368041 | 461314 | 1.70 |
