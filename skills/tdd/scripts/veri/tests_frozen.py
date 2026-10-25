@@ -334,6 +334,27 @@ def rerecord_earlier(ledger, step):
     return 0
 
 
+def _take_red_case(files):
+    if "--red-case" not in files:
+        return None
+    at = files.index("--red-case")
+    value = files[at + 1]
+    if not all(value.partition("::")[::2]):
+        write(sys.stderr, "tests-frozen.sh: --red-case %s needs a path and a case around '::'" % value)
+        return 2
+    path, _, case = value.partition("::")
+    try:
+        with open(path, encoding="utf-8", errors="replace") as handle:
+            present = case in dict(_cases(handle.read()))
+    except FileNotFoundError:
+        present = False
+    if not present:
+        write(sys.stdout, "tests-frozen.sh: red case %s::%s no longer exists\n" % (path, case))
+        return 1
+    del files[at:at + 2]
+    return None
+
+
 def main(argv):
     rest = argv[4:]
     if argv[:1] == ["rerecord-earlier"] and len(argv) == 4 and argv[2] == "--step" and argv[3]:
@@ -364,22 +385,9 @@ def main(argv):
         record = argv[1]
     if mode == "record":
         files = argv[2:]
-        if "--red-case" in files:
-            at = files.index("--red-case")
-            value = files[at + 1]
-            if not all(value.partition("::")[::2]):
-                write(sys.stderr, "tests-frozen.sh: --red-case %s needs a path and a case around '::'" % value)
-                return 2
-            path, _, case = value.partition("::")
-            try:
-                with open(path, encoding="utf-8", errors="replace") as handle:
-                    present = case in dict(_cases(handle.read()))
-            except FileNotFoundError:
-                present = False
-            if not present:
-                write(sys.stdout, "tests-frozen.sh: red case %s::%s no longer exists\n" % (path, case))
-                return 1
-            del files[at:at + 2]
+        refused = _take_red_case(files)
+        if refused is not None:
+            return refused
         if by_step and _refused_outside_repository():
             return 2
         deleted = []
