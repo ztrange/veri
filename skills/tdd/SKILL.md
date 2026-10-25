@@ -111,14 +111,14 @@ writes no completion file, so the wait above returns exit 3 forever and you read
 ahead of the `rm -f`, for a developer leaf and a verifier alike. On exit 3 no stop is
 pending: launch as normal. On exit 0 branch on the mode it printed — `at-ledger` launches the
 leaf anyway, because every leaf between two ledger commits is on the way to the next one, and
-`at-leaf` or `now` launch nothing and go to *Stopping*: `Read` `<base directory>/STOPPING.md` and run it now. On exit 2 treat it as a stop in mode
+`at-leaf` or `now` launch nothing and go to *Stopping*: now `Read` and run `<base directory>/STOPPING.md`. On exit 2 treat it as a stop in mode
 `at-ledger` (read that file likewise), narrating that the request was unreadable: a `.tdd/stop` exists, so somebody
 meant to stop this run, and only how urgently is in doubt — the mode that cannot be wrong is
 the one that loses nothing.
 
 **Before reading any leaf's exit 2 as killed-stuck, run `$S/stop-requested.sh`.** A `now`
 stop kills the live leaf, so its wait comes back 2 exactly as a hung leaf's does: a pending
-`now` explains the 2, and the run goes to *Stopping* instead of bailing: `Read` `<base directory>/STOPPING.md` and run it when that happens. Any other answer
+`now` explains the 2, and the run goes to *Stopping* instead of bailing: when that happens, `Read` and run `<base directory>/STOPPING.md`. Any other answer
 leaves the 2 to be read as the phase below reads it.
 
 Whenever this procedure says **bail**, with the cause the bailing line names, `Read` and run `<base directory>/BAIL.md`.
@@ -220,8 +220,8 @@ fourth case:
 - **An integer** — it is an issue **number** `<n>`, and this invocation is the
   single-issue procedure: run *Procedure* below on that issue, end to end.
 - **Any other word** — it is a **scope** to drain: `Read` this skill's `SCOPE-LOOP.md`
-  (beside this file, at `<base directory>/SCOPE-LOOP.md`) and run *Draining a scope — the
-  loop* from it. That loop selects the issues in that scope and runs the single-issue
+  and run *Draining a scope — the loop* from it (beside this file, at
+  `<base directory>/SCOPE-LOOP.md`). That loop selects the issues in that scope and runs the single-issue
   procedure over them one at a time. It lives in its own file because only this branch ever
   executes it, and an integer argument takes *Procedure* and never comes back — so keeping
   it here would bill every single-issue conductor for procedure it will not read (#202).
@@ -229,8 +229,8 @@ fourth case:
   branch above with `plain` as its scope.
 
 A session born as a **worker** `<name>` takes none of those three: `Read` this skill's `WORKER.md`
-(beside this file, at `<base directory>/WORKER.md`) and run *The worker loop* from it, which
-works the issues the work queue assigns to `<name>` through the single-issue procedure. It
+and run *The worker loop* from it, which works the issues the work queue assigns to `<name>`
+through the single-issue procedure (beside this file, at `<base directory>/WORKER.md`). It
 lives in its own file for the same reason `SCOPE-LOOP.md` does: only a worker ever reads it.
 
 ## Procedure
@@ -281,8 +281,8 @@ unauthenticated baseline never gets a cycle.
    stray="$($S/resume-clean.sh)"
    ```
    `resume-clean.sh` captures `git status --porcelain` and runs `git reset --hard HEAD`, so its
-   stdout is the paths that reset discarded: keep it as `$stray` for `<base directory>/RESUME.md`
-   sub-step 4 to name. An exit 2 — an uncommitted `.tdd/` append it could not re-apply (kept
+   stdout is the paths that reset discarded: keep it as `$stray` for sub-step 4 to
+   name (`<base directory>/RESUME.md`). An exit 2 — an uncommitted `.tdd/` append it could not re-apply (kept
    in `kept-tdd-appends.diff`) or a failed git command — bails as a **system** failure
    (`no-verdict`, see `<base directory>/BAIL.md`).
    The script also reconciles the ledger: a tick is committed with its step's green commit, so the committed ledger's ticks record which greens exist, and a working-copy `- [x]` line is kept ticked only when the committed
@@ -314,9 +314,9 @@ unauthenticated baseline never gets a cycle.
    `detach-command.sh wait` answers 0 the command passed, 1 it finished red with its code on stdout (a red suite: stop and report), 2 it died recording nothing, 3 still running (call again). If already red, stop and report a preflight
    failure, whatever the caller's checkout holds — a cycle must not start on a red baseline. The one exception is a
    resume whose last bail was `suite-red`: when its baseline is red only in suites that are red on the branch head but
-   green on the default branch, preflight does not refuse. `Read` `<base directory>/RESUME.md` for the check
-   (`suite-red-resume.sh check`); on its exit 0 the conductor inserts one `⟦suite-repair⟧` step naming those suites before
-   the first unchecked step, commits the ledger and runs that step first. A suite also red on the default branch still
+   green on the default branch, preflight does not refuse. On the exit 0 of the check
+   (`suite-red-resume.sh check`) the conductor inserts one `⟦suite-repair⟧` step naming those suites before
+   the first unchecked step, commits the ledger and runs that step first; for the check, `Read` `<base directory>/RESUME.md`. A suite also red on the default branch still
    refuses as above. Reading the body **here**, before the baseline runs, is what
    keeps the baseline and every later leaf on one command: detected after the baseline, the
    issue's line would arrive too late to be the command the baseline proved green. Note how
@@ -552,7 +552,7 @@ three times over branches its ledger pinned on later lines.
 
    For each criterion that changes a unit with a requirements list, or for each unit an issue's `## Requirements` section names, the plan holds one `⟦skill-edit⟧` step naming the unit. A change to a unit with a requirements list is planned as its `⟦skill-edit⟧` step whatever kind of step the change would otherwise be, `⟦diff-checked⟧` included; no other step kind (Red, Green, Refactor, `⟦diff-checked⟧`, pin or phased) edits such a unit. A run signs a requirements list only inside a `⟦skill-edit⟧` step: the conductor never runs `grade-prose.sh` and commits a `GRADED` line on its own, except the Draft PR step's regrade of a unit the run already signed. When a `⟦skill-edit⟧` step changes a sentence that cases outside the unit pin by checksum or verbatim, the plan names those test files on the step, and that step updates the pins and commits them in its one commit with the unit, its list and `GRADED`; the separate pin-update step above is not planned for that sentence.
 
-   On a `⟦skill-edit⟧` step, `Read` `<base directory>/SKILL-EDIT.md` and run it in place of Red, Green and Refactor.
+   On a `⟦skill-edit⟧` step, in place of Red, Green and Refactor, `Read` and run `<base directory>/SKILL-EDIT.md`.
 
    A criterion replacing an implementation case under ADR 0027 with a pytest case asserting
    the same behaviour is planned as one step marked `⟦replaces-case⟧`, naming the suite path
@@ -562,9 +562,8 @@ three times over branches its ledger pinned on later lines.
    group of one. That step's Red is the pytest cases failing against the code before the
    change; its Green deletes the named bash cases and nothing else. A replacement that drives
    unchanged code passes against it by design:
-   `Read` `<base directory>/PIN.md` when a Red reports `AGAINST_UNMODIFIED: PASSES`; the step takes the pin path there, verify-pin and
-   then a green leaf that deletes exactly the named cases. Refactor and the ` ⟂ refactor pending`
-   mark follow that deletion green as they follow any Green.
+   when a Red reports `AGAINST_UNMODIFIED: PASSES`, the step takes the pin path, verify-pin and then a green leaf that deletes exactly the named cases (`Read` `<base directory>/PIN.md`).
+   Refactor and the ` ⟂ refactor pending` mark follow that deletion green as they follow any Green.
 
    A criterion about behaviour that lives in a guard suite (such as
    `skills/tdd/scripts/tests/py/test_no_tracked_artifacts.py`) or a test helper a suite uses (such as
@@ -813,8 +812,8 @@ by eye — which outcome it holds is an exit code, not a judgement made per run:
 $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer.txt; echo $?
 ```
 
-- **exit 0 — split.** Exactly the revise-exhausted path's split (see `<base directory>/REVISE.md`; `Read` it when a verifier answers `REJECT`):
-  `.tdd/over-budget-answer.txt` holds the criteria, one per line, and they replace the step.
+- **exit 0 — split.** Exactly the revise-exhausted path's split:
+  `.tdd/over-budget-answer.txt` holds the criteria, one per line, and they replace the step (see `<base directory>/REVISE.md`; `Read` it when a verifier answers `REJECT`).
   Restore the tree first, so the step's uncommitted work cannot become the first replacement
   step's inherited start, then grow the plan in **one** call, then commit it before the run
   goes on, because the committed ledger is what a resumed run reads:
@@ -836,9 +835,9 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   them, because all three are plan growth. **`add-ledger-step.sh` exit 2 → bail with cause
   `step-add-refused`** — see `<base directory>/BAIL.md`.
 - **exit 1 — a decision for the user.** `.tdd/over-budget-answer.txt` holds the leaf's answer.
-  **Park the step** — the same park the revise-exhausted path takes (see `<base directory>/REVISE.md`; `Read` it when a verifier answers `REJECT`): stop the
+  **Park the step** — the same park the revise-exhausted path takes: stop the
   run there, carrying that answer and the two figures, what the step has spent and the
-  step budget, and leave the plan as it is so the user's decision picks the run back up:
+  step budget, and leave the plan as it is so the user's decision picks the run back up (see `<base directory>/REVISE.md`; `Read` it when a verifier answers `REJECT`):
   ```
   step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-escalated at=over-budget anchor="$step"
   ```
@@ -929,9 +928,8 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      `$S/preserve-attempt.sh <n> "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" develop-red 1 prediction-diverged` so the tree the
      surprising test came from survives the next leaf that overwrites it (best-effort: note
      it if it fails and carry on), and enter the
-     **revise loop** for red exactly as a verify-red `REJECT` does (`Read` `<base directory>/REVISE.md`
-     when a verifier answers `REJECT`) — the revise leaf answers `.tdd/verify-red.reason`, and the attempt spends
-     `REVISE_BUDGET` like any other.
+     **revise loop** for red exactly as a verify-red `REJECT` does — the revise leaf answers `.tdd/verify-red.reason`, and the attempt spends
+     `REVISE_BUDGET` like any other (`Read` `<base directory>/REVISE.md` when a verifier answers `REJECT`).
 
    Run `$S/unreplaced-cases.sh "<step line>" .tdd/develop-red.out` on a `⟦replaces-case⟧` step once the
    Red report is written, against the current attempt's report (`.tdd/revise-red-<k>.out` after a red
@@ -974,7 +972,7 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
    0 PASS, 1 REJECT, 2 malformed or killed-stuck — not the supervisor's status.
    On **`PASSES`** the criterion is **already satisfied** — never send that test to
    verify-red, whose verdict on a passing test can only be `REJECT`. Run the pin check
-   instead and continue at the pin: `Read` `<base directory>/PIN.md` when a Red reports `AGAINST_UNMODIFIED: PASSES`:
+   instead and continue at the pin (`Read` `<base directory>/PIN.md` when a Red reports `AGAINST_UNMODIFIED: PASSES`):
    ```
    rm -f .tdd/verdict-pin.exit .tdd/verdict-pin.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-pin $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" pin .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-pin.reason 2> .tdd/verify-pin.err
@@ -1131,8 +1129,8 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      nothing asks for review before the run is ready. An unreachable remote is **not** a
      bail — `push-branch.sh` retries it, records a `push-failed` event and exits 0, so the
      tick and the commit above stand whatever the network did. On exit **1** (the remote
-     rejected a non-fast-forward) launch the reconcile leaf: `Read` `<base directory>/RECONCILE.md` and run it
-     when that happens; on exit **2** (its
+     rejected a non-fast-forward) launch the reconcile leaf: when that happens, `Read` and run `<base directory>/RECONCILE.md`.
+     On exit **2** (its
      event could not be written) **bail** (`Read` `<base directory>/BAIL.md`).
      **Then run `$S/stop-requested.sh`**, immediately after that push: this ledger commit is
      the boundary `at-ledger` was waiting for, and `at-leaf` and `now` have nothing left to
@@ -1367,9 +1365,9 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      until that commit exists the step still says pending and the plan is still the one the
      leaf grew from. The push copies the step's
      finished state to the remote on the same terms as Green's above: exit **1** launches
-     the reconcile leaf (`Read` `<base directory>/RECONCILE.md` and run it when that happens), exit **2** is a **bail** (`Read` `<base directory>/BAIL.md`).
+     the reconcile leaf (`Read` `<base directory>/RECONCILE.md` and run it when that happens). Exit **2** is a **bail** (`Read` `<base directory>/BAIL.md`).
      **Then run `$S/stop-requested.sh`**, immediately after that push, as Green does after
-     its own: on exit 0 any mode it printed goes to *Stopping* here (`Read` `<base directory>/STOPPING.md` when that happens); on exit 2 go to
+     its own: on exit 0 any mode it printed goes to *Stopping* here (`Read` `<base directory>/STOPPING.md` when that happens). On exit 2 go to
      *Stopping* in mode `at-ledger`, narrating that the request was unreadable; on exit 3
      carry on.
      Then **mirror to the issue**:
@@ -1406,7 +1404,7 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      On exit **2** no answer could be obtained — a missing event log, a bad
      `VERI_RUN_BUDGET`, a count that is not a whole number — a system failure, not a
      projection: **bail** (`Read` `<base directory>/BAIL.md`). (Earlier steps' commits are preserved.)
-   - **REJECT (exit 1):** enter the **revise loop** — when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`; on recovered PASS, mirror and loop; on
+   - **REJECT (exit 1):** enter the **revise loop** — when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`. On recovered PASS, mirror and loop; on
      budget-exhausted, **bail** (`Read` `<base directory>/BAIL.md`). (Earlier steps' commits are preserved.)
    - **Malformed / killed-stuck (exit 2):** **bail** (`Read` `<base directory>/BAIL.md`). (Earlier steps' commits are preserved.)
 
@@ -1444,7 +1442,7 @@ before the re-verify with the same exit 2 outcome. The verifier's verdict closes
   `criterion-finished.sh` exit 0, ticking nothing on exit 3, exactly as a Refactor loop's
   PASS does.
 - **REJECT (exit 1):** a revise of the `⟦diff-checked⟧` step's `develop-diff` work under
-  `REVISE_BUDGET` — when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`; on a recovered PASS tick as above, on
+  `REVISE_BUDGET` — when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`. On a recovered PASS tick as above, on
   budget-exhausted **bail** (`Read` `<base directory>/BAIL.md`).
 - **Malformed / killed-stuck (exit 2):** no verdict on the `⟦diff-checked⟧` step could be
   obtained, so **bail** as a system failure (`no-verdict`) — see `<base directory>/BAIL.md`.
@@ -1466,7 +1464,7 @@ that base sha. Both are launched through the supervisor and waited on as *Launch
 sets out, the leaf as `develop-<phase>` and the verifier as `verdict-<phase>`. On PASS, mark
 the phase with `tick-ledger.sh --phase <phase> .tdd/issue-<n>.md "<STEP>"` and commit the
 ledger with that phase's commit, then push, and go back to `next-phase` for the step's next
-phase. On REJECT, revise under `REVISE_BUDGET` as `<base directory>/REVISE.md` sets out (`Read` it when a verifier answers `REJECT`); on exit 2,
+phase. On REJECT, revise under `REVISE_BUDGET` as `REVISE.md` sets out (`Read` `<base directory>/REVISE.md` when a verifier answers `REJECT`). On exit 2,
 **bail** as a system failure (`no-verdict`, see `<base directory>/BAIL.md`). Once `next-phase` exits 3 every listed phase is
 marked, the step reads as done, and the loop goes back to `next-unchecked.sh`.
 
@@ -1580,8 +1578,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    killed refactor leaf left on disk — and an exit 0 from `next-pending-refactor.sh` is a
    step that is checked but still only green. On either, **do not ready the PR**, and come back
    here only once both questions have gone quiet — an empty status, and
-   `next-pending-refactor.sh` exiting 3 — by going to sub-step 2, whose reset runs before its ask and so discards that work whatever the ask answers: `Read`
-   `<base directory>/RESUME.md` sub-step 2 now. For a pending step sub-step 2 also
+   `next-pending-refactor.sh` exiting 3 — by going to sub-step 2, whose reset runs before its ask and so discards that work whatever the ask answers: now `Read`
+   sub-step 2 of `<base directory>/RESUME.md`. For a pending step sub-step 2 also
    re-enters that step's refactor loop. With **no step pending and none unchecked** the
    reset is the whole remedy: sub-steps 2 and 3 both exit 3, sub-step 4's `### ▶️ Resuming`
    comment names the paths the reset discarded, and the run comes back here and readies the
@@ -1637,8 +1635,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/detach-leaf.sh $S/supervise.sh verdict-rebase $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" rebase .tdd/issue-<n>-spec.md <onto-sha> <pre-rebase-sha> > .tdd/verify-rebase.reason 2> .tdd/verify-rebase.err
    $S/wait-leaf.sh verdict-rebase   # foreground; on exit 3 call it again
    ```
-   A verify-rebase `REJECT` goes round the revise loop with phase `rebase` (`Read` `<base directory>/REVISE.md` when a verifier answers `REJECT`), within
-   `REVISE_BUDGET` like any other phase; a malformed verdict does **bail** as a **system**
+   A verify-rebase `REJECT` goes round the revise loop with phase `rebase`, within
+   `REVISE_BUDGET` like any other phase (`Read` `<base directory>/REVISE.md` when a verifier answers `REJECT`). A malformed verdict does **bail** as a **system**
    failure (`no-verdict`, see `<base directory>/BAIL.md`).
    Only on a verify-rebase `PASS` does the run go on to ready the PR, and first as on exit 0:
    the full test command once on the rebased tip (the regrade having already run before `verify-rebase`), a bail on red (`rebased-tip-red`) with
@@ -1898,7 +1896,7 @@ uncommitted rather than destroying it.
 Report back to the user with the branch name, the worktree path, and the PR URL — and say
 that their own checkout was not switched.
 
-A verifier's `REJECT` does not stop the run: `Read` `<base directory>/REVISE.md` and run it. It spends `REVISE_BUDGET` revise attempts, **default 2**, before bailing the step (see `<base directory>/BAIL.md`).
+A verifier's `REJECT` does not stop the run: `Read` and run `<base directory>/REVISE.md`. It spends `REVISE_BUDGET` revise attempts, **default 2**, before bailing the step (see `<base directory>/BAIL.md`).
 
 ## Detecting the test command
 
@@ -1963,7 +1961,7 @@ hatch.
   more on the rebased tip when sub-step 1 rebased the branch.
 - The PR is opened as a **draft** at the plan commit and readied for review at the Draft PR
   step, always carries `Closes #<n>`, and is **never merged** by you.
-- On a `REJECT`, run the **bounded revise loop** (`Read` `<base directory>/REVISE.md` when a verifier answers `REJECT`; default 2 attempts, fresh leaf carrying
-  the reason); if it exhausts, **bail** (process failure, see `<base directory>/BAIL.md`). On a **killed-stuck** leaf past
+- On a `REJECT`, run the **bounded revise loop** (default 2 attempts, fresh leaf carrying
+  the reason; `Read` `<base directory>/REVISE.md` when a verifier answers `REJECT`). If it exhausts, **bail** (process failure, see `<base directory>/BAIL.md`). On a **killed-stuck** leaf past
   its retry budget, or an unreadable verdict, **bail** (system failure, see `<base directory>/BAIL.md`). Always preserve
   commits and classify the cause. Never hand-fix the code yourself or loop past the budget.
