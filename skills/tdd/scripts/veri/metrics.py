@@ -256,7 +256,7 @@ def render(issue, path, ledger):
     launched = {}
 
     marks = read_events(path)
-    clocked = bool(marks) and all("awake" in mark for mark in marks)
+    clocked = bool(marks) and all("awake" in mark for mark in marks if "ts" in mark)
     models = {(mark.get("step", ""), mark.get("phase", ""), mark.get("attempt", ""), mark.get("actor")):
               mark["model"] for mark in marks if mark.get("event") == "usage" and "model" in mark}
 

@@ -1697,3 +1697,17 @@ def test_issue_2309_the_context_line_reports_the_first_turn_even_when_a_later_tu
 
     assert [line for line in out.split("\n") if line.startswith("Conductor context:")] == [
         "Conductor context: first turn 4000 tokens, largest 6000 tokens"]
+
+
+def test_issue_2322_a_step_added_record_with_no_ts_and_no_awake_among_timed_records_still_reports_the_awake_clock(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [
+        {"ts": 80000, "awake": 5000, "issue": "108", "event": "step-start", "step": "s"},
+        {"event": "step-added", "actor": "add-ledger-step", "step": "x"},
+        {"ts": 80100, "awake": 5100, "issue": "108", "event": "step-done", "step": "s"},
+        {"ts": 90217, "awake": 5217, "issue": "108", "event": "done", "pr": "https://github.com/ztrange/veri/pull/998"}])
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert "Seconds the machine was not running inside that span: 10000 s" in out
+    assert "Every figure in this report is wall-clock" not in out
