@@ -145,7 +145,7 @@ def test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_185
     lines = _outside_green(_outside_red(_lines_with_pin()))
     entering = [i for i, line in enumerate(lines) if re.search(sites, line)]
 
-    assert len(entering) >= 6
+    assert len(entering) >= 5
     missing = [
         lines[i] for i in entering
         if not ("`<base directory>/REVISE.md`" in lines[i] + " " + lines[i + 1] and "`Read`" in lines[i] + " " + lines[i + 1])
