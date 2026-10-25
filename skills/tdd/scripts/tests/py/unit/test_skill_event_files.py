@@ -175,3 +175,8 @@ def test_the_guard_ignores_a_bail_script_or_hyphenated_name_after_a_colon_2075()
     ])
 
     assert unpointed_sends(text) == []
+
+
+def test_the_guard_reports_no_misplaced_bail_pointer_in_the_real_skill_md_2075():
+    """Subject is source text: the pointer-placement check run over SKILL.md reports no pointer that fails to end its sentence."""
+    assert [place for place in misplaced_pointers(SKILL.read_text()) if place[0] == "BAIL.md"] == []
