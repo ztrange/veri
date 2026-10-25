@@ -238,7 +238,8 @@ def main(argv):
                         warn("deadline file %s is unreadable or not a non-negative whole number" % mark)
                         return 2
                 elif draft:
-                    deadline = str(slice_end)
+                    warn("%s is a draft; mark it ready before waiting on its checks" % pr)
+                    return 2
                 else:
                     deadline = str(now + arith(total, scope))
                     record(mark, deadline)

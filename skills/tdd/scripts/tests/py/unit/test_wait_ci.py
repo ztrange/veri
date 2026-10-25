@@ -994,44 +994,20 @@ def test_main_refuses_a_missing_pr_url_or_a_bad_number_and_records_the_deadline_
     }
 
 
-def test_main_records_no_deadline_on_a_draft_pr_and_counts_one_from_its_first_ready_call_issue_894(
+def test_main_exits_2_naming_draft_and_records_no_deadline_on_a_draft_pr_issue_2147(
         tmp_path, wait_ci, fake_processes, run_cli):
-    pending, green = [check_run("gates", FULL_SHA, "in_progress")], [check_run("gates", FULL_SHA, "completed", "success")]
-    mark = f"ci-deadline-{FULL_SHA}"
-    past = f"wait-ci.sh: checks of {PR} still pending past the deadline recorded for {FULL_SHA}\n"
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
 
-    def waited(name, reads, *argvs):
-        """<reads>[n] is (draft, runs) for the n-th read of the pull, its last repeating."""
-        work = tmp_path / name
-        (work / ".tdd").mkdir(parents=True)
-        state = {"reads": 0}
+    def answer(line):
+        if line == PULL:
+            return json.dumps({"number": 1, "state": "open", "draft": True, "head": {"sha": FULL_SHA}})
+        return sha_bodies([[check_run("gates", FULL_SHA, "in_progress")]], [], "pending").get(line)
 
-        def answer(line):
-            draft, runs = reads[min(state["reads"] - (line != PULL), len(reads) - 1)]
-            if line == PULL:
-                state["reads"] += 1
-                return json.dumps({"number": 1, "state": "open", "draft": draft, "head": {"sha": FULL_SHA}})
-            return sha_bodies([runs] if runs else [], [], "pending").get(line)
+    served(fake_processes, {}, answer)
+    code, _, err = run_cli(wait_ci, [PR, "120", "", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
 
-        served(fake_processes, {}, answer)
-        answers = [run_cli(wait_ci, [PR, *argv], env={"VERI_POLL": "0"}, cwd=work) for argv in argvs]
-        return answers, {p.name: p.read_text() for p in (work / ".tdd").iterdir()}
-
-    draft, ready = (True, pending), (False, pending)
-    observed = {
-        "draft, pending": waited("draft", [draft], ["120", "600", FULL_SHA]),
-        "draft, then ready and green": waited("readied", [draft, draft, draft, ready, (False, green)],
-                                              ["120", "120", FULL_SHA], ["120", "120", FULL_SHA]),
-        "draft, then ready and stalled": waited("stalled", [draft, draft, draft, ready],
-                                                ["120", "120", FULL_SHA], ["120", "120", FULL_SHA],
-                                                ["120", "120", FULL_SHA]),
-    }
-
-    assert observed == {
-        "draft, pending": ([(3, "", "")], {}),
-        "draft, then ready and green": ([(3, "", ""), (0, "", "")], {mark: "300\n"}),
-        "draft, then ready and stalled": ([(3, "", ""), (3, "", ""), (2, "", past)], {mark: "300\n"}),
-    }
+    assert (code, "draft" in err, sorted(p.name for p in (work / ".tdd").iterdir())) == (2, True, [])
 
 
 def test_main_counts_a_failed_read_of_the_checks_as_one_pending_poll_and_reads_again_issue_1553(
