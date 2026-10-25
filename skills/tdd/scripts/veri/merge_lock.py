@@ -71,8 +71,11 @@ def _take(lock, record, args):
                     pass
             try:
                 text, holder = _read_pid(record)
-            except (OSError, ValueError, IndexError):
+            except (OSError, ValueError, IndexError) as err:
                 if not os.path.isdir(lock):
+                    continue
+                if isinstance(err, FileNotFoundError):
+                    time.sleep(float(tunables.read("VERI_MERGE_LOCK_POLL", "30")))
                     continue
                 print(f"merge-lock.sh: missing, unreadable or malformed holder record {record}", file=sys.stderr)
                 return 2
