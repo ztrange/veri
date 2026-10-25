@@ -19,7 +19,7 @@ def _script(name, *args):
     return subprocess.run([os.path.join(SCRIPTS, name), *args]).returncode
 
 
-def _gate(pid, cmd, keep=False):
+def _gate(pid, *cmd, keep=False):
     return _script("merge-lock.sh", "gate", *(["--keep"] if keep else []), "--pid", pid, "--", *cmd)
 
 
@@ -52,15 +52,15 @@ def main(argv):
     repo = _repo(pr)
     pid = str(os.getpid())
     _script("merge-lock.sh", "take", "--pid", pid)
-    code = _gate(pid, (sys.executable, os.path.abspath(__file__), "--ci", pr))
+    code = _gate(pid, sys.executable, os.path.abspath(__file__), "--ci", pr)
     if code:
         return code
     for git_args in (("rebase", "origin/main"), ("push", "--force-with-lease", "origin", argv[2])):
-        code = _gate(pid, ("git", "-C", argv[1], *git_args), keep=True)
+        code = _gate(pid, "git", "-C", argv[1], *git_args, keep=True)
         if code:
             return code
     _, head, _ = pr_head(repo, pr)
-    code = _gate(pid, ("gh", "pr", "merge", pr, "--rebase", "--match-head-commit", head))
+    code = _gate(pid, "gh", "pr", "merge", pr, "--rebase", "--match-head-commit", head)
     if code:
         return code
     landed = json.loads(gh_api("repos/%s/pulls/%s" % (repo, pr.rsplit("/pull/", 1)[-1])).stdout).get("merged") is not False
