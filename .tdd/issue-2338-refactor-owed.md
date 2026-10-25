@@ -1,2 +1,3 @@
 ### A re-grade that returns no verdict (the grader leaf exits non-zero, or its reply has no well-formed GRADES block for the rows it was asked about) makes grade-prose.sh exit 2, as a first grade's no-verdict does; it is never read as a PASS of the rows it was asked about ⟦criterion 2⟧
 - fold the repeated launch_rows → exit-non-zero no_verdict → extract sequence (missing-rows follow-up and failed-rows re-grade loop in grade_prose.main) into one helper; the follow-up half predates this cycle
+not-done | uncovered | fold the repeated launch_rows → exit-non-zero no_verdict → extract sequence (missing-rows follow-up and failed-rows re-grade loop in grade_prose.main) into one helper; the follow-up half predates this cycle
