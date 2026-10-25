@@ -59,7 +59,8 @@ def _files():
 
 
 def _exists(case):
-    py = re.compile(r"def %s\(" % re.escape(case))
+    cut = _cut_prefix(case)
+    py = re.compile(r"def (%s\w*)\(" % re.escape(cut)) if cut else re.compile(r"def (%s)\(" % re.escape(case))
     js = _js_title_pattern(case)
     titles = set()
     for root, name in _files():
@@ -68,8 +69,9 @@ def _exists(case):
             continue
         with open(os.path.join(root, name), encoding="utf-8", errors="replace") as handle:
             text = handle.read()
-        if is_test_file(name) and case.startswith("test_") and py.search(text):
-            return case
+        match = py.search(text) if is_test_file(name) and case.startswith("test_") else None
+        if match:
+            return match.group(1)
         found = _live_call(js, re.sub(r"/\*.*?\*/", "", text, flags=re.S)) if js_file else []
         if found and _cut_prefix(case) is None:
             return found[0]

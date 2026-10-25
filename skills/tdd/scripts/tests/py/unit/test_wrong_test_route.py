@@ -2190,3 +2190,21 @@ def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_t
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red rejects an empty name\n")
+
+
+def test_main_2254_prints_red_over_the_full_name_when_a_lone_superseded_line_names_an_earlier_pytest_case_by_a_bare_name_cut_short_with_an_ellipsis(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    older = "test_take_without_pid_records_the_parent_process"
+    (suite / "test_take.py").write_text(
+        "def test_main_returns_zero():\n    pass\n\n"
+        "def %s():\n    pass\n" % older)
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nSUPERSEDED: %s…\n" % older[:-8])
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red %s\n" % older)
