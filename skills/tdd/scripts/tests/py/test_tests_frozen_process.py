@@ -830,6 +830,27 @@ def test_check_step_on_a_fixture_repair_step_exits_0_silently_when_only_its_fixt
 
 
 @pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
+def test_check_step_on_a_fixture_repair_step_exits_1_naming_the_fixture_file_when_green_changed_the_recorded_case_body_2359(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    fixture = tmp_path / "tests/test_fixture.py"
+    fixture.write_text("def helper():\n    return 1\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = ("the case passes: repairs the fixture 'helper' in tests/test_fixture.py, "
+            "reproduced by a case in tests/test_fixture.py ⟦fixture-repair⟧")
+    fixture.write_text("def helper():\n    return 1\n\n\ndef test_red_2359():\n    assert helper() == 2\n")
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_fixture.py"], cwd=tmp_path)
+
+    fixture.write_text("def helper():\n    return 2\n\n\ndef test_red_2359():\n    assert True\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    assert (code, out) == (1, "tests/test_fixture.py\n")
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
 def test_check_step_on_a_step_without_the_fixture_repair_mark_exits_1_naming_the_file_its_text_calls_a_fixture_1947(
         tmp_path, run_cli, tests_frozen):
     (tmp_path / "tests").mkdir()
