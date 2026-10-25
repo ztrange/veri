@@ -58,30 +58,31 @@ def _take(lock, record, args):
     pid = _caller_pid(args)
     os.makedirs(os.path.dirname(lock), exist_ok=True)
     staged = tempfile.mkdtemp(prefix=".merge.lock.", dir=os.path.dirname(lock))
-    with open(os.path.join(staged, "holder"), "w") as f:
-        f.write(f"{pid} {socket.gethostname()} {_start_time(pid)}\n")
-    reported = False
-    while True:
-        if not os.path.isdir(lock):
-            try:
-                os.rename(staged, lock)
-                break
-            except OSError:
-                pass
-        try:
-            text, holder = _read_pid(record)
-        except (OSError, ValueError, IndexError):
+    try:
+        with open(os.path.join(staged, "holder"), "w") as f:
+            f.write(f"{pid} {socket.gethostname()} {_start_time(pid)}\n")
+        reported = False
+        while True:
             if not os.path.isdir(lock):
-                continue
-            shutil.rmtree(staged, ignore_errors=True)
-            print(f"merge-lock.sh: missing, unreadable or malformed holder record {record}", file=sys.stderr)
-            return 2
-        if not reported:
-            if _reused(text, holder):
-                print("stale lock: " + text, end="", file=sys.stderr, flush=True)
-                reported = True
-        time.sleep(float(tunables.read("VERI_MERGE_LOCK_POLL", "30")))
-    return 0
+                try:
+                    os.rename(staged, lock)
+                    return 0
+                except OSError:
+                    pass
+            try:
+                text, holder = _read_pid(record)
+            except (OSError, ValueError, IndexError):
+                if not os.path.isdir(lock):
+                    continue
+                print(f"merge-lock.sh: missing, unreadable or malformed holder record {record}", file=sys.stderr)
+                return 2
+            if not reported:
+                if _reused(text, holder):
+                    print("stale lock: " + text, end="", file=sys.stderr, flush=True)
+                    reported = True
+            time.sleep(float(tunables.read("VERI_MERGE_LOCK_POLL", "30")))
+    finally:
+        shutil.rmtree(staged, ignore_errors=True)
 
 
 def _release(lock, record, args):
