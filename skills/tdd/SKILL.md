@@ -268,12 +268,15 @@ unauthenticated baseline never gets a cycle.
    `### ▶️ Resuming` comment on the issue thread.
 3. **Suite is green at baseline — and time it — on the commit the cycles build on.** Enter
    the issue's worktree first, as step 1.2 describes — slug from the title, exit 2 a
-   preflight-class stop — and take its lock there before anything else:
+   preflight-class stop — and clear any stale stop request there before anything else. The
+   worktree's lock, `.tdd/conductor.pid`, is not yours to write: `run_conductor.py` writes the
+   pid of the `claude -p` process it started into it before this preflight runs, and the
+   conductor itself never writes it:
    ```
    wt="$($S/issue-worktree.sh <n> <slug>)" && cd "$wt"
-   mkdir -p .tdd && printf '%s\n' "$PPID" > .tdd/conductor.pid && $S/stop-requested.sh --clear
+   mkdir -p .tdd && $S/stop-requested.sh --clear
    ```
-   The `--clear` beside it drops a stale stop request a killed run never got to clear, so a
+   The `--clear` beside the lock drops a stale stop request a killed run never got to clear, so a
    `.tdd/stop` left behind cannot stop the run that resumes it at its first checkpoint.
    A resumed run — one whose worktree and ledger `.tdd/issue-<n>.md` already exist — first
    discards whatever a killed leaf left uncommitted, since a rebase refuses a dirty tree:
@@ -424,12 +427,11 @@ unauthenticated baseline never gets a cycle.
    the run, a bail included (ADR-0024). Until that PR exists this lock is the only mark of the
    run there is, which is why the window between this worktree and the plan commit is the one
    place two machines can still collide.
-   Write **`$PPID`**, not `$$`: inside a tool call `$PPID` is your own process, which lives as
-   long as this run, while `$$` is the shell of that one command — already gone when anyone
-   reads the lock, so the guard would be dead on arrival, and the number may since have been
-   handed to a stranger. **Nothing deletes it**: liveness is the whole rule, so a bail, a crash
+   `run_conductor.py` writes the pid of the `claude -p` process, which lives as long as this run, rather
+   than a shell's `$$`, which is gone when anyone reads the lock, so the guard is never dead on arrival
+   or left naming a number since handed to a stranger. **Nothing deletes it**: liveness is the whole rule, so a bail, a crash
    or a `kill` frees the worktree — never the issue, which its PR goes on holding — with no
-   cleanup step to forget, and a resume overwrites the dead pid with its own in preflight step 3.
+   cleanup step to forget, and a resume's `run_conductor.py` overwrites the dead pid with its own before preflight.
    Then record the timeout preflight step 7 settled, here, where this run's `supervise.sh`
    reads it — never from the caller's checkout, where preflight ran:
    ```
