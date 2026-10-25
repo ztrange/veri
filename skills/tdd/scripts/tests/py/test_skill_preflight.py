@@ -184,6 +184,8 @@ MECHANICAL_READERS = (
     "test_987_preflight_step_3_runs_stop_requested_clear_beside_the_tdd_conductor_pid_write",
     "test_954_skill_md_makes_the_leaf_timeout_sh_call_that_records_tdd_issue_n_timeout",
     "test_a_gh_auth_status_call_planted_in_skill_md_is_named_as_file_line",
+    "test_issue_2375_a_resumed_run_with_a_marker_an_earlier_run_left",
+    "test_issue_2375_a_second_conflict_after_the_runs_own_rebase",
     "test_every_remaining_case_that_reads_skill_md_s_preflight_section",
     "test_2220_sweep_flags_a_case_reading_the_preflight_section",
     "test_2220_sweep_flags_a_case_reading_a_phrase_only_the_preflight_section",
