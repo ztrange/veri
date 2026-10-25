@@ -145,6 +145,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   Nothing on stdout. **Exit 0** when it cleared the mark; **exit 3** when no ticked step both
   matched and carried it — the file is left byte-identical, because nothing is written unless
   the transform found its line.
+- `$S/same-reject.sh <previous-reason-file> <current-reason-file>` — compare the `REASON:` lines of two rejections after collapsing runs of whitespace. **Exit 0** when equal; **exit 1** when they differ; **exit 2** with a usage line when called with no arguments, or when either file is missing or holds no `REASON:` line.
 - `$S/add-ledger-step.sh [--planned] [--criterion <k>] <ledger> after|before|instead-of "<anchor substring>" '<text>' […]` — **grow
   the plan mid-run**: insert each text as `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` directly after
   the anchor step, directly before it, or in its place, inheriting the anchor's criterion
