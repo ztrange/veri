@@ -2592,3 +2592,14 @@ def test_main_renders_a_refactor_prompt_naming_the_in_step_line_kind_with_the_fi
     assert re.search(r"changes at least one of the touched files[^.]*`CANDIDATES: in-step \| <the files the "
                      r"transform changes, comma-separated> \| <transform>`", text)
     assert re.search(r"changes none of the touched files[^.]*`CANDIDATES: out-of-bounds \| <transform>`", text)
+
+
+def test_main_builds_a_predicate_prompt_from_the_spec_the_candidate_the_test_command_and_the_bound_file_list_2194(
+        tmp_path, run_cli, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    bound = "zorblat_one.sh zorblat_two.sh"
+
+    code, out, _ = run_cli(build_develop_prompt, ["predicate", str(spec), "QWIXTLE: hoist the quux", "make unit", bound])
+
+    assert (code, bound in out, "QWIXTLE: hoist the quux" in out, "make unit" in out) == (0, True, True, True)
