@@ -241,6 +241,26 @@ def test_take_exits_0_holding_the_lock_when_release_force_removes_the_lock_direc
     assert (taken[0], len(waits), (lock / "holder").read_text().split()[0]) == (0, 1, mine)
 
 
+@pytest.mark.process("git init on a scratch repository, take run against a lock directory that keeps no record")
+def test_take_exits_2_naming_the_record_path_and_leaves_the_lock_in_place_after_five_polls_when_the_lock_directory_stays_without_a_record_2361(
+        tmp_path, merge_lock, run_cli, monkeypatch):
+    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    lock = tmp_path / ".tdd" / "merge.lock"
+    lock.mkdir(parents=True)
+    waits = []
+
+    def wait(seconds):
+        waits.append(seconds)
+        assert len(waits) < 50, "take is still waiting on a record that never appears"
+
+    monkeypatch.setattr(merge_lock.time, "sleep", wait)
+
+    taken = run_cli(merge_lock, ["take", "--pid", str(os.getpid())], cwd=tmp_path)
+
+    assert (taken[0], str(lock / "holder") in taken[2], lock.is_dir(), (lock / "holder").exists(), len(waits)) == (
+        2, True, True, False, 5)
+
+
 @pytest.mark.process("git init on a scratch repository, take run against a lock whose record cannot be read")
 def test_take_exits_2_naming_the_record_path_and_leaves_the_lock_in_place_when_its_record_is_unreadable(
         tmp_path, merge_lock, run_cli, monkeypatch):

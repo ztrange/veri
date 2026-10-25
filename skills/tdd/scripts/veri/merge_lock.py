@@ -56,6 +56,11 @@ def _poll_wait():
     time.sleep(float(tunables.read("VERI_MERGE_LOCK_POLL", "30")))
 
 
+# release unlinks the record before the directory, so a take can read in that gap;
+# a directory that keeps no record past this many polls is not a release in progress.
+_MISSING_RECORD_GRACE = 5
+
+
 def _take(lock, record, args):
     if _needs_pid(args, False):
         return 2
@@ -66,6 +71,7 @@ def _take(lock, record, args):
         with open(os.path.join(staged, "holder"), "w") as f:
             f.write(f"{pid} {socket.gethostname()} {_start_time(pid)}\n")
         reported = False
+        missing = 0
         while True:
             if not os.path.isdir(lock):
                 try:
@@ -79,10 +85,13 @@ def _take(lock, record, args):
                 if not os.path.isdir(lock):
                     continue
                 if isinstance(err, FileNotFoundError):
-                    _poll_wait()
-                    continue
+                    missing += 1
+                    if missing <= _MISSING_RECORD_GRACE:
+                        _poll_wait()
+                        continue
                 print(f"merge-lock.sh: missing, unreadable or malformed holder record {record}", file=sys.stderr)
                 return 2
+            missing = 0
             if not reported:
                 if _reused(text, holder):
                     print("stale lock: " + text, end="", file=sys.stderr, flush=True)
