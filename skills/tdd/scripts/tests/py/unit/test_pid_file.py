@@ -113,6 +113,19 @@ def test_live_conductor_answers_the_digits_as_read_and_never_signals_for_no_pid_
         kills.append((pid, signal))
 
     monkeypatch.setattr(os, "kill", fake_kill)
+    import subprocess
+
+    ps = {
+        ("ps", "-o", "command=", "-p", "4242"): "claude -p /tdd 5\n",
+        ("ps", "-o", "ppid=", "-p", "4242"): "1004242\n",
+        ("ps", "-o", "command=", "-p", "1004242"): "python3 run_conductor.py 5\n",
+    }
+
+    def fake_run(argv, *args, **kwargs):
+        out = ps.get(tuple(argv))
+        return subprocess.CompletedProcess(argv, 0 if out else 1, stdout=out or "", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
     answers = {}
     calls = {}
     for name, content in [
