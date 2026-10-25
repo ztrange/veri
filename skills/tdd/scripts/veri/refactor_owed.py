@@ -72,7 +72,7 @@ def append(file, step, bounds):
               (OUT_OF_BOUNDS, out_of_bounds, OUT_OF_BOUNDS_PREFIX))
     uncovered = report_read(report, ("COVERED",)).get("COVERED") == "no"
     for line in report.split("\n"):
-        if (found := LINE.match(line)) and (cls := found.group(1).partition("|")[0].strip()).lower() not in KNOWN_CLASSES:
+        if (found := LINE.match(line)) and (cls := found.group(1).partition("|")[0].strip()) not in KNOWN_CLASSES:
             print(f"refactor-owed.sh: unknown candidate class '{cls}': {line}", file=sys.stderr)
             return 2
         if uncovered and (match := IN_STEP.match(line)):
