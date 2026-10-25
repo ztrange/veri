@@ -1,0 +1,2 @@
+### A supervised leaf whose full `make test` waits silently on a held full-suite lock for longer than the `VERI_HEARTBEAT` silence window (shrunk for the test) is not killed for silence, and finishes with its own exit code (a medium case at the process boundary, the lock held by the test)
+- test-only | The two `test_2380_*` cases in `test_supervise_process.py` repeat the same setup (git init, script write, lock hold, timer release, and the env dict). Extract one helper that takes the release delay, `VERI_TIMEOUT` and `VERI_HEARTBEAT`.
