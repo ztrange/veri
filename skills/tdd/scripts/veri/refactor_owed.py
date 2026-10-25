@@ -70,17 +70,19 @@ def append(file, step, bounds):
               (TEST_ONLY, test_only, TEST_ONLY_PREFIX),
               (OUT_OF_SCOPE, out_of_scope, OUT_OF_SCOPE_PREFIX),
               (OUT_OF_BOUNDS, out_of_bounds, OUT_OF_BOUNDS_PREFIX))
-    uncovered = report_read(report, ("COVERED",)).get("COVERED") == "no"
+    in_step, answers = [], {}
     for line in report.split("\n"):
         if (found := LINE.match(line)) and (cls := found.group(1).partition("|")[0].strip()) not in KNOWN_CLASSES:
             print(f"refactor-owed.sh: unknown candidate class '{cls}': {line}", file=sys.stderr)
             return 2
-        if uncovered and (match := IN_STEP.match(line)):
-            structural.append(match.group(1).partition(" | ")[2])
+        if match := IN_STEP.match(line):
+            in_step.append(match.group(1).partition(" | ")[2])
+        elif answer := report_read(line, ("COVERED",)).get("COVERED"):
+            answers[len(in_step) - 1] = answer
         for pattern, group, prefix in routes:
             if (match := pattern.match(line)) and match.group(1):
                 group.append(prefix + match.group(1))
-    owed = structural + test_only + out_of_scope + out_of_bounds
+    owed = [text for at, text in enumerate(in_step) if answers.get(at) == "no"] + structural + test_only + out_of_scope + out_of_bounds
     return write(file, f"### {step}\n" + bullets(owed)) if owed else 0
 
 

@@ -761,3 +761,15 @@ def test_append_exits_2_naming_an_unknown_class_on_stderr_and_records_nothing_23
     code = refactor_owed.main(["append", str(owed), "step one", "a.sh"])
     captured = capsys.readouterr()
     assert (code, captured.out, "in-steps" in captured.err, owed.exists()) == (2, "", True, False)
+
+
+def test_append_records_only_the_in_step_candidate_whose_own_cover_answered_no_2349(
+        monkeypatch, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    report = ("CANDIDATES: in-step | a.sh | fold the covered pass\n"
+              "COVERED: yes\n"
+              "CANDIDATES: in-step | b.sh | fold the uncovered pass\n"
+              "COVERED: no\n")
+    monkeypatch.setattr(sys, "stdin", io.StringIO(report))
+    code = refactor_owed.main(["append", str(owed), "step one", "a.sh,b.sh"])
+    assert (code, owed.read_text().splitlines()) == (0, ["### step one", "- fold the uncovered pass"])
