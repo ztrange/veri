@@ -165,7 +165,7 @@ def _superseded_case(body):
     if separated:
         return (separated.group(1) or separated.group(2)).strip()
     words = body.strip("`").split()
-    return words[0].strip("`") if words else ""
+    return words[0].strip("`").rpartition("::")[2] if words else ""
 
 
 def _superseded(report, step, own_id=None):
