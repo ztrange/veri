@@ -108,9 +108,9 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   phase; also for a step listing `⟦phases: …⟧` ticked without `--phase`, and for `--phase` given
   with `--refactor-pending`. `--phase-owed <phase>` appends ` ⟂ <phase> owed` instead, under the
   same refusals; an owed phase ends the step, so it and every phase after it are never handed out
-  again (see the exhausted-contract paragraph under *A `⟦phases: …⟧` step*). `$S/ledger-steps.sh next-phase < .tdd/issue-<n>.md` prints the first phased step's next
+  again (see the exhausted-contract paragraph in `<base directory>/PHASED.md`). `$S/ledger-steps.sh next-phase < .tdd/issue-<n>.md` prints the first phased step's next
   unmarked phase, **exit 3** when none is left. The cycle loop runs a phased step through
-  both — see *A `⟦phases: …⟧` step* under *3. The cycle loop*.
+  both — see `<base directory>/PHASED.md`.
 - `$S/reorder-ledger-steps.sh .tdd/issue-<n>.md "<step>" before|after "<anchor>"` — the one sanctioned way to change the order of **unchecked** steps, committed on its own as a `plan:` commit; running it is an operator's decision, never the conductor's own.
 - `$S/next-pending-refactor.sh < .tdd/issue-<n>.md` — print the **first ticked step whose
   refactor is unverified**: the description of the first `- [x]` step carrying the
