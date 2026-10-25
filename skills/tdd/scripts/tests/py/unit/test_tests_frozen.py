@@ -76,3 +76,17 @@ def test_record_refuses_a_red_case_value_with_an_empty_half_around_the_double_co
 
     assert (code, out, "--red-case" in err and value in err, sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == (
         2, "", True, [])
+
+
+def test_record_refuses_a_red_case_that_no_longer_exists_in_its_test_file_naming_it_and_keeps_the_old_record_2269(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "test_a.py"
+    suite.write_text("def test_kept():\n    assert 1\n")
+    record = tmp_path / ".tdd" / "x.record"
+    record.write_text("old record\n")
+
+    code, out, err = run_cli(
+        tests_frozen, ["record", ".tdd/x.record", "--red-case", "test_a.py::test_gone", "test_a.py"], cwd=tmp_path)
+
+    assert (code, "test_a.py::test_gone" in out, record.read_text()) == (1, True, "old record\n")

@@ -370,6 +370,12 @@ def main(argv):
             if not all(value.partition("::")[::2]):
                 write(sys.stderr, "tests-frozen.sh: --red-case %s needs a path and a case around '::'" % value)
                 return 2
+            path, _, case = value.partition("::")
+            with open(path, encoding="utf-8", errors="replace") as handle:
+                present = case in dict(_cases(handle.read()))
+            if not present:
+                write(sys.stdout, "tests-frozen.sh: red case %s::%s no longer exists\n" % (path, case))
+                return 1
         if by_step and _refused_outside_repository():
             return 2
         deleted = []
