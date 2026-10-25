@@ -1427,3 +1427,23 @@ def test_2386_on_macos_a_set_worker_count_is_used_as_given_even_above_the_physic
     legs.mkdir()
     monkeypatch.setenv("VERI_PYTEST_LEGS", str(legs))
     assert pytest_leg.worker_count("12") == 12
+
+
+def test_2386_on_macos_with_no_sysctl_on_the_path_the_budget_falls_back_to_the_cpu_count_instead_of_crashing(pytest_leg, monkeypatch, tmp_path):
+    import subprocess
+
+    def no_sysctl(argv, *args, **kwargs):
+        raise FileNotFoundError(2, "No such file or directory", "sysctl")
+
+    monkeypatch.setattr(subprocess, "run", no_sysctl)
+    monkeypatch.setattr(subprocess, "check_output", no_sysctl)
+    monkeypatch.setattr(os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(sys, "platform", "darwin")
+    monkeypatch.delenv("VERI_PYTEST_WORKERS", raising=False)
+    monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    monkeypatch.setenv("VERI_PYTEST_LEGS", str(legs))
+    assert pytest_leg.worker_count(None) == 16

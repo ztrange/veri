@@ -130,7 +130,10 @@ def worker_count(requested):
         return 1
     cores = len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else os.cpu_count() or 1
     if sys.platform == "darwin":
-        cores = int(subprocess.run(["sysctl", "-n", "hw.physicalcpu"], capture_output=True, text=True).stdout)
+        try:
+            cores = int(subprocess.run(["sysctl", "-n", "hw.physicalcpu"], capture_output=True, text=True).stdout)
+        except OSError:
+            pass
     return max(1, cores - registered_workers(legs_dir()))
 
 
