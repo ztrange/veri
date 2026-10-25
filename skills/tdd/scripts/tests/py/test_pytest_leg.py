@@ -1361,3 +1361,27 @@ def test_2195_after_a_full_run_releases_the_lock_the_lock_file_names_no_pid(pyte
     assert pytest_leg.main(["some/dir"]) == 0
     assert seen and all(("pid %d" % os.getpid()) in held for held in seen)
     assert "pid" not in open(pytest_leg.full_lock_path()).read()
+
+
+def test_2386_on_macos_with_no_worker_count_the_budget_is_the_physical_core_count_less_the_live_legs_workers_and_at_least_1(pytest_leg, monkeypatch, tmp_path):
+    import subprocess
+
+    def sysctl_answer(argv, *args, **kwargs):
+        assert list(argv) == ["sysctl", "-n", "hw.physicalcpu"]
+        return subprocess.CompletedProcess(argv, 0, stdout="8\n", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", sysctl_answer)
+    monkeypatch.setattr(subprocess, "check_output", lambda argv, *a, **k: sysctl_answer(argv).stdout)
+    monkeypatch.setattr(os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
+    monkeypatch.setattr(sys, "platform", "darwin")
+    monkeypatch.delenv("VERI_PYTEST_WORKERS", raising=False)
+    monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    monkeypatch.setenv("VERI_PYTEST_LEGS", str(legs))
+    alone = pytest_leg.worker_count(None)
+    (legs / str(os.getpid())).write_text("6\n")
+    beside_six = pytest_leg.worker_count(None)
+    assert (alone, beside_six) == (8, 2)
