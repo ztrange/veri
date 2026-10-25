@@ -330,13 +330,13 @@ def test_take_reports_stale_lock_with_the_record_when_the_holder_pid_is_alive_bu
     assert (taken[0], taken[2], len(waits)) == (0, "stale lock: " + text, 1)
 
 
-@pytest.mark.process("git init on a scratch repository, take run against a lock directory with no record")
-def test_take_leaves_no_staging_directory_behind_when_it_exits_2_on_a_missing_record_2344(
+@pytest.mark.process("git init on a scratch repository, take run against a lock directory with a malformed record")
+def test_take_leaves_no_staging_directory_behind_when_it_exits_2_on_a_malformed_record_2344(
         tmp_path, merge_lock, run_cli, monkeypatch):
     scratch_git(tmp_path, "init", "-q", "-b", "main")
     lock = tmp_path / ".tdd" / "merge.lock"
     lock.mkdir(parents=True)
-    monkeypatch.setattr(merge_lock.time, "sleep", lambda seconds: shutil.rmtree(lock))
+    (lock / "holder").write_text("not-a-pid\n")
 
     taken = run_cli(merge_lock, ["take", "--pid", str(os.getpid())], cwd=tmp_path)
 
