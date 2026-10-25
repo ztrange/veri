@@ -300,3 +300,33 @@ def test_live_conductor_answers_no_pid_for_a_live_process_under_run_conductor_th
     (run_dir / ".tdd" / "conductor.pid").write_bytes(b"4242\n")
 
     assert pid_file.live_conductor(str(run_dir)) is None
+
+
+def test_live_conductor_answers_the_pid_of_a_live_conductor_and_none_once_the_pid_is_reused_by_an_unrelated_process_2249(tmp_path, monkeypatch):
+    import os
+    import subprocess
+
+    pid_file = importlib.import_module("veri.pid_file")
+    monkeypatch.setattr(os, "kill", lambda pid, signal: None)
+    ps = {
+        ("ps", "-o", "command=", "-p", "4242"): "claude -p /tdd 5\n",
+        ("ps", "-o", "ppid=", "-p", "4242"): "1004242\n",
+        ("ps", "-o", "command=", "-p", "1004242"): "python3 run_conductor.py 5\n",
+        ("ps", "-o", "command=", "-p", "5151"): "vim notes.txt\n",
+        ("ps", "-o", "ppid=", "-p", "5151"): "1\n",
+        ("ps", "-o", "command=", "-p", "1"): "/sbin/launchd\n",
+    }
+
+    def fake_run(argv, *args, **kwargs):
+        out = ps.get(tuple(argv))
+        return subprocess.CompletedProcess(argv, 0 if out else 1, stdout=out or "", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    answers = {}
+    for name, recorded in [("conductor", b"4242\n"), ("reused", b"5151\n")]:
+        run_dir = tmp_path / name
+        (run_dir / ".tdd").mkdir(parents=True)
+        (run_dir / ".tdd" / "conductor.pid").write_bytes(recorded)
+        answers[name] = pid_file.live_conductor(str(run_dir))
+
+    assert answers == {"conductor": "4242", "reused": None}
