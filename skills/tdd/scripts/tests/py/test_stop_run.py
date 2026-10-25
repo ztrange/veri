@@ -297,6 +297,58 @@ def test_main_now_terms_only_pids_whose_ps_runs_supervise_sh_of_their_name_ignor
         capsysbinary.readouterr()
 
 
+def test_2249_main_in_at_ledger_and_at_leaf_asks_pid_file_live_conductor_nothing_and_runs_no_ps_yet_answers_3_for_a_dead_pid(
+        monkeypatch, tmp_path, capsysbinary, stop_run, fake_processes):
+    import pid_file
+    monkeypatch.chdir(tmp_path)
+    run = run_with_conductor(tmp_path)
+    calls = fake_processes(answering(main_tree_at(tmp_path)))
+    asked = []
+    real = pid_file.live_conductor
+    monkeypatch.setattr(pid_file, "live_conductor", lambda path: asked.append(path) or real(path))
+    alive = {4242}
+
+    def fake_kill(pid, sig):
+        if pid not in alive:
+            raise ProcessLookupError(3, "No such process")
+
+    monkeypatch.setattr(os, "kill", fake_kill)
+
+    for mode in ("at-ledger", "at-leaf"):
+        for argv in (["5"], ["--all"]):
+            asked.clear()
+            calls.clear()
+            (run / ".tdd" / "stop").unlink(missing_ok=True)
+            assert (mode, argv, stop_run.main(["--mode", mode, *argv])) == (mode, argv, 0)
+            assert (mode, argv, asked, [c for c in calls if c.startswith("ps ")]) == (mode, argv, [], [])
+            assert (run / ".tdd" / "stop").read_bytes() == mode.encode() + b"\n"
+            capsysbinary.readouterr()
+        alive.clear()
+        (run / ".tdd" / "stop").unlink()
+        assert (mode, stop_run.main(["--mode", mode, "5"])) == (mode, 3)
+        assert not (run / ".tdd" / "stop").exists()
+        alive.add(4242)
+        capsysbinary.readouterr()
+
+
+def test_2249_main_in_now_asks_pid_file_live_conductor_for_the_run_in_one_issue_and_in_all_mode(
+        monkeypatch, tmp_path, capsysbinary, stop_run, fake_processes):
+    import pid_file
+    monkeypatch.chdir(tmp_path)
+    run = run_with_conductor(tmp_path)
+    fake_processes(answering({**main_tree_at(tmp_path), **conductor_answers(4242)}))
+    asked = []
+    real = pid_file.live_conductor
+    monkeypatch.setattr(pid_file, "live_conductor", lambda path: asked.append(path) or real(path))
+    monkeypatch.setattr(os, "kill", lambda pid, sig: None)
+
+    for argv in (["5"], ["--all"]):
+        asked.clear()
+        assert (argv, stop_run.main(["--mode", "now", *argv])) == (argv, 0)
+        assert (argv, [os.fsencode(a) for a in asked]) == (argv, [os.fsencode(run)])
+        capsysbinary.readouterr()
+
+
 def test_main_passes_non_utf8_bytes_in_an_argument_through_to_the_refusal_unchanged(
         monkeypatch, tmp_path, capsysbinary, stop_run, fake_processes):
     monkeypatch.chdir(tmp_path)

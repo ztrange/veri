@@ -124,6 +124,7 @@ def main(argv):
     if not on_one_path(main_tree):
         return refuse(f"the main working tree '{os.fsdecode(main_tree)}' does not hold the directory this was typed from")
     runs = os.fsdecode(main_tree) + "/.tdd/wt/"
+    alive = pid_file.live_conductor if mode == "now" else pid_file.recorded_alive
     if every:
         stopped = 0
         try:
@@ -132,14 +133,14 @@ def main(argv):
             names = []
         for name in sorted(names):
             run = runs + name
-            if not name.startswith(".") and pid_file.live_conductor(run) is not None:
+            if not name.startswith(".") and alive(run) is not None:
                 stop_run(run, mode)
                 stopped += 1
         if not stopped:
             return nothing_to_do("no live run to stop")
         return 0
     target = runs + issue
-    if pid_file.live_conductor(target) is None:
+    if alive(target) is None:
         return nothing_to_do(f"no live run for issue {issue}")
     stop_run(target, mode)
     return 0
