@@ -1,4 +1,4 @@
 # Plan for #2324 — report-cache.sh's first refresh can never complete when over 100 issues share one updatedAt second, and repeats its first page query
 
 - [x] With 150 issues sharing one updatedAt and 50 older issues, a first refresh (no cache) of report-cache.sh writes a cache holding all 200 issues and exits 0; pinned by a small in-process case in skills/tdd/scripts/tests/py/unit/test_report_cache.py that fakes gh issue list at the github.py boundary ⟦criterion 1⟧
-- [x] A paged first refresh makes no gh issue list call whose arguments repeat an earlier call in the same refresh, retries of a failed page excepted; pinned by a small in-process case in skills/tdd/scripts/tests/py/unit/test_report_cache.py whose fake gh at the github.py boundary records its calls ⟦criterion 2⟧ ⟂ refactor pending
+- [x] A paged first refresh makes no gh issue list call whose arguments repeat an earlier call in the same refresh, retries of a failed page excepted; pinned by a small in-process case in skills/tdd/scripts/tests/py/unit/test_report_cache.py whose fake gh at the github.py boundary records its calls ⟦criterion 2⟧
