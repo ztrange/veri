@@ -96,3 +96,5 @@ back to REST, with the two routes interleaved inside every function. From here o
   that on demand, as it does for `VERI_PRIORITY_LABEL`.
 - Switching the default back is a one-line change at the selection point, not an edit in every
   function.
+
+2026-10-25: lib/github.sh retired by #2147 (PR #2364); veri/github.py is the home.

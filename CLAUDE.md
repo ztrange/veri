@@ -155,8 +155,6 @@ and `curl` always refuse. Drive a ported script's CLI in-process with the
 `run_cli(module, argv, stdin="", env=None, cwd=None)` fixture, which returns
 `(code, stdout, stderr)`.
 
-`lib/github.sh` stays bash, sourced by `tests/py/test_github_sh.py` with `gh` faked on PATH.
-
 **A script ported to Python follows one convention; `status.sh` is the worked example**
 (#634): its logic is a module of `skills/tdd/scripts/veri/`, and its `.sh` entry point a
 `/bin/sh` shim that `exec`s `python3` on it — `$VERI_VENV/bin/python3` (default

@@ -273,18 +273,18 @@ def test_shim_source_problems_names_the_python3_call_handed_a_fixture_sourced_or
 
 
 def test_shim_source_problems_names_a_lib_script_handing_python3_a_gh_json_document_planted_into_a_copy(tmp_path):
-    """Its subject is source text: a copy of the real lib/github.sh with a gh JSON document handed to python3 as an argument, read as text and never run."""
+    """Its subject is source text: a copy of the real lib/watch.sh with a gh JSON document handed to python3 as an argument, read as text and never run."""
     from conftest import shim_source_problems
 
-    original = (SCRIPTS / "lib" / "github.sh").read_text()
+    original = (SCRIPTS / "lib" / "watch.sh").read_text()
     (tmp_path / "lib").mkdir()
-    (tmp_path / "lib" / "github.sh").write_text(original)
+    (tmp_path / "lib" / "watch.sh").write_text(original)
     unplanted = shim_source_problems(tmp_path)
-    (tmp_path / "lib" / "github.sh").write_text(
+    (tmp_path / "lib" / "watch.sh").write_text(
         original + 'issue_json="$(gh api repos/o/r/issues/7)"\npython3 "$VERI_SCRIPTS/veri/stop_run.py" "$issue_json"\n')
 
     assert unplanted == []
-    assert [line.split(" ")[0] for line in shim_source_problems(tmp_path)] == ["lib/github.sh:%d" % (original.count("\n") + 2)]
+    assert [line.split(" ")[0] for line in shim_source_problems(tmp_path)] == ["lib/watch.sh:%d" % (original.count("\n") + 2)]
 
 
 @pytest.mark.tree_audit("every scripts/*.sh, the six exempt shims included, read as text")
