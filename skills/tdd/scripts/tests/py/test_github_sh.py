@@ -554,3 +554,28 @@ def test_the_gh_function_sleeps_the_same_sequence_when_real_time_passes_during_e
     code, out, _, taken = run_without_gh(tmp_path, drifting + "gh api x 2>&1; echo rc=$?", env)
 
     assert (code, taken, out.endswith("rc=2\n")) == (0, ["2"] * 8 + ["4", "4"], True), (taken, out)
+
+
+@pytest.mark.skipif(shutil.which("zsh") is None, reason="no zsh installed")
+@pytest.mark.process("zsh -c runs pr-ready.sh, which sources lib/github.sh in its own bash")
+def test_issue_2147_pr_ready_script_marks_a_draft_ready_from_zsh_and_is_listed_with_its_caller(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    calls = tmp_path / "calls"
+    calls.write_text("")
+    gh = bin_dir / "gh"
+    gh.write_text('#!/bin/sh\necho "gh $*" >> "$CALLS"\n[ "$1" = api ] && echo abc123\nexit 0\n')
+    gh.chmod(0o755)
+    env = {"PATH": os.pathsep.join([str(bin_dir), os.path.dirname(shutil.which("bash")), "/usr/bin", "/bin"]),
+           "CALLS": str(calls), "VERI_GH_DRIVER": "auto", "VERI_POLL": "0"}
+    script = str(SCRIPTS / "pr-ready.sh")
+
+    ready = subprocess.run(["zsh", "-c", '"$1" 42 abc123', "zsh", script], capture_output=True, text=True, env=env)
+    bare = subprocess.run(["zsh", "-c", '"$1"', "zsh", script], capture_output=True, text=True, env=env)
+    listed = [line for line in (SCRIPTS.parent / "SCRIPTS.md").read_text().splitlines()
+              if line.startswith("- `$S/pr-ready.sh")]
+
+    assert (ready.returncode, ready.stdout, ready.stderr) == (0, "", "")
+    assert "gh pr ready 42" in calls.read_text().splitlines()
+    assert bare.returncode == 2 and "usage" in bare.stderr.lower()
+    assert len(listed) == 1 and "conductor" in listed[0]
