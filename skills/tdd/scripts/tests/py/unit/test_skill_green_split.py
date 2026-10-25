@@ -35,7 +35,7 @@ def says(text, pattern, message, flags=0):
 
 
 def skill_lines():
-    return SKILL.read_text().splitlines() + SKILL.with_name("PIN.md").read_text().splitlines() + SKILL.with_name("REVISE.md").read_text().splitlines()
+    return SKILL.read_text().splitlines() + SKILL.with_name("REVISE.md").read_text().splitlines()
 
 
 def numbered(pattern):
@@ -93,22 +93,6 @@ def step_too_big_cause():
     return _bullet(_lines(BAILING), "- `step-too-big`")
 
 
-def one_line(lines):
-    return re.sub(r" +", " ", " ".join(line.replace("*", "").replace("`", "") for line in lines) + " ")
-
-
-def _paragraph(starts, stops):
-    out, inside = [], False
-    for line in skill_lines():
-        if starts(line):
-            inside = True
-        if inside and stops(line):
-            break
-        if inside:
-            out.append(line)
-    return one_line(out)
-
-
 def test_skill_md_s_green_section_bails_with_cause_step_too_big_when_add_ledger_step_exits_1_on_a_split_and_its_bailing_section_lists_that_cause_as_a_process_failure():
     says(bailing_causes(), r"step-too-big[^.]{0,220}process",
          "SKILL.md's Bailing causes list never classifies step-too-big as a process failure")
@@ -151,38 +135,16 @@ def run_lines(pattern):
 
 
 def test_1558_skill_md_runs_every_replaces_case_survivors_sh_occurrence_before_the_verify_green_launch_it_gates_on_the_green_path_and_the_pin_path_alike():
-    pin_start = first_line("A `⟦replaces-case⟧` step whose Red reports")
-    pin_launch = first_line("Judge it by the replaces-case verify-green")
+    green_launch = first_line("detach-leaf.sh $S/supervise.sh verdict-green")
     occurrences = [n for n, line in enumerate(skill_lines(), 1) if 'replaces-case-survivors.sh "' in line]
-    assert pin_start and pin_launch and occurrences, \
-        f"SKILL.md lacks a survivors run or a launch marker (pin path={pin_start}, pin launch={pin_launch})"
-    for at in occurrences:
-        if at >= pin_start:
-            assert at <= pin_launch, f"SKILL.md:{at} runs replaces-case-survivors.sh after the pin-path verify-green launch at line {pin_launch}"
+    assert green_launch and occurrences, f"SKILL.md lacks a survivors run or a launch marker (green launch={green_launch})"
+    assert occurrences[0] < green_launch, f"SKILL.md:{occurrences[0]} runs replaces-case-survivors.sh after the verify-green launch at line {green_launch}"
 
 
 def test_1406_skill_md_documents_build_develop_prompt_sh_green_s_8th_argument_the_cases_still_owed_for_deletion_at_the_green_build_command_and_in_the_script_reference_entry():
     reference = _bullet_body(catalogue_lines(), "- `$S/build-develop-prompt.sh <red")
     assert re.search(r"<fast-cmd>.*owed", reference) or re.search(r"green <spec-file>.*owed.*refactor <spec-file>", reference), \
         "SKILL.md's build-develop-prompt.sh reference entry never lists an owed-cases argument in green's synopsis"
-
-
-def pin_paragraph():
-    return _paragraph(lambda line: line.startswith("A `⟦replaces-case⟧` step whose Red reports"),
-                      lambda line: "Every other step takes the verdict" in line)
-
-
-def test_1546_skill_md_s_replaces_case_pin_path_paragraph_runs_replaces_case_survivors_sh_after_the_deletion_green_and_on_survivors_relaunches_it_bounded_by_revise_budget_before_verify_green():
-    section = pin_paragraph()
-    assert section.strip(), "SKILL.md has no replaces-case pin-path paragraph to read"
-    for needle, message in (
-        ("replaces-case-survivors.sh", "never runs replaces-case-survivors.sh"),
-        ("relaunch", "never relaunches the green leaf on survivors"),
-        ("REVISE_BUDGET", "never says a survivors relaunch spends a REVISE_BUDGET attempt"),
-        ("revise-exhausted", "never bails cause=revise-exhausted when the budget is spent"),
-        ("no verifier", "never says no verifier is launched while a named case survives"),
-    ):
-        assert needle in section, f"SKILL.md's replaces-case pin-path paragraph {message}"
 
 
 def test_1625_skill_md_s_develop_replaces_report_wait_leaf_exit_1_or_2_bails_with_cause_replaces_report_failed_launching_no_verifier_runs_step_cost_after_the_wait_and_the_bail_table_lists_the_cause_as_a_system_failure():
