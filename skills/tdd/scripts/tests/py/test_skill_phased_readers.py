@@ -8,11 +8,12 @@ import pytest
 
 TESTS_PY = pathlib.Path(__file__).resolve().parent
 SKILL_MD = TESTS_PY.parents[2] / "SKILL.md"
+PHASED_MD = SKILL_MD.with_name("PHASED.md")
 PREFIX = "#### A `⟦phases: …⟧` step"
 HEADING = "#### A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier"
 
 MARKERS = (
-    HEADING, "next-phase", "--phase-owed", "--phase <phase>", "production-frozen.sh", "no-product-caller.sh",
+    "next-phase", "--phase-owed", "--phase <phase>", "production-frozen.sh", "no-product-caller.sh",
 )
 
 ALLOWED = {
@@ -42,11 +43,7 @@ def _flat(text):
 
 
 def _subsection_and_rest():
-    text = SKILL_MD.read_text(encoding="utf-8")
-    start = text.index(HEADING)
-    following = re.search(r"^#{1,4} ", text[start + len(HEADING):], re.M)
-    stop = start + len(HEADING) + following.start() if following else len(text)
-    return _flat(text[start:stop]), _flat(text[:start] + "\n" + text[stop:])
+    return _flat(PHASED_MD.read_text(encoding="utf-8")), _flat(SKILL_MD.read_text(encoding="utf-8"))
 
 
 def _names_the_heading(literal):
@@ -64,7 +61,7 @@ def _only_in_subsection(literal, subsection, rest):
 
 
 def _other_docs():
-    return {d.name: d.read_text(encoding="utf-8") for d in SKILL_MD.parent.glob("*.md") if d != SKILL_MD}
+    return {d.name: d.read_text(encoding="utf-8") for d in SKILL_MD.parent.glob("*.md") if d not in (SKILL_MD, PHASED_MD)}
 
 
 @functools.cache

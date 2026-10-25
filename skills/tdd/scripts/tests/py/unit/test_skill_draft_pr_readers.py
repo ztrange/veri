@@ -16,8 +16,6 @@ ALLOWED = {
         "runs both CI blocks under bash against stubs",
     "test_skill_ci_conflict.py::test_the_block_run_after_the_metrics_push_bails_nothing_on_a_conflict_the_first_time_and_ci_conflict_once_the_marker_exists":
         "runs the post-metrics-push block under bash against stubs",
-    "test_skill_leaf_env.py::test_753_the_structural_pass_in_skill_md_spells_the_transform_verifiers_launch_line_and_run_with_every_ledger_step_ticked_it_hands_its_verifier_the_last_done_steps_text_as_step_byte_identical":
-        "runs the unit's launch lines against a stub ledger",
     "unit/test_skill_criterion_finished.py::test_495_every_instruction_that_names_the_last_ticked_step_reads_it_from_ledger_steps_records_spelling_no_checkbox_pattern":
         "whole-document audit of ledger reads",
     "unit/test_skill_draft_pr.py::test_draft_prs_step_readies_the_pr_against_the_already_pushed_branch_with_no_push_of_its_own":

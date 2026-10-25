@@ -861,13 +861,8 @@ def scan_resume_last_done(probe):
 def scan_transform_verifier_last_done(probe):
     title = EXPANDING_STEP
     lineno = line = None
-    inside = False
-    for n, text in enumerate(SKILL.read_text().split("\n"), 1):
-        if "one structural pass" in text:
-            inside = True
-        if re.search(r"^2\. \*\*Mark the PR ready", text):
-            inside = False
-        if inside and re.search(r"\$S/detach-leaf\.sh .*\$S/supervise\.sh verdict-transform \$S/run-verdict\.sh", text):
+    for n, text in enumerate(SKILL.with_name("STRUCTURAL.md").read_text().split("\n"), 1):
+        if re.search(r"\$S/detach-leaf\.sh .*\$S/supervise\.sh verdict-transform \$S/run-verdict\.sh", text):
             lineno, line = n, text
             break
     if lineno is None:
