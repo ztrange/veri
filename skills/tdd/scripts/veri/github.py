@@ -1,7 +1,7 @@
 """veri's GitHub access through gh, the Python twin of lib/github.sh.
 
-VERI_GH_DRIVER picks the route an operation with a GraphQL route takes (gh_issue_view,
-gh_list, gh_json with gh args): rest, the default when unset, runs only `gh api`; graphql
+VERI_GH_DRIVER picks the route an operation with a GraphQL route takes (gh_pr_ready,
+gh_issue_view, gh_list, gh_json with gh args): rest, the default when unset, runs only `gh api`; graphql
 runs only the gh porcelain command, with no fallback; auto tries GraphQL, then REST. Set
 but empty, or any other value, raises NoAnswer at call time with a stderr line naming the
 variable and the value. Operations with no GraphQL route (issue edit and create,
@@ -288,3 +288,72 @@ def gh_issue_add_label(number, label):
 
 def gh_label_ensure(label):
     _gh("api", "repos/{owner}/{repo}/labels", "-f", "name=%s" % label)
+
+
+_PULLS = "repos/{owner}/{repo}/pulls"
+_READY_MUTATION = ("mutation($id: ID!) { markPullRequestReadyForReview(input: {pullRequestId: $id})"
+                   " { pullRequest { isDraft } } }")
+
+
+def _route_open(driver, route):
+    if route == "graphql":
+        return driver in ("auto", "graphql")
+    return driver != "graphql"
+
+
+def _poll_sleep():
+    raw = tunables.read("VERI_POLL", "10", unless_empty="10")
+    try:
+        time.sleep(float(raw))
+    except ValueError:
+        print("sleep: invalid time interval '%s'" % raw, file=sys.stderr)
+
+
+def _api_graphql_ready(number):
+    node = _gh("api", "%s/%s" % (_PULLS, number), "-q", ".node_id")
+    if node.returncode != 0:
+        return False
+    return _gh("api", "graphql", "-f", "query=" + _READY_MUTATION,
+               "-f", "id=" + node.stdout.rstrip("\n")).returncode == 0
+
+
+def gh_pr_ready(number, head_sha=""):
+    """Mark draft PR <number> ready for review; given <head_sha>, only once pulls/<number> reports it
+    as the head, reading it again every VERI_POLL seconds (default 10), at most 30 times. NoAnswer
+    when GitHub gave no answer on any open route, or the head never matched."""
+    driver = tunables.read("VERI_GH_DRIVER", "rest")
+    if driver not in ("auto", "rest", "graphql"):
+        print("VERI_GH_DRIVER is '%s': expected auto, rest or graphql" % driver, file=sys.stderr)
+        raise NoAnswer("")
+    tries = 0
+    while head_sha:
+        read = _gh("api", "%s/%s" % (_PULLS, number), "--jq", ".head.sha")
+        if read.returncode != 0:
+            raise NoAnswer("")
+        head = read.stdout.rstrip("\n")
+        if head == head_sha:
+            break
+        tries += 1
+        if tries >= 30:
+            print("gh_pr_ready: PR %s head is %s after %d reads, expected %s" % (number, head, tries, head_sha),
+                  file=sys.stderr)
+            raise NoAnswer("")
+        _poll_sleep()
+    gql_err = ccr_err = ""
+    if _route_open(driver, "graphql"):
+        ready = _gh("pr", "ready", number, stderr=subprocess.PIPE)
+        sys.stdout.write(ready.stdout)
+        if ready.returncode == 0:
+            return
+        gql_err = ready.stderr.rstrip("\n")
+    if _route_open(driver, "rest"):
+        ccr = _gh("api", "-X", "POST", "%s/%s/ccr/ready_for_review" % (_PULLS, number), stderr=subprocess.STDOUT)
+        if ccr.returncode == 0:
+            return
+        ccr_err = ccr.stdout.rstrip("\n")
+        if _api_graphql_ready(number):
+            return
+    for err in (gql_err, ccr_err):
+        if err:
+            print(err, file=sys.stderr)
+    raise NoAnswer("")
