@@ -1400,3 +1400,24 @@ def test_stop_reason_and_metrics_read_a_run_log_holding_an_add_ledger_step_inser
     assert "KeyError" not in stopped[2]
     assert measured[0] == 0
     assert "the log carries no awake-clock reading" not in measured[1]
+
+
+def test_main_exits_2_leaving_the_ledger_the_added_file_and_the_events_log_byte_identical_when_the_awake_clock_fails_2322(tmp_path, monkeypatch, run_cli, add_ledger_step):
+    from types import SimpleNamespace
+    from veri import event
+
+    ledger = tmp_path / "issue-42.md"
+    added = tmp_path / "issue-42-added.md"
+    events = tmp_path / "events.jsonl"
+    ledger.write_bytes(LEDGER)
+    added.write_text("- [ ] earlier ⟦added⟧\n")
+    events.write_bytes(b'{"ts": 1, "awake": 1, "event": "step-start"}\n')
+    before = (ledger.read_bytes(), added.read_bytes(), events.read_bytes())
+    monkeypatch.setenv("VERI_STEP_GROWTH", "5")
+    monkeypatch.setenv("VERI_AWAKE_CLOCK", "failing-clock")
+    monkeypatch.setattr(event, "run_clock", lambda clock: SimpleNamespace(returncode=1, stdout=b""))
+
+    code, _, stderr = run_cli(add_ledger_step, [str(ledger), "after", "b two", "first"])
+
+    assert (code, "Traceback" in stderr) == (2, False)
+    assert (ledger.read_bytes(), added.read_bytes(), events.read_bytes()) == before

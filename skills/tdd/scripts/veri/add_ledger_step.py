@@ -130,8 +130,7 @@ def added_file(path):
     return sibling(path, "-added.md")
 
 
-def record_insertions(path, steps):
-    awake = event.awake_reading()
+def record_insertions(path, steps, awake):
     with open(added_file(path), "ab") as f:
         f.write("".join(step + "\n" for step in steps).encode(errors=BYTES))
     with open(events_log(path), "ab") as f:
@@ -223,8 +222,11 @@ def main(argv):
         owed += "".join(f"- {text}\n" for text in texts)
         write_ledger(path, read_ledger(path), owed)
         return 1
+    awake = event.awake_reading()
+    if isinstance(awake, int):
+        return 2
     write_ledger(path, "".join(line + "\n" for line in out))
-    record_insertions(path, inserted_lines)
+    record_insertions(path, inserted_lines, awake)
     return 0
 
 
