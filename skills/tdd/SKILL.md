@@ -1295,14 +1295,16 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
    nobody can size.
 
    An **out-of-scope** candidate is routed by whether its transform changes a file in
-   `<touched-files>`. One that changes **at least one** is done in the step: a cover leaf
+   `<touched-files>`. One that changes **at least one** is done in the step, and the refactor
+   leaf reports it as a `CANDIDATES: in-step | <candidate>` line: a cover leaf
    (`build-develop-prompt.sh cover`, launched through the supervisor and read through
    `$S/cover-outcome.sh`, as the structural pass does) first mutates the code the candidate
    will move; on `COVERED: no` it is recorded with `refactor-owed.sh` as for a test-only one
    (RF20) and not transformed. When covered, its transform is bounded to `<touched-files>`
    plus the files the candidate names, is checked with `$S/transform-touches-tests.sh
    <green-sha> <bound>` before verify-refactor runs, and counts against the step's budget.
-   One that changes **no** file in `<touched-files>` is never done in the step: it is
+   One that changes **no** file in `<touched-files>`, reported as a
+   `CANDIDATES: out-of-bounds | <candidate>` line, is never done in the step: it is
    recorded with `refactor-owed.sh` as `out-of-bounds`, apart from the candidates left to
    the structural pass at the Draft PR.
 
