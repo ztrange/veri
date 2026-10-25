@@ -1631,6 +1631,12 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    rm -f .tdd/develop-rebase.exit .tdd/develop-rebase.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/detach-leaf.sh $S/supervise.sh develop-rebase $S/run-leaf.sh .tdd/develop-rebase.prompt --permission-mode bypassPermissions > .tdd/develop-rebase.out 2> .tdd/develop-rebase.err
    $S/wait-leaf.sh develop-rebase   # foreground; on exit 3 call it again
+   ```
+   Once the `develop-rebase` leaf has resolved the conflict, run the regrade block below
+   **before** `verify-rebase` is launched, so the verifier judges a tip whose `GRADED` lines are
+   current: a line made stale only by the rebase is no defect of the resolution, and a REJECT
+   for it would spend a revise attempt on work the run does next anyway. Then launch the verifier:
+   ```
    rm -f .tdd/verdict-rebase.exit .tdd/verdict-rebase.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/detach-leaf.sh $S/supervise.sh verdict-rebase $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" rebase .tdd/issue-<n>-spec.md <onto-sha> <pre-rebase-sha> > .tdd/verify-rebase.reason 2> .tdd/verify-rebase.err
    $S/wait-leaf.sh verdict-rebase   # foreground; on exit 3 call it again
@@ -1639,7 +1645,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    `REVISE_BUDGET` like any other phase; a malformed verdict does **bail** as a **system**
    failure (`no-verdict`).
    Only on a verify-rebase `PASS` does the run go on to ready the PR, and first as on exit 0:
-   the regrade block below, then the full test command once on the rebased tip, a bail on red (`rebased-tip-red`) with
+   the full test command once on the rebased tip (the regrade having already run before `verify-rebase`), a bail on red (`rebased-tip-red`) with
    `git reset --hard <pre-rebase-sha>` before `<base directory>/BAIL.md`'s push, and on green the push under
    the lease pinned to `<pre-rebase-sha>`.
 
