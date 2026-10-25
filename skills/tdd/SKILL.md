@@ -1318,8 +1318,12 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
    step**. It copies them — never the cosmetic ones — into the run's owed file under this
    step's name, where the Draft PR renders every step's, not just the last one's:
    ```
-   $S/refactor-owed.sh append .tdd/issue-<n>-refactor-owed.md "<STEP>" "$touched" < .tdd/develop-refactor.out
+   { cat .tdd/develop-refactor.out; <for each in-step candidate: its CANDIDATES: in-step line, then its own cover leaf's report>; } | $S/refactor-owed.sh append .tdd/issue-<n>-refactor-owed.md "<STEP>" "$touched"
    ```
+   Its input on stdin is the refactor leaf's report `.tdd/develop-refactor.out`, followed, for
+   each in-step candidate, by that candidate's `CANDIDATES: in-step` line and its own cover
+   leaf's report. `append` records an in-step candidate exactly when its own cover leaf
+   answered `COVERED: no`, and no other in-step candidate.
    `$touched` is the step's bounds: when all are test files, a structural candidate is
    recorded test-only — "test file" being `transform-touches-tests.sh`'s rule, under `tests/`
    or named `*.test.*`, so no transform could land it.
