@@ -166,9 +166,9 @@ answer. Each is a branch of its own:
   Then loop back to `next-unchecked.sh`, which now hands over the first of them. The ledger is
   committed before the run goes on because the committed ledger is what a resumed run reads:
   uncommitted, the replacement steps are lost and the step that could not be satisfied is
-  handed out again. **`add-ledger-step.sh` exit 1 → bail with cause `step-too-big`** — see
-  `<base directory>/BAIL.md` — exactly as a Green leaf's volunteered split does when it meets
-  `VERI_STEP_GROWTH`: the criteria are filed under `## Owed steps` and the plan is unchanged.
+  handed out again. **`add-ledger-step.sh` exit 1 → bail with cause `step-too-big`**, exactly
+  as a Green leaf's volunteered split does when it meets
+  `VERI_STEP_GROWTH`: the criteria are filed under `## Owed steps` and the plan is unchanged (see `<base directory>/BAIL.md`).
   **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see `<base directory>/BAIL.md`.
 - **exit 1 — the step needs the user.** `.tdd/exhausted-answer.txt` holds the leaf's answer:
   the criterion is wrong, contradicts another, or needs a decision this run has no authority
