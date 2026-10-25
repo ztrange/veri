@@ -320,3 +320,21 @@ def test_issue_2205_run_from_inside_the_runs_worktree_exits_2_with_a_diagnostic_
     code, out, err = run_cli(stop_reason, ["7"], cwd=worktree)
 
     assert (code, out, err) == (2, "", "stop-reason.sh: no run for issue 7 under .tdd/wt\n")
+
+
+def test_a_step_added_record_with_no_ts_among_timed_records_is_skipped_and_the_gaps_between_the_timed_ones_still_print_2322(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    run = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    run.mkdir(parents=True)
+    records = [{"ts": 100, "issue": "7", "event": "step-done"},
+               {"ts": 1000, "issue": "7", "event": "step-done"},
+               {"event": "step-added", "actor": "add-ledger-step", "step": "x"},
+               {"ts": 2001, "issue": "7", "event": "step-done"},
+               {"ts": 2500, "issue": "7", "event": "step-done"}]
+    (run / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in records))
+    (tmp_path / ".tdd" / "conductor-7.log").write_text(json.dumps(
+        {"type": "result", "is_error": False, "result": "Connection reset by peer"}) + "\n")
+
+    code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
+
+    assert (code, out) == (0, "unknown Connection reset by peer\ngap 1000 2001\n")
