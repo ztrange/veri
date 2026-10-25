@@ -38,10 +38,11 @@ def main(argv):
     code = _script("merge-lock.sh", "gate", "--pid", pid, "--", sys.executable, os.path.abspath(__file__), "--ci", pr)
     if code:
         return code
-    code = _script("merge-lock.sh", "gate", "--keep", "--pid", pid, "--", "git", "-C", argv[1], "rebase", "origin/main")
-    if code:
-        return code
-    return _script("merge-lock.sh", "gate", "--keep", "--pid", pid, "--", "git", "-C", argv[1], "push", "--force-with-lease", "origin", argv[2])
+    for git_args in (("rebase", "origin/main"), ("push", "--force-with-lease", "origin", argv[2])):
+        code = _script("merge-lock.sh", "gate", "--keep", "--pid", pid, "--", "git", "-C", argv[1], *git_args)
+        if code:
+            return code
+    return 0
 
 
 if __name__ == "__main__":
