@@ -90,3 +90,15 @@ def test_record_refuses_a_red_case_that_no_longer_exists_in_its_test_file_naming
         tests_frozen, ["record", ".tdd/x.record", "--red-case", "test_a.py::test_gone", "test_a.py"], cwd=tmp_path)
 
     assert (code, "test_a.py::test_gone" in out, record.read_text()) == (1, True, "old record\n")
+
+
+def test_record_with_a_red_case_still_present_records_exactly_as_without_it_2269(tmp_path, run_cli, tests_frozen):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "test_a.py").write_text("def test_kept():\n    assert 1\n")
+
+    plain = run_cli(tests_frozen, ["record", ".tdd/plain.record", "test_a.py"], cwd=tmp_path)
+    withcase = run_cli(
+        tests_frozen, ["record", ".tdd/case.record", "--red-case", "test_a.py::test_kept", "test_a.py"], cwd=tmp_path)
+
+    recorded = {p.name: p.read_text() for p in (tmp_path / ".tdd").iterdir()}
+    assert (plain[0], withcase, recorded.get("case.record")) == (0, (0, "", ""), recorded["plain.record"])

@@ -376,6 +376,7 @@ def main(argv):
             if not present:
                 write(sys.stdout, "tests-frozen.sh: red case %s::%s no longer exists\n" % (path, case))
                 return 1
+            del files[at:at + 2]
         if by_step and _refused_outside_repository():
             return 2
         deleted = []
