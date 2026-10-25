@@ -2,6 +2,8 @@
 import os
 import shutil
 import subprocess
+import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -266,3 +268,47 @@ def test_queued_merge_after_a_confirmed_merge_cuts_the_next_version_tag_on_origi
     dash_tagged = [c for c in dash_calls if "v0.11" in c]
 
     assert (code, len(tag_cmds), len(pushed), dash_code, dash_tagged) == (0, 1, 1, 0, [])
+
+
+@pytest.mark.process("queued-merge.sh and merge-lock.sh run as /bin/sh shims in a scratch repository, with gh and git planted on PATH")
+def test_queued_merge_finding_a_lock_left_by_a_dead_holder_reports_it_on_stderr_naming_that_holder_2372(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    real_git = shutil.which("git")
+    for args in (["init", "-q", "-b", "main"],
+                 ["-c", "user.name=veri", "-c", "user.email=veri@example.test", "commit", "-q", "--allow-empty", "-m", "initial"]):
+        subprocess.run([real_git, "-C", str(repo), *args], check=True)
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    plant(bin_dir, "gh", FAKE_GH)
+    plant(bin_dir, "git", FAKE_GIT)
+    env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "REAL_GIT": real_git,
+           "VERI_MERGE_LOCK_POLL": "0.05", "VERI_POLL": "0"}
+    child = subprocess.Popen([sys.executable, "-c", "pass"])
+    child.wait()
+    dead = str(child.pid)
+
+    def lock(*args):
+        return subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), *args], cwd=repo, env=env,
+                              stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=10)
+
+    lock("take", "--pid", dead)
+    errfile = tmp_path / "queued.err"
+    with open(errfile, "w") as err:
+        queued = subprocess.Popen(["/bin/sh", str(SCRIPTS / "queued-merge.sh"), "https://github.com/o/r/pull/7", str(repo), "feature", "-"],
+                                  cwd=repo, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=err)
+    try:
+        deadline = time.monotonic() + 10
+        while not errfile.read_text() and queued.poll() is None and time.monotonic() < deadline:
+            time.sleep(0.02)
+        reported = errfile.read_text()
+        lock("release", "--force")
+        try:
+            queued.wait(timeout=20)
+        except subprocess.TimeoutExpired:
+            queued.kill()
+        assert (dead in reported.split(), "stale" in reported.lower()) == (True, True)
+    finally:
+        if queued.poll() is None:
+            queued.kill()
+        queued.communicate()
