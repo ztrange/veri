@@ -5,11 +5,13 @@ import sys
 
 import github
 
+USAGE = "usage: park-issue.sh <issue-number> <cause> <unblock> [<pr-number|PR-URL>]\n"
+
 
 def main(argv):
     if len(argv) not in (3, 4):
         sys.stderr.write("park-issue.sh: too many arguments\n" if len(argv) > 4 else "")
-        sys.stderr.write("usage: park-issue.sh <issue-number> <cause> <unblock> [<pr-number|PR-URL>]\n")
+        sys.stderr.write(USAGE)
         return 2
     number, cause, unblock = argv[:3]
     if not number.strip("0") or not number.isascii():
@@ -20,7 +22,7 @@ def main(argv):
             sys.stderr.write("park-issue.sh: bad %s\n" % name)
             return 2
     if len(argv) == 4 and not re.fullmatch(r"[0-9]+|https://github\.com/[^/]+/[^/]+/pull/[0-9]+", argv[3]):
-        sys.stderr.write("usage: park-issue.sh <issue-number> <cause> <unblock> [<pr-number|PR-URL>]\n")
+        sys.stderr.write(USAGE)
         return 2
     pr = "PR: %s\n" % argv[3] if len(argv) == 4 else ""
     writes = [
