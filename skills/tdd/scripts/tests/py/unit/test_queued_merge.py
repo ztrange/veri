@@ -41,6 +41,8 @@ def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True,
             return 0, (ORIGIN_SHA if not state["rebased"] else "2222222") + "\n", ""
         if "rev-parse --verify HEAD" in line:
             return 0, (PUSHED_HEAD if state["rebased"] else "0000000") + "\n", ""
+        if "--git-common-dir" in line:
+            return 0, "/main/.git\n", ""
         if "tag --sort=-v:refname" in line:
             return 0, "v0.10\nv0.9\n", ""
         if line.startswith("gh api"):
@@ -215,3 +217,13 @@ def test_2425_queued_merge_refuses_a_pr_argument_that_is_not_a_pr_url_before_any
     code, _, err = run_cli(queued_merge, ["2415", "/wt", "feature", "the capability"])
 
     assert (code, "<pr-url>" in err, calls) == (2, True, [])
+
+
+def test_2425_queued_merge_deletes_the_local_branch_from_the_main_clone_after_the_worktree_is_removed(fake_processes, run_cli):
+    calls = scenario(fake_processes)
+
+    code, _, _ = run_cli(queued_merge, ARGV)
+
+    removed = first(calls, "worktree remove")
+    local = [i for i, c in enumerate(calls) if c.startswith("git -C /main ") and " branch " in c and c.endswith(" feature")]
+    assert (code, len(local), bool(local) and local[0] > removed) == (0, 1, True)
