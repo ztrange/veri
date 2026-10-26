@@ -50,9 +50,7 @@ def test_no_product_caller_a_skill_md_line_names_the_sh_exit_1_printing_skill_md
 @pytest.mark.process("no-product-caller.sh run against a real git repository")
 def test_no_product_caller_a_line_in_the_other_product_files_exit_1_printing_each_file_line(tmp_path):
     repo = repo_with(tmp_path, {
-        "skills/tdd/SKILL.md": "# tdd\n",
-        "skills/tdd-fix/SKILL.md": "# tdd-fix\n\n    scripts/old-thing.sh\n",
-        "skills/tdd-candidates/SKILL.md": "# tdd-candidates\nscripts/old-thing.sh\n",
+        "skills/tdd/SKILL.md": "# tdd\n\n    scripts/old-thing.sh\n",
         "Makefile": "test:\n\t@true\nold:\n\tscripts/old-thing.sh\n",
         f"{HOOKS}/reference-transaction": '#!/bin/sh\nscripts/old-thing.sh "$@"\n',
         "skills/tdd/scripts/veri/caller.py": 'import sys\n\n\nCALL = "old-thing.sh"\n',
@@ -61,7 +59,7 @@ def test_no_product_caller_a_line_in_the_other_product_files_exit_1_printing_eac
     code, out = check(repo, "old-thing.sh")
 
     assert code == 1
-    for hit in ("skills/tdd-fix/SKILL.md:3", "skills/tdd-candidates/SKILL.md:2", "Makefile:4",
+    for hit in ("skills/tdd/SKILL.md:3", "Makefile:4",
                 f"{HOOKS}/reference-transaction:2", "skills/tdd/scripts/veri/caller.py:4"):
         assert hit in out
 
@@ -94,8 +92,6 @@ def test_no_product_caller_a_line_only_under_a_tests_directory_exit_0_printing_n
 def test_no_product_caller_no_product_file_line_names_the_sh_exit_0_printing_nothing(tmp_path):
     repo = repo_with(tmp_path, {
         "skills/tdd/SKILL.md": "# tdd\n\n    scripts/new-thing.sh <base-sha>\n",
-        "skills/tdd-fix/SKILL.md": "# tdd-fix\n\n    scripts/new-thing.sh\n",
-        "skills/tdd-candidates/SKILL.md": "# tdd-candidates\nscripts/new-thing.sh\n",
         "Makefile": "test:\n\t@true\nnew:\n\tscripts/new-thing.sh\n",
         f"{HOOKS}/reference-transaction": '#!/bin/sh\nscripts/new-thing.sh "$@"\n',
         "skills/tdd/scripts/veri/caller.py": 'import sys\n\n\nCALL = "new-thing.sh"\n',
