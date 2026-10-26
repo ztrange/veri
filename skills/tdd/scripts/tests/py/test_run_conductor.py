@@ -3780,3 +3780,24 @@ def test_main_with_the_issue_body_fetch_unanswered_writes_one_skip_line_on_stder
     assert skips == ["run-conductor.sh: issue body unavailable, Requirements row IDs unchecked"]
     assert code == 0
     assert len(launches) == 1
+
+
+def test_cli_with_the_issue_body_fetch_unanswered_exits_with_the_conductors_own_code_not_2_issue_2373(
+        tmp_path, monkeypatch, run_cli, reaches_issue_body_boundary):
+    import github
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_claude_exiting(monkeypatch, 17, 0)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    def refused(number, field):
+        raise github.NoAnswer("")
+
+    monkeypatch.setattr(github, "gh_issue_view", refused)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, len(launches)) == (17, 1), stderr
