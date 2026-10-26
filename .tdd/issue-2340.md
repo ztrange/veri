@@ -1,0 +1,8 @@
+# Plan for #2340 — A ⟦skill-edit⟧ step that names a prose change runs an author even when its rows already grade PASS
+
+- [ ] skill-edit-step.sh given `--change "<change>"` (a sentence of the unit to delete or reword) launches an author even when the unit already grades PASS against its list, the author's prompt carrying that named change; once the author's attempt leaves the unit grading PASS it commits the unit, its list and GRADED and exits 0 ⟦criterion 1⟧
+- [ ] skill-edit-step.sh given `--change "<change>"` never counts an author attempt that leaves the unit's prose unchanged as done: the attempt is spent like a grader FAIL, and when every attempt in VERI_SKILL_EDIT_BUDGET leaves the prose unchanged it exits 1 with nothing committed and the unit, its list and GRADED as they were ⟦criterion 1⟧
+- [ ] skill-edit-step.sh given both `--added "<step>"` and `--change "<change>"` does not refuse a unit that grades PASS before any author ran: it launches an author as a `--change` step does instead of exiting 2 ⟦criterion 1⟧
+- [ ] skill-edit-step.sh given no `--change`, on a unit that already grades PASS against its list, launches no author, commits only the list and GRADED and exits 3, as today ⟦criterion 1⟧
+- [ ] skills/tdd/SKILL-EDIT.md tells the conductor that when a ⟦skill-edit⟧ step's text names a change to the prose (a sentence to delete or reword) it runs skill-edit-step.sh with `--change` and that change, pinned by a new case in skills/tdd/scripts/tests/py/unit/test_skill_edit_procedure.py ⟦criterion 1⟧
+- [ ] skills/tdd/SCRIPTS.md's skill-edit-step.sh entry, and the shim's usage comment, name `--change "<change>"` and its exits ⟦diff-checked⟧ ⟦criterion 1⟧
