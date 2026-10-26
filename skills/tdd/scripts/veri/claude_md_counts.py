@@ -1,4 +1,5 @@
 """claude_md_counts.sh's computation: the lines of a CLAUDE.md that state a count of the tree."""
+if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import re
 import sys
 

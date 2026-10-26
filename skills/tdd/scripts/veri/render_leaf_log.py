@@ -1,4 +1,5 @@
 """render-leaf-log.sh's rendering of a leaf's stream-json log, run in-process."""
+if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import io
 import json
 import sys

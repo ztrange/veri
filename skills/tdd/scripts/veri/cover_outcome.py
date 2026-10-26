@@ -1,4 +1,5 @@
 """cover-outcome.sh's answer, read off a cover leaf's report on stdin."""
+if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import sys
 
 from entry import write

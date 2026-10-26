@@ -1,4 +1,5 @@
 """pin-fast-tier.sh's fast-tier run over the tree a pin would commit."""
+if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import subprocess
 import sys

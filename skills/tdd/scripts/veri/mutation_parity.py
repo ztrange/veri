@@ -1,4 +1,5 @@
 """mutation-parity.sh's pairs check, run in-process."""
+if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import re
 import shutil

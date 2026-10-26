@@ -1,4 +1,5 @@
 """tests-frozen.sh's record and check, run in-process."""
+if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import ast
 import hashlib
 import os
