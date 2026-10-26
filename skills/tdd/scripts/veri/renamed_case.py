@@ -30,5 +30,6 @@ def renamed_to(name, old_source, new_source, taken):
     for other, (head, body) in sorted(case_texts(new_source).items()):
         if other not in taken and body == old[1] \
                 and head.replace(other, name, 1) == old[0]:
+            taken.add(other)
             return other
     return None
