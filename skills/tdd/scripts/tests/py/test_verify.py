@@ -1890,6 +1890,91 @@ def test_verify_sh_diff_still_launches_the_leaf_for_a_pytest_case_an_earlier_ste
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
+def test_2329_verify_sh_diff_launches_the_leaf_for_a_pytest_case_an_earlier_step_added_and_this_step_renamed_with_its_text_otherwise_unchanged(
+        run_cli, tmp_path, monkeypatch):
+    repo = tmp_path / "repo"
+    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
+        subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
+
+    def commit(message):
+        subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", message], check=True)
+        return subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True,
+                              capture_output=True).stdout.decode().strip()
+
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "tests").mkdir()
+    (repo / "tests" / "test_start.py").write_text("def test_keeps():\n    pass\n")
+    branch_base = commit("branch base")
+    (repo / "tests" / "test_start.py").write_text(
+        "def test_keeps():\n    pass\n\n\ndef test_exits_with_the_command_code():\n    assert 1 == 1\n")
+    step_base = commit("an earlier step adds test_exits_with_the_command_code")
+    (repo / "tests" / "test_start.py").write_text(
+        "def test_keeps():\n    pass\n\n\ndef test_exits_1():\n    assert 1 == 1\n")
+    commit("this step renames the case, its body unchanged")
+    started = tmp_path / "started"
+    claude = tmp_path / "claude-record"
+    claude.write_text('#!/bin/sh\necho started >> "%s"\nprintf \'VERDICT: PASS\\nREASON: fine.\'\n' % started)
+    claude.chmod(0o755)
+    (tmp_path / "spec.md").write_text(SPEC)
+    verify = importlib.import_module("veri.verify")
+
+    code, out, _ = run_cli(
+        verify, ["--step", "the case names what it asserts ⟦diff-checked⟧", "--fast-cmd", "make unit", "diff",
+                 str(tmp_path / "spec.md"), branch_base, step_base],
+        env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
+        cwd=repo)
+
+    assert (code, "test_exits_with_the_command_code" in out, started.exists()) == (0, False, True)
+
+
+@pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
+def test_2329_verify_sh_diff_exits_1_naming_a_renamed_case_whose_body_or_def_line_also_changed_and_a_removed_case_without_launching_the_leaf(
+        run_cli, tmp_path, monkeypatch):
+    repo = tmp_path / "repo"
+    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
+        subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
+
+    def commit(message):
+        subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", message], check=True)
+        return subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True,
+                              capture_output=True).stdout.decode().strip()
+
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "tests").mkdir()
+    (repo / "tests" / "test_start.py").write_text("def test_keeps():\n    pass\n")
+    branch_base = commit("branch base")
+    (repo / "tests" / "test_start.py").write_text(
+        "def test_keeps():\n    pass\n\n\ndef test_body_alpha():\n    assert 1 == 1\n"
+        "\n\ndef test_head_beta():\n    assert 2 == 2\n"
+        "\n\ndef test_gone_gamma():\n    assert 3 == 3\n")
+    step_base = commit("an earlier step adds three cases")
+    (repo / "tests" / "test_start.py").write_text(
+        "def test_keeps():\n    pass\n\n\ndef test_body_renamed():\n    assert 1 == 2\n"
+        "\n\ndef test_head_renamed(tmp_path):\n    assert 2 == 2\n")
+    commit("this step renames two cases and changes a line of each, and removes the third")
+    started = tmp_path / "started"
+    claude = tmp_path / "claude-record"
+    claude.write_text('#!/bin/sh\necho started >> "%s"\nprintf \'VERDICT: PASS\\nREASON: fine.\'\n' % started)
+    claude.chmod(0o755)
+    (tmp_path / "spec.md").write_text(SPEC)
+    verify = importlib.import_module("veri.verify")
+
+    code, out, _ = run_cli(
+        verify, ["--step", "the case names what it asserts \u27e6diff-checked\u27e7", "--fast-cmd", "make unit", "diff",
+                 str(tmp_path / "spec.md"), branch_base, step_base],
+        env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
+        cwd=repo)
+
+    assert (code, out.strip(), started.exists()) == (
+        1, "step deleted pytest cases an earlier step added: tests/test_start.py::test_body_alpha, "
+           "tests/test_start.py::test_gone_gamma, tests/test_start.py::test_head_beta", False)
+
+
+@pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
 def test_verify_sh_diff_exits_2_without_launching_the_leaf_when_the_step_base_sha_does_not_resolve_1486(
         run_cli, tmp_path, monkeypatch):
     repo = tmp_path / "repo"
