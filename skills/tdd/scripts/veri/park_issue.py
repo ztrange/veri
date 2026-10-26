@@ -24,7 +24,7 @@ def main(argv):
         ("comment", lambda: github.gh_issue_comment(number, github.PARKED_HEADING + "\nCause: %s\n%sUnblock: %s\n" % (cause, pr, unblock))),
     ]
     if len(argv) == 4:
-        writes.append(("PR write", lambda: github.gh_issue_add_label(argv[3], "parked")))
+        writes.append(("PR write", lambda: github.gh_issue_add_label(argv[3].rsplit("/", 1)[-1], "parked")))
     for name, write in writes:
         try:
             write()

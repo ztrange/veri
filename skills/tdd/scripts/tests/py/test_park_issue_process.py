@@ -395,3 +395,35 @@ def test_park_issue_exits_2_naming_the_label_write_when_gh_fails_to_create_the_m
 
     assert ran.returncode == 2, (ran.returncode, ran.stderr, log.read_text())
     assert "label" in ran.stderr, ran.stderr
+
+
+URL_REFUSING_GH_STUB = """#!/bin/sh
+echo "ARGS: $*" >> "$GH_LOG"
+for a in "$@"; do
+  case "$a" in
+    */issues/http*) echo "gh: Not Found (HTTP 404)" >&2; exit 1 ;;
+  esac
+done
+echo '{}'
+"""
+
+
+@pytest.mark.process("park-issue.sh run against a gh stub that refuses a label write aimed at a URL")
+def test_park_issue_labels_the_pr_parked_through_the_number_path_when_given_a_pr_url_2429(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(URL_REFUSING_GH_STUB)
+    gh.chmod(0o755)
+    log = tmp_path / "gh.log"
+    log.write_text("")
+
+    ran = subprocess.run([str(SCRIPTS / "park-issue.sh"), "7", "held for review", "a human merges",
+                          "https://github.com/ztrange/veri/pull/12"],
+                         cwd=tmp_path, capture_output=True, text=True, stdin=subprocess.DEVNULL,
+                         env={"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+                              "GH_LOG": str(log), "PYTHONDONTWRITEBYTECODE": "1"})
+
+    recorded = log.read_text()
+    assert "repos/{owner}/{repo}/issues/12/labels" in recorded, recorded
+    assert ran.returncode == 0, ran.stderr
