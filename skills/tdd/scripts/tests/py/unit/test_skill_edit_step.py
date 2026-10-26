@@ -1114,3 +1114,31 @@ def test_an_added_step_given_a_change_on_a_unit_graded_pass_before_any_author_ra
                                                str(tmp_path / "issue.md"), "unit.md"])
 
     assert (code, len(authors), len(commits)) == (0, 1, 1), (code, err, authors, commits)
+
+
+def test_a_run_given_no_change_on_a_unit_graded_pass_launches_no_author_commits_only_the_list_and_graded_and_exits_3_2340(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n- a merge is in flight;\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    launched = []
+    commands = []
+
+    def run(cmd, **kw):
+        commands.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
+
+    adds = [c[2:] for c in commands if c[:2] == ["git", "add"]]
+    assert launched == [] and code == 3, (code, out, err, launched)
+    assert len(adds) == 1 and sorted(adds[0]) == sorted(["REQUIREMENTS.md", "GRADED"]), adds
