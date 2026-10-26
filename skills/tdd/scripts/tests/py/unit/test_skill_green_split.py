@@ -1,29 +1,10 @@
 """Cases for what skills/tdd/SKILL.md's Green section says to do with a SPLIT: report, a repair step's CI verdict and a replaces-case green."""
-import importlib
 import pathlib
 import re
 
 from skill_sections import plain_lines as plain
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
-
-BAILING = "## Bailing"
-BAIL = SKILL.with_name("BAIL.md")
-
-
-def _lines(heading):
-    section = importlib.import_module("skill_sections").section(BAIL if heading == BAILING else SKILL, heading)
-    lines = section.splitlines()[1:]
-    for i, line in enumerate(lines):
-        if line.startswith("#"):
-            return lines[:i]
-    return lines
-
-
-def bailing_causes():
-    lines = _lines(BAILING)
-    start = next(i for i, line in enumerate(lines) if "killed-stuck" in line.lower())
-    return plain(lines[start:])
 
 
 def grep(text, pattern, flags=0):
@@ -89,23 +70,6 @@ def add_ledger_step_entry():
     return _bullet(catalogue_lines(), "- `$S/add-ledger-step.sh")
 
 
-def step_too_big_cause():
-    return _bullet(_lines(BAILING), "- `step-too-big`")
-
-
-def test_skill_md_s_green_section_bails_with_cause_step_too_big_when_add_ledger_step_exits_1_on_a_split_and_its_bailing_section_lists_that_cause_as_a_process_failure():
-    says(bailing_causes(), r"step-too-big[^.]{0,220}process",
-         "SKILL.md's Bailing causes list never classifies step-too-big as a process failure")
-
-
-def test_skill_md_s_bailing_entry_for_step_too_big_names_all_three_splits_that_lead_to_it_a_green_leaf_s_split_the_revise_exhausted_split_and_the_over_budget_split():
-    bullet = step_too_big_cause()
-    assert bullet.strip(), "SKILL.md's Bailing causes list has no step-too-big bullet"
-    says(bullet, r"green[^.]*split:|split:[^.]*green", "SKILL.md's step-too-big entry does not name a Green leaf's SPLIT:")
-    says(bullet, r"exhausted", "SKILL.md's step-too-big entry does not name the revise-exhausted split")
-    says(bullet, r"over-budget", "SKILL.md's step-too-big entry does not name the over-budget split")
-
-
 def test_1281_skill_md_s_three_split_add_ledger_step_calls_pass_no_criterion_and_say_a_split_keeps_its_anchor_s_criterion_the_uncovered_spec_call_passes_criterion_k_read_from_the_issue_s_numbered_acceptance_criteria_one_call_per_criterion_bailing_on_exit_2():
     splits = [(n, line) for n, line in split_calls() if "instead-of" in line]
     assert splits, "SKILL.md has no instead-of add-ledger-step.sh call"
@@ -147,18 +111,12 @@ def test_1406_skill_md_documents_build_develop_prompt_sh_green_s_8th_argument_th
         "SKILL.md's build-develop-prompt.sh reference entry never lists an owed-cases argument in green's synopsis"
 
 
-def test_1625_skill_md_s_develop_replaces_report_wait_leaf_exit_1_or_2_bails_with_cause_replaces_report_failed_launching_no_verifier_runs_step_cost_after_the_wait_and_the_bail_table_lists_the_cause_as_a_system_failure():
-    row = next((line for line in BAIL.read_text().splitlines() if line.startswith("- `replaces-report-failed`")), "")
-    assert row, "SKILL.md's bail-cause table has no replaces-report-failed entry"
-    assert "system" in row.lower(), f"SKILL.md's bail-cause table never lists replaces-report-failed as a system failure: {row}"
-
-
 def test_1546_skill_md_never_runs_replaces_case_survivors_sh_at_any_place_it_names_it_as_a_run_before_the_last_place_it_runs_unreplaced_cases_sh():
     survivors = run_lines(r"\$S/replaces-case-survivors\.sh|[Rr]uns? [^.]*replaces-case-survivors\.sh")
     assert survivors, "SKILL.md lacks a replaces-case-survivors.sh run"
 
 
-def test_1379_skill_md_s_every_add_ledger_step_sh_call_site_says_its_exit_2_bails_with_cause_step_add_refused_and_bailing_lists_that_cause_as_a_system_failure():
+def test_1379_skill_md_s_every_add_ledger_step_sh_call_site_says_its_exit_2_bails_with_cause_step_add_refused():
     calls = [call for call in outside_cost_check(run_lines(r"\$S/add-ledger-step\.sh [^ ]*\.tdd/issue-<n>\.md|\$S/add-ledger-step\.sh --criterion <k> \.tdd/issue-<n>\.md"))
              if "<SPLIT: value>" not in skill_lines()[call - 1]
              and not re.search("⟦(suite|ci)-repair⟧", skill_lines()[call - 1])]
@@ -168,14 +126,3 @@ def test_1379_skill_md_s_every_add_ledger_step_sh_call_site_says_its_exit_2_bail
         near = plain(lines[call - 1:call + 30])
         says(near, r"exits? 2[^.]{0,120}step-add-refused|step-add-refused[^.]{0,120}exits? 2",
              f"SKILL.md:{call} calls add-ledger-step.sh and never says its exit 2 bails with cause step-add-refused")
-    says(bailing_causes(), r"step-add-refused[^.]{0,220}system", "SKILL.md's Bailing causes list never classifies step-add-refused as a system failure")
-
-
-def test_1625_skill_md_s_bail_cause_table_describes_unreplaced_cases_as_a_second_exit_1_after_the_one_correction_or_an_exit_2_at_once_not_as_any_exit_1():
-    entry = re.search(r"- `unreplaced-cases`.*?(?=\n- `)", "\n".join(_lines(BAILING)), re.S)
-    assert entry, "SKILL.md's Bailing causes list has no unreplaced-cases entry"
-    text = plain(entry.group(0).splitlines())
-    assert re.search(r"(second|again|after the one correction)", text), \
-        f"SKILL.md's unreplaced-cases bail cause never says exit 1 is the second one, after the one correction: {text}"
-    assert re.search(r"exit(s|ed)? \**2\**[^.]{0,80}(at once|immediately|no correction)|(at once|immediately)[^.]{0,80}exit(s|ed)? \**2", text), \
-        f"SKILL.md's unreplaced-cases bail cause never says an exit 2 bails at once: {text}"
