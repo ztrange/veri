@@ -288,6 +288,7 @@ def main(argv):
         sys.stderr.write("VERI_PYTEST_WORKERS must be a whole number of at least 1; got %s.\n" % workers)
         return 2
     import pytest
+    os.environ["TMPDIR"] = "/tmp"
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     os.environ["PYTEST_PLUGINS"] = ",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "small_case_guard", "network_guard", "private_tmp_path", "serial_seen"]))
