@@ -2,7 +2,7 @@
 
 - [x] verify-diff (`verify.py`'s ⟦diff-checked⟧ deletion check) accepts a step that renames a pytest case an earlier step added since the branch base, when the same file at HEAD has a case of another name, absent at the step base, whose text is identical to the old case's except the name on its `def` line; the rename is decided by one function in a `veri/` module that `tests_frozen.py` can also call ⟦criterion 1⟧
 - [x] verify-diff still exits 1 naming the case (`step deleted pytest cases an earlier step added: <path>::<case>`) when a case an earlier step added is renamed and any line of it besides the name on its `def` line also changed ⟦criterion 1⟧
-- [ ] verify-diff still exits 1 naming the case when a case an earlier step added is removed at HEAD with no renamed counterpart in the same file ⟦criterion 1⟧
+- [x] verify-diff still exits 1 naming the case when a case an earlier step added is removed at HEAD with no renamed counterpart in the same file ⟦criterion 1⟧
 - [ ] `tests-frozen.sh check-earlier` exits 0 for an earlier step's recorded case renamed at HEAD with its text otherwise unchanged, checking it under its new name against the old case's recorded body, and decides the rename through the same shared function verify-diff calls ⟦criterion 2⟧
 - [ ] `tests-frozen.sh check-earlier` exits 1, printing the old case's name and its step, when an earlier step's recorded case is renamed and its body also changed ⟦criterion 2⟧
 - [ ] verify-diff's deletion check and `tests_frozen.py`'s `_check_earlier` decide a rename through one shared function, with no second rename rule in either module, so a mutant that makes that function always answer "not renamed" turns both criteria's accepting cases red ⟦diff-checked⟧ ⟦criterion 3⟧
