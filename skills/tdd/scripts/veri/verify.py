@@ -175,15 +175,15 @@ def deleted_cases(branch_base, step_base):
     if None in (before, middle, after):
         return None
     kept = {case for _, case in after}
-    return sorted(case for case in middle - before
-                  if case[1] not in kept and not was_renamed(case, step_base, middle))
+    taken = {other for _, other in middle}
+    return sorted(case for case in sorted(middle - before)
+                  if case[1] not in kept and not was_renamed(case, step_base, taken))
 
 
-def was_renamed(case, step_base, middle):
+def was_renamed(case, step_base, taken):
     path, name = case
     old = git("show", "%s:%s" % (step_base, path))
     new = git("show", "HEAD:" + path)
-    taken = {other for _, other in middle}
     return renamed_case.renamed_to(name, old.stdout.decode(), new.stdout.decode(), taken) is not None
 
 
