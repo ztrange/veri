@@ -6,8 +6,6 @@ import sys
 USAGE = "usage: no-product-caller.sh <name>.sh"
 PRODUCT_FILES = [
     "skills/tdd/SKILL.md",
-    "skills/tdd-fix/SKILL.md",
-    "skills/tdd-candidates/SKILL.md",
     "Makefile",
 ]
 VERI_DIR = "skills/tdd/scripts/veri"
