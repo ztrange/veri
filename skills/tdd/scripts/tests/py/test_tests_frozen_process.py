@@ -1215,6 +1215,35 @@ def test_check_earlier_exits_1_naming_the_old_case_and_its_step_when_an_earlier_
 
 
 @pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_check_earlier_exits_1_naming_exactly_one_case_when_two_identical_earlier_cases_are_removed_for_one_added_case_2419(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier, current = "step one adds two cases", "step two folds them into one"
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_older_case():\n    assert True\n\n\ndef test_alpha_2419():\n    assert 1 == 1\n"
+        "\n\ndef test_beta_2419():\n    assert 1 == 1\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "step one")
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_older_case():\n    assert True\n\n\ndef test_gamma_2419():\n    assert 1 == 1\n")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "step two")
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert code == 1
+    assert len(out.splitlines()) == 1
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
 def test_check_earlier_exits_1_naming_the_case_and_its_step_when_the_case_or_its_whole_file_was_deleted_2125(
         tmp_path, run_cli, tests_frozen):
     (tmp_path / "tests").mkdir()
