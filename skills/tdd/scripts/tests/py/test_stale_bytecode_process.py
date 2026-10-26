@@ -95,3 +95,19 @@ def test_shim_run_outside_make_after_a_same_second_mutation_reads_the_current_so
 
     assert (first.returncode, first.stdout) == (0, "collapse non-alphanumerics to a single hyphen\n")
     assert (second.returncode, second.stdout) == (3, "")
+
+
+@pytest.mark.process("python3 run directly on a copy of veri/next_unchecked.py with VERI_PYCACHE under tmp_path and no PYTHONPYCACHEPREFIX in its environment")
+@pytest.mark.tree_audit("a copy of veri/ made into tmp_path")
+def test_direct_module_run_writes_its_bytecode_under_veri_pycache_not_beside_the_source_2405(tmp_path):
+    veri = tmp_path / "veri"
+    shutil.copytree(SCRIPTS / "veri", veri, ignore=shutil.ignore_patterns("__pycache__"))
+    cache = tmp_path / "pycache"
+    env = {k: v for k, v in os.environ.items() if k != "PYTHONPYCACHEPREFIX"}
+    env["VERI_PYCACHE"] = str(cache)
+    ran = subprocess.run([sys.executable, str(veri / "next_unchecked.py")], input=LEDGER,
+                         env=env, cwd=tmp_path, capture_output=True, text=True)
+
+    assert ran.returncode == 0
+    assert list(cache.rglob("ledger.*.pyc")) != []
+    assert list((veri / "__pycache__").glob("ledger.*.pyc")) == []
