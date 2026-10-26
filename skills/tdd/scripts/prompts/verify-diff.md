@@ -19,6 +19,8 @@ files the diff touched, each through the wrapper {{INCLUDE:_timed-test-run-tier.
 
 {{INCLUDE:_exit-status-back.md}} so a red run stays red.
 
+{{INCLUDE:_verify-coverage-probe.md}}
+
 PASS if the diff satisfies the step's criterion. REJECT, naming where the diff falls short,
 otherwise. REJECT, too, if the fast command or the affected suites are red. REJECT, too,
 if the step's own commits add a test — those in

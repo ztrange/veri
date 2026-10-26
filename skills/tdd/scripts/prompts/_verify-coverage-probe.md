@@ -1,0 +1,1 @@
+A judgement that a change is or is not covered by a case is made by running the fast command you were given, `{{FAST_CMD}}`, and the affected suites, never one test file alone: a single file's green is not proof that no case covers the change. A REJECT on that ground names the exact command that was run.
