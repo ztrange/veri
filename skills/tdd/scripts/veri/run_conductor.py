@@ -1,4 +1,5 @@
 """run-conductor.sh's launch of one conductor, run in-process."""
+if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 # hazard: runs on the python3 it may refuse, so nothing here may need more than Python 3.9.
 import glob
 import os

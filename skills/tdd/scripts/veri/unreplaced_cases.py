@@ -1,4 +1,5 @@
 """unreplaced-cases.sh's answer: the bash cases a replaces-case step names that have no pytest replacement."""
+if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import re
 import sys

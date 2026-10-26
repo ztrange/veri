@@ -4,6 +4,7 @@ run's `usage` events.
 The figure is leaf spend only. The conductor's own spending is in no `usage` event, so it is
 in no figure this prints — never quote one as "what this step cost" in full.
 """
+if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import sys
 

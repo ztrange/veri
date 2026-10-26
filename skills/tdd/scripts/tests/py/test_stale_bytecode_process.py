@@ -136,3 +136,30 @@ def test_direct_module_run_with_a_stale_tunables_pyc_planted_beside_the_source_u
             planted.write_bytes(original)
 
     assert (ran.returncode, ran.stdout) == (0, "collapse non-alphanumerics to a single hyphen\n")
+
+
+@pytest.mark.process("python3 run directly on every runnable module of a copy of veri/ with VERI_PYCACHE under tmp_path, an empty stdin and no PYTHONPYCACHEPREFIX in its environment")
+@pytest.mark.timeout(120)
+@pytest.mark.tree_audit("a copy of veri/ made into tmp_path, swept for .pyc files after each module's run")
+def test_every_directly_runnable_module_keeps_its_bytecode_out_of_the_tree_2405(tmp_path):
+    veri = tmp_path / "veri"
+    shutil.copytree(SCRIPTS / "veri", veri, ignore=shutil.ignore_patterns("__pycache__"))
+    env = {k: v for k, v in os.environ.items() if k not in ("PYTHONPYCACHEPREFIX", "PYTHONDONTWRITEBYTECODE")}
+    env.update(VERI_PYCACHE=str(tmp_path / "pycache"), PATH="/nonexistent", HOME=str(tmp_path))
+    work = tmp_path / "work"
+    work.mkdir()
+    runnable = sorted(p for p in veri.glob("*.py") if "__main__" in p.read_text() and p.name != "pytest_leg.py")
+    leaked = {}
+    for module in runnable:
+        try:
+            subprocess.run([sys.executable, str(module)], input="", env=env, cwd=work,
+                           capture_output=True, text=True, timeout=3)
+        except subprocess.TimeoutExpired:
+            pass
+        found = sorted(p.name for p in veri.rglob("*.pyc"))
+        if found:
+            leaked[module.name] = found
+        shutil.rmtree(veri / "__pycache__", ignore_errors=True)
+
+    assert runnable != []
+    assert leaked == {}

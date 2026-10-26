@@ -1,4 +1,5 @@
 """criterion-finished.sh's computation, run in-process."""
+if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import sys
 
 import ledger
