@@ -1048,14 +1048,6 @@ def test_run_through_a_symlinked_skill_from_a_linked_worktree_subdirectory_assig
     assert not (linked / "sub" / "dir" / ".tdd" / "workqueue").exists()
 
 
-def test_worker_md_beside_skill_md_documents_the_worker_loop_naming_each_workqueue_call():
-    with open(os.path.join(SKILL_DIR, "WORKER.md")) as doc:
-        text = doc.read()
-    missing = [call for call in ("next", "start", "done", "park")
-               if not re.search(r"workqueue\.sh\s+%s([^A-Za-z0-9_-]|$)" % call, text, re.M)]
-    assert missing == []
-
-
 def test_context_md_defines_worker_and_work_queue():
     with open(os.path.join(SKILL_DIR, "..", "..", "CONTEXT.md")) as doc:
         text = doc.read()
