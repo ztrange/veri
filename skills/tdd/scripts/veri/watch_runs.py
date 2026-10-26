@@ -16,7 +16,7 @@ def _runs():
 
 
 def _starting():
-    return pid_file.starting_runs(".")
+    return pid_file.starting_runs(status.main_working_tree())
 
 
 def live_conductors():
