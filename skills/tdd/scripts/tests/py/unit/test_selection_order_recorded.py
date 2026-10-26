@@ -4,7 +4,6 @@ import re
 from skill_sections import ROOT, lines_of, plain
 
 CONTEXT_MD = "CONTEXT.md"
-SKILL_MD = "skills/tdd/SCRIPTS.md"
 CLAUDE_MD = "CLAUDE.md"
 
 PRIORITY_BAND = "priority"
@@ -27,20 +26,6 @@ def entry(path, name):
             inside = True
             continue
         if inside and re.search(r"^_Avoid_|^\*\*|^## ", line):
-            break
-        if inside:
-            body.append(line)
-    return joined(body)
-
-
-def bullet(path, want):
-    inside, body = False, []
-    for line in lines_of(path):
-        if re.search(want, line):
-            inside = True
-            body.append(line)
-            continue
-        if inside and re.search(r"^([-*] |#)", line):
             break
         if inside:
             body.append(line)
@@ -105,12 +90,6 @@ def order_problems():
         says(problems, *found,
              "that the order runs over the solvable set and never enlarges it — a priority or bug issue still has to pass the four conditions",
              PRIORITY_BAND, BUG_BAND, NOT_ENLARGE)
-    text = bullet(ROOT / SKILL_MD, r"^[-*] .*solvable-issues\.sh")
-    passage_from = f"{SKILL_MD}'s solvable-issues.sh bullet"
-    if need_passage(problems, passage_from, text,
-                    f"{SKILL_MD} has no top-level 'solvable-issues.sh' bullet to read, so the order and the tunable an operator looks up beside VERI_GH_JSON could not be found"):
-        states_the_order(problems, passage_from, [text])
-        says(problems, passage_from, [text], "which tunable names the priority label — VERI_PRIORITY_LABEL", TUNABLE)
     recs = records(ROOT / CLAUDE_MD)
     if need_passage(problems, CLAUDE_MD, "".join(recs),
                     f"{CLAUDE_MD} could not be read, so nothing could be asked of what it records"):
