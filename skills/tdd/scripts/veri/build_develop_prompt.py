@@ -22,28 +22,6 @@ WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "transform": 4, "diff":
         **dict.fromkeys(INTERFACE_PHASES, 4)}
 WANT_PHASES = "|".join(PHASES)
 REVISABLE_PHASES = REVISE_PHASES + INTERFACE_PHASES + ("rebase",)
-TEST_REWRITE_GRANT = (
-    "**A rewritten test is a new test, and owes a new prediction**: predict its failure\n"
-    "   before you run any suite, in `.tdd/red-prediction.md` \u2014 which assertion fires first against the unmodified\n"
-    "   production code, the observed-versus-expected values it fires on, and the shape of the\n"
-    "   message the suite will print \u2014 then run, saving the run's output to `.tdd/red-run-output.txt`, and compare what it printed against that\n"
-    "   prediction; never adjust the prediction to fit what you saw. The leaf whose attempt was\n"
-    "   rejected predicted a different test, so there is nothing here for you to inherit.").encode()
-WRONG_TEST_REPORT = (
-    "\n\nor, when the green you are redoing has a test that looks wrong, those lines replaced by one:\n\n"
-    "WRONG_TEST: <why the test looks wrong>\n\n"
-    "Name in that line the existing test case the step's criterion contradicts.\n\n"
-    "or, when older cases fail only because the step supersedes what they pin, those lines replaced by\n"
-    "one per such case:\n\n"
-    "SUPERSEDED: <the older case's name, written out in full as its test file spells it, without quotes>\n\n"
-    "A case the step's change does not supersede is a `WRONG_TEST:` line, never a `SUPERSEDED:` one.").encode()
-WRONG_TEST_FORMAT = (
-    "\n\nREPORT-FORMAT revise-wrong-test | keys WRONG_TEST: SUPERSEDED: | suite exempt: the test is wrong, "
-    "so nothing was changed and no suite ran").encode()
-TEST_REWRITE_NONE = b"**Leave the test files as they are**: this phase has no test of its own to redo."
-TEST_MOVE_CONTRACT_A = (
-    "**Move the tests off the old interface, as contract-a does**: rewrite or delete only the tests the\n"
-    "   rejection names that still exercise it. No new failing test is written, so no prediction is owed.").encode()
 WANT_REVISE_PHASES = "|".join(REVISABLE_PHASES)
 HERE = paths.scripts_of(__file__)
 NODE_ID_RULE = (b"The test id is the pytest node id, `<path from the repository root>::<test name>`, "
@@ -187,13 +165,19 @@ def main(argv):
     if phase == "refactor":
         values["REFACTOR_BUDGET"] = os.fsencode(tunables.read("VERI_REFACTOR_BUDGET") or "5")
     values["REVISE_PHASE"] = os.fsencode(revised_phase)
-    values["TEST_REWRITE"] = {"red": TEST_REWRITE_GRANT, "contract-a": TEST_MOVE_CONTRACT_A}.get(revised_phase, TEST_REWRITE_NONE)
-    if revised_phase == "green":
-        values["WRONG_TEST_REPORT"] = WRONG_TEST_REPORT
-        values["WRONG_TEST_FORMAT"] = WRONG_TEST_FORMAT
     try:
         text = _expand(_read(paths[0]), prompts_b)
         values["SHARED"] = _expand(_read(paths[1]), prompts_b)
+        def fragment(slot):
+            return _expand(b"{{INCLUDE:_develop-" + slot + b".md}}", prompts_b)
+        if b"{{TEST_REWRITE}}" in text:
+            values["TEST_REWRITE"] = fragment({"red": b"test-rewrite-grant", "contract-a": b"test-move-contract-a"}
+                                              .get(revised_phase, b"test-rewrite-none"))
+        if revised_phase == "green":
+            if b"{{WRONG_TEST_REPORT}}" in text:
+                values["WRONG_TEST_REPORT"] = fragment(b"wrong-test-report")
+            if b"{{WRONG_TEST_FORMAT}}" in text:
+                values["WRONG_TEST_FORMAT"] = fragment(b"wrong-test-format")
         for placeholder, path in optional.items():
             values[placeholder] = _read(path)
             if placeholder in marked:
