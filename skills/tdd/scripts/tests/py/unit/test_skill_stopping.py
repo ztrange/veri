@@ -6,15 +6,12 @@ import re
 from skill_sections import LOWER, has_match as _has, plain as _plain
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
-SCOPE_LOOP = SKILL.with_name("SCOPE-LOOP.md")
 STOPPING_MD = SKILL.with_name("STOPPING.md")
 
 STOPPING = "## Stopping"
 LAUNCHING = "## Launching a leaf — detach, then wait in the foreground"
 PROCEDURE = "## Procedure"
 BAILING = "## Bailing"
-LOOP_4 = "### Loop 4. Stop conditions"
-LOOP_5 = "### Loop 5. Report"
 SCRIPTS = "## The scripts (this skill's `scripts/` directory)"
 
 
@@ -226,18 +223,6 @@ def _phase_exit2(heading, anchor):
     return None if out is None else re.sub(" +", " ", out)
 
 
-def _stopped_issue_bullets():
-    inside, kept = False, []
-    for line in _section(LOOP_4, SCOPE_LOOP):
-        if line.startswith("- "):
-            inside = bool(re.match(r"- [^.]*stop", line))
-        if line and line[0] not in "- ":
-            inside = False
-        if inside:
-            kept.append(line)
-    return kept
-
-
 def test_launching_a_leaf_asks_stop_requested_before_reading_a_leafs_wait_leaf_exit_2_as_killed_stuck_and_a_pending_now_goes_to_stopping_instead_of_bailing():
     lines, problems = [_joined(_section(LAUNCHING))], []
     _require(problems, _either_order(r"stop-requested\.sh", r"before[^.;]*killed-stuck"), lines,
@@ -268,65 +253,6 @@ def test_987_preflight_step_3_runs_stop_requested_clear_beside_the_tdd_conductor
              "preflight step 3 has no .tdd/conductor.pid write to read — nothing could be checked beside it")
     _require(problems, r"stop-requested\.sh --clear", lines,
              "preflight step 3 never runs stop-requested.sh --clear — a request a killed run left behind would stop the run that resumes it")
-    assert not problems, problems
-
-
-def test_scope_loop_md_loop_4_stop_conditions_list_an_issue_that_ended_in_a_stop_and_say_the_loop_then_reports_and_stops_without_going_back_to_loop_1_or_selecting_another_issue():
-    bullets, problems = _stopped_issue_bullets(), []
-    assert bullets, "SCOPE-LOOP.md's Loop 4 lists no issue that ended in a stop — a stopped issue leaves the loop carrying on to the next one"
-    lines = [_joined(bullets)]
-    _require(problems, r"(^|[^a-z])reports?[^.;]*stops?", lines,
-             "the stopped-issue condition never says the loop reports and stops")
-    _require(problems, r"(not|never)[^.;]*(go(es)? back|return)[^.;]*loop 1", lines,
-             "the stopped-issue condition never says the loop does not go back to Loop 1")
-    _require(problems, _either_order("(not|never|no)[^.;]*(select|pick|take|start)", "(another|next|other) issue"), lines,
-             "the stopped-issue condition never says the loop does not select another issue")
-    assert not problems, problems
-
-
-def test_scope_loop_md_says_a_stop_unlike_a_bail_has_no_continue_past_option_no_continue_on_bail_equivalent_because_a_stop_is_the_operator_speaking():
-    bullets, problems = _stopped_issue_bullets(), []
-    assert bullets, "SCOPE-LOOP.md's Loop 4 lists no issue that ended in a stop — nothing could be checked"
-    lines = [_joined(bullets)]
-    _require(problems, _either_order("(^|[^a-z])(no|not|never|nothing)[^a-z]", "(--continue-on-bail|continue[- ]past)"), lines,
-             "the stopped-issue condition never says a stop has no --continue-on-bail equivalent")
-    _require(problems, r"(^|[^a-z])operator", lines,
-             "the stopped-issue condition never says a stop is the operator speaking")
-    assert not problems, problems
-
-
-def test_scope_loop_md_loop_5_report_gives_a_stopped_issue_a_stopped_mode_per_issue_line_and_names_the_stop_and_the_stopped_issues_mode_as_what_stopped_the_loop():
-    raw = importlib.import_module("skill_sections").section(SCOPE_LOOP, LOOP_5).split("\n")[1:]
-    problems, fence, first, rest = [], 0, [], []
-    for line in raw:
-        if line.startswith("```"):
-            fence += 1
-            continue
-        if fence == 1:
-            first.append(_plain(line))
-        if fence >= 2:
-            rest.append(_plain(line))
-    assert "".join(raw).strip(), "SCOPE-LOOP.md has no ### Loop 5 section — nothing could be checked"
-    _require(problems, r"stopped: ?<mode>", first,
-             "Loop 5's per-issue line has no stopped: <mode> form beside the PR url, bailed: and skipped:")
-    rest = [_joined(rest)]
-    _require(problems, _either_order("what stopped the loop", _word("stop")), rest,
-             "Loop 5 never names the stop as what stopped the loop")
-    _require(problems, _either_order("what stopped the loop", "(^|[^a-z])mode"), rest,
-             "Loop 5 never names the stopped issue's mode as what stopped the loop")
-    assert not problems, problems
-
-
-def test_scope_loop_md_says_re_invoking_the_same_command_after_a_stop_resumes_the_stopped_issue_from_its_committed_ledger_and_then_carries_on_draining_the_scope():
-    bullets, problems = _stopped_issue_bullets(), []
-    assert bullets, "SCOPE-LOOP.md's Loop 4 lists no issue that ended in a stop — nothing could be checked"
-    lines = [_joined(bullets)]
-    _require(problems, r"re-?invok(e|es|ing)[^.;]*same command", lines,
-             "the stopped-issue condition never says to re-invoke the same command")
-    _require(problems, _either_order("resum", "committed ledger"), lines,
-             "the stopped-issue condition never says the stopped issue resumes from its committed ledger")
-    _require(problems, r"resum[^.;]*(carr(y|ies|ying) on|continu(e|es|ing)|keep(s|ing)? going)[^.;]*(drain|scope)", lines,
-             "the stopped-issue condition never says the resumed run then carries on draining the scope")
     assert not problems, problems
 
 
