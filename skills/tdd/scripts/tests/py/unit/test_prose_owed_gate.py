@@ -176,3 +176,35 @@ def test_prose_owed_sh_prints_an_orphan_for_a_unit_in_a_graded_file_outside_skil
     code, out, err = run_cli(prose_owed, [str(tmp_path)])
 
     assert (code, out.split("\n")[:-1]) == (1, ["operator/GONE.md (orphan)"]), (code, out, err)
+
+
+def test_prose_owed_sh_after_a_units_text_or_its_requirement_rows_change_prints_that_unit_and_only_that_unit_2474(tmp_path, monkeypatch, run_cli):
+    import importlib
+
+    prose_owed = importlib.import_module("veri.prose_owed")
+    grade_prose = importlib.import_module("veri.grade_prose")
+    one, two = "skills/demo/one.md", "skills/demo/two.md"
+    (tmp_path / "skills" / "demo").mkdir(parents=True)
+    (tmp_path / one).write_text("The widget is blue.\n")
+    (tmp_path / two).write_text("The gadget is red.\n")
+
+    def table(unit, claim):
+        return "## %s\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | %s | because |\n\n" % (unit, claim)
+
+    def write_list(claim_two):
+        (tmp_path / "REQUIREMENTS.md").write_text(table(one, "The widget is blue.") + table(two, claim_two))
+
+    write_list("The gadget is red.")
+    monkeypatch.chdir(tmp_path)
+    sigs = {u: grade_prose.signature("REQUIREMENTS.md", u) for u in (one, two)}
+    (tmp_path / "skills" / "demo" / "GRADED").write_text("".join("%s %s g1\n" % (u, s) for u, s in sigs.items()))
+    assert run_cli(prose_owed, [str(tmp_path)])[:2] == (0, "")
+
+    (tmp_path / one).write_text("The widget is green.\n")
+    code, out, err = run_cli(prose_owed, [str(tmp_path)])
+    assert (code, out.split()) == (1, [one]), (code, out, err)
+
+    (tmp_path / one).write_text("The widget is blue.\n")
+    write_list("The gadget is round.")
+    code, out, err = run_cli(prose_owed, [str(tmp_path)])
+    assert (code, out.split()) == (1, [two]), (code, out, err)
