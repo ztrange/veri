@@ -6,4 +6,4 @@
 - [x] skill-edit-step.sh given both `--added "<step>"` and `--change "<change>"` does not refuse a unit that grades PASS before any author ran: it launches an author as a `--change` step does instead of exiting 2 ⟦criterion 1⟧
 - [x] skill-edit-step.sh given no `--change`, on a unit that already grades PASS against its list, launches no author, commits only the list and GRADED and exits 3, as today ⟦criterion 1⟧
 - [x] skills/tdd/SKILL-EDIT.md tells the conductor that when a ⟦skill-edit⟧ step's text names a change to the prose (a sentence to delete or reword) it runs skill-edit-step.sh with `--change` and that change, pinned by a new case in skills/tdd/scripts/tests/py/unit/test_skill_edit_procedure.py ⟦criterion 1⟧
-- [ ] skills/tdd/SCRIPTS.md's skill-edit-step.sh entry, and the shim's usage comment, name `--change "<change>"` and its exits ⟦diff-checked⟧ ⟦criterion 1⟧
+- [x] skills/tdd/SCRIPTS.md's skill-edit-step.sh entry, and the shim's usage comment, name `--change "<change>"` and its exits ⟦diff-checked⟧ ⟦criterion 1⟧
