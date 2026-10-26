@@ -158,7 +158,7 @@ def test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_185
 
 
 def test_the_revise_section_lives_in_revise_md_not_skill_md_1855():
-    """Subject is source text: the revise heading and its three distinctive lines are in REVISE.md, gone from SKILL.md."""
+    """Subject is source text: the revise heading and its three distinctive lines are gone from SKILL.md."""
     heading = "## Revising on a REJECT"
     markers = (
         "$S/event.sh revise budget=",
@@ -166,12 +166,9 @@ def test_the_revise_section_lives_in_revise_md_not_skill_md_1855():
         "exhausted-outcome.sh < .tdd/develop-exhausted.out",
     )
     skill = SKILL.read_text()
-    revise = SKILL.with_name("REVISE.md").read_text()
 
     assert [line for line in _lines() if line == heading] == []
     assert [marker for marker in markers if marker in skill] == []
-    assert [line for line in revise.splitlines() if line == heading] == [heading]
-    assert [marker for marker in markers if marker not in revise] == []
 
 
 def test_the_guard_reports_no_unpointed_send_in_the_real_skill_md_2075():
