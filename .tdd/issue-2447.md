@@ -4,4 +4,4 @@
 - [x] A tmpdir record whose pid is genuinely gone (`os.kill(pid, 0)` raises `ProcessLookupError`) still has its `veri-run-*` directory swept, so the fix does not turn the sweep off ⟦criterion 2⟧
 - [x] A `PermissionError` escaping a `veri/` entry point's `main` names the operation that raised it (the call, such as `os.kill`) in the refusal line `entry.py` prints, not only the exception class and message ⟦criterion 3⟧
 - [x] fix the full-suite failure: skills/tdd/scripts/tests/py/test_skill_edit_step_process.py — FAILED test_a_grader_that_keeps_rejecting_relaunches_the_author_for_the_default_budget_of_three_then_exits_1_naming_every_failing_id: Failed: Timeout (>30.0s) from pytest-timeout ⟦suite-repair⟧ ⟦criterion 3⟧
-- [ ] The first criterion's guard, broken on purpose by catching `PermissionError` as dead again, is watched going red and then restored ⟦human-owed⟧ ⟦criterion 4⟧
+- [x] The first criterion's guard, broken on purpose by catching `PermissionError` as dead again, is watched going red and then restored ⟦human-owed⟧ ⟦criterion 4⟧
