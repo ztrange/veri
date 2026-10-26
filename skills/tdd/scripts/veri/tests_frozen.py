@@ -224,7 +224,7 @@ def _recorded_cases_intact(record, name):
         held = [r for r in map(_body_record, handle.read().splitlines()) if r and r[0] == name]
     with open(name, encoding="utf-8", errors="replace") as handle:
         now = dict(_cases(handle.read()))
-    return all(_body_digest(now.get(case, "")) == digest for _, case, digest in held)
+    return bool(held) and all(_body_digest(now.get(case, "")) == digest for _, case, digest in held)
 
 
 def _earlier_records(lines, step):
