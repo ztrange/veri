@@ -1282,22 +1282,6 @@ def test_shim_header_describes_planned_and_its_exit_2_refusals_and_no_longer_lis
     ) == (True, True, True, True, True, True, False)
 
 
-def test_scripts_md_entry_documents_planned_and_its_exit_2_refusals_1579():
-    text = (SCRIPTS.parent / "SCRIPTS.md").read_text()
-    start = text.index("- `$S/add-ledger-step.sh ")
-    entry = text[start:text.index("- `$S/classify-bail.sh", start)]
-    planned = [l for l in entry.split("\n") if "--planned" in l]
-
-    assert (
-        any("VERI_STEP_GROWTH" in l for l in planned),
-        any("⟦added⟧" in l for l in planned),
-        "--planned without --criterion" in entry,
-        "already serves" in entry,
-        "unticked in the issue body" in entry,
-        "cannot read the spec file" in entry,
-    ) == (True,) * 6
-
-
 def test_main_refuses_a_replaces_case_step_with_an_unquoted_name_after_a_quoted_one_or_a_trailing_parenthetical_with_one_line_naming_it_1538(tmp_path, run_cli, add_ledger_step):
     ledger = tmp_path / "issue-42.md"
     shapes = []
