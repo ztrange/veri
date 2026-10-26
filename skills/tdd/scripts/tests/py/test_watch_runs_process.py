@@ -159,6 +159,39 @@ def test_target_slot_is_taken_by_a_live_conductor_that_has_not_written_a_launch_
     assert (out.returncode, out.stdout.strip()) == (3, "timeout"), out.stderr
 
 
+@pytest.mark.process("watch-runs.sh as a real process over a running conductor, a live pre-conductor baseline run, and a stub solvable-issues.sh")
+def test_target_counts_a_run_live_in_its_pre_conductor_baseline_2388(tmp_path):
+    scripts = tmp_path / "scripts"
+    (scripts / "veri").mkdir(parents=True)
+    shutil.copy(SCRIPTS / "veri" / "watch_runs.py", scripts / "veri" / "watch_runs.py")
+    shutil.copy(SHIM, scripts / "watch-runs.sh")
+    (scripts / "lib").symlink_to(SCRIPTS / "lib")
+    stub = scripts / "solvable-issues.sh"
+    stub.write_text('#!/bin/sh\necho "777 next one"\n')
+    stub.chmod(0o755)
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
+    running = start_conductor(tmp_path, 101)
+    baseline = start_conductor(tmp_path, 102)
+    try:
+        make_run(repo, 101, running.pid)
+        run = repo / ".tdd" / "wt" / "102" / ".tdd"
+        run.mkdir(parents=True)
+        for name in ("baseline-fast", "baseline-full"):
+            (run / (name + ".pid")).write_text("1\n")
+            (run / (name + ".exit")).write_text("0\n")
+        out = subprocess.run([str(scripts / "watch-runs.sh"), "--target", "2", "--max-wait", "2"], cwd=repo,
+                             stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=30,
+                             env={**os.environ, "PYTHONPATH": str(SCRIPTS / "veri")})
+    finally:
+        running.terminate()
+        running.wait()
+        baseline.terminate()
+        baseline.wait()
+    assert (out.returncode, out.stdout.strip()) == (3, "timeout"), out.stderr
+
+
 @pytest.mark.process("watch-runs.sh as a real process over a real conductor whose leaf spawns and reaps children")
 def test_it_prints_exactly_one_exit_line_when_a_conductor_whose_leaf_reaps_children_exits_2249(tmp_path):
     repo = tmp_path / "repo"
