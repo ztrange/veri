@@ -192,6 +192,11 @@ A guard or failure path never watched to fail is not tested: break it, see it go
 - The `test` recipe gives every suite `LC_ALL=C`, `< /dev/null` and a symlink to the real
   `git` first on PATH; remote git is refused by
   `protocol.allow=never`, `gh`/`curl` by the plugin `pytest_leg.py` loads.
+- The pytest leg pins `TMPDIR` to `/tmp` before it starts, so a local run's scratch matches CI's
+  rather than the Mac's `/var/folders/…` (#2354): the leg's `veri-pytest-*` run dir, `--basetemp`
+  and so every case's `tmp_path` live under `/tmp`, whatever `TMPDIR` the caller set. The pycache
+  prefix is unaffected (the Makefile and `shim-python.sh` compute it from the host `TMPDIR` before
+  the leg starts), as are the full-run lock and `~/.veri-pytest-legs`.
 - macOS checks each new executable on its first run (~330 ms). Fix:
   `sudo spctl developer-mode enable-terminal`, enable the terminal under Privacy & Security →
   Developer Tools, restart it. A Claude desktop session is not covered; launch conductors
