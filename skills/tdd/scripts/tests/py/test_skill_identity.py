@@ -62,10 +62,6 @@ def plant(path, files):
     subprocess.run(["git", "-C", str(path), "add", "-A"], check=True)
 
 
-def ascii_lower(text):
-    return text.translate({code: code + 32 for code in range(ord("A"), ord("Z") + 1)})
-
-
 def inputs_section():
     return importlib.import_module("skill_sections").section(ROOT / SKILL_MD, "## Inputs")
 
