@@ -1005,6 +1005,7 @@ def test_a_change_step_on_a_unit_already_graded_pass_launches_an_author_whose_pr
         commands.append(cmd)
         if cmd[0].endswith("supervise.sh"):
             prompts.append(open(cmd[3]).read())
+            (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
         return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
