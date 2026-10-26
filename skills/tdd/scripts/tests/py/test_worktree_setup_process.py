@@ -51,7 +51,7 @@ def test_2231_second_call_after_a_successful_setup_runs_nothing_and_exits_3(tmp_
 
 
 @pytest.mark.process("worktree-setup.sh called again in a worktree whose setup failed")
-def test_2231_second_call_after_a_failed_setup_runs_the_command_again_and_exits_with_its_code(tmp_path):
+def test_2231_second_call_after_a_failed_setup_runs_the_command_again_and_exits_1(tmp_path):
     (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: setup: `echo ran >> setup-marker; exit 7`\n")
     first = subprocess.run([SHIM, "2231"], capture_output=True, text=True, cwd=str(tmp_path))
 
