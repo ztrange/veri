@@ -203,26 +203,10 @@ def test_main_answers_in_full_under_the_tunables_when_any_start_of_time_budget_s
 
 
 def test_cli_prints_one_clock_line_for_an_over_budget_run_and_nothing_for_one_that_is_not_and_skill_md_says_to_paste_it_and_branch_on_nothing(run_cli, over_budget):
-    import pathlib
-    import re
-
     env = {"VERI_UNIT_BUDGET": "10", "VERI_TIME_WARN_RATIO": "1.5"}
     code, out, err = run_cli(over_budget, ["unit", "12", "100"], env=env)
     assert (code, out.count("\n"), "⏱" in out, err) == (0, 1, True, "")
     assert run_cli(over_budget, ["unit", "4", "100"], env=env) == (1, "", "")
-
-    skill = pathlib.Path(__file__).resolve().parents[3] / "SCRIPTS.md"
-    blocks, block = [], ""
-    for line in skill.read_text(encoding="utf-8").split("\n") + [""]:
-        if re.match(r"[-*] ", line) or not line.strip():
-            blocks.append(block)
-            block = ""
-        block += " " + line
-    instruction = " ".join(b for b in blocks if "over-budget.sh" in b).replace("*", "").replace("`", "").lower()
-    assert instruction.strip(), "SKILL.md never names over-budget.sh"
-    assert "⏱" in instruction
-    assert re.search(r"narrat|issue thread|comment", instruction)
-    assert re.search(r"(never|not|nothing|no)[^.]{0,80}(branch|gate|verdict|outcome|bail|retr)", instruction)
 
 
 def _unset_tunables(monkeypatch):

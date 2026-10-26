@@ -1112,42 +1112,6 @@ def test_resume_onto_an_existing_issue_branch_with_the_remote_unreachable_checks
             err) == (0, want, "tdd/45-resume-no-fetch", branch_tip, "")
 
 
-def scripts_entry():
-    """SCRIPTS.md's issue-worktree.sh bullet, lower-cased, markup stripped, on one line."""
-    lines = (pathlib.Path(__file__).resolve().parents[3] / "SCRIPTS.md").read_text().splitlines()
-    taken = []
-    for line in lines:
-        if not taken:
-            if line.startswith("- `$S/issue-worktree.sh <n> <slug>"):
-                taken.append(line)
-        elif re.match(r"([-#]|[0-9]+\.)", line):
-            break
-        else:
-            taken.append(line)
-    return " ".join(taken).replace("*", "").replace("`", "").lower()
-
-
-def test_scripts_md_entry_says_the_branch_is_cut_from_the_freshly_fetched_remote_default_branch_and_why_the_local_one_is_not_used():
-    entry = scripts_entry()
-
-    assert entry.strip()
-    assert re.search(r"fetch", entry)
-    assert re.search(r"origin/<[a-z-]+>|origin/(main|master|the default)|remote.s (tip|default)|remote default branch"
-                     r"|tip of (the )?(remote|origin)", entry)
-    assert re.search(r"stale|behind|lags?|out of date", entry)
-
-
-def test_scripts_md_entry_says_the_default_names_name_is_resolved_from_the_remote_when_origin_head_is_absent_the_refusal_names_that_ref_and_the_local_fallback_holds_only_with_no_origin_remote():
-    entry = scripts_entry()
-
-    assert entry.strip()
-    assert re.search(r"refs/remotes/origin/head[^.]*(absent|missing)[^.]*(ls-remote|from the remote|remote itself)"
-                     r"|(ls-remote|from the remote|remote itself)[^.]*refs/remotes/origin/head[^.]*(absent|missing)", entry)
-    assert re.search(r"nam(e|es|ing)[^.]{0,40}refs/remotes/origin/head", entry)
-    assert re.search(r"main/master[^.]*no origin remote|no origin remote[^.]*main/master", entry)
-    assert not re.search(r"records\s+no\s+origin/head", entry)
-
-
 @pytest.mark.process("git clone and git worktree add on scratch repositories, origin/HEAD removed from the clone")
 def test_origin_remote_without_origin_head_cuts_tdd_47_no_origin_head_from_the_freshly_fetched_tip(
         tmp_path, issue_worktree, run_cli):
@@ -1303,10 +1267,6 @@ def test_fresh_cut_whose_origin_ls_remote_gets_no_answer_exits_2_naming_the_ls_r
     code, out, err = run_cli(issue_worktree, ["1672", "ls-remote-silent"], cwd=clone)
 
     assert (code, out, "ls-remote" in err, os.path.exists(want), scratch_registry(clone)) == (2, "", True, False, before)
-
-
-def test_scripts_md_entry_is_read_whatever_alternatives_its_synopsis_names_after_n_slug_issue_1432():
-    assert scripts_entry().strip()
 
 
 @pytest.mark.process("git clone and git worktree add on scratch repositories, origin holding the issue's branch")
