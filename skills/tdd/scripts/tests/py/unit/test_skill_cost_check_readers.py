@@ -19,7 +19,7 @@ ALLOWED = {
         "plants a mark in a copy of the subsection and checks the guard names it",
     "unit/test_skill_green_split.py::test_1281_skill_md_s_three_split_add_ledger_step_calls_pass_no_criterion_and_say_a_split_keeps_its_anchor_s_criterion_the_uncovered_spec_call_passes_criterion_k_read_from_the_issue_s_numbered_acceptance_criteria_one_call_per_criterion_bailing_on_exit_2":
         "carves the subsection out by its heading to read the other add-ledger-step call sites",
-    "unit/test_skill_green_split.py::test_1379_skill_md_s_every_add_ledger_step_sh_call_site_says_its_exit_2_bails_with_cause_step_add_refused_and_bailing_lists_that_cause_as_a_system_failure":
+    "unit/test_skill_green_split.py::test_1379_skill_md_s_every_add_ledger_step_sh_call_site_says_its_exit_2_bails_with_cause_step_add_refused":
         "carves the subsection out by its heading to read the other add-ledger-step call sites",
 }
 
