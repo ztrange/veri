@@ -315,6 +315,15 @@
 | CY121 | When `next-unchecked.sh` hands over a step listing `⟦phases: …⟧`, SKILL.md sends the run to `<base directory>/PHASED.md`, which it `Read`s then and not before, and runs in place of Red, Green and Refactor. | No measured run held a phased step (0 of 60, #2076); a phased step run without the file would improvise the phase order and its freeze checks. |
 | DP83 | When the Draft PR step's `$S/refactor-owed.sh list .tdd/issue-<n>-refactor-owed.md` prints a candidate (exit 0), SKILL.md sends the run to `<base directory>/STRUCTURAL.md`, which it `Read`s then and not before, and runs the one structural pass from it; on exit 3 the run never reads it. | At most 30% of measured runs had a structural candidate (#2076); a pass run without the file would improvise its budget, cover, predicate and transform checks. |
 | DP84 | Preflight removes a `.tdd/ci-conflict-rebased` an earlier run left, so DP54's one CI-conflict rebase is counted per run, never inherited by a resume. | A resume otherwise bails `ci-conflict` on its first conflict over a rebase an earlier run spent (#2194). |
+| RO1 | A developer leaf writes the failing test, the implementation, or the refactor. | The three developer phases are named, so a leaf's job is unambiguous. |
+| RO2 | A developer leaf is allowed to see everything: the issue, the repository and the prior phases. | Nothing is withheld from the role that has to make the change. |
+| RO3 | A verifier leaf confirms one developer claim. | One claim per verification keeps a verdict readable. |
+| RO4 | A verifier leaf is blind: it receives only the test, the issue's behaviour spec and the repository, never the developer's rationale. | A verdict formed from the developer's reasoning confirms nothing. |
+| RO5 | The verifier establishes ground truth by running the test itself. | The verdict rests on an observation, not on a report of one. |
+| RO6 | Blindness is enforced structurally: the verifier prompt is built by `build-verify-prompt.sh`, whose only inputs are the spec and the test path, so the developer's reasoning physically cannot reach it (ADR-0003). | A rule the plumbing enforces cannot be forgotten under pressure. |
+| RO7 | The conductor keeps the two roles distinct. | The separation is maintained by whoever orchestrates it. |
+| RO8 | The conductor does not write the test or the implementation itself. | A conductor that writes code has no blind verifier for it. |
+| RO9 | The conductor does not pass a developer leaf's explanation into a verification. | The one channel that would defeat blindness is closed by hand as well as by construction. |
 
 ## skills/tdd/PIN.md
 
