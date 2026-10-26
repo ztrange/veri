@@ -986,3 +986,63 @@ def test_a_pass_on_the_unchanged_text_of_a_unit_with_a_recorded_reject_signs_not
                              env={"VERI_SKILL_EDIT_BUDGET": "1"})
 
     assert (len(authors), (tmp_path / "GRADED").exists()) == (1, False), (code, out, err, authors)
+
+
+def test_a_change_step_on_a_unit_already_graded_pass_launches_an_author_whose_prompt_names_the_change_and_commits_the_unit_list_and_graded_when_the_unit_grades_pass_after_it_2340(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n- a merge is in flight;\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    change = "delete the bullet - a merge is in flight;"
+    prompts = []
+    commands = []
+
+    def run(cmd, **kw):
+        commands.append(cmd)
+        if cmd[0].endswith("supervise.sh"):
+            prompts.append(open(cmd[3]).read())
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
+    monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, ["--change", change, str(tmp_path / "issue.md"), "unit.md"])
+
+    commits = [c for c in commands if c[:2] == ["git", "commit"]]
+    assert code == 0 and len(prompts) == 1 and change in prompts[0], (code, err, prompts)
+    assert len(commits) == 1 and all(any(n in p for p in commits[0]) for n in ("REQUIREMENTS.md", "GRADED", "unit.md")), commands
+
+
+def test_a_run_given_no_change_whose_unit_grades_fail_sends_its_author_a_prompt_without_a_change_to_make_line_2340(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    prompts = []
+    grades = [(1, "A1: FAIL - no\n"), (0, "")]
+
+    def run(cmd, **kw):
+        if cmd[0].endswith("supervise.sh"):
+            prompts.append(open(cmd[3]).read())
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: grades.pop(0))
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
+    monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
+
+    assert code == 0 and len(prompts) == 1 and "Change to make:" not in prompts[0], (code, err, prompts)

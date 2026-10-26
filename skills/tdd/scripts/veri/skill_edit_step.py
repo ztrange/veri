@@ -142,6 +142,7 @@ def apply(issue, unit):
 
 _attempt = [1]
 _pins = [()]
+_change = [None]
 
 
 def _author(unit, path, reasons):
@@ -149,6 +150,8 @@ def _author(unit, path, reasons):
     text = ("You edit the prose of %s so that it satisfies every requirement below.\n\nUnit: %s\n\n%s\n\n"
             "Requirements:\n%s\nGrader FAIL reasons:\n%s\n"
             % (unit, unit, grade_prose.unit_text(unit), rows, reasons))
+    if _change[0]:
+        text += "\nChange to make: %s\n" % _change[0]
     if _pins[0]:
         text += ("\nPin files: %s\nUpdate there the checksum or verbatim pin of any sentence of the unit "
                  "you change.\n" % ", ".join(_pins[0]))
@@ -218,6 +221,9 @@ def _tree():
 
 def main(argv):
     added = None
+    change = None
+    if len(argv) >= 4 and argv[0] == "--change":
+        change, argv = argv[1], argv[2:]
     if len(argv) >= 4 and argv[0] == "--added":
         added, argv = argv[1], argv[2:]
     if len(argv) < 2:
@@ -263,10 +269,11 @@ def main(argv):
         print("added step graded PASS before any author ran, so no prose would change: " + added, file=sys.stderr)
         _restore(snapshot, path, unit, graded_file)
         return 2
-    authored = graded == 1
+    authored = graded == 1 or change is not None
+    _change[0] = change
     before = _read_existing([unit, *pins])
     for attempt in range(1, int(budget) + 1):
-        if graded != 1:
+        if graded != 1 and not (change is not None and attempt == 1):
             break
         _attempt[0] = attempt
         _pins[0] = pins
