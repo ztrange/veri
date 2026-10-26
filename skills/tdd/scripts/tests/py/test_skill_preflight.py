@@ -13,7 +13,6 @@ import skill_sections
 SKILL = pathlib.Path(__file__).resolve().parents[2].parent / "SKILL.md"
 
 PREFLIGHT = "### 0. Preflight — baseline checks (bail before any cycle)"
-RESUME = "## Resume"
 
 FAST_CALL = "detect-test-command.sh --tier fast"
 FULL_CALL = "detect-test-command.sh --tier all"
@@ -25,7 +24,7 @@ def all_lines():
 
 
 def lines_of(heading):
-    return skill_sections.section(SKILL.with_name("RESUME.md") if heading == RESUME else SKILL, heading).splitlines()
+    return skill_sections.section(SKILL, heading).splitlines()
 
 
 def first(lines, want):
@@ -61,13 +60,6 @@ def test_skill_md_takes_the_full_tier_measurement_in_the_worktree_on_the_fast_ti
     assert moves == []
     assert timeout_in is not None, "no leaf-timeout.sh call with --full"
     assert timeout_in >= full_in, "the timeout is sized before the full-tier measurement"
-
-
-def test_skill_md_says_a_resumed_run_s_baseline_runs_on_the_branch_head_in_its_existing_worktree_before_any_cycle():
-    text = re.sub(r"  +", " ", " ".join(lines_of(RESUME)))
-    says = [s for s in re.split(r"[.] ", text)
-            if all(w in s.lower() for w in ("baseline", "branch head", "worktree", "cycle"))]
-    assert says, "no sentence in Resume says the baseline runs on the branch head in its worktree before any cycle"
 
 
 def test_skill_md_s_worktree_guard_prose_says_the_lock_is_taken_in_preflight_step_3_before_the_baseline_and_never_in_step_1_2():

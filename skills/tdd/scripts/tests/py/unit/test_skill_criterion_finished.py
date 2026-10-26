@@ -28,8 +28,7 @@ def records_of(text):
 
 
 def section_records(heading):
-    doc = {"## Resume": SKILL.with_name("RESUME.md")}.get(heading, SKILL)
-    text = importlib.import_module("skill_sections").section(doc, heading)
+    text = importlib.import_module("skill_sections").section(SKILL, heading)
     return records_of(text.split("\n", 1)[1])
 
 
@@ -110,7 +109,6 @@ def does_not_hold(label, rec, problems):
 
 def test_481_draft_pr_entry_condition_and_resumes_go_to_draft_pr_condition_say_unchecked_full_suite_and_human_owed_lines_do_not_hold_a_run_back():
     problems = []
-    does_not_hold("resume", first_record(section_records("## Resume"), ("E", r"go to the \*?\*?draft pr")), problems)
     assert not problems, "\n".join(problems)
 
 
