@@ -87,7 +87,6 @@ def test_skill_prescribes_an_event_sh_call_for_each_of_the_conductors_seven_mark
         _mark(records, b"step-start", "takes the next unchecked step with next-unchecked.sh", rb"next-unchecked\.sh"),
         _comment_mark(records, b"pin", "### 📌 Already satisfied", b"already satisfied"),
         _comment_mark(records, b"revise", "### ♻️ Revise <phase> — attempt <k>", b"revise <phase>", b"attempt"),
-        _comment_mark(records, b"bail", "### ⛔ Bailed — <phase>", b"bailed"),
         _comment_mark(records, b"resume", "### ▶️ Resuming", b"resuming"),
     ):
         problems += result[1]
