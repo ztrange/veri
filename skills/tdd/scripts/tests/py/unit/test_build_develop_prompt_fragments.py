@@ -104,3 +104,22 @@ def test_node_id_rule_and_each_red_lead_and_cases_variant_are_read_from_their_pr
         (0, ["node-id-rule", "red-lead", "red-cases"]),
         (0, ["node-id-rule", "red-lead-replaces-case", "red-cases-replaces-case"]),
     ]
+
+
+def test_a_slot_whose_fragment_is_missing_exits_2_naming_its_path_where_the_present_one_renders(
+        tmp_path, capsysbinary):
+    module, prompts, spec = scripts_tree(tmp_path)
+    (prompts / "develop-red.md").write_bytes(b"[{{NODE_ID_RULE}}]\n")
+    fragment = prompts / "_develop-node-id-rule.md"
+    fragment.write_bytes(b"PRESENT-RULE\n")
+
+    def render():
+        code = module.main(["red", spec, "step", "make test"])
+        return (code, *capsysbinary.readouterr())
+
+    present = render()
+    fragment.unlink()
+    absent = render()
+
+    assert (present, absent) == ((0, b"[PRESENT-RULE]\n", b""),
+                                 (2, b"", b"missing partial: " + str(fragment).encode() + b"\n"))
