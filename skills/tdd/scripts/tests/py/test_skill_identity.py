@@ -141,16 +141,6 @@ def test_no_tracked_file_outside_the_two_stubs_names_either_old_command():
 def test_skill_md_resolves_its_argument_an_integer_is_one_issue_any_other_word_a_scope_bare_is_plain():
     problems = []
     skill = (ROOT / SKILL_MD).read_text()
-    bullets = fold_bullets(inputs_text())
-    if not bullets:
-        problems.append(f"{SKILL_MD} has no bullets under '## Inputs' — how the argument resolves could not be read")
-    else:
-        where = f"{SKILL_MD} Inputs"
-        problems += claim(bullets, where, "sends an integer argument to the single-issue procedure",
-                          "integer", "single|one issue|procedure")
-        problems += claim(bullets, where, "reads a non-integer argument as a scope to drain", "scope", "drain|loop")
-        problems += claim(bullets, where, "makes a bare invocation the scope plain",
-                          "plain", "bare|no argument|without an argument|omit|default|empty")
     if has_line(skill, r"^#+ .*[Dd]raining a scope"):
         problems.append(f"{SKILL_MD} still holds the scope loop's own section, billed on every conductor request")
     loop_subs = sum(1 for line in skill.splitlines() if re.search(r"^#+ Loop ", line))

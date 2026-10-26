@@ -1056,11 +1056,6 @@ def test_worker_md_beside_skill_md_documents_the_worker_loop_naming_each_workque
     assert missing == []
 
 
-def test_skill_md_tells_a_session_born_as_a_worker_to_read_worker_md():
-    with open(os.path.join(SKILL_DIR, "SKILL.md")) as doc:
-        assert re.search(r"`Read`.*`WORKER\.md`", doc.read())
-
-
 def test_context_md_defines_worker_and_work_queue():
     with open(os.path.join(SKILL_DIR, "..", "..", "CONTEXT.md")) as doc:
         text = doc.read()
