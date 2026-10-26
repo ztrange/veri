@@ -3782,6 +3782,62 @@ def test_main_with_the_issue_body_fetch_unanswered_writes_one_skip_line_on_stder
     assert len(launches) == 1
 
 
+def test_main_with_an_empty_issue_body_from_gh_writes_only_the_skip_line_on_stderr_and_still_launches_the_conductor_issue_2373(
+        tmp_path, monkeypatch, capfdbinary, reaches_issue_body_boundary):
+    import types
+    import github
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    skill = tmp_path / "skill"
+    (skill / "scripts" / "veri").mkdir(parents=True)
+    (skill / "scripts" / "veri" / "run_conductor.py").symlink_to(SCRIPTS / "veri" / "run_conductor.py")
+    (skill / "SKILL.md").write_text("# the procedure, read from SKILL.md\n")
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("run_conductor_2373_empty", str(skill / "scripts" / "veri" / "run_conductor.py"))
+    run_conductor = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(run_conductor)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    monkeypatch.setattr(github, "gh_api", lambda path, stderr=None: types.SimpleNamespace(returncode=0, stdout="", stderr=""))
+    launches = fake_claude_launch(monkeypatch)
+
+    code = run_conductor.main(["4242"])
+
+    stderr = capfdbinary.readouterr().err.decode(errors="replace")
+    issue_body_lines = [line for line in stderr.splitlines() if "issue body" in line or "JSONDecodeError" in line]
+    assert issue_body_lines == ["run-conductor.sh: issue body unavailable, Requirements row IDs unchecked"]
+    assert (code, len(launches)) == (0, 1)
+
+
+def test_main_with_a_non_json_issue_body_from_gh_writes_only_the_skip_line_on_stderr_and_still_launches_the_conductor_issue_2373(
+        tmp_path, monkeypatch, capfdbinary, reaches_issue_body_boundary):
+    import types
+    import github
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    skill = tmp_path / "skill"
+    (skill / "scripts" / "veri").mkdir(parents=True)
+    (skill / "scripts" / "veri" / "run_conductor.py").symlink_to(SCRIPTS / "veri" / "run_conductor.py")
+    (skill / "SKILL.md").write_text("# the procedure, read from SKILL.md\n")
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("run_conductor_2373_non_json", str(skill / "scripts" / "veri" / "run_conductor.py"))
+    run_conductor = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(run_conductor)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    monkeypatch.setattr(github, "gh_api", lambda path, stderr=None: types.SimpleNamespace(returncode=0, stdout="<html>502 Bad Gateway</html>\n", stderr=""))
+    launches = fake_claude_launch(monkeypatch)
+
+    code = run_conductor.main(["4242"])
+
+    stderr = capfdbinary.readouterr().err.decode(errors="replace")
+    issue_body_lines = [line for line in stderr.splitlines() if "issue body" in line or "JSONDecodeError" in line]
+    assert issue_body_lines == ["run-conductor.sh: issue body unavailable, Requirements row IDs unchecked"]
+    assert (code, len(launches)) == (0, 1)
+
+
 def test_cli_with_the_issue_body_fetch_unanswered_exits_with_the_conductors_own_code_not_2_issue_2373(
         tmp_path, monkeypatch, run_cli, reaches_issue_body_boundary):
     import github
