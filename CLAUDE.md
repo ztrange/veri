@@ -133,7 +133,8 @@ suites, or script run as a subprocess.
 a same-second mutation included, from being served a stale `.pyc`: before importing, the leg drops
 every `.pyc` the manifest does not vouch for, and pytest-rewritten and `.opt-N` files always
 (#1127, #2054). A shim run outside `make` has no manifest, so `shim-python.sh` also sets `PYTHONDONTWRITEBYTECODE=1`
-whenever it supplies the prefix itself: it reads what is there but never writes into it, so it cannot poison the cache (#2406). Cases run across pytest-xdist
+whenever it supplies the prefix itself: it reads what is there but never writes into it, so it cannot poison the cache (#2406).
+A veri module run directly as `python3 <module>` takes the same prefix from `veri/pycache_prefix.py`, which its first line runs before any veri import. Cases run across pytest-xdist
 workers: `make unit` 4 (each worker pays its own start-up); `make test` the cores other running
 legs leave free (physical cores on macOS, the CPU-affinity count elsewhere), at least 1 (#2100): each leg registers its pid and count under
 `~/.veri-pytest-legs` (`VERI_PYTEST_LEGS`), and a dead pid holds no share.
