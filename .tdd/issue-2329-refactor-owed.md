@@ -1,0 +1,2 @@
+### verify-diff still exits 1 naming the case (`step deleted pytest cases an earlier step added: <path>::<case>`) when a case an earlier step added is renamed and any line of it besides the name on its `def` line also changed ⟦criterion 1⟧
+- test-only | extract the repeated scratch-repo setup (git init/config, commit helper, stub claude, spec) shared by the three test_2329 verify-diff cases in test_verify.py into one fixture or helper
