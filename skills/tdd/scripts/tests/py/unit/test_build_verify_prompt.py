@@ -2135,3 +2135,21 @@ def test_main_renders_a_green_prompt_carrying_no_instruction_to_name_only_the_fi
         r"(?<!not )(?<!n't )\b(?:name|list|report|give)\s+(?:\w+\s+)?(?:only\s+|just\s+)?the\s+first\b[^.]{0,60}",
         prompt, re.I)
     assert first_only == []
+
+
+def test_the_green_prompt_requires_a_coverage_judgement_to_run_the_fast_command_and_the_affected_suites_never_one_file_and_a_reject_to_name_the_command_run_2477(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    assert build_verify_prompt.main(
+        ["--fast-cmd", "make unit", "green", str(spec), "tests/test_slugify.py", "test_slugify_lowercases"]) == 0
+    prompt = " ".join(capsysbinary.readouterr()[0].decode("utf-8", "surrogateescape").split())
+
+    assert {
+        "fast command and affected suites": re.search(
+            r"covered by a case is made by running the fast command you were given, `make unit`, and the affected suites",
+            prompt, re.I) is not None,
+        "never one file": re.search(r"never one test file alone", prompt, re.I) is not None,
+        "REJECT names the command": re.search(
+            r"A REJECT on that ground names the exact command that was run", prompt) is not None,
+    } == {"fast command and affected suites": True, "never one file": True, "REJECT names the command": True}
