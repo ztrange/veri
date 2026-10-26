@@ -2,5 +2,5 @@
 
 - [x] A `SUPERSEDED:` line whose case is one the step itself records (via `_recorded_cases`) makes `_superseded` write no "no defined test case resolves" line on stderr, while it still leaves that case out of the returned cases (a small unit case in skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py, fails on the current code) ⟦criterion 1⟧
 - [x] A `SUPERSEDED:` line whose body yields no case name at all makes `_superseded` write a stderr line saying the line carried no case name, never "no defined test case resolves" (a small unit case in skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py) ⟦criterion 2⟧
-- [ ] A `SUPERSEDED:` line whose extracted case name resolves to no defined test case still makes `_superseded` write the "no defined test case resolves" line on stderr (a small unit pin case in skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py, no production change) ⟦criterion 3⟧
+- [x] A `SUPERSEDED:` line whose extracted case name resolves to no defined test case still makes `_superseded` write the "no defined test case resolves" line on stderr (a small unit pin case in skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py, no production change) ⟦criterion 3⟧
 - [ ] The third criterion's case, broken on purpose by removing the stderr write in `_superseded`, is watched going red and the write restored ⟦human-owed⟧ ⟦criterion 4⟧
