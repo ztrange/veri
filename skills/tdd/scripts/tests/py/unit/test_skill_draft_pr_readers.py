@@ -26,14 +26,6 @@ ALLOWED = {
         "reads BAIL.md, another unit",
     "unit/test_skill_draft_pr.py::test_guardrails_invariant_about_opening_the_pr_names_the_branchs_own_full_run_again_after_each_suite_repair_step_and_the_extra_run_on_the_rebased_tip_when_sub_step_1_rebased_the_branch":
         "reads the Guardrails, another unit",
-    "unit/test_skill_metrics.py::test_566_skill_md_bailing_sub_step_4_makes_the_metrics_commit_only_on_a_metrics_sh_exit_of_0_and_otherwise_the_bailed_comment_carries_the_failed_render_and_its_exit_code":
-        "reads BAIL.md, another unit",
-    "unit/test_skill_metrics.py::test_566_skill_md_bailing_sub_step_4_on_a_non_zero_metrics_sh_exit_does_not_stop_the_bail_it_goes_on_to_sub_step_5_push_and_sub_step_6_bailed_comment":
-        "reads BAIL.md, another unit",
-    "unit/test_skill_metrics.py::test_626_skill_md_bailing_section_marks_the_bail_with_its_cause_and_classification_before_rendering_the_metrics_report_it_commits":
-        "reads BAIL.md, another unit",
-    "unit/test_skill_metrics.py::test_626_skill_md_bailing_section_writes_the_bail_mark_before_rendering_the_metrics_report_it_commits":
-        "reads BAIL.md, another unit",
     "unit/test_skill_suite_runs.py::test_skill_md_names_no_full_suite_run_inside_a_step_s_cycle":
         "reads the Refactor loop, another unit",
 }
