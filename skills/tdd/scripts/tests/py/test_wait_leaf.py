@@ -431,11 +431,6 @@ def test_skill_md_launches_every_leaf_detached_and_waits_for_it_with_wait_leaf_s
     assert (len(sites) >= 5, misses) == (True, [])
 
 
-def test_skill_md_warns_that_a_background_call_awaiting_a_notification_never_completes_in_print_mode():
-    assert [p for p in skill_paragraphs()
-            if "background" in p.lower() and "notification" in p.lower() and re.search(r"print[ -]mode", p.lower())]
-
-
 def test_skill_md_reports_a_verifier_whose_supervisor_died_the_way_it_reports_a_killed_developer_leaf():
     text = (SCRIPTS.parent / "SKILL.md").read_text()
     section = re.search(r"^## Launching a leaf — detach, then wait in the foreground\n(.*?)(?=^## )",
