@@ -215,3 +215,27 @@ def test_shim_run_with_a_stale_pyc_planted_under_a_caller_exported_prefix_reads_
                          cwd=root, capture_output=True, text=True)
 
     assert (ran.returncode, ran.stdout) == (0, "collapse non-alphanumerics to a single hyphen\n")
+
+
+RUN_PYTEST_LEG_AS_MAIN = (
+    "import runpy, sys\n"
+    "sys.argv = [sys.argv[1], '--help']\n"
+    "sys.path.insert(0, __import__('os').path.dirname(sys.argv[0]))\n"
+    "runpy.run_path(sys.argv[0], run_name='__main__')\n"
+)
+
+
+@pytest.mark.process("python3 -c running pytest_leg.py --help as __main__ from a copy of veri/ in a copy of veri/ with VERI_PYCACHE under tmp_path and no PYTHONPYCACHEPREFIX in its environment")
+@pytest.mark.tree_audit("a copy of veri/ made into tmp_path, swept for .pyc files after the run")
+def test_direct_pytest_leg_run_writes_its_bytecode_under_veri_pycache_not_the_tree_2442(tmp_path):
+    veri = tmp_path / "veri"
+    shutil.copytree(SCRIPTS / "veri", veri, ignore=shutil.ignore_patterns("__pycache__"))
+    env = {k: v for k, v in os.environ.items() if k not in ("PYTHONPYCACHEPREFIX", "PYTHONDONTWRITEBYTECODE")}
+    env.update(VERI_PYCACHE=str(tmp_path / "pycache"), PATH="/nonexistent", HOME=str(tmp_path))
+
+    subprocess.run([sys.executable, "-c", RUN_PYTEST_LEG_AS_MAIN, str(veri / "pytest_leg.py")], input="", env=env,
+                   cwd=tmp_path, capture_output=True, text=True, timeout=30)
+
+    in_tree = sorted(p.name for p in veri.rglob("*.pyc"))
+    under_prefix = sorted(p.name for p in (tmp_path / "pycache").rglob("*.pyc"))
+    assert (in_tree, under_prefix != []) == ([], True)

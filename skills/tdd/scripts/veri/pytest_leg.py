@@ -1,4 +1,5 @@
 """The pytest leg's launcher: refuses an interpreter below the Python floor, then runs pytest."""
+if __name__ == "__main__": __import__("runpy").run_path(__import__("os").path.dirname(__file__) + "/pycache_prefix.py")
 # Usage:   pytest_leg.py [--subset] [pytest-args...]
 #          --subset: the caller named the suites to run (`make test TESTS=…`), so no full-run lock is taken
 # Exit:    0 pytest passed, 1 any other pytest status
