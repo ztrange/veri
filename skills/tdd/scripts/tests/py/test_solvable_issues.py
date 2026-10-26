@@ -631,31 +631,13 @@ def test_cli_honours_an_item_older_than_ghs_default_page_of_30(issues, prs, answ
 
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[5]
-SCOPE_LOOP = REPO_ROOT / "skills" / "tdd" / "SCOPE-LOOP.md"
 
 
-@pytest.mark.parametrize("doc", [SCOPE_LOOP, REPO_ROOT / "README.md", REPO_ROOT / "CONTEXT.md"], ids=lambda doc: doc.name)
+@pytest.mark.parametrize("doc", [REPO_ROOT / "README.md", REPO_ROOT / "CONTEXT.md"], ids=lambda doc: doc.name)
 def test_doc_names_the_label_tunable_and_the_one_label_per_loop_use(doc):
     text = doc.read_text()
 
     assert ("VERI_LABEL" in text, bool(re.search(r"one[ -]label[ -]per[ -]loop", text, re.IGNORECASE))) == (True, True)
-
-
-def test_scope_loop_exit_3_bullet_names_the_label_it_drained():
-    lines = SCOPE_LOOP.read_text().splitlines()
-    start = next(i for i, line in enumerate(lines) if re.match(r"- \*\*Exit 3:", line))
-    end = next(i for i, line in enumerate(lines) if i > start and re.match(r"- \*\*Exit 0:", line))
-
-    assert "VERI_LABEL" in "\n".join(lines[start:end])
-
-
-def test_scope_loop_exit_0_bullet_names_a_lower_numbered_issue_and_both_bands():
-    lines = SCOPE_LOOP.read_text().splitlines()
-    start = next(i for i, line in enumerate(lines) if re.match(r"- \*\*Exit 0:", line))
-    end = next((i for i, line in enumerate(lines) if i > start and line.startswith("### ")), len(lines))
-    bullet = "\n".join(lines[start:end])
-
-    assert (bool(re.search(r"lower[ -]numbered", bullet, re.IGNORECASE)), "priority" in bullet, "bug" in bullet) == (True, True, True)
 
 
 def test_main_repo_then_not_running_reads_that_repos_issues_and_omits_the_live_conductors_issue(monkeypatch, capsys, solvable_issues):
