@@ -41,7 +41,7 @@ def main(argv):
         sys.stderr.write("run-conductor: VERI_MIN_FREE_GB must be a whole number >= 0, got '%s'\n" % raw_minimum)
         return 2
     minimum = int(raw_minimum)
-    for directory in (tempfile.gettempdir(), os.getcwd()):
+    for directory in (tempfile.gettempdir(), "/tmp", os.getcwd()):
         free = free_gb(directory)
         if free < minimum:
             sys.stderr.write("run-conductor: '%s' has %d GB free, below VERI_MIN_FREE_GB=%d\n" % (directory, free, minimum))
