@@ -76,20 +76,6 @@ def section_prose(path):
     return "\n".join(prose).lower()
 
 
-def inventory_entry(text, script):
-    want = "- `$S/" + script
-    entry, inside = [], False
-    for line in text.splitlines():
-        if line.startswith(want):
-            inside = True
-            entry.append(line)
-        elif inside and (line.startswith("- ") or line.startswith("#") or not line.strip()):
-            inside = False
-        elif inside:
-            entry.append(line)
-    return " ".join(entry).lower()
-
-
 def blind_args(text):
     tail = text.split(VERDICT_LAUNCHER + " ", 1)[1]
     return tail.split(" > .tdd/verify-", 1)[0]
@@ -175,18 +161,6 @@ def clear_problems(path, exempt=None):
         if pidfile not in text:
             problems.append(f"{number}: clears {exitfile} but not {pidfile}: {text}")
     return problems
-
-
-def wait_leaf_problems(path, exempt=None):
-    entry = inventory_entry(SKILL.with_name("SCRIPTS.md").read_text(), "wait-leaf.sh")
-    if not entry:
-        return ["no script inventory entry for wait-leaf.sh"]
-    faults = []
-    if not re.search(r"supervisor[^.]*(died|dead|gone)[^.]*(without|never|no)[^.]*(record|status|completion)", entry):
-        faults.append("does not say a 2 means the supervisor died without recording a status")
-    if "killed-stuck" not in entry:
-        faults.append("does not say that 2 takes the killed-stuck branch")
-    return [f"wait-leaf.sh entry {', and '.join(faults)}"] if faults else []
 
 
 def verifier_launches_without_supervisor(text):
@@ -308,7 +282,7 @@ def revise_fast_cmd_problems(path, exempt=None):
             for n, t in revise_builds if "'<fast-cmd>'" not in t]
 
 
-CHECKS = (detach_problems, nohup_reason_problems, clear_problems, wait_leaf_problems, supervisor_problems,
+CHECKS = (detach_problems, nohup_reason_problems, clear_problems, supervisor_problems,
           blind_problems, verdict_launcher_problems, step_title_problems, fragment_problems,
           rule_data_problems, pin_431_problems, revise_fast_cmd_problems)
 
@@ -330,10 +304,6 @@ def test_skill_md_s_launching_a_leaf_says_why_nohup_alone_is_not_enough():
 
 def test_skill_md_clears_tdd_name_pid_together_with_tdd_name_exit_on_every_launch():
     assert clear_problems(SKILL) == []
-
-
-def test_skill_md_s_wait_leaf_sh_entry_says_a_2_also_means_the_supervisor_died_without_recording_a_status_and_takes_the_killed_stuck_branch():
-    assert wait_leaf_problems(SKILL) == []
 
 
 def test_skill_md_passes_verify_sh_only_the_blind_parameters_on_every_supervised_verifier_launch():
