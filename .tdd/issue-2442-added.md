@@ -1,0 +1,1 @@
+- [ ] fix the CI failure: skills/tdd/scripts/tests/py/test_stale_bytecode_process.py — FAILED skills/tdd/scripts/tests/py/test_stale_bytecode_process.py::test_direct_pytest_leg_run_writes_its_bytecode_under_veri_pycache_not_the_tree_2442 - assert ([], False) == ([], True) (on Linux CI no .pyc lands under VERI_PYCACHE) ⟦ci-repair⟧ ⟦criterion 2⟧
