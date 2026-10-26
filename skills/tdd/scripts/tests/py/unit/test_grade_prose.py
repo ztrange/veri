@@ -243,6 +243,41 @@ def test_a_pass_on_a_nested_unit_records_its_signature_in_the_skills_graded_and_
         == (0, ["skills/demo/prompts/x.md"], False), (code, err)
 
 
+def test_a_full_pass_writes_a_graded_line_naming_the_grader_template_after_unit_signature_date_and_grading_id_2474(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    import hashlib
+    import re
+
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "skills" / "demo").mkdir(parents=True)
+    (tmp_path / "skills" / "demo" / "x.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## skills/demo/x.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "grade-prose.log").write_text(
+        '{"type":"result","subtype":"success","is_error":false,"result":'
+        '"BEGIN GRADES\\nA1: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n')
+
+    def launch(argv, *a, **k):
+        return subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(subprocess, "run", launch)
+
+    code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "skills/demo/x.md"], cwd=tmp_path)
+
+    graded = tmp_path / "skills" / "demo" / "GRADED"
+    fields = graded.read_text().split() if graded.exists() else []
+    template = hashlib.sha256(grade_prose.GRADER_INSTRUCTIONS.encode("utf-8")).hexdigest()
+    shape = [code, len(fields) > 4 and fields[0], len(fields) > 4 and bool(re.fullmatch(r"[0-9a-f]{64}", fields[1])),
+             len(fields) > 4 and bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", fields[2])),
+             len(fields) > 4 and len(fields[4]) >= 7 and template.startswith(fields[4])]
+    assert shape == [0, "skills/demo/x.md", True, True, True], (graded.read_text() if graded.exists() else err)
+
+
 def test_a_rejected_unit_exits_1_writes_no_graded_line_and_leaves_a_record_keyed_by_the_unit_and_its_signature_2121(
         tmp_path, monkeypatch, run_cli, grade_prose):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
