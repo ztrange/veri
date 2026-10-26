@@ -2229,3 +2229,15 @@ def test_main_2254_prints_red_over_the_older_case_a_revise_green_report_names_on
         wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % older)
+
+
+def test_superseded_2453_writes_no_unresolved_line_for_a_case_the_step_itself_records(
+        monkeypatch, capsys, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    monkeypatch.setattr(wrong_test_route, "_recorded_cases", lambda step: {"the_steps_own_case"})
+    report = tmp_path / "report.txt"
+    report.write_text('SUPERSEDED: "the_steps_own_case"\n')
+
+    cases = wrong_test_route._superseded(str(report), "step")
+
+    assert (cases, capsys.readouterr().err) == ([], "")
