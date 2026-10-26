@@ -1752,9 +1752,9 @@ A verifier's `REJECT` does not stop the run: `Read` and run `<base directory>/RE
 
 ## Detecting the test command
 
-Do not pick it by hand. Run `$S/detect-test-command.sh --issue <body-file> <repo-root>`
+Do not pick it by hand. Run `$S/detect-test-command.sh --tier fast --issue <body-file> <repo-root>` (its command goes through `detach-command.sh`)
 once, from the target repo's root, with the issue body preflight step 0.3 saved: it prints
-the one full-suite command on stdout and exits 0. On **exit 3** it prints nothing — no
+the one test command of that tier on stdout and exits 0. On **exit 3** it prints nothing — no
 marker it trusts matched — so **ask the user** for the command rather than guessing.
 
 That stdout is `<test-cmd>` everywhere it is needed: the baseline run in preflight (step
