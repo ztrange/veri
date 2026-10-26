@@ -4,7 +4,7 @@ import re
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 TDD = SKILL.parent
-CORE = [TDD / name for name in ("SKILL.md", "SCRIPTS.md", "BAIL.md", "STOPPING.md", "RECONCILE.md")]
+CORE = [TDD / name for name in ("SKILL.md", "SCRIPTS.md", "BAIL.md", "RECONCILE.md")]
 NAMING_FILES = CORE + [TDD / "scripts" / "solvable-issues.sh"]
 
 NAMES_RESUME = re.compile(r"\bResume\b(?!\.\*\*| check)")
