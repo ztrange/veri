@@ -30,6 +30,10 @@ def requirements_lines(lines):
             yield heading, line
 
 
+def well_formed_row_id(row_id):
+    return re.fullmatch(r".+(\d+|<next>)", row_id) is not None
+
+
 def malformed_row_id(lines):
     seen = {}
     for heading, line in requirements_lines(lines):
@@ -37,7 +41,7 @@ def malformed_row_id(lines):
             continue
         seen[heading] = seen.get(heading, 0) + 1
         row_id = split_cells(line)[1]
-        if seen[heading] > 2 and not re.fullmatch(r".+(\d+|<next>)", row_id):
+        if seen[heading] > 2 and not well_formed_row_id(row_id):
             return row_id
     return None
 

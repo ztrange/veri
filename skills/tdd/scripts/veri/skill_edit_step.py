@@ -3,7 +3,6 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import contextlib
 import io
 import os
-import re
 import subprocess
 import tempfile
 import sys
@@ -232,7 +231,7 @@ def main(argv):
         return 2
     issue_rows = _issue_rows(issue, unit)
     for row in issue_rows:
-        if not re.fullmatch(r".+(\d+|<next>)", _row_id(row)):
+        if not requirements.well_formed_row_id(_row_id(row)):
             print("Requirement row ID is neither <prefix><digits> nor <prefix><next>: " + _row_id(row),
                   file=sys.stderr)
             return 2
