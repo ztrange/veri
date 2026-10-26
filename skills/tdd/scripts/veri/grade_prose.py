@@ -87,7 +87,7 @@ def unit_text(unit):
 
 
 def signature(path, unit):
-    parts = [unit_text(unit), requirements.claims(path, unit), GRADER_INSTRUCTIONS, grader_model()]
+    parts = [unit_text(unit), requirements.claims(path, unit), grader_model()]
     return hashlib.sha256("\0".join(parts).encode("utf-8")).hexdigest()
 
 
