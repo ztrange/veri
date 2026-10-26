@@ -133,3 +133,20 @@ def test_run_leaves_nothing_for_shutdown_to_flush_so_a_real_closed_pipe_still_ex
         os.close(write_end)
 
     assert (run.returncode, run.stderr.decode()) == (141, "")
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root may signal pid 1, so no EPERM to catch")
+def test_run_names_the_operation_that_raised_a_permission_error_in_its_one_refusal_line_2447(entry, capsys):
+    def main(argv):
+        os.kill(1, 0)
+        return 0
+
+    with pytest.raises(SystemExit) as exited:
+        entry.run(main, [])
+    out, err = capsys.readouterr()
+    lines = err.splitlines()
+
+    assert exited.value.code == 2
+    assert len(lines) == 1, err
+    assert lines[0].startswith("test-entry.sh: PermissionError: "), err
+    assert "os.kill" in lines[0], err

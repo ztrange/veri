@@ -1,6 +1,7 @@
 """The one __main__ entry point every ported module calls."""
 import os
 import sys
+import traceback
 
 BROKEN_PIPE = 141
 
@@ -12,7 +13,10 @@ def _shim_name(main):
 
 def refusal(main, exc):
     reason = " ".join(str(exc).split())
-    return f"{_shim_name(main)}: {type(exc).__name__}: {reason}\n"
+    where = ""
+    if isinstance(exc, PermissionError):
+        where = f" (at {traceback.extract_tb(exc.__traceback__)[-1].line})"
+    return f"{_shim_name(main)}: {type(exc).__name__}: {reason}{where}\n"
 
 
 def write(stream, text, *, before=True, after=True, end="\n"):
