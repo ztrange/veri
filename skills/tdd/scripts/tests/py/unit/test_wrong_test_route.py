@@ -2241,3 +2241,17 @@ def test_superseded_2453_writes_no_unresolved_line_for_a_case_the_step_itself_re
     cases = wrong_test_route._superseded(str(report), "step")
 
     assert (cases, capsys.readouterr().err) == ([], "")
+
+
+def test_superseded_2453_says_the_line_carried_no_case_name_when_the_body_yields_none(
+        monkeypatch, capsys, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    monkeypatch.setattr(wrong_test_route, "_recorded_cases", lambda step: set())
+    monkeypatch.setattr(wrong_test_route, "_exists", lambda case: None)
+    report = tmp_path / "report.txt"
+    report.write_text("SUPERSEDED:   \n")
+
+    cases = wrong_test_route._superseded(str(report), "step")
+    err = capsys.readouterr().err
+
+    assert (cases, "no case name" in err, "no defined test case resolves" in err) == ([], True, False)
