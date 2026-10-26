@@ -872,6 +872,27 @@ def test_check_step_on_a_fixture_repair_step_exits_0_when_green_changed_the_fixt
 
 
 @pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
+def test_check_step_on_a_fixture_repair_step_exits_1_naming_a_fixture_file_the_record_holds_no_case_bodies_for_2404(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    fixture = tmp_path / "tests/fixture_data.py"
+    fixture.write_text("TABLE = [1]\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = ("the case passes: repairs the fixture 'TABLE' in tests/fixture_data.py, "
+            "reproduced by a case in tests/test_other.py ⟦fixture-repair⟧")
+    fixture.write_text("TABLE = [1, 2]\n")
+    run_cli(tests_frozen, ["record", "--step", step, "tests/fixture_data.py"], cwd=tmp_path)
+
+    fixture.write_text("TABLE = [9, 9, 9]\nOTHER = {}\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    assert (code, out) == (1, "tests/fixture_data.py\n")
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
 def test_check_step_on_a_step_without_the_fixture_repair_mark_exits_1_naming_the_file_its_text_calls_a_fixture_1947(
         tmp_path, run_cli, tests_frozen):
     (tmp_path / "tests").mkdir()
