@@ -1322,3 +1322,28 @@ def test_main_keeps_the_deadline_path_with_3_when_the_head_reports_no_checks_but
     code, _, _ = run_cli(wait_ci, [PR, "120", "600", FULL_SHA], env={"VERI_POLL": "10"}, cwd=work)
 
     assert (code, [p.name for p in (work / ".tdd").iterdir()]) == (3, [f"ci-deadline-{FULL_SHA}"])
+
+
+def test_main_keeps_a_late_ci_at_3_while_pending_and_ends_0_or_1_when_the_checks_land_never_4_issue_2488(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    state = {"runs": []}
+
+    def answer(line):
+        if "workflows/ci.yml" in line:
+            return "name: ci\non:\n  pull_request:\n"
+        if ".github/workflows" in line:
+            return WORKFLOW_LISTING
+        return sha_bodies([state["runs"]], [], "pending").get(line)
+
+    served(fake_processes, {}, answer)
+    observed = []
+    for runs in ([], [check_run("gates", FULL_SHA, "in_progress")],
+                 [check_run("gates", FULL_SHA, "completed", "success")],
+                 [check_run("gates", FULL_SHA, "completed", "failure")]):
+        state["runs"] = runs
+        code, _, _ = run_cli(wait_ci, [PR, "120", "600", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+        observed.append(code)
+
+    assert observed == [3, 3, 0, 1]
