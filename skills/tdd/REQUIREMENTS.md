@@ -537,3 +537,20 @@
 | RC10 | When the leaf exited 0, `push-branch.sh` exited 0 and the ledger check holds, the conductor continues where the push was called. | A successful reconcile resumes the run instead of ending it. |
 | RC11 | The conductor bails with cause `reconcile-failed` when the leaf exits 1 or 2, when the second `push-branch.sh` exits other than 0, or when the ledger's ticks or marks changed. | A reconcile that did not land cleanly ends the run, named, rather than pushing anything further. |
 | RC12 | `reconcile-failed` is a system failure: where the branch lives broke, not the methodology. | The bail is classified as plumbing, not as a rejected change. |
+
+## skills/tdd/WORKER.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| WK1 | Only a session born as a **worker** `<name>` reads `WORKER.md`: it is not resident in every conductor request the way `SKILL.md` is, and is read the way a scope run reads `SCOPE-LOOP.md` (stated in the opening paragraph). | The worker's half of the skill stays out of every conductor's context. |
+| WK2 | The issues a worker works are the ones assigned to `<name>` in the work queue, `.tdd/workqueue` in the main working tree (opening paragraph). | A worker takes only its own issues, from the one queue file. |
+| WK3 | `workqueue.sh` is the only thing that writes `.tdd/workqueue`: every state change in the worker loop is one of its calls, never an edit by hand (opening paragraph). | One writer keeps the queue's states consistent. |
+| WK4 | The worker repeats the loop until `next` says there is nothing left (*The worker loop*, lead line). | The worker drains its queue and then stops. |
+| WK5 | Step 1 is `workqueue.sh next <name>`: it prints the first `queued` issue of the worker's whose `## Blocked by` names no open issue; exit 3 with nothing printed means nothing is launchable, and the worker stops. | A blocked issue is not launched, and an empty result ends the loop. |
+| WK6 | Step 2 is `workqueue.sh start <name> <issue>`, which moves the item `queued` → `running`; a refusal (exit 1) means the item is not the worker's or not `queued`, and the worker does not launch it. | A claim that was refused never becomes a run. |
+| WK7 | Step 3: the worker launches `run-conductor.sh <issue>` detached and waits for it to finish. | The run is the conductor's, started detached and awaited. |
+| WK8 | Step 4: the worker reads what the conductor left, one of two things: a draft PR or a bail. | The next queue move depends on which one it is. |
+| WK9 | On a draft PR the worker merges it under the merge lock, then `workqueue.sh done <name> <issue> <merge-sha>` moves the item `running` → `merged`. | The queue records a merge only after the merge happened. |
+| WK10 | On a bail the worker reads it; on the issue's second bail, `workqueue.sh park <name> <issue> <reason>` moves the item `running` → `parked`, recording why. | An issue that bails twice leaves the queue's runnable set with its reason kept. |
+| WK11 | Step 5: the worker goes back to step 1. | The loop closes. |
+| WK12 | The judgement calls, merging and reading a bail, stay the worker's, and no line in `.tdd/workqueue` is ever deleted (closing paragraph). | Deciding stays with the worker, and the queue keeps its whole history. |
