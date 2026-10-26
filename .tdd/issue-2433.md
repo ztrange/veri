@@ -8,7 +8,7 @@
 - [x] A small unit case in skills/tdd/scripts/tests/py/unit/test_skill_never_asks_2433.py reads SKILL.md's never-asks rule paragraph with preflight check 1 and *Detecting the test command*, and fails if the rule stands as an unqualified absolute beside either "ask the user" instruction (it passes only when the rule says such an ask is discharged by a `needs-user` bail), no production change ⟦criterion 2⟧
 - [x] A small unit case in skills/tdd/scripts/tests/py/unit/test_skill_detect_call_tier_2433.py reads the `detect-test-command.sh` call line in SKILL.md's *Detecting the test command* and asserts it names `--tier fast`, no production change ⟦criterion 4⟧
 - [x] The branch's history retires the two old-wording cases in a test-only commit that precedes the ⟦skill-edit⟧ commits, which precede the new pin cases ⟦diff-checked⟧ ⟦criterion 9⟧
-- [ ] Graded row PF22 still grades PASS against the amended prose, and `prose-owed.sh` prints nothing ⟦full-suite⟧ ⟦criterion 3⟧
-- [ ] `skills/tdd/GRADED` is re-signed for `skills/tdd/SKILL.md`, its signature matching the file's current text ⟦full-suite⟧ ⟦criterion 5⟧
-- [ ] `unit/test_skill_detach_test_command.py`'s `undetached` check is green ⟦full-suite⟧ ⟦criterion 7⟧
-- [ ] `unit/test_skill_test_command.py::test_skill_md_detects_the_run_s_test_command_from_the_issue_body_in_preflight_gives_it_to_every_leaf` stays green ⟦full-suite⟧ ⟦criterion 8⟧
+- [x] Graded row PF22 still grades PASS against the amended prose, and `prose-owed.sh` prints nothing ⟦full-suite⟧ ⟦criterion 3⟧
+- [x] `skills/tdd/GRADED` is re-signed for `skills/tdd/SKILL.md`, its signature matching the file's current text ⟦full-suite⟧ ⟦criterion 5⟧
+- [x] `unit/test_skill_detach_test_command.py`'s `undetached` check is green ⟦full-suite⟧ ⟦criterion 7⟧
+- [x] `unit/test_skill_test_command.py::test_skill_md_detects_the_run_s_test_command_from_the_issue_body_in_preflight_gives_it_to_every_leaf` stays green ⟦full-suite⟧ ⟦criterion 8⟧
