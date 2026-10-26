@@ -189,3 +189,29 @@ def test_shim_run_with_a_stale_pyc_planted_under_the_shared_prefix_reads_the_cur
                          cwd=root, capture_output=True, text=True)
 
     assert (ran.returncode, ran.stdout) == (0, "collapse non-alphanumerics to a single hyphen\n")
+
+
+@pytest.mark.tree_audit("copies the scripts tree to tmp_path")
+@pytest.mark.process("next-unchecked.sh run from a copy of the scripts tree with a stale ledger .pyc planted under a PYTHONPYCACHEPREFIX the caller exported")
+def test_shim_run_with_a_stale_pyc_planted_under_a_caller_exported_prefix_reads_the_current_source_2439(tmp_path):
+    root = tmp_path.resolve()
+    scripts = root / "scripts"
+    shutil.copytree(SCRIPTS, scripts, ignore=shutil.ignore_patterns("tests", "__pycache__"))
+    cache = root / "callers-pycache"
+    source = scripts / "veri" / "ledger.py"
+    stat = source.stat()
+    code = compile(STALE_LEDGER_MODULE, str(source), "exec")
+    header = (importlib.util.MAGIC_NUMBER + (0).to_bytes(4, "little")
+              + (int(stat.st_mtime) & 0xFFFFFFFF).to_bytes(4, "little")
+              + (stat.st_size & 0xFFFFFFFF).to_bytes(4, "little"))
+    planted = cache / str(source.parent).lstrip(os.sep) / ("ledger.%s.pyc" % sys.implementation.cache_tag)
+    planted.parent.mkdir(parents=True)
+    planted.write_bytes(header + marshal.dumps(code))
+    env = {k: v for k, v in os.environ.items()
+           if k not in ("VERI_PYCACHE", "PYTHONDONTWRITEBYTECODE")}
+    env["PYTHONPYCACHEPREFIX"] = str(cache)
+
+    ran = subprocess.run([str(scripts / "next-unchecked.sh")], input=LEDGER, env=env,
+                         cwd=root, capture_output=True, text=True)
+
+    assert (ran.returncode, ran.stdout) == (0, "collapse non-alphanumerics to a single hyphen\n")
