@@ -149,6 +149,10 @@ def conductor_model():
 
 
 def launch(base, issue, commit, **exports):
+    try:
+        github.gh_issue_view(issue, "body")
+    except github.NoAnswer:
+        sys.stderr.write("run-conductor.sh: issue body unavailable, Requirements row IDs unchecked\n")
     text = prompt(base, issue, commit)
     if text is None:
         return 2
