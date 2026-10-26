@@ -78,7 +78,7 @@ Name in that line the existing test case the step's criterion contradicts.
 or, when older cases fail only because the step supersedes what they pin, those lines replaced by
 one per such case:
 
-SUPERSEDED: <the older case>
+SUPERSEDED: <the older case's name, written out in full as its test file spells it, without quotes>
 
 A case the step's change does not supersede is a `WRONG_TEST:` line, never a `SUPERSEDED:` one.
 

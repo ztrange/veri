@@ -48,7 +48,7 @@ WRONG_TEST_REPORT = (
     "Name in that line the existing test case the step's criterion contradicts.\n\n"
     "or, when older cases fail only because the step supersedes what they pin, those lines replaced by\n"
     "one per such case:\n\n"
-    "SUPERSEDED: <the older case>\n\n"
+    "SUPERSEDED: <the older case's name, written out in full as its test file spells it, without quotes>\n\n"
     "A case the step's change does not supersede is a `WRONG_TEST:` line, never a `SUPERSEDED:` one.").encode()
 WRONG_TEST_FORMAT = (
     "\n\nREPORT-FORMAT revise-wrong-test | keys WRONG_TEST: SUPERSEDED: | suite exempt: the test is wrong, "
