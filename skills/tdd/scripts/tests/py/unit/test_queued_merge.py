@@ -238,3 +238,14 @@ def test_2425_queued_merge_fast_forwards_the_main_clones_main_to_origin_main_wit
     tagged = first(calls, " tag -a ")
     released = first(calls, "merge-lock.sh release")
     assert (code, len(forwards), bool(forwards) and forwards[0] > max(tagged, released)) == (0, 1, True)
+
+
+def test_2425_queued_merge_whose_main_clone_cannot_fast_forward_reports_it_on_stderr_and_exits_non_zero_after_the_tag_and_the_lock_release(fake_processes, run_cli):
+    calls = scenario(fake_processes, fail=("--ff-only",))
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    tagged = first(calls, " tag -a ")
+    released = first(calls, "merge-lock.sh release")
+    attempt = first(calls, "--ff-only")
+    assert (code != 0, "origin/main" in err, max(tagged, released) < attempt) == (True, True, True)
