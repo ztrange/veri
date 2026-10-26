@@ -800,11 +800,12 @@ def test_a_full_pass_writes_one_graded_line_carrying_the_unit_its_signature_the_
     graded = tmp_path / "skills" / "guide" / "GRADED"
     lines = graded.read_text().splitlines() if graded.exists() else []
     fields = lines[0].split() if len(lines) == 1 else []
+    has_fields = len(fields) >= 4
     monkeypatch.chdir(tmp_path)
     expected = grade_prose.signature("REQUIREMENTS.md", "skills/guide/unit.md")
-    assert [len(gradings), len(fields) == 4 and fields[0], len(fields) == 4 and fields[1] == expected,
-            len(fields) == 4 and bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", fields[2])),
-            len(fields) == 4 and fields[3] == gradings[0].get("id", "") != ""] \
+    assert [len(gradings), has_fields and fields[0], has_fields and fields[1] == expected,
+            has_fields and bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", fields[2])),
+            has_fields and fields[3] == gradings[0].get("id", "") != ""] \
         == [1, "skills/guide/unit.md", True, True, True], lines
 
 
