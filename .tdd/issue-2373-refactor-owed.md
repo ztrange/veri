@@ -1,0 +1,2 @@
+### When run-conductor's pre-launch fetch of issue <n>'s body yields no answer (gh refuses or errors), run-conductor.sh writes exactly one stderr line naming the skip, `run-conductor.sh: issue body unavailable, Requirements row IDs unchecked`, and still goes on to launch the conductor; a small in-process case faking only the gh boundary ⟦criterion 2⟧
+- test-only | the skip-line case rebuilds the symlinked-skill and importlib module loading that nearby launch cases already do; extract a shared helper in test_run_conductor.py
