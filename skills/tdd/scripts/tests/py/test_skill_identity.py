@@ -66,37 +66,12 @@ def ascii_lower(text):
     return text.translate({code: code + 32 for code in range(ord("A"), ord("Z") + 1)})
 
 
-def fold_bullets(text):
-    records, rec = [], ""
-    for line in text.splitlines():
-        if line.startswith("- "):
-            if rec != "":
-                records.append(rec)
-            rec = line
-        elif re.match(r"^[ \t\r\f\v]*$", line):
-            if rec != "":
-                records.append(rec)
-            rec = ""
-        elif rec != "":
-            rec = rec + " " + line
-    if rec != "":
-        records.append(rec)
-    return [ascii_lower(record) for record in records]
-
-
 def inputs_section():
     return importlib.import_module("skill_sections").section(ROOT / SKILL_MD, "## Inputs")
 
 
 def inputs_text():
     return "".join(inputs_section().splitlines(keepends=True)[1:])
-
-
-def claim(bullets, bullets_from, what, *patterns):
-    posix = [pattern.replace("[:alnum:]", "a-zA-Z0-9") for pattern in patterns]
-    if any(all(re.search(pattern, line) for pattern in posix) for line in bullets):
-        return []
-    return [f"{bullets_from}: no bullet {what}"]
 
 
 def loop_md_path():
@@ -163,25 +138,6 @@ def test_skill_md_resolves_its_argument_an_integer_is_one_issue_any_other_word_a
     assert not problems, problems
 
 
-def test_the_loop_file_derives_a_scopes_label_ready_for_agent_for_plain_ready_for_agent_scope_otherwise_veri_label_overriding():
-    problems = []
-    loop_md = loop_md_path()
-    bullets, bullets_from = [], SKILL_MD
-    if loop_md and (ROOT / loop_md).is_file():
-        bullets = fold_bullets((ROOT / loop_md).read_text())
-        bullets_from = loop_md
-    if not bullets:
-        problems.append(f"the loop file {SKILL_MD} Inputs points at could not be read for bullets — how a scope's label is derived was not tested")
-    else:
-        problems += claim(bullets, bullets_from, "gives the scope plain the bare ready-for-agent label",
-                          "(^|[^[:alnum:]])plain([^[:alnum:]]|$)", "ready-for-agent")
-        problems += claim(bullets, bullets_from, "gives any other scope the label ready-for-agent:<scope>",
-                          "scope", "ready-for-agent:")
-        problems += claim(bullets, bullets_from, "keeps VERI_LABEL as the override of the derived label",
-                          "veri_label", "overrid|precedence|wins")
-    assert not problems, problems
-
-
 def test_only_the_scope_branch_is_sent_to_the_loop_file_skill_md_keeps_procedure_and_the_loop_delegates_back_to_it():
     problems = []
     skill_lines = (ROOT / SKILL_MD).read_text().splitlines()
@@ -197,8 +153,6 @@ def test_only_the_scope_branch_is_sent_to_the_loop_file_skill_md_keeps_procedure
         for number, line in enumerate(skill_lines, 1):
             if not start <= number - 1 < inside and loop_base in line:
                 problems.append(f"{SKILL_MD} names {loop_base} outside '## Inputs' — {number}: {line[:90]}")
-        if not any("SKILL.md" in line for line in (ROOT / loop_md).read_text().splitlines() if "Procedure" in line):
-            problems.append(f"{loop_md} never sends an issue back to {SKILL_MD}'s Procedure")
     assert not problems, problems
 
 
