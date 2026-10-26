@@ -125,7 +125,9 @@ Whenever this procedure says **bail**, with the cause the bailing line names, `R
 
 **A conductor never asks the user a question, and never declines the procedure's next instruction.** No
 one answers a headless run, so a turn that ends on a question leaves a run that looks in progress. If you
-would ask, or would decline, **bail** with cause `needs-user` (a process failure) instead, writing the
+would ask, or would decline, **bail** with cause `needs-user` (a process failure) instead — this covers
+every place the procedure itself says to ask the user, preflight check 1's dirty-tree stop and
+*Detecting the test command*'s exit-3 ask among them — writing the
 question in full into the bail comment so a resume or the human can answer it (`Read` `<base directory>/BAIL.md`).
 
 The launch carries `VERI_TEST_CMD`: the run's test command, reaching the leaf through its
@@ -199,7 +201,7 @@ reason file for a verdict nothing wrote (see `<base directory>/BAIL.md`).
 
 **Never launch a leaf in a background Bash call and then wait for its notification.** The
 conductor often runs as a print-mode session (`claude -p "/tdd <n>"` — one of the two
-unattended modes below), and in print mode that notification never arrives: the turn ends, the
+unattended modes `README.md`'s *Launching the conductor* describes), and in print mode that notification never arrives: the turn ends, the
 `claude -p` process exits, and the leaf is orphaned. The supervisor keeps running it under
 `.tdd/`, but nothing will ever read its result, tick the ledger or narrate the outcome (this
 is how #70 was lost). The detach-then-wait shape behaves identically interactively and
@@ -247,7 +249,7 @@ commits, nothing to revert or push) — just refuse to start. A red, dirty, or
 unauthenticated baseline never gets a cycle.
 
 1. **Git repo & clean tree.** `git rev-parse --is-inside-work-tree` succeeds and
-   `git status --porcelain` is empty. If dirty, stop and ask the user to commit or stash.
+   `git status --porcelain` is empty. If dirty, **bail** with cause `needs-user`, asking the user in the bail comment to commit or stash (`Read` `<base directory>/BAIL.md`).
    The run no longer commits in this checkout — step 1.2 moves into a worktree that is clean
    by construction — but the check **stays**: the conductor still reads the issue and the
    default branch from here, and a dirty caller's checkout means something else is mid-work
@@ -1755,7 +1757,7 @@ A verifier's `REJECT` does not stop the run: `Read` and run `<base directory>/RE
 Do not pick it by hand. Run `$S/detect-test-command.sh --tier fast --issue <body-file> <repo-root>` (its command goes through `detach-command.sh`)
 once, from the target repo's root, with the issue body preflight step 0.3 saved: it prints
 the one test command of that tier on stdout and exits 0. On **exit 3** it prints nothing — no
-marker it trusts matched — so **ask the user** for the command rather than guessing.
+marker it trusts matched — so **bail** with cause `needs-user`, asking the user for the command in the bail comment rather than guessing (`Read` `<base directory>/BAIL.md`).
 
 That stdout is `<test-cmd>` everywhere it is needed: the baseline run in preflight (step
 0.3) and the `<test-cmd>` argument of every `$S/build-develop-prompt.sh` call, so every
