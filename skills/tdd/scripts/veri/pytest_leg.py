@@ -132,7 +132,7 @@ def worker_count(requested):
     if sys.platform == "darwin":
         try:
             cores = int(subprocess.run(["sysctl", "-n", "hw.physicalcpu"], capture_output=True, text=True).stdout)
-        except OSError:
+        except (OSError, ValueError):
             cores = affinity
     else:
         cores = affinity
