@@ -449,6 +449,8 @@ STARTS_PYTEST_EXEMPT = {
         "the pytest session started from two directories is the subject",
     "test_conftest.py::test_the_path_setup_case_gives_the_same_outcome_started_from_skills_tdd_scripts_with_a_relative_path_as_from_the_repository_root":
         "the pytest session started from two directories is the subject",
+    "test_stale_bytecode_process.py::test_every_directly_runnable_module_keeps_its_bytecode_out_of_the_tree_2405":
+        "pytest_leg.py run directly is one of the modules whose bytecode placement is the subject",
 }
 
 
