@@ -94,6 +94,7 @@ def test_target_slot_is_free_only_below_target_asking_for_not_running_issues_193
     scripts = tmp_path / "scripts"
     (scripts / "veri").mkdir(parents=True)
     shutil.copy(SCRIPTS / "veri" / "watch_runs.py", scripts / "veri" / "watch_runs.py")
+    shutil.copy(SCRIPTS / "veri" / "pycache_prefix.py", scripts / "veri" / "pycache_prefix.py")
     shutil.copy(SHIM, scripts / "watch-runs.sh")
     (scripts / "lib").symlink_to(SCRIPTS / "lib")
     calls = tmp_path / "calls"
@@ -137,6 +138,7 @@ def test_target_slot_is_taken_by_a_live_conductor_that_has_not_written_a_launch_
     scripts = tmp_path / "scripts"
     (scripts / "veri").mkdir(parents=True)
     shutil.copy(SCRIPTS / "veri" / "watch_runs.py", scripts / "veri" / "watch_runs.py")
+    shutil.copy(SCRIPTS / "veri" / "pycache_prefix.py", scripts / "veri" / "pycache_prefix.py")
     shutil.copy(SHIM, scripts / "watch-runs.sh")
     (scripts / "lib").symlink_to(SCRIPTS / "lib")
     stub = scripts / "solvable-issues.sh"
@@ -164,6 +166,7 @@ def test_target_counts_a_starting_run_when_run_from_a_subdirectory_2388(tmp_path
     scripts = tmp_path / "scripts"
     (scripts / "veri").mkdir(parents=True)
     shutil.copy(SCRIPTS / "veri" / "watch_runs.py", scripts / "veri" / "watch_runs.py")
+    shutil.copy(SCRIPTS / "veri" / "pycache_prefix.py", scripts / "veri" / "pycache_prefix.py")
     shutil.copy(SHIM, scripts / "watch-runs.sh")
     (scripts / "lib").symlink_to(SCRIPTS / "lib")
     stub = scripts / "solvable-issues.sh"
@@ -191,6 +194,7 @@ def test_target_counts_a_run_live_in_its_pre_conductor_baseline_2388(tmp_path):
     scripts = tmp_path / "scripts"
     (scripts / "veri").mkdir(parents=True)
     shutil.copy(SCRIPTS / "veri" / "watch_runs.py", scripts / "veri" / "watch_runs.py")
+    shutil.copy(SCRIPTS / "veri" / "pycache_prefix.py", scripts / "veri" / "pycache_prefix.py")
     shutil.copy(SHIM, scripts / "watch-runs.sh")
     (scripts / "lib").symlink_to(SCRIPTS / "lib")
     stub = scripts / "solvable-issues.sh"
