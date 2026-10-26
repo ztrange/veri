@@ -48,3 +48,24 @@ def test_the_serial_probe_collecting_after_its_run_directory_vanished_neither_ra
     serial_seen.pytest_collection_modifyitems([])
 
     assert not (tmp_path / "veri-pytest-gone").exists()
+
+
+def test_a_leg_run_on_a_host_whose_tmpdir_is_elsewhere_gives_its_cases_tmp_as_the_inherited_tmpdir_2354(run_cli, tmp_path):
+    planted = tmp_path / "planted"
+    planted.mkdir()
+    seen = tmp_path / "seen"
+    (planted / "conftest.py").write_text(
+        "import os\n"
+        "def pytest_sessionstart(session):\n"
+        "    with open(%r, 'w') as out:\n"
+        "        out.write(os.environ.get('TMPDIR', 'unset'))\n" % str(seen)
+    )
+    (planted / "test_planted_unmarked.py").write_text("def test_unmarked():\n    pass\n")
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1",
+           "TMPDIR": str(elsewhere)}
+
+    run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+
+    assert seen.read_text() == "/tmp"
