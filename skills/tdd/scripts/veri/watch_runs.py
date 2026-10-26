@@ -1,6 +1,7 @@
 """watch-runs.sh's computation, run in-process."""
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -14,8 +15,15 @@ def _runs():
     return json.loads(document)["runs"]
 
 
+def _starting():
+    listing = subprocess.run(["ps", "-axo", "command="], stdout=subprocess.PIPE, text=True).stdout
+    found = re.findall(r"(?:^|\s)\S*run_conductor\.py (\d+)(?=\s|$)", listing, re.M)
+    return [issue for issue in found if os.path.isdir(os.path.join(".tdd", "wt", issue))]
+
+
 def live_conductors():
-    return [str(run["issue"]) for run in _runs() if run.get("state") == "running"]
+    live = [str(run["issue"]) for run in _runs() if run.get("state") == "running"]
+    return live + [issue for issue in dict.fromkeys(_starting()) if issue not in live]
 
 
 def run_state(issue):
