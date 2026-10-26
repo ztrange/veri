@@ -265,7 +265,7 @@ def main(argv):
         graded, said = _grade(path, unit)
     else:
         graded, said = 1, "FAIL: unit is empty\n"
-    if added is not None and graded == 0:
+    if added is not None and graded == 0 and change is None:
         print("added step graded PASS before any author ran, so no prose would change: " + added, file=sys.stderr)
         _restore(snapshot, path, unit, graded_file)
         return 2
