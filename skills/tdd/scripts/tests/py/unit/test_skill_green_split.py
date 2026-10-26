@@ -23,6 +23,10 @@ def numbered(pattern):
     return [(n, line) for n, line in enumerate(skill_lines(), 1) if re.search(pattern, line)]
 
 
+def in_skill_md(call):
+    return (call[0] if isinstance(call, tuple) else call) <= len(SKILL.read_text().splitlines())
+
+
 def neighbourhood(at):
     return plain(line for n, line in enumerate(skill_lines(), 1) if at - 20 <= n <= at + 20)
 
@@ -71,7 +75,7 @@ def add_ledger_step_entry():
 
 
 def test_1281_skill_md_s_three_split_add_ledger_step_calls_pass_no_criterion_and_say_a_split_keeps_its_anchor_s_criterion_the_uncovered_spec_call_passes_criterion_k_read_from_the_issue_s_numbered_acceptance_criteria_one_call_per_criterion_bailing_on_exit_2():
-    splits = [(n, line) for n, line in split_calls() if "instead-of" in line]
+    splits = [(n, line) for n, line in split_calls() if "instead-of" in line and in_skill_md(n)]
     assert splits, "SKILL.md has no instead-of add-ledger-step.sh call"
     for n, line in splits:
         assert "--criterion" not in line.strip(), f"SKILL.md's split call passes --criterion: {line.strip()}"
@@ -118,7 +122,7 @@ def test_1546_skill_md_never_runs_replaces_case_survivors_sh_at_any_place_it_nam
 
 def test_1379_skill_md_s_every_add_ledger_step_sh_call_site_says_its_exit_2_bails_with_cause_step_add_refused():
     calls = [call for call in outside_cost_check(run_lines(r"\$S/add-ledger-step\.sh [^ ]*\.tdd/issue-<n>\.md|\$S/add-ledger-step\.sh --criterion <k> \.tdd/issue-<n>\.md"))
-             if "<SPLIT: value>" not in skill_lines()[call - 1]
+             if in_skill_md(call) and "<SPLIT: value>" not in skill_lines()[call - 1]
              and not re.search("⟦(suite|ci)-repair⟧", skill_lines()[call - 1])]
     assert calls, "SKILL.md has no add-ledger-step.sh call site"
     lines = skill_lines()
