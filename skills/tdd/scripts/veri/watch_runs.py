@@ -7,6 +7,7 @@ import sys
 import time
 
 import paths
+import pid_file
 import status
 
 
@@ -16,9 +17,7 @@ def _runs():
 
 
 def _starting():
-    listing = subprocess.run(["ps", "-axo", "command="], stdout=subprocess.PIPE, text=True).stdout
-    found = re.findall(r"(?:^|\s)\S*run_conductor\.py (\d+)(?=\s|$)", listing, re.M)
-    return [issue for issue in found if os.path.isdir(os.path.join(".tdd", "wt", issue))]
+    return pid_file.starting_runs(".")
 
 
 def live_conductors():

@@ -5,6 +5,12 @@ import re
 import subprocess
 
 
+def starting_runs(root):
+    listing = subprocess.run(["ps", "-axo", "command="], stdout=subprocess.PIPE, text=True).stdout
+    found = re.findall(r"(?:^|\s)\S*run_conductor\.py (\d+)(?=\s|$)", listing, re.M)
+    return [issue for issue in found if os.path.isdir(os.path.join(root, ".tdd", "wt", issue, ".tdd"))]
+
+
 def number_in(file):
     if not os.path.isfile(file):
         return None
