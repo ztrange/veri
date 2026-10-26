@@ -918,7 +918,7 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
    **Before each verify-red launch** (and before each verify-green, below), also check every earlier step's frozen record:
    `$S/tests-frozen.sh check-earlier .tdd/issue-<n>.md --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" [--except <case>]…`,
    with one `--except` for each case the current step's route names (`red-contradicted`, `red-supersede`, `repair`,
-   `⟦replaces-case⟧`, `⟦fixture-repair⟧`). Exit 1 prints each changed or deleted case of an earlier step, with its step:
+   `⟦replaces-case⟧`, `⟦fixture-repair⟧`). Exit 1 prints each changed or deleted case of an earlier step, with its step (a case renamed with its text otherwise unchanged is neither changed nor deleted):
    write that to `.tdd/verify-red.reason`, treat the attempt as a verify-red REJECT that spends REVISE_BUDGET, and launch
    no verifier for it. Exit 0 launches the verifier as before; exit 2 is a system failure: **bail** (`Read` `<base directory>/BAIL.md`).
 
