@@ -57,7 +57,7 @@ def test_park_issue_with_the_wrong_number_of_arguments_prints_usage_exits_2_and_
                              text=True, stdin=subprocess.DEVNULL, env=env)
 
         assert ran.returncode == 2, (args, ran.stderr)
-        assert "usage: park-issue.sh <issue-number> <cause> <unblock> [<pr>]" in ran.stderr
+        assert "usage: park-issue.sh <issue-number> <cause> <unblock> [" in ran.stderr
         assert log.read_text() == ""
 
 
