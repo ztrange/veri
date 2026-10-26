@@ -208,3 +208,32 @@ def test_prose_owed_sh_after_a_units_text_or_its_requirement_rows_change_prints_
     write_list("The gadget is round.")
     code, out, err = run_cli(prose_owed, [str(tmp_path)])
     assert (code, out.split()) == (1, [two]), (code, out, err)
+
+
+def test_prose_owed_sh_stays_at_exit_0_after_an_edit_to_the_grader_instructions_2474(tmp_path, monkeypatch, run_cli):
+    import importlib
+
+    prose_owed = importlib.import_module("veri.prose_owed")
+    # prose_owed does `import grade_prose`, so its grader is a different module object
+    # from veri.grade_prose: sign and patch through the one it actually calls.
+    grade_prose = prose_owed.grade_prose
+    unit = "skills/demo/one.md"
+    (tmp_path / "skills" / "demo").mkdir(parents=True)
+    (tmp_path / unit).write_text("The widget is blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## %s\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n" % unit)
+    monkeypatch.chdir(tmp_path)
+    grade_prose.record_graded(unit, grade_prose.signature("REQUIREMENTS.md", unit), "g1")
+    assert run_cli(prose_owed, [str(tmp_path)])[:2] == (0, "")
+
+    monkeypatch.setattr(grade_prose, "GRADER_INSTRUCTIONS",
+                        grade_prose.GRADER_INSTRUCTIONS + "\nAlso weigh the prose's brevity.\n")
+
+    code, out, err = run_cli(prose_owed, [str(tmp_path)])
+    assert (code, out) == (0, ""), (code, out, err)
+
+    # The exit 0 above is only worth having if this gate is live on this very unit:
+    # exit 0 is also what an empty sweep returns, so prove the unit is being graded.
+    (tmp_path / unit).write_text("The widget is green.\n")
+    code, out, err = run_cli(prose_owed, [str(tmp_path)])
+    assert (code, out.split()) == (1, [unit]), (code, out, err)
