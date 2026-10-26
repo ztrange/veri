@@ -1461,3 +1461,17 @@ def test_2397_on_a_mac_whose_sysctl_runs_and_fails_with_empty_stdout_the_worker_
     monkeypatch.setattr(os, "cpu_count", lambda: 8)
     monkeypatch.setattr(pytest_leg.subprocess, "run", lambda argv, **kw: subprocess.CompletedProcess(argv, 1, stdout="", stderr="sysctl: failed"))
     assert pytest_leg.worker_count(None) == 8
+
+
+def test_2397_on_a_mac_whose_sysctl_exits_0_with_non_numeric_stdout_the_worker_count_falls_back_to_the_affinity_count(pytest_leg, monkeypatch, tmp_path):
+    import subprocess
+
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    monkeypatch.setenv("VERI_PYTEST_LEGS", str(legs))
+    monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
+    monkeypatch.setattr(sys, "platform", "darwin")
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(8)), raising=False)
+    monkeypatch.setattr(os, "cpu_count", lambda: 8)
+    monkeypatch.setattr(pytest_leg.subprocess, "run", lambda argv, **kw: subprocess.CompletedProcess(argv, 0, stdout="not a number\n", stderr=""))
+    assert pytest_leg.worker_count(None) == 8
