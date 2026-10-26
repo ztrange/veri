@@ -129,10 +129,11 @@ suites, or script run as a subprocess.
 `$VERI_VENV/bin/python3` (default `~/.veri-tools/venv`, from `make install-dev`; else PATH's
 `python3`). Admission rule: no process but the interpreter. Each case times out at 30 s
 (`VERI_PYTEST_TIMEOUT`, `@pytest.mark.timeout(n)`); the bytecode cache
-(`PYTHONPYCACHEPREFIX`, at `VERI_PYCACHE`, default `${TMPDIR:-/tmp}/veri-pycache-<uid>`) persists between runs, and a manifest of source hashes keeps a changed module,
+(`PYTHONPYCACHEPREFIX`, at `VERI_PYCACHE`, default `${TMPDIR:-/tmp}/veri-pycache-<uid>`, which the Makefile and `shim-python.sh` both set when unset) persists between runs, and a manifest of source hashes keeps a changed module,
 a same-second mutation included, from being served a stale `.pyc`: before importing, the leg drops
 every `.pyc` the manifest does not vouch for, and pytest-rewritten and `.opt-N` files always
-(#1127, #2054). Cases run across pytest-xdist
+(#1127, #2054). A shim run outside `make` has no manifest, so `shim-python.sh` also sets `PYTHONDONTWRITEBYTECODE=1`
+whenever it supplies the prefix itself: it reads what is there but never writes into it, so it cannot poison the cache (#2406). Cases run across pytest-xdist
 workers: `make unit` 4 (each worker pays its own start-up); `make test` the cores other running
 legs leave free (physical cores on macOS, the CPU-affinity count elsewhere), at least 1 (#2100): each leg registers its pid and count under
 `~/.veri-pytest-legs` (`VERI_PYTEST_LEGS`), and a dead pid holds no share.
