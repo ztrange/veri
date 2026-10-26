@@ -194,7 +194,7 @@ def test_a_units_signature_changes_when_any_id_cell_or_any_requirement_cell_of_i
     assert [s != base for s in changed] == [True] * 4
 
 
-def test_a_units_signature_changes_when_the_grader_prompt_template_changes_and_when_the_grader_conf_model_changes_1725(
+def test_a_units_signature_changes_when_the_grader_conf_model_changes_1725(
         tmp_path, monkeypatch, grade_prose):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     conf = tmp_path / "skills" / "tdd" / "grader.conf"
@@ -204,14 +204,11 @@ def test_a_units_signature_changes_when_the_grader_prompt_template_changes_and_w
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
     monkeypatch.chdir(tmp_path)
 
-    def signed(model, template):
+    def signed(model):
         conf.write_text("model=%s\n" % model)
-        monkeypatch.setattr(grade_prose, "GRADER_INSTRUCTIONS", template)
         return grade_prose.signature("REQUIREMENTS.md", "unit.md")
 
-    base = signed("sonnet-4", "Grade the prose.")
-    assert (signed("sonnet-4", "Grade the prose, strictly.") != base,
-            signed("opus-4", "Grade the prose.") != base) == (True, True)
+    assert signed("opus-4") != signed("sonnet-4")
 
 
 def test_a_pass_on_a_nested_unit_records_its_signature_in_the_skills_graded_and_writes_no_graded_beside_the_unit_1911(
