@@ -1351,7 +1351,7 @@ REAL_EDITS = [
     ("### 3. The cycle loop", "py/unit/test_skill_draft_pr.py", ""),
     ("REVISE.md", "py/unit/test_skill_revise_exhausted.py", ""),
     ("STOPPING.md", "py/test_skill_leaf_env.py", ""),
-    ("RECONCILE.md", "py/unit/test_skill_push_reconcile.py", ""),
+    ("RECONCILE.md", "py/unit/test_skill_resume_pointers.py", ""),
     ("BAIL.md", "py/test_skill_leaf_env.py", ""),
     ("RESUME.md", "py/unit/test_skill_refactor_pending.py", ""),
     ("### 4. Draft PR", "py/unit/test_skill_draft_pr.py", ""),
