@@ -1,17 +1,18 @@
 ### 📊 Metrics — issue 2231
 
-Wall time for the issue: 360 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 2448 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 8 of 10 planned.
-Outcome: the run bailed — revise-exhausted, a process failure.
+Steps done: 10 of 10 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/2297.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $12.07 over 226 turns, in 4 sessions, on opus.
+Conductor own spending: $14.45 over 272 turns, in 5 sessions, on opus.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 89786 tokens, largest 197156 tokens
 Conductor context: first turn 90200 tokens, largest 131104 tokens
 Conductor context: first turn 90200 tokens, largest 153338 tokens
-Conductor context: first turn 87972 tokens, largest 138585 tokens
+Conductor context: first turn 87972 tokens, largest 141151 tokens
+Conductor context: first turn 87972 tokens, largest 139856 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -207,39 +208,85 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 187 | $0.07 | 150934 |
 | 188 | $0.05 | 152243 |
 | 189 | $0.05 | 153338 |
-| 190 | $0.56 | 87972 |
-| 191 | $0.02 | 88302 |
-| 192 | $0.03 | 90140 |
-| 193 | $0.02 | 90685 |
+| 190 | $0.57 | 87972 |
+| 191 | $0.03 | 88302 |
+| 192 | $0.05 | 90140 |
+| 193 | $0.03 | 90685 |
 | 194 | $0.04 | 93186 |
-| 195 | $0.05 | 97132 |
-| 196 | $0.03 | 98427 |
-| 197 | $0.03 | 99394 |
-| 198 | $0.02 | 99902 |
-| 199 | $0.03 | 101101 |
-| 200 | $0.03 | 101795 |
-| 201 | $0.02 | 102148 |
-| 202 | $0.02 | 102485 |
-| 203 | $0.03 | 103121 |
+| 195 | $0.06 | 97132 |
+| 196 | $0.04 | 98427 |
+| 197 | $0.04 | 99394 |
+| 198 | $0.03 | 99902 |
+| 199 | $0.04 | 101101 |
+| 200 | $0.04 | 101795 |
+| 201 | $0.03 | 102148 |
+| 202 | $0.03 | 102485 |
+| 203 | $0.04 | 103121 |
 | 204 | $0.03 | 103756 |
-| 205 | $0.02 | 104101 |
+| 205 | $0.04 | 104101 |
 | 206 | $0.03 | 104830 |
-| 207 | $0.03 | 105681 |
-| 208 | $0.10 | 115390 |
-| 209 | $0.03 | 116080 |
-| 210 | $0.03 | 116919 |
-| 211 | $0.03 | 118317 |
-| 212 | $0.09 | 126336 |
-| 213 | $0.03 | 127305 |
-| 214 | $0.03 | 128495 |
-| 215 | $0.03 | 129219 |
+| 207 | $0.04 | 105681 |
+| 208 | $0.11 | 115390 |
+| 209 | $0.04 | 116080 |
+| 210 | $0.04 | 116919 |
+| 211 | $0.04 | 118317 |
+| 212 | $0.10 | 126336 |
+| 213 | $0.04 | 127305 |
+| 214 | $0.05 | 128495 |
+| 215 | $0.04 | 129219 |
 | 216 | $0.03 | 129571 |
-| 217 | $0.03 | 130674 |
-| 218 | $0.03 | 131635 |
-| 219 | $0.03 | 132342 |
-| 220 | $0.06 | 137082 |
+| 217 | $0.05 | 130674 |
+| 218 | $0.04 | 131635 |
+| 219 | $0.04 | 132342 |
+| 220 | $0.08 | 137082 |
 | 221 | $0.04 | 138081 |
-| 222 | $0.03 | 138585 |
+| 222 | $0.04 | 138585 |
+| 223 | $0.05 | 139943 |
+| 224 | $0.05 | 141151 |
+| 225 | $0.56 | 87972 |
+| 226 | $0.02 | 88393 |
+| 227 | $0.03 | 90133 |
+| 228 | $0.05 | 94000 |
+| 229 | $0.05 | 97792 |
+| 230 | $0.02 | 98374 |
+| 231 | $0.02 | 98876 |
+| 232 | $0.02 | 99195 |
+| 233 | $0.02 | 99508 |
+| 234 | $0.03 | 100181 |
+| 235 | $0.03 | 101314 |
+| 236 | $0.03 | 101938 |
+| 237 | $0.02 | 102453 |
+| 238 | $0.02 | 102992 |
+| 239 | $0.09 | 112106 |
+| 240 | $0.03 | 112818 |
+| 241 | $0.03 | 113309 |
+| 242 | $0.03 | 113891 |
+| 243 | $0.03 | 114491 |
+| 244 | $0.03 | 115283 |
+| 245 | $0.03 | 116098 |
+| 246 | $0.03 | 116739 |
+| 247 | $0.03 | 117333 |
+| 248 | $0.03 | 118099 |
+| 249 | $0.03 | 118411 |
+| 250 | $0.03 | 118930 |
+| 251 | $0.03 | 119723 |
+| 252 | $0.03 | 120642 |
+| 253 | $0.03 | 121264 |
+| 254 | $0.03 | 122114 |
+| 255 | $0.03 | 122433 |
+| 256 | $0.03 | 122954 |
+| 257 | $0.03 | 123599 |
+| 258 | $0.03 | 124404 |
+| 259 | $0.03 | 125421 |
+| 260 | $0.03 | 126005 |
+| 261 | $0.04 | 127847 |
+| 262 | $0.09 | 135570 |
+| 263 | $0.03 | 136469 |
+| 264 | $0.04 | 137561 |
+| 265 | $0.04 | 138558 |
+| 266 | $0.03 | 139015 |
+| 267 | $0.03 | 139356 |
+| 268 | $0.03 | 139856 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -255,10 +302,10 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | red-tri | 1 | 0 | 0 | 0 | 18 | 10 | 4 | 8 | 1395 | 114185 | 16577 | 0.07 |
 | green-tri | 1 | 0 | 0 | 0 | 49 | 17 | 5 | 10 | 950 | 147823 | 16411 | 0.07 |
 | red-contradicted | 1 | 0 | 0 | 0 | 24 | 17 | 5 | 10 | 2039 | 152464 | 19523 | 0.08 |
-| prose | 6 | 0 | 0 | 0 | 413 | 396 | 6 | 12 | 63906 | 8489 | 593204 | 2.12 |
+| prose | 7 | 0 | 0 | 0 | 513 | 493 | 7 | 14 | 79386 | 9138 | 697824 | 2.54 |
 | skill-edit | 2 | 0 | 0 | 0 | 34 | 29 | 9 | 18 | 2826 | 825398 | 239462 | 0.71 |
-| diff | 8 | 1 | 0 | 0 | 374 | 116 | 32 | 64 | 9560 | 826222 | 161047 | 0.86 |
-| rebase | 2 | 1 | 0 | 0 | 1600 | 42 | 14 | 26 | 3515 | 298513 | 110432 | 0.34 |
+| diff | 12 | 3 | 0 | 0 | 547 | 153 | 50 | 98 | 13006 | 1245762 | 247728 | 1.16 |
+| rebase | 6 | 2 | 1 | 0 | 2842 | 200 | 62 | 120 | 17555 | 1918997 | 280704 | 1.33 |
 | cover | 1 | 0 | 0 | 0 | 18 | 8 | 4 | 8 | 910 | 89445 | 31572 | 0.10 |
 | predicate | 1 | 0 | 0 | 0 | 11 | 6 | 3 | 6 | 329 | 75936 | 12627 | 0.04 |
 | structural | 1 | 0 | 0 | 0 | 13 | 8 | 4 | 8 | 476 | 107208 | 13395 | 0.05 |
@@ -268,9 +315,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 22 | 18 | 4 | 0 | 1630 | 391 | 73 | 140 | 24181 | 1788207 | 366355 | 1.34 |
-| developer | claude-sonnet-5-5 | 23 | 0 | 0 | 0 | 1343 | 289 | 105 | 204 | 25837 | 2862437 | 418878 | 1.59 |
-| developer | claude-opus-5-5 | 14 | 0 | 0 | 0 | 564 | 252 | 64 | 124 | 20160 | 1697923 | 296239 | 1.83 |
+| verifier | claude-sonnet-5-5 | 26 | 21 | 5 | 0 | 2190 | 440 | 94 | 180 | 28997 | 2309683 | 482069 | 1.73 |
+| developer | claude-sonnet-5-5 | 25 | 0 | 0 | 0 | 1446 | 312 | 116 | 224 | 28167 | 3118373 | 462648 | 1.75 |
+| developer | claude-opus-5-5 | 16 | 0 | 0 | 0 | 1316 | 375 | 98 | 192 | 30500 | 2960535 | 393708 | 2.56 |
 
 #### Rework and waste, by phase
 
@@ -288,7 +335,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | prose | 0 | 0.00 | 64 | 0.35 |
 | skill-edit | 0 | 0.00 | 0 | 0.00 |
 | diff | 0 | 0.00 | 268 | 0.71 |
-| rebase | 0 | 0.00 | 0 | 0.00 |
+| rebase | 1242 | 0.99 | 0 | 0.00 |
 | cover | 0 | 0.00 | 0 | 0.00 |
 | predicate | 0 | 0.00 | 0 | 0.00 |
 | structural | 0 | 0.00 | 0 | 0.00 |
@@ -307,6 +354,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | skills/tdd/SKILL.md: preflight always runs `$S/worktree-setup.sh <n>` inside the run worktree before the baseline, on every start and resume, and drops the "no ledger yet" and "last bail was `setup-failed`" conditions; it routes all four exits: 0 setup ran, 3 nothing to do (no `veri: setup:` line, or setup already done in this worktree), 1 bails `setup-failed` (a system failure), 2 is a preflight-class stop; PF31 stays as written; nothing else changes; it grades PASS against its whole list and is signed: `prose-owed.sh` prints nothing for it; `GRADED` carries a line whose signature matches its current text ⟦skill-edit⟧ ⟦criterion 2⟧ ⟦added⟧ | 1 | 0 | 0 | 0 | 0 | 0 | 61 | 1 | 2 | 9714 | 649 | 99768 | 0.35 | unknown | unknown | unknown | unknown |  |  | full |
 | skills/tdd/SKILL.md: preflight always runs `$S/worktree-setup.sh <n>` inside the run worktree before the baseline, on every start and resume, and drops the "no ledger yet" and "last bail was `setup-failed`" conditions; it routes all four exits: 0 setup ran, 3 nothing to do (no `veri: setup:` line, or setup already done in this worktree), 1 bails `setup-failed` (a system failure), 2 is a preflight-class stop; PF31 is reworded in place in skills/tdd/REQUIREMENTS.md exactly as the issue's PF31 row now states it; nothing else changes; it grades PASS against its whole list and is signed: `prose-owed.sh` prints nothing for it; `GRADED` carries a line whose signature matches its current text ⟦skill-edit⟧ ⟦criterion 2⟧ ⟦added⟧ | 3 | 0 | 0 | 0 | 0 | 0 | 136 | 6 | 12 | 21433 | 355651 | 316573 | 1.04 | unknown | unknown | unknown | unknown |  |  | full |
 | skills/tdd/scripts/tests/py/test_worktree_setup_process.py: the five repeated `subprocess.run` calls go through one helper in that file, and the case `test_2231_second_call_after_a_failed_setup_runs_the_command_again_and_exits_with_its_code` is renamed so its name says it exits 1 (what it asserts); every case keeps asserting exactly what it asserts today; test file only, no production change ⟦diff-checked⟧ ⟦criterion 2⟧ ⟦added⟧ | 8 | 0 | 0 | 0 | 0 | 0 | 119 | 27 | 54 | 9731 | 695174 | 143047 | 0.90 | unknown | 4/2 | unknown | unknown |  |  | full |
+| skills/tdd/scripts/tests/py/test_worktree_setup_process.py: rename the case `test_2231_second_call_after_a_failed_setup_runs_the_command_again_and_exits_with_its_code` so its name says it exits 1 (what it asserts), and change nothing else in its body; every case keeps asserting exactly what it asserts today; test file only, no production change ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 14 | 7 | 14 | 1474 | 147461 | 60661 | 0.18 | 146 | n/a | n/a | n/a |  |  | full |
+| skills/tdd/scripts/worktree-setup.sh: the header's `Exit:` line names all four exits — 0 setup ran; 1 the command failed; 2 bad arguments or an unreadable file; 3 no such line or already set up; comment only, nothing else changes ⟦diff-checked⟧ ⟦criterion 2⟧ ⟦added⟧ | 6 | 2 | 1 | 0 | 0 | 0 | 181 | 59 | 114 | 16012 | 1892563 | 196292 | 1.10 | 162 | 1/2 | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -322,21 +371,19 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 #### Structural pass
 
-| pass | refactor | stopped |
-| --- | ---: | --- |
-| issue | 0/10 | candidates-done |
+Stopped: nothing-structural
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 3 | 3 | 4 | 18 | 9 | 26 | 3 | 4 | 3 | 3 | 3 | 3 | 3 | 3 | 4 | 3 | 3 | 4 | 4 | 3 | 4 | 4 | 3 | 3 | 4 | 3 | 4 | 4 | 2 | 4 | 4 | 4 | 4 | 3 | 28 | 6 | 3 | 3 | 3 | 3 | 4 | 4 |
-| fast | 22 | 22 | 22 | 21 | 22 | 22 | 22 | 31 | 21 | 23 | 22 | 22 | 22 | 23 | 22 | 22 | 21 | 23 | 22 | 22 | 23 | 23 | 23 | 23 | 23 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 3 | 3 | 3 | 3 | 4 | 4 | 3 | 2 | 4 | 4 | 4 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| all | 720 | 820 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 3 | 3 | 4 | 18 | 9 | 26 | 3 | 4 | 3 | 3 | 3 | 3 | 3 | 3 | 4 | 3 | 3 | 4 | 4 | 3 | 4 | 4 | 3 | 3 | 4 | 3 | 4 | 4 | 2 | 4 | 4 | 4 | 4 | 3 | 28 | 6 | 3 | 3 | 3 | 3 | 4 | 4 | 4 | 0 | 222 |
+| fast | 22 | 22 | 22 | 21 | 22 | 22 | 22 | 31 | 21 | 23 | 22 | 22 | 22 | 23 | 22 | 22 | 21 | 23 | 22 | 22 | 23 | 23 | 23 | 23 | 23 | 23 | 23 | 23 | 25 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 3 | 3 | 3 | 3 | 4 | 4 | 3 | 2 | 4 | 4 | 4 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 720 | 820 | 224 | 228 | 221 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 257 | 498 | 136910 | 7182454 | 1914138 | 7.59 |
+| total | 324 | 628 | 169876 | 9223127 | 2275711 | 9.29 |
