@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -10,7 +11,7 @@ try:
 except ImportError:
     from .github import gh_api
 
-USAGE = "usage: queued-merge.sh <pr> <worktree> <branch> <tag-message|->"
+USAGE = "usage: queued-merge.sh <pr-url> <worktree> <branch> <tag-message|->"
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -110,6 +111,9 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     pr, worktree, branch, message = argv
+    if not re.fullmatch(r"https://github\.com/[^/]+/[^/]+/pull/\d+", pr):
+        print(USAGE, file=sys.stderr)
+        return 2
     repo = _repo(pr)
     pid = str(os.getpid())
     code = _script("merge-lock.sh", "take", "--pid", pid)
