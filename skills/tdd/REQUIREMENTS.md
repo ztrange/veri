@@ -538,7 +538,6 @@
 | RC11 | The conductor bails with cause `reconcile-failed` when the leaf exits 1 or 2, when the second `push-branch.sh` exits other than 0, or when the ledger's ticks or marks changed. | A reconcile that did not land cleanly ends the run, named, rather than pushing anything further. |
 | RC12 | `reconcile-failed` is a system failure: where the branch lives broke, not the methodology. | The bail is classified as plumbing, not as a rejected change. |
 
-<<<<<<< HEAD
 ## skills/tdd/WORKER.md
 
 | ID | Requirement | Why |
@@ -555,7 +554,7 @@
 | WK10 | On a bail the worker reads it; on the issue's second bail, `workqueue.sh park <name> <issue> <reason>` moves the item `running` → `parked`, recording why. | An issue that bails twice leaves the queue's runnable set with its reason kept. |
 | WK11 | Step 5: the worker goes back to step 1. | The loop closes. |
 | WK12 | The judgement calls, merging and reading a bail, stay the worker's, and no line in `.tdd/workqueue` is ever deleted (closing paragraph). | Deciding stays with the worker, and the queue keeps its whole history. |
-=======
+
 ## skills/tdd/RESUME.md
 
 | ID | Requirement | Why |
@@ -594,4 +593,3 @@
 | RS32 | Sub-step 4: then run the cycle loop as normal. Go to the draft PR only when `next-pending-refactor.sh` and `next-unchecked.sh` have both exited 3: every step is checked, and every checked step's refactor is verified. | A resumed run never readies a PR over untidied or unfinished steps. |
 | RS33 | Sub-step 4: an unchecked `⟦full-suite⟧` or `⟦human-owed⟧` line does not hold the run back from its draft PR, since no cycle ticks either and `next-unchecked.sh` skips both. | Lines the cycle loop never ticks cannot block the draft PR. |
 | RS34 | Because each step was checked off atomically with its green commit, the ledger and the git history agree on exactly what is done, so resume never repeats or skips a step. (Closing paragraph.) | The ledger can be trusted as the record of what is done. |
->>>>>>> 334841429 (docs: requirements for skills/tdd/RESUME.md, graded)
