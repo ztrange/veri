@@ -242,14 +242,17 @@ def _earlier_records(lines, step):
         yield match.group(1), path, records
 
 
-def _renamed_to(name, case, digest, text):
+def _renamed_to(name, case, digest, text, consumed):
     listed = subprocess.run(["git", "log", "--format=%H", "--", name], stdout=subprocess.PIPE,
                             stderr=subprocess.DEVNULL)
     for rev in os.fsdecode(listed.stdout).split():
         held = _cases_at(rev, name)
         if case in held and _body_digest(held[case]) == digest:
             shown = subprocess.run(["git", "show", "%s:%s" % (rev, name)], stdout=subprocess.PIPE)
-            return renamed_case.renamed_to(case, shown.stdout.decode("utf-8", "replace"), text, set(held))
+            other = renamed_case.renamed_to(case, shown.stdout.decode("utf-8", "replace"), text, set(held) | consumed)
+            if other:
+                consumed.add(other)
+            return other
     return None
 
 
@@ -278,6 +281,7 @@ def _check_earlier(ledger, step, exempt=()):
         for name, case, digest in bodies:
             latest[(name, case)] = (digest, owner, marked)
     changed = []
+    consumed = set()
     for (name, case), (digest, owner, marked) in latest.items():
         try:
             with open(name, encoding="utf-8", errors="replace") as handle:
@@ -285,7 +289,7 @@ def _check_earlier(ledger, step, exempt=()):
             now = dict(_cases(text)).get(case)
             old = _old_cut_cases(text).get(case)
             if now is None:
-                other = _renamed_to(name, case, digest, text)
+                other = _renamed_to(name, case, digest, text, consumed)
                 if other:
                     now = old = dict(_cases(text))[other].replace(other, case, 1)
         except OSError:
