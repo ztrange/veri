@@ -20,6 +20,25 @@ for path in (SCRIPTS, SCRIPTS / "veri"):
         sys.path.insert(0, str(path))
 
 
+@pytest.fixture
+def reaches_issue_body_boundary():
+    """Named by a case that exercises the pre-launch issue-body fetch itself: it gets the real gh boundary."""
+
+
+@pytest.fixture(autouse=True)
+def issue_body_fetch_answers_empty(request, monkeypatch):
+    """The pre-launch issue-body gh call answered with an empty body, so the row-ID check finds no rows."""
+    if "reaches_issue_body_boundary" in request.fixturenames:
+        return
+    import github
+    real = github.gh_issue_view
+
+    def view(number, field):
+        return "" if field == "body" else real(number, field)
+
+    monkeypatch.setattr(github, "gh_issue_view", view)
+
+
 def past_the_guards(monkeypatch):
     """The bash and Python floors met, and claude named fake-claude."""
     monkeypatch.setenv("VERI_BASH_MAJOR", "5")
