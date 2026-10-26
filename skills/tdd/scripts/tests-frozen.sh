@@ -14,7 +14,9 @@
 # --step writes nothing and check --step exits 0, because its fix is often an edit to the very test
 # file the full run or CI left red.
 # A step marked ⟦fixture-repair⟧ is frozen like any other step except for the fixture file its step
-# text names, which Green may edit.
+# text names, which Green may edit outside its recorded cases, on two conditions: every recorded case
+# body in that file stays unchanged, and the record holds at least one case body for that file; a
+# fixture file the record holds no case bodies for is flagged like any other.
 # A step marked ⟦guard-subject: <path>⟧ may change the file it
 # names (any other unrecorded test file is still flagged); the case pinning the behaviour stays frozen.
 #
