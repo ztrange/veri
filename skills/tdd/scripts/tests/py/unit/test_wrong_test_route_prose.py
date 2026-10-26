@@ -30,3 +30,17 @@ def test_main_2416_resolves_a_superseded_line_with_an_unquoted_prose_name_and_no
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % title)
+
+
+def test_main_2416_names_on_stderr_a_superseded_line_whose_case_no_test_file_defines(run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "src" / "__tests__"
+    suite.mkdir(parents=True)
+    (suite / "login.test.tsx").write_text("it('some other case', () => {});\n")
+    line = "SUPERSEDED: #590 a case nobody defined shows the invalid banner"
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\n%s\n" % line)
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+
+    assert line in stderr
