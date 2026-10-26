@@ -1358,3 +1358,27 @@ def test_in_flight_reads_a_fresh_run_whose_worktree_did_not_exist_at_launch_as_i
     code, _, err = run_cli(run_conductor, ["4242"], cwd=cwd)
 
     assert (code, seen, err) == (0, [True], "")
+
+
+def test_main_not_running_omits_the_issue_2388_whose_live_run_conductor_py_has_a_run_directory_here_with_no_events_and_no_conductor_pid(tmp_path, monkeypatch, capsys, solvable_issues):
+    (tmp_path / "issues.json").write_text(json.dumps([opted_in(5), opted_in(6), opted_in(7)]))
+    (tmp_path / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    main_tree = tmp_path / "main"
+    (main_tree / ".tdd" / "wt" / "6" / ".tdd").mkdir(parents=True)
+    listing = "  1 /sbin/launchd\n 99 /usr/bin/python3 /tmp/skill-copy/scripts/veri/run_conductor.py 6\n"
+
+    def fake_run(args, *rest, **kwargs):
+        if list(args[:4]) == ["git", "worktree", "list", "--porcelain"]:
+            return subprocess.CompletedProcess(args, 0, "worktree %s\n" % main_tree, "")
+        if args[0] == "ps":
+            return subprocess.CompletedProcess(args, 0, listing, "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", fake_run)
+
+    code = solvable_issues.main(["--not-running"])
+
+    out, err = capsys.readouterr()
+    assert (code, out) == (0, "5\n7\n")

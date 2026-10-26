@@ -133,7 +133,9 @@ def main(argv):
         return 2
     repo = rest[1] if rest else None
     if len(rest) != len(argv):
-        skip = running_numbers()
+        main_tree = main_working_tree()
+        starting = pid_file.starting_runs(main_tree)
+        skip = running_numbers() | {int(number) for number in starting}
     label = scope_label()
     priority = label and priority_label()
     if label is None or priority is None:
