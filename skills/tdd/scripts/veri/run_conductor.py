@@ -1,7 +1,9 @@
 """run-conductor.sh's launch of one conductor, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 # hazard: runs on the python3 it may refuse, so nothing here may need more than Python 3.9.
+import contextlib
 import glob
+import io
 import os
 import paths
 import re
@@ -150,7 +152,8 @@ def conductor_model():
 
 def launch(base, issue, commit, **exports):
     try:
-        github.gh_issue_view(issue, "body")
+        with contextlib.redirect_stderr(io.StringIO()):
+            github.gh_issue_view(issue, "body")
     except github.NoAnswer:
         sys.stderr.write("run-conductor.sh: issue body unavailable, Requirements row IDs unchecked\n")
     text = prompt(base, issue, commit)
