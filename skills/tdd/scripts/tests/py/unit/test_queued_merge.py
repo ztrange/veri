@@ -207,3 +207,11 @@ def test_2372_queued_merge_with_no_reported_merge_commit_or_one_the_clone_lacks_
     tagged = [c for c in calls if " tag -a " in c or "push origin v0." in c]
     released = [c for c in calls if c.startswith("merge-lock.sh release")]
     assert (code, named in err, tagged, len(released)) == (2, True, [], 1)
+
+
+def test_2425_queued_merge_refuses_a_pr_argument_that_is_not_a_pr_url_before_any_lock_or_git(fake_processes, run_cli):
+    calls = scenario(fake_processes)
+
+    code, _, err = run_cli(queued_merge, ["2415", "/wt", "feature", "the capability"])
+
+    assert (code, "<pr-url>" in err, calls) == (2, True, [])
