@@ -1047,3 +1047,37 @@ def test_a_run_given_no_change_whose_unit_grades_fail_sends_its_author_a_prompt_
     code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
 
     assert code == 0 and len(prompts) == 1 and "Change to make:" not in prompts[0], (code, err, prompts)
+
+
+def test_a_change_step_whose_every_author_attempt_leaves_the_prose_unchanged_spends_the_whole_budget_commits_nothing_and_exits_1_2340(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n- a merge is in flight;\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    before = {p.name: p.read_bytes() for p in tmp_path.iterdir()}
+    authors = []
+    commits = []
+
+    def run(cmd, **kw):
+        if cmd[0].endswith("supervise.sh"):
+            authors.append(cmd)
+        if cmd[:2] == ["git", "commit"]:
+            commits.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
+    monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, ["--change", "delete the bullet - a merge is in flight;",
+                                               str(tmp_path / "issue.md"), "unit.md"],
+                             env={"VERI_SKILL_EDIT_BUDGET": "2"})
+
+    after = {p.name: p.read_bytes() for p in tmp_path.iterdir()}
+    assert (code, len(authors), len(commits), after) == (1, 2, 0, before), (code, err)
