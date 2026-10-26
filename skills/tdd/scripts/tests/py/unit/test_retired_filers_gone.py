@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-REPO = Path(__file__).resolve().parents[5]
+REPO = Path(__file__).resolve().parents[6]
 RETIRED = ("tdd-" + "fix", "tdd-" + "candidates")
 SKIPPED_DIRS = {"specs", "docs", ".tdd", ".git", "__pycache__", ".pytest_cache", "node_modules"}
 

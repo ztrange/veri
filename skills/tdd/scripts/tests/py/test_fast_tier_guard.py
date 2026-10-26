@@ -725,3 +725,9 @@ def test_2226_the_suite_red_resume_cases_in_the_fast_tier_are_not_reported_as_ru
     path = SCRIPTS / "tests" / "py" / "unit" / "test_suite_red_resume.py"
 
     assert guard._file_offences(path) == []
+
+
+def test_1842_the_retired_filers_gone_suite_lives_under_tests_py_unit_and_not_beside_it():
+    tier = SCRIPTS / "tests" / "py"
+    name = "test_retired_filers_gone.py"
+    assert ((tier / name).is_file(), (tier / "unit" / name).is_file()) == (False, True)
