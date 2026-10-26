@@ -3782,6 +3782,62 @@ def test_main_with_the_issue_body_fetch_unanswered_writes_one_skip_line_on_stder
     assert len(launches) == 1
 
 
+def test_main_with_a_requirements_row_id_of_bare_next_refuses_in_preflight_naming_it_and_launches_no_conductor_issue_2373(
+        tmp_path, monkeypatch, capfdbinary, reaches_issue_body_boundary):
+    import github
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    skill = tmp_path / "skill"
+    (skill / "scripts" / "veri").mkdir(parents=True)
+    (skill / "scripts" / "veri" / "run_conductor.py").symlink_to(SCRIPTS / "veri" / "run_conductor.py")
+    (skill / "SKILL.md").write_text("# the procedure, read from SKILL.md\n")
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("run_conductor_2373_bare_next", str(skill / "scripts" / "veri" / "run_conductor.py"))
+    run_conductor = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(run_conductor)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    body = ("## Requirements\n\n### skills/tdd/SKILL.md\n\n| ID | Requirement | Why |\n| --- | --- | --- |\n"
+            "| SK1 | a well-formed row | because |\n| <next> | a bare row | because |\n")
+    monkeypatch.setattr(github, "gh_issue_view", lambda number, field: body if field == "body" else "")
+    launches = fake_claude_launch(monkeypatch)
+
+    code = run_conductor.main(["4242"])
+
+    stderr = capfdbinary.readouterr().err.decode(errors="replace")
+    assert (code, len(launches), "<next>" in stderr) == (2, 0, True)
+
+
+def test_main_with_well_formed_requirements_rows_beside_other_tables_launches_the_conductor_once_issue_2373(
+        tmp_path, monkeypatch, capfdbinary, reaches_issue_body_boundary):
+    import github
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    skill = tmp_path / "skill"
+    (skill / "scripts" / "veri").mkdir(parents=True)
+    (skill / "scripts" / "veri" / "run_conductor.py").symlink_to(SCRIPTS / "veri" / "run_conductor.py")
+    (skill / "SKILL.md").write_text("# the procedure, read from SKILL.md\n")
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("run_conductor_2373_well_formed", str(skill / "scripts" / "veri" / "run_conductor.py"))
+    run_conductor = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(run_conductor)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    body = ("## Observed\n\n| Step | Cost |\n| --- | --- |\n| one | cheap |\n\n"
+            "## Requirements\n\n| ID | Requirement | Why |\n| --- | --- | --- |\n| <next> | above any heading | because |\n\n"
+            "### skills/tdd/SKILL.md\n\n| ID | Requirement | Why |\n| --- | --- | --- |\n"
+            "| SK1 | a numbered row | because |\n| SK<next> | a next row | because |\n")
+    monkeypatch.setattr(github, "gh_issue_view", lambda number, field: body if field == "body" else "")
+    launches = fake_claude_launch(monkeypatch)
+
+    code = run_conductor.main(["4242"])
+
+    capfdbinary.readouterr()
+    assert (code, len(launches)) == (0, 1)
+
+
 def test_main_with_an_empty_issue_body_from_gh_writes_only_the_skip_line_on_stderr_and_still_launches_the_conductor_issue_2373(
         tmp_path, monkeypatch, capfdbinary, reaches_issue_body_boundary):
     import types

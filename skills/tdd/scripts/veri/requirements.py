@@ -18,6 +18,30 @@ def read_lines(path):
         return f.read().split("\n")
 
 
+def requirements_lines(lines):
+    heading = None
+    in_requirements = False
+    for line in lines:
+        if line.startswith("## "):
+            in_requirements, heading = line[3:].strip() == "Requirements", None
+        elif in_requirements:
+            if line.startswith("### "):
+                heading = line[4:].strip()
+            yield heading, line
+
+
+def malformed_row_id(lines):
+    seen = {}
+    for heading, line in requirements_lines(lines):
+        if heading is None or not line.startswith("|"):
+            continue
+        seen[heading] = seen.get(heading, 0) + 1
+        row_id = split_cells(line)[1]
+        if seen[heading] > 2 and not re.fullmatch(r".+(\d+|<next>)", row_id):
+            return row_id
+    return None
+
+
 def split_cells(line):
     cells, cell, start = [], [], 0
     for m in re.finditer(r"\\\||\|", line):

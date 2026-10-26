@@ -6,6 +6,7 @@ import glob
 import io
 import os
 import paths
+import requirements
 import re
 import calendar
 import json
@@ -153,9 +154,14 @@ def conductor_model():
 def launch(base, issue, commit, **exports):
     try:
         with contextlib.redirect_stderr(io.StringIO()):
-            github.gh_issue_view(issue, "body")
+            body = github.gh_issue_view(issue, "body")
     except github.NoAnswer:
         sys.stderr.write("run-conductor.sh: issue body unavailable, Requirements row IDs unchecked\n")
+    else:
+        bad = requirements.malformed_row_id(body.split("\n"))
+        if bad is not None:
+            sys.stderr.write("run-conductor.sh: Requirement row ID is neither <prefix><digits> nor <prefix><next>: %s\n" % bad)
+            return 2
     text = prompt(base, issue, commit)
     if text is None:
         return 2

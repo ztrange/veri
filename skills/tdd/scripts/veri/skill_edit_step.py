@@ -24,15 +24,7 @@ def _row_id(row):
 
 
 def _requirements_lines(issue):
-    heading = None
-    in_requirements = False
-    for line in requirements.read_lines(issue):
-        if line.startswith("## "):
-            in_requirements, heading = line[3:].strip() == "Requirements", None
-        elif in_requirements:
-            if line.startswith("### "):
-                heading = line[4:].strip()
-            yield heading, line
+    return requirements.requirements_lines(requirements.read_lines(issue))
 
 
 def _issue_rows(issue, unit):
