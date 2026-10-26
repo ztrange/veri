@@ -13,14 +13,13 @@ STOPPING = "## Stopping"
 LAUNCHING = "## Launching a leaf — detach, then wait in the foreground"
 PROCEDURE = "## Procedure"
 BAILING = "## Bailing"
-BAIL = SKILL.with_name("BAIL.md")
 LOOP_4 = "### Loop 4. Stop conditions"
 LOOP_5 = "### Loop 5. Report"
 SCRIPTS = "## The scripts (this skill's `scripts/` directory)"
 
 
 def _section(heading, path=SKILL):
-    section = importlib.import_module("skill_sections").section(BAIL if heading == BAILING else path, heading)
+    section = importlib.import_module("skill_sections").section(path, heading)
     lines = _plain(section).split("\n")[1:]
     assert "".join(lines).strip(), f"SKILL.md has no {heading} section — nothing could be checked"
     return lines
@@ -263,20 +262,6 @@ def test_each_phases_leaf_exit_2_branch_points_back_to_launching_a_leaf_where_st
     assert not problems, problems
 
 
-def test_bailing_keeps_a_bail_reached_first_revise_budget_exhausted_or_killed_stuck_with_no_now_pending_as_a_bail_and_its_comment_says_a_stop_was_pending_when_one_was():
-    lines, problems = [_joined(_section(BAILING))], []
-    pending, stop = _word("pending"), _word("stop")
-    _require(problems, r"stop-requested\.sh", lines,
-             "the Bailing section never asks stop-requested.sh — it cannot say whether a stop was pending")
-    _require(problems, _either_order("revise_budget", f"{stop}[^.;]*{pending}"), lines,
-             "the Bailing section never says a REJECT exhausting REVISE_BUDGET with a stop pending still bails")
-    _require(problems, _either_order("killed-stuck", f"no[^.;]*{_word('now')}[^.;]*{pending}"), lines,
-             "the Bailing section never says a killed-stuck leaf with no now pending still bails")
-    _require(problems, _either_order("comment", f"{stop}[^.;]*{pending}"), lines,
-             "the Bailing section's comment never says a stop was pending when one was")
-    assert not problems, problems
-
-
 def test_987_preflight_step_3_runs_stop_requested_clear_beside_the_tdd_conductor_pid_write():
     lines, problems = [_joined(_branch(_section(PROCEDURE), r"^3\. suite is green at baseline", r"^4\. "))], []
     _require(problems, r"\.tdd/conductor\.pid", lines,
@@ -373,13 +358,9 @@ def test_standing_bail_rule_is_stated_once_and_no_line_names_bailing_without_bai
     assert not bare, f"lines name Bailing without {pointer}: {bare}"
 
 
-def test_bailing_section_lives_in_bail_md_and_skill_md_carries_none_of_its_lines():
+def test_skill_md_carries_none_of_the_bailing_sections_lines():
     moved = [r"preserve-attempt\.sh <n> .*\bbail\b", r"event\.sh bail cause=<cause>", r"metrics: what bailing on"]
     skill = SKILL.read_text().split("\n")
-    bail = BAIL.read_text().split("\n")
     assert not [line for line in skill if line == BAILING], "SKILL.md still carries the ## Bailing heading"
-    assert [line for line in bail if line == BAILING], "BAIL.md carries no ## Bailing heading"
     left = [p for p in moved if _has(p, skill)]
     assert not left, f"SKILL.md still carries the moved lines {left}"
-    missing = [p for p in moved if not _has(p, bail)]
-    assert not missing, f"BAIL.md lacks the moved lines {missing}"
