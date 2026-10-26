@@ -118,6 +118,24 @@ def sha_state(repo, sha):
     return "green", "", False
 
 
+def runs_on_pull_requests(repo, sha):
+    listing = gh_api("repos/%s/contents/.github/workflows?ref=%s" % (repo, sha),
+                      stderr=subprocess.DEVNULL)
+    if listing.returncode != 0:
+        return True
+    try:
+        entries = json.loads(listing.stdout)
+    except ValueError:
+        return True
+    for entry in entries:
+        body = _gh("api", "-H", "Accept: application/vnd.github.raw",
+                   "repos/%s/contents/%s?ref=%s" % (repo, entry["path"], sha),
+                   stderr=subprocess.DEVNULL)
+        if body.returncode != 0 or re.search(r"\bpull_request(_target)?\b", body.stdout):
+            return True
+    return False
+
+
 def unreadable(what):
     warn("could not read the checks of %s" % what)
     return 2
@@ -241,6 +259,9 @@ def main(argv):
                 elif draft:
                     warn("%s is a draft; mark it ready before waiting on its checks" % pr)
                     return 2
+                elif state == "none" and not runs_on_pull_requests(repo, head):
+                    warn("%s reports no checks and no workflow runs on pull requests" % pr)
+                    return 4
                 else:
                     deadline = str(now + arith(total, scope))
                     record(mark, deadline)

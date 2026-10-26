@@ -8,7 +8,8 @@
 # check still pending past the deadline an earlier call recorded for the same head commit, or
 # checks never started: still queued VERI_CI_QUEUE_WAIT secs after the first call that saw them
 # queued · 3 a check is still pending, none has appeared yet, every one was SKIPPED, or the PR
-# still reports a head other than <head-sha>, when this call's <slice-seconds> run out.
+# still reports a head other than <head-sha>, when this call's <slice-seconds> run out · 4 the head
+# reports no check runs and no commit statuses, and no workflow runs on pull requests.
 #
 # The deadline does not run only while every pending check is queued (or the PR reports a
 # head other than <head-sha>). It is recorded in .tdd/ci-deadline-<sha> by the first call

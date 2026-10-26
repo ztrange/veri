@@ -1274,3 +1274,51 @@ def test_main_exits_2_saying_the_checks_never_started_when_they_stay_queued_past
     second, _, err = run_cli(wait_ci, [PR, "60", "120", FULL_SHA], env=env, cwd=work)
 
     assert (first, second, "never started" in err) == (3, 2, True)
+
+
+def test_main_exits_4_on_its_first_poll_recording_no_deadline_when_the_head_reports_no_checks_and_no_workflow_runs_on_pull_requests_issue_2488(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([], [], "pending")
+    sleeps = []
+
+    def answer(line):
+        if line.startswith("sleep "):
+            sleeps.append(line)
+        if ".github/workflows" in line:
+            return "[]"
+        return bodies.get(line)
+
+    served(fake_processes, {}, answer)
+    code, _, _ = run_cli(wait_ci, [PR, "120", "600", FULL_SHA], env={"VERI_POLL": "10"}, cwd=work)
+
+    assert (code, sorted(p.name for p in (work / ".tdd").iterdir()), sleeps) == (4, [], [])
+
+
+WORKFLOW_LISTING = json.dumps([{"path": ".github/workflows/ci.yml"}])
+
+
+@pytest.mark.parametrize("listing, workflow", [
+    (WORKFLOW_LISTING, "name: ci\non:\n  pull_request:\n    branches: [main]\n"),
+    (WORKFLOW_LISTING, "name: ci\non:\n  pull_request_target:\n"),
+    ((1, "[]", "gh: HTTP 502: Bad Gateway\n"), ""),
+    (WORKFLOW_LISTING, (1, "", "gh: HTTP 502: Bad Gateway\n")),
+])
+def test_main_keeps_the_deadline_path_with_3_when_the_head_reports_no_checks_but_a_workflow_may_run_on_pull_requests_issue_2488(
+        tmp_path, wait_ci, fake_processes, run_cli, listing, workflow):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([], [], "pending")
+
+    def answer(line):
+        if "workflows/ci.yml" in line:
+            return workflow
+        if ".github/workflows" in line:
+            return listing
+        return None
+
+    served(fake_processes, bodies, answer)
+    code, _, _ = run_cli(wait_ci, [PR, "120", "600", FULL_SHA], env={"VERI_POLL": "10"}, cwd=work)
+
+    assert (code, [p.name for p in (work / ".tdd").iterdir()]) == (3, [f"ci-deadline-{FULL_SHA}"])
