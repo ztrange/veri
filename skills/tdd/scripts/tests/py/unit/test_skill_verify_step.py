@@ -37,4 +37,3 @@ def test_skill_md_passes_fast_cmd_on_every_verify_sh_call_that_can_judge_green()
         if re.search(GREEN_RE, line) and f"verify.sh {FLAG} {FAST_FLAG} " not in line
     ]
     assert not problems, "\n".join(problems)
-
