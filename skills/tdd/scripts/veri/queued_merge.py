@@ -102,7 +102,10 @@ def _cleanup(pid, pr, pull, worktree, branch, message):
     _git(clone, "branch", "-D", branch)
     if _release(pid):
         failed.append("release")
-    _git(clone, "merge", "--ff-only", "origin/main")
+    forward = _git(clone, "pull", "--ff-only", ".", "origin/main")
+    if forward.returncode:
+        _say("fast-forward of main to origin/main failed (exit %d): %s" % (forward.returncode, forward.stderr.strip()))
+        failed.append("fast-forward")
     if failed:
         _say("merged, but cleanup failed: %s" % ", ".join(failed))
         return 2
