@@ -2,3 +2,4 @@
 - tests_frozen.py `_check_earlier` still rebuilds `taken` per removed case (same hole; separate plan step, outside this cycle's files)
 ### Through the real tests-frozen.sh check-earlier path (_check_earlier in tests_frozen.py): two earlier frozen cases with byte-identical bodies and def lines differing only in name, both removed while one added case carries that text, yield exactly one changed-or-deleted case on stdout and exit 1 — the pairing is one-to-one across the whole removed-case loop; a process case beside the existing rename cases in skills/tdd/scripts/tests/py/test_tests_frozen_process.py ⟦criterion 1⟧
 - test-only | the new test's repo setup (mkdir, init, commit, record, ledger) repeats the neighbouring rename cases; a shared helper would touch only `tests/`
+not-done | transform-rejected | tests_frozen.py `_check_earlier` still rebuilds `taken` per removed case (same hole; separate plan step, outside this cycle's files)
