@@ -19,3 +19,5 @@ For a skill-edit step whose ledger line carries `⟦added⟧`, run `$S/skill-edi
 The refusal holds: such a step whose grade passes before any author ran, or that has nothing left to commit, gets exit 2 and is bailed, never ticked.
 
 The step's own text never reaches the author or the grader.
+
+When a skill-edit step's text names a change to the prose, a sentence to delete or reword, run `$S/skill-edit-step.sh` with `--change` and that change, so an author runs even on a unit that already grades PASS.

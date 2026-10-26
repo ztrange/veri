@@ -77,3 +77,11 @@ def test_skill_edit_md_hands_skill_edit_step_after_the_unit_every_pin_file_the_s
     assert "every pin file" in run, "the run never hands every pin file the step names"
     assert "unit" in run and run.index("unit") < run.index("pin file"), \
         "the pin files are never handed after the unit"
+
+
+def test_skill_edit_md_runs_skill_edit_step_with_change_and_the_change_when_the_step_text_names_a_prose_change_2340():
+    sentences = _sentences(DOC.read_text(encoding="utf-8"))
+    run = next((s for s in sentences if "--change" in s and "skill-edit-step.sh" in s), "")
+    assert run, "SKILL-EDIT.md never runs skill-edit-step.sh with --change"
+    assert "delete" in run or "reword" in run, "the --change run never names a sentence to delete or reword"
+    assert "change" in run.replace("--change", ""), "the --change run never hands the change the step names"
