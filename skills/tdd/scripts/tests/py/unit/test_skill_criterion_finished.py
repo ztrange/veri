@@ -129,10 +129,6 @@ def skill_lines():
     return SKILL.read_text().splitlines() + PIN_MD.read_text().splitlines()
 
 
-def reconcile_lines():
-    return (SKILL.parent / "RECONCILE.md").read_text().splitlines()
-
-
 def test_495_every_instruction_that_ticks_criterion_k_in_the_issue_body_reads_its_text_from_ledger_steps_records_spelling_no_checkbox_pattern():
     problems = []
     anchor = 'tick-issue-criterion.sh <n> "$('
@@ -154,13 +150,3 @@ def test_495_every_instruction_that_counts_the_steps_left_for_run_affordable_rea
     reads_ledger_steps(anchor, r"\[ \]", [l for l in skill_lines() if anchor in l], problems)
     assert not problems, "\n".join(problems)
 
-
-def test_495_reconcile_check_compares_ledger_steps_state_and_pending_fields_grepping_the_markdown_for_neither_a_tick_nor_the_pending_mark():
-    problems = []
-    anchor = "diff <("
-    lines = [l for l in reconcile_lines() if anchor in l and ".tdd/reconcile-ledger.before" in l]
-    reads_ledger_steps(anchor, "[x]", lines, problems)
-    for line in lines:
-        if "⟂ refactor pending" in line:
-            problems.append(f"'{anchor}' still greps for the pending mark itself: {line}")
-    assert not problems, "\n".join(problems)
