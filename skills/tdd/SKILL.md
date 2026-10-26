@@ -288,7 +288,7 @@ unauthenticated baseline never gets a cycle.
    gate fails on a missing module, and the script itself runs `<cmd>` at most once per worktree.
    **Exit 3** means there is no such line, or setup is already done in this worktree: preflight is
    unchanged. **Exit 1** — the command exited non-zero — **bails** with cause `setup-failed`, a
-   system failure (see `<base directory>/BAIL.md`), naming the command in the bail comment.
+   system failure, naming the command in the bail comment (see `<base directory>/BAIL.md`).
    **Exit 2** — no answer: bad arguments or an unreadable file — is a preflight-class stop:
    report its stderr diagnostic verbatim and do not start.
    A resumed run — one whose worktree and ledger `.tdd/issue-<n>.md` already exist — first
