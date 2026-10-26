@@ -3913,3 +3913,30 @@ def test_cli_with_the_issue_body_fetch_unanswered_exits_with_the_conductors_own_
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=cwd)
 
     assert (code, len(launches)) == (17, 1), stderr
+
+
+def test_main_with_multi_digit_and_prefix_next_requirements_row_ids_passes_the_row_id_check_and_launches_the_conductor_issue_2373(
+        tmp_path, monkeypatch, capfdbinary, reaches_issue_body_boundary):
+    import github
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    skill = tmp_path / "skill"
+    (skill / "scripts" / "veri").mkdir(parents=True)
+    (skill / "scripts" / "veri" / "run_conductor.py").symlink_to(SCRIPTS / "veri" / "run_conductor.py")
+    (skill / "SKILL.md").write_text("# the procedure, read from SKILL.md\n")
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("run_conductor_2373_ids", str(skill / "scripts" / "veri" / "run_conductor.py"))
+    run_conductor = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(run_conductor)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    body = ("## Requirements\n\n### scripts/veri/run_conductor.py\n\n| ID | Requirement | Why |\n| --- | --- | --- |\n"
+            "| RC12 | a multi-digit row | because |\n| RC<next> | a next row | because |\n")
+    monkeypatch.setattr(github, "gh_issue_view", lambda number, field: body if field == "body" else "")
+    launches = fake_claude_launch(monkeypatch)
+
+    code = run_conductor.main(["4242"])
+
+    stderr = capfdbinary.readouterr().err.decode(errors="replace")
+    assert (code, len(launches), "neither" in stderr) == (0, 1, False)
