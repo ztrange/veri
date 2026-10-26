@@ -221,7 +221,11 @@ RUN_PYTEST_LEG_AS_MAIN = (
     "import runpy, sys\n"
     "sys.argv = [sys.argv[1], '--help']\n"
     "sys.path.insert(0, __import__('os').path.dirname(sys.argv[0]))\n"
-    "runpy.run_path(sys.argv[0], run_name='__main__')\n"
+    "try:\n"
+    "    runpy.run_path(sys.argv[0], run_name='__main__')\n"
+    "except BaseException:\n"
+    "    pass\n"
+    "print(sys.modules['launch_floor'].__cached__)\n"
 )
 
 
@@ -233,9 +237,9 @@ def test_direct_pytest_leg_run_writes_its_bytecode_under_veri_pycache_not_the_tr
     env = {k: v for k, v in os.environ.items() if k not in ("PYTHONPYCACHEPREFIX", "PYTHONDONTWRITEBYTECODE")}
     env.update(VERI_PYCACHE=str(tmp_path / "pycache"), PATH="/nonexistent", HOME=str(tmp_path))
 
-    subprocess.run([sys.executable, "-c", RUN_PYTEST_LEG_AS_MAIN, str(veri / "pytest_leg.py")], input="", env=env,
-                   cwd=tmp_path, capture_output=True, text=True, timeout=30)
+    ran = subprocess.run([sys.executable, "-c", RUN_PYTEST_LEG_AS_MAIN, str(veri / "pytest_leg.py")], input="", env=env,
+                         cwd=tmp_path, capture_output=True, text=True, timeout=30)
 
     in_tree = sorted(p.name for p in veri.rglob("*.pyc"))
-    under_prefix = sorted(p.name for p in (tmp_path / "pycache").rglob("*.pyc"))
-    assert (in_tree, under_prefix != []) == ([], True)
+    cached = ran.stdout.strip().splitlines()[-1:] if ran.stdout.strip() else []
+    assert (in_tree, [c.startswith(str(tmp_path / "pycache")) for c in cached]) == ([], [True])
