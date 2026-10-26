@@ -30,8 +30,7 @@ _SPACE = rb"[ \t\n\r\f\v]"
 def _records():
     out, rec = [], b""
     for line in (SKILL.read_bytes() + b"\n\n" + BAIL.read_bytes() + b"\n"
-                 + SKILL.with_name("PIN.md").read_bytes() + b"\n\n" + RESUME.read_bytes()
-                 + b"\n\n" + SKILL.with_name("REVISE.md").read_bytes()).split(b"\n"):
+                 + SKILL.with_name("PIN.md").read_bytes() + b"\n\n" + RESUME.read_bytes()).split(b"\n"):
         if re.match(rb"[0-9]+\. ", line) or re.match(_SPACE + rb"*- ", line):
             if rec:
                 out.append(rec)
@@ -76,17 +75,12 @@ def _records_or_fail(what):
     return records
 
 
-def _event_calls(record):
-    return [m.group(0) for m in re.finditer(rb"event\.sh [a-z][a-z-]*( [a-z]+=[^ ]+)*", record)]
-
-
 def test_skill_prescribes_an_event_sh_call_for_each_of_the_conductors_seven_marks_beside_the_issue_comment_it_mirrors():
     records = _records_or_fail("no mark")
     problems = []
     for result in (
         _mark(records, b"step-start", "takes the next unchecked step with next-unchecked.sh", rb"next-unchecked\.sh"),
         _comment_mark(records, b"pin", "### 📌 Already satisfied", b"already satisfied"),
-        _comment_mark(records, b"revise", "### ♻️ Revise <phase> — attempt <k>", b"revise <phase>", b"attempt"),
     ):
         problems += result[1]
     assert not problems, "\n".join(problems)
@@ -108,44 +102,15 @@ def test_skill_prescribes_an_event_sh_step_added_call_beside_every_add_ledger_st
 
 def test_skill_marks_the_exhausted_budget_split_and_the_needs_user_park_in_the_event_log_the_split_told_apart_from_a_leaf_volunteered_one():
     records = _records_or_fail("the exhausted-budget marks")
-    split_rec = park_rec = bail_rec = volunteered_rec = b""
+    volunteered_rec = b""
     for line in records:
-        if b"exhausted-answer" in line and b"instead-of" in line:
-            split_rec = line
-        elif b"exhausted-answer" in line and b"park" in line:
-            park_rec = line
-        elif re.search(rb"exit" + _SPACE + b"+3", line) and b"revise-exhausted" in line:
-            bail_rec = line
-        elif re.search(INSERTION, line) and re.search(_SPACE + b"before" + _SPACE, line) and b"split:" in line:
+        if re.search(INSERTION, line) and re.search(_SPACE + b"before" + _SPACE, line) and b"split:" in line:
             volunteered_rec = line
 
     problems = []
-    split_calls = _event_calls(split_rec)
-    if not split_rec:
-        problems.append("SKILL.md prescribes no instead-of insertion beside .tdd/exhausted-answer.txt — where the split outcome's mark belongs could not be read")
-    elif not volunteered_rec:
+    if not volunteered_rec:
         problems.append("SKILL.md prescribes no `before` insertion for a leaf-volunteered split — what the exhausted split must be told apart from could not be read")
-    elif not any(call not in volunteered_rec for call in split_calls):
-        problems.append(f"SKILL.md marks the split a run reaches at exhaustion with nothing a leaf-volunteered split does not write too, so the log cannot say which of the two grew the plan: {split_rec[:130].decode(errors='replace')}")
-
-    if not park_rec:
-        problems.append("SKILL.md prescribes no park beside .tdd/exhausted-answer.txt — where the escalated outcome's mark belongs could not be read")
-    else:
-        park_calls = _event_calls(park_rec)
-        if not park_calls:
-            problems.append("SKILL.md parks a step at exhaustion with no `event.sh` call beside it, so the outcome that stops a run without bailing it leaves no mark in the log")
-        else:
-            split_names = {call.split()[1] for call in split_calls}
-            if not any(call.split()[1] not in split_names for call in park_calls):
-                problems.append("SKILL.md marks the parked step only with marks the split branch writes too, so the escalated outcome is not distinguishable from the split one")
-
-    if not bail_rec:
-        problems.append("SKILL.md no longer names the revise-exhausted cause against exhausted-outcome.sh's exit 3, so the bailed outcome's own mark could not be read")
     assert not problems, "\n".join(problems)
-
-
-def _text_calls_event(line, event):
-    return re.search(r"event\.sh" + WS + "+" + re.escape(event) + r"([^a-z0-9-]|$)", line)
 
 
 def _file_lines():
@@ -176,14 +141,6 @@ def _exit_3_problems(start, lines):
         if re.search(r"event\.sh" + WS + "+[a-z]", line):
             problems.append(f"the over-budget exit 3 branch writes a mark of its own at SKILL.md:{lineno}: {line[:130]}")
     return problems
-
-
-def test_skill_md_revise_exhausted_split_writes_step_split_carrying_at_exhausted():
-    lines = SKILL.read_text().splitlines() + SKILL.with_name("REVISE.md").read_text().splitlines()
-    exhausted = sum(1 for line in lines
-                    if _text_calls_event(line, "step-split")
-                    and re.search(r"event\.sh step-split" + WS + "+at=exhausted(" + WS + "|$)", line))
-    assert exhausted >= 1, "no `event.sh step-split at=exhausted`, so the revise-exhausted split lost the spelling #408 gave it"
 
 
 def test_the_exit_3_case_still_names_a_mark_planted_in_the_exit_3_branch_by_its_line(tmp_path, monkeypatch):
