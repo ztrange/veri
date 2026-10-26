@@ -1998,6 +1998,32 @@ def test_cli_a_launch_keeps_a_record_and_its_directory_whose_pid_answers_permiss
     assert (code, record.is_file(), (scratch / "veri-run-77-foreign" / "cdk.outAbC123").is_dir()) == (0, True, True)
 
 
+def test_cli_a_launch_still_removes_a_directory_whose_recorded_pid_answers_no_such_process_under_tdd_issue_2447(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch = scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    fake_claude_exiting(monkeypatch, 0, 0)
+    gone = 2**31 - 4
+    real_kill = os.kill
+
+    def kill(pid, sig):
+        if pid == gone:
+            raise ProcessLookupError(3, "No such process")
+        return real_kill(pid, sig)
+    monkeypatch.setattr(os, "kill", kill)
+    cwd = tmp_path / "cwd"
+    (cwd / ".tdd").mkdir(parents=True)
+    (scratch / "veri-run-78-gone" / "cdk.outAbC123").mkdir(parents=True)
+    record = cwd / ".tdd" / "issue-78-tmpdir-skill-commit"
+    record.write_text("%s %d\n" % (scratch / "veri-run-78-gone", gone))
+
+    code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, (scratch / "veri-run-78-gone").exists()) == (0, False)
+
+
 def test_cli_a_launch_whose_inherited_tmpdir_filesystem_has_less_than_the_default_20_gb_free_exits_2_naming_the_path_the_free_gb_and_veri_min_free_gb_and_launches_no_conductor_under_tdd_issue_2183(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)
