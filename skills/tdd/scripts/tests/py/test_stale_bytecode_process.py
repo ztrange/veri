@@ -2,6 +2,7 @@
 import importlib.util
 import marshal
 import os
+import shutil
 import subprocess
 import sys
 
@@ -65,3 +66,32 @@ def test_direct_module_run_with_a_stale_pyc_planted_beside_the_source_uses_the_c
             planted.write_bytes(original)
 
     assert (ran.returncode, ran.stdout) == (0, "collapse non-alphanumerics to a single hyphen\n")
+
+
+@pytest.mark.tree_audit("copies the scripts tree to tmp_path")
+@pytest.mark.process("next-unchecked.sh run twice from a copy of the scripts tree around a same-second, same-size mutation of veri/ledger.py, with the default shared pycache prefix under TMPDIR")
+def test_shim_run_outside_make_after_a_same_second_mutation_reads_the_current_source_2406(tmp_path):
+    scripts = tmp_path / "scripts"
+    shutil.copytree(SCRIPTS, scripts, ignore=shutil.ignore_patterns("tests", "__pycache__"))
+    tmpdir = tmp_path / "tmp"
+    tmpdir.mkdir()
+    env = {k: v for k, v in os.environ.items()
+           if k not in ("PYTHONPYCACHEPREFIX", "VERI_PYCACHE", "PYTHONDONTWRITEBYTECODE")}
+    env["TMPDIR"] = str(tmpdir)
+
+    def run():
+        return subprocess.run([str(scripts / "next-unchecked.sh")], input=LEDGER, env=env,
+                              cwd=tmp_path, capture_output=True, text=True)
+
+    first = run()
+    source = scripts / "veri" / "ledger.py"
+    stat = source.stat()
+    text = source.read_text()
+    mutated = text.replace('record[1] == "open"', 'record[1] == "oper"')
+    assert len(mutated) == len(text) and mutated != text
+    source.write_text(mutated)
+    os.utime(source, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+    second = run()
+
+    assert (first.returncode, first.stdout) == (0, "collapse non-alphanumerics to a single hyphen\n")
+    assert (second.returncode, second.stdout) == (3, "")
