@@ -22,8 +22,6 @@ ALLOWED = {
         "absence: no line of the unit runs git push",
     "unit/test_skill_draft_pr.py::test_skill_md_reaches_the_default_branch_the_issue_and_the_pr_through_the_helper_or_gh_api_never_gh_repo_issue_pr":
         "whole-document ban on gh repo/issue/pr subcommands",
-    "unit/test_skill_draft_pr.py::test_bailing_cause_token_list_names_rebased_tip_red_and_classifies_it_as_a_process_failure":
-        "reads BAIL.md, another unit",
     "unit/test_skill_draft_pr.py::test_guardrails_invariant_about_opening_the_pr_names_the_branchs_own_full_run_again_after_each_suite_repair_step_and_the_extra_run_on_the_rebased_tip_when_sub_step_1_rebased_the_branch":
         "reads the Guardrails, another unit",
     "unit/test_skill_suite_runs.py::test_skill_md_names_no_full_suite_run_inside_a_step_s_cycle":

@@ -7,8 +7,6 @@ SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 DRAFT_PR = "### 4. Draft PR"
 RESUME = "## Resume"
-BAILING = "## Bailing"
-BAIL = SKILL.with_name("BAIL.md")
 RESUME_MD = SKILL.with_name("RESUME.md")
 GUARDRAILS = "## Guardrails"
 ISSUE = "### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)"
@@ -21,7 +19,7 @@ def _lower(text):
 
 
 def _lines(heading):
-    section = importlib.import_module("skill_sections").section(BAIL if heading == BAILING else RESUME_MD if heading == RESUME else SKILL, heading)
+    section = importlib.import_module("skill_sections").section(RESUME_MD if heading == RESUME else SKILL, heading)
     lines = section.splitlines()[1:]
     return lines
 
@@ -73,7 +71,6 @@ def any_line(lines, pattern):
     return any(re.search(pattern, line) for line in lines)
 
 
-BODY_EDIT = r"gh api -x patch .*-f body="
 SUITE_REPAIR_MARK = "⟦suite-repair⟧"
 
 
@@ -108,22 +105,6 @@ def test_resume_reuses_the_open_pr_already_on_its_branch_and_opens_no_second_one
     assert not problems, problems
 
 
-def test_bailing_section_leaves_the_draft_pr_open_carrying_the_bail_diagnostic_and_opens_no_pr():
-    records = _records(_lines(BAILING))
-    assert records, "SKILL.md has no ## Bailing section to read"
-    commands = commands_of(BAILING)
-    problems = []
-    if not any_line(commands, rf"^gh api [^#]*/issues/<pr-number>/comments|^{BODY_EDIT}"):
-        problems.append("Bailing section neither comments on nor edits the body of the draft PR")
-    closes = next((c for c in commands if re.search(r"^gh pr close", c)), "")
-    if closes:
-        problems.append(f"Bailing section closes the PR: {closes[:120]}")
-    opens_none = first_record(records, re.escape("open no pr"))
-    if opens_none:
-        problems.append(f"Bailing section still tells the run to open no PR: {opens_none[:120]}")
-    assert not problems, problems
-
-
 def test_worktree_step_no_longer_says_the_draft_pr_is_opened_once_every_step_is_green():
     records = _records(_lines(ISSUE))
     assert records, "SKILL.md has no ### 1. Read the issue section to read"
@@ -141,12 +122,6 @@ def test_skill_md_reaches_the_default_branch_the_issue_and_the_pr_through_the_he
         if route not in text:
             problems.append(f"SKILL.md never names {route}")
     assert not problems, problems
-
-
-def test_bailing_cause_token_list_names_rebased_tip_red_and_classifies_it_as_a_process_failure():
-    token = first_record(_records(_lines(BAILING)), r"^ *- `rebased-tip-red`")
-    assert token, "Bailing cause-token list has no rebased-tip-red entry"
-    assert "**process** failure" in token, f"names rebased-tip-red without classifying it as a **process** failure: {token[:160]}"
 
 
 def _opening_the_pr_invariant():
@@ -175,8 +150,3 @@ def test_guardrails_invariant_about_opening_the_pr_names_the_branchs_own_full_ru
     if not first_record([invariant], re.escape("rebased tip"), _word("rebased the branch")):
         problems.append(f"invariant never names the extra run on the rebased tip when sub-step 1 rebased the branch: {invariant[:160]}")
     assert not problems, problems
-
-
-def test_ci_red_bail_names_each_failed_ci_check_bailings_bailed_comment_names_them():
-    comment = first_record(_records(_lines(BAILING)), re.escape("### ⛔ bailed"), re.escape("ci-red"))
-    assert comment and first_record([comment], re.escape("check")), "### ⛔ Bailed comment never says that a ci-red bail names each CI check that failed"

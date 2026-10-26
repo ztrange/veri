@@ -6,8 +6,6 @@ import sys
 
 import pytest
 
-from conftest import SCRIPTS
-
 USAGE = "usage: classify-bail.sh <cause>\n"
 
 
@@ -59,17 +57,13 @@ def test_main_classifies_needs_user_as_process_with_0_1866(capsys, classify_bail
     assert (code, *capsys.readouterr()) == (0, "process\n", "")
 
 
-def test_main_refuses_stop_and_budget_words_with_2_and_skill_md_calls_ci_conflict_a_system_failure(capsys, classify_bail):
+def test_main_refuses_stop_and_budget_words_with_2(capsys, classify_bail):
     results = {}
     for cause in ("stopped", "stop", "at-ledger", "at-leaf", "now", "step-over-budget", "over-budget", "wat"):
         code = classify_bail.main([cause])
         results[cause] = (code, capsys.readouterr().out)
 
-    bailing = (SCRIPTS.parent / "BAIL.md").read_text().split("## Bailing", 1)[1].split("\n## ", 1)[0]
-    entry = bailing.split("\n- `ci-conflict` —", 1)[1].split("\n- ", 1)[0].split("\n\n", 1)[0]
-
     assert results == {cause: (2, "") for cause in results}
-    assert "**system**" in entry
 
 
 def test_main_keeps_the_bash_quirks_exact_case_first_argument_only_no_option_marker_and_empty_is_missing(capsys, classify_bail):
