@@ -22,19 +22,6 @@ WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "transform": 4, "diff":
         **dict.fromkeys(INTERFACE_PHASES, 4)}
 WANT_PHASES = "|".join(PHASES)
 REVISABLE_PHASES = REVISE_PHASES + INTERFACE_PHASES + ("rebase",)
-GREEN_FREEZE_RULE = (
-    "\n\n**Do not modify the test.** Not its assertions, not its inputs, not its name. Making the\n"
-    "bar easier to clear is not clearing it: a pass bought by weakening, skipping or deleting\n"
-    "the case is a rejected step. If the test itself looks wrong, say so in your report as one\n"
-    "`WRONG_TEST: <why>` line and stop \u2014 do not edit it.").encode()
-GUARD_SUBJECT_GRANT = (
-    "\n\n**One exception: the step's guard-subject file.** The step names it in its `\u27e6guard-subject: <path>\u27e7` marker:\n"
-    "you may edit that file, and no other test file. The case Red wrote stays frozen.").encode()
-REPAIR_TEST_EDIT = (
-    "\n\n**You may edit the failing test.** This step repairs a full run, and the fix is often an edit to the\n"
-    "test file that run left red: edit that file, only as far as the repair needs. Every other test stays\n"
-    "frozen. Making the bar easier to clear is not clearing it: a pass bought by weakening, skipping or\n"
-    "deleting a case the repair does not require is a rejected step.").encode()
 TEST_REWRITE_GRANT = (
     "**A rewritten test is a new test, and owes a new prediction**: predict its failure\n"
     "   before you run any suite, in `.tdd/red-prediction.md` \u2014 which assertion fires first against the unmodified\n"
@@ -139,6 +126,7 @@ def main(argv):
     replaces_case = is_replaces_case_step(step)
     markers = trailing_markers(step)
     marked = {}
+    freeze = []
     if phase == "red" and carries_mark(markers, "ci-repair"):
         marked["CI_REPAIR"] = f"{prompts}/_develop-red-ci-repair.md"
     if "green" in (phase, revised_phase):
@@ -148,6 +136,10 @@ def main(argv):
             marked["SUITE_REPAIR"] = f"{prompts}/_develop-green-suite-repair.md"
         if carries_mark(markers, "fixture-repair"):
             marked["FIXTURE_REPAIR"] = f"{prompts}/_develop-green-fixture-repair.md"
+        repair = carries_mark(markers, "suite-repair") or carries_mark(markers, "ci-repair")
+        freeze.append(f"{prompts}/_develop-{'repair-test-edit' if repair else 'green-freeze-rule'}.md")
+        if not repair and "\u27e6guard-subject: " in markers:
+            freeze.append(f"{prompts}/_develop-guard-subject-grant.md")
     if revised_phase in INTERFACE_PHASES:
         frozen = "production" if revised_phase in ("cover-new", "contract-a") else "test"
         marked["FREEZE_RULE"] = f"{prompts}/_develop-revise-freeze-{frozen}.md"
@@ -196,13 +188,6 @@ def main(argv):
         values["REFACTOR_BUDGET"] = os.fsencode(tunables.read("VERI_REFACTOR_BUDGET") or "5")
     values["REVISE_PHASE"] = os.fsencode(revised_phase)
     values["TEST_REWRITE"] = {"red": TEST_REWRITE_GRANT, "contract-a": TEST_MOVE_CONTRACT_A}.get(revised_phase, TEST_REWRITE_NONE)
-    repair = carries_mark(markers, "suite-repair") or carries_mark(markers, "ci-repair")
-    if "green" in (phase, revised_phase):
-        values["FREEZE_RULE"] = REPAIR_TEST_EDIT if repair else GREEN_FREEZE_RULE
-        if not repair and "\u27e6guard-subject: " in markers:
-            values["FREEZE_RULE"] += GUARD_SUBJECT_GRANT
-    if revised_phase == "green" and repair:
-        values["TEST_REWRITE"] = REPAIR_TEST_EDIT.lstrip(b"\n")
     if revised_phase == "green":
         values["WRONG_TEST_REPORT"] = WRONG_TEST_REPORT
         values["WRONG_TEST_FORMAT"] = WRONG_TEST_FORMAT
@@ -227,8 +212,20 @@ def main(argv):
         values["REPLACES_CASE"] += b"\n\nStill owed for deletion: " + os.fsencode(args[6])
     values.update(ISSUE_SPEC=_read(spec), STEP=os.fsencode(step), TEST_CMD=os.fsencode(args[2]),
                   TIMED_TEST_RUN=os.fsencode(f"{HERE}/timed-test-run.sh"))
+    lazy = {}
+    if freeze:
+        lazy["FREEZE_RULE"] = lambda: b"".join(_expand(b"\n\n" + _read(path), prompts_b) for path in freeze)
+        if revised_phase == "green" and repair:
+            lazy["TEST_REWRITE"] = lambda: lazy["FREEZE_RULE"]().lstrip(b"\n")
     for name, value in values.items():
-        text = text.replace(b"{{" + name.encode() + b"}}", value)
+        placeholder = b"{{" + name.encode() + b"}}"
+        if name in lazy and placeholder in text:
+            try:
+                value = lazy[name]()
+            except _IncludeRefused as refusal:
+                sys.stderr.buffer.write(refusal.args[0] + b"\n")
+                return 2
+        text = text.replace(placeholder, value)
     run_state = os.fsencode(os.path.join(event.toplevel() or os.getcwd(), ".tdd"))
     for name in (b"red-prediction.md", b"red-run-output.txt"):
         text = text.replace(b"`.tdd/" + name + b"`", b"`" + run_state + b"/" + name + b"`")
