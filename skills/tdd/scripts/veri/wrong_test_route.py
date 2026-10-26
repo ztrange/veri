@@ -180,7 +180,10 @@ def _superseded(report, step, own_id=None):
         case = _superseded_case(body)
         if case in own:
             continue
-        found = _exists(case) if case else None
+        if not case:
+            write(sys.stderr, "the line carried no case name: " + line)
+            continue
+        found = _exists(case)
         if found is None:
             write(sys.stderr, "no defined test case resolves: " + line)
         if found and found not in cases and not (own_id and _is_own(found, own_id)):
