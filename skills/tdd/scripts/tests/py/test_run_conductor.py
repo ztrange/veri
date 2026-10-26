@@ -2104,6 +2104,25 @@ def test_cli_a_launch_whose_inherited_tmpdir_slash_tmp_and_working_directory_eac
     assert (code, len(launches)) == (0, 1)
 
 
+def test_cli_a_launch_whose_slash_tmp_reports_0_gb_free_launches_the_conductor_when_veri_min_free_gb_is_0_under_tdd_issue_2422(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    monkeypatch.setenv("VERI_MIN_FREE_GB", "0")
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_claude_exiting(monkeypatch, 0, 0)
+    monkeypatch.setattr(run_conductor, "free_gb",
+                        lambda path: 0 if os.path.realpath(path) == os.path.realpath("/tmp") else 500,
+                        raising=False)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, len(launches)) == (0, 1)
+
+
 def tree_contents(root):
     """Every file and symlink under root but .git, by relative path: its bytes, or the target it links to."""
     contents = {}
