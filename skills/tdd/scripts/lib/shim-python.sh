@@ -52,6 +52,4 @@ if [ -z "$py" ]; then
 fi
 unset shim_lib shim_line shim_floor shim_version shim_minor shim_venv_py shim_venv_said shim_path_said
 unset -f shim_meets_floor
-if [ -z "${PYTHONPYCACHEPREFIX+x}" ]; then
-  export PYTHONPYCACHEPREFIX="${VERI_PYCACHE:-${TMPDIR:-/tmp}/veri-pycache-$(id -u)}/shim-unwritten" PYTHONDONTWRITEBYTECODE=1
-fi
+export PYTHONPYCACHEPREFIX="${VERI_PYCACHE:-${TMPDIR:-/tmp}/veri-pycache-$(id -u)}/shim-unwritten" PYTHONDONTWRITEBYTECODE=1
