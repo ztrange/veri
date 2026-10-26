@@ -15,7 +15,10 @@ def case_texts(source):
         while end < len(lines) and (not lines[end].strip()
                                     or len(lines[end]) - len(lines[end].lstrip()) > len(found.group(1))):
             end += 1
-        texts[found.group(2)] = (line, "\n".join(lines[start + 1:end]).rstrip())
+        first = start
+        while first and lines[first - 1].lstrip().startswith("@"):
+            first -= 1
+        texts[found.group(2)] = (line, "\n".join(lines[first:start] + lines[start + 1:end]).rstrip())
     return texts
 
 
