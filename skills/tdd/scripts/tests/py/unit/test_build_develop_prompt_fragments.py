@@ -82,3 +82,25 @@ def test_revise_slot_fillers_are_read_from_their_prompt_fragments(tmp_path, caps
         (0, ["test-rewrite-none", "wrong-test-report", "wrong-test-format"]),
         (0, ["test-move-contract-a"]),
     ]
+
+
+def test_node_id_rule_and_each_red_lead_and_cases_variant_are_read_from_their_prompt_fragments(
+        tmp_path, capsysbinary):
+    module, prompts, spec = scripts_tree(tmp_path)
+    (prompts / "develop-red.md").write_bytes(b"[{{RED_LEAD}}][{{RED_CASES}}][{{NODE_ID_RULE}}]\n")
+    slots = ("node-id-rule", "red-lead", "red-cases", "red-lead-replaces-case", "red-cases-replaces-case")
+    for slot in slots:
+        (prompts / f"_develop-{slot}.md").write_bytes(b"PLANTED-" + slot.upper().encode() + b"\n")
+
+    def render(step):
+        code = module.main(["red", spec, step, "make test"])
+        return (code, *capsysbinary.readouterr())
+
+    default, replaces = render("step"), render("step ⟦replaces-case⟧")
+
+    assert [(code, [slot for slot in slots if b"PLANTED-" + slot.upper().encode() + b"]" in out or
+                    b"PLANTED-" + slot.upper().encode() + b"\n" in out])
+            for code, out, _ in (default, replaces)] == [
+        (0, ["node-id-rule", "red-lead", "red-cases"]),
+        (0, ["node-id-rule", "red-lead-replaces-case", "red-cases-replaces-case"]),
+    ]
