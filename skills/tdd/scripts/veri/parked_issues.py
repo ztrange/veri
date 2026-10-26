@@ -21,7 +21,7 @@ def main(argv):
     except github.NoAnswer:
         sys.stderr.write("parked-issues.sh: no answer from gh to listing the issues\n")
         return 2
-    issues = items(listing, strict=False)
+    issues = [i for i in items(listing, strict=False) if "pull_request" not in i]
     if not issues:
         return 3
     for issue in issues:
