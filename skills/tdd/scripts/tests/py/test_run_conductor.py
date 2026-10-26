@@ -1991,6 +1991,25 @@ def test_cli_a_launch_whose_target_repository_filesystem_has_less_than_veri_min_
     assert (code, launches, str(cwd) in err and "7" in err and "VERI_MIN_FREE_GB" in err) == (2, [], True)
 
 
+def test_cli_a_launch_whose_pinned_slash_tmp_filesystem_has_less_than_veri_min_free_gb_free_while_the_inherited_tmpdir_has_plenty_exits_2_naming_slash_tmp_and_launches_no_conductor_under_tdd_issue_2422(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    monkeypatch.delenv("VERI_MIN_FREE_GB", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_claude_exiting(monkeypatch, 0, 0)
+    monkeypatch.setattr(run_conductor, "free_gb",
+                        lambda path: 4 if os.path.realpath(path) == os.path.realpath("/tmp") else 500,
+                        raising=False)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    code, _, err = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, launches, "'/tmp' has 4 GB free" in err and "VERI_MIN_FREE_GB" in err) == (2, [], True)
+
+
 def test_cli_a_veri_min_free_gb_that_is_not_a_whole_number_at_least_0_exits_2_naming_veri_min_free_gb_and_launches_no_conductor_under_tdd_issue_2183(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)
