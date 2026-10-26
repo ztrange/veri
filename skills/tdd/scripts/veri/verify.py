@@ -12,6 +12,7 @@ import build_verify_prompt
 import event
 import parse_verdict
 import preserve_attempt
+import renamed_case
 import replaces_case_survivors
 import tunables
 
@@ -174,7 +175,16 @@ def deleted_cases(branch_base, step_base):
     if None in (before, middle, after):
         return None
     kept = {case for _, case in after}
-    return sorted(case for case in middle - before if case[1] not in kept)
+    return sorted(case for case in middle - before
+                  if case[1] not in kept and not was_renamed(case, step_base, middle))
+
+
+def was_renamed(case, step_base, middle):
+    path, name = case
+    old = git("show", "%s:%s" % (step_base, path))
+    new = git("show", "HEAD:" + path)
+    taken = {other for _, other in middle}
+    return renamed_case.renamed_to(name, old.stdout.decode(), new.stdout.decode(), taken) is not None
 
 
 def main(argv):
