@@ -1352,9 +1352,9 @@ REAL_EDITS = [
     ("REVISE.md", "py/unit/test_skill_revise_exhausted.py", ""),
     ("STOPPING.md", "py/unit/test_skill_stopping.py", ""),
     ("RECONCILE.md", "py/unit/test_skill_push_reconcile.py", ""),
-    ("BAIL.md", "py/unit/test_skill_metrics.py", ""),
+    ("BAIL.md", "py/test_skill_leaf_env.py", ""),
     ("RESUME.md", "py/unit/test_skill_refactor_pending.py", ""),
-    ("### 4. Draft PR", "py/unit/test_skill_metrics.py", ""),
+    ("### 4. Draft PR", "py/unit/test_skill_draft_pr.py", ""),
 ]
 
 
