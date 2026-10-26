@@ -427,3 +427,25 @@ def test_park_issue_labels_the_pr_parked_through_the_number_path_when_given_a_pr
     recorded = log.read_text()
     assert "repos/{owner}/{repo}/issues/12/labels" in recorded, recorded
     assert ran.returncode == 0, ran.stderr
+
+
+@pytest.mark.process("park-issue.sh run against a gh stub that records every call")
+def test_park_issue_with_a_pr_that_is_neither_a_number_nor_a_pr_url_exits_2_with_usage_naming_both_and_calls_no_gh_2429(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(GH_STUB)
+    gh.chmod(0o755)
+    log = tmp_path / "gh.log"
+    env = {"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+           "GH_LOG": str(log), "PYTHONDONTWRITEBYTECODE": "1"}
+
+    for pr in ("pull/12", "#12", "https://github.com/o/r/issues/12"):
+        log.write_text("")
+        ran = subprocess.run([str(SCRIPTS / "park-issue.sh"), "7", "held for review", "a human merges", pr],
+                             cwd=tmp_path, capture_output=True, text=True, stdin=subprocess.DEVNULL, env=env)
+
+        usage = [line for line in ran.stderr.splitlines() if line.startswith("usage:")]
+        assert ran.returncode == 2, (pr, ran.returncode, ran.stderr)
+        assert usage and "number" in usage[0] and "URL" in usage[0], (pr, ran.stderr)
+        assert log.read_text() == "", pr
