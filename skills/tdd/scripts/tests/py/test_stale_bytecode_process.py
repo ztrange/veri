@@ -111,3 +111,28 @@ def test_direct_module_run_writes_its_bytecode_under_veri_pycache_not_beside_the
     assert ran.returncode == 0
     assert list(cache.rglob("ledger.*.pyc")) != []
     assert list((veri / "__pycache__").glob("ledger.*.pyc")) == []
+
+
+@pytest.mark.process("python3 run directly on veri/next_unchecked.py with a stale tunables .pyc planted in veri/__pycache__ and no pycache prefix in its environment")
+def test_direct_module_run_with_a_stale_tunables_pyc_planted_beside_the_source_uses_the_current_source_2405(tmp_path):
+    source = SCRIPTS / "veri" / "tunables.py"
+    planted = source.parent / "__pycache__" / ("tunables.%s.pyc" % sys.implementation.cache_tag)
+    stat = source.stat()
+    code = compile("def read(name, default=None):\n    raise RuntimeError('stale tunables')\n", str(source), "exec")
+    header = (importlib.util.MAGIC_NUMBER + (0).to_bytes(4, "little")
+              + (int(stat.st_mtime) & 0xFFFFFFFF).to_bytes(4, "little")
+              + (stat.st_size & 0xFFFFFFFF).to_bytes(4, "little"))
+    original = planted.read_bytes() if planted.exists() else None
+    env = {k: v for k, v in os.environ.items() if k != "PYTHONPYCACHEPREFIX"}
+    planted.parent.mkdir(exist_ok=True)
+    planted.write_bytes(header + marshal.dumps(code))
+    try:
+        ran = subprocess.run([sys.executable, str(SCRIPTS / "veri" / "next_unchecked.py")], input=LEDGER,
+                             env=env, cwd=tmp_path, capture_output=True, text=True)
+    finally:
+        if original is None:
+            planted.unlink(missing_ok=True)
+        else:
+            planted.write_bytes(original)
+
+    assert (ran.returncode, ran.stdout) == (0, "collapse non-alphanumerics to a single hyphen\n")
