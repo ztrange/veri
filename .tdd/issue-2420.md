@@ -1,6 +1,6 @@
 # Plan for #2420 — parked-issues.sh exits 2 for the whole parked set when a pull request carries the parked label
 
 - [x] With the gh listing faked so one entry, a pull request labelled parked with no parked comment, carries a pull_request key, and another is an issue labelled parked with a well-formed parked comment, parked-issues.sh writes only the issue's number, title, Cause and Unblock row to stdout and exits 0, writing nothing about the pull request (a small in-process case in tests/py/unit/test_parked_issues.py, faking only the gh boundary) ⟦criterion 1⟧
-- [ ] An issue labelled parked with no parked comment, listed beside a parked pull request, still makes parked-issues.sh exit 2 with "parked-issues.sh: issue #<n> has no parked comment" on stderr, so the guard is kept (a small in-process case in tests/py/unit/test_parked_issues.py) ⟦criterion 2⟧
+- [x] An issue labelled parked with no parked comment, listed beside a parked pull request, still makes parked-issues.sh exit 2 with "parked-issues.sh: issue #<n> has no parked comment" on stderr, so the guard is kept (a small in-process case in tests/py/unit/test_parked_issues.py) ⟦criterion 2⟧
 - [ ] With the gh listing faked to hold only pull requests labelled parked and no issue, parked-issues.sh exits 3 and writes nothing to stdout, nothing being parked (a small in-process case in tests/py/unit/test_parked_issues.py) ⟦criterion 3⟧
 - [ ] The pull-request filter, removed on purpose, turns the first criterion's case red: watched failing, then restored ⟦human-owed⟧ ⟦criterion 4⟧
