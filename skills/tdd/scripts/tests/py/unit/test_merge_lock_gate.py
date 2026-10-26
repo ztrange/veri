@@ -18,4 +18,4 @@ def test_2414_gate_refuses_a_pid_that_is_not_a_positive_integer_without_running_
         outcomes[tuple(args)] = (code, USAGE in err)
     assert outcomes == {a: (2, True) for a in outcomes}
     assert ran == []
-    assert not (tmp_path / ".tdd" / "merge.lock").exists()
+    assert not (tmp_path / ".tdd").exists()
