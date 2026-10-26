@@ -179,6 +179,8 @@ def _superseded(report, step, own_id=None):
         body = re.sub(r"^[-*]\s+", "", line[11:].strip())
         case = _superseded_case(body)
         found = _exists(case) if case and case not in own else None
+        if found is None:
+            write(sys.stderr, "no defined test case resolves: " + line)
         if found and found not in cases and not (own_id and _is_own(found, own_id)):
             cases.append(found)
     return cases
