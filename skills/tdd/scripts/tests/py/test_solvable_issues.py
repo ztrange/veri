@@ -1314,6 +1314,8 @@ def test_in_flight_reads_a_fresh_run_whose_worktree_did_not_exist_at_launch_as_i
     monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
     scratch_tmpdir(tmp_path, monkeypatch)
     run_conductor = importlib.import_module("veri.run_conductor")
+    import github
+    monkeypatch.setattr(github, "gh_issue_view", lambda number, field: "## Problem\n\nA fresh run.\n")
     fake_claude_exiting(monkeypatch, 0, 0)
     conducting(monkeypatch, 4242)
     answer, seen = subprocess.run, []
