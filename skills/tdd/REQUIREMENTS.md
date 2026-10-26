@@ -324,6 +324,15 @@
 | RO7 | The conductor keeps the two roles distinct. | The separation is maintained by whoever orchestrates it. |
 | RO8 | The conductor does not write the test or the implementation itself. | A conductor that writes code has no blind verifier for it. |
 | RO9 | The conductor does not pass a developer leaf's explanation into a verification. | The one channel that would defeat blindness is closed by hand as well as by construction. |
+| IN1 | There is one command, so what the user typed after it decides which of the two procedures runs. | One entry point, and the argument is the whole of the routing. |
+| IN2 | No shape of argument is ever a question to put back to the user: a word that is not a number is never a malformed issue number, and an empty argument is never a missing one. | Every input resolves, so a launch never stalls asking what was meant. |
+| IN3 | The conductor reads the first word of `$ARGUMENTS` and resolves it three ways, with no fourth case. | The routing is total, so no argument falls through unhandled. |
+| IN4 | An integer is an issue number `<n>`, and the invocation runs the single-issue procedure: it runs *Procedure* on that issue, end to end. | The common case is the direct one. |
+| IN5 | Any other word is a scope to drain: the conductor `Read`s `SCOPE-LOOP.md`, beside this file at `<base directory>/SCOPE-LOOP.md`, and runs *Draining a scope — the loop* from it, which selects the issues in that scope and runs the single-issue procedure over them one at a time. | A scope is drained by repeating the single-issue procedure, not by a second one. |
+| IN6 | The loop lives in its own file because only the scope branch ever executes it, and an integer argument takes *Procedure* and never comes back, so keeping it in SKILL.md would bill every single-issue conductor for procedure it will not read (#202). | A conductor pays only for the procedure it runs. |
+| IN7 | No argument at all is a bare invocation, which is the scope `plain`, so it takes the scope branch with `plain` as its scope. | The bare case is a scope, not a fourth branch. |
+| IN8 | A session born as a **worker** `<name>` takes none of those three: it `Read`s `WORKER.md`, beside this file at `<base directory>/WORKER.md`, and runs *The worker loop* from it, which works the issues the work queue assigns to `<name>` through the single-issue procedure. | A worker is assigned its issues rather than choosing them. |
+| IN9 | `WORKER.md` lives in its own file for the same reason `SCOPE-LOOP.md` does: only a worker ever reads it. | The same cost rule, applied consistently. |
 
 ## skills/tdd/PIN.md
 
