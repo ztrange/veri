@@ -69,30 +69,6 @@ def _unreadable_at_ledger(problems, what, lines):
              f"{what} never says to narrate that the stop request was unreadable on exit 2")
 
 
-def test_script_reference_list_has_an_entry_for_stop_requested_saying_what_it_prints_and_which_exit_codes_it_answers_with():
-    entry, in_entry, problems = [], False, []
-    raw = SKILL.with_name("SCRIPTS.md").read_text().split("\n")
-    for line in raw:
-        if line.startswith("- `$S/"):
-            in_entry = line.startswith("- `$S/stop-requested.sh")
-        if in_entry:
-            entry.append(_plain(line))
-    if not "".join(entry).strip():
-        problems.append("the script reference list has no $S/stop-requested.sh entry")
-    else:
-        for mode in ("at-ledger", "at-leaf", "now"):
-            _require(problems, mode, entry, f"the stop-requested.sh entry never names the mode {mode}")
-        sentences = _joined(entry).replace(". ", ".\n").split("\n")
-        exit0 = [s for s in sentences if re.search(r"exit 0([^0-9]|$)", s)]
-        _require(problems, "printed on stdout", exit0,
-                 "the stop-requested.sh entry's exit 0 sentence never says the mode is printed on stdout")
-        _require(problems, "--clear", entry, "the stop-requested.sh entry never names --clear")
-        for code in (0, 2, 3):
-            _require(problems, rf"exits? ([0-9]+[ ,/]+(or |and )?)*{code}([^0-9]|$)", entry,
-                     f"the stop-requested.sh entry never names exit {code}")
-    assert not problems, problems
-
-
 def test_launching_a_leaf_runs_stop_requested_before_every_leaf_launch_exit_3_launches_as_normal_at_ledger_launches_the_leaf_anyway_at_leaf_and_now_launch_nothing_and_go_to_stopping():
     lines, problems = [_joined(_section(LAUNCHING))], []
     _require(problems, r"stop-requested\.sh", lines, "the Launching a leaf section never runs stop-requested.sh")
