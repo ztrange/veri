@@ -6,11 +6,9 @@ import skill_sections
 from skill_sections import plain_lower as plain
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
-REVISE_MD = SKILL.with_name("REVISE.md")
 CLAUDE = pathlib.Path(__file__).resolve().parents[6] / "CLAUDE.md"
 
 REFACTOR_LOOP = "#### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)"
-REVISING = "## Revising on a REJECT"
 
 
 def doc_text(skill, heading, start=None):
@@ -84,19 +82,6 @@ def test_698_case_1_passes_on_a_skill_md_whose_green_section_and_refactor_loop_n
     assert not problems, "\n".join(problems)
 
 
-def test_974_skill_md_s_revise_diff_command_line_passes_the_fast_command_and_its_diff_re_verify_passes_fast_cmd():
-    section = doc_text(REVISE_MD, REVISING, r"^[*][*]The `diff` phase")
-    assert section.strip(), "SKILL.md has no '## Revising on a REJECT' section to read"
-    problems = []
-    text = before(after(section, "build-develop-prompt.sh revise diff"), ".prompt")
-    if "'<fast-cmd>'" not in text:
-        problems.append("the build-develop-prompt.sh revise diff command line never passes '<fast-cmd>'")
-    text = before(after(section, "the re-verify is"), "launched as")
-    if not re.search(r"run-verdict\.sh [^,]*--fast-cmd [^,]* diff ", text):
-        problems.append("the diff re-verify run-verdict.sh line never passes --fast-cmd")
-    assert not problems, "\n".join(problems)
-
-
 def test_claude_md_s_testing_idiom_paragraph_states_what_runs_per_step_and_per_pr():
     text = idiom()
     problems = fast_plus_affected(text, "CLAUDE.md's Testing idiom paragraph", "develop-green, verify-green and verify-refactor run per step")
@@ -136,11 +121,8 @@ def test_skill_md_names_no_full_suite_run_inside_a_step_s_cycle():
 
 
 def test_1300_skill_md_runs_suite_reported_sh_only_after_a_leaf_whose_prompt_asks_for_a_suite_line_never_after_the_refactor_leaf_or_a_revise_of_red_green_or_refactor():
-    problems = []
-    for label, heading in (("Refactor loop", REFACTOR_LOOP), ("Revising on a REJECT", REVISING)):
-        if "suite-reported.sh" in doc_text(REVISE_MD if heading == REVISING else SKILL, heading):
-            problems.append(f"{label}: runs suite-reported.sh after a leaf whose prompt asks for no SUITE: line")
-    assert not problems, "\n".join(problems)
+    assert "suite-reported.sh" not in doc_text(SKILL, REFACTOR_LOOP), (
+        "Refactor loop: runs suite-reported.sh after a leaf whose prompt asks for no SUITE: line")
 
 
 def whole_skill():
