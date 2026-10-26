@@ -15,7 +15,7 @@ PID = str(os.getpid())
 WAIT_CI = os.path.join(queued_merge.SCRIPTS, "wait-ci.sh")
 
 
-def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True, "merge_commit_sha": "fedcba9"}), gh_code=0, fail=(), behind=False):
+def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True, "merge_commit_sha": "fedcba9"}), gh_code=0, fail=(), behind=False, lease_readable=True):
     """A queued merge's world: the lock, CI's answers in order, GitHub's merged answer, and commands that fail."""
     state = {"rebased": False, "ci": list(ci), "merged": False}
 
@@ -35,6 +35,8 @@ def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True,
             return 0, ("later00" if state["merged"] else "pre0000") + "\n", ""
         if "wait-ci.sh" in line:
             return state["ci"].pop(0), "", ""
+        if "rev-parse --verify refs/remotes/origin/feature" in line and not lease_readable:
+            return 1, "", "fatal: Needed a single revision"
         if "rev-parse --verify refs/remotes/origin/feature" in line:
             return 0, (ORIGIN_SHA if not state["rebased"] else "2222222") + "\n", ""
         if "rev-parse --verify HEAD" in line:
@@ -179,3 +181,29 @@ def test_2372_queued_merge_releases_the_lock_only_after_the_tag_branch_delete_an
     release = first(calls, "merge-lock.sh release")
     steps = [first(calls, needle) for needle in (" tag -a ", "push origin v0.11", "--delete feature", "worktree remove")]
     assert (code, None not in steps and release is not None and release > max(steps)) == (0, True)
+
+
+def test_2372_queued_merge_whose_origin_branch_sha_is_unreadable_exits_2_naming_the_branch_pushes_nothing_and_frees_the_lock(fake_processes, run_cli):
+    calls = scenario(fake_processes, lease_readable=False)
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    pushes = [c for c in calls if " push " in c]
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code, "origin/feature" in err, pushes, first(calls, "rebase"), len(released)) == (2, True, [], None, 1)
+
+
+@pytest.mark.parametrize("merged, fail, named", [
+    (json.dumps({"merged": True}), (), "GitHub reports no merge commit"),
+    (json.dumps({"merged": True, "merge_commit_sha": None}), (), "GitHub reports no merge commit"),
+    (json.dumps({"merged": True, "merge_commit_sha": "fedcba9"}), ("cat-file -e",), "not in the clone"),
+])
+def test_2372_queued_merge_with_no_reported_merge_commit_or_one_the_clone_lacks_cuts_no_tag_names_why_exits_2_and_frees_the_lock(
+        fake_processes, run_cli, merged, fail, named):
+    calls = scenario(fake_processes, merged=merged, fail=fail)
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    tagged = [c for c in calls if " tag -a " in c or "push origin v0." in c]
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code, named in err, tagged, len(released)) == (2, True, [], 1)
