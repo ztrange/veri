@@ -48,3 +48,17 @@ def test_main_2420_still_exits_2_naming_a_parked_issue_with_no_parked_comment_li
     code, out, err = run_cli(parked_issues, [])
 
     assert (code, out, err) == (2, "", "parked-issues.sh: issue #2373 has no parked comment\n")
+
+
+def test_main_2420_exits_3_writing_nothing_when_only_pull_requests_carry_the_parked_label(
+        monkeypatch, parked_issues, run_cli):
+    listing = [{"number": 2403, "title": "A pull request", "pull_request": {"url": "x"}}]
+
+    def fake_rest_list(path, *args):
+        return json.dumps([] if "/comments" in path else listing)
+
+    monkeypatch.setattr(parked_issues.github, "gh_rest_list", fake_rest_list)
+
+    code, out, err = run_cli(parked_issues, [])
+
+    assert (code, out) == (3, "")
