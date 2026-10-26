@@ -201,7 +201,7 @@ def entry_bypass_problems(scripts):
         module = pathlib.Path(scripts) / match.group(1)
         lines = module.read_text().splitlines()
         for number, line in enumerate(lines, 1):
-            if line.startswith("if __name__ == "):
+            if line.startswith("if __name__ == ") and "pycache_prefix.py" not in line:
                 block = []
                 for l in lines[number:]:
                     if l.strip() and not l[0].isspace():
