@@ -24,8 +24,6 @@ WANT_PHASES = "|".join(PHASES)
 REVISABLE_PHASES = REVISE_PHASES + INTERFACE_PHASES + ("rebase",)
 WANT_REVISE_PHASES = "|".join(REVISABLE_PHASES)
 HERE = paths.scripts_of(__file__)
-NODE_ID_RULE = (b"The test id is the pytest node id, `<path from the repository root>::<test name>`, "
-                b"and the line starts at column 0 with no bullet or other prefix.")
 ARGUMENT_PLACEHOLDERS = {"<test-path>": "TEST_PATH", "<target-test>": "TARGET_TEST", "<fast-cmd>": "FAST_CMD",
                          "<touched-files>": "TOUCHED_FILES", "<issue-touched-files>": "TOUCHED_FILES",
                          "<branch>": "BRANCH", "<remote-sha>": "REMOTE_SHA", "<spent>": "SPENT", "<budget>": "BUDGET",
@@ -137,20 +135,6 @@ def main(argv):
                             "TEST_CMD", "TEST_PATH", "TARGET_TEST", "FAST_CMD", "TIMED_TEST_RUN", "TOUCHED_FILES",
                             "NODE_ID_RULE", "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "WRONG_TEST_REPORT", "WRONG_TEST_FORMAT", "TEST_REWRITE", "REJECTION_REASON", "BRANCH",
                             "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES", "REPORT_FILE", "MISSING_CASES", "CASE", "CASES", "WRONG_TEST_REASON", "SUPERSEDED_CASES"), b"")
-    values["NODE_ID_RULE"] = NODE_ID_RULE
-    values["RED_CASES"] = (b"One criterion, one case \xe2\x80\x94 no extra cases, and no generality the step does\n"
-                           b"not ask for.")
-    values["RED_LEAD"] = b"Add exactly **ONE** new failing test case, and write **NO** production code."
-    if phase == "revise":
-        values["RED_CASES"] = b""
-    if "red" in (phase, revised_phase) and replaces_case:
-        values["RED_LEAD"] = b"Add the replacement test cases the step names, and write **NO** production code."
-        values["RED_CASES"] = (b"\n\n" if phase == "revise" else b"") + (
-            b"This step replaces cases, so it is not one criterion, one case: write one pytest replacement\n"
-            b"case for each bash case the step named, each in its own `def test_...`, no extra cases, and no\n"
-            b"generality the step does not ask for. For each of them, report one line\n"
-            b"`REPLACES: <case name> => <pytest test id>` for each case the step named, the case name\n"
-            b"exactly as the step spells it, without the quote characters the step wraps it in. " + NODE_ID_RULE)
     for name, value in zip(names[3:], args[3:]):
         if name in ARGUMENT_PLACEHOLDERS:
             values[ARGUMENT_PLACEHOLDERS[name]] = os.fsencode(value)
@@ -170,6 +154,15 @@ def main(argv):
         values["SHARED"] = _expand(_read(paths[1]), prompts_b)
         def fragment(slot):
             return _expand(b"{{INCLUDE:_develop-" + slot + b".md}}", prompts_b)
+        replaces_red = "red" in (phase, revised_phase) and replaces_case
+        if b"{{NODE_ID_RULE}}" in text:
+            values["NODE_ID_RULE"] = fragment(b"node-id-rule")
+        if b"{{RED_LEAD}}" in text:
+            values["RED_LEAD"] = fragment(b"red-lead-replaces-case" if replaces_red else b"red-lead")
+        if b"{{RED_CASES}}" in text and (phase != "revise" or replaces_red):
+            values["RED_CASES"] = fragment(b"red-cases-replaces-case" if replaces_red else b"red-cases")
+            if replaces_red and phase == "revise":
+                values["RED_CASES"] = b"\n\n" + values["RED_CASES"]
         if b"{{TEST_REWRITE}}" in text:
             values["TEST_REWRITE"] = fragment({"red": b"test-rewrite-grant", "contract-a": b"test-move-contract-a"}
                                               .get(revised_phase, b"test-rewrite-none"))
