@@ -56,3 +56,29 @@ def test_an_include_the_builder_refuses_inside_a_freeze_fragment_exits_2_naming_
 
     assert render_green(module, spec, "step", capsysbinary) == (
         2, b"", b"partial includes itself: " + str(prompts).encode() + b"/" + FREEZE.encode() + b"\n")
+
+
+def test_revise_slot_fillers_are_read_from_their_prompt_fragments(tmp_path, capsysbinary):
+    module, prompts, spec = scripts_tree(tmp_path)
+    (prompts / "develop-revise.md").write_bytes(b"[{{TEST_REWRITE}}][{{WRONG_TEST_REPORT}}][{{WRONG_TEST_FORMAT}}]\n")
+    (prompts / "_develop-revise-freeze-production.md").write_bytes(b"fp\n")
+    (prompts / "_develop-green-freeze-rule.md").write_bytes(b"fr\n")
+    slots = {"test-rewrite-grant": b"PLANTED-GRANT", "test-rewrite-none": b"PLANTED-NONE",
+             "test-move-contract-a": b"PLANTED-MOVE", "wrong-test-report": b"PLANTED-REPORT",
+             "wrong-test-format": b"PLANTED-FORMAT"}
+    for slot, text in slots.items():
+        (prompts / f"_develop-{slot}.md").write_bytes(text + b"\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"why\n")
+
+    def render(revised):
+        code = module.main(["revise", revised, spec, "step", "make test", str(reason)])
+        return (code, *capsysbinary.readouterr())
+
+    red, green, contract_a = render("red"), render("green"), render("contract-a")
+
+    assert [(code, [slot for slot, text in slots.items() if text in out]) for code, out, _ in (red, green, contract_a)] == [
+        (0, ["test-rewrite-grant"]),
+        (0, ["test-rewrite-none", "wrong-test-report", "wrong-test-format"]),
+        (0, ["test-move-contract-a"]),
+    ]
