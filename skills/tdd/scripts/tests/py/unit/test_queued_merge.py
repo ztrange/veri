@@ -227,3 +227,14 @@ def test_2425_queued_merge_deletes_the_local_branch_from_the_main_clone_after_th
     removed = first(calls, "worktree remove")
     local = [i for i, c in enumerate(calls) if c.startswith("git -C /main ") and " branch " in c and c.endswith(" feature")]
     assert (code, len(local), bool(local) and local[0] > removed) == (0, 1, True)
+
+
+def test_2425_queued_merge_fast_forwards_the_main_clones_main_to_origin_main_with_ff_only_after_the_tag_and_the_lock_release(fake_processes, run_cli):
+    calls = scenario(fake_processes)
+
+    code, _, _ = run_cli(queued_merge, ARGV)
+
+    forwards = [i for i, c in enumerate(calls) if c.startswith("git -C /main ") and "--ff-only" in c and c.endswith("origin/main")]
+    tagged = first(calls, " tag -a ")
+    released = first(calls, "merge-lock.sh release")
+    assert (code, len(forwards), bool(forwards) and forwards[0] > max(tagged, released)) == (0, 1, True)

@@ -102,6 +102,7 @@ def _cleanup(pid, pr, pull, worktree, branch, message):
     _git(os.path.dirname(common), "branch", "-D", branch)
     if _release(pid):
         failed.append("release")
+    _git(os.path.dirname(common), "merge", "--ff-only", "origin/main")
     if failed:
         _say("merged, but cleanup failed: %s" % ", ".join(failed))
         return 2
