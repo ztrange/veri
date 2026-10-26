@@ -12,7 +12,7 @@
 | C8 | Unattended, it sends the dev session only the message kinds the human approved (default: refill an empty slot). | |
 | C9 | It never fixes veri by hand. It files the issue. | "why did you fix it instead of creating an issue". |
 | C10 | It never says that `veri-groom` or `veri-file` does not exist. | PR #2061's review: lines 46-49 still said veri-groom does not exist; veri-file landed in #1841. |
-| C11 | Filing goes through `/veri-file`; it names no other filer. | Lines 48-49 still send filing to `/tdd-fix` and `/tdd-candidates`, which #1842 removes. |
+| C11 | Filing goes through `/veri-file`; it names no other filer. | Filing is sent to `/veri-file` alone. |
 | C12 | It sends a merge instruction for a run, or merges one itself, only after reading the dev session's review report for that PR and either answering each caveat in it by name or seeing the report say there is none. | Same incident: "merge" was sent from the ✅ Done comment, before the caveats were read. |
 | C13 | It parks an issue only through the park script, and on resume reads the parked set through the parked-set script, never from a handoff or memory; un-parking removes the `parked` label. | Same as D13: the coordinator's parks were kept in its handoff file and local memory. |
 | C14 | At start, the coordinator switches off, for its own session only, every claude.ai connector loaded in it, with the desktop app's per-session connector tool, and never changes the account's settings. It needs none of them. | Their tool definitions are re-read on every turn: ~20k tokens on the coordinator, 2026-10-23. |
