@@ -106,7 +106,8 @@ def record_graded(unit, sig, grading_id):
             kept = [l for l in f.read().splitlines() if l.partition(" ")[0] != unit]
     with open(graded, "w", encoding="utf-8") as f:
         f.write("".join(l + "\n" for l in kept))
-        f.write("%s %s %s %s\n" % (unit, sig, time.strftime("%Y-%m-%d"), grading_id))
+        template = hashlib.sha256(GRADER_INSTRUCTIONS.encode("utf-8")).hexdigest()[:12]
+        f.write("%s %s %s %s %s\n" % (unit, sig, time.strftime("%Y-%m-%d"), grading_id, template))
 
 
 def graded_ids(text):
