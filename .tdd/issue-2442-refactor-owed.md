@@ -1,0 +1,2 @@
+### A direct `python3 veri/pytest_leg.py` run, from a copy of veri/ with no PYTHONPYCACHEPREFIX in its environment and VERI_PYCACHE pointing under tmp_path, writes no .pyc under the copied veri/ and writes them under VERI_PYCACHE instead (a process case in test_stale_bytecode_process.py that fails on the current code and passes once pytest_leg.py carries the pycache-prefix line) ⟦criterion 1⟧
+- test-only | the `p.name != "pytest_leg.py"` exclusion at test_stale_bytecode_process.py:151 is the second acceptance criterion's work, not a tidy-up. It belongs to a later plan step.
