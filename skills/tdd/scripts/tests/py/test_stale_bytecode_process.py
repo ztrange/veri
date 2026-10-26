@@ -148,7 +148,7 @@ def test_every_directly_runnable_module_keeps_its_bytecode_out_of_the_tree_2405(
     env.update(VERI_PYCACHE=str(tmp_path / "pycache"), PATH="/nonexistent", HOME=str(tmp_path))
     work = tmp_path / "work"
     work.mkdir()
-    runnable = sorted(p for p in veri.glob("*.py") if "__main__" in p.read_text() and p.name != "pytest_leg.py")
+    runnable = sorted(p for p in veri.glob("*.py") if "__main__" in p.read_text())
     leaked = {}
     for module in runnable:
         try:
