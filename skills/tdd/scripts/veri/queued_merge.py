@@ -90,7 +90,7 @@ def _tag(worktree, message, pull, pr):
 def _cleanup(pid, pr, pull, worktree, branch, message):
     """Tag, delete the branch, remove the worktree, release the lock: every step runs, each failure is named."""
     failed = []
-    common = _git(worktree, "rev-parse", "--path-format=absolute", "--git-common-dir").stdout.strip()
+    clone = os.path.dirname(_git(worktree, "rev-parse", "--path-format=absolute", "--git-common-dir").stdout.strip())
     if message != "-" and not _tag(worktree, message, pull, pr):
         failed.append("tag")
     for what, args in (("branch delete", ("push", "origin", "--delete", branch)),
@@ -99,10 +99,10 @@ def _cleanup(pid, pr, pull, worktree, branch, message):
         if run.returncode:
             _say("%s failed (exit %d): %s" % (what, run.returncode, run.stderr.strip()))
             failed.append(what)
-    _git(os.path.dirname(common), "branch", "-D", branch)
+    _git(clone, "branch", "-D", branch)
     if _release(pid):
         failed.append("release")
-    _git(os.path.dirname(common), "merge", "--ff-only", "origin/main")
+    _git(clone, "merge", "--ff-only", "origin/main")
     if failed:
         _say("merged, but cleanup failed: %s" % ", ".join(failed))
         return 2
