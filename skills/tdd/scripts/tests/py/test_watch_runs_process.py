@@ -159,6 +159,33 @@ def test_target_slot_is_taken_by_a_live_conductor_that_has_not_written_a_launch_
     assert (out.returncode, out.stdout.strip()) == (3, "timeout"), out.stderr
 
 
+@pytest.mark.process("watch-runs.sh as a real process over a live conductor whose run directory has no events or pid file, run from a subdirectory of the repo")
+def test_target_counts_a_starting_run_when_run_from_a_subdirectory_2388(tmp_path):
+    scripts = tmp_path / "scripts"
+    (scripts / "veri").mkdir(parents=True)
+    shutil.copy(SCRIPTS / "veri" / "watch_runs.py", scripts / "veri" / "watch_runs.py")
+    shutil.copy(SHIM, scripts / "watch-runs.sh")
+    (scripts / "lib").symlink_to(SCRIPTS / "lib")
+    stub = scripts / "solvable-issues.sh"
+    stub.write_text('#!/bin/sh\necho "777 next one"\n')
+    stub.chmod(0o755)
+    repo = tmp_path / "repo"
+    (repo / "sub").mkdir(parents=True)
+    subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
+    starting = start_conductor(tmp_path, 101)
+    try:
+        run = repo / ".tdd" / "wt" / "101" / ".tdd"
+        run.mkdir(parents=True)
+        (run / "baseline-fast.pid").write_text("1\n")
+        out = subprocess.run([str(scripts / "watch-runs.sh"), "--target", "1", "--max-wait", "2"], cwd=repo / "sub",
+                             stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=30,
+                             env={**os.environ, "PYTHONPATH": str(SCRIPTS / "veri")})
+    finally:
+        starting.terminate()
+        starting.wait()
+    assert (out.returncode, out.stdout.strip()) == (3, "timeout"), out.stderr
+
+
 @pytest.mark.process("watch-runs.sh as a real process over a running conductor, a live pre-conductor baseline run, and a stub solvable-issues.sh")
 def test_target_counts_a_run_live_in_its_pre_conductor_baseline_2388(tmp_path):
     scripts = tmp_path / "scripts"

@@ -249,6 +249,7 @@ def test_main_reports_vanished_and_returns_2_when_a_conductor_live_at_start_drop
 
     monkeypatch.setattr(watch_runs.status, "json_document",
                         lambda scope=None: (0, json.dumps(next(documents, only_7))))
+    monkeypatch.setattr(watch_runs, "_starting", lambda: [])
     monkeypatch.setattr(watch_runs, "wait", wait)
 
     code = watch_runs.main([])
