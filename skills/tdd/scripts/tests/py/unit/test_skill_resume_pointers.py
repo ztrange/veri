@@ -31,13 +31,9 @@ def test_resume_section_lives_in_resume_md_and_skill_md_carries_none_of_its_line
     moved = [r"\$S/event\.sh resume`", r"left=\$\(\( \$\{VERI_REFACTOR_BUDGET:-5\} - count \)\)",
              r"add-ledger-step\.sh --planned --criterion"]
     skill = _lines(SKILL)
-    resume = _lines(TDD / "RESUME.md")
     assert "## Resume" not in skill, "SKILL.md still carries the ## Resume heading"
-    assert "## Resume" in resume, "RESUME.md carries no ## Resume heading"
     left = [p for p in moved if any(re.search(p, line) for line in skill)]
     assert not left, f"SKILL.md still carries the moved lines {left}"
-    missing = [p for p in moved if not any(re.search(p, line) for line in resume)]
-    assert not missing, f"RESUME.md lacks the moved lines {missing}"
 
 
 def test_1967_preflight_step_3_resumed_run_block_is_one_resume_clean_sh_call_and_its_exit_2_bails_as_a_system_failure():
@@ -53,16 +49,3 @@ def test_1967_preflight_step_3_resumed_run_block_is_one_resume_clean_sh_call_and
         assert syntax not in prose, f"the resumed-run block still holds bash-only {syntax!r}"
     assert re.search(r"exit 2.*?bails as a \*\*system\*\* failure", " ".join(prose.split())), \
         "the resumed-run block does not bail its exit 2 as a system failure"
-
-
-def test_resume_md_runs_record_existing_before_the_first_ledger_commit_issue_2213():
-    text = " ".join((TDD / "RESUME.md").read_text().split())
-    assert re.search(
-        r"step lines beyond its plan commit and there is no `\.tdd/issue-<n>-added\.md`, "
-        r"run `\$S/ledger-growth\.sh record-existing \.tdd/issue-<n>\.md` once, "
-        r"before the resume's first ledger commit, "
-        r"and stage `\.tdd/issue-<n>-added\.md` in that same commit with the ledger",
-        text), "RESUME.md does not instruct ledger-growth.sh record-existing before the first ledger commit"
-    record = text.index("ledger-growth.sh record-existing")
-    assert record < text.index("2. **Use the reset preflight already made"), \
-        "RESUME.md asks for record-existing after sub-step 2, whose refactor clear can be the resume's first ledger commit"

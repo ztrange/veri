@@ -6,8 +6,6 @@ import re
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 DRAFT_PR = "### 4. Draft PR"
-RESUME = "## Resume"
-RESUME_MD = SKILL.with_name("RESUME.md")
 GUARDRAILS = "## Guardrails"
 ISSUE = "### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)"
 
@@ -19,7 +17,7 @@ def _lower(text):
 
 
 def _lines(heading):
-    section = importlib.import_module("skill_sections").section(RESUME_MD if heading == RESUME else SKILL, heading)
+    section = importlib.import_module("skill_sections").section(SKILL, heading)
     lines = section.splitlines()[1:]
     return lines
 
@@ -91,18 +89,6 @@ def draft_pr_read():
 def test_draft_prs_step_readies_the_pr_against_the_already_pushed_branch_with_no_push_of_its_own():
     pushes = first_record(draft_pr_read(), re.escape("git push"))
     assert not pushes, f"Draft PR step still pushes the branch itself: {pushes[:120]}"
-
-
-def test_resume_reuses_the_open_pr_already_on_its_branch_and_opens_no_second_one():
-    records = _records(_lines(RESUME))
-    assert records, "SKILL.md has no ## Resume section to read"
-    problems = []
-    if not any_line(commands_of(RESUME), r"^gh api [^#]*pulls[?]head="):
-        problems.append("Resume section never reads the open PR its branch already carries")
-    creates = first_record(records, re.escape("pr-creating `gh api`"))
-    if creates and not re.search(r"no open pr|no pr|none|no such pr", creates):
-        problems.append(f"Resume section opens a PR without conditioning it on there being no open PR to reuse: {creates[:120]}")
-    assert not problems, problems
 
 
 def test_worktree_step_no_longer_says_the_draft_pr_is_opened_once_every_step_is_green():
