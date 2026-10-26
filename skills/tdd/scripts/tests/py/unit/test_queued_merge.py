@@ -10,13 +10,14 @@ PR = "https://github.com/o/r/pull/7"
 ARGV = [PR, "/wt", "feature", "the capability"]
 ORIGIN_SHA = "1111111"
 PUSHED_HEAD = "abc1234"
+MERGE_SHA = "fedcba9"
 PID = str(os.getpid())
 WAIT_CI = os.path.join(queued_merge.SCRIPTS, "wait-ci.sh")
 
 
-def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True}), gh_code=0, fail=()):
+def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True, "merge_commit_sha": "fedcba9"}), gh_code=0, fail=(), behind=False):
     """A queued merge's world: the lock, CI's answers in order, GitHub's merged answer, and commands that fail."""
-    state = {"rebased": False, "ci": list(ci)}
+    state = {"rebased": False, "ci": list(ci), "merged": False}
 
     def answer(line, **_):
         for needle in fail:
@@ -26,6 +27,12 @@ def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True}
             return take, "", ""
         if "rebase origin/main" in line:
             state["rebased"] = True
+        if "pr merge" in line:
+            state["merged"] = True
+        if "merge-base --is-ancestor %s HEAD" % ORIGIN_SHA in line:
+            return (1 if behind else 0), "", ""
+        if "rev-parse --verify origin/main" in line or "rev-parse origin/main" in line:
+            return 0, ("later00" if state["merged"] else "pre0000") + "\n", ""
         if "wait-ci.sh" in line:
             return state["ci"].pop(0), "", ""
         if "rev-parse --verify refs/remotes/origin/feature" in line:
@@ -140,3 +147,35 @@ def test_2372_queued_merge_reports_a_failed_cleanup_step_on_stderr_and_exits_2_r
     ran = {step: first(calls, needle) is not None for step, needle in (
         ("branch delete", "--delete feature"), ("worktree remove", "worktree remove"), ("release", "merge-lock.sh release"))}
     assert (code, named in err, ran) == (2, True, {"branch delete": True, "worktree remove": True, "release": True})
+
+
+def test_2372_queued_merge_tags_the_merge_commit_github_reports_for_the_pr_fetched_after_the_merge(fake_processes, run_cli):
+    calls = scenario(fake_processes)
+
+    code, _, _ = run_cli(queued_merge, ARGV)
+
+    tags = [c for c in calls if " tag -a " in c]
+    fetches = [i for i, c in enumerate(calls) if c.endswith("fetch origin")]
+    merge = first(calls, "pr merge")
+    assert (code, tags, any(i > merge for i in fetches)) == (
+        0, ["git -C /wt tag -a v0.11 -m the capability %s" % MERGE_SHA], True)
+
+
+def test_2372_queued_merge_whose_worktree_lacks_a_commit_on_origin_branch_exits_2_naming_it_and_pushes_nothing(fake_processes, run_cli):
+    calls = scenario(fake_processes, behind=True)
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    pushes = [c for c in calls if " push " in c]
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code, "origin/feature" in err, pushes, first(calls, "rebase"), len(released)) == (2, True, [], None, 1)
+
+
+def test_2372_queued_merge_releases_the_lock_only_after_the_tag_branch_delete_and_worktree_remove(fake_processes, run_cli):
+    calls = scenario(fake_processes)
+
+    code, _, _ = run_cli(queued_merge, ARGV)
+
+    release = first(calls, "merge-lock.sh release")
+    steps = [first(calls, needle) for needle in (" tag -a ", "push origin v0.11", "--delete feature", "worktree remove")]
+    assert (code, None not in steps and release is not None and release > max(steps)) == (0, True)

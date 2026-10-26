@@ -15,7 +15,7 @@ case "$*" in
   *"check-runs?page=1"*) echo '{"check_runs": [{"name": "CI", "status": "completed", "conclusion": "failure"}]}' ;;
   *check-runs*) echo '{"check_runs": []}' ;;
   *"/status"*) echo '{"statuses": []}' ;;
-  *"/pulls/"*) echo '{"merged": true, "mergeable": true, "draft": false, "head": {"sha": "abc1234"}}' ;;
+  *"/pulls/"*) echo '{"merged": true, "merge_commit_sha": "fedcba9", "mergeable": true, "draft": false, "head": {"sha": "abc1234"}}' ;;
   *) echo '[]' ;;
 esac
 exit 0
@@ -25,6 +25,7 @@ FAKE_GIT = """#!/bin/sh
 case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
   *"rev-parse --verify HEAD"*) echo abc1234; exit 0 ;;
+  *"merge-base --is-ancestor"*|*"cat-file -e"*) exit 0 ;;
 esac
 for word in "$@"; do
   case "$word" in
@@ -74,6 +75,7 @@ FAKE_GIT_CONFLICT = """#!/bin/sh
 case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
   *"rev-parse --verify HEAD"*) echo abc1234; exit 0 ;;
+  *"merge-base --is-ancestor"*|*"cat-file -e"*) exit 0 ;;
 esac
 for word in "$@"; do
   case "$word" in
@@ -120,6 +122,7 @@ esac
 case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
   *"rev-parse --verify HEAD"*) echo abc1234; exit 0 ;;
+  *"merge-base --is-ancestor"*|*"cat-file -e"*) exit 0 ;;
 esac
 for word in "$@"; do
   case "$word" in
@@ -168,6 +171,7 @@ echo "git $*" >> "$CALL_LOG"
 case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
   *"rev-parse --verify HEAD"*) echo abc1234; exit 0 ;;
+  *"merge-base --is-ancestor"*|*"cat-file -e"*) exit 0 ;;
 esac
 for word in "$@"; do
   case "$word" in
@@ -255,6 +259,7 @@ esac
 case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
   *"rev-parse --verify HEAD"*) echo abc1234; exit 0 ;;
+  *"merge-base --is-ancestor"*|*"cat-file -e"*) exit 0 ;;
 esac
 for word in "$@"; do
   case "$word" in
@@ -266,7 +271,7 @@ exec "$REAL_GIT" "$@"
 
 
 @pytest.mark.process("queued-merge.sh and merge-lock.sh run as /bin/sh shims in a scratch repository, with gh and git planted on PATH")
-def test_queued_merge_after_a_confirmed_merge_cuts_the_next_version_tag_on_origin_main_with_the_message_and_pushes_it_but_cuts_none_for_a_dash_2372(tmp_path):
+def test_queued_merge_after_a_confirmed_merge_cuts_the_next_version_tag_on_the_reported_merge_commit_with_the_message_and_pushes_it_but_cuts_none_for_a_dash_2372(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
     real_git = shutil.which("git")
@@ -290,7 +295,7 @@ def test_queued_merge_after_a_confirmed_merge_cuts_the_next_version_tag_on_origi
         return code, call_log.read_text().splitlines()
 
     code, calls = queued("the capability")
-    tag_cmds = [c for c in calls if " tag " in c and "v0.11" in c and "-a" in c and "the capability" in c and "origin/main" in c]
+    tag_cmds = [c for c in calls if " tag " in c and "v0.11" in c and "-a" in c and "the capability" in c and c.split()[-1] == "fedcba9"]
     pushed = [c for c in calls if " push " in c and "v0.11" in c]
     dash_code, dash_calls = queued("-")
     dash_tagged = [c for c in dash_calls if "v0.11" in c]
