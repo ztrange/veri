@@ -11,4 +11,5 @@ def test_2433_skill_never_promises_modes_below_and_print_mode_aside_cites_readme
     aside = re.search(r"print-mode session.{0,400}", flat)
     assert "modes below" not in flat, "SKILL.md still refers to unattended modes 'below'"
     assert aside, "SKILL.md has no print-mode aside"
-    assert "README.md" in aside.group(0), f"print-mode aside does not cite README.md: {aside.group(0)!r}"
+    for name in ("README.md", "Launching the conductor"):
+        assert name in aside.group(0), f"print-mode aside does not cite {name}: {aside.group(0)!r}"
