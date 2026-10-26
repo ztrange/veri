@@ -1,0 +1,2 @@
+### skill-edit-step.sh given both `--added "<step>"` and `--change "<change>"` does not refuse a unit that grades PASS before any author ran: it launches an author as a `--change` step does instead of exiting 2 ⟦criterion 1⟧
+- test-only | the two new tests in test_skill_edit_step.py repeat the same fixture setup (unit.md, REQUIREMENTS.md, issue.md, the monkeypatches and the `run` stub). A shared helper could replace it.
