@@ -165,6 +165,9 @@ def _superseded_case(body):
     separated = re.match(r'\S+\s+›\s+(?:"([^"]+)"$|(\S.*)$)', body)
     if separated:
         return (separated.group(1) or separated.group(2)).strip()
+    prose = re.sub(r"^#\d+\s+", "", body).strip()
+    if _exists(prose):
+        return prose
     words = body.strip("`").split()
     return words[0].strip("`").rpartition("::")[2] if words else ""
 
