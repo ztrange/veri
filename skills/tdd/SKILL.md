@@ -540,6 +540,8 @@ three times over branches its ledger pinned on later lines.
 
 **A step that changes text older cases pin is preceded by the step that updates them.** When a criterion changes text or output that existing cases outside the step's own Red pin (a usage string, a constant, the text of a prompt compared verbatim or by checksum), the plan holds a step that updates those older cases, placed ahead of the step that changes the text (except a sentence a `⟦skill-edit⟧` step changes, below: that step carries its own pin updates); Green may not edit a test, so without it the older cases turn red and no leaf allowed to edit them is ever launched, as #1719's step 8 and #1718's first runs found.
 
+**A step names exactly one observable outcome.** A behaviour and each distinct refusal, exit code or fail-closed branch its criterion names are planned as separate steps, one outcome per step: the Red phase adds exactly one case, and verify-green rejects a guard no case pins, so a step naming two outcomes cannot go green. The rule is keyed on the count of named outcomes, never on the mere presence of a guard: a step naming one outcome alone, a behaviour or one guard, is not split (#2553).
+
 1. Write the plan as a checkbox list to the **ledger** `.tdd/issue-<n>.md`, e.g.:
    ```
    # Plan for #<n> — <issue title>
