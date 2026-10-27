@@ -180,8 +180,11 @@ def render(as_json, scope, read_states=True):
         has_ledger = os.path.isfile(ledger)
         text = ""
         if has_ledger:
-            with open(ledger) as f:
-                text = f.read()
+            try:
+                with open(ledger) as f:
+                    text = f.read()
+            except FileNotFoundError:
+                has_ledger = False
         heading = text.split("\n", 1)[0]
         if heading.startswith("# Plan for #"):
             heading = heading[len("# Plan for #"):]
