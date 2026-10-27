@@ -1,16 +1,17 @@
 ### 📊 Metrics — issue 2483
 
-Wall time for the issue: 3761 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 8 of 9 planned.
-Outcome: the run bailed — needs-user, a process failure.
+Wall time for the issue: 961 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 1 s, excluded from it.
+Steps done: 9 of 10 planned.
+Outcome: the run bailed — rebase-unresolved, a process failure.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $12.72 over 243 turns, in 3 sessions, on opus (estimate).
+Conductor own spending: $15.80 over 287 turns, in 4 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 88981 tokens, largest 213118 tokens
 Conductor context: first turn 88968 tokens, largest 161295 tokens
-Conductor context: first turn 88968 tokens, largest 182967 tokens
+Conductor context: first turn 88968 tokens, largest 185750 tokens
+Conductor context: first turn 88976 tokens, largest 145254 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -155,110 +156,154 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 136 | $0.08 | 159478 |
 | 137 | $0.05 | 160419 |
 | 138 | $0.05 | 161295 |
-| 139 | $0.57 | 88968 |
-| 140 | $0.04 | 91219 |
+| 139 | $0.58 | 88968 |
+| 140 | $0.05 | 91219 |
 | 141 | $0.05 | 94874 |
-| 142 | $0.06 | 99443 |
-| 143 | $0.02 | 99943 |
-| 144 | $0.02 | 100366 |
-| 145 | $0.02 | 100692 |
-| 146 | $0.02 | 101063 |
-| 147 | $0.03 | 101685 |
+| 142 | $0.07 | 99443 |
+| 143 | $0.03 | 99943 |
+| 144 | $0.04 | 100366 |
+| 145 | $0.03 | 100692 |
+| 146 | $0.03 | 101063 |
+| 147 | $0.04 | 101685 |
 | 148 | $0.03 | 102640 |
-| 149 | $0.03 | 103370 |
-| 150 | $0.03 | 104066 |
-| 151 | $0.02 | 104291 |
-| 152 | $0.04 | 106312 |
+| 149 | $0.04 | 103370 |
+| 150 | $0.04 | 104066 |
+| 151 | $0.03 | 104291 |
+| 152 | $0.05 | 106312 |
 | 153 | $0.03 | 107310 |
-| 154 | $0.03 | 108370 |
-| 155 | $0.02 | 108726 |
+| 154 | $0.04 | 108370 |
+| 155 | $0.04 | 108726 |
 | 156 | $0.03 | 109303 |
-| 157 | $0.03 | 109921 |
-| 158 | $0.03 | 110503 |
+| 157 | $0.04 | 109921 |
+| 158 | $0.04 | 110503 |
 | 159 | $0.04 | 112128 |
-| 160 | $0.03 | 112779 |
-| 161 | $0.03 | 113568 |
+| 160 | $0.04 | 112779 |
+| 161 | $0.04 | 113568 |
 | 162 | $0.03 | 113984 |
-| 163 | $0.03 | 114526 |
-| 164 | $0.03 | 114970 |
-| 165 | $0.08 | 122638 |
-| 166 | $0.03 | 123792 |
-| 167 | $0.03 | 124833 |
-| 168 | $0.03 | 125413 |
-| 169 | $0.03 | 126014 |
-| 170 | $0.03 | 127101 |
-| 171 | $0.04 | 128896 |
-| 172 | $0.03 | 129452 |
-| 173 | $0.03 | 130136 |
-| 174 | $0.03 | 130862 |
-| 175 | $0.03 | 131591 |
-| 176 | $0.04 | 133747 |
-| 177 | $0.03 | 134392 |
-| 178 | $0.03 | 135015 |
-| 179 | $0.03 | 135350 |
-| 180 | $0.04 | 136413 |
-| 181 | $0.03 | 137160 |
-| 182 | $0.03 | 137746 |
-| 183 | $0.03 | 138084 |
-| 184 | $0.03 | 138770 |
-| 185 | $0.03 | 139357 |
-| 186 | $0.03 | 140104 |
-| 187 | $0.03 | 140506 |
-| 188 | $0.03 | 141050 |
-| 189 | $0.03 | 141380 |
-| 190 | $0.03 | 142086 |
+| 163 | $0.04 | 114526 |
+| 164 | $0.04 | 114970 |
+| 165 | $0.09 | 122638 |
+| 166 | $0.04 | 123792 |
+| 167 | $0.05 | 124833 |
+| 168 | $0.04 | 125413 |
+| 169 | $0.04 | 126014 |
+| 170 | $0.04 | 127101 |
+| 171 | $0.05 | 128896 |
+| 172 | $0.04 | 129452 |
+| 173 | $0.04 | 130136 |
+| 174 | $0.04 | 130862 |
+| 175 | $0.04 | 131591 |
+| 176 | $0.06 | 133747 |
+| 177 | $0.04 | 134392 |
+| 178 | $0.04 | 135015 |
+| 179 | $0.04 | 135350 |
+| 180 | $0.05 | 136413 |
+| 181 | $0.04 | 137160 |
+| 182 | $0.04 | 137746 |
+| 183 | $0.04 | 138084 |
+| 184 | $0.04 | 138770 |
+| 185 | $0.05 | 139357 |
+| 186 | $0.04 | 140104 |
+| 187 | $0.04 | 140506 |
+| 188 | $0.04 | 141050 |
+| 189 | $0.04 | 141380 |
+| 190 | $0.05 | 142086 |
 | 191 | $0.04 | 142981 |
-| 192 | $0.04 | 143788 |
+| 192 | $0.05 | 143788 |
 | 193 | $0.04 | 144596 |
-| 194 | $0.04 | 145409 |
-| 195 | $0.03 | 145868 |
+| 194 | $0.05 | 145409 |
+| 195 | $0.04 | 145868 |
 | 196 | $0.04 | 146675 |
-| 197 | $0.03 | 147132 |
+| 197 | $0.05 | 147132 |
 | 198 | $0.04 | 147941 |
-| 199 | $0.04 | 148940 |
-| 200 | $0.04 | 149816 |
+| 199 | $0.05 | 148940 |
+| 200 | $0.05 | 149816 |
 | 201 | $0.04 | 150550 |
-| 202 | $0.03 | 151052 |
+| 202 | $0.05 | 151052 |
 | 203 | $0.04 | 151725 |
-| 204 | $0.04 | 152658 |
+| 204 | $0.05 | 152658 |
 | 205 | $0.04 | 153298 |
-| 206 | $0.03 | 153713 |
+| 206 | $0.05 | 153713 |
 | 207 | $0.04 | 154489 |
-| 208 | $0.03 | 154917 |
-| 209 | $0.03 | 155229 |
-| 210 | $0.03 | 155688 |
+| 208 | $0.05 | 154917 |
+| 209 | $0.04 | 155229 |
+| 210 | $0.05 | 155688 |
 | 211 | $0.04 | 156481 |
-| 212 | $0.04 | 158048 |
-| 213 | $0.04 | 158854 |
+| 212 | $0.06 | 158048 |
+| 213 | $0.05 | 158854 |
 | 214 | $0.04 | 159425 |
-| 215 | $0.04 | 160371 |
-| 216 | $0.03 | 160632 |
-| 217 | $0.04 | 161242 |
-| 218 | $0.04 | 162132 |
-| 219 | $0.04 | 162774 |
-| 220 | $0.04 | 163793 |
+| 215 | $0.05 | 160371 |
+| 216 | $0.04 | 160632 |
+| 217 | $0.05 | 161242 |
+| 218 | $0.05 | 162132 |
+| 219 | $0.05 | 162774 |
+| 220 | $0.05 | 163793 |
 | 221 | $0.04 | 164136 |
-| 222 | $0.04 | 165050 |
-| 223 | $0.04 | 166185 |
+| 222 | $0.05 | 165050 |
+| 223 | $0.06 | 166185 |
 | 224 | $0.04 | 166897 |
-| 225 | $0.04 | 167244 |
-| 226 | $0.04 | 168493 |
-| 227 | $0.04 | 168842 |
-| 228 | $0.04 | 169317 |
-| 229 | $0.04 | 170106 |
-| 230 | $0.04 | 170867 |
-| 231 | $0.04 | 171663 |
-| 232 | $0.04 | 172611 |
-| 233 | $0.04 | 173619 |
-| 234 | $0.04 | 174022 |
-| 235 | $0.04 | 174585 |
+| 225 | $0.05 | 167244 |
+| 226 | $0.05 | 168493 |
+| 227 | $0.05 | 168842 |
+| 228 | $0.05 | 169317 |
+| 229 | $0.05 | 170106 |
+| 230 | $0.05 | 170867 |
+| 231 | $0.05 | 171663 |
+| 232 | $0.05 | 172611 |
+| 233 | $0.05 | 173619 |
+| 234 | $0.05 | 174022 |
+| 235 | $0.05 | 174585 |
 | 236 | $0.04 | 174930 |
-| 237 | $0.04 | 175264 |
-| 238 | $0.04 | 175438 |
-| 239 | $0.04 | 176242 |
+| 237 | $0.05 | 175264 |
+| 238 | $0.05 | 175438 |
+| 239 | $0.05 | 176242 |
 | 240 | $0.05 | 177499 |
-| 241 | $0.07 | 182262 |
-| 242 | $0.04 | 182967 |
+| 241 | $0.09 | 182262 |
+| 242 | $0.05 | 182967 |
+| 243 | $0.06 | 184388 |
+| 244 | $0.05 | 185750 |
+| 245 | $0.57 | 88976 |
+| 246 | $0.04 | 91314 |
+| 247 | $0.02 | 91683 |
+| 248 | $0.05 | 95425 |
+| 249 | $0.07 | 101458 |
+| 250 | $0.02 | 102032 |
+| 251 | $0.02 | 102581 |
+| 252 | $0.02 | 102807 |
+| 253 | $0.02 | 103069 |
+| 254 | $0.03 | 103671 |
+| 255 | $0.03 | 104546 |
+| 256 | $0.03 | 105291 |
+| 257 | $0.03 | 106107 |
+| 258 | $0.03 | 107453 |
+| 259 | $0.03 | 108285 |
+| 260 | $0.04 | 110177 |
+| 261 | $0.02 | 110488 |
+| 262 | $0.03 | 110994 |
+| 263 | $0.03 | 111407 |
+| 264 | $0.03 | 112519 |
+| 265 | $0.03 | 114042 |
+| 266 | $0.03 | 115062 |
+| 267 | $0.03 | 115550 |
+| 268 | $0.09 | 123588 |
+| 269 | $0.04 | 124896 |
+| 270 | $0.03 | 125991 |
+| 271 | $0.03 | 126694 |
+| 272 | $0.03 | 127782 |
+| 273 | $0.04 | 129514 |
+| 274 | $0.03 | 130639 |
+| 275 | $0.04 | 131788 |
+| 276 | $0.03 | 132124 |
+| 277 | $0.03 | 132764 |
+| 278 | $0.03 | 133088 |
+| 279 | $0.03 | 134073 |
+| 280 | $0.03 | 134421 |
+| 281 | $0.03 | 135094 |
+| 282 | $0.03 | 135359 |
+| 283 | $0.03 | 135837 |
+| 284 | $0.03 | 136442 |
+| 285 | $0.03 | 136801 |
+| 286 | $0.09 | 145254 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -266,23 +311,23 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 15 | 12 | 1 | 2 | 1185 | 0 | 34534 | 0.10 |
-| red | 15 | 7 | 0 | 0 | 788 | 445 | 84 | 168 | 41291 | 2890463 | 497406 | 1.95 |
-| green | 37 | 5 | 12 | 0 | 3427 | 802 | 189 | 378 | 66224 | 6085049 | 723813 | 4.27 |
-| refactor | 6 | 1 | 0 | 0 | 134 | 62 | 18 | 36 | 3294 | 457884 | 154043 | 0.46 |
+| red | 17 | 8 | 0 | 0 | 856 | 501 | 96 | 192 | 46260 | 3260593 | 581027 | 2.24 |
+| green | 41 | 6 | 13 | 0 | 3875 | 984 | 217 | 430 | 76421 | 6941492 | 825451 | 4.90 |
+| refactor | 7 | 1 | 0 | 0 | 142 | 68 | 21 | 42 | 3538 | 526199 | 189390 | 0.56 |
 | red-missing | 3 | 0 | 0 | 0 | 149 | 93 | 14 | 28 | 10161 | 578532 | 152831 | 0.54 |
 | pin | 4 | 4 | 0 | 0 | 106 | 71 | 14 | 28 | 4626 | 381804 | 91012 | 0.31 |
 | exhausted | 2 | 0 | 0 | 0 | 54 | 33 | 6 | 12 | 2386 | 144604 | 48849 | 0.32 |
 | prose | 6 | 0 | 0 | 0 | 345 | 329 | 6 | 12 | 50381 | 7478 | 354773 | 1.39 |
 | skill-edit | 2 | 0 | 0 | 0 | 40 | 35 | 8 | 16 | 2840 | 601278 | 124313 | 0.40 |
-| rebase | 2 | 1 | 0 | 0 | 249 | 58 | 14 | 26 | 2962 | 390572 | 53528 | 0.20 |
+| rebase | 3 | 1 | 0 | 0 | 280 | 86 | 22 | 42 | 4894 | 638461 | 70467 | 0.29 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 31 | 19 | 12 | 0 | 2470 | 510 | 113 | 226 | 42144 | 3300799 | 553737 | 2.14 |
-| developer | claude-sonnet-5-5 | 28 | 0 | 0 | 0 | 1804 | 798 | 170 | 338 | 69910 | 5828705 | 912092 | 4.00 |
-| developer | claude-opus-5-5 | 11 | 0 | 0 | 0 | 648 | 268 | 57 | 114 | 20075 | 1799404 | 290187 | 2.02 |
+| verifier | claude-sonnet-5-5 | 34 | 21 | 13 | 0 | 2672 | 569 | 127 | 252 | 47340 | 3673729 | 627266 | 2.41 |
+| developer | claude-sonnet-5-5 | 31 | 0 | 0 | 0 | 1881 | 865 | 188 | 374 | 75352 | 6379328 | 1011467 | 4.36 |
+| developer | claude-opus-5-5 | 13 | 0 | 0 | 0 | 924 | 414 | 76 | 150 | 26779 | 2418628 | 354828 | 2.49 |
 
 #### Rework and waste, by phase
 
@@ -290,7 +335,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
 | red | 0 | 0.00 | 191 | 0.45 |
-| green | 3034 | 3.49 | 1253 | 1.69 |
+| green | 3482 | 4.12 | 1253 | 1.69 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | red-missing | 0 | 0.00 | 120 | 0.36 |
 | pin | 0 | 0.00 | 57 | 0.13 |
@@ -313,6 +358,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | skill-edit step for the unit `skills/veri-merge/SKILL.md`, pin file `skills/veri-merge/REQUIREMENTS.md`: after the rebase and before the push, the merge runs `$S/grade-prose.sh --convert` at the worktree root and commits any GRADED line it rewrote, so the merged tree's `prose-owed.sh` exits 0 without a person recomputing a signature while reading a conflict, with a requirement row saying so; `skills/veri-merge/SKILL.md` grades PASS against its list and is re-signed in `skills/veri-merge/GRADED` inside this step ⟦skill-edit⟧ ⟦criterion 3⟧ | 3 | 0 | 0 | 0 | 0 | 0 | 34 | 5 | 10 | 4736 | 81351 | 35795 | 0.15 | 66 | unknown | unknown | unknown |  |  | full |
 | The one-snapshot invariant is pinned: `run-conductor.sh` runs the procedure from the commit in `.tdd/issue-<n>-skill-commit`, refuses with exit 2 a recorded commit the clone cannot resolve, and re-pins only under `VERI_NEW_SKILL=1`; a case pins each of the three ⟦criterion 4⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 80 | 16 | 32 | 5584 | 569065 | 64431 | 0.27 | unknown | unknown | unknown | unknown |  |  | pin |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/test_grade_prose_process.py — test_2037_the_draft_pr_regrade_block_run_as_written_on_a_branch_that_signed_one_unit_exits_0 and test_2089_the_draft_pr_regrade_block_run_as_written_exits_with_the_highest_code_any_units_grading_returned[0,0-0] and [1,0-1] fail: the regrade block now exits 2 because `grade-prose.sh --convert` raises "FileNotFoundError: [Errno 2] No such file or directory: 'REQUIREMENTS.md'" on a tree with no root REQUIREMENTS.md ⟦suite-repair⟧ ⟦criterion 4⟧ | 7 | 3 | 0 | 0 | 0 | 0 | 148 | 33 | 64 | 8491 | 931085 | 204085 | 0.69 | 761 | unknown | 0/5 | nothing-left |  |  | full |
+| `grade-prose.sh --convert` at a tree root walks every `REQUIREMENTS.md` the tree lists, as `prose-owed.sh` does, and re-signs each listed unit: a case with per-directory lists only and no root `REQUIREMENTS.md` re-signs the units listed under each (red first on today's code, which reads only `./REQUIREMENTS.md` and re-signs nothing there), and `--convert` exits 0 with nothing re-signed only where no list exists at all; the step's evidence, recorded in its commit body, also includes running `--convert` at the root of a `git clone --no-hardlinks` copy of veri itself (per-directory lists such as `skills/tdd/REQUIREMENTS.md` and `skills/veri-merge/REQUIREMENTS.md`, no root list) and showing which per-directory units it re-signs — a fixture with a root list is not proof of veri's own tree; every guard the step adds is pinned by a case only it decides; small in-process or process cases as the existing --convert cases are ⟦added⟧ ⟦criterion 3⟧ | 8 | 2 | 1 | 0 | 0 | 0 | 272 | 51 | 98 | 17342 | 1542777 | 237545 | 1.10 | 693 | 1/2 | 0/5 | nothing-left |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -325,6 +371,7 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `grade-prose.sh --convert`, run at a tree's root without launching any grader leaf, re-signs under the tree's own formula every listed unit whose committed GRADED signature is valid under the running grader's formula but not under the tree's, leaves every other GRADED line byte-identical, and exits 0 (2 when the tree's formula cannot be obtained, naming the unit); a process case builds a rebased branch in the #2474 shape (a unit's GRADED line landed on the default branch after the cut, under the old formula, while the branch changes the formula) and after `--convert` the tree's own prose-owed.sh exits 0; the usage line is unchanged; every guard the step adds is pinned by a case only it decides, among them, red first: `grade-prose.sh --convert` on a tree whose `grade_prose.signature` raises exits 2, its stderr names `signature-formula-disagreement` and the unit, and `GRADED` is left byte-identical ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 12 | 0.10 |
 | `grade-prose.sh --convert`, run at a tree's root without launching any grader leaf, re-signs under the tree's own formula every listed unit whose committed GRADED signature is valid under the running grader's formula but not under the tree's (the GRADED line the tree's own grade_prose writes), leaves every other GRADED line byte-identical, and exits 0; pinned by a process case that builds a rebased branch in the #2474 shape (a unit's GRADED line landed on the default branch after the cut, under the old formula, while the branch changes the formula) and reads the tree's own prose-owed.sh exit 0 after `--convert`, and by a case where a unit already valid under the tree's formula keeps its GRADED line byte-identical, and by a case only the per-unit guard in `resign` decides: two units in one directory with identical text and claims, both signed under the running formula, only one on `--convert`'s list — `--convert` re-signs the listed unit and leaves the unlisted unit's GRADED line byte-identical (red first, with the `fields[0] == unit` guard removed); every guard the step adds is pinned by a case only it decides ⟦added⟧ ⟦criterion 3⟧ | 1 | 1/5 | nothing-structural | PASS | 0 | 106 | 0.13 |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/test_grade_prose_process.py — test_2037_the_draft_pr_regrade_block_run_as_written_on_a_branch_that_signed_one_unit_exits_0 and test_2089_the_draft_pr_regrade_block_run_as_written_exits_with_the_highest_code_any_units_grading_returned[0,0-0] and [1,0-1] fail: the regrade block now exits 2 because `grade-prose.sh --convert` raises "FileNotFoundError: [Errno 2] No such file or directory: 'REQUIREMENTS.md'" on a tree with no root REQUIREMENTS.md ⟦suite-repair⟧ ⟦criterion 4⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 5 | 0.09 |
+| `grade-prose.sh --convert` at a tree root walks every `REQUIREMENTS.md` the tree lists, as `prose-owed.sh` does, and re-signs each listed unit: a case with per-directory lists only and no root `REQUIREMENTS.md` re-signs the units listed under each (red first on today's code, which reads only `./REQUIREMENTS.md` and re-signs nothing there), and `--convert` exits 0 with nothing re-signed only where no list exists at all; the step's evidence, recorded in its commit body, also includes running `--convert` at the root of a `git clone --no-hardlinks` copy of veri itself (per-directory lists such as `skills/tdd/REQUIREMENTS.md` and `skills/veri-merge/REQUIREMENTS.md`, no root list) and showing which per-directory units it re-signs — a fixture with a root list is not proof of veri's own tree; every guard the step adds is pinned by a case only it decides; small in-process or process cases as the existing --convert cases are ⟦added⟧ ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.10 |
 
 #### Structural pass
 
@@ -332,15 +379,15 @@ Stopped: nothing-structural
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 21 | 21 | 20 | 21 | 21 | 18 | 24 | 24 | 21 | 18 | 2 | 20 | 19 | 17 | 21 | 4 | 20 | 24 | 19 | 4 | 4 | 4 | 19 | 22 | 19 | 21 | 25 | 19 | 24 | 22 | 22 | 24 | 19 | 20 | 22 | 21 | 21 | 22 | 22 | 21 | 22 | 23 | 25 | 4 | 22 | 22 | 21 | 2 | 3 | 22 | 23 | 22 | 21 | 14 | 21 | 1 | 21 |
-| fast | 17 | 16 | 16 | 17 | 17 | 16 | 16 | 16 | 17 | 17 | 17 | 17 | 17 | 16 | 17 | 18 | 17 | 19 | 17 | 17 | 17 | 17 | 17 | 17 | 17 | 17 | 17 | 17 | 16 | 17 | 17 | 17 | 17 | 17 | 16 | 16 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 3 | 20 | 21 | 3 | 5 | 5 | 5 | 5 | 5 | 4 | 4 | 3 | 5 | 23 | 3 | 4 | 5 | 22 | 22 | 3 | 3 | 4 | 2 | 2 | 20 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| all | 184 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 21 | 21 | 20 | 21 | 21 | 18 | 24 | 24 | 21 | 18 | 2 | 20 | 19 | 17 | 21 | 4 | 20 | 24 | 19 | 4 | 4 | 4 | 19 | 22 | 19 | 21 | 25 | 19 | 24 | 22 | 22 | 24 | 19 | 20 | 22 | 21 | 21 | 22 | 22 | 21 | 22 | 23 | 25 | 4 | 22 | 22 | 21 | 2 | 3 | 22 | 23 | 22 | 21 | 14 | 21 | 1 | 21 | 4 | 3 | 20 | 25 | 27 | 21 |
+| fast | 17 | 16 | 16 | 17 | 17 | 16 | 16 | 16 | 17 | 17 | 17 | 17 | 17 | 16 | 17 | 18 | 17 | 19 | 17 | 17 | 17 | 17 | 17 | 17 | 17 | 17 | 17 | 17 | 16 | 17 | 17 | 17 | 17 | 17 | 16 | 16 | 17 | 17 | 16 | 17 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 3 | 20 | 21 | 3 | 5 | 5 | 5 | 5 | 5 | 4 | 4 | 3 | 5 | 23 | 3 | 4 | 5 | 22 | 22 | 3 | 3 | 4 | 2 | 2 | 20 | 4 | 3 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 184 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 354 | 706 | 185350 | 11537664 | 2235102 | 22.67 (estimate) |
+| total | 405 | 804 | 202692 | 13080441 | 2472647 | 26.85 (estimate) |
