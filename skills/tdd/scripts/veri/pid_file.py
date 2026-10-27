@@ -45,6 +45,11 @@ def live_conductor(path):
     pid = recorded_alive(path)
     if pid is None:
         return None
+    with open(path + "/.tdd/conductor.pid", "rb") as f:
+        f.readline()
+        started = f.readline().decode().strip()
+    if started and started != _ps("lstart", pid):
+        return None
     parent = _ps("ppid", pid)
     parent_command = _ps("command", parent) if parent else ""
     if parent_command and "run_conductor.py" not in parent_command:
