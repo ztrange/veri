@@ -11,7 +11,7 @@ USAGE = "usage: park-issue.sh <issue-number> <cause> <unblock> [<pr-number|PR-UR
 
 def origin_slug():
     url = subprocess.run(["git", "remote", "get-url", "origin"], capture_output=True, text=True).stdout
-    return "/".join(url.split("/")[-2:])
+    return "/".join(re.split(r"[/:]", url.strip().removesuffix(".git"))[-2:])
 
 
 def main(argv):
