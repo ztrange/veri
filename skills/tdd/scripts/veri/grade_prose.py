@@ -273,8 +273,14 @@ def main(argv):
     event.append(".", {}, "grading", ["unit=" + unit, "verdict=" + said[-1],
                                        "failing=" + ",".join(l.split(":")[0] for l in failed),
                                        "cost_usd=%s" % cost, "id=" + grading_id])
-    own = signer()
-    sig = own.signature(path, unit)
+    ours = signature(path, unit)
+    try:
+        own = signer()
+        sig = own.signature(path, unit)
+    except Exception as e:
+        print("grade-prose.sh: signature-formula-disagreement: %s: the running grader signs %s, the tree's formula gave none (%s)"
+              % (unit, ours, e), file=sys.stderr)
+        return 2
     rejected = os.path.join(".tdd", "grade-prose-rejected")
     if not failed:
         if os.path.exists(rejected):
