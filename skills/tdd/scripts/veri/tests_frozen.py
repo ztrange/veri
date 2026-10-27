@@ -11,7 +11,7 @@ import tempfile
 import renamed_case
 import replaces_case
 from entry import write
-from js_tests import CALL
+from js_tests import CALL, is_js_test_file
 from ledger import KIND_RE, carries_mark, trailing_markers
 from transform_touches_tests import TEST_FILE
 
@@ -107,8 +107,9 @@ def _differing_tests():
     for command in (["git", "diff", "--name-only", "--no-renames", "-z", "HEAD"],
                     ["git", "ls-files", "--others", "--exclude-standard", "--full-name", "-z", ":/"]):
         for raw in subprocess.run(command, stdout=subprocess.PIPE).stdout.split(b"\0"):
-            if raw and TEST_FILE.search(raw):
-                names.append(os.fsdecode(raw))
+            name = os.fsdecode(raw)
+            if raw and (TEST_FILE.search(raw) or is_js_test_file(os.path.basename(name), os.path.dirname(name))):
+                names.append(name)
     return names
 
 
