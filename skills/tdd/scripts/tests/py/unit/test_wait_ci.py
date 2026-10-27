@@ -1422,3 +1422,35 @@ def test_main_exits_4_on_its_first_poll_when_the_workflows_directory_is_a_404_an
         outcomes[name] = (code, sorted(p.name for p in (work / ".tdd").iterdir()), sleeps)
 
     assert outcomes == {"absent": (4, [], []), "refused": (3, [f"ci-deadline-{FULL_SHA}"], outcomes["refused"][2])}
+
+
+@pytest.mark.parametrize("workflows, expected", [
+    (["on: pull_request\n"], 3),
+    (["on: pull_request_target\n"], 3),
+    (["on:\n  - pull_request\n"], 3),
+    (["'on': [pull_request]\n"], 3),
+    (['on:\n  "pull_request":\n    branches: [main]\n'], 3),
+    (["on: {pull_request: {types: [closed]}}\n"], 4),
+    (["on: {pull_request: null}\n"], 3),
+    (["on:\n  pull_request:\n  workflow_run:\n    types: [completed]\n"], 3),
+    (["on:\n  push:\n    branches: [main]\n", "on:\n  pull_request:\n    types: [closed]\n"], 4),
+])
+def test_main_ends_4_only_where_every_workflow_positively_has_no_opening_pull_request_trigger_issue_2488(
+        tmp_path, wait_ci, fake_processes, run_cli, workflows, expected):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([], [], "pending")
+    listing = json.dumps([{"path": ".github/workflows/w%d.yml" % i} for i in range(len(workflows))])
+
+    def answer(line):
+        for i, body in enumerate(workflows):
+            if "workflows/w%d.yml" % i in line:
+                return body
+        if ".github/workflows" in line:
+            return listing
+        return None
+
+    served(fake_processes, bodies, answer)
+    code, _, _ = run_cli(wait_ci, [PR, "120", "600", FULL_SHA], env={"VERI_POLL": "10"}, cwd=work)
+
+    assert code == expected

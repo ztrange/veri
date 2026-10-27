@@ -121,15 +121,52 @@ def sha_state(repo, sha):
 OPENING_TYPES = {"opened", "synchronize", "reopened", "ready_for_review"}
 
 
+def on_region(text):
+    lines = [re.sub(r"(^|\s)#.*", "", line) for line in text.splitlines()]
+    for i, line in enumerate(lines):
+        head = re.match(r"on\s*:", line)
+        if head:
+            region = [line[head.end():]]
+            for more in lines[i + 1:]:
+                if re.match(r"\w", more):
+                    break
+                region.append(more)
+            return region
+    return None
+
+
+def trigger_block(region, row, col):
+    rest = region[row][col:]
+    if rest.lstrip().startswith("{"):
+        flat = "\n".join([rest] + region[row + 1:])
+        start, depth = flat.index("{"), 0
+        for pos in range(start, len(flat)):
+            depth += {"{": 1, "}": -1}.get(flat[pos], 0)
+            if depth == 0:
+                break
+        return flat[start:pos + 1]
+    indent = len(region[row]) - len(region[row].lstrip())
+    block = [rest]
+    for more in region[row + 1:]:
+        if more.strip() and len(more) - len(more.lstrip()) <= indent:
+            break
+        block.append(more)
+    return "\n".join(block)
+
+
 def opens_checks(text):
-    if not re.search(r"^['\"]?on['\"]?\s*:", text, re.M):
+    region = on_region(text)
+    if region is None:
         return True
-    if re.search(r"^on:\s*\[[^\]]*\bpull_request", text, re.M):
-        return True
-    for head in re.finditer(r"^ *pull_request(?:_target)?:", text, re.M):
-        named = re.search(r"\btypes:(.*(?:\n\s*-.*)*)", text[head.end():])
-        if not named or OPENING_TYPES.intersection(re.findall(r"[\w-]+", named.group(1))):
-            return True
+    for row, line in enumerate(region):
+        for key in re.finditer(r"pull_request(?:_target)?", line):
+            colon = re.match(r"\s*:", line[key.end():])
+            if not colon:
+                return True
+            block = trigger_block(region, row, key.end() + colon.end())
+            named = re.search(r"\btypes:(.*(?:\n\s*-.*)*)", block)
+            if not named or OPENING_TYPES.intersection(re.findall(r"[\w-]+", named.group(1))):
+                return True
     return False
 
 
