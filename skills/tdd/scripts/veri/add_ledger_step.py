@@ -51,8 +51,11 @@ def is_repair(text):
 TEST_FILE = re.compile(r"\btests/\S*test_\w+\.py")
 
 
+PIN_STEP = re.compile(r"\badd a case\b")
+
+
 def confined_to_test_files(text):
-    return bool(TEST_FILE.search(text)) and not re.search(r"\balready\b", text) and not is_repair(text) and not carries_mark(text, "diff-checked")
+    return bool(TEST_FILE.search(text)) and not PIN_STEP.search(text) and not is_repair(text) and not carries_mark(text, "diff-checked")
 
 
 def is_suite_repair(text):

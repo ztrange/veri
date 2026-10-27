@@ -1518,3 +1518,14 @@ def test_main_inserts_a_suite_repair_or_ci_repair_step_naming_a_test_file_with_0
         results.append((code, "PL18" in err, len(inserted)))
 
     assert results == [(0, False, 1), (0, False, 1)]
+
+
+def test_main_refuses_an_unmarked_test_only_change_whose_text_says_already_with_2_naming_pl18_and_diff_checked_writing_nothing_2517(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    step = "drop the pid-file wait bound, already 30 s, to 10 s in tests/py/test_watch_runs_process.py"
+
+    code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", step], cwd=tmp_path)
+
+    assert (code, out, ledger.read_bytes()) == (2, "", LEDGER)
+    assert "PL18" in err and "⟦diff-checked⟧" in err
