@@ -12,7 +12,7 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     keep = [f":(exclude,literal){path}" for path in argv]
-    for args in (["checkout", "HEAD", "--", "."], ["clean", "-fq", "--", ".", *keep]):
+    for args in (["checkout", "HEAD", "--", ".", *keep], ["clean", "-fq", "--", ".", *keep]):
         done = git.git(*args, capture_output=True, text=True)
         if done.returncode:
             print(f"restore-production.sh: {done.stderr.strip()}", file=sys.stderr)
