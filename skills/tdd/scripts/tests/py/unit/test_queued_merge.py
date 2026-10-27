@@ -249,3 +249,11 @@ def test_2425_queued_merge_whose_main_clone_cannot_fast_forward_reports_it_on_st
     released = first(calls, "merge-lock.sh release")
     attempt = first(calls, "--ff-only")
     assert (code != 0, "origin/main" in err, max(tagged, released) < attempt) == (True, True, True)
+
+
+def test_2455_queued_merge_whose_local_branch_delete_fails_names_it_on_stderr_lists_it_in_the_cleanup_summary_and_exits_2(fake_processes, run_cli):
+    scenario(fake_processes, fail=("branch -D",))
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    assert (code, "branch -D refused" in err, "merged, but cleanup failed" in err) == (2, True, True)

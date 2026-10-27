@@ -99,7 +99,10 @@ def _cleanup(pid, pr, pull, worktree, branch, message):
         if run.returncode:
             _say("%s failed (exit %d): %s" % (what, run.returncode, run.stderr.strip()))
             failed.append(what)
-    _git(clone, "branch", "-D", branch)
+    local = _git(clone, "branch", "-D", branch)
+    if local.returncode:
+        _say("local branch delete failed (exit %d): %s" % (local.returncode, local.stderr.strip()))
+        failed.append("local branch delete")
     if _release(pid):
         failed.append("release")
     forward = _git(clone, "pull", "--ff-only", ".", "origin/main")
