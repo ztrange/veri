@@ -211,14 +211,10 @@ def _tree():
 
 
 def main(argv):
-    added = None
-    change = None
-    if len(argv) >= 4 and argv[0] == "--change":
-        change, argv = argv[1], argv[2:]
-    if len(argv) >= 4 and argv[0] == "--added":
-        added, argv = argv[1], argv[2:]
-        if len(argv) >= 4 and argv[0] == "--change":
-            change, argv = argv[1], argv[2:]
+    flags = {"--added": None, "--change": None}
+    while len(argv) >= 4 and argv[0] in flags:
+        flags[argv[0]], argv = argv[1], argv[2:]
+    added, change = flags["--added"], flags["--change"]
     if len(argv) < 2:
         print(USAGE, file=sys.stderr)
         return 2
