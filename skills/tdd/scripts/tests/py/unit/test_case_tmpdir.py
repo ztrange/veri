@@ -5,6 +5,7 @@ import io
 import os
 import pathlib
 import posix
+import sys
 import tempfile
 
 import pytest
@@ -46,7 +47,10 @@ def test_a_conductor_killed_before_its_cleanup(tmp_path):
     (fake / "git").chmod(0o755)
     work = tmp_path / "work"
     (work / ".git").mkdir(parents=True)
-    env = dict(os.environ, CLAUDE_BIN=str(claude), PATH="%%s:%%s" %% (fake, os.environ["PATH"]))
+    floor = tmp_path / "floor"
+    floor.mkdir()
+    (floor / "python3").symlink_to(%(python)r)
+    env = dict(os.environ, CLAUDE_BIN=str(claude), PATH="%%s:%%s:%%s" %% (fake, floor, os.environ["PATH"]))
     ran = subprocess.run([%(conductor)r, "4242"], cwd=work, env=env,
                          stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
@@ -66,7 +70,7 @@ def test_2246_a_conductor_killed_before_its_cleanup_leaves_its_veri_run_director
     monkeypatch.setattr(io, "open", _io.open)
     monkeypatch.setattr(os, "open", posix.open)
     monkeypatch.setattr(os, "mkdir", posix.mkdir)
-    pytester.makepyfile(test_planted=PLANTED % {"conductor": str(SCRIPTS / "run-conductor.sh")})
+    pytester.makepyfile(test_planted=PLANTED % {"conductor": str(SCRIPTS / "run-conductor.sh"), "python": sys.executable})
 
     result = pytester.runpytest_inprocess("-p", "no:cacheprovider", plugins=[conftest])
 
