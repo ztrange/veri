@@ -13,3 +13,14 @@
 | CA3 | Step 1 tells the leaf to leave the old interface in place, because deleting its proxy is contract-b. (Numbered list, item 1, last sentence.) | The proxy's deletion belongs to the next phase. |
 | CA4 | Step 3 tells the leaf to commit the change as `refactor: <what changed> (#<issue>)`, and never to modify a production file: a contract-a commit that touches one is rejected. (Numbered list, item 3.) | The commit carries the issue number, and the frozen half of the phase is enforced by rejection. |
 | CA5 | The numbered list has three items in this order: rewrite or delete the tests (1), run the suites covering the touched files (2, an included fragment), commit (3). (Numbered list.) | The tests are moved before the run proves them green, and the commit follows the proof. |
+
+## skills/tdd/scripts/prompts/develop-contract-b.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| CB1 | The prompt says this is the contract-b phase of an interface change: neither product code nor any test calls the old interface any more, and the old interface's proxy is deleted. (Opening paragraph, first two sentences.) | The leaf deletes the proxy only once nothing calls it. |
+| CB2 | The prompt says behaviour does not change: every test that was green stays green, and test files stay frozen. (Opening paragraph, last sentence.) | The phase is a pure deletion; a changed test would hide a behaviour change. |
+| CB3 | Step 1 tells the leaf to delete the old interface's proxy from production. (Numbered list, item 1.) | It is the one change this phase makes. |
+| CB4 | Step 3 tells the leaf to commit the change as `refactor: <what changed> (#<issue>)`. (Numbered list, item 3, first sentence.) | The commit carries the issue number. |
+| CB5 | Step 3 tells the leaf never to modify a test file: a contract-b commit that touches one is rejected. (Numbered list, item 3, second sentence.) | The frozen half of the phase is enforced by rejection. |
+| CB6 | The numbered list has three items in this order: delete the proxy (1), run the suites covering the touched files (2, an included fragment), commit (3). (Numbered list.) | The deletion is proven green before it is committed. |
