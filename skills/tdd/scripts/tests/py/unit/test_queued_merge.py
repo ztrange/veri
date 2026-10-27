@@ -257,3 +257,13 @@ def test_2455_queued_merge_whose_local_branch_delete_fails_names_it_on_stderr_li
     code, _, err = run_cli(queued_merge, ARGV)
 
     assert (code, "branch -D refused" in err, "merged, but cleanup failed" in err) == (2, True, True)
+
+
+def test_2455_queued_merge_that_succeeds_exits_0_and_deletes_the_local_branch_with_branch_dash_d_exactly_once_after_the_worktree_remove(fake_processes, run_cli):
+    calls = scenario(fake_processes)
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    removed = first(calls, "worktree remove")
+    deletes = [i for i, c in enumerate(calls) if c == "git -C /main branch -D feature"]
+    assert (code, err, len(deletes), bool(deletes) and removed is not None and deletes[0] > removed) == (0, "", 1, True)
