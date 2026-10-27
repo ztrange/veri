@@ -7,6 +7,8 @@ import time
 
 import event
 import replaces_case
+import requirements
+import skill_edit_guard
 import tunables
 
 try:
@@ -109,6 +111,19 @@ def spec_criteria(path):
     return len(boxes), {str(n) for n, line in enumerate(boxes, 1) if STEP_RE.fullmatch(line).group(2) in "xX"}
 
 
+def unit_of(text):
+    found = re.search(r"`([^`]+)`", text)
+    return found.group(1) if found else None
+
+
+def restates_list(path, unit):
+    lines = requirements.read_lines(spec_path(path))
+    rows = [requirements.table_cells(line)[:2] for heading, line in requirements.requirements_lines(lines)
+            if heading == unit and line.startswith("|")][2:]
+    current = requirements.claims(skill_edit_guard.list_path(unit), unit)
+    return sorted(current.splitlines()) == sorted("\t".join(row) for row in rows)
+
+
 def bash_integer(value):
     try:
         n = int(value, 8 if value.startswith("0") else 10)
@@ -185,6 +200,10 @@ def main(argv):
         if has_mark(text, ("replaces-case",)) and replaces_case.parse(text) is None:
             warn("add-ledger-step.sh: cannot read the case names of step: " + text.replace("\n", " "))
             return 1
+    for text in texts:
+        unit = unit_of(text)
+        if carries_mark(text, "skill-edit") and restates_list(path, unit):
+            return refuse(f"add-ledger-step.sh: {unit}: the issue's Requirements restate no row that differs from the unit's list; a requirements row is needed")
     steps = [line for line in lines if ledger_steps(line)]
     earlier = [line for line in steps if is_suite_repair(line)]
     try:
