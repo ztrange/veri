@@ -1223,3 +1223,47 @@ def test_a_change_step_on_a_unit_already_graded_pass_whose_author_writes_a_stray
 
     assert grades == [original], (code, out, err, grades)
     assert (code, (tmp_path / "stray.txt").exists(), (tmp_path / "unit.md").read_text()) == (1, False, original), (code, out, err)
+
+
+def test_a_change_step_on_a_unit_already_graded_pass_ends_in_one_commit_of_exactly_the_unit_its_list_its_graded_and_the_pins_2490(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    skill_edit_guard = skill_edit_step.skill_edit_guard
+    original = "The widget is painted a deep blue.\n- a merge is in flight;\n"
+    edited = "The widget is painted a deep blue.\n"
+    (tmp_path / "unit.md").write_text(original)
+    (tmp_path / "pin.md").write_text("pin\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    commands = []
+
+    def grade(path, unit):
+        (tmp_path / "GRADED").write_text("sig\n")
+        return 0, ""
+
+    def run(cmd, **kw):
+        commands.append(cmd)
+        if cmd[0].endswith("supervise.sh"):
+            (tmp_path / "unit.md").write_text(edited)
+            (tmp_path / "pin.md").write_text("pin, edited\n")
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", grade)
+    monkeypatch.setattr(skill_edit_guard, "_git_ok", lambda *a: True)
+    monkeypatch.setattr(skill_edit_guard, "_git_lines", lambda *a: sorted(
+        p.name for p in tmp_path.iterdir()) if a[0] == "ls-files" else [])
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
+    monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, ["--change", "delete the bullet - a merge is in flight;",
+                                               "issue.md", "unit.md", "pin.md"],
+                             env={"VERI_SKILL_EDIT_BUDGET": "1"})
+
+    commits = [c for c in commands if c[:2] == ["git", "commit"]]
+    assert code == 0, (code, out, err)
+    assert len(commits) == 1, commits
+    assert sorted(commits[0][5:]) == sorted(["unit.md", "REQUIREMENTS.md", "GRADED", "pin.md"]), commits
