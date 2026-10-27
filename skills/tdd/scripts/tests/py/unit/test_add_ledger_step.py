@@ -1472,3 +1472,14 @@ def test_main_accepts_an_added_skill_edit_step_whose_spec_requirements_reword_on
 
     inserted = [line for line in ledger.read_text().splitlines() if f"regrade `{unit}`" in line]
     assert (code, len(inserted), "⟦added⟧" in inserted[0] if inserted else None) == (0, 1, True), err
+
+
+def test_main_accepts_an_unmarked_pin_step_that_adds_a_case_for_behaviour_that_already_holds_inserting_it_marked_added_2517(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    step = "add a case in tests/py/unit/test_x.py pinning that the pid-file wait already times out at 10 s"
+
+    code, _, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", step], cwd=tmp_path)
+
+    inserted = [line for line in ledger.read_text().splitlines() if "pinning that the pid-file wait" in line]
+    assert (code, inserted) == (0, [f"- [ ] {step} ⟦added⟧ ⟦criterion 2⟧"]), err

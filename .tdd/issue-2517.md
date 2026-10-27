@@ -1,6 +1,6 @@
 # Plan for #2517 — add-ledger-step.sh accepts a Red/Green step whose change is test-only, so PL18 is enforced only by the plan verifier a mid-run step never reaches
 
-- [ ] add-ledger-step.sh still accepts, unmarked, a step whose text adds a case for behaviour that already holds (the pin step of SKILL.md:606-609): it exits 0 and inserts the step, pinned by a small case in tests/py/unit/test_add_ledger_step.py ⟦criterion 2⟧
+- [x] add-ledger-step.sh still accepts, unmarked, a step whose text adds a case for behaviour that already holds (the pin step of SKILL.md:606-609): it exits 0 and inserts the step, pinned by a small case in tests/py/unit/test_add_ledger_step.py ⟦criterion 2⟧
 - [ ] add-ledger-step.sh still accepts a step whose text describes a change confined to test files when the step is marked ⟦diff-checked⟧: it exits 0 and inserts the step, pinned by a small case in tests/py/unit/test_add_ledger_step.py ⟦criterion 2⟧
 - [ ] add-ledger-step.sh exits 2, writing nothing to the ledger and a refusal naming PL18 and the ⟦diff-checked⟧ marker on stderr, when a step text it is given describes a change confined to test files (for example a timeout bound inside a test helper) and the step is not marked ⟦diff-checked⟧; reproduced by a small case in tests/py/unit/test_add_ledger_step.py that fails on the current code ⟦criterion 1⟧
 - [ ] The go-red control: with the new refusal's condition inverted, the pin-step case and the ⟦diff-checked⟧ case each go red — watched red by hand and restored ⟦human-owed⟧ ⟦criterion 3⟧
