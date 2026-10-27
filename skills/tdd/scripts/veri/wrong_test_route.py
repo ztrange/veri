@@ -7,6 +7,7 @@ import re
 import sys
 import tests_frozen
 import tunables
+from js_tests import CALL, is_js_test_file
 from entry import write
 
 USAGE = "usage: wrong-test-route.sh <green-report> <red-test-id> (prints red <case>, missing <behaviour>, repair <case> <superseded>…, supersede <cases> or revise)"
@@ -17,18 +18,6 @@ SKIPPED = (".git", ".tdd", ".venv", "node_modules")
 
 def is_test_file(name):
     return fnmatch.fnmatch(name, "test_*.py") or name.endswith("_test.py")
-
-
-JS_EXT = r"\.(?:jsx?|tsx?|mjs|cjs)$"
-
-
-def is_js_test_file(name, root=""):
-    if name.endswith(".d.ts"):
-        return False
-    if re.search(r"\.(?:test|spec)" + JS_EXT, name):
-        return True
-    in_tests = "__tests__" in root.replace("\\", "/").split("/")
-    return in_tests and re.search(JS_EXT, name) is not None
 
 
 def _live_call(pattern, text):
@@ -49,7 +38,7 @@ def _js_title_pattern(case):
         title = "(%s%s)" % (re.escape(prefix), gap)
     else:
         title = "(%s)" % gap.join(re.escape(part) for part in re.split(r"…|\.\.\.", case))
-    return re.compile(r"\b(?:it|test)(?:\.(?:only|skip))?(?:\.each(?:\([^)]*\)|`[^`]*`))?\(\s*(['\"])" + title + r"\1")
+    return re.compile(CALL + r"(['\"])" + title + r"\1")
 
 
 def _files():

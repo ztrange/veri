@@ -11,6 +11,7 @@ import tempfile
 import renamed_case
 import replaces_case
 from entry import write
+from js_tests import CALL
 from ledger import KIND_RE, carries_mark, trailing_markers
 from transform_touches_tests import TEST_FILE
 
@@ -111,7 +112,7 @@ def _differing_tests():
     return names
 
 
-_CASE = re.compile(r"^\s*(?:async\s+)?def\s+(test\w*)|^\s*name=\"([^\"]+)\"|^\s*(?:it|test)\(\s*([\"'])(.+?)\3", re.M)
+_CASE = re.compile(r"^\s*(?:async\s+)?def\s+(test\w*)|^\s*name=\"([^\"]+)\"|^\s*" + CALL + r"([\"'])(.+?)\3", re.M)
 
 
 _FIXTURE_FILE = re.compile(r"repairs the fixture '[^']*' in (\S+?),")
