@@ -44,9 +44,10 @@ budget, **bails** — preserving completed steps' commits and classifying the ca
 - A **verifier leaf** confirms one developer claim. It is **blind**: it receives only the
   test, the issue's behavior spec, and the repo — never the developer's rationale — and
   it establishes ground truth by **running the test itself**. Blindness is enforced
-  structurally: the verifier prompt is built by `build-verify-prompt.sh`, none of whose
-  inputs can carry the developer's rationale, so the developer's reasoning physically cannot
-  reach it (see ADR-0003).
+  structurally: the verifier prompt is built by `build-verify-prompt.sh`, whose inputs are
+  the phase, the spec, the test path and the test id (the `refactor` phase takes a base sha,
+  a hex commit name, in place of the test id, #151). None of them can carry the developer's
+  rationale, so the developer's reasoning physically cannot reach it (see ADR-0003).
 
 You — the conductor — must keep these roles distinct. Do **not** write the test or the
 implementation yourself, and do **not** pass a developer leaf's explanation into a
