@@ -1,12 +1,16 @@
 """run-finished.sh's checks, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import functools
 import json
 import os
 import sys
 
 import github
 from ledger import OPEN_STEP, is_human_owed, ledger_path, ledger_steps
-from status import json_document, main_working_tree
+import status
+from status import main_working_tree
+
+json_document = functools.partial(status.json_document, read_states=False)
 
 USAGE = "usage: run-finished.sh <issue>\n"
 

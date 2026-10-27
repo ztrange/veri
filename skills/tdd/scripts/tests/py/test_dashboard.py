@@ -103,6 +103,8 @@ def fabricated_main_tree(tmp_path, monkeypatch):
     bin_dir.mkdir()
     (bin_dir / "git").write_text(FAKE_GIT)
     (bin_dir / "git").chmod(0o755)
+    (bin_dir / "gh").write_text("#!/bin/sh\necho '[]'\n")
+    (bin_dir / "gh").chmod(0o755)
     monkeypatch.setenv("PATH", str(bin_dir) + os.pathsep + os.environ.get("PATH", ""))
     monkeypatch.setenv("MAIN_TREE", str(tmp_path))
     monkeypatch.delenv("VERI_LABEL", raising=False)
@@ -1310,6 +1312,8 @@ def test_api_events_answers_while_an_api_runs_request_is_still_blocked_inside_a_
         if args[:2] == ["git", "worktree"]:
             out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
             return subprocess.CompletedProcess(args, 0, out if kwargs.get("text") else out.encode(), "" if kwargs.get("text") else b"")
+        if args[:2] == ["gh", "issue"]:
+            return subprocess.CompletedProcess(args, 0, "[]", "")
         if "symbolic-ref" in args:
             entered.set()
             release.wait(20)

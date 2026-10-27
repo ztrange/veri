@@ -97,7 +97,7 @@ def issue_states():
     try:
         answer = github.gh_issue_list("--state", "all", "--limit", "1000", "--json", "number,state")
         return {str(i["number"]): i["state"].lower() for i in json.loads(answer)}
-    except (github.NoAnswer, ValueError):
+    except (github.NoAnswer, ValueError, TypeError):
         return {}
 
 
@@ -164,14 +164,14 @@ def parse_args(argv):
     return as_json, scope, watch
 
 
-def render(as_json, scope):
+def render(as_json, scope, read_states=True):
     main_tree = main_working_tree()
     runs = sorted(glob.glob(os.path.join(main_tree, ".tdd", "wt", "*", ""))) if main_tree else []
     if not runs:
         print("no runs")
         return 3
     events, run_objects = [], []
-    states = issue_states()
+    states = issue_states() if read_states else {}
     for run in runs:
         run = run.rstrip("/")
         branch = branch_of(run)
@@ -210,11 +210,11 @@ def render(as_json, scope):
     return 0
 
 
-def json_document(scope=None):
+def json_document(scope=None, read_states=True):
     """(exit code, the --json document) as main(["--json"]) would print it, diagnostics dropped."""
     out = io.StringIO()
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
-        code = render(True, tunables.read("VERI_LABEL") if scope is None else scope)
+        code = render(True, tunables.read("VERI_LABEL") if scope is None else scope, read_states)
     return code, out.getvalue()
 
 
