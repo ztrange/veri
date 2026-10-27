@@ -408,7 +408,7 @@ echo '{}'
 """
 
 
-@pytest.mark.process("park-issue.sh run against a gh stub that refuses a label write aimed at a URL")
+@pytest.mark.process("park-issue.sh run against a gh stub that refuses a label write aimed at a URL, from a scratch git repo whose origin names the PR's repository")
 def test_park_issue_labels_the_pr_parked_through_the_number_path_when_given_a_pr_url_2429(tmp_path):
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
@@ -417,10 +417,14 @@ def test_park_issue_labels_the_pr_parked_through_the_number_path_when_given_a_pr
     gh.chmod(0o755)
     log = tmp_path / "gh.log"
     log.write_text("")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    for git_args in (["init", "-q"], ["remote", "add", "origin", "https://github.com/ztrange/veri.git"]):
+        subprocess.run(["git", *git_args], cwd=repo, check=True, capture_output=True)
 
     ran = subprocess.run([str(SCRIPTS / "park-issue.sh"), "7", "held for review", "a human merges",
                           "https://github.com/ztrange/veri/pull/12"],
-                         cwd=tmp_path, capture_output=True, text=True, stdin=subprocess.DEVNULL,
+                         cwd=repo, capture_output=True, text=True, stdin=subprocess.DEVNULL,
                          env={"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
                               "GH_LOG": str(log), "PYTHONDONTWRITEBYTECODE": "1"})
 
@@ -475,6 +479,30 @@ def test_park_issue_with_a_pr_url_for_another_repository_exits_2_with_usage_and_
         assert ran.returncode == 2, (url, ran.returncode, ran.stderr, log.read_text())
         assert usage, (url, ran.stderr)
         assert log.read_text() == "", (url, log.read_text())
+
+
+@pytest.mark.process("park-issue.sh run against a gh stub that records every call, from a directory with no git origin")
+def test_park_issue_with_a_pr_url_where_no_origin_can_be_read_exits_2_with_usage_and_calls_no_gh_2457(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(GH_STUB)
+    gh.chmod(0o755)
+    log = tmp_path / "gh.log"
+    log.write_text("")
+    bare = tmp_path / "no-repo"
+    bare.mkdir()
+    env = {"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+           "GH_LOG": str(log), "PYTHONDONTWRITEBYTECODE": "1", "GIT_CEILING_DIRECTORIES": str(tmp_path)}
+
+    ran = subprocess.run([str(SCRIPTS / "park-issue.sh"), "7", "held for review", "a human merges",
+                          "https://github.com/some-other-org/veri/pull/12"],
+                         cwd=bare, capture_output=True, text=True, stdin=subprocess.DEVNULL, env=env)
+
+    usage = [line for line in ran.stderr.splitlines() if line.startswith("usage:")]
+    assert ran.returncode == 2, (ran.returncode, ran.stderr, log.read_text())
+    assert usage, ran.stderr
+    assert log.read_text() == "", log.read_text()
 
 
 @pytest.mark.process("park-issue.sh run against a gh stub that records every call, from scratch git repos whose origin names the PR's repository in another form")
