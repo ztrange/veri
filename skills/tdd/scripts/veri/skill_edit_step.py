@@ -12,7 +12,11 @@ import grade_prose
 import skill_edit_guard
 import tunables
 import requirements
-from run_verdict import SCRIPTS
+
+try:
+    from veri import leaf
+except ImportError:
+    import leaf
 
 USAGE = "usage: skill-edit-step.sh [--change \"<change>\"] [--added \"<step>\"] <issue-body-file> <unit-file> [<pin-file>...]"
 TABLE_HEAD = ["| ID | Requirement | Why |", "|---|---|---|"]
@@ -151,10 +155,8 @@ def _author(unit, path, reasons):
     env = dict(os.environ)
     env["PATH"] = grade_prose.modern_python_dir() + env.get("PATH", "")
     try:
-        return subprocess.run([os.path.join(SCRIPTS, "supervise.sh"), "author-skill-edit-%d" % _attempt[0],
-                               os.path.join(SCRIPTS, "run-leaf.sh"), f.name,
-                               "--permission-mode", "bypassPermissions"], stdout=subprocess.PIPE,
-                              env=env).returncode
+        return leaf.launch("author-skill-edit-%d" % _attempt[0], f.name,
+                           "--permission-mode", "bypassPermissions", env=env).returncode
     finally:
         os.unlink(f.name)
 
