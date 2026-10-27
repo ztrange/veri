@@ -189,10 +189,13 @@ def render(as_json, scope, read_states=True):
         issue, title = parts[0], parts[-1]
         events_path = run_file(run, "events.jsonl")
         if os.path.isfile(events_path):
-            events.append(run)
-            activity = run_activity(run, as_json, states.get(issue) == "closed") or ""
-            if not as_json:
-                activity = "  " + activity
+            try:
+                activity = run_activity(run, as_json, states.get(issue) == "closed") or ""
+                events.append(run)
+                if not as_json:
+                    activity = "  " + activity
+            except FileNotFoundError:
+                activity = ""
         if not has_ledger:
             continue
         step = step_of_total(text)
