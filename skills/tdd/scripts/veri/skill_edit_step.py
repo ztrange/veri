@@ -14,7 +14,7 @@ import tunables
 import requirements
 from run_verdict import SCRIPTS
 
-USAGE = "usage: skill-edit-step.sh [--added \"<step>\"] <issue-body-file> <unit-file> [<pin-file>...]"
+USAGE = "usage: skill-edit-step.sh [--change \"<change>\"] [--added \"<step>\"] <issue-body-file> <unit-file> [<pin-file>...]"
 TABLE_HEAD = ["| ID | Requirement | Why |", "|---|---|---|"]
 
 

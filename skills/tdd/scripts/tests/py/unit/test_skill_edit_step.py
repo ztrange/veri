@@ -1300,3 +1300,11 @@ def test_an_added_flag_before_a_change_flag_applies_both_as_the_change_first_ord
                                                str(tmp_path / "issue.md"), "unit.md"])
 
     assert (code, len(authors), len(commits)) == (0, 1, 1), (code, err, authors, commits)
+
+
+def test_the_usage_refusal_for_a_bad_argument_list_names_the_change_flag_beside_the_added_flag_2472(run_cli):
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+
+    code, out, err = run_cli(skill_edit_step, ["only-one-file"])
+
+    assert (code, "--change" in err, "--added" in err) == (2, True, True), (code, err)
