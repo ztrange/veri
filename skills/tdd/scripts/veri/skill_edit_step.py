@@ -170,11 +170,11 @@ def _grade(path, unit):
     return _captured(grade_prose.main, [path, unit])
 
 
-def _guard(unit, base, issue, pins):
+def _guard(unit, base, issue, pins, own=()):
     code, out = _captured(skill_edit_guard.main, [unit, base, *pins])
     if code == 2:
         return 2, out
-    offending = [p for p in out.splitlines() if p != issue]
+    offending = [p for p in out.splitlines() if p != issue and p not in own]
     return int(bool(offending)), "".join(p + "\n" for p in offending)
 
 
@@ -271,7 +271,7 @@ def main(argv):
         tree, present = _tree()
         if _author(unit, path, said):
             return 2
-        graded, said = _guard(unit, base, issue, pins)
+        graded, said = _guard(unit, base, issue, pins, [graded_file])
         if graded == 1:
             _restore(tree, *[n for n in said.splitlines()
                              if n in tree or (os.path.normpath(n) not in present
