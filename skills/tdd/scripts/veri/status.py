@@ -40,12 +40,15 @@ def run_activity(run, as_json=False):
         state = "stopped %s" % end.get("mode", "")
     elif end.get("event") == "bail":
         state = "bailed %s %s" % (end.get("phase", ""), end.get("classification", ""))
+    elif end.get("event") == "preflight-refused":
+        state = "refused %s" % end.get("check", "")
     elif ended:
         state = "stale"
     else:
         state = "running"
-    if last is None:
+    if last is None and end.get("event") != "preflight-refused":
         return None
+    last = last or end
     phase, actor, leaf = last.get("phase", ""), last.get("actor", ""), last.get("name", "")
     elapsed = now - int(last["ts"])
     if as_json:
