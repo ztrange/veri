@@ -1,56 +1,88 @@
 ### 📊 Metrics — issue 2520
 
-Wall time for the issue: 755 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1582 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: unknown of 4 planned.
-Outcome: the run bailed — revise-exhausted, a process failure.
+Steps done: unknown of 5 planned.
+Outcome: the run bailed — needs-user, a process failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $1.75 over 37 turns, in 1 sessions, on opus (estimate).
+Conductor own spending: $3.65 over 67 turns, in 2 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
-Conductor context: first turn 89056 tokens, largest 136992 tokens
+Conductor context: first turn 89056 tokens, largest 138676 tokens
+Conductor context: first turn 89048 tokens, largest 124967 tokens
+The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
 
 | turn | dollars | context |
 | --- | ---: | ---: |
-| 1 | $0.57 | 89056 |
-| 2 | $0.02 | 89388 |
-| 3 | $0.03 | 91118 |
-| 4 | $0.03 | 93049 |
-| 5 | $0.02 | 93291 |
-| 6 | $0.02 | 93693 |
-| 7 | $0.02 | 94137 |
-| 8 | $0.02 | 94400 |
-| 9 | $0.02 | 94629 |
-| 10 | $0.02 | 94952 |
-| 11 | $0.02 | 95193 |
+| 1 | $0.58 | 89056 |
+| 2 | $0.03 | 89388 |
+| 3 | $0.04 | 91118 |
+| 4 | $0.05 | 93049 |
+| 5 | $0.03 | 93291 |
+| 6 | $0.03 | 93693 |
+| 7 | $0.03 | 94137 |
+| 8 | $0.03 | 94400 |
+| 9 | $0.03 | 94629 |
+| 10 | $0.04 | 94952 |
+| 11 | $0.03 | 95193 |
 | 12 | $0.03 | 95992 |
-| 13 | $0.03 | 96895 |
-| 14 | $0.03 | 98764 |
-| 15 | $0.07 | 105602 |
-| 16 | $0.03 | 106415 |
-| 17 | $0.02 | 106850 |
-| 18 | $0.03 | 107598 |
+| 13 | $0.04 | 96895 |
+| 14 | $0.04 | 98764 |
+| 15 | $0.09 | 105602 |
+| 16 | $0.04 | 106415 |
+| 17 | $0.03 | 106850 |
+| 18 | $0.04 | 107598 |
 | 19 | $0.03 | 108120 |
-| 20 | $0.03 | 108909 |
-| 21 | $0.03 | 110245 |
-| 22 | $0.03 | 111031 |
-| 23 | $0.03 | 111920 |
-| 24 | $0.03 | 112625 |
-| 25 | $0.03 | 113654 |
-| 26 | $0.04 | 115839 |
-| 27 | $0.03 | 116241 |
+| 20 | $0.04 | 108909 |
+| 21 | $0.04 | 110245 |
+| 22 | $0.04 | 111031 |
+| 23 | $0.04 | 111920 |
+| 24 | $0.04 | 112625 |
+| 25 | $0.04 | 113654 |
+| 26 | $0.05 | 115839 |
+| 27 | $0.04 | 116241 |
 | 28 | $0.09 | 124070 |
-| 29 | $0.04 | 125456 |
-| 30 | $0.04 | 127435 |
-| 31 | $0.03 | 128063 |
-| 32 | $0.03 | 128717 |
-| 33 | $0.03 | 129157 |
-| 34 | $0.04 | 130499 |
-| 35 | $0.03 | 131547 |
-| 36 | $0.03 | 132355 |
-| 37 | $0.06 | 136992 |
+| 29 | $0.05 | 125456 |
+| 30 | $0.05 | 127435 |
+| 31 | $0.04 | 128063 |
+| 32 | $0.04 | 128717 |
+| 33 | $0.04 | 129157 |
+| 34 | $0.05 | 130499 |
+| 35 | $0.04 | 131547 |
+| 36 | $0.04 | 132355 |
+| 37 | $0.08 | 136992 |
+| 38 | $0.04 | 137879 |
+| 39 | $0.04 | 138676 |
+| 40 | $0.57 | 89048 |
+| 41 | $0.03 | 90893 |
+| 42 | $0.03 | 92717 |
+| 43 | $0.05 | 96206 |
+| 44 | $0.06 | 101112 |
+| 45 | $0.05 | 104857 |
+| 46 | $0.02 | 105272 |
+| 47 | $0.02 | 105663 |
+| 48 | $0.03 | 106150 |
+| 49 | $0.02 | 106505 |
+| 50 | $0.02 | 106919 |
+| 51 | $0.02 | 107366 |
+| 52 | $0.03 | 108603 |
+| 53 | $0.03 | 109066 |
+| 54 | $0.03 | 109769 |
+| 55 | $0.03 | 110733 |
+| 56 | $0.03 | 111666 |
+| 57 | $0.03 | 112617 |
+| 58 | $0.03 | 113753 |
+| 59 | $0.04 | 115822 |
+| 60 | $0.03 | 116898 |
+| 61 | $0.03 | 117727 |
+| 62 | $0.03 | 118367 |
+| 63 | $0.03 | 118601 |
+| 64 | $0.03 | 118831 |
+| 65 | $0.03 | 119252 |
+| 66 | $0.03 | 120541 |
+| 67 | $0.06 | 124967 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -99,4 +131,4 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 49 | 92 | 22784 | 1467362 | 235355 | 3.13 (estimate) |
+| total | 49 | 92 | 22784 | 1467362 | 235355 | 5.03 (estimate) |
