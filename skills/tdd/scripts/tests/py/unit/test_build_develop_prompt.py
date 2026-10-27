@@ -2261,9 +2261,9 @@ def test_main_renders_a_revise_green_prompt_for_a_suite_repair_or_ci_repair_step
         code = build_develop_prompt.main(["revise", "green", str(spec), step, "make test", str(reason)])
         out, _ = capsysbinary.readouterr()
         prompt = re.sub(rb"\s+", b" ", out)
-        results[name] = (code, leave in prompt, freeze in prompt, re.search(permits, prompt, re.I) is not None)
+        results[name] = (code, leave in prompt, freeze in prompt, len(re.findall(permits, prompt, re.I)))
 
-    assert results == {"suite-repair": (0, False, False, True), "ci-repair": (0, False, False, True)}
+    assert results == {"suite-repair": (0, False, False, 1), "ci-repair": (0, False, False, 1)}
 
 
 def test_main_renders_the_ordinary_freeze_rule_in_a_green_prompt_for_a_step_naming_suite_repair_mid_sentence_1919(
