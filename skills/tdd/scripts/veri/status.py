@@ -100,6 +100,8 @@ def run_object(issue, title, branch, step, activity, states):
     run = {"issue": issue, "title": title, "branch": branch, "step": step,
            "issue_state": states.get(issue, "unknown")}
     run.update(json.loads(activity) if activity else {})
+    if run["issue_state"] == "closed":
+        run["state"] = "closed"
     return json.dumps(run)
 
 
