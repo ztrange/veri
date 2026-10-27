@@ -1343,3 +1343,39 @@ def test_2483_convert_in_a_tree_with_no_root_requirements_md_exits_0_with_nothin
                                     "VERI_VENV": INTERPRETER_VENV})
 
     assert (converted.returncode, converted.stderr) == (0, ""), (converted.returncode, converted.stderr)
+
+
+@pytest.mark.process("grade-prose.sh --convert against a tree listing units only in a per-directory REQUIREMENTS.md")
+@pytest.mark.tree_audit("copies the skill's scripts into a scratch tree")
+def test_2483_convert_resigns_a_unit_listed_only_in_a_per_directory_requirements_md_with_no_root_list(tmp_path):
+    import shutil
+
+    tree_scripts = tmp_path / "skills" / "tdd" / "scripts"
+    shutil.copytree(SCRIPTS, tree_scripts, ignore=shutil.ignore_patterns("tests", "__pycache__", "REQUIREMENTS.md"))
+    shutil.copy(SCRIPTS.parent / "grader.conf", tmp_path / "skills" / "tdd" / "grader.conf")
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "guide" / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text(STUB)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+           "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")}
+    signed = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "guide/REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                            capture_output=True, text=True, timeout=25, env=env)
+    assert signed.returncode == 0, signed.stderr
+    graded_file = tmp_path / "guide" / "GRADED"
+    before = graded_file.read_text()
+    module = tree_scripts / "veri" / "grade_prose.py"
+    source = module.read_text()
+    formula = "parts = [unit_text(unit), requirements.claims(path, unit), grader_model()]"
+    assert formula in source
+    module.write_text(source.replace(formula, formula + "\n    parts.append(\"tree-formula\")"))
+
+    converted = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "--convert"], cwd=tmp_path,
+                               capture_output=True, text=True, timeout=25, env=env)
+    owed = subprocess.run([str(tree_scripts / "prose-owed.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
+                          capture_output=True, text=True, timeout=25, env=env)
+
+    assert (converted.returncode, graded_file.read_text() != before, "guide/unit.md" in owed.stdout.split()) == (0, True, False), \
+        (converted.returncode, converted.stderr, owed.stdout, graded_file.read_text())
