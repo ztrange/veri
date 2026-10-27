@@ -276,7 +276,7 @@ def main(argv):
                                               and not {".git", ".tdd"} & set(os.path.normpath(n).split(os.sep)))])
         if not graded:
             graded, said = _grade(path, unit)
-        if change is not None and graded == 0 and _read_existing([unit, *pins]) == before:
+        if change is not None and graded == 0 and _read_existing([unit]).get(unit) == before.get(unit):
             graded, said = 1, "FAIL: the author left the prose unchanged\n"
         if graded == 1:
             _restore(before, *before)
