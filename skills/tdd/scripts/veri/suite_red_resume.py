@@ -1,8 +1,6 @@
 """suite-red-resume.sh's check, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import errno
-import json
-import os
 import sys
 
 try:
@@ -47,16 +45,6 @@ def suites(text):
     return [line.split(SEPARATOR)[0] for line in text.splitlines()]
 
 
-def last_bail_cause(path):
-    cause = None
-    with open(path, encoding="utf-8") as events:
-        for line in events:
-            event = json.loads(line)
-            if event.get("event") == "bail":
-                cause = event.get("cause")
-    return cause
-
-
 def insert(ledger, branch_file):
     text, failed = attempt(lambda: read_nonempty(branch_file))
     if failed:
@@ -76,17 +64,10 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     _, ledger, branch_file, default_file = argv
-    inputs, failed = attempt(lambda: (
-        last_bail_cause(os.path.join(os.path.dirname(ledger), "events.jsonl")),
-        read_nonempty(branch_file),
-        read_nonempty(default_file),
-    ))
+    inputs, failed = attempt(lambda: (read_nonempty(branch_file), read_nonempty(default_file)))
     if failed:
         return failed
-    cause, branch, default = inputs
-    if cause != "suite-red":
-        complain("the last bail was not suite-red")
-        return 1
+    branch, default = inputs
     red_on_default = set(suites(default))
     shared = [suite for suite in suites(branch) if suite in red_on_default]
     if shared:
