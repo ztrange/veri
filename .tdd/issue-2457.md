@@ -4,4 +4,4 @@
 - [x] park-issue.sh run from a repository whose origin names the same owner/repo as the PR URL but in another form — an https origin ending in .git (https://github.com/o/r.git) or an scp-style ssh origin (git@github.com:o/r.git) — labels that PR parked and exits 0, rather than refusing it as a foreign repository ⟦added⟧ ⟦criterion 3⟧
 - [x] park-issue.sh given a PR argument of 0 or with leading zeros (a bare 0 or 007, or a PR URL ending /pull/0 or /pull/007) refuses with the usage line and exit 2 before any gh call ⟦criterion 2⟧
 - [x] park-issue.sh given a PR URL naming the repository it runs in labels that PR number parked and records the URL on the comment's PR: line, and a bare PR number still labels that PR parked, exactly as before the fix ⟦criterion 3⟧
-- [ ] The criterion-1 refusal case, run against park_issue.py with the owner/repo comparison loosened on purpose, goes red, and goes green again once restored ⟦human-owed⟧ ⟦criterion 4⟧
+- [x] The criterion-1 refusal case, run against park_issue.py with the owner/repo comparison loosened on purpose, goes red, and goes green again once restored ⟦human-owed⟧ ⟦criterion 4⟧
