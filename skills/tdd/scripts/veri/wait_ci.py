@@ -137,7 +137,10 @@ def runs_on_pull_requests(repo, sha):
     listing = gh_api("repos/%s/contents/.github/workflows?ref=%s" % (repo, sha),
                       stderr=subprocess.DEVNULL)
     if listing.returncode != 0:
-        return True
+        try:
+            return json.loads(listing.stdout).get("message") != "Not Found"
+        except (ValueError, AttributeError):
+            return True
     try:
         entries = json.loads(listing.stdout)
     except ValueError:

@@ -1399,3 +1399,26 @@ def test_main_counts_a_workflow_whose_on_block_it_cannot_read_as_running_on_pull
     code, _, _ = run_cli(wait_ci, [PR, "120", "600", FULL_SHA], env={"VERI_POLL": "10"}, cwd=work)
 
     assert (code, [p.name for p in (work / ".tdd").iterdir()]) == (3, [f"ci-deadline-{FULL_SHA}"])
+
+
+def test_main_exits_4_on_its_first_poll_when_the_workflows_directory_is_a_404_and_keeps_3_on_any_other_failed_listing_issue_2488(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    outcomes = {}
+    for name, listing in (("absent", NOT_FOUND), ("refused", (1, "[]", "gh: HTTP 502: Bad Gateway\n"))):
+        work = tmp_path / name
+        (work / ".tdd").mkdir(parents=True)
+        bodies = sha_bodies([], [], "pending")
+        sleeps = []
+
+        def answer(line, listing=listing):
+            if line.startswith("sleep "):
+                sleeps.append(line)
+            if ".github/workflows" in line:
+                return listing
+            return None
+
+        served(fake_processes, bodies, answer)
+        code, _, _ = run_cli(wait_ci, [PR, "120", "600", FULL_SHA], env={"VERI_POLL": "10"}, cwd=work)
+        outcomes[name] = (code, sorted(p.name for p in (work / ".tdd").iterdir()), sleeps)
+
+    assert outcomes == {"absent": (4, [], []), "refused": (3, [f"ci-deadline-{FULL_SHA}"], outcomes["refused"][2])}
