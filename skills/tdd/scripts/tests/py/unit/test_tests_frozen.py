@@ -191,3 +191,17 @@ def test_check_earlier_except_a_vitest_case_by_title_leaves_it_unreported_while_
                      cwd=tmp_path)[:2]
 
     assert (recorded, answer) == (0, (1, "subtracts (%s)\n" % earlier))
+
+
+def test_differing_tests_counts_a_spec_ts_and_a_ts_file_under_tests_dir_as_test_files_and_not_a_plain_ts_or_d_ts_2426(
+        tmp_path, tests_frozen, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    listings = {"diff": b"src/app.spec.ts\0src/app.ts\0", "ls-files": b"src/__tests__/sum.ts\0src/types.d.ts\0"}
+
+    class Done:
+        def __init__(self, stdout):
+            self.stdout = stdout
+
+    monkeypatch.setattr(tests_frozen.subprocess, "run", lambda command, **_: Done(listings[command[1]]))
+
+    assert tests_frozen._differing_tests() == ["src/app.spec.ts", "src/__tests__/sum.ts"]
