@@ -1,16 +1,17 @@
 ### 📊 Metrics — issue 2488
 
-Wall time for the issue: 724 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 1 s, excluded from it.
-Steps done: 6 of 15 planned.
-Outcome: the run bailed — revise-exhausted, a process failure.
+Wall time for the issue: 1426 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 0 s, excluded from it.
+Steps done: 10 of 15 planned.
+Outcome: the run bailed — no-verdict, a system failure.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $9.10 over 181 turns, in 3 sessions, on opus.
+Conductor own spending: $12.72 over 252 turns, in 4 sessions, on opus.
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 88648 tokens, largest 186423 tokens
 Conductor context: first turn 88673 tokens, largest 156281 tokens
-Conductor context: first turn 88656 tokens, largest 147027 tokens
+Conductor context: first turn 88656 tokens, largest 149079 tokens
+Conductor context: first turn 88664 tokens, largest 173269 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -141,55 +142,126 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 122 | $0.04 | 154995 |
 | 123 | $0.05 | 155919 |
 | 124 | $0.04 | 156281 |
-| 125 | $0.57 | 88656 |
+| 125 | $0.58 | 88656 |
 | 126 | $0.06 | 93324 |
-| 127 | $0.02 | 93869 |
-| 128 | $0.05 | 97762 |
+| 127 | $0.04 | 93869 |
+| 128 | $0.06 | 97762 |
 | 129 | $0.05 | 101442 |
-| 130 | $0.02 | 101912 |
-| 131 | $0.02 | 102331 |
-| 132 | $0.02 | 102730 |
-| 133 | $0.02 | 103020 |
-| 134 | $0.02 | 103289 |
-| 135 | $0.02 | 103751 |
-| 136 | $0.02 | 104046 |
+| 130 | $0.04 | 101912 |
+| 131 | $0.03 | 102331 |
+| 132 | $0.03 | 102730 |
+| 133 | $0.04 | 103020 |
+| 134 | $0.03 | 103289 |
+| 135 | $0.03 | 103751 |
+| 136 | $0.04 | 104046 |
 | 137 | $0.03 | 104724 |
-| 138 | $0.04 | 106483 |
+| 138 | $0.05 | 106483 |
 | 139 | $0.04 | 108647 |
-| 140 | $0.03 | 109694 |
-| 141 | $0.03 | 110338 |
-| 142 | $0.03 | 111771 |
-| 143 | $0.03 | 112459 |
-| 144 | $0.03 | 113010 |
+| 140 | $0.04 | 109694 |
+| 141 | $0.04 | 110338 |
+| 142 | $0.04 | 111771 |
+| 143 | $0.04 | 112459 |
+| 144 | $0.04 | 113010 |
 | 145 | $0.03 | 113329 |
-| 146 | $0.03 | 114064 |
-| 147 | $0.03 | 114756 |
+| 146 | $0.04 | 114064 |
+| 147 | $0.04 | 114756 |
 | 148 | $0.03 | 115158 |
-| 149 | $0.03 | 115914 |
-| 150 | $0.03 | 116488 |
-| 151 | $0.03 | 117323 |
-| 152 | $0.03 | 118440 |
-| 153 | $0.03 | 118736 |
+| 149 | $0.04 | 115914 |
+| 150 | $0.04 | 116488 |
+| 151 | $0.04 | 117323 |
+| 152 | $0.04 | 118440 |
+| 153 | $0.04 | 118736 |
 | 154 | $0.09 | 126672 |
-| 155 | $0.03 | 127698 |
+| 155 | $0.05 | 127698 |
 | 156 | $0.04 | 129032 |
-| 157 | $0.03 | 129744 |
-| 158 | $0.03 | 130855 |
-| 159 | $0.03 | 131941 |
-| 160 | $0.03 | 132612 |
-| 161 | $0.03 | 133603 |
+| 157 | $0.04 | 129744 |
+| 158 | $0.05 | 130855 |
+| 159 | $0.04 | 131941 |
+| 160 | $0.04 | 132612 |
+| 161 | $0.05 | 133603 |
 | 162 | $0.04 | 134824 |
-| 163 | $0.03 | 135389 |
-| 164 | $0.03 | 136253 |
-| 165 | $0.03 | 137113 |
-| 166 | $0.03 | 138058 |
-| 167 | $0.04 | 139132 |
-| 168 | $0.03 | 139590 |
-| 169 | $0.04 | 140588 |
-| 170 | $0.03 | 141395 |
-| 171 | $0.04 | 142242 |
-| 172 | $0.03 | 142984 |
-| 173 | $0.06 | 147027 |
+| 163 | $0.04 | 135389 |
+| 164 | $0.05 | 136253 |
+| 165 | $0.04 | 137113 |
+| 166 | $0.04 | 138058 |
+| 167 | $0.05 | 139132 |
+| 168 | $0.04 | 139590 |
+| 169 | $0.05 | 140588 |
+| 170 | $0.04 | 141395 |
+| 171 | $0.05 | 142242 |
+| 172 | $0.04 | 142984 |
+| 173 | $0.07 | 147027 |
+| 174 | $0.05 | 148157 |
+| 175 | $0.04 | 149079 |
+| 176 | $0.57 | 88664 |
+| 177 | $0.02 | 89068 |
+| 178 | $0.05 | 93304 |
+| 179 | $0.06 | 98124 |
+| 180 | $0.08 | 106291 |
+| 181 | $0.03 | 106859 |
+| 182 | $0.02 | 107247 |
+| 183 | $0.02 | 107563 |
+| 184 | $0.02 | 107878 |
+| 185 | $0.03 | 108481 |
+| 186 | $0.03 | 109317 |
+| 187 | $0.03 | 109877 |
+| 188 | $0.03 | 110382 |
+| 189 | $0.03 | 111014 |
+| 190 | $0.02 | 111204 |
+| 191 | $0.03 | 112548 |
+| 192 | $0.03 | 113391 |
+| 193 | $0.03 | 114828 |
+| 194 | $0.03 | 115502 |
+| 195 | $0.03 | 115919 |
+| 196 | $0.03 | 116660 |
+| 197 | $0.03 | 116925 |
+| 198 | $0.03 | 118322 |
+| 199 | $0.03 | 118945 |
+| 200 | $0.03 | 119482 |
+| 201 | $0.03 | 120336 |
+| 202 | $0.09 | 128755 |
+| 203 | $0.03 | 129811 |
+| 204 | $0.03 | 130910 |
+| 205 | $0.03 | 131718 |
+| 206 | $0.03 | 132240 |
+| 207 | $0.03 | 133162 |
+| 208 | $0.03 | 133911 |
+| 209 | $0.03 | 134620 |
+| 210 | $0.03 | 135022 |
+| 211 | $0.03 | 135771 |
+| 212 | $0.03 | 136726 |
+| 213 | $0.03 | 137478 |
+| 214 | $0.04 | 138499 |
+| 215 | $0.03 | 138963 |
+| 216 | $0.03 | 139662 |
+| 217 | $0.03 | 140414 |
+| 218 | $0.03 | 140722 |
+| 219 | $0.03 | 141576 |
+| 220 | $0.03 | 142216 |
+| 221 | $0.04 | 143381 |
+| 222 | $0.04 | 144265 |
+| 223 | $0.04 | 145531 |
+| 224 | $0.04 | 146416 |
+| 225 | $0.04 | 147309 |
+| 226 | $0.04 | 148072 |
+| 227 | $0.04 | 149330 |
+| 228 | $0.04 | 150531 |
+| 229 | $0.04 | 151613 |
+| 230 | $0.04 | 152927 |
+| 231 | $0.04 | 153977 |
+| 232 | $0.04 | 154973 |
+| 233 | $0.04 | 155766 |
+| 234 | $0.04 | 157044 |
+| 235 | $0.04 | 157606 |
+| 236 | $0.04 | 158677 |
+| 237 | $0.05 | 161204 |
+| 238 | $0.04 | 161992 |
+| 239 | $0.03 | 162315 |
+| 240 | $0.05 | 164268 |
+| 241 | $0.06 | 167910 |
+| 242 | $0.04 | 168433 |
+| 243 | $0.04 | 168878 |
+| 244 | $0.07 | 173269 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -197,12 +269,12 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 24 | 22 | 2 | 4 | 2033 | 36668 | 39437 | 0.12 |
-| red | 7 | 2 | 0 | 0 | 171 | 137 | 33 | 66 | 14558 | 1105657 | 229665 | 0.83 |
-| green | 12 | 1 | 4 | 0 | 659 | 285 | 60 | 120 | 27971 | 2077024 | 257424 | 1.53 |
+| red | 14 | 5 | 0 | 0 | 350 | 284 | 65 | 130 | 29532 | 2226711 | 446475 | 1.63 |
+| green | 24 | 4 | 7 | 0 | 1240 | 628 | 126 | 248 | 56446 | 4286820 | 489542 | 3.04 |
 | red-missing | 2 | 0 | 0 | 0 | 89 | 65 | 14 | 26 | 7905 | 600834 | 69907 | 0.31 |
-| pin | 5 | 5 | 0 | 0 | 113 | 77 | 23 | 46 | 8242 | 710532 | 122538 | 0.46 |
-| refactor | 1 | 0 | 0 | 0 | 10 | 6 | 4 | 8 | 513 | 128092 | 21082 | 0.07 |
-| prose | 11 | 0 | 0 | 0 | 510 | 483 | 11 | 22 | 74054 | 63920 | 529945 | 2.07 |
+| pin | 6 | 6 | 0 | 0 | 134 | 94 | 28 | 56 | 10301 | 886434 | 149718 | 0.57 |
+| refactor | 4 | 0 | 0 | 0 | 55 | 44 | 12 | 24 | 1372 | 344399 | 100099 | 0.30 |
+| prose | 12 | 0 | 0 | 0 | 615 | 586 | 12 | 24 | 88925 | 64569 | 637620 | 2.49 |
 | skill-edit | 5 | 0 | 0 | 0 | 559 | 99 | 27 | 54 | 8138 | 1695649 | 395089 | 1.24 |
 | reconcile | 1 | 0 | 0 | 0 | 13 | 6 | 3 | 6 | 509 | 69451 | 35929 | 0.10 |
 | exhausted | 1 | 0 | 0 | 0 | 36 | 13 | 3 | 6 | 1080 | 86235 | 17115 | 0.12 |
@@ -211,9 +283,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 13 | 9 | 4 | 0 | 432 | 224 | 57 | 114 | 22629 | 1810236 | 277816 | 1.10 |
-| developer | claude-sonnet-5-5 | 15 | 0 | 0 | 0 | 578 | 331 | 76 | 150 | 34815 | 2698105 | 471326 | 2.06 |
-| developer | claude-opus-5-5 | 2 | 0 | 0 | 0 | 105 | 56 | 9 | 18 | 5367 | 306152 | 43955 | 0.39 |
+| verifier | claude-sonnet-5-5 | 23 | 16 | 7 | 0 | 752 | 404 | 97 | 194 | 38228 | 3112892 | 454325 | 1.83 |
+| developer | claude-sonnet-5-5 | 24 | 0 | 0 | 0 | 839 | 528 | 121 | 236 | 50194 | 4200347 | 733241 | 3.02 |
+| developer | claude-opus-5-5 | 6 | 0 | 0 | 0 | 350 | 224 | 35 | 70 | 20756 | 1224313 | 160656 | 1.35 |
 
 #### Rework and waste, by phase
 
@@ -221,11 +293,11 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
 | red | 0 | 0.00 | 33 | 0.25 |
-| green | 306 | 0.60 | 353 | 0.93 |
+| green | 1197 | 2.74 | 353 | 0.93 |
 | red-missing | 0 | 0.00 | 29 | 0.11 |
 | pin | 0 | 0.00 | 25 | 0.09 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
-| prose | 0 | 0.00 | 0 | 0.00 |
+| prose | 0 | 0.00 | 105 | 0.42 |
 | skill-edit | 0 | 0.00 | 0 | 0.00 |
 | reconcile | 0 | 0.00 | 13 | 0.10 |
 | exhausted | 0 | 0.00 | 36 | 0.12 |
@@ -243,6 +315,11 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | `queued-merge.sh` still refuses to merge when `wait-ci.sh` exits 4: no `gh pr merge` is called and it exits non-zero, so an empty rollup is still not a pass at merge time; a small in-process case in `tests/py/unit/test_queued_merge.py`, no production change ⟦criterion 4⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 26 | 10 | 20 | 3026 | 328821 | 42801 | 0.17 | unknown | unknown | unknown | unknown |  |  | pin |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/test_supervise_process.py::test_2380_a_leaf_queued_on_the_full_suite_lock_past_the_hard_timeout_is_not_killed_stuck — AssertionError: harvest-usage.sh: no closing result record in .tdd/verify-rebase.log — no usage event appended for verify-rebase ⟦suite-repair⟧ ⟦criterion 4⟧ | 1 | 0 | 0 | 0 | 0 | 0 | 6 | 3 | 6 | 509 | 69451 | 35929 | 0.10 | unknown | unknown | unknown | unknown |  |  | full |
 | `wait_ci.py`'s `runs_on_pull_requests` reads each head workflow's `on:` trigger block instead of matching raw text: `pull_request` or `pull_request_target` counts as running on pull requests when bare, with no `types:`, or with `types:` naming any of opened, synchronize, reopened or ready_for_review, and does not count when its `types:` name none of those; the list form (`on: [push, pull_request]`) and the mapping form are both read; a mention only in a comment or an `if:` does not count; stdlib only, no YAML library and no new requirements-dev.txt entry; cases each red first: ps-mutuus/gs-marketplace's exact trigger `on: pull_request: types: [closed]` reaches exit 4, `types: [opened, synchronize]` stays on exit 3, a workflow whose only mention of pull_request is a comment or an `if:` reaches exit 4; small in-process cases in `tests/py/unit/test_wait_ci.py` faking only `gh` ⟦added⟧ ⟦criterion 1⟧ | 12 | 2 | 3 | 0 | 0 | 0 | 247 | 55 | 108 | 26133 | 1770573 | 287729 | 1.50 | unknown | 2/2 | unknown | unknown |  |  | already-satisfied |
+| `wait_ci.py`'s `runs_on_pull_requests` reads each head workflow's `on:` trigger block instead of matching raw text: `pull_request` or `pull_request_target` counts as running on pull requests when bare, with no `types:`, or with `types:` naming any of opened, synchronize, reopened or ready_for_review, and does not count when its `types:` name none of those; the list form (`on: [push, pull_request]`) and the mapping form are both read; a mention only in a comment or an `if:` does not count; stdlib only, no YAML library and no new requirements-dev.txt entry; cases each red first: ps-mutuus/gs-marketplace's exact trigger `on: pull_request: types: [closed]` reaches exit 4, `types: [opened, synchronize]` stays on exit 3, a `types: [reopened]` workflow and a `types: [ready_for_review]` workflow each stay on exit 3, and every entry of the opening types (opened, synchronize, reopened, ready_for_review) is pinned by a case that goes red when that entry alone is removed, a workflow whose only mention of pull_request is a comment or an `if:` reaches exit 4; small in-process cases in `tests/py/unit/test_wait_ci.py` faking only `gh` ⟦added⟧ ⟦criterion 1⟧ | 11 | 2 | 3 | 0 | 0 | 0 | 281 | 54 | 108 | 26717 | 1812380 | 268527 | 1.55 | 669 | 3/4 | 0/5 | nothing-left |  |  | full |
+| `wait-ci.sh` still fails closed: an unreadable workflows listing (other than a 404), an unreadable workflow body, or an `on:` block the reader cannot make sense of counts as running on pull requests, so exit 3 and the deadline runs; small in-process cases in `tests/py/unit/test_wait_ci.py` faking only `gh` ⟦added⟧ ⟦criterion 1⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 104 | 21 | 40 | 6065 | 645101 | 112345 | 0.41 | 226 | unknown | 0/5 | nothing-left |  |  | full |
+| A 404 on `repos/<owner>/<repo>/contents/.github/workflows` counts as no workflow running on pull requests, so the empty rollup exits 4, distinguished from every other non-zero listing failure, which stays fail-closed (exit 3); the commit body records why: by then the same token has read the PR and its check rollup, so a 404 on the workflows directory is absence, not a permission wall; a small in-process case in `tests/py/unit/test_wait_ci.py`, red first ⟦added⟧ ⟦criterion 1⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 105 | 23 | 44 | 6867 | 736967 | 110775 | 0.42 | 235 | unknown | 0/5 | nothing-left |  |  | full |
+| `test_skill_ci_conflict.py`'s done-mark assertion (`:136`) can fail: the case no longer writes the `done` line whatever the stubbed `wait-ci.sh` exit code, so breaking the exit-4 routing in the command block turns that assertion red; watched red, then restored ⟦added⟧ ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 55 | 13 | 26 | 6718 | 528611 | 63478 | 0.28 | unknown | unknown | unknown | unknown |  |  | pin |
+| `skills/tdd/REQUIREMENTS.md` gains the issue's `## Requirements` rows for `skills/tdd/SKILL.md`'s exit-4 routing at both CI waits (`SKILL.md:1704`, `:1741`), graded PASS ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 2⟧ | 1 | 0 | 0 | 0 | 0 | 0 | 103 | 1 | 2 | 14871 | 649 | 107675 | 0.42 | unknown | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -251,6 +328,9 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | step | pass | refactor | stopped | verdict | revise | wall s | $ |
 | --- | ---: | ---: | --- | --- | ---: | ---: | ---: |
 | `wait-ci.sh` exits 4 — a code of its own, distinct from 0, 1, 2 and 3 — on its first poll when the PR's head reports no check runs and no commit statuses and none of the head's `.github/workflows/*` files carries a `pull_request` or `pull_request_target` trigger: no `.tdd/ci-deadline-<sha>` is recorded and no poll sleep is served; the conflict refusal (exit 2) and the draft refusal (exit 2) keep precedence, and a PR still reporting a head other than `<head-sha>` stays pending (3); the header's status line names exit 4; small in-process cases in `tests/py/unit/test_wait_ci.py` faking only `gh`, and older cases there that pin exit 3 for a rollup with no check are superseded by this step ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 10 | 0.07 |
+| `wait_ci.py`'s `runs_on_pull_requests` reads each head workflow's `on:` trigger block instead of matching raw text: `pull_request` or `pull_request_target` counts as running on pull requests when bare, with no `types:`, or with `types:` naming any of opened, synchronize, reopened or ready_for_review, and does not count when its `types:` name none of those; the list form (`on: [push, pull_request]`) and the mapping form are both read; a mention only in a comment or an `if:` does not count; stdlib only, no YAML library and no new requirements-dev.txt entry; cases each red first: ps-mutuus/gs-marketplace's exact trigger `on: pull_request: types: [closed]` reaches exit 4, `types: [opened, synchronize]` stays on exit 3, a `types: [reopened]` workflow and a `types: [ready_for_review]` workflow each stay on exit 3, and every entry of the opening types (opened, synchronize, reopened, ready_for_review) is pinned by a case that goes red when that entry alone is removed, a workflow whose only mention of pull_request is a comment or an `if:` reaches exit 4; small in-process cases in `tests/py/unit/test_wait_ci.py` faking only `gh` ⟦added⟧ ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.11 |
+| `wait-ci.sh` still fails closed: an unreadable workflows listing (other than a 404), an unreadable workflow body, or an `on:` block the reader cannot make sense of counts as running on pull requests, so exit 3 and the deadline runs; small in-process cases in `tests/py/unit/test_wait_ci.py` faking only `gh` ⟦added⟧ ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 28 | 0.06 |
+| A 404 on `repos/<owner>/<repo>/contents/.github/workflows` counts as no workflow running on pull requests, so the empty rollup exits 4, distinguished from every other non-zero listing failure, which stays fail-closed (exit 3); the commit body records why: by then the same token has read the PR and its check rollup, so a 404 on the workflows directory is absence, not a permission wall; a small in-process case in `tests/py/unit/test_wait_ci.py`, red first ⟦added⟧ ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 10 | 0.05 |
 
 #### Structural pass
 
@@ -258,14 +338,14 @@ Stopped: nothing-structural
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 1 | 2 | 1 | 2 | 1 | 2 | 2 | 2 | 1 | 2 | 1 | 1 | 2 | 2 | 2 | 2 | 2 |  |  |  |
-| fast | 18 | 18 | 18 | 18 | 17 | 17 | 16 | 19 | 19 | 20 | 20 |  |  |  |  |  |  |  |  |  |
-| target | 1 | 0 | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 2 | 1 | 1 | 1 | 1 | 2 | 2 | 1 | 2 |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 1 | 2 | 1 | 2 | 1 | 2 | 2 | 2 | 1 | 2 | 1 | 1 | 2 | 2 | 2 | 2 | 2 | 1 | 1 | 1 | 1 | 0 | 1 | 2 | 1 | 2 | 1 | 1 | 1 | 1 | 2 | 1 | 2 | 1 | 1 |
+| fast | 18 | 18 | 18 | 18 | 17 | 17 | 16 | 19 | 19 | 20 | 20 | 13 | 13 | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 13 | 13 | 13 |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 1 | 0 | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 2 | 1 | 1 | 1 | 1 | 2 | 2 | 1 | 2 | 0 | 1 | 1 | 0 | 2 | 0 | 2 | 1 | 1 | 1 | 1 |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 180 | 358 | 145003 | 6574062 | 1718131 | 6.86 |
+| total | 292 | 578 | 206241 | 10297770 | 2380931 | 9.93 |
