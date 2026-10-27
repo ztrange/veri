@@ -424,6 +424,9 @@ def render(issue, path, ledger):
                    ["---:"] * len(columns) + ["---"] * len(headings))
         for key, row_counts in table.items():
             cells = [key] + figures(row_counts, columns)
+            if heading == "#### Total" and total_estimated:
+                at = columns.index(DOLLARS) + 1
+                cells[at] += " (estimate)"
             row(cells + (cells_for(key) if cells_for else []))
 
     def tier_section(heading, key_column):
@@ -469,6 +472,7 @@ def render(issue, path, ledger):
               % (ending.get("cause") or UNKNOWN, ending.get("classification") or UNKNOWN))
     print("Lane: %s" % (tunables.read("VERI_LABEL", "ready-for-agent", unless_empty="ready-for-agent")))
     sessions, turn_rows = [], []
+    total_estimated = False
     if not conductor_counted:
         sessions, turn_rows = conductor_sessions(issue, path)
     if sessions:
@@ -481,11 +485,13 @@ def render(issue, path, ledger):
         with contextlib.suppress(OSError):
             with open(main_checkout_file(path, "issue-%s-conductor-model" % issue)) as recorded:
                 model = recorded.read().strip()
-        print("Conductor own spending: %s over %d turns, in %d sessions%s."
+        print("Conductor own spending: %s over %d turns, in %d sessions%s%s."
               % ("$%.2f" % spend if priced else "unpriced",
                  sum(r.get("num_turns") or 0 for r in sessions), len(sessions),
-                 ", on %s" % model if model else ""))
+                 ", on %s" % model if model else "",
+                 " (estimate)" if any(r.get("open") for r in sessions) else ""))
         if any(r.get("open") for r in sessions):
+            total_estimated = True
             print("The Conductor own spending figure is estimated: the output tokens of a session without a "
                   "result record are not yet known.")
         for contexts in turn_rows.session_contexts:
