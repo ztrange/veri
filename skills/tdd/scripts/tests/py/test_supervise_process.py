@@ -3,7 +3,6 @@ import fcntl
 import os
 import subprocess
 import sys
-import threading
 import time
 
 import pytest
@@ -192,18 +191,19 @@ def test_2380_a_leaf_that_hangs_after_acquiring_the_full_suite_lock_is_still_kil
     script.write_text(HANG_AFTER_LOCK % (str(SCRIPTS), str(SCRIPTS / "veri"), str(acquired)))
     held = open(str(tmp_path / "legs") + "-full.lock", "a+")
     fcntl.flock(held, fcntl.LOCK_EX)
-    release = threading.Timer(6, lambda: (fcntl.flock(held, fcntl.LOCK_UN), held.close()))
-    release.start()
-
+    ran = subprocess.Popen([str(SCRIPTS / "supervise.sh"), "verify-rebase", sys.executable, str(script)],
+                           cwd=work, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                           env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
+                                "VERI_POLL": "0.05", "VERI_TIMEOUT": "4", "VERI_HEARTBEAT": "600",
+                                "HOME": str(tmp_path), "VERI_PYTEST_LEGS": str(tmp_path / "legs"),
+                                "VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1",
+                                "VERI_PYTEST_XDIST_IMPORTABLE": "1", "PYTHONDONTWRITEBYTECODE": "1"})
     try:
-        ran = subprocess.run([str(SCRIPTS / "supervise.sh"), "verify-rebase", sys.executable, str(script)],
-                             cwd=work, capture_output=True, text=True, timeout=30,
-                             env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
-                                  "VERI_POLL": "0.05", "VERI_TIMEOUT": "4", "VERI_HEARTBEAT": "600",
-                                  "HOME": str(tmp_path), "VERI_PYTEST_LEGS": str(tmp_path / "legs"),
-                                  "VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1",
-                                  "VERI_PYTEST_XDIST_IMPORTABLE": "1", "PYTHONDONTWRITEBYTECODE": "1"})
+        while ran.poll() is None and not list(tmp_path.glob("legs-full.lock.wait-*")):
+            time.sleep(0.02)
     finally:
-        release.join()
+        fcntl.flock(held, fcntl.LOCK_UN)
+        held.close()
+    out, err = ran.communicate(timeout=30)
 
-    assert (ran.returncode, acquired.exists()) == (2, True), ran.stderr
+    assert (ran.returncode, acquired.exists()) == (2, True), err
