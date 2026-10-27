@@ -497,3 +497,28 @@ def test_ps_answers_a_ps_that_could_not_be_run_apart_from_no_such_process_and_an
 
     assert answers["unrunnable"] not in (answers["no-such-process"], answers["empty-field"])
     assert answers["unrunnable"] != "FileNotFoundError"
+
+
+def test_live_conductor_answers_no_pid_for_a_claude_under_run_conductor_whose_start_time_differs_from_the_recorded_one_2537(tmp_path, monkeypatch):
+    import os
+    import subprocess
+
+    pid_file = importlib.import_module("veri.pid_file")
+    monkeypatch.setattr(os, "kill", lambda pid, signal: None)
+    ps = {
+        ("ps", "-o", "command=", "-p", "4242"): "claude -p /tdd 7\n",
+        ("ps", "-o", "ppid=", "-p", "4242"): "1004242\n",
+        ("ps", "-o", "command=", "-p", "1004242"): "python3 run_conductor.py 7\n",
+        ("ps", "-o", "lstart=", "-p", "4242"): "Tue Oct 27 13:45:10 2026\n",
+    }
+
+    def fake_run(argv, *args, **kwargs):
+        out = ps.get(tuple(argv))
+        return subprocess.CompletedProcess(argv, 0 if out else 1, stdout=out or "", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    run_dir = tmp_path / "run"
+    (run_dir / ".tdd").mkdir(parents=True)
+    (run_dir / ".tdd" / "conductor.pid").write_bytes(b"4242\nMon Oct 26 09:00:00 2026\n")
+
+    assert pid_file.live_conductor(str(run_dir)) is None
