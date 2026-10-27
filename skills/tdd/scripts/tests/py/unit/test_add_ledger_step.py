@@ -1494,3 +1494,27 @@ def test_main_accepts_a_diff_checked_step_whose_change_is_confined_to_test_files
 
     inserted = [line for line in ledger.read_text().splitlines() if "pid-file wait bound" in line]
     assert (code, inserted) == (0, [f"- [ ] {step} ⟦added⟧ ⟦criterion 2⟧"]), err
+
+
+def test_main_refuses_an_unmarked_step_whose_change_is_confined_to_test_files_with_2_naming_pl18_and_diff_checked_writing_nothing_2517(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    step = "drop the pid-file wait bound from 30 s to 10 s in tests/py/test_watch_runs_process.py"
+
+    code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", step], cwd=tmp_path)
+
+    assert (code, out, ledger.read_bytes()) == (2, "", LEDGER)
+    assert "PL18" in err and "⟦diff-checked⟧" in err
+
+
+def test_main_inserts_a_suite_repair_or_ci_repair_step_naming_a_test_file_with_0_and_no_pl18_refusal_2517(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    results = []
+    for mark in ("⟦suite-repair⟧", "⟦ci-repair⟧"):
+        ledger.write_bytes(LEDGER)
+        step = f"fix the failure in tests/py/unit/test_widget.py {mark}"
+        code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", step], cwd=tmp_path)
+        inserted = [line for line in ledger.read_text().splitlines() if "test_widget.py" in line]
+        results.append((code, "PL18" in err, len(inserted)))
+
+    assert results == [(0, False, 1), (0, False, 1)]

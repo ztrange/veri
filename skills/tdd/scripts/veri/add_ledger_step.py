@@ -48,6 +48,13 @@ def is_repair(text):
     return has_mark(text, REPAIR_MARKS)
 
 
+TEST_FILE = re.compile(r"\btests/\S*test_\w+\.py")
+
+
+def confined_to_test_files(text):
+    return bool(TEST_FILE.search(text)) and not re.search(r"\balready\b", text) and not is_repair(text) and not carries_mark(text, "diff-checked")
+
+
 def is_suite_repair(text):
     return has_mark(text, (SUITE_REPAIR,))
 
@@ -204,6 +211,9 @@ def main(argv):
         unit = unit_of(text)
         if carries_mark(text, "skill-edit") and restates_list(path, unit):
             return refuse(f"add-ledger-step.sh: {unit}: the issue's Requirements restate no row that differs from the unit's list; a requirements row is needed")
+    for text in texts:
+        if confined_to_test_files(text):
+            return refuse("add-ledger-step.sh: PL18: a step whose change is confined to test files is planned ⟦diff-checked⟧, never Red/Green: " + text)
     steps = [line for line in lines if ledger_steps(line)]
     earlier = [line for line in steps if is_suite_repair(line)]
     try:
