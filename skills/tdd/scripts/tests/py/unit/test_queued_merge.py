@@ -267,3 +267,19 @@ def test_2455_queued_merge_that_succeeds_exits_0_and_deletes_the_local_branch_wi
     removed = first(calls, "worktree remove")
     deletes = [i for i, c in enumerate(calls) if c == "git -C /main branch -D feature"]
     assert (code, err, len(deletes), bool(deletes) and removed is not None and deletes[0] > removed) == (0, "", 1, True)
+
+
+def test_2455_queued_merge_whose_main_clone_is_on_another_branch_does_not_fast_forward_it_names_why_and_lists_the_fast_forward_in_the_cleanup_summary(fake_processes, run_cli):
+    def on_scratch(answer):
+        def wrapped(line, **kw):
+            if line.startswith("git -C /main ") and ("symbolic-ref" in line or "--abbrev-ref" in line or "--show-current" in line):
+                return 0, "scratch\n", ""
+            return answer(line, **kw)
+        return fake_processes(wrapped)
+
+    calls = scenario(on_scratch)
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    moved = [c for c in calls if c.startswith("git -C /main ") and "--ff-only" in c]
+    assert (code, moved, "scratch" in err, "cleanup failed: fast-forward" in err) == (2, [], True, True)
