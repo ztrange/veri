@@ -2254,7 +2254,7 @@ def test_main_renders_a_revise_green_prompt_for_a_suite_repair_or_ci_repair_step
     }
     leave = rb"**Leave the test files as they are**"
     freeze = rb"**Do not modify the test.**"
-    permits = rb"may edit the failing test"
+    permits = rb"may edit the (?:one )?failing test"
 
     results = {}
     for name, step in steps.items():
