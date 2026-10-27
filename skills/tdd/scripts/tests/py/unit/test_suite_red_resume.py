@@ -180,3 +180,26 @@ def test_usage_names_the_insert_verb_beside_check_on_stderr_with_exit_2_for_no_a
         assert (code, out) == (2, "")
         assert "suite-red-resume.sh check <ledger-file> <branch-red-file> <default-red-file>" in err
         assert "suite-red-resume.sh insert <ledger-file> <branch-red-file>" in err
+
+
+def test_check_goes_on_whatever_the_last_bail_was_when_every_branch_red_suite_is_green_on_the_default_branch_2470(run_cli, tmp_path):
+    module = importlib.import_module("veri.suite_red_resume")
+    branch = tmp_path / "branch-red"
+    branch.write_text("test_a.py — FAIL a\n")
+    default = tmp_path / "default-red"
+    default.write_text("test_c.py — FAIL c\n")
+    outcomes = {}
+    for name, events in {
+        "revise-exhausted": [{"ts": 1, "issue": "7", "event": "bail", "cause": "revise-exhausted", "phase": ""}],
+        "no-bail": [{"ts": 1, "issue": "7", "event": "start"}],
+        "no-log": None,
+    }.items():
+        run = tmp_path / name
+        run.mkdir()
+        ledger = run / "issue-7-ledger.md"
+        ledger.write_text("- [ ] step\n")
+        if events is not None:
+            (run / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+        outcomes[name] = run_cli(module, ["check", str(ledger), str(branch), str(default)])
+
+    assert outcomes == {name: (0, "test_a.py — FAIL a\n", "") for name in outcomes}
