@@ -72,3 +72,11 @@ def test_main_2462_exits_1_when_an_earlier_marked_unit_fails_and_a_later_one_pas
     assert (got[0], got[1], sorted(asked)) == (
         1, "2462\tF1\tskills/first.md\tF1: FAIL — says yellow\n",
         ["skills/first.md", "skills/second.md"])
+
+
+def test_main_2462_with_no_issue_argument_prints_a_usage_line_naming_the_script_and_exits_2(run_cli):
+    stale_rows = importlib.import_module("veri.stale_rows")
+
+    code, out, err = run_cli(stale_rows, [])
+
+    assert (code, out, "usage: stale-rows.sh" in err) == (2, "", True)
