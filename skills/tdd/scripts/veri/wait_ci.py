@@ -118,6 +118,19 @@ def sha_state(repo, sha):
     return "green", "", False
 
 
+OPENING_TYPES = {"opened", "synchronize", "reopened", "ready_for_review"}
+
+
+def opens_checks(text):
+    if re.search(r"^on:\s*\[[^\]]*\bpull_request", text, re.M):
+        return True
+    for head in re.finditer(r"^ *pull_request(?:_target)?:", text, re.M):
+        named = re.search(r"\btypes:(.*(?:\n\s*-.*)*)", text[head.end():])
+        if not named or OPENING_TYPES.intersection(re.findall(r"[\w-]+", named.group(1))):
+            return True
+    return False
+
+
 def runs_on_pull_requests(repo, sha):
     listing = gh_api("repos/%s/contents/.github/workflows?ref=%s" % (repo, sha),
                       stderr=subprocess.DEVNULL)
@@ -131,7 +144,7 @@ def runs_on_pull_requests(repo, sha):
         body = _gh("api", "-H", "Accept: application/vnd.github.raw",
                    "repos/%s/contents/%s?ref=%s" % (repo, entry["path"], sha),
                    stderr=subprocess.DEVNULL)
-        if body.returncode != 0 or re.search(r"\bpull_request(_target)?\b", body.stdout):
+        if body.returncode != 0 or opens_checks(body.stdout):
             return True
     return False
 

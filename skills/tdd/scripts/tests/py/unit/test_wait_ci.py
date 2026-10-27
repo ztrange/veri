@@ -1347,3 +1347,36 @@ def test_main_keeps_a_late_ci_at_3_while_pending_and_ends_0_or_1_when_the_checks
         observed.append(code)
 
     assert observed == [3, 3, 0, 1]
+
+
+@pytest.mark.parametrize("workflow, expected", [
+    ("on:\n  pull_request:\n    types: [closed]\n", 4),
+    ("on:\n  pull_request_target:\n    types: [closed, labeled]\n", 4),
+    ("on:\n  push:\n    branches: [main]\n# was: pull_request\n", 4),
+    ("on:\n  push:\njobs:\n  gates:\n    if: github.event_name == 'pull_request'\n", 4),
+    ("on:\n  pull_request:\n    types: [opened, synchronize]\n", 3),
+    ("on:\n  pull_request:\n    types: [opened]\n", 3),
+    ("on:\n  pull_request:\n    types: [synchronize]\n", 3),
+    ("on:\n  pull_request:\n    types: [reopened]\n", 3),
+    ("on:\n  pull_request_target:\n    types: [ready_for_review]\n", 3),
+    ("on:\n  pull_request:\n    types:\n      - ready_for_review\n", 3),
+    ("on: [push, pull_request]\n", 3),
+    ("on:\n  pull_request:\n", 3),
+])
+def test_main_reads_the_on_trigger_block_to_tell_a_workflow_that_opens_checks_on_pull_requests_issue_2488(
+        tmp_path, wait_ci, fake_processes, run_cli, workflow, expected):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([], [], "pending")
+
+    def answer(line):
+        if "workflows/ci.yml" in line:
+            return workflow
+        if ".github/workflows" in line:
+            return WORKFLOW_LISTING
+        return None
+
+    served(fake_processes, bodies, answer)
+    code, _, _ = run_cli(wait_ci, [PR, "120", "600", FULL_SHA], env={"VERI_POLL": "10"}, cwd=work)
+
+    assert code == expected
