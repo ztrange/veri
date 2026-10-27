@@ -244,6 +244,8 @@ def main(argv):
     path = skill_edit_guard.list_path(unit)
     graded_file = grade_prose.graded_path(unit)
     snapshot = _read_existing((path, unit, graded_file))
+    listed = {row.split("\t")[0] for row in (_claimed(path, unit) or "").splitlines()}
+    fresh = any(_row_id(r) not in listed for r in issue_rows)
     moved = apply(issue, unit)
     if not _claimed(path, unit):
         if added is not None:
@@ -256,7 +258,7 @@ def main(argv):
         graded, said = _grade(path, unit)
     else:
         graded, said = 1, "FAIL: unit is empty\n"
-    if added is not None and graded == 0 and change is None:
+    if added is not None and graded == 0 and change is None and not fresh:
         print("added step graded PASS before any author ran, so no prose would change: " + added, file=sys.stderr)
         _restore(snapshot, path, unit, graded_file)
         return 2
