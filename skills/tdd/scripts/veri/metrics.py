@@ -474,13 +474,14 @@ def render(issue, path, ledger):
     if sessions:
         print("Cost is every leaf of the run, and the conductor own spending.")
         priced = not any(r.get("total_cost_usd", 0) is None for r in sessions)
-        totals["total"][DOLLARS] += sum(r.get("total_cost_usd") or 0 for r in sessions)
+        spend = sum(r.get("total_cost_usd") or 0 for r in sessions)
+        totals["total"][DOLLARS] += spend
         model = ""
         with contextlib.suppress(OSError):
             with open(main_checkout_file(path, "issue-%s-conductor-model" % issue)) as recorded:
                 model = recorded.read().strip()
         print("Conductor own spending: %s over %d turns, in %d sessions%s."
-              % ("$%.2f" % sum(r.get("total_cost_usd") or 0 for r in sessions) if priced else "unpriced",
+              % ("$%.2f" % spend if priced else "unpriced",
                  sum(r.get("num_turns") or 0 for r in sessions), len(sessions),
                  ", on %s" % model if model else ""))
         if any(r.get("open") for r in sessions):
