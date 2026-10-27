@@ -27,3 +27,14 @@ def test_the_retired_filers_sweep_reports_no_file_of_an_untracked_nested_checkou
     monkeypatch.setattr(guard, "REPO", tmp_path)
 
     assert guard.namers() == []
+
+
+@pytest.mark.process("a real git repository under tmp_path holding a tracked file that names a retired filer")
+def test_the_retired_filers_sweep_reports_a_tracked_file_that_names_a_retired_filer_2520(monkeypatch, tmp_path):
+    guard = load_guard()
+    (tmp_path / "README.md").write_text("run skills/" + guard.RETIRED[1] + "/SKILL.md\n")
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "add", "README.md"], cwd=tmp_path, check=True, capture_output=True)
+    monkeypatch.setattr(guard, "REPO", tmp_path)
+
+    assert guard.namers() == ["README.md"]
