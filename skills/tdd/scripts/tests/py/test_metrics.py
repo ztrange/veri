@@ -1711,3 +1711,16 @@ def test_issue_2322_a_step_added_record_with_no_ts_and_no_awake_among_timed_reco
 
     assert "Seconds the machine was not running inside that span: 10000 s" in out
     assert "Every figure in this report is wall-clock" not in out
+
+
+def test_issue_2499_a_log_only_conductor_spend_is_in_the_total_row_dollars(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, conductor("one", 9000, "step-start")
+              + leaf("one", 9010, "developer", "red", 1, 90, usage=cost(3, "0.10", (100, 200, 1000, 400)))
+              + conductor("one", 9110, "step-done"))
+    sessions = [{"type": "system", "subtype": "init"}, {"type": "result", "total_cost_usd": 1.25, "num_turns": 40}]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in sessions))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert cells(out, "#### Total", ["$"]) == {"total": ["1.35"]}
