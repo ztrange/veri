@@ -477,7 +477,10 @@ def render(issue, path, ledger):
         sessions, turn_rows = conductor_sessions(issue, path)
     if sessions:
         priced = not any(r.get("total_cost_usd", 0) is None for r in sessions)
+        some_priced = any(r.get("total_cost_usd") is not None for r in sessions)
         print("Cost is every leaf of the run, and the conductor own spending." if priced else
+              "Cost is every leaf of the run; the total row includes the priced sessions' conductor spending and leaves out the unpriced ones."
+              if some_priced else
               "Cost is every leaf of the run; the total row excludes the conductor own spending, which is unpriced.")
         spend = sum(r.get("total_cost_usd") or 0 for r in sessions)
         totals["total"][DOLLARS] += spend
