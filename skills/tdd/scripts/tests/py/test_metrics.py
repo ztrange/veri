@@ -1756,3 +1756,17 @@ def test_issue_2499_an_unpriced_log_only_conductor_session_is_not_claimed_by_the
     assert "Conductor own spending: unpriced" in out
     assert "Cost is every leaf of the run, and the conductor own spending.\n" not in out
     assert re.search(r"^.*total.*exclude.*conductor|^.*conductor.*exclude.*total", out, re.M | re.I)
+
+
+def test_issue_2499_a_conductor_usage_event_sentence_says_the_cost_includes_its_closing_accounting_and_the_total_row_includes_its_dollars(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, conductor("one", 9000, "step-start")
+              + leaf("one", 9010, "developer", "red", 1, 90, usage=cost(3, "0.10", (100, 200, 1000, 400)))
+              + conductor("one", 9110, "step-done")
+              + [dict(conductor("", 9200, "usage")[0], **cost(12, "0.90", (800, 400, 20000, 2500)))])
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert ("Cost is every leaf of the run, and the conductor own closing accounting with them, "
+            "which this log carries.\n") in out
+    assert cells(out, "#### Total", ["$"]) == {"total": ["1.00"]}
