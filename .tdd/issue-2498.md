@@ -8,4 +8,4 @@
 - [x] Neither `skills/tdd/scripts/veri/grade_prose.py` nor `skills/tdd/scripts/veri/skill_edit_step.py` passes `os.path.join(SCRIPTS, "supervise.sh")` to `subprocess.run` or `subprocess.Popen`; each launches its leaf by calling the one shared wrapper, the only place in those two modules' launch path that builds a `supervise.sh` argv; `veri/parallel_conductors.py` and `veri/verify.py` keep their inline calls ⟦diff-checked⟧ ⟦criterion 1⟧
 - [x] A test can make the wrapper answer without starting a process by replacing it in-process: both modules reach it through a module attribute (`leaf.launch`) that `monkeypatch.setattr` replaces, with no PATH entry, no shim script and no process count ⟦diff-checked⟧ ⟦criterion 2⟧
 - [ ] Go-red check: with the wrapper's injection point removed, so the two modules build the argv inline again, the fast-tier grader and author cases fail, named; with it restored, they pass ⟦human-owed⟧ ⟦criterion 5⟧
-- [ ] `make test` is green ⟦full-suite⟧ ⟦criterion 6⟧
+- [x] `make test` is green ⟦full-suite⟧ ⟦criterion 6⟧
