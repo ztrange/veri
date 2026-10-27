@@ -1,0 +1,2 @@
+### pid_file.live_conductor returns the pid when the pid answers kill -0 (os.kill faked) but `ps -o ppid=` fails or prints nothing, while its own `ps -o command=` answers as a claude; pinned in skills/tdd/scripts/tests/py/unit/test_pid_file.py with subprocess.run faked, a small unit case ⟦criterion 2⟧
+- test-only | the two new tests in test_pid_file.py repeat the same setup (monkeypatching `os.kill`, writing the `conductor.pid` file, and looping over the "ps fails" and "prints nothing" cases). A shared helper could replace that.
