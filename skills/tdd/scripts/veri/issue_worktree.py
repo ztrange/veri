@@ -150,6 +150,11 @@ def main(argv):
             sys.stderr.write("issue-worktree: %s is held by a live conductor (pid %s)"
                              " — refusing to hand back a run in flight\n" % (path, pid))
             return 2
+        stale = behind_default(path)
+        if stale:
+            sys.stderr.write("issue-worktree: %s is based on %s, behind %s's tip %s"
+                             " — refusing to hand it back\n" % ((path,) + stale))
+            return 2
         sys.stdout.write(path + "\n")
         return 0
     branch = "tdd/%s-%s" % (argv[0], argv[1])
@@ -188,6 +193,18 @@ def seeded_log_set_aside(path):
                 else:
                     shutil.move(aside + "/" + name + ".kept", tdd + "/" + name)
             shutil.rmtree(aside)
+
+
+def behind_default(path):
+    if not os.path.exists(path + "/.git"):
+        return None
+    name, _ = default_branch_name(True)
+    if subprocess.run(["git", "fetch", "-q", "origin", name], stdout=sys.stderr).returncode != 0:
+        return None
+    tip = git("rev-parse", "origin/" + name, stdout=subprocess.PIPE, text=True).stdout.strip()
+    base = subprocess.run(["git", "-C", path, "merge-base", "HEAD", "origin/" + name],
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True).stdout.strip()
+    return None if base == tip else (base, "origin/" + name, tip)
 
 
 def refuse(message):

@@ -1029,6 +1029,24 @@ def test_hand_back_of_a_worktree_based_on_the_fetched_default_tip_prints_only_it
     assert (first[0], second[0], second[1], second[2]) == (0, 0, want + "\n", "")
 
 
+@pytest.mark.process("git clone and git worktree add twice on scratch repositories, origin advanced between the calls")
+def test_hand_back_of_a_worktree_whose_base_is_behind_the_fetched_default_tip_refuses_naming_both_or_rebases_and_says_so_issue_2460(
+        tmp_path, issue_worktree, run_cli):
+    upstream, clone = scratch_clone(tmp_path, "stale-base")
+    want = scratch_wt_path(clone, 2460)
+    run_cli(issue_worktree, ["2460", "stale-base"], cwd=clone)
+    base = scratch_git(want, "rev-parse", "HEAD")
+    scratch_git(upstream, "commit", "-q", "--allow-empty", "-m", "main moves on")
+    tip = scratch_git(upstream, "rev-parse", "main")
+
+    code, out, err = run_cli(issue_worktree, ["2460", "stale-base"], cwd=clone)
+
+    refused = code == 2 and base in err and tip in err
+    rebased = (code == 0 and "rebase" in (out + err).lower()
+               and scratch_git(want, "merge-base", "HEAD", tip) == tip)
+    assert (refused or rebased, code, out, err) == (True, code, out, err)
+
+
 @pytest.mark.process("git clone and git worktree add on scratch repositories, origin ahead of the clone")
 def test_origins_default_branch_is_ahead_of_the_local_one_cuts_tdd_35_from_remote_tip_from_origins_tip(
         tmp_path, issue_worktree, run_cli):
