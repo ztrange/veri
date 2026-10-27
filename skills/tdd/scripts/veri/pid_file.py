@@ -42,7 +42,8 @@ def live_conductor(path):
     pid = recorded_alive(path)
     if pid is None:
         return None
-    if "run_conductor.py" not in _ps("command", _ps("ppid", pid)):
+    parent = _ps("ppid", pid)
+    if parent and "run_conductor.py" not in _ps("command", parent):
         return None
     own = _ps("command", pid)
     if own and "claude" not in (os.path.basename(word) for word in own.split()[:2]):
