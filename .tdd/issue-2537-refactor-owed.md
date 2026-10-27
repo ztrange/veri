@@ -6,3 +6,6 @@
 ### `run_conductor.py` records the conductor process's start time, as `ps -o lstart=` reports it, on the second line of `.tdd/wt/<n>/.tdd/conductor.pid` beside the pid, so `live_conductor` answers that pid while that same process runs ⟦criterion 2⟧
 - out-of-bounds | `live_conductor` re-opens and parses `conductor.pid` for its second line, while `number_in` already reads the first; a shared reader of both lines would live in pid_file.py
 - out-of-bounds | `run_conductor.py` calls the private `pids._ps`; a public start-time helper in pid_file.py would remove that cross-module use of an underscore name
+### A run that ends — the conductor's `claude` process exiting after ✅ Done, a bail or a park — leaves no `conductor.pid` in its worktree, so `live_conductor` answers None for that worktree afterwards whatever pid is running; reproduced by a case failing on the current code and passing after ⟦criterion 1⟧
+- test-only | merge the start-time pid-file test with the older worktree-not-existing-yet pid-file test in test_run_conductor.py (their setup and assertion are identical), and extract the shared fake-`ps` `running_the_child_setup` helper used by all three pid-file tests
+- out-of-bounds | give pid_file.py a public start-time helper so run_conductor.py stops calling the private `pids._ps`
