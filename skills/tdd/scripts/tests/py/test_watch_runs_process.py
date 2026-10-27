@@ -47,7 +47,13 @@ def start_conductor(tmp_path, issue):
     script.chmod(0o755)
     pid_file = tmp_path / ("claude-%s.pid" % issue)
     proc = subprocess.Popen([str(script), str(issue), str(pid_file)])
-    time.sleep(0.3)
+    deadline = time.monotonic() + 30
+    while not (pid_file.exists() and pid_file.read_text().strip()):
+        if time.monotonic() >= deadline:
+            proc.terminate()
+            proc.wait()
+            pytest.fail("the stub never wrote its pid file: %s" % pid_file)
+        time.sleep(0.02)
     return Conductor(proc, int(pid_file.read_text()))
 
 
