@@ -217,6 +217,8 @@ def main(argv):
         change, argv = argv[1], argv[2:]
     if len(argv) >= 4 and argv[0] == "--added":
         added, argv = argv[1], argv[2:]
+        if len(argv) >= 4 and argv[0] == "--change":
+            change, argv = argv[1], argv[2:]
     if len(argv) < 2:
         print(USAGE, file=sys.stderr)
         return 2
