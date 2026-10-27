@@ -502,3 +502,29 @@ def test_park_issue_labels_the_pr_parked_when_the_origin_names_the_same_reposito
         recorded = log.read_text()
         assert ran.returncode == 0, (origin, ran.returncode, ran.stderr, recorded)
         assert "issues/12/labels" in recorded, (origin, recorded)
+
+
+@pytest.mark.process("park-issue.sh run against a gh stub that records every call, from a scratch git repo whose origin names the PR's repository")
+def test_park_issue_with_a_pr_of_0_or_with_leading_zeros_exits_2_with_usage_and_calls_no_gh_2457(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(GH_STUB)
+    gh.chmod(0o755)
+    log = tmp_path / "gh.log"
+    log.write_text("")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    for git_args in (["init", "-q"], ["remote", "add", "origin", "https://github.com/ztrange/veri.git"]):
+        subprocess.run(["git", *git_args], cwd=repo, check=True, capture_output=True)
+    env = {"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+           "GH_LOG": str(log), "PYTHONDONTWRITEBYTECODE": "1"}
+
+    for pr in ("0", "007", "https://github.com/ztrange/veri/pull/0", "https://github.com/ztrange/veri/pull/007"):
+        ran = subprocess.run([str(SCRIPTS / "park-issue.sh"), "7", "held for review", "a human merges", pr],
+                             cwd=repo, capture_output=True, text=True, stdin=subprocess.DEVNULL, env=env)
+
+        usage = [line for line in ran.stderr.splitlines() if line.startswith("usage:")]
+        assert ran.returncode == 2, (pr, ran.returncode, ran.stderr, log.read_text())
+        assert usage, (pr, ran.stderr)
+        assert log.read_text() == "", (pr, log.read_text())

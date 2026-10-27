@@ -27,8 +27,8 @@ def main(argv):
         if bad:
             sys.stderr.write("park-issue.sh: bad %s\n" % name)
             return 2
-    pr_url = len(argv) == 4 and re.fullmatch(r"https://github\.com/([^/]+/[^/]+)/pull/[0-9]+", argv[3])
-    if len(argv) == 4 and not (pr_url and origin_slug() in ("", pr_url.group(1)) or re.fullmatch(r"[0-9]+", argv[3])):
+    pr_url = len(argv) == 4 and re.fullmatch(r"https://github\.com/([^/]+/[^/]+)/pull/[1-9][0-9]*", argv[3])
+    if len(argv) == 4 and not (pr_url and origin_slug() in ("", pr_url.group(1)) or re.fullmatch(r"[1-9][0-9]*", argv[3])):
         sys.stderr.write(USAGE)
         return 2
     pr = "PR: %s\n" % argv[3] if len(argv) == 4 else ""
