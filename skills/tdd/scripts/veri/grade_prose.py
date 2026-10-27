@@ -164,6 +164,8 @@ def resign(unit, own, tree):
 
 
 def convert(path):
+    if not os.path.exists(path):
+        return 0
     for unit in requirements.listed_units(path):
         try:
             tree = signer().signature(path, unit)
