@@ -1220,3 +1220,37 @@ def test_2483_a_passing_grade_whose_tree_formula_cannot_be_obtained_writes_no_li
              re.search(r"\b[0-9a-f]{64}\b", graded.stderr) is not None)
     assert (graded.returncode, graded.stdout, named, (tmp_path / "guide" / "GRADED").exists()) == (2, "", (True, True, True), False), \
         (graded.returncode, graded.stdout, graded.stderr)
+
+
+@pytest.mark.process("grade-prose.sh --convert against a tree whose own signature raises")
+@pytest.mark.tree_audit("copies the skill's scripts into a scratch tree")
+def test_2483_convert_on_a_tree_whose_signature_raises_exits_2_naming_the_disagreement_and_the_unit_and_leaves_graded_byte_identical(tmp_path):
+    import shutil
+
+    tree_scripts = tmp_path / "skills" / "tdd" / "scripts"
+    shutil.copytree(SCRIPTS, tree_scripts, ignore=shutil.ignore_patterns("tests", "__pycache__", "REQUIREMENTS.md"))
+    shutil.copy(SCRIPTS.parent / "grader.conf", tmp_path / "skills" / "tdd" / "grader.conf")
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text(STUB)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+           "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")}
+    signed = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                            capture_output=True, text=True, timeout=25, env=env)
+    assert signed.returncode == 0, signed.stderr
+    module = tree_scripts / "veri" / "grade_prose.py"
+    source = module.read_text()
+    formula = "parts = [unit_text(unit), requirements.claims(path, unit), grader_model()]"
+    assert formula in source
+    module.write_text(source.replace(formula, formula + "\n    raise RuntimeError(\"tree-formula-broken\")"))
+    before = (tmp_path / "guide" / "GRADED").read_bytes()
+
+    converted = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "--convert"], cwd=tmp_path,
+                               capture_output=True, text=True, timeout=25, env=env)
+
+    named = ("signature-formula-disagreement" in converted.stderr, "guide/unit.md" in converted.stderr)
+    assert (converted.returncode, named, (tmp_path / "guide" / "GRADED").read_bytes()) == (2, (True, True), before), \
+        (converted.returncode, converted.stdout, converted.stderr)
