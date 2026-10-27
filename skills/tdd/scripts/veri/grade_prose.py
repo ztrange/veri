@@ -147,14 +147,28 @@ def keeps_protocol(reply, wanted):
             and not BAD_GRADE.search(block) and not reply.partition("END GRADES")[2].strip())
 
 
+def resign(unit, own, tree):
+    graded = graded_path(unit)
+    with open(graded, encoding="utf-8") as f:
+        lines = f.read().splitlines()
+    for i, line in enumerate(lines):
+        fields = line.split(" ")
+        if fields[:2] == [unit, own]:
+            fields[1] = tree
+            lines[i] = " ".join(fields)
+    with open(graded, "w", encoding="utf-8") as f:
+        f.write("".join(l + "\n" for l in lines))
+
+
 def convert(path):
     for unit in requirements.listed_units(path):
         try:
-            signer().signature(path, unit)
+            tree = signer().signature(path, unit)
         except Exception as e:
             print("grade-prose.sh: signature-formula-disagreement: %s: the tree's formula gave none (%s)" % (unit, e),
                   file=sys.stderr)
             return 2
+        resign(unit, signature(path, unit), tree)
 
 
 def main(argv):

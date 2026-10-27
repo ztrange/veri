@@ -1254,3 +1254,82 @@ def test_2483_convert_on_a_tree_whose_signature_raises_exits_2_naming_the_disagr
     named = ("signature-formula-disagreement" in converted.stderr, "guide/unit.md" in converted.stderr)
     assert (converted.returncode, named, (tmp_path / "guide" / "GRADED").read_bytes()) == (2, (True, True), before), \
         (converted.returncode, converted.stdout, converted.stderr)
+
+
+@pytest.mark.process("grade-prose.sh --convert against a tree whose own signature formula differs")
+@pytest.mark.tree_audit("copies the skill's scripts into a scratch tree")
+def test_2483_convert_resigns_the_listed_unit_under_the_trees_formula_and_leaves_a_same_signed_unlisted_units_line_byte_identical(tmp_path):
+    import shutil
+
+    tree_scripts = tmp_path / "skills" / "tdd" / "scripts"
+    shutil.copytree(SCRIPTS, tree_scripts, ignore=shutil.ignore_patterns("tests", "__pycache__", "REQUIREMENTS.md"))
+    shutil.copy(SCRIPTS.parent / "grader.conf", tmp_path / "skills" / "tdd" / "grader.conf")
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "guide" / "other.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text(STUB)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+           "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")}
+    signed = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                            capture_output=True, text=True, timeout=25, env=env)
+    assert signed.returncode == 0, signed.stderr
+    graded_file = tmp_path / "guide" / "GRADED"
+    listed_line = graded_file.read_text().splitlines()[0]
+    unlisted_line = listed_line.replace("guide/unit.md", "guide/other.md", 1)
+    graded_file.write_text(listed_line + "\n" + unlisted_line + "\n")
+    module = tree_scripts / "veri" / "grade_prose.py"
+    source = module.read_text()
+    formula = "parts = [unit_text(unit), requirements.claims(path, unit), grader_model()]"
+    assert formula in source
+    module.write_text(source.replace(formula, formula + "\n    parts.append(\"tree-formula\")"))
+
+    converted = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "--convert"], cwd=tmp_path,
+                               capture_output=True, text=True, timeout=25, env=env)
+    owed = subprocess.run([str(tree_scripts / "prose-owed.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
+                          capture_output=True, text=True, timeout=25, env=env)
+
+    lines = graded_file.read_text().splitlines()
+    assert (converted.returncode, "guide/unit.md" in owed.stdout.split(), lines[1:], lines[0] != listed_line) == (0, False, [unlisted_line], True), \
+        (converted.returncode, converted.stderr, owed.stdout, lines)
+
+
+@pytest.mark.process("grade-prose.sh --convert against a listed unit whose GRADED line is stale under both formulas")
+@pytest.mark.tree_audit("copies the skill's scripts into a scratch tree")
+def test_2483_convert_leaves_a_listed_units_stale_graded_line_byte_identical_and_the_unit_owed(tmp_path):
+    import shutil
+
+    tree_scripts = tmp_path / "skills" / "tdd" / "scripts"
+    shutil.copytree(SCRIPTS, tree_scripts, ignore=shutil.ignore_patterns("tests", "__pycache__", "REQUIREMENTS.md"))
+    shutil.copy(SCRIPTS.parent / "grader.conf", tmp_path / "skills" / "tdd" / "grader.conf")
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text(STUB)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+           "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")}
+    signed = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                            capture_output=True, text=True, timeout=25, env=env)
+    assert signed.returncode == 0, signed.stderr
+    graded_file = tmp_path / "guide" / "GRADED"
+    fields = graded_file.read_text().splitlines()[0].split(" ")
+    fields[1] = "0" * len(fields[1])
+    graded_file.write_text(" ".join(fields) + "\n")
+    before = graded_file.read_bytes()
+    module = tree_scripts / "veri" / "grade_prose.py"
+    source = module.read_text()
+    formula = "parts = [unit_text(unit), requirements.claims(path, unit), grader_model()]"
+    assert formula in source
+    module.write_text(source.replace(formula, formula + "\n    parts.append(\"tree-formula\")"))
+
+    converted = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "--convert"], cwd=tmp_path,
+                               capture_output=True, text=True, timeout=25, env=env)
+    owed = subprocess.run([str(tree_scripts / "prose-owed.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
+                          capture_output=True, text=True, timeout=25, env=env)
+
+    assert (converted.returncode, graded_file.read_bytes(), "guide/unit.md" in owed.stdout.split()) == (0, before, True), \
+        (converted.returncode, converted.stderr, owed.stdout, graded_file.read_text())
