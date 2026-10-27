@@ -2169,3 +2169,24 @@ def test_the_refactor_and_diff_prompts_each_require_a_coverage_judgement_to_run_
             re.search(r"A REJECT on that ground names the exact command that was run", prompt) is not None)
 
     assert found == {"refactor": (True, True), "diff": (True, True)}
+
+
+def test_main_renders_a_plan_prompt_refusing_a_step_naming_more_than_one_outcome_by_the_one_outcome_per_step_split_and_accepting_one_outcome_whatever_guard_it_mentions_2553(
+        tmp_path, monkeypatch, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"spec\n")
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes("# Plan for #1\n\n- [ ] a step ⟦criterion 1⟧\n".encode())
+    monkeypatch.delenv("VERI_STEP", raising=False)
+    assert build_verify_prompt.main(["plan", str(spec), str(ledger)]) == 0
+    plan = capsysbinary.readouterr()[0].decode("utf-8", "surrogateescape").replace("\n", " ")
+
+    def has(pattern):
+        return re.search(pattern, plan, re.I) is not None
+
+    assert [
+        has(r"REJECT[^.]{0,80}step[^.]{0,80}more than one (observable )?outcome"),
+        has(r"one outcome per step"),
+        has(r"exactly one outcome[^.]{0,80}accepted"),
+        has(r"never refuse a step for merely mentioning a guard"),
+    ] == [True] * 4
