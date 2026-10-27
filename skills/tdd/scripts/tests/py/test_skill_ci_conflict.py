@@ -259,3 +259,46 @@ def test_issue_2375_a_second_conflict_after_the_runs_own_rebase_records_a_ci_con
     log = work / "events.log"
     got = log.read_text().rstrip("\n") if log.exists() else ""
     assert got == "bail cause=ci-conflict classification=ci-conflict", f"a second conflict after the run's own rebase recorded [{got}], not bail cause=ci-conflict"
+
+
+def _done_line(step):
+    return next((l.strip() for l in step.split("\n") if re.search(r"\$S/event\.sh done pr=", l)), "")
+
+
+@pytest.mark.process("the Draft PR step's CI blocks and done mark run under bash -c in a git repo, against stub scripts")
+def test_issue_2488_a_wait_ci_exit_4_in_either_ci_block_bails_nothing_adds_no_step_and_writes_the_done_mark(tmp_path):
+    step = _ci_step()
+    assert step.strip(), NO_STEP
+    first, last, done = _first_block(step), _block(step), _done_line(step).replace("<n>", "2488").replace("<pr-url>", "https://example.test/pull/1")
+    assert first.strip() and last.strip() and done, "the CI step lacks its first CI-wait block, its post-metrics block or its done line — nothing could be run"
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    stubs = {"pr-ready.sh": "#!/bin/sh\nexit 0\n",
+             "wait-ci.sh": "#!/bin/sh\nexit 4\n",
+             "event.sh": '#!/bin/sh\necho "$*" >> events.log\n',
+             "classify-bail.sh": '#!/bin/sh\necho "$1"\n',
+             "add-ledger-step.sh": '#!/bin/sh\necho "$*" >> added.log\n',
+             "ledger-steps.sh": '#!/bin/sh\n[ "$1" != last-done ] || echo "step 1"\n[ "$1" != has-mark ] || exit 1\nexit 0\n',
+             "gh": "#!/bin/sh\nexit 0\n"}
+    for name, body in stubs.items():
+        (bin_dir / name).write_text(body)
+        (bin_dir / name).chmod(0o755)
+    work = tmp_path / "work"
+    work.mkdir()
+    subprocess.run(["git", "-C", str(work), "init", "-q"], check=True)
+    (work / ".tdd").mkdir()
+    (work / ".tdd" / "issue-2488.md").write_text("")
+    env = dict(os.environ, S=str(bin_dir), PATH=f"{bin_dir}:{os.environ['PATH']}")
+    script = "\n".join([first, done, last]).encode("latin-1").decode("utf-8", "surrogateescape")
+    subprocess.run(["bash", "-c", script], cwd=work, env=env,
+                   stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    events = (work / "events.log").read_text() if (work / "events.log").exists() else ""
+    added = (work / "added.log").read_text() if (work / "added.log").exists() else ""
+    problems = []
+    if "bail" in events or "ci-timeout" in events:
+        problems.append(f"exit 4 recorded a bail or ci-timeout cause: [{events.strip()}]")
+    if "step-added" in events or added:
+        problems.append(f"exit 4 appended a ledger step: events [{events.strip()}] added [{added.strip()}]")
+    if not any(l.startswith("done ") for l in events.split("\n")):
+        problems.append(f"exit 4 wrote no done mark: [{events.strip()}]")
+    assert not problems, "\n".join(problems)
