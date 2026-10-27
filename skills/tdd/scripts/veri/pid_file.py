@@ -35,7 +35,7 @@ def recorded_alive(path):
 
 def _ps(field, pid):
     ps = subprocess.run(["ps", "-o", field + "=", "-p", str(int(pid))], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-    return ps.stdout.strip() if ps.returncode == 0 else ""
+    return ps.stdout.strip() if ps.returncode == 0 else None
 
 
 def live_conductor(path):
