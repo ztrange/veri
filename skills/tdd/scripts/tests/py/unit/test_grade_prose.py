@@ -92,6 +92,12 @@ def test_the_prompt_grade_prose_renders_states_that_an_empty_unit_is_graded_fail
     assert "empty unit is graded FAIL on every requirement row without using any reading tool" in prompt, prompt
 
 
+def test_the_prompt_grade_prose_renders_fails_a_row_naming_a_file_section_or_identifier_unless_the_prose_names_it_2443(grade_prose):
+    prompt = " ".join(grade_prose.prompt("unit.md", "prose", "X1\tThe prose cites `README.md`.").split())
+
+    assert "A requirement row that names a concrete artefact (a file, a section heading or an identifier) FAILS when the prose does not name that artefact too" in prompt, prompt
+
+
 def test_a_fenced_hash_line_equal_to_the_units_heading_never_starts_its_section_1874(grade_prose):
     text = "# Intro\n```\n## unit.md\nfenced body\n```\ntext\n## unit.md\nreal body\n"
     assert grade_prose.section(text, "unit.md") == "## unit.md\nreal body\n"
