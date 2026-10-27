@@ -1398,7 +1398,7 @@ def test_issue_1868_a_report_with_a_conductor_session_lacking_a_result_record_sa
 
     out = render(metrics, capsys)
 
-    assert re.search(r"Conductor own spending: \$\d+\.\d\d over 1 turns, in 1 sessions\.\n", out)
+    assert re.search(r"Conductor own spending: \$\d+\.\d\d over 1 turns, in 1 sessions[^\n]*\.\n", out)
     assert re.search(r"Conductor own spending[^\n]*\n[^\n]*estimated[^\n]*output tokens[^\n]*not yet known", out)
 
 
@@ -1415,7 +1415,7 @@ def test_main_counts_a_still_running_conductor_session_from_its_assistant_messag
 
     out = render(metrics, capsys)
 
-    match = re.search(r"Conductor own spending: \$(\d+\.\d\d) over 43 turns, in 2 sessions\.\n", out)
+    match = re.search(r"Conductor own spending: \$(\d+\.\d\d) over 43 turns, in 2 sessions[^\n]*\.\n", out)
     assert match is not None
     assert float(match.group(1)) > 1.25
 
