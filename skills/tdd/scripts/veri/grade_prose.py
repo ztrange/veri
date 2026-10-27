@@ -164,16 +164,15 @@ def resign(unit, own, tree):
 
 
 def convert(path):
-    if not os.path.exists(path):
-        return 0
-    for unit in requirements.listed_units(path):
-        try:
-            tree = signer().signature(path, unit)
-        except Exception as e:
-            print("grade-prose.sh: signature-formula-disagreement: %s: the tree's formula gave none (%s)" % (unit, e),
-                  file=sys.stderr)
-            return 2
-        resign(unit, signature(path, unit), tree)
+    for listed in requirements.lists(path):
+        for unit in requirements.listed_units(listed):
+            try:
+                tree = signer().signature(listed, unit)
+            except Exception as e:
+                print("grade-prose.sh: signature-formula-disagreement: %s: the tree's formula gave none (%s)" % (unit, e),
+                      file=sys.stderr)
+                return 2
+            resign(unit, signature(listed, unit), tree)
 
 
 def main(argv):

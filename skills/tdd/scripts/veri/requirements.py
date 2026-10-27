@@ -1,5 +1,6 @@
 """requirements.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import glob
 import os
 import re
 import sys
@@ -107,6 +108,11 @@ def units(path):
 
 def listed_units(path):
     return declared_units(path, lambda e: str(e).endswith("unit has no table"))
+
+
+def lists(path="REQUIREMENTS.md"):
+    nested = set(glob.glob("*/REQUIREMENTS.md")) | set(glob.glob("skills/*/**/REQUIREMENTS.md", recursive=True))
+    return [p for p in [path] + sorted(nested) if os.path.exists(p)]
 
 
 def fail(path, number, msg):
