@@ -113,7 +113,8 @@ def main(argv):
         if carries_mark(markers, "fixture-repair"):
             marked["FIXTURE_REPAIR"] = f"{prompts}/_develop-green-fixture-repair.md"
         repair = carries_mark(markers, "suite-repair") or carries_mark(markers, "ci-repair")
-        freeze.append(f"{prompts}/_develop-{'repair-test-edit' if repair else 'green-freeze-rule'}.md")
+        if not (repair and phase == "revise"):
+            freeze.append(f"{prompts}/_develop-{'repair-test-edit' if repair else 'green-freeze-rule'}.md")
         if not repair and "\u27e6guard-subject: " in markers:
             freeze.append(f"{prompts}/_develop-guard-subject-grant.md")
     if revised_phase in INTERFACE_PHASES:
@@ -194,6 +195,8 @@ def main(argv):
         lazy["FREEZE_RULE"] = lambda: b"".join(_expand(b"\n\n" + _read(path), prompts_b) for path in freeze)
         if revised_phase == "green" and repair:
             lazy["TEST_REWRITE"] = lambda: lazy["FREEZE_RULE"]().lstrip(b"\n")
+    if phase == "revise" and revised_phase == "green" and repair:
+        lazy["TEST_REWRITE"] = lambda: b""
     for name, value in values.items():
         placeholder = b"{{" + name.encode() + b"}}"
         if name in lazy and placeholder in text:
