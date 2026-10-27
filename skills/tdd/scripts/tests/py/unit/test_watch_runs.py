@@ -278,3 +278,34 @@ def test_solvable_issues_asks_the_solvable_issues_script_beside_watch_runs_throu
     module.solvable_issues()
 
     assert calls == [[f"{link}/veri/../solvable-issues.sh", "--not-running"]]
+
+
+def test_2545_main_keeps_watching_when_a_run_not_live_at_start_has_its_worktree_removed_mid_read(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    status = watch_runs.status
+    run = tmp_path / ".tdd" / "wt" / "9"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "issue-9.md").write_text("# Plan for #9 — t\n")
+    (run / ".tdd" / "events.jsonl").write_text(json.dumps({"ts": 100, "issue": "9", "event": "launch"}) + "\n")
+    real_read_events = status.read_events
+    polls = []
+
+    def read_after_removal(path, *args, **kwargs):
+        if polls:
+            (run / ".tdd" / "events.jsonl").unlink(missing_ok=True)
+        return real_read_events(path, *args, **kwargs)
+
+    ticks = iter([0, 1])
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status, "branch_of", lambda run: "b")
+    monkeypatch.setattr(status, "issue_states", lambda: {})
+    monkeypatch.setattr(status, "read_events", read_after_removal)
+    monkeypatch.setattr(watch_runs, "wait", lambda: polls.append(1))
+    monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks) * 10)
+
+    try:
+        code = watch_runs.main(["--max-wait", "5"])
+    except FileNotFoundError:
+        code = "FileNotFoundError"
+
+    assert (code, capsys.readouterr().out) == (3, "timeout\n")
