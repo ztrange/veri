@@ -57,6 +57,34 @@ def start_conductor(tmp_path, issue):
     return Conductor(proc, int(pid_file.read_text()))
 
 
+def watch_hook(tmp_path):
+    """Env for a watcher that touches a marker file as it first goes to wait, i.e. once its snapshot of live conductors is taken."""
+    hook = tmp_path / "hook"
+    hook.mkdir(exist_ok=True)
+    marker = tmp_path / "watcher-snapshotted"
+    (hook / "sitecustomize.py").write_text(
+        "import os, time\n"
+        "_sleep = time.sleep\n"
+        "def sleep(seconds):\n"
+        "    if os.environ.get('WATCH_MARKER'):\n"
+        "        open(os.environ['WATCH_MARKER'], 'w').close()\n"
+        "    _sleep(seconds)\n"
+        "time.sleep = sleep\n")
+    env = {**os.environ, "WATCH_MARKER": str(marker),
+           "PYTHONPATH": os.pathsep.join(filter(None, [str(hook), os.environ.get("PYTHONPATH")]))}
+    return env, marker
+
+
+def wait_for_snapshot(watcher, marker, bound=10):
+    deadline = time.monotonic() + bound
+    while not marker.exists():
+        if time.monotonic() >= deadline:
+            watcher.kill()
+            watcher.wait()
+            pytest.fail("the watcher never took its snapshot of the live conductors: %s" % marker)
+        time.sleep(0.02)
+
+
 @pytest.mark.process("watch-runs.sh as a real process over real conductor pid files")
 @pytest.mark.serial("waits on a subprocess timeout of its own, which expires when every core is busy")
 def test_it_exits_only_when_the_second_of_two_running_conductors_exits_printing_that_issue_1930(tmp_path):
@@ -75,13 +103,14 @@ def test_it_exits_only_when_the_second_of_two_running_conductors_exits_printing_
         make_run(repo, 101, first.pid)
         make_run(repo, 102, gone.pid)
         make_run(repo, 103, second.pid)
-        watcher = subprocess.Popen([str(SHIM), "--max-wait", "10"], cwd=repo, stdin=subprocess.DEVNULL,
-                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        time.sleep(1)
+        env, marker = watch_hook(tmp_path)
+        watcher = subprocess.Popen([str(SHIM), "--max-wait", "15"], cwd=repo, stdin=subprocess.DEVNULL,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+        wait_for_snapshot(watcher, marker)
         second.terminate()
         second.wait()
         (repo / ".tdd" / "wt" / "103" / ".tdd" / "conductor.pid").write_text("%d\n" % reused.pid)
-        out, err = watcher.communicate(timeout=20)
+        out, err = watcher.communicate(timeout=15)
     finally:
         if watcher.poll() is None:
             watcher.kill()
@@ -254,9 +283,10 @@ def test_it_prints_exactly_one_exit_line_when_a_conductor_whose_leaf_reaps_child
                 pytest.fail("the stub never wrote its pid file: %s" % pid_file)
             time.sleep(0.05)
         make_run(repo, 201, int(pid_file.read_text()))
+        env, marker = watch_hook(tmp_path)
         watcher = subprocess.Popen([str(SHIM), "--max-wait", "20"], cwd=repo, stdin=subprocess.DEVNULL,
-                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        time.sleep(1)
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+        wait_for_snapshot(watcher, marker)
         proc.terminate()
         proc.wait()
         out, err = watcher.communicate(timeout=25)
