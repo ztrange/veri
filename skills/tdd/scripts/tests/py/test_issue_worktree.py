@@ -1047,6 +1047,43 @@ def test_hand_back_of_a_worktree_whose_base_is_behind_the_fetched_default_tip_re
     assert (refused or rebased, code, out, err) == (True, code, out, err)
 
 
+@pytest.mark.process("a stand-in conductor (a claude under run_conductor.py) left running beside git clone and git worktree add")
+def test_hand_back_of_a_stale_based_worktree_held_by_a_live_conductor_still_refuses_naming_its_pid_and_rebases_nothing_issue_2460(
+        tmp_path, issue_worktree, run_cli):
+    import time
+
+    upstream, clone = scratch_clone(tmp_path, "held-stale")
+    want = scratch_wt_path(clone, 2460)
+    run_cli(issue_worktree, ["2460", "held-stale"], cwd=clone)
+    base = scratch_git(want, "rev-parse", "HEAD")
+    scratch_git(upstream, "commit", "-q", "--allow-empty", "-m", "main moves on")
+    claude_pid = tmp_path / "claude.pid"
+    claude = tmp_path / "claude"
+    claude.write_text('#!/bin/sh\necho $$ > "%s"\nsleep 30\n' % claude_pid)
+    launcher = tmp_path / "run_conductor.py"
+    launcher.write_text('#!/bin/sh\n"%s" -p run\n' % claude)
+    for stub in (claude, launcher):
+        stub.chmod(0o755)
+    parent = subprocess.Popen([str(launcher), "2460"])
+    try:
+        for _ in range(200):
+            if claude_pid.exists() and claude_pid.read_text().strip():
+                break
+            time.sleep(0.05)
+        holder = claude_pid.read_text().strip()
+        pathlib.Path(want, ".tdd").mkdir(parents=True, exist_ok=True)
+        pathlib.Path(want, ".tdd", "conductor.pid").write_text(holder + "\n")
+        code, out, err = run_cli(issue_worktree, ["2460", "held-stale"], cwd=clone)
+    finally:
+        if claude_pid.exists() and claude_pid.read_text().strip():
+            os.kill(int(claude_pid.read_text()), 15)
+        parent.terminate()
+        parent.wait()
+
+    assert (code, out, "live conductor (pid %s)" % holder in err, scratch_git(want, "rev-parse", "HEAD")) == (
+        2, "", True, base)
+
+
 @pytest.mark.process("git clone and git worktree add on scratch repositories, origin ahead of the clone")
 def test_origins_default_branch_is_ahead_of_the_local_one_cuts_tdd_35_from_remote_tip_from_origins_tip(
         tmp_path, issue_worktree, run_cli):
