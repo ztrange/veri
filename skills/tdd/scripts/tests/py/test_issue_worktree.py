@@ -82,6 +82,25 @@ def test_cli_hands_back_a_registered_worktree_whose_pid_file_holds_non_utf8_byte
     assert (code, out, err) == (0, path + "\n", "")
 
 
+def test_cli_hand_back_leaves_a_marker_in_the_worktrees_tdd_dir_with_the_path_alone_on_stdout_issue_2460(
+        monkeypatch, tmp_path, issue_worktree, run_cli):
+    main_tree = str(tmp_path / "repo")
+    path = f"{main_tree}/.tdd/wt/2460"
+    registry = ("worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n"
+                "worktree %s\nHEAD 2222222222222222222222222222222222222222\nbranch refs/heads/tdd/2460-marker\n\n"
+                % (main_tree, path))
+    listing = ("git", "worktree", "list", "--porcelain")
+    tdd = pathlib.Path(path) / ".tdd"
+    tdd.mkdir(parents=True)
+    (tdd / "events.jsonl").write_text("")
+    routing_git(monkeypatch, {listing: (0, registry, "")})
+
+    code, out, err = run_cli(issue_worktree, ["2460", "marker"], cwd=tmp_path)
+
+    marker = sorted(p.name for p in tdd.iterdir() if p.name != "events.jsonl")
+    assert (code, out, err, len(marker)) == (0, path + "\n", "", 1)
+
+
 def test_cli_refuses_an_n_that_is_not_a_positive_whole_number_with_the_usage_line_and_runs_no_git(
         monkeypatch, tmp_path, issue_worktree, run_cli):
     for n in ("abc", "0", "-3", "7a", "../escape"):
