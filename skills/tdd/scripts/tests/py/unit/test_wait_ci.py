@@ -1454,3 +1454,28 @@ def test_main_ends_4_only_where_every_workflow_positively_has_no_opening_pull_re
     code, _, _ = run_cli(wait_ci, [PR, "120", "600", FULL_SHA], env={"VERI_POLL": "10"}, cwd=work)
 
     assert code == expected
+
+
+@pytest.mark.parametrize("body, listing, expected", [
+    ("on: !!binary |\n  cHVsbF9yZXF1ZXN0\n", WORKFLOW_LISTING, 3),
+    ("# CI\n\nThis directory holds the workflows.\n", WORKFLOW_LISTING, 4),
+    ((1, "", "gh: HTTP 500: Server Error\n"), WORKFLOW_LISTING, 3),
+    ("", (1, "[]", "gh: HTTP 502: Bad Gateway\n"), 3),
+])
+def test_main_counts_what_it_cannot_classify_as_running_on_pull_requests_but_a_file_without_an_on_region_as_nothing_issue_2488(
+        tmp_path, wait_ci, fake_processes, run_cli, body, listing, expected):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([], [], "pending")
+
+    def answer(line):
+        if "workflows/ci.yml" in line:
+            return body
+        if ".github/workflows" in line:
+            return listing
+        return None
+
+    served(fake_processes, bodies, answer)
+    code, _, _ = run_cli(wait_ci, [PR, "120", "600", FULL_SHA], env={"VERI_POLL": "10"}, cwd=work)
+
+    assert code == expected

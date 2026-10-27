@@ -124,7 +124,7 @@ OPENING_TYPES = {"opened", "synchronize", "reopened", "ready_for_review"}
 def on_region(text):
     lines = [re.sub(r"(^|\s)#.*", "", line) for line in text.splitlines()]
     for i, line in enumerate(lines):
-        head = re.match(r"on\s*:", line)
+        head = re.match(r"['\"]?on['\"]?\s*:", line)
         if head:
             region = [line[head.end():]]
             for more in lines[i + 1:]:
@@ -156,7 +156,11 @@ def trigger_block(region, row, col):
 
 def opens_checks(text):
     region = on_region(text)
+    if re.search(r"[\x00-\x08\x0e-\x1f]", text):
+        return True
     if region is None:
+        return False
+    if region[0].lstrip().startswith("!"):
         return True
     for row, line in enumerate(region):
         for key in re.finditer(r"pull_request(?:_target)?", line):
