@@ -171,7 +171,7 @@ echo "git $*" >> "$CALL_LOG"
 case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
   *"rev-parse --verify HEAD"*) echo abc1234; exit 0 ;;
-  *"merge-base --is-ancestor"*|*"cat-file -e"*) exit 0 ;;
+  *"merge-base --is-ancestor"*|*"cat-file -e"*|*"branch -D"*) exit 0 ;;
 esac
 for word in "$@"; do
   case "$word" in
@@ -211,8 +211,11 @@ def test_queued_merge_with_green_ci_rebase_merges_the_pr_for_the_pushed_head_del
     calls = call_log.read_text().splitlines()
     rebase_merges = [c for c in calls if c.startswith("gh pr merge") and "--rebase" in c and "abc1234" in c]
     branch_deleted = any("--delete" in c and "feature" in c for c in calls)
-    worktree_removed = any(c.startswith("git") and "worktree remove" in c for c in calls)
-    assert (merged.returncode, second, len(rebase_merges), branch_deleted, worktree_removed) == (0, 0, 1, True, True)
+    worktree_removes = [i for i, c in enumerate(calls) if c.startswith("git") and "worktree remove" in c]
+    local_deletes = [i for i, c in enumerate(calls) if c.startswith("git") and c.endswith(" branch -D feature")]
+    deleted_once_after_remove = len(local_deletes) == 1 and bool(worktree_removes) and local_deletes[0] > worktree_removes[-1]
+    assert (merged.returncode, second, len(rebase_merges), branch_deleted, bool(worktree_removes), deleted_once_after_remove) == (
+        0, 0, 1, True, True, True)
 
 
 FAKE_GH_UNMERGED = FAKE_GH_GREEN.replace(
@@ -259,7 +262,7 @@ esac
 case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
   *"rev-parse --verify HEAD"*) echo abc1234; exit 0 ;;
-  *"merge-base --is-ancestor"*|*"cat-file -e"*) exit 0 ;;
+  *"merge-base --is-ancestor"*|*"cat-file -e"*|*"branch -D"*) exit 0 ;;
 esac
 for word in "$@"; do
   case "$word" in
