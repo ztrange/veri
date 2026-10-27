@@ -17,6 +17,11 @@ from extract_result import extract
 from leaf_log import result_records
 from run_verdict import SCRIPTS
 
+try:
+    from veri import leaf
+except ImportError:
+    import leaf
+
 USAGE = "usage: grade-prose.sh <requirements-file> <unit>"
 BAD_GRADE = re.compile(r"^(?!VERDICT)\S+: (?!PASS\b|FAIL\b)\S", re.M)
 
@@ -158,8 +163,7 @@ def main(argv):
               % raw_retries, file=sys.stderr)
         return 2
     def launch(path):
-        ran = subprocess.run([os.path.join(SCRIPTS, "supervise.sh"), "grade-prose",
-                        os.path.join(SCRIPTS, "run-leaf.sh"), path], stdout=subprocess.PIPE, env=env)
+        ran = leaf.launch("grade-prose", path, env=env)
         if ran.returncode:
             return None
         with open(os.path.join(".tdd", "grade-prose.log"), encoding="utf-8") as log:
