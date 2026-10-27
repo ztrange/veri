@@ -1,5 +1,6 @@
 """In-process cases for veri/skill_edit_step.py, the module skill-edit-step.sh is a shim over."""
 import importlib
+import json
 
 
 def test_apply_adds_the_issue_rows_the_units_list_lacks_at_its_end_and_no_row_the_issue_does_not_state(tmp_path, monkeypatch):
@@ -1145,38 +1146,50 @@ def test_a_change_step_on_a_unit_already_graded_pass_grades_the_authors_edit_tho
     import subprocess
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
     skill_edit_guard = skill_edit_step.skill_edit_guard
+    leaf = importlib.import_module("veri.leaf")
+    grade_prose = skill_edit_step.grade_prose
     original = "The widget is painted a deep blue.\n- a merge is in flight;\n"
     edited = "The widget is painted a deep blue.\n"
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text(original)
     (tmp_path / "REQUIREMENTS.md").write_text(
         "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
     (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    (tmp_path / ".tdd").mkdir()
     graded_texts = []
 
-    def grade(path, unit):
-        graded_texts.append((tmp_path / unit).read_text())
-        (tmp_path / "GRADED").write_text("sig\n")
-        return 0, ""
+    def launch(name, prompt, *args, env=None):
+        if name == "grade-prose":
+            graded_texts.append((tmp_path / "unit.md").read_text())
+            (tmp_path / ".tdd" / "grade-prose.log").write_text(
+                '{"type":"result","subtype":"success","is_error":false,"result":'
+                '"BEGIN GRADES\\nA1: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n')
+        else:
+            (tmp_path / "unit.md").write_text(edited)
+        return subprocess.CompletedProcess([name], 0, b"", None)
 
     def run(cmd, **kw):
-        if cmd[0].endswith("supervise.sh"):
-            (tmp_path / "unit.md").write_text(edited)
         return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
 
-    monkeypatch.setattr(skill_edit_step, "_grade", grade)
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
     monkeypatch.setattr(skill_edit_guard, "_git_ok", lambda *a: True)
     monkeypatch.setattr(skill_edit_guard, "_git_lines", lambda *a: sorted(
-        p.name for p in tmp_path.iterdir()) if a[0] == "ls-files" else [])
-    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
-    monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
+        p.name for p in tmp_path.iterdir() if p.name not in (".tdd", "skills")) if a[0] == "ls-files" else [])
+    monkeypatch.setattr(grade_prose, "modern_python_dir", lambda: "")
     monkeypatch.setattr(subprocess, "run", run)
+    monkeypatch.setattr(leaf, "launch", launch)
 
     code, out, err = run_cli(skill_edit_step, ["--change", "delete the bullet - a merge is in flight;",
                                                "issue.md", "unit.md"],
                              env={"VERI_SKILL_EDIT_BUDGET": "1"})
 
+    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    gradings = [e for e in events if e.get("event") == "grading"]
     assert graded_texts == [original, edited], (code, out, err, graded_texts)
     assert (code, (tmp_path / "unit.md").read_text()) == (0, edited), (code, out, err)
+    assert [(e.get("unit"), e.get("verdict")) for e in gradings] == [("unit.md", "PASS")] * 2, (events, err)
+    assert gradings[-1]["id"] in (tmp_path / "GRADED").read_text(), (gradings, err)
 
 
 def test_a_change_step_on_a_unit_already_graded_pass_whose_author_writes_a_stray_path_has_it_flagged_and_restored_and_grades_no_attempt_2490(tmp_path, monkeypatch, run_cli):
