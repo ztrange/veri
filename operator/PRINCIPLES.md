@@ -60,8 +60,10 @@ on the cheapest model that can do the read, briefed to return at most 10 lines. 
 leaf's `.out` file into your own context.
 
 **Read cost from the total row (P7).** A cost is the `| total |` row of the report that
-carries it (`$S/metrics.sh <n>`'s `#### Total` section, or the run's committed metrics
-report). Never add up phase or step rows: they overlap, and the sum double-counts.
+carries it. A complete run's cost is the `| total |` row of `$S/metrics.sh <n>`'s
+`#### Total` section (or the run's committed metrics report), which includes the conductor's
+own spending, or which says in the report that it excludes it when it cannot price that
+spending. Never add up phase or step rows: they overlap, and the sum double-counts.
 
 **Lowering N stops nothing (P8).** When the conductor count N goes down, no live run is
 stopped. The next conductor that exits is simply not replaced, until the count is at N.
