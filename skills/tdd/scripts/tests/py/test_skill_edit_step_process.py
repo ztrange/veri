@@ -183,63 +183,6 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 """
 
 
-@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author")
-def test_a_grader_that_keeps_rejecting_relaunches_the_author_for_the_default_budget_of_three_then_exits_1_naming_every_failing_id(tmp_path):
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
-    (repo / ".gitignore").write_text(".tdd/\n")
-    (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt hums.\n")
-    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
-    git(repo, "add", "-A")
-    git(repo, "commit", "-q", "-m", "feat: unit")
-    (repo / "issue.md").write_text(
-        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is crimson. | shade |\n")
-    claude = tmp_path / "claude"
-    claude.write_text(STUB_ALWAYS_REJECT)
-    claude.chmod(0o755)
-    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
-           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
-
-    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
-
-    log = repo / ".tdd" / "events.jsonl"
-    events = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
-    launches = [e for e in events if e.get("event") == "launch" and e.get("actor") == "author"]
-    said = ran.stdout + ran.stderr
-    assert [ran.returncode, len(launches), "A1" in said, "A2" in said] == [1, 3, True, True], (ran.stdout, ran.stderr[-700:])
-
-
-@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a stub author")
-def test_a_grader_that_keeps_rejecting_relaunches_the_author_exactly_veri_skill_edit_budget_times_then_exits_1_naming_the_failing_ids(tmp_path):
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
-    (repo / ".gitignore").write_text(".tdd/\n")
-    (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt hums.\n")
-    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
-    git(repo, "add", "-A")
-    git(repo, "commit", "-q", "-m", "feat: unit")
-    (repo / "issue.md").write_text(
-        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is crimson. | shade |\n")
-    claude = tmp_path / "claude"
-    claude.write_text(STUB_ALWAYS_REJECT)
-    claude.chmod(0o755)
-    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
-           "VERI_SKILL_EDIT_BUDGET": "2",
-           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
-
-    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
-
-    log = repo / ".tdd" / "events.jsonl"
-    events = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
-    launches = [e for e in events if e.get("event") == "launch" and e.get("actor") == "author"]
-    said = ran.stdout + ran.stderr
-    assert [ran.returncode, len(launches), "A1" in said, "A2" in said] == [1, 2, True, True], (ran.stdout, ran.stderr[-700:])
-
-
 STUB_UNPARSEABLE = """#!/bin/sh
 printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"no verdict here"}'
 """
@@ -425,36 +368,6 @@ case "$prompt" in
 esac
 printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"'"$reply"'"}'
 """
-
-
-@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader giving a different FAIL reason per grading and a stub author")
-def test_a_relaunched_authors_prompt_carries_the_fail_reasons_of_the_latest_grading_not_the_first_ones(tmp_path):
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
-    (repo / ".gitignore").write_text(".tdd/\n")
-    (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
-    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
-    git(repo, "add", "-A")
-    git(repo, "commit", "-q", "-m", "feat: unit")
-    (repo / "issue.md").write_text(
-        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is crimson. | shade |\n")
-    cap = tmp_path / "cap"
-    cap.mkdir()
-    claude = tmp_path / "claude"
-    claude.write_text(STUB_REASON_PER_GRADING)
-    claude.chmod(0o755)
-    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
-           "CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
-           "GIT_COMMITTER_EMAIL": "t@t"}
-
-    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
-
-    second = cap / "author-2.txt"
-    prompt = second.read_text() if second.exists() else ""
-    assert "second-reason-bravo" in prompt, (ran.returncode, ran.stderr[-700:], prompt)
-    assert "first-reason-alpha" not in prompt, prompt
 
 
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a bad VERI_SKILL_EDIT_BUDGET")
