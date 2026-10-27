@@ -8,6 +8,16 @@ import run_end
 import tunables
 
 
+def killed_external(events):
+    exits = [i for i, e in enumerate(events) if e.get("event") == "exit"]
+    if not exits or events[exits[-1]].get("cause") != "killed-external":
+        return ""
+    for e in reversed(events[:exits[-1]]):
+        if e.get("event") == "launch":
+            return e.get("name", "")
+    return ""
+
+
 def main(argv):
     if len(argv) != 1:
         sys.stderr.write("usage: stop-reason.sh <issue>\n")
@@ -38,6 +48,8 @@ def main(argv):
         sys.stdout.write("bailed %s %s\n" % (mark.get("phase"), mark.get("classification")))
     elif cause == "stopped":
         sys.stdout.write("stopped %s\n" % mark.get("mode"))
+    elif killed_external(events):
+        sys.stdout.write("killed-external %s\n" % killed_external(events))
     elif not os.path.isfile(conductor_log):
         sys.stderr.write("stop-reason.sh: no conductor log at %s\n" % conductor_log)
         return 2
