@@ -35,3 +35,14 @@
 | EX4 | Step 3 tells the leaf to commit the change as `refactor: <what changed> (#<issue>)`. (Numbered list, item 3, first sentence.) | The commit carries the issue number. |
 | EX5 | Step 3 tells the leaf never to modify a test file: an expand commit that touches one is rejected. (Numbered list, item 3, second sentence.) | The frozen half of the phase is enforced by rejection. |
 | EX6 | The numbered list has three items in this order: add the interface and proxy the old one (1), run the suites covering the touched files (2, an included fragment), commit (3). (Numbered list.) | The change is proven green before it is committed. |
+
+## skills/tdd/scripts/prompts/develop-migrate.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| MG1 | The prompt says this is the migrate phase of an interface change: the new interface exists, the old one is a proxy over it, and the callers move to the new interface. (Opening paragraph, first two sentences.) | The leaf must know the state it starts from and what it moves. |
+| MG2 | The prompt says behaviour does not change: every test that was green stays green, and test files stay frozen. (Opening paragraph, last sentence.) | The migrate is a refactor; a changed test would hide a behaviour change. |
+| MG3 | Step 1 tells the leaf to move every product caller of the old interface to the new interface, and to leave the old interface in place, because removing it is the contract phase. (Numbered list, item 1.) | The proxy's removal is later work, so a missed caller still works through the proxy. |
+| MG4 | Step 3 tells the leaf to commit the change as `refactor: <what changed> (#<issue>)`. (Numbered list, item 3, first sentence.) | The commit carries the issue number. |
+| MG5 | Step 3 tells the leaf never to modify a test file: a migrate commit that touches one is rejected. (Numbered list, item 3, second sentence.) | The frozen half of the phase is enforced by rejection. |
+| MG6 | The numbered list has three items in this order: move the callers (1), run the suites covering the touched files (2, an included fragment), commit (3). (Numbered list.) | The change is proven green before it is committed. |
