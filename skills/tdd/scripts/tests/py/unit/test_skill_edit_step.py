@@ -1182,3 +1182,44 @@ def test_a_change_step_on_a_unit_already_graded_pass_grades_the_authors_edit_tho
 
     assert graded_texts == [original, edited], (code, out, err, graded_texts)
     assert (code, (tmp_path / "unit.md").read_text()) == (0, edited), (code, out, err)
+
+
+def test_a_change_step_on_a_unit_already_graded_pass_whose_author_writes_a_stray_path_has_it_flagged_and_restored_and_grades_no_attempt_2490(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    skill_edit_guard = skill_edit_step.skill_edit_guard
+    original = "The widget is painted a deep blue.\n- a merge is in flight;\n"
+    edited = "The widget is painted a deep blue.\n"
+    (tmp_path / "unit.md").write_text(original)
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    grades = []
+
+    def grade(path, unit):
+        grades.append((tmp_path / unit).read_text())
+        (tmp_path / "GRADED").write_text("sig\n")
+        return 0, ""
+
+    def run(cmd, **kw):
+        if cmd[0].endswith("supervise.sh"):
+            (tmp_path / "unit.md").write_text(edited)
+            (tmp_path / "stray.txt").write_text("stray\n")
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", grade)
+    monkeypatch.setattr(skill_edit_guard, "_git_ok", lambda *a: True)
+    monkeypatch.setattr(skill_edit_guard, "_git_lines", lambda *a: sorted(
+        p.name for p in tmp_path.iterdir()) if a[0] == "ls-files" else [])
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
+    monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, ["--change", "delete the bullet - a merge is in flight;",
+                                               "issue.md", "unit.md"],
+                             env={"VERI_SKILL_EDIT_BUDGET": "1"})
+
+    assert grades == [original], (code, out, err, grades)
+    assert (code, (tmp_path / "stray.txt").exists(), (tmp_path / "unit.md").read_text()) == (1, False, original), (code, out, err)
