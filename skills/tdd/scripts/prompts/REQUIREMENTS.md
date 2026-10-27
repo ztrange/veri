@@ -81,3 +81,9 @@
 | ID | Requirement | Why |
 |---|---|---|
 | LM1 | The fragment says a ` ⟂ refactor pending` mark must survive exactly as it is. (The whole fragment.) | A step's green tick appends the mark and only its verify-refactor PASS removes it, so a rewritten or lost mark makes a resumed run misread green as finished. |
+
+## skills/tdd/scripts/prompts/_develop-ledger-tick.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| LT1 | The fragment names the `[x]` tick as the first of two ledger marks, and opens the second with "every"; the sentence it belongs to is completed by the next included fragment. (The whole fragment.) | A lost `[x]` tick re-opens a done step; the fragment is the first half of the sentence that protects it. |
