@@ -92,12 +92,25 @@ cat "%s/ticks" 2>/dev/null || echo 0
 """
 
 
-def run_queued_leaf_past_window(tmp_path, limits):
+NEW_SESSION = """\
+import os, subprocess, sys
+child = subprocess.Popen([sys.executable, %r], start_new_session=True)
+open(%r, "w").write(str(child.pid))
+sys.exit(child.wait())
+"""
+
+
+def run_queued_leaf_past_window(tmp_path, limits, own_session=False):
     work = tmp_path / "work"
     work.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=work, check=True)
     script = work / "full_run.py"
     script.write_text(SHORT_FULL_RUN % (str(SCRIPTS), str(SCRIPTS / "veri")))
+    pidfile = tmp_path / "full_run.pid"
+    if own_session:
+        tool = work / "tool_shell.py"
+        tool.write_text(NEW_SESSION % (str(script), str(pidfile)))
+        script = tool
     state = tmp_path / "state"
     state.mkdir()
     shims = tmp_path / "shims"
@@ -123,7 +136,14 @@ def run_queued_leaf_past_window(tmp_path, limits):
     finally:
         fcntl.flock(held, fcntl.LOCK_UN)
         held.close()
-    out, err = ran.communicate(timeout=30)
+    try:
+        out, err = ran.communicate(timeout=30)
+    finally:
+        if own_session:
+            try:
+                os.kill(int(pidfile.read_text()), 9)
+            except (OSError, ValueError):
+                pass
     return ran.returncode, err
 
 
@@ -143,46 +163,12 @@ def test_2380_a_leaf_queued_on_the_full_suite_lock_past_the_silence_window_is_no
     assert code == 0, err
 
 
-NEW_SESSION = """\
-import os, subprocess, sys
-child = subprocess.Popen([sys.executable, %r], start_new_session=True)
-open(%r, "w").write(str(child.pid))
-sys.exit(child.wait())
-"""
-
-
-@pytest.mark.process("supervise.sh runs a real leaf whose full run, in a session of its own as a Bash tool command is, queues behind a lock the test holds past VERI_TIMEOUT")
+@pytest.mark.process("supervise.sh runs a real leaf whose full run, in a session of its own as a Bash tool command is, queues behind a lock the test holds until the injected clock passes VERI_TIMEOUT")
 @pytest.mark.timeout(60)
 def test_2380_a_leaf_whose_full_run_queues_on_the_lock_from_its_own_process_group_past_the_hard_timeout_is_not_killed_stuck(tmp_path):
-    work = tmp_path / "work"
-    work.mkdir()
-    subprocess.run(["git", "init", "-q"], cwd=work, check=True)
-    script = work / "full_run.py"
-    script.write_text(SHORT_FULL_RUN % (str(SCRIPTS), str(SCRIPTS / "veri")))
-    pidfile = tmp_path / "full_run.pid"
-    tool = work / "tool_shell.py"
-    tool.write_text(NEW_SESSION % (str(script), str(pidfile)))
-    held = open(str(tmp_path / "legs") + "-full.lock", "a+")
-    fcntl.flock(held, fcntl.LOCK_EX)
-    release = threading.Timer(6, lambda: (fcntl.flock(held, fcntl.LOCK_UN), held.close()))
-    release.start()
+    code, err = run_queued_leaf_past_window(tmp_path, {"VERI_TIMEOUT": "2", "VERI_HEARTBEAT": "600"}, own_session=True)
 
-    try:
-        ran = subprocess.run([str(SCRIPTS / "supervise.sh"), "verify-rebase", sys.executable, str(tool)],
-                             cwd=work, capture_output=True, text=True, timeout=30,
-                             env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
-                                  "VERI_POLL": "0.05", "VERI_TIMEOUT": "4", "VERI_HEARTBEAT": "600",
-                                  "HOME": str(tmp_path), "VERI_PYTEST_LEGS": str(tmp_path / "legs"),
-                                  "VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1",
-                                  "VERI_PYTEST_XDIST_IMPORTABLE": "1", "PYTHONDONTWRITEBYTECODE": "1"})
-    finally:
-        release.join()
-        try:
-            os.kill(int(pidfile.read_text()), 9)
-        except (OSError, ValueError):
-            pass
-
-    assert ran.returncode == 0, ran.stderr
+    assert code == 0, err
 
 
 HANG_AFTER_LOCK = """\
