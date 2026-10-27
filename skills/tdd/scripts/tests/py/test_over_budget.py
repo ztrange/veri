@@ -202,7 +202,7 @@ def test_main_answers_in_full_under_the_tunables_when_any_start_of_time_budget_s
     assert (code, out, err) == (2, "", "time-budget: VERI_TIME_WARN_RATIO must be a number: x\n")
 
 
-def test_cli_prints_one_clock_line_for_an_over_budget_run_and_nothing_for_one_that_is_not_and_skill_md_says_to_paste_it_and_branch_on_nothing(run_cli, over_budget):
+def test_cli_prints_one_clock_line_for_an_over_budget_run_and_nothing_for_one_that_is_not(run_cli, over_budget):
     env = {"VERI_UNIT_BUDGET": "10", "VERI_TIME_WARN_RATIO": "1.5"}
     code, out, err = run_cli(over_budget, ["unit", "12", "100"], env=env)
     assert (code, out.count("\n"), "⏱" in out, err) == (0, 1, True, "")
