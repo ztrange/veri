@@ -40,7 +40,16 @@ VENV_OK = 'case "$*" in *platform*) echo 3.13.1 ;; esac\nexit 0\n'
 VENV_OLD = 'case "$*" in *version_info*) exit 1 ;; *platform*) echo 3.11.2 ;; esac\nexit 0\n'
 
 
+def floor_path(tmp_path):
+    bin_dir = tmp_path / "floor-bin"
+    bin_dir.mkdir(exist_ok=True)
+    if not (bin_dir / "python3").exists():
+        (bin_dir / "python3").symlink_to(sys.executable)
+    return str(bin_dir) + os.pathsep + os.environ["PATH"]
+
+
 def conductor(tmp_path, **env):
+    env.setdefault("PATH", floor_path(tmp_path))
     work = tmp_path / "work"
     work.mkdir(exist_ok=True)
     code, out, err = run([str(SCRIPTS / "run-conductor.sh"), "4242"], work, CLAUDE_BIN=str(claude_stub(tmp_path)),
@@ -49,6 +58,7 @@ def conductor(tmp_path, **env):
 
 
 def launchable(tmp_path, **env):
+    env.setdefault("PATH", floor_path(tmp_path))
     code, out, err = run([str(SCRIPTS / "leaf-launchable.sh")], tmp_path, CLAUDE_BIN=str(claude_stub(tmp_path)),
                          LAUNCHED=str(tmp_path / "ll-launched"), **env)
     return code, err
