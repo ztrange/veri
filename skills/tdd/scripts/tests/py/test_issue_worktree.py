@@ -852,6 +852,22 @@ def test_fresh_call_creates_a_worktree_at_dot_tdd_wt_7_on_a_new_branch_off_the_d
 
 
 @pytest.mark.process("git worktree add on a scratch repository whose path holds the run state a conductor seeds")
+def test_fresh_cut_leaves_no_handed_back_marker_with_the_path_alone_on_stdout_issue_2460(
+        tmp_path, issue_worktree, run_cli):
+    repo = scratch_repo(tmp_path / "unmarked")
+    want = scratch_wt_path(repo, 12)
+    state = pathlib.Path(want, ".tdd")
+    state.mkdir(parents=True)
+    (state / "events.jsonl").write_bytes(b'{"event":"seeded"}\n')
+    (state / "conductor.pid").write_bytes(b"4242\n")
+
+    code, out, err = run_cli(issue_worktree, ["12", "unmarked"], cwd=repo)
+
+    assert (code, out, err, sorted(p.name for p in state.iterdir())) == (
+        0, want + "\n", "", ["conductor.pid", "events.jsonl"])
+
+
+@pytest.mark.process("git worktree add on a scratch repository whose path holds the run state a conductor seeds")
 def test_fresh_call_cuts_the_worktree_and_keeps_the_seeded_events_and_conductor_pid_issue_2249(
         tmp_path, issue_worktree, run_cli):
     repo = scratch_repo(tmp_path / "seeded")
