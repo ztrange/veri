@@ -1189,3 +1189,34 @@ def test_2483_a_unit_graded_on_a_tree_carrying_its_own_signature_formula_is_stil
 
     assert (graded.returncode, owed.returncode, owed.stdout.split()) == (0, 0, []), \
         (graded.returncode, graded.stderr, owed.returncode, owed.stdout, owed.stderr)
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude against a tree whose own signature raises")
+@pytest.mark.tree_audit("copies the skill's scripts into a scratch tree")
+def test_2483_a_passing_grade_whose_tree_formula_cannot_be_obtained_writes_no_line_and_names_the_disagreement(tmp_path):
+    import shutil
+
+    tree_scripts = tmp_path / "skills" / "tdd" / "scripts"
+    shutil.copytree(SCRIPTS, tree_scripts, ignore=shutil.ignore_patterns("tests", "__pycache__", "REQUIREMENTS.md"))
+    shutil.copy(SCRIPTS.parent / "grader.conf", tmp_path / "skills" / "tdd" / "grader.conf")
+    module = tree_scripts / "veri" / "grade_prose.py"
+    source = module.read_text()
+    formula = "parts = [unit_text(unit), requirements.claims(path, unit), grader_model()]"
+    assert formula in source
+    module.write_text(source.replace(formula, formula + "\n    raise RuntimeError(\"tree-formula-broken\")"))
+    (tmp_path / "guide").mkdir()
+    (tmp_path / "guide" / "unit.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
+    claude = tmp_path / "claude"
+    claude.write_text(STUB)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+           "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")}
+
+    graded = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
+                            capture_output=True, text=True, timeout=25, env=env)
+
+    named = ("signature-formula-disagreement" in graded.stderr, "guide/unit.md" in graded.stderr,
+             re.search(r"\b[0-9a-f]{64}\b", graded.stderr) is not None)
+    assert (graded.returncode, graded.stdout, named, (tmp_path / "guide" / "GRADED").exists()) == (2, "", (True, True, True), False), \
+        (graded.returncode, graded.stdout, graded.stderr)
