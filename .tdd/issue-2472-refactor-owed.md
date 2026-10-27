@@ -1,0 +1,2 @@
+### skill_edit_step.main given --added "<step>" before --change "<change>" and then the issue-body and unit files applies both flags exactly as the --change-first order does, never reading the literal --change as the issue-body file (a case in tests/py/unit/test_skill_edit_step.py, red on today's code) ⟦criterion 1⟧
+- Fold the two `--change` strips and the `--added` strip in `main` into one flag-parsing loop. I did not apply it: a loop would also accept repeated flags such as `--added --added`, and no test asks for that.
