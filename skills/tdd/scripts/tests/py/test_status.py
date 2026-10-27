@@ -443,6 +443,16 @@ def test_main_renders_solvable_as_a_question_mark_when_solvable_issues_sh_gives_
     assert (text_code, text.endswith("  solvable ?"), json_code, solvable) == (0, True, 0, "?")
 
 
+def test_main_json_lists_every_run_with_issue_state_unknown_and_exits_0_when_github_gives_no_answer_2497(tmp_path, monkeypatch, capsys, status):
+    runs = [lamp_run(tmp_path, "13"), lamp_run(tmp_path, "14")]
+    lamp_git(monkeypatch, tmp_path, runs)
+
+    code = status.main(["--json"])
+    doc = json.loads(capsys.readouterr().out)
+
+    assert (code, [(r["issue"], r.get("issue_state")) for r in doc["runs"]]) == (0, [("13", "unknown"), ("14", "unknown")])
+
+
 def test_main_json_reports_bail_phase_from_the_bail_event_not_the_last_launch(tmp_path, monkeypatch, capsys, status):
     run = lamp_run(tmp_path, "13")
     write_events(run / ".tdd" / "events.jsonl", [

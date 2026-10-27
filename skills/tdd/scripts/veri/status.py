@@ -87,7 +87,8 @@ def scope_totals(name, solvable, runs, as_json=False):
 
 def run_object(issue, title, branch, step, activity):
     """One run's --json object: the ledger fields, then the activity object's."""
-    run = {"issue": issue, "title": title, "branch": branch, "step": step}
+    run = {"issue": issue, "title": title, "branch": branch, "step": step,
+           "issue_state": "unknown"}
     run.update(json.loads(activity) if activity else {})
     return json.dumps(run)
 
