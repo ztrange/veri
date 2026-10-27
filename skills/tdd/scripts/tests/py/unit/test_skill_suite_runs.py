@@ -147,3 +147,13 @@ def test_991_doc_text_given_the_from_regex_5_starts_at_the_line_5_y_not_at_5x_y(
     fixture = tmp_path / "doc.md"
     fixture.write_text("## Section\n5x y\n5. y\n")
     assert doc_text(fixture, "## Section", r"^5\. ") == "5. y "
+
+
+def test_2500_claude_md_testing_idiom_says_a_wait_inside_a_case_bounds_itself_below_veri_pytest_timeout_or_its_failure_path_is_unreachable():
+    text = " ".join(claude_paragraphs(CLAUDE.read_text()))
+    problems = []
+    if not re.search(r"a wait inside a case bounds itself below `?VERI_PYTEST_TIMEOUT`?", text, re.IGNORECASE):
+        problems.append("CLAUDE.md's Testing idiom never says a wait inside a case bounds itself below VERI_PYTEST_TIMEOUT")
+    if not re.search(r"failure path is unreachable[^.]*pytest-timeout fires first", text):
+        problems.append("CLAUDE.md's Testing idiom never says a wait bound above the limit leaves its failure path unreachable because pytest-timeout fires first")
+    assert not problems, "\n".join(problems)
