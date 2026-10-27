@@ -473,6 +473,42 @@ def test_an_added_step_on_a_unit_graded_pass_before_any_author_ran_exits_2_namin
         == (2, True, [], [], [], False, True), (code, err, launched, events, commits, usage)
 
 
+def test_an_added_step_stating_a_row_new_to_the_list_on_a_unit_graded_pass_launches_no_author_commits_the_row_and_graded_and_exits_3_2513(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    prose = "The widget is painted a deep blue and round.\n"
+    (tmp_path / "unit.md").write_text(prose)
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text(
+        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n| A2 | The widget is round. | shape |\n")
+    launched = []
+    commands = []
+
+    def run(cmd, **kw):
+        commands.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess",
+                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, ["--added", "add the round row", str(tmp_path / "issue.md"), "unit.md"])
+
+    commits = [c for c in commands if c[:2] == ["git", "commit"]]
+    assert launched == [], launched
+    assert (tmp_path / "unit.md").read_text() == prose
+    assert "A2" in (tmp_path / "REQUIREMENTS.md").read_text()
+    assert len(commits) == 1 and "REQUIREMENTS.md" in commits[0] and any("GRADED" in p for p in commits[0]), commands
+    assert code == 3, (code, out, err)
+
+
 def test_an_added_step_on_a_unit_whose_grade_fails_first_runs_its_author_attempt_commits_the_list_graded_and_unit_and_exits_0_2063(tmp_path, monkeypatch, run_cli):
     monkeypatch.chdir(tmp_path)
     import subprocess
