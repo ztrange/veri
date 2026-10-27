@@ -339,7 +339,7 @@ issue, not only in the conductor's log.
    and run it through `$S/detach-command.sh start <name> <cmd>`, then `$S/detach-command.sh wait <name>` in the foreground with no max-seconds argument and the Bash tool's `timeout` of 600000 ms, calling `wait` again each time it returns 3 (never background it and end the turn).
    `detach-command.sh wait` answers 0 the command passed, 1 it finished red with its code on stdout (a red suite: stop and report), 2 it died recording nothing, 3 still running (call again). If already red, stop and report a preflight
    failure, whatever the caller's checkout holds — a cycle must not start on a red baseline. The one exception is a
-   resume whose last bail was `suite-red`: when its baseline is red only in suites that are red on the branch head but
+   resume, whatever its last bail's cause: when its baseline is red only in suites that are red on the branch head but
    green on the default branch, preflight does not refuse. On the exit 0 of the check
    (`suite-red-resume.sh check`) the conductor inserts one `⟦suite-repair⟧` step naming those suites before
    the first unchecked step, commits the ledger and runs that step first; for the check, `Read` `<base directory>/RESUME.md`. A suite also red on the default branch still
