@@ -26,10 +26,9 @@ resume the rules come from re-reading the skill and this file.
 merge to land, CI to finish — is a script that blocks until something actionable happens and
 returns one line. For CI that is `$S/wait-ci.sh <pr-url> [slice] [total]`, called again on exit
 3. For a command you started, `$S/detach-command.sh wait <name> [max]`, called again on exit 3.
-No agent sleeps and re-checks. The run watcher this principle needs, `watch-runs.sh`, does not
-exist yet: until it does, use a Monitor on a script that blocks and prints one line per
-conductor exit, conductor start or merge to the default branch, and treat each line as the
-event.
+No agent sleeps and re-checks. For conductor exits the blocking watch is `$S/watch-runs.sh`:
+a Monitor (or a background command) runs `watch-runs.sh` itself, never a hand-written script,
+and each line it prints is the event.
 
 **Speak only when it matters (P4).** Every turn shows something, because a turn with no
 text makes the harness ask for visible output, and answering that with prose is how narration
