@@ -75,3 +75,9 @@
 | RN8 | Step 3 tells the leaf that, if the pinned push is itself rejected, the remote moved again, and it stops and reports it. (What to do, item 3, last sentence.) | A remote that moved again holds commits the leaf has not read, so the leaf does not retry looser. |
 | RN9 | Step 4 tells the leaf not to edit the ledger `.tdd/issue-<n>.md`; the sentence runs "every" into two included fragments (`_develop-ledger-tick.md`, then `_develop-ledger-mark.md`) that name what must survive. (What to do, item 4.) | The committed ledger is the source of truth for done steps and for the refactor-pending mark. |
 | RN10 | The prompt ends by asking the leaf, in its last lines, for a `RECONCILE:` line saying REBASED, FORCED or FAILED and one line on what the remote held and what the leaf did. (Report section.) | The conductor reads one fixed line to see which way the push was made good. |
+
+## skills/tdd/scripts/prompts/_develop-ledger-mark.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| LM1 | The fragment says a ` ⟂ refactor pending` mark must survive exactly as it is. (The whole fragment.) | A step's green tick appends the mark and only its verify-refactor PASS removes it, so a rewritten or lost mark makes a resumed run misread green as finished. |
