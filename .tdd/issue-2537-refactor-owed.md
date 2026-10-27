@@ -1,0 +1,2 @@
+### `pid_file._ps` answers a `ps` that could not be run at all (the `subprocess.run` call raising `OSError`) with a value distinct both from the no-such-process answer and from an empty field, so a caller can tell "ps could not be read" from "no such process"; small case in tests/py/unit/test_pid_file.py ⟦criterion 3⟧
+- test-only | the two `_ps` cases in test_pid_file.py repeat the same `fake_run` stub and answer-table loop; the second case (the one that also covers the unrunnable `ps`) could cover the first one's assertions as well.
