@@ -3,6 +3,7 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 # hazard: runs on the python3 it may refuse, so nothing here may need more than Python 3.9.
 import contextlib
 import glob
+import importlib
 import io
 import os
 import paths
@@ -45,7 +46,7 @@ def main(argv):
         sys.stderr.write("run-conductor: VERI_MIN_FREE_GB must be a whole number >= 0, got '%s'\n" % raw_minimum)
         return 2
     minimum = int(raw_minimum)
-    for directory in (tempfile.gettempdir(), "/tmp", os.getcwd()):
+    for directory in (tempfile.gettempdir(), pinned_tmpdir(), os.getcwd()):
         free = free_gb(directory)
         if free < minimum:
             sys.stderr.write("run-conductor: '%s' has %d GB free, below VERI_MIN_FREE_GB=%d\n" % (directory, free, minimum))
@@ -127,6 +128,11 @@ def main(argv):
             shutil.rmtree(snapshot, ignore_errors=True)
     sys.stderr.write("run-conductor: no skill commit resolvable from '%s' — running unpinned\n" % base)
     return launch(base, argv[0], None, VERI_SKILL_UNPINNED="1")
+
+
+def pinned_tmpdir():
+    leg = importlib.import_module((__package__ + "." if __package__ else "") + "pytest_leg")
+    return leg.PINNED_TMPDIR
 
 
 def free_gb(path):

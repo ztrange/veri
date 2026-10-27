@@ -2194,6 +2194,29 @@ def test_cli_a_launch_whose_slash_tmp_reports_0_gb_free_launches_the_conductor_w
     assert (code, len(launches)) == (0, 1)
 
 
+def test_cli_the_free_space_preflight_reads_the_directory_the_pytest_legs_pinned_scratch_path_constant_names_under_tdd_issue_2430(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    monkeypatch.delenv("VERI_MIN_FREE_GB", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    pytest_leg = importlib.import_module("veri.pytest_leg")
+    run_conductor = importlib.import_module("veri.run_conductor")
+    pinned = tmp_path / "pinned"
+    pinned.mkdir()
+    monkeypatch.setattr(pytest_leg, "PINNED_TMPDIR", str(pinned))
+    launches = fake_claude_exiting(monkeypatch, 0, 0)
+    monkeypatch.setattr(run_conductor, "free_gb",
+                        lambda path: 5 if os.path.realpath(path) == os.path.realpath(pinned) else 500,
+                        raising=False)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    code, _, err = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, launches, "'%s' has 5 GB free" % pinned in err) == (2, [], True)
+
+
 def tree_contents(root):
     """Every file and symlink under root but .git, by relative path: its bytes, or the target it links to."""
     contents = {}
