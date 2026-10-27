@@ -26,7 +26,8 @@ def grade(unit, rows):
 def main(argv):
     number, code = argv[0], 0
     for unit, rows in marked_units(github.gh_issue_view(number, "body")).items():
-        code, lines = grade(unit, rows)
+        unit_code, lines = grade(unit, rows)
+        code = code or unit_code
         for line in lines.splitlines():
             print("%s\t%s\t%s\t%s" % (number, line.split(":")[0], unit, line))
     return code
