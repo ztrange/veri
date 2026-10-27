@@ -174,7 +174,10 @@ def render(as_json, scope):
         activity = ""
         ledger = ledger_path(run, os.path.basename(run))
         has_ledger = os.path.isfile(ledger)
-        text = open(ledger).read() if has_ledger else ""
+        text = ""
+        if has_ledger:
+            with open(ledger) as f:
+                text = f.read()
         heading = text.split("\n", 1)[0]
         if heading.startswith("# Plan for #"):
             heading = heading[len("# Plan for #"):]
