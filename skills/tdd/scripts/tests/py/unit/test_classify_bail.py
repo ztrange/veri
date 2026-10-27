@@ -165,3 +165,9 @@ def test_main_classifies_killed_external_as_a_system_failure_on_its_own_line_wit
     code = classify_bail.main(["killed-external"])
 
     assert (code, *capsys.readouterr()) == (0, "system\n", "")
+
+
+def test_main_classifies_preflight_refused_as_system_with_0_2481(capsys, classify_bail):
+    code = classify_bail.main(["preflight-refused"])
+
+    assert (code, *capsys.readouterr()) == (0, "system\n", "")
