@@ -101,6 +101,17 @@ def signature(path, unit):
     return hashlib.sha256("\0".join(parts).encode("utf-8")).hexdigest()
 
 
+def signer():
+    own = os.path.join("skills", "tdd", "scripts", "veri", "grade_prose.py")
+    if not os.path.isfile(own):
+        return sys.modules[__name__]
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("tree_grade_prose", own)
+    tree = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(tree)
+    return tree
+
+
 def graded_path(unit):
     parts = unit.partition("#")[0].split("/")
     if len(parts) > 2 and parts[0] == "skills":
@@ -262,7 +273,8 @@ def main(argv):
     event.append(".", {}, "grading", ["unit=" + unit, "verdict=" + said[-1],
                                        "failing=" + ",".join(l.split(":")[0] for l in failed),
                                        "cost_usd=%s" % cost, "id=" + grading_id])
-    sig = signature(path, unit)
+    own = signer()
+    sig = own.signature(path, unit)
     rejected = os.path.join(".tdd", "grade-prose-rejected")
     if not failed:
         if os.path.exists(rejected):
@@ -273,7 +285,7 @@ def main(argv):
                 print("grade-prose.sh: %s was REJECTed on this same text (%s); change the text before it can be signed"
                       % (unit, earlier[-1]))
                 return 1
-        record_graded(unit, sig, grading_id)
+        own.record_graded(unit, sig, grading_id)
     else:
         os.makedirs(".tdd", exist_ok=True)
         with open(rejected, "a", encoding="utf-8") as f:
