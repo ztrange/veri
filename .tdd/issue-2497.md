@@ -1,0 +1,9 @@
+# Plan for #2497 — status.sh reports a run from local .tdd state alone, so a closed issue's leftover run presents as live work needing routing
+
+- [ ] Test-only, no production change: the fake subprocess.run that fake_git installs in skills/tdd/scripts/tests/py/test_status.py answers any `gh` command with a non-zero exit and empty stdout (GitHub gave no answer) instead of raising "unexpected command", so a later read of issue state from GitHub leaves the existing status cases passing unchanged ⟦diff-checked⟧
+- [ ] When GitHub gives no answer to the issue-state read, `status.sh --json` still lists every run, each carrying `"issue_state": "unknown"`, and exits 0; the text output of such runs is unchanged
+- [ ] `status.sh --json` gives every run it lists an `issue_state` of `"open"` or `"closed"` as GitHub reports that issue's state, never inferred from the run's local files (a run whose event log ends in a bail still reads `"open"` when GitHub says the issue is open) ⟦criterion 1⟧
+- [ ] In `status.sh --json`, a run whose issue GitHub reports closed has `"state": "closed"` in place of the state its event log gives (`bailed`, `stale`, `running`, `stopped`, `done`), while a run whose issue is open and which bailed keeps `"state": "bailed"` ⟦criterion 2⟧
+- [ ] `status.sh` with no `--json` prints `closed` as the state of a run whose issue GitHub reports closed, in place of its `bailed` or `stale` state, while an open issue's run's line is unchanged ⟦criterion 3⟧
+- [ ] Go-red check: with the issue-state read removed, a case covering a closed issue's run fails, named; with it restored, it passes ⟦human-owed⟧ ⟦criterion 4⟧
+- [ ] One `status.sh` report, text or `--json`, reads the issue states through one call of the GitHub wrapper for the whole report, however many runs it lists (pinned with an in-process spy on that wrapper, never a PATH shim counting processes) ⟦criterion 5⟧
