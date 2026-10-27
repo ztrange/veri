@@ -496,6 +496,25 @@ def test_main_json_reports_state_closed_for_a_run_whose_issue_is_closed_and_bail
     assert (code, [(r["issue"], r.get("state")) for r in doc["runs"]]) == (0, [("13", "bailed"), ("14", "closed")])
 
 
+def test_main_json_reads_the_issue_states_through_one_github_wrapper_call_for_every_run_2497(tmp_path, monkeypatch, capsys, status):
+    runs = [lamp_run(tmp_path, "13"), lamp_run(tmp_path, "14"), lamp_run(tmp_path, "15")]
+    lamp_git(monkeypatch, tmp_path, runs)
+    github = importlib.import_module("veri.github")
+    calls = []
+
+    def gh_issue_list(*args):
+        calls.append(args)
+        return json.dumps([{"number": 13, "state": "OPEN"}, {"number": 14, "state": "CLOSED"},
+                           {"number": 15, "state": "OPEN"}])
+
+    monkeypatch.setattr(github, "gh_issue_list", gh_issue_list)
+
+    code = status.main(["--json"])
+    doc = json.loads(capsys.readouterr().out)
+
+    assert (code, len(doc["runs"]), len(calls)) == (0, 3, 1)
+
+
 def test_main_prints_closed_in_place_of_bailed_for_a_run_whose_issue_is_closed_and_leaves_an_open_runs_line_2497(tmp_path, monkeypatch, capsys, status):
     open_run, closed_run = lamp_run(tmp_path, "13"), lamp_run(tmp_path, "14")
     for run, issue in ((open_run, "13"), (closed_run, "14")):

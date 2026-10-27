@@ -17,6 +17,11 @@ from run_dir import run_file
 import tunables
 from solvable_issues import priority_label, solvable
 
+try:
+    from . import github
+except ImportError:
+    import github
+
 
 def run_activity(run, as_json=False, closed=False):
     """The activity line for one run, or None when it has launched no leaf."""
@@ -89,11 +94,10 @@ def scope_totals(name, solvable, runs, as_json=False):
 
 def issue_states():
     """{issue number: "open" | "closed"} from one gh call, empty when gh gave no answer."""
-    answer = subprocess.run(["gh", "issue", "list", "--state", "all", "--limit", "1000",
-                             "--json", "number,state"], capture_output=True, text=True)
     try:
-        return {str(i["number"]): i["state"].lower() for i in json.loads(answer.stdout)}
-    except ValueError:
+        answer = github.gh_issue_list("--state", "all", "--limit", "1000", "--json", "number,state")
+        return {str(i["number"]): i["state"].lower() for i in json.loads(answer)}
+    except (github.NoAnswer, ValueError):
         return {}
 
 
