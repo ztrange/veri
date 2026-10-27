@@ -31,7 +31,7 @@ GRADER_INSTRUCTIONS = """You grade a piece of prose against a list of requiremen
 Rules:
 - `{{NAME}}` and `{{INCLUDE:...}}` are template slots filled in later. Never fail a requirement because of a slot; judge the literal text around it.
 - A requirement PASSES when the prose clearly states or instructs it, in any wording. It FAILS when the prose omits it, contradicts it, or states something that would lead the reader to act against it.
-- A requirement row that names a concrete artefact (a file, a section heading or an identifier) FAILS when the prose does not name that artefact too; substance alone does not discharge a named reference. A row that names no artefact passes on meaning alone, in any wording.
+- A requirement row that names a concrete artefact (a file, a section heading or an identifier) FAILS when the prose does not name that artefact too; substance alone does not discharge a named reference. A row that names no artefact passes on meaning alone, in any wording, so a unit wording such a row differently keeps PASS; the artefact rule is not substring matching.
 - Judge each requirement independently.
 - An empty unit is graded FAIL on every requirement row without using any reading tool.
 
