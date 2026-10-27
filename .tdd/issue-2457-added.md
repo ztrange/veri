@@ -1,0 +1,1 @@
+- [ ] park-issue.sh run from a repository whose origin names the same owner/repo as the PR URL but in another form — an https origin ending in .git (https://github.com/o/r.git) or an scp-style ssh origin (git@github.com:o/r.git) — labels that PR parked and exits 0, rather than refusing it as a foreign repository ⟦added⟧ ⟦criterion 3⟧
