@@ -4,7 +4,8 @@ import os
 from event_log import read_events
 from pid_file import live_conductor
 
-MARKS = {"done": "done", "bail": "bailed", "stop": "stopped"}
+MARKS = {"done": "done", "bail": "bailed", "stop": "stopped",
+         "preflight-refused": "refused"}
 
 
 def conductor_log(run_dir, issue):
