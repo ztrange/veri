@@ -1,0 +1,1 @@
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_supervise_process.py::test_2380_a_leaf_queued_on_the_full_suite_lock_past_the_hard_timeout_is_not_killed_stuck — AssertionError: harvest-usage.sh: no closing result record in .tdd/verify-rebase.log — no usage event appended for verify-rebase ⟦suite-repair⟧ ⟦criterion 4⟧
