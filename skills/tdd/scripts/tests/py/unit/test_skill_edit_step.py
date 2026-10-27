@@ -1267,3 +1267,36 @@ def test_a_change_step_on_a_unit_already_graded_pass_ends_in_one_commit_of_exact
     assert code == 0, (code, out, err)
     assert len(commits) == 1, commits
     assert sorted(commits[0][5:]) == sorted(["unit.md", "REQUIREMENTS.md", "GRADED", "pin.md"]), commits
+
+
+def test_an_added_flag_before_a_change_flag_applies_both_as_the_change_first_order_does_never_reading_the_literal_change_as_the_issue_body_2472(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n- a merge is in flight;\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    authors = []
+    commits = []
+
+    def run(cmd, **kw):
+        if cmd[0].endswith("supervise.sh"):
+            authors.append(cmd)
+            (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+        if cmd[:2] == ["git", "commit"]:
+            commits.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
+    monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, ["--added", "drop the stale bullet",
+                                               "--change", "delete the bullet - a merge is in flight;",
+                                               str(tmp_path / "issue.md"), "unit.md"])
+
+    assert (code, len(authors), len(commits)) == (0, 1, 1), (code, err, authors, commits)
