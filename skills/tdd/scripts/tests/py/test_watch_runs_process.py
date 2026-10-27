@@ -126,7 +126,7 @@ def test_target_slot_is_free_only_below_target_asking_for_not_running_issues_193
         full = watch("--target", "2", "--max-wait", "3")
         second.terminate()
         second.wait()
-        below = watch("--target", "2", "--max-wait", "120", timeout=150)
+        below = watch("--target", "2", "--max-wait", "20", timeout=25)
     finally:
         first.terminate()
         first.wait()
@@ -254,12 +254,12 @@ def test_it_prints_exactly_one_exit_line_when_a_conductor_whose_leaf_reaps_child
                 pytest.fail("the stub never wrote its pid file: %s" % pid_file)
             time.sleep(0.05)
         make_run(repo, 201, int(pid_file.read_text()))
-        watcher = subprocess.Popen([str(SHIM), "--max-wait", "120"], cwd=repo, stdin=subprocess.DEVNULL,
+        watcher = subprocess.Popen([str(SHIM), "--max-wait", "20"], cwd=repo, stdin=subprocess.DEVNULL,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         time.sleep(1)
         proc.terminate()
         proc.wait()
-        out, err = watcher.communicate(timeout=150)
+        out, err = watcher.communicate(timeout=25)
     finally:
         if watcher is not None and watcher.poll() is None:
             watcher.kill()
