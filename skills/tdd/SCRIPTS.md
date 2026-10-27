@@ -312,9 +312,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `VERI_CI_QUEUE_WAIT` seconds after the first call that saw them queued. **Exit 3** still
   pending, no check yet (including when a head workflow does run on pull requests), every one `SKIPPED`, or a mismatched head,
   when the slice runs out. **Exit 4** on the first poll, a PR whose head reports no check runs and no commit statuses,
-  and none of whose head `.github/workflows/*` files carries a `pull_request` or `pull_request_target` trigger: this
+  and none of whose head `.github/workflows/*` files carries a `pull_request` or `pull_request_target` trigger (a `pull_request` trigger whose `types:` name none of
+  `opened`, `synchronize`, `reopened`, `ready_for_review` does not count), or whose workflows directory answers 404: this
   repository reports no checks on pull requests. No deadline is recorded and no wait is served. It is distinct from 3
-  (still pending) and from 2 (past the deadline); the conflict and draft refusals (exit 2) keep precedence, and a mismatched head stays 3.
+  (still pending) and from 2 (past the deadline); the conflict and draft refusals (exit 2) keep precedence, and a mismatched head stays 3. `queued-merge.sh` passes a `wait-ci.sh` exit 4 through as its own exit code and merges nothing.
   Tunables: `VERI_POLL` poll interval (default 10 s), `VERI_CI_QUEUE_WAIT` (default 3600 s).
 - `$S/stop-reason.sh <issue>` — why a run ended with no ✅ Done or ⛔ Bailed comment: the operator's helper. Exit 2 on no argument, an issue with no run under `.tdd/wt`, a missing events log, or a run whose `conductor-<n>.log` has no result record. Nothing in the procedure calls it.
 - `$S/handoff-state.sh` — print a read-only snapshot of the run state for a context reset. Its first line is `main <sha> <tag>`: main's commit and the highest version tag by `git tag --sort=-v:refname`. Exit **0**, **2** no answer. The conductor does not call this; it is an operator's.
