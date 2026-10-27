@@ -72,9 +72,9 @@ project repo; otherwise you report repository, file and change (P11). You do not
 
 ## Watching
 
-Watch through the blocking watch of P3. `watch-runs.sh` does not exist yet: until it does,
-use a Monitor on a script that blocks and prints one line per conductor exit, conductor start
-or merge to the default branch. When the watch returns, re-read the state the line names
+Watch through the blocking watch of P3, `$S/watch-runs.sh`, which prints one line per
+conductor exit, conductor start or merge to the default branch. Run `watch-runs.sh` itself
+under a Monitor (or as a background command), never a hand-written script. When the watch returns, re-read the state the line names
 (P1), act if it calls for it, and re-arm at once; a re-arm gets a single `.` (P4).
 
 On each event:
