@@ -1770,3 +1770,17 @@ def test_issue_2499_a_conductor_usage_event_sentence_says_the_cost_includes_its_
     assert ("Cost is every leaf of the run, and the conductor own closing accounting with them, "
             "which this log carries.\n") in out
     assert cells(out, "#### Total", ["$"]) == {"total": ["1.00"]}
+
+
+def test_issue_2499_a_run_with_no_conductor_usage_event_and_no_conductor_log_says_its_spending_is_not_in_the_cost_and_the_total_row_is_the_leaves_dollars_only(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, conductor("one", 9000, "step-start")
+              + leaf("one", 9010, "developer", "red", 1, 90, usage=cost(3, "0.10", (100, 200, 1000, 400)))
+              + conductor("one", 9110, "step-done"))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert ("Cost is every leaf of the run, and the conductor own spending is not in it: "
+            "this log carries no usage record of the conductor own.\n") in out
+    assert "Conductor own spending:" not in out
+    assert cells(out, "#### Total", ["$"]) == {"total": ["0.10"]}
