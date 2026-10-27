@@ -301,7 +301,9 @@ issue, not only in the conductor's log.
    system failure, naming the command in the bail comment (see `<base directory>/BAIL.md`).
    **Exit 2** — no answer: bad arguments or an unreadable file — is a preflight-class stop:
    report its stderr diagnostic verbatim and do not start.
-   A resumed run — one whose worktree and ledger `.tdd/issue-<n>.md` already exist — first
+   A run that `issue-worktree.sh` handed back an existing worktree — which it marks by leaving
+   the file `.tdd/handed-back` in that worktree; a freshly cut worktree has no such file, and
+   whether the ledger `.tdd/issue-<n>.md` exists does not matter — first
    discards whatever a killed leaf left uncommitted, since a rebase refuses a dirty tree:
    ```
    stray="$($S/resume-clean.sh)"
@@ -311,12 +313,12 @@ issue, not only in the conductor's log.
    name (`<base directory>/RESUME.md`). An exit 2 — an uncommitted `.tdd/` append it could not re-apply (kept
    in `kept-tdd-appends.diff`) or a failed git command — bails as a **system** failure
    (`no-verdict`, see `<base directory>/BAIL.md`).
-   The script also reconciles the ledger: a tick is committed with its step's green commit, so the committed ledger's ticks record which greens exist, and a working-copy `- [x]` line is kept ticked only when the committed
+   When a ledger exists, the script also reconciles it: a tick is committed with its step's green commit, so the committed ledger's ticks record which greens exist, and a working-copy `- [x]` line is kept ticked only when the committed
    ledger holds a tick of the same step text (the text without its trailing markers), so n committed ticks of a text keep at
    most n working ticks of it; every other `- [x]` line — its green commit is not on the branch — is unticked and loses its
    `⟂ refactor pending` mark, and every other working-copy line is kept as written.
-   Then the resumed run, its uncommitted `.tdd/` appends kept
-   and its ledger ticks reconciled, runs
+   Then the handed-back run, its uncommitted `.tdd/` appends kept
+   and its ledger ticks reconciled when a ledger exists, runs
    `$S/rebase-onto-default.sh` before its baseline, so the baseline runs on the rebased tip.
    On an exit 0 the first stdout line of `rebase-onto-default.sh` is `<pre-rebase-sha>`, the HEAD
    the branch held before the rebase. An exit 3 — the branch already contains `origin/<default>` — goes on unchanged. An exit 1 —
@@ -326,7 +328,7 @@ issue, not only in the conductor's log.
    An exit 0 moved the branch, and is marked in the run log as its own event,
    `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh resume-rebase from=<pre-rebase-sha> rebased="$(git rev-parse HEAD)"`,
    a name nothing the Draft PR step's rebase records shares.
-   A new branch's run does not rebase here.
+   Only a run on a freshly cut worktree skips both the discard and the rebase here.
    Every run below happens in it, so the baseline proves the commit the branch is cut from —
    the freshly fetched `origin/<default>` for a new branch, the branch head on a resume — not
    whatever the caller's checkout has checked out.
