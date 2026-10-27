@@ -1,0 +1,1 @@
+- [ ] status.sh --json reports a run whose ledger (.tdd/issue-<n>.md) vanishes between the existence check and the read as absent, not a crash: exit 0 (or 3 when no run is left), no traceback; pinned by a case that removes the ledger between the check and the read ⟦added⟧ ⟦criterion 1⟧
