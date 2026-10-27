@@ -269,6 +269,9 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
                 rc = f.read().rstrip("\n")
             status = "success" if rc == "0" else "failure"
             break
+        if leaf.poll() is not None and not os.path.isfile(rcfile):
+            status = reason = "killed-external"
+            break
         t = int(now())
         a = awake_seconds()
         seen_at += (t - prev_t) - (a - prev_a)
@@ -442,7 +445,7 @@ def main(argv):
         tries += 1
         mark(role, leaf_env, "retry", f"cause={reason}")
         print(f"supervise[{name}]: retry {tries}/{retries} after killed-stuck", file=sys.stderr)
-    ec = {"success": 0, "failure": 1, "killed-stuck": 2}[status]
+    ec = {"success": 0, "failure": 1, "killed-stuck": 2, "killed-external": 2}[status]
     if rc == "2":
         ec = 2
     secs = awake_seconds() - a0
