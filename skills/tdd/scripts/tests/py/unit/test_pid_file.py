@@ -452,3 +452,23 @@ def test_live_conductor_answers_no_pid_for_a_readable_command_line_that_does_not
         answers[name] = pid_file.live_conductor(str(run_dir))
 
     assert answers == {"stranger-parent": None, "not-claude": None}
+
+
+def test_ps_answers_a_non_zero_exit_with_a_value_distinct_from_an_empty_field_2537(monkeypatch):
+    import subprocess
+
+    pid_file = importlib.import_module("veri.pid_file")
+    ps = {}
+
+    def fake_run(argv, *args, **kwargs):
+        returncode, stdout = ps["answer"]
+        return subprocess.CompletedProcess(argv, returncode, stdout=stdout, stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    answers = {}
+    for name, answer in [("no-such-process", (1, "")), ("empty-field", (0, "\n"))]:
+        ps["answer"] = answer
+        answers[name] = pid_file._ps("lstart", 4242)
+
+    assert answers["empty-field"] == ""
+    assert answers["no-such-process"] != answers["empty-field"]
