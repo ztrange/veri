@@ -7,6 +7,7 @@ from pathlib import Path
 import classify_bail
 import entry
 import event
+import github
 
 USAGE = "usage: preflight-refused.sh <issue-number> <check>\n"
 CAUSE = "preflight-refused"
@@ -23,8 +24,13 @@ def main(argv):
         return 2
     issue, check = argv[0], argv[1]
     run = os.path.join(main_checkout(), ".tdd", "wt", issue)
-    return event.mark(run, {"issue": issue}, CAUSE,
+    code = event.mark(run, {"issue": issue}, CAUSE,
                       ["check=" + check, "cause=" + CAUSE, "classification=" + classify_bail.CATEGORIES[CAUSE]])
+    try:
+        github.gh_issue_comment(issue, "### ⛔ Preflight refused — %s\n" % check)
+    except github.NoAnswer:
+        return 2
+    return code
 
 
 if __name__ == "__main__":
