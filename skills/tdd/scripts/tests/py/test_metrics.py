@@ -1802,3 +1802,22 @@ def test_issue_2499_a_conductor_figure_from_a_session_without_a_result_record_is
     line = next(l for l in out.splitlines() if l.startswith("Conductor own spending:"))
     assert re.search(r"estimate", line, re.I)
     assert not re.fullmatch(r"\d+\.\d\d", cells(out, "#### Total", ["$"])["total"][0])
+
+
+def test_issue_2526_a_conductor_log_with_a_priced_and_an_unpriced_session_says_the_total_includes_the_priced_one_and_leaves_out_the_unpriced_one(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, conductor("one", 9000, "step-start")
+              + leaf("one", 9010, "developer", "red", 1, 90, usage=cost(3, "0.10", (100, 200, 1000, 400)))
+              + conductor("one", 9110, "step-done"))
+    turn = {"type": "assistant", "message": {"model": "mystery-9", "usage": {"input_tokens": 10, "output_tokens": 5}}}
+    sessions = [{"type": "system", "subtype": "init"},
+                {"type": "result", "total_cost_usd": 1.25, "num_turns": 40},
+                {"type": "system", "subtype": "init"}, turn]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in sessions))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    sentence = next(line for line in out.split("\n") if line.startswith("Cost is every leaf of the run"))
+    assert cells(out, "#### Total", ["$"])["total"][0].startswith("1.35")
+    assert re.search(r"includ", sentence) and re.search(r"unpriced", sentence)
+    assert not re.search(r"total row excludes the conductor own spending", sentence)
