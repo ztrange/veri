@@ -1915,6 +1915,34 @@ def test_cli_a_launch_records_the_conductors_ps_start_time_on_the_second_line_of
     assert (code, seen, asked) == (0, ["%d\nTue Oct 27 13:40:12 2026\n" % os.getpid()], [str(os.getpid())])
 
 
+def test_cli_a_run_that_ends_leaves_no_conductor_pid_file_for_its_worktree_issue_2537(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    fake_claude_exiting(monkeypatch, 0, 0)
+    answer, seen = subprocess.run, []
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    pid_file = cwd / ".tdd" / "wt" / "4242" / ".tdd" / "conductor.pid"
+
+    def running_the_child_setup(args, *rest, **kwargs):
+        if list(args)[:1] == ["ps"] and "lstart=" in list(args):
+            return subprocess.CompletedProcess(args, 0, stdout="Tue Oct 27 13:40:12 2026\n", stderr="")
+        if list(args)[:1] == ["fake-claude"]:
+            if kwargs.get("preexec_fn") is not None:
+                kwargs["preexec_fn"]()
+            seen.append(pid_file.is_file())
+        return answer(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", running_the_child_setup)
+
+    code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, seen, pid_file.exists()) == (0, [True], False)
+
+
 def test_cli_an_unpinned_launch_whose_run_has_no_tdd_directory_yet_still_records_the_veri_run_n_directory_and_the_launchers_pid_under_tdd_issue_2183(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)

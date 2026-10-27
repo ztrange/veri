@@ -240,6 +240,10 @@ def conduct(text, issue, env):
                                    conductor_model()],
                                   input=text, env=env, preexec_fn=record_pid).returncode
         finally:
+            try:
+                os.remove(pid_file)
+            except FileNotFoundError:
+                pass
             os.dup2(terminal, 1)
             os.close(write_end)
             reader.join()
