@@ -4075,3 +4075,41 @@ def test_main_with_multi_digit_and_prefix_next_requirements_row_ids_passes_the_r
 
     stderr = capfdbinary.readouterr().err.decode(errors="replace")
     assert (code, len(launches), "neither" in stderr) == (0, 1, False)
+
+
+def test_main_runs_the_procedure_from_the_recorded_skill_commit_refuses_an_unresolvable_one_with_2_and_re_pins_only_under_veri_new_skill_2483(
+        tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
+        monkeypatch.delenv(name, raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    head = "1111111111111111111111111111111111111111"
+    recorded = "2222222222222222222222222222222222222222"
+    run_conductor = importlib.import_module("veri.run_conductor")
+    scenarios = {
+        "recorded": (None, recorded, {recorded + "^{commit}"}),
+        "unresolvable": (None, recorded, set()),
+        "re-pin": ("1", recorded, set()),
+    }
+    answers = {}
+    for name, (new_skill, record, accepted) in scenarios.items():
+        cwd = tmp_path / name
+        (cwd / ".tdd").mkdir(parents=True)
+        monkeypatch.chdir(cwd)
+        if new_skill:
+            monkeypatch.setenv("VERI_NEW_SKILL", new_skill)
+        else:
+            monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+        path = cwd / ".tdd" / "issue-4242-skill-commit"
+        path.write_text(record + "\n")
+        calls = fake_pin(monkeypatch, head, accepted)
+        snapshots, launches = fake_snapshot(monkeypatch, calls, 0, 0)
+        code = run_conductor.main(["4242"])
+        capfdbinary.readouterr()
+        archived = [call[4] for call in snapshots if call[3:4] == ["archive"]]
+        answers[name] = (code, path.read_text(), archived, [launch["VERI_SKILL_COMMIT"] for launch in launches])
+    assert answers == {
+        "recorded": (0, recorded + "\n", [recorded], [recorded]),
+        "unresolvable": (2, recorded + "\n", [], []),
+        "re-pin": (0, head + "\n", [head], [head]),
+    }
