@@ -1,0 +1,34 @@
+"""Cases for restore-production.sh that start the real entry point and real git."""
+import subprocess
+
+import pytest
+
+from conftest import SCRIPTS
+
+GIT_ENV = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+
+def git(repo, *args):
+    return subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True, check=True,
+                          env={"PATH": __import__("os").environ["PATH"], **GIT_ENV}).stdout
+
+
+@pytest.mark.process("restore-production.sh run against a real git repository in tmp_path")
+def test_issue_2495_restore_production_drops_a_rejected_greens_edits_and_keeps_the_reds_test(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    git(repo, "init", "-q")
+    (repo / "src" / "prod.py").write_text("VALUE = 1\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "base")
+    (repo / "test_new.py").write_text("def test_new():\n    assert False\n")
+    (repo / "src" / "prod.py").write_text("VALUE = 2\n")
+    (repo / "src" / "added.py").write_text("EXTRA = 1\n")
+
+    ran = subprocess.run(["sh", str(SCRIPTS / "restore-production.sh"), "test_new.py"], cwd=repo,
+                         capture_output=True, text=True)
+
+    assert ran.returncode == 0, ran.stderr
+    assert (repo / "src" / "prod.py").read_text() == "VALUE = 1\n"
+    assert not (repo / "src" / "added.py").exists()
+    assert (repo / "test_new.py").read_text() == "def test_new():\n    assert False\n"
