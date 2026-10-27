@@ -8,6 +8,7 @@ import classify_bail
 import entry
 import event
 import github
+import run_end
 
 USAGE = "usage: preflight-refused.sh <issue-number> <check>\n"
 CAUSE = "preflight-refused"
@@ -24,6 +25,9 @@ def main(argv):
         return 2
     issue, check = argv[0], argv[1]
     run = os.path.join(main_checkout(), ".tdd", "wt", issue)
+    log = os.path.join(run, ".tdd", "events.jsonl")
+    if os.path.isfile(log) and run_end.run_end(run)[2].get("event") == CAUSE:
+        return 3
     code = event.mark(run, {"issue": issue}, CAUSE,
                       ["check=" + check, "cause=" + CAUSE, "classification=" + classify_bail.CATEGORIES[CAUSE]])
     try:

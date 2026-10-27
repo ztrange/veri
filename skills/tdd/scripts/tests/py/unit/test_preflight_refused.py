@@ -16,8 +16,10 @@ def test_2481_a_preflight_refusal_writes_one_event_naming_the_check_from_either_
     log = run / ".tdd" / "events.jsonl"
 
     first = run_cli(preflight_refused, ["7", "full-tier baseline red"], cwd=main)
+    with log.open("a") as resumed:
+        resumed.write('{"ts": 1, "issue": "7", "event": "resume"}\n')
     second = run_cli(preflight_refused, ["7", "fast-tier baseline red"], cwd=run)
-    events = [json.loads(text) for text in log.read_text().splitlines()]
+    events = [json.loads(text) for text in log.read_text().splitlines() if '"resume"' not in text]
 
     assert (first[0], second[0]) == (0, 0)
     assert [(e["event"], e["check"], e["cause"], e["classification"]) for e in events] == [
@@ -26,7 +28,7 @@ def test_2481_a_preflight_refusal_writes_one_event_naming_the_check_from_either_
     ]
     for argv in ([], ["7"], ["7", ""]):
         assert run_cli(preflight_refused, argv, cwd=main) == (2, "", USAGE)
-    assert len(log.read_text().splitlines()) == 2
+    assert len(log.read_text().splitlines()) == 3
 
 
 def test_2481_b_preflight_refusal_posts_one_comment_naming_the_check_and_exits_2_when_github_refuses_it(
@@ -56,6 +58,28 @@ def test_2481_b_preflight_refusal_posts_one_comment_naming_the_check_and_exits_2
         raise github.NoAnswer("")
 
     monkeypatch.setattr(github, "gh_issue_comment", refuse)
+    with (run / ".tdd" / "events.jsonl").open("a") as resumed:
+        resumed.write('{"ts": 1, "issue": "7", "event": "resume"}\n')
     refused = run_cli(preflight_refused, ["7", "refused check"], cwd=resume)
     events = [json.loads(text) for text in (run / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert (refused[0], events[-1]["check"]) == (2, "refused check")
+
+
+def test_2481_c_a_second_refusal_of_a_refused_run_writes_no_event_posts_no_comment_and_exits_3(
+        tmp_path, monkeypatch, run_cli):
+    preflight_refused = importlib.import_module("veri.preflight_refused")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)))
+    main = tmp_path / "main"
+    (main / ".git").mkdir(parents=True)
+    run = main / ".tdd" / "wt" / "7"
+    (run / ".tdd").mkdir(parents=True)
+
+    first = run_cli(preflight_refused, ["7", "full-tier baseline red"], cwd=main)
+    second = run_cli(preflight_refused, ["7", "fast-tier baseline red"], cwd=main)
+    events = [json.loads(text) for text in (run / ".tdd" / "events.jsonl").read_text().splitlines()]
+
+    assert (first[0], second[0]) == (0, 3)
+    assert [e["check"] for e in events] == ["full-tier baseline red"]
+    assert [body.splitlines()[0] for _, body in posted] == ["### ⛔ Preflight refused — full-tier baseline red"]
