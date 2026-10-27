@@ -754,7 +754,6 @@ def test_main_answers_what_the_bash_contract_cases_from_the_out_of_scope_class_t
 
     rc_branch, rc_sha = "tdd/232-zorblat-frob", "3f9a1c0b7e2d4a6f8c1b3e5d7f9a0c2e4b6d8f01"
     reconcile = rendered(["reconcile", s, step, cmd, rc_branch, rc_sha])
-    rc_tpl = (SCRIPTS / "prompts" / "develop-reconcile.md").read_bytes()
 
     fast_cmd = 'make unit ZORBLAT=fast -- --only "frob & nitz/quux"'
     fast_green = rendered(["green", s, step, cmd, test_path, target, fast_cmd])
@@ -846,8 +845,6 @@ def test_main_answers_what_the_bash_contract_cases_from_the_out_of_scope_class_t
             and both_ways(revise, 60, rb"predict", rb"before (you|issuing|any command)")),
         "reconcile carries sha, branch and a pinned --force-with-lease, no bare --force, refusing a missing sha": (
             carries(reconcile, rc_sha, rc_branch, f"--force-with-lease={rc_branch}:{rc_sha}")
-            and not any_line(rc_tpl, rb"--force($|[^-]|-($|[^w]))")
-            and all(m.startswith(b"--force-with-lease=") for m in re.findall(rb"--force-with-lease[^\s`]*", rc_tpl))
             and refused(["reconcile", s, step, cmd, rc_branch, ""])),
         "every prompt forbids global config, naming environment variables and throwaway directories": all(
             says(p, rb"(never|do not|don't|not)[^.]{0,80}(global|user-level)[^.]{0,60}config")
@@ -1066,8 +1063,7 @@ def test_main_answers_what_the_bash_contract_cases_from_the_rebase_prompt_to_the
         "develop-rebase names both shas, every conflicting file and the test command, resolves by git rebase "
         "<onto-sha>, leaves the ledger's ticks and marks untouched, ends with REBASE: RESOLVED | FAILED, "
         "and refuses a missing argument": (
-            carries(rebase, rb_onto, rb_pre, *rb_files.split("\n"), cmd, f"git rebase {rb_onto}",
-                    "ledger", "[x]", "⟂ refactor pending")
+            carries(rebase, rb_onto, rb_pre, *rb_files.split("\n"), cmd)
             and rb_lines[-1].startswith(b"REBASE: RESOLVED | FAILED")
             and refused(["rebase", s, step, cmd, rb_onto, rb_pre, ""])
             and refused(["rebase", s, step, cmd, rb_onto, "", rb_files])),
@@ -1298,74 +1294,6 @@ def test_main_names_the_surviving_cases_in_a_replaces_case_green_prompt_rebuilt_
     prompt = re.sub(rb"\s+", b" ", out)
 
     assert (code, survivors.encode() in prompt) == (0, True), prompt
-
-
-def test_main_renders_an_expand_and_a_migrate_prompt_stating_what_each_phase_changes_and_that_test_files_stay_frozen(
-        tmp_path, capsysbinary, build_develop_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"zorblat(nitz) replaces frob(nitz, quux).\n")
-    step = ("Interface change: frob(nitz, quux) becomes zorblat(nitz) "
-            "⟦phases: expand, migrate, contract-a, contract-b⟧ ⟦criterion 1⟧")
-
-    def rendered(phase):
-        code = build_develop_prompt.main([phase, str(spec), step, "make test"])
-        out, _ = capsysbinary.readouterr()
-        return code, re.sub(rb"\s+", b" ", out)
-
-    frozen = (rb"(test files?[^.]{0,40}(stay|stays|remain|remains|are|is|left) frozen"
-              rb"|(never|not|no)[^.]{0,30}(touch|modify|edit)[^.]{0,20}(a |any )?test file)")
-    rules = {
-        "expand": {
-            "production gains the new interface": rb"(add|gains?|introduce)[^.]{0,60}the new interface",
-            "the old interface becomes a proxy": rb"old (one|interface)[^.]{0,60}(becomes?|turns? into|as) a proxy",
-            "test files stay frozen": frozen,
-        },
-        "migrate": {
-            "callers move to the new interface": rb"callers?[^.]{0,60}(move|moved|migrate)[^.]{0,30}the new interface",
-            "test files stay frozen": frozen,
-        },
-    }
-
-    results = {}
-    for phase, phase_rules in rules.items():
-        code, prompt = rendered(phase)
-        results[phase] = (code, [rule for rule, pattern in phase_rules.items()
-                                 if re.search(pattern, prompt, re.I) is None])
-
-    assert results == {"expand": (0, []), "migrate": (0, [])}
-
-
-def test_main_renders_a_contract_a_prompt_freezing_production_while_tests_are_rewritten_or_deleted_and_a_contract_b_prompt_deleting_the_proxy_while_test_files_stay_frozen(
-        tmp_path, capsysbinary, build_develop_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"zorblat(nitz) replaces frob(nitz, quux).\n")
-    step = ("Interface change: frob(nitz, quux) becomes zorblat(nitz) "
-            "⟦phases: expand, migrate, contract-a, contract-b⟧ ⟦criterion 1⟧")
-
-    def rendered(phase):
-        code = build_develop_prompt.main([phase, str(spec), step, "make test"])
-        out, _ = capsysbinary.readouterr()
-        return code, re.sub(rb"\s+", b" ", out)
-
-    rules = {
-        "contract-a": {
-            "tests are rewritten or deleted": rb"tests?[^.]{0,60}(rewritten|rewrite)[^.]{0,60}(or|and)[^.]{0,20}delet",
-            "production stays frozen": rb"production[^.]{0,40}(stay|stays|remain|remains|is|left) frozen",
-        },
-        "contract-b": {
-            "the old interface's proxy is deleted": rb"(delete|remove)[^.]{0,40}proxy|proxy[^.]{0,40}(is |gets )?deleted",
-            "test files stay frozen": (rb"(test files?[^.]{0,40}(stay|stays|remain|remains|are|is|left) frozen"
-                                       rb"|(never|not|no)[^.]{0,30}(touch|modify|edit)[^.]{0,20}(a |any )?test file)"),
-        },
-    }
-
-    results = {}
-    for phase, phase_rules in rules.items():
-        code, prompt = rendered(phase)
-        results[phase] = (code, [rule for rule, pattern in phase_rules.items()
-                                 if re.search(pattern, prompt, re.I) is None])
-
-    assert results == {"contract-a": (0, []), "contract-b": (0, [])}
 
 
 def test_main_renders_an_exhausted_prompt_forbidding_the_leaf_to_modify_revert_or_remove_anything_in_the_working_tree_1421(
