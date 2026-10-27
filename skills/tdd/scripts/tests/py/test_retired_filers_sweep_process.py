@@ -38,3 +38,16 @@ def test_the_retired_filers_sweep_reports_a_tracked_file_that_names_a_retired_fi
     monkeypatch.setattr(guard, "REPO", tmp_path)
 
     assert guard.namers() == ["README.md"]
+
+
+@pytest.mark.process("a real git repository under tmp_path holding a retired filer's directory under skills/")
+def test_the_retired_filers_guard_fails_when_a_retired_filer_directory_exists_under_skills_2520(monkeypatch, request, tmp_path):
+    guard = load_guard()
+    (tmp_path / "README.md").write_text("nothing retired here\n")
+    (tmp_path / "skills" / guard.RETIRED[0]).mkdir(parents=True)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "add", "README.md"], cwd=tmp_path, check=True, capture_output=True)
+    monkeypatch.setattr(guard, "REPO", tmp_path)
+
+    with pytest.raises(AssertionError, match="retired skill directories still exist"):
+        guard.test_the_retired_filers_have_no_skill_directory_and_no_file_names_them_to_run(monkeypatch, request)
