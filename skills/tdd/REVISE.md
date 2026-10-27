@@ -42,7 +42,10 @@ For attempt `k = 1 … REVISE_BUDGET`:
 3. **Fresh developer leaf.** Build the revise prompt from the `revise` template, naming the
    phase being redone and the **reason file** the verifier's stdout went to, then launch
    **through the supervisor** (exit **2 → bail**, system failure, after the stop check in
-   *Launching a leaf*):
+   *Launching a leaf*). When `<phase>` is red, first run `$S/restore-production.sh <test-path>` (the
+   step's test path from the Red report), so the relaunched red leaf inherits a tree with no
+   production change beyond `HEAD` — a rejected green's uncommitted production edit is gone — while
+   the red's own new or changed test is kept; its exit 2 is a bail, a system failure (`no-verdict`):
    ```
    $S/build-develop-prompt.sh revise <phase> .tdd/issue-<n>-spec.md "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" '<test-cmd>' .tdd/verify-<phase>.reason '<fast-cmd>' > .tdd/revise-<phase>-<k>.prompt
    rm -f .tdd/revise-<phase>-<k>.exit .tdd/revise-<phase>-<k>.pid .tdd/red-prediction.md .tdd/red-run-output.txt
