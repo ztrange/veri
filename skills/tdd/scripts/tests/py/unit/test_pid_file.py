@@ -389,3 +389,35 @@ def test_live_conductor_answers_the_pid_when_its_ps_ppid_read_fails_or_prints_no
             answers[name] = type(error).__name__
 
     assert answers == {"ps-fails": "4242", "ps-prints-nothing": "4242"}
+
+
+def test_live_conductor_answers_the_pid_when_its_parents_ps_command_read_fails_or_prints_nothing_2320(tmp_path, monkeypatch):
+    import os
+    import subprocess
+
+    pid_file = importlib.import_module("veri.pid_file")
+    monkeypatch.setattr(os, "kill", lambda pid, signal: None)
+    parent = {}
+
+    def fake_run(argv, *args, **kwargs):
+        if tuple(argv) == ("ps", "-o", "command=", "-p", "1004242"):
+            return subprocess.CompletedProcess(argv, parent["returncode"], stdout=parent["stdout"], stderr="")
+        if tuple(argv) == ("ps", "-o", "ppid=", "-p", "4242"):
+            return subprocess.CompletedProcess(argv, 0, stdout="1004242\n", stderr="")
+        if tuple(argv) == ("ps", "-o", "command=", "-p", "4242"):
+            return subprocess.CompletedProcess(argv, 0, stdout="claude -p /tdd 5\n", stderr="")
+        return subprocess.CompletedProcess(argv, 1, stdout="", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    run_dir = tmp_path / "run"
+    (run_dir / ".tdd").mkdir(parents=True)
+    (run_dir / ".tdd" / "conductor.pid").write_bytes(b"4242\n")
+    answers = {}
+    for name, returncode, stdout in [("ps-fails", 1, ""), ("ps-prints-nothing", 0, "\n")]:
+        parent.update(returncode=returncode, stdout=stdout)
+        try:
+            answers[name] = pid_file.live_conductor(str(run_dir))
+        except Exception as error:
+            answers[name] = type(error).__name__
+
+    assert answers == {"ps-fails": "4242", "ps-prints-nothing": "4242"}
