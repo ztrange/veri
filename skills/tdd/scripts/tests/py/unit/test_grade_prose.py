@@ -1174,3 +1174,9 @@ def test_grade_prose_records_a_pass_verdict_when_the_shared_leaf_launch_wrapper_
 
     graded = tmp_path / "GRADED"
     assert (code, graded.read_text().split()[:1] if graded.exists() else []) == (0, ["unit.md"]), (code, err)
+
+
+def test_the_prompt_grade_prose_renders_passes_a_row_naming_no_artefact_on_its_meaning_alone_in_any_wording_2443(grade_prose):
+    prompt = " ".join(grade_prose.prompt("unit.md", "prose", "X1\tThe widget is blue.").split())
+
+    assert "A row that names no artefact passes on meaning alone, in any wording" in prompt, prompt
