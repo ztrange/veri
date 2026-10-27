@@ -87,22 +87,22 @@ def _tag(worktree, message, pull, pr):
     return True
 
 
+def _step(failed, what, cwd, *args):
+    run = _git(cwd, *args)
+    if run.returncode:
+        _say("%s failed (exit %d): %s" % (what, run.returncode, run.stderr.strip()))
+        failed.append(what)
+
+
 def _cleanup(pid, pr, pull, worktree, branch, message):
     """Tag, delete the branch, remove the worktree, release the lock: every step runs, each failure is named."""
     failed = []
     clone = os.path.dirname(_git(worktree, "rev-parse", "--path-format=absolute", "--git-common-dir").stdout.strip())
     if message != "-" and not _tag(worktree, message, pull, pr):
         failed.append("tag")
-    for what, args in (("branch delete", ("push", "origin", "--delete", branch)),
-                       ("worktree remove", ("worktree", "remove", worktree))):
-        run = _git(worktree, *args)
-        if run.returncode:
-            _say("%s failed (exit %d): %s" % (what, run.returncode, run.stderr.strip()))
-            failed.append(what)
-    local = _git(clone, "branch", "-D", branch)
-    if local.returncode:
-        _say("local branch delete failed (exit %d): %s" % (local.returncode, local.stderr.strip()))
-        failed.append("local branch delete")
+    _step(failed, "branch delete", worktree, "push", "origin", "--delete", branch)
+    _step(failed, "worktree remove", worktree, "worktree", "remove", worktree)
+    _step(failed, "local branch delete", clone, "branch", "-D", branch)
     if _release(pid):
         failed.append("release")
     current = _git(clone, "branch", "--show-current").stdout.strip()
