@@ -122,6 +122,8 @@ OPENING_TYPES = {"opened", "synchronize", "reopened", "ready_for_review"}
 
 
 def opens_checks(text):
+    if not re.search(r"^['\"]?on['\"]?\s*:", text, re.M):
+        return True
     if re.search(r"^on:\s*\[[^\]]*\bpull_request", text, re.M):
         return True
     for head in re.finditer(r"^ *pull_request(?:_target)?:", text, re.M):

@@ -1380,3 +1380,22 @@ def test_main_reads_the_on_trigger_block_to_tell_a_workflow_that_opens_checks_on
     code, _, _ = run_cli(wait_ci, [PR, "120", "600", FULL_SHA], env={"VERI_POLL": "10"}, cwd=work)
 
     assert code == expected
+
+
+def test_main_counts_a_workflow_whose_on_block_it_cannot_read_as_running_on_pull_requests_and_ends_3_issue_2488(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([], [], "pending")
+
+    def answer(line):
+        if "workflows/ci.yml" in line:
+            return "\x00\x01 not a workflow {{{ ]]\n"
+        if ".github/workflows" in line:
+            return WORKFLOW_LISTING
+        return None
+
+    served(fake_processes, bodies, answer)
+    code, _, _ = run_cli(wait_ci, [PR, "120", "600", FULL_SHA], env={"VERI_POLL": "10"}, cwd=work)
+
+    assert (code, [p.name for p in (work / ".tdd").iterdir()]) == (3, [f"ci-deadline-{FULL_SHA}"])
