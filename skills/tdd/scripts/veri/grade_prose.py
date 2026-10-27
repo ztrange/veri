@@ -119,12 +119,16 @@ def graded_path(unit):
     return os.path.join(os.path.dirname(unit.partition("#")[0]), "GRADED")
 
 
+def read_graded(graded):
+    with open(graded, encoding="utf-8") as f:
+        return f.read().splitlines()
+
+
 def record_graded(unit, sig, grading_id):
     graded = graded_path(unit)
     kept = []
     if os.path.exists(graded):
-        with open(graded, encoding="utf-8") as f:
-            kept = [l for l in f.read().splitlines() if l.partition(" ")[0] != unit]
+        kept = [l for l in read_graded(graded) if l.partition(" ")[0] != unit]
     with open(graded, "w", encoding="utf-8") as f:
         f.write("".join(l + "\n" for l in kept))
         template = hashlib.sha256(GRADER_INSTRUCTIONS.encode("utf-8")).hexdigest()[:12]
@@ -149,8 +153,7 @@ def keeps_protocol(reply, wanted):
 
 def resign(unit, own, tree):
     graded = graded_path(unit)
-    with open(graded, encoding="utf-8") as f:
-        lines = f.read().splitlines()
+    lines = read_graded(graded)
     for i, line in enumerate(lines):
         fields = line.split(" ")
         if fields[:2] == [unit, own]:
