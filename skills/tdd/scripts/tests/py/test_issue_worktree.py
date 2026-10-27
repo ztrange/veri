@@ -1017,6 +1017,18 @@ def test_reached_through_a_symlinked_path_prints_the_resolved_path_git_itself_li
     assert (code, out.strip(), "worktree %s" % out.strip() in scratch_registry(repo)[0].split("\n")) == (0, want, True)
 
 
+@pytest.mark.process("git clone and git worktree add twice on scratch repositories, origin unmoved between the calls")
+def test_hand_back_of_a_worktree_based_on_the_fetched_default_tip_prints_only_its_path_with_nothing_on_stderr_issue_2460(
+        tmp_path, issue_worktree, run_cli):
+    _, clone = scratch_clone(tmp_path, "current-base")
+    want = scratch_wt_path(clone, 2460)
+
+    first = run_cli(issue_worktree, ["2460", "current-base"], cwd=clone)
+    second = run_cli(issue_worktree, ["2460", "current-base"], cwd=clone)
+
+    assert (first[0], second[0], second[1], second[2]) == (0, 0, want + "\n", "")
+
+
 @pytest.mark.process("git clone and git worktree add on scratch repositories, origin ahead of the clone")
 def test_origins_default_branch_is_ahead_of_the_local_one_cuts_tdd_35_from_remote_tip_from_origins_tip(
         tmp_path, issue_worktree, run_cli):
