@@ -472,3 +472,28 @@ def test_ps_answers_a_non_zero_exit_with_a_value_distinct_from_an_empty_field_25
 
     assert answers["empty-field"] == ""
     assert answers["no-such-process"] != answers["empty-field"]
+
+
+def test_ps_answers_a_ps_that_could_not_be_run_apart_from_no_such_process_and_an_empty_field_2537(monkeypatch):
+    import subprocess
+
+    pid_file = importlib.import_module("veri.pid_file")
+    ps = {}
+
+    def fake_run(argv, *args, **kwargs):
+        if ps["answer"] == "unrunnable":
+            raise FileNotFoundError(2, "No such file or directory", "ps")
+        returncode, stdout = ps["answer"]
+        return subprocess.CompletedProcess(argv, returncode, stdout=stdout, stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    answers = {}
+    for name, answer in [("no-such-process", (1, "")), ("empty-field", (0, "\n")), ("unrunnable", "unrunnable")]:
+        ps["answer"] = answer
+        try:
+            answers[name] = pid_file._ps("lstart", 4242)
+        except Exception as error:
+            answers[name] = type(error).__name__
+
+    assert answers["unrunnable"] not in (answers["no-such-process"], answers["empty-field"])
+    assert answers["unrunnable"] != "FileNotFoundError"
