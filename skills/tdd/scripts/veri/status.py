@@ -85,10 +85,20 @@ def scope_totals(name, solvable, runs, as_json=False):
         name, attempted, done, bailed, wall, dollars, solvable)
 
 
-def run_object(issue, title, branch, step, activity):
+def issue_states():
+    """{issue number: "open" | "closed"} from one gh call, empty when gh gave no answer."""
+    answer = subprocess.run(["gh", "issue", "list", "--state", "all", "--limit", "1000",
+                             "--json", "number,state"], capture_output=True, text=True)
+    try:
+        return {str(i["number"]): i["state"].lower() for i in json.loads(answer.stdout)}
+    except ValueError:
+        return {}
+
+
+def run_object(issue, title, branch, step, activity, states):
     """One run's --json object: the ledger fields, then the activity object's."""
     run = {"issue": issue, "title": title, "branch": branch, "step": step,
-           "issue_state": "unknown"}
+           "issue_state": states.get(issue, "unknown")}
     run.update(json.loads(activity) if activity else {})
     return json.dumps(run)
 
@@ -153,6 +163,7 @@ def render(as_json, scope):
         print("no runs")
         return 3
     events, run_objects = [], []
+    states = issue_states() if as_json else {}
     for run in runs:
         run = run.rstrip("/")
         branch = branch_of(run)
@@ -175,7 +186,7 @@ def render(as_json, scope):
         issue, title = parts[0], parts[-1]
         step = step_of_total(text)
         if as_json:
-            run_objects.append(run_object(issue, title, branch, step, activity))
+            run_objects.append(run_object(issue, title, branch, step, activity, states))
             continue
         print("#%s  %s  %s  step %s%s" % (issue, title, branch, step, activity))
     scope_line = None

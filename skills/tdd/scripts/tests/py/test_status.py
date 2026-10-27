@@ -453,6 +453,26 @@ def test_main_json_lists_every_run_with_issue_state_unknown_and_exits_0_when_git
     assert (code, [(r["issue"], r.get("issue_state")) for r in doc["runs"]]) == (0, [("13", "unknown"), ("14", "unknown")])
 
 
+def test_main_json_gives_each_run_the_issue_state_github_reports_not_one_inferred_from_its_bail_2497(tmp_path, monkeypatch, capsys, status):
+    bailed, closed = lamp_run(tmp_path, "13"), lamp_run(tmp_path, "14")
+    write_events(bailed / ".tdd" / "events.jsonl", [lamp_ev(9900, "13", "bail", actor="conductor", classification="process")])
+    lamp_git(monkeypatch, tmp_path, [bailed, closed])
+    answering = subprocess.run
+    github = json.dumps([{"number": 13, "state": "OPEN"}, {"number": 14, "state": "CLOSED"}])
+
+    def run_with_github(args, **kwargs):
+        if args[0] == "gh":
+            return subprocess.CompletedProcess(args, 0, github, "")
+        return answering(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", run_with_github)
+
+    code = status.main(["--json"])
+    doc = json.loads(capsys.readouterr().out)
+
+    assert (code, [(r["issue"], r.get("issue_state")) for r in doc["runs"]]) == (0, [("13", "open"), ("14", "closed")])
+
+
 def test_main_json_reports_bail_phase_from_the_bail_event_not_the_last_launch(tmp_path, monkeypatch, capsys, status):
     run = lamp_run(tmp_path, "13")
     write_events(run / ".tdd" / "events.jsonl", [
