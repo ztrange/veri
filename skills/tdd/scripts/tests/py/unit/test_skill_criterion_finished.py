@@ -96,22 +96,6 @@ def test_671_context_md_defines_contract_case_implementation_case_and_the_replac
     assert not problems, "\n".join(problems)
 
 
-def does_not_hold(label, rec, problems):
-    if not rec:
-        problems.append(f"{label}: the condition could not be found — the rule could not be checked")
-        return
-    for marker in ("⟦full-suite⟧", "⟦human-owed⟧"):
-        if marker not in rec:
-            problems.append(f"{label}: the condition never names {marker} lines")
-    if not re.search(r"unchecked[^.]*(not|never) hold[^.]*back", rec):
-        problems.append(f"{label}: the condition never says an unchecked off-cycle line does not hold the run back")
-
-
-def test_481_draft_pr_entry_condition_and_resumes_go_to_draft_pr_condition_say_unchecked_full_suite_and_human_owed_lines_do_not_hold_a_run_back():
-    problems = []
-    assert not problems, "\n".join(problems)
-
-
 def reads_ledger_steps(anchor, box, lines, problems):
     if not lines:
         problems.append(f"no instruction of skills/tdd/SKILL.md runs '{anchor}' — the rule could not be checked")
