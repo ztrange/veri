@@ -302,3 +302,35 @@ def test_issue_2488_a_wait_ci_exit_4_in_either_ci_block_bails_nothing_adds_no_st
     if not any(l.startswith("done ") for l in events.split("\n")):
         problems.append(f"exit 4 wrote no done mark: [{events.strip()}]")
     assert not problems, "\n".join(problems)
+
+
+@pytest.mark.process("the Draft PR step's first CI block, bail gate and done mark run under bash -c in a git repo, against stub scripts")
+def test_issue_2488_the_done_mark_follows_the_first_ci_wait_only_when_that_wait_recorded_no_bail_on_exit_4(tmp_path):
+    step = _ci_step()
+    assert step.strip(), NO_STEP
+    first, done = _first_block(step), _done_line(step).replace("<n>", "2488").replace("<pr-url>", "https://example.test/pull/1")
+    assert first.strip() and done, "the CI step lacks its first CI-wait block or its done line — nothing could be run"
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    stubs = {"pr-ready.sh": "#!/bin/sh\nexit 0\n",
+             "wait-ci.sh": "#!/bin/sh\nexit 4\n",
+             "event.sh": '#!/bin/sh\necho "$*" >> events.log\n',
+             "classify-bail.sh": '#!/bin/sh\necho "$1"\n',
+             "add-ledger-step.sh": "#!/bin/sh\nexit 0\n",
+             "ledger-steps.sh": '#!/bin/sh\n[ "$1" != last-done ] || echo "step 1"\n[ "$1" != has-mark ] || exit 1\nexit 0\n',
+             "gh": "#!/bin/sh\nexit 0\n"}
+    for name, body in stubs.items():
+        (bin_dir / name).write_text(body)
+        (bin_dir / name).chmod(0o755)
+    work = tmp_path / "work"
+    work.mkdir()
+    subprocess.run(["git", "-C", str(work), "init", "-q"], check=True)
+    (work / ".tdd").mkdir()
+    (work / ".tdd" / "issue-2488.md").write_text("")
+    env = dict(os.environ, S=str(bin_dir), PATH=f"{bin_dir}:{os.environ['PATH']}")
+    gated = "grep -q '^bail' events.log 2> /dev/null || { " + done + "; }"
+    script = "\n".join([first, gated]).encode("latin-1").decode("utf-8", "surrogateescape")
+    subprocess.run(["bash", "-c", script], cwd=work, env=env,
+                   stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    events = (work / "events.log").read_text() if (work / "events.log").exists() else ""
+    assert any(l.startswith("done ") for l in events.split("\n")), f"exit 4 at the first CI wait left the done mark unwritten: [{events.strip()}]"
