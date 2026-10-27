@@ -124,6 +124,8 @@ REJECT a plan holding a step that carries the `⟦replaces-case⟧` mark but doe
 
 REJECT a plan holding a step that carries `⟦guard-subject: P⟧` where the step text or the spec names `P` as that step's Red test file (the file its failing case is written in): `tests-frozen` records the Red's test file whole, so a Green editing `P` can never pass `tests-frozen check --step`; your reason names the step and `P`.
 
+REJECT a plan holding a step whose text names more than one observable outcome: a behaviour plus each distinct refusal, exit code or fail-closed branch. The Red adds one case, so a second outcome is a guard no case pins, and verify-green rejects it until the revise budget runs out. Your reason names the step and the split it needs, one outcome per step. A step naming exactly one outcome, a behaviour alone or one guard alone, is accepted: count the named outcomes, and never refuse a step for merely mentioning a guard.
+
 {{REFACTOR_PLAN}}
 
 A REJECT must name the criterion it fails on and state the part of it no step covers, in
