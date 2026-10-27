@@ -48,6 +48,8 @@ def main(argv):
         sys.stdout.write("bailed %s %s\n" % (mark.get("phase"), mark.get("classification")))
     elif cause == "stopped":
         sys.stdout.write("stopped %s\n" % mark.get("mode"))
+    elif cause == "refused":
+        sys.stdout.write("refused %s\n" % mark.get("check"))
     elif leaf := killed_external(events):
         sys.stdout.write("killed-external %s\n" % leaf)
     elif not os.path.isfile(conductor_log):
