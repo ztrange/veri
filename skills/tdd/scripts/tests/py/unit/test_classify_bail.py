@@ -159,3 +159,9 @@ def test_main_classifies_setup_failed_as_a_system_failure_with_0_2231(capsys, cl
     code = classify_bail.main(["setup-failed"])
 
     assert (code, *capsys.readouterr()) == (0, "system\n", "")
+
+
+def test_main_classifies_killed_external_as_a_system_failure_on_its_own_line_with_0_2427(capsys, classify_bail):
+    code = classify_bail.main(["killed-external"])
+
+    assert (code, *capsys.readouterr()) == (0, "system\n", "")
