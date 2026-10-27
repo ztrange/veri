@@ -118,15 +118,15 @@ def test_target_slot_is_free_only_below_target_asking_for_not_running_issues_193
         make_run(repo, 102, second.pid)
         make_run(repo, 103, reused.pid)
 
-        def watch(*args):
+        def watch(*args, timeout=30):
             return subprocess.run([str(scripts / "watch-runs.sh"), *args], cwd=repo, stdin=subprocess.DEVNULL,
-                                  capture_output=True, text=True, timeout=30,
+                                  capture_output=True, text=True, timeout=timeout,
                                   env={**os.environ, "PYTHONPATH": str(SCRIPTS / "veri")})
 
         full = watch("--target", "2", "--max-wait", "3")
         second.terminate()
         second.wait()
-        below = watch("--target", "2", "--max-wait", "3")
+        below = watch("--target", "2", "--max-wait", "120", timeout=150)
     finally:
         first.terminate()
         first.wait()
@@ -135,6 +135,7 @@ def test_target_slot_is_free_only_below_target_asking_for_not_running_issues_193
         reused.kill()
         reused.wait()
     assert (full.returncode, full.stdout.strip()) == (3, "timeout"), full.stderr
+    assert below.stdout.strip() != "timeout", "the watcher timed out before observing the exit: %s" % below.stderr
     assert (below.returncode, below.stdout.strip()) == (0, "slot-free 1/2 next 777"), below.stderr
     assert calls.read_text().split("\n")[:-1] == ["--not-running"]
 
