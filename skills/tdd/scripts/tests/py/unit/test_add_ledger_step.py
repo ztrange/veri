@@ -1483,3 +1483,14 @@ def test_main_accepts_an_unmarked_pin_step_that_adds_a_case_for_behaviour_that_a
 
     inserted = [line for line in ledger.read_text().splitlines() if "pinning that the pid-file wait" in line]
     assert (code, inserted) == (0, [f"- [ ] {step} ⟦added⟧ ⟦criterion 2⟧"]), err
+
+
+def test_main_accepts_a_diff_checked_step_whose_change_is_confined_to_test_files_inserting_it_marked_added_2517(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    step = "drop the pid-file wait bound from 30 s to 10 s in tests/py/test_watch_runs_process.py ⟦diff-checked⟧"
+
+    code, _, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", step], cwd=tmp_path)
+
+    inserted = [line for line in ledger.read_text().splitlines() if "pid-file wait bound" in line]
+    assert (code, inserted) == (0, [f"- [ ] {step} ⟦added⟧ ⟦criterion 2⟧"]), err
