@@ -58,6 +58,8 @@ Every script speaks these four codes and the conductor branches on them:
 Never collapse 1 and 2: a process failure (the methodology spoke) is not a system failure
 (the plumbing broke); `classify-bail.sh` labels bails by it.
 
+`wait-ci.sh` exit 4 (the repository reports no checks on this pull request) is the one script code beyond the four; `queued-merge.sh` passes it through (`queued_merge.py:160`).
+
 ## Versions are tags, and nothing else
 
 A version is an annotated tag `vN.M` whose message is the capability, in the issue's words —

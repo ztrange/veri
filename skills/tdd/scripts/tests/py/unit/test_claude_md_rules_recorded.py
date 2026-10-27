@@ -130,3 +130,12 @@ def test_claude_mds_budgets_invariant_names_veri_skill_edit_budget_as_a_sixth_ax
         "veri_skill_edit_budget", "veri_step_growth", "sixth",
         "skill-edit", "never folded|never merged|not merged|one knob",
     ) == []
+
+
+def test_2488_claude_mds_exit_codes_section_names_wait_ci_exit_4_for_no_checks_as_the_one_code_beyond_the_four_and_queued_merge_passing_it_through():
+    assert records_carry(
+        section_records("## Exit codes are the API"),
+        "CLAUDE.md's exit-codes section has no single record naming wait-ci.sh exit 4 (no checks reported on the pull request) as the one code beyond the four, passed through by queued-merge.sh",
+        "wait-ci\\.sh", "(exit )?4", "no checks", "one (script )?code beyond|beyond the four|fifth",
+        "queued-merge\\.sh", "pass(es|ed)? (it )?through",
+    ) == []
