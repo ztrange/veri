@@ -1,2 +1,3 @@
 ### `status.sh` with no `--json` prints `closed` as the state of a run whose issue GitHub reports closed, in place of its `bailed` or `stale` state, while an open issue's run's line is unchanged ⟦criterion 3⟧
 - run_object's `state = "closed"` override duplicates the one in run_activity. Removing it would change the JSON output for a closed run with no events, because that run has no activity object to carry the state, so I left it.
+not-done | uncovered | run_object's `state = "closed"` override duplicates the one in run_activity. Removing it would change the JSON output for a closed run with no events, because that run has no activity object to carry the state, so I left it.
