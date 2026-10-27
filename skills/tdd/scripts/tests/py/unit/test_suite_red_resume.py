@@ -203,3 +203,20 @@ def test_check_goes_on_whatever_the_last_bail_was_when_every_branch_red_suite_is
         outcomes[name] = run_cli(module, ["check", str(ledger), str(branch), str(default)])
 
     assert outcomes == {name: (0, "test_a.py — FAIL a\n", "") for name in outcomes}
+
+
+def test_check_still_refuses_naming_each_suite_red_on_the_default_branch_too_after_a_revise_exhausted_bail_2470(run_cli, tmp_path):
+    module = importlib.import_module("veri.suite_red_resume")
+    ledger = tmp_path / "issue-7-ledger.md"
+    ledger.write_text("- [ ] step\n")
+    events = [{"ts": 1, "issue": "7", "event": "bail", "cause": "revise-exhausted", "phase": ""}]
+    (tmp_path / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+    branch = tmp_path / "branch-red"
+    branch.write_text("test_a.py — FAIL a\ntest_b.py\ntest_d.py\n")
+    default = tmp_path / "default-red"
+    default.write_text("test_b.py — FAIL b\ntest_d.py — FAIL d\n")
+
+    code, out, err = run_cli(module, ["check", str(ledger), str(branch), str(default)])
+
+    assert (code, out) == (1, "")
+    assert "test_b.py" in err and "test_d.py" in err and "test_a.py" not in err
