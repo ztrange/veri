@@ -349,27 +349,6 @@ def test_an_attempt_that_grades_pass_and_passes_the_guard_commits_list_prose_and
         == [0, "2", ["GRADED", "REQUIREMENTS.md", "unit.md"], ""], (ran.stdout, ran.stderr[-700:])
 
 
-STUB_REASON_PER_GRADING = """#!/bin/sh
-""" + ROWS_SH + """prompt=$2
-case "$prompt" in
-*"You grade a piece of prose"*)
-  n=$(cat "$CAP/grades" 2>/dev/null || echo 0)
-  case "$prompt" in *"A2: "*) echo $((n + 1)) > "$CAP/grades"; echo "$n" > "$CAP/cur" ;; *) n=$(cat "$CAP/cur") ;; esac
-  case "$n" in
-  0) reply_rows A1 'first-reason-alpha' ;;
-  1) reply_rows A1 'second-reason-bravo' ;;
-  *) reply_rows '' '' ;;
-  esac ;;
-*)
-  k=$(cat "$CAP/authors" 2>/dev/null || echo 0)
-  echo $((k + 1)) > "$CAP/authors"
-  printf '%s' "$prompt" > "$CAP/author-$((k + 1)).txt"
-  reply='edited' ;;
-esac
-printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"'"$reply"'"}'
-"""
-
-
 @pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub grader and a bad VERI_SKILL_EDIT_BUDGET")
 def test_a_bad_veri_skill_edit_budget_exits_2_from_validating_it_when_every_other_call_before_launching_succeeds(tmp_path):
     repo = tmp_path / "repo"
