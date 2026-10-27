@@ -1405,3 +1405,27 @@ def test_main_exits_2_leaving_the_ledger_the_added_file_and_the_events_log_byte_
 
     assert (code, "Traceback" in stderr) == (2, False)
     assert (ledger.read_bytes(), added.read_bytes(), events.read_bytes()) == before
+
+
+def test_main_refuses_an_added_skill_edit_step_whose_spec_requirements_restate_the_units_list_exactly_naming_the_unit_and_leaving_the_ledger(tmp_path, run_cli, add_ledger_step):
+    unit = "skills/foo/SKILL.md"
+    (tmp_path / "skills/foo").mkdir(parents=True)
+    (tmp_path / unit).write_text("The widget is blue.\n")
+    (tmp_path / "skills/foo/REQUIREMENTS.md").write_text(
+        f"## {unit}\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n"
+        "| A2 | The widget is round. | shape |\n")
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    (tmp_path / "issue-42-spec.md").write_text(
+        f"## Problem\n\nText.\n\n## Requirements\n\n### {unit}\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n"
+        "| A2 | The widget is round. | shape |\n")
+
+    code, out, err = run_cli(
+        add_ledger_step,
+        [str(ledger), "after", "b two", f"⟦skill-edit⟧ regrade `{unit}` against A1"],
+        cwd=tmp_path,
+    )
+
+    assert (code, out, unit in err, "row" in err, ledger.read_bytes()) == (2, "", True, True, LEDGER), err
