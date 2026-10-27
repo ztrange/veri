@@ -485,13 +485,13 @@ def render(issue, path, ledger):
         with contextlib.suppress(OSError):
             with open(main_checkout_file(path, "issue-%s-conductor-model" % issue)) as recorded:
                 model = recorded.read().strip()
+        total_estimated = any(r.get("open") for r in sessions)
         print("Conductor own spending: %s over %d turns, in %d sessions%s%s."
               % ("$%.2f" % spend if priced else "unpriced",
                  sum(r.get("num_turns") or 0 for r in sessions), len(sessions),
                  ", on %s" % model if model else "",
-                 " (estimate)" if any(r.get("open") for r in sessions) else ""))
-        if any(r.get("open") for r in sessions):
-            total_estimated = True
+                 " (estimate)" if total_estimated else ""))
+        if total_estimated:
             print("The Conductor own spending figure is estimated: the output tokens of a session without a "
                   "result record are not yet known.")
         for contexts in turn_rows.session_contexts:
