@@ -1,0 +1,7 @@
+# Plan for #2426 — tests-frozen.sh cannot see a Vitest case, so --red-case never resolves and the per-case freeze is inert in a JS/TS suite
+
+- [ ] `record --red-case <path>::<case>` naming an `it("…")` or `test("…")` case in a `.test.ts` or `.test.tsx` file records it rather than answering "no longer exists" and exiting 1, while a case that file does not hold still exits 1 (small unit cases in tests/py/unit/test_tests_frozen.py) ⟦criterion 1⟧
+- [ ] `record` on a JS/TS test file stores per-case bodies, so `check` exits 1 for an edit inside a recorded `it("…")`/`test("…")` case's body and exits 0 for an edit outside every recorded case (small unit cases in tests/py/unit/test_tests_frozen.py) ⟦criterion 2⟧
+- [ ] `check-earlier --except <case>` excepts a Vitest `it("…")`/`test("…")` case by its title, so an earlier step's recorded JS/TS case changed under that exception is not reported while an unexcepted one still is (small unit cases in tests/py/unit/test_tests_frozen.py) ⟦criterion 3⟧
+- [ ] The pytest and bash grammars still resolve exactly as now: the existing cases over `tests_frozen` pass unchanged ⟦full-suite⟧ ⟦criterion 4⟧
+- [ ] `veri/tests_frozen.py` and `veri/wrong_test_route.py` share one implementation of which files are JS/TS test files and how a JS/TS case is found, with no second regex for either left in one module that disagrees with the other's; no production behaviour changes and the commit body names which implementation was made canonical and why ⟦diff-checked⟧ ⟦criterion 5⟧
