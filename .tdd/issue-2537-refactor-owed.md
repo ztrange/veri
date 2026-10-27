@@ -3,3 +3,6 @@
 ### `live_conductor` answers None for a recorded pid whose process start time (`ps -o lstart=`) differs from the start time recorded on the second line of `conductor.pid`, even when that process's command is `claude` and its parent's command names `run_conductor.py`; a small case in tests/py/unit/test_pid_file.py faking exactly that collision with an in-process `ps` fake; a pid-only (one-line) `conductor.pid` keeps today's answers ⟦criterion 2⟧
 - share the `conductor.pid` path literal between `recorded_alive` and `live_conductor`
 - test-only | extract the repeated fake-`ps` `fake_run` and `run_dir` setup in `tests/py/unit/test_pid_file.py` into a shared helper
+### `run_conductor.py` records the conductor process's start time, as `ps -o lstart=` reports it, on the second line of `.tdd/wt/<n>/.tdd/conductor.pid` beside the pid, so `live_conductor` answers that pid while that same process runs ⟦criterion 2⟧
+- out-of-bounds | `live_conductor` re-opens and parses `conductor.pid` for its second line, while `number_in` already reads the first; a shared reader of both lines would live in pid_file.py
+- out-of-bounds | `run_conductor.py` calls the private `pids._ps`; a public start-time helper in pid_file.py would remove that cross-module use of an underscore name
