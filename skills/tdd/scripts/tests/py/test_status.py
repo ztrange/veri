@@ -496,6 +496,30 @@ def test_main_json_reports_state_closed_for_a_run_whose_issue_is_closed_and_bail
     assert (code, [(r["issue"], r.get("state")) for r in doc["runs"]]) == (0, [("13", "bailed"), ("14", "closed")])
 
 
+def test_main_prints_closed_in_place_of_bailed_for_a_run_whose_issue_is_closed_and_leaves_an_open_runs_line_2497(tmp_path, monkeypatch, capsys, status):
+    open_run, closed_run = lamp_run(tmp_path, "13"), lamp_run(tmp_path, "14")
+    for run, issue in ((open_run, "13"), (closed_run, "14")):
+        write_events(run / ".tdd" / "events.jsonl", [
+            lamp_ev(9800, issue, "launch", name="develop-red"),
+            lamp_ev(9900, issue, "bail", actor="conductor", classification="process")])
+    lamp_git(monkeypatch, tmp_path, [open_run, closed_run])
+    answering = subprocess.run
+    github = json.dumps([{"number": 13, "state": "OPEN"}, {"number": 14, "state": "CLOSED"}])
+
+    def run_with_github(args, **kwargs):
+        if args[0] == "gh":
+            return subprocess.CompletedProcess(args, 0, github, "")
+        return answering(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", run_with_github)
+
+    code = status.main([])
+    lines = capsys.readouterr().out.splitlines()
+
+    assert (code, [(l.split()[0], "closed" in l.split(), "bailed" in l.split()) for l in lines]) == (
+        0, [("#13", False, True), ("#14", True, False)])
+
+
 def test_main_json_reports_bail_phase_from_the_bail_event_not_the_last_launch(tmp_path, monkeypatch, capsys, status):
     run = lamp_run(tmp_path, "13")
     write_events(run / ".tdd" / "events.jsonl", [
@@ -642,7 +666,9 @@ def test_status_with_no_run_under_the_main_working_tree_prints_no_runs_and_exits
 def test_status_lists_a_run_under_tdd_wt_with_its_issue_number_title_branch_and_step_n_of_m(tmp_path, fake_processes, run_cli, status):
     run = ledger_run(tmp_path, "7", "# Plan for #7 \u2014 widgets spin when clicked\n\n- [x] a widget exists\n"
                                     "- [ ] a clicked widget spins\n- [ ] a spinning widget stops\n")
-    fake_processes(git_answering(tmp_path, {str(run): "tdd/7-widgets-spin"}))
+    git = git_answering(tmp_path, {str(run): "tdd/7-widgets-spin"})
+    github = json.dumps([{"number": 7, "state": "OPEN"}])
+    fake_processes(lambda line, **kwargs: (0, github, "") if line.startswith("gh ") else git(line, **kwargs))
 
     assert run_cli(status, []) == (0, "#7  widgets spin when clicked  tdd/7-widgets-spin  step 2 of 3\n", "")
 
@@ -659,7 +685,9 @@ def test_status_shows_a_runs_state_running_done_with_its_pr_url_bailed_with_phas
                      [lamp_ev(launches[issue], issue, "launch", name="develop-red")] + endings.get(issue, []))
     # #14 names a pid no process can hold (above every pid_max), so os.kill rejects it, not open.
     (runs["14"] / ".tdd" / "conductor.pid").write_text("%d\n" % (2 ** 31 - 1))
-    fake_processes(git_answering(tmp_path, {str(run): "tdd/%s-lamps" % issue for issue, run in runs.items()}))
+    git = git_answering(tmp_path, {str(run): "tdd/%s-lamps" % issue for issue, run in runs.items()})
+    github = json.dumps([{"number": int(issue), "state": "CLOSED" if issue == "14" else "OPEN"} for issue in runs])
+    fake_processes(lambda line, **kwargs: (0, github, "") if line.startswith("gh ") else git(line, **kwargs))
     live_conductor(monkeypatch, runs["11"] / ".tdd", "11")
     at_ten_thousand(monkeypatch)
 
@@ -670,7 +698,7 @@ def test_status_shows_a_runs_state_running_done_with_its_pr_url_bailed_with_phas
         "#11  lamps glow  tdd/11-lamps" + head + "10s  attempt 1  $0.00  0 tokens  running\n"
         "#12  lamps glow  tdd/12-lamps" + head + "20s  attempt 1  $0.00  0 tokens  done https://github.com/o/r/pull/12\n"
         "#13  lamps glow  tdd/13-lamps" + head + "30s  attempt 1  $0.00  0 tokens  bailed green system\n"
-        "#14  lamps glow  tdd/14-lamps" + head + "1000s  attempt 1  $0.00  0 tokens  stale\n")
+        "#14  lamps glow  tdd/14-lamps" + head + "1000s  attempt 1  $0.00  0 tokens  closed\n")
 
 
 def test_status_watch_redraws_in_place_recomputing_every_run_from_disk_on_each_render(
@@ -678,7 +706,9 @@ def test_status_watch_redraws_in_place_recomputing_every_run_from_disk_on_each_r
     run = lamp_run(tmp_path, "41")
     events = run / ".tdd" / "events.jsonl"
     write_events(events, [lamp_ev(9990, "41", "launch", name="develop-red")])
-    fake_processes(git_answering(tmp_path, {str(run): "tdd/41-lamps"}))
+    git = git_answering(tmp_path, {str(run): "tdd/41-lamps"})
+    github = json.dumps([{"number": 41, "state": "OPEN"}])
+    fake_processes(lambda line, **kwargs: (0, github, "") if line.startswith("gh ") else git(line, **kwargs))
     live_conductor(monkeypatch, run / ".tdd", "41")
     at_ten_thousand(monkeypatch)
     sleeps = []
@@ -704,7 +734,9 @@ def test_status_watch_redraws_in_place_recomputing_every_run_from_disk_on_each_r
 def test_status_exits_2_naming_the_failure_when_a_ledger_cannot_be_read_as_text(tmp_path, fake_processes, run_cli, status):
     run = ledger_run(tmp_path, "9", "")
     (run / ".tdd" / "issue-9.md").write_bytes(b"# Plan for #9 \xe2\x80\x94 locked\n\n- [ ] a \xff lock\n")
-    fake_processes(git_answering(tmp_path, {str(run): "tdd/9-locked"}))
+    git = git_answering(tmp_path, {str(run): "tdd/9-locked"})
+    github = json.dumps([{"number": 9, "state": "OPEN"}])
+    fake_processes(lambda line, **kwargs: (0, github, "") if line.startswith("gh ") else git(line, **kwargs))
 
     code, out, err = run_cli(status, [])
 

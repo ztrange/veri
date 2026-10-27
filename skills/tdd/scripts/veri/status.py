@@ -18,7 +18,7 @@ import tunables
 from solvable_issues import priority_label, solvable
 
 
-def run_activity(run, as_json=False):
+def run_activity(run, as_json=False, closed=False):
     """The activity line for one run, or None when it has launched no leaf."""
     last, attempts = None, 0
     newest = None
@@ -49,6 +49,8 @@ def run_activity(run, as_json=False):
     if last is None and end.get("event") != "preflight-refused":
         return None
     last = last or end
+    if closed:
+        state = "closed"
     phase, actor, leaf = last.get("phase", ""), last.get("actor", ""), last.get("name", "")
     elapsed = now - int(last["ts"])
     if as_json:
@@ -165,27 +167,27 @@ def render(as_json, scope):
         print("no runs")
         return 3
     events, run_objects = [], []
-    states = issue_states() if as_json else {}
+    states = issue_states()
     for run in runs:
         run = run.rstrip("/")
         branch = branch_of(run)
         activity = ""
-        events_path = run_file(run, "events.jsonl")
-        if os.path.isfile(events_path):
-            events.append(run)
-            activity = run_activity(run, as_json) or ""
-            if not as_json:
-                activity = "  " + activity
         ledger = ledger_path(run, os.path.basename(run))
-        if not os.path.isfile(ledger):
-            continue
-        with open(ledger) as f:
-            text = f.read()
+        has_ledger = os.path.isfile(ledger)
+        text = open(ledger).read() if has_ledger else ""
         heading = text.split("\n", 1)[0]
         if heading.startswith("# Plan for #"):
             heading = heading[len("# Plan for #"):]
         parts = heading.split(" — ", 1)
         issue, title = parts[0], parts[-1]
+        events_path = run_file(run, "events.jsonl")
+        if os.path.isfile(events_path):
+            events.append(run)
+            activity = run_activity(run, as_json, states.get(issue) == "closed") or ""
+            if not as_json:
+                activity = "  " + activity
+        if not has_ledger:
+            continue
         step = step_of_total(text)
         if as_json:
             run_objects.append(run_object(issue, title, branch, step, activity, states))
