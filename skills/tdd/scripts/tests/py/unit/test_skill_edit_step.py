@@ -1131,6 +1131,7 @@ def test_a_run_given_no_change_on_a_unit_graded_pass_launches_no_author_commits_
     monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+    monkeypatch.setattr(importlib.import_module("veri.leaf"), "launch", launch)
 
     code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
 
@@ -1313,9 +1314,11 @@ def test_a_change_step_whose_author_edits_only_a_pin_file_leaves_the_unit_byte_i
     (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
     commits = []
 
+    def launch(name, prompt, *args, env=None):
+        (tmp_path / "pin.md").write_text("pin, edited\n")
+        return subprocess.CompletedProcess([name], 0, b"", None)
+
     def run(cmd, **kw):
-        if cmd[0].endswith("supervise.sh"):
-            (tmp_path / "pin.md").write_text("pin, edited\n")
         if cmd[:2] == ["git", "commit"]:
             commits.append(cmd)
         return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
@@ -1325,6 +1328,7 @@ def test_a_change_step_whose_author_edits_only_a_pin_file_leaves_the_unit_byte_i
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
     monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+    monkeypatch.setattr(importlib.import_module("veri.leaf"), "launch", launch)
 
     code, out, err = run_cli(skill_edit_step, ["--change", "delete the bullet - a merge is in flight;",
                                                "issue.md", "unit.md", "pin.md"],
@@ -1345,9 +1349,11 @@ def test_a_change_step_whose_author_edits_the_unit_and_leaves_every_pin_file_unt
     (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
     commits = []
 
+    def launch(name, prompt, *args, env=None):
+        (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+        return subprocess.CompletedProcess([name], 0, b"", None)
+
     def run(cmd, **kw):
-        if cmd[0].endswith("supervise.sh"):
-            (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
         if cmd[:2] == ["git", "commit"]:
             commits.append(cmd)
         return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
@@ -1357,9 +1363,57 @@ def test_a_change_step_whose_author_edits_the_unit_and_leaves_every_pin_file_unt
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
     monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+    monkeypatch.setattr(importlib.import_module("veri.leaf"), "launch", launch)
 
     code, out, err = run_cli(skill_edit_step, ["--change", "delete the bullet - a merge is in flight;",
                                                "issue.md", "unit.md", "pin.md"],
                              env={"VERI_SKILL_EDIT_BUDGET": "1"})
 
     assert (code, len(commits)) == (0, 1), (code, out, err)
+
+
+def test_the_author_leaf_is_launched_through_veri_leaf_launch_as_author_skill_edit_1_with_bypass_permissions_and_its_edit_is_graded_2498(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    skill_edit_guard = skill_edit_step.skill_edit_guard
+    leaf = importlib.import_module("veri.leaf")
+    original = "The widget is painted a deep blue.\n- a merge is in flight;\n"
+    edited = "The widget is painted a deep blue.\n"
+    (tmp_path / "unit.md").write_text(original)
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    graded_texts = []
+    launched = []
+
+    def grade(path, unit):
+        graded_texts.append((tmp_path / unit).read_text())
+        (tmp_path / "GRADED").write_text("sig\n")
+        return 0, ""
+
+    def launch(name, prompt, *args, env=None):
+        launched.append((name, args))
+        (tmp_path / "unit.md").write_text(edited)
+        return subprocess.CompletedProcess([name], 0, b"", None)
+
+    def run(cmd, **kw):
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", grade)
+    monkeypatch.setattr(skill_edit_guard, "_git_ok", lambda *a: True)
+    monkeypatch.setattr(skill_edit_guard, "_git_lines", lambda *a: sorted(
+        p.name for p in tmp_path.iterdir()) if a[0] == "ls-files" else [])
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
+    monkeypatch.setattr(subprocess, "run", run)
+    monkeypatch.setattr(leaf, "launch", launch)
+
+    code, out, err = run_cli(skill_edit_step, ["--change", "delete the bullet - a merge is in flight;",
+                                               "issue.md", "unit.md"],
+                             env={"VERI_SKILL_EDIT_BUDGET": "1"})
+
+    assert [n for n, _ in launched] == ["author-skill-edit-1"], (code, out, err, launched)
+    assert launched[0][1][-2:] == ("--permission-mode", "bypassPermissions"), launched
+    assert graded_texts == [original, edited], (code, out, err, graded_texts)
+    assert (code, (tmp_path / "unit.md").read_text()) == (0, edited), (code, out, err)
