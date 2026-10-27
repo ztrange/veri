@@ -285,9 +285,9 @@ def test_2455_queued_merge_whose_main_clone_is_on_another_branch_does_not_fast_f
     assert (code, moved, "scratch" in err, "cleanup failed: fast-forward" in err) == (2, [], True, True)
 
 
-def test_2488_queued_merge_whose_wait_ci_exits_4_for_no_checks_still_refuses_to_merge_and_exits_non_zero(fake_processes, run_cli):
+def test_2488_queued_merge_whose_wait_ci_exits_4_for_no_checks_still_refuses_to_merge_and_exits_4(fake_processes, run_cli):
     calls = scenario(fake_processes, ci=(4,))
 
     code, _, _ = run_cli(queued_merge, ARGV)
 
-    assert (code != 0, first(calls, "pr merge")) == (True, None)
+    assert (code, first(calls, "pr merge")) == (4, None)
