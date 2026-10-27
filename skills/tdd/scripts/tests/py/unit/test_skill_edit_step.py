@@ -1132,7 +1132,6 @@ def test_a_run_given_no_change_on_a_unit_graded_pass_launches_no_author_commits_
     monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
-    monkeypatch.setattr(importlib.import_module("veri.leaf"), "launch", launch)
 
     code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
 
