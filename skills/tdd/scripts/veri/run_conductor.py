@@ -7,6 +7,7 @@ import importlib
 import io
 import os
 import paths
+import pid_file as pids
 import requirements
 import re
 import calendar
@@ -232,7 +233,7 @@ def conduct(text, issue, env):
 
             def record_pid():
                 with open(pid_file, "w") as handle:
-                    handle.write("%d\n" % os.getpid())
+                    handle.write("%d\n%s\n" % (os.getpid(), pids._ps("lstart", os.getpid())))
             code = subprocess.run([binary, "-p", "--output-format", "stream-json",
                                    "--verbose"] + context_limits() + [
                                    "--permission-mode", "bypassPermissions", "--model",
