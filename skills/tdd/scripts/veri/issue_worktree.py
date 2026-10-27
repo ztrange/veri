@@ -150,6 +150,8 @@ def main(argv):
             sys.stderr.write("issue-worktree: %s is held by a live conductor (pid %s)"
                              " — refusing to hand back a run in flight\n" % (path, pid))
             return 2
+        if os.path.isdir(path + "/.tdd"):
+            open(path + "/.tdd/handed-back", "w").close()
         sys.stdout.write(path + "\n")
         return 0
     branch = "tdd/%s-%s" % (argv[0], argv[1])
