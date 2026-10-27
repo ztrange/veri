@@ -165,3 +165,29 @@ def test_check_on_a_ts_file_flags_an_edit_inside_a_recorded_it_body_and_not_one_
     inside = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)[:2]
 
     assert (recorded, outside, inside) == (0, (0, ""), (1, "a.test.ts\n"))
+
+
+def test_check_earlier_except_a_vitest_case_by_title_leaves_it_unreported_while_an_unexcepted_one_still_is_2426(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "a.test.ts"
+    original = (
+        'import { it, test } from "vitest";\n'
+        'it("adds two numbers", () => {\n  expect(1 + 1).toBe(2);\n});\n'
+        'test("subtracts", () => {\n  expect(2 - 1).toBe(1);\n});\n')
+    suite.write_text(original)
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
+    earlier, later = "the earlier step", "the later step"
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, later))
+    recorded = run_cli(tests_frozen, ["record", "--step", earlier, "a.test.ts"], cwd=tmp_path)[0]
+    suite.write_text(original.replace("toBe(2)", "toBe(3)").replace("toBe(1)", "toBe(0)"))
+
+    answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later, "--except", "adds two numbers"],
+                     cwd=tmp_path)[:2]
+
+    assert (recorded, answer) == (0, (1, "subtracts (%s)\n" % earlier))
