@@ -1333,3 +1333,13 @@ def test_2483_convert_leaves_a_listed_units_stale_graded_line_byte_identical_and
 
     assert (converted.returncode, graded_file.read_bytes(), "guide/unit.md" in owed.stdout.split()) == (0, before, True), \
         (converted.returncode, converted.stderr, owed.stdout, graded_file.read_text())
+
+
+@pytest.mark.process("grade-prose.sh --convert in a tree with no root REQUIREMENTS.md")
+def test_2483_convert_in_a_tree_with_no_root_requirements_md_exits_0_with_nothing_on_stderr(tmp_path):
+    converted = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "--convert"], cwd=tmp_path,
+                               capture_output=True, text=True, timeout=25,
+                               env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+                                    "VERI_VENV": INTERPRETER_VENV})
+
+    assert (converted.returncode, converted.stderr) == (0, ""), (converted.returncode, converted.stderr)
