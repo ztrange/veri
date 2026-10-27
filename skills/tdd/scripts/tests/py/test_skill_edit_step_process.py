@@ -1053,3 +1053,37 @@ def test_an_added_step_on_a_unit_whose_own_table_has_no_rows_refused_with_exit_2
                          capture_output=True, text=True, env=env)
 
     assert [ran.returncode, git(repo, "status", "--porcelain")] == [2, ""], (ran.stdout, ran.stderr)
+
+
+@pytest.mark.process("a real git repository under an in-process skill-edit step with a faked grader and a faked author launch")
+def test_a_grader_that_keeps_rejecting_relaunches_the_author_three_times_by_default_then_exits_1_naming_every_failing_id_in_process_2479(tmp_path, monkeypatch, run_cli):
+    import importlib
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt hums.\n")
+    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is crimson. | shade |\n")
+    monkeypatch.chdir(repo)
+    for name in ("GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"):
+        monkeypatch.setenv(name, "t")
+    for name in ("GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"):
+        monkeypatch.setenv(name, "t@t")
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    launches = []
+
+    def author(unit, path, reasons):
+        launches.append(unit)
+        return 0
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A1: FAIL - no\nA2: FAIL - no\n"))
+    monkeypatch.setattr(skill_edit_step, "_author", author)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+
+    code, out, err = run_cli(skill_edit_step, [str(repo / "issue.md"), "unit.md"])
+
+    assert [code, len(launches), "A1" in out, "A2" in out] == [1, 3, True, True], (out, err)
