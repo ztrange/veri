@@ -24,3 +24,14 @@
 | CB4 | Step 3 tells the leaf to commit the change as `refactor: <what changed> (#<issue>)`. (Numbered list, item 3, first sentence.) | The commit carries the issue number. |
 | CB5 | Step 3 tells the leaf never to modify a test file: a contract-b commit that touches one is rejected. (Numbered list, item 3, second sentence.) | The frozen half of the phase is enforced by rejection. |
 | CB6 | The numbered list has three items in this order: delete the proxy (1), run the suites covering the touched files (2, an included fragment), commit (3). (Numbered list.) | The deletion is proven green before it is committed. |
+
+## skills/tdd/scripts/prompts/develop-expand.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| EX1 | The prompt says this is the expand phase of an interface change: production gains the new interface, and the old interface becomes a proxy that delegates to it. (Opening paragraph, first two sentences.) | The leaf must know what the phase adds and what the old interface turns into. |
+| EX2 | The prompt says behaviour does not change: every test that was green stays green, and test files stay frozen. (Opening paragraph, last sentence.) | The expand is a refactor; a changed test would hide a behaviour change. |
+| EX3 | Step 1 tells the leaf to add the new interface to production and turn the old one into a proxy over it, and to move no caller yet, because that is the migrate phase. (Numbered list, item 1.) | Moving callers is the next phase's work, so the diff stays one kind of change. |
+| EX4 | Step 3 tells the leaf to commit the change as `refactor: <what changed> (#<issue>)`. (Numbered list, item 3, first sentence.) | The commit carries the issue number. |
+| EX5 | Step 3 tells the leaf never to modify a test file: an expand commit that touches one is rejected. (Numbered list, item 3, second sentence.) | The frozen half of the phase is enforced by rejection. |
+| EX6 | The numbered list has three items in this order: add the interface and proxy the old one (1), run the suites covering the touched files (2, an included fragment), commit (3). (Numbered list.) | The change is proven green before it is committed. |
