@@ -1,5 +1,6 @@
 """Cases for supervise.sh that start a real process."""
 import fcntl
+import json
 import os
 import subprocess
 import sys
@@ -207,3 +208,35 @@ def test_2380_a_leaf_that_hangs_after_acquiring_the_full_suite_lock_is_still_kil
     out, err = ran.communicate(timeout=30)
 
     assert (ran.returncode, acquired.exists()) == (2, True), err
+
+
+@pytest.mark.process("supervise.sh runs a real leaf whose whole process group the test SIGKILLs from outside")
+@pytest.mark.timeout(60)
+def test_2427_a_leaf_sigkilled_by_another_process_exits_2_with_cause_killed_external_and_is_not_retried(tmp_path):
+    work = tmp_path / "work"
+    work.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=work, check=True)
+    pidfile = tmp_path / "leaf.pid"
+    ran = subprocess.Popen([str(SCRIPTS / "supervise.sh"), "develop-red", "sh", "-c",
+                            'echo $$ > "$1"; exec sleep 60', "sh", str(pidfile)],
+                           cwd=work, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                           env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "1",
+                                "VERI_POLL": "0.05", "VERI_TIMEOUT": "3", "VERI_HEARTBEAT": "600",
+                                "VERI_ISSUE": "2427", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"})
+    leaf = None
+    try:
+        while ran.poll() is None and leaf is None:
+            text = pidfile.read_text().strip() if pidfile.exists() else ""
+            leaf = int(text) if text.isdigit() else None
+            time.sleep(0.02)
+        if leaf is not None:
+            os.killpg(os.getpgid(leaf), 9)
+        out, err = ran.communicate(timeout=20)
+    finally:
+        if ran.poll() is None:
+            ran.kill()
+    events = [json.loads(l) for l in (work / ".tdd" / "events.jsonl").read_text().splitlines()]
+    exits = [e for e in events if e.get("event") == "exit"]
+
+    assert (ran.returncode, [e for e in events if e.get("event") == "retry"] == [],
+            [e.get("cause") for e in exits]) == (2, True, ["killed-external"]), err
