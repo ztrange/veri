@@ -1509,7 +1509,8 @@ def test_issue_1815_a_conductor_turn_with_both_one_hour_and_five_minute_cache_wr
     out = render(metrics, capsys)
 
     assert cells(out, "#### Conductor per turn", ["dollars"]) == {"1": ["$48.75"]}
-    assert "Conductor own spending: $48.75 over 1 turns, in 1 sessions.\n" in out
+    line = next(l for l in out.splitlines() if l.startswith("Conductor own spending:"))
+    assert re.fullmatch(r"Conductor own spending: \$48\.75 over 1 turns, in 1 sessions\W.*estimate\W*", line, re.I)
 
 
 def test_issue_1815_a_conductor_turn_is_priced_from_the_session_cost_price_table(tmp_path, monkeypatch, capsys, metrics):
@@ -1680,7 +1681,8 @@ def test_issue_2309_a_trailing_conductor_session_with_no_result_record_still_get
 
     out = render(metrics, capsys)
 
-    assert " in 2 sessions." in out
+    line = next(l for l in out.splitlines() if l.startswith("Conductor own spending:"))
+    assert re.search(r" in 2 sessions\b.*estimate", line, re.I)
     assert [line for line in out.split("\n") if line.startswith("Conductor context:")] == [
         "Conductor context: first turn 1000 tokens, largest 5000 tokens",
         "Conductor context: first turn 2000 tokens, largest 7000 tokens"]
@@ -1784,3 +1786,19 @@ def test_issue_2499_a_run_with_no_conductor_usage_event_and_no_conductor_log_say
             "this log carries no usage record of the conductor own.\n") in out
     assert "Conductor own spending:" not in out
     assert cells(out, "#### Total", ["$"]) == {"total": ["0.10"]}
+
+
+def test_issue_2499_a_conductor_figure_from_a_session_without_a_result_record_is_marked_estimated_on_its_spending_line_and_in_the_total_rows_dollars(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, conductor("one", 9000, "step-start")
+              + leaf("one", 9010, "developer", "red", 1, 90, usage=cost(3, "0.10", (100, 200, 1000, 400)))
+              + conductor("one", 9110, "step-done"))
+    turn = {"type": "assistant", "message": {"usage": {"input_tokens": 10, "output_tokens": 5}}}
+    sessions = [{"type": "system", "subtype": "init"}, turn]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in sessions))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    line = next(l for l in out.splitlines() if l.startswith("Conductor own spending:"))
+    assert re.search(r"estimate", line, re.I)
+    assert not re.fullmatch(r"\d+\.\d\d", cells(out, "#### Total", ["$"])["total"][0])
