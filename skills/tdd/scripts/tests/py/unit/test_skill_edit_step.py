@@ -1340,3 +1340,35 @@ def test_a_change_step_whose_author_edits_only_a_pin_file_leaves_the_unit_byte_i
                              env={"VERI_SKILL_EDIT_BUDGET": "1"})
 
     assert (code, "FAIL: the author left the prose unchanged" in out, commits) == (1, True, []), (code, out, err)
+
+
+def test_a_change_step_whose_author_edits_the_unit_and_leaves_every_pin_file_untouched_still_succeeds_and_commits_2473(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n- a merge is in flight;\n")
+    (tmp_path / "pin.md").write_text("pin\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    commits = []
+
+    def run(cmd, **kw):
+        if cmd[0].endswith("supervise.sh"):
+            (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+        if cmd[:2] == ["git", "commit"]:
+            commits.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
+    monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, ["--change", "delete the bullet - a merge is in flight;",
+                                               "issue.md", "unit.md", "pin.md"],
+                             env={"VERI_SKILL_EDIT_BUDGET": "1"})
+
+    assert (code, len(commits)) == (0, 1), (code, out, err)
