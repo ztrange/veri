@@ -150,11 +150,9 @@ def main(argv):
             sys.stderr.write("issue-worktree: %s is held by a live conductor (pid %s)"
                              " — refusing to hand back a run in flight\n" % (path, pid))
             return 2
-        stale = behind_default(path)
-        if stale:
-            sys.stderr.write("issue-worktree: %s is based on %s, behind %s's tip %s"
-                             " — refusing to hand it back\n" % ((path,) + stale))
-            return 2
+        refusal = onto_default(path)
+        if refusal:
+            return refuse(refusal)
         sys.stdout.write(path + "\n")
         return 0
     branch = "tdd/%s-%s" % (argv[0], argv[1])
@@ -195,16 +193,25 @@ def seeded_log_set_aside(path):
             shutil.rmtree(aside)
 
 
-def behind_default(path):
-    if not os.path.exists(path + "/.git"):
+def onto_default(path):
+    if not os.path.exists(path + "/.git") or origin_url() is None:
         return None
     name, _ = default_branch_name(True)
     if subprocess.run(["git", "fetch", "-q", "origin", name], stdout=sys.stderr).returncode != 0:
-        return None
+        return "git fetch origin %s failed — refusing to hand back %s against a stale origin/%s" % (name, path, name)
     tip = git("rev-parse", "origin/" + name, stdout=subprocess.PIPE, text=True).stdout.strip()
     base = subprocess.run(["git", "-C", path, "merge-base", "HEAD", "origin/" + name],
                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True).stdout.strip()
-    return None if base == tip else (base, "origin/" + name, tip)
+    if base == tip:
+        return None
+    rebased = subprocess.run(["git", "-C", path, "rebase", "-q", "origin/" + name],
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    if rebased.returncode != 0:
+        subprocess.run(["git", "-C", path, "rebase", "--abort"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return ("%s is based on %s, behind origin/%s's tip %s, and rebasing it onto that tip failed"
+                " — rebase aborted, worktree left as it was: %s" % (path, base, name, tip, rebased.stdout.strip()))
+    sys.stderr.write("issue-worktree: rebased %s from %s onto origin/%s's tip %s\n" % (path, base, name, tip))
+    return None
 
 
 def refuse(message):

@@ -1047,6 +1047,62 @@ def test_hand_back_of_a_worktree_whose_base_is_behind_the_fetched_default_tip_re
     assert (refused or rebased, code, out, err) == (True, code, out, err)
 
 
+IDENTITY = {"GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@example.test",
+            "GIT_COMMITTER_NAME": "veri", "GIT_COMMITTER_EMAIL": "veri@example.test"}
+
+
+@pytest.mark.process("git clone, git worktree add and git rebase on scratch repositories, origin advanced between the calls")
+def test_hand_back_of_a_stale_based_worktree_with_its_own_commit_rebases_it_onto_the_tip_naming_both_on_stderr_issue_2460(
+        tmp_path, issue_worktree, run_cli):
+    upstream, clone = scratch_clone(tmp_path, "rebased")
+    want = scratch_wt_path(clone, 2460)
+    run_cli(issue_worktree, ["2460", "rebased"], cwd=clone)
+    base = scratch_git(want, "rev-parse", "HEAD")
+    scratch_git(want, "commit", "-q", "--allow-empty", "-m", "the run's own step")
+    scratch_git(upstream, "commit", "-q", "--allow-empty", "-m", "main moves on")
+    tip = scratch_git(upstream, "rev-parse", "main")
+
+    code, out, err = run_cli(issue_worktree, ["2460", "rebased"], cwd=clone, env=IDENTITY)
+
+    assert (code, out, "rebased %s from %s onto origin/main's tip %s" % (want, base, tip) in err,
+            scratch_git(want, "rev-parse", "HEAD~1"), scratch_git(want, "log", "-1", "--format=%s")) == (
+        0, want + "\n", True, tip, "the run's own step")
+
+
+@pytest.mark.process("git clone, git worktree add and a conflicting git rebase on scratch repositories")
+def test_hand_back_whose_rebase_onto_the_tip_conflicts_aborts_it_and_exits_2_leaving_the_worktree_as_it_was_issue_2460(
+        tmp_path, issue_worktree, run_cli):
+    upstream, clone = scratch_clone(tmp_path, "conflict")
+    want = scratch_wt_path(clone, 2460)
+    run_cli(issue_worktree, ["2460", "conflict"], cwd=clone)
+    pathlib.Path(want, "shared.txt").write_text("the run's line\n")
+    scratch_git(want, "add", "shared.txt")
+    scratch_git(want, "commit", "-q", "-m", "the run's step")
+    before = scratch_git(want, "rev-parse", "HEAD")
+    (upstream / "shared.txt").write_text("main's line\n")
+    scratch_git(upstream, "add", "shared.txt")
+    scratch_git(upstream, "commit", "-q", "-m", "main moves on")
+
+    code, out, err = run_cli(issue_worktree, ["2460", "conflict"], cwd=clone, env=IDENTITY)
+
+    assert (code, out, "rebase aborted, worktree left as it was" in err, scratch_git(want, "rev-parse", "HEAD"),
+            scratch_git(want, "status", "--porcelain"), pathlib.Path(want, "shared.txt").read_text()) == (
+        2, "", True, before, "", "the run's line\n")
+
+
+@pytest.mark.process("git clone and git worktree add on scratch repositories, then origin's URL pointed at nothing")
+def test_hand_back_whose_fetch_of_the_default_branch_fails_exits_2_naming_the_fetch_and_hands_nothing_back_issue_2460(
+        tmp_path, issue_worktree, run_cli):
+    _, clone = scratch_clone(tmp_path, "no-fetch")
+    want = scratch_wt_path(clone, 2460)
+    run_cli(issue_worktree, ["2460", "no-fetch"], cwd=clone)
+    scratch_git(clone, "remote", "set-url", "origin", str(tmp_path / "gone"))
+
+    code, out, err = run_cli(issue_worktree, ["2460", "no-fetch"], cwd=clone)
+
+    assert (code, out, "git fetch origin main failed" in err, want in err) == (2, "", True, True)
+
+
 @pytest.mark.process("a stand-in conductor (a claude under run_conductor.py) left running beside git clone and git worktree add")
 def test_hand_back_of_a_stale_based_worktree_held_by_a_live_conductor_still_refuses_naming_its_pid_and_rebases_nothing_issue_2460(
         tmp_path, issue_worktree, run_cli):
