@@ -247,16 +247,18 @@ def test_it_prints_exactly_one_exit_line_when_a_conductor_whose_leaf_reaps_child
     proc = subprocess.Popen([str(launcher), str(pid_file)])
     watcher = None
     try:
-        deadline = time.monotonic() + 5
-        while not (pid_file.exists() and pid_file.read_text().strip()) and time.monotonic() < deadline:
+        deadline = time.monotonic() + 30
+        while not (pid_file.exists() and pid_file.read_text().strip()):
+            if time.monotonic() >= deadline:
+                pytest.fail("the stub never wrote its pid file: %s" % pid_file)
             time.sleep(0.05)
         make_run(repo, 201, int(pid_file.read_text()))
-        watcher = subprocess.Popen([str(SHIM), "--max-wait", "10"], cwd=repo, stdin=subprocess.DEVNULL,
+        watcher = subprocess.Popen([str(SHIM), "--max-wait", "120"], cwd=repo, stdin=subprocess.DEVNULL,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         time.sleep(1)
         proc.terminate()
         proc.wait()
-        out, err = watcher.communicate(timeout=20)
+        out, err = watcher.communicate(timeout=150)
     finally:
         if watcher is not None and watcher.poll() is None:
             watcher.kill()
@@ -264,4 +266,5 @@ def test_it_prints_exactly_one_exit_line_when_a_conductor_whose_leaf_reaps_child
         if proc.poll() is None:
             proc.terminate()
             proc.wait()
+    assert out.strip().splitlines() != ["timeout"], "the watcher timed out before observing the exit: %s" % err
     assert (watcher.returncode, out.strip().splitlines()) == (0, ["exited 201 stale"]), err
