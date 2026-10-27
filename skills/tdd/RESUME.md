@@ -16,8 +16,8 @@ any cycle of the resumed run starts. When that baseline is red, preflight step 3
 it runs the test command restricted to the branch-red suites — `make test TESTS="<those suite paths>"` here — in the foreground,
 and writes `<default-red-file>`, one suite still red there per line, optionally followed by ` — ` and its first FAIL line, or the
 single line `none` when no suite is red there. It then asks `$S/suite-red-resume.sh check .tdd/issue-<n>.md <branch-red-file> <default-red-file>`:
-exit 1 refuses as it always has, and exit 0 — the last bail was `suite-red` and every branch-red suite is green on the
-default branch — saves the branch-red list to `.tdd/resume-suite-red` and goes on. The **resume check** then finds an existing
+exit 1 refuses as it always has, and exit 0 — every branch-red suite is green on the
+default branch, whatever the previous bail's cause — saves the branch-red list to `.tdd/resume-suite-red` and goes on. The **resume check** then finds an existing
 `.tdd/issue-<n>.md`. When it does:
 
 1. Do **not** re-plan — the ledger is the source of truth — except that the amended
