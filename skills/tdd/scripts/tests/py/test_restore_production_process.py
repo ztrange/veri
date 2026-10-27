@@ -32,3 +32,23 @@ def test_issue_2495_restore_production_drops_a_rejected_greens_edits_and_keeps_t
     assert (repo / "src" / "prod.py").read_text() == "VALUE = 1\n"
     assert not (repo / "src" / "added.py").exists()
     assert (repo / "test_new.py").read_text() == "def test_new():\n    assert False\n"
+
+
+@pytest.mark.process("restore-production.sh run against a real git repository in tmp_path")
+def test_issue_2495_restore_production_keeps_a_tracked_test_the_red_changed(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    git(repo, "init", "-q")
+    (repo / "src" / "prod.py").write_text("VALUE = 1\n")
+    (repo / "test_old.py").write_text("def test_old():\n    assert True\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "base")
+    (repo / "test_old.py").write_text("def test_old():\n    assert True\n\n\ndef test_red():\n    assert False\n")
+    (repo / "src" / "prod.py").write_text("VALUE = 2\n")
+
+    ran = subprocess.run(["sh", str(SCRIPTS / "restore-production.sh"), "test_old.py"], cwd=repo,
+                         capture_output=True, text=True)
+
+    assert ran.returncode == 0, ran.stderr
+    assert (repo / "src" / "prod.py").read_text() == "VALUE = 1\n"
+    assert (repo / "test_old.py").read_text() == "def test_old():\n    assert True\n\n\ndef test_red():\n    assert False\n"
