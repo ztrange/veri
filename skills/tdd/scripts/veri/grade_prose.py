@@ -147,11 +147,23 @@ def keeps_protocol(reply, wanted):
             and not BAD_GRADE.search(block) and not reply.partition("END GRADES")[2].strip())
 
 
+def convert(path):
+    for unit in requirements.listed_units(path):
+        try:
+            signer().signature(path, unit)
+        except Exception as e:
+            print("grade-prose.sh: signature-formula-disagreement: %s: the tree's formula gave none (%s)" % (unit, e),
+                  file=sys.stderr)
+            return 2
+
+
 def main(argv):
     if argv == ["--owed"]:
         import prose_owed
         path = "REQUIREMENTS.md"
         return max([main([p, unit]) for p, unit in prose_owed.owed_listed(path)[0]], default=0)
+    if argv == ["--convert"]:
+        return convert("REQUIREMENTS.md")
     if len(argv) != 2:
         print(USAGE, file=sys.stderr)
         return 2
