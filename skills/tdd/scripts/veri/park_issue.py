@@ -1,11 +1,17 @@
 """park-issue.sh's work, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import re
+import subprocess
 import sys
 
 import github
 
 USAGE = "usage: park-issue.sh <issue-number> <cause> <unblock> [<pr-number|PR-URL>]\n"
+
+
+def origin_slug():
+    url = subprocess.run(["git", "remote", "get-url", "origin"], capture_output=True, text=True).stdout
+    return "/".join(url.split("/")[-2:])
 
 
 def main(argv):
@@ -21,7 +27,11 @@ def main(argv):
         if bad:
             sys.stderr.write("park-issue.sh: bad %s\n" % name)
             return 2
-    if len(argv) == 4 and not re.fullmatch(r"[0-9]+|https://github\.com/[^/]+/[^/]+/pull/[0-9]+", argv[3]):
+    pr_url = len(argv) == 4 and re.fullmatch(r"https://github\.com/([^/]+/[^/]+)/pull/[0-9]+", argv[3])
+    if len(argv) == 4 and not pr_url and not re.fullmatch(r"[0-9]+", argv[3]):
+        sys.stderr.write(USAGE)
+        return 2
+    if pr_url and origin_slug() not in ("", pr_url.group(1)):
         sys.stderr.write(USAGE)
         return 2
     pr = "PR: %s\n" % argv[3] if len(argv) == 4 else ""
