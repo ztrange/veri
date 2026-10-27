@@ -240,3 +240,22 @@ def test_2427_a_leaf_sigkilled_by_another_process_exits_2_with_cause_killed_exte
 
     assert (ran.returncode, [e for e in events if e.get("event") == "retry"] == [],
             [e.get("cause") for e in exits]) == (2, True, ["killed-external"]), err
+
+
+@pytest.mark.process("supervise.sh runs a real leaf that outlives VERI_TIMEOUT, so supervise.sh itself SIGKILLs it")
+@pytest.mark.timeout(60)
+def test_2427_a_leaf_killed_by_the_supervisors_own_hard_timeout_stays_killed_stuck_and_is_retried_within_its_budget(tmp_path):
+    work = tmp_path / "work"
+    work.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=work, check=True)
+    ran = subprocess.run([str(SCRIPTS / "supervise.sh"), "develop-red", "sleep", "60"],
+                         cwd=work, capture_output=True, text=True, timeout=30,
+                         env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "1",
+                              "VERI_POLL": "0.05", "VERI_TIMEOUT": "1", "VERI_HEARTBEAT": "600",
+                              "VERI_ISSUE": "2427", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"})
+    events = [json.loads(l) for l in (work / ".tdd" / "events.jsonl").read_text().splitlines()]
+    retries = [e for e in events if e.get("event") == "retry"]
+    exits = [e for e in events if e.get("event") == "exit"]
+
+    assert (ran.returncode, len(retries), [e.get("cause") for e in exits]) == (
+        2, 1, ["hard timeout 1s exceeded"]), ran.stderr
