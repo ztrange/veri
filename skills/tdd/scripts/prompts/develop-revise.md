@@ -57,6 +57,9 @@ instead of an {{INCLUDE:_develop-split.md}} leave the working tree exactly as yo
    Redoing green only: when the objection can only be met by a test the step lacks, edit
    no test — report `OUTCOME: IMPOSSIBLE` with one `MISSING_TEST: <behaviour>` line naming
    the behaviour to pin, before the `OUTCOME:` line.
+   Redoing green on a `⟦suite-repair⟧` or `⟦ci-repair⟧` step only: you may edit the one
+   failing test the full run or CI left red, only as far as the repair needs. Every other
+   test stays frozen.
 
 ### Report (last lines of your output)
 
