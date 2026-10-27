@@ -48,8 +48,8 @@ def main(argv):
         sys.stdout.write("bailed %s %s\n" % (mark.get("phase"), mark.get("classification")))
     elif cause == "stopped":
         sys.stdout.write("stopped %s\n" % mark.get("mode"))
-    elif killed_external(events):
-        sys.stdout.write("killed-external %s\n" % killed_external(events))
+    elif leaf := killed_external(events):
+        sys.stdout.write("killed-external %s\n" % leaf)
     elif not os.path.isfile(conductor_log):
         sys.stderr.write("stop-reason.sh: no conductor log at %s\n" % conductor_log)
         return 2
