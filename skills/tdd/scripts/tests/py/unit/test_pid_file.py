@@ -421,3 +421,34 @@ def test_live_conductor_answers_the_pid_when_its_parents_ps_command_read_fails_o
             answers[name] = type(error).__name__
 
     assert answers == {"ps-fails": "4242", "ps-prints-nothing": "4242"}
+
+
+def test_live_conductor_answers_no_pid_for_a_readable_command_line_that_does_not_match_when_every_ps_read_answers_2320(tmp_path, monkeypatch):
+    import os
+    import subprocess
+
+    pid_file = importlib.import_module("veri.pid_file")
+    monkeypatch.setattr(os, "kill", lambda pid, signal: None)
+    ps = {
+        ("ps", "-o", "ppid=", "-p", "4242"): "1004242\n",
+        ("ps", "-o", "command=", "-p", "4242"): {"stranger-parent": "claude -p /tdd 5\n", "not-claude": "sleep 600\n"},
+        ("ps", "-o", "command=", "-p", "1004242"): {"stranger-parent": "/Applications/Claude.app/claude-desktop\n", "not-claude": "python3 run_conductor.py 5\n"},
+    }
+    case = {}
+
+    def fake_run(argv, *args, **kwargs):
+        out = ps[tuple(argv)]
+        if isinstance(out, dict):
+            out = out[case["name"]]
+        return subprocess.CompletedProcess(argv, 0, stdout=out, stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    run_dir = tmp_path / "run"
+    (run_dir / ".tdd").mkdir(parents=True)
+    (run_dir / ".tdd" / "conductor.pid").write_bytes(b"4242\n")
+    answers = {}
+    for name in ["stranger-parent", "not-claude"]:
+        case["name"] = name
+        answers[name] = pid_file.live_conductor(str(run_dir))
+
+    assert answers == {"stranger-parent": None, "not-claude": None}
