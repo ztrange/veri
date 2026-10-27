@@ -123,3 +123,20 @@ def test_record_with_a_red_case_flag_and_no_value_is_exit_2_printing_the_usage_l
 
     assert (code, out, tests_frozen.USAGE in err, "Traceback" in err, sorted(p.name for p in tmp_path.rglob("*"))) == (
         2, "", True, False, [])
+
+
+def test_record_resolves_a_red_case_naming_a_vitest_it_or_test_in_a_ts_file_and_still_exits_1_for_one_the_file_lacks_2426(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "a.test.ts").write_text(
+        'import { it, test } from "vitest";\n'
+        'it("adds two numbers", () => {\n  expect(1 + 1).toBe(2);\n});\n'
+        'test("subtracts", () => {\n  expect(2 - 1).toBe(1);\n});\n')
+
+    answers = [
+        run_cli(tests_frozen, ["record", ".tdd/%s.record" % name, "--red-case", "a.test.ts::" + case, "a.test.ts"],
+                cwd=tmp_path)
+        for name, case in (("it", "adds two numbers"), ("test", "subtracts"), ("gone", "divides"))]
+
+    assert [(code, out.strip()) for code, out, _ in answers] == [
+        (0, ""), (0, ""), (1, "tests-frozen.sh: red case a.test.ts::divides no longer exists")]
