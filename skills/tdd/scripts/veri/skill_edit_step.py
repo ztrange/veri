@@ -58,6 +58,10 @@ def _claimed(path, unit):
     return os.path.exists(path) and requirements.claims(path, unit)
 
 
+def _listed_ids(path, unit):
+    return {row.split("\t")[0] for row in (_claimed(path, unit) or "").splitlines()}
+
+
 def _append_section(path, unit, table):
     existing = _trimmed(requirements.read_lines(path)) if os.path.exists(path) else []
     _write(path, existing + [""] * bool(existing) + ["## " + unit, ""] + table + [""])
@@ -116,7 +120,7 @@ def apply(issue, unit):
     if not claimed:
         _write_list(path, unit, rows)
         return moved
-    have = {row.split("\t")[0] for row in claimed.splitlines()}
+    have = _listed_ids(path, unit)
     rows = _numbered(rows, have | {_row_id(r) for r in rows})
     new = [r for r in rows if _row_id(r) not in have]
     reworded = {_row_id(r): r for r in rows}
@@ -244,7 +248,7 @@ def main(argv):
     path = skill_edit_guard.list_path(unit)
     graded_file = grade_prose.graded_path(unit)
     snapshot = _read_existing((path, unit, graded_file))
-    listed = {row.split("\t")[0] for row in (_claimed(path, unit) or "").splitlines()}
+    listed = _listed_ids(path, unit)
     fresh = any(_row_id(r) not in listed for r in issue_rows)
     moved = apply(issue, unit)
     if not _claimed(path, unit):
