@@ -87,11 +87,11 @@ def _tag(worktree, message, pull, pr):
     return True
 
 
-def _step(failed, what, cwd, *args):
+def _step(failed, what, cwd, *args, label=None):
     run = _git(cwd, *args)
     if run.returncode:
         _say("%s failed (exit %d): %s" % (what, run.returncode, run.stderr.strip()))
-        failed.append(what)
+        failed.append(label or what)
 
 
 def _cleanup(pid, pr, pull, worktree, branch, message):
@@ -110,10 +110,8 @@ def _cleanup(pid, pr, pull, worktree, branch, message):
         _say("fast-forward of main to origin/main not done: the main clone is on %s" % current)
         failed.append("fast-forward")
     else:
-        forward = _git(clone, "pull", "--ff-only", ".", "origin/main")
-        if forward.returncode:
-            _say("fast-forward of main to origin/main failed (exit %d): %s" % (forward.returncode, forward.stderr.strip()))
-            failed.append("fast-forward")
+        _step(failed, "fast-forward of main to origin/main", clone, "pull", "--ff-only", ".", "origin/main",
+              label="fast-forward")
     if failed:
         _say("merged, but cleanup failed: %s" % ", ".join(failed))
         return 2
