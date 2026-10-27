@@ -449,3 +449,29 @@ def test_park_issue_with_a_pr_that_is_neither_a_number_nor_a_pr_url_exits_2_with
         assert ran.returncode == 2, (pr, ran.returncode, ran.stderr)
         assert usage and "number" in usage[0] and "URL" in usage[0], (pr, ran.stderr)
         assert log.read_text() == "", pr
+
+
+@pytest.mark.process("park-issue.sh run against a gh stub that records every call, from a scratch git repo whose origin names another repository")
+def test_park_issue_with_a_pr_url_for_another_repository_exits_2_with_usage_and_calls_no_gh_2457(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(GH_STUB)
+    gh.chmod(0o755)
+    log = tmp_path / "gh.log"
+    log.write_text("")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    for git_args in (["init", "-q"], ["remote", "add", "origin", "https://github.com/ztrange/veri.git"]):
+        subprocess.run(["git", *git_args], cwd=repo, check=True, capture_output=True)
+    env = {"PATH": "%s:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" % bin_dir,
+           "GH_LOG": str(log), "PYTHONDONTWRITEBYTECODE": "1"}
+
+    for url in ("https://github.com/some-other-org/veri/pull/12", "https://github.com/ztrange/some-other-repo/pull/12"):
+        ran = subprocess.run([str(SCRIPTS / "park-issue.sh"), "7", "held for review", "a human merges", url],
+                             cwd=repo, capture_output=True, text=True, stdin=subprocess.DEVNULL, env=env)
+
+        usage = [line for line in ran.stderr.splitlines() if line.startswith("usage:")]
+        assert ran.returncode == 2, (url, ran.returncode, ran.stderr, log.read_text())
+        assert usage, (url, ran.stderr)
+        assert log.read_text() == "", (url, log.read_text())
