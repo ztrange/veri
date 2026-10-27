@@ -277,7 +277,7 @@ def test_it_prints_exactly_one_exit_line_when_a_conductor_whose_leaf_reaps_child
     proc = subprocess.Popen([str(launcher), str(pid_file)])
     watcher = None
     try:
-        deadline = time.monotonic() + 30
+        deadline = time.monotonic() + 10
         while not (pid_file.exists() and pid_file.read_text().strip()):
             if time.monotonic() >= deadline:
                 pytest.fail("the stub never wrote its pid file: %s" % pid_file)
