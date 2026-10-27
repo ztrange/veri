@@ -354,3 +354,21 @@ def test_issue_2427_a_run_whose_latest_leaf_exit_carries_cause_killed_external_p
     code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
 
     assert (code, out, err) == (0, "killed-external develop-green\n", "")
+
+
+def test_issue_2521_a_run_whose_end_mark_is_a_preflight_refusal_prints_refused_and_the_check_with_or_without_a_conductor_log(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    for issue in ("7", "8"):
+        run = tmp_path / ".tdd" / "wt" / issue / ".tdd"
+        run.mkdir(parents=True)
+        (run / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in (
+            {"ts": 100, "issue": issue, "event": "step-done"},
+            {"ts": 200, "issue": issue, "event": "preflight-refused", "check": "red-baseline",
+             "cause": "preflight-refused", "classification": "system"})))
+    (tmp_path / ".tdd" / "conductor-7.log").write_text(json.dumps(
+        {"type": "result", "is_error": True, "result": "unrelated text"}) + "\n")
+
+    with_log = run_cli(stop_reason, ["7"], cwd=tmp_path)
+    without_log = run_cli(stop_reason, ["8"], cwd=tmp_path)
+
+    assert (with_log[:2], without_log[:2]) == ((0, "refused red-baseline\n"), (0, "refused red-baseline\n"))
