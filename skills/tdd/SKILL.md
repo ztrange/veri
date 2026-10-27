@@ -1636,7 +1636,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"
    gh run view <run-id> --log-failed          # a failed check only → its suite and FAIL - line
    [ "$ci" != 1 ] || ! $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)" failed="$(cat .tdd/wait-ci.out)"
-   [ "$ci" = 0 ] || [ "$ci" = 2 ] || $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null; no_repair=$?
+   [ "$ci" = 0 ] || [ "$ci" = 2 ] || [ "$ci" = 4 ] || $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null; no_repair=$?
    [ "$no_repair" = 0 ] || { step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1; }
    [ "$no_repair" = 0 ] || $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the CI failure: <suite> — <its FAIL - line>> ⟦ci-repair⟧'
    [ "$no_repair" = 0 ] || { git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit -m "plan: repair the red CI check (#<n>)"; }
@@ -1656,7 +1656,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    $S/push-branch.sh
    $S/wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)" > .tdd/wait-ci.out 2> .tdd/wait-ci.err; ci=$?    # exit 3 → run this line again, in a new Bash call
    [ "$ci" != 1 ] || ! $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)" failed="$(cat .tdd/wait-ci.out)"
-   [ "$ci" = 0 ] || [ "$ci" = 2 ] || $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null; no_repair=$?
+   [ "$ci" = 0 ] || [ "$ci" = 2 ] || [ "$ci" = 4 ] || $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null; no_repair=$?
    [ "$no_repair" = 0 ] || { step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1; }
    [ "$no_repair" = 0 ] || $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the CI failure: <suite> — <its FAIL - line>> ⟦ci-repair⟧'
    [ "$no_repair" = 0 ] || { git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit -m "plan: repair the red CI check (#<n>)"; }
@@ -1708,6 +1708,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    commit as a failed check above, and returns to step 3, *The cycle loop*, to repair it as a
    red full suite is repaired; it bails with cause `ci-red` only when the ledger already holds
    a `⟦ci-repair⟧` step, and exit 2 bails with cause `ci-timeout` (`Read` `<base directory>/BAIL.md`).
+   A `wait-ci.sh` exit **4** — the repository reports no checks on this pull request — at either CI wait (the first, after `pr-ready.sh`, or the one after the `metrics:` push) is no CI gate for this pull request, neither green nor red: it writes no bail mark, no `ci-timeout` cause, no `ci-red` cause and appends no `⟦ci-repair⟧` step, so the `no_repair` line treats `ci=4` like `ci=0`. The run goes on to the `done` mark, the `metrics:` commit and the PR rewrite, and the final `### ✅ Done` comment says that the repository reports no checks on this pull request, so no CI gated it. Exit 4 licenses no merge: an empty rollup is still not a pass at merge time.
    A `wait-ci.sh` exit 2 after the `metrics:` push whose stderr names a conflict takes the same one-rebase path as a conflict at the first CI wait, and bails with cause `ci-conflict` on a second, so the run never waits into `ci-timeout` on it (`Read` `<base directory>/BAIL.md`).
    The `done` mark comes before the render because `metrics.sh` reads it for both the Outcome
    and the issue's wall time: a report rendered before it exists says `unknown` for both. The
@@ -1744,6 +1745,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    the PR body's failed-render line for `metrics.sh` and `$metrics` in place of that block.
    It mirrors the
    `$S/event.sh done pr=<pr-url>` mark sub-step 2 already wrote, so it writes no second one.
+   When either CI wait ended in `wait-ci.sh` exit 4, add a line saying that the repository reports no checks on this pull request, so no CI gated it, and that this is no licence to merge.
    Before posting it, run `$S/stop-requested.sh`; on exit 0 or 2 run
    `$S/stop-requested.sh --clear` and add a line to the comment saying that a stop arrived
    after the last step, so the run finished rather than pausing — on exit 3 add nothing.
