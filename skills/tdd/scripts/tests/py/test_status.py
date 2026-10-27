@@ -473,6 +473,29 @@ def test_main_json_gives_each_run_the_issue_state_github_reports_not_one_inferre
     assert (code, [(r["issue"], r.get("issue_state")) for r in doc["runs"]]) == (0, [("13", "open"), ("14", "closed")])
 
 
+def test_main_json_reports_state_closed_for_a_run_whose_issue_is_closed_and_bailed_for_an_open_one_2497(tmp_path, monkeypatch, capsys, status):
+    open_run, closed_run = lamp_run(tmp_path, "13"), lamp_run(tmp_path, "14")
+    for run, issue in ((open_run, "13"), (closed_run, "14")):
+        write_events(run / ".tdd" / "events.jsonl", [
+            lamp_ev(9800, issue, "launch", name="develop-red"),
+            lamp_ev(9900, issue, "bail", actor="conductor", classification="process")])
+    lamp_git(monkeypatch, tmp_path, [open_run, closed_run])
+    answering = subprocess.run
+    github = json.dumps([{"number": 13, "state": "OPEN"}, {"number": 14, "state": "CLOSED"}])
+
+    def run_with_github(args, **kwargs):
+        if args[0] == "gh":
+            return subprocess.CompletedProcess(args, 0, github, "")
+        return answering(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", run_with_github)
+
+    code = status.main(["--json"])
+    doc = json.loads(capsys.readouterr().out)
+
+    assert (code, [(r["issue"], r.get("state")) for r in doc["runs"]]) == (0, [("13", "bailed"), ("14", "closed")])
+
+
 def test_main_json_reports_bail_phase_from_the_bail_event_not_the_last_launch(tmp_path, monkeypatch, capsys, status):
     run = lamp_run(tmp_path, "13")
     write_events(run / ".tdd" / "events.jsonl", [
