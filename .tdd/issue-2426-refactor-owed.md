@@ -1,0 +1,2 @@
+### `record --red-case <path>::<case>` naming an `it("…")` or `test("…")` case in a `.test.ts` or `.test.tsx` file records it rather than answering "no longer exists" and exiting 1, while a case that file does not hold still exits 1 (small unit cases in tests/py/unit/test_tests_frozen.py) ⟦criterion 1⟧
+- out-of-bounds | Make `tests_frozen._CASE` and `wrong_test_route.is_js_test_file` share one notion of a JS/TS test file and case grammar (criterion 5). This changes `wrong_test_route.py` and needs its own step.
