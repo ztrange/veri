@@ -1724,3 +1724,19 @@ def test_issue_2499_a_log_only_conductor_spend_is_in_the_total_row_dollars(tmp_p
     out = render(metrics, capsys)
 
     assert cells(out, "#### Total", ["$"]) == {"total": ["1.35"]}
+
+
+def test_issue_2499_a_log_only_conductor_sentence_says_the_total_covers_it_and_the_total_row_equals_leaves_plus_the_figure(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, conductor("one", 9000, "step-start")
+              + leaf("one", 9010, "developer", "red", 1, 90, usage=cost(3, "0.10", (100, 200, 1000, 400)))
+              + conductor("one", 9110, "step-done"))
+    sessions = [{"type": "system", "subtype": "init"}, {"type": "result", "total_cost_usd": 1.25, "num_turns": 40}]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in sessions))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    sentence = "Cost is every leaf of the run, and the conductor own spending.\n"
+    figure = re.search(r"^Conductor own spending: \$(\d+\.\d\d) over", out, re.M).group(1)
+    assert sentence in out
+    assert cells(out, "#### Total", ["$"]) == {"total": ["%.2f" % (0.10 + float(figure))]}
