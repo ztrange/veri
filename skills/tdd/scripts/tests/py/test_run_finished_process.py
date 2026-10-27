@@ -134,7 +134,7 @@ def test_a_running_run_exits_1_and_prints_a_not_done_line_naming_the_running_sta
     claude_pid = tmp_path / "claude.pid"
     child = subprocess.Popen([str(conductor), "4242", str(claude_pid)])
     try:
-        deadline = time.monotonic() + 30
+        deadline = time.monotonic() + 10
         while not (claude_pid.exists() and claude_pid.read_text().strip()):
             if time.monotonic() >= deadline:
                 pytest.fail("the stub never wrote its pid file: %s" % claude_pid)

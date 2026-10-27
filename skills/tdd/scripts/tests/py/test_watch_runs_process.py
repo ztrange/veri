@@ -47,7 +47,7 @@ def start_conductor(tmp_path, issue):
     script.chmod(0o755)
     pid_file = tmp_path / ("claude-%s.pid" % issue)
     proc = subprocess.Popen([str(script), str(issue), str(pid_file)])
-    deadline = time.monotonic() + 30
+    deadline = time.monotonic() + 10
     while not (pid_file.exists() and pid_file.read_text().strip()):
         if time.monotonic() >= deadline:
             proc.terminate()
