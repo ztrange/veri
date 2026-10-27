@@ -338,3 +338,19 @@ def test_a_step_added_record_with_no_ts_among_timed_records_is_skipped_and_the_g
     code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
 
     assert (code, out) == (0, "unknown Connection reset by peer\ngap 1000 2001\n")
+
+
+def test_issue_2427_a_run_whose_latest_leaf_exit_carries_cause_killed_external_prints_killed_external_and_the_leaf_name(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    run = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    run.mkdir(parents=True)
+    (run / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in [
+        {"ts": 100, "issue": "7", "event": "launch", "name": "develop-green"},
+        {"ts": 110, "issue": "7", "event": "exit", "status": "2", "cause": "killed-external", "secs": "10"},
+    ]))
+    (tmp_path / ".tdd" / "conductor-7.log").write_text(json.dumps(
+        {"type": "result", "is_error": True, "result": "interrupted"}) + "\n")
+
+    code, out, err = run_cli(stop_reason, ["7"], cwd=tmp_path)
+
+    assert (code, out, err) == (0, "killed-external develop-green\n", "")
