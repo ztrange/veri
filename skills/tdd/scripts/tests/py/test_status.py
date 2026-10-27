@@ -37,7 +37,7 @@ def ledger_run(root, issue, text, number=None):
 
 def fake_git(monkeypatch, main_tree, branches=None, solvable=None, linked=None):
     """subprocess.run answering `git worktree list` with <main_tree>, then <linked> when given,
-    `symbolic-ref` from <branches>, and starting any other command for real over the open-issue listing
+    `symbolic-ref` from <branches>, any `gh` with exit 1 and no output, and starting any other command for real over the open-issue listing
     <solvable> = (exit code, stdout) selects to, its issues carrying the lamps-label label."""
     listing = serve_listing(main_tree / "solvable-listing", monkeypatch)
     if solvable is not None:
@@ -52,6 +52,8 @@ def fake_git(monkeypatch, main_tree, branches=None, solvable=None, linked=None):
                 stdout += "worktree %s\nHEAD def\nbranch refs/heads/side\n\n" % linked
         elif "symbolic-ref" in args:
             stdout = branches[str(args[args.index("-C") + 1]).rstrip("/")] + "\n"
+        elif args[0] == "gh":
+            code, stdout = 1, ""
         elif solvable is not None:
             return started_for_real(args, **kwargs)
         else:
