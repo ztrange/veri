@@ -248,6 +248,13 @@ These run **first**, before any cycle. If any fails, the baseline is poisoned �
 commits, nothing to revert or push) — just refuse to start. A red, dirty, or
 unauthenticated baseline never gets a cycle.
 
+**Every preflight refusal is recorded before the run stops.** Whichever check refused, on a first
+launch or a resume, run `$S/preflight-refused.sh <n> <check>` once, naming the failing check (a
+short name such as `dirty-tree`, `auth`, `leaf-launchable`, `baseline`, `tunables`, `leaf-models` or
+`timeout`), and only then stop. It writes a `preflight-refused` event to the run's event log and posts
+one issue comment naming the check, so a refused run is visible to `status.sh` and to a reader of the
+issue, not only in the conductor's log.
+
 1. **Git repo & clean tree.** `git rev-parse --is-inside-work-tree` succeeds and
    `git status --porcelain` is empty. If dirty, **bail** with cause `needs-user`, asking the user in the bail comment to commit or stash (`Read` `<base directory>/BAIL.md`).
    The run no longer commits in this checkout — step 1.2 moves into a worktree that is clean
