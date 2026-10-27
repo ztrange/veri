@@ -330,3 +330,32 @@ def test_live_conductor_answers_the_pid_of_a_live_conductor_and_none_once_the_pi
         answers[name] = pid_file.live_conductor(str(run_dir))
 
     assert answers == {"conductor": "4242", "reused": None}
+
+
+def test_live_conductor_answers_the_pid_when_its_own_ps_command_read_fails_or_prints_nothing_2320(tmp_path, monkeypatch):
+    import os
+    import subprocess
+
+    pid_file = importlib.import_module("veri.pid_file")
+    monkeypatch.setattr(os, "kill", lambda pid, signal: None)
+    own = {}
+    ps = {
+        ("ps", "-o", "ppid=", "-p", "4242"): "1004242\n",
+        ("ps", "-o", "command=", "-p", "1004242"): "python3 run_conductor.py 5\n",
+    }
+
+    def fake_run(argv, *args, **kwargs):
+        if tuple(argv) == ("ps", "-o", "command=", "-p", "4242"):
+            return subprocess.CompletedProcess(argv, own["returncode"], stdout=own["stdout"], stderr="")
+        return subprocess.CompletedProcess(argv, 0, stdout=ps[tuple(argv)], stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    run_dir = tmp_path / "run"
+    (run_dir / ".tdd").mkdir(parents=True)
+    (run_dir / ".tdd" / "conductor.pid").write_bytes(b"4242\n")
+    answers = {}
+    for name, returncode, stdout in [("ps-fails", 1, ""), ("ps-prints-nothing", 0, "\n")]:
+        own.update(returncode=returncode, stdout=stdout)
+        answers[name] = pid_file.live_conductor(str(run_dir))
+
+    assert answers == {"ps-fails": "4242", "ps-prints-nothing": "4242"}

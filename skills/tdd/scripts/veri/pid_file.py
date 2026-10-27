@@ -44,7 +44,8 @@ def live_conductor(path):
         return None
     if "run_conductor.py" not in _ps("command", _ps("ppid", pid)):
         return None
-    if "claude" not in (os.path.basename(word) for word in _ps("command", pid).split()[:2]):
+    own = _ps("command", pid)
+    if own and "claude" not in (os.path.basename(word) for word in own.split()[:2]):
         return None
     return pid
 
