@@ -1308,6 +1308,16 @@ def test_in_flight_2253_is_true_when_the_lock_pid_answers_kill_0_and_its_command
     assert solvable_issues.in_flight(str(tmp_path), 7) is True
 
 
+def test_in_flight_2320_is_true_when_the_lock_pid_answers_kill_0_and_every_ps_read_fails(tmp_path, monkeypatch, solvable_issues):
+    lock = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "conductor.pid"
+    lock.parent.mkdir(parents=True)
+    lock.write_text("4242\n")
+    monkeypatch.setattr(os, "kill", lambda pid, signal: None)
+    monkeypatch.setattr(subprocess, "run", lambda argv, *a, **k: subprocess.CompletedProcess(argv, 1, stdout="", stderr=""))
+
+    assert solvable_issues.in_flight(str(tmp_path), 7) is True
+
+
 def test_in_flight_reads_a_fresh_run_whose_worktree_did_not_exist_at_launch_as_in_flight_while_its_conductor_runs_issue_2390(
         tmp_path, monkeypatch, run_cli, solvable_issues):
     past_the_guards(monkeypatch)
