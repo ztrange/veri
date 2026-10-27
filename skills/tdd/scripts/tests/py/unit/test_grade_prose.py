@@ -1141,3 +1141,30 @@ def test_an_edit_to_the_grader_instructions_leaves_a_units_signature_unchanged_2
     after = grade_prose.signature("REQUIREMENTS.md", "unit.md")
 
     assert after == before
+
+
+def test_grade_prose_records_a_pass_verdict_when_the_shared_leaf_launch_wrapper_answers_with_an_all_pass_reply_2498(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    leaf = importlib.import_module("veri.leaf")
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n")
+    (tmp_path / ".tdd").mkdir()
+
+    def fake_launch(*a, **k):
+        (tmp_path / ".tdd" / "grade-prose.log").write_text(
+            '{"type":"result","subtype":"success","is_error":false,"result":'
+            '"BEGIN GRADES\\nA1: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n')
+        return subprocess.CompletedProcess(list(a), 0)
+
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(leaf, "launch", fake_launch)
+
+    code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+
+    graded = tmp_path / "GRADED"
+    assert (code, graded.read_text().split()[:1] if graded.exists() else []) == (0, ["unit.md"]), (code, err)
