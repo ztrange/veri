@@ -1740,3 +1740,19 @@ def test_issue_2499_a_log_only_conductor_sentence_says_the_total_covers_it_and_t
     figure = re.search(r"^Conductor own spending: \$(\d+\.\d\d) over", out, re.M).group(1)
     assert sentence in out
     assert cells(out, "#### Total", ["$"]) == {"total": ["%.2f" % (0.10 + float(figure))]}
+
+
+def test_issue_2499_an_unpriced_log_only_conductor_session_is_not_claimed_by_the_total_and_the_report_says_the_total_excludes_it(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, conductor("one", 9000, "step-start")
+              + leaf("one", 9010, "developer", "red", 1, 90, usage=cost(3, "0.10", (100, 200, 1000, 400)))
+              + conductor("one", 9110, "step-done"))
+    turn = {"type": "assistant", "message": {"model": "mystery-9", "usage": {"input_tokens": 10, "output_tokens": 5}}}
+    sessions = [{"type": "system", "subtype": "init"}, turn]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in sessions))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert "Conductor own spending: unpriced" in out
+    assert "Cost is every leaf of the run, and the conductor own spending.\n" not in out
+    assert re.search(r"^.*total.*exclude.*conductor|^.*conductor.*exclude.*total", out, re.M | re.I)
