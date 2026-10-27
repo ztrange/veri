@@ -1,6 +1,6 @@
 # Plan for #2426 — tests-frozen.sh cannot see a Vitest case, so --red-case never resolves and the per-case freeze is inert in a JS/TS suite
 
-- [ ] `record --red-case <path>::<case>` naming an `it("…")` or `test("…")` case in a `.test.ts` or `.test.tsx` file records it rather than answering "no longer exists" and exiting 1, while a case that file does not hold still exits 1 (small unit cases in tests/py/unit/test_tests_frozen.py) ⟦criterion 1⟧
+- [x] `record --red-case <path>::<case>` naming an `it("…")` or `test("…")` case in a `.test.ts` or `.test.tsx` file records it rather than answering "no longer exists" and exiting 1, while a case that file does not hold still exits 1 (small unit cases in tests/py/unit/test_tests_frozen.py) ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] `record` on a JS/TS test file stores per-case bodies, so `check` exits 1 for an edit inside a recorded `it("…")`/`test("…")` case's body and exits 0 for an edit outside every recorded case (small unit cases in tests/py/unit/test_tests_frozen.py) ⟦criterion 2⟧
 - [ ] `check-earlier --except <case>` excepts a Vitest `it("…")`/`test("…")` case by its title, so an earlier step's recorded JS/TS case changed under that exception is not reported while an unexcepted one still is (small unit cases in tests/py/unit/test_tests_frozen.py) ⟦criterion 3⟧
 - [ ] The pytest and bash grammars still resolve exactly as now: the existing cases over `tests_frozen` pass unchanged ⟦full-suite⟧ ⟦criterion 4⟧
