@@ -1,0 +1,2 @@
+### A `mutation-probe.sh` run that aborts midway — the probe is sent SIGTERM while `<command…>` is still running — restores `<file>` and leaves `git status --porcelain` empty in the repository it ran in (a medium case with a real process, in `skills/tdd/scripts/tests/py/test_mutation_probe_process.py`) ⟦criterion 4⟧
+- test-only | share the `PROBE` invocation and fixture-target setup between the two process cases with a small helper or fixture
