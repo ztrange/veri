@@ -288,3 +288,25 @@ def test_issue_2579_restore_production_exits_2_touching_nothing_when_git_cannot_
     assert "stubbed diff failure" in ran.stderr
     assert (repo / "src" / "prod.py").read_text() == "VALUE = 2\n"
     assert (repo / "test_red.py").read_text() == "def test_red():\n    assert False\n"
+
+
+@pytest.mark.process("restore-production.sh run against a real git repository in tmp_path with a PATH-first git that fails git ls-files")
+def test_issue_2579_restore_production_exits_2_touching_nothing_when_git_ls_files_fails(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    git(repo, "init", "-q")
+    (repo / "src" / "prod.py").write_text("VALUE = 1\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "base")
+    (repo / "src" / "prod.py").write_text("VALUE = 2\n")
+    (repo / "test_red.py").write_text("def test_red():\n    assert False\n")
+    stub = _git_failing_on(tmp_path, "ls-files")
+
+    ran = subprocess.run(["sh", str(SCRIPTS / "restore-production.sh"), "src/other.py"], cwd=repo,
+                         capture_output=True, text=True,
+                         env={**__import__("os").environ, "PATH": stub + ":" + __import__("os").environ["PATH"]})
+
+    assert ran.returncode == 2, ran.stderr
+    assert "stubbed ls-files failure" in ran.stderr
+    assert (repo / "src" / "prod.py").read_text() == "VALUE = 2\n"
+    assert (repo / "test_red.py").read_text() == "def test_red():\n    assert False\n"
