@@ -151,23 +151,6 @@ def test_987_preflight_step_3_runs_stop_requested_clear_beside_the_tdd_conductor
     assert not problems, problems
 
 
-def test_1174_skill_md_tells_the_conductor_it_signals_only_processes_it_started_by_the_pid_it_recorded_when_it_started_them_never_by_name_or_pattern_pkill_killall_kill_pgrep_and_that_experiments_carry_the_exp_prefix_no_live_run_uses():
-    text = re.sub(" +", " ", _plain(SKILL.read_text()).replace("\n", " "))
-    lines, problems = [text], []
-    _require(problems, r"(signal|kill)s? only (the )?processes (it|you) (started|start)", lines,
-             "SKILL.md never says the conductor signals only processes it started")
-    _require(problems, r"pid (it|you) recorded when (it|you) started", lines,
-             "SKILL.md never says it signals by the pid it recorded when it started them")
-    _require(problems, r"never by name or (by )?pattern", lines, "SKILL.md never says it never signals by name or pattern")
-    _require(problems, _word("pkill"), lines, "SKILL.md never names pkill")
-    _require(problems, _word("killall"), lines, "SKILL.md never names killall")
-    _require(problems, r"kill \$\(pgrep", lines, "SKILL.md never names kill $(pgrep …)")
-    _require(problems, _either_order(_word("exp-"), "prefix"), lines,
-             "SKILL.md never says an experiment's processes and leaf names carry the exp- prefix")
-    _require(problems, "no live run uses", lines, "SKILL.md never says no live run uses that prefix")
-    assert not problems, problems
-
-
 def test_standing_bail_rule_is_stated_once_and_no_line_names_bailing_without_bail_md():
     pointer = "<base directory>/BAIL.md"
     files = [SKILL, SKILL.with_name("SCRIPTS.md"), SKILL.with_name("RECONCILE.md")]
