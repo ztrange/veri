@@ -355,3 +355,13 @@ def test_2547_main_with_max_wait_shorter_than_one_poll_returns_timeout_within_a_
     code = watch_runs.main(["--max-wait", "1"])
 
     assert (code, capsys.readouterr().out, now[0] - 100.0 < 2) == (3, "timeout\n", True)
+
+
+def test_2597_main_with_no_run_directory_and_no_arguments_prints_nothing_to_watch_and_returns_3_not_2(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "wait", lambda: pytest.fail("blocked with nothing to watch"))
+
+    code = watch_runs.main([])
+
+    assert (code, capsys.readouterr().out) == (3, "nothing to watch\n")
