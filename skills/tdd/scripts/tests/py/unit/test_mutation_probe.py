@@ -41,3 +41,17 @@ def test_main_exits_1_naming_the_green_suite_when_the_command_still_passes_under
     code, out, err = run_cli(mutation_probe, [str(target), "alpha", "beta", "--", "true"])
     assert code == 1
     assert "stayed green under the mutation" in err
+
+
+def test_main_leaves_the_file_byte_identical_and_no_copy_beside_it_when_the_suite_goes_red(
+    run_cli, mutation_probe, monkeypatch, tmp_path
+):
+    target = tmp_path / "target.txt"
+    target.write_bytes(b"alpha\r\nbeta\n")
+    monkeypatch.setattr(
+        mutation_probe.subprocess, "run", lambda *a, **k: mutation_probe.subprocess.CompletedProcess(a, 1)
+    )
+    code, out, err = run_cli(mutation_probe, [str(target), "alpha", "gamma", "--", "false"])
+    assert code == 0
+    assert target.read_bytes() == b"alpha\r\nbeta\n"
+    assert [p.name for p in tmp_path.iterdir()] == ["target.txt"]
