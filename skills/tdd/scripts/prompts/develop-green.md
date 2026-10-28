@@ -74,6 +74,7 @@ or, when the test itself looks wrong, those two lines replaced by one:
 WRONG_TEST: <why the test looks wrong>
 
 Name in that line the existing test case the step's criterion contradicts.
+Name the case by its own name as its test file spells it, with no describe, class or file prefix.
 
 or, when older cases fail only because the step supersedes what they pin, those lines replaced by
 one per such case:
