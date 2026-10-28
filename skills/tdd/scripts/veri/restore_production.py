@@ -16,6 +16,9 @@ def main(argv):
         done = git.git(*args, capture_output=True, text=True)
         if done.returncode:
             print(f"restore-production.sh: {done.stderr.strip()}", file=sys.stderr)
+            if args[0] == "clean":
+                print("restore-production.sh: partial restore: production reverted, untracked files not removed",
+                      file=sys.stderr)
             return 2
     return 0
 

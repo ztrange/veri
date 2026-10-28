@@ -1,4 +1,5 @@
 """Cases for restore-production.sh that start the real entry point and real git."""
+import shutil
 import subprocess
 
 import pytest
@@ -66,3 +67,43 @@ def test_issue_2579_restore_production_exits_2_with_gits_stderr_when_git_refuses
     assert ran.returncode == 2, ran.stderr
     assert ran.stderr.startswith("restore-production.sh: ")
     assert "not a git repository" in ran.stderr
+
+
+@pytest.mark.process("restore-production.sh run against a real git repository in tmp_path")
+def test_issue_2579_restore_production_names_a_partial_restore_when_clean_fails_after_checkout(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    git(repo, "init", "-q")
+    (repo / "src" / "prod.py").write_text("VALUE = 1\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "base")
+    (repo / "src" / "prod.py").write_text("VALUE = 2\n")
+    (repo / "src" / "added.py").write_text("EXTRA = 1\n")
+    shim = tmp_path / "bin"
+    shim.mkdir()
+    (shim / "git").write_text('#!/bin/sh\n[ "$1" = clean ] && { echo "fatal: clean refused" >&2; exit 128; }\n'
+                              'exec "%s" "$@"\n' % shutil.which("git"))
+    (shim / "git").chmod(0o755)
+
+    ran = subprocess.run(["sh", str(SCRIPTS / "restore-production.sh"), "test_new.py"], cwd=repo,
+                         capture_output=True, text=True,
+                         env={**__import__("os").environ, "PATH": f"{shim}:{__import__('os').environ['PATH']}"})
+
+    assert (repo / "src" / "prod.py").read_text() == "VALUE = 1\n"
+    assert (repo / "src" / "added.py").exists()
+    assert ran.returncode == 2, ran.stderr
+    assert "partial restore" in ran.stderr
+    assert "production" in ran.stderr and "untracked" in ran.stderr
+
+
+@pytest.mark.process("restore-production.sh run outside any git repository in tmp_path")
+def test_issue_2579_restore_production_does_not_claim_a_partial_restore_when_checkout_fails(tmp_path):
+    outside = tmp_path / "not-a-repo"
+    outside.mkdir()
+
+    ran = subprocess.run(["sh", str(SCRIPTS / "restore-production.sh"), "test_new.py"], cwd=outside,
+                         capture_output=True, text=True,
+                         env={**__import__("os").environ, "GIT_CEILING_DIRECTORIES": str(tmp_path)})
+
+    assert ran.returncode == 2, ran.stderr
+    assert "partial restore" not in ran.stderr
