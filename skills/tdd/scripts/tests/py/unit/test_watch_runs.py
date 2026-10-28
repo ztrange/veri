@@ -365,3 +365,23 @@ def test_2597_main_with_no_run_directory_and_no_arguments_prints_nothing_to_watc
     code = watch_runs.main([])
 
     assert (code, capsys.readouterr().out) == (3, "nothing to watch\n")
+
+
+def test_2597_main_with_max_wait_and_no_run_directory_prints_timeout_and_returns_3_not_2(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    now = [100.0]
+    waits = []
+
+    def wait():
+        waits.append(1)
+        now[0] += 4
+        if len(waits) > 10:
+            raise RuntimeError("never printed timeout")
+
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "clock", lambda: now[0])
+    monkeypatch.setattr(watch_runs, "wait", wait)
+
+    code = watch_runs.main(["--max-wait", "10"])
+
+    assert (code, capsys.readouterr().out) == (3, "timeout\n")
