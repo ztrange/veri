@@ -162,6 +162,18 @@ def kill_tree(leaf, kill_poll):
     signal_tree(leaf.pid, signal.SIGKILL)
 
 
+def tree_cpu_seconds(pid):
+    done = captured("ps", "-A", "-o", "pid=,ppid=,time=,comm=")
+    rows = [line.split(None, 3) for line in done.stdout.splitlines()]
+    tree, total = {str(pid)}, 0.0
+    for child, parent, cpu, comm in rows:
+        if parent in tree:
+            tree.add(child)
+            if os.path.basename(comm) != "claude":
+                total += sum(float(part) * 60 ** i for i, part in enumerate(reversed(cpu.split(":"))))
+    return total if len(tree) > 1 else None
+
+
 def pause(poll):
     try:
         secs = float(poll)
@@ -261,6 +273,8 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
     status = reason = ""
     rc = "0"
     seen_at = int(t0)
+    tool_idle = int(tunables.read("VERI_TOOL_IDLE", "600"), 10)
+    idle_since, last_cpu = a0, None
     if watched:
         last_m = mtime_of(log)
     while True:
@@ -288,6 +302,11 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
             silence = t - seen_at
             if silence > int(heartbeat, 10):
                 reason = f"no heartbeat for {silence}s (window {heartbeat}s)"
+            cpu = tree_cpu_seconds(leaf.pid)
+            if cpu is None or cpu != last_cpu:
+                idle_since, last_cpu = a, cpu
+            elif a - idle_since >= tool_idle:
+                reason = f"no descendant CPU for {a - idle_since}s (VERI_TOOL_IDLE window {tool_idle}s)"
         if reason:
             status = "killed-stuck"
             kill_tree(leaf, kill_poll)
