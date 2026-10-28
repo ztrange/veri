@@ -1,4 +1,5 @@
 """Cases for conftest's meets_floor(), the floor check the process-case shim guard calls."""
+import os
 import subprocess
 
 import conftest
@@ -60,3 +61,25 @@ def test_a_call_for_a_different_interpreter_path_starts_that_other_interpreter_a
     conftest.meets_floor(str(second_python))
 
     assert launches == [str(first_python), str(second_python)], "meets_floor started %r, wanted each interpreter once" % launches
+
+
+def test_a_call_for_the_same_path_after_the_file_there_was_replaced_starts_the_interpreter_again(tmp_path, monkeypatch):
+    python = tmp_path / "python3"
+    python.write_text("")
+    os.utime(python, (1_000_000_000, 1_000_000_000))
+    launches = []
+
+    def spy(args, *rest, **kwargs):
+        launches.append(list(args))
+        return subprocess.CompletedProcess(args, 0, stdout="3.12.0\n", stderr="")
+
+    monkeypatch.setattr(conftest, "REAL_RUN", spy)
+
+    conftest.meets_floor(str(python))
+    replacement = tmp_path / "python3.new"
+    replacement.write_text("")
+    os.utime(replacement, (1_000_000_500, 1_000_000_500))
+    os.replace(replacement, python)
+    conftest.meets_floor(str(python))
+
+    assert len(launches) == 2, "meets_floor started the replaced interpreter %d times, wanted 2" % len(launches)
