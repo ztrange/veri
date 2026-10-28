@@ -117,9 +117,9 @@ leaf anyway, because every leaf between two ledger commits is on the way to the 
 meant to stop this run, and only how urgently is in doubt — the mode that cannot be wrong is
 the one that loses nothing.
 
-**Before reading any leaf's exit 2 as killed-stuck, run `$S/stop-requested.sh`.** A `now`
-stop kills the live leaf, so its wait comes back 2 exactly as a hung leaf's does: a pending
-`now` explains the 2, and the run goes to *Stopping* instead of bailing: when that happens, `Read` and run `<base directory>/STOPPING.md`. Any other answer
+**Before reading any leaf's exit 2 as killed-stuck, run `$S/stop-requested.sh`.** A pending `at-leaf` or `now`
+stop makes `supervise.sh` refuse the launch with exit 2 (and a `now` stop also kills a live leaf), so the wait comes back 2 exactly as a hung leaf's does: either pending
+mode explains the 2, and the run goes to *Stopping* instead of bailing: when that happens, `Read` and run `<base directory>/STOPPING.md`. Any other answer
 leaves the 2 to be read as the phase below reads it.
 
 Whenever this procedure says **bail**, with the cause the bailing line names, `Read` and run `<base directory>/BAIL.md`.
