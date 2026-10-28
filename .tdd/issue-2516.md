@@ -1,5 +1,5 @@
 # Plan for #2516 — A run's rebase can commit conflict markers and carry on; rebase-merge then lands them on the default branch
 
 - [x] `verify.sh rebase <spec> <onto-sha> <pre-rebase-sha>` answers exit 1 (REJECT) without launching a verifier leaf when a commit in `<onto-sha>..HEAD` adds a line beginning `<<<<<<< ` or `>>>>>>> `, even when a later commit in the range removes it again so the tip is clean, its stdout naming each such commit's sha and file; reproduced by a case in skills/tdd/scripts/tests/py/test_verify.py over a temporary repository whose rebased range holds a commit adding a marker in a Markdown file and a later commit removing it ⟦criterion 1⟧
-- [ ] With no commit of `<onto-sha>..HEAD` adding a line beginning `<<<<<<< ` or `>>>>>>> `, `verify.sh rebase` launches the verifier leaf as it does today; pinned by a case in skills/tdd/scripts/tests/py/test_verify.py ⟦criterion 1⟧
+- [x] With no commit of `<onto-sha>..HEAD` adding a line beginning `<<<<<<< ` or `>>>>>>> `, `verify.sh rebase` launches the verifier leaf as it does today; pinned by a case in skills/tdd/scripts/tests/py/test_verify.py ⟦criterion 1⟧
 - [ ] With the per-commit conflict-marker check reverted, the step-1 case goes red — watched red by hand and restored ⟦human-owed⟧ ⟦criterion 2⟧
