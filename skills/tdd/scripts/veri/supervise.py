@@ -458,6 +458,10 @@ def main(argv):
         return refuse_empty_step(role, leaf_env, name, "VERI_STEP is set but empty")
     if "--step" in argv and argv[argv.index("--step") + 1:][:1] == [""]:
         return refuse_empty_step(role, leaf_env, name, "--step is empty")
+    if os.path.isfile(".tdd/stop"):
+        with open(".tdd/stop") as f:
+            if (mode := f.read().strip()) == "at-leaf":
+                return refuse_empty_step(role, leaf_env, name, f"a stop ({mode}) is pending")
     if name.startswith("develop-green") and step and red_awaits_pass(step) and not ci_repair_step(issue, step):
         write_line(exitfile, 2)
         return refuse(f"supervise: refusing to launch {name}: step {step} has no verify-red PASS after its latest red leaf")
