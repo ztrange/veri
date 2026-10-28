@@ -142,6 +142,7 @@ def _recorded(report, step, own_id):
     if own in set(_named_cases(report)) and route(report, own_id) is not None:
         cases.add(own)
     for case in _named_cases(report):
+        case = case.rpartition(" > ")[2]
         if case in cases:
             return case
     return None
