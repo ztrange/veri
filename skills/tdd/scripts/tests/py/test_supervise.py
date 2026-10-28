@@ -4262,3 +4262,43 @@ def test_cli_refuses_a_verify_red_or_verify_green_launch_whose_veri_step_is_unse
                        for label in ("unset", "no-such-text", "past-the-end")}
     assert not started
 
+
+
+def test_a_leaf_whose_log_gains_only_heartbeats_while_its_descendants_gain_no_cpu_is_killed_stuck_naming_the_veri_tool_idle_window_2566(
+        monkeypatch, tmp_path, supervise):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_TOOL_IDLE", "600")
+    clock = {"t": 1000}
+    kills = []
+
+    class Leaf:
+        pid = 4242
+
+        def poll(self):
+            return None
+
+        def wait(self):
+            return 0
+
+    def pause(_poll):
+        clock["t"] += 30
+        assert clock["t"] < 5000, "never killed"
+
+    monkeypatch.setattr(supervise.subprocess, "Popen", lambda *_a, **_k: Leaf())
+    monkeypatch.setattr(supervise, "now", lambda: str(clock["t"]))
+    monkeypatch.setattr(supervise, "awake_seconds", lambda: clock["t"])
+    monkeypatch.setattr(supervise, "mtime_of", lambda _log: str(clock["t"]))
+    monkeypatch.setattr(supervise, "tree_cpu_seconds", lambda _pid: 7.0, raising=False)
+    monkeypatch.setattr(supervise, "pause", pause)
+    monkeypatch.setattr(supervise, "kill_tree", lambda leaf, _poll: kills.append(clock["t"]))
+    monkeypatch.setattr(supervise, "recover_finished_leaf", lambda *_: None)
+    env = {"PYTEST_LEG_LOCK_WAIT_MARKER": str(tmp_path / "wait")}
+    watch = supervise.Watch(True, "100000", "180", "1", 0.0)
+
+    try:
+        status, reason, _rc, _a0 = supervise.attempt_once(
+            [], "develop-red", ["leaf"], ".tdd/develop-red.log", ".tdd/develop-red.rc", env, None, watch)
+    except AssertionError as error:
+        status, reason = str(error), ""
+
+    assert (status, "VERI_TOOL_IDLE" in reason, "600" in reason) == ("killed-stuck", True, True), (status, reason)
