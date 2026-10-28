@@ -567,6 +567,22 @@ def test_main_1808_prints_revise_for_a_missing_test_or_wrong_test_report_once_th
     assert after_repair == [(3, "revise\n")]
 
 
+def test_main_2573_prints_missing_behaviour_for_a_missing_test_report_once_the_step_log_holds_a_reroute_of_another_kind(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / ".tdd").mkdir()
+    step = "wrong-test-route.sh answers a repeat missing route with missing"
+    monkeypatch.setenv("VERI_STEP", step)
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        '{"event": "reroute", "step": "%s", "kind": "red"}\n' % step)
+    report = tmp_path / "missing-report.txt"
+    report.write_text("VERDICT: REJECT\nMISSING_TEST: a second guard is pinned by a case\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "missing a second guard is pinned by a case\n")
+
+
 def test_main_1808_prints_revise_and_exits_3_for_a_product_defect_reject_and_for_a_missing_test_line_with_an_empty_behaviour(
         run_cli, tmp_path, monkeypatch):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")

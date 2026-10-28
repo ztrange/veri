@@ -207,7 +207,7 @@ def main(argv):
         return 2
     step = tunables.read("VERI_STEP")
     rerouted = _rerouted(step)
-    missing = None if rerouted else _missing(argv[0])
+    missing = _missing(argv[0])
     if missing:
         write(sys.stdout, "missing " + missing)
         return 0
