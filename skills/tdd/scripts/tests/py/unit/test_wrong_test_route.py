@@ -2373,3 +2373,28 @@ def test_main_2596_prints_repair_for_a_wrong_test_naming_the_own_vitest_case_wit
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), title], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s\n" % title)
+
+
+def test_main_2596_prints_repair_with_the_bare_recorded_case_name_for_a_wrong_test_naming_the_own_vitest_case_under_nested_describes(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    suite = tmp_path / "src" / "services" / "mock"
+    suite.mkdir(parents=True)
+    title = "marks a within-limit applicant eligible"
+    (suite / "underwriting.test.ts").write_text(
+        'describe("mock", () => {\n  describe("underwriting", () => {\n'
+        '    it("%s", () => {});\n  });\n});\n' % title)
+    (tmp_path / ".tdd").mkdir()
+    step = "wrong-test-route.sh repairs a nested vitest case"
+    monkeypatch.setenv("VERI_STEP", step)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    (tmp_path / record_path.rstrip("\n")).write_text("case: %s\n" % title)
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: `mock > underwriting > %s` uses ISO dates the code cannot parse\n" % title)
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), title], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "repair %s\n" % title)
