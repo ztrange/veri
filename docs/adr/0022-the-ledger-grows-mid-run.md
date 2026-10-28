@@ -44,6 +44,10 @@ PRD #354 settled all three onto one mechanism.
   | `REVISE_BUDGET` | verdict |
   | `VERI_REFACTOR_BUDGET` | the cost of one step's tidying |
   | `VERI_STEP_GROWTH` | **how much larger than scoped a plan may get** |
+  | `VERI_MISSING_REROUTE_BUDGET` | repeat missing reroutes per step |
+
+  `VERI_MISSING_REROUTE_BUDGET` is not folded into the verdict axis: a missing test is not a
+  rejected product, and charging it to `REVISE_BUDGET` would bail correct code.
 
   Merging it with `REVISE_BUDGET` would trade "the verifier keeps rejecting" against "the
   plan keeps growing", two failures fixed in different places. It defaults to 5 and is
