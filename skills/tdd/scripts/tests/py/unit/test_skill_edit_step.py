@@ -1530,3 +1530,30 @@ def test_a_grader_answering_no_verdict_exits_2_leaving_the_list_the_unit_and_gra
 
     after = {n: (tmp_path / n).read_bytes() for n in names}
     assert (code, after, authors) == (2, before, []), (code, err, after)
+
+
+def test_an_as_is_marker_under_a_unit_heading_changes_neither_the_rows_nor_the_unit_apply_reads_2462(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    table = ("| ID | Requirement | Why |\n|---|---|---|\n"
+             "| A1 | The widget is blue. | because |\n"
+             "| A2 | The widget is square. | corners |\n")
+    plain = "## Requirements\n\n### unit.md\n\n" + table
+    marked = ("## Requirements\n\n### unit.md\n\n"
+              "As is: these rows describe the unit's current text.\n\n" + table)
+    (tmp_path / "plain.md").write_text(plain)
+    (tmp_path / "marked.md").write_text(marked)
+
+    assert skill_edit_step._issue_rows(str(tmp_path / "marked.md"), "unit.md") == \
+        skill_edit_step._issue_rows(str(tmp_path / "plain.md"), "unit.md")
+    assert skill_edit_step._issue_rows(str(tmp_path / "marked.md"), "unit.md")
+
+    lists = []
+    for name in ("plain.md", "marked.md"):
+        (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+        (tmp_path / "REQUIREMENTS.md").write_text(
+            "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+        assert skill_edit_step._unknown_heading(str(tmp_path / name)) is None
+        skill_edit_step.apply(str(tmp_path / name), "unit.md")
+        lists.append(((tmp_path / "REQUIREMENTS.md").read_text(), (tmp_path / "unit.md").read_text()))
+    assert lists[0] == lists[1], lists
