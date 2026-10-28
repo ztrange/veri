@@ -12,7 +12,12 @@ def main(argv):
         sys.stderr.write(USAGE + "\n")
         return 2
     path = Path(argv[0])
-    path.write_text(path.read_text().replace(argv[1], argv[2]))
+    saved = path.read_text()
+    mutated = saved.replace(argv[1], argv[2])
+    if mutated == saved:
+        sys.stderr.write("mutation-probe.sh: file not mutated\n")
+        return 2
+    path.write_text(mutated)
     subprocess.run(argv[4:])
     return 0
 
