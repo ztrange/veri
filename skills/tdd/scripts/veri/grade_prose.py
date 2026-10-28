@@ -209,7 +209,11 @@ def main(argv):
         print("grade-prose.sh: VERI_NO_VERDICT_RETRIES must be a non-negative integer, got '%s'"
               % raw_retries, file=sys.stderr)
         return 2
+    launches = {}
+
     def launch(path, retry=""):
+        launches[retry] = launches.get(retry, 0) + 1
+        retry += "" if launches[retry] == 1 else ".%d" % launches[retry]
         ran = leaf.launch("grade-prose", path, env=env)
         if ran.returncode:
             return None
