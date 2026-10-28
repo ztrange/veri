@@ -12,8 +12,8 @@ stays frozen.
    (`git worktree add --detach <scratch> {{BASE_SHA}}`), put the range's new test cases there,
    and run them: each must pass against the expand commit, else REJECT.
 5. **The new cases catch a broken interface.** Mutate the new interface's behaviour yourself
-   (copy the file aside with `cp <file> <file>.orig`, change it, run the new cases, put it back
-   with `mv <file>.orig <file>`): each new case must go red under a mutation of the behaviour it
+   (through `{{MUTATION_PROBE}} <file> <old> <new> -- <command that runs the new cases>`, which
+   restores the file; exit 2 gives no verdict, exit 1 means the cases stayed green and is never a PASS): each new case must go red under a mutation of the behaviour it
    covers, and you must restore the file. A case that stays green is a REJECT.{{LAST_PHASE_CHECK}}
 
 PASS if the suites are green, the new interface has cases of its own, no production file

@@ -41,10 +41,10 @@ A developer agent has written the implementation intended to make the target tes
    parameter and guard the step's diff added before you answer, and do not stop at the
    first one whose removal leaves every test green: name each such item in REASON:, one
    per line, since the revise leaf fixes only what you name. Establish each the way verify-pin
-   establishes a mutation: copy the file first — `cp <file> <file>.orig`, the copy beside
-   the file it copies, never in a shared directory such as /tmp — then
-   remove the code yourself and run the suites again, and if they stay green nothing
-   required it. Then restore the tree exactly — `mv <file>.orig <file>`, and confirm that
+   establishes a mutation: remove the code through
+   `{{MUTATION_PROBE}} <file> <old> <new> -- <command that runs the suites>`, which edits, runs the
+   command and restores the file; if it exits 1 (the suites stay green) nothing
+   required the code, and an exit of 2 gives no verdict. Confirm that
    `git diff` prints what it printed before the probe — before you report, since a verifier
    that reports first leaves the developer's tree mutated for the next leaf.
 5. {{INCLUDE:_verify-comments-lead.md}} change {{INCLUDE:_verify-comments-allowed.md}} change {{INCLUDE:_verify-comments-never-reject.md}}

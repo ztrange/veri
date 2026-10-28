@@ -28,6 +28,8 @@ def test_red_green_and_diff_calls_through_a_symlink_to_the_scripts_directory_ans
         if str(in_place).encode() not in want.stdout:
             problems.append(f"{label} in place names no {in_place}")
         want_out = want.stdout.replace(str(in_place).encode(), str(through_link).encode())
+        want_out = want_out.replace(str(SCRIPTS / "mutation-probe.sh").encode(),
+                                    str(linked / "veri-scripts" / "mutation-probe.sh").encode())
         if got.returncode != want.returncode:
             problems.append(f"{label} exited {got.returncode} through the link, {want.returncode} in place")
         if got.stdout != want_out:
