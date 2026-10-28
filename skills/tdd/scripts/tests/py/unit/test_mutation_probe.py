@@ -28,3 +28,16 @@ def test_main_exits_2_without_running_the_command_when_the_edit_leaves_the_file_
     assert calls == []
     assert target.read_text() == "alpha\n"
     assert "not mutated" in err
+
+
+def test_main_exits_1_naming_the_green_suite_when_the_command_still_passes_under_the_mutation(
+    run_cli, mutation_probe, monkeypatch, tmp_path
+):
+    target = tmp_path / "target.txt"
+    target.write_text("alpha\n")
+    monkeypatch.setattr(
+        mutation_probe.subprocess, "run", lambda *a, **k: mutation_probe.subprocess.CompletedProcess(a, 0)
+    )
+    code, out, err = run_cli(mutation_probe, [str(target), "alpha", "beta", "--", "true"])
+    assert code == 1
+    assert "stayed green under the mutation" in err
