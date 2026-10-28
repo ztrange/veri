@@ -1686,6 +1686,31 @@ def test_verify_sh_under_the_repos_own_gitignore_accepts_nested_run_state_and_re
 
 
 
+@pytest.mark.process("a real git scratch repository whose first verifier launch leaves an untracked file and whose second does not")
+def test_verify_sh_relaunches_a_verifier_that_left_an_untracked_file_and_returns_the_relaunched_verdict_2561(
+        run_cli, tmp_path, monkeypatch):
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {})
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "1")
+    mutation = '[ -e .tdd/second-launch ] || { : > .tdd/second-launch; printf "stray\\n" > riting.ts; }'
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
+           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
+    verify = importlib.import_module("veri.verify")
+    before = git_state(repo)
+
+    code, _, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+                                  "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+
+    saved = list((repo / ".tdd").glob("*.diff"))
+    diff = saved[0].read_text() if saved else ""
+    log_events = repo / ".tdd" / "events.jsonl"
+    relaunches = [json.loads(line) for line in log_events.read_text().splitlines()
+                  if '"relaunch"' in line] if log_events.is_file() else []
+    assert (code, git_state(repo), "riting.ts" in diff,
+            [(r["event"], r.get("cause") != "no-verdict") for r in relaunches]) == (
+        0, before, True, [("relaunch", True)])
+
+
 def attempts_trace(repo, phase):
     refs = subprocess.run(["git", "-C", str(repo), "for-each-ref", "--format=%(refname)", "refs/veri/attempts/"],
                           capture_output=True, check=True).stdout.decode().splitlines()
