@@ -291,6 +291,7 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
         seen_at += (t - prev_t) - (a - prev_a)
         if os.path.exists(waitfile):
             a0 += a - prev_a
+            idle_since += a - prev_a
             seen_at += a - prev_a
         prev_t, prev_a = t, a
         if a - a0 >= int(timeout, 10):
