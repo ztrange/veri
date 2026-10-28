@@ -1465,3 +1465,37 @@ def test_the_author_leaf_is_launched_through_veri_leaf_launch_as_author_skill_ed
     assert launched[0][1][-2:] == ("--permission-mode", "bypassPermissions"), launched
     assert graded_texts == [original, edited], (code, out, err, graded_texts)
     assert (code, (tmp_path / "unit.md").read_text()) == (0, edited), (code, out, err)
+
+
+def test_an_author_leaf_failing_exits_2_leaving_the_list_the_unit_and_graded_byte_identical_2576(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "GRADED").write_text("old signature\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A2 | The widget glows. | light |\n")
+    names = ["unit.md", "GRADED", "REQUIREMENTS.md"]
+    before = {n: (tmp_path / n).read_bytes() for n in names}
+
+    def grade(path, unit):
+        (tmp_path / "GRADED").write_text("new signature\n")
+        return 1, "A2: FAIL - dark\n"
+
+    def author(*a):
+        (tmp_path / "unit.md").write_text("The widget glows.\n")
+        return 2
+
+    monkeypatch.setattr(skill_edit_step, "_grade", grade)
+    monkeypatch.setattr(skill_edit_step, "_author", author)
+    monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(
+        run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""), PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
+
+    after = {n: (tmp_path / n).read_bytes() for n in names}
+    assert (code, after) == (2, before), (code, err, after)

@@ -276,6 +276,7 @@ def main(argv):
         _pins[0] = pins
         tree, present = _tree()
         if _author(unit, path, said):
+            _restore(snapshot, path, unit, graded_file)
             return 2
         graded, said = _guard(unit, base, issue, pins, [graded_file])
         if graded == 1:
