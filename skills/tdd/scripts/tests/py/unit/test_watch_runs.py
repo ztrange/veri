@@ -437,3 +437,44 @@ def test_2588_main_still_reports_vanished_when_the_conductor_pid_file_holds_no_p
     code = watch_runs.main(["--max-wait", "5"])
 
     assert (code, capsys.readouterr().out) == (2, "vanished 5\n")
+
+
+def _starting_run(monkeypatch, tmp_path, watch_runs, pid_text, lstart):
+    import os
+    (tmp_path / ".tdd" / "wt" / "5" / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "wt" / "5" / ".tdd" / "conductor.pid").write_text(pid_text % os.getpid())
+    listings = iter([["5"]])
+    ticks = iter([0, 1])
+    monkeypatch.setattr(watch_runs.pid_file, "_ps", lambda field, pid: lstart)
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, []))
+    monkeypatch.setattr(watch_runs, "run_state", lambda issue: "")
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+    monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks) * 10)
+
+
+def test_2588_main_reports_vanished_when_the_pid_answers_kill_0_but_its_start_time_differs_from_conductor_pid_line_2(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    _starting_run(monkeypatch, tmp_path, watch_runs, "%d\nTue Oct 27 13:45:10 2026\n", "Wed Oct 28 09:00:00 2026")
+
+    code = watch_runs.main(["--max-wait", "5"])
+
+    assert (code, capsys.readouterr().out) == (2, "vanished 5\n")
+
+
+def test_2588_main_keeps_watching_when_the_pid_start_time_matches_conductor_pid_line_2(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    _starting_run(monkeypatch, tmp_path, watch_runs, "%d\nTue Oct 27 13:45:10 2026\n", "Tue Oct 27 13:45:10 2026")
+
+    code = watch_runs.main(["--max-wait", "5"])
+
+    assert (code, capsys.readouterr().out) == (3, "timeout\n")
+
+
+def test_2588_main_keeps_watching_when_conductor_pid_has_no_line_2_yet_whatever_start_time_the_pid_has(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    _starting_run(monkeypatch, tmp_path, watch_runs, "%d\n", "Wed Oct 28 09:00:00 2026")
+
+    code = watch_runs.main(["--max-wait", "5"])
+
+    assert (code, capsys.readouterr().out) == (3, "timeout\n")

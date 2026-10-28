@@ -45,7 +45,7 @@ def _ps(field, pid):
     return ps.stdout.strip() if ps.returncode == 0 else None
 
 
-def live_conductor(path):
+def recorded_started(path):
     pid = recorded_alive(path)
     if pid is None:
         return None
@@ -53,6 +53,13 @@ def live_conductor(path):
         f.readline()
         started = f.readline().decode().strip()
     if started and started != _ps("lstart", pid):
+        return None
+    return pid
+
+
+def live_conductor(path):
+    pid = recorded_started(path)
+    if pid is None:
         return None
     parent = _ps("ppid", pid)
     parent_command = _ps("command", parent) if parent else ""
