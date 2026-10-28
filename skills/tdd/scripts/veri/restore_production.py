@@ -12,6 +12,7 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     keep = [f":(exclude,literal){path}" for path in argv]
+    keep += [":(exclude,glob).tdd/issue-*.md", ":(exclude,glob)**/GRADED"]
     for args in (["checkout", "HEAD", "--", ".", *keep], ["clean", "-fq", "--", ".", *keep]):
         done = git.git(*args, capture_output=True, text=True)
         if done.returncode:
