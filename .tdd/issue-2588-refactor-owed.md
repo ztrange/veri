@@ -1,0 +1,2 @@
+### watch-runs.sh does not report a run as vanished while that run's .tdd/wt/<n>/.tdd/conductor.pid holds a pid that answers kill -0: with live_conductors() omitting such an issue and its run_state() empty, the watch keeps watching instead of printing `vanished <n>` and exiting 2 (a small case in skills/tdd/scripts/tests/py/unit/test_watch_runs.py, faking only the process boundary) ⟦criterion 1⟧
+- test-only | extract the repeated `.tdd/wt/5/.tdd/conductor.pid` setup (mkdir plus pid write) in `test_watch_runs.py` into a helper or fixture
