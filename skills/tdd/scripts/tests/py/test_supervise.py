@@ -4665,3 +4665,23 @@ def test_cli_refuses_a_launch_while_a_stop_at_leaf_is_pending_exiting_2_starting
     records = events.records(tmp_path)
     assert [r["event"] for r in records] == ["launch-refused"], records
     assert "at-leaf" in records[0]["reason"], records
+
+
+def test_cli_refuses_a_launch_while_a_stop_now_is_pending_exiting_2_starting_no_leaf_writing_no_pid_and_appending_one_launch_refused_event_2549(
+        monkeypatch, tmp_path, supervise, run_cli, events):
+    clean_env(monkeypatch)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "stop").write_text("now\n")
+    stub = tmp_path / "claude"
+    started = spy_leaf_start(monkeypatch, tmp_path, supervise)
+
+    code, out, err = run_cli(supervise, ["develop-red", str(stub)], cwd=tmp_path)
+
+    assert (code, out) == (2, ""), err
+    assert err.splitlines()[-1:] == ["supervise: refusing to launch develop-red: a stop (now) is pending"], err
+    assert bool(started) is False, err
+    assert (tmp_path / ".tdd" / "develop-red.exit").read_text() == "2\n"
+    assert (tmp_path / ".tdd" / "develop-red.pid").exists() is False
+    records = events.records(tmp_path)
+    assert [r["event"] for r in records] == ["launch-refused"], records
+    assert "now" in records[0]["reason"], records
