@@ -188,6 +188,19 @@ def was_renamed(case, step_base, taken):
     return renamed_case.renamed_to(name, old.stdout.decode(), new.stdout.decode(), taken) is not None
 
 
+def added_markers(onto):
+    log = git("log", "-p", "-U0", "--no-color", "--no-ext-diff", "--format=commit %H", onto + "..HEAD")
+    found, sha, path = [], None, None
+    for line in log.stdout.decode("utf-8", "replace").splitlines():
+        if line.startswith("commit "):
+            sha = line[7:]
+        elif line.startswith("+++ "):
+            path = line[4:].removeprefix("b/")
+        elif line.startswith(("+<<<<<<< ", "+>>>>>>> ")):
+            found.append((sha, path))
+    return found
+
+
 def main(argv):
     args = list(argv)
     while args and takes_a_value(args[0]):
@@ -226,6 +239,12 @@ def main(argv):
         if deleted:
             write(sys.stdout, "step deleted pytest cases an earlier step added: "
                    + ", ".join("%s::%s" % case for case in deleted))
+            return 1
+    if words[0] == "rebase" and git("rev-parse", "--git-dir").returncode == 0:
+        marked = added_markers(words[2])
+        if marked:
+            write(sys.stdout, "rebase committed conflict markers: "
+                   + ", ".join("%s %s" % pair for pair in marked))
             return 1
     top = event.toplevel()
     run_state = os.path.join(top, ".tdd") if top and top != os.getcwd() else ".tdd"
