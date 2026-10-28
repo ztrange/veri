@@ -1,8 +1,10 @@
 """restore-production.sh's restore, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
 import sys
 
 import git
+import tests_frozen
 
 USAGE = "usage: restore-production.sh <test-path>..."
 
@@ -10,6 +12,33 @@ USAGE = "usage: restore-production.sh <test-path>..."
 def refuse(message):
     print(f"restore-production.sh: {message}", file=sys.stderr)
     return 2
+
+
+def spared_tests():
+    """Every changed or untracked path veri classifies as a test, and the wholly untracked directory holding it.
+
+    git clean removes a wholly untracked directory as one unit, so excluding a file inside it is not enough.
+    """
+    listed = git.git("ls-files", "-z", capture_output=True, text=True)
+    if listed.returncode:
+        return []
+    names = tests_frozen._differing_tests()
+    tracked = listed.stdout.split("\0")
+    tracked_dirs = {parent for name in tracked for parent in _parents(name)}
+    spared = set(names)
+    for name in names:
+        fresh = [parent for parent in _parents(name) if parent not in tracked_dirs]
+        if fresh:
+            spared.add(fresh[-1])
+    return sorted(spared)
+
+
+def _parents(name):
+    parents = []
+    while os.path.dirname(name):
+        name = os.path.dirname(name)
+        parents.append(name)
+    return parents
 
 
 def main(argv):
@@ -25,8 +54,8 @@ def main(argv):
         return refuse("run it from the worktree root")
     keep = [f":(exclude,literal){path}" for path in argv]
     keep += [":(exclude,glob).tdd/issue-*.md", ":(exclude,glob)**/GRADED"]
-    keep_tests = [":(exclude,glob)**/tests/**"]
-    for args in (["checkout", "HEAD", "--", ".", *keep], ["clean", "-fq", "--", ".", *keep, *keep_tests]):
+    keep += [f":(exclude,literal){path}" for path in spared_tests()]
+    for args in (["checkout", "HEAD", "--", ".", *keep], ["clean", "-fq", "--", ".", *keep]):
         done = git.git(*args, capture_output=True, text=True)
         if done.returncode:
             message = done.stderr.strip()
