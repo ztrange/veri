@@ -191,3 +191,24 @@ def test_issue_2579_restore_production_from_a_subdirectory_restores_the_whole_wo
 
     assert ran.returncode == 2 or (repo / "other" / "prod.py").read_text() == "VALUE = 1\n", (
         "exit 0 but only the subtree was restored")
+
+
+@pytest.mark.process("restore-production.sh run against a real git repository in tmp_path")
+def test_issue_2579_restore_production_keeps_an_untracked_test_file_the_red_wrote_outside_the_named_path(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    (repo / "tests").mkdir()
+    git(repo, "init", "-q")
+    (repo / "src" / "prod.py").write_text("VALUE = 1\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "base")
+    (repo / "tests" / "test_named.py").write_text("def test_named():\n    assert False\n")
+    (repo / "tests" / "helper_scratch.py").write_text("HELPER = 1\n")
+    (repo / "src" / "prod.py").write_text("VALUE = 2\n")
+
+    ran = subprocess.run(["sh", str(SCRIPTS / "restore-production.sh"), "tests/test_named.py"], cwd=repo,
+                         capture_output=True, text=True)
+
+    assert ran.returncode == 0, ran.stderr
+    assert (repo / "src" / "prod.py").read_text() == "VALUE = 1\n"
+    assert (repo / "tests" / "helper_scratch.py").read_text() == "HELPER = 1\n"
