@@ -26,16 +26,29 @@ def test_a_bail_heading_script_name_cause_token_or_mention_without_a_pointer_is_
 
 
 def test_a_skill_edit_step_send_without_a_skill_edit_md_pointer_is_reported_and_with_one_is_not():
-    """Subject is the guard: a planted sentence entering a ⟦skill-edit⟧ step is named by file and line until it names SKILL-EDIT.md."""
+    """Subject is the guard: a planted sentence entering a ⟦skill-edit⟧ step is named by file and line until it names SKILL-EDIT.md in its own sentence."""
     bare = "\n".join([
         "## Some section",
         "",
         "Then run the ⟦skill-edit⟧ step for the requirements row.",
     ])
-    pointed = bare + " Read `<base directory>/SKILL-EDIT.md` first."
+    neighbouring = bare + ". Read `<base directory>/SKILL-EDIT.md` first."
+    own_sentence = bare + ", Read `<base directory>/SKILL-EDIT.md` first."
 
     assert ("SKILL-EDIT.md", 3) in guard.unpointed_sends(bare)
-    assert ("SKILL-EDIT.md", 3) not in guard.unpointed_sends(pointed)
+    assert ("SKILL-EDIT.md", 3) in guard.unpointed_sends(neighbouring)
+    assert ("SKILL-EDIT.md", 3) not in guard.unpointed_sends(own_sentence)
+
+
+def test_a_pointer_in_a_neighbouring_sentence_on_the_same_line_does_not_point_the_trigger():
+    """Subject is the guard: a '**bail**' sentence whose BAIL.md pointer sits in the next sentence of the same line is named by event file and line."""
+    text = "\n".join([
+        "## Some section",
+        "",
+        "If the push is refused twice, **bail**. Then Read `<base directory>/BAIL.md` for the procedure.",
+    ])
+
+    assert ("BAIL.md", 3) in guard.unpointed_sends(text)
 
 
 def test_the_pointer_is_read_within_the_whole_sentence_however_many_lines_it_spans_and_not_in_another_sentence():

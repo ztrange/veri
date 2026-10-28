@@ -24,7 +24,6 @@ PLACED = r"\)?[.:](\s|\Z)"
 
 def unpointed_sends(text):
     ends = [m.end() for m in re.finditer(r"\.(?=\s|\Z)", text)] + [len(text)]
-    lines = text.splitlines()
     found = []
     for event_file, trigger in EVENT_FILES.items():
         pointer = f"`<base directory>/{event_file}`"
@@ -34,7 +33,7 @@ def unpointed_sends(text):
             match = re.search(trigger, sentence)
             if match:
                 line = text.count("\n", 0, start + match.start())
-                if pointer not in sentence and pointer not in lines[line]:
+                if pointer not in sentence:
                     found.append((event_file, line + 1))
             start = end
     return found
