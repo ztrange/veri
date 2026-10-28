@@ -18,7 +18,7 @@ the `red-contradicted` red, its exit 3 keeps the attempt's main outcome, a verif
 a bail; never a `report-missing` bail.
 A `repair <case>` answer launches `red-repair` over the revise-green report instead.
 A revise of green answering `IMPOSSIBLE` with a `MISSING_TEST:` line is routed the same way (`$S/wrong-test-route.sh .tdd/revise-green-<k>.out '<target-test-id>'`), as is a verify-green or mutation-parity REJECT reason before any revise: on `missing <behaviour>` the conductor writes a `reroute` event, writes no `revise` mark, spends no `REVISE_BUDGET` attempt, launches the `red-missing` red with that file as its brief (`build-develop-prompt.sh red-missing`), sends the added case through verify-red (verify-pin when it reports `AGAINST_UNMODIFIED: PASSES`), re-records the step's frozen tests with `tests-frozen.sh record --step`, then runs green again.
-The route runs with `VERI_STEP` set to the current step and its exit 0 writes a `reroute` event with `VERI_STEP` before the launch; only the step's first reroute is free, and a later reroute of any kind in the step takes the revise path and spends one `REVISE_BUDGET` attempt.
+The route runs with `VERI_STEP` set to the current step and its exit 0 writes a `reroute` event with `VERI_STEP` before the launch, carrying `kind=<kind>`. A `missing` route is free up to `VERI_MISSING_REROUTE_BUDGET` per step, and its exhaustion (`missing-exhausted`, exit 1) bails with cause `missing-reroutes-exhausted`; a repeat red, repair, supersede or fixture reroute in the step takes the revise path and spends one `REVISE_BUDGET` attempt.
 
 For attempt `k = 1 … REVISE_BUDGET`:
 
