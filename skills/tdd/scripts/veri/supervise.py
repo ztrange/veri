@@ -399,6 +399,9 @@ def main(argv):
     heartbeat, refused = numeric_env("VERI_HEARTBEAT", "180")
     if refused:
         return refused
+    _, refused = numeric_env("VERI_TOOL_IDLE", "600")
+    if refused:
+        return refused
     retries, refused = numeric_env("VERI_STUCK_RETRIES", "1")
     if refused:
         return refused

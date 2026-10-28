@@ -1948,6 +1948,28 @@ def test_main_refuses_a_veri_stuck_retries_not_a_non_negative_decimal_integer_wi
     }
 
 
+def test_main_refuses_a_veri_tool_idle_not_a_non_negative_decimal_integer_with_exit_2_naming_it_starting_nothing_but_git_2566(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    answers = {}
+    for n, value in enumerate(("abc", "1.5", "-1")):
+        work = tmp_path / f"idle-{n}"
+        work.mkdir()
+        monkeypatch.chdir(work)
+        clean_env(monkeypatch, VERI_TOOL_IDLE=value)
+        calls = fake_git_only(monkeypatch, work)
+        try:
+            code = supervise.main(["develop-red", "leaf-hang"])
+        except Launched:
+            code = "<launched>"
+        out, err = capsysbinary.readouterr()
+        answers[value] = (code, out, err, all(c[0] == "git" for c in calls))
+
+    assert answers == {
+        value: (2, b"", f"supervise: VERI_TOOL_IDLE is not a number: '{value}'\n".encode(), True)
+        for value in ("abc", "1.5", "-1")
+    }
+
+
 def test_main_refuses_a_launch_while_the_leaf_recorded_in_leaf_owner_is_alive_and_records_itself_there_only_for_a_watched_name_not_a_conductor(
         monkeypatch, tmp_path, capsysbinary, supervise, events):
     import signal
