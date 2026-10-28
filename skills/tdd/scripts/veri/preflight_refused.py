@@ -20,7 +20,7 @@ def main_checkout():
 
 
 def main(argv):
-    if len(argv) < 2 or not argv[1]:
+    if len(argv) < 2 or not argv[0] or not argv[1]:
         sys.stderr.write(USAGE)
         return 2
     issue, check = argv[0], argv[1]
