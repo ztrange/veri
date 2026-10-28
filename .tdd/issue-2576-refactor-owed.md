@@ -1,0 +1,2 @@
+### skill-edit-step.sh exiting 2 because its author leaf fails leaves the requirements list, the unit and its GRADED file byte-identical to what they were before the call (author and grader faked, a case in skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py) ⟦criterion 1⟧
+- fold the four repeated `_restore(snapshot, path, unit, graded_file)` calls in `main()` into one local helper (touches only code this cycle didn't write, bar the one added line)
