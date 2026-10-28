@@ -80,6 +80,22 @@ def test_2557_an_empty_issue_number_exits_2_with_the_usage_line_writes_no_event_
     assert posted == []
 
 
+def test_2557_a_missing_or_empty_check_exits_2_with_the_usage_line_writes_no_event_and_posts_no_comment(
+        tmp_path, monkeypatch, run_cli):
+    preflight_refused = importlib.import_module("veri.preflight_refused")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)))
+    main = tmp_path / "main"
+    (main / ".git").mkdir(parents=True)
+
+    results = [run_cli(preflight_refused, argv, cwd=main) for argv in ([], ["7"], ["7", ""])]
+
+    assert results == [(2, "", USAGE)] * 3
+    assert not (main / ".tdd").exists()
+    assert posted == []
+
+
 def test_2481_c_a_second_refusal_of_a_refused_run_writes_no_event_posts_no_comment_and_exits_3(
         tmp_path, monkeypatch, run_cli):
     preflight_refused = importlib.import_module("veri.preflight_refused")
