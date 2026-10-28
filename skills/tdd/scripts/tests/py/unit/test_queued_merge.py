@@ -313,3 +313,13 @@ def test_2585_queued_merge_under_the_graphql_driver_merges_with_gh_pr_merge_matc
     puts = [c for c in calls if "PUT" in c or "pulls/7/merge" in c]
     assert (code, merges, puts) == (
         0, ["merge-lock.sh gate --pid %s -- gh pr merge %s --rebase --match-head-commit %s" % (PID, PR, PUSHED_HEAD)], [])
+
+
+def test_2585_queued_merge_under_the_auto_driver_tries_gh_pr_merge_first_and_when_it_fails_falls_back_to_one_rest_put_of_the_pushed_head_then_tags_and_exits_0(fake_processes, run_cli):
+    calls = scenario(fake_processes, fail=("pr merge",))
+
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_GH_DRIVER": "auto"})
+
+    merges = [i for i, c in enumerate(calls) if "gh pr merge %s --rebase --match-head-commit %s" % (PR, PUSHED_HEAD) in c]
+    puts = [i for i, c in enumerate(calls) if "PUT" in c and "merge_method=rebase" in c and "sha=%s" % PUSHED_HEAD in c and "repos/o/r/pulls/7/merge" in c]
+    assert (code, len(merges), len(puts), merges[0] < puts[0] if merges and puts else None, len([c for c in calls if " tag -a " in c])) == (0, 1, 1, True, 1)

@@ -163,12 +163,18 @@ def main(argv):
         code = _gate(pid, os.path.join(SCRIPTS, "wait-ci.sh"), pr, "540", "", head)
     if code:
         return code
-    if os.environ.get("VERI_GH_DRIVER") == "graphql":
-        merge = ("gh", "pr", "merge", pr, "--rebase", "--match-head-commit", head)
+    gh_merge = ("gh", "pr", "merge", pr, "--rebase", "--match-head-commit", head)
+    rest_merge = ("gh", "api", "-X", "PUT", "repos/%s/pulls/%s/merge" % (repo, _number(pr)),
+                  "-f", "merge_method=rebase", "-f", "sha=%s" % head)
+    driver = os.environ.get("VERI_GH_DRIVER")
+    if driver == "graphql":
+        code = _gate(pid, *gh_merge)
+    elif driver == "auto":
+        code = _gate(pid, *gh_merge)
+        if code:
+            code = _gate(pid, *rest_merge)
     else:
-        merge = ("gh", "api", "-X", "PUT", "repos/%s/pulls/%s/merge" % (repo, _number(pr)),
-                 "-f", "merge_method=rebase", "-f", "sha=%s" % head)
-    code = _gate(pid, *merge)
+        code = _gate(pid, *rest_merge)
     if code:
         return code
     pull = _merged(repo, pr)
