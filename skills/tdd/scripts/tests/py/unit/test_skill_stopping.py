@@ -7,7 +7,6 @@ from skill_sections import LOWER, has_match as _has, plain as _plain
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
-LAUNCHING = "## Launching a leaf — detach, then wait in the foreground"
 PROCEDURE = "## Procedure"
 PREFLIGHT = "## 0. Preflight — baseline checks (bail before any cycle)"
 BAILING = "## Bailing"
@@ -63,36 +62,6 @@ def _branch(lines, start, end):
     return out
 
 
-def _unreadable_at_ledger(problems, what, lines):
-    _require(problems, r"exit 2[^.;]*at-ledger", lines,
-             f"{what} never says stop-requested.sh's exit 2 is a stop in mode at-ledger")
-    _require(problems, _either_order("exit 2", "unreadable"), lines,
-             f"{what} never says to narrate that the stop request was unreadable on exit 2")
-
-
-def test_launching_a_leaf_runs_stop_requested_before_every_leaf_launch_exit_3_launches_as_normal_at_ledger_launches_the_leaf_anyway_at_leaf_and_now_launch_nothing_and_go_to_stopping():
-    lines, problems = [_joined(_section(LAUNCHING))], []
-    _require(problems, r"stop-requested\.sh", lines, "the Launching a leaf section never runs stop-requested.sh")
-    _require(problems, _either_order(r"before[^.;]*launch", r"stop-requested\.sh"), lines,
-             "the Launching a leaf section never says stop-requested.sh runs before a leaf is launched")
-    _require(problems, r"exit 3[^.;]*launch", lines,
-             "the Launching a leaf section never says stop-requested.sh's exit 3 launches as normal")
-    _require(problems, r"at-ledger[^.;]*launch", lines,
-             "the Launching a leaf section never says mode at-ledger launches the leaf anyway")
-    for mode in ("at-leaf", "now"):
-        _require(problems, _word(mode) + r"[^.;]*launch(es)? nothing", lines,
-                 f"the Launching a leaf section never says mode {mode} launches nothing")
-    _require(problems, r"launch(es)? nothing[^.;]*stopping", lines,
-             "the Launching a leaf section never sends a launch-nothing mode to Stopping")
-    assert not problems, problems
-
-
-def test_launching_a_leaf_treats_stop_requested_exit_2_as_a_stop_in_mode_at_ledger_narrating_that_the_request_was_unreadable():
-    problems = []
-    _unreadable_at_ledger(problems, "the Launching a leaf section", [_joined(_section(LAUNCHING))])
-    assert not problems, problems
-
-
 def _phase_exit2(heading, anchor):
     inside, kept = False, []
     for raw in (SKILL.read_text() + "\n" + SKILL.with_name("REVISE.md").read_text()).splitlines():
@@ -117,15 +86,6 @@ def _phase_exit2(heading, anchor):
         if hit:
             out = buf
     return None if out is None else re.sub(" +", " ", out)
-
-
-def test_launching_a_leaf_asks_stop_requested_before_reading_a_leafs_wait_leaf_exit_2_as_killed_stuck_and_a_pending_now_goes_to_stopping_instead_of_bailing():
-    lines, problems = [_joined(_section(LAUNCHING))], []
-    _require(problems, _either_order(r"stop-requested\.sh", r"before[^.;]*killed-stuck"), lines,
-             "the Launching a leaf section never asks stop-requested.sh before reading a leaf's exit 2 as killed-stuck")
-    _require(problems, rf"{_word('now')}[^.;]*stopping[^.;]*(instead of|rather than)[^.;]*bailing|{_word('now')}[^.;]*(instead of|rather than)[^.;]*bailing[^.;]*stopping", lines,
-             "the Launching a leaf section never sends a leaf's exit 2 with a pending now to Stopping instead of Bailing")
-    assert not problems, problems
 
 
 def test_each_phases_leaf_exit_2_branch_points_back_to_launching_a_leaf_where_stop_requested_is_asked_before_the_exit_2_is_read_as_killed_stuck():

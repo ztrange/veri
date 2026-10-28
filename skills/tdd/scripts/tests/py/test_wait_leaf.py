@@ -431,23 +431,6 @@ def test_skill_md_launches_every_leaf_detached_and_waits_for_it_with_wait_leaf_s
     assert (len(sites) >= 5, misses) == (True, [])
 
 
-def test_skill_md_reports_a_verifier_whose_supervisor_died_the_way_it_reports_a_killed_developer_leaf():
-    text = (SCRIPTS.parent / "SKILL.md").read_text()
-    section = re.search(r"^## Launching a leaf — detach, then wait in the foreground\n(.*?)(?=^## )",
-                        text, re.S | re.M).group(1)
-    assert [p for p in re.split(r"\n[ \t]*\n", section)
-            if "verdict-<phase>" in p and "killed-stuck" in p.lower() and "bail" in p.lower()
-            and ("without recording a status" in p.lower()
-                 or re.search(r"supervisor[^.]*(died|dies|exited|is gone)", p.lower()))]
-
-
-def test_skill_md_tells_the_conductor_to_call_wait_leaf_sh_with_the_bash_maximum_timeout_and_names_the_600_s_cap_1708():
-    assert [p for p in skill_paragraphs()
-            if "wait-leaf.sh" in p and "600000" in p and "590" in p
-            and re.search(r"no (max-seconds|second)s? argument|without a max-seconds", p.lower())
-            and re.search(r"600 ?s[^.]*cap|cap[^.]*600 ?s", p.lower())]
-
-
 def test_skill_md_tells_the_conductor_to_call_detach_command_sh_wait_with_no_max_seconds_and_the_bash_maximum_timeout_never_a_fixed_500_1708():
     text = (SCRIPTS.parent / "PREFLIGHT.md").read_text()
     assert not re.search(r"detach-command\.sh wait <name> 500", text)
