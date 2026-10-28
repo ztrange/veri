@@ -373,6 +373,7 @@ def test_main_takes_every_model_variable_from_the_one_reader_and_still_applies_t
 
 
 SKILL_MD = Path(__file__).resolve().parents[4] / "SKILL.md"
+PREFLIGHT_MD = SKILL_MD.with_name("PREFLIGHT.md")
 LEAF_MODEL_USAGE = "usage: leaf-model.sh <leaf-name>\n"
 
 
@@ -452,18 +453,19 @@ def test_skill_md_preflight_leaf_model_calls_name_a_leaf_leaf_role_accepts(
         run_cli):
     leaf_role = importlib.import_module("veri.leaf_role")
     preflight, inside = [], False
-    for line in SKILL_MD.read_text().splitlines():
-        if re.match(r"### [0-9]+\..*[Pp]reflight", line):
+    for line in PREFLIGHT_MD.read_text().splitlines():
+        if re.match(r"## [0-9]+\..*[Pp]reflight", line):
             inside = True
-        elif inside and line.startswith("### "):
+        elif inside and re.match(r"#{1,2} ", line):
             break
         if inside:
             preflight.append(line)
-    problems = []
+    problems, calls = [], 0
     if not preflight:
-        problems.append("no numbered '### … Preflight' section in SKILL.md")
+        problems.append("no numbered '## … Preflight' section in PREFLIGHT.md")
     for line in preflight:
         for match in re.finditer(r"leaf-model\.sh[ \t\n\r\f\v]([^ \t\n\r\f\v]*)", line):
+            calls += 1
             leaf = re.sub(r"[),;:.]*$", "", match.group(1).replace("`", "").replace('"', "").replace("'", ""))
             if not leaf:
                 problems.append(f"a leaf-model.sh call in the Preflight section names no leaf right after one space: {line.strip()}")
@@ -472,5 +474,7 @@ def test_skill_md_preflight_leaf_model_calls_name_a_leaf_leaf_role_accepts(
             if code != 0:
                 problems.append(f"leaf-model.sh is called with '{leaf}', a name leaf-role.sh refuses")
                 continue
+    if preflight and not calls:
+        problems.append("the Preflight section of PREFLIGHT.md holds no leaf-model.sh call to check")
 
     assert problems == []
