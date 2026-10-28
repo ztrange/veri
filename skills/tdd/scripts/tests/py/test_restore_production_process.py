@@ -130,3 +130,25 @@ def test_issue_2579_restore_production_leaves_a_dirty_ledger_and_graded_untouche
     assert (repo / "prod.py").read_text() == "VALUE = 1\n"
     assert (repo / ".tdd" / "issue-7.md").read_text() == "- [x] step\n"
     assert (repo / "skills" / "tdd" / "GRADED").read_text() == "sig-2\n"
+
+
+@pytest.mark.process("restore-production.sh run against a real git repository in tmp_path")
+def test_issue_2579_restore_production_refuses_a_pytest_node_id_with_exit_2_and_restores_nothing(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    git(repo, "init", "-q")
+    (repo / "src" / "prod.py").write_text("VALUE = 1\n")
+    (repo / "test_old.py").write_text("def test_old():\n    assert True\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "base")
+    (repo / "test_old.py").write_text("def test_old():\n    assert False\n")
+    (repo / "src" / "prod.py").write_text("VALUE = 2\n")
+    (repo / "src" / "added.py").write_text("EXTRA = 1\n")
+
+    ran = subprocess.run(["sh", str(SCRIPTS / "restore-production.sh"), "test_old.py::test_old"], cwd=repo,
+                         capture_output=True, text=True)
+
+    assert ran.returncode == 2, ran.stderr
+    assert (repo / "test_old.py").read_text() == "def test_old():\n    assert False\n"
+    assert (repo / "src" / "prod.py").read_text() == "VALUE = 2\n"
+    assert (repo / "src" / "added.py").read_text() == "EXTRA = 1\n"
