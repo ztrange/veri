@@ -106,7 +106,11 @@ def _differing_tests():
     names = []
     for command in (["git", "diff", "--name-only", "--no-renames", "-z", "HEAD"],
                     ["git", "ls-files", "--others", "--exclude-standard", "--full-name", "-z", ":/"]):
-        for raw in subprocess.run(command, stdout=subprocess.PIPE).stdout.split(b"\0"):
+        done = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if done.returncode != 0:
+            # A failed listing is no answer: an empty one would read as "no test files".
+            raise OSError("git %s failed: %s" % (command[1], " ".join(os.fsdecode(done.stderr).split())))
+        for raw in done.stdout.split(b"\0"):
             name = os.fsdecode(raw)
             if raw and (TEST_FILE.search(raw) or is_js_test_file(os.path.basename(name), os.path.dirname(name))):
                 names.append(name)
@@ -427,7 +431,12 @@ def main(argv):
         deleted = []
         if by_step:
             record, files = _enter_root(record, files)
-            for name in _differing_tests():
+            try:
+                differing = _differing_tests()
+            except OSError as error:
+                write(sys.stderr, "tests-frozen.sh: %s" % error)
+                return 2
+            for name in differing:
                 if name in files or name in deleted:
                     continue
                 (files if os.path.exists(name) else deleted).append(name)
@@ -491,7 +500,12 @@ def main(argv):
                 exempt.add(fixture.group(1))
             subjects = re.findall(r"⟦guard-subject: ([^⟧]+)⟧", trailing_markers(step))
             exempt.update(subjects)
-            changed += [name for name in _differing_tests()
+            try:
+                differing = _differing_tests()
+            except OSError as error:
+                write(sys.stderr, "tests-frozen.sh: %s" % error)
+                return 2
+            changed += [name for name in differing
                         if name not in recorded
                         and (name not in exempt
                              or (name in subjects and not os.path.exists(name)))]

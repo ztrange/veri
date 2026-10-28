@@ -2172,3 +2172,31 @@ def test_rerecord_earlier_returns_2_naming_the_record_when_writing_it_raises_219
     code = tests_frozen.rerecord_earlier(str(ledger), edit)
 
     assert (code, record in capfd.readouterr().err) == (2, True)
+
+
+@pytest.mark.process("a real git repository under tmp_path, with a PATH-first git that fails git diff")
+def test_check_step_exits_2_with_gits_stderr_when_git_cannot_list_the_differing_test_files_2579(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    import os
+    import shutil
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_new.py").write_text("one\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one adds a case"
+    (tmp_path / "tests/test_new.py").write_text("one\ntwo\n")
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py"], cwd=tmp_path)
+    stub = tmp_path / "stub-bin"
+    stub.mkdir()
+    (stub / "git").write_text(
+        '#!/bin/sh\nif [ "$1" = "diff" ]; then echo "fatal: stubbed diff failure" >&2; exit 128; fi\nexec %s "$@"\n'
+        % shutil.which("git"))
+    (stub / "git").chmod(0o755)
+    monkeypatch.setenv("PATH", str(stub) + ":" + os.environ["PATH"])
+
+    code, out, err = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    assert (code, out) == (2, "")
+    assert "stubbed diff failure" in err
