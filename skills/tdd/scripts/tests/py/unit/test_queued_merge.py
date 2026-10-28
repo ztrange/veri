@@ -82,7 +82,7 @@ def test_2372_queued_merge_pushes_under_a_lease_pinned_to_origin_branch_sha_read
 def test_2372_queued_merge_waits_for_ci_through_wait_ci_on_the_pushed_head_after_the_push_and_merges_that_head(fake_processes, run_cli):
     calls = scenario(fake_processes)
 
-    code, _, _ = run_cli(queued_merge, ARGV)
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_GH_DRIVER": "graphql"})
 
     push, wait = first(calls, "--force-with-lease"), first(calls, "wait-ci.sh")
     waits = [c for c in calls if "wait-ci.sh" in c]
@@ -105,7 +105,7 @@ def test_2372_queued_merge_on_red_ci_exits_1_through_the_releasing_gate_and_neve
 def test_2372_queued_merge_treats_pending_or_absent_checks_as_not_green_and_asks_wait_ci_again(fake_processes, run_cli, ci, expected):
     calls = scenario(fake_processes, ci=ci)
 
-    code, _, _ = run_cli(queued_merge, ARGV)
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_GH_DRIVER": "graphql"})
 
     asked = len([c for c in calls if "wait-ci.sh" in c])
     merged_after = first(calls, "pr merge") is not None

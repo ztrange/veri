@@ -197,7 +197,7 @@ def test_queued_merge_with_green_ci_rebase_merges_the_pr_for_the_pushed_head_del
     call_log = tmp_path / "calls.log"
     call_log.write_text("")
     env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "REAL_GIT": real_git, "CALL_LOG": str(call_log),
-           "VERI_MERGE_LOCK_POLL": "0.05", "VERI_POLL": "0"}
+           "VERI_MERGE_LOCK_POLL": "0.05", "VERI_POLL": "0", "VERI_GH_DRIVER": "graphql"}
     run = dict(cwd=repo, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
     merged = subprocess.run(["/bin/sh", str(SCRIPTS / "queued-merge.sh"), "https://github.com/o/r/pull/7", str(repo), "feature", "-"],
