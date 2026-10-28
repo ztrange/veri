@@ -302,3 +302,14 @@ def test_2585_queued_merge_by_default_exits_1_with_no_tag_branch_delete_or_workt
 
     puts = [c for c in calls if "pulls/7/merge" in c]
     assert (code, len(puts), ["--keep" in c for c in puts], cleaned(calls), first(calls, "pulls/7 ")) == (1, 1, [False], [], None)
+
+
+def test_2585_queued_merge_under_the_graphql_driver_merges_with_gh_pr_merge_match_head_commit_and_makes_no_rest_put(fake_processes, run_cli):
+    calls = scenario(fake_processes)
+
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_GH_DRIVER": "graphql"})
+
+    merges = [c for c in calls if "pr merge" in c]
+    puts = [c for c in calls if "PUT" in c or "pulls/7/merge" in c]
+    assert (code, merges, puts) == (
+        0, ["merge-lock.sh gate --pid %s -- gh pr merge %s --rebase --match-head-commit %s" % (PID, PR, PUSHED_HEAD)], [])
