@@ -96,6 +96,24 @@ def test_2557_a_missing_or_empty_check_exits_2_with_the_usage_line_writes_no_eve
     assert posted == []
 
 
+def test_2557_both_arguments_given_writes_exactly_one_event_in_the_issue_run_and_posts_exactly_one_comment(
+        tmp_path, monkeypatch, run_cli):
+    preflight_refused = importlib.import_module("veri.preflight_refused")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)))
+    main = tmp_path / "main"
+    (main / ".git").mkdir(parents=True)
+
+    code = run_cli(preflight_refused, ["7", "baseline-full-red"], cwd=main)[0]
+
+    log = main / ".tdd" / "wt" / "7" / ".tdd" / "events.jsonl"
+    assert code == 0
+    assert [json.loads(text)["event"] for text in log.read_text().splitlines()] == ["preflight-refused"]
+    assert not (main / ".tdd" / "wt" / ".tdd").exists()
+    assert [(n, body.splitlines()[0]) for n, body in posted] == [("7", "### ⛔ Preflight refused — baseline-full-red")]
+
+
 def test_2481_c_a_second_refusal_of_a_refused_run_writes_no_event_posts_no_comment_and_exits_3(
         tmp_path, monkeypatch, run_cli):
     preflight_refused = importlib.import_module("veri.preflight_refused")
