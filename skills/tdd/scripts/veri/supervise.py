@@ -171,7 +171,7 @@ def cpu_seconds(field):
 
 def tree_cpu_seconds(pid):
     done = captured("ps", "-A", "-o", "pid=,ppid=,time=,comm=")
-    rows = [line.split(None, 3) for line in done.stdout.splitlines()]
+    rows = [fields for fields in (line.split(None, 3) for line in done.stdout.splitlines()) if len(fields) == 4]
     tree, total = {str(pid)}, 0.0
     for child, parent, cpu, comm in rows:
         if parent in tree:
