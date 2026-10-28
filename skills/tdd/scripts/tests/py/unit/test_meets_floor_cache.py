@@ -40,3 +40,23 @@ def test_two_calls_for_the_same_interpreter_path_read_the_floor_once(tmp_path, m
 
     assert (first, second) == (True, True)
     assert len(reads) == 1, "meets_floor read VENV_FLOOR %d times, wanted 1" % len(reads)
+
+
+def test_a_call_for_a_different_interpreter_path_starts_that_other_interpreter_again(tmp_path, monkeypatch):
+    first_python = tmp_path / "one" / "python3"
+    second_python = tmp_path / "two" / "python3"
+    for python in (first_python, second_python):
+        python.parent.mkdir()
+        python.write_text("")
+    launches = []
+
+    def spy(args, *rest, **kwargs):
+        launches.append(args[0])
+        return subprocess.CompletedProcess(args, 0, stdout="3.12.0\n", stderr="")
+
+    monkeypatch.setattr(conftest, "REAL_RUN", spy)
+
+    conftest.meets_floor(str(first_python))
+    conftest.meets_floor(str(second_python))
+
+    assert launches == [str(first_python), str(second_python)], "meets_floor started %r, wanted each interpreter once" % launches
