@@ -7,8 +7,10 @@ import subprocess
 import sys
 
 try:
+    import tunables
     from github import gh_api
 except ImportError:
+    from . import tunables
     from .github import gh_api
 
 USAGE = "usage: queued-merge.sh <pr-url> <worktree> <branch> <tag-message|->"
@@ -166,7 +168,7 @@ def main(argv):
     gh_merge = ("gh", "pr", "merge", pr, "--rebase", "--match-head-commit", head)
     rest_merge = ("gh", "api", "-X", "PUT", "repos/%s/pulls/%s/merge" % (repo, _number(pr)),
                   "-f", "merge_method=rebase", "-f", "sha=%s" % head)
-    driver = os.environ.get("VERI_GH_DRIVER")
+    driver = tunables.read("VERI_GH_DRIVER", None)
     if driver == "graphql":
         code = _gate(pid, *gh_merge)
     elif driver == "auto":
