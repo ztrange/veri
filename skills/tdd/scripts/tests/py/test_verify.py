@@ -1711,6 +1711,25 @@ def test_verify_sh_relaunches_a_verifier_that_left_an_untracked_file_and_returns
         0, before, True, [("relaunch", True)])
 
 
+@pytest.mark.process("a real git scratch repository whose only verifier launch leaves an untracked file")
+def test_verify_sh_refuses_a_verifier_that_left_an_untracked_file_without_a_relaunch_when_the_no_verdict_budget_is_0_2561(
+        run_cli, tmp_path, monkeypatch):
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {})
+    mutation = 'echo launch >> .tdd/launches; printf "stray\\n" > riting.ts'
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
+           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
+    verify = importlib.import_module("veri.verify")
+    before = git_state(repo)
+
+    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+                                    "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+
+    launches = (repo / ".tdd" / "launches").read_text().splitlines()
+    assert (code, "verifier leaf modified the repository — verdict not accepted" in out, launches,
+            git_state(repo)) == (2, True, ["launch"], before)
+
+
 def attempts_trace(repo, phase):
     refs = subprocess.run(["git", "-C", str(repo), "for-each-ref", "--format=%(refname)", "refs/veri/attempts/"],
                           capture_output=True, check=True).stdout.decode().splitlines()
