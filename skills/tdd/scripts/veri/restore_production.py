@@ -15,6 +15,9 @@ def main(argv):
         if "::" in path:
             print(f"restore-production.sh: {path}: a pytest node id, not a path", file=sys.stderr)
             return 2
+        if path.startswith(":"):
+            print(f"restore-production.sh: {path}: a pathspec magic prefix, not a path", file=sys.stderr)
+            return 2
     keep = [f":(exclude,literal){path}" for path in argv]
     keep += [":(exclude,glob).tdd/issue-*.md", ":(exclude,glob)**/GRADED"]
     for args in (["checkout", "HEAD", "--", ".", *keep], ["clean", "-fq", "--", ".", *keep]):
