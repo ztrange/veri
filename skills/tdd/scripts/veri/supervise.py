@@ -273,7 +273,7 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
     status = reason = ""
     rc = "0"
     seen_at = int(t0)
-    tool_idle = int(tunables.read("VERI_TOOL_IDLE", "600"), 10)
+    tool_idle = int(tunables.read("VERI_TOOL_IDLE", unless_empty="600"), 10)
     idle_since, last_cpu = a0, None
     if watched:
         last_m = mtime_of(log)
