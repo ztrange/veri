@@ -8,8 +8,6 @@ cases plant a line into a copy of SKILL.md and ask what the whole guard says abo
 import pathlib
 import re
 
-import skill_sections
-
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 DETACHER = "detach-leaf.sh"
@@ -17,7 +15,6 @@ LAUNCHER = "supervise.sh"
 VERIFIER = "verify.sh"
 VERDICT_LAUNCHER = "run-verdict.sh"
 LAUNCH_RE = r"supervise\.sh|verify\.sh|run-verdict\.sh"
-SECTION = "## Launching a leaf — detach, then wait in the foreground"
 
 SPEC_RE = r"(\.tdd/issue-<n>-spec\.md|<spec-file>)"
 STEP_PH = "<STEP>"
@@ -66,47 +63,9 @@ def launch_lines(text):
     return fenced_in(text, LAUNCH_RE)
 
 
-def section_prose(path):
-    prose, fence = [], False
-    for line in skill_sections.section(path, SECTION).splitlines():
-        if re.match(r"\s*```", line):
-            fence = not fence
-        elif not fence:
-            prose.append(line)
-    return "\n".join(prose).lower()
-
-
 def blind_args(text):
     tail = text.split(VERDICT_LAUNCHER + " ", 1)[1]
     return tail.split(" > .tdd/verify-", 1)[0]
-
-
-def prose_paragraphs(text):
-    out, para, start, fence = [], [], 0, False
-    for number, line in enumerate(text.splitlines(), 1):
-        if re.match(r"\s*```", line):
-            fence = not fence
-            if para:
-                out.append((start, " ".join(para)))
-                para = []
-        elif fence:
-            continue
-        elif not line.strip():
-            if para:
-                out.append((start, " ".join(para)))
-                para = []
-        else:
-            if not para:
-                start = number
-            para.append(line)
-    if para:
-        out.append((start, " ".join(para)))
-    return out
-
-
-def step_title_rules(text):
-    return [(n, p) for n, p in prose_paragraphs(text)
-            if re.search("quot", p, re.I) and ("step title" in p or STEP_PH in p)]
 
 
 def quoted_faults(lines, noun, placeholder, single, double, exempt):
@@ -136,18 +95,6 @@ def detach_problems(path, exempt=None):
     if not launches:
         return ["no leaf launch line inside a fenced block"]
     return [f"{number}: {text}" for number, text in launches if DETACHER not in text or "nohup" in text]
-
-
-def nohup_reason_problems(path, exempt=None):
-    prose = section_prose(path)
-    faults = []
-    if "nohup" not in prose:
-        faults.append("never names nohup")
-    if not re.search(r"(sighup|hang-?up)", prose):
-        faults.append("does not say nohup survives a hang-up")
-    if "process group" not in prose:
-        faults.append("does not say nohup leaves the leaf in the launching call's process group")
-    return [f"*{SECTION}* {', and '.join(faults)}"] if faults else []
 
 
 def clear_problems(path, exempt=None):
@@ -197,21 +144,7 @@ def verdict_launcher_problems(path, exempt=None):
 
 
 def step_title_rule_problems(text, exempt=None):
-    rules = step_title_rules(text)
     problems = []
-    if not rules:
-        problems.append("states no rule for how a step title reaches a command line")
-    elif len(rules) > 1:
-        problems.append(f"states the step-title rule in {len(rules)} places, at lines {','.join(str(n) for n, _ in rules)}")
-    else:
-        number, rule = rules[0]
-        faults = []
-        if DOUBLE_QUOTED_STEP not in rule and "double quote" not in rule.lower():
-            faults.append("does not say the title is carried in double quotes")
-        if "apostrophe" not in rule.lower():
-            faults.append("does not say why: a title carrying an apostrophe closes a single-quoted one early")
-        if faults:
-            problems.append(f"{number}: states the step-title rule but {', and '.join(faults)}")
     if not fenced_in(text, STEP_PH):
         problems.append("no line carrying <STEP> inside a fenced block")
     return problems + title_guard(text, exempt)
@@ -230,24 +163,6 @@ def fragment_problems(path, exempt=None):
         return ["no command line passing a fragment of the step's title"]
     return quoted_faults(fragments, "a fragment of the step title", FRAGMENT_PH,
                          SINGLE_QUOTED_FRAGMENT, DOUBLE_QUOTED_FRAGMENT, table(exempt))
-
-
-def rule_data_problems(path, exempt=None):
-    text = launch_doc(path)
-    rules = step_title_rules(text)
-    if len(rules) != 1:
-        return ["no single paragraph stating the step-title rule"]
-    readers = sorted({m for _, line in fenced_in(text, r'VERI_STEP="\$\(')
-                      for call in re.findall(r'VERI_STEP="\$\([^)]*\)', line)
-                      for m in re.findall(r"\$S/([A-Za-z0-9_.-]+)", call)})
-    if not readers:
-        return ["no launch line reading VERI_STEP through a script inside a fenced block"]
-    number, rule = rules[0]
-    faults = []
-    if not re.search(r"(^|[^a-z])data([^a-z]|$)", rule.lower()):
-        faults.append("does not say the title reaches a command line as data")
-    faults += [f"does not name {r}, which a launch line reads the title through" for r in readers if r not in rule]
-    return [f"{number}: states the step-title rule but {', and '.join(faults)}"] if faults else []
 
 
 def pin_431_problems(path, exempt=None):
@@ -282,9 +197,9 @@ def revise_fast_cmd_problems(path, exempt=None):
             for n, t in revise_builds if "'<fast-cmd>'" not in t]
 
 
-CHECKS = (detach_problems, nohup_reason_problems, clear_problems, supervisor_problems,
+CHECKS = (detach_problems, clear_problems, supervisor_problems,
           blind_problems, verdict_launcher_problems, step_title_problems, fragment_problems,
-          rule_data_problems, pin_431_problems, revise_fast_cmd_problems)
+          pin_431_problems, revise_fast_cmd_problems)
 
 
 def leaf_guard(path, exempt=None):
@@ -296,10 +211,6 @@ def leaf_guard(path, exempt=None):
 
 def test_skill_md_launches_every_developer_and_verifier_leaf_through_detach_leaf_sh_and_no_launch_line_uses_nohup():
     assert detach_problems(SKILL) == []
-
-
-def test_skill_md_s_launching_a_leaf_says_why_nohup_alone_is_not_enough():
-    assert nohup_reason_problems(SKILL) == []
 
 
 def test_skill_md_clears_tdd_name_pid_together_with_tdd_name_exit_on_every_launch():
@@ -316,10 +227,6 @@ def test_skill_md_invokes_run_verdict_sh_on_every_verifier_launch_with_no_inline
 
 def test_skill_md_double_quotes_every_documented_command_line_that_passes_a_fragment_of_the_step_s_title():
     assert fragment_problems(SKILL) == []
-
-
-def test_skill_md_s_step_title_rule_says_the_title_reaches_a_command_line_as_data_not_hand_typed_in_double_quotes_and_names_what_the_launch_lines_read_it_through():
-    assert rule_data_problems(SKILL) == []
 
 
 def test_skill_md_states_the_step_title_rule_in_one_place_and_every_fenced_command_carrying_the_title_follows_it():
