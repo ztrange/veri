@@ -1821,3 +1821,19 @@ def test_issue_2526_a_conductor_log_with_a_priced_and_an_unpriced_session_says_t
     assert cells(out, "#### Total", ["$"])["total"][0].startswith("1.35")
     assert re.search(r"includ", sentence) and re.search(r"unpriced", sentence)
     assert not re.search(r"total row excludes the conductor own spending", sentence)
+
+
+def test_a_step_rerouted_to_a_red_repair_with_no_revise_mark_reports_zero_revise_attempts_of_its_budget(tmp_path, monkeypatch, capsys, metrics):
+    events = conductor("1", 41000, "step-start")
+    events += leaf("1", 41010, "developer", "red", 1, 20) + leaf("1", 41040, "verifier", "red", 1, 10, verdict="PASS")
+    events += leaf("1", 41060, "developer", "green", 1, 20)
+    events += conductor("1", 41090, "reroute", phase="green", case="the case", kind="repair", budget="2")
+    events += leaf("1", 41100, "developer", "red", 2, 20) + leaf("1", 41130, "verifier", "red", 2, 10, verdict="PASS")
+    events += leaf("1", 41150, "developer", "green", 2, 20) + leaf("1", 41180, "verifier", "green", 2, 10, verdict="PASS")
+    events += conductor("1", 41200, "step-done")
+    write_log(tmp_path, events)
+    monkeypatch.chdir(tmp_path)
+
+    steps = {row["step"]: row["revise"] for row in table(render(metrics, capsys), "#### By step")}
+
+    assert steps == {"1": "0/2"}
