@@ -132,3 +132,18 @@ def test_2481_c_a_second_refusal_of_a_refused_run_writes_no_event_posts_no_comme
     assert (first[0], second[0]) == (0, 3)
     assert [e["check"] for e in events] == ["full-tier baseline red"]
     assert [body.splitlines()[0] for _, body in posted] == ["### ⛔ Preflight refused — full-tier baseline red"]
+
+
+def test_2557_no_argument_combination_creates_a_tdd_directory_in_wt_and_the_run_is_named_after_the_issue(
+        tmp_path, monkeypatch, run_cli):
+    preflight_refused = importlib.import_module("veri.preflight_refused")
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment", lambda number, body: None)
+    main = tmp_path / "main"
+    (main / ".git").mkdir(parents=True)
+
+    for argv in ([], [""], ["", ""], ["", "baseline-full-red"], ["7"], ["7", ""], ["7", "baseline-full-red"]):
+        run_cli(preflight_refused, argv, cwd=main)
+
+    wt = main / ".tdd" / "wt"
+    assert sorted(path.name for path in wt.iterdir()) == ["7"]
+    assert (wt / "7" / ".tdd" / "events.jsonl").is_file()
