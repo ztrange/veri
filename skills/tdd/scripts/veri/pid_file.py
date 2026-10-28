@@ -22,8 +22,12 @@ def number_in(file):
     return n.decode() if re.fullmatch(rb"[0-9]+", n) else None
 
 
+def _pid_path(path):
+    return path + "/.tdd/conductor.pid"
+
+
 def recorded_alive(path):
-    pid = number_in(path + "/.tdd/conductor.pid")
+    pid = number_in(_pid_path(path))
     if pid is None or int(pid) == 0:
         return None
     try:
@@ -45,7 +49,7 @@ def live_conductor(path):
     pid = recorded_alive(path)
     if pid is None:
         return None
-    with open(path + "/.tdd/conductor.pid", "rb") as f:
+    with open(_pid_path(path), "rb") as f:
         f.readline()
         started = f.readline().decode().strip()
     if started and started != _ps("lstart", pid):
