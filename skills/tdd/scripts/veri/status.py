@@ -122,10 +122,11 @@ def main_working_tree():
 
 
 def step_of_total(text):
-    """"<n> of <m>": the first open step of the ledger's <m>, or <m> when none is open."""
+    """"<n> of <m>": the step pending refactor, else the first open step of the ledger's <m>, or <m> when none is open."""
     records = ledger_steps(text)
     total = records[-1][0] if records else "0"
-    step = next((index for index, state, *_ in records if state == "open"), total)
+    step = next((index for index, state, _kind, pending, *_ in records if pending == "1"), None) \
+        or next((index for index, state, *_ in records if state == "open"), total)
     return "%s of %s" % (step, total)
 
 

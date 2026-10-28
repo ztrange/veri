@@ -873,3 +873,15 @@ def test_no_case_in_this_suite_calls_a_function_of_veri_status_other_than_main()
 
     assert calls == []
 
+
+
+def test_2551_step_names_the_step_pending_refactor_and_the_next_open_one_once_it_is_finished(tmp_path, monkeypatch, capsys, status):
+    head = "# Plan for #51 — lamps glow\n\n- [x] one\n- [x] two\n"
+    pending = ledger_run(tmp_path, "51", head + "- [x] three ⟂ refactor pending\n- [ ] four\n")
+    finished = ledger_run(tmp_path, "52", head.replace("#51", "#52") + "- [x] three\n- [ ] four\n", number="52")
+    lamp_git(monkeypatch, tmp_path, [pending, finished])
+
+    status.main(["--json"])
+
+    runs = json.loads(capsys.readouterr().out)["runs"]
+    assert [run["step"] for run in runs] == ["3 of 4", "4 of 4"]
