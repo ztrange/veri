@@ -460,7 +460,7 @@ def main(argv):
         return refuse_empty_step(role, leaf_env, name, "--step is empty")
     if os.path.isfile(".tdd/stop"):
         with open(".tdd/stop") as f:
-            if (mode := f.read().strip()) == "at-leaf":
+            if (mode := f.read().strip()) in ("at-leaf", "now"):
                 return refuse_empty_step(role, leaf_env, name, f"a stop ({mode}) is pending")
     if name.startswith("develop-green") and step and red_awaits_pass(step) and not ci_repair_step(issue, step):
         write_line(exitfile, 2)
