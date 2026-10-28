@@ -393,6 +393,16 @@ issue, not only in the conductor's log.
    it costs nothing; left to the first leaf that tries to grow the plan, it surfaces as a
    refused insertion mid-cycle, with the branch, the worktree and the plan already built.
 
+   Then the missing-reroute budget, which `wrong-test-route.sh` reads: it must be unset, or a
+   whole number ≥ 0 (unset means 3):
+   ```
+   [[ "${VERI_MISSING_REROUTE_BUDGET:-3}" =~ ^[0-9]+$ ]]
+   ```
+   False is the same **exit 2** as a bad `VERI_STEP_GROWTH`: stop and do not start, reporting the
+   value verbatim. It is a seventh budget axis, never folded into `REVISE_BUDGET`,
+   `VERI_STUCK_RETRIES`, `VERI_NO_VERDICT_RETRIES`, `VERI_REFACTOR_BUDGET`, `VERI_STEP_GROWTH` or
+   `VERI_SKILL_EDIT_BUDGET`.
+
    Then the two money budgets: run `$S/step-budget.sh` once, with no arguments. **Exit 2**
    means `VERI_STEP_BUDGET` or `VERI_RUN_BUDGET` is not a non-negative decimal number — the
    same preflight-class stop as a bad `VERI_REFACTOR_BUDGET`: report its stderr diagnostic
