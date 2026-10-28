@@ -2332,3 +2332,20 @@ def test_superseded_2453_still_writes_the_unresolved_line_for_a_case_name_that_r
 
     assert (cases, capsys.readouterr().err) == (
         [], 'no defined test case resolves: SUPERSEDED: "a_case_nobody_defines"\n')
+
+
+def test_main_2573_counts_only_missing_kind_reroutes_against_the_missing_budget_so_a_red_reroute_leaves_a_budget_of_1_unspent(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / ".tdd").mkdir()
+    step = "wrong-test-route.sh counts reroutes by kind"
+    monkeypatch.setenv("VERI_STEP", step)
+    monkeypatch.setenv("VERI_MISSING_REROUTE_BUDGET", "1")
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        '{"event": "reroute", "step": "%s", "kind": "red"}\n' % step)
+    report = tmp_path / "missing-report.txt"
+    report.write_text("VERDICT: REJECT\nMISSING_TEST: a guard is pinned by a case\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "missing a guard is pinned by a case\n")
