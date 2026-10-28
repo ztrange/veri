@@ -4446,3 +4446,86 @@ def test_a_heartbeat_only_cpu_idle_leaf_is_not_killed_stuck_for_time_spent_with_
         [], "develop-red", ["leaf"], ".tdd/develop-red.log", ".tdd/develop-red.rc", env, None, watch)
 
     assert (status, reason, kills) == ("success", "", []), (status, reason, kills)
+
+
+def ps_answering(monkeypatch, supervise, rows):
+    def captured(*args):
+        assert args[0] == "ps", args
+        return subprocess.CompletedProcess(list(args), 0, "".join(f"{row}\n" for row in rows), "")
+    monkeypatch.setattr(supervise, "captured", captured)
+
+
+def test_tree_cpu_seconds_parses_ps_output_counting_a_leafs_descendants_but_not_claude_itself_nor_processes_outside_its_tree_2566(
+        monkeypatch, supervise):
+    ps_answering(monkeypatch, supervise, [
+        "    1     0   9:59:59.00 /sbin/launchd",
+        " 4242     1   0:00.10 /bin/sh",
+        " 4243  4242  50:00.00 /Users/someone/.local/bin/claude",
+        " 4244  4243   0:01.50 /bin/bash",
+        " 4245  4244   0:00.40 sleep",
+        " 5000     1  12:00.00 claude",
+    ])
+
+    assert supervise.tree_cpu_seconds(4242) == pytest.approx(1.9)
+
+
+def test_tree_cpu_seconds_reads_ps_d_hh_mm_ss_time_as_days_hours_minutes_seconds_alongside_mm_ss_and_hh_mm_ss_2566(
+        monkeypatch, supervise):
+    ps_answering(monkeypatch, supervise, [
+        " 4242     1   0:00.00 /bin/sh",
+        " 4244  4242   1-02:03:04 /bin/bash",
+        " 4245  4244   01:00:00 make",
+        " 4246  4244   2:30.50 python3",
+    ])
+
+    assert supervise.tree_cpu_seconds(4242) == pytest.approx(93784 + 3600 + 150.5)
+
+
+def test_a_cpu_idle_leaf_whose_log_gains_lines_other_than_tool_progress_heartbeats_is_not_killed_past_veri_tool_idle_while_one_gaining_only_heartbeats_is_2566(
+        monkeypatch, tmp_path, supervise):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_TOOL_IDLE", "600")
+    (tmp_path / ".tdd").mkdir()
+    log = tmp_path / ".tdd" / "develop-red.log"
+    heartbeat = ('{"type":"tool_progress","tool_use_id":"toolu_01-heartbeat-0","tool_name":"Bash",'
+                 '"parent_tool_use_id":"toolu_01","elapsed_time_seconds":30,"heartbeat":true,"session_id":"s","uuid":"u"}')
+    streamed = '{"type":"assistant","message":{"content":[{"type":"text","text":"still working"}]},"session_id":"s"}'
+
+    def watch(line):
+        clock = {"t": 1000}
+        kills = []
+
+        class Leaf:
+            pid = 4242
+
+            def poll(self):
+                return None
+
+            def wait(self):
+                return 0
+
+        def pause(_poll):
+            clock["t"] += 30
+            with open(log, "a") as f:
+                f.write(heartbeat + "\n" + line + "\n")
+            if clock["t"] >= 2500:
+                (tmp_path / ".tdd" / "develop-red.rc").write_text("0\n")
+
+        monkeypatch.setattr(supervise.subprocess, "Popen", lambda *_a, **_k: Leaf())
+        monkeypatch.setattr(supervise, "now", lambda: str(clock["t"]))
+        monkeypatch.setattr(supervise, "awake_seconds", lambda: clock["t"])
+        monkeypatch.setattr(supervise, "mtime_of", lambda _log: str(clock["t"]))
+        monkeypatch.setattr(supervise, "tree_cpu_seconds", lambda _pid: 7.0)
+        monkeypatch.setattr(supervise, "pause", pause)
+        monkeypatch.setattr(supervise, "kill_tree", lambda leaf, _poll: kills.append(clock["t"]))
+        monkeypatch.setattr(supervise, "recover_finished_leaf", lambda *_: None)
+        env = {"PYTEST_LEG_LOCK_WAIT_MARKER": str(tmp_path / "wait")}
+        status, reason, _rc, _a0 = supervise.attempt_once(
+            [], "develop-red", ["leaf"], ".tdd/develop-red.log", ".tdd/develop-red.rc", env, None,
+            supervise.Watch(True, "100000", "180", "1", 0.0))
+        return status, "VERI_TOOL_IDLE" in reason, kills
+
+    assert {"streaming": watch(streamed), "heartbeats only": watch(heartbeat)} == {
+        "streaming": ("success", False, []),
+        "heartbeats only": ("killed-stuck", True, [1600]),
+    }

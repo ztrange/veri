@@ -1,6 +1,7 @@
 """supervise.sh's watchdog, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import errno
+import json
 import os
 import paths
 import re
@@ -163,6 +164,11 @@ def kill_tree(leaf, kill_poll):
     signal_tree(leaf.pid, signal.SIGKILL)
 
 
+def cpu_seconds(field):
+    days, _, clock = field.rpartition("-")
+    return int(days or "0", 10) * 86400 + sum(float(part) * 60 ** i for i, part in enumerate(reversed(clock.split(":"))))
+
+
 def tree_cpu_seconds(pid):
     done = captured("ps", "-A", "-o", "pid=,ppid=,time=,comm=")
     rows = [line.split(None, 3) for line in done.stdout.splitlines()]
@@ -171,8 +177,29 @@ def tree_cpu_seconds(pid):
         if parent in tree:
             tree.add(child)
             if os.path.basename(comm) != "claude":
-                total += sum(float(part) * 60 ** i for i, part in enumerate(reversed(cpu.split(":"))))
+                total += cpu_seconds(cpu)
     return total if len(tree) > 1 else None
+
+
+def log_growth(log, offset):
+    try:
+        with open(log, "rb") as f:
+            if os.fstat(f.fileno()).st_size < offset:
+                offset = 0
+            f.seek(offset)
+            data = f.read()
+    except OSError:
+        return [], offset
+    end = data.rfind(b"\n") + 1
+    return data[:end].splitlines(), offset + end
+
+
+def heartbeat_line(line):
+    try:
+        record = json.loads(line)
+    except ValueError:
+        return False
+    return isinstance(record, dict) and record.get("type") == "tool_progress" and record.get("heartbeat") is True
 
 
 def pause(poll):
@@ -275,7 +302,7 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
     rc = "0"
     seen_at = int(t0)
     tool_idle = int(watch.tool_idle, 10)
-    idle_since, last_cpu = a0, None
+    idle_since, last_cpu, log_offset = a0, None, 0
     if watched:
         last_m = mtime_of(log)
     while True:
@@ -305,7 +332,9 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
             if silence > int(heartbeat, 10):
                 reason = f"no heartbeat for {silence}s (window {heartbeat}s)"
             cpu = tree_cpu_seconds(leaf.pid)
-            if cpu is None or cpu != last_cpu:
+            lines, log_offset = log_growth(log, log_offset)
+            streamed = any(line.strip() and not heartbeat_line(line) for line in lines)
+            if cpu is None or cpu != last_cpu or streamed:
                 idle_since, last_cpu = a, cpu
             elif a - idle_since >= tool_idle:
                 reason = f"no descendant CPU for {a - idle_since}s (VERI_TOOL_IDLE window {tool_idle}s)"
