@@ -209,14 +209,14 @@ def main(argv):
         print("grade-prose.sh: VERI_NO_VERDICT_RETRIES must be a non-negative integer, got '%s'"
               % raw_retries, file=sys.stderr)
         return 2
-    def launch(path):
+    def launch(path, retry=""):
         ran = leaf.launch("grade-prose", path, env=env)
         if ran.returncode:
             return None
         live = os.path.join(".tdd", "grade-prose.log")
         with open(live, encoding="utf-8") as log:
             text = log.read()
-        shutil.copyfile(live, os.path.join(".tdd", "grade-prose-" + re.sub(r"[^A-Za-z0-9._-]", "_", unit) + ".log"))
+        shutil.copyfile(live, os.path.join(".tdd", "grade-prose-" + re.sub(r"[^A-Za-z0-9._-]", "_", unit) + retry + ".log"))
         return text
 
     def launch_rows(ids):
@@ -224,7 +224,7 @@ def main(argv):
         with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as g:
             g.write(prompt(unit, text, rows))
         try:
-            return launch(g.name)
+            return launch(g.name, ".rows")
         finally:
             os.unlink(g.name)
 
