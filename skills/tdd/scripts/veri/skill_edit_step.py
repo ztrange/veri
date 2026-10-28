@@ -294,6 +294,7 @@ def main(argv):
         sys.stdout.write(said)
         return 1
     if graded:
+        _restore(snapshot, path, unit, graded_file)
         return graded
     if not authored:
         event.append(".", {}, "skill-edit-no-author", ["unit=" + unit])
