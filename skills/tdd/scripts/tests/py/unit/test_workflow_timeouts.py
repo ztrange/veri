@@ -174,8 +174,8 @@ def test_ci_yml_cancels_a_prs_in_progress_run_on_a_newer_push_and_never_cancels_
     has("ci.yml declares no workflow-level concurrency", r"concurrency:\s*$")
     has("concurrency group is not keyed on the PR number, falling back to the ref", r"  group:.*github\.event\.pull_request\.number\s*\|\|\s*github\.ref")
     has(
-        "cancel-in-progress is not limited to pull_request events, so a push to main could be cancelled",
-        r"  cancel-in-progress:\s*\$\{\{\s*github\.event_name\s*==\s*'pull_request'\s*\}\}\s*$",
+        "cancel-in-progress is not limited to non-draft pull_request events, so a push to main or a draft event could cancel a run",
+        r"  cancel-in-progress:\s*\$\{\{\s*github\.event_name\s*==\s*'pull_request'\s*&&\s*!github\.event\.pull_request\.draft\s*\}\}\s*$",
     )
 
     assert problems == []
