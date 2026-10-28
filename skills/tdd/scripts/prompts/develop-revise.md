@@ -36,7 +36,7 @@ instead of an {{INCLUDE:_develop-split.md}} leave the working tree exactly as yo
    that objection. Do not drift beyond what the criterion and the reason require: a fix
    that also changes something the verifier did not object to gives it new grounds to
    reject.
-2. {{TEST_REWRITE}}
+2. Edit a test only as the phase you are redoing allows. {{TEST_REWRITE}}
 3. Redoing green only: first run the fast command, the one `detect-test-command.sh --tier
    fast` prints, and confirm it is green. Then, whichever phase you are redoing, run the
    suites {{INCLUDE:_affected-suites-working-tree.md}} — and confirm the result the phase you

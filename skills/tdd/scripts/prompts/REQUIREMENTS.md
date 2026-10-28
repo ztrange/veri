@@ -3,6 +3,7 @@
 | ID | Requirement | Why |
 |---|---|---|
 | DV1 | In a `⟦suite-repair⟧` or `⟦ci-repair⟧` revise-green prompt the permission to edit a test appears once, and it covers only the failing test the full run or CI left red; every other test stays frozen (#1653, #1920). | The repair can fix the test that is actually wrong without opening every other test to edits; PR #1907's review showed a mutant reading "Any test may change" survived. |
+| DV2 | Every numbered item of the "What to do" list carries an instruction in every revise prompt the template renders, a `⟦suite-repair⟧` or `⟦ci-repair⟧` revise-green prompt included; no item renders empty. | After #1920 the repair revise-green prompt rendered item 2 as a bare `2.`, leaving the leaf to guess whether a step was dropped. |
 
 ## skills/tdd/scripts/prompts/develop-contract-a.md
 
