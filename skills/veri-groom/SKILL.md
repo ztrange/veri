@@ -35,6 +35,19 @@ where outcome is one of:
 - `duplicate` — another issue says the same (the line names it);
 - `needs-human` — a judgement the subagent cannot make.
 
+## Before labelling ready
+
+Before labelling an issue ready, run `$S/stale-rows.sh <issue>` against it:
+
+- **exit 1** — a requirement row no longer holds. Park the issue with
+  `$S/park-issue.sh <issue> <cause> <unblock>`, the cause naming the row, the unit and the
+  failing line `stale-rows.sh` printed. The issue is **not** labelled ready.
+- **exit 0** and **exit 3** — go on as before.
+- **exit 2** — no answer could be obtained: report it and leave the issue as it was, neither
+  labelled ready nor parked.
+
+The groom never rewrites a requirement row.
+
 Every subagent brief this skill writes says, in these words:
 
 - return **at most 10 lines** (P6), more only as a pointer to a file it wrote;
