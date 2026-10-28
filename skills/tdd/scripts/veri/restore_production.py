@@ -7,30 +7,31 @@ import git
 USAGE = "usage: restore-production.sh <test-path>..."
 
 
+def refuse(message):
+    print(f"restore-production.sh: {message}", file=sys.stderr)
+    return 2
+
+
 def main(argv):
     if not argv:
         print(USAGE, file=sys.stderr)
         return 2
     for path in argv:
         if "::" in path:
-            print(f"restore-production.sh: {path}: a pytest node id, not a path", file=sys.stderr)
-            return 2
+            return refuse(f"{path}: a pytest node id, not a path")
         if path.startswith(":"):
-            print(f"restore-production.sh: {path}: a pathspec magic prefix, not a path", file=sys.stderr)
-            return 2
+            return refuse(f"{path}: a pathspec magic prefix, not a path")
     if git.git("rev-parse", "--show-prefix", capture_output=True, text=True).stdout.strip():
-        print("restore-production.sh: run it from the worktree root", file=sys.stderr)
-        return 2
+        return refuse("run it from the worktree root")
     keep = [f":(exclude,literal){path}" for path in argv]
     keep += [":(exclude,glob).tdd/issue-*.md", ":(exclude,glob)**/GRADED"]
     for args in (["checkout", "HEAD", "--", ".", *keep], ["clean", "-fq", "--", ".", *keep]):
         done = git.git(*args, capture_output=True, text=True)
         if done.returncode:
-            print(f"restore-production.sh: {done.stderr.strip()}", file=sys.stderr)
+            message = done.stderr.strip()
             if args[0] == "clean":
-                print("restore-production.sh: partial restore: production reverted, untracked files not removed",
-                      file=sys.stderr)
-            return 2
+                message += "\nrestore-production.sh: partial restore: production reverted, untracked files not removed"
+            return refuse(message)
     return 0
 
 
