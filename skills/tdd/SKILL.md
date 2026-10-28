@@ -255,7 +255,7 @@ drive it to a draft PR or to a clean stop on a `REJECT`.
    in, and moved into it, so its baseline runs on the branch's own commit.
    Preflight step 3 took the worktree's lock there too, before the baseline: that lock is
    the **worktree guard**, and it guards this machine's worktree only: for
-   exactly as long as the pid in there answers `kill -0`, `issue-worktree.sh` refuses this
+   exactly as long as the pid in there answers `kill -0` and that process's start time matches the one recorded on the lock's second line, `issue-worktree.sh` refuses this
    worktree to a second conductor on this computer, so none can land in a live run's tree and
    resume it (#170), and a `git reset --hard HEAD` on a `⟂ refactor pending` step throws your
    leaf's uncommitted work away, per `<base directory>/RESUME.md`. It is **not** the claim on the issue. A pid is a
@@ -267,9 +267,8 @@ drive it to a draft PR or to a clean stop on a `REJECT`.
    place two machines can still collide.
    `run_conductor.py` writes the pid of the `claude -p` process, which lives as long as this run, rather
    than a shell's `$$`, which is gone when anyone reads the lock, so the guard is never dead on arrival
-   or left naming a number since handed to a stranger. **Nothing deletes it**: liveness is the whole rule, so a bail, a crash
-   or a `kill` frees the worktree — never the issue, which its PR goes on holding — with no
-   cleanup step to forget, and a resume's `run_conductor.py` overwrites the dead pid with its own before preflight.
+   or left naming a number since handed to a stranger. `run_conductor.py` deletes the lock when the run it launched ends; a crash
+   or a `kill` that skips that leaves a lock no live process matches, which frees the worktree — never the issue, which its PR goes on holding — and a resume's `run_conductor.py` overwrites it with its own before preflight.
    Then record the timeout preflight step 7 settled, here, where this run's `supervise.sh`
    reads it — never from the caller's checkout, where preflight ran:
    ```
