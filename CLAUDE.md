@@ -176,7 +176,7 @@ appends (#539), and on the rebased tip if the Draft PR step rebased (#1026), so 
 under its glob would tax every PR (ADR 0016). `docs/tests/suite-lanes.test.sh` pins the split.
 
 Tests inject rather than wait on a real model or clock: `CLAUDE_BIN` swaps in a stub,
-`VERI_HEARTBEAT` / `VERI_TIMEOUT` / `VERI_STUCK_RETRIES` shrink the supervisor's windows,
+`VERI_HEARTBEAT` / `VERI_TOOL_IDLE` / `VERI_TIMEOUT` / `VERI_STUCK_RETRIES` shrink the supervisor's windows,
 `VERI_FETCH_RETRY_SLEEP` the ref-lock retry — hence every tunable is read as `${VAR:-default}`.
 
 **A suite asserts behaviour** — outputs, exit codes, files, events; never process counts,
