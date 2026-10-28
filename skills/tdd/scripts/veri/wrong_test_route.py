@@ -180,20 +180,20 @@ def _superseded(report, step, own_id=None):
     return cases
 
 
-def _rerouted(step):
+def _reroutes(step):
     try:
         events = event_log.read_events(".tdd/events.jsonl", skip_unreadable=True)
     except OSError:
-        return False
-    return any(event.get("event") == "reroute" and event.get("step") == step for event in events)
+        return []
+    return [e for e in events if e.get("event") == "reroute" and e.get("step") == step]
+
+
+def _rerouted(step):
+    return bool(_reroutes(step))
 
 
 def _missing_reroutes(step):
-    try:
-        events = event_log.read_events(".tdd/events.jsonl", skip_unreadable=True)
-    except OSError:
-        return 0
-    return sum(1 for e in events if e.get("event") == "reroute" and e.get("step") == step and e.get("kind") == "missing")
+    return sum(1 for e in _reroutes(step) if e.get("kind") == "missing")
 
 
 def _missing(report):
