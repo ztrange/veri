@@ -221,3 +221,24 @@ def test_main_2462_regrades_only_when_the_marked_rows_or_the_units_default_branc
 
     assert (first[:2] == again[:2], calls_after_again, calls_after_rows, len(asked)) == (
         True, 1, 2, 3)
+
+
+def test_main_2462_regrades_after_a_no_verdict_result_rather_than_caching_it(
+        tmp_path, monkeypatch, run_cli):
+    stale_rows = importlib.import_module("veri.stale_rows")
+    monkeypatch.setattr(stale_rows.github, "gh_issue_view", lambda number, field: ISSUE)
+    monkeypatch.setattr(stale_rows, "default_branch_text", lambda unit: "The marked unit says blue.\n")
+    answers = [(2, ""), (0, "")]
+    asked = []
+
+    def fake_grade(unit, rows):
+        asked.append(unit)
+        return answers.pop(0)
+
+    monkeypatch.setattr(stale_rows, "grade", fake_grade)
+    (tmp_path / ".tdd").mkdir()
+
+    first = run_cli(stale_rows, ["2462"], cwd=tmp_path)
+    second = run_cli(stale_rows, ["2462"], cwd=tmp_path)
+
+    assert (first[0], second[0], len(asked)) == (2, 0, 2)
