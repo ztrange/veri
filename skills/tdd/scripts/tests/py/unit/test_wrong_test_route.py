@@ -42,6 +42,22 @@ def test_main_1621_prints_revise_and_exits_3_when_the_green_report_has_no_wrong_
     assert (code, stdout) == (3, "revise\n")
 
 
+def test_main_2596_prints_revise_and_exits_3_for_a_red_green_report_carrying_an_impl_path_and_no_wrong_test_line(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    (suite / ("test_" + "ledger" + ".py")).write_text(
+        "def test_main_returns_zero():\n    pass\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text("IMPL_PATH: skills/tdd/scripts/veri/ledger.py\nSUITE: RED\n")
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
+
+
 def test_main_1621_exits_2_with_nothing_on_stdout_when_the_green_report_is_a_directory(
         run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
