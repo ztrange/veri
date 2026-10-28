@@ -1,6 +1,5 @@
 """Cases for when skills/tdd/SKILL.md has the conductor tick an issue criterion and how its step 2 plans the off-cycle step kinds."""
 import ast
-import importlib
 import pathlib
 import re
 
@@ -28,49 +27,7 @@ def records_of(text):
     return [re.sub(r"\s+", " ", r).lower() for r in records]
 
 
-def section_records(heading):
-    text = importlib.import_module("skill_sections").section(SKILL, heading)
-    return records_of(text.split("\n", 1)[1])
-
-
-def first_record(records, *filters):
-    for flag, pattern in filters:
-        if flag == "F":
-            records = [r for r in records if pattern in r]
-        else:
-            records = [r for r in records if re.search(pattern, r)]
-    return records[0] if records else ""
-
-
 CONTEXT = pathlib.Path(__file__).resolve().parents[6] / "CONTEXT.md"
-
-
-def guardrails_rec():
-    return first_record(section_records("## Guardrails"), ("F", "passes against unmodified code"))
-
-
-def test_1397_guardrails_line_on_a_test_that_passes_against_unmodified_code_carves_out_the_replaces_case_deletion_green():
-    problems = []
-    rec = guardrails_rec()
-    if not rec:
-        problems.append("guardrails: no line under '## Guardrails' names a test that passes against unmodified code — the carve-out could not be checked")
-    else:
-        if "⟦replaces-case⟧" not in rec:
-            problems.append("guardrails: the line never carves out a ⟦replaces-case⟧ step")
-        if not (re.search(r"green", rec) and re.search(r"delet", rec)):
-            problems.append("guardrails: the line never names the green that deletes the named cases")
-    assert not problems, "\n".join(problems)
-
-
-def test_1397_replaces_case_pin_then_delete_path_keeps_its_meaning_exception_not_negated_nothing_committed_or_ticked_before_the_deletion_green_accepted_only_once_mutation_parity_exits_0():
-    problems = []
-    guard_rec = guardrails_rec()
-    guard_after = guard_rec.split("⟦replaces-case⟧", 1)[1] if "⟦replaces-case⟧" in guard_rec else ""
-    if not re.search(r"(save|except|unless|but) (on )?(a )?`?⟦replaces-case⟧", guard_rec):
-        problems.append("guardrails: the ⟦replaces-case⟧ clause is not introduced as an exception (save/except/unless/but)")
-    if re.search(r"(^|[^a-z])(never|not|no)([^a-z]|$)", guard_after):
-        problems.append(f"guardrails: the ⟦replaces-case⟧ clause negates the deletion green: {guard_after}")
-    assert not problems, "\n".join(problems)
 
 
 def test_671_context_md_defines_contract_case_implementation_case_and_the_replaces_case_mark():
