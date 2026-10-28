@@ -633,7 +633,7 @@ def test_main_carries_and_checks_refactors_base_sha_scopes_every_prompt_to_its_s
             r"|remov(e|ed|ing|al)[^.]{0,140}(every|all) tests? [^.]{0,40}green",
             r"REASON:?[^.]{0,160}nam(e|es|ing)[^.]{0,60}code|nam(e|es|ing)[^.]{0,60}code[^.]{0,160}REASON")],
         "green restore": [has(green, p) for p in (
-            r"remov(e|ing)[^.]{0,120}run[^.]{0,80}suite",
+            r"remov(e|ing)[^\n]{0,200}run[^.]{0,80}suite",
             r"restor(e|ing)[^.]{0,80}(tree|code|file)",
             r"before[^.]{0,60}report")],
         "checkout rule": (has(red, r"(never|do not|don't|not)[^.]{0,120}git checkout -- <file>"),
@@ -959,7 +959,7 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
         "suite-repair": (0, True, True, True, False),
         "replaces-case unreadable": (2, b"", True, [0]),
         "suite-repair unreadable": (2, b"", True, [0, 0]),
-        "#671 byte-identity": [(0, "3628980570 8218"), (0, "2271427428 7942")],
+        "#671 byte-identity": [(0, "1933796141 8186"), (0, "605695461 7910")],
         "#703 include": (0, f"before outer inner judges {testpath} end after\n".encode(), b""),
         "#703 missing partial": (2, b"", True),
         "#703 self-including partial": (2, b"", True),
@@ -1531,14 +1531,31 @@ def test_unknown_phase_exits_non_zero(tmp_path, run_cli, build_verify_prompt):
     assert (code, out) == (2, "")
 
 
-def test_619_verify_green_restores_a_probe_with_cp_before_the_mutation_and_mv_after_the_run_under_mutation():
-    assert probe_order_problems("verify-green", template_bytes("verify-green"), rb"remove the code yourself",
-                                rb"remove the code yourself[^.]{0,40}run[^.]{0,40}suites") == []
-
-
-def test_619_verify_pin_restores_a_probe_with_cp_before_the_mutation_and_mv_after_the_run_under_mutation():
-    assert probe_order_problems("verify-pin", template_bytes("verify-pin"), rb"break it yourself",
-                                rb"run the target test again") == []
+@pytest.mark.tree_audit("the templates under prompts/")
+def test_verify_pin_green_and_cover_new_direct_every_mutation_probe_through_mutation_probe_sh_and_read_its_exit_codes(
+        tmp_path, capsysbinary):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    problems = []
+    for phase, label, argv in (
+            ("pin", "verify-pin", ["pin", str(spec), "t/x.test.sh", "case one"]),
+            ("green", "verify-green", ["--fast-cmd", "make unit", "green", str(spec), "t/x.test.sh", "case one"]),
+            ("cover-new", "verify-cover-new", None)):
+        probe = "/scripts/mutation-probe.sh"
+        if argv is None:
+            text = squeezed(template_bytes(label).decode())
+            text = text.replace("{{MUTATION_PROBE}}", probe)
+        else:
+            text = squeezed(rendered(tmp_path, capsysbinary, phase, None, argv))
+            found = re.search(r"`(\S+/mutation-probe\.sh) <file>", text)
+            probe = found.group(1) if found else probe
+        if f"`{probe} <file> <old> <new> --" not in text:
+            problems.append(f"{label} never directs the probe through {probe}")
+        if "exit 2 gives no verdict" not in text and "exiting 2 gives no verdict" not in text and "exit of 2 gives no verdict" not in text:
+            problems.append(f"{label} never says exit 2 gives no verdict")
+        if not re.search(r"exit(s|ing)? 1", text):
+            problems.append(f"{label} never says what exit 1 means")
+    assert problems == []
 
 
 def test_619_verify_green_verify_pin_and_develop_cover_confirm_the_restore_by_comparing_git_diff_and_name_neither_checkout_nor_exit_code():
@@ -1583,9 +1600,9 @@ def test_619_verify_green_check_4_and_verify_pin_check_2_restore_before_reportin
     problems = []
     for label, n in (("verify-green", 4), ("verify-pin", 2), ("develop-cover", 4)):
         text = numbered_item(template_bytes(label), n)
-        problems += says(text, f"{label} item {n} never restores with mv <file>.orig <file>",
-                         rb"mv <file>\.orig <file>")
         if label == "develop-cover":
+            problems += says(text, f"{label} item {n} never restores with mv <file>.orig <file>",
+                             rb"mv <file>\.orig <file>")
             problems += says(text, f"{label} item {n} never requires the tree exactly as the leaf found it",
                              rb"working tree must be exactly as you found it", re.I)
         else:
@@ -1960,19 +1977,6 @@ def test_main_renders_a_red_and_a_pin_prompt_that_rejects_a_red_pinning_only_one
     rule = next((s for s in re.split(r"(?<=\.) ", prompt) if "separate case" in s and "REJECT" in s), "")
     states = [step in prompt, "REJECT naming the missing case" in rule, "adds no case for it" in rule]
     assert (code, states) == (0, [True, True, True])
-
-
-@pytest.mark.tree_audit("the templates under prompts/")
-def test_main_tells_the_green_verifier_to_keep_the_orig_copy_beside_its_file_never_in_a_shared_directory_1846(
-        tmp_path, capsysbinary):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"# spec\n")
-    prompt = rendered(tmp_path, capsysbinary, "orig_beside", None,
-                      ["--fast-cmd", "make unit", "green", str(spec), "t/x.test.sh", "case one"])
-    probes = re.findall(r"`cp <file> <file>\.orig`[^`]*", " ".join(prompt.split()))
-
-    assert (len(probes) > 0,
-            any("beside the file it copies" in p and "never in a shared directory such as /tmp" in p for p in probes)) == (True, True)
 
 
 @pytest.mark.tree_audit("the templates under prompts/")

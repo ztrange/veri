@@ -172,7 +172,8 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id=""):
                                (b"FAST_CMD", os.fsencode(fast_cmd)),
                                (b"ONTO_SHA", os.fsencode(slots["ONTO_SHA"])),
                                (b"PRE_REBASE_SHA", os.fsencode(slots["PRE_REBASE_SHA"])),
-                               (b"TIMED_TEST_RUN", os.fsencode(f"{HERE}/timed-test-run.sh"))):
+                               (b"TIMED_TEST_RUN", os.fsencode(f"{HERE}/timed-test-run.sh")),
+                               (b"MUTATION_PROBE", os.fsencode(f"{HERE}/mutation-probe.sh"))):
         out = out.replace(b"{{" + placeholder + b"}}", value)
     return 0, out + b"\n"
 
