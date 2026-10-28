@@ -335,3 +335,23 @@ def test_2547_main_reports_a_conductor_exit_without_reading_any_issue_state_from
 
     out = capsys.readouterr().out
     assert (code, out.startswith("exited 9 "), github_reads) == (0, True, [])
+
+
+def test_2547_main_with_max_wait_shorter_than_one_poll_returns_timeout_within_a_second_of_it(
+        monkeypatch, capsys, watch_runs):
+    now = [100.0]
+    slept = []
+
+    def sleep(seconds):
+        slept.append(seconds)
+        now[0] += seconds
+        if len(slept) > 10:
+            raise RuntimeError("never printed timeout")
+
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: ["5"])
+    monkeypatch.setattr(watch_runs, "clock", lambda: now[0])
+    monkeypatch.setattr(watch_runs.time, "sleep", sleep)
+
+    code = watch_runs.main(["--max-wait", "1"])
+
+    assert (code, capsys.readouterr().out, now[0] - 100.0 < 2) == (3, "timeout\n", True)
