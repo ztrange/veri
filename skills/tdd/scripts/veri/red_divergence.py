@@ -38,7 +38,9 @@ def prediction_file_content(argv):
 def main(argv):
     unwritten = prediction_unwritten_before_run(argv)
     if unwritten:
-        sys.stderr.write(f"prediction not written before the run: {unwritten}\n")
+        message = f"prediction not written before the run: {unwritten}\n"
+        sys.stderr.write(message)
+        sys.stdout.write(message)
         return 1
     report = sys.stdin.buffer.read().decode(errors="surrogateescape")
     fields = report_read(report, ("PREDICTION", *REASON_KEYS))
