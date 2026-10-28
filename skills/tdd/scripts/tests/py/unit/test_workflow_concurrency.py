@@ -41,3 +41,9 @@ def test_non_draft_pull_request_event_still_cancels_in_progress_run_2564():
 def test_gates_job_skips_for_draft_payload_pull_request_event_2564():
     draft_payload = {"number": 2548, "draft": True}
     assert evaluate("if:", "pull_request", draft_payload) is False
+
+
+def test_gates_job_runs_for_non_draft_pull_request_and_push_event_2564():
+    ready_payload = {"number": 2548, "draft": False}
+    assert evaluate("if:", "pull_request", ready_payload) is True
+    assert evaluate("if:", "push", None) is True
