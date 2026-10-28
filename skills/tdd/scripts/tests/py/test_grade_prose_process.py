@@ -934,6 +934,21 @@ def test_a_graded_run_exits_0_and_prints_no_leaf_role_line_on_stderr_1887(tmp_pa
     assert (done.returncode, "leaf-role" in done.stderr) == (0, False), (done.returncode, done.stderr)
 
 
+def spy_on_grade_prose(tmp_path):
+    """A `$S` whose grade-prose.sh appends its argv to calls.txt, then runs the real one; returns (S dir, the calls file)."""
+    spy = tmp_path / "spy-scripts"
+    spy.mkdir()
+    calls = tmp_path / "calls.txt"
+    wrapper = spy / "grade-prose.sh"
+    wrapper.write_text('#!/bin/sh\nprintf \'%s\\n\' "$*" >> "$SPY_CALLS"\nexec "$REAL_SCRIPTS/grade-prose.sh" "$@"\n')
+    wrapper.chmod(0o755)
+    return spy, calls
+
+
+def convert_calls(calls):
+    return [c for c in (calls.read_text().splitlines() if calls.exists() else []) if c == "--convert"]
+
+
 @pytest.mark.process("the SKILL.md regrade block run in a git repo with a stub claude through supervise.sh")
 def test_2037_the_draft_pr_regrade_block_run_as_written_on_a_branch_that_signed_one_unit_exits_0(tmp_path):
     skill = (SCRIPTS.parents[2] / "skills" / "tdd" / "SKILL.md").read_text()
@@ -959,13 +974,14 @@ def test_2037_the_draft_pr_regrade_block_run_as_written_on_a_branch_that_signed_
     claude.write_text(STUB)
     claude.chmod(0o755)
 
+    spy, calls = spy_on_grade_prose(tmp_path)
     ran = subprocess.run(["bash", "-c", block], cwd=tmp_path, capture_output=True, text=True,
-                         env={**env, "S": str(SCRIPTS), "CLAUDE_BIN": str(claude),
-                              "STUB_RECORD": str(tmp_path / "record.txt")})
+                         env={**env, "S": str(spy), "REAL_SCRIPTS": str(SCRIPTS), "SPY_CALLS": str(calls),
+                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
 
     record = tmp_path / "record.txt"
     graded = re.findall(r"^Unit: (\S+)$", record.read_text(), re.M) if record.exists() else []
-    assert (ran.returncode, graded) == (0, ["guide/unit.md"]), ran.stdout + ran.stderr
+    assert (ran.returncode, graded, convert_calls(calls)) == (0, ["guide/unit.md"], ["--convert"]), ran.stdout + ran.stderr
 
 
 REJECT_THEN_PASS_STUB = """#!/bin/sh
@@ -1013,13 +1029,15 @@ def test_2037_the_draft_pr_regrade_block_run_as_written_on_two_signed_units_with
     claude.write_text(REJECT_THEN_PASS_STUB)
     claude.chmod(0o755)
 
+    spy, calls = spy_on_grade_prose(tmp_path)
     ran = subprocess.run(["bash", "-c", block], cwd=tmp_path, capture_output=True, text=True,
-                         env={**env, "S": str(SCRIPTS), "CLAUDE_BIN": str(claude), "STUB_DIR": str(stub_dir)})
+                         env={**env, "S": str(spy), "REAL_SCRIPTS": str(SCRIPTS), "SPY_CALLS": str(calls),
+                              "CLAUDE_BIN": str(claude), "STUB_DIR": str(stub_dir)})
 
     graded_file = stub_dir / "graded.txt"
     graded = re.findall(r"^Unit: (\S+)$", graded_file.read_text(), re.M) if graded_file.exists() else []
-    assert (ran.returncode != 0, sorted(graded)) == (True, ["alpha/one.md", "beta/two.md"]), (
-        ran.returncode, graded, ran.stdout + ran.stderr)
+    assert (ran.returncode != 0, sorted(graded), convert_calls(calls)) == (
+        True, ["alpha/one.md", "beta/two.md"], ["--convert"]), (ran.returncode, graded, ran.stdout + ran.stderr)
 
 
 PER_UNIT_STUB = """#!/bin/sh
@@ -1070,11 +1088,14 @@ def test_2089_the_draft_pr_regrade_block_run_as_written_exits_with_the_highest_c
     claude.chmod(0o755)
     first, second = answers.split(",")
 
+    spy, calls = spy_on_grade_prose(tmp_path)
     ran = subprocess.run(["bash", "-c", block], cwd=tmp_path, capture_output=True, text=True,
-                         env={**env, "S": str(SCRIPTS), "CLAUDE_BIN": str(claude), "STUB_DIR": str(stub_dir),
+                         env={**env, "S": str(spy), "REAL_SCRIPTS": str(SCRIPTS), "SPY_CALLS": str(calls),
+                              "CLAUDE_BIN": str(claude), "STUB_DIR": str(stub_dir),
                               "ANSWER_ALPHA": first, "ANSWER_BETA": second})
 
-    assert ran.returncode == expected, (answers, ran.returncode, ran.stdout + ran.stderr)
+    assert (ran.returncode, convert_calls(calls)) == (expected, ["--convert"]), (
+        answers, ran.returncode, ran.stdout + ran.stderr)
 
 
 @pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
