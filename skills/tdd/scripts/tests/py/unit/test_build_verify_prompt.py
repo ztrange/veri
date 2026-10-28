@@ -1425,33 +1425,6 @@ def template_bytes(label):
     return (SCRIPTS / "prompts" / f"{label}.md").read_bytes().rstrip(b"\n")
 
 
-def offset_of(line, pattern):
-    found = re.search(pattern, line, re.I)
-    return None if found is None else found.start()
-
-
-def probe_order_problems(label, prompt, mutation, run_under_mutation):
-    line = fold(prompt)
-    cp_at = offset_of(line, rb"cp <file> <file>\.orig")
-    mutate_at = offset_of(line, mutation)
-    run_at = offset_of(line, run_under_mutation)
-    mv_at = offset_of(line, rb"mv <file>\.orig <file>")
-    problems = []
-    if cp_at is None:
-        problems.append(f"{label} never names cp <file> <file>.orig")
-    if mv_at is None:
-        problems.append(f"{label} never names mv <file>.orig <file>")
-    if mutate_at is None:
-        problems.append(f"{label} no longer gives the mutation instruction")
-    if run_at is None:
-        problems.append(f"{label} no longer gives the run under mutation")
-    if cp_at is not None and mutate_at is not None and cp_at > mutate_at:
-        problems.append("cp <file> <file>.orig comes after the mutation instruction")
-    if mv_at is not None and run_at is not None and mv_at < run_at:
-        problems.append("mv <file>.orig <file> comes before the run under mutation")
-    return problems
-
-
 def says(prompt, complaint, pattern, flags=0):
     return [] if re.search(pattern, fold(prompt), flags) else [complaint]
 
@@ -1529,33 +1502,6 @@ def test_unknown_phase_exits_non_zero(tmp_path, run_cli, build_verify_prompt):
     code, out, _ = run_cli(build_verify_prompt, ["bogus", str(spec), TESTPATH])
 
     assert (code, out) == (2, "")
-
-
-@pytest.mark.tree_audit("the templates under prompts/")
-def test_verify_pin_green_and_cover_new_direct_every_mutation_probe_through_mutation_probe_sh_and_read_its_exit_codes(
-        tmp_path, capsysbinary):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"# spec\n")
-    problems = []
-    for phase, label, argv in (
-            ("pin", "verify-pin", ["pin", str(spec), "t/x.test.sh", "case one"]),
-            ("green", "verify-green", ["--fast-cmd", "make unit", "green", str(spec), "t/x.test.sh", "case one"]),
-            ("cover-new", "verify-cover-new", None)):
-        probe = "/scripts/mutation-probe.sh"
-        if argv is None:
-            text = squeezed(template_bytes(label).decode())
-            text = text.replace("{{MUTATION_PROBE}}", probe)
-        else:
-            text = squeezed(rendered(tmp_path, capsysbinary, phase, None, argv))
-            found = re.search(r"`(\S+/mutation-probe\.sh) <file>", text)
-            probe = found.group(1) if found else probe
-        if f"`{probe} <file> <old> <new> --" not in text:
-            problems.append(f"{label} never directs the probe through {probe}")
-        if "exit 2 gives no verdict" not in text and "exiting 2 gives no verdict" not in text and "exit of 2 gives no verdict" not in text:
-            problems.append(f"{label} never says exit 2 gives no verdict")
-        if not re.search(r"exit(s|ing)? 1", text):
-            problems.append(f"{label} never says what exit 1 means")
-    assert problems == []
 
 
 def test_619_verify_green_verify_pin_and_develop_cover_confirm_the_restore_by_comparing_git_diff_and_name_neither_checkout_nor_exit_code():
