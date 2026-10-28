@@ -2655,3 +2655,81 @@ def test_main_saves_a_diff_that_passes_git_apply_check_whatever_the_users_prefix
         checked = subprocess.run(["git", "apply", "--check", str(saved[0])], cwd=repo,
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE).returncode
     assert (code, len(saved), checked) == (2, 1, 0)
+
+
+@pytest.mark.process("a real git scratch repository whose rebased range the marker check reads, and a stub claude that records any start")
+def test_verify_sh_rebase_exits_1_without_launching_the_leaf_naming_the_commit_and_file_that_added_a_conflict_marker_a_later_commit_removed_2516(
+        run_cli, tmp_path):
+    repo = tmp_path / "repo"
+    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
+        subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
+
+    def commit(message):
+        subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", message], check=True)
+        return subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True,
+                              capture_output=True).stdout.decode().strip()
+
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "docs").mkdir()
+    (repo / "docs" / "backend.md").write_text("| a | b |\n|---|---|\n| 1 | 2 |\n")
+    onto = commit("onto")
+    (repo / "docs" / "backend.md").write_text(
+        "| a | b |\n|---|---|\n<<<<<<< HEAD\n| 1 | 2 |\n=======\n| 1 | 3 |\n>>>>>>> topic\n")
+    marked = commit("rebase resolution keeping the markers")
+    (repo / "notes.txt").write_text("unrelated\n")
+    commit("an unrelated commit")
+    (repo / "docs" / "backend.md").write_text("| a | b |\n|---|---|\n| 1 | 3 |\n")
+    commit("a later commit removes the markers")
+    pre_rebase = onto
+    started = tmp_path / "started"
+    claude = tmp_path / "claude-record"
+    claude.write_text('#!/bin/sh\necho started >> "%s"\nprintf \'VERDICT: PASS\\nREASON: fine.\'\n' % started)
+    claude.chmod(0o755)
+    (tmp_path / "spec.md").write_text(SPEC)
+    verify = importlib.import_module("veri.verify")
+
+    code, out, _ = run_cli(
+        verify, ["rebase", str(tmp_path / "spec.md"), onto, pre_rebase],
+        env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
+        cwd=repo)
+
+    assert (code, marked in out, "docs/backend.md" in out, started.exists()) == (1, True, True, False)
+
+
+@pytest.mark.process("a real git scratch repository whose rebased range the marker check reads, and a stub claude that records any start")
+def test_verify_sh_rebase_exits_1_without_launching_the_leaf_when_a_commit_added_only_a_closing_conflict_marker_2516(
+        run_cli, tmp_path):
+    repo = tmp_path / "repo"
+    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
+        subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
+
+    def commit(message):
+        subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", message], check=True)
+        return subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True,
+                              capture_output=True).stdout.decode().strip()
+
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "docs").mkdir()
+    (repo / "docs" / "backend.md").write_text("| a | b |\n|---|---|\n| 1 | 2 |\n")
+    onto = commit("onto")
+    (repo / "docs" / "backend.md").write_text("| a | b |\n|---|---|\n| 1 | 2 |\n>>>>>>> topic\n")
+    marked = commit("rebase resolution keeping a closing marker")
+    (repo / "docs" / "backend.md").write_text("| a | b |\n|---|---|\n| 1 | 3 |\n")
+    commit("a later commit removes the marker")
+    started = tmp_path / "started"
+    claude = tmp_path / "claude-record"
+    claude.write_text('#!/bin/sh\necho started >> "%s"\nprintf \'VERDICT: PASS\\nREASON: fine.\'\n' % started)
+    claude.chmod(0o755)
+    (tmp_path / "spec.md").write_text(SPEC)
+    verify = importlib.import_module("veri.verify")
+
+    code, out, _ = run_cli(
+        verify, ["rebase", str(tmp_path / "spec.md"), onto, onto],
+        env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
+        cwd=repo)
+
+    assert (code, marked in out, "docs/backend.md" in out, started.exists()) == (1, True, True, False)
