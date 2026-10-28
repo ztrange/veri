@@ -323,3 +323,22 @@ def test_2585_queued_merge_under_the_auto_driver_tries_gh_pr_merge_first_and_whe
     merges = [i for i, c in enumerate(calls) if "gh pr merge %s --rebase --match-head-commit %s" % (PR, PUSHED_HEAD) in c]
     puts = [i for i, c in enumerate(calls) if "PUT" in c and "merge_method=rebase" in c and "sha=%s" % PUSHED_HEAD in c and "repos/o/r/pulls/7/merge" in c]
     assert (code, len(merges), len(puts), merges[0] < puts[0] if merges and puts else None, len([c for c in calls if " tag -a " in c])) == (0, 1, 1, True, 1)
+
+
+def test_2585_queued_merge_refuses_a_driver_other_than_auto_rest_or_graphql_with_exit_2_naming_the_value_and_makes_no_merge_call(fake_processes, run_cli):
+    calls = scenario(fake_processes)
+
+    code, _, err = run_cli(queued_merge, ARGV, env={"VERI_GH_DRIVER": "rst"})
+
+    merges = [c for c in calls if "pr merge" in c or "PUT" in c or "pulls/7/merge" in c]
+    assert (code, "VERI_GH_DRIVER is 'rst': expected auto, rest or graphql" in err, merges) == (2, True, [])
+
+
+def test_2585_queued_merge_under_an_explicit_rest_driver_merges_through_one_rest_put_of_the_pushed_head_and_no_gh_pr_merge(fake_processes, run_cli):
+    calls = scenario(fake_processes)
+
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_GH_DRIVER": "rest"})
+
+    puts = [c for c in calls if "gh api" in c and "pulls/7/merge" in c]
+    assert (code, len(puts), all("PUT" in c and "merge_method=rebase" in c and "sha=%s" % PUSHED_HEAD in c and "repos/o/r/pulls/7/merge" in c for c in puts),
+            [c for c in calls if "pr merge" in c], len([c for c in calls if " tag -a " in c])) == (0, 1, True, [], 1)

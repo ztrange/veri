@@ -132,6 +132,10 @@ def main(argv):
     if not re.fullmatch(r"https://github\.com/[^/]+/[^/]+/pull/\d+", pr):
         print(USAGE, file=sys.stderr)
         return 2
+    driver = tunables.read("VERI_GH_DRIVER", None)
+    if driver is not None and driver not in ("auto", "rest", "graphql"):
+        print("VERI_GH_DRIVER is '%s': expected auto, rest or graphql" % driver, file=sys.stderr)
+        return 2
     repo = _repo(pr)
     pid = str(os.getpid())
     code = _script("merge-lock.sh", "take", "--pid", pid)
