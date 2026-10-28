@@ -167,3 +167,23 @@ def test_run_names_the_file_and_line_that_raised_any_exception_in_its_one_refusa
     assert lines[0].startswith("test-entry.sh: ValueError: boom"), err
     assert f"test_entry.py:{raising_line}" in lines[0], err
     assert "Traceback" not in err
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root may signal pid 1, so no EPERM to catch")
+def test_run_names_the_file_and_line_of_a_permission_error_beside_its_source_text_in_one_refusal_line_2589(entry, capsys):
+    def main(argv):
+        os.kill(1, 0)
+        return 0
+
+    raising_line = main.__code__.co_firstlineno + 1
+    with pytest.raises(SystemExit) as exited:
+        entry.run(main, [])
+    out, err = capsys.readouterr()
+    lines = err.splitlines()
+
+    assert exited.value.code == 2
+    assert len(lines) == 1, err
+    assert lines[0].startswith("test-entry.sh: PermissionError: "), err
+    assert "os.kill" in lines[0], err
+    assert f"test_entry.py:{raising_line}" in lines[0], err
+    assert "Traceback" not in err
