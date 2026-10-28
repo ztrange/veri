@@ -570,12 +570,18 @@ def case_starts_no_test_runner(request, monkeypatch):
     monkeypatch.setattr = guarded_setattr
 
 
+_MEETS_FLOOR = {}
+
+
 def meets_floor(python):
-    floor = re.search(r"^VENV_FLOOR=(\d+)\.(\d+)", (SCRIPTS / "lib" / "venv-python.sh").read_text(), re.MULTILINE)
-    said = REAL_RUN([python, "-c", "import platform; print(platform.python_version())"],
-                    capture_output=True, text=True).stdout.strip()
-    version = re.match(r"(\d+)\.(\d+)", said)
-    return bool(floor and version) and (int(version.group(1)), int(version.group(2))) >= (int(floor.group(1)), int(floor.group(2)))
+    key = os.path.realpath(python)
+    if key not in _MEETS_FLOOR:
+        floor = re.search(r"^VENV_FLOOR=(\d+)\.(\d+)", (SCRIPTS / "lib" / "venv-python.sh").read_text(), re.MULTILINE)
+        said = REAL_RUN([python, "-c", "import platform; print(platform.python_version())"],
+                        capture_output=True, text=True).stdout.strip()
+        version = re.match(r"(\d+)\.(\d+)", said)
+        _MEETS_FLOOR[key] = bool(floor and version) and (int(version.group(1)), int(version.group(2))) >= (int(floor.group(1)), int(floor.group(2)))
+    return _MEETS_FLOOR[key]
 
 
 BELOW_FLOOR_INTERPRETER_EXEMPT = {
