@@ -21,6 +21,7 @@ def evaluate(line_prefix, event_name, pull_request):
     expr = re.sub(r"github(?:\.\w+)+", lookup, expr)
     expr = expr.replace("&&", " and ").replace("||", " or ")
     expr = re.sub(r"!(?!=)", " not ", expr)
+    expr = re.sub(r"\b(true|false|null)\b", lambda m: {"true": "True", "false": "False", "null": "None"}[m.group(1)], expr)
     return bool(eval(expr, {"__builtins__": {}}))
 
 
