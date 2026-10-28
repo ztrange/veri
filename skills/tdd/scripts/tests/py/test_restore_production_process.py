@@ -127,6 +127,7 @@ def test_issue_2579_restore_production_leaves_a_dirty_ledger_and_graded_untouche
     ran = subprocess.run(["sh", str(SCRIPTS / "restore-production.sh"), "test_new.py"], cwd=repo,
                          capture_output=True, text=True)
 
+    assert ran.returncode == 0, ran.stderr
     assert (repo / "prod.py").read_text() == "VALUE = 1\n"
     assert (repo / ".tdd" / "issue-7.md").read_text() == "- [x] step\n"
     assert (repo / "skills" / "tdd" / "GRADED").read_text() == "sig-2\n"
