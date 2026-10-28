@@ -112,7 +112,7 @@ writes no completion file, so the wait above returns exit 3 forever and you read
 ahead of the `rm -f`, for a developer leaf and a verifier alike. On exit 3 no stop is
 pending: launch as normal. On exit 0 branch on the mode it printed — `at-ledger` launches the
 leaf anyway, because every leaf between two ledger commits is on the way to the next one, and
-`at-leaf` or `now` launch nothing and go to *Stopping*: now `Read` and run `<base directory>/STOPPING.md`. On exit 2 treat it as a stop in mode
+`at-leaf` or `now` launch nothing and go to *Stopping*: `Read` and run `<base directory>/STOPPING.md`. On exit 2 treat it as a stop in mode
 `at-ledger` (read that file likewise), narrating that the request was unreadable: a `.tdd/stop` exists, so somebody
 meant to stop this run, and only how urgently is in doubt — the mode that cannot be wrong is
 the one that loses nothing.
