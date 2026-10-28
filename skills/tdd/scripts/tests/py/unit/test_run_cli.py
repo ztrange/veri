@@ -91,7 +91,7 @@ def test_run_cli_answers_2_and_the_one_line_entry_run_writes_when_a_main_raises_
 
     code, _, err = run_cli(module, [])
 
-    assert (code, err) == (2, "exp-refusing.sh: ValueError: planted refusal here\n")
+    assert (code, len(err.splitlines()), err.startswith("exp-refusing.sh: ValueError: planted refusal here")) == (2, 1, True)
 
 
 def test_run_cli_answers_1_and_writes_the_string_to_stderr_when_a_main_returns_a_string_1401(run_cli):

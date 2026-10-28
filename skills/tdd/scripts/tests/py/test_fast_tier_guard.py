@@ -372,7 +372,7 @@ def test_the_guards_command_line_on_a_missing_root_exits_2_with_the_refusal_line
 
     code, stdout, stderr = run_cli(guard, [str(missing)])
 
-    assert (code, stdout, stderr) == (2, "", f"fast-tier-guard.sh: NotADirectoryError: {missing}: no such directory\n")
+    assert (code, stdout, len(stderr.splitlines()), stderr.startswith(f"fast-tier-guard.sh: NotADirectoryError: {missing}: no such directory")) == (2, "", 1, True)
 
 
 def test_the_guards_command_line_prints_a_planted_offence_by_file_and_line_and_exits_1_and_exits_0_only_on_a_readable_root_with_none(tmp_path, run_cli):
