@@ -2733,3 +2733,40 @@ def test_verify_sh_rebase_exits_1_without_launching_the_leaf_when_a_commit_added
         cwd=repo)
 
     assert (code, marked in out, "docs/backend.md" in out, started.exists()) == (1, True, True, False)
+
+
+@pytest.mark.process("a real git scratch repository whose rebased range the marker check reads, and a stub claude that records any start")
+def test_verify_sh_rebase_launches_the_leaf_and_returns_its_verdict_when_no_commit_of_the_range_adds_a_conflict_marker_2516(
+        run_cli, tmp_path):
+    repo = tmp_path / "repo"
+    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
+        subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
+
+    def commit(message):
+        subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", message], check=True)
+        return subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True,
+                              capture_output=True).stdout.decode().strip()
+
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "docs").mkdir()
+    (repo / "docs" / "backend.md").write_text("| a | b |\n|---|---|\n| 1 | 2 |\n")
+    onto = commit("onto")
+    (repo / "docs" / "backend.md").write_text("Title\n=======\n| a | b |\n|---|---|\n| 1 | 3 |\n")
+    commit("a clean resolution with a setext heading")
+    (repo / "notes.txt").write_text("unrelated\n")
+    commit("an unrelated commit")
+    started = tmp_path / "started"
+    claude = tmp_path / "claude-record"
+    claude.write_text('#!/bin/sh\necho started >> "%s"\nprintf \'VERDICT: PASS\\nREASON: fine.\'\n' % started)
+    claude.chmod(0o755)
+    (tmp_path / "spec.md").write_text(SPEC)
+    verify = importlib.import_module("veri.verify")
+
+    code, out, _ = run_cli(
+        verify, ["rebase", str(tmp_path / "spec.md"), onto, onto],
+        env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
+        cwd=repo)
+
+    assert (code, "docs/backend.md" in out, started.exists()) == (0, False, True)
