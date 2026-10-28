@@ -292,7 +292,11 @@ def main(argv):
                 restored = start(["git", "update-ref", "HEAD", head_before])
                 if restored.returncode != 0:
                     return 2
-            return refuse_modified("the repository", leaf, changed, diff)
+            if relaunches >= retries:
+                return refuse_modified("the repository", leaf, changed, diff)
+            relaunches += 1
+            mark(role, "relaunch", "cause=tree-change")
+            continue
         try:
             gitconfig_after = gitconfig_snapshot(gitconfig)
         except OSError as error:
