@@ -36,6 +36,7 @@ class Watch(NamedTuple):
     heartbeat: str
     poll: str
     kill_poll: float
+    tool_idle: str = "600"
 
 
 def refuse(*lines):
@@ -258,7 +259,7 @@ def still_alive_owner(ownerfile):
 
 
 def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
-    watched, timeout, heartbeat, poll, kill_poll = watch
+    watched, timeout, heartbeat, poll, kill_poll, _ = watch
     tolerated(name, "remove", rcfile, discard, rcfile)
     tolerated(name, "truncate", log, truncate, log)
     tolerated(name, "remove", leaf_env["PYTEST_LEG_LOCK_WAIT_MARKER"], discard, leaf_env["PYTEST_LEG_LOCK_WAIT_MARKER"])
@@ -273,7 +274,7 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
     status = reason = ""
     rc = "0"
     seen_at = int(t0)
-    tool_idle = int(tunables.read("VERI_TOOL_IDLE", unless_empty="600"), 10)
+    tool_idle = int(watch.tool_idle, 10)
     idle_since, last_cpu = a0, None
     if watched:
         last_m = mtime_of(log)
@@ -400,7 +401,7 @@ def main(argv):
     heartbeat, refused = numeric_env("VERI_HEARTBEAT", "180")
     if refused:
         return refused
-    _, refused = numeric_env("VERI_TOOL_IDLE", "600")
+    tool_idle, refused = numeric_env("VERI_TOOL_IDLE", "600")
     if refused:
         return refused
     retries, refused = numeric_env("VERI_STUCK_RETRIES", "1")
@@ -456,7 +457,7 @@ def main(argv):
     started = []
     preexec = leaf_dispositions(ignored)
     trap(started, exitfile, kill_poll, ignored)
-    watch = Watch(watched, timeout, heartbeat, poll, kill_poll)
+    watch = Watch(watched, timeout, heartbeat, poll, kill_poll, tool_idle)
     tries = 0
     while True:
         status, reason, rc, a0 = attempt_once(started, name, argv[1:], log, rcfile, leaf_env, preexec, watch)
