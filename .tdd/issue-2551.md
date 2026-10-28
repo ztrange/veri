@@ -1,4 +1,5 @@
 # Plan for #2551 — status.sh --json: step is ambiguous between the step just finished and the one just started
 
 - [x] status.sh (the --json field and the plain line alike) names as `step` the step the run is working on: while a ledger step carries `⟂ refactor pending`, `step` is that step's number (`k of n`), not the next open step's; with no step pending it stays the first open step, or `n of n` when none is open. A case in skills/tdd/scripts/tests/py/test_status.py takes two reads, one over a ledger whose step 3 is pending refactor with step 4 open, the other over the same ledger with step 3 finished and step 4 open, and expects `3 of n` and `4 of n` ⟦criterion 1⟧
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_watch_runs_process.py — FAILED test_watch_runs_process.py::test_target_slot_is_free_only_below_target_asking_for_not_running_issues_1930 - AssertionError: assert (0, 'slot-free 1/2 next 777') == (3, 'timeout') ⟦suite-repair⟧ ⟦criterion 1⟧
 - [ ] With the fix reverted, that case goes red — watched red by hand and restored ⟦human-owed⟧ ⟦criterion 2⟧
