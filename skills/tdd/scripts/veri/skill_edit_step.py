@@ -289,12 +289,10 @@ def main(argv):
             graded, said = 1, "FAIL: the author left the prose unchanged\n"
         if graded == 1:
             _restore(before, *before)
-    if graded == 1:
-        _restore(snapshot, path, unit, graded_file)
-        sys.stdout.write(said)
-        return 1
     if graded:
         _restore(snapshot, path, unit, graded_file)
+        if graded == 1:
+            sys.stdout.write(said)
         return graded
     if not authored:
         event.append(".", {}, "skill-edit-no-author", ["unit=" + unit])
