@@ -11,6 +11,10 @@ def main(argv):
     if not argv:
         print(USAGE, file=sys.stderr)
         return 2
+    for path in argv:
+        if "::" in path:
+            print(f"restore-production.sh: {path}: a pytest node id, not a path", file=sys.stderr)
+            return 2
     keep = [f":(exclude,literal){path}" for path in argv]
     keep += [":(exclude,glob).tdd/issue-*.md", ":(exclude,glob)**/GRADED"]
     for args in (["checkout", "HEAD", "--", ".", *keep], ["clean", "-fq", "--", ".", *keep]):
