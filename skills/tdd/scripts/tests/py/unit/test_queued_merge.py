@@ -283,3 +283,13 @@ def test_2455_queued_merge_whose_main_clone_is_on_another_branch_does_not_fast_f
 
     moved = [c for c in calls if c.startswith("git -C /main ") and "--ff-only" in c]
     assert (code, moved, "scratch" in err, "cleanup failed: fast-forward" in err) == (2, [], True, True)
+
+
+def test_2585_queued_merge_by_default_merges_through_one_rest_put_of_the_pushed_head_with_rebase_and_no_gh_pr_merge(fake_processes, run_cli):
+    calls = scenario(fake_processes)
+
+    code, _, _ = run_cli(queued_merge, ARGV)
+
+    puts = [c for c in calls if "gh api" in c and "pulls/7/merge" in c]
+    assert (code, len(puts), all("PUT" in c and "merge_method=rebase" in c and "sha=%s" % PUSHED_HEAD in c and "repos/o/r/pulls/7/merge" in c for c in puts),
+            [c for c in calls if "pr merge" in c], len([c for c in calls if " tag -a " in c])) == (0, 1, True, [], 1)
