@@ -99,14 +99,16 @@ def test_worktree_step_no_longer_says_the_draft_pr_is_opened_once_every_step_is_
 
 
 def test_skill_md_reaches_the_default_branch_the_issue_and_the_pr_through_the_helper_or_gh_api_never_gh_repo_issue_pr():
-    text = SKILL.read_text()
+    docs = (SKILL, SKILL.with_name("PREFLIGHT.md"))
+    text = "".join(doc.read_text() for doc in docs)
     problems = []
-    for n, line in enumerate(text.splitlines(), 1):
-        if re.search(r"\bgh (repo view|issue (view|comment)|pr (create|view|edit|ready|comment))\b", line):
-            problems.append(f"SKILL.md:{n}:{line}")
+    for doc in docs:
+        for n, line in enumerate(doc.read_text().splitlines(), 1):
+            if re.search(r"\bgh (repo view|issue (view|comment)|pr (create|view|edit|ready|comment))\b", line):
+                problems.append(f"{doc.name}:{n}:{line}")
     for route in ("gh_pr_ready", "veri/github.py", "gh api ", "default_branch"):
         if route not in text:
-            problems.append(f"SKILL.md never names {route}")
+            problems.append(f"SKILL.md and PREFLIGHT.md never name {route}")
     assert not problems, problems
 
 

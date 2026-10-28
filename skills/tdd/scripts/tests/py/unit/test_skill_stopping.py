@@ -9,14 +9,15 @@ SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 LAUNCHING = "## Launching a leaf — detach, then wait in the foreground"
 PROCEDURE = "## Procedure"
+PREFLIGHT = "## 0. Preflight — baseline checks (bail before any cycle)"
 BAILING = "## Bailing"
 SCRIPTS = "## The scripts (this skill's `scripts/` directory)"
 
 
-def _section(heading):
-    section = importlib.import_module("skill_sections").section(SKILL, heading)
+def _section(heading, doc=SKILL):
+    section = importlib.import_module("skill_sections").section(doc, heading)
     lines = _plain(section).split("\n")[1:]
-    assert "".join(lines).strip(), f"SKILL.md has no {heading} section — nothing could be checked"
+    assert "".join(lines).strip(), f"{doc.name} has no {heading} section — nothing could be checked"
     return lines
 
 
@@ -142,7 +143,7 @@ def test_each_phases_leaf_exit_2_branch_points_back_to_launching_a_leaf_where_st
 
 
 def test_987_preflight_step_3_runs_stop_requested_clear_beside_the_tdd_conductor_pid_write():
-    lines, problems = [_joined(_branch(_section(PROCEDURE), r"^3\. suite is green at baseline", r"^4\. "))], []
+    lines, problems = [_joined(_branch(_section(PREFLIGHT, SKILL.with_name("PREFLIGHT.md")), r"^3\. suite is green at baseline", r"^4\. "))], []
     _require(problems, r"\.tdd/conductor\.pid", lines,
              "preflight step 3 has no .tdd/conductor.pid write to read — nothing could be checked beside it")
     _require(problems, r"stop-requested\.sh --clear", lines,

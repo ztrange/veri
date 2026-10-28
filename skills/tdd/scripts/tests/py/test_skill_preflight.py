@@ -12,7 +12,9 @@ import skill_sections
 
 SKILL = pathlib.Path(__file__).resolve().parents[2].parent / "SKILL.md"
 
-PREFLIGHT = "### 0. Preflight — baseline checks (bail before any cycle)"
+PREFLIGHT_MD = SKILL.with_name("PREFLIGHT.md")
+PREFLIGHT = "## 0. Preflight — baseline checks (bail before any cycle)"
+SKILL_PREFLIGHT = "#" + PREFLIGHT
 
 FAST_CALL = "detect-test-command.sh --tier fast"
 FULL_CALL = "detect-test-command.sh --tier all"
@@ -24,7 +26,7 @@ def all_lines():
 
 
 def lines_of(heading):
-    return skill_sections.section(SKILL, heading).splitlines()
+    return skill_sections.section(PREFLIGHT_MD, heading).splitlines()
 
 
 def first(lines, want):
@@ -191,9 +193,11 @@ def plain(text):
 
 def preflight_and_rest():
     lines = SKILL.read_text().splitlines()
-    start = next(i for i, line in enumerate(lines) if line == PREFLIGHT)
-    end = next(i for i in range(start + 1, len(lines)) if re.match(r"#{1,3} ", lines[i]))
-    preflight, rest = plain("\n".join(lines[start:end])), plain("\n".join(lines[:start] + lines[end:]))
+    held = [i for i, line in enumerate(lines) if line == SKILL_PREFLIGHT]
+    if held:
+        end = next(i for i in range(held[0] + 1, len(lines)) if re.match(r"#{1,3} ", lines[i]))
+        lines = lines[:held[0]] + lines[end:]
+    preflight, rest = plain(PREFLIGHT_MD.read_text()), plain("\n".join(lines))
     flat = lambda text: " " + " ".join(text.split()) + " "  # padded, so ^ and $ never match a section edge
     return (preflight, flat(preflight)), (rest, flat(rest))
 
