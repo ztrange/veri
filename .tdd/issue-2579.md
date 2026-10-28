@@ -1,6 +1,6 @@
 # Plan for #2579 — restore-production.sh deletes more than production, is not atomic, and its only failure path is unpinned
 
-- [ ] restore-production.sh exits 2 with git's stderr when git refuses its checkout (run outside a git repository), pinned by a case in skills/tdd/scripts/tests/py/test_restore_production_process.py that fails when the return-code check in veri/restore_production.py is removed ⟦criterion 1⟧
+- [x] restore-production.sh exits 2 with git's stderr when git refuses its checkout (run outside a git repository), pinned by a case in skills/tdd/scripts/tests/py/test_restore_production_process.py that fails when the return-code check in veri/restore_production.py is removed ⟦criterion 1⟧
 - [ ] When git clean fails after a successful git checkout, restore-production.sh exits 2 and names a partial restore on stderr — production reverted, untracked files not removed — distinguishable from having done nothing ⟦criterion 2⟧
 - [ ] restore-production.sh never reverts or deletes a ledger .tdd/issue-*.md or any */GRADED, whatever paths the caller passes: with both left dirty, they are untouched after the script runs ⟦criterion 3⟧
 - [ ] restore-production.sh refuses a pytest node id argument (<file>::<case>) with exit 2 and restores nothing ⟦criterion 4⟧
