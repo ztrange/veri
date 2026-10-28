@@ -293,3 +293,12 @@ def test_2585_queued_merge_by_default_merges_through_one_rest_put_of_the_pushed_
     puts = [c for c in calls if "gh api" in c and "pulls/7/merge" in c]
     assert (code, len(puts), all("PUT" in c and "merge_method=rebase" in c and "sha=%s" % PUSHED_HEAD in c and "repos/o/r/pulls/7/merge" in c for c in puts),
             [c for c in calls if "pr merge" in c], len([c for c in calls if " tag -a " in c])) == (0, 1, True, [], 1)
+
+
+def test_2585_queued_merge_by_default_exits_1_with_no_tag_branch_delete_or_worktree_removal_when_the_rest_merge_is_refused_because_the_head_moved(fake_processes, run_cli):
+    calls = scenario(fake_processes, fail=("pulls/7/merge",))
+
+    code, _, _ = run_cli(queued_merge, ARGV)
+
+    puts = [c for c in calls if "pulls/7/merge" in c]
+    assert (code, len(puts), ["--keep" in c for c in puts], cleaned(calls), first(calls, "pulls/7 ")) == (1, 1, [False], [], None)
