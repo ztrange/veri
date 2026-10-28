@@ -85,10 +85,14 @@ def grader_model():
     return ""
 
 
+def read(file):
+    with open(file, encoding="utf-8") as f:
+        return f.read()
+
+
 def unit_text(unit):
     file, _, heading = unit.partition("#")
-    with open(file, encoding="utf-8") as f:
-        text = f.read()
+    text = read(file)
     return section(text, heading) if heading else text
 
 
