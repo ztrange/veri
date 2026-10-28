@@ -25,3 +25,8 @@ def cancel_in_progress(event_name, pull_request):
 def test_draft_payload_pull_request_event_cancels_no_in_progress_run_2564():
     draft_payload = {"number": 2548, "draft": True}
     assert cancel_in_progress("pull_request", draft_payload) is False
+
+
+def test_non_draft_pull_request_event_still_cancels_in_progress_run_2564():
+    ready_payload = {"number": 2548, "draft": False}
+    assert cancel_in_progress("pull_request", ready_payload) is True
