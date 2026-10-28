@@ -13,13 +13,14 @@ def test_claude_md_lists_veri_tool_idle_beside_heartbeat_as_injected_window_2566
     assert re.search(r"`VERI_HEARTBEAT`.*`VERI_TOOL_IDLE`|`VERI_TOOL_IDLE`.*`VERI_HEARTBEAT`", flat), flat
 
 
-def test_claude_md_six_budgets_bullet_still_counts_six_and_does_not_fold_veri_tool_idle_2566():
+def test_claude_md_seven_budgets_bullet_still_counts_seven_and_does_not_fold_veri_tool_idle_2566():
     text = (ROOT / "CLAUDE.md").read_text()
-    bullet = next(b for b in re.split(r"\n(?=- )", text) if b.startswith("- **Six budgets"))
+    bullet = next(b for b in re.split(r"\n(?=- )", text) if b.startswith("- **Seven budgets"))
     flat = " ".join(bullet.split())
     names = set(re.findall(r"`([A-Z][A-Z_]*(?:BUDGET|RETRIES|GROWTH))`", flat))
     assert names == {
         "VERI_STUCK_RETRIES", "VERI_NO_VERDICT_RETRIES", "REVISE_BUDGET",
         "VERI_REFACTOR_BUDGET", "VERI_STEP_GROWTH", "VERI_SKILL_EDIT_BUDGET",
+        "VERI_MISSING_REROUTE_BUDGET",
     }, flat
     assert "VERI_TOOL_IDLE" not in flat, flat
