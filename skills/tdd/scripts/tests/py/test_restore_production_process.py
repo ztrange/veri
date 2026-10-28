@@ -152,3 +152,22 @@ def test_issue_2579_restore_production_refuses_a_pytest_node_id_with_exit_2_and_
     assert (repo / "test_old.py").read_text() == "def test_old():\n    assert False\n"
     assert (repo / "src" / "prod.py").read_text() == "VALUE = 2\n"
     assert (repo / "src" / "added.py").read_text() == "EXTRA = 1\n"
+
+
+@pytest.mark.process("restore-production.sh run against a real git repository in tmp_path")
+def test_issue_2579_restore_production_refuses_a_pathspec_magic_prefix_with_exit_2_and_restores_nothing(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    git(repo, "init", "-q")
+    (repo / "src" / "prod.py").write_text("VALUE = 1\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "base")
+    (repo / "src" / "prod.py").write_text("VALUE = 2\n")
+    (repo / "src" / "added.py").write_text("EXTRA = 1\n")
+
+    ran = subprocess.run(["sh", str(SCRIPTS / "restore-production.sh"), ":(bogus)x"], cwd=repo,
+                         capture_output=True, text=True)
+
+    assert ran.returncode == 2, ran.stderr
+    assert (repo / "src" / "prod.py").read_text() == "VALUE = 2\n"
+    assert (repo / "src" / "added.py").read_text() == "EXTRA = 1\n"
