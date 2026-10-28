@@ -137,3 +137,20 @@ def test_main_2462_exits_3_with_no_row_and_no_grader_call_when_no_unit_is_marked
     code, out, _ = run_cli(stale_rows, ["2462"])
 
     assert (code, out, asked) == (3, "", [])
+
+
+def test_main_2462_exits_2_naming_the_marked_unit_on_stderr_when_the_grader_gives_no_verdict(
+        monkeypatch, run_cli):
+    stale_rows = importlib.import_module("veri.stale_rows")
+    monkeypatch.setattr(stale_rows.github, "gh_issue_view", lambda number, field: ISSUE)
+    asked = []
+
+    def fake_grade(unit, rows):
+        asked.append(unit)
+        return 2, ""
+
+    monkeypatch.setattr(stale_rows, "grade", fake_grade)
+
+    code, out, err = run_cli(stale_rows, ["2462"])
+
+    assert (code, out, "skills/marked.md" in err, asked) == (2, "", True, ["skills/marked.md"])

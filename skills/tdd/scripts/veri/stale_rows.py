@@ -46,6 +46,8 @@ def main(argv):
     for unit, rows in units.items():
         unit_code, lines = grade(unit, rows)
         code = code or unit_code
+        if unit_code == 2:
+            print("no verdict for %s" % unit, file=sys.stderr)
         for line in lines.splitlines():
             print("%s\t%s\t%s\t%s" % (number, line.split(":")[0], unit, line))
     return code
