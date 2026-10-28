@@ -1256,6 +1256,14 @@ def test_an_edit_to_scripts_md_prints_the_bash_suite_naming_it_and_the_pytest_fi
         0, SUITES + "catalogue.test.sh\n" + SUITES + "py/unit/test_catalogue.py\n", "")
 
 
+def test_an_edit_to_preflight_md_prints_exactly_the_two_suites_naming_it_without_widening_or_unplaced(
+        monkeypatch, run_cli, affected, tmp_path):
+    code, out, err = doc_edit_with_suites(monkeypatch, run_cli, affected, tmp_path, "skills/tdd/PREFLIGHT.md",
+                                          "preflight.test.sh", "test_preflight_file.py")
+    assert (code, set(out.splitlines()), err) == (
+        0, {SUITES + "preflight.test.sh", SUITES + "py/unit/test_preflight_file.py"}, "")
+
+
 def test_an_edit_to_stopping_md_prints_the_bash_suite_naming_it_and_the_pytest_file_mentioning_it_without_widening(
         monkeypatch, run_cli, affected, tmp_path):
     assert doc_edit_with_suites(monkeypatch, run_cli, affected, tmp_path, "skills/tdd/STOPPING.md",
