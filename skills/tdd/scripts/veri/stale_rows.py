@@ -1,8 +1,13 @@
 """stale-rows.sh's work, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import contextlib
+import io
+import os
 import sys
+import tempfile
 
 import github
+import grade_prose
 
 MARKER = "As is: these rows describe the unit's current text."
 
@@ -20,7 +25,14 @@ def marked_units(body):
 
 
 def grade(unit, rows):
-    raise NotImplementedError
+    with tempfile.TemporaryDirectory() as folder:
+        path = os.path.join(folder, "REQUIREMENTS.md")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("## %s\n\n%s\n" % (unit, rows))
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = grade_prose.main([path, unit])
+    return code, out.getvalue()
 
 
 def main(argv):
