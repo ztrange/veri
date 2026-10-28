@@ -1,5 +1,6 @@
 """In-process cases for veri/grade_prose.py, the module grade-prose.sh is a shim over."""
 import importlib
+import json
 import subprocess
 
 import pytest
@@ -1180,3 +1181,32 @@ def test_the_prompt_grade_prose_renders_passes_a_row_naming_no_artefact_on_its_m
     prompt = " ".join(grade_prose.prompt("unit.md", "prose", "X1\tThe widget is blue.").split())
 
     assert "A row that names no artefact passes on meaning alone, in any wording" in prompt, prompt
+
+
+def test_two_grading_calls_for_two_units_in_one_tree_each_leave_their_own_cost_readable_afterwards_2609(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    leaf = importlib.import_module("veri.leaf")
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    table = "\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n\n"
+    (tmp_path / "one.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "two.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text("## one.md" + table + "## two.md" + table)
+    (tmp_path / ".tdd").mkdir()
+    costs = iter(["0.01", "0.02"])
+
+    def fake_launch(name, *a, **k):
+        (tmp_path / ".tdd" / f"{name}.log").write_text(
+            '{"type":"result","subtype":"success","is_error":false,"total_cost_usd":%s,"result":'
+            '"BEGIN GRADES\\nA1: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n' % next(costs))
+        return subprocess.CompletedProcess([name], 0)
+
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(leaf, "launch", fake_launch)
+
+    codes = [run_cli(grade_prose, ["REQUIREMENTS.md", unit], cwd=tmp_path)[0] for unit in ("one.md", "two.md")]
+
+    left = sorted({float(json.loads(line)["total_cost_usd"])
+                  for log in (tmp_path / ".tdd").glob("*.log") for line in log.read_text().splitlines()})
+    assert (codes, left) == ([0, 0], [0.01, 0.02]), (codes, left)
