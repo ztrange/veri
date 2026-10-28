@@ -1711,6 +1711,50 @@ def test_verify_sh_relaunches_a_verifier_that_left_an_untracked_file_and_returns
         0, before, True, [("relaunch", True)])
 
 
+@pytest.mark.process("a real git scratch repository whose first verifier launch edits a tracked file and whose second does not")
+def test_verify_sh_relaunches_a_verifier_that_edited_a_tracked_file_and_returns_the_relaunched_verdict_2561(
+        run_cli, tmp_path, monkeypatch):
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {})
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "1")
+    mutation = '[ -e .tdd/second-launch ] || { : > .tdd/second-launch; printf "the verifier rewrote this\\n" > src.txt; }'
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
+           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
+    verify = importlib.import_module("veri.verify")
+    before = git_state(repo)
+
+    code, _, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+                                  "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+
+    log_events = repo / ".tdd" / "events.jsonl"
+    relaunches = [json.loads(line) for line in log_events.read_text().splitlines()
+                  if '"relaunch"' in line] if log_events.is_file() else []
+    assert (code, git_state(repo), (repo / "src.txt").read_text(), [r.get("cause") for r in relaunches]) == (
+        0, before, "the developer committed this\n", ["tree-change"])
+
+
+@pytest.mark.process("a real git scratch repository whose first verifier launch commits and whose second does not")
+def test_verify_sh_relaunches_a_verifier_that_moved_head_and_restores_head_and_the_tree_2561(
+        run_cli, tmp_path, monkeypatch):
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {})
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "1")
+    mutation = ('[ -e .tdd/second-launch ] || { : > .tdd/second-launch; printf "the verifier committed this\\n" > src.txt;'
+                ' git commit -q -a -m "the verifier committed"; }')
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
+           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
+    verify = importlib.import_module("veri.verify")
+    before = git_state(repo)
+
+    code, _, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+                                  "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+
+    log_events = repo / ".tdd" / "events.jsonl"
+    relaunches = [json.loads(line) for line in log_events.read_text().splitlines()
+                  if '"relaunch"' in line] if log_events.is_file() else []
+    assert (code, git_state(repo), [r.get("cause") for r in relaunches]) == (0, before, ["tree-change"])
+
+
 @pytest.mark.process("a real git scratch repository whose only verifier launch leaves an untracked file")
 def test_verify_sh_refuses_a_verifier_that_left_an_untracked_file_without_a_relaunch_when_the_no_verdict_budget_is_0_2561(
         run_cli, tmp_path, monkeypatch):
