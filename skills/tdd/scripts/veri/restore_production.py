@@ -18,6 +18,9 @@ def main(argv):
         if path.startswith(":"):
             print(f"restore-production.sh: {path}: a pathspec magic prefix, not a path", file=sys.stderr)
             return 2
+    if git.git("rev-parse", "--show-prefix", capture_output=True, text=True).stdout.strip():
+        print("restore-production.sh: run it from the worktree root", file=sys.stderr)
+        return 2
     keep = [f":(exclude,literal){path}" for path in argv]
     keep += [":(exclude,glob).tdd/issue-*.md", ":(exclude,glob)**/GRADED"]
     for args in (["checkout", "HEAD", "--", ".", *keep], ["clean", "-fq", "--", ".", *keep]):

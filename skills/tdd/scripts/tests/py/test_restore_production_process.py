@@ -171,3 +171,23 @@ def test_issue_2579_restore_production_refuses_a_pathspec_magic_prefix_with_exit
     assert ran.returncode == 2, ran.stderr
     assert (repo / "src" / "prod.py").read_text() == "VALUE = 2\n"
     assert (repo / "src" / "added.py").read_text() == "EXTRA = 1\n"
+
+
+@pytest.mark.process("restore-production.sh run from a subdirectory of a real git repository in tmp_path")
+def test_issue_2579_restore_production_from_a_subdirectory_restores_the_whole_worktree_or_refuses(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    (repo / "other").mkdir()
+    git(repo, "init", "-q")
+    (repo / "src" / "prod.py").write_text("VALUE = 1\n")
+    (repo / "other" / "prod.py").write_text("VALUE = 1\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "base")
+    (repo / "src" / "prod.py").write_text("VALUE = 2\n")
+    (repo / "other" / "prod.py").write_text("VALUE = 2\n")
+
+    ran = subprocess.run(["sh", str(SCRIPTS / "restore-production.sh"), "test_new.py"], cwd=repo / "src",
+                         capture_output=True, text=True)
+
+    assert ran.returncode == 2 or (repo / "other" / "prod.py").read_text() == "VALUE = 1\n", (
+        "exit 0 but only the subtree was restored")
