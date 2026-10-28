@@ -64,6 +64,22 @@ def test_2481_b_preflight_refusal_posts_one_comment_naming_the_check_and_exits_2
     assert refused[0] == 2
 
 
+def test_2557_an_empty_issue_number_exits_2_with_the_usage_line_writes_no_event_and_posts_no_comment(
+        tmp_path, monkeypatch, run_cli):
+    preflight_refused = importlib.import_module("veri.preflight_refused")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)))
+    main = tmp_path / "main"
+    (main / ".git").mkdir(parents=True)
+
+    result = run_cli(preflight_refused, ["", "baseline-full-red"], cwd=main)
+
+    assert result == (2, "", USAGE)
+    assert not (main / ".tdd").exists()
+    assert posted == []
+
+
 def test_2481_c_a_second_refusal_of_a_refused_run_writes_no_event_posts_no_comment_and_exits_3(
         tmp_path, monkeypatch, run_cli):
     preflight_refused = importlib.import_module("veri.preflight_refused")
