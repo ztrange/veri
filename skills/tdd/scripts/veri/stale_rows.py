@@ -40,7 +40,10 @@ def main(argv):
         print("usage: stale-rows.sh <issue>", file=sys.stderr)
         return 2
     number, code = argv[0], 0
-    for unit, rows in marked_units(github.gh_issue_view(number, "body")).items():
+    units = marked_units(github.gh_issue_view(number, "body"))
+    if not units:
+        return 3
+    for unit, rows in units.items():
         unit_code, lines = grade(unit, rows)
         code = code or unit_code
         for line in lines.splitlines():

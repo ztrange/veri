@@ -113,3 +113,27 @@ def test_main_2462_grades_through_grade_proses_prompt_and_turns_its_grades_block
     assert (code, out, "Unit: skills/marked.md" in first, "The marked unit says green." in first,
             "M1: The marked unit says blue." in first, "U1" in first) == (
         1, "2462\tM1\tskills/marked.md\tM1: FAIL — says green, not blue\n", True, True, True, False)
+
+
+@pytest.mark.parametrize("body", [
+    "## Requirements\n\n"
+    "### skills/unmarked.md\n\n"
+    "| ID | Requirement | Why |\n|---|---|---|\n"
+    "| U1 | The unmarked unit says red. | because |\n",
+    "## What happened\n\nNothing here lists requirements.\n",
+], ids=["all-units-unmarked", "no-requirements-section"])
+def test_main_2462_exits_3_with_no_row_and_no_grader_call_when_no_unit_is_marked(
+        monkeypatch, run_cli, body):
+    stale_rows = importlib.import_module("veri.stale_rows")
+    monkeypatch.setattr(stale_rows.github, "gh_issue_view", lambda number, field: body)
+    asked = []
+
+    def fake_grade(unit, rows):
+        asked.append(unit)
+        return 1, "U1: FAIL — says pink\n"
+
+    monkeypatch.setattr(stale_rows, "grade", fake_grade)
+
+    code, out, _ = run_cli(stale_rows, ["2462"])
+
+    assert (code, out, asked) == (3, "", [])
