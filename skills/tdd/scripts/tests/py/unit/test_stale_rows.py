@@ -242,3 +242,30 @@ def test_main_2462_regrades_after_a_no_verdict_result_rather_than_caching_it(
     second = run_cli(stale_rows, ["2462"], cwd=tmp_path)
 
     assert (first[0], second[0], len(asked)) == (2, 0, 2)
+
+
+def test_main_2462_caches_a_file_heading_unit_so_a_second_call_on_an_unchanged_issue_makes_no_grader_call(
+        tmp_path, monkeypatch, run_cli):
+    stale_rows = importlib.import_module("veri.stale_rows")
+    issue = ISSUE.replace("### skills/marked.md\n", "### skills/marked.md#Some heading\n")
+
+    def default_text(file):
+        if "#" in file:
+            raise RuntimeError("git show cannot read %s" % file)
+        return "The marked unit says green.\n"
+
+    monkeypatch.setattr(stale_rows.github, "gh_issue_view", lambda number, field: issue)
+    monkeypatch.setattr(stale_rows, "default_branch_text", default_text)
+    asked = []
+
+    def fake_grade(unit, rows):
+        asked.append(unit)
+        return 1, "M1: FAIL — says green\n"
+
+    monkeypatch.setattr(stale_rows, "grade", fake_grade)
+    (tmp_path / ".tdd").mkdir()
+
+    first = run_cli(stale_rows, ["2462"], cwd=tmp_path)
+    again = run_cli(stale_rows, ["2462"], cwd=tmp_path)
+
+    assert (first[:2] == again[:2], len(asked)) == (True, 1)
