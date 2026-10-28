@@ -574,7 +574,8 @@ _MEETS_FLOOR = {}
 
 
 def meets_floor(python):
-    key = os.path.realpath(python)
+    real = os.path.realpath(python)
+    key = (real, os.stat(real).st_mtime_ns)
     if key not in _MEETS_FLOOR:
         floor = re.search(r"^VENV_FLOOR=(\d+)\.(\d+)", (SCRIPTS / "lib" / "venv-python.sh").read_text(), re.MULTILINE)
         said = REAL_RUN([python, "-c", "import platform; print(platform.python_version())"],
