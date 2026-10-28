@@ -2438,3 +2438,18 @@ def test_main_2596_prints_repair_with_the_bare_recorded_case_name_for_a_wrong_te
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), case], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s\n" % case)
+
+
+def test_main_2565_resolves_an_unquoted_superseded_line_naming_a_case_whose_own_title_begins_with_an_issue_reference_to_the_full_title(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    title = "#553 a peso of 70,5 is stored as 70.5"
+    suite = tmp_path / "src" / "features"
+    suite.mkdir(parents=True)
+    (suite / "ValidationModal.app.test.tsx").write_text("it('%s', () => {});\n" % title)
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nSUPERSEDED: %s\n" % title)
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+
+    assert (code, stdout, "no defined test case resolves:" in stderr) == (0, "red %s\n" % title, False)
