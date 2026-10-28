@@ -12,13 +12,15 @@ def main(argv):
         sys.stderr.write(USAGE + "\n")
         return 2
     path = Path(argv[0])
-    saved = path.read_text()
-    mutated = saved.replace(argv[1], argv[2])
+    saved = path.read_bytes()
+    mutated = saved.replace(argv[1].encode(), argv[2].encode())
     if mutated == saved:
         sys.stderr.write("mutation-probe.sh: file not mutated\n")
         return 2
-    path.write_text(mutated)
-    if subprocess.run(argv[4:]).returncode == 0:
+    path.write_bytes(mutated)
+    returncode = subprocess.run(argv[4:]).returncode
+    path.write_bytes(saved)
+    if returncode == 0:
         sys.stderr.write("mutation-probe.sh: suite stayed green under the mutation\n")
         return 1
     return 0
