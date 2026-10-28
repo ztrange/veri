@@ -192,3 +192,7 @@ def test_grade_prose_takes_its_veri_values_from_the_one_reader_2062():
 
 def test_next_unchecked_takes_its_veri_values_from_the_one_reader_2368():
     assert direct_reads(VERI / "next_unchecked.py") == []
+
+
+def test_queued_merge_takes_its_veri_values_from_the_one_reader_2585():
+    assert direct_reads(VERI / "queued_merge.py") == []
