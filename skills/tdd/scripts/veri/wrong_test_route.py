@@ -188,6 +188,14 @@ def _rerouted(step):
     return any(event.get("event") == "reroute" and event.get("step") == step for event in events)
 
 
+def _missing_reroutes(step):
+    try:
+        events = event_log.read_events(".tdd/events.jsonl", skip_unreadable=True)
+    except OSError:
+        return 0
+    return sum(1 for e in events if e.get("event") == "reroute" and e.get("step") == step and e.get("kind") == "missing")
+
+
 def _missing(report):
     lines = _lines_with(report, "MISSING_TEST:")
     for line in lines:
@@ -209,6 +217,10 @@ def main(argv):
     rerouted = _rerouted(step)
     missing = _missing(argv[0])
     if missing:
+        budget = tunables.read("VERI_MISSING_REROUTE_BUDGET", unless_empty="3")
+        if _missing_reroutes(step) >= int(budget):
+            write(sys.stdout, "missing-exhausted " + missing)
+            return 1
         write(sys.stdout, "missing " + missing)
         return 0
     repair = None if rerouted else _recorded(argv[0], step, argv[1])

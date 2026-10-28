@@ -583,6 +583,53 @@ def test_main_2573_prints_missing_behaviour_for_a_missing_test_report_once_the_s
     assert (code, stdout) == (0, "missing a second guard is pinned by a case\n")
 
 
+def test_main_2573_prints_missing_exhausted_and_exits_1_once_the_step_log_holds_as_many_missing_reroutes_as_the_budget(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / ".tdd").mkdir()
+    step = "wrong-test-route.sh bounds repeat missing routes"
+    monkeypatch.setenv("VERI_STEP", step)
+    monkeypatch.setenv("VERI_MISSING_REROUTE_BUDGET", "2")
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        '{"event": "reroute", "step": "%s", "kind": "missing"}\n' * 2 % (step, step))
+    report = tmp_path / "missing-report.txt"
+    report.write_text("VERDICT: REJECT\nMISSING_TEST: a third guard is pinned by a case\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+
+    assert (code, stdout) == (1, "missing-exhausted a third guard is pinned by a case\n")
+
+
+def test_main_2573_defaults_the_missing_reroute_budget_to_3_when_the_variable_is_unset_or_empty(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / ".tdd").mkdir()
+    step = "wrong-test-route.sh defaults the missing budget"
+    monkeypatch.setenv("VERI_STEP", step)
+    monkeypatch.delenv("VERI_MISSING_REROUTE_BUDGET", raising=False)
+    events = tmp_path / ".tdd" / "events.jsonl"
+    report = tmp_path / "missing-report.txt"
+    report.write_text("VERDICT: REJECT\nMISSING_TEST: a guard is pinned by a case\n")
+    line = '{"event": "reroute", "step": "%s", "kind": "missing"}\n' % step
+
+    def answer():
+        return run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)[:2]
+
+    events.write_text(line * 2)
+    unset_two = answer()
+    events.write_text(line * 3)
+    unset_three = answer()
+    monkeypatch.setenv("VERI_MISSING_REROUTE_BUDGET", "")
+    empty_two = (events.write_text(line * 2), answer())[1]
+    empty_three = (events.write_text(line * 3), answer())[1]
+
+    assert [unset_two, unset_three, empty_two, empty_three] == [
+        (0, "missing a guard is pinned by a case\n"),
+        (1, "missing-exhausted a guard is pinned by a case\n"),
+        (0, "missing a guard is pinned by a case\n"),
+        (1, "missing-exhausted a guard is pinned by a case\n")]
+
+
 def test_main_1808_prints_revise_and_exits_3_for_a_product_defect_reject_and_for_a_missing_test_line_with_an_empty_behaviour(
         run_cli, tmp_path, monkeypatch):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
