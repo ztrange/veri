@@ -199,6 +199,8 @@ def test_differing_tests_counts_a_spec_ts_and_a_ts_file_under_tests_dir_as_test_
     listings = {"diff": b"src/app.spec.ts\0src/app.ts\0", "ls-files": b"src/__tests__/sum.ts\0src/types.d.ts\0"}
 
     class Done:
+        returncode = 0
+
         def __init__(self, stdout):
             self.stdout = stdout
 
