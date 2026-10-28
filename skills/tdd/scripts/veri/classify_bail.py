@@ -13,7 +13,7 @@ CATEGORIES = {
     **dict.fromkeys(
         ("revise-exhausted", "untestable-criterion", "step-too-big", "rebase-unresolved",
          "uncovered", "ci-red", "suite-red", "rebased-tip-red", "unreplaced-cases", "needs-user", "step-added-off-route",
-         "fixture-owed"),"process"),
+         "fixture-owed", "missing-reroutes-exhausted"),"process"),
 }
 
 

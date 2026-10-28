@@ -171,3 +171,9 @@ def test_main_classifies_preflight_refused_as_system_with_0_2481(capsys, classif
     code = classify_bail.main(["preflight-refused"])
 
     assert (code, *capsys.readouterr()) == (0, "system\n", "")
+
+
+def test_main_classifies_missing_reroutes_exhausted_as_a_process_failure_with_0_2573(capsys, classify_bail):
+    code = classify_bail.main(["missing-reroutes-exhausted"])
+
+    assert (code, *capsys.readouterr()) == (0, "process\n", "")
