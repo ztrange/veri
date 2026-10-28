@@ -4529,3 +4529,119 @@ def test_a_cpu_idle_leaf_whose_log_gains_lines_other_than_tool_progress_heartbea
         "streaming": ("success", False, []),
         "heartbeats only": ("killed-stuck", True, [1600]),
     }
+
+
+HEARTBEAT_LINE = ('{"type":"tool_progress","tool_use_id":"toolu_01-heartbeat-0","tool_name":"Bash",'
+                  '"parent_tool_use_id":"toolu_01","elapsed_time_seconds":30,"heartbeat":true,"session_id":"s","uuid":"u"}')
+
+
+def tool_idle_attempt(monkeypatch, tmp_path, supervise, cpu, write, finish_at=2500):
+    """Runs one watched attempt under VERI_TOOL_IDLE=600, 30 s per poll from t=1000; `write(log, t)` grows the log."""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_TOOL_IDLE", "600")
+    (tmp_path / ".tdd").mkdir(exist_ok=True)
+    log = tmp_path / ".tdd" / "develop-red.log"
+    rcfile = tmp_path / ".tdd" / "develop-red.rc"
+    clock = {"t": 1000}
+    kills = []
+
+    class Leaf:
+        pid = 4242
+
+        def poll(self):
+            return None
+
+        def wait(self):
+            return 0
+
+    def pause(_poll):
+        clock["t"] += 30
+        write(log, clock["t"])
+        if clock["t"] >= finish_at:
+            rcfile.write_text("0\n")
+
+    monkeypatch.setattr(supervise.subprocess, "Popen", lambda *_a, **_k: Leaf())
+    monkeypatch.setattr(supervise, "now", lambda: str(clock["t"]))
+    monkeypatch.setattr(supervise, "awake_seconds", lambda: clock["t"])
+    monkeypatch.setattr(supervise, "mtime_of", lambda _log: str(clock["t"]))
+    monkeypatch.setattr(supervise, "tree_cpu_seconds", lambda _pid: cpu(clock["t"]))
+    monkeypatch.setattr(supervise, "pause", pause)
+    monkeypatch.setattr(supervise, "kill_tree", lambda leaf, _poll: kills.append(clock["t"]))
+    monkeypatch.setattr(supervise, "recover_finished_leaf", lambda *_: None)
+    env = {"PYTEST_LEG_LOCK_WAIT_MARKER": str(tmp_path / "wait")}
+    rcfile.unlink(missing_ok=True)
+    status, reason, _rc, _a0 = supervise.attempt_once(
+        [], "develop-red", ["leaf"], ".tdd/develop-red.log", ".tdd/develop-red.rc", env, None,
+        supervise.Watch(True, "100000", "180", "1", 0.0))
+    return status, "VERI_TOOL_IDLE" in reason, kills
+
+
+def append(log, text):
+    with open(log, "a") as f:
+        f.write(text)
+
+
+def test_a_leaf_busy_past_veri_tool_idle_that_then_goes_idle_is_killed_veri_tool_idle_after_its_descendants_last_gained_cpu_not_before_2566(
+        monkeypatch, tmp_path, supervise):
+    answer = tool_idle_attempt(monkeypatch, tmp_path, supervise, cpu=lambda t: float(min(t, 2000)),
+                               write=lambda log, _t: None, finish_at=100000)
+
+    assert answer == ("killed-stuck", True, [2620]), answer
+
+
+def test_a_tool_progress_line_with_heartbeat_false_or_no_heartbeat_key_resets_the_veri_tool_idle_timer_2566(
+        monkeypatch, tmp_path, supervise):
+    lines = {
+        "heartbeat false": HEARTBEAT_LINE.replace('"heartbeat":true', '"heartbeat":false'),
+        "no heartbeat key": HEARTBEAT_LINE.replace(',"heartbeat":true', ''),
+    }
+
+    answers = {}
+    for label, line in lines.items():
+        work = tmp_path / label.replace(" ", "-")
+        work.mkdir()
+        answers[label] = tool_idle_attempt(monkeypatch, work, supervise, cpu=lambda _t: 7.0,
+                                           write=lambda log, _t, line=line: append(log, line + "\n"))
+
+    assert answers == {label: ("success", False, []) for label in lines}, answers
+
+
+def test_a_log_truncated_below_what_was_read_is_reread_from_its_start_so_lines_streamed_after_the_truncation_reset_the_veri_tool_idle_timer_2566(
+        monkeypatch, tmp_path, supervise):
+    truncated = []
+
+    def write(log, t):
+        if t <= 1500:
+            append(log, HEARTBEAT_LINE + "\n")
+        elif not truncated:
+            truncated.append(t)
+            log.write_text('{"type":"assistant","session_id":"s"}\n')
+        else:
+            append(log, '{"type":"assistant","session_id":"s"}\n')
+
+    answer = tool_idle_attempt(monkeypatch, tmp_path, supervise, cpu=lambda _t: 7.0, write=write)
+
+    assert (answer, truncated) == (("success", False, []), [1510]), (answer, truncated)
+
+
+def test_a_heartbeat_line_written_in_two_halves_across_polls_counts_as_one_heartbeat_once_its_newline_arrives_so_the_cpu_idle_leaf_is_killed_2566(
+        monkeypatch, tmp_path, supervise):
+    half = len(HEARTBEAT_LINE) // 2
+
+    def write(log, t):
+        append(log, HEARTBEAT_LINE[:half] if t % 60 else HEARTBEAT_LINE[half:] + "\n")
+
+    answer = tool_idle_attempt(monkeypatch, tmp_path, supervise, cpu=lambda _t: 7.0, write=write)
+
+    assert answer == ("killed-stuck", True, [1600]), answer
+
+
+def test_tree_cpu_seconds_skips_a_ps_row_of_fewer_than_four_fields_instead_of_raising_2566(monkeypatch, supervise):
+    ps_answering(monkeypatch, supervise, [
+        " 4242     1   0:00.00 /bin/sh",
+        " 4244  4242   0:01.50 /bin/bash",
+        " 4245  4244   0:00.40",
+        "",
+    ])
+
+    assert supervise.tree_cpu_seconds(4242) == pytest.approx(1.5)
