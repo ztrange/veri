@@ -466,6 +466,7 @@
 | BL40 | The ledger's completed steps stay checked, so a re-run resumes from the failing step (see `RESUME.md`) and edits this same PR rather than opening another. | One issue, one PR, and no finished step repeated. |
 | BL41 | Sub-step 8: report to the user the phase, the classification (system or process), the reason, sub-step 6's skill-drift block, the branch name and the worktree path — the logs are inside it, and it is where a re-run resumes. | The human is told what stopped and where to pick it up. |
 | BL42 | Leave the worktree in place; only a merged PR retires it. | The evidence and the resume point survive the bail. |
+| BL43 | `missing-reroutes-exhausted`: a step's repeat `missing` reroutes spent `VERI_MISSING_REROUTE_BUDGET` and verify-green still names a behaviour no test pins; a **process** failure. | The reroute budget is spent and the tests still leave a behaviour unpinned. |
 
 ## skills/tdd/SCOPE-LOOP.md
 
