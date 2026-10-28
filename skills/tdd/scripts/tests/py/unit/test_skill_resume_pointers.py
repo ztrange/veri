@@ -37,7 +37,7 @@ def test_resume_section_lives_in_resume_md_and_skill_md_carries_none_of_its_line
 
 
 def test_1967_preflight_step_3_resumed_run_block_is_one_resume_clean_sh_call_and_its_exit_2_bails_as_a_system_failure():
-    text = SKILL.read_text()
+    text = SKILL.with_name("PREFLIGHT.md").read_text()
     start = text.index("A run that `issue-worktree.sh` handed back an existing worktree")
     end = text.index("Then the handed-back run, its uncommitted", start)
     prose = text[start:end]

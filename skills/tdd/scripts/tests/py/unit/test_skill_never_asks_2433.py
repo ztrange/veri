@@ -3,6 +3,7 @@ import pathlib
 import re
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
+PREFLIGHT = SKILL.with_name("PREFLIGHT.md")
 
 
 def _flat(text):
@@ -12,10 +13,11 @@ def _flat(text):
 def test_2433_never_asks_rule_is_discharged_by_a_needs_user_bail_beside_both_asks():
     text = SKILL.read_text().replace("*", "").replace("`", "")
     rule = re.search(r"A conductor never asks the user a question.*?(?:\n\n|$)", text, re.S)
-    preflight = re.search(r"\n1\. Git repo & clean tree\..*?(?=\n\d+\. )", text, re.S)
+    preflight = re.search(r"\n1\. Git repo & clean tree\..*?(?=\n\d+\. )",
+                          "\n" + PREFLIGHT.read_text().replace("*", "").replace("`", ""), re.S)
     detecting = re.search(r"\n## Detecting the test command\n.*?(?=\n## )", text, re.S)
     assert rule, "SKILL.md has no never-asks rule paragraph"
-    assert preflight, "SKILL.md has no preflight check 1"
+    assert preflight, "PREFLIGHT.md has no preflight check 1"
     assert detecting, "SKILL.md has no Detecting the test command section"
     para = _flat(rule.group(0))
     problems = [f"the rule does not name {name}" for name in ("preflight check 1", "Detecting the test command")

@@ -449,8 +449,8 @@ def test_skill_md_tells_the_conductor_to_call_wait_leaf_sh_with_the_bash_maximum
 
 
 def test_skill_md_tells_the_conductor_to_call_detach_command_sh_wait_with_no_max_seconds_and_the_bash_maximum_timeout_never_a_fixed_500_1708():
-    text = (SCRIPTS.parent / "SKILL.md").read_text()
+    text = (SCRIPTS.parent / "PREFLIGHT.md").read_text()
     assert not re.search(r"detach-command\.sh wait <name> 500", text)
-    assert [p for p in skill_paragraphs()
+    assert [p for p in re.split(r"\n[ \t]*\n", text)
             if "detach-command.sh wait" in p and "600000" in p
             and re.search(r"no (max-seconds|second)s? argument|without a max-seconds", p.lower())]
