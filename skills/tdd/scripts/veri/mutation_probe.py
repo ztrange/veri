@@ -1,5 +1,6 @@
 """mutation-probe.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import signal
 import subprocess
 import sys
 from pathlib import Path
@@ -17,9 +18,12 @@ def main(argv):
     if mutated == saved:
         sys.stderr.write("mutation-probe.sh: file not mutated\n")
         return 2
+    signal.signal(signal.SIGTERM, lambda signum, frame: sys.exit(128 + signum))
     path.write_bytes(mutated)
-    returncode = subprocess.run(argv[4:]).returncode
-    path.write_bytes(saved)
+    try:
+        returncode = subprocess.run(argv[4:]).returncode
+    finally:
+        path.write_bytes(saved)
     if returncode == 0:
         sys.stderr.write("mutation-probe.sh: suite stayed green under the mutation\n")
         return 1
