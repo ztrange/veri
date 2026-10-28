@@ -1,0 +1,2 @@
+### When git clean fails after a successful git checkout, restore-production.sh exits 2 and names a partial restore on stderr — production reverted, untracked files not removed — distinguishable from having done nothing ⟦criterion 2⟧
+- test-only | In `test_restore_production_process.py`, replace the repeated `__import__("os")` calls with a top-level `import os`, and fold the two identical outside-a-repo `subprocess.run` calls into one helper
