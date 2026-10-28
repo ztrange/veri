@@ -1,5 +1,6 @@
 """In-process cases for veri/stale_rows.py, the module stale-rows.sh is a shim over."""
 import importlib
+import json
 
 import pytest
 
@@ -80,3 +81,35 @@ def test_main_2462_with_no_issue_argument_prints_a_usage_line_naming_the_script_
     code, out, err = run_cli(stale_rows, [])
 
     assert (code, out, "usage: stale-rows.sh" in err) == (2, "", True)
+
+
+def test_main_2462_grades_through_grade_proses_prompt_and_turns_its_grades_block_into_the_exit(
+        tmp_path, monkeypatch, run_cli):
+    import subprocess
+    stale_rows = importlib.import_module("veri.stale_rows")
+    grade_prose = importlib.import_module("veri.grade_prose")
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "skills" / "marked.md").write_text("The marked unit says green.\n")
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setattr(stale_rows.github, "gh_issue_view", lambda number, field: ISSUE)
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setenv("PATH", "")
+    prompts = []
+
+    def fake_launch(name, prompt, *args, env=None):
+        with open(prompt, encoding="utf-8") as f:
+            prompts.append(f.read())
+        reply = ("BEGIN GRADES\nM1: FAIL — says green, not blue\nVERDICT: REJECT\nEND GRADES\n")
+        (tmp_path / ".tdd" / "grade-prose.log").write_text(
+            json.dumps({"type": "result", "result": reply}) + "\n")
+        return subprocess.CompletedProcess([name], 0)
+
+    monkeypatch.setattr(grade_prose.leaf, "launch", fake_launch)
+
+    code, out, _ = run_cli(stale_rows, ["2462"], cwd=tmp_path)
+
+    first = prompts[0] if prompts else ""
+    assert (code, out, "Unit: skills/marked.md" in first, "The marked unit says green." in first,
+            "M1: The marked unit says blue." in first, "U1" in first) == (
+        1, "2462\tM1\tskills/marked.md\tM1: FAIL — says green, not blue\n", True, True, True, False)
