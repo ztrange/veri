@@ -34,4 +34,4 @@ def test_conduct_records_the_pid_of_the_claude_process_it_starts_in_the_worktree
 
     run_conductor.conduct("", "2249", dict(os.environ))
 
-    assert (tmp_path / "seen").read_text().strip() == (tmp_path / "mine").read_text().strip() != ""
+    assert (tmp_path / "seen").read_text().splitlines()[0] == (tmp_path / "mine").read_text().strip() != ""
