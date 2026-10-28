@@ -324,6 +324,8 @@ def render(issue, path, ledger):
             if phase == "refactor":
                 open_pass(step)["revise"] += 1
             continue
+        if event == "reroute" and step and line.get("kind") == "repair":
+            step_mark(step).setdefault("revise phases", {}).setdefault(phase, (0, line.get("budget", "")))
         if event == "refactor" and step:
             mark = step_mark(step)
             mark["transforms"] = line.get("transforms", "")
