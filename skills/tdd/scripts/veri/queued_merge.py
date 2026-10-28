@@ -31,6 +31,10 @@ def _repo(pr):
     return pr.removeprefix("https://github.com/").rsplit("/pull/", 1)[0]
 
 
+def _number(pr):
+    return pr.rsplit("/pull/", 1)[-1]
+
+
 def _say(message):
     print("queued-merge: %s" % message, file=sys.stderr)
 
@@ -49,7 +53,7 @@ def _rev(worktree, ref):
 
 def _merged(repo, pr):
     """GitHub's pull record when it answers merged: true; None when it answers anything else."""
-    run = gh_api("repos/%s/pulls/%s" % (repo, pr.rsplit("/pull/", 1)[-1]))
+    run = gh_api("repos/%s/pulls/%s" % (repo, _number(pr)))
     try:
         pull = json.loads(run.stdout) if run.returncode == 0 else None
     except ValueError:
@@ -162,7 +166,7 @@ def main(argv):
     if os.environ.get("VERI_GH_DRIVER") == "graphql":
         merge = ("gh", "pr", "merge", pr, "--rebase", "--match-head-commit", head)
     else:
-        merge = ("gh", "api", "-X", "PUT", "repos/%s/pulls/%s/merge" % (repo, pr.rsplit("/pull/", 1)[-1]),
+        merge = ("gh", "api", "-X", "PUT", "repos/%s/pulls/%s/merge" % (repo, _number(pr)),
                  "-f", "merge_method=rebase", "-f", "sha=%s" % head)
     code = _gate(pid, *merge)
     if code:
