@@ -217,6 +217,16 @@ def test_main_1468_reports_a_prediction_file_newer_than_the_run_output_as_the_sa
     assert "newer than the run output" in err
 
 
+def test_main_2565_prints_the_prediction_not_written_reason_on_stdout_for_a_missing_prediction_file_and_keeps_it_on_stderr(monkeypatch, capsys, red_divergence, tmp_path):
+    matched = "FAIL_OUTPUT: f\nPREDICTION: MATCHED"
+    code, out, err = run(monkeypatch, capsys, red_divergence, matched, [str(tmp_path / "red-prediction.md")])
+
+    assert code == 1
+    assert "prediction not written before the run: " in out
+    assert "does not exist" in out
+    assert "does not exist" in err
+
+
 @pytest.mark.parametrize("predicted", ["PREDICTED_FAILURE: boom\n", ""], ids=["predicts-boom", "predicts-nothing"])
 def test_main_1468_never_answers_matched_for_an_empty_prediction_file_written_before_the_run_whatever_the_report_predicted_failure_says(predicted, monkeypatch, capsys, red_divergence, tmp_path):
     output = tmp_path / "develop-red.out"
