@@ -3,6 +3,7 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import contextlib
 import io
 import os
+import subprocess
 import sys
 import tempfile
 
@@ -24,13 +25,30 @@ def marked_units(body):
     return units
 
 
+def default_branch_text(file):
+    head = subprocess.run(["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"],
+                          capture_output=True, text=True, check=True).stdout.strip()
+    return subprocess.run(["git", "show", "%s:%s" % (head, file)],
+                          capture_output=True, text=True, check=True).stdout
+
+
+@contextlib.contextmanager
+def reading_default_branch():
+    kept = grade_prose.read
+    grade_prose.read = lambda file: default_branch_text(file)
+    try:
+        yield
+    finally:
+        grade_prose.read = kept
+
+
 def grade(unit, rows):
     with tempfile.TemporaryDirectory() as folder:
         path = os.path.join(folder, "REQUIREMENTS.md")
         with open(path, "w", encoding="utf-8") as f:
             f.write("## %s\n\n%s\n" % (unit, rows))
         out = io.StringIO()
-        with contextlib.redirect_stdout(out):
+        with contextlib.redirect_stdout(out), reading_default_branch():
             code = grade_prose.main([path, unit])
     return code, out.getvalue()
 
@@ -48,7 +66,7 @@ def main(argv):
         code = code or unit_code
         if unit_code == 2:
             print("no verdict for %s" % unit, file=sys.stderr)
-        for line in lines.splitlines():
+        for line in filter(None, lines.splitlines()):
             print("%s\t%s\t%s\t%s" % (number, line.split(":")[0], unit, line))
     return code
 

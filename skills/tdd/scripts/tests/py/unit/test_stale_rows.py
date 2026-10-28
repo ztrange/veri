@@ -93,6 +93,8 @@ def test_main_2462_grades_through_grade_proses_prompt_and_turns_its_grades_block
     (tmp_path / "skills" / "marked.md").write_text("The marked unit says green.\n")
     (tmp_path / ".tdd").mkdir()
     monkeypatch.setattr(stale_rows.github, "gh_issue_view", lambda number, field: ISSUE)
+    monkeypatch.setattr(stale_rows, "default_branch_text",
+                        lambda unit: "The marked unit says green.\n", raising=False)
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
     monkeypatch.setenv("PATH", "")
     prompts = []
@@ -154,3 +156,39 @@ def test_main_2462_exits_2_naming_the_marked_unit_on_stderr_when_the_grader_give
     code, out, err = run_cli(stale_rows, ["2462"])
 
     assert (code, out, "skills/marked.md" in err, asked) == (2, "", True, ["skills/marked.md"])
+
+
+def test_main_2462_grades_the_marked_unit_as_it_reads_on_the_default_branch_not_the_working_tree(
+        tmp_path, monkeypatch, run_cli):
+    import subprocess
+    stale_rows = importlib.import_module("veri.stale_rows")
+    grade_prose = importlib.import_module("veri.grade_prose")
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "skills" / "marked.md").write_text("The working tree says green.\n")
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setattr(stale_rows.github, "gh_issue_view", lambda number, field: ISSUE)
+    monkeypatch.setattr(stale_rows, "default_branch_text",
+                        lambda unit: "The default branch says blue.\n", raising=False)
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setenv("PATH", "")
+    prompts = []
+
+    def fake_launch(name, prompt, *args, env=None):
+        with open(prompt, encoding="utf-8") as f:
+            prompts.append(f.read())
+        if "The default branch says blue." in prompts[-1]:
+            reply = "BEGIN GRADES\nM1: PASS — says blue\nVERDICT: PASS\nEND GRADES\n"
+        else:
+            reply = "BEGIN GRADES\nM1: FAIL — says green\nVERDICT: REJECT\nEND GRADES\n"
+        (tmp_path / ".tdd" / "grade-prose.log").write_text(
+            json.dumps({"type": "result", "result": reply}) + "\n")
+        return subprocess.CompletedProcess([name], 0)
+
+    monkeypatch.setattr(grade_prose.leaf, "launch", fake_launch)
+
+    code, out, _ = run_cli(stale_rows, ["2462"], cwd=tmp_path)
+
+    first = prompts[0] if prompts else ""
+    assert (code, out, "The default branch says blue." in first,
+            "The working tree says green." in first) == (0, "", True, False)
