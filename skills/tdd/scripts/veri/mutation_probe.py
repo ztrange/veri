@@ -1,13 +1,20 @@
 """mutation-probe.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import subprocess
 import sys
+from pathlib import Path
 
 USAGE = "usage: mutation-probe.sh <file> <old> <new> -- <command…>"
 
 
 def main(argv):
-    sys.stderr.write(USAGE + "\n")
-    return 2
+    if not argv:
+        sys.stderr.write(USAGE + "\n")
+        return 2
+    path = Path(argv[0])
+    path.write_text(path.read_text().replace(argv[1], argv[2]))
+    subprocess.run(argv[4:])
+    return 0
 
 
 if __name__ == "__main__":
