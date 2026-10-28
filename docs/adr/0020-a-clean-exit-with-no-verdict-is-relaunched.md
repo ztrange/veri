@@ -29,6 +29,9 @@ attempt. It judges the same tree from scratch and cannot inherit the failed atte
   `VERI_STUCK_RETRIES`. Stuck retries answer *liveness* — the process never finished; this
   answers *protocol compliance* — the process finished and ignored the output contract. They
   fail for different reasons, are fixed in different places and are tuned on different evidence.
+- A verifier leaf that modifies the tree is a second cause on the same axis: the verdict stays
+  refused and the tree is restored, then the verifier is relaunched, spending
+  `VERI_NO_VERDICT_RETRIES`; out of budget, exit 2 as before.
 - `metrics.sh` counts these relaunches as their own column, neither a retry nor a revise.
 
 ## Consequences
