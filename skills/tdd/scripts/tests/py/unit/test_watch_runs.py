@@ -248,7 +248,7 @@ def test_main_reports_vanished_and_returns_2_when_a_conductor_live_at_start_drop
             raise RuntimeError("never reported the vanished run")
 
     monkeypatch.setattr(watch_runs.status, "json_document",
-                        lambda scope=None: (0, json.dumps(next(documents, only_7))))
+                        lambda scope=None, read_states=True: (0, json.dumps(next(documents, only_7))))
     monkeypatch.setattr(watch_runs, "_starting", lambda: [])
     monkeypatch.setattr(watch_runs, "wait", wait)
 
@@ -309,3 +309,29 @@ def test_2545_main_keeps_watching_when_a_run_not_live_at_start_has_its_worktree_
         code = "FileNotFoundError"
 
     assert (code, capsys.readouterr().out) == (3, "timeout\n")
+
+
+def test_2547_main_reports_a_conductor_exit_without_reading_any_issue_state_from_github(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    status = watch_runs.status
+    run = tmp_path / ".tdd" / "wt" / "9"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "issue-9.md").write_text("# Plan for #9 — t\n")
+    (run / ".tdd" / "events.jsonl").write_text(json.dumps({"ts": 100, "issue": "9", "event": "launch"}) + "\n")
+    github_reads = []
+    starting = iter([["9"]])
+
+    def issue_states():
+        github_reads.append(1)
+        return {}
+
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status, "branch_of", lambda run: "b")
+    monkeypatch.setattr(status, "issue_states", issue_states)
+    monkeypatch.setattr(watch_runs, "_starting", lambda: next(starting, []))
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+
+    code = watch_runs.main([])
+
+    out = capsys.readouterr().out
+    assert (code, out.startswith("exited 9 "), github_reads) == (0, True, [])

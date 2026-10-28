@@ -12,7 +12,7 @@ import status
 
 
 def _runs():
-    _, document = status.json_document()
+    _, document = status.json_document(read_states=False)
     return json.loads(document)["runs"]
 
 
