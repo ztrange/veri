@@ -248,6 +248,10 @@ def main(argv):
     path = skill_edit_guard.list_path(unit)
     graded_file = grade_prose.graded_path(unit)
     snapshot = _read_existing((path, unit, graded_file))
+
+    def undo():
+        _restore(snapshot, path, unit, graded_file)
+
     listed = _listed_ids(path, unit)
     fresh = any(_row_id(r) not in listed for r in issue_rows)
     moved = apply(issue, unit)
@@ -255,7 +259,7 @@ def main(argv):
         if added is not None:
             print("added step names a unit no requirements list claims, so nothing would change: " + added,
                   file=sys.stderr)
-            _restore(snapshot, path, unit, graded_file)
+            undo()
             return 2
         return 3
     if os.path.getsize(unit):
@@ -264,7 +268,7 @@ def main(argv):
         graded, said = 1, "FAIL: unit is empty\n"
     if added is not None and graded == 0 and change is None and not fresh:
         print("added step graded PASS before any author ran, so no prose would change: " + added, file=sys.stderr)
-        _restore(snapshot, path, unit, graded_file)
+        undo()
         return 2
     authored = graded == 1 or change is not None
     _change[0] = change
@@ -276,7 +280,7 @@ def main(argv):
         _pins[0] = pins
         tree, present = _tree()
         if _author(unit, path, said):
-            _restore(snapshot, path, unit, graded_file)
+            undo()
             return 2
         graded, said = _guard(unit, base, issue, pins, [graded_file])
         if graded == 1:
@@ -290,7 +294,7 @@ def main(argv):
         if graded == 1:
             _restore(before, *before)
     if graded:
-        _restore(snapshot, path, unit, graded_file)
+        undo()
         if graded == 1:
             sys.stdout.write(said)
         return graded
