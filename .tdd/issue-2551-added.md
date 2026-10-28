@@ -1,0 +1,1 @@
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_watch_runs_process.py — FAILED test_watch_runs_process.py::test_target_slot_is_free_only_below_target_asking_for_not_running_issues_1930 - AssertionError: assert (0, 'slot-free 1/2 next 777') == (3, 'timeout') ⟦suite-repair⟧ ⟦criterion 1⟧
