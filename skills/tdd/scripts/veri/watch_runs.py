@@ -93,6 +93,8 @@ def main(argv):
             if issue not in live:
                 state = run_state(issue).split(" ")[0]
                 if not state:
+                    if pid_file.recorded_alive(os.path.join(status.main_working_tree(), ".tdd", "wt", issue)):
+                        continue
                     print("vanished %s" % issue)
                     return 2
                 print("exited %s %s" % (issue, state))
