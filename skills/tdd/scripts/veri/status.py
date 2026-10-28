@@ -171,7 +171,7 @@ def render(as_json, scope, read_states=True):
     main_tree = main_working_tree()
     runs = sorted(glob.glob(os.path.join(main_tree, ".tdd", "wt", "*", ""))) if main_tree else []
     if not runs:
-        print("no runs")
+        print('{"runs": [], "scope": null}' if as_json else "no runs")
         return 3
     events, run_objects = [], []
     states = issue_states() if read_states else {}

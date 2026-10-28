@@ -101,6 +101,15 @@ def test_main_renders_every_run_as_status_sh_does_and_returns_0(tmp_path, monkey
                                                   "#32  bells ring  tdd/32-bells  step 1 of 1\n")
 
 
+def test_2597_json_with_no_run_prints_a_document_with_an_empty_runs_list_and_returns_3(tmp_path, monkeypatch, capsys, status):
+    fake_git(monkeypatch, tmp_path)
+
+    code = status.main(["--json"])
+
+    out = capsys.readouterr().out
+    assert code == 3 and json.loads(out)["runs"] == [], out
+
+
 def test_main_prints_no_runs_and_returns_3_when_the_main_working_tree_holds_none(tmp_path, monkeypatch, capsys, status):
     fake_git(monkeypatch, tmp_path)
 
