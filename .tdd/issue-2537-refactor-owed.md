@@ -9,3 +9,4 @@
 ### A run that ends — the conductor's `claude` process exiting after ✅ Done, a bail or a park — leaves no `conductor.pid` in its worktree, so `live_conductor` answers None for that worktree afterwards whatever pid is running; reproduced by a case failing on the current code and passing after ⟦criterion 1⟧
 - test-only | merge the start-time pid-file test with the older worktree-not-existing-yet pid-file test in test_run_conductor.py (their setup and assertion are identical), and extract the shared fake-`ps` `running_the_child_setup` helper used by all three pid-file tests
 - out-of-bounds | give pid_file.py a public start-time helper so run_conductor.py stops calling the private `pids._ps`
+applied | 445863c21b2942bba3dd278c1032e3b447a4865a | share the `conductor.pid` path literal between `recorded_alive` and `live_conductor`	refactor: share the conductor.pid path between recorded_alive and live_conductor (#2537)
