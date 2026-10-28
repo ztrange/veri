@@ -587,6 +587,7 @@ def test_main_snapshots_the_tree_through_a_temporary_index_and_head_around_the_l
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     monkeypatch.setenv("VERI_ISSUE", "7")
     monkeypatch.setenv("VERI_STEP", "2")
     trees = [b"a" * 40 + b"\n", b"b" * 40 + b"\n"]
@@ -699,6 +700,7 @@ def test_main_restores_a_modified_tree_through_a_fresh_temporary_index_and_a_mov
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     trees = [b"a" * 40 + b"\n", b"b" * 40 + b"\n"]
     heads = [b"1" * 40 + b"\n", (b"2" if head_moved else b"1") * 40 + b"\n"]
     verbs = []
@@ -799,6 +801,7 @@ def test_main_outside_a_repository_without_git_or_with_a_failing_add_takes_no_sn
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     monkeypatch.setenv("VERI_ISSUE", "7")
     monkeypatch.setenv("VERI_STEP", "2")
     verbs = []
@@ -848,6 +851,7 @@ def test_main_in_a_repository_with_no_commit_reports_a_leaf_that_commits_as_head
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     heads = [subprocess.CompletedProcess([], 128, b"", b"fatal: Needed a single revision\n"),
              subprocess.CompletedProcess([], 0, b"2" * 40 + b"\n", b"")]
     reads = []
@@ -890,6 +894,7 @@ def test_main_returns_2_with_no_traceback_when_the_update_ref_restoring_head_fai
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     trees = [b"a" * 40 + b"\n", b"b" * 40 + b"\n"]
     heads = [b"1" * 40 + b"\n", b"2" * 40 + b"\n"]
     verbs = []
@@ -931,6 +936,7 @@ def test_main_returns_2_not_1_when_the_update_ref_restoring_head_exits_1_1183(
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     trees = [b"a" * 40 + b"\n", b"b" * 40 + b"\n"]
     heads = [b"1" * 40 + b"\n", b"2" * 40 + b"\n"]
     verbs = []
@@ -972,6 +978,7 @@ def test_main_returns_2_with_no_traceback_when_git_cannot_be_started_to_restore_
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     trees = [b"a" * 40 + b"\n", b"b" * 40 + b"\n"]
     heads = [b"1" * 40 + b"\n", b"2" * 40 + b"\n"]
     verbs = []
@@ -1023,6 +1030,7 @@ def test_main_returns_2_naming_home_gitconfig_when_the_leaf_changed_created_or_d
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     gitconfig = home / ".gitconfig"
     if before is not None:
         gitconfig.write_bytes(before)
@@ -1071,6 +1079,7 @@ def test_main_reports_a_leaf_that_changed_both_the_repository_and_home_gitconfig
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     gitconfig = home / ".gitconfig"
     gitconfig.write_bytes(b"[user]\n\tname = op\n")
     trees = [b"a" * 40 + b"\n", b"b" * 40 + b"\n"]
@@ -1198,6 +1207,7 @@ def test_main_returns_2_naming_home_gitconfig_on_stderr_when_the_leaf_left_it_a_
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     gitconfig = home / ".gitconfig"
     gitconfig.write_bytes(b"[user]\n\tname = op\n")
 
@@ -1234,6 +1244,7 @@ def test_main_returns_2_naming_home_gitconfig_on_stderr_when_the_leaf_left_it_un
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     gitconfig = home / ".gitconfig"
     gitconfig.write_bytes(b"[user]\n\tname = op\n")
     leaf_ran = []
@@ -1338,6 +1349,7 @@ def test_main_writes_every_line_it_prints_the_em_dash_in_its_refusals_included_a
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     monkeypatch.setenv("LC_ALL", "C")
     answer = {}
 
@@ -1561,6 +1573,7 @@ def git_state(repo):
 
 
 def tamper_scratch(tmp_path, monkeypatch, gitignore, tracked):
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     repo = tmp_path / "repo"
     subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
@@ -2359,6 +2372,7 @@ def test_verify_sh_green_returns_the_leafs_reject_with_exit_1_and_its_own_reason
 def test_main_saves_the_content_diff_of_a_verifier_that_modified_a_tracked_file_under_dot_tdd_named_after_the_leaf_and_names_it_in_the_refusal_1846(
         tmp_path, monkeypatch, capfd):
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     (tmp_path / "home").mkdir()
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -2402,6 +2416,7 @@ def test_main_saves_the_content_diff_of_a_verifier_that_modified_a_tracked_file_
 def test_main_saves_a_mode_only_change_of_a_verifier_in_the_diff_byte_exactly_1846(
         tmp_path, monkeypatch, capfd):
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     (tmp_path / "home").mkdir()
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -2445,6 +2460,7 @@ def test_main_saves_a_mode_only_change_of_a_verifier_in_the_diff_byte_exactly_18
 def test_main_saves_a_binary_change_of_a_verifier_in_a_diff_that_applies_with_binary_1846(
         tmp_path, monkeypatch, capfd):
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     (tmp_path / "home").mkdir()
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -2492,6 +2508,7 @@ def test_main_saves_a_binary_change_of_a_verifier_in_a_diff_that_applies_with_bi
 def test_main_still_refuses_with_2_and_resets_the_tree_saying_the_diff_could_not_be_saved_when_its_path_is_a_directory_1846(
         tmp_path, monkeypatch, capfd):
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     (tmp_path / "home").mkdir()
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -2535,6 +2552,7 @@ def test_main_still_refuses_with_2_and_resets_the_tree_saying_the_diff_could_not
 def test_main_still_refuses_with_2_saying_the_diff_could_not_be_saved_and_writes_no_diff_when_git_diff_fails_1878(
         tmp_path, monkeypatch, capfd):
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     (tmp_path / "home").mkdir()
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -2575,6 +2593,7 @@ def test_main_still_refuses_with_2_saying_the_diff_could_not_be_saved_and_writes
 def test_main_removes_an_earlier_refusals_diff_when_this_refusals_diff_could_not_be_saved_1878(
         tmp_path, monkeypatch, capfd):
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     (tmp_path / "home").mkdir()
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -2616,6 +2635,7 @@ def test_main_removes_an_earlier_refusals_diff_when_this_refusals_diff_could_not
 def test_main_saves_a_diff_that_passes_git_apply_check_whatever_the_users_prefix_context_and_abbreviation_config_says_1878(
         tmp_path, monkeypatch, capfd):
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     (tmp_path / "home").mkdir()
     repo = tmp_path / "repo"
     repo.mkdir()
