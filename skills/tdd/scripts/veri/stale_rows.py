@@ -1,6 +1,8 @@
 """stale-rows.sh's work, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import contextlib
+import hashlib
+import json
 import io
 import os
 import subprocess
@@ -53,6 +55,24 @@ def grade(unit, rows):
     return code, out.getvalue()
 
 
+def cached_grade(unit, rows):
+    try:
+        text = default_branch_text(unit)
+    except Exception:
+        return grade(unit, rows)
+    key = hashlib.sha256(json.dumps([unit, rows, text]).encode()).hexdigest()
+    path = os.path.join(".tdd", "stale-rows-cache", key)
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
+            return tuple(json.load(f))
+    code, out = grade(unit, rows)
+    if code != 2:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump([code, out], f)
+    return code, out
+
+
 def main(argv):
     if len(argv) != 1:
         print("usage: stale-rows.sh <issue>", file=sys.stderr)
@@ -62,7 +82,7 @@ def main(argv):
     if not units:
         return 3
     for unit, rows in units.items():
-        unit_code, lines = grade(unit, rows)
+        unit_code, lines = cached_grade(unit, rows)
         code = code or unit_code
         if unit_code == 2:
             print("no verdict for %s" % unit, file=sys.stderr)
