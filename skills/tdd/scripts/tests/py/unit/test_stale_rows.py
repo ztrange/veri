@@ -192,3 +192,32 @@ def test_main_2462_grades_the_marked_unit_as_it_reads_on_the_default_branch_not_
     first = prompts[0] if prompts else ""
     assert (code, out, "The default branch says blue." in first,
             "The working tree says green." in first) == (0, "", True, False)
+
+
+def test_main_2462_regrades_only_when_the_marked_rows_or_the_units_default_branch_text_change(
+        tmp_path, monkeypatch, run_cli):
+    stale_rows = importlib.import_module("veri.stale_rows")
+    issue = [ISSUE]
+    unit_text = ["The marked unit says green.\n"]
+    monkeypatch.setattr(stale_rows.github, "gh_issue_view", lambda number, field: issue[0])
+    monkeypatch.setattr(stale_rows, "default_branch_text", lambda unit: unit_text[0], raising=False)
+    asked = []
+
+    def fake_grade(unit, rows):
+        asked.append((unit, rows))
+        return 1, "M1: FAIL — says green\n"
+
+    monkeypatch.setattr(stale_rows, "grade", fake_grade)
+    (tmp_path / ".tdd").mkdir()
+
+    first = run_cli(stale_rows, ["2462"], cwd=tmp_path)
+    again = run_cli(stale_rows, ["2462"], cwd=tmp_path)
+    calls_after_again = len(asked)
+    issue[0] = ISSUE.replace("says blue", "says teal")
+    run_cli(stale_rows, ["2462"], cwd=tmp_path)
+    calls_after_rows = len(asked)
+    unit_text[0] = "The marked unit says blue.\n"
+    run_cli(stale_rows, ["2462"], cwd=tmp_path)
+
+    assert (first[:2] == again[:2], calls_after_again, calls_after_rows, len(asked)) == (
+        True, 1, 2, 3)
