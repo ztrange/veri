@@ -13,9 +13,11 @@ def _shim_name(main):
 
 def refusal(main, exc):
     reason = " ".join(str(exc).split())
-    where = ""
+    frame = traceback.extract_tb(exc.__traceback__)[-1]
+    where = f" (at {os.path.basename(frame.filename)}:{frame.lineno}"
     if isinstance(exc, PermissionError):
-        where = f" (at {traceback.extract_tb(exc.__traceback__)[-1].line})"
+        where += f": {frame.line}"
+    where += ")"
     return f"{_shim_name(main)}: {type(exc).__name__}: {reason}{where}\n"
 
 

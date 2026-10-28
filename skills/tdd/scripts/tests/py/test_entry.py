@@ -150,3 +150,20 @@ def test_run_names_the_operation_that_raised_a_permission_error_in_its_one_refus
     assert len(lines) == 1, err
     assert lines[0].startswith("test-entry.sh: PermissionError: "), err
     assert "os.kill" in lines[0], err
+
+
+def test_run_names_the_file_and_line_that_raised_any_exception_in_its_one_refusal_line_2589(entry, capsys):
+    def main(argv):
+        raise ValueError("boom")
+
+    raising_line = main.__code__.co_firstlineno + 1
+    with pytest.raises(SystemExit) as exited:
+        entry.run(main, [])
+    out, err = capsys.readouterr()
+    lines = err.splitlines()
+
+    assert exited.value.code == 2
+    assert len(lines) == 1, err
+    assert lines[0].startswith("test-entry.sh: ValueError: boom"), err
+    assert f"test_entry.py:{raising_line}" in lines[0], err
+    assert "Traceback" not in err
