@@ -1210,3 +1210,34 @@ def test_two_grading_calls_for_two_units_in_one_tree_each_leave_their_own_cost_r
     left = sorted({float(json.loads(line)["total_cost_usd"])
                   for log in (tmp_path / ".tdd").glob("*.log") for line in log.read_text().splitlines()})
     assert (codes, left) == ([0, 0], [0.01, 0.02]), (codes, left)
+
+
+def test_a_row_retry_within_one_grading_call_leaves_the_first_attempts_cost_readable_too_2609(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    leaf = importlib.import_module("veri.leaf")
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n| A2 | The widget is round. | because |\n")
+    (tmp_path / ".tdd").mkdir()
+    replies = iter([("0.01", "A1: PASS - ok\\n"), ("0.02", "A2: PASS - ok\\n")])
+
+    def fake_launch(name, *a, **k):
+        cost, grades = next(replies)
+        (tmp_path / ".tdd" / f"{name}.log").write_text(
+            '{"type":"result","subtype":"success","is_error":false,"total_cost_usd":%s,"result":'
+            '"BEGIN GRADES\\n%sVERDICT: PASS\\nEND GRADES"}\n' % (cost, grades))
+        return subprocess.CompletedProcess([name], 0)
+
+    monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(leaf, "launch", fake_launch)
+
+    code = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)[0]
+
+    left = sorted({float(json.loads(line)["total_cost_usd"])
+                  for log in (tmp_path / ".tdd").glob("*.log") for line in log.read_text().splitlines()})
+    assert (code, left) == (0, [0.01, 0.02]), (code, left)
