@@ -249,7 +249,7 @@ def mark(role, env, *fields):
     event.mark("", event.context(dict(env, **dict(pair.split("=", 1) for pair in role.split()))), fields[0], fields[1:])
 
 
-def refuse_empty_step(role, env, name, reason):
+def refuse_launch(role, env, name, reason):
     write_line(f".tdd/{name}.exit", 2)
     mark(role or "actor=supervisor", env, "launch-refused", f"name={name}", f"reason={reason}")
     return refuse(f"supervise: refusing to launch {name}: {reason}")
@@ -455,13 +455,13 @@ def main(argv):
                     PYTEST_LEG_LOCK_WAIT_MARKER=lock_wait_path(os.getpid()))
     step = tunables.read("VERI_STEP")
     if "VERI_STEP" in tunables.environment() and not step:
-        return refuse_empty_step(role, leaf_env, name, "VERI_STEP is set but empty")
+        return refuse_launch(role, leaf_env, name, "VERI_STEP is set but empty")
     if "--step" in argv and argv[argv.index("--step") + 1:][:1] == [""]:
-        return refuse_empty_step(role, leaf_env, name, "--step is empty")
+        return refuse_launch(role, leaf_env, name, "--step is empty")
     if os.path.isfile(".tdd/stop"):
         with open(".tdd/stop") as f:
             if (mode := f.read().strip()) in ("at-leaf", "now"):
-                return refuse_empty_step(role, leaf_env, name, f"a stop ({mode}) is pending")
+                return refuse_launch(role, leaf_env, name, f"a stop ({mode}) is pending")
     if name.startswith("develop-green") and step and red_awaits_pass(step) and not ci_repair_step(issue, step):
         write_line(exitfile, 2)
         return refuse(f"supervise: refusing to launch {name}: step {step} has no verify-red PASS after its latest red leaf")
