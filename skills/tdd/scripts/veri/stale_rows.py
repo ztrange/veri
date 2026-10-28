@@ -57,7 +57,7 @@ def grade(unit, rows):
 
 def cached_grade(unit, rows):
     try:
-        text = default_branch_text(unit)
+        text = default_branch_text(unit.partition("#")[0])
     except Exception:
         return grade(unit, rows)
     key = hashlib.sha256(json.dumps([unit, rows, text]).encode()).hexdigest()
