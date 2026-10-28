@@ -156,9 +156,9 @@ def test_2372_queued_merge_reports_a_failed_cleanup_step_on_stderr_and_exits_2_r
 def test_2372_queued_merge_tags_the_merge_commit_github_reports_for_the_pr_fetched_after_the_merge(fake_processes, run_cli):
     calls = scenario(fake_processes)
 
-    code, _, _ = run_cli(queued_merge, ARGV)
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_GH_DRIVER": "graphql"})
 
-    tags = [c for c in calls if " tag -a " in c]
+    tags =[c for c in calls if " tag -a " in c]
     fetches = [i for i, c in enumerate(calls) if c.endswith("fetch origin")]
     merge = first(calls, "pr merge")
     assert (code, tags, any(i > merge for i in fetches)) == (
