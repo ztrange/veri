@@ -9,7 +9,7 @@ USAGE = "usage: mutation-probe.sh <file> <old> <new> -- <command…>"
 
 
 def main(argv):
-    if not argv:
+    if len(argv) < 5 or argv[3] != "--":
         sys.stderr.write(USAGE + "\n")
         return 2
     path = Path(argv[0])
