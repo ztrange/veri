@@ -75,7 +75,11 @@ def main(argv):
         return 3
     pre = output("rev-parse", "HEAD")
     callers = rebase_in_progress()
-    dirty = output("status", "--porcelain", "--untracked-files=no", "--", ".tdd")
+    changed = [line[3:] for line in output("status", "--porcelain", "--untracked-files=no").splitlines()]
+    outside = [path for path in changed if not path.startswith(".tdd/")]
+    if outside:
+        return refuse("tracked changes outside .tdd would block the rebase: " + " ".join(outside))
+    dirty = bool(changed)
     appends = output("diff", "HEAD", "--", ".tdd") if dirty else ""
     if appends:
         saved.write_text(appends + "\n")

@@ -2,4 +2,4 @@
 
 - [x] skill-edit-step.sh exiting 2 because its author leaf fails leaves the requirements list, the unit and its GRADED file byte-identical to what they were before the call (author and grader faked, a case in skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py) ⟦criterion 1⟧
 - [x] skill-edit-step.sh exiting 2 because the grader answers no verdict leaves the requirements list, the unit and its GRADED file byte-identical to what they were before the call (author and grader faked, a case in skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py) ⟦criterion 1⟧
-- [ ] rebase-onto-default.sh, finding tracked changes outside .tdd before it rebases, refuses with exit 2 naming each such path on stderr and starts no rebase (HEAD and the changed files untouched; a case in the rebase-onto-default suites) ⟦criterion 2⟧
+- [x] rebase-onto-default.sh, finding tracked changes outside .tdd before it rebases, refuses with exit 2 naming each such path on stderr and starts no rebase (HEAD and the changed files untouched; a case in the rebase-onto-default suites) ⟦criterion 2⟧ ⟂ refactor pending
