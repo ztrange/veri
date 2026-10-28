@@ -107,3 +107,26 @@ def test_issue_2579_restore_production_does_not_claim_a_partial_restore_when_che
 
     assert ran.returncode == 2, ran.stderr
     assert "partial restore" not in ran.stderr
+
+
+@pytest.mark.process("restore-production.sh run against a real git repository in tmp_path")
+def test_issue_2579_restore_production_leaves_a_dirty_ledger_and_graded_untouched(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    (repo / "skills" / "tdd").mkdir(parents=True)
+    git(repo, "init", "-q")
+    (repo / ".tdd" / "issue-7.md").write_text("- [ ] step\n")
+    (repo / "skills" / "tdd" / "GRADED").write_text("sig-1\n")
+    (repo / "prod.py").write_text("VALUE = 1\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "base")
+    (repo / ".tdd" / "issue-7.md").write_text("- [x] step\n")
+    (repo / "skills" / "tdd" / "GRADED").write_text("sig-2\n")
+    (repo / "prod.py").write_text("VALUE = 2\n")
+
+    ran = subprocess.run(["sh", str(SCRIPTS / "restore-production.sh"), "test_new.py"], cwd=repo,
+                         capture_output=True, text=True)
+
+    assert (repo / "prod.py").read_text() == "VALUE = 1\n"
+    assert (repo / ".tdd" / "issue-7.md").read_text() == "- [x] step\n"
+    assert (repo / "skills" / "tdd" / "GRADED").read_text() == "sig-2\n"
