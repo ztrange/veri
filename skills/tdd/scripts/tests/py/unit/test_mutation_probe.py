@@ -16,6 +16,27 @@ def test_main_with_no_argument_prints_the_usage_line_and_exits_2(run_cli, mutati
     assert "mutation-probe.sh <file> <old> <new> -- <command…>" in err
 
 
+@pytest.mark.parametrize(
+    "args",
+    [[], ["alpha"], ["alpha", "beta"], ["alpha", "beta", "true"], ["alpha", "beta", "--"]],
+    ids=["no args", "two args", "three args", "four args without --", "-- with no command"],
+)
+def test_main_refuses_a_malformed_call_with_the_usage_line_and_exit_2_leaving_the_file_alone(
+    run_cli, mutation_probe, monkeypatch, tmp_path, args
+):
+    target = tmp_path / "target.txt"
+    target.write_text("alpha\n")
+    writes = []
+    monkeypatch.setattr(mutation_probe.Path, "write_bytes", lambda self, data: writes.append(self))
+    argv = [str(target)] + args if args else []
+    code, out, err = run_cli(mutation_probe, argv)
+    assert code == 2
+    assert out == ""
+    assert "usage: mutation-probe.sh <file> <old> <new> -- <command…>" in err
+    assert writes == []
+    assert target.read_text() == "alpha\n"
+
+
 def test_main_exits_2_without_running_the_command_when_the_edit_leaves_the_file_unchanged(
     run_cli, mutation_probe, monkeypatch, tmp_path
 ):
