@@ -1,0 +1,2 @@
+### `veri/supervise.py` refuses a `VERI_TOOL_IDLE` that is not a whole number with exit 2 and a stderr line naming the variable and its value, before launching any leaf, as it refuses a bad `VERI_HEARTBEAT`; pinned by a small in-process case ⟦criterion 1⟧
+- carry the validated VERI_TOOL_IDLE value through a Watch field instead of re-reading it with a second "600" default in attempt_once (also edits the two positional `Watch(...)` calls in test_supervise.py)
