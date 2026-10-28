@@ -551,20 +551,20 @@ def test_main_1808_prints_revise_for_a_missing_test_or_wrong_test_report_once_th
     wrong.write_text("SUITE: make test\nWRONG_TEST: %s and %s contradict the criterion\n" % (older, added))
     events = tmp_path / ".tdd" / "events.jsonl"
 
-    def answers():
+    def answers(reports):
         return [run_cli(wrong_test_route, [str(r), "test_other"], cwd=tmp_path)[:2]
-                for r in (missing, wrong)]
+                for r in reports]
 
     events.write_text('{"event": "reroute", "step": "another step"}\n')
-    other_step = answers()
-    events.write_text('{"event": "reroute", "step": "%s", "route": "missing"}\n' % step)
-    after_missing = answers()
-    events.write_text('{"event": "reroute", "step": "%s", "route": "repair"}\n' % step)
-    after_repair = answers()
+    other_step = answers((missing, wrong))
+    events.write_text('{"event": "reroute", "step": "%s", "kind": "missing"}\n' % step)
+    after_missing = answers((wrong,))
+    events.write_text('{"event": "reroute", "step": "%s", "kind": "repair"}\n' % step)
+    after_repair = answers((wrong,))
 
     assert other_step == [(0, "missing a closed session is counted once\n"), (0, "repair %s\n" % added)]
-    assert after_missing == [(3, "revise\n"), (3, "revise\n")]
-    assert after_repair == [(3, "revise\n"), (3, "revise\n")]
+    assert after_missing == [(3, "revise\n")]
+    assert after_repair == [(3, "revise\n")]
 
 
 def test_main_1808_prints_revise_and_exits_3_for_a_product_defect_reject_and_for_a_missing_test_line_with_an_empty_behaviour(
