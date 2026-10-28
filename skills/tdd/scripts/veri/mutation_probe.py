@@ -18,7 +18,9 @@ def main(argv):
         sys.stderr.write("mutation-probe.sh: file not mutated\n")
         return 2
     path.write_text(mutated)
-    subprocess.run(argv[4:])
+    if subprocess.run(argv[4:]).returncode == 0:
+        sys.stderr.write("mutation-probe.sh: suite stayed green under the mutation\n")
+        return 1
     return 0
 
 
