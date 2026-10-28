@@ -75,8 +75,11 @@ def scope_totals(name, solvable, runs, as_json=False):
     attempted = done = bailed = wall = 0
     dollars = 0.0
     for run in runs:
+        try:
+            events = read_events(run_file(run, "events.jsonl"))
+        except FileNotFoundError:
+            continue
         attempted += 1
-        events = read_events(run_file(run, "events.jsonl"))
         dollars += usage_totals(events)[0]
         end = run_end.run_end(run)[2].get("event")
         done += end == "done"

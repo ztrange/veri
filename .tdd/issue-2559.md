@@ -1,4 +1,4 @@
 # Plan for #2559 — status.sh's scope totals survive a run's worktree being removed mid-read
 
-- [ ] A run whose events.jsonl disappears after render() has read it, before scope_totals() reads it, is left out of the scope totals and status.sh --json exits 0 with no traceback; pinned by a small in-process case in skills/tdd/scripts/tests/py/test_status.py that removes the file between the two reads ⟦criterion 1⟧
+- [x] A run whose events.jsonl disappears after render() has read it, before scope_totals() reads it, is left out of the scope totals and status.sh --json exits 0 with no traceback; pinned by a small in-process case in skills/tdd/scripts/tests/py/test_status.py that removes the file between the two reads ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] No read of a run's files that status.py makes after the glob (the ledger, events.jsonl and run_end's reads of the conductor pid file and conductor log) raises on a vanished run directory: status.sh --json exits 0 with no traceback; pinned by one parametrized small in-process case in skills/tdd/scripts/tests/py/test_status.py that removes the run directory at each read in turn ⟦criterion 2⟧

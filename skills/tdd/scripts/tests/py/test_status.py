@@ -801,6 +801,28 @@ def test_status_sh_run_through_a_symlink_to_the_skill_directory_and_from_another
     assert linked == in_place == (0, "#7  widgets spin  tdd/7-widgets-spin  step 2 of 2\n", "")
 
 
+def test_main_json_leaves_a_run_out_of_the_scope_totals_when_its_events_vanish_after_render_read_them_2559(tmp_path, monkeypatch, capsys, status):
+    runs = {issue: lamp_run(tmp_path, issue) for issue in ("41", "42")}
+    for issue, run in runs.items():
+        write_events(run / ".tdd" / "events.jsonl", [lamp_ev(9000, issue, "launch", name="develop-red")])
+    lamp_git(monkeypatch, tmp_path, runs.values(), (3, ""))
+    at_ten_thousand(monkeypatch)
+    activity = status.run_activity
+
+    def activity_then_vanish(run, *args):
+        shown = activity(run, *args)
+        if os.path.basename(run) == "42":
+            (pathlib.Path(run) / ".tdd" / "events.jsonl").unlink()
+        return shown
+
+    monkeypatch.setattr(status, "run_activity", activity_then_vanish)
+
+    code = status.main(["--json", "--scope", "lamps-label"])
+    scope = json.loads(capsys.readouterr().out)["scope"]
+
+    assert (code, scope["attempted"]) == (0, 1)
+
+
 def test_no_case_in_this_suite_calls_a_function_of_veri_status_other_than_main():
     tree = ast.parse(pathlib.Path(__file__).read_text())
 
