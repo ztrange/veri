@@ -77,11 +77,11 @@ def scope_totals(name, solvable, runs, as_json=False):
     for run in runs:
         try:
             events = read_events(run_file(run, "events.jsonl"))
+            end = run_end.run_end(run)[2].get("event")
         except FileNotFoundError:
             continue
         attempted += 1
         dollars += usage_totals(events)[0]
-        end = run_end.run_end(run)[2].get("event")
         done += end == "done"
         bailed += end == "bail"
         timed = [e for e in events if "ts" in e]

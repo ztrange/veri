@@ -1,9 +1,11 @@
 """In-process cases for veri/status.py, the module status.sh is a shim over."""
 import ast
+import builtins
 import importlib
 import json
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
 import time
@@ -821,6 +823,35 @@ def test_main_json_leaves_a_run_out_of_the_scope_totals_when_its_events_vanish_a
     scope = json.loads(capsys.readouterr().out)["scope"]
 
     assert (code, scope["attempted"]) == (0, 1)
+
+
+@pytest.mark.parametrize("read", range(1, 16))
+def test_main_json_exits_0_without_a_traceback_when_the_run_directory_vanishes_at_the_nth_read_of_its_files_2559(tmp_path, monkeypatch, capsys, status, read):
+    run = lamp_run(tmp_path, "42")
+    write_events(run / ".tdd" / "events.jsonl", [lamp_ev(9000, "42", "launch", name="develop-red")])
+    (run / ".tdd" / "conductor.pid").write_text("0\n")
+    write_events(run / ".tdd" / "conductor-42.log", [{"type": "system", "subtype": "init"},
+                                                    {"type": "result", "result": "ok"}])
+    lamp_git(monkeypatch, tmp_path, [run], (3, ""))
+    at_ten_thousand(monkeypatch)
+    reads = []
+
+    def vanish_at_the_nth(real):
+        def spy(path, *args, **kwargs):
+            if isinstance(path, (str, os.PathLike)) and os.fspath(path).startswith(str(run) + "/.tdd"):
+                reads.append(path)
+                if len(reads) == read:
+                    shutil.rmtree(run)
+            return real(path, *args, **kwargs)
+        return spy
+
+    monkeypatch.setattr(builtins, "open", vanish_at_the_nth(builtins.open))
+    monkeypatch.setattr(os, "listdir", vanish_at_the_nth(os.listdir))
+    monkeypatch.setattr(os.path, "getmtime", vanish_at_the_nth(os.path.getmtime))
+
+    code = status.main(["--json", "--scope", "lamps-label"])
+
+    assert (code, json.loads(capsys.readouterr().out)["scope"]["attempted"] <= 1) == (0, True)
 
 
 def test_no_case_in_this_suite_calls_a_function_of_veri_status_other_than_main():
