@@ -52,3 +52,17 @@ def test_issue_2495_restore_production_keeps_a_tracked_test_the_red_changed(tmp_
     assert ran.returncode == 0, ran.stderr
     assert (repo / "src" / "prod.py").read_text() == "VALUE = 1\n"
     assert (repo / "test_old.py").read_text() == "def test_old():\n    assert True\n\n\ndef test_red():\n    assert False\n"
+
+
+@pytest.mark.process("restore-production.sh run outside any git repository in tmp_path")
+def test_issue_2579_restore_production_exits_2_with_gits_stderr_when_git_refuses(tmp_path):
+    outside = tmp_path / "not-a-repo"
+    outside.mkdir()
+
+    ran = subprocess.run(["sh", str(SCRIPTS / "restore-production.sh"), "test_new.py"], cwd=outside,
+                         capture_output=True, text=True,
+                         env={**__import__("os").environ, "GIT_CEILING_DIRECTORIES": str(tmp_path)})
+
+    assert ran.returncode == 2, ran.stderr
+    assert ran.stderr.startswith("restore-production.sh: ")
+    assert "not a git repository" in ran.stderr
