@@ -201,17 +201,22 @@ def test_main_with_target_exits_2_and_passes_on_stderr_when_solvable_issues_exit
     assert (code, captured.out, "gh: not logged in" in captured.err) == (2, "", True)
 
 
-def test_main_reports_a_conductor_live_at_start_that_vanished_from_the_run_listing_and_returns_2_1930(
-        monkeypatch, capsys, watch_runs):
-    listings = iter([["5", "7"], ["7"]])
-    monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings))
+def test_main_keeps_watching_a_conductor_live_at_start_that_vanished_from_the_run_listing_while_its_conductor_pid_answers_kill_0_1930(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    import os
+    (tmp_path / ".tdd" / "wt" / "5" / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "wt" / "5" / ".tdd" / "conductor.pid").write_text("%d\n" % os.getpid())
+    listings = iter([["5", "7"]])
+    ticks = iter([0])
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, ["7"]))
     monkeypatch.setattr(watch_runs, "run_state", lambda issue: "")
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
+    monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks, 10))
 
-    code = watch_runs.main([])
+    code = watch_runs.main(["--max-wait", "5"])
 
-    out = capsys.readouterr().out
-    assert (code, "vanished" in out and "5" in out, "exited" in out) == (2, True, False)
+    assert (code, capsys.readouterr().out) == (3, "timeout\n")
 
 
 def test_main_with_no_flags_and_no_live_conductor_at_start_prints_nothing_to_watch_and_returns_3_without_blocking_1930(
@@ -235,26 +240,32 @@ def test_main_with_no_flags_and_no_live_conductor_at_start_prints_nothing_to_wat
     assert (code, "nothing to watch" in out) == (3, True)
 
 
-def test_main_reports_vanished_and_returns_2_when_a_conductor_live_at_start_drops_out_of_the_run_listing_1930(
-        monkeypatch, capsys, watch_runs):
+def test_main_keeps_watching_when_a_conductor_live_at_start_drops_out_of_the_run_listing_while_its_conductor_pid_answers_kill_0_1930(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    import os
+    (tmp_path / ".tdd" / "wt" / "5" / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "wt" / "5" / ".tdd" / "conductor.pid").write_text("%d\n" % os.getpid())
     both = {"runs": [{"issue": 5, "state": "running"}, {"issue": 7, "state": "running"}]}
     only_7 = {"runs": [{"issue": 7, "state": "running"}]}
     documents = iter([both])
+    ticks = iter([0])
     waits = []
 
     def wait():
         waits.append(1)
         if len(waits) > 3:
-            raise RuntimeError("never reported the vanished run")
+            raise RuntimeError("never timed out")
 
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
     monkeypatch.setattr(watch_runs.status, "json_document",
                         lambda scope=None, read_states=True: (0, json.dumps(next(documents, only_7))))
     monkeypatch.setattr(watch_runs, "_starting", lambda: [])
     monkeypatch.setattr(watch_runs, "wait", wait)
+    monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks, 10))
 
-    code = watch_runs.main([])
+    code = watch_runs.main(["--max-wait", "5"])
 
-    assert (code, capsys.readouterr().out) == (2, "vanished 5\n")
+    assert (code, capsys.readouterr().out) == (3, "timeout\n")
 
 
 def test_solvable_issues_asks_the_solvable_issues_script_beside_watch_runs_through_an_unresolved_symlinked_directory(
@@ -385,3 +396,44 @@ def test_2597_main_with_max_wait_and_no_run_directory_prints_timeout_and_returns
     code = watch_runs.main(["--max-wait", "10"])
 
     assert (code, capsys.readouterr().out) == (3, "timeout\n")
+
+
+def test_2588_main_keeps_watching_a_run_whose_conductor_pid_answers_kill_0_though_it_is_absent_from_the_live_listing(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    import os
+    (tmp_path / ".tdd" / "wt" / "5" / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "wt" / "5" / ".tdd" / "conductor.pid").write_text("%d\n" % os.getpid())
+    listings = iter([["5"]])
+    ticks = iter([0, 1])
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, []))
+    monkeypatch.setattr(watch_runs, "run_state", lambda issue: "")
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+    monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks) * 10)
+
+    code = watch_runs.main(["--max-wait", "5"])
+
+    assert (code, capsys.readouterr().out) == (3, "timeout\n")
+
+
+def test_2588_main_still_reports_vanished_when_the_conductor_pid_file_holds_no_pid_that_answers_kill_0(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    import os
+    (tmp_path / ".tdd" / "wt" / "5" / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "wt" / "5" / ".tdd" / "conductor.pid").write_text("4194999\n")
+    listings = iter([["5"]])
+    ticks = iter([0])
+
+    def no_such_process(pid, sig):
+        raise ProcessLookupError(pid)
+
+    monkeypatch.setattr(os, "kill", no_such_process)
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, []))
+    monkeypatch.setattr(watch_runs, "run_state", lambda issue: "")
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+    monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks, 10))
+
+    code = watch_runs.main(["--max-wait", "5"])
+
+    assert (code, capsys.readouterr().out) == (2, "vanished 5\n")
