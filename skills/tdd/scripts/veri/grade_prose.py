@@ -3,6 +3,7 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import hashlib
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -212,8 +213,11 @@ def main(argv):
         ran = leaf.launch("grade-prose", path, env=env)
         if ran.returncode:
             return None
-        with open(os.path.join(".tdd", "grade-prose.log"), encoding="utf-8") as log:
-            return log.read()
+        live = os.path.join(".tdd", "grade-prose.log")
+        with open(live, encoding="utf-8") as log:
+            text = log.read()
+        shutil.copyfile(live, os.path.join(".tdd", "grade-prose-" + re.sub(r"[^A-Za-z0-9._-]", "_", unit) + ".log"))
+        return text
 
     def launch_rows(ids):
         rows = "".join(r + "\n" for r in claims.splitlines() if r.split("\t", 1)[0] in ids)
