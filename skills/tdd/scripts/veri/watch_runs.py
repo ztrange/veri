@@ -44,8 +44,11 @@ def solvable_issues():
     return [line.split()[0] for line in done.stdout.splitlines() if line.strip()]
 
 
+_pause = 2
+
+
 def wait():
-    time.sleep(2)
+    time.sleep(_pause)
 
 
 def clock():
@@ -71,6 +74,8 @@ def main(argv):
     if not given and not started:
         print("nothing to watch")
         return 3
+    global _pause
+    _pause = 2 if max_wait is None else min(2, max_wait)
     deadline = clock() + max_wait if max_wait is not None else None
     while True:
         wait()
