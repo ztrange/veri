@@ -24,7 +24,15 @@ def _repo(tmp_path):
 
 @pytest.mark.process("a real git repository and graded-changed.sh")
 def test_2653_exits_0_and_prints_nothing_when_no_graded_file_differs_between_the_base_and_head(tmp_path):
-    work, env, git = _repo(tmp_path)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+    work = tmp_path / "work"
+    (work / "skills" / "tdd").mkdir(parents=True)
+
+    def git(*argv):
+        return subprocess.run(["git", *argv], cwd=work, env=env, check=True, capture_output=True, text=True).stdout.strip()
+
+    git("init", "-q", "-b", "main")
     (work / "skills" / "tdd" / "unit.md").write_text("graded prose\n")
     (work / "skills" / "tdd" / "GRADED").write_text("skills/tdd/unit.md " + "0" * 64 + " 2026-01-01 sig\n")
     (work / "other.txt").write_text("one\n")
@@ -41,7 +49,15 @@ def test_2653_exits_0_and_prints_nothing_when_no_graded_file_differs_between_the
 
 @pytest.mark.process("a real git repository and graded-changed.sh")
 def test_2653_exits_1_and_prints_each_changed_graded_file_but_not_a_changed_ungraded_one(tmp_path):
-    work, env, git = _repo(tmp_path)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+    work = tmp_path / "work"
+    (work / "skills" / "tdd").mkdir(parents=True)
+
+    def git(*argv):
+        return subprocess.run(["git", *argv], cwd=work, env=env, check=True, capture_output=True, text=True).stdout.strip()
+
+    git("init", "-q", "-b", "main")
     (work / "skills" / "tdd" / "unit.md").write_text("graded prose\n")
     (work / "skills" / "tdd" / "GRADED").write_text("skills/tdd/unit.md " + "0" * 64 + " 2026-01-01 sig\n")
     (work / "other.txt").write_text("one\n")
@@ -59,7 +75,15 @@ def test_2653_exits_1_and_prints_each_changed_graded_file_but_not_a_changed_ungr
 
 @pytest.mark.process("a real git repository and graded-changed.sh")
 def test_2653_exits_2_and_prints_nothing_when_git_cannot_resolve_the_base_sha(tmp_path):
-    work, env, git = _repo(tmp_path)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+    work = tmp_path / "work"
+    (work / "skills" / "tdd").mkdir(parents=True)
+
+    def git(*argv):
+        return subprocess.run(["git", *argv], cwd=work, env=env, check=True, capture_output=True, text=True).stdout.strip()
+
+    git("init", "-q", "-b", "main")
     (work / "skills" / "tdd" / "unit.md").write_text("graded prose\n")
     (work / "skills" / "tdd" / "GRADED").write_text("skills/tdd/unit.md " + "0" * 64 + " 2026-01-01 sig\n")
     git("add", ".")
