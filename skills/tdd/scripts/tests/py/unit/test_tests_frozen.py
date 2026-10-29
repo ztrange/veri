@@ -585,3 +585,17 @@ def test_check_earlier_flags_an_edit_inside_a_vitest_it_case_of_a_format_2_recor
     answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)[:2]
 
     assert answer == (1, "adds (%s)\n" % earlier)
+
+
+def test_rerecord_rebased_with_no_pre_rebase_sha_or_an_extra_argument_is_exit_2_with_the_usage_and_no_record_2552(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / ".tdd").mkdir()
+    ledger = tmp_path / ".tdd" / "issue-1.md"
+    ledger.write_text("- [x] step\n")
+
+    answers = [run_cli(tests_frozen, argv, cwd=tmp_path)
+               for argv in (["rerecord-rebased", str(ledger)], ["rerecord-rebased", str(ledger), "abc1234", "extra"])]
+
+    assert ([(code, out, "rerecord-rebased <ledger> <pre-rebase-sha>" in err) for code, out, err in answers],
+            sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == (
+        [(2, "", True), (2, "", True)], ["issue-1.md"])
