@@ -99,7 +99,9 @@ For attempt `k = 1 … REVISE_BUDGET`:
    ```
    — overwriting the reason file, so attempt `k+1` carries the newest objection. The
    `--fast-cmd` rides along whatever the phase: green and refactor refuse to build without it
-   (exit 2), and the other phases' prompts name no fast command, so it changes nothing there. Both `rm
+   (exit 2), red's prompt has the verifier run it once and REJECT a red that fails it for any reason
+   other than the target test's expected failure, and the other phases' prompts name no fast command,
+   so it changes nothing there. Both `rm
    -f`s matter in this loop: every attempt re-verifies the **same** phase, so the previous
    attempt's completion files would otherwise be read as this one's answer.
    - **PASS (exit 0):** the step is recovered. Post `### 🔎 verify-<phase> (revised) — PASS`
