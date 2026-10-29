@@ -29,5 +29,5 @@ def test_make_unit_and_make_test_exit_2_before_any_case_naming_a_venv_python3_th
     py.symlink_to(tmp_path / "gone" / "python3")
     for target in ("unit", "test"):
         code, ran, output = make(tree, log, target, VERI_VENV=str(venv))
-        recipe = re.findall(r"\*\*\* \[%s\] Error (\d+)" % target, output)
+        recipe = re.findall(r"\*\*\* \[(?:Makefile:\d+: )?%s\] Error (\d+)" % target, output)
         assert (target, code, ran, str(py) in output, recipe) == (target, 2, [], True, ["2"]), output
