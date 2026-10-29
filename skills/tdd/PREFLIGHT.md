@@ -84,6 +84,12 @@ issue, not only in the conductor's log.
    An exit 0 moved the branch, and is marked in the run log as its own event,
    `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh resume-rebase from=<pre-rebase-sha> rebased="$(git rev-parse HEAD)"`,
    a name nothing the Draft PR step's rebase records shares.
+   After that event, and before the baseline, run
+   `$S/tests-frozen.sh rerecord-rebased .tdd/issue-<n>.md <pre-rebase-sha>`. Exit 0 or 3 goes on.
+   **Exit 1** bails `needs-user`, a process failure: the bail comment quotes each
+   `<case> (<owning step>)` line and says the branch changed a frozen earlier case that the
+   default branch also changed. **Exit 2** bails `no-verdict`, a system failure
+   (see `<base directory>/BAIL.md`).
    Only a run on a freshly cut worktree skips both the discard and the rebase here.
    Every run below happens in it, so the baseline proves the commit the branch is cut from —
    the freshly fetched `origin/<default>` for a new branch, the branch head on a resume — not
