@@ -2415,3 +2415,48 @@ def test_rerecord_rebased_refuses_a_stale_case_the_branch_changed_since_its_reco
 
     assert (code, record.read_bytes()) == (1, old)
     assert out.splitlines() == ["test_config_2552 (%s)" % earlier]
+
+
+@pytest.mark.process("a real git repository with an origin remote under tmp_path, rebased onto its default branch")
+def test_rerecord_rebased_refuses_a_stale_case_whose_head_body_differs_from_origins_though_the_record_matched_before_the_rebase_2552(
+        tmp_path, run_cli, tests_frozen):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    (repo / ".tdd").mkdir()
+    suite = repo / "tests/test_suite.py"
+    case = "def test_config_2552():\n    a = %d\n    b = 0\n    c = 0\n    d = 0\n    assert f() == %d\n"
+    suite.write_text(case % (1, 1))
+    git(repo, "init", "-q", "-b", "main")
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "base")
+    git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
+    git(repo, "remote", "add", "origin", str(tmp_path / "origin.git"))
+    git(repo, "fetch", "-q", "origin")
+    git(repo, "remote", "set-head", "origin", "main")
+
+    earlier, current = "step one pins the config", "step two adds another"
+    git(repo, "checkout", "-q", "-b", "work")
+    suite.write_text(case % (5, 1))
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=repo)
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "step one")
+    (repo / "lib.py").write_text("one\n")
+    git(repo, "add", "lib.py")
+    git(repo, "commit", "-q", "-m", "step two")
+    (repo / ".tdd/ledger.md").write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+
+    git(repo, "checkout", "-q", "main")
+    suite.write_text(case % (1, 3))
+    git(repo, "commit", "-q", "-a", "-m", "upstream")
+    git(repo, "push", "-q", "origin", "main")
+    git(repo, "checkout", "-q", "work")
+    before = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True,
+                            text=True).stdout.strip()
+    git(repo, "rebase", "-q", "origin/main")
+    (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
+    old = record.read_bytes()
+
+    code, out, _ = run_cli(tests_frozen, ["rerecord-rebased", str(repo / ".tdd/ledger.md"), before], cwd=repo)
+
+    assert (code, record.read_bytes()) == (1, old)
+    assert out.splitlines() == ["test_config_2552 (%s)" % earlier]
