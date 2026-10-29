@@ -186,6 +186,9 @@ def main(argv):
         if state in ("none", "skipped") and mergeable is False:
             warn("%s conflicts with its base branch; no workflow will start until it is rebased" % pr)
             return 2
+        if state == "none" and tunables.read("VERI_CI_ON_PR", unless_empty="1") == "0":
+            warn("%s has no checks and VERI_CI_ON_PR=0 says none will come" % pr)
+            return 0
         if state == "skipped":
             state = "pending"
         mismatched = bool(want and head != want)

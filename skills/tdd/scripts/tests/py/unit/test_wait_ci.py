@@ -1274,3 +1274,20 @@ def test_main_exits_2_saying_the_checks_never_started_when_they_stay_queued_past
     second, _, err = run_cli(wait_ci, [PR, "60", "120", FULL_SHA], env=env, cwd=work)
 
     assert (first, second, "never started" in err) == (3, 2, True)
+
+
+def test_main_exits_0_on_the_first_poll_of_a_mergeable_pr_with_no_checks_when_ci_on_pr_is_0_issue_2502(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([], [], "pending")
+    bodies[PULL] = json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": True,
+                               "head": {"sha": FULL_SHA}})
+    reads = []
+    served(fake_processes, bodies, lambda line: reads.append(line) if line == PULL else None)
+
+    code, out, err = run_cli(wait_ci, [PR, "60", "120", FULL_SHA],
+                             env={"VERI_POLL": "0", "VERI_CI_ON_PR": "0"}, cwd=work)
+
+    assert (code, out, len(reads), err.count("\n"), "no checks" in err, "VERI_CI_ON_PR=0" in err,
+            sorted(p.name for p in (work / ".tdd").iterdir())) == (0, "", 1, 1, True, True, [])
