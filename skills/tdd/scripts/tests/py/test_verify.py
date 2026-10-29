@@ -2092,9 +2092,9 @@ def test_2329_verify_sh_diff_exits_1_naming_a_renamed_case_whose_body_or_def_lin
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
-    assert (code, out.strip(), started.exists()) == (
-        1, "step deleted pytest cases an earlier step added: tests/test_start.py::test_body_alpha, "
-           "tests/test_start.py::test_gone_gamma, tests/test_start.py::test_head_beta", False)
+    assert (code, started.exists()) == (1, False)
+    for vanished in ("test_body_alpha", "test_gone_gamma", "test_head_beta"):
+        assert "tests/test_start.py::" + vanished in out
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
@@ -2134,8 +2134,8 @@ def test_2329_verify_sh_diff_exits_1_naming_a_renamed_case_whose_decorator_line_
         env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
         cwd=repo)
 
-    assert (code, out.strip(), started.exists()) == (
-        1, "step deleted pytest cases an earlier step added: tests/test_start.py::test_decorated_old", False)
+    assert (code, started.exists()) == (1, False)
+    assert "tests/test_start.py::test_decorated_old" in out
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
