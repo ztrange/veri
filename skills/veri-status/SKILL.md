@@ -55,7 +55,10 @@ Four sections, always all four and in this order. An empty one keeps its heading
 **Landed** — one line per PR merged since the last ask: PR url, tag, and the capability in the
 tag's message.
 
-**Running** — one block per live run (`.tdd/wt/<n>/.tdd/conductor.pid` answering `kill -0`):
+**Running** — one block per live run. A run is live when `.tdd/wt/<n>/.tdd/conductor.pid` names a
+pid that answers `kill -0` and whose start time matches the one recorded on the lock's second
+line, the definition `skills/tdd/SKILL.md` preflight step 1.2 uses. A lock whose pid is dead or
+reused is not a running run:
 
 - `#<n> — <title>`;
 - **awake wall time**: elapsed time since launch, less any time the machine slept. No helper
