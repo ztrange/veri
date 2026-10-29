@@ -47,7 +47,8 @@ budget, **bails** — preserving completed steps' commits and classifying the ca
   structurally: the verifier prompt is built by `build-verify-prompt.sh`, and no input it
   takes can carry the developer's rationale (the `refactor` phase's base sha, a hex commit
   name, is one such input that holds no prose, #151), so the developer's reasoning
-  physically cannot reach it (see ADR-0003).
+  physically cannot reach it (see ADR-0003). No input may be added to `build-verify-prompt.sh`
+  that could carry the developer's rationale.
 
 You — the conductor — must keep these roles distinct. Do **not** write the test or the
 implementation yourself, and do **not** pass a developer leaf's explanation into a
