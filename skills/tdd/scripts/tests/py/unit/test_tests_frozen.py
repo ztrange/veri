@@ -231,3 +231,29 @@ def test_check_earlier_except_the_current_steps_own_case_still_exits_1_naming_an
                      cwd=tmp_path)[:2]
 
     assert (recorded, answer) == (0, (1, "test_earlier_case (%s)\n" % earlier))
+
+
+def test_check_earlier_ignores_the_record_of_an_unchecked_step_and_still_flags_the_same_record_once_ticked_2563(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "test_suite.py"
+    original = "def test_bailed_case():\n    assert 1 + 1 == 2\n"
+    suite.write_text(original)
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
+    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    first, bailed, current = "step A", "step B", "step C"
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("- [x] %s\n- [x] %s\n- [ ] %s\n" % (first, bailed, current))
+    recorded = run_cli(tests_frozen, ["record", "--step", bailed, "test_suite.py"], cwd=tmp_path)[0]
+    suite.write_text(original.replace("1 + 1 == 2", "1 + 1 == 3"))
+    ticked = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)[:2]
+    ledger.write_text("- [x] %s\n- [ ] %s\n- [ ] %s\n" % (first, bailed, current))
+
+    unchecked = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)[:2]
+
+    assert (recorded, ticked, unchecked) == (0, (1, "test_bailed_case (%s)\n" % bailed), (0, ""))
