@@ -373,6 +373,7 @@
 | DP86 | The ready script's stderr is kept in `.tdd/pr-ready.err`, and the `no-verdict` bail it causes carries that file's text as its last reason. | The operator reads the actual ready failure, such as a rate limit to wait out, not a later symptom of it. |
 | PL57 | `$S/refresh-spec.sh <n> .tdd/issue-<n>-spec.md` runs right before verify-plan launches and before each step's develop-red prompt is built. Exit 0 and exit 3 go on, exit 0 being named in the step's `### 🔴 Red` comment as a refreshed spec. Exit 2 goes on with the capture and says so in that comment. | A criterion re-scoped on the issue during a run reaches the next leaf and the next verdict, and an unreadable issue never stops a run. |
 | PL58 | `refresh-spec.sh` exit 1, a live criteria count that differs from the capture's, bails with cause `needs-user`, naming both counts, before any leaf of the step launches. | A renumbered criterion list would point `⟦criterion k⟧` at the wrong checkbox, and only a person can re-map it. |
+| LL38 | In *Launching a leaf*, after the stop check LL17 names and before any phase reads a developer leaf's exit 2: when `.tdd/<name>.err` carries the supervisor's status line `supervise[<name>]: killed-external`, the conductor **bails** with cause `killed-external` whatever the phase, and does not relaunch the leaf; any other exit 2 is left to be read as the phase reads it. | An external kill is the environment's failure, not a stuck leaf, and naming it so is what lets a resume treat it as one (#2427). |
 
 ## skills/tdd/PREFLIGHT.md
 
