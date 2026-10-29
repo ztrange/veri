@@ -934,6 +934,11 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      pending` to that same line: the step is green, but its refactor loop and
      verify-refactor are still ahead of it, so a run interrupted between here and them must
      resume into that loop rather than read the tick as *done*.
+     **Before the tick, on every step not marked `⟦skill-edit⟧`, run
+     `$S/graded-changed.sh <step-base-sha>`** over the step's commits, `<step-base-sha>` being the
+     commit the step started from (`git log -1 --format=%H -- .tdd/issue-<n>.md`). Its exit 1
+     prints each graded unit the step changed: **bail** with cause `graded-edit-outside-skill-edit`,
+     a process failure, naming each unit it printed, and tick nothing (`Read` `<base directory>/BAIL.md`).
      ```
      $S/tick-ledger.sh --refactor-pending .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"
      git add -A && git commit -m "feat: <STEP summary> (#<n>)"
@@ -1170,7 +1175,11 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      for, carrying the same three classes as the leaf's. Only its `uncovered-spec` lines go
      into the call, by 4's rule; its `overfit` and `beyond-spec` lines are narrated as
      follow-ups in the `### 🛠️ Refactor` comment and the PR body, since the step's refactor
-     loop has already closed and no triangulation reopens it:
+     loop has already closed and no triangulation reopens it. **Before the clear**, run
+     `$S/graded-changed.sh <green-sha>` over the refactor leaf's commits: its exit 1 prints each
+     graded unit they changed, and the run **bails** with cause `graded-edit-outside-skill-edit`, a
+     process failure, naming each unit, with the refactor-pending mark left in place (`Read`
+     `<base directory>/BAIL.md`):
      ```
      step="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$step" added=<count>
      $S/add-ledger-step.sh --criterion <k> .tdd/issue-<n>.md after "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" '<leaf or verdict uncovered-spec behaviour>' …   # one call per criterion
