@@ -356,6 +356,16 @@ def is_diff_checked(line):
     return bool(kind) and kind.group(1) == "diff-checked"
 
 
+def _write_record(path, out):
+    try:
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.writelines(out)
+    except OSError as error:
+        write(sys.stderr, "tests-frozen.sh: the record %s could not be written: %s" % (path, error))
+        return False
+    return True
+
+
 def rerecord_earlier(ledger, step):
     if not is_diff_checked(step):
         return 3
@@ -393,11 +403,7 @@ def rerecord_earlier(ledger, step):
                 if now is not None and now != before[name].get(case):
                     record = _body_line(name, case, now)
             out.append(record + "\n")
-        try:
-            with open(path, "w", encoding="utf-8") as handle:
-                handle.writelines(out)
-        except OSError as error:
-            write(sys.stderr, "tests-frozen.sh: the record %s could not be written: %s" % (path, error))
+        if not _write_record(path, out):
             return 2
     return 0
 
@@ -430,11 +436,7 @@ def rerecord_rebased(ledger, pre):
                     stale = True
                     record = _body_line(name, case, head)
             out.append(record + "\n")
-        try:
-            with open(path, "w", encoding="utf-8") as handle:
-                handle.writelines(out)
-        except OSError as error:
-            write(sys.stderr, "tests-frozen.sh: the record %s could not be written: %s" % (path, error))
+        if not _write_record(path, out):
             return 2
     for line in refused:
         write(sys.stdout, line)
