@@ -929,3 +929,48 @@ def test_2635_main_json_renders_without_raising_a_run_whose_newest_leaf_log_hold
         code, rendered = "ValueError: %s" % raised, None
 
     assert (code, rendered) == (0, 1)
+
+
+
+def test_2635_main_json_renders_without_raising_a_run_whose_conductor_log_holds_a_result_record_then_blank_and_prose_lines(tmp_path, monkeypatch, capsys, status):
+    run = lamp_run(tmp_path, "42")
+    write_events(run / ".tdd" / "events.jsonl", [lamp_ev(9000, "42", "launch", name="develop-red")])
+    (run / ".tdd" / "conductor.pid").write_text("0\n")
+    (run / ".tdd" / "conductor-42.log").write_text(
+        json.dumps({"type": "system", "subtype": "init"}) + "\n"
+        + json.dumps({"type": "result", "result": "ok"}) + "\n"
+        + "\n\nThe criterion does not hold yet\n\nSTATEMENT: prose\n")
+    leaf_log = run / ".tdd" / "develop-exhausted.log"
+    leaf_log.write_text(json.dumps({"type": "system", "subtype": "init"}) + "\n")
+    os.utime(leaf_log, (2_000_000_000, 2_000_000_000))
+    lamp_git(monkeypatch, tmp_path, [run], (3, ""))
+    at_ten_thousand(monkeypatch)
+
+    try:
+        code = status.main(["--json", "--scope", "lamps-label"])
+        rendered = json.loads(capsys.readouterr().out)["scope"]["attempted"]
+    except ValueError as raised:
+        code, rendered = "ValueError: %s" % raised, None
+
+    assert (code, rendered) == (0, 1)
+
+
+def test_2635_main_json_renders_without_raising_a_run_whose_conductor_log_holds_a_partial_first_line_before_its_result_record(tmp_path, monkeypatch, capsys, status):
+    run = lamp_run(tmp_path, "42")
+    write_events(run / ".tdd" / "events.jsonl", [lamp_ev(9000, "42", "launch", name="develop-red")])
+    (run / ".tdd" / "conductor.pid").write_text("0\n")
+    (run / ".tdd" / "conductor-42.log").write_text(
+        '{"type": "syst\n' + json.dumps({"type": "result", "result": "ok"}) + "\n")
+    leaf_log = run / ".tdd" / "develop-exhausted.log"
+    leaf_log.write_text(json.dumps({"type": "system", "subtype": "init"}) + "\n")
+    os.utime(leaf_log, (2_000_000_000, 2_000_000_000))
+    lamp_git(monkeypatch, tmp_path, [run], (3, ""))
+    at_ten_thousand(monkeypatch)
+
+    try:
+        code = status.main(["--json", "--scope", "lamps-label"])
+        rendered = json.loads(capsys.readouterr().out)["scope"]["attempted"]
+    except ValueError as raised:
+        code, rendered = "ValueError: %s" % raised, None
+
+    assert (code, rendered) == (0, 1)
