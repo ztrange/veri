@@ -677,3 +677,26 @@ def test_check_step_exits_0_for_a_fixture_repair_step_of_a_file_with_two_python_
     answer = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)[:2]
 
     assert (recorded, answer) == (0, (0, ""))
+
+
+def test_check_step_exits_0_for_a_fixture_repair_step_of_a_file_with_two_js_call_form_cases_sharing_a_name_after_an_edit_outside_both_2543(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "dup.test.ts"
+    original = (
+        'describe("a", () => {\n  it("dup", () => {\n    expect(1 + 1).toBe(2);\n  });\n});\n\n'
+        'describe("b", () => {\n  it("dup", () => {\n    expect(2 + 2).toBe(4);\n  });\n});\n')
+    suite.write_text(original)
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
+    monkeypatch.setattr(tests_frozen, "_head_cases_all", lambda name: [])
+    step = "the case passes: repairs the fixture 'db' in dup.test.ts, reproduced by a case in dup.test.ts ⟦fixture-repair⟧"
+    recorded = run_cli(tests_frozen, ["record", "--step", step, "dup.test.ts"], cwd=tmp_path)[0]
+    suite.write_text("import { expect } from 'vitest';\n\n" + original)
+
+    answer = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)[:2]
+
+    assert (recorded, answer) == (0, (0, ""))
