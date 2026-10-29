@@ -2460,3 +2460,58 @@ def test_rerecord_rebased_refuses_a_stale_case_whose_head_body_differs_from_orig
 
     assert (code, record.read_bytes()) == (1, old)
     assert out.splitlines() == ["test_config_2552 (%s)" % earlier]
+
+
+@pytest.mark.process("a real git repository with an origin remote under tmp_path, rebased onto its default branch")
+def test_rerecord_rebased_exits_1_naming_only_the_refused_case_while_re_recording_the_other_stale_one_2552(
+        tmp_path, run_cli, tests_frozen):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    (repo / ".tdd").mkdir()
+    case = "def test_%s_2552():\n    a = %d\n    b = 0\n    c = 0\n    d = 0\n    assert f() == %d\n"
+    suites = {name: repo / ("tests/test_%s.py" % name) for name in ("kept", "refused")}
+    for name, suite in suites.items():
+        suite.write_text(case % (name, 1, 1))
+    git(repo, "init", "-q", "-b", "main")
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "base")
+    git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
+    git(repo, "remote", "add", "origin", str(tmp_path / "origin.git"))
+    git(repo, "fetch", "-q", "origin")
+    git(repo, "remote", "set-head", "origin", "main")
+
+    steps = {"kept": "step one pins the kept case", "refused": "step two pins the refused case"}
+    current = "step three adds another"
+    git(repo, "checkout", "-q", "-b", "work")
+    for name, suite in suites.items():
+        suite.write_text(case % (name, 5 if name == "refused" else 1, 2 if name == "kept" else 1))
+        run_cli(tests_frozen, ["record", "--step", steps[name], "tests/test_%s.py" % name], cwd=repo)
+        git(repo, "add", "tests")
+        git(repo, "commit", "-q", "-m", "step " + name)
+    suites["refused"].write_text(case % ("refused", 9, 1))
+    git(repo, "commit", "-q", "-a", "-m", "step three edits the refused case")
+    (repo / ".tdd/ledger.md").write_text(
+        "- [x] %s\n- [x] %s\n- [ ] %s\n" % (steps["kept"], steps["refused"], current))
+
+    git(repo, "checkout", "-q", "main")
+    suites["kept"].write_text(case % ("kept", 1, 2))
+    git(repo, "commit", "-q", "-a", "-m", "upstream 2")
+    for name, suite in suites.items():
+        suite.write_text(case % (name, 1, 3))
+    git(repo, "commit", "-q", "-a", "-m", "upstream 3")
+    git(repo, "push", "-q", "origin", "main")
+    git(repo, "checkout", "-q", "work")
+    before = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True,
+                            text=True).stdout.strip()
+    git(repo, "rebase", "-q", "origin/main")
+    records = sorted((repo / ".tdd").glob("tests-frozen-*.record"))
+    old = {path: path.read_bytes() for path in records}
+
+    code, out, _ = run_cli(tests_frozen, ["rerecord-rebased", str(repo / ".tdd/ledger.md"), before], cwd=repo)
+
+    changed = [path for path in records if path.read_bytes() != old[path]]
+    kept_check = run_cli(tests_frozen, ["check-earlier", str(repo / ".tdd/ledger.md"), "--step", current],
+                         cwd=repo)[1]
+    assert (code, len(changed)) == (1, 1)
+    assert out.splitlines() == ["test_refused_2552 (%s)" % steps["refused"]]
+    assert "test_kept_2552" not in kept_check
