@@ -430,8 +430,12 @@ def rerecord_rebased(ledger, pre):
                     stale = True
                     record = _body_line(name, case, head)
             out.append(record + "\n")
-        with open(path, "w", encoding="utf-8") as handle:
-            handle.writelines(out)
+        try:
+            with open(path, "w", encoding="utf-8") as handle:
+                handle.writelines(out)
+        except OSError as error:
+            write(sys.stderr, "tests-frozen.sh: the record %s could not be written: %s" % (path, error))
+            return 2
     for line in refused:
         write(sys.stdout, line)
     return 1 if refused else 0 if stale else 3
