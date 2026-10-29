@@ -181,18 +181,19 @@ def deleted_cases(branch_base, step_base):
                   if case[1] not in kept and not was_renamed(case, step_base, taken))
 
 
-def was_renamed(case, step_base, taken):
+def rename_of(find, case, step_base, taken):
     path, name = case
     old = git("show", "%s:%s" % (step_base, path))
     new = git("show", "HEAD:" + path)
-    return renamed_case.renamed_to(name, old.stdout.decode(), new.stdout.decode(), taken) is not None
+    return find(name, old.stdout.decode(), new.stdout.decode(), taken)
+
+
+def was_renamed(case, step_base, taken):
+    return rename_of(renamed_case.renamed_to, case, step_base, taken) is not None
 
 
 def changed_rename(case, step_base, taken):
-    path, name = case
-    old = git("show", "%s:%s" % (step_base, path))
-    new = git("show", "HEAD:" + path)
-    return renamed_case.renamed_and_changed_to(name, old.stdout.decode(), new.stdout.decode(), taken)
+    return rename_of(renamed_case.renamed_and_changed_to, case, step_base, taken)
 
 
 def added_markers(onto):
