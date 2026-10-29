@@ -366,6 +366,19 @@ def _write_record(path, out):
     return True
 
 
+def _rewrite_records(earlier, rewrite):
+    for owner, path, records in earlier:
+        out = []
+        for record in records:
+            parsed = _body_record(record)
+            if parsed:
+                record = rewrite(owner, record, *parsed)
+            out.append(record + "\n")
+        if not _write_record(path, out):
+            return False
+    return True
+
+
 def rerecord_earlier(ledger, step):
     if not is_diff_checked(step):
         return 3
@@ -387,25 +400,19 @@ def rerecord_earlier(ledger, step):
         write(sys.stderr, "tests-frozen.sh: no commit touches the ledger %s, so the step base is unknown" % ledger)
         return 2
     before, after = {}, {}
-    for _, path, records in _earlier_records(lines, step):
-        out = []
-        for record in records:
-            parsed = _body_record(record)
-            if parsed:
-                name, case, _ = parsed
-                if name not in after:
-                    try:
-                        before[name], after[name] = _cases_at(base, name), _cases_at("HEAD", name)
-                    except OSError as error:
-                        write(sys.stderr, "tests-frozen.sh: %s" % error)
-                        return 2
-                now = after[name].get(case)
-                if now is not None and now != before[name].get(case):
-                    record = _body_line(name, case, now)
-            out.append(record + "\n")
-        if not _write_record(path, out):
-            return 2
-    return 0
+
+    def rewrite(_, record, name, case, __):
+        if name not in after:
+            before[name], after[name] = _cases_at(base, name), _cases_at("HEAD", name)
+        now = after[name].get(case)
+        if now is not None and now != before[name].get(case):
+            return _body_line(name, case, now)
+        return record
+    try:
+        return 0 if _rewrite_records(_earlier_records(lines, step), rewrite) else 2
+    except OSError as error:
+        write(sys.stderr, "tests-frozen.sh: %s" % error)
+        return 2
 
 
 def rerecord_rebased(ledger, pre):
@@ -420,24 +427,20 @@ def rerecord_rebased(ledger, pre):
     except OSError as error:
         write(sys.stderr, "tests-frozen.sh: a record could not be read: %s" % error)
         return 2
-    for owner, path, records in earlier:
-        out = []
-        for record in records:
-            parsed = _body_record(record)
-            if parsed:
-                name, case, digest = parsed
-                head = _cases_at("HEAD", name)[case]
-                if _body_digest(head) == digest:
-                    pass
-                elif (_body_digest(_cases_at(pre, name).get(case, "")) != digest
-                        or head != _cases_at(upstream, name).get(case)):
-                    refused.append("%s (%s)" % (case, owner))
-                else:
-                    stale = True
-                    record = _body_line(name, case, head)
-            out.append(record + "\n")
-        if not _write_record(path, out):
-            return 2
+
+    def rewrite(owner, record, name, case, digest):
+        nonlocal stale
+        head = _cases_at("HEAD", name)[case]
+        if _body_digest(head) == digest:
+            return record
+        if (_body_digest(_cases_at(pre, name).get(case, "")) != digest
+                or head != _cases_at(upstream, name).get(case)):
+            refused.append("%s (%s)" % (case, owner))
+            return record
+        stale = True
+        return _body_line(name, case, head)
+    if not _rewrite_records(earlier, rewrite):
+        return 2
     for line in refused:
         write(sys.stdout, line)
     return 1 if refused else 0 if stale else 3
