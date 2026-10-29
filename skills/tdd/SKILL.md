@@ -122,8 +122,7 @@ stop makes `supervise.sh` refuse the launch with exit 2 (and a `now` stop also k
 mode explains the 2, and the run goes to *Stopping* instead of bailing: when that happens, `Read` and run `<base directory>/STOPPING.md`. Any other answer
 leaves the 2 to be read as the phase below reads it, with one check first, for a developer leaf and whatever the phase: when
 `.tdd/<name>.err` carries the supervisor's status line `supervise[<name>]: killed-external`, the leaf died with no recorded exit
-and veri did not kill it, so **bail** with cause `killed-external` (a system failure; `Read` and run `<base directory>/BAIL.md`)
-and do not relaunch the leaf. Any other exit 2 is left to be read as the phase below reads it.
+and veri did not kill it, so do not relaunch the leaf, and **bail** with cause `killed-external`, a system failure: `Read` and run `<base directory>/BAIL.md`. Any other exit 2 is left to be read as the phase below reads it.
 
 Whenever this procedure says **bail**, with the cause the bailing line names, `Read` and run `<base directory>/BAIL.md`.
 
