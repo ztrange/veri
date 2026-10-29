@@ -1,0 +1,1 @@
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_skill_event_files.py — FAILED test_the_guard_reports_no_misplaced_bail_pointer_in_the_real_skill_md_2075 - AssertionError: assert [('BAIL.md', 125)] == [] (and test_the_send_scoped_placement_check_finds_no_misplaced_pointer_in_skill_md_or_any_event_file_2339) ⟦suite-repair⟧ ⟦criterion 1⟧
