@@ -126,6 +126,11 @@ the revised work is judged against the diff the rejection was about. A
 recovered PASS on the `⟦diff-checked⟧` step is ticked exactly as the `⟦diff-checked⟧` PASS
 bullet in *A `⟦diff-checked⟧` step* describes.
 
+A `diff` REJECT whose reason names a pytest case as renamed and changed (#2594) launches no revise
+leaf and spends no `REVISE_BUDGET` attempt. The conductor replaces the step with two steps through
+`add-ledger-step.sh instead-of` — first amend the case under its old name, then rename it with the
+body unchanged — and commits the plan; `add-ledger-step.sh` exit 1 bails with cause `step-too-big`.
+
 If all `REVISE_BUDGET` attempts are still `REJECT`, the step is **not** bailed on the spot. A
 criterion no blind verifier could be satisfied about in that many attempts is usually a
 criterion carrying more than one behaviour — the very condition `SPLIT:` exists for — so send
