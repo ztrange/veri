@@ -978,3 +978,31 @@ def test_gh_missing_from_path_with_an_interval_tunable_of_1_is_accepted_and_wait
     assert sleeps == [1]
     assert len(lookups) == 2
     assert name not in capsys.readouterr().err
+
+
+def test_gh_pr_ready_waits_out_a_rate_limit_refusal_that_clears_and_retries_the_rest_route_2581(monkeypatch, github):
+    from veri import pr_ready
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    monkeypatch.delenv("VERI_GH_REFUSAL_SLEEP", raising=False)
+    monkeypatch.delenv("VERI_GH_REFUSAL_RETRIES", raising=False)
+    sleeps = []
+    monkeypatch.setattr(time, "sleep", lambda seconds: sleeps.append(seconds))
+    pulls = "repos/{owner}/{repo}/pulls/12"
+    ready = ["gh", "api", "-X", "POST", pulls + "/ccr/ready_for_review"]
+    calls = []
+
+    def fake_run(args, **kwargs):
+        calls.append(list(args))
+        if list(args) == ["gh", "api", pulls, "--jq", ".head.sha"]:
+            return subprocess.CompletedProcess(args, 0, "abc123\n", "")
+        if list(args) == ready:
+            if calls.count(ready) == 1:
+                return subprocess.CompletedProcess(args, 1, "API rate limit already exceeded\n", None)
+            return subprocess.CompletedProcess(args, 0, "{}\n", None)
+        return subprocess.CompletedProcess(args, 1, "", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert pr_ready.main(["12", "abc123"]) == 0
+    assert sleeps == [60]
+    assert calls.count(ready) == 2
