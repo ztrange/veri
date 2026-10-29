@@ -344,7 +344,15 @@ def gh_pr_ready(number, head_sha=""):
         _poll_sleep()
     gql_err = ccr_err = ""
     if _route_open(driver, "graphql"):
-        ready = _gh("pr", "ready", number, stderr=subprocess.PIPE)
+        refusals = 0
+        while True:
+            ready = _gh("pr", "ready", number, stderr=subprocess.PIPE)
+            if ready.returncode == 0 or "rate limit" not in ready.stderr:
+                break
+            if refusals >= _wait_seconds("VERI_GH_REFUSAL_RETRIES", "3", 0):
+                break
+            refusals += 1
+            time.sleep(_wait_seconds("VERI_GH_REFUSAL_SLEEP", "60", 0))
         sys.stdout.write(ready.stdout)
         if ready.returncode == 0:
             return
