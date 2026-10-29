@@ -33,3 +33,15 @@ def renamed_to(name, old_source, new_source, taken):
             taken.add(other)
             return other
     return None
+
+
+def renamed_and_changed_to(name, old_source, new_source, taken):
+    """The case of new_source, not in `taken`, whose def line is old_source's `name` case's but for its name, body differing."""
+    old = case_texts(old_source).get(name)
+    if old is None:
+        return None
+    for other, (head, body) in sorted(case_texts(new_source).items()):
+        if other not in taken and body != old[1] \
+                and head.replace(other, name, 1) == old[0]:
+            return other
+    return None

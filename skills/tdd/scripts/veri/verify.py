@@ -188,6 +188,13 @@ def was_renamed(case, step_base, taken):
     return renamed_case.renamed_to(name, old.stdout.decode(), new.stdout.decode(), taken) is not None
 
 
+def changed_rename(case, step_base, taken):
+    path, name = case
+    old = git("show", "%s:%s" % (step_base, path))
+    new = git("show", "HEAD:" + path)
+    return renamed_case.renamed_and_changed_to(name, old.stdout.decode(), new.stdout.decode(), taken)
+
+
 def added_markers(onto):
     log = git("log", "-p", "-U0", "--no-color", "--no-ext-diff", "--format=commit %H", onto + "..HEAD")
     found, sha, path = [], None, None
@@ -237,6 +244,13 @@ def main(argv):
         if deleted is None:
             return refuse("verify: cannot read the test files at %s, %s or HEAD" % (words[2], words[3]))
         if deleted:
+            taken = {other for _, other in pytest_cases(words[3])}
+            changed = [(case, changed_rename(case, words[3], taken)) for case in deleted]
+            pairs = [(case, other) for case, other in changed if other]
+            if pairs:
+                write(sys.stdout, "step renamed and changed pytest cases, so the step must be split: "
+                       + ", ".join("%s::%s -> %s" % (case + (other,)) for case, other in pairs))
+                return 1
             write(sys.stdout, "step deleted pytest cases an earlier step added: "
                    + ", ".join("%s::%s" % case for case in deleted))
             return 1
