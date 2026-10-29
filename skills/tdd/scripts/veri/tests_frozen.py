@@ -404,7 +404,7 @@ def rerecord_rebased(ledger, pre):
     os.chdir(_toplevel())
     upstream = os.fsdecode(subprocess.run(["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"],
                                           stdout=subprocess.PIPE, check=True).stdout).strip()
-    refused = []
+    refused, stale = [], False
     for owner, path, records in _earlier_records(lines, ""):
         out = []
         for record in records:
@@ -412,17 +412,20 @@ def rerecord_rebased(ledger, pre):
             if parsed:
                 name, case, digest = parsed
                 head = _cases_at("HEAD", name)[case]
-                if (_body_digest(_cases_at(pre, name).get(case, "")) != digest
+                if _body_digest(head) == digest:
+                    pass
+                elif (_body_digest(_cases_at(pre, name).get(case, "")) != digest
                         or head != _cases_at(upstream, name).get(case)):
                     refused.append("%s (%s)" % (case, owner))
                 else:
+                    stale = True
                     record = _body_line(name, case, head)
             out.append(record + "\n")
         with open(path, "w", encoding="utf-8") as handle:
             handle.writelines(out)
     for line in refused:
         write(sys.stdout, line)
-    return 1 if refused else 0
+    return 1 if refused else 0 if stale else 3
 
 
 def _take_red_case(files):

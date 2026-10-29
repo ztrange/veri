@@ -2515,3 +2515,45 @@ def test_rerecord_rebased_exits_1_naming_only_the_refused_case_while_re_recordin
     assert (code, len(changed)) == (1, 1)
     assert out.splitlines() == ["test_refused_2552 (%s)" % steps["refused"]]
     assert "test_kept_2552" not in kept_check
+
+
+@pytest.mark.process("a real git repository with an origin remote under tmp_path, rebased onto its default branch")
+def test_rerecord_rebased_exits_3_and_rewrites_no_record_when_no_earlier_recorded_case_is_stale_2552(
+        tmp_path, run_cli, tests_frozen):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    (repo / ".tdd").mkdir()
+    suite = repo / "tests/test_suite.py"
+    case = "def test_config_2552():\n    a = 1\n    b = 0\n    c = 0\n    d = 0\n    assert f() == %d\n"
+    suite.write_text(case % 1)
+    git(repo, "init", "-q", "-b", "main")
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "base")
+    git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
+    git(repo, "remote", "add", "origin", str(tmp_path / "origin.git"))
+    git(repo, "fetch", "-q", "origin")
+    git(repo, "remote", "set-head", "origin", "main")
+
+    earlier, current = "step one pins the config", "step two adds another"
+    git(repo, "checkout", "-q", "-b", "work")
+    suite.write_text(case % 2)
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=repo)
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "step one")
+    (repo / ".tdd/ledger.md").write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+
+    git(repo, "checkout", "-q", "main")
+    (repo / "README.md").write_text("upstream\n")
+    git(repo, "add", "README.md")
+    git(repo, "commit", "-q", "-m", "upstream")
+    git(repo, "push", "-q", "origin", "main")
+    git(repo, "checkout", "-q", "work")
+    before = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True,
+                            text=True).stdout.strip()
+    git(repo, "rebase", "-q", "origin/main")
+    (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
+    old = record.read_bytes()
+
+    code, out, _ = run_cli(tests_frozen, ["rerecord-rebased", str(repo / ".tdd/ledger.md"), before], cwd=repo)
+
+    assert (code, out, record.read_bytes()) == (3, "", old)
