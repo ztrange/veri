@@ -2325,3 +2325,49 @@ def test_rerecord_rebased_keeps_every_non_body_line_of_the_record_and_rewrites_o
     assert [line for line in new if line.startswith("body: ")] != [
         line for line in old if line.startswith("body: ")]
     assert any(line.startswith("case: ") for line in old)
+
+
+@pytest.mark.process("a real git repository with an origin remote under tmp_path, rebased onto its default branch")
+def test_rerecord_rebased_run_from_a_subdirectory_re_records_the_same_upstream_only_case_2552(
+        tmp_path, run_cli, tests_frozen):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    (repo / ".tdd").mkdir()
+    suite = repo / "tests/test_suite.py"
+    case = "def test_config_2552():\n    assert f() == %d\n"
+    suite.write_text(case % 1)
+    git(repo, "init", "-q", "-b", "main")
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "base")
+    git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
+    git(repo, "remote", "add", "origin", str(tmp_path / "origin.git"))
+    git(repo, "fetch", "-q", "origin")
+    git(repo, "remote", "set-head", "origin", "main")
+
+    earlier, current = "step one pins the config", "step two adds another"
+    git(repo, "checkout", "-q", "-b", "work")
+    suite.write_text(case % 2)
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=repo)
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "step one")
+    (repo / "lib.py").write_text("one\n")
+    git(repo, "add", "lib.py")
+    git(repo, "commit", "-q", "-m", "step two")
+    (repo / ".tdd/ledger.md").write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+
+    git(repo, "checkout", "-q", "main")
+    for value in (2, 3):
+        suite.write_text(case % value)
+        git(repo, "commit", "-q", "-a", "-m", "upstream %d" % value)
+    git(repo, "push", "-q", "origin", "main")
+    git(repo, "checkout", "-q", "work")
+    before = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True,
+                            text=True).stdout.strip()
+    git(repo, "rebase", "-q", "origin/main")
+    ledger = repo / ".tdd/ledger.md"
+    stale = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=repo)[0]
+
+    code, _, _ = run_cli(tests_frozen, ["rerecord-rebased", "../.tdd/ledger.md", before], cwd=repo / "tests")
+    after = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=repo)[0]
+
+    assert (stale, code, after) == (1, 0, 0)
