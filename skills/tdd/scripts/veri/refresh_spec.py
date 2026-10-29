@@ -10,6 +10,9 @@ except ImportError:
 
 def main(argv):
     live = capture(argv[0])
+    with open(argv[1]) as f:
+        if f.read() == live:
+            return 3
     with open(argv[1], "w") as f:
         f.write(live)
     return 0
