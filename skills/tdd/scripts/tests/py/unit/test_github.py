@@ -1038,6 +1038,36 @@ def test_gh_pr_ready_retries_a_refused_rest_route_at_most_veri_gh_refusal_retrie
     assert calls[-1][:3] == ["gh", "api", "graphql"]
 
 
+def test_gh_pr_ready_with_veri_gh_refusal_retries_unset_retries_a_refused_rest_route_3_times_then_falls_through_to_graphql_2581(monkeypatch, github):
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    monkeypatch.delenv("VERI_GH_REFUSAL_RETRIES", raising=False)
+    monkeypatch.delenv("VERI_GH_REFUSAL_SLEEP", raising=False)
+    sleeps = []
+    monkeypatch.setattr(time, "sleep", lambda seconds: sleeps.append(seconds))
+    pulls = "repos/{owner}/{repo}/pulls/12"
+    ready = ["gh", "api", "-X", "POST", pulls + "/ccr/ready_for_review"]
+    calls = []
+
+    def fake_run(args, **kwargs):
+        calls.append(list(args))
+        if list(args) == ready:
+            assert calls.count(ready) <= 10, "still retrying ccr after 10 calls"
+            return subprocess.CompletedProcess(args, 1, "You have exceeded a secondary rate limit\n", None)
+        if list(args) == ["gh", "api", pulls, "-q", ".node_id"]:
+            return subprocess.CompletedProcess(args, 0, "NODE\n", "")
+        if args[:3] == ["gh", "api", "graphql"]:
+            return subprocess.CompletedProcess(args, 0, "{}\n", "")
+        return subprocess.CompletedProcess(args, 1, "", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    github.gh_pr_ready("12")
+
+    assert calls.count(ready) == 4
+    assert sleeps == [60, 60, 60]
+    assert calls[-1][:3] == ["gh", "api", "graphql"]
+
+
 def test_gh_pr_ready_with_a_rate_limit_refusal_that_never_clears_is_a_no_answer_with_the_refusal_as_the_last_stderr_line_not_a_later_routes_404_2581(monkeypatch, capsys, github):
     from veri import pr_ready
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
