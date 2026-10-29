@@ -885,3 +885,26 @@ def test_2551_step_names_the_step_pending_refactor_and_the_next_open_one_once_it
 
     runs = json.loads(capsys.readouterr().out)["runs"]
     assert [run["step"] for run in runs] == ["3 of 4", "4 of 4"]
+
+
+def test_2635_main_json_renders_without_raising_a_run_whose_newest_leaf_log_holds_blank_and_prose_lines_after_stream_json(tmp_path, monkeypatch, capsys, status):
+    run = lamp_run(tmp_path, "42")
+    write_events(run / ".tdd" / "events.jsonl", [lamp_ev(9000, "42", "launch", name="develop-red")])
+    (run / ".tdd" / "conductor.pid").write_text("0\n")
+    write_events(run / ".tdd" / "conductor-42.log", [{"type": "system", "subtype": "init"},
+                                                    {"type": "result", "result": "ok"}])
+    leaf_log = run / ".tdd" / "develop-exhausted.log"
+    leaf_log.write_text(json.dumps({"type": "system", "subtype": "init"}) + "\n"
+                        + json.dumps({"type": "assistant"}) + "\n"
+                        + "\n\nThe criterion does not hold yet\n\nSTATEMENT: prose\n")
+    os.utime(leaf_log, (2_000_000_000, 2_000_000_000))
+    lamp_git(monkeypatch, tmp_path, [run], (3, ""))
+    at_ten_thousand(monkeypatch)
+
+    try:
+        code = status.main(["--json", "--scope", "lamps-label"])
+        rendered = json.loads(capsys.readouterr().out)["scope"]["attempted"]
+    except ValueError as raised:
+        code, rendered = "ValueError: %s" % raised, None
+
+    assert (code, rendered) == (0, 1)
