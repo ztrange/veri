@@ -42,6 +42,8 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   sites because the anchor matched no step or several, `VERI_STEP_GROWTH` was unreadable, or
   `--criterion` was malformed (the conductor passed a call the script refused, not a
   methodology answer).
+- `pr-ready-failed` — `pr-ready.sh` exited non-zero at the Draft PR step (GitHub refused or
+  never answered the ready request, after its refusal retries) → **system** failure (#2581).
 - `ci-timeout` — a readied PR's check was still pending when the Draft PR step's bounded CI
   wait ran out → **system** failure (CI never answered, not the methodology).
 - `ci-conflict` — a readied PR still conflicted with its base branch after the CI step's one
@@ -102,7 +104,8 @@ To bail:
    carries the `### 📊 Metrics` block just committed (or, when `$metrics` is not 0, the line
    `metrics could not be rendered: metrics.sh exited $metrics` in its place), carries the last reason
    (`.tdd/verify-<phase>.reason` on a `revise-exhausted` bail, the develop-red leaf's `WHY:`
-   line on an `untestable-criterion` bail, the kill cause otherwise; a `ci-red` bail's reason
+   line on an `untestable-criterion` bail, `.tdd/pr-ready.err`'s text on a `pr-ready-failed` bail,
+   the kill cause otherwise; a `ci-red` bail's reason
    names each CI check that failed, the `failed=` field its bail mark read from the head's
    check runs),
    then, after the reason, the skill-drift block — the stdout of `drift="$($S/skill-drift.sh)";
