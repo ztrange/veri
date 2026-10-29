@@ -1339,3 +1339,18 @@ def test_main_still_ends_its_slice_with_3_on_a_pending_check_run_when_ci_on_pr_i
                            env={"VERI_POLL": "0", "VERI_CI_ON_PR": "0"}, cwd=work)
 
     assert (code, out) == (3, "")
+
+
+def test_main_refuses_a_ci_on_pr_other_than_0_1_or_empty_with_2_naming_the_value_issue_2502(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([], [], "pending")
+    bodies[PULL] = json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": True,
+                               "head": {"sha": FULL_SHA}})
+    served(fake_processes, bodies)
+
+    code, out, err = run_cli(wait_ci, [PR, "60", "120", FULL_SHA],
+                             env={"VERI_POLL": "0", "VERI_CI_ON_PR": "maybe"}, cwd=work)
+
+    assert (code, out, "maybe" in err) == (2, "", True)
