@@ -23,6 +23,10 @@ venv_dir() {
 venv_python() {
   local py
   py="$(venv_dir)/bin/python3"
+  if [[ ! -x "$py" && -L "$py" ]]; then
+    printf '%s is not executable; run make install-dev.\n' "$py" >&2
+    return 2
+  fi
   [[ -x "$py" ]] || py="$(command -v python3)"
   printf '%s\n' "$py"
 }

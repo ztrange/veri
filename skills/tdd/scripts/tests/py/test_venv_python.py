@@ -35,3 +35,25 @@ def test_venv_dir_is_veri_venv_or_home_default_and_venv_python_is_its_executable
         "absent|%s|%s" % (absent, path / "python3"),
         "unset|%s|%s" % (default, default / "bin" / "python3"),
     ]
+
+
+@pytest.mark.process("bash sources lib/venv-python.sh")
+def test_2623_venv_python_refuses_a_dangling_venv_interpreter_instead_of_falling_back_to_path_python3(tmp_path):
+    path, venv = tmp_path / "path", tmp_path / "venv"
+    for directory in (path, venv / "bin"):
+        directory.mkdir(parents=True)
+    fallback = path / "python3"
+    fallback.write_text("#!/bin/sh\n")
+    fallback.chmod(0o755)
+    interpreter = venv / "bin" / "python3"
+    interpreter.symlink_to(tmp_path / "gone")
+    env = {"PATH": str(path), "LIB": str(SCRIPTS / "lib" / "venv-python.sh"), "VERI_VENV": str(venv)}
+    done = subprocess.run([shutil.which("bash"), "-c", 'source "$LIB"; venv_python'], env=env,
+                          capture_output=True, text=True)
+    assert done.returncode == 2, done.stdout
+    assert done.stdout == ""
+    lines = done.stderr.splitlines()
+    assert len(lines) == 1
+    assert str(interpreter) in lines[0]
+    assert "not executable" in lines[0]
+    assert "make install-dev" in lines[0]
