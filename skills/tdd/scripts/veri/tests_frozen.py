@@ -347,9 +347,9 @@ def _check_earlier(ledger, step, exempt=()):
                     continue
         except OSError:
             now = old = None
+        accepted = {_body_digest(body) for body in (now, old) if body is not None}
         if case not in exempt and not (fixture and name == fixture.group(1)) and (
-                now is None or any(d not in {_body_digest(now)} | ({_body_digest(old)} if old is not None else set())
-                                   for d in digests)):
+                now is None or any(d not in accepted for d in digests)):
             changed.append("%s (%s)" % (case, owner))
     for entry in changed:
         write(sys.stdout, entry)
