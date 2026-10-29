@@ -173,6 +173,18 @@ def _old_cut_cases(text):
     return {m.group(1) or m.group(2): text[start:end].rstrip() for m, start, end in zip(found, starts, ends)}
 
 
+def _call_end(text, opening):
+    depth = 0
+    for i in range(opening, len(text)):
+        if text[i] == "(":
+            depth += 1
+        elif text[i] == ")":
+            depth -= 1
+            if depth == 0:
+                return i + 1
+    return None
+
+
 def _cases(text):
     found, starts, ends = _spans(text)
     lines, def_ends = text.splitlines(keepends=True), _def_ends(text)
@@ -180,8 +192,11 @@ def _cases(text):
     for m, start, end in zip(found, starts, ends):
         body = text[start:end]
         span = def_ends.get(text.count("\n", 0, start) + 1)
+        closed = _call_end(text, text.rfind("(", start, m.start(4))) if m.group(4) else None
         if m.group(1) and span:
             body = "".join(lines[span[0] - 1:span[1]]).rstrip()
+        elif closed:
+            body = text[start:closed]
         else:
             cut = None if m.group(1) else _module_level_cut(body)
             body = body[:cut.start()] if cut else body
