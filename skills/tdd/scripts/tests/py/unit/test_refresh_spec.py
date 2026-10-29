@@ -50,3 +50,18 @@ def test_main_2572_exits_3_and_leaves_bytes_and_mtime_when_the_live_capture_is_i
 
     assert (code, spec.read_bytes(), spec.stat().st_mtime_ns) == (
         3, live.encode(), 1_000_000_000_000_000_000)
+
+
+def test_main_2572_exits_1_names_both_counts_and_leaves_the_file_when_the_checkbox_count_differs(
+        monkeypatch, tmp_path, capsys, refresh_spec):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+    spec = tmp_path / "issue-7-spec.md"
+    old = "## Acceptance criteria\n\n- [ ] first\n- [ ] second\n"
+    spec.write_text(old)
+    live = "## Acceptance criteria\n\n- [ ] first\n- [ ] second\n- [ ] third\n"
+    fake_gh(monkeypatch, "enhancement\n", live)
+
+    code = refresh_spec.main(["7", str(spec)])
+
+    err = capsys.readouterr().err
+    assert (code, spec.read_bytes(), "2" in err and "3" in err) == (1, old.encode(), True)
