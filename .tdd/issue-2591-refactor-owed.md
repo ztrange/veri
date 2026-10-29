@@ -1,0 +1,2 @@
+### A `format: 2` record of a call-form case written before the fix (its digest taken over the old extent, running to the next case's start or end of file), checked with `tests-frozen.sh check-earlier` against the same unchanged file after the fix, exits 0; pinned by a case built from a `format: 2` record fixture in skills/tdd/scripts/tests/py/unit/test_tests_frozen.py ⟦criterion 2⟧
+- test-only | fold the repeated monkeypatch setup of the new check-earlier test into a shared fixture, if neighbouring check-earlier tests repeat it
