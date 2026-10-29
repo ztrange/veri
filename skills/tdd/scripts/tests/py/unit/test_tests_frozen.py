@@ -841,3 +841,58 @@ def test_check_earlier_flags_an_edit_inside_the_second_of_two_js_call_form_cases
     answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", "step B"], cwd=tmp_path)[:2]
 
     assert (recorded, answer) == (0, (1, "dup (step A)\n"))
+
+
+def _twins_one_edited_since_head(tmp_path, tests_frozen, monkeypatch, edited_first):
+    """A step records only the twin it edited (one digest) out of two same-named twins that head holds."""
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "test_dup.py"
+    at_head = _PY_TWINS
+    suite.write_text(at_head.replace("1 + 1 == 2", "1 + 2 == 3") if edited_first
+                     else at_head.replace("2 + 2 == 4", "3 + 3 == 6"))
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    monkeypatch.setattr(tests_frozen.subprocess, "run", lambda command, **kwargs: types.SimpleNamespace(
+        returncode=0, stdout=at_head.encode(), stderr=b""))
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("- [x] step A\n- [ ] step B\n")
+    return suite, ledger
+
+
+def test_check_earlier_exits_0_when_a_step_recorded_only_the_first_of_two_same_named_twins_and_both_are_unchanged_2543(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite, ledger = _twins_one_edited_since_head(tmp_path, tests_frozen, monkeypatch, edited_first=True)
+    recorded = run_cli(tests_frozen, ["record", "--step", "step A", "test_dup.py"], cwd=tmp_path)[0]
+    path = run_cli(tests_frozen, ["path", "step A"], cwd=tmp_path)[1].strip()
+    digests = [l for l in (tmp_path / path).read_text().splitlines() if l.startswith("body: ")]
+
+    answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", "step B"], cwd=tmp_path)[:2]
+
+    assert (recorded, len(digests), answer) == (0, 1, (0, ""))
+
+
+def test_check_earlier_exits_0_when_a_step_recorded_only_the_second_of_two_same_named_twins_and_both_are_unchanged_2543(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite, ledger = _twins_one_edited_since_head(tmp_path, tests_frozen, monkeypatch, edited_first=False)
+    recorded = run_cli(tests_frozen, ["record", "--step", "step A", "test_dup.py"], cwd=tmp_path)[0]
+    path = run_cli(tests_frozen, ["path", "step A"], cwd=tmp_path)[1].strip()
+    digests = [l for l in (tmp_path / path).read_text().splitlines() if l.startswith("body: ")]
+
+    answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", "step B"], cwd=tmp_path)[:2]
+
+    assert (recorded, len(digests), answer) == (0, 1, (0, ""))
+
+
+def test_check_earlier_flags_a_recorded_twin_removed_while_the_other_same_named_twin_is_unchanged_2543(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite, ledger = _twins_added_since_head(tmp_path, tests_frozen, monkeypatch, "test_dup.py", _PY_TWINS)
+    recorded = run_cli(tests_frozen, ["record", "--step", "step A", "test_dup.py"], cwd=tmp_path)[0]
+    suite.write_text("def test_dup():\n    assert 2 + 2 == 4\n")
+
+    answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", "step B"], cwd=tmp_path)[:2]
+
+    assert (recorded, answer) == (0, (1, "test_dup (step A)\n"))
