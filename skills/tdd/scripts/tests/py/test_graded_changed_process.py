@@ -68,3 +68,17 @@ def test_2653_exits_2_and_prints_nothing_when_git_cannot_resolve_the_base_sha(tm
     result = subprocess.run(["sh", str(SCRIPTS / "graded-changed.sh"), "f" * 40], cwd=work, env=env, capture_output=True, text=True)
 
     assert (result.returncode, result.stdout) == (2, ""), result.stderr
+
+
+@pytest.mark.process("a real git repository and graded-changed.sh")
+def test_2653_exits_2_with_usage_on_stderr_and_nothing_on_stdout_given_more_than_one_argument(tmp_path):
+    work, env, git = _repo(tmp_path)
+    (work / "skills" / "tdd" / "unit.md").write_text("graded prose\n")
+    (work / "skills" / "tdd" / "GRADED").write_text("skills/tdd/unit.md " + "0" * 64 + " 2026-01-01 sig\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+
+    result = subprocess.run(["sh", str(SCRIPTS / "graded-changed.sh"), base, base], cwd=work, env=env, capture_output=True, text=True)
+
+    assert (result.returncode, result.stdout, result.stderr.strip()) == (2, "", "usage: graded-changed.sh <base-sha>")
