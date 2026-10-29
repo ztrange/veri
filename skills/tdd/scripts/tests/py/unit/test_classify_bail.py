@@ -177,3 +177,9 @@ def test_main_classifies_missing_reroutes_exhausted_as_a_process_failure_with_0_
     code = classify_bail.main(["missing-reroutes-exhausted"])
 
     assert (code, *capsys.readouterr()) == (0, "process\n", "")
+
+
+def test_main_classifies_pr_ready_failed_as_a_system_failure_with_0_2581(capsys, classify_bail):
+    code = classify_bail.main(["pr-ready-failed"])
+
+    assert (code, *capsys.readouterr()) == (0, "system\n", "")
