@@ -4,8 +4,10 @@ import sys
 
 try:
     from capture_spec import capture, part
+    from github import NoAnswer
 except ImportError:
     from .capture_spec import capture, part
+    from .github import NoAnswer
 
 
 def boxes(spec):
@@ -13,7 +15,10 @@ def boxes(spec):
 
 
 def main(argv):
-    live = capture(argv[0])
+    try:
+        live = capture(argv[0])
+    except NoAnswer:
+        return 2
     with open(argv[1]) as f:
         old = f.read()
     if old == live:
