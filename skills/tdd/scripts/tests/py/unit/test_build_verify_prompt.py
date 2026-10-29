@@ -2158,3 +2158,30 @@ def test_main_renders_a_red_prompt_with_fast_cmd_that_runs_it_once_and_rejects_a
     assert re.search(r"Run `npm run lint && npm test` once\b.*other than the target test's expected failure.*"
                      r"\bREJECT\b.*naming the file and the error",
                      prompt) is not None
+
+
+def test_main_renders_a_red_prompt_without_fast_cmd_byte_identical_to_the_template_without_the_fast_check_and_unchanged_by_veri_test_cmd_2569(
+        tmp_path, capsysbinary, monkeypatch, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n\nthe criteria\n")
+    argv = ["--step", "the step", "red", str(spec), "tests/a.test.sh", "case one"]
+    template = (SCRIPTS / "prompts" / "verify-red.md").read_bytes()
+    assert b"{{RED_FAST_CHECK}}" in template
+    real_read = build_verify_prompt._read
+
+    def read_without_check(path, *rest):
+        data = real_read(path, *rest)
+        return data.replace(b"{{RED_FAST_CHECK}}", b"") if str(path).endswith("verify-red.md") else data
+
+    with monkeypatch.context() as patched:
+        patched.setattr(build_verify_prompt, "_read", read_without_check)
+        assert build_verify_prompt.main(argv) == 0
+    expected, _ = capsysbinary.readouterr()
+
+    assert build_verify_prompt.main(argv) == 0
+    plain, _ = capsysbinary.readouterr()
+    monkeypatch.setenv("VERI_TEST_CMD", "pytest -k leaked_channel")
+    assert build_verify_prompt.main(argv) == 0
+    with_env, _ = capsysbinary.readouterr()
+
+    assert (plain, with_env) == (expected, expected)
