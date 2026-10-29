@@ -586,6 +586,7 @@ def main(argv):
             return 2
         fixture = _FIXTURE_FILE.search(step) if by_step and carries_mark(trailing_markers(step), "fixture-repair") else None
         loose = fixture.group(1) if fixture else None
+        subjects = re.findall(r"⟦guard-subject: ([^⟧]+)⟧", trailing_markers(step)) if by_step else []
         changed = []
         for expected, name in entries:
             if expected == "deleted":
@@ -593,7 +594,7 @@ def main(argv):
                     changed.append(name)
                 continue
             try:
-                if _digest(name) != expected and not (name == loose and _recorded_cases_intact(record, loose)):
+                if _digest(name) != expected and not (name == loose and _recorded_cases_intact(record, loose)) and name not in subjects:
                     changed.append(name)
             except OSError:
                 changed.append(name)
@@ -603,7 +604,6 @@ def main(argv):
             exempt = {parsed[1]} if parsed else set()
             if fixture:
                 exempt.add(fixture.group(1))
-            subjects = re.findall(r"⟦guard-subject: ([^⟧]+)⟧", trailing_markers(step))
             exempt.update(subjects)
             try:
                 differing = _differing_tests()
