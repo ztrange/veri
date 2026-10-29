@@ -511,3 +511,32 @@ def test_2635_main_reports_a_conductor_exit_when_the_newest_leaf_log_holds_blank
         code = "ValueError: %s" % raised
 
     assert (code, capsys.readouterr().out) == (0, "exited 9 stale\n")
+
+
+def test_2635_main_reports_a_conductor_exit_when_the_newest_leaf_log_holds_only_a_partial_first_line(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    status = watch_runs.status
+    tdd = tmp_path / ".tdd" / "wt" / "9" / ".tdd"
+    tdd.mkdir(parents=True)
+    (tdd / "issue-9.md").write_text("# Plan for #9 — t\n")
+    (tdd / "events.jsonl").write_text(json.dumps({"ts": 100, "issue": "9", "event": "launch"}) + "\n")
+    (tdd / "conductor-9.log").write_text(
+        json.dumps({"type": "system", "subtype": "init"}) + "\n"
+        + json.dumps({"type": "result", "result": "done"}) + "\n")
+    leaf_log = tdd / "develop-exhausted.log"
+    leaf_log.write_text('{"type": "syst')
+    os.utime(leaf_log, (2_000_000_000, 2_000_000_000))
+    starting = iter([["9"]])
+
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status, "branch_of", lambda run: "b")
+    monkeypatch.setattr(status, "issue_states", lambda: {})
+    monkeypatch.setattr(watch_runs, "_starting", lambda: next(starting, []))
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+
+    try:
+        code = watch_runs.main([])
+    except ValueError as raised:
+        code = "ValueError: %s" % raised
+
+    assert (code, capsys.readouterr().out) == (0, "exited 9 stale\n")
