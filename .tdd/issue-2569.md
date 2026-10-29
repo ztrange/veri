@@ -1,0 +1,7 @@
+# Plan for #2569 — verify-red judges with a narrower command than the step, so it can certify an unwinnable step
+
+- [ ] `build-verify-prompt.sh --fast-cmd '<cmd>' red <spec> <test-path> <target>` renders a verify-red prompt that tells the verifier to run `<cmd>` once on the red's tree, and to REJECT, naming the file and the error, when that run fails for any reason other than the target test's expected failure (a lint, typecheck or other-case failure); pinned by a case in `skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py`, a small unit case ⟦criterion 1⟧
+- [ ] Without `--fast-cmd`, `build-verify-prompt.sh red <spec> <test-path> <target>` renders a red prompt byte-identical to the one `main`'s `skills/tdd/scripts/prompts/verify-red.md` renders, and setting `VERI_TEST_CMD` in the environment changes no rendered prompt; pinned by a case in `skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py`, a small unit case ⟦criterion 1⟧
+- [ ] Amend `skills/tdd/SKILL.md` so its first verify-red launch passes `--fast-cmd '<fast-cmd>'` (requirement CY71), graded PASS ⟦skill-edit⟧ ⟦criterion 2⟧
+- [ ] Amend `skills/tdd/REVISE.md` so red's re-verify prompt runs the `--fast-cmd` once and REJECTs a red failing it for any reason other than the target test's expected failure (requirement RV27), graded PASS ⟦skill-edit⟧ ⟦criterion 2⟧
+- [ ] The go-red control: with the red-phase `--fast-cmd` check in `build_verify_prompt.py` reverted, the first criterion's case goes red, watched red by hand and restored ⟦human-owed⟧ ⟦criterion 3⟧
