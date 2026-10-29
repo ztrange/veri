@@ -398,17 +398,23 @@ def rerecord_rebased(ledger, pre):
     with open(ledger, encoding="utf-8") as handle:
         lines = handle.read().splitlines()
     os.chdir(_toplevel())
-    for _, path, records in _earlier_records(lines, ""):
+    refused = []
+    for owner, path, records in _earlier_records(lines, ""):
         out = []
         for record in records:
             parsed = _body_record(record)
             if parsed:
-                name, case, _ = parsed
-                record = "body: %s\t%s\t%s" % (name, case, _body_digest(_cases_at("HEAD", name)[case]))
+                name, case, digest = parsed
+                if _body_digest(_cases_at(pre, name).get(case, "")) != digest:
+                    refused.append("%s (%s)" % (case, owner))
+                else:
+                    record = "body: %s\t%s\t%s" % (name, case, _body_digest(_cases_at("HEAD", name)[case]))
             out.append(record + "\n")
         with open(path, "w", encoding="utf-8") as handle:
             handle.writelines(out)
-    return 0
+    for line in refused:
+        write(sys.stdout, line)
+    return 1 if refused else 0
 
 
 def _take_red_case(files):
