@@ -1136,3 +1136,22 @@ def test_gh_pr_ready_with_a_non_integer_veri_gh_refusal_sleep_is_a_no_answer_nam
     with pytest.raises(github.NoAnswer):
         github.gh_pr_ready("12")
     assert "VERI_GH_REFUSAL_SLEEP" in capsys.readouterr().err
+
+
+def test_gh_pr_ready_with_a_negative_veri_gh_refusal_retries_is_a_no_answer_naming_the_variable_when_ccr_answers_a_rate_limit_refusal_2581(monkeypatch, capsys, github):
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    monkeypatch.setenv("VERI_GH_REFUSAL_RETRIES", "-1")
+    monkeypatch.setattr(time, "sleep", lambda seconds: None)
+    pulls = "repos/{owner}/{repo}/pulls/12"
+    ready = ["gh", "api", "-X", "POST", pulls + "/ccr/ready_for_review"]
+
+    def fake_run(args, **kwargs):
+        if list(args) == ready:
+            return subprocess.CompletedProcess(args, 1, "API rate limit already exceeded\n", None)
+        return subprocess.CompletedProcess(args, 1, "", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    with pytest.raises(github.NoAnswer):
+        github.gh_pr_ready("12")
+    assert "VERI_GH_REFUSAL_RETRIES" in capsys.readouterr().err
