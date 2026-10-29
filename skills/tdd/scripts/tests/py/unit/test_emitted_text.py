@@ -90,7 +90,7 @@ PROMPTS = [
     ("2767466023 4609", "build-develop-prompt.sh", ["exhausted", "{spec}", "{step}", "{cmd}", "{reason}"]),
     ("1653468480 5789", "build-develop-prompt.sh", ["reconcile", "{spec}", "{step}", "{cmd}", "tdd/1-x", "0123456789abcdef"]),
     ("842405346 5110", "build-develop-prompt.sh", ["over-budget", "{spec}", "{step}", "{cmd}", "12.5", "10"]),
-    ("2176465812 6226", "build-develop-prompt.sh", ["rebase", "{spec}", "{step}", "{cmd}", "0123456", "89abcde", "a.sh b.sh"]),
+    ("1727743441 6427", "build-develop-prompt.sh", ["rebase", "{spec}", "{step}", "{cmd}", "0123456", "89abcde", "a.sh b.sh"]),
     ("747050145 7321", "build-verify-prompt.sh", ["red", "{spec}", "t/x.test.sh", "case one"]),
     ("907670271 8180", "build-verify-prompt.sh", ["red", "{bug}", "t/x.test.sh", "case one"]),
     ("2209112346 7498", "build-verify-prompt.sh", ["--step", "{step}", "red", "{spec}", "t/x.test.sh", "case one"]),
