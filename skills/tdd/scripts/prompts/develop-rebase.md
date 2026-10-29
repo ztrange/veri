@@ -31,9 +31,11 @@ both sides' intent survives.
    shows what the default branch added — then `git add` the file and `git rebase --continue`.
    If a conflict cannot be resolved without dropping one side's behaviour, run
    `git rebase --abort`, which returns the branch to `{{PRE_REBASE_SHA}}`, and report FAILED.
-   A conflict in a `*/GRADED` file is the exception: keep the replayed branch commit's side of
-   every conflicted row by taking the file's `--theirs` side (mid-rebase `--ours` is the onto
-   side, so it is the wrong one), edit no hash, and leave re-signing to the regrade block the
+   A conflict in a `*/GRADED` file is the exception: resolve it hunk by hunk: in each
+   conflicted row keep only the replayed branch commit's side (mid-rebase that is git's
+   `--theirs` side of the hunk; `--ours` is the onto side, so it is the wrong one), and keep
+   every line git merged without a conflict, so no row from `{{ONTO_SHA}}` is lost. Never take
+   the branch's whole file: that drops the onto side's newer rows. Edit no hash, and leave re-signing to the regrade block the
    conductor runs before `verify-rebase`. Resolved this way a `GRADED` conflict drops no
    behaviour, so it is no ground for FAILED. Never run `grade-prose.sh`, and never write or
    edit a `GRADED` hash by hand.
