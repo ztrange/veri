@@ -170,7 +170,7 @@ def _spans(text):
 
 def _old_cut_cases(text):
     found, starts, ends = _spans(text)
-    return {m.group(1) or m.group(2): text[start:end].rstrip() for m, start, end in zip(found, starts, ends)}
+    return {m.group(1) or m.group(2) or m.group(4): text[start:end].rstrip() for m, start, end in zip(found, starts, ends)}
 
 
 def _call_end(text, opening):
@@ -303,12 +303,11 @@ def _check_earlier(ledger, step, exempt=()):
     latest = {}
     for owner, _, records in _earlier_records(lines, step):
         bodies = [r for r in map(_body_record, records) if r]
-        marked = "format: 2" in records
         for name, case, digest in bodies:
-            latest[(name, case)] = (digest, owner, marked)
+            latest[(name, case)] = (digest, owner)
     changed = []
     consumed = set()
-    for (name, case), (digest, owner, marked) in latest.items():
+    for (name, case), (digest, owner) in latest.items():
         try:
             with open(name, encoding="utf-8", errors="replace") as handle:
                 text = handle.read()
@@ -325,7 +324,7 @@ def _check_earlier(ledger, step, exempt=()):
         except OSError:
             now = old = None
         if case not in exempt and not (fixture and name == fixture.group(1)) and (
-                now is None or digest not in ((_body_digest(now),) if marked else (_body_digest(now), _body_digest(old)))):
+                now is None or digest not in (_body_digest(now), _body_digest(old))):
             changed.append("%s (%s)" % (case, owner))
     for entry in changed:
         write(sys.stdout, entry)
