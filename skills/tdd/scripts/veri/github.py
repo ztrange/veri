@@ -320,6 +320,18 @@ def _api_graphql_ready(number):
                "-f", "id=" + node.stdout.rstrip("\n")).returncode == 0
 
 
+def _retry_refused(call, stream):
+    refusals = 0
+    while True:
+        done = call()
+        if done.returncode == 0 or "rate limit" not in getattr(done, stream):
+            return done
+        if refusals >= _wait_seconds("VERI_GH_REFUSAL_RETRIES", "3", 0):
+            return done
+        refusals += 1
+        time.sleep(_wait_seconds("VERI_GH_REFUSAL_SLEEP", "60", 0))
+
+
 def gh_pr_ready(number, head_sha=""):
     """Mark draft PR <number> ready for review; given <head_sha>, only once pulls/<number> reports it
     as the head, reading it again every VERI_POLL seconds (default 10), at most 30 times. NoAnswer
@@ -344,30 +356,14 @@ def gh_pr_ready(number, head_sha=""):
         _poll_sleep()
     gql_err = ccr_err = ""
     if _route_open(driver, "graphql"):
-        refusals = 0
-        while True:
-            ready = _gh("pr", "ready", number, stderr=subprocess.PIPE)
-            if ready.returncode == 0 or "rate limit" not in ready.stderr:
-                break
-            if refusals >= _wait_seconds("VERI_GH_REFUSAL_RETRIES", "3", 0):
-                break
-            refusals += 1
-            time.sleep(_wait_seconds("VERI_GH_REFUSAL_SLEEP", "60", 0))
+        ready = _retry_refused(lambda: _gh("pr", "ready", number, stderr=subprocess.PIPE), "stderr")
         sys.stdout.write(ready.stdout)
         if ready.returncode == 0:
             return
         gql_err = ready.stderr.rstrip("\n")
     if _route_open(driver, "rest"):
-        refusals = 0
-        while True:
-            ccr = _gh("api", "-X", "POST", "%s/%s/ccr/ready_for_review" % (_PULLS, number),
-                      stderr=subprocess.STDOUT)
-            if ccr.returncode == 0 or "rate limit" not in ccr.stdout:
-                break
-            if refusals >= _wait_seconds("VERI_GH_REFUSAL_RETRIES", "3", 0):
-                break
-            refusals += 1
-            time.sleep(_wait_seconds("VERI_GH_REFUSAL_SLEEP", "60", 0))
+        ccr = _retry_refused(lambda: _gh("api", "-X", "POST", "%s/%s/ccr/ready_for_review" % (_PULLS, number),
+                                         stderr=subprocess.STDOUT), "stdout")
         if ccr.returncode == 0:
             return
         ccr_err = ccr.stdout.rstrip("\n")
