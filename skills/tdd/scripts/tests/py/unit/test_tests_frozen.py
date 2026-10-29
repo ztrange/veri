@@ -700,3 +700,30 @@ def test_check_step_exits_0_for_a_fixture_repair_step_of_a_file_with_two_js_call
     answer = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)[:2]
 
     assert (recorded, answer) == (0, (0, ""))
+
+
+def test_record_step_writes_only_the_edited_twin_of_two_python_def_cases_sharing_a_name_and_leaves_the_untouched_one_out_2543(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "test_dup.py"
+    at_head = "def test_dup():\n    assert 1 + 1 == 2\n\n\ndef test_dup():\n    assert 2 + 2 == 4\n"
+    suite.write_text(at_head.replace("2 + 2 == 4", "3 + 3 == 6"))
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+
+    def git_show(command, **kwargs):
+        assert command[:2] == ["git", "show"]
+        return types.SimpleNamespace(returncode=0, stdout=at_head.encode(), stderr=b"")
+
+    monkeypatch.setattr(tests_frozen.subprocess, "run", git_show)
+    step = "step A"
+    recorded = run_cli(tests_frozen, ["record", "--step", step, "test_dup.py"], cwd=tmp_path)
+    record = run_cli(tests_frozen, ["path", step], cwd=tmp_path)[1].strip()
+
+    assert recorded[:2] == (0, "")
+    written = (tmp_path / record).read_text().splitlines()
+    digests = [line.split("\t")[2] for line in written if line.startswith("body: ")]
+
+    assert digests == [tests_frozen._body_digest("def test_dup():\n    assert 3 + 3 == 6")]
