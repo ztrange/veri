@@ -77,9 +77,9 @@ no `VERSION` file, no changelog. One merged feature/fix issue is one minor bump,
   `VERI_NEW_SKILL=1` re-pins (a `skill-repin` event).
 - **Every leaf is launched through `supervise.sh`**, never `run-leaf.sh` or `claude` directly:
   stuck detection lives only there.
-- **The verifier is blind by construction.** `build-verify-prompt.sh` takes only a phase, the
-  spec, the test path and a test id — no parameter for the developer's rationale, so it cannot
-  leak; never add one. The `refactor` phase takes `<base-sha>` instead of the test id (#151),
+- **The verifier is blind by construction.** No input of `build-verify-prompt.sh` can carry the
+  developer's rationale, so it cannot leak; every input is checked against that, and none may be
+  added that could. The `refactor` phase takes `<base-sha>` instead of the test id (#151),
   exit 2 unless it matches `^[0-9a-f]{7,40}$`, so it can carry only a hex commit name; the
   verifier reads `git diff <base-sha>..HEAD`, not commit messages.
 - **The committed ledger is the source of truth** for done steps; the issue only mirrors it.

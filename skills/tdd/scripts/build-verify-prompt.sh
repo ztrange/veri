@@ -1,9 +1,8 @@
 #!/bin/sh
 # build-verify-prompt.sh — assemble a BLIND verifier leaf's prompt for one cycle phase: a shim over veri/build_verify_prompt.py.
 #
-# The verifier is blind by construction (ADR-0003): this builder's only inputs are the
-# issue's behavior spec and the test under review. It has NO parameter for the developer
-# leaf's rationale, so the author's reasoning physically cannot reach the verifier — the
+# The verifier is blind by construction (ADR-0003): none of this builder's inputs can carry
+# the developer leaf's rationale, and none may be added that could, so the author's reasoning physically cannot reach the verifier — the
 # blindness guarantee is structural, not a matter of the conductor remembering to omit it.
 #
 # usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]
