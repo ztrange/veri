@@ -23,16 +23,9 @@ def part(body, heading):
     return "".join(lines)
 
 
-def main(argv):
-    if not argv or argv[0] == "":
-        print(USAGE, file=sys.stderr)
-        return 2
-    n = argv[0]
-    try:
-        labels = gh_issue_view(n, "labels").rstrip("\n").split("\n")
-        body = gh_issue_view(n, "body").rstrip("\n")
-    except NoAnswer:
-        return 2
+def capture(n):
+    labels = gh_issue_view(n, "labels").rstrip("\n").split("\n")
+    body = gh_issue_view(n, "body").rstrip("\n")
     out = body + "\n"
     if "bug" in labels:
         out += "\n## Bug\n"
@@ -40,6 +33,17 @@ def main(argv):
             out += "\n### %s\n\n" % heading + part(body, heading)
     if "refactor" in labels:
         out += "\n## Refactor\n\nRun kind: refactor. This issue changes structure, not behaviour.\n"
+    return out
+
+
+def main(argv):
+    if not argv or argv[0] == "":
+        print(USAGE, file=sys.stderr)
+        return 2
+    try:
+        out = capture(argv[0])
+    except NoAnswer:
+        return 2
     sys.stdout.write(out)
     return 0
 
