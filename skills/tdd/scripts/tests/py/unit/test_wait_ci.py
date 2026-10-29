@@ -1291,3 +1291,21 @@ def test_main_exits_0_on_the_first_poll_of_a_mergeable_pr_with_no_checks_when_ci
 
     assert (code, out, len(reads), err.count("\n"), "no checks" in err, "VERI_CI_ON_PR=0" in err,
             sorted(p.name for p in (work / ".tdd").iterdir())) == (0, "", 1, 1, True, True, [])
+
+
+@pytest.mark.parametrize("ci_on_pr", [None, "1"])
+def test_main_still_ends_its_slice_with_3_on_a_mergeable_pr_with_no_checks_when_ci_on_pr_is_unset_or_1_issue_2502(
+        tmp_path, wait_ci, fake_processes, run_cli, ci_on_pr):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([], [], "pending")
+    bodies[PULL] = json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": True,
+                               "head": {"sha": FULL_SHA}})
+    served(fake_processes, bodies)
+    env = {"VERI_POLL": "0"}
+    if ci_on_pr:
+        env["VERI_CI_ON_PR"] = ci_on_pr
+
+    code, out, _ = run_cli(wait_ci, [PR, "60", "120", FULL_SHA], env=env, cwd=work)
+
+    assert (code, out) == (3, "")
