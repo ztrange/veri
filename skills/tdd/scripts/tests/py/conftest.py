@@ -959,3 +959,19 @@ def listed_in_turn(listing, answers, **kwargs):
     """Serve <answers> to <listing> now, and answer with subprocess.run starting every process for real."""
     listing(answers, **kwargs)
     return started_for_real
+
+
+def run_supervised(args, timeout, started=None, **kwargs):
+    """Start supervise.sh in a session of its own and wait <timeout> seconds for it."""
+    ran = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True, **kwargs)
+    if started is not None:
+        started.append(ran)
+    try:
+        out, err = ran.communicate(timeout=timeout)
+        return subprocess.CompletedProcess(args, ran.returncode, out, err)
+    finally:
+        try:
+            os.killpg(ran.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        ran.wait()
