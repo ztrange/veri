@@ -1,6 +1,7 @@
 """In-process cases for veri/tests_frozen.py, the module tests-frozen.sh is a shim over."""
 import hashlib
 import importlib
+import types
 
 import pytest
 
@@ -599,3 +600,30 @@ def test_rerecord_rebased_with_no_pre_rebase_sha_or_an_extra_argument_is_exit_2_
     assert ([(code, out, "rerecord-rebased <ledger> <pre-rebase-sha>" in err) for code, out, err in answers],
             sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == (
         [(2, "", True), (2, "", True)], ["issue-1.md"])
+
+
+def test_check_earlier_exits_0_for_a_python_def_case_sharing_its_name_with_another_unchanged_since_head_2543(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "test_dup.py"
+    suite.write_text("def test_dup():\n    assert 1 + 1 == 2\n\n\ndef test_dup():\n    assert 2 + 2 == 4\n")
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+
+    def git_show(command, **kwargs):
+        assert command[:2] == ["git", "show"]
+        return types.SimpleNamespace(returncode=0, stdout=suite.read_bytes(), stderr=b"")
+
+    monkeypatch.setattr(tests_frozen.subprocess, "run", git_show)
+    earlier, current = "step A", "step B"
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    recorded = run_cli(tests_frozen, ["record", "--step", earlier, "test_dup.py"], cwd=tmp_path)[0]
+
+    answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)[:2]
+
+    assert (recorded, answer) == (0, (0, ""))
