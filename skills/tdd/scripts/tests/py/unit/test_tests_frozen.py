@@ -752,3 +752,28 @@ def test_check_earlier_flags_an_edit_inside_the_first_of_two_python_def_cases_sh
     answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)[:2]
 
     assert (recorded, answer) == (0, (1, "test_dup (%s)\n" % earlier))
+
+
+def test_check_earlier_flags_an_edit_inside_the_second_of_two_python_def_cases_sharing_a_name_both_added_since_head_2543(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "test_dup.py"
+    original = "def test_dup():\n    assert 1 + 1 == 2\n\n\ndef test_dup():\n    assert 2 + 2 == 4\n"
+    suite.write_text(original)
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
+    monkeypatch.setattr(tests_frozen, "_head_cases_all", lambda name: [])
+    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    earlier, current = "step A", "step B"
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    recorded = run_cli(tests_frozen, ["record", "--step", earlier, "test_dup.py"], cwd=tmp_path)[0]
+    suite.write_text(original.replace("2 + 2 == 4", "2 + 3 == 5"))
+
+    answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)[:2]
+
+    assert (recorded, answer) == (0, (1, "test_dup (%s)\n" % earlier))
