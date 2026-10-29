@@ -527,6 +527,12 @@ ledger is committed (before that there is no plan on disk to read) and before th
 the other four: its inputs are the issue spec and the proposed ledger, and nothing else. It
 runs no tests, so it is the cheapest verification in the run.
 
+Right before verify-plan launches, refresh the captured spec from the live issue:
+`$S/refresh-spec.sh <n> .tdd/issue-<n>-spec.md`. Exit 0 (refreshed) and exit 3 (nothing to
+refresh) go on. Exit 2 (no answer) goes on with the capture as it stands. Exit 1 means the
+live criteria count differs from the capture's: **bail** with cause `needs-user`, naming both
+counts in the bail comment, before the verifier launches (`Read` `<base directory>/BAIL.md`).
+
 ```
 rm -f .tdd/verdict-plan.exit .tdd/verdict-plan.pid
 VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> $S/detach-leaf.sh $S/supervise.sh verdict-plan $S/run-verdict.sh plan .tdd/issue-<n>-spec.md .tdd/issue-<n>.md > .tdd/verify-plan.reason 2> .tdd/verify-plan.err
@@ -669,7 +675,13 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
 
 #### Red — one failing test (developer leaf), then verify-red (blind)
 
-1. **Develop.** Build the prompt from the `red` template — it already instructs the leaf to
+1. **Develop.** Before the prompt is built, run `$S/refresh-spec.sh <n> .tdd/issue-<n>-spec.md`.
+   Exit 0 and exit 3 go on, and exit 0 is named in the step's `### 🔴 Red` comment as a
+   refreshed spec. Exit 2 goes on with the capture, and the `### 🔴 Red` comment says so.
+   Exit 1 (the live criteria count differs from the capture's) **bails** with cause
+   `needs-user`, naming both counts in the bail comment, before any leaf of the step
+   launches (`Read` `<base directory>/BAIL.md`).
+   Then build the prompt from the `red` template — it already instructs the leaf to
    write **exactly one** failing test pinning the criterion to **observable external
    behavior**, with **no production code**, and to run **the suite holding that case**, not
    the full suite, against the unmodified code, since the only question Red asks is whether
