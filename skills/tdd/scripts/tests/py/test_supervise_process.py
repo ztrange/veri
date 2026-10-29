@@ -259,3 +259,30 @@ def test_2427_a_leaf_killed_by_the_supervisors_own_hard_timeout_stays_killed_stu
 
     assert (ran.returncode, len(retries), [e.get("cause") for e in exits]) == (
         2, 1, ["hard timeout 1s exceeded"]), ran.stderr
+
+
+@pytest.mark.process("supervise.sh runs a real leaf that outlives the wait the shared helper gives it")
+@pytest.mark.timeout(60)
+def test_2644_a_supervisor_whose_leaf_outlives_the_cases_wait_is_gone_after_the_helper_exits(tmp_path):
+    from conftest import run_supervised
+
+    work = tmp_path / "work"
+    work.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=work, check=True)
+    started = []
+    with pytest.raises(subprocess.TimeoutExpired):
+        run_supervised([str(SCRIPTS / "supervise.sh"), "develop-red", "sleep", "300"], timeout=2, started=started,
+                       cwd=work, text=True,
+                       env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
+                            "VERI_POLL": "0.05", "VERI_TIMEOUT": "600", "VERI_HEARTBEAT": "600",
+                            "VERI_ISSUE": "2644", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"})
+    alive = True
+    try:
+        os.kill(started[0].pid, 0)
+    except ProcessLookupError:
+        alive = False
+    finally:
+        if alive:
+            os.killpg(started[0].pid, 9)
+
+    assert alive is False
