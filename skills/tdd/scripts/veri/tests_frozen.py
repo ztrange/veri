@@ -237,16 +237,16 @@ def _recorded_cases_intact(record, name):
 
 def _earlier_records(lines, step):
     for line in lines:
-        match = re.match(r"\s*- \[[^ ]\] (.*)", line)
-        if not match or match.group(1) == step:
+        match = re.match(r"\s*- \[(.)\] (.*)", line)
+        if not match or match.group(1) == " " or match.group(2) == step:
             continue
-        path = _record_path(match.group(1))
+        path = _record_path(match.group(2))
         try:
             with open(path, encoding="utf-8") as handle:
                 records = handle.read().splitlines()
         except OSError:
             continue
-        yield match.group(1), path, records
+        yield match.group(2), path, records
 
 
 def _renamed_to(name, case, digest, text, consumed):
