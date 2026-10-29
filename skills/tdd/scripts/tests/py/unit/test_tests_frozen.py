@@ -440,3 +440,24 @@ def test_check_earlier_leaves_a_vitest_it_case_last_before_a_finish_trailer_unch
     answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)[:2]
 
     assert (recorded, answer) == (0, (0, ""))
+
+
+def test_check_step_exits_0_for_a_vitest_it_case_after_a_case_is_appended_to_the_file_that_recorded_it_2591(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "sum.test.ts"
+    original = 'describe("sum", () => {\n  it("adds", () => {\n    expect(1 + 1).toBe(2);\n  });\n});\n'
+    suite.write_text(original)
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
+    step = "the case passes: repairs the fixture 'db' in sum.test.ts, reproduced by a case in sum.test.ts ⟦fixture-repair⟧"
+    recorded = run_cli(tests_frozen, ["record", "--step", step, "sum.test.ts"], cwd=tmp_path)[0]
+    suite.write_text(original.replace(
+        "  });\n});\n", '  });\n\n  it("subtracts", () => {\n    expect(3 - 1).toBe(2);\n  });\n});\n'))
+
+    answer = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)[:2]
+
+    assert (recorded, answer) == (0, (0, ""))
