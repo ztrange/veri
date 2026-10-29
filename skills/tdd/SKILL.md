@@ -356,6 +356,8 @@ three times over branches its ledger pinned on later lines.
 
 **A step names exactly one observable outcome.** A behaviour and each distinct refusal, exit code or fail-closed branch its criterion names are planned as separate steps, one outcome per step: the Red phase's one-case rule ("One criterion, one case") allows a step exactly one new case, and verify-green's demand that every guard be pinned by a case rejects a guard no case pins, so a step naming two outcomes cannot satisfy both and cannot go green. The rule is keyed on the count of named outcomes, never on the mere presence of a guard: a step naming one outcome alone, a behaviour or one guard, is not split (#2553).
 
+**One step never both renames a pytest case and changes its body.** Work that does both is planned as two steps: the body amended under the old name first, then the rename with the body otherwise unchanged (#2594).
+
 1. Write the plan as a checkbox list to the **ledger** `.tdd/issue-<n>.md`, e.g.:
    ```
    # Plan for #<n> — <issue title>
