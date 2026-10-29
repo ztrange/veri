@@ -1,0 +1,1 @@
+- [ ] `refresh-spec.sh` exists as a `/bin/sh` shim over `veri/refresh_spec.py` following the ported-script convention, and run with no argument prints a usage line naming `refresh-spec.sh` on stderr and exits 2; a case in `skills/tdd/scripts/tests/py/unit/test_refresh_spec.py` (or the repo-wide `run_cli` no-argument audit) pins it ⟦added⟧ ⟦criterion 3⟧
