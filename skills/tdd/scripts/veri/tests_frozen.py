@@ -18,7 +18,8 @@ from transform_touches_tests import TEST_FILE
 USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> <test-file>... | "
          "check <record-file>|--step <step-text> | "
          "check-earlier <ledger> --step <step-text> [--except <case>]... | "
-         "rerecord-earlier <ledger> --step <step-text> | path <step-text>")
+         "rerecord-earlier <ledger> --step <step-text> | "
+         "rerecord-rebased <ledger> <pre-rebase-sha> | path <step-text>")
 REPAIR_MARKS = ("suite-repair", "ci-repair", "fixture-repair")
 
 
@@ -393,6 +394,22 @@ def rerecord_earlier(ledger, step):
     return 0
 
 
+def rerecord_rebased(ledger, pre):
+    with open(ledger, encoding="utf-8") as handle:
+        lines = handle.read().splitlines()
+    for _, path, records in _earlier_records(lines, ""):
+        out = []
+        for record in records:
+            parsed = _body_record(record)
+            if parsed:
+                name, case, _ = parsed
+                record = "body: %s\t%s\t%s" % (name, case, _body_digest(_cases_at("HEAD", name)[case]))
+            out.append(record + "\n")
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.writelines(out)
+    return 0
+
+
 def _take_red_case(files):
     if "--red-case" not in files:
         return None
@@ -421,6 +438,8 @@ def main(argv):
     rest = argv[4:]
     if argv[:1] == ["rerecord-earlier"] and len(argv) == 4 and argv[2] == "--step" and argv[3]:
         return rerecord_earlier(argv[1], argv[3])
+    if argv[:1] == ["rerecord-rebased"] and len(argv) == 3:
+        return rerecord_rebased(argv[1], argv[2])
     if (argv[:1] == ["check-earlier"] and len(argv) >= 4 and argv[2] == "--step" and argv[3]
             and len(rest) % 2 == 0 and all(flag == "--except" and name for flag, name in zip(rest[::2], rest[1::2]))):
         return _check_earlier(argv[1], argv[3], rest[1::2])
