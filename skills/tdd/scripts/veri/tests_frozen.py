@@ -219,6 +219,11 @@ def _cases_at(rev, name):
     return dict(_cases(shown.stdout.decode("utf-8", "replace")))
 
 
+def _head_cases_all(name):
+    shown = subprocess.run(["git", "show", "HEAD:%s" % name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return _cases(shown.stdout.decode("utf-8", "replace"))
+
+
 def _head_and_new_cases(name):
     with open(name, encoding="utf-8", errors="replace") as handle:
         new = handle.read()
@@ -227,7 +232,13 @@ def _head_and_new_cases(name):
 
 def _added_cases(name):
     before, new = _head_and_new_cases(name)
-    return [(case, body) for case, body in new if before.get(case) != body]
+    names = [case for case, _ in new]
+    if len(set(names)) == len(names):
+        return [(case, body) for case, body in new if before.get(case) != body]
+    held = {}
+    for case, body in _head_cases_all(name):
+        held.setdefault(case, set()).add(body)
+    return [(case, body) for case, body in new if body not in held.get(case, ())]
 
 
 def _body_line(name, case, body):
