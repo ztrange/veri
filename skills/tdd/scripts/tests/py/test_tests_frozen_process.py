@@ -2557,3 +2557,31 @@ def test_rerecord_rebased_exits_3_and_rewrites_no_record_when_no_earlier_recorde
     code, out, _ = run_cli(tests_frozen, ["rerecord-rebased", str(repo / ".tdd/ledger.md"), before], cwd=repo)
 
     assert (code, out, record.read_bytes()) == (3, "", old)
+
+
+@pytest.mark.process("a real git repository with an origin remote under tmp_path, asked to rerecord with a missing ledger")
+def test_rerecord_rebased_exits_2_naming_an_unreadable_ledger_on_stderr_and_writes_no_record_2552(
+        tmp_path, run_cli, tests_frozen):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    (repo / ".tdd").mkdir()
+    suite = repo / "tests/test_suite.py"
+    suite.write_text("def test_config_2552():\n    assert f() == 1\n")
+    git(repo, "init", "-q", "-b", "main")
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "base")
+    git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
+    git(repo, "remote", "add", "origin", str(tmp_path / "origin.git"))
+    git(repo, "fetch", "-q", "origin")
+    git(repo, "remote", "set-head", "origin", "main")
+    run_cli(tests_frozen, ["record", "--step", "step one pins the config", "tests/test_suite.py"], cwd=repo)
+    (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
+    old = record.read_bytes()
+    ledger = repo / ".tdd/missing-ledger.md"
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True,
+                          text=True).stdout.strip()
+
+    code, out, err = run_cli(tests_frozen, ["rerecord-rebased", str(ledger), head], cwd=repo)
+
+    assert (code, out, record.read_bytes()) == (2, "", old)
+    assert str(ledger) in err
