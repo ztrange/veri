@@ -103,7 +103,7 @@ test unit:
 	$(OFFLINE_GIT); \
 	skills/tdd/scripts/prose-owed.sh . || fail=1; \
 	if [ -n "$(PY_TESTS)" ]; then \
-	  py_bin="$(VENV_PY)"; \
+	  py_bin="$(VENV_PY)" || exit 2; \
 	  printf '== pytest\n'; \
 	  PYTHONPYCACHEPREFIX="$$pycache" COLUMNS=200 $(OFFLINE_ENV) $(if $(PY_WORKERS),VERI_PYTEST_WORKERS="$${VERI_PYTEST_WORKERS:-$(PY_WORKERS)}") "$$py_bin" skills/tdd/scripts/veri/pytest_leg.py $(if $(TESTS_NAMED),--subset) --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || { leg=$$?; [ $$leg -ne 2 ] || exit 2; fail=1; }; \
 	fi; \
