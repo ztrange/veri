@@ -19,7 +19,7 @@ def latest_result(path):
     """(launched, the latest launch's result record or None) for the conductor log at path."""
     result = None
     launched = False
-    for r in read_events(path):
+    for r in read_events(path, skip_unreadable=True):
         if r.get("type") == "system" and r.get("subtype") == "init":
             result = None
             launched = True
