@@ -1,5 +1,5 @@
 #!/bin/sh
-# detect-test-command.sh — print the one command that runs the full suite of a repo: a shim over veri/detect_test_command.py.
+# detect-test-command.sh — print the command of the tier asked for (default: the full suite) of a repo: a shim over veri/detect_test_command.py.
 #
 # Precedence is first-match-wins: the issue's `Test command:` line, then the tier markers in
 # the repo's CLAUDE.md, then .veri/test-command, then inference from the repo's files.
