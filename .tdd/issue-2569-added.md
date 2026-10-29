@@ -1,0 +1,1 @@
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_run_conductor.py — FAILED skills/tdd/scripts/tests/py/test_run_conductor.py::test_cli_each_phases_leaf_is_launched_with_its_tier_red_and_refactor_affected_green_verify_green_and_verify_refactor_fast_and_affected (AssertionError at test_run_conductor.py:2737, the leaf-tier map) ⟦suite-repair⟧ ⟦criterion 2⟧
