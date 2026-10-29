@@ -633,6 +633,23 @@ def test_main_2568_prints_missing_behaviour_and_exits_0_when_the_only_missing_re
     assert (code, stdout) == (0, "missing a guard is pinned by a case\n")
 
 
+def test_main_2568_prints_missing_exhausted_and_exits_1_when_the_only_missing_reroute_has_no_resume_event_after_it(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / ".tdd").mkdir()
+    step = "wrong-test-route.sh keeps a missing reroute spent without a resume"
+    monkeypatch.setenv("VERI_STEP", step)
+    monkeypatch.setenv("VERI_MISSING_REROUTE_BUDGET", "1")
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        '{"event": "reroute", "step": "%s", "kind": "missing"}\n' % step)
+    report = tmp_path / "missing-report.txt"
+    report.write_text("VERDICT: REJECT\nMISSING_TEST: a guard is pinned by a case\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+
+    assert (code, stdout) == (1, "missing-exhausted a guard is pinned by a case\n")
+
+
 def test_main_2573_defaults_the_missing_reroute_budget_to_3_when_the_variable_is_unset_or_empty(
         run_cli, tmp_path, monkeypatch):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
