@@ -135,6 +135,10 @@ def main(argv):
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
         return 2
+    on_pr = tunables.read("VERI_CI_ON_PR", unless_empty="1")
+    if on_pr not in ("0", "1"):
+        warn("VERI_CI_ON_PR '%s' is not 0 or 1" % on_pr)
+        return 2
     pr = argv[0]
     repo = pr.removeprefix("https://github.com/").rsplit("/pull/", 1)[0]
     scope = {}
@@ -186,7 +190,7 @@ def main(argv):
         if state in ("none", "skipped") and mergeable is False:
             warn("%s conflicts with its base branch; no workflow will start until it is rebased" % pr)
             return 2
-        if state == "none" and tunables.read("VERI_CI_ON_PR", unless_empty="1") == "0":
+        if state == "none" and on_pr == "0":
             warn("%s has no checks and VERI_CI_ON_PR=0 says none will come" % pr)
             return 0
         if state == "skipped":
