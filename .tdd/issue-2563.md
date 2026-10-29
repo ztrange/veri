@@ -1,0 +1,4 @@
+# Plan for #2563 — A discarded attempt leaves its frozen record behind, failing check-earlier for every later step
+
+- [ ] `tests-frozen.sh check-earlier` ignores the frozen record of a step whose ledger line is unchecked (`- [ ]`): with a ledger `- [x] A`, `- [ ] B`, `- [ ] C`, a record for B naming a case whose body has since changed, and C as `--step`, `check-earlier <ledger> --step C` exits 0 with nothing on stdout, while the same setup with B ticked (`- [x] B`) still exits 1 printing that case with B as its owner; one small case in `skills/tdd/scripts/tests/py/unit/test_tests_frozen.py`, faking only the git boundary as the existing `check_earlier` cases there do ⟦criterion 1⟧
+- [ ] The go-red control: with the unchecked-step filter in `_earlier_records()` reverted, the first criterion's case goes red, watched red by hand and restored ⟦human-owed⟧ ⟦criterion 2⟧
