@@ -7,6 +7,7 @@ import sys
 
 import pytest
 
+from conftest import supervised
 from leaf_waits import leaf_left, leaf_started
 from pass_marker import write_pass_marker
 
@@ -3289,19 +3290,19 @@ def test_cli_on_term_int_or_hup_writes_2_exits_2_and_leaves_no_leaf_while_an_ign
     def waited_on_live():
         work = tmp_path / "wait-live"
         work.mkdir()
-        sup = subprocess.Popen([str(SCRIPTS / "supervise.sh"), "develop-red", "sh", "-c", held], cwd=work,
-                               env={**os.environ, **window}, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        pid = None
-        try:
-            pid = leaf_pid(work)
-            waited = subprocess.run([str(SCRIPTS / "wait-leaf.sh"), "develop-red", "0"], cwd=work,
-                                    env={**os.environ, "VERI_POLL": "0.02"}, stdout=subprocess.DEVNULL,
-                                    stderr=subprocess.PIPE, text=True)
-        finally:
-            sup.send_signal(signal.SIGTERM)
-            sup.wait()
-            if pid and alive(pid):
-                os.kill(pid, signal.SIGKILL)
+        with supervised([str(SCRIPTS / "supervise.sh"), "develop-red", "sh", "-c", held], cwd=work,
+                        env={**os.environ, **window}, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) as sup:
+            pid = None
+            try:
+                pid = leaf_pid(work)
+                waited = subprocess.run([str(SCRIPTS / "wait-leaf.sh"), "develop-red", "0"], cwd=work,
+                                        env={**os.environ, "VERI_POLL": "0.02"}, stdout=subprocess.DEVNULL,
+                                        stderr=subprocess.PIPE, text=True)
+            finally:
+                sup.send_signal(signal.SIGTERM)
+                sup.wait()
+                if pid and alive(pid):
+                    os.kill(pid, signal.SIGKILL)
         return waited.returncode, waited.stderr
 
     try:
@@ -3389,38 +3390,39 @@ def test_cli_refuses_a_launch_under_another_name_or_the_same_name_even_after_the
     work = tmp_path / "live"
     work.mkdir()
     window = ignoring_run_files(work, {**LIVE_LEAF_WINDOW, **checked_step(work, committed_head(work))})
-    sup = subprocess.Popen([str(SCRIPTS / "supervise.sh"), "develop-red", "sh", "-c", "echo $$ > leaf-pid; exec sleep 60"],
-                           cwd=work, env={**os.environ, **window}, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    leaf = None
-    try:
-        for _ in range(500):
-            if (work / "leaf-pid").is_file() and (work / ".tdd" / "leaf.owner").is_file() \
-                    and (work / "leaf-pid").read_text().strip():
-                break
-            time.sleep(0.02)
-        else:
-            raise AssertionError("the first leaf never started")
-        leaf = int((work / "leaf-pid").read_text())
+    with supervised([str(SCRIPTS / "supervise.sh"), "develop-red", "sh", "-c", "echo $$ > leaf-pid; exec sleep 60"],
+                    cwd=work, env={**os.environ, **window}, stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL) as sup:
+        leaf = None
+        try:
+            for _ in range(500):
+                if (work / "leaf-pid").is_file() and (work / ".tdd" / "leaf.owner").is_file() \
+                        and (work / "leaf-pid").read_text().strip():
+                    break
+                time.sleep(0.02)
+            else:
+                raise AssertionError("the first leaf never started")
+            leaf = int((work / "leaf-pid").read_text())
 
-        def second(name):
-            (work / "ran").unlink(missing_ok=True)
-            code, out, err = run_cli(supervise, [name, "sh", "-c", "echo ran > ran"], cwd=work, env=window)
-            return code, out, err.strip().splitlines()[-1:], (work / "ran").exists()
+            def second(name):
+                (work / "ran").unlink(missing_ok=True)
+                code, out, err = run_cli(supervise, [name, "sh", "-c", "echo ran > ran"], cwd=work, env=window)
+                return code, out, err.strip().splitlines()[-1:], (work / "ran").exists()
 
-        answers = [second("verify-red"), second("develop-red")]
-        for suffix in ("exit", "pid"):
-            (work / ".tdd" / f"develop-red.{suffix}").unlink(missing_ok=True)
-        answers.append(second("develop-red"))
-        assert answers == [
-            (2, "", [REFUSAL.format("verify-red", "develop-red", sup.pid)], False),
-            (2, "", [REFUSAL.format("develop-red", "develop-red", sup.pid)], False),
-            (2, "", [REFUSAL.format("develop-red", "develop-red", sup.pid)], False),
-        ]
-    finally:
-        sup.send_signal(signal.SIGTERM)
-        sup.wait()
-        if leaf and alive(leaf):
-            os.kill(leaf, signal.SIGKILL)
+            answers = [second("verify-red"), second("develop-red")]
+            for suffix in ("exit", "pid"):
+                (work / ".tdd" / f"develop-red.{suffix}").unlink(missing_ok=True)
+            answers.append(second("develop-red"))
+            assert answers == [
+                (2, "", [REFUSAL.format("verify-red", "develop-red", sup.pid)], False),
+                (2, "", [REFUSAL.format("develop-red", "develop-red", sup.pid)], False),
+                (2, "", [REFUSAL.format("develop-red", "develop-red", sup.pid)], False),
+            ]
+        finally:
+            sup.send_signal(signal.SIGTERM)
+            sup.wait()
+            if leaf and alive(leaf):
+                os.kill(leaf, signal.SIGKILL)
 
 
 @pytest.mark.process("a real supervise.sh run under run_cli, and a real leaf that launches a nested supervise.sh from inside its own live supervision")

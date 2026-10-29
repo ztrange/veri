@@ -1,5 +1,6 @@
 import ast
 import builtins
+import contextlib
 import dataclasses
 import errno
 import io
@@ -961,17 +962,26 @@ def listed_in_turn(listing, answers, **kwargs):
     return started_for_real
 
 
-def run_supervised(args, timeout, started=None, **kwargs):
-    """Start supervise.sh in a session of its own and wait <timeout> seconds for it."""
-    ran = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True, **kwargs)
+@contextlib.contextmanager
+def supervised(args, started=None, **kwargs):
+    """Start supervise.sh in a session of its own; on the way out, however the case ends, kill that session's group."""
+    kwargs.setdefault("stdout", subprocess.PIPE)
+    kwargs.setdefault("stderr", subprocess.PIPE)
+    ran = subprocess.Popen(args, start_new_session=True, **kwargs)
     if started is not None:
         started.append(ran)
     try:
-        out, err = ran.communicate(timeout=timeout)
-        return subprocess.CompletedProcess(args, ran.returncode, out, err)
+        yield ran
     finally:
         try:
             os.killpg(ran.pid, signal.SIGKILL)
-        except ProcessLookupError:
+        except (ProcessLookupError, PermissionError):
             pass
         ran.wait()
+
+
+def run_supervised(args, timeout, started=None, **kwargs):
+    """Start supervise.sh in a session of its own and wait <timeout> seconds for it."""
+    with supervised(args, started=started, **kwargs) as ran:
+        out, err = ran.communicate(timeout=timeout)
+        return subprocess.CompletedProcess(args, ran.returncode, out, err)
