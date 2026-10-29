@@ -350,6 +350,10 @@ usage header, a null guard) is still one no test of that step requires if only a
 pins it, and the blind verify-green rejects it as unrequired code, as #760's port step was
 three times over branches its ledger pinned on later lines.
 
+**A step whose code cannot be written without a branch only a later step's test pins is ordered after that step, or merged with it.** A loop's fall-through return, a required `else`: the code cannot be written without the branch, and no test of this step requires it, so the blind verify-green rejects it as unrequired code (#775). The pinning step comes first, or the two are one step (#2607).
+
+**A step that makes code produce a new outcome an existing caller does not yet handle is ordered after the step that adds that caller's handling.** A new rejection, error or empty result reaching a caller that cannot yet take it turns that caller's existing cases red the moment the producer starts producing it, and Green may not edit a test to put them right (#946, #2607).
+
 **The step that adds a script owes its contract in that same step.** A step that adds a script under `skills/tdd/scripts/` also gives it a no-argument usage line and exit 2, and a declared caller, in that same step, so the step can go green against the repo-wide audits (the `run_cli` no-argument case in `tests/py/unit/test_missing_argument_cli.py`, unreachable); a usage or caller left to a later step leaves the first step red whatever its green does, as #1621's did.
 
 **A step that changes text older cases pin is preceded by the step that updates them.** When a criterion changes text or output that existing cases outside the step's own Red pin (a usage string, a constant, the text of a prompt compared verbatim or by checksum), the plan holds a step that updates those older cases, placed ahead of the step that changes the text (except a sentence a `⟦skill-edit⟧` step changes, below: that step carries its own pin updates); Green may not edit a test, so without it the older cases turn red and no leaf allowed to edit them is ever launched, as #1719's step 8 and #1718's first runs found.
