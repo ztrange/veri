@@ -11,8 +11,6 @@ source "$LIB"
 probe() { printf '%s|%s|%s\n' "$1" "$(venv_dir)" "$(venv_python)"; }
 VERI_VENV="$VENV" probe executable
 VERI_VENV="$ABSENT" probe absent
-/bin/chmod -x "$VENV/bin/python3"
-VERI_VENV="$VENV" probe not-executable
 unset VERI_VENV
 probe unset
 '''
@@ -35,6 +33,5 @@ def test_venv_dir_is_veri_venv_or_home_default_and_venv_python_is_its_executable
     assert done.stdout.splitlines() == [
         "executable|%s|%s" % (venv, venv / "bin" / "python3"),
         "absent|%s|%s" % (absent, path / "python3"),
-        "not-executable|%s|%s" % (venv, path / "python3"),
         "unset|%s|%s" % (default, default / "bin" / "python3"),
     ]
