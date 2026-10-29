@@ -237,7 +237,7 @@ def _recorded_cases_intact(record, name):
 
 def _earlier_records(lines, step):
     for line in lines:
-        match = re.match(r"\s*- \[.\] (.*)", line)
+        match = re.match(r"\s*- \[[^ ]\] (.*)", line)
         if not match or match.group(1) == step:
             continue
         path = _record_path(match.group(1))
