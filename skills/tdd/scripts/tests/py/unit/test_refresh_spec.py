@@ -1,5 +1,6 @@
 """In-process cases for veri/refresh_spec.py, the module refresh-spec.sh is a shim over."""
 import importlib
+import os
 import subprocess
 
 import pytest
@@ -34,3 +35,18 @@ def test_main_2572_exits_0_and_holds_the_live_capture_when_it_differs_with_the_s
     code = refresh_spec.main(["7", str(spec)])
 
     assert (code, spec.read_bytes()) == (0, live.encode())
+
+
+def test_main_2572_exits_3_and_leaves_bytes_and_mtime_when_the_live_capture_is_identical(
+        monkeypatch, tmp_path, refresh_spec):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+    spec = tmp_path / "issue-7-spec.md"
+    live = "## Acceptance criteria\n\n- [ ] the criterion\n- [ ] second\n"
+    spec.write_text(live)
+    os.utime(spec, ns=(1_000_000_000_000_000_000, 1_000_000_000_000_000_000))
+    fake_gh(monkeypatch, "enhancement\n", live)
+
+    code = refresh_spec.main(["7", str(spec)])
+
+    assert (code, spec.read_bytes(), spec.stat().st_mtime_ns) == (
+        3, live.encode(), 1_000_000_000_000_000_000)
