@@ -10,7 +10,10 @@ def main(argv):
     if len(argv) != 1:
         print(USAGE, file=sys.stderr)
         return 2
-    changed = subprocess.run(["git", "diff", "--name-only", argv[0], "HEAD"], capture_output=True, text=True).stdout.split()
+    diff = subprocess.run(["git", "diff", "--name-only", argv[0], "HEAD"], capture_output=True, text=True)
+    if diff.returncode:
+        return 2
+    changed = diff.stdout.split()
     listed = subprocess.run(["git", "ls-files", "*/GRADED"], capture_output=True, text=True).stdout.split()
     hits = [line.split()[0] for g in listed for line in open(g) if line.split()[0] in changed]
     for path in hits:
