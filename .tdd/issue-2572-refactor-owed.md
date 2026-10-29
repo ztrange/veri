@@ -1,0 +1,2 @@
+### `refresh-spec.sh <n> <spec-file>` with a live capture whose `## Acceptance criteria` holds a different number of checkboxes from the file's exits 1, leaves the file's bytes untouched, and names both counts on stderr; a small case in `skills/tdd/scripts/tests/py/unit/test_refresh_spec.py` faking only the `gh` boundary ⟦criterion 2⟧
+- test-only | extract the repeated `VERI_GH_DRIVER` setenv and the `issue-7-spec.md` path into a shared fixture in test_refresh_spec.py
