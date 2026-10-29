@@ -65,3 +65,20 @@ def test_main_2572_exits_1_names_both_counts_and_leaves_the_file_when_the_checkb
 
     err = capsys.readouterr().err
     assert (code, spec.read_bytes(), "2" in err and "3" in err) == (1, old.encode(), True)
+
+
+def test_main_2572_exits_2_and_leaves_the_file_untouched_when_gh_gives_no_answer(
+        monkeypatch, tmp_path, refresh_spec):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+    spec = tmp_path / "issue-7-spec.md"
+    old = "## Acceptance criteria\n\n- [ ] first\n- [ ] second\n"
+    spec.write_text(old)
+
+    def failing_run(args, **kwargs):
+        return subprocess.CompletedProcess(args, 1, "", "")
+
+    monkeypatch.setattr(subprocess, "run", failing_run)
+
+    code = refresh_spec.main(["7", str(spec)])
+
+    assert (code, spec.read_bytes()) == (2, old.encode())
