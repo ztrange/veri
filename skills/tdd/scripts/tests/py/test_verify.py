@@ -1420,6 +1420,22 @@ def answering_leaf(monkeypatch, *leaf_outs, supervised=None):
     for name in ("run", "Popen", "call", "check_call", "check_output"):
         monkeypatch.setattr(subprocess, name, fake)
     return launches
+
+
+
+def test_verify_sh_red_with_a_suite_command_failing_only_on_the_target_test_still_launches_the_verifier_and_its_pass_stands(
+        run_cli, tmp_path, monkeypatch):
+    (tmp_path / "spec.md").write_text(SPEC)
+    verify = importlib.import_module("veri.verify")
+    launches = answering_leaf(monkeypatch, "VERDICT: PASS\nREASON: ok")
+    env = {"HOME": str(tmp_path),
+           "VERI_TEST_CMD": "echo 'FAILED tests/test_slugify.py::test_lowercases - assert 1 == 2'; exit 1"}
+
+    code, out, _ = run_cli(verify, ["red", str(tmp_path / "spec.md"), "tests/test_slugify.py", "test_lowercases"],
+                           env=env, cwd=tmp_path)
+
+    assert (code, [phase for phase, _ in launches], out.startswith("ok")) == (0, ["verify-red"], True)
+
 HUNG = pytest.mark.process("a hung verifier leaf killed by the real supervise.sh")
 
 
