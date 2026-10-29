@@ -1309,3 +1309,18 @@ def test_main_still_ends_its_slice_with_3_on_a_mergeable_pr_with_no_checks_when_
     code, out, _ = run_cli(wait_ci, [PR, "60", "120", FULL_SHA], env=env, cwd=work)
 
     assert (code, out) == (3, "")
+
+
+def test_main_still_ends_1_naming_the_failed_check_run_when_ci_on_pr_is_0_issue_2502(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([[check_run("build", FULL_SHA, "completed", "failure")]], [], "pending")
+    bodies[PULL] = json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": True,
+                               "head": {"sha": FULL_SHA}})
+    served(fake_processes, bodies)
+
+    code, out, _ = run_cli(wait_ci, [PR, "60", "120", FULL_SHA],
+                           env={"VERI_POLL": "0", "VERI_CI_ON_PR": "0"}, cwd=work)
+
+    assert (code, out) == (1, "build\n")
