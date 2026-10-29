@@ -656,3 +656,24 @@ def test_check_earlier_exits_0_for_a_js_call_form_case_sharing_its_name_under_tw
     answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)[:2]
 
     assert (recorded, answer) == (0, (0, ""))
+
+
+def test_check_step_exits_0_for_a_fixture_repair_step_of_a_file_with_two_python_def_cases_sharing_a_name_after_an_edit_outside_both_2543(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "test_dup.py"
+    original = "def test_dup():\n    assert 1 + 1 == 2\n\n\ndef test_dup():\n    assert 2 + 2 == 4\n"
+    suite.write_text(original)
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
+    monkeypatch.setattr(tests_frozen, "_head_cases_all", lambda name: [])
+    step = "the case passes: repairs the fixture 'db' in test_dup.py, reproduced by a case in test_dup.py ⟦fixture-repair⟧"
+    recorded = run_cli(tests_frozen, ["record", "--step", step, "test_dup.py"], cwd=tmp_path)[0]
+    suite.write_text("import os\n\n\n" + original)
+
+    answer = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)[:2]
+
+    assert (recorded, answer) == (0, (0, ""))
