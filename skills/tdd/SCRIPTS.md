@@ -263,10 +263,12 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   that path and touches nothing: **never steal a checkout**, another conductor owns that run),
   or the default branch cannot be named, or fetching it failed — never a silent fallback to the
   stale local ref. And exit 2 when the worktree it would have handed back **holds a live
-  conductor**: `.tdd/conductor.pid` there names a process that still answers `kill -0`, so it
+  conductor**: the pid in `.tdd/conductor.pid` there still answers `kill -0` **and** that
+  process's start time matches the one recorded on the lock's second line, so it
   names that pid instead of printing the path (#170) — a second conductor `cd`'ing into a live
   run's worktree reads that run's ledger as its own and `RESUME.md` throws the live leaf's
-  uncommitted work away. A **dead** pid is a bailed or killed run, still a resume, still the path.
+  uncommitted work away. A lock whose pid is **dead**, or answers but with a start time other than the
+  recorded one (a **reused** pid), is a bailed or killed run, still a resume, still the path.
   `$S/issue-worktree.sh --remove <n>` removes the worktree once the PR has landed, and
   **refuses** (exit 2) one holding uncommitted changes.
 - `$S/detect-test-command.sh [--tier fast|all] [--issue <body-file>] [repo-root]` — print the one command that
