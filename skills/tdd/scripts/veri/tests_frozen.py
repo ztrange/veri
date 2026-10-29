@@ -326,15 +326,17 @@ def _check_earlier(ledger, step, exempt=()):
         bodies = [r for r in map(_body_record, records) if r]
         marked = "format: 2" in records
         for name, case, digest in bodies:
-            latest[(name, case)] = (digest, owner, marked)
+            held = latest.get((name, case))
+            latest[(name, case)] = (held[0] + [digest] if held and held[1] == owner else [digest], owner, marked)
     changed = []
     consumed = set()
-    for (name, case), (digest, owner, marked) in latest.items():
+    for (name, case), (digests, owner, marked) in latest.items():
         try:
             with open(name, encoding="utf-8", errors="replace") as handle:
                 text = handle.read()
             now = dict(_cases(text)).get(case)
             old = _old_cut_cases(text, marked).get(case)
+            digest = digests[-1]
             if now is None:
                 other = _renamed_to(name, case, digest, text, consumed)
                 if other:
@@ -346,7 +348,8 @@ def _check_earlier(ledger, step, exempt=()):
         except OSError:
             now = old = None
         if case not in exempt and not (fixture and name == fixture.group(1)) and (
-                now is None or digest not in (_body_digest(now),) + ((_body_digest(old),) if old is not None else ())):
+                now is None or any(d not in {_body_digest(now)} | ({_body_digest(old)} if old is not None else set())
+                                   for d in digests)):
             changed.append("%s (%s)" % (case, owner))
     for entry in changed:
         write(sys.stdout, entry)
