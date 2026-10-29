@@ -365,7 +365,7 @@ def gh_pr_ready(number, head_sha=""):
         ccr_err = ccr.stdout.rstrip("\n")
         if _api_graphql_ready(number):
             return
-    for err in (gql_err, ccr_err):
+    for err in sorted((gql_err, ccr_err), key=lambda err: "rate limit" in err):
         if err:
             print(err, file=sys.stderr)
     raise NoAnswer("")
