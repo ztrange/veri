@@ -82,3 +82,10 @@ def test_main_2572_exits_2_and_leaves_the_file_untouched_when_gh_gives_no_answer
     code = refresh_spec.main(["7", str(spec)])
 
     assert (code, spec.read_bytes()) == (2, old.encode())
+
+
+def test_main_2572_prints_a_usage_line_naming_refresh_spec_sh_and_exits_2_with_no_argument(
+        run_cli, refresh_spec):
+    code, out, err = run_cli(refresh_spec, [])
+
+    assert (code, out, err.startswith("usage: refresh-spec.sh")) == (2, "", True)

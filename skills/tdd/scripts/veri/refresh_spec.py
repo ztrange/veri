@@ -15,6 +15,9 @@ def boxes(spec):
 
 
 def main(argv):
+    if len(argv) != 2:
+        print("usage: refresh-spec.sh <n> <spec-file>", file=sys.stderr)
+        return 2
     try:
         live = capture(argv[0])
     except NoAnswer:
