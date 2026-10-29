@@ -335,3 +335,29 @@ def test_check_earlier_still_flags_a_recorded_case_a_reachable_revision_held_and
     code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)
 
     assert (recorded, code, out) == (0, 1, "test_real (%s)\n" % earlier)
+
+
+def test_check_earlier_reports_the_changed_case_alone_on_stdout_and_names_the_ghost_beside_it_as_skipped_2637(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "test_suite.py"
+    suite.write_text("def test_ghost():\n    assert 1 + 1 == 2\n\n\ndef test_changed():\n    assert 2 - 1 == 1\n")
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
+    monkeypatch.setattr(tests_frozen, "_renamed_to", lambda name, case, digest, text, consumed: None)
+    monkeypatch.setattr(tests_frozen, "_revisions", lambda name: ["0" * 40], raising=False)
+    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "1" * 40)
+    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    earlier, later = "the earlier step B", "the later step C"
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, later))
+    recorded = run_cli(tests_frozen, ["record", "--step", earlier, "test_suite.py"], cwd=tmp_path)[0]
+    suite.write_text("def test_changed():\n    assert 2 - 1 == 0\n")
+
+    code, out, err = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)
+
+    assert (recorded, code, out) == (0, 1, "test_changed (%s)\n" % earlier)
+    assert "test_ghost" in err and "skipped" in err
