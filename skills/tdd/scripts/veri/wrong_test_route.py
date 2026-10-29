@@ -188,7 +188,8 @@ def _reroutes(step):
         events = event_log.read_events(".tdd/events.jsonl", skip_unreadable=True)
     except OSError:
         return []
-    return [e for e in events if e.get("event") == "reroute" and e.get("step") == step]
+    latest_resume = max((i for i, e in enumerate(events) if e.get("event") == "resume"), default=-1)
+    return [e for i, e in enumerate(events) if i > latest_resume and e.get("event") == "reroute" and e.get("step") == step]
 
 
 def _rerouted(step):
