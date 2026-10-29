@@ -2140,3 +2140,21 @@ def test_main_renders_a_plan_prompt_refusing_a_step_naming_more_than_one_outcome
         has(r"exactly one outcome[^.]{0,80}accepted"),
         has(r"never refuse a step for merely mentioning a guard"),
     ] == [True] * 4
+
+
+def test_main_renders_a_red_prompt_with_fast_cmd_that_runs_it_once_and_rejects_a_red_failing_it_for_any_reason_but_the_targets_expected_failure_naming_the_file_and_the_error_2569(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n\nthe criteria\n")
+    argv = ["red", str(spec), "tests/a.test.sh", "case one"]
+
+    def run(args):
+        code = build_verify_prompt.main(args)
+        return (code, *capsysbinary.readouterr())
+
+    code, out, err = run(["--fast-cmd", "npm run lint && npm test", *argv])
+    prompt = " ".join(out.decode("utf-8", "surrogateescape").split())
+    assert (code, err) == (0, b"")
+    assert re.search(r"Run `npm run lint && npm test` once\b.*other than the target test's expected failure.*"
+                     r"\bREJECT\b.*naming the file and the error",
+                     prompt) is not None
