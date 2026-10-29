@@ -777,3 +777,67 @@ def test_check_earlier_flags_an_edit_inside_the_second_of_two_python_def_cases_s
     answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)[:2]
 
     assert (recorded, answer) == (0, (1, "test_dup (%s)\n" % earlier))
+
+
+def _twins_added_since_head(tmp_path, tests_frozen, monkeypatch, name, original):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / name
+    suite.write_text(original)
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
+    monkeypatch.setattr(tests_frozen, "_head_cases_all", lambda name: [])
+    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("- [x] step A\n- [ ] step B\n")
+    return suite, ledger
+
+
+_PY_TWINS = "def test_dup():\n    assert 1 + 1 == 2\n\n\ndef test_dup():\n    assert 2 + 2 == 4\n"
+_JS_TWINS = ('describe("a", () => {\n  it("dup", () => {\n    expect(1 + 1).toBe(2);\n  });\n});\n\n'
+             'describe("b", () => {\n  it("dup", () => {\n    expect(2 + 2).toBe(4);\n  });\n});\n')
+
+
+def test_check_earlier_exits_0_for_two_python_def_cases_sharing_a_name_both_added_since_head_and_left_unchanged_2543(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite, ledger = _twins_added_since_head(tmp_path, tests_frozen, monkeypatch, "test_dup.py", _PY_TWINS)
+    recorded = run_cli(tests_frozen, ["record", "--step", "step A", "test_dup.py"], cwd=tmp_path)[0]
+
+    answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", "step B"], cwd=tmp_path)[:2]
+
+    assert (recorded, answer) == (0, (0, ""))
+
+
+def test_check_earlier_exits_0_for_two_js_call_form_cases_sharing_a_name_under_two_describes_both_added_since_head_and_left_unchanged_2543(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite, ledger = _twins_added_since_head(tmp_path, tests_frozen, monkeypatch, "dup.test.ts", _JS_TWINS)
+    recorded = run_cli(tests_frozen, ["record", "--step", "step A", "dup.test.ts"], cwd=tmp_path)[0]
+
+    answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", "step B"], cwd=tmp_path)[:2]
+
+    assert (recorded, answer) == (0, (0, ""))
+
+
+def test_check_earlier_flags_an_edit_inside_the_first_of_two_js_call_form_cases_sharing_a_name_both_added_since_head_2543(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite, ledger = _twins_added_since_head(tmp_path, tests_frozen, monkeypatch, "dup.test.ts", _JS_TWINS)
+    recorded = run_cli(tests_frozen, ["record", "--step", "step A", "dup.test.ts"], cwd=tmp_path)[0]
+    suite.write_text(_JS_TWINS.replace("expect(1 + 1).toBe(2)", "expect(1 + 2).toBe(3)"))
+
+    answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", "step B"], cwd=tmp_path)[:2]
+
+    assert (recorded, answer) == (0, (1, "dup (step A)\n"))
+
+
+def test_check_earlier_flags_an_edit_inside_the_second_of_two_js_call_form_cases_sharing_a_name_both_added_since_head_2543(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite, ledger = _twins_added_since_head(tmp_path, tests_frozen, monkeypatch, "dup.test.ts", _JS_TWINS)
+    recorded = run_cli(tests_frozen, ["record", "--step", "step A", "dup.test.ts"], cwd=tmp_path)[0]
+    suite.write_text(_JS_TWINS.replace("expect(2 + 2).toBe(4)", "expect(2 + 3).toBe(5)"))
+
+    answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", "step B"], cwd=tmp_path)[:2]
+
+    assert (recorded, answer) == (0, (1, "dup (step A)\n"))
