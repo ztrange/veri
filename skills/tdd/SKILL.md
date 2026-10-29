@@ -1464,7 +1464,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    run remembers it, so a resumed run edits the PR its branch already has:
    ```
    gh api 'repos/{owner}/{repo}/pulls?head={owner}:{branch}' -q '.[0].html_url // empty'   # → <pr-url>, the PR step 2.3 opened; <pr-number> is its last path segment
-   blocked=; $S/pr-ready.sh <pr-number> "$(git rev-parse HEAD)" 2> .tdd/pr-ready.err || { blocked=1; VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=no-verdict classification="$($S/classify-bail.sh no-verdict)"; }
+   blocked=; $S/pr-ready.sh <pr-number> "$(git rev-parse HEAD)" 2> .tdd/pr-ready.err || { blocked=1; VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=pr-ready-failed classification="$($S/classify-bail.sh pr-ready-failed)"; }
    [ -n "$blocked" ] || $S/wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)" > .tdd/wait-ci.out 2> .tdd/wait-ci.err; ci=$?    # exit 3 → run this line again, in a new Bash call
    grep -F 'conflicts with its base branch' .tdd/wait-ci.err > /dev/null; conflict=$?
    [ "$ci" != 2 ] || [ "$conflict" = 0 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
@@ -1478,7 +1478,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    That call passes no `--criterion` on purpose: the repair step serves its anchor's criterion.
    **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see `<base directory>/BAIL.md`.
-   When `pr-ready.sh` exits non-zero, its stderr is kept in `.tdd/pr-ready.err` and the block writes exactly one event, the `no-verdict` bail, and nothing else: `blocked` makes the wait line skip `wait-ci.sh` and leave `ci` at 0, so no CI deadline is started, no `ci-timeout`, `ci-conflict` or `ci-red` bail follows, no `step-added` event, `⟦ci-repair⟧` ledger line or `plan: repair the red CI check` commit is made and no `gh run view` is asked for. The run **bails** as a **system** failure (`no-verdict`) with the PR left a draft, the bail comment carrying the text of `.tdd/pr-ready.err` as its last reason (`Read` `<base directory>/BAIL.md`).
+   When `pr-ready.sh` exits non-zero, its stderr is kept in `.tdd/pr-ready.err` and the block writes exactly one event, the `pr-ready-failed` bail, and nothing else: `blocked` makes the wait line skip `wait-ci.sh` and leave `ci` at 0, so no CI deadline is started, no `ci-timeout`, `ci-conflict` or `ci-red` bail follows, no `step-added` event, `⟦ci-repair⟧` ledger line or `plan: repair the red CI check` commit is made and no `gh run view` is asked for. The run **bails** as a **system** failure (`pr-ready-failed`, classified by `classify-bail.sh`) with the PR left a draft, the bail comment carrying the text of `.tdd/pr-ready.err` as its last reason (`Read` `<base directory>/BAIL.md`).
    A `ci-timeout` or `ci-red` bail ends the step there, and neither the `done` mark nor the
    `metrics:` commit below follows it (`Read` `<base directory>/BAIL.md`). Otherwise:
    ```
