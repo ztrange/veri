@@ -249,10 +249,14 @@ def _earlier_records(lines, step):
         yield match.group(2), path, records
 
 
-def _renamed_to(name, case, digest, text, consumed):
+def _revisions(name):
     listed = subprocess.run(["git", "log", "--format=%H", "--", name], stdout=subprocess.PIPE,
                             stderr=subprocess.DEVNULL)
-    for rev in os.fsdecode(listed.stdout).split():
+    return os.fsdecode(listed.stdout).split()
+
+
+def _renamed_to(name, case, digest, text, consumed):
+    for rev in _revisions(name):
         held = _cases_at(rev, name)
         if case in held and _body_digest(held[case]) == digest:
             shown = subprocess.run(["git", "show", "%s:%s" % (rev, name)], stdout=subprocess.PIPE)
@@ -299,6 +303,10 @@ def _check_earlier(ledger, step, exempt=()):
                 other = _renamed_to(name, case, digest, text, consumed)
                 if other:
                     now = old = dict(_cases(text))[other].replace(other, case, 1)
+                elif not any(case in _cases_at(rev, name) for rev in _revisions(name)):
+                    write(sys.stderr, "tests-frozen.sh: %s (%s, %s) is in no revision of this branch: skipped"
+                          % (case, owner, _record_path(owner)))
+                    continue
         except OSError:
             now = old = None
         if case not in exempt and not (fixture and name == fixture.group(1)) and (

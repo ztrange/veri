@@ -1286,6 +1286,7 @@ def test_check_earlier_exits_1_naming_the_case_and_its_step_when_the_case_or_its
     recorded = "def test_older_case():\n    assert True\n\n\ndef test_pinned_2125():\n    assert 1 == 2\n"
     (tmp_path / "tests/test_suite.py").write_text(recorded)
     run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
+    git(tmp_path, "commit", "-q", "-am", "step one")
     ledger = tmp_path / ".tdd/ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
     argv = ["check-earlier", str(ledger), "--step", current]
