@@ -221,6 +221,11 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   section carrying its what-happened, expected, steps to reproduce and environment when the
   issue carries the `bug` label (and nothing extra when it does not). Redirect it into
   `.tdd/issue-<n>-spec.md` (step 3). Exit 2 on a missing issue number.
+- `$S/refresh-spec.sh <n> <spec-file>` — re-capture the blind spec as `capture-spec.sh <n>`
+  would and compare it to `<spec-file>`. **Exit 3** identical, file untouched. **Exit 0**
+  rewritten to the live capture. **Exit 1** the live `## Acceptance criteria` checkbox count
+  differs from the file's, file untouched, both counts on stderr. **Exit 2** bad arguments or
+  no answer from `gh`, file untouched. The conductor calls it.
 - `$S/resume-clean.sh` — a resumed run's first act: discard what a killed leaf left uncommitted
   outside `.tdd/`, printing each discarded change as its `git status --porcelain` line. Exit 0.
 - `$S/ensure-run-state-ignored.sh [repo-root]` — make the **target repo** ignore veri's run
