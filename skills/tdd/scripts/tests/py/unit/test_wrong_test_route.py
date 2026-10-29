@@ -1042,6 +1042,73 @@ def test_main_2568_prints_revise_and_exits_3_for_the_one_superseded_case_when_th
     assert (code, stdout) == (3, "revise\n")
 
 
+def _superseded_2568(run_cli, tmp_path, monkeypatch, label, events):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    suite = tmp_path / "tests" / "py"
+    suite.mkdir(parents=True)
+    added = "test_main_prints_the_usage_with_not_running"
+    older = "test_main_prints_usage_on_no_arguments"
+    (suite / "test_solvable.py").write_text(
+        "def %s():\n    pass\n\ndef %s():\n    pass\n" % (older, added))
+    (tmp_path / ".tdd").mkdir()
+    step = "solvable-issues.sh usage mentions --not-running, " + label
+    monkeypatch.setenv("VERI_STEP", step)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    (tmp_path / record_path.rstrip("\n")).write_text("case: %s\n" % added)
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        "".join('{"event": "%s", "step": "%s", "kind": "red"}\n' % (e, step) for e in events))
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nSUPERSEDED: %s\n" % older)
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
+    return (code, stdout), older
+
+
+def test_main_2568_prints_revise_and_exits_3_for_the_one_superseded_case_when_a_red_reroute_follows_the_latest_of_two_resume_events(
+        run_cli, tmp_path, monkeypatch):
+    answer, _ = _superseded_2568(run_cli, tmp_path, monkeypatch, "rerouted after the latest resume",
+                                 ["reroute", "resume", "reroute", "resume", "reroute"])
+
+    assert answer == (3, "revise\n")
+
+
+def test_main_2568_prints_red_over_the_one_superseded_case_when_the_only_red_reroute_sits_between_two_resume_events(
+        run_cli, tmp_path, monkeypatch):
+    answer, older = _superseded_2568(run_cli, tmp_path, monkeypatch, "rerouted between two resumes",
+                                     ["resume", "reroute", "resume"])
+
+    assert answer == (0, "red %s\n" % older)
+
+
+def _missing_2568(run_cli, tmp_path, monkeypatch, budget, events):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / ".tdd").mkdir()
+    step = "wrong-test-route.sh counts missing reroutes after the latest resume"
+    monkeypatch.setenv("VERI_STEP", step)
+    monkeypatch.setenv("VERI_MISSING_REROUTE_BUDGET", budget)
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        "".join('{"event": "%s", "step": "%s", "kind": "missing"}\n' % (e, step) for e in events))
+    report = tmp_path / "missing-report.txt"
+    report.write_text("VERDICT: REJECT\nMISSING_TEST: a guard is pinned by a case\n")
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+    return code, stdout
+
+
+def test_main_2568_prints_missing_exhausted_and_exits_1_when_the_missing_reroutes_after_the_latest_of_two_resume_events_reach_the_budget(
+        run_cli, tmp_path, monkeypatch):
+    answer = _missing_2568(run_cli, tmp_path, monkeypatch, "2",
+                           ["reroute", "resume", "reroute", "resume", "reroute", "reroute"])
+
+    assert answer == (1, "missing-exhausted a guard is pinned by a case\n")
+
+
+def test_main_2568_prints_missing_behaviour_and_exits_0_when_the_only_missing_reroute_sits_between_two_resume_events(
+        run_cli, tmp_path, monkeypatch):
+    answer = _missing_2568(run_cli, tmp_path, monkeypatch, "1", ["resume", "reroute", "resume"])
+
+    assert answer == (0, "missing a guard is pinned by a case\n")
+
+
 def test_main_1865_drops_a_superseded_line_naming_a_case_no_test_file_defines(
         run_cli, tmp_path, monkeypatch):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
