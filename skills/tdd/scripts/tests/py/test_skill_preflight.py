@@ -182,6 +182,7 @@ MECHANICAL_READERS = (
     "test_issue_2375_a_second_conflict_after_the_runs_own_rebase",
     "test_skill_md_runs_make_test_and_the_detected_test_command_only_through_detach_command_sh",
     "test_skill_md_says_what_detach_command_sh_wait_answers_0_passed_1_red_2_died_3_still_running",
+    "test_skill_edit_md_runs_skill_edit_step_ticks_on_exit_0_or_3_bails_on_1_and_handles_2_as_no_answer_1871",
     "test_2433_never_asks_rule_is_discharged_by_a_needs_user_bail_beside_both_asks",
     "test_every_remaining_case_that_reads_skill_md_s_preflight_section",
     "test_2220_sweep_flags_a_case_reading_the_preflight_section",
@@ -269,6 +270,12 @@ def stray_cases(entries, allowed):
 def test_every_remaining_case_that_reads_skill_md_s_preflight_section_is_a_named_mechanical_fact_case(tests_py_index):
     strays = stray_cases(tests_py_index, MECHANICAL_READERS)
     assert strays == [], f"cases read the Preflight section but are not on the mechanical-fact allow-list: {strays}"
+
+
+def test_2552_skill_edit_procedure_cases_are_not_flagged_as_readers_of_the_preflight_section():
+    from conftest import TestFile
+    entry = TestFile(TESTS_DIR / "unit" / "test_skill_edit_procedure.py")
+    assert stray_cases([entry], MECHANICAL_READERS) == []
 
 
 def test_2220_sweep_flags_a_case_reading_the_preflight_section_until_it_is_on_the_allow_list(tmp_path, monkeypatch):
