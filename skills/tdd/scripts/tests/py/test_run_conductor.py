@@ -2682,7 +2682,7 @@ def test_cli_a_working_tree_edit_to_skill_md_never_reaches_the_conductor_the_com
 
 
 @pytest.mark.process("real develop-prompt builders, supervise.sh, run-leaf.sh and verify.sh run from a launched claude, each leaf's prompt read off a stub claude")
-def test_cli_each_phases_leaf_is_launched_with_its_tier_red_and_refactor_affected_green_verify_green_and_verify_refactor_fast_and_affected(
+def test_cli_each_phases_leaf_is_launched_with_its_tier_develop_red_and_develop_refactor_affected_verify_red_green_and_refactor_fast_and_affected(
         tmp_path, monkeypatch, run_cli):
     skill, run_conductor = skill_clone(tmp_path, monkeypatch, "run_conductor_tiers", {"SKILL.md": "# the procedure\n"})
     fast, every = "make FAST-TIER-7781", "make ALL-TIER-7781"
@@ -2736,7 +2736,7 @@ def test_cli_each_phases_leaf_is_launched_with_its_tier_red_and_refactor_affecte
     assert code == 0, stderr
     assert {name: tier_of(name) for name in ("develop-red", "verify-red", "develop-green", "verify-green",
                                              "develop-refactor", "verify-refactor", "verify-refactor-bare")} == {
-        "develop-red": "affected", "verify-red": "affected", "develop-green": "fast+affected",
+        "develop-red": "affected", "verify-red": "fast+affected", "develop-green": "fast+affected",
         "verify-green": "fast+affected", "develop-refactor": "affected", "verify-refactor": "fast+affected",
         "verify-refactor-bare": None}
     assert exits["verify-refactor-bare"] == 2
