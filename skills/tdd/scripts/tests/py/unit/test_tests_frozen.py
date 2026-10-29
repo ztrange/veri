@@ -415,3 +415,28 @@ def test_check_earlier_leaves_a_vitest_it_case_last_in_its_describe_unchanged_wh
     into_second = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)[:2]
 
     assert (recorded, into_first, into_second) == (0, (0, ""), (0, ""))
+
+
+def test_check_earlier_leaves_a_vitest_it_case_last_before_a_finish_trailer_unchanged_when_a_case_is_appended_after_it_2591(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "sum.test.ts"
+    original = 'describe("sum", () => {\n  it("adds", () => {\n    expect(1 + 1).toBe(2);\n  });\n});\nfinish\n'
+    suite.write_text(original)
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
+    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    earlier, current = "step A", "step B"
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    recorded = run_cli(tests_frozen, ["record", "--step", earlier, "sum.test.ts"], cwd=tmp_path)[0]
+    suite.write_text(original.replace(
+        "  });\n});\n", '  });\n\n  it("subtracts", () => {\n    expect(3 - 1).toBe(2);\n  });\n});\n'))
+
+    answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)[:2]
+
+    assert (recorded, answer) == (0, (0, ""))
