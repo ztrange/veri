@@ -131,6 +131,8 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id=""):
             trailing if mark in ("suite-repair", "ci-repair") else step_arg, mark)
         if phase == "green" and marked:
             optional[placeholder] = f"{prompts}/_verify-green-{mark}.md"
+    if phase == "red" and fast_cmd:
+        optional["RED_FAST_CHECK"] = f"{prompts}/_verify-red-fast.md"
     paths = [f"{prompts}/verify-{phase}.md", f"{prompts}/_shared.md", spec, *optional.values()]
     if phase == "plan":
         optional["LEDGER"] = test_path
@@ -140,7 +142,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id=""):
             write(sys.stderr, f"build-verify-prompt: cannot read '{path}'", before=False, after=False)
             return 2, b""
     prompts_b = os.fsencode(prompts)
-    values = dict.fromkeys(("BUG_REPRODUCTION", "REFACTOR_PLAN", *GREEN_PARAGRAPHS, "LEDGER"), b"")
+    values = dict.fromkeys(("BUG_REPRODUCTION", "REFACTOR_PLAN", "RED_FAST_CHECK", *GREEN_PARAGRAPHS, "LEDGER"), b"")
     try:
         template = _expand(_read(paths[0]), prompts_b)
         shared = _expand(_read(paths[1]), prompts_b)
@@ -148,6 +150,8 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id=""):
             values[placeholder] = _read(path)
             if placeholder in GREEN_PARAGRAPHS:
                 values[placeholder] = _expand(b"\n\n" + values[placeholder], prompts_b)
+            elif placeholder == "RED_FAST_CHECK":
+                values[placeholder] = b"\n\n" + values[placeholder].rstrip(b"\n")
     except _IncludeRefused as refusal:
         sys.stderr.buffer.write(refusal.args[0] + b"\n")
         return 2, b""

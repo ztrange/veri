@@ -52,7 +52,7 @@ test is `{{TARGET_TEST}}`). Confirm the Red step is sound.
      clock could stand in for, and the behavior under test is not that dependency's real
      use, or
    - **not self-contained** — it runs another test suite, whole or sliced, or re-runs the
-     suite it lives in, instead of exercising the unit directly.
+     suite it lives in, instead of exercising the unit directly.{{RED_FAST_CHECK}}
 
 PASS only if the test fails for the right reason AND is a clean, behavior-level pin of
 the criterion.
