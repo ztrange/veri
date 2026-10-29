@@ -230,6 +230,10 @@ def _added_cases(name):
     return [(case, body) for case, body in new if before.get(case) != body]
 
 
+def _body_line(name, case, body):
+    return "body: %s\t%s\t%s" % (name, case, _body_digest(body))
+
+
 def _body_record(line):
     return line[6:].split("\t") if line.startswith("body: ") else None
 
@@ -383,7 +387,7 @@ def rerecord_earlier(ledger, step):
                         return 2
                 now = after[name].get(case)
                 if now is not None and now != before[name].get(case):
-                    record = "body: %s\t%s\t%s" % (name, case, _body_digest(now))
+                    record = _body_line(name, case, now)
             out.append(record + "\n")
         try:
             with open(path, "w", encoding="utf-8") as handle:
@@ -408,7 +412,7 @@ def rerecord_rebased(ledger, pre):
                 if _body_digest(_cases_at(pre, name).get(case, "")) != digest:
                     refused.append("%s (%s)" % (case, owner))
                 else:
-                    record = "body: %s\t%s\t%s" % (name, case, _body_digest(_cases_at("HEAD", name)[case]))
+                    record = _body_line(name, case, _cases_at("HEAD", name)[case])
             out.append(record + "\n")
         with open(path, "w", encoding="utf-8") as handle:
             handle.writelines(out)
