@@ -1,0 +1,2 @@
+### `classify-bail.sh graded-edit-outside-skill-edit` prints `process` and exits 0, declared in `skills/tdd/scripts/veri/classify_bail.py`, pinned by a case in `skills/tdd/scripts/tests/py/unit/test_bail_cause_tokens.py` that BAIL.md's `graded-edit-outside-skill-edit` bullet names the classification classify_bail prints ⟦criterion 2⟧
+- test-only | extract the repeated BAIL.md cause-token lookup in test_bail_cause_tokens.py into one helper, or parametrize the four cases over the cause token
