@@ -487,3 +487,23 @@ def test_check_earlier_flags_an_edit_inside_a_recorded_vitest_it_case_naming_it_
     answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)[:2]
 
     assert (recorded, answer) == (0, (1, "adds (%s)\n" % earlier))
+
+
+def test_record_digests_a_python_def_case_over_its_ast_span_decorators_included_whatever_follows_it_2591(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "test_sum.py"
+    adds = '@pytest.mark.slow\ndef test_adds():\n    assert 1 + 1 == 2\n'
+    suite.write_text('import pytest\n\n\n%s\n\ndef test_subtracts():\n    assert 3 - 1 == 2\n' % adds)
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
+    step = "step A"
+
+    recorded = run_cli(tests_frozen, ["record", "--step", step, "test_sum.py"], cwd=tmp_path)[0]
+
+    record = (tmp_path / tests_frozen._record_path(step)).read_text()
+    digest = hashlib.sha256(adds.rstrip().encode()).hexdigest()
+    assert (recorded, "body: test_sum.py\ttest_adds\t%s\n" % digest in record) == (0, True)
