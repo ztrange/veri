@@ -40,7 +40,7 @@ def _launch_cause(run_dir, issue):
         return "usage-limit"
     logs = sorted((os.path.join(tdd, n) for n in os.listdir(tdd) if n.endswith(".log")),
                   key=os.path.getmtime)
-    limited = bool(logs) and any(r.get("error") == "rate_limit" for r in read_events(logs[-1]))
+    limited = bool(logs) and any(r.get("error") == "rate_limit" for r in read_events(logs[-1], skip_unreadable=True))
     return "usage-limit" if limited else None
 
 
