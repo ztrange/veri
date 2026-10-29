@@ -1,9 +1,22 @@
 """Medium case for the Makefile's test and unit targets: make started for real over a planted tree and a venv with a dangling python3."""
+import os
 import re
+import subprocess
 
 import pytest
 
-from test_recipe_one_pytest_process import make, planted_tree
+from test_recipe_one_pytest_process import planted_tree
+
+
+def make(tree, log, target, **veri):
+    log.write_text("")
+    env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
+    env["VERI_PYTEST_LEGS"] = os.environ["VERI_PYTEST_LEGS"]
+    env.update({"VERI_PYTEST_WORKERS": "1", **veri})
+    env["PLANTED_RAN_LOG"] = str(log)
+    ran = subprocess.run(["make", "-C", str(tree), target], env=env, stdin=subprocess.DEVNULL,
+                         capture_output=True, text=True)
+    return ran.returncode, sorted(log.read_text().splitlines()), ran.stdout + ran.stderr
 
 
 @pytest.mark.timeout(120)

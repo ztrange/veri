@@ -731,3 +731,11 @@ def test_1842_the_retired_filers_gone_suite_lives_under_tests_py_unit_and_not_be
     tier = SCRIPTS / "tests" / "py"
     name = "test_retired_filers_gone.py"
     assert ((tier / name).is_file(), (tier / "unit" / name).is_file()) == (False, True)
+
+
+def test_2623_the_venv_refusal_suite_that_starts_make_for_real_is_named_by_the_guard_and_so_belongs_outside_the_tier(tmp_path):
+    guard = importlib.import_module("veri.fast_tier_guard")
+    suite = SCRIPTS / "tests" / "py" / "test_recipe_venv_refusal_process.py"
+    (tmp_path / suite.name).write_text(suite.read_text())
+
+    assert [line.split(":")[0] for line in guard.offences(tmp_path, {})] == [str(tmp_path / suite.name)]
