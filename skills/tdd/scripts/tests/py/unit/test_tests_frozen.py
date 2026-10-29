@@ -282,3 +282,31 @@ def test_check_earlier_still_flags_the_record_of_a_step_ticked_green_with_its_re
     answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)[:2]
 
     assert (recorded, answer) == (0, (1, "test_pending_case (%s ⟂ refactor pending)\n" % pending))
+
+
+def test_check_earlier_skips_a_recorded_case_in_no_revision_of_its_file_naming_it_with_its_step_and_record_2637(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "test_suite.py"
+    suite.write_text("def test_ghost():\n    assert 1 + 1 == 2\n")
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
+    monkeypatch.setattr(tests_frozen, "_renamed_to", lambda name, case, digest, text, consumed: None)
+    monkeypatch.setattr(tests_frozen, "_revisions", lambda name: ["0" * 40], raising=False)
+    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "1" * 40)
+    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    earlier, later = "the earlier step B", "the later step C"
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, later))
+    recorded = run_cli(tests_frozen, ["record", "--step", earlier, "test_suite.py"], cwd=tmp_path)[0]
+    suite.write_text("def test_other():\n    assert 2 - 1 == 1\n")
+    record = ".tdd/tests-frozen-%s.record" % hashlib.sha256(earlier.encode()).hexdigest()[:16]
+
+    code, out, err = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)
+
+    assert (recorded, code, out) == (0, 0, "")
+    assert [phrase in err for phrase in ("test_ghost", earlier, record, "no revision of this branch", "skipped")] == [
+        True] * 5
