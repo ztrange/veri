@@ -764,7 +764,7 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
    retype:
    ```
    rm -f .tdd/verdict-red.exit .tdd/verdict-red.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-red $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" red .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-red.reason 2> .tdd/verify-red.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-red $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" --fast-cmd '<fast-cmd>' red .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-red.reason 2> .tdd/verify-red.err
    $S/wait-leaf.sh verdict-red     # foreground; on exit 3 call it again
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — see *The step's cost check*
    ```
