@@ -32,7 +32,7 @@ both sides' intent survives.
    If a conflict cannot be resolved without dropping one side's behaviour, run
    `git rebase --abort`, which returns the branch to `{{PRE_REBASE_SHA}}`, and report FAILED.
    A conflict in a `*/GRADED` file is the exception: keep the replayed branch commit's side of
-   every conflicted row with `git checkout --theirs <file>` (mid-rebase `--ours` is the onto
+   every conflicted row by taking the file's `--theirs` side (mid-rebase `--ours` is the onto
    side, so it is the wrong one), edit no hash, and leave re-signing to the regrade block the
    conductor runs before `verify-rebase`. Resolved this way a `GRADED` conflict drops no
    behaviour, so it is no ground for FAILED. Never run `grade-prose.sh`, and never write or
