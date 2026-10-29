@@ -256,7 +256,7 @@ def _recorded_cases_intact(record, name):
     return bool(held) and all(_body_digest(now.get(case, "")) == digest for _, case, digest in held)
 
 
-def _earlier_records(lines, step):
+def _earlier_records(lines, step, strict=False):
     for line in lines:
         match = re.match(r"\s*- \[(.)\] (.*)", line)
         if not match or match.group(1) == " " or match.group(2) == step:
@@ -265,7 +265,11 @@ def _earlier_records(lines, step):
         try:
             with open(path, encoding="utf-8") as handle:
                 records = handle.read().splitlines()
+        except FileNotFoundError:
+            continue
         except OSError:
+            if strict:
+                raise
             continue
         yield match.group(2), path, records
 
@@ -405,7 +409,12 @@ def rerecord_rebased(ledger, pre):
     upstream = os.fsdecode(subprocess.run(["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"],
                                           stdout=subprocess.PIPE, check=True).stdout).strip()
     refused, stale = [], False
-    for owner, path, records in _earlier_records(lines, ""):
+    try:
+        earlier = list(_earlier_records(lines, "", strict=True))
+    except OSError as error:
+        write(sys.stderr, "tests-frozen.sh: a record could not be read: %s" % error)
+        return 2
+    for owner, path, records in earlier:
         out = []
         for record in records:
             parsed = _body_record(record)
