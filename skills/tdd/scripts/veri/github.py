@@ -350,7 +350,12 @@ def gh_pr_ready(number, head_sha=""):
             return
         gql_err = ready.stderr.rstrip("\n")
     if _route_open(driver, "rest"):
-        ccr = _gh("api", "-X", "POST", "%s/%s/ccr/ready_for_review" % (_PULLS, number), stderr=subprocess.STDOUT)
+        while True:
+            ccr = _gh("api", "-X", "POST", "%s/%s/ccr/ready_for_review" % (_PULLS, number),
+                      stderr=subprocess.STDOUT)
+            if ccr.returncode == 0 or "rate limit" not in ccr.stdout:
+                break
+            time.sleep(_wait_seconds("VERI_GH_REFUSAL_SLEEP", "60", 0))
         if ccr.returncode == 0:
             return
         ccr_err = ccr.stdout.rstrip("\n")
