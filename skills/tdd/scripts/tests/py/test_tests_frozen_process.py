@@ -997,6 +997,27 @@ def test_check_step_exits_1_naming_the_recorded_test_file_even_with_the_guard_su
 
 
 @pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
+def test_check_step_exits_1_naming_only_the_recorded_file_the_marker_does_not_name_when_the_guard_subject_was_recorded_too_2663(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    for name in ("tests/test_new.py", "tests/conftest.py"):
+        (tmp_path / name).write_text("one\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one fixes a helper ⟦guard-subject: tests/conftest.py⟧"
+    (tmp_path / "tests/test_new.py").write_text("one\ntwo\n")
+    (tmp_path / "tests/conftest.py").write_text("one\nleaky\n")
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py", "tests/conftest.py"], cwd=tmp_path)
+
+    (tmp_path / "tests/test_new.py").write_text("one\ntwo, weakened\n")
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    assert (code, out) == (1, "tests/test_new.py\n")
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
 def test_check_step_exits_1_naming_the_file_of_a_guard_subject_marker_quoted_in_the_steps_prose_1775(
         tmp_path, run_cli, tests_frozen):
     (tmp_path / "tests").mkdir()
