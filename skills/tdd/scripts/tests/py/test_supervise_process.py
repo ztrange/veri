@@ -8,7 +8,7 @@ import time
 
 import pytest
 
-from conftest import SCRIPTS
+from conftest import SCRIPTS, supervised
 
 
 @pytest.mark.process("supervise.sh run for real, supervising a real leaf that echoes its arguments and exits 1")
@@ -122,29 +122,29 @@ def run_queued_leaf_past_window(tmp_path, limits, own_session=False):
     fcntl.flock(held, fcntl.LOCK_EX)
     window = int(limits["VERI_TIMEOUT"]) if limits["VERI_HEARTBEAT"] == "600" else int(limits["VERI_HEARTBEAT"])
     ticks = state / "ticks"
-    ran = subprocess.Popen([str(SCRIPTS / "supervise.sh"), "verify-rebase", sys.executable, str(script)],
-                           cwd=work, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                           env={"PATH": str(shims) + ":" + os.path.dirname(sys.executable) + ":/usr/bin:/bin",
-                                "VERI_STUCK_RETRIES": "0", "VERI_POLL": "0.05", **limits,
-                                "VERI_AWAKE_CLOCK": "%s %s" % (shims / "clock", state),
-                                "HOME": str(tmp_path), "VERI_PYTEST_LEGS": str(tmp_path / "legs"),
-                                "VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1",
-                                "VERI_PYTEST_XDIST_IMPORTABLE": "1", "PYTHONDONTWRITEBYTECODE": "1"})
-    try:
-        while ran.poll() is None and not (ticks.exists() and int(ticks.read_text() or 0) > window):
-            time.sleep(0.02)
-    finally:
-        fcntl.flock(held, fcntl.LOCK_UN)
-        held.close()
-    try:
-        out, err = ran.communicate(timeout=30)
-    finally:
-        if own_session:
-            try:
-                os.kill(int(pidfile.read_text()), 9)
-            except (OSError, ValueError):
-                pass
-    return ran.returncode, err
+    with supervised([str(SCRIPTS / "supervise.sh"), "verify-rebase", sys.executable, str(script)],
+                    cwd=work, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                    env={"PATH": str(shims) + ":" + os.path.dirname(sys.executable) + ":/usr/bin:/bin",
+                         "VERI_STUCK_RETRIES": "0", "VERI_POLL": "0.05", **limits,
+                         "VERI_AWAKE_CLOCK": "%s %s" % (shims / "clock", state),
+                         "HOME": str(tmp_path), "VERI_PYTEST_LEGS": str(tmp_path / "legs"),
+                         "VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1",
+                         "VERI_PYTEST_XDIST_IMPORTABLE": "1", "PYTHONDONTWRITEBYTECODE": "1"}) as ran:
+        try:
+            while ran.poll() is None and not (ticks.exists() and int(ticks.read_text() or 0) > window):
+                time.sleep(0.02)
+        finally:
+            fcntl.flock(held, fcntl.LOCK_UN)
+            held.close()
+        try:
+            out, err = ran.communicate(timeout=30)
+        finally:
+            if own_session:
+                try:
+                    os.kill(int(pidfile.read_text()), 9)
+                except (OSError, ValueError):
+                    pass
+        return ran.returncode, err
 
 
 @pytest.mark.process("supervise.sh runs a real leaf whose full run queues behind a lock the test holds until the injected clock passes VERI_TIMEOUT")
@@ -192,20 +192,20 @@ def test_2380_a_leaf_that_hangs_after_acquiring_the_full_suite_lock_is_still_kil
     script.write_text(HANG_AFTER_LOCK % (str(SCRIPTS), str(SCRIPTS / "veri"), str(acquired)))
     held = open(str(tmp_path / "legs") + "-full.lock", "a+")
     fcntl.flock(held, fcntl.LOCK_EX)
-    ran = subprocess.Popen([str(SCRIPTS / "supervise.sh"), "verify-rebase", sys.executable, str(script)],
+    with supervised([str(SCRIPTS / "supervise.sh"), "verify-rebase", sys.executable, str(script)],
                            cwd=work, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                            env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
                                 "VERI_POLL": "0.05", "VERI_TIMEOUT": "4", "VERI_HEARTBEAT": "600",
                                 "HOME": str(tmp_path), "VERI_PYTEST_LEGS": str(tmp_path / "legs"),
                                 "VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1",
-                                "VERI_PYTEST_XDIST_IMPORTABLE": "1", "PYTHONDONTWRITEBYTECODE": "1"})
-    try:
-        while ran.poll() is None and not list(tmp_path.glob("legs-full.lock.wait-*")):
-            time.sleep(0.02)
-    finally:
-        fcntl.flock(held, fcntl.LOCK_UN)
-        held.close()
-    out, err = ran.communicate(timeout=30)
+                                "VERI_PYTEST_XDIST_IMPORTABLE": "1", "PYTHONDONTWRITEBYTECODE": "1"}) as ran:
+        try:
+            while ran.poll() is None and not list(tmp_path.glob("legs-full.lock.wait-*")):
+                time.sleep(0.02)
+        finally:
+            fcntl.flock(held, fcntl.LOCK_UN)
+            held.close()
+        out, err = ran.communicate(timeout=30)
 
     assert (ran.returncode, acquired.exists()) == (2, True), err
 
@@ -217,14 +217,13 @@ def test_2427_a_leaf_sigkilled_by_another_process_exits_2_with_cause_killed_exte
     work.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=work, check=True)
     pidfile = tmp_path / "leaf.pid"
-    ran = subprocess.Popen([str(SCRIPTS / "supervise.sh"), "develop-red", "sh", "-c",
-                            'echo $$ > "$1"; exec sleep 60', "sh", str(pidfile)],
-                           cwd=work, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                           env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "1",
-                                "VERI_POLL": "0.05", "VERI_TIMEOUT": "3", "VERI_HEARTBEAT": "600",
-                                "VERI_ISSUE": "2427", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"})
     leaf = None
-    try:
+    with supervised([str(SCRIPTS / "supervise.sh"), "develop-red", "sh", "-c",
+                     'echo $$ > "$1"; exec sleep 60', "sh", str(pidfile)],
+                    cwd=work, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                    env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "1",
+                         "VERI_POLL": "0.05", "VERI_TIMEOUT": "3", "VERI_HEARTBEAT": "600",
+                         "VERI_ISSUE": "2427", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"}) as ran:
         while ran.poll() is None and leaf is None:
             text = pidfile.read_text().strip() if pidfile.exists() else ""
             leaf = int(text) if text.isdigit() else None
@@ -232,9 +231,6 @@ def test_2427_a_leaf_sigkilled_by_another_process_exits_2_with_cause_killed_exte
         if leaf is not None:
             os.killpg(os.getpgid(leaf), 9)
         out, err = ran.communicate(timeout=20)
-    finally:
-        if ran.poll() is None:
-            ran.kill()
     events = [json.loads(l) for l in (work / ".tdd" / "events.jsonl").read_text().splitlines()]
     exits = [e for e in events if e.get("event") == "exit"]
 
