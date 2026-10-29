@@ -5,6 +5,10 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
 
 - `killed-stuck` — `supervise.sh` exited **2** for a developer leaf even after its
   stuck-retry budget → **system** failure (plumbing broke).
+- `killed-external` — `supervise.sh` exited **2** for a developer leaf because the leaf died
+  with no recorded exit and veri did not kill it (the supervisor's
+  `supervise[<name>]: killed-external` status line); never retried → **system** failure,
+  distinct from `killed-stuck`.
 - `no-verdict` — exit **2** from `verify.sh` / `run-verdict.sh` (a verifier with no verdict:
   unparseable, or the leaf was killed), `grade-prose.sh` (the Draft PR regrade), the
   ⟦skill-edit⟧ runner (`skill-edit-step.sh`), `resume-clean.sh`, `rebase-onto-default.sh`,
