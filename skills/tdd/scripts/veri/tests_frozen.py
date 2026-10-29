@@ -397,6 +397,7 @@ def rerecord_earlier(ledger, step):
 def rerecord_rebased(ledger, pre):
     with open(ledger, encoding="utf-8") as handle:
         lines = handle.read().splitlines()
+    os.chdir(_toplevel())
     for _, path, records in _earlier_records(lines, ""):
         out = []
         for record in records:
