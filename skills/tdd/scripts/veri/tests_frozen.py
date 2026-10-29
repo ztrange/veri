@@ -169,10 +169,22 @@ def _spans(text):
     return found, starts, ends
 
 
-def _old_cut_cases(text, call_form_only=False):
+def _old_cut_cases_all(text, call_form_only=False):
     found, starts, ends = _spans(text)
-    return {m.group(1) or m.group(2) or m.group(4): text[start:end].rstrip() for m, start, end in zip(found, starts, ends)
-            if m.group(4) or not call_form_only}
+    return [(m.group(1) or m.group(2) or m.group(4), text[start:end].rstrip()) for m, start, end in zip(found, starts, ends)
+            if m.group(4) or not call_form_only]
+
+
+def _accepted_per_digest(digests, nows, olds):
+    """Each recorded digest's accepted bodies: the n-th digest for a name against that name's n-th case.
+
+    Same-named twins are matched by order, never through a dict, whose last twin would hide the others.
+    When the counts differ (a step recorded only the twin it edited), a digest is accepted against any twin."""
+    def accepted(*bodies):
+        return {_body_digest(body) for body in bodies if body is not None}
+    if len(digests) == len(nows):
+        return [accepted(now, olds[i] if i < len(olds) else None) for i, now in enumerate(nows)]
+    return [accepted(*nows, *olds)] * len(digests)
 
 
 def _call_end(text, opening):
@@ -334,22 +346,22 @@ def _check_earlier(ledger, step, exempt=()):
         try:
             with open(name, encoding="utf-8", errors="replace") as handle:
                 text = handle.read()
-            now = dict(_cases(text)).get(case)
-            old = _old_cut_cases(text, marked).get(case)
+            nows = [body for c, body in _cases(text) if c == case]
+            olds = [body for c, body in _old_cut_cases_all(text, marked) if c == case]
             digest = digests[-1]
-            if now is None:
+            if not nows:
                 other = _renamed_to(name, case, digest, text, consumed)
                 if other:
-                    now = old = dict(_cases(text))[other].replace(other, case, 1)
+                    nows = olds = [dict(_cases(text))[other].replace(other, case, 1)]
                 elif not any(case in _cases_at(rev, name) for rev in _revisions(name)):
                     write(sys.stderr, "tests-frozen.sh: %s (%s, %s) is in no revision of this branch: skipped"
                           % (case, owner, _record_path(owner)))
                     continue
         except OSError:
-            now = old = None
-        accepted = {_body_digest(body) for body in (now, old) if body is not None}
+            nows = olds = []
+        accepted = _accepted_per_digest(digests, nows, olds) if nows else []
         if case not in exempt and not (fixture and name == fixture.group(1)) and (
-                now is None or any(d not in accepted for d in digests)):
+                not nows or any(d not in held for d, held in zip(digests, accepted))):
             changed.append("%s (%s)" % (case, owner))
     for entry in changed:
         write(sys.stdout, entry)
