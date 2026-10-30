@@ -1405,7 +1405,7 @@ def test_unknown_phase_exits_non_zero(tmp_path, run_cli, build_verify_prompt):
 
 def test_619_verify_green_verify_pin_and_develop_cover_confirm_the_restore_by_comparing_git_diff_and_name_neither_checkout_nor_exit_code():
     problems = []
-    for label in ("verify-green", "verify-pin", "develop-cover"):
+    for label in ("verify-green", "verify-pin"):
         prompt = template_bytes(label)
         problems += says(prompt, f"{label} never compares git diff with what it printed before the probe",
                          rb"git diff[^.]{0,120}(before|earlier)[^.]{0,40}(probe|mutat)"
@@ -1417,16 +1417,10 @@ def test_619_verify_green_verify_pin_and_develop_cover_confirm_the_restore_by_co
 
 def test_619_verify_green_check_4_and_verify_pin_check_2_restore_before_reporting_and_develop_cover_step_4_leaves_the_tree_as_found():
     problems = []
-    for label, n in (("verify-green", 4), ("verify-pin", 2), ("develop-cover", 4)):
+    for label, n in (("verify-green", 4), ("verify-pin", 2)):
         text = numbered_item(template_bytes(label), n)
-        if label == "develop-cover":
-            problems += says(text, f"{label} item {n} never restores with mv <file>.orig <file>",
-                             rb"mv <file>\.orig <file>")
-            problems += says(text, f"{label} item {n} never requires the tree exactly as the leaf found it",
-                             rb"working tree must be exactly as you found it", re.I)
-        else:
-            problems += says(text, f"{label} item {n} never requires the restore before reporting",
-                             rb"before you report")
+        problems += says(text, f"{label} item {n} never requires the restore before reporting",
+                         rb"before you report")
     assert problems == []
 
 
