@@ -226,3 +226,11 @@
 | GN17 | The report section says that, when the step is too big for one green, those two lines are replaced by one to three `SPLIT:` lines, each a behaviour-level criterion, one per line, in the order they must be built. (Report section, the SPLIT: alternative.) | A split is reported in a fixed shape the conductor turns into steps. |
 | GN18 | The report section says that, when the test itself looks wrong, those two lines are replaced by one `WRONG_TEST: <why the test looks wrong>` line, which names the existing test case the step's criterion contradicts, by its own name as its test file spells it, with no describe, class or file prefix. (Report section, the WRONG_TEST: alternative.) | The conductor routes a wrong test by the case it names, so the name must match the file. |
 | GN19 | The report section says that, when older cases fail only because the step supersedes what they pin, the lines are replaced by one `SUPERSEDED:` line per such case, the older case's name written out in full as its test file spells it, without quotes; and that a case the step's change does not supersede is a `WRONG_TEST:` line, never a `SUPERSEDED:` one. (Report section, the SUPERSEDED: alternative and the sentence after it.) | A superseded case and a wrong test are routed differently, and the line must say which. |
+
+## skills/tdd/scripts/prompts/_develop-green-freeze-rule.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| GF1 | The fragment opens with "**Do not modify the test.**" and says: not its assertions, not its inputs, not its name. (First two sentences.) | The test Red wrote and verify-red passed is the bar; green may not move it. |
+| GF2 | The fragment says making the bar easier to clear is not clearing it: a pass bought by weakening, skipping or deleting the case is a rejected step. (Third sentence.) | A weakened test turns a failing behaviour into a false green. |
+| GF3 | The fragment says that if the test itself looks wrong, the leaf says so in its report as one `WRONG_TEST: <why>` line and stops, without editing it. (Last sentence.) | A wrong test has its own route; the leaf reports it rather than fixing it. |
