@@ -1182,3 +1182,46 @@ def test_refresh_with_no_cache_over_one_page_returns_every_issue_when_one_outsid
     written = tmp_path / ".tdd" / "report-cache.json"
     kept = sorted(i["number"] for i in json.loads(written.read_text())["issues"]) if written.exists() else None
     assert (code, kept) == (0, list(range(1, 151)))
+
+
+def test_refresh_with_a_cache_over_one_page_returns_every_issue_of_its_window_when_one_outside_the_first_unsorted_page_was_updated_later_2709(run_cli, monkeypatch, tmp_path):
+    import json
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    cache = tmp_path / ".tdd" / "report-cache.json"
+    cache.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "issues": [
+        {"number": 900, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
+    windowed = [
+        {"number": n, "title": "issue %d" % n, "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-10-05T%02d:%02d:00Z" % divmod(300 - n, 60), "body": "", "comments": []}
+        for n in range(1, 151)
+    ]
+    older = [
+        {"number": 1000 + n, "title": "older %d" % n, "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-09-%02dT00:00:00Z" % (1 + n), "body": "", "comments": []}
+        for n in range(5)
+    ]
+
+    def fake_gh_issue_list(*args):
+        limit = int(args[args.index("--limit") + 1])
+        terms = (args[args.index("--search") + 1] if "--search" in args else "").split()
+        if "sort:updated-desc" in terms:
+            pool = sorted(windowed + older, key=lambda i: (i["updatedAt"], i["number"]), reverse=True)
+        else:
+            pool = sorted(windowed + older, key=lambda i: i["number"], reverse=True)
+        for term in terms:
+            if term.startswith("updated:>="):
+                pool = [i for i in pool if i["updatedAt"] >= term[len("updated:>="):]]
+            if term.startswith("updated:<="):
+                pool = [i for i in pool if i["updatedAt"] <= term[len("updated:<="):]]
+        return json.dumps(pool[:limit])
+
+    monkeypatch.setattr(report_cache.github, "gh_issue_list", fake_gh_issue_list)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    kept = sorted(i["number"] for i in json.loads(cache.read_text())["issues"])
+    assert (code, kept) == (0, list(range(1, 151)) + [900])
