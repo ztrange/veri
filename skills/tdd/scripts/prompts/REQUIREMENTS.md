@@ -320,3 +320,12 @@
 | ID | Requirement | Why |
 |---|---|---|
 | PB1 | The fragment tells the leaf to copy the file aside with `cp <file> <file>.orig` before the mutation and to put it back with `mv <file>.orig <file>` after. (The whole fragment.) | This is the restore that keeps the step's uncommitted work, in place of the index-based ones the safety rules forbid. |
+
+## skills/tdd/scripts/prompts/_signal-own-processes.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| SO1 | The fragment opens with "**Signal only processes you started**", by the pid recorded when they were started. (First sentence, up to the dash.) | A leaf may only stop what it can prove is its own. |
+| SO2 | The fragment says never by name or pattern, and names `pkill`, `killall` and `kill $(pgrep …)` as the forbidden forms. (First sentence, after the dash.) | These are the commands that match by pattern. |
+| SO3 | The fragment gives the reason: a pattern matches every process on the machine, so it reaches another live run's supervisor and leaves. (Second sentence.) | Several runs share the machine, and a pattern kill takes theirs down too. |
+| SO4 | The fragment tells the leaf to name an experiment's processes and leaves with the `exp-` prefix, which no live run uses. (Last sentence.) | A distinct prefix keeps an experiment's processes apart from live runs. |
