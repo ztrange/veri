@@ -209,6 +209,20 @@ def added_markers(onto):
     return found
 
 
+def passes_in(gate, cwd):
+    done = start(["sh", "-c", gate], cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                 stderr=subprocess.STDOUT)
+    return done.returncode == 0, done.stdout.decode("utf-8", "replace")
+
+
+def red_gate_failure():
+    for gate in (g.strip() for g in tunables.read("VERI_TEST_CMD").split("&&")[:-1]):
+        passed, output = passes_in(gate, ".")
+        if not passed:
+            return "GATE: %s fails on the Red's tree: %s" % (gate, output.rstrip().rsplit("\n", 1)[-1])
+    return None
+
+
 def main(argv):
     args = list(argv)
     while args and takes_a_value(args[0]):
@@ -260,6 +274,11 @@ def main(argv):
         if marked:
             write(sys.stdout, "rebase committed conflict markers: "
                    + ", ".join("%s %s" % pair for pair in marked))
+            return 1
+    if words[0] == "red":
+        failure = red_gate_failure()
+        if failure:
+            write(sys.stdout, failure)
             return 1
     top = event.toplevel()
     run_state = os.path.join(top, ".tdd") if top and top != os.getcwd() else ".tdd"
