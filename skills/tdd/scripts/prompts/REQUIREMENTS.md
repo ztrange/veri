@@ -264,3 +264,11 @@
 |---|---|---|
 | GG1 | The fragment opens with "**One exception: the step's guard-subject file.**" and says the step names it in its `⟦guard-subject: <path>⟧` marker. (First line.) | The exception is tied to a file the step itself names. |
 | GG2 | The fragment says the leaf may edit that file, and no other test file, and that the case Red wrote stays frozen. (Second line.) | Only the guard's subject opens; the test that pins the step stays the bar. |
+
+## skills/tdd/scripts/prompts/_develop-repair-test-edit.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| TE1 | The fragment opens with "**You may edit the failing test.**" and says this step repairs a full run, the fix is often an edit to the test file that run left red, and the leaf edits that file only as far as the repair needs. (First two sentences.) | A repair step may need to fix the test that is actually wrong. |
+| TE2 | The fragment says every other test stays frozen. (Third sentence.) | The permission covers the failing test alone. |
+| TE3 | The fragment says making the bar easier to clear is not clearing it: a pass bought by weakening, skipping or deleting a case the repair does not require is a rejected step. (Last sentence.) | The edit permission is not a licence to weaken. |
