@@ -27,6 +27,11 @@ Invoked as `/veri-dev [<lane>] [N] [--resume <file>]`.
 - **MCP servers:** when this session has tools from any MCP server, tell the human once, in one
   line, the launch line that starts the session without them:
   `claude --strict-mcp-config --mcp-config '{"mcpServers":{}}'`. Change no setting yourself.
+- **Writing in another repository:** when the user's instructions in this session forbid
+  writing in a repository other than the session's, ask the human once whether veri may
+  fast-forward its own clone before each new run, and record the answer with
+  `$S/update-veri.sh --consent yes|no`. Ask only when no record exists; never edit the user's
+  instructions.
 - **Merging is always granted** for the runs this session finishes, in the project repo only.
   A run is merged after its review is OK; never one in another repo.
 - **`--resume <file>`** reads a handoff for state only (live conductors, PRs
