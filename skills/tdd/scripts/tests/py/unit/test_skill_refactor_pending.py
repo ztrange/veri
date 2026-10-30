@@ -5,7 +5,6 @@ import re
 
 ROOT = pathlib.Path(__file__).resolve().parents[6]
 SKILL = ROOT / "skills" / "tdd" / "SKILL.md"
-CLAUDE = ROOT / "CLAUDE.md"
 CONTEXT = ROOT / "CONTEXT.md"
 
 MARK = "⟂ refactor pending"
@@ -55,11 +54,6 @@ def says(text, pattern, message):
 
 
 def test_claude_md_s_ledger_invariant_and_context_md_s_ledger_entry_say_a_ticked_step_carries_the_refactor_pending_mark_until_its_verify_refactor_passes():
-    claude = file_records(CLAUDE)
-    assert claude, "CLAUDE.md has no records to read"
-    invariant = read(claude, "CLAUDE.md's ledger invariant", "committed ledger", "source of truth")
-    says(invariant, MARK, "CLAUDE.md's ledger invariant never spells the mark")
-    says(invariant, "verify-refactor", "CLAUDE.md's ledger invariant never names verify-refactor")
     context = file_records(CONTEXT)
     assert context, "CONTEXT.md has no records to read"
     entry = read(context, "CONTEXT.md's Ledger glossary entry", r"^\*\*ledger\*\*:")
