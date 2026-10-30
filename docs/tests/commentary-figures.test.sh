@@ -89,10 +89,8 @@ while IFS='|' read -r site script script_re prose_re; do
     problems+=("$COMMENTARY $site: says $got, $script encodes $encoded")
   fi
 done <<'SITES'
-contract-table|skills/tdd/scripts/supervise.sh|VERI_HEARTBEAT:-[0-9]+|VERI_HEARTBEAT</code> [0-9]+s
-streaming-note|skills/tdd/scripts/supervise.sh|VERI_HEARTBEAT:-[0-9]+|[0-9]+-second silence window
-budgets-diagram|skills/tdd/scripts/refactor-budget.sh|VERI_REFACTOR_BUDGET:-[0-9]+|VERI_REFACTOR_BUDGET +\([0-9]+
-refactor-budget-assignment|skills/tdd/scripts/refactor-budget.sh|VERI_REFACTOR_BUDGET:-[0-9]+|VERI_REFACTOR_BUDGET:-[0-9]+
+contract-table|skills/tdd/scripts/veri/supervise.py|"VERI_HEARTBEAT", "[0-9]+|VERI_HEARTBEAT</code> [0-9]+s
+budgets-diagram|skills/tdd/scripts/veri/refactor_budget.py|DEFAULT_BUDGET = "?[0-9]+|VERI_REFACTOR_BUDGET +\([0-9]+
 SITES
 report "$name"
 
