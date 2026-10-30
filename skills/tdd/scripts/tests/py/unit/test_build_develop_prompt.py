@@ -1166,18 +1166,17 @@ def test_main_states_each_interface_phases_freeze_rule_in_its_revise_prompt_1448
     reason = tmp_path / "reason.md"
     reason.write_bytes(b"REJECT: the phase left a caller on the old name.\n")
 
+    test_fragment = (SCRIPTS / "prompts" / "_develop-revise-freeze-test.md").read_bytes().rstrip(b"\n")
+    production_fragment = (SCRIPTS / "prompts" / "_develop-revise-freeze-production.md").read_bytes().rstrip(b"\n")
     frozen = {}
     for phase in ("expand", "migrate", "contract-a", "contract-b"):
         code = build_develop_prompt.main(
             ["revise", phase, str(spec), "QWIXTLE: zorblat quuxes", "make test", str(reason), "make unit"])
         out, _ = capsysbinary.readouterr()
-        text = re.sub(rb"\s+", b" ", out)
-        kinds = {kind.lower() for kind in
-                 re.findall(rb"\bnever modify\b[^.]{0,20}?\b(test|production) files?\b", text, re.I)}
-        frozen[phase] = (code, kinds)
+        frozen[phase] = (code, test_fragment in out, production_fragment in out)
 
-    assert frozen == {"expand": (0, {b"test"}), "migrate": (0, {b"test"}),
-                      "contract-a": (0, {b"production"}), "contract-b": (0, {b"test"})}
+    assert frozen == {"expand": (0, True, False), "migrate": (0, True, False),
+                      "contract-a": (0, False, True), "contract-b": (0, True, False)}
 
 
 def test_main_freezes_production_in_a_cover_new_revise_prompt_as_contract_a_does_and_tests_in_expand_migrate_and_contract_b_2034(
@@ -1187,18 +1186,17 @@ def test_main_freezes_production_in_a_cover_new_revise_prompt_as_contract_a_does
     reason = tmp_path / "reason.md"
     reason.write_bytes(b"REJECT: the new cases do not call the new interface.\n")
 
+    test_fragment = (SCRIPTS / "prompts" / "_develop-revise-freeze-test.md").read_bytes().rstrip(b"\n")
+    production_fragment = (SCRIPTS / "prompts" / "_develop-revise-freeze-production.md").read_bytes().rstrip(b"\n")
     frozen = {}
     for phase in ("cover-new", "contract-a", "expand", "migrate", "contract-b"):
         code = build_develop_prompt.main(
             ["revise", phase, str(spec), "QWIXTLE: zorblat quuxes", "make test", str(reason), "make unit"])
         out, _ = capsysbinary.readouterr()
-        text = re.sub(rb"\s+", b" ", out)
-        kinds = {kind.lower() for kind in
-                 re.findall(rb"\bnever modify\b[^.]{0,20}?\b(test|production) files?\b", text, re.I)}
-        frozen[phase] = (code, kinds)
+        frozen[phase] = (code, test_fragment in out, production_fragment in out)
 
-    assert frozen == {"cover-new": (0, {b"production"}), "contract-a": (0, {b"production"}),
-                      "expand": (0, {b"test"}), "migrate": (0, {b"test"}), "contract-b": (0, {b"test"})}
+    assert frozen == {"cover-new": (0, False, True), "contract-a": (0, False, True),
+                      "expand": (0, True, False), "migrate": (0, True, False), "contract-b": (0, True, False)}
 
 
 def test_main_renders_a_red_prompt_taking_a_ci_repair_steps_quoted_ci_log_as_its_evidence_of_failure_and_a_local_pass_as_no_pin_only_for_the_mark_1431(
@@ -1486,7 +1484,10 @@ def test_main_grants_a_test_rewrite_in_a_revise_prompt_only_when_the_revised_pha
     spec.write_bytes(b"# spec\n")
     reason = tmp_path / "reason.md"
     reason.write_bytes(b"rejected\n")
-    grant = b"A rewritten test is a new test, and owes a new prediction"
+    run_state = os.fsencode(os.path.join(build_develop_prompt.event.toplevel() or os.getcwd(), ".tdd"))
+    grant = (SCRIPTS / "prompts" / "_develop-test-rewrite-grant.md").read_bytes().rstrip(b"\n")
+    for name in (b"red-prediction.md", b"red-run-output.txt"):
+        grant = grant.replace(b"`.tdd/" + name + b"`", b"`" + run_state + b"/" + name + b"`")
 
     granted = {}
     for revised in build_develop_prompt.REVISABLE_PHASES:
@@ -1504,8 +1505,7 @@ def test_main_tells_a_revise_of_contract_a_to_move_the_old_interfaces_tests_with
     spec.write_bytes(b"# spec\n")
     reason = tmp_path / "reason.md"
     reason.write_bytes(b"rejected\n")
-    move = (b"**Move the tests off the old interface, as contract-a does**: rewrite or delete only the tests the\n"
-            b"   rejection names that still exercise it. No new failing test is written, so no prediction is owed.")
+    move = (SCRIPTS / "prompts" / "_develop-test-move-contract-a.md").read_bytes().rstrip(b"\n")
 
     told = {}
     for revised in build_develop_prompt.REVISABLE_PHASES:
