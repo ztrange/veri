@@ -924,7 +924,7 @@ def test_rerecord_on_head_keeps_every_recorded_case_still_there_and_never_one_a_
     head = dict(tests_frozen._cases(suite.read_text()))
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: head)
     monkeypatch.setattr(tests_frozen, "_step_commits", lambda s: {"mine"})
-    monkeypatch.setattr(tests_frozen, "_first_seen", lambda name, case: "theirs")
+    monkeypatch.setattr(tests_frozen, "_introduced_by", lambda name, own: set())
 
     rerecorded = run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)[0]
 
@@ -942,7 +942,7 @@ def test_rerecord_on_head_exits_2_naming_the_step_and_file_and_keeps_the_record_
     head = dict(tests_frozen._cases(suite.read_text()))
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: head)
     monkeypatch.setattr(tests_frozen, "_step_commits", lambda s: {"mine"})
-    monkeypatch.setattr(tests_frozen, "_first_seen", lambda name, case: "theirs")
+    monkeypatch.setattr(tests_frozen, "_introduced_by", lambda name, own: set())
 
     code, _, err = run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
 
