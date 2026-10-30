@@ -37,6 +37,8 @@ def main(argv):
     upstream = git("rev-parse", "--abbrev-ref", "origin/HEAD").stdout.strip()
     old = git("rev-parse", "HEAD").stdout.strip()
     new = git("rev-parse", upstream).stdout.strip()
+    if old == new:
+        return refuse("already current", 3)
     if git("merge-base", "--is-ancestor", "HEAD", upstream).returncode != 0:
         return refuse(f"{upstream} is not a fast-forward of HEAD")
     git("merge", "--ff-only", upstream)
