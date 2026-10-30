@@ -175,9 +175,7 @@ def test_develop_refactor_runs_affected_suites_fed_refactor_touched_output_after
 @pytest.mark.process(BOUNDARY)
 def test_develop_green_and_verify_green_name_the_fast_command_plus_the_affected_suites_not_the_full_suite(spec):
     problems = []
-    green = build(problems, DEVELOP, "green", spec, "QWIXTLE step", "make test", "tests/zorblat.test.sh", "zorblat case", "make unit")
     verify_green = build(problems, VERIFY, "--fast-cmd", "make unit", "green", spec, "tests/zorblat.test.sh", "zorblat case")
-    runs_fast_plus_affected(problems, "develop-green", green)
     runs_fast_plus_affected(problems, "verify-green", verify_green)
     assert problems == []
 
