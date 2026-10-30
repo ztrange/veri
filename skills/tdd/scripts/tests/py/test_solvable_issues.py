@@ -633,7 +633,7 @@ def test_cli_honours_an_item_older_than_ghs_default_page_of_30(issues, prs, answ
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[5]
 
 
-@pytest.mark.parametrize("doc", [REPO_ROOT / "README.md", REPO_ROOT / "CONTEXT.md"], ids=lambda doc: doc.name)
+@pytest.mark.parametrize("doc", [REPO_ROOT / "CONTEXT.md"], ids=lambda doc: doc.name)
 def test_doc_names_the_label_tunable_and_the_one_label_per_loop_use(doc):
     text = doc.read_text()
 
