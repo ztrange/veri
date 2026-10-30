@@ -828,7 +828,7 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
    - **REJECT (exit 1) whose reason file `.tdd/verify-red.reason` begins with a `GATE:` line:**
      the step's Red is routed back to the Red phase, not into the revise loop. Launch the
      `red-repair` red over the step's own target test through `supervise.sh`
-     (`$S/build-develop-prompt.sh red-repair <target-test-id> .tdd/verify-red.reason`, the
+     (`$S/build-develop-prompt.sh red-repair .tdd/issue-<n>-spec.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' <target-test-id> .tdd/verify-red.reason`, the
      reason file being the brief), write no `revise` mark and spend no `REVISE_BUDGET`
      attempt, then run verify-red again. The route is taken **once per step**: a second
      `GATE:` REJECT in the same step after it is an ordinary verify-red REJECT, below.
