@@ -263,6 +263,28 @@ def test_2695_queued_merge_waits_for_fetch_retry_sleep_between_fetches_of_a_lagg
     assert (code, waits) == (0, [0.25])
 
 
+def test_2695_queued_merge_whose_fetch_origin_exits_non_zero_after_the_merge_names_the_failed_fetch_and_its_exit_code_not_a_missing_commit_and_lists_tag_failed_with_exit_2(
+        fake_processes, run_cli):
+    merged = {"put": False}
+
+    def broken(answer):
+        def fetch(line, **kwargs):
+            if "-X PUT" in line:
+                merged["put"] = True
+            if merged["put"] and line.endswith("fetch origin"):
+                return 128, "", "fatal: unable to access"
+            return answer(line, **kwargs)
+        return fake_processes(fetch)
+
+    calls = scenario(broken)
+
+    code, _, err = run_cli(queued_merge, ARGV, env={"VERI_FETCH_RETRY_SLEEP": "0"})
+
+    tagged = [c for c in calls if " tag -a " in c or "push origin v0." in c]
+    assert (code, "fetch" in err and "128" in err, "is not in the clone" in err, "merged, but cleanup failed: tag" in err, tagged) == (
+        2, True, False, True, [])
+
+
 def test_2425_queued_merge_refuses_a_pr_argument_that_is_not_a_pr_url_before_any_lock_or_git(fake_processes, run_cli):
     calls = scenario(fake_processes)
 
