@@ -35,4 +35,4 @@ def test_report_formats_keeps_parse_and_drops_the_stop_prose_lint_and_the_commit
     assert [n for n in ("EXEMPT", "_STOP_WORDS", "stop_prose_offenders")
             if hasattr(report_formats, n)] == []
     assert hasattr(report_formats, "parse")
-    assert not (pathlib.Path(__file__).parent / "unit" / "test_commit_suffix.py").exists()
+    assert not (pathlib.Path(__file__).parent / "test_commit_suffix.py").exists()

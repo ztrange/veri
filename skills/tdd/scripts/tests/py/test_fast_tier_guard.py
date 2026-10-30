@@ -463,6 +463,12 @@ def test_1668_the_comment_class_suite_whose_only_suite_looking_strings_are_prose
     assert ((tier / name).is_file(), (tier / "unit" / name).is_file()) == (False, True)
 
 
+def test_the_f9_prompt_retirements_suite_whose_cases_start_no_process_lives_under_tests_py_unit_and_not_beside_it():
+    tier = SCRIPTS / "tests" / "py"
+    name = "test_f9_prompt_retirements.py"
+    assert ((tier / name).is_file(), (tier / "unit" / name).is_file()) == (False, True)
+
+
 def test_1874_a_planted_test_file_building_a_subprocess_completed_process_is_not_reported_as_starting_a_process(tmp_path):
     guard = importlib.import_module("veri.fast_tier_guard")
     (tmp_path / "test_fake_result.py").write_text(
