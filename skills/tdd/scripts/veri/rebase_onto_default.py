@@ -43,12 +43,23 @@ def rebase_in_progress():
         "rev-parse", "--git-path", "rebase-merge", "--git-path", "rebase-apply").splitlines())
 
 
+def unit_lines(text):
+    return {line.split()[0]: line for line in text.splitlines()}
+
+
+def union_graded(path):
+    merged = unit_lines(output("show", f":2:{path}")) | unit_lines(output("show", f":3:{path}"))
+    pathlib.Path(path).write_text("".join(row + "\n" for row in merged.values()))
+    git("add", path, text=True)
+
+
 def refuse(reason):
     sys.stderr.write(f"rebase-onto-default: {reason}\n")
     return 2
 
 
 def main(argv):
+    graded_only = "--graded-only" in argv
     try:
         default = default_branch()
     except FileNotFoundError:
@@ -94,9 +105,16 @@ def main(argv):
                 outcome = refuse("git rebase was refused without a conflict")
             else:
                 conflicts = output("diff", "--name-only", "--diff-filter=U")
-                git("rebase", "--abort", text=True)
-                sys.stdout.write(f"{conflicts}\n")
-                outcome = 1
+                if graded_only and all(
+                        pathlib.PurePath(c).name == "GRADED" for c in conflicts.splitlines()):
+                    for c in conflicts.splitlines():
+                        union_graded(c)
+                    git("-c", "core.editor=true", "rebase", "--continue", text=True,
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                if rebase_in_progress():
+                    git("rebase", "--abort", text=True)
+                    sys.stdout.write(f"{conflicts}\n")
+                    outcome = 1
     finally:
         if appends:
             reapplied = git("apply", text=True, input=appends + "\n",
