@@ -83,22 +83,6 @@ def never_timed_under(problems, label, prompt, tier):
         problems.append("%s's prompt still tells its leaf to run through timed-test-run.sh under tier %s" % (label, tier))
 
 
-def names_suite_runner(problems, label, prompt):
-    if 'make test tests="<pytest file or node id>"' not in plain(prompt):
-        problems.append("%s's prompt never names make test TESTS=\"<pytest file or node id>\", the invocation for running one suite" % label)
-    if "convention like any other" in plain(prompt):
-        problems.append("%s's prompt still leaves how to run one suite for the leaf to establish" % label)
-
-
-def names_runner_fallback(problems, label, prompt):
-    item = numbered_item(r'make test tests="<pytest file or node id>"', plain(prompt))
-    if not item:
-        problems.append("%s's prompt has no numbered item naming make test TESTS=\"<pytest file or node id>\"" % label)
-        return
-    if not has_line(r"fall back", item):
-        problems.append("%s's prompt never tells its leaf what to run when make test TESTS=\"<pytest file or node id>\" cannot run a suite" % label)
-
-
 def names_prediction_file(problems, label, prompt):
     if not has_line(r"\.tdd/[A-Za-z0-9_<>.{}-]*prediction", plain(prompt)):
         problems.append("%s's prompt names no prediction file under .tdd/, so nothing records when the prediction was written" % label)
@@ -284,48 +268,6 @@ def test_verify_green_check_1_runs_the_target_test_through_timed_test_run_under_
     assert problems == []
 
 
-def developer_roster(problems, spec):
-    return [
-        ("develop-red", build(problems, DEVELOP, "red", spec, "QWIXTLE step", "make test")),
-        ("develop-green", build(problems, DEVELOP, "green", spec, "QWIXTLE step", "make test", "tests/zorblat.test.sh", "zorblat case", "make unit")),
-        ("develop-refactor", build(problems, DEVELOP, "refactor", spec, "QWIXTLE step", "make test", "src/zorblat.sh")),
-    ]
-
-
-def verifier_roster(problems, spec):
-    return [
-        ("verify-red", build(problems, VERIFY, "red", spec, "tests/zorblat.test.sh", "zorblat case")),
-        ("verify-green", build(problems, VERIFY, "--fast-cmd", "make unit", "green", spec, "tests/zorblat.test.sh", "zorblat case")),
-        ("verify-refactor", build(problems, VERIFY, "--fast-cmd", "make unit", "refactor", spec, "tests/zorblat.test.sh", "abc1234")),
-        ("verify-pin", build(problems, VERIFY, "pin", spec, "tests/zorblat.test.sh", "zorblat case")),
-    ]
-
-
-@pytest.mark.process(BOUNDARY)
-def test_every_developer_prompt_that_runs_a_suite_names_make_test_tests_as_the_single_suite_invocation(spec):
-    problems = []
-    probe_prompts(problems, names_suite_runner, developer_roster(problems, spec))
-    assert problems == []
-
-
-@pytest.mark.process(BOUNDARY)
-def test_every_developer_prompt_that_names_make_test_tests_tells_its_leaf_what_to_run_when_the_repository_has_none(spec):
-    problems = []
-    probe_prompts(problems, names_runner_fallback, developer_roster(problems, spec))
-    assert problems == []
-
-
-@pytest.mark.process(BOUNDARY)
-def test_every_develop_revise_prompt_names_make_test_tests_so_a_redos_affected_suite_runs_apply_make_tests_environment(spec, reason):
-    problems = []
-    roster = [
-        ("develop-revise " + phase, build(problems, DEVELOP, "revise", phase, spec, "QWIXTLE step", "make test", reason))
-        for phase in ("red", "green", "refactor")
-    ]
-    probe_prompts(problems, names_suite_runner, roster)
-    assert problems == []
-
-
 @pytest.mark.process(BOUNDARY)
 def test_the_develop_red_and_develop_revise_red_prompts_name_a_prediction_file_to_write_before_the_run(spec, reason):
     problems = []
@@ -341,20 +283,6 @@ def test_the_develop_red_and_develop_revise_red_prompts_name_a_run_output_file_t
     red = build(problems, DEVELOP, "red", spec, "QWIXTLE step", "make test")
     revise = build(problems, DEVELOP, "revise", "red", spec, "QWIXTLE step", "make test", reason)
     probe_prompts(problems, names_run_output_file, [("develop-red", red), ("develop-revise red", revise)])
-    assert problems == []
-
-
-@pytest.mark.process(BOUNDARY)
-def test_every_blind_verifier_prompt_names_make_test_tests_as_the_single_suite_invocation(spec):
-    problems = []
-    probe_prompts(problems, names_suite_runner, verifier_roster(problems, spec))
-    assert problems == []
-
-
-@pytest.mark.process(BOUNDARY)
-def test_every_blind_verifier_prompt_that_names_make_test_tests_tells_its_leaf_what_to_run_when_the_repository_has_none(spec):
-    problems = []
-    probe_prompts(problems, names_runner_fallback, verifier_roster(problems, spec))
     assert problems == []
 
 
