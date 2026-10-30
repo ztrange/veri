@@ -1,4 +1,4 @@
-"""A rebase whose only conflict is in a GRADED file, resolved with the branch side, then regraded by the SKILL.md block."""
+"""A rebase whose only conflict is in a GRADED file, resolved by unit by rebase-onto-default.sh, then regraded by the SKILL.md block."""
 import re
 import subprocess
 from pathlib import Path
@@ -25,7 +25,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 
 
 @pytest.mark.process("a real two-branch git repository with a bare origin, rebase-onto-default.sh, the SKILL.md regrade block and prose-owed.sh")
-def test_2575_a_graded_conflict_resolved_with_the_branch_side_is_re_signed_by_the_regrade_block_and_leaves_prose_owed_exiting_0(tmp_path):
+def test_2575_a_graded_conflict_the_rebase_resolved_by_unit_is_re_signed_by_the_regrade_block_and_leaves_prose_owed_exiting_0(tmp_path):
     skill = (SCRIPTS.parents[2] / "skills" / "tdd" / "SKILL.md").read_text()
     draft = skill[skill.index("regrades every unit the run signed"):]
     block = re.search(r"```\n(.*?)```", draft, re.S).group(1).replace("<default>", "main")
@@ -59,10 +59,6 @@ def test_2575_a_graded_conflict_resolved_with_the_branch_side_is_re_signed_by_th
     commit(BRANCH, "b", "branch regrade")
 
     rebase = subprocess.run([str(SCRIPTS / "rebase-onto-default.sh")], cwd=work, env=env, capture_output=True, text=True)
-    git("rebase", "-q", "origin/main", check=False)
-    git("checkout", "--theirs", "--", "guide/GRADED")
-    git("add", "guide/GRADED")
-    git("rebase", "--continue")
     claude = tmp_path / "claude"
     claude.write_text(PASS_STUB)
     claude.chmod(0o755)
@@ -71,6 +67,6 @@ def test_2575_a_graded_conflict_resolved_with_the_branch_side_is_re_signed_by_th
     owed = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(work)], env=env, capture_output=True, text=True)
 
     row = (work / "guide" / "GRADED").read_text()
-    assert (rebase.returncode, rebase.stdout.split()) == (1, ["guide/GRADED"]), rebase.stderr
+    assert rebase.returncode == 0, rebase.stdout + rebase.stderr
     assert (regrade.returncode, "b" * 64 in row, "a" * 64 in row) == (0, False, False), regrade.stdout + regrade.stderr + row
     assert (owed.returncode, owed.stdout) == (0, ""), owed.stderr
