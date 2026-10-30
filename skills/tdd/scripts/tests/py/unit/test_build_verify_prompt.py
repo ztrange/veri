@@ -532,7 +532,7 @@ def test_main_carries_and_checks_refactors_base_sha_scopes_every_prompt_to_its_s
         return [*step_args, *fast, phase, s, testpath, slot4]
 
     def has(out, pattern, flags=re.I):
-        return re.search(pattern.encode(), out.replace(b"\n", b" "), flags) is not None
+        return re.search(pattern.encode(), out.replace(b"\n", b" ").replace(str(SCRIPTS).encode(), b"$S"), flags) is not None
 
     monkeypatch.delenv("VERI_STEP", raising=False)
     prompts = {phase: run(call(phase))[1] for phase in every}
