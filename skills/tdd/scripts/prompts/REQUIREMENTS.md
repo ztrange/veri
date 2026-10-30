@@ -423,3 +423,11 @@
 | RX5 | Under their own headings the prompt gives the leaf the cases with no REPLACES: line (`{{MISSING_CASES}}`), the step (`{{STEP}}`) and the issue's behavior spec as context (`{{ISSUE_SPEC}}`). (Sections before "What to do".) | The leaf needs the exact cases to answer for and the step they come from. |
 | RX6 | What to do tells the leaf to change no test and no production file, because only the report is wrong, and not to run a suite. (What to do.) | The tests already passed verification; this leaf only rewrites a report, so any file change is out of scope. |
 | RX7 | The prompt ends with a report section whose last line is `REPLACES: <case> => <test id>`, and declares the format `replaces-report` with key `REPLACES:` as suite exempt, because the report is corrected and no file changed. (Report section.) | The conductor reads the declared key, and no suite line is owed when nothing ran. |
+
+## skills/tdd/scripts/prompts/_develop-red-cases-replaces-case.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| RK1 | The fragment says the step replaces cases, so it is not one criterion, one case: the leaf writes one pytest replacement case for each bash case the step named, each in its own `def test_...`, with no extra cases and no generality the step does not ask for. (First sentence.) | A replaces-case step owes one replacement per named case, so the one-case rule of an ordinary Red does not apply. |
+| RK2 | The fragment asks the leaf, for each of them, to report one line `REPLACES: <case name> => <pytest test id>` for each case the step named, the case name exactly as the step spells it, without the quote characters the step wraps it in. (Second sentence.) | The conductor matches each line against the step's case names; a quoted or respelled name matches none. |
+| RK3 | The fragment ends with an include of `_develop-node-id-rule.md`, right after the sentence asking for the `REPLACES:` lines. (Last line, the include.) | What the test id must look like is stated once, in the shared fragment. |
