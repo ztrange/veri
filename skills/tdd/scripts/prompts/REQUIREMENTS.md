@@ -599,3 +599,13 @@
 | PD6 | Step 3 says that when the candidate is already applied on the current tree, the leaf reports the predicate that observes its end state anyway (it then succeeds) and never `PREDICATE: NONE`. (Numbered list, item 3, second sentence.) | An applied candidate is still observable; NONE would wrongly claim it is not. |
 | PD7 | Step 4 tells the leaf to keep `PREDICATE: NONE` for a candidate no single command can observe, and to say why instead of writing one. (Numbered list, item 4.) | NONE is reserved for the unobservable case, with its reason. |
 | PD8 | The prompt ends by asking for one last line, either `PREDICATE: <command>` or `PREDICATE: NONE — <why>`. (Report section.) | The conductor reads one fixed line to get the predicate or its absence. |
+
+## skills/tdd/scripts/prompts/develop-exhausted.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| XH1 | The prompt says the step's revise budget is spent and every attempt at it was rejected by the blind verifier; the next sentence opens with an included fragment and continues "those attempts, so the last rejection reason below is the whole of what you have to reason from." (Opening paragraph, first two sentences.) | The leaf works only from the last reason, never from the attempts' reasoning. |
+| XH2 | A sentence opened by a second included fragment continues "the step again", and the paragraph then tells the leaf to answer in a `STATEMENT:` line. (Opening paragraph, third and fourth sentences.) | The leaf answers a question about the step and does not retry it. |
+| XH3 | The prompt tells the leaf not to modify, revert or remove anything in the working tree, because what is there is the attempts' work and the run keeps it. (Opening paragraph, the "Do not modify" sentence.) | The attempts' work is kept for the human who reads the bail. |
+| XH4 | The prompt says a statement that the criterion already holds must cite a run of the test command the leaf was given, not a run of one case alone. (Opening paragraph, last sentence.) | A claim that nothing needed doing has to rest on the whole command. |
+| XH5 | Under their own headings the prompt gives the leaf the step (the criterion nothing could satisfy, `{{STEP}}`) and the verifier's last rejection reason (`{{REJECTION_REASON}}`), followed by an included fragment. (Sections after the opening paragraph.) | The leaf needs the criterion and the reason it could not be met. |
