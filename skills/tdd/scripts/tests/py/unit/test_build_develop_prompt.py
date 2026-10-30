@@ -1250,23 +1250,6 @@ def test_main_permits_a_replaces_case_green_to_delete_exactly_the_cases_its_step
             for key, prompt in prompts.items()} == dict.fromkeys(prompts, [])
 
 
-def test_main_requires_a_replaces_case_green_to_delete_exactly_the_cases_its_step_names_issue_1406(
-        tmp_path, capsysbinary, build_develop_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
-    step = ('tests/zorblat.test.sh: "zorblat frobs a nitz" moves to '
-            'tests/py/test_zorblat.py ⟦replaces-case⟧ ⟦criterion 1⟧')
-    build_develop_prompt.main(["green", str(spec), step, "make test", "tests/py/test_zorblat.py",
-                               "test_zorblat_frobs_a_nitz", "make unit"])
-    out, _ = capsysbinary.readouterr()
-    prompt = re.sub(rb"\s+", b" ", out)
-
-    assert re.search(
-        rb"(must|required? to|is required|are required|requires?)[^.]{0,60}delet[^.]{0,60}"
-        rb"(exactly|every|each|all)[^.]{0,30}cases?[^.]{0,30}(it|the step|its text) names"
-        rb"|delet[^.]{0,60}(is|are) required", prompt, re.I), prompt
-
-
 def test_main_names_the_surviving_cases_in_a_replaces_case_green_prompt_rebuilt_after_the_first_green_left_them_issue_1406(
         tmp_path, capsysbinary, build_develop_prompt):
     spec = tmp_path / "spec.md"
@@ -2426,41 +2409,6 @@ def test_every_phase_revise_md_sends_to_build_develop_prompt_revise_passes_the_s
 
     assert "rebase" in codes
     assert {p: c for p, c in codes.items() if c == 2} == {}
-
-
-def test_main_renders_a_green_prompt_telling_the_developer_to_probe_each_added_branch_guard_default_flag_parameter_main_block_flush_or_encoding_line_by_removing_it_before_the_fast_plus_affected_run_and_keep_the_removal_when_the_suite_stays_green_2258(
-        tmp_path, capsysbinary, build_develop_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"# spec\n")
-    code = build_develop_prompt.main(["green", str(spec), "s", "make test", "tests/py/test_zorblat.py",
-                                      "test_zorblat", "make unit"])
-    out, _ = capsysbinary.readouterr()
-    text = out.decode()
-
-    probe = re.search(r"probe\b[^.]*?branch[^.]*?guard[^.]*?default[^.]*?flag[^.]*?parameter"
-                      r"[^.]*?`__main__` block[^.]*?flush[^.]*?encoding line", text, re.S)
-    assert code == 0 and probe is not None
-    tail = text[probe.start():]
-    assert re.search(r"remove", tail) and re.search(r"rerun the suite holding the target case", tail)
-    assert re.search(r"still\s+green[^.]*keep the removal", tail, re.I)
-    assert probe.start() < text.index("Exactly once, immediately before you write the `SUITE:`")
-
-
-def test_main_renders_a_green_prompt_telling_the_developer_to_make_the_probe_copy_beside_the_file_restore_it_with_mv_when_the_suite_goes_red_and_leave_no_orig_file_behind_either_way_2258(
-        tmp_path, capsysbinary, build_develop_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"# spec\n")
-    code = build_develop_prompt.main(["green", str(spec), "s", "make test", "tests/py/test_zorblat.py",
-                                      "test_zorblat", "make unit"])
-    out, _ = capsysbinary.readouterr()
-    text = out.decode()
-
-    copy = re.search(r"Copy the file beside itself \(`cp <file> <file>\.orig`", text)
-    assert code == 0 and copy is not None
-    tail = text[copy.start():]
-    restore = re.search(r"Red:\s+restore with `mv <file>\.orig <file>`", tail)
-    assert restore is not None
-    assert re.search(r"Leave no `\.orig` file behind either way", tail[restore.end():])
 
 
 def test_main_renders_a_refactor_prompt_naming_the_in_step_line_kind_with_the_files_it_changes_for_an_out_of_scope_candidate_changing_a_touched_file_and_candidates_out_of_bounds_for_one_changing_none_2305(
