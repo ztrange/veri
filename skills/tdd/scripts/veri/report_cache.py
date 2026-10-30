@@ -65,7 +65,7 @@ def read_issue_page(size, *search):
 
 def fetch_pages(since=None):
     bound = [since] if since else []
-    first, size = read_issue_page(PAGE_SIZE, *(["--search", since] if since else []))
+    first, size = read_issue_page(PAGE_SIZE, "--search", " ".join(bound + ["sort:updated-desc"]))
     if len(first) < size:
         return first
     seen = {}
