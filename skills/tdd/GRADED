@@ -33,3 +33,4 @@ skills/tdd/scripts/prompts/develop-green.md 111cdc5d03eaea42e392f27432b88f5875d8
 skills/tdd/scripts/prompts/_develop-green-freeze-rule.md ac4273f913ed19aa36a09c775bda38ce7bff3335b4e38b1ed3dc4aa4e371b7e4 2026-10-29 1b11b09804a547169abeaea0576cfd99 d560f939aa92
 skills/tdd/scripts/prompts/_develop-green-replaces-case.md eec6ff98259b9b912dc6f7c00b28a64496a2bce74597124007a13db517c95417 2026-10-29 badb8b3c7ef1411bb6c58a040c31ffd9 d560f939aa92
 skills/tdd/scripts/prompts/_develop-green-suite-repair.md 395e480d2baf9774f93f7466b2968e373e5011806d3078f43a98cc4ec06e0be8 2026-10-29 c88c158186b7411e8f3de7ac8d4965b6 d560f939aa92
+skills/tdd/scripts/prompts/_develop-green-fixture-repair.md 4b72d23dd39c9e2d2c569477db7b9527108eb3f645734c1e4a6d92e7747c2811 2026-10-29 3b1cfc0573d64cf380a443bbe02b7587 d560f939aa92

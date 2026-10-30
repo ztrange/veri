@@ -249,3 +249,11 @@
 |---|---|---|
 | GU1 | The fragment opens with "**This step repairs the full run.**" and says the step's text lists every suite the full command left red, each with the name of its first failing case. (First two sentences.) | The leaf must know the step covers several suites, not one test. |
 | GU2 | The fragment tells the leaf to make every listed suite green, not just the one named as the failing test, because a suite still red sends the run to bail. (Last sentence.) | A repair that greens one suite of several does not repair the run. |
+
+## skills/tdd/scripts/prompts/_develop-green-fixture-repair.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| GX1 | The fragment opens with "**This step repairs a fixture.**" and says the script under test is correct; the defect is in the fixture, stub or helper the step names, in the fixture file it names. (First two sentences.) | The fix belongs in the test scaffolding, not in production. |
+| GX2 | The fragment says the leaf may edit that fixture, only as far as the repair needs, and nothing else: not the target case, not any other case, and not any production file. (Third sentence.) | The permission to edit a test file covers the named fixture alone. |
+| GX3 | The fragment says the target case must pass against the unchanged script under test. (Last sentence.) | The repair is proven by the existing production code passing. |
