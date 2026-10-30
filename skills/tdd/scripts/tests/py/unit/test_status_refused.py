@@ -132,3 +132,18 @@ def test_2700_text_lists_a_run_with_no_ledger_and_a_live_conductor_whose_only_ev
 
     lines = capsys.readouterr().out.splitlines()
     assert [line for line in lines if line.startswith("#7") and line.endswith("running")] != []
+
+
+def test_2700_text_lists_a_run_with_no_ledger_and_no_launch_or_end_mark_and_no_live_conductor_as_its_issue_and_stale(tmp_path, monkeypatch, capsys):
+    status = importlib.import_module("veri.status")
+    run = tmp_path / ".tdd" / "wt" / "7"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "events.jsonl").write_text(json.dumps(
+        {"ts": 100, "issue": "7", "event": "preflight-start"}) + "\n")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status, "branch_of", lambda run: "b")
+
+    status.render(False, "", False)
+
+    lines = capsys.readouterr().out.splitlines()
+    assert [line for line in lines if line.startswith("#7") and line.endswith("stale")] != []
