@@ -4,6 +4,8 @@
 |---|---|---|
 | DV1 | In a `⟦suite-repair⟧` or `⟦ci-repair⟧` revise-green prompt the permission to edit a test appears once, and it covers only the failing test the full run or CI left red; every other test stays frozen (#1653, #1920). | The repair can fix the test that is actually wrong without opening every other test to edits; PR #1907's review showed a mutant reading "Any test may change" survived. |
 | DV2 | Every numbered item of the "What to do" list carries an instruction in every revise prompt the template renders, a `⟦suite-repair⟧` or `⟦ci-repair⟧` revise-green prompt included; no item renders empty. | After #1920 the repair revise-green prompt rendered item 2 as a bare `2.`, leaving the leaf to guess whether a step was dropped. |
+| DV3 | Item 0 of "What to do" tells the leaf, when the phase it is redoing is green, to check the step's size first: if it needs more than one new behaviour at once, it stops here and reports `SPLIT:` lines as **When the step is too big for one green** above says, and does not proceed to the steps below. (What to do, item 0.) | A stop must be reported through a declared key, and an oversized step answers before any run. |
+| DV4 | Item 3 ends with a sentence whose single-suite invocation and its fallback come from two included fragments (`_run-suite-lead.md`, then `_run-suite-same-way.md`), and which closes with "the test command above and say so in your report". (What to do, item 3, last sentence.) | A fallback to the whole test command is reported, so a run that ran more than one suite says so. |
 
 ## skills/tdd/scripts/prompts/develop-contract-a.md
 
