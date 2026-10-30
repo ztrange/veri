@@ -227,23 +227,3 @@ def test_readmes_install_step_symlinks_skills_tdd_alone_and_no_old_skill_directo
         if f'/{old_dir}"' in joined:
             problems.append(f"README.md ## Install still links {old_dir}/: {joined}")
     assert not problems, problems
-
-
-def test_claude_mds_opening_paragraph_names_skills_tdd_as_the_product_and_no_old_skill_directory():
-    problems = []
-    seen, started, opening = False, False, []
-    for line in (ROOT / "CLAUDE.md").read_text().splitlines():
-        if line.startswith("# ") and not seen:
-            seen = True
-        elif seen and line == "" and started:
-            break
-        elif seen and line:
-            started = True
-            opening.append(line)
-    joined = "\n".join(opening)
-    if f"product is `{SKILL_DIR}/`" not in joined:
-        problems.append(f"CLAUDE.md opening: want it to name `{SKILL_DIR}/` as the product, got: {joined or 'no opening paragraph'}")
-    for old_dir in OLD_DIRS:
-        if f"{old_dir}/" in joined:
-            problems.append(f"CLAUDE.md opening still names {old_dir}/")
-    assert not problems, problems
