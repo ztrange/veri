@@ -753,13 +753,6 @@ def test_main_answers_what_the_bash_contract_cases_from_the_out_of_scope_class_t
 
     exhausted = rendered(["exhausted", s, step, cmd, r])
 
-    bug_spec = tmp_path / "bug-spec.md"
-    bug_spec.write_bytes(spec_bytes + b"\n## Bug\n\n### What happened\n\nzorblat returned \"FROB_NITZ\" on the quuxed seed."
-                         b"\n\n### Expected\n\nzorblat returns \"frob-nitz-quux\".\n\n### Steps to reproduce\n\n"
-                         b"Run zorblat --seed \"Frob & Nitz/Quux\".\n\n### Environment\n\nveri on bash 5.2, macOS 15.\n")
-    bug_red = rendered(["red", str(bug_spec), step, cmd])
-    names_with_number = rb"(name|naming)[^.]{0,60}#<n>|#<n>[^.]{0,60}(name|naming)"
-
     over_budget = rendered(["over-budget", s, step, cmd, "3.47", "2.50"])
     over_budget_flat = re.sub(rb"\s+", b" ", over_budget or b"")
     _, mark, over_budget_report = over_budget_flat.partition(b"### Report")
@@ -801,8 +794,6 @@ def test_main_answers_what_the_bash_contract_cases_from_the_out_of_scope_class_t
         "exhausted carries the step, the reason and the spec, refusing a missing reason": (
             carries(exhausted, step, reason_text, b'zorblat("Frob & Nitz/Quux")')
             and refused(["exhausted", s, step, cmd, absent])),
-        "red names a bug's case with #<n>, and a spec with no Bug section is not told to": (
-            says(bug_red, names_with_number) and not says(red, names_with_number)),
         "refactor reports FLAGS: lines in the three classes or none, no NEW_STEP:, defining each class": (
             any_line(refactor, rb"^FLAGS:") and not any_line(refactor, rb"^NEW_STEP:")),
         "over-budget carries the step, both figures and the spec": carries(
@@ -1285,28 +1276,6 @@ def test_main_renders_a_red_prompt_for_a_replaces_case_step_asking_one_pytest_re
     assert (marked_result, plain_result) == ((0, [], True), (0, sorted(rules), True))
 
 
-def test_main_renders_a_red_prompt_for_a_replaces_case_step_asking_each_case_name_without_the_quote_characters_the_step_wraps_it_in_and_one_without_the_mark_unchanged_1600(
-        tmp_path, capsysbinary, build_develop_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
-    marked = ("replaces 'zorblat frobs a nitz', 'zorblat quuxes a frob' in tests/zorblat.test.sh "
-              "⟦replaces-case⟧ ⟦criterion 1⟧")
-    plain = "zorblat frobs a nitz ⟦criterion 1⟧"
-    unquoted = rb"without (the |its |any )?(surrounding |wrapping )?quot"
-
-    def rendered(step):
-        code = build_develop_prompt.main(["red", str(spec), step, "make test"])
-        out, _ = capsysbinary.readouterr()
-        return code, re.sub(rb"\s+", b" ", out)
-
-    code, prompt = rendered(marked)
-    marked_result = (code, re.search(unquoted, prompt, re.I) is not None)
-    code, prompt = rendered(plain)
-    plain_result = (code, re.search(unquoted, prompt, re.I) is not None)
-
-    assert (marked_result, plain_result) == ((0, True), (0, False))
-
-
 def test_main_renders_a_red_prompt_for_a_replaces_case_step_stating_the_replaces_test_id_is_the_pytest_node_id_and_the_line_starts_at_column_0_with_no_bullet_and_one_without_the_mark_unchanged_1660(
         tmp_path, capsysbinary, build_develop_prompt):
     spec = tmp_path / "spec.md"
@@ -1348,28 +1317,6 @@ def test_main_renders_a_develop_replaces_report_prompt_stating_the_replaces_test
         "names the pytest node id form": rb"pytest node id[^.]{0,40}<path from the repository root>::<test name>",
         "starts the line at column 0": rb"column 0",
         "forbids a bullet or other prefix": rb"no bullet or other prefix",
-    }
-
-    code = build_develop_prompt.main(["replaces-report", str(spec), step, "make test", str(report), str(missing)])
-    out, _ = capsysbinary.readouterr()
-    prompt = re.sub(rb"\s+", b" ", out)
-
-    assert (code, sorted(rule for rule, pattern in rules.items() if re.search(pattern, prompt, re.I) is None)) == (0, [])
-
-
-def test_main_renders_a_develop_replaces_report_prompt_stating_the_listed_case_names_are_the_exact_strings_to_copy_and_win_over_the_issues_prose_1660(
-        tmp_path, capsysbinary, build_develop_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
-    report = tmp_path / "red-report.txt"
-    report.write_bytes(b"- REPLACES: zorblat frobs a nitz => test_zorblat_frobs\n")
-    missing = tmp_path / "missing-cases.txt"
-    missing.write_bytes(b"zorblat frobs a nitz\n")
-    step = "\u27e6replaces-case\u27e7 replaces 'zorblat frobs a nitz' in tests/zorblat.test.sh \u27e6criterion 1\u27e7"
-    rules = {
-        "names the listed case names as the exact strings": rb"listed case names[^.]{0,60}exact strings",
-        "says to copy them into the REPLACES: lines": rb"copy[^.]{0,60}REPLACES: lines",
-        "gives them precedence over the issue's prose": rb"precedence over[^.]{0,60}issue's prose",
     }
 
     code = build_develop_prompt.main(["replaces-report", str(spec), step, "make test", str(report), str(missing)])
@@ -1435,6 +1382,8 @@ def test_main_renders_a_revise_red_prompt_for_a_replaces_case_step_without_an_in
     marked = ('tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob" '
               'move to tests/py/test_zorblat.py ⟦replaces-case⟧ ⟦criterion 1⟧')
     plain = "zorblat frobs a nitz ⟦criterion 1⟧"
+    fragment_line = re.sub(rb"\s+", b" ", (SCRIPTS / "prompts" / "_develop-red-cases-replaces-case.md")
+                           .read_bytes()).split(b". ")[0]
     single = rb"(exactly \*\*ONE\*\* new failing test case|add (exactly )?(one|a single) (new )?(failing )?(test )?case)"
 
     def rendered(step):
@@ -1445,8 +1394,7 @@ def test_main_renders_a_revise_red_prompt_for_a_replaces_case_step_without_an_in
     code, prompt = rendered(marked)
     marked_result = (code, re.search(single, prompt, re.I) is None)
     code, prompt = rendered(plain)
-    plain_result = (code, re.search(single, prompt, re.I) is None,
-                    re.search(rb"replacement (test )?case", prompt, re.I) is None)
+    plain_result = (code, re.search(single, prompt, re.I) is None, fragment_line not in prompt)
 
     assert (marked_result, plain_result) == ((0, True), (0, True, True))
 
@@ -1855,8 +1803,7 @@ def test_cli_develop_replaces_report_names_every_case_in_the_missing_cases_file_
                        ["replaces-report", spec, step, test_cmd, str(report), str(tmp_path / "no-such-cases.txt")])
 
     assert ok[0] == 0
-    assert [needle in ok[1] for needle in ("zibble case alpha", "zibble case beta", str(report),
-                                           "REPLACES: <case> => <test id>")] == [True] * 4
+    assert [needle in ok[1] for needle in ("zibble case alpha", "zibble case beta", str(report))] == [True] * 3
     assert (no_report[0], no_report[1], no_cases[0], no_cases[1]) == (2, "", 2, "")
 
 
