@@ -1400,3 +1400,28 @@ def test_2483_convert_resigns_a_unit_listed_only_in_a_per_directory_requirements
 
     assert (converted.returncode, graded_file.read_text() != before, "guide/unit.md" in owed.stdout.split()) == (0, True, False), \
         (converted.returncode, converted.stderr, owed.stdout, graded_file.read_text())
+
+
+@pytest.mark.process("the Draft PR regrade block's git diff line run by sh in a scratch git repo")
+def test_the_draft_pr_regrade_blocks_diff_line_selects_a_unit_signed_in_a_root_graded(tmp_path):
+    skill = (SCRIPTS.parent / "SKILL.md").read_text()
+    line = next(l for l in skill.splitlines() if l.lstrip().startswith('git diff "$base" HEAD -U0 -- '))
+    selecting = line.strip().split(" | { rc=0;")[0]
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    def git(*args):
+        return subprocess.run(["git", *args], cwd=tmp_path, capture_output=True, text=True, env=env, check=True).stdout
+
+    git("init", "-q")
+    (tmp_path / "CLAUDE.md").write_text("notes\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD").strip()
+    (tmp_path / "GRADED").write_text("CLAUDE.md 0123456789abcdef\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "sign CLAUDE.md")
+
+    selected = subprocess.run(["sh", "-c", selecting], cwd=tmp_path, capture_output=True, text=True, env={**env, "base": base})
+
+    assert "CLAUDE.md" in selected.stdout.split(), (selecting, selected.stdout, selected.stderr)
