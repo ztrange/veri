@@ -111,7 +111,7 @@ def listed_units(path):
 
 
 def lists(path="REQUIREMENTS.md"):
-    nested = set(glob.glob("*/REQUIREMENTS.md")) | set(glob.glob("docs/adr/REQUIREMENTS.md")) |set(glob.glob("skills/*/**/REQUIREMENTS.md", recursive=True))
+    nested = set(glob.glob("*/REQUIREMENTS.md")) | set(glob.glob("docs/**/REQUIREMENTS.md", recursive=True)) |set(glob.glob("skills/*/**/REQUIREMENTS.md", recursive=True))
     return [p for p in [path] + sorted(nested) if os.path.exists(p)]
 
 
