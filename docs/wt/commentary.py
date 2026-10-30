@@ -1113,7 +1113,7 @@ SCRIPTS += [dict(
     file="ensure-run-state-ignored.sh", stage=0, id="ensure-run-state-ignored",
     tagline="the target repo's ignore rule",
     blurb=r'''<p>
-  A hundred and nineteen lines that write three &mdash; into <strong>two files</strong>, and it
+  A script that writes three &mdash; into <strong>two files</strong>, and it
   needs both. The worktree's <code>.gitignore</code> is committed, so it is what keeps the
   merged repo safe from a later <code>git add -A</code>; the shared <code>info/exclude</code>
   is never committed and is read by every worktree, so it is what keeps the
@@ -1121,6 +1121,13 @@ SCRIPTS += [dict(
   for all three lines <strong>and their reading order</strong> before anything is written, and
   a destination that carries the rule only in part, or the right three lines shuffled, is
   refused rather than patched or waved through.
+</p><p>
+  <strong>The conductor's half of the contract</strong>, so you need not go to
+  <code>SKILL.md</code> for it: on <code>added</code> it commits the edited
+  <code>.gitignore</code> at once, as the branch's <em>first</em> commit, under one exact
+  message &mdash;
+  <code>git add .gitignore &amp;&amp; git commit -m "chore: ignore veri run state (#&lt;n&gt;)"</code>.
+  On <code>already present</code> there is nothing to commit and it moves straight on.
 </p>''',
     contract=[
         ("Usage", "<code>ensure-run-state-ignored.sh [repo-root]</code> (default: the current directory)"),
