@@ -450,3 +450,11 @@
 | ID | Requirement | Why |
 |---|---|---|
 | RL1 | The fragment tells the leaf to add exactly **ONE** new failing test case, and to write **NO** production code, both words in bold capitals. (The whole fragment.) | An ordinary Red adds one failing case and no product code, so the Green that follows has one thing to make pass. |
+
+## skills/tdd/scripts/prompts/_develop-red-ci-repair.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| RI1 | The fragment opens by saying, in bold, that this step repairs a red CI run. (First sentence.) | The leaf must know the failure it answers comes from CI, not from this machine. |
+| RI2 | The fragment says the failing CI job's log quoted in the step text, with its test id and assertion diff, is this step's evidence of failure, whatever the case does on this machine. (Second sentence.) | A CI-only failure may not reproduce locally; the quoted log is what proves it. |
+| RI3 | The fragment says that if the case passes locally the leaf reports `AGAINST_UNMODIFIED: PASSES` as it is, and that on this step that does not make it a pin, because the failure it answers is the CI one. (Last sentence.) | A local pass is reported honestly without turning a CI repair into a pin step. |

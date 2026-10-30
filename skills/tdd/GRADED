@@ -56,3 +56,4 @@ skills/tdd/scripts/prompts/_develop-red-cases-replaces-case.md 58e294fe14c9b461d
 skills/tdd/scripts/prompts/_develop-red-cases.md b38cb1f4a80485b504879916aaab5dcf2a60770a771d94e9217bb67476b3668b 2026-10-30 a1e9bfadf097422191d62b1c0a32cedd d560f939aa92
 skills/tdd/scripts/prompts/_develop-node-id-rule.md 92ce2ce736de45d82f268997e7e9b48e44aa03bf675b43c61e67c90ffa815280 2026-10-30 4e8c2ab3fa344ec386a1a2702d66a870 d560f939aa92
 skills/tdd/scripts/prompts/_develop-red-lead.md 2257fc3f8b3a681489b81662c9dad7de9b3eebac8500a2fef9360d90ccd0fefe 2026-10-30 a16e709a2e93406399520435ab03ef10 d560f939aa92
+skills/tdd/scripts/prompts/_develop-red-ci-repair.md 7c38f287f2e1b5373067b811914674f9b7a9fa78178abea720735f4d6b97f7eb 2026-10-30 f70ce9fedff54846a6aa35dff45cb57d d560f939aa92
