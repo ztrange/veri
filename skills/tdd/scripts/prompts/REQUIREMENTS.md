@@ -482,3 +482,16 @@
 | DF5 | Item 3 tells the leaf to add no test, and says a case that pins this criterion by reading another file's text or the git history is rejected. (Numbered list, item 3.) | A test reading text or history is the substring pin a diff-checked step exists to avoid. |
 | DF6 | Item 4 is the include line of `_develop-diff-run-fast-affected.md`. (Numbered list, item 4.) | The run that proves the change green comes after the change and its commit. |
 | DF7 | The prompt ends by asking, in the last lines of the output, for a `DIFF:` line giving the change committed in one line, or NONE when the criterion is that something stays unchanged, and a `SUITE: GREEN \| RED` line with the final summary line of that run. (Section "Report".) | The conductor reads fixed lines to see what was committed and whether the run was green. |
+
+## skills/tdd/scripts/prompts/develop-revise-diff.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| DQ1 | The prompt's phase heading names it develop-revise redoing diff, and the heading is followed by the include line of `_develop-revise-opening.md`. (Heading and the line after it.) | The leaf must know it redoes a rejected diff-checked step. |
+| DQ2 | The prompt says this step's criterion is a property of the branch's own diff, judged against the diff alone, so no test is this step's deliverable. (Paragraph after the opening include.) | A redo must not answer a diff criterion with a test. |
+| DQ3 | Under their own headings the prompt gives the leaf the step (`{{STEP}}`), the verifier's rejection reason (`{{REJECTION_REASON}}`, headed "address exactly this"), the issue's behavior spec as context with the criterion above as what is in scope (`{{ISSUE_SPEC}}`), and the test command (`{{TEST_CMD}}`). (Sections before "What to do".) | The redo is driven by the rejection reason, within the step's criterion. |
+| DQ4 | Item 1 tells the leaf to read what this step left on disk and change it to answer that objection, and only that objection, then commit that change, its subject ending in `(#<issue>)`. (What to do, item 1.) | The redo fixes what was rejected, nothing more, and its commit carries the issue number. |
+| DQ5 | Item 2 tells the leaf to add no test, and says a case that pins this criterion by reading another file's text or the git history is rejected. (What to do, item 2.) | A redo must not add the text pin the step avoids. |
+| DQ6 | Item 3 is the include line of `_develop-diff-run-fast-affected.md`. (What to do, item 3.) | The redone change is proven green before the report. |
+| DQ7 | Item 4 tells the leaf that, if the objection cannot be met (the criterion is already satisfied, or the reason asks for something the step cannot deliver), it reports `IMPOSSIBLE` and says why. (What to do, item 4.) | An objection that cannot be met is reported, not forced. |
+| DQ8 | The prompt ends by asking, in the last lines of the output, for an `OUTCOME: REWRITTEN \| IMPOSSIBLE` line with what was changed or why the step cannot be met as stated, a `DIFF:` line with the change committed in one line or NONE, and a `SUITE: GREEN \| RED` line with the final summary line of that run. (Section "Report".) | The conductor reads fixed lines to decide whether to re-verify or bail. |
