@@ -638,3 +638,30 @@ def test_main_2630_ticks_a_three_line_wrapped_criterion_by_a_matcher_in_its_seco
     capsys.readouterr()
 
     assert (code, patched) == (0, [before.replace("- [ ] wrapped", "- [x] wrapped")])
+
+
+def test_main_2630_exits_3_and_patches_nothing_when_the_only_criterion_holding_the_matcher_is_already_ticked(monkeypatch, capsys, tick_issue_criterion, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+    real_run = subprocess.run
+    body = AC + "- [ ] first criterion\n- [x] done-matcher criterion\n- [ ] last criterion"
+    patched = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] == ["gh", "issue", "view"]:
+            return subprocess.CompletedProcess(args, 0, body, "")
+        if args[:4] == ["gh", "api", "-X", "PATCH"]:
+            with open(args[6][len("body=@"):]) as f:
+                patched.append(f.read())
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if args[0] == "gh":
+            raise AssertionError("unexpected gh call: %r" % (args,))
+        return real_run(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code = tick_issue_criterion.main(["7", "done-matcher"])
+    capsys.readouterr()
+
+    assert (code, patched) == (3, [])
