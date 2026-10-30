@@ -4,6 +4,8 @@
 |---|---|---|
 | DV1 | In a `⟦suite-repair⟧` or `⟦ci-repair⟧` revise-green prompt the permission to edit a test appears once, and it covers only the failing test the full run or CI left red; every other test stays frozen (#1653, #1920). | The repair can fix the test that is actually wrong without opening every other test to edits; PR #1907's review showed a mutant reading "Any test may change" survived. |
 | DV2 | Every numbered item of the "What to do" list carries an instruction in every revise prompt the template renders, a `⟦suite-repair⟧` or `⟦ci-repair⟧` revise-green prompt included; no item renders empty. | After #1920 the repair revise-green prompt rendered item 2 as a bare `2.`, leaving the leaf to guess whether a step was dropped. |
+| DV3 | Item 0 of "What to do" tells the leaf, when the phase it is redoing is green, to check the step's size first: if it needs more than one new behaviour at once, it stops here and reports `SPLIT:` lines as **When the step is too big for one green** above says, and does not proceed to the steps below. (What to do, item 0.) | A stop must be reported through a declared key, and an oversized step answers before any run. |
+| DV4 | Item 3 ends with a sentence whose single-suite invocation and its fallback come from two included fragments (`_run-suite-lead.md`, then `_run-suite-same-way.md`), and which closes with "the test command above and say so in your report". (What to do, item 3, last sentence.) | A fallback to the whole test command is reported, so a run that ran more than one suite says so. |
 
 ## skills/tdd/scripts/prompts/develop-contract-a.md
 
@@ -629,3 +631,92 @@
 | QT2 | It tells the verifier to run `{{FAST_CMD}}` once on this tree. (Item 4, second sentence.) | One run of the fast command shows whether Red's own file breaks it. |
 | QT3 | It says Green may not edit a test, so a red whose own file fails that command for any reason other than the target test's expected failure (a lint error, a type error, another case that fails) leaves a step no green can pass. (Item 4, third sentence.) | A red that breaks the fast command makes the step unsatisfiable. |
 | QT4 | It tells the verifier to REJECT such a red, naming the file and the error. (Item 4, last sentence.) | The developer must know what to fix. |
+
+## skills/tdd/scripts/prompts/develop-cover.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| CO1 | The prompt says this is a refactor run: the issue's subject is structure, not behaviour, so the step names one refactoring to apply later, in the transform phase; before anything moves, the leaf establishes whether the behaviour of the code that step will move is covered, meaning whether some existing test goes red when that behaviour breaks. (Opening paragraph, all but its last sentence.) | The leaf must know it measures coverage before a transform, and what "covered" means. |
+| CO2 | The opening paragraph ends by telling the leaf to write no production code and no test. (Opening paragraph, last sentence.) | The cover phase only measures; it changes nothing. |
+| CO3 | Item 1 tells the leaf to read the step and find the code it will move or reshape. (Numbered list, item 1.) | The mutation has to land in the code the transform will touch. |
+| CO4 | Item 2 tells the leaf to copy the file first, `cp <file> <file>.orig`, and then break its behaviour by hand with a minimal edit to that production code: remove a guard, invert a condition, drop a branch. (Numbered list, item 2.) | The copy makes an exact restore possible, and a minimal break tests whether a test watches that behaviour. |
+| CO5 | Item 3 tells the leaf to run the suites that cover that code through the wrapper `{{TIMED_TEST_RUN}}` (the run line is an included fragment), to expect red, and to note the test that caught the mutation. (Numbered list, item 3.) | The test that goes red is the evidence of coverage. |
+| CO6 | Item 4 tells the leaf to restore the file exactly, `mv <file>.orig <file>`, and to prove the edit is gone: `git diff` must print what it printed before the mutation, and the working tree must be exactly as the leaf found it. (Numbered list, item 4.) | A mutation left behind would ship a broken product, and comparing `git diff` with its earlier output proves the restore. |
+| CO7 | Item 5 tells the leaf that if no mutation it can make turns any test red, the code is not covered and it reports `COVERED: no`; it does not write a test to cover it, because that is not this phase's work. (Numbered list, item 5.) | Writing the missing test is another phase's job; this one only reports the gap. |
+| CO8 | Item 6 allows `COVERED: unreachable` only for a step that only deletes code no caller reaches, with a `PROOF:` naming every caller and why none reaches the code: none exists, every caller passes a no-op, or the value is never read. (Numbered list, item 6.) | Unreachable is a narrow escape and has to be proven caller by caller. |
+| CO9 | Item 7 allows `COVERED: type-only` only for a step that changes only types, with a `PROOF:` that is the type-check command the leaf ran green: `npx tsc --noEmit`, `mypy`, or the repository's own. (Numbered list, item 7.) | A types-only change has no runtime behaviour to mutate, so a green type-check stands in for the test. |
+| CO10 | Item 8 says a step that moves or reshapes runtime code is never `unreachable` or `type-only`, and that reachable code no test watches is `COVERED: no`. (Numbered list, item 8.) | The two escapes must not excuse uncovered runtime code. |
+| CO11 | The numbered list has eight items in this order: find the code (1), copy then break it (2), run the covering suites (3), restore and prove the tree unchanged (4), then the answers for not covered (5), unreachable (6), type-only (7) and reshaped runtime code (8). (Numbered list.) | The copy comes before the break, and the restore after the run that watches the break. |
+| CO12 | The prompt ends by asking, in its last lines, for `MUTATION:` (the edit, in one line), `COVERED: yes \| no \| unreachable \| type-only`, `CAUGHT_BY:` (the test that went red, or NONE on no) and `PROOF:` (the callers and why none reaches the code, or the type-check command run green; NONE otherwise). (Report section.) | The conductor reads fixed lines to decide whether the transform may proceed. |
+
+## skills/tdd/scripts/prompts/develop-cover-new.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| CN1 | The prompt says this is the cover-new phase of an interface change: the expand phase added the new interface, and before any caller moves onto it, it gets tests of its own; cases are added and production stays frozen. (Opening paragraph.) | The leaf must know which interface phase it is in and what it may touch. |
+| CN2 | Step 1 tells the leaf to add cases that call the new interface directly, each pinning a behaviour the step names, and to leave every existing case and every caller as they are. (Numbered list, item 1.) | The new interface gets its own tests before callers move, without disturbing existing ones. |
+| CN3 | Step 3 tells the leaf to commit the change as `test: <what changed> (#<issue>)`. (Numbered list, item 3, first sentence.) | The commit carries the issue number. |
+| CN4 | Step 3 tells the leaf never to modify a production file: a cover-new commit that touches one is rejected. (Numbered list, item 3, second sentence.) | The frozen half of the phase is enforced by rejection. |
+| CN5 | The numbered list has three items in this order: add the cases (1), run the suites covering the touched files (2, an included fragment), commit (3). (Numbered list.) | The cases are proven green before they are committed. |
+
+## skills/tdd/scripts/prompts/develop-transform.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| TF1 | The prompt says this is a refactor run, that the cover phase has shown the code this step moves is covered, and tells the leaf to apply the one named refactoring below and commit it. (Opening paragraph, first two sentences.) | The leaf starts from proven coverage and applies exactly one refactoring. |
+| TF2 | The prompt says behaviour does not change: every test that was green stays green, and no test file is touched. (Opening paragraph, last sentence.) | A refactor that changes a test could hide a behaviour change. |
+| TF3 | The prompt says the step's criterion is a shell predicate stating the smell, false before this step and true after; it is the step's red, and the transform is what makes it true. (Paragraph after "The refactoring to apply".) | The leaf's success is measured by the predicate, not by a new test. |
+| TF4 | Step 1 tells the leaf to apply exactly the refactoring the step names: no other transform, no behaviour change. (Numbered list, item 1.) | One step is one transform, so the diff stays reviewable. |
+| TF5 | Step 2 tells the leaf to run the step's predicate and confirm it now holds. (Numbered list, item 2.) | The predicate is the step's criterion. |
+| TF6 | Step 4 tells the leaf to commit the transform as `refactor: <what changed> (#<issue>)`. (Numbered list, item 4, first sentence.) | The commit carries the issue number. |
+| TF7 | Step 4 tells the leaf never to modify a test file: a transform commit that touches one is rejected. (Numbered list, item 4, second sentence.) | The frozen half of the phase is enforced by rejection. |
+| TF8 | The numbered list has four items in this order: apply the refactoring (1), confirm the predicate holds (2), run the suites covering the touched files (3, an included fragment), commit (4). (Numbered list.) | The predicate and the suites are proven before the commit. |
+| TF9 | After the included report fragment, the prompt asks for a `PREDICATE: HOLDS \| FAILS` line and a `SUITE: GREEN \| RED — <the final summary line of that run>` line. (Lines after the report include.) | The conductor reads fixed lines for the predicate and the suite result. |
+
+## skills/tdd/scripts/prompts/develop-structural.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| ST1 | After the included structural-pass sentence, the prompt tells the leaf to apply the one candidate below and commit it, and says behaviour does not change: every test that was green stays green, and no test file is touched. (Opening paragraph, after the include.) | The pass applies one recorded candidate as a pure refactor. |
+| ST2 | Under "Bounds" the prompt tells the leaf to change only the files this issue touched, listed as `{{TOUCHED_FILES}}`. (Bounds, first paragraph.) | The structural pass may not reach outside the issue's own files. |
+| ST3 | The prompt says a transform that needs a file outside that list is not this pass's to apply: the leaf leaves the tree as it found it and says so in its report as one `SKIPPED: <why>` line. (Bounds, last paragraph.) | An out-of-bounds candidate is reported through a declared key, not silently dropped or half-applied. |
+| ST4 | Step 1 tells the leaf to apply exactly the candidate above: no other transform, no behaviour change. (Numbered list, item 1.) | One candidate is one transform. |
+| ST5 | Step 3 tells the leaf to commit this one transform as its own commit, as `refactor: <what changed> (#<issue>)`. (Numbered list, item 3, first sentence.) | Each transform is its own commit, carrying the issue number. |
+| ST6 | Step 3 tells the leaf never to modify a test file: a transform commit that touches one is rejected. (Numbered list, item 3, second sentence.) | The frozen half of the pass is enforced by rejection. |
+| ST7 | The numbered list has three items in this order: apply the candidate (1), run the suites covering the touched files (2, an included fragment), commit (3). (Numbered list.) | The transform is proven green before it is committed. |
+| ST8 | After the included report fragment, the prompt says that if the leaf skipped the candidate for the bound above, it reports that instead, as one `SKIPPED: <why>` line. (Paragraph after the report include.) | A skip replaces the transform report with the declared `SKIPPED:` key. |
+
+## skills/tdd/scripts/prompts/develop-predicate.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| PD1 | After the included structural-pass sentence, the prompt says a transform leaf needs a check its verifier can run before it applies the candidate, and tells the leaf to write one shell predicate for it: a command that fails (exits non-zero) on the current tree and succeeds (exits 0) once the candidate is applied; the leaf applies nothing itself and changes no file. (Opening paragraph, after the include.) | The predicate becomes the transform step's red, so it must be false now and true after. |
+| PD2 | Under "Bounds" the prompt says the transform may change only the files this issue touched, listed as `{{TOUCHED_FILES}}`. (Bounds.) | The predicate observes only files the transform may change. |
+| PD3 | Step 1 tells the leaf to read the candidate and the files it names. (Numbered list, item 1.) | The predicate is written from the candidate's own files. |
+| PD4 | Step 2 tells the leaf to write one shell command, runnable from the repository root, that observes the candidate's end state in those files (a `grep`, a `test`, a count compared) and nothing else. (Numbered list, item 2.) | A predicate that observes anything else could pass or fail for unrelated reasons. |
+| PD5 | Step 3 tells the leaf to run the predicate on the current tree and confirm it fails. (Numbered list, item 3, first sentence.) | A predicate already true proves nothing about the transform. |
+| PD6 | Step 3 says that when the candidate is already applied on the current tree, the leaf reports the predicate that observes its end state anyway (it then succeeds) and never `PREDICATE: NONE`. (Numbered list, item 3, second sentence.) | An applied candidate is still observable; NONE would wrongly claim it is not. |
+| PD7 | Step 4 tells the leaf to keep `PREDICATE: NONE` for a candidate no single command can observe, and to say why instead of writing one. (Numbered list, item 4.) | NONE is reserved for the unobservable case, with its reason. |
+| PD8 | The prompt ends by asking for one last line, either `PREDICATE: <command>` or `PREDICATE: NONE — <why>`. (Report section.) | The conductor reads one fixed line to get the predicate or its absence. |
+
+## skills/tdd/scripts/prompts/develop-exhausted.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| XH1 | The prompt says the step's revise budget is spent and every attempt at it was rejected by the blind verifier; the next sentence opens with an included fragment and continues "those attempts, so the last rejection reason below is the whole of what you have to reason from." (Opening paragraph, first two sentences.) | The leaf works only from the last reason, never from the attempts' reasoning. |
+| XH2 | A sentence opened by a second included fragment continues "the step again", and the paragraph then tells the leaf to answer in a `STATEMENT:` line. (Opening paragraph, third and fourth sentences.) | The leaf answers a question about the step and does not retry it. |
+| XH3 | The prompt tells the leaf not to modify, revert or remove anything in the working tree, because what is there is the attempts' work and the run keeps it. (Opening paragraph, the "Do not modify" sentence.) | The attempts' work is kept for the human who reads the bail. |
+| XH4 | The prompt says a statement that the criterion already holds must cite a run of the test command the leaf was given, not a run of one case alone. (Opening paragraph, last sentence.) | A claim that nothing needed doing has to rest on the whole command. |
+| XH5 | Under their own headings the prompt gives the leaf the step (the criterion nothing could satisfy, `{{STEP}}`) and the verifier's last rejection reason (`{{REJECTION_REASON}}`), followed by an included fragment. (Sections after the opening paragraph.) | The leaf needs the criterion and the reason it could not be met. |
+
+## skills/tdd/scripts/prompts/develop-over-budget.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| OB1 | The prompt says the step has crossed the spend budget it was given; the next sentence opens with an included fragment and continues "the attempts that spent it", and a sentence opened by a second included fragment continues "the step again". (Opening paragraph.) | The leaf is fresh, judges the step, and does not retry it. |
+| OB2 | The prompt says a crossing is not a verdict: nothing has rejected this work, and the step may well be correct. (Second paragraph, first two sentences.) | A budget crossing must not be read as a rejection. |
+| OB3 | The prompt asks whether the step is more than one behaviour, or needs a decision this run has no authority to make, and says "neither — this step is one behaviour that is simply expensive" is an honest answer the run can act on as well. (Second paragraph, last sentence.) | "Simply expensive" is a legitimate outcome, not a failure. |
+| OB4 | Under their own headings the prompt gives the step (`{{STEP}}`) and what it has spent and the budget it was given, as `Spent: {{SPENT}}` and `Budget: {{BUDGET}}`, followed by an included fragment. (Sections before the report.) | The leaf weighs the step against the actual figures. |
+| OB5 | The report section says that if the step is more than one behaviour, the leaf gives one to three lines, each a behaviour-level criterion small enough to be one red-green cycle of its own, in the order they must be built, as `SPLIT:` lines. (Report section, first paragraph and its line.) | A split is fed back into the ledger in build order. |
+| OB6 | The report section says that if the step needs a decision this run has no authority to make, the leaf gives one line naming that decision, as `NEEDS_USER: <the decision, stated so the user can answer it>`. (Report section, second paragraph and its line.) | The decision is put to the human in a form they can answer. |
+| OB7 | The report section says that if it is neither, because the step is one behaviour that is simply expensive, the leaf prints no `SPLIT:` line and no `NEEDS_USER:` line. (Report section, last paragraph.) | The absence of both keys is the simply-expensive answer, so it has its own report shape. |
