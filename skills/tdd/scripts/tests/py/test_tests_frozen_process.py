@@ -2851,3 +2851,108 @@ def test_rerecord_rebased_exits_2_naming_the_record_when_writing_a_stale_cases_r
     code = tests_frozen.rerecord_rebased(str(repo / ".tdd/ledger.md"), before)
 
     assert (code, record.name in capfd.readouterr().err, record.read_bytes() == old) == (2, True, True)
+
+
+def _committed(repo, message="c"):
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", message)
+
+
+def _suite(*bodies):
+    return "".join("def %s():\n    %s\n\n\n" % body for body in bodies)
+
+
+def _record_lines(tmp_path, tests_frozen, step):
+    record = tmp_path / tests_frozen._record_path(step)
+    return [line.split("\t")[1] for line in record.read_text().splitlines() if line.startswith("body: ")]
+
+
+def _three_case_step(tmp_path, run_cli, tests_frozen, step="step one adds cases"):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".gitignore").write_text(".tdd/\n")
+    suite = tmp_path / "tests/test_a.py"
+    suite.write_text("def test_main_branch_case():\n    assert 0 == 0\n")
+    git(tmp_path, "init", "-q")
+    _committed(tmp_path, "base")
+    git(tmp_path, "update-ref", "refs/remotes/origin/HEAD", "HEAD")
+    suite.write_text(suite.read_text() + "\n\n" + _suite(
+        ("test_one", "assert 1 == 1"), ("test_two_for_a_body", "assert 2 == 2"), ("test_three", "assert 3 == 3")))
+    assert run_cli(tests_frozen, ["record", "--step", step, "tests/test_a.py"], cwd=tmp_path)[0] == 0
+    _committed(tmp_path, "red")
+    return suite, step
+
+
+@pytest.mark.process("a real git repository under tmp_path, whose history holds the renamed case")
+def test_2673_a_re_record_on_head_captures_the_renamed_successor_and_a_later_pin_case(tmp_path, run_cli, tests_frozen):
+    suite, step = _three_case_step(tmp_path, run_cli, tests_frozen)
+    assert _record_lines(tmp_path, tests_frozen, step) == ["test_one", "test_two_for_a_body", "test_three"]
+    suite.write_text(suite.read_text().replace("test_two_for_a_body", "test_two_to_a_body"))
+    _committed(tmp_path, "rename")
+    suite.write_text(suite.read_text() + _suite(("test_later_pin", "assert 4 == 4")))
+    _committed(tmp_path, "pin")
+
+    code = run_cli(tests_frozen, ["record", "--step", step, "tests/test_a.py"], cwd=tmp_path)[0]
+
+    assert (code, sorted(_record_lines(tmp_path, tests_frozen, step))) == (
+        0, ["test_later_pin", "test_one", "test_three", "test_two_to_a_body"])
+
+
+@pytest.mark.process("a real git repository under tmp_path, whose history holds the deleted case")
+def test_2673_a_re_record_drops_only_a_case_gone_from_head_and_takes_no_case_another_step_or_main_holds(
+        tmp_path, run_cli, tests_frozen):
+    suite, step = _three_case_step(tmp_path, run_cli, tests_frozen)
+    other = "step two adds its own"
+    suite.write_text(suite.read_text() + _suite(("test_other_step", "assert 5 == 5")))
+    assert run_cli(tests_frozen, ["record", "--step", other, "tests/test_a.py"], cwd=tmp_path)[0] == 0
+    _committed(tmp_path, "other")
+    suite.write_text(suite.read_text().replace("def test_three():\n    assert 3 == 3\n", ""))
+    _committed(tmp_path, "delete")
+
+    assert run_cli(tests_frozen, ["record", "--step", step, "tests/test_a.py"], cwd=tmp_path)[0] == 0
+
+    assert sorted(_record_lines(tmp_path, tests_frozen, step)) == ["test_one", "test_two_for_a_body"]
+
+
+def _refactored(tmp_path, run_cli, tests_frozen, edit, verdict="FLAGS:\nVERDICT: PASS\nREASON: ok\n"):
+    suite, step = _three_case_step(tmp_path, run_cli, tests_frozen)
+    ledger = tmp_path / ".tdd/issue-1.md"
+    ledger.write_text("# Plan for #1 — t\n\n- [x] %s\n- [ ] next\n" % step)
+    base = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, capture_output=True, text=True).stdout.strip()
+    suite.write_text(edit(suite.read_text()))
+    _committed(tmp_path, "refactor")
+    log = tmp_path / ".tdd/verify-refactor.log"
+    log.write_text(verdict)
+    code = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-1.md", "--step", step, base, ".tdd/verify-refactor.log"],
+                   cwd=tmp_path)[0]
+    checked = run_cli(tests_frozen, ["check-earlier", ".tdd/issue-1.md", "--step", "next"], cwd=tmp_path)
+    return code, checked
+
+
+def _helper_moved(text):
+    return "def _setup():\n    return 1\n\n\n" + text.replace("assert 1 == 1", "_setup()\n    assert 1 == 1")
+
+
+@pytest.mark.process("a real git repository under tmp_path, whose refactor commit moved a case onto a helper")
+def test_2626_a_verified_refactor_keeping_titles_and_assertions_re_records_so_the_next_steps_gate_passes(
+        tmp_path, run_cli, tests_frozen):
+    code, checked = _refactored(tmp_path, run_cli, tests_frozen, _helper_moved)
+
+    assert (code, checked[0], checked[1]) == (0, 0, "")
+
+
+@pytest.mark.process("a real git repository under tmp_path, whose refactor commit changed an assertion")
+def test_2626_a_refactor_that_changed_an_assertion_is_left_recorded_and_the_gate_names_the_case_as_edited(
+        tmp_path, run_cli, tests_frozen):
+    code, checked = _refactored(tmp_path, run_cli, tests_frozen, lambda text: text.replace("assert 1 == 1", "assert 1 == 2"))
+
+    assert (code, checked[0], "test_one (" in checked[1], "stale" in checked[2]) == (0, 1, True, False)
+
+
+@pytest.mark.process("a real git repository under tmp_path, whose refactor commit was not verified")
+@pytest.mark.parametrize("verdict", ("VERDICT: PASS\nVERDICT: REJECT\nREASON: no\n", ""), ids=("rejected", "no-verdict"))
+def test_2626_a_refactor_without_a_final_pass_re_records_nothing_and_the_gate_says_the_record_is_stale(
+        tmp_path, run_cli, tests_frozen, verdict):
+    code, checked = _refactored(tmp_path, run_cli, tests_frozen, _helper_moved, verdict)
+
+    assert (code, checked[0], "test_one (" in checked[1], "stale" in checked[2]) == (1, 1, True, True)

@@ -19,7 +19,8 @@ USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> <test-f
          "check <record-file>|--step <step-text> | "
          "check-earlier <ledger> --step <step-text> [--except <case>]... | "
          "rerecord-earlier <ledger> --step <step-text> | "
-         "rerecord-rebased <ledger> <pre-rebase-sha> | path <step-text>")
+         "rerecord-rebased <ledger> <pre-rebase-sha> | "
+         "rerecord-refactored <ledger> --step <step-text> <base-sha> <verdict-log> | path <step-text>")
 REPAIR_MARKS = ("suite-repair", "ci-repair", "fixture-repair")
 
 
@@ -271,6 +272,53 @@ def _kept_cases(record, name):
     return [(case, body) for case, body in new if case in held and before.get(case) == body]
 
 
+def _held_digests(record, name):
+    try:
+        with open(record, encoding="utf-8") as handle:
+            return {r[1]: r[2] for r in map(_body_record, handle.read().splitlines()) if r and r[0] == name}
+    except OSError:
+        return {}
+
+
+def _claimed_elsewhere(record, name):
+    claimed = set()
+    tdd = os.path.dirname(record)
+    for entry in os.listdir(tdd):
+        path = os.path.join(tdd, entry)
+        if entry.startswith("tests-frozen-") and entry.endswith(".record") and path != record:
+            claimed |= set(_held_digests(path, name))
+    return claimed
+
+
+def _branch_base():
+    done = subprocess.run(["git", "merge-base", "HEAD", "refs/remotes/origin/HEAD"], stdout=subprocess.PIPE,
+                          stderr=subprocess.DEVNULL)
+    return os.fsdecode(done.stdout).strip() if done.returncode == 0 else None
+
+
+def _owned_on_head(record, name):
+    """A step's cases on an unchanged file: those it held, the successors of those renamed, and the
+    cases the branch added that no other step holds, a later pin of this step among them."""
+    held = _held_digests(record, name)
+    if not held:
+        return []
+    with open(name, encoding="utf-8", errors="replace") as handle:
+        text = handle.read()
+    now = dict(_cases(text))
+    owned = {case for case in held if case in now}
+    consumed = set()
+    for case, digest in held.items():
+        if case not in now:
+            successor = _renamed_to(name, case, digest, text, consumed)
+            if successor:
+                owned.add(successor)
+    base = _branch_base()
+    if base:
+        before = _cases_at(base, name)
+        owned |= {case for case in now if case not in before} - _claimed_elsewhere(record, name)
+    return [(case, body) for case, body in now.items() if case in owned]
+
+
 def _recorded_cases_intact(record, name):
     with open(record, encoding="utf-8") as handle:
         held = [r for r in map(_body_record, handle.read().splitlines()) if r and r[0] == name]
@@ -315,6 +363,21 @@ def _renamed_to(name, case, digest, text, consumed):
     return None
 
 
+_ASSERTION = re.compile(r"\bassert\w*\b|\bexpect\b|\.should\b|\braises\b")
+
+
+def _assertion_lines(body):
+    return ["".join(line.split()) for line in body.splitlines() if _ASSERTION.search(line)]
+
+
+def _assertions_digest(body):
+    return _body_digest("\n".join(_assertion_lines(body)))
+
+
+def _recorded_assertions(records):
+    return {tuple(line[12:].split("\t")[:2]): line.rsplit("\t", 1)[1] for line in records if line.startswith("assertions: ")}
+
+
 def _check_earlier(ledger, step, exempt=()):
     root = _toplevel()
     if root is None:
@@ -334,7 +397,9 @@ def _check_earlier(ledger, step, exempt=()):
     exempt = list(exempt) + (parsed[0] if parsed else [])
     fixture = _FIXTURE_FILE.search(step) if carries_mark(trailing_markers(step), "fixture-repair") else None
     latest = {}
+    assertions = {}
     for owner, _, records in _earlier_records(lines, step):
+        assertions.update(_recorded_assertions(records))
         bodies = [r for r in map(_body_record, records) if r]
         marked = "format: 2" in records
         for name, case, digest in bodies:
@@ -363,6 +428,10 @@ def _check_earlier(ledger, step, exempt=()):
         if case not in exempt and not (fixture and name == fixture.group(1)) and (
                 not nows or any(d not in held for d, held in zip(digests, accepted))):
             changed.append("%s (%s)" % (case, owner))
+            if nows and assertions.get((name, case)) in {_assertions_digest(now) for now in nows}:
+                write(sys.stderr, "tests-frozen.sh: %s (%s): the record is stale, not edited: its title and assertion "
+                      "lines match the recorded body, so a refactor moved it; `%s` re-records it after verify-refactor's PASS"
+                      % (case, owner, "tests-frozen.sh rerecord-refactored"))
     for entry in changed:
         write(sys.stdout, entry)
     if not changed:
@@ -441,6 +510,50 @@ def rerecord_earlier(ledger, step):
         return 2
 
 
+def _final_verdict(log):
+    with open(log, encoding="utf-8", errors="replace") as handle:
+        verdicts = re.findall(r"^VERDICT: (\w+)", handle.read(), re.M)
+    return verdicts[-1] if verdicts else None
+
+
+def rerecord_refactored(ledger, step, base, log):
+    try:
+        verdict = _final_verdict(log)
+        with open(ledger, encoding="utf-8") as handle:
+            lines = handle.read().splitlines()
+    except OSError as error:
+        write(sys.stderr, "tests-frozen.sh: %s\n%s" % (error, USAGE))
+        return 2
+    if verdict != "PASS":
+        write(sys.stderr, "tests-frozen.sh: no final verify-refactor PASS in %s: nothing re-recorded" % log)
+        return 1
+    root = _toplevel()
+    if root is None:
+        write(sys.stderr, "tests-frozen.sh: not inside a git repository\n%s" % USAGE)
+        return 2
+    os.chdir(root)
+    before, after = {}, {}
+
+    def rewrite(_, record, name, case, digest):
+        if name not in after:
+            before[name], after[name] = _cases_at(base, name), _cases_at("HEAD", name)
+        old, now = before[name].get(case), after[name].get(case)
+        if (old is None or now is None or _body_digest(old) != digest
+                or _assertion_lines(old) != _assertion_lines(now)):
+            return record
+        return _body_line(name, case, now)
+    own = _record_path(step)
+    try:
+        earlier = list(_earlier_records(lines, step, strict=True))
+        if os.path.exists(own):
+            with open(own, encoding="utf-8") as handle:
+                earlier.append((step, own, handle.read().splitlines()))
+        return 0 if _rewrite_records(earlier, rewrite) else 2
+    except OSError as error:
+        write(sys.stderr, "tests-frozen.sh: %s" % error)
+        return 2
+
+
 def rerecord_rebased(ledger, pre):
     with open(ledger, encoding="utf-8") as handle:
         lines = handle.read().splitlines()
@@ -500,6 +613,8 @@ def main(argv):
     rest = argv[4:]
     if argv[:1] == ["rerecord-earlier"] and len(argv) == 4 and argv[2] == "--step" and argv[3]:
         return rerecord_earlier(argv[1], argv[3])
+    if argv[:1] == ["rerecord-refactored"] and len(argv) == 6 and argv[2] == "--step" and argv[3]:
+        return rerecord_refactored(argv[1], argv[3], argv[4], argv[5])
     if argv[:1] == ["rerecord-rebased"] and len(argv) == 3:
         return rerecord_rebased(argv[1], argv[2])
     if (argv[:1] == ["check-earlier"] and len(argv) >= 4 and argv[2] == "--step" and argv[3]
@@ -557,9 +672,12 @@ def main(argv):
                 for name in files:
                     added = _added_cases(name)
                     kept = [c for c in _kept_cases(record, name) if c[0] not in {a[0] for a in added}]
+                    if not added:
+                        kept = _owned_on_head(record, name)
                     for case, body in added + kept:
                         lines += ["case: %s\n" % case,
-                                  "body: %s\t%s\t%s\n" % (name, case, _body_digest(body))]
+                                  "body: %s\t%s\t%s\n" % (name, case, _body_digest(body)),
+                                  "assertions: %s\t%s\t%s\n" % (name, case, _assertions_digest(body))]
             with open(record, "w") as handle:
                 handle.writelines(lines)
         except OSError as error:
@@ -577,7 +695,7 @@ def main(argv):
         try:
             with open(record) as handle:
                 entries = [line.rstrip("\n").split("  ", 1) for line in handle
-                           if line.strip() and not line.startswith(("case: ", "body: ", "format: "))]
+                           if line.strip() and not line.startswith(("case: ", "body: ", "assertions: ", "format: "))]
         except OSError:
             write(sys.stderr, "tests-frozen.sh: record %s is missing" % record)
             return 2
