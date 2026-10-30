@@ -1,11 +1,10 @@
-"""Cases for how skills/tdd/SKILL.md drives the refactor-pending mark, and for CLAUDE.md's and CONTEXT.md's account of it, read as text."""
+"""Cases for how skills/tdd/SKILL.md drives the refactor-pending mark, read as text."""
 import importlib
 import pathlib
 import re
 
 ROOT = pathlib.Path(__file__).resolve().parents[6]
 SKILL = ROOT / "skills" / "tdd" / "SKILL.md"
-CONTEXT = ROOT / "CONTEXT.md"
 
 MARK = "⟂ refactor pending"
 
