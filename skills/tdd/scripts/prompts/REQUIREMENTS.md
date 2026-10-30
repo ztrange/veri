@@ -720,3 +720,49 @@
 | OB5 | The report section says that if the step is more than one behaviour, the leaf gives one to three lines, each a behaviour-level criterion small enough to be one red-green cycle of its own, in the order they must be built, as `SPLIT:` lines. (Report section, first paragraph and its line.) | A split is fed back into the ledger in build order. |
 | OB6 | The report section says that if the step needs a decision this run has no authority to make, the leaf gives one line naming that decision, as `NEEDS_USER: <the decision, stated so the user can answer it>`. (Report section, second paragraph and its line.) | The decision is put to the human in a form they can answer. |
 | OB7 | The report section says that if it is neither, because the step is one behaviour that is simply expensive, the leaf prints no `SPLIT:` line and no `NEEDS_USER:` line. (Report section, last paragraph.) | The absence of both keys is the simply-expensive answer, so it has its own report shape. |
+
+## skills/tdd/scripts/prompts/verify-contract-a.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VA1 | The template opens with the `{{SHARED}}` slot, then the heading `## Phase: verify-contract-a`. (First lines.) | The blind verifier's shared rules come first, and the phase heading names which interface phase is judged. |
+| VA2 | The opening paragraph says this is **contract-a**: it moves the tests off the old interface onto the new one, and production stays frozen. (Opening paragraph, before the include line.) | The verifier must know which of the interface phases it judges and what may change in it. |
+| VA3 | Check 2, "The tests moved", says no test calls the old interface any more. (Numbered list, item 2.) | A test still on the old interface keeps the proxy alive for contract-b. |
+| VA4 | Check 3, "Production stays frozen", says a range that touches a production file is a REJECT; the item ends in the `{{LAST_PHASE_CHECK}}` slot. (Numbered list, item 3.) | The frozen half of the phase is enforced by rejection. |
+| VA5 | The template's own checks are numbered 2 and 3, continuing the list the included `_verify-interface-phase-lead.md` fragment opens with check 1. (Numbered list.) | Check 1 (still green) lives in the shared lead, so the template's numbering must follow it. |
+| VA6 | The closing paragraph says PASS if the suites are green, the tests moved to the new interface and no production file changed, and REJECT, naming the specific problem, otherwise. (Closing paragraph.) | The verdict rule restates every check, so a PASS needs all of them. |
+
+## skills/tdd/scripts/prompts/verify-contract-b.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VK1 | The template opens with the `{{SHARED}}` slot, then the heading `## Phase: verify-contract-b`. (First lines.) | The blind verifier's shared rules come first, and the phase heading names which interface phase is judged. |
+| VK2 | The opening paragraph says this is **contract-b**: the proxy over the old interface is deleted, and test files stay frozen. (Opening paragraph, before the include line.) | The verifier must know the phase deletes the proxy and touches no test. |
+| VK3 | Check 2, "The proxy is deleted", says the old interface no longer exists in production. (Numbered list, item 2.) | The deletion is the one change the phase makes. |
+| VK4 | Check 3 is the included `_verify-tests-frozen.md` fragment, followed by the `{{LAST_PHASE_CHECK}}` slot. (Numbered list, item 3.) | The test-frozen rule is shared with expand and migrate, stated once. |
+| VK5 | The template's own checks are numbered 2 and 3, continuing the list the included `_verify-interface-phase-lead.md` fragment opens with check 1. (Numbered list.) | Check 1 (still green) lives in the shared lead, so the template's numbering must follow it. |
+| VK6 | The closing paragraph says PASS if the suites are green, the proxy is deleted and no test file changed, and REJECT, naming the specific problem, otherwise. (Closing paragraph.) | The verdict rule restates every check, so a PASS needs all of them. |
+
+## skills/tdd/scripts/prompts/verify-expand.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VE1 | The template opens with the `{{SHARED}}` slot, then the heading `## Phase: verify-expand`. (First lines.) | The blind verifier's shared rules come first, and the phase heading names which interface phase is judged. |
+| VE2 | The opening paragraph says this is the **expand** phase: it adds the new interface to production, and the old interface becomes a proxy that delegates to it; test files stay frozen. (Opening paragraph, before the include line.) | The verifier must know what the phase adds, what the old interface turns into, and that no test may change. |
+| VE3 | Check 2, "The new interface exists", says production gains the new interface the step names. (Numbered list, item 2.) | The new interface is what the phase delivers. |
+| VE4 | Check 3, "The old interface is a proxy", says the old interface delegates to the new one, and no caller has moved yet. (Numbered list, item 3.) | Moving callers is migrate's work, so a moved caller here is a different kind of change. |
+| VE5 | Check 4 is the included `_verify-tests-frozen.md` fragment, followed by the `{{LAST_PHASE_CHECK}}` slot. (Numbered list, item 4.) | The test-frozen rule is shared with migrate and contract-b, stated once. |
+| VE6 | The template's own checks are numbered 2 to 4, continuing the list the included `_verify-interface-phase-lead.md` fragment opens with check 1. (Numbered list.) | Check 1 (still green) lives in the shared lead, so the template's numbering must follow it. |
+| VE7 | The closing paragraph says PASS if the suites are green, the new interface exists, the old one is a proxy over it and no test file changed, and REJECT, naming the specific problem, otherwise. (Closing paragraph.) | The verdict rule restates every check, so a PASS needs all of them. |
+
+## skills/tdd/scripts/prompts/verify-migrate.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VM1 | The template opens with the `{{SHARED}}` slot, then the heading `## Phase: verify-migrate`. (First lines.) | The blind verifier's shared rules come first, and the phase heading names which interface phase is judged. |
+| VM2 | The opening paragraph says this is the **migrate** phase: the product callers of the old interface move to the new interface, and the old interface stays in place; test files stay frozen. (Opening paragraph, before the include line.) | The verifier must know what moves, what stays, and that no test may change. |
+| VM3 | Check 2, "The callers moved", says every product caller of the old interface now calls the new interface. (Numbered list, item 2.) | A caller left on the old interface would break when contract-b deletes the proxy. |
+| VM4 | Check 3, "The old interface stays", says removing it is the contract phase's work. (Numbered list, item 3.) | Removing the old interface here would skip the contract phases. |
+| VM5 | Check 4 is the included `_verify-tests-frozen.md` fragment, followed by the `{{LAST_PHASE_CHECK}}` slot. (Numbered list, item 4.) | The test-frozen rule is shared with expand and contract-b, stated once. |
+| VM6 | The template's own checks are numbered 2 to 4, continuing the list the included `_verify-interface-phase-lead.md` fragment opens with check 1. (Numbered list.) | Check 1 (still green) lives in the shared lead, so the template's numbering must follow it. |
+| VM7 | The closing paragraph says PASS if the suites are green, every product caller moved to the new interface and no test file changed, and REJECT, naming the specific problem, otherwise. (Closing paragraph.) | The verdict rule restates every check, so a PASS needs all of them. |
