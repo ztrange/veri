@@ -185,7 +185,8 @@ def test_refresh_with_a_cache_asks_only_for_issues_updated_since_fetched_at_and_
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
-        asked.append([args[i + 1] for i, arg in enumerate(args) if arg == "--search"])
+        asked.append([term for i, arg in enumerate(args) if arg == "--search"
+                      for term in args[i + 1].split() if term.startswith("updated:>=")])
         return subprocess.CompletedProcess(args, 0, json.dumps(received), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -391,7 +392,7 @@ def test_refresh_with_a_truncated_cache_names_it_on_stderr_rebuilds_with_a_full_
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        searched.append("--search" in args)
+        searched.append("updated:>=" in " ".join(args))
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -417,7 +418,7 @@ def test_refresh_with_a_cache_lacking_fetched_at_names_it_on_stderr_rebuilds_wit
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        searched.append("--search" in args)
+        searched.append("updated:>=" in " ".join(args))
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -444,7 +445,7 @@ def test_refresh_with_a_cache_lacking_issues_names_it_on_stderr_rebuilds_with_a_
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        searched.append("--search" in args)
+        searched.append("updated:>=" in " ".join(args))
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -471,7 +472,7 @@ def test_refresh_with_a_cache_that_is_a_json_list_names_it_on_stderr_rebuilds_wi
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        searched.append("--search" in args)
+        searched.append("updated:>=" in " ".join(args))
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -498,7 +499,7 @@ def test_refresh_with_a_cache_that_is_a_json_null_names_it_on_stderr_rebuilds_wi
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        searched.append("--search" in args)
+        searched.append("updated:>=" in " ".join(args))
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -553,7 +554,8 @@ def test_refresh_with_a_well_formed_cache_searches_updated_since_fetched_at_and_
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
-    searches = [c[c.index("--search") + 1] for c in calls if "--search" in c]
+    searches = [t for c in calls if "--search" in c for t in c[c.index("--search") + 1].split()
+                if t.startswith("updated:>=")]
     assert (code, err, searches) == (0, "", ["updated:>=2026-10-01T00:00:00Z"])
 
 
@@ -630,7 +632,7 @@ def test_refresh_with_a_cache_that_is_not_utf8_names_it_on_stderr_rebuilds_with_
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        searched.append("--search" in args)
+        searched.append("updated:>=" in " ".join(args))
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -656,7 +658,7 @@ def test_refresh_with_a_cache_whose_fetched_at_is_not_a_string_names_it_on_stder
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        searched.append("--search" in args)
+        searched.append("updated:>=" in " ".join(args))
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -790,7 +792,7 @@ def test_refresh_with_no_cache_whose_page_keeps_failing_exits_2_after_bounded_at
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
-        if "--search" not in args:
+        if "updated:<=" not in " ".join(args):
             return subprocess.CompletedProcess(args, 0, json.dumps(first_page), "")
         failing_calls.append(args)
         if len(failing_calls) > 50:
@@ -938,7 +940,8 @@ def test_refresh_with_a_well_formed_cache_retries_a_failed_gh_read_pages_the_upd
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
     kept = sorted(i["number"] for i in json.loads(cache.read_text())["issues"])
-    assert (code, searches[0], kept) == (0, "updated:>=2026-10-01T00:00:00Z", list(range(1, 251)) + [900])
+    first = [t for t in searches[0].split() if t.startswith("updated:>=")]
+    assert (code, first, kept) == (0, ["updated:>=2026-10-01T00:00:00Z"], list(range(1, 251)) + [900])
 
 
 def test_refresh_with_a_well_formed_cache_bounds_every_later_page_by_fetched_at_so_older_issues_stay_out_2279(run_cli, monkeypatch, tmp_path):
