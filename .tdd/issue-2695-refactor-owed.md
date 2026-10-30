@@ -1,0 +1,2 @@
+### When the merge commit is absent after the first fetch and present after a later one, queued-merge fetches again a bounded number of times, waiting between attempts for VERI_FETCH_RETRY_SLEEP read as a tunable so tests never sleep, then tags that commit, pushes the tag and exits 0 (a small case in tests/py/unit/test_queued_merge.py) ⟦criterion 1⟧
+- test-only | the two 0.11/lagging tests repeat the same `lagging` closure and `seen` counter; extract one helper in test_queued_merge.py
