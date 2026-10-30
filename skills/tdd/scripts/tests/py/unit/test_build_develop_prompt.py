@@ -2112,14 +2112,15 @@ def test_main_renders_a_revise_green_prompt_for_a_suite_repair_or_ci_repair_step
     }
     leave = _fragment("_develop-test-rewrite-none.md")
     freeze = _fragment("_develop-green-freeze-rule.md")
+    edit = re.search(rb"Redoing green on a .{0,40}suite-repair.*?test stays frozen\.", _fragment("develop-revise.md")).group()
     results = {}
     for name, step in steps.items():
         code = build_develop_prompt.main(["revise", "green", str(spec), step, "make test", str(reason)])
         out, _ = capsysbinary.readouterr()
         prompt = re.sub(rb"\s+", b" ", out)
-        results[name] = (code, leave in prompt, freeze in prompt)
+        results[name] = (code, prompt.count(edit), leave in prompt, freeze in prompt)
 
-    assert results == {"suite-repair": (0, False, False), "ci-repair": (0, False, False)}
+    assert results == {"suite-repair": (0, 1, False, False), "ci-repair": (0, 1, False, False)}
 
 
 def test_main_renders_the_ordinary_freeze_rule_in_a_green_prompt_for_a_step_naming_suite_repair_mid_sentence_1919(
