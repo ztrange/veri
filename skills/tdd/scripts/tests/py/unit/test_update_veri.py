@@ -73,3 +73,21 @@ def test_main_exits_1_with_one_stderr_line_naming_the_reason_and_leaves_the_clon
     moved = [a for a in calls if {"fetch", "merge", "pull", "reset", "checkout", "stash"} & set(a)]
     assert (code, moved) == (1, [])
     assert out == "" and err.count("\n") == 1 and "no" in err.lower()
+
+
+def test_main_exits_1_with_one_stderr_line_naming_the_reason_and_leaves_the_clone_untouched_when_veri_self_update_is_0(
+        tmp_path, run_cli, update_veri, monkeypatch):
+    calls = []
+
+    def fake_git(*args, **_):
+        calls.append(args)
+        return subprocess.CompletedProcess(args, 0, "main\n", "")
+
+    monkeypatch.setattr(update_veri, "git", fake_git, raising=False)
+
+    code, out, err = run_cli(update_veri, [], env={"VERI_SELF_UPDATE": "0",
+                                                   "VERI_SELF_UPDATE_FILE": str(tmp_path / "self-update")})
+
+    moved = [a for a in calls if {"fetch", "merge", "pull", "reset", "checkout", "stash"} & set(a)]
+    assert (code, moved) == (1, [])
+    assert out == "" and err.count("\n") == 1 and "VERI_SELF_UPDATE" in err

@@ -16,6 +16,9 @@ def main(argv):
     if argv:
         print(USAGE, file=sys.stderr)
         return 2
+    if os.environ.get("VERI_SELF_UPDATE") == "0":
+        print("update-veri.sh: VERI_SELF_UPDATE=0", file=sys.stderr)
+        return 1
     record = os.environ.get("VERI_SELF_UPDATE_FILE") or os.path.expanduser("~/.veri-tools/self-update")
     if os.path.exists(record) and open(record).read().strip() == "no":
         print("update-veri.sh: self-update record says no", file=sys.stderr)
