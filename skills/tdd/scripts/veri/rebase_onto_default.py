@@ -106,9 +106,9 @@ def main(argv):
                 outcome = refuse("git rebase was refused without a conflict")
             else:
                 conflicts = output("diff", "--name-only", "--diff-filter=U")
-                if graded_only and all(
-                        pathlib.PurePath(c).name == "GRADED" for c in conflicts.splitlines()):
-                    for c in conflicts.splitlines():
+                paths = conflicts.splitlines()
+                if graded_only and all(pathlib.PurePath(c).name == "GRADED" for c in paths):
+                    for c in paths:
                         union_graded(c)
                     git("-c", "core.editor=true", "rebase", "--continue", text=True,
                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
