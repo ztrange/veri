@@ -1,0 +1,2 @@
+### graded-changed.sh <base-sha> prints a unit listed in a root GRADED file (the repository root's own `GRADED`, e.g. a line for `CLAUDE.md`) when the commits since <base-sha> changed that unit, and exits 1, as it does for a unit listed in skills/<x>/GRADED: one medium case (`@pytest.mark.process`, real git in a tmp_path repo) in skills/tdd/scripts/tests/py/test_graded_changed_process.py ⟦criterion 1⟧
+- test-only | the three older 2653 cases inline the same env/repo/git setup that `_repo` already provides; I left them alone because this cycle did not write them
