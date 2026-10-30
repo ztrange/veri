@@ -224,3 +224,28 @@ def test_verify_sh_red_whose_failing_lint_gate_prints_its_offending_line_padded_
     assert (done.returncode, first) == (
         1, "GATE: sh lint.sh fails on the Red's tree: tests/test_slugify.py:3: F841 local variable 'unused' is never used"
     ), done.stdout + done.stderr
+
+
+@pytest.mark.process("verify.sh green run as a real shim over veri/verify.py in a throwaway git repo whose"
+                     " VERI_TEST_CMD chains a failing lint gate and a real test runner, around a stub claude")
+def test_verify_sh_green_with_the_same_test_command_whose_lint_gate_fails_is_not_refused_with_a_gate_reason_and_launches_the_verifier(
+        tmp_path):
+    head = committed_head(tmp_path)
+    (tmp_path / "spec.md").write_text("the behavior spec\n")
+    (tmp_path / ".gitignore").write_text(".tdd/\n")
+    (tmp_path / "lint.sh").write_text("echo \"tests/test_slugify.py:3: F841 local variable 'unused' is never used\"; exit 1\n")
+    (tmp_path / "run-tests.sh").write_text("echo 'all passed'\n")
+    launched = tmp_path / ".tdd" / "leaf-launched"
+    claude = tmp_path / "claude-pass"
+    claude.write_text(f"#!/bin/sh\ntouch {launched}\nprintf 'VERDICT: PASS\\nREASON: fine.'\n")
+    claude.chmod(0o755)
+    env = {"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+           "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01",
+           "VERI_TEST_CMD": "sh lint.sh && sh run-tests.sh",
+           **checked_step(tmp_path, head)}
+
+    done = subprocess.run(
+        [str(SCRIPTS / "verify.sh"), "--fast-cmd", "make unit", "green", "spec.md", "tests/test_slugify.py"],
+        cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    assert (done.returncode, "GATE:" in done.stdout, launched.exists()) == (0, False, True), done.stdout + done.stderr
