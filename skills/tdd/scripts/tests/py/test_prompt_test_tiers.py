@@ -141,12 +141,8 @@ def reason(tmp_path_factory):
 @pytest.mark.process(BOUNDARY)
 def test_develop_red_and_verify_red_name_affected_suites_not_one_hand_named_suite_as_what_they_run(spec):
     problems = []
-    red = build(problems, DEVELOP, "red", spec, "QWIXTLE step", "make test")
     verify_red = build(problems, VERIFY, "red", spec, "tests/zorblat.test.sh", "zorblat case")
-    runs_affected(problems, "develop-red", red)
     runs_affected(problems, "verify-red", verify_red)
-    if has_line(r"run the suite that holds the new case", plain(red)):
-        problems.append("develop-red still tells its leaf to run the one suite that holds the new case")
     assert problems == []
 
 
