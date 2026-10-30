@@ -32,6 +32,9 @@ def main(argv):
         return refuse(f"clone is on {branch}, not its upstream default branch {default}")
     if git("status", "--porcelain").stdout.strip():
         return refuse("working tree is dirty")
+    if git("fetch").returncode != 0:
+        print("update-veri.sh: fetch of the upstream failed", file=sys.stderr)
+        return 2
     upstream = git("rev-parse", "--abbrev-ref", "origin/HEAD").stdout.strip()
     old = git("rev-parse", "HEAD").stdout.strip()
     new = git("rev-parse", upstream).stdout.strip()
