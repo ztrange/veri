@@ -74,8 +74,12 @@ def _merge_commit(worktree, pull, pr):
     for attempt in range(FETCH_ATTEMPTS):
         if attempt:
             time.sleep(float(tunables.read("VERI_FETCH_RETRY_SLEEP") or "1"))
-        if not _git(worktree, "fetch", "origin").returncode and not _git(worktree, "cat-file", "-e", sha + "^{commit}").returncode:
+        fetch = _git(worktree, "fetch", "origin")
+        if not fetch.returncode and not _git(worktree, "cat-file", "-e", sha + "^{commit}").returncode:
             return sha
+    if fetch.returncode:
+        _say("git fetch origin failed (exit %d): %s" % (fetch.returncode, fetch.stderr.strip()))
+        return ""
     _say("merge commit %s of %s is not in the clone after a fetch" % (sha, pr))
     return ""
 
