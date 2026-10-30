@@ -272,12 +272,6 @@ def test_every_remaining_case_that_reads_skill_md_s_preflight_section_is_a_named
     assert strays == [], f"cases read the Preflight section but are not on the mechanical-fact allow-list: {strays}"
 
 
-def test_2552_skill_edit_procedure_cases_are_not_flagged_as_readers_of_the_preflight_section():
-    from conftest import TestFile
-    entry = TestFile(TESTS_DIR / "unit" / "test_skill_edit_procedure.py")
-    assert stray_cases([entry], MECHANICAL_READERS) == []
-
-
 def test_2220_sweep_flags_a_case_reading_the_preflight_section_until_it_is_on_the_allow_list(tmp_path, monkeypatch):
     from conftest import TestFile
     module = tmp_path / "test_synthetic_reader.py"
