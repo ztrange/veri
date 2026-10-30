@@ -502,3 +502,10 @@
 |---|---|---|
 | DA1 | The fragment tells the leaf to run the fast command, `{{FAST_CMD}}`, then the suites that `affected-suites.sh` prints for the change, each through the wrapper; the sentence runs into the include line of `_timed-test-run-tier.md`, ends in a colon, and is followed by the include line of `_timed-test-run-fast-affected.md`. (First two lines and the include after them.) | A diff-checked change is proven on the fast tier and the affected suites, each run recorded by the wrapper. |
 | DA2 | The fragment's last line tells the leaf to finish only when both runs are green. (Last line.) | A red fast or affected run means the change is not done. |
+
+## skills/tdd/scripts/prompts/_develop-revise-freeze-test.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| FT1 | The fragment opens, in bold, with: redoing an interface phase freezes the test files. (First sentence.) | The redo leaf must know which half of the tree is frozen. |
+| FT2 | The fragment tells the leaf never to modify a test file, and says the conductor's freeze check rejects a redone expand, migrate or contract-b that touches one. (Second sentence.) | The frozen half is enforced by rejection, so a touched test is a wasted attempt. |
