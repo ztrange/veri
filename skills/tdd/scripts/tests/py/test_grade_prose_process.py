@@ -1425,3 +1425,28 @@ def test_the_draft_pr_regrade_blocks_diff_line_selects_a_unit_signed_in_a_root_g
     selected = subprocess.run(["sh", "-c", selecting], cwd=tmp_path, capture_output=True, text=True, env={**env, "base": base})
 
     assert "CLAUDE.md" in selected.stdout.split(), (selecting, selected.stdout, selected.stderr)
+
+
+@pytest.mark.process("grade-prose.sh launching a stub claude through supervise.sh")
+def test_a_pass_on_a_root_unit_listed_in_the_root_requirements_writes_its_signature_into_the_root_graded(tmp_path, monkeypatch):
+    from veri import grade_prose
+
+    (tmp_path / "CLAUDE.md").write_text(PROSE)
+    (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS.replace("## guide/unit.md", "## CLAUDE.md"))
+    claude = tmp_path / "claude"
+    claude.write_text(STUB)
+    claude.chmod(0o755)
+    record = tmp_path / "record.txt"
+
+    done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "./REQUIREMENTS.md", "CLAUDE.md"], cwd=tmp_path,
+                          capture_output=True, text=True,
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+
+    graded = tmp_path / "GRADED"
+    lines = graded.read_text().splitlines() if graded.exists() else []
+    fields = lines[0].split() if len(lines) == 1 else []
+    monkeypatch.chdir(tmp_path)
+    expected = grade_prose.signature("./REQUIREMENTS.md", "CLAUDE.md")
+    assert [done.returncode, len(fields) >= 4 and fields[0], len(fields) >= 4 and fields[1] == expected] \
+        == [0, "CLAUDE.md", True], (done.stderr, lines)
