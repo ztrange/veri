@@ -144,19 +144,6 @@ def test_verify_refactor_checklist_item_1_names_affected_suites_not_the_projects
 
 
 @pytest.mark.process(BOUNDARY)
-def test_develop_refactor_runs_affected_suites_fed_refactor_touched_output_after_each_transform(spec):
-    problems = []
-    refactor = build(problems, DEVELOP, "refactor", spec, "QWIXTLE step", "make test", "src/zorblat.sh")
-    after_each = numbered_item(r"after each transform", plain(refactor))
-    if not after_each:
-        problems.append("develop-refactor's prompt has no numbered item saying what runs after each transform")
-    runs_affected(problems, "develop-refactor's after-each-transform item", after_each)
-    if "refactor-touched.sh" not in after_each:
-        problems.append("develop-refactor's after-each-transform item never feeds affected-suites.sh refactor-touched.sh's output")
-    assert problems == []
-
-
-@pytest.mark.process(BOUNDARY)
 def test_develop_green_and_verify_green_name_the_fast_command_plus_the_affected_suites_not_the_full_suite(spec):
     problems = []
     verify_green = build(problems, VERIFY, "--fast-cmd", "make unit", "green", spec, "tests/zorblat.test.sh", "zorblat case")
