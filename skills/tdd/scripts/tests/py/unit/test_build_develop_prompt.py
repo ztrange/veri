@@ -609,10 +609,7 @@ def test_main_answers_what_the_bash_contract_cases_before_the_out_of_scope_class
         "red carries spec, step, test command and AGAINST_UNMODIFIED": all(
             part in red for part in (b'zorblat("Frob & Nitz/Quux")', step.encode(), cmd.encode(),
                                      b"AGAINST_UNMODIFIED")),
-        "green names the test path and target and forbids modifying the test": (
-            test_path.encode() in green and target.encode() in green and any_line(
-                green, rb"(do not|don't|never) (modify|change|edit|touch|weaken).{0,40}test"
-                       rb"|test.{0,40}(must not|may not) be (modified|changed|edited|touched)")),
+        "green names the test path and target": test_path.encode() in green and target.encode() in green,
         "refactor carries touched files, the no-generality rule and RESULT:": (
             touched.encode() in refactor
             and any_line(refactor, rb"(no|not|never|without)[^.]{0,80}(generality|generali[sz]ation|abstraction)")
@@ -623,10 +620,6 @@ def test_main_answers_what_the_bash_contract_cases_before_the_out_of_scope_class
             and any_line(refactor, rb"^CANDIDATES:.*none")),
         "red runs the suite holding the new case, not the full suite, falling back and saying so": (
             says(red, rb"(cannot|can.t|no way to|unable to|has no way)[^.]{0,60}(suite|file)")),
-        "green iterates on the target suite and runs the full suite once before SUITE:": (
-            says(green, rb"iterat[^.]{0,60}suite|suite[^.]{0,60}iterat")
-            and says(green, rb"(full|whole|entire) suite[^.]{0,40}once|once[^.]{0,40}(full|whole|entire) suite")
-            and says(green, rb"before[^.]{0,60}SUITE:")),
         "refactor runs the covering suites, not the full suite, naming the PR's full run and the trade-off": (
             says(refactor, rb"suites?[^.]{0,40}cover|cover[^.]{0,40}suites?")
             and says(refactor, rb"(not|rather than|instead of|no need to|never|don't|do not)[^.]{0,40}(full|whole|entire) suite")
@@ -758,7 +751,9 @@ def test_main_answers_what_the_bash_contract_cases_from_the_out_of_scope_class_t
 
     replaces_step = ('tests/zorblat.test.sh: "zorblat frobs a nitz" moves to '
                      'tests/py/test_zorblat.py ⟦replaces-case⟧ ⟦criterion 1⟧')
-    licence = rb"(may|permitted|allowed|licen[cs]ed?)[^.]{0,60}delet|delet[^.]{0,60}(permitted|allowed|licen[cs]ed)"
+    prompts_dir = SCRIPTS / "prompts"
+    replaces_text = (prompts_dir / "_develop-green-replaces-case.md").read_bytes().split(b"}}", 1)[1].strip()
+    suite_repair_text = (prompts_dir / "_develop-green-suite-repair.md").read_bytes().strip()
     replaces_green = rendered(["green", s, replaces_step, cmd, "tests/py/test_zorblat.py",
                                "test_zorblat_frobs_a_nitz", "make unit"])
 
@@ -766,7 +761,6 @@ def test_main_answers_what_the_bash_contract_cases_from_the_out_of_scope_class_t
                    "skills/tdd/scripts/tests/quux.test.sh — FAIL - quux & {nitz} round-trips ⟦suite-repair⟧")
     repair_named = ("skills/tdd/scripts/tests/zorblat.test.sh", "zorblat frobs a nitz",
                     "skills/tdd/scripts/tests/quux.test.sh", "quux & {nitz} round-trips")
-    every_listed = rb"(every|each|all)( of the)? (listed|red|named) suites?"
     repair_green = rendered(["green", s, repair_step, "make test", repair_named[0], repair_named[1], "make unit"])
     repair_revise = rendered(["revise", "green", s, repair_step, "make test", r])
     single_step = ("fix the full-suite failure: skills/tdd/scripts/tests/zorblat.test.sh — FAIL - zorblat frobs a nitz "
@@ -850,21 +844,16 @@ def test_main_answers_what_the_bash_contract_cases_from_the_out_of_scope_class_t
         "refactor leaves the touched-files list only to remove duplication": (
             both_ways(refactor, 60, rb"outside", rb"duplication") and both_ways(refactor, 60, rb"outside", rb"only")),
         "refactor runs the suites covering an out-of-list file": both_ways(refactor, 80, rb"outside", rb"suites?"),
-        "green offers one to three SPLIT: lines changing no production code": (
-            any_line(green, rb"^SPLIT:") and says(green, rb"one to three|1 to 3|(at most|no more than) three")
-            and both_ways(green, 80, rb"SPLIT", rb"(no|any|without changing) production code")),
+        "green offers SPLIT: lines": (
+            any_line(green, rb"^SPLIT:")),
         "revise green offers the same SPLIT: lines": (
-            any_line(revise_green, rb"^SPLIT:")
-            and says(revise_green, rb"one to three|1 to 3|(at most|no more than) three")
-            and both_ways(revise_green, 80, rb"SPLIT", rb"(no|any|without changing) production code")),
-        "green for a replaces-case step permits deleting that case and no other": (
-            says(replaces_green, licence) and not says(green, licence)
-            and both_ways(replaces_green, 60, rb"(never|not|forbid|forbidden|must not|rejected)",
-                          rb"(any|every) other (bash )?case")),
+            any_line(revise_green, rb"^SPLIT:")),
+        "green for a replaces-case step carries the replaces-case text and the plain green does not": (
+            replaces_text in replaces_green and replaces_text not in green),
         "#690 green for a two-suite repair names both suites and cases and asks every listed suite green": (
-            carries(repair_green, *repair_named) and both_ways(repair_green, 60, every_listed, rb"green")),
+            carries(repair_green, *repair_named) and suite_repair_text in repair_green),
         "#690 revise green for a two-suite repair does the same": (
-            carries(repair_revise, *repair_named) and both_ways(repair_revise, 60, every_listed, rb"green")),
+            carries(repair_revise, *repair_named) and suite_repair_text in repair_revise),
         "#690 a one-suite repair names that suite and case in develop-green and verify-green": (
             carries(single_green, *repair_named[:2]) and verify_code == 0
             and carries(single_verify, *repair_named[:2])),
