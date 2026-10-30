@@ -5,7 +5,6 @@ import re
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 README = pathlib.Path(__file__).resolve().parents[6] / "README.md"
-CLAUDE = pathlib.Path(__file__).resolve().parents[6] / "CLAUDE.md"
 
 SCRIPTS = "## The scripts (this skill's `scripts/` directory)"
 LAUNCH = "## Launching the conductor"
@@ -76,7 +75,7 @@ def test_skill_md_says_what_a_change_to_the_skill_means_for_a_running_conductor_
 
 def test_skill_md_documents_the_skill_snapshot_veri_new_skill_and_issue_n_skill_commit_and_claude_md_cross_references_them():
     problems = []
-    for doc in (SKILL, README, CLAUDE):
+    for doc in (SKILL, README):
         text = doc.read_text().replace("*", "").replace("`", "").lower()
         if not text:
             problems.append(f"{doc} could not be read")

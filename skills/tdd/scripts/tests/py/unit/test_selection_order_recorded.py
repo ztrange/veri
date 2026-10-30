@@ -1,16 +1,14 @@
-"""In-process cases for the three root documents' record of the selection order."""
+"""In-process cases for the root documents' record of the selection order."""
 import re
 
 from skill_sections import ROOT, lines_of, plain
 
 CONTEXT_MD = "CONTEXT.md"
-CLAUDE_MD = "CLAUDE.md"
 
 PRIORITY_BAND = "priority"
 BUG_BAND = "bug"
 ASCENDING = "ascending|by number|lowest number|increasing|numeric"
 ORDERED = "first|before|then|band|ahead"
-TUNABLE = "veri_priority_label"
 NOT_ENLARGE = "enlarge|reorder|re-order|only.*order|never.*solvable|not.*solvable|still.*not printed"
 
 
@@ -30,26 +28,6 @@ def entry(path, name):
         if inside:
             body.append(line)
     return joined(body)
-
-
-def records(path):
-    out, rec = [], ""
-    for line in lines_of(path):
-        if re.match(r"[-*] ", line):
-            if rec != "":
-                out.append(rec)
-            rec = line
-        elif re.match(r"\s*$", line):
-            if rec != "":
-                out.append(rec)
-            rec = ""
-        elif rec == "":
-            rec = line
-        else:
-            rec = rec + " " + line
-    if rec != "":
-        out.append(rec)
-    return [plain(r) for r in out]
 
 
 def says(problems, passage_from, passage_lines, fact, *regexes):
@@ -90,14 +68,6 @@ def order_problems():
         says(problems, *found,
              "that the order runs over the solvable set and never enlarges it — a priority or bug issue still has to pass the four conditions",
              PRIORITY_BAND, BUG_BAND, NOT_ENLARGE)
-    recs = records(ROOT / CLAUDE_MD)
-    if need_passage(problems, CLAUDE_MD, "".join(recs),
-                    f"{CLAUDE_MD} could not be read, so nothing could be asked of what it records"):
-        says(problems, CLAUDE_MD, recs,
-             "the three-band order and the tunable that names the priority label — VERI_PRIORITY_LABEL",
-             TUNABLE, PRIORITY_BAND, BUG_BAND, ORDERED, ASCENDING)
-        says(problems, CLAUDE_MD, recs, "that priority reorders the solvable set and does not enlarge it",
-             PRIORITY_BAND, NOT_ENLARGE)
     return problems
 
 

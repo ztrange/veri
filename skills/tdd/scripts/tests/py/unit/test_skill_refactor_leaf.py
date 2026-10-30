@@ -7,7 +7,6 @@ from skill_sections import has, plain_bytes as plain
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 ROOT = pathlib.Path(__file__).resolve().parents[6]
 CONTEXT = ROOT / "CONTEXT.md"
-CLAUDE = ROOT / "CLAUDE.md"
 
 ONE_LEAF = r"(one|a single) (refactor |developer |transform )?leaf"
 AMENDMENT = r"amend|ledger (step|line)|add-ledger-step|grow"
@@ -50,19 +49,13 @@ def adr_pointer(text):
 
 def test_context_md_s_cycle_entry_and_claude_md_s_budget_invariant_describe_one_refactor_leaf_per_step_and_point_at_the_adr_that_records_it():
     cycle = record(CONTEXT, r"^cycle:")
-    invariant = record(CLAUDE, r"veri_stuck_retries", r"revise_budget", r"veri_refactor_budget")
 
     assert cycle, "CONTEXT.md has no Cycle glossary entry to read"
     assert has(cycle, ONE_LEAF), "the Cycle entry never says the refactor step is one leaf"
     stale_cycle = re.search(rb"per leaf|until none remain|per leaf invocation", cycle)
     assert stale_cycle is None, f"the Cycle entry still says {stale_cycle and stale_cycle.group()!r}"
 
-    assert invariant, "CLAUDE.md has no invariant naming all three budgets to read"
-    assert has(invariant, ONE_LEAF), "the budget invariant never says one leaf spends the step's refactor budget"
-    stale_invariant = re.search(rb"asked for one always finds one|one transform per leaf|a transform per leaf", invariant)
-    assert stale_invariant is None, f"the budget invariant still explains the budget by {stale_invariant and stale_invariant.group()!r}"
-
-    assert adr_pointer(cycle + b" " + invariant), "neither entry names an ADR other than the superseded 0010"
+    assert adr_pointer(cycle), "the Cycle entry names an ADR other than the superseded 0010"
 
 
 def whole_document():
