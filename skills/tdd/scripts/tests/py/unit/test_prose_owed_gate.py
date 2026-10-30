@@ -237,3 +237,14 @@ def test_prose_owed_sh_stays_at_exit_0_after_an_edit_to_the_grader_instructions_
     (tmp_path / unit).write_text("The widget is green.\n")
     code, out, err = run_cli(prose_owed, [str(tmp_path)])
     assert (code, out.split()) == (1, [unit]), (code, out, err)
+
+
+def test_prose_owed_sh_prints_an_orphan_for_a_unit_in_a_root_graded_file_that_no_list_names_2674(tmp_path, run_cli):
+    import importlib
+
+    prose_owed = importlib.import_module("veri.prose_owed")
+    (tmp_path / "GRADED").write_text("CLAUDE.md deadbeef g1\n")
+
+    code, out, err = run_cli(prose_owed, [str(tmp_path)])
+
+    assert (code, out.split("\n")[:-1]) == (1, ["CLAUDE.md (orphan)"]), (code, out, err)
