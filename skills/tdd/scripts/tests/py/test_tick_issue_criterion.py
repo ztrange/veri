@@ -580,3 +580,34 @@ def test_cli_2027_criterion_unticked_event_carries_the_issue_number_when_veri_is
     lines = (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()
     events = [json.loads(line) for line in lines if "zeta-matcher" in line]
     assert (code, [(e["event"], e["issue"]) for e in events]) == (3, [("criterion-unticked", "7")])
+
+
+def test_main_2630_ticks_under_the_last_of_two_acceptance_criteria_headings_and_exits_3_for_a_matcher_held_only_above(monkeypatch, capsys, tick_issue_criterion, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+    real_run = subprocess.run
+    body = AC + "- [ ] superseded one\n- [ ] superseded two\n\n" + AC + "- [ ] replacement one\n- [ ] replacement two\n"
+
+    def run_case(matcher):
+        patched = []
+
+        def fake_run(args, **kwargs):
+            args = [str(arg) for arg in args]
+            if args[:3] == ["gh", "issue", "view"]:
+                return subprocess.CompletedProcess(args, 0, body, "")
+            if args[:4] == ["gh", "api", "-X", "PATCH"]:
+                with open(args[6][len("body=@"):]) as f:
+                    patched.append(f.read())
+                return subprocess.CompletedProcess(args, 0, "", "")
+            if args[0] == "gh":
+                raise AssertionError("unexpected gh call: %r" % (args,))
+            return real_run(args, **kwargs)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        code = tick_issue_criterion.main(["7", matcher])
+        capsys.readouterr()
+        return code, patched
+
+    assert run_case("replacement two") == (0, [
+        AC + "- [ ] superseded one\n- [ ] superseded two\n\n" + AC + "- [ ] replacement one\n- [x] replacement two"])
+    assert run_case("superseded two") == (3, [])

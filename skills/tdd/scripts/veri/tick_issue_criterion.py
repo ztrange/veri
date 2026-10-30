@@ -27,10 +27,11 @@ def _unfenced(lines, start=0):
 
 
 def find_section_start(lines):
+    start = 0
     for i, line in _unfenced(lines):
         if line.strip() == HEADING:
-            return i + 1
-    return 0
+            start = i + 1
+    return start
 
 
 def find_section_end(lines, start):
