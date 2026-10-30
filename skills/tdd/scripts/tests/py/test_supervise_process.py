@@ -171,6 +171,14 @@ def test_2380_a_leaf_whose_full_run_queues_on_the_lock_from_its_own_process_grou
     assert code == 0, err
 
 
+HANG_CLOCK = """\
+#!/bin/sh
+n=$(cat "$1/ticks" 2>/dev/null || echo 0)
+if [ -e "$1/../acquired" ]; then n=$((n + 1)); echo $n > "$1/ticks.tmp" && mv "$1/ticks.tmp" "$1/ticks"; fi
+echo $n
+"""
+
+
 HANG_AFTER_LOCK = """\
 import sys, time
 sys.path[:0] = [%r, %r]
@@ -190,12 +198,18 @@ def test_2380_a_leaf_that_hangs_after_acquiring_the_full_suite_lock_is_still_kil
     script = work / "full_run.py"
     acquired = tmp_path / "acquired"
     script.write_text(HANG_AFTER_LOCK % (str(SCRIPTS), str(SCRIPTS / "veri"), str(acquired)))
+    state = tmp_path / "state"
+    state.mkdir()
+    clock = tmp_path / "clock"
+    clock.write_text(HANG_CLOCK)
+    clock.chmod(0o755)
     held = open(str(tmp_path / "legs") + "-full.lock", "a+")
     fcntl.flock(held, fcntl.LOCK_EX)
     with supervised([str(SCRIPTS / "supervise.sh"), "verify-rebase", sys.executable, str(script)],
                            cwd=work, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                            env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
                                 "VERI_POLL": "0.05", "VERI_TIMEOUT": "4", "VERI_HEARTBEAT": "600",
+                                "VERI_AWAKE_CLOCK": "%s %s" % (clock, state),
                                 "HOME": str(tmp_path), "VERI_PYTEST_LEGS": str(tmp_path / "legs"),
                                 "VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1",
                                 "VERI_PYTEST_XDIST_IMPORTABLE": "1", "PYTHONDONTWRITEBYTECODE": "1"}) as ran:
