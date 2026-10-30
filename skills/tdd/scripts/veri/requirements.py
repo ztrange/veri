@@ -3,6 +3,7 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import glob
 import os
 import re
+import subprocess
 import sys
 
 try:
@@ -112,7 +113,14 @@ def listed_units(path):
 
 def tracked(name):
     pattern = {"GRADED": "**/GRADED", "REQUIREMENTS.md": "**/REQUIREMENTS.md"}[name]
-    return sorted(glob.glob(pattern, recursive=True))
+    here = os.path.abspath(".")
+    while not os.path.exists(os.path.join(here, ".git")):
+        parent = os.path.dirname(here)
+        if parent == here:
+            return sorted(glob.glob(pattern, recursive=True))
+        here = parent
+    listed = subprocess.run(["git", "ls-files", "-z", ":(glob)" + pattern], stdout=subprocess.PIPE, text=True)
+    return sorted(p for p in listed.stdout.split("\0") if p)
 
 
 def lists(path="REQUIREMENTS.md"):
