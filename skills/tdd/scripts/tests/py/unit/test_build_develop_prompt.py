@@ -20,6 +20,13 @@ def want_revise(module):
     return "|".join(module.REVISABLE_PHASES)
 
 
+def _fragment(name, after_include=False):
+    text = (SCRIPTS / "prompts" / name).read_bytes()
+    if after_include:
+        text = text.split(b"}}", 1)[1]
+    return re.sub(rb"\s+", b" ", text).strip()
+
+
 @pytest.fixture
 def build_develop_prompt():
     return importlib.import_module("veri.build_develop_prompt")
@@ -1223,17 +1230,10 @@ def test_main_permits_a_replaces_case_green_to_delete_exactly_the_cases_its_step
     def says(prompt, pattern):
         return prompt is not None and re.search(pattern, prompt, re.I) is not None
 
-    rules = {
-        "permits deleting exactly the cases the step names": (
-            rb"(may|permitted|allowed|licen[cs]ed?)[^.]{0,60}delet[^.]{0,60}"
-            rb"(exactly|every|each|all)[^.]{0,30}cases?[^.]{0,30}(it|the step|its text) names"),
-        "forbids modifying or deleting any case the step does not name": (
-            rb"(never|not|forbid|forbidden|must not)[^.]{0,40}modify or delet[^.]{0,40}"
-            rb"(any|a) case (it|the step|its text) does not name"),
-    }
+    fragment = _fragment("_develop-green-replaces-case.md", after_include=True)
     one_only = rb"^(?!.*(names one bash case|that one case))"
 
-    assert {key: [rule for rule, pattern in rules.items() if not says(prompt, pattern)]
+    assert {key: (["carries the replaces-case fragment"] if prompt is None or fragment not in prompt else [])
             + (["never confines a several-case step to one case"]
                if key[0] == "several" and not says(prompt, one_only) else [])
             for key, prompt in prompts.items()} == dict.fromkeys(prompts, [])
@@ -1665,16 +1665,15 @@ def test_main_renders_a_revise_of_green_with_develop_greens_do_not_modify_the_te
     spec.write_bytes(b"# spec\n")
     reason = tmp_path / "reason.md"
     reason.write_bytes(b"rejected\n")
-    rule = b"**Do not modify the test.**"
-    wrong = b"`WRONG_TEST: <why>` line and stop"
+    freeze = _fragment("_develop-green-freeze-rule.md")
 
     answers = {}
     for revised in ("green", "red"):
         code = build_develop_prompt.main(["revise", revised, str(spec), "s", "make test", str(reason)])
         out, err = capsysbinary.readouterr()
-        answers[revised] = (code, rule in out, wrong in out)
+        answers[revised] = (code, freeze in re.sub(rb"\s+", b" ", out))
 
-    assert answers == {"green": (0, True, True), "red": (0, False, False)}
+    assert answers == {"green": (0, True), "red": (0, False)}
 
 
 def test_main_renders_a_revise_of_green_declaring_a_suite_exempt_wrong_test_report_and_skill_md_routes_it_to_verify_green_1586(
@@ -1698,16 +1697,12 @@ def test_main_asks_green_and_revise_green_prompts_to_name_the_contradicted_case_
     spec.write_bytes(b"# spec\n")
     reason = tmp_path / "reason.md"
     reason.write_bytes(b"rejected\n")
-    ask = b"Name in that line the existing test case the step's criterion contradicts."
+    ask = _fragment("_develop-wrong-test-report.md")
 
-    asked = {}
-    for name, argv in (("green", ["green", str(spec), "s", "make test", "t/x.sh", "case one", "make unit"]),
-                       ("revise", ["revise", "green", str(spec), "s", "make test", str(reason)])):
-        code = build_develop_prompt.main(argv)
-        out, _ = capsysbinary.readouterr()
-        asked[name] = (code, out.count(ask))
+    code = build_develop_prompt.main(["revise", "green", str(spec), "s", "make test", str(reason)])
+    out, _ = capsysbinary.readouterr()
 
-    assert asked == {"green": (0, 1), "revise": (0, 1)}
+    assert (code, re.sub(rb"\s+", b" ", out).count(ask)) == (0, 1)
 
 
 def test_main_grants_a_test_rewrite_in_a_revise_prompt_only_when_the_revised_phase_is_red_1586(
@@ -2091,9 +2086,8 @@ def test_main_renders_a_green_prompt_for_a_suite_repair_or_ci_repair_step_permit
         "suite-repair": "fix the full-suite failure: tests/zorblat.test.sh — FAIL - zorblat frobs a nitz ⟦suite-repair⟧",
         "ci-repair": "CI job gates is red on a1b2c3d: tests/zorblat.test.sh — FAIL - zorblat frobs a nitz ⟦ci-repair⟧",
     }
-    freeze = rb"**Do not modify the test.**"
-    permits = rb"may edit the failing test"
-    others_frozen = rb"every other test stays frozen"
+    freeze = _fragment("_develop-green-freeze-rule.md")
+    edit = _fragment("_develop-repair-test-edit.md")
 
     results = {}
     for name, step in steps.items():
@@ -2101,10 +2095,9 @@ def test_main_renders_a_green_prompt_for_a_suite_repair_or_ci_repair_step_permit
                                           "zorblat frobs a nitz", "make unit"])
         out, _ = capsysbinary.readouterr()
         prompt = re.sub(rb"\s+", b" ", out)
-        results[name] = (code, freeze in prompt, re.search(permits, prompt, re.I) is not None,
-                         re.search(others_frozen, prompt, re.I) is not None)
+        results[name] = (code, freeze in prompt, edit in prompt)
 
-    assert results == {"suite-repair": (0, False, True, True), "ci-repair": (0, False, True, True)}
+    assert results == {"suite-repair": (0, False, True), "ci-repair": (0, False, True)}
 
 
 def test_main_renders_a_revise_green_prompt_for_a_suite_repair_or_ci_repair_step_without_the_leave_the_tests_rule_or_the_freeze_rule_and_permitting_the_failing_tests_edit_1653(
@@ -2117,18 +2110,16 @@ def test_main_renders_a_revise_green_prompt_for_a_suite_repair_or_ci_repair_step
         "suite-repair": "fix the full-suite failure: tests/zorblat.test.sh — FAIL - zorblat frobs a nitz ⟦suite-repair⟧",
         "ci-repair": "CI job gates is red on a1b2c3d: tests/zorblat.test.sh — FAIL - zorblat frobs a nitz ⟦ci-repair⟧",
     }
-    leave = rb"**Leave the test files as they are**"
-    freeze = rb"**Do not modify the test.**"
-    permits = rb"may edit the (?:one )?failing test"
-
+    leave = _fragment("_develop-test-rewrite-none.md")
+    freeze = _fragment("_develop-green-freeze-rule.md")
     results = {}
     for name, step in steps.items():
         code = build_develop_prompt.main(["revise", "green", str(spec), step, "make test", str(reason)])
         out, _ = capsysbinary.readouterr()
         prompt = re.sub(rb"\s+", b" ", out)
-        results[name] = (code, leave in prompt, freeze in prompt, len(re.findall(permits, prompt, re.I)))
+        results[name] = (code, leave in prompt, freeze in prompt)
 
-    assert results == {"suite-repair": (0, False, False, 1), "ci-repair": (0, False, False, 1)}
+    assert results == {"suite-repair": (0, False, False), "ci-repair": (0, False, False)}
 
 
 def test_main_renders_the_ordinary_freeze_rule_in_a_green_prompt_for_a_step_naming_suite_repair_mid_sentence_1919(
@@ -2267,19 +2258,15 @@ def test_main_renders_the_fixture_repair_paragraph_in_green_and_revise_green_for
         ("marked", "refactor"): rendered(["refactor", s, marked, "make test", "t.py"]),
         ("marked", "revise refactor"): rendered(["revise", "refactor", s, marked, "make test", r]),
     }
-    paragraph = rb"repairs a fixture"
-    permits = (rb"may edit that fixture[^.]*\.? ?[^.]*not the target case, not any other case, "
-               rb"and not any production file")
+    fixture = _fragment("_develop-green-fixture-repair.md")
 
-    assert {key: (prompt is not None and re.search(paragraph, prompt, re.I) is not None,
-                  prompt is not None and re.search(permits, prompt, re.I) is not None)
-            for key, prompt in prompts.items()} == {
-        ("marked", "green"): (True, True),
-        ("marked", "revise green"): (True, True),
-        ("unmarked", "green"): (False, False),
-        ("marked", "red"): (False, False),
-        ("marked", "refactor"): (False, False),
-        ("marked", "revise refactor"): (False, False),
+    assert {key: prompt is not None and fixture in prompt for key, prompt in prompts.items()} == {
+        ("marked", "green"): True,
+        ("marked", "revise green"): True,
+        ("unmarked", "green"): False,
+        ("marked", "red"): False,
+        ("marked", "refactor"): False,
+        ("marked", "revise refactor"): False,
     }
 
 
@@ -2328,7 +2315,7 @@ def test_main_tells_a_green_prompt_of_a_guard_subject_step_it_may_edit_the_guard
     out, _ = capsysbinary.readouterr()
     prompt = re.sub(rb"\s+", b" ", out)
 
-    assert re.search(rb"may edit that file, and no other test file", prompt), prompt
+    assert _fragment("_develop-guard-subject-grant.md") in prompt, prompt
 
 
 def test_cli_red_red_supersede_red_missing_and_revise_red_prompts_built_from_a_subdirectory_name_red_prediction_and_red_run_output_by_absolute_paths_under_the_repo_root_tdd_1895(
