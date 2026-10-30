@@ -994,7 +994,7 @@ def test_main_states_the_signal_only_processes_you_started_rule_in_every_phase_f
         out, _ = capsysbinary.readouterr()
         return code, flat(out)
 
-    spelled = sorted(p.name for p in (SCRIPTS / "prompts").glob("*.md") if b"`pkill`" in p.read_bytes())
+    spelled = sorted(p.name for p in (SCRIPTS / "prompts").glob("_*.md") if b"`pkill`" in p.read_bytes())
     partial = (spelled[0] if len(spelled) == 1 and spelled[0].startswith("_")
                and spelled[0] not in ("_shared.md", "_develop-shared.md") else None)
     rule = flat((SCRIPTS / "prompts" / partial).read_bytes()) if partial else None
