@@ -114,3 +114,21 @@ def test_2700_json_scope_totals_attempted_equals_the_runs_listed_when_a_ledgerle
 
     document = json.loads(out)
     assert document["scope"]["attempted"] == len(document["runs"])
+
+
+def test_2700_text_lists_a_run_with_no_ledger_and_a_live_conductor_whose_only_event_is_an_earlier_preflight_refused_as_running(tmp_path, monkeypatch, capsys):
+    from conftest import live_conductor
+    status = importlib.import_module("veri.status")
+    run = tmp_path / ".tdd" / "wt" / "7"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "events.jsonl").write_text(json.dumps(
+        {"ts": 100, "issue": "7", "event": "preflight-refused", "check": "baseline",
+         "cause": "preflight-refused", "classification": "system"}) + "\n")
+    live_conductor(monkeypatch, run / ".tdd", 7)
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status, "branch_of", lambda run: "b")
+
+    status.render(False, "", False)
+
+    lines = capsys.readouterr().out.splitlines()
+    assert [line for line in lines if line.startswith("#7") and line.endswith("running")] != []
