@@ -1063,7 +1063,7 @@ UNQUOTED_REPLACES_STEP = (
     "tests/py/test_tick_ledger.py calls veri.tick_ledger.main(argv) for a ticked step, an unmatched matcher and `[]` "
     "and asserts return codes 0, 3 and 2 — every exit inside 0–3: replaces the tick-ledger.sh half of the foreign "
     "ledger-transform code case in skills/tdd/scripts/tests/tick-ledger.test.sh, the clear-refactor-pending.sh case "
-    "staying with its assertion unmodified ⟦replaces-case⟧ ⟦criterion 3⟧"
+    "staying with its assertion unmodified ⟦replaces-case⟧"
 )
 
 
@@ -1230,7 +1230,7 @@ def test_main_refuses_a_newline_text_at_the_growth_budget_counting_it_as_one_add
     assert (code, text.startswith(steps), text[len(steps):]) == (1, True, "\n## Owed steps\n\n- first line\nsecond line\n")
 
 
-def test_main_refuses_a_criterion_tagged_text_at_the_growth_budget_counting_it_as_one_added_step_and_owes_it_issue_1631(tmp_path, monkeypatch, capsys, add_ledger_step):
+def test_main_refuses_a_kind_marked_text_at_the_growth_budget_counting_it_as_one_added_step_and_owes_it_issue_1631(tmp_path, monkeypatch, capsys, add_ledger_step):
     monkeypatch.setenv("VERI_STEP_GROWTH", "2")
     ledger = tmp_path / "issue-42.md"
     steps = (
@@ -1241,11 +1241,11 @@ def test_main_refuses_a_criterion_tagged_text_at_the_growth_budget_counting_it_a
     )
     ledger.write_bytes(steps.encode())
 
-    code = add_ledger_step.main([str(ledger), "after", "alpha", "tagged step ⟦criterion 2⟧"])
+    code = add_ledger_step.main([str(ledger), "after", "alpha", "marked step ⟦diff-checked⟧"])
     capsys.readouterr()
 
     text = ledger.read_bytes().decode()
-    assert (code, text.startswith(steps), text[len(steps):]) == (1, True, "\n## Owed steps\n\n- tagged step ⟦criterion 2⟧\n")
+    assert (code, text.startswith(steps), text[len(steps):]) == (1, True, "\n## Owed steps\n\n- marked step ⟦diff-checked⟧\n")
 
 
 def test_main_refuses_an_instead_of_over_an_added_anchor_with_more_texts_than_the_budget_allows_after_the_credit_and_owes_them_issue_1631(tmp_path, monkeypatch, capsys, add_ledger_step):
@@ -1472,3 +1472,31 @@ def test_main_accepts_an_added_skill_edit_step_whose_spec_requirements_reword_on
 
     inserted = [line for line in ledger.read_text().splitlines() if f"regrade `{unit}`" in line]
     assert (code, len(inserted), "⟦added⟧" in inserted[0] if inserted else None) == (0, 1, True), err
+
+
+def test_main_refuses_a_text_already_holding_a_criterion_tag_naming_it_and_inserting_none_of_the_batch_2713(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    tag = "⟦criterion 1⟧"
+
+    for flags in ([], ["--criterion", "3"]):
+        for texts in (["some step " + tag], ["fine step", "some step " + tag], ["some step " + tag, "fine step"]):
+            code, out, err = run_cli(add_ledger_step, [*flags, str(ledger), "after", "b two", *texts])
+            assert (flags, texts, code, out, tag in err, ledger.read_bytes()) == (flags, texts, 2, "", True, LEDGER)
+
+
+def test_main_refuses_a_criterion_tagged_text_at_the_growth_budget_owing_nothing_2713(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    steps = (
+        "# Plan for #42\n\n"
+        "- [ ] alpha\n"
+        "- [ ] extra one ⟦added⟧ ⟦criterion 1⟧\n"
+        "- [ ] extra two ⟦added⟧ ⟦criterion 1⟧\n"
+    ).encode()
+    ledger.write_bytes(steps)
+
+    code, out, err = run_cli(
+        add_ledger_step, [str(ledger), "after", "alpha", "tagged step ⟦criterion 2⟧"], env={"VERI_STEP_GROWTH": "2"}
+    )
+
+    assert (code, out, "⟦criterion 2⟧" in err, ledger.read_bytes()) == (2, "", True, steps)
