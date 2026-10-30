@@ -2879,6 +2879,56 @@ def test_rerecord_rebased_exits_2_naming_the_record_when_writing_a_stale_cases_r
     assert (code, record.name in capfd.readouterr().err, record.read_bytes() == old) == (2, True, True)
 
 
+@pytest.mark.process("a real git repository with an origin remote under tmp_path, the stale record's write made to raise")
+def test_rerecord_rebased_exits_2_naming_the_record_when_writing_a_stale_cases_re_record_raises_file_not_found_so_it_is_not_read_as_a_missing_ledger_2718(
+        tmp_path, run_cli, tests_frozen, monkeypatch, capfd):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    (repo / ".tdd").mkdir()
+    suite = repo / "tests/test_suite.py"
+    case = "def test_config_2552():\n    assert f() == %d\n"
+    suite.write_text(case % 1)
+    git(repo, "init", "-q", "-b", "main")
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "base")
+    git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
+    git(repo, "remote", "add", "origin", str(tmp_path / "origin.git"))
+    git(repo, "fetch", "-q", "origin")
+    git(repo, "remote", "set-head", "origin", "main")
+
+    earlier, current = "step one pins the config", "step two adds another"
+    git(repo, "checkout", "-q", "-b", "work")
+    suite.write_text(case % 2)
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=repo)
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "step one")
+    (repo / ".tdd/ledger.md").write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+
+    git(repo, "checkout", "-q", "main")
+    for value in (2, 3):
+        suite.write_text(case % value)
+        git(repo, "commit", "-q", "-a", "-m", "upstream %d" % value)
+    git(repo, "push", "-q", "origin", "main")
+    git(repo, "checkout", "-q", "work")
+    before = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True,
+                            text=True).stdout.strip()
+    git(repo, "rebase", "-q", "origin/main")
+    (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
+    old = record.read_bytes()
+
+    def refusing_open(name, mode="r", *rest, **kwargs):
+        if "w" in mode and str(name).endswith(record.name):
+            raise FileNotFoundError(2, "No such file or directory", str(name))
+        return open(name, mode, *rest, **kwargs)
+
+    monkeypatch.setattr(tests_frozen, "open", refusing_open, raising=False)
+    monkeypatch.chdir(repo)
+
+    code = tests_frozen.rerecord_rebased(str(repo / ".tdd/ledger.md"), before)
+
+    assert (code, record.name in capfd.readouterr().err, record.read_bytes() == old) == (2, True, True)
+
+
 STEPS = ["step Z adds an early case", "step A adds the cases", "step B adds a later case"]
 CASE = "def test_%s():\n    assert %d\n"
 
