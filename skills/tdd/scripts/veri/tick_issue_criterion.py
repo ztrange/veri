@@ -41,6 +41,21 @@ def find_section_end(lines, start):
     return len(lines)
 
 
+def _tick_wrapped(text, matcher):
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        match = ledger.STEP_RE.fullmatch(line)
+        if not match or match.group(2) != " ":
+            continue
+        j = i + 1
+        while j < len(lines) and not ledger.STEP_RE.fullmatch(lines[j]):
+            j += 1
+        if any(matcher in held for held in lines[i:j]):
+            lines[i] = f"{match.group(1)}[x]{match.group(3) or ''}"
+            return True, "\n".join(lines)
+    return False, text
+
+
 def main(argv):
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
@@ -54,7 +69,7 @@ def main(argv):
     lines = body.replace("\0", "").split("\n")
     start = find_section_start(lines)
     end = find_section_end(lines, start) if start else len(lines)
-    ticked, section = ledger.ledger_tick("\n".join(lines[start:end]), matcher) if start else (False, "")
+    ticked, section = _tick_wrapped("\n".join(lines[start:end]), matcher) if start else (False, "")
     if not ticked:
         print("tick-issue-criterion: no unchecked criterion matched '%s' on #%s" % (matcher, n),
               file=sys.stderr)

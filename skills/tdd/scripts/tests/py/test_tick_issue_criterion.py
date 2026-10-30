@@ -611,3 +611,30 @@ def test_main_2630_ticks_under_the_last_of_two_acceptance_criteria_headings_and_
     assert run_case("replacement two") == (0, [
         AC + "- [ ] superseded one\n- [ ] superseded two\n\n" + AC + "- [ ] replacement one\n- [x] replacement two"])
     assert run_case("superseded two") == (3, [])
+
+
+def test_main_2630_ticks_a_three_line_wrapped_criterion_by_a_matcher_in_its_second_line_and_rewrites_only_the_checkbox_line(monkeypatch, capsys, tick_issue_criterion, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+    real_run = subprocess.run
+    before = AC + "- [ ] first criterion\n- [ ] wrapped criterion starts here\n  and carries the wrap-matcher here\n  and ends on the third line\n- [ ] last criterion"
+    patched = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] == ["gh", "issue", "view"]:
+            return subprocess.CompletedProcess(args, 0, before, "")
+        if args[:4] == ["gh", "api", "-X", "PATCH"]:
+            with open(args[6][len("body=@"):]) as f:
+                patched.append(f.read())
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if args[0] == "gh":
+            raise AssertionError("unexpected gh call: %r" % (args,))
+        return real_run(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code = tick_issue_criterion.main(["7", "wrap-matcher"])
+    capsys.readouterr()
+
+    assert (code, patched) == (0, [before.replace("- [ ] wrapped", "- [x] wrapped")])
