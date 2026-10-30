@@ -75,7 +75,7 @@ def test_main_1621_finds_a_real_pytest_function_from_the_repository_root(
         run_cli, tmp_path, monkeypatch):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     monkeypatch.chdir(ROOT)
-    pytest_case = "test_a_planted_develop_prompt_that_makes_no_commit_and_the_real_prompts_directory_are_clean"
+    pytest_case = "test_parse_reads_each_declared_format_refuses_none_and_a_required_format_without_suite_and_never_reads_an_outcome_line"
     report = tmp_path / "report.txt"
     report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % pytest_case)
 
@@ -90,7 +90,7 @@ def test_main_1621_refuses_a_wrong_test_naming_no_case_only_its_own_red_or_a_mis
         run_cli, tmp_path, monkeypatch):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     monkeypatch.chdir(ROOT)
-    own_id = "test_a_planted_develop_prompt_that_makes_no_commit_and_the_real_prompts_directory_are_clean"
+    own_id = "test_parse_reads_each_declared_format_refuses_none_and_a_required_format_without_suite_and_never_reads_an_outcome_line"
     usage = ("usage: wrong-test-route.sh <green-report> <red-test-id> "
              "(prints red <case>, missing <behaviour>, repair <case> <superseded>…, supersede <cases> or revise)\n")
     lines = ("WRONG_TEST: the criterion contradicts nothing I can name",
@@ -135,8 +135,8 @@ def test_main_1621_prints_revise_when_a_wrong_test_names_only_the_step_own_red_p
         run_cli, tmp_path, monkeypatch):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     monkeypatch.chdir(ROOT)
-    own_case = "test_a_planted_develop_prompt_that_makes_no_commit_and_the_real_prompts_directory_are_clean"
-    own_id = "skills/tdd/scripts/tests/py/unit/test_commit_suffix" + ".py::" + own_case
+    own_case = "test_parse_reads_each_declared_format_refuses_none_and_a_required_format_without_suite_and_never_reads_an_outcome_line"
+    own_id = "skills/tdd/scripts/tests/py/unit/test_report_formats" + ".py::" + own_case
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
