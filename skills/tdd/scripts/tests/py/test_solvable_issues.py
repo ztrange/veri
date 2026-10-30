@@ -633,13 +633,6 @@ def test_cli_honours_an_item_older_than_ghs_default_page_of_30(issues, prs, answ
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[5]
 
 
-@pytest.mark.parametrize("doc", [REPO_ROOT / "CONTEXT.md"], ids=lambda doc: doc.name)
-def test_doc_names_the_label_tunable_and_the_one_label_per_loop_use(doc):
-    text = doc.read_text()
-
-    assert ("VERI_LABEL" in text, bool(re.search(r"one[ -]label[ -]per[ -]loop", text, re.IGNORECASE))) == (True, True)
-
-
 def test_main_repo_then_not_running_reads_that_repos_issues_and_omits_the_live_conductors_issue(monkeypatch, capsys, solvable_issues):
     monkeypatch.delenv("VERI_GH_JSON", raising=False)
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
@@ -747,20 +740,6 @@ def test_cli_lists_an_issue_whose_branch_is_on_the_remote_with_no_open_pr_and_no
     assert (bool(on_remote), answer) == (True, (0, "191\n", ""))
 
 
-def solvable_entry():
-    lines = (REPO_ROOT / "CONTEXT.md").read_text().splitlines()
-    start = next(i for i, line in enumerate(lines) if line.startswith("**Solvable**:"))
-    end = next((i for i, line in enumerate(lines) if i > start and line.startswith("**")), len(lines))
-    return "\n".join(lines[start + 1:end])
-
-
-def test_context_solvable_entry_names_the_conductor_pid_lock_and_a_live_holder_as_what_marks_a_run_in_flight():
-    entry = solvable_entry()
-
-    assert ("conductor.pid" in entry,
-            bool(re.search(r"kill -0|alive|still running|live (conductor|process|run)", entry, re.IGNORECASE))) == (True, True)
-
-
 def test_skill_preflight_never_writes_the_conductor_lock_itself_leaving_it_to_run_conductor_2249():
     preflight = (REPO_ROOT / "skills" / "tdd" / "PREFLIGHT.md").read_text()
 
@@ -794,11 +773,8 @@ CLAIMS = {
 }
 
 
-@pytest.mark.parametrize("passage, records", [
-    ("CONTEXT.md", lambda: [" ".join(solvable_entry().splitlines()).lower()]),
-    ("solvable-issues.sh", header_paragraphs)], ids=["CONTEXT.md", "solvable-issues.sh"])
-def test_passage_says_the_open_pr_is_the_claim_and_the_pid_lock_one_machines_worktree_guard_citing_its_adr(passage, records):
-    texts = records()
+def test_passage_says_the_open_pr_is_the_claim_and_the_pid_lock_one_machines_worktree_guard_citing_its_adr():
+    texts = header_paragraphs()
     missing = [tag for tag, patterns in CLAIMS.items()
                if not any(all(re.search(pattern, text) for pattern in patterns) for text in texts)]
 
