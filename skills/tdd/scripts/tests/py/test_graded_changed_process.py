@@ -122,3 +122,20 @@ def test_2674_exits_1_and_prints_a_changed_unit_listed_in_the_root_graded_file(t
     result = subprocess.run(["sh", str(SCRIPTS / "graded-changed.sh"), base], cwd=work, env=env, capture_output=True, text=True)
 
     assert (result.returncode, result.stdout) == (1, "CLAUDE.md\n"), result.stderr
+
+
+@pytest.mark.process("a real git repository and graded-changed.sh")
+def test_2674_exits_1_and_prints_a_changed_unit_listed_in_the_docs_adr_graded_file(tmp_path):
+    work, env, git = _repo(tmp_path)
+    (work / "docs" / "adr").mkdir(parents=True)
+    (work / "docs" / "adr" / "0001.md").write_text("graded prose\n")
+    (work / "docs" / "adr" / "GRADED").write_text("docs/adr/0001.md " + "0" * 64 + " 2026-01-01 sig\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (work / "docs" / "adr" / "0001.md").write_text("reworded prose\n")
+    git("commit", "-q", "-am", "change the adr unit")
+
+    result = subprocess.run(["sh", str(SCRIPTS / "graded-changed.sh"), base], cwd=work, env=env, capture_output=True, text=True)
+
+    assert (result.returncode, result.stdout) == (1, "docs/adr/0001.md\n"), result.stderr
