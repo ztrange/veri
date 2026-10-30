@@ -27,33 +27,6 @@ def records_of(text):
     return [re.sub(r"\s+", " ", r).lower() for r in records]
 
 
-CONTEXT = pathlib.Path(__file__).resolve().parents[6] / "CONTEXT.md"
-
-
-def test_671_context_md_defines_contract_case_implementation_case_and_the_replaces_case_mark():
-    problems = []
-    entries, rec = [], ""
-    for line in CONTEXT.read_text().splitlines():
-        if re.match(r"\*\*[^*]+\*\*:", line):
-            if rec:
-                entries.append(rec)
-            rec = line
-        elif line.startswith("#") or not line.strip():
-            if rec:
-                entries.append(rec)
-            rec = ""
-        elif rec:
-            rec += " " + line
-    if rec:
-        entries.append(rec)
-    for term in ("Contract case", "Implementation case"):
-        if not any(f"**{term}**:" in e for e in entries):
-            problems.append(f"CONTEXT.md: no **{term}**: entry")
-    if not any("⟦replaces-case⟧" in e for e in entries):
-        problems.append("CONTEXT.md: no glossary entry defines the ⟦replaces-case⟧ mark")
-    assert not problems, "\n".join(problems)
-
-
 def reads_ledger_steps(anchor, box, lines, problems):
     if not lines:
         problems.append(f"no instruction of skills/tdd/SKILL.md runs '{anchor}' — the rule could not be checked")

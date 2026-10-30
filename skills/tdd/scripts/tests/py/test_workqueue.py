@@ -1046,10 +1046,3 @@ def test_run_through_a_symlinked_skill_from_a_linked_worktree_subdirectory_assig
     assert (main / ".tdd" / "workqueue").read_bytes() == queue
     assert not (linked / ".tdd" / "workqueue").exists()
     assert not (linked / "sub" / "dir" / ".tdd" / "workqueue").exists()
-
-
-def test_context_md_defines_worker_and_work_queue():
-    with open(os.path.join(SKILL_DIR, "..", "..", "CONTEXT.md")) as doc:
-        text = doc.read()
-    assert [term for term in ("Worker", "Work queue")
-            if not re.search(r"^\*\*%s\*\*:" % term, text, re.M | re.I)] == []

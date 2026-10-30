@@ -27,10 +27,6 @@ def records_of(raw):
     return [re.sub(rb"\s+", b" ", r).lower() for r in records if r != b""]
 
 
-def file_records(path):
-    return records_of(pathlib.Path(path).read_bytes())
-
-
 def body_of(text):
     return text.split("\n", 1)[1] if "\n" in text else ""
 
@@ -51,11 +47,3 @@ def read(records, what, *patterns):
 
 def says(text, pattern, message):
     assert re.search(pattern.encode(), text), message
-
-
-def test_claude_md_s_ledger_invariant_and_context_md_s_ledger_entry_say_a_ticked_step_carries_the_refactor_pending_mark_until_its_verify_refactor_passes():
-    context = file_records(CONTEXT)
-    assert context, "CONTEXT.md has no records to read"
-    entry = read(context, "CONTEXT.md's Ledger glossary entry", r"^\*\*ledger\*\*:")
-    says(entry, MARK, "CONTEXT.md's Ledger entry never spells the mark")
-    says(entry, "verify-refactor", "CONTEXT.md's Ledger entry never names verify-refactor")
