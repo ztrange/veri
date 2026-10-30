@@ -188,3 +188,10 @@
 | RP8 | Item 5 tells the leaf that, if the case PASSES, it predicts what breaking the behaviour should print, breaks it, runs the case and checks the output against that prediction, all before restoring, then restores the production code exactly and verifies the restore with `git diff --exit-code` on the file it touched. (Item 5, from "If it PASSES" to the end.) | A passing pin is accepted only once seen to go red as predicted. |
 | RP9 | Item 6 tells the leaf to leave no change to any file other than the test file, and no change in it outside the named case. (Item 6.) | Only the named case moves. |
 | RP10 | The fragment ends by asking for the red report lines in order: `TEST_PATH:`, `TARGET_TEST:`, `AGAINST_UNMODIFIED: FAILS | PASSES | UNTESTABLE`, `WHY:` (UNTESTABLE only), `FAIL_OUTPUT:`, `PREDICTED_FAILURE:` (the missing name for a name error, otherwise assertion, values and message shape, as predicted before running), `PREDICTION: MATCHED | DIVERGED`, `PREDICTION_NOTE:` (on DIVERGED). (Report section.) | The conductor and `red-divergence.sh` read fixed lines. |
+
+## skills/tdd/scripts/prompts/_develop-red-spec-and-testability.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| RT1 | The fragment gives the issue's behavior spec under a heading saying it is context only and that only the step above is pinned (`{{ISSUE_SPEC}}`), then the test command under its own heading (`{{TEST_CMD}}`), then opens the "What to do" list. (Headings and their slots.) | The spec informs without widening the pin. |
+| RT2 | Item 0 tells the leaf to check testability first: before writing anything, hold the criterion against **What counts as a valid test** above, and if no case can pin it without breaking rule 1, 2 or 3, stop and report `AGAINST_UNMODIFIED: UNTESTABLE` with `WHY:`, not proceeding to the steps below; the fragment ends there. (Item 0.) | An untestable criterion is reported through a declared key, and the including prompt continues the list. |
