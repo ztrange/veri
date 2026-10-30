@@ -3,3 +3,8 @@
 ### prose-owed.sh <repo-root> reports `<unit> (orphan)` for a line of docs/adr/GRADED whose unit no REQUIREMENTS.md lists, and exits 1: one small in-process case (run_cli, tmp_path tree, no git and no process launched) ⟦criterion 2⟧
 - replace the glob union in `orphans` with the shared any-depth `GRADED` lister (acceptance criterion 3, a later step; it needs a new helper shared with `requirements.py`, which is beyond this step's bounds)
 - test-only | fold the two new orphan cases into one parametrised case
+### prose-owed.sh <repo-root> owes (prints, exit 1) a unit whose requirements list is docs/adr/REQUIREMENTS.md and whose GRADED signature is missing: one small in-process case (run_cli, tmp_path tree, no git and no process launched) ⟦criterion 2⟧
+- test-only | test_prose_owed_gate.py: the three new cases repeat the `importlib` setup and could share a fixture
+- out-of-scope | replace the glob calls in `lists` (and `orphans` in prose_owed.py) with one shared any-depth finder, which the issue's third criterion asks for and a later step owns
+### prose-owed.sh <repo-root> owes (prints, exit 1) a unit whose requirements list is docs/adr/REQUIREMENTS.md and whose GRADED signature is missing: one small in-process case (run_cli, tmp_path tree, no git and no process launched) ⟦criterion 2⟧
+- test-only | fold the two new `test_prose_owed_gate.py` cases (`docs/adr` and three-levels-deep) into one parametrized case or a shared tree-building helper
