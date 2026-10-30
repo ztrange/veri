@@ -1,0 +1,1 @@
+- [ ] status.sh --json never counts a run in the scope totals that it does not list: a run with no ledger whose run_activity returns None, an empty events.jsonl with no live conductor, is either both listed and counted or neither ⟦added⟧ ⟦criterion 3⟧
