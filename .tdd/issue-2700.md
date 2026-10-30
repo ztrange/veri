@@ -5,7 +5,7 @@
 - [x] status.sh --json never counts a run in the scope totals that it does not list: a run with no ledger whose run_activity returns None, an empty events.jsonl with no live conductor, is either both listed and counted or neither ⟦added⟧ ⟦criterion 3⟧
 - [x] status.sh text shows `running` for a run with no ledger and a live conductor whose events.jsonl holds only a preflight-refused event from an earlier launch, the relaunch the issue observed for run 1059 ⟦criterion 1⟧
 - [x] status.sh text lists a run with no ledger, an events.jsonl holding no launch and no end mark, and no live conductor, as `stale` rather than omitting it
-- [ ] status.sh text lists a run with no ledger, a live conductor and an empty events.jsonl as `running`, with exit 0 and no traceback
+- [x] status.sh text lists a run with no ledger, a live conductor and an empty events.jsonl as `running`, with exit 0 and no traceback ⟂ refactor pending
 - [ ] status.sh --json includes a run with no ledger whose only event is preflight-refused, with `issue` its run directory's name, `state` `refused`, and `step` and `title` both empty ⟦criterion 2⟧
 - [ ] status.sh --json includes a run with no ledger, an events.jsonl holding no launch and no end mark, and a live conductor, with `issue` its run directory's name, `state` `running`, and `step` and `title` both empty ⟦criterion 2⟧
 - [ ] The scope totals' `attempted` counts a run with no ledger exactly once and the run is listed, so with one ledger run and one ledger-less refused run both the listed lines and `attempted` say 2 ⟦criterion 3⟧
