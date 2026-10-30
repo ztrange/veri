@@ -166,7 +166,7 @@ def test_refresh_with_a_cache_asks_only_for_issues_updated_since_fetched_at_and_
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
-    before = {"fetched_at": "2026-10-01T00:00:00Z", "issues": [
+    before = {"fetched_at": "2026-10-01T00:00:00Z", "cache_format": 2, "issues": [
         {"number": 7, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
          "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None},
         {"number": 8, "title": "stale", "state": "OPEN", "labels": [], "closedAt": None,
@@ -207,7 +207,7 @@ def test_refresh_whose_gh_read_fails_exits_2_with_one_stderr_line_and_leaves_the
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
     cache_file = tmp_path / ".tdd" / "report-cache.json"
-    cache_file.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "issues": [
+    cache_file.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "cache_format": 2, "issues": [
         {"number": 7, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
          "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
     before = cache_file.read_bytes()
@@ -233,7 +233,7 @@ def test_refresh_whose_gh_read_is_unparseable_exits_2_with_one_stderr_line_and_l
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
     cache_file = tmp_path / ".tdd" / "report-cache.json"
-    cache_file.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "issues": [
+    cache_file.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "cache_format": 2, "issues": [
         {"number": 7, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
          "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
     before = cache_file.read_bytes()
@@ -308,7 +308,7 @@ def test_refresh_whose_os_replace_raises_leaves_the_previous_cache_byte_identica
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
     cache = tmp_path / ".tdd" / "report-cache.json"
-    cache.write_text(json.dumps({"fetched_at": "2026-10-20T00:00:00Z", "issues": [
+    cache.write_text(json.dumps({"fetched_at": "2026-10-20T00:00:00Z", "cache_format": 2, "issues": [
         {"number": 7, "title": "old", "state": "OPEN", "labels": [], "closedAt": None,
          "updatedAt": "2026-10-19T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
     before = cache.read_bytes()
@@ -341,7 +341,7 @@ def test_refresh_that_succeeds_leaves_no_temp_file_in_tdd_beside_the_cache_2160(
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
-    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps({"fetched_at": "2026-10-20T00:00:00Z", "issues": []}))
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps({"fetched_at": "2026-10-20T00:00:00Z", "cache_format": 2, "issues": []}))
     issues = [{"number": 8, "title": "new", "state": "OPEN", "labels": [], "closedAt": None,
                "updatedAt": "2026-10-21T10:00:00Z"}]
 
@@ -540,7 +540,7 @@ def test_refresh_with_a_well_formed_cache_searches_updated_since_fetched_at_and_
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
     cache = tmp_path / ".tdd" / "report-cache.json"
-    cache.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "issues": [
+    cache.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "cache_format": 2, "issues": [
         {"number": 7, "title": "old", "state": "OPEN", "labels": [], "closedAt": None,
          "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
     calls = []
@@ -677,7 +677,7 @@ def test_refresh_whose_os_replace_raises_removes_its_own_temp_file_2160(run_cli,
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
-    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps({"fetched_at": "2026-10-20T00:00:00Z", "issues": []}))
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps({"fetched_at": "2026-10-20T00:00:00Z", "cache_format": 2, "issues": []}))
 
     def fake_run(args, **kwargs):
         return subprocess.CompletedProcess([str(arg) for arg in args], 0, "[]", "")
@@ -910,7 +910,7 @@ def test_refresh_with_a_well_formed_cache_retries_a_failed_gh_read_pages_the_upd
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
     cache = tmp_path / ".tdd" / "report-cache.json"
-    cache.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "issues": [
+    cache.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "cache_format": 2, "issues": [
         {"number": 900, "title": "old", "state": "OPEN", "labels": [], "closedAt": None,
          "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
     updated = [
@@ -953,7 +953,7 @@ def test_refresh_with_a_well_formed_cache_bounds_every_later_page_by_fetched_at_
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
     cache = tmp_path / ".tdd" / "report-cache.json"
-    cache.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "issues": [
+    cache.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "cache_format": 2, "issues": [
         {"number": 900, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
          "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
     recent = [
@@ -1191,7 +1191,7 @@ def test_refresh_with_a_cache_over_one_page_returns_every_issue_of_its_window_wh
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
     cache = tmp_path / ".tdd" / "report-cache.json"
-    cache.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "issues": [
+    cache.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "cache_format": 2, "issues": [
         {"number": 900, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
          "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
     windowed = [
