@@ -399,3 +399,9 @@
 | RE23 | The report's `RESULT:` line asks for "applied <the transform>, suites green", one line per transform applied, each on its own `RESULT:` line in the order applied, or "nothing left to tidy" if none was applied. (Report section, `RESULT:` line.) | The conductor counts and orders the applied transforms from these lines. |
 | RE24 | The report's `CANDIDATES:` line lists the six shapes "structural \| <transform>", "cosmetic \| <transform>", "test-only \| <transform>", "out-of-scope \| <transform>", "in-step \| <files> \| <transform>" and "out-of-bounds \| <transform>", for a transform the leaf still sees left in those files, carrying its class, one per line, each on its own `CANDIDATES:` line, or "none". (Report section, `CANDIDATES:` line.) | Each candidate's class rides on its line so it can be recorded and routed. |
 | RE25 | The report's `FLAGS:` line opens the overfit shape as "overfit \| <the" followed by the included `_flag-overfit.md` fragment, then gives the included `_flag-uncovered-spec.md` and `_flag-beyond-spec.md` fragments as the other two shapes, one finding per line, each on its own `FLAGS:` line, carrying the class it falls into, or "none". (Report section, `FLAGS:` line.) | The conductor routes each flag by the class on its line. |
+
+## skills/tdd/scripts/prompts/_flag-uncovered-spec.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| FU1 | The fragment gives the uncovered-spec flag shape: the class `uncovered-spec`, then `<the behaviour>`, then `<the criterion or spec line requiring it>`, separated by ` \| `. (The whole fragment.) | A flag for a behaviour no step covers must name the behaviour and where the spec requires it, so the missing step can be planned. |
