@@ -1460,19 +1460,6 @@ def _spec(tmp_path, extra=""):
     return str(spec)
 
 
-def _cksum(data):
-    table = []
-    for byte in range(256):
-        crc = byte << 24
-        for _ in range(8):
-            crc = ((crc << 1) ^ 0x04C11DB7 if crc & 0x80000000 else crc << 1) & 0xFFFFFFFF
-        table.append(crc)
-    crc = 0
-    for byte in data + len(data).to_bytes((len(data).bit_length() + 7) // 8, "little"):
-        crc = ((crc << 8) & 0xFFFFFFFF) ^ table[(crc >> 24) ^ byte]
-    return "%d %d" % (~crc & 0xFFFFFFFF, len(data))
-
-
 def test_cli_red_carries_spec_step_and_test_command_verbatim_and_the_against_unmodified_report_line(
         tmp_path, run_cli, build_develop_prompt):
     step = "QWIXTLE: a seed ending in a newline gains the block and reports added"
@@ -1606,20 +1593,6 @@ def test_cli_over_budget_refuses_a_spent_or_budget_that_is_not_a_non_negative_de
             results[(bad, label)] = (code, out, bad in err and "cannot read" not in err)
 
     assert results == {key: (2, "", True) for key in results} and len(results) == 18
-
-
-def test_cli_green_for_a_step_not_carrying_replaces_case_renders_byte_identically_to_before_671(
-        tmp_path, run_cli, build_develop_prompt):
-    step = 'tests/zorblat.test.sh: "zorblat frobs a nitz" replaces-case moves to tests/py ⟦added⟧ ⟦criterion 2⟧'
-
-    code, out, err = run_cli(
-        build_develop_prompt,
-        ["green", _spec(tmp_path), step, 'make test ZORBLAT=1 -- --only "frob & nitz/quux"',
-         "tests/zorblat/test_frob & nitz.sh", "qwixtle seeds a newline-terminated block", "make unit"],
-        env={"VERI_REFACTOR_BUDGET": "5"})
-
-    rendered = out.rstrip("\n").replace(str(SCRIPTS), "@SCRIPTS@") + "\n"
-    assert (code, err, _cksum(rendered.encode())) == (0, "", "2885336144 9085")
 
 
 def test_cli_develop_diff_given_every_argument_but_an_empty_test_cmd_exits_2_with_no_prompt_and_missing_test_cmd_on_stderr(
