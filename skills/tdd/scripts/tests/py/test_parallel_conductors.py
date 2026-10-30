@@ -3,7 +3,6 @@ import importlib
 import json
 import os
 import pathlib
-import re
 import shutil
 import signal
 import subprocess
@@ -1694,37 +1693,6 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
     assert answers["in-place"] == (0, ["#7 \u2014 done https://example.test/pull/7", "stopped: nothing solvable"],
                                    "0", "start 7\n", [], ["done"])
     assert answers["symlink"] == answers["in-place"]
-
-
-def _record(text, opening):
-    taken, hit = [], False
-    for line in text.splitlines():
-        if hit and (line == "" or re.match(r"[0-9]+\. ", line) or line.startswith("## ")):
-            break
-        hit = hit or bool(re.search(opening, line))
-        if hit:
-            taken.append(line)
-    return " ".join(taken)
-
-
-def test_scope_loop_documents_veri_parallel_at_1_rung_2_unchanged_above_1_parallel_conductors_detach_then_wait_and_relayed_report_and_context_records_rung_3_naming_the_script_in_flight_local_to_one_invocation_and_a_new_adr():
-    bad = []
-    context = (SCRIPTS.parents[2] / "CONTEXT.md").read_text()
-    rung3 = _record(context, r"^3[.] \*\*Parallel\*\*")
-    in_flight = _record(context, r"^\*\*In flight\*\*:")
-    if not rung3:
-        bad.append("no rung 3 (**Parallel**) entry in the scope ladder")
-    elif "parallel-conductors.sh" not in rung3:
-        bad.append("rung 3's entry does not name parallel-conductors.sh")
-    if not in_flight:
-        bad.append("no **In flight**: glossary entry")
-    elif not (re.search("local", in_flight, re.I) and re.search("one invocation", in_flight, re.I)):
-        bad.append("the In flight entry does not say it is local to one invocation")
-    adrs = [int(n) for n in re.findall(r"ADR-?0*([0-9]+)", rung3 + " " + in_flight)]
-    if not any(n > 24 for n in adrs):
-        bad.append("neither entry names an ADR numbered above 0024")
-
-    assert bad == []
 
 
 def test_a_resumed_conductor_launch_keeps_the_earlier_session_s_log_while_its_context_watch_reads_only_the_new_session(

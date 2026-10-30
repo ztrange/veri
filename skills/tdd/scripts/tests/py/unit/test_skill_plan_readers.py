@@ -35,8 +35,6 @@ ALLOWED = {
         "no PL row yet",
     "test_skill_preflight.py::test_skill_md_s_worktree_guard_prose_says_the_lock_is_taken_in_preflight_step_3_before_the_baseline_and_never_in_step_1_2":
         "carried by PF5; reads step 1's worktree guard paragraph for `preflight step 3`",
-    "unit/test_selection_order_recorded.py::test_context_mds_selection_layer_and_solvable_entries_skill_mds_solvable_issues_sh_bullet_and_claude_md_record_the_three_band_order_and_veri_priority_label_and_say_priority_reorders_the_solvable_set_without_enlarging_it":
-        "reads SCRIPTS.md, CONTEXT.md and CLAUDE.md, never SKILL.md; its ASCENDING alternation only matches step 2",
 }
 
 
