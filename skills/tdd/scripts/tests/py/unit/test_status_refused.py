@@ -179,3 +179,20 @@ def test_2700_json_lists_a_run_with_no_ledger_whose_only_event_is_preflight_refu
 
     listed = [(r.get("issue"), r.get("state"), r.get("step"), r.get("title")) for r in json.loads(out)["runs"]]
     assert listed == [("7", "refused", "", "")]
+
+
+def test_2700_json_lists_a_run_with_no_ledger_no_launch_or_end_mark_and_a_live_conductor_as_its_directory_name_running_with_empty_step_and_title(tmp_path, monkeypatch):
+    from conftest import live_conductor
+    status = importlib.import_module("veri.status")
+    run = tmp_path / ".tdd" / "wt" / "7"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "events.jsonl").write_text(json.dumps(
+        {"ts": 100, "issue": "7", "event": "preflight-start"}) + "\n")
+    live_conductor(monkeypatch, run / ".tdd", 7)
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status, "branch_of", lambda run: "b")
+
+    _, out = status.json_document(read_states=False)
+
+    listed = [(r.get("issue"), r.get("state"), r.get("step"), r.get("title")) for r in json.loads(out)["runs"]]
+    assert listed == [("7", "running", "", "")]
