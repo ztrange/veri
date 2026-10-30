@@ -1,6 +1,6 @@
 # Plan for #2700 — status.sh hides any run without a ledger, so a preflight refusal and a run still in preflight are both invisible
 
-- [ ] status.sh text lists a run with a worktree and an events.jsonl but no ledger whose only event is preflight-refused, as a line naming its issue number (the run directory's name) and `refused <check>` ⟦criterion 1⟧
+- [x] status.sh text lists a run with a worktree and an events.jsonl but no ledger whose only event is preflight-refused, as a line naming its issue number (the run directory's name) and `refused <check>` ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] status.sh text lists a run with no ledger, an events.jsonl holding no launch and no end mark, and a live conductor, as a line naming its issue number and `running` ⟦criterion 1⟧
 - [ ] status.sh text shows `running` for a run with no ledger and a live conductor whose events.jsonl holds only a preflight-refused event from an earlier launch, the relaunch the issue observed for run 1059 ⟦criterion 1⟧
 - [ ] status.sh text lists a run with no ledger, an events.jsonl holding no launch and no end mark, and no live conductor, as `stale` rather than omitting it
