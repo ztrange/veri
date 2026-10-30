@@ -99,3 +99,18 @@ def test_2700_text_lists_a_run_with_no_ledger_and_no_launch_or_end_mark_and_a_li
 
     lines = capsys.readouterr().out.splitlines()
     assert [line for line in lines if line.startswith("#7") and line.endswith("running")] != []
+
+
+def test_2700_json_scope_totals_attempted_equals_the_runs_listed_when_a_ledgerless_run_has_an_empty_events_log_and_no_live_conductor(tmp_path, monkeypatch):
+    status = importlib.import_module("veri.status")
+    run = tmp_path / ".tdd" / "wt" / "7"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "events.jsonl").write_text("")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status, "branch_of", lambda run: "b")
+    monkeypatch.setattr(status, "solvable_count", lambda name: "0")
+
+    _, out = status.json_document(scope="s", read_states=False)
+
+    document = json.loads(out)
+    assert document["scope"]["attempted"] == len(document["runs"])
