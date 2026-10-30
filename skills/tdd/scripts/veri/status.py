@@ -23,8 +23,8 @@ except ImportError:
     import github
 
 
-def run_activity(run, as_json=False, closed=False):
-    """The activity line for one run, or None when it has launched no leaf."""
+def run_activity(run, as_json=False, closed=False, unlaunched=False):
+    """The activity line for one run, or None when it has launched no leaf, unless unlaunched asks for one."""
     last, attempts = None, 0
     newest = None
     events = read_events(run_file(run, "events.jsonl"))
@@ -51,13 +51,13 @@ def run_activity(run, as_json=False, closed=False):
         state = "stale"
     else:
         state = "running"
-    if last is None and end.get("event") != "preflight-refused":
+    if last is None and end.get("event") != "preflight-refused" and not unlaunched:
         return None
-    last = last or end
+    last = last or end or newest or {}
     if closed:
         state = "closed"
     phase, actor, leaf = last.get("phase", ""), last.get("actor", ""), last.get("name", "")
-    elapsed = now - int(last["ts"])
+    elapsed = now - int(last.get("ts", now))
     if as_json:
         return json.dumps({"phase": phase, "actor": actor, "leaf": leaf, "elapsed_seconds": elapsed,
                            "attempts": attempts, "dollars": round(dollars, 2), "tokens": tokens,
@@ -75,12 +75,12 @@ def scope_totals(name, solvable, runs, as_json=False):
     attempted = done = bailed = wall = 0
     dollars = 0.0
     for run in runs:
+        attempted += 1
         try:
             events = read_events(run_file(run, "events.jsonl"))
             end = run_end.run_end(run)[2].get("event")
         except FileNotFoundError:
             continue
-        attempted += 1
         dollars += usage_totals(events)[0]
         done += end == "done"
         bailed += end == "bail"
@@ -174,7 +174,7 @@ def render(as_json, scope, read_states=True):
     if not runs:
         print('{"runs": [], "scope": null}' if as_json else "no runs")
         return 3
-    events, run_objects = [], []
+    listed, run_objects = [], []
     states = issue_states() if read_states else {}
     for run in runs:
         run = run.rstrip("/")
@@ -197,22 +197,27 @@ def render(as_json, scope, read_states=True):
         events_path = run_file(run, "events.jsonl")
         if os.path.isfile(events_path):
             try:
-                activity = run_activity(run, as_json, states.get(issue) == "closed") or ""
-                events.append(run)
+                activity = run_activity(run, as_json, states.get(issue) == "closed", not has_ledger) or ""
                 if not as_json:
                     activity = "  " + activity
             except FileNotFoundError:
                 activity = ""
-        if not has_ledger:
+        if not has_ledger and not activity:
             continue
-        step = step_of_total(text)
+        listed.append(run)
+        if not has_ledger:
+            issue, title, step = os.path.basename(run), "", ""
+        else:
+            step = step_of_total(text)
         if as_json:
             run_objects.append(run_object(issue, title, branch, step, activity, states))
-            continue
-        print("#%s  %s  %s  step %s%s" % (issue, title, branch, step, activity))
+        elif has_ledger:
+            print("#%s  %s  %s  step %s%s" % (issue, title, branch, step, activity))
+        else:
+            print("#%s  %s%s" % (issue, branch, activity))
     scope_line = None
     if scope:
-        scope_line = scope_totals(scope, solvable_count(scope), events, as_json)
+        scope_line = scope_totals(scope, solvable_count(scope), listed, as_json)
     if as_json:
         print('{"runs": [%s], "scope": %s}' % (",".join(run_objects), scope_line or "null"))
     elif scope_line is not None:

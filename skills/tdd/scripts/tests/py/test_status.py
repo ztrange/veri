@@ -812,7 +812,7 @@ def test_status_sh_run_through_a_symlink_to_the_skill_directory_and_from_another
     assert linked == in_place == (0, "#7  widgets spin  tdd/7-widgets-spin  step 2 of 2\n", "")
 
 
-def test_main_json_leaves_a_run_out_of_the_scope_totals_when_its_events_vanish_after_render_read_them_2559(tmp_path, monkeypatch, capsys, status):
+def test_main_json_counts_a_listed_run_in_the_scope_totals_when_its_events_vanish_after_render_read_them_2559(tmp_path, monkeypatch, capsys, status):
     runs = {issue: lamp_run(tmp_path, issue) for issue in ("41", "42")}
     for issue, run in runs.items():
         write_events(run / ".tdd" / "events.jsonl", [lamp_ev(9000, issue, "launch", name="develop-red")])
@@ -831,7 +831,7 @@ def test_main_json_leaves_a_run_out_of_the_scope_totals_when_its_events_vanish_a
     code = status.main(["--json", "--scope", "lamps-label"])
     scope = json.loads(capsys.readouterr().out)["scope"]
 
-    assert (code, scope["attempted"]) == (0, 1)
+    assert (code, scope["attempted"]) == (0, 2)
 
 
 @pytest.mark.parametrize("read", range(1, 16))
