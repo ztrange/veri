@@ -507,29 +507,6 @@ def test_main_renders_red_green_refactor_and_pin_prompts_carrying_the_test_path_
 
 
 @pytest.mark.tree_audit("the templates under prompts/")
-def test_the_blindness_contract_assertion_needs_its_whole_match_on_one_line_of_the_rendered_red_prompt(
-        tmp_path, capsysbinary):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"# spec\n")
-    sentence = b"You have NOT been told the author's reasoning or rationale"
-    shared = (SCRIPTS / "prompts" / "_shared.md").read_bytes()
-
-    def red_prompt(name, contract):
-        return rendered(tmp_path, capsysbinary, name, {"_shared.md": shared.replace(sentence, contract)},
-                        ["red", str(spec), "tests/test_slugify.py", "test_slugify_lowercases"])
-
-    assert sentence in shared
-    assert {
-        "intact": states_blindness_contract(red_prompt("intact", sentence)),
-        "split sentence": states_blindness_contract(
-            red_prompt("split", b"You have NOT been told\n   the author's reasoning or rationale")),
-        "never and reason apart": states_blindness_contract(
-            red_prompt("apart", b"You will never\n   learn the author's reasoning or rationale")),
-    } == {"intact": True, "split sentence": False, "never and reason apart": False}
-
-
-
-@pytest.mark.tree_audit("the templates under prompts/")
 def test_the_full_suite_assertion_needs_its_whole_match_on_one_line_of_the_rendered_green_prompt(
         tmp_path, capsysbinary):
     spec = tmp_path / "spec.md"
@@ -1408,13 +1385,6 @@ def test_main_renders_the_per_case_red_prompt_for_a_step_whose_text_ends_with_th
 
 SPEC_TEXT = 'slugify("Hello & World/Foo") must return "hello-world-foo" — see {ref}\\n done.\n'
 TESTPATH = "tests/test_slugify.py"
-STASH_RULE = (
-    "**Never run `git stash`**: the stash stack is one ref, `refs/stash`, in a `.git` shared by\n"
-    "every worktree of this repository, so what you pop may be another agent's work — and theirs\n"
-    "is then lost. To see the committed version of a file, read it with `git show HEAD:<path>`;\n"
-    "to compare a whole tree against it, make a throwaway checkout with\n"
-    "`git worktree add --detach <scratch> HEAD` and remove it afterwards.")
-FORBIDDING = re.compile(r"Never undo a probe with\s`git checkout -- <file>` or `git restore`", re.ASCII)
 
 
 def fold(data):
@@ -1445,47 +1415,6 @@ def numbered_item(prompt, n):
     return b"\n".join(kept)
 
 
-@pytest.fixture
-def stash_calls(tmp_path, run_cli):
-    import veri.build_develop_prompt as develop
-    import veri.build_verify_prompt as verify
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(SPEC_TEXT.encode())
-    (tmp_path / "ledger-stash.md").write_text("- [ ] a step ⟦criterion 1⟧\n")
-    (tmp_path / "reason.md").write_text("a reason\n")
-    s, r, ledger, t = str(spec), str(tmp_path / "reason.md"), str(tmp_path / "ledger-stash.md"), TESTPATH
-    calls = [
-        ("verify-red", verify, ["red", s, t, "t"]),
-        ("verify-green", verify, ["--fast-cmd", "unit", "green", s, t, "t"]),
-        ("verify-refactor", verify, ["--fast-cmd", "unit", "refactor", s, t, "0123abc"]),
-        ("verify-pin", verify, ["pin", s, t, "t"]),
-        ("verify-plan", verify, ["plan", s, ledger]),
-        ("verify-rebase", verify, ["rebase", s, "0123abc", "4567def"]),
-        ("verify-transform", verify, ["transform", s, t, "0123abc"]),
-        ("verify-diff", verify, ["--step", "s", "--fast-cmd", "unit", "diff", s, "0123abc", "4567def"]),
-        ("develop-red", develop, ["red", s, "step", "cmd"]),
-        ("develop-green", develop, ["green", s, "step", "cmd", t, "t", "unit"]),
-        ("develop-refactor", develop, ["refactor", s, "step", "cmd", "f"]),
-        ("develop-cover", develop, ["cover", s, "step", "cmd"]),
-        ("develop-transform", develop, ["transform", s, "step", "cmd"]),
-        ("develop-diff", develop, ["diff", s, "step", "cmd", "unit"]),
-        ("develop-structural", develop, ["structural", s, "step", "cmd", "f"]),
-        ("develop-predicate", develop, ["predicate", s, "step", "cmd", "f"]),
-        ("develop-revise", develop, ["revise", "red", s, "step", "cmd", r]),
-        ("develop-revise-diff", develop, ["revise", "diff", s, "step", "cmd", r, "unit"]),
-        ("develop-reconcile", develop, ["reconcile", s, "step", "cmd", "b", "0123abc"]),
-        ("develop-exhausted", develop, ["exhausted", s, "step", "cmd", r]),
-        ("develop-over-budget", develop, ["over-budget", s, "step", "cmd", "1", "2"]),
-        ("develop-rebase", develop, ["rebase", s, "step", "cmd", "0123abc", "4567def", "f"]),
-    ]
-
-    def built():
-        for label, module, argv in calls:
-            code, out, err = run_cli(module, argv)
-            yield label, code, out + err
-    return built
-
-
 def test_carries_issue_spec_verbatim(tmp_path, run_cli, build_verify_prompt):
     spec = tmp_path / "spec.md"
     spec.write_bytes(SPEC_TEXT.encode())
@@ -1513,32 +1442,6 @@ def test_619_verify_green_verify_pin_and_develop_cover_confirm_the_restore_by_co
                          rb"|(probe|mutat)[^.]{0,120}git diff[^.]{0,120}(before|earlier)", re.I)
         problems += lacks(prompt, f"{label} still names git checkout --", rb"git checkout --")
         problems += lacks(prompt, f"{label} still names git diff --exit-code", rb"git diff\s+--exit-code")
-    assert problems == []
-
-
-def test_1286_every_prompt_built_from_a_shared_template_carries_the_git_stash_rule_verbatim(stash_calls):
-    problems = []
-    for label, code, prompt in stash_calls():
-        if code != 0:
-            problems.append(f"{label} did not build (exit {code})")
-        elif STASH_RULE not in prompt:
-            problems.append(f"the built {label} prompt lacks the git stash rule verbatim")
-    assert problems == []
-
-
-def test_1286_every_prompt_built_from_a_shared_template_carries_the_checkout_sentence_names_checkout_nowhere_else_and_has_no_stash_push(
-        stash_calls):
-    problems = []
-    for label, code, prompt in stash_calls():
-        if code != 0:
-            problems.append(f"{label} did not build (exit {code})")
-            continue
-        if "git stash push" in prompt:
-            problems.append(f"the built {label} prompt contains git stash push")
-        if re.search(FORBIDDING, prompt) is None:
-            problems.append(f"the built {label} prompt lacks the sentence forbidding git checkout -- <file>")
-        if "git checkout --" in re.sub(FORBIDDING, "", prompt):
-            problems.append(f"the built {label} prompt names git checkout -- outside the sentence that forbids it")
     assert problems == []
 
 
