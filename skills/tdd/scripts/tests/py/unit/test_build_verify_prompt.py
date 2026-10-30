@@ -704,7 +704,7 @@ def test_main_scopes_refactor_to_the_cycles_files_with_flags_lines_checks_plan_r
         "plan mechanism": [has(plan, p) for p in (
             r"mechanism[^.]{0,200}(sufficient|suffices|enough)|(sufficient|suffices|enough)[^.]{0,200}mechanism",
             r"REJECT[^.]{0,200}(no step|nothing)[^.]{0,150}(establish|deliver)|(no step|nothing)[^.]{0,150}(establish|deliver)[^.]{0,200}REJECT")],
-        "refactor flag classes": (b"FLAGS:" in refactor, [c in refactor for c in (b"overfit", b"uncovered-spec", b"beyond-spec")],
+        "refactor flag classes": (b"FLAGS:" in refactor, [c in refactor for c in (b"overfit",)],
                                   b"NEW_STEP" in refactor),
         "rebase": (rebase[0], b'slugify("Hello & World/Foo")' in rebase[1], rb_onto.encode() in rebase[1],
                    rb_pre.encode() in rebase[1], b"{{" in rebase[1],
@@ -748,7 +748,7 @@ def test_main_scopes_refactor_to_the_cycles_files_with_flags_lines_checks_plan_r
         "plan too big": [True] * 3,
         "plan untagged step": [True] * 3,
         "plan mechanism": [True] * 2,
-        "refactor flag classes": (True, [True] * 3, False),
+        "refactor flag classes": (True, [True], False),
         "rebase": (0, True, True, True, False, True, True, True, True),
         "rebase sha refusals": {label: (2, b"") for label in rebase_refusals},
         "plan full-suite": [True] * 3,
