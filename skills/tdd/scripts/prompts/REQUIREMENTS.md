@@ -470,3 +470,15 @@
 | UG5 | The fragment tells the leaf, before it reports, to confirm the case fails with the behaviour *What happened* describes, not with a missing symbol, an import error or a typo, each of which is a red bar that says nothing about the reported defect. (First paragraph, fourth sentence.) | Only a failure of the reported shape proves the case reproduces the bug. |
 | UG6 | The fragment says a failure of any other shape is the test's own bug: it is step 4's divergence, and the test is what changes. (First paragraph, last sentence.) | A wrong-shaped failure is fixed in the test, not passed on to Green. |
 | UG7 | The fragment tells the leaf to name the case so it carries `#<n>`, the issue's number, in whatever the project's test-naming idiom already is, because once it is green it stays as this bug's regression test and the number says which report it stands for. (Second paragraph.) | The regression test stays traceable to the report it guards. |
+
+## skills/tdd/scripts/prompts/develop-diff.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| DF1 | The prompt says this step's criterion is a property of the branch's own diff (something removed, left unchanged, or confined to named lines), that a blind verifier judges it against the diff alone, and so that no test is this step's deliverable. (Opening paragraph under "Phase: develop-diff".) | The leaf must know its deliverable is a diff, not a test. |
+| DF2 | Under its own heading the prompt gives the leaf the step (`{{STEP}}`), followed by the include line of `_develop-spec-context-only.md`. (Section "The step" and the include after it.) | The leaf needs the criterion it is changing the diff for. |
+| DF3 | Item 1 tells the leaf to make the change the step's criterion names, and nothing else, then commit that change as its own commit, its subject ending in `(#<issue>)`. (Numbered list, item 1.) | The diff holds one change, and its commit carries the issue number. |
+| DF4 | Item 2 tells the leaf that, when the criterion is that something stays unchanged, it makes no commit and leaves the tree as it found it. (Numbered list, item 2.) | An "unchanged" criterion is satisfied by no diff at all. |
+| DF5 | Item 3 tells the leaf to add no test, and says a case that pins this criterion by reading another file's text or the git history is rejected. (Numbered list, item 3.) | A test reading text or history is the substring pin a diff-checked step exists to avoid. |
+| DF6 | Item 4 is the include line of `_develop-diff-run-fast-affected.md`. (Numbered list, item 4.) | The run that proves the change green comes after the change and its commit. |
+| DF7 | The prompt ends by asking, in the last lines of the output, for a `DIFF:` line giving the change committed in one line, or NONE when the criterion is that something stays unchanged, and a `SUITE: GREEN \| RED` line with the final summary line of that run. (Section "Report".) | The conductor reads fixed lines to see what was committed and whether the run was green. |
