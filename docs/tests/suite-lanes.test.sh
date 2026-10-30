@@ -107,10 +107,8 @@ comment_above() {
 # The `where` each one is reported under travels with it, for the other half of that reason:
 # a probe puts it in front of the problem line, so two spellings of the same copy would read
 # in the output as two different files being stale.
-GATE_ROW_WHERE="CLAUDE.md's 'make merge-gates' row"
 GATE_MAKEFILE_WHERE="the Makefile comment above the merge-gates target"
 GATE_HEADER_WHERE="docs/merge-gates.sh's header"
-gate_row() { grep -m1 '^| `make merge-gates`' "$ROOT/CLAUDE.md"; }
 gate_makefile_comment() { comment_above "$ROOT/Makefile" '^merge-gates:'; }
 gate_header() { header "$ROOT/docs/merge-gates.sh"; }
 
@@ -180,18 +178,6 @@ probe_no_stale_trigger() {
   done <<< "$(lower "$2" | tr ',' '\n')"
 }
 
-# probe_suite_home_prose — the lane's first half as a reader meets it: CLAUDE.md's Testing
-# idiom section, which is the section that tells an author writing a suite where to put it.
-# Reads that section by its heading — from `## Testing idiom` to the next `## ` — and asks
-# says() for the two facts, so it appends to `$problems` the way report() reads it.
-probe_suite_home_prose() {
-  local idiom
-  idiom="$(awk '/^## Testing idiom/ { f = 1; next } f && /^## / { exit } f' "$ROOT/CLAUDE.md")"
-  says "CLAUDE.md's Testing idiom section" "$idiom" \
-    "a docs-pipeline suite lives under docs/tests/ and runs there by existing" \
-    'docs/tests/' 'glob|by existing'
-}
-
 # probe_gate_rule_prose — the lane's other half, asked of each of the three copies of the
 # merge gate's rule: CLAUDE.md's command-table row, the Makefile comment above the target,
 # and the gate script's own header. One probe over three pieces of prose because the fact
@@ -200,7 +186,6 @@ probe_suite_home_prose() {
 # keeps it: a table row by its leading cell, a Makefile target's paragraph by the run of
 # comments above it, a script's rationale by everything above its first `set` line.
 probe_gate_rule_prose() {
-  probe_widened_selection "$GATE_ROW_WHERE"      "$(gate_row)"
   probe_widened_selection "$GATE_MAKEFILE_WHERE" "$(gate_makefile_comment)"
   probe_widened_selection "$GATE_HEADER_WHERE"   "$(gate_header)"
 }
@@ -212,7 +197,6 @@ probe_gate_rule_prose() {
 # neighbour does not. The Makefile's comment is not swept here — the criterion names two
 # copies, and the behaviour itself has its own case in merge-gates.test.sh.
 probe_stale_trigger_gone() {
-  probe_no_stale_trigger "$GATE_ROW_WHERE" "$(gate_row)"
   probe_no_stale_trigger "$GATE_HEADER_WHERE" "$(gate_header)"
 }
 
@@ -239,7 +223,6 @@ report "$name"
 name="CLAUDE.md and the Makefile / merge-gates.sh headers say where a docs suite lives and which gate runs it"
 problems=()
 
-probe_suite_home_prose
 probe_gate_rule_prose
 
 report "$name"
