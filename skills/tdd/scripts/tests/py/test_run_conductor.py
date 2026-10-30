@@ -560,6 +560,32 @@ def test_main_on_a_fresh_run_runs_update_veri_before_resolving_the_pin_so_the_re
     assert (tmp_path / ".tdd" / "issue-4242-skill-commit").read_text() == new + "\n"
 
 
+@pytest.mark.parametrize("update_code", [1, 2, 3])
+def test_main_on_a_fresh_run_whose_update_veri_exits_non_zero_still_pins_the_unupdated_commit_and_launches_the_conductor(
+        update_code, tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    monkeypatch.chdir(tmp_path)
+    old = "1" * 40
+    calls = fake_pin(monkeypatch, old, set())
+    snapshots, launches = fake_snapshot(monkeypatch, calls, 0, 0)
+    run, updated = subprocess.run, []
+
+    def update_fails(args, *a, **kwargs):
+        if any("update-veri" in str(word) for word in args):
+            updated.append(list(args))
+            return subprocess.CompletedProcess(list(args), update_code, b"", b"")
+        return run(args, *a, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", update_fails)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    code = run_conductor.main(["4242"])
+    capfdbinary.readouterr()
+    assert (code, (tmp_path / ".tdd" / "issue-4242-skill-commit").read_text(), len(updated), len(launches)) == (
+        0, old + "\n", 1, 1)
+
+
 def test_main_on_a_resume_with_a_readable_skill_commit_record_never_runs_update_veri(
         tmp_path, monkeypatch, capfdbinary):
     past_the_guards(monkeypatch)
