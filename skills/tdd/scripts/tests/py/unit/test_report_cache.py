@@ -1150,3 +1150,35 @@ def test_refresh_with_no_cache_and_1700_issues_sharing_one_updated_at_second_und
     kept = sorted(i["number"] for i in json.loads(written.read_text())["issues"]) if written.exists() else None
     everything = sorted(i["number"] for i in issues)
     assert (code == 0 and kept == everything) or (code != 0 and kept is None), (code, None if kept is None else len(kept))
+
+
+def test_refresh_with_no_cache_over_one_page_returns_every_issue_when_one_outside_the_first_unsorted_page_was_updated_later_2709(run_cli, monkeypatch, tmp_path):
+    import json
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    issues = [
+        {"number": n, "title": "issue %d" % n, "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-10-05T%02d:%02d:00Z" % divmod(300 - n, 60), "body": "", "comments": []}
+        for n in range(1, 151)
+    ]
+
+    def fake_gh_issue_list(*args):
+        limit = int(args[args.index("--limit") + 1])
+        terms = (args[args.index("--search") + 1] if "--search" in args else "").split()
+        if "sort:updated-desc" in terms:
+            pool = sorted(issues, key=lambda i: (i["updatedAt"], i["number"]), reverse=True)
+        else:
+            pool = sorted(issues, key=lambda i: i["number"], reverse=True)
+        for term in terms:
+            if term.startswith("updated:<="):
+                pool = [i for i in pool if i["updatedAt"] <= term[len("updated:<="):]]
+        return json.dumps(pool[:limit])
+
+    monkeypatch.setattr(report_cache.github, "gh_issue_list", fake_gh_issue_list)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    written = tmp_path / ".tdd" / "report-cache.json"
+    kept = sorted(i["number"] for i in json.loads(written.read_text())["issues"]) if written.exists() else None
+    assert (code, kept) == (0, list(range(1, 151)))
