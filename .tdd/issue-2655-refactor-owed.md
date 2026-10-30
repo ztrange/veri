@@ -8,3 +8,5 @@
 - test-only | extract the repeated fake_git setup and the `moved = [...]` filter in test_update_veri.py into a shared helper or fixture
 ### `update-veri.sh` exits 2 when the fetch of the upstream fails (no answer could be obtained), leaving the clone untouched, pinned by a case in `skills/tdd/scripts/tests/py/unit/test_update_veri.py` faking git in-process ⟦criterion 1⟧
 - test-only | the `fake_git` fakes and the `moved = [...]` check are repeated across the exit-1 and exit-2 cases in `test_update_veri.py`; they could share a fixture or helper
+### `update-veri.sh` run with no argument, in a veri clone on its upstream default branch with a clean tree and no self-update record, whose fetched upstream default branch is the commit the clone already holds, exits 3 and leaves the clone untouched; it reaches git only through one wrapper, so the case in `skills/tdd/scripts/tests/py/unit/test_update_veri.py` fakes git in-process ⟦criterion 1⟧
+- test-only | the `fake_git` builders and the `moved = [...]` filter are repeated across the `test_update_veri.py` cases; a shared fixture or helper would remove the duplication
