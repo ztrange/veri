@@ -1,7 +1,6 @@
 """tests-frozen.sh's record and check, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import ast
-import glob
 import hashlib
 import os
 import re
@@ -9,8 +8,10 @@ import subprocess
 import sys
 import tempfile
 
+import ledger
 import renamed_case
 import replaces_case
+import tunables
 from entry import write
 from js_tests import CALL, is_js_test_file
 from ledger import KIND_RE, carries_mark, trailing_markers
@@ -277,24 +278,37 @@ def _git_out(*argv):
     return done.stdout.decode("utf-8", "replace")
 
 
+def _issue():
+    """The issue whose ledger holds the step: VERI_ISSUE, else the number of a `tdd/<n>-…` branch."""
+    issue = tunables.read("VERI_ISSUE")
+    if issue:
+        return issue
+    branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], stdout=subprocess.PIPE,
+                            stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL).stdout.decode().strip()
+    found = re.match(r"tdd/(\d+)-", branch)
+    return found.group(1) if found else ""
+
+
 def _step_commits(step):
     """The commits that are `step`'s own: after the latest commit that ticked any ledger line before the one
     that ticked `step`'s line, up to and including that one (HEAD for a step not ticked yet). The committed
-    ledger is the only record of which commit belongs to which step."""
-    for ledger in sorted(glob.glob(".tdd/issue-*.md")):
-        try:
-            revs = _git_out("log", "--reverse", "--format=%H", "--", ledger).split()
-        except OSError:
-            continue
+    ledger of the step's own issue is the only record of which commit belongs to which step; a ticked line
+    carries ledger.PENDING_MARK until its refactor passes, so lines are compared without it."""
+    issue = _issue()
+    step = step.removesuffix(ledger.PENDING_MARK)
+    if issue:
+        path = ledger.ledger_path(".", issue)
+        revs = _git_out("log", "--reverse", "--format=%H", "--", path).split()
         previous, last_tick, tick = set(), revs[:1], None
         for rev in revs:
-            lines = _git_out("show", "%s:%s" % (rev, ledger)).splitlines()
-            matched = [re.match(r"\s*- \[(.)\] (.*)", line) for line in lines]
-            ticked = {m.group(2) for m in matched if m and m.group(1) != " "}
+            matched = [re.match(r"\s*- \[(.)\] (.*)", line)
+                       for line in _git_out("show", "%s:%s" % (rev, path)).splitlines()]
+            texts = {m.group(2).removesuffix(ledger.PENDING_MARK): m.group(1) != " " for m in matched if m}
+            ticked = {text for text, done in texts.items() if done}
             if step in ticked:
                 tick = rev
                 break
-            if step in {m.group(2) for m in matched if m}:
+            if step in texts:
                 tick = "HEAD"
             if ticked != previous:
                 last_tick = [rev]
@@ -305,11 +319,15 @@ def _step_commits(step):
                       % step)
 
 
-def _first_seen(name, case):
-    for rev in reversed(_revisions(name)):
-        if case in _cases_at(rev, name):
-            return rev
-    return None
+def _introduced_by(name, own):
+    """The cases of `name` that the commits `own` introduced: in the file at the last of them that touched it,
+    absent at the revision just before the first of them."""
+    revs = _revisions(name)
+    mine = [at for at, rev in enumerate(revs) if rev in own]
+    if not mine:
+        return set()
+    before = _cases_at(revs[mine[-1] + 1], name) if mine[-1] + 1 < len(revs) else {}
+    return set(_cases_at(revs[mine[0]], name)) - set(before)
 
 
 def _kept_cases(record, name, step=None, skip=()):
@@ -330,8 +348,7 @@ def _kept_cases(record, name, step=None, skip=()):
                 owned.add(other)
     extra = [case for case in names - owned - set(skip)] if held and step else []
     if extra:
-        own = _step_commits(step)
-        owned |= {case for case in extra if _first_seen(name, case) in own}
+        owned |= set(extra) & _introduced_by(name, _step_commits(step))
     return [(case, body) for case, body in new if case in owned]
 
 
