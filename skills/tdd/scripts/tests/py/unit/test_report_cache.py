@@ -1225,3 +1225,49 @@ def test_refresh_with_a_cache_over_one_page_returns_every_issue_of_its_window_wh
 
     kept = sorted(i["number"] for i in json.loads(cache.read_text())["issues"])
     assert (code, kept) == (0, list(range(1, 151)) + [900])
+
+
+def test_refresh_whose_fetch_sees_an_issue_updated_after_it_read_it_leaves_a_window_the_next_refresh_reads_it_from_2709(run_cli, monkeypatch, tmp_path):
+    import json
+    import types
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    real = report_cache.datetime
+    clock = {"now": real.datetime(2026, 10, 20, 10, 0, 0, tzinfo=real.timezone.utc)}
+
+    class FakeDatetime(real.datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return clock["now"]
+
+    monkeypatch.setattr(report_cache, "datetime", types.SimpleNamespace(datetime=FakeDatetime, timezone=real.timezone))
+    issues = [
+        {"number": n, "title": "issue %d" % n, "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-10-05T00:00:00Z", "body": "", "comments": []}
+        for n in range(1, 4)
+    ]
+    reads = []
+
+    def fake_gh_issue_list(*args):
+        terms = (args[args.index("--search") + 1] if "--search" in args else "").split()
+        pool = list(issues)
+        for term in terms:
+            if term.startswith("updated:>="):
+                pool = [i for i in pool if i["updatedAt"] >= term[len("updated:>="):]]
+        answer = json.dumps(pool)
+        if not reads:
+            issues[1]["updatedAt"] = "2026-10-20T10:00:03Z"
+            clock["now"] = real.datetime(2026, 10, 20, 10, 0, 5, tzinfo=real.timezone.utc)
+        reads.append(terms)
+        return answer
+
+    monkeypatch.setattr(report_cache.github, "gh_issue_list", fake_gh_issue_list)
+
+    first = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+    clock["now"] = real.datetime(2026, 10, 20, 10, 1, 0, tzinfo=real.timezone.utc)
+    second = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    cached = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())["issues"]
+    updated = {i["number"]: i["updatedAt"] for i in cached}
+    assert (first[0], second[0], updated[2]) == (0, 0, "2026-10-20T10:00:03Z")
