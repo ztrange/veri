@@ -1559,7 +1559,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    stood. Its exit 0 touches no `.tdd/ci-conflict-rebased` and never spends the run's one rebase: it goes on
    with the regrade block, the full suite once on the rebased tip, the push under the lease pinned
    to the printed `<pre-rebase-sha>`, and the same `wait-ci.sh` line, a red rebased tip taking
-   sub-step 1's `rebased-tip-red` bail with its reset. Its non-zero exit takes the rule unchanged:
+   sub-step 1's `rebased-tip-red` bail (`Read` `<base directory>/BAIL.md`) with its reset. Its non-zero exit takes the rule unchanged:
    with `.tdd/ci-conflict-rebased` absent, `touch .tdd/ci-conflict-rebased` and rebase onto
    `origin/<default>` once, through the existing rebase path of sub-step 1: `$S/rebase-onto-default.sh`
    (no flag), its `develop-rebase` leaf and rebase verifier (`verify-rebase`) when it conflicts, the
