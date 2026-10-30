@@ -1,6 +1,7 @@
 """tests-frozen.sh's record and check, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import ast
+import glob
 import hashlib
 import os
 import re
@@ -269,9 +270,52 @@ def _recorded_digests(record, name):
         return {}
 
 
-def _kept_cases(record, name):
+def _git_out(*argv):
+    done = subprocess.run(["git", *argv], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if done.returncode != 0:
+        raise OSError("git %s failed: %s" % (" ".join(argv), " ".join(os.fsdecode(done.stderr).split())))
+    return done.stdout.decode("utf-8", "replace")
+
+
+def _step_commits(step):
+    """The commits that are `step`'s own: after the latest commit that ticked any ledger line before the one
+    that ticked `step`'s line, up to and including that one (HEAD for a step not ticked yet). The committed
+    ledger is the only record of which commit belongs to which step."""
+    for ledger in sorted(glob.glob(".tdd/issue-*.md")):
+        try:
+            revs = _git_out("log", "--reverse", "--format=%H", "--", ledger).split()
+        except OSError:
+            continue
+        previous, last_tick, tick = set(), revs[:1], None
+        for rev in revs:
+            lines = _git_out("show", "%s:%s" % (rev, ledger)).splitlines()
+            matched = [re.match(r"\s*- \[(.)\] (.*)", line) for line in lines]
+            ticked = {m.group(2) for m in matched if m and m.group(1) != " "}
+            if step in ticked:
+                tick = rev
+                break
+            if step in {m.group(2) for m in matched if m}:
+                tick = "HEAD"
+            if ticked != previous:
+                last_tick = [rev]
+            previous = ticked
+        if tick:
+            return set(_git_out("rev-list", "%s..%s" % (last_tick[0], tick)).split())
+    raise LookupError("step %s: no committed ledger line of it was found, so which commits are its own is unknown"
+                      % step)
+
+
+def _first_seen(name, case):
+    for rev in reversed(_revisions(name)):
+        if case in _cases_at(rev, name):
+            return rev
+    return None
+
+
+def _kept_cases(record, name, step=None, skip=()):
     """The recorded cases of `name` that HEAD still has, each recorded case gone from it replaced by its renamed
-    successor. A case a later step added to the file is in no record of this step, so it is never kept."""
+    successor, plus every other committed case whose first commit is one of `step`'s own. A case a later step
+    added to the file is in no record of this step and in none of its commits, so it is never kept."""
     held = _recorded_digests(record, name)
     with open(name, encoding="utf-8", errors="replace") as handle:
         text = handle.read()
@@ -284,6 +328,10 @@ def _kept_cases(record, name):
             other = _renamed_to(name, case, digest, text, consumed)
             if other and other in names:
                 owned.add(other)
+    extra = [case for case in names - owned - set(skip)] if held and step else []
+    if extra:
+        own = _step_commits(step)
+        owned |= {case for case in extra if _first_seen(name, case) in own}
     return [(case, body) for case, body in new if case in owned]
 
 
@@ -572,7 +620,7 @@ def main(argv):
                     lines.append("format: 2\n")
                 for name in files:
                     added = _added_cases(name)
-                    kept = [c for c in _kept_cases(record, name) if c[0] not in {a[0] for a in added}]
+                    kept = [c for c in _kept_cases(record, name, step, [a[0] for a in added]) if c[0] not in {a[0] for a in added}]
                     if _recorded_digests(record, name) and not kept and not added:
                         write(sys.stderr, "tests-frozen.sh: step %s: every case recorded for %s is gone from HEAD "
                               "with no renamed successor: nothing left to record\n" % (step, name))
@@ -582,7 +630,7 @@ def main(argv):
                                   "body: %s\t%s\t%s\n" % (name, case, _body_digest(body))]
             with open(record, "w") as handle:
                 handle.writelines(lines)
-        except OSError as error:
+        except (OSError, LookupError) as error:
             write(sys.stderr, "tests-frozen.sh: %s" % error)
             return 2
         return 0
