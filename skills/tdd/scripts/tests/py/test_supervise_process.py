@@ -189,9 +189,7 @@ sys.exit(pytest_leg.main([]))
 """
 
 
-@pytest.mark.process("supervise.sh runs a real leaf that waits on a lock the test releases, then hangs holding it")
-@pytest.mark.timeout(60)
-def test_2380_a_leaf_that_hangs_after_acquiring_the_full_suite_lock_is_still_killed_stuck(tmp_path):
+def run_hang_after_lock(tmp_path, startup_delay):
     work = tmp_path / "work"
     work.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=work, check=True)
@@ -216,12 +214,29 @@ def test_2380_a_leaf_that_hangs_after_acquiring_the_full_suite_lock_is_still_kil
         try:
             while ran.poll() is None and not list(tmp_path.glob("legs-full.lock.wait-*")):
                 time.sleep(0.02)
+            time.sleep(startup_delay)
         finally:
             fcntl.flock(held, fcntl.LOCK_UN)
             held.close()
         out, err = ran.communicate(timeout=30)
 
-    assert (ran.returncode, acquired.exists()) == (2, True), err
+    return ran.returncode, acquired.exists(), err
+
+
+@pytest.mark.process("supervise.sh runs a real leaf that waits on a lock the test releases, then hangs holding it")
+@pytest.mark.timeout(60)
+def test_2380_a_leaf_that_hangs_after_acquiring_the_full_suite_lock_is_still_killed_stuck(tmp_path):
+    code, acquired, err = run_hang_after_lock(tmp_path, 0)
+
+    assert (code, acquired) == (2, True), err
+
+
+@pytest.mark.process("supervise.sh runs a real leaf that waits past VERI_TIMEOUT on a lock the test releases, then hangs holding it")
+@pytest.mark.timeout(60)
+def test_2717_a_leaf_slow_to_reach_the_full_suite_lock_past_the_hard_timeout_is_still_killed_stuck(tmp_path):
+    code, acquired, err = run_hang_after_lock(tmp_path, 5)
+
+    assert (code, acquired) == (2, True), err
 
 
 @pytest.mark.process("supervise.sh runs a real leaf whose whole process group the test SIGKILLs from outside")
