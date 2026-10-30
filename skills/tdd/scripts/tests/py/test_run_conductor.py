@@ -560,6 +560,21 @@ def test_main_on_a_fresh_run_runs_update_veri_before_resolving_the_pin_so_the_re
     assert (tmp_path / ".tdd" / "issue-4242-skill-commit").read_text() == new + "\n"
 
 
+def test_main_on_a_resume_with_a_readable_skill_commit_record_never_runs_update_veri(
+        tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-4242-skill-commit").write_text("1" * 40 + "\n")
+    calls = fake_pin(monkeypatch, "1" * 40, {"1" * 40 + "^{commit}"})
+    run_conductor = importlib.import_module("veri.run_conductor")
+    run_conductor.main(["4242"])
+    capfdbinary.readouterr()
+    assert [call for call in calls if any("update-veri" in str(word) for word in call)] == []
+
+
 def test_main_run_from_a_subdirectory_of_the_repo_makes_the_run_state_at_the_repo_root_and_leaves_no_tdd_in_the_subdirectory_1895(
         tmp_path, monkeypatch, capfdbinary):
     past_the_guards(monkeypatch)
