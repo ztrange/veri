@@ -23,6 +23,11 @@ def main(argv):
     if os.path.exists(record) and open(record).read().strip() == "no":
         print("update-veri.sh: self-update record says no", file=sys.stderr)
         return 1
+    branch = git("symbolic-ref", "HEAD").stdout.strip().removeprefix("refs/heads/")
+    default = git("symbolic-ref", "refs/remotes/origin/HEAD").stdout.strip().removeprefix("refs/remotes/origin/")
+    if branch != default:
+        print(f"update-veri.sh: clone is on {branch}, not its upstream default branch {default}", file=sys.stderr)
+        return 1
     upstream = git("rev-parse", "--abbrev-ref", "origin/HEAD").stdout.strip()
     old = git("rev-parse", "HEAD").stdout.strip()
     new = git("rev-parse", upstream).stdout.strip()
