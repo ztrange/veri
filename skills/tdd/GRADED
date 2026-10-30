@@ -62,3 +62,4 @@ skills/tdd/scripts/prompts/develop-diff.md 449e20b63973f89c2beb4e0e91fab38c6f583
 skills/tdd/scripts/prompts/develop-revise-diff.md 58f9034197c924374202ea1aa21ae8c406c79378969133a3365615e58e6dabbb 2026-10-30 6ec13941d6ed4308a01a3b7d7abfb4f0 d560f939aa92
 skills/tdd/scripts/prompts/_develop-diff-run-fast-affected.md d99ed0a305047007ec1865d47b16307c2ff2ef2ca6de35e08489b2b8fba27187 2026-10-30 c0316e1731c242e3974dbd707144990c d560f939aa92
 skills/tdd/scripts/prompts/_develop-revise-freeze-test.md a3e28150c88391855a9339182b38a84ba5b0310d10901307203a5947404f1762 2026-10-30 486a90f761a74ea0beb5289dca4701f4 d560f939aa92
+skills/tdd/scripts/prompts/_develop-revise-freeze-production.md 35385424cc25c357e375a0a2fe719b52ab3c4a3946a35784db14880f987d84cf 2026-10-30 e5c3e870422f45509a3fa80975b442bb d560f939aa92
