@@ -42,6 +42,10 @@ def main(argv):
     if not argv or not argv[0]:
         sys.stderr.write(USAGE + "\n")
         return 2
+    _, bad = tunables.resolve("REVISE_BUDGET")
+    if bad:
+        sys.stderr.write("run-conductor: REVISE_BUDGET must be %s: %s\n" % (bad[1], bad[0]))
+        return 2
     raw_minimum = tunables.read("VERI_MIN_FREE_GB", "20")
     if not re.fullmatch(r"[0-9]+", raw_minimum, re.ASCII):
         sys.stderr.write("run-conductor: VERI_MIN_FREE_GB must be a whole number >= 0, got '%s'\n" % raw_minimum)
@@ -130,11 +134,31 @@ def main(argv):
             status = extract(base, commit, snapshot)
             if status != 0:
                 return status if status <= 3 else 2
-            return launch(snapshot, argv[0], commit, VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
+            code = launch(snapshot, argv[0], commit, VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
+            keep_pinned_scripts(snapshot, argv[0])
+            return code
         finally:
             shutil.rmtree(snapshot, ignore_errors=True)
     sys.stderr.write("run-conductor: no skill commit resolvable from '%s' — running unpinned\n" % base)
     return launch(base, argv[0], None, VERI_SKILL_UNPINNED="1")
+
+
+def keep_pinned_scripts(snapshot, issue):
+    """Copy the pinned scripts under the run's worktree .tdd/, where they live and die with the worktree."""
+    worktree = run_worktree(issue)
+    scripts = os.path.join(snapshot, "scripts")
+    if not os.path.exists(os.path.join(worktree, ".git")) or not os.path.isdir(scripts):
+        return False
+    kept = os.path.join(worktree, ".tdd", "pinned-scripts")
+    shutil.rmtree(kept, ignore_errors=True)
+    try:
+        shutil.copytree(scripts, kept, symlinks=True)
+        with open(os.path.join(kept, ".gitignore"), "w") as ignore:
+            ignore.write("*\n")
+    except OSError as error:
+        sys.stderr.write("run-conductor: could not keep the pinned scripts at '%s': %s\n" % (kept, error))
+        return False
+    return True
 
 
 def pinned_tmpdir():
@@ -157,6 +181,8 @@ def prompt(base, issue, commit):
     text += ("\n\nBase directory for this skill: %s\n" % base).encode()
     if commit is not None:
         text += ("\nPinned skill commit (name it in the plan comment): %s\n" % commit).encode()
+    if tunables.read("REVISE_BUDGET"):
+        text += ("\nREVISE_BUDGET for this run: %s\n" % tunables.read("REVISE_BUDGET")).encode()
     return text + ("\nSolve issue #%s by the procedure above.\n" % issue).encode()
 
 

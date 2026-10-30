@@ -8,6 +8,7 @@ ENTRY_POINTS = {
     "VERI_CONDUCTOR_CTX_BUDGET": ("veri.orchestrate", [], {}),
     "VERI_CONDUCTOR_STOP_TIMEOUT": ("veri.orchestrate", [], {}),
     "VERI_KILL_POLL": ("veri.supervise", ["develop-red", "true"], {"VERI_TIMEOUT": "900"}),
+    "REVISE_BUDGET": ("veri.run_conductor", ["7"], {"VERI_BASH_MAJOR": "5", "VERI_PYTHON_VERSION": "3.12.0"}),
 }
 CANDIDATES = ("abc", "-1", "0", "1.5.5", "1e3", "1e12", "nan", "inf", " 7")
 
@@ -39,3 +40,15 @@ def test_1313_every_tunable_in_the_readers_table_refuses_a_malformed_or_out_of_b
 
     assert refusals
     assert set(refusals.values()) == {(2, "", 1, True, True, False, ())}
+
+
+def test_2705_revise_budget_is_registered_with_its_default_of_2_and_refuses_a_bad_value(monkeypatch):
+    tunables = importlib.import_module("veri.tunables")
+    monkeypatch.delenv("REVISE_BUDGET", raising=False)
+    default = tunables.resolve("REVISE_BUDGET")
+    monkeypatch.setenv("REVISE_BUDGET", "3")
+    raised = tunables.resolve("REVISE_BUDGET")
+    monkeypatch.setenv("REVISE_BUDGET", "lots")
+    value, bad = tunables.resolve("REVISE_BUDGET")
+
+    assert (default, raised, value, bad[0]) == ((2, None), (3, None), None, "lots")

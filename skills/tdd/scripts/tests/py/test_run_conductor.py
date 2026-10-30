@@ -4235,3 +4235,37 @@ def test_main_runs_the_procedure_from_the_recorded_skill_commit_refuses_an_unres
         "unresolvable": (2, recorded + "\n", [], []),
         "re-pin": (0, head + "\n", [head], [head]),
     }
+
+
+def test_2705_a_revise_budget_in_the_environment_reaches_the_conductors_prompt_and_a_bad_one_refuses(tmp_path, monkeypatch, capsys):
+    run_conductor = importlib.import_module("veri.run_conductor")
+    (tmp_path / "SKILL.md").write_text("procedure\n")
+    monkeypatch.delenv("REVISE_BUDGET", raising=False)
+    unset = run_conductor.prompt(str(tmp_path), "7", None)
+    monkeypatch.setenv("REVISE_BUDGET", "3")
+    raised = run_conductor.prompt(str(tmp_path), "7", None)
+    monkeypatch.setenv("REVISE_BUDGET", "lots")
+    past_the_guards(monkeypatch)
+    refused = run_conductor.main(["7"])
+
+    assert (b"REVISE_BUDGET" in unset, b"\nREVISE_BUDGET for this run: 3\n" in raised, refused, "REVISE_BUDGET" in capsys.readouterr().err) == (
+        False, True, 2, True)
+
+
+def test_2627_a_conductors_exit_keeps_the_pinned_scripts_under_the_worktrees_run_state_replacing_an_older_copy(tmp_path, monkeypatch):
+    run_conductor = importlib.import_module("veri.run_conductor")
+    monkeypatch.setattr(run_conductor, "run_worktree", lambda issue: str(tmp_path / "wt" / issue))
+    snapshot = tmp_path / "snapshot"
+    (snapshot / "scripts").mkdir(parents=True)
+    (snapshot / "scripts" / "new.sh").write_text("new\n")
+    missing = run_conductor.keep_pinned_scripts(str(snapshot), "7")
+    assert (missing, (tmp_path / "wt").exists()) == (False, False)
+    kept = tmp_path / "wt" / "7" / ".tdd" / "pinned-scripts"
+    kept.mkdir(parents=True)
+    (kept / "old.sh").write_text("old\n")
+    (tmp_path / "wt" / "7" / ".git").write_text("gitdir: elsewhere\n")
+
+    assert run_conductor.keep_pinned_scripts(str(snapshot), "7") is True
+
+    assert sorted(p.name for p in kept.iterdir()) == [".gitignore", "new.sh"]
+    assert (kept / ".gitignore").read_text() == "*\n"

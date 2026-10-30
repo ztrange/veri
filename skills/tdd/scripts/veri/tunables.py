@@ -62,6 +62,7 @@ TABLE = {
     "VERI_CONDUCTOR_CTX_BUDGET": Tunable(tokens, "120000", "a whole number of tokens"),
     "VERI_CONDUCTOR_STOP_TIMEOUT": Tunable(stop_timeout, "10", "a positive number of seconds"),
     "VERI_KILL_POLL": Tunable(kill_poll, "0.1", "a non-negative number"),
+    "REVISE_BUDGET": Tunable(tokens, "2", "a whole number of attempts"),
 }
 
 
