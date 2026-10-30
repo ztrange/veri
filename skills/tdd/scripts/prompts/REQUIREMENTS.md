@@ -586,3 +586,16 @@
 | ST6 | Step 3 tells the leaf never to modify a test file: a transform commit that touches one is rejected. (Numbered list, item 3, second sentence.) | The frozen half of the pass is enforced by rejection. |
 | ST7 | The numbered list has three items in this order: apply the candidate (1), run the suites covering the touched files (2, an included fragment), commit (3). (Numbered list.) | The transform is proven green before it is committed. |
 | ST8 | After the included report fragment, the prompt says that if the leaf skipped the candidate for the bound above, it reports that instead, as one `SKIPPED: <why>` line. (Paragraph after the report include.) | A skip replaces the transform report with the declared `SKIPPED:` key. |
+
+## skills/tdd/scripts/prompts/develop-predicate.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| PD1 | After the included structural-pass sentence, the prompt says a transform leaf needs a check its verifier can run before it applies the candidate, and tells the leaf to write one shell predicate for it: a command that fails (exits non-zero) on the current tree and succeeds (exits 0) once the candidate is applied; the leaf applies nothing itself and changes no file. (Opening paragraph, after the include.) | The predicate becomes the transform step's red, so it must be false now and true after. |
+| PD2 | Under "Bounds" the prompt says the transform may change only the files this issue touched, listed as `{{TOUCHED_FILES}}`. (Bounds.) | The predicate observes only files the transform may change. |
+| PD3 | Step 1 tells the leaf to read the candidate and the files it names. (Numbered list, item 1.) | The predicate is written from the candidate's own files. |
+| PD4 | Step 2 tells the leaf to write one shell command, runnable from the repository root, that observes the candidate's end state in those files (a `grep`, a `test`, a count compared) and nothing else. (Numbered list, item 2.) | A predicate that observes anything else could pass or fail for unrelated reasons. |
+| PD5 | Step 3 tells the leaf to run the predicate on the current tree and confirm it fails. (Numbered list, item 3, first sentence.) | A predicate already true proves nothing about the transform. |
+| PD6 | Step 3 says that when the candidate is already applied on the current tree, the leaf reports the predicate that observes its end state anyway (it then succeeds) and never `PREDICATE: NONE`. (Numbered list, item 3, second sentence.) | An applied candidate is still observable; NONE would wrongly claim it is not. |
+| PD7 | Step 4 tells the leaf to keep `PREDICATE: NONE` for a candidate no single command can observe, and to say why instead of writing one. (Numbered list, item 4.) | NONE is reserved for the unobservable case, with its reason. |
+| PD8 | The prompt ends by asking for one last line, either `PREDICATE: <command>` or `PREDICATE: NONE — <why>`. (Report section.) | The conductor reads one fixed line to get the predicate or its absence. |
