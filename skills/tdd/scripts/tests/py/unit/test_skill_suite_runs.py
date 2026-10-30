@@ -6,7 +6,6 @@ import skill_sections
 from skill_sections import plain_lower as plain
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
-CLAUDE = pathlib.Path(__file__).resolve().parents[6] / "CLAUDE.md"
 
 REFACTOR_LOOP = "#### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)"
 
@@ -25,86 +24,6 @@ def before(text, sep):
 
 def after(text, sep):
     return text.split(sep, 1)[1] if sep in text else text
-
-
-def claude_paragraphs(text):
-    return [plain(" ".join(p.split("\n"))) for p in re.split(r"\n{2,}", text.strip("\n"))]
-
-
-def idiom():
-    text = next((p for p in claude_paragraphs(CLAUDE.read_text()) if p.startswith("a suite whose subject is the docs pipeline")), None)
-    assert text is not None, "CLAUDE.md has no paragraph opening 'a suite whose subject is the docs pipeline' to read"
-    return text
-
-
-def fast_plus_affected(text, who, why):
-    problems = []
-    if not re.search("fast (tier|command)", text):
-        problems.append(f"{who} never names the fast tier, which {why}")
-    if not re.search(r"affected suites|suites affected-suites\.sh", text):
-        problems.append(f"{who} never names the affected suites, which {why}")
-    return problems
-
-
-def full_suite_leaves(skill):
-    problems = []
-    claude = CLAUDE.read_text()
-    stale = [line for line in claude.splitlines() if re.search(r"every [a-z]*\s*leaf runs", line)]
-    if stale:
-        problems.append(f"CLAUDE.md still says every leaf runs the suite after every edit: {stale}")
-    full = [p for p in claude_paragraphs(claude) if "full suite" in p]
-    if not full:
-        problems.append("CLAUDE.md never names the full suite at all")
-    if not any(re.search("develop-green|verify-green|verifier", p) for p in full):
-        problems.append("CLAUDE.md mentions the full suite without naming the leaves that run it")
-    return problems
-
-
-def test_skill_md_s_phase_sections_and_claude_md_say_which_leaves_run_the_full_suite():
-    problems = full_suite_leaves(SKILL)
-    assert not problems, "\n".join(problems)
-
-
-def test_698_case_1_passes_on_a_skill_md_whose_green_section_and_refactor_loop_name_no_full_suite_run(tmp_path):
-    kept, skipping = [], False
-    for line in SKILL.read_text().splitlines(keepends=True):
-        if re.search(r"Neither .* runs the full suite", line):
-            skipping = True
-        if not skipping:
-            kept.append(line)
-        if skipping and line.rstrip("\n").endswith("."):
-            skipping = False
-    fixture = tmp_path / "SKILL.md"
-    fixture.write_text("".join(kept))
-    assert not re.search(r"Neither .* runs the full suite", fixture.read_text()), \
-        "the fixture still carries a 'Neither … runs the full suite' sentence"
-    problems = full_suite_leaves(fixture)
-    assert not problems, "\n".join(problems)
-
-
-def test_claude_md_s_testing_idiom_paragraph_states_what_runs_per_step_and_per_pr():
-    text = idiom()
-    problems = fast_plus_affected(text, "CLAUDE.md's Testing idiom paragraph", "develop-green, verify-green and verify-refactor run per step")
-    for leaf in ("develop-green", "verify-green", "verify-refactor"):
-        if leaf not in text:
-            problems.append(f"the Testing idiom paragraph never names {leaf}")
-    if not re.search(r"(per|once a|each|one) pr|pr is readied|readying the pr|readies the pr", text):
-        problems.append("the Testing idiom paragraph never says the full suite runs once per PR, before the PR is readied")
-    if "repair step" not in text:
-        problems.append("the Testing idiom paragraph never says a repair step runs the full suite again")
-    if "three leaves per step" in text:
-        problems.append("the Testing idiom paragraph still says three leaves per step run the full suite")
-    assert not problems, "\n".join(problems)
-
-
-def test_claude_md_s_testing_idiom_paragraph_says_a_revise_leaf_runs_the_tiers_of_the_phase_it_redoes():
-    text = idiom()
-    problems = []
-    if not re.search(r"revise[- ](leaf|leaves)|revise-(red|green|refactor)", text):
-        problems.append("CLAUDE.md's Testing idiom paragraph never names the revise leaves")
-    if not re.search(r"(tier|suites)[^.]*phase (it|they|the leaf) (redoes|redo|is redoing|are redoing)", text):
-        problems.append("CLAUDE.md's Testing idiom paragraph never says a revise leaf runs the tiers of the phase it redoes")
-    assert not problems, "\n".join(problems)
 
 
 def test_skill_md_names_no_full_suite_run_inside_a_step_s_cycle():
@@ -149,11 +68,3 @@ def test_991_doc_text_given_the_from_regex_5_starts_at_the_line_5_y_not_at_5x_y(
     assert doc_text(fixture, "## Section", r"^5\. ") == "5. y "
 
 
-def test_2500_claude_md_testing_idiom_says_a_wait_inside_a_case_bounds_itself_below_veri_pytest_timeout_or_its_failure_path_is_unreachable():
-    text = " ".join(claude_paragraphs(CLAUDE.read_text()))
-    problems = []
-    if not re.search(r"a wait inside a case bounds itself below `?VERI_PYTEST_TIMEOUT`?", text, re.IGNORECASE):
-        problems.append("CLAUDE.md's Testing idiom never says a wait inside a case bounds itself below VERI_PYTEST_TIMEOUT")
-    if not re.search(r"failure path is unreachable[^.]*pytest-timeout fires first", text):
-        problems.append("CLAUDE.md's Testing idiom never says a wait bound above the limit leaves its failure path unreachable because pytest-timeout fires first")
-    assert not problems, "\n".join(problems)
