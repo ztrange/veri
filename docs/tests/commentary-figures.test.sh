@@ -76,6 +76,9 @@ stated() {
 }
 
 # --- the commentary's tunable figures are the ones the scripts encode ----------------
+# The scripts are shims over veri/*.py (#807 family), so the encoded default is read from the
+# module. The streaming-note and refactor-budget-assignment sites are gone: the chunks that
+# carried them were dropped when their scripts shrank to shims (#2710).
 name="every VERI_HEARTBEAT and VERI_REFACTOR_BUDGET default docs/wt/commentary.py states is the figure the script encodes"
 
 problems=()
@@ -89,10 +92,8 @@ while IFS='|' read -r site script script_re prose_re; do
     problems+=("$COMMENTARY $site: says $got, $script encodes $encoded")
   fi
 done <<'SITES'
-contract-table|skills/tdd/scripts/supervise.sh|VERI_HEARTBEAT:-[0-9]+|VERI_HEARTBEAT</code> [0-9]+s
-streaming-note|skills/tdd/scripts/supervise.sh|VERI_HEARTBEAT:-[0-9]+|[0-9]+-second silence window
-budgets-diagram|skills/tdd/scripts/refactor-budget.sh|VERI_REFACTOR_BUDGET:-[0-9]+|VERI_REFACTOR_BUDGET +\([0-9]+
-refactor-budget-assignment|skills/tdd/scripts/refactor-budget.sh|VERI_REFACTOR_BUDGET:-[0-9]+|VERI_REFACTOR_BUDGET:-[0-9]+
+contract-table|skills/tdd/scripts/veri/supervise.py|numeric_env\("VERI_HEARTBEAT", "[0-9]+"|VERI_HEARTBEAT</code> [0-9]+s
+budgets-diagram|skills/tdd/scripts/veri/refactor_budget.py|DEFAULT_BUDGET = [0-9]+|VERI_REFACTOR_BUDGET +\([0-9]+
 SITES
 report "$name"
 
