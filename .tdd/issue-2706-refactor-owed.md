@@ -1,0 +1,2 @@
+### `rebase-onto-default.sh --graded-only` on a branch of two commits that each conflict only in a `GRADED` file resolves both replays and exits 0 with no rebase left in progress; a medium case with a real git process in `skills/tdd/scripts/tests/py/test_rebase_graded_only_process.py`
+- test-only | extract the repeated env, bare-origin setup and git/line/commit helpers in test_rebase_graded_only_process.py into one shared fixture or helper
