@@ -205,7 +205,7 @@ def render(as_json, scope, read_states=True):
             if not activity:
                 continue
             issue = os.path.basename(run)
-        step = step_of_total(text)
+        step = step_of_total(text) if has_ledger else ""
         if as_json:
             run_objects.append(run_object(issue, title, branch, step, activity, states))
             continue
