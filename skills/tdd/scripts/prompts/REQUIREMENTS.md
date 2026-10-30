@@ -257,3 +257,10 @@
 | GX1 | The fragment opens with "**This step repairs a fixture.**" and says the script under test is correct; the defect is in the fixture, stub or helper the step names, in the fixture file it names. (First two sentences.) | The fix belongs in the test scaffolding, not in production. |
 | GX2 | The fragment says the leaf may edit that fixture, only as far as the repair needs, and nothing else: not the target case, not any other case, and not any production file. (Third sentence.) | The permission to edit a test file covers the named fixture alone. |
 | GX3 | The fragment says the target case must pass against the unchanged script under test. (Last sentence.) | The repair is proven by the existing production code passing. |
+
+## skills/tdd/scripts/prompts/_develop-guard-subject-grant.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| GG1 | The fragment opens with "**One exception: the step's guard-subject file.**" and says the step names it in its `⟦guard-subject: <path>⟧` marker. (First line.) | The exception is tied to a file the step itself names. |
+| GG2 | The fragment says the leaf may edit that file, and no other test file, and that the case Red wrote stays frozen. (Second line.) | Only the guard's subject opens; the test that pins the step stays the bar. |
