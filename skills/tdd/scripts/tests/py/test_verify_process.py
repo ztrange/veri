@@ -196,3 +196,31 @@ def test_verify_sh_red_whose_lint_gate_written_with_surrounding_whitespace_fails
 
     first = done.stdout.splitlines()[0] if done.stdout else ""
     assert (done.returncode, first.startswith("GATE: sh lint.sh fails on the Red's tree")) == (1, True), done.stdout + done.stderr
+
+
+@pytest.mark.process("verify.sh red run as a real shim over veri/verify.py in a throwaway git repo whose"
+                     " VERI_TEST_CMD chains a failing lint gate printing a padded line and a real test runner, around a stub claude")
+def test_verify_sh_red_whose_failing_lint_gate_prints_its_offending_line_padded_with_whitespace_exits_1_with_that_line_trimmed(
+        tmp_path):
+    head = committed_head(tmp_path)
+    (tmp_path / "spec.md").write_text("the behavior spec\n")
+    (tmp_path / ".gitignore").write_text(".tdd/\n")
+    (tmp_path / "lint.sh").write_text(
+        "echo \"   tests/test_slugify.py:3: F841 local variable 'unused' is never used   \"\nexit 1\n")
+    (tmp_path / "run-tests.sh").write_text("echo 'FAILED tests/test_slugify.py::test_lowercases - assert 1 == 2'\nexit 1\n")
+    claude = tmp_path / "claude-pass"
+    claude.write_text("#!/bin/sh\nprintf 'VERDICT: PASS\\nREASON: fine.'\n")
+    claude.chmod(0o755)
+    env = {"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+           "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01",
+           "VERI_TEST_CMD": "sh lint.sh && sh run-tests.sh",
+           **checked_step(tmp_path, head)}
+
+    done = subprocess.run(
+        [str(SCRIPTS / "verify.sh"), "red", "spec.md", "tests/test_slugify.py", "test_lowercases"],
+        cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    first = done.stdout.splitlines()[0] if done.stdout else ""
+    assert (done.returncode, first) == (
+        1, "GATE: sh lint.sh fails on the Red's tree: tests/test_slugify.py:3: F841 local variable 'unused' is never used"
+    ), done.stdout + done.stderr

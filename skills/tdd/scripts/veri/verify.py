@@ -219,7 +219,7 @@ def red_gate_failure():
     for gate in (g.strip() for g in tunables.read("VERI_TEST_CMD").split("&&")[:-1]):
         passed, output = passes_in(gate, ".")
         if not passed:
-            return "GATE: %s fails on the Red's tree: %s" % (gate, output.rstrip().rsplit("\n", 1)[-1])
+            return "GATE: %s fails on the Red's tree: %s" % (gate, output.rstrip().rsplit("\n", 1)[-1].strip())
     return None
 
 
