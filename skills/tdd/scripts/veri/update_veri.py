@@ -55,7 +55,9 @@ def main(argv):
         return refuse("already current", 3)
     if git("merge-base", "--is-ancestor", "HEAD", upstream).returncode != 0:
         return refuse(f"{upstream} is not a fast-forward of HEAD")
-    git("merge", "--ff-only", upstream)
+    merge = git("merge", "--ff-only", upstream)
+    if merge.returncode != 0:
+        return refuse(f"fast-forward to {upstream} failed: {merge.stderr.strip()}", 2)
     print(f"{old} -> {new}")
     return 0
 
