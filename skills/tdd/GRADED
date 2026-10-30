@@ -52,3 +52,4 @@ skills/tdd/scripts/prompts/develop-refactor.md 203999920ff071a3faa2a65b9ad08531f
 skills/tdd/scripts/prompts/_flag-uncovered-spec.md e8cf38385acf0843423ef3ebac34fd0266fd739947eb8d898fa23925bfc795e5 2026-10-30 d7a7f8853d10482b8cc19d7eddbb4153 d560f939aa92
 skills/tdd/scripts/prompts/_flag-beyond-spec.md 9d298a40956b3090737b547e195075f25ab821029b015e417469be6e3102a86b 2026-10-30 9d31685503ac465eae17bdd65e1fd118 d560f939aa92
 skills/tdd/scripts/prompts/develop-replaces-report.md c1c25194fa36cdd92d3b0fc01e1781c8036c8a4b64996a8d00f8b1540cf9ebbd 2026-10-30 7c4603851aee461085911198732c6140 d560f939aa92
+skills/tdd/scripts/prompts/_develop-red-cases-replaces-case.md 58e294fe14c9b461d03d5fddccd953782cefedab0879536518751ebb5e9b3097 2026-10-30 6dac42d2534c4eb3899a196fb3a98f79 d560f939aa92
