@@ -77,3 +77,43 @@ def test_2706_without_the_flag_a_conflict_only_in_a_graded_file_aborts_exits_1_a
 
     assert (ran.returncode, ran.stdout.split(), git("rev-parse", "HEAD"),
             (work / ".git" / "rebase-merge").exists()) == (1, ["guide/GRADED"], before, False), ran.stderr
+
+
+@pytest.mark.process("a real two-branch git repository with a bare origin and rebase-onto-default.sh --graded-only")
+def test_2706_graded_only_with_a_graded_conflict_of_adjacent_units_rebases_exits_0_and_keeps_both_units_once(tmp_path):
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+    work = tmp_path / "work"
+    (work / "guide").mkdir(parents=True)
+
+    def git(*argv):
+        return subprocess.run(["git", *argv], cwd=work, env=env, check=True, capture_output=True, text=True).stdout.strip()
+
+    def line(unit, digit):
+        return f"guide/{unit}.md {digit * 64} 2026-01-01 {unit}\n"
+
+    def commit(graded, message):
+        (work / "guide" / "GRADED").write_text(graded)
+        git("add", ".")
+        git("commit", "-q", "-m", message)
+
+    git("init", "-q", "-b", "main")
+    commit(line("a", "0") + line("z", "0"), "base")
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(tmp_path / "origin.git")], cwd=tmp_path, env=env, check=True)
+    git("remote", "add", "origin", str(tmp_path / "origin.git"))
+    git("push", "-q", "origin", "main")
+    git("fetch", "-q", "origin")
+    git("remote", "set-head", "origin", "main")
+    commit(line("a", "0") + line("b", "1") + line("z", "0"), "upstream")
+    git("push", "-q", "origin", "main")
+    onto = git("rev-parse", "HEAD")
+    git("checkout", "-q", "-b", "work", "HEAD~1")
+    commit(line("a", "0") + line("c", "2") + line("z", "0"), "branch")
+    before = git("rev-parse", "HEAD")
+
+    ran = subprocess.run([str(SCRIPTS / "rebase-onto-default.sh"), "--graded-only"], cwd=work, env=env,
+                         capture_output=True, text=True)
+
+    merged = (work / "guide" / "GRADED").read_text()
+    assert (ran.returncode, ran.stdout.split(), sorted(merged.splitlines()), "<<<<<<<" in merged) == (
+        0, [before, onto], sorted((line("a", "0") + line("b", "1") + line("c", "2") + line("z", "0")).splitlines()), False), ran.stderr
