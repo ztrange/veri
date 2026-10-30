@@ -260,3 +260,17 @@ def test_prose_owed_sh_prints_an_orphan_for_a_unit_in_a_docs_adr_graded_file_tha
     code, out, err = run_cli(prose_owed, [str(tmp_path)])
 
     assert (code, out.split("\n")[:-1]) == (1, ["docs/adr/0001-gone.md (orphan)"]), (code, out, err)
+
+
+def test_prose_owed_sh_prints_a_unit_listed_in_docs_adr_requirements_with_no_graded_signature_2674(tmp_path, run_cli):
+    import importlib
+
+    prose_owed = importlib.import_module("veri.prose_owed")
+    (tmp_path / "docs" / "adr").mkdir(parents=True)
+    (tmp_path / "docs" / "adr" / "0001-demo.md").write_text("The widget is blue.\n")
+    (tmp_path / "docs" / "adr" / "REQUIREMENTS.md").write_text(
+        "## docs/adr/0001-demo.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+
+    code, out, err = run_cli(prose_owed, [str(tmp_path)])
+
+    assert (code, out.split()) == (1, ["docs/adr/0001-demo.md"]), (code, out, err)
