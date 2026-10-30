@@ -513,3 +513,65 @@
 | UG5 | The fragment tells the leaf, before it reports, to confirm the case fails with the behaviour *What happened* describes, not with a missing symbol, an import error or a typo, each of which is a red bar that says nothing about the reported defect. (First paragraph, fourth sentence.) | Only a failure of the reported shape proves the case reproduces the bug. |
 | UG6 | The fragment says a failure of any other shape is the test's own bug: it is step 4's divergence, and the test is what changes. (First paragraph, last sentence.) | A wrong-shaped failure is fixed in the test, not passed on to Green. |
 | UG7 | The fragment tells the leaf to name the case so it carries `#<n>`, the issue's number, in whatever the project's test-naming idiom already is, because once it is green it stays as this bug's regression test and the number says which report it stands for. (Second paragraph.) | The regression test stays traceable to the report it guards. |
+
+## skills/tdd/scripts/prompts/develop-diff.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| DF1 | The prompt says this step's criterion is a property of the branch's own diff (something removed, left unchanged, or confined to named lines), that a blind verifier judges it against the diff alone, and so that no test is this step's deliverable. (Opening paragraph under "Phase: develop-diff".) | The leaf must know its deliverable is a diff, not a test. |
+| DF2 | Under its own heading the prompt gives the leaf the step (`{{STEP}}`), followed by the include line of `_develop-spec-context-only.md`. (Section "The step" and the include after it.) | The leaf needs the criterion it is changing the diff for. |
+| DF3 | Item 1 tells the leaf to make the change the step's criterion names, and nothing else, then commit that change as its own commit, its subject ending in `(#<issue>)`. (Numbered list, item 1.) | The diff holds one change, and its commit carries the issue number. |
+| DF4 | Item 2 tells the leaf that, when the criterion is that something stays unchanged, it makes no commit and leaves the tree as it found it. (Numbered list, item 2.) | An "unchanged" criterion is satisfied by no diff at all. |
+| DF5 | Item 3 tells the leaf to add no test, and says a case that pins this criterion by reading another file's text or the git history is rejected. (Numbered list, item 3.) | A test reading text or history is the substring pin a diff-checked step exists to avoid. |
+| DF6 | Item 4 is the include line of `_develop-diff-run-fast-affected.md`. (Numbered list, item 4.) | The run that proves the change green comes after the change and its commit. |
+| DF7 | The prompt ends by asking, in the last lines of the output, for a `DIFF:` line giving the change committed in one line, or NONE when the criterion is that something stays unchanged, and a `SUITE: GREEN \| RED` line with the final summary line of that run. (Section "Report".) | The conductor reads fixed lines to see what was committed and whether the run was green. |
+
+## skills/tdd/scripts/prompts/develop-revise-diff.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| DQ1 | The prompt's phase heading names it develop-revise redoing diff, and the heading is followed by the include line of `_develop-revise-opening.md`. (Heading and the line after it.) | The leaf must know it redoes a rejected diff-checked step. |
+| DQ2 | The prompt says this step's criterion is a property of the branch's own diff, judged against the diff alone, so no test is this step's deliverable. (Paragraph after the opening include.) | A redo must not answer a diff criterion with a test. |
+| DQ3 | Under their own headings the prompt gives the leaf the step (`{{STEP}}`), the verifier's rejection reason (`{{REJECTION_REASON}}`, headed "address exactly this"), the issue's behavior spec as context with the criterion above as what is in scope (`{{ISSUE_SPEC}}`), and the test command (`{{TEST_CMD}}`). (Sections before "What to do".) | The redo is driven by the rejection reason, within the step's criterion. |
+| DQ4 | Item 1 tells the leaf to read what this step left on disk and change it to answer that objection, and only that objection, then commit that change, its subject ending in `(#<issue>)`. (What to do, item 1.) | The redo fixes what was rejected, nothing more, and its commit carries the issue number. |
+| DQ5 | Item 2 tells the leaf to add no test, and says a case that pins this criterion by reading another file's text or the git history is rejected. (What to do, item 2.) | A redo must not add the text pin the step avoids. |
+| DQ6 | Item 3 is the include line of `_develop-diff-run-fast-affected.md`. (What to do, item 3.) | The redone change is proven green before the report. |
+| DQ7 | Item 4 tells the leaf that, if the objection cannot be met (the criterion is already satisfied, or the reason asks for something the step cannot deliver), it reports `IMPOSSIBLE` and says why. (What to do, item 4.) | An objection that cannot be met is reported, not forced. |
+| DQ8 | The prompt ends by asking, in the last lines of the output, for an `OUTCOME: REWRITTEN \| IMPOSSIBLE` line with what was changed or why the step cannot be met as stated, a `DIFF:` line with the change committed in one line or NONE, and a `SUITE: GREEN \| RED` line with the final summary line of that run. (Section "Report".) | The conductor reads fixed lines to decide whether to re-verify or bail. |
+
+## skills/tdd/scripts/prompts/_develop-diff-run-fast-affected.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| DA1 | The fragment tells the leaf to run the fast command, `{{FAST_CMD}}`, then the suites that `affected-suites.sh` prints for the change, each through the wrapper; the sentence runs into the include line of `_timed-test-run-tier.md`, ends in a colon, and is followed by the include line of `_timed-test-run-fast-affected.md`. (First two lines and the include after them.) | A diff-checked change is proven on the fast tier and the affected suites, each run recorded by the wrapper. |
+| DA2 | The fragment's last line tells the leaf to finish only when both runs are green. (Last line.) | A red fast or affected run means the change is not done. |
+
+## skills/tdd/scripts/prompts/_develop-revise-freeze-test.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| FT1 | The fragment opens, in bold, with: redoing an interface phase freezes the test files. (First sentence.) | The redo leaf must know which half of the tree is frozen. |
+| FT2 | The fragment tells the leaf never to modify a test file, and says the conductor's freeze check rejects a redone expand, migrate or contract-b that touches one. (Second sentence.) | The frozen half is enforced by rejection, so a touched test is a wasted attempt. |
+
+## skills/tdd/scripts/prompts/_develop-revise-freeze-production.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| FP1 | The fragment opens, in bold, with: redoing contract-a freezes the production files. (First sentence.) | The redo leaf must know which half of the tree is frozen. |
+| FP2 | The fragment tells the leaf never to modify a production file, and says the conductor's freeze check rejects a redone contract-a that touches one. (Second sentence.) | The frozen half is enforced by rejection. |
+
+## skills/tdd/scripts/prompts/_develop-test-rewrite-grant.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| TG1 | The fragment opens, in bold, with: a rewritten test is a new test, and owes a new prediction. (Bold lead.) | A redo of red that rewrites the test must not reuse the rejected attempt's prediction. |
+| TG2 | The fragment tells the leaf to predict the rewritten test's failure before it runs any suite, in `.tdd/red-prediction.md`: which assertion fires first against the unmodified production code, the observed-versus-expected values it fires on, and the shape of the message the suite will print. (First sentence, after the bold lead.) | A prediction written before the run is what makes the red a real red. |
+| TG3 | The fragment tells the leaf to then run, saving the run's output to `.tdd/red-run-output.txt`, compare what it printed against that prediction, and never adjust the prediction to fit what it saw. (First sentence, after the dash.) | The comparison is only honest if the prediction is fixed before the output exists. |
+| TG4 | The fragment says the leaf whose attempt was rejected predicted a different test, so there is nothing here to inherit. (Last sentence.) | A fresh leaf must not look for an earlier prediction to reuse. |
+
+## skills/tdd/scripts/prompts/_develop-test-move-contract-a.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| TM1 | The fragment tells the leaf, in a bold lead, to move the tests off the old interface, as contract-a does, by rewriting or deleting only the tests the rejection names that still exercise it. (First sentence.) | A redo of contract-a moves exactly the tests the verifier objected to. |
+| TM2 | The fragment says no new failing test is written, so no prediction is owed. (Last sentence.) | Contract-a moves tests rather than writing a red, so a prediction ask would be wrong. |
