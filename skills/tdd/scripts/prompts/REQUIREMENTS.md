@@ -357,3 +357,9 @@
 | ID | Requirement | Why |
 |---|---|---|
 | UL1 | The fragment names `make test TESTS="<pytest file or node id>"` as the one invocation for a single suite. Its text stops at "the one invocation for a single", and the including text supplies the next word. (The whole fragment.) | Every leaf runs one suite with the same invocation, instead of establishing its own. |
+
+## skills/tdd/scripts/prompts/_run-suite-same-way.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| SW1 | The fragment says the invocation is given so that every leaf on the step runs it the same way. If that invocation cannot run a suite in the repository, the fragment opens a fallback with "fall back to", and the including text completes it. (The whole fragment.) | Leaves on one step must agree on how a suite runs, and a repository without the invocation still needs a way to run one. |
