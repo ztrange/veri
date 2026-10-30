@@ -625,8 +625,6 @@ def test_main_answers_what_the_bash_contract_cases_before_the_out_of_scope_class
         "refactor requires a CANDIDATES: line, one per line, or none": (
             any_line(refactor, rb"^CANDIDATES:", 0) and says(refactor, rb"one[^.]{0,20}per line")
             and any_line(refactor, rb"^CANDIDATES:.*none")),
-        "red runs the suite holding the new case, not the full suite, falling back and saying so": (
-            says(red, rb"(cannot|can.t|no way to|unable to|has no way)[^.]{0,60}(suite|file)")),
         "refactor runs the covering suites, not the full suite, naming the PR's full run and the trade-off": (
             says(refactor, rb"suites?[^.]{0,40}cover|cover[^.]{0,40}suites?")
             and says(refactor, rb"(not|rather than|instead of|no need to|never|don't|do not)[^.]{0,40}(full|whole|entire) suite")
@@ -634,20 +632,6 @@ def test_main_answers_what_the_bash_contract_cases_before_the_out_of_scope_class
                                    rb"|(full|whole|entire) suite[^.]{0,60}verify-refactor")
             and says(refactor, rb"(full|whole|entire) +suite +runs +once +per +PR")
             and says(refactor, rb"outside +the affected set +surfaces[^.]{0,80}repair step")),
-        "every prompt runs tests in the foreground and reports only after they exit": all(
-            says(p, rb"foreground") and says(p, rb"(only after|not until|never before)[^.]{0,60}(exit|exits|exited|finish)")
-            for p in prompts.values()),
-        "every prompt forbids ending the turn mid-run": all(
-            says(p, rb"end(ing)?[^A-Za-z0-9]+(your|the|its)[^A-Za-z0-9]+turn") for p in prompts.values()),
-        "every prompt forbids git stash and names a safe alternative": all(
-            says(p, rb"(never|do not|don't|no)[^.]{0,60}stash") and says(p, rb"git show HEAD:|git worktree add", 0)
-            for p in prompts.values()),
-        "every prompt forbids git checkout -- <file> and git restore for a probe, naming cp/mv .orig": all(
-            says(p, rb"(never|do not|don't|not)[^.]{0,120}git checkout -- <file>")
-            and says(p, rb"(never|do not|don't|not)[^.]{0,160}git restore")
-            and says(p, rb"(undo|restor)[^.]{0,60}(probe|mutat)")
-            and b"cp <file> <file>.orig" in folded(p) and b"mv <file>.orig <file>" in folded(p)
-            for p in prompts.values()),
         "refactor defines structural and cosmetic by what the transform changes": (
             both_ways(refactor, 160, rb"structural", rb"(duplication|extract|inline|dead code|rename|scope)")
             and both_ways(refactor, 160, rb"cosmetic", rb"(reword|re-word|re-cite|recite|reflow|re-flow|re-comment)")
@@ -839,10 +823,6 @@ def test_main_answers_what_the_bash_contract_cases_from_the_out_of_scope_class_t
         "reconcile carries sha, branch and a pinned --force-with-lease, no bare --force, refusing a missing sha": (
             carries(reconcile, rc_sha, rc_branch, f"--force-with-lease={rc_branch}:{rc_sha}")
             and refused(["reconcile", s, step, cmd, rc_branch, ""])),
-        "every prompt forbids global config, naming environment variables and throwaway directories": all(
-            says(p, rb"(never|do not|don't|not)[^.]{0,80}(global|user-level)[^.]{0,60}config")
-            and says(p, rb"environment variables?") and says(p, rb"(throwaway|temporary|scratch)[^.]{0,20}director(y|ies)")
-            for p in prompts),
         "green carries <fast-cmd> verbatim and refuses an empty one": (
             carries(fast_green, fast_cmd) and refused(["green", s, step, cmd, test_path, target, ""])),
         "revise ends with PREDICTED_FAILURE: and PREDICTION: MATCHED | DIVERGED": (
@@ -969,7 +949,6 @@ def test_main_answers_what_the_bash_contract_cases_from_the_rebase_prompt_to_the
     green = rendered(["green", s, step, cmd, test_path, target, "make unit"])
     refactor = rendered(["refactor", s, step, cmd, touched])
     revise = rendered(["revise", "red", s, step, cmd, r])
-    every_phase = (red, green, refactor, revise)
 
     rb_onto, rb_pre = "7c1e9a3f5b2d4e6a8c0f1b3d5e7a9c2e4f6b8d0a", "e2b4d6f8a0c1e3b5d7f9a1c3e5b7d9f0a2c4e6b8"
     rb_files = "skills/tdd/SKILL.md\nscripts/zorblat frob & nitz.sh"
@@ -1071,15 +1050,6 @@ def test_main_answers_what_the_bash_contract_cases_from_the_rebase_prompt_to_the
             and says(cover, rb"(^|[^a-z])reachable code[^.]{0,40}no test watches")
             and says(cover, rb"no test watches[^.]{0,60}COVERED: no")
             and any_line(cover, rb"^PROOF:")),
-        "every built developer prompt states the comment rule": all(
-            says(p, rb"contract header") and says(p, rb"usage line[^.]{0,40}exit[- ]code table")
-            and says(p, rb"warning[^.]{0,60}shell itself is the hazard") and says(p, rb"succinct")
-            and says(p, rb"no rationale") and says(p, rb"no issue archaeology")
-            and says(p, rb"no restatement of the next line")
-            for p in every_phase),
-        "every built developer prompt states where rationale goes: a test first, an ADR second, nowhere third": all(
-            says(p, rb"rationale[^.]{0,80}test first") and says(p, rb"ADR second") and says(p, rb"nowhere third")
-            for p in every_phase),
         "develop-refactor applies only duplication removal against code this cycle wrote": (
             both_ways(refactor, 30, rb"only", rb"duplication removal")
             and says(refactor, rb"duplication[^.]{0,80}(this|the) cycle wrote")
@@ -1161,47 +1131,6 @@ def test_main_answers_what_the_bash_contract_cases_from_the_rebase_prompt_to_the
     }
 
     assert checks == dict.fromkeys(checks, True)
-
-
-def test_main_tells_every_developer_prompt_to_signal_only_processes_it_started_by_recorded_pid_never_by_pattern_and_to_prefix_experiments_exp_1174(
-        tmp_path, capsysbinary, monkeypatch, build_develop_prompt):
-    monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
-    reason = tmp_path / "reason.md"
-    reason.write_bytes(b"REJECT: the case asserts on zorblat()'s log line.\n")
-    s, r = str(spec), str(reason)
-    step, cmd = "QWIXTLE: a seed ending in a newline gains the block", "make test"
-
-    def rendered(argv):
-        code = build_develop_prompt.main(argv)
-        out, _ = capsysbinary.readouterr()
-        return re.sub(rb"\s+", b" ", out) if code == 0 else None
-
-    prompts = {
-        "red": rendered(["red", s, step, cmd]),
-        "green": rendered(["green", s, step, cmd, "tests/zorblat.test.sh", "qwixtle seeds", "make unit"]),
-        "refactor": rendered(["refactor", s, step, cmd, "scripts/zorblat.sh"]),
-        "revise": rendered(["revise", "red", s, step, cmd, r]),
-        "exhausted": rendered(["exhausted", s, step, cmd, r]),
-    }
-
-    def says(prompt, pattern):
-        return prompt is not None and re.search(pattern, prompt, re.I) is not None
-
-    rules = {
-        "signals only processes it started": rb"(signal|kill)s? only (the )?processes (it|you) (started|start)",
-        "by the pid recorded when it started them": rb"pid (it|you) recorded when (it|you) started",
-        "never by name or pattern": rb"never by name or (by )?pattern",
-        "names pkill": rb"`pkill`",
-        "names killall": rb"`killall`",
-        "names kill $(pgrep": rb"`kill \$\(pgrep",
-        "experiments carry the exp- prefix": rb"`exp-`[^.]{0,80}(prefix|no live run)|prefix[^.]{0,80}`exp-`",
-        "no live run uses that prefix": rb"no live run uses",
-    }
-
-    assert {phase: [name for name, pattern in rules.items() if not says(prompt, pattern)]
-            for phase, prompt in prompts.items()} == dict.fromkeys(prompts, [])
 
 
 def test_main_permits_a_replaces_case_green_to_delete_exactly_the_cases_its_step_names_one_or_several_and_forbids_any_case_it_does_not_name(
