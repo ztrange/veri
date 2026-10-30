@@ -4,3 +4,5 @@
 - test-only | extract the repeated fake_git recorder and the `moved` filter in `test_update_veri.py` into a shared fixture or helper
 ### `update-veri.sh` exits 1 when the veri clone's working tree is dirty, with one stderr line naming that reason and the clone left untouched (never a stash or reset), pinned by a case in `skills/tdd/scripts/tests/py/unit/test_update_veri.py` faking git in-process ⟦criterion 1⟧
 - test-only | the dirty-tree, wrong-branch, VERI_SELF_UPDATE=0 and record-says-no cases each define a near-identical fake_git and `moved` filter; share them in a fixture or helper
+### `update-veri.sh` exits 1 when the fetched upstream default branch is not a fast-forward of the clone's HEAD (the clone has diverged), with one stderr line naming that reason and the clone left untouched (never a merge or reset), pinned by a case in `skills/tdd/scripts/tests/py/unit/test_update_veri.py` faking git in-process ⟦criterion 1⟧
+- test-only | extract the repeated fake_git setup and the `moved = [...]` filter in test_update_veri.py into a shared helper or fixture
