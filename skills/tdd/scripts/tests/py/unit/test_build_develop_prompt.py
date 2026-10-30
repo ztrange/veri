@@ -727,7 +727,6 @@ def test_main_answers_what_the_bash_contract_cases_from_the_out_of_scope_class_t
     green = rendered(["green", s, step, cmd, test_path, target, "make unit"])
     refactor = rendered(["refactor", s, step, cmd, touched])
     revise = rendered(["revise", "red", s, step, cmd, r])
-    prompts = (red, green, refactor, revise)
 
     monkeypatch.setenv("VERI_REFACTOR_BUDGET", "37")
     budgeted = rendered(["refactor", s, step, cmd, touched])
