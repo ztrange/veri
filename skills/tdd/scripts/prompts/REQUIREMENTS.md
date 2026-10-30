@@ -405,3 +405,9 @@
 | ID | Requirement | Why |
 |---|---|---|
 | FU1 | The fragment gives the uncovered-spec flag shape: the class `uncovered-spec`, then `<the behaviour>`, then `<the criterion or spec line requiring it>`, separated by ` \| `. (The whole fragment.) | A flag for a behaviour no step covers must name the behaviour and where the spec requires it, so the missing step can be planned. |
+
+## skills/tdd/scripts/prompts/_flag-beyond-spec.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| FB1 | The fragment gives the beyond-spec flag shape: the class `beyond-spec`, then ` \| `, then `<what it names>`. (The whole fragment.) | A flag for something the spec does not ask for names it, so it becomes a follow-up rather than work in this run. |
