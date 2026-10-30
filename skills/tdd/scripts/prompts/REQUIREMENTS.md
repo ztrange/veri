@@ -411,3 +411,15 @@
 | ID | Requirement | Why |
 |---|---|---|
 | FB1 | The fragment gives the beyond-spec flag shape: the class `beyond-spec`, then ` \| `, then `<what it names>`. (The whole fragment.) | A flag for something the spec does not ask for names it, so it becomes a follow-up rather than work in this run. |
+
+## skills/tdd/scripts/prompts/develop-replaces-report.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| RX1 | The prompt says the leaf's earlier Red report is the file `{{REPORT_FILE}}`, and that it carries no `REPLACES:` line for each of the cases below, so the step cannot be checked. (Phase paragraph, first two sentences.) | The leaf is told which file is wrong and why the run cannot go on. |
+| RX2 | The prompt tells the leaf to read the report and answer with a corrected one that carries a `REPLACES: <case> => <test id>` line for every one of those cases, the case name exactly as the step spells it. (Phase paragraph, third sentence.) | The conductor checks each named case against one line; a missing or respelled name leaves the step uncheckable again. |
+| RX3 | The phase paragraph carries a `{{NODE_ID_RULE}}` slot right after the request for the corrected report and before the sentence on the listed case names. (Phase paragraph.) | The rule for what a test id is comes from one shared fragment, so this prompt and the Red prompt state it the same way. |
+| RX4 | The phase paragraph ends by saying the listed case names are the exact strings to copy into the REPLACES: lines, and that they take precedence over anything the issue's prose says about how to spell a case name. (Phase paragraph, last sentence.) | The earlier report failed on case names; the listed strings, not the issue's wording, are what the check matches. |
+| RX5 | Under their own headings the prompt gives the leaf the cases with no REPLACES: line (`{{MISSING_CASES}}`), the step (`{{STEP}}`) and the issue's behavior spec as context (`{{ISSUE_SPEC}}`). (Sections before "What to do".) | The leaf needs the exact cases to answer for and the step they come from. |
+| RX6 | What to do tells the leaf to change no test and no production file, because only the report is wrong, and not to run a suite. (What to do.) | The tests already passed verification; this leaf only rewrites a report, so any file change is out of scope. |
+| RX7 | The prompt ends with a report section whose last line is `REPLACES: <case> => <test id>`, and declares the format `replaces-report` with key `REPLACES:` as suite exempt, because the report is corrected and no file changed. (Report section.) | The conductor reads the declared key, and no suite line is owed when nothing ran. |
