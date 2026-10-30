@@ -1,0 +1,11 @@
+## docs/adr/0016-uncovered-lines-are-debt-the-page-reports.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| AG1 | `docs/build-walkthrough.py` used to fail when `docs/wt/commentary.py` left any line of any script uncovered, with `make docs` exiting 1, and no longer does. (Opening paragraph.) | The record names the behaviour it reverses. |
+| AG2 | Uncovered lines render exactly as every other line does, the note column beside them says `commentary owed`, and the build prints `owed: <script> L<a>–<b>` on stderr and exits 0. (Opening paragraph.) | The debt is shown and reported, not hidden. |
+| AG3 | What stays fatal is a listing that could not be rendered at all: a chunk that claims lines another chunk already claimed, a chunk that runs past the end of the file, and a `{{p-id|…}}` naming a reference entry that does not exist, which is a typo, not debt. (Opening paragraph.) | A wrong page is still refused. |
+| AG4 | The page's promise is stated in two halves: the source it shows is always verbatim, the file as it is today; the prose beside it may lag, and where it lags the page says so. (Second paragraph.) | Readers can trust the listing whether or not it is explained. |
+| AG5 | The old guard charged every script-touching PR at merge time for prose, a `make docs` regen commit and the amend-past-the-tag dance, while the listing could not drift anyway because the generator reads the scripts. (Context, first paragraph.) | Why the strict build was not worth its cost. |
+| AG6 | Rejected: a per-script allow-list of "prose pending" files, a second place to keep in sync that goes stale silently; and keeping the build strict but not running it at merge, which hides the debt and leaves the next `make docs` broken. (Context, second paragraph.) | The alternatives are on record, so they are not re-proposed. |
+| AG7 | Development and documentation decouple: `docs/merge-gates.sh` owes no `docs-fresh` for a change under `skills/`, and `docs/docs-owed.sh` lists the scripts with uncovered lines, the scripts whose blame is newer than the page's build and the tags the capability index does not list, and with `--file` keeps one issue in the `ready-for-agent:docs` pool holding that list. (Consequences.) | Where the debt is filed instead of blocking a merge. |
