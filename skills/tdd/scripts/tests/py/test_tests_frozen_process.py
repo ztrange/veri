@@ -2693,6 +2693,31 @@ def test_rerecord_rebased_exits_2_naming_an_unreadable_ledger_on_stderr_and_writ
     assert str(ledger) in err
 
 
+@pytest.mark.process("a real git repository with an origin remote under tmp_path, asked to rerecord with no ledger file")
+def test_rerecord_rebased_with_no_ledger_file_exits_3_with_no_output_and_rewrites_no_record_2718(
+        tmp_path, run_cli, tests_frozen):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    (repo / ".tdd").mkdir()
+    (repo / "tests/test_suite.py").write_text("def test_config_2718():\n    assert f() == 1\n")
+    git(repo, "init", "-q", "-b", "main")
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "base")
+    git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
+    git(repo, "remote", "add", "origin", str(tmp_path / "origin.git"))
+    git(repo, "fetch", "-q", "origin")
+    git(repo, "remote", "set-head", "origin", "main")
+    run_cli(tests_frozen, ["record", "--step", "step one pins the config", "tests/test_suite.py"], cwd=repo)
+    (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
+    old = record.read_bytes()
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True,
+                          text=True).stdout.strip()
+
+    code, out, _ = run_cli(tests_frozen, ["rerecord-rebased", str(repo / ".tdd/no-ledger-yet.md"), head], cwd=repo)
+
+    assert (code, out, record.read_bytes()) == (3, "", old)
+
+
 @pytest.mark.process("a real git repository with an origin remote under tmp_path, rebased onto its default branch")
 def test_rerecord_rebased_exits_2_and_rewrites_no_record_when_the_pre_rebase_sha_names_no_commit_2552(
         tmp_path, run_cli, tests_frozen):
