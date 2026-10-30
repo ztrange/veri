@@ -195,3 +195,10 @@
 |---|---|---|
 | RT1 | The fragment gives the issue's behavior spec under a heading saying it is context only and that only the step above is pinned (`{{ISSUE_SPEC}}`), then the test command under its own heading (`{{TEST_CMD}}`), then opens the "What to do" list. (Headings and their slots.) | The spec informs without widening the pin. |
 | RT2 | Item 0 tells the leaf to check testability first: before writing anything, hold the criterion against **What counts as a valid test** above, and if no case can pin it without breaking rule 1, 2 or 3, stop and report `AGAINST_UNMODIFIED: UNTESTABLE` with `WHY:`, not proceeding to the steps below; the fragment ends there. (Item 0.) | An untestable criterion is reported through a declared key, and the including prompt continues the list. |
+
+## skills/tdd/scripts/prompts/_affected-suites-working-tree.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| AW1 | The fragment names `affected-suites.sh HEAD` as what prints the suites for the leaf's change, and says it reads `HEAD` to the working tree, untracked files included. (First line.) | The uncommitted change is what selects the suites. |
+| AW2 | The fragment tells the leaf, for that reason, to build no commit, stash or worktree to name a range; it ends mid-sentence ("to name a range"), and the including prompt's sentence continues after it. (Last two lines.) | A commit, stash or worktree made only to name a range is wasted work, and a stash is unsafe. |
