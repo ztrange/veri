@@ -523,8 +523,11 @@ def rerecord_earlier(ledger, step):
 
 
 def rerecord_rebased(ledger, pre):
-    with open(ledger, encoding="utf-8") as handle:
-        lines = handle.read().splitlines()
+    try:
+        with open(ledger, encoding="utf-8") as handle:
+            lines = handle.read().splitlines()
+    except FileNotFoundError:
+        return 3
     os.chdir(_toplevel())
     upstream = os.fsdecode(subprocess.run(["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"],
                                           stdout=subprocess.PIPE, check=True).stdout).strip()
