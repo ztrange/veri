@@ -16,6 +16,6 @@
 #          2 a missing argument, an unknown position, an anchor matching no single step,
 #            --planned without --criterion, --planned for a criterion a ledger step already serves,
 #            --planned with no readable spec file beside the ledger (issue-<n>-spec.md),
-#            --planned for a k not unticked in the issue body the run read, or a bad VERI_STEP_GROWTH
+#            --planned for a k not unticked in the issue body the run read, a bad VERI_STEP_GROWTH, or a <text> already carrying ⟦criterion k⟧
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/add_ledger_step.py" "$@"
