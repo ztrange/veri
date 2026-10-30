@@ -234,3 +234,11 @@
 | GF1 | The fragment opens with "**Do not modify the test.**" and says: not its assertions, not its inputs, not its name. (First two sentences.) | The test Red wrote and verify-red passed is the bar; green may not move it. |
 | GF2 | The fragment says making the bar easier to clear is not clearing it: a pass bought by weakening, skipping or deleting the case is a rejected step. (Third sentence.) | A weakened test turns a failing behaviour into a false green. |
 | GF3 | The fragment says that if the test itself looks wrong, the leaf says so in its report as one `WRONG_TEST: <why>` line and stops, without editing it. (Last sentence.) | A wrong test has its own route; the leaf reports it rather than fixing it. |
+
+## skills/tdd/scripts/prompts/_develop-green-replaces-case.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| GC1 | The fragment completes the sentence opened by the included `_replaces-case-lead.md` fragment with "now asserts", then says the leaf is permitted, and it is required for the step to pass, to delete exactly the cases the step names, one or several. (First sentence, up to the colon.) | A replaces-case step moves cases, so the old ones must go. |
+| GC2 | The fragment says deleting them is required, not optional, even when the replacement already passes on unchanged code. (First sentence, after the colon.) | A replacement that passes at once still leaves the old case to delete. |
+| GC3 | The fragment tells the leaf never to modify or delete any other case, nor any case the step does not name. (Last sentence.) | The permission covers only the named cases. |
