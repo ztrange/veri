@@ -37,8 +37,6 @@ ALLOWED = {
         "document-wide site list",
     "unit/test_skill_event_files.py::test_the_moved_sections_distinctive_lines_are_absent_from_skill_md_and_present_in_their_files_2218":
         "reads the moved lines from PHASED.md and asserts them absent from SKILL.md",
-    "unit/test_skill_suite_runs.py::test_skill_md_s_phase_sections_and_claude_md_say_which_leaves_run_the_full_suite":
-        "reads Red, the Refactor loop and CLAUDE.md, not this subsection",
     "test_skill_leaf_launch.py": "launch lines are Launching a leaf instances",
     "test_skill_leaf_env.py": "launch lines are Launching a leaf instances",
     "test_ledger_steps.py": "script suite", "test_tick_ledger.py": "script suite", "test_next_unchecked.py": "script suite",
