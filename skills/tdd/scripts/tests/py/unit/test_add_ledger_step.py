@@ -1230,24 +1230,6 @@ def test_main_refuses_a_newline_text_at_the_growth_budget_counting_it_as_one_add
     assert (code, text.startswith(steps), text[len(steps):]) == (1, True, "\n## Owed steps\n\n- first line\nsecond line\n")
 
 
-def test_main_refuses_a_criterion_tagged_text_at_the_growth_budget_counting_it_as_one_added_step_and_owes_it_issue_1631(tmp_path, monkeypatch, capsys, add_ledger_step):
-    monkeypatch.setenv("VERI_STEP_GROWTH", "2")
-    ledger = tmp_path / "issue-42.md"
-    steps = (
-        "# Plan for #42\n\n"
-        "- [ ] alpha\n"
-        "- [ ] extra one ⟦added⟧ ⟦criterion 1⟧\n"
-        "- [ ] extra two ⟦added⟧ ⟦criterion 1⟧\n"
-    )
-    ledger.write_bytes(steps.encode())
-
-    code = add_ledger_step.main([str(ledger), "after", "alpha", "tagged step ⟦criterion 2⟧"])
-    capsys.readouterr()
-
-    text = ledger.read_bytes().decode()
-    assert (code, text.startswith(steps), text[len(steps):]) == (1, True, "\n## Owed steps\n\n- tagged step ⟦criterion 2⟧\n")
-
-
 def test_main_refuses_an_instead_of_over_an_added_anchor_with_more_texts_than_the_budget_allows_after_the_credit_and_owes_them_issue_1631(tmp_path, monkeypatch, capsys, add_ledger_step):
     monkeypatch.setenv("VERI_STEP_GROWTH", "2")
     ledger = tmp_path / "issue-42.md"
@@ -1472,3 +1454,21 @@ def test_main_accepts_an_added_skill_edit_step_whose_spec_requirements_reword_on
 
     inserted = [line for line in ledger.read_text().splitlines() if f"regrade `{unit}`" in line]
     assert (code, len(inserted), "⟦added⟧" in inserted[0] if inserted else None) == (0, 1, True), err
+
+
+@pytest.mark.parametrize("flags", ([], ["--criterion", "3"]), ids=("no-criterion-flag", "criterion-flag"))
+@pytest.mark.parametrize("texts", (
+    ["some step ⟦criterion 1⟧"],
+    ["a clean step", "some step ⟦criterion 1⟧"],
+), ids=("alone", "second-in-a-batch"))
+def test_2713_a_text_already_carrying_a_criterion_tag_exits_2_names_the_tag_and_inserts_nothing(
+        tmp_path, monkeypatch, capsys, add_ledger_step, flags, texts):
+    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+
+    code = add_ledger_step.main(flags + [str(ledger), "after", "b two", *texts])
+
+    captured = capsys.readouterr()
+    assert (code, "⟦criterion 1⟧" in captured.err, ledger.read_bytes()) == (2, True, LEDGER)
+    assert not (tmp_path / "issue-42-added.md").exists()
