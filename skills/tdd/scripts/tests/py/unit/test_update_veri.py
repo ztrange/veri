@@ -54,3 +54,22 @@ def test_main_fast_forwards_a_clean_clone_on_its_default_branch_behind_its_upstr
 
     assert (code, clone["head"]) == (0, new)
     assert old[:7] in out and new[:7] in out
+
+
+def test_main_exits_1_with_one_stderr_line_naming_the_reason_and_leaves_the_clone_untouched_when_the_self_update_record_says_no(
+        tmp_path, run_cli, update_veri, monkeypatch):
+    record = tmp_path / "self-update"
+    record.write_text("no\n")
+    calls = []
+
+    def fake_git(*args, **_):
+        calls.append(args)
+        return subprocess.CompletedProcess(args, 0, "main\n", "")
+
+    monkeypatch.setattr(update_veri, "git", fake_git, raising=False)
+
+    code, out, err = run_cli(update_veri, [], env={"VERI_SELF_UPDATE_FILE": str(record)})
+
+    moved = [a for a in calls if {"fetch", "merge", "pull", "reset", "checkout", "stash"} & set(a)]
+    assert (code, moved) == (1, [])
+    assert out == "" and err.count("\n") == 1 and "no" in err.lower()

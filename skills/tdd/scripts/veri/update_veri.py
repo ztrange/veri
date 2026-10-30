@@ -16,6 +16,10 @@ def main(argv):
     if argv:
         print(USAGE, file=sys.stderr)
         return 2
+    record = os.environ.get("VERI_SELF_UPDATE_FILE") or os.path.expanduser("~/.veri-tools/self-update")
+    if os.path.exists(record) and open(record).read().strip() == "no":
+        print("update-veri.sh: self-update record says no", file=sys.stderr)
+        return 1
     upstream = git("rev-parse", "--abbrev-ref", "origin/HEAD").stdout.strip()
     old = git("rev-parse", "HEAD").stdout.strip()
     new = git("rev-parse", upstream).stdout.strip()
