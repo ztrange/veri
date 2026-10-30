@@ -632,7 +632,7 @@ by eye — which outcome it holds is an exit code, not a judgement made per run:
 $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer.txt; echo $?
 ```
 
-- **exit 0 — split.** Exactly the revise-exhausted path's split:
+- **exit 0 — split.** The step is replaced by smaller ones:
   `.tdd/over-budget-answer.txt` holds the criteria, one per line, and they replace the step (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`).
   Restore the tree first, so the step's uncommitted work cannot become the first replacement
   step's inherited start, then grow the plan in **one** call, then commit it before the run
@@ -1220,10 +1220,9 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      leaf grew from. The push copies the step's
      finished state to the remote on the same terms as Green's above: exit **1** launches
      the reconcile leaf (when that happens, `Read` and run `<base directory>/RECONCILE.md`). Exit **2** is a **bail** (`Read` `<base directory>/BAIL.md`).
-     **Then run `$S/stop-requested.sh`**, immediately after that push, as Green does after
-     its own: on exit 0 any mode it printed goes to *Stopping* here (when that happens, `Read` `<base directory>/STOPPING.md`). On exit 2 go to
-     *Stopping* in mode `at-ledger`, narrating that the request was unreadable; on exit 3
-     carry on.
+     **Then run `$S/stop-requested.sh`**, immediately after that push, and handle its exit as
+     Green's stop check after its own push does (exit 0 and exit 2 as it sets them out); on
+     exit 3 carry on.
      Then **mirror to the issue**:
      post a `### ✅ Step done` comment, then ask whether the step's criterion is finished
      (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`, k from the step's `⟦criterion k⟧`):
