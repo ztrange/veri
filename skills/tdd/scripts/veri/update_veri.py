@@ -4,6 +4,11 @@ import os
 import subprocess
 import sys
 
+try:
+    import tunables
+except ImportError:
+    from . import tunables
+
 USAGE = "usage: update-veri.sh [--consent yes|no]"
 
 
@@ -18,7 +23,7 @@ def refuse(reason, code=1):
 
 
 def main(argv):
-    record = os.environ.get("VERI_SELF_UPDATE_FILE") or os.path.expanduser("~/.veri-tools/self-update")
+    record = tunables.read("VERI_SELF_UPDATE_FILE") or os.path.expanduser("~/.veri-tools/self-update")
     if len(argv) == 2 and argv[0] == "--consent" and argv[1] in ("yes", "no"):
         os.makedirs(os.path.dirname(record), exist_ok=True)
         with open(record, "w") as f:
@@ -27,7 +32,7 @@ def main(argv):
     if argv:
         print(USAGE, file=sys.stderr)
         return 2
-    if os.environ.get("VERI_SELF_UPDATE") == "0":
+    if tunables.read("VERI_SELF_UPDATE") == "0":
         return refuse("VERI_SELF_UPDATE=0")
     if os.path.exists(record):
         answer = open(record).read().strip()
