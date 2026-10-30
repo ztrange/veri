@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 
 try:
     import tunables
@@ -14,6 +15,7 @@ except ImportError:
     from .github import gh_api
 
 USAGE = "usage: queued-merge.sh <pr-url> <worktree> <branch> <tag-message|->"
+FETCH_ATTEMPTS = 5
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -69,10 +71,13 @@ def _merge_commit(worktree, pull, pr):
     if not isinstance(sha, str) or not sha:
         _say("GitHub reports no merge commit for %s" % pr)
         return ""
-    if _git(worktree, "fetch", "origin").returncode or _git(worktree, "cat-file", "-e", sha + "^{commit}").returncode:
-        _say("merge commit %s of %s is not in the clone after a fetch" % (sha, pr))
-        return ""
-    return sha
+    for attempt in range(FETCH_ATTEMPTS):
+        if attempt:
+            time.sleep(float(tunables.read("VERI_FETCH_RETRY_SLEEP") or "1"))
+        if not _git(worktree, "fetch", "origin").returncode and not _git(worktree, "cat-file", "-e", sha + "^{commit}").returncode:
+            return sha
+    _say("merge commit %s of %s is not in the clone after a fetch" % (sha, pr))
+    return ""
 
 
 def _tag(worktree, message, pull, pr):

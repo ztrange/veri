@@ -222,6 +222,47 @@ def test_2695_queued_merge_whose_merge_commit_never_shows_up_after_any_fetch_nam
         2, True, True, [])
 
 
+def test_2695_queued_merge_whose_merge_commit_is_absent_after_the_first_fetch_and_present_after_a_later_one_tags_it_pushes_the_tag_and_exits_0(
+        fake_processes, run_cli):
+    seen = {"cat-file": 0}
+
+    def lagging(answer):
+        def lag(line, **kwargs):
+            if "cat-file -e" in line:
+                seen["cat-file"] += 1
+                return (1, "", "") if seen["cat-file"] == 1 else (0, "", "")
+            return answer(line, **kwargs)
+        return fake_processes(lag)
+
+    calls = scenario(lagging)
+
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_FETCH_RETRY_SLEEP": "0"})
+
+    tags = [c for c in calls if " tag -a " in c or "push origin v0." in c]
+    assert (code, tags) == (0, ["git -C /wt tag -a v0.11 -m the capability %s" % MERGE_SHA, "git -C /wt push origin v0.11"])
+
+
+def test_2695_queued_merge_waits_for_fetch_retry_sleep_between_fetches_of_a_lagging_merge_commit_and_not_before_the_first(
+        fake_processes, run_cli, monkeypatch):
+    seen = {"cat-file": 0}
+    waits = []
+
+    def lagging(answer):
+        def lag(line, **kwargs):
+            if "cat-file -e" in line:
+                seen["cat-file"] += 1
+                return (1, "", "") if seen["cat-file"] == 1 else (0, "", "")
+            return answer(line, **kwargs)
+        return fake_processes(lag)
+
+    scenario(lagging)
+    monkeypatch.setattr(queued_merge.time, "sleep", waits.append)
+
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_FETCH_RETRY_SLEEP": "0.25"})
+
+    assert (code, waits) == (0, [0.25])
+
+
 def test_2425_queued_merge_refuses_a_pr_argument_that_is_not_a_pr_url_before_any_lock_or_git(fake_processes, run_cli):
     calls = scenario(fake_processes)
 
