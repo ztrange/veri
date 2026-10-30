@@ -269,7 +269,7 @@ def _kept_cases(record, name):
         return []
     _, new = _head_and_new_cases(name)
     present = [at for at, (case, _) in enumerate(new) if case in held]
-    return [new[at] for at in present] + [case for last in present[-1:] for case in new[last + 1:]]
+    return [case for first in present[:1] for case in new[first:]]
 
 
 def _recorded_cases_intact(record, name):
