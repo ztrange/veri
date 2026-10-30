@@ -351,3 +351,9 @@
 | ID | Requirement | Why |
 |---|---|---|
 | ES1 | The fragment says "The wrapper hands the command's own exit status straight back," and ends on that comma, so the text after its include line completes the sentence. (The whole fragment.) | The timing wrapper must not mask a red run, and the fragment is the first half of the sentence that says so. |
+
+## skills/tdd/scripts/prompts/_run-suite-lead.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| UL1 | The fragment names `make test TESTS="<pytest file or node id>"` as the one invocation for a single suite. Its text stops at "the one invocation for a single", and the including text supplies the next word. (The whole fragment.) | Every leaf runs one suite with the same invocation, instead of establishing its own. |
