@@ -196,3 +196,24 @@ def test_2700_json_lists_a_run_with_no_ledger_no_launch_or_end_mark_and_a_live_c
 
     listed = [(r.get("issue"), r.get("state"), r.get("step"), r.get("title")) for r in json.loads(out)["runs"]]
     assert listed == [("7", "running", "", "")]
+
+
+def test_2700_json_scope_totals_attempted_counts_a_ledgerless_refused_run_once_beside_a_ledger_run_and_both_are_listed(tmp_path, monkeypatch):
+    status = importlib.import_module("veri.status")
+    ledgered = tmp_path / ".tdd" / "wt" / "6"
+    (ledgered / ".tdd").mkdir(parents=True)
+    (ledgered / ".tdd" / "issue-6.md").write_text("# Plan for #6 — t\n")
+    (ledgered / ".tdd" / "events.jsonl").write_text(json.dumps({"ts": 100, "issue": "6", "event": "launch"}) + "\n")
+    refused = tmp_path / ".tdd" / "wt" / "7"
+    (refused / ".tdd").mkdir(parents=True)
+    (refused / ".tdd" / "events.jsonl").write_text(json.dumps(
+        {"ts": 100, "issue": "7", "event": "preflight-refused", "check": "baseline",
+         "cause": "preflight-refused", "classification": "system"}) + "\n")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status, "branch_of", lambda run: "b")
+    monkeypatch.setattr(status, "solvable_count", lambda name: "0")
+
+    _, out = status.json_document(scope="s", read_states=False)
+
+    document = json.loads(out)
+    assert (len(document["runs"]), document["scope"]["attempted"]) == (2, 2)
