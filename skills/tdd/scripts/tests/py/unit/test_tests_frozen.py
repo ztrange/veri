@@ -943,3 +943,28 @@ def test_rerecord_on_head_records_a_pin_case_a_later_commit_added_between_two_re
     record = (tmp_path / tests_frozen._record_path(step)).read_text()
     assert (recorded, rerecorded, sorted(l[6:] for l in record.splitlines() if l.startswith("case: "))) == (
         0, 0, ["test_one", "test_pin", "test_two"])
+
+
+def test_rerecord_on_head_drops_only_the_recorded_case_gone_from_head_and_keeps_the_one_the_steps_own_commit_lacked_2673(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "test_suite.py"
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
+    step = "the step that owns the cases"
+    suite.write_text("def test_one():\n    assert 1\n\n\ndef test_two():\n    assert 2\n\n\n"
+                     "def test_gone():\n    assert 3\n")
+    recorded = run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)[0]
+    suite.write_text("def test_one():\n    assert 1\n\n\ndef test_two():\n    assert 2\n\n\n"
+                     "def test_later():\n    assert 4\n")
+    own_commit = {"test_one": "def test_one():\n    assert 1\n"}
+    head = dict(tests_frozen._cases(suite.read_text()))
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: head if rev == "HEAD" else own_commit)
+
+    rerecorded = run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)[0]
+
+    record = (tmp_path / tests_frozen._record_path(step)).read_text()
+    assert (recorded, rerecorded, sorted(l[6:] for l in record.splitlines() if l.startswith("case: "))) == (
+        0, 0, ["test_later", "test_one", "test_two"])
