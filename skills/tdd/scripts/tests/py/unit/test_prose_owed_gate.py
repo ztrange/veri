@@ -274,3 +274,17 @@ def test_prose_owed_sh_prints_a_unit_listed_in_docs_adr_requirements_with_no_gra
     code, out, err = run_cli(prose_owed, [str(tmp_path)])
 
     assert (code, out.split()) == (1, ["docs/adr/0001-demo.md"]), (code, out, err)
+
+
+def test_prose_owed_sh_prints_a_unit_listed_in_a_requirements_file_three_levels_deep_with_no_graded_signature_2674(tmp_path, run_cli):
+    import importlib
+
+    prose_owed = importlib.import_module("veri.prose_owed")
+    (tmp_path / "docs" / "x" / "y").mkdir(parents=True)
+    (tmp_path / "docs" / "x" / "y" / "note.md").write_text("The widget is blue.\n")
+    (tmp_path / "docs" / "x" / "y" / "REQUIREMENTS.md").write_text(
+        "## docs/x/y/note.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+
+    code, out, err = run_cli(prose_owed, [str(tmp_path)])
+
+    assert (code, out.split()) == (1, ["docs/x/y/note.md"]), (code, out, err)
