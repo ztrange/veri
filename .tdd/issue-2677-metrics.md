@@ -1,57 +1,79 @@
 ### 📊 Metrics — issue 2677
 
-Wall time for the issue: 6840 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 2972 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 8 of 8 planned.
-Outcome: the run bailed — ci-conflict, a system failure.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/2701.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $2.20 over 38 turns, in 1 sessions, on opus (estimate).
+Conductor own spending: $4.18 over 59 turns, in 2 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
-Conductor context: first turn 86045 tokens, largest 163236 tokens
+Conductor context: first turn 86045 tokens, largest 165182 tokens
+Conductor context: first turn 86036 tokens, largest 137268 tokens
+The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
 
 | turn | dollars | context |
 | --- | ---: | ---: |
-| 1 | $0.56 | 86045 |
-| 2 | $0.07 | 93048 |
-| 3 | $0.11 | 104280 |
-| 4 | $0.07 | 110679 |
-| 5 | $0.03 | 111745 |
-| 6 | $0.03 | 112192 |
-| 7 | $0.03 | 112562 |
-| 8 | $0.03 | 112873 |
-| 9 | $0.09 | 121166 |
-| 10 | $0.06 | 125257 |
-| 11 | $0.04 | 127403 |
-| 12 | $0.06 | 131165 |
-| 13 | $0.04 | 132704 |
-| 14 | $0.04 | 134275 |
-| 15 | $0.06 | 137941 |
-| 16 | $0.04 | 139419 |
-| 17 | $0.04 | 140870 |
-| 18 | $0.04 | 142105 |
-| 19 | $0.05 | 144209 |
-| 20 | $0.03 | 144542 |
-| 21 | $0.03 | 144800 |
-| 22 | $0.03 | 145310 |
-| 23 | $0.03 | 146018 |
-| 24 | $0.05 | 148176 |
-| 25 | $0.04 | 149308 |
-| 26 | $0.04 | 150032 |
-| 27 | $0.04 | 151282 |
-| 28 | $0.04 | 152706 |
-| 29 | $0.04 | 153395 |
-| 30 | $0.03 | 153849 |
-| 31 | $0.03 | 154155 |
-| 32 | $0.04 | 155311 |
-| 33 | $0.03 | 155689 |
-| 34 | $0.04 | 156426 |
-| 35 | $0.03 | 156688 |
-| 36 | $0.04 | 157256 |
-| 37 | $0.04 | 158478 |
-| 38 | $0.07 | 163236 |
+| 1 | $0.57 | 86045 |
+| 2 | $0.09 | 93048 |
+| 3 | $0.12 | 104280 |
+| 4 | $0.08 | 110679 |
+| 5 | $0.05 | 111745 |
+| 6 | $0.04 | 112192 |
+| 7 | $0.04 | 112562 |
+| 8 | $0.04 | 112873 |
+| 9 | $0.10 | 121166 |
+| 10 | $0.07 | 125257 |
+| 11 | $0.06 | 127403 |
+| 12 | $0.07 | 131165 |
+| 13 | $0.05 | 132704 |
+| 14 | $0.05 | 134275 |
+| 15 | $0.07 | 137941 |
+| 16 | $0.05 | 139419 |
+| 17 | $0.06 | 140870 |
+| 18 | $0.05 | 142105 |
+| 19 | $0.06 | 144209 |
+| 20 | $0.04 | 144542 |
+| 21 | $0.05 | 144800 |
+| 22 | $0.05 | 145310 |
+| 23 | $0.04 | 146018 |
+| 24 | $0.06 | 148176 |
+| 25 | $0.06 | 149308 |
+| 26 | $0.05 | 150032 |
+| 27 | $0.05 | 151282 |
+| 28 | $0.06 | 152706 |
+| 29 | $0.05 | 153395 |
+| 30 | $0.04 | 153849 |
+| 31 | $0.05 | 154155 |
+| 32 | $0.05 | 155311 |
+| 33 | $0.05 | 155689 |
+| 34 | $0.05 | 156426 |
+| 35 | $0.05 | 156688 |
+| 36 | $0.05 | 157256 |
+| 37 | $0.06 | 158478 |
+| 38 | $0.08 | 163236 |
+| 39 | $0.06 | 165182 |
+| 40 | $0.55 | 86036 |
+| 41 | $0.07 | 93039 |
+| 42 | $0.11 | 104296 |
+| 43 | $0.08 | 111447 |
+| 44 | $0.15 | 127740 |
+| 45 | $0.03 | 128783 |
+| 46 | $0.03 | 129192 |
+| 47 | $0.03 | 129500 |
+| 48 | $0.03 | 129763 |
+| 49 | $0.03 | 130099 |
+| 50 | $0.04 | 131582 |
+| 51 | $0.03 | 132454 |
+| 52 | $0.03 | 132940 |
+| 53 | $0.04 | 134084 |
+| 54 | $0.04 | 135347 |
+| 55 | $0.03 | 135701 |
+| 56 | $0.03 | 136040 |
+| 57 | $0.03 | 136340 |
+| 58 | $0.03 | 137268 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-sonnet-5-5.
 
 #### By phase
@@ -59,7 +81,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 12 | 9 | 1 | 2 | 1085 | 0 | 43288 | 0.12 |
-| prose | 9 | 0 | 0 | 0 | 105 | 65 | 9 | 18 | 8749 | 11217 | 92083 | 0.32 |
+| prose | 12 | 0 | 0 | 0 | 137 | 86 | 12 | 24 | 11444 | 14956 | 122739 | 0.42 |
 | red | 1 | 0 | 0 | 0 | 31 | 14 | 4 | 8 | 1817 | 124995 | 43128 | 0.14 |
 | pin | 1 | 1 | 0 | 0 | 27 | 10 | 3 | 6 | 961 | 95923 | 23475 | 0.08 |
 | diff | 6 | 3 | 0 | 0 | 447 | 117 | 37 | 72 | 11085 | 1437037 | 162602 | 0.66 |
@@ -116,4 +138,4 @@ Stopped: nothing-structural
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 70 | 138 | 27559 | 2155010 | 528726 | 4.01 (estimate) |
+| total | 73 | 144 | 30254 | 2158749 | 559382 | 6.10 (estimate) |
