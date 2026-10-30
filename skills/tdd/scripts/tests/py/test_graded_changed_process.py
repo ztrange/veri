@@ -106,3 +106,19 @@ def test_2653_exits_2_with_usage_on_stderr_and_nothing_on_stdout_given_more_than
     result = subprocess.run(["sh", str(SCRIPTS / "graded-changed.sh"), base, base], cwd=work, env=env, capture_output=True, text=True)
 
     assert (result.returncode, result.stdout, result.stderr.strip()) == (2, "", "usage: graded-changed.sh <base-sha>")
+
+
+@pytest.mark.process("a real git repository and graded-changed.sh")
+def test_2674_exits_1_and_prints_a_changed_unit_listed_in_the_root_graded_file(tmp_path):
+    work, env, git = _repo(tmp_path)
+    (work / "CLAUDE.md").write_text("graded prose\n")
+    (work / "GRADED").write_text("CLAUDE.md " + "0" * 64 + " 2026-01-01 sig\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (work / "CLAUDE.md").write_text("reworded prose\n")
+    git("commit", "-q", "-am", "change the root unit")
+
+    result = subprocess.run(["sh", str(SCRIPTS / "graded-changed.sh"), base], cwd=work, env=env, capture_output=True, text=True)
+
+    assert (result.returncode, result.stdout) == (1, "CLAUDE.md\n"), result.stderr
