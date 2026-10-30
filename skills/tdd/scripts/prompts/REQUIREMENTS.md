@@ -495,3 +495,10 @@
 | DQ6 | Item 3 is the include line of `_develop-diff-run-fast-affected.md`. (What to do, item 3.) | The redone change is proven green before the report. |
 | DQ7 | Item 4 tells the leaf that, if the objection cannot be met (the criterion is already satisfied, or the reason asks for something the step cannot deliver), it reports `IMPOSSIBLE` and says why. (What to do, item 4.) | An objection that cannot be met is reported, not forced. |
 | DQ8 | The prompt ends by asking, in the last lines of the output, for an `OUTCOME: REWRITTEN \| IMPOSSIBLE` line with what was changed or why the step cannot be met as stated, a `DIFF:` line with the change committed in one line or NONE, and a `SUITE: GREEN \| RED` line with the final summary line of that run. (Section "Report".) | The conductor reads fixed lines to decide whether to re-verify or bail. |
+
+## skills/tdd/scripts/prompts/_develop-diff-run-fast-affected.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| DA1 | The fragment tells the leaf to run the fast command, `{{FAST_CMD}}`, then the suites that `affected-suites.sh` prints for the change, each through the wrapper; the sentence runs into the include line of `_timed-test-run-tier.md`, ends in a colon, and is followed by the include line of `_timed-test-run-fast-affected.md`. (First two lines and the include after them.) | A diff-checked change is proven on the fast tier and the affected suites, each run recorded by the wrapper. |
+| DA2 | The fragment's last line tells the leaf to finish only when both runs are green. (Last line.) | A red fast or affected run means the change is not done. |
