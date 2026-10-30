@@ -575,3 +575,57 @@
 |---|---|---|
 | TM1 | The fragment tells the leaf, in a bold lead, to move the tests off the old interface, as contract-a does, by rewriting or deleting only the tests the rejection names that still exercise it. (First sentence.) | A redo of contract-a moves exactly the tests the verifier objected to. |
 | TM2 | The fragment says no new failing test is written, so no prediction is owed. (Last sentence.) | Contract-a moves tests rather than writing a red, so a prediction ask would be wrong. |
+
+## skills/tdd/scripts/prompts/_verify-plan-refactor.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| QP1 | The fragment says this issue is a refactor: its spec carries a `## Refactor` section, so each step is one Cover → Transform → Verify cycle rather than a Red → Green → Refactor one. (Opening paragraph, first sentence.) | The plan verifier judges a different cycle shape for a refactor issue. |
+| QP2 | It says five more checks apply to the steps tagged with a criterion, the first three only to a step that is neither ⟦diff-checked⟧ nor a pin step, and five REJECT bullets follow. (Opening paragraph, last sentence, and the bullet list.) | A diff-checked or pin step has no Transform, so the refactoring checks would reject it wrongly. |
+| QP3 | The first bullet says to REJECT a step that does not name one refactoring — the single transformation, by name, that its Transform applies, such as Extract Function or Move Function — rather than paraphrasing the issue ("tidy the helpers"). (Bullet 1.) | An unnamed transformation cannot be checked against what the Transform did. |
+| QP4 | The second bullet says to REJECT a step whose smell is not stated as a runnable shell predicate in its criterion: a command that is false before the step and true after it, which the verifier can run. (Bullet 2.) | The predicate is how the refactor's effect is observed. |
+| QP5 | The third bullet says to REJECT a step that leaves a no-op in place for a later step to delete — one that makes code dead by passing a no-op (`onChange={() => {}}`) while another step deletes it; the deletion belongs in the step that makes the code dead. (Bullet 3.) | A no-op left for a later step ships dead code between steps. |
+| QP6 | The fourth bullet says to REJECT a refactor-kind plan that holds a ⟦phases: …⟧ step, because a rename that tests call is an interface change, filed without the `refactor` label. (Bullet 4.) | An interface change runs the phased procedure, not the refactor cycle. |
+| QP7 | The fifth bullet says to REJECT a refactor-kind plan that holds a step that only edits tests, unless that step is planned as ⟦diff-checked⟧ or a pin step, because a test-only criterion has no production code to transform. (Bullet 5.) | A Transform needs production code to act on. |
+
+## skills/tdd/scripts/prompts/_verify-comments-allowed.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| QA1 | The fragment opens mid-sentence with "adds is allowed only as a" and says such a comment is allowed only as a contract header (a usage line or exit-code table) or a succinct warning where the shell itself is the hazard, with bash 3.2, BSD versus GNU flags, `set -u`'s exit status and a load-bearing `|| true` as the examples. (First sentence.) | Only two kinds of comment carry information the code cannot. |
+| QA2 | Its second sentence tells the verifier to REJECT any other rationale comment, and stops unfinished after "the"; the text that includes the fragment completes it. (Last sentence.) | Rationale belongs in a test or an ADR, not a comment; the verify-green and verify-refactor prompts each finish the sentence with their own noun. |
+
+## skills/tdd/scripts/prompts/_verify-comments-never-reject.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| QN1 | The fragment opens by finishing a sentence begun before it, "adds, and name it in REASON:.", so the rejected comment is named in the `REASON:` line. (First sentence.) | The developer must be told which comment to remove. |
+| QN2 | It says a contract header or a shell-hazard warning is never grounds for REJECT. (Last sentence.) | The two allowed kinds must not be rejected by a verifier reading the rule too broadly. |
+
+## skills/tdd/scripts/prompts/_verify-red-bug.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| QB1 | The fragment has the heading "This issue is a bug, so the red bar itself is the claim". (The heading.) | The red bar is the evidence of the reported defect. |
+| QB2 | It says the spec carries a `## Bug` section — the report as it was filed — so the step's case is a reproduction: the code's current, wrong behaviour is what the case has to catch. (First paragraph, first sentence.) | A bug's case pins the defect, not a new behaviour. |
+| QB3 | It says the verifier is the only party who checks that by running it, because the developer's account of the run does not reach it. (First paragraph, second sentence.) | The verifier is blind to the developer's claim, so it must observe the failure itself. |
+| QB4 | It says check 2 is stricter here than it reads: PASS requires the failure the verifier observes to match the behaviour *What happened* describes. (First paragraph, last sentence.) | A red for another reason does not reproduce the reported bug. |
+| QB5 | It says a test that fails for any other reason is a REJECT naming that reason, including the error-on-the-name red that check 2 otherwise allows, which says nothing about the defect that was reported. (Second paragraph, first sentence.) | An undefined-name red is a valid red for a feature but not a reproduction. |
+| QB6 | It tells the verifier to read *Steps to reproduce* for the conditions the case owes and *Expected* for the behaviour it asserts, and says *Environment* tells an incidental detail of the reporter's setup from a condition the behaviour depends on. (Second paragraph, last sentence.) | Each section of the bug report answers a different question about the case. |
+
+## skills/tdd/scripts/prompts/_verify-coverage-probe.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| QV1 | The fragment says a judgement that a change is or is not covered by a case is made by running the fast command the verifier was given, `{{FAST_CMD}}`, and the affected suites, never one test file alone. (First sentence, up to the colon.) | A coverage claim made from one file misses cases elsewhere. |
+| QV2 | It says a single file's green is not proof that no case covers the change. (First sentence, after the colon.) | It names the false inference the rule forbids. |
+| QV3 | It says a REJECT on that ground names the exact command that was run. (Last sentence.) | The developer can rerun the same command and see the gap. |
+
+## skills/tdd/scripts/prompts/_verify-red-fast.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| QT1 | The fragment is numbered item 4, with the bold lead "The fast command still passes." (Item 4, its lead.) | It continues verify-red's numbered checks. |
+| QT2 | It tells the verifier to run `{{FAST_CMD}}` once on this tree. (Item 4, second sentence.) | One run of the fast command shows whether Red's own file breaks it. |
+| QT3 | It says Green may not edit a test, so a red whose own file fails that command for any reason other than the target test's expected failure (a lint error, a type error, another case that fails) leaves a step no green can pass. (Item 4, third sentence.) | A red that breaks the fast command makes the step unsatisfiable. |
+| QT4 | It tells the verifier to REJECT such a red, naming the file and the error. (Item 4, last sentence.) | The developer must know what to fix. |
