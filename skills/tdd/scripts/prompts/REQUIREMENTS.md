@@ -458,3 +458,15 @@
 | RI1 | The fragment opens by saying, in bold, that this step repairs a red CI run. (First sentence.) | The leaf must know the failure it answers comes from CI, not from this machine. |
 | RI2 | The fragment says the failing CI job's log quoted in the step text, with its test id and assertion diff, is this step's evidence of failure, whatever the case does on this machine. (Second sentence.) | A CI-only failure may not reproduce locally; the quoted log is what proves it. |
 | RI3 | The fragment says that if the case passes locally the leaf reports `AGAINST_UNMODIFIED: PASSES` as it is, and that on this step that does not make it a pin, because the failure it answers is the CI one. (Last sentence.) | A local pass is reported honestly without turning a CI repair into a pin step. |
+
+## skills/tdd/scripts/prompts/_develop-red-bug.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| UG1 | The fragment's heading says the issue is a bug, so Red is a reproduction. (Heading.) | The leaf switches from specifying new behaviour to reproducing a reported defect. |
+| UG2 | The fragment says the spec below carries a `## Bug` section, the report as it was filed, which means this step's case is a reproduction rather than a fresh specification. (First paragraph, first sentence.) | It names where the reproduction's inputs come from. |
+| UG3 | The fragment tells the leaf to write the test from *Expected*: that is the behaviour the code owes and the assertion the case makes. (First paragraph, second sentence.) | The assertion pins what the code should do, not what it did. |
+| UG4 | The fragment tells the leaf to drive the test with *Steps to reproduce*, using *Environment* only to tell an incidental detail of the reporter's setup from a condition the behaviour depends on. (First paragraph, third sentence.) | The case reproduces the report without hard-coding the reporter's machine. |
+| UG5 | The fragment tells the leaf, before it reports, to confirm the case fails with the behaviour *What happened* describes, not with a missing symbol, an import error or a typo, each of which is a red bar that says nothing about the reported defect. (First paragraph, fourth sentence.) | Only a failure of the reported shape proves the case reproduces the bug. |
+| UG6 | The fragment says a failure of any other shape is the test's own bug: it is step 4's divergence, and the test is what changes. (First paragraph, last sentence.) | A wrong-shaped failure is fixed in the test, not passed on to Green. |
+| UG7 | The fragment tells the leaf to name the case so it carries `#<n>`, the issue's number, in whatever the project's test-naming idiom already is, because once it is green it stays as this bug's regression test and the number says which report it stands for. (Second paragraph.) | The regression test stays traceable to the report it guards. |
