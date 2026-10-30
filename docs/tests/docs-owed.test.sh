@@ -129,6 +129,8 @@ for _spec in SCRIPTS:
     if not _path.exists():
         continue
     _total = len(_path.read_text().splitlines())
+    if not _spec["chunks"]:
+        _spec["chunks"].append(dict(lines=(1, _total), html="<p>covered in this copy</p>"))
     _last = _spec["chunks"][-1]
     if _total > _last["lines"][1]:
         _last["lines"] = (_last["lines"][0], _total)
@@ -201,7 +203,7 @@ answers_with_a_list() {
 #
 #    Each debt is planted so that only ONE of the three rules can find it, which is what
 #    makes the three names below evidence that all three rules ran:
-#      * moving one chunk's start off the lines it claimed leaves classify-bail.sh L12–13
+#      * moving one chunk's start off the lines it claimed leaves classify-bail.sh L1–2
 #        claimed by nobody WITHOUT touching the script, so its last commit is still the
 #        page's and the blame rule has nothing to say about it. (The same sed
 #        docs/tests/build-guards.test.sh plants its interior-gap case with.)
@@ -219,9 +221,9 @@ owed "$d"
 [[ -z "$out" ]] ||
   problems+=("want nothing on stdout when there is no debt — whoever runs this reads the list, and an empty list is no lines at all; got: $(flat "$out")")
 
-( cd "$d" && sed -i.bak 's/lines=(12, 18)/lines=(14, 18)/' docs/wt/commentary.py && rm -f docs/wt/commentary.py.bak )
-grep -q 'lines=(14, 18)' "$d/docs/wt/commentary.py" ||
-  problems+=("the coverage debt did not land: no chunk claiming lines=(12, 18) in docs/wt/commentary.py to move off $UNCOVERED L12–13")
+( cd "$d" && sed -i.bak 's/lines=(1, 7)/lines=(3, 7)/' docs/wt/commentary.py && rm -f docs/wt/commentary.py.bak )
+grep -q 'lines=(3, 7)' "$d/docs/wt/commentary.py" ||
+  problems+=("the coverage debt did not land: no chunk claiming lines=(1, 7) in docs/wt/commentary.py to move off $UNCOVERED L1–2")
 git -C "$d" commit -qam 'docs: move a chunk off the lines it claimed (#2)'
 
 ( cd "$d" && sed -i.bak '2s|.*|# refactor-budget.sh — rewritten in place, same line count|' "$STALE_PATH" && rm -f "$STALE_PATH.bak" )
