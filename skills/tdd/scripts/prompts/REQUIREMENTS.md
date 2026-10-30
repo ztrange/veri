@@ -444,3 +444,9 @@
 |---|---|---|
 | NI1 | The fragment says the test id is the pytest node id, `<path from the repository root>::<test name>`. (The whole fragment, first clause.) | The id is run and looked up as given, so it must name the case from the repository root. |
 | NI2 | The fragment says the line starts at column 0 with no bullet or other prefix. (The whole fragment, second clause.) | The `REPLACES:` line is read from the start of a line; a bullet hides it. |
+
+## skills/tdd/scripts/prompts/_develop-red-lead.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| RL1 | The fragment tells the leaf to add exactly **ONE** new failing test case, and to write **NO** production code, both words in bold capitals. (The whole fragment.) | An ordinary Red adds one failing case and no product code, so the Green that follows has one thing to make pass. |
