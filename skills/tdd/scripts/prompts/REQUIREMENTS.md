@@ -149,3 +149,13 @@
 | SU12 | Step 6 tells the leaf to leave no change to any file other than the test files, and no change in them outside the named cases. (What to do, item 6.) | Only the named cases move. |
 | SU13 | The issue's behavior spec section is headed context only, pin only the step above, and the test command has its own section. (Sections before "What to do".) | The spec informs without widening the pin. |
 | SU14 | The prompt ends by asking for the red report lines in order, with `TARGET_TEST:` fixed as `NONE — the named cases are updated together, so no single case is the target`: `TEST_PATH:`, `TARGET_TEST:`, `AGAINST_UNMODIFIED: FAILS | PASSES | UNTESTABLE`, `WHY:`, `FAIL_OUTPUT:`, `PREDICTED_FAILURE:`, `PREDICTION: MATCHED | DIVERGED`, `PREDICTION_NOTE:`. (Report section.) | Several cases change together, so no single case is named as the target. |
+
+## skills/tdd/scripts/prompts/develop-red-repair.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| RR1 | The prompt opens by telling the leaf to repair the one test case named below, which this step's Red wrote and which green reported wrong, and to edit that case **only**: create **NO** suite, write **NO** new case and **NO** production code. (Opening paragraph after the phase heading.) | The repair touches the one case green objected to. |
+| RR2 | Under "The case to repair" (`{{CASE}}`) the prompt says "Green reported this case wrong:" and gives the reason (`{{WRONG_TEST_REASON}}{{SUPERSEDED_CASES}}`). (The case section.) | The leaf works from green's own report. |
+| RR3 | The prompt tells the leaf to fix the defect that report names in this case, so that it still pins the step's criterion, leaving every other case and all production code untouched. (The paragraph after the reason.) | The repaired case still pins the same criterion. |
+| RR4 | After that paragraph the prompt includes, in order, `_develop-red-valid-test.md`, `_develop-red-spec-and-testability.md` (spec, test command and What to do item 0), its own item 1, and `_develop-red-run-and-report.md` (items 2–6 and the report). (The include lines and item 1's position.) | The repair runs the same testability check, prediction and report as Red. |
+| RR5 | Item 1 tells the leaf to read the suite the case belongs in and repair the case in that suite's own style, leaving its other cases untouched and green, and never to create a suite. (What to do, item 1.) | A repair edits in place. |
