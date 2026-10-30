@@ -173,6 +173,9 @@ def main(argv):
     path, where, anchor, *texts = argv
     if where not in ("after", "before", "instead-of"):
         return refuse("add-ledger-step.sh: position must be after, before or instead-of: " + where)
+    for text in texts:
+        if CRITERION_TAG in text:
+            return refuse("add-ledger-step.sh: the text already holds a criterion tag: " + text)
     try:
         lines = read_ledger(path).split("\n")
     except OSError as error:
