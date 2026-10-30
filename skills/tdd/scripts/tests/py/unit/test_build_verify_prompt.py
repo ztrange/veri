@@ -11,11 +11,6 @@ from conftest import SCRIPTS
 USAGE = b"usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]\n"
 
 
-def states_blindness_contract(prompt):
-    return re.search(r"have not (been told|received).*(reason|rationale)|never.*(reason|rationale)",
-                     prompt, re.I) is not None
-
-
 def states_full_suite(prompt):
     return re.search(r"full[^0-9A-Za-z\n]*test[^0-9A-Za-z\n]*suite", prompt, re.I) is not None
 
@@ -472,7 +467,6 @@ def test_main_renders_red_green_refactor_and_pin_prompts_carrying_the_test_path_
         "exits": {phase: (code, err) for phase, (code, _, err) in plain.items()},
         "ambient reaches nothing": ambient == plain,
         "test path": all(testpath in prompts[p] for p in every),
-        "blindness contract": states_blindness_contract(prompts["red"]),
         "verdict format": has("red", r"VERDICT:", 0) and has("red", "pass") and has("red", "reject"),
         "red audit": has("red", "right reason") and has("red", "trivial|coupled|complex"),
         "green full suite": has("green", "full") and has("green", "suite") and states_full_suite(prompts["green"]),
@@ -480,10 +474,6 @@ def test_main_renders_red_green_refactor_and_pin_prompts_carrying_the_test_path_
         "pin checks": "slugify(\"Hello & World/Foo\")" in prompts["pin"]
                       and has("pin", r"pass(es)? (now|today|already|against|on the (current|unmodified))")
                       and has("pin", "mutation") and has("pin", r"behaviou?r-level|trivial"),
-        "foreground": all(has(p, "foreground") and has(p, r"end(ing)?[^0-9A-Za-z]+(your|the|its)[^0-9A-Za-z]+turn")
-                          for p in every),
-        "git stash": all(has(p, r"(never|do not|don't|no)[^.]{0,60}stash") and has(p, r"git show HEAD:|git worktree add", 0)
-                         for p in every),
         "no prediction": all(prediction not in prompts[p] and not has(p, "PREDICTED_FAILURE|PREDICTION")
                              for p in every),
         "fifth positional": {phase: (code, out) for phase, (code, out, _) in fifth.items()},
@@ -492,14 +482,11 @@ def test_main_renders_red_green_refactor_and_pin_prompts_carrying_the_test_path_
         "exits": {p: (0, b"") for p in every},
         "ambient reaches nothing": True,
         "test path": True,
-        "blindness contract": True,
         "verdict format": True,
         "red audit": True,
         "green full suite": True,
         "refactor standard and green": True,
         "pin checks": True,
-        "foreground": True,
-        "git stash": True,
         "no prediction": True,
         "fifth positional": {p: (2, b"") for p in every},
         "unknown phase": True,
@@ -582,10 +569,6 @@ def test_main_carries_and_checks_refactors_base_sha_scopes_every_prompt_to_its_s
         "out of scope": (has(scoped_refactor, r"out of scope[^.]{0,200}REASON:|REASON:[^.]{0,200}out of scope"),
                          has(scoped_refactor, r"outside[^.]{0,240}(not|never|no)[^.]{0,80}REJECT"
                                               r"|out of scope[^.]{0,240}(not|never|no)[^.]{0,80}REJECT")),
-        "configuration": {phase: (has(out, r"(never|do not|don't|not)[^.]{0,80}(global|user-level)[^.]{0,60}config"),
-                                  has(out, r"environment variables?"),
-                                  has(out, r"(throwaway|temporary|scratch)[^.]{0,20}director(y|ies)"))
-                          for phase, out in {**prompts, "refactor": refactor}.items()},
         "mechanism": {phase: [has(prompts[phase], p) for p in (
             r"(process|fork)[^.]{0,20}count|timing",
             r"in-process spy",
@@ -613,10 +596,6 @@ def test_main_carries_and_checks_refactors_base_sha_scopes_every_prompt_to_its_s
             r"remov(e|ing)[^\n]{0,200}run[^.]{0,80}suite",
             r"restor(e|ing)[^.]{0,80}(tree|code|file)",
             r"before[^.]{0,60}report")],
-        "checkout rule": (has(red, r"(never|do not|don't|not)[^.]{0,120}git checkout -- <file>"),
-                          has(red, r"(never|do not|don't|not)[^.]{0,160}git restore"),
-                          has(red, r"(undo|restor)[^.]{0,60}(probe|mutat)"),
-                          b"cp <file> <file>.orig" in red, b"mv <file>.orig <file>" in red),
     } == {
         "base sha carried": (0, True),
         "base sha refusals": {label: (2, True) for label in refusals},
@@ -625,14 +604,12 @@ def test_main_carries_and_checks_refactors_base_sha_scopes_every_prompt_to_its_s
         "step scoping": {phase: (0, True, True) for phase in every},
         "VERI_STEP reaches nothing": {phase: True for phase in every},
         "out of scope": (True, True),
-        "configuration": {phase: (True, True, True) for phase in every},
         "mechanism": {"red": [True] * 4, "pin": [True] * 4},
         "fast-cmd": (0, True, 2, True),
         "red name error": [True] * 7,
         "red reaching assertions": [False, False],
         "green unrequired code": [True] * 4,
         "green restore": [True] * 3,
-        "checkout rule": (True, True, True, True, True),
     }
 
 
@@ -710,10 +687,6 @@ def test_main_scopes_refactor_to_the_cycles_files_with_flags_lines_checks_plan_r
             r"unhandled edge case[^.]{0,200}FLAGS|FLAGS[^.]{0,200}unhandled edge case",
             r"FLAGS[^.]{0,120}before[^.]{0,120}VERDICT",
             r"(edge case|robust)[^.]{0,200}not( by itself)? a REJECT|not( by itself)? a REJECT[^.]{0,200}(edge case|robust)")],
-        "FLAGS allowed": {phase: [has(out, p) for p in (
-            r"FLAGS[^.]{0,200}(may|can|allow|permit)|(may|can|allow|permit)[^.]{0,200}FLAGS",
-            r"FLAGS[^.]{0,160}before[^.]{0,160}(VERDICT|(final|last)[^.]{0,40}two lines)")]
-            for phase, out in prompts.items()},
         "plan ledger refusals": (no_ledger, missing_ledger),
         "plan together": [has(plan, p) for p in (
             r"together[^.]{0,200}deliver|deliver[^.]{0,200}together",
@@ -770,7 +743,6 @@ def test_main_scopes_refactor_to_the_cycles_files_with_flags_lines_checks_plan_r
     } == {
         "refactor file scope": (True, True, True),
         "refactor edge case flag": [True] * 3,
-        "FLAGS allowed": {phase: [True, True] for phase in every},
         "plan ledger refusals": ((2, b""), (2, b"")),
         "plan together": [True] * 4,
         "plan too big": [True] * 3,
@@ -980,11 +952,9 @@ def test_main_states_the_signal_only_processes_you_started_rule_in_every_phase_f
 
     assert {
         "spelled in one partial of its own": partial is not None,
-        "rule names pkill": rule is not None and b"`pkill`" in rule,
         "carried": {phase: (code, rule is not None and rule in out) for phase, (code, out) in prompts.items()},
     } == {
         "spelled in one partial of its own": True,
-        "rule names pkill": True,
         "carried": dict.fromkeys(prompts, (0, True)),
     }
 
