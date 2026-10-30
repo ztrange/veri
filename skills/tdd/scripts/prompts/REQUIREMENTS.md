@@ -314,3 +314,9 @@
 | LS4 | The second paragraph tells the leaf never to change global or user-level configuration: not git's (`git config --global`, `~/.gitconfig`), not its shell's, not `~/.claude`. The reason given is that this configuration is shared with the operator and with every other run on the machine, and a cleanup that never runs (a `trap` in a killed process) leaves the change behind for all of them. (Second paragraph, first two sentences.) | A global change made by one leaf outlives it and alters every other run and the operator's own setup. |
 | LS5 | The second paragraph ends by telling the leaf to simulate a condition with environment variables scoped to the one command, or with a throwaway directory made with `mktemp -d` and removed afterwards. (Second paragraph, last sentence.) | The leaf needs a scoped way to simulate the conditions it may not set globally. |
 | LS6 | The fragment ends with the included `_signal-own-processes.md` fragment on a line of its own. (Last line.) | The process-signalling rule travels with the other safety rules to every prompt. |
+
+## skills/tdd/scripts/prompts/_probe-restore.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| PB1 | The fragment tells the leaf to copy the file aside with `cp <file> <file>.orig` before the mutation and to put it back with `mv <file>.orig <file>` after. (The whole fragment.) | This is the restore that keeps the step's uncommitted work, in place of the index-based ones the safety rules forbid. |
