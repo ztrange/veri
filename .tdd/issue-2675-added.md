@@ -1,0 +1,1 @@
+- [ ] fix the CI failure: skills/tdd/scripts/tests/py/test_watch_runs_process.py — FAILED skills/tdd/scripts/tests/py/test_watch_runs_process.py::test_target_counts_a_run_live_in_its_pre_conductor_baseline_2388 - AssertionError: assert (0, 'slot-free 1/2 next 777') == (3, 'timeout') ⟦ci-repair⟧ ⟦criterion 2⟧
