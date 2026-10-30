@@ -156,24 +156,15 @@ answer. Each is a branch of its own:
 
 - **exit 0 — split.** `.tdd/exhausted-answer.txt` holds the criteria the leaf named, one per
   line, and they **replace** the step nothing could satisfy rather than queue ahead of it —
-  the criterion itself was what was wrong. Restore the tree first, since the step's rejected
-  work is uncommitted and would otherwise become the first replacement step's inherited
-  start, then grow the plan in **one** call and commit it:
-  ```
-  git reset --hard HEAD
-  git clean -f -- <test-path>   # a test file Red created is untracked, so the reset leaves it
-  step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$step" added=<count>
-  step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-split at=exhausted anchor="$step" added=<count>
-  $S/add-ledger-step.sh .tdd/issue-<n>.md instead-of "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<criterion>' …   # every line of the answer in ONE call
-  git add -A && git commit -m "plan: replace <STEP summary> with <count> smaller steps (#<n>)"
-  ```
-  The marks go first for the reason the Green split's do: they read the title out of the
-  ledger, and `instead-of` takes the step out of it (#437). Like every split, the call passes
-  no `--criterion`: a split keeps its anchor's criterion, because it is the same behaviour
-  broken smaller. The `at=exhausted` is what tells this split apart from a Green leaf's volunteered
+  the criterion itself was what was wrong. Apply the replacement split `SKILL.md`'s
+  *The step's cost check* states on its exit 0, tree restored first (its `git reset --hard HEAD`
+  and `git clean -f -- <test-path>`, unchanged) because the step's rejected work is
+  uncommitted and would otherwise become the first replacement step's inherited start.
+  Two values differ: the criteria come from `.tdd/exhausted-answer.txt`, and `step-split`
+  carries `at=exhausted`. That is what tells this split apart from a Green leaf's volunteered
   one: both grow the plan through `add-ledger-step.sh` and both write `step-added` and
   `step-split`, so without it a log reader cannot say whether the plan grew because a leaf
-  asked or because the budget ran out — and those are different facts about the run.
+  asked or because the budget ran out.
   Then loop back to `next-unchecked.sh`, which now hands over the first of them. The ledger is
   committed before the run goes on because the committed ledger is what a resumed run reads:
   uncommitted, the replacement steps are lost and the step that could not be satisfied is

@@ -32,10 +32,8 @@ interface's behaviour. A migrate phase does not start until the step's cover-new
 passed: `next-phase` never hands over migrate while a listed cover-new is unmarked.
 
 A contract-a phase deletes the old interface's cases, each deletion proved by mutation parity
-against a kept case; its PASS is accepted only once the conductor's own run of
-`$S/mutation-parity.sh <pairs-table>` on that phase's pairs table exits 0; exit 1 is a
-REJECT, exit 2 a bail (see `<base directory>/BAIL.md`). The PR body's pairs table is that run's report, and each row it reports
-owed goes into the PR body under `## Owed by a human`.
+against a kept case; its PASS is accepted only by the mutation-parity gate `SKILL.md`'s
+*Green* states for a `⟦replaces-case⟧` verify, run on that phase's pairs table.
 
 Contract-b starts only once `$S/no-product-caller.sh <old-interface>` on the old
 interface exits 0. Before it launches contract-b, the phase that deletes the interface, run it:

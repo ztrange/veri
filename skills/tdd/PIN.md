@@ -41,9 +41,8 @@ Every other step takes the verdict as follows:
   git add -A && git commit -m "test: pin <STEP summary> (#<n>)"
   ```
   **Then run `$S/stop-requested.sh`**, immediately after that commit: it is a ledger commit
-  like Green's, so on exit 0 any mode it printed goes to *Stopping* here (when that happens, `Read` `<base directory>/STOPPING.md`). On exit 2 go to
-  *Stopping* in mode `at-ledger`, narrating that the request was unreadable; on exit 3
-  carry on.
+  like Green's, so handle its exit 0 and exit 2 by the stop check `SKILL.md`'s *Green* runs
+  after its push; on exit 3 carry on.
   Then **mirror**: post a `### 📌 Already satisfied — <STEP>` comment carrying the
   verifier's reason, ask whether the step's criterion is finished
   (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`) and on exit **0** tick it in the

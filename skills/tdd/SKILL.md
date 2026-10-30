@@ -632,7 +632,7 @@ by eye — which outcome it holds is an exit code, not a judgement made per run:
 $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer.txt; echo $?
 ```
 
-- **exit 0 — split.** Exactly the revise-exhausted path's split:
+- **exit 0 — split.** The replacement split, stated here once; the revise-exhausted path's exit 0 names it rather than copying it:
   `.tdd/over-budget-answer.txt` holds the criteria, one per line, and they replace the step (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`).
   Restore the tree first, so the step's uncommitted work cannot become the first replacement
   step's inherited start, then grow the plan in **one** call, then commit it before the run
@@ -645,6 +645,7 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   $S/add-ledger-step.sh .tdd/issue-<n>.md instead-of "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<criterion>' …   # every line of the answer in ONE call
   git add -A && git commit -m "plan: replace <STEP summary> with <count> smaller steps (#<n>)"
   ```
+  The marks go first: they read the title out of the ledger, and `instead-of` takes the step out of it (#437).
   The `at=over-budget` is what tells this split apart from the other two causes that grow a
   plan: a Green leaf volunteering one (no `at=`) and a spent revise budget (`at=exhausted`).
   The call passes no `--criterion`: a split keeps its anchor's criterion, because it is the
@@ -1225,8 +1226,7 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      finished state to the remote on the same terms as Green's above: exit **1** launches
      the reconcile leaf (when that happens, `Read` and run `<base directory>/RECONCILE.md`). Exit **2** is a **bail** (`Read` `<base directory>/BAIL.md`).
      **Then run `$S/stop-requested.sh`**, immediately after that push, as Green does after
-     its own: on exit 0 any mode it printed goes to *Stopping* here (when that happens, `Read` `<base directory>/STOPPING.md`). On exit 2 go to
-     *Stopping* in mode `at-ledger`, narrating that the request was unreadable; on exit 3
+     its own, and handle its exit 0 and exit 2 by *Green*'s stop check above; on exit 3
      carry on.
      Then **mirror to the issue**:
      post a `### ✅ Step done` comment, then ask whether the step's criterion is finished
