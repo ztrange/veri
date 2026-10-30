@@ -32,3 +32,19 @@ def test_2702_an_untracked_graded_in_a_subdirectory_orphans_nothing(tmp_path):
                          capture_output=True, text=True)
 
     assert (ran.returncode, ran.stdout) == (0, ""), ran.stderr
+
+
+@pytest.mark.process("prose-owed.sh run as a script in a real git repository")
+def test_2702_a_requirements_md_under_a_git_ignored_node_modules_is_owed_nothing(tmp_path):
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True, stdin=subprocess.DEVNULL)
+    (tmp_path / ".gitignore").write_text("node_modules/\n")
+    (tmp_path / "skills" / "demo").mkdir(parents=True)
+    (tmp_path / "skills" / "demo" / "SKILL.md").write_text("The widget is blue.\n")
+    (tmp_path / "node_modules" / "pkg").mkdir(parents=True)
+    (tmp_path / "node_modules" / "pkg" / "REQUIREMENTS.md").write_text(
+        "## skills/demo/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+
+    ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
+                         capture_output=True, text=True)
+
+    assert (ran.returncode, ran.stdout) == (0, ""), ran.stderr
