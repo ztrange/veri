@@ -825,6 +825,13 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
    that thread is the evidence. Follow it with a `### 🔎 verify-red — PASS|REJECT` comment
    carrying the verifier's reason.
    - **PASS (exit 0):** continue to Green.
+   - **REJECT (exit 1) whose reason file `.tdd/verify-red.reason` begins with a `GATE:` line:**
+     the step's Red is routed back to the Red phase, not into the revise loop. Launch the
+     `red-repair` red over the step's own target test through `supervise.sh`
+     (`$S/build-develop-prompt.sh red-repair <target-test-id> .tdd/verify-red.reason`, the
+     reason file being the brief), write no `revise` mark and spend no `REVISE_BUDGET`
+     attempt, then run verify-red again. The route is taken **once per step**: a second
+     `GATE:` REJECT in the same step after it is an ordinary verify-red REJECT, below.
    - **REJECT (exit 1):** enter the **revise loop** — when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`. It
      returns either PASS (continue to Green) or budget-exhausted (**bail**, process failure) (`Read` `<base directory>/BAIL.md`).
    - **Malformed / killed-stuck (exit 2):** the verdict could not be obtained (unparseable
