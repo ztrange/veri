@@ -41,7 +41,7 @@
 # development issues record their decisions there (#125 committed ADR 0016 that way), every
 # development PR carrying one paid the whole docs lane — the suites plus the freshness
 # check, ~5 min — for a file the lane does not read. It is carved back out the same way
-# skills/ is. The docs lane's own runs still cover it: docs/tests/docs-gap-adr.test.sh runs
+# skills/ is. The docs lane's own runs still cover it: every suite under docs/tests/ runs
 # by existing under the docs-test glob, whatever this decision says.
 #
 # WHY Makefile OWES NOTHING (#164): a Makefile change can break a docs target, but it does

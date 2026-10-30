@@ -7,15 +7,10 @@
 # Why this exists (issue #137): `make test` is what every veri leaf runs after every edit
 # and what the conductor reads the baseline off, so a docs assertion inside it lets the
 # docs pipeline stop development on a red the code did not cause. ADR 0016 puts the two on
-# separate cadences. docs-gap-adr.test.sh — whose subject is a record under docs/adr/ —
-# sat under the `make test` glob anyway, on a rationale that has stopped being true: it
-# argued that `make docs-test` named its suites one recipe line each, so a suite added
-# there would run only once the Makefile was edited too. That target globs now.
+# separate cadences.
 #
 # Contract under test:
-#   docs/tests/docs-gap-adr.test.sh is where the ADR suite lives: `make docs-test` runs
-#   it, it passes from there, and its header no longer argues for the home it left. And no
-#   suite `make test` runs declares a subject in the docs pipeline.
+#   No suite `make test` runs declares a subject in the docs pipeline.
 #
 #   And the prose a reader consults says the same lane the targets and the gate script
 #   enforce: CLAUDE.md and the `Makefile` / `docs/merge-gates.sh` headers say where a docs
@@ -37,14 +32,6 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
 pass=0 fail=0
-
-# The suite this step moves, at the path it has to end up on — named once so the roster
-# probe, the run probe and the header probes all ask about the same file. Twice, because
-# the file has two names here and neither substitutes for the other: repo-relative is what
-# a roster line says and what the failure messages quote, absolute is what running it and
-# reading it need, since this suite is run from wherever the target was invoked.
-ADR_SUITE='docs/tests/docs-gap-adr.test.sh'
-ADR_SUITE_PATH="$ROOT/$ADR_SUITE"
 
 # What a subject line naming the docs pipeline looks like. Every suite in this repository
 # declares its subject on its first comment line ("Unit tests for scripts/verify.sh — …",
@@ -114,7 +101,7 @@ comment_above() {
 # row by its leading cell, the Makefile target's paragraph by the run of comments above it,
 # the script's rationale by everything above its first `set` line. Named rather than located
 # at the call site so the case that asks all three reads as three copies of one fact, and —
-# the reason ADR_SUITE is named — so that the two copies case 3 asks again are located by the
+# so that the two copies case 3 asks again are located by the
 # same expression there as here, rather than quietly judging different prose.
 #
 # The `where` each one is reported under travels with it, for the other half of that reason:
@@ -129,9 +116,8 @@ gate_header() { header "$ROOT/docs/merge-gates.sh"; }
 
 # says <where> <text> <fact> <regex>... — one fact a piece of prose has to carry, written
 # as the regexes that would show it is there: all of them have to match the lowercased
-# text, and "<where> does not say <fact>" names it once if any does not. The protocol
-# docs-gap-adr.test.sh's probe() uses, over prose instead of an ADR: appends to `$problems`
-# the way report() reads it, and each regex accepts any wording that carries the fact, so
+# text, and "<where> does not say <fact>" names it once if any does not. Appends to
+# `$problems` the way report() reads it, and each regex accepts any wording that carries the fact, so
 # the case pins what the docs say and not how they are phrased.
 says() {
   local where="$1" fact="$3" lc re
@@ -140,55 +126,6 @@ says() {
   for re in "$@"; do
     [[ "$lc" =~ $re ]] || { problems+=("$where does not say $fact"); return; }
   done
-}
-
-# probe_adr_in_docs_roster — the move's first half: the suite, at the path it has to end up
-# on, is among the ones `make docs-test` would run. Asks for the docs target's roster itself
-# the way probe_dev_lane_clean asks for development's, and appends to `$problems` the way
-# report() reads it.
-probe_adr_in_docs_roster() {
-  local docs_roster
-  docs_roster="$(roster docs-test)"
-  grep -qx "$ADR_SUITE" <<< "$docs_roster" ||
-    problems+=("want $ADR_SUITE among the suites 'make docs-test' runs; it runs: $(flat "$docs_roster")")
-}
-
-# probe_adr_runs_there — the roster probe's blind spot: a file the target runs and that dies
-# on its first line is still on the roster — a move that left its ROOT counting the old
-# depth is still picked up by the glob and still cannot find the ADR set it reads. So run the
-# suite from its new home and read both its exit code and its count line, for the reason case
-# 4 of docs-guard-filter.test.sh spells out — zero cases run and every case passing both exit
-# 0. Returns non-zero when the file is not there at all, which is also what gates the header
-# probe: a suite that is missing has no header to read.
-probe_adr_runs_there() {
-  local out code
-  if [[ ! -x "$ADR_SUITE_PATH" ]]; then
-    problems+=("want $ADR_SUITE to exist and be executable; it is not")
-    return 1
-  fi
-  out="$("$ADR_SUITE_PATH" 2>&1)" && code=0 || code=$?
-  { [[ "$code" == 0 ]] && grep -Eq '[1-9][0-9]* passed, 0 failed' <<< "$out"; } ||
-    problems+=("want exit 0 and a green count over cases that ran from $ADR_SUITE; got $code: $(flat "$(tail -3 <<< "$out")")")
-  return 0
-}
-
-# probe_rehomed_header — the three things the moved suite's header has to say and not say,
-# in one place: no argument for the home it left, no mention of the path it no longer has,
-# and a word about the target that runs it now. The rationale is what makes the placement
-# reviewable, so a false one left in place is what sends the next reader to move the suite
-# back. Reads everything above the first `set` line, which is where every suite here keeps
-# its rationale, and appends to `$problems` the way report() reads it — the protocol
-# docs-gap-adr.test.sh's probe functions use too.
-probe_rehomed_header() {
-  local text
-  text="$(header "$ADR_SUITE_PATH")"
-
-  [[ "$text" != *"not under docs/tests/"* ]] ||
-    problems+=("the header still argues the suite lives somewhere other than docs/tests/, which is where it now is")
-  [[ "$text" != *"scripts/tests/docs-gap-adr.test.sh"* ]] ||
-    problems+=("the header still names scripts/tests/docs-gap-adr.test.sh, a path the suite no longer has")
-  [[ "$text" == *"docs-test"* ]] ||
-    problems+=("want the header to say which target runs the suite now; it does not mention docs-test")
 }
 
 # probe_dev_lane_clean — the lane's other half, which is a sweep and not a question about one
@@ -279,15 +216,10 @@ probe_stale_trigger_gone() {
   probe_no_stale_trigger "$GATE_HEADER_WHERE" "$(gate_header)"
 }
 
-# 1. The two halves of the lane, in one case because they are one rule: the ADR suite is
-#    run by the docs target, and no suite development's target runs is about the docs
-#    pipeline. Four probes, each arguing for itself in the comment above it. Only the order
-#    belongs here: the run probe gates the header probe, for the reason it gives.
-name="the ADR suite runs under 'make docs-test', and no suite 'make test' runs is about the docs pipeline"
+# 1. No suite development's target runs is about the docs pipeline.
+name="no suite 'make test' runs is about the docs pipeline"
 problems=()
 
-probe_adr_in_docs_roster
-probe_adr_runs_there && probe_rehomed_header
 probe_dev_lane_clean
 
 report "$name"
