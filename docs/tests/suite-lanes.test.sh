@@ -96,13 +96,11 @@ comment_above() {
   ' "$1"
 }
 
-# gate_row / gate_makefile_comment / gate_header — the three copies of the merge gate's rule
-# the prose cases ask about, each located the way its own file keeps it: CLAUDE.md's table
-# row by its leading cell, the Makefile target's paragraph by the run of comments above it,
-# the script's rationale by everything above its first `set` line. Named rather than located
-# at the call site so the case that asks all three reads as three copies of one fact, and —
-# so that the two copies case 3 asks again are located by the
-# same expression there as here, rather than quietly judging different prose.
+# gate_makefile_comment / gate_header — the two copies of the merge gate's rule the prose
+# cases ask about, each located the way its own file keeps it: the Makefile target's
+# paragraph by the run of comments above it, the script's rationale by everything above its
+# first `set` line. Named rather than located at the call site so every case that asks
+# about them locates them by the same expression, rather than quietly judging different prose.
 #
 # The `where` each one is reported under travels with it, for the other half of that reason:
 # a probe puts it in front of the problem line, so two spellings of the same copy would read
@@ -130,7 +128,7 @@ says() {
 # file: every suite `make test` would run, read for a subject line that names the docs
 # pipeline. A sweep because the rule is about the lane and not about one suite — any file
 # `make test` runs whose subject names something under docs/ is the same failure wearing a
-# different name, so asking only whether the ADR suite left would miss the next one. Asks
+# different name, so asking only whether one named suite left would miss the next one. Asks
 # for development's roster itself because nothing else in the case reads it, and appends to
 # `$problems` the way report() reads it.
 probe_dev_lane_clean() {
