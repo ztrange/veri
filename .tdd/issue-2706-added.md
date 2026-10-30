@@ -1,0 +1,1 @@
+- [ ] skill-edit step for the unit `skills/tdd/SKILL.md`: the `rebased-tip-red` bail the CI-conflict paragraph names gets its `<base directory>/BAIL.md` pointer, so `test_the_guard_reports_no_unpointed_send_in_the_real_skill_md_2075` is green ⟦skill-edit⟧ ⟦criterion 1⟧ ⟦added⟧ ⟦criterion 3⟧
