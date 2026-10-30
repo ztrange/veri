@@ -217,3 +217,18 @@ def test_2700_json_scope_totals_attempted_counts_a_ledgerless_refused_run_once_b
 
     document = json.loads(out)
     assert (len(document["runs"]), document["scope"]["attempted"]) == (2, 2)
+
+
+def test_2700_json_scope_totals_attempted_counts_a_run_with_a_ledger_and_no_events_log_so_it_equals_the_runs_listed(tmp_path, monkeypatch):
+    status = importlib.import_module("veri.status")
+    run = tmp_path / ".tdd" / "wt" / "7"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "issue-7.md").write_text("# Plan for #7 — t\n")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status, "branch_of", lambda run: "b")
+    monkeypatch.setattr(status, "solvable_count", lambda name: "0")
+
+    _, out = status.json_document(scope="s", read_states=False)
+
+    document = json.loads(out)
+    assert (len(document["runs"]), document["scope"]["attempted"]) == (1, 1)

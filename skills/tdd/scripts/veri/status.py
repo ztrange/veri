@@ -68,9 +68,9 @@ def run_activity(run, as_json=False, closed=False):
            attempts, dollars, tokens, state)
 
 
-def scope_totals(name, solvable, runs, as_json=False):
+def scope_totals(name, solvable, runs, as_json=False, bare=0):
     """The scope totals line over every run's events."""
-    attempted = done = bailed = wall = 0
+    attempted, done, bailed, wall = bare, 0, 0, 0
     dollars = 0.0
     for run in runs:
         try:
@@ -172,7 +172,7 @@ def render(as_json, scope, read_states=True):
     if not runs:
         print('{"runs": [], "scope": null}' if as_json else "no runs")
         return 3
-    events, run_objects = [], []
+    events, run_objects, bare = [], [], 0
     states = issue_states() if read_states else {}
     for run in runs:
         run = run.rstrip("/")
@@ -201,6 +201,8 @@ def render(as_json, scope, read_states=True):
                     activity = "  " + activity
             except FileNotFoundError:
                 activity = ""
+        elif has_ledger:
+            bare += 1
         if not has_ledger:
             if not activity:
                 continue
@@ -212,7 +214,7 @@ def render(as_json, scope, read_states=True):
         print("#%s  %s  %s  step %s%s" % (issue, title, branch, step, activity))
     scope_line = None
     if scope:
-        scope_line = scope_totals(scope, solvable_count(scope), events, as_json)
+        scope_line = scope_totals(scope, solvable_count(scope), events, as_json, bare)
     if as_json:
         print('{"runs": [%s], "scope": %s}' % (",".join(run_objects), scope_line or "null"))
     elif scope_line is not None:
