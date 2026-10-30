@@ -12,9 +12,9 @@ def git(*args):
     return subprocess.run(["git", "-C", root, *args], capture_output=True, text=True)
 
 
-def refuse(reason):
+def refuse(reason, code=1):
     print(f"update-veri.sh: {reason}", file=sys.stderr)
-    return 1
+    return code
 
 
 def main(argv):
@@ -33,8 +33,7 @@ def main(argv):
     if git("status", "--porcelain").stdout.strip():
         return refuse("working tree is dirty")
     if git("fetch").returncode != 0:
-        print("update-veri.sh: fetch of the upstream failed", file=sys.stderr)
-        return 2
+        return refuse("fetch of the upstream failed", 2)
     upstream = git("rev-parse", "--abbrev-ref", "origin/HEAD").stdout.strip()
     old = git("rev-parse", "HEAD").stdout.strip()
     new = git("rev-parse", upstream).stdout.strip()
