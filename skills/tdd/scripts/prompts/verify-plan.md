@@ -63,18 +63,9 @@ REJECT a plan that turns a diff-property criterion into a Red/Green step instead
 or the git history: such a test pins text rather than behaviour, and goes red on the next
 legitimate edit of what it reads.
 
-REJECT a plan that carries a Red/Green step whose criterion changes rendered prompt text, or a
-SKILL.md sentence that a suite pins by checksum or verbatim, instead of a `⟦diff-checked⟧` line:
-a Red leaf cannot compute a checksum of text that does not exist yet, so that text and every pin
-it moves land in one commit, judged blind against the diff.
+REJECT a plan that carries a Red/Green or `⟦diff-checked⟧` step whose criterion changes prose or rendered prompt text, instead of a `⟦skill-edit⟧` step for its unit: a graded unit changes only through that step.
 
-REJECT a plan in which a criterion that both changes rendered prompt text or a SKILL.md sentence
-a suite pins by checksum or verbatim, and asks for a case pinning that text, has only the
-`⟦diff-checked⟧` step: such a criterion needs a `⟦diff-checked⟧` step for the text and a separate
-step for the case, both tagged with the same `⟦criterion k⟧`, the case's step after the text's.
-Every checksum or verbatim pin that template text moves is moved in the same commit as the text.
-
-REJECT a plan that changes text or output which existing cases outside the changing step's own Red pin (a usage string, a constant, rendered prompt text compared verbatim or by checksum) without a step that updates those older cases ahead of the step that changes the text: Green may not edit a test, so the older cases go red and the revise budget runs out. Your reason names the changing step and the text its older cases pin.
+REJECT a plan that changes a script's output which existing cases outside the changing step's own Red pin (a usage string, a constant) without a step that updates those older cases ahead of the step that changes it: Green may not edit a test, so the older cases go red and the revise budget runs out. Your reason names the changing step and the output its older cases pin.
 
 REJECT a plan with a step that introduces a branch — a fallback an existing suite forces in,
 say — that only a later step's test requires: that step's blind green verifier sees code none
