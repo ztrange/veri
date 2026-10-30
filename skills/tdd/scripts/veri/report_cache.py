@@ -119,7 +119,7 @@ def refresh():
     fd, temp = tempfile.mkstemp(dir=tdd, prefix="report-cache.json.", suffix=".tmp")
     try:
         with os.fdopen(fd, "w") as out:
-            json.dump({"fetched_at": fetched_at, "issues": issues}, out)
+            json.dump({"cache_format": 2, "fetched_at": fetched_at, "issues": issues}, out)
         os.replace(temp, path)
     except BaseException:
         os.unlink(temp)

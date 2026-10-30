@@ -1307,3 +1307,29 @@ def test_refresh_with_a_cache_whose_cache_format_is_not_2_rebuilds_in_full_and_r
     kept = sorted(i["number"] for i in json.loads(cache.read_text())["issues"])
     windowed = [term for term in reads[0] if term.startswith("updated:>=")]
     assert (code, windowed, kept) == (0, [], [5, 900])
+
+
+def test_refresh_writes_cache_format_2_so_the_next_refresh_updates_incrementally_with_an_updated_since_term_2709(run_cli, monkeypatch, tmp_path):
+    import json
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    live = [
+        {"number": n, "title": "issue %d" % n, "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-10-05T00:00:00Z", "body": "", "comments": []}
+        for n in range(1, 4)
+    ]
+    reads = []
+
+    def fake_gh_issue_list(*args):
+        reads.append((args[args.index("--search") + 1] if "--search" in args else "").split())
+        return json.dumps(live)
+
+    monkeypatch.setattr(report_cache.github, "gh_issue_list", fake_gh_issue_list)
+
+    first = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+    after_first = len(reads)
+    second = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    windowed = [term for term in reads[after_first] if term.startswith("updated:>=")]
+    assert (first[0], second[0], len(windowed)) == (0, 0, 1)
