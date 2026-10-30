@@ -896,3 +896,28 @@ def test_check_earlier_flags_a_recorded_twin_removed_while_the_other_same_named_
     answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", "step B"], cwd=tmp_path)[:2]
 
     assert (recorded, answer) == (0, (1, "test_dup (step A)\n"))
+
+
+def test_rerecord_on_head_records_the_renamed_successor_and_the_later_pin_case_so_a_3_case_record_becomes_4_2673(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "test_suite.py"
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
+    step = "the step that owns the cases"
+    suite.write_text("def test_one():\n    assert 1\n\n\ndef test_two():\n    assert 2\n\n\n"
+                     "def test_rejects_a_body_that_is_not_valid_json():\n    assert 3\n")
+    recorded = run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)[0]
+    before = (tmp_path / tests_frozen._record_path(step)).read_text().count("case: ")
+    suite.write_text("def test_one():\n    assert 1\n\n\ndef test_two():\n    assert 2\n\n\n"
+                     "def test_rejects_to_a_body_that_is_not_valid_json():\n    assert 3\n\n\n"
+                     "def test_pin():\n    assert 4\n")
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: dict(tests_frozen._cases(suite.read_text())))
+
+    rerecorded = run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)[0]
+
+    record = (tmp_path / tests_frozen._record_path(step)).read_text()
+    assert (recorded, before, rerecorded, sorted(l[6:] for l in record.splitlines() if l.startswith("case: "))) == (
+        0, 3, 0, ["test_one", "test_pin", "test_rejects_to_a_body_that_is_not_valid_json", "test_two"])

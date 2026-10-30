@@ -267,8 +267,9 @@ def _kept_cases(record, name):
             held = {r[1] for r in map(_body_record, handle.read().splitlines()) if r and r[0] == name}
     except OSError:
         return []
-    before, new = _head_and_new_cases(name)
-    return [(case, body) for case, body in new if case in held and before.get(case) == body]
+    _, new = _head_and_new_cases(name)
+    present = [at for at, (case, _) in enumerate(new) if case in held]
+    return [new[at] for at in present] + [case for last in present[-1:] for case in new[last + 1:]]
 
 
 def _recorded_cases_intact(record, name):
