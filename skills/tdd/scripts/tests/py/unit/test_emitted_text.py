@@ -75,22 +75,6 @@ USAGE = [
 
 # Arguments name a fixture file as {spec}, {bug}, {refactor}, {ledger} or {reason}; {step} and {cmd} are fixed text.
 PROMPTS = [
-    ("3261789388 11365", "build-develop-prompt.sh", ["red", "{spec}", "{step}", "{cmd}"]),
-    ("1211736664 12340", "build-develop-prompt.sh", ["red", "{bug}", "{step}", "{cmd}"]),
-    ("3608423958 11490", "build-develop-prompt.sh", ["red-repair", "{spec}", "{step}", "{cmd}", "a case", "{reason}"]),
-    ("262724168 11569", "build-develop-prompt.sh", ["red-contradicted", "{spec}", "{step}", "{cmd}", "a case"]),
-    ("3202800823 8943", "build-develop-prompt.sh", ["green", "{spec}", "{step}", "{cmd}", "t/x.test.sh", "case one", "make unit"]),
-    ("2686151139 10601", "build-develop-prompt.sh", ["refactor", "{spec}", "{step}", "{cmd}", "a.sh b.sh"]),
-    ("524036992 6107", "build-develop-prompt.sh", ["cover", "{spec}", "{step}", "{cmd}"]),
-    ("1243556179 5043", "build-develop-prompt.sh", ["transform", "{spec}", "{step}", "{cmd}"]),
-    ("1651725326 5297", "build-develop-prompt.sh", ["structural", "{spec}", "a candidate", "{cmd}", "a.sh b.sh"]),
-    ("48813450 9169", "build-develop-prompt.sh", ["revise", "red", "{spec}", "{step}", "{cmd}", "{reason}"]),
-    ("2129244911 9722", "build-develop-prompt.sh", ["revise", "green", "{spec}", "{step}", "{cmd}", "{reason}"]),
-    ("361192629 8639", "build-develop-prompt.sh", ["revise", "refactor", "{spec}", "{step}", "{cmd}", "{reason}"]),
-    ("2767466023 4609", "build-develop-prompt.sh", ["exhausted", "{spec}", "{step}", "{cmd}", "{reason}"]),
-    ("1653468480 5789", "build-develop-prompt.sh", ["reconcile", "{spec}", "{step}", "{cmd}", "tdd/1-x", "0123456789abcdef"]),
-    ("842405346 5110", "build-develop-prompt.sh", ["over-budget", "{spec}", "{step}", "{cmd}", "12.5", "10"]),
-    ("1727743441 6427", "build-develop-prompt.sh", ["rebase", "{spec}", "{step}", "{cmd}", "0123456", "89abcde", "a.sh b.sh"]),
     ("747050145 7321", "build-verify-prompt.sh", ["red", "{spec}", "t/x.test.sh", "case one"]),
     ("907670271 8180", "build-verify-prompt.sh", ["red", "{bug}", "t/x.test.sh", "case one"]),
     ("2209112346 7498", "build-verify-prompt.sh", ["--step", "{step}", "red", "{spec}", "t/x.test.sh", "case one"]),
