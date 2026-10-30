@@ -120,6 +120,8 @@ def tracked(name):
             return sorted(glob.glob(pattern, recursive=True))
         here = parent
     listed = subprocess.run(["git", "ls-files", "-z", ":(glob)" + pattern], stdout=subprocess.PIPE, text=True)
+    if listed.returncode:
+        raise RuntimeError("git ls-files failed with exit %d" % listed.returncode)
     return sorted(p for p in listed.stdout.split("\0") if p)
 
 

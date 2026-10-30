@@ -67,3 +67,15 @@ def test_2702_tracked_requirements_md_at_the_root_under_docs_adr_and_three_level
                          capture_output=True, text=True)
 
     assert (ran.returncode, sorted(ran.stdout.split())) == (1, sorted(lists.values())), ran.stderr
+
+
+@pytest.mark.process("prose-owed.sh run as a script in a real git repository")
+def test_2702_a_git_ls_files_failure_in_a_corrupt_index_exits_2_rather_than_an_empty_list(tmp_path):
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True, stdin=subprocess.DEVNULL)
+    (tmp_path / "REQUIREMENTS.md").write_text("## skills/demo/SKILL.md\n")
+    (tmp_path / ".git" / "index").write_bytes(b"not an index\n")
+
+    ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
+                         capture_output=True, text=True)
+
+    assert (ran.returncode, ran.stdout) == (2, ""), ran.stderr
