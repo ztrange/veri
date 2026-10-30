@@ -54,7 +54,10 @@ def main(argv):
             return 2
     here = paths.scripts_of(__file__)
     base = os.path.dirname(here)
-    if not (os.access(record_path(argv[0]), os.R_OK) and tunables.read("VERI_NEW_SKILL", None) != "1"):
+    record = record_path(argv[0])
+    readable = os.access(record, os.R_OK)
+    resuming = readable and tunables.read("VERI_NEW_SKILL", None) != "1"
+    if not resuming:
         try:
             subprocess.run([os.path.join(here, "update-veri.sh")])
         except OSError:
@@ -101,9 +104,7 @@ def main(argv):
         if not os.path.exists(seed_path):
             with open(seed_path, "w") as seed:
                 seed.write(".gitignore\nissue-*-skill-commit\nissue-*-conductor-model\n")
-        record = record_path(argv[0])
-        readable = os.access(record, os.R_OK)
-        if readable and tunables.read("VERI_NEW_SKILL", None) != "1":
+        if resuming:
             try:
                 with open(record) as recorded_file:
                     recorded = recorded_file.read().rstrip("\n")
