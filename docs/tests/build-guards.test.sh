@@ -2742,7 +2742,7 @@ refuses "a shorter script fails coverage" "file has" \
 #
 #     The range is read off the real script rather than written down: append_line_to_script
 #     adds two lines to the end of it, a blank and the comment, so the debt is that pair
-#     and nothing else. Naming them by arithmetic means classify-bail.sh growing a line
+#     and nothing else. Naming them by arithmetic means $TAIL_SCRIPT growing a line
 #     moves the expected range with it instead of making this case wrong.
 owed_from=$(( $(wc -l < "$ROOT/$TAIL_SCRIPT") + 1 ))
 owes "an uncovered script line is owed, not refused" \
