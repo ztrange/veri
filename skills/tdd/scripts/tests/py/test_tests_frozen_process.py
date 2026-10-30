@@ -2682,7 +2682,8 @@ def test_rerecord_rebased_exits_2_naming_an_unreadable_ledger_on_stderr_and_writ
     run_cli(tests_frozen, ["record", "--step", "step one pins the config", "tests/test_suite.py"], cwd=repo)
     (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
     old = record.read_bytes()
-    ledger = repo / ".tdd/missing-ledger.md"
+    ledger = repo / ".tdd/unreadable-ledger.md"
+    ledger.mkdir()
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True,
                           text=True).stdout.strip()
 
