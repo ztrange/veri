@@ -24,8 +24,12 @@ def main(argv):
     if os.environ.get("VERI_SELF_UPDATE") == "0":
         return refuse("VERI_SELF_UPDATE=0")
     record = os.environ.get("VERI_SELF_UPDATE_FILE") or os.path.expanduser("~/.veri-tools/self-update")
-    if os.path.exists(record) and open(record).read().strip() == "no":
-        return refuse("self-update record says no")
+    if os.path.exists(record):
+        answer = open(record).read().strip()
+        if answer == "no":
+            return refuse("self-update record says no")
+        if answer != "yes":
+            return refuse("self-update record holds neither yes nor no", 2)
     branch = git("symbolic-ref", "HEAD").stdout.strip().removeprefix("refs/heads/")
     default = git("symbolic-ref", "refs/remotes/origin/HEAD").stdout.strip().removeprefix("refs/remotes/origin/")
     if branch != default:
