@@ -1,3 +1,4 @@
 docs/adr/0016-uncovered-lines-are-debt-the-page-reports.md cf2adc9223d669251ffb8c9080b56eff463392c9513fbe7da42c524c450b94a9 2026-10-30 4aee43e52a2945d285cd2339ae30cd45 d560f939aa92
 docs/adr/0018-a-preamble-token-is-priced-per-night.md 63eeee10be8d593c0b3758eb548b6f9e5c7d6d24784f5329daeffde13f96e8ef 2026-10-30 e46a8fa9eeed4016af99995cf0cae4e4 d560f939aa92
 docs/adr/0019-the-contingent-half-of-skill-md-stays-resident.md be55140925db45b272bf42ef4a150d4ab22c2c8ceeb1489a17bc6fc5b0b56469 2026-10-30 c34b9ea4a4274e6a8ec18925065605f8 d560f939aa92
+docs/adr/0020-a-clean-exit-with-no-verdict-is-relaunched.md 1859061e3dc820d315f4f13153d6c0f398eac68e868beafdcb8f9a16711255b0 2026-10-30 1fd4e0fd774a42269c23ede2cb15c6bd d560f939aa92
