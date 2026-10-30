@@ -437,3 +437,10 @@
 | ID | Requirement | Why |
 |---|---|---|
 | CS1 | The fragment says one criterion, one case: no extra cases, and no generality the step does not ask for. (The whole fragment.) | An ordinary Red pins one criterion with one case, so the verifier can judge it alone. |
+
+## skills/tdd/scripts/prompts/_develop-node-id-rule.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| NI1 | The fragment says the test id is the pytest node id, `<path from the repository root>::<test name>`. (The whole fragment, first clause.) | The id is run and looked up as given, so it must name the case from the repository root. |
+| NI2 | The fragment says the line starts at column 0 with no bullet or other prefix. (The whole fragment, second clause.) | The `REPLACES:` line is read from the start of a line; a bullet hides it. |
