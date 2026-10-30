@@ -24,7 +24,7 @@ except ImportError:
 
 
 def run_activity(run, as_json=False, closed=False):
-    """The activity line for one run, or None when it has launched no leaf."""
+    """The activity line for one run."""
     last, attempts = None, 0
     newest = None
     events = read_events(run_file(run, "events.jsonl"))
@@ -51,9 +51,7 @@ def run_activity(run, as_json=False, closed=False):
         state = "stale"
     else:
         state = "running"
-    last = last or end or newest
-    if not last:
-        return None
+    last = last or end or newest or {"ts": now}
     if closed:
         state = "closed"
     phase, actor, leaf = last.get("phase", ""), last.get("actor", ""), last.get("name", "")
