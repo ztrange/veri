@@ -573,3 +573,16 @@
 | TF7 | Step 4 tells the leaf never to modify a test file: a transform commit that touches one is rejected. (Numbered list, item 4, second sentence.) | The frozen half of the phase is enforced by rejection. |
 | TF8 | The numbered list has four items in this order: apply the refactoring (1), confirm the predicate holds (2), run the suites covering the touched files (3, an included fragment), commit (4). (Numbered list.) | The predicate and the suites are proven before the commit. |
 | TF9 | After the included report fragment, the prompt asks for a `PREDICATE: HOLDS \| FAILS` line and a `SUITE: GREEN \| RED — <the final summary line of that run>` line. (Lines after the report include.) | The conductor reads fixed lines for the predicate and the suite result. |
+
+## skills/tdd/scripts/prompts/develop-structural.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| ST1 | After the included structural-pass sentence, the prompt tells the leaf to apply the one candidate below and commit it, and says behaviour does not change: every test that was green stays green, and no test file is touched. (Opening paragraph, after the include.) | The pass applies one recorded candidate as a pure refactor. |
+| ST2 | Under "Bounds" the prompt tells the leaf to change only the files this issue touched, listed as `{{TOUCHED_FILES}}`. (Bounds, first paragraph.) | The structural pass may not reach outside the issue's own files. |
+| ST3 | The prompt says a transform that needs a file outside that list is not this pass's to apply: the leaf leaves the tree as it found it and says so in its report as one `SKIPPED: <why>` line. (Bounds, last paragraph.) | An out-of-bounds candidate is reported through a declared key, not silently dropped or half-applied. |
+| ST4 | Step 1 tells the leaf to apply exactly the candidate above: no other transform, no behaviour change. (Numbered list, item 1.) | One candidate is one transform. |
+| ST5 | Step 3 tells the leaf to commit this one transform as its own commit, as `refactor: <what changed> (#<issue>)`. (Numbered list, item 3, first sentence.) | Each transform is its own commit, carrying the issue number. |
+| ST6 | Step 3 tells the leaf never to modify a test file: a transform commit that touches one is rejected. (Numbered list, item 3, second sentence.) | The frozen half of the pass is enforced by rejection. |
+| ST7 | The numbered list has three items in this order: apply the candidate (1), run the suites covering the touched files (2, an included fragment), commit (3). (Numbered list.) | The transform is proven green before it is committed. |
+| ST8 | After the included report fragment, the prompt says that if the leaf skipped the candidate for the bound above, it reports that instead, as one `SKIPPED: <why>` line. (Paragraph after the report include.) | A skip replaces the transform report with the declared `SKIPPED:` key. |
