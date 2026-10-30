@@ -3,4 +3,4 @@
 - [x] When the merge commit GitHub reports never shows up in the clone after any fetch, queued-merge prints "is not in the clone after a fetch", lists `tag` in the "merged, but cleanup failed" summary and exits 2 (a small case in tests/py/unit/test_queued_merge.py that sets VERI_FETCH_RETRY_SLEEP so it never sleeps) ⟦criterion 2⟧
 - [x] When the merge commit is absent after the first fetch and present after a later one, queued-merge fetches again a bounded number of times, waiting between attempts for VERI_FETCH_RETRY_SLEEP read as a tunable so tests never sleep, then tags that commit, pushes the tag and exits 0 (a small case in tests/py/unit/test_queued_merge.py) ⟦criterion 1⟧
 - [x] When `git fetch origin` itself exits non-zero, queued-merge's message names the failed fetch and its exit code rather than a missing commit, and `tag` is still listed as failed with exit 2 (a small case in tests/py/unit/test_queued_merge.py) ⟦criterion 3⟧
-- [ ] The first criterion's case, broken on purpose by dropping the retry, goes red ⟦human-owed⟧ ⟦criterion 4⟧
+- [x] The first criterion's case, broken on purpose by dropping the retry, goes red ⟦human-owed⟧ ⟦criterion 4⟧
