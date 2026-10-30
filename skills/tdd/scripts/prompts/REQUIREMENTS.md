@@ -345,3 +345,9 @@
 | SH9 | The fragment tells the leaf to end its output with exactly two lines and nothing after them, with no surrounding code fence and no extra formatting: `VERDICT: PASS        (or REJECT)` and `REASON: <the objective result plus the judgement behind it, in one or two sentences — or one item per line where a check below asks for that>`. (The paragraph after the include, and the two lines it shows.) | The conductor reads exactly those last two lines. |
 | SH10 | The fragment says that where a check tells the leaf to report something as a `FLAGS:` line, it may write one such line per finding immediately before the two final lines, and only there: the final two lines stay last, so nothing else follows them. (The paragraph after the two lines.) | FLAGS: lines must not displace the verdict from the last two lines. |
 | SH11 | The fragment tells the leaf to use `PASS` only if every check holds, and otherwise `REJECT`, naming what fails and every item a check asks it to list. It says a `REJECT` stops the run, so the leaf must be specific enough that a human can act on it. (Last paragraph.) | A rejection stops the run, and a human then has to act on its reason. |
+
+## skills/tdd/scripts/prompts/_exit-status-back.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| ES1 | The fragment says "The wrapper hands the command's own exit status straight back," and ends on that comma, so the text after its include line completes the sentence. (The whole fragment.) | The timing wrapper must not mask a red run, and the fragment is the first half of the sentence that says so. |
