@@ -2,7 +2,7 @@
 
 - [x] status.sh text lists a run with a worktree and an events.jsonl but no ledger whose only event is preflight-refused, as a line naming its issue number (the run directory's name) and `refused <check>` ⟦criterion 1⟧
 - [x] status.sh text lists a run with no ledger, an events.jsonl holding no launch and no end mark, and a live conductor, as a line naming its issue number and `running` ⟦criterion 1⟧
-- [ ] status.sh --json never counts a run in the scope totals that it does not list: a run with no ledger whose run_activity returns None, an empty events.jsonl with no live conductor, is either both listed and counted or neither ⟦added⟧ ⟦criterion 3⟧
+- [x] status.sh --json never counts a run in the scope totals that it does not list: a run with no ledger whose run_activity returns None, an empty events.jsonl with no live conductor, is either both listed and counted or neither ⟦added⟧ ⟦criterion 3⟧ ⟂ refactor pending
 - [ ] status.sh text shows `running` for a run with no ledger and a live conductor whose events.jsonl holds only a preflight-refused event from an earlier launch, the relaunch the issue observed for run 1059 ⟦criterion 1⟧
 - [ ] status.sh text lists a run with no ledger, an events.jsonl holding no launch and no end mark, and no live conductor, as `stale` rather than omitting it
 - [ ] status.sh text lists a run with no ledger, a live conductor and an empty events.jsonl as `running`, with exit 0 and no traceback

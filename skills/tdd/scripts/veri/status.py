@@ -198,7 +198,8 @@ def render(as_json, scope, read_states=True):
         if os.path.isfile(events_path):
             try:
                 activity = run_activity(run, as_json, states.get(issue) == "closed") or ""
-                events.append(run)
+                if has_ledger or activity:
+                    events.append(run)
                 if not as_json:
                     activity = "  " + activity
             except FileNotFoundError:
