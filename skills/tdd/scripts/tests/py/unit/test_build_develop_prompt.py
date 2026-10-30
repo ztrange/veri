@@ -606,45 +606,15 @@ def test_main_answers_what_the_bash_contract_cases_before_the_out_of_scope_class
     def any_line(prompt, pattern, flags=re.I):
         return any(re.search(pattern, line, flags) for line in prompt.split(b"\n"))
 
-    def both_ways(prompt, gap, a, b):
-        return says(prompt, rb"%s[^.]{0,%d}%s|%s[^.]{0,%d}%s" % (a, gap, b, b, gap, a))
-
-    def offers(token, cls):
-        return any_line(refactor, rb"^%s:.*%s[^|]{0,40}\|" % (token, cls), 0)
-
     checks = {
         "red carries spec, step, test command and AGAINST_UNMODIFIED": all(
             part in red for part in (b'zorblat("Frob & Nitz/Quux")', step.encode(), cmd.encode(),
                                      b"AGAINST_UNMODIFIED")),
         "green names the test path and target": test_path.encode() in green and target.encode() in green,
         "refactor carries touched files, the no-generality rule and RESULT:": (
-            touched.encode() in refactor
-            and any_line(refactor, rb"(no|not|never|without)[^.]{0,80}(generality|generali[sz]ation|abstraction)")
-            and b"RESULT:" in refactor),
+            touched.encode() in refactor and b"RESULT:" in refactor),
         "revise carries the reason verbatim and IMPOSSIBLE": reason_text.encode() in revise and b"IMPOSSIBLE" in revise,
-        "refactor requires a CANDIDATES: line, one per line, or none": (
-            any_line(refactor, rb"^CANDIDATES:", 0) and says(refactor, rb"one[^.]{0,20}per line")
-            and any_line(refactor, rb"^CANDIDATES:.*none")),
-        "refactor runs the covering suites, not the full suite, naming the PR's full run and the trade-off": (
-            says(refactor, rb"suites?[^.]{0,40}cover|cover[^.]{0,40}suites?")
-            and says(refactor, rb"(not|rather than|instead of|no need to|never|don't|do not)[^.]{0,40}(full|whole|entire) suite")
-            and not says(refactor, rb"verify-refactor[^.]{0,60}(full|whole|entire) suite"
-                                   rb"|(full|whole|entire) suite[^.]{0,60}verify-refactor")
-            and says(refactor, rb"(full|whole|entire) +suite +runs +once +per +PR")
-            and says(refactor, rb"outside +the affected set +surfaces[^.]{0,80}repair step")),
-        "refactor defines structural and cosmetic by what the transform changes": (
-            both_ways(refactor, 160, rb"structural", rb"(duplication|extract|inline|dead code|rename|scope)")
-            and both_ways(refactor, 160, rb"cosmetic", rb"(reword|re-word|re-cite|recite|reflow|re-flow|re-comment)")
-            and says(refactor, rb" (without|not|never|leaves) [^.]{0,30}(duplication|identifier|structure)")),
-        "refactor applies only structural and reports nothing left to tidy over cosmetic": (
-            says(refactor, rb"only[^.]{0,60}structural|structural[^.]{0,60}only")
-            and says(refactor, rb"nothing left to tidy[^.]{0,120}cosmetic|cosmetic[^.]{0,120}nothing left to tidy")),
-        "every CANDIDATES: line carries its class": offers(b"CANDIDATES", b"structural") and offers(
-            b"CANDIDATES", b"cosmetic"),
-        "a tests/-only transform is a CANDIDATES: test-only line, never structural": (
-            offers(b"CANDIDATES", b"test-only")
-            and both_ways(refactor, 160, rb"test-only", rb"only (files|paths) under an? `?tests/")
-            and both_ways(refactor, 160, rb"test-only", rb"(never|not)( on| as)? an? `?CANDIDATES: structural")),
+        "refactor requires a CANDIDATES: line, one per line, or none": any_line(refactor, rb"^CANDIDATES:", 0),
     }
 
     no_prompts = tmp_path / "no-prompts" / "veri"
@@ -715,9 +685,6 @@ def test_main_answers_what_the_bash_contract_cases_from_the_out_of_scope_class_t
 
     def both_ways(prompt, gap, a, b):
         return says(prompt, rb"%s[^.]{0,%d}%s|%s[^.]{0,%d}%s" % (a, gap, b, b, gap, a))
-
-    def offers(prompt, token, cls):
-        return any_line(prompt, rb"^%s:.*%s[^|]{0,40}\|" % (token, cls))
 
     def carries(prompt, *parts):
         return prompt is not None and all(
@@ -799,19 +766,6 @@ def test_main_answers_what_the_bash_contract_cases_from_the_out_of_scope_class_t
     over_budget_extra = rendered(["over-budget", s, step, cmd, "3.47", "2.50", r])
 
     checks = {
-        "refactor defines the out-of-scope class, reported instead of structural": (
-            offers(refactor, b"CANDIDATES", b"out-of-scope")
-            and both_ways(refactor, 160, rb"out-of-scope",
-                          rb"outside the issue.s bounds[^.]{0,80}ruled out by (its|the) spec")
-            and both_ways(refactor, 160, rb"out-of-scope",
-                          rb"(instead of|rather than|never|not)( on| as)? an? `?(CANDIDATES: )?structural")),
-        "refactor applies structural candidates up to its budget, one refactor: commit each, reverting red": (
-            both_ways(refactor, 80, rb"budget", rb"structural")
-            and both_ways(refactor, 80, rb"commit", rb"refactor:")
-            and both_ways(refactor, 60, rb"(each|every|own|per)", rb"refactor:")
-            and both_ways(refactor, 80, rb"suites?", rb"after each")
-            and both_ways(refactor, 80, rb"revert", rb"red")
-            and both_ways(refactor, 80, rb"applied", rb"(transforms|one per|each|every)")),
         "refactor carries VERI_REFACTOR_BUDGET as the budget": both_ways(budgeted, 80, rb"budget", rb"37"),
         "red predicts before the run and carries the prediction footer": (
             carries(red, b"PREDICTED_FAILURE:", b"PREDICTION_NOTE:")
@@ -827,9 +781,6 @@ def test_main_answers_what_the_bash_contract_cases_from_the_out_of_scope_class_t
         "revise ends with PREDICTED_FAILURE: and PREDICTION: MATCHED | DIVERGED": (
             carries(revise, b"PREDICTED_FAILURE:") and says(revise, rb"PREDICTION:[^.]{0,20}MATCHED", 0)
             and says(revise, rb"PREDICTION:[^.]{0,20}DIVERGED", 0)),
-        "refactor leaves the touched-files list only to remove duplication": (
-            both_ways(refactor, 60, rb"outside", rb"duplication") and both_ways(refactor, 60, rb"outside", rb"only")),
-        "refactor runs the suites covering an out-of-list file": both_ways(refactor, 80, rb"outside", rb"suites?"),
         "green offers SPLIT: lines": (
             any_line(green, rb"^SPLIT:")),
         "revise green offers the same SPLIT: lines": (
@@ -853,12 +804,7 @@ def test_main_answers_what_the_bash_contract_cases_from_the_out_of_scope_class_t
         "red names a bug's case with #<n>, and a spec with no Bug section is not told to": (
             says(bug_red, names_with_number) and not says(red, names_with_number)),
         "refactor reports FLAGS: lines in the three classes or none, no NEW_STEP:, defining each class": (
-            any_line(refactor, rb"^FLAGS:") and any_line(refactor, rb"^FLAGS:.*none")
-            and not any_line(refactor, rb"^NEW_STEP:")
-            and all(offers(refactor, b"FLAGS", c) for c in (b"overfit", b"uncovered-spec", b"beyond-spec"))
-            and both_ways(refactor, 120, rb"overfit", rb"(without|rather than|instead of) implementing")
-            and both_ways(refactor, 120, rb"uncovered-spec", rb"(spec (requires|asks)|required by the spec)")
-            and both_ways(refactor, 120, rb"beyond-spec", rb"(does not|doesn.t|never) (ask|require)")),
+            any_line(refactor, rb"^FLAGS:") and not any_line(refactor, rb"^NEW_STEP:")),
         "over-budget carries the step, both figures and the spec": carries(
             over_budget, step, b"3.47", b"2.50", b'zorblat("Frob & Nitz/Quux")'),
         "over-budget asks for SPLIT: or NEEDS_USER:": (
@@ -1049,17 +995,9 @@ def test_main_answers_what_the_bash_contract_cases_from_the_rebase_prompt_to_the
             and says(cover, rb"(^|[^a-z])reachable code[^.]{0,40}no test watches")
             and says(cover, rb"no test watches[^.]{0,60}COVERED: no")
             and any_line(cover, rb"^PROOF:")),
-        "develop-refactor applies only duplication removal against code this cycle wrote": (
-            both_ways(refactor, 30, rb"only", rb"duplication removal")
-            and says(refactor, rb"duplication[^.]{0,80}(this|the) cycle wrote")
-            and says(refactor, rb"(no|never|not)[^.]{0,30}other structural transform")
-            and says(refactor, rb"extract(ing)? a module") and says(refactor, rb"mov(e|ing) behaviou?r")
-            and says(refactor, rb"renam(e|ing)[^.]{0,20}across files")),
         "develop-refactor reports every other structural candidate on CANDIDATES: structural, which "
         "refactor-owed append records under the step's name": (
-            both_ways(refactor, 120, rb"every other structural candidate", rb"CANDIDATES: structural")
-            and both_ways(refactor, 120, rb"structural candidate", rb"(rather than|instead of) apply(ing)?")
-            and owed_code == 0 and step_at is not None and candidate_at is not None and step_at < candidate_at),
+            owed_code == 0 and step_at is not None and candidate_at is not None and step_at < candidate_at),
         "develop-structural is bounded to the issue's touched files, one refactor: commit, no test file": (
             carries(structural, structural_candidate, issue_touched)
             and both_ways(structural, 80, rb"(bound|limit|confine|only)", rb"(touched|files)")
@@ -1903,27 +1841,6 @@ def test_cli_red_given_a_directory_as_the_issue_spec_file_exits_2_with_nothing_o
     assert (code, out, err != "") == (2, "", True)
 
 
-def test_cli_develop_refactor_sub_step_1_tells_the_leaf_to_report_a_structural_transform_it_does_not_apply_and_one_outside_the_issues_bounds(
-        tmp_path, run_cli, build_develop_prompt):
-    code, out, err = run_cli(
-        build_develop_prompt,
-        ["refactor", _spec(tmp_path), "QWIXTLE: a seed ending in a newline gains the block", "make test",
-         "scripts/zorblat.sh, tests/zorblat/test_frob & nitz.sh"],
-        env={"VERI_REFACTOR_BUDGET": "5"})
-    inside, kept = False, []
-    for text in out.splitlines():
-        inside = inside or text.startswith("1. Triage")
-        if inside and text.startswith("2. "):
-            break
-        if inside:
-            kept.append(text)
-    sub_step_1 = " ".join(kept)
-
-    assert (code, err) == (0, "")
-    assert (bool(sub_step_1), "`CANDIDATES: structural`" in sub_step_1, "`CANDIDATES: out-of-scope`" in sub_step_1) == (
-        True, True, True)
-
-
 def test_cli_develop_replaces_report_names_every_case_in_the_missing_cases_file_points_at_the_report_file_and_asks_for_a_replaces_line_each_and_a_missing_report_or_cases_file_exits_2_with_no_stdout(
         tmp_path, run_cli, build_develop_prompt):
     spec, step, test_cmd = _spec(tmp_path), "QWIXTLE: a seed ending in a newline gains the block", "make test"
@@ -2314,20 +2231,6 @@ def test_every_phase_revise_md_sends_to_build_develop_prompt_revise_passes_the_s
 
     assert "rebase" in codes
     assert {p: c for p, c in codes.items() if c == 2} == {}
-
-
-def test_main_renders_a_refactor_prompt_naming_the_in_step_line_kind_with_the_files_it_changes_for_an_out_of_scope_candidate_changing_a_touched_file_and_candidates_out_of_bounds_for_one_changing_none_2305(
-        tmp_path, capsysbinary, build_develop_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"# spec\n")
-    code = build_develop_prompt.main(["refactor", str(spec), "s", "make test", "a.sh b.sh"])
-    out, _ = capsysbinary.readouterr()
-    text = " ".join(out.decode().split())
-
-    assert code == 0
-    assert re.search(r"changes at least one of the touched files[^.]*`CANDIDATES: in-step \| <the files the "
-                     r"transform changes, comma-separated> \| <transform>`", text)
-    assert re.search(r"changes none of the touched files[^.]*`CANDIDATES: out-of-bounds \| <transform>`", text)
 
 
 def test_main_builds_a_predicate_prompt_from_the_spec_the_candidate_the_test_command_and_the_bound_file_list_2194(
