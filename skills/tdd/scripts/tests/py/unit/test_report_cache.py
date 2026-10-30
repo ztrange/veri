@@ -1271,3 +1271,39 @@ def test_refresh_whose_fetch_sees_an_issue_updated_after_it_read_it_leaves_a_win
     cached = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())["issues"]
     updated = {i["number"]: i["updatedAt"] for i in cached}
     assert (first[0], second[0], updated[2]) == (0, 0, "2026-10-20T10:00:03Z")
+
+
+def test_refresh_with_a_cache_whose_cache_format_is_not_2_rebuilds_in_full_and_reads_an_issue_older_than_its_fetched_at_2709(run_cli, monkeypatch, tmp_path):
+    import json
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    cache = tmp_path / ".tdd" / "report-cache.json"
+    cache.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "issues": [
+        {"number": 900, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
+    live = [
+        {"number": 5, "title": "skipped by the old fetch", "state": "CLOSED", "labels": [], "closedAt": "2026-09-20T00:00:00Z",
+         "updatedAt": "2026-09-20T00:00:00Z", "body": "", "comments": []},
+        {"number": 900, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-09-30T10:00:00Z", "body": "", "comments": []},
+    ]
+    reads = []
+
+    def fake_gh_issue_list(*args):
+        terms = (args[args.index("--search") + 1] if "--search" in args else "").split()
+        reads.append(terms)
+        pool = list(live)
+        for term in terms:
+            if term.startswith("updated:>="):
+                pool = [i for i in pool if i["updatedAt"] >= term[len("updated:>="):]]
+        return json.dumps(pool)
+
+    monkeypatch.setattr(report_cache.github, "gh_issue_list", fake_gh_issue_list)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    kept = sorted(i["number"] for i in json.loads(cache.read_text())["issues"])
+    windowed = [term for term in reads[0] if term.startswith("updated:>=")]
+    assert (code, windowed, kept) == (0, [], [5, 900])
