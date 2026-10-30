@@ -2618,7 +2618,12 @@ diagrams_stage5() { diagrams_in_slice "$1" 'id="s5"' 'id="reference"' 'the refer
 # the expansion out of this shell, where the sandbox is not the cwd yet, and hand it to the
 # child that runs inside the sandbox — the same reason the mutator functions are exported.
 SAMPLE_SCRIPT=skills/tdd/scripts/classify-bail.sh
-export SAMPLE_SCRIPT
+# The coverage cases below need a script whose commentary claims its lines to the very end
+# (3, 3b) or claims adjacent runs (3c). classify-bail.sh, now a shim, keeps one chunk that
+# stops short of its end, so those cases name the scripts whose chunk tables fit.
+TAIL_SCRIPT=skills/tdd/scripts/run-leaf.sh          # one chunk, L1-23, its last line
+GAP_SCRIPT=skills/tdd/scripts/supervise.sh          # adjacent chunks L29-34 and L35-43
+export SAMPLE_SCRIPT TAIL_SCRIPT GAP_SCRIPT
 
 append_line_to_script() { printf '\n# a line the commentary does not cover\n' >> "$1"; }
 sed_commentary() { sed -i.bak "$1" docs/wt/commentary.py && rm -f docs/wt/commentary.py.bak; }
@@ -2710,7 +2715,7 @@ export -f rewrite_two_lines_as_feat tag_feat_outside_the_scripts add_script_as_f
 
 # 1. baseline: an unmutated tree builds, and emits real source verbatim
 accepts "baseline builds" '<title>veri, Annotated</title>'
-accepts "emits script source verbatim" 'echo $? &gt; "$rcfile"' 
+accepts "emits script source verbatim" '<span class="s">")/lib/shim-python.sh"</span></span>'
 
 # 2. coverage guard — a script grows a line the commentary does not claim. Deleted in
 #    issue #125, which reversed exactly this: that tree is the one case 3b below builds,
@@ -2721,7 +2726,7 @@ accepts "emits script source verbatim" 'echo $? &gt; "$rcfile"'
 
 # 3. coverage guard — a script loses a line
 refuses "a shorter script fails coverage" "file has" \
-  bash -c 'sed -i.bak "$(wc -l < "$SAMPLE_SCRIPT")d" "$SAMPLE_SCRIPT"'
+  bash -c 'sed -i.bak "$(wc -l < "$TAIL_SCRIPT")d" "$TAIL_SCRIPT"'
 
 # 3b. and the reversal of case 2 (issue #125). A script that grew a line the commentary
 #     does not claim is DEBT, not a broken build: development moves at its own pace and
@@ -2739,12 +2744,12 @@ refuses "a shorter script fails coverage" "file has" \
 #     adds two lines to the end of it, a blank and the comment, so the debt is that pair
 #     and nothing else. Naming them by arithmetic means classify-bail.sh growing a line
 #     moves the expected range with it instead of making this case wrong.
-owed_from=$(( $(wc -l < "$ROOT/$SAMPLE_SCRIPT") + 1 ))
+owed_from=$(( $(wc -l < "$ROOT/$TAIL_SCRIPT") + 1 ))
 owes "an uncovered script line is owed, not refused" \
   '<span class="l"><span class="c"># a line the commentary does not cover</span></span>
 commentary owed' \
-  "owed: classify-bail.sh L${owed_from}–$((owed_from + 1))" \
-  bash -c 'append_line_to_script "$SAMPLE_SCRIPT"'
+  "owed: run-leaf.sh L${owed_from}–$((owed_from + 1))" \
+  bash -c 'append_line_to_script "$TAIL_SCRIPT"'
 
 # 3c. and the gap that is NOT at the end of the file (issue #125). Case 3b's uncovered run
 #     is the tail: everything after the last chunk, which is a run with no chunk after it.
@@ -2755,8 +2760,8 @@ commentary owed' \
 #     naming the interior lines rather than the ones past the end.
 #
 #     The debt is made by moving ONE chunk's start two lines later, not by touching the
-#     script: classify-bail.sh is unchanged, the chunk before still ends at L11, the chunk
-#     after still ends at L18, and L12–13 are left claimed by nobody. Those numbers are
+#     script: supervise.sh is unchanged, the chunk before still ends at L34, the chunk
+#     after still ends at L43, and L35–36 are left claimed by nobody. Those numbers are
 #     the ones written in the chunk table this sed edits, so if that table ever moves, the
 #     sed matches nothing, the tree owes nothing and this case fails — loudly, rather than
 #     passing on a build that was never given a gap to carry.
@@ -2765,11 +2770,11 @@ commentary owed' \
 #     asks for its one: `<span class="l">` is the opening every unmarked line gets, so
 #     finding them proves the gap cost the reader no source.
 owes "an interior gap is owed with its own range" \
-  '<span class="l"><span class="k">case</span> <span class="s">"</span><span class="v">$cause</span><span class="s">"</span> <span class="k">in</span></span>
-<span class="l">'"$(sed -n 13p "$SAMPLE_SCRIPT")"'</span>
+  '<span class="l"><span class="c">'"$(sed -n 35p "$GAP_SCRIPT")"'</span></span>
+<span class="l"><span class="c">'"$(sed -n 36p "$GAP_SCRIPT")"'</span></span>
 commentary owed' \
-  "owed: classify-bail.sh L12–13" \
-  bash -c 'sed_commentary "s/lines=(12, 18)/lines=(14, 18)/"'
+  "owed: supervise.sh L35–36" \
+  bash -c 'sed_commentary "s/lines=(35, 43)/lines=(37, 43)/"'
 
 # 4. unknown-reference guard — a typo'd id must not become a dead tooltip
 refuses "unknown reference id is refused" "unknown primer ref" \
@@ -2795,7 +2800,8 @@ refuses "unterminated reference is refused" "unterminated reference" \
 accepts "brace-heavy display expands intact" \
   'href="#p-default">${VAR:-default}</a>'
 accepts "nested-brace display expands intact" \
-  'href="#p-pipe">"${PIPESTATUS[0]}"</a>' 
+  'href="#p-pipe">"${PIPESTATUS[0]}"</a>' \
+  bash -c 'sed_commentary "s/{{p-default|\${VAR:-default}}}/{{p-pipe|\"\${PIPESTATUS[0]}\"}}/"'
 
 # 7. every reference in the page resolves to an entry that exists on the page
 accepts "tooltip data is emitted for the refs used" 'window.__VERI_TIPS__ = {'
@@ -2811,7 +2817,7 @@ refuses "lossy highlighting is refused" "highlighting altered a line" \
            docs/wt/bashlex.py && rm -f docs/wt/bashlex.py.bak'
 
 # 9. and the shebang is code, not a comment — the one line the kernel reads
-accepts "shebang is not styled as a comment" '<span class="l">#!/usr/bin/env bash</span>'
+accepts "shebang is not styled as a comment" '<span class="l">#!/bin/sh</span>'
 
 # 10. the version layer is OPTIONAL. sandbox() copies docs/ and skills/ into a bare
 #    temp dir with no .git in it, which is also what a tarball or a shallow checkout
@@ -3317,7 +3323,7 @@ v0.9 classify-bail.sh 5-5 dim' \
 #       v0.2  the choice itself                -> gone: it is what they last read
 #       v0.3  later, and touched no script     -> a row, with nothing to link to
 #       v0.9  later, one hunk                  -> a row linking classify-bail.sh 5-5
-#       v0.10 later, TWO hunks in one commit   -> a row linking BOTH 7-7 and 10-10
+#       v0.10 later, TWO hunks in one commit   -> a row linking BOTH 7-7 and 9-9
 #
 #     v0.3 is the row an implementation that walks `window.__VERI_HUNKS__` cannot produce:
 #     the map is keyed by the tags that own hunks, so a capability that changed something
@@ -3325,14 +3331,14 @@ v0.9 classify-bail.sh 5-5 dim' \
 #     version they have not read does not exist. The index has to come from the version
 #     ORDER and the map has to be read into it, not the other way round.
 #     v0.10 is the row that says "every hunk", not "the hunk": one commit rewriting lines
-#     7 and 10 with line 8 untouched between them is two runs under one tag, and a row
+#     7 and 9 with line 8 untouched between them is two runs under one tag, and a row
 #     that links the first and stops sends the reader to half of what changed.
 #     And v0.2 against v0.10 is the lexical trap again, from the other end: `v0.10` sorts
 #     BEFORE `v0.2` as text, so an implementation that filters the rows by comparing tag
 #     strings collapses the index onto the one version the reader most wanted to see.
 index_git "choosing a version collapses the index to later ones, each linking its hunks" \
   v0.2 \
-  'v0.10 classify-bail.sh 7-7, classify-bail.sh 10-10
+  'v0.10 classify-bail.sh 7-7, classify-bail.sh 9-9
 v0.3 -
 v0.9 classify-bail.sh 5-5' \
   bash -c 'rewrite_line_as_feat "$SAMPLE_SCRIPT" 3 \
@@ -3343,9 +3349,9 @@ v0.9 classify-bail.sh 5-5' \
            rewrite_line_as_feat "$SAMPLE_SCRIPT" 5 \
              "# rewritten by the v0.9 commit" \
              "feat: rewrite line 5 of classify-bail.sh (#4)" v0.9
-           rewrite_two_lines_as_feat "$SAMPLE_SCRIPT" 7 10 \
+           rewrite_two_lines_as_feat "$SAMPLE_SCRIPT" 7 9 \
              "# rewritten by the v0.10 commit" \
-             "fix: rewrite lines 7 and 10 of classify-bail.sh (#5)" v0.10'
+             "fix: rewrite lines 7 and 9 of classify-bail.sh (#5)" v0.10'
 
 # 23. and having lit them, the reader has to be able to walk them. `n`, `p` and the two
 #     buttons in the crumb bar all step one sequence: the lit hunks in PAGE order, so that

@@ -192,13 +192,15 @@ if not fig:
                "figure inside it)")
 else:
     fig = fig.group(0)
-    arm = re.search(r'^case "\$phase" in\n\s*([a-z|]+)\)',
-                    (SCRIPTS_DIR / "build-verify-prompt.sh").read_text(), re.M)
+    # build-verify-prompt.sh is a shim now; the phase list lives in
+    # veri/build_verify_prompt.py's PHASES tuple, which is what rejects a renamed phase.
+    arm = re.search(r'^PHASES = \(([^)]*)\)',
+                    (SCRIPTS_DIR / "veri" / "build_verify_prompt.py").read_text(), re.M)
     if not arm:
-        bad.append("cannot find the phase case arm in build-verify-prompt.sh — the "
+        bad.append("cannot find PHASES in veri/build_verify_prompt.py — the "
                    "TDD-loop figure's phase names can no longer be checked")
     else:
-        phases = arm.group(1).split("|")
+        phases = re.findall(r'"([a-z]+)"', arm.group(1))
         drawn = re.findall(r">([A-Z][a-z]+) &mdash; ", fig)
         # The figure draws the loop's phases, not every phase the builder accepts: plan
         # (#439), rebase (#238) and transform (#499) verify other things than a cycle
@@ -206,10 +208,10 @@ else:
         # renamed or reordered loop phase still fails, which is what this guards.
         lowered = [d.lower() for d in drawn]
         if not drawn or [p for p in phases if p in lowered] != lowered:
-            bad.append("the TDD-loop figure draws phases %s; build-verify-prompt.sh "
+            bad.append("the TDD-loop figure draws phases %s; veri/build_verify_prompt.py "
                        "accepts %s" % (drawn, phases))
         else:
-            print("TDD loop: %d phases, each accepted by build-verify-prompt.sh, in its order"
+            print("TDD loop: %d phases, each accepted by build_verify_prompt.py, in its order"
                   % len(drawn))
 
     budget = re.search(r"`REVISE_BUDGET`[^.]*?\*\*default (\d+)\*\*", SKILL.read_text())
