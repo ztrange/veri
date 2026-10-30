@@ -272,3 +272,10 @@
 | TE1 | The fragment opens with "**You may edit the failing test.**" and says this step repairs a full run, the fix is often an edit to the test file that run left red, and the leaf edits that file only as far as the repair needs. (First two sentences.) | A repair step may need to fix the test that is actually wrong. |
 | TE2 | The fragment says every other test stays frozen. (Third sentence.) | The permission covers the failing test alone. |
 | TE3 | The fragment says making the bar easier to clear is not clearing it: a pass bought by weakening, skipping or deleting a case the repair does not require is a rejected step. (Last sentence.) | The edit permission is not a licence to weaken. |
+
+## skills/tdd/scripts/prompts/_develop-split.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| SX1 | The fragment continues a sentence its including template opens with "Report `SPLIT:` lines instead of an": "implementation, changing no production code", one to three of them, each a behaviour-level criterion small enough to be one red-green cycle of its own, in the order they must be built. (First sentence.) | A split changes no code and gives the conductor steps it can run in order. |
+| SX2 | The fragment says the conductor restores the tree, adds those steps ahead of this one and comes back to this step later, and ends on "so", which the including template completes. (Last sentence.) | The leaf knows its split steps run first and the current step returns after them. |
