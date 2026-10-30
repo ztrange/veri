@@ -51,9 +51,9 @@ def run_activity(run, as_json=False, closed=False):
         state = "stale"
     else:
         state = "running"
-    if last is None and end.get("event") != "preflight-refused":
+    last = last or end or newest
+    if not last:
         return None
-    last = last or end
     if closed:
         state = "closed"
     phase, actor, leaf = last.get("phase", ""), last.get("actor", ""), last.get("name", "")
