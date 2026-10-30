@@ -211,6 +211,17 @@ def test_2372_queued_merge_with_no_reported_merge_commit_or_one_the_clone_lacks_
     assert (code, named in err, tagged, len(released)) == (2, True, [], 1)
 
 
+def test_2695_queued_merge_whose_merge_commit_never_shows_up_after_any_fetch_names_it_lists_tag_in_the_cleanup_summary_and_exits_2(
+        fake_processes, run_cli):
+    calls = scenario(fake_processes, fail=("cat-file -e",))
+
+    code, _, err = run_cli(queued_merge, ARGV, env={"VERI_FETCH_RETRY_SLEEP": "0"})
+
+    tagged = [c for c in calls if " tag -a " in c or "push origin v0." in c]
+    assert (code, "is not in the clone after a fetch" in err, "merged, but cleanup failed: tag" in err, tagged) == (
+        2, True, True, [])
+
+
 def test_2425_queued_merge_refuses_a_pr_argument_that_is_not_a_pr_url_before_any_lock_or_git(fake_processes, run_cli):
     calls = scenario(fake_processes)
 
