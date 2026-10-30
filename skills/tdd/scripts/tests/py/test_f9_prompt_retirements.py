@@ -1,6 +1,9 @@
 """F9 prompt retirements: what the cover and over-budget renders keep mechanical."""
 import importlib
+import pathlib
 import re
+
+import pytest
 
 
 def test_the_cover_render_has_covered_unreachable_type_only_and_proof_report_lines_and_over_budget_ignores_a_reason_file_past_budget(
@@ -24,3 +27,12 @@ def test_the_cover_render_has_covered_unreachable_type_only_and_proof_report_lin
     assert (code, code_extra) == (0, 0)
     assert extra == plain
     assert "zxqv-unreadable-rejection-reason" not in extra
+
+
+@pytest.mark.tree_audit("checks that unit/test_commit_suffix.py is gone")
+def test_report_formats_keeps_parse_and_drops_the_stop_prose_lint_and_the_commit_suffix_suite_is_gone():
+    report_formats = importlib.import_module("veri.report_formats")
+    assert [n for n in ("EXEMPT", "_STOP_WORDS", "stop_prose_offenders")
+            if hasattr(report_formats, n)] == []
+    assert hasattr(report_formats, "parse")
+    assert not (pathlib.Path(__file__).parent / "unit" / "test_commit_suffix.py").exists()
