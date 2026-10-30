@@ -264,3 +264,27 @@ def test_main_consent_yes_and_consent_no_each_write_that_answer_as_the_self_upda
     assert results == {"yes": (0, "", ""), "no": (0, "", "")}
     assert records == {"yes": "yes", "no": "no"}
     assert calls == []
+
+
+def test_main_exits_2_with_the_git_error_on_stderr_and_prints_no_old_and_new_sha_when_the_fast_forward_merge_fails(
+        tmp_path, run_cli, update_veri, monkeypatch):
+    old, new = "a" * 40, "b" * 40
+
+    def fake_git(*args, **_):
+        out, code, err = "", 0, ""
+        if "merge" in args and "--ff-only" in args:
+            code, err = 128, "error: Your local changes to the following files would be overwritten by merge\n"
+        elif "symbolic-ref" in args:
+            out = "refs/remotes/origin/main" if "refs/remotes/origin/HEAD" in args else "refs/heads/main"
+        elif "--abbrev-ref" in args:
+            out = "origin/main" if args[-1].startswith("origin") else "main"
+        elif "rev-parse" in args:
+            out = old if args[-1] == "HEAD" else new
+        return subprocess.CompletedProcess(args, code, out + "\n" if out else "", err)
+
+    monkeypatch.setattr(update_veri, "git", fake_git, raising=False)
+
+    code, out, err = run_cli(update_veri, [], env={"VERI_SELF_UPDATE_FILE": str(tmp_path / "self-update")})
+
+    assert (code, out) == (2, "")
+    assert "would be overwritten by merge" in err
