@@ -560,7 +560,7 @@ reaches the thread even on a PASS.
   reason alone (it names the criterion and the part of it no step covers), commit the
   rewrite with `git add .tdd/issue-<n>.md && git commit -m "plan: rewrite #<n> after
   verify-plan REJECT (#<n>)"`, post the revised plan to the thread, and **re-verify** by
-  running the launch above again. Rewrite and re-verify up to `REVISE_BUDGET` times; if the
+  running the launch above again. Rewrite and re-verify up to `REVISE_BUDGET` times (a `REVISE_BUDGET for this run:` line below this procedure overrides the default); if the
   last re-verification is still `REJECT`, **bail** as a process failure —
   the plan, not a leaf, is what the methodology rejected (see `<base directory>/BAIL.md`).
 - **Malformed / killed-stuck (exit 2):** no verdict could be obtained — **bail** as a system
@@ -1182,7 +1182,11 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      for, carrying the same three classes as the leaf's. Only its `uncovered-spec` lines go
      into the call, by 4's rule; its `overfit` and `beyond-spec` lines are narrated as
      follow-ups in the `### 🛠️ Refactor` comment and the PR body, since the step's refactor
-     loop has already closed and no triangulation reopens it. **Before the clear**, run
+     loop has already closed and no triangulation reopens it. Only after that PASS, and before the step's ledger commit,
+     re-record the frozen cases the refactor changed, including an earlier step's, when each kept its title and its
+     assertion lines modulo whitespace, with `$S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md --step "$step" <green-sha> .tdd/verify-refactor.log`;
+     a case that did not is left as recorded, so `check-earlier` still refuses it. Run
+     `$S/criterion-collisions.sh .tdd/issue-<n>-spec.md <green-sha>` and narrate what it prints in the `### 🛠️ Refactor` comment; it decides nothing. **Before the clear**, run
      `$S/graded-changed.sh <green-sha>` over the refactor leaf's commits: its exit 1 prints each
      graded unit they changed, and the run **bails** with cause `graded-edit-outside-skill-edit`, a
      process failure, naming each unit, with the refactor-pending mark left in place (`Read`
@@ -1491,7 +1495,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    [ -n "$blocked" ] || $S/wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)" > .tdd/wait-ci.out 2> .tdd/wait-ci.err; ci=$?    # exit 3 → run this line again, in a new Bash call
    grep -F 'conflicts with its base branch' .tdd/wait-ci.err > /dev/null; conflict=$?
    [ "$ci" != 2 ] || [ "$conflict" = 0 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
-   [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"
+   [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || $S/graded-only-conflict.sh || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"
    [ "$ci" != 1 ] || gh run view <run-id> --log-failed          # a failed check only → its suite and FAIL - line
    [ "$ci" != 1 ] || ! $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)" failed="$(cat .tdd/wait-ci.out)"
    [ "$ci" = 0 ] || [ "$ci" = 2 ] || $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null; no_repair=$?
@@ -1520,7 +1524,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    [ "$no_repair" = 0 ] || { git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit -m "plan: repair the red CI check (#<n>)"; }
    grep -F 'conflicts with its base branch' .tdd/wait-ci.err > /dev/null; conflict=$?
    [ "$ci" != 2 ] || [ "$conflict" = 0 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
-   [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"
+   [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || $S/graded-only-conflict.sh || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
    gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)" -f body="<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human>"
    ```
@@ -1558,7 +1562,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    with the same `wait-ci.sh` line. There too `rebase-onto-default.sh`'s exit code decides the
    next action, so nothing after it — the rebased tip's full test run in particular — is
    started until it has returned, and never in the same message as the rebase. A second conflict, with `.tdd/ci-conflict-rebased`
-   already present, does **bail**, with cause `ci-conflict`, rather than rebasing again (`Read` `<base directory>/BAIL.md`).
+   already present, whose every conflicting path is a `GRADED` file (`$S/graded-only-conflict.sh` exits 0) rebases again through the same path without counting it, and `rebase-onto-default.sh` resolves each `GRADED` hunk by unit, the branch's line for each unit it signs and the base's line for every other unit. Any other second conflict does **bail**, with cause `ci-conflict`, rather than rebasing again (`Read` `<base directory>/BAIL.md`).
    The `metrics:` push starts a CI run of its own on the readied PR, so it is read the same
    way, by `wait-ci.sh` after the push; a red there (exit 1) is a CI-only failure on code
    that was already green, so it appends one `⟦ci-repair⟧` step to the ledger with the same

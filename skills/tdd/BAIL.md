@@ -20,6 +20,8 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   (the correction leaf did not finish cleanly, a killed-stuck one included) before verify-red.
 - `revise-exhausted` — a step spent its `REVISE_BUDGET` and the blind verifier still says
   `REJECT` → **process** failure (methodology spoke).
+- `revise-impossible` — a revise leaf answered `IMPOSSIBLE`, saying no revision can meet the objection; the
+  attempts did not run out, so look at the obstacle it names rather than at the test → **process** failure.
 - `untestable-criterion` — a Red developer leaf reported `AGAINST_UNMODIFIED: UNTESTABLE`:
   the step's criterion cannot be pinned as a lightweight, behavior-level test → **process**
   failure (the criterion as phrased cannot be tested as behavior, not that the plumbing

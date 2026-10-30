@@ -100,7 +100,11 @@ alone, and route:
   a test never watched failing; a change to a guard or other product code outside the
   issue's stated scope; a departure from the issue's wording. Merge only after a reply that
   names each caveat. A review with none says so in the same report, and that report is
-  still sent.
+  still sent. A review may not report "no coverage" or "coverage lost" from the diff alone: before
+  the claim it searches the whole test tree, including directories the diff never touches, for the
+  behaviour's name, and the claim carries the `file:line` where coverage was found (then it is not a
+  finding) or the search term it used and found nothing for. A mutation refused with `rate limit
+  exceeded` while `gh api rate_limit` still reports quota hit GitHub's secondary limit: use REST, never wait for the reset.
 - **Last comment is a bail.** Hand it to `veri-bail <n>`. `veri-bail` does not exist yet: until
   it does, classify the cause with `$S/classify-bail.sh <cause>`, resume a first bail once with
   `$S/run-conductor.sh <n>` launched as above (with `VERI_NEW_SKILL=1` when the fix it needs

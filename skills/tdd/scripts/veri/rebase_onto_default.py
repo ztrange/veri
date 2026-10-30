@@ -43,6 +43,38 @@ def rebase_in_progress():
         "rev-parse", "--git-path", "rebase-merge", "--git-path", "rebase-apply").splitlines())
 
 
+def stage(number, path):
+    shown = git("show", f":{number}:{path}", text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    return shown.stdout.splitlines() if shown.returncode == 0 else []
+
+
+def unit_of(line):
+    return line.partition(" ")[0]
+
+
+def union_by_unit(base, ours, theirs):
+    """One line per unit: the replayed commit's for each unit it signs, the rebase target's for every other."""
+    signed = {unit_of(line): line for line in theirs if line not in base}
+    dropped = {unit_of(line) for line in base} - {unit_of(line) for line in theirs}
+    kept = [signed.pop(unit_of(line), line) for line in ours if unit_of(line) not in dropped or unit_of(line) in signed]
+    return kept + list(signed.values())
+
+
+def unioned_graded_conflicts():
+    """Finish a rebase stopped only on GRADED files; False leaves it stopped on another path."""
+    while rebase_in_progress():
+        conflicts = output("diff", "--name-only", "--diff-filter=U").splitlines()
+        if not conflicts or not all(pathlib.PurePath(path).name == "GRADED" for path in conflicts):
+            return False
+        top = pathlib.Path(output("rev-parse", "--show-toplevel"))
+        for path in conflicts:
+            lines = union_by_unit(stage(1, path), stage(2, path), stage(3, path))
+            (top / path).write_text("".join(line + "\n" for line in lines))
+            git("add", "--", path, text=True)
+        git("-c", "core.editor=true", "rebase", "--continue", text=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return True
+
+
 def refuse(reason):
     sys.stderr.write(f"rebase-onto-default: {reason}\n")
     return 2
@@ -92,7 +124,7 @@ def main(argv):
                 outcome = refuse("a rebase was already in progress; git rebase refused to start")
             elif not rebase_in_progress():
                 outcome = refuse("git rebase was refused without a conflict")
-            else:
+            elif not unioned_graded_conflicts():
                 conflicts = output("diff", "--name-only", "--diff-filter=U")
                 git("rebase", "--abort", text=True)
                 sys.stdout.write(f"{conflicts}\n")

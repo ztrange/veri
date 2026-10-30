@@ -183,3 +183,9 @@ def test_main_classifies_pr_ready_failed_as_a_system_failure_with_0_2581(capsys,
     code = classify_bail.main(["pr-ready-failed"])
 
     assert (code, *capsys.readouterr()) == (0, "system\n", "")
+
+
+def test_2617_a_revise_leaf_answering_impossible_is_its_own_process_cause(run_cli):
+    classify_bail = importlib.import_module("veri.classify_bail")
+
+    assert run_cli(classify_bail, ["revise-impossible"])[:2] == (0, "process\n")

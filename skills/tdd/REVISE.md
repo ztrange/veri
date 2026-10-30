@@ -61,9 +61,10 @@ For attempt `k = 1 … REVISE_BUDGET`:
    what it has to work from, that the work is on disk, and that it must answer *that
    objection only*. Its report ends with `OUTCOME: REWRITTEN | IMPOSSIBLE` and
    `AGAINST_UNMODIFIED: FAILS | PASSES | N/A` — `N/A` whenever the leaf touched no test,
-   which is every revise of green or refactor. `IMPOSSIBLE` is a legitimate answer, not a
-   crash: the leaf says the objection cannot be met as stated. It still spends attempt `k` —
-   re-verify below and let the blind verdict, not the leaf's own account, decide.
+   which is every revise of green or refactor. `IMPOSSIBLE` with no `MISSING_TEST:` line is a legitimate answer, not a
+   crash: the leaf says no revision can meet the objection, so the run spends no further attempt and
+   **bails** at once with cause `revise-impossible`, carrying the leaf's stated reason (`Read`
+   `<base directory>/BAIL.md`). The blind verifier has already rejected the state on disk, so nothing is left for it to judge.
 4. **Check the prediction first (red only).** When `<phase>` is red the revise leaf rewrote
    the failing test and reported its own `PREDICTED_FAILURE:` and `PREDICTION:` lines, so run
    the same gate the Red section runs before anything reaches a verifier:
