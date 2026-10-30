@@ -112,7 +112,7 @@ def listed_units(path):
 
 
 def tracked(name):
-    pattern = {"GRADED": "**/GRADED", "REQUIREMENTS.md": "**/REQUIREMENTS.md"}[name]
+    pattern = "**/" + name
     here = os.path.abspath(".")
     while not os.path.exists(os.path.join(here, ".git")):
         parent = os.path.dirname(here)
