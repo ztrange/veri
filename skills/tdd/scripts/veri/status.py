@@ -204,7 +204,9 @@ def render(as_json, scope, read_states=True):
             except FileNotFoundError:
                 activity = ""
         if not has_ledger:
-            continue
+            if not activity:
+                continue
+            issue = os.path.basename(run)
         step = step_of_total(text)
         if as_json:
             run_objects.append(run_object(issue, title, branch, step, activity, states))

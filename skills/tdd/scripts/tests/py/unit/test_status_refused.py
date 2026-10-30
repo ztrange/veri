@@ -66,3 +66,19 @@ def test_2545_a_run_whose_ledger_vanishes_between_the_check_and_the_read_is_abse
         code = "FileNotFoundError"
 
     assert code in (0, 3)
+
+
+def test_2700_text_lists_a_run_with_events_but_no_ledger_whose_only_event_is_preflight_refused_as_its_issue_and_refused_check(tmp_path, monkeypatch, capsys):
+    status = importlib.import_module("veri.status")
+    run = tmp_path / ".tdd" / "wt" / "7"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "events.jsonl").write_text(json.dumps(
+        {"ts": 100, "issue": "7", "event": "preflight-refused", "check": "baseline",
+         "cause": "preflight-refused", "classification": "system"}) + "\n")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status, "branch_of", lambda run: "b")
+
+    status.render(False, "", False)
+
+    lines = capsys.readouterr().out.splitlines()
+    assert [line for line in lines if line.startswith("#7") and line.endswith("refused baseline")] != []
