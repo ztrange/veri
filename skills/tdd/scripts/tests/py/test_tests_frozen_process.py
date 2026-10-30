@@ -2853,29 +2853,65 @@ def test_rerecord_rebased_exits_2_naming_the_record_when_writing_a_stale_cases_r
     assert (code, record.name in capfd.readouterr().err, record.read_bytes() == old) == (2, True, True)
 
 
-@pytest.mark.process("a real git repository under tmp_path, its history walked for a renamed case and the work tree diffed against HEAD")
-def test_rerecord_on_head_records_the_renamed_successor_and_the_pin_the_step_adds_but_not_a_later_steps_case_2673(
+def _ledger(repo, *ticked):
+    steps = ["step A adds the cases", "step B adds a later case"]
+    (repo / ".tdd/issue-9.md").write_text("".join("- [%s] %s\n" % ("x" if s in ticked else " ", s) for s in steps))
+
+
+CASE = "def test_%s():\n    assert %d\n"
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history and its committed ledger walked")
+def test_rerecord_on_head_keeps_the_renamed_successor_and_a_pin_the_step_committed_but_not_a_later_steps_case_2673(
         tmp_path, run_cli, tests_frozen):
     (tmp_path / ".tdd").mkdir()
     suite = tmp_path / "test_suite.py"
-    case = "def test_%s():\n    assert %d\n"
-    suite.write_text(case % ("base", 0))
+    step = "step A adds the cases"
+    suite.write_text(CASE % ("base", 0))
+    _ledger(tmp_path)
     git(tmp_path, "init", "-q")
-    git(tmp_path, "add", "test_suite.py")
-    git(tmp_path, "commit", "-q", "-m", "base")
-    step = "the step that owns the cases"
-    suite.write_text("\n\n".join([case % ("base", 0), case % ("rejects_a_body_that_is_not_valid_json", 3),
-                                  case % ("one", 1), case % ("two", 2)]))
+    git(tmp_path, "add", "test_suite.py", ".tdd/issue-9.md")
+    git(tmp_path, "commit", "-q", "-m", "plan")
+    suite.write_text("\n\n".join([CASE % ("base", 0), CASE % ("rejects_a_body_that_is_not_valid_json", 3),
+                                  CASE % ("one", 1), CASE % ("two", 2)]))
     run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
-    git(tmp_path, "commit", "-q", "-am", "the step's cases")
+    git(tmp_path, "commit", "-q", "-am", "A's cases")
     suite.write_text(suite.read_text().replace("rejects_a_body", "rejects_to_a_body"))
     git(tmp_path, "commit", "-q", "-am", "a rename")
-    suite.write_text(suite.read_text() + "\n\n" + case % ("later_step", 9))
-    git(tmp_path, "commit", "-q", "-am", "a later step's case")
-    suite.write_text(suite.read_text() + "\n\n" + case % ("pin", 4))
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("pin_committed", 5))
+    _ledger(tmp_path, step)
+    git(tmp_path, "commit", "-q", "-am", "A's pin, A ticked")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("later_step", 9))
+    _ledger(tmp_path, step, "step B adds a later case")
+    git(tmp_path, "commit", "-q", "-am", "B's case, B ticked")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("pin_wip", 4))
 
     code = run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)[0]
 
     record = (tmp_path / tests_frozen._record_path(step)).read_text()
     assert (code, sorted(l[6:] for l in record.splitlines() if l.startswith("case: "))) == (
-        0, ["test_one", "test_pin", "test_rejects_to_a_body_that_is_not_valid_json", "test_two"])
+        0, ["test_one", "test_pin_committed", "test_pin_wip", "test_rejects_to_a_body_that_is_not_valid_json",
+            "test_two"])
+
+
+@pytest.mark.process("a real git repository under tmp_path, its committed ledger walked for the step's tick")
+def test_rerecord_on_head_exits_2_naming_the_step_when_no_committed_ledger_line_of_it_is_found_2673(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "test_suite.py"
+    step = "step C that no ledger names"
+    _ledger(tmp_path)
+    suite.write_text(CASE % ("base", 0))
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "test_suite.py", ".tdd/issue-9.md")
+    git(tmp_path, "commit", "-q", "-m", "plan")
+    suite.write_text(CASE % ("base", 0) + "\n\n" + CASE % ("one", 1))
+    run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
+    before = (tmp_path / tests_frozen._record_path(step)).read_text()
+    git(tmp_path, "commit", "-q", "-am", "one")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("later", 2))
+    git(tmp_path, "commit", "-q", "-am", "later")
+
+    code, _, err = run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
+
+    assert (code, step in err, (tmp_path / tests_frozen._record_path(step)).read_text()) == (2, True, before)
