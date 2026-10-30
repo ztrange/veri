@@ -292,3 +292,31 @@ def test_verify_sh_red_whose_lint_gate_fails_on_the_tree_without_the_red_too_exi
     assert (done.returncode, "GATE:" in done.stdout, "sh lint.sh" in done.stderr,
             "red before the Red" in done.stderr, "pre-existing" in done.stderr,
             launched.exists()) == (2, False, True, True, True, False), done.stdout + done.stderr
+
+
+@pytest.mark.process("verify.sh red run as a real shim over veri/verify.py in a throwaway git repo whose"
+                     " VERI_TEST_CMD is a single test runner whose only failure names the target test, around a stub claude")
+def test_verify_sh_red_whose_test_command_is_a_single_runner_with_no_lint_gate_launches_the_verifier_and_is_not_rejected_with_a_gate_reason(
+        tmp_path):
+    head = committed_head(tmp_path)
+    (tmp_path / "spec.md").write_text("the behavior spec\n")
+    (tmp_path / ".gitignore").write_text(".tdd/\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_slugify.py").write_text(
+        "def test_lowercases():\n    stored, id = 1, 2\n    assert stored == 2\n")
+    (tmp_path / "run-tests.sh").write_text(
+        "echo 'FAILED tests/test_slugify.py::test_lowercases - assert 1 == 2'\nexit 1\n")
+    launched = tmp_path / ".tdd" / "leaf-launched"
+    claude = tmp_path / "claude-pass"
+    claude.write_text(f"#!/bin/sh\ntouch {launched}\nprintf 'VERDICT: PASS\\nREASON: fine.'\n")
+    claude.chmod(0o755)
+    env = {"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+           "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01",
+           "VERI_TEST_CMD": "sh run-tests.sh",
+           **checked_step(tmp_path, head)}
+
+    done = subprocess.run(
+        [str(SCRIPTS / "verify.sh"), "red", "spec.md", "tests/test_slugify.py", "test_lowercases"],
+        cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    assert (done.returncode, "GATE:" in done.stdout, launched.exists()) == (0, False, True), done.stdout + done.stderr
