@@ -609,3 +609,15 @@
 | XH3 | The prompt tells the leaf not to modify, revert or remove anything in the working tree, because what is there is the attempts' work and the run keeps it. (Opening paragraph, the "Do not modify" sentence.) | The attempts' work is kept for the human who reads the bail. |
 | XH4 | The prompt says a statement that the criterion already holds must cite a run of the test command the leaf was given, not a run of one case alone. (Opening paragraph, last sentence.) | A claim that nothing needed doing has to rest on the whole command. |
 | XH5 | Under their own headings the prompt gives the leaf the step (the criterion nothing could satisfy, `{{STEP}}`) and the verifier's last rejection reason (`{{REJECTION_REASON}}`), followed by an included fragment. (Sections after the opening paragraph.) | The leaf needs the criterion and the reason it could not be met. |
+
+## skills/tdd/scripts/prompts/develop-over-budget.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| OB1 | The prompt says the step has crossed the spend budget it was given; the next sentence opens with an included fragment and continues "the attempts that spent it", and a sentence opened by a second included fragment continues "the step again". (Opening paragraph.) | The leaf is fresh, judges the step, and does not retry it. |
+| OB2 | The prompt says a crossing is not a verdict: nothing has rejected this work, and the step may well be correct. (Second paragraph, first two sentences.) | A budget crossing must not be read as a rejection. |
+| OB3 | The prompt asks whether the step is more than one behaviour, or needs a decision this run has no authority to make, and says "neither — this step is one behaviour that is simply expensive" is an honest answer the run can act on as well. (Second paragraph, last sentence.) | "Simply expensive" is a legitimate outcome, not a failure. |
+| OB4 | Under their own headings the prompt gives the step (`{{STEP}}`) and what it has spent and the budget it was given, as `Spent: {{SPENT}}` and `Budget: {{BUDGET}}`, followed by an included fragment. (Sections before the report.) | The leaf weighs the step against the actual figures. |
+| OB5 | The report section says that if the step is more than one behaviour, the leaf gives one to three lines, each a behaviour-level criterion small enough to be one red-green cycle of its own, in the order they must be built, as `SPLIT:` lines. (Report section, first paragraph and its line.) | A split is fed back into the ledger in build order. |
+| OB6 | The report section says that if the step needs a decision this run has no authority to make, the leaf gives one line naming that decision, as `NEEDS_USER: <the decision, stated so the user can answer it>`. (Report section, second paragraph and its line.) | The decision is put to the human in a form they can answer. |
+| OB7 | The report section says that if it is neither, because the step is one behaviour that is simply expensive, the leaf prints no `SPLIT:` line and no `NEEDS_USER:` line. (Report section, last paragraph.) | The absence of both keys is the simply-expensive answer, so it has its own report shape. |
