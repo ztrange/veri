@@ -3,6 +3,8 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import subprocess
 import sys
 
+import requirements
+
 USAGE = "usage: graded-changed.sh <base-sha>"
 
 
@@ -14,7 +16,7 @@ def main(argv):
     if diff.returncode:
         return 2
     changed = diff.stdout.split()
-    listed = subprocess.run(["git", "ls-files", ":(glob)**/GRADED"], capture_output=True, text=True).stdout.split()
+    listed = requirements.tracked("GRADED")
     hits = [line.split()[0] for g in listed for line in open(g) if line.split()[0] in changed]
     for path in hits:
         print(path)
