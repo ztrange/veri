@@ -36,8 +36,8 @@ class Conductor:
 
 def start_conductor(tmp_path, issue):
     """A live claude whose parent's command line is run_conductor.py <issue>."""
-    bin_dir = tmp_path / "bin"
-    bin_dir.mkdir(exist_ok=True)
+    bin_dir = tmp_path / ("bin-%s" % issue)
+    bin_dir.mkdir()
     claude = bin_dir / "claude"
     claude.write_text("#!/bin/sh\nsleep 60 &\np=$!\ntrap 'kill $p; exit 0' TERM\nwait $p\n")
     claude.chmod(0o755)
