@@ -1,7 +1,8 @@
 """In-process cases for the two root documents' record of the per-role model tunables."""
 import re
 
-from skill_sections import LOWER, ROOT, lines_of
+from conftest import ROOT
+from skill_sections import LOWER, lines_of
 
 SUPERVISE_SH = "skills/tdd/scripts/supervise.sh"
 

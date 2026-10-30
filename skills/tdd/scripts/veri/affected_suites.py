@@ -50,19 +50,6 @@ def suites(pattern):
     return sorted(glob.glob(pattern))
 
 
-def every_suite():
-    return [s for s in suites(SCRIPTS + "/tests/*.test.sh") + suites(SCRIPTS + "/tests/unit/*.test.sh")
-            if os.path.isfile(s)]
-
-
-def suites_matching(pattern):
-    return [s for s in every_suite() if re.search(pattern, read(s) or b"")]
-
-
-def suites_naming(*needles):
-    return suites_matching(b"|".join(re.escape(n.encode()) for n in needles))
-
-
 def has_line(path, pattern):
     text = read(path)
     return text is not None and any(pattern.search(line) for line in text.split(b"\n"))
@@ -160,54 +147,6 @@ def forms(*lines):
     return found
 
 
-def lines_of(path):
-    return (read(path) or b"").decode(errors="replace").split("\n")
-
-
-def headings(f):
-    return [line for line in lines_of(f) if heading(line) is not None]
-
-
-SLICERS = ("section", "section_records")
-FUNCTION = re.compile(r"^(\w+)\(\)\s*\{")
-BOUNDED = re.compile(r"NR >= s && NR <= e|NR < s \|\| NR > e|sed -n \"\$\{\w+\}(,\$\{\w+\})?p\"")
-
-
-def sliced_lines(lines):
-    found, body, name = set(), [], None
-    for i, line in enumerate(lines):
-        start = FUNCTION.match(line) if name is None else None
-        if start:
-            name, body = start.group(1), []
-        if name is None:
-            continue
-        body.append(i)
-        if line.startswith("}") or (start and line.rstrip().endswith("}")):
-            if name in SLICERS or any(BOUNDED.search(lines[k]) for k in body):
-                found.update(body)
-            name = None
-    return found
-
-
-def reads_only_through_slicers(suite, f):
-    lines = lines_of(suite)
-    names = []
-    for line in lines:
-        alternatives = "|".join([re.escape(f)] + [r"\$\{?%s\}?" % n for n in names])
-        assigned = re.match(r"^\s*(?:local\s+)?(\w+)=\"?.*?(?:%s)\"?$" % alternatives, line)
-        if assigned:
-            names.append(assigned.group(1))
-    if not names:
-        return False
-    either = "|".join(names)
-    assignment = re.compile(r"^\s*(?:local\s+)?(?:%s)=" % either)
-    reading = re.compile(r"\"(?:\$\{?\w+\}?/)*\$\{?(?:%s)\}?\"" % either)
-    sliced = sliced_lines(lines)
-    return all(i in sliced
-               for i, line in enumerate(lines)
-               if reading.search(line) and not assignment.match(line))
-
-
 def pytest_texts():
     return [(p, read(p) or b"") for d in PYTEST_DIRS for p in suites(d + "/test_*.py")]
 
@@ -246,41 +185,28 @@ def pytest_files_of(name):
     return [s for d in PYTEST_DIRS for s in existing("%s/test_%s.py" % (d, name))]
 
 
-def bash_suite_of(name):
-    return (existing("%s/tests/unit/%s.test.sh" % (SCRIPTS, name))
-            or existing("%s/tests/%s.test.sh" % (SCRIPTS, name))
-            or suites_matching(rb"(?<!lib)/" + re.escape(name.encode()) + rb"\.sh"))
-
-
 def suite_of(f, revisions=None):
     def match(*patterns):
         return any(fnmatch.fnmatchcase(f, p) for p in patterns)
 
     if match("CLAUDE.md", "Makefile", "skills/*/SKILL.md"):
-        naming = suites_naming('"%s"' % f, '/%s"' % f)
         section = f == "skills/tdd/SKILL.md" and revisions and edited_section(f, revisions)
         if section:
-            readers = suites_naming(*forms(*section))
-            slicers = [s for s in suites_naming(*forms(*headings(f))) if reads_only_through_slicers(s, f)]
-            return ([s for s in naming if s in readers or s not in slicers]
-                    + pytest_readers(forms(*section)) + pytest_whole_readers())
-        return naming + pytest_skill_readers() if f == "skills/tdd/SKILL.md" and revisions else naming
+            return pytest_readers(forms(*section)) + pytest_whole_readers()
+        return pytest_skill_readers() if f == "skills/tdd/SKILL.md" and revisions else []
     if f == "README.md":
         return [p for p, text in pytest_texts() if b"README.md" in text]
     if f in SKILL_DOCS:
         name = basename(f).encode()
-        return suites_naming(name.decode()) + [p for p, text in pytest_texts() if name in text]
-    if match(SCRIPTS + "/tests/*.test.sh", *[d + "/test_*.py" for d in PYTEST_DIRS]):
+        return [p for p, text in pytest_texts() if name in text]
+    if match(*[d + "/test_*.py" for d in PYTEST_DIRS]):
         return existing(f)
-    if match(SCRIPTS + "/tests/fixtures/*"):
-        return suites_naming(f[len(SCRIPTS + "/tests/"):])
     if match(SCRIPTS + "/prompts/*.md"):
         names = ("py/test_build_develop_prompt_process.py", "py/test_build_verify_prompt_process.py",
                  "py/unit/test_build_develop_prompt.py", "py/unit/test_build_verify_prompt.py",
                  "py/unit/test_emitted_text.py")
         renderers = [existing(SCRIPTS + "/tests/" + n) for n in names]
-        return (suites_naming(f[len(SCRIPTS + "/"):])
-                + [s for found in renderers for s in found])
+        return [s for found in renderers for s in found]
     if match(SCRIPTS + "/lib/*.sh"):
         line = sourcing(basename(f).encode(), rb"(\\)?")
         found = []
@@ -290,10 +216,10 @@ def suite_of(f, revisions=None):
         return found
     if match(SCRIPTS + "/veri/*.py"):
         name = basename(f, ".py")
-        return pytest_files_of(name) + bash_suite_of(name.replace("_", "-"))
+        return pytest_files_of(name)
     if match(SCRIPTS + "/*.sh"):
         name = basename(f, ".sh")
-        return pytest_files_of(name.replace("-", "_")) or bash_suite_of(name)
+        return pytest_files_of(name.replace("-", "_"))
     if match(".tdd/*"):
         return []
     raise Unplaced(f)
@@ -338,13 +264,6 @@ def main(argv):
             placed += suite_of(f, revisions)
         except Unplaced:
             unplaced.append(f)
-
-    counting = ("--", SCRIPTS + "/tests", ":(glob)%s/*.sh" % SCRIPTS)
-    _, counted = changed(revisions, "--diff-filter=AD", *counting)
-    if working_tree and not counted:
-        _, counted = untracked(*counting)
-    if counted:
-        placed.append(SCRIPTS + "/tests/py/unit/test_claude_md_counts.py")
 
     if unplaced:
         print("affected-suites: no rule places %s; widening to every suite" % ",".join(unplaced), file=sys.stderr)
