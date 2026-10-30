@@ -525,3 +525,10 @@
 | TG2 | The fragment tells the leaf to predict the rewritten test's failure before it runs any suite, in `.tdd/red-prediction.md`: which assertion fires first against the unmodified production code, the observed-versus-expected values it fires on, and the shape of the message the suite will print. (First sentence, after the bold lead.) | A prediction written before the run is what makes the red a real red. |
 | TG3 | The fragment tells the leaf to then run, saving the run's output to `.tdd/red-run-output.txt`, compare what it printed against that prediction, and never adjust the prediction to fit what it saw. (First sentence, after the dash.) | The comparison is only honest if the prediction is fixed before the output exists. |
 | TG4 | The fragment says the leaf whose attempt was rejected predicted a different test, so there is nothing here to inherit. (Last sentence.) | A fresh leaf must not look for an earlier prediction to reuse. |
+
+## skills/tdd/scripts/prompts/_develop-test-move-contract-a.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| TM1 | The fragment tells the leaf, in a bold lead, to move the tests off the old interface, as contract-a does, by rewriting or deleting only the tests the rejection names that still exercise it. (First sentence.) | A redo of contract-a moves exactly the tests the verifier objected to. |
+| TM2 | The fragment says no new failing test is written, so no prediction is owed. (Last sentence.) | Contract-a moves tests rather than writing a red, so a prediction ask would be wrong. |
