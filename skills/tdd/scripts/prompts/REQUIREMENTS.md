@@ -279,3 +279,12 @@
 |---|---|---|
 | SX1 | The fragment continues a sentence its including template opens with "Report `SPLIT:` lines instead of an": "implementation, changing no production code", one to three of them, each a behaviour-level criterion small enough to be one red-green cycle of its own, in the order they must be built. (First sentence.) | A split changes no code and gives the conductor steps it can run in order. |
 | SX2 | The fragment says the conductor restores the tree, adds those steps ahead of this one and comes back to this step later, and ends on "so", which the including template completes. (Last sentence.) | The leaf knows its split steps run first and the current step returns after them. |
+
+## skills/tdd/scripts/prompts/_develop-wrong-test-report.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| WT1 | The fragment says that, when the green being redone has a test that looks wrong, the report lines are replaced by one `WRONG_TEST: <why the test looks wrong>` line. (First paragraph and the `WRONG_TEST:` line.) | A revise of green keeps green's wrong-test route. |
+| WT2 | The fragment tells the leaf to name in that line the existing test case the step's criterion contradicts, by its own name as its test file spells it, with no describe, class or file prefix. (The two sentences after the `WRONG_TEST:` line.) | The conductor routes a wrong test by the case it names. |
+| WT3 | The fragment says that, when older cases fail only because the step supersedes what they pin, the lines are replaced by one `SUPERSEDED:` line per such case, the older case's name written out in full as its test file spells it, without quotes. (The `SUPERSEDED:` paragraph and line.) | A superseded case is reported in its own shape. |
+| WT4 | The fragment says a case the step's change does not supersede is a `WRONG_TEST:` line, never a `SUPERSEDED:` one. (Last line.) | The two routes must not be confused. |
