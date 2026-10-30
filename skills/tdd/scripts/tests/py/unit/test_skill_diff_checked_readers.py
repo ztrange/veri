@@ -23,7 +23,6 @@ ALLOWED = {
     "test_prompt_test_tiers.py": "checks the tiers a rendered prompt names",
     "unit/test_build_develop_prompt.py": "unit cases of build-develop-prompt.sh",
     "unit/test_build_verify_prompt.py": "unit cases of build-verify-prompt.sh",
-    "unit/test_commit_suffix.py": "unit cases of the commit suffix helper",
     "unit/test_ledger.py": "unit cases of the ledger helper",
     "unit/test_skill_verify_step.py": "no CY row: document-wide; verify.sh calls only",
     "unit/test_skill_stopping.py": "no CY row: document-wide stop-check cases",
