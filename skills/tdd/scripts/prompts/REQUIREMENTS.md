@@ -363,3 +363,9 @@
 | ID | Requirement | Why |
 |---|---|---|
 | SW1 | The fragment says the invocation is given so that every leaf on the step runs it the same way. If that invocation cannot run a suite in the repository, the fragment opens a fallback with "fall back to", and the including text completes it. (The whole fragment.) | Leaves on one step must agree on how a suite runs, and a repository without the invocation still needs a way to run one. |
+
+## skills/tdd/scripts/prompts/_develop-run-suite-same-way.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| DW1 | The fragment says the invocation is given so that every leaf on the step runs it the same way. If that invocation cannot run a suite in the repository, the fragment opens a fallback with "fall back to", and the including text completes it. (The whole fragment.) | The developer leaves on one step must agree on how a suite runs, and a repository without the invocation still needs a way to run one. |
