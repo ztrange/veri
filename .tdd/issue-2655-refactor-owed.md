@@ -1,2 +1,4 @@
 ### `update-veri.sh` exits 1 when `VERI_SELF_UPDATE=0`, with one stderr line naming that reason and the clone left untouched, pinned by a case in `skills/tdd/scripts/tests/py/unit/test_update_veri.py` faking git in-process ⟦criterion 1⟧
 - test-only | the two exit-1 cases in test_update_veri.py repeat the same `fake_git` that records calls, the same `moved` filter and the same assertion shape; a shared helper or fixture would remove that.
+### `update-veri.sh` exits 1 when the veri clone is not on its upstream default branch, with one stderr line naming that reason and the clone left untouched (never a checkout, stash, reset or merge), pinned by a case in `skills/tdd/scripts/tests/py/unit/test_update_veri.py` faking git in-process ⟦criterion 1⟧
+- test-only | extract the repeated fake_git recorder and the `moved` filter in `test_update_veri.py` into a shared fixture or helper
