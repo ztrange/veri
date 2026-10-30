@@ -1491,7 +1491,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    [ -n "$blocked" ] || $S/wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)" > .tdd/wait-ci.out 2> .tdd/wait-ci.err; ci=$?    # exit 3 → run this line again, in a new Bash call
    grep -F 'conflicts with its base branch' .tdd/wait-ci.err > /dev/null; conflict=$?
    [ "$ci" != 2 ] || [ "$conflict" = 0 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
-   [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"
+   graded=1; [ "$ci" != 2 ] || [ "$conflict" != 0 ] || { $S/rebase-onto-default.sh --graded-only > .tdd/graded-rebase.out; graded=$?; }
+   [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ "$graded" = 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"
    [ "$ci" != 1 ] || gh run view <run-id> --log-failed          # a failed check only → its suite and FAIL - line
    [ "$ci" != 1 ] || ! $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)" failed="$(cat .tdd/wait-ci.out)"
    [ "$ci" = 0 ] || [ "$ci" = 2 ] || $S/ledger-steps.sh has-mark ci-repair < .tdd/issue-<n>.md > /dev/null; no_repair=$?
@@ -1520,7 +1521,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    [ "$no_repair" = 0 ] || { git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit -m "plan: repair the red CI check (#<n>)"; }
    grep -F 'conflicts with its base branch' .tdd/wait-ci.err > /dev/null; conflict=$?
    [ "$ci" != 2 ] || [ "$conflict" = 0 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
-   [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"
+   graded=1; [ "$ci" != 2 ] || [ "$conflict" != 0 ] || { $S/rebase-onto-default.sh --graded-only > .tdd/graded-rebase.out; graded=$?; }
+   [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ "$graded" = 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
    gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)" -f body="<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human>"
    ```
@@ -1550,15 +1552,23 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    That bail keys on `⟦ci-repair⟧` only: a ledger holding a `⟦suite-repair⟧` step and no
    `⟦ci-repair⟧` step still gets its one CI repair attempt.
    A `wait-ci.sh` exit 2 whose stderr names a conflict — the PR conflicts with its base
-   branch, so no workflow will start on it — is not a timeout. Rebase onto
-   `origin/<default>` once, through the existing rebase path of sub-step 1: `touch
-   .tdd/ci-conflict-rebased`, then `$S/rebase-onto-default.sh`, its `develop-rebase` leaf and
-   rebase verifier (`verify-rebase`) when it conflicts, the regrade block and then the full suite once on the rebased
-   tip, and the push under the lease pinned to `<pre-rebase-sha>` — then wait for CI again
-   with the same `wait-ci.sh` line. There too `rebase-onto-default.sh`'s exit code decides the
-   next action, so nothing after it — the rebased tip's full test run in particular — is
-   started until it has returned, and never in the same message as the rebase. A second conflict, with `.tdd/ci-conflict-rebased`
-   already present, does **bail**, with cause `ci-conflict`, rather than rebasing again (`Read` `<base directory>/BAIL.md`).
+   branch, so no workflow will start on it — is not a timeout. The conflict is first offered to
+   `$S/rebase-onto-default.sh --graded-only`, which resolves a conflict confined to `GRADED` files
+   by unit — the branch's line for each unit it signs, the base's line for every other unit — and
+   prints `<pre-rebase-sha>` then the onto sha, or aborts and exits non-zero leaving HEAD where it
+   stood. Its exit 0 touches no `.tdd/ci-conflict-rebased` and never spends the run's one rebase: it goes on
+   with the regrade block, the full suite once on the rebased tip, the push under the lease pinned
+   to the printed `<pre-rebase-sha>`, and the same `wait-ci.sh` line, a red rebased tip taking
+   sub-step 1's `rebased-tip-red` bail with its reset. Its non-zero exit takes the rule unchanged:
+   with `.tdd/ci-conflict-rebased` absent, `touch .tdd/ci-conflict-rebased` and rebase onto
+   `origin/<default>` once, through the existing rebase path of sub-step 1: `$S/rebase-onto-default.sh`
+   (no flag), its `develop-rebase` leaf and rebase verifier (`verify-rebase`) when it conflicts, the
+   regrade block and then the full suite once on the rebased tip, and the push under the lease pinned
+   to `<pre-rebase-sha>` — then wait for CI again with the same `wait-ci.sh` line; with it present,
+   **bail** with cause `ci-conflict`, rather than rebasing again (`Read` `<base directory>/BAIL.md`).
+   There too `rebase-onto-default.sh`'s exit code decides the next action, so nothing after it — the
+   rebased tip's full test run in particular — is started until it has returned, and never in the
+   same message as the rebase. Sub-step 1's own rebase takes no flag and does not change.
    The `metrics:` push starts a CI run of its own on the readied PR, so it is read the same
    way, by `wait-ci.sh` after the push; a red there (exit 1) is a CI-only failure on code
    that was already green, so it appends one `⟦ci-repair⟧` step to the ledger with the same
