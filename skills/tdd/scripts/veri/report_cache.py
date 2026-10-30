@@ -14,6 +14,7 @@ import tunables
 USAGE = "usage: report-cache.sh refresh\n"
 PAGE_SIZE = 100
 SEARCH_CAP = 1000
+CACHE_FORMAT = 2
 FIELDS ="number,title,state,labels,closedAt,updatedAt,body,comments"
 
 
@@ -63,9 +64,13 @@ def read_issue_page(size, *search):
             time.sleep(float(tunables.read("VERI_PAGE_RETRY_SLEEP", "2")))
 
 
+def now_stamp():
+    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def fetch_pages(since=None):
     bound = [since] if since else []
-    first, size = read_issue_page(PAGE_SIZE, *(["--search", since] if since else []))
+    first, size = read_issue_page(PAGE_SIZE, "--search", " ".join(bound + ["sort:updated-desc"]))
     if len(first) < size:
         return first
     seen = {}
@@ -95,11 +100,13 @@ def refresh():
                 before = json.load(existing)
             search = "updated:>=" + before["fetched_at"]
             loaded = {issue["number"]: issue for issue in before["issues"]}
+            current = before.get("format") == CACHE_FORMAT
         except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError) as failure:
             sys.stderr.write("report-cache.sh: %s is unreadable (%s), rebuilding\n" % (path, failure))
         else:
-            kept = loaded
-            since = search
+            kept = loaded if current else {}
+            since = search if current else None
+    fetched_at = now_stamp()
     try:
         issues = fetch_pages(since)
     except github.NoAnswer as failure:
@@ -112,12 +119,11 @@ def refresh():
         issue["lane"] = lane(comments)
     kept.update({issue["number"]: issue for issue in issues})
     issues = list(kept.values())
-    fetched_at = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     os.makedirs(tdd, exist_ok=True)
     fd, temp = tempfile.mkstemp(dir=tdd, prefix="report-cache.json.", suffix=".tmp")
     try:
         with os.fdopen(fd, "w") as out:
-            json.dump({"fetched_at": fetched_at, "issues": issues}, out)
+            json.dump({"format": CACHE_FORMAT, "fetched_at": fetched_at, "issues": issues}, out)
         os.replace(temp, path)
     except BaseException:
         os.unlink(temp)

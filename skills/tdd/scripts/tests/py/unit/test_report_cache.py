@@ -166,7 +166,7 @@ def test_refresh_with_a_cache_asks_only_for_issues_updated_since_fetched_at_and_
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
-    before = {"fetched_at": "2026-10-01T00:00:00Z", "issues": [
+    before = {"format": report_cache.CACHE_FORMAT, "fetched_at": "2026-10-01T00:00:00Z", "issues": [
         {"number": 7, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
          "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None},
         {"number": 8, "title": "stale", "state": "OPEN", "labels": [], "closedAt": None,
@@ -195,7 +195,7 @@ def test_refresh_with_a_cache_asks_only_for_issues_updated_since_fetched_at_and_
     cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
     titles = {i["number"]: i["title"] for i in cache["issues"]}
     assert (code, asked, titles, cache["fetched_at"] > before["fetched_at"]) == (
-        0, [["updated:>=2026-10-01T00:00:00Z"]], {7: "kept", 8: "fresh", 9: "new"}, True)
+        0, [["updated:>=2026-10-01T00:00:00Z sort:updated-desc"]], {7: "kept", 8: "fresh", 9: "new"}, True)
 
 
 def test_refresh_whose_gh_read_fails_exits_2_with_one_stderr_line_and_leaves_the_cache_byte_identical(run_cli, monkeypatch, tmp_path):
@@ -206,7 +206,7 @@ def test_refresh_whose_gh_read_fails_exits_2_with_one_stderr_line_and_leaves_the
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
     cache_file = tmp_path / ".tdd" / "report-cache.json"
-    cache_file.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "issues": [
+    cache_file.write_text(json.dumps({"format": report_cache.CACHE_FORMAT, "fetched_at": "2026-10-01T00:00:00Z", "issues": [
         {"number": 7, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
          "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
     before = cache_file.read_bytes()
@@ -232,7 +232,7 @@ def test_refresh_whose_gh_read_is_unparseable_exits_2_with_one_stderr_line_and_l
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
     cache_file = tmp_path / ".tdd" / "report-cache.json"
-    cache_file.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "issues": [
+    cache_file.write_text(json.dumps({"format": report_cache.CACHE_FORMAT, "fetched_at": "2026-10-01T00:00:00Z", "issues": [
         {"number": 7, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
          "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
     before = cache_file.read_bytes()
@@ -391,7 +391,7 @@ def test_refresh_with_a_truncated_cache_names_it_on_stderr_rebuilds_with_a_full_
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        searched.append("--search" in args)
+        searched.append("updated:>=" in " ".join(args))
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -417,7 +417,7 @@ def test_refresh_with_a_cache_lacking_fetched_at_names_it_on_stderr_rebuilds_wit
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        searched.append("--search" in args)
+        searched.append("updated:>=" in " ".join(args))
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -444,7 +444,7 @@ def test_refresh_with_a_cache_lacking_issues_names_it_on_stderr_rebuilds_with_a_
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        searched.append("--search" in args)
+        searched.append("updated:>=" in " ".join(args))
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -471,7 +471,7 @@ def test_refresh_with_a_cache_that_is_a_json_list_names_it_on_stderr_rebuilds_wi
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        searched.append("--search" in args)
+        searched.append("updated:>=" in " ".join(args))
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -498,7 +498,7 @@ def test_refresh_with_a_cache_that_is_a_json_null_names_it_on_stderr_rebuilds_wi
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        searched.append("--search" in args)
+        searched.append("updated:>=" in " ".join(args))
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -517,7 +517,7 @@ def test_refresh_with_a_corrupt_cache_and_a_failing_gh_issue_list_exits_2_with_t
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
     cache = tmp_path / ".tdd" / "report-cache.json"
-    cache.write_text('{"fetched_at": "2026-10-01T00:00:00Z", "issues": [{"numb')
+    cache.write_text('{"format": report_cache.CACHE_FORMAT, "fetched_at": "2026-10-01T00:00:00Z", "issues": [{"numb')
     before = cache.read_bytes()
 
     def fake_run(args, **kwargs):
@@ -539,7 +539,7 @@ def test_refresh_with_a_well_formed_cache_searches_updated_since_fetched_at_and_
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
     cache = tmp_path / ".tdd" / "report-cache.json"
-    cache.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "issues": [
+    cache.write_text(json.dumps({"format": report_cache.CACHE_FORMAT, "fetched_at": "2026-10-01T00:00:00Z", "issues": [
         {"number": 7, "title": "old", "state": "OPEN", "labels": [], "closedAt": None,
          "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
     calls = []
@@ -554,7 +554,7 @@ def test_refresh_with_a_well_formed_cache_searches_updated_since_fetched_at_and_
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
     searches = [c[c.index("--search") + 1] for c in calls if "--search" in c]
-    assert (code, err, searches) == (0, "", ["updated:>=2026-10-01T00:00:00Z"])
+    assert (code, err, searches) == (0, "", ["updated:>=2026-10-01T00:00:00Z sort:updated-desc"])
 
 
 def test_two_refreshes_interleaved_mid_write_leave_a_cache_that_parses_whole_from_one_writer_2160(run_cli, monkeypatch, tmp_path):
@@ -630,7 +630,7 @@ def test_refresh_with_a_cache_that_is_not_utf8_names_it_on_stderr_rebuilds_with_
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        searched.append("--search" in args)
+        searched.append("updated:>=" in " ".join(args))
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -656,7 +656,7 @@ def test_refresh_with_a_cache_whose_fetched_at_is_not_a_string_names_it_on_stder
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        searched.append("--search" in args)
+        searched.append("updated:>=" in " ".join(args))
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -908,7 +908,7 @@ def test_refresh_with_a_well_formed_cache_retries_a_failed_gh_read_pages_the_upd
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
     cache = tmp_path / ".tdd" / "report-cache.json"
-    cache.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "issues": [
+    cache.write_text(json.dumps({"format": report_cache.CACHE_FORMAT, "fetched_at": "2026-10-01T00:00:00Z", "issues": [
         {"number": 900, "title": "old", "state": "OPEN", "labels": [], "closedAt": None,
          "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
     updated = [
@@ -938,7 +938,7 @@ def test_refresh_with_a_well_formed_cache_retries_a_failed_gh_read_pages_the_upd
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
     kept = sorted(i["number"] for i in json.loads(cache.read_text())["issues"])
-    assert (code, searches[0], kept) == (0, "updated:>=2026-10-01T00:00:00Z", list(range(1, 251)) + [900])
+    assert (code, searches[0], kept) == (0, "updated:>=2026-10-01T00:00:00Z sort:updated-desc", list(range(1, 251)) + [900])
 
 
 def test_refresh_with_a_well_formed_cache_bounds_every_later_page_by_fetched_at_so_older_issues_stay_out_2279(run_cli, monkeypatch, tmp_path):
@@ -950,7 +950,7 @@ def test_refresh_with_a_well_formed_cache_bounds_every_later_page_by_fetched_at_
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
     cache = tmp_path / ".tdd" / "report-cache.json"
-    cache.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "issues": [
+    cache.write_text(json.dumps({"format": report_cache.CACHE_FORMAT, "fetched_at": "2026-10-01T00:00:00Z", "issues": [
         {"number": 900, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
          "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
     recent = [
@@ -1147,3 +1147,127 @@ def test_refresh_with_no_cache_and_1700_issues_sharing_one_updated_at_second_und
     kept = sorted(i["number"] for i in json.loads(written.read_text())["issues"]) if written.exists() else None
     everything = sorted(i["number"] for i in issues)
     assert (code == 0 and kept == everything) or (code != 0 and kept is None), (code, None if kept is None else len(kept))
+
+
+class FakeIssues:
+    """gh issue list over a list of issues: an unsorted query answers newest-created first, as gh does."""
+
+    def __init__(self, issues):
+        self.issues = issues
+        self.searches = []
+        self.on_read = lambda: None
+
+    def run(self, args, **kwargs):
+        import json
+        import re
+        import subprocess
+
+        args = [str(arg) for arg in args]
+        if args[:3] != ["gh", "issue", "list"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        search = args[args.index("--search") + 1] if "--search" in args else ""
+        self.searches.append(search)
+        rows = [dict(issue) for issue in self.issues]
+        low = re.search(r"updated:>=(\S+)", search)
+        high = re.search(r"updated:<=(\S+)", search)
+        rows = [r for r in rows if (not low or r["updatedAt"] >= low.group(1)) and (not high or r["updatedAt"] <= high.group(1))]
+        if "sort:updated-desc" in search:
+            rows.sort(key=lambda r: r["updatedAt"], reverse=True)
+        else:
+            rows.sort(key=lambda r: r["number"], reverse=True)
+        limit = int(args[args.index("--limit") + 1])
+        self.on_read()
+        return subprocess.CompletedProcess(args, 0, json.dumps(rows[:limit]), "")
+
+
+def _issue(number, updated):
+    return {"number": number, "title": "t", "state": "OPEN", "labels": [], "closedAt": None, "updatedAt": updated}
+
+
+def _late_updates(start, end):
+    """Issues start..end-1, the lowest numbers updated last, so newest-created first hides them from page one."""
+    return [_issue(n, "2026-10-%02dT%02d:00:00Z" % (2 + (end - n) // 24, (end - n) % 24)) for n in range(start, end)]
+
+
+def test_2709_a_first_build_returns_every_issue_when_the_lowest_numbers_were_updated_last(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    fake = FakeIssues(_late_updates(1, 151))
+    monkeypatch.setattr(subprocess, "run", fake.run)
+
+    code, _, _ = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
+    assert (code, len(cache["issues"])) == (0, 150)
+
+
+def test_2709_an_incremental_refresh_returns_every_issue_in_a_window_longer_than_a_page(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
+        {"format": report_cache.CACHE_FORMAT, "fetched_at": "2026-10-01T00:00:00Z", "issues": []}))
+    fake = FakeIssues(_late_updates(1, 151))
+    monkeypatch.setattr(subprocess, "run", fake.run)
+
+    code, _, _ = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
+    assert (code, len(cache["issues"])) == (0, 150)
+
+
+def test_2709_an_issue_updated_while_a_refresh_fetches_is_read_by_the_next_refresh(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    clock = ["2026-10-30T12:00:00Z"]
+    monkeypatch.setattr(report_cache, "now_stamp", lambda: clock[0])
+    fake = FakeIssues([_issue(1, "2026-10-01T00:00:00Z")])
+
+    def updated_mid_fetch():
+        clock[0] = "2026-10-30T12:00:05Z"
+        fake.on_read = lambda: None
+        snapshot = [dict(issue) for issue in fake.issues]
+        fake.issues[0]["updatedAt"] = "2026-10-30T12:00:03Z"
+        fake.issues[0]["state"] = "CLOSED"
+        fake.issues, fake.after = snapshot, fake.issues
+
+    fake.on_read = updated_mid_fetch
+    monkeypatch.setattr(subprocess, "run", fake.run)
+    assert run_cli(report_cache, ["refresh"], cwd=tmp_path)[0] == 0
+    fake.issues = fake.after
+
+    assert run_cli(report_cache, ["refresh"], cwd=tmp_path)[0] == 0
+
+    cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
+    assert [issue["state"] for issue in cache["issues"]] == ["CLOSED"]
+
+
+def test_2709_a_cache_from_before_the_paging_fix_is_rebuilt_in_full_and_a_current_one_is_not(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    cache_file = tmp_path / ".tdd" / "report-cache.json"
+    skipped = _issue(1, "2026-09-01T00:00:00Z")
+    fake = FakeIssues([skipped])
+    monkeypatch.setattr(subprocess, "run", fake.run)
+    cache_file.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "issues": []}))
+
+    assert run_cli(report_cache, ["refresh"], cwd=tmp_path)[0] == 0
+    rebuilt = json.loads(cache_file.read_text())
+    assert ([i["number"] for i in rebuilt["issues"]], "updated:>=" in fake.searches[0]) == ([1], False)
+
+    fake.searches.clear()
+    assert run_cli(report_cache, ["refresh"], cwd=tmp_path)[0] == 0
+    assert "updated:>=" in fake.searches[0]
