@@ -454,3 +454,62 @@
 | QF1 | The fragment opens with the bold lead "This step repairs a fixture." and says the script under test is correct: the defect is in the fixture, stub or helper the step names, in the fixture file it names. (First two sentences.) | The verifier judges a change to a test fixture, not to production. |
 | QF2 | It tells the verifier to REJECT, naming the path or hunk, any change outside the target test's file, the named fixture file and Red's case. (Third sentence.) | A fixture repair may touch only those files; anything else is a hidden change. |
 | QF3 | It tells the verifier to PASS only when the target case passes with every change confined to those. (Last sentence.) | The repair is proven by the target case, within the permitted files. |
+
+## skills/tdd/scripts/prompts/develop-replaces-report.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| RX1 | The prompt says the leaf's earlier Red report is the file `{{REPORT_FILE}}`, and that it carries no `REPLACES:` line for each of the cases below, so the step cannot be checked. (Phase paragraph, first two sentences.) | The leaf is told which file is wrong and why the run cannot go on. |
+| RX2 | The prompt tells the leaf to read the report and answer with a corrected one that carries a `REPLACES: <case> => <test id>` line for every one of those cases, the case name exactly as the step spells it. (Phase paragraph, third sentence.) | The conductor checks each named case against one line; a missing or respelled name leaves the step uncheckable again. |
+| RX3 | The phase paragraph carries a `{{NODE_ID_RULE}}` slot right after the request for the corrected report and before the sentence on the listed case names. (Phase paragraph.) | The rule for what a test id is comes from one shared fragment, so this prompt and the Red prompt state it the same way. |
+| RX4 | The phase paragraph ends by saying the listed case names are the exact strings to copy into the REPLACES: lines, and that they take precedence over anything the issue's prose says about how to spell a case name. (Phase paragraph, last sentence.) | The earlier report failed on case names; the listed strings, not the issue's wording, are what the check matches. |
+| RX5 | Under their own headings the prompt gives the leaf the cases with no REPLACES: line (`{{MISSING_CASES}}`), the step (`{{STEP}}`) and the issue's behavior spec as context (`{{ISSUE_SPEC}}`). (Sections before "What to do".) | The leaf needs the exact cases to answer for and the step they come from. |
+| RX6 | What to do tells the leaf to change no test and no production file, because only the report is wrong, and not to run a suite. (What to do.) | The tests already passed verification; this leaf only rewrites a report, so any file change is out of scope. |
+| RX7 | The prompt ends with a report section whose last line is `REPLACES: <case> => <test id>`, and declares the format `replaces-report` with key `REPLACES:` as suite exempt, because the report is corrected and no file changed. (Report section.) | The conductor reads the declared key, and no suite line is owed when nothing ran. |
+
+## skills/tdd/scripts/prompts/_develop-red-cases-replaces-case.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| RK1 | The fragment says the step replaces cases, so it is not one criterion, one case: the leaf writes one pytest replacement case for each bash case the step named, each in its own `def test_...`, with no extra cases and no generality the step does not ask for. (First sentence.) | A replaces-case step owes one replacement per named case, so the one-case rule of an ordinary Red does not apply. |
+| RK2 | The fragment asks the leaf, for each of them, to report one line `REPLACES: <case name> => <pytest test id>` for each case the step named, the case name exactly as the step spells it, without the quote characters the step wraps it in. (Second sentence.) | The conductor matches each line against the step's case names; a quoted or respelled name matches none. |
+| RK3 | The fragment ends with an include of `_develop-node-id-rule.md`, right after the sentence asking for the `REPLACES:` lines. (Last line, the include.) | What the test id must look like is stated once, in the shared fragment. |
+
+## skills/tdd/scripts/prompts/_develop-red-cases.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| CS1 | The fragment says one criterion, one case: no extra cases, and no generality the step does not ask for. (The whole fragment.) | An ordinary Red pins one criterion with one case, so the verifier can judge it alone. |
+
+## skills/tdd/scripts/prompts/_develop-node-id-rule.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| NI1 | The fragment says the test id is the pytest node id, `<path from the repository root>::<test name>`. (The whole fragment, first clause.) | The id is run and looked up as given, so it must name the case from the repository root. |
+| NI2 | The fragment says the line starts at column 0 with no bullet or other prefix. (The whole fragment, second clause.) | The `REPLACES:` line is read from the start of a line; a bullet hides it. |
+
+## skills/tdd/scripts/prompts/_develop-red-lead.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| RL1 | The fragment tells the leaf to add exactly **ONE** new failing test case, and to write **NO** production code, both words in bold capitals. (The whole fragment.) | An ordinary Red adds one failing case and no product code, so the Green that follows has one thing to make pass. |
+
+## skills/tdd/scripts/prompts/_develop-red-ci-repair.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| RI1 | The fragment opens by saying, in bold, that this step repairs a red CI run. (First sentence.) | The leaf must know the failure it answers comes from CI, not from this machine. |
+| RI2 | The fragment says the failing CI job's log quoted in the step text, with its test id and assertion diff, is this step's evidence of failure, whatever the case does on this machine. (Second sentence.) | A CI-only failure may not reproduce locally; the quoted log is what proves it. |
+| RI3 | The fragment says that if the case passes locally the leaf reports `AGAINST_UNMODIFIED: PASSES` as it is, and that on this step that does not make it a pin, because the failure it answers is the CI one. (Last sentence.) | A local pass is reported honestly without turning a CI repair into a pin step. |
+
+## skills/tdd/scripts/prompts/_develop-red-bug.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| UG1 | The fragment's heading says the issue is a bug, so Red is a reproduction. (Heading.) | The leaf switches from specifying new behaviour to reproducing a reported defect. |
+| UG2 | The fragment says the spec below carries a `## Bug` section, the report as it was filed, which means this step's case is a reproduction rather than a fresh specification. (First paragraph, first sentence.) | It names where the reproduction's inputs come from. |
+| UG3 | The fragment tells the leaf to write the test from *Expected*: that is the behaviour the code owes and the assertion the case makes. (First paragraph, second sentence.) | The assertion pins what the code should do, not what it did. |
+| UG4 | The fragment tells the leaf to drive the test with *Steps to reproduce*, using *Environment* only to tell an incidental detail of the reporter's setup from a condition the behaviour depends on. (First paragraph, third sentence.) | The case reproduces the report without hard-coding the reporter's machine. |
+| UG5 | The fragment tells the leaf, before it reports, to confirm the case fails with the behaviour *What happened* describes, not with a missing symbol, an import error or a typo, each of which is a red bar that says nothing about the reported defect. (First paragraph, fourth sentence.) | Only a failure of the reported shape proves the case reproduces the bug. |
+| UG6 | The fragment says a failure of any other shape is the test's own bug: it is step 4's divergence, and the test is what changes. (First paragraph, last sentence.) | A wrong-shaped failure is fixed in the test, not passed on to Green. |
+| UG7 | The fragment tells the leaf to name the case so it carries `#<n>`, the issue's number, in whatever the project's test-naming idiom already is, because once it is green it stays as this bug's regression test and the number says which report it stands for. (Second paragraph.) | The regression test stays traceable to the report it guards. |
