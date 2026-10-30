@@ -54,6 +54,10 @@ def main(argv):
             return 2
     here = paths.scripts_of(__file__)
     base = os.path.dirname(here)
+    try:
+        subprocess.run([os.path.join(here, "update-veri.sh")])
+    except OSError:
+        pass
     head_rev = "HEAD"
     if git(base, "remote", "get-url", "origin",
            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:

@@ -515,6 +515,51 @@ def test_main_on_a_pinned_launch_seeds_the_gitignore_only_when_absent_writes_an_
     }
 
 
+def test_main_on_a_fresh_run_runs_update_veri_before_resolving_the_pin_so_the_recorded_commit_is_the_updated_one(
+        tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    old, new = "1" * 40, "2" * 40
+    updated = []
+
+    def answer(args, *_, **kwargs):
+        args = list(args)
+        code, out = 0, ""
+        if any("update-veri" in str(arg) for arg in args):
+            updated.append(args)
+            code = 0
+        elif args[:1] == ["git"] and args[3:] == ["remote", "get-url", "origin"]:
+            code = 2
+        elif args[:1] == ["git"] and args[3:4] == ["rev-parse"]:
+            code, out = (0, (new if updated else old) + "\n") if args[4:] == ["HEAD"] else (128, "")
+        elif args[:1] == ["git"] and "for-each-ref" in args:
+            out = "refs/heads/tdd/4242-run\n"
+        if not (kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")):
+            out = out.encode()
+        return subprocess.CompletedProcess(args, code, out, b"" if not kwargs.get("text") else "")
+
+    def check_output(args, *a, **kwargs):
+        done = answer(args, *a, **kwargs)
+        if done.returncode:
+            raise subprocess.CalledProcessError(done.returncode, done.args, done.stdout, done.stderr)
+        return done.stdout
+
+    def popen(args, *_, **__):
+        return FakeProcess(list(args))
+
+    patch_process_boundary(
+        monkeypatch,
+        {"run": answer, "call": lambda *a, **k: answer(*a, **k).returncode,
+         "check_call": lambda *a, **k: answer(*a, **k).returncode, "check_output": check_output, "Popen": popen},
+        lambda _name, *args, **__: updated.append(list(args)) if any("update-veri" in str(a) for a in args) else None)
+    monkeypatch.chdir(tmp_path)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    run_conductor.main(["4242"])
+    capfdbinary.readouterr()
+    assert (tmp_path / ".tdd" / "issue-4242-skill-commit").read_text() == new + "\n"
+
+
 def test_main_run_from_a_subdirectory_of_the_repo_makes_the_run_state_at_the_repo_root_and_leaves_no_tdd_in_the_subdirectory_1895(
         tmp_path, monkeypatch, capfdbinary):
     past_the_guards(monkeypatch)
@@ -809,13 +854,35 @@ def fake_claude_launch(monkeypatch):
         process.poll = lambda *_, **__: 0
         return process
 
+    real_check_output = subprocess.check_output
+
+    def check_output(args, *a, **kwargs):
+        if list(args)[:1] == ["git"]:
+            return real_check_output(args, *a, **kwargs)
+        launched(list(args), kwargs)
+        return b""
+
     patch_process_boundary(
         monkeypatch,
         {"run": answer, "call": lambda *a, **k: answer(*a, **k).returncode,
-         "check_call": lambda *a, **k: answer(*a, **k).returncode, "Popen": popen},
+         "check_call": lambda *a, **k: answer(*a, **k).returncode, "check_output": check_output, "Popen": popen},
         lambda _name, *args, **__: launches.append({"os": _name, "args": args}),
         extra_os=("setsid", "setpgid"))
     return launches
+
+
+def runs_update_veri(argv):
+    return any(os.path.basename(str(word)) == "update-veri.sh" for word in argv)
+
+
+def without_update_veri(launches):
+    return [launch for launch in launches if not runs_update_veri(launch.get("argv", []))]
+
+
+def after_update_veri(launches):
+    """The launches past the one update-veri.sh, which a fresh run makes first of all."""
+    assert [i for i, launch in enumerate(launches) if runs_update_veri(launch.get("argv", []))] == [0], launches
+    return launches[1:]
 
 
 @pytest.mark.parametrize("claude_bin,program", [(None, "claude"), ("", "claude"), ("fake-claude", "fake-claude")])
@@ -844,6 +911,7 @@ def test_main_launches_exactly_one_claude_with_the_fixed_print_mode_argv_and_no_
     code = run_conductor.main(["4242"])
 
     capfdbinary.readouterr()
+    launches = after_update_veri(launches)
     assert code == 0
     observed = [{key: value for key, value in dict(launch, argv=launch["argv"][:1] + launch["argv"][-4:],
                                                    stdin=b"# the procedure, read from SKILL.md" in launch.get("stdin", b"")).items()
@@ -876,6 +944,7 @@ def test_main_with_no_model_variable_set_launches_claude_with_model_opus(tmp_pat
     code = run_conductor.main(["4242"])
 
     capfdbinary.readouterr()
+    launches = after_update_veri(launches)
     assert code == 0
     assert len(launches) == 1
     argv = launches[0]["argv"]
@@ -904,6 +973,7 @@ def test_main_with_veri_model_conductor_set_to_a_value_launches_claude_with_that
     code = run_conductor.main(["4242"])
 
     capfdbinary.readouterr()
+    launches = after_update_veri(launches)
     assert code == 0
     assert len(launches) == 1
     argv = launches[0]["argv"]
@@ -932,6 +1002,7 @@ def test_main_with_veri_model_conductor_set_but_empty_launches_claude_with_model
     code = run_conductor.main(["4242"])
 
     capfdbinary.readouterr()
+    launches = after_update_veri(launches)
     assert code == 0
     assert len(launches) == 1
     argv = launches[0]["argv"]
@@ -1038,7 +1109,7 @@ def test_main_hands_claude_skill_md_stripped_of_trailing_newlines_then_the_base_
     codes = [run_conductor.main(["abc", "extra", "more"])]
     capfdbinary.readouterr()
     recorded = "".join(f.read_text() for f in sorted((unpinned / ".tdd").glob("*")) if f.is_file())
-    answers["unpinned"] = ([launch["stdin"] for launch in launches],
+    answers["unpinned"] = ([launch["stdin"] for launch in after_update_veri(launches)],
                            (str(scratch / "veri-run-abc-") in recorded, str(os.getpid()) in recorded))
 
     pinned = tmp_path / "pinned"
@@ -1046,7 +1117,7 @@ def test_main_hands_claude_skill_md_stripped_of_trailing_newlines_then_the_base_
     monkeypatch.chdir(pinned)
     calls = fake_pin(monkeypatch, commit, set())
     fake_snapshot(monkeypatch, calls, 0, 0)
-    popen, run, stdins, snapshots = subprocess.Popen, subprocess.run, [], []
+    popen, run, stdins, snapshots, updates = subprocess.Popen, subprocess.run, [], [], []
 
     def tar_extracts_a_skill_md_with_trailing_newlines(args, *a, **kwargs):
         process = popen(args, *a, **kwargs)
@@ -1055,7 +1126,16 @@ def test_main_hands_claude_skill_md_stripped_of_trailing_newlines_then_the_base_
             pathlib.Path(args[-1], "SKILL.md").write_text("# the committed procedure\n\n")
         return process
 
+    check_output = subprocess.check_output
+
+    def update_noted(args, *a, **kwargs):
+        if runs_update_veri(args):
+            updates.append(len(snapshots))
+        return check_output(args, *a, **kwargs)
+
     def claude_reads_stdin(args, *a, **kwargs):
+        if runs_update_veri(args):
+            updates.append(len(snapshots))
         if list(args)[:1] == ["fake-claude"]:
             data = kwargs.get("input")
             stdins.append(data.encode() if isinstance(data, str) else (data or b""))
@@ -1063,11 +1143,12 @@ def test_main_hands_claude_skill_md_stripped_of_trailing_newlines_then_the_base_
 
     monkeypatch.setattr(subprocess, "Popen", tar_extracts_a_skill_md_with_trailing_newlines)
     monkeypatch.setattr(subprocess, "run", claude_reads_stdin)
+    monkeypatch.setattr(subprocess, "check_output", update_noted)
     codes.append(run_conductor.main(["abc", "extra"]))
     capfdbinary.readouterr()
     answers["pinned"] = (stdins, (pinned / ".tdd" / "issue-abc-skill-commit").read_text())
 
-    assert (len(snapshots), codes) == (1, [0, 0])
+    assert (len(snapshots), codes, updates) == (1, [0, 0], [0])
     assert answers == {
         "unpinned": ([("# the procedure\n\nlast line"
                        "\n\nBase directory for this skill: %s\n"
@@ -1123,7 +1204,7 @@ def test_main_given_a_claude_bin_whose_path_carries_the_session_id_runs_that_bin
     run, environments = subprocess.run, []
 
     def claude_records_its_environment(args, *a, **kwargs):
-        if list(args)[:1] != ["git"]:
+        if list(args)[:1] != ["git"] and not runs_update_veri(args):
             environments.append((kwargs.get("env") or os.environ).get("CLAUDE_BIN"))
         return run(args, *a, **kwargs)
 
@@ -1132,7 +1213,7 @@ def test_main_given_a_claude_bin_whose_path_carries_the_session_id_runs_that_bin
     code = run_conductor.main(["4242"])
 
     capfdbinary.readouterr()
-    assert (code, [launch["argv"][0] for launch in launches], environments) == (0, [stub], [stub])
+    assert (code, [launch["argv"][0] for launch in after_update_veri(launches)], environments) == (0, [stub], [stub])
 
 
 def test_main_records_the_skill_repin_event_then_hands_claude_no_veri_new_skill_every_other_veri_variable_and_an_ambient_veri_skill_commit_unpinned_or_veri_skill_unpinned_pinned(
@@ -3914,7 +3995,7 @@ def test_main_with_the_issue_body_fetch_unanswered_writes_one_skip_line_on_stder
     skips = [line for line in stderr.splitlines() if "issue body unavailable" in line]
     assert skips == ["run-conductor.sh: issue body unavailable, Requirements row IDs unchecked"]
     assert code == 0
-    assert len(launches) == 1
+    assert len(after_update_veri(launches)) == 1
 
 
 def test_main_with_a_requirements_row_id_of_bare_next_refuses_in_preflight_naming_it_and_launches_no_conductor_issue_2373(
@@ -3941,7 +4022,7 @@ def test_main_with_a_requirements_row_id_of_bare_next_refuses_in_preflight_namin
     code = run_conductor.main(["4242"])
 
     stderr = capfdbinary.readouterr().err.decode(errors="replace")
-    assert (code, len(launches), "<next>" in stderr) == (2, 0, True)
+    assert (code, len(without_update_veri(launches)), "<next>" in stderr) == (2, 0, True)
 
 
 def test_main_with_well_formed_requirements_rows_beside_other_tables_launches_the_conductor_once_issue_2373(
@@ -3970,7 +4051,7 @@ def test_main_with_well_formed_requirements_rows_beside_other_tables_launches_th
     code = run_conductor.main(["4242"])
 
     capfdbinary.readouterr()
-    assert (code, len(launches)) == (0, 1)
+    assert (code, len(after_update_veri(launches))) == (0, 1)
 
 
 def test_main_with_an_empty_issue_body_from_gh_writes_only_the_skip_line_on_stderr_and_still_launches_the_conductor_issue_2373(
@@ -3998,7 +4079,7 @@ def test_main_with_an_empty_issue_body_from_gh_writes_only_the_skip_line_on_stde
     stderr = capfdbinary.readouterr().err.decode(errors="replace")
     issue_body_lines = [line for line in stderr.splitlines() if "issue body" in line or "JSONDecodeError" in line]
     assert issue_body_lines == ["run-conductor.sh: issue body unavailable, Requirements row IDs unchecked"]
-    assert (code, len(launches)) == (0, 1)
+    assert (code, len(after_update_veri(launches))) == (0, 1)
 
 
 def test_main_with_a_non_json_issue_body_from_gh_writes_only_the_skip_line_on_stderr_and_still_launches_the_conductor_issue_2373(
@@ -4026,7 +4107,7 @@ def test_main_with_a_non_json_issue_body_from_gh_writes_only_the_skip_line_on_st
     stderr = capfdbinary.readouterr().err.decode(errors="replace")
     issue_body_lines = [line for line in stderr.splitlines() if "issue body" in line or "JSONDecodeError" in line]
     assert issue_body_lines == ["run-conductor.sh: issue body unavailable, Requirements row IDs unchecked"]
-    assert (code, len(launches)) == (0, 1)
+    assert (code, len(after_update_veri(launches))) == (0, 1)
 
 
 def test_cli_with_the_issue_body_fetch_unanswered_exits_with_the_conductors_own_code_not_2_issue_2373(
@@ -4074,7 +4155,7 @@ def test_main_with_multi_digit_and_prefix_next_requirements_row_ids_passes_the_r
     code = run_conductor.main(["4242"])
 
     stderr = capfdbinary.readouterr().err.decode(errors="replace")
-    assert (code, len(launches), "neither" in stderr) == (0, 1, False)
+    assert (code, len(after_update_veri(launches)), "neither" in stderr) == (0, 1, False)
 
 
 def test_main_runs_the_procedure_from_the_recorded_skill_commit_refuses_an_unresolvable_one_with_2_and_re_pins_only_under_veri_new_skill_2483(
