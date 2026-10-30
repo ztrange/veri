@@ -261,15 +261,30 @@ def _body_record(line):
     return line[6:].split("\t") if line.startswith("body: ") else None
 
 
-def _kept_cases(record, name):
+def _recorded_digests(record, name):
     try:
         with open(record, encoding="utf-8") as handle:
-            held = {r[1] for r in map(_body_record, handle.read().splitlines()) if r and r[0] == name}
+            return {r[1]: r[2] for r in map(_body_record, handle.read().splitlines()) if r and r[0] == name}
     except OSError:
-        return []
-    _, new = _head_and_new_cases(name)
-    present = [at for at, (case, _) in enumerate(new) if case in held]
-    return [case for first in present[:1] for case in new[first:]]
+        return {}
+
+
+def _kept_cases(record, name):
+    """The recorded cases of `name` that HEAD still has, each recorded case gone from it replaced by its renamed
+    successor. A case a later step added to the file is in no record of this step, so it is never kept."""
+    held = _recorded_digests(record, name)
+    with open(name, encoding="utf-8", errors="replace") as handle:
+        text = handle.read()
+    new = _cases(text)
+    names = {case for case, _ in new}
+    owned = names & set(held)
+    consumed = set(owned)
+    for case, digest in held.items():
+        if case not in names:
+            other = _renamed_to(name, case, digest, text, consumed)
+            if other and other in names:
+                owned.add(other)
+    return [(case, body) for case, body in new if case in owned]
 
 
 def _recorded_cases_intact(record, name):
@@ -558,6 +573,10 @@ def main(argv):
                 for name in files:
                     added = _added_cases(name)
                     kept = [c for c in _kept_cases(record, name) if c[0] not in {a[0] for a in added}]
+                    if _recorded_digests(record, name) and not kept and not added:
+                        write(sys.stderr, "tests-frozen.sh: step %s: every case recorded for %s is gone from HEAD "
+                              "with no renamed successor: nothing left to record\n" % (step, name))
+                        return 2
                     for case, body in added + kept:
                         lines += ["case: %s\n" % case,
                                   "body: %s\t%s\t%s\n" % (name, case, _body_digest(body))]

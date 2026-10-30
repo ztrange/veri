@@ -2851,3 +2851,31 @@ def test_rerecord_rebased_exits_2_naming_the_record_when_writing_a_stale_cases_r
     code = tests_frozen.rerecord_rebased(str(repo / ".tdd/ledger.md"), before)
 
     assert (code, record.name in capfd.readouterr().err, record.read_bytes() == old) == (2, True, True)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked for a renamed case and the work tree diffed against HEAD")
+def test_rerecord_on_head_records_the_renamed_successor_and_the_pin_the_step_adds_but_not_a_later_steps_case_2673(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "test_suite.py"
+    case = "def test_%s():\n    assert %d\n"
+    suite.write_text(case % ("base", 0))
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "test_suite.py")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "the step that owns the cases"
+    suite.write_text("\n\n".join([case % ("base", 0), case % ("rejects_a_body_that_is_not_valid_json", 3),
+                                  case % ("one", 1), case % ("two", 2)]))
+    run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
+    git(tmp_path, "commit", "-q", "-am", "the step's cases")
+    suite.write_text(suite.read_text().replace("rejects_a_body", "rejects_to_a_body"))
+    git(tmp_path, "commit", "-q", "-am", "a rename")
+    suite.write_text(suite.read_text() + "\n\n" + case % ("later_step", 9))
+    git(tmp_path, "commit", "-q", "-am", "a later step's case")
+    suite.write_text(suite.read_text() + "\n\n" + case % ("pin", 4))
+
+    code = run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)[0]
+
+    record = (tmp_path / tests_frozen._record_path(step)).read_text()
+    assert (code, sorted(l[6:] for l in record.splitlines() if l.startswith("case: "))) == (
+        0, ["test_one", "test_pin", "test_rejects_to_a_body_that_is_not_valid_json", "test_two"])
