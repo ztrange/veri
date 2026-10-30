@@ -215,10 +215,25 @@ def passes_in(gate, cwd):
     return done.returncode == 0, done.stdout.decode("utf-8", "replace")
 
 
+def fails_at_head(gate, output):
+    scratch = tempfile.mkdtemp(prefix="veri-head-")
+    try:
+        git("worktree", "add", "--detach", scratch + "/tree", "HEAD~1")
+        try:
+            passed, before_output = passes_in(gate, scratch + "/tree")
+            return not passed and before_output == output
+        finally:
+            git("worktree", "remove", "--force", scratch + "/tree")
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+
+
 def red_gate_failure():
     for gate in (g.strip() for g in tunables.read("VERI_TEST_CMD").split("&&")[:-1]):
         passed, output = passes_in(gate, ".")
         if not passed:
+            if fails_at_head(gate, output):
+                return "verify: %s is red before the Red (a pre-existing red suite, not the Red's fault)" % gate
             return "GATE: %s fails on the Red's tree: %s" % (gate, output.rstrip().rsplit("\n", 1)[-1].strip())
     return None
 
@@ -277,6 +292,9 @@ def main(argv):
             return 1
     if words[0] == "red":
         failure = red_gate_failure()
+        if failure and failure.startswith("verify: "):
+            write(sys.stderr, failure)
+            return 2
         if failure:
             write(sys.stdout, failure)
             return 1
