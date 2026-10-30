@@ -18,7 +18,7 @@ ALLOWED = {
     "test_skill_event_marks.py::test_the_exit_3_case_still_names_a_mark_planted_in_the_exit_3_branch_by_its_line":
         "plants a mark in a copy of the subsection and checks the guard names it",
     "unit/test_skill_green_split.py::test_1281_skill_md_s_three_split_add_ledger_step_calls_pass_no_criterion_and_say_a_split_keeps_its_anchor_s_criterion_the_uncovered_spec_call_passes_criterion_k_read_from_the_issue_s_numbered_acceptance_criteria_one_call_per_criterion_bailing_on_exit_2":
-        "carves the subsection out by its heading to read the other add-ledger-step call sites",
+        "reads the subsection's own instead-of add-ledger-step call, the one statement of the split",
     "unit/test_skill_green_split.py::test_1379_skill_md_s_every_add_ledger_step_sh_call_site_says_its_exit_2_bails_with_cause_step_add_refused":
         "carves the subsection out by its heading to read the other add-ledger-step call sites",
 }
