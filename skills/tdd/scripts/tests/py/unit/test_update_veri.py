@@ -244,3 +244,23 @@ def test_main_exits_2_with_one_stderr_line_naming_the_record_and_leaves_the_clon
     moved = [a for a in calls if {"fetch", "merge", "pull", "reset", "checkout", "stash"} & set(a)]
     assert (code, moved) == (2, [])
     assert out == "" and err.count("\n") == 1 and "record" in err.lower()
+
+
+def test_main_consent_yes_and_consent_no_each_write_that_answer_as_the_self_update_record_creating_its_directory_and_exit_0_without_touching_git(
+        tmp_path, run_cli, update_veri, monkeypatch):
+    calls = []
+
+    def fake_git(*args, **_):
+        calls.append(args)
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr(update_veri, "git", fake_git, raising=False)
+    results, records = {}, {}
+    for answer in ("yes", "no"):
+        record = tmp_path / answer / "nested" / "self-update"
+        results[answer] = run_cli(update_veri, ["--consent", answer], env={"VERI_SELF_UPDATE_FILE": str(record)})
+        records[answer] = record.read_text().strip() if record.exists() else None
+
+    assert results == {"yes": (0, "", ""), "no": (0, "", "")}
+    assert records == {"yes": "yes", "no": "no"}
+    assert calls == []

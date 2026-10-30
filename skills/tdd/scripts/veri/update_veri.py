@@ -18,12 +18,17 @@ def refuse(reason, code=1):
 
 
 def main(argv):
+    record = os.environ.get("VERI_SELF_UPDATE_FILE") or os.path.expanduser("~/.veri-tools/self-update")
+    if len(argv) == 2 and argv[0] == "--consent" and argv[1] in ("yes", "no"):
+        os.makedirs(os.path.dirname(record), exist_ok=True)
+        with open(record, "w") as f:
+            f.write(argv[1] + "\n")
+        return 0
     if argv:
         print(USAGE, file=sys.stderr)
         return 2
     if os.environ.get("VERI_SELF_UPDATE") == "0":
         return refuse("VERI_SELF_UPDATE=0")
-    record = os.environ.get("VERI_SELF_UPDATE_FILE") or os.path.expanduser("~/.veri-tools/self-update")
     if os.path.exists(record):
         answer = open(record).read().strip()
         if answer == "no":
