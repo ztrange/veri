@@ -1,0 +1,1 @@
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_tunable_reads.py — FAILED skills/tdd/scripts/tests/py/unit/test_tunable_reads.py::test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment - update_veri.py:21 and :30 read VERI_ names directly from the environment ⟦suite-repair⟧ ⟦criterion 2⟧
