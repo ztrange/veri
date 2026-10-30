@@ -549,3 +549,13 @@
 | CO10 | Item 8 says a step that moves or reshapes runtime code is never `unreachable` or `type-only`, and that reachable code no test watches is `COVERED: no`. (Numbered list, item 8.) | The two escapes must not excuse uncovered runtime code. |
 | CO11 | The numbered list has eight items in this order: find the code (1), copy then break it (2), run the covering suites (3), restore and prove the tree unchanged (4), then the answers for not covered (5), unreachable (6), type-only (7) and reshaped runtime code (8). (Numbered list.) | The copy comes before the break, and the restore after the run that watches the break. |
 | CO12 | The prompt ends by asking, in its last lines, for `MUTATION:` (the edit, in one line), `COVERED: yes \| no \| unreachable \| type-only`, `CAUGHT_BY:` (the test that went red, or NONE on no) and `PROOF:` (the callers and why none reaches the code, or the type-check command run green; NONE otherwise). (Report section.) | The conductor reads fixed lines to decide whether the transform may proceed. |
+
+## skills/tdd/scripts/prompts/develop-cover-new.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| CN1 | The prompt says this is the cover-new phase of an interface change: the expand phase added the new interface, and before any caller moves onto it, it gets tests of its own; cases are added and production stays frozen. (Opening paragraph.) | The leaf must know which interface phase it is in and what it may touch. |
+| CN2 | Step 1 tells the leaf to add cases that call the new interface directly, each pinning a behaviour the step names, and to leave every existing case and every caller as they are. (Numbered list, item 1.) | The new interface gets its own tests before callers move, without disturbing existing ones. |
+| CN3 | Step 3 tells the leaf to commit the change as `test: <what changed> (#<issue>)`. (Numbered list, item 3, first sentence.) | The commit carries the issue number. |
+| CN4 | Step 3 tells the leaf never to modify a production file: a cover-new commit that touches one is rejected. (Numbered list, item 3, second sentence.) | The frozen half of the phase is enforced by rejection. |
+| CN5 | The numbered list has three items in this order: add the cases (1), run the suites covering the touched files (2, an included fragment), commit (3). (Numbered list.) | The cases are proven green before they are committed. |
