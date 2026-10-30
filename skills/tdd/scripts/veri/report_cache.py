@@ -100,6 +100,7 @@ def refresh():
         else:
             kept = loaded
             since = search
+    fetched_at = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     try:
         issues = fetch_pages(since)
     except github.NoAnswer as failure:
@@ -112,7 +113,6 @@ def refresh():
         issue["lane"] = lane(comments)
     kept.update({issue["number"]: issue for issue in issues})
     issues = list(kept.values())
-    fetched_at = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     os.makedirs(tdd, exist_ok=True)
     fd, temp = tempfile.mkstemp(dir=tdd, prefix="report-cache.json.", suffix=".tmp")
     try:
