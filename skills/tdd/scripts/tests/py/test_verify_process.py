@@ -126,3 +126,28 @@ def test_verify_sh_red_whose_lint_gate_passes_and_whose_only_failure_is_the_targ
         cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert (done.returncode, "GATE:" in done.stdout, launched.exists()) == (0, False, True), done.stdout + done.stderr
+
+
+@pytest.mark.process("verify.sh red run as a real shim over veri/verify.py in a throwaway git repo whose"
+                     " VERI_TEST_CMD chains a passing lint gate, an empty segment and a real test runner, around a stub claude")
+def test_verify_sh_red_whose_test_command_has_an_empty_gate_segment_runs_and_reports_no_empty_gate_and_launches_the_verifier(
+        tmp_path):
+    head = committed_head(tmp_path)
+    (tmp_path / "spec.md").write_text("the behavior spec\n")
+    (tmp_path / ".gitignore").write_text(".tdd/\n")
+    (tmp_path / "lint.sh").write_text("echo 'lint: all clean'\n")
+    (tmp_path / "run-tests.sh").write_text("echo 'FAILED tests/test_slugify.py::test_lowercases - assert 1 == 2'\nexit 1\n")
+    launched = tmp_path / ".tdd" / "leaf-launched"
+    claude = tmp_path / "claude-pass"
+    claude.write_text(f"#!/bin/sh\ntouch {launched}\nprintf 'VERDICT: PASS\\nREASON: fine.'\n")
+    claude.chmod(0o755)
+    env = {"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+           "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01",
+           "VERI_TEST_CMD": "sh lint.sh && && sh run-tests.sh",
+           **checked_step(tmp_path, head)}
+
+    done = subprocess.run(
+        [str(SCRIPTS / "verify.sh"), "red", "spec.md", "tests/test_slugify.py", "test_lowercases"],
+        cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    assert (done.returncode, "GATE:" in done.stdout, launched.exists()) == (0, False, True), done.stdout + done.stderr
