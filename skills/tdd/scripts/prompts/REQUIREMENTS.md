@@ -559,3 +559,17 @@
 | CN3 | Step 3 tells the leaf to commit the change as `test: <what changed> (#<issue>)`. (Numbered list, item 3, first sentence.) | The commit carries the issue number. |
 | CN4 | Step 3 tells the leaf never to modify a production file: a cover-new commit that touches one is rejected. (Numbered list, item 3, second sentence.) | The frozen half of the phase is enforced by rejection. |
 | CN5 | The numbered list has three items in this order: add the cases (1), run the suites covering the touched files (2, an included fragment), commit (3). (Numbered list.) | The cases are proven green before they are committed. |
+
+## skills/tdd/scripts/prompts/develop-transform.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| TF1 | The prompt says this is a refactor run, that the cover phase has shown the code this step moves is covered, and tells the leaf to apply the one named refactoring below and commit it. (Opening paragraph, first two sentences.) | The leaf starts from proven coverage and applies exactly one refactoring. |
+| TF2 | The prompt says behaviour does not change: every test that was green stays green, and no test file is touched. (Opening paragraph, last sentence.) | A refactor that changes a test could hide a behaviour change. |
+| TF3 | The prompt says the step's criterion is a shell predicate stating the smell, false before this step and true after; it is the step's red, and the transform is what makes it true. (Paragraph after "The refactoring to apply".) | The leaf's success is measured by the predicate, not by a new test. |
+| TF4 | Step 1 tells the leaf to apply exactly the refactoring the step names: no other transform, no behaviour change. (Numbered list, item 1.) | One step is one transform, so the diff stays reviewable. |
+| TF5 | Step 2 tells the leaf to run the step's predicate and confirm it now holds. (Numbered list, item 2.) | The predicate is the step's criterion. |
+| TF6 | Step 4 tells the leaf to commit the transform as `refactor: <what changed> (#<issue>)`. (Numbered list, item 4, first sentence.) | The commit carries the issue number. |
+| TF7 | Step 4 tells the leaf never to modify a test file: a transform commit that touches one is rejected. (Numbered list, item 4, second sentence.) | The frozen half of the phase is enforced by rejection. |
+| TF8 | The numbered list has four items in this order: apply the refactoring (1), confirm the predicate holds (2), run the suites covering the touched files (3, an included fragment), commit (4). (Numbered list.) | The predicate and the suites are proven before the commit. |
+| TF9 | After the included report fragment, the prompt asks for a `PREDICATE: HOLDS \| FAILS` line and a `SUITE: GREEN \| RED — <the final summary line of that run>` line. (Lines after the report include.) | The conductor reads fixed lines for the predicate and the suite result. |
