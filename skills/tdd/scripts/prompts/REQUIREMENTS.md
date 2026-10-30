@@ -411,3 +411,46 @@
 | ID | Requirement | Why |
 |---|---|---|
 | FB1 | The fragment gives the beyond-spec flag shape: the class `beyond-spec`, then ` \| `, then `<what it names>`. (The whole fragment.) | A flag for something the spec does not ask for names it, so it becomes a follow-up rather than work in this run. |
+
+## skills/tdd/scripts/prompts/_verify-green-replaces-case.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| QR1 | The fragment opens with the `{{INCLUDE:_replaces-case-lead.md}}` line and continues that line's sentence with "is to assert instead". (First line, up to the first full stop.) | The shared lead names the step's cases; this half says the pytest case is what now asserts their behaviour. |
+| QR2 | It tells the verifier to PASS only if every named case is gone from its suite and each has a pytest case asserting its behaviour, the same behaviour that bash case asserted. (Second sentence, before the semicolon.) | A replaces-case step is done only when every named case is both deleted and replaced like for like. |
+| QR3 | It tells the verifier to REJECT a deletion or modification of any case the step does not name, or of any other case. (Second sentence, after the semicolon.) | The permission to delete covers the named cases only. |
+
+## skills/tdd/scripts/prompts/_replaces-case-lead.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| RH1 | The fragment opens with the bold lead "This step replaces cases." (First sentence.) | The leaf sees at once that the step is a replacement, not new behaviour. |
+| RH2 | It says the step's text names one suite path and one or more of that suite's bash cases, each by its exact name. (Second sentence, up to "each by its exact name".) | A step may replace several cases, and each is named exactly so it can be found and deleted. |
+| RH3 | The second sentence stops unfinished after "whose behaviour a pytest case", with no verb and no full stop; the text that includes the fragment completes it. (Second sentence, its last clause.) | The develop and verify paragraphs share this lead and each finishes the sentence its own way. |
+
+## skills/tdd/scripts/prompts/_verify-green-suite-repair.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| QS1 | The fragment opens with the bold lead "This step repairs the full run." and says the step's text lists every suite the full command left red, each with the name of its first failing case. (First two sentences.) | The verifier knows which suites the repair must turn green. |
+| QS2 | It tells the verifier to PASS only when every listed suite is green, judged by running the full test command itself rather than the fast command. (Third sentence, before the semicolon.) | A full-run repair is proven only on the command that went red. |
+| QS3 | It says a listed suite still red is a REJECT. (Third sentence, after the semicolon.) | One suite left red means the repair is not done. |
+
+## skills/tdd/scripts/prompts/_verify-green-ci-repair.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| QC1 | The fragment opens with the bold lead "This step repairs a failure that reproduces only on CI." (First sentence.) | The verifier knows the usual local evidence does not exist for this step. |
+| QC2 | It says the step's local suites are green both before and after the fix, so it is not judged by the local check that the target goes red when the fix is removed, and tells the verifier to skip that check. (Second sentence.) | A revert-goes-red check cannot fail locally for a CI-only failure, so demanding it would reject every such fix. |
+| QC3 | It says the evidence is what exists before the push: the failing CI job's log before the fix. (Third sentence.) | The CI log is the only record of the failure. |
+| QC4 | It tells the verifier to PASS when the step quotes that log, the diff touches what the failure names, and the local suites are green. (Fourth sentence.) | These are the three things checkable before the push. |
+| QC5 | It tells the verifier never to require a CI run on the fix, because until after the push no CI run exists, and says that the step's latest CI run being the red one that created it is expected. (Fifth sentence.) | Requiring a green CI run before the push is unsatisfiable, and the red run is the step's origin, not a fault. |
+| QC6 | It says a green CI run on the pushed fix is the verdict of `wait-ci.sh` after the verifier's PASS, where red bails `ci-red`. (Last sentence.) | The CI verdict is someone else's check, made after the push. |
+
+## skills/tdd/scripts/prompts/_verify-green-fixture-repair.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| QF1 | The fragment opens with the bold lead "This step repairs a fixture." and says the script under test is correct: the defect is in the fixture, stub or helper the step names, in the fixture file it names. (First two sentences.) | The verifier judges a change to a test fixture, not to production. |
+| QF2 | It tells the verifier to REJECT, naming the path or hunk, any change outside the target test's file, the named fixture file and Red's case. (Third sentence.) | A fixture repair may touch only those files; anything else is a hidden change. |
+| QF3 | It tells the verifier to PASS only when the target case passes with every change confined to those. (Last sentence.) | The repair is proven by the target case, within the permitted files. |

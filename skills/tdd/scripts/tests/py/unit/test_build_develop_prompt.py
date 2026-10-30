@@ -1093,15 +1093,9 @@ def test_main_permits_a_replaces_case_green_to_delete_exactly_the_cases_its_step
                                              "test_zorblat_frobs_a_nitz", "make unit"])
         prompts[(name, "revise green")] = rendered(["revise", "green", s, step, "make test", r])
 
-    def says(prompt, pattern):
-        return prompt is not None and re.search(pattern, prompt, re.I) is not None
-
     fragment = _fragment("_develop-green-replaces-case.md", after_include=True)
-    one_only = rb"^(?!.*(names one bash case|that one case))"
 
     assert {key: (["carries the replaces-case fragment"] if prompt is None or fragment not in prompt else [])
-            + (["never confines a several-case step to one case"]
-               if key[0] == "several" and not says(prompt, one_only) else [])
             for key, prompt in prompts.items()} == dict.fromkeys(prompts, [])
 
 

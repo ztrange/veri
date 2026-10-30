@@ -780,6 +780,12 @@ def test_1713_the_plan_prompt_rejects_a_red_green_step_that_changes_pinned_promp
     assert re.search(rejects, plan) is not None
 
 
+def _fragment_line(name):
+    """First line of the fragment's own file holding no `{{…}}` slot, whitespace-flattened: in a render that carries the fragment."""
+    lines = [line.strip() for line in (SCRIPTS / "prompts" / name).read_text().splitlines() if line.strip() and "{{" not in line]
+    return re.sub(r"\s+", " ", lines[0]).encode()
+
+
 @pytest.mark.tree_audit("the templates under prompts/")
 def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_case_and_suite_repair_paragraphs_for_their_phase_alone_renders_the_comment_rules_byte_identical_unmarked_green_and_resolves_or_refuses_includes(
         tmp_path, capsysbinary, build_verify_prompt):
@@ -803,6 +809,9 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
 
     def has(out, pattern, flags=re.I):
         return re.search(pattern.encode(), out.replace(b"\n", b" "), flags) is not None
+
+    def line_in(out, fragment):
+        return _fragment_line(fragment) in re.sub(rb"\s+", b" ", out)
 
     def cksum(data):
         crc = 0
@@ -837,8 +846,6 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
                                                   "skills/tdd/scripts/tests/zorblat.test.sh", "zorblat frobs a nitz"])
     one_refactoring = r"REJECT[^.]{0,200}(one|a single|named) refactoring|(one|a single|named) refactoring[^.]{0,200}REJECT"
     runnable = r"REJECT[^.]{0,200}(runnable|shell)[^.]{0,40}predicate|(runnable|shell)[^.]{0,40}predicate[^.]{0,200}REJECT"
-    gone = r"(gone|deleted|removed|no longer)"
-    every_suite = r"(every|each|all)( of the)? (listed|red|named) suites?"
     not_reject = r"\b(not|never)\b[^.]{0,40}REJECT"
     hazard = r"shell[^.]{0,40}hazard"
     included, _ = scratch(tmp_path, "included", templates={
@@ -870,17 +877,10 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
             phase: [has(out, rf"contract header[^.]{{0,200}}{not_reject}|{not_reject}[^.]{{0,200}}contract header"),
                     has(out, rf"{hazard}[^.]{{0,200}}{not_reject}|{not_reject}[^.]{{0,200}}{hazard}")]
             for phase, out in (("green", green), ("refactor", refactor))},
-        "replaces-case": (replaces_green[0],
-                          has(replaces_green[1], r"PASS[^.]{0,250}pytest[^.]{0,120}same behaviou?r"),
-                          has(replaces_green[1], rf"PASS[^.]{{0,250}}named (bash )?case[^.]{{0,60}}{gone}"),
-                          has(replaces_green[1], r"REJECT[^.]{0,200}(delet|modif)[^.]{0,80}(any|every) other (bash )?case"
-                                                 r"|(delet|modif)[^.]{0,80}(any|every) other (bash )?case[^.]{0,200}REJECT"),
-                          has(green, r"PASS[^.]{0,250}pytest")),
-        "suite-repair": (repair_green[0],
-                         has(repair_green[1], rf"PASS[^.]{{0,250}}{every_suite}[^.]{{0,80}}green"),
-                         has(repair_green[1], r"run[^.]{0,120}full test command|full test command[^.]{0,120}(run|judge)"),
-                         has(repair_green[1], r"(not|rather than|instead of)[^.]{0,60}fast (test )?command"),
-                         has(green, r"run[^.]{0,120}full test command")),
+        "replaces-case": (replaces_green[0], line_in(replaces_green[1], "_verify-green-replaces-case.md"),
+                          line_in(green, "_verify-green-replaces-case.md")),
+        "suite-repair": (repair_green[0], line_in(repair_green[1], "_verify-green-suite-repair.md"),
+                         line_in(green, "_verify-green-suite-repair.md")),
         "replaces-case unreadable": unreadable_paragraph(
             "no-replaces-case", "_verify-green-replaces-case.md",
             ["--step", replaces_step, "--fast-cmd", "make unit", "green", s, "tests/py/test_zorblat.py",
@@ -904,8 +904,8 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
         "#679 no-op": True,
         "rationale comment": {"green": [True] * 3, "refactor": [True] * 3},
         "contract header not grounds": {"green": [True] * 2, "refactor": [True] * 2},
-        "replaces-case": (0, True, True, True, False),
-        "suite-repair": (0, True, True, True, False),
+        "replaces-case": (0, True, False),
+        "suite-repair": (0, True, False),
         "replaces-case unreadable": (2, b"", True, [0]),
         "suite-repair unreadable": (2, b"", True, [0, 0]),
         "#671 byte-identity": [(0, "1933796141 8186"), (0, "605695461 7910")],
@@ -959,43 +959,6 @@ def test_main_states_the_signal_only_processes_you_started_rule_in_every_phase_f
     }
 
 
-def test_main_passes_a_replaces_case_green_only_when_every_case_its_step_names_is_gone_and_has_a_pytest_case_and_rejects_touching_any_case_it_does_not_name_one_or_several(
-        tmp_path, capsysbinary, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
-    several = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob", '
-               '"zorblat refuses an empty nitz" move to tests/py/test_zorblat.py ⟦criterion 1⟧')
-    one = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz" moves to '
-           'tests/py/test_zorblat.py ⟦criterion 1⟧')
-
-    def rendered(step):
-        code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit", "green", str(spec),
-                                         "tests/py/test_zorblat.py", "test_zorblat_frobs_a_nitz"])
-        out, _ = capsysbinary.readouterr()
-        return re.sub(rb"\s+", b" ", out) if code == 0 else None
-
-    prompts = {"several": rendered(several), "one": rendered(one)}
-
-    def says(prompt, pattern):
-        return prompt is not None and re.search(pattern, prompt, re.I) is not None
-
-    rules = {
-        "passes only when every named case is gone from its suite": (
-            rb"PASS[^.]{0,250}(every|each|all)[^.]{0,30}(named|cases? (it|the step|its text) names)[^.]{0,60}"
-            rb"(gone|deleted|removed|no longer)"),
-        "and each has a pytest case asserting its behaviour": (
-            rb"(each|every)[^.]{0,80}pytest case[^.]{0,40}assert[^.]{0,30}(its|their) behaviou?r"),
-        "rejects deleting or modifying any case the step does not name": (
-            rb"REJECT[^.]{0,200}(delet|modif)[^.]{0,80}(any|a) case (it|the step|its text) does not name"),
-    }
-    one_only = rb"^(?!.*(names one bash case|the named case is gone))"
-
-    assert {key: [rule for rule, pattern in rules.items() if not says(prompt, pattern)]
-            + (["never confines a several-case step to one case"]
-               if key == "several" and not says(prompt, one_only) else [])
-            for key, prompt in prompts.items()} == dict.fromkeys(prompts, [])
-
-
 def test_main_renders_a_ci_repair_green_prompt_judged_by_ci_evidence_and_not_by_the_revert_goes_red_check_and_an_unmarked_green_prompt_carries_no_such_paragraph_1473(
         tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
@@ -1010,20 +973,9 @@ def test_main_renders_a_ci_repair_green_prompt_judged_by_ci_evidence_and_not_by_
 
     marked = rendered("zorblat sorts on CI only ⟦ci-repair⟧ ⟦criterion 1⟧")
     unmarked = rendered("zorblat sorts ⟦criterion 1⟧")
+    line = _fragment_line("_verify-green-ci-repair.md")
 
-    rules = {
-        "evidence is the failing CI job's log before the fix": (
-            rb"CI job'?s? log[^.]{0,80}before the fix|before the fix[^.]{0,80}CI job'?s? log"),
-        "and a green CI run on the pushed fix": rb"green CI run[^.]{0,40}(pushed )?fix",
-        "not judged by the local revert-goes-red check": (
-            rb"not judged by[^.]{0,120}(local|revert|goes red|removed)"),
-    }
-
-    def says(prompt, pattern):
-        return re.search(pattern, prompt, re.I) is not None
-
-    assert ([rule for rule, pattern in rules.items() if not says(marked, pattern)],
-            [rule for rule, pattern in rules.items() if says(unmarked, pattern)]) == ([], list(rules)[:0])
+    assert (line in marked, line in unmarked) == (True, False)
 
 
 def test_main_renders_the_fixture_repair_paragraph_in_the_green_prompt_of_a_marked_step_only_rejecting_a_named_path_or_hunk_and_passing_only_when_confined_1021(
@@ -1044,13 +996,10 @@ def test_main_renders_the_fixture_repair_paragraph_in_the_green_prompt_of_a_mark
     base = "a" * 40
     prompts = {"marked green": rendered(marked, "green", "case"), "unmarked green": rendered(unmarked, "green", "case"),
                "marked red": rendered(marked, "red", "case"), "marked refactor": rendered(marked, "refactor", base)}
-    reject = rb"REJECT, naming the path or hunk, any change outside the target test's file, the named fixture file"
-    passes = rb"PASS only when the target case passes with every change confined to those"
+    line = _fragment_line("_verify-green-fixture-repair.md")
 
-    assert {key: (re.search(reject, prompt) is not None, re.search(passes, prompt) is not None)
-            for key, prompt in prompts.items()} == {
-        "marked green": (True, True), "unmarked green": (False, False),
-        "marked red": (False, False), "marked refactor": (False, False)}
+    assert {key: line in prompt for key, prompt in prompts.items()} == {
+        "marked green": True, "unmarked green": False, "marked red": False, "marked refactor": False}
 
 
 def test_main_gives_a_green_prompt_the_replaces_case_paragraph_only_to_a_step_whose_trailing_marks_include_the_mark_not_one_that_mentions_it_in_prose_or_backticks_1538(
@@ -1100,32 +1049,6 @@ def test_main_renders_no_ci_repair_green_paragraph_for_a_step_naming_the_mark_mi
         tmp_path, capsysbinary, build_verify_prompt):
     assert _green_paragraph_by_trailing_marker(
         tmp_path, capsysbinary, build_verify_prompt, "ci-repair", rb"repairs a failure that reproduces only on CI") == [False, True]
-
-
-def test_main_renders_a_ci_repair_green_prompt_that_passes_on_evidence_from_before_the_push_and_leaves_the_verdict_on_the_pushed_fix_to_wait_ci_1473(
-        tmp_path, capsysbinary, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
-    code = build_verify_prompt.main(["--step", "zorblat sorts on CI only ⟦ci-repair⟧ ⟦criterion 1⟧",
-                                     "--fast-cmd", "make unit", "green", str(spec),
-                                     "tests/py/test_zorblat.py", "test_zorblat_frobs_a_nitz"])
-    out, _ = capsysbinary.readouterr()
-    prompt = re.sub(rb"\s+", b" ", out)
-    assert code == 0
-
-    rules = {
-        "passes on the quoted CI failure, a diff touching what it names and the local suites green": (
-            rb"PASS[^.]{0,200}(quote|log)[^.]{0,200}diff[^.]{0,120}touch[^.]{0,200}(local|suites?)[^.]{0,60}green"),
-        "never requires a CI run on the fix": (
-            rb"(never|not|no)[^.]{0,40}(require|need|expect|wait)[^.]{0,40}(CI run|run on the fix|green run)"),
-        "because none exists before the push": rb"(before|until|after)[^.]{0,40}(push|PASS)[^.]{0,120}(CI run|exists?)",
-        "the CI verdict on the pushed fix is wait-ci.sh's, red bailing ci-red": (
-            rb"wait-ci\.sh[^.]{0,200}ci-red|ci-red[^.]{0,200}wait-ci\.sh"),
-        "does not reject a step whose latest CI run is still the red one": (
-            rb"^(?!.*run still red is a REJECT)"),
-    }
-
-    assert [rule for rule, pattern in rules.items() if re.search(pattern, prompt, re.I) is None] == []
 
 
 def test_main_renders_an_expand_and_a_migrate_verify_prompt_stating_what_each_phase_changes_and_that_test_files_stay_frozen(
