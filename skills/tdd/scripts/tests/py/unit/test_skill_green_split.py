@@ -43,7 +43,7 @@ def split_calls():
 
 
 def test_1281_skill_md_s_three_split_add_ledger_step_calls_pass_no_criterion_and_say_a_split_keeps_its_anchor_s_criterion_the_uncovered_spec_call_passes_criterion_k_read_from_the_issue_s_numbered_acceptance_criteria_one_call_per_criterion_bailing_on_exit_2():
-    splits = [(n, line) for n, line in split_calls() if "instead-of" in line]
+    splits = [(n, line) for n, line in numbered(r'\$S/add-ledger-step\.sh (--criterion [^ ]+ )?\.tdd/.*instead-of')]
     assert splits, "SKILL.md has no instead-of add-ledger-step.sh call"
     for n, line in filter(in_skill_md, splits):
         assert "--criterion" not in line.strip(), f"SKILL.md's split call passes --criterion: {line.strip()}"
