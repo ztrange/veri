@@ -242,3 +242,10 @@
 | GC1 | The fragment completes the sentence opened by the included `_replaces-case-lead.md` fragment with "now asserts", then says the leaf is permitted, and it is required for the step to pass, to delete exactly the cases the step names, one or several. (First sentence, up to the colon.) | A replaces-case step moves cases, so the old ones must go. |
 | GC2 | The fragment says deleting them is required, not optional, even when the replacement already passes on unchanged code. (First sentence, after the colon.) | A replacement that passes at once still leaves the old case to delete. |
 | GC3 | The fragment tells the leaf never to modify or delete any other case, nor any case the step does not name. (Last sentence.) | The permission covers only the named cases. |
+
+## skills/tdd/scripts/prompts/_develop-green-suite-repair.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| GU1 | The fragment opens with "**This step repairs the full run.**" and says the step's text lists every suite the full command left red, each with the name of its first failing case. (First two sentences.) | The leaf must know the step covers several suites, not one test. |
+| GU2 | The fragment tells the leaf to make every listed suite green, not just the one named as the failing test, because a suite still red sends the run to bail. (Last sentence.) | A repair that greens one suite of several does not repair the run. |
