@@ -28,6 +28,9 @@ def main(argv):
     if branch != default:
         print(f"update-veri.sh: clone is on {branch}, not its upstream default branch {default}", file=sys.stderr)
         return 1
+    if git("status", "--porcelain").stdout.strip():
+        print("update-veri.sh: working tree is dirty", file=sys.stderr)
+        return 1
     upstream = git("rev-parse", "--abbrev-ref", "origin/HEAD").stdout.strip()
     old = git("rev-parse", "HEAD").stdout.strip()
     new = git("rev-parse", upstream).stdout.strip()

@@ -115,3 +115,29 @@ def test_main_exits_1_with_one_stderr_line_naming_the_reason_and_leaves_the_clon
     moved = [a for a in calls if {"merge", "pull", "reset", "checkout", "stash"} & set(a)]
     assert (code, moved) == (1, [])
     assert out == "" and err.count("\n") == 1 and "branch" in err.lower()
+
+
+def test_main_exits_1_with_one_stderr_line_naming_the_reason_and_leaves_the_clone_untouched_when_the_working_tree_is_dirty(
+        tmp_path, run_cli, update_veri, monkeypatch):
+    calls = []
+
+    def fake_git(*args, **_):
+        calls.append(args)
+        out = ""
+        if "status" in args:
+            out = " M skills/tdd/SKILL.md"
+        elif "symbolic-ref" in args:
+            out = "refs/remotes/origin/main" if "refs/remotes/origin/HEAD" in args else "refs/heads/main"
+        elif "--abbrev-ref" in args:
+            out = "origin/main" if args[-1].startswith("origin") else "main"
+        elif "rev-parse" in args:
+            out = "c" * 40
+        return subprocess.CompletedProcess(args, 0, out + "\n" if out else "", "")
+
+    monkeypatch.setattr(update_veri, "git", fake_git, raising=False)
+
+    code, out, err = run_cli(update_veri, [], env={"VERI_SELF_UPDATE_FILE": str(tmp_path / "self-update")})
+
+    moved = [a for a in calls if {"merge", "pull", "reset", "checkout", "stash"} & set(a)]
+    assert (code, moved) == (1, [])
+    assert out == "" and err.count("\n") == 1 and "dirty" in err.lower()
