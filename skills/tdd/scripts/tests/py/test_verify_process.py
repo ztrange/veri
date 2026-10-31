@@ -455,7 +455,7 @@ def test_verify_sh_pin_run_from_a_subdirectory_whose_verifier_writes_only_its_mu
                      " claude that appends to the mutation record and commits before answering VERDICT: PASS")
 def test_verify_sh_pin_whose_verifier_writes_its_mutation_record_and_moves_head_is_refused_2741(tmp_path):
     done, _ = run_verify_writing(tmp_path, "pin", [".tdd/issue-2741-mutations.md"],
-                                 then="git commit -q --allow-empty -m moved\n")
+                                 then="git -c user.name=v -c user.email=v@v.invalid commit -q --allow-empty -m moved\n")
 
     assert (done.returncode, "modified the repository" in done.stdout) == (2, True), done.stdout + done.stderr
 
