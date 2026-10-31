@@ -360,6 +360,9 @@ def main(argv):
             write(sys.stdout, "verifier leaf killed-stuck — no verdict rendered (see .tdd/%s.log)" % leaf)
             return 2
         changed, head_after, tree_after = changed_paths(tree_before, head_before)
+        if tree_before and not tree_after:
+            write(sys.stderr, "verify: could not read the tree after the %s leaf; its verdict is not accepted" % leaf)
+            return 2
         # A pin's verifier records the mutations it watched fail; appending to that record alone is not a
         # tree change (#2741). Deleting or rewriting it would disarm earlier pins, so that still refuses.
         if changed and not (changed == [own_record] and appended(record_before, file_bytes(record))):
