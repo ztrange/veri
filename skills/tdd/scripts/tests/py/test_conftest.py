@@ -290,6 +290,32 @@ def test_the_unit_recipes_selection_runs_only_the_unmarked_case_and_deselects_th
     assert "1 passed, 2 deselected" in output, output
 
 
+@pytest.mark.process("a child pytest session run with --timeout=30 over an unmarked, a process and a process case with its own timeout mark")
+def test_a_process_case_without_its_own_timeout_mark_gets_90_s_while_an_unmarked_case_keeps_the_session_timeout_and_an_explicit_mark_wins(tmp_path):
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import pytest\n"
+        "def seen(request):\n"
+        "    mark = request.node.get_closest_marker('timeout')\n"
+        "    print('TIMEOUT %s %s' % (request.node.name, mark.args[0] if mark else 'session'))\n"
+        "def test_unmarked(request):\n"
+        "    seen(request)\n"
+        "@pytest.mark.process('a probe process')\n"
+        "def test_process(request):\n"
+        "    seen(request)\n"
+        "@pytest.mark.process('a probe process')\n"
+        "@pytest.mark.timeout(5)\n"
+        "def test_explicit(request):\n"
+        "    seen(request)\n")
+
+    ran = child_pytest(tmp_path, probe, os.environ, ["--timeout=30", "-s"])
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode == 0, output
+    assert sorted(re.findall(r"TIMEOUT \S+ \S+", ran.stdout)) == [
+        "TIMEOUT test_explicit 5", "TIMEOUT test_process 90", "TIMEOUT test_unmarked session"], output
+
+
 @pytest.mark.process("a child pytest session whose parametrized pair and third case each write a file into their tmp_path")
 def test_each_case_gets_a_private_empty_tmp_path_that_exists_and_a_file_left_in_one_is_absent_from_the_next(tmp_path):
     seen = tmp_path / "seen.txt"
