@@ -4,3 +4,5 @@
 - test-only | the new cases in `test_run_conductor_process.py` may share setup that could move into a helper or fixture (not inspected in detail)
 ### `git add -A` in a run's worktree holding the pinned copy stages nothing from the copy ⟦criterion 1⟧
 - test-only | extract the repeated skill-clone/repo/worktree setup, the `git` helper and the run_conductor subprocess launch shared by the four #2627 cases into fixtures or helpers
+### `$S/pinned-scripts.sh <n>` prints the directory holding run `<n>`'s pinned scripts under the run's worktree `.tdd/`, exit 0 ⟦criterion 3⟧
+- test-only | extract the repeated `subprocess.run([... "pinned-scripts.sh" ...], env={PATH, PYTHONDONTWRITEBYTECODE})` call in test_pinned_scripts_process.py into one helper
