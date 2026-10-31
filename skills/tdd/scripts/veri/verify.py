@@ -79,6 +79,16 @@ def in_temp_index(*args):
         shutil.rmtree(folder, ignore_errors=True)
 
 
+def unreadable_file_in_tree():
+    folder = tempfile.mkdtemp()
+    try:
+        added = start(["git", "add", "-A"], env={**os.environ, "GIT_INDEX_FILE": os.path.join(folder, "index")},
+                      stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        return added.returncode != 0 and b"Permission denied" in (added.stderr or b"")
+    finally:
+        shutil.rmtree(folder, ignore_errors=True)
+
+
 def head_snapshot():
     return git("rev-parse", "--verify", "HEAD").stdout.decode().rstrip("\n")
 
@@ -320,6 +330,9 @@ def main(argv):
     with open(prompt_path, "wb") as prompt:
         prompt.write(built.rstrip(b"\n"))
     tree_before = in_temp_index("write-tree")
+    if not tree_before and unreadable_file_in_tree():
+        write(sys.stderr, "verify: could not read the tree before the %s leaf; its verdict is not accepted" % leaf)
+        return 2
     head_before = head_snapshot()
     gitconfig = os.environ["HOME"] + "/.gitconfig"
     try:
