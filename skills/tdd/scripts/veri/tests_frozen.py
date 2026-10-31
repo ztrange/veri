@@ -576,11 +576,11 @@ def rerecord_refactored(ledger, green):
         return 3
 
     def rewrite(_, record, name, case, digest):
-        verified = _cases_at(green, name)[case]
-        if _body_digest(verified) != digest:
+        verified = _cases_at(green, name).get(case)
+        if verified is None or _body_digest(verified) != digest:
             return record
-        head = _cases_at("HEAD", name)[case]
-        if _assertion_lines(head) != _assertion_lines(verified):
+        head = _cases_at("HEAD", name).get(case)
+        if head is None or _assertion_lines(head) != _assertion_lines(verified):
             return record
         return _body_line(name, case, head)
     return 0 if _rewrite_records(_earlier_records(lines, ""), rewrite) else 2
