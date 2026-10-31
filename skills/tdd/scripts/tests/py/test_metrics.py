@@ -1516,7 +1516,7 @@ def test_issue_1815_a_conductor_turn_with_both_one_hour_and_five_minute_cache_wr
 def test_issue_1815_a_conductor_turn_is_priced_from_the_session_cost_price_table(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, ONE_STEP)
     for rate, dollars in {"input": 1.0, "output": 2.0, "cache_read": 3.0, "cache_write_5m": 4.0, "cache_write_1h": 5.0}.items():
-        monkeypatch.setitem(metrics.session_cost.PRICES["opus"], rate, dollars)
+        monkeypatch.setitem(importlib.import_module("prices").PRICES["opus"], rate, dollars)
     usage = {"input_tokens": 1000000, "cache_read_input_tokens": 1000000,
              "cache_creation_input_tokens": 2000000,
              "cache_creation": {"ephemeral_1h_input_tokens": 1000000, "ephemeral_5m_input_tokens": 1000000}}
@@ -1556,7 +1556,7 @@ def test_conductor_sessions_counts_a_message_repeated_across_assistant_records_o
 
 
 def test_conductor_sessions_prices_a_turn_by_the_model_its_record_names_1859(tmp_path, monkeypatch, metrics):
-    monkeypatch.setitem(metrics.session_cost.PRICES, "sonnet",
+    monkeypatch.setitem(importlib.import_module("prices").PRICES, "sonnet",
                         {"input": 1.0, "cache_read": 1.0, "cache_write_5m": 1.0, "cache_write_1h": 1.0, "output": 3.0})
     message = {"id": "msg_a", "model": "claude-sonnet-5-5", "usage": {"input_tokens": 3000000}}
     records = [{"type": "system", "subtype": "init"}, {"type": "assistant", "message": message}]
@@ -1590,7 +1590,7 @@ def recorded_opus_5_5_conductor_log():
 def test_issue_1859_the_opus_5_5_price_entry_matches_a_recorded_conductor_result_and_its_per_turn_estimate_stays_close(tmp_path, metrics):
     log, result = recorded_opus_5_5_conductor_log()
     usage = result["usage"]
-    prices = metrics.session_cost.PRICES["claude-opus-5-5"]
+    prices = importlib.import_module("prices").PRICES["claude-opus-5-5"]
 
     priced = (usage["input_tokens"] * prices["input"]
               + usage["output_tokens"] * prices["output"]
@@ -1623,7 +1623,7 @@ def test_issue_1868_a_finished_conductor_sessions_per_turn_dollars_sum_to_its_re
 def test_issue_1868_a_conductor_session_still_open_prices_each_turn_without_its_assistant_records_output_tokens(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, ONE_STEP)
     for rate, dollars in {"input": 1.0, "output": 2.0}.items():
-        monkeypatch.setitem(metrics.session_cost.PRICES["opus"], rate, dollars)
+        monkeypatch.setitem(importlib.import_module("prices").PRICES["opus"], rate, dollars)
     usage = {"input_tokens": 1000000, "output_tokens": 1000000}
     sessions = [{"type": "system", "subtype": "init"}, {"type": "assistant", "message": {"usage": usage}}]
     (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in sessions))
