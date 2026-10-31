@@ -130,7 +130,8 @@ suites, or script run as a subprocess.
 (`make unit`: `tests/py/unit/` only), launched by `skills/tdd/scripts/veri/pytest_leg.py` on
 `$VERI_VENV/bin/python3` (default `~/.veri-tools/venv`, from `make install-dev`; else PATH's
 `python3`). Admission rule: no process but the interpreter. Each case times out at 30 s
-(`VERI_PYTEST_TIMEOUT`, `@pytest.mark.timeout(n)`); a wait inside a case bounds itself below `VERI_PYTEST_TIMEOUT` (30 s by default), or its failure path is unreachable because pytest-timeout fires first; the bytecode cache
+(`VERI_PYTEST_TIMEOUT`, `@pytest.mark.timeout(n)`), a `process` case with no `timeout` mark of its own at 90 s
+(`PROCESS_CASE_TIMEOUT` in `tests/py/conftest.py`), since load stretches a real process; an explicit mark wins; a wait inside a case bounds itself below `VERI_PYTEST_TIMEOUT` (30 s by default), or its failure path is unreachable because pytest-timeout fires first; the bytecode cache
 (`PYTHONPYCACHEPREFIX`, at `VERI_PYCACHE`, default `${TMPDIR:-/tmp}/veri-pycache-<uid>`, which the Makefile and `shim-python.sh` both set when unset) persists between runs, and a manifest of source hashes keeps a changed module,
 a same-second mutation included, from being served a stale `.pyc`: before importing, the leg drops
 every `.pyc` the manifest does not vouch for, and pytest-rewritten and `.opt-N` files always

@@ -272,6 +272,14 @@ def pytest_collection_modifyitems(config, items):
         problems = reasonless_problems(table)
         if problems:
             raise pytest.UsageError("%s exemption table: %s" % (label, "; ".join(problems)))
+    default = max(PROCESS_CASE_TIMEOUT, config.getoption("timeout", None) or 0)
+    for item in items:
+        if item.get_closest_marker("process") is not None and item.get_closest_marker("timeout") is None:
+            item.add_marker(pytest.mark.timeout(default))
+
+
+# A process case starts real processes, so machine load stretches it past the 30 s a small case gets (#2724, #2679).
+PROCESS_CASE_TIMEOUT = 90
 
 
 CWD_OUTSIDE_REPOSITORY = {
