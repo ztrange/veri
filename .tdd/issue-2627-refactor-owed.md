@@ -6,3 +6,5 @@
 - test-only | extract the repeated skill-clone/repo/worktree setup, the `git` helper and the run_conductor subprocess launch shared by the four #2627 cases into fixtures or helpers
 ### `$S/pinned-scripts.sh <n>` prints the directory holding run `<n>`'s pinned scripts under the run's worktree `.tdd/`, exit 0 ⟦criterion 3⟧
 - test-only | extract the repeated `subprocess.run([... "pinned-scripts.sh" ...], env={PATH, PYTHONDONTWRITEBYTECODE})` call in test_pinned_scripts_process.py into one helper
+### Run from the main checkout with the directory absent, `pinned-scripts.sh <n>` names the commit from the main checkout's `.tdd/issue-<n>-skill-commit`, the file `run_conductor.py` records the pin in, and exits 2 with the `git archive <pin> skills/tdd/scripts` recovery line ⟦added⟧ ⟦criterion 3⟧
+- test-only | extract the repeated subprocess.run call and env in test_pinned_scripts_process.py into one helper
