@@ -946,14 +946,6 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      commit the step started from (`git log -1 --format=%H -- .tdd/issue-<n>.md`). Its exit 1
      prints each graded unit the step changed: **bail** with cause `graded-edit-outside-skill-edit`,
      a process failure, naming each unit it printed, and tick nothing (`Read` `<base directory>/BAIL.md`).
-     **After the step's last verify PASS and before that tick, run `$S/pin-recheck.sh <step-base-sha>`**,
-     the same `<step-base-sha>`: a step can disarm an earlier pin and still pass its own
-     verification, and nothing else compares them. Exit 1 is a pin that stayed green under its
-     recorded mutation: treat it as a verify-green REJECT naming that pin, spending `REVISE_BUDGET`
-     (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`), and tick nothing. Exit 2,
-     no answer, **bails** as a system failure (`Read` `<base directory>/BAIL.md`). Exit 0 prints any
-     pin that needs a look: copy each into the PR body's list of what a human owes, under
-     `## Owed by a human`. Exit 3, no record touches the range, goes on.
      ```
      $S/tick-ledger.sh --refactor-pending .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"
      git add -A && git commit -m "feat: <STEP summary> (#<n>)"
@@ -1194,7 +1186,16 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      `$S/graded-changed.sh <green-sha>` over the refactor leaf's commits: its exit 1 prints each
      graded unit they changed, and the run **bails** with cause `graded-edit-outside-skill-edit`, a
      process failure, naming each unit, with the refactor-pending mark left in place (`Read`
-     `<base directory>/BAIL.md`):
+     `<base directory>/BAIL.md`). **Also before the clear, run
+     `$S/pin-recheck.sh "$(git rev-parse <green-sha>~1)"`**, the commit before the step's green
+     commit, so the range holds the step's code: a step can disarm an earlier pin and still
+     pass its own verification, and nothing else compares them. Exit 1 is a pin that stayed
+     green under its recorded mutation: treat it as a verify-refactor REJECT naming that pin,
+     write its reason to `.tdd/verify-refactor.reason`, spend `REVISE_BUDGET` (when a verifier
+     answers `REJECT`, `Read` `<base directory>/REVISE.md`), and leave the refactor-pending mark
+     in place. Exit 2, no answer, **bails** as a system failure (`Read` `<base directory>/BAIL.md`).
+     Exit 0 prints any pin that needs a look: copy each into the PR body's list of what a human
+     owes, under `## Owed by a human`. Exit 3, no record touches the range, goes on:
      ```
      step="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$step" added=<count>
      $S/add-ledger-step.sh --criterion <k> .tdd/issue-<n>.md after "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" '<leaf or verdict uncovered-spec behaviour>' …   # one call per criterion
@@ -1297,7 +1298,9 @@ failure with cause `report-missing` (`Read` `<base directory>/BAIL.md`). The `di
 exits 0 the same check, `$S/suite-reported.sh revise-diff-<k>` for the `revise-diff-<k>` leaf, runs
 before the re-verify with the same exit 2 outcome. The verifier's verdict closes the `⟦diff-checked⟧` step:
 
-- **PASS (exit 0):** tick the `⟦diff-checked⟧` step with `tick-ledger.sh` — without
+- **PASS (exit 0):** first run `$S/pin-recheck.sh <step-base-sha>` against the step base sha,
+  its work being committed by now, and read its exit as the Refactor loop's PASS reads it, a
+  pin that stayed green being a REJECT of this step that spends `REVISE_BUDGET`. Then tick the `⟦diff-checked⟧` step with `tick-ledger.sh` — without
   `--refactor-pending`, since no refactor loop follows — commit the ledger and push it as
   Green does, post `### ✅ Step done`, then tick its criterion in the issue body with `tick-issue-criterion.sh` on
   `criterion-finished.sh` exit 0, ticking nothing on exit 3, exactly as a Refactor loop's
