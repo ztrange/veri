@@ -3143,3 +3143,16 @@ def test_rerecord_refactored_re_records_a_case_the_verified_refactor_tidied_and_
     refused = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[:2]
 
     assert (code, spared, refused) == (0, (0, ""), (1, "test_two (%s)\n" % step))
+
+
+@pytest.mark.process("git asked for the repository toplevel from a directory under tmp_path that is in none")
+def test_rerecord_refactored_run_outside_any_git_repository_exits_2_and_re_records_nothing_2626(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / ".tdd").mkdir()
+    ledger, record = tmp_path / ".tdd/issue-9.md", tmp_path / ".tdd/record"
+    ledger.write_text("- [x] step one\n")
+    record.write_text("kept\n")
+
+    code, out, _ = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", "deadbeef"], cwd=tmp_path)
+
+    assert (code, out, record.read_text()) == (2, "", "kept\n")
