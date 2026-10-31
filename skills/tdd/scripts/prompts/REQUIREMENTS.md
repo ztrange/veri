@@ -845,3 +845,15 @@
 | QF1 | The fragment opens with the bold lead "This step repairs a fixture." and says the script under test is correct: the defect is in the fixture, stub or helper the step names, in the fixture file it names. (First two sentences.) | The verifier judges a change to a test fixture, not to production. |
 | QF2 | It tells the verifier to REJECT, naming the path or hunk, any change outside the target test's file, the named fixture file and Red's case. (Third sentence.) | A fixture repair may touch only those files; anything else is a hidden change. |
 | QF3 | It tells the verifier to PASS only when the target case passes with every change confined to those. (Last sentence.) | The repair is proven by the target case, within the permitted files. |
+
+## skills/tdd/scripts/prompts/_verify-plan-refactor.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| QP1 | The fragment says this issue is a refactor: its spec carries a `## Refactor` section, so each step is one Cover → Transform → Verify cycle rather than a Red → Green → Refactor one. (Opening paragraph, first sentence.) | The plan verifier judges a different cycle shape for a refactor issue. |
+| QP2 | It says five more checks apply to the steps tagged with a criterion, the first three only to a step that is neither ⟦diff-checked⟧ nor a pin step, and five REJECT bullets follow. (Opening paragraph, last sentence, and the bullet list.) | A diff-checked or pin step has no Transform, so the refactoring checks would reject it wrongly. |
+| QP3 | The first bullet says to REJECT a step that does not name one refactoring — the single transformation, by name, that its Transform applies, such as Extract Function or Move Function — rather than paraphrasing the issue ("tidy the helpers"). (Bullet 1.) | An unnamed transformation cannot be checked against what the Transform did. |
+| QP4 | The second bullet says to REJECT a step whose smell is not stated as a runnable shell predicate in its criterion: a command that is false before the step and true after it, which the verifier can run. (Bullet 2.) | The predicate is how the refactor's effect is observed. |
+| QP5 | The third bullet says to REJECT a step that leaves a no-op in place for a later step to delete — one that makes code dead by passing a no-op (`onChange={() => {}}`) while another step deletes it; the deletion belongs in the step that makes the code dead. (Bullet 3.) | A no-op left for a later step ships dead code between steps. |
+| QP6 | The fourth bullet says to REJECT a refactor-kind plan that holds a ⟦phases: …⟧ step, because a rename that tests call is an interface change, filed without the `refactor` label. (Bullet 4.) | An interface change runs the phased procedure, not the refactor cycle. |
+| QP7 | The fifth bullet says to REJECT a refactor-kind plan that holds a step that only edits tests, unless that step is planned as ⟦diff-checked⟧ or a pin step, because a test-only criterion has no production code to transform. (Bullet 5.) | A Transform needs production code to act on. |
