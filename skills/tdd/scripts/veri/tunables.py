@@ -23,6 +23,10 @@ def with_values(**values):
     return dict(os.environ, **values)
 
 
+def without(name):
+    return {k: v for k, v in os.environ.items() if k != name}
+
+
 def read_bytes(name, default=b""):
     return os.environb.get(os.fsencode(name), default)
 
