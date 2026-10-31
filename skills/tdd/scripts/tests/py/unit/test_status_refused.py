@@ -232,3 +232,18 @@ def test_2700_json_scope_totals_attempted_counts_a_run_with_a_ledger_and_no_even
 
     document = json.loads(out)
     assert (len(document["runs"]), document["scope"]["attempted"]) == (1, 1)
+
+
+def test_2739_text_and_json_leave_unlisted_a_run_with_no_ledger_no_events_log_and_no_conductor_pid_or_a_dead_one(tmp_path, monkeypatch, capsys):
+    status = importlib.import_module("veri.status")
+    for issue in ("7", "8"):
+        (tmp_path / ".tdd" / "wt" / issue / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "wt" / "8" / ".tdd" / "conductor.pid").write_text("99999999\n")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status, "branch_of", lambda run: "b")
+
+    status.render(False, "", False)
+    text = capsys.readouterr().out
+    _, out = status.json_document(read_states=False)
+
+    assert (text.count("#7") + text.count("#8"), json.loads(out)["runs"]) == (0, [])
