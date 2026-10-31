@@ -144,6 +144,24 @@ def test_2676_the_nine_green_develop_prompt_units_are_signed_and_owe_no_grade():
 
 @pytest.mark.process("prose-owed.sh run as a script")
 @pytest.mark.tree_audit("the repository's own graded prose units")
+def test_2682_the_six_verify_fragment_units_are_listed_signed_and_owe_no_grade():
+    repo = SCRIPTS.parents[2]
+    prompts = "skills/tdd/scripts/prompts/"
+    units = [prompts + name for name in (
+        "_verify-plan-refactor.md", "_verify-comments-allowed.md", "_verify-comments-never-reject.md",
+        "_verify-red-bug.md", "_verify-coverage-probe.md", "_verify-red-fast.md")]
+    graded = {line.split()[0] for line in (repo / "skills/tdd/GRADED").read_text().splitlines() if line.strip()}
+    headings = set((repo / prompts / "REQUIREMENTS.md").read_text().splitlines())
+
+    ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(repo)], stdin=subprocess.DEVNULL,
+                         capture_output=True, text=True)
+
+    assert ([u for u in units if u not in graded], [u for u in units if "## " + u not in headings],
+            ran.returncode, ran.stdout) == ([], [], 0, ""), ran.stderr
+
+
+@pytest.mark.process("prose-owed.sh run as a script")
+@pytest.mark.tree_audit("the repository's own graded prose units")
 def test_2678_the_nine_shared_leaf_rule_units_are_signed_and_owe_no_grade():
     repo = SCRIPTS.parents[2]
     prompts = "skills/tdd/scripts/prompts/"
