@@ -66,3 +66,20 @@ def test_pinned_scripts_with_the_copy_absent_exits_2_naming_the_pin_and_the_git_
     assert pin in ran.stderr
     assert "git archive %s skills/tdd/scripts" % pin in ran.stderr
     assert ran.stdout == ""
+
+
+@pytest.mark.process("pinned-scripts.sh run from the main checkout whose pin is recorded in its own .tdd")
+def test_pinned_scripts_from_the_main_checkout_names_the_pin_recorded_there_when_the_copy_is_absent_2627(tmp_path):
+    root = tmp_path.resolve() / "repo"
+    (root / ".git").mkdir(parents=True)
+    (root / ".tdd").mkdir()
+    pin = "89abcdef0123456789abcdef0123456789abcdef"
+    (root / ".tdd" / "issue-2627-skill-commit").write_text(pin + "\n")
+
+    ran = subprocess.run(["/bin/sh", str(SCRIPTS / "pinned-scripts.sh"), "2627"], cwd=root, capture_output=True,
+                         text=True, stdin=subprocess.DEVNULL,
+                         env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "PYTHONDONTWRITEBYTECODE": "1"})
+
+    assert ran.returncode == 2, (ran.stdout, ran.stderr)
+    assert "git archive %s skills/tdd/scripts" % pin in ran.stderr
+    assert ran.stdout == ""
