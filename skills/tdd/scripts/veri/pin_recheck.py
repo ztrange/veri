@@ -39,6 +39,9 @@ def main(argv):
         if pin["old"].encode() not in original:
             sys.stdout.write(f"needs a look: {pin['file']}\n")
             continue
+        if subprocess.run(pin["command"], shell=True).returncode != 0:
+            sys.stdout.write(f"needs a look: {pin['file']}\n")
+            continue
         path.write_bytes(original.replace(pin["old"].encode(), pin["new"].encode()))
         green = subprocess.run(pin["command"], shell=True).returncode == 0
         path.write_bytes(original)
