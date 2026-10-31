@@ -107,6 +107,10 @@ alone, and route:
   including directories the diff never touches, for the behaviour's name. The claim carries
   the `file:line` where coverage was found (then it is not a finding) or the search term it
   used and found nothing for.
+
+  **Rate limits.** A GitHub call refused with `rate limit exceeded` while `gh api rate_limit`
+  still reports quota has hit GitHub's secondary limit: use REST rather than wait for the
+  reset.
 - **Last comment is a bail.** Hand it to `veri-bail <n>`. `veri-bail` does not exist yet: until
   it does, classify the cause with `$S/classify-bail.sh <cause>`, resume a first bail once with
   `$S/run-conductor.sh <n>` launched as above (with `VERI_NEW_SKILL=1` when the fix it needs
