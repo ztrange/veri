@@ -84,3 +84,4 @@ skills/tdd/scripts/prompts/_verify-green-replaces-case.md a370a8073f6ad1e4f7106d
 skills/tdd/scripts/prompts/_replaces-case-lead.md 2e5431592527641c7766c5ab0362781f91abd6e1d70b8347f30bda59ea6439ee 2026-10-30 3a35aa006eb64673bdeaa1f1f71f004d d560f939aa92
 skills/tdd/scripts/prompts/_verify-green-suite-repair.md edc9177c1fd1449c2ff9ce2b1449ee971cb2bc87de9417869eb7aa2e9565fa0c 2026-10-30 89153311ab7a49c7b3a7b0f81f63d019 d560f939aa92
 skills/tdd/scripts/prompts/_verify-green-ci-repair.md 713e26ab081e27ece99a7bbabeca21610cdeec4b2707b1aa7690f122eed10235 2026-10-30 795989c291364aa7a0ba634d9924ac72 d560f939aa92
+skills/tdd/scripts/prompts/_verify-green-fixture-repair.md 427bbd0ece61d68a7a8003745781b438060079788ec0833a7058ec15e2ece966 2026-10-30 7ac53de9638d47ff82f4c528fb45f451 d560f939aa92

@@ -835,3 +835,11 @@
 | QC4 | It tells the verifier to PASS when the step quotes that log, the diff touches what the failure names, and the local suites are green. (Fourth sentence.) | These are the three things checkable before the push. |
 | QC5 | It tells the verifier never to require a CI run on the fix, because until after the push no CI run exists, and says that the step's latest CI run being the red one that created it is expected. (Fifth sentence.) | Requiring a green CI run before the push is unsatisfiable, and the red run is the step's origin, not a fault. |
 | QC6 | It says a green CI run on the pushed fix is the verdict of `wait-ci.sh` after the verifier's PASS, where red bails `ci-red`. (Last sentence.) | The CI verdict is someone else's check, made after the push. |
+
+## skills/tdd/scripts/prompts/_verify-green-fixture-repair.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| QF1 | The fragment opens with the bold lead "This step repairs a fixture." and says the script under test is correct: the defect is in the fixture, stub or helper the step names, in the fixture file it names. (First two sentences.) | The verifier judges a change to a test fixture, not to production. |
+| QF2 | It tells the verifier to REJECT, naming the path or hunk, any change outside the target test's file, the named fixture file and Red's case. (Third sentence.) | A fixture repair may touch only those files; anything else is a hidden change. |
+| QF3 | It tells the verifier to PASS only when the target case passes with every change confined to those. (Last sentence.) | The repair is proven by the target case, within the permitted files. |
