@@ -1319,9 +1319,9 @@ def test_main_renders_a_red_prompt_with_fast_cmd_that_runs_it_once_and_rejects_a
     code, out, err = run(["--fast-cmd", "npm run lint && npm test", *argv])
     prompt = " ".join(out.decode("utf-8", "surrogateescape").split())
     assert (code, err) == (0, b"")
-    assert re.search(r"Run `npm run lint && npm test` once\b.*other than the target test's expected failure.*"
-                     r"\bREJECT\b.*naming the file and the error",
-                     prompt) is not None
+    fast = " ".join((SCRIPTS / "prompts" / "_verify-red-fast.md").read_text()
+                    .replace("{{FAST_CMD}}", "npm run lint && npm test").split())
+    assert fast in prompt
 
 
 def test_main_renders_a_red_prompt_without_fast_cmd_byte_identical_to_the_template_without_the_fast_check_and_unchanged_by_veri_test_cmd_2569(
