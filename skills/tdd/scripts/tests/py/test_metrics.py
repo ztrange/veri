@@ -1513,7 +1513,7 @@ def test_issue_1815_a_conductor_turn_with_both_one_hour_and_five_minute_cache_wr
     assert re.fullmatch(r"Conductor own spending: \$48\.75 over 1 turns, in 1 sessions\W.*estimate\W*", line, re.I)
 
 
-def test_issue_1815_a_conductor_turn_is_priced_from_the_session_cost_price_table(tmp_path, monkeypatch, capsys, metrics):
+def test_issue_1815_a_conductor_turn_is_priced_from_the_price_table(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, ONE_STEP)
     for rate, dollars in {"input": 1.0, "output": 2.0, "cache_read": 3.0, "cache_write_5m": 4.0, "cache_write_1h": 5.0}.items():
         monkeypatch.setitem(importlib.import_module("prices").PRICES["opus"], rate, dollars)
