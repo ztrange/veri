@@ -1,0 +1,2 @@
+### When the run's worktree is cut during the run, a conductor that exits non-zero (a bail) leaves the pinned `skills/tdd/scripts` under the worktree's `.tdd/`, at the commit in `.tdd/issue-<n>-skill-commit`, and a script in the copy runs ⟦criterion 1⟧
+- test-only | extract the duplicated clone/repo seeding (`commit_all`, pin lookup) and the `run_conductor.main` subprocess invocation in test_run_conductor_process.py into shared helpers
