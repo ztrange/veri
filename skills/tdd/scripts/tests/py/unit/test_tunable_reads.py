@@ -196,3 +196,7 @@ def test_next_unchecked_takes_its_veri_values_from_the_one_reader_2368():
 
 def test_queued_merge_takes_its_veri_values_from_the_one_reader_2585():
     assert direct_reads(VERI / "queued_merge.py") == []
+
+
+def test_mutation_probe_takes_its_veri_values_from_the_one_reader_2506():
+    assert direct_reads(VERI / "mutation_probe.py") == []
