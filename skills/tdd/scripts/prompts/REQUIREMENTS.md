@@ -816,3 +816,11 @@
 | RH1 | The fragment opens with the bold lead "This step replaces cases." (First sentence.) | The leaf sees at once that the step is a replacement, not new behaviour. |
 | RH2 | It says the step's text names one suite path and one or more of that suite's bash cases, each by its exact name. (Second sentence, up to "each by its exact name".) | A step may replace several cases, and each is named exactly so it can be found and deleted. |
 | RH3 | The second sentence stops unfinished after "whose behaviour a pytest case", with no verb and no full stop; the text that includes the fragment completes it. (Second sentence, its last clause.) | The develop and verify paragraphs share this lead and each finishes the sentence its own way. |
+
+## skills/tdd/scripts/prompts/_verify-green-suite-repair.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| QS1 | The fragment opens with the bold lead "This step repairs the full run." and says the step's text lists every suite the full command left red, each with the name of its first failing case. (First two sentences.) | The verifier knows which suites the repair must turn green. |
+| QS2 | It tells the verifier to PASS only when every listed suite is green, judged by running the full test command itself rather than the fast command. (Third sentence, before the semicolon.) | A full-run repair is proven only on the command that went red. |
+| QS3 | It says a listed suite still red is a REJECT. (Third sentence, after the semicolon.) | One suite left red means the repair is not done. |
