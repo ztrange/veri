@@ -31,6 +31,11 @@ def blocked_by(body):
     return [int(n) for n in re.findall(r"#(\d+)", section.group(1))] if section else []
 
 
+def links(own, body, comments):
+    text = "\n".join([body or ""] + [c.get("body") or "" for c in comments or []])
+    return sorted({int(n) for n in re.findall(r"#(\d+)", text)} - {own})
+
+
 def last_metrics_field(comments, pattern):
     value = None
     for comment in comments or []:
@@ -109,8 +114,10 @@ def refresh():
         sys.stderr.write("report-cache.sh: gh issue list failed: %s\n" % failure.answer)
         return 2
     for issue in issues:
-        issue["blockedBy"] = blocked_by(issue.pop("body", ""))
+        body = issue.pop("body", "")
         comments = issue.pop("comments", [])
+        issue["blockedBy"] = blocked_by(body)
+        issue["links"] = links(issue["number"], body, comments)
         issue["wallSeconds"] = wall_seconds(comments)
         issue["lane"] = lane(comments)
     kept.update({issue["number"]: issue for issue in issues})
