@@ -115,6 +115,8 @@ def refresh():
         return 2
     for issue in issues:
         body = issue.pop("body", "")
+        if re.match(r"PRD \d+", issue["title"]):
+            issue["body"] = body
         comments = issue.pop("comments", [])
         issue["blockedBy"] = blocked_by(body)
         issue["links"] = links(issue["number"], body, comments)

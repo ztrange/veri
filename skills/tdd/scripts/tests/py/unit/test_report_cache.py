@@ -161,6 +161,34 @@ def test_refresh_carries_links_sorted_deduplicated_from_body_and_comments_withou
     assert (code, links) == (0, {7: [5, 9, 12], 8: []})
 
 
+def test_refresh_keeps_the_body_of_a_prd_titled_issue_only_and_no_issue_keeps_comments_2736(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    issues = [
+        {"number": 7, "title": "PRD 001 parent", "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-10-20T10:00:00Z", "body": "prd prose #5", "comments": [{"body": "c"}]},
+        {"number": 8, "title": "plain", "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-10-20T11:00:00Z", "body": "plain prose", "comments": [{"body": "c"}]},
+    ]
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] != ["gh", "issue", "list"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
+    shape = {i["number"]: (i.get("body"), "comments" in i) for i in cache["issues"]}
+    assert (code, shape) == (0, {7: ("prd prose #5", False), 8: (None, False)})
+
+
 def test_refresh_reads_the_wall_seconds_from_a_metrics_block_under_another_heading(run_cli, monkeypatch, tmp_path):
     import json
     import subprocess
