@@ -786,3 +786,17 @@
 | VT8 | Check 3, "One refactoring", says the range applies the refactoring the step names and nothing else. (Check 3.) | One step is one named transformation. |
 | VT9 | Check 4, "No observable change", says a range that changes observable behaviour is a REJECT. (Check 4.) | A refactoring that changes behaviour is not a refactoring. |
 | VT10 | The closing paragraph says PASS if the predicate holds, the suites are green, the range is that one refactoring and it changes no observable behaviour, and REJECT, naming the specific problem, otherwise. (Closing paragraph.) | The verdict restates every check. |
+
+## skills/tdd/scripts/prompts/verify-diff.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VD1 | The template opens with the `{{SHARED}}` slot, then the heading `## Phase: verify-diff`. (First lines.) | The blind verifier's shared rules come first. |
+| VD2 | The opening paragraph says the step under judgement is a criterion about this branch's own diff (something removed, left unchanged, or confined to named lines), and that no test is its deliverable. (Opening paragraph, first two sentences.) | The verifier judges a diff property, not a test. |
+| VD3 | The opening paragraph says the run branched at `{{BASE_SHA}}` and tells the verifier to judge the step's criterion against `git diff {{BASE_SHA}}..HEAD` alone, and not to read the range's commit messages, because `git log` and `git show` on the range carry the author's rationale. (Opening paragraph, rest.) | The verifier stays blind and judges the branch's whole diff. |
+| VD4 | After the opening, the `{{STEP}}` slot runs straight into a `### The issue's behavior spec` heading over `{{ISSUE_SPEC}}`; the template has no `### Your checks` heading. (Sections.) | The verifier reads the step and the spec before the run instructions. |
+| VD5 | The run paragraph tells the verifier to run the fast command, `{{FAST_CMD}}`, then the suites `affected-suites.sh` prints for the files the diff touched, each through the wrapper (the included `_timed-test-run-tier.md` fragment), shows the included `_timed-test-run-fast-affected.md` lines, then the included `_exit-status-back.md` fragment completed by "so a red run stays red.", then the included `_verify-coverage-probe.md` paragraph. (The paragraphs after the spec.) | A diff that removes code is still proven green, with each run costed under its tier. |
+| VD6 | The closing paragraph says PASS if the diff satisfies the step's criterion, and REJECT, naming where the diff falls short, otherwise. (Closing paragraph, first two sentences.) | The verdict is about the criterion against the diff. |
+| VD7 | The closing paragraph says REJECT, too, if the fast command or the affected suites are red. (Closing paragraph, third sentence.) | A diff that breaks a suite fails whatever the criterion says. |
+| VD8 | The closing paragraph says REJECT, too, if the step's own commits add a test (those in `git diff {{STEP_BASE_SHA}}..HEAD`, never a test an earlier step of the run added): a criterion judged against the diff is never also pinned by a case left behind. (Closing paragraph, fourth sentence.) | A diff-checked step leaves no test; an earlier step's tests are not this step's. |
+| VD9 | The closing paragraph ends: End with `VERDICT: PASS` or `VERDICT: REJECT`. (Closing paragraph, last sentence.) | The conductor reads one fixed verdict line. |
