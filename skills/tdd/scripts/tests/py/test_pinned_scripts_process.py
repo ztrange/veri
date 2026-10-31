@@ -47,3 +47,22 @@ def test_pinned_scripts_from_the_main_checkout_prints_each_runs_own_worktree_dir
         (0, str(root / ".tdd" / "wt" / "41" / ".tdd" / "pinned-scripts")),
         (0, str(root / ".tdd" / "wt" / "42" / ".tdd" / "pinned-scripts")),
     )
+
+
+@pytest.mark.process("pinned-scripts.sh run on a run whose pinned scripts copy is gone")
+def test_pinned_scripts_with_the_copy_absent_exits_2_naming_the_pin_and_the_git_archive_recovery_2627(tmp_path):
+    root = tmp_path.resolve() / "repo"
+    (root / ".git").mkdir(parents=True)
+    state = root / ".tdd" / "wt" / "2627" / ".tdd"
+    state.mkdir(parents=True)
+    pin = "0123456789abcdef0123456789abcdef01234567"
+    (state / "issue-2627-skill-commit").write_text(pin + "\n")
+
+    ran = subprocess.run(["/bin/sh", str(SCRIPTS / "pinned-scripts.sh"), "2627"], cwd=root, capture_output=True,
+                         text=True, stdin=subprocess.DEVNULL,
+                         env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "PYTHONDONTWRITEBYTECODE": "1"})
+
+    assert ran.returncode == 2, (ran.stdout, ran.stderr)
+    assert pin in ran.stderr
+    assert "git archive %s skills/tdd/scripts" % pin in ran.stderr
+    assert ran.stdout == ""
