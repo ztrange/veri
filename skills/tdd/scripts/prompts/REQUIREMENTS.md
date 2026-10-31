@@ -933,3 +933,15 @@
 | VE5 | Check 4 is the included `_verify-tests-frozen.md` fragment, followed by the `{{LAST_PHASE_CHECK}}` slot. (Numbered list, item 4.) | The test-frozen rule is shared with migrate and contract-b, stated once. |
 | VE6 | The template's own checks are numbered 2 to 4, continuing the list the included `_verify-interface-phase-lead.md` fragment opens with check 1. (Numbered list.) | Check 1 (still green) lives in the shared lead, so the template's numbering must follow it. |
 | VE7 | The closing paragraph says PASS if the suites are green, the new interface exists, the old one is a proxy over it and no test file changed, and REJECT, naming the specific problem, otherwise. (Closing paragraph.) | The verdict rule restates every check, so a PASS needs all of them. |
+
+## skills/tdd/scripts/prompts/verify-migrate.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VM1 | The template opens with the `{{SHARED}}` slot, then the heading `## Phase: verify-migrate`. (First lines.) | The blind verifier's shared rules come first, and the phase heading names which interface phase is judged. |
+| VM2 | The opening paragraph says this is the **migrate** phase: the product callers of the old interface move to the new interface, and the old interface stays in place; test files stay frozen. (Opening paragraph, before the include line.) | The verifier must know what moves, what stays, and that no test may change. |
+| VM3 | Check 2, "The callers moved", says every product caller of the old interface now calls the new interface. (Numbered list, item 2.) | A caller left on the old interface would break when contract-b deletes the proxy. |
+| VM4 | Check 3, "The old interface stays", says removing it is the contract phase's work. (Numbered list, item 3.) | Removing the old interface here would skip the contract phases. |
+| VM5 | Check 4 is the included `_verify-tests-frozen.md` fragment, followed by the `{{LAST_PHASE_CHECK}}` slot. (Numbered list, item 4.) | The test-frozen rule is shared with expand and contract-b, stated once. |
+| VM6 | The template's own checks are numbered 2 to 4, continuing the list the included `_verify-interface-phase-lead.md` fragment opens with check 1. (Numbered list.) | Check 1 (still green) lives in the shared lead, so the template's numbering must follow it. |
+| VM7 | The closing paragraph says PASS if the suites are green, every product caller moved to the new interface and no test file changed, and REJECT, naming the specific problem, otherwise. (Closing paragraph.) | The verdict rule restates every check, so a PASS needs all of them. |
