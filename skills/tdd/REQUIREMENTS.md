@@ -547,6 +547,7 @@
 | BL44 | `killed-external`: a developer leaf's `supervise.sh` exited 2 because the leaf died with no recorded exit and veri did not kill it (the supervisor's `supervise[<name>]: killed-external` status line), never retried; a **system** failure, distinct from `killed-stuck`. | An OS kill (memory exhaustion, a signalled shell) is plumbing, and is not evidence that the leaf hung. |
 | BL45 | `BAIL.md`'s cause list has a `pr-ready-failed` bullet: `pr-ready.sh` exited non-zero at the Draft PR step (GitHub refused or never answered the ready request, after its refusal retries) → **system** failure (#2581). | A refused GitHub call is plumbing, and naming it apart from `no-verdict` lets `classify-bail.sh` and an operator tell it from a verifier that gave no verdict. |
 | BL46 | `BAIL.md`'s cause list has a `graded-edit-outside-skill-edit` bullet: a step not marked `⟦skill-edit⟧` changed a unit listed in a `GRADED` file → **process** failure. | The methodology put graded prose outside the loop that grades and signs it; naming that apart tells the operator to move the edit into a `⟦skill-edit⟧` step. |
+| BL47 | The cause list has a `revise-impossible` bullet: a revise leaf answered `IMPOSSIBLE`, saying no revision can meet the objection, which is a **process** failure distinct from `revise-exhausted`, where the attempts ran out. | A reader of the bail must be able to tell the two apart. |
 
 ## skills/tdd/SCOPE-LOOP.md
 
