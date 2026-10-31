@@ -90,6 +90,7 @@ def main(argv):
             if solvable:
                 print("slot-free %d/%d next %s" % (len(live), target, solvable[0]))
                 return 0
+        missed &= set(started) - set(live)
         for issue in started:
             if issue not in live:
                 state = run_state(issue).split(" ")[0]
