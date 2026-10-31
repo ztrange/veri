@@ -1858,3 +1858,16 @@ def test_issue_2743_a_conductor_turn_is_priced_at_the_literal_rates_of_each_mode
 
     # opus: 15.00 + 75.00 + 1.50 + 18.75 = 110.25; claude-opus-5-5: 4.00 + 20.00 + 0.20 + 8.00 = 32.20
     assert "Conductor own spending: $142.45 over 2 turns, in 1 sessions" in out
+
+
+def test_issue_2743_a_leaf_is_reported_at_the_dollars_its_usage_event_records_for_each_model_family_the_table_holds(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, conductor("s", 990, "step-start")
+              + leaf("s", 1000, "developer", "red", 1, 100, usage=dict(cost(3, "110.25", (1, 1, 1, 1)), model="opus"))
+              + leaf("s", 1200, "developer", "green", 1, 100,
+                     usage=dict(cost(3, "32.20", (1, 1, 1, 1)), model="claude-opus-5-5"))
+              + conductor("s", 1340, "step-done"))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert cells(out, "#### By phase", ["$"]) == {"red": ["110.25"], "green": ["32.20"]}
