@@ -1,0 +1,2 @@
+### `verify.sh pin` with `VERI_ISSUE=<n>` launches its verifier leaf with `VERI_MUTATION_RECORD` set to the absolute path of `.tdd/issue-<n>-mutations.md` in the working tree, with `build-verify-prompt.sh`'s inputs and the rendered verifier prompt unchanged, pinned by a case using the `CLAUDE_BIN` stub ⟦criterion 1⟧
+- test-only | extract the stub-claude, env and `subprocess.run` setup shared by the two new `verify.sh` cases (pin and green) in `test_verify_process.py` into one helper
