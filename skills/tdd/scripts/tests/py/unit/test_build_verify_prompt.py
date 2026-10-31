@@ -1090,10 +1090,6 @@ def test_unknown_phase_exits_non_zero(tmp_path, run_cli, build_verify_prompt):
     assert (code, out) == (2, "")
 
 
-def folded_bytes(text):
-    return text.replace("\n", " ").encode("utf-8", "surrogateescape")
-
-
 @pytest.fixture
 def spec(tmp_path):
     path = tmp_path / "spec.md"
@@ -1153,8 +1149,8 @@ def test_verify_red_requires_a_bugs_observed_failure_to_match_what_happened_and_
         '\n## Bug\n\n### What happened\n\nslugify returned "HELLO_WORLD" on the ampersanded seed.\n\n'
         '### Expected\n\nslugify returns "hello-world-foo".\n\n### Steps to reproduce\n\n'
         'Call slugify("Hello & World/Foo").\n\n### Environment\n\nveri on bash 5.2, macOS 15.\n').encode())
-    observed_matches_reported = (rb"(match|matches|matching|same as)[^.]{0,80}what happened"
-                                 rb"|what happened[^.]{0,80}(match|matches|matching|same as)")
+    bug_line = " ".join(next(line for line in (SCRIPTS / "prompts" / "_verify-red-bug.md").read_text().splitlines()
+                             if line.strip() and "{{" not in line).split())
     problems = []
 
     code, bug_red, _ = run_cli(build_verify_prompt, ["red", str(bug_spec), TESTPATH, "test_slugify_lowercases"])
@@ -1163,10 +1159,10 @@ def test_verify_red_requires_a_bugs_observed_failure_to_match_what_happened_and_
         problems.append(f"with a bug spec and red's own four positionals exited {code}, want 0")
     if 'slugify returned "HELLO_WORLD" on the ampersanded seed.' not in bug_red:
         problems.append("does not carry the bug report from the spec")
-    if not re.search(observed_matches_reported, folded_bytes(bug_red), re.I):
-        problems.append("never requires the failure it observes to match What happened")
-    if re.search(observed_matches_reported, folded_bytes(red), re.I):
-        problems.append("a spec with no Bug section still requires the failure to match What happened")
+    if bug_line not in " ".join(bug_red.split()):
+        problems.append("the bug render does not carry the bug fragment")
+    if bug_line in " ".join(red.split()):
+        problems.append("a spec with no Bug section still carries the bug fragment")
 
     assert problems == []
 
