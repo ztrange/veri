@@ -3291,6 +3291,35 @@ def test_rerecord_refactored_still_re_records_the_other_cases_when_the_refactor_
 
 
 @pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_still_re_records_the_other_cases_when_an_earlier_refactor_renamed_one_before_green_2626(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite = tmp_path / "test_suite.py"
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1), BODY % ("two", 2)]))
+    run_cli(tests_frozen, ["record", "--step", STEPS[1], "test_suite.py"], cwd=tmp_path)
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    suite.write_text(suite.read_text().replace("def test_one():\n", "def test_uno():\n"))
+    _commit(tmp_path, "A refactor renames a case")
+    _ledger(tmp_path, A="done", B="pending")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("later", 9))
+    _commit(tmp_path, "B green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    suite.write_text(suite.read_text().replace("x = 2\n", "x = 3 - 1\n"))
+    _commit(tmp_path, "B refactor")
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+    ledger = ".tdd/issue-9.md"
+
+    code = run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)[0]
+    spared = run_cli(tests_frozen, ["check-earlier", ledger, "--step", "step C", "--except", "test_one"],
+                     cwd=tmp_path)[:2]
+
+    assert (code, spared) == (0, (0, ""))
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
 def test_rerecord_refactored_re_records_nothing_and_exits_3_unless_verdict_refactor_exit_holds_0_2626(
         tmp_path, run_cli, tests_frozen, monkeypatch):
     suite, step = tmp_path / "test_suite.py", STEPS[1]
