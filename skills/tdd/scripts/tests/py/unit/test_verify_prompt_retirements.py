@@ -51,7 +51,7 @@ def test_a_green_step_marked_with_a_repair_or_replaces_mark_carries_its_own_frag
     for mark in marks:
         code, out, _ = run_cli(build_verify_prompt, [
             "--step", f"pin the slug ⟦{mark}⟧", "--fast-cmd", "make unit",
-            "green", str(spec), "tests/test_x.py", "test_x"])
+            "green", str(spec), "tests/x_suite.py", "test_x"])
         rendered = out.splitlines()
         others = [l for m in marks if m != mark for l in lines[m]]
         results[mark] = (code, bool(lines[mark]) and any(l in rendered for l in lines[mark]),
