@@ -441,6 +441,23 @@ def test_2588_main_still_reports_vanished_when_the_conductor_pid_file_holds_no_p
     assert (code, capsys.readouterr().out) == (2, "vanished 5\n")
 
 
+def test_2740_main_reports_vanished_and_returns_2_for_a_run_with_no_state_whose_conductor_pid_file_answers_nothing(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    (tmp_path / ".tdd" / "wt" / "5" / ".tdd").mkdir(parents=True)
+    (tmp_path / ".tdd" / "wt" / "5" / ".tdd" / "conductor.pid").write_text("")
+    listings = iter([["5"]])
+    ticks = itertools.count(0, 1000)
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, []))
+    monkeypatch.setattr(watch_runs, "run_state", lambda issue: "")
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+    monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks))
+
+    code = watch_runs.main(["--max-wait", "1000000000"])
+
+    assert (code, capsys.readouterr().out) == (2, "vanished 5\n")
+
+
 def _starting_run(monkeypatch, tmp_path, watch_runs, pid_text, lstart, clock=None):
     import os
     (tmp_path / ".tdd" / "wt" / "5" / ".tdd").mkdir(parents=True)
