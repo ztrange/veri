@@ -357,6 +357,7 @@ def main(argv):
         launch_env = tunables.with_values(VERI_MUTATION_RECORD=record)
         own_record = os.path.relpath(record, top or os.getcwd())
         record_before = file_bytes(record)
+        record_irregular = record_before is None and os.path.lexists(record)
     else:
         launch_env = tunables.without("VERI_MUTATION_RECORD")
     while True:
@@ -380,7 +381,8 @@ def main(argv):
             return 2
         # A pin's verifier records the mutations it watched fail; appending to that record alone is not a
         # tree change (#2741). Deleting or rewriting it would disarm earlier pins, so that still refuses.
-        if changed and not (changed == [own_record] and appended(record_before, file_bytes(record))):
+        if changed and not (changed == [own_record] and not record_irregular
+                                                   and appended(record_before, file_bytes(record))):
             diff = save_diff(leaf, tree_before, tree_after)
             in_temp_index("read-tree", "-u", "--reset", tree_before)
             if head_before and head_before != head_after:
