@@ -964,3 +964,9 @@ def test_cases_records_two_js_titles_differing_only_after_an_escaped_quote_as_tw
             'it("shows \\"Validando", () => {\n  expect(2).toBe(2);\n});\n')
 
     assert [name for name, _ in tests_frozen._cases(text)] == ['shows "¿Ya contrataste?', 'shows "Validando']
+
+
+def test_cases_records_a_js_backtick_title_without_interpolation_2765(tests_frozen):
+    text = "it(`shows the login page`, () => {\n  expect(1).toBe(1);\n});\n"
+
+    assert [name for name, _ in tests_frozen._cases(text)] == ["shows the login page"]
