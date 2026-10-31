@@ -8,6 +8,7 @@
 - [x] A skill snapshot a SIGKILLed conductor left outside the worktree is removed by `issue-worktree.sh --remove <n>`, so no copy for the run is left anywhere once the worktree is removed ⟦criterion 2⟧
 - [x] `$S/pinned-scripts.sh`, added as a `/bin/sh` shim over a `veri/` module, prints a usage line and exits 2 with no argument ⟦criterion 3⟧
 - [x] `$S/pinned-scripts.sh <n>` prints the directory holding run `<n>`'s pinned scripts under the run's worktree `.tdd/`, exit 0 ⟦criterion 3⟧
-- [x] With that directory absent and a pin recorded, `pinned-scripts.sh <n>` exits 2 naming the pinned commit from `.tdd/issue-<n>-skill-commit` and the `git archive <pin> skills/tdd/scripts` recovery line, and never prints the installed copy's path ⟦criterion 3⟧ ⟂ refactor pending
+- [x] With that directory absent and a pin recorded, `pinned-scripts.sh <n>` exits 2 naming the pinned commit from `.tdd/issue-<n>-skill-commit` and the `git archive <pin> skills/tdd/scripts` recovery line, and never prints the installed copy's path ⟦criterion 3⟧
+- [ ] Run from the main checkout with the directory absent, `pinned-scripts.sh <n>` names the commit from the main checkout's `.tdd/issue-<n>-skill-commit`, the file `run_conductor.py` records the pin in, and exits 2 with the `git archive <pin> skills/tdd/scripts` recovery line ⟦added⟧ ⟦criterion 3⟧
 - [ ] With that directory absent and no pin recorded, `pinned-scripts.sh <n>` exits 2 saying no pin is recorded, and never prints the installed copy's path ⟦criterion 3⟧
 - [ ] Unit skills/tdd/SCRIPTS.md takes the issue's SC59 row: the catalogue's `$S/pinned-scripts.sh` entry ⟦skill-edit⟧ ⟦criterion 3⟧
