@@ -37,7 +37,7 @@ def test_run_exits_with_the_code_main_returns_and_lets_a_raised_system_exit_thro
 
 
 def test_run_turns_an_exception_escaping_main_into_exit_2_and_one_stderr_line_named_for_the_shim_1150(tmp_path, capsys):
-    source = tmp_path / "render_leaf_log.py"
+    source = tmp_path / "run_verdict.py"
     source.write_text(
         "from veri import entry\n"
         "\n"
@@ -49,7 +49,7 @@ def test_run_turns_an_exception_escaping_main_into_exit_2_and_one_stderr_line_na
         "def go(argv):\n"
         "    entry.run(main, argv)\n"
     )
-    spec = importlib.util.spec_from_file_location("render_leaf_log", source)
+    spec = importlib.util.spec_from_file_location("run_verdict", source)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
 
@@ -60,7 +60,7 @@ def test_run_turns_an_exception_escaping_main_into_exit_2_and_one_stderr_line_na
 
     assert exited.value.code == 2
     assert len(lines) == 1, err
-    assert lines[0].startswith("render-leaf-log.sh: ValueError: first line"), err
+    assert lines[0].startswith("run-verdict.sh: ValueError: first line"), err
     assert "second line" in lines[0], err
     assert "Traceback" not in err
 

@@ -774,7 +774,7 @@ def test_main_1865_prints_repair_of_the_step_own_case_when_the_wrong_test_line_f
     suite = tmp_path / "tests" / "py" / "unit"
     suite.mkdir(parents=True)
     own = "test_conductor_sessions_prices_a_turn_at_the_rates_of_the_model_its_record_names_1859"
-    pattern = "test_issue_1815_a_conductor_turn_is_priced_from_the_session_cost_price_table"
+    pattern = "test_issue_1815_a_conductor_turn_is_priced_from_the_prices_price_table"
     (suite / ("test_" + "metrics" + ".py")).write_text(
         "def %s():\n    pass\n\ndef %s():\n    pass\n" % (pattern, own))
     (tmp_path / ".tdd").mkdir()
@@ -785,8 +785,8 @@ def test_main_1865_prints_repair_of_the_step_own_case_when_the_wrong_test_line_f
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: %s patches veri.session_cost.PRICES, which metrics never reads;"
-        " the correct pattern is %s, which patches metrics.session_cost.PRICES\n" % (own, pattern))
+        "WRONG_TEST: %s patches veri.prices.PRICES, which metrics never reads;"
+        " the correct pattern is %s, which patches metrics.prices.PRICES\n" % (own, pattern))
 
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
 
@@ -1132,7 +1132,7 @@ def test_main_1932_prints_repair_of_the_step_own_case_when_the_wrong_test_line_f
     suite = tmp_path / "tests" / "py" / "unit"
     suite.mkdir(parents=True)
     own = "test_conductor_sessions_prices_a_turn_at_the_rates_of_the_model_its_record_names_1859"
-    example = "test_issue_1815_a_conductor_turn_is_priced_from_the_session_cost_price_table"
+    example = "test_issue_1815_a_conductor_turn_is_priced_from_the_prices_price_table"
     (suite / ("test_" + "metrics" + ".py")).write_text(
         "def %s():\n    pass\n\ndef %s():\n    pass\n" % (example, own))
     (tmp_path / ".tdd").mkdir()
@@ -1140,8 +1140,8 @@ def test_main_1932_prints_repair_of_the_step_own_case_when_the_wrong_test_line_f
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: %s patches veri.session_cost.PRICES, which metrics never reads;"
-        " the correct example is %s, which patches metrics.session_cost.PRICES\n" % (own, example))
+        "WRONG_TEST: %s patches veri.prices.PRICES, which metrics never reads;"
+        " the correct example is %s, which patches metrics.prices.PRICES\n" % (own, example))
 
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
 
@@ -1155,7 +1155,7 @@ def test_main_1932_prints_repair_of_the_step_own_case_when_the_wrong_test_line_f
     suite = tmp_path / "tests" / "py" / "unit"
     suite.mkdir(parents=True)
     own = "test_conductor_sessions_prices_a_turn_at_the_rates_of_the_model_its_record_names_1859"
-    example = "test_issue_1815_a_conductor_turn_is_priced_from_the_session_cost_price_table"
+    example = "test_issue_1815_a_conductor_turn_is_priced_from_the_prices_price_table"
     name = suite / ("test_" + "metrics" + ".py")
     name.write_text("def %s():\n    pass\n\ndef %s():\n    pass\n" % (example, own))
     (tmp_path / ".tdd").mkdir()
@@ -1166,8 +1166,8 @@ def test_main_1932_prints_repair_of_the_step_own_case_when_the_wrong_test_line_f
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: %s patches veri.session_cost.PRICES, which metrics never reads;"
-        " the correct example is %s, which patches metrics.session_cost.PRICES\n" % (own, example))
+        "WRONG_TEST: %s patches veri.prices.PRICES, which metrics never reads;"
+        " the correct example is %s, which patches metrics.prices.PRICES\n" % (own, example))
 
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
 
@@ -1181,7 +1181,7 @@ def test_main_1932_prints_repair_of_the_step_own_case_when_the_wrong_test_line_f
     suite = tmp_path / "tests" / "py" / "unit"
     suite.mkdir(parents=True)
     own = "test_conductor_sessions_prices_a_turn_at_the_rates_of_the_model_its_record_names_1859"
-    example = "test_issue_1815_a_conductor_turn_is_priced_from_the_session_cost_price_table"
+    example = "test_issue_1815_a_conductor_turn_is_priced_from_the_prices_price_table"
     name = suite / ("test_" + "metrics" + ".py")
     name.write_text("def %s():\n    pass\n\ndef %s():\n    pass\n" % (example, own))
     (tmp_path / ".tdd").mkdir()
@@ -1193,8 +1193,8 @@ def test_main_1932_prints_repair_of_the_step_own_case_when_the_wrong_test_line_f
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: %s patches veri.session_cost.PRICES, which metrics never reads;"
-        " the correct example is %s, which patches metrics.session_cost.PRICES\n" % (own, example))
+        "WRONG_TEST: %s patches veri.prices.PRICES, which metrics never reads;"
+        " the correct example is %s, which patches metrics.prices.PRICES\n" % (own, example))
 
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), own_id], cwd=tmp_path)
 

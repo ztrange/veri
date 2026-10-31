@@ -290,7 +290,6 @@ CWD_OUTSIDE_REPOSITORY = {
     "test_push_branch.py",
     "test_rebase_onto_default.py",
     "test_refactor_touched.py",
-    "test_session_cost.py",
     "test_solvable_issues.py",
     "test_status.py",
     "test_timed_test_run.py",
