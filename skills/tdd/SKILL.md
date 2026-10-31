@@ -1195,8 +1195,14 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      answers `REJECT`, `Read` `<base directory>/REVISE.md`), and leave the refactor-pending mark
      in place. Exit 2, no answer, **bails** as a system failure (`Read` `<base directory>/BAIL.md`).
      Exit 0 prints any pin that needs a look: copy each into the PR body's list of what a human
-     owes, under `## Owed by a human`. Exit 3, no record touches the range, goes on:
+     owes, under `## Owed by a human`. Exit 3, no record touches the range, goes on.
+     **Only after that PASS, and before the step's ledger commit**, re-record the frozen cases
+     the refactor changed, an earlier step's included, with
+     `$S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md <green-sha>`: a case is
+     re-recorded only when it kept its title and its assertion lines modulo whitespace, and one
+     that did not is left as recorded, so `check-earlier` still refuses it:
      ```
+     $S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md <green-sha>
      step="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$step" added=<count>
      $S/add-ledger-step.sh --criterion <k> .tdd/issue-<n>.md after "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" '<leaf or verdict uncovered-spec behaviour>' …   # one call per criterion
      $S/clear-refactor-pending.sh .tdd/issue-<n>.md "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)"
