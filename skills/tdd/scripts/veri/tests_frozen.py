@@ -549,6 +549,12 @@ def rerecord_refactored(ledger, green):
     with open(ledger, encoding="utf-8") as handle:
         lines = handle.read().splitlines()
     os.chdir(_toplevel())
+    try:
+        with open(".tdd/verdict-refactor.exit", encoding="utf-8") as handle:
+            if handle.read().strip() != "0":
+                return 3
+    except FileNotFoundError:
+        return 3
 
     def rewrite(_, record, name, case, digest):
         verified = _cases_at(green, name)[case]
