@@ -17,9 +17,10 @@ opt-in label and where PRDs are tracked.
 ## Since when
 
 Invoked as `/veri-status`. The report covers what changed since the previous ask. Read that
-time from `.tdd/status-last` (one ISO 8601 timestamp). When the file is missing, cover the
-last 24 hours and say so in the report's first line. After the report is written, overwrite
-`.tdd/status-last` with the time the reads were taken.
+time from `.tdd/status-last` (one UTC ISO 8601 timestamp, ending in `Z`). When the file is
+missing, cover the last 24 hours and say so in the report's first line. After the report is
+written, overwrite `.tdd/status-last` with the time the reads were taken, in UTC with the
+trailing `Z`.
 
 Every figure that can move carries its delta since that time: steps ticked, cost added, PRs
 landed, issues added to or taken from the queue.
@@ -42,13 +43,20 @@ reads, never a full `gh issue list`. The other reads stay direct:
 - `git tag --sort=-v:refname --format='%(refname:short) %(creatordate:iso-strict) %(contents:subject)'`
   — the tags cut since the last ask; each tag's message is its capability.
 - `gh`, for PRs only — merged PRs since the last ask (`gh pr list --state merged --search
-  "merged:>=<time>"`) and open PRs.
+  "merged:>=<time>"`, where `<time>` is the UTC value from `.tdd/status-last`) and open PRs.
 
 Count the reads before making them. **More than three go to one subagent**, on the cheapest
 model that can run them, briefed with this list and returning only the figures — one line per
 landed PR, per run, per label and per waiting item. Never read a leaf log for this report.
 
 ## The report
+
+Every time the report shows (window start, merge times, launch times, tag dates, ETA clock
+times) is in the machine's local zone, and the report's first line names that zone once, e.g.
+"06:30 → 11:55 CST (UTC−6)". The sources arrive in different zones and are converted to that
+one local zone before they are shown: UTC (`mergedAt`, `fetched_at`, `closedAt`, `updatedAt`),
+the tagger's offset (tag `creatordate`) and local (`conductor.pid` lines, `.tdd` mtimes). A
+report never shows two zones side by side.
 
 Four sections, always all four and in this order. An empty one keeps its heading and says
 "none".
