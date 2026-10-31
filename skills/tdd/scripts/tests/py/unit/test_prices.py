@@ -18,3 +18,12 @@ def test_prices_holds_todays_rates_for_both_families_and_the_old_cost_module_tak
     assert old.PRICES is prices.PRICES
     assert old.family is prices.family
     assert old.cache_write_tokens is prices.cache_write_tokens
+
+
+def test_cache_write_tokens_splits_1h_and_5m_writes_apart_and_counts_a_bare_cache_creation_count_at_5m():
+    prices = importlib.import_module("veri.prices")
+    split = {"cache_creation_input_tokens": 400000,
+             "cache_creation": {"ephemeral_5m_input_tokens": 100000,
+                                "ephemeral_1h_input_tokens": 300000}}
+    assert prices.cache_write_tokens(split) == {"cache_write_1h": 300000, "cache_write_5m": 100000}
+    assert prices.cache_write_tokens({"cache_creation_input_tokens": 200000}) == {"cache_write_5m": 200000}
