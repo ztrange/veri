@@ -30,3 +30,20 @@ def test_pinned_scripts_prints_the_directory_holding_the_runs_pinned_scripts_and
                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "PYTHONDONTWRITEBYTECODE": "1"})
 
     assert (ran.returncode, ran.stdout.strip()) == (0, str(kept)), ran.stderr
+
+
+@pytest.mark.process("pinned-scripts.sh run from the main checkout for two different runs")
+def test_pinned_scripts_from_the_main_checkout_prints_each_runs_own_worktree_directory_2627(tmp_path):
+    root = tmp_path.resolve() / "repo"
+    (root / ".git").mkdir(parents=True)
+
+    def printed(n):
+        ran = subprocess.run(["/bin/sh", str(SCRIPTS / "pinned-scripts.sh"), n], cwd=root, capture_output=True,
+                             text=True, stdin=subprocess.DEVNULL,
+                             env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "PYTHONDONTWRITEBYTECODE": "1"})
+        return ran.returncode, ran.stdout.strip()
+
+    assert (printed("41"), printed("42")) == (
+        (0, str(root / ".tdd" / "wt" / "41" / ".tdd" / "pinned-scripts")),
+        (0, str(root / ".tdd" / "wt" / "42" / ".tdd" / "pinned-scripts")),
+    )

@@ -7,7 +7,10 @@ def main(argv):
     if not argv:
         print("usage: pinned-scripts.sh <n>", file=sys.stderr)
         return 2
-    print(os.path.join(os.getcwd(), ".tdd", "pinned-scripts"))
+    here = os.path.join(os.getcwd(), ".tdd", "pinned-scripts")
+    if not os.path.isdir(here):
+        here = os.path.join(os.getcwd(), ".tdd", "wt", argv[0], ".tdd", "pinned-scripts")
+    print(here)
     return 0
 
 
