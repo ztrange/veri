@@ -297,6 +297,11 @@ def _phases_done(text):
     return bool(ledger.listed_phases(text)) and ledger.next_phase(text) is None
 
 
+def _ledger_items(rev, path):
+    return [m for m in (re.match(r"\s*- \[(.)\] (.*)", line)
+                        for line in _git_out("show", "%s:%s" % (rev, path)).splitlines()) if m]
+
+
 def _step_commits(step):
     """The commits that are `step`'s own: after the latest commit that ticked any ledger line before the one
     that ticked `step`'s line, up to and including that one (HEAD for a step not ticked yet). The committed
@@ -309,18 +314,16 @@ def _step_commits(step):
         revs = _git_out("log", "--reverse", "--format=%H", "--", path).split()
         previous, last_tick, tick = set(), revs[:1], None
         for rev in revs:
-            matched = [re.match(r"\s*- \[(.)\] (.*)", line)
-                       for line in _git_out("show", "%s:%s" % (rev, path)).splitlines()]
-            texts = {_unphased(m.group(2)): m.group(1) != " " or _phases_done(m.group(2)) for m in matched if m}
+            matched = _ledger_items(rev, path)
+            texts = {_unphased(m.group(2)): m.group(1) != " " or _phases_done(m.group(2)) for m in matched}
             ticked = {text for text, done in texts.items() if done}
             if step in ticked:
                 tick = rev
-                pending = any(m and _unphased(m.group(2)) == step and m.group(2).endswith(ledger.PENDING_MARK)
+                pending = any(_unphased(m.group(2)) == step and m.group(2).endswith(ledger.PENDING_MARK)
                               for m in matched)
                 for later in revs[revs.index(rev) + 1:] if pending else ():
-                    lines = _git_out("show", "%s:%s" % (later, path)).splitlines()
-                    held = [m.group(2) for m in map(lambda l: re.match(r"\s*- \[(.)\] (.*)", l), lines) if m]
-                    if any(_unphased(t) == step and not t.endswith(ledger.PENDING_MARK) for t in held):
+                    if any(_unphased(m.group(2)) == step and not m.group(2).endswith(ledger.PENDING_MARK)
+                           for m in _ledger_items(later, path)):
                         tick = later
                         break
                 break
