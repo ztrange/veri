@@ -25,3 +25,21 @@ the leg ended by
 command 306
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmps4qso8o5/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_pytest_leg.py make test TESTS=skills/tdd/scripts/tests/py/test_pytest_leg.py::test_2741_a_leg_whose_xdist_run_ends_in_an_internalerror_says_on_stderr_that_it_was_cut_short
 
+file 37
+skills/tdd/scripts/veri/pytest_leg.py
+old 31
+sys.stderr.write(nodeid + "\n")
+new 4
+pass
+command 351
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmps4qso8o5/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_pytest_leg.py make test TESTS=skills/tdd/scripts/tests/py/test_pytest_leg.py::test_2741_a_leg_whose_xdist_run_ends_in_an_internalerror_after_a_case_failed_names_that_case_says_the_leg_was_cut_short_and_exits_non_zero
+
+file 37
+skills/tdd/scripts/veri/pytest_leg.py
+old 24
+the leg was cut short by
+new 18
+the leg ended with
+command 351
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmps4qso8o5/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_pytest_leg.py make test TESTS=skills/tdd/scripts/tests/py/test_pytest_leg.py::test_2741_a_leg_whose_xdist_run_ends_in_an_internalerror_after_a_case_failed_names_that_case_says_the_leg_was_cut_short_and_exits_non_zero
+
