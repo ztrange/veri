@@ -495,3 +495,25 @@ def test_verify_sh_pin_whose_verifier_writes_another_issues_mutation_record_is_r
     done, _ = run_verify_writing(tmp_path, "pin", [".tdd/issue-9-mutations.md"])
 
     assert (done.returncode, "modified the repository" in done.stdout) == (2, True), done.stdout + done.stderr
+
+
+@pytest.mark.process("verify.sh pin run as a real shim over veri/verify.py in a throwaway git repo, around a stub"
+                     " claude that makes the mutation record a symlink to an ignored file before answering VERDICT: PASS")
+def test_verify_sh_pin_whose_verifier_makes_its_mutation_record_a_symlink_is_refused_2741(tmp_path):
+    record = tmp_path / ".tdd" / "issue-2741-mutations.md"
+    done, _ = run_verify_writing(tmp_path, "pin", [".tdd/elsewhere"], then="ln -s elsewhere %s\n" % record)
+
+    assert (done.returncode, "modified the repository" in done.stdout, record.is_symlink()) == (2, True, False), \
+        done.stdout + done.stderr
+
+
+@pytest.mark.process("verify.sh pin run as a real shim over veri/verify.py in a throwaway git repo holding a mutation"
+                     " record, around a stub claude that replaces it with an empty directory before answering VERDICT: PASS")
+def test_verify_sh_pin_whose_verifier_replaces_its_mutation_record_with_a_directory_is_refused_and_the_record_restored_2741(
+        tmp_path):
+    record = tmp_path / ".tdd" / "issue-2741-mutations.md"
+    done, _ = run_verify_writing(tmp_path, "pin", [], recorded="earlier pin\n", then="rm %s; mkdir %s\n" % (record, record))
+
+    got = record.read_text() if record.is_file() else None
+    assert (done.returncode, "modified the repository" in done.stdout, got) == (2, True, "earlier pin\n"), \
+        done.stdout + done.stderr
