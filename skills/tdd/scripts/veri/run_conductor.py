@@ -141,8 +141,8 @@ def main(argv):
 
 def keep_pinned_scripts(snapshot, issue):
     kept = os.path.join(run_worktree(issue), ".tdd", "pinned-scripts")
-    if (is_registered_worktree(issue) and os.path.isdir(os.path.join(snapshot, "scripts"))
-            and not os.path.exists(kept)):
+    if is_registered_worktree(issue) and os.path.isdir(os.path.join(snapshot, "scripts")):
+        shutil.rmtree(kept, ignore_errors=True)
         shutil.copytree(os.path.join(snapshot, "scripts"), kept)
 
 
