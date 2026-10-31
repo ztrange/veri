@@ -87,6 +87,7 @@ def in_temp_index(*args):
 
 def unreadable_file_in_tree():
     with temp_index_env() as env:
+        env = {**env, "LC_ALL": "C"}
         added = start(["git", "add", "-A"], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         return added.returncode != 0 and b"Permission denied" in (added.stderr or b"")
 

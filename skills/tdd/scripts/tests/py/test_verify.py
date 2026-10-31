@@ -5,6 +5,7 @@ import json
 import os
 import pathlib
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -1724,6 +1725,31 @@ def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_replaced
     env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
            "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo, issue="2772")}
+    verify = importlib.import_module("veri.verify")
+
+    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
+                                    "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+
+    assert (code, "full suite are green" in out) == (2, False)
+
+
+@pytest.mark.process("a real git scratch repository holding an unreadable file, and a git wrapper translating Permission denied")
+def test_verify_sh_does_not_accept_a_pass_from_a_verifier_leaf_that_left_an_unreadable_file_when_git_translates_its_messages_2772(
+        run_cli, tmp_path, monkeypatch):
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {})
+    wrapper = tmp_path / "translating-bin"
+    wrapper.mkdir()
+    (wrapper / "git").write_text(
+        '#!/bin/sh\nerr="$(mktemp)"\n%s "$@" 2>"$err"\nrc=$?\n'
+        'case "$LC_ALL" in de_*) sed "s/Permission denied/Zugriff verweigert/" "$err" >&2 ;; *) cat "$err" >&2 ;; esac\n'
+        'rm -f "$err"\nexit $rc\n' % shutil.which("git"))
+    (wrapper / "git").chmod(0o755)
+    (repo / "hidden.txt").write_text("secret\n")
+    subprocess.run(["chmod", "000", str(repo / "hidden.txt")], check=True)
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", "LC_ALL": "de_DE.UTF-8",
+           "PATH": "%s:%s" % (wrapper, os.environ["PATH"]), **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
