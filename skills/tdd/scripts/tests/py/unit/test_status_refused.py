@@ -262,3 +262,18 @@ def test_2739_text_lists_a_run_with_a_live_conductor_no_ledger_and_no_events_log
 
     lines = capsys.readouterr().out.splitlines()
     assert (code, [line for line in lines if line.startswith("#7") and line.endswith("running")] != []) == (0, True)
+
+
+def test_2739_json_lists_a_run_with_a_live_conductor_no_ledger_and_no_events_log_as_its_directory_name_running_with_empty_step_and_title(tmp_path, monkeypatch):
+    from conftest import live_conductor
+    status = importlib.import_module("veri.status")
+    run = tmp_path / ".tdd" / "wt" / "7"
+    (run / ".tdd").mkdir(parents=True)
+    live_conductor(monkeypatch, run / ".tdd", 7)
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status, "branch_of", lambda run: "b")
+
+    _, out = status.json_document(read_states=False)
+
+    listed = [(r.get("issue"), r.get("state"), r.get("step"), r.get("title")) for r in json.loads(out)["runs"]]
+    assert listed == [("7", "running", "", "")]
