@@ -94,6 +94,7 @@ def refresh():
     path = os.path.join(tdd, "report-cache.json")
     kept = {}
     since = None
+    stale = False
     if os.path.exists(path):
         try:
             with open(path) as existing:
@@ -102,17 +103,22 @@ def refresh():
             loaded = {issue["number"]: issue for issue in before["issues"]}
             if before.get("cache_format") != 2:
                 search = None
+            elif any("links" not in issue for issue in loaded.values()):
+                stale = True
         except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError) as failure:
             sys.stderr.write("report-cache.sh: %s is unreadable (%s), rebuilding\n" % (path, failure))
         else:
-            kept = loaded
-            since = search
+            if not stale:
+                kept = loaded
+                since = search
     fetched_at = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     try:
         issues = fetch_pages(since)
     except github.NoAnswer as failure:
         sys.stderr.write("report-cache.sh: gh issue list failed: %s\n" % failure.answer)
         return 2
+    if stale:
+        sys.stderr.write("report-cache.sh: %s has issues without links, rebuilding\n" % path)
     for issue in issues:
         body = issue.pop("body", "")
         if re.match(r"PRD \d+", issue["title"]):

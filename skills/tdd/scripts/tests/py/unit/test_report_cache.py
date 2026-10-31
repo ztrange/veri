@@ -1391,3 +1391,40 @@ def test_refresh_writes_cache_format_2_so_the_next_refresh_updates_incrementally
 
     windowed = [term for term in reads[after_first] if term.startswith("updated:>=")]
     assert (first[0], second[0], len(windowed)) == (0, 0, 1)
+
+
+def test_refresh_with_a_cache_whose_issues_lack_links_names_it_on_stderr_rebuilds_with_a_full_fetch_and_exits_0_2736(run_cli, monkeypatch, tmp_path):
+    import json
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    cache = tmp_path / ".tdd" / "report-cache.json"
+    cache.write_text(json.dumps({"cache_format": 2, "fetched_at": "2026-10-01T00:00:00Z", "issues": [
+        {"number": 900, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
+    live = [
+        {"number": 900, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-09-30T10:00:00Z", "body": "see #5", "comments": []},
+        {"number": 5, "title": "other", "state": "CLOSED", "labels": [], "closedAt": None,
+         "updatedAt": "2026-09-20T00:00:00Z", "body": "", "comments": []},
+    ]
+    reads = []
+
+    def fake_gh_issue_list(*args):
+        terms = (args[args.index("--search") + 1] if "--search" in args else "").split()
+        reads.append(terms)
+        pool = list(live)
+        for term in terms:
+            if term.startswith("updated:>="):
+                pool = [i for i in pool if i["updatedAt"] >= term[len("updated:>="):]]
+        return json.dumps(pool)
+
+    monkeypatch.setattr(report_cache.github, "gh_issue_list", fake_gh_issue_list)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    issues = {i["number"]: i for i in json.loads(cache.read_text())["issues"]}
+    windowed = [term for term in reads[0] if term.startswith("updated:>=")]
+    named = len(err.strip().splitlines()) == 1 and "links" in err
+    assert (code, windowed, named, {n: i.get("links") for n, i in issues.items()}) == (0, [], True, {900: [5], 5: []})
