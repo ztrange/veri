@@ -36,10 +36,7 @@ def main(argv):
     for pin in pins:
         path = Path(pin["file"])
         original = path.read_bytes()
-        if pin["old"].encode() not in original:
-            sys.stdout.write(f"needs a look: {pin['file']}\n")
-            continue
-        if subprocess.run(pin["command"], shell=True).returncode != 0:
+        if pin["old"].encode() not in original or subprocess.run(pin["command"], shell=True).returncode != 0:
             sys.stdout.write(f"needs a look: {pin['file']}\n")
             continue
         path.write_bytes(original.replace(pin["old"].encode(), pin["new"].encode()))
