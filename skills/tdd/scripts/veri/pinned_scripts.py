@@ -10,9 +10,10 @@ def main(argv):
     here = os.path.join(os.getcwd(), ".tdd", "pinned-scripts")
     if not os.path.isdir(here):
         here = os.path.join(os.getcwd(), ".tdd", "wt", argv[0], ".tdd", "pinned-scripts")
-    pin_file = os.path.join(os.path.dirname(here), "issue-%s-skill-commit" % argv[0])
+    pin_name = "issue-%s-skill-commit" % argv[0]
+    pin_file = os.path.join(os.path.dirname(here), pin_name)
     if not os.path.isfile(pin_file):
-        pin_file = os.path.join(os.getcwd(), ".tdd", "issue-%s-skill-commit" % argv[0])
+        pin_file = os.path.join(os.getcwd(), ".tdd", pin_name)
     if not os.path.isdir(here) and os.path.isfile(pin_file):
         with open(pin_file) as f:
             pin = f.read().strip()
