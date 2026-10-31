@@ -30,7 +30,19 @@ def main(argv):
                                  check=True).stdout.split())
     pins = [r for f in sorted(glob.glob(".tdd/issue-*-mutations.md")) for r in records(Path(f).read_text())
             if r["file"] in touched]
-    return 0 if pins else 3
+    if not pins:
+        return 3
+    status = 0
+    for pin in pins:
+        path = Path(pin["file"])
+        original = path.read_bytes()
+        path.write_bytes(original.replace(pin["old"].encode(), pin["new"].encode()))
+        green = subprocess.run(pin["command"], shell=True).returncode == 0
+        path.write_bytes(original)
+        if green:
+            sys.stderr.write(f"pin stayed green under its mutation: {pin['file']}\n")
+            status = 1
+    return status
 
 
 if __name__ == "__main__":
