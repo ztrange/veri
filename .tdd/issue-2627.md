@@ -1,6 +1,6 @@
 # Plan for #2627 — A run's pinned script copy disappears from its tmpdir, so operator recovery silently falls back to whatever is installed
 
-- [ ] When the run's worktree already exists at launch, `run-conductor.sh` extracts the pinned `skills/tdd/scripts` under that worktree's `.tdd/` before the conductor process starts, so a conductor killed by SIGKILL still leaves the copy (a medium case, with a real process and a real SIGKILL) ⟦criterion 4⟧
+- [x] When the run's worktree already exists at launch, `run-conductor.sh` extracts the pinned `skills/tdd/scripts` under that worktree's `.tdd/` before the conductor process starts, so a conductor killed by SIGKILL still leaves the copy (a medium case, with a real process and a real SIGKILL) ⟦criterion 4⟧ ⟂ refactor pending
 - [ ] When the run's worktree is cut during the run, a conductor that exits non-zero (a bail) leaves the pinned `skills/tdd/scripts` under the worktree's `.tdd/`, at the commit in `.tdd/issue-<n>-skill-commit`, and a script in the copy runs ⟦criterion 1⟧
 - [ ] A launch that re-pins with `VERI_NEW_SKILL=1` over a worktree already holding a copy leaves only the newly pinned commit's scripts in that copy, so the copy never disagrees with `.tdd/issue-<n>-skill-commit` ⟦criterion 1⟧
 - [ ] `git add -A` in a run's worktree holding the pinned copy stages nothing from the copy ⟦criterion 1⟧

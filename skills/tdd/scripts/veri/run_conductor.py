@@ -130,6 +130,9 @@ def main(argv):
             status = extract(base, commit, snapshot)
             if status != 0:
                 return status if status <= 3 else 2
+            if is_registered_worktree(argv[0]) and os.path.isdir(os.path.join(snapshot, "scripts")):
+                shutil.copytree(os.path.join(snapshot, "scripts"),
+                                os.path.join(run_worktree(argv[0]), ".tdd", "pinned-scripts"))
             return launch(snapshot, argv[0], commit, VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
         finally:
             shutil.rmtree(snapshot, ignore_errors=True)
@@ -345,11 +348,15 @@ def record_path(issue):
     return os.path.join(event.toplevel(), ".tdd", "issue-%s-skill-commit" % issue)
 
 
-def past_preflight(issue):
+def is_registered_worktree(issue):
     run_wt = run_worktree(issue)
     top = git(run_wt, "rev-parse", "--show-toplevel",
               stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-    if top.returncode == 0 and top.stdout.rstrip("\n") == os.path.realpath(run_wt):
+    return top.returncode == 0 and top.stdout.rstrip("\n") == os.path.realpath(run_wt)
+
+
+def past_preflight(issue):
+    if is_registered_worktree(issue):
         return True
     branches = subprocess.run(["git", "for-each-ref", "--format=%(refname)", "refs/heads/tdd/%s-*" % issue],
                               stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
