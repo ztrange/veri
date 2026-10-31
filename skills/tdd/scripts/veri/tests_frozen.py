@@ -550,8 +550,7 @@ def rerecord_refactored(ledger, green):
         if _body_digest(_cases_at(green, name)[case]) != digest:
             return record
         return _body_line(name, case, _cases_at("HEAD", name)[case])
-    _rewrite_records(_earlier_records(lines, ""), rewrite)
-    return 0
+    return 0 if _rewrite_records(_earlier_records(lines, ""), rewrite) else 2
 
 
 def rerecord_rebased(ledger, pre):
