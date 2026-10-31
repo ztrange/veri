@@ -542,7 +542,7 @@ def rerecord_earlier(ledger, step):
 
 
 def _assertion_lines(body):
-    return [re.sub(r"\s+", "", line) for line in body.splitlines() if line.lstrip().startswith("assert")]
+    return [re.sub(r"\s+", "", line) for line in body.splitlines() if line.lstrip().startswith(("assert", "expect("))]
 
 
 def rerecord_refactored(ledger, green):

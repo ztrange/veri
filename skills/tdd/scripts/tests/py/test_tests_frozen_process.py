@@ -3193,6 +3193,31 @@ def test_rerecord_refactored_leaves_a_python_cases_record_when_the_refactor_chan
     assert checked == (1, "test_one (%s)\n" % step)
 
 
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_leaves_a_javascript_cases_record_when_the_refactor_changed_an_expect_line_2626(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    suite = tmp_path / "suite.test.js"
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("it('one', () => {\n  const x = 1;\n  expect(x).toBe(1);\n});\n")
+    git(tmp_path, "add", "suite.test.js")
+    run_cli(tests_frozen, ["record", "--step", step, "suite.test.js"], cwd=tmp_path)
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    suite.write_text(suite.read_text().replace("expect(x).toBe(1)", "expect(x).toBeGreaterThan(5)"))
+    _commit(tmp_path, "A refactor")
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+    ledger = ".tdd/issue-9.md"
+
+    run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert checked == (1, "one (%s)\n" % step)
+
+
 @pytest.mark.process("git asked for the repository toplevel from a directory under tmp_path that is in none")
 def test_rerecord_refactored_run_outside_any_git_repository_exits_2_and_re_records_nothing_2626(
         tmp_path, run_cli, tests_frozen):
