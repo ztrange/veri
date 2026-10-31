@@ -147,3 +147,25 @@ def test_2557_no_argument_combination_creates_a_tdd_directory_in_wt_and_the_run_
     wt = main / ".tdd" / "wt"
     assert sorted(path.name for path in wt.iterdir()) == ["7"]
     assert (wt / "7" / ".tdd" / "events.jsonl").is_file()
+
+
+def test_2700_a_refusal_of_a_run_already_marked_refused_whose_conductor_is_live_writes_no_event_posts_no_comment_and_exits_3(
+        tmp_path, monkeypatch, run_cli):
+    from conftest import live_conductor
+    preflight_refused = importlib.import_module("veri.preflight_refused")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)))
+    main = tmp_path / "main"
+    (main / ".git").mkdir(parents=True)
+    run = main / ".tdd" / "wt" / "7"
+    (run / ".tdd").mkdir(parents=True)
+    first = run_cli(preflight_refused, ["7", "full-tier baseline red"], cwd=main)
+    live_conductor(monkeypatch, run / ".tdd", 7)
+
+    second = run_cli(preflight_refused, ["7", "fast-tier baseline red"], cwd=main)
+    events = [json.loads(text) for text in (run / ".tdd" / "events.jsonl").read_text().splitlines()]
+
+    assert (first[0], second[0]) == (0, 3)
+    assert [e["check"] for e in events] == ["full-tier baseline red"]
+    assert len(posted) == 1

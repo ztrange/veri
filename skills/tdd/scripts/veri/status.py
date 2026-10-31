@@ -11,6 +11,7 @@ import sys
 import time
 
 import run_end
+from pid_file import live_conductor
 from event_log import read_events, usage_totals
 from ledger import ledger_path, ledger_steps
 from run_dir import run_file
@@ -30,6 +31,8 @@ def run_activity(run, as_json=False, closed=False):
     events = read_events(run_file(run, "events.jsonl"))
     dollars, tokens = usage_totals(events)
     ended, cause, end = run_end.run_end(run)
+    if end.get("event") == "preflight-refused" and live_conductor(os.fspath(run)):
+        ended, end = False, {}
     for line in events:
         newest = line
         if line.get("event") == "launch":
