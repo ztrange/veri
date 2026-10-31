@@ -16,3 +16,12 @@ for nodeid in []:
 command 309
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmps4qso8o5/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_pytest_leg.py make test TESTS=skills/tdd/scripts/tests/py/test_pytest_leg.py::test_2741_a_leg_cut_short_by_an_internalerror_names_only_the_cases_that_failed_not_a_passing_one
 
+file 37
+skills/tdd/scripts/veri/pytest_leg.py
+old 24
+the leg was cut short by
+new 16
+the leg ended by
+command 306
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmps4qso8o5/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_pytest_leg.py make test TESTS=skills/tdd/scripts/tests/py/test_pytest_leg.py::test_2741_a_leg_whose_xdist_run_ends_in_an_internalerror_says_on_stderr_that_it_was_cut_short
+
