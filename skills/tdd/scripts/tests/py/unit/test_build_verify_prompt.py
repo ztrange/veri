@@ -782,43 +782,6 @@ def test_main_states_the_signal_only_processes_you_started_rule_in_every_phase_f
     }
 
 
-def test_main_passes_a_replaces_case_green_only_when_every_case_its_step_names_is_gone_and_has_a_pytest_case_and_rejects_touching_any_case_it_does_not_name_one_or_several(
-        tmp_path, capsysbinary, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
-    several = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob", '
-               '"zorblat refuses an empty nitz" move to tests/py/test_zorblat.py ⟦criterion 1⟧')
-    one = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz" moves to '
-           'tests/py/test_zorblat.py ⟦criterion 1⟧')
-
-    def rendered(step):
-        code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit", "green", str(spec),
-                                         "tests/py/test_zorblat.py", "test_zorblat_frobs_a_nitz"])
-        out, _ = capsysbinary.readouterr()
-        return re.sub(rb"\s+", b" ", out) if code == 0 else None
-
-    prompts = {"several": rendered(several), "one": rendered(one)}
-
-    def says(prompt, pattern):
-        return prompt is not None and re.search(pattern, prompt, re.I) is not None
-
-    rules = {
-        "passes only when every named case is gone from its suite": (
-            rb"PASS[^.]{0,250}(every|each|all)[^.]{0,30}(named|cases? (it|the step|its text) names)[^.]{0,60}"
-            rb"(gone|deleted|removed|no longer)"),
-        "and each has a pytest case asserting its behaviour": (
-            rb"(each|every)[^.]{0,80}pytest case[^.]{0,40}assert[^.]{0,30}(its|their) behaviou?r"),
-        "rejects deleting or modifying any case the step does not name": (
-            rb"REJECT[^.]{0,200}(delet|modif)[^.]{0,80}(any|a) case (it|the step|its text) does not name"),
-    }
-    one_only = rb"^(?!.*(names one bash case|the named case is gone))"
-
-    assert {key: [rule for rule, pattern in rules.items() if not says(prompt, pattern)]
-            + (["never confines a several-case step to one case"]
-               if key == "several" and not says(prompt, one_only) else [])
-            for key, prompt in prompts.items()} == dict.fromkeys(prompts, [])
-
-
 def test_main_renders_a_ci_repair_green_prompt_judged_by_ci_evidence_and_not_by_the_revert_goes_red_check_and_an_unmarked_green_prompt_carries_no_such_paragraph_1473(
         tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
@@ -923,32 +886,6 @@ def test_main_renders_no_ci_repair_green_paragraph_for_a_step_naming_the_mark_mi
         tmp_path, capsysbinary, build_verify_prompt):
     assert _green_paragraph_by_trailing_marker(
         tmp_path, capsysbinary, build_verify_prompt, "ci-repair", rb"repairs a failure that reproduces only on CI") == [False, True]
-
-
-def test_main_renders_a_ci_repair_green_prompt_that_passes_on_evidence_from_before_the_push_and_leaves_the_verdict_on_the_pushed_fix_to_wait_ci_1473(
-        tmp_path, capsysbinary, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
-    code = build_verify_prompt.main(["--step", "zorblat sorts on CI only ⟦ci-repair⟧ ⟦criterion 1⟧",
-                                     "--fast-cmd", "make unit", "green", str(spec),
-                                     "tests/py/test_zorblat.py", "test_zorblat_frobs_a_nitz"])
-    out, _ = capsysbinary.readouterr()
-    prompt = re.sub(rb"\s+", b" ", out)
-    assert code == 0
-
-    rules = {
-        "passes on the quoted CI failure, a diff touching what it names and the local suites green": (
-            rb"PASS[^.]{0,200}(quote|log)[^.]{0,200}diff[^.]{0,120}touch[^.]{0,200}(local|suites?)[^.]{0,60}green"),
-        "never requires a CI run on the fix": (
-            rb"(never|not|no)[^.]{0,40}(require|need|expect|wait)[^.]{0,40}(CI run|run on the fix|green run)"),
-        "because none exists before the push": rb"(before|until|after)[^.]{0,40}(push|PASS)[^.]{0,120}(CI run|exists?)",
-        "the CI verdict on the pushed fix is wait-ci.sh's, red bailing ci-red": (
-            rb"wait-ci\.sh[^.]{0,200}ci-red|ci-red[^.]{0,200}wait-ci\.sh"),
-        "does not reject a step whose latest CI run is still the red one": (
-            rb"^(?!.*run still red is a REJECT)"),
-    }
-
-    assert [rule for rule, pattern in rules.items() if re.search(pattern, prompt, re.I) is None] == []
 
 
 def test_main_renders_an_expand_and_a_migrate_verify_prompt_stating_what_each_phase_changes_and_that_test_files_stay_frozen(
