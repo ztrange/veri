@@ -27,3 +27,11 @@ def test_cache_write_tokens_splits_1h_and_5m_writes_apart_and_counts_a_bare_cach
                                 "ephemeral_1h_input_tokens": 300000}}
     assert prices.cache_write_tokens(split) == {"cache_write_1h": 300000, "cache_write_5m": 100000}
     assert prices.cache_write_tokens({"cache_creation_input_tokens": 200000}) == {"cache_write_5m": 200000}
+
+
+def test_family_answers_the_longest_table_key_a_model_name_contains_and_none_for_a_name_holding_none():
+    prices = importlib.import_module("veri.prices")
+    assert prices.family("anthropic.claude-opus-5-5-v1") == "claude-opus-5-5"
+    assert prices.family("my-opus-fork") == "opus"
+    assert prices.family("claude-sonnet-5-5") is None
+    assert prices.family("") is None
