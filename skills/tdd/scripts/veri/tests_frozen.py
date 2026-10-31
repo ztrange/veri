@@ -541,6 +541,10 @@ def rerecord_earlier(ledger, step):
         return 2
 
 
+def _assertion_lines(body):
+    return [re.sub(r"\s+", "", line) for line in body.splitlines() if line.lstrip().startswith("assert")]
+
+
 def rerecord_refactored(ledger, green):
     with open(ledger, encoding="utf-8") as handle:
         lines = handle.read().splitlines()
@@ -549,7 +553,10 @@ def rerecord_refactored(ledger, green):
     def rewrite(_, record, name, case, digest):
         if _body_digest(_cases_at(green, name)[case]) != digest:
             return record
-        return _body_line(name, case, _cases_at("HEAD", name)[case])
+        head = _cases_at("HEAD", name)[case]
+        if _assertion_lines(head) != _assertion_lines(_cases_at(green, name)[case]):
+            return record
+        return _body_line(name, case, head)
     return 0 if _rewrite_records(_earlier_records(lines, ""), rewrite) else 2
 
 
