@@ -649,3 +649,17 @@ def test_2740_main_does_not_report_vanished_for_a_run_that_leaves_the_live_listi
     code = watch_runs.main(["--max-wait", "8"])
 
     assert (code, capsys.readouterr().out) == (3, "timeout\n")
+
+
+def test_2768_main_reports_vanished_and_returns_2_for_a_started_run_whose_worktree_is_absent_and_whose_conductor_process_is_not_alive(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    listings = iter([[("5", "running")]])
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "_runs", lambda: [{"issue": i, "state": s} for i, s in next(listings, [])])
+    monkeypatch.setattr(watch_runs, "_starting", lambda: [])
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+    monkeypatch.setattr(watch_runs, "clock", itertools.count(0, 1000).__next__)
+
+    code = watch_runs.main(["--max-wait", "1000000000"])
+
+    assert (code, capsys.readouterr().out) == (2, "vanished 5\n")
