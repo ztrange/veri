@@ -864,3 +864,10 @@
 |---|---|---|
 | QA1 | The fragment opens mid-sentence with "adds is allowed only as a" and says such a comment is allowed only as a contract header (a usage line or exit-code table) or a succinct warning where the shell itself is the hazard, with bash 3.2, BSD versus GNU flags, `set -u`'s exit status and a load-bearing `|| true` as the examples. (First sentence.) | Only two kinds of comment carry information the code cannot. |
 | QA2 | Its second sentence tells the verifier to REJECT any other rationale comment, and stops unfinished after "the"; the text that includes the fragment completes it. (Last sentence.) | Rationale belongs in a test or an ADR, not a comment; the verify-green and verify-refactor prompts each finish the sentence with their own noun. |
+
+## skills/tdd/scripts/prompts/_verify-comments-never-reject.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| QN1 | The fragment opens by finishing a sentence begun before it, "adds, and name it in REASON:.", so the rejected comment is named in the `REASON:` line. (First sentence.) | The developer must be told which comment to remove. |
+| QN2 | It says a contract header or a shell-hazard warning is never grounds for REJECT. (Last sentence.) | The two allowed kinds must not be rejected by a verifier reading the rule too broadly. |
