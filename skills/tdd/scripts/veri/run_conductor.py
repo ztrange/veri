@@ -144,6 +144,8 @@ def keep_pinned_scripts(snapshot, issue):
     if is_registered_worktree(issue) and os.path.isdir(os.path.join(snapshot, "scripts")):
         shutil.rmtree(kept, ignore_errors=True)
         shutil.copytree(os.path.join(snapshot, "scripts"), kept)
+        with open(os.path.join(kept, ".gitignore"), "w") as ignore:
+            ignore.write("*\n")
 
 
 def pinned_tmpdir():
