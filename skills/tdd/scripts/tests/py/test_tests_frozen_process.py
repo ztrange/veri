@@ -3090,3 +3090,27 @@ def test_rerecord_on_head_keeps_the_pins_and_renames_of_a_fixture_repair_step_wh
 
     assert (code, _names(tmp_path, tests_frozen, REPAIR_STEP)) == (
         0, ["test_one_renamed", "test_pin_committed", "test_pin_wip", "test_two"])
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history and its committed ledger walked")
+def test_rerecord_on_head_keeps_a_case_the_steps_own_refactor_commit_renamed_before_the_next_step_began_2724(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite, step = tmp_path / "test_suite.py", STEPS[1]
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("\n\n".join([CASE % ("base", 0), CASE % ("one", 1)]))
+    run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("pin_committed", 5))
+    _ledger(tmp_path, A="pending")
+    _commit(tmp_path, "A green")
+    suite.write_text(suite.read_text().replace("pin_committed", "pin_tidied"))
+    _commit(tmp_path, "A refactor renames the pin")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A refactor verified")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("later_step", 9))
+    _ledger(tmp_path, A="done", B="pending")
+    _commit(tmp_path, "B green")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("pin_wip", 4))
+
+    code = run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)[0]
+
+    assert (code, _names(tmp_path, tests_frozen, step)) == (0, ["test_one", "test_pin_tidied", "test_pin_wip"])
