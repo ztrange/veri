@@ -76,3 +76,24 @@ def test_main_leaves_the_file_byte_identical_and_no_copy_beside_it_when_the_suit
     assert code == 0
     assert target.read_bytes() == b"alpha\r\nbeta\n"
     assert [p.name for p in tmp_path.iterdir()] == ["target.txt"]
+
+
+def test_main_appends_file_old_new_and_command_with_their_newlines_to_the_record_when_it_exits_0_2506(
+    run_cli, mutation_probe, monkeypatch, tmp_path
+):
+    target = tmp_path / "target.txt"
+    target.write_text("head\nalpha\nbeta\ntail\n")
+    record = tmp_path / "mutations.md"
+    monkeypatch.setattr(
+        mutation_probe.subprocess, "run", lambda *a, **k: mutation_probe.subprocess.CompletedProcess(a, 1)
+    )
+    old, new, command = "alpha\nbeta", "gamma\ndelta\n", "check one\ntwo"
+    code, out, err = run_cli(
+        mutation_probe,
+        [str(target), old, new, "--", command],
+        env={"VERI_MUTATION_RECORD": str(record)},
+    )
+    assert code == 0
+    text = record.read_text()
+    for piece in (str(target), old, new, command):
+        assert piece in text
