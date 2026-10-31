@@ -882,3 +882,11 @@
 | QB4 | It says check 2 is stricter here than it reads: PASS requires the failure the verifier observes to match the behaviour *What happened* describes. (First paragraph, last sentence.) | A red for another reason does not reproduce the reported bug. |
 | QB5 | It says a test that fails for any other reason is a REJECT naming that reason, including the error-on-the-name red that check 2 otherwise allows, which says nothing about the defect that was reported. (Second paragraph, first sentence.) | An undefined-name red is a valid red for a feature but not a reproduction. |
 | QB6 | It tells the verifier to read *Steps to reproduce* for the conditions the case owes and *Expected* for the behaviour it asserts, and says *Environment* tells an incidental detail of the reporter's setup from a condition the behaviour depends on. (Second paragraph, last sentence.) | Each section of the bug report answers a different question about the case. |
+
+## skills/tdd/scripts/prompts/_verify-coverage-probe.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| QV1 | The fragment says a judgement that a change is or is not covered by a case is made by running the fast command the verifier was given, `{{FAST_CMD}}`, and the affected suites, never one test file alone. (First sentence, up to the colon.) | A coverage claim made from one file misses cases elsewhere. |
+| QV2 | It says a single file's green is not proof that no case covers the change. (First sentence, after the colon.) | It names the false inference the rule forbids. |
+| QV3 | It says a REJECT on that ground names the exact command that was run. (Last sentence.) | The developer can rerun the same command and see the gap. |
