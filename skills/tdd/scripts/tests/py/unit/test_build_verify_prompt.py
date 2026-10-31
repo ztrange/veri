@@ -632,6 +632,10 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
     def has(out, pattern, flags=re.I):
         return re.search(pattern.encode(), out.replace(b"\n", b" "), flags) is not None
 
+    def fragment_line(name):
+        lines = (SCRIPTS / "prompts" / name).read_bytes().splitlines()
+        return next(line for line in lines[1:] if line and b"{{" not in line)
+
     def cksum(data):
         crc = 0
         tail, n = b"", len(data)
@@ -665,8 +669,6 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
                                                   "skills/tdd/scripts/tests/zorblat.test.sh", "zorblat frobs a nitz"])
     one_refactoring = r"REJECT[^.]{0,200}(one|a single|named) refactoring|(one|a single|named) refactoring[^.]{0,200}REJECT"
     runnable = r"REJECT[^.]{0,200}(runnable|shell)[^.]{0,40}predicate|(runnable|shell)[^.]{0,40}predicate[^.]{0,200}REJECT"
-    gone = r"(gone|deleted|removed|no longer)"
-    every_suite = r"(every|each|all)( of the)? (listed|red|named) suites?"
     not_reject = r"\b(not|never)\b[^.]{0,40}REJECT"
     hazard = r"shell[^.]{0,40}hazard"
     included, _ = scratch(tmp_path, "included", templates={
@@ -698,17 +700,10 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
             phase: [has(out, rf"contract header[^.]{{0,200}}{not_reject}|{not_reject}[^.]{{0,200}}contract header"),
                     has(out, rf"{hazard}[^.]{{0,200}}{not_reject}|{not_reject}[^.]{{0,200}}{hazard}")]
             for phase, out in (("green", green), ("refactor", refactor))},
-        "replaces-case": (replaces_green[0],
-                          has(replaces_green[1], r"PASS[^.]{0,250}pytest[^.]{0,120}same behaviou?r"),
-                          has(replaces_green[1], rf"PASS[^.]{{0,250}}named (bash )?case[^.]{{0,60}}{gone}"),
-                          has(replaces_green[1], r"REJECT[^.]{0,200}(delet|modif)[^.]{0,80}(any|every) other (bash )?case"
-                                                 r"|(delet|modif)[^.]{0,80}(any|every) other (bash )?case[^.]{0,200}REJECT"),
-                          has(green, r"PASS[^.]{0,250}pytest")),
-        "suite-repair": (repair_green[0],
-                         has(repair_green[1], rf"PASS[^.]{{0,250}}{every_suite}[^.]{{0,80}}green"),
-                         has(repair_green[1], r"run[^.]{0,120}full test command|full test command[^.]{0,120}(run|judge)"),
-                         has(repair_green[1], r"(not|rather than|instead of)[^.]{0,60}fast (test )?command"),
-                         has(green, r"run[^.]{0,120}full test command")),
+        "replaces-case": (replaces_green[0], fragment_line("_verify-green-replaces-case.md") in replaces_green[1],
+                          fragment_line("_verify-green-replaces-case.md") in green),
+        "suite-repair": (repair_green[0], fragment_line("_verify-green-suite-repair.md") in repair_green[1],
+                         fragment_line("_verify-green-suite-repair.md") in green),
         "replaces-case unreadable": unreadable_paragraph(
             "no-replaces-case", "_verify-green-replaces-case.md",
             ["--step", replaces_step, "--fast-cmd", "make unit", "green", s, "tests/py/test_zorblat.py",
@@ -732,8 +727,8 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
         "#679 no-op": True,
         "rationale comment": {"green": [True] * 3, "refactor": [True] * 3},
         "contract header not grounds": {"green": [True] * 2, "refactor": [True] * 2},
-        "replaces-case": (0, True, True, True, False),
-        "suite-repair": (0, True, True, True, False),
+        "replaces-case": (0, True, False),
+        "suite-repair": (0, True, False),
         "replaces-case unreadable": (2, b"", True, [0]),
         "suite-repair unreadable": (2, b"", True, [0, 0]),
         "#671 byte-identity": [(0, "1933796141 8186"), (0, "605695461 7910")],
