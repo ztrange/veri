@@ -13,3 +13,4 @@
 - [x] With that directory absent and no pin recorded, `pinned-scripts.sh <n>` exits 2 saying no pin is recorded, and never prints the installed copy's path ⟦criterion 3⟧
 - [x] Run from a checkout holding no `.tdd` directory at all, with the directory absent, `pinned-scripts.sh <n>` exits 2 saying no pin is recorded and prints no path, never a directory that does not exist ⟦added⟧ ⟦criterion 3⟧
 - [x] Unit skills/tdd/SCRIPTS.md takes the issue's SC59 row: the catalogue's `$S/pinned-scripts.sh` entry ⟦skill-edit⟧ ⟦criterion 3⟧
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_shims.py — FAILED test_every_module_a_shim_execs_goes_through_the_shared_entry_point - AssertionError: assert ['pinned_scripts.py ... through entry.run'] == [] ⟦suite-repair⟧ ⟦criterion 3⟧
