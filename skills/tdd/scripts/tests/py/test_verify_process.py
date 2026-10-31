@@ -320,3 +320,50 @@ def test_verify_sh_red_whose_test_command_is_a_single_runner_with_no_lint_gate_l
         cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert (done.returncode, "GATE:" in done.stdout, launched.exists()) == (0, False, True), done.stdout + done.stderr
+
+
+@pytest.mark.process("verify.sh pin run as a real shim over veri/verify.py in a throwaway git repo, around a stub"
+                     " claude that records the VERI_MUTATION_RECORD it was launched with")
+def test_verify_sh_pin_launches_its_verifier_with_the_mutation_record_set_to_the_absolute_path_of_the_issue_file_2506(
+        tmp_path):
+    head = committed_head(tmp_path)
+    (tmp_path / "spec.md").write_text("the behavior spec\n")
+    (tmp_path / ".gitignore").write_text(".tdd/\n")
+    seen = tmp_path / ".tdd" / "seen-record"
+    claude = tmp_path / "claude-pass"
+    claude.write_text(f"#!/bin/sh\nprintf '%s' \"$VERI_MUTATION_RECORD\" > {seen}\n"
+                      "printf 'VERDICT: PASS\\nREASON: fine.'\n")
+    claude.chmod(0o755)
+    env = {"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+           "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01",
+           **checked_step(tmp_path, head, issue="2506")}
+
+    done = subprocess.run(
+        [str(SCRIPTS / "verify.sh"), "--fast-cmd", "make unit", "pin", "spec.md", "tests/test_x.py"],
+        cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    got = seen.read_text() if seen.exists() else None
+    assert (done.returncode, got) == (0, str(tmp_path / ".tdd" / "issue-2506-mutations.md")), done.stdout + done.stderr
+
+
+@pytest.mark.process("verify.sh green run as a real shim over veri/verify.py in a throwaway git repo, around a stub"
+                     " claude that records whether VERI_MUTATION_RECORD is set in the environment it was launched with")
+def test_verify_sh_green_with_an_issue_launches_its_verifier_without_the_mutation_record_set_2506(tmp_path):
+    head = committed_head(tmp_path)
+    (tmp_path / "spec.md").write_text("the behavior spec\n")
+    (tmp_path / ".gitignore").write_text(".tdd/\n")
+    seen = tmp_path / ".tdd" / "seen-record"
+    claude = tmp_path / "claude-pass"
+    claude.write_text(f"#!/bin/sh\nprintf '%s' \"${{VERI_MUTATION_RECORD+set}}\" > {seen}\n"
+                     "printf 'VERDICT: PASS\\nREASON: fine.'\n")
+    claude.chmod(0o755)
+    env = {"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+           "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01",
+           **checked_step(tmp_path, head, issue="2506")}
+
+    done = subprocess.run(
+        [str(SCRIPTS / "verify.sh"), "--fast-cmd", "make unit", "green", "spec.md", "tests/test_x.py"],
+        cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    got = seen.read_text() if seen.exists() else None
+    assert (done.returncode, got) == (0, ""), done.stdout + done.stderr

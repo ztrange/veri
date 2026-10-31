@@ -321,11 +321,15 @@ def main(argv):
     retries = no_verdict_budget(retries)
     role = {**os.environ, **leaf_role(leaf)}
     relaunches = 0
+    launch_env = None
+    if words[0] == "pin":
+        launch_env = tunables.with_values(
+            VERI_MUTATION_RECORD=os.path.abspath("%s/issue-%s-mutations.md" % (run_state, tunables.read("VERI_ISSUE"))))
     while True:
         launched = start(
             [sibling("supervise.sh"), leaf,
              sibling("run-leaf.sh"), prompt_path, *flags],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            env=launch_env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         said = (launched.stderr or b"").decode("utf-8", "replace")
         if said:
             write(sys.stderr, said.removesuffix("\n"))
