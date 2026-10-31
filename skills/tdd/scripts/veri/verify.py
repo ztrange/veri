@@ -95,6 +95,18 @@ def changed_paths(tree_before, head_before):
     return paths, head_after, tree_after
 
 
+def file_bytes(path):
+    try:
+        with open(path, "rb") as f:
+            return f.read()
+    except FileNotFoundError:
+        return None
+
+
+def appended(before, after):
+    return after is not None and after.startswith(before or b"")
+
+
 def gitconfig_snapshot(path):
     try:
         with open(path, "rb") as config:
@@ -326,6 +338,7 @@ def main(argv):
         record = os.path.abspath("%s/issue-%s-mutations.md" % (run_state, tunables.read("VERI_ISSUE")))
         launch_env = tunables.with_values(VERI_MUTATION_RECORD=record)
         own_record = os.path.relpath(record, top or os.getcwd())
+        record_before = file_bytes(record)
     else:
         launch_env = tunables.without("VERI_MUTATION_RECORD")
     while True:
@@ -344,8 +357,9 @@ def main(argv):
             write(sys.stdout, "verifier leaf killed-stuck — no verdict rendered (see .tdd/%s.log)" % leaf)
             return 2
         changed, head_after, tree_after = changed_paths(tree_before, head_before)
-        # A pin's verifier records the mutations it watched fail; that record alone is not a tree change (#2741).
-        if changed and changed != [own_record]:
+        # A pin's verifier records the mutations it watched fail; appending to that record alone is not a
+        # tree change (#2741). Deleting or rewriting it would disarm earlier pins, so that still refuses.
+        if changed and not (changed == [own_record] and appended(record_before, file_bytes(record))):
             diff = save_diff(leaf, tree_before, tree_after)
             in_temp_index("read-tree", "-u", "--reset", tree_before)
             if head_before and head_before != head_after:
