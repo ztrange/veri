@@ -77,6 +77,7 @@ def main(argv):
     global _pause
     _pause = 2 if max_wait is None else min(2, max_wait)
     deadline = clock() + max_wait if max_wait is not None else None
+    missed = set()
     while True:
         wait()
         live = live_conductors()
@@ -94,6 +95,9 @@ def main(argv):
                 state = run_state(issue).split(" ")[0]
                 if not state:
                     if pid_file.recorded_started(os.path.join(status.main_working_tree(), ".tdd", "wt", issue)):
+                        continue
+                    if issue not in missed:
+                        missed.add(issue)
                         continue
                     print("vanished %s" % issue)
                     return 2
