@@ -3170,3 +3170,33 @@ def test_rerecord_refactored_unreadable_ledger_exits_2_and_re_records_nothing_26
     code, out, _ = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", "deadbeef"], cwd=tmp_path)
 
     assert (code, out, record.read_text()) == (2, "", "kept\n")
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_exits_2_naming_the_record_when_writing_it_raises_2626(
+        tmp_path, run_cli, tests_frozen, monkeypatch, capfd):
+    suite, step = tmp_path / "test_suite.py", STEPS[1]
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1)]))
+    run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
+    _commit(tmp_path, "A refactor")
+    (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
+    old = record.read_bytes()
+
+    def refusing_open(name, mode="r", *rest, **kwargs):
+        if "w" in mode and str(name).endswith(record.name):
+            raise OSError(28, "No space left on device", str(name))
+        return open(name, mode, *rest, **kwargs)
+
+    monkeypatch.setattr(tests_frozen, "open", refusing_open, raising=False)
+    monkeypatch.chdir(tmp_path)
+
+    code = tests_frozen.rerecord_refactored(".tdd/issue-9.md", green)
+
+    assert (code, record.name in capfd.readouterr().err, record.read_bytes() == old) == (2, True, True)
