@@ -35,3 +35,11 @@ def test_family_answers_the_longest_table_key_a_model_name_contains_and_none_for
     assert prices.family("my-opus-fork") == "opus"
     assert prices.family("claude-sonnet-5-5") is None
     assert prices.family("") is None
+
+
+def test_metrics_takes_family_prices_and_cache_write_tokens_from_prices_and_no_longer_imports_the_old_cost_module():
+    metrics = importlib.import_module("veri.metrics")
+    assert not hasattr(metrics, "_".join(("session", "cost")))
+    assert metrics.family.__module__.split(".")[-1] == "prices"
+    assert metrics.cache_write_tokens.__module__.split(".")[-1] == "prices"
+    assert metrics.PRICES is importlib.import_module("prices").PRICES
