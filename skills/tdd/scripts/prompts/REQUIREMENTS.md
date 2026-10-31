@@ -890,3 +890,12 @@
 | QV1 | The fragment says a judgement that a change is or is not covered by a case is made by running the fast command the verifier was given, `{{FAST_CMD}}`, and the affected suites, never one test file alone. (First sentence, up to the colon.) | A coverage claim made from one file misses cases elsewhere. |
 | QV2 | It says a single file's green is not proof that no case covers the change. (First sentence, after the colon.) | It names the false inference the rule forbids. |
 | QV3 | It says a REJECT on that ground names the exact command that was run. (Last sentence.) | The developer can rerun the same command and see the gap. |
+
+## skills/tdd/scripts/prompts/_verify-red-fast.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| QT1 | The fragment is numbered item 4, with the bold lead "The fast command still passes." (Item 4, its lead.) | It continues verify-red's numbered checks. |
+| QT2 | It tells the verifier to run `{{FAST_CMD}}` once on this tree. (Item 4, second sentence.) | One run of the fast command shows whether Red's own file breaks it. |
+| QT3 | It says Green may not edit a test, so a red whose own file fails that command for any reason other than the target test's expected failure (a lint error, a type error, another case that fails) leaves a step no green can pass. (Item 4, third sentence.) | A red that breaks the fast command makes the step unsatisfiable. |
+| QT4 | It tells the verifier to REJECT such a red, naming the file and the error. (Item 4, last sentence.) | The developer must know what to fix. |
