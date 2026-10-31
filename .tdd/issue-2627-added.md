@@ -1,0 +1,1 @@
+- [ ] Run from the main checkout with the directory absent, `pinned-scripts.sh <n>` names the commit from the main checkout's `.tdd/issue-<n>-skill-commit`, the file `run_conductor.py` records the pin in, and exits 2 with the `git archive <pin> skills/tdd/scripts` recovery line ⟦added⟧ ⟦criterion 3⟧
