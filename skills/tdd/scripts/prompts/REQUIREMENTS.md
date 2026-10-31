@@ -857,3 +857,10 @@
 | QP5 | The third bullet says to REJECT a step that leaves a no-op in place for a later step to delete — one that makes code dead by passing a no-op (`onChange={() => {}}`) while another step deletes it; the deletion belongs in the step that makes the code dead. (Bullet 3.) | A no-op left for a later step ships dead code between steps. |
 | QP6 | The fourth bullet says to REJECT a refactor-kind plan that holds a ⟦phases: …⟧ step, because a rename that tests call is an interface change, filed without the `refactor` label. (Bullet 4.) | An interface change runs the phased procedure, not the refactor cycle. |
 | QP7 | The fifth bullet says to REJECT a refactor-kind plan that holds a step that only edits tests, unless that step is planned as ⟦diff-checked⟧ or a pin step, because a test-only criterion has no production code to transform. (Bullet 5.) | A Transform needs production code to act on. |
+
+## skills/tdd/scripts/prompts/_verify-comments-allowed.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| QA1 | The fragment opens mid-sentence with "adds is allowed only as a" and says such a comment is allowed only as a contract header (a usage line or exit-code table) or a succinct warning where the shell itself is the hazard, with bash 3.2, BSD versus GNU flags, `set -u`'s exit status and a load-bearing `|| true` as the examples. (First sentence.) | Only two kinds of comment carry information the code cannot. |
+| QA2 | Its second sentence tells the verifier to REJECT any other rationale comment, and stops unfinished after "the"; the text that includes the fragment completes it. (Last sentence.) | Rationale belongs in a test or an ADR, not a comment; the verify-green and verify-refactor prompts each finish the sentence with their own noun. |
