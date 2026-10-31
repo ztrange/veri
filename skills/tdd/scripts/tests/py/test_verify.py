@@ -3189,3 +3189,20 @@ def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_replaced
                                     "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     assert (code, "full suite are green" in out) == (2, False)
+
+
+@pytest.mark.process("a real git scratch repository whose pin verifier leaf creates a mutation record that was truly absent before it ran")
+def test_verify_sh_still_accepts_a_pass_from_a_pin_verifier_leaf_that_created_a_truly_absent_mutation_record_2772(
+        run_cli, tmp_path, monkeypatch):
+    monkeypatch.setenv("VERI_ISSUE", "2772")
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/*\n!.tdd/issue-2772-mutations.md\n", {})
+    mutation = 'mkdir -p .tdd; printf "mutation one\\n" > .tdd/issue-2772-mutations.md'
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
+           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo, issue="2772")}
+    verify = importlib.import_module("veri.verify")
+
+    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
+                                    "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+
+    assert (code, "full suite are green" in out) == (0, True)
