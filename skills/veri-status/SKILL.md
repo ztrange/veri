@@ -28,9 +28,9 @@ landed, issues added to or taken from the queue.
 
 Run `$S/report-cache.sh refresh` once, first, from the main working tree. Exit 2 means no
 fresh cache: report that and stop; never build the report from a stale `.tdd/report-cache.json`.
-Issue states, labels, blockers (from each body's `## Blocked by` section) and wall times are read
+Issue states, labels, blockers (from each issue's `links`) and wall times are read
 from that file (`{fetched_at, issues}`; each issue carries `number`, `title`, `state`, `labels`,
-`closedAt`, `updatedAt`, `body`, `comments`, `wallSeconds`, `lane`), the same file `/vreport`
+`closedAt`, `updatedAt`, `links`, `wallSeconds`, `lane`, and `body` for a PRD only), the same file `/vreport`
 reads, never a full `gh issue list`. The other reads stay direct:
 
 - `$S/status.sh --json` — every run: issue, title, step k/n, phase, attempts, elapsed seconds,
