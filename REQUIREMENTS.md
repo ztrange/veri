@@ -112,6 +112,7 @@
 | RD25 | The record survives only a run that got past preflight: after the conductor exits, `run-conductor.sh` keeps `.tdd/issue-<n>-skill-commit` when `.tdd/wt/<n>` is registered as a git worktree or a local `tdd/<n>-*` branch exists (what step 1.2, the first thing after preflight, creates) and removes it otherwise, whatever the conductor's exit code; an unregistered `.tdd/wt/<n>` directory, such as the one `VERI_NEW_SKILL=1` leaves, does not count, so a launch that stopped at preflight pins nothing and the next launch takes the fresh tip. (`## Launching the conductor`, paragraph 7.) | Only a run that started work keeps its pin. |
 | RD26 | When no commit can be resolved at all, the launch runs unpinned, says so on stderr, and hands the conductor `VERI_SKILL_UNPINNED=1` for the plan comment (step 2.4). (`## Launching the conductor`, paragraph 8.) | An unpinned run is visible, never silent. |
 | RD27 | `## Launching the conductor` is the section right after `## Install`. (Section order.) | The operator reads how to install before how to launch. |
+| RD28 | The paragraph on filing names `/veri-file bug\|refactor\|feature [<one line>]` and says `/veri-plan` turns an idea into a PRD of small sub-PRDs. | The current line would be false once F1 lands. |
 
 ## CONTEXT.md
 
