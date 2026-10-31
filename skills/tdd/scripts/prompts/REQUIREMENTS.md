@@ -824,3 +824,14 @@
 | QS1 | The fragment opens with the bold lead "This step repairs the full run." and says the step's text lists every suite the full command left red, each with the name of its first failing case. (First two sentences.) | The verifier knows which suites the repair must turn green. |
 | QS2 | It tells the verifier to PASS only when every listed suite is green, judged by running the full test command itself rather than the fast command. (Third sentence, before the semicolon.) | A full-run repair is proven only on the command that went red. |
 | QS3 | It says a listed suite still red is a REJECT. (Third sentence, after the semicolon.) | One suite left red means the repair is not done. |
+
+## skills/tdd/scripts/prompts/_verify-green-ci-repair.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| QC1 | The fragment opens with the bold lead "This step repairs a failure that reproduces only on CI." (First sentence.) | The verifier knows the usual local evidence does not exist for this step. |
+| QC2 | It says the step's local suites are green both before and after the fix, so it is not judged by the local check that the target goes red when the fix is removed, and tells the verifier to skip that check. (Second sentence.) | A revert-goes-red check cannot fail locally for a CI-only failure, so demanding it would reject every such fix. |
+| QC3 | It says the evidence is what exists before the push: the failing CI job's log before the fix. (Third sentence.) | The CI log is the only record of the failure. |
+| QC4 | It tells the verifier to PASS when the step quotes that log, the diff touches what the failure names, and the local suites are green. (Fourth sentence.) | These are the three things checkable before the push. |
+| QC5 | It tells the verifier never to require a CI run on the fix, because until after the push no CI run exists, and says that the step's latest CI run being the red one that created it is expected. (Fifth sentence.) | Requiring a green CI run before the push is unsatisfiable, and the red run is the step's origin, not a fault. |
+| QC6 | It says a green CI run on the pushed fix is the verdict of `wait-ci.sh` after the verifier's PASS, where red bails `ci-red`. (Last sentence.) | The CI verdict is someone else's check, made after the push. |
