@@ -808,3 +808,11 @@
 | QR1 | The fragment opens with the `{{INCLUDE:_replaces-case-lead.md}}` line and continues that line's sentence with "is to assert instead". (First line, up to the first full stop.) | The shared lead names the step's cases; this half says the pytest case is what now asserts their behaviour. |
 | QR2 | It tells the verifier to PASS only if every named case is gone from its suite and each has a pytest case asserting its behaviour, the same behaviour that bash case asserted. (Second sentence, before the semicolon.) | A replaces-case step is done only when every named case is both deleted and replaced like for like. |
 | QR3 | It tells the verifier to REJECT a deletion or modification of any case the step does not name, or of any other case. (Second sentence, after the semicolon.) | The permission to delete covers the named cases only. |
+
+## skills/tdd/scripts/prompts/_replaces-case-lead.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| RH1 | The fragment opens with the bold lead "This step replaces cases." (First sentence.) | The leaf sees at once that the step is a replacement, not new behaviour. |
+| RH2 | It says the step's text names one suite path and one or more of that suite's bash cases, each by its exact name. (Second sentence, up to "each by its exact name".) | A step may replace several cases, and each is named exactly so it can be found and deleted. |
+| RH3 | The second sentence stops unfinished after "whose behaviour a pytest case", with no verb and no full stop; the text that includes the fragment completes it. (Second sentence, its last clause.) | The develop and verify paragraphs share this lead and each finishes the sentence its own way. |
