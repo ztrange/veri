@@ -237,3 +237,19 @@ def test_2685_the_eight_verify_prompt_units_are_signed_and_owe_no_grade():
                          capture_output=True, text=True)
 
     assert ([u for u in units if u not in graded], ran.returncode, ran.stdout) == ([], 0, ""), ran.stderr
+
+
+@pytest.mark.process("prose-owed.sh run as a script")
+@pytest.mark.tree_audit("the repository's own graded prose units")
+def test_2679_the_five_verify_green_fragment_units_are_signed_and_owe_no_grade():
+    repo = SCRIPTS.parents[2]
+    prompts = "skills/tdd/scripts/prompts/"
+    units = [prompts + name for name in (
+        "_verify-green-replaces-case.md", "_replaces-case-lead.md", "_verify-green-suite-repair.md",
+        "_verify-green-ci-repair.md", "_verify-green-fixture-repair.md")]
+    graded = {line.split()[0] for line in (repo / "skills/tdd/GRADED").read_text().splitlines() if line.strip()}
+
+    ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(repo)], stdin=subprocess.DEVNULL,
+                         capture_output=True, text=True)
+
+    assert ([u for u in units if u not in graded], ran.returncode, ran.stdout) == ([], 0, ""), ran.stderr
