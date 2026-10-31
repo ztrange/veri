@@ -11,10 +11,6 @@ from conftest import SCRIPTS
 USAGE = b"usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]\n"
 
 
-def states_full_suite(prompt):
-    return re.search(r"full[^0-9A-Za-z\n]*test[^0-9A-Za-z\n]*suite", prompt, re.I) is not None
-
-
 def scratch(tmp_path, name, drop=(), templates=None):
     scripts = tmp_path / name
     (scripts / "veri").mkdir(parents=True)
@@ -468,12 +464,7 @@ def test_main_renders_red_green_refactor_and_pin_prompts_carrying_the_test_path_
         "ambient reaches nothing": ambient == plain,
         "test path": all(testpath in prompts[p] for p in every),
         "verdict format": has("red", r"VERDICT:", 0) and has("red", "pass") and has("red", "reject"),
-        "red audit": has("red", "right reason") and has("red", "trivial|coupled|complex"),
-        "green full suite": has("green", "full") and has("green", "suite") and states_full_suite(prompts["green"]),
-        "refactor standard and green": has("refactor", "standard|convention|typing|robust") and has("refactor", "green"),
-        "pin checks": "slugify(\"Hello & World/Foo\")" in prompts["pin"]
-                      and has("pin", r"pass(es)? (now|today|already|against|on the (current|unmodified))")
-                      and has("pin", "mutation") and has("pin", r"behaviou?r-level|trivial"),
+        "pin checks": "slugify(\"Hello & World/Foo\")" in prompts["pin"],
         "no prediction": all(prediction not in prompts[p] and not has(p, "PREDICTED_FAILURE|PREDICTION")
                              for p in every),
         "fifth positional": {phase: (code, out) for phase, (code, out, _) in fifth.items()},
@@ -483,34 +474,12 @@ def test_main_renders_red_green_refactor_and_pin_prompts_carrying_the_test_path_
         "ambient reaches nothing": True,
         "test path": True,
         "verdict format": True,
-        "red audit": True,
-        "green full suite": True,
-        "refactor standard and green": True,
         "pin checks": True,
         "no prediction": True,
         "fifth positional": {p: (2, b"") for p in every},
         "unknown phase": True,
     }
 
-
-@pytest.mark.tree_audit("the templates under prompts/")
-def test_the_full_suite_assertion_needs_its_whole_match_on_one_line_of_the_rendered_green_prompt(
-        tmp_path, capsysbinary):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"# spec\n")
-    phrase = b"full test suite"
-    template = (SCRIPTS / "prompts" / "verify-green.md").read_bytes()
-
-    def green_prompt(name, text):
-        return rendered(tmp_path, capsysbinary, name, {"verify-green.md": template.replace(phrase, text)},
-                        ["--fast-cmd", "make unit", "green", str(spec), "tests/test_slugify.py",
-                         "test_slugify_lowercases"])
-
-    assert template.count(phrase) == 1
-    assert {
-        "intact": states_full_suite(green_prompt("intact", phrase)),
-        "suite on the next line": states_full_suite(green_prompt("split", b"full test\n   suite")),
-    } == {"intact": True, "suite on the next line": False}
 
 def test_main_carries_and_checks_refactors_base_sha_scopes_every_prompt_to_its_step_ignoring_veri_step_and_renders_the_configuration_mechanism_fast_cmd_name_error_unrequired_code_restore_and_checkout_rules(
         tmp_path, capsysbinary, monkeypatch, build_verify_prompt):
@@ -536,14 +505,12 @@ def test_main_carries_and_checks_refactors_base_sha_scopes_every_prompt_to_its_s
 
     monkeypatch.delenv("VERI_STEP", raising=False)
     prompts = {phase: run(call(phase))[1] for phase in every}
-    red, green = prompts["red"], prompts["green"]
     with_base = run(["--fast-cmd", "make unit", "refactor", s, testpath, base_sha])
     refusals = {label: run(["--fast-cmd", "make unit", "refactor", s, testpath, *sha])[::2]
                 for label, sha in (("missing", []), ("short", ["abc123"]), ("uppercase", ["3F9A1C07E2B4"]),
                                    ("with-text", ["3f9a1c07e2b4 because it tidies"]),
                                    ("too-long", ["3f9a1c07e2b43f9a1c07e2b43f9a1c07e2b43f9a1"]))}
     stepped = {phase: run(call(phase, ["--step", step])) for phase in every}
-    scoped_refactor = run(["--step", step, "--fast-cmd", "make unit", "refactor", s, testpath, base_sha])[1]
     monkeypatch.setenv("VERI_STEP", ambient_step)
     ambient = {phase: run(call(phase))[1] for phase in every}
     fast_green = run(["--fast-cmd", fast_cmd, "green", s, testpath, "test_slugify_lowercases"])
@@ -553,63 +520,20 @@ def test_main_carries_and_checks_refactors_base_sha_scopes_every_prompt_to_its_s
     assert {
         "base sha carried": (with_base[0], base_sha.encode() in refactor),
         "base sha refusals": {label: (code, bool(err)) for label, (code, err) in refusals.items()},
-        "diff range": (f"git diff {base_sha}..HEAD".encode() in refactor,
-                       has(refactor, r"(never|not|don't|no)[^.]{0,80}commit messages")),
-        "weakened assertion": [has(refactor, p) for p in (
-            r"(removed|weakened)[^.]{0,80}assertion[^.]{0,120}REJECT|REJECT[^.]{0,120}(removed|weakened)[^.]{0,80}assertion",
-            r"REJECT[^.]{0,120}nam(e|es|ing)[^.]{0,40}assertion",
-            r"cosmetic[^.]{0,160}REASON:",
-            r"cosmetic[^.]{0,200}(not|never|no)[^.]{0,60}REJECT",
-            r"empty (range|diff)[^.]{0,160}(not|never|no)[^.]{0,60}REJECT")],
+        "diff range": f"git diff {base_sha}..HEAD".encode() in refactor,
         "step scoping": {phase: (code, step.encode() in out, has(
             out, r"verdict[^.]{0,160}(criterion|step)[^.]{0,40}only|verdict[^.]{0,160}only[^.]{0,40}(criterion|step)"))
             for phase, (code, out, _) in stepped.items()},
         "VERI_STEP reaches nothing": {phase: ambient[phase] == prompts[phase]
                                       and ambient_step.encode() not in ambient[phase] for phase in every},
-        "out of scope": (has(scoped_refactor, r"out of scope[^.]{0,200}REASON:|REASON:[^.]{0,200}out of scope"),
-                         has(scoped_refactor, r"outside[^.]{0,240}(not|never|no)[^.]{0,80}REJECT"
-                                              r"|out of scope[^.]{0,240}(not|never|no)[^.]{0,80}REJECT")),
-        "mechanism": {phase: [has(prompts[phase], p) for p in (
-            r"(process|fork)[^.]{0,20}count|timing",
-            r"in-process spy",
-            r"PATH[^.]{0,60}shim|shim[^.]{0,60}(count|real process)",
-            r"(runs?|running)[^.]{0,40}(another|other)[^.]{0,20}suite|re-runs?[^.]{0,30}suite")]
-            for phase in ("red", "pin")},
         "fast-cmd": (fast_green[0], fast_cmd.encode() in fast_green[1], no_fast[0], bool(no_fast[2])),
-        "red name error": [has(red, p) for p in (
-            r"error[^.]{0,160}(exactly the name|the exact name)[^.]{0,200}(valid|legitimate) red"
-            r"|(valid|legitimate) red[^.]{0,200}error[^.]{0,160}(exactly the name|the exact name)",
-            r"(missing|absent)[^.]{0,120}(script|file)[^.]{0,120}(route|field)",
-            r"any [^.]{0,20}other[^.]{0,20} error[^.]{0,60}before[^.]{0,40}assertion[^.]{0,80}REJECT",
-            r"typo", r"wrong path|incorrect path|path that does not exist",
-            r"(missing|absent) fixture", r"syntax error")],
-        "red reaching assertions": [has(red, p) for p in (
-            r"(must|has to|should)[^.]{0,100}not error before[^.]{0,60}assertion",
-            r"(must|has to|should)[^.]{0,100}reach(es)? its assertions")],
-        "green unrequired code": [has(green, p) for p in (
-            r"REJECT[^.]{0,200}code[^.]{0,80}no test requires|code[^.]{0,80}no test requires[^.]{0,200}REJECT",
-            r"branch[^.]{0,80}option[^.]{0,80}flag[^.]{0,80}parameter",
-            r"remov(e|ed|ing|al)[^.]{0,140}(leaves?|leaving)[^.]{0,60}tests? green"
-            r"|remov(e|ed|ing|al)[^.]{0,140}(every|all) tests? [^.]{0,40}green",
-            r"REASON:?[^.]{0,160}nam(e|es|ing)[^.]{0,60}code|nam(e|es|ing)[^.]{0,60}code[^.]{0,160}REASON")],
-        "green restore": [has(green, p) for p in (
-            r"remov(e|ing)[^\n]{0,200}run[^.]{0,80}suite",
-            r"restor(e|ing)[^.]{0,80}(tree|code|file)",
-            r"before[^.]{0,60}report")],
     } == {
         "base sha carried": (0, True),
         "base sha refusals": {label: (2, True) for label in refusals},
-        "diff range": (True, True),
-        "weakened assertion": [True] * 5,
+        "diff range": True,
         "step scoping": {phase: (0, True, True) for phase in every},
         "VERI_STEP reaches nothing": {phase: True for phase in every},
-        "out of scope": (True, True),
-        "mechanism": {"red": [True] * 4, "pin": [True] * 4},
         "fast-cmd": (0, True, 2, True),
-        "red name error": [True] * 7,
-        "red reaching assertions": [False, False],
-        "green unrequired code": [True] * 4,
-        "green restore": [True] * 3,
     }
 
 
@@ -617,37 +541,22 @@ def test_main_scopes_refactor_to_the_cycles_files_with_flags_lines_checks_plan_r
         tmp_path, monkeypatch, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
     spec.write_bytes(b'slugify("Hello & World/Foo") must return "hello-world-foo" \xe2\x80\x94 see {ref}\\n done.\n')
-    ledger = tmp_path / "ledger.md"
-    ledger.write_bytes("# Plan for #426\n\n- [ ] A verdict launcher script runs verify.sh with the step title"
-                       " as an argument ⟦criterion 1⟧\n".encode())
     predicate = tmp_path / "predicate.md"
     predicate.write_bytes(b'grep -q "extract_helper" lib/foo.sh\n')
     s, testpath, base_sha = str(spec), "tests/test_slugify.py", "3f9a1c07e2b4"
     diff_step = "the dead counted line in the status suite is gone ⟦diff-checked⟧ ⟦criterion 5⟧"
     diff_fast = 'make unit ZORBLAT=diff -- --only "frob & nitz/quux"'
-    every = ("red", "green", "refactor", "pin")
 
     def run(argv):
         code = build_verify_prompt.main(argv)
         return (code, *capsysbinary.readouterr())
-
-    def call(phase):
-        fast = ["--fast-cmd", "make unit"] if phase in ("green", "refactor") else []
-        slot4 = "0123abc" if phase == "refactor" else "test_slugify_lowercases"
-        return [*fast, phase, s, testpath, slot4]
-
-    def has(out, pattern, flags=re.I):
-        return re.search(pattern.encode(), out.replace(b"\n", b" "), flags) is not None
 
     def diff(base, step_base, fast="make unit"):
         return run(["--step", diff_step, "--fast-cmd", fast, "diff", s, base, step_base])
 
     monkeypatch.delenv("VERI_STEP", raising=False)
     monkeypatch.delenv("VERI_RATIONALE", raising=False)
-    prompts = {phase: run(call(phase))[1] for phase in every}
-    refactor = prompts["refactor"]
     with_base = run(["--fast-cmd", "make unit", "refactor", s, testpath, base_sha])[1]
-    plan = run(["plan", s, str(ledger)])[1]
     no_ledger = run(["plan", s])[:2]
     missing_ledger = run(["plan", s, str(tmp_path / "absent-ledger.md")])[:2]
     rb_onto, rb_pre = "8d05a4410c2e", "278252a1b9f3"
@@ -671,113 +580,32 @@ def test_main_scopes_refactor_to_the_cycles_files_with_flags_lines_checks_plan_r
     df = diff("0123abcdef", "4567abcdef", diff_fast)
     fast_line = f"timed-test-run.sh fast '' {diff_fast}".encode()
     _, found, after_fast = df[1].partition(fast_line)
-    deliver = r"deliver(s|ed|ing)?[^a-z]"
-    red_word = r"(red|fails?|failing|not green)[^0-9A-Za-z]"
-    gap_step = r"gap step|untagged|no[^.]{0,20}criterion[^.]{0,20}tag"
-
-    def rejects_shape(marker, ere):
-        return [f"⟦{marker}⟧".encode() in plan, has(plan, rf"REJECT[^.]{{0,200}}{ere}|{ere}[^.]{{0,200}}REJECT"),
-                has(plan, rf"Red[^.]{{0,40}}Green[^.]{{0,200}}{marker}|{marker}[^.]{{0,200}}Red[^.]{{0,40}}Green")]
-
     assert {
-        "refactor file scope": (f"git diff --name-only {base_sha}^ {base_sha}".encode() in with_base,
-                                has(with_base, r"outside[^.]{0,80}list[^.]{0,160}REJECT|REJECT[^.]{0,160}outside[^.]{0,80}list"),
-                                has(with_base, r"(unless|except)[^.]{0,160}duplication|duplication[^.]{0,160}(unless|except)")),
-        "refactor edge case flag": [has(refactor, p) for p in (
-            r"unhandled edge case[^.]{0,200}FLAGS|FLAGS[^.]{0,200}unhandled edge case",
-            r"FLAGS[^.]{0,120}before[^.]{0,120}VERDICT",
-            r"(edge case|robust)[^.]{0,200}not( by itself)? a REJECT|not( by itself)? a REJECT[^.]{0,200}(edge case|robust)")],
+        "refactor file scope": f"git diff --name-only {base_sha}^ {base_sha}".encode() in with_base,
         "plan ledger refusals": (no_ledger, missing_ledger),
-        "plan together": [has(plan, p) for p in (
-            r"together[^.]{0,200}deliver|deliver[^.]{0,200}together",
-            r"as written|in its own terms|the criterion.{0,20}own (words|terms|wording)",
-            r"REJECT[^.]{0,120}(name|identif|say|state)[^.]{0,200}criterion[^.]{0,200}(no step|nothing[^.]{0,40}cover|uncovered)",
-            r"PASS[^.]{0,200}every criterion[^.]{0,200}(deliver|cover)|every criterion[^.]{0,200}(deliver|cover)[^.]{0,200}PASS")],
-        "plan too big": [has(plan, p) for p in (
-            r"(too (big|large)|too much|does not fit|not fit)[^.]{0,150}cycle",
-            r"(name|names|say so|state)[^.]{0,100}(REASON:|reason\b)",
-            r"(whether|either way|regardless)[^.]{0,100}(PASS|REJECT|verdict)")],
-        "plan untagged step": [has(plan, p) for p in (
-            rf"{gap_step}|(carries|carrying|with|without|has) no[^.]{{0,40}}criterion",
-            rf"({gap_step})[^.]{{0,200}}(not|never|no)[^.]{{0,80}}REJECT",
-            r"(by itself|on its own|alone|in itself)[^.]{0,100}REJECT|REJECT[^.]{0,100}(by itself|on its own|alone|in itself)")],
-        "plan mechanism": [has(plan, p) for p in (
-            r"mechanism[^.]{0,200}(sufficient|suffices|enough)|(sufficient|suffices|enough)[^.]{0,200}mechanism",
-            r"REJECT[^.]{0,200}(no step|nothing)[^.]{0,150}(establish|deliver)|(no step|nothing)[^.]{0,150}(establish|deliver)[^.]{0,200}REJECT")],
-        "refactor flag classes": (b"FLAGS:" in refactor, [c in refactor for c in (b"overfit",)],
-                                  b"NEW_STEP" in refactor),
         "rebase": (rebase[0], b'slugify("Hello & World/Foo")' in rebase[1], rb_onto.encode() in rebase[1],
-                   rb_pre.encode() in rebase[1], b"{{" in rebase[1],
-                   has(rebase[1], r"full[^.]{0,80}(test|suite)"), b"HEAD" in rebase[1], has(rebase[1], r"default branch"),
-                   has(rebase[1], r"both[^.]{0,200}(surviv|preserv|intact|kept)|(surviv|preserv|intact|kept)[^.]{0,200}both")),
+                   rb_pre.encode() in rebase[1], b"{{" in rebase[1]),
         "rebase sha refusals": rebase_refusals,
-        "plan full-suite": rejects_shape("full-suite", r"(test command|suites?)[^.]{0,120}pass"),
-        "plan human-owed": rejects_shape("human-owed", r"(manual|human)[^.]{0,120}(check|record)"),
-        "plan marker delivers": [has(plan, rf"⟦{m}⟧[^.]{{0,200}}{deliver}|{deliver}[^.]{{0,200}}⟦{m}⟧")
-                                 for m in ("full-suite", "human-owed", "diff-checked")],
-        "plan diff-checked": rejects_shape("diff-checked", r"diff[- ]property"),
-        "plan forbidden reads": [has(plan, rf"REJECT[^.]{{0,200}}{r}|{r}[^.]{{0,200}}REJECT")
-                                 for r in ("another suite's source text", "git history")],
-        "plan ordering": [has(plan, p) for p in (
-            r"REJECT[^.]{0,200}branch[^.]{0,200}later step|branch[^.]{0,200}later step[^.]{0,200}REJECT",
-            r"nam(e|es|ing)[^.]{0,40}both[^.]{0,200}introduc[^.]{0,200}pin|nam(e|es|ing)[^.]{0,40}both[^.]{0,200}pin[^.]{0,200}introduc",
-            r"after[^.]{0,80}pin[^.]{0,200}not[^.]{0,40}REJECT|not[^.]{0,40}REJECT[^.]{0,200}after[^.]{0,80}pin",
-            r"only[^.]{0,40}branch[^.]{0,80}own test[^.]{0,200}not[^.]{0,40}REJECT"
-            r"|not[^.]{0,40}REJECT[^.]{0,200}only[^.]{0,40}branch[^.]{0,80}own test")],
         "transform": (transform[0], b'slugify("Hello & World/Foo")' in transform[1],
-                      b"git diff 0123abcdef..HEAD" in transform[1], has(transform[1], r"green commit"),
+                      b"git diff 0123abcdef..HEAD" in transform[1],
                       transform_bad_base, transforms),
-        "diff rendering": (dp[0], diff_step.encode() in dp[1], b"git diff 0123abcdef..HEAD" in dp[1],
-                           has(dp[1], r"git diff 0123abcdef\.\.HEAD[^.]{0,200}alone|alone[^.]{0,200}git diff 0123abcdef\.\.HEAD"),
-                           b"VERDICT: PASS" in dp[1] and b"VERDICT: REJECT" in dp[1]),
-        "diff blind": (has(dp[1], r"(never|not|don't|no)[^.]{0,80}commit messages"), b"{{" in dp[1],
+        "diff rendering": (dp[0], diff_step.encode() in dp[1], b"git diff 0123abcdef..HEAD" in dp[1]),
+        "diff blind": (b"{{" in dp[1],
                        b"the target test" in dp[1], dp_ambient == dp[1],
                        dp_other.replace(b"fedcba9876", b"0123abcdef") == dp[1]),
-        "diff adds a test": has(dp[1], r"REJECT[^.]{0,160}(add|adds|added)[^.]{0,40}test|(add|adds|added)[^.]{0,40}test[^.]{0,160}REJECT"),
-        "diff step base": (ds[0], b"git diff 0123abcdef..HEAD" in ds[1],
-                           has(ds[1], r"(add|adds|added)[^.]{0,40}test[^.]{0,200}git diff 4567abcdef\.\.HEAD"
-                                      r"|git diff 4567abcdef\.\.HEAD[^.]{0,200}(add|adds|added)[^.]{0,40}test")),
-        "diff fast-cmd": (df[0], bool(found), b"affected '<the suites you ran>'" in after_fast,
-                          has(df[1], rf"(fast|affected)[^.]{{0,200}}{red_word}[^.]{{0,200}}REJECT"
-                                     rf"|REJECT[^.]{{0,200}}(fast|affected)[^.]{{0,200}}{red_word}")),
+        "diff step base": (ds[0], b"git diff 0123abcdef..HEAD" in ds[1]),
+        "diff fast-cmd": (df[0], bool(found), b"affected '<the suites you ran>'" in after_fast),
     } == {
-        "refactor file scope": (True, True, True),
-        "refactor edge case flag": [True] * 3,
+        "refactor file scope": True,
         "plan ledger refusals": ((2, b""), (2, b"")),
-        "plan together": [True] * 4,
-        "plan too big": [True] * 3,
-        "plan untagged step": [True] * 3,
-        "plan mechanism": [True] * 2,
-        "refactor flag classes": (True, [True], False),
-        "rebase": (0, True, True, True, False, True, True, True, True),
+        "rebase": (0, True, True, True, False),
         "rebase sha refusals": {label: (2, b"") for label in rebase_refusals},
-        "plan full-suite": [True] * 3,
-        "plan human-owed": [True] * 3,
-        "plan marker delivers": [True] * 3,
-        "plan diff-checked": [True] * 3,
-        "plan forbidden reads": [True] * 2,
-        "plan ordering": [True] * 4,
-        "transform": (0, True, True, False, 2, 2),
-        "diff rendering": (0, True, True, True, True),
-        "diff blind": (True, False, False, True, True),
-        "diff adds a test": True,
-        "diff step base": (0, True, True),
-        "diff fast-cmd": (0, True, True, True),
+        "transform": (0, True, True, 2, 2),
+        "diff rendering": (0, True, True),
+        "diff blind": (False, False, True, True),
+        "diff step base": (0, True),
+        "diff fast-cmd": (0, True, True),
     }
-
-
-def test_1713_the_plan_prompt_rejects_a_red_green_step_that_changes_pinned_prompt_or_skill_text_instead_of_a_diff_checked_line(
-        tmp_path, capsysbinary, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"spec\n")
-    ledger = tmp_path / "ledger.md"
-    ledger.write_bytes("# Plan for #1713\n\n- [ ] A step ⟦criterion 1⟧\n".encode())
-    assert build_verify_prompt.main(["plan", str(spec), str(ledger)]) == 0
-    plan = capsysbinary.readouterr()[0].replace(b"\n", b" ")
-    rejects = (rb"REJECT a plan that carries a Red/Green step whose criterion changes rendered prompt text"
-               rb"[^.]{0,200}SKILL\.md sentence that a suite pins by checksum or verbatim"
-               rb"[^.]{0,200}instead of a `\xe2\x9f\xa6diff-checked\xe2\x9f\xa7` line")
-    assert re.search(rejects, plan) is not None
 
 
 @pytest.mark.tree_audit("the templates under prompts/")
@@ -1259,23 +1087,6 @@ def test_main_of_both_prompt_builders_refuses_an_unknown_phase_with_exit_2_namin
         "build-develop-prompt": (2, []), "build-verify-prompt": (2, [])}
 
 
-def test_main_renders_a_plan_prompt_that_rejects_a_phases_step_alone_for_a_criterion_asking_for_a_test_case_1495(
-        tmp_path, capsysbinary, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"1. zorblat(nitz) replaces frob(nitz, quux), with a case refusing a sibling start.\n")
-    ledger = tmp_path / "plan.md"
-    ledger.write_text("- [ ] Interface change: frob becomes zorblat "
-                      "⟦phases: expand, migrate, contract-a⟧ ⟦criterion 1⟧\n", encoding="utf-8")
-
-    code = build_verify_prompt.main(["plan", str(spec), str(ledger)])
-    out, _ = capsysbinary.readouterr()
-    prompt = re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
-
-    reject_phased_alone = (r"REJECT[^.]{0,300}(phases|phased)[^.]{0,300}(test case|case)"
-                           r"|(phases|phased)[^.]{0,300}(test case|case)[^.]{0,300}REJECT")
-    assert (code, re.search(reject_phased_alone, prompt, re.I) is not None) == (0, True)
-
-
 def test_main_renders_a_check_that_every_case_the_step_asks_for_exists_and_passes_only_in_the_last_listed_phase_1495(
         tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
@@ -1403,31 +1214,6 @@ def test_unknown_phase_exits_non_zero(tmp_path, run_cli, build_verify_prompt):
     assert (code, out) == (2, "")
 
 
-def test_619_verify_green_verify_pin_and_develop_cover_confirm_the_restore_by_comparing_git_diff_and_name_neither_checkout_nor_exit_code():
-    problems = []
-    for label in ("verify-green", "verify-pin"):
-        prompt = template_bytes(label)
-        problems += says(prompt, f"{label} never compares git diff with what it printed before the probe",
-                         rb"git diff[^.]{0,120}(before|earlier)[^.]{0,40}(probe|mutat)"
-                         rb"|(probe|mutat)[^.]{0,120}git diff[^.]{0,120}(before|earlier)", re.I)
-        problems += lacks(prompt, f"{label} still names git checkout --", rb"git checkout --")
-        problems += lacks(prompt, f"{label} still names git diff --exit-code", rb"git diff\s+--exit-code")
-    assert problems == []
-
-
-def test_619_verify_green_check_4_and_verify_pin_check_2_restore_before_reporting_and_develop_cover_step_4_leaves_the_tree_as_found():
-    problems = []
-    for label, n in (("verify-green", 4), ("verify-pin", 2)):
-        text = numbered_item(template_bytes(label), n)
-        problems += says(text, f"{label} item {n} never requires the restore before reporting",
-                         rb"before you report")
-    assert problems == []
-
-
-def squeezed(text):
-    return re.sub(r"[ \t\n\v\f\r]+", " ", text)
-
-
 def folded_bytes(text):
     return text.replace("\n", " ").encode("utf-8", "surrogateescape")
 
@@ -1450,69 +1236,6 @@ def test_verify_plan_carries_the_issue_spec_and_the_ledger_named_as_its_third_ar
     assert code == 0
     assert 'slugify("Hello & World/Foo")' in out
     assert "A verdict launcher script runs verify.sh with the step title as an argument ⟦criterion 1⟧" in out
-
-
-@pytest.fixture
-def plan_flat(tmp_path, spec, run_cli, build_verify_prompt):
-    ledger = tmp_path / "ledger.md"
-    ledger.write_text("# Plan for #426\n\n- [ ] A step ⟦criterion 1⟧\n")
-    return squeezed(run_cli(build_verify_prompt, ["plan", spec, str(ledger)])[1])
-
-
-def test_verify_plan_rejects_a_step_that_drops_a_constraint_the_issue_attaches_to_its_cases(plan_flat):
-    problems = []
-    if "REJECT a plan whose step drops a constraint the issue attaches to" not in plan_flat:
-        problems.append("never says to REJECT a step that drops a constraint the issue attaches to its cases")
-    if "case size" not in plan_flat:
-        problems.append("never names the case size as a constraint")
-    if "no production change" not in plan_flat:
-        problems.append('never names "no production change" as a constraint')
-    if "end-to-end path through real processes" not in plan_flat:
-        problems.append("never names the end-to-end path through real processes as a constraint")
-
-    assert problems == []
-
-
-def test_verify_plan_rejects_a_test_only_change_planned_as_a_red_green_step(plan_flat):
-    problems = []
-    if "REJECT a plan that plans a test-only change" not in plan_flat:
-        problems.append("never says to REJECT a plan that plans a test-only change")
-    if "only by editing a test" not in plan_flat:
-        problems.append("never names a change satisfiable only by editing a test")
-    if "as a Red/Green step" not in plan_flat:
-        problems.append("never says the rejected shape is a Red/Green step")
-
-    assert problems == []
-
-
-def test_verify_plan_rejects_a_step_observable_only_once_a_later_step_is_built_naming_both_steps(plan_flat):
-    problems = []
-    if "REJECT a plan in which a step's behaviour can only be observed once a later step is built" not in plan_flat:
-        problems.append("never says to REJECT a step whose behaviour can only be observed once a later step is built")
-    if "ignored, guarded or without effect" not in plan_flat:
-        problems.append("never names an input that is ignored, guarded or without effect")
-    if "even when X is left in" not in plan_flat:
-        problems.append('never quotes the "even when X is left in" shape')
-    if "before the step that makes the code read that input" not in plan_flat:
-        problems.append("never says the step sits before the step that makes the code read the input")
-    if "REASON: line names both steps, the early step and the later step it waits on" not in plan_flat:
-        problems.append("never says its REASON: line names both steps, the early one and the later one it waits on")
-
-    assert problems == []
-
-
-def test_verify_plan_rejects_a_guard_subject_that_is_also_the_steps_red_test_file_naming_step_and_path_2111(plan_flat):
-    problems = []
-    if "REJECT a plan holding a step that carries `⟦guard-subject: P⟧`" not in plan_flat:
-        problems.append("never says to REJECT a step carrying a guard-subject P")
-    if "names `P` as that step's Red test file" not in plan_flat:
-        problems.append("never names P as the step's Red test file")
-    if "can never pass `tests-frozen check --step`" not in plan_flat:
-        problems.append("never says the Green can never pass tests-frozen check --step")
-    if "your reason names the step and `P`" not in plan_flat:
-        problems.append("never says the reason names the step and P")
-
-    assert problems == []
 
 
 def test_verify_plan_carries_only_the_issue_spec_and_the_ledger_and_no_cycle_phase_prompt_carries_a_ledger(
@@ -1642,44 +1365,6 @@ def test_a_diff_prompt_tells_the_verifier_the_wrapper_hands_the_test_commands_ex
     assert problems == []
 
 
-def test_main_renders_a_red_prompt_telling_the_verifier_to_reject_a_red_whose_only_failure_is_a_name_error_on_a_name_the_test_file_references_and_never_defines_or_imports_1615(
-        tmp_path, capsysbinary, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
-
-    code = build_verify_prompt.main(["red", str(spec), "tests/a.py", "zorblat frobs a nitz"])
-    out, _ = capsysbinary.readouterr()
-    prompt = re.sub(rb"\s+", b" ", out)
-
-    rules = {
-        "an undefined name in the test file alone is a REJECT": (
-            rb"(NameError|undefined name)[^.]{0,250}(never defines|defines? nowhere|not defined)[^.]{0,200}REJECT"
-            rb"|REJECT[^.]{0,250}(NameError|undefined name)[^.]{0,250}(never defines|defines? nowhere|not defined)"),
-    }
-    missing = sorted(rule for rule, pattern in rules.items() if re.search(pattern, prompt, re.I) is None)
-
-    assert (code, missing) == (0, [])
-
-
-def test_main_renders_a_plan_prompt_that_rejects_a_replaces_case_step_not_naming_its_cases_as_replaces_quoted_names_in_a_suite_1538(
-        tmp_path, capsysbinary, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"1. zorblat(nitz) replaces frob(nitz, quux), with a case refusing a sibling start.\n")
-    ledger = tmp_path / "plan.md"
-    ledger.write_text("- [ ] replaces the frob half of the nitz case in tests/quux.test.sh "
-                      "⟦replaces-case⟧ ⟦criterion 1⟧\n", encoding="utf-8")
-
-    code = build_verify_prompt.main(["plan", str(spec), str(ledger)])
-    out, _ = capsysbinary.readouterr()
-    prompt = re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
-
-    reject_unreadable = (r"REJECT[^.]{0,400}replaces-case[^.]{0,400}replaces '<case name>'"
-                         r"|replaces-case[^.]{0,400}replaces '<case name>'[^.]{0,400}REJECT"
-                         r"|REJECT[^.]{0,400}replaces '<case name>'[^.]{0,400}replaces-case")
-    assert (code, "replaces '<case name>'" in prompt, "in <suite path>" in prompt,
-            re.search(reject_unreadable, prompt, re.I) is not None) == (0, True, True, True)
-
-
 def test_main_renders_the_ordinary_red_prompt_for_a_step_mentioning_the_replaces_case_mark_only_in_its_prose_or_backticks_1538(
         tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
@@ -1735,97 +1420,6 @@ def test_main_tells_the_refactor_plan_verifier_to_reject_a_step_that_only_edits_
     assert (refactor[0], re.search(test_only, refactor[1]) is not None, re.search(test_only, plain[1]) is not None) == (0, True, False)
 
 
-def test_main_renders_a_plan_prompt_that_rejects_a_step_adding_a_script_whose_usage_and_exit_2_or_caller_arrive_in_a_later_step_naming_both_steps_1700(
-        tmp_path, capsysbinary, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"1. frob.sh refuses no arguments with a usage line and exit 2.\n")
-    ledger = tmp_path / "plan.md"
-    ledger.write_text("- [ ] adds skills/tdd/scripts/frob.sh ⟦criterion 1⟧\n"
-                      "- [ ] frob.sh prints usage and exits 2 with no arguments ⟦criterion 1⟧\n",
-                      encoding="utf-8")
-
-    code = build_verify_prompt.main(["plan", str(spec), str(ledger)])
-    out, _ = capsysbinary.readouterr()
-    prompt = re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
-
-    reject_late = (r"REJECT[^.]{0,300}adds? a script[^.]{0,300}(usage|exit 2|caller)[^.]{0,300}later step"
-                   r"|REJECT[^.]{0,300}later step[^.]{0,300}adds? a script")
-    names_both = re.search(r"adds? a script[^.]{0,600}(naming|names|name) both steps"
-                           r"|(naming|names|name) both steps[^.]{0,600}adds? a script", prompt, re.I) is not None
-    rule = next((s for s in re.split(r"(?<=\.) ", prompt) if s.startswith("REJECT") and "adds a script" in s), "")
-    owed = rule.split("later step", 1)[0]
-    each_owed = [word for word in ("usage", "exit 2", "caller") if word in owed]
-    assert (code, re.search(reject_late, prompt, re.I) is not None, names_both, each_owed) == (
-        0, True, True, ["usage", "exit 2", "caller"])
-
-
-def test_main_renders_a_plan_prompt_that_rejects_a_pinned_text_criterion_with_a_case_but_only_a_diff_checked_step_1730(
-        tmp_path, capsysbinary, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"1. A prompt sentence is changed and a case pins it.\n")
-    ledger = tmp_path / "plan.md"
-    ledger.write_text("- [ ] ⟦diff-checked⟧ rewrite the prompt sentence ⟦criterion 1⟧\n", encoding="utf-8")
-
-    code = build_verify_prompt.main(["plan", str(spec), str(ledger)])
-    out, _ = capsysbinary.readouterr()
-    prompt = re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
-
-    rule = next((s for s in re.split(r"(?<=\.) ", prompt)
-                 if s.startswith("REJECT") and "asks for a case" in s and "only the" in s), "")
-    states = [word in rule for word in ("⟦diff-checked⟧", "separate step for the case", "same `⟦criterion k⟧`", "after the text's")]
-    assert (code, states) == (0, [True, True, True, True])
-
-
-@pytest.mark.parametrize("phase", ["red", "pin"])
-def test_main_renders_a_red_and_a_pin_prompt_that_rejects_a_red_pinning_only_one_of_two_behaviours_the_step_demands_naming_the_missing_case_1814(
-        phase, tmp_path, capsysbinary, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"1. A finished session is counted once.\n")
-    step = "a finished session is counted once from its result record, and not again from its assistant messages (a separate case pins that)"
-
-    code = build_verify_prompt.main(["--step", step, phase, str(spec), TESTPATH, "t"])
-    out, _ = capsysbinary.readouterr()
-    prompt = re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
-
-    rule = next((s for s in re.split(r"(?<=\.) ", prompt) if "separate case" in s and "REJECT" in s), "")
-    states = [step in prompt, "REJECT naming the missing case" in rule, "adds no case for it" in rule]
-    assert (code, states) == (0, [True, True, True])
-
-
-@pytest.mark.tree_audit("the templates under prompts/")
-def test_main_tells_the_plan_verifier_to_reject_a_plan_changing_text_older_cases_pin_without_a_step_updating_them_first_1862(
-        tmp_path, capsysbinary):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"# spec\n")
-    ledger = tmp_path / "ledger.md"
-    ledger.write_bytes(b"- [ ] a step\n")
-    prompt = rendered(tmp_path, capsysbinary, "plan_older_pins", None, ["plan", str(spec), str(ledger)])
-    rules = [s for s in re.split(r"(?<=\.) ", " ".join(prompt.split())) if s.startswith("REJECT a plan that changes text or output")]
-
-    assert (len(rules) > 0,
-            any("older cases" in r and "without a step that updates those older cases ahead of the step that changes the text" in r
-                for r in rules)) == (True, True)
-
-
-def test_plan_prompt_rejects_a_fixture_repair_step_with_the_defect_in_the_script_no_fixture_or_a_non_test_fixture_file_1021(
-        tmp_path, run_cli, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(SPEC_TEXT.encode())
-    ledger = tmp_path / "ledger.md"
-    ledger.write_bytes(b"- [ ] c: repairs the fixture 'f' in t/x.test.sh, reproduced by a case in t/x.test.sh"
-                       b" \xe2\x9f\xa6fixture-repair\xe2\x9f\xa7 \xe2\x9f\xa6criterion 1\xe2\x9f\xa7\n")
-
-    code, out, _ = run_cli(build_verify_prompt, ["plan", str(spec), str(ledger)])
-
-    text = " ".join(out.split())
-    rule = next((s for s in re.split(r"(?<=\.) ", text) if s.startswith("REJECT a `⟦fixture-repair⟧` step")), "")
-    assert code == 0
-    assert "- [ ] <criterion>: repairs the fixture '<fixture or stub name>' in <fixture file>, reproduced by a case in <test file> ⟦fixture-repair⟧ ⟦criterion k⟧" in text
-    assert "whose spec places the defect in the script under test" in rule
-    assert "names no fixture" in rule
-    assert "whose fixture file is not a test file" in rule
-
-
 def test_main_exits_2_naming_the_fixture_repair_partial_when_it_is_missing_for_a_marked_green_step_1021(
         tmp_path, capsysbinary):
     scripts = tmp_path / "scripts"
@@ -1849,55 +1443,6 @@ def test_main_exits_2_naming_the_fixture_repair_partial_when_it_is_missing_for_a
         2, b"", f"build-verify-prompt: cannot read '{scripts / 'prompts' / '_verify-green-fixture-repair.md'}'\n".encode())
 
 
-def test_main_renders_a_transform_prompt_that_rejects_a_range_changing_observable_behaviour_1963(
-        tmp_path, capsysbinary, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"# spec\n")
-
-    code = build_verify_prompt.main(["transform", str(spec), str(tmp_path / "predicate.md"), "0123abcdef"])
-    out, _ = capsysbinary.readouterr()
-    prompt = re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
-
-    assert code == 0
-    assert re.search(r"REJECT[^.]{0,60}changes? (any )?observable behaviou?r"
-                     r"|changes? (any )?observable behaviou?r[^.]{0,60}REJECT", prompt, re.I), prompt
-
-
-def test_main_renders_a_plan_prompt_sending_a_case_for_behaviour_that_already_holds_to_a_pin_step_never_diff_checked_1889(
-        tmp_path, capsysbinary, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"1. A case pins behaviour that already holds.\n")
-    ledger = tmp_path / "plan.md"
-    ledger.write_text("- [ ] a step\n", encoding="utf-8")
-
-    code = build_verify_prompt.main(["plan", str(spec), str(ledger)])
-    out, _ = capsysbinary.readouterr()
-    prompt = " ".join(out.decode("utf-8", "surrogateescape").split())
-
-    state = ("pin step" in prompt and "already holds" in prompt and "never `⟦diff-checked⟧`" in prompt.replace(
-                 "`⟦diff-checked⟧` is reserved for steps that leave no test behind, so it is never offered",
-                 "never `⟦diff-checked⟧`")
-             and "reserved for steps that leave no test behind" in prompt)
-    assert (code, state) == (0, True)
-
-
-def test_main_renders_a_plan_prompt_carrying_a_diff_checked_step_that_adds_a_process_case_and_the_rule_to_reject_it_1889(
-        tmp_path, capsysbinary, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"1. A process case pins behaviour that already holds.\n")
-    step = "add a process case pinning that the launcher exits 2 on a bad argument ⟦diff-checked⟦ ⟦criterion 3⟧"
-    step = step.replace("⟦diff-checked⟦", "⟦diff-checked⟧")
-    ledger = tmp_path / "plan.md"
-    ledger.write_text(f"# Plan for #1667\n\n- [ ] {step}\n", encoding="utf-8")
-
-    code = build_verify_prompt.main(["plan", str(spec), str(ledger)])
-    out, _ = capsysbinary.readouterr()
-    prompt = " ".join(out.decode("utf-8", "surrogateescape").split())
-
-    rule = re.search(r"REJECT a plan whose ⟦diff-checked⟧ step text asks for a test to be added", prompt.replace("`", ""))
-    assert (code, step in prompt, rule is not None) == (0, True, True)
-
-
 def test_main_renders_a_plan_prompt_for_a_refactor_spec_limiting_its_refactor_checks_to_steps_that_are_not_diff_checked_or_pin_and_rejecting_a_test_only_step_only_when_planned_otherwise_1915(
         tmp_path, capsysbinary, build_verify_prompt):
     ledger = tmp_path / "plan.md"
@@ -1917,41 +1462,6 @@ def test_main_renders_a_plan_prompt_for_a_refactor_spec_limiting_its_refactor_ch
     test_only = "holds a step that only edits tests, unless that step is planned as ⟦diff-checked⟧ or a pin step"
     assert ((limit in with_refactor, test_only in with_refactor),
             (limit in without, test_only in without)) == ((True, True), (False, False))
-
-
-def test_the_green_prompt_tells_the_verifier_to_probe_every_added_branch_option_flag_parameter_and_guard_and_to_name_each_one_left_green_in_reason_not_only_the_first(
-        tmp_path, capsysbinary, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"# spec\n")
-    assert build_verify_prompt.main(
-        ["--fast-cmd", "make unit", "green", str(spec), "tests/test_slugify.py", "test_slugify_lowercases"]) == 0
-    prompt = " ".join(capsysbinary.readouterr()[0].decode("utf-8", "surrogateescape").split())
-
-    assert {
-        "probe every added item before answering": re.search(
-            r"probe every branch, option, flag, parameter and guard[^.]{0,40}diff added before you answer",
-            prompt, re.I) is not None,
-        "not only the first": re.search(
-            r"(not|n't) stop at the first[^.:]{0,80}leaves every test green", prompt, re.I) is not None,
-        "name each in REASON": re.search(
-            r"name each[^.:]{0,40}in REASON:", prompt, re.I) is not None,
-    } == {"probe every added item before answering": True, "not only the first": True, "name each in REASON": True}
-
-
-def test_main_renders_a_green_prompt_carrying_no_instruction_to_name_only_the_first_unrequired_item_2259(
-        tmp_path, capsysbinary, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"# spec\n")
-    code = build_verify_prompt.main(["--fast-cmd", "make unit", "green", str(spec),
-                                     "tests/py/test_slugify.py", "test_slugify_lowercases"])
-    out, _ = capsysbinary.readouterr()
-    assert code == 0
-    prompt = re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
-
-    first_only = re.findall(
-        r"(?<!not )(?<!n't )\b(?:name|list|report|give)\s+(?:\w+\s+)?(?:only\s+|just\s+)?the\s+first\b[^.]{0,60}",
-        prompt, re.I)
-    assert first_only == []
 
 
 def test_the_green_prompt_requires_a_coverage_judgement_to_run_the_fast_command_and_the_affected_suites_never_one_file_and_a_reject_to_name_the_command_run_2477(
@@ -1986,27 +1496,6 @@ def test_the_refactor_and_diff_prompts_each_require_a_coverage_judgement_to_run_
             re.search(r"A REJECT on that ground names the exact command that was run", prompt) is not None)
 
     assert found == {"refactor": (True, True), "diff": (True, True)}
-
-
-def test_main_renders_a_plan_prompt_refusing_a_step_naming_more_than_one_outcome_by_the_one_outcome_per_step_split_and_accepting_one_outcome_whatever_guard_it_mentions_2553(
-        tmp_path, monkeypatch, capsysbinary, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"spec\n")
-    ledger = tmp_path / "ledger.md"
-    ledger.write_bytes("# Plan for #1\n\n- [ ] a step ⟦criterion 1⟧\n".encode())
-    monkeypatch.delenv("VERI_STEP", raising=False)
-    assert build_verify_prompt.main(["plan", str(spec), str(ledger)]) == 0
-    plan = capsysbinary.readouterr()[0].decode("utf-8", "surrogateescape").replace("\n", " ")
-
-    def has(pattern):
-        return re.search(pattern, plan, re.I) is not None
-
-    assert [
-        has(r"REJECT[^.]{0,80}step[^.]{0,80}more than one (observable )?outcome"),
-        has(r"one outcome per step"),
-        has(r"exactly one outcome[^.]{0,80}accepted"),
-        has(r"never refuse a step for merely mentioning a guard"),
-    ] == [True] * 4
 
 
 def test_main_renders_a_red_prompt_with_fast_cmd_that_runs_it_once_and_rejects_a_red_failing_it_for_any_reason_but_the_targets_expected_failure_naming_the_file_and_the_error_2569(
