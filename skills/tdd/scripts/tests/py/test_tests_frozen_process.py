@@ -3326,3 +3326,40 @@ def test_rerecord_refactored_exits_2_naming_the_record_when_writing_it_raises_26
     code = tests_frozen.rerecord_refactored(".tdd/issue-9.md", green)
 
     assert (code, record.name in capfd.readouterr().err, record.read_bytes() == old) == (2, True, True)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the step's commits to HEAD")
+def test_check_earlier_names_a_case_changed_in_a_refactor_commit_as_stale_against_a_verified_refactor_not_as_edited_2626(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite, step = tmp_path / "test_suite.py", STEPS[1]
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1)]))
+    run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
+    _commit(tmp_path, "refactor: tidy the cases of step A")
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", ".tdd/issue-9.md", "--step", STEPS[2]], cwd=tmp_path)
+
+    assert (code, out.startswith("test_one (%s)" % step), "stale" in out, "edited" in out) == (1, True, True, False)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the step's commits to HEAD")
+def test_check_earlier_names_a_case_deleted_from_the_tree_after_a_refactor_commit_as_removed_not_as_stale_2626(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite, step = tmp_path / "test_suite.py", STEPS[1]
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1)]))
+    run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
+    _commit(tmp_path, "refactor: tidy the cases of step A")
+    suite.write_text(CASE % ("base", 0))
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", ".tdd/issue-9.md", "--step", STEPS[2]], cwd=tmp_path)
+
+    assert (code, out) == (1, "test_one (%s)\n" % step)

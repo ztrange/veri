@@ -81,3 +81,12 @@ except FileNotFoundError:
 command 171
 make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_rerecord_refactored_re_records_nothing_and_exits_3_unless_verdict_refactor_exit_holds_0_2626
 
+file 39
+skills/tdd/scripts/veri/tests_frozen.py
+old 45
+if nows and _changed_by_refactor(name, case):
+new 36
+if _changed_by_refactor(name, case):
+command 339
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpwd8fn17e/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_check_earlier_names_a_case_deleted_from_the_tree_after_a_refactor_commit_as_removed_not_as_stale_2626
+
