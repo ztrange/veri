@@ -771,3 +771,18 @@
 | VB7 | Check 2, "Both sides survive", says the branch's own changes (`git diff {{ONTO_SHA}}...{{PRE_REBASE_SHA}}` shows them) and the default branch's changes (`git diff {{PRE_REBASE_SHA}}...{{ONTO_SHA}}` shows them) must both be present in `HEAD`, with their behaviour intact. (Check 2, first sentence.) | A rebase that loses either side's work is not a resolution. |
 | VB8 | Check 2 says a resolution that drops or weakens either side's change is a REJECT even when the suite is green, and the REJECT names the file and the change that was lost. (Check 2, last sentence.) | A green suite can miss a dropped change. |
 | VB9 | The closing paragraph says PASS only if the full test command is green on HEAD and both the branch's changes and the default branch's changes survived the resolution. (Closing paragraph.) | The verdict needs both checks. |
+
+## skills/tdd/scripts/prompts/verify-transform.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VT1 | The template opens with the `{{SHARED}}` slot, then the heading `## Phase: verify-transform`. (First lines.) | The blind verifier's shared rules come first. |
+| VT2 | The opening paragraph says this is a **refactor** run and that a developer agent has applied one named refactoring for this step and committed it. (Opening paragraph, first two sentences.) | The verifier judges one named transformation. |
+| VT3 | The opening paragraph says the step's predicate record, the shell command stating the smell, is `{{TEST_PATH}}`, false before the step and true after, and that the step started at `{{BASE_SHA}}`; it never calls that base a green commit. (Opening paragraph, the predicate and start sentences.) | A transform's base is where the step started, not a Green's commit. |
+| VT4 | The opening paragraph tells the verifier to review what the step changed with `git diff {{BASE_SHA}}..HEAD` (the whole range, not a subset of files), not to read the range's commit messages because `git log` and `git show` on the range carry the author's rationale, and to render one verdict on the settled result. (Opening paragraph, rest.) | The verifier stays blind and judges the whole range. |
+| VT5 | After the opening, the `{{STEP}}` slot runs straight into a `### The issue's behavior spec` heading over `{{ISSUE_SPEC}}`, then the `### Your checks` heading. (Sections before the checks.) | The verifier reads the step and the spec before the checks. |
+| VT6 | Check 1, "The predicate holds", tells the verifier to run the command in `{{TEST_PATH}}` itself; it must succeed. (Check 1.) | The smell's predicate is the step's deliverable. |
+| VT7 | Check 2, "Behaviour unchanged", tells the verifier to run the suites covering the files the range touched, through the wrapper `{{TIMED_TEST_RUN}}`; they must be **green**, and the included `_timed-test-run-affected.md` command line follows, indented. (Check 2.) | A refactoring preserves behaviour, observed on the affected suites. |
+| VT8 | Check 3, "One refactoring", says the range applies the refactoring the step names and nothing else. (Check 3.) | One step is one named transformation. |
+| VT9 | Check 4, "No observable change", says a range that changes observable behaviour is a REJECT. (Check 4.) | A refactoring that changes behaviour is not a refactoring. |
+| VT10 | The closing paragraph says PASS if the predicate holds, the suites are green, the range is that one refactoring and it changes no observable behaviour, and REJECT, naming the specific problem, otherwise. (Closing paragraph.) | The verdict restates every check. |
