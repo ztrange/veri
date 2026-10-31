@@ -3072,6 +3072,37 @@ def test_cli_2748_the_verify_refactor_leaf_given_fast_cmd_launched_alone_receive
     assert (code, launched.get("exit"), "affected-suites.sh" in text, fast in text) == (0, 0, True, True), stderr
 
 
+@pytest.mark.process("the real verify.sh run from a launched claude, a stub claude that records any prompt it receives")
+def test_cli_2748_the_verify_refactor_leaf_without_fast_cmd_launched_alone_exits_2_and_reaches_no_claude(tmp_path, monkeypatch, run_cli):
+    skill, run_conductor = skill_clone(tmp_path, monkeypatch, "run_conductor_tier_verify_refactor_bare", {"SKILL.md": "# the procedure\n"})
+    tiers = tmp_path / "tiers"
+    tiers.mkdir()
+    (tiers / "spec.md").write_text("spec\n")
+    (tiers / ".gitignore").write_text(".tdd/\n*.received\n*.prompt\n")
+    step = checked_step(tiers, committed_head(tiers))
+    stub = tmp_path / "tier-claude"
+    stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { printf \'%s\\n\' "$2" > "$LEAF_PROMPT_OUT"; shift; }\n'
+                    '  shift\ndone\nprintf \'%s\\n\' \'{"type":"result","subtype":"success","is_error":false,"result":"VERDICT: PASS\\nREASON: ok"}\'\n')
+    stub.chmod(0o755)
+    run, launched = subprocess.run, {}
+
+    def claude_launches_bare_verify_refactor(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+        env = dict(os.environ, CLAUDE_BIN=str(stub), LEAF_PROMPT_OUT=str(tiers / "verify-refactor-bare.received"), VERI_POLL="0.02", **step)
+        launched["exit"] = run([str(SCRIPTS / "verify.sh"), "--step", "the step", "refactor", "spec.md", "t.test.sh", "abc1234"],
+                               cwd=tiers, env=env, capture_output=True).returncode
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    monkeypatch.setattr(subprocess, "run", claude_launches_bare_verify_refactor)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, launched.get("exit"), (tiers / "verify-refactor-bare.received").exists()) == (0, 2, False), stderr
+
+
 @pytest.mark.process("real git archive and tar materialising a scratch skill clone's commit reached through a symlink, and a real caller repository holding the record")
 def test_cli_a_run_through_a_symlink_to_the_skill_directory_from_another_working_directory_pins_snapshots_and_records_as_run_in_place(
         tmp_path, monkeypatch, run_cli):
