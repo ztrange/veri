@@ -1837,3 +1837,24 @@ def test_a_step_rerouted_to_a_red_repair_with_no_revise_mark_reports_zero_revise
     steps = {row["step"]: row["revise"] for row in table(render(metrics, capsys), "#### By step")}
 
     assert steps == {"1": "0/2"}
+
+
+def test_issue_2743_a_conductor_turn_is_priced_at_the_literal_rates_of_each_model_family_the_table_holds(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    million = 1_000_000
+    old = {"model": "opus",
+           "usage": {"input_tokens": million, "output_tokens": million,
+                     "cache_read_input_tokens": million, "cache_creation_input_tokens": million}}
+    new = {"model": "claude-opus-5-5",
+           "usage": {"input_tokens": million, "output_tokens": million,
+                     "cache_read_input_tokens": million,
+                     "cache_creation": {"ephemeral_1h_input_tokens": million, "ephemeral_5m_input_tokens": 0}}}
+    sessions = [{"type": "system", "subtype": "init"},
+                {"type": "assistant", "message": old}, {"type": "assistant", "message": new}]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in sessions))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    # opus: 15.00 + 75.00 + 1.50 + 18.75 = 110.25; claude-opus-5-5: 4.00 + 20.00 + 0.20 + 8.00 = 32.20
+    assert "Conductor own spending: $142.45 over 2 turns, in 1 sessions" in out
