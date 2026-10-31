@@ -1,6 +1,6 @@
 # Plan for #2743 — PRD 014.1: the old dashboard and its helpers are removed
 
-- [ ] metrics.sh prices a conductor turn at the literal rates of each model family the table holds (opus, claude-opus-5-5), the figures written out in a new case of tests/py/test_metrics.py that reads no price table, passing against the unchanged code; no production change ⟦criterion 4⟧
+- [x] metrics.sh prices a conductor turn at the literal rates of each model family the table holds (opus, claude-opus-5-5), the figures written out in a new case of tests/py/test_metrics.py that reads no price table, passing against the unchanged code; no production change ⟦criterion 4⟧
 - [ ] metrics.sh reports a leaf's dollars exactly as its usage event records them, for a leaf on each model family the table holds (opus, claude-opus-5-5), in a new case of tests/py/test_metrics.py with the figures written out, passing against the unchanged code; no production change ⟦criterion 4⟧
 - [ ] veri/prices.py provides PRICES, family and cache_write_tokens holding today's rates for both families, and the old cost module takes them from it rather than holding its own copy; the case lives in a new small tests/py/unit/test_prices.py, and neither that file nor prices.py spells any word of the issue's criterion 2 pattern ⟦criterion 3⟧
 - [ ] prices.cache_write_tokens splits a usage's 1h and 5m cache writes apart and counts a bare cache_creation_input_tokens at 5m, a price case moved to tests/py/unit/test_prices.py, passing against the code as it stands; no production change ⟦criterion 3⟧
