@@ -44,3 +44,20 @@ return record
 command 346
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpwd8fn17e/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_rerecord_refactored_re_records_an_earlier_steps_case_whose_body_the_refactor_moved_into_a_shared_helper_2626
 
+file 39
+skills/tdd/scripts/veri/tests_frozen.py
+old 179
+        head = _cases_at("HEAD", name)[case]
+        if _assertion_lines(head) != _assertion_lines(verified):
+            return record
+        return _body_line(name, case, head)
+new 246
+        hc = _cases_at("HEAD", name)
+        case = case if case in hc else list(hc)[1]
+        head = hc[case]
+        if _assertion_lines(head) != _assertion_lines(verified):
+            return record
+        return _body_line(name, case, head)
+command 338
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpwd8fn17e/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_rerecord_refactored_leaves_a_cases_record_when_the_refactor_changed_its_title_and_body_together_2626
+
