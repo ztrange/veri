@@ -1,0 +1,1 @@
+- [ ] `skills/tdd/REVISE.md` takes the issue's reworded RV56 row, without its exhausted-split sentence, graded PASS and signed in GRADED ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 1⟧
