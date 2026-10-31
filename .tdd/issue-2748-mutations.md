@@ -1,0 +1,9 @@
+file 59
+skills/tdd/scripts/prompts/_affected-suites-working-tree.md
+old 23
+affected-suites.sh HEAD
+new 14
+FAST-TIER HEAD
+command 295
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpwzfvo3rc/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_run_conductor.py make test TESTS=skills/tdd/scripts/tests/py/test_run_conductor.py::test_cli_2748_the_develop_red_leaf_launched_alone_receives_the_affected_tier
+
