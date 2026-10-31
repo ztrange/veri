@@ -85,6 +85,57 @@ def test_main_leaves_the_pinned_scripts_under_the_existing_run_worktrees_tdd_whe
 
 
 @pytest.mark.tree_audit("copies the veri and lib directories into a scratch clone")
+@pytest.mark.process("a real run_conductor.main SIGKILLed by its stub claude, then a real issue_worktree.py --remove over the same caller repository and temp directory")
+def test_remove_leaves_no_copy_of_the_pinned_scripts_anywhere_after_a_sigkilled_conductor_issue_2627(tmp_path):
+    clone = tmp_path / "clone"
+    for part in ("veri", "lib"):
+        shutil.copytree(SCRIPTS / part, clone / "skills" / "tdd" / "scripts" / part,
+                        ignore=shutil.ignore_patterns("__pycache__"))
+    (clone / "skills" / "tdd" / "SKILL.md").write_text("procedure\n")
+    git_env = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t",
+                   GIT_COMMITTER_EMAIL="t@t")
+
+    def commit_all(directory):
+        for argv in (["init", "-q"], ["add", "-A"], ["commit", "-q", "--allow-empty", "-m", "seed"]):
+            subprocess.run(["git", "-C", str(directory)] + argv, check=True, env=git_env)
+
+    commit_all(clone)
+    pin = subprocess.run(["git", "-C", str(clone), "rev-parse", "HEAD"], check=True, capture_output=True,
+                         text=True).stdout.strip()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / ".gitignore").write_text(".tdd/\n")
+    commit_all(repo)
+    worktree = repo / ".tdd" / "wt" / "2627"
+    subprocess.run(["git", "-C", str(repo), "worktree", "add", "-q", "-b", "tdd/2627-pin", str(worktree)], check=True,
+                   env=git_env)
+    (repo / ".tdd" / "issue-2627-skill-commit").write_text(pin + "\n")
+    stub = tmp_path / "stub-claude"
+    stub.write_text("#!/bin/sh\nkill -9 $PPID\n")
+    stub.chmod(0o755)
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    veri = clone / "skills" / "tdd" / "scripts" / "veri"
+    env = {"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_BASH_MAJOR": "5",
+           "VERI_MIN_FREE_GB": "0", "VERI_TOOL_WAIT": "0", "PYTHONDONTWRITEBYTECODE": "1",
+           "CLAUDE_BIN": str(stub), "TMPDIR": str(scratch)}
+
+    with open(tmp_path / "out", "w") as out:
+        killed = subprocess.run(
+            [sys.executable, "-c",
+             "import sys; sys.path.insert(0, %r); import run_conductor; sys.exit(run_conductor.main(['2627']))" % str(veri)],
+            cwd=repo, stdout=out, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, timeout=20, env=env)
+    left_by_the_kill = list(scratch.rglob("run_conductor.py"))
+    assert (killed.returncode, len(left_by_the_kill)) == (-9, 1), (tmp_path / "out").read_text()
+
+    removed = subprocess.run([sys.executable, str(SCRIPTS / "veri" / "issue_worktree.py"), "--remove", "2627"],
+                             cwd=repo, capture_output=True, text=True, timeout=20, env=env)
+
+    copies = [str(path) for root in (scratch, repo) for path in root.rglob("run_conductor.py")]
+    assert (removed.returncode, worktree.exists(), copies) == (0, False, []), removed.stderr
+
+
+@pytest.mark.tree_audit("copies the veri and lib directories into a scratch clone")
 @pytest.mark.process("a real run_conductor.main in its own process whose stub claude cuts the run's worktree and exits 3, over a real skill clone and a real caller repository")
 def test_main_leaves_a_runnable_pinned_script_under_a_worktree_cut_during_the_run_when_the_conductor_bails_issue_2627(
         tmp_path):
