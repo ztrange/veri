@@ -871,3 +871,14 @@
 |---|---|---|
 | QN1 | The fragment opens by finishing a sentence begun before it, "adds, and name it in REASON:.", so the rejected comment is named in the `REASON:` line. (First sentence.) | The developer must be told which comment to remove. |
 | QN2 | It says a contract header or a shell-hazard warning is never grounds for REJECT. (Last sentence.) | The two allowed kinds must not be rejected by a verifier reading the rule too broadly. |
+
+## skills/tdd/scripts/prompts/_verify-red-bug.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| QB1 | The fragment has the heading "This issue is a bug, so the red bar itself is the claim". (The heading.) | The red bar is the evidence of the reported defect. |
+| QB2 | It says the spec carries a `## Bug` section — the report as it was filed — so the step's case is a reproduction: the code's current, wrong behaviour is what the case has to catch. (First paragraph, first sentence.) | A bug's case pins the defect, not a new behaviour. |
+| QB3 | It says the verifier is the only party who checks that by running it, because the developer's account of the run does not reach it. (First paragraph, second sentence.) | The verifier is blind to the developer's claim, so it must observe the failure itself. |
+| QB4 | It says check 2 is stricter here than it reads: PASS requires the failure the verifier observes to match the behaviour *What happened* describes. (First paragraph, last sentence.) | A red for another reason does not reproduce the reported bug. |
+| QB5 | It says a test that fails for any other reason is a REJECT naming that reason, including the error-on-the-name red that check 2 otherwise allows, which says nothing about the defect that was reported. (Second paragraph, first sentence.) | An undefined-name red is a valid red for a feature but not a reproduction. |
+| QB6 | It tells the verifier to read *Steps to reproduce* for the conditions the case owes and *Expected* for the behaviour it asserts, and says *Environment* tells an incidental detail of the reporter's setup from a condition the behaviour depends on. (Second paragraph, last sentence.) | Each section of the bug report answers a different question about the case. |
