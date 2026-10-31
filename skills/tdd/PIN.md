@@ -7,6 +7,9 @@ this section from Red when the developer leaf reported `AGAINST_UNMODIFIED: PASS
 ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
 `### 🔴 Red` / `### 🔎 verify-red` pair.
 
+`verify-pin`'s probe is recorded in `.tdd/issue-<n>-mutations.md` by the probe itself, and
+that file is committed with the pin's tick (the `git add -A` below takes it).
+
 A `⟦replaces-case⟧` step whose Red reports `AGAINST_UNMODIFIED: PASSES` takes a different
 path after verify-pin, because deleting the named bash cases is still owed.
 A `⟦replaces-case⟧` step skips verify-red, so on that verify-pin PASS first run
