@@ -89,7 +89,9 @@ def unreadable_file_in_tree():
     with temp_index_env() as env:
         env = {**env, "LC_ALL": "C"}
         added = start(["git", "add", "-A"], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-        return added.returncode != 0 and b"Permission denied" in (added.stderr or b"")
+        if added.returncode == 0 or b"Permission denied" not in (added.stderr or b""):
+            return ""
+        return (added.stderr or b"").decode("utf-8", "replace").strip()
 
 
 def restore_tree(tree):
@@ -385,7 +387,8 @@ def main(argv):
         changed, head_after, tree_after = changed_paths(tree_before, head_before)
         if tree_before and not tree_after:
             restore_tree(tree_before)
-            write(sys.stderr, "verify: could not read the tree after the %s leaf; its verdict is not accepted" % leaf)
+            write(sys.stderr, "verify: could not read the tree after the %s leaf; its verdict is not accepted\n%s"
+                  % (leaf, unreadable_file_in_tree()))
             return 2
         # A pin's verifier records the mutations it watched fail; appending to that record alone is not a
         # tree change (#2741). Deleting or rewriting it would disarm earlier pins, so that still refuses.
