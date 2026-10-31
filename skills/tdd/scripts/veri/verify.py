@@ -325,6 +325,8 @@ def main(argv):
     if words[0] == "pin":
         launch_env = tunables.with_values(
             VERI_MUTATION_RECORD=os.path.abspath("%s/issue-%s-mutations.md" % (run_state, tunables.read("VERI_ISSUE"))))
+    else:
+        launch_env = tunables.without("VERI_MUTATION_RECORD")
     while True:
         launched = start(
             [sibling("supervise.sh"), leaf,
