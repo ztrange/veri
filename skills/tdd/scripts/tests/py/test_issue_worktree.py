@@ -933,6 +933,22 @@ def test_remove_removes_a_clean_worktree_and_refuses_one_with_uncommitted_change
     assert (dirty_code, os.path.exists(os.path.join(held, "notes.txt")), scratch_registry(dirty)) == (2, True, before)
 
 
+@pytest.mark.process("git worktree remove on a scratch repository whose worktree holds a pinned scripts copy")
+def test_remove_of_a_clean_worktree_holding_the_pinned_scripts_copy_succeeds_and_the_copy_goes_with_it_issue_2627(
+        tmp_path, issue_worktree, run_cli):
+    repo = scratch_repo(tmp_path / "remove-pinned")
+    held = scratch_wt_path(repo, 2627)
+    run_cli(issue_worktree, ["2627", "pinned-copy"], cwd=repo)
+    kept = pathlib.Path(held, ".tdd", "pinned-scripts")
+    kept.mkdir(parents=True)
+    (kept / "status.sh").write_text("#!/bin/sh\n")
+    (kept / ".gitignore").write_text("*\n")
+
+    code = run_cli(issue_worktree, ["--remove", "2627"], cwd=repo)[0]
+
+    assert (code, os.path.exists(kept), os.path.exists(held)) == (0, False, False)
+
+
 @pytest.mark.process("git worktree add on a scratch repository holding the branch already")
 def test_existing_branch_no_worktree_checks_the_branch_out_into_dot_tdd_wt_17_instead_of_failing_on_dash_b(
         tmp_path, issue_worktree, run_cli):
