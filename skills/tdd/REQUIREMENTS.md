@@ -442,6 +442,7 @@
 | PN15 | REJECT (exit 1) bullet: the rejection reason is the carry-forward signal that tells the fresh leaf which way to go: either the pin is weak (trivial, over-coupled, or it survives the mutation) or a genuinely failing test exists after all. The conductor re-verifies with the phase the revise leaf's own `AGAINST_UNMODIFIED` line selects: `pin` on `PASSES`, `red` on `FAILS`. That line's third value, `N/A`, cannot arise here, because a revise of red always touches a test. | The redo is re-judged by the verifier that fits what the new test does, and a weak pin and a missed failing test are both recoverable. |
 | PN16 | REJECT (exit 1) bullet: on a recovered `PASS` from `pin` the conductor does the pin's tick-and-commit (PN6 to PN13), or the deletion path on a `⟦replaces-case⟧` step; from `red` it continues to Green. On budget-exhausted it bails as a process failure. | A recovered pin lands the same way a first-try one does, and an exhausted budget is a methodology failure, not a system one. |
 | PN17 | Malformed / killed-stuck (exit 2) bullet: the conductor bails as a system failure (`no-verdict`), see `<base directory>/BAIL.md`. | No answer from the verifier is a plumbing failure and is never read as a pass or a reject. |
+| PN18 | The pin paragraph says `verify-pin`'s probe is recorded in `.tdd/issue-<n>-mutations.md` by the probe itself, and that the file is committed with the pin's tick. | A later issue's run can only re-check a pin whose mutation survives its own run. |
 
 ## skills/tdd/STRUCTURAL.md
 
