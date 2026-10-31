@@ -2,7 +2,7 @@
 
 | ID | Requirement | Why |
 |---|---|---|
-| F1 | Invoked as `/veri-file bug\|refactor [<one line>]`. It replaces `tdd-fix` and `tdd-candidates`. | One filer. |
+| F1 | Invoked as `/veri-file bug\|refactor\|feature [<one line>]`. It replaces `tdd-fix` and `tdd-candidates`. | One filer. |
 | F2 | For a bug, it asks only for what the line left out among: happened, expected, steps, environment. | |
 | F3 | A refactor's acceptance criteria are structural predicates. | |
 | F4 | `## Blocked by` holds only blocker lines or `None.`. | Every `#N` in that section blocks. |
@@ -14,3 +14,5 @@
 | F10 | It reports the url and whether the issue is now solvable. | |
 | F11 | Near its top, the skill says it obeys `operator/PRINCIPLES.md` and reads it first. | PR #2061 (veri-groom) passed its rows without it, so no principle reached the skill. |
 | F12 | Every subagent brief the skill writes (the F8 duplicate search, the F9 input check) asks for a return of at most 10 lines (P6), and says that all writes stay in the project repo and that a fix belonging elsewhere is reported, not made (P11, in its words). | PR #2061 (veri-groom) wrote an unbounded brief with no repo boundary. |
+| F13 | For a feature, it asks only for what the line left out among: the problem, the behaviour wanted and what done looks like, and each acceptance criterion is one behaviour, pinned by a case. | `/veri-plan` needs a filer for its children. |
+| F14 | An issue changing graded prose carries `## Requirements`, with each unit's heading the bare path, `<path> (new)` only for a file that does not exist yet, and each ID cell the bare ID; an amended row carries its full new text. | `skill-edit-step.sh` and `run-conductor.sh` refuse anything else (exit 2), and #2502 and #2524 were refused this way. |
