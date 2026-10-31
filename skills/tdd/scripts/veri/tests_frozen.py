@@ -315,6 +315,14 @@ def _step_commits(step):
             ticked = {text for text, done in texts.items() if done}
             if step in ticked:
                 tick = rev
+                pending = any(m and _unphased(m.group(2)) == step and m.group(2).endswith(ledger.PENDING_MARK)
+                              for m in matched)
+                for later in revs[revs.index(rev) + 1:] if pending else ():
+                    lines = _git_out("show", "%s:%s" % (later, path)).splitlines()
+                    held = [m.group(2) for m in map(lambda l: re.match(r"\s*- \[(.)\] (.*)", l), lines) if m]
+                    if any(_unphased(t) == step and not t.endswith(ledger.PENDING_MARK) for t in held):
+                        tick = later
+                        break
                 break
             if step in texts:
                 tick = "HEAD"
