@@ -1749,7 +1749,8 @@ def fake_claude_env(monkeypatch, origin, resolves, leaf):
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 waited = REAL_RUN([str(SCRIPTS / "wait-leaf.sh"), "develop-red", "27"], cwd=leaf, env=leaf_env,
                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                assert waited.returncode == 0, f"the develop-red leaf did not finish (wait-leaf.sh exit {waited.returncode})"
+                if waited.returncode != 0:
+                    pytest.fail(f"the develop-red leaf did not finish (wait-leaf.sh exit {waited.returncode})")
             return subprocess.CompletedProcess(args, 0, None, None)
         if args[3:] == ["remote", "get-url", "origin"] and origin:
             code, out = 0, "https://example.invalid/skill.git\n"
