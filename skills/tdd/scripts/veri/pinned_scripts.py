@@ -1,4 +1,5 @@
 """pinned-scripts.sh: the directory holding a run's pinned scripts."""
+if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import sys
 
@@ -29,4 +30,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    import entry
+    entry.run(main, sys.argv[1:])
