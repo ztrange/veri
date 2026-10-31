@@ -1691,6 +1691,22 @@ def test_verify_sh_names_the_unreadable_file_on_stderr_when_it_refuses_for_one_t
     assert (code, "hidden.txt" in err) == (2, True)
 
 
+@pytest.mark.process("a real git scratch repository whose verifier leaf adds a file and makes an untracked one unreadable")
+def test_verify_sh_removes_a_file_the_leaf_added_when_it_refuses_for_an_unreadable_file_2784(
+        run_cli, tmp_path, monkeypatch):
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {})
+    mutation = 'printf "added\\n" > added.txt; printf "secret\\n" > hidden.txt; chmod 000 hidden.txt'
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
+           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
+    verify = importlib.import_module("veri.verify")
+
+    code, _, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+                                  "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+
+    assert (code, (repo / "added.txt").exists()) == (2, False)
+
+
 @pytest.mark.process("a real git scratch repository whose pin verifier leaf rewrites its mutation record and makes it unreadable")
 def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_rewrote_its_mutation_record_and_made_it_unreadable_2764(
         run_cli, tmp_path, monkeypatch):

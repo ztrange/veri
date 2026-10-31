@@ -100,6 +100,11 @@ def restore_tree(tree):
         git("checkout-index", "-a", "-f", env=env)
 
 
+def untracked_paths():
+    out = git("ls-files", "--others", "--exclude-standard", "-z")
+    return set(out.stdout.decode("utf-8", "surrogateescape").split("\0")) - {""}
+
+
 def head_snapshot():
     return git("rev-parse", "--verify", "HEAD").stdout.decode().rstrip("\n")
 
@@ -345,6 +350,7 @@ def main(argv):
         write(sys.stderr, "verify: could not read the tree before the %s leaf; its verdict is not accepted" % leaf)
         return 2
     head_before = head_snapshot()
+    untracked_before = untracked_paths()
     gitconfig = os.environ["HOME"] + "/.gitconfig"
     try:
         gitconfig_before = gitconfig_snapshot(gitconfig)
@@ -387,8 +393,11 @@ def main(argv):
         changed, head_after, tree_after = changed_paths(tree_before, head_before)
         if tree_before and not tree_after:
             restore_tree(tree_before)
+            unreadable = unreadable_file_in_tree()
+            for added in untracked_paths() - untracked_before:
+                os.remove(added)
             write(sys.stderr, "verify: could not read the tree after the %s leaf; its verdict is not accepted\n%s"
-                  % (leaf, unreadable_file_in_tree()))
+                  % (leaf, unreadable))
             return 2
         # A pin's verifier records the mutations it watched fail; appending to that record alone is not a
         # tree change (#2741). Deleting or rewriting it would disarm earlier pins, so that still refuses.
