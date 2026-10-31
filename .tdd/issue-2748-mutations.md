@@ -43,3 +43,12 @@ Run the suites `all-the-suites.sh` prints
 command 300
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpwzfvo3rc/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_run_conductor.py make test TESTS=skills/tdd/scripts/tests/py/test_run_conductor.py::test_cli_2748_the_develop_refactor_leaf_launched_alone_receives_the_affected_tier
 
+file 46
+skills/tdd/scripts/veri/build_verify_prompt.py
+old 31
+if phase == "red" and fast_cmd:
+new 9
+if False:
+command 318
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpwzfvo3rc/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_run_conductor.py make test TESTS=skills/tdd/scripts/tests/py/test_run_conductor.py::test_cli_2748_the_verify_red_leaf_given_fast_cmd_launched_alone_receives_the_fast_and_affected_tier
+
