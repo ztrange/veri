@@ -83,3 +83,18 @@ def test_pinned_scripts_from_the_main_checkout_names_the_pin_recorded_there_when
     assert ran.returncode == 2, (ran.stdout, ran.stderr)
     assert "git archive %s skills/tdd/scripts" % pin in ran.stderr
     assert ran.stdout == ""
+
+
+@pytest.mark.process("pinned-scripts.sh run on a run with neither a pinned scripts copy nor a recorded pin")
+def test_pinned_scripts_with_the_copy_absent_and_no_pin_recorded_exits_2_saying_so_and_prints_no_path_2627(tmp_path):
+    root = tmp_path.resolve() / "repo"
+    (root / ".git").mkdir(parents=True)
+    (root / ".tdd").mkdir()
+
+    ran = subprocess.run(["/bin/sh", str(SCRIPTS / "pinned-scripts.sh"), "2627"], cwd=root, capture_output=True,
+                         text=True, stdin=subprocess.DEVNULL,
+                         env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "PYTHONDONTWRITEBYTECODE": "1"})
+
+    assert ran.returncode == 2, (ran.stdout, ran.stderr)
+    assert "no pin is recorded" in ran.stderr
+    assert ran.stdout == ""

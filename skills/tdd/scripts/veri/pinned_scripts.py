@@ -20,6 +20,9 @@ def main(argv):
         print("pinned scripts for run %s are gone; pinned commit %s; recover with: git archive %s skills/tdd/scripts"
               % (argv[0], pin, pin), file=sys.stderr)
         return 2
+    if not os.path.isdir(here) and os.path.isdir(os.path.join(os.getcwd(), ".tdd")):
+        print("pinned scripts for run %s are gone and no pin is recorded" % argv[0], file=sys.stderr)
+        return 2
     print(here)
     return 0
 
