@@ -1,5 +1,6 @@
 """In-process cases for veri/watch_runs.py, the module watch-runs.sh is a shim over."""
 import importlib
+import itertools
 import json
 import os
 import subprocess
@@ -423,7 +424,7 @@ def test_2588_main_still_reports_vanished_when_the_conductor_pid_file_holds_no_p
     (tmp_path / ".tdd" / "wt" / "5" / ".tdd").mkdir(parents=True)
     (tmp_path / ".tdd" / "wt" / "5" / ".tdd" / "conductor.pid").write_text("4194999\n")
     listings = iter([["5"]])
-    ticks = iter([0])
+    ticks = itertools.count(0, 1000)
 
     def no_such_process(pid, sig):
         raise ProcessLookupError(pid)
@@ -433,14 +434,14 @@ def test_2588_main_still_reports_vanished_when_the_conductor_pid_file_holds_no_p
     monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, []))
     monkeypatch.setattr(watch_runs, "run_state", lambda issue: "")
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
-    monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks, 10))
+    monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks))
 
-    code = watch_runs.main(["--max-wait", "5"])
+    code = watch_runs.main(["--max-wait", "1000000000"])
 
     assert (code, capsys.readouterr().out) == (2, "vanished 5\n")
 
 
-def _starting_run(monkeypatch, tmp_path, watch_runs, pid_text, lstart):
+def _starting_run(monkeypatch, tmp_path, watch_runs, pid_text, lstart, clock=None):
     import os
     (tmp_path / ".tdd" / "wt" / "5" / ".tdd").mkdir(parents=True)
     (tmp_path / ".tdd" / "wt" / "5" / ".tdd" / "conductor.pid").write_text(pid_text % os.getpid())
@@ -451,14 +452,16 @@ def _starting_run(monkeypatch, tmp_path, watch_runs, pid_text, lstart):
     monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, []))
     monkeypatch.setattr(watch_runs, "run_state", lambda issue: "")
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
-    monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks) * 10)
+    monkeypatch.setattr(watch_runs, "clock", clock or (lambda: next(ticks) * 10))
 
 
 def test_2588_main_reports_vanished_when_the_pid_answers_kill_0_but_its_start_time_differs_from_conductor_pid_line_2(
         monkeypatch, capsys, tmp_path, watch_runs):
-    _starting_run(monkeypatch, tmp_path, watch_runs, "%d\nTue Oct 27 13:45:10 2026\n", "Wed Oct 28 09:00:00 2026")
+    ticks = itertools.count(0, 1000)
+    _starting_run(monkeypatch, tmp_path, watch_runs, "%d\nTue Oct 27 13:45:10 2026\n", "Wed Oct 28 09:00:00 2026",
+                  clock=lambda: next(ticks))
 
-    code = watch_runs.main(["--max-wait", "5"])
+    code = watch_runs.main(["--max-wait", "1000000000"])
 
     assert (code, capsys.readouterr().out) == (2, "vanished 5\n")
 
