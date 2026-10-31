@@ -143,3 +143,23 @@ def test_2506_a_base_sha_that_does_not_resolve_exits_2_with_nothing_on_stdout(tm
     ran = subprocess.run(["sh", RECHECK, "0" * 40], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, (tmp_path / "ran.witness").exists()) == (2, "", False), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range with a mutations record it cannot parse")
+def test_2506_a_mutations_record_that_cannot_be_parsed_exits_2_with_nothing_on_stdout(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-835-mutations.md").write_text("this is not a record\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout) == (2, ""), ran.stderr
