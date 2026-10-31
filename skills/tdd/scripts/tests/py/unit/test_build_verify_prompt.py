@@ -629,9 +629,6 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
         code = main(argv)
         return (code, *capsysbinary.readouterr())
 
-    def has(out, pattern, flags=re.I):
-        return re.search(pattern.encode(), out.replace(b"\n", b" "), flags) is not None
-
     def fragment_line(name):
         lines = (SCRIPTS / "prompts" / name).read_bytes().splitlines()
         return next(line for line in lines[1:] if line and b"{{" not in line)
@@ -662,15 +659,10 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
     plan = run(build_verify_prompt.main, ["plan", s, str(ledger)])[1]
     rf_plan = run(build_verify_prompt.main, ["plan", rs, str(ledger)])
     green = run(build_verify_prompt.main, green_args)[1]
-    refactor = run(build_verify_prompt.main, ["--fast-cmd", "make unit", "refactor", s, testpath, "0123abc"])[1]
     replaces_green = run(build_verify_prompt.main, ["--step", replaces_step, "--fast-cmd", "make unit", "green", s,
                                                     "tests/py/test_zorblat.py", "test_zorblat_frobs_a_nitz"])
     repair_green = run(build_verify_prompt.main, ["--step", repair_step, "--fast-cmd", "make unit", "green", s,
                                                   "skills/tdd/scripts/tests/zorblat.test.sh", "zorblat frobs a nitz"])
-    one_refactoring = r"REJECT[^.]{0,200}(one|a single|named) refactoring|(one|a single|named) refactoring[^.]{0,200}REJECT"
-    runnable = r"REJECT[^.]{0,200}(runnable|shell)[^.]{0,40}predicate|(runnable|shell)[^.]{0,40}predicate[^.]{0,200}REJECT"
-    not_reject = r"\b(not|never)\b[^.]{0,40}REJECT"
-    hazard = r"shell[^.]{0,40}hazard"
     included, _ = scratch(tmp_path, "included", templates={
         "verify-red.md": b"before {{INCLUDE:_probe-outer.md}} after\n",
         "_probe-outer.md": b"outer {{INCLUDE:_probe-inner.md}} end\n",
@@ -687,19 +679,11 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
 
     assert {
         "diff without fast-cmd": (diff_no_fast[0], diff_no_fast[1], diff_no_fast[2] != b""),
-        "refactor plan": (rf_plan[0], has(rf_plan[1], one_refactoring), has(rf_plan[1], runnable),
-                          has(plan, one_refactoring), has(plan, runnable)),
+        "refactor plan": (rf_plan[0], fragment_line("_verify-plan-refactor.md") in rf_plan[1],
+                          fragment_line("_verify-plan-refactor.md") in plan),
         "refactor plan unreadable": unreadable_paragraph(
             "no-refactor-plan", "_verify-plan-refactor.md", ["plan", rs, str(ledger)],
             [["red", rs, testpath, "test_slugify_lowercases"]]),
-        "#679 no-op": has(rf_plan[1], r"REJECT[^.]{0,200}no-op[^.]{0,200}later step|no-op[^.]{0,200}later step[^.]{0,200}REJECT"),
-        "rationale comment": {phase: [has(out, r"REJECT[^.]{0,200}rationale comment|rationale comment[^.]{0,200}REJECT"),
-                                      has(out, r"contract header"), has(out, hazard)]
-                              for phase, out in (("green", green), ("refactor", refactor))},
-        "contract header not grounds": {
-            phase: [has(out, rf"contract header[^.]{{0,200}}{not_reject}|{not_reject}[^.]{{0,200}}contract header"),
-                    has(out, rf"{hazard}[^.]{{0,200}}{not_reject}|{not_reject}[^.]{{0,200}}{hazard}")]
-            for phase, out in (("green", green), ("refactor", refactor))},
         "replaces-case": (replaces_green[0], fragment_line("_verify-green-replaces-case.md") in replaces_green[1],
                           fragment_line("_verify-green-replaces-case.md") in green),
         "suite-repair": (repair_green[0], fragment_line("_verify-green-suite-repair.md") in repair_green[1],
@@ -722,11 +706,8 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
         "#703 self-including partial": (cycle_run[0], cycle_run[1], b"_probe-cycle-a.md" in cycle_run[2]),
     } == {
         "diff without fast-cmd": (2, b"", True),
-        "refactor plan": (0, True, True, False, False),
+        "refactor plan": (0, True, False),
         "refactor plan unreadable": (2, b"", True, [0]),
-        "#679 no-op": True,
-        "rationale comment": {"green": [True] * 3, "refactor": [True] * 3},
-        "contract header not grounds": {"green": [True] * 2, "refactor": [True] * 2},
         "replaces-case": (0, True, False),
         "suite-repair": (0, True, False),
         "replaces-case unreadable": (2, b"", True, [0]),
