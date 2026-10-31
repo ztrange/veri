@@ -115,3 +115,21 @@ def test_main_appends_nothing_to_the_record_when_the_command_stays_green_and_exi
     )
     assert code == 1
     assert not record.exists() or record.read_text() == ""
+
+
+def test_main_appends_nothing_to_the_record_when_the_file_was_not_mutated_and_exits_2_2506(
+    run_cli, mutation_probe, monkeypatch, tmp_path
+):
+    target = tmp_path / "target.txt"
+    target.write_text("alpha\n")
+    record = tmp_path / "mutations.md"
+    monkeypatch.setattr(
+        mutation_probe.subprocess, "run", lambda *a, **k: mutation_probe.subprocess.CompletedProcess(a, 1)
+    )
+    code, out, err = run_cli(
+        mutation_probe,
+        [str(target), "absent", "beta", "--", "true"],
+        env={"VERI_MUTATION_RECORD": str(record)},
+    )
+    assert code == 2
+    assert not record.exists() or record.read_text() == ""
