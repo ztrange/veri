@@ -97,3 +97,21 @@ def test_main_appends_file_old_new_and_command_with_their_newlines_to_the_record
     text = record.read_text()
     for piece in (str(target), old, new, command):
         assert piece in text
+
+
+def test_main_appends_nothing_to_the_record_when_the_command_stays_green_and_exits_1_2506(
+    run_cli, mutation_probe, monkeypatch, tmp_path
+):
+    target = tmp_path / "target.txt"
+    target.write_text("alpha\n")
+    record = tmp_path / "mutations.md"
+    monkeypatch.setattr(
+        mutation_probe.subprocess, "run", lambda *a, **k: mutation_probe.subprocess.CompletedProcess(a, 0)
+    )
+    code, out, err = run_cli(
+        mutation_probe,
+        [str(target), "alpha", "beta", "--", "true"],
+        env={"VERI_MUTATION_RECORD": str(record)},
+    )
+    assert code == 1
+    assert not record.exists() or record.read_text() == ""

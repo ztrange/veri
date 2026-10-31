@@ -1,7 +1,7 @@
 # Plan for #2506 — A pin's recorded mutation is re-run when a later step touches its file, so a run cannot silently disarm it
 
 - [x] A `mutation-probe.sh` run that exits 0 with the recording setting `VERI_MUTATION_RECORD=<path>` in its environment appends its file, old text, new text and command to that file as one record that round-trips text holding newlines, pinned by a case in `skills/tdd/scripts/tests/py/unit/test_mutation_probe.py` driving the module in-process ⟦criterion 1⟧
-- [ ] A `mutation-probe.sh` run that exits 1 (the command stayed green under the mutation) with `VERI_MUTATION_RECORD` set appends nothing, pinned by a case in `skills/tdd/scripts/tests/py/unit/test_mutation_probe.py` ⟦criterion 1⟧
+- [x] A `mutation-probe.sh` run that exits 1 (the command stayed green under the mutation) with `VERI_MUTATION_RECORD` set appends nothing, pinned by a case in `skills/tdd/scripts/tests/py/unit/test_mutation_probe.py` ⟦criterion 1⟧
 - [ ] A `mutation-probe.sh` run that exits 2 (the file was not mutated) with `VERI_MUTATION_RECORD` set appends nothing, pinned by a case in `skills/tdd/scripts/tests/py/unit/test_mutation_probe.py` ⟦criterion 1⟧
 - [ ] `git add -A`, in a repository carrying the rule `ensure-run-state-ignored.sh` writes, stages `.tdd/issue-<n>-mutations.md`, pinned by a real-git case carrying `@pytest.mark.process("git")` in `skills/tdd/scripts/tests/py/test_ensure_run_state_ignored_mutations_process.py` ⟦criterion 1⟧
 - [ ] `verify.sh pin` with `VERI_ISSUE=<n>` launches its verifier leaf with `VERI_MUTATION_RECORD` set to the absolute path of `.tdd/issue-<n>-mutations.md` in the working tree, with `build-verify-prompt.sh`'s inputs and the rendered verifier prompt unchanged, pinned by a case using the `CLAUDE_BIN` stub ⟦criterion 1⟧
