@@ -120,7 +120,7 @@ def _differing_tests():
     return names
 
 
-_CASE = re.compile(r"^\s*(?:async\s+)?def\s+(test\w*)|^\s*name=\"([^\"]+)\"|^\s*" + CALL + r"([\"'])(.+?)\3", re.M)
+_CASE = re.compile(r"^\s*(?:async\s+)?def\s+(test\w*)|^\s*name=\"([^\"]+)\"|^\s*" + CALL + r"([\"'])((?:\\.|.)+?)\3", re.M)
 
 
 _FIXTURE_FILE = re.compile(r"repairs the fixture '[^']*' in (\S+?),")
@@ -161,6 +161,10 @@ def _module_level_cut(body):
         if _helpers_only(body[cut.start():]):
             return cut
     return None
+
+
+def _unescaped(title):
+    return re.sub(r"\\(.)", r"\1", title)
 
 
 def _spans(text):
@@ -217,7 +221,7 @@ def _cases(text):
             cut = None if m.group(1) else _module_level_cut(body)
             body = body[:cut.start()] if cut else body
             body = _DECORATORS.sub("", body.rstrip()).rstrip()
-        cases.append((m.group(1) or m.group(2) or m.group(4), body))
+        cases.append((m.group(1) or m.group(2) or _unescaped(m.group(4)), body))
     return cases
 
 

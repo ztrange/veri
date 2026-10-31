@@ -948,3 +948,12 @@ def test_rerecord_on_head_exits_2_naming_the_step_and_file_and_keeps_the_record_
 
     assert (code, step in err and "test_suite.py" in err, (tmp_path / tests_frozen._record_path(step)).read_text()) == (
         2, True, kept)
+
+
+@pytest.mark.parametrize("quote", ['"', "'"])
+def test_cases_records_a_js_title_holding_an_escaped_quote_of_its_own_kind_whole_and_unescaped_2765(
+        tests_frozen, quote):
+    title = "a \\%sb\\%s c" % (quote, quote)
+    text = "it(%s%s%s, () => {\n  expect(1).toBe(1);\n});\n" % (quote, title, quote)
+
+    assert [name for name, _ in tests_frozen._cases(text)] == ["a %sb%s c" % (quote, quote)]
