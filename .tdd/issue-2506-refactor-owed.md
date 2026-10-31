@@ -7,3 +7,6 @@
 - test-only | the nested `git(*words)` helper is defined twice in `test_pin_recheck_process.py`. Extract it into one module-level helper or fixture that takes the repo path.
 ### `pin-recheck.sh` exits 1 naming the pin when a record's command stays green under its mutation, and restores the file, pinned by a real-git case in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py` reproducing #835's shape: a later commit makes the test pass with the guard reverted ⟦criterion 2⟧
 - test-only | hoist the `git` helper, repeated in three cases of test_pin_recheck_process.py, into one shared fixture or function
+### `pin-recheck.sh` prints a touched record whose `old` text is gone from the file as needing a look and exits 0, never counting it as still red, pinned by a real-git case in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py` ⟦criterion 4⟧
+- test-only | extract the `git(...)` helper, defined four times inside test cases in test_pin_recheck_process.py, to one module-level function taking the repository path
+- test-only | extract the repeated `subprocess.run(["sh", RECHECK, base], ...)` call into a helper
