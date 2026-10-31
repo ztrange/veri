@@ -226,9 +226,9 @@ def test_refresh_with_a_cache_asks_only_for_issues_updated_since_fetched_at_and_
     (tmp_path / ".tdd").mkdir()
     before = {"fetched_at": "2026-10-01T00:00:00Z", "cache_format": 2, "issues": [
         {"number": 7, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
-         "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None},
+         "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None, "links": []},
         {"number": 8, "title": "stale", "state": "OPEN", "labels": [], "closedAt": None,
-         "updatedAt": "2026-09-30T11:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None},
+         "updatedAt": "2026-09-30T11:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None, "links": []},
     ]}
     (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(before))
     received = [
@@ -600,7 +600,7 @@ def test_refresh_with_a_well_formed_cache_searches_updated_since_fetched_at_and_
     cache = tmp_path / ".tdd" / "report-cache.json"
     cache.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "cache_format": 2, "issues": [
         {"number": 7, "title": "old", "state": "OPEN", "labels": [], "closedAt": None,
-         "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
+         "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None, "links": []}]}))
     calls = []
 
     def fake_run(args, **kwargs):
@@ -970,7 +970,7 @@ def test_refresh_with_a_well_formed_cache_retries_a_failed_gh_read_pages_the_upd
     cache = tmp_path / ".tdd" / "report-cache.json"
     cache.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "cache_format": 2, "issues": [
         {"number": 900, "title": "old", "state": "OPEN", "labels": [], "closedAt": None,
-         "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
+         "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None, "links": []}]}))
     updated = [
         {"number": n, "title": "issue %d" % n, "state": "OPEN", "labels": [], "closedAt": None,
          "updatedAt": "2026-10-%02dT%02d:00:00Z" % (1 + n // 24, n % 24)}
@@ -1013,7 +1013,7 @@ def test_refresh_with_a_well_formed_cache_bounds_every_later_page_by_fetched_at_
     cache = tmp_path / ".tdd" / "report-cache.json"
     cache.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "cache_format": 2, "issues": [
         {"number": 900, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
-         "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
+         "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None, "links": []}]}))
     recent = [
         {"number": n, "title": "issue %d" % n, "state": "OPEN", "labels": [], "closedAt": None,
          "updatedAt": "2026-10-%02dT%02d:00:00Z" % (2 + n // 24, n % 24)}
@@ -1251,7 +1251,7 @@ def test_refresh_with_a_cache_over_one_page_returns_every_issue_of_its_window_wh
     cache = tmp_path / ".tdd" / "report-cache.json"
     cache.write_text(json.dumps({"fetched_at": "2026-10-01T00:00:00Z", "cache_format": 2, "issues": [
         {"number": 900, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
-         "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
+         "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None, "links": []}]}))
     windowed = [
         {"number": n, "title": "issue %d" % n, "state": "OPEN", "labels": [], "closedAt": None,
          "updatedAt": "2026-10-05T%02d:%02d:00Z" % divmod(300 - n, 60), "body": "", "comments": []}
