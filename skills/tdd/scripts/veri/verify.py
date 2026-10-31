@@ -321,9 +321,11 @@ def main(argv):
     retries = no_verdict_budget(retries)
     role = {**os.environ, **leaf_role(leaf)}
     relaunches = 0
+    own_record = None
     if words[0] == "pin":
-        launch_env = tunables.with_values(
-            VERI_MUTATION_RECORD=os.path.abspath("%s/issue-%s-mutations.md" % (run_state, tunables.read("VERI_ISSUE"))))
+        record = os.path.abspath("%s/issue-%s-mutations.md" % (run_state, tunables.read("VERI_ISSUE")))
+        launch_env = tunables.with_values(VERI_MUTATION_RECORD=record)
+        own_record = os.path.relpath(record, top or os.getcwd())
     else:
         launch_env = tunables.without("VERI_MUTATION_RECORD")
     while True:
@@ -342,7 +344,8 @@ def main(argv):
             write(sys.stdout, "verifier leaf killed-stuck — no verdict rendered (see .tdd/%s.log)" % leaf)
             return 2
         changed, head_after, tree_after = changed_paths(tree_before, head_before)
-        if changed:
+        # A pin's verifier records the mutations it watched fail; that record alone is not a tree change (#2741).
+        if changed and changed != [own_record]:
             diff = save_diff(leaf, tree_before, tree_after)
             in_temp_index("read-tree", "-u", "--reset", tree_before)
             if head_before and head_before != head_after:
