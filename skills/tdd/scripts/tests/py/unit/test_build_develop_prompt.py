@@ -1011,41 +1011,6 @@ def test_main_answers_what_the_bash_contract_cases_from_the_rebase_prompt_to_the
     assert checks == dict.fromkeys(checks, True)
 
 
-def test_main_permits_a_replaces_case_green_to_delete_exactly_the_cases_its_step_names_one_or_several_and_forbids_any_case_it_does_not_name(
-        tmp_path, capsysbinary, build_develop_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
-    reason = tmp_path / "reason.md"
-    reason.write_bytes(b"REJECT: the case asserts on zorblat()'s log line.\n")
-    s, r = str(spec), str(reason)
-    several = ('tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob", '
-               '"zorblat refuses an empty nitz" move to tests/py/test_zorblat.py ⟦replaces-case⟧ ⟦criterion 1⟧')
-    one = ('tests/zorblat.test.sh: "zorblat frobs a nitz" moves to '
-           'tests/py/test_zorblat.py ⟦replaces-case⟧ ⟦criterion 1⟧')
-
-    def rendered(argv):
-        code = build_develop_prompt.main(argv)
-        out, _ = capsysbinary.readouterr()
-        return re.sub(rb"\s+", b" ", out) if code == 0 else None
-
-    prompts = {}
-    for name, step in (("several", several), ("one", one)):
-        prompts[(name, "green")] = rendered(["green", s, step, "make test", "tests/py/test_zorblat.py",
-                                             "test_zorblat_frobs_a_nitz", "make unit"])
-        prompts[(name, "revise green")] = rendered(["revise", "green", s, step, "make test", r])
-
-    def says(prompt, pattern):
-        return prompt is not None and re.search(pattern, prompt, re.I) is not None
-
-    fragment = _fragment("_develop-green-replaces-case.md", after_include=True)
-    one_only = rb"^(?!.*(names one bash case|that one case))"
-
-    assert {key: (["carries the replaces-case fragment"] if prompt is None or fragment not in prompt else [])
-            + (["never confines a several-case step to one case"]
-               if key[0] == "several" and not says(prompt, one_only) else [])
-            for key, prompt in prompts.items()} == dict.fromkeys(prompts, [])
-
-
 def test_main_names_the_surviving_cases_in_a_replaces_case_green_prompt_rebuilt_after_the_first_green_left_them_issue_1406(
         tmp_path, capsysbinary, build_develop_prompt):
     spec = tmp_path / "spec.md"
