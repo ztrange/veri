@@ -1,5 +1,6 @@
 """mutation-probe.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
 import signal
 import subprocess
 import sys
@@ -27,6 +28,13 @@ def main(argv):
     if returncode == 0:
         sys.stderr.write("mutation-probe.sh: suite stayed green under the mutation\n")
         return 1
+    record = os.environ.get("VERI_MUTATION_RECORD")
+    if record:
+        fields = (("file", argv[0]), ("old", argv[1]), ("new", argv[2]), ("command", " ".join(argv[4:])))
+        with open(record, "a") as f:
+            for name, value in fields:
+                f.write(f"{name} {len(value)}\n{value}\n")
+            f.write("\n")
     return 0
 
 
