@@ -3,7 +3,7 @@
 - [x] When the run's worktree already exists at launch, `run-conductor.sh` extracts the pinned `skills/tdd/scripts` under that worktree's `.tdd/` before the conductor process starts, so a conductor killed by SIGKILL still leaves the copy (a medium case, with a real process and a real SIGKILL) ⟦criterion 4⟧
 - [x] When the run's worktree is cut during the run, a conductor that exits non-zero (a bail) leaves the pinned `skills/tdd/scripts` under the worktree's `.tdd/`, at the commit in `.tdd/issue-<n>-skill-commit`, and a script in the copy runs ⟦criterion 1⟧
 - [x] A launch that re-pins with `VERI_NEW_SKILL=1` over a worktree already holding a copy leaves only the newly pinned commit's scripts in that copy, so the copy never disagrees with `.tdd/issue-<n>-skill-commit` ⟦criterion 1⟧
-- [x] `git add -A` in a run's worktree holding the pinned copy stages nothing from the copy ⟦criterion 1⟧ ⟂ refactor pending
+- [x] `git add -A` in a run's worktree holding the pinned copy stages nothing from the copy ⟦criterion 1⟧
 - [ ] `issue-worktree.sh --remove <n>` on a clean worktree holding the pinned copy succeeds and the copy is gone with the worktree ⟦criterion 2⟧
 - [ ] A skill snapshot a SIGKILLed conductor left outside the worktree is removed by `issue-worktree.sh --remove <n>`, so no copy for the run is left anywhere once the worktree is removed ⟦criterion 2⟧
 - [ ] `$S/pinned-scripts.sh`, added as a `/bin/sh` shim over a `veri/` module, prints a usage line and exits 2 with no argument ⟦criterion 3⟧
