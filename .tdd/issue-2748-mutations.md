@@ -61,3 +61,12 @@ then run the suites `zzz.sh` prints
 command 323
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpwzfvo3rc/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_run_conductor.py make test TESTS=skills/tdd/scripts/tests/py/test_run_conductor.py::test_cli_2748_the_verify_refactor_leaf_given_fast_cmd_launched_alone_receives_the_fast_and_affected_tier
 
+file 46
+skills/tdd/scripts/veri/build_verify_prompt.py
+old 36
+"refactor": {"fast-cmd", "base-sha"}
+new 24
+"refactor": {"base-sha"}
+command 319
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpwzfvo3rc/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_run_conductor.py make test TESTS=skills/tdd/scripts/tests/py/test_run_conductor.py::test_cli_2748_the_verify_refactor_leaf_without_fast_cmd_launched_alone_exits_2_and_reaches_no_claude
+
