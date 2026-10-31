@@ -247,3 +247,18 @@ def test_2739_text_and_json_leave_unlisted_a_run_with_no_ledger_no_events_log_an
     _, out = status.json_document(read_states=False)
 
     assert (text.count("#7") + text.count("#8"), json.loads(out)["runs"]) == (0, [])
+
+
+def test_2739_text_lists_a_run_with_a_live_conductor_no_ledger_and_no_events_log_as_its_issue_and_running(tmp_path, monkeypatch, capsys):
+    from conftest import live_conductor
+    status = importlib.import_module("veri.status")
+    run = tmp_path / ".tdd" / "wt" / "7"
+    (run / ".tdd").mkdir(parents=True)
+    live_conductor(monkeypatch, run / ".tdd", 7)
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status, "branch_of", lambda run: "b")
+
+    code = status.render(False, "", False)
+
+    lines = capsys.readouterr().out.splitlines()
+    assert (code, [line for line in lines if line.startswith("#7") and line.endswith("running")] != []) == (0, True)

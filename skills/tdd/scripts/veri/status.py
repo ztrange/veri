@@ -28,9 +28,11 @@ def run_activity(run, as_json=False, closed=False):
     """The activity line for one run."""
     last, attempts = None, 0
     newest = None
-    events = read_events(run_file(run, "events.jsonl"))
+    events_path = run_file(run, "events.jsonl")
+    events_path_exists = os.path.isfile(events_path)
+    events = read_events(events_path) if events_path_exists else []
     dollars, tokens = usage_totals(events)
-    ended, cause, end = run_end.run_end(run)
+    ended, cause, end = run_end.run_end(run) if events_path_exists else (False, None, {})
     if end.get("event") == "preflight-refused" and live_conductor(os.fspath(run)):
         ended, end = False, {}
     for line in events:
@@ -196,7 +198,7 @@ def render(as_json, scope, read_states=True):
         parts = heading.split(" — ", 1)
         issue, title = parts[0], parts[-1]
         events_path = run_file(run, "events.jsonl")
-        if os.path.isfile(events_path):
+        if os.path.isfile(events_path) or (not has_ledger and live_conductor(run)):
             try:
                 activity = run_activity(run, as_json, states.get(issue) == "closed")
                 events.append(run)
