@@ -96,10 +96,13 @@ def changed_paths(tree_before, head_before):
 
 
 def file_bytes(path):
+    """A regular file's bytes; None for anything else — absent, a symlink, a directory, unreadable."""
+    if os.path.islink(path) or not os.path.isfile(path):
+        return None
     try:
         with open(path, "rb") as f:
             return f.read()
-    except FileNotFoundError:
+    except OSError:
         return None
 
 
