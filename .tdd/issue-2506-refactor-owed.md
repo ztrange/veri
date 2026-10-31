@@ -10,3 +10,4 @@
 ### `pin-recheck.sh` prints a touched record whose `old` text is gone from the file as needing a look and exits 0, never counting it as still red, pinned by a real-git case in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py` ⟦criterion 4⟧
 - test-only | extract the `git(...)` helper, defined four times inside test cases in test_pin_recheck_process.py, to one module-level function taking the repository path
 - test-only | extract the repeated `subprocess.run(["sh", RECHECK, base], ...)` call into a helper
+applied | 4f32e3c12217c71b60a14fea0ef9a69f50534652 | `tunables.without` and `tunables.with_values` both build an environment copy from `os.environ`. Merging them would add generality no test asks for, so I left both.	refactor: tunables.without builds its environment copy through with_values (#2506)
