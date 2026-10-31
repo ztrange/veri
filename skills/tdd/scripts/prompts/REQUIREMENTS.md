@@ -714,6 +714,7 @@
 | VP15 | Check 3's **not lightweight** bullet: the test exercises a costly real dependency (network, a git remote, the `claude` binary, a real sleep/wait, a server) that a stub, fake or the injected clock could stand in for, and the behavior under test is not that dependency's real use. (Check 3, sixth bullet.) | Costly dependencies make the suite slow without pinning more. |
 | VP16 | Check 3's **not self-contained** bullet: the test runs another test suite, whole or sliced, or re-runs the suite it lives in, instead of exercising the unit directly. (Check 3, last bullet.) | No suite runs another suite. |
 | VP17 | The closing paragraph says PASS only if all three hold: it passes now, it fails under the mutation, and it is a clean, behavior-level pin of the criterion; and it tells the verifier to leave the working tree exactly as it found it. (Closing paragraph.) | The verdict needs all three checks, and the mutation must not survive the verification. |
+| VP18 | Check 3's REJECT list has a bullet for a test failing on an incidental error: its only observable is that something throws or exits non-zero, with no assertion on which error or on the behaviour, unless that specific error is what the criterion names. | A pin like this survives its mutation check today and is disarmed by any later change to the throw (#2506). |
 
 ## skills/tdd/scripts/prompts/verify-plan.md
 
