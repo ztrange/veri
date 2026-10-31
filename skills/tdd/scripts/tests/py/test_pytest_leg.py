@@ -773,6 +773,51 @@ def test_a_caller_selection_that_filters_the_serial_case_out_never_runs_it_yet_t
     assert (code, log) == (0, ["session", "unmarked session=1 worker=xdist", "session"]), output
 
 
+INTERNALERROR_CONFTEST = """\
+failed = []
+
+
+def pytest_runtest_logreport(report):
+    if failed:
+        raise RuntimeError("controller broke after a failure")
+    if report.failed:
+        failed.append(report.nodeid)
+"""
+
+
+@pytest.mark.process("the real leg's parallel pass starts two xdist worker processes over a planted tree")
+def test_2741_a_leg_whose_xdist_run_ends_in_an_internalerror_after_a_case_failed_names_that_case_says_the_leg_was_cut_short_and_exits_non_zero(run_cli, tmp_path):
+    planted = tmp_path / "planted"
+    planted.mkdir()
+    (planted / "conftest.py").write_text(INTERNALERROR_CONFTEST)
+    (planted / "test_planted.py").write_text("def test_fails():\n    assert False\n")
+    env = leg_env(VERI_PYTEST_WORKERS="2")
+    try:
+        code, out, err = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+    finally:
+        sys.modules.pop("test_planted", None)
+        sys.modules.pop("conftest", None)
+
+    assert (code != 0, "test_planted.py::test_fails" in out + err, "cut short" in err) == (True, True, True), out + err
+
+
+@pytest.mark.process("the real leg's parallel pass starts two xdist worker processes over a planted tree")
+def test_2741_a_leg_cut_short_by_an_internalerror_names_only_the_cases_that_failed_not_a_passing_one(run_cli, tmp_path):
+    planted = tmp_path / "planted"
+    planted.mkdir()
+    (planted / "conftest.py").write_text(INTERNALERROR_CONFTEST)
+    (planted / "test_planted.py").write_text("def test_fails():\n    assert False\n\n\ndef test_passes_quietly():\n    pass\n")
+    env = leg_env(VERI_PYTEST_WORKERS="2")
+    try:
+        code, out, err = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+    finally:
+        sys.modules.pop("test_planted", None)
+        sys.modules.pop("conftest", None)
+
+    listed = [line for line in (out + err).splitlines() if "test_planted.py::" in line]
+    assert (code != 0, any("test_fails" in line for line in listed), any("test_passes_quietly" in line for line in listed)) == (True, True, False), out + err
+
+
 @pytest.mark.parametrize("parallel, serial, code", [
     (pytest.ExitCode.OK, pytest.ExitCode.NO_TESTS_COLLECTED, 0),
     (pytest.ExitCode.NO_TESTS_COLLECTED, pytest.ExitCode.OK, 0),

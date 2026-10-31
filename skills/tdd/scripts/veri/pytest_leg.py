@@ -293,7 +293,7 @@ def main(argv):
     os.environ["TMPDIR"] = PINNED_TMPDIR
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    os.environ["PYTEST_PLUGINS"] = ",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "small_case_guard", "network_guard", "private_tmp_path", "serial_seen"]))
+    os.environ["PYTEST_PLUGINS"] = ",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "small_case_guard", "network_guard", "private_tmp_path", "serial_seen", "failed_cases"]))
     def terminate(signum, frame):
         sys.exit(128 + signum)
     previous = signal.signal(signal.SIGTERM, terminate)
@@ -327,6 +327,11 @@ def main(argv):
             statuses = [pytest.main(parallel + ["--basetemp=" + base, "-m", selected + "not serial"] + rest)]
             if not os.path.exists(seen) or "serial" in open(seen).read().split():
                 statuses.append(pytest.main(["--basetemp=" + base, "-m", selected + "serial"] + rest))
+            if pytest.ExitCode.INTERNAL_ERROR in statuses:
+                import failed_cases
+                sys.stderr.write("the leg was cut short by an internal error; cases that had failed by then:\n")
+                for nodeid in failed_cases.NODEIDS:
+                    sys.stderr.write(nodeid + "\n")
     finally:
         if serial_seen is None:
             os.environ.pop("PYTEST_LEG_SERIAL_SEEN", None)
