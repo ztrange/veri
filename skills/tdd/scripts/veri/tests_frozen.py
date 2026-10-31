@@ -415,6 +415,22 @@ def _renamed_to(name, case, digest, text, consumed):
     return None
 
 
+def _changed_by_refactor(name, case):
+    try:
+        if case not in _cases_at("HEAD", name):
+            return False
+        revs = _revisions(name)
+        history = [_cases_at(rev, name).get(case) for rev in revs]
+    except OSError:
+        return False
+    for rev, now, before in zip(revs, history, history[1:]):
+        if now != before:
+            subject = subprocess.run(["git", "log", "-1", "--format=%s", rev], stdout=subprocess.PIPE,
+                                     stderr=subprocess.DEVNULL)
+            return os.fsdecode(subject.stdout).startswith("refactor:")
+    return False
+
+
 def _check_earlier(ledger, step, exempt=()):
     root = _toplevel()
     if root is None:
@@ -462,7 +478,10 @@ def _check_earlier(ledger, step, exempt=()):
         accepted = _accepted_per_digest(digests, nows, olds) if nows else []
         if case not in exempt and not (fixture and name == fixture.group(1)) and (
                 not nows or any(d not in held for d, held in zip(digests, accepted))):
-            changed.append("%s (%s)" % (case, owner))
+            entry = "%s (%s)" % (case, owner)
+            if nows and _changed_by_refactor(name, case):
+                entry += ": the record is stale against a verified refactor"
+            changed.append(entry)
     for entry in changed:
         write(sys.stdout, entry)
     if not changed:
