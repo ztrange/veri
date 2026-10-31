@@ -1,0 +1,1 @@
+- [ ] skill-edit step for the unit `skills/tdd/SKILL.md`: the `$S/pin-recheck.sh` run moves to where the step's code is committed, since before Green's tick the range holds none of it ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 6⟧
