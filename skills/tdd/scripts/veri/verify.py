@@ -1,5 +1,6 @@
 """verify.sh's logic, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import contextlib
 import glob
 import io
 import os
@@ -67,26 +68,27 @@ def git(*args, env=None):
     return start(["git", *args], env=env, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
 
-def in_temp_index(*args):
+@contextlib.contextmanager
+def temp_index_env():
     folder = tempfile.mkdtemp()
-    env = {**os.environ, "GIT_INDEX_FILE": os.path.join(folder, "index")}
     try:
+        yield {**os.environ, "GIT_INDEX_FILE": os.path.join(folder, "index")}
+    finally:
+        shutil.rmtree(folder, ignore_errors=True)
+
+
+def in_temp_index(*args):
+    with temp_index_env() as env:
         if git("add", "-A", env=env).returncode:
             return ""
         out = git(*args, env=env)
         return out.stdout.decode().rstrip("\n") if out.returncode == 0 else ""
-    finally:
-        shutil.rmtree(folder, ignore_errors=True)
 
 
 def unreadable_file_in_tree():
-    folder = tempfile.mkdtemp()
-    try:
-        added = start(["git", "add", "-A"], env={**os.environ, "GIT_INDEX_FILE": os.path.join(folder, "index")},
-                      stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    with temp_index_env() as env:
+        added = start(["git", "add", "-A"], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         return added.returncode != 0 and b"Permission denied" in (added.stderr or b"")
-    finally:
-        shutil.rmtree(folder, ignore_errors=True)
 
 
 def head_snapshot():
