@@ -1712,6 +1712,26 @@ def test_verify_sh_accepts_a_pass_from_a_pin_verifier_leaf_that_created_the_muta
     assert (code, "full suite are green" in out) == (0, True)
 
 
+@pytest.mark.process("a real git scratch repository whose pin verifier leaf replaces a mutation record that was a symlink before it ran")
+def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_replaced_a_symlinked_mutation_record_with_a_regular_file_2772(
+        run_cli, tmp_path, monkeypatch):
+    monkeypatch.setenv("VERI_ISSUE", "2772")
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/*\n!.tdd/issue-2772-mutations.md\n", {})
+    (tmp_path / "elsewhere.md").write_text("mutation one\n")
+    (repo / ".tdd").mkdir(exist_ok=True)
+    (repo / ".tdd" / "issue-2772-mutations.md").symlink_to(tmp_path / "elsewhere.md")
+    mutation = 'rm -f .tdd/issue-2772-mutations.md; printf "mutation one\\n" > .tdd/issue-2772-mutations.md'
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
+           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo, issue="2772")}
+    verify = importlib.import_module("veri.verify")
+
+    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
+                                    "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+
+    assert (code, "full suite are green" in out) == (2, False)
+
+
 @pytest.mark.process("a real git scratch repository whose global config sets an external diff driver, color.ui=always and a textconv filter")
 def test_verify_sh_saves_the_same_refusal_diff_whatever_the_global_git_config_says_1846(
         run_cli, tmp_path, monkeypatch):
