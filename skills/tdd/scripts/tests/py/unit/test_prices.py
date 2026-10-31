@@ -2,7 +2,7 @@
 import importlib
 
 
-def test_prices_holds_todays_rates_for_both_families_and_the_old_cost_module_takes_them_from_it():
+def test_prices_holds_todays_rates_for_both_families():
     prices = importlib.import_module("veri.prices")
     assert prices.PRICES == {
         "opus": {"input": 15.00, "cache_read": 1.50, "cache_write_5m": 18.75,

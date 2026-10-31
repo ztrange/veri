@@ -22,7 +22,7 @@ def test_each_module_keeps_the_symlinked_scripts_directory_it_was_reached_throug
                     "build_verify_prompt": scripts, "run_verdict": scripts}
 
 
-def test_five_more_modules_keep_the_symlinked_scripts_directory_they_were_reached_through(tmp_path):
+def test_four_more_modules_keep_the_symlinked_scripts_directory_they_were_reached_through(tmp_path):
     link = tmp_path / "skill-link"
     os.symlink(SKILL, link)
     held = {}
