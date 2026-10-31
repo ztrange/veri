@@ -3022,3 +3022,39 @@ def test_rerecord_on_head_exits_2_naming_the_step_when_no_committed_ledger_line_
     code, _, err = run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
 
     assert (code, step in err, (tmp_path / tests_frozen._record_path(step)).read_text()) == (2, True, before)
+
+
+PHASED_STEP = STEPS[1] + " ⟦phases: expand, migrate⟧"
+
+
+def _phased_ledger(repo, marks="", **state):
+    """The ledger with step A listing its phases: its box stays open whatever `⟂ <phase> done` marks it gains."""
+    _ledger(repo, **state)
+    ledger = repo / ".tdd/issue-9.md"
+    ledger.write_text(ledger.read_text().replace(STEPS[1], PHASED_STEP + marks))
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history and its committed ledger walked")
+def test_rerecord_on_head_keeps_the_pins_and_renames_of_a_step_whose_ledger_line_went_through_phase_marks_2724(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite = tmp_path / "test_suite.py"
+    expand, migrate = " ⟂ expand done", " ⟂ expand done ⟂ migrate done"
+    _plan_repo(tmp_path, monkeypatch)
+    _phased_ledger(tmp_path)
+    _commit(tmp_path, "plan the phases")
+    suite.write_text("\n\n".join([CASE % ("base", 0), CASE % ("one", 1), CASE % ("two", 2)]))
+    run_cli(tests_frozen, ["record", "--step", PHASED_STEP, "test_suite.py"], cwd=tmp_path)
+    _phased_ledger(tmp_path, expand)
+    _commit(tmp_path, "A expand")
+    suite.write_text(suite.read_text().replace("test_one", "test_one_renamed") + "\n\n" + CASE % ("pin_committed", 5))
+    _phased_ledger(tmp_path, migrate)
+    _commit(tmp_path, "A migrate")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("later_step", 9))
+    _phased_ledger(tmp_path, migrate, B="pending")
+    _commit(tmp_path, "B green")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("pin_wip", 4))
+
+    code = run_cli(tests_frozen, ["record", "--step", PHASED_STEP, "test_suite.py"], cwd=tmp_path)[0]
+
+    assert (code, _names(tmp_path, tests_frozen, PHASED_STEP)) == (
+        0, ["test_one_renamed", "test_pin_committed", "test_pin_wip", "test_two"])
