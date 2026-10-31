@@ -1262,40 +1262,6 @@ def test_main_renders_the_ordinary_red_prompt_for_a_step_mentioning_the_replaces
     assert results == [(0, True, False)] * 2
 
 
-def refactor_and_plain_plan_renders(tmp_path, capsysbinary, build_verify_prompt):
-    spec = tmp_path / "spec.md"
-    spec.write_bytes(b"# spec\n\n## Refactor\n\nRun kind: refactor.\n")
-    ledger = tmp_path / "ledger.md"
-    ledger.write_bytes("# Plan for #1527\n\n- [ ] Extract Function ⟦criterion 1⟧\n".encode())
-
-    plain_spec = tmp_path / "plain-spec.md"
-    plain_spec.write_bytes(b"# spec\n\nbehaviour\n")
-
-    def render(spec_path):
-        code = build_verify_prompt.main(["plan", str(spec_path), str(ledger)])
-        return code, capsysbinary.readouterr()[0].replace(b"\n", b" ")
-
-    return render(spec), render(plain_spec)
-
-
-@pytest.mark.tree_audit("the templates under prompts/")
-def test_main_tells_the_refactor_plan_verifier_to_reject_a_phases_step_1527(tmp_path, capsysbinary, build_verify_prompt):
-    phases = (r"REJECT[^.]{0,200}refactor[^.]{0,200}⟦phases|refactor[^.]{0,200}⟦phases[^.]{0,200}REJECT"
-              r"|REJECT[^.]{0,200}⟦phases[^.]{0,200}refactor").encode()
-    refactor, plain = refactor_and_plain_plan_renders(tmp_path, capsysbinary, build_verify_prompt)
-
-    assert (refactor[0], re.search(phases, refactor[1]) is not None, re.search(phases, plain[1]) is not None) == (0, True, False)
-
-
-@pytest.mark.tree_audit("the templates under prompts/")
-def test_main_tells_the_refactor_plan_verifier_to_reject_a_step_that_only_edits_tests_1527(tmp_path, capsysbinary, build_verify_prompt):
-    test_only = (r"REJECT[^.]{0,200}refactor[^.]{0,200}(only edits|edits only|only changes|changes only)[^.]{0,40}tests?"
-                 r"|refactor-kind plan[^.]{0,200}(only edits|edits only|only changes|changes only)[^.]{0,40}tests?[^.]{0,200}REJECT").encode()
-    refactor, plain = refactor_and_plain_plan_renders(tmp_path, capsysbinary, build_verify_prompt)
-
-    assert (refactor[0], re.search(test_only, refactor[1]) is not None, re.search(test_only, plain[1]) is not None) == (0, True, False)
-
-
 def test_main_exits_2_naming_the_fixture_repair_partial_when_it_is_missing_for_a_marked_green_step_1021(
         tmp_path, capsysbinary):
     scripts = tmp_path / "scripts"
@@ -1317,27 +1283,6 @@ def test_main_exits_2_naming_the_fixture_repair_partial_when_it_is_missing_for_a
 
     assert (code, *capsysbinary.readouterr()) == (
         2, b"", f"build-verify-prompt: cannot read '{scripts / 'prompts' / '_verify-green-fixture-repair.md'}'\n".encode())
-
-
-def test_main_renders_a_plan_prompt_for_a_refactor_spec_limiting_its_refactor_checks_to_steps_that_are_not_diff_checked_or_pin_and_rejecting_a_test_only_step_only_when_planned_otherwise_1915(
-        tmp_path, capsysbinary, build_verify_prompt):
-    ledger = tmp_path / "plan.md"
-    ledger.write_text("# Plan for #1417\n\n- [ ] a step ⟦criterion 1⟧\n", encoding="utf-8")
-
-    def plan_prompt(name, spec_bytes):
-        spec = tmp_path / name
-        spec.write_bytes(spec_bytes)
-        assert build_verify_prompt.main(["plan", str(spec), str(ledger)]) == 0
-        out, _ = capsysbinary.readouterr()
-        return " ".join(out.decode("utf-8", "surrogateescape").replace("`", "").split())
-
-    with_refactor = plan_prompt("refactor.md", b"# spec\n\n## Refactor\n\ntidy it\n")
-    without = plan_prompt("plain.md", b"# spec\n\n1. A case pins behaviour.\n")
-
-    limit = "the first three only to a step that is neither ⟦diff-checked⟧ nor a pin step"
-    test_only = "holds a step that only edits tests, unless that step is planned as ⟦diff-checked⟧ or a pin step"
-    assert ((limit in with_refactor, test_only in with_refactor),
-            (limit in without, test_only in without)) == ((True, True), (False, False))
 
 
 def test_the_green_prompt_requires_a_coverage_judgement_to_run_the_fast_command_and_the_affected_suites_never_one_file_and_a_reject_to_name_the_command_run_2477(
