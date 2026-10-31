@@ -663,3 +663,22 @@ def test_2768_main_reports_vanished_and_returns_2_for_a_started_run_whose_worktr
     code = watch_runs.main(["--max-wait", "1000000000"])
 
     assert (code, capsys.readouterr().out) == (2, "vanished 5\n")
+
+
+def test_2768_main_keeps_watching_a_started_run_whose_worktree_is_absent_for_several_polls_while_its_run_conductor_process_is_alive(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    listings = iter([[("5", "running")]])
+    ticks = itertools.count(0, 1)
+
+    def ps(argv, **kwargs):
+        return subprocess.CompletedProcess(argv, 0, stdout="/usr/bin/python3 /repo/veri/run_conductor.py 5\n", stderr="")
+
+    monkeypatch.setattr(watch_runs.pid_file.subprocess, "run", ps)
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "_runs", lambda: [{"issue": i, "state": s} for i, s in next(listings, [])])
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+    monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks))
+
+    code = watch_runs.main(["--max-wait", "6"])
+
+    assert (code, capsys.readouterr().out) == (3, "timeout\n")
