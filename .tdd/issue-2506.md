@@ -14,7 +14,7 @@
 - [x] `pin-recheck.sh` prints a touched record whose command fails unmutated as needing a look and exits 0, never counting it as still red and never mutating the file, pinned by a real-git case in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py` ⟦criterion 4⟧
 - [x] `pin-recheck.sh` exits 2 when no answer can be obtained because `<base-sha>` does not resolve, pinned by a real-git case in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py`
 - [x] `pin-recheck.sh` exits 2 when a `.tdd/issue-*-mutations.md` record cannot be parsed, pinned by a real-git case in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py`
-- [ ] Breaking the unmutated first run reddens the previous case, watched going red and restored ⟦human-owed⟧ ⟦criterion 5⟧
+- [x] Breaking the unmutated first run reddens the previous case, watched going red and restored ⟦human-owed⟧ ⟦criterion 5⟧
 - [x] skill-edit step for the unit `skills/tdd/PIN.md`: row PN18 is added to `skills/tdd/REQUIREMENTS.md` under the `## skills/tdd/PIN.md` heading exactly as the issue's `## Requirements` states it, and the pin paragraph satisfies it ⟦skill-edit⟧ ⟦criterion 6⟧
 - [x] skill-edit step for the unit `skills/tdd/SKILL.md`: row CY123 is added to `skills/tdd/REQUIREMENTS.md` under the `## skills/tdd/SKILL.md` heading exactly as the issue's `## Requirements` states it, and the cycle states the `$S/pin-recheck.sh <base-sha>` run and its branches ⟦skill-edit⟧ ⟦criterion 6⟧
 - [x] skill-edit step for the unit `skills/tdd/SKILL.md`: the `$S/pin-recheck.sh` run moves to where the step's code is committed, since before Green's tick the range holds none of it ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 6⟧
