@@ -393,11 +393,14 @@ def test_verify_sh_green_launches_its_verifier_without_an_ambient_mutation_recor
     assert (done.returncode, got) == (0, ""), done.stdout + done.stderr
 
 
-def run_verify_writing(tmp_path, phase, writes, then="", cwd=None):
+def run_verify_writing(tmp_path, phase, writes, then="", cwd=None, recorded=None):
     head = committed_head(tmp_path)
     (tmp_path / "spec.md").write_text("the behavior spec\n")
     (tmp_path / ".gitignore").write_text(".tdd/*\n!.tdd/issue-*.md\n")
     record = tmp_path / ".tdd" / "issue-2741-mutations.md"
+    if recorded is not None:
+        record.parent.mkdir(exist_ok=True)
+        record.write_text(recorded)
     claude = tmp_path / "claude-pass"
     claude.write_text("#!/bin/sh\n" + "".join("echo written >> %s\n" % (tmp_path / path) for path in writes)
                       + then + "printf 'VERDICT: PASS\\nREASON: fine.'\n")
@@ -453,5 +456,42 @@ def test_verify_sh_pin_run_from_a_subdirectory_whose_verifier_writes_only_its_mu
 def test_verify_sh_pin_whose_verifier_writes_its_mutation_record_and_moves_head_is_refused_2741(tmp_path):
     done, _ = run_verify_writing(tmp_path, "pin", [".tdd/issue-2741-mutations.md"],
                                  then="git commit -q --allow-empty -m moved\n")
+
+    assert (done.returncode, "modified the repository" in done.stdout) == (2, True), done.stdout + done.stderr
+
+
+@pytest.mark.process("verify.sh pin run as a real shim over veri/verify.py in a throwaway git repo holding a mutation"
+                     " record, around a stub claude that appends to it before answering VERDICT: PASS")
+def test_verify_sh_pin_whose_verifier_appends_to_an_existing_mutation_record_takes_the_pass_2741(tmp_path):
+    done, record = run_verify_writing(tmp_path, "pin", [".tdd/issue-2741-mutations.md"], recorded="earlier pin\n")
+
+    assert (done.returncode, record.read_text()) == (0, "earlier pin\nwritten\n"), done.stdout + done.stderr
+
+
+@pytest.mark.process("verify.sh pin run as a real shim over veri/verify.py in a throwaway git repo holding a mutation"
+                     " record, around a stub claude that deletes it before answering VERDICT: PASS")
+def test_verify_sh_pin_whose_verifier_deletes_its_mutation_record_is_refused_and_the_record_restored_2741(tmp_path):
+    done, record = run_verify_writing(tmp_path, "pin", [], recorded="earlier pin\n",
+                                      then="rm %s\n" % (tmp_path / ".tdd" / "issue-2741-mutations.md"))
+
+    got = record.read_text() if record.exists() else None
+    assert (done.returncode, "modified the repository" in done.stdout, got) == (2, True, "earlier pin\n"), \
+        done.stdout + done.stderr
+
+
+@pytest.mark.process("verify.sh pin run as a real shim over veri/verify.py in a throwaway git repo holding a mutation"
+                     " record, around a stub claude that rewrites it before answering VERDICT: PASS")
+def test_verify_sh_pin_whose_verifier_rewrites_its_mutation_record_is_refused_and_the_record_restored_2741(tmp_path):
+    done, record = run_verify_writing(tmp_path, "pin", [], recorded="earlier pin\n",
+                                      then="echo rewritten > %s\n" % (tmp_path / ".tdd" / "issue-2741-mutations.md"))
+
+    assert (done.returncode, "modified the repository" in done.stdout, record.read_text()) == (2, True, "earlier pin\n"), \
+        done.stdout + done.stderr
+
+
+@pytest.mark.process("verify.sh pin run as a real shim over veri/verify.py in a throwaway git repo, around a stub"
+                     " claude that writes another issue's mutation record before answering VERDICT: PASS")
+def test_verify_sh_pin_whose_verifier_writes_another_issues_mutation_record_is_refused_2741(tmp_path):
+    done, _ = run_verify_writing(tmp_path, "pin", [".tdd/issue-9-mutations.md"])
 
     assert (done.returncode, "modified the repository" in done.stdout) == (2, True), done.stdout + done.stderr
