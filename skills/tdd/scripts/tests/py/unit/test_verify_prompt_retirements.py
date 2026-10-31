@@ -35,3 +35,26 @@ def test_each_verify_phase_renders_with_exit_0_its_issue_spec_text_and_no_unfill
         results[phase] = (code, 'slugify("Hello & World/Foo")' in out, "{{" in out)
 
     assert results == dict.fromkeys(argvs, (0, True, False))
+
+
+def test_a_green_step_marked_with_a_repair_or_replaces_mark_carries_its_own_fragment_and_none_of_the_other_three(
+        tmp_path, run_cli, build_verify_prompt):
+    from pathlib import Path
+    prompts = Path(build_verify_prompt.__file__).resolve().parents[1] / "prompts"
+    spec = tmp_path / "spec.md"
+    spec.write_text(SPEC_TEXT)
+    marks = ["replaces-case", "suite-repair", "ci-repair", "fixture-repair"]
+    lines = {m: [l for l in (prompts / f"_verify-green-{m}.md").read_text().splitlines()
+                 if l.strip() and "{{" not in l] for m in marks}
+
+    results = {}
+    for mark in marks:
+        code, out, _ = run_cli(build_verify_prompt, [
+            "--step", f"pin the slug ⟦{mark}⟧", "--fast-cmd", "make unit",
+            "green", str(spec), "tests/test_x.py", "test_x"])
+        rendered = out.splitlines()
+        others = [l for m in marks if m != mark for l in lines[m]]
+        results[mark] = (code, bool(lines[mark]) and any(l in rendered for l in lines[mark]),
+                         [l for l in others if l in rendered], "{{" in out)
+
+    assert results == dict.fromkeys(marks, (0, True, [], False))
