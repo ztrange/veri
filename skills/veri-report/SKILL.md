@@ -19,8 +19,8 @@ Every read runs against the target repository's main working tree. Where `/veri-
 Run `$S/report-cache.sh refresh` once, first, from the main working tree. Exit 2 means no
 fresh cache: report that and stop; never build the report from a stale `.tdd/report-cache.json`
 (Q5). Every read below is of that file (`{fetched_at, issues}`; each issue carries `number`,
-`title`, `state`, `labels`, `closedAt`, `updatedAt`, `body`, `comments`, `wallSeconds`, `lane`),
-never a full `gh issue list`.
+`title`, `state`, `labels`, `closedAt`, `updatedAt`, `links`, `blockedBy`, `wallSeconds`, `lane`,
+and `body` for a PRD only; no issue carries `comments`), never a full `gh issue list`.
 
 Count the reads before making them: there is one per PRD and more, so **all of them go to one
 subagent** on the cheapest model that can run them (P6). Brief it with this section and have it
@@ -30,10 +30,10 @@ return only the figures, at most 10 lines per PRD.
    counts (Q1).
 2. **Children, per PRD** (Q3): the union of
    - the cached issues, open and closed, whose title starts with that PRD's `PRD <nnn>`, and
-   - every `#<n>` its body and comments link,
+   - every issue in the PRD's `links`,
 
    minus the PRD itself and minus links to other PRDs. For each child, read its state, its
-   labels, its blockers (from its body) and, if closed, its `closedAt`.
+   labels, its blockers (from its `blockedBy`) and, if closed, its `closedAt`.
 3. **Lanes.** For each open child, its opt-in label (`ready-for-agent`, `ready-for-agent:<lane>`,
    or none) and whether `VERI_LABEL=<that label> $S/solvable-issues.sh` lists it now. An open
    child with no opt-in label and no `tdd/<n>-*` branch on origin is held by no lane.
@@ -41,7 +41,7 @@ return only the figures, at most 10 lines per PRD.
    field: issues per day, and the fastest and slowest quartile of their `wallSeconds`. An issue
    whose `lane` is null counts toward no lane's rate. With fewer than three closed in the window,
    the lane has "no rate yet".
-5. **Owed** (Q4, Q6). The subagent reads each PRD's body and returns the work items it names
+5. **Owed** (Q4, Q6). The subagent reads each PRD's prose from its cached `body` and returns the work items it names
    (sections, slices, stories, table rows) that no child covers, each with the PRD section it
    comes from. Each answer is stored in `.tdd/report-owed.json` under the PRD number, with the
    PRD's `updatedAt` from the cache. A PRD whose cached `updatedAt` equals the stored one reuses
