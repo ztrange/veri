@@ -7,24 +7,12 @@ import subprocess
 import sys
 from datetime import datetime
 
-USAGE = "usage: session-cost.sh --since <ISO date> [--json] [<transcript.jsonl> ...]"
+try:
+    from .prices import PRICES, cache_write_tokens, family
+except ImportError:
+    from prices import PRICES, cache_write_tokens, family
 
-PRICES = {
-    "opus": {
-        "input": 15.00,
-        "cache_read": 1.50,
-        "cache_write_5m": 18.75,
-        "cache_write_1h": 30.00,
-        "output": 75.00,
-    },
-    "claude-opus-5-5": {
-        "input": 4.00,
-        "cache_read": 0.20,
-        "cache_write_5m": 5.00,
-        "cache_write_1h": 8.00,
-        "output": 20.00,
-    },
-}
+USAGE = "usage: session-cost.sh --since <ISO date> [--json] [<transcript.jsonl> ...]"
 
 RAMP_FACTOR = 1.5
 
@@ -44,16 +32,6 @@ def refuse(message=None):
         fail(message)
     print(USAGE, file=sys.stderr)
     return 2
-
-
-def cache_write_tokens(usage):
-    split = usage.get("cache_creation")
-    if split:
-        return {
-            "cache_write_1h": split.get("ephemeral_1h_input_tokens", 0),
-            "cache_write_5m": split.get("ephemeral_5m_input_tokens", 0),
-        }
-    return {"cache_write_5m": usage.get("cache_creation_input_tokens", 0)}
 
 
 def one_rate(field, rate):
@@ -79,13 +57,6 @@ def weigh(usage, kinds):
     return sum(count
                for kind, read, _ in KINDS if kind in kinds
                for count in read(usage).values())
-
-
-def family(model):
-    for key in sorted(PRICES, key=len, reverse=True):
-        if key in model:
-            return key
-    return None
 
 
 def local_date(stamp):
