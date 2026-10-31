@@ -541,6 +541,19 @@ def rerecord_earlier(ledger, step):
         return 2
 
 
+def rerecord_refactored(ledger, green):
+    with open(ledger, encoding="utf-8") as handle:
+        lines = handle.read().splitlines()
+    os.chdir(_toplevel())
+
+    def rewrite(_, record, name, case, digest):
+        if _body_digest(_cases_at(green, name)[case]) != digest:
+            return record
+        return _body_line(name, case, _cases_at("HEAD", name)[case])
+    _rewrite_records(_earlier_records(lines, ""), rewrite)
+    return 0
+
+
 def rerecord_rebased(ledger, pre):
     try:
         with open(ledger, encoding="utf-8") as handle:
@@ -603,6 +616,8 @@ def main(argv):
     rest = argv[4:]
     if argv[:1] == ["rerecord-earlier"] and len(argv) == 4 and argv[2] == "--step" and argv[3]:
         return rerecord_earlier(argv[1], argv[3])
+    if argv[:1] == ["rerecord-refactored"] and len(argv) == 3:
+        return rerecord_refactored(argv[1], argv[2])
     if argv[:1] == ["rerecord-rebased"] and len(argv) == 3:
         return rerecord_rebased(argv[1], argv[2])
     if (argv[:1] == ["check-earlier"] and len(argv) >= 4 and argv[2] == "--step" and argv[3]
