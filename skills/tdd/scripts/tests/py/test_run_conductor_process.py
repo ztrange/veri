@@ -82,3 +82,51 @@ def test_main_leaves_the_pinned_scripts_under_the_existing_run_worktrees_tdd_whe
 
     copies = [path.read_bytes() for path in (worktree / ".tdd").rglob("run_conductor.py")]
     assert (ran.returncode, copies) == (-9, [(veri / "run_conductor.py").read_bytes()]), (tmp_path / "out").read_text()
+
+
+@pytest.mark.tree_audit("copies the veri and lib directories into a scratch clone")
+@pytest.mark.process("a real run_conductor.main in its own process whose stub claude cuts the run's worktree and exits 3, over a real skill clone and a real caller repository")
+def test_main_leaves_a_runnable_pinned_script_under_a_worktree_cut_during_the_run_when_the_conductor_bails_issue_2627(
+        tmp_path):
+    clone = tmp_path / "clone"
+    for part in ("veri", "lib"):
+        shutil.copytree(SCRIPTS / part, clone / "skills" / "tdd" / "scripts" / part,
+                        ignore=shutil.ignore_patterns("__pycache__"))
+    (clone / "skills" / "tdd" / "SKILL.md").write_text("procedure\n")
+    (clone / "skills" / "tdd" / "scripts" / "pinned-probe.sh").write_text("#!/bin/sh\necho pinned-ok\n")
+    git_env = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t",
+                   GIT_COMMITTER_EMAIL="t@t")
+
+    def commit_all(directory):
+        for argv in (["init", "-q"], ["add", "-A"], ["commit", "-q", "--allow-empty", "-m", "seed"]):
+            subprocess.run(["git", "-C", str(directory)] + argv, check=True, env=git_env)
+
+    commit_all(clone)
+    pin = subprocess.run(["git", "-C", str(clone), "rev-parse", "HEAD"], check=True, capture_output=True,
+                         text=True).stdout.strip()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    commit_all(repo)
+    (repo / ".tdd").mkdir()
+    (repo / ".tdd" / "issue-2627-skill-commit").write_text(pin + "\n")
+    stub = tmp_path / "stub-claude"
+    stub.write_text("#!/bin/sh\ncat > /dev/null\nrm -f .tdd/wt/2627/.tdd/conductor.pid\n"
+                    "rmdir .tdd/wt/2627/.tdd .tdd/wt/2627\n"
+                    "git worktree add -q -b tdd/2627-pin .tdd/wt/2627 || exit 9\nexit 3\n")
+    stub.chmod(0o755)
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    veri = clone / "skills" / "tdd" / "scripts" / "veri"
+
+    with open(tmp_path / "out", "w") as out:
+        ran = subprocess.run(
+            [sys.executable, "-c",
+             "import sys; sys.path.insert(0, %r); import run_conductor; sys.exit(run_conductor.main(['2627']))" % str(veri)],
+            cwd=repo, stdout=out, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, timeout=20,
+            env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_BASH_MAJOR": "5",
+                 "VERI_MIN_FREE_GB": "0", "VERI_TOOL_WAIT": "0", "PYTHONDONTWRITEBYTECODE": "1",
+                 "CLAUDE_BIN": str(stub), "TMPDIR": str(scratch)})
+
+    probes = list((repo / ".tdd" / "wt" / "2627" / ".tdd").rglob("pinned-probe.sh"))
+    printed = [subprocess.run(["sh", str(path)], capture_output=True, text=True).stdout.strip() for path in probes]
+    assert (ran.returncode, printed) == (3, ["pinned-ok"]), (tmp_path / "out").read_text()

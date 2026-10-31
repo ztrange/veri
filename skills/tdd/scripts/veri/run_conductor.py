@@ -130,14 +130,20 @@ def main(argv):
             status = extract(base, commit, snapshot)
             if status != 0:
                 return status if status <= 3 else 2
-            if is_registered_worktree(argv[0]) and os.path.isdir(os.path.join(snapshot, "scripts")):
-                shutil.copytree(os.path.join(snapshot, "scripts"),
-                                os.path.join(run_worktree(argv[0]), ".tdd", "pinned-scripts"))
+            keep_pinned_scripts(snapshot, argv[0])
             return launch(snapshot, argv[0], commit, VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
         finally:
+            keep_pinned_scripts(snapshot, argv[0])
             shutil.rmtree(snapshot, ignore_errors=True)
     sys.stderr.write("run-conductor: no skill commit resolvable from '%s' — running unpinned\n" % base)
     return launch(base, argv[0], None, VERI_SKILL_UNPINNED="1")
+
+
+def keep_pinned_scripts(snapshot, issue):
+    kept = os.path.join(run_worktree(issue), ".tdd", "pinned-scripts")
+    if (is_registered_worktree(issue) and os.path.isdir(os.path.join(snapshot, "scripts"))
+            and not os.path.exists(kept)):
+        shutil.copytree(os.path.join(snapshot, "scripts"), kept)
 
 
 def pinned_tmpdir():
