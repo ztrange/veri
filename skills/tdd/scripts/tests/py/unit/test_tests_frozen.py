@@ -957,3 +957,10 @@ def test_cases_records_a_js_title_holding_an_escaped_quote_of_its_own_kind_whole
     text = "it(%s%s%s, () => {\n  expect(1).toBe(1);\n});\n" % (quote, title, quote)
 
     assert [name for name, _ in tests_frozen._cases(text)] == ["a %sb%s c" % (quote, quote)]
+
+
+def test_cases_records_two_js_titles_differing_only_after_an_escaped_quote_as_two_cases_2765(tests_frozen):
+    text = ('it("shows \\"¿Ya contrataste?", () => {\n  expect(1).toBe(1);\n});\n\n'
+            'it("shows \\"Validando", () => {\n  expect(2).toBe(2);\n});\n')
+
+    assert [name for name, _ in tests_frozen._cases(text)] == ['shows "¿Ya contrataste?', 'shows "Validando']
