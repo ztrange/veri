@@ -1,2 +1,4 @@
 ### When the run's worktree is cut during the run, a conductor that exits non-zero (a bail) leaves the pinned `skills/tdd/scripts` under the worktree's `.tdd/`, at the commit in `.tdd/issue-<n>-skill-commit`, and a script in the copy runs ⟦criterion 1⟧
 - test-only | extract the duplicated clone/repo seeding (`commit_all`, pin lookup) and the `run_conductor.main` subprocess invocation in test_run_conductor_process.py into shared helpers
+### A launch that re-pins with `VERI_NEW_SKILL=1` over a worktree already holding a copy leaves only the newly pinned commit's scripts in that copy, so the copy never disagrees with `.tdd/issue-<n>-skill-commit` ⟦criterion 1⟧
+- test-only | the new cases in `test_run_conductor_process.py` may share setup that could move into a helper or fixture (not inspected in detail)
