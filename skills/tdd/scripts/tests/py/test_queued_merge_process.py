@@ -273,6 +273,7 @@ exec "$REAL_GIT" "$@"
 """
 
 
+@pytest.mark.timeout(90)
 @pytest.mark.process("queued-merge.sh and merge-lock.sh run as /bin/sh shims in a scratch repository, with gh and git planted on PATH")
 def test_queued_merge_after_a_confirmed_merge_cuts_the_next_version_tag_on_the_reported_merge_commit_with_the_message_and_pushes_it_but_cuts_none_for_a_dash_2372(tmp_path):
     repo = tmp_path / "repo"

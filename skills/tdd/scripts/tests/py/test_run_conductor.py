@@ -2803,6 +2803,7 @@ def test_cli_a_working_tree_edit_to_skill_md_never_reaches_the_conductor_the_com
     assert (code, seen) == (0, [(False, True)]), stderr
 
 
+@pytest.mark.timeout(90)
 @pytest.mark.process("real develop-prompt builders, supervise.sh, run-leaf.sh and verify.sh run from a launched claude, each leaf's prompt read off a stub claude")
 def test_cli_each_phases_leaf_is_launched_with_its_tier_develop_red_and_develop_refactor_affected_verify_red_green_and_refactor_fast_and_affected(
         tmp_path, monkeypatch, run_cli):
