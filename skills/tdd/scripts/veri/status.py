@@ -198,10 +198,14 @@ def render(as_json, scope, read_states=True):
         parts = heading.split(" — ", 1)
         issue, title = parts[0], parts[-1]
         events_path = run_file(run, "events.jsonl")
-        if os.path.isfile(events_path) or (not has_ledger and live_conductor(run)):
+        has_events = os.path.isfile(events_path)
+        if has_events or live_conductor(run):
             try:
                 activity = run_activity(run, as_json, states.get(issue) == "closed")
-                events.append(run)
+                if has_events:
+                    events.append(run)
+                else:
+                    bare += 1
                 if not as_json:
                     activity = "  " + activity
             except FileNotFoundError:

@@ -277,3 +277,21 @@ def test_2739_json_lists_a_run_with_a_live_conductor_no_ledger_and_no_events_log
 
     listed = [(r.get("issue"), r.get("state"), r.get("step"), r.get("title")) for r in json.loads(out)["runs"]]
     assert listed == [("7", "running", "", "")]
+
+
+def test_2739_json_lists_a_run_with_a_ledger_and_a_live_conductor_but_no_events_log_as_running_keeping_its_title_and_step_and_scope_counts_it_once(tmp_path, monkeypatch):
+    from conftest import live_conductor
+    status = importlib.import_module("veri.status")
+    run = tmp_path / ".tdd" / "wt" / "7"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "issue-7.md").write_text("# Plan for #7 — My title\n- [x] one\n- [ ] two\n")
+    live_conductor(monkeypatch, run / ".tdd", 7)
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status, "branch_of", lambda run: "b")
+    monkeypatch.setattr(status, "solvable_count", lambda name: "0")
+
+    _, out = status.json_document(scope="s", read_states=False)
+
+    document = json.loads(out)
+    listed = [(r.get("issue"), r.get("state"), r.get("step"), r.get("title")) for r in document["runs"]]
+    assert (listed, document["scope"]["attempted"]) == ([("7", "running", "2 of 2", "My title")], 1)
