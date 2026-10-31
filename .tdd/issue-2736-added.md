@@ -1,0 +1,1 @@
+- [ ] skill-edit step for the unit `skills/veri-status/SKILL.md`: the reads say blockers come from each issue's `blockedBy`, not its `links`, and the sentence listing what each cached issue carries also lists `blockedBy` and says no issue carries `comments` ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 7⟧
