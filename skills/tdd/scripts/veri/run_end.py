@@ -53,9 +53,9 @@ def run_end(run_dir):
             mark = event
         elif event.get("event") in ("resume", "step-added"):
             mark = {}
-    if (not mark or mark["event"] == "preflight-refused") and live_conductor(os.fspath(run_dir)):
-        return False, None, {}
     if not mark:
         issue = next((str(e["issue"]) for e in reversed(events) if "issue" in e), "")
+        if live_conductor(os.fspath(run_dir)):
+            return False, None, mark
         return True, _launch_cause(run_dir, issue) or "unknown", mark
     return True, MARKS[mark["event"]], mark
