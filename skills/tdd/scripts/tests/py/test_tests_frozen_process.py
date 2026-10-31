@@ -3058,3 +3058,35 @@ def test_rerecord_on_head_keeps_the_pins_and_renames_of_a_step_whose_ledger_line
 
     assert (code, _names(tmp_path, tests_frozen, PHASED_STEP)) == (
         0, ["test_one_renamed", "test_pin_committed", "test_pin_wip", "test_two"])
+
+
+REPAIR_STEP = "repairs the fixture 'f' in test_suite.py, reproduced by a case ⟦fixture-repair⟧"
+
+
+def _repair_ledger(repo, **state):
+    _ledger(repo, **state)
+    ledger = repo / ".tdd/issue-9.md"
+    ledger.write_text(ledger.read_text().replace(STEPS[1], REPAIR_STEP))
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history and its committed ledger walked")
+def test_rerecord_on_head_keeps_the_pins_and_renames_of_a_fixture_repair_step_whose_ledger_line_ends_in_the_marker_2724(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite = tmp_path / "test_suite.py"
+    _plan_repo(tmp_path, monkeypatch)
+    _repair_ledger(tmp_path)
+    _commit(tmp_path, "plan the repair")
+    suite.write_text("\n\n".join([CASE % ("base", 0), CASE % ("one", 1), CASE % ("two", 2)]))
+    run_cli(tests_frozen, ["record", "--step", REPAIR_STEP, "test_suite.py"], cwd=tmp_path)
+    suite.write_text(suite.read_text().replace("test_one", "test_one_renamed") + "\n\n" + CASE % ("pin_committed", 5))
+    _repair_ledger(tmp_path, A="pending")
+    _commit(tmp_path, "A green")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("later_step", 9))
+    _repair_ledger(tmp_path, A="pending", B="pending")
+    _commit(tmp_path, "B green")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("pin_wip", 4))
+
+    code = run_cli(tests_frozen, ["record", "--step", REPAIR_STEP, "test_suite.py"], cwd=tmp_path)[0]
+
+    assert (code, _names(tmp_path, tests_frozen, REPAIR_STEP)) == (
+        0, ["test_one_renamed", "test_pin_committed", "test_pin_wip", "test_two"])
