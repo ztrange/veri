@@ -12,4 +12,4 @@
 - [x] Run from the main checkout with the directory absent, `pinned-scripts.sh <n>` names the commit from the main checkout's `.tdd/issue-<n>-skill-commit`, the file `run_conductor.py` records the pin in, and exits 2 with the `git archive <pin> skills/tdd/scripts` recovery line ⟦added⟧ ⟦criterion 3⟧
 - [x] With that directory absent and no pin recorded, `pinned-scripts.sh <n>` exits 2 saying no pin is recorded, and never prints the installed copy's path ⟦criterion 3⟧
 - [x] Run from a checkout holding no `.tdd` directory at all, with the directory absent, `pinned-scripts.sh <n>` exits 2 saying no pin is recorded and prints no path, never a directory that does not exist ⟦added⟧ ⟦criterion 3⟧
-- [ ] Unit skills/tdd/SCRIPTS.md takes the issue's SC59 row: the catalogue's `$S/pinned-scripts.sh` entry ⟦skill-edit⟧ ⟦criterion 3⟧
+- [x] Unit skills/tdd/SCRIPTS.md takes the issue's SC59 row: the catalogue's `$S/pinned-scripts.sh` entry ⟦skill-edit⟧ ⟦criterion 3⟧
