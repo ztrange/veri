@@ -959,6 +959,23 @@ def test_main_renders_no_every_case_exists_check_in_the_expand_or_migrate_prompt
     assert carries == {"expand": (0, False), "migrate": (0, False)}
 
 
+def test_main_renders_the_expand_migrate_contract_a_and_contract_b_verify_prompts_with_exit_0_no_stderr_and_each_its_own_phase_heading(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"zorblat(nitz) replaces frob(nitz, quux).\n")
+    step = ("Interface change: frob(nitz, quux) becomes zorblat(nitz) "
+            "⟦phases: expand, migrate, contract-a, contract-b⟧ ⟦criterion 2⟧")
+
+    def rendered(phase):
+        code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit", phase, str(spec),
+                                         "tests/py/test_zorblat.py", "0123abc"])
+        out, err = capsysbinary.readouterr()
+        return code, err, "## Phase: verify-%s" % phase in out.decode("utf-8", "surrogateescape")
+
+    phases = ("expand", "migrate", "contract-a", "contract-b")
+    assert {phase: rendered(phase) for phase in phases} == {phase: (0, b"", True) for phase in phases}
+
+
 def test_main_renders_a_red_prompt_for_a_replaces_case_step_saying_one_replacement_case_per_named_case_judged_each_and_not_one_new_failing_test_while_one_without_the_mark_still_says_it_1537(
         tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
