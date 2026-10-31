@@ -551,10 +551,11 @@ def rerecord_refactored(ledger, green):
     os.chdir(_toplevel())
 
     def rewrite(_, record, name, case, digest):
-        if _body_digest(_cases_at(green, name)[case]) != digest:
+        verified = _cases_at(green, name)[case]
+        if _body_digest(verified) != digest:
             return record
         head = _cases_at("HEAD", name)[case]
-        if _assertion_lines(head) != _assertion_lines(_cases_at(green, name)[case]):
+        if _assertion_lines(head) != _assertion_lines(verified):
             return record
         return _body_line(name, case, head)
     return 0 if _rewrite_records(_earlier_records(lines, ""), rewrite) else 2
