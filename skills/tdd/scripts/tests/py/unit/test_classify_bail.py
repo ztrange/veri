@@ -183,3 +183,9 @@ def test_main_classifies_pr_ready_failed_as_a_system_failure_with_0_2581(capsys,
     code = classify_bail.main(["pr-ready-failed"])
 
     assert (code, *capsys.readouterr()) == (0, "system\n", "")
+
+
+def test_main_classifies_revise_impossible_as_a_process_failure_with_0_2617(capsys, classify_bail):
+    code = classify_bail.main(["revise-impossible"])
+
+    assert (code, *capsys.readouterr()) == (0, "process\n", "")
