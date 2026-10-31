@@ -11,7 +11,7 @@ CATEGORIES = {
          "ci-conflict", "step-add-refused", "replaces-report-failed", "criterion-unreadable", "setup-failed",
          "preflight-refused", "pr-ready-failed"), "system"),
     **dict.fromkeys(
-        ("revise-exhausted", "untestable-criterion", "step-too-big", "rebase-unresolved",
+        ("revise-exhausted", "revise-impossible", "untestable-criterion", "step-too-big", "rebase-unresolved",
          "uncovered", "ci-red", "suite-red", "rebased-tip-red", "unreplaced-cases", "needs-user", "step-added-off-route",
          "fixture-owed", "missing-reroutes-exhausted", "graded-edit-outside-skill-edit"),"process"),
 }
