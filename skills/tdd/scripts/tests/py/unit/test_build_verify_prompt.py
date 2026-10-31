@@ -1289,30 +1289,21 @@ def test_the_green_prompt_requires_a_coverage_judgement_to_run_the_fast_command_
         ["--fast-cmd", "make unit", "green", str(spec), "tests/test_slugify.py", "test_slugify_lowercases"]) == 0
     prompt = " ".join(capsysbinary.readouterr()[0].decode("utf-8", "surrogateescape").split())
 
-    assert {
-        "fast command and affected suites": re.search(
-            r"covered by a case is made by running the fast command you were given, `make unit`, and the affected suites",
-            prompt, re.I) is not None,
-        "never one file": re.search(r"never one test file alone", prompt, re.I) is not None,
-        "REJECT names the command": re.search(
-            r"A REJECT on that ground names the exact command that was run", prompt) is not None,
-    } == {"fast command and affected suites": True, "never one file": True, "REJECT names the command": True}
+    probe = " ".join((SCRIPTS / "prompts" / "_verify-coverage-probe.md").read_text().replace("{{FAST_CMD}}", "make unit").split())
+    assert probe in prompt
 
 
 def test_the_refactor_and_diff_prompts_each_require_a_coverage_judgement_to_run_the_fast_command_and_the_affected_suites_never_one_file_2477(
         tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
     spec.write_bytes(b"# spec\n")
+    probe = " ".join((SCRIPTS / "prompts" / "_verify-coverage-probe.md").read_text().replace("{{FAST_CMD}}", "make unit").split())
     found = {}
     for phase, rest in (("refactor", ["t", "0123abc"]), ("diff", ["0123abc", "0123abc"])):
         assert build_verify_prompt.main(["--fast-cmd", "make unit", "--step", "s", phase, str(spec), *rest]) == 0
-        prompt = " ".join(capsysbinary.readouterr()[0].decode("utf-8", "surrogateescape").split())
-        found[phase] = (
-            re.search(r"covered by a case is made by running the fast command you were given, `make unit`, "
-                      r"and the affected suites, never one test file alone", prompt, re.I) is not None,
-            re.search(r"A REJECT on that ground names the exact command that was run", prompt) is not None)
+        found[phase] = probe in " ".join(capsysbinary.readouterr()[0].decode("utf-8", "surrogateescape").split())
 
-    assert found == {"refactor": (True, True), "diff": (True, True)}
+    assert found == {"refactor": True, "diff": True}
 
 
 def test_main_renders_a_red_prompt_with_fast_cmd_that_runs_it_once_and_rejects_a_red_failing_it_for_any_reason_but_the_targets_expected_failure_naming_the_file_and_the_error_2569(
