@@ -34,3 +34,12 @@ new 25
 command 306
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpwzfvo3rc/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_run_conductor.py make test TESTS=skills/tdd/scripts/tests/py/test_run_conductor.py::test_cli_2748_the_develop_green_leaf_launched_alone_receives_the_fast_and_affected_tier
 
+file 46
+skills/tdd/scripts/prompts/develop-refactor.md
+old 42
+Run the suites `affected-suites.sh` prints
+new 41
+Run the suites `all-the-suites.sh` prints
+command 300
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpwzfvo3rc/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_run_conductor.py make test TESTS=skills/tdd/scripts/tests/py/test_run_conductor.py::test_cli_2748_the_develop_refactor_leaf_launched_alone_receives_the_affected_tier
+
