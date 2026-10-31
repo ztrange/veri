@@ -24,7 +24,9 @@ def with_values(**values):
 
 
 def without(name):
-    return {k: v for k, v in os.environ.items() if k != name}
+    env = with_values()
+    env.pop(name, None)
+    return env
 
 
 def read_bytes(name, default=b""):
