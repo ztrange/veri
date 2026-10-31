@@ -1,0 +1,2 @@
+### `tests-frozen.sh rerecord-refactored` exits 2 when rewriting the frozen records raises OSError (`_rewrite_records`), pinned by a case whose record file cannot be written ⟦added⟧ ⟦criterion 1⟧
+- extract a shared ledger read-and-split helper used by rerecord_earlier, rerecord_rebased and rerecord_refactored (the three handle failure differently, so it would need an error policy no test asks for)
