@@ -3145,6 +3145,31 @@ def test_rerecord_refactored_re_records_a_case_the_verified_refactor_tidied_and_
     assert (code, spared, refused) == (0, (0, ""), (1, "test_two (%s)\n" % step))
 
 
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_re_records_an_earlier_steps_case_whose_body_the_refactor_moved_into_a_shared_helper_2626(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite = tmp_path / "test_suite.py"
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1), BODY % ("two", 2)]))
+    run_cli(tests_frozen, ["record", "--step", STEPS[1], "test_suite.py"], cwd=tmp_path)
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done", B="pending")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("later", 9))
+    _commit(tmp_path, "B green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    helper = "def _value(n):\n    return n\n\n\n"
+    suite.write_text(helper + suite.read_text().replace("x = 1\n", "x = _value(1)\n"))
+    _commit(tmp_path, "B refactor")
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+    ledger = ".tdd/issue-9.md"
+
+    run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", "step C"], cwd=tmp_path)[:2]
+
+    assert checked == (0, "")
+
+
 @pytest.mark.process("git asked for the repository toplevel from a directory under tmp_path that is in none")
 def test_rerecord_refactored_run_outside_any_git_repository_exits_2_and_re_records_nothing_2626(
         tmp_path, run_cli, tests_frozen):

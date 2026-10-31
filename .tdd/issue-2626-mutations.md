@@ -35,3 +35,12 @@ new 262
 command 311
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpwd8fn17e/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_rerecord_refactored_unreadable_ledger_exits_2_and_re_records_nothing_2626
 
+file 39
+skills/tdd/scripts/veri/tests_frozen.py
+old 60
+return _body_line(name, case, _cases_at("HEAD", name)[case])
+new 13
+return record
+command 346
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpwd8fn17e/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_rerecord_refactored_re_records_an_earlier_steps_case_whose_body_the_refactor_moved_into_a_shared_helper_2626
+
