@@ -47,6 +47,9 @@ make fail. Confirm the test is a genuine **regression pin** worth committing.
      the `claude` binary, a real sleep/wait, a server) that a stub, fake or the injected
      clock could stand in for, and the behavior under test is not that dependency's real
      use, or
+   - **fails on an incidental error** — its only observable is that something throws or
+     exits non-zero, with no assertion on which error or on the behaviour, unless that
+     specific error is what the criterion names, or
    - **not self-contained** — it runs another test suite, whole or sliced, or re-runs the
      suite it lives in, instead of exercising the unit directly.
 
