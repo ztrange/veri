@@ -3241,6 +3241,35 @@ def test_rerecord_refactored_leaves_a_cases_record_when_the_refactor_changed_its
     assert checked == (1, "test_one (%s)\n" % step)
 
 
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_re_records_nothing_and_exits_3_unless_verdict_refactor_exit_holds_0_2626(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite, step = tmp_path / "test_suite.py", STEPS[1]
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1)]))
+    run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
+    _commit(tmp_path, "A refactor")
+    verdict, ledger = tmp_path / ".tdd/verdict-refactor.exit", ".tdd/issue-9.md"
+
+    def records():
+        return {str(p): p.read_bytes() for p in sorted((tmp_path / ".tdd").rglob("*"))
+                if p.is_file() and p != verdict}
+    before, outcomes = records(), []
+    for held in (None, "1"):
+        if held is not None:
+            verdict.write_text(held)
+        outcomes.append((run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)[0],
+                         records() == before))
+
+    assert outcomes == [(3, True), (3, True)]
+
+
 @pytest.mark.process("git asked for the repository toplevel from a directory under tmp_path that is in none")
 def test_rerecord_refactored_run_outside_any_git_repository_exits_2_and_re_records_nothing_2626(
         tmp_path, run_cli, tests_frozen):
@@ -3284,6 +3313,7 @@ def test_rerecord_refactored_exits_2_naming_the_record_when_writing_it_raises_26
     _commit(tmp_path, "A refactor")
     (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
     old = record.read_bytes()
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
 
     def refusing_open(name, mode="r", *rest, **kwargs):
         if "w" in mode and str(name).endswith(record.name):
