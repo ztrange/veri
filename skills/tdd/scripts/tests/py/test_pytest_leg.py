@@ -818,6 +818,22 @@ def test_2741_a_leg_cut_short_by_an_internalerror_names_only_the_cases_that_fail
     assert (code != 0, any("test_fails" in line for line in listed), any("test_passes_quietly" in line for line in listed)) == (True, True, False), out + err
 
 
+@pytest.mark.process("the real leg's parallel pass starts two xdist worker processes over a planted tree")
+def test_2741_a_leg_whose_xdist_run_ends_in_an_internalerror_says_on_stderr_that_it_was_cut_short(run_cli, tmp_path):
+    planted = tmp_path / "planted"
+    planted.mkdir()
+    (planted / "conftest.py").write_text(INTERNALERROR_CONFTEST)
+    (planted / "test_planted.py").write_text("def test_fails():\n    assert False\n")
+    env = leg_env(VERI_PYTEST_WORKERS="2")
+    try:
+        code, out, err = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+    finally:
+        sys.modules.pop("test_planted", None)
+        sys.modules.pop("conftest", None)
+
+    assert "cut short" in err, out + err
+
+
 @pytest.mark.parametrize("parallel, serial, code", [
     (pytest.ExitCode.OK, pytest.ExitCode.NO_TESTS_COLLECTED, 0),
     (pytest.ExitCode.NO_TESTS_COLLECTED, pytest.ExitCode.OK, 0),
