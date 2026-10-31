@@ -1168,34 +1168,6 @@ SPEC_TEXT = 'slugify("Hello & World/Foo") must return "hello-world-foo" — see 
 TESTPATH = "tests/test_slugify.py"
 
 
-def fold(data):
-    return data.replace(b"\n", b" ")
-
-
-def template_bytes(label):
-    return (SCRIPTS / "prompts" / f"{label}.md").read_bytes().rstrip(b"\n")
-
-
-def says(prompt, complaint, pattern, flags=0):
-    return [] if re.search(pattern, fold(prompt), flags) else [complaint]
-
-
-def lacks(prompt, complaint, pattern, flags=0):
-    return [complaint] if re.search(pattern, fold(prompt), flags) else []
-
-
-def numbered_item(prompt, n):
-    on, kept = False, []
-    for line in prompt.split(b"\n"):
-        if re.match(rb"%d\. " % n, line):
-            on = True
-        if re.match(rb"%d\. " % (n + 1), line):
-            on = False
-        if on:
-            kept.append(line)
-    return b"\n".join(kept)
-
-
 def test_carries_issue_spec_verbatim(tmp_path, run_cli, build_verify_prompt):
     spec = tmp_path / "spec.md"
     spec.write_bytes(SPEC_TEXT.encode())
