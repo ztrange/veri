@@ -321,7 +321,6 @@ def main(argv):
     retries = no_verdict_budget(retries)
     role = {**os.environ, **leaf_role(leaf)}
     relaunches = 0
-    launch_env = None
     if words[0] == "pin":
         launch_env = tunables.with_values(
             VERI_MUTATION_RECORD=os.path.abspath("%s/issue-%s-mutations.md" % (run_state, tunables.read("VERI_ISSUE"))))
