@@ -74,12 +74,12 @@ USAGE = [
 
 # Arguments name a fixture file as {spec}, {bug}, {refactor}, {ledger} or {reason}; {step} and {cmd} are fixed text.
 PROMPTS = [
-    ("747050145 7321", "build-verify-prompt.sh", ["red", "{spec}", "t/x.test.sh", "case one"]),
-    ("907670271 8180", "build-verify-prompt.sh", ["red", "{bug}", "t/x.test.sh", "case one"]),
-    ("2209112346 7498", "build-verify-prompt.sh", ["--step", "{step}", "red", "{spec}", "t/x.test.sh", "case one"]),
+    ("1402995898 7552", "build-verify-prompt.sh", ["red", "{spec}", "t/x.test.sh", "case one"]),
+    ("3981310562 8411", "build-verify-prompt.sh", ["red", "{bug}", "t/x.test.sh", "case one"]),
+    ("3878499230 7729", "build-verify-prompt.sh", ["--step", "{step}", "red", "{spec}", "t/x.test.sh", "case one"]),
     ("646813617 7908", "build-verify-prompt.sh", ["--fast-cmd", "make unit", "green", "{spec}", "t/x.test.sh", "case one"]),
     ("213977504 8687", "build-verify-prompt.sh", ["--fast-cmd", "make unit", "refactor", "{spec}", "t/x.test.sh", "0123456"]),
-    ("2321178029 7201", "build-verify-prompt.sh", ["pin", "{spec}", "t/x.test.sh", "case one"]),
+    ("3583632872 7430", "build-verify-prompt.sh", ["pin", "{spec}", "t/x.test.sh", "case one"]),
     ("4061570679 14313", "build-verify-prompt.sh", ["plan", "{spec}", "{ledger}"]),
     ("929269162 15534", "build-verify-prompt.sh", ["plan", "{refactor}", "{ledger}"]),
     ("4209106995 5484", "build-verify-prompt.sh", ["rebase", "{spec}", "0123456", "89abcde"]),
