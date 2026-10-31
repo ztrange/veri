@@ -1,0 +1,3 @@
+- [ ] `tests-frozen.sh rerecord-refactored` run outside a git work tree (`_toplevel()` is None) exits 2 with nothing re-recorded, pinned by a case that runs it from a non-repository directory ⟦added⟧ ⟦criterion 1⟧
+- [ ] `tests-frozen.sh rerecord-refactored` exits 2 with nothing re-recorded when its ledger cannot be read (the ledger read raises OSError), pinned by a case whose ledger path is a directory or unreadable ⟦added⟧ ⟦criterion 1⟧
+- [ ] `tests-frozen.sh rerecord-refactored` exits 2 when rewriting the frozen records raises OSError (`_rewrite_records`), pinned by a case whose record file cannot be written ⟦added⟧ ⟦criterion 1⟧
