@@ -946,6 +946,14 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      commit the step started from (`git log -1 --format=%H -- .tdd/issue-<n>.md`). Its exit 1
      prints each graded unit the step changed: **bail** with cause `graded-edit-outside-skill-edit`,
      a process failure, naming each unit it printed, and tick nothing (`Read` `<base directory>/BAIL.md`).
+     **After the step's last verify PASS and before that tick, run `$S/pin-recheck.sh <step-base-sha>`**,
+     the same `<step-base-sha>`: a step can disarm an earlier pin and still pass its own
+     verification, and nothing else compares them. Exit 1 is a pin that stayed green under its
+     recorded mutation: treat it as a verify-green REJECT naming that pin, spending `REVISE_BUDGET`
+     (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`), and tick nothing. Exit 2,
+     no answer, **bails** as a system failure (`Read` `<base directory>/BAIL.md`). Exit 0 prints any
+     pin that needs a look: copy each into the PR body's list of what a human owes, under
+     `## Owed by a human`. Exit 3, no record touches the range, goes on.
      ```
      $S/tick-ledger.sh --refactor-pending .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"
      git add -A && git commit -m "feat: <STEP summary> (#<n>)"
