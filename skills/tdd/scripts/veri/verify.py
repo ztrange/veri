@@ -92,6 +92,12 @@ def unreadable_file_in_tree():
         return added.returncode != 0 and b"Permission denied" in (added.stderr or b"")
 
 
+def restore_tree(tree):
+    with temp_index_env() as env:
+        git("read-tree", tree, env=env)
+        git("checkout-index", "-a", "-f", env=env)
+
+
 def head_snapshot():
     return git("rev-parse", "--verify", "HEAD").stdout.decode().rstrip("\n")
 
@@ -378,6 +384,7 @@ def main(argv):
             return 2
         changed, head_after, tree_after = changed_paths(tree_before, head_before)
         if tree_before and not tree_after:
+            restore_tree(tree_before)
             write(sys.stderr, "verify: could not read the tree after the %s leaf; its verdict is not accepted" % leaf)
             return 2
         # A pin's verifier records the mutations it watched fail; appending to that record alone is not a
