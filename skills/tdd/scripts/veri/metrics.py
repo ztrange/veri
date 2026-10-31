@@ -6,11 +6,11 @@ import json
 import os
 import sys
 import run_end
-import session_cost
 import tunables
 
 from event_log import read_events
 from ledger import decode_ledger, ledger_path, ledger_steps
+from prices import PRICES, cache_write_tokens, family
 
 USAGE = "usage: metrics.sh <issue-number>"
 
@@ -119,14 +119,14 @@ def conductor_sessions(issue, path):
                         context = sum((usage.get(key) or 0) for key in CONTEXT_KEYS)
                         open_contexts.append(context)
                         model_name = message.get("model") or ""
-                        model_family = session_cost.family(model_name) or ("opus" if not model_name else None)
+                        model_family = family(model_name) or ("opus" if not model_name else None)
                         if model_family is None:
                             open_priced = False
                             turn_rows.append([str(len(turn_rows) + 1), "unpriced", str(context)])
                             continue
-                        prices = session_cost.PRICES[model_family]
+                        prices = PRICES[model_family]
                         cache_write_dollars = sum(tokens * prices[rate] / 1e6
-                                                  for rate, tokens in session_cost.cache_write_tokens(usage).items())
+                                                  for rate, tokens in cache_write_tokens(usage).items())
                         output_dollars = (usage.get("output_tokens") or 0) * prices["output"] / 1e6
                         turn_dollars = sum((usage.get(key) or 0) * prices[rate] / 1e6
                                            for key, rate in TURN_RATES.items()) + cache_write_dollars
