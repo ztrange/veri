@@ -1428,3 +1428,36 @@ def test_refresh_with_a_cache_whose_issues_lack_links_names_it_on_stderr_rebuild
     windowed = [term for term in reads[0] if term.startswith("updated:>=")]
     named = len(err.strip().splitlines()) == 1 and "links" in err
     assert (code, windowed, named, {n: i.get("links") for n, i in issues.items()}) == (0, [], True, {900: [5], 5: []})
+
+
+def test_incremental_refresh_replaces_the_links_of_a_refetched_issue_so_a_link_from_a_new_comment_appears_2736(run_cli, monkeypatch, tmp_path):
+    import json
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    cache = tmp_path / ".tdd" / "report-cache.json"
+    cache.write_text(json.dumps({"cache_format": 2, "fetched_at": "2026-10-01T00:00:00Z", "issues": [
+        {"number": 900, "title": "PRD 001 parent", "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None,
+         "links": [5], "body": "see #5"},
+        {"number": 7, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None,
+         "links": [3]}]}))
+    live = [{"number": 900, "title": "PRD 001 parent", "state": "OPEN", "labels": [], "closedAt": None,
+             "updatedAt": "2026-10-02T09:00:00Z", "body": "see #5",
+             "comments": [{"body": "also #6"}]}]
+    reads = []
+
+    def fake_gh_issue_list(*args):
+        reads.append(args[args.index("--search") + 1].split())
+        return json.dumps(live)
+
+    monkeypatch.setattr(report_cache.github, "gh_issue_list", fake_gh_issue_list)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    issues = {i["number"]: i for i in json.loads(cache.read_text())["issues"]}
+    windowed = [term for term in reads[0] if term.startswith("updated:>=")]
+    assert (code, err, windowed, issues[900]["links"], issues[7]["links"]) == (
+        0, "", ["updated:>=2026-10-01T00:00:00Z"], [5, 6], [3])
