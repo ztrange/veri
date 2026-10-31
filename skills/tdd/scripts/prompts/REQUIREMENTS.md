@@ -646,6 +646,7 @@
 | VR16 | Check 3's **not lightweight** bullet: the test exercises a costly real dependency (network, a git remote, the `claude` binary, a real sleep/wait, a server) that a stub, fake or the injected clock could stand in for, and the behavior under test is not that dependency's real use. (Check 3, sixth bullet.) | Costly dependencies make the suite slow without pinning more. |
 | VR17 | Check 3's **not self-contained** bullet: the test runs another test suite, whole or sliced, or re-runs the suite it lives in, instead of exercising the unit directly; the bullet ends in the `{{RED_FAST_CHECK}}` slot. (Check 3, last bullet.) | No suite runs another suite. |
 | VR18 | The closing paragraph says PASS only if the test fails for the right reason AND is a clean, behavior-level pin of the criterion. (Closing paragraph.) | Both the failure and the test's quality must hold. |
+| VR19 | Check 3's REJECT list has a bullet for a test failing on an incidental error: its only observable is that something throws or exits non-zero, with no assertion on which error or on the behaviour, unless that specific error is what the criterion names. | Any exception turns such a test red, and removing the exception turns it green with the behaviour still wrong. |
 
 ## skills/tdd/scripts/prompts/verify-green.md
 

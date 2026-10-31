@@ -47,6 +47,9 @@ test is `{{TARGET_TEST}}`). Confirm the Red step is sound.
      process launches via a `PATH` shim over a suite run where the criterion actually names
      a single call: that call belongs to an in-process spy on the one wrapper function, not
      a shim counting real processes, or
+   - **failing on an incidental error** — its only observable is that something throws or
+     exits non-zero, with no assertion on which error or on the behaviour, unless that
+     specific error is what the criterion names, or
    - **not lightweight** — it exercises a costly real dependency (network, a git remote,
      the `claude` binary, a real sleep/wait, a server) that a stub, fake or the injected
      clock could stand in for, and the behavior under test is not that dependency's real
