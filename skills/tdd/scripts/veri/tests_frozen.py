@@ -289,13 +289,21 @@ def _issue():
     return found.group(1) if found else ""
 
 
+def _unphased(text):
+    return re.sub(r" ⟂ \S+ done", "", text.removesuffix(ledger.PENDING_MARK))
+
+
+def _phases_done(text):
+    return bool(ledger.listed_phases(text)) and ledger.next_phase(text) is None
+
+
 def _step_commits(step):
     """The commits that are `step`'s own: after the latest commit that ticked any ledger line before the one
     that ticked `step`'s line, up to and including that one (HEAD for a step not ticked yet). The committed
     ledger of the step's own issue is the only record of which commit belongs to which step; a ticked line
     carries ledger.PENDING_MARK until its refactor passes, so lines are compared without it."""
     issue = _issue()
-    step = step.removesuffix(ledger.PENDING_MARK)
+    step = _unphased(step)
     if issue:
         path = ledger.ledger_path(".", issue)
         revs = _git_out("log", "--reverse", "--format=%H", "--", path).split()
@@ -303,7 +311,7 @@ def _step_commits(step):
         for rev in revs:
             matched = [re.match(r"\s*- \[(.)\] (.*)", line)
                        for line in _git_out("show", "%s:%s" % (rev, path)).splitlines()]
-            texts = {m.group(2).removesuffix(ledger.PENDING_MARK): m.group(1) != " " for m in matched if m}
+            texts = {_unphased(m.group(2)): m.group(1) != " " or _phases_done(m.group(2)) for m in matched if m}
             ticked = {text for text, done in texts.items() if done}
             if step in ticked:
                 tick = rev
