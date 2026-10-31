@@ -2900,6 +2900,41 @@ def test_cli_2748_the_develop_red_leaf_launched_alone_receives_the_affected_tier
     assert (code, launched.get("exit"), "affected-suites.sh" in text, "FAST-TIER" in text) == (0, 0, True, False), stderr
 
 
+@pytest.mark.process("a real develop-prompt builder, supervise.sh and run-leaf.sh run from a launched claude, the leaf's prompt read off a stub claude")
+def test_cli_2748_the_develop_green_leaf_launched_alone_receives_the_fast_and_affected_tier(tmp_path, monkeypatch, run_cli):
+    skill, run_conductor = skill_clone(tmp_path, monkeypatch, "run_conductor_tier_develop_green", {"SKILL.md": "# the procedure\n"})
+    fast, every = "make FAST-TIER-7781", "make ALL-TIER-7781"
+    tiers = tmp_path / "tiers"
+    tiers.mkdir()
+    (tiers / "spec.md").write_text("spec\n")
+    (tiers / ".gitignore").write_text(".tdd/\n*.received\n*.prompt\n")
+    stub = tmp_path / "tier-claude"
+    stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { printf \'%s\\n\' "$2" > "$LEAF_PROMPT_OUT"; shift; }\n'
+                    '  shift\ndone\nprintf \'%s\\n\' \'{"type":"result","subtype":"success","is_error":false,"result":"done"}\'\n')
+    stub.chmod(0o755)
+    run, launched = subprocess.run, {}
+
+    def claude_launches_develop_green(args, *a, **kwargs):
+        if list(args)[:1] != ["fake-claude"]:
+            return run(args, *a, **kwargs)
+        run([str(SCRIPTS / "build-develop-prompt.sh"), "green", "spec.md", "the step", every, "t.test.sh", "the case", fast], cwd=tiers, check=True,
+            stdout=open(tiers / "develop-green.prompt", "w"))
+        env = dict(os.environ, CLAUDE_BIN=str(stub), LEAF_PROMPT_OUT=str(tiers / "develop-green.received"), VERI_POLL="0.02")
+        launched["exit"] = run([str(SCRIPTS / "supervise.sh"), "develop-green", str(SCRIPTS / "run-leaf.sh"), "develop-green.prompt"],
+                               cwd=tiers, env=env, capture_output=True).returncode
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    monkeypatch.setattr(subprocess, "run", claude_launches_develop_green)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    received = tiers / "develop-green.received"
+    text = received.read_text() if received.exists() else ""
+    assert (code, launched.get("exit"), "affected-suites.sh" in text, fast in text) == (0, 0, True, True), stderr
+
+
 @pytest.mark.process("real git archive and tar materialising a scratch skill clone's commit reached through a symlink, and a real caller repository holding the record")
 def test_cli_a_run_through_a_symlink_to_the_skill_directory_from_another_working_directory_pins_snapshots_and_records_as_run_in_place(
         tmp_path, monkeypatch, run_cli):
