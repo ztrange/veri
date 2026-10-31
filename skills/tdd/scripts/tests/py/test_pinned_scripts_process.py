@@ -36,6 +36,8 @@ def test_pinned_scripts_prints_the_directory_holding_the_runs_pinned_scripts_and
 def test_pinned_scripts_from_the_main_checkout_prints_each_runs_own_worktree_directory_2627(tmp_path):
     root = tmp_path.resolve() / "repo"
     (root / ".git").mkdir(parents=True)
+    for n in ("41", "42"):
+        (root / ".tdd" / "wt" / n / ".tdd" / "pinned-scripts").mkdir(parents=True)
 
     def printed(n):
         ran = subprocess.run(["/bin/sh", str(SCRIPTS / "pinned-scripts.sh"), n], cwd=root, capture_output=True,
@@ -90,6 +92,20 @@ def test_pinned_scripts_with_the_copy_absent_and_no_pin_recorded_exits_2_saying_
     root = tmp_path.resolve() / "repo"
     (root / ".git").mkdir(parents=True)
     (root / ".tdd").mkdir()
+
+    ran = subprocess.run(["/bin/sh", str(SCRIPTS / "pinned-scripts.sh"), "2627"], cwd=root, capture_output=True,
+                         text=True, stdin=subprocess.DEVNULL,
+                         env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "PYTHONDONTWRITEBYTECODE": "1"})
+
+    assert ran.returncode == 2, (ran.stdout, ran.stderr)
+    assert "no pin is recorded" in ran.stderr
+    assert ran.stdout == ""
+
+
+@pytest.mark.process("pinned-scripts.sh run from a checkout holding no .tdd directory")
+def test_pinned_scripts_with_no_tdd_directory_exits_2_saying_no_pin_is_recorded_and_prints_no_path_2627(tmp_path):
+    root = tmp_path.resolve() / "repo"
+    (root / ".git").mkdir(parents=True)
 
     ran = subprocess.run(["/bin/sh", str(SCRIPTS / "pinned-scripts.sh"), "2627"], cwd=root, capture_output=True,
                          text=True, stdin=subprocess.DEVNULL,
