@@ -91,3 +91,4 @@ skills/tdd/scripts/prompts/_verify-comments-never-reject.md 3b6bb0c98d647a584507
 skills/tdd/scripts/prompts/_verify-red-bug.md 9232a0d162e9547820876a71e35fbbc065a9f30d63120956575d40f571f87e2b 2026-10-31 d947fa827df840f4b4d502e01f5ca114 d560f939aa92
 skills/tdd/scripts/prompts/_verify-coverage-probe.md 2564207b9160a69b7a1340db64a3a486634806af0284f6c017f29b451263bf93 2026-10-31 c94430258f744f3194c28c86d0070ea9 d560f939aa92
 skills/tdd/scripts/prompts/_verify-red-fast.md 217059dc4380649bea1e38a0d7b9058fcdce6978941824e4d253bf8a60e0af0f 2026-10-31 dc3f7c545389480c813b84aa40ac27d3 d560f939aa92
+skills/tdd/scripts/prompts/verify-contract-a.md a0261ac46671eefea84f7b65f3907d122aa5e60a1344bc5f6fc541b7856a2db2 2026-10-31 716e8252df2d46b8a1e14aacfed47b56 d560f939aa92
