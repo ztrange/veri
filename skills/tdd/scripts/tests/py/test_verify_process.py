@@ -393,21 +393,24 @@ def test_verify_sh_green_launches_its_verifier_without_an_ambient_mutation_recor
     assert (done.returncode, got) == (0, ""), done.stdout + done.stderr
 
 
-def run_verify_writing(tmp_path, phase, writes):
+def run_verify_writing(tmp_path, phase, writes, then="", cwd=None):
     head = committed_head(tmp_path)
     (tmp_path / "spec.md").write_text("the behavior spec\n")
     (tmp_path / ".gitignore").write_text(".tdd/*\n!.tdd/issue-*.md\n")
     record = tmp_path / ".tdd" / "issue-2741-mutations.md"
     claude = tmp_path / "claude-pass"
     claude.write_text("#!/bin/sh\n" + "".join("echo written >> %s\n" % (tmp_path / path) for path in writes)
-                      + "printf 'VERDICT: PASS\\nREASON: fine.'\n")
+                      + then + "printf 'VERDICT: PASS\\nREASON: fine.'\n")
     claude.chmod(0o755)
     env = {"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
            "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", "VERI_NO_VERDICT_RETRIES": "0",
            **checked_step(tmp_path, head, issue="2741")}
+    if cwd:
+        (tmp_path / cwd).mkdir()
+    up = "../" if cwd else ""
     done = subprocess.run(
-        [str(SCRIPTS / "verify.sh"), "--fast-cmd", "make unit", phase, "spec.md", "tests/test_x.py"],
-        cwd=tmp_path, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+        [str(SCRIPTS / "verify.sh"), "--fast-cmd", "make unit", phase, up + "spec.md", up + "tests/test_x.py"],
+        cwd=tmp_path / (cwd or ""), env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
     return done, record
 
 
@@ -432,5 +435,23 @@ def test_verify_sh_pin_whose_verifier_writes_its_mutation_record_and_another_fil
                      " claude that appends to the mutation record's path before answering VERDICT: PASS")
 def test_verify_sh_green_whose_verifier_writes_the_mutation_record_path_is_refused_2741(tmp_path):
     done, _ = run_verify_writing(tmp_path, "green", [".tdd/issue-2741-mutations.md"])
+
+    assert (done.returncode, "modified the repository" in done.stdout) == (2, True), done.stdout + done.stderr
+
+
+@pytest.mark.process("verify.sh pin run as a real shim over veri/verify.py from a subdirectory of a throwaway git repo,"
+                     " around a stub claude that appends to the mutation record before answering VERDICT: PASS")
+def test_verify_sh_pin_run_from_a_subdirectory_whose_verifier_writes_only_its_mutation_record_takes_the_pass_2741(tmp_path):
+    done, record = run_verify_writing(tmp_path, "pin", [".tdd/issue-2741-mutations.md"], cwd="skills")
+
+    assert (done.returncode, "modified the repository" in done.stdout, record.exists()) == (0, False, True), \
+        done.stdout + done.stderr
+
+
+@pytest.mark.process("verify.sh pin run as a real shim over veri/verify.py in a throwaway git repo, around a stub"
+                     " claude that appends to the mutation record and commits before answering VERDICT: PASS")
+def test_verify_sh_pin_whose_verifier_writes_its_mutation_record_and_moves_head_is_refused_2741(tmp_path):
+    done, _ = run_verify_writing(tmp_path, "pin", [".tdd/issue-2741-mutations.md"],
+                                 then="git commit -q --allow-empty -m moved\n")
 
     assert (done.returncode, "modified the repository" in done.stdout) == (2, True), done.stdout + done.stderr
