@@ -3156,3 +3156,17 @@ def test_rerecord_refactored_run_outside_any_git_repository_exits_2_and_re_recor
     code, out, _ = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", "deadbeef"], cwd=tmp_path)
 
     assert (code, out, record.read_text()) == (2, "", "kept\n")
+
+
+@pytest.mark.process("git asked for the repository toplevel from a repository under tmp_path")
+def test_rerecord_refactored_unreadable_ledger_exits_2_and_re_records_nothing_2626(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    _plan_repo(tmp_path, monkeypatch)
+    (tmp_path / ".tdd/issue-9.md").unlink(missing_ok=True)
+    (tmp_path / ".tdd/issue-9.md").mkdir()
+    record = tmp_path / ".tdd/record"
+    record.write_text("kept\n")
+
+    code, out, _ = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", "deadbeef"], cwd=tmp_path)
+
+    assert (code, out, record.read_text()) == (2, "", "kept\n")
