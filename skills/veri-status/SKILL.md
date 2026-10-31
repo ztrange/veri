@@ -53,6 +53,10 @@ landed PR, per run, per label and per waiting item. Never read a leaf log for th
 Four sections, always all four and in this order. An empty one keeps its heading and says
 "none".
 
+Every date and time the report shows is in the machine's local timezone, as `date` gives it,
+whatever zone its source carries: `gh` and the cache's `closedAt` and `fetched_at` read in UTC, so
+convert them. `.tdd/status-last` and the `gh` search time stay ISO 8601.
+
 **Landed** — one line per PR merged since the last ask: PR url, tag, and the capability in the
 tag's message.
 
