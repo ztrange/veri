@@ -14,7 +14,6 @@ from conftest import FLOOR_SOURCE, INTERPRETER_VENV, SCRIPTS, VENV_PREFIX, shim_
 EXEMPT = {
     "build-develop-prompt.sh": "a spelling difference; canonicalising it is a change of its own",
     "build-verify-prompt.sh": "a spelling difference; canonicalising it is a change of its own",
-    "render-leaf-log.sh": "adding \"$@\" changes what a stray argument does, a behaviour change",
     "run-leaf.sh": "the locale preamble must act before the interpreter starts, so it cannot move into the module",
     "run-verdict.sh": "the locale preamble must act before the interpreter starts, so it cannot move into the module",
     "stop-run.sh": "records the caller's directory before anything can change it",
@@ -46,7 +45,7 @@ def test_every_real_script_is_the_canonical_shim_or_a_listed_exemption():
 
 
 def test_the_exemption_table_lists_the_six_non_canonical_shims_with_a_reason_each_and_a_stale_row_fails_naming_the_script(tmp_path):
-    assert len(EXEMPT) == 6 and all(reason.strip() for reason in EXEMPT.values())
+    assert len(EXEMPT) == 5 and all(reason.strip() for reason in EXEMPT.values())
 
     (tmp_path / "veri").mkdir()
     (tmp_path / "veri" / "kept.py").write_text("")

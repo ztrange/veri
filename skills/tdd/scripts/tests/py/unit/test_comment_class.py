@@ -258,8 +258,8 @@ def test_main_sweeps_the_scripts_lib_and_suites_to_empty_sweepable_reports_no_ci
             sweep("supervise.sh", "run-leaf.sh", "detach-leaf.sh", "wait-leaf.sh", "run-verdict.sh"),
         "the sweepable report is empty for issue-worktree.sh, verify.sh, parse-verdict.sh and extract-result.sh":
             sweep("issue-worktree.sh", "verify.sh", "parse-verdict.sh", "extract-result.sh"),
-        "the sweepable report is empty for detect-test-command.sh, solvable-issues.sh and session-cost.sh":
-            sweep("detect-test-command.sh", "solvable-issues.sh", "session-cost.sh"),
+        "the sweepable report is empty for detect-test-command.sh, solvable-issues.sh and over-budget.sh":
+            sweep("detect-test-command.sh", "solvable-issues.sh", "over-budget.sh"),
         "the sweepable report is empty for build-develop-prompt.sh, build-verify-prompt.sh, run-conductor.sh, stop-run.sh and preserve-attempt.sh":
             sweep("build-develop-prompt.sh", "build-verify-prompt.sh", "run-conductor.sh", "stop-run.sh",
                   "preserve-attempt.sh"),
@@ -274,7 +274,7 @@ def test_main_sweeps_the_scripts_lib_and_suites_to_empty_sweepable_reports_no_ci
         "the sweepable report is empty for metrics.sh, event.sh and harvest-usage.sh": (0, ""),
         "the sweepable report is empty for supervise.sh, run-leaf.sh, detach-leaf.sh, wait-leaf.sh and run-verdict.sh": (0, ""),
         "the sweepable report is empty for issue-worktree.sh, verify.sh, parse-verdict.sh and extract-result.sh": (0, ""),
-        "the sweepable report is empty for detect-test-command.sh, solvable-issues.sh and session-cost.sh": (0, ""),
+        "the sweepable report is empty for detect-test-command.sh, solvable-issues.sh and over-budget.sh": (0, ""),
         "the sweepable report is empty for build-develop-prompt.sh, build-verify-prompt.sh, run-conductor.sh, stop-run.sh and preserve-attempt.sh": (0, ""),
         "the sweepable report is empty for leaf-timeout.sh, ensure-run-state-ignored.sh, orchestrate.sh, parallel-conductors.sh, workqueue.sh, push-branch.sh, refactor-triage.sh, invisible-work.sh, over-budget.sh, leaf-model.sh and leaf-launchable.sh": (0, ""),
         "the sweepable report is empty for every scripts/*.sh, the classifier itself included": (0, ""),

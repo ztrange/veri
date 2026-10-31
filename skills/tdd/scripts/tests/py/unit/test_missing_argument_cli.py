@@ -49,7 +49,6 @@ LATER_ARGUMENT_ROSTER = [
     ("issue-worktree.sh", ["--remove"]),
     ("over-budget.sh", ["unit"]),
     ("over-budget.sh", ["unit", "10"]),
-    ("session-cost.sh", ["--since"]),
     ("solvable-issues.sh", ["--repo"]),
     ("supervise.sh", ["develop-red"]),
     ("timed-test-run.sh", ["all"]),

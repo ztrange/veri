@@ -13,7 +13,7 @@ def test_stop_reason_is_a_canonical_shim_listed_in_scripts_md_that_exits_2_with_
     script = SCRIPTS / "stop-reason.sh"
     assert script.is_file()
     assert [p for p in shim_problems(SCRIPTS, {"build-develop-prompt.sh": "x", "build-verify-prompt.sh": "x",
-                                               "render-leaf-log.sh": "x", "run-leaf.sh": "x", "run-verdict.sh": "x",
+                                               "run-leaf.sh": "x", "run-verdict.sh": "x",
                                                "stop-run.sh": "x"}) if p.startswith("stop-reason.sh")] == []
     assert "$S/stop-reason.sh" in (SCRIPTS.parent / "SCRIPTS.md").read_text()
 

@@ -26,7 +26,7 @@ def test_five_more_modules_keep_the_symlinked_scripts_directory_they_were_reache
     link = tmp_path / "skill-link"
     os.symlink(SKILL, link)
     held = {}
-    for module, name in (("dashboard", "SCRIPTS"), ("orchestrate", "SCRIPTS"),
+    for module, name in (("orchestrate", "SCRIPTS"),
                          ("parallel_conductors", "SCRIPTS"), ("push_branch", "SCRIPTS"),
                          ("run_leaf", "GUARD")):
         path = link / "scripts" / "veri" / f"{module}.py"
@@ -35,7 +35,7 @@ def test_five_more_modules_keep_the_symlinked_scripts_directory_they_were_reache
         spec.loader.exec_module(loaded)
         held[module] = getattr(loaded, name)
     scripts = os.path.join(link, "scripts")
-    assert held == {"dashboard": scripts, "orchestrate": scripts,
+    assert held == {"orchestrate": scripts,
                     "parallel_conductors": scripts, "push_branch": scripts,
                     "run_leaf": os.path.join(scripts, "leaf-guard")}
 
