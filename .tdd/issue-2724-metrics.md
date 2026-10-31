@@ -1,15 +1,17 @@
 ### 📊 Metrics — issue 2724
 
-Wall time for the issue: 5677 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 2231 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 3 of 4 planned.
-Outcome: the run bailed — rebased-tip-red, a process failure.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/2737.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $4.11 over 65 turns, in 2 sessions, on opus (estimate).
+Conductor own spending: $7.21 over 106 turns, in 4 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 86624 tokens, largest 141169 tokens
-Conductor context: first turn 86630 tokens, largest 178715 tokens
+Conductor context: first turn 86630 tokens, largest 181667 tokens
+Conductor context: first turn 86630 tokens, largest 124588 tokens
+Conductor context: first turn 86681 tokens, largest 110217 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -32,48 +34,80 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 14 | $0.10 | 137034 |
 | 15 | $0.05 | 138313 |
 | 16 | $0.07 | 141169 |
-| 17 | $0.55 | 86630 |
-| 18 | $0.07 | 93633 |
-| 19 | $0.03 | 94824 |
-| 20 | $0.04 | 97621 |
-| 21 | $0.12 | 110111 |
-| 22 | $0.03 | 110682 |
-| 23 | $0.03 | 111280 |
-| 24 | $0.03 | 111700 |
-| 25 | $0.03 | 112045 |
-| 26 | $0.03 | 112491 |
-| 27 | $0.06 | 117328 |
-| 28 | $0.04 | 119223 |
-| 29 | $0.13 | 132190 |
-| 30 | $0.04 | 134086 |
-| 31 | $0.05 | 136483 |
-| 32 | $0.03 | 137369 |
-| 33 | $0.05 | 139865 |
-| 34 | $0.04 | 140888 |
-| 35 | $0.05 | 143133 |
-| 36 | $0.05 | 145449 |
-| 37 | $0.04 | 147011 |
-| 38 | $0.05 | 149507 |
-| 39 | $0.04 | 150313 |
-| 40 | $0.05 | 152254 |
-| 41 | $0.05 | 154958 |
-| 42 | $0.04 | 155813 |
-| 43 | $0.05 | 157802 |
-| 44 | $0.05 | 160315 |
-| 45 | $0.04 | 161427 |
-| 46 | $0.05 | 163093 |
-| 47 | $0.04 | 163897 |
-| 48 | $0.05 | 166123 |
-| 49 | $0.04 | 166856 |
-| 50 | $0.04 | 167125 |
-| 51 | $0.04 | 167569 |
-| 52 | $0.04 | 167981 |
-| 53 | $0.04 | 168613 |
-| 54 | $0.04 | 168877 |
-| 55 | $0.04 | 169131 |
-| 56 | $0.04 | 169537 |
-| 57 | $0.04 | 170489 |
-| 58 | $0.10 | 178715 |
+| 17 | $0.57 | 86630 |
+| 18 | $0.09 | 93633 |
+| 19 | $0.04 | 94824 |
+| 20 | $0.06 | 97621 |
+| 21 | $0.13 | 110111 |
+| 22 | $0.05 | 110682 |
+| 23 | $0.04 | 111280 |
+| 24 | $0.04 | 111700 |
+| 25 | $0.04 | 112045 |
+| 26 | $0.04 | 112491 |
+| 27 | $0.08 | 117328 |
+| 28 | $0.05 | 119223 |
+| 29 | $0.15 | 132190 |
+| 30 | $0.05 | 134086 |
+| 31 | $0.07 | 136483 |
+| 32 | $0.05 | 137369 |
+| 33 | $0.06 | 139865 |
+| 34 | $0.05 | 140888 |
+| 35 | $0.06 | 143133 |
+| 36 | $0.07 | 145449 |
+| 37 | $0.05 | 147011 |
+| 38 | $0.07 | 149507 |
+| 39 | $0.05 | 150313 |
+| 40 | $0.06 | 152254 |
+| 41 | $0.07 | 154958 |
+| 42 | $0.05 | 155813 |
+| 43 | $0.07 | 157802 |
+| 44 | $0.07 | 160315 |
+| 45 | $0.05 | 161427 |
+| 46 | $0.06 | 163093 |
+| 47 | $0.06 | 163897 |
+| 48 | $0.06 | 166123 |
+| 49 | $0.06 | 166856 |
+| 50 | $0.05 | 167125 |
+| 51 | $0.05 | 167569 |
+| 52 | $0.06 | 167981 |
+| 53 | $0.05 | 168613 |
+| 54 | $0.05 | 168877 |
+| 55 | $0.05 | 169131 |
+| 56 | $0.06 | 169537 |
+| 57 | $0.05 | 170489 |
+| 58 | $0.12 | 178715 |
+| 59 | $0.08 | 181667 |
+| 60 | $0.56 | 86630 |
+| 61 | $0.09 | 93633 |
+| 62 | $0.03 | 94529 |
+| 63 | $0.09 | 102125 |
+| 64 | $0.06 | 105438 |
+| 65 | $0.04 | 106067 |
+| 66 | $0.03 | 106436 |
+| 67 | $0.04 | 106833 |
+| 68 | $0.03 | 107269 |
+| 69 | $0.04 | 107668 |
+| 70 | $0.04 | 108563 |
+| 71 | $0.06 | 112685 |
+| 72 | $0.05 | 114282 |
+| 73 | $0.04 | 115534 |
+| 74 | $0.09 | 121974 |
+| 75 | $0.05 | 124588 |
+| 76 | $0.55 | 86681 |
+| 77 | $0.07 | 93683 |
+| 78 | $0.03 | 94515 |
+| 79 | $0.05 | 98884 |
+| 80 | $0.06 | 103286 |
+| 81 | $0.03 | 104010 |
+| 82 | $0.02 | 104527 |
+| 83 | $0.02 | 104917 |
+| 84 | $0.02 | 105404 |
+| 85 | $0.04 | 107223 |
+| 86 | $0.03 | 108227 |
+| 87 | $0.02 | 108555 |
+| 88 | $0.02 | 108830 |
+| 89 | $0.03 | 109307 |
+| 90 | $0.03 | 110217 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -121,6 +155,10 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | A re-record of a step whose ledger line went through phased `⟂ <phase> done` marks keeps the pins and renames that step committed, and no later step's, pinned by one real-git process case in test_tests_frozen_process.py whose committed ledger has that phased shape ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 9 | 0.09 |
 | A case renamed by a step's own refactor commit, landed between its green tick and its refactor-verified commit, is attributed on a later re-record to that step and not to the next step, pinned by one real-git process case in test_tests_frozen_process.py ⟦criterion 2⟧ | 1 | 1/5 | nothing-left | PASS | 0 | 90 | 0.12 |
 
+#### Structural pass
+
+Stopped: nothing-structural
+
 #### Test-command seconds, by tier
 
 | tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s |
@@ -133,4 +171,4 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 97 | 180 | 44385 | 2759275 | 437202 | 6.33 (estimate) |
+| total | 97 | 180 | 44385 | 2759275 | 437202 | 9.44 (estimate) |
