@@ -800,3 +800,11 @@
 | VD7 | The closing paragraph says REJECT, too, if the fast command or the affected suites are red. (Closing paragraph, third sentence.) | A diff that breaks a suite fails whatever the criterion says. |
 | VD8 | The closing paragraph says REJECT, too, if the step's own commits add a test (those in `git diff {{STEP_BASE_SHA}}..HEAD`, never a test an earlier step of the run added): a criterion judged against the diff is never also pinned by a case left behind. (Closing paragraph, fourth sentence.) | A diff-checked step leaves no test; an earlier step's tests are not this step's. |
 | VD9 | The closing paragraph ends: End with `VERDICT: PASS` or `VERDICT: REJECT`. (Closing paragraph, last sentence.) | The conductor reads one fixed verdict line. |
+
+## skills/tdd/scripts/prompts/_verify-green-replaces-case.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| QR1 | The fragment opens with the `{{INCLUDE:_replaces-case-lead.md}}` line and continues that line's sentence with "is to assert instead". (First line, up to the first full stop.) | The shared lead names the step's cases; this half says the pytest case is what now asserts their behaviour. |
+| QR2 | It tells the verifier to PASS only if every named case is gone from its suite and each has a pytest case asserting its behaviour, the same behaviour that bash case asserted. (Second sentence, before the semicolon.) | A replaces-case step is done only when every named case is both deleted and replaced like for like. |
+| QR3 | It tells the verifier to REJECT a deletion or modification of any case the step does not name, or of any other case. (Second sentence, after the semicolon.) | The permission to delete covers the named cases only. |
