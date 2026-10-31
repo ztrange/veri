@@ -617,3 +617,19 @@ def test_2635_main_reports_a_conductor_exit_when_the_conductor_log_holds_a_parti
         code = "ValueError: %s" % raised
 
     assert (code, capsys.readouterr().out) == (0, "exited 9 stale\n")
+
+
+def test_2740_main_keeps_watching_a_run_in_setup_that_leaves_the_live_listing_for_a_poll_and_answers_again_with_no_state_and_no_pid(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    (tmp_path / ".tdd" / "wt" / "5" / ".tdd").mkdir(parents=True)
+    listings = iter([["5"], [], ["5"]])
+    ticks = itertools.count(0, 1)
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, ["5"]))
+    monkeypatch.setattr(watch_runs, "run_state", lambda issue: "")
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+    monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks))
+
+    code = watch_runs.main(["--max-wait", "5"])
+
+    assert (code, capsys.readouterr().out) == (3, "timeout\n")
