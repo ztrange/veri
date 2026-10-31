@@ -910,3 +910,14 @@
 | VA4 | Check 3, "Production stays frozen", says a range that touches a production file is a REJECT; the item ends in the `{{LAST_PHASE_CHECK}}` slot. (Numbered list, item 3.) | The frozen half of the phase is enforced by rejection. |
 | VA5 | The template's own checks are numbered 2 and 3, continuing the list the included `_verify-interface-phase-lead.md` fragment opens with check 1. (Numbered list.) | Check 1 (still green) lives in the shared lead, so the template's numbering must follow it. |
 | VA6 | The closing paragraph says PASS if the suites are green, the tests moved to the new interface and no production file changed, and REJECT, naming the specific problem, otherwise. (Closing paragraph.) | The verdict rule restates every check, so a PASS needs all of them. |
+
+## skills/tdd/scripts/prompts/verify-contract-b.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VK1 | The template opens with the `{{SHARED}}` slot, then the heading `## Phase: verify-contract-b`. (First lines.) | The blind verifier's shared rules come first, and the phase heading names which interface phase is judged. |
+| VK2 | The opening paragraph says this is **contract-b**: the proxy over the old interface is deleted, and test files stay frozen. (Opening paragraph, before the include line.) | The verifier must know the phase deletes the proxy and touches no test. |
+| VK3 | Check 2, "The proxy is deleted", says the old interface no longer exists in production. (Numbered list, item 2.) | The deletion is the one change the phase makes. |
+| VK4 | Check 3 is the included `_verify-tests-frozen.md` fragment, followed by the `{{LAST_PHASE_CHECK}}` slot. (Numbered list, item 3.) | The test-frozen rule is shared with expand and migrate, stated once. |
+| VK5 | The template's own checks are numbered 2 and 3, continuing the list the included `_verify-interface-phase-lead.md` fragment opens with check 1. (Numbered list.) | Check 1 (still green) lives in the shared lead, so the template's numbering must follow it. |
+| VK6 | The closing paragraph says PASS if the suites are green, the proxy is deleted and no test file changed, and REJECT, naming the specific problem, otherwise. (Closing paragraph.) | The verdict rule restates every check, so a PASS needs all of them. |
