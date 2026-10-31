@@ -97,6 +97,8 @@ def main(argv):
                 if not state:
                     if pid_file.recorded_started(os.path.join(status.main_working_tree(), ".tdd", "wt", issue)):
                         continue
+                    if issue in pid_file.conductor_processes():
+                        continue
                     if issue not in missed:
                         missed.add(issue)
                         continue
