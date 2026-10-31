@@ -146,6 +146,8 @@ def keep_pinned_scripts(snapshot, issue):
         shutil.copytree(os.path.join(snapshot, "scripts"), kept)
         with open(os.path.join(kept, ".gitignore"), "w") as ignore:
             ignore.write("*\n")
+        with open(os.path.join(kept, ".snapshot-dir"), "w") as where:
+            where.write(snapshot)
 
 
 def pinned_tmpdir():

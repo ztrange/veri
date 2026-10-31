@@ -141,7 +141,14 @@ def main(argv):
         if status.stdout:
             sys.stderr.write("issue-worktree: %s has uncommitted changes — refusing to remove it\n" % path)
             return 2
+        try:
+            with open(path + "/.tdd/pinned-scripts/.snapshot-dir") as where:
+                snapshot = where.read()
+        except OSError:
+            snapshot = ""
         removed = subprocess.run(["git", "worktree", "remove", path], stdout=sys.stderr, stderr=sys.stderr)
+        if removed.returncode == 0 and snapshot:
+            shutil.rmtree(snapshot, ignore_errors=True)
         return to_contract(removed.returncode)
     path = wt_path(main_tree, argv[0])
     if "worktree " + path in registry.stdout.split("\n"):

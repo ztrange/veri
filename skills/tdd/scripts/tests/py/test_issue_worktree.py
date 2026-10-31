@@ -213,6 +213,28 @@ def test_main_remove_returns_a_dying_gits_status_inside_0_to_3_as_it_is_and_maps
             remove_code, want, "", [list(listing), list(status), list(remove)])
 
 
+def test_main_remove_leaves_the_snapshot_directory_outside_the_worktree_in_place_when_git_worktree_remove_fails_issue_2627(
+        tmp_path, monkeypatch, capsys, issue_worktree):
+    main_tree = str(tmp_path / "repo")
+    path = f"{main_tree}/.tdd/wt/7"
+    snapshot = tmp_path / "skill-snapshot"
+    snapshot.mkdir()
+    (snapshot / "status.sh").write_text("#!/bin/sh\n")
+    marker = pathlib.Path(path, ".tdd", "pinned-scripts", ".snapshot-dir")
+    marker.parent.mkdir(parents=True)
+    marker.write_text(str(snapshot))
+    registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
+    listing = ("git", "worktree", "list", "--porcelain")
+    status = ("git", "-C", path, "status", "--porcelain")
+    remove = ("git", "worktree", "remove", path)
+    routing_git(monkeypatch, {listing: (0, registry, ""), status: (0, "", ""),
+                              remove: (128, "", "fatal: remove failed\n")})
+
+    code = issue_worktree.main(["--remove", "7"])
+
+    assert (code, (snapshot / "status.sh").exists()) == (2, True)
+
+
 @pytest.mark.process("a stand-in conductor (a claude under run_conductor.py) left running beside real git worktree calls")
 def test_main_hands_back_a_registered_worktree_by_n_alone_unless_its_pid_file_names_a_live_conductor(
         monkeypatch, capfd, tmp_path, issue_worktree, run_cli):
@@ -931,6 +953,24 @@ def test_remove_removes_a_clean_worktree_and_refuses_one_with_uncommitted_change
     dirty_code = run_cli(issue_worktree, ["--remove", "14"], cwd=dirty)[0]
 
     assert (dirty_code, os.path.exists(os.path.join(held, "notes.txt")), scratch_registry(dirty)) == (2, True, before)
+
+
+def test_main_remove_still_succeeds_when_the_recorded_snapshot_directory_is_already_gone_issue_2627(
+        tmp_path, monkeypatch, capsys, issue_worktree):
+    main_tree = str(tmp_path / "repo")
+    path = f"{main_tree}/.tdd/wt/7"
+    marker = pathlib.Path(path, ".tdd", "pinned-scripts", ".snapshot-dir")
+    marker.parent.mkdir(parents=True)
+    marker.write_text(str(tmp_path / "already-gone"))
+    registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
+    listing = ("git", "worktree", "list", "--porcelain")
+    status = ("git", "-C", path, "status", "--porcelain")
+    remove = ("git", "worktree", "remove", path)
+    routing_git(monkeypatch, {listing: (0, registry, ""), status: (0, "", ""), remove: (0, "", "")})
+
+    code = issue_worktree.main(["--remove", "7"])
+
+    assert (code, capsys.readouterr().out) == (0, "")
 
 
 @pytest.mark.process("git worktree remove on a scratch repository whose worktree holds a pinned scripts copy")
