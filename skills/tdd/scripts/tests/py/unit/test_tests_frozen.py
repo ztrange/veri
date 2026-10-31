@@ -970,3 +970,9 @@ def test_cases_records_a_js_backtick_title_without_interpolation_2765(tests_froz
     text = "it(`shows the login page`, () => {\n  expect(1).toBe(1);\n});\n"
 
     assert [name for name, _ in tests_frozen._cases(text)] == ["shows the login page"]
+
+
+def test_cases_records_a_js_backtick_title_holding_an_interpolation_whole_as_written_2765(tests_frozen):
+    text = "it(`shows ${name} on the login page`, () => {\n  expect(1).toBe(1);\n});\n"
+
+    assert [name for name, _ in tests_frozen._cases(text)] == ["shows ${name} on the login page"]
