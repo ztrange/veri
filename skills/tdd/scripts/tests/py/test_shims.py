@@ -44,7 +44,7 @@ def test_every_real_script_is_the_canonical_shim_or_a_listed_exemption():
     assert shim_problems(SCRIPTS, EXEMPT) == []
 
 
-def test_the_exemption_table_lists_the_six_non_canonical_shims_with_a_reason_each_and_a_stale_row_fails_naming_the_script(tmp_path):
+def test_the_exemption_table_lists_the_five_non_canonical_shims_with_a_reason_each_and_a_stale_row_fails_naming_the_script(tmp_path):
     assert len(EXEMPT) == 5 and all(reason.strip() for reason in EXEMPT.values())
 
     (tmp_path / "veri").mkdir()
