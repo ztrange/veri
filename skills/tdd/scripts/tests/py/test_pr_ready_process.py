@@ -155,3 +155,37 @@ def test_issue_2858_pr_ready_falls_through_to_the_poll_and_exits_2_when_the_orig
 
     assert ran.returncode == 2, (ran.stdout, ran.stderr)
     assert "PR 42 head is %s after 30 reads, expected %s" % (old, new) in ran.stderr
+
+
+@pytest.mark.process("real git repository with a bare origin at another sha, a fake gh failing the branch read, and pr-ready.sh as a subprocess")
+def test_issue_2858_pr_ready_falls_through_to_the_poll_and_exits_2_when_the_branch_name_cannot_be_read(tmp_path):
+    git_env = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+               "GIT_COMMITTER_EMAIL": "t@t", "PATH": "/usr/bin:/bin:" + os.path.dirname(shutil.which("git"))}
+
+    def git(*args, cwd=tmp_path):
+        return subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, text=True,
+                              env=git_env).stdout.strip()
+
+    bare, repo = tmp_path / "bare.git", tmp_path / "repo"
+    repo.mkdir()
+    git("init", "-q", "--bare", str(bare))
+    git("init", "-q", "-b", "feature", cwd=repo)
+    git("commit", "-q", "--allow-empty", "-m", "old", cwd=repo)
+    old = git("rev-parse", "HEAD", cwd=repo)
+    git("commit", "-q", "--allow-empty", "-m", "new", cwd=repo)
+    new = git("rev-parse", "HEAD", cwd=repo)
+    git("remote", "add", "origin", str(bare), cwd=repo)
+    git("push", "-q", "origin", "%s:refs/heads/feature" % old, cwd=repo)
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text('#!/bin/sh\ncase "$*" in\n  *head.ref*) exit 1 ;;\n  *--jq*) echo %s ;;\nesac\nexit 0\n' % old)
+    gh.chmod(0o755)
+    env = {"PATH": os.pathsep.join([str(bin_dir), os.path.dirname(shutil.which("bash")), "/usr/bin", "/bin"]),
+           "VERI_GH_DRIVER": "auto", "VERI_POLL": "0"}
+
+    ran = subprocess.run([str(SCRIPTS / "pr-ready.sh"), "42", new], cwd=repo, capture_output=True, text=True,
+                         env=env, timeout=20)
+
+    assert ran.returncode == 2, (ran.stdout, ran.stderr)
+    assert "PR 42 head is %s after 30 reads, expected %s" % (old, new) in ran.stderr
