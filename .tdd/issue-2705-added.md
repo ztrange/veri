@@ -1,0 +1,1 @@
+- [ ] `test_1313` in `tests/py/unit/test_tunables.py` sweeps `REVISE_BUDGET` again: its `if name == "REVISE_BUDGET": continue` skip is gone and `ENTRY_POINTS` names `veri.run_conductor` for it, so the guard pins the refusal; test-only, no production change ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 2⟧
