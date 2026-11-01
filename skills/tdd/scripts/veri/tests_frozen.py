@@ -607,7 +607,8 @@ def rerecord_refactored(ledger, green):
             return record
         head_lines = _assertion_lines(head)
         if head_lines != _assertion_lines(verified) and \
-                head_lines + _assertion_lines(_called_helpers("HEAD", name, head)) != _assertion_lines(verified):
+                sorted(head_lines + _assertion_lines(_called_helpers("HEAD", name, head))) \
+                != sorted(_assertion_lines(verified)):
             return record
         if not _assertion_lines(verified) and _squeezed(head) != _squeezed(verified):
             return record
