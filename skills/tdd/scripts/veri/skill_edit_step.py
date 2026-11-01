@@ -249,6 +249,10 @@ def main(argv):
     if any(heading is None and line.startswith("|") for heading, line in _requirements_lines(issue)):
         print("a ## Requirements row is under no ### unit heading", file=sys.stderr)
         return 2
+    if (any(l.strip() == "## Requirements" for l in requirements.read_lines(issue))
+            and not any(h in (unit, unit + " (new)") for h, _ in _requirements_lines(issue))):
+        print("## Requirements has no ### heading for unit: " + unit, file=sys.stderr)
+        return 2
     issue_rows = _issue_rows(issue, unit)
     for row in issue_rows:
         if not requirements.well_formed_row_id(_row_id(row)):
