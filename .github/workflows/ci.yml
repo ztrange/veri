@@ -4,13 +4,6 @@ name: CI
 # on — `make test` — dogfooding: a red baseline here would be exactly what the
 # conductor refuses to start against (see Makefile's `test` target comment).
 #
-# The docs gates (`make docs-check`, docs/tests/build-guards.test.sh) are deliberately
-# NOT here. They were, from #34 until the day the walkthrough grew thirty sandboxed
-# page builds: a job went from ~50 s to ~230 s on each runner, on every push of every
-# PR, with macOS minutes billed at ten times Linux. Documentation drifting behind code
-# must never block a TDD run (CLAUDE.md), so the docs gates are a local step of a docs
-# PR — run `make docs-check` before merging one — not a tax on every commit.
-#
 # A draft PR runs nothing. veri opens its PR as a draft when the plan is committed (#195)
 # and pushes after every phase of every step, so `pull_request` on its default types ran
 # this job 20-40 times per issue (#238: 42, #102: 36) — ~85% of the ~1,880 minutes billed
@@ -67,10 +60,6 @@ jobs:
     # `make test` on Linux is back well under 3 minutes. It costs nothing on a green run
     # and raises the ceiling on a STUCK job from 5 to 8 minutes — about 1.8 cents more on
     # ubuntu-latest at $0.006/min.
-    #
-    # The number still assumes the docs gates stay out of CI (#90): while they ran here
-    # the job took ~230 s, which even this budget would cut off. Putting them back means
-    # raising this, deliberately, rather than discovering it as a failure.
     timeout-minutes: 8
 
     steps:
@@ -84,7 +73,7 @@ jobs:
       # sit beside this one; it re-checked the environment the code was just tested
       # on, at ten times the per-minute price of Linux, and was ~94% of the billed
       # minutes on 2026-09-11. bash is preinstalled, and nothing shells out to jq or
-      # gh — the scripts avoid jq (see docs/wt/commentary.py) and the test suites stub
+      # gh — the scripts avoid jq and the test suites stub
       # the model via CLAUDE_BIN.
       - uses: actions/setup-python@v5
         with:
