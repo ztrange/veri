@@ -315,13 +315,19 @@ def test_a_first_run_with_only_the_launch_redirects_log_present_leaves_the_tree_
     stub.chmod(0o755)
     scratch = tmp_path / "scratch"
     scratch.mkdir()
+    home = tmp_path / "home"
+    home.mkdir()
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    (bin_dir / "gh").write_text("#!/bin/sh\nexit 0\n")
+    (bin_dir / "gh").chmod(0o755)
     veri = clone / "skills" / "tdd" / "scripts" / "veri"
 
     subprocess.run(
         [sys.executable, "-c",
          "import sys; sys.path.insert(0, %r); import run_conductor; sys.exit(run_conductor.main(['2798']))" % str(veri)],
         cwd=repo, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL, timeout=20,
-        env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_BASH_MAJOR": "5",
+        env={"PATH": "%s:%s:/usr/bin:/bin" % (bin_dir, os.path.dirname(sys.executable)), "HOME": str(home), "VERI_BASH_MAJOR": "5",
              "VERI_MIN_FREE_GB": "0", "VERI_TOOL_WAIT": "0", "PYTHONDONTWRITEBYTECODE": "1",
              "CLAUDE_BIN": str(stub), "TMPDIR": str(scratch)})
 
