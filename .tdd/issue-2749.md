@@ -1,0 +1,21 @@
+# Plan for #2749 — PRD 014.2: a run's events outlive its worktree, in one journal on the machine
+
+- [ ] hermetic_environment sets VERI_HOME to the case's tmp_path, pinned by a small case in skills/tdd/scripts/tests/py/unit/test_event_journal.py ⟦guard-subject: skills/tdd/scripts/tests/py/conftest.py⟧ ⟦criterion 4⟧
+- [ ] an event.sh event with an empty VERI_ISSUE creates nothing under VERI_HOME and prints nothing on stderr, pinned by a small case in skills/tdd/scripts/tests/py/unit/test_event_journal.py, no production change ⟦criterion 1⟧
+- [ ] an event.sh event in a clone with no origin remote creates nothing under VERI_HOME and prints nothing on stderr, pinned by a small case in skills/tdd/scripts/tests/py/unit/test_event_journal.py, no production change ⟦criterion 1⟧
+- [ ] in a clone whose .git is a directory and whose origin is an https URL, an event's line is appended byte for byte to $VERI_HOME/runs/<owner>-<repo>/<issue>.jsonl, while .tdd/events.jsonl keeps its format and path; owner and repo are read from the git config in-process, with no git process, and the case stays small ⟦criterion 1⟧
+- [ ] in a linked worktree, whose .git is a file pointing at the common dir, the journal path's owner and repo are read from the common dir's config, by a small case with no git process ⟦criterion 1⟧
+- [ ] an origin written in scp form, git@github.com:<owner>/<repo>.git, names the same journal path as its https form, by a small case ⟦criterion 1⟧
+- [ ] with VERI_HOME unset the journal is written under ~/.veri, with HOME pointed at the case's tmp_path by a small case ⟦criterion 1⟧
+- [ ] a failed journal write prints exactly one stderr line naming the journal path, leaves event.sh's exit code 0 and still writes the line to .tdd/events.jsonl, by a small case ⟦criterion 2⟧
+- [ ] one journal write starts no process and is one os.write on a descriptor opened with O_APPEND, pinned with in-process spies by a small case, no production change expected ⟦criterion 3⟧
+- [ ] a real event.sh run under hermetic_environment writes its journal under the case's tmp_path and leaves the real ~/.veri untouched, pinned by a process case marked @pytest.mark.process, no production change expected ⟦criterion 4⟧
+- [ ] run_conductor.py emits conductor-start with pid and started, naming the same process and the same start time the lock .tdd/conductor.pid records on its two lines, whatever pid the lock holds being the claude -p child's ⟦criterion 5⟧
+- [ ] scope-check.sh exit 0 on .tdd/issue-<n>.md emits a plan event with steps=<n>, the count of the ledger's steps, taking the issue number from the ledger's file name since its call carries no VERI_ISSUE and no prose may change; a repeated check emits a repeated line ⟦criterion 6⟧
+- [ ] add-ledger-step.sh that grows the ledger emits a plan event with steps=<n>, the ledger's new total, taking the issue number from the ledger's file name since its call carries no VERI_ISSUE and no prose may change ⟦criterion 6⟧
+- [ ] event.sh done pr=<url> records pr, wall_seconds and awake_seconds, added by event.py itself, with wall_seconds equal to the figure metrics.py prints on its Wall time for the issue: line and awake_seconds the awake span over the same opening and the done mark; SKILL.md's call stays event.sh done pr=<pr-url> ⟦criterion 7⟧
+- [ ] event.sh done records lane, equal to what metrics.py prints on its Lane: line ⟦criterion 7⟧
+- [ ] a merge through queued-merge.sh that cuts a tag emits merged with pr, tag and the tag's message, before the worktree is removed, taking the issue number from the branch tdd/<n>-<slug> ⟦criterion 7⟧
+- [ ] a merge through queued-merge.sh given the tag message - emits merged with pr and with tag and message empty ⟦criterion 7⟧
+- [ ] nothing in skills/ outside the tests deletes from $VERI_HOME, pinned by a case marked @pytest.mark.tree_audit, no production change expected ⟦criterion 8⟧
+- [ ] no leaf transcript is copied into $VERI_HOME: the only thing written there is an event line, pinned by a case marked @pytest.mark.tree_audit, no production change expected ⟦criterion 8⟧
