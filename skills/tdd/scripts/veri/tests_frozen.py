@@ -389,6 +389,8 @@ def _earlier_records(lines, step, strict=False):
         if not match or match.group(1) == " " or match.group(2) == step:
             continue
         path = _record_path(match.group(2))
+        if not os.path.exists(path):
+            path = _record_path(match.group(2).removesuffix(ledger.PENDING_MARK))
         try:
             with open(path, encoding="utf-8") as handle:
                 records = handle.read().splitlines()
