@@ -1,2 +1,3 @@
 ### Running `install-links.sh` on a repo with none of the eight links prints exactly eight lines on stdout, one per skill name, and exits 0; a process case in skills/tdd/scripts/tests/py/test_install_links_process.py, driving the real script ⟦criterion 1⟧
 - out-of-scope | drop the redundant `os.makedirs(os.path.dirname(target), exist_ok=True)` in install_links.py, since `os.makedirs(target, exist_ok=True)` already creates the parent (code from #2803, not this cycle)
+not-done | transform-rejected | drop the redundant `os.makedirs(os.path.dirname(target), exist_ok=True)` in install_links.py, since `os.makedirs(target, exist_ok=True)` already creates the parent (code from #2803, not this cycle)
