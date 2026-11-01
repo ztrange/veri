@@ -33,6 +33,12 @@ def main(argv):
         veri_skills = _veri_skills()
         for name in LINKED:
             link = os.path.join(target, name)
+            held = os.path.islink(link) and os.readlink(link).startswith(veri_skills + os.sep)
+            if os.path.lexists(link) and not held:
+                print("install-links.sh: not a veri link, left untouched: " + link, file=sys.stderr)
+                return 2
+        for name in LINKED:
+            link = os.path.join(target, name)
             if os.path.islink(link) and not os.path.exists(link):
                 os.unlink(link)
             if not os.path.islink(link):
