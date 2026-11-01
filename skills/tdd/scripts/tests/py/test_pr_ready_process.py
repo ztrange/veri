@@ -48,3 +48,47 @@ def test_issue_2147_pr_ready_script_run_from_zsh_exits_2_when_github_answers_on_
 
     assert refused.returncode == 2, (refused.stdout, refused.stderr)
     assert "gh pr ready 42" in calls
+
+
+@pytest.mark.process("real git repository and bare remote holding the sha, a fake gh, and pr-ready.sh as a subprocess")
+def test_issue_2858_pr_ready_keeps_polling_while_the_remote_holds_the_sha_and_readies_once_the_head_matches(tmp_path):
+    git_env = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+               "GIT_COMMITTER_EMAIL": "t@t", "PATH": "/usr/bin:/bin:" + os.path.dirname(shutil.which("git"))}
+
+    def git(*args, cwd):
+        return subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, text=True,
+                              env=git_env).stdout.strip()
+
+    bare, repo = tmp_path / "bare.git", tmp_path / "repo"
+    repo.mkdir()
+    git("init", "-q", "--bare", str(bare), cwd=tmp_path)
+    git("init", "-q", "-b", "feature", cwd=repo)
+    git("commit", "-q", "--allow-empty", "-m", "old", cwd=repo)
+    old = git("rev-parse", "HEAD", cwd=repo)
+    git("commit", "-q", "--allow-empty", "-m", "new", cwd=repo)
+    new = git("rev-parse", "HEAD", cwd=repo)
+    git("remote", "add", "origin", str(bare), cwd=repo)
+    git("push", "-q", "origin", "feature", cwd=repo)
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    heads = tmp_path / "heads"
+    heads.write_text("%s\n%s\n%s\n" % (old, old, new))
+    calls = tmp_path / "calls"
+    calls.write_text("")
+    gh = bin_dir / "gh"
+    gh.write_text('#!/bin/sh\necho "gh $*" >> "$CALLS"\n'
+                  'case "$*" in\n'
+                  '  *head.ref*) echo feature ;;\n'
+                  '  *--jq*) head -n 1 "$HEADS"; sed 1d "$HEADS" > "$HEADS.next"; mv "$HEADS.next" "$HEADS" ;;\n'
+                  'esac\nexit 0\n')
+    gh.chmod(0o755)
+    env = {"PATH": os.pathsep.join([str(bin_dir), os.path.dirname(shutil.which("bash")), "/usr/bin", "/bin"]),
+           "CALLS": str(calls), "HEADS": str(heads), "VERI_GH_DRIVER": "auto", "VERI_POLL": "0"}
+
+    ran = subprocess.run([str(SCRIPTS / "pr-ready.sh"), "42", new], cwd=repo, capture_output=True, text=True,
+                         env=env, timeout=20)
+
+    reads = [c for c in calls.read_text().splitlines() if "head.sha" in c]
+    assert (ran.returncode, ran.stderr) == (0, "")
+    assert len(reads) == 3
+    assert "gh pr ready 42" in calls.read_text().splitlines()
