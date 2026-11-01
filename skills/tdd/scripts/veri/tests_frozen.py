@@ -218,8 +218,11 @@ def _cases(text):
         elif closed:
             body = text[start:closed]
         else:
-            cut = None if m.group(1) else _module_level_cut(body)
-            body = body[:cut.start()] if cut else body
+            if m.group(1):
+                body = "".join(body.partition("\n}")[:2])
+            else:
+                cut = _module_level_cut(body)
+                body = body[:cut.start()] if cut else body
             body = _DECORATORS.sub("", body.rstrip()).rstrip()
         cases.append((m.group(1) or m.group(2) or _unescaped(m.group(4)), body))
     return cases
