@@ -311,3 +311,17 @@ def test_install_links_sh_in_a_repo_with_no_git_info_directory_creates_it_and_li
     links = sorted(p.name for p in skills.iterdir() if p.is_symlink()) if skills.is_dir() else []
     assert (done.returncode, sorted(lines), links) == (
         0, sorted("/.claude/skills/" + n for n in LINKED), sorted(LINKED))
+
+
+@pytest.mark.process("git init on a scratch project, then install-links.sh run against it holding none of the eight links")
+@pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
+def test_install_links_sh_on_a_repo_with_none_of_the_links_prints_one_stdout_line_per_skill_name_and_exits_0(tmp_path):
+    _, shim = _clone(tmp_path)
+    project = (tmp_path / "project").resolve()
+    project.mkdir()
+    subprocess.run(["git", "-C", str(project), "init", "-q", "-b", "main"], check=True)
+    done = subprocess.run(["/bin/sh", str(shim), str(project)], stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    reported = done.stdout.splitlines()
+    assert (done.returncode, len(reported), sorted(n for n in LINKED if sum(n in line for line in reported) == 1)) == (
+        0, 8, sorted(LINKED))
