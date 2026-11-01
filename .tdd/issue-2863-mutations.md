@@ -16,3 +16,12 @@ pass
 command 335
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpdwgm72gu/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_check_earlier_exits_0_for_a_go_case_after_a_helper_is_appended_at_eof_following_the_rerecord_2863
 
+file 39
+skills/tdd/scripts/veri/tests_frozen.py
+old 41
+body = "".join(body.partition("\n}")[:2])
+new 11
+body = body
+command 362
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpdwgm72gu/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_check_earlier_exits_1_for_a_go_case_after_an_assertion_is_deleted_from_it_with_a_trailing_helper_following_the_rerecord_2863
+
