@@ -1,0 +1,1 @@
+- [ ] Reason text after the verdict keeps working as today: with a multi-line `REASON:` block before `VERDICT: REJECT` and reason text after it, only the text after the verdict is printed (a small in-process case in skills/tdd/scripts/tests/py/unit/test_parse_verdict.py) ⟦added⟧
