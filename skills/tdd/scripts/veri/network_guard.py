@@ -9,6 +9,8 @@ import pytest
 
 from veri.popen_command import command_basename, command_words
 
+GUARDED = ("gh", "curl")
+
 
 def loopback(host):
     try:
@@ -29,7 +31,7 @@ def network_refusal(monkeypatch, tmp_path_factory):
     real_connect = socket.socket.connect
     real_popen = subprocess.Popen.__init__
     refusals = {}
-    for name in ("gh", "curl"):
+    for name in GUARDED:
         refusals[name] = tmp_path_factory.mktemp("refuse-" + name)
         (refusals[name] / name).write_text("#!/bin/sh\necho \"a case started %s; fake the call\" >&2\nexit 1\n" % name)
         (refusals[name] / name).chmod(0o755)
@@ -45,12 +47,12 @@ def network_refusal(monkeypatch, tmp_path_factory):
     def popen(self, args, *rest, **kwargs):
         words = command_words(args)
         command = command_basename(words)
-        if command in ("gh", "curl") and not faked(os.fsdecode(words[0]), kwargs, basetemp):
+        if command in GUARDED and not faked(os.fsdecode(words[0]), kwargs, basetemp):
             raise AssertionError("a case started %s; fake the call" % command)
         env = kwargs.get("env")
         if env is not None:
             path = os.pathsep.join(os.get_exec_path(env))
-            for name in ("gh", "curl"):
+            for name in GUARDED:
                 if not faked(name, kwargs, basetemp):
                     path = str(refusals[name]) + os.pathsep + path
             kwargs["env"] = dict(env, PATH=path)
