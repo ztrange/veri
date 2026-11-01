@@ -1,0 +1,2 @@
+### A mutations record whose command begins with a `timed-test-run.sh` path that no longer exists is replayed through the current skill's `timed-test-run.sh`, and a pin that still catches its mutant is not reported "needs a look" ⟦criterion 1⟧
+- test-only | extract the `git(...)` helper and the shared repo setup, which are duplicated across the two 2814 cases in test_pin_recheck_process.py, into one fixture or helper
