@@ -1347,13 +1347,13 @@ and the conductor never edits a built prompt to add a suite one of them left out
 developer adds a unit-tier test when the failure exposes a gap the fast tier missed, and its
 verifier judges the fix against the full command, not the fast one.
 ```
-step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1
-$S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the full-suite failure: <suite> — <its FAIL - line>> ⟦suite-repair⟧'
+$S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the full-suite failure: <suite> — <its FAIL - line>> ⟦suite-repair⟧' && { step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1; }
 git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md
 git commit -m "plan: repair the red full suite (#<n>)"
 ```
 That call passes no `--criterion` on purpose: the repair step serves its anchor's criterion.
-**`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see `<base directory>/BAIL.md`.
+The `step-added` event is written only on `add-ledger-step.sh`'s exit 0, after the insertion has happened.
+**`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`, writing neither the `step-added` nor the `step-start` event** — see `<base directory>/BAIL.md`.
 **`add-ledger-step.sh` exit 1 on the `⟦suite-repair⟧` insertion → bail with cause `suite-red`, naming every suite still red**, exactly as the second-red-run bail below does (`Read` `<base directory>/BAIL.md`).
 
 A second red result on the full run after a repair step does **bail** — the repair step is
