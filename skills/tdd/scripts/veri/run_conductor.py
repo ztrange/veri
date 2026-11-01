@@ -259,8 +259,11 @@ def conduct(text, issue, env):
             os.makedirs(os.path.dirname(pid_file), exist_ok=True)
 
             def record_pid():
+                started = pids._ps("lstart", os.getpid())
                 with open(pid_file, "w") as handle:
-                    handle.write("%d\n%s\n" % (os.getpid(), pids._ps("lstart", os.getpid())))
+                    handle.write("%d\n%s\n" % (os.getpid(), started))
+                event.mark(run_worktree(issue), event.context(tunables.with_values(VERI_ISSUE=issue)),
+                           "conductor-start", ["pid=%d" % os.getpid(), "started=%s" % started])
             code = subprocess.run([binary, "-p", "--output-format", "stream-json",
                                    "--verbose"] + context_limits() + [
                                    "--permission-mode", "bypassPermissions", "--model",
