@@ -73,3 +73,10 @@ def test_2841_rebased_tip_suite_unset_resolves_to_local_with_no_error(monkeypatc
     monkeypatch.delenv("VERI_REBASED_TIP_SUITE", raising=False)
 
     assert tunables.resolve("VERI_REBASED_TIP_SUITE") == ("local", None)
+
+
+def test_2841_rebased_tip_suite_set_to_ci_resolves_to_ci_with_no_error(monkeypatch):
+    tunables = importlib.import_module("veri.tunables")
+    monkeypatch.setenv("VERI_REBASED_TIP_SUITE", "ci")
+
+    assert tunables.resolve("VERI_REBASED_TIP_SUITE") == ("ci", None)

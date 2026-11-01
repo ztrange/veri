@@ -2,7 +2,7 @@
 
 - [x] `VERI_REBASED_TIP_SUITE` set to any value but `local` or `ci` makes `run-conductor.sh` exit 2 at launch, before any cycle, through a `tunables.TABLE` entry, its one stderr line naming the variable and the value; the Red's case and the entry's row in `ENTRY_POINTS` go in `skills/tdd/scripts/tests/py/unit/test_tunables.py` ⟦criterion 1⟧
 - [x] `VERI_REBASED_TIP_SUITE` unset, read through `tunables.resolve`, resolves to `local` with no error; one case in `skills/tdd/scripts/tests/py/unit/test_tunables.py` ⟦criterion 1⟧
-- [ ] `VERI_REBASED_TIP_SUITE=ci`, read through `tunables.resolve`, resolves to `ci` with no error; one case in `skills/tdd/scripts/tests/py/unit/test_tunables.py` ⟦criterion 1⟧
+- [x] `VERI_REBASED_TIP_SUITE=ci`, read through `tunables.resolve`, resolves to `ci` with no error; one case in `skills/tdd/scripts/tests/py/unit/test_tunables.py` ⟦criterion 1⟧
 - [ ] `skills/tdd/SKILL.md`'s Draft PR step states both `VERI_REBASED_TIP_SUITE` modes at each place the rebased tip's full run appears: after an exit 0 from `rebase-onto-default.sh`, after a verify-rebase `PASS`, and in the CI-conflict rebase ⟦skill-edit⟧ ⟦criterion 2⟧
 - [ ] A case in a new `skills/tdd/scripts/tests/py/unit/test_skill_rebased_tip_suite.py` pins that `skills/tdd/SKILL.md` states both `VERI_REBASED_TIP_SUITE` modes after an exit 0 from `rebase-onto-default.sh`, after a verify-rebase `PASS`, and in the CI-conflict rebase; the case locates those sentences without spelling any of the `MARKERS` of `unit/test_skill_draft_pr_readers.py`, and changes no production file ⟦criterion 2⟧
 - [ ] The `CLAUDE.md` Testing idiom sentence on when the full suite runs names the `VERI_REBASED_TIP_SUITE=ci` mode ⟦skill-edit⟧ ⟦criterion 3⟧
