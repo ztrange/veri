@@ -71,3 +71,12 @@ if fields[0] in units:
 command 342
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp7p3jmoc0/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_prd_016_short_names.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_prd_016_short_names.py::test_prose_owed_sh_on_a_copy_of_the_tip_with_no_ledger_reports_no_unit_owed_and_no_orphan_graded_line
 
+file 52
+skills/tdd/scripts/tests/py/unit/test_grade_prose.py
+old 47
+renamed = sorted(root.glob("skills/v*/GRADED"))
+new 51
+renamed = sorted(root.glob("skills/veri-*/GRADED"))
+command 308
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp7p3jmoc0/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_grade_prose.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_grade_prose.py::test_every_committed_graded_line_names_the_grader_template_it_was_signed_under_2474
+
