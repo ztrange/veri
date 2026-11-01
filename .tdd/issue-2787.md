@@ -1,3 +1,4 @@
 # Plan for #2787 — The conductor bails when rerecord-refactored exits 2
 
 - [x] skill-edit step for the unit `skills/tdd/SKILL.md`: row RF58 is added to `skills/tdd/REQUIREMENTS.md` as the issue states it, and the *Refactor loop* verify-refactor PASS paragraph states that `tests-frozen.sh rerecord-refactored` exit 2 is a bail as a system failure (`BAIL.md`), with no `clear-refactor-pending.sh` and no ledger commit after it ⟦skill-edit⟧ ⟦criterion 1⟧
+- [ ] fix the full-suite failure of the unit `skills/tdd/SKILL.md`: skills/tdd/scripts/tests/py/unit/test_skill_event_files.py — FAILED test_the_guard_reports_no_misplaced_bail_pointer_in_the_real_skill_md_2075 and test_the_send_scoped_placement_check_finds_no_misplaced_pointer_in_skill_md_or_any_event_file_2339: the BAIL.md pointer at SKILL.md line 1204 is followed by ", and" where it must end its sentence ⟦skill-edit⟧ ⟦suite-repair⟧ ⟦criterion 1⟧
