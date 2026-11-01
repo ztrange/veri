@@ -163,3 +163,53 @@ def test_2506_a_mutations_record_that_cannot_be_parsed_exits_2_with_nothing_on_s
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout) == (2, ""), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a record whose wrapper path no longer exists")
+def test_2814_a_record_through_a_vanished_timed_test_run_path_is_replayed_and_not_reported_as_needing_a_look(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    gone = tmp_path / "gone-scratch" / "scripts" / "timed-test-run.sh"
+    record(tmp_path / ".tdd" / "issue-2814-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command=f"{gone} unit guard grep -q 'if guard' guard.txt")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=60)
+
+    assert (ran.returncode, ran.stdout, (tmp_path / "guard.txt").read_bytes()) == (
+        0, "", b"if guard\nmore\n"), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a record whose wrapper path still exists")
+def test_2814_a_record_through_a_timed_test_run_path_that_still_exists_is_replayed_through_that_path(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    kept = tmp_path / "kept-scratch" / "scripts" / "timed-test-run.sh"
+    kept.parent.mkdir(parents=True)
+    kept.write_text(f'#!/bin/sh\necho used >> {tmp_path}/marker\nshift 2\nexec "$@"\n')
+    kept.chmod(0o755)
+    record(tmp_path / ".tdd" / "issue-2814-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command=f"{kept} unit guard grep -q 'if guard' guard.txt")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=60)
+
+    marker = tmp_path / "marker"
+    assert (ran.returncode, ran.stdout, marker.read_text() if marker.exists() else "") == (
+        0, "", "used\nused\n"), ran.stderr

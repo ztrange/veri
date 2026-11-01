@@ -22,6 +22,13 @@ def records(text):
     return out
 
 
+def current_wrapper(command):
+    head, _, rest = command.partition(" ")
+    if head.endswith("/timed-test-run.sh") and not Path(head).exists():
+        return f"{Path(__file__).resolve().parent.parent / 'timed-test-run.sh'} {rest}"
+    return command
+
+
 def main(argv):
     if not argv:
         sys.stderr.write("usage: pin-recheck.sh <base-sha>\n")
@@ -34,6 +41,7 @@ def main(argv):
         return 3
     status = 0
     for pin in pins:
+        pin["command"] = current_wrapper(pin["command"])
         path = Path(pin["file"])
         original = path.read_bytes()
         if pin["old"].encode() not in original or subprocess.run(pin["command"], shell=True).returncode != 0:
