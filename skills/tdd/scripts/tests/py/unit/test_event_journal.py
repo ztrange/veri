@@ -160,3 +160,20 @@ def test_scp_form_origin_names_the_same_journal_path_as_its_https_form(tmp_path)
 
     written = sorted(str(p.relative_to(tmp_path)) for p in (tmp_path / "runs").rglob("*") if p.is_file())
     assert (code, written) == (0, ["runs/acme-widgets/42.jsonl"])
+
+
+def test_with_veri_home_unset_the_journal_is_written_under_dot_veri_in_home(tmp_path, monkeypatch):
+    import importlib
+    event = importlib.import_module("veri.event")
+    monkeypatch.delenv("VERI_HOME", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    clone = tmp_path / "clone"
+    (clone / ".git").mkdir(parents=True)
+    (clone / ".git" / "config").write_text(
+        '[remote "origin"]\n\turl = https://github.com/acme/widgets.git\n')
+
+    code = event.append(str(clone), {"issue": "42"}, "done", [], ts=1700000000)
+
+    per_run = (clone / ".tdd" / "events.jsonl").read_bytes()
+    journal = tmp_path / ".veri" / "runs" / "acme-widgets" / "42.jsonl"
+    assert (code, journal.read_bytes() if journal.exists() else None) == (0, per_run)
