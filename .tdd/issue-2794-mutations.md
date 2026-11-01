@@ -81,3 +81,14 @@ if False and not held:
 command 329
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp80y1pz_6/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_install_links_process.py make test TESTS=skills/tdd/scripts/tests/py/test_install_links_process.py::test_install_links_sh_leaves_a_lone_dangling_symlink_elsewhere_untouched_and_exits_2_naming_it
 
+file 40
+skills/tdd/scripts/veri/install_links.py
+old 17
+        return 2
+
+new 17
+        return 0
+
+command 318
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp80y1pz_6/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_install_links_process.py make test TESTS=skills/tdd/scripts/tests/py/test_install_links_process.py::test_install_links_sh_run_from_outside_a_git_repository_exits_2_and_creates_nothing
+
