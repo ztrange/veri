@@ -61,8 +61,9 @@ Split the plan into sub-PRDs numbered `<nnn>.<k>`. Each states:
 and each is worth having if the next never ships. A sub-PRD holds at most **one capability the
 human can use**. One that would hold more is split; if it cannot be, it states in its own text
 why not. An outline expected to hold more than one capability is split while it is still an
-outline, not left for later. A plan that fits one sub-PRD stays one; one that fits a single
-issue may be that issue.
+outline, not left for later. Within one capability, take the smallest piece worth having if the
+next never ships, even when more sub-PRDs cost more in total (P16). A plan that fits one sub-PRD
+stays one; one that fits a single issue may be that issue.
 
 Only the **next** sub-PRDs carry requirement rows, in the format
 

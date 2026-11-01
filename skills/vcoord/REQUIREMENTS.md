@@ -8,7 +8,7 @@
 | C4 | It instructs the dev session through `SendMessage` and tells the human in one line that it did. It answers every dev-session report with an `ack`, or with the ruling the report prompts. | "why didn't you just send it yourself?" 2026-10-20: "when getting a message from dev do you not ack?" |
 | C5 | Decisions go to the human. The dev session receives facts and instructions. | |
 | C6 | It owns: order overrides, N changes (including timed ones), one-resume budget raises, filing (`vfile`) and grooming (`vgroom`). | |
-| C7 | It proposes `priority` for issues that make future runs cheaper. | |
+| C7 | It proposes `priority` for issues that make future runs cheaper, and for issues that give the human something usable, or feedback on a plan, sooner. | |
 | C8 | Unattended, it sends the dev session only the message kinds the human approved (default: refill an empty slot). | |
 | C9 | It never fixes veri by hand. It files the issue. | "why did you fix it instead of creating an issue". |
 | C10 | It never says that `vgroom` or `vfile` does not exist. | PR #2061's review: lines 46-49 still said vgroom does not exist; vfile landed in #1841. |

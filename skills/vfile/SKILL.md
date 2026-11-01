@@ -52,7 +52,8 @@ reads the plan out of these headings.
   criterion is one behaviour, pinned by a case** (a test that fails until the behaviour exists).
 - **A sweep** (the same fix at N sites) has **one covering criterion** plus **its guard's
   go-red criterion** (the guard, broken on purpose, goes red), not one criterion per site. The
-  sites are **listed under `## Problem`**.
+  sites are **listed under `## Problem`**. This bounds criteria, not size: sites that group into
+  changes useful on their own are filed as one sweep per group, whatever the extra runs cost (P16).
 - **`## Blocked by`** holds only blocker lines (`#N` of an issue that must land first) or
   the literal `None.`. veri reads every `#N` there as a blocker, so a related issue goes
   elsewhere in the body, never here.

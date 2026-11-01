@@ -63,8 +63,9 @@ File every issue through `/vfile`, and groom through `/vgroom`; show any split o
 criteria rewrite to the human first.
 
 **Propose `priority`** for an issue whose landing makes future runs cheaper — a slower suite
-made faster, a leaf cost cut, a recurring bail cause removed. Propose it to the human with the
-saving in one line; the label is applied only on their yes.
+made faster, a leaf cost cut, a recurring bail cause removed — or gives the human something
+usable, or feedback on a plan, sooner (P16). Propose it to the human with the saving or the gain
+in one line; the label is applied only on their yes.
 
 **Never fix veri by hand.** When veri itself misbehaves — a script, a prompt, the skill — you
 file the issue that fixes it, in the repository that holds veri, and only if that is the
