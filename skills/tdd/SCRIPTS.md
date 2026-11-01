@@ -290,7 +290,8 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   numbers of the issues veri may take right now — open, labelled `ready-for-agent`, every
   issue under their `## Blocked by` heading closed, and not already claimed by an open PR
   saying `Closes #<n>` — one per line, in three bands: the issues labelled `priority` first,
-  then the `bug`s, then the rest, each band ascending by number. The band only reorders that
+  then the `bug`s, then the rest, each band ascending by number. A bug labelled `low-risk` counts
+  as the rest, and `priority` outranks `low-risk`. The band only reorders that
   set, it never enlarges it — the four conditions run first, so a `priority` issue that is
   blocked, claimed or not opted in is still not printed. `VERI_PRIORITY_LABEL` names the
   first band's label (default `priority`; set-but-empty is **exit 2**, like `VERI_LABEL`),

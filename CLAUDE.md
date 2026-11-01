@@ -80,7 +80,7 @@ no `VERSION` file, no changelog. One merged feature/fix issue is one minor bump,
   distribution, a weaker developer as more revise cycles; one knob would hide which.
 - **Selection is three bands, one sort key.** `solvable-issues.sh` lists `priority`-labelled
   issues first (`VERI_PRIORITY_LABEL`; set-but-empty is exit 2), then `bug`s, then the rest,
-  each band ascending by number. The bands only reorder the solvable set, never enlarge it:
+  each band ascending by number. A `low-risk` bug counts as the rest, and `priority` outranks `low-risk`. The bands only reorder the solvable set, never enlarge it:
   open, opted in (`VERI_LABEL`), unblocked and unclaimed filter first, so `priority` alone
   never makes an issue takeable.
 

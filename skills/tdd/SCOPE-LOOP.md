@@ -78,7 +78,8 @@ there is at least one, **exit 3** with empty stdout when there is none.
   the reader to the wrong list. Not an error — no issue is open, carrying that label,
   unblocked and unclaimed. Nothing was started.
 - **Exit 0:** take the **first** number. Do not keep the rest of the list. The order is
-  banded — `priority`, then `bug`, then the rest, each ascending — so the first number is
+  banded — `priority`, then `bug`, then the rest, each ascending, a `low-risk` bug counting
+  as the rest — so the first number is
   not always the lowest one. When it is not, **say so and name the band that did it**:
   `#220 (priority) before #108`, `#120 (bug) before #117`. A jump is otherwise invisible in
   the report — a number that jumped a lower-numbered issue reads exactly like one that came
