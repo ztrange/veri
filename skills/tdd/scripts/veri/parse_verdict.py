@@ -53,6 +53,14 @@ def following_reason(rest):
     return "".join(f"{line}\n" for line in rest)
 
 
+def preceding_reason(before):
+    for line in before:
+        match = REASON_RE.match(line)
+        if match:
+            return match.group(1)
+    return ""
+
+
 def drop_closing_fence(reason):
     head, _, last = reason.rpartition("\n")
     if FENCE_RE.match(last):
@@ -72,7 +80,8 @@ def main(argv):
     if word not in CODES:
         print(f"parse-verdict: unrecognised verdict word '{word}'", file=sys.stderr)
         return 2
-    reason = following_reason(lines[vidx + 1:]).rstrip(SPACE) or inline_reason(tail, token)
+    reason = (following_reason(lines[vidx + 1:]).rstrip(SPACE) or inline_reason(tail, token)
+              or preceding_reason(lines[:vidx]))
     print(drop_closing_fence(reason.strip(SPACE)))
     return CODES[word]
 
