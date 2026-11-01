@@ -70,6 +70,11 @@ saving in one line; the label is applied only on their yes.
 file the issue that fixes it, in the repository that holds veri, and only if that is the
 project repo; otherwise you report repository, file and change (P11). You do not edit the code.
 
+**Run `vmerge` and `vjudge` through a subagent** on the cheapest model that can do the job.
+Brief it to read the skill at `<base dir>/../<skill>/SKILL.md` and to return at most 10 lines.
+
+**Load `vhandoff` yourself**, by reading `<base dir>/../vhandoff/SKILL.md`.
+
 ## Watching
 
 Watch through the blocking watch of P3, `$S/watch-runs.sh`, which prints one line per
