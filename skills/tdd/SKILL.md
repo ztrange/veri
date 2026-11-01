@@ -1369,12 +1369,19 @@ VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=suite-red classificat
 
 The branch's own full run comes first, and it, with any `⟦suite-repair⟧` step it adds, has to
 finish green before sub-step 1 runs `rebase-onto-default.sh`: the rebased tip's run there is
-the extra run a rebase owes, never a replacement for the branch's own.
+the extra run a rebase owes under `VERI_REBASED_TIP_SUITE=local`, never a replacement for the branch's own.
+
+`VERI_REBASED_TIP_SUITE` takes `local`, the default, or `ci`. Under `local` the rebased tip gets a
+full test run of its own. Under `ci` it gets none: the regrade block and the pinned-lease push
+still run, and the `wait-ci.sh` line on the pushed rebased tip is that tip's full-suite verdict,
+its first red appending the `⟦ci-repair⟧` step as any CI red does. A repository with no CI keeps
+`local`.
 
 A `⟦full-suite⟧` ledger line is the one step no cycle ticks — `next-unchecked.sh` skips it,
 so it is still unchecked here — and this step ticks it, only once the run's last full-suite
 run before the PR is readied is green: the rebased tip's run when sub-step 1 rebased the
-branch, this step's own run otherwise. Tick each with `tick-ledger.sh`, handed the literal
+branch under `VERI_REBASED_TIP_SUITE=local`, this step's own run otherwise, including under `ci`
+(ticking after CI would push a new head and cancel the CI run being waited on). Tick each with `tick-ledger.sh`, handed the literal
 matcher `'⟦full-suite⟧'` and called again until it exits 3, and without `--refactor-pending`,
 so the line carries no refactor-pending mark (it has no refactor loop to clear one); for each
 line's `⟦criterion k⟧` tick the issue criterion it finishes (`$S/tick-issue-criterion.sh <n>
@@ -1421,10 +1428,12 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    behind and the rebase applied cleanly — has changed the tree, and the first line it
    printed is `<pre-rebase-sha>`, the sha the branch held before the rebase. The rebased tip
    is a tree no suite has run on, and two green branches can combine into a red one, so first run
-   the regrade block below on it, which re-signs a `GRADED` line the rebase alone made stale, and then run
+   the regrade block below on it, which re-signs a `GRADED` line the rebase alone made stale. Under
+   `VERI_REBASED_TIP_SUITE=local` then run
    the full test command (`$S/detect-test-command.sh --tier all`'s, via `detach-command.sh`) once on the rebased tip,
-   in the same start-then-wait shape as the preflight baseline, and read its exit code from `wait`.
-   A red result on the rebased tip does **bail**, as a **process** failure
+   in the same start-then-wait shape as the preflight baseline, and read its exit code from `wait`;
+   under `ci` run no full test command on the rebased tip, and go on to the push below.
+   Under `local`, a red result on the rebased tip does **bail**, as a **process** failure
    (`rebased-tip-red`), with the PR left a draft: it is never readied (`Read` `<base directory>/BAIL.md`). Before the bail's push,
    `git reset --hard <pre-rebase-sha>` puts the branch back where it stood, so that push is a
    fast-forward and the un-rebased branch is what is kept. On green, publish the rewritten history:
@@ -1461,9 +1470,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    `REVISE_BUDGET` like any other phase (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`). A malformed verdict does **bail** as a **system**
    failure (`no-verdict`, see `<base directory>/BAIL.md`).
    Only on a verify-rebase `PASS` does the run go on to ready the PR, and first as on exit 0:
-   the full test command once on the rebased tip (the regrade having already run before `verify-rebase`), a bail on red (`rebased-tip-red`) with
+   under `VERI_REBASED_TIP_SUITE=local` the full test command once on the rebased tip (the regrade having already run before `verify-rebase`), a bail on red (`rebased-tip-red`) with
    `git reset --hard <pre-rebase-sha>` before the bail's push, and on green the push under
-   the lease pinned to `<pre-rebase-sha>` (see `<base directory>/BAIL.md`).
+   the lease pinned to `<pre-rebase-sha>`; under `ci`, that push with no full test command before it (see `<base directory>/BAIL.md`).
 
    A rebase not resolved within budget — the leaf reports `REBASE: FAILED` or exits 1 or 2,
    a killed leaf among them, or `REVISE_BUDGET` runs out on verify-rebase `REJECT`s — has
@@ -1575,13 +1584,13 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    by unit — the branch's line for each unit it signs, the base's line for every other unit — and
    prints `<pre-rebase-sha>` then the onto sha, or aborts and exits non-zero leaving HEAD where it
    stood. Its exit 0 touches no `.tdd/ci-conflict-rebased` and never spends the run's one rebase: it goes on
-   with the regrade block, the full suite once on the rebased tip, the push under the lease pinned
-   to the printed `<pre-rebase-sha>`, and the same `wait-ci.sh` line, a red rebased tip taking
+   with the regrade block, under `VERI_REBASED_TIP_SUITE=local` the full suite once on the rebased tip (under `ci`, none), the push under the lease pinned
+   to the printed `<pre-rebase-sha>`, and the same `wait-ci.sh` line, a red rebased tip under `local` taking
    sub-step 1's `rebased-tip-red` bail with its reset (`Read` `<base directory>/BAIL.md`). Its non-zero exit takes the rule unchanged:
    with `.tdd/ci-conflict-rebased` absent, `touch .tdd/ci-conflict-rebased` and rebase onto
    `origin/<default>` once, through the existing rebase path of sub-step 1: `$S/rebase-onto-default.sh`
    (no flag), its `develop-rebase` leaf and rebase verifier (`verify-rebase`) when it conflicts, the
-   regrade block and then the full suite once on the rebased tip, and the push under the lease pinned
+   regrade block, then under `VERI_REBASED_TIP_SUITE=local` the full suite once on the rebased tip (under `ci`, none), and the push under the lease pinned
    to `<pre-rebase-sha>` — then wait for CI again with the same `wait-ci.sh` line; with it present,
    **bail** with cause `ci-conflict`, rather than rebasing again (`Read` `<base directory>/BAIL.md`).
    There too `rebase-onto-default.sh`'s exit code decides the next action, so nothing after it — the
@@ -1707,8 +1716,8 @@ hatch.
   to the issue thread.
 - The full suite must be green before you commit and before you open the PR: that is
   `detect-test-command.sh --tier all`'s command, run through `detach-command.sh` at the Draft PR step — the
-  branch's own full run, again after each `⟦suite-repair⟧` step a red result adds, and one
-  more on the rebased tip when sub-step 1 rebased the branch.
+  branch's own full run, again after each `⟦suite-repair⟧` step a red result adds, and under
+  `VERI_REBASED_TIP_SUITE=local` one more on the rebased tip when sub-step 1 rebased the branch.
 - The PR is opened as a **draft** at the plan commit and readied for review at the Draft PR
   step, always carries `Closes #<n>`, and is **never merged** by you.
 - On a `REJECT`, run the **bounded revise loop** (default 2 attempts, fresh leaf carrying
