@@ -120,7 +120,7 @@ def _differing_tests():
     return names
 
 
-_CASE = re.compile(r"^\s*(?:async\s+)?def\s+(test\w*)|^\s*name=\"([^\"]+)\"|^\s*" + CALL + r"([\"'`])((?:\\.|.)+?)\3", re.M)
+_CASE = re.compile(r"^\s*(?:(?:async\s+)?def\s+(?=test)|func\s+(?=Test))(\w+)|^\s*name=\"([^\"]+)\"|^\s*" + CALL + r"([\"'`])((?:\\.|.)+?)\3", re.M)
 
 
 _FIXTURE_FILE = re.compile(r"repairs the fixture '[^']*' in (\S+?),")
