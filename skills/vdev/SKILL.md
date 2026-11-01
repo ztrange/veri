@@ -89,10 +89,6 @@ On each conductor exit, read the facts — the issue's last comment
 alone, and route:
 
 - **Last comment ✅ Done.** Review it, and on OK merge it through `vmerge`.
-  `vmerge` does not exist yet: until it does, merge with the installed
-  `merge` skill, and only when the ledger has no unchecked step (`$S/next-unchecked.sh <
-  .tdd/wt/<n>/.tdd/issue-<n>.md` exits 3) and no `⟂ refactor pending` mark
-  (`$S/next-pending-refactor.sh` on the same file exits 3); otherwise report it as not ready.
   A run that ended with an open question for the human is never merged.
 
   **Caveats before any merge**, whether on your own OK or on a coordinator's merge
@@ -111,16 +107,21 @@ alone, and route:
   **Rate limits.** A GitHub call refused with `rate limit exceeded` while `gh api rate_limit`
   still reports quota has hit GitHub's secondary limit: use REST rather than wait for the
   reset.
-- **Last comment is a bail.** Hand it to `vbail <n>`. `vbail` does not exist yet: until
-  it does, classify the cause with `$S/classify-bail.sh <cause>`, resume a first bail once with
-  `$S/run-conductor.sh <n>` launched as above (with `VERI_NEW_SKILL=1` when the fix it needs
-  landed after its launch), and park a second one with `$S/park-issue.sh <n> <cause> <unblock>
-  [<pr>]`, the only way to park: it labels the issue `parked` and posts the cause and what
-  would unblock it. Budget raises come only from the coordinator or the human.
+- **Last comment is a bail.** Hand it to `vbail <n>`. An issue is parked only through
+  `$S/park-issue.sh <n> <cause> <unblock> [<pr>]`: it labels the issue `parked` and posts the
+  cause and what would unblock it. Budget raises come only from the coordinator or the human.
 - **No closing comment.** Check for a usage limit or sleep first (P10). Either one is not a
   bail: resume the run once usage is back. Neither one: route it as a bail.
 
 Then take the slot decision.
+
+## Running the sibling skills
+
+Run `vmerge`, `vbail` and `vjudge` each through a subagent on the cheapest model that can do
+the job, briefed to return at most 10 lines and to read the skill at
+`<base dir>/../<skill>/SKILL.md`.
+
+Load `vhandoff` yourself, by reading `<base dir>/../vhandoff/SKILL.md`.
 
 ## Parked issues
 
