@@ -162,8 +162,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   own — plan growth, never merged with the other four. **Exit 0** = inserted; **exit 1** = the
   budget cannot hold them, so nothing is inserted and every text is appended as a plain bullet
   under a trailing `## Owed steps` heading instead; **exit 2** = the anchor matches no step or
-  more than one, the budget is unreadable, or `--criterion` names a k that is
-  not a whole number ≥ 1, with the ledger left byte-identical. Every text
+  more than one, the budget is unreadable, `--criterion` names a k that is
+  not a whole number ≥ 1, or a text already carries a `⟦criterion k⟧` tag (the script
+  names the tag, and one bad text inserts none of the batch), with the ledger left
+  byte-identical. Every text
   one growth is made of goes in **one call**: the script takes them all at once and reads the
   budget once per call, so a call per text would refuse a third text that one call either fits
   whole or files whole. Every insertion is marked in the log beside the call it made —
