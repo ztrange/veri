@@ -1,0 +1,1 @@
+- [ ] `skills/tdd/SKILL.md` is held to this issue's `### skills/tdd/SKILL.md` Requirements rows (DP88 and the reworded Draft PR rows written into `skills/tdd/REQUIREMENTS.md`) and regraded against them; the earlier skill-edit applied no rows because the issue's headings were `## ` level ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 2⟧
