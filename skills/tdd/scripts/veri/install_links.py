@@ -40,8 +40,9 @@ def main(argv):
             listed = held.read().splitlines()
         with open(exclude, "a") as out:
             for name in LINKED:
-                if "/.claude/skills/" + name not in listed:
-                    out.write("/.claude/skills/" + name + "\n")
+                entry_line = "/.claude/skills/" + name
+                if entry_line not in listed:
+                    out.write(entry_line + "\n")
     except OSError as err:
         print("install-links.sh: " + type(err).__name__ + ": " + str(err), file=sys.stderr)
         return 2
