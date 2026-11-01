@@ -34,3 +34,12 @@ new 22
 command 387
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp6ba1qx9h/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_rerecord_refactored_leaves_the_record_and_check_earlier_exits_1_for_a_go_case_whose_refactor_moved_checks_into_a_helper_after_it_and_dropped_one_2863
 
+file 39
+skills/tdd/scripts/veri/tests_frozen.py
+old 50
+write(sys.stderr, "skipped: %s %s" % (name, case))
+new 4
+pass
+command 340
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp6ba1qx9h/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_rerecord_refactored_names_a_case_gone_at_head_a_digest_mismatch_and_an_assertionless_shape_change_2863
+
