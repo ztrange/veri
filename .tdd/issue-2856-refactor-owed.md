@@ -2,3 +2,4 @@
 - test-only | the new test stubs `_grade`, `_author`, `event.append` and `subprocess`, though the guard exits before any of them is reached; dropping the stubs would leave it asserting the same thing
 ### An issue body that has a `## Requirements` section but no `### <unit>` or `### <unit> (new)` for the unit the step names makes `skill-edit-step.sh` exit 2 with a stderr line naming the unit, nothing changed ⟦criterion 3⟧
 - move `main`'s chain of issue-validation guards into one `_refusal(issue, unit)` helper, because `main` has grown long (this is moving behaviour, which this phase does not apply)
+applied | 7f00d4b96be975b2f35e00af528a5d42a4f1d355 | move `main`'s chain of issue-validation guards into one `_refusal(issue, unit)` helper, because `main` has grown long (this is moving behaviour, which this phase does not apply)	refactor: move main's issue-validation guards into _refusal (#2856)
