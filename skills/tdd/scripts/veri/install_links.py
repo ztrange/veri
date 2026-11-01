@@ -42,6 +42,7 @@ def main(argv):
             os.unlink(link)
         if not os.path.islink(link):
             os.symlink(os.path.join(veri_skills, name), link)
+            print(name)
     exclude = os.path.join(common, "info", "exclude")
     os.makedirs(os.path.dirname(exclude), exist_ok=True)
     with open(exclude, "a+") as out:
