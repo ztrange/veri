@@ -275,11 +275,12 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `$S/issue-worktree.sh --remove <n>` removes the worktree once the PR has landed, and
   **refuses** (exit 2) one holding uncommitted changes.
 - `$S/detect-test-command.sh [--tier fast|all] [--issue <body-file>] [repo-root]` — print the one command that
-  runs the **target repo's** full suite on stdout; **exit 3** — the repo-wide *nothing to do*
+  runs the **target repo's** suite of that tier on stdout; **exit 3** — the repo-wide *nothing to do*
   code — when no marker it trusts matched, which is your cue to ask the user. First match
-  wins: the issue body's own `Test command:` line (for `--tier all`, unless it equals the fast
-  tier's command — #1225), then the repo's `.veri/test-command`,
-  then every inference (see *Detecting the test command*).
+  wins: for `--tier all` only, the issue body's own `Test command:` line, unless it equals the
+  fast tier's command (#1225); then the repo's CLAUDE.md line for the tier; then the repo's
+  `.veri/test-command`; then every inference (see *Detecting the test command*).
+  `--tier fast` never reads the issue's line.
 - `$S/worktree-setup.sh <n>` — run from inside a run worktree: runs the `veri: setup: <cmd>` line of its CLAUDE.md (read like `veri: all tests:`) once in the worktree root; exit 2 with no argument. Called by preflight.
 - `$S/solvable-issues.sh [--repo <owner/name>] [--not-running]` — the **selection layer**: prints the
   numbers of the issues veri may take right now — open, labelled `ready-for-agent`, every
