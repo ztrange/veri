@@ -19,6 +19,6 @@
 - [x] Write skills/vinstall/SKILL.md and its REQUIREMENTS.md against rows VI1, VI2 and VI3 of the issue, reaching the shim as ../tdd/scripts/install-links.sh ⟦skill-edit⟧
 - [x] skills/vinstall/ carries no .on-demand marker, pinned by a case in test_prd_016_install_markers.py, a pin with no production change expected ⟦criterion 1⟧
 - [x] Edit skills/vdev/SKILL.md against rows D5, D20 and D21 of the issue: delete the sentences saying vmerge and vbail do not exist yet, and their fallback text ⟦skill-edit⟧
-- [ ] Edit skills/vcoord/SKILL.md against rows C17 and C18 of the issue ⟦skill-edit⟧
+- [x] Edit skills/vcoord/SKILL.md against rows C17 and C18 of the issue ⟦skill-edit⟧
 - [ ] Edit README.md against row RD1 of the issue, the one-line install of vinstall under ## Install ⟦skill-edit⟧
 - [ ] The first run after this lands reports each subagent load's tokens against the skill body's size, in its PR or issue; the PR body says who owes that report ⟦human-owed⟧ ⟦criterion 11⟧
