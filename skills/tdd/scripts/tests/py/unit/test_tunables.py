@@ -66,3 +66,10 @@ def test_2841_rebased_tip_suite_set_to_a_value_but_local_or_ci_makes_run_conduct
     assert "VERI_REBASED_TIP_SUITE" in tunables.TABLE
     assert (code, out, len(err.splitlines()), "VERI_REBASED_TIP_SUITE" in err, "bogus" in err, tuple(calls)) == (
         2, "", 1, True, True, ())
+
+
+def test_2841_rebased_tip_suite_unset_resolves_to_local_with_no_error(monkeypatch):
+    tunables = importlib.import_module("veri.tunables")
+    monkeypatch.delenv("VERI_REBASED_TIP_SUITE", raising=False)
+
+    assert tunables.resolve("VERI_REBASED_TIP_SUITE") == ("local", None)
