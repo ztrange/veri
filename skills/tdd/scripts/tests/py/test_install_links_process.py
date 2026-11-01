@@ -342,3 +342,24 @@ def test_install_links_sh_second_run_on_a_repo_already_holding_all_eight_links_p
     first = run()
     second = run()
     assert (first.returncode, len(first.stdout.splitlines()), second.returncode, second.stdout) == (0, 8, 0, "")
+
+
+@pytest.mark.process("git init on a scratch project, then install-links.sh run twice against it around a dangling veri link")
+@pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
+def test_install_links_sh_after_one_veri_link_is_left_dangling_prints_one_stdout_line_for_that_skill_only(tmp_path):
+    clone, shim = _clone(tmp_path)
+    project = (tmp_path / "project").resolve()
+    project.mkdir()
+    subprocess.run(["git", "-C", str(project), "init", "-q", "-b", "main"], check=True)
+    skills = project / ".claude" / "skills"
+
+    def run():
+        return subprocess.run(["/bin/sh", str(shim), str(project)], stdin=subprocess.DEVNULL,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    first = run()
+    (skills / "vdev").unlink()
+    os.symlink(clone / "skills" / "vdev-renamed-away", skills / "vdev")
+    second = run()
+    assert (first.returncode, second.returncode, len(second.stdout.splitlines()),
+            [n for n in LINKED if n in second.stdout]) == (0, 0, 1, ["vdev"])
