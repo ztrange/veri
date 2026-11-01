@@ -13,6 +13,16 @@ def watch_runs():
     return importlib.import_module("veri.watch_runs")
 
 
+@pytest.fixture(autouse=True)
+def real_conductor_processes(monkeypatch, watch_runs):
+    """No case reads this machine's process table: a live run_conductor.py of the same issue
+    number, from any repository, would keep a run alive forever (#2832). A case that drives
+    the real parser over a stubbed ps takes the function back from this fixture."""
+    real = watch_runs.pid_file.conductor_processes
+    monkeypatch.setattr(watch_runs.pid_file, "conductor_processes", lambda: [])
+    return real
+
+
 def test_main_prints_exited_with_the_first_word_of_the_state_when_a_conductor_live_at_start_exits(
         monkeypatch, capsys, watch_runs):
     listings = iter([["5", "7"], ["5", "7"], ["7"]])
@@ -666,13 +676,14 @@ def test_2768_main_reports_vanished_and_returns_2_for_a_started_run_whose_worktr
 
 
 def test_2768_main_keeps_watching_a_started_run_whose_worktree_is_absent_for_several_polls_while_its_run_conductor_process_is_alive(
-        monkeypatch, capsys, tmp_path, watch_runs):
+        monkeypatch, capsys, tmp_path, watch_runs, real_conductor_processes):
     listings = iter([[("5", "running")]])
     ticks = itertools.count(0, 1)
 
     def ps(argv, **kwargs):
         return subprocess.CompletedProcess(argv, 0, stdout="/usr/bin/python3 /repo/veri/run_conductor.py 5\n", stderr="")
 
+    monkeypatch.setattr(watch_runs.pid_file, "conductor_processes", real_conductor_processes)
     monkeypatch.setattr(watch_runs.pid_file.subprocess, "run", ps)
     monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
     monkeypatch.setattr(watch_runs, "_runs", lambda: [{"issue": i, "state": s} for i, s in next(listings, [])])
