@@ -25,3 +25,22 @@ set to a veri-status fresh
 command 249
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp7p3jmoc0/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_prd_016_tracked_names_process.py make test TESTS=skills/tdd/scripts/tests/py/test_prd_016_tracked_names_process.py
 
+file 65
+skills/tdd/scripts/tests/py/test_prd_016_tracked_names_process.py
+old 149
+:(exclude)specs", ":(exclude).tdd"],
+        capture_output=True,
+        text=True,
+    )
+    assert run.returncode in (0, 1), run.stderr
+    return
+new 130
+:(exclude).tdd"],
+        capture_output=True,
+        text=True,
+    )
+    assert run.returncode in (0, 1), run.stderr
+    return
+command 164
+make test TESTS=skills/tdd/scripts/tests/py/test_prd_016_tracked_names_process.py::test_the_sweep_reports_a_tracked_file_holding_a_long_name_and_not_one_under_specs
+
