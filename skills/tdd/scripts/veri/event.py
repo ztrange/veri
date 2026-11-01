@@ -117,6 +117,25 @@ def awake_reading():
     return awake
 
 
+def journal_path(clone, issue):
+    try:
+        with open(os.path.join(clone, ".git", "config"), "rb") as handle:
+            config = handle.read().decode()
+    except OSError:
+        return None
+    url = ""
+    for text in config.splitlines():
+        text = text.strip()
+        if text.startswith("url") and "=" in text:
+            url = text.partition("=")[2].strip()
+            break
+    owner, repo = url.removesuffix(".git").split("/")[-2:] if url.count("/") >= 2 else ("", "")
+    if not (owner and repo and issue):
+        return None
+    home = tunables.read("VERI_HOME") or os.path.expanduser("~/.veri")
+    return os.path.join(home, "runs", owner + "-" + repo, issue + ".jsonl")
+
+
 def append(directory, context, event, fields=(), ts=None):
     args = [os.fsencode(event)] + [os.fsencode(field) for field in fields]
     context = {os.fsencode(key): os.fsencode(value) for key, value in context.items()}
@@ -128,7 +147,8 @@ def append(directory, context, event, fields=(), ts=None):
         if refusal:
             sys.stderr.buffer.write(refusal + b"\n")
             return 2
-    tdd = os.path.join(os.fspath(directory) or toplevel(), ".tdd")
+    top = os.fspath(directory) or toplevel()
+    tdd = os.path.join(top, ".tdd")
     os.makedirs(tdd, exist_ok=True)
     ts = int(time.time()) if ts is None else ts
     awake = awake_reading()
@@ -136,9 +156,18 @@ def append(directory, context, event, fields=(), ts=None):
         return awake
     fd = os.open(tdd + "/events.jsonl", os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o666)
     try:
-        os.write(fd, line(args, context, ts, awake))
+        text = line(args, context, ts, awake)
+        os.write(fd, text)
     finally:
         os.close(fd)
+    journal = journal_path(top, os.fsdecode(context.get(b"issue", b"")))
+    if journal:
+        os.makedirs(os.path.dirname(journal), exist_ok=True)
+        fd = os.open(journal, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o666)
+        try:
+            os.write(fd, text)
+        finally:
+            os.close(fd)
     return 0
 
 

@@ -1,7 +1,7 @@
 # Plan for #2749 — PRD 014.2: a run's events outlive its worktree, in one journal on the machine
 
 - [x] hermetic_environment sets VERI_HOME to the case's tmp_path, pinned by a small case in skills/tdd/scripts/tests/py/unit/test_event_journal.py ⟦guard-subject: skills/tdd/scripts/tests/py/conftest.py⟧ ⟦criterion 4⟧
-- [ ] in a clone whose .git is a directory and whose origin is an https URL, an event's line is appended byte for byte to $VERI_HOME/runs/<owner>-<repo>/<issue>.jsonl, while .tdd/events.jsonl keeps its format and path; owner and repo are read from the git config in-process, with no git process, and the case stays small ⟦criterion 1⟧
+- [x] in a clone whose .git is a directory and whose origin is an https URL, an event's line is appended byte for byte to $VERI_HOME/runs/<owner>-<repo>/<issue>.jsonl, while .tdd/events.jsonl keeps its format and path; owner and repo are read from the git config in-process, with no git process, and the case stays small ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] an event.sh event with an empty VERI_ISSUE creates nothing under VERI_HOME and prints nothing on stderr, pinned by a small case in skills/tdd/scripts/tests/py/unit/test_event_journal.py ⟦criterion 1⟧
 - [ ] an event.sh event in a clone with no origin remote creates nothing under VERI_HOME and prints nothing on stderr, pinned by a small case in skills/tdd/scripts/tests/py/unit/test_event_journal.py ⟦criterion 1⟧
 - [ ] in a linked worktree, whose .git is a file pointing at the common dir, the journal path's owner and repo are read from the common dir's config, by a small case with no git process ⟦criterion 1⟧
