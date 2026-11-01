@@ -66,3 +66,15 @@ def test_install_links_sh_points_each_link_at_the_normalised_absolute_path_of_it
     skills = tmp_path / ".claude" / "skills"
     targets = {n: os.readlink(skills / n) for n in LINKED if (skills / n).is_symlink()}
     assert (done.returncode, targets) == (0, {n: str(ROOT / "skills" / n) for n in LINKED})
+
+
+@pytest.mark.process("git init of a scratch repository, then install-links.sh run as the /bin/sh shim it is")
+def test_install_links_sh_with_no_argument_installs_into_the_repository_holding_the_current_directory(tmp_path):
+    repo = tmp_path / "repo"
+    deep = repo / "src" / "deep"
+    deep.mkdir(parents=True)
+    subprocess.run(["git", "-C", str(repo), "init", "-q", "-b", "main"], check=True)
+    done = subprocess.run(["/bin/sh", str(SCRIPTS / "install-links.sh")], cwd=deep, stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    entries = sorted(p.name for p in (repo / ".claude" / "skills").iterdir()) if (repo / ".claude").is_dir() else []
+    assert (done.returncode, entries, (deep / ".claude").exists()) == (0, LINKED, False)

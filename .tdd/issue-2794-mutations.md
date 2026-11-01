@@ -25,3 +25,12 @@ os.path.join("rel", name)
 command 331
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmppgvqsrm3/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_install_links_process.py make test TESTS=skills/tdd/scripts/tests/py/test_install_links_process.py::test_install_links_sh_points_each_link_at_the_normalised_absolute_path_of_its_skill_in_the_clone
 
+file 40
+skills/tdd/scripts/veri/install_links.py
+old 16
+else os.getcwd()
+new 19
+else "/nonexistent"
+command 332
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmppgvqsrm3/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_install_links_process.py make test TESTS=skills/tdd/scripts/tests/py/test_install_links_process.py::test_install_links_sh_with_no_argument_installs_into_the_repository_holding_the_current_directory
+
