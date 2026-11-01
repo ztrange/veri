@@ -210,7 +210,7 @@ def _missing(report):
     lines = _lines_with(report, "MISSING_TEST:")
     for line in lines:
         behaviour = line.partition(":")[2].strip()
-        if behaviour == "NONE":
+        if re.match(r"none\b", behaviour, re.IGNORECASE):
             return None
         if behaviour:
             return behaviour
