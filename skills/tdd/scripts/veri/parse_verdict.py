@@ -84,8 +84,12 @@ def main(argv):
     if word not in CODES:
         print(f"parse-verdict: unrecognised verdict word '{word}'", file=sys.stderr)
         return 2
-    reason = (following_reason(lines[vidx + 1:]).rstrip(SPACE) or inline_reason(tail, token)
-              or preceding_reason(lines[:vidx]))
+    after = following_reason(lines[vidx + 1:]).rstrip(SPACE) or inline_reason(tail, token)
+    if after:
+        missing = [line for line in lines[:vidx] if MISSING_TEST_RE.match(line)]
+        reason = "\n".join([*missing, after])
+    else:
+        reason = preceding_reason(lines[:vidx])
     print(drop_closing_fence(reason.strip(SPACE)))
     return CODES[word]
 
