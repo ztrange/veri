@@ -236,3 +236,25 @@ def test_2814_a_record_through_a_vanished_timed_test_run_path_whose_command_stil
 
     assert (ran.returncode, ran.stdout, (tmp_path / "guard.txt").read_bytes()) == (
         0, "needs a look: guard.txt\n", b"if guard\nmore\n"), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a record whose mutated run fails a real test")
+def test_2827_a_mutated_run_that_exits_non_zero_and_still_prints_the_unmutated_result_line_counts_as_red_and_exits_0(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-2827-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="echo 'FAIL: TestGuard' >&2; grep -q 'if guard' guard.txt")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout, (tmp_path / "guard.txt").read_bytes()) == (
+        0, "", b"if guard\nmore\n"), ran.stderr
