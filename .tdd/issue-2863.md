@@ -1,6 +1,6 @@
 # Plan for #2863 — tests_frozen's Go case body runs past the case's closing brace, so a helper defined after the case counts twice and leaves the record stale
 
-- [x] Go, helper defined after the last case: a case recorded at its verified green, refactored with the same assertions, then `rerecord-refactored` then `check-earlier` exits 0, the Go case body ending at its first column-0 closing brace ⟦criterion 1⟧ ⟂ refactor pending
+- [x] Go, helper defined after the last case: a case recorded at its verified green, refactored with the same assertions, then `rerecord-refactored` then `check-earlier` exits 0, the Go case body ending at its first column-0 closing brace ⟦criterion 1⟧
 - [ ] Go, helper defined between two cases: `rerecord-refactored` then `check-earlier` exits 0 ⟦criterion 2⟧
 - [ ] Go, a helper appended at EOF after the re-record leaves `check-earlier` at 0 ⟦criterion 3⟧
 - [ ] Go, deleting an assertion from a case still leaves `check-earlier` at 1 ⟦criterion 4⟧
