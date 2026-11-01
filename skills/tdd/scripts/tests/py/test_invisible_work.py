@@ -356,7 +356,7 @@ def test_main_reports_the_branches_on_origin_with_no_pr_and_the_local_branches_o
     invisible_work = importlib.import_module("veri.invisible_work")
     monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
     (tmp_path / "issues.json").write_text(
-        '[{"number": 71, "title": "walkthrough: version the commentary too", "labels": [],'
+        '[{"number": 71, "title": "dashboard: version the commentary too", "labels": [],'
         ' "body": "", "state": "OPEN"}]')
     (tmp_path / "prs.json").write_text(
         '[{"headRefName": "tdd/72-a-run-whose-pr-is-open", "state": "OPEN", "body": "Closes #72"},'
@@ -368,11 +368,11 @@ def test_main_reports_the_branches_on_origin_with_no_pr_and_the_local_branches_o
         ' {"headRefName": "tdd/150-a-run-whose-pr-is-still-open", "state": "OPEN", "body": "Closes #150"}]')
     remote = {
         "HEAD": "1111", "main": "1111",
-        "tdd/71-walkthrough-version-the-commentary-too": "a71a", "tdd/999-an-issue-nobody-filed": "a999",
+        "tdd/71-dashboard-version-the-commentary-too": "a71a", "tdd/999-an-issue-nobody-filed": "a999",
         "chore/nobody-opened-a-pr": "bbbb", "tdd/72-a-run-whose-pr-is-open": "a72a",
         "chore/pushed-already": "cccc", "tdd/4-supervised-leaves": "a4a4", "chore/test-runner": "dddd",
     }
-    ahead = {"tdd/71-walkthrough-version-the-commentary-too": 3, "tdd/999-an-issue-nobody-filed": 3,
+    ahead = {"tdd/71-dashboard-version-the-commentary-too": 3, "tdd/999-an-issue-nobody-filed": 3,
              "chore/nobody-opened-a-pr": 1, "tdd/72-a-run-whose-pr-is-open": 2,
              "chore/pushed-already": 1, "tdd/4-supervised-leaves": 2, "chore/test-runner": 1}
     local = {
@@ -391,7 +391,7 @@ def test_main_reports_the_branches_on_origin_with_no_pr_and_the_local_branches_o
     assert (code, out, err) == (
         0,
         "invariant 2 (no PR): chore/nobody-opened-a-pr tip bbbb 1 commits ahead\n"
-        "invariant 2 (no PR): tdd/71-walkthrough-version-the-commentary-too tip a71a 3 commits ahead,"
+        "invariant 2 (no PR): tdd/71-dashboard-version-the-commentary-too tip a71a 3 commits ahead,"
         " issue #71 OPEN\n"
         "invariant 2 (no PR): tdd/999-an-issue-nobody-filed tip a999 3 commits ahead, issue #999 unknown\n"
         "invariant 1 (not on origin): tdd/150-a-run-that-never-reached-origin tip e150"
@@ -563,7 +563,7 @@ def unpr_clone(tmp_path, branch, ahead):
     gh = tmp_path / "gh"
     gh.mkdir()
     (gh / "issues.json").write_text(
-        '[{"number": 71, "title": "walkthrough: version the commentary too", "labels": [], "body": "", "state": "OPEN"}]\n')
+        '[{"number": 71, "title": "dashboard: version the commentary too", "labels": [], "body": "", "state": "OPEN"}]\n')
     (gh / "prs.json").write_text("[]\n")
     return clone, origin, gh
 
@@ -573,7 +573,7 @@ def test_main_prints_the_same_report_stderr_and_exit_code_through_a_symlink_to_t
         run_cli, tmp_path):
     invisible_work = importlib.import_module("veri.invisible_work")
     local_only = "tdd/150-a-run-that-never-reached-origin"
-    clone, _, gh = unpr_clone(tmp_path, "tdd/71-walkthrough-version-the-commentary-too", 2)
+    clone, _, gh = unpr_clone(tmp_path, "tdd/71-dashboard-version-the-commentary-too", 2)
     run_git(clone, "checkout", "-q", "-b", local_only, "main")
     run_git(clone, "commit", "-q", "--allow-empty", "-m", "feat: a step nobody pushed (#150)")
     run_git(clone, "checkout", "-q", "main")
@@ -593,7 +593,7 @@ def test_main_prints_the_same_report_stderr_and_exit_code_through_a_symlink_to_t
 @pytest.mark.process("real git: a clone whose refs/remotes/origin/HEAD is deleted, resolved from its origin")
 def test_main_prints_the_same_report_and_exit_code_with_no_origin_head_ref_as_when_it_is_set(run_cli, tmp_path):
     invisible_work = importlib.import_module("veri.invisible_work")
-    branch = "tdd/71-walkthrough-version-the-commentary-too"
+    branch = "tdd/71-dashboard-version-the-commentary-too"
     clone, _, gh = unpr_clone(tmp_path, branch, 3)
 
     set_code, set_out, set_err = run_cli(invisible_work, [], env={"VERI_GH_JSON": str(gh)}, cwd=clone)
@@ -609,7 +609,7 @@ def test_main_prints_the_same_report_and_exit_code_with_no_origin_head_ref_as_wh
 def test_main_exits_2_naming_refs_remotes_origin_head_when_neither_the_ref_nor_the_remote_names_a_default(
         run_cli, tmp_path):
     invisible_work = importlib.import_module("veri.invisible_work")
-    clone, origin, gh = unpr_clone(tmp_path, "tdd/71-walkthrough-version-the-commentary-too", 1)
+    clone, origin, gh = unpr_clone(tmp_path, "tdd/71-dashboard-version-the-commentary-too", 1)
     run_git(clone, "config", "remote.origin.followRemoteHEAD", "never")
     run_git(clone, "symbolic-ref", "--delete", "refs/remotes/origin/HEAD")
     run_git(origin, "update-ref", "--no-deref", "HEAD", run_git(origin, "rev-parse", "refs/heads/main").strip())
