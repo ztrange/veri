@@ -10,3 +10,12 @@ merge-gates:
 command 270
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpow37e8rw/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_docs_lane_removed.py make test TESTS=skills/tdd/scripts/tests/py/test_docs_lane_removed.py::test_make_has_none_of_the_docs_lane_targets
 
+file 10
+CONTEXT.md
+old 6
+# veri
+new 18
+# veri walkthrough
+command 301
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpow37e8rw/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_docs_lane_removed.py make test TESTS=skills/tdd/scripts/tests/py/test_docs_lane_removed.py::test_no_tracked_file_outside_the_record_names_the_removed_page_or_its_lane
+
