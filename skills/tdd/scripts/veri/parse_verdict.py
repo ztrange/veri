@@ -13,6 +13,7 @@ def labelled(label):
 
 VERDICT_RE = labelled("verdict")
 REASON_RE = labelled("reason")
+MISSING_TEST_RE = labelled("missing_test")
 FENCE_RE = re.compile(f"^[{SPACE}]*(```|~~~)[{SPACE}]*$")
 UPPER = str.maketrans(string.ascii_lowercase, string.ascii_uppercase)
 CODES = {"PASS": 0, "REJECT": 1}
@@ -54,11 +55,14 @@ def following_reason(rest):
 
 
 def preceding_reason(before):
+    kept = []
     for line in before:
         match = REASON_RE.match(line)
         if match:
-            return match.group(1)
-    return ""
+            kept.append(match.group(1))
+        elif MISSING_TEST_RE.match(line):
+            kept.append(line)
+    return "\n".join(kept)
 
 
 def drop_closing_fence(reason):

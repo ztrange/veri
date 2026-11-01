@@ -183,3 +183,15 @@ def test_issue_2797_a_reason_line_before_the_reject_verdict_with_nothing_after_i
             "VERDICT: REJECT")
 
     assert run_cli(parse_verdict, [], stdin=text) == (1, "the test pins the wrong boundary.\n", "")
+
+
+def test_issue_2797_a_missing_test_line_before_reason_and_reject_verdict_is_printed_intact(run_cli, parse_verdict):
+    text = ("MISSING_TEST: slugify rejects an empty string\n"
+            "REASON: nothing pins the empty input.\n"
+            "VERDICT: REJECT")
+
+    code, out, err = run_cli(parse_verdict, [], stdin=text)
+
+    assert (code, err) == (1, "")
+    assert "MISSING_TEST: slugify rejects an empty string" in out.splitlines()
+    assert "nothing pins the empty input." in out
