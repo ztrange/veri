@@ -1200,7 +1200,9 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      the refactor changed, an earlier step's included, with
      `$S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md <green-sha>`: a case is
      re-recorded only when it kept its title and its assertion lines modulo whitespace, and one
-     that did not is left as recorded, so `check-earlier` still refuses it:
+     that did not is left as recorded, so `check-earlier` still refuses it. Its exit 2 is a
+     **bail** as a system failure (`Read` `<base directory>/BAIL.md`), and neither
+     `clear-refactor-pending.sh` nor the step's ledger commit follows it:
      ```
      $S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md <green-sha>
      step="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$step" added=<count>
