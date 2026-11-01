@@ -136,6 +136,14 @@ def journal_path(clone, issue):
     return os.path.join(home, "runs", owner + "-" + repo, issue + ".jsonl")
 
 
+def append_once(path, data):
+    fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o666)
+    try:
+        os.write(fd, data)
+    finally:
+        os.close(fd)
+
+
 def append(directory, context, event, fields=(), ts=None):
     args = [os.fsencode(event)] + [os.fsencode(field) for field in fields]
     context = {os.fsencode(key): os.fsencode(value) for key, value in context.items()}
@@ -154,20 +162,12 @@ def append(directory, context, event, fields=(), ts=None):
     awake = awake_reading()
     if isinstance(awake, int):
         return awake
-    fd = os.open(tdd + "/events.jsonl", os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o666)
-    try:
-        text = line(args, context, ts, awake)
-        os.write(fd, text)
-    finally:
-        os.close(fd)
+    text = line(args, context, ts, awake)
+    append_once(tdd + "/events.jsonl", text)
     journal = journal_path(top, os.fsdecode(context.get(b"issue", b"")))
     if journal:
         os.makedirs(os.path.dirname(journal), exist_ok=True)
-        fd = os.open(journal, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o666)
-        try:
-            os.write(fd, text)
-        finally:
-            os.close(fd)
+        append_once(journal, text)
     return 0
 
 
