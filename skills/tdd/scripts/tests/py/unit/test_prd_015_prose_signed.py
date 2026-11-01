@@ -46,3 +46,16 @@ def test_prose_owed_sh_prints_nothing_for_readme_and_root_requirements_list_rd28
     section = (root / "REQUIREMENTS.md").read_text().split("\n## README.md", 1)[1].split("\n## ", 1)[0]
     assert "README.md" not in out.split("\n") and code in (0, 1), (code, out, err)
     assert re.search(r"^\| RD28 \|", section, re.M), section
+
+
+@pytest.mark.tree_audit("the repository's graded prose units, copied without .git")
+def test_prose_owed_sh_prints_nothing_for_scripts_md_and_row_sc23_names_the_refusal_of_a_criterion_tagged_text(tmp_path, run_cli):
+    prose_owed = importlib.import_module("veri.prose_owed")
+    root = tmp_path / "repo"
+    shutil.copytree(ROOT, root, ignore=shutil.ignore_patterns(".git", ".tdd", "node_modules", "__pycache__"), symlinks=True)
+
+    code, out, err = run_cli(prose_owed, [str(root)])
+
+    row = re.search(r"^\| SC23 \|(.*)$", (root / "skills/tdd/REQUIREMENTS.md").read_text(), re.M)
+    assert "skills/tdd/SCRIPTS.md" not in out.split("\n") and code in (0, 1), (code, out, err)
+    assert row and "already carries a `⟦criterion k⟧` tag" in row.group(1), row and row.group(1)[:200]
