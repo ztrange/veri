@@ -2604,3 +2604,19 @@ def test_main_2565_resolves_an_unquoted_superseded_line_naming_a_case_whose_own_
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
 
     assert (code, stdout, "no defined test case resolves:" in stderr) == (0, "red %s\n" % title, False)
+
+
+def test_main_2807_prints_red_over_the_go_case_a_superseded_line_names_from_a_go_test_file(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / "pkg").mkdir()
+    (tmp_path / "pkg" / "foo_test.go").write_text(
+        "package pkg\n\nimport \"testing\"\n\n"
+        "func TestAdded(t *testing.T) {\n}\n\n"
+        "func TestOther(t *testing.T) {\n}\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: go test ./...\nSUPERSEDED: TestOther\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "TestAdded"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red TestOther\n")
