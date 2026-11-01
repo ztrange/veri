@@ -246,6 +246,9 @@ def main(argv):
     if _rows_outside_requirements(issue, unit):
         print("rows for %s are not under ## Requirements" % unit, file=sys.stderr)
         return 2
+    if any(heading is None and line.startswith("|") for heading, line in _requirements_lines(issue)):
+        print("a ## Requirements row is under no ### unit heading", file=sys.stderr)
+        return 2
     issue_rows = _issue_rows(issue, unit)
     for row in issue_rows:
         if not requirements.well_formed_row_id(_row_id(row)):

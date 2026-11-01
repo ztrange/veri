@@ -801,6 +801,37 @@ def test_an_issue_with_rows_under_a_unit_heading_outside_requirements_exits_2_na
         2, True, original, "The widget is painted a deep blue.\n", False), (code, err)
 
 
+def test_an_issue_with_a_requirements_row_under_no_unit_heading_exits_2_naming_the_problem_leaving_list_unit_and_graded_unchanged_2856(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    original = ("## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+                "| PL3 | The widget is blue. | because |\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(original)
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| PL4 | The widget is shiny. | gloss |\n")
+
+    def run(cmd, **kw):
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess",
+                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
+
+    assert (code, "under no ### unit heading" in err,
+            (tmp_path / "REQUIREMENTS.md").read_text(), (tmp_path / "unit.md").read_text(),
+            (tmp_path / "GRADED").exists()) == (
+        2, True, original, "The widget is painted a deep blue.\n", False), (code, err)
+
+
 def test_apply_numbers_a_prefix_next_row_past_the_max_over_the_lists_ids_and_the_issues_own_explicit_ids_2262(tmp_path, monkeypatch):
     skill_edit_step = _next_case_2262(
         tmp_path, monkeypatch,
