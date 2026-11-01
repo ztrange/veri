@@ -40,3 +40,12 @@ new 41
 command 313
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpplldoej3/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py::test_main_2807_prints_revise_when_a_wrong_test_names_only_the_step_own_go_case
 
+file 43
+skills/tdd/scripts/veri/wrong_test_route.py
+old 35
+go_file = file.endswith("_test.go")
+new 30
+go_file = file.endswith(".go")
+command 340
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpplldoej3/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py::test_main_2807_prints_revise_when_a_wrong_test_names_a_go_helper_defined_only_in_a_file_not_named_test_go
+
