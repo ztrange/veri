@@ -2691,3 +2691,19 @@ def test_main_2807_prints_revise_when_a_wrong_test_names_only_the_step_own_go_ca
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), "TestOwn"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
+
+
+def test_main_2807_prints_fixture_with_the_go_test_file_path_when_a_wrong_test_names_a_go_helper_in_backticks(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / "pkg").mkdir()
+    (tmp_path / "pkg" / "server_test.go").write_text(
+        "package pkg\n\nimport \"testing\"\n\n"
+        "func newServer(t *testing.T) *Server {\n\treturn nil\n}\n\n"
+        "func TestOwn(t *testing.T) {\n}\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: go test ./...\nWRONG_TEST: the helper `newServer` seeds the wrong clock\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "TestOwn"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "fixture pkg/server_test.go newServer\n")
