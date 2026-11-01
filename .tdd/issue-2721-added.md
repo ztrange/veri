@@ -1,0 +1,1 @@
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_prd_014_1_removals.py — FAIL - test_no_tracked_file_outside_the_record_names_the_removed_scripts: assert (0 == 1), its git grep finds the word dashboard in the sample strings of skills/tdd/scripts/tests/py/test_invisible_work.py ⟦suite-repair⟧ ⟦criterion 3⟧
