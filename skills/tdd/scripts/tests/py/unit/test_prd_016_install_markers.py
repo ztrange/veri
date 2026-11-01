@@ -28,3 +28,7 @@ def test_the_on_demand_marker_of_each_linked_skill_says_vinstall_links_it_not_by
             stale[name] = text.splitlines()[:1]
 
     assert stale == {}, sorted(stale)
+
+
+def test_vinstall_carries_no_on_demand_marker():
+    assert not (ROOT / "skills" / "vinstall" / ".on-demand").exists()
