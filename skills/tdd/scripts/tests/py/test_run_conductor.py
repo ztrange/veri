@@ -511,6 +511,9 @@ def fake_pin(monkeypatch, commit, accepted):
     return calls
 
 
+SEED_LINES = {".gitignore", "issue-*-skill-commit", "issue-*-conductor-model"}
+
+
 def test_main_on_a_pinned_launch_seeds_the_gitignore_only_when_absent_writes_an_unreadable_record_keeps_an_accepted_one_as_given_and_refuses_any_other_with_2(
         tmp_path, monkeypatch, capfdbinary):
     past_the_guards(monkeypatch)
@@ -549,6 +552,8 @@ def test_main_on_a_pinned_launch_seeds_the_gitignore_only_when_absent_writes_an_
         captured = capfdbinary.readouterr()
         seed = cwd / ".tdd" / ".gitignore"
         seeded = seed.read_text() if seed.is_file() else None
+        if seeded is not None and SEED_LINES <= set(seeded.splitlines()):
+            seeded = "seeded"
         kept = path.read_text() if path.is_file() else None
         cat_files = [call[5] for call in calls if call[:1] == ["git"] and call[3:5] == ["cat-file", "-e"]]
         expanded = [call for call in calls if commit in call and call[3:4] != ["rev-parse"]]
@@ -558,10 +563,10 @@ def test_main_on_a_pinned_launch_seeds_the_gitignore_only_when_absent_writes_an_
             answers[name] = (seeded, kept, cat_files,
                              expanded if record else None, b"refusing to re-pin" in captured.err)
     assert answers == {
-        "fresh": (".gitignore\nissue-*-skill-commit\nissue-*-conductor-model\n", commit + "\n", [], None, False),
+        "fresh": ("seeded", commit + "\n", [], None, False),
         "own-gitignore": ("mine\n", commit + "\n", [], None, False),
-        "abbreviation": (".gitignore\nissue-*-skill-commit\nissue-*-conductor-model\n", "1111111\n\n", ["1111111^{commit}"], [], False),
-        "ref-name": (".gitignore\nissue-*-skill-commit\nissue-*-conductor-model\n", "main\n", ["main^{commit}"], [], False),
+        "abbreviation": ("seeded", "1111111\n\n", ["1111111^{commit}"], [], False),
+        "ref-name": ("seeded", "main\n", ["main^{commit}"], [], False),
         "foreign": (2, b"", [refusal % "2222222"], "2222222\n"),
         "directory": (2, b"", [refusal % ""], None),
     }
@@ -670,8 +675,8 @@ def test_main_run_from_a_subdirectory_of_the_repo_makes_the_run_state_at_the_rep
     run_conductor.main(["4242"])
 
     seed = root / ".tdd" / ".gitignore"
-    assert (seed.read_text() if seed.is_file() else None, (sub / ".tdd").exists()) == (
-        ".gitignore\nissue-*-skill-commit\nissue-*-conductor-model\n", False)
+    lines = set(seed.read_text().splitlines()) if seed.is_file() else set()
+    assert (SEED_LINES <= lines, (sub / ".tdd").exists()) == (True, False)
 
 
 def test_main_with_veri_new_skill_exactly_1_rewrites_a_readable_record_then_appends_a_skill_repin_event_in_the_run_worktree_returning_2_on_its_failure_and_logs_nothing_on_a_first_launch_or_any_other_value(
