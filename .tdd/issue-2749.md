@@ -5,7 +5,7 @@
 - [x] an event.sh event with an empty VERI_ISSUE creates nothing under VERI_HOME and prints nothing on stderr, pinned by a small case in skills/tdd/scripts/tests/py/unit/test_event_journal.py ⟦criterion 1⟧
 - [x] an event.sh event in a clone with no origin remote creates nothing under VERI_HOME and prints nothing on stderr, pinned by a small case in skills/tdd/scripts/tests/py/unit/test_event_journal.py ⟦criterion 1⟧
 - [x] in a linked worktree, whose .git is a file pointing at the common dir, the journal path's owner and repo are read from the common dir's config, by a small case with no git process ⟦criterion 1⟧
-- [ ] an origin written in scp form, git@github.com:<owner>/<repo>.git, names the same journal path as its https form, by a small case ⟦criterion 1⟧
+- [x] an origin written in scp form, git@github.com:<owner>/<repo>.git, names the same journal path as its https form, by a small case ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] with VERI_HOME unset the journal is written under ~/.veri, with HOME pointed at the case's tmp_path by a small case ⟦criterion 1⟧
 - [ ] a failed journal write prints exactly one stderr line naming the journal path, leaves event.sh's exit code 0 and still writes the line to .tdd/events.jsonl, by a small case ⟦criterion 2⟧
 - [ ] one journal write starts no process and is one os.write on a descriptor opened with O_APPEND, pinned with in-process spies by a small case, no production change expected ⟦criterion 3⟧
