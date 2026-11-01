@@ -1,0 +1,4 @@
+# Plan for #2728 — SCRIPTS.md's add-ledger-step.sh entry names the refusal of a text already carrying a criterion tag
+
+- [ ] skill-edit step for the unit `skills/tdd/SCRIPTS.md`: row SC23 of `skills/tdd/REQUIREMENTS.md` is replaced by the row the issue states, and SCRIPTS.md's `add-ledger-step.sh` entry states among its exit-2 refusals that a text already carrying a `⟦criterion k⟧` tag is refused, the script naming the tag and one bad text inserting none of the batch, regraded and re-signed in `skills/tdd/GRADED` ⟦skill-edit⟧ ⟦criterion 1⟧
+- [ ] a case in `skills/tdd/scripts/tests/py/unit/test_prd_015_prose_signed.py` pins that `prose-owed.sh`, run in-process on the repository root, prints nothing for `skills/tdd/SCRIPTS.md`, and that row SC23 of `skills/tdd/REQUIREMENTS.md` names the refusal of a text already carrying a `⟦criterion k⟧` tag; a small case marked `tree_audit`, no production change ⟦criterion 1⟧
