@@ -1,0 +1,1 @@
+- [ ] skill-edit step for the unit `skills/tdd/SKILL.md`: the red-full-suite repair block itself writes the `step-add-refused` bail on `add-ledger-step.sh` exit 2 and runs its `git add` and `git commit` only on exit 0, and the regrade paragraph says the same of a REJECT's repair step ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 1⟧
