@@ -64,7 +64,7 @@ def main(argv):
         path.write_bytes(original)
         green = mutated.returncode == 0
         base_lines = output_lines(base)
-        if not green and base_lines and not base_lines & output_lines(mutated):
+        if not green and not base_lines & output_lines(mutated):
             sys.stdout.write(f"needs a look: {pin['file']} (mutation did not build)\n")
             status = 1
             continue
