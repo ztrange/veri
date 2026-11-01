@@ -37,6 +37,10 @@ def output_lines(run):
     return set(run.stdout.splitlines()) | set(run.stderr.splitlines())
 
 
+def write_tail(run):
+    sys.stderr.write("".join(line + "\n" for line in (run.stdout.splitlines() + run.stderr.splitlines())[-40:]))
+
+
 def main(argv):
     if not argv:
         sys.stderr.write("usage: pin-recheck.sh <base-sha>\n")
@@ -58,7 +62,7 @@ def main(argv):
         base = run_captured(pin["command"])
         if base.returncode != 0:
             sys.stdout.write(f"needs a look: {pin['file']}\n")
-            sys.stderr.write("".join(line + "\n" for line in (base.stdout.splitlines() + base.stderr.splitlines())[-40:]))
+            write_tail(base)
             continue
         path.write_bytes(original.replace(pin["old"].encode(), pin["new"].encode()))
         mutated = run_captured(pin["command"])
@@ -67,7 +71,7 @@ def main(argv):
         base_lines = output_lines(base)
         if not green and not base_lines & output_lines(mutated):
             sys.stdout.write(f"needs a look: {pin['file']} (mutation did not build)\n")
-            sys.stderr.write("".join(line + "\n" for line in (mutated.stdout.splitlines() + mutated.stderr.splitlines())[-40:]))
+            write_tail(mutated)
             status = 1
             continue
         if green:
