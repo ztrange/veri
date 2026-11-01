@@ -976,3 +976,15 @@ def test_cases_records_a_js_backtick_title_holding_an_interpolation_whole_as_wri
     text = "it(`shows ${name} on the login page`, () => {\n  expect(1).toBe(1);\n});\n"
 
     assert [name for name, _ in tests_frozen._cases(text)] == ["shows ${name} on the login page"]
+
+
+def test_cases_records_a_go_test_function_as_a_case_named_for_it_2799(tests_frozen):
+    text = 'package x\n\nfunc TestX(t *testing.T) {\n\tif 1+1 != 2 {\n\t\tt.Fatal("no")\n\t}\n}\n'
+
+    assert [name for name, _ in tests_frozen._cases(text)] == ["TestX"]
+
+
+def test_cases_leaves_a_go_function_not_named_test_out_of_the_cases_2799(tests_frozen):
+    text = 'package x\n\nfunc helper(t *testing.T) {\n}\n\nfunc TestX(t *testing.T) {\n}\n'
+
+    assert [name for name, _ in tests_frozen._cases(text)] == ["TestX"]
