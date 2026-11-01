@@ -455,6 +455,21 @@ def unmarked_case_lists_no_repository_directory(request, monkeypatch, tmp_path):
         monkeypatch.setattr(os, name, checked(getattr(os, name)))
 
 
+@pytest.fixture(autouse=True)
+def unmarked_case_reads_no_real_process_listing(request, monkeypatch):
+    if request.node.get_closest_marker("process") is not None:
+        return
+    from veri import pid_file
+    real, run = pid_file._conductors, pid_file.subprocess.run
+
+    def checked():
+        if pid_file.subprocess.run is run:
+            raise AssertionError("%s reads the real process listing: fake pid_file._conductors or mark it process" % request.node.nodeid)
+        return real()
+
+    monkeypatch.setattr(pid_file, "_conductors", checked)
+
+
 STARTS_PYTEST_EXEMPT = {
     "test_conftest.py::test_a_case_reading_a_cwd_relative_path_gives_the_same_outcome_started_from_the_repository_root_as_from_skills_tdd_scripts":
         "the pytest session started from two directories is the subject",
