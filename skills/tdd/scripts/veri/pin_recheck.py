@@ -29,6 +29,10 @@ def current_wrapper(command):
     return command
 
 
+def run_captured(command):
+    return subprocess.run(command, shell=True, capture_output=True, text=True)
+
+
 def main(argv):
     if not argv:
         sys.stderr.write("usage: pin-recheck.sh <base-sha>\n")
@@ -44,12 +48,23 @@ def main(argv):
         pin["command"] = current_wrapper(pin["command"])
         path = Path(pin["file"])
         original = path.read_bytes()
-        if pin["old"].encode() not in original or subprocess.run(pin["command"], shell=True).returncode != 0:
+        if pin["old"].encode() not in original:
+            sys.stdout.write(f"needs a look: {pin['file']}\n")
+            continue
+        base = run_captured(pin["command"])
+        if base.returncode != 0:
             sys.stdout.write(f"needs a look: {pin['file']}\n")
             continue
         path.write_bytes(original.replace(pin["old"].encode(), pin["new"].encode()))
-        green = subprocess.run(pin["command"], shell=True).returncode == 0
+        mutated = run_captured(pin["command"])
         path.write_bytes(original)
+        green = mutated.returncode == 0
+        base_lines = set(base.stdout.splitlines()) | set(base.stderr.splitlines())
+        if (not green and base_lines
+                and not base_lines & (set(mutated.stdout.splitlines()) | set(mutated.stderr.splitlines()))):
+            sys.stdout.write(f"needs a look: {pin['file']} (mutation did not build)\n")
+            status = 1
+            continue
         if green:
             sys.stderr.write(f"pin stayed green under its mutation: {pin['file']}\n")
             status = 1

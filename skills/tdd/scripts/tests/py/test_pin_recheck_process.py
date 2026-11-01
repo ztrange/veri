@@ -258,3 +258,47 @@ def test_2827_a_mutated_run_that_exits_non_zero_and_still_prints_the_unmutated_r
 
     assert (ran.returncode, ran.stdout, (tmp_path / "guard.txt").read_bytes()) == (
         0, "", b"if guard\nmore\n"), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a record whose mutated run prints none of the unmutated lines")
+def test_2827_a_mutated_run_that_exits_non_zero_and_prints_none_of_the_unmutated_lines_needs_a_look_and_exits_1(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-2827-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="if grep -q 'if guard' guard.txt; then echo 'ok TestGuard'; else echo 'error: build failed'; exit 1; fi")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout, (tmp_path / "guard.txt").read_bytes()) == (
+        1, "needs a look: guard.txt (mutation did not build)\n", b"if guard\nmore\n"), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a record whose unmutated run prints its result line on stderr only")
+def test_2827_a_result_line_printed_only_on_stderr_still_tells_a_build_failure_from_a_red_test(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-2827-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="if grep -q 'if guard' guard.txt; then echo 'ok TestGuard' >&2; else echo 'error: build failed' >&2; exit 1; fi")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout, (tmp_path / "guard.txt").read_bytes()) == (
+        1, "needs a look: guard.txt (mutation did not build)\n", b"if guard\nmore\n"), ran.stderr
