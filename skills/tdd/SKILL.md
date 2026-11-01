@@ -1347,12 +1347,12 @@ and the conductor never edits a built prompt to add a suite one of them left out
 developer adds a unit-tier test when the failure exposes a gap the fast tier missed, and its
 verifier judges the fix against the full command, not the fast one.
 ```
-$S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the full-suite failure: <suite> — <its FAIL - line>> ⟦suite-repair⟧' && { step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1; }
-git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md
-git commit -m "plan: repair the red full suite (#<n>)"
+$S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the full-suite failure: <suite> — <its FAIL - line>> ⟦suite-repair⟧'; rc=$?
+[ "$rc" != 2 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=step-add-refused classification="$($S/classify-bail.sh step-add-refused)"
+[ "$rc" != 0 ] || { step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1; git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit -m "plan: repair the red full suite (#<n>)"; }
 ```
 That call passes no `--criterion` on purpose: the repair step serves its anchor's criterion.
-The `step-added` event is written only on `add-ledger-step.sh`'s exit 0, after the insertion has happened.
+The block captures `add-ledger-step.sh`'s exit code: the `step-added` event, the `git add` and the `git commit` run only on exit 0, after the insertion has happened.
 **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`, writing neither the `step-added` nor the `step-start` event** — see `<base directory>/BAIL.md`.
 **`add-ledger-step.sh` exit 1 on the `⟦suite-repair⟧` insertion → bail with cause `suite-red`, naming every suite still red**, exactly as the second-red-run bail below does (`Read` `<base directory>/BAIL.md`).
 
@@ -1473,7 +1473,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    The branch is left un-rebased, and the run does **bail** with cause `rebase-unresolved`, a **process** failure, with the PR left a draft, its
    bail comment naming every conflicting file `rebase-onto-default.sh` printed, so the human it hands the conflict to knows where it is (`Read` `<base directory>/BAIL.md`).
 
-   The regrade runs after the run's last rebase and before the full suite runs on the rebased tip, so a `GRADED` line made stale only by the rebase never turns that suite red; with no rebase it runs here, before the PR is readied. It regrades every unit the run signed with `grade-prose.sh` (a unit whose `GRADED` line the branch adds since `git merge-base HEAD origin/<default>`, in a `GRADED` file at any depth of the tree, the repository root's included), and reads the block's exit: exit 1 (a REJECT) is handled as a red full suite is, by appending a repair step; exit 2 (no verdict could be obtained) is a system-failure bail with cause `no-verdict`, never a repair step (see `<base directory>/BAIL.md`). Once a unit's text has been REJECTed, a regrade of the same text (the same signature input) may not re-sign it: only an author run that changes the text, followed by a PASS, may. Once that repair step's cycle closes, the run comes back to this Draft PR step and runs the full suite again, then the rebase and the regrade, as it does after a `⟦suite-repair⟧` step.
+   The regrade runs after the run's last rebase and before the full suite runs on the rebased tip, so a `GRADED` line made stale only by the rebase never turns that suite red; with no rebase it runs here, before the PR is readied. It regrades every unit the run signed with `grade-prose.sh` (a unit whose `GRADED` line the branch adds since `git merge-base HEAD origin/<default>`, in a `GRADED` file at any depth of the tree, the repository root's included), and reads the block's exit: exit 1 (a REJECT) is handled as a red full suite is, by appending a repair step through that same block, so a refused insertion (exit 2) is followed by the `step-add-refused` bail and by no `step-added` or `step-start` event; exit 2 (no verdict could be obtained) is a system-failure bail with cause `no-verdict`, never a repair step (see `<base directory>/BAIL.md`). Once a unit's text has been REJECTed, a regrade of the same text (the same signature input) may not re-sign it: only an author run that changes the text, followed by a PASS, may. Once that repair step's cycle closes, the run comes back to this Draft PR step and runs the full suite again, then the rebase and the regrade, as it does after a `⟦suite-repair⟧` step.
    ```
    base=$(git merge-base HEAD origin/<default>)
    git diff "$base" HEAD -U0 -- ':(glob)**/GRADED' | sed -n 's/^+\([^+][^ ]*\) .*/\1/p' | { rc=0; while read -r unit; do
